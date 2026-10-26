@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "sourceDescription": "Six user-supplied reference images. The sunburst buckle filename credits Matt Griffin. Original publications were not identified.",
+  "request": {
+    "date": "2026-10-26",
+    "scope": "The user requested the same cropped, recolorable logo-vector treatment for these six references: \"do these as well\"."
+  },
+  "preparation": "The five flat icons use foreground alpha, caption removal, proportional cropping, asset-specific smoothing and a 4x bitmap trace. The shaded buckle was manually redrawn into clean contours in a 4x bitmap master before tracing. All six use Potrace and the Dune Zone normalization and authoring pipeline.",
+  "preview": "The six-vector preview, including the simplified buckle redraw, was shown in chat before catalogue integration.",
+  "assets": {
+    "/vector/logo/lynch-dune.svg": {
+      "source": "originals/Lynch%27s_Dune_Icon.webp",
+      "bitmapMaster": "bitmaps/lynch-dune-4x.png",
+      "preparation": "Foreground alpha isolated, lettering removed by crop or disconnected caption components, smoothed and enlarged 4x before tracing.",
+      "sourceCrop": {
+        "left": 147,
+        "top": 0,
+        "width": 706,
+        "height": 583
+      },
+      "blurSigmaSourcePixels": 0.55,
+      "letteringCutoffY": 605
+    },
+    "/vector/logo/original-dune.svg": {
+      "source": "originals/Original_Dune_Icon.webp",
+      "bitmapMaster": "bitmaps/original-dune-4x.png",
+      "preparation": "Foreground alpha isolated, lettering removed by crop or disconnected caption components, smoothed and enlarged 4x before tracing.",
+      "sourceCrop": {
+        "left": 149,
+        "top": 0,
+        "width": 709,
+        "height": 558
+      },
+      "blurSigmaSourcePixels": 0.55,
+      "letteringCutoffY": 575
+    },
+    "/vector/logo/real-world.svg": {
+      "source": "originals/Real_World_Icon.webp",
+      "bitmapMaster": "bitmaps/real-world-4x.png",
+      "preparation": "Foreground alpha isolated, lettering removed by crop or disconnected caption components, smoothed and enlarged 4x before tracing.",
+      "sourceCrop": {
+        "left": 166,
+        "top": 0,
+        "width": 667,
+        "height": 667
+      },
+      "blurSigmaSourcePixels": 1.2,
+      "letteringCutoffY": 685
+    },
+    "/vector/logo/sci-fi-miniseries.svg": {
+      "source": "originals/Sci_Fi_Miniseries_Icon.webp",
+      "bitmapMaster": "bitmaps/sci-fi-miniseries-4x.png",
+      "preparation": "Foreground alpha isolated, lettering removed by crop or disconnected caption components, smoothed and enlarged 4x before tracing.",
+      "sourceCrop": {
+        "left": 166,
+        "top": 0,
+        "width": 667,
+        "height": 667
+      },
+      "blurSigmaSourcePixels": 0.65,
+      "captionComponentMinimumTopY": 660
+    },
+    "/vector/logo/sunburst-buckle-matt-griffin.svg": {
+      "source": "originals/Sunburst_buckle_-_Matt_Griffin.webp",
+      "bitmapMaster": "bitmaps/sunburst-buckle-matt-griffin-4x.png",
+      "preparation": "The shaded Matt Griffin reference was redrawn as clean frame, ray and rivet contours in a 4x bitmap master, then traced with Potrace.",
+      "lineworkMaster": "linework/sunburst-buckle-matt-griffin.svg",
+      "sourceFilenameAttribution": "Matt Griffin",
+      "interpretation": "Clean contours replace the shaded pencil texture; the frame, half-sun, rays, dotted arch and clasps are retained."
+    },
+    "/vector/logo/villeneuve.svg": {
+      "source": "originals/Villeneuve_Icon.webp",
+      "bitmapMaster": "bitmaps/villeneuve-4x.png",
+      "preparation": "Foreground alpha isolated, lettering removed by crop or disconnected caption components, smoothed and enlarged 4x before tracing.",
+      "sourceCrop": {
+        "left": 146,
+        "top": 0,
+        "width": 708,
+        "height": 708
+      },
+      "blurSigmaSourcePixels": 0.8,
+      "letteringCutoffY": 730
+    }
+  }
+}
