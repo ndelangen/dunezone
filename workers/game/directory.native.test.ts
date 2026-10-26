@@ -75,7 +75,9 @@ describe('A real game keeps the directory current', () => {
     await eventually(() => summaries().length === 2, 'roster summary');
     expect(peer.summaries[1].sequence).toBe(2);
     expect(peer.summaries[1].summary.seats).toEqual([]);
-    /* Nothing is owed once acknowledged: a restart delivers nothing more. */
+    /* Nothing is owed once acknowledged: a restart delivers nothing more. The room must have read the answer first. */
+    await eventually(() => deliveries().every((request) => request.completedAt !== undefined), 'the answer sent');
+    await new Promise((resolve) => setTimeout(resolve, 200));
     await runtime.restart();
     await new Promise((resolve) => setTimeout(resolve, 500));
     expect(summaries()).toEqual([1, 2]);
