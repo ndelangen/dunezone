@@ -104,6 +104,11 @@ export function useTableWindows(panels: readonly TablePanel[]): TableWindow[] {
   return windows;
 }
 
+/** A player's window opens on the chat when there is one to have, unless a vote or a seat request waits on their Info; otherwise on what they show. */
+export function openingTab(player: CompassPlayer): PlayerTab {
+  return !player.own && player.canConverse && !player.attention ? 'conversation' : 'public';
+}
+
 /* What a player's window is for: the conversation with them, their public details, or the viewer's own. */
 function playerGuidance(player: CompassPlayer, tab: PlayerTab): Pick<TableWindow, 'description' | 'help'> {
   if (player.own) {

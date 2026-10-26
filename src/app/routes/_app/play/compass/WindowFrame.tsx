@@ -1,5 +1,6 @@
 import { TopicIcon } from '@ui/content/TopicIcon';
 import clsx from 'clsx';
+import { Info, MessagesSquare } from 'lucide-react';
 import { useContext } from 'react';
 import type { CSSProperties, KeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 
@@ -65,7 +66,8 @@ export function WindowFrame({
       style={style}
     >
       {resize && <ResizeEdge resize={resize} />}
-      <WindowTitle entry={entry} tab={tab} onTab={onTab} actions={actions} />
+      <WindowTitle entry={entry} tab={tab} actions={actions} />
+      {entry.player && <PlayerTabs player={entry.player} tab={tab} onTab={onTab} />}
       <WindowContent entry={entry} tab={tab} />
     </div>
   );
@@ -74,12 +76,11 @@ export function WindowFrame({
 type WindowTitleProps = Readonly<{
   entry: TableWindow;
   tab: PlayerTab;
-  onTab: (tab: PlayerTab) => void;
   actions: ReactNode;
 }>;
 
-/* The title bar: the window's icon or the player's token, its name, its help, a player's tabs and the frame's buttons. */
-function WindowTitle({ entry, tab, onTab, actions }: WindowTitleProps) {
+/* The title bar: the window's icon or the player's token, its name, its help and the frame's buttons. */
+function WindowTitle({ entry, tab, actions }: WindowTitleProps) {
   const player = entry.player;
   return (
     <header className={styles.title}>
@@ -89,7 +90,6 @@ function WindowTitle({ entry, tab, onTab, actions }: WindowTitleProps) {
         {player && <FactionName player={player} />}
       </span>
       <WindowHelp entry={entry} tab={tab} />
-      {player && <PlayerTabs player={player} tab={tab} onTab={onTab} />}
       <span className={styles.actions}>{actions}</span>
     </header>
   );
@@ -135,33 +135,42 @@ function ResizeEdge({ resize }: Readonly<{ resize: Resize }>) {
   );
 }
 
+/* Another player's window has two sides, their chat and their information, as a row of its own under the title,
+   so a narrow slot never squeezes the Info tab away; the viewer's own window and a player they cannot chat with show only the information. */
 function PlayerTabs({
   player,
   tab,
   onTab,
-}: Readonly<{ player: CompassPlayer; tab: PlayerTab; onTab: (tab: PlayerTab) => void }>) {
+}: Readonly<{
+  player: CompassPlayer;
+  tab: PlayerTab;
+  onTab: (tab: PlayerTab) => void;
+}>) {
+  if (player.own || !player.canConverse) {
+    return null;
+  }
   return (
-    <span className={styles.tabs} role="tablist" aria-label={`${player.name} tabs`}>
-      {player.canConverse && !player.own && (
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === 'conversation'}
-          className={styles.tab}
-          onClick={() => onTab('conversation')}
-        >
-          Chat
-        </button>
-      )}
+    <div className={styles.tabs} role="tablist" aria-label={`${player.name} tabs`}>
       <button
         type="button"
         role="tab"
-        aria-selected={tab === 'public' || player.own || !player.canConverse}
+        aria-selected={tab === 'conversation'}
+        className={styles.tab}
+        onClick={() => onTab('conversation')}
+      >
+        <MessagesSquare size={15} aria-hidden="true" />
+        Chat
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={tab === 'public'}
         className={styles.tab}
         onClick={() => onTab('public')}
       >
+        <Info size={15} aria-hidden="true" />
         Info
       </button>
-    </span>
+    </div>
   );
 }

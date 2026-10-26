@@ -6,6 +6,7 @@ import type { Pulse } from './pulse';
 import { SIDES } from './slotLimits';
 import type { Side } from './slotLimits';
 import { useRemembered } from './useRemembered';
+import { openingTab } from './windows';
 import type { PlayerTab, TableWindow } from './windows';
 
 /*
@@ -147,10 +148,9 @@ export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boo
   const slots: Slots = { left, right };
   const centre = unlessShown(movedCentre, [left, right]);
 
-  /* A player's window opens on the chat when there is one to have, otherwise on what they show. */
   const firstTab = (key: string): PlayerTab => {
     const player = windows.find((entry) => entry.key === key)?.player;
-    return player && !player.own && player.canConverse ? 'conversation' : 'public';
+    return player ? openingTab(player) : 'public';
   };
   /* Already pinned: the slot shows it, so it lights up (on the tab asked for) rather than opening twice. */
   const showPinned = (side: Side, key: string, tab?: PlayerTab) => {

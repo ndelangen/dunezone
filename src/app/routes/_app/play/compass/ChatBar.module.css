@@ -52,6 +52,14 @@
   border-radius: 1.45rem;
 }
 
+/* The viewer's own token stands apart from the chats, after a thin rule. */
+.divider {
+  width: 1px;
+  height: 1.6rem;
+  margin: 0 0.2rem;
+  background: rgb(from var(--ui-highlight) r g b / 0.2);
+}
+
 .chat {
   position: relative;
   display: grid;
