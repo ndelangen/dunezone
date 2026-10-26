@@ -11124,7 +11124,7 @@
     "description": "A curved Sardaukar knife with a ring guard, crosshatched grip and notched blade tip.",
     "tags": ["Sardaukar", "knife", "blade", "Dune", "weapon", "vector"],
     "subjects": ["weapons"],
-    "sourceHash": "fc7103527d624c5a2b05c956ee0a322bcfc671402018e8cb78869e87e245dfd6"
+    "sourceHash": "8fe38a32f3fe93697223ba57a110d4ed3efcab5707a29cd2f2a308f226ef8fe1"
   },
   "/vector/decal/sardaukar-sheath.svg": {
     "description": "A curved Sardaukar knife sheath with a seam, rivets and two slots.",
