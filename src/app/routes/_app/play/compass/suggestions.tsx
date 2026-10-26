@@ -35,7 +35,7 @@ const CAMERA_VIEWS: Record<TableView, string> = {
   top: 'top-down',
 };
 
-/** Letters in order, anywhere in the text: "shinv" finds Shared inventory. Earlier and closer letters score higher. */
+/** Letters in order, anywhere in the text: "shinv" finds Shared table inventory. Earlier and closer letters score higher. */
 export function fuzzy(text: string, query: string): number | null {
   const haystack = text.toLowerCase();
   const needle = query.toLowerCase().replace(/\s+/g, '');
@@ -137,7 +137,8 @@ function commandCandidates(actions: SuggestionActions): Candidate[] {
     if (!offered) {
       return [];
     }
-    const bid = command === 'raise' || command === 'lower';
+    /* Raise is offered exactly while the bidder points at the viewer, when Pass hands it on rather than turning the token over. */
+    const bid = command === 'raise' || command === 'lower' || (command === 'pass' && actions.commands.raise !== null);
     return [
       {
         key: `cmd:${command}`,
@@ -158,6 +159,27 @@ function commandCandidates(actions: SuggestionActions): Candidate[] {
   return [...lettered, ...flip];
 }
 
+/* Next phase, only while the table takes it: the header's button is disabled otherwise, and a command that does nothing would only close the compass. */
+function nextPhaseCandidate(nextPhase: SuggestionActions['nextPhase'], close: () => void): Candidate[] {
+  if (!nextPhase) {
+    return [];
+  }
+  return [
+    {
+      key: 'cmd:next',
+      label: 'Next phase',
+      hint: 'Command',
+      icon: <TopicIcon topic="turn" size={18} />,
+      run: () => {
+        close();
+        nextPhase();
+      },
+      text: 'next phase',
+      weight: 4,
+    },
+  ];
+}
+
 /** Every window and command the search can reach. */
 export function candidatesOf(windows: readonly TableWindow[], actions: SuggestionActions): Candidate[] {
   return [
@@ -175,18 +197,7 @@ export function candidatesOf(windows: readonly TableWindow[], actions: Suggestio
       text: `${entry.label} ${entry.player?.factionName ?? ''} ${entry.group}`,
       weight: weightOf(entry),
     })),
-    {
-      key: 'cmd:next',
-      label: 'Next phase',
-      hint: 'Command',
-      icon: <TopicIcon topic="turn" size={18} />,
-      run: () => {
-        actions.close();
-        actions.nextPhase?.();
-      },
-      text: 'next phase',
-      weight: 4,
-    },
+    ...nextPhaseCandidate(actions.nextPhase, actions.close),
     ...commandCandidates(actions),
     ...(Object.keys(CAMERA_VIEWS) as TableView[]).map((view): Candidate => ({
       key: `cmd:camera:${view}`,

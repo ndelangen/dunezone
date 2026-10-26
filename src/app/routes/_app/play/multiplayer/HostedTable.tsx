@@ -481,7 +481,7 @@ function SharedInventory({ client, table }: TableControlProps) {
   return (
     <Section
       hiddenHeading={Boolean(table.snapshot.stage)}
-      title="Shared inventory"
+      title="Shared table inventory"
       description={SHARED_INVENTORY_HELP}
       action={
         table.snapshot.stage !== 'setup' && (
@@ -535,7 +535,7 @@ function SharedInventory({ client, table }: TableControlProps) {
           </Stack>
         )}
         <Group align="start">
-          {!pieces.length && <Text c="dimmed">The shared inventory is empty.</Text>}
+          {!pieces.length && <Text c="dimmed">The shared table inventory is empty.</Text>}
           {pieces.map((piece) => (
             <Stack gap={4} key={piece.id} align="center">
               <Button
@@ -838,7 +838,7 @@ function gameGroup({ client, table, error, declare }: ControlPanelsProps, inPlay
   };
 }
 
-/** Shared inventory persists after play; settings remain available only while playing. */
+/** Shared table inventory persists after play; settings remain available only while playing. */
 function tableGroup({ client, table, error }: ConnectionControlsProps): TablePanel {
   return {
     key: 'table',
@@ -849,7 +849,7 @@ function tableGroup({ client, table, error }: ConnectionControlsProps): TablePan
     panels: [
       {
         key: 'shared',
-        label: 'Shared inventory',
+        label: 'Shared table inventory',
         topic: 'assets',
         ...SHARED_INVENTORY_GUIDANCE,
         content: <SharedInventory client={client} table={table} />,

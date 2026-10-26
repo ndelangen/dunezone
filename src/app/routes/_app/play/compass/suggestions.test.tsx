@@ -14,8 +14,8 @@ const candidate = (label: string, weight = 0) => ({
 });
 
 test('letters in order anywhere in the text match, and adjacent or word-starting letters score higher', () => {
-  expect(fuzzy('Shared inventory', 'shinv')).not.toBeNull();
-  expect(fuzzy('Shared inventory', 'vni')).toBeNull();
+  expect(fuzzy('Shared table inventory', 'shinv')).not.toBeNull();
+  expect(fuzzy('Shared table inventory', 'vni')).toBeNull();
   expect(fuzzy('Hand & spice', 'hand')!).toBeGreaterThan(fuzzy('Hidden zone and more', 'hand')!);
   expect(fuzzy('Table chat', 'tc')!).toBeGreaterThan(fuzzy('Battle act', 'tc')!);
 });
@@ -55,7 +55,7 @@ const actions = (token: Token, close = () => {}, bidding: Bidding = null) => ({
 
 const commandLabels = (token: Token, bidding: Bidding = null) =>
   candidatesOf([], actions(token, undefined, bidding))
-    .filter((entry) => entry.key.startsWith('cmd:') && !entry.key.startsWith('cmd:camera') && entry.key !== 'cmd:next')
+    .filter((entry) => entry.key.startsWith('cmd:') && !entry.key.startsWith('cmd:camera'))
     .map((entry) => `${entry.label}${entry.shortcut ? ` (${entry.shortcut})` : ''}`);
 
 test('the token commands appear only with a token: Pass while it shows its face, Flip faction token up while it does not', () => {
@@ -130,4 +130,27 @@ test('Camera: top-down carries U, unless U flips the viewer’s token up just no
     candidatesOf([], actions(token)).find((entry) => entry.key === 'cmd:camera:top')?.shortcut;
   expect(topDown(null)).toBe('U');
   expect(topDown({ faceUp: false, flip: () => {}, inBidding: true })).toBeUndefined();
+});
+
+test('with nothing typed, Pass leads beside the raise while the bidder points at the viewer, and not while it does not', () => {
+  const token = { faceUp: true, flip: () => {}, inBidding: true };
+  const bidding = { raise: () => {}, lower: null, pass: () => {} };
+  const suggested = (turn: Bidding) => rankSuggestions(candidatesOf([], actions(token, undefined, turn)), '');
+  expect(
+    suggested(bidding)
+      .map((entry) => entry.label)
+      .slice(0, 2)
+  ).toEqual(['Pass', 'Up the bid by 1']);
+  /* Off its turn, Pass turns the token face down to sit the bidding out: no reason to lead. */
+  const weight = (turn: Bidding) =>
+    candidatesOf([], actions(token, undefined, turn)).find((entry) => entry.key === 'cmd:pass')?.weight;
+  expect(weight(null)).toBe(0);
+  expect(weight(bidding)).toBe(6);
+});
+
+test('Next phase is offered only while the table takes it', () => {
+  const next = (nextPhase: (() => void) | null) =>
+    candidatesOf([], { ...actions(null), nextPhase }).some((entry) => entry.key === 'cmd:next');
+  expect(next(null)).toBe(false);
+  expect(next(() => {})).toBe(true);
 });
