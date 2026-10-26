@@ -82,7 +82,14 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       task: 'Find the Tleilaxu Tanks',
       detail:
         'Revival brings troops and leaders back from the Tleilaxu Tanks, the tray below the board where the arrow points. Nothing has died yet, so there is nothing to revive. Press {Enter} to go on.',
-      anchor: { kind: 'table', point: () => [...TABLE_TANKS_LABEL_POSITION] },
+      /* Just left of the label, so the arrow coming from the rail ends at its first letter rather than over it. */
+      anchor: {
+        kind: 'table',
+        point: () => {
+          const [x, y, z] = TABLE_TANKS_LABEL_POSITION;
+          return [x - 1.9, y, z];
+        },
+      },
       ...pressEnter(),
     }),
     onTo(
