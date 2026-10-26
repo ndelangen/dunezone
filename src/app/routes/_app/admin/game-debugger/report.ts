@@ -96,6 +96,8 @@ export function canRenderReport(value: unknown): boolean {
   if (/<\s*(?:script|foreignObject|iframe|image|use)\b|\bon\w+\s*=|url\s*\(/iu.test(value)) {
     return false;
   }
+  // WHATWG URL parsing removes these controls before resolving an address.
+  // eslint-disable-next-line no-control-regex
   const address = value.replaceAll(/[\t\r\n]/gu, '').replaceAll(/^[\u0000-\u0020]+|[\u0000-\u0020]+$/gu, '');
   if (/^(?:https?:|[a-z][a-z\d+.-]*:\/\/|data:|blob:|javascript:|file:|[/\\])/iu.test(address)) {
     try {
