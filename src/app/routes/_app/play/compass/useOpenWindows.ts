@@ -144,16 +144,13 @@ export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boo
    */
   const reveal = (key: string, seat?: string) => {
     const side = SIDES.find((entry) => slots[entry]?.key === key);
-    if (side) {
+    const where = side ?? (centre?.key === key ? 'centre' : undefined);
+    if (where) {
       if (seat) {
-        setSlots((current) => ({ ...current, [side]: opened(key, seat) }));
+        showSeat(where, key, seat);
       }
-      setFlash(pulse(side));
-      return;
-    }
-    if (centre?.key === key) {
-      if (seat) {
-        setCentre(opened(key, seat));
+      if (side) {
+        setFlash(pulse(side));
       }
       return;
     }
