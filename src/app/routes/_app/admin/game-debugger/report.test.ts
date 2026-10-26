@@ -56,6 +56,12 @@ describe('report import', () => {
     expect(canRenderReport({ logo: '/vector/logo/atreides.svg', texture: '/image/texture/001.jpg' })).toBe(true);
     for (const face of [
       'https://example.com/track.png',
+      'ht\ttps://example.com/track.png',
+      '\u0000https://example.com/track.png',
+      '\u0007https://example.com/track.png',
+      'https:\n//example.com/track.png',
+      'https:example.com/track.png',
+      'https:\\example.com/track.png',
       '  https://example.com/track.png',
       '/__play/games/game',
       'ftp://example.com/track.png',

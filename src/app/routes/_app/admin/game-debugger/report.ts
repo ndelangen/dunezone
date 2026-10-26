@@ -96,7 +96,8 @@ export function canRenderReport(value: unknown): boolean {
   if (/<\s*(?:script|foreignObject|iframe|image|use)\b|\bon\w+\s*=|url\s*\(/iu.test(value)) {
     return false;
   }
-  if (/^(?:[a-z][a-z\d+.-]*:\/\/|data:|blob:|javascript:|file:|[/\\])/iu.test(value.trim())) {
+  const address = value.replaceAll(/[\t\r\n]/gu, '').replaceAll(/^[\u0000-\u0020]+|[\u0000-\u0020]+$/gu, '');
+  if (/^(?:https?:|[a-z][a-z\d+.-]*:\/\/|data:|blob:|javascript:|file:|[/\\])/iu.test(address)) {
     try {
       const url = new URL(value, 'https://dune.zone');
       return (
