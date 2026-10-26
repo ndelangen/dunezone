@@ -63,8 +63,14 @@ export const CatalogueBackToAMembersList = meta.story({
     await expect(gridCards(page, /House Atreides/)).toHaveLength(1);
 
     history.back();
-    await waitFor(() => expect(gridCards(page, /Sietch Tabr/)).toHaveLength(0), { timeout: 30_000 });
-    await expect(gridCards(page, /House Atreides/)).toHaveLength(1);
+    /* A slow loader shows the pending page, whose empty grid also has no Sietch Tabr, so the member's list is waited for whole. */
+    await waitFor(
+      async () => {
+        await expect(gridCards(page, /Sietch Tabr/)).toHaveLength(0);
+        await expect(gridCards(page, /House Atreides/)).toHaveLength(1);
+      },
+      { timeout: 30_000 }
+    );
     await expect(history.location.search).toBe('?owner=storybook-viewer');
     await expect(page.getByRole('button', { name: 'Refine factions by member, ruleset and complexity' })).toBeVisible();
 
