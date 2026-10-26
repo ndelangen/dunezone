@@ -1,6 +1,5 @@
 import { VisuallyHidden } from '@mantine/core';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
-import { TopicIcon } from '@ui/content/TopicIcon';
 import { IconAction } from '@ui/control/IconAction';
 import { SaveAction } from '@ui/control/SaveAction';
 import type { SaveActionState } from '@ui/control/SaveAction';
@@ -44,14 +43,6 @@ function saveStateStatus(saveState: AuthoringSaveState, isDirty: boolean): Statu
     default:
       return { tone: 'positive', icon: <Check size={16} aria-hidden />, label };
   }
-}
-
-/** Which Group may edit the thing, as a status every editor with group access states the same way. */
-export function groupAccessStatus(groupName: string | null): StatusInfoItem {
-  return {
-    icon: <TopicIcon topic="groups" size={16} />,
-    label: groupName == null ? 'No group has access.' : `Group access: ${groupName}`,
-  };
 }
 
 /** Why a request failed, as a status; Save states it too. */

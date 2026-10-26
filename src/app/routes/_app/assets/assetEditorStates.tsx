@@ -13,7 +13,7 @@ import type { ReactNode } from 'react';
 import { useDeleteAsset, useSetAssetGroup } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
 import { mutationErrorMessage } from '@app/db/core/mutationError';
-import { groupAccessStatus } from '@app/widgets/authoring/AuthoringToolbar';
+import { groupAccessStatus } from '@app/widgets/authoring/groupAccessStatus';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 /**

@@ -4,7 +4,8 @@ import { IconAction } from '@ui/control/IconAction';
 import { History, UserRoundMinus } from 'lucide-react';
 import { expect, userEvent, within } from 'storybook/test';
 
-import { AuthoringToolbar, failureStatus, groupAccessStatus } from './AuthoringToolbar';
+import { AuthoringToolbar, failureStatus } from './AuthoringToolbar';
+import { groupAccessStatus } from './groupAccessStatus';
 import { cleanStatus, cleanToolbar } from './AuthoringToolbar.stories.fixture';
 
 const SCHEDULED =
