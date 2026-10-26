@@ -297,7 +297,9 @@ export function TracingImagePanel({
         <Stack gap="sm">
           <ControlBlock
             title={tracing ? tracing.name : 'Tracing image'}
-            description="A picture to trace over while you draw. It stays on this device, is never uploaded or saved, and is not part of your board."
+            description={
+              'A picture to trace over while you draw.\nIt stays on this device and is never saved with your board.'
+            }
             tool={tracing && <TracingImageActions tracing={tracing} patch={patch} remove={remove} />}
             input={
               <Stack gap={4}>

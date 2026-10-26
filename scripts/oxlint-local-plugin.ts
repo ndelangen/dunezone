@@ -475,6 +475,72 @@ const noTitleTooltipRule: Rule = {
   },
 };
 
+const TOOLTIP_LENGTH_RULE_NAME = 'tooltip-length';
+
+/* The props whose words show in a tooltip: the kit Tooltip's label, the (?)'s text, and a ControlBlock's description, which its (?) shows. */
+const TOOLTIP_PROPS: Readonly<Record<string, string>> = {
+  Tooltip: 'label',
+  HelpMark: 'text',
+  ControlBlock: 'description',
+};
+const TOOLTIP_LINE_MAX = 100;
+
+/* Every run of words written into a prop's value: string literals, template parts and JSX text, each split at its line breaks. */
+function writtenLines(node: unknown, lines: string[] = []): string[] {
+  if (!node || typeof node !== 'object') {
+    return lines;
+  }
+  const current = node as { type?: string; value?: unknown };
+  if ((current.type === 'Literal' || current.type === 'JSXText') && typeof current.value === 'string') {
+    lines.push(...current.value.split('\n'));
+  } else if (current.type === 'TemplateElement') {
+    const cooked = (current.value as { cooked?: string } | undefined)?.cooked ?? '';
+    lines.push(...cooked.split('\n'));
+  }
+  for (const [key, child] of Object.entries(current)) {
+    if (key !== 'parent' && child && typeof child === 'object') {
+      for (const item of Array.isArray(child) ? child : [child]) {
+        writtenLines(item, lines);
+      }
+    }
+  }
+  return lines;
+}
+
+/**
+ * Keeps tooltips readable (Norbert, 2026-10-27: a wall of text without breaks helps nobody).
+ * Each line of words written into a tooltip stays within 100 characters;
+ * longer help is cut down, or broken into lines with `\n`, which the (?) keeps as line breaks.
+ */
+const tooltipLengthRule: Rule = {
+  meta: {
+    name: TOOLTIP_LENGTH_RULE_NAME,
+    messages: {
+      tooLong: `A tooltip line runs past ${TOOLTIP_LINE_MAX} characters. Cut what the UI already says, and break the rest into short lines with \\n.`,
+    },
+  },
+  create(context) {
+    return {
+      JSXAttribute(node) {
+        const element = node.parent;
+        if (
+          node.name.type !== 'JSXIdentifier' ||
+          element.type !== 'JSXOpeningElement' ||
+          element.name.type !== 'JSXIdentifier'
+        ) {
+          return;
+        }
+        if (TOOLTIP_PROPS[element.name.name] !== node.name.name) {
+          return;
+        }
+        if (writtenLines(node.value).some((line) => line.trim().replace(/\s+/g, ' ').length > TOOLTIP_LINE_MAX)) {
+          context.report({ node, messageId: 'tooLong' });
+        }
+      },
+    };
+  },
+};
+
 export default {
   meta: {
     name: 'local',
@@ -485,5 +551,6 @@ export default {
     [STORY_DESCRIPTION_RULE_NAME]: noAiTellsInStoryDescriptionsRule,
     [WALL_CLOCK_RULE_NAME]: noWallClockRule,
     [TITLE_TOOLTIP_RULE_NAME]: noTitleTooltipRule,
+    [TOOLTIP_LENGTH_RULE_NAME]: tooltipLengthRule,
   },
 };

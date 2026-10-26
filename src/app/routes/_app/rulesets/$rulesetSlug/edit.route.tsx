@@ -261,7 +261,9 @@ function RulesetEditor({
 
               <ControlBlock
                 title="Cover image URL"
-                description="Optional. Use a full https:// URL. Saving copies the image into our storage, so later changes at the source will not appear here. Leave empty to clear the cover."
+                description={
+                  'Optional. A full https:// URL.\nSaving stores a copy, so later changes at the source do not show here.\nLeave empty to clear the cover.'
+                }
                 input={
                   <TextInput
                     id="ruleset-settings-cover"

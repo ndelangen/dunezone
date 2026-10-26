@@ -328,7 +328,9 @@ export function FactionIntroductionEdit({
     <Stack gap="md">
       <ControlBlock
         title="Faction"
-        description="Name, emblem, ruler and Leaders follow the selected faction. Your introduction stays in this Block."
+        description={
+          'Name, emblem, ruler and Leaders follow the selected faction.\nYour introduction stays in this Block.'
+        }
         input={
           <Stack gap="sm">
             <Group gap="sm">

@@ -257,7 +257,7 @@ export function TerritoryTints({ client, table }: Props) {
   return (
     <Section
       title="Territory tints"
-      description="Everyone sees these. Turn on a tint's paintbrush, then click territories on the board to add or remove them. Escape stops painting."
+      description="Everyone sees these. Turn on a tint's paintbrush, then click territories on the board to add or remove them."
     >
       <Stack gap="xs">
         {tints.map((tint) => (

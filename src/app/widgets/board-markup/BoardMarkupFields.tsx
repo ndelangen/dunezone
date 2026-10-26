@@ -161,7 +161,7 @@ export function BoardTintFields({
       ) : null}
       <ControlBlock
         title="Tints"
-        description={`Turn on a tint's paintbrush, then click territories on ${surface} to add or remove them. Escape stops painting.`}
+        description={`Turn on a tint's paintbrush, then click territories on ${surface} to add or remove them.`}
         input={
           <Stack gap="xs">
             {tints.map((tint) => (

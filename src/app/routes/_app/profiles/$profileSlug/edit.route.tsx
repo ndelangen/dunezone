@@ -331,11 +331,11 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
                 Letters and numbers only, 5–30 characters, not all capitals.
                 {slugPreview ? (
                   <>
-                    {' '}
+                    {'\n'}
                     <SlugRenameNotice
                       noun="profile"
                       url={'…/profiles/' + slugPreview}
-                      note="A number is appended when the derived id is already taken."
+                      note="A taken id gets a number added."
                     />
                   </>
                 ) : null}
@@ -375,7 +375,9 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
           />
           <ControlBlock
             title="BoardGameGeek profile URL"
-            description="A public link with unverified ownership. It cannot be used to sign in. Clear this field and save to remove it."
+            description={
+              'A public link; ownership is not verified, so it cannot sign you in.\nClear it and save to remove it.'
+            }
             input={
               <TextInput
                 ref={bggProfileUrlRef}
@@ -402,7 +404,9 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
           {panelError}
           <ControlBlock
             title="Default Group"
-            description="New rulesets and factions use this Group when it is still available. You can change an item’s Group after its first save."
+            description={
+              'New rulesets and factions start in this Group.\nYou can change an item’s Group after its first save.'
+            }
             input={
               <Select
                 ref={defaultGroupRef}
@@ -690,7 +694,7 @@ function SignInMethods({ account }: { account: NonNullable<ProfileSettingsData['
             description={
               method.connected
                 ? 'Disconnecting signs you out on every device. Sign in again with a remaining method.'
-                : 'Authenticate with this provider to connect it. If it already has a profile, review the merge before confirming.'
+                : 'Sign in with this provider to connect it.\nIf it already has a profile, review the merge first.'
             }
             input={
               <Group justify="space-between">
@@ -726,7 +730,9 @@ function SignInMethods({ account }: { account: NonNullable<ProfileSettingsData['
       })}
       <ControlBlock
         title="Sign out on all devices"
-        description="Signs this profile out everywhere, including here. Use it if you lost a device or signed in on a shared computer."
+        description={
+          'Signs this profile out everywhere, including here.\nUse it after losing a device or using a shared computer.'
+        }
         input={
           <Group justify="space-between">
             <Text size="sm">Ends every session, including this one.</Text>

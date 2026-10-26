@@ -277,3 +277,34 @@ export const probe = [
     expect(reports(output)).toBe(0);
   });
 });
+
+describe('tooltip-length', { timeout: TEST_BUDGET_MS }, () => {
+  const reports = (output: string) => output.split('local(tooltip-length)').length - 1;
+  const long = 'word '.repeat(25).trim();
+
+  test('reports a tooltip line past 100 characters, in a label, a (?) and a ControlBlock description', async () => {
+    const output = await lintDiagnostics(
+      'probe.tsx',
+      `import { Tooltip } from '@mantine/core';
+export const probe = [
+  <Tooltip label="${long}"><span /></Tooltip>,
+  <HelpMark text={ready ? 'Ready' : \`${long}\`} />,
+  <ControlBlock title="Name" description={<>${long}</>} />,
+];
+`
+    );
+    expect(reports(output)).toBe(3);
+  });
+
+  test('leaves short lines alone, however many there are, and other props', async () => {
+    const output = await lintDiagnostics(
+      'probe.tsx',
+      `export const probe = [
+  <HelpMark text={'First short line.\\nSecond short line.\\nThird short line.'} />,
+  <Section description="${long}" />,
+];
+`
+    );
+    expect(reports(output)).toBe(0);
+  });
+});
