@@ -11071,5 +11071,41 @@
     "tags": ["house atreus", "fan art", "felines", "column", "dots"],
     "subjects": ["creatures", "symbols", "culture"],
     "sourceHash": "6195d1456b9525e4e762c2338656fd3455e167fad8bf7ff2ffd313fbd8d9ec15"
+  },
+  "/vector/logo/lynch-dune.svg": {
+    "description": "Stepped tower divided by a rectangular brick grid, with a small upper window, an open doorway and three triangular roof pieces.",
+    "tags": ["Lynch's Dune", "Lynch", "tower", "pyramid", "bricks", "doorway"],
+    "subjects": ["places", "symbols"],
+    "sourceHash": "7c20c9d40911a5e4d0b425b58541810ae5018ea4b082ec0996d84101a72f99be"
+  },
+  "/vector/logo/original-dune.svg": {
+    "description": "Three pointed lobes above a toothed mouth and oval center, framed by curled side strokes and two bowed lower bands.",
+    "tags": ["original dune", "worm", "mouth", "teeth", "lobes"],
+    "subjects": ["creatures", "symbols"],
+    "sourceHash": "f4f11db26f4e0af5ed3187d1a139589ae576103f6f7c4f0187e7d38c388588f0"
+  },
+  "/vector/logo/real-world.svg": {
+    "description": "Round globe with curved meridians, horizontal latitude bands and a central vertical line.",
+    "tags": ["real world", "globe", "earth", "meridians", "latitude"],
+    "subjects": ["places", "symbols"],
+    "sourceHash": "33b4dc071e5598a210d56747d328a8c3895b811c7fcefdb14a164506264b5fac"
+  },
+  "/vector/logo/sci-fi-miniseries.svg": {
+    "description": "Twelve curved knives arranged radially around an open center, with separate short handles.",
+    "tags": ["sci fi", "miniseries", "knives", "radial", "sunburst"],
+    "subjects": ["weapons", "symbols"],
+    "sourceHash": "841b07a8b1195e24df9115690dc1f7477a575f1ebe5d8ae83157d5c2b7e9267f"
+  },
+  "/vector/logo/sunburst-buckle-matt-griffin.svg": {
+    "description": "Wide ornamental buckle with pointed ends, a rising half-sun, radiating rays, a dotted arch and a diamond clasp.",
+    "tags": ["sunburst", "buckle", "Matt Griffin", "half sun", "rays", "clasp"],
+    "subjects": ["culture", "symbols"],
+    "sourceHash": "254d78bbffbf36765eaafbcf079842c8cf051ca730a51359ab58b2d1ed65a01b"
+  },
+  "/vector/logo/villeneuve.svg": {
+    "description": "Circular sunburst with rounded inward-pointing rays and a split horizontal base.",
+    "tags": ["Villeneuve", "sunburst", "rays", "circle", "base"],
+    "subjects": ["symbols"],
+    "sourceHash": "3f34bed6d117efaf27e907eb4c44eac788a47d697f8f0d21214dcbaf6a29d03f"
   }
 }

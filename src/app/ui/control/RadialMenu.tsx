@@ -2,8 +2,11 @@ import { VisuallyHidden } from '@mantine/core';
 import { Kbd } from '@ui/content/Kbd';
 import clsx from 'clsx';
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
-import type { CSSProperties, KeyboardEvent, ReactNode } from 'react';
+import type { CSSProperties, KeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+
+import { useClosingCopy } from '@app/styles/closingCopy';
+import { useMotionAllowed } from '@app/styles/motion';
 
 import styles from './RadialMenu.module.css';
 import { HOLD_SECONDS, useHoldToConfirm } from './useHoldToConfirm';
@@ -96,8 +99,11 @@ function slotAngle(slot: number) {
   return -Math.PI / 2 + (slot * 2 * Math.PI) / SLOTS;
 }
 
+/* Where a child sits from the centre; `--x` and `--y` repeat it so the open animation can fly the child out from the centre. */
 function at(angle: number, radius: number): CSSProperties {
-  return { left: Math.cos(angle) * radius, top: Math.sin(angle) * radius };
+  const left = Math.cos(angle) * radius;
+  const top = Math.sin(angle) * radius;
+  return { left, top, '--x': `${left}px`, '--y': `${top}px` } as CSSProperties;
 }
 
 function Glyph({ icon }: Readonly<{ icon: RadialIcon }>) {
@@ -110,16 +116,26 @@ function Glyph({ icon }: Readonly<{ icon: RadialIcon }>) {
 
 type Caption = { text: string; shortcut?: string; tone?: 'danger' };
 
+/*
+ * Only a pointer that moved points at an item. The items fly out under a pointer at rest as a ring opens, which the
+ * browser tells as the pointer entering them; that must not light an item or step into Deal.
+ */
+function moved(event: ReactPointerEvent) {
+  return event.movementX !== 0 || event.movementY !== 0;
+}
+
 function HeldItem({
   action,
   style,
   hidden,
   onCaption,
+  onPoint,
 }: Readonly<{
   action: RadialAction;
   style: CSSProperties;
   hidden: boolean;
   onCaption: (caption: Caption | null) => void;
+  onPoint: (event: ReactPointerEvent<HTMLElement>) => void;
 }>) {
   const { holding, remaining, handlers } = useHoldToConfirm({
     pending: false,
@@ -155,7 +171,8 @@ function HeldItem({
         event.currentTarget.focus();
         handlers.onPointerDown(event);
       }}
-      onPointerEnter={() => onCaption({ text: action.label, tone: 'danger' })}
+      data-point={action.key}
+      onPointerMove={onPoint}
       onFocus={() => onCaption({ text: action.label, tone: 'danger' })}
     >
       <Glyph icon={action.icon} />
@@ -195,6 +212,9 @@ function captionPlacement(centre: { left: number; top: number }, offset: number)
 function keepInside(value: number, margin: number, size: number) {
   return 2 * margin >= size ? size / 2 : Math.max(margin, Math.min(value, size - margin));
 }
+
+/* The close is short; past this the copy goes even if no animation reports its end, as when the page is hidden. */
+const CLOSE_MS = 300;
 
 /* How long the pointer rests on an item with choices before the ring steps into it. */
 const STEP_IN_MS = 450;
@@ -243,20 +263,41 @@ export function RadialMenu({
       restTimer.current = null;
     }
   };
+  /* The item the pointer last moved onto, so moving within it does not start it over. */
+  const pointed = useRef<string | null>(null);
+  const onPoint = (event: ReactPointerEvent<HTMLElement>) => {
+    const key = event.currentTarget.dataset.point ?? null;
+    if (key && pointed.current !== key && moved(event)) {
+      pointed.current = key;
+      pointAt(key);
+    }
+  };
+  const unpoint = () => {
+    pointed.current = null;
+    cancelRest();
+  };
   useEffect(() => cancelRest, []);
 
   const stepInto = (action: RadialAction) => {
-    cancelRest();
+    unpoint();
     setSteppedInto(action.key);
     setCaption({ text: action.targetsLabel ?? action.label });
     /* The item that had focus hides, so focus stays on the ring for the arrow keys and Escape. */
     menu.current?.focus({ preventScroll: true });
   };
   const stepOut = () => {
+    pointed.current = null;
     setSteppedInto(null);
     setCaption(null);
     menu.current?.focus({ preventScroll: true });
   };
+
+  /*
+   * The ring closes at once for the table, focus and assistive technology; only a lifeless copy of it shrinks away.
+   * It comes before the focus handback below, so its cleanup still sees which item the keys were on.
+   */
+  const motion = useMotionAllowed();
+  useClosingCopy(menu, { enabled: motion, ms: CLOSE_MS });
 
   /*
    * Focus lands on the ring itself, so the arrow keys and Escape work at once without lighting an item the pointer is not on.
@@ -287,6 +328,30 @@ export function RadialMenu({
 
   const plain = actions.filter((action) => !action.held);
   const held = actions.find((action) => action.held);
+
+  /* What pointing at an item does: its caption, and for Deal the rest that steps into its ring. */
+  const pointAt = (key: string) => {
+    if (key === 'back') {
+      setCaption({ text: 'Back', shortcut: 'Esc' });
+      return;
+    }
+    const target = targets.find((entry) => `target:${entry.key}` === key);
+    if (target) {
+      setCaption({ text: target.name });
+      return;
+    }
+    const action = actions.find((entry) => entry.key === key);
+    if (!action) {
+      return;
+    }
+    setCaption(
+      action.held ? { text: action.label, tone: 'danger' } : { text: action.label, shortcut: action.shortcut }
+    );
+    if (action.targets && !action.disabled) {
+      cancelRest();
+      restTimer.current = setTimeout(() => stepInto(action), STEP_IN_MS);
+    }
+  };
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     /* Tab leaves the ring, so the ring closes rather than stay open over the board without focus. */
@@ -328,6 +393,7 @@ export function RadialMenu({
       aria-describedby={`${labelId}-hub`}
       tabIndex={-1}
       data-radial-menu=""
+      data-motion={motion || undefined}
       className={styles.ring}
       style={centre}
       onKeyDown={onKeyDown}
@@ -344,7 +410,7 @@ export function RadialMenu({
         }
       }}
       onPointerLeave={() => {
-        cancelRest();
+        unpoint();
         if (!level) {
           setCaption(null);
         }
@@ -372,16 +438,11 @@ export function RadialMenu({
           disabled={action.disabled}
           hidden={Boolean(level)}
           className={styles.item}
-          style={at(slotAngle(slot), RING_RADIUS)}
+          style={{ ...at(slotAngle(slot), RING_RADIUS), '--order': slot } as CSSProperties}
           onClick={() => (action.targets ? stepInto(action) : action.onSelect?.())}
-          onPointerEnter={() => {
-            setCaption({ text: action.label, shortcut: action.shortcut });
-            if (action.targets && !action.disabled) {
-              cancelRest();
-              restTimer.current = setTimeout(() => stepInto(action), STEP_IN_MS);
-            }
-          }}
-          onPointerLeave={cancelRest}
+          data-point={action.key}
+          onPointerMove={onPoint}
+          onPointerLeave={unpoint}
           onFocus={() => setCaption({ text: action.label, shortcut: action.shortcut })}
         >
           <Glyph icon={action.icon} />
@@ -392,8 +453,9 @@ export function RadialMenu({
           key={held.key}
           action={held}
           hidden={Boolean(level)}
-          style={at(slotAngle(SLOTS - 1), RING_RADIUS)}
+          style={{ ...at(slotAngle(SLOTS - 1), RING_RADIUS), '--order': SLOTS - 1 } as CSSProperties}
           onCaption={setCaption}
+          onPoint={onPoint}
         />
       )}
       {level && (
@@ -405,7 +467,9 @@ export function RadialMenu({
             className={clsx(styles.item, styles.back)}
             style={{ left: 0, top: 0 }}
             onClick={stepOut}
-            onPointerEnter={() => setCaption({ text: 'Back', shortcut: 'Esc' })}
+            data-point="back"
+            onPointerMove={onPoint}
+            onPointerLeave={unpoint}
             onFocus={() => setCaption({ text: 'Back', shortcut: 'Esc' })}
           >
             <Glyph icon="back" />
@@ -422,11 +486,13 @@ export function RadialMenu({
                 {
                   ...at(-Math.PI / 2 + (index * 2 * Math.PI) / targets.length, radius),
                   '--target-size': `${disc}px`,
-                  animationDelay: `${index * 12}ms`,
+                  '--order': index,
                 } as CSSProperties
               }
               onClick={target.onSelect}
-              onPointerEnter={() => setCaption({ text: target.name })}
+              data-point={`target:${target.key}`}
+              onPointerMove={onPoint}
+              onPointerLeave={unpoint}
               onFocus={() => setCaption({ text: target.name })}
             >
               {target.face}

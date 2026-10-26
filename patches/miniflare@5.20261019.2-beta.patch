@@ -1,8 +1,8 @@
 diff --git a/dist/src/index.js b/dist/src/index.js
-index 2f887776e3d0ce9bbe4e39ed5ce94291077bef54..bbb200f786e3a168d889de1216fe022755c4eef4 100644
+index 07f6e29d75588d26bdf4fe015c07757173127b97..4ccda097e654d4d96d85d992b153efac3ac478ef 100644
 --- a/dist/src/index.js
 +++ b/dist/src/index.js
-@@ -128947,7 +128947,8 @@ async function imagesLocalFetcher(request4) {
+@@ -132665,7 +132665,8 @@ async function imagesLocalFetcher(request4) {
        return runTransform(
          sharp(source, { autoOrient: true }),
          transforms,
@@ -12,7 +12,7 @@ index 2f887776e3d0ce9bbe4e39ed5ce94291077bef54..bbb200f786e3a168d889de1216fe0227
        );
      } catch {
        return badTransformsResponse;
-@@ -129007,7 +129008,7 @@ async function runInfo(transformer) {
+@@ -132725,7 +132726,7 @@ async function runInfo(transformer) {
    }
    return Response2.json(resp);
  }
@@ -21,7 +21,7 @@ index 2f887776e3d0ce9bbe4e39ed5ce94291077bef54..bbb200f786e3a168d889de1216fe0227
    for (const transform3 of transforms) {
      if (transform3.imageIndex !== void 0 && transform3.imageIndex !== 0) {
        continue;
-@@ -129036,7 +129037,7 @@ async function runTransform(transformer, transforms, outputFormat) {
+@@ -132754,7 +132755,7 @@ async function runTransform(transformer, transforms, outputFormat) {
          "ERROR: GIF output is not supported in local mode"
        );
      case "image/jpeg":

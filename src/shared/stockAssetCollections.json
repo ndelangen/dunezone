@@ -633,7 +633,7 @@
   },
   {
     "label": "Dune / Houses and lore",
-    "keywords": "Atreides Corrino Harkonnen Bene Gesserit Atreus Apocrypha Encyclopedia Expanded Dune Prophecy 2021 extended fan art",
+    "keywords": "Atreides Corrino Harkonnen Bene Gesserit Atreus Apocrypha Encyclopedia Expanded Dune Prophecy 2021 extended fan art Lynch Original Real World Sci Fi miniseries Villeneuve Matt Griffin sunburst buckle",
     "assets": [
       "/vector/logo/apocrypha.svg",
       "/vector/logo/atreides-extended.svg",
@@ -643,7 +643,13 @@
       "/vector/logo/expanded-dune.svg",
       "/vector/logo/harkonnen-dune-prophecy.svg",
       "/vector/logo/harkonnen-extended.svg",
-      "/vector/logo/house-atreus-fan-art.svg"
+      "/vector/logo/house-atreus-fan-art.svg",
+      "/vector/logo/lynch-dune.svg",
+      "/vector/logo/original-dune.svg",
+      "/vector/logo/real-world.svg",
+      "/vector/logo/sci-fi-miniseries.svg",
+      "/vector/logo/sunburst-buckle-matt-griffin.svg",
+      "/vector/logo/villeneuve.svg"
     ]
   },
   {
