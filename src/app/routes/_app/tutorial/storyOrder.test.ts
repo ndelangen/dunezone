@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+
 import { describe, expect, test } from 'vite-plus/test';
 
 import { TUTORIAL_CHAPTERS } from './chapters';
