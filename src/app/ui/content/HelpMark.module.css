@@ -6,3 +6,8 @@
   color: var(--mantine-color-dimmed);
   cursor: help;
 }
+
+/* Longer help comes as short lines, one thought each; the tooltip keeps their breaks. */
+.tip {
+  white-space: pre-line;
+}

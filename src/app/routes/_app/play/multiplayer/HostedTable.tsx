@@ -249,9 +249,7 @@ function PhaseControls({ table }: Pick<ConnectionControlsProps, 'table'>) {
       title={phase.label}
       description={phaseHelp(table)}
     >
-      {!table.snapshot.stage && (
-        <Text size="sm">Previous changes the tracker only. Pieces and storm position stay as they are.</Text>
-      )}
+      {!table.snapshot.stage && <Text size="sm">Previous moves the tracker back. Pieces and storm stay put.</Text>}
     </Section>
   );
 }

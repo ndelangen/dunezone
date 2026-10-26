@@ -237,7 +237,13 @@ export function ModeToggle({
 }) {
   const custom = mode === 'custom';
   return (
-    <Tooltip label={free ? FREE_SUPPORT_HELP : MODE_HELP} multiline w={260} withArrow>
+    <Tooltip
+      label={free ? FREE_SUPPORT_HELP : MODE_HELP}
+      multiline
+      w={260}
+      withArrow
+      classNames={{ tooltip: styles.modeTip }}
+    >
       <button
         type="button"
         className={clsx(compassStyles.iconButton, styles.modeToggle)}

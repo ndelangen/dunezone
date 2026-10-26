@@ -6,7 +6,7 @@ import type { ReactNode } from 'react';
 import styles from './HelpMark.module.css';
 
 export interface HelpMarkProps {
-  /** The explanation: a constraint, a consequence, or what a panel is for. */
+  /** The explanation: a constraint, a consequence, or what a panel is for. A line break in a string starts a new line in the tooltip. */
   text: ReactNode;
   /** The id the text is published under, when the thing it explains names it in its own `aria-describedby`. */
   id?: string;
@@ -26,6 +26,7 @@ export function HelpMark({ text, id }: HelpMarkProps) {
         label={text}
         multiline
         maw={360}
+        classNames={{ tooltip: styles.tip }}
         position="top-start"
         withArrow
         events={{ hover: true, focus: true, touch: true }}
