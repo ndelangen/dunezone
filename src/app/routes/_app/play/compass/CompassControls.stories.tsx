@@ -2,7 +2,7 @@ import preview from '@sb/preview';
 import type { GameSnapshot } from '@shared/play/protocol';
 
 import { faction } from '../alliances.stories.fixture';
-import { biddingSetup, clockSetup } from '../bidding.stories.fixture';
+import { clockSetup, sittingOutSetup } from '../bidding.stories.fixture';
 import { gameMeta, install } from '../game.stories.fixture';
 import { battleStory } from '../playing.stories.fixture';
 import { productTransport } from '../product.stories.fixture';
@@ -97,8 +97,5 @@ export const BiddingOnYourTurn = meta.story({
 
 /** Bidding with the viewer's token face down, sitting it out: U flips it back up, and the search shows U on that command. */
 export const BiddingSatOut = meta.story({
-  beforeEach: [
-    biddingSetup(null, 'seat-2', ['emperor', 'house-harkonnen']),
-    () => pinned({ left: null, right: null }, false),
-  ],
+  beforeEach: [sittingOutSetup(), () => pinned({ left: null, right: null }, false)],
 });

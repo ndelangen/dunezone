@@ -18,21 +18,44 @@ export async function openBiddingSettings(canvasElement: HTMLElement) {
   return waitForFrame(() => page.getByRole('menuitemcheckbox', { name: /Timed bidding/ }));
 }
 
-/* Seat 2 holds House Harkonnen; the Emperor's token lies face down, so the Emperor sits this round out, as do any factions also named. */
-export function biddingSetup(bidding: Partial<BiddingState> | null, viewer = 'seat-2', sittingOut = ['emperor']) {
+/* The Bidding phase with the named factions' tokens face down, so they sit the bidding out. */
+function biddingSnapshot(bidding: Partial<BiddingState> | null, viewer: string, sittingOut: readonly string[]) {
+  const snapshot: GameSnapshot = playingSnapshot(viewer);
+  snapshot.phase = (snapshot.phases ?? STANDARD_PHASES).findIndex((entry) => entry.id === 'bidding');
+  for (const faction of sittingOut) {
+    const token = snapshot.table.pieces.find((piece) => piece.stackKey === `faction-token:${faction}`);
+    if (token) {
+      token.items = token.items.map((item) => ({ ...item, faceUp: false }));
+    }
+  }
+  if (bidding) {
+    snapshot.bidding = { ...idleBidding(), ...bidding };
+  }
+  return snapshot;
+}
+
+/* Seat 2 holds House Harkonnen; the Emperor's token lies face down, so the Emperor sits this round out. */
+export function biddingSetup(bidding: Partial<BiddingState> | null, viewer = 'seat-2') {
+  return install(() => productTransport(viewer, biddingSnapshot(bidding, viewer, ['emperor'])));
+}
+
+/* Seat 2's Harkonnen token lies face down beside the Emperor's, and the table turns a token over when asked, as the room does. */
+export function sittingOutSetup() {
   return install(() => {
-    const snapshot: GameSnapshot = playingSnapshot(viewer);
-    snapshot.phase = (snapshot.phases ?? STANDARD_PHASES).findIndex((entry) => entry.id === 'bidding');
-    for (const faction of sittingOut) {
-      const token = snapshot.table.pieces.find((piece) => piece.stackKey === `faction-token:${faction}`);
-      if (token) {
-        token.items = token.items.map((item) => ({ ...item, faceUp: false }));
-      }
-    }
-    if (bidding) {
-      snapshot.bidding = { ...idleBidding(), ...bidding };
-    }
-    return productTransport(viewer, snapshot);
+    const snapshot = biddingSnapshot(null, 'seat-2', ['emperor', 'house-harkonnen']);
+    const transport = productTransport('seat-2', snapshot, {
+      answerCommand: (message) => {
+        const action = message.action;
+        const piece =
+          action.kind === 'flip' ? snapshot.table.pieces.find((entry) => entry.id === action.pieceId) : null;
+        if (piece) {
+          piece.items = piece.items.map((item) => ({ ...item, faceUp: !item.faceUp }));
+          snapshot.revision += 1;
+        }
+        return transport.view(snapshot, message.commandId);
+      },
+    });
+    return transport;
   });
 }
 
