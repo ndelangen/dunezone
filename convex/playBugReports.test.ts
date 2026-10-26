@@ -54,7 +54,6 @@ describe('report authorization', () => {
     ]) {
       expect(await t.query(api.playBugReports.authorize, invalid)).toBeNull();
     }
-    expect(await t.run(async (ctx) => await ctx.db.query('play_tickets').take(1))).toEqual([]);
   });
 
   test.each(['anonymous', 'deleted', 'signed-out', 'revoked', 'expired'] as const)(

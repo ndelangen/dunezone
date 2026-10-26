@@ -170,8 +170,6 @@ export const snapshotPolicy = {
   play_game_slug_cursors: { drop: 'Game address allocation is private Play directory data' },
   play_games: { drop: 'Play games carry provisioning secrets and are not published content' },
   homepage_tickets: { drop: 'Homepage editing tickets' },
-  play_tickets: { drop: 'Play admission tickets' },
-  play_auth_registrations: { drop: 'Play sign-in registrations' },
   play_game_accounts: { drop: 'Play account links' },
   play_account_deletions: { drop: 'Play account deletions' },
   play_session_cutoffs: { drop: 'Play session cutoffs' },
@@ -362,6 +360,9 @@ export const retiredTables = {
   asset_type_configs: 'retired asset publisher bookkeeping, not content',
   asset_rollouts: 'retired asset publisher bookkeeping, not content',
   asset_rollout_items: 'retired asset publisher bookkeeping, not content',
+  /* The last two left the schema with the ticket admission path; Play has no games to keep, so their rows are not content. */
+  play_tickets: 'retired Play admission tickets',
+  play_auth_registrations: 'retired Play sign-in registrations',
 } satisfies Record<string, string> & { [Table in TableNames]?: never };
 
 /**
