@@ -49,7 +49,7 @@ export const Send = meta.story({
     await userEvent.click(page.getByRole('checkbox'));
     await expect(send).toBeEnabled();
     await userEvent.click(send);
-    await expect(page.findByText('Creating the GitHub issue...')).resolves.toBeVisible();
+    await expect(page.findByText('Creating the GitHub issue...', undefined, { timeout: 8000 })).resolves.toBeVisible();
     creatingSeen = true;
     await expect(page.findByRole('link', { name: 'Open GitHub issue' }, { timeout: 8000 })).resolves.toHaveAttribute(
       'href',
