@@ -252,8 +252,8 @@ What recovers by itself:
   window, 30 s after expiry to find a confirmation committed but lost
   (`confirmProvisioning` in `workers/game/index.ts`, `docs/technical/play-hosted.md:209-214`).
 - Directory delivery retries on the room's alarm with backoff from 2 s up to 30 s, with no player
-  connected; a refusal from Convex is terminal for that summary (`deliverDirectoryLoop` in
-  `workers/game/index.ts`, `src/shared/play/directory.ts:15-16`). One alarm serves both the battle
+  connected; a refusal from Convex is terminal for that summary (`DirectoryDelivery` in
+  `workers/game/directoryDelivery.ts`, `src/shared/play/directory.ts:15-16`). One alarm serves both the battle
   deadline and the directory retry (`scheduleAlarm`).
 - A failed seat-limit read retries with backoff, and the player counts as at the limit meanwhile.
 - A cold restore, including the one every deploy causes, closes old sockets with 1012 so browsers
