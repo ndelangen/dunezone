@@ -61,6 +61,10 @@ const peerRequestSchema = z.discriminatedUnion('function', [
   z.object({ function: z.literal('homepageAdmission:redeemTicket'), args: z.object({ ticket: z.string() }) }),
   z.object({ function: z.literal('playAdmission:ackAccountDeletion'), args: playAckAccountDeletionRequestSchema }),
   z.object({ function: z.literal('playAdmission:seatLimitReached'), args: playSeatLimitRequestSchema }),
+  z.object({
+    function: z.literal('playBugReports:authorize'),
+    args: z.object({ gameId: z.string(), secret: z.string(), pass: z.string() }),
+  }),
   z.object({ function: z.literal('playSessionCutoffs:ackSessionCutoff'), args: playAckSessionCutoffRequestSchema }),
 ]);
 type PeerRequest = z.infer<typeof peerRequestSchema> & {
@@ -95,6 +99,8 @@ export interface NativePeer {
   seatLimitReached: Set<string>;
   /* `hold` keeps a pass admission's seat-limit read open, `error` fails it. */
   seatLimitMode: 'answer' | 'hold' | 'error';
+  /* Whether Convex finds a live session behind a bug report's seat pass. */
+  bugReportMode: 'allow' | 'deny';
   summaries: z.infer<typeof playPublishSummaryRequestSchema>[];
   requests: PeerRequest[];
   provisionExpiresAt: number;
@@ -288,6 +294,9 @@ function answerPeerRequest(peer: NativePeer, record: PeerRequest) {
         record.release({ factions: peer.draftable });
       }
       break;
+    case 'playBugReports:authorize':
+      record.release(peer.bugReportMode === 'allow' ? { authExpiresAt: Date.now() + 3_600_000 } : null);
+      break;
     case 'playProvisioning:validateProvisioning':
       /* A test that sets `peer.game` provisions a real game instead of the fixture. */
       record.release({
@@ -357,6 +366,7 @@ export async function createPeer(): Promise<NativePeer> {
     directoryMode: 'ack',
     seatLimitReached: new Set(),
     seatLimitMode: 'answer',
+    bugReportMode: 'allow',
     summaries: [],
     requests: [],
     provisionExpiresAt: Date.now() + 60_000,

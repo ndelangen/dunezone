@@ -49,6 +49,36 @@ export const Game = meta.story({
   },
 });
 
+export const ReportedBug = meta.story({
+  beforeEach: install(() =>
+    productTransport('seat-2', playingSnapshot(), {
+      logEntries: {
+        game: [
+          {
+            sequence: 1,
+            class: 'phase',
+            event: 'bug-report',
+            text: 'A full game state export was published.',
+            context: 'Turn 1, Storm',
+            at: 1000,
+            issueUrl: 'https://github.com/ndelangen/dunezone/issues/1',
+          },
+        ],
+      },
+    })
+  ),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await openTab(page, 'Game log');
+    const log = within(await page.findByRole('region', { name: 'Game log' }));
+    await expect(log.findByText('Bug report')).resolves.toBeVisible();
+    await expect(log.findByRole('link', { name: 'Open GitHub issue' })).resolves.toHaveAttribute(
+      'href',
+      'https://github.com/ndelangen/dunezone/issues/1'
+    );
+  },
+});
+
 export const Audit = meta.story({
   beforeEach: install(() => {
     const snapshot = playingSnapshot();
