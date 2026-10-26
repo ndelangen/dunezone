@@ -408,6 +408,9 @@ async function peer(label: string, context?: BrowserContext): Promise<HostedPeer
       await context.addInitScript(observeAnimationFrameProgress);
     }
     await context.addInitScript(observeConnectionStatus);
+    if (values.flow === 'regular') {
+      await context.addInitScript(observeSignOutTiming);
+    }
     if (values.flow === 'regular' && label === 'player-a') {
       await holdSignedOutDirectory(context);
     }
@@ -618,25 +621,115 @@ async function admissionTrace(who: HostedPeer) {
     statuses: statuses.map((entry: { at: number | null }) => ({ ...entry, at: since(entry.at) })),
   };
 }
+/**
+ * When a page handled another tab's sign-out, and what held its main thread, for the sign-out report (#2379).
+ * The listener is registered before any page script, so it runs before the auth package's own and records when the last token removal reached the page.
+ * Long animation frames name the script that held each one, and the newest 200 are kept.
+ */
+function observeSignOutTiming() {
+  const timing: SignOutTiming = { storageAt: null, longFrames: [] };
+  Object.assign(window, { hostedPlaySignOut: timing });
+  window.addEventListener('storage', (event) => {
+    if (event.key?.startsWith('__convexAuthJWT') && event.newValue === null) {
+      timing.storageAt = Math.round(performance.timeOrigin + performance.now());
+    }
+  });
+  try {
+    new PerformanceObserver((list) => {
+      for (const entry of list.getEntries() as (PerformanceEntry & {
+        renderStart: number;
+        styleAndLayoutStart: number;
+        scripts?: { duration: number; invoker: string; sourceURL: string; sourceFunctionName: string }[];
+      })[]) {
+        const scripts = entry.scripts ?? [];
+        const script = [...scripts].sort((first, second) => second.duration - first.duration)[0];
+        const end = entry.startTime + entry.duration;
+        /* A frame splits into its task, its rendering callbacks (animation frames, resize observers) and its style, layout and paint. */
+        const renderStart = entry.renderStart || end;
+        const styleAndLayoutStart = entry.styleAndLayoutStart || end;
+        timing.longFrames.push({
+          at: Math.round(performance.timeOrigin + entry.startTime),
+          ms: Math.round(entry.duration),
+          scriptsMs: Math.round(scripts.reduce((total, each) => total + each.duration, 0)),
+          taskMs: Math.round(renderStart - entry.startTime),
+          callbacksMs: Math.round(styleAndLayoutStart - renderStart),
+          layoutMs: Math.round(end - styleAndLayoutStart),
+          script: script
+            ? `${script.invoker} ${script.sourceFunctionName || '(anonymous)'} ${script.sourceURL.split('/').pop()} ${Math.round(script.duration)} ms`
+            : null,
+        });
+      }
+      timing.longFrames.splice(0, Math.max(0, timing.longFrames.length - 200));
+    }).observe({ type: 'long-animation-frame' });
+  } catch {}
+}
+type SignOutTiming = {
+  storageAt: number | null;
+  longFrames: {
+    at: number;
+    ms: number;
+    scriptsMs: number;
+    taskMs: number;
+    callbacksMs: number;
+    layoutMs: number;
+    script: string | null;
+  }[];
+};
 /** The regular flow's sign-out: the tabs it should close and when Sign out was clicked. */
 let signOut: { clickedAt: number; tabs: HostedPeer[] } | null = null;
 /**
  * When each signed-out tab's game sockets received the Worker's refusal and closed, in milliseconds after the Sign out click (#1592).
  * Both times are the driver's, when Playwright reported each event, and a socket that closed before the click shows a negative time.
+ * Each tab also reports when its page handled the token's removal, and its long animation frames from the click to its last socket close, which tells a late storage event from a main thread held by other work (#2379).
  */
-function signOutReport() {
+async function signOutReport() {
   assert.ok(signOut);
   const signedOut = signOut;
   const since = (time: number | null) => (time === null ? null : time - signedOut.clickedAt);
-  return {
-    clickedAtSeconds: Math.round((signOut.clickedAt - Date.parse(report.startedAt)) / 100) / 10,
-    tabs: signedOut.tabs.map((who) => ({
-      label: who.label,
-      sockets: who.sockets.map((socket: { refusedAt: number | null; closedAt: number | null }) => ({
+  const tabs = await Promise.all(
+    signedOut.tabs.map(async (who) => {
+      let timer: string | number | NodeJS.Timeout | undefined;
+      const timing = await Promise.race([
+        who.page.evaluate(() => (window as { hostedPlaySignOut?: SignOutTiming }).hostedPlaySignOut ?? null),
+        new Promise<null>((resolve) => {
+          timer = setTimeout(() => resolve(null), 5000);
+        }),
+      ])
+        .catch(() => null)
+        .finally(() => clearTimeout(timer));
+      const sockets = who.sockets.map((socket: { refusedAt: number | null; closedAt: number | null }) => ({
         refusedMs: since(socket.refusedAt),
         closedMs: since(socket.closedAt),
-      })),
-    })),
+      }));
+      /* The window ends at the tab's last socket close, or now while one is still open. */
+      const closes = who.sockets.map((socket: { closedAt: number | null }) => socket.closedAt);
+      const until = closes.every((time) => time !== null) ? Math.max(...(closes as number[])) : Date.now();
+      const frames = (timing?.longFrames ?? []).filter(
+        (frame) => frame.at + frame.ms >= signedOut.clickedAt && frame.at <= until
+      );
+      const longest = frames.reduce<(typeof frames)[number] | null>(
+        (held, frame) => (held === null || frame.ms > held.ms ? frame : held),
+        null
+      );
+      const { at: longestAt, ...longestFrame } = longest ?? { at: null };
+      return {
+        label: who.label,
+        sockets,
+        storageEventMs: timing ? since(timing.storageAt) : 'unread',
+        /* A tab whose main thread outlasted the read has no frames to count, which is not the same as none. */
+        longFrames: timing
+          ? {
+              count: frames.length,
+              totalMs: frames.reduce((total, frame) => total + frame.ms, 0),
+              longest: longest && { atMs: since(longestAt), ...longestFrame },
+            }
+          : 'unread',
+      };
+    })
+  );
+  return {
+    clickedAtSeconds: Math.round((signOut.clickedAt - Date.parse(report.startedAt)) / 100) / 10,
+    tabs,
   };
 }
 async function signIn(who: HostedPeer) {
@@ -2437,7 +2530,7 @@ try {
 } finally {
   /* Read before the browsers close, whose teardown closes every socket still open, so a failed wait still shows the socket that closed late. */
   if (signOut) {
-    report.signOut = signOutReport();
+    report.signOut = await signOutReport();
     console.log(`SIGNOUT ${JSON.stringify(report.signOut)}`);
   }
   const counts = (messages: { type: string }[]) =>
@@ -2549,7 +2642,7 @@ type VerificationReport = {
     admission?: Awaited<ReturnType<typeof admissionTrace>>[];
     sceneStartup?: ({ label: string } & Record<string, unknown>)[];
   };
-  signOut?: ReturnType<typeof signOutReport>;
+  signOut?: Awaited<ReturnType<typeof signOutReport>>;
   transport?: {
     label: string;
     connectionCount: number;
