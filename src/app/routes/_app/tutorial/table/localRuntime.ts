@@ -5,11 +5,16 @@ import type { ServerMessage } from '@shared/play/protocol';
 
 import { browserGameRuntime } from '../../play/multiplayer/gameRuntime';
 import type { GameRuntime, GameSocket } from '../../play/multiplayer/gameRuntime';
+import { LocalConversations } from './localConversations';
 import type { LocalTable, TableMessage } from './localTable';
 
 /** A page's local game: its browser effects, and what a chapter's Reset needs to start the page's connection afresh. */
 export type LocalRuntime = GameRuntime &
   Readonly<{
+    /** The signed-in player's own name, which the other players greet when they answer the chat. */
+    greet: (name: string | undefined) => void;
+    /** Stops the conversations' answers still on their way. */
+    dispose: () => void;
     /** Whether the page is replaying the table's history rather than showing it live. */
     replaying: () => boolean;
     /** Closes the page's connection, which it opens again at once onto whatever table is current. */
@@ -20,12 +25,14 @@ export type LocalRuntime = GameRuntime &
  * The browser effects of a game whose table runs in the page: its socket is answered by a local table, as the game Worker
  * answers a real one, and it admits itself, so nothing reaches Convex or the Worker.
  * `table` is read on every message, so a chapter's Reset can swap the table without the page reconnecting.
+ * Its conversations outlive a Reset, as a game's chat outlives anything moved on its table.
  */
 export function localRuntime(
   table: () => LocalTable,
   factions: Readonly<Partial<Record<string, PublicFaction | null>>>
 ): LocalRuntime {
   let socket: LocalSocket | null = null;
+  const conversations = new LocalConversations(table, (message) => queueMicrotask(() => socket?.deliver(message)));
 
   class LocalSocket {
     /** Whether the page asked this connection for a replay, which only a fresh connection takes it out of. */
@@ -62,10 +69,14 @@ export function localRuntime(
       switch (message.type) {
         case 'admit':
           table().deliver = (next) => queueMicrotask(() => socket?.deliver(next));
-          return this.later(table().frame());
+          this.later(table().frame());
+          return conversations.admitted();
         case 'faction':
           return this.later({ ...message, faction: factions[message.factionId] ?? null });
         case 'conversation-history':
+        case 'conversation-send':
+        case 'conversation-read':
+          return conversations.receive(message);
         case 'spice-history':
           return this.later({ ...message, entries: [], more: false });
         /* A local table keeps no replay, so its history is the table as it stands. */
@@ -129,6 +140,10 @@ export function localRuntime(
     /* The page's ticket has the shape the socket's messages require; nothing checks it but that. */
     replaying: () => socket?.replayed ?? false,
     reconnect: () => socket?.close(),
+    greet: (name) => {
+      conversations.learnerName = name;
+    },
+    dispose: () => conversations.dispose(),
     admission: {
       request: () => Promise.resolve({ ok: true as const, ticket: '0'.repeat(64), expiresInMs: 3_600_000 }),
     },
