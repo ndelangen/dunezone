@@ -455,3 +455,47 @@ export const BattleBeacon = meta.story({
     ).resolves.toBeInTheDocument();
   },
 });
+
+/** A card dragged out of the hand and let go over the table is played there, onto the live table. */
+export const HandToTable = meta.story({
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await sandboxReady(page);
+    const table = sandbox.table!;
+    const handSize = shown().hand!.filter((candidate) => !candidate.hiddenZone).length;
+    await openTab(page, 'Hand');
+    const card = (await page.findAllByRole('button', { name: /from hand$/ }, { timeout: 30_000 }))[0]!;
+    const scene = canvasElement.ownerDocument.querySelector('canvas')!.getBoundingClientRect();
+    const from = card.getBoundingClientRect();
+    const start = { x: from.left + from.width / 2, y: from.top + from.height / 2 };
+    const end = { x: scene.left + scene.width / 2, y: scene.top + scene.height / 2 };
+    const pointer = (type: string, x: number, y: number, on: EventTarget) =>
+      on.dispatchEvent(
+        new PointerEvent(type, {
+          bubbles: true,
+          cancelable: true,
+          isPrimary: true,
+          pointerId: 1,
+          button: 0,
+          buttons: 1,
+          clientX: x,
+          clientY: y,
+        })
+      );
+    pointer('pointerdown', start.x, start.y, card);
+    for (let step = 1; step <= 12; step++) {
+      pointer(
+        'pointermove',
+        start.x + ((end.x - start.x) * step) / 12,
+        start.y + ((end.y - start.y) * step) / 12,
+        canvasElement.ownerDocument
+      );
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    }
+    pointer('pointerup', end.x, end.y, canvasElement.ownerDocument);
+    await waitFor(() => expect(shown().hand!.filter((candidate) => !candidate.hiddenZone)).toHaveLength(handSize - 1), {
+      timeout: 10_000,
+    });
+    await expect(table.refusal).toBeUndefined();
+  },
+});
