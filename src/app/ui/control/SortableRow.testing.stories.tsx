@@ -92,3 +92,18 @@ export const ClippedRow = meta.story({
     await expect(order(canvas)).toEqual(['Crysknife', 'Shield', 'Snooper', 'Chaumas', 'Cheap Hero']);
   },
 });
+
+/** A disabled row takes no drag: nothing moves and nothing is let go outside it. */
+export const DisabledRow = meta.story({
+  render: () => <SortableRowDemo disabled />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await frame();
+    await drag(canvas.getByRole('img', { name: 'Snooper' }), leftHalf(canvas.getByRole('img', { name: 'Crysknife' })));
+    const output = canvas.getByLabelText('Let go outside');
+    const below = output.getBoundingClientRect();
+    await drag(canvas.getByRole('img', { name: 'Shield' }), { x: below.left + 4, y: below.bottom + 80 });
+    await expect(order(canvas)).toEqual(['Crysknife', 'Shield', 'Snooper', 'Chaumas', 'Cheap Hero']);
+    await expect(output).toHaveTextContent('Nothing let go outside yet');
+  },
+});

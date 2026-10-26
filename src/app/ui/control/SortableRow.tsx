@@ -177,7 +177,13 @@ export function SortableRow<T extends { id: string }>({
         {/* A drag in progress takes Escape, which cancels it, before any window around it closes. */}
         <div ref={row} className={className} aria-label={label} data-carried={dragging || undefined}>
           {items.map((item) => (
-            <SortableTile key={item.id} id={item.id} motion={motion} leaving={leaving?.(item) ?? false}>
+            <SortableTile
+              key={item.id}
+              id={item.id}
+              motion={motion}
+              disabled={disabled}
+              leaving={leaving?.(item) ?? false}
+            >
               {children(item)}
             </SortableTile>
           ))}
@@ -203,17 +209,20 @@ export function SortableRow<T extends { id: string }>({
 function SortableTile({
   id,
   motion,
+  disabled,
   leaving,
   children,
 }: {
   id: string;
   motion: boolean;
+  disabled: boolean;
   leaving: boolean;
   children: ReactNode;
 }) {
   const { listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id,
-    disabled: leaving,
+    /* A tile's own flag overrides the row's, so it carries both; a disabled row still takes right-clicks, a leaving piece nothing. */
+    disabled: disabled || leaving,
     transition: motion ? undefined : null,
   });
   /* The browser's own drag of an image inside would take the pointer away from this one, so it never starts. */
