@@ -30,6 +30,7 @@ import type { CaptureSelection, StoredSpawnContents } from '../../src/shared/pla
 import { captureSelectionSchema, storedSpawnContentsSchema } from '../../src/shared/play/inventory';
 import type { StoredPiece } from '../../src/shared/play/model';
 import { GameRejection } from '../../src/shared/play/rejection';
+import { labelForCount } from '../../src/shared/play/tableState';
 import type { RulesetAssetSlot } from '../../src/shared/rulesets/assetSlots';
 import { RULESET_ASSET_SLOTS } from '../../src/shared/rulesets/assetSlots';
 import { gameHttpClient } from './authorization';
@@ -173,7 +174,7 @@ export class GameCatalogue {
 
   /**
    * One member as a table piece.
-   * A single card is its own member and stacks with its holding deck, whose back it wears.
+   * A single card is its own member and stacks with its holding deck, whose back and back name it wears.
    */
   private captureMember(
     root: AssetSupply,
@@ -195,7 +196,7 @@ export class GameCatalogue {
       type === 'deck'
         ? { label: root.asset.name, kind: 'card' as const, stackKey: `deck:${root.asset.id}`, back: root.back }
         : cardDeck
-          ? { label: asset.name, kind: 'card' as const, stackKey: `deck:${cardDeck.id}`, back: root.back }
+          ? { label: '', kind: 'card' as const, stackKey: `deck:${cardDeck.id}`, back: root.back }
           : { label: asset.name, kind: 'force' as const, stackKey: `token:${asset.id}`, back: member.back };
     const back = this.image(stack.back);
     const piece: StoredPiece = {
@@ -224,6 +225,10 @@ export class GameCatalogue {
       zoneId: null,
       locked: false,
     };
+    if (cardDeck && type !== 'deck') {
+      /* A single card can be played face down, so it is named by its back, as a dealt card is, never by its front. */
+      piece.label = labelForCount(piece, count, {}, true);
+    }
     return piece;
   }
 

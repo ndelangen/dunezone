@@ -412,7 +412,7 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
     expect(required(required(required(record).extras[0].contents).pieces[0].items[0].artwork).size).toBe(0.35);
     const card = required(required(record).extras[1].contents);
     expect(card.pieces).toHaveLength(1);
-    expect(card.pieces[0]).toMatchObject({ kind: 'card', label: 'kwisatz-haderach', stackKey: 'deck:custom-deck' });
+    expect(card.pieces[0]).toMatchObject({ kind: 'card', label: 'Treachery card', stackKey: 'deck:custom-deck' });
     expect(card.pieces[0].items).toHaveLength(1);
     expect(card.pieces[0].items[0].artwork).toMatchObject({
       front: 'http://table.test/published/cards/kwisatz-haderach/card.jpg',
