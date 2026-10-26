@@ -1,5 +1,5 @@
 import { Anchor, Button, Checkbox, Stack, Text, Textarea } from '@mantine/core';
-import { BUG_REPORT_DISCLOSURE, bugReportDescriptionSchema } from '@shared/play/bugReports';
+import { BUG_REPORT_DISCLOSURE, bugReportDescriptionSchema, bugReportDiagnosticsSchema } from '@shared/play/bugReports';
 import type { BugReportBrowser, BugReportProgress, BugReportRequest } from '@shared/play/bugReports';
 import { censorKnownMessage, censorReportConversations } from '@shared/play/reportConversations';
 import { FormError } from '@ui/block/FormError';
@@ -104,7 +104,7 @@ function collectReport(
     logs,
     diagnostics: {
       clientRevision: table.liveRevision,
-      connection: connection === 'authorized' ? 'authorized' : 'offline',
+      connection: bugReportDiagnosticsSchema.shape.connection.parse(connection),
       viewport: [window.innerWidth, window.innerHeight],
       pixelRatio: window.devicePixelRatio,
       language: navigator.language,

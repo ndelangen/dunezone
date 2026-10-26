@@ -8,7 +8,9 @@ export const bugReportDescriptionSchema = z.strictObject({
 });
 export const bugReportDiagnosticsSchema = z.strictObject({
   clientRevision: z.number().int().nonnegative(),
-  connection: z.enum(['connecting', 'authorized', 'reconnecting', 'denied', 'offline', 'closed']).catch('offline'),
+  connection: z
+    .enum(['connecting', 'authorized', 'suspended', 'reconnecting', 'denied', 'offline', 'closed'])
+    .catch('offline'),
   viewport: z.tuple([z.number().int().min(0).max(32_768), z.number().int().min(0).max(32_768)]),
   pixelRatio: z.number().min(0).max(16),
   language: z.string().max(80),
