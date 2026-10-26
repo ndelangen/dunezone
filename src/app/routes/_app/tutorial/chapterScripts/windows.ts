@@ -3,7 +3,7 @@ import type { ChapterScript } from './chapterScript';
 import { element as first, openedWindow, task, viaCompass, windowShown } from './guideChecks';
 
 /*
- * Chapter 8, "Windows": Space opens a compass over the table, a window opens in the middle,
+ * Chapter 9, "Windows": Space opens a compass over the table, a window opens in the middle,
  * and it can be pinned to the bottom-left or bottom-right slot to stay open while the player plays.
  * Each window also has a letter of its own, which the compass shows beside it, so the chapter ends on one.
  * Every task is read from the screen, so it moves on only once the player has done it with the controls.

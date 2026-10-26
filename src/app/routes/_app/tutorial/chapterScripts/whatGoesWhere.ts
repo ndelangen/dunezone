@@ -2,22 +2,13 @@ import type { GameSnapshot } from '@shared/play/protocol';
 
 import type { GuideTask } from '../TutorialGuide';
 import type { ChapterScript } from './chapterScript';
-import {
-  at,
-  element,
-  onBoard,
-  openedWindow,
-  singleSpiceFaceUp,
-  tableDeck,
-  task,
-  viaCompass,
-  windowShown,
-} from './guideChecks';
+import { at, onBoard, singleSpiceFaceUp, tableDeck, task } from './guideChecks';
 
 /*
  * Chapter 5, "What goes where": the table at the start of turn 1, seen from the learner's seat.
- * One task for each part of the screen, each done on the table itself, so the rail moves on only once the player found it.
- * Moving the camera is chapter 6's (Norbert, 2026-10-24), so this one starts at the decks.
+ * One task for each part of the table, each done on the table itself, so the rail moves on only once the player found it.
+ * Moving the camera is chapter 6's (Norbert, 2026-10-24), so this one starts at the decks; the windows over the table are
+ * chapter 9's, and the chat bar is Alliances and talking's (the chapter map Norbert approved, 2026-10-26).
  */
 
 /* The table's own pieces: a card from a deck, troops onto the board and a card from the other deck. */
@@ -64,29 +55,8 @@ function tableTasks(snapshot: () => GameSnapshot): GuideTask[] {
   ];
 }
 
-/* The faction token in the title of a chat with another player, which opens that faction's information. */
-const chatFactionToken = () => document.querySelector('[data-window^="player:"] header button[aria-label$=" info"]');
-
-/* The windows over the table: the player's own things and another player's; then the phase. */
-const panelTasks = (snapshot: () => GameSnapshot): GuideTask[] => [
-  task({
-    id: 'your-spice',
-    task: 'Count your spice',
-    detail: 'Your cards and spice are in the Hand & spice window. Press {H}, or {Space}, then {←} and {Space} again.',
-    anchor: { kind: 'page', element: viaCompass('hand') },
-    ...openedWindow(windowShown('hand')),
-  }),
-  task({
-    id: 'player-info',
-    task: "Look up another player's faction",
-    detail:
-      "Every player is a faction token in the chat bar beside Controls. Click one to open your chat with them, then click the token in the chat's title.",
-    anchor: {
-      kind: 'page',
-      element: () => chatFactionToken() ?? element('nav[aria-label="Chats"] button:not([aria-label^="Table chat"])')(),
-    },
-    ...openedWindow(windowShown('faction-info')),
-  }),
+/* The phase in the header, and the button that moves the game on. */
+const phaseTasks = (snapshot: () => GameSnapshot): GuideTask[] => [
   task({
     id: 'next-phase',
     task: 'Move the game on',
@@ -103,15 +73,13 @@ const panelTasks = (snapshot: () => GameSnapshot): GuideTask[] => [
   }),
 ];
 
-const tasks = (snapshot: () => GameSnapshot) => [...tableTasks(snapshot), ...panelTasks(snapshot)];
+const tasks = (snapshot: () => GameSnapshot) => [...tableTasks(snapshot), ...phaseTasks(snapshot)];
 
 /* One line for each part of the chapter, in the order it was played. */
 const learned = [
   'Right-click a deck to draw a card',
   'Drag troops from your reserves onto a territory',
   'Press F to turn a card over',
-  '{H}, or {Space} then left on the compass, opens your Hand & spice',
-  "Each player's token in the chat bar opens your chat with them, and the token in its title their faction",
   'Next phase moves the game on',
 ];
 

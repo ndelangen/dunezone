@@ -7,7 +7,8 @@ import { at, closeUpShown, dialTask, scrolled, tableDeck, task } from './guideCh
 
 /*
  * Chapter 6, "Looking around": the same table as chapter 5, seen through the camera.
- * In close with the wheel, along the board with the keys, back out, round the table with the dial, and a card read up close with Alt.
+ * In close with the wheel, along the board with the keys, back out, round the table with the dial, a ping for the others,
+ * and a card read up close with Alt.
  * Tilting is left out: on a desktop the table has no tilt of its own, only a trackpad's two fingers.
  */
 
@@ -34,6 +35,27 @@ const slid = () => ({
     watch.from !== null &&
     camera !== null &&
     camera.position.distanceTo(watch.from) > camera.position.length() * 0.05,
+  finish: (watch: { stop: AbortController }) => watch.stop.abort(),
+});
+
+/*
+ * Tab pings where the pointer is over the table, and the table claims the key when it does; a Tab it leaves alone moves the focus as usual.
+ * So the task counts a Tab the table took, read once the table's own listener has had the key.
+ */
+const pinged = () => ({
+  begin: () => {
+    const watch = { pinged: false, stop: new AbortController() };
+    const press = (event: KeyboardEvent) => {
+      if (event.key === 'Tab' && !event.repeat) {
+        setTimeout(() => {
+          watch.pinged ||= event.defaultPrevented;
+        });
+      }
+    };
+    window.addEventListener('keydown', press, { capture: true, signal: watch.stop.signal });
+    return watch;
+  },
+  done: (watch: { pinged: boolean }) => watch.pinged,
   finish: (watch: { stop: AbortController }) => watch.stop.abort(),
 });
 
@@ -81,6 +103,14 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       'B on the dial turns to the rim below the board.'
     ),
     task({
+      id: 'ping',
+      task: 'Show the others a spot',
+      detail:
+        'Point at any territory and press {Tab}. A ripple in your colour shows there for everyone at the table, with a sound.',
+      anchor: { kind: 'table', point: () => [0, 0, 0] },
+      ...pinged(),
+    }),
+    task({
       id: 'close-up',
       task: 'Read a card up close',
       detail:
@@ -97,6 +127,7 @@ const learned = [
   'Scroll over the board to look closer, and back to step out',
   'Slide a close look with the arrow keys or {W}, {A}, {S} and {D}',
   'Click L, R, B or M on the camera dial to jump the view',
+  'Press {Tab} over the table to ping a spot for everyone',
   'Hold {Alt} over a card to read it flat and large',
 ];
 
