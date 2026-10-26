@@ -5,20 +5,11 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
 import { afterEach, expect, test, vi } from 'vite-plus/test';
 
+import { stubMatchMedia } from '../play/multiplayer/jsdom.test.fixture';
 import { TutorialGuide } from './TutorialGuide';
 import type { GuideTask } from './TutorialGuide';
 
-window.matchMedia = vi.fn().mockImplementation((query: string) => ({
-  matches: false,
-  media: query,
-  onchange: null,
-  addListener: vi.fn(),
-  removeListener: vi.fn(),
-  addEventListener: vi.fn(),
-  removeEventListener: vi.fn(),
-  dispatchEvent: vi.fn(),
-}));
-
+stubMatchMedia();
 globalThis.ResizeObserver ??= class {
   observe() {}
   unobserve() {}
