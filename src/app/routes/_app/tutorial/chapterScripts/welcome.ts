@@ -35,36 +35,57 @@ const copyLink = () =>
     /game link/i.test(button.textContent ?? '')
   ) ?? null;
 
-/* How long the arrow rests on each faction token as it goes round the table once. */
-const TOKEN_TOUR_MS = 1200;
+/* How long the arrow rests on each stop as it goes round once. */
+const TOUR_STOP_MS = 1200;
 
 /*
- * The arrow's tour of the faction tokens: once round the table from the learner's own, one token at a time, then it rests on theirs.
- * It runs by the clock from the moment the step starts, so Enter at any point ends the step and the tour with it.
+ * The arrow's tour of a row of things on the table: one stop at a time, once through, then it rests on the last.
+ * It runs by the clock from the moment its step starts, so Enter at any point ends the step and the tour with it.
  */
-function tokenTour(snapshot: () => GameSnapshot) {
+function tour(stops: () => readonly Vector3Tuple[]) {
   let startedAt = 0;
   const point = (): Vector3Tuple | null => {
-    const tokens = snapshot().table.pieces.filter(isFactionToken);
-    const mine = snapshot().roster?.seats.find((seat) => seat.id === TUTORIAL_RECIPE.learner)?.faction?.id;
-    const own = tokens.find((piece) => mine !== undefined && piece.stackKey === factionTokenStackKey(mine));
-    if (tokens.length === 0) {
-      return null;
-    }
-    const from = own ? factionTokenRingAngle(own.position as Vector3Tuple) : 0;
-    const round = (piece: (typeof tokens)[number]) =>
-      (factionTokenRingAngle(piece.position as Vector3Tuple) - from + Math.PI * 4) % (Math.PI * 2);
-    const ordered = [...tokens].sort((a, b) => round(a) - round(b));
-    const step = Math.floor((performance.now() - startedAt) / TOKEN_TOUR_MS);
-    const piece = step < ordered.length ? ordered[step]! : ordered[0]!;
-    return [piece.position[0]!, piece.position[1]!, piece.position[2]!];
+    const all = stops();
+    const step = Math.floor((performance.now() - startedAt) / TOUR_STOP_MS);
+    return all[Math.min(step, all.length - 1)] ?? null;
   };
-  return { point, start: () => (startedAt = performance.now()) };
+  const enter = pressEnter();
+  return {
+    point,
+    begin: () => {
+      startedAt = performance.now();
+      return enter.begin();
+    },
+    done: enter.done,
+    finish: enter.finish,
+  };
+}
+
+const pointOf = (position: readonly number[]): Vector3Tuple => [position[0]!, position[1]!, position[2]!];
+
+/* Every faction token once round the table, from the one after the learner's, so the tour ends on theirs. */
+function tokenStops(snapshot: () => GameSnapshot): Vector3Tuple[] {
+  const tokens = snapshot().table.pieces.filter(isFactionToken);
+  const mine = snapshot().roster?.seats.find((seat) => seat.id === TUTORIAL_RECIPE.learner)?.faction?.id;
+  const own = tokens.find((piece) => mine !== undefined && piece.stackKey === factionTokenStackKey(mine));
+  const from = own ? factionTokenRingAngle(own.position as Vector3Tuple) : 0;
+  const round = (piece: (typeof tokens)[number]) =>
+    (factionTokenRingAngle(piece.position as Vector3Tuple) - from + Math.PI * 4 - 1e-6) % (Math.PI * 2);
+  return [...tokens].sort((a, b) => round(a) - round(b)).map((piece) => pointOf(piece.position));
+}
+
+/* Every phase disc in the turn's order, then the disc of the phase the game is in. */
+function phaseStops(snapshot: () => GameSnapshot): Vector3Tuple[] {
+  const discs = trackerArcSlots((snapshot().phases ?? STANDARD_PHASES).length)
+    .filter((slot) => slot.kind === 'phase')
+    .map((slot) => pointOf(slot.position));
+  const current = trackerAt(snapshot, 'phase');
+  return current ? [...discs, current] : discs;
 }
 
 function tasks(snapshot: () => GameSnapshot): GuideTask[] {
-  const tour = tokenTour(snapshot);
-  const enter = pressEnter();
+  const tokens = tour(() => tokenStops(snapshot));
+  const phases = tour(() => phaseStops(snapshot));
   return [
     task({
       id: 'board',
@@ -79,13 +100,10 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       task: 'The players',
       detail:
         'Every player has a faction token at their place around the board; the arrow goes round them once, ending on yours. Press {Enter} to go on.',
-      anchor: { kind: 'table', point: tour.point },
-      begin: () => {
-        tour.start();
-        return enter.begin();
-      },
-      done: enter.done,
-      finish: enter.finish,
+      anchor: { kind: 'table', point: tokens.point },
+      begin: tokens.begin,
+      done: tokens.done,
+      finish: tokens.finish,
     }),
     task({
       id: 'status',
@@ -99,9 +117,11 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'phases',
       task: 'The phases of a turn',
       detail:
-        'The row of discs along the far edge of the board is the turn’s phases, in order. The lit disc is the phase the game is in now. Press {Enter} to go on.',
-      anchor: { kind: 'table', point: () => trackerAt(snapshot, 'phase') },
-      ...pressEnter(),
+        'The row of discs along the far edge of the board is the turn’s phases; the arrow walks them in order, ending on the lit disc, the phase the game is in now. Press {Enter} to go on.',
+      anchor: { kind: 'table', point: phases.point },
+      begin: phases.begin,
+      done: phases.done,
+      finish: phases.finish,
     }),
     task({
       id: 'turn',
