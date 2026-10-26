@@ -54,7 +54,8 @@ installation. It asks the session for projections instead of reading or changing
 
 A room hibernates while its players think, so a paused table costs no Durable Object duration.
 The one-second sweep runs only while something can expire on its own: an admission, a carry or a
-pointer. Every message starts it again, and it stops itself on the first quiet tick. The alarm
+pointer, or while its summary line waits to be written, at most a minute. Every message starts it
+again. The alarm
 covers the battle deadline and the directory retry while the room sleeps. A pass needs no alarm:
 the page renews it before it runs out, and the sweep the next message starts pauses the table of a
 page that did not. Keepalive pings are

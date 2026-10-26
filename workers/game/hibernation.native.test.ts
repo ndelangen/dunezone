@@ -13,6 +13,17 @@ import {
   syncView,
 } from './native-runtime.fixture.ts';
 
+/*
+ * Moves the room's clock a minute on and waits for its sweep to stop: a quiet room keeps sweeping until its
+ * pending summary line is a minute old. Returns the new clock offset.
+ */
+async function quiet(runtime: NativeRuntime, offset: number) {
+  const next = offset + 61_000;
+  await runtime.clock(next);
+  await eventually(async () => !(await runtime.sweeping()), 'the sweep stopping');
+  return next;
+}
+
 /* A quiet room hibernates between moves and wakes with its players still at the table (perf review #15). */
 describe('GameRoom hibernation', () => {
   let peer: NativePeer;
@@ -32,14 +43,19 @@ describe('GameRoom hibernation', () => {
   const admissionStatuses = (connection: NativeConnection) =>
     connection.messages.flatMap((message) => (message.type === 'admission' ? [message.status] : []));
 
-  it('stops its sweep once nothing can expire, and starts it again for a pointer', async () => {
+  it('stops its sweep once nothing can expire and its summary is written, and starts it again for a pointer', async () => {
     const a = await admitPlayer(runtime, 'a');
-    await eventually(async () => !(await runtime.sweeping()), 'the sweep stopping');
+    const offset = await quiet(runtime, 0);
+    expect(runtime.logs.some((log) => log.message.includes('game-room-summary') && log.message.includes('idle'))).toBe(
+      true
+    );
     a.send({ type: 'pointer', seq: 0, position: [0, 0, 0] });
     await eventually(() => runtime.sweeping(), 'the sweep starting for the pointer');
-    /* The pointer lapses after three seconds, and the sweep stops with it. */
-    await runtime.clock(3001);
-    await eventually(async () => !(await runtime.sweeping()), 'the sweep stopping after the pointer');
+    /* The pointer lapses after three seconds, but its message waits in the summary for a minute. */
+    await runtime.clock(offset + 3001);
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    expect(await runtime.sweeping()).toBe(true);
+    await quiet(runtime, offset);
     expect(a.closed).toBe(false);
   }, 15_000);
 
@@ -48,7 +64,7 @@ describe('GameRoom hibernation', () => {
     const b = await admitPlayer(runtime, 'b');
     const before = await syncView(a);
     await syncView(b);
-    await eventually(async () => !(await runtime.sweeping()), 'the sweep stopping');
+    await quiet(runtime, 0);
 
     await runtime.hibernateRoom();
     expect(a.closed).toBe(false);
@@ -79,7 +95,7 @@ describe('GameRoom hibernation', () => {
   it('keeps its epoch across a hibernation, so the page keeps the piece it picks up on waking', async () => {
     const a = await admitPlayer(runtime, 'a');
     const before = await syncView(a);
-    await eventually(async () => !(await runtime.sweeping()), 'the sweep stopping');
+    await quiet(runtime, 0);
 
     await runtime.hibernateRoom();
     const received = a.messages.length;
@@ -103,15 +119,16 @@ describe('GameRoom hibernation', () => {
 
   it('pauses the table of a pass that ran out while the room slept once another player moves', async () => {
     const a = await admitPlayer(runtime, 'a');
-    const b = await admitPlayer(runtime, 'b', { exp: Date.now() + 60_000 });
+    const b = await admitPlayer(runtime, 'b', { exp: Date.now() + 90_000 });
     const before = await syncView(a);
     await syncView(b);
-    await eventually(async () => !(await runtime.sweeping()), 'the sweep stopping');
+    const offset = await quiet(runtime, 0);
     /* No battle runs and the directory is delivered, so nothing wakes the room on its own. */
     expect((await runtime.alarm()).scheduledAt).toBeNull();
 
+    /* B's pass runs out while nothing runs, and the room sleeps. */
+    await runtime.clock(offset + 30_000);
     await runtime.hibernateRoom();
-    await runtime.clock(61_000);
     a.send({
       type: 'command',
       commandId: 'wakes-the-room',
@@ -141,10 +158,10 @@ describe('GameRoom hibernation in a real game', () => {
     const before = await syncView(b);
     expect(required(before.snapshot.swapping).closed).toBe(false);
     await syncView(a);
-    await eventually(async () => !(await runtime.sweeping()), 'the sweep stopping');
+    const offset = await quiet(runtime, 0);
 
     /* The clock moves past the trading deadline before the room sleeps, so nothing runs until the wake. */
-    await runtime.clock(240_001);
+    await runtime.clock(offset + 240_001);
     await runtime.hibernateRoom();
     const received = b.messages.length;
     /* Any request wakes the room, whose start closes the overdue trading before a handler runs. */

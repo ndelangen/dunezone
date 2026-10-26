@@ -66,7 +66,7 @@ import { gameHttpClient } from './gameHttpClient';
 import { isLocalIsolatedRuntime } from './localRuntime';
 import { forwardPrivacyRequest } from './privacyRequests';
 import { CarryHistoryExhausted } from './room';
-import { RoomSummary } from './roomSummary';
+import { ROOM_SUMMARY_IDLE_MS, RoomSummary } from './roomSummary';
 import type { ConvexCall } from './roomSummary';
 import type { HeldPass } from './seatPasses';
 import { heldPass, SeatPasses } from './seatPasses';
@@ -408,7 +408,8 @@ export class GameRoom extends DurableObject<GameEnv> {
       const remembered: RememberedConnection = {
         connectionId: connection.connectionId,
         openedAt: connection.openedAt,
-        viewer: connection.viewer,
+        /* A long avatar address would outgrow the attachment; the actor directory keeps it. */
+        viewer: connection.viewer && { ...connection.viewer, avatarUrl: undefined },
         seatLimitReached: connection.seatLimitReached,
         pass: connection.pass,
         expiryAnnounced: connection.expiryAnnounced,
@@ -2254,11 +2255,20 @@ export class GameRoom extends DurableObject<GameEnv> {
       if (this.summary.due(Date.now())) {
         this.flushSummary('interval');
       }
-      if (!this.needsSweep()) {
-        /* A quiet room may hibernate next, which drops whatever its summary has not written. */
-        this.stopSweep();
+      if (this.needsSweep()) {
+        return;
+      }
+      /*
+       * Hibernation drops whatever the summary has not written, so a quiet room with a pending line keeps
+       * sweeping until the line is a minute old, then writes it early. That bounds the lines to one a minute.
+       */
+      if (this.summary.pending) {
+        if (!this.summary.due(Date.now(), ROOM_SUMMARY_IDLE_MS)) {
+          return;
+        }
         this.flushSummary('idle');
       }
+      this.stopSweep();
     }, SWEEP_MS);
   }
 
