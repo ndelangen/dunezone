@@ -339,8 +339,12 @@ try {
     'Contested carries reserve once, transient motion reaches observers, and cross-connection receipts prevent duplicate drops'
   );
   const genuine = await seatPass(fixture.gameId, bob);
-  /* The signature is the part after the dot; changing its last character keeps the shape and breaks the HMAC. */
-  const forged = `${genuine.slice(0, -1)}${genuine.endsWith('A') ? 'B' : 'A'}`;
+  /*
+   * The signature is the part after the dot. Its first character carries six signature bits, so changing it keeps the shape
+   * and breaks the HMAC; the last character would not, since its low bits are base64url padding the decoder ignores.
+   */
+  const dot = genuine.indexOf('.') + 1;
+  const forged = `${genuine.slice(0, dot)}${genuine[dot] === 'A' ? 'B' : 'A'}${genuine.slice(dot + 1)}`;
   const forgedPeer = await open(fixture.gameId, forged);
   await until(() => forgedPeer.view() || forgedPeer.closeCode, 'Forged pass did not settle.');
   assert.equal(forgedPeer.closeCode, 4401);
