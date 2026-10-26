@@ -11149,5 +11149,41 @@
     "tags": ["tarot", "deck", "cards", "case", "cord", "tassel", "divination", "vector"],
     "subjects": ["culture", "symbols"],
     "sourceHash": "e3b031b1dd8b34aa7edb107aa0846f516d06484402c68fccd70bb98b17f341ff"
+  },
+  "/vector/decal/ascending-soldiers.svg": {
+    "description": "Three helmeted figures with packs rise diagonally, with bent legs and a long weapon held by the lowest figure.",
+    "tags": ["soldiers", "ascending", "flying", "helmets", "packs", "Dune Part Two", "vector"],
+    "subjects": ["people", "weapons"],
+    "sourceHash": "2cf32a4fe8fa97fab5fee09e0e99f94f3c6d133ddf8dc3e8f2251441a843d033"
+  },
+  "/vector/decal/ornate-spear.svg": {
+    "description": "A long horizontal spear has a broad grip, simple collars, a stepped neck and a swept pointed head with a large curved opening.",
+    "tags": ["spear", "staff", "polearm", "blade", "stepped neck", "vector"],
+    "subjects": ["weapons"],
+    "sourceHash": "e441bf3a7ed43c22218578bbe12a7c51f2c46aada0c93970815894b5986bbfd6"
+  },
+  "/vector/decal/box-and-needle.svg": {
+    "description": "A long tapered needle sits above a thick-walled box with an open rectangular cavity, framed top and angular panel cuts.",
+    "tags": ["box", "needle", "cavity", "framed panel", "vector"],
+    "subjects": ["machines", "weapons"],
+    "sourceHash": "927135a200188481a6059a5132ccd8447f59879cd06321a97ff5e37c8e6d69f4"
+  },
+  "/vector/decal/thumper-part-two.svg": {
+    "description": "A tall cylindrical thumper has a side rail, a narrow piston, a vented lower body and a ribbed tip.",
+    "tags": ["thumper", "Dune Part Two", "piston", "cylinder", "vents", "vector"],
+    "subjects": ["machines"],
+    "sourceHash": "fcf32785d5287d3ea59a52b269690c5ebbea6c6fa6b9275203099b2248ee9a14"
+  },
+  "/vector/decal/circular-throne-room.svg": {
+    "description": "Concentric arches frame a tall throne above a broad staircase, with an open central disk and sweeping side ribs.",
+    "tags": ["throne room", "circular", "arches", "stairs", "palace", "vector"],
+    "subjects": ["places"],
+    "sourceHash": "13287a92a6f2f222b7f496831006ab4aa011d60855f0b3fd80a556bcf4fe84a3"
+  },
+  "/vector/decal/circular-throne-room-multicolor.svg": {
+    "description": "Cream concentric arches and a circular disk surround a navy throne and stair runner, with black structural cuts.",
+    "tags": ["throne room", "circular", "arches", "stairs", "palace", "navy", "cream", "multicolor", "vector"],
+    "subjects": ["places"],
+    "sourceHash": "3c38a778cb2ac0dc6291f33929b820f4038079f9de0b8ee9114a6fad224b82b4"
   }
 }

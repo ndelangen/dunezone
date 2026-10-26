@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "sourceDescription": "AI-generated decal artwork developed from the user-supplied reference. Original authorship and publication were not independently verified.",
+  "source": "originals/Dune-Part-Two-Thumper.png",
+  "assets": {
+    "/vector/decal/thumper-part-two.svg": {
+      "bitmapMaster": "bitmaps/thumper-part-two.png",
+      "approvedBitmap": "originals/thumper-part-two-approved.png",
+      "approval": "The user explicitly approved this bitmap proposal on 2026-10-26.",
+      "alphaThreshold": 0.5,
+      "maskGaussianSigmaPixels": 0.65,
+      "minimumComponentAreaPixels": 8,
+      "trace": "Potrace 1.16, turdsize 8, alphamax 1.0, opttolerance 0.25, followed by SVG authoring root and provenance steps, uniform square normalization and the decal optimization profile.",
+      "paint": "Inherited from the caller. Internal details remain transparent cutouts.",
+      "details": "A tall cylindrical thumper has a side rail, a narrow piston, a vented lower body and a ribbed tip."
+    }
+  }
+}

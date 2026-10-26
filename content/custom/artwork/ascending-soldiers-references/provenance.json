@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "sourceDescription": "A user-approved AI-generated monochrome illustration developed from the supplied reference. Original authorship and publication were not independently verified.",
+  "source": "originals/dune-part-two-opening-scene.avif",
+  "approval": {
+    "date": "2026-10-26",
+    "scope": "The user selected the simpler bitmap, requested removal of the middle figure's extra leg, and approved the corrected two-leg version.",
+    "evidence": "approved"
+  },
+  "assets": {
+    "/vector/decal/ascending-soldiers.svg": {
+      "approvedBitmap": "originals/ascending-soldiers-approved.png",
+      "bitmapMaster": "bitmaps/ascending-soldiers.png",
+      "alphaThreshold": 0.5,
+      "maskGaussianSigmaPixels": 0.65,
+      "minimumComponentAreaPixels": 8,
+      "trace": "Potrace 1.16, turdsize 8, alphamax 1.0, opttolerance 0.25, followed by SVG authoring root and provenance steps, uniform square normalization and the decal optimization profile.",
+      "paint": "Inherited from the caller. Internal details remain transparent cutouts.",
+      "details": "Three separated figures retain their diagonal arrangement, equipment, sparse detail cuts and exactly two legs each."
+    }
+  }
+}

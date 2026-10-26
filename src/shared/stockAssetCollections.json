@@ -1559,7 +1559,8 @@
       "/vector/decal/talon-bracer.svg",
       "/vector/decal/wire.svg",
       "/vector/decal/sardaukar-knife.svg",
-      "/vector/decal/sardaukar-sheath.svg"
+      "/vector/decal/sardaukar-sheath.svg",
+      "/vector/decal/ornate-spear.svg"
     ]
   },
   {
@@ -1661,7 +1662,8 @@
       "/vector/decal/pact-reliquary.svg",
       "/vector/decal/seal-breaker.svg",
       "/vector/decal/signal-shears.svg",
-      "/vector/decal/vapor-comb.svg"
+      "/vector/decal/vapor-comb.svg",
+      "/vector/decal/thumper-part-two.svg"
     ]
   },
   {
@@ -1834,7 +1836,8 @@
       "/vector/decal/watch-relief.svg",
       "/vector/decal/watch-relief-multicolor.svg",
       "/vector/decal/suk-graduate.svg",
-      "/vector/decal/suk.svg"
+      "/vector/decal/suk.svg",
+      "/vector/decal/ascending-soldiers.svg"
     ]
   },
   {
@@ -1960,7 +1963,9 @@
       "/vector/decal/palace-alt.svg",
       "/vector/decal/palace-alt-multicolor.svg",
       "/vector/decal/palace.svg",
-      "/vector/decal/palace-multicolor.svg"
+      "/vector/decal/palace-multicolor.svg",
+      "/vector/decal/circular-throne-room.svg",
+      "/vector/decal/circular-throne-room-multicolor.svg"
     ]
   },
   {
@@ -2119,7 +2124,7 @@
   {
     "label": "Decals / Needles and injectors",
     "keywords": "needle injector injection syringe suringe weapon poison delivery dart",
-    "assets": ["/vector/decal/injection.svg", "/vector/decal/suringe.svg"]
+    "assets": ["/vector/decal/injection.svg", "/vector/decal/suringe.svg", "/vector/decal/box-and-needle.svg"]
   },
   {
     "label": "Decals / Traders and appraisers",

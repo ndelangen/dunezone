@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "sourceDescription": "AI-generated decal artwork developed from the user-supplied reference. Original authorship and publication were not independently verified.",
+  "source": "originals/Copy-of-2.-NBE-Crop-2880x1920-Horizontal-3-1024x683.png",
+  "assets": {
+    "/vector/decal/circular-throne-room.svg": {
+      "bitmapMaster": "bitmaps/circular-throne-room.png",
+      "derivedBitmap": "originals/throne-room-monochrome-companion.png",
+      "approval": "Required monochrome companion derived from the approved three-color design and previewed in the conversation. The user did not separately approve this bitmap.",
+      "alphaThreshold": 0.5,
+      "maskGaussianSigmaPixels": 0.65,
+      "minimumComponentAreaPixels": 8,
+      "trace": "Potrace 1.16, turdsize 8, alphamax 1.0, opttolerance 0.25, followed by SVG authoring root and provenance steps, uniform square normalization and the decal optimization profile.",
+      "paint": "Inherited from the caller. Internal details remain transparent cutouts.",
+      "details": "The central disk is transparent to keep the throne legible in one ink. The arches, stairs and architectural arrangement follow the approved color design."
+    },
+    "/vector/decal/circular-throne-room-multicolor.svg": {
+      "bitmapMaster": "bitmaps/throne-room-silhouette.png",
+      "approvedBitmap": "originals/throne-room-multicolor-approved.png",
+      "approval": "The user explicitly approved this bitmap proposal on 2026-10-26.",
+      "alphaThreshold": 0.5,
+      "maskGaussianSigmaPixels": 0.65,
+      "minimumComponentAreaPixels": 8,
+      "trace": "Potrace 1.16, turdsize 8, alphamax 1.0, opttolerance 0.25, followed by SVG authoring root and provenance steps, uniform square normalization and the decal optimization profile.",
+      "paint": "Three flat layers use #090907, #25394e and #efe7bc. The navy matches the existing Stronghold Tabr multicolor decal.",
+      "details": "Cream concentric arches and a circular disk surround a navy throne and stair runner, with black structural cuts.",
+      "colorMasks": [
+        "bitmaps/throne-room-silhouette.png",
+        "bitmaps/throne-room-navy.png",
+        "bitmaps/throne-room-cream.png"
+      ]
+    }
+  }
+}
