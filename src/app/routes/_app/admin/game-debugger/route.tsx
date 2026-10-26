@@ -43,6 +43,13 @@ function reduce(state: State, event: Event): State {
   }
 }
 
+function importError(error: unknown) {
+  if (error instanceof SyntaxError) {
+    return 'This file is not valid JSON.';
+  }
+  return error instanceof Error ? error.message : 'The report could not be opened.';
+}
+
 function GameDebugger() {
   const [state, dispatch] = useReducer(reduce, initial);
   const { report } = state;
@@ -60,12 +67,7 @@ function GameDebugger() {
     } catch (error) {
       dispatch({
         kind: 'failed',
-        message:
-          error instanceof SyntaxError
-            ? 'This file is not valid JSON.'
-            : error instanceof Error
-              ? error.message
-              : 'The report could not be opened.',
+        message: importError(error),
       });
     }
   };
@@ -139,8 +141,6 @@ function ReportContents({
     'server.conversations': report.server.conversations,
     'browser.conversations': report.browser.conversations,
   };
-  const compared = comparableSnapshots(report);
-  const differences = compared ? changes(compared.server, compared.browser, 100) : [];
   return (
     <>
       <Section title="Captured game" description={`Game ${report.server.gameId}`}>
@@ -176,81 +176,13 @@ function ReportContents({
           </Stack>
         </Tabs.Panel>
         <Tabs.Panel value="differences" pt="md">
-          <Stack gap="md">
-            <Text>
-              Compare shared fields in the saved snapshots. Server-only fields are excluded. Different revisions,
-              private projections and capture timing can explain differences.
-            </Text>
-            {!compared ? (
-              <Text>No browser snapshot was captured.</Text>
-            ) : !differences.length ? (
-              <Text>No differences in shared fields.</Text>
-            ) : (
-              <>
-                <Text>
-                  {differences.length === 100
-                    ? 'Showing the first 100 differences.'
-                    : `${differences.length} differences.`}
-                </Text>
-                <Table.ScrollContainer minWidth={600}>
-                  <Table>
-                    <Table.Thead>
-                      <Table.Tr>
-                        <Table.Th>Field</Table.Th>
-                        <Table.Th>Server</Table.Th>
-                        <Table.Th>Browser</Table.Th>
-                      </Table.Tr>
-                    </Table.Thead>
-                    <Table.Tbody>
-                      {differences.map((difference) => (
-                        <Table.Tr key={difference.path}>
-                          <Table.Td>{difference.path}</Table.Td>
-                          <Table.Td>{summary(difference.before)}</Table.Td>
-                          <Table.Td>{summary(difference.after)}</Table.Td>
-                        </Table.Tr>
-                      ))}
-                    </Table.Tbody>
-                  </Table>
-                </Table.ScrollContainer>
-              </>
-            )}
-          </Stack>
+          <SnapshotDifferences report={report} />
         </Tabs.Panel>
         <Tabs.Panel value="events" pt="md">
-          <Stack gap="lg">
-            {(['game', 'audit'] as const).map((kind) => (
-              <Section key={kind} title={kind === 'game' ? 'Game events' : 'Audit events'}>
-                {report.server.events[kind].more && (
-                  <Text c="dimmed">Earlier events were not included in this report.</Text>
-                )}
-                {report.server.events[kind].entries.length ? (
-                  report.server.events[kind].entries.map((entry, index) => (
-                    <Text key={index}>
-                      {String(entry.sequence)} · {String(entry.context)} · {String(entry.text)}
-                    </Text>
-                  ))
-                ) : (
-                  <Text>No events captured.</Text>
-                )}
-              </Section>
-            ))}
-          </Stack>
+          <CapturedEvents report={report} />
         </Tabs.Panel>
         <Tabs.Panel value="logs" pt="md">
-          <Stack gap="sm">
-            <Text>
-              {report.browser.logs.length} entries retained. {report.browser.droppedLogs} older or clipped entries.
-              Times are relative to browser navigation, not the server event clock.
-            </Text>
-            {report.browser.logs.map((entry, index) => (
-              <CodeExample
-                key={index}
-                label={`${entry.at} · ${entry.level}`}
-                language="json"
-                code={JSON.stringify(entry.text)}
-              />
-            ))}
-          </Stack>
+          <CapturedLogs report={report} />
         </Tabs.Panel>
       </Tabs>
     </>
@@ -324,5 +256,89 @@ function JsonValue({ label, value }: { label: string; value: unknown }) {
         <Text size="sm">Display clipped at 60,000 characters. The original file retains the full value.</Text>
       )}
     </>
+  );
+}
+
+function SnapshotDifferences({ report }: { report: Report }) {
+  const compared = comparableSnapshots(report);
+  const differences = compared ? changes(compared.server, compared.browser, 100) : [];
+  return (
+    <Stack gap="md">
+      <Text>
+        Compare shared fields in the saved snapshots. Server-only fields are excluded. Different revisions, private
+        projections and capture timing can explain differences.
+      </Text>
+      {!compared ? (
+        <Text>No browser snapshot was captured.</Text>
+      ) : !differences.length ? (
+        <Text>No differences in shared fields.</Text>
+      ) : (
+        <>
+          <Text>
+            {differences.length === 100 ? 'Showing the first 100 differences.' : `${differences.length} differences.`}
+          </Text>
+          <Table.ScrollContainer minWidth={600}>
+            <Table>
+              <Table.Thead>
+                <Table.Tr>
+                  <Table.Th>Field</Table.Th>
+                  <Table.Th>Server</Table.Th>
+                  <Table.Th>Browser</Table.Th>
+                </Table.Tr>
+              </Table.Thead>
+              <Table.Tbody>
+                {differences.map((difference) => (
+                  <Table.Tr key={difference.path}>
+                    <Table.Td>{difference.path}</Table.Td>
+                    <Table.Td>{summary(difference.before)}</Table.Td>
+                    <Table.Td>{summary(difference.after)}</Table.Td>
+                  </Table.Tr>
+                ))}
+              </Table.Tbody>
+            </Table>
+          </Table.ScrollContainer>
+        </>
+      )}
+    </Stack>
+  );
+}
+
+function CapturedEvents({ report }: { report: Report }) {
+  return (
+    <Stack gap="lg">
+      {(['game', 'audit'] as const).map((kind) => (
+        <Section key={kind} title={kind === 'game' ? 'Game events' : 'Audit events'}>
+          {report.server.events[kind].more && <Text c="dimmed">Earlier events were not included in this report.</Text>}
+          {report.server.events[kind].entries.length ? (
+            report.server.events[kind].entries.map((entry, index) => (
+              <Text key={index}>
+                {String(entry.sequence)} · {String(entry.context)} · {String(entry.text)}
+              </Text>
+            ))
+          ) : (
+            <Text>No events captured.</Text>
+          )}
+        </Section>
+      ))}
+    </Stack>
+  );
+}
+
+function CapturedLogs({ report }: { report: Report }) {
+  return (
+    <Stack gap="sm">
+      <Text>
+        {report.browser.logs.length} entries retained. {report.browser.droppedLogs} older or clipped entries. Times are
+        relative to browser navigation, not the server event clock.
+      </Text>
+      {report.browser.logs.map((entry, index) => (
+        <CodeExample
+          key={index}
+          label={`${entry.at} · ${entry.level}`}
+          language="json"
+          code={JSON.stringify(entry.text)}
+        />
+      ))}
+    </Stack>
   );
 }

@@ -33,28 +33,38 @@ export function parseReport(text: string): Report {
   if (new TextEncoder().encode(text).byteLength > MAX_REPORT_BYTES) {
     throw new Error('Choose a report smaller than 20 MB.');
   }
-  let nodes = 0;
   const value: unknown = JSON.parse(text);
+  inspectStructure(value);
+  const parsed = reportSchema.safeParse(value);
+  if (!parsed.success) {
+    throw new Error('This file is not a supported Dune Zone bug report.');
+  }
+  return parsed.data;
+}
+
+function safeChildren(value: unknown): unknown[] {
+  if (!value || typeof value !== 'object') {
+    return [];
+  }
+  const entries = Object.entries(value);
+  if (entries.some(([key]) => ['__proto__', 'constructor', 'prototype'].includes(key))) {
+    throw new Error('This report contains an unsafe object key.');
+  }
+  return entries.map(([, child]) => child);
+}
+
+function inspectStructure(value: unknown) {
+  let nodes = 0;
   const pending = [{ value, depth: 0 }];
   while (pending.length) {
     const entry = pending.pop()!;
     if (++nodes > 300_000 || entry.depth > 80) {
       throw new Error('This report is too complex to inspect safely.');
     }
-    if (entry.value && typeof entry.value === 'object') {
-      for (const [key, child] of Object.entries(entry.value)) {
-        if (['__proto__', 'constructor', 'prototype'].includes(key)) {
-          throw new Error('This report contains an unsafe object key.');
-        }
-        pending.push({ value: child, depth: entry.depth + 1 });
-      }
+    for (const child of safeChildren(entry.value)) {
+      pending.push({ value: child, depth: entry.depth + 1 });
     }
   }
-  const parsed = reportSchema.safeParse(value);
-  if (!parsed.success) {
-    throw new Error('This file is not a supported Dune Zone bug report.');
-  }
-  return parsed.data;
 }
 
 export function reportSnapshot(report: Report, source: 'server' | 'browser') {
@@ -90,9 +100,10 @@ export function canRenderReport(value: unknown): boolean {
   if (value && typeof value === 'object') {
     return Object.values(value).every(canRenderReport);
   }
-  if (typeof value !== 'string') {
-    return true;
-  }
+  return typeof value !== 'string' || safeArtworkText(value);
+}
+
+function safeArtworkText(value: string): boolean {
   if (/<\s*(?:script|foreignObject|iframe|image|use)\b|\bon\w+\s*=|url\s*\(/iu.test(value)) {
     return false;
   }
@@ -100,19 +111,23 @@ export function canRenderReport(value: unknown): boolean {
   // eslint-disable-next-line no-control-regex
   const address = value.replaceAll(/[\t\r\n]/gu, '').replaceAll(/^[\u0000-\u0020]+|[\u0000-\u0020]+$/gu, '');
   if (/^(?:https?:|[a-z][a-z\d+.-]*:\/\/|data:|blob:|javascript:|file:|[/\\])/iu.test(address)) {
-    try {
-      const url = new URL(value, 'https://dune.zone');
-      return (
-        url.origin === 'https://dune.zone' &&
-        ['/published/', '/homepage-table/', '/vector/', '/image/'].some((prefix) => url.pathname.startsWith(prefix)) &&
-        !url.username &&
-        !url.password
-      );
-    } catch {
-      return false;
-    }
+    return allowedArtworkAddress(value);
   }
   return true;
+}
+
+function allowedArtworkAddress(value: string) {
+  try {
+    const url = new URL(value, 'https://dune.zone');
+    return (
+      url.origin === 'https://dune.zone' &&
+      ['/published/', '/homepage-table/', '/vector/', '/image/'].some((prefix) => url.pathname.startsWith(prefix)) &&
+      !url.username &&
+      !url.password
+    );
+  } catch {
+    return false;
+  }
 }
 
 export function renderSnapshot(report: Report, source: 'server' | 'browser') {
