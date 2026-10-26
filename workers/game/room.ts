@@ -191,7 +191,8 @@ export class Room {
   set snapshot(snapshot: StoredSnapshot) {
     this.current = closeLostPeeks(snapshot);
   }
-  readonly epoch = crypto.randomUUID();
+  /* A new epoch tells pages their carries are gone; a room woken from hibernation resumes the old one, since it held none. */
+  epoch: string = crypto.randomUUID();
   /** The revision of the last commit that changed more than who is ready. */
   private settledRevision: number;
   readonly carries = new Map<string, Carry>();

@@ -2,8 +2,6 @@ import type { ClientMessage } from '../../src/shared/play/protocol';
 
 /* One summary per room per interval: about six log lines a game-hour, well inside the account's log allowance. */
 export const ROOM_SUMMARY_MS = 10 * 60_000;
-/* A room that goes quiet writes its line early, once this long has passed, since hibernation drops what it has not written. */
-export const ROOM_SUMMARY_IDLE_MS = 60_000;
 /* A long session keeps at most this many command timings between summaries; the oldest are dropped first. */
 const COMMAND_SAMPLES = 2048;
 
@@ -108,8 +106,8 @@ export class RoomSummary {
     this.clients.set(connectionId, report);
   }
 
-  due(now: number, interval = ROOM_SUMMARY_MS) {
-    return now - this.since >= interval;
+  due(now: number) {
+    return now - this.since >= ROOM_SUMMARY_MS;
   }
 
   /** Writes one summary line when anything happened since the last one, then starts the next interval. */

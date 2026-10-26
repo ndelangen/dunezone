@@ -66,7 +66,7 @@ import { gameHttpClient } from './gameHttpClient';
 import { isLocalIsolatedRuntime } from './localRuntime';
 import { forwardPrivacyRequest } from './privacyRequests';
 import { CarryHistoryExhausted } from './room';
-import { ROOM_SUMMARY_IDLE_MS, RoomSummary } from './roomSummary';
+import { RoomSummary } from './roomSummary';
 import type { ConvexCall } from './roomSummary';
 import type { HeldPass } from './seatPasses';
 import { heldPass, SeatPasses } from './seatPasses';
@@ -121,10 +121,14 @@ type RememberedConnection = Pick<
   | 'sessionId'
   | 'announced'
   | 'suspensions'
->;
+> & {
+  /* The room's activity epoch and revision when this socket last heard from it, so a woken room keeps the epoch and resends a state it moved on from. */
+  epoch?: string;
+  revision?: number;
+};
 function openConnection(
   state: Pick<Connection, 'connectionId' | 'openedAt'> &
-    Partial<Pick<Connection, keyof RememberedConnection | 'everAuthorized'>>
+    Partial<Pick<Connection, Exclude<keyof RememberedConnection, 'epoch' | 'revision'> | 'everAuthorized'>>
 ): Connection {
   return {
     admitting: false,
@@ -365,20 +369,33 @@ export class GameRoom extends DurableObject<GameEnv> {
    * The delivery baselines are gone, so each connection's next frame is a full view.
    */
   private restoreConnections() {
+    const behind = new Set<WebSocket>();
     for (const socket of this.ctx.getWebSockets()) {
       const remembered =
         !this.closed && this.metadata?.confirmed
           ? (socket.deserializeAttachment() as RememberedConnection | null)
           : null;
-      if (remembered) {
-        this.connections.set(socket, openConnection({ ...remembered, everAuthorized: true }));
-      } else {
+      if (!remembered) {
         socket.close(1012, 'Reconnect to the table.');
+        continue;
+      }
+      const { epoch, revision, ...connection } = remembered;
+      this.connections.set(socket, openConnection({ ...connection, everAuthorized: true }));
+      if (this.session.ready && epoch) {
+        this.session.resumeEpoch(epoch);
+      }
+      if (!this.session.ready || revision !== this.session.revision) {
+        behind.add(socket);
       }
     }
-    if (this.connections.size) {
-      this.summary.connections(this.connections.size);
-      this.reconcileViewers();
+    if (!this.connections.size) {
+      return;
+    }
+    this.summary.connections(this.connections.size);
+    this.reconcileViewers();
+    /* Waking can move the game on by itself, as a trading deadline that passed while the room slept does. */
+    for (const socket of behind) {
+      this.sendView(socket, this.connections.get(socket)!);
     }
   }
 
@@ -398,6 +415,7 @@ export class GameRoom extends DurableObject<GameEnv> {
         sessionId: connection.sessionId,
         announced: connection.announced,
         suspensions: connection.suspensions,
+        ...(this.session.ready ? { epoch: this.session.epoch, revision: this.session.revision } : {}),
       };
       const written = JSON.stringify(remembered);
       if (this.remembered.get(socket) === written) {
@@ -777,6 +795,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
     if (this.metadata?.confirmed) {
       this.advanceDeadlines();
+      this.remember();
       await this.deliverDirectory();
     } else {
       await this.confirmProvisioning();
@@ -2232,15 +2251,13 @@ export class GameRoom extends DurableObject<GameEnv> {
     this.sweepTimer ??= setInterval(() => {
       this.noteStall();
       this.sweepConnections();
-      const now = Date.now();
-      if (this.summary.due(now)) {
+      if (this.summary.due(Date.now())) {
         this.flushSummary('interval');
       }
       if (!this.needsSweep()) {
+        /* A quiet room may hibernate next, which drops whatever its summary has not written. */
         this.stopSweep();
-        if (this.summary.due(now, ROOM_SUMMARY_IDLE_MS)) {
-          this.flushSummary('idle');
-        }
+        this.flushSummary('idle');
       }
     }, SWEEP_MS);
   }

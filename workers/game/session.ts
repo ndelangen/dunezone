@@ -968,6 +968,12 @@ export class GameSession {
   get revision() {
     return this.room!.snapshot.revision;
   }
+  get epoch() {
+    return this.room!.epoch;
+  }
+  resumeEpoch(epoch: string) {
+    this.room!.epoch = epoch;
+  }
   get historySteps() {
     return this.history.steps;
   }

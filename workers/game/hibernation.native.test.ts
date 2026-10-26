@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
+import { dealt, draftingRuntime } from './native-drafting.fixture.ts';
 import type { NativeConnection, NativePeer, NativeRuntime } from './native-runtime.fixture.ts';
 import {
   admitPlayer,
@@ -8,6 +9,7 @@ import {
   eventually,
   isFullView,
   provision,
+  required,
   syncView,
 } from './native-runtime.fixture.ts';
 
@@ -74,6 +76,31 @@ describe('GameRoom hibernation', () => {
     expect(admissionStatuses(b)).not.toContain('suspended');
   }, 20_000);
 
+  it('keeps its epoch across a hibernation, so the page keeps the piece it picks up on waking', async () => {
+    const a = await admitPlayer(runtime, 'a');
+    const before = await syncView(a);
+    await eventually(async () => !(await runtime.sweeping()), 'the sweep stopping');
+
+    await runtime.hibernateRoom();
+    const received = a.messages.length;
+    const piece = before.snapshot.table.pieces[0];
+    a.send({
+      type: 'begin',
+      carryId: 'after-waking',
+      sourcePieceId: piece.id,
+      expectedVersion: before.snapshot.versions[piece.id] ?? 0,
+      pickup: 'whole',
+    });
+    await a.message('carry', (message) => message.carryId === 'after-waking');
+    const frames = await eventually(() => {
+      const sent = a.messages.slice(received).filter((message) => message.type === 'view' || message.type === 'update');
+      return sent.length ? sent : undefined;
+    }, 'the frame carrying the pickup');
+    for (const frame of frames) {
+      expect(frame.epoch).toBe(before.epoch);
+    }
+  }, 20_000);
+
   it('pauses the table of a pass that ran out while the room slept once another player moves', async () => {
     const a = await admitPlayer(runtime, 'a');
     const b = await admitPlayer(runtime, 'b', { exp: Date.now() + 60_000 });
@@ -96,4 +123,37 @@ describe('GameRoom hibernation', () => {
     expect(b.closed).toBe(false);
     expect(admissionStatuses(a)).not.toContain('pass-expired');
   }, 20_000);
+});
+
+describe('GameRoom hibernation in a real game', () => {
+  let peer: NativePeer;
+  let runtime: NativeRuntime;
+  beforeEach(async () => {
+    ({ peer, runtime } = await draftingRuntime([['emperor', 'Emperor']]));
+  });
+  afterEach(async () => {
+    await runtime?.close();
+    await peer?.close();
+  });
+
+  it('sends its players the state a wake moved on to, as when trading closed while the room slept', async () => {
+    const [a, b] = await dealt(runtime, 2, 'fremen');
+    const before = await syncView(b);
+    expect(required(before.snapshot.swapping).closed).toBe(false);
+    await syncView(a);
+    await eventually(async () => !(await runtime.sweeping()), 'the sweep stopping');
+
+    /* The clock moves past the trading deadline before the room sleeps, so nothing runs until the wake. */
+    await runtime.clock(240_001);
+    await runtime.hibernateRoom();
+    const received = b.messages.length;
+    /* Any request wakes the room, whose start closes the overdue trading before a handler runs. */
+    await runtime.sweeping();
+    const woken = await eventually(
+      () => b.messages.slice(received).find((message) => message.type === 'view'),
+      'the view of the closed trading'
+    );
+    expect(woken.type === 'view' && required(woken.snapshot.swapping).closed).toBe(true);
+    expect(b.closed).toBe(false);
+  }, 30_000);
 });
