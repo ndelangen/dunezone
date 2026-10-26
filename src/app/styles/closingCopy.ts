@@ -30,6 +30,16 @@ export function useClosingCopy(
   }, [element]);
 }
 
+/* What names or reaches the original goes from the copy, so nothing finds the closed thing in it. */
+const NAMING = ['role', 'id', 'aria-label', 'aria-labelledby', 'aria-describedby', 'tabindex'];
+
+function makeLifeless(copy: HTMLElement, strip: readonly string[]) {
+  for (const entry of [copy, ...copy.querySelectorAll('*')]) {
+    NAMING.forEach((name) => entry.removeAttribute(name));
+  }
+  strip.forEach((name) => copy.removeAttribute(name));
+}
+
 function leaveCopy(node: HTMLElement, ms: number, strip: readonly string[]) {
   const parent = node.parentNode;
   const next = node.nextSibling;
@@ -38,14 +48,7 @@ function leaveCopy(node: HTMLElement, ms: number, strip: readonly string[]) {
     if (node.isConnected || !parent?.isConnected) {
       return;
     }
-    for (const entry of [copy, ...copy.querySelectorAll('*')]) {
-      for (const name of ['role', 'id', 'aria-label', 'aria-labelledby', 'aria-describedby', 'tabindex']) {
-        entry.removeAttribute(name);
-      }
-    }
-    for (const name of strip) {
-      copy.removeAttribute(name);
-    }
+    makeLifeless(copy, strip);
     copy.setAttribute('aria-hidden', 'true');
     copy.inert = true;
     copy.dataset.closing = '';
