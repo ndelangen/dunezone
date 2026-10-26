@@ -1,5 +1,18 @@
-import { Alert, Badge, Center, Code, Group, Pagination, Select, Stack, Switch, Table, Text } from '@mantine/core';
-import { createFileRoute } from '@tanstack/react-router';
+import {
+  Anchor,
+  Alert,
+  Badge,
+  Center,
+  Code,
+  Group,
+  Pagination,
+  Select,
+  Stack,
+  Switch,
+  Table,
+  Text,
+} from '@mantine/core';
+import { createFileRoute, Link } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -7,36 +20,18 @@ import { Surface } from '@ui/surface';
 import { BriefcaseBusiness } from 'lucide-react';
 import { useReducer } from 'react';
 
-import { useSessionViewer } from '@db/profiles';
 import { usePublicationJobsPage, useSetPublicationPickupEnabled } from '@db/publications';
 import type { PublicationJobStatus } from '@db/publications';
 import { pageHead } from '@app/routes/pageTitle';
-import { AdminGate, AdminPageLoading } from '@app/widgets/page-message/AdminGate';
+import { AdminPageLoading } from '@app/widgets/page-message/AdminGate';
 
 const PAGE_SIZE = 25;
 
-export const Route = createFileRoute('/_app/_admin/jobs')({
+export const Route = createFileRoute('/_app/admin/jobs')({
   codeSplitGroupings: [['component']],
   head: () => pageHead('Publication jobs'),
-  component: PublicationJobsPage,
+  component: PublicationJobsDashboard,
 });
-
-function PublicationJobsPage() {
-  const viewer = useSessionViewer();
-  return (
-    <AdminGate
-      viewer={viewer}
-      size="compact"
-      title="Publication jobs"
-      action="inspect publication jobs"
-      loading={<PublicationJobsLoading />}
-      deniedTitle="You cannot view publication jobs"
-      deniedMessage="Your account does not have permission to view publication jobs."
-    >
-      <PublicationJobsDashboard />
-    </AdminGate>
-  );
-}
 
 function PublicationJobsLoading() {
   return (
@@ -83,6 +78,9 @@ function PublicationJobsDashboard() {
           </Text>
         </Stack>
       </PageLayout.Header>
+      <PageLayout.Toolbar>
+        <Anchor renderRoot={(props) => <Link {...props} to="/admin" />}>All admin tools</Anchor>
+      </PageLayout.Toolbar>
       <PageLayout.Content>
         <Stack gap="lg">
           <Surface padding="lg">

@@ -1,5 +1,5 @@
-import { Group, Stack } from '@mantine/core';
-import { createFileRoute } from '@tanstack/react-router';
+import { Anchor, Group, Stack } from '@mantine/core';
+import { createFileRoute, Link } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -7,13 +7,12 @@ import { Surface } from '@ui/surface';
 import { RefreshCw } from 'lucide-react';
 
 import { useAdminMigrationDashboard, useSyncMigrationRuns } from '@db/migrations';
-import { useSessionViewer } from '@db/profiles';
 import { pageHead } from '@app/routes/pageTitle';
-import { AdminGate, AdminPageLoading } from '@app/widgets/page-message/AdminGate';
+import { AdminPageLoading } from '@app/widgets/page-message/AdminGate';
 
 export const Route = createFileRoute('/_app/admin/migrations')({
   head: () => pageHead('Migration activity'),
-  component: AdminMigrationsPage,
+  component: MigrationDashboard,
 });
 
 function formatDate(timestamp?: number) {
@@ -24,22 +23,6 @@ function formatDate(timestamp?: number) {
 }
 
 const migrationsHeader = <PageTitle title="Migration activity" />;
-
-function AdminMigrationsPage() {
-  const viewer = useSessionViewer();
-  return (
-    <AdminGate
-      viewer={viewer}
-      title="Migration activity"
-      action="view migration activity"
-      loading={<MigrationsLoading />}
-      deniedTitle="You cannot view migration activity"
-      deniedMessage="Your account does not have permission to view migration activity."
-    >
-      <MigrationDashboard />
-    </AdminGate>
-  );
-}
 
 function MigrationsLoading() {
   return <AdminPageLoading title="Migration activity">The migration dashboard is still loading.</AdminPageLoading>;
@@ -57,6 +40,9 @@ function MigrationDashboard() {
   return (
     <PageLayout>
       <PageLayout.Header>{migrationsHeader}</PageLayout.Header>
+      <PageLayout.Toolbar>
+        <Anchor renderRoot={(props) => <Link {...props} to="/admin" />}>All admin tools</Anchor>
+      </PageLayout.Toolbar>
       <PageLayout.Content>
         <Stack gap="sm">
           <Surface padding="lg">

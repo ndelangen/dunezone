@@ -1,6 +1,6 @@
 import { expect, test } from 'vite-plus/test';
 
-import { changes, segment } from './diff';
+import { changes, segment } from '../../src/shared/jsonDiff';
 
 test('names each changed value by its path, and leaves equal ones out', () => {
   const before = { phase: 3, table: { pieces: [{ id: 'a', position: [0, 0, 1] }] }, 'seat-1': true };

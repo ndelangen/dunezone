@@ -6,7 +6,7 @@ import { db } from '@db/storybook';
 import { pageStoryMeta } from '../../storybookConfig';
 import { seedPresets, administratorDatabase } from './presets.stories.fixture';
 
-const meta = preview.meta({ ...pageStoryMeta, title: 'Assets/Card presets', args: { path: '/assets/__presets' } });
+const meta = preview.meta({ ...pageStoryMeta, title: 'Assets/Card presets', args: { path: '/admin/presets' } });
 export const Setup = meta.story({
   parameters: {
     database: db((baseline) => {
