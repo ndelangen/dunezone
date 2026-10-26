@@ -99,6 +99,9 @@ test('Enter sends the message, and Shift+Enter starts a new line', () => {
   fireEvent.keyDown(field, { key: 'Enter', shiftKey: true });
   expect(submit).not.toHaveBeenCalled();
 
+  fireEvent.keyDown(field, { key: 'Enter', keyCode: 229 });
+  expect(submit).not.toHaveBeenCalled();
+
   fireEvent.keyDown(field, { key: 'Enter' });
   expect(submit).toHaveBeenCalledWith({ peerId: 'peer', text: 'Deal?' });
   expect(field.value).toBe('');

@@ -270,7 +270,9 @@ function Composer({
         onChange={(event) => write(event.currentTarget.value)}
         onKeyDown={(event) => {
           /* Enter sends, as chats do; Shift+Enter starts a new line, and Enter that ends a composed character stays the input method's. */
-          if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
+          /* Safari can end a composition with an Enter that reads as not composing, but keeps the composing key code. */
+          const composing = event.nativeEvent.isComposing || event.keyCode === 229;
+          if (event.key === 'Enter' && !event.shiftKey && !composing) {
             event.preventDefault();
             if (draft.trim()) {
               event.currentTarget.form?.requestSubmit();
