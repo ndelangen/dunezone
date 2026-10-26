@@ -139,7 +139,7 @@ description and the full help under it, and the compass's search shows the descr
 window's hint. Play is desktop-only for the beta, so a touch path to that guidance is out of scope
 until touch is.
 
-*Guarded in part: `check:css-orphans` reads route stylesheets, and the `SchemeIsland` story in
+*Guarded in part: the lint rule `local/no-title-tooltip` rejects a native `title` and the `data-tip`/`data-tooltip` words of a hand-rolled CSS tooltip, and `scripts/no-css-tooltips.test.ts` rejects a stylesheet printing an attribute as `content`, so the kit `Tooltip` stays the only tooltip look (#2550). `check:css-orphans` reads route stylesheets, and the `SchemeIsland` story in
 [`panel.layout.stories.tsx`](../../src/app/routes/_app/play/panel.layout.stories.tsx) holds the island and
 a piece menu and a tab's tooltip opened on it, painted with the island's raised tooltip surface; the
 `TabGuidance` story in [`NestedTabs.stories.tsx`](../../src/app/ui/surface/NestedTabs.stories.tsx)

@@ -1,4 +1,4 @@
-/* The bar at the bottom of the table: the Controls button, the chats as tokens with their unread counts, and the tip over each. */
+/* The bar at the bottom of the table: the Controls button, the chats as tokens with their unread counts. */
 
 .bar {
   position: absolute;
@@ -89,28 +89,6 @@
     0 0 0 4px var(--sand);
 }
 
-/* The player's name and shortcut, over the token while the pointer rests on it. */
-.chat::after {
-  content: attr(data-tip);
-  position: absolute;
-  bottom: calc(100% + 0.6rem);
-  left: 50%;
-  padding: 0.3rem 0.6rem;
-  border-radius: 6px;
-  background: var(--ui-ground);
-  color: var(--color-text);
-  font: 500 0.78rem var(--font-sans);
-  opacity: 0;
-  pointer-events: none;
-  transform: translateX(-50%);
-  transition: opacity 120ms;
-  white-space: nowrap;
-}
-
-.chat:hover::after {
-  opacity: 1;
-}
-
 /* The viewer's own token stands alone on the bar's ground, left of the Controls button; after the chat rules, so it wins over them. */
 .own {
   width: 2.9rem;
@@ -125,11 +103,6 @@
 
 .own:hover {
   border-color: rgb(from var(--color-brand) r g b / 0.65);
-}
-
-/* Its tip is the kit's, so the bar's own tip stays empty. */
-.own::after {
-  content: none;
 }
 
 .token {

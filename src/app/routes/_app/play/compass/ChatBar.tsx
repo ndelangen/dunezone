@@ -69,7 +69,7 @@ export function ChatBar({ inert, hasHand, isOpen, onOpenCompass, onShow }: ChatB
 /* The viewer's own faction, which opens their Hand & spice as H does; a spectator has no seat and no token. */
 function OwnToken({ player, open, onOpen }: Readonly<{ player: CompassPlayer; open: boolean; onOpen: () => void }>) {
   return (
-    <Tooltip label={`You are playing as ${player.factionName}`} withinPortal>
+    <Tooltip label={`You are playing as ${player.factionName}`}>
       <button
         type="button"
         className={clsx(styles.chat, styles.own)}
@@ -86,19 +86,20 @@ function OwnToken({ player, open, onOpen }: Readonly<{ player: CompassPlayer; op
 
 function TableChatToken({ unread, open, onOpen }: Readonly<{ unread: number; open: boolean; onOpen: () => void }>) {
   return (
-    <button
-      type="button"
-      className={styles.chat}
-      aria-pressed={open}
-      aria-label={words('Table chat', unread && `${unread} unread`).join(', ')}
-      data-tip="Table chat · Space →"
-      onClick={onOpen}
-    >
-      <span className={clsx(styles.token, styles.planet)}>
-        <MessagesSquare size={17} />
-      </span>
-      {unread > 0 && <span className={styles.badge}>{unread}</span>}
-    </button>
+    <Tooltip label="Table chat · Space →">
+      <button
+        type="button"
+        className={styles.chat}
+        aria-pressed={open}
+        aria-label={words('Table chat', unread && `${unread} unread`).join(', ')}
+        onClick={onOpen}
+      >
+        <span className={clsx(styles.token, styles.planet)}>
+          <MessagesSquare size={17} />
+        </span>
+        {unread > 0 && <span className={styles.badge}>{unread}</span>}
+      </button>
+    </Tooltip>
   );
 }
 
@@ -113,18 +114,21 @@ function waiting(player: CompassPlayer) {
 function ChatToken({ player, open, onOpen }: Readonly<{ player: CompassPlayer; open: boolean; onOpen: () => void }>) {
   const reason = waiting(player);
   return (
-    <button
-      type="button"
-      className={styles.chat}
-      aria-pressed={open}
-      aria-label={words(player.name, player.factionName, reason, player.unread && `${player.unread} unread`).join(', ')}
-      data-tip={words(player.name, player.factionName, reason, player.ally && 'ally · Space → →').join(' · ')}
-      data-ally={player.ally || undefined}
-      onClick={onOpen}
-    >
-      <PlayerToken player={player} />
-      {player.unread > 0 && <span className={styles.badge}>{player.unread}</span>}
-      {player.attention && <span className={styles.attention} data-attention aria-hidden="true" />}
-    </button>
+    <Tooltip label={words(player.name, player.factionName, reason, player.ally && 'ally · Space → →').join(' · ')}>
+      <button
+        type="button"
+        className={styles.chat}
+        aria-pressed={open}
+        aria-label={words(player.name, player.factionName, reason, player.unread && `${player.unread} unread`).join(
+          ', '
+        )}
+        data-ally={player.ally || undefined}
+        onClick={onOpen}
+      >
+        <PlayerToken player={player} />
+        {player.unread > 0 && <span className={styles.badge}>{player.unread}</span>}
+        {player.attention && <span className={styles.attention} data-attention aria-hidden="true" />}
+      </button>
+    </Tooltip>
   );
 }
