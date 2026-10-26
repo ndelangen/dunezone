@@ -209,6 +209,28 @@
   color: var(--color-muted);
 }
 
+.tileShortcut,
+.suggestionShortcut {
+  color: var(--color-muted);
+  font-size: 0.72rem;
+  opacity: 0.7;
+}
+
+.tileShortcut {
+  position: absolute;
+  top: 0.35rem;
+  left: 0.45rem;
+}
+
+.tile[data-selected] .tileShortcut,
+.suggestion[aria-selected="true"] .suggestionShortcut {
+  opacity: 1;
+}
+
+.hubOr {
+  padding: 0 0.15rem;
+}
+
 .hub .hubHint {
   grid-column: 1 / -1;
   max-width: none;

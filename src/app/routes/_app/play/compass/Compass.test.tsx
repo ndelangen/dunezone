@@ -22,7 +22,7 @@ afterEach(() => {
 
 const SPOTS: readonly TileSpot[] = ['battle', 'hidden', 'hand', 'table', 'ally'];
 const tiles = Object.fromEntries(
-  SPOTS.map((spot): [TileSpot, Tile] => [spot, { spot, label: spot, detail: '', keys: '', icon: null }])
+  SPOTS.map((spot): [TileSpot, Tile] => [spot, { spot, label: spot, detail: '', keys: '', shortcut: '', icon: null }])
 ) as Record<TileSpot, Tile>;
 
 /* The open compass over the table, with its keys and spot wired as the controls wire them, and a chat field behind the veil. */
@@ -100,4 +100,90 @@ test('an arrow from a tile Tab reached keeps its selection when the caret goes b
   );
   expect(document.activeElement).toBe(screen.getByRole('textbox', { name: 'Search controls', hidden: true }));
   expect(container.querySelector('[data-spot="hand"]')?.hasAttribute('data-selected')).toBe(true);
+});
+
+test('a pointer at rest under a tile that grows never takes the choice from the keys; a pointer that moves does', () => {
+  const { container } = render(<OpenCompass />);
+  const hand = container.querySelector<HTMLElement>('[data-spot="hand"]')!;
+  const move = (movementX: number) => {
+    const event = new MouseEvent('pointermove', { bubbles: true, clientX: 10, clientY: 10 });
+    Object.defineProperty(event, 'movementX', { value: movementX });
+    Object.defineProperty(event, 'movementY', { value: 0 });
+    act(() => void hand.dispatchEvent(event));
+  };
+  move(0);
+  expect(hand.hasAttribute('data-selected')).toBe(false);
+  move(3);
+  expect(hand.hasAttribute('data-selected')).toBe(true);
+});
+
+test('a press outside the compass closes it and goes no further; one on a tile does not', () => {
+  const onClose = vi.fn();
+  const behind = vi.fn();
+  const input = { current: null };
+  const { container } = render(
+    <div onPointerDown={behind}>
+      <Compass
+        tiles={tiles}
+        suggestions={[]}
+        spot="hub"
+        query=""
+        cursor={0}
+        refused={0}
+        input={input}
+        onSpot={vi.fn()}
+        onQuery={vi.fn()}
+        onCursor={vi.fn()}
+        onConfirm={vi.fn()}
+        onClose={onClose}
+      />
+    </div>
+  );
+  const pressOn = (target: Element) =>
+    act(() => void target.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 0 })));
+  pressOn(container.querySelector('[data-spot="hand"]')!);
+  expect(onClose).not.toHaveBeenCalled();
+  pressOn(container.querySelector('dialog')!);
+  pressOn(container.querySelector('dialog')!.parentElement!);
+  expect(onClose).toHaveBeenCalledTimes(2);
+  expect(behind).toHaveBeenCalledTimes(1);
+});
+
+test('the click a dismissing press ends in reaches nothing, and the next click is heard again', async () => {
+  const onClose = vi.fn();
+  const clicked = vi.fn();
+  const { container } = render(
+    <>
+      <a href="#elsewhere" onClick={clicked}>
+        Elsewhere
+      </a>
+      <Compass
+        tiles={tiles}
+        suggestions={[]}
+        spot="hub"
+        query=""
+        cursor={0}
+        refused={0}
+        input={{ current: null }}
+        onSpot={vi.fn()}
+        onQuery={vi.fn()}
+        onCursor={vi.fn()}
+        onConfirm={vi.fn()}
+        onClose={onClose}
+      />
+    </>
+  );
+  const link = container.querySelector('a')!;
+  const fire = (type: string) =>
+    act(() => void link.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true })));
+  fire('pointerdown');
+  fire('pointerup');
+  const swallowed = new MouseEvent('click', { bubbles: true, cancelable: true });
+  act(() => void link.dispatchEvent(swallowed));
+  expect(onClose).toHaveBeenCalledTimes(1);
+  expect(swallowed.defaultPrevented).toBe(true);
+  expect(clicked).not.toHaveBeenCalled();
+  await new Promise((resolve) => setTimeout(resolve));
+  fire('click');
+  expect(clicked).toHaveBeenCalledTimes(1);
 });

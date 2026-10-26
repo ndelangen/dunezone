@@ -112,6 +112,24 @@ test('Space held while the arrows steer opens what they point at when it is let 
   expect(onConfirm).toHaveBeenCalledTimes(1);
 });
 
+test('W, A, S and D steer as the arrows do until something is typed, then they spell', () => {
+  page();
+  const { result } = compass();
+  press('keydown', SPACE);
+  press('keydown', { key: 'a' });
+  expect(result.current.spot).toBe('hand');
+  press('keydown', { key: 'A' });
+  expect(result.current.spot).toBe('hidden');
+  press('keydown', { key: 'd' });
+  press('keydown', { key: 'w' });
+  expect(result.current.spot).toBe('battle');
+  press('keydown', { key: 's' });
+  expect(result.current.spot).toBe('hub');
+  act(() => result.current.setQuery('spi'));
+  expect(press('keydown', { key: 'd' }).defaultPrevented).toBe(false);
+  expect(result.current.spot).toBe('hub');
+});
+
 test('Enter confirms and Escape closes', () => {
   page();
   const { result, onConfirm } = compass();

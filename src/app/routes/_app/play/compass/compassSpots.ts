@@ -26,3 +26,11 @@ export const ARROWS: Partial<Record<string, Arrow>> = {
   ArrowUp: 'up',
   ArrowDown: 'down',
 };
+
+/** W, A, S and D steer as the arrows do, while nothing is typed into the search for them to spell. */
+export const WASD: Partial<Record<string, Arrow>> = {
+  w: 'up',
+  a: 'left',
+  s: 'down',
+  d: 'right',
+};

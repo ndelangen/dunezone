@@ -2,6 +2,7 @@ import preview from '@sb/preview';
 import type { GameSnapshot } from '@shared/play/protocol';
 
 import { faction } from '../alliances.stories.fixture';
+import { clockSetup, sittingOutSetup } from '../bidding.stories.fixture';
 import { gameMeta, install } from '../game.stories.fixture';
 import { battleStory } from '../playing.stories.fixture';
 import { productTransport } from '../product.stories.fixture';
@@ -85,4 +86,17 @@ export const Width1280 = meta.story({
 /** A quiet moment: no battle and no ally, so those two arms show what's missing. */
 export const Quiet = meta.story({
   beforeEach: [install(() => productTransport('seat-2')), () => pinned({ left: null, right: null }, false)],
+});
+
+/**
+ * Bidding, with the bidder on the viewer's faction and the real bidder answering:
+ * I ups the bid by one, O takes a raise back, P hands the bidder on, and the search lists each with its letter.
+ */
+export const BiddingOnYourTurn = meta.story({
+  beforeEach: [clockSetup(false), () => pinned({ left: null, right: null }, false)],
+});
+
+/** Bidding with the viewer's token face down, sitting it out: U flips it back up, and the search shows U on that command. */
+export const BiddingSatOut = meta.story({
+  beforeEach: [sittingOutSetup(), () => pinned({ left: null, right: null }, false)],
 });

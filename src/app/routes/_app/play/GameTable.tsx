@@ -8,17 +8,7 @@ import { TABLE_SECTOR_COUNT } from '@shared/play/tableSettings';
 import type { TableSeatCount } from '@shared/play/tableSettings';
 import { Section } from '@ui/block/Section';
 import type { TopicIconTopic } from '@ui/content/TopicIcon';
-import {
-  useCallback,
-  useEffect,
-  useEffectEvent,
-  useId,
-  useLayoutEffect,
-  useMemo,
-  useReducer,
-  useRef,
-  useState,
-} from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import {
@@ -239,9 +229,6 @@ const DIAL_LETTERS: Record<TableView, string> = {
   top: 'U',
 };
 
-/* The key that turns the camera straight down and back; the letters of the ring are the dial's buttons alone. */
-const TOP_VIEW_KEY = 'u';
-
 /* Where each view sits on the dial: the board at the top, the bays to the sides, the bottom stem below; the hub needs no needle. */
 const DIAL_ANGLES: Record<TableView, number> = {
   map: 180,
@@ -250,38 +237,6 @@ const DIAL_ANGLES: Record<TableView, number> = {
   bottom: 0,
   top: 180,
 };
-
-/* A key typed into a text field belongs to that field. */
-function typesIntoField(event: KeyboardEvent) {
-  const target = event.target;
-  return target instanceof HTMLElement && (target.isContentEditable || target.matches('input, textarea, select'));
-}
-
-/* A fresh, bare press of the top view's key that nothing else has answered yet. */
-function pressesTopView(event: KeyboardEvent) {
-  const bare = !event.metaKey && !event.ctrlKey && !event.altKey;
-  const fresh = !event.repeat && !event.defaultPrevented;
-  return event.key.toLowerCase() === TOP_VIEW_KEY && bare && fresh && !typesIntoField(event);
-}
-
-/*
- * U turns the camera to the top-down view, and back to the view it came from, from anywhere but a text field.
- * The compass takes the keys while it is open, so none reach here then.
- */
-function useTopViewKey(select: (view: TableView) => void) {
-  const choose = useEffectEvent(() => select(TOP_VIEW.id));
-  useEffect(() => {
-    const keydown = (event: KeyboardEvent) => {
-      if (!pressesTopView(event)) {
-        return;
-      }
-      event.preventDefault();
-      choose();
-    };
-    window.addEventListener('keydown', keydown);
-    return () => window.removeEventListener('keydown', keydown);
-  }, []);
-}
 
 /* The phase's disc in the header chip: the board's phase colours, with the phase symbol clipped to the disc. */
 function PhaseDisc({ symbol }: Readonly<{ symbol: string }>) {
@@ -682,8 +637,8 @@ export function GameTable({
       {stageOverlay}
     </div>
   );
+  /* The dial's choice; U asks for the top view through the compass's letters (compass/shortcuts.ts). */
   const selectView = (view: TableView) => dispatchView({ type: 'view.selected', view });
-  useTopViewKey(selectView);
   const camera = (
     <SceneCamera
       hidden={Boolean(stageOverlay)}
