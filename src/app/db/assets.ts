@@ -36,8 +36,8 @@ export function useAssetsByTypes(types: string[], options?: { initialData?: Asse
 }
 
 /**
- * The rows a list of catalogue references names, in order; null for a reference the catalogue no longer has.
- * Read by a picker that lists what was chosen, so it subscribes only while that list is on screen.
+ * The rows a list of catalogue references names, in order, with null for a reference the catalogue no longer has.
+ * A picker that lists what was chosen reads it, so it subscribes only while that list is on screen.
  */
 export function useAssetsByReference(refs: { type: string; slug: string }[]) {
   return toLiveQueryResult(useQuery(api.assets.listByReference, { refs }));

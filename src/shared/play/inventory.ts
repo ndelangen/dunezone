@@ -38,7 +38,6 @@ export const CAPTURE_TYPES = [
   'card-nexus',
   ...SPAWN_TYPES,
 ] as const;
-export type CaptureType = (typeof CAPTURE_TYPES)[number];
 
 export const captureSelectionSchema = z.object({ type: z.enum(CAPTURE_TYPES), slug: z.string().min(1).max(160) });
 export type CaptureSelection = z.infer<typeof captureSelectionSchema>;

@@ -11,7 +11,7 @@ import { AssetPicker } from './AssetPicker';
 import { AssetPickerOptionRow } from './AssetPicker.parts';
 
 /** One chosen asset, by the catalogue address a caller stores. */
-export type AssetReference = { type: string; slug: string };
+type AssetReference = { type: string; slug: string };
 
 function referenceKey(reference: AssetReference): string {
   return `${reference.type}/${reference.slug}`;
