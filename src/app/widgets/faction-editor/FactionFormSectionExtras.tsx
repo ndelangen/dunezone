@@ -1,21 +1,16 @@
-import { ActionIcon, Button, Group, Popover, Stack, Text } from '@mantine/core';
+import { Stack, Text } from '@mantine/core';
 import { ASSET_TYPES } from '@shared/assets/types';
 import { FACTION_EXTRA_TYPES, factionExtraKey } from '@shared/factions/extras';
 import type { FactionExtra } from '@shared/factions/extras';
-import { X } from 'lucide-react';
-import { useState } from 'react';
 
-import { AssetPicker } from '@app/pickers/AssetPicker';
+import { AssetListPicker } from '@app/pickers/AssetListPicker';
 
 import styles from './FactionEditor.module.css';
 import type { FactionFormApi } from './factionFormTypes';
 
 const EXTRA_TYPES = [...FACTION_EXTRA_TYPES];
 
-/*
- * A row names its asset by catalogue address, the way the faction stores it: the editor fetches nothing for rows already listed.
- * The save refuses an address the catalogue lacks, and Play names one that has since gone.
- */
+/* The proof names each Extra by catalogue address, the way the faction stores it; the chapter's list draws the assets themselves. */
 function ExtraLabel({ extra }: { extra: FactionExtra }) {
   return (
     <Stack gap={0} flex={1} miw={0}>
@@ -29,34 +24,11 @@ function ExtraLabel({ extra }: { extra: FactionExtra }) {
   );
 }
 
-function ExtrasList({ extras, onRemove }: { extras: FactionExtra[]; onRemove: (index: number) => void }) {
-  if (extras.length === 0) {
-    return (
-      <Text size="sm" c="dimmed">
-        No Extras. The faction brings only its own components.
-      </Text>
-    );
-  }
-  return (
-    <Stack component="ul" gap="xs" aria-label="Extras" className={styles.extrasList}>
-      {extras.map((extra, index) => (
-        <Group component="li" key={factionExtraKey(extra)} gap="sm" wrap="nowrap">
-          <ExtraLabel extra={extra} />
-          <ActionIcon variant="subtle" color="gray" aria-label={`Remove ${extra.slug}`} onClick={() => onRemove(index)}>
-            <X size={16} aria-hidden />
-          </ActionIcon>
-        </Group>
-      ))}
-    </Stack>
-  );
-}
-
 /**
- * Faction Extras (#1226): catalogue decks, token bundles and single tokens the faction brings to setup.
- * The picker loads the catalogue only while its popover is open.
+ * Faction Extras (#1226): any catalogue asset the faction brings to setup, a single card or token, a deck or a bundle.
+ * The asset-picker list reads the listed assets while this chapter is open, and the catalogue only while its add popover is.
  */
 export function FactionFormSectionExtras({ form }: { form: FactionFormApi }) {
-  const [picking, setPicking] = useState(false);
   return (
     <Stack component="section" gap="md" aria-labelledby="extras-heading">
       <Stack gap="xs">
@@ -64,61 +36,25 @@ export function FactionFormSectionExtras({ form }: { form: FactionFormApi }) {
           Faction Extras
         </Text>
         <Text c="dimmed" size="sm">
-          Decks, token bundles and single tokens from the catalogue that this faction adds at setup. A deck or bundle
-          brings its own counts; a single token is one piece. Each Extra is listed once.
+          Any cards, tokens, decks or bundles from the catalogue that this faction adds to its hand at setup. A deck or
+          bundle brings its own counts; a single card or token is one piece, and a single card wears the back of the
+          deck that holds it. Each Extra is listed once.
         </Text>
       </Stack>
       <form.Field name="extras">
-        {(field) => {
-          const extras = field.state.value ?? [];
-          return (
-            <Stack gap="sm">
-              <Group justify="flex-end">
-                <Popover
-                  opened={picking}
-                  onChange={setPicking}
-                  width={340}
-                  position="bottom-end"
-                  withinPortal
-                  trapFocus
-                  returnFocus
-                >
-                  <Popover.Target>
-                    <Button variant="light" size="compact-sm" onClick={() => setPicking((open) => !open)}>
-                      Add Extra
-                    </Button>
-                  </Popover.Target>
-                  <Popover.Dropdown>
-                    <AssetPicker
-                      types={EXTRA_TYPES}
-                      filter={(entry) =>
-                        !extras.some((extra) => extra.type === entry.type && extra.slug === entry.slug)
-                      }
-                      copy={{
-                        searchLabel: 'Search decks, bundles and tokens',
-                        searchPlaceholder: 'Type a name, slug or owner…',
-                        emptyMessage: 'No other decks, bundles or tokens exist yet.',
-                        cancelLabel: 'Done',
-                      }}
-                      onPick={(picked) => {
-                        setPicking(false);
-                        field.handleChange([
-                          ...extras,
-                          { type: picked.type as FactionExtra['type'], slug: picked.slug },
-                        ]);
-                      }}
-                      onCancel={() => setPicking(false)}
-                    />
-                  </Popover.Dropdown>
-                </Popover>
-              </Group>
-              <ExtrasList
-                extras={extras}
-                onRemove={(index) => field.handleChange(extras.filter((_, at) => at !== index))}
-              />
-            </Stack>
-          );
-        }}
+        {(field) => (
+          <AssetListPicker
+            value={field.state.value ?? []}
+            types={EXTRA_TYPES}
+            defaultType="card-custom"
+            copy={{
+              listLabel: 'Extras',
+              emptyMessage: 'No Extras. The faction brings only its own components.',
+              addLabel: 'Add Extra',
+            }}
+            onChange={(extras) => field.handleChange(extras as FactionExtra[])}
+          />
+        )}
       </form.Field>
     </Stack>
   );

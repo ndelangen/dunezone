@@ -266,6 +266,30 @@ export const listByTypes = publicQuery({
   },
 });
 
+/** How many references one `listByReference` read resolves; a faction's Extras stay far below it. */
+const REFERENCE_LIMIT = 100;
+
+/**
+ * The assets a list of catalogue references names, in the list's order, as the picker rows draw them.
+ * A reference to a soft-deleted or unknown asset reads as null, so the caller can say it has gone.
+ * References past the limit are left out.
+ */
+export const listByReference = publicQuery({
+  args: { refs: v.array(v.object({ type: v.string(), slug: v.string() })) },
+  returns: v.array(v.union(v.null(), assetListEntryValidator)),
+  handler: async (ctx, args) => {
+    const owners = new Map<Id<'users'>, Awaited<ReturnType<typeof profileSummary>>>();
+    const deckBacks = new Map<Id<'assets'>, Doc<'assets'> | null>();
+    const presets: CardbackPresetMemo = new Map();
+    const entries = [];
+    for (const ref of args.refs.slice(0, REFERENCE_LIMIT)) {
+      const row = await liveAsset(ctx, ref.type, ref.slug);
+      entries.push(row ? await toListEntry(ctx, row, { owners, presets }, { deckBacks }) : null);
+    }
+    return entries;
+  },
+});
+
 /** One deck naming an asset it holds, and how many copies. */
 const deckReferenceValidator = v.object({
   id: v.id('assets'),
@@ -847,7 +871,7 @@ export const setGroup = mutation({
 });
 
 /** The relation kinds this file writes. Both live in one table, distinguished only by this string. */
-const DECK_CARD = 'deck-card';
+export const DECK_CARD = 'deck-card';
 const BUNDLE_TOKEN = 'bundle-token';
 
 /** Which kind a container's membership rows carry, and therefore what it is allowed to hold. */

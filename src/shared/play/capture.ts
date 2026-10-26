@@ -114,6 +114,11 @@ const suppliedAssetSchema = z.object({
 export const assetSupplySchema = suppliedAssetSchema.extend({
   members: z.array(suppliedAssetSchema.extend({ count: z.number().int().positive().max(100) })),
   membersTruncated: z.boolean(),
+  /*
+   * A single card's holding deck, whose back the card wears: the answer's back fields are then that deck's.
+   * Null when the card is in no live deck; absent for every other type, and from a catalogue one deploy behind.
+   */
+  cardDeck: supplyEntrySchema.nullable().optional(),
 });
 export type AssetSupply = z.infer<typeof assetSupplySchema>;
 

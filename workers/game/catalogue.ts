@@ -3,6 +3,7 @@ import type { z } from 'zod';
 import { api } from '../../convex/_generated/api';
 import { cardbackPresetLabel } from '../../src/shared/assets/cardbackPresets';
 import { authoredCardback, DeckAssetInput, PhysicalSize } from '../../src/shared/assets/schema';
+import { holdsDeckMembership } from '../../src/shared/assets/types';
 import { parseAssetDataForWrite } from '../../src/shared/assets/validation';
 import { phaseDeclarationSchema } from '../../src/shared/factions/extraPhases';
 import { IdentifiedFactionStoredSchema, toStoredHeroKey } from '../../src/shared/factions/schema';
@@ -25,8 +26,8 @@ import {
 } from '../../src/shared/play/capture';
 import type { DraftFaction } from '../../src/shared/play/drafting';
 import { playDraftableFactionsSchema } from '../../src/shared/play/drafting';
-import type { SpawnSelection, StoredSpawnContents } from '../../src/shared/play/inventory';
-import { spawnSelectionSchema, storedSpawnContentsSchema } from '../../src/shared/play/inventory';
+import type { CaptureSelection, StoredSpawnContents } from '../../src/shared/play/inventory';
+import { captureSelectionSchema, storedSpawnContentsSchema } from '../../src/shared/play/inventory';
 import type { StoredPiece } from '../../src/shared/play/model';
 import { GameRejection } from '../../src/shared/play/rejection';
 import type { RulesetAssetSlot } from '../../src/shared/rulesets/assetSlots';
@@ -92,7 +93,7 @@ export class GameCatalogue {
     private readonly observe?: ConvexObserver
   ) {}
 
-  private async supply(selection: SpawnSelection): Promise<AssetSupply> {
+  private async supply(selection: CaptureSelection): Promise<AssetSupply> {
     const raw: unknown = await gameHttpClient(this.convexUrl, this.observe).query(
       api.playCatalogue.assetSupply,
       selection
@@ -133,17 +134,26 @@ export class GameCatalogue {
     return `${url.origin}${url.pathname}`;
   }
 
-  async capture(selection: SpawnSelection): Promise<StoredSpawnContents> {
+  async capture(selection: CaptureSelection): Promise<StoredSpawnContents> {
     const root = await this.supply({ type: selection.type, slug: selection.slug });
-    const definitions = definitionsOf(root);
+    const cardDeck = holdsDeckMembership(selection.type) ? root.cardDeck : null;
+    if (holdsDeckMembership(selection.type) && !cardDeck) {
+      throw new GameRejection('A single card wears the back of the deck that holds it. Add this card to a deck first.');
+    }
+    const definitions = [...definitionsOf(root), ...(cardDeck ? [cardDeck] : [])];
     const members = selection.type === 'deck' || selection.type === 'bundle' ? root.members : [{ ...root, count: 1 }];
     if (!members.length) {
       throw new GameRejection('Add playable members before requesting this asset.');
     }
-    const backName = selection.type === 'deck' ? deckBackName(root) : undefined;
+    const backName =
+      selection.type === 'deck'
+        ? deckBackName(root)
+        : cardDeck
+          ? deckBackName({ ...root, asset: cardDeck })
+          : undefined;
     const pieces: StoredPiece[] = [];
     for (const member of members) {
-      pieces.push(this.captureMember(root, selection.type, member, pieces.length, backName));
+      pieces.push(this.captureMember(root, selection.type, member, pieces.length, backName, cardDeck));
       definitions.push(...definitionsOf(member));
     }
     if (selection.type === 'deck') {
@@ -161,24 +171,32 @@ export class GameCatalogue {
     });
   }
 
+  /**
+   * One member as a table piece.
+   * A single card is its own member and stacks with its holding deck, whose back it wears.
+   */
   private captureMember(
     root: AssetSupply,
-    type: SpawnSelection['type'],
+    type: CaptureSelection['type'],
     member: SuppliedMember,
     index: number,
-    backName: string | undefined
+    backName: string | undefined,
+    cardDeck: AssetSupply['cardDeck']
   ) {
     const { asset, count } = member;
-    const isDeck = type === 'deck';
-    if (isDeck ? !asset.type.startsWith('card-') : !asset.type.startsWith('token-')) {
+    const isCard = type === 'deck' || holdsDeckMembership(type);
+    if (isCard ? !asset.type.startsWith('card-') : !asset.type.startsWith('token-')) {
       throw new GameRejection('This container has incompatible members.');
     }
     this.assertDefinitions(member);
     const front = this.image(member.front);
-    const size = isDeck ? undefined : physicalSizeOf(asset.data);
-    const stack = isDeck
-      ? { label: root.asset.name, kind: 'card' as const, stackKey: `deck:${root.asset.id}`, back: root.back }
-      : { label: asset.name, kind: 'force' as const, stackKey: `token:${asset.id}`, back: member.back };
+    const size = isCard ? undefined : physicalSizeOf(asset.data);
+    const stack =
+      type === 'deck'
+        ? { label: root.asset.name, kind: 'card' as const, stackKey: `deck:${root.asset.id}`, back: root.back }
+        : cardDeck
+          ? { label: asset.name, kind: 'card' as const, stackKey: `deck:${cardDeck.id}`, back: root.back }
+          : { label: asset.name, kind: 'force' as const, stackKey: `token:${asset.id}`, back: member.back };
     const back = this.image(stack.back);
     const piece: StoredPiece = {
       id: `member-${index}`,
@@ -339,7 +357,7 @@ export class GameCatalogue {
       problems.push({ subject, reason });
       return { asset: { id: reference.id ?? reference.slug, type, slug: reference.slug, name }, contents: null };
     };
-    const selection = spawnSelectionSchema.safeParse({ type: reference.type, slug: reference.slug });
+    const selection = captureSelectionSchema.safeParse({ type: reference.type, slug: reference.slug });
     if (!selection.success) {
       return refused(reference.type, 'This slot holds an asset Play cannot supply.');
     }
