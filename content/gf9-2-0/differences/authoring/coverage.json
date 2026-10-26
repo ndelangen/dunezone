@@ -1,5 +1,5 @@
 {
-  "manuscriptSha256": "cf27d2a38ae8f00fb8c823570ec7686343a1a07c0e31fc4ee8031ecc33760a25",
+  "manuscriptSha256": "840c0ef09bfa36045c6cb0b6779ef46e534125417d78f7d343fa8527f1c1d204",
   "records": [
     {
       "id": "CORE-C01",
@@ -9,7 +9,7 @@
           "pageId": "2768",
           "blockId": "K479",
           "pageNumber": 2,
-          "title": "You know GF9. Here is what changes."
+          "title": "About this guide"
         }
       ]
     },
@@ -39,7 +39,7 @@
           "pageId": "93XK",
           "blockId": "MFHJ",
           "pageNumber": 36,
-          "title": "Open wording: cards, endgame and components"
+          "title": "Unresolved wording: cards and victory"
         }
       ]
     },
@@ -51,7 +51,7 @@
           "pageId": "G6QD",
           "blockId": "ZNH3",
           "pageNumber": 4,
-          "title": "Use the Storm deck every game"
+          "title": "The Storm deck"
         }
       ]
     },
@@ -63,7 +63,7 @@
           "pageId": "G6QD",
           "blockId": "MLF6",
           "pageNumber": 4,
-          "title": "Use the Storm deck every game"
+          "title": "The Storm deck"
         }
       ]
     },
@@ -87,7 +87,7 @@
           "pageId": "ACD7",
           "blockId": "LQP5",
           "pageNumber": 6,
-          "title": "Little Maker is a different event"
+          "title": "Little Maker"
         }
       ]
     },
@@ -99,7 +99,7 @@
           "pageId": "FRH9",
           "blockId": "7F52",
           "pageNumber": 13,
-          "title": "Unlock leader revival once"
+          "title": "Leader revival"
         }
       ]
     },
@@ -111,13 +111,13 @@
           "pageId": "YJFP",
           "blockId": "MQEY",
           "pageNumber": 9,
-          "title": "Spice adds strength to your force dial"
+          "title": "Spice strength in battle"
         },
         {
           "pageId": "4EJA",
           "blockId": "QQG2",
           "pageNumber": 10,
-          "title": "Same commitment, different total"
+          "title": "Battle strength example"
         }
       ]
     },
@@ -129,7 +129,7 @@
           "pageId": "PXSB",
           "blockId": "5MBL",
           "pageNumber": 11,
-          "title": "Commit spice, reveal, then settle"
+          "title": "Paying for battle spice"
         }
       ]
     },
@@ -141,7 +141,7 @@
           "pageId": "PXSB",
           "blockId": "VSNC",
           "pageNumber": 11,
-          "title": "Commit spice, reveal, then settle"
+          "title": "Paying for battle spice"
         }
       ]
     },
@@ -153,7 +153,7 @@
           "pageId": "WPPM",
           "blockId": "95EM",
           "pageNumber": 12,
-          "title": "Aftermath and negotiated surrender"
+          "title": "Battle results and surrender"
         }
       ]
     },
@@ -165,7 +165,7 @@
           "pageId": "PXSB",
           "blockId": "2NTH",
           "pageNumber": 11,
-          "title": "Commit spice, reveal, then settle"
+          "title": "Paying for battle spice"
         }
       ]
     },
@@ -177,7 +177,7 @@
           "pageId": "NVLU",
           "blockId": "4P3K",
           "pageNumber": 19,
-          "title": "City income is now part of the default"
+          "title": "City income"
         }
       ]
     },
@@ -189,7 +189,7 @@
           "pageId": "VVJC",
           "blockId": "TC93",
           "pageNumber": 20,
-          "title": "Normal wins have a new priority order"
+          "title": "Victory priority"
         }
       ]
     },
@@ -201,7 +201,7 @@
           "pageId": "RG5J",
           "blockId": "4WM7",
           "pageNumber": 21,
-          "title": "The end of round ten is different"
+          "title": "Round-ten victory"
         }
       ]
     },
@@ -213,7 +213,7 @@
           "pageId": "7B73",
           "blockId": "6UWG",
           "pageNumber": 17,
-          "title": "Allies leave shared territory differently"
+          "title": "Allies sharing a territory"
         }
       ]
     },
@@ -273,7 +273,7 @@
           "pageId": "AF59",
           "blockId": "LAC9",
           "pageNumber": 35,
-          "title": "Open wording: actions and battle"
+          "title": "Unresolved wording: movement and battle"
         }
       ]
     },
@@ -285,13 +285,13 @@
           "pageId": "7B73",
           "blockId": "3QTC",
           "pageNumber": 17,
-          "title": "Allies leave shared territory differently"
+          "title": "Allies sharing a territory"
         },
         {
           "pageId": "AF59",
           "blockId": "XBRZ",
           "pageNumber": 35,
-          "title": "Open wording: actions and battle"
+          "title": "Unresolved wording: movement and battle"
         }
       ]
     },
@@ -303,13 +303,13 @@
           "pageId": "PXSB",
           "blockId": "APY2",
           "pageNumber": 11,
-          "title": "Commit spice, reveal, then settle"
+          "title": "Paying for battle spice"
         },
         {
           "pageId": "AF59",
           "blockId": "N4KG",
           "pageNumber": 35,
-          "title": "Open wording: actions and battle"
+          "title": "Unresolved wording: movement and battle"
         }
       ]
     },
@@ -321,13 +321,13 @@
           "pageId": "NVLU",
           "blockId": "Z22D",
           "pageNumber": 19,
-          "title": "City income is now part of the default"
+          "title": "City income"
         },
         {
           "pageId": "AF59",
           "blockId": "PH7R",
           "pageNumber": 35,
-          "title": "Open wording: actions and battle"
+          "title": "Unresolved wording: movement and battle"
         }
       ]
     },
@@ -345,7 +345,7 @@
           "pageId": "93XK",
           "blockId": "Z4WK",
           "pageNumber": 36,
-          "title": "Open wording: cards, endgame and components"
+          "title": "Unresolved wording: cards and victory"
         }
       ]
     },
@@ -357,13 +357,13 @@
           "pageId": "RG5J",
           "blockId": "RZEY",
           "pageNumber": 21,
-          "title": "The end of round ten is different"
+          "title": "Round-ten victory"
         },
         {
           "pageId": "93XK",
           "blockId": "7Z8D",
           "pageNumber": 36,
-          "title": "Open wording: cards, endgame and components"
+          "title": "Unresolved wording: cards and victory"
         }
       ]
     },
@@ -423,7 +423,7 @@
           "pageId": "7B73",
           "blockId": "CPGD",
           "pageNumber": 17,
-          "title": "Allies leave shared territory differently"
+          "title": "Allies sharing a territory"
         }
       ]
     },
@@ -459,7 +459,7 @@
           "pageId": "WPPM",
           "blockId": "LU7S",
           "pageNumber": 12,
-          "title": "Aftermath and negotiated surrender"
+          "title": "Battle results and surrender"
         }
       ]
     },
@@ -477,7 +477,7 @@
           "pageId": "WPPM",
           "blockId": "HDWB",
           "pageNumber": 12,
-          "title": "Aftermath and negotiated surrender"
+          "title": "Battle results and surrender"
         }
       ]
     },
@@ -489,7 +489,7 @@
           "pageId": "G6QD",
           "blockId": "GUC8",
           "pageNumber": 4,
-          "title": "Use the Storm deck every game"
+          "title": "The Storm deck"
         }
       ]
     },
@@ -501,7 +501,7 @@
           "pageId": "G6QD",
           "blockId": "6GQ4",
           "pageNumber": 4,
-          "title": "Use the Storm deck every game"
+          "title": "The Storm deck"
         }
       ]
     },
@@ -513,7 +513,7 @@
           "pageId": "WPPM",
           "blockId": "QTBY",
           "pageNumber": 12,
-          "title": "Aftermath and negotiated surrender"
+          "title": "Battle results and surrender"
         }
       ]
     },
@@ -537,7 +537,7 @@
           "pageId": "VVJC",
           "blockId": "R4XW",
           "pageNumber": 20,
-          "title": "Normal wins have a new priority order"
+          "title": "Victory priority"
         }
       ]
     },
@@ -549,7 +549,7 @@
           "pageId": "7B73",
           "blockId": "9WNA",
           "pageNumber": 17,
-          "title": "Allies leave shared territory differently"
+          "title": "Allies sharing a territory"
         }
       ]
     },
@@ -651,13 +651,13 @@
           "pageId": "QXRY",
           "blockId": "P6KB",
           "pageNumber": 14,
-          "title": "Karama: one target and its window"
+          "title": "Karama cancellation"
         },
         {
           "pageId": "MJUN",
           "blockId": "DNV6",
           "pageNumber": 28,
-          "title": "Atreides: information and the public token"
+          "title": "Atreides: Prescience and Kwisatz Haderach"
         }
       ]
     },
@@ -669,7 +669,7 @@
           "pageId": "QXRY",
           "blockId": "P6KB",
           "pageNumber": 14,
-          "title": "Karama: one target and its window"
+          "title": "Karama cancellation"
         },
         {
           "pageId": "XCEQ",
@@ -687,13 +687,13 @@
           "pageId": "QXRY",
           "blockId": "P6KB",
           "pageNumber": 14,
-          "title": "Karama: one target and its window"
+          "title": "Karama cancellation"
         },
         {
           "pageId": "58EY",
           "blockId": "7XN3",
           "pageNumber": 27,
-          "title": "Emperor: a new alliance bargain"
+          "title": "Emperor: alliance and revival changes"
         }
       ]
     },
@@ -705,7 +705,7 @@
           "pageId": "QXRY",
           "blockId": "P6KB",
           "pageNumber": 14,
-          "title": "Karama: one target and its window"
+          "title": "Karama cancellation"
         },
         {
           "pageId": "Y48B",
@@ -723,7 +723,7 @@
           "pageId": "QXRY",
           "blockId": "P6KB",
           "pageNumber": 14,
-          "title": "Karama: one target and its window"
+          "title": "Karama cancellation"
         },
         {
           "pageId": "PJHY",
@@ -741,7 +741,7 @@
           "pageId": "QXRY",
           "blockId": "P6KB",
           "pageNumber": 14,
-          "title": "Karama: one target and its window"
+          "title": "Karama cancellation"
         },
         {
           "pageId": "3NRG",
@@ -759,7 +759,7 @@
           "pageId": "MJUN",
           "blockId": "KYHT",
           "pageNumber": 28,
-          "title": "Atreides: information and the public token"
+          "title": "Atreides: Prescience and Kwisatz Haderach"
         }
       ]
     },
@@ -771,7 +771,7 @@
           "pageId": "MJUN",
           "blockId": "A7LV",
           "pageNumber": 28,
-          "title": "Atreides: information and the public token"
+          "title": "Atreides: Prescience and Kwisatz Haderach"
         }
       ]
     },
@@ -783,7 +783,7 @@
           "pageId": "MJUN",
           "blockId": "8CX6",
           "pageNumber": 28,
-          "title": "Atreides: information and the public token"
+          "title": "Atreides: Prescience and Kwisatz Haderach"
         }
       ]
     },
@@ -795,13 +795,13 @@
           "pageId": "FRH9",
           "blockId": "VRZV",
           "pageNumber": 13,
-          "title": "Unlock leader revival once"
+          "title": "Leader revival"
         },
         {
           "pageId": "MJUN",
           "blockId": "VRZS",
           "pageNumber": 28,
-          "title": "Atreides: information and the public token"
+          "title": "Atreides: Prescience and Kwisatz Haderach"
         }
       ]
     },
@@ -813,7 +813,7 @@
           "pageId": "MJUN",
           "blockId": "ZAD3",
           "pageNumber": 28,
-          "title": "Atreides: information and the public token"
+          "title": "Atreides: Prescience and Kwisatz Haderach"
         }
       ]
     },
@@ -825,7 +825,7 @@
           "pageId": "MJUN",
           "blockId": "8PMD",
           "pageNumber": 28,
-          "title": "Atreides: information and the public token"
+          "title": "Atreides: Prescience and Kwisatz Haderach"
         }
       ]
     },
@@ -885,7 +885,7 @@
           "pageId": "866X",
           "blockId": "4Y7V",
           "pageNumber": 24,
-          "title": "Bene Gesserit: plan your face changes"
+          "title": "Bene Gesserit: advisors and fighters"
         }
       ]
     },
@@ -897,7 +897,7 @@
           "pageId": "866X",
           "blockId": "4Y7V",
           "pageNumber": 24,
-          "title": "Bene Gesserit: plan your face changes"
+          "title": "Bene Gesserit: advisors and fighters"
         }
       ]
     },
@@ -909,7 +909,7 @@
           "pageId": "866X",
           "blockId": "AE69",
           "pageNumber": 24,
-          "title": "Bene Gesserit: plan your face changes"
+          "title": "Bene Gesserit: advisors and fighters"
         }
       ]
     },
@@ -921,7 +921,7 @@
           "pageId": "866X",
           "blockId": "UYJ4",
           "pageNumber": 24,
-          "title": "Bene Gesserit: plan your face changes"
+          "title": "Bene Gesserit: advisors and fighters"
         }
       ]
     },
@@ -933,7 +933,7 @@
           "pageId": "866X",
           "blockId": "QGRA",
           "pageNumber": 24,
-          "title": "Bene Gesserit: plan your face changes"
+          "title": "Bene Gesserit: advisors and fighters"
         }
       ]
     },
@@ -945,13 +945,13 @@
           "pageId": "7B73",
           "blockId": "HMLF",
           "pageNumber": 17,
-          "title": "Allies leave shared territory differently"
+          "title": "Allies sharing a territory"
         },
         {
           "pageId": "866X",
           "blockId": "MWPP",
           "pageNumber": 24,
-          "title": "Bene Gesserit: plan your face changes"
+          "title": "Bene Gesserit: advisors and fighters"
         }
       ]
     },
@@ -993,7 +993,7 @@
           "pageId": "V6MJ",
           "blockId": "VECG",
           "pageNumber": 25,
-          "title": "Fremen: storm knowledge and worm events"
+          "title": "Fremen: storms and sandworms"
         }
       ]
     },
@@ -1005,13 +1005,13 @@
           "pageId": "G6QD",
           "blockId": "B2ZX",
           "pageNumber": 4,
-          "title": "Use the Storm deck every game"
+          "title": "The Storm deck"
         },
         {
           "pageId": "V6MJ",
           "blockId": "YPAK",
           "pageNumber": 25,
-          "title": "Fremen: storm knowledge and worm events"
+          "title": "Fremen: storms and sandworms"
         }
       ]
     },
@@ -1023,7 +1023,7 @@
           "pageId": "V6MJ",
           "blockId": "ZEAZ",
           "pageNumber": 25,
-          "title": "Fremen: storm knowledge and worm events"
+          "title": "Fremen: storms and sandworms"
         }
       ]
     },
@@ -1035,7 +1035,7 @@
           "pageId": "V6MJ",
           "blockId": "5NCU",
           "pageNumber": 25,
-          "title": "Fremen: storm knowledge and worm events"
+          "title": "Fremen: storms and sandworms"
         }
       ]
     },
@@ -1047,7 +1047,7 @@
           "pageId": "V6MJ",
           "blockId": "6K5K",
           "pageNumber": 25,
-          "title": "Fremen: storm knowledge and worm events"
+          "title": "Fremen: storms and sandworms"
         }
       ]
     },
@@ -1071,7 +1071,7 @@
           "pageId": "FRH9",
           "blockId": "KLEP",
           "pageNumber": 13,
-          "title": "Unlock leader revival once"
+          "title": "Leader revival"
         },
         {
           "pageId": "Y48B",
@@ -1114,7 +1114,7 @@
           "pageId": "V6MJ",
           "blockId": "XCNC",
           "pageNumber": 25,
-          "title": "Fremen: storm knowledge and worm events"
+          "title": "Fremen: storms and sandworms"
         }
       ]
     },
@@ -1126,7 +1126,7 @@
           "pageId": "58EY",
           "blockId": "VPL2",
           "pageNumber": 27,
-          "title": "Emperor: a new alliance bargain"
+          "title": "Emperor: alliance and revival changes"
         }
       ]
     },
@@ -1138,7 +1138,7 @@
           "pageId": "58EY",
           "blockId": "YFR7",
           "pageNumber": 27,
-          "title": "Emperor: a new alliance bargain"
+          "title": "Emperor: alliance and revival changes"
         }
       ]
     },
@@ -1150,7 +1150,7 @@
           "pageId": "58EY",
           "blockId": "3GKY",
           "pageNumber": 27,
-          "title": "Emperor: a new alliance bargain"
+          "title": "Emperor: alliance and revival changes"
         }
       ]
     },
@@ -1240,7 +1240,7 @@
           "pageId": "RG5J",
           "blockId": "4WM7",
           "pageNumber": 21,
-          "title": "The end of round ten is different"
+          "title": "Round-ten victory"
         },
         {
           "pageId": "3NRG",
@@ -1283,7 +1283,7 @@
           "pageId": "QXRY",
           "blockId": "MNQR",
           "pageNumber": 14,
-          "title": "Karama: one target and its window"
+          "title": "Karama cancellation"
         }
       ]
     },
@@ -1295,13 +1295,13 @@
           "pageId": "QXRY",
           "blockId": "MNQR",
           "pageNumber": 14,
-          "title": "Karama: one target and its window"
+          "title": "Karama cancellation"
         },
         {
           "pageId": "ERCZ",
           "blockId": "QR7F",
           "pageNumber": 15,
-          "title": "Solaris pays for one economic effect"
+          "title": "Solaris"
         }
       ]
     },
@@ -1313,7 +1313,7 @@
           "pageId": "ERCZ",
           "blockId": "73TX",
           "pageNumber": 15,
-          "title": "Solaris pays for one economic effect"
+          "title": "Solaris"
         }
       ]
     },
@@ -1325,7 +1325,7 @@
           "pageId": "ERCZ",
           "blockId": "QR7F",
           "pageNumber": 15,
-          "title": "Solaris pays for one economic effect"
+          "title": "Solaris"
         }
       ]
     },
@@ -1337,7 +1337,7 @@
           "pageId": "R2X8",
           "blockId": "TN2T",
           "pageNumber": 16,
-          "title": "Cards: information, disposal and timing"
+          "title": "Other Treachery card changes"
         }
       ]
     },
@@ -1349,7 +1349,7 @@
           "pageId": "R2X8",
           "blockId": "WEWF",
           "pageNumber": 16,
-          "title": "Cards: information, disposal and timing"
+          "title": "Other Treachery card changes"
         }
       ]
     },
@@ -1361,7 +1361,7 @@
           "pageId": "FRH9",
           "blockId": "KLEP",
           "pageNumber": 13,
-          "title": "Unlock leader revival once"
+          "title": "Leader revival"
         }
       ]
     },
@@ -1373,7 +1373,7 @@
           "pageId": "R2X8",
           "blockId": "S6MH",
           "pageNumber": 16,
-          "title": "Cards: information, disposal and timing"
+          "title": "Other Treachery card changes"
         }
       ]
     },
@@ -1404,7 +1404,7 @@
           "pageId": "2W2D",
           "blockId": "FBTW",
           "pageNumber": 8,
-          "title": "Find the revised Spice sites"
+          "title": "New Spice Blow locations"
         }
       ]
     },
@@ -1416,7 +1416,7 @@
           "pageId": "ACD7",
           "blockId": "LQP5",
           "pageNumber": 6,
-          "title": "Little Maker is a different event"
+          "title": "Little Maker"
         }
       ],
       "sameChangeAs": "CORE-C07"
@@ -1429,7 +1429,7 @@
           "pageId": "G6QD",
           "blockId": "ZNH3",
           "pageNumber": 4,
-          "title": "Use the Storm deck every game"
+          "title": "The Storm deck"
         }
       ],
       "sameChangeAs": "CORE-C04"
@@ -1442,7 +1442,7 @@
           "pageId": "R2X8",
           "blockId": "TNE2",
           "pageNumber": 16,
-          "title": "Cards: information, disposal and timing"
+          "title": "Other Treachery card changes"
         }
       ]
     },
@@ -1472,7 +1472,7 @@
           "pageId": "2W2D",
           "blockId": "5VED",
           "pageNumber": 8,
-          "title": "Find the revised Spice sites"
+          "title": "New Spice Blow locations"
         }
       ]
     },
@@ -1490,7 +1490,7 @@
           "pageId": "R2X8",
           "blockId": "4HDS",
           "pageNumber": 16,
-          "title": "Cards: information, disposal and timing"
+          "title": "Other Treachery card changes"
         }
       ]
     },
@@ -1538,13 +1538,13 @@
           "pageId": "ERCZ",
           "blockId": "GD3J",
           "pageNumber": 15,
-          "title": "Solaris pays for one economic effect"
+          "title": "Solaris"
         },
         {
           "pageId": "93XK",
           "blockId": "6KDB",
           "pageNumber": 36,
-          "title": "Open wording: cards, endgame and components"
+          "title": "Unresolved wording: cards and victory"
         }
       ]
     },
@@ -1556,7 +1556,7 @@
           "pageId": "ERCZ",
           "blockId": "TPFE",
           "pageNumber": 15,
-          "title": "Solaris pays for one economic effect"
+          "title": "Solaris"
         },
         {
           "pageId": "PYVH",
@@ -1568,7 +1568,7 @@
           "pageId": "AF59",
           "blockId": "EMTV",
           "pageNumber": 35,
-          "title": "Open wording: actions and battle"
+          "title": "Unresolved wording: movement and battle"
         }
       ]
     },
@@ -1604,7 +1604,7 @@
           "pageId": "93XK",
           "blockId": "7ZCG",
           "pageNumber": 36,
-          "title": "Open wording: cards, endgame and components"
+          "title": "Unresolved wording: cards and victory"
         }
       ]
     },
@@ -1628,7 +1628,7 @@
           "pageId": "93XK",
           "blockId": "M83Q",
           "pageNumber": 36,
-          "title": "Open wording: cards, endgame and components"
+          "title": "Unresolved wording: cards and victory"
         }
       ]
     },
@@ -1640,7 +1640,7 @@
           "pageId": "QACH",
           "blockId": "JZV2",
           "pageNumber": 32,
-          "title": "Expansion revisions: announced, incomplete"
+          "title": "Announced expansion changes"
         }
       ]
     },
@@ -1652,7 +1652,7 @@
           "pageId": "QACH",
           "blockId": "JZV2",
           "pageNumber": 32,
-          "title": "Expansion revisions: announced, incomplete"
+          "title": "Announced expansion changes"
         }
       ]
     },
@@ -1664,7 +1664,7 @@
           "pageId": "QACH",
           "blockId": "JZV2",
           "pageNumber": 32,
-          "title": "Expansion revisions: announced, incomplete"
+          "title": "Announced expansion changes"
         }
       ]
     },
@@ -1676,7 +1676,7 @@
           "pageId": "QACH",
           "blockId": "JZV2",
           "pageNumber": 32,
-          "title": "Expansion revisions: announced, incomplete"
+          "title": "Announced expansion changes"
         }
       ]
     },
@@ -1688,7 +1688,7 @@
           "pageId": "QACH",
           "blockId": "JZV2",
           "pageNumber": 32,
-          "title": "Expansion revisions: announced, incomplete"
+          "title": "Announced expansion changes"
         }
       ]
     },
@@ -1700,7 +1700,7 @@
           "pageId": "QACH",
           "blockId": "JZV2",
           "pageNumber": 32,
-          "title": "Expansion revisions: announced, incomplete"
+          "title": "Announced expansion changes"
         }
       ]
     },
@@ -1820,7 +1820,7 @@
           "pageId": "MJUN",
           "blockId": "A7LV",
           "pageNumber": 28,
-          "title": "Atreides: information and the public token"
+          "title": "Atreides: Prescience and Kwisatz Haderach"
         },
         {
           "pageId": "83PL",

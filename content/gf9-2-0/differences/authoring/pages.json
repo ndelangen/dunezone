@@ -8,7 +8,7 @@
   {
     "number": 2,
     "key": "reading",
-    "title": "You know GF9. Here is what changes.",
+    "title": "About this guide",
     "id": "2768"
   },
   {
@@ -20,7 +20,7 @@
   {
     "number": 4,
     "key": "storm",
-    "title": "Use the Storm deck every game",
+    "title": "The Storm deck",
     "id": "G6QD"
   },
   {
@@ -32,7 +32,7 @@
   {
     "number": 6,
     "key": "little-maker",
-    "title": "Little Maker is a different event",
+    "title": "Little Maker",
     "id": "ACD7"
   },
   {
@@ -44,61 +44,61 @@
   {
     "number": 8,
     "key": "spice-map-visual",
-    "title": "Find the revised Spice sites",
+    "title": "New Spice Blow locations",
     "id": "2W2D"
   },
   {
     "number": 9,
     "key": "battle-model",
-    "title": "Spice adds strength to your force dial",
+    "title": "Spice strength in battle",
     "id": "YJFP"
   },
   {
     "number": 10,
     "key": "battle-example",
-    "title": "Same commitment, different total",
+    "title": "Battle strength example",
     "id": "4EJA"
   },
   {
     "number": 11,
     "key": "battle-payment",
-    "title": "Commit spice, reveal, then settle",
+    "title": "Paying for battle spice",
     "id": "PXSB"
   },
   {
     "number": 12,
     "key": "battle-aftermath",
-    "title": "Aftermath and negotiated surrender",
+    "title": "Battle results and surrender",
     "id": "WPPM"
   },
   {
     "number": 13,
     "key": "revival",
-    "title": "Unlock leader revival once",
+    "title": "Leader revival",
     "id": "FRH9"
   },
   {
     "number": 14,
     "key": "karama",
-    "title": "Karama: one target and its window",
+    "title": "Karama cancellation",
     "id": "QXRY"
   },
   {
     "number": 15,
     "key": "solaris",
-    "title": "Solaris pays for one economic effect",
+    "title": "Solaris",
     "id": "ERCZ"
   },
   {
     "number": 16,
     "key": "card-habits",
-    "title": "Cards: information, disposal and timing",
+    "title": "Other Treachery card changes",
     "id": "R2X8"
   },
   {
     "number": 17,
     "key": "allies",
-    "title": "Allies leave shared territory differently",
+    "title": "Allies sharing a territory",
     "id": "7B73"
   },
   {
@@ -110,19 +110,19 @@
   {
     "number": 19,
     "key": "city-income",
-    "title": "City income is now part of the default",
+    "title": "City income",
     "id": "NVLU"
   },
   {
     "number": 20,
     "key": "victory",
-    "title": "Normal wins have a new priority order",
+    "title": "Victory priority",
     "id": "VVJC"
   },
   {
     "number": 21,
     "key": "endgame",
-    "title": "The end of round ten is different",
+    "title": "Round-ten victory",
     "id": "RG5J"
   },
   {
@@ -140,13 +140,13 @@
   {
     "number": 24,
     "key": "bg-faces",
-    "title": "Bene Gesserit: plan your face changes",
+    "title": "Bene Gesserit: advisors and fighters",
     "id": "866X"
   },
   {
     "number": 25,
     "key": "fremen-storm",
-    "title": "Fremen: storm knowledge and worm events",
+    "title": "Fremen: storms and sandworms",
     "id": "V6MJ"
   },
   {
@@ -158,13 +158,13 @@
   {
     "number": 27,
     "key": "emperor",
-    "title": "Emperor: a new alliance bargain",
+    "title": "Emperor: alliance and revival changes",
     "id": "58EY"
   },
   {
     "number": 28,
     "key": "atreides",
-    "title": "Atreides: information and the public token",
+    "title": "Atreides: Prescience and Kwisatz Haderach",
     "id": "MJUN"
   },
   {
@@ -188,7 +188,7 @@
   {
     "number": 32,
     "key": "expansion-boundary",
-    "title": "Expansion revisions: announced, incomplete",
+    "title": "Announced expansion changes",
     "id": "QACH"
   },
   {
@@ -206,19 +206,19 @@
   {
     "number": 35,
     "key": "open-movement",
-    "title": "Open wording: actions and battle",
+    "title": "Unresolved wording: movement and battle",
     "id": "AF59"
   },
   {
     "number": 36,
     "key": "open-reference",
-    "title": "Open wording: cards, endgame and components",
+    "title": "Unresolved wording: cards and victory",
     "id": "93XK"
   },
   {
     "number": 37,
     "key": "sources",
-    "title": "Sources and review boundaries",
+    "title": "Sources",
     "id": "QRKV"
   }
 ]

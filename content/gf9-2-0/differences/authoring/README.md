@@ -6,6 +6,14 @@ The published book has 37 A4 pages using the existing restrained design and exis
 
 [Open the local preview](http://127.0.0.1:4320/). The preview server must be running in this checkout. It reads existing production artwork and the approved production cover and writes no application data.
 
+## Editorial revision, 27 October 2026
+
+The local preview contains a revised wording pass for review. The published Edition 2 is unchanged. All 36 content pages were edited to remove abstract labels, repeated warnings and comments about how the guide was written. Paragraphs and answers are 732 words shorter. Rules, references, examples, artwork and pagination are retained.
+
+[Compare the wording](http://127.0.0.1:4320/editorial-review.html). The complete field-by-field comparison is saved in `editorial-review.html` and `editorial-review.json`. The revised PDF is `output/pdf/gf9-2019-to-2-0-differences-edited.pdf`; the earlier review PDF remains a copy of published Edition 2.
+
+The local copy still has 37 A4 pages. Schema and reference validation pass, every research record remains accounted for, and the browser check found no overflow or missing images. The edited PDF passed the prose-boundary check. Its card changes and expansion pages were inspected visually, along with the whole-book contact sheet.
+
 ## Review contents
 
 - Pages 2-22 cover shared changes, examples, cards, victory and rosters.
