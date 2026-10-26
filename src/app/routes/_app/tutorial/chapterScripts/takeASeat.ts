@@ -24,15 +24,31 @@ const seatCount = (snapshot: () => GameSnapshot) => snapshot().roster?.seats.len
 const requested = (snapshot: () => GameSnapshot) =>
   snapshot().controls?.seatRequests.some((request) => request.own) ?? false;
 
-/* The approver answers the open request; one already answered, or withdrawn, leaves nothing to approve. */
-function approveSoon(players: TablePlayers) {
-  const timer = setTimeout(() => {
+/*
+ * The approver answers each request a moment after it is made, as someone at a real table would:
+ * a request withdrawn and made again is answered too, since the guide stays on the waiting task.
+ */
+function approveEachRequest(players: TablePlayers) {
+  let answering: { id: string; timer: ReturnType<typeof setTimeout> } | null = null;
+  const watch = setInterval(() => {
     const request = players.viewOf(APPROVER).controls?.seatRequests[0];
-    if (request) {
-      players.act(APPROVER, { kind: 'seat-approve', requestId: request.id });
+    if (!request || answering?.id === request.id) {
+      return;
     }
-  }, APPROVE_AFTER_MS);
-  return { start: 0, timer };
+    if (answering) {
+      clearTimeout(answering.timer);
+    }
+    answering = {
+      id: request.id,
+      timer: setTimeout(() => players.act(APPROVER, { kind: 'seat-approve', requestId: request.id }), APPROVE_AFTER_MS),
+    };
+  }, 250);
+  return () => {
+    clearInterval(watch);
+    if (answering) {
+      clearTimeout(answering.timer);
+    }
+  };
 }
 
 function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[] {
@@ -60,9 +76,9 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       detail:
         'Your request shows under the players as Waiting for approval, and any one of them can approve it. Until then you keep watching, and the × beside it withdraws it.',
       anchor: { kind: 'page', element: element('[aria-label="Your seat request"]') },
-      begin: () => ({ ...approveSoon(players), start: seatCount(snapshot) }),
-      done: (watch: { start: number; timer: ReturnType<typeof setTimeout> }) => seatCount(snapshot) > watch.start,
-      finish: (watch: { start: number; timer: ReturnType<typeof setTimeout> }) => clearTimeout(watch.timer),
+      begin: () => ({ stop: approveEachRequest(players), start: seatCount(snapshot) }),
+      done: (watch: { start: number; stop: () => void }) => seatCount(snapshot) > watch.start,
+      finish: (watch: { start: number; stop: () => void }) => watch.stop(),
     }),
     task({
       id: 'leave',

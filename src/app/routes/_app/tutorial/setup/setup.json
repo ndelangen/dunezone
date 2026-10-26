@@ -1789,17 +1789,17 @@
         }
       },
       "players": [
-        { "seat": "seat-1", "name": "Twaffle", "avatar": "https://dune.zone/user-images/a.jpg", "slug": "twaffle" },
-        { "seat": "seat-2", "name": "Thialfi", "avatar": "https://dune.zone/user-images/b.jpg", "slug": "thialfi" },
-        { "seat": "seat-3", "name": "Fectumbra", "avatar": "https://dune.zone/user-images/c.jpg", "slug": "fectumbra" },
+        { "seat": "seat-1", "name": "Twaffle", "avatar": null, "slug": "twaffle" },
+        { "seat": "seat-2", "name": "Thialfi", "avatar": null, "slug": "thialfi" },
+        { "seat": "seat-3", "name": "Fectumbra", "avatar": null, "slug": "fectumbra" },
         {
           "seat": "seat-4",
           "name": "Erickenneth",
-          "avatar": "https://dune.zone/user-images/d.jpg",
+          "avatar": null,
           "slug": "erickenneth"
         },
-        { "seat": "seat-5", "name": "Ridwan", "avatar": "https://dune.zone/user-images/e.jpg", "slug": "ridwan" },
-        { "seat": "seat-6", "name": "Argelius", "avatar": "https://dune.zone/user-images/f.jpg", "slug": "argelius" }
+        { "seat": "seat-5", "name": "Ridwan", "avatar": null, "slug": "ridwan" },
+        { "seat": "seat-6", "name": "Argelius", "avatar": null, "slug": "argelius" }
       ]
     },
     "setup": {

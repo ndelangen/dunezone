@@ -63,6 +63,10 @@ function othersReady(players: TablePlayers) {
 const myOffer = (snapshot: () => GameSnapshot) =>
   snapshot().swapping?.offers.some((offer) => offer.origin === LEARNER) ?? false;
 
+/* Trading ends once everyone is ready or its four minutes run out; a learner who lets them run out has nothing left to trade, so the trade tasks count as passed. */
+const tradingOver = (snapshot: () => GameSnapshot) =>
+  snapshot().swapping?.closed === true || snapshot().stage !== 'swapping';
+
 function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[] {
   return [
     task({
@@ -124,7 +128,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
           document.querySelector('nav[aria-label="Chats"] button[aria-label*=", House Atreides"]'),
       },
       begin: () => undefined,
-      done: () => myOffer(snapshot),
+      done: () => myOffer(snapshot) || tradingOver(snapshot),
     }),
     task({
       id: 'cancel',
@@ -133,7 +137,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
         'Changed your mind? Press Cancel offer in their window, so you keep Bene Gesserit for the chapters after this one.',
       anchor: { kind: 'page', element: element('button[aria-label^="Cancel offer to"]') },
       begin: () => undefined,
-      done: () => !myOffer(snapshot),
+      done: () => !myOffer(snapshot) || tradingOver(snapshot),
     }),
     task({
       id: 'start',
@@ -142,7 +146,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
         'The others are ready to play. Press Ready, top right: once everyone is ready, or the four minutes run out, trading ends and the setup begins.',
       anchor: { kind: 'page', element: readyButton },
       begin: () => othersReady(players),
-      done: () => snapshot().swapping?.closed === true || snapshot().stage !== 'swapping',
+      done: () => tradingOver(snapshot),
     }),
   ];
 }
