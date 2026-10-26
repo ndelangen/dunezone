@@ -16,15 +16,9 @@ import {
   playProvisionRequestSchema,
   playSeatLimitResultSchema,
   playSessionCutoffRequestSchema,
-  provisionPlaceholderId,
 } from '../../src/shared/play/admission';
 import { playGamePathPattern } from '../../src/shared/play/callbacks';
 import { conversationPeerFor } from '../../src/shared/play/conversations';
-import {
-  PLAY_DIRECTORY_RETRY_CEILING_MS,
-  PLAY_DIRECTORY_RETRY_MS,
-  playPublishSummaryResultSchema,
-} from '../../src/shared/play/directory';
 import type { DraftFaction } from '../../src/shared/play/drafting';
 import { isDraftAction } from '../../src/shared/play/drafting';
 import type { StoredSpawnContents } from '../../src/shared/play/inventory';
@@ -32,7 +26,6 @@ import { CLIENT_MESSAGE_LIMIT } from '../../src/shared/play/messageLimit';
 import type {
   ClientMessage,
   CommitMessage,
-  PieceAction,
   PingSound,
   ServerClock,
   ServerMessage,
@@ -49,9 +42,7 @@ import {
 } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { playRetireFixtureRequestSchema } from '../../src/shared/play/retire';
-import { rosterSeat, SPECTATOR_SEAT } from '../../src/shared/play/schema';
-import { setupReadyRequired, setupStep } from '../../src/shared/play/setup';
-import type { SetupState } from '../../src/shared/play/setup';
+import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { SPECTATOR_COLOR } from './actors';
 import { handleAlertWebhook } from './alerts';
 import type { AlertEnv } from './alerts';
@@ -59,19 +50,21 @@ import { GameCatalogue } from './catalogue';
 import { RoomDelivery } from './delivery';
 import type { AdmissionRefusal } from './diagnostics';
 import { GameDiagnostics } from './diagnostics';
-import type { SetAsideJudgement } from './drafting';
+import { DirectoryDelivery } from './directoryDelivery';
 import { FIXTURE_TREACHERY_DECK, hostedFixturePlan } from './fixture';
 import type { FixturePlan } from './fixture';
 import { gameHttpClient } from './gameHttpClient';
 import { isLocalIsolatedRuntime } from './localRuntime';
 import { forwardPrivacyRequest } from './privacyRequests';
+import { provisionThroughSetup } from './provisionThroughSetup';
 import { CarryHistoryExhausted } from './room';
+import { RoomDraft } from './roomDraft';
 import { ROOM_SUMMARY_IDLE_MS, RoomSummary } from './roomSummary';
 import type { ConvexCall } from './roomSummary';
 import type { HeldPass } from './seatPasses';
 import { heldPass, SeatPasses } from './seatPasses';
 import type { Metadata } from './session';
-import { GameSession, NotReady, readinessProblem } from './session';
+import { GameSession } from './session';
 
 type Connection = {
   connectionId: string;
@@ -203,10 +196,6 @@ function gameRequest(request: Request, applicationOrigin: string) {
 type ProvisionArgs = ReturnType<typeof playProvisionRequestSchema.parse>;
 /** An attempt Convex validated: a hosted fixture or a real game. A refused one never reaches initialization. */
 type ProvisioningValidation = Extract<ReturnType<typeof playProvisioningValidationSchema.parse>, { ok: true }>;
-/** A player provisioning seats: the creator or a placeholder. */
-type ProvisionPlayer = { userId: string; displayName: string };
-/** Executes one action as a provisioning player would send it. */
-type ProvisionCommand = (player: ProvisionPlayer, action: PieceAction) => void;
 type PageRead = Extract<ClientMessage, { type: 'log-history' | 'spice-history' | 'faction' }>;
 const isPageRead = (message: ClientMessage): message is PageRead =>
   message.type === 'log-history' || message.type === 'spice-history' || message.type === 'faction';
@@ -269,16 +258,8 @@ async function readLimitedBody(body: ReadableStream<Uint8Array>): Promise<string
 
 /** A promise the room resolves by hand, once, for handlers that wait on an event. */
 export class GameRoom extends DurableObject<GameEnv> {
-  private assigning = false;
-  private draftChangedDuringAttempt = false;
-  private refreshingCatalogue = false;
-  /* Picks a capture found ready since the catalogue was last read, so a draft command judges each pick once. */
-  private readyPicks = new Set<string>();
-  private judgingPicks = false;
-  private judgePicksAgain = false;
-  /* Counts catalogue refreshes, so a pick judgement that straddles one is dropped. */
-  private catalogueGeneration = 0;
-  private directoryDelivery?: Promise<void>;
+  private readonly directory: DirectoryDelivery;
+  private readonly draft: RoomDraft;
   protected readonly diagnostics: GameDiagnostics;
   private confirmationEpoch = 0;
   private readonly connections = new Map<WebSocket, Connection>();
@@ -354,14 +335,34 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.closed = true;
       this.loadFailure = error;
     }
+    /* A room that did not load never reaches its directory or draft, so it may hold no session. */
+    this.directory = new DirectoryDelivery({
+      session: this.session,
+      diagnostics: this.diagnostics,
+      convex: () => this.convex(),
+      scheduleAlarm: () => this.scheduleAlarm(),
+      waitUntil: (work) => this.ctx.waitUntil(work),
+    });
+    this.draft = new RoomDraft({
+      session: this.session,
+      diagnostics: this.diagnostics,
+      catalogue: () => this.catalogue(),
+      rulesetId: () => this.metadata?.game?.rulesetId,
+      provisional: () => this.metadata?.provisional === true,
+      retainFaction: (factionId) =>
+        this.retainFactionCapture(factionId, { provisional: this.metadata?.provisional === true }),
+      refreshViews: () => this.refreshViews(),
+      dealt: () => this.directory.soon(),
+      waitUntil: (work) => this.ctx.waitUntil(work),
+    });
     if (!this.closed && this.metadata) {
       if (this.metadata.confirmed && this.session.pendingDirectory()) {
-        this.deliverDirectorySoon();
+        this.directory.soon();
       }
       if (this.session.needsFixtureDeck) {
         this.ctx.waitUntil(this.adoptFixtureDeck().catch((error) => this.diagnostics.report('fixture-deck', error)));
       }
-      this.afterDraftChange();
+      this.draft.changed();
     }
     this.restoreConnections();
   }
@@ -564,7 +565,7 @@ export class GameRoom extends DurableObject<GameEnv> {
         return refused();
       }
       const factions =
-        'game' in validation && !this.metadata ? await this.draftableFactions(validation.game.rulesetId) : null;
+        'game' in validation && !this.metadata ? await this.draft.factions(validation.game.rulesetId) : null;
       /* The hosted fixture asks the catalogue for its deck before it exists; a refusal costs nothing, a slow answer only time. */
       const fixtureDeck =
         'fixtureKey' in validation && this.fixturePlan.hosted && !this.metadata
@@ -574,7 +575,11 @@ export class GameRoom extends DurableObject<GameEnv> {
         return refused();
       }
       if ('game' in validation && validation.testStartStage === 'play') {
-        await this.provisionThroughSetup(validation.game);
+        await provisionThroughSetup(validation.game, {
+          session: this.session,
+          advanceDeadlines: () => this.advanceDeadlines(),
+          settleDraft: () => this.draft.settle(),
+        });
       }
       await this.confirmProvisioning();
       return this.metadata!.confirmed ? json({ ok: true }) : refused();
@@ -650,7 +655,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       factions
     );
     /* A catalogue read that failed at creation is read again at once rather than on the first command. */
-    this.afterDraftChange();
+    this.draft.changed();
     return true;
   }
 
@@ -666,13 +671,13 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
   private advanceDeadlines() {
     if (this.session.advanceDeadlines()) {
-      this.deliverDirectorySoon();
+      this.directory.soon();
       this.refreshViews();
     }
   }
   private deleteActor(userId: string, eventId?: string) {
     this.session.deleteActor(userId, eventId);
-    this.deliverDirectorySoon();
+    this.directory.soon();
     for (const [socket, connection] of this.connections) {
       if (connection.viewer?.userId === userId) {
         this.deny(socket, false);
@@ -836,7 +841,7 @@ export class GameRoom extends DurableObject<GameEnv> {
         this.authorizationChanged();
       }
       this.remember();
-      await this.deliverDirectory();
+      await this.directory.deliver();
       /* What the wake sent and called waits in the summary; the sweep writes it before the room sleeps again. */
       if (this.summary.pending(this.counters())) {
         this.ensureSweep();
@@ -883,70 +888,6 @@ export class GameRoom extends DurableObject<GameEnv> {
     return next;
   }
 
-  /** Delivery starts after the current transaction has committed, never from inside it. */
-  private deliverDirectorySoon() {
-    this.ctx.waitUntil(
-      Promise.resolve()
-        .then(() => this.deliverDirectory())
-        .catch((error) => this.diagnostics.report('directory', error))
-    );
-  }
-
-  /*
-   * Sends the pending summary until Convex holds the newest one. An acknowledgment clears only the
-   * sequence it names, so newer work staged meanwhile stays owed; a transport failure defers with
-   * backoff and the alarm retries it with no player connected; a refusal is terminal, since no
-   * retry cures a wrong credential or a game Convex no longer lists. The loop stays single-flight
-   * because its only awaits are the delivery and a storage call: a stage that lands between the
-   * last `pending()` read and the loop's end would otherwise wait for the next event.
-   */
-  private deliverDirectory(): Promise<void> {
-    this.directoryDelivery ??= this.deliverDirectoryLoop().finally(() => {
-      this.directoryDelivery = undefined;
-    });
-    return this.directoryDelivery;
-  }
-
-  private async deliverDirectoryLoop() {
-    const metadata = this.metadata;
-    /* Until confirmation settles, its recovery owns the alarm and the opening summary stays queued. */
-    if (!metadata?.confirmed) {
-      return;
-    }
-    for (let pending = this.session.pendingDirectory(); pending; pending = this.session.pendingDirectory()) {
-      const now = Date.now();
-      if (pending.retryAt > now) {
-        break;
-      }
-      try {
-        const raw: unknown = await this.convex().mutation(api.playDirectory.publishSummary, {
-          gameId: metadata.gameId,
-          secret: metadata.secret,
-          sequence: pending.sequence,
-          summary: pending.summary,
-        });
-        const result = playPublishSummaryResultSchema.parse(raw);
-        if (!result.ok) {
-          this.session.acknowledgeDirectory(pending.sequence);
-          this.diagnostics.report('directory', new Error('Directory delivery refused.'));
-        } else if (result.sequence > pending.sequence) {
-          this.session.advanceDirectory(result.sequence);
-        } else {
-          this.session.acknowledgeDirectory(pending.sequence);
-        }
-        if (result.ok) {
-          this.diagnostics.recovered('directory');
-        }
-      } catch (error) {
-        this.diagnostics.report('directory', error);
-        const wait = Math.min(PLAY_DIRECTORY_RETRY_CEILING_MS, PLAY_DIRECTORY_RETRY_MS * 2 ** pending.attempts);
-        this.session.deferDirectory(pending.sequence, Date.now() + wait);
-        break;
-      }
-    }
-    await this.scheduleAlarm();
-  }
-
   private async confirmProvisioning() {
     const metadata = this.metadata;
     if (!metadata || metadata.confirmed) {
@@ -973,7 +914,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       }
       await this.ctx.storage.deleteAlarm();
       /* The opening summary waited for confirmation: only a confirmed game is listed. */
-      this.deliverDirectorySoon();
+      this.directory.soon();
       this.diagnostics.recovered('confirmation');
     } catch (error) {
       /* A superseded attempt still reports, so a first request that outlives its alarm stays visible. */
@@ -1584,7 +1525,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       const saved = this.session.sendConversation(viewer, request);
       if (saved.inserted) {
         this.publishConversationMessage(request, saved.message);
-        this.deliverDirectorySoon();
+        this.directory.soon();
       } else {
         /* A retried request was already delivered to every member; only the retrying connection needs its confirmation. */
         this.send(socket, {
@@ -1760,10 +1701,10 @@ export class GameRoom extends DurableObject<GameEnv> {
       }
     } finally {
       if (message.type === 'command' && isDraftAction(message.action)) {
-        this.afterDraftChange();
+        this.draft.changed();
       }
     }
-    this.deliverDirectorySoon();
+    this.directory.soon();
     this.ctx.waitUntil(this.scheduleAlarm().catch((error) => this.diagnostics.report('battle-alarm', error)));
     this.reconcileViewers();
     this.broadcastCommittedView(connection, message);
@@ -1779,385 +1720,9 @@ export class GameRoom extends DurableObject<GameEnv> {
     );
   }
 
-  /**
-   * Takes a game a synthetic backend asked for at the play stage from creation to Turn 1 with the commands its players would send (#1594).
-   * Placeholders take the seats the creator does not hold and ready the draft beside the creator.
-   * The deal, trading and every setup step then run exactly as they do for players, and the placeholders give up their seats.
-   * Those seats stay open with their factions, so a browser flow seats its second player through a request in play, the path a replacement takes.
-   * Nothing here bypasses a rule: a step the room would refuse a player fails the provisioning.
-   */
-  private async provisionThroughSetup(game: {
-    minimumPlayers: number;
-    creator: { userId: string; displayName: string };
-  }) {
-    const creator = { userId: game.creator.userId, displayName: game.creator.displayName };
-    const placeholders = Array.from({ length: game.minimumPlayers - 1 }, (_, index) => ({
-      userId: provisionPlaceholderId(index + 2),
-      displayName: `Placeholder for seat ${index + 2}`,
-    }));
-    const everyone = [creator, ...placeholders];
-    let sequence = 0;
-    const command: ProvisionCommand = (player, action) => {
-      this.advanceDeadlines();
-      sequence += 1;
-      this.session.execute(this.session.provisionViewer(player.userId, player.displayName), {
-        type: 'command',
-        commandId: `provision-${sequence}`,
-        action,
-        expectedRevision: this.session.currentSnapshot().revision,
-      });
-    };
-    for (const placeholder of placeholders) {
-      command(placeholder, { kind: 'seat-request' });
-      const requestId = this.session.pendingSeatRequest(placeholder.userId);
-      if (!requestId) {
-        throw new Error('A placeholder seat request was not filed.');
-      }
-      command(creator, { kind: 'seat-approve', requestId });
-    }
-    for (const player of everyone) {
-      command(player, { kind: 'draft-ready', ready: true });
-    }
-    await this.settleAssignment();
-    this.provisionSwapReady(everyone, command);
-    await this.provisionSetup(creator, everyone, command);
-    for (const placeholder of placeholders) {
-      command(placeholder, { kind: 'seat-depart' });
-    }
-  }
-
-  /** Every player readies the dealt trading round, which the deal must have opened. */
-  private provisionSwapReady(everyone: readonly ProvisionPlayer[], command: ProvisionCommand) {
-    const snapshot = () => this.session.currentSnapshot();
-    for (const player of everyone) {
-      const round = snapshot().swapping?.round;
-      if (snapshot().stage !== 'swapping' || round === undefined) {
-        const reason = snapshot().draft?.failure ?? `it is in ${snapshot().stage ?? 'no'} stage`;
-        throw new Error(`The provisioned game was not dealt: ${reason}`);
-      }
-      command(player, { kind: 'swap-ready', ready: true, round, seat: this.provisionSeat(player) });
-    }
-  }
-
-  /** Each setup step is done as its players would do it, and the creator moves on, until play begins. */
-  private async provisionSetup(
-    creator: ProvisionPlayer,
-    everyone: readonly ProvisionPlayer[],
-    command: ProvisionCommand
-  ) {
-    const snapshot = () => this.session.currentSnapshot();
-    for (let changes = 0; snapshot().stage === 'setup'; changes++) {
-      const steps = snapshot().setup?.steps.length ?? 0;
-      if (changes >= steps) {
-        throw new Error(`Setup did not reach play within its ${steps} steps.`);
-      }
-      this.provisionSetupStep(everyone, command);
-      await this.phaseCooldownElapsed();
-      command(creator, { kind: 'phase', direction: 1 });
-    }
-    if (snapshot().stage !== 'play') {
-      throw new Error(`The provisioned game did not reach play; it is in ${snapshot().stage ?? 'no'} stage.`);
-    }
-  }
-
-  /** What the current setup step asks of the players before the creator moves on. */
-  private provisionSetupStep(everyone: readonly ProvisionPlayer[], command: ProvisionCommand) {
-    const snapshot = this.session.currentSnapshot();
-    const setup = snapshot.setup!;
-    const step = setupStep(setup);
-    if (step?.kind === 'prediction') {
-      this.provisionPrediction(everyone, command, step);
-    } else if (setupReadyRequired(setup)) {
-      const ready = snapshot.controls?.ready ?? [];
-      everyone
-        .filter((player) => !ready.includes(this.provisionSeat(player)))
-        .forEach((player) => command(player, { kind: 'ready', ready: true }));
-    }
-  }
-
-  private provisionSeat(player: ProvisionPlayer) {
-    return this.session.provisionViewer(player.userId, player.displayName).viewerSeat;
-  }
-
-  /* A prediction gates on its lock, never on readiness; it is revealed at once so every seat starts play with the same public view. */
-  private provisionPrediction(
-    everyone: readonly ProvisionPlayer[],
-    command: ProvisionCommand,
-    step: SetupState['steps'][number]
-  ) {
-    const predictor = everyone.find((player) => this.seatFaction(this.provisionSeat(player)) === step.factionId);
-    if (!predictor) {
-      throw new Error(`No provisioned player holds the faction of ${step.title}.`);
-    }
-    command(predictor, {
-      kind: 'prediction-lock',
-      stepId: step.id,
-      choice: { factionId: step.factionId!, turn: 1 },
-    });
-    command(predictor, { kind: 'prediction-reveal', stepId: step.id });
-  }
-
   /** The catalogue this deployment reads factions, rulesets and decks from. */
   private catalogue() {
     return new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN, this.observeConvex);
-  }
-
-  private seatFaction(seat: string) {
-    return rosterSeat(this.session.currentSnapshot().roster, seat)?.faction?.id;
-  }
-
-  /**
-   * Waits for the deal a fully ready draft owes.
-   * A catalogue refresh that creation started makes that attempt itself once it lands.
-   * A failed attempt waits for a player's next draft change, so it fails the provisioning rather than being retried.
-   * Otherwise the replay makes the attempt its last draft-ready command would have made.
-   */
-  private async settleAssignment() {
-    for (let waited = 0; waited < 500 && (this.assigning || this.refreshingCatalogue); waited++) {
-      await new Promise((resolve) => setTimeout(resolve, 20));
-    }
-    const snapshot = this.session.currentSnapshot();
-    if (snapshot.stage !== 'drafting') {
-      return;
-    }
-    if (snapshot.draft?.failure) {
-      throw new Error(`The deal did not complete: ${snapshot.draft.failure}`);
-    }
-    await this.attemptAssignment();
-  }
-
-  /** Setup's phase changes keep the game's cooldown, so a provisioning that runs at the real one waits it out. */
-  private async phaseCooldownElapsed() {
-    const wait = this.session.phaseCooldownEndsAt - Date.now();
-    if (wait > 0) {
-      await new Promise((resolve) => setTimeout(resolve, wait));
-    }
-  }
-
-  private async draftableFactions(rulesetId: string): Promise<DraftFaction[] | null> {
-    try {
-      return await this.catalogue().draftableFactions(rulesetId);
-    } catch (error) {
-      /* A game opens without the list, stamped stale, and reads it on the first draft command. */
-      this.diagnostics.report('draft-catalogue', error);
-      return null;
-    }
-  }
-  private afterDraftChange() {
-    const status = this.session.draftWork();
-    if (!status) {
-      return;
-    }
-    if (this.assigning) {
-      this.draftChangedDuringAttempt = true;
-    }
-    this.ctx.waitUntil(this.judgePicks().catch((error) => this.diagnostics.report('draft-catalogue', error)));
-    if (status.refresh && !this.refreshingCatalogue) {
-      this.ctx.waitUntil(
-        this.refreshDraftCatalogue().catch((error) => this.diagnostics.report('draft-catalogue', error))
-      );
-    } else if (!this.assigning) {
-      this.ctx.waitUntil(this.attemptAssignment().catch((error) => this.diagnostics.report('assignment', error)));
-    }
-  }
-
-  /**
-   * The latest faction data without resetting readiness (#1013): picks and readiness stay, the factions behind them are read again, and the gates are judged on what the catalogue holds now.
-   */
-  private async refreshDraftCatalogue() {
-    const metadata = this.metadata;
-    if (this.refreshingCatalogue || !metadata?.game) {
-      return;
-    }
-    this.refreshingCatalogue = true;
-    try {
-      const catalogue = this.catalogue();
-      const factions = await catalogue.draftableFactions(metadata.game.rulesetId);
-      const setAside = await this.judgeSetAside(catalogue, factions);
-      this.session.updateDraftCatalogue(factions, setAside);
-      this.readyPicks.clear();
-      this.catalogueGeneration += 1;
-      /* An attempt that ran alongside dealt from the copy before this one, so it tries again on this. */
-      if (this.assigning) {
-        this.draftChangedDuringAttempt = true;
-      }
-      this.refreshViews();
-    } catch (error) {
-      /* The copy in hand still judges the gates; the next command reads again. */
-      this.diagnostics.report('draft-catalogue', error);
-    } finally {
-      this.refreshingCatalogue = false;
-    }
-    await this.attemptAssignment();
-  }
-
-  /**
-   * A real game judges each drafted faction when it is picked, so one that is not ready is set aside with its reason before anyone readies.
-   * The deal still judges every faction it captures, random fills included.
-   */
-  private async judgePicks() {
-    if (this.metadata?.provisional === true) {
-      return;
-    }
-    if (this.judgingPicks) {
-      /* A pick made while a judgement is in flight is judged when it ends. */
-      this.judgePicksAgain = true;
-      return;
-    }
-    this.judgingPicks = true;
-    try {
-      do {
-        this.judgePicksAgain = false;
-        await this.judgePendingPicks();
-      } while (this.judgePicksAgain);
-    } finally {
-      this.judgingPicks = false;
-    }
-  }
-
-  private async judgePendingPicks() {
-    const pending = this.session.draftedPicks().filter((id) => !this.readyPicks.has(id));
-    if (!pending.length) {
-      return;
-    }
-    const generation = this.catalogueGeneration;
-    const catalogue = this.catalogue();
-    const ready: string[] = [];
-    const refused: Record<string, string> = {};
-    for (const factionId of pending) {
-      const problem = await this.pickProblem(catalogue, factionId);
-      if (problem === undefined) {
-        ready.push(factionId);
-      } else if (problem !== null) {
-        refused[factionId] = problem;
-      }
-    }
-    /*
-     * A refresh since judged against a newer catalogue, so these verdicts are stale.
-     * The picks still pending are judged again on it, so none waits for another command.
-     */
-    if (generation !== this.catalogueGeneration) {
-      this.judgePicksAgain = true;
-      return;
-    }
-    ready.forEach((factionId) => this.readyPicks.add(factionId));
-    if (!Object.keys(refused).length) {
-      return;
-    }
-    this.session.setFactionsAside(refused, { atDeal: false });
-    if (this.assigning) {
-      this.draftChangedDuringAttempt = true;
-    }
-    this.refreshViews();
-  }
-
-  /** Why a pick cannot be dealt; nothing when it is ready, null when its capture could not be read, which is reported and judged again later. */
-  private async pickProblem(catalogue: GameCatalogue, factionId: string): Promise<string | undefined | null> {
-    try {
-      return readinessProblem((await catalogue.captureFaction(factionId)).readiness)?.slice(0, 400);
-    } catch (error) {
-      if (error instanceof GameRejection) {
-        return error.message.slice(0, 400);
-      }
-      this.diagnostics.report('draft-catalogue', error);
-      return null;
-    }
-  }
-
-  /** Why the deal cannot take this faction, from its capture; nothing once it is retained. */
-  private async refusedFaction(factionId: string): Promise<string | undefined> {
-    try {
-      await this.retainFactionCapture(factionId, { provisional: this.metadata?.provisional === true });
-      return undefined;
-    } catch (error) {
-      if (error instanceof NotReady) {
-        return error.problem.slice(0, 400);
-      }
-      if (error instanceof GameRejection) {
-        return error.message.slice(0, 400);
-      }
-      throw error;
-    }
-  }
-
-  /**
-   * The factions set aside, judged again with the catalogue: one still listed and still refused keeps its latest reason, one ready now returns to the draft.
-   * A capture that cannot be read keeps the reason it had.
-   */
-  private async judgeSetAside(catalogue: GameCatalogue, factions: DraftFaction[]): Promise<SetAsideJudgement> {
-    const judged: string[] = [];
-    const stillAside: Record<string, string> = {};
-    for (const [factionId, reason] of Object.entries(this.session.draftSetAside())) {
-      judged.push(factionId);
-      if (!factions.some((faction) => faction.id === factionId)) {
-        continue;
-      }
-      try {
-        const capture = await catalogue.captureFaction(factionId);
-        const problem = this.metadata?.provisional === true ? undefined : readinessProblem(capture.readiness);
-        if (problem !== undefined) {
-          stillAside[factionId] = problem.slice(0, 400);
-        }
-      } catch (error) {
-        if (!(error instanceof GameRejection)) {
-          this.diagnostics.report('draft-catalogue', error);
-        }
-        stillAside[factionId] = error instanceof GameRejection ? error.message.slice(0, 400) : reason;
-      }
-    }
-    return { judged, stillAside };
-  }
-
-  /*
-   * Public assignment, by itself, once the roster meets the minimum, every player is ready and the
-   * pool holds enough factions: the dealt factions are captured first (a real game refuses unready
-   * content, an isolated backend deals provisional content), then one transaction fixes the seat
-   * count, gives every seat its faction and a random station, ends the draft and opens swapping,
-   * provided nothing about the draft or the roster changed while the captures ran. A faction whose
-   * capture is refused is set aside with its reason and the deal tries again from what remains; any
-   * other failure before that commit leaves the draft as it was, with its reason, for a gate-checked retry.
-   */
-  private async attemptAssignment() {
-    if (this.assigning) {
-      return;
-    }
-    const prepared = this.session.prepareAssignment();
-    if (!prepared) {
-      return;
-    }
-    this.assigning = true;
-    try {
-      const refused: Record<string, string> = {};
-      for (const faction of prepared.factions) {
-        const reason = await this.refusedFaction(faction);
-        if (reason !== undefined) {
-          refused[faction] = reason;
-        }
-      }
-      if (Object.keys(refused).length) {
-        /* The deal never fails twice on the same faction: it is set aside, and the next attempt deals from what remains. */
-        this.session.setFactionsAside(refused);
-        this.draftChangedDuringAttempt = true;
-        this.refreshViews();
-      } else if (this.session.completeAssignment(prepared)) {
-        this.deliverDirectorySoon();
-        this.refreshViews();
-      }
-    } catch (error) {
-      if (!(error instanceof GameRejection)) {
-        this.diagnostics.report('assignment', error);
-      }
-      this.session.assignmentFailed(
-        error instanceof GameRejection ? error.message : 'The deal did not go through. Try again.'
-      );
-      this.refreshViews();
-    } finally {
-      this.assigning = false;
-    }
-    if (this.draftChangedDuringAttempt) {
-      this.draftChangedDuringAttempt = false;
-      await this.attemptAssignment();
-    }
   }
 
   private broadcastCommittedView(connection: Connection, message: CommitMessage) {

@@ -385,7 +385,7 @@ function GateStep({ gate }: Readonly<{ gate: Gate }>) {
   );
   /* A step with more to say is a button, so the keyboard reaches its tooltip as the pointer does. */
   return gate.help ? (
-    <Tooltip label={gate.help} multiline maw={320} events={{ hover: true, focus: true, touch: true }}>
+    <Tooltip label={gate.help} multiline maw={320} events={{ hover: true, focus: true, touch: false }}>
       <UnstyledButton type="button" className={className}>
         {content}
       </UnstyledButton>
@@ -478,7 +478,7 @@ export function DraftingHeader({
       <span className={styles.headerLine}>
         {alert ? (
           /* A button, like a gate step, so the keyboard reaches the reason and the way out as the pointer does. */
-          <Tooltip label={alert.help} multiline maw={340} events={{ hover: true, focus: true, touch: true }}>
+          <Tooltip label={alert.help} multiline maw={340} events={{ hover: true, focus: true, touch: false }}>
             <UnstyledButton type="button" className={styles.headerAlert}>
               <strong>
                 {alert.line}

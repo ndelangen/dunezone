@@ -1754,9 +1754,7 @@ describe('fresh reconnect recovery', () => {
       expect(table(client).renderedPieces.find((piece) => piece.id === source.id)?.position).toEqual(
         committed ? position : source.position
       );
-      expect(socket().sent).toEqual([
-        { type: 'admit', pass: 'pass.a', replaces: 'connection-one' },
-      ]);
+      expect(socket().sent).toEqual([{ type: 'admit', pass: 'pass.a', replaces: 'connection-one' }]);
       expect(client.getSnapshot().error).toBe('The connection dropped as you placed a piece. Check where it landed.');
     }
   );

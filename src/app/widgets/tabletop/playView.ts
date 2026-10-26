@@ -85,13 +85,11 @@ export const MAP_VIEW_MINIMUM_CAMERA_SCALE = 0.65;
 
 const CAMERA_OFFSET: Vector3Tuple = [0, 9.4, 11.2];
 const CAMERA_OFFSET_LENGTH = Math.hypot(...CAMERA_OFFSET);
-/* The approved table angle, measured from straight down, and the steepest the player may tilt to: near top-down, short of the pole where the orbit loses its heading. */
+/* The approved table angle, measured from straight down, and the steepest a close look tilts to: near top-down, short of the pole where the orbit loses its heading. */
 const CAMERA_APPROVED_POLAR_ANGLE = Math.atan2(CAMERA_OFFSET[2], CAMERA_OFFSET[1]);
 const CAMERA_TOP_DOWN_POLAR_ANGLE = 0.2;
 /* The top-down view's angle from straight down: flat to the eye, a hair short of the pole so the orbit keeps its heading. */
 export const CAMERA_TOP_VIEW_POLAR_ANGLE = 0.02;
-/* Scroll distance, in pixels, that tilts the camera from the approved angle all the way to top-down. */
-const CAMERA_TILT_SCROLL_RANGE_PX = 600;
 const CAMERA_TANGENT = Math.tan((TABLE_CAMERA_FIELD_OF_VIEW * Math.PI) / 360);
 const DEFAULT_MAP_VIEW_FRAMING_POINTS = mapViewFramingPoints([]);
 const CAMERA_FOG_REFERENCE_HEIGHT = CAMERA_OFFSET[1];
@@ -131,11 +129,6 @@ type CameraBasis = Readonly<{ offset: Vector3Tuple; forward: Vector3Tuple; up: V
 /** A tilt within its range, where 0 is the approved table angle and 1 is near top-down. */
 function clampCameraTilt(tilt: number): number {
   return Number.isFinite(tilt) ? Math.max(0, Math.min(1, tilt)) : 0;
-}
-
-/** The tilt after a wheel turn: scrolling down raises the camera toward top-down, scrolling up lowers it back to the approved angle. */
-export function cameraTiltAfterWheel(tilt: number, deltaY: number, deltaMode = 0): number {
-  return clampCameraTilt(tilt + wheelPixels(deltaY, deltaMode) / CAMERA_TILT_SCROLL_RANGE_PX);
 }
 
 function cameraBasisAt(polarAngle: number): CameraBasis {
@@ -530,10 +523,10 @@ function nearestZoomTarget(x: number, z: number): [number, number] {
   return best;
 }
 
-/** The tilt a close look adds to the player's own: none at the view's distance, turning toward top-down as the camera closes in. */
-export function cameraTiltForZoom(tilt: number, zoom: CameraZoom): number {
+/** The tilt of a close look: none at the view's distance, turning toward top-down as the camera closes in. */
+export function cameraTiltForZoom(zoom: CameraZoom): number {
   const closeness = (1 - zoom.scale) / (1 - CAMERA_ZOOM_MINIMUM_SCALE);
-  return clampCameraTilt(tilt + CAMERA_ZOOM_FULL_TILT * Math.max(0, Math.min(1, closeness)));
+  return clampCameraTilt(CAMERA_ZOOM_FULL_TILT * Math.max(0, Math.min(1, closeness)));
 }
 
 /** The pose seen through a zoom. */
@@ -598,7 +591,6 @@ function keepZoomOverBoard(basePose: CameraPose, zoom: CameraZoom): CameraZoom {
  */
 export function cameraZoomAfterWheelAt(
   zoom: CameraZoom,
-  tilt: number,
   poseAt: (tilt: number) => CameraPose,
   spot: Readonly<{ ndcX: number; ndcY: number; aspectRatio: number; height: number }>,
   deltaY: number,
@@ -606,13 +598,13 @@ export function cameraZoomAfterWheelAt(
 ): CameraZoom {
   const pointAt = (look: CameraZoom) =>
     tablePointUnder(
-      zoomedCameraPose(poseAt(cameraTiltForZoom(tilt, look)), look),
+      zoomedCameraPose(poseAt(cameraTiltForZoom(look)), look),
       spot.aspectRatio,
       spot.ndcX,
       spot.ndcY,
       spot.height
     );
-  const before = poseAt(cameraTiltForZoom(tilt, zoom));
+  const before = poseAt(cameraTiltForZoom(zoom));
   const anchor = pointAt(zoom) ?? zoomedCameraPose(before, zoom).target;
   let next = cameraZoomAfterWheel(zoom, before, anchor, deltaY, deltaMode);
   if (next.scale >= zoom.scale) {
@@ -623,7 +615,7 @@ export function cameraZoomAfterWheelAt(
     if (!landed) {
       break;
     }
-    next = keepZoomOverBoard(poseAt(cameraTiltForZoom(tilt, next)), {
+    next = keepZoomOverBoard(poseAt(cameraTiltForZoom(next)), {
       scale: next.scale,
       offset: [next.offset[0] + anchor[0] - landed[0], next.offset[1], next.offset[2] + anchor[2] - landed[2]],
     });
