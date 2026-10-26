@@ -26,27 +26,6 @@
   backdrop-filter: blur(10px);
 }
 
-/* The viewer's own token stands alone on the bar's ground, left of the Controls button. */
-.own {
-  width: 2.9rem;
-  height: 2.9rem;
-  border: 1px solid rgb(from var(--ui-highlight) r g b / 0.2);
-  background: rgb(from var(--ui-ground) r g b / 0.86);
-  box-shadow:
-    0 18px 40px rgb(from var(--color-shadow) r g b / 0.5),
-    0 2px 6px rgb(from var(--color-shadow) r g b / 0.4);
-  backdrop-filter: blur(10px);
-}
-
-.own:hover {
-  border-color: rgb(from var(--color-brand) r g b / 0.65);
-}
-
-/* Its tip is the kit's, so the bar's own tip stays empty. */
-.own::after {
-  content: none;
-}
-
 .launcher {
   gap: 0.6rem;
   padding: 0 0.7rem 0 0.95rem;
@@ -130,6 +109,27 @@
 
 .chat:hover::after {
   opacity: 1;
+}
+
+/* The viewer's own token stands alone on the bar's ground, left of the Controls button; after the chat rules, so it wins over them. */
+.own {
+  width: 2.9rem;
+  height: 2.9rem;
+  border: 1px solid rgb(from var(--ui-highlight) r g b / 0.2);
+  background: rgb(from var(--ui-ground) r g b / 0.86);
+  box-shadow:
+    0 18px 40px rgb(from var(--color-shadow) r g b / 0.5),
+    0 2px 6px rgb(from var(--color-shadow) r g b / 0.4);
+  backdrop-filter: blur(10px);
+}
+
+.own:hover {
+  border-color: rgb(from var(--color-brand) r g b / 0.65);
+}
+
+/* Its tip is the kit's, so the bar's own tip stays empty. */
+.own::after {
+  content: none;
 }
 
 .token {

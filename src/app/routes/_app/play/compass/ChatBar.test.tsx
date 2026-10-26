@@ -34,7 +34,7 @@ const player = (seat: string, own: boolean): CompassPlayer => ({
   ally: false,
 });
 
-function renderBar(players: readonly CompassPlayer[]) {
+function renderBar(players: readonly CompassPlayer[], hasHand = true) {
   const onShow = vi.fn();
   const table: CompassTable = {
     players,
@@ -47,7 +47,7 @@ function renderBar(players: readonly CompassPlayer[]) {
   render(
     <MantineProvider>
       <CompassTableContext.Provider value={table}>
-        <ChatBar inert={false} isOpen={() => false} onOpenCompass={vi.fn()} onShow={onShow} />
+        <ChatBar inert={false} hasHand={hasHand} isOpen={() => false} onOpenCompass={vi.fn()} onShow={onShow} />
       </CompassTableContext.Provider>
     </MantineProvider>
   );
@@ -65,5 +65,10 @@ test('the own token sits left of the Controls button and opens Hand & spice', ()
 
 test('a spectator has no own token', () => {
   renderBar([player('seat-2', false)]);
+  expect(screen.queryByRole('button', { name: /you are playing as/ })).toBeNull();
+});
+
+test('before the table has a Hand & spice window there is no own token to open it', () => {
+  renderBar([player('seat-1', true)], false);
   expect(screen.queryByRole('button', { name: /you are playing as/ })).toBeNull();
 });

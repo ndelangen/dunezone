@@ -81,7 +81,13 @@ function Controls({ scene, overlay, header, camera, inert, panels, onView, focus
       {header}
       {camera}
       <WindowFrames windows={windows} opened={opened} heights={heights} inert={inert} />
-      <ChatBar inert={inert} isOpen={opened.isOpen} onOpenCompass={compass.openCompass} onShow={compass.show} />
+      <ChatBar
+        inert={inert}
+        hasHand={windows.some((entry) => entry.key === 'hand')}
+        isOpen={opened.isOpen}
+        onOpenCompass={compass.openCompass}
+        onShow={compass.show}
+      />
       {open && <Compass {...compass.props} />}
     </div>
   );

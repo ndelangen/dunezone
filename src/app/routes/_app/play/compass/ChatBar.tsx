@@ -15,6 +15,8 @@ import { chattable, FACTION_INFO } from './windows';
 
 type ChatBarProps = Readonly<{
   inert: boolean;
+  /** Whether the table has a Hand & spice window yet, which the own token opens. */
+  hasHand: boolean;
   /** Whether a window is open anywhere, so its token shows pressed. */
   isOpen: (key: string, seat?: string) => boolean;
   onOpenCompass: () => void;
@@ -27,7 +29,7 @@ function words(...parts: (string | null | false | 0 | undefined)[]) {
   return parts.filter(Boolean);
 }
 
-export function ChatBar({ inert, isOpen, onOpenCompass, onShow }: ChatBarProps) {
+export function ChatBar({ inert, hasHand, isOpen, onOpenCompass, onShow }: ChatBarProps) {
   const table = useContext(CompassTableContext);
   /* The other players to talk to, and the viewer too while a removal vote stands against them. */
   const others = table?.players.filter((player) => !player.own || player.vote) ?? [];
@@ -35,7 +37,7 @@ export function ChatBar({ inert, isOpen, onOpenCompass, onShow }: ChatBarProps) 
   const own = table?.players.find((player) => player.own);
   return (
     <div className={styles.bar} inert={inert} data-hides-cursor data-compass-bar>
-      {own?.factionName && <OwnToken player={own} open={isOpen('hand')} onOpen={() => onShow('hand')} />}
+      {hasHand && own?.factionName && <OwnToken player={own} open={isOpen('hand')} onOpen={() => onShow('hand')} />}
       <button type="button" className={styles.launcher} data-compass-launcher onClick={onOpenCompass}>
         <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" className={base.glyph}>
           <circle cx="12" cy="12" r="8" />
