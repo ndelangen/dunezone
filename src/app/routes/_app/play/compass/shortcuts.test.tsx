@@ -4,6 +4,7 @@ import { act, cleanup, renderHook } from '@testing-library/react';
 import { afterEach, expect, test, vi } from 'vite-plus/test';
 
 import { useShortcutKeys } from './shortcuts';
+import type { Shortcut } from './shortcuts';
 
 afterEach(() => {
   cleanup();
@@ -30,7 +31,7 @@ function press(key: string, target: EventTarget = document.body, init: KeyboardE
 
 test('each letter runs its shortcut over the table and on its controls, whatever the case', () => {
   const { button } = page();
-  const onShortcut = vi.fn();
+  const onShortcut = vi.fn((_shortcut: Shortcut) => true);
   renderHook(() => useShortcutKeys(true, onShortcut));
   press('h');
   press('J', button);
@@ -56,7 +57,7 @@ test('each letter runs its shortcut over the table and on its controls, whatever
 
 test('a letter typed in a field, beside the table, with a modifier, held, or already taken by a piece does nothing', () => {
   const { field, beside } = page();
-  const onShortcut = vi.fn();
+  const onShortcut = vi.fn((_shortcut: Shortcut) => true);
   renderHook(() => useShortcutKeys(true, onShortcut));
   press('h', field);
   press('h', beside);
@@ -72,8 +73,15 @@ test('a letter typed in a field, beside the table, with a modifier, held, or alr
 
 test('with the compass open the letters are its search’s', () => {
   page();
-  const onShortcut = vi.fn();
+  const onShortcut = vi.fn((_shortcut: Shortcut) => true);
   renderHook(() => useShortcutKeys(false, onShortcut));
   press('h');
   expect(onShortcut).not.toHaveBeenCalled();
+});
+
+test('a letter with nothing to do here is left to the table, as U then turns the camera straight down', () => {
+  page();
+  renderHook(() => useShortcutKeys(true, (shortcut) => shortcut !== 'faceUp'));
+  expect(press('u').defaultPrevented).toBe(false);
+  expect(press('h').defaultPrevented).toBe(true);
 });

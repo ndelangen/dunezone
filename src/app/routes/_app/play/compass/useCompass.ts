@@ -82,16 +82,19 @@ export function useCompass({ open, onOpen, inert, windows, table, onView, onShow
     }
     show(tile.window.key, tile.tab);
   };
-  /* A letter opens its arm's window, as confirming the tile would, or runs its command; one the table lacks does nothing. */
+  /* A letter opens its arm's window, as confirming the tile would, or runs its command; one the table lacks is left to the table. */
   const shortcut = (pressed: Shortcut) => {
     if (pressed in tiles) {
       const tile = tiles[pressed as keyof typeof tiles];
       if (tile.window && !tile.disabled) {
         onShow(tile.window.key, tile.tab);
+        return true;
       }
-      return;
+      return false;
     }
-    commands[pressed as keyof typeof commands]?.run();
+    const command = commands[pressed as keyof typeof commands];
+    command?.run();
+    return command !== null;
   };
   useShortcutKeys(!open && !inert, shortcut);
   useCompassKeys({

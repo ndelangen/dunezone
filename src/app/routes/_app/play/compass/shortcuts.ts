@@ -75,8 +75,10 @@ function shortcutOf(event: KeyboardEvent): Shortcut | undefined {
 /*
  * The letters, heard after the table's own keys: a letter the table took for a piece under the cursor, such as F to
  * flip it or G to stack it, stays the piece's. The table binds its keys in a layout effect, before this effect runs.
+ * A letter is claimed only when it did something, so one with nothing to do here, such as U with the token already face
+ * up, still reaches the table: U then turns the camera straight down.
  */
-export function useShortcutKeys(enabled: boolean, onShortcut: (shortcut: Shortcut) => void) {
+export function useShortcutKeys(enabled: boolean, onShortcut: (shortcut: Shortcut) => boolean) {
   const run = useEffectEvent(onShortcut);
   useEffect(() => {
     if (!enabled) {
@@ -84,11 +86,9 @@ export function useShortcutKeys(enabled: boolean, onShortcut: (shortcut: Shortcu
     }
     const listener = (event: KeyboardEvent) => {
       const shortcut = shortcutOf(event);
-      if (!shortcut) {
-        return;
+      if (shortcut && run(shortcut)) {
+        event.preventDefault();
       }
-      event.preventDefault();
-      run(shortcut);
     };
     window.addEventListener('keydown', listener);
     return () => window.removeEventListener('keydown', listener);
