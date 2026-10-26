@@ -17,7 +17,6 @@ describe('The hosted fixture room retires on request', () => {
   let peer: NativePeer, runtime: NativeRuntime;
   beforeEach(async () => {
     peer = await createPeer();
-    peer.watchMode = 'allow';
   });
   afterEach(async () => {
     await runtime?.close();

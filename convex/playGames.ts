@@ -235,9 +235,6 @@ export const creatable = viewerQuery({
   },
 });
 
-/* Retained for previously deployed clients; new clients use the read-only module (#2437). */
-export { nameAvailability } from './playGameNameAvailability';
-
 /**
  * Creates a real game: a pending directory record with its fixed ruleset, minimum count and creator, and the provisioning requests that ask the game Worker to initialize it.
  * The creator takes the first seat when the Worker initializes, and that seat counts against the seat limit from creation;
@@ -443,6 +440,3 @@ export async function createAuthorizedGame(
   );
   return { ok: true as const, gameId };
 }
-
-/** Compatibility addresses remain available while deployed browsers move to the read-only directory. */
-export { getGame, getGameByAddress } from './playGameDirectory';

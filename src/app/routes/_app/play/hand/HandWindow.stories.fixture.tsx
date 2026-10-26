@@ -30,7 +30,7 @@ function HandWindowHarness({ height = 448 }: Readonly<{ height?: number; seat?: 
         new GameSubscription(
           'hand-window-story',
           /* No game page asked the database for a seat, so the story admits itself, as the tutorial's table does. */
-          () => Promise.resolve({ ok: true as const, ticket: '0'.repeat(64), expiresInMs: 3_600_000 }),
+          () => Promise.resolve({ ok: true as const, pass: 'pass.0' }),
           runtime
         ),
         runtime

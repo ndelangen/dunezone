@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { playCreateGameResultSchema, playRedeemTicketResultSchema } from './admission';
+import { playCreateGameResultSchema } from './admission';
 
 /*
  * The seat limit and the answers that carry it live here rather than in admission.ts or participation.ts.
@@ -24,17 +24,4 @@ const [created, createRefused] = playCreateGameResultSchema.options;
 export const playCreateGameOutcomeSchema = z.union([
   created,
   z.object({ ok: z.literal(false), reason: z.enum([...createRefused.shape.reason.options, 'seat_limit']) }),
-]);
-
-const [redeemRefused, redeemAdmitted] = playRedeemTicketResultSchema.options;
-/** A redemption's answer: the admission contract's, plus whether the player is at the seat limit. */
-export const playRedeemTicketOutcomeSchema = z.union([
-  redeemRefused,
-  redeemAdmitted.extend({
-    /*
-     * True when the player already holds `PLAY_SEAT_LIMIT` seats in other games, so the room refuses their seat request.
-     * Absent means not at the limit, which is also how a Convex deployment from before the limit answers.
-     */
-    seatLimitReached: z.boolean().optional(),
-  }),
 ]);

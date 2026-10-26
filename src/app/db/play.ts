@@ -82,18 +82,11 @@ export function useCreateGame() {
   return useLiveOperation(create);
 }
 
-/** Tickets stay in memory and are sent only in the first game socket message. */
-async function requestPlayTicket(gameId: string) {
-  return await db.mutation(api.playAdmission.issueTicket, { gameId });
-}
-
 /*
- * Each open game's seat pass, as its game query last delivered it: a pass, null while the account is not enrolled there yet, or
- * `legacy` from a deployment without passes. Passes live in memory only and go out only over the game socket.
+ * Each open game's seat pass, as its game query last delivered it: a pass, or null while the account is not enrolled there yet.
+ * Passes live in memory only and go out only over the game socket.
  */
-/* `legacy` is a marker no encoded pass can equal, since a pass always holds a dot. */
 type HeldPass = string | null;
-const LEGACY = 'legacy';
 type PassEntry = {
   held?: HeldPass;
   renewed?: { pass: string; at: number };
@@ -123,7 +116,7 @@ function identityOf(pass: string) {
  * A pass for another account, actor or session always replaces the held one, as after a merge or a switch of account.
  */
 function outlasts(next: HeldPass, held: HeldPass | undefined) {
-  if (typeof held !== 'string' || held === LEGACY || typeof next !== 'string' || next === LEGACY) {
+  if (held === undefined || held === null || next === null) {
     return next !== held;
   }
   if (identityOf(next) !== identityOf(held)) {
@@ -141,7 +134,7 @@ function holdPass(gameId: string, held: HeldPass) {
   for (const wake of entry.waiters.splice(0)) {
     wake();
   }
-  if (typeof held === 'string' && held !== LEGACY) {
+  if (held !== null) {
     for (const listener of entry.listeners) {
       listener(held);
     }
@@ -149,8 +142,8 @@ function holdPass(gameId: string, held: HeldPass) {
 }
 
 /** Called by the game page with each answer of its game query. */
-export function rememberSeatPass(gameId: string, pass: string | null | undefined) {
-  holdPass(gameId, pass === undefined ? LEGACY : pass);
+export function rememberSeatPass(gameId: string, pass: string | null) {
+  holdPass(gameId, pass);
 }
 
 /** Every fresh pass for the game, so an open socket hands it to the room before the one it entered with ends. */
@@ -171,7 +164,7 @@ function nearExpiry(pass: string) {
 }
 
 /**
- * What the game socket admits with: the held pass while it has time left, a fresh one from Convex when it nears its end or the account is not enrolled yet, or a single-use ticket from a deployment without passes.
+ * What the game socket admits with: the held pass while it has time left, a fresh one from Convex when it nears its end or the account is not enrolled yet.
  * A pass Convex signed in the last minute is used as it is even if this browser's clock calls it near its end, so a skewed clock never renews in a loop.
  */
 export async function requestPlayAdmission(gameId: string, { renew = false }: { renew?: boolean } = {}) {
@@ -180,9 +173,6 @@ export async function requestPlayAdmission(gameId: string, { renew = false }: { 
   while (true) {
     await untilHeld(entry);
     const held = entry.held!;
-    if (held === LEGACY) {
-      return await requestPlayTicket(gameId);
-    }
     /* `renew` is the room saying the pass ran out, which outranks this browser's clock unless Convex only just signed it. */
     const justRenewed = held === entry.renewed?.pass && Date.now() - entry.renewed.at < JUST_RENEWED_MS;
     if (held !== null && (justRenewed || (!forceRenewal && !nearExpiry(held)))) {

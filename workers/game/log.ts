@@ -319,20 +319,13 @@ function stageEntry(before: Pick<StoredSnapshot, 'stage'>, next: StoredSnapshot)
   }
 }
 
-/* Inside play, a phase or turn command that moved the tracker is a step, a return or a turn. */
+/* Inside play, a phase command that moved the tracker is a step or a return. */
 function phaseChangeOf(before: StoredSnapshot, next: StoredSnapshot, message: CommitMessage): PhaseChange | undefined {
   const movedWithinPlay = before.stage === next.stage && next.stage === 'play' && before.phase !== next.phase;
-  if (message.type !== 'command' || !movedWithinPlay) {
+  if (message.type !== 'command' || message.action.kind !== 'phase' || !movedWithinPlay) {
     return undefined;
   }
-  switch (message.action.kind) {
-    case 'phase':
-      return message.action.direction === -1 ? 'back' : 'step';
-    case 'turn':
-      return 'turn';
-    default:
-      return undefined;
-  }
+  return message.action.direction === -1 ? 'back' : 'step';
 }
 
 /*

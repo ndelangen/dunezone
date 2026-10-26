@@ -42,17 +42,6 @@ const items = (snapshot: GameSnapshot) =>
   snapshot.table.pieces.flatMap((piece) => piece.items.map((item) => item.id)).sort();
 
 describe('shared phase progression', () => {
-  test('refuses a turn change, so the turn moves only through the phases (#1683)', () => {
-    const initial = { ...initialSnapshot(), phase: TABLE_PHASES.length + 3 };
-    const room = new Room(initial, seated);
-    for (const turn of [1, 2, 3, 25]) {
-      expect(() => room.command(bob, { kind: 'turn', turn }, 0, Date.now() + PHASE_CHANGE_COOLDOWN_MS)).toThrow(
-        'The turn changes only by moving through the phases.'
-      );
-    }
-    expect(() => room.command(spectator, { kind: 'turn', turn: 1 }, 0)).toThrow('Spectators');
-    expect(room.snapshot).toMatchObject(initial);
-  });
   test('accepts old forward commands and steps across turn boundaries without replaying tabletop actions', () => {
     const room = new Room(initialSnapshot(), seated);
     const command = clientMessageSchema.parse({

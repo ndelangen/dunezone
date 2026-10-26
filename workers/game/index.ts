@@ -6,10 +6,7 @@ import { DurableObject } from 'cloudflare:workers';
 import { api } from '../../convex/_generated/api';
 import { HOMEPAGE_SOCKET_PATH } from '../../src/shared/homepage/protocol';
 import {
-  PLAY_AUTH_LEASE_MS,
   PLAY_AUTH_RECOVERY_MS,
-  PLAY_AUTH_RENEWAL_MS,
-  PLAY_AUTHORIZATION_BATCH_SIZE,
   PLAY_CONFIRMATION_RECOVERY_MS,
   PLAY_CONFIRMATION_RETRY_MS,
   PLAY_PENDING_TIMEOUT_MS,
@@ -17,7 +14,6 @@ import {
   playConfirmationSchema,
   playProvisioningValidationSchema,
   playProvisionRequestSchema,
-  playReconcileAccountsResultSchema,
   playSeatLimitResultSchema,
   playSessionCutoffRequestSchema,
   provisionPlaceholderId,
@@ -44,24 +40,21 @@ import type {
 } from '../../src/shared/play/protocol';
 import {
   ADMISSION_REFUSED_CLOSE_CODE,
-  ADMISSION_UNAVAILABLE_CLOSE_CODE,
   KEEPALIVE_PING,
   KEEPALIVE_PONG,
+  PASS_EXPIRED_CLOSE_CODE,
   RATE_LIMITED_CLOSE_CODE,
   TABLE_PING_INTERVAL_MS,
-  TICKET_EXPIRED_CLOSE_CODE,
   clientMessageSchema,
 } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { playRetireFixtureRequestSchema } from '../../src/shared/play/retire';
 import { rosterSeat, SPECTATOR_SEAT } from '../../src/shared/play/schema';
-import { playRedeemTicketOutcomeSchema } from '../../src/shared/play/seatLimit';
 import { setupReadyRequired, setupStep } from '../../src/shared/play/setup';
 import type { SetupState } from '../../src/shared/play/setup';
 import { SPECTATOR_COLOR } from './actors';
 import { handleAlertWebhook } from './alerts';
 import type { AlertEnv } from './alerts';
-import { answersEachOnce, AuthorizationWatch, ConvexUnavailable, gameHttpClient } from './authorization';
 import { GameCatalogue } from './catalogue';
 import { RoomDelivery } from './delivery';
 import type { AdmissionRefusal } from './diagnostics';
@@ -69,6 +62,7 @@ import { GameDiagnostics } from './diagnostics';
 import type { SetAsideJudgement } from './drafting';
 import { FIXTURE_TREACHERY_DECK, hostedFixturePlan } from './fixture';
 import type { FixturePlan } from './fixture';
+import { gameHttpClient } from './gameHttpClient';
 import { isLocalIsolatedRuntime } from './localRuntime';
 import { forwardPrivacyRequest } from './privacyRequests';
 import { CarryHistoryExhausted } from './room';
@@ -91,14 +85,12 @@ type Connection = {
   profileSlug?: string | null;
   /* Whether the player already held the most seats one player may when this connection was admitted. */
   seatLimitReached?: boolean;
-  registrationId?: string;
-  /* The seat pass this connection entered with, or its latest renewal; a connection holds a pass or a ticket registration, never both. */
+  /* The seat pass this connection entered with, or its latest renewal. */
   pass?: HeldPass;
   /* The expiry of the pass this connection was last told had run out. */
   expiryAnnounced?: number;
   /* The connection the same page held before it reconnected; it is closed once this one is admitted. */
   replaces?: string;
-  authorizationRound?: number;
   sessionId?: string;
   announced: 'pending' | 'authorized' | 'suspended';
   /* Counts the `suspended` frames the room sent. The page discards its unanswered requests on each one, so a message that arrived before the latest is dropped. */
@@ -114,11 +106,6 @@ type Connection = {
   commandTokens: number;
   refilledAt: number;
 };
-type TicketAdmission = Extract<ReturnType<typeof playRedeemTicketOutcomeSchema.parse>, { ok: true }>;
-
-/** A ticket that lapsed or was already redeemed. The socket closes without a refusal, so the browser asks for a new ticket. */
-class ExpiredTicket extends GameRejection {}
-
 const json = (body: unknown, status = 200) => Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
 const refused = () => json({ error: 'Request refused.' }, 403);
 /* Above a steady load cell's 720 saved commands, so a cell's metrics request still finds its first. */
@@ -239,14 +226,6 @@ async function readLimitedBody(body: ReadableStream<Uint8Array>): Promise<string
 }
 
 /** A promise the room resolves by hand, once, for handlers that wait on an event. */
-function latch() {
-  let release = () => {};
-  const released = new Promise<void>((resolve) => {
-    release = resolve;
-  });
-  return { released, release };
-}
-
 export class GameRoom extends DurableObject<GameEnv> {
   private assigning = false;
   private draftChangedDuringAttempt = false;
@@ -263,25 +242,9 @@ export class GameRoom extends DurableObject<GameEnv> {
   private readonly connections = new Map<WebSocket, Connection>();
   /* The conversation summaries each socket last received, so a snapshot update that left them alone sends none. */
   private readonly conversationsSent = new WeakMap<WebSocket, string>();
-  private authorization: AuthorizationWatch | undefined;
   private readonly delivery = new RoomDelivery();
   private activityTimer: ReturnType<typeof setTimeout> | undefined;
   private sweepTimer: ReturnType<typeof setInterval> | undefined;
-  private reconcilePromise: Promise<void> | undefined;
-  private reconciled = false;
-  /* Whether this room instance has reconciled its accounts once since it started, as the first pass admission asks. */
-  private sweptAccounts = false;
-  private reconcileUntil = 0;
-  private nextReconcileAt = 0;
-  private reconcileFailures = 0;
-  private reconcileUnavailable = false;
-  private reconcileEpoch = 0;
-  /*
-   * Open from a watch denial until the account reconciliation started after it settles.
-   * The missing lease already holds back every game frame and command meanwhile.
-   * A connection whose own grant stands is held rather than suspended: it is not told, it keeps its carry and pointer, and its messages wait here.
-   */
-  private fence: ReturnType<typeof latch> | undefined;
   private motionReceived = 0;
   private motionForwarded = 0;
   private motionDropped = 0;
@@ -611,7 +574,7 @@ export class GameRoom extends DurableObject<GameEnv> {
         for (const socket of this.connections.keys()) {
           this.disconnect(socket, false);
         }
-        await this.closeAuthorization();
+        this.stopTimers();
       }
       this.closed = true;
       this.retired = true;
@@ -648,7 +611,6 @@ export class GameRoom extends DurableObject<GameEnv> {
       if (args.gameId !== metadata.gameId || !credentialsMatch(args.secret, metadata.secret)) {
         return refused();
       }
-      this.reconcileEpoch++;
       this.deleteActor(args.userId, args.eventId);
       const raw: unknown = await this.convex().mutation(api.playAdmission.ackAccountDeletion, {
         gameId: metadata.gameId,
@@ -848,110 +810,6 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
   }
 
-  private async reconcileAccounts(force = false) {
-    if (this.hasAccountLease() && !force) {
-      return;
-    }
-    if (this.reconcilePromise) {
-      return this.reconcilePromise;
-    }
-    const startedAt = Date.now();
-    this.reconcilePromise = this.reconcileDirectory(this.metadata!);
-    try {
-      await this.reconcilePromise;
-      this.reconcileFailures = 0;
-      this.reconcileUnavailable = false;
-      this.diagnostics.recovered('account-reconciliation');
-    } catch (error) {
-      this.diagnostics.report('account-reconciliation', error, { durationMs: Date.now() - startedAt });
-      this.reconcileUnavailable = error instanceof ConvexUnavailable;
-      this.reconciled = false;
-      this.reconcileUntil = 0;
-      /* A failed reconciliation retries with backoff; the renewal cadence is too slow to be the recovery path. */
-      this.nextReconcileAt =
-        Date.now() + Math.min(PLAY_AUTH_RENEWAL_MS, PLAY_AUTH_RECOVERY_MS * 2 ** this.reconcileFailures);
-      this.reconcileFailures++;
-      this.authorizationChanged();
-      throw error;
-    } finally {
-      this.reconcilePromise = undefined;
-    }
-  }
-
-  private hasAccountLease() {
-    return this.reconciled && Date.now() < this.reconcileUntil;
-  }
-
-  /*
-   * Passes over every retained account until one pass ran with no denial or deletion landing during it; only that pass restores the lease.
-   * A stale pass is followed at once by the next, so whoever waits on the reconciliation, an admission included, gets a current answer.
-   */
-  private async reconcileDirectory(metadata: Metadata) {
-    while (true) {
-      const epoch = this.reconcileEpoch;
-      const requestStartedAt = Date.now();
-      this.nextReconcileAt = requestStartedAt + PLAY_AUTH_RENEWAL_MS;
-      let cursor = '';
-      while (true) {
-        const actors = this.session.actorBatch(cursor);
-        if (!actors.length) {
-          break;
-        }
-        const accounts = await this.accountBatch(
-          metadata,
-          actors.map((actor) => actor.user_id)
-        );
-        this.applyAccountReconciliation(accounts);
-        cursor = actors.at(-1)!.user_id;
-      }
-      if (epoch === this.reconcileEpoch) {
-        this.reconciled = true;
-        this.reconcileUntil = requestStartedAt + PLAY_AUTH_LEASE_MS;
-        return;
-      }
-    }
-  }
-
-  private applyAccountReconciliation(
-    accounts: Extract<ReturnType<typeof playReconcileAccountsResultSchema.parse>, { ok: true }>['accounts']
-  ) {
-    for (const account of accounts) {
-      if (account.state !== 'active') {
-        this.deleteActor(account.userId);
-      }
-    }
-  }
-
-  private async accountBatch(metadata: Metadata, userIds: string[]) {
-    const raw: unknown = await this.convex().query(api.playAdmission.reconcileAccounts, {
-      gameId: metadata.gameId,
-      secret: metadata.secret,
-      userIds,
-    });
-    const result = playReconcileAccountsResultSchema.parse(raw);
-    if (!result.ok || !answersEachOnce(result.accounts, userIds, (account) => account.userId)) {
-      throw new Error('Authorization unavailable.');
-    }
-    return result.accounts;
-  }
-
-  private async redeemAdmission(ticket: string): Promise<TicketAdmission> {
-    const metadata = this.metadata!;
-    const raw: unknown = await this.convex().mutation(api.playAdmission.redeemTicket, {
-      gameId: metadata.gameId,
-      secret: metadata.secret,
-      ticket,
-    });
-    const result = playRedeemTicketOutcomeSchema.parse(raw);
-    if (!result.ok && result.reason === 'expired') {
-      throw new ExpiredTicket('Admission ticket expired.');
-    }
-    if (!result.ok || result.authExpiresAt <= Date.now()) {
-      throw new GameRejection('Admission refused.');
-    }
-    return result;
-  }
-
   /** Whether any admitted connection of this user reported them at the seat limit; a user with no connection here is not. */
   private atSeatLimit(userId: string) {
     for (const connection of this.connections.values()) {
@@ -964,47 +822,6 @@ export class GameRoom extends DurableObject<GameEnv> {
 
   private pendingConnection(socket: WebSocket, connection: Connection) {
     return this.connections.get(socket) === connection && Date.now() < connection.openedAt + PLAY_PENDING_TIMEOUT_MS;
-  }
-
-  private registeredSessions() {
-    return new Set(
-      [...this.connections.values()].flatMap((entry) => (entry.registrationId ? [entry.registrationId] : []))
-    );
-  }
-
-  private canRegister(registrationId: string) {
-    const registrations = this.registeredSessions();
-    return registrations.has(registrationId) || registrations.size < PLAY_AUTHORIZATION_BATCH_SIZE;
-  }
-
-  private registerConnection(connection: Connection, result: TicketAdmission) {
-    connection.viewer = {
-      connectionId: connection.connectionId,
-      userId: result.userId,
-      viewerSeat: SPECTATOR_SEAT,
-      displayName: result.displayName.slice(0, 160),
-      color: SPECTATOR_COLOR,
-    };
-    /* Absent means the directory did not say; null means no picture. Only an answer updates the stored one. */
-    connection.avatarUrl = result.avatarUrl;
-    connection.profileSlug = result.profileSlug;
-    /* Absent means a Convex deployment from before the seat limit, which reads as not at it. */
-    connection.seatLimitReached = result.seatLimitReached === true;
-    connection.registrationId = result.registrationId;
-    connection.sessionId = result.sessionId;
-    const metadata = this.metadata!;
-    this.authorization ??= new AuthorizationWatch(
-      this.env.CONVEX_URL,
-      { gameId: metadata.gameId, secret: metadata.secret },
-      () => this.authorizationChanged(),
-      this.diagnostics,
-      {},
-      this.observeConvex
-    );
-    connection.authorizationRound = this.authorization.add(result.registrationId, {
-      userId: result.userId,
-      sessionId: result.sessionId,
-    });
   }
 
   private canAdmit(socket: WebSocket, connection: Connection, request: Extract<ClientMessage, { type: 'admit' }>) {
@@ -1028,47 +845,12 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
     connection.admitting = true;
     connection.replaces = request.replaces;
-    if (request.pass !== undefined) {
-      await this.admitWithPass(socket, connection, request.pass);
-      return;
-    }
-    /* A reconciliation that just failed waits out its backoff; a browser retrying meanwhile must not reach Convex ahead of it. */
-    if (this.reconciliationBackingOff()) {
-      this.closeUnavailable(socket);
-      return;
-    }
-    try {
-      const result = await this.redeemAdmission(request.ticket!);
-      try {
-        await this.reconcileAccounts();
-      } catch (error) {
-        /* The reconciliation reported its own failure. */
-        this.failAdmission(socket, error, false);
-        return;
-      }
-      /* An admission slower than the pending window is the one the sweep times out: the browser retries with a new ticket. */
-      if (!this.pendingConnection(socket, connection)) {
-        this.expirePending(socket);
-        return;
-      }
-      if (!this.reconciled) {
-        this.refuseAdmission(socket, 'unreconciled');
-        return;
-      }
-      if (!this.canRegister(result.registrationId)) {
-        this.refuseAdmission(socket, 'capacity');
-        return;
-      }
-      this.registerConnection(connection, result);
-      this.authorizationChanged();
-    } catch (error) {
-      this.failAdmission(socket, error, true);
-    }
+    await this.admitWithPass(socket, connection, request.pass);
   }
 
   /*
    * A pass is checked by the room alone: its signature against the game's secret, its deadline against the room's clock, and its session against the cutoffs Convex pushed.
-   * An expired pass closes like an expired ticket, so the page fetches a fresh one and reconnects.
+   * An expired pass closes without a refusal, so the page fetches a fresh one and reconnects.
    */
   private async admitWithPass(socket: WebSocket, connection: Connection, raw: string) {
     const metadata = this.metadata!;
@@ -1080,7 +862,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (!checked.ok) {
       if (checked.reason === 'expired') {
         this.disconnect(socket);
-        socket.close(TICKET_EXPIRED_CLOSE_CODE, 'Seat pass expired.');
+        socket.close(PASS_EXPIRED_CLOSE_CODE, 'Seat pass expired.');
         return;
       }
       this.refuseAdmission(socket, 'pass');
@@ -1101,25 +883,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     /* Unknown reads as at the limit, so a seat request waits for the answer rather than slipping past it. */
     connection.seatLimitReached = true;
     void this.readSeatLimit(connection);
-    this.sweepAccountsOnce();
     this.authorizationChanged();
-  }
-
-  /*
-   * A room from before seat passes can still hold an account deleted while no routing row reached it, which only a ticket admission's reconciliation used to remove.
-   * Pass admissions never wait on it: the first one after each start reconciles in the background, and a failure leaves the next one to try again.
-   */
-  private sweepAccountsOnce() {
-    if (this.sweptAccounts) {
-      return;
-    }
-    this.sweptAccounts = true;
-    void this.reconcileAccounts().then(
-      () => this.authorizationChanged(),
-      () => {
-        this.sweptAccounts = false;
-      }
-    );
   }
 
   /** A fresher pass for an admitted connection: it must name the same game, account and actor, and may arrive after the old one expired. */
@@ -1148,7 +912,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     this.authorizationChanged();
   }
 
-  /* Asked once per pass admission, as a ticket's redemption answered it; a failed read retries a few times and otherwise keeps the connection at the limit. */
+  /* Asked once per admission; a failed read retries a few times and otherwise keeps the connection at the limit. */
   private async readSeatLimit(connection: Connection, attempt = 0) {
     const metadata = this.metadata!;
     try {
@@ -1170,56 +934,18 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
   }
 
-  private reconciliationBackingOff() {
-    return (
-      !this.hasAccountLease() &&
-      !this.reconcilePromise &&
-      this.reconcileUnavailable &&
-      this.reconcileFailures > 0 &&
-      Date.now() < this.nextReconcileAt
-    );
-  }
-
-  /* Only Convex failing to answer leaves the login intact; a refusal, or an answer this Worker cannot use, denies it. */
-  private failAdmission(socket: WebSocket, error: unknown, report: boolean) {
-    if (error instanceof ExpiredTicket) {
-      this.disconnect(socket);
-      socket.close(TICKET_EXPIRED_CLOSE_CODE, error.message);
-      return;
-    }
-    if (report && !(error instanceof GameRejection)) {
-      this.diagnostics.report('admission', error);
-    }
-    if (error instanceof ConvexUnavailable) {
-      this.closeUnavailable(socket);
-      return;
-    }
-    this.refuseAdmission(socket, error instanceof GameRejection ? 'ticket' : 'unusable-answer');
-  }
-
   private refuseAdmission(socket: WebSocket, reason: AdmissionRefusal) {
     this.diagnostics.refused(reason);
     this.deny(socket);
   }
 
-  /* Nothing was refused, so the browser asks for a new ticket and retries after its backoff. */
-  private closeUnavailable(socket: WebSocket) {
-    this.disconnect(socket);
-    socket.close(ADMISSION_UNAVAILABLE_CLOSE_CODE, 'Admission unavailable.');
-  }
-
-  /* A pass connection answers for itself; a ticket connection also needs the room's account lease. */
+  /** Whether the connection's pass stands and, once admitted, it still holds the seat it was given. */
   private authorized(socket: WebSocket): boolean {
-    return (this.connections.get(socket)?.pass !== undefined || this.hasAccountLease()) && this.granted(socket);
-  }
-
-  /** The connection's own admission: its watch grant and, once admitted, its seat. The room's account lease is checked apart. */
-  private granted(socket: WebSocket): boolean {
     const connection = this.connections.get(socket);
     if (!connection?.viewer) {
       return false;
     }
-    const allowed = this.grantStanding(connection);
+    const allowed = connection.pass !== undefined && this.seatPasses().current(connection.pass);
     if (allowed && connection.everAuthorized) {
       const seat = this.session.seatFor(connection.viewer.userId);
       if (!seat || seat !== connection.viewer.viewerSeat) {
@@ -1227,19 +953,6 @@ export class GameRoom extends DurableObject<GameEnv> {
       }
     }
     return allowed;
-  }
-
-  private grantStanding(connection: Connection) {
-    if (connection.pass) {
-      return this.seatPasses().current(connection.pass);
-    }
-    if (!connection.registrationId || connection.authorizationRound === undefined) {
-      return false;
-    }
-    return (
-      this.authorization?.status(connection.registrationId, { minimumRound: connection.authorizationRound }) ===
-      'authorized'
-    );
   }
 
   /** Settles seat changes and released carries before any connection receives the resulting state. */
@@ -1258,51 +971,28 @@ export class GameRoom extends DurableObject<GameEnv> {
     return this.session.revision !== revision;
   }
 
-  /** The fence an admitted connection waits behind while its own grant stands, if one is open. */
-  private fenceFor(socket: WebSocket, connection: Connection) {
-    return connection.announced === 'authorized' && this.granted(socket) ? this.fence : undefined;
-  }
-
-  /** Lifts the fence once its reconciliation restored the lease, failed or outlasted the lease, and reports whether held connections resume. */
-  private settleFence() {
-    const fence = this.fence;
-    if (!fence || (!this.reconciled && Date.now() < this.reconcileUntil)) {
-      return false;
-    }
-    this.fence = undefined;
-    fence.release();
-    return this.hasAccountLease();
-  }
-
   private authorizationChanged() {
-    const resumed = this.settleFence();
     const revision = this.session.revision;
     this.reconcileViewers();
     const admitted = new Set<WebSocket>();
     let activityChanged = false;
-    let denied = false;
     for (const [socket, connection] of this.connections) {
       const change = this.updateConnectionAuthorization(socket, connection);
       if (change === 'admitted') {
         admitted.add(socket);
       }
-      denied ||= change === 'denied';
-      activityChanged ||= change === 'activity' || change === 'denied';
-    }
-    /* One push can deny several connections, such as every tab of a signed-out session; one reconciliation started after all of them covers them all. */
-    if (denied) {
-      this.refreshAccounts();
+      activityChanged ||= change === 'activity';
     }
     this.reconcileViewers();
-    if (admitted.size || resumed) {
-      this.sendAfterFence(admitted);
+    if (admitted.size) {
+      this.sendAfterAdmission(admitted);
     } else if (activityChanged || this.session.revision !== revision) {
       this.broadcastActivity();
     }
   }
 
-  /** A held connection missed every frame of the fence; its update is computed against the last frame it received. */
-  private sendAfterFence(admitted: ReadonlySet<WebSocket>) {
+  /** A newly admitted connection receives a full view, and every other one the update its seating made. */
+  private sendAfterAdmission(admitted: ReadonlySet<WebSocket>) {
     const frameFor = this.framePass();
     for (const [socket, connection] of this.connections) {
       if (!connection.viewer || !this.authorized(socket)) {
@@ -1317,32 +1007,12 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
   }
 
+  /* A revoked pass ends the connection; an expired one holds it until the page sends a fresh pass. */
   private updateConnectionAuthorization(socket: WebSocket, connection: Connection) {
-    if (connection.pass) {
-      return this.updatePassAuthorization(socket, connection, connection.pass);
-    }
-    if (!connection.registrationId) {
+    const pass = connection.pass;
+    if (!pass) {
       return;
     }
-    const status = this.authorization?.status(connection.registrationId) ?? 'suspended';
-    if (status === 'denied') {
-      this.reconciled = false;
-      this.reconcileEpoch++;
-      this.fence ??= latch();
-      this.deny(socket, false);
-      return 'denied';
-    }
-    if (this.authorized(socket)) {
-      return connection.announced === 'authorized' ? undefined : this.announceAuthorized(socket, connection);
-    }
-    if (this.fenceFor(socket, connection)) {
-      return;
-    }
-    return this.suspend(socket, connection, 'suspended');
-  }
-
-  /* A revoked pass ends the connection; an expired one holds it until the page sends a fresh pass. No fence: a pass revokes only itself. */
-  private updatePassAuthorization(socket: WebSocket, connection: Connection, pass: HeldPass) {
     if (this.seatPasses().revoked(pass)) {
       this.deny(socket, false);
       return 'activity';
@@ -1415,12 +1085,6 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
   }
 
-  private refreshAccounts(force = false) {
-    void this.reconcileAccounts(force)
-      .then(() => this.authorizationChanged())
-      .catch(() => undefined);
-  }
-
   override async webSocketMessage(socket: WebSocket, input: string | ArrayBuffer) {
     if (this.closed) {
       socket.close(1000, 'This table is closed.');
@@ -1450,7 +1114,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.broadcastActivity();
     }
     const suspensions = connection.suspensions;
-    if (!(await this.outlastFence(socket, connection, suspensions))) {
+    if (!this.mayAct(socket, connection, suspensions)) {
       this.authorizationChanged();
       return;
     }
@@ -1465,8 +1129,6 @@ export class GameRoom extends DurableObject<GameEnv> {
         this.dispatch(socket, connection, message);
       }
     } catch (error) {
-      /* A capture that failed while a fence held its connection is refused once the fence lifts. */
-      await this.outlastFence(socket, connection, suspensions);
       this.rejectMessage(socket, connection, message, error);
       if (error instanceof CarryHistoryExhausted) {
         /* A connection that used every carry ID the room remembers can pick nothing up again, so the browser is sent to reconnect, as after a restart. */
@@ -1548,18 +1210,10 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   /*
-   * A held connection's message, and a catalogue capture it started, wait here for the fence to lift, then meet the same check as any other.
-   * Resolves to whether the connection may still act on a message that arrived after `suspensions` pauses.
+   * Whether the connection may still act on a message that arrived after `suspensions` pauses, checked again after any catalogue read.
    * A pause since then drops the message, even when the connection was admitted again, because the page discarded its unanswered requests on the pause.
    */
-  private async outlastFence(socket: WebSocket, connection: Connection, suspensions: number) {
-    for (
-      let fence = this.fenceFor(socket, connection);
-      fence && !this.authorized(socket);
-      fence = this.fenceFor(socket, connection)
-    ) {
-      await fence.released;
-    }
+  private mayAct(socket: WebSocket, connection: Connection, suspensions: number) {
     return this.authorized(socket) && connection.suspensions === suspensions;
   }
 
@@ -1588,14 +1242,14 @@ export class GameRoom extends DurableObject<GameEnv> {
     const catalogue = this.catalogue();
     try {
       const contents = this.session.projectContents(await catalogue.capture(message.selection));
-      if (await this.outlastFence(socket, connection, suspensions)) {
+      if (this.mayAct(socket, connection, suspensions)) {
         this.send(socket, { type: 'catalogue', requestId: message.requestId, contents });
       }
     } catch (error) {
       if (!(error instanceof GameRejection)) {
         throw error;
       }
-      if (await this.outlastFence(socket, connection, suspensions)) {
+      if (this.mayAct(socket, connection, suspensions)) {
         this.send(socket, { type: 'catalogue', requestId: message.requestId, contents: null, error: error.message });
       }
     }
@@ -1615,8 +1269,8 @@ export class GameRoom extends DurableObject<GameEnv> {
       return;
     }
     const contents = await this.catalogue().capture(message.action);
-    /* Catalogue I/O yields, so the request waits out a fence like a new message. Commit rechecks authorization, the roster and the receipt afterward. */
-    if (await this.outlastFence(socket, connection, suspensions)) {
+    /* Catalogue I/O yields, so the request is checked again like a new message. Commit rechecks authorization, the roster and the receipt afterward. */
+    if (this.mayAct(socket, connection, suspensions)) {
       this.commit(socket, connection, message, contents);
     }
   }
@@ -2440,11 +2094,8 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
     this.connections.delete(socket);
     this.session.disconnect(connection.connectionId);
-    if (connection.registrationId && !this.registeredSessions().has(connection.registrationId)) {
-      this.authorization?.remove(connection.registrationId);
-    }
     if (!this.connections.size) {
-      void this.closeAuthorization();
+      this.stopTimers();
       this.flushSummary('empty');
     }
     if (broadcast) {
@@ -2453,30 +2104,21 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
   }
 
-  private closeAuthorization() {
+  private stopTimers() {
     this.clearActivityTimer();
-    const authorization = this.authorization;
-    this.authorization = undefined;
-    const closed = authorization?.close().catch((error) => this.diagnostics.report('authorization-close', error));
     if (this.sweepTimer) {
       clearInterval(this.sweepTimer);
     }
     this.sweepTimer = undefined;
     this.sweptAt = undefined;
-    this.reconciled = false;
-    /* No connection is left to hold; a message still waiting finds its socket gone. */
-    this.fence?.release();
-    this.fence = undefined;
-    return closed;
   }
 
-  /** Stop background authorization before disconnecting a room for teardown. */
-  protected async stopConnections() {
-    const closed = this.closeAuthorization();
+  /** Stops the room's timers before disconnecting it for teardown. */
+  protected stopConnections() {
+    this.stopTimers();
     for (const socket of this.ctx.getWebSockets()) {
       this.webSocketClose(socket);
     }
-    await Promise.allSettled([closed, this.reconcilePromise]);
   }
 
   private ensureSweep() {
@@ -2545,13 +2187,6 @@ export class GameRoom extends DurableObject<GameEnv> {
     this.advanceDeadlines();
     this.expirePendingConnections();
     this.authorizationChanged();
-    /* Only ticket admissions lean on the account lease; a room whose players all hold passes never asks Convex about them. */
-    const hasTicketViewers = [...this.connections.values()].some(
-      (connection) => connection.viewer && connection.pass === undefined
-    );
-    if (Date.now() >= this.nextReconcileAt && hasTicketViewers) {
-      this.refreshAccounts(true);
-    }
     this.sweepActivity();
   }
 

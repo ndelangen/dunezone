@@ -11,8 +11,6 @@ const CREATOR = { userId: 'user-a', displayName: 'Synthetic A' };
 /** A provisioned real game for three players with a one-card treachery deck and a five-card spice deck, created by synthetic player A. */
 export async function realGame() {
   const peer: NativePeer = await createPeer();
-  peer.watchMode = 'allow';
-  peer.expiresAt = () => Date.now() + 600_000;
   peer.game = { rulesetId: 'ruleset-one', minimumPlayers: 3, creator: CREATOR };
   const card = cardPage('card-one');
   const [treachery, spice] = [deckPage('treachery-deck', [card]), deckPage('spice-deck', [card], 5)];

@@ -5,75 +5,19 @@ import type { Validator } from 'convex/values';
 import type { z } from 'zod';
 
 import {
-  PLAY_TICKET_TTL_MS,
   playAckAccountDeletionRequestSchema,
-  playIssueTicketRequestSchema,
-  playReconcileAccountsRequestSchema,
-  playReconcileAccountsResultSchema,
-  playRedeemTicketRequestSchema,
   playSeatLimitRequestSchema,
   playSeatLimitResultSchema,
   playSeatPassRequestSchema,
   playSeatPassResultSchema,
-  playTicketResultSchema,
-  playWatchAuthorizationsRequestSchema,
-  playWatchAuthorizationsResultSchema,
-  isProvisionPlaceholderId,
 } from '../src/shared/play/admission';
-import { playRedeemTicketOutcomeSchema } from '../src/shared/play/seatLimit';
-import { internal } from './_generated/api';
-import type { Doc, Id } from './_generated/dataModel';
 import type { MutationCtx, QueryCtx } from './_generated/server';
-import { internalMutation, mutation, publicQuery } from './functions';
-import { canonicalAccount, gameActorForAccount } from './lib/accountIdentity';
-import { accountStateOf } from './lib/accountLifecycle';
-import {
-  admitsPlayers,
-  authenticatedPlayRequest,
-  livePlaySession,
-  playCredential,
-  playCredentialDigest,
-  playSessionAuthorization,
-} from './lib/playAuthorization';
-import { playerSummary } from './lib/playerSummary';
-import { playRateLimiter, playTicketQuota } from './lib/playRateLimits';
+import { mutation, publicQuery } from './functions';
+import { canonicalAccount } from './lib/accountIdentity';
+import { admitsPlayers, authenticatedPlayRequest, livePlaySession } from './lib/playAuthorization';
+import { playPassQuota } from './lib/playRateLimits';
 import { enrol, enrolment, seatPassFor } from './lib/playSeatPass';
 import { atPlaySeatLimit } from './lib/playSeats';
-import { isSyntheticBackend } from './lib/playSynthetic';
-
-export const issueTicket = mutation({
-  args: zodToConvex(playIssueTicketRequestSchema),
-  returns: zodToConvex(playTicketResultSchema),
-  handler: async (ctx, args): Promise<ReturnType<typeof playTicketResultSchema.parse>> => {
-    const session = await livePlaySession(ctx);
-    if (!session) {
-      return { ok: false as const, reason: 'not_authorized' as const };
-    }
-    const limited = await playTicketQuota(ctx, session.userId);
-    if (limited) {
-      return limited;
-    }
-    const request = playIssueTicketRequestSchema.safeParse(args);
-    const gameId = request.success ? ctx.db.normalizeId('play_games', request.data.gameId) : null;
-    const game = gameId ? await ctx.db.get(gameId) : null;
-    if (game?.state !== 'ready' || !admitsPlayers(game)) {
-      return { ok: false as const, reason: 'unavailable' as const };
-    }
-    const ticket = playCredential();
-    const now = Date.now();
-    const expiresAt = Math.min(now + PLAY_TICKET_TTL_MS, session.authExpiresAt);
-    const ticketId = await ctx.db.insert('play_tickets', {
-      digest: await playCredentialDigest(ticket),
-      game_id: game._id,
-      user_id: await gameActorForAccount(ctx, game._id, session.userId),
-      session_id: session.sessionId,
-      expires_at: expiresAt,
-      consumed: false,
-    });
-    await ctx.scheduler.runAt(expiresAt, internal.playAdmission.expireTicket, { ticketId });
-    return { ok: true as const, ticket, expiresInMs: expiresAt - now };
-  },
-});
 
 /** A mutation may read the clock, so its pass runs a full lifetime from now. */
 async function mutationPass(
@@ -85,7 +29,7 @@ async function mutationPass(
   if (!session) {
     return { ok: false as const, reason: 'not_authorized' as const };
   }
-  const limited = await playTicketQuota(ctx, session.userId);
+  const limited = await playPassQuota(ctx, session.userId);
   if (limited) {
     return limited;
   }
@@ -116,153 +60,7 @@ export const renewSeatPass = mutation({
   handler: async (ctx, args) => await mutationPass(ctx, args, false),
 });
 
-async function expirePlayRecord(ctx: MutationCtx, id: Id<'play_tickets'> | Id<'play_auth_registrations'>) {
-  const record = await ctx.db.get(id);
-  if (record && Date.now() >= record.expires_at) {
-    await ctx.db.delete(record._id);
-  }
-}
-
-export const expireTicket = internalMutation({
-  args: { ticketId: v.id('play_tickets') },
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    await expirePlayRecord(ctx, args.ticketId);
-    return null;
-  },
-});
-
-async function registerSession(ctx: MutationCtx, ticket: Doc<'play_tickets'>, expiresAt: number) {
-  const previous = await ctx.db
-    .query('play_auth_registrations')
-    .withIndex('by_game_id_session_id', (q) => q.eq('game_id', ticket.game_id).eq('session_id', ticket.session_id))
-    .unique();
-  if (previous) {
-    return previous._id;
-  }
-  const registrationId = await ctx.db.insert('play_auth_registrations', {
-    game_id: ticket.game_id,
-    user_id: ticket.user_id,
-    session_id: ticket.session_id,
-    expires_at: expiresAt,
-  });
-  await ctx.scheduler.runAt(expiresAt, internal.playAdmission.expireRegistration, { registrationId });
-  return registrationId;
-}
-
-async function retainAccountRouting(ctx: MutationCtx, ticket: Doc<'play_tickets'>) {
-  const user = await canonicalAccount(ctx, ticket.user_id);
-  if (!user) {
-    throw new Error('Account not found');
-  }
-  const previous = await ctx.db
-    .query('play_game_accounts')
-    .withIndex('by_game_id_user_id', (q) => q.eq('game_id', ticket.game_id).eq('user_id', user._id))
-    .unique();
-  if (!previous) {
-    await ctx.db.insert('play_game_accounts', {
-      game_id: ticket.game_id,
-      user_id: user._id,
-      actor_user_ids: [ticket.user_id],
-    });
-  }
-}
-
-async function findRedeemableTicket(ctx: MutationCtx, gameId: Id<'play_games'>, value: string) {
-  const digest = await playCredentialDigest(value);
-  const ticket = await ctx.db
-    .query('play_tickets')
-    .withIndex('by_digest', (q) => q.eq('digest', digest))
-    .unique();
-  if (!ticket || ticket.game_id !== gameId) {
-    return null;
-  }
-  return ticket.consumed || Date.now() >= ticket.expires_at ? null : ticket;
-}
-
-async function consumeTicket(
-  ctx: MutationCtx,
-  ticket: Doc<'play_tickets'>,
-  authorization: Awaited<ReturnType<typeof playSessionAuthorization>>
-) {
-  await ctx.db.patch(ticket._id, { consumed: true });
-  const registrationId = await registerSession(ctx, ticket, authorization.sessionExpiresAt);
-  await retainAccountRouting(ctx, ticket);
-  const user = await canonicalAccount(ctx, ticket.user_id);
-  const profile = user
-    ? await ctx.db
-        .query('profiles')
-        .withIndex('by_user_id', (q) => q.eq('user_id', user._id))
-        .unique()
-    : null;
-  return {
-    ok: true as const,
-    registrationId,
-    userId: ticket.user_id,
-    sessionId: ticket.session_id,
-    authExpiresAt: authorization.authExpiresAt,
-    ...playerSummary(profile),
-    /*
-     * Read once per admission, so it is as fresh as the socket: a player who leaves a seat elsewhere reconnects to ask again.
-     * Requests pending in several games at once can each be approved, so a player can end up a few seats over the limit.
-     */
-    seatLimitReached: await atPlaySeatLimit(ctx, user!._id, ticket.game_id),
-  };
-}
-
-const refusedRedemption = { ok: false, reason: 'refused' } as const;
-
-export const redeemTicket = mutation({
-  args: zodToConvex(playRedeemTicketRequestSchema),
-  returns: zodToConvex(playRedeemTicketOutcomeSchema),
-  handler: async (ctx, input) => {
-    const request = await authenticatedPlayRequest(ctx, input, playRedeemTicketRequestSchema);
-    if (request?.game.state !== 'ready' || !admitsPlayers(request.game)) {
-      return refusedRedemption;
-    }
-    const { game, args } = request;
-    if (!(await playRateLimiter.limit(ctx, 'playRedeemPerGame', { key: game._id })).ok) {
-      return refusedRedemption;
-    }
-    const ticket = await findRedeemableTicket(ctx, game._id, args.ticket);
-    if (!ticket) {
-      return { ok: false as const, reason: 'expired' as const };
-    }
-    const authorization = await playSessionAuthorization(ctx, ticket.user_id, ticket.session_id);
-    if (!authorization.allowed || Date.now() >= authorization.authExpiresAt) {
-      return refusedRedemption;
-    }
-    return await consumeTicket(ctx, ticket, authorization);
-  },
-});
-
-export const expireRegistration = internalMutation({
-  args: { registrationId: v.id('play_auth_registrations') },
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    await expirePlayRecord(ctx, args.registrationId);
-    return null;
-  },
-});
-
-/** A registration on a game that admits no players answers as an unknown one, so the Worker denies it. */
-async function authorizationEntry(ctx: QueryCtx, game: Doc<'play_games'>, registrationId: string) {
-  const id = ctx.db.normalizeId('play_auth_registrations', registrationId);
-  const registration = id ? await ctx.db.get(id) : null;
-  if (!registration || registration.game_id !== game._id || !admitsPlayers(game)) {
-    return { registrationId, userId: null, sessionId: null, allowed: false, authExpiresAt: 0 };
-  }
-  const authorization = await playSessionAuthorization(ctx, registration.user_id, registration.session_id);
-  return {
-    registrationId,
-    userId: registration.user_id,
-    sessionId: registration.session_id,
-    allowed: authorization.allowed,
-    authExpiresAt: authorization.authExpiresAt,
-  };
-}
-
-type GameCredentials = Pick<ReturnType<typeof playWatchAuthorizationsRequestSchema.parse>, 'gameId' | 'secret'>;
+type GameCredentials = { gameId: string; secret: string };
 
 function readyGameQuery<Args extends GameCredentials, Result extends { ok: true }>(definition: {
   args: Validator<Args, 'required', string>;
@@ -285,94 +83,6 @@ function readyGameQuery<Args extends GameCredentials, Result extends { ok: true 
     },
   });
 }
-
-/** Each requested identity gets an answer. Bounds reject oversized input; they never truncate authorization. */
-export const watchAuthorizations = readyGameQuery({
-  args: zodToConvex(playWatchAuthorizationsRequestSchema),
-  returns: zodToConvex(playWatchAuthorizationsResultSchema),
-  schema: playWatchAuthorizationsRequestSchema,
-  handler: async (ctx, { game, args }) => ({
-    ok: true as const,
-    generation: args.generation,
-    entries: await Promise.all(args.registrationIds.map((id) => authorizationEntry(ctx, game, id))),
-  }),
-});
-
-function routedAccountState(routing: Doc<'play_game_accounts'>, user: Doc<'users'> | null) {
-  if (routing.deletion_operation_id || !user) {
-    return 'deleted' as const;
-  }
-  return playAccountState(user);
-}
-
-function playAccountState(user: Doc<'users'>) {
-  return accountStateOf(user) === 'merge_pending'
-    ? ('active' as const)
-    : accountStateOf(user) === 'deleted'
-      ? ('deleted' as const)
-      : accountStateOf(user) === 'deletion_pending'
-        ? ('deletion_pending' as const)
-        : ('active' as const);
-}
-
-async function accountEntry(ctx: QueryCtx, game: Doc<'play_games'>, userId: string) {
-  const gameId = game._id;
-  /*
-   * A synthetic backend vouches for the placeholders that took its provisioned games to Turn 1 (#1594).
-   * No other backend has any.
-   */
-  if (isProvisionPlaceholderId(userId) && isSyntheticBackend()) {
-    return { userId, state: 'active' as const, deletionOperationId: null };
-  }
-  const id = ctx.db.normalizeId('users', userId);
-  const user = id ? await canonicalAccount(ctx, id) : null;
-  const routing = user
-    ? await ctx.db
-        .query('play_game_accounts')
-        .withIndex('by_game_id_user_id', (q) => q.eq('game_id', gameId).eq('user_id', user._id))
-        .unique()
-    : null;
-  const sourceRouting =
-    id && (!routing || (id !== user?._id && !routing.actor_user_ids?.includes(id)))
-      ? await ctx.db
-          .query('play_game_accounts')
-          .withIndex('by_game_id_user_id', (q) => q.eq('game_id', gameId).eq('user_id', id))
-          .unique()
-      : null;
-  const effectiveRouting = sourceRouting ?? routing;
-  if (!effectiveRouting || !id || (!sourceRouting && id !== user?._id && !routing?.actor_user_ids?.includes(id))) {
-    /*
-     * The Worker seats the creator when it provisions the game, before any ticket of theirs creates routing,
-     * and a merge into an account already routed here leaves no row naming them until the transfer runs.
-     * Answering `unknown` for them would have the Worker unseat them at the next reconciliation.
-     * Deletion fan-out follows routing, so an unrouted creator learns of a deletion only at that reconciliation.
-     */
-    if (id && user && id === (game.creator_actor_id ?? game.creator_id)) {
-      return {
-        userId,
-        state: routing ? routedAccountState(routing, user) : playAccountState(user),
-        deletionOperationId: routing?.deletion_operation_id ?? user.account_deletion_operation_id ?? null,
-      };
-    }
-    return { userId, state: 'unknown' as const, deletionOperationId: null };
-  }
-  const deletionOperationId = effectiveRouting.deletion_operation_id ?? user?.account_deletion_operation_id ?? null;
-  return {
-    userId,
-    state: routedAccountState(effectiveRouting, user),
-    deletionOperationId,
-  };
-}
-
-export const reconcileAccounts = readyGameQuery({
-  args: zodToConvex(playReconcileAccountsRequestSchema),
-  returns: zodToConvex(playReconcileAccountsResultSchema),
-  schema: playReconcileAccountsRequestSchema,
-  handler: async (ctx, { game, args }) => ({
-    ok: true as const,
-    accounts: await Promise.all(args.userIds.map((id) => accountEntry(ctx, game, id))),
-  }),
-});
 
 async function acknowledgeDeletion(
   ctx: MutationCtx,

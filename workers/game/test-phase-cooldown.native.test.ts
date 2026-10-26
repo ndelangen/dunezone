@@ -21,7 +21,6 @@ describe("A synthetic backend's test phase cooldown", () => {
   let peer: NativePeer, runtime: NativeRuntime;
   beforeEach(async () => {
     peer = await createPeer();
-    peer.watchMode = 'allow';
   });
   afterEach(async () => {
     await runtime?.close();
@@ -38,7 +37,7 @@ describe("A synthetic backend's test phase cooldown", () => {
     expect((await provision(runtime)).status).toBe(403);
     peer.testPhaseCooldownMs = undefined;
     expect((await provision(runtime)).status).toBe(200);
-    const player = await admitPlayer(peer, runtime, 'a');
+    const player = await admitPlayer(runtime, 'a');
     await accepted(player, { kind: 'phase' as const });
     expect((await sendCommand(player, { kind: 'phase' as const })).reply).toMatchObject({
       type: 'rejected' as const,
@@ -50,14 +49,14 @@ describe("A synthetic backend's test phase cooldown", () => {
     runtime = await createRuntime(peer, 'game', LOCAL_ISOLATED);
     peer.testPhaseCooldownMs = 0;
     expect((await provision(runtime)).status).toBe(200);
-    let player = await admitPlayer(peer, runtime, 'a');
+    let player = await admitPlayer(runtime, 'a');
     for (const phase of [1, 2]) {
       const view = await accepted(player, { kind: 'phase' as const });
       expect(view.snapshot.phase).toBe(phase);
       expect(view.phaseCooldownMs).toBe(0);
     }
     await runtime.restart();
-    player = await admitPlayer(peer, runtime, 'a');
+    player = await admitPlayer(runtime, 'a');
     expect((await accepted(player, { kind: 'phase' as const })).snapshot.phase).toBe(3);
   });
 });
@@ -82,7 +81,7 @@ describe("The phase cooldown during a real game's setup", () => {
     ],
   ])('%s a second setup phase change inside the real cooldown', async (_, options, refusal) => {
     ({ peer, runtime } = await draftingRuntime([], undefined, options));
-    const [a, b] = await dealt(peer, runtime);
+    const [a, b] = await dealt(runtime);
     for (const player of [a, b]) {
       const view = await syncView(player);
       await accepted(player, {

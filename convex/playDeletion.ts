@@ -108,6 +108,31 @@ export const queueCreatorDeletion = internalMutation({
   },
 });
 
+/*
+ * Rooms once found a creator deleted before `queueCreatorDeletion` existed by reconciling their accounts, which seat-pass rooms no longer do.
+ * This walks every completed deletion and runs the creator fan-out for it again; the fan-out skips a game whose creator is already routed,
+ * so a second run, or a run with no such creator anywhere, queues nothing.
+ */
+export const requeueCreatorDeletions = internalMutation({
+  args: { cursor: v.union(v.string(), v.null()) },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const page = await ctx.db.query('account_deletion_operations').paginate({ cursor: args.cursor, numItems: 64 });
+    for (const operation of page.page) {
+      if (operation.state === 'completed') {
+        await ctx.scheduler.runAfter(0, internal.playDeletion.queueCreatorDeletion, {
+          operationId: operation._id,
+          cursor: null,
+        });
+      }
+    }
+    if (!page.isDone) {
+      await ctx.scheduler.runAfter(0, internal.playDeletion.requeueCreatorDeletions, { cursor: page.continueCursor });
+    }
+    return null;
+  },
+});
+
 function isDueDeletion(event: Doc<'play_account_deletions'>) {
   return event.state === 'pending' && Date.now() >= event.next_attempt_at;
 }

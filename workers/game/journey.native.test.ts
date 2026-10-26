@@ -46,7 +46,7 @@ describe('A real game from creation to continuation', { timeout: 240_000 }, () =
     ({ peer, runtime } = await draftingRuntime(extras));
     offset = 0;
   }
-  const admit = (suffix: string) => admitPlayer(peer, runtime, suffix);
+  const admit = (suffix: string) => admitPlayer(runtime, suffix);
   /** The rejection message a command earns, or null when it is accepted. */
   const rejection = async (connection: NativeConnection, action: PieceAction) => {
     const { reply } = await sendCommand(connection, action);

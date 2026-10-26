@@ -111,6 +111,7 @@ export default defineSchema({
     session_id: v.id('authSessions'),
     expires_at: v.number(),
   }).index('by_digest', ['digest']),
+  /** Retired with the ticket admission path: nothing writes these two tables, which stay declared until their remaining rows are confirmed gone and they are dropped. */
   play_tickets: defineTable({
     digest: v.string(),
     game_id: v.id('play_games'),
@@ -119,7 +120,6 @@ export default defineSchema({
     expires_at: v.number(),
     consumed: v.boolean(),
   }).index('by_digest', ['digest']),
-  /** One row per Auth session, not per socket. No seat or gameplay state lives here. */
   play_auth_registrations: defineTable({
     game_id: v.id('play_games'),
     user_id: v.id('users'),

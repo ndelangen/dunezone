@@ -8,7 +8,7 @@ import { api, internal } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
 import { insertPendingGame } from './lib/playProvisioningSchedule';
 
-/* A confirmed game the player created, before any ticket of theirs is redeemed. */
+/* A confirmed game the player created, before they open it. */
 async function createdGame() {
   const t = applicationTest();
   const { userId, sessionId } = await t.run(async (ctx) => {
@@ -53,20 +53,11 @@ async function createdGame() {
 
 async function fixture() {
   const created = await createdGame();
-  const { t, player, game } = created;
-  const issued = await player.mutation(api.playAdmission.issueTicket, { gameId: game._id });
-  if (!issued.ok) {
-    throw new Error('Issuance refused');
+  const enrolled = await created.player.mutation(api.playAdmission.enrolPlayer, { gameId: created.game._id });
+  if (!enrolled.ok) {
+    throw new Error('Enrolment refused');
   }
-  const admitted = await t.mutation(api.playAdmission.redeemTicket, {
-    gameId: game._id,
-    secret: game.secret,
-    ticket: issued.ticket,
-  });
-  if (!admitted.ok) {
-    throw new Error('Admission refused');
-  }
-  return { ...created, registrationId: admitted.registrationId };
+  return created;
 }
 
 async function startDeletion(subject: Awaited<ReturnType<typeof fixture>>) {
@@ -95,72 +86,7 @@ afterEach(() => {
 });
 
 describe('Play account deletion', () => {
-  test('a creator who has not entered yet keeps their seat through reconciliation until they delete their account', async () => {
-    const subject = await createdGame();
-    const reconcile = async () =>
-      await subject.t.query(api.playAdmission.reconcileAccounts, {
-        gameId: subject.game._id,
-        secret: subject.game.secret,
-        userIds: [subject.userId],
-      });
-    expect(await reconcile()).toEqual({
-      ok: true,
-      accounts: [{ userId: subject.userId, state: 'active', deletionOperationId: null }],
-    });
-    const { operationId } = await subject.player.mutation(api.accountDeletion.confirm, { replacementUserId: null });
-    expect(await reconcile()).toEqual({
-      ok: true,
-      accounts: [{ userId: subject.userId, state: 'deletion_pending', deletionOperationId: operationId }],
-    });
-  });
-
-  test('a creator merged away before entering still answers as the account they were merged into', async () => {
-    const subject = await createdGame();
-    const targetId = await subject.t.run(async (ctx) => {
-      const targetId = await ctx.db.insert('users', { account_state: 'active' });
-      await ctx.db.patch(subject.userId, { merged_into_user_id: targetId, account_state: 'deleted' });
-      await ctx.db.patch(subject.game._id, { creator_id: targetId, creator_actor_id: subject.userId });
-      return targetId;
-    });
-    expect(
-      await subject.t.query(api.playAdmission.reconcileAccounts, {
-        gameId: subject.game._id,
-        secret: subject.game.secret,
-        userIds: [subject.userId, targetId],
-      })
-    ).toEqual({
-      ok: true,
-      accounts: [
-        { userId: subject.userId, state: 'active', deletionOperationId: null },
-        { userId: targetId, state: 'unknown', deletionOperationId: null },
-      ],
-    });
-  });
-
-  test('confirmation suspends the registered session and supplies deletion reconciliation before notification delivery', async () => {
-    const subject = await fixture();
-    const { operationId } = await subject.player.mutation(api.accountDeletion.confirm, { replacementUserId: null });
-    expect(
-      await subject.t.query(api.playAdmission.watchAuthorizations, {
-        gameId: subject.game._id,
-        secret: subject.game.secret,
-        generation: 'deletion-test',
-        registrationIds: [subject.registrationId],
-      })
-    ).toMatchObject({ ok: true, entries: [{ allowed: false }] });
-    expect(
-      await subject.t.query(api.playAdmission.reconcileAccounts, {
-        gameId: subject.game._id,
-        secret: subject.game.secret,
-        userIds: [subject.userId],
-      })
-    ).toEqual({
-      ok: true,
-      accounts: [{ userId: subject.userId, state: 'deletion_pending', deletionOperationId: operationId }],
-    });
-  });
-
-  test('durable fan-out is idempotent, and recovery cannot resurrect historical game identity', async () => {
+  test('durable fan-out is idempotent', async () => {
     const subject = await fixture();
     const { event, operationId } = await startDeletion(subject);
     await subject.t.mutation(internal.playDeletion.queueAccountDeletion, {
@@ -168,17 +94,6 @@ describe('Play account deletion', () => {
       paginationOpts: { cursor: null, numItems: 32 },
     });
     expect(await subject.t.run(async (ctx) => await ctx.db.query('play_account_deletions').take(2))).toEqual([event]);
-    await subject.t.run(
-      async (ctx) =>
-        await ctx.db.patch(subject.userId, { account_state: 'active', account_deletion_operation_id: undefined })
-    );
-    expect(
-      await subject.t.query(api.playAdmission.reconcileAccounts, {
-        gameId: subject.game._id,
-        secret: subject.game.secret,
-        userIds: [subject.userId],
-      })
-    ).toEqual({ ok: true, accounts: [{ userId: subject.userId, state: 'deleted', deletionOperationId: operationId }] });
   });
 
   test('retains and retries lost deliveries until the exact game acknowledges its durable cleanup', async () => {
@@ -249,11 +164,8 @@ describe('Play account deletion', () => {
           creator_id: undefined,
         })
     );
-    const { event, operationId } = await startDeletion(subject);
+    const { event } = await startDeletion(subject);
     const credentials = { gameId: subject.game._id, secret: subject.game.secret };
-    expect(
-      await subject.t.query(api.playAdmission.reconcileAccounts, { ...credentials, userIds: [subject.userId] })
-    ).toEqual({ ok: true, accounts: [{ userId: subject.userId, state: 'deleted', deletionOperationId: operationId }] });
     await subject.t.mutation(api.playAdmission.ackAccountDeletion, { ...credentials, eventId: event._id });
     expect(await subject.t.run(async (ctx) => (await ctx.db.get(event._id))?.state)).toBe('acknowledged');
   });
@@ -349,27 +261,6 @@ describe('Play account deletion', () => {
     expect(fetch.mock.calls.filter(([url]) => String(url).endsWith('/retire'))).toEqual([]);
   });
 
-  test('server-only reconciliation cannot read unregistered accounts from a different game', async () => {
-    const subject = await fixture();
-    const unregistered = await subject.t.run(
-      async (ctx) => await ctx.db.insert('users', { name: 'Unrelated synthetic account' })
-    );
-    expect(
-      await subject.t.query(api.playAdmission.reconcileAccounts, {
-        gameId: subject.game._id,
-        secret: subject.game.secret,
-        userIds: [unregistered],
-      })
-    ).toEqual({ ok: true, accounts: [{ userId: unregistered, state: 'unknown', deletionOperationId: null }] });
-    expect(
-      await subject.t.query(api.playAdmission.reconcileAccounts, {
-        gameId: subject.game._id,
-        secret: 'b'.repeat(64),
-        userIds: [subject.userId],
-      })
-    ).toEqual({ ok: false });
-  });
-
   test('reaches a creator of a game from before creators were enrolled, through a routing row the fan-out adds', async () => {
     const subject = await createdGame();
     await subject.t.run(async (ctx) => {
@@ -384,6 +275,52 @@ describe('Play account deletion', () => {
     await subject.t.mutation(internal.playDeletion.queueCreatorDeletion, { operationId, cursor: null });
     const events = await subject.t.run(async (ctx) => await ctx.db.query('play_account_deletions').collect());
     expect(events).toMatchObject([{ game_id: subject.game._id, user_id: subject.userId, state: 'pending' }]);
+  });
+
+  test('reaches a creator deleted before the creator fan-out existed, once, and only for a completed deletion', async () => {
+    const subject = await createdGame();
+    const { operationId } = await subject.t.run(async (ctx) => {
+      const rows = await ctx.db.query('play_game_accounts').collect();
+      await Promise.all(rows.map((row) => ctx.db.delete(row._id)));
+      const profile = (await ctx.db
+        .query('profiles')
+        .withIndex('by_user_id', (q) => q.eq('user_id', subject.userId))
+        .unique())!;
+      await ctx.db.patch(subject.userId, { account_state: 'deleted' });
+      const stamp = new Date().toISOString();
+      const operation = {
+        source_user_id: subject.userId,
+        source_profile_id: profile._id,
+        replacement_user_id: null,
+        phase: 'complete' as const,
+        snapshot_kind: null,
+        snapshot_cursor: null,
+        retry_count: 0,
+        error: null,
+        created_at: stamp,
+        updated_at: stamp,
+        completed_at: stamp,
+      };
+      /* A deletion that failed and was restored names the same account and must reach no game. */
+      await ctx.db.insert('account_deletion_operations', { ...operation, state: 'failed', completed_at: null });
+      return { operationId: await ctx.db.insert('account_deletion_operations', { ...operation, state: 'completed' }) };
+    });
+    const events = async () =>
+      await subject.t.run(async (ctx) => await ctx.db.query('play_account_deletions').collect());
+    const scheduled = async () =>
+      (await subject.t.run(async (ctx) => await ctx.db.system.query('_scheduled_functions').collect()))
+        .filter((job) => job.name.endsWith('queueCreatorDeletion') && job.state.kind === 'pending')
+        .map((job) => job.args[0] as { operationId: typeof operationId; cursor: null });
+    for (let run = 0; run < 2; run++) {
+      const before = (await scheduled()).length;
+      await subject.t.mutation(internal.playDeletion.requeueCreatorDeletions, { cursor: null });
+      const queued = (await scheduled()).slice(before);
+      expect(queued).toEqual([{ operationId, cursor: null }]);
+      await subject.t.mutation(internal.playDeletion.queueCreatorDeletion, queued[0]);
+      expect(await events()).toMatchObject([
+        { game_id: subject.game._id, user_id: subject.userId, operation_id: operationId, state: 'pending' },
+      ]);
+    }
   });
 
   test('settles a deletion queued for a game that never opened only once its room has emptied', async () => {

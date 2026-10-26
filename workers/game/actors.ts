@@ -1,4 +1,3 @@
-import { PLAY_AUTHORIZATION_BATCH_SIZE } from '../../src/shared/play/admission';
 import type { GameSnapshot, Viewer } from '../../src/shared/play/protocol';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import type { TableRoster } from '../../src/shared/play/schema';
@@ -224,16 +223,6 @@ export class ActorDirectory {
         )
         .toArray()[0]?.faction_id ?? undefined
     );
-  }
-
-  batch(cursor: string) {
-    return this.storage.sql
-      .exec<Actor>(
-        'SELECT user_id, seat, display_name, deleted FROM actors WHERE deleted=0 AND user_id>? ORDER BY user_id LIMIT ?',
-        cursor,
-        PLAY_AUTHORIZATION_BATCH_SIZE
-      )
-      .toArray();
   }
 
   delete(userId: string, eventId?: string, vacatedEventId?: string) {

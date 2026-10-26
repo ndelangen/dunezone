@@ -8,13 +8,14 @@ import { required } from './native-runtime.fixture.ts';
 import type { NativePeer, NativeRuntime } from './native-runtime.fixture.ts';
 import {
   admitPlayer,
-  openGame,
   createPeer,
   createRuntime,
+  eventually,
+  fixturePass,
+  openGame,
   provision,
   sendCommand,
   syncView,
-  eventually,
 } from './native-runtime.fixture.ts';
 
 const CREATOR = { userId: 'user-a', displayName: 'Synthetic A' };
@@ -23,7 +24,6 @@ describe('A real game provisions from its ruleset', () => {
   let peer: NativePeer, runtime: NativeRuntime;
   beforeEach(async () => {
     peer = await createPeer();
-    peer.watchMode = 'allow';
     peer.game = { rulesetId: 'ruleset-one', minimumPlayers: 4, creator: CREATOR };
     runtime = await createRuntime(peer, 'game');
   });
@@ -70,10 +70,10 @@ describe('A real game provisions from its ruleset', () => {
     peer.provisional = true;
     expect((await provision(runtime)).status).toBe(200);
     const old = await openGame(runtime);
-    old.send({ type: 'admit', ticket: 'c'.repeat(64) });
+    old.send({ type: 'admit', pass: await fixturePass('old') });
     expect((await old.message('admission', (message) => message.status === 'refresh')).status).toBe('refresh');
     expect(old.messages.some((message) => message.type === 'view')).toBe(false);
-    const current = await admitPlayer(peer, runtime, 'current');
+    const current = await admitPlayer(runtime, 'current');
     expect((await syncView(current)).snapshot.board).toEqual(arrakisBoardCapture);
   });
 
@@ -94,7 +94,7 @@ describe('A real game provisions from its ruleset', () => {
     captured.asset.name = 'The original board';
     required(required(peer).rulesets.get('ruleset-one')).board = captured;
     expect((await provision(runtime)).status).toBe(200);
-    const creator = await admitPlayer(peer, runtime, 'a');
+    const creator = await admitPlayer(runtime, 'a');
     expect((await syncView(creator)).snapshot.board).toEqual(captured);
     peer.rulesets.delete('ruleset-one');
     creator.send({ type: 'history', step: 0 });
@@ -108,7 +108,7 @@ describe('A real game provisions from its ruleset', () => {
     );
     expect(persisted).not.toHaveProperty('board');
     await runtime.restart();
-    expect((await syncView(await admitPlayer(peer, runtime, 'a'))).snapshot.board).toEqual(captured);
+    expect((await syncView(await admitPlayer(runtime, 'a'))).snapshot.board).toEqual(captured);
   });
 
   it('opens with the last turn its creator chose', async () => {
@@ -118,7 +118,7 @@ describe('A real game provisions from its ruleset', () => {
     peer.game = { ...required(peer.game), lastTurn: 6 };
 
     expect((await provision(runtime)).status).toBe(200);
-    expect((await syncView(await admitPlayer(peer, runtime, 'a'))).snapshot.lastTurn).toBe(6);
+    expect((await syncView(await admitPlayer(runtime, 'a'))).snapshot.lastTurn).toBe(6);
   });
 
   it('retains the ruleset, opens drafting on an empty table with the creator at the first seat, and seats no newcomer', async () => {
@@ -136,7 +136,7 @@ describe('A real game provisions from its ruleset', () => {
     expect((await provision(runtime)).status).toBe(403);
     expect(reads('playCatalogue:rulesetSupply')).toBe(1);
 
-    const creator = await admitPlayer(peer, runtime, 'a');
+    const creator = await admitPlayer(runtime, 'a');
     const view = await syncView(creator);
     expect(view.snapshot.stage).toBe('drafting');
     expect(view.snapshot.table.pieces).toEqual([]);
@@ -144,7 +144,7 @@ describe('A real game provisions from its ruleset', () => {
     expect(view.viewer.viewerSeat).toBe('seat-1');
     expect(required(view.snapshot.controls).seats).toEqual(['seat-1']);
 
-    const newcomer = await admitPlayer(peer, runtime, 'b');
+    const newcomer = await admitPlayer(runtime, 'b');
     expect((await syncView(newcomer)).viewer.viewerSeat).toBe('neutral');
     expect(required(required(await syncView(creator)).snapshot.roster).seats).toHaveLength(1);
 
@@ -162,7 +162,7 @@ describe('A real game provisions from its ruleset', () => {
     ]);
 
     await runtime.restart();
-    const back = await syncView(await admitPlayer(peer, runtime, 'a'));
+    const back = await syncView(await admitPlayer(runtime, 'a'));
     expect(back.snapshot.stage).toBe('drafting');
     expect(back.viewer.viewerSeat).toBe('seat-1');
     expect(required(required(await runtime.captures()).ruleset).ruleset.id).toBe('ruleset-one');
@@ -181,6 +181,6 @@ describe('A real game provisions from its ruleset', () => {
     expect((await provision(runtime)).status).toBe(200);
     const captures = await runtime.captures();
     expect(required(captures.ruleset).readiness.ready).toBe(false);
-    expect((await syncView(await admitPlayer(peer, runtime, 'a'))).snapshot.stage).toBe('drafting');
+    expect((await syncView(await admitPlayer(runtime, 'a'))).snapshot.stage).toBe('drafting');
   });
 });

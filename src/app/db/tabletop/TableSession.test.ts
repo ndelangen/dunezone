@@ -50,8 +50,8 @@ const viewer: Viewer = {
   color: '#ed927c',
 };
 
-function ticket() {
-  return Promise.resolve({ ok: true as const, ticket: 'a'.repeat(64), expiresInMs: 30_000 });
+function admission() {
+  return Promise.resolve({ ok: true as const, pass: 'pass.a' });
 }
 
 type ViewFrame = Extract<ServerMessage, { type: 'view' }>;
@@ -114,7 +114,7 @@ function command() {
 }
 
 async function connected(identity = viewer) {
-  const client = connection('fixture-one', ticket);
+  const client = connection('fixture-one', admission);
   disconnect = client.connect();
   await vi.advanceTimersByTimeAsync(0);
   socket().open();
@@ -398,15 +398,14 @@ describe('hosted table admission', () => {
   test('keeps game data and commands unavailable until the server authorizes the connection', async () => {
     const client = connection('fixture-one', async () => ({
       ok: true,
-      ticket: 'a'.repeat(64),
-      expiresInMs: 30_000,
+      pass: 'pass.a',
     }));
     expect(client.getSnapshot().table).toBeNull();
     disconnect = client.connect();
     await vi.advanceTimersByTimeAsync(0);
     expect(socket().gameId).toBe('fixture-one');
     socket().open();
-    expect(socket().sent).toEqual([{ type: 'admit', supportsBoard: true, ticket: 'a'.repeat(64) }]);
+    expect(socket().sent).toEqual([{ type: 'admit', supportsBoard: true, pass: 'pass.a' }]);
     client.moveStormBy(1);
     client.beginGesture('harkonnen-force-stack', 'whole');
     client.publishPointer([0, 0, 0]);
@@ -474,50 +473,12 @@ describe('hosted table admission', () => {
     client.publishPointer([0, 0.38, 0]);
     await vi.advanceTimersByTimeAsync(1000);
     expect(client.getSnapshot().table?.state.viewerSeat).toBe('neutral');
-    expect(socket().sent).toEqual([{ type: 'admit', supportsBoard: true, ticket: 'a'.repeat(64) }]);
-  });
-
-  test('a clock 60 s fast still sends a ticket with 30 s left', async () => {
-    const client = connection('fixture-one', ticket);
-    vi.setSystemTime(Date.now() + 60_000);
-    disconnect = client.connect();
-    await vi.advanceTimersByTimeAsync(0);
-    socket().open();
-    expect(socket().sent).toEqual([{ type: 'admit', supportsBoard: true, ticket: 'a'.repeat(64) }]);
-  });
-
-  test('a clock 60 s slow reconnects instead of sending a ticket that expired while the socket was opening', async () => {
-    const issue = vi.fn(async () => ({ ok: true as const, ticket: 'a'.repeat(64), expiresInMs: 1000 }));
-    const client = connection('fixture-one', issue);
-    vi.setSystemTime(Date.now() - 60_000);
-    disconnect = client.connect();
-    await vi.advanceTimersByTimeAsync(0);
-    await vi.advanceTimersByTimeAsync(1001);
-    const original = socket();
-    original.open();
-    expect(original.sent).toEqual([]);
-    expect(original.readyState).toBe(3);
-    expect(client.getSnapshot().table).toBeNull();
-    await vi.advanceTimersByTimeAsync(1000);
-    expect(issue).toHaveBeenCalledTimes(2);
-    socket().open();
-    expect(socket().sent).toEqual([{ type: 'admit', supportsBoard: true, ticket: 'a'.repeat(64) }]);
-  });
-
-  test('counts the ticket lifetime from the request, not from the response', async () => {
-    const client = connection('fixture-one', async () => {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      return { ok: true as const, ticket: 'a'.repeat(64), expiresInMs: 2500 };
-    });
-    disconnect = client.connect();
-    await vi.advanceTimersByTimeAsync(2501);
-    socket().open();
-    expect(socket().sent).toEqual([]);
+    expect(socket().sent).toEqual([{ type: 'admit', supportsBoard: true, pass: 'pass.a' }]);
   });
 
   test('server time runs on from the freshest frame, whatever the wall clock or a late frame says', async () => {
     const serverNow = 1_800_000_000_000;
-    const client = connection('fixture-one', ticket);
+    const client = connection('fixture-one', admission);
     disconnect = client.connect();
     await vi.advanceTimersByTimeAsync(0);
     socket().open();
@@ -537,8 +498,8 @@ describe('hosted table admission', () => {
     expect(table(client).serverNow()).toBe(serverNow + 12_000);
   });
 
-  test('retries a failed ticket request without opening an unauthorized socket', async () => {
-    const issue = vi.fn(ticket).mockRejectedValueOnce(new Error('Network unavailable.'));
+  test('retries a failed admission request without opening an unauthorized socket', async () => {
+    const issue = vi.fn(admission).mockRejectedValueOnce(new Error('Network unavailable.'));
     const client = connection('fixture-one', issue);
     disconnect = client.connect();
     await vi.advanceTimersByTimeAsync(0);
@@ -556,7 +517,7 @@ describe('hosted table admission', () => {
     { ok: false, reason: 'not_authorized' },
     { ok: false, reason: 'unavailable' },
     { ok: false, reason: 'rate_limited', retryAfterMs: 2000 },
-  ] as const)('preserves the retry policy for a refused ticket: $reason', async (response) => {
+  ] as const)('preserves the retry policy for a refused admission: $reason', async (response) => {
     const { reason } = response;
     const retryDelay = reason === 'rate_limited' ? response.retryAfterMs : 1000;
     const issue = vi.fn(async () => response);
@@ -571,24 +532,11 @@ describe('hosted table admission', () => {
     expect(Socket.instances).toHaveLength(0);
   });
 
-  test('renews a ticket already expired when the request completes', async () => {
-    const issue = vi.fn(async () => ({ ok: true as const, ticket: 'a'.repeat(64), expiresInMs: 0 }));
-    const client = connection('fixture-one', issue);
-    disconnect = client.connect();
-    await vi.advanceTimersByTimeAsync(0);
-    expect(client.getSnapshot().status).toBe('suspended');
-    expect(Socket.instances).toHaveLength(0);
-    await vi.advanceTimersByTimeAsync(1000);
-    expect(issue).toHaveBeenCalledTimes(2);
-    expect(Socket.instances).toHaveLength(0);
-  });
-
-  test('each reconnect requests a new ticket and ignores the previous socket', async () => {
+  test('each reconnect asks for admission again and ignores the previous socket', async () => {
     let issued = 0;
     const issue = vi.fn(async () => ({
       ok: true as const,
-      ticket: (++issued).toString().repeat(64),
-      expiresInMs: 30_000,
+      pass: `pass.${++issued}`,
     }));
     const client = connection('fixture-one', issue);
     disconnect = client.connect();
@@ -602,34 +550,32 @@ describe('hosted table admission', () => {
     old.deliver(view({ epoch: 'old' }));
     expectLocked(client);
     expect(issue).toHaveBeenCalledTimes(2);
-    expect(socket().sent).toEqual([
-      { type: 'admit', supportsBoard: true, ticket: '2'.repeat(64), replaces: 'connection-one' },
-    ]);
+    expect(socket().sent).toEqual([{ type: 'admit', supportsBoard: true, pass: 'pass.2', replaces: 'connection-one' }]);
     authorize(initialSnapshot(), { ...viewer, connectionId: 'connection-two' });
     expect(table(client).viewer.connectionId).toBe('connection-two');
   });
 
-  test('retiring the route fences an unresolved ticket and every reconnect timer', async () => {
-    let resolveTicket: (value: Awaited<ReturnType<typeof ticket>>) => void = () => {};
+  test('retiring the route fences an unresolved admission request and every reconnect timer', async () => {
+    let resolveAdmission: (value: Awaited<ReturnType<typeof admission>>) => void = () => {};
     const client = connection(
       'fixture-one',
       () =>
         new Promise((resolve) => {
-          resolveTicket = resolve;
+          resolveAdmission = resolve;
         })
     );
     disconnect = client.connect();
     disconnect();
-    resolveTicket(await ticket());
+    resolveAdmission(await admission());
     await vi.advanceTimersByTimeAsync(30_000);
     expect(Socket.instances).toHaveLength(0);
     expect(client.getSnapshot().table).toBeNull();
   });
 
-  test('a retired ticket attempt cannot cancel the timeout of the next route connection', async () => {
-    let resolveFirst: (value: Awaited<ReturnType<typeof ticket>>) => void = () => {};
+  test('a retired admission attempt cannot cancel the timeout of the next route connection', async () => {
+    let resolveFirst: (value: Awaited<ReturnType<typeof admission>>) => void = () => {};
     const issue = vi
-      .fn<typeof ticket>(() => new Promise(() => {}))
+      .fn<typeof admission>(() => new Promise(() => {}))
       .mockImplementationOnce(
         () =>
           new Promise((resolve) => {
@@ -640,7 +586,7 @@ describe('hosted table admission', () => {
     disconnect = client.connect();
     disconnect();
     disconnect = client.connect();
-    resolveFirst(await ticket());
+    resolveFirst(await admission());
     await vi.advanceTimersByTimeAsync(0);
     expect(client.getSnapshot().status).toBe('connecting');
     await vi.advanceTimersByTimeAsync(3000);
@@ -664,7 +610,7 @@ describe('hosted table admission', () => {
   );
 
   test('closes an unanswered pending socket at the admission deadline', async () => {
-    const client = connection('fixture-one', ticket);
+    const client = connection('fixture-one', admission);
     disconnect = client.connect();
     await vi.advanceTimersByTimeAsync(0);
     socket().open();
@@ -1419,7 +1365,7 @@ test('compact update gaps pause commands until a full resync restores the table'
   const snapshot = initialSnapshot();
   socket().deliver(view({ sequence: 1, snapshot }));
   /* A view asks for nothing, so the admission is the only message before the gap. */
-  expect(socket().sent).toEqual([{ type: 'admit', supportsBoard: true, ticket: 'a'.repeat(64) }]);
+  expect(socket().sent).toEqual([{ type: 'admit', supportsBoard: true, pass: 'pass.a' }]);
   deliverGap();
   expect(socket().sent.at(-1)).toEqual({ type: 'sync' });
   expect(table(client).canInteract).toBe(false);
@@ -1809,7 +1755,7 @@ describe('fresh reconnect recovery', () => {
         committed ? position : source.position
       );
       expect(socket().sent).toEqual([
-        { type: 'admit', supportsBoard: true, ticket: 'a'.repeat(64), replaces: 'connection-one' },
+        { type: 'admit', supportsBoard: true, pass: 'pass.a', replaces: 'connection-one' },
       ]);
       expect(client.getSnapshot().error).toBe('The connection dropped as you placed a piece. Check where it landed.');
     }
@@ -1922,7 +1868,7 @@ describe('pointer moves', () => {
   });
 
   test('a connection that cannot carry pings, like the homepage table, leaves the ping key unused', async () => {
-    const subscription = new GameSubscription('fixture-one', ticket, runtime);
+    const subscription = new GameSubscription('fixture-one', admission, runtime);
     const send = subscription.send.bind(subscription);
     vi.spyOn(subscription, 'send').mockImplementation((message) => message.type !== 'ping' && send(message));
     const client = new TableSession('fixture-one', subscription, runtime);
@@ -2046,7 +1992,7 @@ describe('pointer moves', () => {
     const tables = { read: () => null, findGame: () => null, rememberAddress: vi.fn(), save: vi.fn(), clear: vi.fn() };
     const client = new TableSession(
       'fixture-one',
-      new GameSubscription('fixture-one', ticket, { ...runtime, tables }),
+      new GameSubscription('fixture-one', admission, { ...runtime, tables }),
       { ...runtime, tables }
     );
     disconnect = client.connect();

@@ -58,8 +58,6 @@ describe('Hosted readiness and shared inventory through native commands', () => 
   let peer: NativePeer, runtime: NativeRuntime, number: number, offset: number, committedRevision: number;
   beforeEach(async () => {
     peer = await createPeer();
-    peer.watchMode = 'allow';
-    peer.expiresAt = () => Date.now() + 3_600_000;
     peer.catalogue.set('token-disc/recovery', tokenPage());
     runtime = await createRuntime(peer, 'game');
     number = 0;
@@ -73,7 +71,7 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     await runtime?.close();
     await peer?.close();
   });
-  const admit = (suffix: string) => admitPlayer(peer, runtime, suffix);
+  const admit = (suffix: string) => admitPlayer(runtime, suffix);
   async function snapshot(connection: NativeConnection) {
     return (
       await eventually(
@@ -156,7 +154,6 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     expect(required(state.controls).ready).toEqual([]);
     await act(reconnected, { kind: 'phase' }, 'between phase changes');
     await act(b, { kind: 'phase', direction: -1 }, 'between phase changes');
-    await act(b, { kind: 'turn', turn: 3 }, 'only by moving through the phases');
     await waitPhase();
     state = await act(b, { kind: 'phase', direction: -1 });
     expect(state.phase).toBe(8);

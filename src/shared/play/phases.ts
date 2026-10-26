@@ -226,9 +226,6 @@ export function stepPhase(index: number, direction: -1 | 1 = 1): number {
   return next;
 }
 
-/** Players change the turn only by moving through the phases, so Mentat Pause always asks everyone to be ready (#1683). */
-export const TURN_SELECT_REFUSAL = 'The turn changes only by moving through the phases.';
-
 export const PHASE_CHANGE_COOLDOWN_MS = 2000;
 
 /** Refuses a phase change before the game's cooldown has run since the last one, naming that cooldown. */

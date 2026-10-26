@@ -1094,9 +1094,6 @@ export class GameSession {
     this.reloadMetadata();
     return true;
   }
-  actorBatch(cursor: string) {
-    return this.actors.batch(cursor);
-  }
   seatFor(userId: string) {
     return this.actors.seatFor(userId);
   }

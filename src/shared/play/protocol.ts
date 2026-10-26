@@ -172,7 +172,6 @@ const tableActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('delete'), pieceId: id }),
   z.strictObject({ kind: z.literal('storm'), direction }),
   z.strictObject({ kind: z.literal('phase'), direction: direction.optional() }),
-  z.strictObject({ kind: z.literal('turn'), turn: count.min(1) }),
   z.strictObject({ kind: z.literal('spice-spawn'), count: z.number().int().min(1).max(10) }),
   z.strictObject({ kind: z.literal('reset') }),
 ]);
@@ -223,20 +222,14 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
     peerId: conversationPeerSchema,
     through: count,
   }),
-  z
-    .strictObject({
-      type: z.literal('admit'),
-      supportsBoard: z.literal(true).optional(),
-      /* A page proves who it is with exactly one of these: a seat pass, or the single-use ticket of browsers from before passes. */
-      ticket: z
-        .string()
-        .regex(/^[a-f0-9]{64}$/)
-        .optional(),
-      pass: seatPassSchema.optional(),
-      /* The connection this page held before it reconnected, which the Worker retires once this one is admitted. */
-      replaces: id.optional(),
-    })
-    .refine((message) => (message.ticket === undefined) !== (message.pass === undefined)),
+  z.strictObject({
+    type: z.literal('admit'),
+    supportsBoard: z.literal(true).optional(),
+    /* A page proves who it is with its seat pass for this game. */
+    pass: seatPassSchema,
+    /* The connection this page held before it reconnected, which the Worker retires once this one is admitted. */
+    replaces: id.optional(),
+  }),
   /* A fresher pass for an admitted connection, so it never has to reconnect when the one it entered with ends. */
   z.strictObject({ type: z.literal('pass'), pass: seatPassSchema }),
   z.strictObject({
@@ -368,7 +361,7 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
     contents: spawnContentsSchema.nullable().optional(),
     error: z.string().optional(),
   }),
-  /* `pass-expired` reaches only a page that entered with a seat pass: it holds the table until the page sends a fresh one. */
+  /* `pass-expired` holds the table until the page sends a fresh seat pass. */
   z.object({ type: z.literal('admission'), status: z.enum(['suspended', 'denied', 'refresh', 'pass-expired']) }),
   /* `held` is the carried piece as the carrier now sees it, sent after a flip so a face turned up in hand shows at once. */
   z.object({ type: z.literal('carry'), carryId: id, draft: draftSchema, held: pieceSchema.optional() }),
@@ -430,15 +423,10 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
 ]);
 export type ServerMessage = z.infer<typeof serverMessageSchema>;
 /**
- * The code the Worker closes a socket with when its ticket lapsed or was already redeemed before admission.
- * Unlike a refusal it is not final: the browser requests a new ticket and reconnects.
+ * The code the Worker closes a socket with when the seat pass it was admitted with had already expired.
+ * Unlike a refusal it is not final: the browser renews its pass and reconnects.
  */
-export const TICKET_EXPIRED_CLOSE_CODE = 4410;
-/**
- * The standard "try again later" code the Worker closes a socket with when Convex could not be reached during admission.
- * Nothing was refused: the browser requests a new ticket and reconnects, with the same doubling wait as an expired ticket.
- */
-export const ADMISSION_UNAVAILABLE_CLOSE_CODE = 1013;
+export const PASS_EXPIRED_CLOSE_CODE = 4410;
 /** The code the Worker closes a socket with when admission was refused; final, so the browser does not reconnect. */
 export const ADMISSION_REFUSED_CLOSE_CODE = 4401;
 /** The code the Worker closes a socket with when it sent too many messages; the browser waits longer before reconnecting. */

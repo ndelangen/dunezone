@@ -105,7 +105,7 @@ async function login(label: string) {
   const { userId, sessionId } = tokenIdentity(result.tokens.token);
   return { client, userId, sessionId, tokens: result.tokens };
 }
-async function open(gameId: Id<'play_games'>, ticket?: string): Promise<ProtocolPeer> {
+async function open(gameId: Id<'play_games'>, pass?: string): Promise<ProtocolPeer> {
   const socket = new WebSocket(`${origin.origin.replace('http:', 'ws:')}/__play/games/${gameId}/socket`, {
     origin: origin.origin,
   });
@@ -131,15 +131,18 @@ async function open(gameId: Id<'play_games'>, ticket?: string): Promise<Protocol
     socket.once('open', resolve);
     socket.once('error', reject);
   });
-  if (ticket) {
-    peer.send({ type: 'admit', supportsBoard: true, ticket });
+  if (pass) {
+    peer.send({ type: 'admit', supportsBoard: true, pass });
   }
   return peer;
 }
-async function connect(gameId: Id<'play_games'>, user: Awaited<ReturnType<typeof login>>) {
-  const issued = await user.client.mutation(api.playAdmission.issueTicket, { gameId });
+async function seatPass(gameId: Id<'play_games'>, user: Awaited<ReturnType<typeof login>>) {
+  const issued = await user.client.mutation(api.playAdmission.enrolPlayer, { gameId });
   assert.ok(issued.ok);
-  const peer = await open(gameId, issued.ticket);
+  return issued.pass;
+}
+async function connect(gameId: Id<'play_games'>, user: Awaited<ReturnType<typeof login>>) {
+  const peer = await open(gameId, await seatPass(gameId, user));
   await until(() => peer.view() || peer.closeCode, 'No admission result.');
   assert.ok(peer.view(), `Admission refused with ${peer.closeCode}.`);
   return peer;
@@ -196,7 +199,7 @@ try {
   assert.equal(duplicate.status, unknown.status);
   assert.equal(await duplicate.text(), await unknown.text());
   passed('Concurrent provisioning creates one game and conceals duplicate versus unknown credentials');
-  assert.equal((await anonymous.mutation(api.playAdmission.issueTicket, { gameId: fixture.gameId })).ok, false);
+  assert.equal((await anonymous.mutation(api.playAdmission.enrolPlayer, { gameId: fixture.gameId })).ok, false);
   const pending = await open(fixture.gameId);
   pending.send({ type: 'command', commandId: randomUUID(), action: { kind: 'reset' }, expectedRevision: 0 });
   await until(() => pending.closeCode, 'Pending socket did not time out.', 7000);
@@ -335,15 +338,14 @@ try {
   passed(
     'Contested carries reserve once, transient motion reaches observers, and cross-connection receipts prevent duplicate drops'
   );
-  const sharedTicket = await bob.client.mutation(api.playAdmission.issueTicket, { gameId: fixture.gameId });
-  assert.ok(sharedTicket.ok);
-  const attempts = await Promise.all([
-    open(fixture.gameId, sharedTicket.ticket),
-    open(fixture.gameId, sharedTicket.ticket),
-  ]);
-  await until(() => attempts.every((peer) => peer.view() || peer.closeCode), 'Concurrent redemption did not settle.');
-  assert.equal(attempts.filter((peer) => peer.view()).length, 1);
-  passed('One browser ticket admits exactly one of two concurrent sockets');
+  const genuine = await seatPass(fixture.gameId, bob);
+  /* The signature is the part after the dot; changing its last character keeps the shape and breaks the HMAC. */
+  const forged = `${genuine.slice(0, -1)}${genuine.endsWith('A') ? 'B' : 'A'}`;
+  const forgedPeer = await open(fixture.gameId, forged);
+  await until(() => forgedPeer.view() || forgedPeer.closeCode, 'Forged pass did not settle.');
+  assert.equal(forgedPeer.closeCode, 4401);
+  assert.equal(forgedPeer.view(), undefined);
+  passed('A seat pass whose signature does not match the game is refused');
   const aTab = await connect(fixture.gameId, alice);
   const seat = required(a.view(), 'Alice view').viewer.viewerSeat;
   const previousExpiry = await admin.mutation(adminMutationReference(internal.playTesting.shortenSession), {
@@ -386,7 +388,7 @@ try {
   await command(b, { kind: 'storm', direction: 1 });
   await delay(100);
   assert.deepEqual([a.messages.length, aTab.messages.length], endedCounts);
-  assert.equal((await alice.client.mutation(api.playAdmission.issueTicket, { gameId: fixture.gameId })).ok, false);
+  assert.equal((await alice.client.mutation(api.playAdmission.enrolPlayer, { gameId: fixture.gameId })).ok, false);
   const returned = await login('alice');
   const aNew = await connect(fixture.gameId, returned);
   assert.equal(required(aNew.view(), 'New view').viewer.viewerSeat, seat);
@@ -395,41 +397,40 @@ try {
     required(a.view(), 'Alice view').viewer.connectionId
   );
   passed('Actual Auth logout stops all tab outputs; fresh login retains the faction seat', { revocationMs });
-  const short = await login('short');
-  const shortPeer = await connect(fixture.gameId, short);
-  const expiry = await admin.mutation(adminMutationReference(internal.playTesting.shortenSession), {
-    sessionId: short.sessionId,
-    kind: 'inactivity',
-    expiresInMs: 1500,
-  });
-  await until(() => Date.now() >= expiry.expiresAt, 'Short expiry did not elapse.');
-  const afterExpiry = shortPeer.messages.length;
-  if (shortPeer.socket.readyState === WebSocket.OPEN) {
-    shortPeer.send({ type: 'metrics' });
-  }
-  await command(b, { kind: 'storm', direction: 1 });
-  await delay(100);
-  assert.ok(shortPeer.messages.slice(afterExpiry).every((message) => message.type === 'admission'));
-  await until(() => shortPeer.closeCode, 'Inactivity expiry did not revoke the connection.');
-  assert.equal((await short.client.mutation(api.playAdmission.issueTicket, { gameId: fixture.gameId })).ok, false);
-  passed('Inactivity expiry gates commands and fanout before the next reactive change');
-  const long = await login('total-expiry');
-  const totalPeer = await connect(fixture.gameId, long);
-  await admin.mutation(adminMutationReference(internal.playTesting.shortenSession), {
-    sessionId: long.sessionId,
-    kind: 'total',
-    expiresInMs: 0,
-  });
-  await until(() => totalPeer.closeCode, 'Total session expiry did not revoke access.');
-  assert.equal((await long.client.mutation(api.playAdmission.issueTicket, { gameId: fixture.gameId })).ok, false);
-  passed('Total Auth session expiry rejects both established and new connections');
+  /* A seat pass never outlives the session that asked for it, so a session nearing its end gets a pass that ends with it. */
+  const expiring = async (label: string, kind: 'inactivity' | 'total') => {
+    const user = await login(label);
+    const expiry = await admin.mutation(adminMutationReference(internal.playTesting.shortenSession), {
+      sessionId: user.sessionId,
+      kind,
+      expiresInMs: 3000,
+    });
+    const peer = await connect(fixture.gameId, user);
+    await until(
+      () => peer.messages.some((message) => message.type === 'admission' && message.status === 'pass-expired'),
+      `${kind} expiry did not end the pass.`,
+      expiry.expiresAt - Date.now() + 5000
+    );
+    const afterExpiry = peer.messages.length;
+    if (peer.socket.readyState === WebSocket.OPEN) {
+      peer.send({ type: 'metrics' });
+    }
+    await command(b, { kind: 'storm', direction: 1 });
+    await delay(100);
+    assert.ok(peer.messages.slice(afterExpiry).every((message) => message.type === 'admission'));
+    assert.equal((await user.client.mutation(api.playAdmission.enrolPlayer, { gameId: fixture.gameId })).ok, false);
+  };
+  await expiring('short', 'inactivity');
+  passed('Inactivity expiry ends the seat pass, gating commands and fanout, and no new pass is issued');
+  await expiring('total-expiry', 'total');
+  passed('Total Auth session expiry ends the seat pass and no new pass is issued');
   await returned.client.mutation(api.accountDeletion.confirm, { replacementUserId: null });
   await until(() => aNew.closeCode, 'Account deletion did not revoke the seated player.');
   const replacement = await login('replacement');
   const replacementPeer = await connect(fixture.gameId, replacement);
   assert.equal(required(replacementPeer.view(), 'Replacement view').viewer.viewerSeat, 'harkonnen');
   passed('Actual account deletion revokes access and vacates the faction for a new user');
-  /* A sign-out, expiry or deletion can withdraw the room's account lease while the room checks accounts; a player it does not concern is held through that check, not paused (#1418). */
+  /* A sign-out, expiry or deletion ends only the connections it concerns; every other player keeps playing (#1418). */
   assert.deepEqual(
     b.messages.slice(heldFrom).filter((message) => message.type === 'admission'),
     []
