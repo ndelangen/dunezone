@@ -1,6 +1,7 @@
-import { Box, Group, Stack, Text, Tooltip } from '@mantine/core';
+import { Box, Group, Stack } from '@mantine/core';
 import { HelpMark } from '@ui/content/HelpMark';
-import { useId, useLayoutEffect, useRef, useState } from 'react';
+import { TruncatedText } from '@ui/content/TruncatedText';
+import { useId } from 'react';
 import type { ReactNode } from 'react';
 
 export interface ControlBlockProps {
@@ -9,36 +10,6 @@ export interface ControlBlockProps {
   description?: ReactNode;
   tool?: ReactNode;
   input: ReactNode;
-}
-
-function OverflowTooltipTitle({ id, text }: { id: string; text: string }) {
-  const ref = useRef<HTMLParagraphElement>(null);
-  const [isOverflowing, setIsOverflowing] = useState(false);
-
-  useLayoutEffect(() => {
-    const element = ref.current;
-    if (!element) {
-      return;
-    }
-
-    const update = () => setIsOverflowing(text.length > 0 && element.scrollWidth > element.clientWidth);
-    update();
-
-    if (typeof ResizeObserver === 'undefined') {
-      return;
-    }
-    const observer = new ResizeObserver(update);
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, [text]);
-
-  return (
-    <Tooltip label={text} disabled={!isOverflowing} multiline maw={360} position="top-start" withArrow>
-      <Text ref={ref} id={id} fw={700} size="sm" truncate miw={0} tabIndex={isOverflowing ? 0 : undefined}>
-        {text}
-      </Text>
-    </Tooltip>
-  );
 }
 
 /**
@@ -55,7 +26,9 @@ export function ControlBlock({ title, description, tool, input }: ControlBlockPr
     <Stack role="group" aria-labelledby={titleId} aria-describedby={description ? descriptionId : undefined} gap={6}>
       <Group gap="sm" justify="space-between" align="center" wrap="nowrap">
         <Group gap={6} wrap="nowrap" flex="1 1 12rem" miw={0}>
-          <OverflowTooltipTitle id={titleId} text={title} />
+          <TruncatedText id={titleId} fw={700} size="sm">
+            {title}
+          </TruncatedText>
           {description ? <HelpMark id={descriptionId} text={description} /> : null}
         </Group>
         {tool ? <Box>{tool}</Box> : null}

@@ -139,6 +139,11 @@ const STEPS: Record<Kind, (room: Room) => Step[]> = {
       },
     ],
   ],
+  /* A card taken into hand and moved to the end of it. */
+  'hand-order': (room) => [
+    [bob, { kind: 'hand-take', pieceId: LOOSE }],
+    [bob, { kind: 'hand-order', pieceId: room.snapshot.factionInventories.atreides?.[0]?.id ?? LOOSE, before: null }],
+  ],
   'bank-withdraw': () => [[bob, { kind: 'bank-withdraw', amount: 1 }]],
   'bank-collect': () => [[bob, { kind: 'bank-collect', pieceId: DECK }]],
   ready: () => [[bob, { kind: 'ready', ready: true }]],

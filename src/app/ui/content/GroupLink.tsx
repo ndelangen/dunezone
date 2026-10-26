@@ -10,7 +10,6 @@ export interface GroupLinkProps {
   name: string;
   className?: string;
   style?: CSSProperties;
-  title?: string;
 }
 
 /**
@@ -23,14 +22,8 @@ export interface GroupLinkProps {
  * this owns how a group is cited inline anywhere in the app, so every mention looks and navigates identically.
  * The destination is hardcoded because it is the component's name.
  */
-export const GroupLink = ({ slug, name, className, style, title }: GroupLinkProps) => (
-  <Link
-    to="/groups/$groupSlug"
-    params={{ groupSlug: slug }}
-    className={clsx(styles.link, className)}
-    style={style}
-    title={title}
-  >
+export const GroupLink = ({ slug, name, className, style }: GroupLinkProps) => (
+  <Link to="/groups/$groupSlug" params={{ groupSlug: slug }} className={clsx(styles.link, className)} style={style}>
     <span className={styles.media} style={{ backgroundColor: nameDiscColor(name) }} aria-hidden />
     <span className={styles.name}>{name}</span>
   </Link>

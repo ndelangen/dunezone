@@ -632,6 +632,21 @@
     ]
   },
   {
+    "label": "Dune / Houses and lore",
+    "keywords": "Atreides Corrino Harkonnen Bene Gesserit Atreus Apocrypha Encyclopedia Expanded Dune Prophecy 2021 extended fan art",
+    "assets": [
+      "/vector/logo/apocrypha.svg",
+      "/vector/logo/atreides-extended.svg",
+      "/vector/logo/bene-gesserit-2021.svg",
+      "/vector/logo/corrino-extended.svg",
+      "/vector/logo/dune-encyclopedia.svg",
+      "/vector/logo/expanded-dune.svg",
+      "/vector/logo/harkonnen-dune-prophecy.svg",
+      "/vector/logo/harkonnen-extended.svg",
+      "/vector/logo/house-atreus-fan-art.svg"
+    ]
+  },
+  {
     "label": "Custom emblems / Creatures",
     "keywords": "original custom heraldry",
     "assets": [

@@ -1,4 +1,4 @@
-import { Badge, Button, Group, Select, Stack, Text, Textarea, VisuallyHidden } from '@mantine/core';
+import { Badge, Button, Group, Select, Stack, Text, Textarea, Tooltip, VisuallyHidden } from '@mantine/core';
 import { TABLE_CONVERSATION } from '@shared/play/conversations';
 import type { ConversationMessage } from '@shared/play/conversations';
 import { Section } from '@ui/block/Section';
@@ -372,9 +372,11 @@ function MessageTime({ savedAt }: Readonly<{ savedAt: number }>) {
   const label = useServerNowAs((now) => relativeMessageTime(savedAt, now));
   const date = new Date(savedAt);
   return (
-    <Text component="time" dateTime={date.toISOString()} title={date.toLocaleString()} size="xs" c="dimmed">
-      {label}
-    </Text>
+    <Tooltip label={date.toLocaleString()}>
+      <Text component="time" dateTime={date.toISOString()} size="xs" c="dimmed">
+        {label}
+      </Text>
+    </Tooltip>
   );
 }
 

@@ -377,6 +377,91 @@ const noWallClockRule: Rule = {
   },
 };
 
+const TITLE_TOOLTIP_RULE_NAME = 'no-title-tooltip';
+
+/* Libraries whose components forward an unknown `title` straight to the element they render. */
+const FORWARDING_SOURCES = new Set(['@mantine/core', '@tanstack/react-router']);
+
+/* Mantine components whose `title` is their own heading, rendered as content rather than as an attribute. */
+const MANTINE_HEADINGS = new Set([
+  'Alert',
+  'Drawer',
+  'Modal',
+  'Notification',
+  'EmptyState',
+  'Timeline.Item',
+  'Tour.Step',
+]);
+
+/**
+ * Keeps the browser's own tooltip out of the app (Norbert, 2026-10-26: native tooltips look out of place).
+ * A `title` attribute on an element, or on a library component that passes it through to one, draws that tooltip;
+ * the kit's Mantine `Tooltip` is the one hover label.
+ * An `iframe` keeps its `title`, because that names the frame for assistive technology and draws no tooltip.
+ * The SVG `<title>` element is a child, not an attribute, so the rule never sees it.
+ */
+const noTitleTooltipRule: Rule = {
+  meta: {
+    name: TITLE_TOOLTIP_RULE_NAME,
+    messages: {
+      titleTooltip:
+        "A `title` attribute draws the browser's native tooltip. Wrap the element in the kit `Tooltip` instead, and keep an `aria-label` where the title was its only name.",
+    },
+  },
+  create(context) {
+    /* Each local name bound to a forwarding library, mapped to the name the library exports; a namespace import maps to `*`. */
+    const forwarding = new Map<string, string>();
+    const nameOf = (node: LintNode): string | undefined => {
+      if (node.type === 'JSXIdentifier') {
+        return node.name;
+      }
+      if (node.type === 'JSXMemberExpression') {
+        const object = nameOf(node.object);
+        return object === undefined ? undefined : `${object}.${node.property.name}`;
+      }
+      return undefined;
+    };
+    return {
+      ImportDeclaration(node) {
+        if (!FORWARDING_SOURCES.has(String(node.source.value))) {
+          return;
+        }
+        for (const specifier of node.specifiers) {
+          const imported =
+            specifier.type === 'ImportSpecifier' && specifier.imported.type === 'Identifier'
+              ? specifier.imported.name
+              : specifier.type === 'ImportNamespaceSpecifier'
+                ? '*'
+                : specifier.local.name;
+          forwarding.set(specifier.local.name, imported);
+        }
+      },
+      JSXAttribute(node) {
+        if (node.name.type !== 'JSXIdentifier' || node.name.name !== 'title') {
+          return;
+        }
+        const element = node.parent;
+        if (element.type !== 'JSXOpeningElement') {
+          return;
+        }
+        const name = nameOf(element.name);
+        if (name === undefined || name === 'iframe') {
+          return;
+        }
+        const [local, ...members] = name.split('.');
+        const imported = forwarding.get(local);
+        /* The library's own name for the component, so an alias or a namespace import meets the heading list as the library spells it. */
+        const libraryName = imported === '*' ? members.join('.') : [imported, ...members].join('.');
+        const intrinsic = /^[a-z]/.test(name) && members.length === 0;
+        const passedThrough = imported !== undefined && !MANTINE_HEADINGS.has(libraryName);
+        if (intrinsic || passedThrough) {
+          context.report({ node, messageId: 'titleTooltip' });
+        }
+      },
+    };
+  },
+};
+
 export default {
   meta: {
     name: 'local',
@@ -386,5 +471,6 @@ export default {
     [AI_TELLS_RULE_NAME]: noAiTellsRule,
     [STORY_DESCRIPTION_RULE_NAME]: noAiTellsInStoryDescriptionsRule,
     [WALL_CLOCK_RULE_NAME]: noWallClockRule,
+    [TITLE_TOOLTIP_RULE_NAME]: noTitleTooltipRule,
   },
 };

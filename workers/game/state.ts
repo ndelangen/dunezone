@@ -58,6 +58,7 @@ export const storedSnapshotSchema = gameSnapshotSchema
     battle: true,
     battlePlan: true,
     hand: true,
+    handOrder: true,
     peek: true,
     predictions: true,
     ending: true,
@@ -76,6 +77,11 @@ export const storedSnapshotSchema = gameSnapshotSchema
     pendingTraitors: z.array(tableIdSchema).default([]),
     battleState: storedBattleSchema.nullable().default(null),
     factionInventories: z.record(tableIdSchema, z.array(storedPieceSchema)).default({}),
+    /*
+     * Each faction's own order of its hand and the pieces it has put in a battle plan, by stored id.
+     * It is kept apart from the inventory, whose order is the side-table's stacking, so a piece back from a plan takes its old place.
+     */
+    handOrders: z.record(tableIdSchema, z.array(tableIdSchema)).default({}),
     /* The piece each faction holds open by peeking, as it was granted; projected only to that faction. */
     peeks: z.record(tableIdSchema, peekGrantSchema).default({}),
     /* The faces a faction's prediction card is dealt with when its prediction locks (#1753); stored only, never projected. */
@@ -206,6 +212,27 @@ export function seatedFaction(snapshot: GameSnapshot, factionId: string) {
   return snapshot.roster?.seats.find((seat) => seat.faction?.id === factionId)?.faction;
 }
 
+/** The pieces a faction orders by hand: its plain hand, leaving the side-table out, and what it put in its own battle plan. */
+export function orderablePieces(snapshot: StoredSnapshot, factionId: string): StoredPiece[] {
+  const battle = snapshot.battleState;
+  /* Once revealed, the plan's pieces are everyone's to see and take, so they leave the faction's order. */
+  const side =
+    battle && battle.stage !== 'revealed'
+      ? battle.sides.findIndex((candidate) => candidate?.factionId === factionId)
+      : -1;
+  return [
+    ...(snapshot.factionInventories[factionId] ?? []).filter((piece) => !piece.hiddenZone),
+    ...(side >= 0 ? (battle!.plans[side]?.pieces ?? []) : []),
+  ];
+}
+
+/* The viewer's own order, by wire id, naming only pieces it still holds or planned; absent until the faction first orders its hand. */
+function handOrderFor(snapshot: StoredSnapshot, factionId: string) {
+  const held = new Set(orderablePieces(snapshot, factionId).map((piece) => piece.id));
+  const order = (snapshot.handOrders[factionId] ?? []).filter((id) => held.has(id));
+  return order.length ? { handOrder: order.map((id) => snapshot.pieceHandles[id] ?? id) } : {};
+}
+
 /** Retired wire handles never name a live piece again; storage and receipts keep their identities. */
 export function internalPieceId(snapshot: StoredSnapshot, wireId: string): string {
   for (const [id, handle] of Object.entries(snapshot.pieceHandles)) {
@@ -220,6 +247,13 @@ export function internalPieceId(snapshot: StoredSnapshot, wireId: string): strin
 }
 
 export function internalAction<Action extends PieceAction>(snapshot: StoredSnapshot, action: Action): Action {
+  if (action.kind === 'hand-order') {
+    return {
+      ...action,
+      pieceId: internalPieceId(snapshot, action.pieceId),
+      before: action.before && internalPieceId(snapshot, action.before),
+    };
+  }
   if ('pieceId' in action) {
     return { ...action, pieceId: internalPieceId(snapshot, action.pieceId) };
   }
@@ -492,6 +526,7 @@ export class RoomProjection {
             ),
           }
         : {}),
+      ...(factionId ? handOrderFor(snapshot, factionId) : {}),
       ...(shared.handCounts ? { handCounts: shared.handCounts } : {}),
       ...(factionId ? { peek: this.peek(snapshot, factionId) } : {}),
       ...(snapshot.setup ? { setup: snapshot.setup } : {}),
