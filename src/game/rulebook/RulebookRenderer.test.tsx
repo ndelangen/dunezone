@@ -309,7 +309,7 @@ describe('Rulebook renderer', () => {
       <RulebookPageRenderer page={createCataloguePage('single-column', { written: true })} />
     );
     expect(container.querySelectorAll('[data-rulebook-block-id]')).toHaveLength(7);
-    expect(container.querySelector<HTMLElement>('[data-faction-id="atreides"]')?.style.backgroundColor).not.toBe('');
+    expect(container.querySelector('[data-faction-id="atreides"]')?.getAttribute('title')).toBe('Atreides');
     expect(
       [...container.querySelectorAll('ol > li')].map((item) => item.getAttribute('data-rulebook-item-id'))
     ).toEqual(['choose', 'move']);

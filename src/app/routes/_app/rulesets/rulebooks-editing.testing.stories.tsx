@@ -79,9 +79,8 @@ export const UnsavedFactionReference = meta.story({
     await expect(page.queryByRole('textbox', { name: 'Search factions' })).not.toBeInTheDocument();
     await expect(page.getByRole('button', { name: 'Save' })).toBeEnabled();
     const preview = page.getByRole('article', { name: 'Rulebook page: Introduction' });
-    const heading = preview.querySelector<HTMLElement>('[data-rulebook-block-id="HEAD"]');
-    /* A chosen faction paints the heading in its colour. */
-    await waitFor(() => expect(heading?.style.backgroundColor).not.toBe(''));
+    const heading = preview.querySelector('[data-rulebook-block-id="HEAD"]');
+    await waitFor(() => expect(heading).toHaveAttribute('title', 'House Atreides'));
   },
 });
 
