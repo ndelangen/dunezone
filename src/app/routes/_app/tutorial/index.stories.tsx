@@ -28,6 +28,6 @@ export const Landing = meta.story({
       'href',
       '/tutorial/what-goes-where'
     );
-    await expect(page.queryByRole('link', { name: /Battle/ })).toBeNull();
+    await expect(page.queryByRole('link', { name: /Draft and trade/ })).toBeNull();
   },
 });

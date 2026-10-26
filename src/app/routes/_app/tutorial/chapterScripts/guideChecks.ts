@@ -1,3 +1,4 @@
+import { STANDARD_PHASES, tableProgressFor } from '@shared/play/phases';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
 import type { Vector3Tuple } from 'three';
@@ -14,6 +15,12 @@ export const at = (piece: { position: readonly number[] } | undefined) =>
   piece ? (piece.position as Vector3Tuple) : null;
 export const element = (selector: string) => () => document.querySelector(selector);
 /* The last match, as a piece just taken into the hand is listed last. */
+/** The button with exactly this text inside a window, rather than the window's own frame buttons that come first. */
+export const buttonIn = (windowKey: string, text: string) => (): HTMLButtonElement | null =>
+  [...document.querySelectorAll<HTMLButtonElement>(`[data-window="${windowKey}"] button`)].find(
+    (button) => button.textContent?.trim() === text
+  ) ?? null;
+
 export const lastElement = (selector: string) => () => [...document.querySelectorAll(selector)].at(-1) ?? null;
 
 /* Each task keeps its own kind of baseline; the guide only hands it back. */
@@ -143,3 +150,15 @@ export const scrolled = (direction: 'in' | 'out') => ({
     (direction === 'in' ? cameraDistance(view) < watch.from * 0.85 : cameraDistance(view) > watch.from * 1.15),
   finish: (watch: { stop: AbortController }) => watch.stop.abort(),
 });
+
+/** The phase the game is in, by its id, and the turn; a fixture without its own turn plays the standard one. */
+export const phaseOf = (snapshot: () => GameSnapshot) => {
+  const progress = tableProgressFor(snapshot().phase, snapshot().phases ?? STANDARD_PHASES);
+  return { id: progress.activePhaseId, turn: progress.turn };
+};
+
+/** The header's Next phase button. */
+export const nextPhaseButton = () =>
+  [...document.querySelectorAll('[aria-label="Phase navigation"] button')].find(
+    (button) => button.textContent?.trim() === 'Next phase'
+  ) ?? null;

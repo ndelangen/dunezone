@@ -1,9 +1,8 @@
-import { phaseAt, STANDARD_PHASES } from '@shared/play/phases';
 import type { GameSnapshot } from '@shared/play/protocol';
 
 import type { GuideTask } from '../TutorialGuide';
 import type { ChapterScript } from './chapterScript';
-import { at, onBoard, singleSpiceFaceUp, tableDeck, task } from './guideChecks';
+import { at, nextPhaseButton, onBoard, phaseOf, singleSpiceFaceUp, tableDeck, task } from './guideChecks';
 
 /*
  * Chapter 5, "What goes where": the first turn played through, so each phase shows where on the table it happens.
@@ -12,23 +11,15 @@ import { at, onBoard, singleSpiceFaceUp, tableDeck, task } from './guideChecks';
  * Moving the camera is chapter 6's, the windows over the table chapter 9's, and the chat bar Alliances and talking's.
  */
 
-/* The phase the game is in, by its id; a fixture without its own turn plays the standard one. */
-const phaseOf = (snapshot: () => GameSnapshot) => phaseAt(snapshot().phase, snapshot().phases ?? STANDARD_PHASES).id;
-
-const NEXT_PHASE = () =>
-  [...document.querySelectorAll('[aria-label="Phase navigation"] button')].find(
-    (button) => button.textContent?.trim() === 'Next phase'
-  ) ?? null;
-
 /* Pressing Next phase until the header names a phase; one already reached counts at once. */
 const onTo = (snapshot: () => GameSnapshot, id: string, phase: string, detail: string) =>
   task({
     id: `to-${id}`,
     task: `Move on to the ${phase}`,
     detail,
-    anchor: { kind: 'page', element: NEXT_PHASE },
+    anchor: { kind: 'page', element: nextPhaseButton },
     begin: () => undefined,
-    done: () => phaseOf(snapshot) === id,
+    done: () => phaseOf(snapshot).id === id,
   });
 
 function tasks(snapshot: () => GameSnapshot): GuideTask[] {
