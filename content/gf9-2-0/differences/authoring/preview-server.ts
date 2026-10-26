@@ -36,6 +36,10 @@ const server = Bun.serve({
     if (path === '/render-document.json') {
       return new Response(Bun.file(`${here}/render-document.json`));
     }
+    const cover = await Bun.file(`${here}/cover.json`).json();
+    if (path === cover.deliveryPath) {
+      return new Response(Bun.file(`${here}/${cover.deliveryFile}`));
+    }
     if (path === '/') {
       return new Response(html, { headers: { 'Content-Type': 'text/html' } });
     }

@@ -14,6 +14,7 @@ const manuscript = read('manuscript.json');
 const bindings = read('../../authoring/resolved-production-references.json');
 const cards = read('../../components/production-cards.json');
 const baseline = read('../../authoring/rulebook.json');
+const cover = read('cover.json');
 const used = new Set<string>();
 function id(key: string): string {
   for (let attempt = 0; ; attempt++) {
@@ -151,6 +152,15 @@ for (const authored of manuscript.pages) {
     page.controlValues = structuredClone(baseline.contents.pagesById[baseline.contents.pageOrder[0]].controlValues);
     page.controlValues.cover.subtitle = 'GF9 2019 TO GF9 2.0';
     page.controlValues.cover.supportingText = 'WHAT CHANGES\nFOR EXPERIENCED PLAYERS\nLOCAL REVIEW DRAFT';
+    const sourceUrl = `https://localhost${cover.deliveryPath}`;
+    page.controlValues.cover.backgroundSource = { kind: 'url' };
+    page.controlValues.cover.backgroundImageUrl = sourceUrl;
+    page.controlValues.cover.backgroundImage = {
+      url: `http://127.0.0.1:4320${cover.deliveryPath}`,
+      width: cover.width,
+      height: cover.height,
+      sourceUrl,
+    };
   } else {
     authored.columns.forEach((values: any[], column: number) => {
       const region = authored.layoutId === 'single-column' ? 'content' : `column${column + 1}`;

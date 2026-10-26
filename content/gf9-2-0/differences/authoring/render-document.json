@@ -196,11 +196,11 @@
           "subtitle": "GF9 2019 TO GF9 2.0",
           "supportingText": "WHAT CHANGES\nFOR EXPERIENCED PLAYERS\nLOCAL REVIEW DRAFT",
           "backgroundImage": {
-            "url": "https://dune.zone/user-images/e76d8241b236ed4b3ddd627c3c14238e32d3993e6a84ed6231592f7eace51523.jpg",
+            "url": "http://127.0.0.1:4320/user-images/a55501141c2585b91dcd40268b24ad899b88f86e30e697377c96ae1311f4f36c.jpg",
             "width": 1448,
             "height": 1086
           },
-          "backgroundImageUrl": "https://dune.zone/user-images/e76d8241b236ed4b3ddd627c3c14238e32d3993e6a84ed6231592f7eace51523.jpg",
+          "backgroundImageUrl": "http://127.0.0.1:4320/user-images/a55501141c2585b91dcd40268b24ad899b88f86e30e697377c96ae1311f4f36c.jpg",
           "showDuneLogo": true,
           "showSubtitle": true
         }

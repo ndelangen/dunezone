@@ -6,8 +6,8 @@
     "size": "a4",
     "design": "restrained"
   },
-  "rawSha256": "94d3572c23f2972dc435ff6832fff221947d99bf1088f5c876fb22ce4af3fdfe",
-  "pdfSha256": "50dc12bf6fd0950b39aa268ed86e2b4e22e54a028aba3a36fd4a81033e75eddc",
+  "rawSha256": "144d5527dd20425c895a3c6a85522acb639c93f22e71d09beca0811fcca98627",
+  "pdfSha256": "398bacfe8e95601e465b885b67595d183ae354213865cc411f02ec15c3daf932",
   "coverage": {
     "researchRecords": 141,
     "mapped": 135,
@@ -29,13 +29,16 @@
     "tagged": true,
     "unmatchedProseBoundaries": 0,
     "visuallyCheckedPages": [
+      1,
       16
     ],
     "contactSheetReviewed": true
   },
   "productionWrites": false,
-  "coverCandidate": {
-    "file": "cover-candidate-blended.png",
-    "status": "saved-separately-for-review"
+  "cover": {
+    "file": "cover.png",
+    "status": "approved-applied-locally",
+    "fitting": "Standard full-page crop of the original image.",
+    "productionWrites": false
   }
 }

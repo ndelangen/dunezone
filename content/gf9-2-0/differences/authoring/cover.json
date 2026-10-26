@@ -1,11 +1,16 @@
 {
-  "status": "candidate-for-review",
+  "status": "approved-for-local-rulebook",
   "method": "built-in image_gen compositing",
-  "image": "cover-candidate-blended.png",
+  "image": "cover.png",
   "sources": [
     "https://dune.zone/image/rulebook-cover/sandworm-print.jpg",
     "https://dune.zone/user-images/e76d8241b236ed4b3ddd627c3c14238e32d3993e6a84ed6231592f7eace51523.jpg"
   ],
   "prompt": "Blend the original old and new cover illustrations into one continuous 4:3 landscape. Old upright worm and orange dune on the left, newer worm and rider with angular rocks on the right. Shared dark-blue sky, two pale moons and continuous dunes. Keep the original worm proportions and illustration style. No hard seam, portrait stretching, text, logos or border. Leave quiet sky above for the renderer title.",
-  "productionWrites": false
+  "productionWrites": false,
+  "deliveryFile": "cover.jpg",
+  "deliveryPath": "/user-images/a55501141c2585b91dcd40268b24ad899b88f86e30e697377c96ae1311f4f36c.jpg",
+  "width": 1448,
+  "height": 1086,
+  "fitting": "The standard full-page cover renderer crops the original 4:3 image to A4."
 }

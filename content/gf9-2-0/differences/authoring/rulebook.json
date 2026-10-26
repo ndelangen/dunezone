@@ -177,12 +177,12 @@
             "backgroundSource": {
               "kind": "url"
             },
-            "backgroundImageUrl": "https://dune.zone/__media/src/2dd57d692933e19797bcaaaed6c84257c9f0d7e1ca0e0aef5821c12c5f3996d9",
+            "backgroundImageUrl": "https://localhost/user-images/a55501141c2585b91dcd40268b24ad899b88f86e30e697377c96ae1311f4f36c.jpg",
             "backgroundImage": {
-              "url": "https://dune.zone/user-images/e76d8241b236ed4b3ddd627c3c14238e32d3993e6a84ed6231592f7eace51523.jpg",
+              "url": "http://127.0.0.1:4320/user-images/a55501141c2585b91dcd40268b24ad899b88f86e30e697377c96ae1311f4f36c.jpg",
               "width": 1448,
               "height": 1086,
-              "sourceUrl": "https://dune.zone/__media/src/2dd57d692933e19797bcaaaed6c84257c9f0d7e1ca0e0aef5821c12c5f3996d9"
+              "sourceUrl": "https://localhost/user-images/a55501141c2585b91dcd40268b24ad899b88f86e30e697377c96ae1311f4f36c.jpg"
             },
             "showDuneLogo": true,
             "showSubtitle": true,
