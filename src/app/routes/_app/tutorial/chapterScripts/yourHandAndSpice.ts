@@ -47,7 +47,8 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     task({
       id: 'lay-card',
       task: 'Lay a Spice card on the table',
-      detail: 'Drag the top card off the Spice deck, on the right of the table, and drop it beside the deck.',
+      detail:
+        'Press down on the Spice deck, on the right of the table, and swipe away at once to take its top card. Drop it beside the deck.',
       anchor: { kind: 'table', point: () => at(spiceDeck()) },
       begin: () => spiceDeck()?.items.length ?? 0,
       done: (start) => (spiceDeck()?.items.length ?? 0) < start,

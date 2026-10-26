@@ -84,7 +84,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'take-two',
       task: 'Pick up two cards in one go',
       detail:
-        'Drag the top Treachery card off the deck, hold it back over the deck and press {T}: the next card joins it. Drop the two on the table.',
+        'Swipe the top Treachery card off the deck (press down and move at once), hold it back over the deck and press {T}: the next card joins it. Drop the two on the table.',
       anchor: { kind: 'table', point: () => at(treachery()) },
       ...tookWithT(() => looseStacks(pieces(), treachery(), 2)),
     }),

@@ -42,7 +42,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'spice',
       task: 'Turn over the top Spice card',
       detail:
-        'The Spice Blow happens at the Spice deck, on the right of the table. Drag its top card onto the table, then press {F} on your keyboard to turn it over.',
+        'The Spice Blow happens at the Spice deck, on the right of the table. To draw one card, press down on the deck and swipe away at once: the top card comes with you. Wait a moment before you move and the whole deck comes instead. Drop the card on the table, then point at it and press {F} on your keyboard to turn it over.',
       anchor: { kind: 'table', point: () => at(deck('right')) },
       begin: () => singleSpiceFaceUp(pieces()),
       done: (start) => singleSpiceFaceUp(pieces()) > start,
