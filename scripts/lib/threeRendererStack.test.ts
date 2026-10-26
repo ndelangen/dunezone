@@ -109,6 +109,7 @@ describe('the installed fiber and drei bundles', () => {
     expect(() => parseAst(withoutCanvasBackground(fiber))).not.toThrow();
     expect(() => parseAst(drei)).not.toThrow();
     expect(withoutInspectorSettings(drei)).not.toContain('inspector/tabs/Settings');
+    expect(withoutInspectorSettings(drei).split('\n')).toHaveLength(drei.split('\n').length);
     expect(() => parseAst(withoutInspectorSettings(drei))).not.toThrow();
   });
 });

@@ -9,7 +9,7 @@ import { configDefaults, defineConfig } from 'vite-plus';
 
 import { browserLaunchTests } from './browser-launch-tests.ts';
 import { coverageExclude, coverageInclude } from './coverage-denominator.ts';
-import { browserBundleBudgets } from './scripts/lib/browserBundleBudgets.ts';
+import { browserBundleBudgets, THREE_BUILD } from './scripts/lib/browserBundleBudgets.ts';
 import { readJsonc } from './scripts/lib/jsonc.ts';
 import { reactCompiler } from './scripts/lib/reactCompiler.ts';
 import { threeRendererStackAliases, threeRendererStackTreeShaking } from './scripts/lib/threeRendererStack.ts';
@@ -120,7 +120,7 @@ const config = defineConfig({
               groups: [
                 { name: 'lucide', test: /\/lucide-react\//u, maxSize: 500_000, entriesAware: true },
                 /* Three's three builds share one vendor chunk, the shape the bundle budget recognises, whichever renderer modules import them. */
-                { name: 'three', test: /\/node_modules\/three\/build\/three\.(core|webgpu|tsl)\.js$/u },
+                { name: 'three', test: THREE_BUILD },
                 { name: 'media-index', test: /\/src\/app\/routes\/_app\/media\/media-index\.json$/u },
               ],
             },

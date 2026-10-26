@@ -9,12 +9,13 @@ const lucideEntries = Object.entries(icons);
 
 /**
  * Every Lucide icon, about 1,900 of them and 190 KB gzipped, so the gallery loads them only when this source is open.
- * The heading takes the match count, which needs the same list.
+ * The heading takes the match count, which needs the same list, and the page supplies the words for no matches.
  */
 export default function LucideIcons({
   query,
   heading,
-}: Readonly<{ query: string; heading: (total: number) => ReactNode }>) {
+  empty,
+}: Readonly<{ query: string; heading: (total: number) => ReactNode; empty: ReactNode }>) {
   const matches = lucideEntries.filter(([name]) => name.toLowerCase().includes(query));
   return (
     <>
@@ -29,7 +30,7 @@ export default function LucideIcons({
           </Surface>
         ))}
       </div>
-      {matches.length === 0 && <Text>No artwork matches these filters. Try fewer words or clear the filters.</Text>}
+      {matches.length === 0 && empty}
     </>
   );
 }

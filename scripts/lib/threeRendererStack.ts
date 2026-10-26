@@ -158,13 +158,15 @@ export function withoutInspectorSettings(code: string): string {
       "withoutInspectorSettings: drei no longer imports the Inspector Settings tab the way it did; check whether three's Inspector still loads with the table."
     );
   }
+  /* The two newlines keep the three lines it replaces, so later lines keep their numbers for the map-less transform. */
   return code.replace(
     INSPECTOR_SETTINGS,
-    "/* drei's Inspector Settings tab is not bundled (scripts/lib/threeRendererStack.ts). */"
+    "/* drei's Inspector Settings tab is not bundled (scripts/lib/threeRendererStack.ts). */\n\n"
   );
 }
 
 const FIBER_WEBGPU = /\/@react-three\/fiber\/dist\/webgpu\/index\.mjs$/u;
+const DREI_WEBGPU = /\/@react-three\/drei\/webgpu\/index\.mjs$/u;
 
 /**
  * Applies {@link pureStaticAssignments} to fiber's and drei's WebGPU entries, {@link withoutCanvasBackground} to fiber's and {@link withoutInspectorSettings} to drei's.
@@ -177,10 +179,10 @@ export function threeRendererStackTreeShaking(): Plugin {
       handler(code, id) {
         /* Only text is inserted or replaced within a line, so every original line keeps its number. */
         const statics = pureStaticAssignments(code);
-        return {
-          code: FIBER_WEBGPU.test(id) ? withoutCanvasBackground(statics) : withoutInspectorSettings(statics),
-          map: null,
-        };
+        if (FIBER_WEBGPU.test(id)) {
+          return { code: withoutCanvasBackground(statics), map: null };
+        }
+        return { code: DREI_WEBGPU.test(id) ? withoutInspectorSettings(statics) : statics, map: null };
       },
     },
   };

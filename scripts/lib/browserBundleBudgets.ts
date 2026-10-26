@@ -7,7 +7,8 @@ import type { Plugin, Rolldown } from 'vite-plus';
 const DEFAULT_BYTES = 500_000;
 const WEBGPU_BYTES = 1_120_000;
 const DRACO_BYTES = 740_000;
-const THREE_BUILD = /\/node_modules\/three\/build\/three\.(core|webgpu|tsl)\.js$/u;
+/** Three's three prebuilt WebGPU modules, which `vite.config.ts` also groups into the one chunk this budget recognises. */
+export const THREE_BUILD = /\/node_modules\/three\/build\/three\.(core|webgpu|tsl)\.js$/u;
 const digest = (source: string | Uint8Array) => createHash('sha256').update(source).digest('hex');
 const require = createRequire(import.meta.url);
 const dracoDigests = new Set(

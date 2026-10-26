@@ -34,6 +34,7 @@ export const Route = createFileRoute('/_app/media')({
 });
 
 const LucideIcons = lazy(() => import('./LucideIcons'));
+const noMatches = <Text>No artwork matches these filters. Try fewer words or clear the filters.</Text>;
 
 function MediaPage() {
   const committedSearch = mediaPathSearch(Route.useSearch(), useParams({ strict: false }));
@@ -128,6 +129,7 @@ function MediaResults({
             heading={(lucideTotal) => (
               <MediaBreadcrumb search={search} matches={catalogue.matches} total={lucideTotal} />
             )}
+            empty={noMatches}
           />
         </Suspense>
       </Stack>
@@ -146,7 +148,7 @@ function MediaResults({
       ) : (
         <TopicIcons query={query} />
       )}
-      {total === 0 && <Text>No artwork matches these filters. Try fewer words or clear the filters.</Text>}
+      {total === 0 && noMatches}
     </Stack>
   );
 }
