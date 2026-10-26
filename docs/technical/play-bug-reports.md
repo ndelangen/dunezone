@@ -73,6 +73,7 @@ authorization and all other optional permissions disabled. Install it on **only 
 
 The registered app is [Dune Zone Play Reports](https://github.com/apps/dune-zone-play-reports),
 app ID `5478813`, installation ID `175428436`. The installation selects only `ndelangen/dunezone`.
+Its [512px bot logo](play-bug-reports/bot-logo.png) is a gold scarab with an exclamation mark on charcoal.
 
 Set these secrets on the existing `dunezone-game` Worker using `wrangler secret put` with stdin
 from a protected file, never a command-line secret value:
