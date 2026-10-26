@@ -11107,5 +11107,29 @@
     "tags": ["Villeneuve", "sunburst", "rays", "circle", "base"],
     "subjects": ["symbols"],
     "sourceHash": "3f34bed6d117efaf27e907eb4c44eac788a47d697f8f0d21214dcbaf6a29d03f"
+  },
+  "/vector/decal/muaddib.svg": {
+    "description": "A crouching Muad'Dib kangaroo mouse with large ears, folded hind feet and a long tail.",
+    "tags": ["muaddib", "muad dib", "kangaroo mouse", "desert mouse", "Dune", "Arrakis", "vector"],
+    "subjects": ["creatures"],
+    "sourceHash": "80216b8372a0d2864200946624a390d002d5deaa00dd12d499903c90c0e4d7f2"
+  },
+  "/vector/decal/muaddib-multicolor.svg": {
+    "description": "A crouching Muad'Dib kangaroo mouse with large ears, folded hind feet and a long tail.",
+    "tags": ["muaddib", "muad dib", "kangaroo mouse", "desert mouse", "Dune", "Arrakis", "multicolor"],
+    "subjects": ["creatures"],
+    "sourceHash": "05cef6e80b573674605d6b662cebd0cec9184efd56bdbce13d9fb7f18873f459"
+  },
+  "/vector/decal/sardaukar-knife.svg": {
+    "description": "A curved Sardaukar knife with a ring guard, crosshatched grip and notched blade tip.",
+    "tags": ["Sardaukar", "knife", "blade", "Dune", "weapon", "vector"],
+    "subjects": ["weapons"],
+    "sourceHash": "8fe38a32f3fe93697223ba57a110d4ed3efcab5707a29cd2f2a308f226ef8fe1"
+  },
+  "/vector/decal/sardaukar-sheath.svg": {
+    "description": "A curved Sardaukar knife sheath with a seam, rivets and two slots.",
+    "tags": ["Sardaukar", "knife", "blade", "Dune", "sheath", "vector"],
+    "subjects": ["weapons"],
+    "sourceHash": "21576f1a72a5b751902a2da6e6a11e1347177ac41fc6bda2d674fd5d6e1253f5"
   }
 }

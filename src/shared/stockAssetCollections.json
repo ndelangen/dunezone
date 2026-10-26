@@ -1557,7 +1557,9 @@
       "/vector/decal/scissor-sword.svg",
       "/vector/decal/slip-tip.svg",
       "/vector/decal/talon-bracer.svg",
-      "/vector/decal/wire.svg"
+      "/vector/decal/wire.svg",
+      "/vector/decal/sardaukar-knife.svg",
+      "/vector/decal/sardaukar-sheath.svg"
     ]
   },
   {
@@ -1776,7 +1778,9 @@
       "/vector/decal/sandmaster.svg",
       "/vector/decal/sandmaster-multicolor.svg",
       "/vector/decal/little-maker.svg",
-      "/vector/decal/little-maker-multicolor.svg"
+      "/vector/decal/little-maker-multicolor.svg",
+      "/vector/decal/muaddib.svg",
+      "/vector/decal/muaddib-multicolor.svg"
     ]
   },
   {
