@@ -1,25 +1,32 @@
+import { STANDARD_PHASES } from '@shared/play/phases';
 import type { GameSnapshot } from '@shared/play/protocol';
+import { TABLE_TANKS_LABEL_POSITION } from '@shared/play/tableFurnitureLayout';
 
 import type { GuideTask } from '../TutorialGuide';
 import type { ChapterScript } from './chapterScript';
-import { at, nextPhaseButton, onBoard, phaseOf, singleSpiceFaceUp, tableDeck, task } from './guideChecks';
+import { at, nextPhaseButton, onBoard, singleSpiceFaceUp, tableDeck, task } from './guideChecks';
 
 /*
- * Chapter 5, "What goes where": the first turn played through, so each phase shows where on the table it happens.
- * Storm to Spice Blow, a Spice card turned over; on to Bidding, a Treachery card drawn; on to Shipment, troops onto the board.
- * The game here is a table, not a referee, so the player runs each phase by hand (Norbert, 2026-10-26: the chapter needed one thread).
- * Moving the camera is chapter 6's, the windows over the table chapter 9's, and the chat bar Alliances and talking's.
+ * Chapter 5, "What goes where": turn 1 played up to Shipment, one phase at a time, so each phase shows where on the table it happens.
+ * Every step is one press of Next phase or one move at the place that phase uses: the Spice deck on the right, the Treachery deck
+ * on the left, the Tleilaxu Tanks below the board and the reserves at the player's seat (Norbert, 2026-10-26: one thread, and
+ * never two presses of Next phase for one step). Moving the camera is chapter 6's, the windows chapter 9's.
  */
 
-/* Pressing Next phase until the header names a phase; one already reached counts at once. */
-const onTo = (snapshot: () => GameSnapshot, id: string, phase: string, detail: string) =>
+/* The phase the table is at, counted from the start of the game, and where a phase falls in the first turn. */
+const phaseIndex = (snapshot: () => GameSnapshot) => snapshot().phase ?? 0;
+const indexOf = (snapshot: () => GameSnapshot, id: string) =>
+  (snapshot().phases ?? STANDARD_PHASES).findIndex((entry) => entry.id === id);
+
+/* One press of Next phase, into the named phase; a press too many still counts, so the chapter never waits on a phase it passed. */
+const onTo = (snapshot: () => GameSnapshot, id: string, phase: string, detail: string, where?: GuideTask['anchor']) =>
   task({
     id: `to-${id}`,
-    task: `Move on to the ${phase}`,
+    task: `Move on to ${phase}`,
     detail,
-    anchor: { kind: 'page', element: nextPhaseButton },
+    anchor: where ?? { kind: 'page', element: nextPhaseButton },
     begin: () => undefined,
-    done: () => phaseOf(snapshot).id === id,
+    done: () => phaseIndex(snapshot) >= indexOf(snapshot, id),
   });
 
 function tasks(snapshot: () => GameSnapshot): GuideTask[] {
@@ -35,8 +42,8 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     onTo(
       snapshot,
       'spice-blow',
-      'Spice Blow',
-      'Turn 1 starts in the Storm, as the header top left says. Nobody referees here: you move the game on yourself. Press Next phase, top right.'
+      'the Spice Blow',
+      'Turn 1 starts in the Storm, as the chip top left says. Every phase happens somewhere on the table; you move from one to the next yourself. Press Next phase, top right, once.'
     ),
     task({
       id: 'spice',
@@ -49,15 +56,21 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     }),
     onTo(
       snapshot,
+      'choam-charity',
+      'CHOAM Charity',
+      'Press Next phase once more. CHOAM Charity is paid out of the spice bank by hand; your hand and spice chapter shows how. Nobody needs it now.'
+    ),
+    onTo(
+      snapshot,
       'bidding',
       'Bidding',
-      'Press Next phase until the header says Bidding. CHOAM Charity comes first and needs nothing from you here.'
+      'Press Next phase again. Watch the camera: each phase turns it to the part of the table that phase uses.'
     ),
     task({
       id: 'draw',
       task: 'Draw a Treachery card',
       detail:
-        'Bidding sells cards from the Treachery deck, on the left of the table. The bidder over the board runs the auction, which the Bidding chapter covers. Say you won a card: right-click the deck and choose Draw a card.',
+        'Bidding sells cards from the Treachery deck, on the left of the table; the Bidding chapter covers the auction. Say you won a card: right-click the deck and choose Draw a card. It goes to your hand.',
       anchor: { kind: 'table', point: () => at(deck('left')) },
       /* The card must leave the Treachery deck, so a Spice card drawn instead does not count. */
       begin: () => ({ hand: snapshot().hand?.length ?? 0, deck: deck('left')?.items.length ?? 0 }),
@@ -65,9 +78,16 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     }),
     onTo(
       snapshot,
+      'revival',
+      'Revival',
+      'Press Next phase. Revival brings troops and leaders back from the Tleilaxu Tanks, the tray below the board where the arrow points. Nothing has died yet, so there is nothing to revive.',
+      { kind: 'table', point: () => [...TABLE_TANKS_LABEL_POSITION] }
+    ),
+    onTo(
+      snapshot,
       'shipment-and-movement',
       'Shipment and Movement',
-      'Press Next phase until the header says Shipment and Movement. Revival comes first.'
+      'Press Next phase once more, into Shipment and Movement.'
     ),
     task({
       id: 'ship',
@@ -86,9 +106,10 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
 
 /* One line for each part of the chapter, in the order it was played. */
 const learned = [
-  'You move the game on yourself with Next phase',
-  'Spice Blow: turn over a card from the Spice deck with {F}',
+  'One press of Next phase moves the game one phase on, and the camera with it',
+  'Spice Blow: swipe a card off the Spice deck and turn it over with {F}',
   'Bidding: right-click the Treachery deck to draw a card',
+  'Revival: the Tleilaxu Tanks lie below the board',
   'Shipment: drag troops from your reserves onto a territory',
 ];
 
