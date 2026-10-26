@@ -21,7 +21,7 @@ The existing publisher runs with local Browser, Images and persistent R2 binding
 
 A serial local scheduler invokes the publisher's existing lease/job lifecycle every five seconds after each completed cycle. Jobs, artifact identities and completed objects remain in the same local database and stores after restart. The scheduler never enqueues a catalogue rebuild. Publication work, capture timeouts and artifact byte limits remain the production limits. Startup and every scheduler cycle refuse runtime state above 2 GiB. Existing bytes remain available for inspection and recovery.
 
-Wrangler 4.149.0 resolves Miniflare 5.20261006.1-alpha. Its maintained dependency patch forwards `output_quality` to the JPEG encoder and enables progressive JPEG output. Production encoding and byte/geometry assertions stay intact. The regression test uses the Wrangler-resolved simulator and actual image bytes.
+Wrangler 4.152.0 resolves Miniflare 5.20261019.2-beta. Its maintained dependency patch forwards `output_quality` to the JPEG encoder and enables progressive JPEG output. Production encoding and byte/geometry assertions stay intact. The regression test uses the Wrangler-resolved simulator and actual image bytes.
 
 To discard this runtime and rebuild from a fresh trusted snapshot, stop it first, then run:
 
