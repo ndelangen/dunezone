@@ -303,7 +303,9 @@ describe('Play account deletion', () => {
       };
       /* A deletion that failed and was restored names the same account and must reach no game. */
       await ctx.db.insert('account_deletion_operations', { ...operation, state: 'failed', completed_at: null });
-      return { operationId: await ctx.db.insert('account_deletion_operations', { ...operation, state: 'completed' }) };
+      const operationId = await ctx.db.insert('account_deletion_operations', { ...operation, state: 'completed' });
+      await ctx.db.patch(subject.userId, { account_deletion_operation_id: operationId });
+      return { operationId };
     });
     const events = async () =>
       await subject.t.run(async (ctx) => await ctx.db.query('play_account_deletions').collect());
@@ -321,6 +323,38 @@ describe('Play account deletion', () => {
         { game_id: subject.game._id, user_id: subject.userId, operation_id: operationId, state: 'pending' },
       ]);
     }
+  });
+
+  test('reaches no creator whose deleted account was restored, though the restore leaves its deletion completed', async () => {
+    const subject = await createdGame();
+    await subject.t.run(async (ctx) => {
+      const rows = await ctx.db.query('play_game_accounts').collect();
+      await Promise.all(rows.map((row) => ctx.db.delete(row._id)));
+      const profile = (await ctx.db
+        .query('profiles')
+        .withIndex('by_user_id', (q) => q.eq('user_id', subject.userId))
+        .unique())!;
+      const stamp = new Date().toISOString();
+      await ctx.db.insert('account_deletion_operations', {
+        source_user_id: subject.userId,
+        source_profile_id: profile._id,
+        replacement_user_id: null,
+        phase: 'complete',
+        snapshot_kind: null,
+        snapshot_cursor: null,
+        retry_count: 0,
+        error: null,
+        created_at: stamp,
+        updated_at: stamp,
+        completed_at: stamp,
+        state: 'completed',
+      });
+    });
+    await subject.t.mutation(internal.playDeletion.requeueCreatorDeletions, { cursor: null });
+    const queued = (
+      await subject.t.run(async (ctx) => await ctx.db.system.query('_scheduled_functions').collect())
+    ).filter((job) => job.name.endsWith('queueCreatorDeletion'));
+    expect(queued).toEqual([]);
   });
 
   test('settles a deletion queued for a game that never opened only once its room has emptied', async () => {

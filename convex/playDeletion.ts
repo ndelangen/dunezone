@@ -119,7 +119,9 @@ export const requeueCreatorDeletions = internalMutation({
   handler: async (ctx, args) => {
     const page = await ctx.db.query('account_deletion_operations').paginate({ cursor: args.cursor, numItems: 64 });
     for (const operation of page.page) {
-      if (operation.state === 'completed') {
+      /* A restore also leaves its operation completed, so only an account this deletion still holds deleted is reached. */
+      const source = operation.state === 'completed' ? await ctx.db.get(operation.source_user_id) : null;
+      if (source?.account_state === 'deleted' && source.account_deletion_operation_id === operation._id) {
         await ctx.scheduler.runAfter(0, internal.playDeletion.queueCreatorDeletion, {
           operationId: operation._id,
           cursor: null,
