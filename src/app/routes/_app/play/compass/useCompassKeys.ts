@@ -160,10 +160,13 @@ function stepsSuggestions(keys: CompassKeys, arrow: Arrow) {
   return keys.spot === 'search' && (arrow === 'up' || arrow === 'down');
 }
 
-/* The arrow a key steers with: an arrow key, or a bare W, A, S or D with the search still empty. */
-function arrowOf(event: KeyboardEvent, query: string): Arrow | undefined {
+/*
+ * The arrow a key steers with: an arrow key, or a bare W, A, S or D while Space is still held from opening the compass
+ * and nothing is typed. A tapped-open compass gives the letters to the search, so "Shared" keeps its S.
+ */
+function arrowOf(event: KeyboardEvent, query: string, holding: boolean): Arrow | undefined {
   const arrow = ARROWS[event.key];
-  if (arrow || query !== '' || event.metaKey || event.ctrlKey || event.altKey) {
+  if (arrow || !holding || query !== '' || event.metaKey || event.ctrlKey || event.altKey) {
     return arrow;
   }
   return WASD[event.key.toLowerCase()];
@@ -219,7 +222,7 @@ export function useCompassKeys(keys: CompassKeys) {
       return;
     }
     event.stopPropagation();
-    const arrow = arrowOf(event, keys.query);
+    const arrow = arrowOf(event, keys.query, hold.current.down);
     if (arrow) {
       steer(event, arrow);
     } else {

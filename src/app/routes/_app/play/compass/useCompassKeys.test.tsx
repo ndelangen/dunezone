@@ -112,7 +112,7 @@ test('Space held while the arrows steer opens what they point at when it is let 
   expect(onConfirm).toHaveBeenCalledTimes(1);
 });
 
-test('W, A, S and D steer as the arrows do until something is typed, then they spell', () => {
+test('W, A, S and D steer as the arrows do while Space is held and nothing is typed, then they spell', () => {
   page();
   const { result } = compass();
   press('keydown', SPACE);
@@ -128,6 +128,17 @@ test('W, A, S and D steer as the arrows do until something is typed, then they s
   act(() => result.current.setQuery('spi'));
   expect(press('keydown', { key: 'd' }).defaultPrevented).toBe(false);
   expect(result.current.spot).toBe('hub');
+});
+
+test('On a compass Space only tapped open, W, A, S and D go to the search, so a search for "Shared" keeps its S', () => {
+  page();
+  const { result } = compass();
+  press('keydown', SPACE);
+  press('keyup', SPACE);
+  for (const key of ['s', 'w', 'a', 'd', 'S']) {
+    expect(press('keydown', { key }).defaultPrevented).toBe(false);
+    expect(result.current.spot).toBe('hub');
+  }
 });
 
 test('Enter confirms and Escape closes', () => {
