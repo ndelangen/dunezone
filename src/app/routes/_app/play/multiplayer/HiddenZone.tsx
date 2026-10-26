@@ -21,6 +21,7 @@ import { createPortal } from 'react-dom';
 
 import type { TableSession, TableProjection } from '../../../../db/tabletop/TableSession';
 import { HandPieceCloseUp } from '../../../../widgets/tabletop/PieceCloseUp';
+import { wheelPixels } from '../../../../widgets/tabletop/wheelPixels';
 import { PieceImage, pieceName, useHandCloseUp } from './HandPiece';
 import styles from './HiddenZone.module.css';
 import { fitZoom, UNZOOMED, wheelFactor, zoomAbout } from './hiddenZoneZoom';
@@ -131,6 +132,8 @@ type Carry = Readonly<{
   turn: number;
   /** The zone's box on the page, measured once when the piece is lifted so a move reads no layout. */
   zone: DOMRect;
+  /** Lifted in a zoomed view, where a piece may be bigger than the zone: then only its centre is kept inside. */
+  zoomed: boolean;
 }>;
 
 /*
@@ -202,7 +205,9 @@ export function HiddenZone({ client, table, hand }: Props) {
     const top = current.y - current.grabY;
     const { zone } = current;
     const pending = turns.current && turns.current.pieceId === current.pieceId ? turns.current.by : 0;
-    const { across, down } = turnedReach(current.width, current.depth, { x: 0, y: 0, turn: current.turn + pending });
+    const { across, down } = current.zoomed
+      ? { across: 0, down: 0 }
+      : turnedReach(current.width, current.depth, { x: 0, y: 0, turn: current.turn + pending });
     const sideways = (current.width - across) / 2;
     const upways = (current.depth - down) / 2;
     return {
@@ -263,7 +268,13 @@ export function HiddenZone({ client, table, hand }: Props) {
     const box = event.currentTarget instanceof HTMLElement ? event.currentTarget.getBoundingClientRect() : null;
     if (box) {
       const at = { x: event.clientX - box.left, y: event.clientY - box.top };
-      setZoom(zoomAbout(zoom, wheelFactor(event.deltaY), at, { scale: view.scale, width, height }));
+      setZoom(
+        zoomAbout(zoom, wheelFactor(wheelPixels(event.deltaY, event.deltaMode)), at, {
+          scale: view.scale,
+          width,
+          height,
+        })
+      );
     }
   });
   /* A wheel listener that may cancel the scroll it would start, which React's passive one cannot. */
@@ -477,16 +488,14 @@ export function HiddenZone({ client, table, hand }: Props) {
               const spot = shownSpot(piece);
               const carried = carry?.pieceId === piece.id && carry.moving ? carry : null;
               /*
-               * Kept whole in view, as turned: a piece laid out in a roomier tab sits at this one's edge until moved.
-               * Zoomed in, every piece keeps its true place, so a counter stays on its space and a piece past the edge is cut off.
+               * Kept whole in the unzoomed view, as turned: a piece laid out in a roomier tab sits at this one's edge until moved.
+               * Zoomed in, the view enlarges that same layout, so every piece it shows can be reached by moving the view.
                */
-              const { across, down } = turnedReach(pieceWidth, pieceDepth, spot);
-              const kept = (offset: number, max: number) => (zoomed ? offset : inside(offset, max));
-              const left =
-                kept((spot.x * HIDDEN_ZONE_WIDTH - zoom.x) * scale - across / 2, width - across) +
-                (across - pieceWidth) / 2;
-              const top =
-                kept((spot.y * HIDDEN_ZONE_DEPTH - zoom.y) * scale - down / 2, height - down) + (down - pieceDepth) / 2;
+              const { across, down } = turnedReach(pieceWidth / zoom.by, pieceDepth / zoom.by, spot);
+              const centre = (at: number, size: number, reach: number, room: number, from: number) =>
+                ((inside(at * size * view.scale - reach / 2, room - reach) + reach / 2) / view.scale - from) * scale;
+              const left = centre(spot.x, HIDDEN_ZONE_WIDTH, across, width, zoom.x) - pieceWidth / 2;
+              const top = centre(spot.y, HIDDEN_ZONE_DEPTH, down, height, zoom.y) - pieceDepth / 2;
               const box = { width: pieceWidth, height: pieceDepth };
               const hover = closeUp.hover(piece);
               const handlers = {
@@ -515,6 +524,7 @@ export function HiddenZone({ client, table, hand }: Props) {
                     depth: pieceDepth,
                     turn: spotOf(piece).turn ?? 0,
                     zone: frame.current!.getBoundingClientRect(),
+                    zoomed,
                   });
                 },
                 onPointerMove: (event: PointerEvent<HTMLDivElement>) => {
