@@ -57,6 +57,14 @@ function gameTableCryptoInBrowser(): PluginOption {
   };
 }
 
+/*
+ * App modules whose top level only declares: schemas, data helpers and UI components.
+ * Rolldown keeps a module whose top level calls a function (such as `z.object()`) even when nothing uses its exports, so every page carried every domain's schemas through the route definitions.
+ * Marked side-effect free, an unused one drops out; a used one keeps its statements, including the static-property and registry assignments under `src/app/ui`.
+ * Styles keep their side effects: the pattern matches TypeScript only.
+ */
+const APP_MODULES_WITHOUT_SIDE_EFFECTS = /\/src\/(?:shared|app\/db|app\/ui)\/[^?]*\.tsx?$/u;
+
 function withoutRouteSplittingInVitest(plugins: PluginOption[]): PluginOption[] {
   if (!process.env.VITEST) {
     return plugins;
@@ -115,6 +123,7 @@ const config = defineConfig({
     client: {
       build: {
         rollupOptions: {
+          treeshake: { moduleSideEffects: [{ test: APP_MODULES_WITHOUT_SIDE_EFFECTS, sideEffects: false }] },
           output: {
             codeSplitting: {
               groups: [

@@ -745,6 +745,9 @@ A dependency upgrade that changes these identities or exceeds a budget needs ano
 Lucide's full media catalogue and the Rulebook capture validation graph use bounded, entry-aware
 chunk groups. Shared icons stay shared, and the complete catalogue loads only with the media route's Lucide
 gallery (`LucideIcons.tsx`).
+The client build marks TypeScript under `src/shared`, `src/app/db` and `src/app/ui` side-effect free
+(`APP_MODULES_WITHOUT_SIDE_EFFECTS` in `vite.config.ts`), so schema and component modules a page never
+uses stay out of its bundle. A module there must not rely on running just because it is imported.
 Capture builds resolve static URLs against `public/` with `copyPublicDir: false`; the existing
 publisher assembly supplies those files once. Generate vectors as well as images before comparing
 asset counts or unresolved-URL warnings.
