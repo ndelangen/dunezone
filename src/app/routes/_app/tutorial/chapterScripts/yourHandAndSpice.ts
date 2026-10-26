@@ -63,7 +63,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     task({
       id: 'open-hand',
       task: 'Open your hand',
-      detail: 'Your hand is in the Hand & spice window. Press {Space}, then {←} and {Space} again.',
+      detail: 'Your hand is in the Hand & spice window. Press {H}, or {Space}, then {←} and {Space} again.',
       anchor: { kind: 'page', element: viaCompass('hand') },
       ...openedWindow(windowShown('hand')),
     }),
@@ -87,7 +87,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     task({
       id: 'withdraw',
       task: 'Take spice from your reserve',
-      detail: 'The big number under your hand is your reserve. Pick an amount below it and press Withdraw spice.',
+      detail: 'The big number at the top of the window is your reserve. Pick an amount beside it and press Withdraw.',
       anchor: { kind: 'page', element: element('[data-window="hand"] [aria-label="Spice reserve balance"]') },
       begin: reserve,
       done: (start) => reserve() < start,
@@ -98,7 +98,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
 /* One line for each part of the chapter, in the order it was played. */
 const learned = [
   'Right-click a card on the table and choose Take into hand',
-  '{Space} {←} opens your Hand & spice',
+  '{H}, or {Space} {←}, opens your Hand & spice',
   'Hold {Alt} over a card in your hand to read it',
   'Drag a card from your hand onto the table to play it',
   'Withdraw spice from your reserve onto the table',

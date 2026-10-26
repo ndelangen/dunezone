@@ -134,7 +134,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'open-hand',
       task: 'Open your hand',
       detail:
-        'You play House Atreides here. Press {Space}, then {←} and {Space} again: your Kwisatz Haderach card and its counter are there.',
+        'You play House Atreides here. Press {H}, or {Space}, then {←} and {Space} again: your Kwisatz Haderach card and its counter are there.',
       anchor: { kind: 'page', element: viaCompass('hand') },
       ...openedWindow(windowShown('hand')),
     }),
@@ -159,7 +159,8 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     task({
       id: 'open-zone',
       task: 'Open your private side-table',
-      detail: 'It sits twice left on the compass: press {Space}, then {←} {←} and {Space}. Nobody else ever sees it.',
+      detail:
+        'Press {J}, or find it twice left on the compass: {Space}, then {←} {←} and {Space}. Nobody else ever sees it.',
       anchor: { kind: 'page', element: viaCompass('hidden') },
       ...openedWindow(windowShown('hidden-zone')),
     }),
@@ -206,7 +207,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
 /* One line for each part of the chapter, in the order it was played. */
 const learned = [
   'Right-click a piece in your hand to move it to your private side-table',
-  '{Space} {←} {←} opens your private side-table, and only you see it',
+  '{J}, or {Space} {←} {←}, opens your private side-table, and only you see it',
   'Pieces stay where you lay them, so a counter can sit on a card’s track',
   'Scroll over the side-table to zoom in on a card',
   'Atreides counts troops lost in battles on the Kwisatz Haderach card, and gains it after 7',

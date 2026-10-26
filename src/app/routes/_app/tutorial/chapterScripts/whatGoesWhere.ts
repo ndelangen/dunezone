@@ -43,7 +43,8 @@ function tableTasks(snapshot: () => GameSnapshot): GuideTask[] {
     task({
       id: 'ship',
       task: 'Put troops on the board',
-      detail: 'Your reserves sit on the rim nearest you. Drag a troop from the stack onto any territory.',
+      detail:
+        'Your reserves wait on the rim at your seat, where the arrow points. Drag a troop from the stack onto any territory.',
       anchor: {
         kind: 'table',
         point: () => at(pieces().find((piece) => piece.stackKey?.startsWith(`troops:${mine()}:`) && !onBoard(piece))),
@@ -71,7 +72,7 @@ const panelTasks = (snapshot: () => GameSnapshot): GuideTask[] => [
   task({
     id: 'your-spice',
     task: 'Count your spice',
-    detail: 'Your cards and spice are in the Hand & spice window. Press {Space}, then {←} and {Space} again.',
+    detail: 'Your cards and spice are in the Hand & spice window. Press {H}, or {Space}, then {←} and {Space} again.',
     anchor: { kind: 'page', element: viaCompass('hand') },
     ...openedWindow(windowShown('hand')),
   }),
@@ -79,7 +80,7 @@ const panelTasks = (snapshot: () => GameSnapshot): GuideTask[] => [
     id: 'player-info',
     task: "Look up another player's faction",
     detail:
-      "Every player is a faction token in the chat bar beside Controls. Click one, or the token in a chat's title, to see their faction.",
+      "Every player is a faction token in the chat bar beside Controls. Click one to open your chat with them, then click the token in the chat's title.",
     anchor: {
       kind: 'page',
       element: () => chatFactionToken() ?? element('nav[aria-label="Chats"] button:not([aria-label^="Table chat"])')(),
@@ -109,8 +110,8 @@ const learned = [
   'Right-click a deck to draw a card',
   'Drag troops from your reserves onto a territory',
   'Press F to turn a card over',
-  '{Space} opens the compass; left on it is your Hand & spice',
-  "Each player's token in the chat bar opens their window",
+  '{H}, or {Space} then left on the compass, opens your Hand & spice',
+  "Each player's token in the chat bar opens your chat with them, and the token in its title their faction",
   'Next phase moves the game on',
 ];
 

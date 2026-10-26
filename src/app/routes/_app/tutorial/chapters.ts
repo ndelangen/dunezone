@@ -76,7 +76,7 @@ const CHAPTERS: readonly Omit<TutorialChapter, 'number'>[] = [
   {
     slug: 'windows',
     title: 'Windows',
-    goal: 'Open, pin and resize windows with the compass',
+    goal: 'Open windows with the compass or a letter, then pin and resize them',
     minutes: 4,
     part: 'The table',
   },

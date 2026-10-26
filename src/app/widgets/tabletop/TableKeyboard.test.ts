@@ -388,6 +388,25 @@ describe('the cursor over the table', () => {
     expect(keyboard.panDirection()).toEqual([0, 0]);
   });
 
+  test('leaves a peeked deck under the cursor its arrows, so a focused card moves', () => {
+    const { keyboard } = table();
+    keyboard.setPanAvailable(true);
+    keyboard.hoverTable(true);
+    document.body.innerHTML = '<div role="dialog"><div role="button" tabindex="0" data-card></div></div>';
+    const card = document.querySelector<HTMLElement>('[data-card]')!;
+    const moved = vi.fn();
+    card.addEventListener('keydown', (event) => {
+      moved();
+      event.preventDefault();
+    });
+    card.focus();
+
+    key('keydown', { key: 'ArrowLeft', code: 'ArrowLeft' }, card);
+
+    expect(moved).toHaveBeenCalled();
+    expect(keyboard.panDirection()).toEqual([0, 0]);
+  });
+
   test('off the table, the focused tab list keeps its arrows again', () => {
     const { keyboard } = table();
     keyboard.setPanAvailable(true);

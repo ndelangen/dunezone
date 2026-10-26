@@ -66,19 +66,19 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       'look-left',
       'left',
       'Look at the left of the table',
-      'The camera dial, top right of the table, jumps the view. Press L.'
+      'The camera dial, top right of the table, jumps the view. Click its L.'
     ),
     dialTask(
       'look-right',
       'right',
       'Look at the right of the table',
-      'R on the same dial turns to the other side, where the Spice deck lies.'
+      'R on the same dial turns to the other side, where the Spice deck and your reserves lie.'
     ),
     dialTask(
       'look-bottom',
       'bottom',
-      'Look at your own side',
-      'B on the dial turns to the rim nearest you, where your reserves wait.'
+      'Look at the bottom of the table',
+      'B on the dial turns to the rim below the board.'
     ),
     task({
       id: 'close-up',
@@ -96,7 +96,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
 const learned = [
   'Scroll over the board to look closer, and back to step out',
   'Slide a close look with the arrow keys or {W}, {A}, {S} and {D}',
-  'Jump the view with the camera dial: L, R, B and M',
+  'Click L, R, B or M on the camera dial to jump the view',
   'Hold {Alt} over a card to read it flat and large',
 ];
 

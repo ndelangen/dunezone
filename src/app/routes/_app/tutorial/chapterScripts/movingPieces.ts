@@ -12,18 +12,23 @@ import type { Piece } from './guideChecks';
  */
 
 /*
- * The cards of a deck held open by a peek, by the ids the peek marks them with, top first; null while no deck is open.
- * Ids rather than names, since a deck holds several cards of one name.
+ * The cards of a deck held open by a peek, by name, top first; null while no deck is open.
+ * Names rather than ids: a card moved in the deck gives every card a new handle, so nobody else can follow it.
+ * Each card's handle is named for the card and its place, as "Old Gap, Top. Arrow keys move it.".
  */
 const peekedOrder = () => {
   const row = document.querySelector('[role="dialog"][aria-label^="Peeking at"] ol');
-  return row ? [...row.querySelectorAll('[data-card]')].map((card) => card.getAttribute('data-card') ?? '') : null;
+  return row
+    ? [...row.querySelectorAll('[data-card] [role="button"]')].map((card) =>
+        (card.getAttribute('aria-label') ?? '').replace(/, [^,]*$/, '')
+      )
+    : null;
 };
 
 /*
  * Moving a card counts the order the peek first showed against the order it shows now, so the task waits for the deck to open
- * and then for one card to change place, by dragging or by the arrow keys. Only cards in both orders are compared, so pulling
- * a card out of the deck does not count as a move.
+ * and then for one card to change place, by dragging or by the arrow keys. A card pulled out of the deck changes its size,
+ * and the order from then on is the one compared against.
  */
 const movedInPeek = () => ({
   begin: () => ({ first: null as string[] | null }),
@@ -32,10 +37,11 @@ const movedInPeek = () => ({
     if (!order) {
       return false;
     }
-    const first = (watch.first ??= order);
-    const before = first.filter((card) => order.includes(card));
-    const now = order.filter((card) => first.includes(card));
-    return before.some((card, index) => card !== now[index]);
+    if (watch.first?.length !== order.length) {
+      watch.first = order;
+      return false;
+    }
+    return watch.first.some((card, index) => card !== order[index]);
   },
 });
 
@@ -102,7 +108,7 @@ function stackTasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'split',
       task: 'Split three troops off',
       detail:
-        'Point at your reserves on the rim nearest you and hold 3 for a second. Three troops slide off beside them.',
+        'Point at your reserves, on the rim at your seat, and hold 3 for a second. Three troops slide off beside them.',
       anchor: { kind: 'table', point: () => at(biggestReserve()) },
       begin: () => reserves().filter((piece) => piece.items.length === 3).length,
       done: (start) => reserves().filter((piece) => piece.items.length === 3).length > start,
@@ -177,7 +183,8 @@ function deckTasks(snapshot: () => GameSnapshot): GuideTask[] {
     task({
       id: 'reorder',
       task: 'Move a card in the deck',
-      detail: 'Drag a card along the row to a new place, or move it with the arrow keys. The deck keeps the new order.',
+      detail:
+        'Drag a card along the row to a new place, or click it and move it with the arrow keys. The deck keeps the new order.',
       /* The arrow stops at the peek's edge, so its wedge never lies over the peek's own heading. */
       anchor: { kind: 'page', element: element('[role="dialog"][aria-label^="Peeking at"]') },
       ...movedInPeek(),
