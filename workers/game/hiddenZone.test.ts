@@ -179,6 +179,8 @@ describe('the hidden zone', () => {
     });
     send({ kind: 'hand-order', pieceId: SECOND, before: LOOSE });
     expect(room.snapshot.battleState!.plans[0]!.cardIds).toEqual([SECOND, LOOSE]);
+    /* The committed pieces follow, so the public wheel and a reveal show the same order. */
+    expect(room.snapshot.battleState!.plans[0]!.pieces.map((piece) => piece.id)).toEqual([SECOND, LOOSE]);
     send({ kind: 'hand-order', pieceId: SECOND, before: null });
     expect(room.snapshot.battleState!.plans[0]!.cardIds).toEqual([LOOSE, SECOND]);
   });
