@@ -234,6 +234,8 @@ export const VECTOR_CROPS = {
   '/vector/decal/mercenaries.svg': [50, 50.04, 100, 77.8],
   '/vector/decal/metro.svg': [50, 49.995, 100, 77.89],
   '/vector/decal/mirror-weapon.svg': [50, 49.995, 100, 79.11],
+  '/vector/decal/muaddib-multicolor.svg': [50, 50, 100, 35.66],
+  '/vector/decal/muaddib.svg': [50, 49.985, 100, 37.03],
   '/vector/decal/needle-moth.svg': [50.349999999999994, 50.105, 79.62, 56.83],
   '/vector/decal/net-recovery-multicolor.svg': [49.785000000000004, 48.95, 92.99, 61.68],
   '/vector/decal/net-recovery.svg': [50.195, 48.965, 89.55, 60.51],
