@@ -20,6 +20,8 @@ export type ChapterScript = Readonly<{
   checkpoint: TutorialCheckpoint;
   /** The faction the learner plays this chapter as, by its name at the table; the recipe's learner seat when absent. */
   playAs?: string;
+  /** Whether the learner opens the table as a spectator, watching rather than seated. */
+  watch?: boolean;
   /** Pieces the learner holds in this chapter besides what the setup dealt, with their images under `{{origin}}` as the setup names them. */
   hand?: readonly StoredPiece[];
   /** What the other players do as the table opens, before the learner sees it, such as moving the game on to the chapter's phase. */

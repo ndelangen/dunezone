@@ -18,12 +18,14 @@ import {
   storedSnapshotSchema,
 } from '../../../../../../workers/game/state';
 import type { StoredSnapshot } from '../../../../../../workers/game/state';
+import { isSessionAction, LocalSession } from './localSession';
+import type { RecordedDeal } from './localSession';
 
 /*
  * The game Worker's own table (`Room`) running in the browser, from a stored state: pieces move, cards draw, phases change
  * and battles resolve exactly as the Worker decides, for whichever seat the page is viewed as. Determine winner and its result
- * apply as the session applies them, since they change only the stored state. Drafting, seats, removal votes and the log stay
- * as they were stored, since those live in the Worker's session and storage, which this does not run.
+ * apply as the session applies them, since they change only the stored state. A table that starts before the deal also runs
+ * the session's seating, draft, trading and seat requests (`LocalSession`). Removal votes and the log stay as they were stored.
  * The tutorial's chapters and the Play sandbox story both play on it.
  */
 
@@ -41,6 +43,8 @@ export type TableStart = Readonly<{
   log: Partial<Record<LogTab, LogEntry[]>>;
   /** The seat the page is viewed as. */
   seat: string;
+  /** For a table that starts before the deal: the players the draft waits for, and how the recording dealt. */
+  draft?: Readonly<{ minimumPlayers: number; deal: RecordedDeal }>;
 }>;
 
 /* The session commits these families outside the table, so a local table refuses them. */
@@ -54,6 +58,11 @@ export class LocalTable {
   private readonly projection = new RoomProjection('local');
   private readonly opening: TableStart;
   private readonly factions: Map<string, string>;
+  /* Before the deal, who sits where and what they play is the session's to say. */
+  private readonly session: LocalSession | undefined;
+  /* The page's player, who keeps their account as their seat changes. */
+  private readonly learner: string;
+  private tradingTimer: ReturnType<typeof setTimeout> | undefined;
   private battleTimer: ReturnType<typeof setTimeout> | undefined;
   /** Delivers a frame to the page; the transport sets it once the page connects. */
   deliver: (message: ServerMessage) => void = () => {};
@@ -75,18 +84,35 @@ export class LocalTable {
       })
     );
     this.seat = start.viewers[start.seat] ? start.seat : 'seat-1';
+    this.learner = start.viewers[this.seat]!.userId;
+    this.session = start.draft
+      ? new LocalSession({
+          stored,
+          viewers: Object.values(start.viewers),
+          players: start.players,
+          minimumPlayers: start.draft.minimumPlayers,
+          deal: start.draft.deal,
+        })
+      : undefined;
     /* No phase cooldown, as on the test stack: a local table is for trying things. */
     this.room = new Room(
       stored,
       () => stored.controls?.seats ?? [],
-      (userId) => this.factions.get(userId),
+      (userId) => this.factionFor(userId),
       undefined,
       0
     );
   }
 
+  private factionFor(userId: string) {
+    return this.session ? this.session.factionOf(userId) : this.factions.get(userId);
+  }
+
   /** Every seat a player sits in; the spectator watches and acts for no one. */
   seats() {
+    if (this.session) {
+      return this.session.actors.seats();
+    }
     return Object.keys(this.opening.viewers).filter((seat) => seat !== SPECTATOR_SEAT);
   }
 
@@ -96,14 +122,23 @@ export class LocalTable {
   }
 
   viewer(seat = this.seat): Viewer {
-    return this.opening.viewers[seat]!;
+    const session = this.session;
+    if (!session) {
+      return this.opening.viewers[seat]!;
+    }
+    /* Seats change hands before the deal, so a seat's viewer is whoever holds it now, the page's own player first. */
+    const viewers = Object.values(this.opening.viewers).sort((a, b) =>
+      a.userId === this.learner ? -1 : b.userId === this.learner ? 1 : 0
+    );
+    const holder = viewers.find((viewer) => session.seatOf(viewer.userId) === seat) ?? this.opening.viewers[seat]!;
+    return { ...holder, viewerSeat: seat };
   }
 
   /** The view a seat receives of the room as it stands, projected as the Worker projects it. */
   frame(seat = this.seat, completedCommandId?: string): View {
     const room = this.room;
     const viewer = this.viewer(seat);
-    const projected = this.projection.snapshot(room.snapshot, this.factions.get(viewer.userId));
+    const projected = this.projection.snapshot(room.snapshot, this.factionFor(viewer.userId));
     const frame = {
       type: 'view' as const,
       viewer,
@@ -111,7 +146,11 @@ export class LocalTable {
       snapshot: {
         ...projected,
         /* Who sits where comes from the session's directory in a real game; a local table keeps the recorded names. */
-        controls: projected.controls && { ...projected.controls, players: this.opening.players, seatRequests: [] },
+        controls:
+          projected.controls &&
+          (this.session
+            ? this.session.forViewer(projected.controls, viewer)
+            : { ...projected.controls, players: this.opening.players, seatRequests: [] }),
         ...(this.opening.removalVotes ? { removalVotes: this.opening.removalVotes } : {}),
       },
       carries: this.projection.carries(room.publicCarries(), room.snapshot),
@@ -132,7 +171,7 @@ export class LocalTable {
 
   /** Shows the page as another seat; the seat it leaves lets go of anything it was carrying. */
   viewAs(seat: string) {
-    if (!this.opening.viewers[seat] || seat === this.seat) {
+    if (!this.seatable(seat) || seat === this.seat) {
       return;
     }
     this.room.clearActivity(this.viewer().connectionId);
@@ -243,6 +282,14 @@ export class LocalTable {
    */
   private commit(message: MessageOf<'command' | 'drop'>, viewer: Viewer, own: boolean) {
     const room = this.room;
+    if (message.type === 'command' && this.session && isSessionAction(message.action)) {
+      room.assertRevision(message.action, message.expectedRevision);
+      room.accept(this.session.commit(room.snapshot, viewer, message.action, Date.now()));
+      this.seat = this.session.seatOf(this.learner);
+      this.scheduleTradingClose();
+      this.deliver(this.frame(this.seat, own ? message.commandId : undefined));
+      return;
+    }
     if (message.type === 'command' && isResultAction(message.action)) {
       room.assertRevision(message.action, message.expectedRevision);
       room.accept(this.settled(applyResult(room.snapshot, viewer, message.action, Date.now())));
@@ -304,9 +351,34 @@ export class LocalTable {
     );
   }
 
-  /** Stops the countdown timer when the page leaves. */
+  /* Trading closes on its deadline, as the session's alarm closes it. */
+  private scheduleTradingClose() {
+    clearTimeout(this.tradingTimer);
+    const trading = this.room.snapshot.swapping;
+    if (!this.session || this.room.snapshot.stage !== 'swapping' || !trading || trading.closed) {
+      return;
+    }
+    this.tradingTimer = setTimeout(
+      () => {
+        const closed = this.session?.expireTrading(this.room.snapshot, Date.now());
+        if (closed) {
+          this.room.accept(closed);
+          this.deliver(this.frame());
+        }
+      },
+      Math.max(0, trading.deadline - Date.now())
+    );
+  }
+
+  /** Whether the page can be viewed as a seat: one recorded, or one someone holds now. */
+  private seatable(seat: string) {
+    return Boolean(this.opening.viewers[seat]) || Boolean(this.session?.actors.holderOf(seat));
+  }
+
+  /** Stops the countdown timers when the page leaves. */
   dispose() {
     clearTimeout(this.battleTimer);
+    clearTimeout(this.tradingTimer);
   }
 
   /** A recorded countdown that ran out before the table opened reveals as it opens. */

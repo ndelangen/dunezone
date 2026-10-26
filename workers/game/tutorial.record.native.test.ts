@@ -68,7 +68,12 @@ async function tutorialRuntime() {
     return { id: entry.id, slug, name: entry.name };
   });
   const ban = required(draftable.factions.find((faction) => !factions.some((chosen) => chosen.id === faction.id)));
-  return new JourneyRecorder(peer, runtime, { factions, ban: { id: ban.id, name: ban.name } });
+  return new JourneyRecorder(
+    peer,
+    runtime,
+    { factions, ban: { id: ban.id, name: ban.name } },
+    new Set(['drafting', 'setup', 'play'])
+  );
 }
 
 /* Each seated faction's sheet as the Worker answers a page asking for it, so the tutorial's table answers the same. */
@@ -102,6 +107,8 @@ describe.runIf(process.env.RECORD_TUTORIAL)('The tutorial setup recording', { ti
     };
     try {
       await drafting(journey);
+      /* The draft before anyone picks: every seat taken and a spectator watching, the same on every recording. */
+      checkpoints.drafting = journey.steps.findIndex((step) => step.title === 'Table full');
       await trading(journey);
       mark('setup');
       await predict(journey);

@@ -187,3 +187,13 @@ export const nextPhaseButton = () =>
   [...document.querySelectorAll('[aria-label="Phase navigation"] button')].find(
     (button) => button.textContent?.trim() === 'Next phase'
   ) ?? null;
+
+/** The gear's game menu button in the header. */
+export const gameMenuButton = () => document.querySelector<HTMLElement>('[aria-label="Game menu"]');
+
+/** Closes the game menu if it is open, so it never stands over the chapter's closing screen. */
+export const closeGameMenu = () => {
+  if (document.querySelector('[role="menu"]')) {
+    gameMenuButton()?.click();
+  }
+};

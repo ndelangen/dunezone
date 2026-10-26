@@ -15,8 +15,11 @@ describe('the tutorial setup', () => {
     const table = new LocalTable(startAt(setup as unknown as TutorialSetup, checkpoint, 'https://dune.zone'));
     const { snapshot, viewer } = table.frame();
     expect(viewer.viewerSeat).toBe(TUTORIAL_RECIPE.learner);
-    expect(snapshot.bank?.factionId).toBeTruthy();
-    expect(snapshot.table.pieces.length).toBeGreaterThan(0);
+    /* Before the deal the learner has a seat but no faction yet, and the table is still bare. */
+    if (snapshot.stage !== 'drafting') {
+      expect(snapshot.bank?.factionId).toBeTruthy();
+      expect(snapshot.table.pieces.length).toBeGreaterThan(0);
+    }
     table.dispose();
   });
 
