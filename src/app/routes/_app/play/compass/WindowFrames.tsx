@@ -54,7 +54,7 @@ function centreFrame({ byKey, opened, inert }: CentreFrame) {
       inert={inert}
       flash={pulseOf(opened.flash, 'centre')}
       onSeat={(seat) => opened.showSeat('centre', centre.key, seat)}
-      onFaction={(seat) => opened.show(FACTION_INFO, seat)}
+      onFaction={(seat) => opened.reveal(FACTION_INFO, seat)}
       actions={<CentreActions byKey={byKey} opened={opened} />}
     />
   );
@@ -125,7 +125,7 @@ function slotFrame({ side, byKey, opened, heights, inert }: SlotFrame) {
         onReset: () => heights.reset(side),
       }}
       onSeat={(seat) => opened.showSeat(side, entry.key, seat)}
-      onFaction={(seat) => opened.show(FACTION_INFO, seat)}
+      onFaction={(seat) => opened.reveal(FACTION_INFO, seat)}
       actions={
         <button
           type="button"

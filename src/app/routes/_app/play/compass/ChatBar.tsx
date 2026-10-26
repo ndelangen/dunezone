@@ -15,7 +15,7 @@ import { chattable, FACTION_INFO } from './windows';
 type ChatBarProps = Readonly<{
   inert: boolean;
   /** Whether a window is open anywhere, so its token shows pressed. */
-  isOpen: (key: string) => boolean;
+  isOpen: (key: string, seat?: string) => boolean;
   onOpenCompass: () => void;
   /** Opens a window, the faction information on the seat given. */
   onShow: (key: string, seat?: string) => void;
@@ -46,14 +46,13 @@ export function ChatBar({ inert, isOpen, onOpenCompass, onShow }: ChatBarProps) 
           {tableChat && (
             <TableChatToken unread={tableChat.unread} open={isOpen('table-chat')} onOpen={() => onShow('table-chat')} />
           )}
+          {/* A token opens the chat with its player, or their faction's information when there is no chat to have. */}
           {others.map((player) => (
             <ChatToken
               key={player.seat}
               player={player}
-              open={isOpen(opens(player))}
-              onOpen={() =>
-                opens(player) === FACTION_INFO ? onShow(FACTION_INFO, player.seat) : onShow(opens(player))
-              }
+              open={chattable(player) ? isOpen(`player:${player.seat}`) : isOpen(FACTION_INFO, player.seat)}
+              onOpen={() => (chattable(player) ? onShow(`player:${player.seat}`) : onShow(FACTION_INFO, player.seat))}
             />
           ))}
         </nav>
@@ -78,11 +77,6 @@ function TableChatToken({ unread, open, onOpen }: Readonly<{ unread: number; ope
       {unread > 0 && <span className={styles.badge}>{unread}</span>}
     </button>
   );
-}
-
-/* A token opens the chat with its player, or their faction's information while a vote or a seat request waits there or there is no chat to have. */
-function opens(player: CompassPlayer) {
-  return chattable(player) && !player.attention ? `player:${player.seat}` : FACTION_INFO;
 }
 
 /* What waits on a player, said with their name: a vote to remove them, or a request for their empty seat. */

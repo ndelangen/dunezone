@@ -79,7 +79,7 @@ const panelTasks = (snapshot: () => GameSnapshot): GuideTask[] => [
     id: 'player-info',
     task: "Look up another player's faction",
     detail:
-      "Every player is a faction token in the chat bar beside Controls. Click one to chat, then the token in the chat's title for their faction.",
+      "Every player is a faction token in the chat bar beside Controls. Click one, or the token in a chat's title, to see their faction.",
     anchor: {
       kind: 'page',
       element: () => chatFactionToken() ?? element('nav[aria-label="Chats"] button:not([aria-label^="Table chat"])')(),

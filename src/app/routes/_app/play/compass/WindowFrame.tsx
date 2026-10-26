@@ -4,9 +4,10 @@ import clsx from 'clsx';
 import { useContext } from 'react';
 import type { CSSProperties, KeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 
+import chat from './ChatBar.module.css';
 import { CompassTableContext } from './compassTable';
 import type { CompassPlayer } from './compassTable';
-import { FactionPicker, factionSeat } from './FactionPicker';
+import { factionSeat, FactionTokens } from './FactionTokens';
 import { PlayerToken } from './PlayerToken';
 import type { Side } from './slotLimits';
 import { FACTION_INFO, WindowBody, WindowHelp } from './windows';
@@ -99,7 +100,7 @@ function fullName(entry: TableWindow) {
   return [entry.label, entry.player?.factionName].filter(Boolean).join(' · ');
 }
 
-/* A chat's token is the way to its faction: it opens the faction information set on that player's seat. */
+/* A chat's token is the way to its faction: it brings the faction information up on that player's seat, marked while a vote or a seat request waits there. */
 function FactionButton({ player, onFaction }: Readonly<{ player: CompassPlayer; onFaction: (seat: string) => void }>) {
   const faction = player.factionName ?? player.name;
   return (
@@ -111,6 +112,7 @@ function FactionButton({ player, onFaction }: Readonly<{ player: CompassPlayer; 
         onClick={() => onFaction(player.seat)}
       >
         <PlayerToken player={player} size={24} />
+        {player.attention && <span className={chat.attention} aria-hidden="true" />}
       </button>
     </Tooltip>
   );
@@ -130,7 +132,7 @@ function WindowContent({
     const shown = factionSeat(table.players, seat);
     return (
       <>
-        <FactionPicker players={table.players} seat={shown} onSeat={onSeat} />
+        <FactionTokens players={table.players} seat={shown} onSeat={onSeat} />
         <WindowBody layout={entry.layout}>{shown && table.factionInfo(shown)}</WindowBody>
       </>
     );

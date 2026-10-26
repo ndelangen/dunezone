@@ -138,26 +138,33 @@ export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boo
     );
   };
   /*
-   * Brings a window the table asks for into view without closing anything: a pinned one lights up, one already in the centre stays.
+   * Brings a window into view without closing anything, as the table's own openings and a chat's faction token do:
+   * a pinned one lights up, one already in the centre stays, either set on the seat asked for.
    * Else it goes into a free slot, beside the board rather than over it, and only into the centre when both slots hold a window.
    */
-  const reveal = (key: string) => {
+  const reveal = (key: string, seat?: string) => {
     const side = SIDES.find((entry) => slots[entry]?.key === key);
     if (side) {
+      if (seat) {
+        setSlots((current) => ({ ...current, [side]: opened(key, seat) }));
+      }
       setFlash(pulse(side));
       return;
     }
     if (centre?.key === key) {
+      if (seat) {
+        setCentre(opened(key, seat));
+      }
       return;
     }
     /* A slot is free when it holds nothing, or a window the table no longer has, such as the last battle's. */
     const free = SIDES.find((entry) => !windows.some((window) => window.key === slots[entry]?.key));
     if (free) {
-      setSlots((current) => ({ ...current, [free]: opened(key) }));
+      setSlots((current) => ({ ...current, [free]: opened(key, seat) }));
       setFlash(pulse(free));
       return;
     }
-    setCentre(opened(key));
+    setCentre(opened(key, seat));
   };
   const pin = (side: Side) => {
     if (!centre) {
@@ -176,8 +183,11 @@ export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boo
       setSlots((current) => ({ ...current, [side]: opened(key, seat) }));
     }
   };
-  /** Whether a window is open anywhere: in the centre or pinned. */
-  const isOpen = (key: string) => [centre, slots.left, slots.right].some((entry) => entry?.key === key);
+  /** Whether a window is open anywhere, in the centre or pinned; with a seat, whether it is set on that seat. */
+  const isOpen = (key: string, seat?: string) =>
+    [centre, slots.left, slots.right].some(
+      (entry) => entry?.key === key && (seat === undefined || entry.seat === seat)
+    );
 
   /* Escape closes the centre window once the compass is not there to take it, and no menu, list, popover or dialog is open to take it first. */
   useEffect(() => {

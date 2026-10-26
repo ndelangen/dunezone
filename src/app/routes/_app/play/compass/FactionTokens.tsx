@@ -2,7 +2,7 @@ import { Tooltip } from '@mantine/core';
 
 import chat from './ChatBar.module.css';
 import type { CompassPlayer } from './compassTable';
-import styles from './FactionPicker.module.css';
+import styles from './FactionTokens.module.css';
 import { PlayerToken } from './PlayerToken';
 
 /** The seat the faction information shows: the one asked for while it is at the table, else the viewer's own, else the first. */
@@ -16,14 +16,14 @@ function named(name: string, player: CompassPlayer) {
   return [name, player.factionName !== player.name && player.factionName].filter(Boolean);
 }
 
-type FactionPickerProps = Readonly<{
+type FactionTokensProps = Readonly<{
   players: readonly CompassPlayer[];
   seat: string | undefined;
   onSeat: (seat: string) => void;
 }>;
 
 /** Every faction at the table as its token over its player's name, marked while a vote or a seat request waits; the pressed one is shown below. */
-export function FactionPicker({ players, seat, onSeat }: FactionPickerProps) {
+export function FactionTokens({ players, seat, onSeat }: FactionTokensProps) {
   return (
     <div className={styles.picker} role="group" aria-label="Factions">
       {players.map((player) => (

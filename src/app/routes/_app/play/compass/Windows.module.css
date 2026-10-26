@@ -179,6 +179,7 @@
 
 /* A chat's faction token, which opens that faction's information. */
 .factionButton {
+  position: relative;
   display: grid;
   place-items: center;
   padding: 0;

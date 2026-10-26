@@ -239,3 +239,17 @@ test('a tutorial remembers nothing: it neither reads nor overwrites the game lay
     right: null,
   });
 });
+
+test("a chat's faction token brings the faction information up on its seat without closing the chat", () => {
+  const list = [...windows, window('faction-info')];
+  const { result } = renderHook(() => useOpenWindows(list, false));
+  act(() => result.current.show('player:seat-4'));
+  act(() => result.current.reveal('faction-info', 'seat-4'));
+  expect(result.current.centre).toEqual({ key: 'player:seat-4' });
+  expect(result.current.slots.left).toEqual({ key: 'faction-info', seat: 'seat-4' });
+  expect(result.current.isOpen('faction-info', 'seat-4')).toBe(true);
+  expect(result.current.isOpen('faction-info', 'seat-2')).toBe(false);
+  act(() => result.current.reveal('faction-info', 'seat-2'));
+  expect(result.current.slots.left).toEqual({ key: 'faction-info', seat: 'seat-2' });
+  expect(result.current.centre).toEqual({ key: 'player:seat-4' });
+});
