@@ -212,7 +212,7 @@ export function seatedFaction(snapshot: GameSnapshot, factionId: string) {
   return snapshot.roster?.seats.find((seat) => seat.faction?.id === factionId)?.faction;
 }
 
-/** The pieces a faction orders by hand: its plain hand, the side-table aside, and what it put in its own battle plan. */
+/** The pieces a faction orders by hand: its plain hand, leaving the side-table out, and what it put in its own battle plan. */
 export function orderablePieces(snapshot: StoredSnapshot, factionId: string): StoredPiece[] {
   const battle = snapshot.battleState;
   /* Once revealed, the plan's pieces are everyone's to see and take, so they leave the faction's order. */

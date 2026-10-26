@@ -89,6 +89,7 @@ export function HandShelves(props: HandProps) {
               disabled={!actions.enabled}
               className={styles.row}
               onMove={actions.reorder}
+              leaving={(piece) => actions.leaving(piece) !== undefined}
               onDropOutside={(piece, point) => dropOnTable(piece.id, point.x, point.y)}
             >
               {(piece) => tile(piece, group.key === 'leaders' ? TILE_WIDTH.leaders : TILE_WIDTH.cards)}

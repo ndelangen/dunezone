@@ -2,7 +2,7 @@ import { UnstyledButton } from '@mantine/core';
 import clsx from 'clsx';
 import { Minus, Plus } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import styles from './Stepper.module.css';
 
@@ -52,9 +52,13 @@ export function Stepper({
   size = 'md',
 }: StepperProps) {
   const [draft, setDraftState] = useState<string | null>(null);
+  const settled = useRef(false);
   const [knock, setKnock] = useState<number | undefined>(undefined);
   const bump = useBump(value);
   const setDraft = (next: string | null) => {
+    if (next !== null) {
+      settled.current = false;
+    }
     setDraftState(next);
     onDraftChange?.(next);
   };
@@ -109,9 +113,19 @@ export function Stepper({
    * one that does not stays, marked, so the click that moved focus away cannot act on a value nobody chose.
    */
   const commit = (settle: boolean) => {
-    if (draft === null || (!settle && invalid)) {
+    if (draft === null || settled.current) {
       return;
     }
+    /* A field left empty goes back to the count it had. */
+    if (!settle && draft.trim() === '') {
+      setDraft(null);
+      return;
+    }
+    if (!settle && invalid) {
+      return;
+    }
+    /* Enter settles and then blurs the field, and the blur must not settle the same draft again. */
+    settled.current = settle;
     const next = current();
     if (next !== value) {
       go(next);

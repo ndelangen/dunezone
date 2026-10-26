@@ -29,6 +29,11 @@ export const Stepping = meta.story({
     await expect(page.getByRole('textbox', { name: 'Spice to withdraw' })).toHaveAttribute('aria-invalid', 'true');
     await userEvent.type(page.getByRole('textbox', { name: 'Spice to withdraw' }), '{Escape}');
     await expect(page.getByRole('textbox', { name: 'Spice to withdraw' })).toHaveValue('4');
+    /* A field left empty goes back to its count. */
+    await userEvent.clear(page.getByRole('textbox', { name: 'Spice to withdraw' }));
+    await userEvent.tab();
+    await expect(page.getByRole('textbox', { name: 'Spice to withdraw' })).toHaveValue('4');
+    await expect(page.getByRole('textbox', { name: 'Spice to withdraw' })).not.toHaveAttribute('aria-invalid');
   },
 });
 

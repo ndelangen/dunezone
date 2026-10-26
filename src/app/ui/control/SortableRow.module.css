@@ -3,6 +3,11 @@
   touch-action: none;
 }
 
+/* On its way out, a piece takes no press: no second drag, no menu. */
+.tile[data-leaving] {
+  pointer-events: none;
+}
+
 .tile[data-dragging] {
   opacity: 0.3;
 }

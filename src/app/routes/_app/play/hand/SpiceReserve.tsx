@@ -33,7 +33,10 @@ export function SpiceReserve({ client, table }: Readonly<{ client: TableSession;
     if (!enabled || !valid) {
       return;
     }
-    client.command({ kind: 'bank-withdraw', amount: current });
+    /* The amount floats away only when the command goes; a closed connection or a full queue sends nothing. */
+    if (!client.command({ kind: 'bank-withdraw', amount: current })) {
+      return;
+    }
     setWithdrawn({ amount: current, key: (withdrawn?.key ?? 0) + 1 });
   };
   return (

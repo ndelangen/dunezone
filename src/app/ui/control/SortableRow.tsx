@@ -82,6 +82,7 @@ export function SortableRow<T extends { id: string }>({
   label,
   onMove,
   onDropOutside,
+  leaving,
   children,
 }: {
   items: readonly T[];
@@ -91,6 +92,8 @@ export function SortableRow<T extends { id: string }>({
   /** Moves an item in front of another, or to the end with null. */
   onMove: (item: T, before: string | null) => void;
   onDropOutside?: (item: T, point: Point) => void;
+  /** An item on its way out of the row, which no longer takes a press. */
+  leaving?: (item: T) => boolean;
   children: (item: T) => ReactNode;
 }) {
   const motion = useMotionAllowed();
@@ -174,7 +177,7 @@ export function SortableRow<T extends { id: string }>({
         {/* A drag in progress takes Escape, which cancels it, before any window around it closes. */}
         <div ref={row} className={className} aria-label={label} data-carried={dragging || undefined}>
           {items.map((item) => (
-            <SortableTile key={item.id} id={item.id} motion={motion}>
+            <SortableTile key={item.id} id={item.id} motion={motion} leaving={leaving?.(item) ?? false}>
               {children(item)}
             </SortableTile>
           ))}
@@ -197,9 +200,20 @@ export function SortableRow<T extends { id: string }>({
   );
 }
 
-function SortableTile({ id, motion, children }: { id: string; motion: boolean; children: ReactNode }) {
+function SortableTile({
+  id,
+  motion,
+  leaving,
+  children,
+}: {
+  id: string;
+  motion: boolean;
+  leaving: boolean;
+  children: ReactNode;
+}) {
   const { listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id,
+    disabled: leaving,
     transition: motion ? undefined : null,
   });
   /* The browser's own drag of an image inside would take the pointer away from this one, so it never starts. */
@@ -208,6 +222,7 @@ function SortableTile({ id, motion, children }: { id: string; motion: boolean; c
       ref={setNodeRef}
       className={styles.tile}
       data-dragging={isDragging || undefined}
+      data-leaving={leaving || undefined}
       style={{ transform: CSS.Translate.toString(transform), transition }}
       {...listeners}
       onDragStart={(event) => event.preventDefault()}
