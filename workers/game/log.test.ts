@@ -41,6 +41,29 @@ function snapshot(revision: number, extra: Partial<StoredSnapshot> = {}) {
 }
 
 describe('the public log', () => {
+  it('retains report disclosure, deduplicates it, links the issue and scrubs a deleted reporter', () => {
+    const log = new PublicLog(memoryStorage(), () => 'Turn 1');
+    log.enabled = true;
+    const request = {
+      key: 'bug-report:one:requested',
+      class: 'bug-report' as const,
+      template: '{0} requested a full game state export, including hidden information.',
+      people: [{ userId: 'reporter-id', name: 'Reporter' }],
+    };
+    log.record(request);
+    log.record(request);
+    log.record({
+      key: 'bug-report:one:complete',
+      class: 'bug-report',
+      template: 'Full game state published: https://github.com/ndelangen/dunezone/issues/42',
+    });
+    log.scrub('reporter-id');
+    const entries = log.page('game', Number.MAX_SAFE_INTEGER).entries;
+    expect(entries).toHaveLength(2);
+    expect(entries[0]?.issueUrl).toBe('https://github.com/ndelangen/dunezone/issues/42');
+    expect(entries[1]?.text).toContain('[deleted user]');
+    expect(log.page('audit', Number.MAX_SAFE_INTEGER).entries).toHaveLength(0);
+  });
   it('keeps the braces in a faction name instead of reading them as player slots', () => {
     const log = new PublicLog(memoryStorage(), () => 'Turn 1');
     log.enabled = true;
