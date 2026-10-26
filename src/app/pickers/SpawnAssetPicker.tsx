@@ -47,7 +47,7 @@ function useHighlightFirstRow(combobox: ReturnType<typeof useCombobox>, listed: 
 
 /**
  * A Picker: the decks, bundles and tokens a seated player may ask the table to spawn, searched on the server and grown with Load more.
- * It is mounted only while the Shared inventory's catalogue is open, so it subscribes the moment it mounts, and the subscription ends with the pane (see the Pickers section in AGENTS.md).
+ * It is mounted only while the Shared table inventory's catalogue is open, so it subscribes the moment it mounts, and the subscription ends with the pane (see the Pickers section in AGENTS.md).
  * With nothing typed it lists the newest assets, which is the order the asset catalogue opens in and the one most likely to hold what was just published for this game;
  * a typed word asks the catalogue search over the asset's and its owner's name, best matches first.
  * The choice leaves through `onPick`;

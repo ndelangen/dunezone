@@ -29,7 +29,7 @@ export const TraitorSelection = meta.story({
     );
     await openPanel(canvasElement, 'Spice');
     await expect(page.findByLabelText('Spice reserve balance')).resolves.toBeVisible();
-    await openPanel(canvasElement, 'Shared inventory');
+    await openPanel(canvasElement, 'Shared table inventory');
     await expect(page.queryByRole('button', { name: 'Add from catalogue' })).toBeNull();
     await openPanel(canvasElement, 'Hand');
   },

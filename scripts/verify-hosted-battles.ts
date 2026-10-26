@@ -37,7 +37,7 @@ export async function verifyBattles(toolkit: HostedToolkit) {
   }
   await pickCatalogueAsset(a, 'Recovery token');
   await act(a, 'Request');
-  await openTab(b, 'Shared inventory');
+  await openTab(b, 'Shared table inventory');
   await act(b, 'Approve');
   await button(a, 'Close catalogue').click();
   const token = required(
@@ -81,7 +81,7 @@ export async function verifyBattles(toolkit: HostedToolkit) {
   await drag(a, button(a, 'Drag Recovery token onto the table'), [-1.5, 0.38, 1.5]);
   await until(
     () => requireView(a).snapshot.table.pieces.some((piece) => piece.id === token.id && !piece.inventory),
-    'Leader token did not leave shared inventory.'
+    'Leader token did not leave the shared table inventory.'
   );
   /* Setup credited the faction's starting spice; the support case counts from it. */
   const startingSpice = required(requireView(a).snapshot.bank, 'bank').balance;
