@@ -59,19 +59,19 @@ import { GameCatalogue } from './catalogue';
 import { RoomDelivery } from './delivery';
 import type { AdmissionRefusal } from './diagnostics';
 import { GameDiagnostics } from './diagnostics';
-import type { SetAsideJudgement } from './drafting';
 import { FIXTURE_TREACHERY_DECK, hostedFixturePlan } from './fixture';
 import type { FixturePlan } from './fixture';
 import { gameHttpClient } from './gameHttpClient';
 import { isLocalIsolatedRuntime } from './localRuntime';
 import { forwardPrivacyRequest } from './privacyRequests';
 import { CarryHistoryExhausted } from './room';
+import { RoomDraft } from './roomDraft';
 import { RoomSummary } from './roomSummary';
 import type { ConvexCall } from './roomSummary';
 import type { HeldPass } from './seatPasses';
 import { heldPass, SeatPasses } from './seatPasses';
 import type { Metadata } from './session';
-import { GameSession, NotReady, readinessProblem } from './session';
+import { GameSession } from './session';
 
 type Connection = {
   connectionId: string;
@@ -227,16 +227,8 @@ async function readLimitedBody(body: ReadableStream<Uint8Array>): Promise<string
 
 /** A promise the room resolves by hand, once, for handlers that wait on an event. */
 export class GameRoom extends DurableObject<GameEnv> {
-  private assigning = false;
-  private draftChangedDuringAttempt = false;
-  private refreshingCatalogue = false;
-  /* Picks a capture found ready since the catalogue was last read, so a draft command judges each pick once. */
-  private readyPicks = new Set<string>();
-  private judgingPicks = false;
-  private judgePicksAgain = false;
-  /* Counts catalogue refreshes, so a pick judgement that straddles one is dropped. */
-  private catalogueGeneration = 0;
   private directoryDelivery?: Promise<void>;
+  private readonly draft: RoomDraft;
   protected readonly diagnostics: GameDiagnostics;
   private confirmationEpoch = 0;
   private readonly connections = new Map<WebSocket, Connection>();
@@ -306,6 +298,19 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.closed = true;
       this.loadFailure = error;
     }
+    /* A room that did not load never reaches its draft, so it may hold no session. */
+    this.draft = new RoomDraft({
+      session: this.session,
+      diagnostics: this.diagnostics,
+      catalogue: () => this.catalogue(),
+      rulesetId: () => this.metadata?.game?.rulesetId,
+      provisional: () => this.metadata?.provisional === true,
+      retainFaction: (factionId) =>
+        this.retainFactionCapture(factionId, { provisional: this.metadata?.provisional === true }),
+      refreshViews: () => this.refreshViews(),
+      dealt: () => this.deliverDirectorySoon(),
+      waitUntil: (work) => this.ctx.waitUntil(work),
+    });
     if (!this.closed && this.metadata) {
       if (this.metadata.confirmed && this.session.pendingDirectory()) {
         this.deliverDirectorySoon();
@@ -313,7 +318,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       if (this.session.needsFixtureDeck) {
         this.ctx.waitUntil(this.adoptFixtureDeck().catch((error) => this.diagnostics.report('fixture-deck', error)));
       }
-      this.afterDraftChange();
+      this.draft.changed();
     }
     for (const socket of ctx.getWebSockets()) {
       socket.close(1012, 'Reconnect to the table.');
@@ -416,7 +421,7 @@ export class GameRoom extends DurableObject<GameEnv> {
         return refused();
       }
       const factions =
-        'game' in validation && !this.metadata ? await this.draftableFactions(validation.game.rulesetId) : null;
+        'game' in validation && !this.metadata ? await this.draft.factions(validation.game.rulesetId) : null;
       /* The hosted fixture asks the catalogue for its deck before it exists; a refusal costs nothing, a slow answer only time. */
       const fixtureDeck =
         'fixtureKey' in validation && this.fixturePlan.hosted && !this.metadata
@@ -502,7 +507,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       factions
     );
     /* A catalogue read that failed at creation is read again at once rather than on the first command. */
-    this.afterDraftChange();
+    this.draft.changed();
     return true;
   }
 
@@ -1577,7 +1582,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       }
     } finally {
       if (message.type === 'command' && isDraftAction(message.action)) {
-        this.afterDraftChange();
+        this.draft.changed();
       }
     }
     this.deliverDirectorySoon();
@@ -1635,7 +1640,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     for (const player of everyone) {
       command(player, { kind: 'draft-ready', ready: true });
     }
-    await this.settleAssignment();
+    await this.draft.settle();
     this.provisionSwapReady(everyone, command);
     await this.provisionSetup(creator, everyone, command);
     for (const placeholder of placeholders) {
@@ -1723,257 +1728,11 @@ export class GameRoom extends DurableObject<GameEnv> {
     return rosterSeat(this.session.currentSnapshot().roster, seat)?.faction?.id;
   }
 
-  /**
-   * Waits for the deal a fully ready draft owes.
-   * A catalogue refresh that creation started makes that attempt itself once it lands.
-   * A failed attempt waits for a player's next draft change, so it fails the provisioning rather than being retried.
-   * Otherwise the replay makes the attempt its last draft-ready command would have made.
-   */
-  private async settleAssignment() {
-    for (let waited = 0; waited < 500 && (this.assigning || this.refreshingCatalogue); waited++) {
-      await new Promise((resolve) => setTimeout(resolve, 20));
-    }
-    const snapshot = this.session.currentSnapshot();
-    if (snapshot.stage !== 'drafting') {
-      return;
-    }
-    if (snapshot.draft?.failure) {
-      throw new Error(`The deal did not complete: ${snapshot.draft.failure}`);
-    }
-    await this.attemptAssignment();
-  }
-
   /** Setup's phase changes keep the game's cooldown, so a provisioning that runs at the real one waits it out. */
   private async phaseCooldownElapsed() {
     const wait = this.session.phaseCooldownEndsAt - Date.now();
     if (wait > 0) {
       await new Promise((resolve) => setTimeout(resolve, wait));
-    }
-  }
-
-  private async draftableFactions(rulesetId: string): Promise<DraftFaction[] | null> {
-    try {
-      return await this.catalogue().draftableFactions(rulesetId);
-    } catch (error) {
-      /* A game opens without the list, stamped stale, and reads it on the first draft command. */
-      this.diagnostics.report('draft-catalogue', error);
-      return null;
-    }
-  }
-  private afterDraftChange() {
-    const status = this.session.draftWork();
-    if (!status) {
-      return;
-    }
-    if (this.assigning) {
-      this.draftChangedDuringAttempt = true;
-    }
-    this.ctx.waitUntil(this.judgePicks().catch((error) => this.diagnostics.report('draft-catalogue', error)));
-    if (status.refresh && !this.refreshingCatalogue) {
-      this.ctx.waitUntil(
-        this.refreshDraftCatalogue().catch((error) => this.diagnostics.report('draft-catalogue', error))
-      );
-    } else if (!this.assigning) {
-      this.ctx.waitUntil(this.attemptAssignment().catch((error) => this.diagnostics.report('assignment', error)));
-    }
-  }
-
-  /**
-   * The latest faction data without resetting readiness (#1013): picks and readiness stay, the factions behind them are read again, and the gates are judged on what the catalogue holds now.
-   */
-  private async refreshDraftCatalogue() {
-    const metadata = this.metadata;
-    if (this.refreshingCatalogue || !metadata?.game) {
-      return;
-    }
-    this.refreshingCatalogue = true;
-    try {
-      const catalogue = this.catalogue();
-      const factions = await catalogue.draftableFactions(metadata.game.rulesetId);
-      const setAside = await this.judgeSetAside(catalogue, factions);
-      this.session.updateDraftCatalogue(factions, setAside);
-      this.readyPicks.clear();
-      this.catalogueGeneration += 1;
-      /* An attempt that ran alongside dealt from the copy before this one, so it tries again on this. */
-      if (this.assigning) {
-        this.draftChangedDuringAttempt = true;
-      }
-      this.refreshViews();
-    } catch (error) {
-      /* The copy in hand still judges the gates; the next command reads again. */
-      this.diagnostics.report('draft-catalogue', error);
-    } finally {
-      this.refreshingCatalogue = false;
-    }
-    await this.attemptAssignment();
-  }
-
-  /**
-   * A real game judges each drafted faction when it is picked, so one that is not ready is set aside with its reason before anyone readies.
-   * The deal still judges every faction it captures, random fills included.
-   */
-  private async judgePicks() {
-    if (this.metadata?.provisional === true) {
-      return;
-    }
-    if (this.judgingPicks) {
-      /* A pick made while a judgement is in flight is judged when it ends. */
-      this.judgePicksAgain = true;
-      return;
-    }
-    this.judgingPicks = true;
-    try {
-      do {
-        this.judgePicksAgain = false;
-        await this.judgePendingPicks();
-      } while (this.judgePicksAgain);
-    } finally {
-      this.judgingPicks = false;
-    }
-  }
-
-  private async judgePendingPicks() {
-    const pending = this.session.draftedPicks().filter((id) => !this.readyPicks.has(id));
-    if (!pending.length) {
-      return;
-    }
-    const generation = this.catalogueGeneration;
-    const catalogue = this.catalogue();
-    const ready: string[] = [];
-    const refused: Record<string, string> = {};
-    for (const factionId of pending) {
-      const problem = await this.pickProblem(catalogue, factionId);
-      if (problem === undefined) {
-        ready.push(factionId);
-      } else if (problem !== null) {
-        refused[factionId] = problem;
-      }
-    }
-    /*
-     * A refresh since judged against a newer catalogue, so these verdicts are stale.
-     * The picks still pending are judged again on it, so none waits for another command.
-     */
-    if (generation !== this.catalogueGeneration) {
-      this.judgePicksAgain = true;
-      return;
-    }
-    ready.forEach((factionId) => this.readyPicks.add(factionId));
-    if (!Object.keys(refused).length) {
-      return;
-    }
-    this.session.setFactionsAside(refused, { atDeal: false });
-    if (this.assigning) {
-      this.draftChangedDuringAttempt = true;
-    }
-    this.refreshViews();
-  }
-
-  /** Why a pick cannot be dealt; nothing when it is ready, null when its capture could not be read, which is reported and judged again later. */
-  private async pickProblem(catalogue: GameCatalogue, factionId: string): Promise<string | undefined | null> {
-    try {
-      return readinessProblem((await catalogue.captureFaction(factionId)).readiness)?.slice(0, 400);
-    } catch (error) {
-      if (error instanceof GameRejection) {
-        return error.message.slice(0, 400);
-      }
-      this.diagnostics.report('draft-catalogue', error);
-      return null;
-    }
-  }
-
-  /** Why the deal cannot take this faction, from its capture; nothing once it is retained. */
-  private async refusedFaction(factionId: string): Promise<string | undefined> {
-    try {
-      await this.retainFactionCapture(factionId, { provisional: this.metadata?.provisional === true });
-      return undefined;
-    } catch (error) {
-      if (error instanceof NotReady) {
-        return error.problem.slice(0, 400);
-      }
-      if (error instanceof GameRejection) {
-        return error.message.slice(0, 400);
-      }
-      throw error;
-    }
-  }
-
-  /**
-   * The factions set aside, judged again with the catalogue: one still listed and still refused keeps its latest reason, one ready now returns to the draft.
-   * A capture that cannot be read keeps the reason it had.
-   */
-  private async judgeSetAside(catalogue: GameCatalogue, factions: DraftFaction[]): Promise<SetAsideJudgement> {
-    const judged: string[] = [];
-    const stillAside: Record<string, string> = {};
-    for (const [factionId, reason] of Object.entries(this.session.draftSetAside())) {
-      judged.push(factionId);
-      if (!factions.some((faction) => faction.id === factionId)) {
-        continue;
-      }
-      try {
-        const capture = await catalogue.captureFaction(factionId);
-        const problem = this.metadata?.provisional === true ? undefined : readinessProblem(capture.readiness);
-        if (problem !== undefined) {
-          stillAside[factionId] = problem.slice(0, 400);
-        }
-      } catch (error) {
-        if (!(error instanceof GameRejection)) {
-          this.diagnostics.report('draft-catalogue', error);
-        }
-        stillAside[factionId] = error instanceof GameRejection ? error.message.slice(0, 400) : reason;
-      }
-    }
-    return { judged, stillAside };
-  }
-
-  /*
-   * Public assignment, by itself, once the roster meets the minimum, every player is ready and the
-   * pool holds enough factions: the dealt factions are captured first (a real game refuses unready
-   * content, an isolated backend deals provisional content), then one transaction fixes the seat
-   * count, gives every seat its faction and a random station, ends the draft and opens swapping,
-   * provided nothing about the draft or the roster changed while the captures ran. A faction whose
-   * capture is refused is set aside with its reason and the deal tries again from what remains; any
-   * other failure before that commit leaves the draft as it was, with its reason, for a gate-checked retry.
-   */
-  private async attemptAssignment() {
-    if (this.assigning) {
-      return;
-    }
-    const prepared = this.session.prepareAssignment();
-    if (!prepared) {
-      return;
-    }
-    this.assigning = true;
-    try {
-      const refused: Record<string, string> = {};
-      for (const faction of prepared.factions) {
-        const reason = await this.refusedFaction(faction);
-        if (reason !== undefined) {
-          refused[faction] = reason;
-        }
-      }
-      if (Object.keys(refused).length) {
-        /* The deal never fails twice on the same faction: it is set aside, and the next attempt deals from what remains. */
-        this.session.setFactionsAside(refused);
-        this.draftChangedDuringAttempt = true;
-        this.refreshViews();
-      } else if (this.session.completeAssignment(prepared)) {
-        this.deliverDirectorySoon();
-        this.refreshViews();
-      }
-    } catch (error) {
-      if (!(error instanceof GameRejection)) {
-        this.diagnostics.report('assignment', error);
-      }
-      this.session.assignmentFailed(
-        error instanceof GameRejection ? error.message : 'The deal did not go through. Try again.'
-      );
-      this.refreshViews();
-    } finally {
-      this.assigning = false;
-    }
-    if (this.draftChangedDuringAttempt) {
-      this.draftChangedDuringAttempt = false;
-      await this.attemptAssignment();
     }
   }
 
