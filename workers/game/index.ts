@@ -172,6 +172,8 @@ function pingSoundAllowed(connection: Pick<Connection, 'rumbledAt'>, sound: Ping
 }
 const COMMAND_RATE_REFUSAL = 'You are acting too fast. Wait a moment, then try again.';
 const SWEEP_MS = 1000;
+/* Where a connection's used carry IDs wait out a hibernation; too many to fit its socket attachment. */
+const carryHistoryKey = (connectionId: string) => `carry-history:${connectionId}`;
 /* A normal close the page reconnects after, unlike a refusal. */
 const SEAT_CHANGED_CLOSE_CODE = 1012;
 /** A sweep this late counts as a stall, and the room keeps the most recent ones. */
@@ -285,6 +287,8 @@ export class GameRoom extends DurableObject<GameEnv> {
   private readonly delivery = new RoomDelivery();
   /* What each socket's attachment last held, so a handler that changed nothing writes none. */
   private readonly remembered = new WeakMap<WebSocket, string>();
+  /* How many carry IDs each connection had when its history was last saved. */
+  private readonly savedCarryHistory = new Map<string, number>();
   private activityTimer: ReturnType<typeof setTimeout> | undefined;
   private sweepTimer: ReturnType<typeof setInterval> | undefined;
   /* The alarm this instance last set, or null for none; undefined until it sets one, since the stored alarm is then unknown. */
@@ -392,10 +396,42 @@ export class GameRoom extends DurableObject<GameEnv> {
       return;
     }
     this.summary.connections(this.connections.size);
+    this.restoreCarryHistory();
     this.reconcileViewers();
     /* Waking can move the game on by itself, as a trading deadline that passed while the room slept does. */
     for (const socket of behind) {
       this.sendView(socket, this.connections.get(socket)!);
+    }
+  }
+
+  /* A woken room goes on refusing the carry IDs its connections used; history of a connection no longer here is dropped. */
+  private restoreCarryHistory() {
+    if (!this.session.ready) {
+      return;
+    }
+    const live = new Set([...this.connections.values()].map((connection) => connection.connectionId));
+    for (const [key, carryIds] of this.ctx.storage.kv.list<string[]>({ prefix: carryHistoryKey('') })) {
+      const connectionId = key.slice(carryHistoryKey('').length);
+      if (live.has(connectionId)) {
+        this.session.restoreCarryHistory(connectionId, carryIds);
+        this.savedCarryHistory.set(connectionId, carryIds.length);
+      } else {
+        this.ctx.storage.kv.delete(key);
+      }
+    }
+  }
+
+  /* Saves each connection's carry history that grew, as the room goes quiet and may hibernate. */
+  private saveCarryHistory() {
+    if (!this.session.ready) {
+      return;
+    }
+    for (const { connectionId } of this.connections.values()) {
+      const carryIds = this.session.carryHistory(connectionId);
+      if (carryIds.length !== (this.savedCarryHistory.get(connectionId) ?? 0)) {
+        this.ctx.storage.kv.put(carryHistoryKey(connectionId), carryIds);
+        this.savedCarryHistory.set(connectionId, carryIds.length);
+      }
     }
   }
 
@@ -796,24 +832,34 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
     if (this.metadata?.confirmed) {
       this.advanceDeadlines();
+      if (this.connections.size) {
+        this.authorizationChanged();
+      }
       this.remember();
       await this.deliverDirectory();
+      /* What the wake sent and called waits in the summary; the sweep writes it before the room sleeps again. */
+      if (this.summary.pending(this.counters())) {
+        this.ensureSweep();
+      }
     } else {
       await this.confirmProvisioning();
     }
   }
 
   /*
-   * One alarm serves the battle deadline and the directory retry: whichever is due first.
+   * One alarm serves the battle deadline, the directory retry and, while the sweep is stopped, the next
+   * seat pass to expire: whichever is due first. A pass whose session ended cannot be renewed, so the
+   * alarm wakes a sleeping room to pause that table, as the sweep does in a busy one.
    * Only a change reaches storage, so a command that leaves the deadlines alone writes no alarm.
-   * A pass that runs out while the room sleeps needs no alarm: the page renews it before then, and
-   * the sweep that the next message starts pauses a table whose page did not.
    */
   private scheduleAlarm() {
     if (this.closed) {
       return Promise.resolve();
     }
-    const at = this.session.nextDeadline() ?? null;
+    const due = [this.session.nextDeadline(), this.sweepTimer ? undefined : this.nextPassExpiry()].filter(
+      (time) => time !== undefined
+    );
+    const at = due.length ? Math.min(...due) : null;
     if (at === this.alarmAt) {
       return Promise.resolve();
     }
@@ -823,6 +869,18 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.alarmAt = undefined;
       throw error;
     });
+  }
+
+  private nextPassExpiry() {
+    const now = Date.now();
+    let next: number | undefined;
+    for (const connection of this.connections.values()) {
+      const exp = connection.pass?.exp;
+      if (exp !== undefined && exp > now && (next === undefined || exp < next)) {
+        next = exp;
+      }
+    }
+    return next;
   }
 
   /** Delivery starts after the current transaction has committed, never from inside it. */
@@ -2212,6 +2270,9 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
     this.connections.delete(socket);
     this.session.disconnect(connection.connectionId);
+    if (this.savedCarryHistory.delete(connection.connectionId)) {
+      this.ctx.storage.kv.delete(carryHistoryKey(connection.connectionId));
+    }
     if (!this.connections.size) {
       this.stopTimers();
       this.flushSummary('empty');
@@ -2233,6 +2294,8 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
     this.sweepTimer = undefined;
     this.sweptAt = undefined;
+    /* The alarm takes over the pass expiries the sweep was watching. */
+    this.ctx.waitUntil(this.scheduleAlarm().catch((error) => this.diagnostics.report('battle-alarm', error)));
   }
 
   /** Stops the room's timers before disconnecting it for teardown. */
@@ -2262,12 +2325,13 @@ export class GameRoom extends DurableObject<GameEnv> {
        * Hibernation drops whatever the summary has not written, so a quiet room with a pending line keeps
        * sweeping until the line is a minute old, then writes it early. That bounds the lines to one a minute.
        */
-      if (this.summary.pending) {
+      if (this.summary.pending(this.counters())) {
         if (!this.summary.due(Date.now(), ROOM_SUMMARY_IDLE_MS)) {
           return;
         }
         this.flushSummary('idle');
       }
+      this.saveCarryHistory();
       this.stopSweep();
     }, SWEEP_MS);
   }
@@ -2281,19 +2345,19 @@ export class GameRoom extends DurableObject<GameEnv> {
     return this.session.hasActivity || [...this.connections.values()].some((connection) => !connection.everAuthorized);
   }
 
+  private counters() {
+    return {
+      motionReceived: this.motionReceived,
+      motionForwarded: this.motionForwarded,
+      motionDropped: this.motionDropped,
+      activityDeliveries: this.activityDeliveries,
+      messagesSent: this.messagesSent,
+      bytesSent: this.bytesSent,
+    };
+  }
+
   private flushSummary(reason: 'interval' | 'empty' | 'idle') {
-    this.summary.flush(
-      {
-        motionReceived: this.motionReceived,
-        motionForwarded: this.motionForwarded,
-        motionDropped: this.motionDropped,
-        activityDeliveries: this.activityDeliveries,
-        messagesSent: this.messagesSent,
-        bytesSent: this.bytesSent,
-      },
-      this.connections.size,
-      reason
-    );
+    this.summary.flush(this.counters(), this.connections.size, reason);
   }
 
   private noteStall() {

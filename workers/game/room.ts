@@ -372,6 +372,17 @@ export class Room {
     }
   }
 
+  /** The carry IDs a connection has used, which a room woken from hibernation must go on refusing. */
+  carryHistory(connectionId: string): string[] {
+    return [...(this.usedCarryIds.get(connectionId) ?? [])];
+  }
+
+  restoreCarryHistory(connectionId: string, carryIds: readonly string[]) {
+    if (carryIds.length) {
+      this.usedCarryIds.set(connectionId, new Set(carryIds));
+    }
+  }
+
   private rememberCarryId(identity: Identity, input: CarryInput<'begin'>) {
     const used = this.usedCarryIds.get(identity.connectionId) ?? new Set<string>();
     used.add(input.carryId);

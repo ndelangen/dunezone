@@ -113,8 +113,8 @@ export class RoomSummary {
   }
 
   /** Whether the current interval holds anything a line would report. */
-  get pending() {
-    return this.messagesIn > 0 || this.convex.size > 0;
+  pending(counters: RoomCounters) {
+    return this.messagesIn > 0 || counters.messagesSent > this.base.messagesSent || this.convex.size > 0;
   }
 
   /** Writes one summary line when anything happened since the last one, then starts the next interval. */

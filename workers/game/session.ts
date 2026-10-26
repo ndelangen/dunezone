@@ -1275,6 +1275,12 @@ export class GameSession {
       ...(carry ? { held: carry.held } : {}),
     };
   }
+  carryHistory(connectionId: string) {
+    return this.room?.carryHistory(connectionId) ?? [];
+  }
+  restoreCarryHistory(connectionId: string, carryIds: readonly string[]) {
+    this.room?.restoreCarryHistory(connectionId, carryIds);
+  }
   pointer(...args: Parameters<Room['pointer']>) {
     return this.room!.pointer(...args);
   }

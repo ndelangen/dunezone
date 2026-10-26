@@ -117,25 +117,54 @@ describe('GameRoom hibernation', () => {
     }
   }, 20_000);
 
-  it('pauses the table of a pass that ran out while the room slept once another player moves', async () => {
+  it('goes on refusing a carry ID its connection used before the room slept', async () => {
     const a = await admitPlayer(runtime, 'a');
-    const b = await admitPlayer(runtime, 'b', { exp: Date.now() + 90_000 });
     const before = await syncView(a);
+    const piece = before.snapshot.table.pieces[0];
+    const begin = () =>
+      a.send({
+        type: 'begin',
+        carryId: 'used-before-sleeping',
+        sourcePieceId: piece.id,
+        expectedVersion: before.snapshot.versions[piece.id] ?? 0,
+        pickup: 'whole',
+      });
+    begin();
+    await a.message('carry', (message) => message.carryId === 'used-before-sleeping');
+    a.send({ type: 'cancel', carryId: 'used-before-sleeping' });
+    await quiet(runtime, 0);
+
+    await runtime.hibernateRoom();
+    const received = a.messages.length;
+    /* A delayed copy of the first pickup arrives after the wake. */
+    begin();
+    const answer = await eventually(
+      () =>
+        a.messages
+          .slice(received)
+          .find(
+            (message) =>
+              (message.type === 'carry' && message.carryId === 'used-before-sleeping') ||
+              (message.type === 'rejected' && message.requestId === 'used-before-sleeping')
+          ),
+      'the replayed pickup answered'
+    );
+    expect(answer).toMatchObject({ type: 'rejected', message: 'That carry ID has ended. Start a new carry.' });
+  }, 20_000);
+
+  it('wakes on its alarm when a pass whose session ended runs out, and pauses that table', async () => {
+    const a = await admitPlayer(runtime, 'a');
+    const exp = Date.now() + 90_000;
+    const b = await admitPlayer(runtime, 'b', { exp });
+    await syncView(a);
     await syncView(b);
     const offset = await quiet(runtime, 0);
-    /* No battle runs and the directory is delivered, so nothing wakes the room on its own. */
-    expect((await runtime.alarm()).scheduledAt).toBeNull();
+    /* With the sweep stopped, the alarm watches the next pass to expire. */
+    await eventually(async () => (await runtime.alarm()).scheduledAt === exp, 'the pass expiry alarm');
 
-    /* B's pass runs out while nothing runs, and the room sleeps. */
-    await runtime.clock(offset + 30_000);
     await runtime.hibernateRoom();
-    a.send({
-      type: 'command',
-      commandId: 'wakes-the-room',
-      action: { kind: 'rotate', pieceId: before.snapshot.table.pieces[0].id, direction: 1 },
-      expectedRevision: before.snapshot.revision,
-    });
-    await a.message('view', (message) => message.completedCommandId === 'wakes-the-room');
+    await runtime.clock(offset + 30_000);
+    await runtime.alarm(true);
     await eventually(() => admissionStatuses(b).includes('pass-expired'), 'the expired pass announced');
     expect(b.closed).toBe(false);
     expect(admissionStatuses(a)).not.toContain('pass-expired');
