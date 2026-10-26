@@ -313,7 +313,8 @@
   animation: veil-lift 230ms ease-in forwards;
 }
 
-.veil[data-closing] .compass {
+/* The copy is new to the page, so anything with an arrival of its own, such as a tile's count badge, would replay it. */
+.veil[data-closing] * {
   animation: none;
 }
 

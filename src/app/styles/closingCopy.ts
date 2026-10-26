@@ -1,60 +1,67 @@
-import { useLayoutEffect, useRef } from 'react';
+import { useEffectEvent, useLayoutEffect } from 'react';
 import type { RefObject } from 'react';
 
 /*
  * A close animation for something that leaves at once. Whoever closes it keeps their instant answer (focus, the next
  * menu, assistive technology and the hosted verifiers all see it gone), and a lifeless copy left in its place plays the
  * close: hidden from assistive technology, inert, nameless, marked `data-closing` for its stylesheet, and gone once its
- * own animation ends or `ms` passes, whichever is first.
+ * own animation ends or `ms` passes, whichever is first. What the pointer or the keys were on is marked `data-active`
+ * in the copy, since a copy is neither hovered nor focused.
  *
  * React's strict development pass unmounts and remounts with the element still in the page; then nothing closed and no
- * copy is left.
+ * copy is made.
  */
-export function useClosingCopy(
-  element: RefObject<HTMLElement | null>,
-  { enabled, ms, strip = [] }: Readonly<{ enabled: boolean; ms: number; strip?: readonly string[] }>
-) {
+export function useClosingCopy(element: RefObject<HTMLElement | null>, { enabled, ms }: Readonly<ClosingCopyOptions>) {
   /* Read when it closes, not when it opened, so a motion switch flipped while open still counts. */
-  const latest = useRef({ enabled, ms, strip });
-  useLayoutEffect(() => {
-    latest.current = { enabled, ms, strip };
-  });
+  const leave = useEffectEvent((node: HTMLElement) => enabled && leaveCopy(node, ms));
   useLayoutEffect(() => {
     const node = element.current;
     return () => {
-      const { enabled: on, ms: duration, strip: names } = latest.current;
-      if (node && on) {
-        leaveCopy(node, duration, names);
+      if (node) {
+        leave(node);
       }
     };
   }, [element]);
 }
 
+type ClosingCopyOptions = { enabled: boolean; ms: number };
+
 /* What names or reaches the original goes from the copy, so nothing finds the closed thing in it. */
 const NAMING = ['role', 'id', 'aria-label', 'aria-labelledby', 'aria-describedby', 'tabindex'];
 
-function makeLifeless(copy: HTMLElement, strip: readonly string[]) {
+function makeLifeless(copy: HTMLElement) {
   for (const entry of [copy, ...copy.querySelectorAll('*')]) {
     NAMING.forEach((name) => entry.removeAttribute(name));
   }
-  strip.forEach((name) => copy.removeAttribute(name));
+  copy.setAttribute('aria-hidden', 'true');
+  copy.inert = true;
+  copy.dataset.closing = '';
 }
 
-function leaveCopy(node: HTMLElement, ms: number, strip: readonly string[]) {
-  const parent = node.parentNode;
-  const next = node.nextSibling;
-  const copy = node.cloneNode(true) as HTMLElement;
+/* Read while the element is still in the page: once React takes it out, nothing is hovered and nothing is scrolled. */
+function stateOf(node: HTMLElement) {
+  return {
+    parent: node.parentNode,
+    next: node.nextSibling,
+    active: [...node.querySelectorAll(':hover, :focus-visible')],
+    scroll: { top: node.scrollTop, left: node.scrollLeft },
+  };
+}
+
+function leaveCopy(node: HTMLElement, ms: number) {
+  const { parent, next, active, scroll } = stateOf(node);
   queueMicrotask(() => {
     if (node.isConnected || !parent?.isConnected) {
       return;
     }
-    makeLifeless(copy, strip);
-    copy.setAttribute('aria-hidden', 'true');
-    copy.inert = true;
-    copy.dataset.closing = '';
+    active.forEach((entry) => entry.setAttribute('data-active', ''));
+    const copy = node.cloneNode(true) as HTMLElement;
+    makeLifeless(copy);
     const remove = () => copy.remove();
     copy.addEventListener('animationend', (event) => event.target === copy && remove());
     setTimeout(remove, ms);
     parent.insertBefore(copy, next?.parentNode === parent ? next : null);
+    copy.scrollTop = scroll.top;
+    copy.scrollLeft = scroll.left;
   });
 }

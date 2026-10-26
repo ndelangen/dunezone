@@ -141,7 +141,6 @@ test('closing removes the menu at once and leaves only a lifeless copy to play t
     const copy = document.querySelector<HTMLElement>('[data-closing]');
     expect(copy?.getAttribute('aria-hidden')).toBe('true');
     expect(copy?.querySelector('[role], [id]')).toBeNull();
-    expect(copy?.hasAttribute('data-radial-menu')).toBe(false);
     vi.advanceTimersByTime(300);
     expect(document.querySelector('[data-closing]')).toBeNull();
   } finally {

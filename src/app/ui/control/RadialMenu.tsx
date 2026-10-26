@@ -285,8 +285,7 @@ export function RadialMenu({
 
   /* The ring closes at once for the table, focus and assistive technology; only a lifeless copy of it shrinks away. */
   const motion = useMotionAllowed();
-  /* The copy is new to the page, so with its motion mark its items would replay their open while it closes. */
-  useClosingCopy(menu, { enabled: motion, ms: CLOSE_MS, strip: ['data-radial-menu', 'data-motion'] });
+  useClosingCopy(menu, { enabled: motion, ms: CLOSE_MS });
 
   /* A press anywhere else closes the ring before that press does its own work, so right-clicking the next piece opens its ring at once. */
   useEffect(() => {
