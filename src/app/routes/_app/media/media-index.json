@@ -11167,5 +11167,23 @@
     "tags": ["box", "needle", "cavity", "framed panel", "vector"],
     "subjects": ["machines", "weapons"],
     "sourceHash": "927135a200188481a6059a5132ccd8447f59879cd06321a97ff5e37c8e6d69f4"
+  },
+  "/vector/decal/thumper-part-two.svg": {
+    "description": "A tall cylindrical thumper has a side rail, a narrow piston, a vented lower body and a ribbed tip.",
+    "tags": ["thumper", "Dune Part Two", "piston", "cylinder", "vents", "vector"],
+    "subjects": ["machines"],
+    "sourceHash": "fcf32785d5287d3ea59a52b269690c5ebbea6c6fa6b9275203099b2248ee9a14"
+  },
+  "/vector/decal/circular-throne-room.svg": {
+    "description": "Concentric arches frame a tall throne above a broad staircase, with an open central disk and sweeping side ribs.",
+    "tags": ["throne room", "circular", "arches", "stairs", "palace", "vector"],
+    "subjects": ["places"],
+    "sourceHash": "13287a92a6f2f222b7f496831006ab4aa011d60855f0b3fd80a556bcf4fe84a3"
+  },
+  "/vector/decal/circular-throne-room-multicolor.svg": {
+    "description": "Cream concentric arches and a circular disk surround a navy throne and stair runner, with black structural cuts.",
+    "tags": ["throne room", "circular", "arches", "stairs", "palace", "navy", "cream", "multicolor", "vector"],
+    "subjects": ["places"],
+    "sourceHash": "3c38a778cb2ac0dc6291f33929b820f4038079f9de0b8ee9114a6fad224b82b4"
   }
 }
