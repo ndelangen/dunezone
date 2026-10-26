@@ -38,9 +38,11 @@ export class LocalConversations {
         const entries = this.page(request.factionId, request.peerId).filter((entry) => entry.sequence < request.before);
         return this.deliver({ ...request, entries, more: false });
       }
-      case 'conversation-read':
-        this.reads.set(`${pairKey(request.factionId, request.peerId)}/${request.factionId}`, request.through);
+      case 'conversation-read': {
+        const read = `${pairKey(request.factionId, request.peerId)}/${request.factionId}`;
+        this.reads.set(read, Math.max(this.reads.get(read) ?? 0, request.through));
         return this.summaries(request.factionId);
+      }
       case 'conversation-send':
         return this.send(request);
     }
@@ -48,7 +50,11 @@ export class LocalConversations {
 
   /** Gives a page that just connected the learner's conversations as they stand, as the Worker does with each view. */
   admitted() {
-    this.summaries(this.factionOf(this.table().seat));
+    const learner = this.factionOf(this.table().seat);
+    /* A seat with no faction has no conversations, and the Worker sends it no summaries. */
+    if (learner) {
+      this.summaries(learner);
+    }
   }
 
   /** Stops any answer still on its way, as leaving the chapter does. */
@@ -67,6 +73,12 @@ export class LocalConversations {
         requestId: request.requestId,
         message: 'This conversation is not available.',
       });
+    }
+    /* A message sent again after a reconnect is confirmed again, as the Worker confirms a retried request, and answered once. */
+    const previous = this.messages.find((entry) => entry.requestId === request.requestId);
+    if (previous) {
+      const { pair: _pair, ...message } = previous;
+      return this.deliver({ type: 'conversation-message', factionId: learner, peerId: request.peerId, message });
     }
     this.save(learner, request.peerId, table.viewer().displayName, request.text, request.requestId);
     const replier =

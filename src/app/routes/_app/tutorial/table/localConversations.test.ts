@@ -95,6 +95,20 @@ describe('a tutorial table’s conversations', () => {
     ]);
   });
 
+  test('confirms a message sent again without saving or answering it twice', () => {
+    const request = {
+      type: 'conversation-send' as const,
+      requestId: 'request-1',
+      factionId: factionAt(table.seat),
+      peerId: TABLE_CONVERSATION,
+      text: 'Hello all',
+    };
+    conversations.receive(request);
+    conversations.receive(request);
+    vi.advanceTimersByTime(REPLY_AFTER_MS);
+    expect(saved().map(({ message }) => message.sequence)).toEqual([1, 1, 2]);
+  });
+
   test('refuses a conversation the learner is not in', () => {
     conversations.receive({
       type: 'conversation-send',
