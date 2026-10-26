@@ -146,14 +146,23 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       detail:
         'The gear beside Next phase holds the game’s settings: the table’s lighting and labels, how fast the camera pans, and leaving your seat. It also holds the game’s link, which is how you invite the others: open the gear and press Copy game link, then send it to them.',
       anchor: { kind: 'page', element: () => copyLink() ?? document.querySelector('[aria-label="Game menu"]') },
-      /* Next phase keeps the focus once pressed, so a habitual Enter here would move the game on again. */
+      /*
+       * Next phase can keep the focus once pressed, so a habitual Enter here would move the game on again:
+       * the step lets go of that focus and takes Enter off the button while it runs.
+       */
       begin: () => {
-        if (document.activeElement instanceof HTMLElement && document.activeElement === nextPhaseButton()) {
-          document.activeElement.blur();
-        }
-        return { refused: false };
+        const watch = { refused: false, stop: new AbortController() };
+        const guard = (event: KeyboardEvent) => {
+          if (event.key === 'Enter' && event.target === nextPhaseButton()) {
+            event.preventDefault();
+            event.stopPropagation();
+          }
+        };
+        window.addEventListener('keydown', guard, { capture: true, signal: watch.stop.signal });
+        (nextPhaseButton() as HTMLElement | null)?.blur();
+        return watch;
       },
-      done: (watch: { refused: boolean }) => {
+      done: (watch: { refused: boolean; stop: AbortController }) => {
         if ((copyLink()?.textContent ?? '').includes('copied')) {
           return true;
         }
@@ -162,6 +171,13 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
           alert.textContent?.startsWith('Could not copy')
         );
         return watch.refused && copyLink() === null;
+      },
+      /* The open menu would stand over the chapter's closing screen, so the gear closes it once the link is copied. */
+      finish: (watch: { refused: boolean; stop: AbortController }) => {
+        watch.stop.abort();
+        if (copyLink()) {
+          document.querySelector<HTMLElement>('[aria-label="Game menu"]')?.click();
+        }
       },
     }),
   ];
