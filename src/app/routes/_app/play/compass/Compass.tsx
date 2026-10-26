@@ -3,6 +3,9 @@ import { Search } from 'lucide-react';
 import { useEffect, useEffectEvent, useRef } from 'react';
 import type { PointerEvent, RefObject } from 'react';
 
+import { useClosingCopy } from '@app/styles/closingCopy';
+import { useMotionAllowed } from '@app/styles/motion';
+
 import bar from './ChatBar.module.css';
 import styles from './Compass.module.css';
 import type { Spot, TileSpot } from './compassSpots';
@@ -213,6 +216,9 @@ function SuggestionList({ suggestions, spot, query, cursor, onSpot, onCursor }: 
   );
 }
 
+/* The whole close, its last block included; past this the copy goes even if no animation reports its end. */
+const CLOSE_MS = 260;
+
 export function Compass({
   tiles,
   suggestions,
@@ -231,6 +237,9 @@ export function Compass({
   const steering = useRef(false);
   const compass = useRef<HTMLDialogElement>(null);
   useDismissOnPressOutside(compass, onClose);
+  /* It closes at once for the keys and the table; a lifeless copy lets its blocks go one after another. */
+  const veil = useRef<HTMLDivElement>(null);
+  useClosingCopy(veil, { enabled: useMotionAllowed(), ms: CLOSE_MS });
   useEffect(() => {
     steering.current = true;
     input.current?.focus();
@@ -247,7 +256,7 @@ export function Compass({
     />
   );
   return (
-    <div className={styles.veil}>
+    <div ref={veil} className={styles.veil}>
       <dialog
         ref={(dialog) => {
           compass.current = dialog;
