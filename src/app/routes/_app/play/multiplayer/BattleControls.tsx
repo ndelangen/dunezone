@@ -175,9 +175,12 @@ function planDress(plan: BattlePlan, factionId: string, artwork?: FactionArtwork
 
 type PlanProps = Props & { plan: BattlePlan; battle: PublicBattle };
 
-/** The ids in the order of the pieces given; the plan lays its leaders and cards out on the wheel in the player's order. */
-const inOrderOf = (pieces: readonly TablePiece[], ids: readonly string[]) =>
-  ids.toSorted((a, b) => pieces.findIndex((piece) => piece.id === a) - pieces.findIndex((piece) => piece.id === b));
+/** The ids in the player's order, as the wheel lays them out; ids shown to everyone keep their places, as the room keeps them. */
+function inOrderOf(pieces: readonly TablePiece[], ids: readonly string[], shown: (id: string) => boolean) {
+  const at = (id: string) => pieces.findIndex((piece) => piece.id === id);
+  const free = ids.filter((id) => !shown(id)).toSorted((a, b) => at(a) - at(b));
+  return ids.map((id) => (shown(id) ? id : free.shift()!));
+}
 
 /**
  * The viewer's plan as the Battle plan window shows it: data from the table in, each intent sent to the table.
@@ -196,9 +199,8 @@ function usePlanView({ client, table, plan, battle }: PlanProps): BattlePlanView
   return {
     plan: {
       ...plan,
-      /* Leaders shown to everyone keep the order they were shown in, as the room keeps them. */
-      leaderIds: plan.disclosed.leader ? plan.leaderIds : inOrderOf(order.pieces, plan.leaderIds),
-      cardIds: inOrderOf(order.pieces, plan.cardIds),
+      leaderIds: inOrderOf(order.pieces, plan.leaderIds, () => plan.disclosed.leader),
+      cardIds: inOrderOf(order.pieces, plan.cardIds, (id) => plan.disclosed.cardIds.includes(id)),
     },
     hand: [...order.pieces, ...aside],
     balance: bank.balance,
