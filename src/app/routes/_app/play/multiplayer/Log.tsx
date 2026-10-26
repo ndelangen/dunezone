@@ -1,4 +1,4 @@
-import { Badge, Button, Group, Stack, Text } from '@mantine/core';
+import { Anchor, Badge, Button, Group, Stack, Text } from '@mantine/core';
 import type { LogClass, LogTab } from '@shared/play/log';
 import { Section } from '@ui/block/Section';
 import { useEffect, useSyncExternalStore } from 'react';
@@ -16,6 +16,7 @@ const CLASSIFICATIONS = {
   deletion: { label: 'Deleted', color: 'gray' },
   seat: { label: 'Seat', color: 'blue' },
   vote: { label: 'Vote', color: 'confirm' },
+  'bug-report': { label: 'Bug report', color: 'caution' },
 } as const satisfies Record<LogClass, { label: string; color: string }>;
 
 const TITLES = { game: 'Game log', audit: 'Audit log' } as const satisfies Record<LogTab, string>;
@@ -47,11 +48,16 @@ export function LogEntries({
           <ol className={styles.list}>
             {page.entries.map((entry) => (
               <li key={entry.sequence} className={styles.entry}>
-                <Badge variant="light" color={CLASSIFICATIONS[entry.class].color} size="sm" tt="none">
-                  {CLASSIFICATIONS[entry.class].label}
+                <Badge variant="light" color={CLASSIFICATIONS[entry.event ?? entry.class].color} size="sm" tt="none">
+                  {CLASSIFICATIONS[entry.event ?? entry.class].label}
                 </Badge>
                 <div>
                   <Text size="sm">{entry.text}</Text>
+                  {entry.issueUrl && (
+                    <Anchor size="sm" href={entry.issueUrl} target="_blank" rel="noopener noreferrer">
+                      Open GitHub issue
+                    </Anchor>
+                  )}
                   {entry.context && (
                     <Text size="xs" c="dimmed">
                       {entry.context}

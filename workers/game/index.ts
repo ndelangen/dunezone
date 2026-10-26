@@ -1,4 +1,5 @@
 export { HomepageRoom } from './homepage';
+export { BugReports } from './bugReports';
 import { Buffer } from 'node:buffer';
 
 import { DurableObject } from 'cloudflare:workers';
@@ -22,6 +23,8 @@ import {
   playSessionCutoffRequestSchema,
   provisionPlaceholderId,
 } from '../../src/shared/play/admission';
+import { bugReportIdSchema, bugReportRequestSchema } from '../../src/shared/play/bugReports';
+import type { BugReportBrowser } from '../../src/shared/play/bugReports';
 import { playGamePathPattern } from '../../src/shared/play/callbacks';
 import { conversationPeerFor } from '../../src/shared/play/conversations';
 import {
@@ -62,6 +65,7 @@ import { SPECTATOR_COLOR } from './actors';
 import { handleAlertWebhook } from './alerts';
 import type { AlertEnv } from './alerts';
 import { answersEachOnce, AuthorizationWatch, ConvexUnavailable, gameHttpClient } from './authorization';
+import { bugReportExport } from './bugReportExport';
 import { GameCatalogue } from './catalogue';
 import { RoomDelivery } from './delivery';
 import type { AdmissionRefusal } from './diagnostics';
@@ -205,17 +209,21 @@ const credentialsMatch = (a: string, b: string) => {
   return difference === 0;
 };
 /** A request body as its schema reads it, or undefined when it is missing, oversized, not JSON or not that shape. */
-async function readRequest<T>(request: Request, schema: { parse(value: unknown): T }): Promise<T | undefined> {
-  if (!request.body || Number(request.headers.get('Content-Length') ?? 0) > 8192) {
+async function readRequest<T>(
+  request: Request,
+  schema: { parse(value: unknown): T },
+  limit = 8192
+): Promise<T | undefined> {
+  if (!request.body || Number(request.headers.get('Content-Length') ?? 0) > limit) {
     return undefined;
   }
   try {
-    return schema.parse(JSON.parse(await readLimitedBody(request.body)));
+    return schema.parse(JSON.parse(await readLimitedBody(request.body, limit)));
   } catch {
     return undefined;
   }
 }
-async function readLimitedBody(body: ReadableStream<Uint8Array>): Promise<string> {
+async function readLimitedBody(body: ReadableStream<Uint8Array>, limit: number): Promise<string> {
   const reader = body.getReader();
   let length = 0;
   let text = '';
@@ -227,7 +235,7 @@ async function readLimitedBody(body: ReadableStream<Uint8Array>): Promise<string
         break;
       }
       length += value.byteLength;
-      if (length > 8192) {
+      if (length > limit) {
         throw new Error('Request refused.');
       }
       text += decoder.decode(value, { stream: true });
@@ -408,6 +416,10 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   override async fetch(request: Request): Promise<Response> {
+    const reportRoute = /^\/__play\/games\/([a-zA-Z0-9_-]{1,128})\/reports$/u.exec(new URL(request.url).pathname);
+    if (reportRoute) {
+      return this.receiveBugReport(request, reportRoute[1]!);
+    }
     const route = gameRequest(request, this.env.APPLICATION_ORIGIN);
     if (!route) {
       return refused();
@@ -432,6 +444,100 @@ export class GameRoom extends DurableObject<GameEnv> {
       return this.receiveSessionCutoff(request, this.metadata);
     }
     return this.openSocket(request);
+  }
+
+  private async receiveBugReport(request: Request, gameId: string): Promise<Response> {
+    if (
+      request.method !== 'POST' ||
+      request.headers.get('Origin') !== this.env.APPLICATION_ORIGIN ||
+      new URL(request.url).origin !== this.env.APPLICATION_ORIGIN ||
+      new URL(request.url).search ||
+      request.headers.get('Content-Type')?.split(';')[0] !== 'application/json' ||
+      this.closed ||
+      !this.session.ready ||
+      this.metadata?.gameId !== gameId
+    ) {
+      return refused();
+    }
+    const input = await readRequest(request, bugReportRequestSchema, 2 * 1024 * 1024);
+    if (!input) {
+      return json({ error: 'Describe the problem and keep the report under 2 MB.' }, 400);
+    }
+    try {
+      const verified = await (this.passes ??= new SeatPasses(this.ctx.storage.sql)).check(
+        this.metadata.secret,
+        gameId,
+        input.pass
+      );
+      if (!verified.ok) {
+        return refused();
+      }
+      const authorization = await this.convex().query(api.playBugReports.authorize, {
+        gameId,
+        secret: this.metadata.secret,
+        pass: input.pass,
+      });
+      if (!authorization || Date.now() >= authorization.authExpiresAt) {
+        return refused();
+      }
+      const reports = this.env.BUG_REPORTS.getByName(verified.pass.principalId);
+      if (input.operation === 'status') {
+        const progress = await reports.progress(input.requestId, gameId);
+        return progress ? json(progress) : json({ error: 'This report was not found.' }, 404);
+      }
+      const result = await reports.submit({
+        requestId: input.requestId,
+        description: input.description,
+        browser: input.browser,
+        gameId,
+        actorId: verified.pass.actorId,
+        displayName: verified.pass.displayName,
+      });
+      return json(result.progress ?? { error: result.error }, result.status);
+    } catch {
+      return json({ error: 'Bug reporting is temporarily unavailable. Try again.' }, 503);
+    }
+  }
+
+  /** Only the Worker's report coordinator can invoke this RPC; no public route accepts an export request. */
+  captureBugReport(requestId: string, actorId: string, displayName: string, browser: BugReportBrowser) {
+    if (this.closed || !this.session.ready || !this.metadata?.confirmed) {
+      throw new Error('The game state is unavailable.');
+    }
+    bugReportIdSchema.parse(requestId);
+    this.session.recordBugReport(requestId, actorId, displayName);
+    this.announceBugReportLog();
+    return JSON.stringify({
+      server: bugReportExport(this.session, {
+        gameId: this.metadata.gameId,
+        gitSha: this.env.GIT_SHA,
+        versionId: this.env.CF_VERSION_METADATA.id,
+      }),
+      browser: this.session.bugReportBrowser(browser),
+    });
+  }
+
+  finishBugReport(requestId: string, actorId: string, displayName: string, issueUrl: string) {
+    if (this.closed || !this.session.ready) {
+      throw new Error('The game is unavailable.');
+    }
+    bugReportIdSchema.parse(requestId);
+    if (!/^https:\/\/github\.com\/ndelangen\/dunezone\/issues\/\d+$/u.test(issueUrl)) {
+      throw new Error('Invalid report issue.');
+    }
+    this.session.recordBugReport(requestId, actorId, displayName, issueUrl);
+    this.announceBugReportLog();
+  }
+
+  private announceBugReportLog() {
+    for (const [socket] of this.connections) {
+      this.send(socket, {
+        type: 'log-history',
+        tab: 'game',
+        before: Number.MAX_SAFE_INTEGER,
+        ...this.session.logPage('game', Number.MAX_SAFE_INTEGER),
+      });
+    }
   }
 
   private async provision(request: Request, gameId: string): Promise<Response> {
@@ -2594,6 +2700,25 @@ export default {
           workerVersionTag: env.CF_VERSION_METADATA.tag,
         },
       });
+    }
+    const exportRoute = /^\/__play\/reports\/([a-f0-9-]{36})\/state\.json$/u.exec(url.pathname);
+    if (exportRoute && request.method === 'GET' && bugReportIdSchema.safeParse(exportRoute[1]).success) {
+      const object = await env.BUG_REPORT_STATES.get(`reports/${exportRoute[1]}.json`);
+      return object
+        ? new Response(object.body, {
+            headers: {
+              'Content-Type': 'application/json',
+              'Content-Disposition': `attachment; filename="dunezone-report-${exportRoute[1]}.json"`,
+              'X-Content-Type-Options': 'nosniff',
+              'Content-Security-Policy': "default-src 'none'",
+              'Cache-Control': 'no-store',
+            },
+          })
+        : json({ error: 'Report state not found.' }, 404);
+    }
+    const reportRoute = /^\/__play\/games\/([a-zA-Z0-9_-]{1,128})\/reports$/u.exec(url.pathname);
+    if (reportRoute && request.method === 'POST' && request.headers.get('Origin') === env.APPLICATION_ORIGIN) {
+      return env.GAME_ROOMS.getByName(reportRoute[1]!).fetch(request);
     }
     if (
       url.pathname === HOMEPAGE_SOCKET_PATH &&

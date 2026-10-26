@@ -1,8 +1,15 @@
+import type { BugReportBrowser } from '../../src/shared/play/bugReports';
 import { conversationMembers, conversationsAvailable, TABLE_CONVERSATION } from '../../src/shared/play/conversations';
 import type { ConversationMessage } from '../../src/shared/play/conversations';
 import { rosterFactionIds } from '../../src/shared/play/protocol';
 import type { ClientMessage, Viewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
+import {
+  censorKnownMessage,
+  censorReportConversations,
+  redactedMessage,
+} from '../../src/shared/play/reportConversations';
+import { redactReportData } from '../../src/shared/play/reportRedaction';
 import type { ActorDirectory } from './actors';
 import type { StoredSnapshot } from './state';
 
@@ -146,6 +153,45 @@ export class Conversations {
     return this.storage.sql
       .exec<{ generation: number }>('SELECT generation FROM conversation_metadata WHERE id=1')
       .one().generation;
+  }
+
+  report() {
+    const rows = this.storage.sql
+      .exec<{
+        sequence: number;
+        pair: string;
+        request_id: string;
+        sender_faction: string;
+        saved_at: number;
+        original_length: number;
+      }>(
+        'SELECT sequence,pair,request_id,sender_faction,saved_at,length(text) AS original_length FROM conversation_messages ORDER BY sequence DESC LIMIT 10001'
+      )
+      .toArray();
+    const total = this.storage.sql
+      .exec<{ count: number }>('SELECT COUNT(*) AS count FROM conversation_messages')
+      .one().count;
+    return {
+      generation: this.generation(),
+      totalMessages: total,
+      omittedMessages: Math.max(0, total - 10_000),
+      messages: rows
+        .slice(0, 10_000)
+        .reverse()
+        .map(({ original_length, ...row }) => ({ ...row, text: redactedMessage(original_length) })),
+      reads: this.storage.sql
+        .exec<{ pair: string; faction: string; through: number }>('SELECT pair,faction,through FROM conversation_reads')
+        .toArray(),
+    };
+  }
+
+  reportBrowser(browser: BugReportBrowser) {
+    let logs = browser.logs;
+    /* Message bodies never leave the room; only their replacements enter the exported log strings. */
+    for (const row of this.storage.sql.exec<{ text: string }>('SELECT text FROM conversation_messages')) {
+      logs = logs.map((entry) => ({ ...entry, text: censorKnownMessage(entry.text, row.text) }));
+    }
+    return redactReportData({ ...browser, conversations: censorReportConversations(browser.conversations), logs });
   }
 
   scrub(userId: string) {

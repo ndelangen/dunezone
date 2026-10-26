@@ -30,6 +30,7 @@ import { PieceArtwork } from '../../../../widgets/tabletop/PieceArtwork';
 import { usePointerSession } from '../../../../widgets/tabletop/PointerSessionContext';
 import { PredictionLogosContext } from '../../../../widgets/tabletop/prediction/predictionFace';
 import { TabletopSessionProvider } from '../../../../widgets/tabletop/TabletopContext';
+import { BrowserDiagnostics } from '../browserDiagnostics';
 import type { CompassTable } from '../compass/compassTable';
 import { CompassTableContext } from '../compass/compassTable';
 import { FoilConfetti } from '../FoilConfetti';
@@ -44,6 +45,7 @@ import { AllianceCoinsScene } from './AllianceCoins';
 import { AlliancesPanel, AllianceStrip, showsAlliances } from './Alliances';
 import { BattleControls, BattleHistory, BattleModeToggle, BattleScene } from './BattleControls';
 import { BidderScene, biddingPhase } from './Bidder';
+import { useBugReport } from './BugReport';
 import { OfflineConversations } from './Conversation';
 import { DraftingOverlay, DraftingPanel } from './Drafting';
 import { DetermineWinner, ResultControls, useDeclareChoice } from './GameResult';
@@ -1014,13 +1016,18 @@ function ConnectedTable({
   error,
   connection,
   identity,
+  gameId,
+  diagnostics,
 }: Readonly<{
   client: TableSession;
   table: TableProjection;
   error: string | null;
   connection: string;
   identity: GameIdentity;
+  gameId: string;
+  diagnostics: BrowserDiagnostics;
 }>) {
+  const bugReport = useBugReport(gameId, client, table, connection, diagnostics);
   const progress = gameProgress(table.snapshot);
   const focus = useWindowFocus(table, progress);
   const celebration = useResultCelebration(table);
@@ -1089,7 +1096,16 @@ function ConnectedTable({
                 ) : undefined
               }
               focus={focus}
-              panels={controlPanels({ client, table, error, declare })}
+              panels={[
+                ...controlPanels({ client, table, error, declare }),
+                {
+                  key: 'report-bug',
+                  label: 'Report a bug',
+                  topic: 'battleUnknown',
+                  description: 'Describe a problem and share the full game state and browser logs.',
+                  content: bugReport,
+                },
+              ]}
               tableGuidance={phaseGuidance(table)}
               tableControls={phaseTabControls({ client, table, error, progress })}
             />
@@ -1110,6 +1126,8 @@ export default function HostedTable({
   identity: GameIdentity;
 }>) {
   const runtime = useContext(GameRuntimeContext);
+  const [diagnostics] = useState(() => new BrowserDiagnostics());
+  useEffect(() => diagnostics.listen(window), [diagnostics]);
   const here = useLocation({ select: (location) => location.href });
   const [client] = useState(
     () =>
@@ -1143,6 +1161,8 @@ export default function HostedTable({
   return (
     <ServerClockContext.Provider value={view.table.serverNow}>
       <ConnectedTable
+        gameId={gameId}
+        diagnostics={diagnostics}
         identity={identity}
         client={client}
         table={view.table}

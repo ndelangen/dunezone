@@ -59,6 +59,7 @@ export function validateGameDeployContract(config: JsonObject, environment: Node
       bindings: [
         { name: 'GAME_ROOMS', class_name: 'GameRoom' },
         { name: 'HOMEPAGE_ROOMS', class_name: 'HomepageRoom' },
+        { name: 'BUG_REPORTS', class_name: 'BugReports' },
       ],
     },
     'Durable Object binding'
@@ -68,12 +69,18 @@ export function validateGameDeployContract(config: JsonObject, environment: Node
     [
       { tag: 'v1', new_sqlite_classes: ['GameRoom'] },
       { tag: 'v2', new_sqlite_classes: ['HomepageRoom'] },
+      { tag: 'v3', new_sqlite_classes: ['BugReports'] },
     ],
     'SQLite migration'
   );
   exact(config.version_metadata, { binding: 'CF_VERSION_METADATA' }, 'version metadata');
   exact(config.send_email, [{ name: 'ALERT_EMAIL' }], 'alert email binding');
   exact(config.limits, { cpu_ms: 30_000 }, 'CPU bound');
+  exact(
+    config.r2_buckets,
+    [{ binding: 'BUG_REPORT_STATES', bucket_name: 'dunezone-bug-report-states' }],
+    'bug report bucket'
+  );
   /* Issue detection feeds the alert relay; a dashboard toggle would not survive a deploy. */
   exact(
     config.observability,
@@ -91,7 +98,6 @@ export function validateGameDeployContract(config: JsonObject, environment: Node
     'assets',
     'browser',
     'images',
-    'r2_buckets',
     'queues',
     'kv_namespaces',
     'd1_databases',
