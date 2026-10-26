@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "sourceDescription": "Troop silhouettes generated from user-supplied image references and traced from the approved bitmap masters. Original authorship and publication were not independently verified.",
+  "source": "originals/soldier-boy-heroic-stance-ae4hwba5teblyr9v.jpg",
+  "assets": {
+    "/vector/troop/saluting-shield-bearer.svg": {
+      "approvedBitmap": "originals/saluting-shield-bearer-approved.png",
+      "bitmapMaster": "bitmaps/saluting-shield-bearer.png",
+      "approval": "The user requested successive simplifications and approved the final plain-shield silhouette on 2026-10-26 with the reply \"perfect!\".",
+      "alphaThreshold": 0.5,
+      "maskGaussianSigmaPixels": 0.65,
+      "minimumComponentAreaPixels": 12,
+      "trace": "Potrace 1.16, turdsize 12, alphamax 1.0, opttolerance 0.6, followed by the SVG authoring root and provenance steps, uniform square normalization and the troop optimization profile.",
+      "paint": "Inherited from the caller. Essential gaps remain transparent.",
+      "collection": "Troops, supplied by the existing vector-category fallback.",
+      "details": "A standing figure with a broad tapered shield raises one hand to its forehead in a salute, with feet planted apart."
+    }
+  }
+}

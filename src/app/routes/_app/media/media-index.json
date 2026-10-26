@@ -11185,5 +11185,65 @@
     "tags": ["throne room", "circular", "arches", "stairs", "palace", "navy", "cream", "multicolor", "vector"],
     "subjects": ["places"],
     "sourceHash": "3c38a778cb2ac0dc6291f33929b820f4038079f9de0b8ee9114a6fad224b82b4"
+  },
+  "/vector/troop/ogre-club-brute.svg": {
+    "description": "A broad pointed-ear figure stands with bent arms, a short spiked club, a simple loincloth and heavy boots.",
+    "tags": ["ogre", "brute", "club", "spiked", "pointed ears", "silhouette"],
+    "subjects": ["creatures", "weapons"],
+    "sourceHash": "760f098ffff8cf3c6d6d88b873e47fd5a864a040c69b504ef3e01e017092d61e"
+  },
+  "/vector/troop/caped-warrior.svg": {
+    "description": "An upright figure with shoulder-length hair holds both fists down while a broad cape flows to the left above tall heeled boots.",
+    "tags": ["caped", "warrior", "cape", "fists", "high collar", "boots", "silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "5e925e81e88b1e77e5444d4115a31a043bca2be51aa0a2f8fd1a403c2f146d6a"
+  },
+  "/vector/troop/sandworm-rider.svg": {
+    "description": "A rear-view figure with a wrapped head and trailing scarf stands with legs apart and holds a curved maker hook in each lowered hand.",
+    "tags": ["sandworm", "rider", "maker hooks", "back view", "scarf", "stillsuit", "silhouette"],
+    "subjects": ["people", "weapons"],
+    "sourceHash": "83a1945de68567ea67c6eece224b9afa6f16bf404f73cc6761d16df8487db4b6"
+  },
+  "/vector/troop/ogre-pirate-hammer.svg": {
+    "description": "A broad bandanna-wearing figure holds a large rectangular hammer across its body, with a loop beneath the hammer head.",
+    "tags": ["ogre", "pirate", "hammer", "bandanna", "loop", "silhouette"],
+    "subjects": ["creatures", "weapons"],
+    "sourceHash": "fe18ddfa0f152ec6a3546ebe143daeafedeb6d4524f7afc6c077d144a62bb611"
+  },
+  "/vector/troop/ogre-pirate-captain.svg": {
+    "description": "A broad figure in a feathered pirate hat and long coat raises a curved sword while a hook hangs from its other arm.",
+    "tags": ["ogre", "pirate", "captain", "sword", "saber", "hook", "feather", "silhouette"],
+    "subjects": ["creatures", "weapons"],
+    "sourceHash": "3746b03327781e64d7e6a1a8787afa7e93bc44f4f0259fd7e729023689d0dba3"
+  },
+  "/vector/troop/ogre-pirate-blades.svg": {
+    "description": "A broad bandanna-wearing figure holds a long curved sword upward and a large axe across its body.",
+    "tags": ["ogre", "pirate", "sword", "axe", "blades", "bandanna", "silhouette"],
+    "subjects": ["creatures", "weapons"],
+    "sourceHash": "f93a27aac6480fdd2c51b7d467da331b053fbf7744d1e0bae4be71fbe163d9f7"
+  },
+  "/vector/troop/ogre-pirate-gunner.svg": {
+    "description": "A broad figure in a long coat carries a large blocky gun across its front and a raised staff with a ring at its lower tip.",
+    "tags": ["ogre", "pirate", "gunner", "gun", "staff", "ring", "silhouette"],
+    "subjects": ["creatures", "weapons"],
+    "sourceHash": "c8f43d34587705e7a9764a7a917aa6b10205abd77d69cd514ce182f23e9c7415"
+  },
+  "/vector/troop/ogre-pirate-mace.svg": {
+    "description": "A broad bandanna-wearing figure with one heavy boot and one peg leg holds a short spiked mace out to the side.",
+    "tags": ["ogre", "pirate", "mace", "peg leg", "bandanna", "silhouette"],
+    "subjects": ["creatures", "weapons"],
+    "sourceHash": "abadfb81edbbd0430ed607c9485cdb650200b7ee1d1610cb5bf3accd1bfccd16"
+  },
+  "/vector/troop/ogre-polearm.svg": {
+    "description": "A muscular figure braces on bent legs, raising a long cross-tipped polearm overhead while extending its other arm forward.",
+    "tags": ["ogre", "polearm", "spear", "overhead", "crouch", "silhouette"],
+    "subjects": ["creatures", "weapons"],
+    "sourceHash": "1a41e9d971009d119310398ccd6535c637227334d55419dd9d62ee1454902abc"
+  },
+  "/vector/troop/saluting-shield-bearer.svg": {
+    "description": "A standing figure with a broad tapered shield raises one hand to its forehead in a salute, with feet planted apart.",
+    "tags": ["saluting", "shield", "bearer", "Soldier Boy", "wide stance", "silhouette"],
+    "subjects": ["people", "weapons"],
+    "sourceHash": "4e34c3cb5af11e1bfdee64432dd4c90ecabf6277f87c6484f8296b52ff3c1fa8"
   }
 }

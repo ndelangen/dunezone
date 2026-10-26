@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "sourceDescription": "Troop silhouettes generated from user-supplied image references and traced from the approved bitmap masters. Original authorship and publication were not independently verified.",
+  "source": "originals/6ip68AEpT.png",
+  "assets": {
+    "/vector/troop/ogre-polearm.svg": {
+      "approvedBitmap": "originals/ogre-polearm-approved.png",
+      "bitmapMaster": "bitmaps/ogre-polearm.png",
+      "approval": "The user approved all nine numbered troop proposals on 2026-10-26 with the reply \"Approve all nine\".",
+      "alphaThreshold": 0.5,
+      "maskGaussianSigmaPixels": 0.8,
+      "minimumComponentAreaPixels": 12,
+      "trace": "Potrace 1.16, turdsize 12, alphamax 1.0, opttolerance 0.6, followed by the SVG authoring root and provenance steps, uniform square normalization and the troop optimization profile.",
+      "paint": "Inherited from the caller. Essential gaps remain transparent.",
+      "collection": "Troops, supplied by the existing vector-category fallback.",
+      "details": "A muscular figure braces on bent legs, raising a long cross-tipped polearm overhead while extending its other arm forward."
+    }
+  }
+}
