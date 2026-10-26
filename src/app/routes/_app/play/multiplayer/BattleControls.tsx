@@ -196,7 +196,8 @@ function usePlanView({ client, table, plan, battle }: PlanProps): BattlePlanView
   return {
     plan: {
       ...plan,
-      leaderIds: inOrderOf(order.pieces, plan.leaderIds),
+      /* Leaders shown to everyone keep the order they were shown in, as the room keeps them. */
+      leaderIds: plan.disclosed.leader ? plan.leaderIds : inOrderOf(order.pieces, plan.leaderIds),
       cardIds: inOrderOf(order.pieces, plan.cardIds),
     },
     hand: [...order.pieces, ...aside],
