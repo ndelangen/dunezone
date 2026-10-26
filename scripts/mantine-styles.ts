@@ -32,6 +32,10 @@ function moduleSpecifier(statement: ts.Statement) {
   return ts.isStringLiteral(specifier) ? specifier.text : undefined;
 }
 
+function runtimeNames(entries: readonly (ts.ImportSpecifier | ts.ExportSpecifier)[]) {
+  return entries.filter((entry) => !entry.isTypeOnly).map((entry) => (entry.propertyName ?? entry.name).text);
+}
+
 function importNames(statement: ts.ImportDeclaration, source: ts.SourceFile) {
   const clause = statement.importClause;
   if (clause?.isTypeOnly) {
@@ -44,7 +48,7 @@ function importNames(statement: ts.ImportDeclaration, source: ts.SourceFile) {
   if (clause?.name) {
     throw new Error(`Default Mantine imports cannot be traced safely: ${source.fileName}`);
   }
-  return bindings.elements.filter((entry) => !entry.isTypeOnly).map((entry) => (entry.propertyName ?? entry.name).text);
+  return runtimeNames(bindings.elements);
 }
 
 function exportNames(statement: ts.ExportDeclaration, source: ts.SourceFile) {
@@ -55,7 +59,7 @@ function exportNames(statement: ts.ExportDeclaration, source: ts.SourceFile) {
   if (!clause || !ts.isNamedExports(clause)) {
     throw new Error(`Use named Mantine exports so their styles can be traced: ${source.fileName}`);
   }
-  return clause.elements.filter((entry) => !entry.isTypeOnly).map((entry) => (entry.propertyName ?? entry.name).text);
+  return runtimeNames(clause.elements);
 }
 
 function importedNames(statement: ts.Statement, source: ts.SourceFile): string[] {
