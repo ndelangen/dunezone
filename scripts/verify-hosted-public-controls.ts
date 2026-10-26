@@ -135,7 +135,7 @@ export async function verifyPublicControls({
       original
     );
     await button(a, 'Close catalogue').click();
-    await pinWindow(a, 'Shared inventory', 'left');
+    await pinWindow(a, 'Shared table inventory', 'left');
     await growSlot(a, 'left');
     await button(a, 'Drag Recovery token onto the table').scrollIntoViewIfNeeded();
     await capture(a, 'after-sole-player-inventory');
@@ -160,13 +160,13 @@ export async function verifyPublicControls({
     await until(() => requests(b).length === 1 && requests(observer).length === 1, 'Pending request was not public.');
     assert.equal(inventory(a).length, 1);
     assert.equal(await button(a, 'Approve').isDisabled(), true);
-    await openTab(observer, 'Shared inventory');
+    await openTab(observer, 'Shared table inventory');
     for (const name of ['Approve', 'Dismiss', 'Add from catalogue', 'Next phase']) {
       assert.equal(await button(observer, name).isDisabled(), true);
     }
     assert.equal(await previousPhaseDisabled(observer), true);
     assert.equal(await button(observer, 'Drag Recovery token onto the table').isDisabled(), true);
-    await pinWindow(b, 'Shared inventory', 'left');
+    await pinWindow(b, 'Shared table inventory', 'left');
     await growSlot(b, 'left');
     await button(b, 'Approve').scrollIntoViewIfNeeded();
     await capture(b, 'after-pending-request');
@@ -194,7 +194,7 @@ export async function verifyPublicControls({
 
   async function verifyInventoryDrag() {
     await focus(a, 'map');
-    await openTab(a, 'Shared inventory');
+    await openTab(a, 'Shared table inventory');
     const token = required(inventory(a)[0], 'token');
     const thumbnail = button(a, 'Drag Recovery token onto the table').first();
     await thumbnail.scrollIntoViewIfNeeded();

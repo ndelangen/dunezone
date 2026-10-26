@@ -1213,12 +1213,12 @@ function treacheryDeck(who: HostedPeer) {
   return deck.id;
 }
 /**
- * Picks one asset in the Shared inventory's catalogue the way a player does: opens the catalogue, searches the asset's name and clicks its row.
+ * Picks one asset in the Shared table inventory's catalogue the way a player does: opens the catalogue, searches the asset's name and clicks its row.
  * The rows are busy until the typed word's own matches list, and a click before that lands on the rows of the search before it, which the picker ignores.
  * A row names its type and owner beside the asset, so the row is found by the name it shows rather than by its whole label.
  */
 async function pickCatalogueAsset(who: HostedPeer, name: string) {
-  await openTab(who, 'Shared inventory');
+  await openTab(who, 'Shared table inventory');
   if (await button(who, 'Add from catalogue').count()) {
     await button(who, 'Add from catalogue').click();
   }
