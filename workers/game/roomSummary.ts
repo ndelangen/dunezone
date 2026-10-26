@@ -2,8 +2,6 @@ import type { ClientMessage } from '../../src/shared/play/protocol';
 
 /* One summary per room per interval: about six log lines a game-hour, well inside the account's log allowance. */
 export const ROOM_SUMMARY_MS = 10 * 60_000;
-/* A quiet room writes its line early once this long has passed, before it may hibernate and drop it. */
-export const ROOM_SUMMARY_IDLE_MS = 60_000;
 /* A long session keeps at most this many command timings between summaries; the oldest are dropped first. */
 const COMMAND_SAMPLES = 2048;
 
@@ -19,6 +17,20 @@ export type RoomCounters = {
 export type ConvexCall = { path: string; durationMs: number; ok: boolean };
 type ClientReport = Omit<Extract<ClientMessage, { type: 'telemetry' }>, 'type'>;
 type CallTotals = { calls: number; failures: number; totalMs: number; maxMs: number };
+/** An unwritten interval, kept in storage while the room hibernates; its counters are the change it saw, since a woken room counts from zero. */
+export type SavedSummary = {
+  since: number;
+  carried: RoomCounters;
+  messagesIn: number;
+  peakConnections: number;
+  commandMs: number[];
+  commandCount: number;
+  commandMaxMs: number;
+  stalls: number;
+  worstStallMs: number;
+  convex: [string, CallTotals][];
+  clients: [string, ClientReport][];
+};
 
 function percentile(sorted: number[], fraction: number) {
   return sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor(fraction * sorted.length))]! : 0;
@@ -47,12 +59,14 @@ const ZERO: RoomCounters = {
 /*
  * A periodic account of one room's load, for measuring a live session without tracing.
  * It holds counts and durations only: the opaque room identity comes from the diagnostics context,
- * and no account, seat, faction or game content is ever recorded. Counters live in memory, so an
- * object restart starts a fresh interval; a summary covers what this instance saw.
+ * and no account, seat, faction or game content is ever recorded. Counters live in memory; a room
+ * that may hibernate saves its unwritten interval, and an object restart otherwise starts a fresh one.
  */
 export class RoomSummary {
   private since: number;
   private base: RoomCounters = ZERO;
+  /* What an interval saved before a hibernation had already counted. */
+  private carried: RoomCounters = ZERO;
   private messagesIn = 0;
   private peakConnections = 0;
   private commandMs: number[] = [];
@@ -108,20 +122,66 @@ export class RoomSummary {
     this.clients.set(connectionId, report);
   }
 
-  due(now: number, interval = ROOM_SUMMARY_MS) {
-    return now - this.since >= interval;
+  due(now: number) {
+    return now - this.since >= ROOM_SUMMARY_MS;
+  }
+
+  private delta(counters: RoomCounters) {
+    return Object.fromEntries(
+      Object.entries(counters).map(([key, value]) => {
+        const name = key as keyof RoomCounters;
+        return [name, value - this.base[name] + this.carried[name]];
+      })
+    ) as RoomCounters;
   }
 
   /** Whether the current interval holds anything a line would report. */
   pending(counters: RoomCounters) {
-    return this.messagesIn > 0 || counters.messagesSent > this.base.messagesSent || this.convex.size > 0;
+    return this.messagesIn > 0 || this.delta(counters).messagesSent > 0 || this.convex.size > 0;
+  }
+
+  /** The unwritten interval, for a room about to hibernate. */
+  save(counters: RoomCounters): SavedSummary {
+    return {
+      since: this.since,
+      carried: this.delta(counters),
+      messagesIn: this.messagesIn,
+      peakConnections: this.peakConnections,
+      commandMs: this.commandMs,
+      commandCount: this.commandCount,
+      commandMaxMs: this.commandMaxMs,
+      stalls: this.stalls,
+      worstStallMs: this.worstStallMs,
+      convex: [...this.convex],
+      clients: [...this.clients],
+    };
+  }
+
+  /** Resumes an interval saved before a hibernation, in a room whose counters start again from zero. */
+  restore(saved: SavedSummary) {
+    this.since = saved.since;
+    this.base = ZERO;
+    this.carried = saved.carried;
+    this.messagesIn = saved.messagesIn;
+    this.peakConnections = Math.max(this.peakConnections, saved.peakConnections);
+    this.commandMs = saved.commandMs;
+    this.commandCount = saved.commandCount;
+    this.commandMaxMs = saved.commandMaxMs;
+    this.stalls = saved.stalls;
+    this.worstStallMs = saved.worstStallMs;
+    this.convex.clear();
+    for (const [path, totals] of saved.convex) {
+      this.convex.set(path, totals);
+    }
+    this.clients.clear();
+    for (const [connectionId, report] of saved.clients) {
+      this.clients.set(connectionId, report);
+    }
   }
 
   /** Writes one summary line when anything happened since the last one, then starts the next interval. */
-  flush(counters: RoomCounters, connections: number, reason: 'interval' | 'empty' | 'idle', now = Date.now()) {
-    const delta = Object.fromEntries(
-      Object.entries(counters).map(([key, value]) => [key, value - this.base[key as keyof RoomCounters]])
-    ) as RoomCounters;
+  flush(counters: RoomCounters, connections: number, reason: 'interval' | 'empty', now = Date.now()) {
+    const delta = this.delta(counters);
     const active = this.messagesIn > 0 || delta.messagesSent > 0 || this.convex.size > 0;
     if (active) {
       const clients = [...this.clients.values()];
@@ -151,6 +211,7 @@ export class RoomSummary {
     }
     this.since = now;
     this.base = { ...counters };
+    this.carried = ZERO;
     this.messagesIn = 0;
     this.peakConnections = connections;
     this.commandMs = [];

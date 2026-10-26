@@ -54,16 +54,16 @@ installation. It asks the session for projections instead of reading or changing
 
 A room hibernates while its players think, so a paused table costs no Durable Object duration.
 The one-second sweep runs only while something can expire on its own: an admission, a carry or a
-pointer, or while its summary line waits to be written, at most a minute. Every message starts it
-again. The alarm
-covers the battle deadline and the directory retry while the room sleeps. A pass needs no alarm:
-the page renews it before it runs out, and the sweep the next message starts pauses the table of a
-page that did not. Keepalive pings are
-answered by the runtime without waking the room. Each admitted connection keeps its identity, pass
-and admission state in its socket attachment, so a woken room restores its players instead of
-closing their sockets. The delivery baselines live in memory only, so each player's first frame
-after a wake is a full view. A socket with nothing remembered closes with 1012 and the page
-reconnects.
+pointer. Every message starts it again. When it stops, the room saves its used carry IDs, its
+unwritten summary interval and a quiet marker. While the room sleeps, the alarm covers the battle
+deadline, the directory retry and the next seat pass to expire. A pass whose session ended cannot
+be renewed, so its alarm wakes the room to pause that table. Keepalive pings are answered by the
+runtime without waking the room. Each admitted connection keeps its identity, pass and admission
+state in its socket attachment, so a woken room restores its players and its activity epoch
+instead of closing their sockets. The delivery baselines live in memory only, so each player's
+first frame after a wake is a full view. A socket with nothing remembered closes with 1012 and the
+page reconnects. So does every socket of a room that restarts without the quiet marker, as a
+deploy or crash mid-carry does: the carries are gone, and the reconnect's new epoch tells the page.
 
 A command and any setup cleanup it enables commit before the Room accepts the result. If saving
 fails, the snapshot, history boundary and unfinished carry stay unchanged so the same command can

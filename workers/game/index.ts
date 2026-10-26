@@ -59,7 +59,8 @@ import { forwardPrivacyRequest } from './privacyRequests';
 import { provisionThroughSetup } from './provisionThroughSetup';
 import { CarryHistoryExhausted } from './room';
 import { RoomDraft } from './roomDraft';
-import { ROOM_SUMMARY_IDLE_MS, RoomSummary } from './roomSummary';
+import type { SavedSummary } from './roomSummary';
+import { RoomSummary } from './roomSummary';
 import type { ConvexCall } from './roomSummary';
 import type { HeldPass } from './seatPasses';
 import { heldPass, SeatPasses } from './seatPasses';
@@ -167,6 +168,10 @@ const COMMAND_RATE_REFUSAL = 'You are acting too fast. Wait a moment, then try a
 const SWEEP_MS = 1000;
 /* Where a connection's used carry IDs wait out a hibernation; too many to fit its socket attachment. */
 const carryHistoryKey = (connectionId: string) => `carry-history:${connectionId}`;
+/* Set while the room is quiet with its sweep stopped, the only state it hibernates in; a restart without it lost work in flight. */
+const QUIET_KEY = 'quiet';
+/* The summary interval a quiet room has not written yet, kept until it wakes. */
+const SUMMARY_KEY = 'room-summary';
 /* A normal close the page reconnects after, unlike a refusal. */
 const SEAT_CHANGED_CLOSE_CODE = 1012;
 /** A sweep this late counts as a stall, and the room keeps the most recent ones. */
@@ -364,20 +369,35 @@ export class GameRoom extends DurableObject<GameEnv> {
       }
       this.draft.changed();
     }
-    this.restoreConnections();
+    try {
+      this.restoreConnections();
+    } catch (error) {
+      this.diagnostics.report('load', error);
+      this.connections.clear();
+      for (const socket of this.ctx.getWebSockets()) {
+        socket.close(1012, 'Reconnect to the table.');
+      }
+    }
   }
 
   /*
    * A room that wakes from hibernation finds its players' sockets still open, each with what its connection remembered.
    * A socket with nothing remembered (its attachment failed, or the room can no longer serve it) closes, so the page reconnects.
    * One still being admitted never meets a wake: its admission keeps the sweep running, which keeps the room awake.
+   * A restart while the sweep ran (a deploy or a crash) lost the carries and pointers in flight, so every socket closes
+   * and its page reconnects into a new epoch, which drops what it was holding.
    * The delivery baselines are gone, so each connection's next frame is a full view.
    */
   private restoreConnections() {
+    const quiet = this.ctx.storage.kv.get(QUIET_KEY) === true;
+    const saved = this.ctx.storage.kv.get<SavedSummary>(SUMMARY_KEY);
+    if (saved) {
+      this.summary.restore(saved);
+    }
     const behind = new Set<WebSocket>();
     for (const socket of this.ctx.getWebSockets()) {
       const remembered =
-        !this.closed && this.metadata?.confirmed
+        quiet && !this.closed && this.metadata?.confirmed
           ? (socket.deserializeAttachment() as RememberedConnection | null)
           : null;
       if (!remembered) {
@@ -459,11 +479,12 @@ export class GameRoom extends DurableObject<GameEnv> {
       if (this.remembered.get(socket) === written) {
         continue;
       }
+      this.remembered.set(socket, written);
       try {
         socket.serializeAttachment(remembered);
-        this.remembered.set(socket, written);
       } catch (error) {
         /* Such a connection still plays; only a wake from hibernation closes it for a reconnect. */
+        socket.serializeAttachment(null);
         this.diagnostics.report('socket-attachment', error);
       }
     }
@@ -842,9 +863,9 @@ export class GameRoom extends DurableObject<GameEnv> {
       }
       this.remember();
       await this.directory.deliver();
-      /* What the wake sent and called waits in the summary; the sweep writes it before the room sleeps again. */
-      if (this.summary.pending(this.counters())) {
-        this.ensureSweep();
+      /* What the wake sent and called waits in the summary, which a running sweep writes; a quiet room saves it again. */
+      if (!this.sweepTimer && this.summary.pending(this.counters())) {
+        this.rest();
       }
     } else {
       await this.confirmProvisioning();
@@ -913,6 +934,7 @@ export class GameRoom extends DurableObject<GameEnv> {
         this.session.confirm();
       }
       await this.ctx.storage.deleteAlarm();
+      this.alarmAt = null;
       /* The opening summary waited for confirmation: only a confirmed game is listed. */
       this.directory.soon();
       this.diagnostics.recovered('confirmation');
@@ -1877,7 +1899,11 @@ export class GameRoom extends DurableObject<GameEnv> {
    * players think. Every message starts it again.
    */
   private ensureSweep() {
-    this.sweepTimer ??= setInterval(() => {
+    if (this.sweepTimer) {
+      return;
+    }
+    this.ctx.storage.kv.delete(QUIET_KEY);
+    this.sweepTimer = setInterval(() => {
       this.noteStall();
       this.sweepConnections();
       if (this.summary.due(Date.now())) {
@@ -1886,19 +1912,18 @@ export class GameRoom extends DurableObject<GameEnv> {
       if (this.needsSweep()) {
         return;
       }
-      /*
-       * Hibernation drops whatever the summary has not written, so a quiet room with a pending line keeps
-       * sweeping until the line is a minute old, then writes it early. That bounds the lines to one a minute.
-       */
-      if (this.summary.pending(this.counters())) {
-        if (!this.summary.due(Date.now(), ROOM_SUMMARY_IDLE_MS)) {
-          return;
-        }
-        this.flushSummary('idle');
-      }
-      this.saveCarryHistory();
-      this.stopSweep();
+      this.rest();
     }, SWEEP_MS);
+  }
+
+  /* Saves what a hibernation would lose, then stops the sweep so the room may sleep. */
+  private rest() {
+    this.saveCarryHistory();
+    if (this.summary.pending(this.counters())) {
+      this.ctx.storage.kv.put(SUMMARY_KEY, this.summary.save(this.counters()));
+    }
+    this.ctx.storage.kv.put(QUIET_KEY, true);
+    this.stopSweep();
   }
 
   /* The native fixture reads this to prove a quiet room stops its sweep. */
@@ -1921,8 +1946,9 @@ export class GameRoom extends DurableObject<GameEnv> {
     };
   }
 
-  private flushSummary(reason: 'interval' | 'empty' | 'idle') {
+  private flushSummary(reason: 'interval' | 'empty') {
     this.summary.flush(this.counters(), this.connections.size, reason);
+    this.ctx.storage.kv.delete(SUMMARY_KEY);
   }
 
   private noteStall() {

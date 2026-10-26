@@ -551,6 +551,12 @@ export async function createRuntime(
       return (await fixtureJson<{ sweeping: boolean }>(await room.fetch('https://native-test/native-test/sweeping')))
         .sweeping;
     },
+    /** Clears the room's record that it went quiet, as a restart mid-activity finds it. */
+    async forgetQuiet() {
+      const namespace = await instance.getDurableObjectNamespace('GAME_ROOMS');
+      const room = namespace.get(namespace.idFromName(gameId));
+      await room.fetch('https://native-test/native-test/forget-quiet', { method: 'POST' });
+    },
     /** Fetches a path from the room object with any name, as a Worker version routing another game would. */
     async object(name: string, path: string) {
       const namespace = await instance.getDurableObjectNamespace('GAME_ROOMS');

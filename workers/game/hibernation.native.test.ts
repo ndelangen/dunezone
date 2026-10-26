@@ -13,10 +13,7 @@ import {
   syncView,
 } from './native-runtime.fixture.ts';
 
-/*
- * Moves the room's clock a minute on and waits for its sweep to stop: a quiet room keeps sweeping until its
- * pending summary line is a minute old. Returns the new clock offset.
- */
+/* Moves the room's clock a minute on, past any pointer, and waits for its sweep to stop. Returns the new clock offset. */
 async function quiet(runtime: NativeRuntime, offset: number) {
   const next = offset + 61_000;
   await runtime.clock(next);
@@ -43,21 +40,48 @@ describe('GameRoom hibernation', () => {
   const admissionStatuses = (connection: NativeConnection) =>
     connection.messages.flatMap((message) => (message.type === 'admission' ? [message.status] : []));
 
-  it('stops its sweep once nothing can expire and its summary is written, and starts it again for a pointer', async () => {
+  const summaries = () =>
+    runtime.logs.filter((log) => log.message.includes('game-room-summary')).map((log) => log.message);
+
+  it('stops its sweep once nothing can expire, and starts it again for a pointer', async () => {
     const a = await admitPlayer(runtime, 'a');
-    const offset = await quiet(runtime, 0);
-    expect(runtime.logs.some((log) => log.message.includes('game-room-summary') && log.message.includes('idle'))).toBe(
-      true
-    );
+    await eventually(async () => !(await runtime.sweeping()), 'the sweep stopping');
+    /* A quiet room sleeps at once: its unwritten summary waits in storage rather than keeping it awake. */
+    expect(summaries()).toEqual([]);
     a.send({ type: 'pointer', seq: 0, position: [0, 0, 0] });
     await eventually(() => runtime.sweeping(), 'the sweep starting for the pointer');
-    /* The pointer lapses after three seconds, but its message waits in the summary for a minute. */
-    await runtime.clock(offset + 3001);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    expect(await runtime.sweeping()).toBe(true);
-    await quiet(runtime, offset);
+    await runtime.clock(3001);
+    await eventually(async () => !(await runtime.sweeping()), 'the sweep stopping once the pointer lapses');
     expect(a.closed).toBe(false);
   }, 15_000);
+
+  it('writes the summary interval a hibernation interrupted, counting what came before it', async () => {
+    const a = await admitPlayer(runtime, 'a');
+    await syncView(a);
+    const offset = await quiet(runtime, 0);
+    await runtime.hibernateRoom();
+    await runtime.clock(offset + 10 * 60_000);
+    a.send({ type: 'pointer', seq: 0, position: [0, 0, 0] });
+    const line = await eventually(
+      () => summaries().find((message) => message.includes('interval')),
+      'the interval line'
+    );
+    /* The admission and sync before the sleep count along with the pointer after it. */
+    const messagesIn = Number(/messagesIn[^0-9]*(\d+)/.exec(line)?.[1]);
+    expect(messagesIn).toBeGreaterThanOrEqual(3);
+  }, 20_000);
+
+  it('closes its sockets for a reconnect into a new epoch when it restarts without having gone quiet', async () => {
+    const a = await admitPlayer(runtime, 'a');
+    await syncView(a);
+    await quiet(runtime, 0);
+    /* A deploy or crash restarts a room whose sweep ran, so the carries it held are gone. */
+    await runtime.forgetQuiet();
+    await runtime.hibernateRoom();
+    await runtime.sweeping();
+    await eventually(() => a.closed, 'the socket closing');
+    expect(a.closeCode).toBe(1012);
+  }, 20_000);
 
   it('keeps its players connected across a hibernation, and their next frame is a full view', async () => {
     const a = await admitPlayer(runtime, 'a');
