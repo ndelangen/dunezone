@@ -1,3 +1,4 @@
+import { Tooltip } from '@mantine/core';
 import { Kbd } from '@ui/content/Kbd';
 import clsx from 'clsx';
 import { MessagesSquare } from 'lucide-react';
@@ -10,7 +11,7 @@ import type { CompassPlayer } from './compassTable';
 import { PlayerToken } from './PlayerToken';
 import { chattable, FACTION_INFO } from './windows';
 
-/* The bar at the bottom of the table: the Controls button that opens the compass, and a token for each chat. */
+/* The bar at the bottom of the table: the viewer's own token, the Controls button that opens the compass, and a token for each chat. */
 
 type ChatBarProps = Readonly<{
   inert: boolean;
@@ -31,8 +32,10 @@ export function ChatBar({ inert, isOpen, onOpenCompass, onShow }: ChatBarProps) 
   /* The other players to talk to, and the viewer too while a removal vote stands against them. */
   const others = table?.players.filter((player) => !player.own || player.vote) ?? [];
   const tableChat = table?.tableChat;
+  const own = table?.players.find((player) => player.own);
   return (
     <div className={styles.bar} inert={inert} data-hides-cursor data-compass-bar>
+      {own?.factionName && <OwnToken player={own} open={isOpen('hand')} onOpen={() => onShow('hand')} />}
       <button type="button" className={styles.launcher} data-compass-launcher onClick={onOpenCompass}>
         <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" className={base.glyph}>
           <circle cx="12" cy="12" r="8" />
@@ -58,6 +61,24 @@ export function ChatBar({ inert, isOpen, onOpenCompass, onShow }: ChatBarProps) 
         </nav>
       )}
     </div>
+  );
+}
+
+/* The viewer's own faction, which opens their Hand & spice as H does; a spectator has no seat and no token. */
+function OwnToken({ player, open, onOpen }: Readonly<{ player: CompassPlayer; open: boolean; onOpen: () => void }>) {
+  return (
+    <Tooltip label={`You are playing as ${player.factionName}`} withinPortal>
+      <button
+        type="button"
+        className={clsx(styles.chat, styles.own)}
+        aria-pressed={open}
+        aria-label={`Hand & spice, you are playing as ${player.factionName}`}
+        data-own-token
+        onClick={onOpen}
+      >
+        <PlayerToken player={player} size={34} />
+      </button>
+    </Tooltip>
   );
 }
 
