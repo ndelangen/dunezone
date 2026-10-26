@@ -13,6 +13,14 @@ export class GameRoom extends ProductionGameRoom {
       clockOffset = Number(new URL(request.url).searchParams.get('offset'));
       return Response.json({ now: Date.now() });
     }
+    if (new URL(request.url).pathname === '/native-test/sweeping') {
+      return Response.json({ sweeping: this.sweeping });
+    }
+    if (new URL(request.url).pathname === '/native-test/forget-quiet' && request.method === 'POST') {
+      /* Stands in for a restart while the sweep ran, which a forced eviction with a live timer cannot model. */
+      this.ctx.storage.kv.delete('quiet');
+      return new Response(null, { status: 204 });
+    }
     if (new URL(request.url).pathname === '/native-test/fail-storage' && request.method === 'POST') {
       this.ctx.storage.sql.exec('DROP TABLE receipts');
       return new Response(null, { status: 204 });

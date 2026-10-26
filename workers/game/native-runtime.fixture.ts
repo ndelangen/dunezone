@@ -550,6 +550,23 @@ export async function createRuntime(
         webSockets: 'hibernate',
       });
     },
+    /** Evicts the game room's in-memory object while keeping its native WebSockets connected, as hibernation does. */
+    async hibernateRoom() {
+      await instance.unsafeEvictDurableObject('', 'GameRoom', { name: gameId, webSockets: 'hibernate' });
+    },
+    /** Whether the room's sweep is running, which keeps the room from hibernating. */
+    async sweeping() {
+      const namespace = await instance.getDurableObjectNamespace('GAME_ROOMS');
+      const room = namespace.get(namespace.idFromName(gameId));
+      return (await fixtureJson<{ sweeping: boolean }>(await room.fetch('https://native-test/native-test/sweeping')))
+        .sweeping;
+    },
+    /** Clears the room's record that it went quiet, as a restart mid-activity finds it. */
+    async forgetQuiet() {
+      const namespace = await instance.getDurableObjectNamespace('GAME_ROOMS');
+      const room = namespace.get(namespace.idFromName(gameId));
+      await room.fetch('https://native-test/native-test/forget-quiet', { method: 'POST' });
+    },
     /** Fetches a path from the room object with any name, as a Worker version routing another game would. */
     async object(name: string, path: string) {
       const namespace = await instance.getDurableObjectNamespace('GAME_ROOMS');

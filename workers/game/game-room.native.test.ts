@@ -142,7 +142,11 @@ describe('GameRoom native SQLite and admission boundaries', () => {
       required(required(commands).at(-1)).handledAt
     );
     expect(stalls).toEqual([]);
-    /* Once a sweep has run, moving the room's clock two seconds on makes the next one late by as much. */
+    /*
+     * The sweep runs only while something can expire, so a pointer keeps it going.
+     * Once a sweep has run, moving the room's clock two seconds on makes the next one late by as much.
+     */
+    connection.send({ type: 'pointer', seq: 0, position: [0, 0, 0] });
     await new Promise((resolve) => setTimeout(resolve, 1100));
     await runtime.clock(2000);
     await eventually(async () => {

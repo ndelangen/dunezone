@@ -17,15 +17,23 @@ const meta = testingPreview.meta({
   ],
 });
 
+/* The issue stays in creation until the story has seen that stage, so a slow frame cannot let the next poll skip it. */
+let creatingSeen = false;
+
 export const Send = meta.story({
   beforeEach: [
     install(() => productTransport()),
     () => {
-      mocked(sendPlayBugReport).mockImplementation(async (_gameId, request) => ({
-        requestId: request.requestId,
-        stage: request.operation === 'send' ? 'creating' : 'complete',
-        ...(request.operation === 'status' ? { issueUrl: 'https://github.com/ndelangen/dunezone/issues/1' } : {}),
-      }));
+      creatingSeen = false;
+      mocked(sendPlayBugReport).mockImplementation(async (_gameId, request) =>
+        request.operation === 'status' && creatingSeen
+          ? {
+              requestId: request.requestId,
+              stage: 'complete',
+              issueUrl: 'https://github.com/ndelangen/dunezone/issues/1',
+            }
+          : { requestId: request.requestId, stage: 'creating' }
+      );
     },
   ],
   play: async ({ canvasElement }) => {
@@ -41,7 +49,8 @@ export const Send = meta.story({
     await userEvent.click(page.getByRole('checkbox'));
     await expect(send).toBeEnabled();
     await userEvent.click(send);
-    await expect(page.findByText('Creating the GitHub issue...')).resolves.toBeVisible();
+    await expect(page.findByText('Creating the GitHub issue...', undefined, { timeout: 8000 })).resolves.toBeVisible();
+    creatingSeen = true;
     await expect(page.findByRole('link', { name: 'Open GitHub issue' }, { timeout: 8000 })).resolves.toHaveAttribute(
       'href',
       'https://github.com/ndelangen/dunezone/issues/1'

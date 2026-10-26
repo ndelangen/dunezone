@@ -114,3 +114,33 @@ test('the command count and maximum cover every command, beyond the kept timings
     expect.objectContaining({ commands: { count: 3001, p50Ms: 10, p95Ms: 10, maxMs: 5000 } })
   );
 });
+
+test('an interval saved before a hibernation is written whole by the woken room, whose counters start from zero', () => {
+  const log = vi.spyOn(console, 'info').mockImplementation(() => {});
+  const asleep = new RoomSummary(() => ({ roomId: 'room-a' }), 0);
+  asleep.flush(counters({ messagesSent: 10, bytesSent: 1000 }), 2, 'interval', 0);
+  asleep.message();
+  asleep.command(25);
+  asleep.convexCall({ path: 'playDirectory:publishSummary', durationMs: 30, ok: true });
+  const saved = structuredClone(asleep.save(counters({ messagesSent: 14, bytesSent: 1400 })));
+
+  const woken = new RoomSummary(() => ({ roomId: 'room-a' }), 5000);
+  expect(woken.pending(counters())).toBe(false);
+  woken.restore(saved);
+  expect(woken.pending(counters())).toBe(true);
+  expect(woken.due(ROOM_SUMMARY_MS)).toBe(true);
+  woken.message();
+  woken.flush(counters({ messagesSent: 2, bytesSent: 300 }), 2, 'interval', ROOM_SUMMARY_MS);
+  expect(log).toHaveBeenCalledWith(
+    expect.objectContaining({
+      reason: 'interval',
+      intervalMs: ROOM_SUMMARY_MS,
+      messagesIn: 2,
+      messagesSent: 6,
+      bytesSent: 700,
+      commands: { count: 1, p50Ms: 25, p95Ms: 25, maxMs: 25 },
+      convex: { 'playDirectory:publishSummary': { calls: 1, failures: 0, totalMs: 30, maxMs: 30 } },
+    })
+  );
+  expect(woken.pending(counters({ messagesSent: 2, bytesSent: 300 }))).toBe(false);
+});

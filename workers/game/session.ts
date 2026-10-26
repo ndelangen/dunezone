@@ -969,6 +969,12 @@ export class GameSession {
   get revision() {
     return this.room!.snapshot.revision;
   }
+  get epoch() {
+    return this.room!.epoch;
+  }
+  resumeEpoch(epoch: string) {
+    this.room!.epoch = epoch;
+  }
   get historySteps() {
     return this.history.steps;
   }
@@ -1289,6 +1295,12 @@ export class GameSession {
       ...(carry ? { held: carry.held } : {}),
     };
   }
+  carryHistory(connectionId: string) {
+    return this.room?.carryHistory(connectionId) ?? [];
+  }
+  restoreCarryHistory(connectionId: string, carryIds: readonly string[]) {
+    this.room?.restoreCarryHistory(connectionId, carryIds);
+  }
   pointer(...args: Parameters<Room['pointer']>) {
     return this.room!.pointer(...args);
   }
@@ -1302,6 +1314,10 @@ export class GameSession {
   disconnect(connectionId: string) {
     this.room?.disconnect(connectionId);
     this.finishSetupCleanup();
+  }
+  /** Whether anything here expires on its own: a carry or a pointer. */
+  get hasActivity() {
+    return Boolean(this.room && (this.room.carries.size || this.room.pointers.size));
   }
   sweep() {
     const swept = this.room?.sweep();

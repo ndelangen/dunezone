@@ -191,7 +191,8 @@ export class Room {
   set snapshot(snapshot: StoredSnapshot) {
     this.current = closeLostPeeks(snapshot);
   }
-  readonly epoch = crypto.randomUUID();
+  /* A new epoch tells pages their carries are gone; a room woken from hibernation resumes the old one, since it held none. */
+  epoch: string = crypto.randomUUID();
   /** The revision of the last commit that changed more than who is ready. */
   private settledRevision: number;
   readonly carries = new Map<string, Carry>();
@@ -368,6 +369,17 @@ export class Room {
     }
     if (this.carries.size >= TABLE_SECTOR_COUNT) {
       throw new GameRejection('The table already has too many active carries.');
+    }
+  }
+
+  /** The carry IDs a connection has used, which a room woken from hibernation must go on refusing. */
+  carryHistory(connectionId: string): string[] {
+    return [...(this.usedCarryIds.get(connectionId) ?? [])];
+  }
+
+  restoreCarryHistory(connectionId: string, carryIds: readonly string[]) {
+    if (carryIds.length) {
+      this.usedCarryIds.set(connectionId, new Set(carryIds));
     }
   }
 

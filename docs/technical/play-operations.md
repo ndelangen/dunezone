@@ -322,7 +322,9 @@ resumes (`convex/playDeletion.ts:168-199`). The repository does not document the
 ### Watching a live session
 
 Each game room writes one `game-room-summary` line every ten minutes while players are connected,
-and one when the last player leaves (`workers/game/roomSummary.ts`). A line carries the opaque room
+and one when the last player leaves (`workers/game/roomSummary.ts`). A room that hibernates saves
+its unwritten interval and writes it after it wakes, so a pause neither drops nor splits a line. A
+quiet stretch with nothing to report writes none. A line carries the opaque room
 identity and release, connections, messages in and out, bytes sent, saved-command timings from
 handling to a confirmed write, late sweeps, dropped motion, and each Convex function the room called
 with its count, failures and durations. Each browser also reports, every five minutes, how long
