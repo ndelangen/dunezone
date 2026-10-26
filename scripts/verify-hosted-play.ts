@@ -382,8 +382,9 @@ try {
   passed('Removing administrator status does not revoke signed-in play access');
   const heldFrom = b.messages.length;
   const revokedAt = Date.now();
-  await alice.client.action(api.auth.signOut, {});
-  await until(() => a.closeCode && aTab.closeCode, 'Logout did not revoke every tab of the Auth session.');
+  /* Only revoking every session pushes a cutoff to the room; a single tab's sign-out leaves its pass to expire. */
+  await alice.client.mutation(api.accounts.signOutEverywhere, {});
+  await until(() => a.closeCode && aTab.closeCode, 'Signing out everywhere did not revoke every tab.');
   const revocationMs = Date.now() - revokedAt;
   assert.ok(revocationMs <= 10_000);
   assert.equal(a.closeCode, 4401);
@@ -400,7 +401,7 @@ try {
     required(aNew.view(), 'New view').viewer.connectionId,
     required(a.view(), 'Alice view').viewer.connectionId
   );
-  passed('Actual Auth logout stops all tab outputs; fresh login retains the faction seat', { revocationMs });
+  passed('Signing out everywhere stops all tab outputs; fresh login retains the faction seat', { revocationMs });
   /* A seat pass never outlives the session that asked for it, so a session nearing its end gets a pass that ends with it. */
   const expiring = async (label: string, kind: 'inactivity' | 'total') => {
     const user = await login(label);
