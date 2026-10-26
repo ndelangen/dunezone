@@ -79,6 +79,10 @@ const peerRequestSchema = z.discriminatedUnion('function', [
   z.object({ function: z.literal('playAdmission:reconcileAccounts'), args: playReconcileAccountsRequestSchema }),
   z.object({ function: z.literal('playAdmission:ackAccountDeletion'), args: playAckAccountDeletionRequestSchema }),
   z.object({ function: z.literal('playAdmission:seatLimitReached'), args: playSeatLimitRequestSchema }),
+  z.object({
+    function: z.literal('playBugReports:authorize'),
+    args: z.object({ gameId: z.string(), secret: z.string(), pass: z.string() }),
+  }),
   z.object({ function: z.literal('playSessionCutoffs:ackSessionCutoff'), args: playAckSessionCutoffRequestSchema }),
 ]);
 export type PeerRequest = z.infer<typeof peerRequestSchema> & {
@@ -394,6 +398,9 @@ function answerPeerRequest(peer: NativePeer, record: PeerRequest) {
       } else if (peer.httpMode !== 'hold') {
         record.release(peer.result(record.args, peer.httpMode === 'allow'));
       }
+      break;
+    case 'playBugReports:authorize':
+      record.release(peer.httpMode === 'allow' ? { authExpiresAt: peer.expiresAt() } : null);
       break;
     case 'playProvisioning:validateProvisioning':
       /* A test that sets `peer.game` provisions a real game instead of the fixture. */

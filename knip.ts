@@ -27,6 +27,7 @@ const config: KnipConfig = {
         'workers/game/load-entry.ts',
         /* Native workerd tests bundle these entries with esbuild by filename. */
         'workers/game/authorization.native.fixture.ts',
+        'workers/game/bugReports.native.fixture.ts',
         'workers/game/game-room.native.fixture.ts',
         'workers/game/homepage.native.fixture.ts',
         'workers/game/load-limits.native.fixture.ts',

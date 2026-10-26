@@ -147,13 +147,22 @@ export class PublicLog {
       )
       .toArray();
     return {
-      entries: rows.slice(0, LOG_PAGE_SIZE).map((row) => ({
-        sequence: row.sequence,
-        class: row.class,
-        text: render(row.template, JSON.parse(row.people) as Person[]),
-        context: row.context,
-        at: row.created_at,
-      })),
+      entries: rows.slice(0, LOG_PAGE_SIZE).map((row) => {
+        const text = render(row.template, JSON.parse(row.people) as Person[]);
+        const issueUrl =
+          row.class === 'bug-report'
+            ? /https:\/\/github\.com\/ndelangen\/dunezone\/issues\/\d+$/u.exec(text)?.[0]
+            : undefined;
+        return {
+          sequence: row.sequence,
+          class: row.class === 'bug-report' ? ('phase' as const) : row.class,
+          ...(row.class === 'bug-report' ? { event: 'bug-report' as const } : {}),
+          text,
+          context: row.context,
+          at: row.created_at,
+          ...(issueUrl ? { issueUrl } : {}),
+        };
+      }),
       more: rows.length > LOG_PAGE_SIZE,
     };
   }

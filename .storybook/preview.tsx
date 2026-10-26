@@ -24,6 +24,7 @@ import { resetFrameLag } from './storyWaits';
 const REGION = { width: 960, height: 600 };
 
 sb.mock(import('../src/app/db/core/index.ts'));
+sb.mock(import('../src/app/db/playBugReports.ts'));
 
 const preview = definePreview({
   addons: [addonDocs()],
