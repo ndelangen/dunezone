@@ -117,3 +117,30 @@ export const FuzzyDecals = meta.story({
     await expect(page.getByText('No exact matches. Showing close spellings.')).toBeVisible();
   },
 });
+export const LucideGallery = meta.story({
+  args: { path: '/media/lucide?q=arrowbigdown' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement);
+    /* The icons load with their own chunk, and the count arrives with them. */
+    await expect(page.findByText('ArrowBigDown')).resolves.toBeVisible();
+    await expect(page.getByRole('status')).toHaveTextContent(/^\d+ matches$/u);
+  },
+});
+export const LucideGalleryNoMatches = meta.story({
+  args: { path: '/media/lucide?q=zzzz' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement);
+    await expect(
+      page.findByText('No artwork matches these filters. Try fewer words or clear the filters.')
+    ).resolves.toBeVisible();
+    await expect(page.getByRole('status')).toHaveTextContent('No matches');
+  },
+});
+export const TopicIconGallery = meta.story({
+  args: { path: '/media/topics?q=group' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement);
+    await expect(page.findByText('groups')).resolves.toBeVisible();
+    await expect(page.getByRole('status')).toHaveTextContent(/^\d+ matches$/u);
+  },
+});

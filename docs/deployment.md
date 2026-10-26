@@ -733,16 +733,18 @@ Two Three vendor payloads have separate limits:
 
 | Payload | Measured bytes | Limit | Identity check |
 | --- | ---: | ---: | --- |
-| Three WebGPU, core and TSL | 1,096,885 | 1,120,000 | Exactly the three prebuilt vendor modules, with no application modules |
+| Three WebGPU, core and TSL | 1,105,208 | 1,120,000 | Exactly the three prebuilt vendor modules, with no application modules |
 | Draco decoder | 719,410 | 740,000 | Bytes match an installed Three decoder |
 
 The WebGPU runtime is already distributed as prebuilt modules. The Draco decoder is copied vendor
-JavaScript. Their larger budgets preserve the renderer's module resolution. The build reports each
+JavaScript. Their larger budgets preserve the renderer's module resolution. The client build's `three` chunk group
+(`THREE_BUILD`, shared with the budget) holds the three WebGPU modules together, whichever chunks import them. The build reports each
 verified payload and its budget; Vite's default 500 kB advisory remains visible for the WebGPU chunk.
 A dependency upgrade that changes these identities or exceeds a budget needs another measured review.
 
 Lucide's full media catalogue and the Rulebook capture validation graph use bounded, entry-aware
-chunk groups. Shared icons stay shared, and the complete catalogue remains on the media route.
+chunk groups. Shared icons stay shared, and the complete catalogue loads only with the media route's Lucide
+gallery (`LucideIcons.tsx`).
 Capture builds resolve static URLs against `public/` with `copyPublicDir: false`; the existing
 publisher assembly supplies those files once. Generate vectors as well as images before comparing
 asset counts or unresolved-URL warnings.
