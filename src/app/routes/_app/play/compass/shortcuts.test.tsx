@@ -17,10 +17,15 @@ function page() {
   controls.setAttribute('data-compass-controls', '');
   const button = document.createElement('button');
   const field = document.createElement('textarea');
-  controls.append(button, field);
+  /* A peek at cards opens as a dialog over the table, with its close button focused. */
+  const peek = document.createElement('div');
+  peek.setAttribute('role', 'dialog');
+  const close = document.createElement('button');
+  peek.append(close);
+  controls.append(button, field, peek);
   const beside = document.createElement('button');
   document.body.append(controls, beside);
-  return { button, field, beside };
+  return { button, field, beside, close };
 }
 
 function press(key: string, target: EventTarget = document.body, init: KeyboardEventInit = {}) {
@@ -55,12 +60,13 @@ test('each letter runs its shortcut over the table and on its controls, whatever
   ]);
 });
 
-test('a letter typed in a field, beside the table, with a modifier, held, or already taken by a piece does nothing', () => {
-  const { field, beside } = page();
+test('a letter typed in a field, in a dialog, beside the table, with a modifier, held, or already taken by a piece does nothing', () => {
+  const { field, beside, close } = page();
   const onShortcut = vi.fn((_shortcut: Shortcut) => true);
   renderHook(() => useShortcutKeys(true, onShortcut));
   press('h', field);
   press('h', beside);
+  press('p', close);
   press('h', document.body, { metaKey: true });
   press('h', document.body, { repeat: true });
   /* The table flipped the piece under the cursor first. */

@@ -57,7 +57,8 @@ export function commandsOf(table: Table): Readonly<Record<Command, TableCommand 
 }
 
 /* A key typed into a text field, a menu, a list or a dialog is theirs; so is one pressed on a control beside the table. */
-const KEEPS_LETTERS = 'input, textarea, select, [contenteditable="true"], [role="menu"], [role="listbox"], dialog';
+const KEEPS_LETTERS =
+  'input, textarea, select, [contenteditable="true"], [role="menu"], [role="listbox"], dialog, [role="dialog"], [aria-modal="true"]';
 function keptElsewhere(target: EventTarget | null) {
   const element = target instanceof Element && target !== document.body && target !== document.documentElement;
   return element && (target.closest(KEEPS_LETTERS) !== null || target.closest('[data-compass-controls]') === null);
