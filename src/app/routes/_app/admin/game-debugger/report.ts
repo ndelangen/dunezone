@@ -67,7 +67,7 @@ function inspectStructure(value: unknown) {
   }
 }
 
-export function reportSnapshot(report: Report, source: 'server' | 'browser') {
+function reportSnapshot(report: Report, source: 'server' | 'browser') {
   const ruleset = object.safeParse(report.server.captures.ruleset);
   const input =
     source === 'browser'

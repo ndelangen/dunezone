@@ -2,7 +2,7 @@ import { homepageSnapshot } from '@shared/homepage/setup';
 import { expect, userEvent, within } from 'storybook/test';
 
 /** Public homepage game data in the report envelope, with a deliberately older browser revision. */
-export function reportFile() {
+function reportFile() {
   const snapshot = homepageSnapshot('https://dune.zone');
   return new File(
     [
