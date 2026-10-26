@@ -14,95 +14,163 @@ function parse(file: string) {
   return ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true);
 }
 
-function importedNames(statement: ts.Statement, file: string): string[] {
-  if (
-    !(ts.isImportDeclaration(statement) || ts.isExportDeclaration(statement)) ||
-    !statement.moduleSpecifier ||
-    !ts.isStringLiteral(statement.moduleSpecifier)
-  ) {
+function moduleDeclaration(node: ts.Node) {
+  if (ts.isImportDeclaration(node)) {
+    return node;
+  }
+  if (ts.isExportDeclaration(node)) {
+    return node;
+  }
+  return undefined;
+}
+
+function moduleSpecifier(statement: ts.Statement) {
+  const specifier = moduleDeclaration(statement)?.moduleSpecifier;
+  if (!specifier) {
+    return undefined;
+  }
+  return ts.isStringLiteral(specifier) ? specifier.text : undefined;
+}
+
+function importNames(statement: ts.ImportDeclaration, source: ts.SourceFile) {
+  const clause = statement.importClause;
+  if (clause?.isTypeOnly) {
     return [];
   }
-  const specifier = statement.moduleSpecifier.text;
+  const bindings = clause?.namedBindings;
+  if (!bindings || !ts.isNamedImports(bindings)) {
+    throw new Error(`Use named Mantine imports so their styles can be traced: ${source.fileName}`);
+  }
+  if (clause?.name) {
+    throw new Error(`Default Mantine imports cannot be traced safely: ${source.fileName}`);
+  }
+  return bindings.elements.filter((entry) => !entry.isTypeOnly).map((entry) => (entry.propertyName ?? entry.name).text);
+}
+
+function exportNames(statement: ts.ExportDeclaration, source: ts.SourceFile) {
+  if (statement.isTypeOnly) {
+    return [];
+  }
+  const clause = statement.exportClause;
+  if (!clause || !ts.isNamedExports(clause)) {
+    throw new Error(`Use named Mantine exports so their styles can be traced: ${source.fileName}`);
+  }
+  return clause.elements.filter((entry) => !entry.isTypeOnly).map((entry) => (entry.propertyName ?? entry.name).text);
+}
+
+function importedNames(statement: ts.Statement, source: ts.SourceFile): string[] {
+  const specifier = moduleSpecifier(statement);
+  if (!specifier) {
+    return [];
+  }
   if (specifier.startsWith('@mantine/core/') && !specifier.endsWith('.css')) {
-    throw new Error(`Deep Mantine imports cannot be traced safely: ${file}`);
+    throw new Error(`Deep Mantine imports cannot be traced safely: ${source.fileName}`);
   }
   if (specifier !== '@mantine/core') {
     return [];
   }
   if (ts.isImportDeclaration(statement)) {
-    const clause = statement.importClause;
-    if (clause?.isTypeOnly) {
-      return [];
-    }
-    if (!clause?.namedBindings || !ts.isNamedImports(clause.namedBindings) || clause.name) {
-      throw new Error(`Use named Mantine imports so their styles can be traced: ${file}`);
-    }
-    return clause.namedBindings.elements
-      .filter((entry) => !entry.isTypeOnly)
-      .map((entry) => (entry.propertyName ?? entry.name).text);
+    return importNames(statement, source);
   }
-  if (statement.isTypeOnly) {
-    return [];
+  if (ts.isExportDeclaration(statement)) {
+    return exportNames(statement, source);
   }
-  if (!statement.exportClause || !ts.isNamedExports(statement.exportClause)) {
-    throw new Error(`Use named Mantine exports so their styles can be traced: ${file}`);
-  }
-  return statement.exportClause.elements
-    .filter((entry) => !entry.isTypeOnly)
-    .map((entry) => (entry.propertyName ?? entry.name).text);
+  return [];
 }
 
-function assertStaticImports(source: ts.SourceFile, file: string) {
+function mantineReference(node: ts.Node) {
+  return ts.isStringLiteral(node) && node.text.startsWith('@mantine/core');
+}
+
+function dynamicMantineImport(node: ts.Node) {
+  if (!ts.isCallExpression(node)) {
+    return false;
+  }
+  if (node.expression.kind !== ts.SyntaxKind.ImportKeyword) {
+    return false;
+  }
+  return node.arguments.some(mantineReference);
+}
+
+function assertStaticImports(source: ts.SourceFile) {
   function visit(node: ts.Node) {
-    if (
-      ts.isCallExpression(node) &&
-      node.expression.kind === ts.SyntaxKind.ImportKeyword &&
-      node.arguments.some((arg) => ts.isStringLiteral(arg) && arg.text.startsWith('@mantine/core'))
-    ) {
-      throw new Error(`Dynamic Mantine imports cannot be traced safely: ${file}`);
+    if (dynamicMantineImport(node)) {
+      throw new Error(`Dynamic Mantine imports cannot be traced safely: ${source.fileName}`);
     }
     ts.forEachChild(node, visit);
   }
   visit(source);
 }
 
-function usedExports(files: readonly string[], available: Set<string>) {
-  const used = new Set<string>();
-  for (const file of files) {
-    const text = readFileSync(file, 'utf8');
-    if (!file.endsWith('.css')) {
-      const source = parse(file);
-      for (const statement of source.statements) {
-        for (const name of importedNames(statement, file)) {
-          used.add(name);
-        }
-      }
-      assertStaticImports(source, file);
-    }
-    /* A hand-written Mantine class is a consumer too, even without a component import. */
-    for (const match of text.matchAll(/\bmantine-([A-Z]\w*)-/g)) {
-      if (available.has(`${match[1]}.css`)) {
-        used.add(match[1]);
-      }
-    }
+function fileExports(file: string) {
+  if (file.endsWith('.css')) {
+    return [];
   }
-  return used;
+  const source = parse(file);
+  assertStaticImports(source);
+  return source.statements.flatMap((statement) => importedNames(statement, source));
+}
+
+function authoredClassNames(file: string, available: Set<string>) {
+  return [...readFileSync(file, 'utf8').matchAll(/\bmantine-([A-Z]\w*)-/g)]
+    .map((match) => match[1])
+    .filter((name) => available.has(`${name}.css`));
+}
+
+function usedExports(files: readonly string[], available: Set<string>) {
+  return new Set(files.flatMap((file) => [...fileExports(file), ...authoredClassNames(file, available)]));
+}
+
+function moduleExports(statement: ts.Statement, source: ts.SourceFile): [string, string][] {
+  if (!ts.isImportDeclaration(statement)) {
+    return [];
+  }
+  const bindings = statement.importClause?.namedBindings;
+  if (!bindings || !ts.isNamedImports(bindings)) {
+    return [];
+  }
+  const specifier = moduleSpecifier(statement);
+  if (!specifier) {
+    return [];
+  }
+  const file = resolve(dirname(source.fileName), specifier);
+  return bindings.elements.map((name) => [name.name.text, file]);
 }
 
 function exportedFiles(packageRoot: string) {
   const entry = join(packageRoot, 'esm', 'index.mjs');
-  const exports = new Map<string, string>();
-  for (const statement of parse(entry).statements) {
-    if (ts.isImportDeclaration(statement) && ts.isStringLiteral(statement.moduleSpecifier)) {
-      const bindings = statement.importClause?.namedBindings;
-      if (bindings && ts.isNamedImports(bindings)) {
-        for (const name of bindings.elements) {
-          exports.set(name.name.text, resolve(dirname(entry), statement.moduleSpecifier.text));
-        }
-      }
-    }
+  const source = parse(entry);
+  return new Map(source.statements.flatMap((statement) => moduleExports(statement, source)));
+}
+
+function exportFile(name: string, exports: Map<string, string>) {
+  const file = exports.get(name);
+  if (!file) {
+    throw new Error(`Cannot trace Mantine export ${name}; check the installed package format.`);
   }
-  return exports;
+  return file;
+}
+
+function stylesheetName(file: string, available: Set<string>) {
+  if (!file.endsWith('.module.mjs')) {
+    return undefined;
+  }
+  const name = basename(file, '.module.mjs');
+  if (!available.has(`${name}.css`)) {
+    throw new Error(`Missing Mantine stylesheet for ${file}`);
+  }
+  return name;
+}
+
+function relativeSpecifier(value: string | undefined): value is string {
+  return value?.startsWith('.') === true;
+}
+
+function dependencies(source: ts.SourceFile) {
+  return source.statements
+    .map(moduleSpecifier)
+    .filter(relativeSpecifier)
+    .map((specifier) => resolve(dirname(source.fileName), specifier));
 }
 
 function componentStyles(used: Set<string>, packageRoot: string, available: Set<string>) {
@@ -110,40 +178,22 @@ function componentStyles(used: Set<string>, packageRoot: string, available: Set<
   const sheets = new Set(['baseline', 'default-css-variables', 'global']);
   const visited = new Set<string>();
   const classes = new Set<string>();
-  function visit(file: string) {
+  const pending = [...used].map((name) => exportFile(name, exports));
+  for (const file of pending) {
     if (visited.has(file)) {
-      return;
+      continue;
     }
     visited.add(file);
     const source = parse(file);
     for (const match of source.text.matchAll(/\bm_[\w]+\b/g)) {
       classes.add(match[0]);
     }
-    if (file.endsWith('.module.mjs')) {
-      const name = basename(file, '.module.mjs');
-      if (!available.has(`${name}.css`)) {
-        throw new Error(`Missing Mantine stylesheet for ${file}`);
-      }
-      sheets.add(name);
-      return;
+    const sheet = stylesheetName(file, available);
+    if (sheet) {
+      sheets.add(sheet);
+    } else {
+      pending.push(...dependencies(source));
     }
-    for (const statement of source.statements) {
-      if (
-        (ts.isImportDeclaration(statement) || ts.isExportDeclaration(statement)) &&
-        statement.moduleSpecifier &&
-        ts.isStringLiteral(statement.moduleSpecifier) &&
-        statement.moduleSpecifier.text.startsWith('.')
-      ) {
-        visit(resolve(dirname(file), statement.moduleSpecifier.text));
-      }
-    }
-  }
-  for (const name of used) {
-    const file = exports.get(name);
-    if (!file) {
-      throw new Error(`Cannot trace Mantine export ${name}; check the installed package format.`);
-    }
-    visit(file);
   }
   return { sheets, classes };
 }
