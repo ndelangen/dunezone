@@ -242,7 +242,7 @@ export function ScenePresence({
     overlays.setView({ camera, size, container: eventTarget ?? renderer.domElement.parentNode });
   }, [camera, eventTarget, overlays, renderer.domElement, size]);
   useEffect(() => () => overlays.dispose(), [overlays]);
-  const updateLocalCursor = useRef<(point: { x: number; y: number; touch: boolean } | null) => void>(() => {});
+  const updateLocalCursor = useRef<(point: { x: number; y: number } | null) => void>(() => {});
   useLayoutEffect(() => {
     if (!showLocal) {
       return;
@@ -268,7 +268,7 @@ export function ScenePresence({
     const root = createRoot(label);
     root.render(<HandAvatar color={viewer.color} avatarUrl={viewer.avatarUrl} />);
     updateLocalCursor.current = (point) => {
-      const visible = point !== null && !point.touch;
+      const visible = point !== null;
       label.hidden = !visible;
       canvas.classList.toggle(styles.localCursor, visible);
       if (visible) {
@@ -288,7 +288,7 @@ export function ScenePresence({
   }, [renderer.domElement, showLocal, viewer.color, viewer.avatarUrl]);
   const raycaster = useMemo(() => new Raycaster(), []);
   const normalized = useMemo(() => new Vector2(), []);
-  const lastScreenPoint = useRef<{ x: number; y: number; touch: boolean } | null>(null);
+  const lastScreenPoint = useRef<{ x: number; y: number } | null>(null);
   /* The camera as the last frame showed it, compared in place rather than as a string of its 32 numbers. */
   const lastCamera = useRef<{ world: Matrix4; projection: Matrix4 } | null>(null);
   const latestPointers = useRef(pointers);
@@ -332,7 +332,7 @@ export function ScenePresence({
   }, [camera, canInteract, normalized, plateOutline, publishPointer, raycaster, renderer.domElement, showLocal]);
   useEffect(() => {
     const move = (event: PointerEvent) => {
-      lastScreenPoint.current = { x: event.clientX, y: event.clientY, touch: event.pointerType === 'touch' };
+      lastScreenPoint.current = { x: event.clientX, y: event.clientY };
       publish.current();
     };
     const clear = () => {

@@ -64,7 +64,7 @@ function followPointer(
   const up = (lifted: PointerEvent) => ours(lifted) && end(lifted);
   const lost = (lifted: PointerEvent) => ours(lifted) && drop();
   const escape = (pressed: KeyboardEvent) => pressed.key === 'Escape' && drop();
-  /* A second finger calls the carry off, as it does a carry of a piece. */
+  /* Another pointer pressing calls the carry off. */
   const another = (pressed: PointerEvent) => !ours(pressed) && drop();
   window.addEventListener('pointermove', move);
   window.addEventListener('pointerup', up);

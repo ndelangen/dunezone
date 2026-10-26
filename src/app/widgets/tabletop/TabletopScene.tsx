@@ -81,7 +81,6 @@ import { useMotionAllowed } from '@app/styles/motion';
 
 import { loadFaceTexture, tableCardFaceKey } from './cardFaceTexture';
 import { ignoreRaycast } from './ignoreRaycast';
-import { swallowLift, watchLongPress } from './longPress';
 import { MapPreviewCamera } from './MapPreviewCamera';
 import { PieceArrival } from './PieceArrival';
 import { topFaceHref } from './pieceFaceHref';
@@ -720,7 +719,6 @@ function useScenePointerSession(onActiveChange: (active: boolean) => void) {
  * R3F's own `pointerleave` on its wrapper clears only pointer id 0, and a Chromium mouse is id 1, so its hover would outlive the leave.
  * Its `onPointerCancel` handler forgets the given pointer and fires the real leave handlers, and the next move over an object enters it afresh.
  * The leave is heard on the canvas too, because drei's `Html` overlays sit inside the wrapper, so a move onto one leaves the canvas but not the wrapper.
- * A touch is left alone: it leaves after every tap, before the click that R3F can only deliver while it still remembers the pointer.
  */
 function useCanvasHoverReset() {
   const connected = useThree((state) => state.events.connected as EventTarget | undefined);
@@ -732,11 +730,7 @@ function useCanvasHoverReset() {
       return;
     }
     const canvas = renderer.domElement;
-    const leave = (event: PointerEvent) => {
-      if (event.pointerType !== 'touch') {
-        cancel(event);
-      }
-    };
+    const leave = (event: PointerEvent) => cancel(event);
     const cancelAll = () => {
       for (const pointerId of internal.pointerMap.keys()) {
         cancel(new PointerEvent('pointercancel', { pointerId }));
@@ -779,8 +773,8 @@ function pieceHoverCursor(canInteract: boolean, interactionBlocked: boolean, ges
   return gestureBlocked ? 'not-allowed' : 'grab';
 }
 
-/* Opens a piece's menu at a point; `touch` says a finger asked for it, which has no keyboard shortcut to offer. */
-const PieceMenuContext = createContext<((pieceId: string, x: number, y: number, touch: boolean) => void) | null>(null);
+/* Opens a piece's menu at a point. */
+const PieceMenuContext = createContext<((pieceId: string, x: number, y: number) => void) | null>(null);
 
 function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carrying }: TablePieceMeshProps) {
   const { selectPiece, setHoveredPiece } = useTabletopActions();
@@ -790,8 +784,6 @@ function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carr
   const pointerSession = usePointerSession();
   const gestureBlocked = gestureBlockReason(piece);
   const hasMenu = !carrying && pieceHasMenu(piece);
-  const stopLongPress = useRef<(() => void) | null>(null);
-  useEffect(() => () => stopLongPress.current?.(), []);
   /* Only a left press handles a piece, and none does while the table blocks it or the paintbrush is on. */
   const ignoresPress = (event: ThreeEvent<PointerEvent>) => {
     const notLeftOrBlocked = event.button !== 0 || interactionBlocked;
@@ -812,10 +804,7 @@ function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carr
     onContextMenu: (event: ThreeEvent<MouseEvent>) => {
       if (hasMenu && openPieceMenu) {
         event.stopPropagation();
-        const { clientX, clientY } = event.nativeEvent;
-        /* Android's long-press context menu is a touch pointer event. */
-        const touch = 'pointerType' in event.nativeEvent && event.nativeEvent.pointerType === 'touch';
-        openPieceMenu(piece.id, clientX, clientY, touch);
+        openPieceMenu(piece.id, event.nativeEvent.clientX, event.nativeEvent.clientY);
       }
     },
     /* While the paintbrush is on, a click on a piece paints the territory under it, and the piece is neither picked up nor selected. */
@@ -833,28 +822,6 @@ function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carr
         return;
       }
       selectPiece(piece.id);
-      /*
-       * A touch has no right-click, and iOS never turns a long press into a context menu, so a finger resting on a deck or spice opens the same menu.
-       * A finger that moves first is carrying the piece, and the menu leaves it alone.
-       */
-      stopLongPress.current?.();
-      stopLongPress.current = null;
-      if (event.pointerType === 'touch' && hasMenu && openPieceMenu) {
-        const { clientX, clientY } = event.nativeEvent;
-        stopLongPress.current = watchLongPress(window, event.nativeEvent, () => {
-          stopLongPress.current = null;
-          if (pointerSession.isDragging(piece.id)) {
-            return;
-          }
-          /* Only this finger's press stops; another finger may be carrying another piece. */
-          if (pointerSession.isPressing(piece.id)) {
-            pointerSession.cancel();
-          }
-          stopLongPress.current = swallowLift(window, { clientX, clientY });
-          /* Android also sends a context menu for the long press; opening the same menu twice changes nothing. */
-          openPieceMenu(piece.id, clientX, clientY, true);
-        });
-      }
       if (gestureBlocked) {
         return;
       }
@@ -862,10 +829,6 @@ function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carr
     },
     onPointerEnter: (event: ThreeEvent<PointerEvent>) => {
       event.stopPropagation();
-      /* A finger has no hover: its leave is never heard, so a tap's jitter would leave the piece armed for the keys after the selection moves on. */
-      if (event.pointerType === 'touch') {
-        return;
-      }
       if (!interactionBlocked) {
         hovered.current = true;
         setHoveredPiece(piece.id);
@@ -1270,17 +1233,7 @@ export function TabletopScene({
   );
   const [pieceMenu, setPieceMenu] = useState<PieceMenuAnchor | null>(null);
   /* One opener for the table's life: a new one on every update would render every piece again. */
-  const openPieceMenu = useCallback(
-    (pieceId: string, x: number, y: number, touch: boolean) =>
-      /* A long press may also send a context menu; the second opening keeps the finger's menu. */
-      setPieceMenu((current) => ({
-        pieceId,
-        x,
-        y,
-        touch: touch || (current?.pieceId === pieceId && current.touch),
-      })),
-    []
-  );
+  const openPieceMenu = useCallback((pieceId: string, x: number, y: number) => setPieceMenu({ pieceId, x, y }), []);
   /* A custom faction with four or more troop kinds spreads its reserves wider than the stock framing reaches. */
   const troopKinds = useTabletopSelector((table) => widestTroopSupply(table.state.pieces));
   const { tableProgress, trackerSlots, mapFramingPoints, camera } = useTableFraming(
