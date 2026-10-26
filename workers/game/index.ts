@@ -300,7 +300,20 @@ export class GameRoom extends DurableObject<GameEnv> {
     gitSha: this.env.GIT_SHA,
     workerVersionId: this.env.CF_VERSION_METADATA.id,
   }));
-  private readonly observeConvex = (call: ConvexCall) => this.summary.convexCall(call);
+  private readonly observeConvex = (call: ConvexCall) => {
+    this.summary.convexCall(call);
+    /* A call that outlived the sweep settles in a quiet room, so the summary it saved is saved again with this call. */
+    if (!this.sweepTimer) {
+      this.resaveSummary ??= setTimeout(() => {
+        this.resaveSummary = undefined;
+        if (!this.sweepTimer && !this.closed) {
+          this.ctx.storage.kv.put(SUMMARY_KEY, this.summary.save(this.counters()));
+        }
+      });
+    }
+  };
+  /* Waits until the work the call settled has run, so what it sent is saved too. */
+  private resaveSummary: ReturnType<typeof setTimeout> | undefined;
   private passes: SeatPasses | undefined;
   private readonly session!: GameSession;
   /*

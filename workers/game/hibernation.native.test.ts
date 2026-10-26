@@ -71,6 +71,26 @@ describe('GameRoom hibernation', () => {
     expect(messagesIn).toBeGreaterThanOrEqual(3);
   }, 20_000);
 
+  it('saves a Convex call that settles after its sweep stopped, so the woken room writes it', async () => {
+    peer.seatLimitMode = 'hold';
+    const a = await admitPlayer(runtime, 'a');
+    const offset = await quiet(runtime, 0);
+    const held = await eventually(
+      () => peer.requests.find((request) => request.function === 'playAdmission:seatLimitReached'),
+      'the held seat-limit read'
+    );
+    held.release({ ok: true, reached: false });
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    await runtime.hibernateRoom();
+    await runtime.clock(offset + 10 * 60_000);
+    a.send({ type: 'pointer', seq: 0, position: [0, 0, 0] });
+    const line = await eventually(
+      () => summaries().find((message) => message.includes('interval')),
+      'the interval line'
+    );
+    expect(line).toContain('playAdmission:seatLimitReached');
+  }, 20_000);
+
   it('closes its sockets for a reconnect into a new epoch when it restarts without having gone quiet', async () => {
     const a = await admitPlayer(runtime, 'a');
     await syncView(a);
