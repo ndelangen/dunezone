@@ -39,7 +39,13 @@ export function phaseControls(canvasElement: HTMLElement) {
       expect(page.getByRole('menu').contains(canvasElement.ownerDocument.activeElement)).toBe(true)
     );
     await userEvent.keyboard('{Escape}');
-    await waitForFrame(() => expect(page.queryByRole('menuitem', { name: 'Previous phase' })).toBeNull());
+    /* Mantine may retain the invisible dropdown while its exit transition finishes. */
+    await waitForFrame(async () => {
+      const previous = page.queryByRole('menuitem', { name: 'Previous phase' });
+      if (previous) {
+        await expect(previous).not.toBeVisible();
+      }
+    });
   };
   const pressPrevious = async () => userEvent.click(await openPrevious());
   return { page, controls, waitForPhase, openPrevious, expectPrevious, pressPrevious };
