@@ -61,3 +61,33 @@ export const CloseLeavesAtOnce = meta.story({
     await waitFor(() => expect(doc.querySelector('[data-closing]')).toBeNull());
   },
 });
+
+/* A table stand-in: right-click anywhere opens the ring at the pointer, and anything that closes it lets it go. */
+function TryTheRing(props: Readonly<Parameters<typeof RadialMenu>[0]>) {
+  const [at, setAt] = useState<{ x: number; y: number } | null>({ x: props.x, y: props.y });
+  return (
+    <div
+      style={{ height: '100vh', background: '#2a1d12' }}
+      onContextMenu={(event) => {
+        event.preventDefault();
+        /* A right-click on the ring is its own: it steps back out of Deal's ring. */
+        if ((event.target as Element).closest('[data-radial-menu]')) {
+          return;
+        }
+        setAt({ x: event.clientX, y: event.clientY });
+      }}
+    >
+      {at && <RadialMenu {...props} key={`${at.x},${at.y}`} x={at.x} y={at.y} onClose={() => setAt(null)} />}
+    </div>
+  );
+}
+
+/** The ring's motion: it springs open around the pointer and gathers in as it closes; Deal's ring flies out the same way. Right-click anywhere to open it again. */
+export const OpenAndClose = meta.story({
+  globals: { motion: 'on' },
+  render: (args) => <TryTheRing {...args} />,
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(await page.findByRole('menu', { name: 'Deck actions' })).toHaveFocus();
+  },
+});

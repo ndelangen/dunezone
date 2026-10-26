@@ -293,6 +293,13 @@ export function RadialMenu({
   };
 
   /*
+   * The ring closes at once for the table, focus and assistive technology; only a lifeless copy of it shrinks away.
+   * It comes before the focus handback below, so its cleanup still sees which item the keys were on.
+   */
+  const motion = useMotionAllowed();
+  useClosingCopy(menu, { enabled: motion, ms: CLOSE_MS });
+
+  /*
    * Focus lands on the ring itself, so the arrow keys and Escape work at once without lighting an item the pointer is not on.
    * Closing hands focus back to whatever held it before, unless a press elsewhere has already moved it.
    */
@@ -307,10 +314,6 @@ export function RadialMenu({
       }
     };
   }, []);
-
-  /* The ring closes at once for the table, focus and assistive technology; only a lifeless copy of it shrinks away. */
-  const motion = useMotionAllowed();
-  useClosingCopy(menu, { enabled: motion, ms: CLOSE_MS });
 
   /* A press anywhere else closes the ring before that press does its own work, so right-clicking the next piece opens its ring at once. */
   useEffect(() => {
