@@ -268,6 +268,15 @@ function Composer({
         placeholder="Message"
         value={draft}
         onChange={(event) => write(event.currentTarget.value)}
+        onKeyDown={(event) => {
+          /* Enter sends, as chats do; Shift+Enter starts a new line, and Enter that ends a composed character stays the input method's. */
+          if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
+            event.preventDefault();
+            if (draft.trim()) {
+              event.currentTarget.form?.requestSubmit();
+            }
+          }
+        }}
         maxLength={2000}
         autosize
         minRows={2}
