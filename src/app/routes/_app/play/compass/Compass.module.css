@@ -1,7 +1,7 @@
 /* The compass over the table: a tile at the end of each arm, the search field at its centre, and the suggestions below. */
 
 .veil {
-  /* A block's place in the close: the outer tiles go first, the search field last. */
+  /* A block's place in the close: the top tile goes first, the suggestions nearest the Controls button last. */
   --close-order: 0;
 
   position: absolute;
@@ -305,8 +305,9 @@
 }
 
 /*
- * The close, played on a lifeless copy (Compass leaves it only when motion is welcome): the blocks go from the outside in,
- * one short beat apart, each shrinking a touch as it fades, the search field last, while the veil lifts under them.
+ * The close, played on a lifeless copy (Compass leaves it only when motion is welcome): the blocks go from the top
+ * down, one short beat apart, each shrinking a touch and sinking as it fades, so the compass reads as folding back
+ * into the Controls button at the bottom, which catches it (ChatBar.module.css).
  */
 .veil[data-closing] {
   pointer-events: none;
@@ -320,19 +321,20 @@
 
 .veil[data-closing] :is(.tile, .hub, .suggestions) {
   transition: none;
+  transform-origin: 50% 100%;
   animation: block-out 110ms cubic-bezier(0.5, 0, 0.75, 0) both;
   animation-delay: calc(var(--close-order) * 40ms);
 }
 
-.veil[data-closing] .tile:is([data-spot="hand"], [data-spot="table"]) {
+.veil[data-closing] .tile:is([data-spot="hidden"], [data-spot="ally"]) {
   --close-order: 1;
 }
 
-.veil[data-closing] :is(.tile[data-spot="battle"], .suggestions) {
+.veil[data-closing] :is(.tile[data-spot="hand"], .tile[data-spot="table"], .hub) {
   --close-order: 2;
 }
 
-.veil[data-closing] .hub {
+.veil[data-closing] .suggestions {
   --close-order: 3;
 }
 
@@ -346,6 +348,7 @@
   to {
     opacity: 0;
     scale: 0.82;
+    translate: 0 1.25rem;
   }
 }
 

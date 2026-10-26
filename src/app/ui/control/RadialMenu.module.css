@@ -195,6 +195,12 @@
   height: calc(100% + 0.6rem);
   rotate: -90deg;
   pointer-events: none;
+  /* Drawn only while held: at rest the empty dash would still leave a sliver at its start. */
+  opacity: 0;
+}
+
+[data-holding] > .holdRing {
+  opacity: 1;
 }
 
 .holdRing circle {
