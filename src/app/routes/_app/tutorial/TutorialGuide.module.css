@@ -274,10 +274,19 @@
     visibility 0s;
 }
 
-.railDetail {
+/* The task's explanation, with the button that reads the task aloud beside it. */
+.railBody {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
   min-height: 0;
   overflow: hidden;
   padding-top: var(--space-xs);
+}
+
+.railDetail {
+  flex: 1;
+  min-width: 0;
   font-size: 1.15rem;
   line-height: 1.5;
   color: color-mix(in srgb, var(--color-text) 85%, transparent);
