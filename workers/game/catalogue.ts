@@ -141,6 +141,10 @@ export class GameCatalogue {
     if (holdsDeckMembership(selection.type) && !cardDeck) {
       throw new GameRejection('A single card wears the back of the deck that holds it. Add this card to a deck first.');
     }
+    if (cardDeck) {
+      /* The holding deck's back name is read from its definition, so it is checked like the card's own. */
+      this.assertDefinitions({ ...root, asset: cardDeck });
+    }
     const definitions = [...definitionsOf(root), ...(cardDeck ? [cardDeck] : [])];
     const members = selection.type === 'deck' || selection.type === 'bundle' ? root.members : [{ ...root, count: 1 }];
     if (!members.length) {

@@ -18,7 +18,15 @@ import type { SpawnableAsset } from '../src/shared/play/inventory';
 import type { Doc, Id } from './_generated/dataModel';
 import type { QueryCtx } from './_generated/server';
 import { publicationHrefFor } from './assetPublishingStatus';
-import { CONTAINER_KINDS, DECK_CARD, liveAsset, membersOf, referencedCardbackDeck, tokenBackFor } from './assets';
+import {
+  CONTAINER_KINDS,
+  DECK_CARD,
+  DECKS_PER_CARD_LIMIT,
+  liveAsset,
+  membersOf,
+  referencedCardbackDeck,
+  tokenBackFor,
+} from './assets';
 import { publicQuery } from './functions';
 import { resolveBackHref, TOKEN_ASSET_TYPES } from './lib/assetBacks';
 import { assetDisplayName } from './lib/assetInput';
@@ -222,14 +230,15 @@ async function suppliedAsset(ctx: QueryCtx, row: Doc<'assets'>, presets: Cardbac
 }
 
 /**
- * The oldest live deck holding this card, or null when no live deck holds it.
+ * The oldest live deck holding this card, or null when none of the first decks to hold it is live.
  * A card has no back of its own: at the table it wears the back of the deck it belongs to.
  */
 async function holdingDeck(ctx: QueryCtx, card: Doc<'assets'>) {
-  const relations = ctx.db
+  const relations = await ctx.db
     .query('asset_relations')
-    .withIndex('by_to_kind', (q) => q.eq('to_asset_id', card._id).eq('kind', DECK_CARD));
-  for await (const relation of relations) {
+    .withIndex('by_to_kind', (q) => q.eq('to_asset_id', card._id).eq('kind', DECK_CARD))
+    .take(DECKS_PER_CARD_LIMIT);
+  for (const relation of relations) {
     const deck = await ctx.db.get('assets', relation.from_asset_id);
     if (deck && !deck.is_deleted && deck.type === 'deck') {
       return deck;

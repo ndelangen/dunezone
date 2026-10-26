@@ -304,12 +304,21 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
     /* A single card wears the back of the deck that holds it; a card in no deck has no back to wear. */
     const kwisatz = cardPage('kwisatz-haderach');
     const holder = deckPage('custom-deck', [kwisatz], 1);
-    seed(token, bundle, heldCardPage(kwisatz, holder), heldCardPage(cardPage('lone-card'), null));
+    /* A holding deck with an unreadable definition refuses the card rather than the faction. */
+    const broken = deckPage('broken-deck', [], 1);
+    seed(
+      token,
+      bundle,
+      heldCardPage(kwisatz, holder),
+      heldCardPage(cardPage('lone-card'), null),
+      heldCardPage(cardPage('broken-held'), { ...broken, asset: { ...broken.asset, data: { name: 'broken-deck' } } })
+    );
     /* The faction declares its own Extras; one names an asset the catalogue does not have. */
     const extras = [
       { type: 'bundle' as const, slug: 'extra-bundle' },
       { type: 'card-treachery' as const, slug: 'kwisatz-haderach' },
       { type: 'card-treachery' as const, slug: 'lone-card' },
+      { type: 'card-treachery' as const, slug: 'broken-held' },
       { type: 'token-disc' as const, slug: 'missing' },
     ];
     /* One troop shows its front on both sides; the other authors a back that has not published yet. */
@@ -407,7 +416,7 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
     expect(required(record).components.alliance.back).toBe(
       'http://table.test/published/cardback-presets/alliance/cardback.jpg'
     );
-    expect(required(record).extras).toHaveLength(4);
+    expect(required(record).extras).toHaveLength(5);
     expect(required(required(record).extras[0].contents).pieces[0].items).toHaveLength(3);
     expect(required(required(required(record).extras[0].contents).pieces[0].items[0].artwork).size).toBe(0.35);
     const card = required(required(record).extras[1].contents);
@@ -421,7 +430,8 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
     });
     expect(card.definitions.map((definition) => definition.id)).toEqual(['kwisatz-haderach', 'custom-deck']);
     expect(required(record).extras[2]).toMatchObject({ asset: { slug: 'lone-card' }, contents: null });
-    expect(required(record).extras[3]).toMatchObject({ asset: { slug: 'missing' }, contents: null });
+    expect(required(record).extras[3]).toMatchObject({ asset: { slug: 'broken-held' }, contents: null });
+    expect(required(record).extras[4]).toMatchObject({ asset: { slug: 'missing' }, contents: null });
     expect(required(record).readiness.ready).toBe(false);
     expect(await tablePieces()).toBe(pieces);
     expect(peerFunctions(before)).toEqual(new Set(['playCatalogue:factionDefinition', 'playCatalogue:assetSupply']));
@@ -435,6 +445,7 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
       'troop Elite side back',
       `traitor ${required(leaders.at(-1)).name}`,
       'extra: lone-card',
+      'extra: broken-held',
       'extra: missing',
     ]);
 

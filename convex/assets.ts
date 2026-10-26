@@ -1066,7 +1066,7 @@ export async function membersOf(ctx: QueryCtx, containerId: Id<'assets'>, kind: 
   return { entries, truncated };
 }
 
-const DECKS_PER_CARD_LIMIT = 100;
+export const DECKS_PER_CARD_LIMIT = 100;
 
 /**
  * A deck as a card's membership line cites it.
