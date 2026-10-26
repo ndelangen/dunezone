@@ -69,6 +69,11 @@
   height: 100%;
 }
 
+/* As the kit's TooltipTarget: a disabled piece hears no pointer in some browsers, so it passes through to the target. */
+.tipTarget > :disabled {
+  pointer-events: none;
+}
+
 .piece {
   display: block;
   width: 100%;

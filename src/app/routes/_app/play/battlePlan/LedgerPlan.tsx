@@ -2,6 +2,7 @@ import { Tooltip, UnstyledButton } from '@mantine/core';
 import type { BattleFace } from '@shared/play/battle';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { SortableRow } from '@ui/control/SortableRow';
+import { TooltipTarget } from '@ui/control/TooltipTarget';
 import { Fragment } from 'react';
 
 import styles from './LedgerPlan.module.css';
@@ -174,13 +175,15 @@ function DialRows(props: BattlePlanViewProps & { disabled: boolean }) {
           label={<TopicIcon topic="spice" size={18} className={styles.spiceIcon} />}
           sub={
             <Tooltip label="Support every troop, as far as your spice goes" withArrow>
-              <UnstyledButton
-                className={styles.quick}
-                disabled={disabled || plan.spice === fullSupport(plan, balance)}
-                onClick={() => onEdit({ spice: fullSupport(plan, balance) })}
-              >
-                All
-              </UnstyledButton>
+              <TooltipTarget>
+                <UnstyledButton
+                  className={styles.quick}
+                  disabled={disabled || plan.spice === fullSupport(plan, balance)}
+                  onClick={() => onEdit({ spice: fullSupport(plan, balance) })}
+                >
+                  All
+                </UnstyledButton>
+              </TooltipTarget>
             </Tooltip>
           }
           name="Spice"

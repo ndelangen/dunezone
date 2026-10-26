@@ -1,6 +1,7 @@
 import { Button, Popover, Slider, Tooltip, UnstyledButton } from '@mantine/core';
 import type { BattleFace, BattlePlan, Disclosure } from '@shared/play/battle';
 import type { TablePiece } from '@shared/play/model';
+import { TooltipTarget } from '@ui/control/TooltipTarget';
 import clsx from 'clsx';
 import { Check, Diff, Eye, EyeOff, Minus, Plus, SlidersHorizontal } from 'lucide-react';
 import type { ReactNode, WheelEvent } from 'react';
@@ -411,9 +412,8 @@ export function PieceTile({
       data-selected={selected || undefined}
       data-leader={leader || undefined}
     >
-      {/* On a wrapper, since a disabled button takes no hover and a locked piece still says its name. */}
       <Tooltip label={name} withArrow>
-        <span className={styles.tipTarget}>
+        <TooltipTarget>
           <UnstyledButton
             className={styles.tileButton}
             aria-pressed={selected}
@@ -428,7 +428,7 @@ export function PieceTile({
               </span>
             ) : null}
           </UnstyledButton>
-        </span>
+        </TooltipTarget>
       </Tooltip>
       {selected && reveal ? reveal : null}
     </div>
