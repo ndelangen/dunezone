@@ -826,6 +826,8 @@ export const DECAL = z.enum([
   '/vector/decal/water-bond.svg',
   '/vector/decal/water-oath-multicolor.svg',
   '/vector/decal/water-oath.svg',
+  '/vector/decal/water-of-life-ceremony-multicolor.svg',
+  '/vector/decal/water-of-life-ceremony.svg',
   '/vector/decal/water-of-life.svg',
   '/vector/decal/weather-control-alt.svg',
   '/vector/decal/weather-control.svg',

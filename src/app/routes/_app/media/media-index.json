@@ -11131,5 +11131,17 @@
     "tags": ["Sardaukar", "knife", "blade", "Dune", "sheath", "vector"],
     "subjects": ["weapons"],
     "sourceHash": "21576f1a72a5b751902a2da6e6a11e1347177ac41fc6bda2d674fd5d6e1253f5"
+  },
+  "/vector/decal/water-of-life-ceremony.svg": {
+    "description": "Four robed people gather for a ceremony: a staff bearer, a woman with open arms, an attendant holding a vessel overhead, and a seated hooded figure.",
+    "tags": ["water of life", "Jessica", "ceremony", "ritual", "people", "vessel", "vector"],
+    "subjects": ["culture", "people", "water"],
+    "sourceHash": "1193af14ac4608b513cabd29e9ac4ebbc6f485e95c0b3479a54cc8df47d41b6c"
+  },
+  "/vector/decal/water-of-life-ceremony-multicolor.svg": {
+    "description": "Four robed people gather for a ceremony: a staff bearer, a woman with open arms, an attendant holding a vessel overhead, and a seated hooded figure. The central dress is muted red, with cream and black figures.",
+    "tags": ["water of life", "Jessica", "ceremony", "ritual", "people", "vessel", "multicolor"],
+    "subjects": ["culture", "people", "water"],
+    "sourceHash": "0742b6efb63ecea65f14d5c8a07afe6e2ca711afa6bd69ce5c7ef1dd61c49cec"
   }
 }

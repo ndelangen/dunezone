@@ -19,7 +19,7 @@ export const Decals = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement);
     await expect(page.findByRole('heading', { name: 'Decals / Blades and melee weapons' })).resolves.toBeVisible();
-    await expect(page.getAllByRole('article')).toHaveLength(314);
+    await expect(page.getAllByRole('article')).toHaveLength(315);
   },
 });
 

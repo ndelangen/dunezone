@@ -434,6 +434,8 @@ export const VECTOR_CROPS = {
   '/vector/decal/water-bond.svg': [49.98, 49.89, 86.92, 67.38],
   '/vector/decal/water-oath-multicolor.svg': [50.165, 50.205, 67.73, 53.51],
   '/vector/decal/water-oath.svg': [50.165, 50.2, 67.73, 53.48],
+  '/vector/decal/water-of-life-ceremony-multicolor.svg': [50, 50.004999999999995, 100, 83.25],
+  '/vector/decal/water-of-life-ceremony.svg': [50.025, 49.995000000000005, 99.95, 83.59],
   '/vector/decal/water-of-life.svg': [50, 49.995, 100, 80.11],
   '/vector/decal/weather-control-alt.svg': [50, 50, 100, 68.12],
   '/vector/decal/weather-control.svg': [50, 50.015, 100, 65.15],

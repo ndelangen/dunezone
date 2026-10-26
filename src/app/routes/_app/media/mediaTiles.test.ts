@@ -6,8 +6,8 @@ import { mediaTiles } from './mediaTiles';
 test('paired decal tiles retain every file and keep independent designs separate', () => {
   const decals = catalogueEntries.filter((entry) => entry.kind === 'decal');
   const tiles = mediaTiles(decals);
-  expect(tiles).toHaveLength(314);
-  expect(tiles.filter((tile) => tile.variants.length === 2)).toHaveLength(140);
+  expect(tiles).toHaveLength(315);
+  expect(tiles.filter((tile) => tile.variants.length === 2)).toHaveLength(141);
   expect(tiles.flatMap((tile) => tile.variants.map((entry) => entry.value)).sort()).toEqual(
     decals.map((entry) => entry.value).sort()
   );
