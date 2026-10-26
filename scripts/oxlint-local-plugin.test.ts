@@ -247,6 +247,15 @@ export const probe = [
     expect(reports(output)).toBe(5);
   });
 
+  test('reports words kept for a hand-rolled CSS tooltip', async () => {
+    const output = await lintDiagnostics(
+      'probe.tsx',
+      `export const probe = [<button data-tip="Table chat" />, <span data-tooltip="Ready" />, <span data-ally />];
+`
+    );
+    expect(output.split('local(no-title-tooltip)').length - 1).toBe(2);
+  });
+
   /* A Mantine heading, a kit prop, an iframe's name and the SVG title element are not native tooltips. */
   test('leaves headings, kit props, iframes and the SVG title element alone', async () => {
     const output = await lintDiagnostics(

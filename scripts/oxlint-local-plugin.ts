@@ -393,12 +393,16 @@ const MANTINE_HEADINGS = new Set([
   'Tour.Step',
 ]);
 
+/* Attributes that carry a tooltip's words to a CSS `::after`, a second tooltip look beside the kit's (#2550). */
+const HAND_ROLLED_TIPS = new Set(['data-tip', 'data-tooltip']);
+
 /**
  * Keeps the browser's own tooltip out of the app (Norbert, 2026-10-26: native tooltips look out of place).
  * A `title` attribute on an element, or on a library component that passes it through to one, draws that tooltip;
  * the kit's Mantine `Tooltip` is the one hover label.
  * An `iframe` keeps its `title`, because that names the frame for assistive technology and draws no tooltip.
  * The SVG `<title>` element is a child, not an attribute, so the rule never sees it.
+ * A hand-rolled tooltip, its words in `data-tip` or `data-tooltip` for a CSS `::after` to draw, looks unlike the kit too and is reported the same way.
  */
 const noTitleTooltipRule: Rule = {
   meta: {
@@ -406,6 +410,8 @@ const noTitleTooltipRule: Rule = {
     messages: {
       titleTooltip:
         "A `title` attribute draws the browser's native tooltip. Wrap the element in the kit `Tooltip` instead, and keep an `aria-label` where the title was its only name.",
+      handRolledTooltip:
+        'A `data-tip` or `data-tooltip` attribute feeds a hand-rolled CSS tooltip that looks unlike the kit. Wrap the element in the kit `Tooltip` instead.',
     },
   },
   create(context) {
@@ -437,7 +443,14 @@ const noTitleTooltipRule: Rule = {
         }
       },
       JSXAttribute(node) {
-        if (node.name.type !== 'JSXIdentifier' || node.name.name !== 'title') {
+        if (node.name.type !== 'JSXIdentifier') {
+          return;
+        }
+        if (HAND_ROLLED_TIPS.has(node.name.name)) {
+          context.report({ node, messageId: 'handRolledTooltip' });
+          return;
+        }
+        if (node.name.name !== 'title') {
           return;
         }
         const element = node.parent;
