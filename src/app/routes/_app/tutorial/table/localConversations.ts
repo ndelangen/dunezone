@@ -13,7 +13,7 @@ export const REPLY_AFTER_MS = 1500;
 
 /* Both sides of a pair share one key, as in the Worker; the table is one conversation for everyone. */
 const pairKey = (factionId: string, peerId: string) =>
-  peerId === TABLE_CONVERSATION ? TABLE_CONVERSATION : [factionId, peerId].sort().join('|');
+  peerId === TABLE_CONVERSATION ? TABLE_CONVERSATION : [factionId, peerId].sort((a, b) => a.localeCompare(b)).join('|');
 
 /**
  * The conversations of a table running in the page, kept as the game Worker keeps them, for the learner's seat.
@@ -81,22 +81,22 @@ export class LocalConversations {
       return this.deliver({ type: 'conversation-message', factionId: learner, peerId: request.peerId, message });
     }
     this.save(learner, request.peerId, table.viewer().displayName, request.text, request.requestId);
-    const replier =
-      request.peerId === TABLE_CONVERSATION ? seated.find((faction) => faction !== learner) : request.peerId;
+    this.answer(learner, request.peerId, seated);
+  }
+
+  /** The other side answers a moment later: the player written to, or on the table chat the first other player. */
+  private answer(learner: string, peerId: string, seated: readonly string[]) {
+    const onTable = peerId === TABLE_CONVERSATION;
+    const replier = onTable ? seated.find((faction) => faction !== learner) : peerId;
     const seat = replier && this.seatOf(replier);
     if (!replier || !seat) {
       return;
     }
-    const name = this.learnerName || table.viewer().displayName;
+    const name = this.learnerName || this.table().viewer().displayName;
     const timer = setTimeout(() => {
       this.timers.delete(timer);
       const author = this.table().viewer(seat).displayName;
-      this.save(
-        replier,
-        request.peerId === TABLE_CONVERSATION ? TABLE_CONVERSATION : learner,
-        author,
-        `Hey, nice of you to message me, ${name}!`
-      );
+      this.save(replier, onTable ? TABLE_CONVERSATION : learner, author, `Hey, nice of you to message me, ${name}!`);
     }, REPLY_AFTER_MS);
     this.timers.add(timer);
   }
