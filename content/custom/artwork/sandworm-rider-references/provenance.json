@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "sourceDescription": "Troop silhouettes generated from user-supplied image references and traced from the approved bitmap masters. Original authorship and publication were not independently verified.",
+  "source": "originals/dune-part-two-sandworm-ride-scene-surf-videos.jpg",
+  "assets": {
+    "/vector/troop/sandworm-rider.svg": {
+      "approvedBitmap": "originals/sandworm-rider-approved.png",
+      "bitmapMaster": "bitmaps/sandworm-rider.png",
+      "approval": "The user approved all nine numbered troop proposals on 2026-10-26 with the reply \"Approve all nine\".",
+      "alphaThreshold": 0.5,
+      "maskGaussianSigmaPixels": 0.8,
+      "minimumComponentAreaPixels": 12,
+      "trace": "Potrace 1.16, turdsize 12, alphamax 1.0, opttolerance 0.6, followed by the SVG authoring root and provenance steps, uniform square normalization and the troop optimization profile.",
+      "paint": "Inherited from the caller. Essential gaps remain transparent.",
+      "collection": "Troops, supplied by the existing vector-category fallback.",
+      "details": "A rear-view figure with a wrapped head and trailing scarf stands with legs apart and holds a curved maker hook in each lowered hand."
+    }
+  }
+}
