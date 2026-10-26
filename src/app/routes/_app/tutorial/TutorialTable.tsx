@@ -11,7 +11,7 @@ import { RememberedContext } from '../play/compass/useRemembered';
 import { GameRuntimeContext } from '../play/multiplayer/gameRuntime';
 import HostedTable from '../play/multiplayer/HostedTable';
 import type { TutorialChapter } from './chapters';
-import type { ChapterScript } from './chapterScripts/chapterScript';
+import type { ChapterScript, TablePlayers } from './chapterScripts/chapterScript';
 import setup from './setup/setup.json';
 import { startAt, withOrigin } from './setup/tutorialSetup';
 import type { TutorialSetup } from './setup/tutorialSetup';
@@ -31,7 +31,28 @@ type TutorialTableControl = Readonly<{
   snapshot: () => GameSnapshot;
   /** Puts the table back as the chapter started, on the connection the page already holds. */
   reset: () => void;
+  /** The other players, whom a chapter's tasks can have act. */
+  players: TablePlayers;
 }>;
+
+/* The other players at a local table, acting on whichever table `local` gives, so they follow the table across a Reset. */
+function playersAt(local: () => LocalTable): TablePlayers {
+  return {
+    act: (seat, action) => {
+      /* The table answers another seat's move with a frame to the page, as the Worker broadcasts it. */
+      const table = local();
+      table.receive(
+        { type: 'command', commandId: crypto.randomUUID(), action, expectedRevision: table.room.snapshot.revision },
+        seat
+      );
+    },
+    viewOf: (seat) => local().frame(seat).snapshot,
+    others: () =>
+      local()
+        .seats()
+        .filter((seat) => seat !== local().seat),
+  };
+}
 
 function useTutorialTable(setup: TutorialSetup, chapter: ChapterScript) {
   /* The players at the table greet the learner by their own name when they answer a chat message. */
@@ -41,6 +62,7 @@ function useTutorialTable(setup: TutorialSetup, chapter: ChapterScript) {
     const open = () => {
       const local = new LocalTable(startAt(setup, chapter.checkpoint, origin, chapter));
       local.open();
+      chapter.opening?.(playersAt(() => local));
       return local;
     };
     const holder = { current: open() };
@@ -55,6 +77,7 @@ function useTutorialTable(setup: TutorialSetup, chapter: ChapterScript) {
         }
         return seen.snapshot;
       },
+      players: playersAt(() => holder.current),
       reset: () => {
         const { deliver } = holder.current;
         holder.current.dispose();
@@ -106,7 +129,7 @@ export default function ChapterPlay({
   /* Reset starts the controls afresh as well, so a pinned window from the last run cannot do a task for the player. */
   const [controlsEpoch, setControlsEpoch] = useState(0);
   const { runtime, control } = useTutorialTable(setup as unknown as TutorialSetup, script);
-  const [tasks] = useState(() => script.tasks(control.snapshot));
+  const [tasks] = useState(() => script.tasks(control.snapshot, control.players));
   return (
     <TutorialGuide
       number={chapter.number}

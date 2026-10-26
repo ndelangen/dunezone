@@ -8,6 +8,7 @@ import { isResultAction } from '@shared/play/result';
 import { isSwapAction } from '@shared/play/swapping';
 
 import { expireBattle } from '../../../../../../workers/game/battle';
+import { applyResult } from '../../../../../../workers/game/result';
 import { Room } from '../../../../../../workers/game/room';
 import {
   internalAction,
@@ -19,8 +20,9 @@ import type { StoredSnapshot } from '../../../../../../workers/game/state';
 
 /*
  * The game Worker's own table (`Room`) running in the browser, from a stored state: pieces move, cards draw, phases change
- * and battles resolve exactly as the Worker decides, for whichever seat the page is viewed as. Drafting, seats, removal votes,
- * the result and the log stay as they were stored, since those live in the Worker's session and storage, which this does not run.
+ * and battles resolve exactly as the Worker decides, for whichever seat the page is viewed as. Determine winner and its result
+ * apply as the session applies them, since they change only the stored state. Drafting, seats, removal votes and the log stay
+ * as they were stored, since those live in the Worker's session and storage, which this does not run.
  * The tutorial's chapters and the Play sandbox story both play on it.
  */
 
@@ -41,7 +43,7 @@ export type TableStart = Readonly<{
 }>;
 
 /* The session commits these families outside the table, so a local table refuses them. */
-const SESSION_ONLY = [isDraftAction, isSwapAction, isSeatAction, isRemovalAction, isResultAction];
+const SESSION_ONLY = [isDraftAction, isSwapAction, isSeatAction, isRemovalAction];
 const sessionOnly = (action: { kind: string }) =>
   action.kind === 'spawn-request' || SESSION_ONLY.some((family) => family(action));
 
@@ -80,6 +82,11 @@ export class LocalTable {
       undefined,
       0
     );
+  }
+
+  /** Every seat the table has a viewer for. */
+  seats() {
+    return Object.keys(this.opening.viewers);
   }
 
   viewer(seat = this.seat): Viewer {
@@ -230,6 +237,12 @@ export class LocalTable {
    */
   private commit(message: MessageOf<'command' | 'drop'>, viewer: Viewer, own: boolean) {
     const room = this.room;
+    if (message.type === 'command' && isResultAction(message.action)) {
+      room.assertRevision(message.action, message.expectedRevision);
+      room.accept(applyResult(room.snapshot, viewer, message.action, Date.now()));
+      this.deliver(this.frame(this.seat, own ? message.commandId : undefined));
+      return;
+    }
     const next = storedSnapshotSchema.parse(
       message.type === 'drop'
         ? room.drop(viewer, message.carryId, message)
@@ -246,7 +259,7 @@ export class LocalTable {
   private tableAction(action: MessageOf<'command'>['action']): RoomAction {
     if (sessionOnly(action)) {
       throw new GameRejection(
-        'This table runs the table only. Drafting, seats, votes, catalogue requests and the result need a real game.'
+        'This table runs the table only. Drafting, seats, votes and catalogue requests need a real game.'
       );
     }
     return internalAction(this.room.snapshot, action as RoomAction);
