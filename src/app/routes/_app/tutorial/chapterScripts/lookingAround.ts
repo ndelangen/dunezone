@@ -46,7 +46,9 @@ const pinged = () => ({
   begin: () => {
     const watch = { pinged: false, stop: new AbortController() };
     const press = (event: KeyboardEvent) => {
-      if (event.key === 'Tab' && !event.repeat) {
+      /* The compass and a piece's ring take Tab for their own focus, and the table never pings under them. */
+      const covered = document.querySelector('dialog[aria-label="Controls compass"][open], [role="menu"]') !== null;
+      if (event.key === 'Tab' && !event.repeat && !covered) {
         setTimeout(() => {
           watch.pinged ||= event.defaultPrevented;
         });
@@ -91,25 +93,17 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       'The camera dial, top right of the table, jumps the view. Click its L.'
     ),
     dialTask(
-      'look-right',
-      'right',
-      'Look at the right of the table',
-      'R on the same dial turns to the other side, where the Spice deck lies.'
-    ),
-    dialTask(
       'look-bottom',
       'bottom',
       'Look at the bottom of the table',
-      'B on the dial turns to the rim below the board.'
+      'B on the same dial turns to the rim below the board.'
     ),
-    task({
-      id: 'ping',
-      task: 'Show the others a spot',
-      detail:
-        'Point at any territory and press {Tab}. A ripple in your colour shows there for everyone at the table, with a sound.',
-      anchor: { kind: 'table', point: () => [0, 0, 0] },
-      ...pinged(),
-    }),
+    dialTask(
+      'look-right',
+      'right',
+      'Look at the right of the table',
+      'R on the dial turns to the right side, where the Spice deck lies.'
+    ),
     task({
       id: 'close-up',
       task: 'Read a card up close',
@@ -117,6 +111,14 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
         'Point at the Spice deck and hold {Alt}. Its top card shows flat and large beside the pointer; read it, then let go.',
       anchor: { kind: 'table', point: () => at(spiceDeck()) },
       ...closeUpShown(),
+    }),
+    task({
+      id: 'ping',
+      task: 'Show the others a spot',
+      detail:
+        'Point at any territory and press {Tab}. A ripple in your colour shows there for everyone at the table, with a sound.',
+      anchor: { kind: 'table', point: () => [0, 0, 0] },
+      ...pinged(),
     }),
     dialTask('look-back', 'map', 'Go back to the map', 'M on the dial brings the whole board back.'),
   ];
@@ -127,8 +129,8 @@ const learned = [
   'Scroll over the board to look closer, and back to step out',
   'Slide a close look with the arrow keys or {W}, {A}, {S} and {D}',
   'Click L, R, B or M on the camera dial to jump the view',
-  'Press {Tab} over the table to ping a spot for everyone',
   'Hold {Alt} over a card to read it flat and large',
+  'Press {Tab} over the table to ping a spot for everyone',
 ];
 
 export const lookingAround: ChapterScript = { slug: 'looking-around', checkpoint: 'turn-1-storm', tasks, learned };

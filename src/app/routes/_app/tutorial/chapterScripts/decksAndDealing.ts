@@ -7,7 +7,7 @@ import type { Piece } from './guideChecks';
 
 /*
  * Chapter 8, "Decks and dealing": what a deck does beyond a draw, on the same table as chapter 7.
- * A card dealt to another player, cards laid out with a number key, two cards taken in one carry with T, and a deck locked and unlocked.
+ * A card dealt to another player, a few cards split off with a number key, two cards taken in one carry with T, and a deck locked and unlocked.
  * These are the deck controls chapter 7 left for later (the chapter map Norbert approved, 2026-10-26).
  */
 
@@ -25,6 +25,38 @@ const othersHold = (snapshot: GameSnapshot) =>
     .filter(([factionId]) => factionId !== snapshot.bank?.factionId)
     .reduce((total, [, count]) => total + count, 0);
 
+/*
+ * A new pile of two from the deck, made while T was pressed: holding 2 over the deck, taught just before, makes such a pile too.
+ * A right-click while carrying takes the next card as T does, so it counts as well.
+ */
+const tookWithT = (piles: () => number) => ({
+  begin: () => {
+    const watch = { start: piles(), took: false, stop: new AbortController() };
+    const took = () => {
+      watch.took = true;
+    };
+    const press = (event: KeyboardEvent) => {
+      if (event.key.toLowerCase() === 't') {
+        took();
+      }
+    };
+    window.addEventListener('keydown', press, { capture: true, signal: watch.stop.signal });
+    window.addEventListener('contextmenu', took, { capture: true, signal: watch.stop.signal });
+    return watch;
+  },
+  done: (watch: { start: number; took: boolean }) => watch.took && piles() > watch.start,
+  finish: (watch: { stop: AbortController }) => watch.stop.abort(),
+});
+
+/* The deck's lock turned to `locked` since the task began, so a lock left over from before it never counts. */
+const turnsLocked = (lock: () => boolean | undefined, locked: boolean) => ({
+  begin: () => ({ other: lock() !== locked }),
+  done: (watch: { other: boolean }) => {
+    watch.other ||= lock() !== locked;
+    return watch.other && lock() === locked;
+  },
+});
+
 function tasks(snapshot: () => GameSnapshot): GuideTask[] {
   const pieces = () => snapshot().table.pieces;
   const treachery = () => tableDeck(snapshot, 'left');
@@ -40,9 +72,10 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       done: (start) => othersHold(snapshot()) > start,
     }),
     task({
-      id: 'lay-out',
-      task: 'Lay three Spice cards out',
-      detail: 'Point at the Spice deck on the right and hold 3 for a second. Three cards come off the top beside it.',
+      id: 'split',
+      task: 'Split three cards off the Spice deck',
+      detail:
+        'Point at the Spice deck on the right and hold {3} on your keyboard for a second, as you split troops. The top three cards slide off beside it as a pile of their own, still face down.',
       anchor: { kind: 'table', point: () => at(spice()) },
       begin: () => looseStacks(pieces(), spice(), 3),
       done: (start) => looseStacks(pieces(), spice(), 3) > start,
@@ -53,8 +86,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       detail:
         'Drag the top Treachery card off the deck, hold it back over the deck and press {T}: the next card joins it. Drop the two on the table.',
       anchor: { kind: 'table', point: () => at(treachery()) },
-      begin: () => looseStacks(pieces(), treachery(), 2),
-      done: (start) => looseStacks(pieces(), treachery(), 2) > start,
+      ...tookWithT(() => looseStacks(pieces(), treachery(), 2)),
     }),
     task({
       id: 'lock',
@@ -62,8 +94,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       detail:
         'Point at the Spice deck and press {L}. A locked piece stays put: nobody can move, draw from or deal from it by accident.',
       anchor: { kind: 'table', point: () => at(spice()) },
-      begin: () => undefined,
-      done: () => spice()?.locked === true,
+      ...turnsLocked(() => spice()?.locked, true),
     }),
     task({
       id: 'unlock',
@@ -71,8 +102,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       detail:
         'Press {L} over it once more. Right-click it first if you like: its draw, deal and shuffle wait greyed out.',
       anchor: { kind: 'table', point: () => at(spice()) },
-      begin: () => undefined,
-      done: () => spice()?.locked === false,
+      ...turnsLocked(() => spice()?.locked, false),
     }),
   ];
 }
@@ -80,7 +110,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
 /* One line for each part of the chapter, in the order it was played. */
 const learned = [
   'Right-click a deck and choose Deal a card to give one to a player',
-  'Hold a number over a deck to lay that many cards out',
+  'Hold a number key over a deck to split that many cards off it',
   'Press {T} while carrying a card to take the next one with it',
   '{L} locks a piece in place, and unlocks it again',
 ];

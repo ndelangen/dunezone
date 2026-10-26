@@ -8,7 +8,7 @@ import type { Piece } from './guideChecks';
 /*
  * Chapter 7, "Moving pieces": the hands-on controls chapter 5 only touched, on the same table.
  * A stack split with a number key, carried whole, joined, turned and flipped; then a deck shuffled and peeked at.
- * Taking more with T, locking, dealing and laying cards from a deck with a number key wait for a later chapter.
+ * Taking more with T, locking, dealing and splitting cards off a deck with a number key wait for a later chapter.
  */
 
 /*
@@ -101,7 +101,7 @@ function stackTasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'split',
       task: 'Split three troops off',
       detail:
-        'Point at your reserves, on the rim at your seat, and hold 3 for a second. Three troops slide off beside them.',
+        'Point at your reserves, on the rim at your seat, and hold {3} on your keyboard for a second. Three troops slide off beside them.',
       anchor: { kind: 'table', point: () => at(biggestReserve()) },
       begin: () => reserves().filter((piece) => piece.items.length === 3).length,
       done: (start) => reserves().filter((piece) => piece.items.length === 3).length > start,
@@ -138,14 +138,14 @@ function stackTasks(snapshot: () => GameSnapshot): GuideTask[] {
     task({
       id: 'turn',
       task: 'Turn your stack',
-      detail: 'Point at your troops on the board and press Q or E. Each press turns them a step.',
+      detail: 'Point at your troops on the board and press {Q} or {E} on your keyboard. Each press turns them a step.',
       anchor: { kind: 'table', point: () => at(carried()) },
       ...changedInPlace(carriedOnly, (before, now) => before.orientation !== now.orientation),
     }),
     task({
       id: 'flip',
       task: 'Flip the whole stack',
-      detail: 'Still pointing at them, press F. A stack turns over all at once, as a single card does.',
+      detail: 'Still pointing at them, press {F}. A stack turns over all at once, as a single card does.',
       anchor: { kind: 'table', point: () => at(carried()) },
       ...changedInPlace(carriedOnly, (before, now) => (now.flipRevision ?? 0) > (before.flipRevision ?? 0)),
     }),
@@ -159,7 +159,7 @@ function deckTasks(snapshot: () => GameSnapshot): GuideTask[] {
     task({
       id: 'shuffle',
       task: 'Shuffle the Spice deck',
-      detail: 'Point at the Spice deck on the right of the table and press R.',
+      detail: 'Point at the Spice deck on the right of the table and press {R} on your keyboard.',
       anchor: { kind: 'table', point: () => at(spiceDeck()) },
       begin: () => spiceDeck()?.shuffleRevision ?? 0,
       done: (start) => (spiceDeck()?.shuffleRevision ?? 0) > start,
@@ -189,11 +189,11 @@ const tasks = (snapshot: () => GameSnapshot) => [...stackTasks(snapshot), ...dec
 
 /* One line for each part of the chapter, in the order it was played. */
 const learned = [
-  'Hold a number over a stack to split that many off',
+  'Hold a number key over a stack to split that many off',
   'Press and hold before dragging to carry a whole stack',
   'Drop a piece on its own kind to join the stack',
-  'Q and E turn a piece, F flips a whole stack',
-  'R shuffles the deck under your pointer',
+  '{Q} and {E} turn a piece, {F} flips a whole stack',
+  '{R} shuffles the deck under your pointer',
   'Peek at a deck to see it in private, and reorder it',
 ];
 

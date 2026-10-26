@@ -47,7 +47,7 @@ function tableTasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'spice',
       task: 'Turn over the top Spice card',
       detail:
-        'The Spice deck sits on the right of the table. Drag its top card onto the table, then press F to turn it over.',
+        'The Spice deck sits on the right of the table. Drag its top card onto the table, then press {F} on your keyboard to turn it over.',
       anchor: { kind: 'table', point: () => at(deck('right')) },
       begin: () => singleSpiceFaceUp(pieces()),
       done: (start) => singleSpiceFaceUp(pieces()) > start,
@@ -79,7 +79,7 @@ const tasks = (snapshot: () => GameSnapshot) => [...tableTasks(snapshot), ...pha
 const learned = [
   'Right-click a deck to draw a card',
   'Drag troops from your reserves onto a territory',
-  'Press F to turn a card over',
+  'Press {F} to turn a card over',
   'Next phase moves the game on',
 ];
 
