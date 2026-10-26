@@ -9,7 +9,7 @@ import {
   playSeatPassResultSchema,
 } from '../src/shared/play/admission';
 import type { MutationCtx } from './_generated/server';
-import { internalMutation, mutation, publicQuery } from './functions';
+import { mutation, publicQuery } from './functions';
 import { canonicalAccount } from './lib/accountIdentity';
 import { admitsPlayers, authenticatedPlayRequest, livePlaySession } from './lib/playAuthorization';
 import { playPassQuota } from './lib/playRateLimits';
@@ -94,31 +94,5 @@ export const seatLimitReached = publicQuery({
     const id = ctx.db.normalizeId('users', request.args.userId);
     const user = id ? await canonicalAccount(ctx, id) : null;
     return { ok: true as const, reached: user ? await atPlaySeatLimit(ctx, user._id, request.game._id) : true };
-  },
-});
-
-/*
- * Ticket and registration expiry jobs scheduled before the ticket path left still fire, the last ones when the longest Auth session
- * then open ends. These keep them landing and remove the row they were for; drop them with the retired tables.
- */
-export const expireTicket = internalMutation({
-  args: { ticketId: v.id('play_tickets') },
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    if (await ctx.db.get(args.ticketId)) {
-      await ctx.db.delete(args.ticketId);
-    }
-    return null;
-  },
-});
-
-export const expireRegistration = internalMutation({
-  args: { registrationId: v.id('play_auth_registrations') },
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    if (await ctx.db.get(args.registrationId)) {
-      await ctx.db.delete(args.registrationId);
-    }
-    return null;
   },
 });

@@ -92,17 +92,6 @@ describe('A real game removes its deleted creator from retained names', () => {
     await assertAnonymized(await admitPlayer(runtime, 'c'));
   });
 
-  it('repairs an already-deleted creator in a room stamped by the previous scrub release', async () => {
-    await prepareGame();
-    /* The preceding release marked actors deleted but left the opening event named. */
-    await runtime.exec("UPDATE actors SET deleted=1, seat='neutral', display_name='[deleted user]' WHERE user_id=?", [
-      'user-a',
-    ]);
-    await runtime.exec("UPDATE metadata SET data=json_set(data, '$.historyRepair', 1)");
-    await runtime.restart();
-    await assertAnonymized(await admitPlayer(runtime, 'c'));
-  });
-
   it('keeps the creator anonymous when a pending confirmation later saves metadata', async () => {
     peer.holdConfirmations = true;
     const pending = provision(runtime);

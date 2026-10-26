@@ -170,11 +170,7 @@ an admitted player's room never asks Convex about them again (decided with Norbe
    at or before it. The room stores the cutoff in SQLite, keeping the higher of two, before it
    acknowledges it. The push retries until acknowledged, backing off to one minute, and stops once
    every pass it could end has expired. Account deletion keeps its own durable push; a deletion for
-   an account the room has never seen leaves a `[deleted user]` row that keeps a later pass out. Deletion also reaches
-   creators of games from before creators were enrolled, through a routing row its fan-out adds. A
-   creator deleted before that fan-out existed is reached by `playDeletion.requeueCreatorDeletions`,
-   which runs it again for every completed deletion and queues nothing a second time. A
-   game that expired before Convex confirmed it may still have a room that stored its creator, so its
+   an account the room has never seen leaves a `[deleted user]` row that keeps a later pass out. A game that expired before Convex confirmed it may still have a room that stored its creator, so its
    deletion asks that room to retire, which only an unconfirmed room or the hosted fixture accepts,
    and settles once the room answers empty.
 7. Every command and outgoing game message checks the pass's expiry and the cutoffs on the room's

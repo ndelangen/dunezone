@@ -1,6 +1,5 @@
 import { z } from 'zod';
 
-import { withSupportNames } from '../factions/schema';
 import type { AuthoredFace, AuthoredTroop } from '../factions/troopBattle';
 import { troopBattleFaces } from '../factions/troopBattle';
 import { actionKindGuard } from './actionKinds';
@@ -17,22 +16,15 @@ import {
 export const BATTLE_COUNTDOWN_MS = 5000;
 const battleSideSchema = z.union([z.literal(0), z.literal(1)]);
 const battleOutcomeSchema = z.enum(['left', 'none', 'right']);
-/**
- * A game stores its battle faces and plans, so faces stored before the funded-to-supported rename still carry the old names;
- * the read renames them, and every write carries only the new ones.
- */
-export const battleFaceSchema = z.preprocess(
-  withSupportNames,
-  z.object({
-    id,
-    name: z.string(),
-    capable: z.boolean().default(true),
-    strength: z.number(),
-    supportedStrength: z.number(),
-    supportCost: count.default(1),
-    image: z.string().optional(),
-  })
-);
+export const battleFaceSchema = z.object({
+  id,
+  name: z.string(),
+  capable: z.boolean().default(true),
+  strength: z.number(),
+  supportedStrength: z.number(),
+  supportCost: count.default(1),
+  image: z.string().optional(),
+});
 export type BattleFace = z.infer<typeof battleFaceSchema>;
 /* `dialed` counts the spice-supported troops and `undialed` the unsupported ones; in the rulebook's sense both are dialed. */
 const troopDeclarationSchema = z.strictObject({ faceId: id, undialed: count, dialed: count });

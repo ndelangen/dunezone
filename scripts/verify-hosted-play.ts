@@ -132,7 +132,7 @@ async function open(gameId: Id<'play_games'>, pass?: string): Promise<ProtocolPe
     socket.once('error', reject);
   });
   if (pass) {
-    peer.send({ type: 'admit', supportsBoard: true, pass });
+    peer.send({ type: 'admit', pass });
   }
   return peer;
 }
