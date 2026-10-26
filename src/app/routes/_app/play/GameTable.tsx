@@ -1,4 +1,4 @@
-import { Button, Group, Text } from '@mantine/core';
+import { Button, Group, Text, Tooltip } from '@mantine/core';
 import { turnCaption } from '@shared/play/lastTurn';
 import { pieceCount } from '@shared/play/model';
 import type { TablePiece } from '@shared/play/model';
@@ -365,33 +365,34 @@ function TableViewDial({
   return (
     <div className="camera-dial" role="group" aria-label="Table view" data-view={activeView}>
       <span className="camera-dial__needle" style={{ rotate: `${DIAL_ANGLES[activeView]}deg` }} aria-hidden="true" />
-      <button
-        type="button"
-        className="camera-dial__hub"
-        data-view={TOP_VIEW.id}
-        title={`Camera: ${TOP_VIEW.label} (${DIAL_LETTERS.top})`}
-        aria-label="Focus on top, straight down"
-        aria-pressed={activeView === TOP_VIEW.id}
-        onClick={() => onSelect(TOP_VIEW.id)}
-      >
-        {DIAL_LETTERS.top}
-      </button>
+      <Tooltip label={`Camera: ${TOP_VIEW.label} (${DIAL_LETTERS.top})`}>
+        <button
+          type="button"
+          className="camera-dial__hub"
+          data-view={TOP_VIEW.id}
+          aria-label="Focus on top, straight down"
+          aria-pressed={activeView === TOP_VIEW.id}
+          onClick={() => onSelect(TOP_VIEW.id)}
+        >
+          {DIAL_LETTERS.top}
+        </button>
+      </Tooltip>
       {TABLE_VIEW_OPTIONS.map((view) => {
         const phasePreferred = preferredView === view.id;
         return (
-          <button
-            key={view.id}
-            type="button"
-            className="camera-dial__view"
-            data-view={view.id}
-            title={`Camera: ${view.label}`}
-            aria-label={`Focus on ${view.label.toLowerCase()}${phasePreferred ? ', recommended for this phase' : ''}`}
-            aria-pressed={activeView === view.id}
-            data-phase-preferred={phasePreferred || undefined}
-            onClick={() => onSelect(view.id)}
-          >
-            {DIAL_LETTERS[view.id]}
-          </button>
+          <Tooltip key={view.id} label={`Camera: ${view.label}`}>
+            <button
+              type="button"
+              className="camera-dial__view"
+              data-view={view.id}
+              aria-label={`Focus on ${view.label.toLowerCase()}${phasePreferred ? ', recommended for this phase' : ''}`}
+              aria-pressed={activeView === view.id}
+              data-phase-preferred={phasePreferred || undefined}
+              onClick={() => onSelect(view.id)}
+            >
+              {DIAL_LETTERS[view.id]}
+            </button>
+          </Tooltip>
         );
       })}
       <span className="camera-dial__label" aria-hidden="true">

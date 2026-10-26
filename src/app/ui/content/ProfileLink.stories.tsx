@@ -1,5 +1,6 @@
 import preview from '@sb/preview';
-import { expect, within } from 'storybook/test';
+import { waitForFrame } from '@sb/storyWaits';
+import { expect, userEvent, within } from 'storybook/test';
 
 import { ProfileLink } from './ProfileLink';
 
@@ -32,11 +33,16 @@ export const WithAvatar = meta.story({
   args: { image: '/web/logo.svg' },
 });
 
-/** For tight contexts: an avatar group, a table cell. `title` keeps the name reachable. */
+/** For tight contexts: an avatar group, a table cell. `title` keeps the name reachable, and shows it in a tooltip on hover. */
 export const AvatarOnly = meta.story({
   args: { image: '/web/logo.svg', showName: false, title: 'Central' },
   play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByRole('link', { name: 'Central' })).toHaveAttribute('title', 'Central');
+    const link = within(canvasElement).getByRole('link', { name: 'Central' });
+    await expect(link).not.toHaveAttribute('title');
+    await userEvent.hover(link);
+    await waitForFrame(() =>
+      expect(within(canvasElement.ownerDocument.body).getByRole('tooltip')).toHaveTextContent('Central')
+    );
   },
 });
 

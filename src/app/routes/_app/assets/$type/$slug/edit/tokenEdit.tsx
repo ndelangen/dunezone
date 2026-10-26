@@ -1,10 +1,11 @@
-import { Alert, Button, Group, Popover, Text } from '@mantine/core';
+import { Alert, Button, Group, Popover } from '@mantine/core';
 import { TokenAsset } from '@shared/assets/schema';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
 import type { AssetType } from '@shared/assets/types';
 import { useNavigate } from '@tanstack/react-router';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
+import { TruncatedText } from '@ui/content/TruncatedText';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
@@ -296,9 +297,9 @@ function TokenEditSession({
             onSettle={header.settle}
             backPicker={(disabled) => (
               <Group gap="xs" wrap="nowrap">
-                <Text size="sm" truncate style={{ minWidth: 0, flex: 1 }} title={state.memory.pickedBack?.name}>
+                <TruncatedText size="sm" flex={1}>
                   {state.memory.pickedBack ? state.memory.pickedBack.name : 'No token chosen yet'}
-                </Text>
+                </TruncatedText>
                 {/* Gated by the popover: the picker subscribes on mount, so it must not mount until asked for. */}
                 <Popover opened={pickerOpen} onChange={setPickerOpen} width={340} position="bottom-start" withinPortal>
                   <Popover.Target>

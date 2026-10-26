@@ -1,4 +1,4 @@
-import { Anchor, Badge, Button, Group, Menu, Popover, Stack, Text } from '@mantine/core';
+import { Anchor, Badge, Button, Group, Menu, Popover, Stack, Text, Tooltip } from '@mantine/core';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, notFound, Link, useNavigate } from '@tanstack/react-router';
 import { FactionCard } from '@ui/block/FactionCard';
@@ -464,9 +464,9 @@ function FaqAnswerHeading({ faq, answer, editing, editingSession }: FaqPostEditi
             </Text>
           )}
           <Text size="xs" c="dimmed">
-            <time dateTime={answer.createdAt} title={answer.createdAt}>
-              {formatStableDate(answer.createdAt)}
-            </time>
+            <Tooltip label={answer.createdAt}>
+              <time dateTime={answer.createdAt}>{formatStableDate(answer.createdAt)}</time>
+            </Tooltip>
           </Text>
         </Group>
         {editing.editingAnswerId !== answer.id ? (
@@ -491,9 +491,9 @@ function FaqAnswerHeading({ faq, answer, editing, editingSession }: FaqPostEditi
       {answer.acceptedAt ? (
         <Text size="xs" c="dimmed" className={styles.metadata}>
           Accepted by {faq.page!.question.author?.username ?? 'the asker'} on{' '}
-          <time dateTime={answer.acceptedAt} title={answer.acceptedAt}>
-            {formatStableDate(answer.acceptedAt)}
-          </time>
+          <Tooltip label={answer.acceptedAt}>
+            <time dateTime={answer.acceptedAt}>{formatStableDate(answer.acceptedAt)}</time>
+          </Tooltip>
         </Text>
       ) : null}
     </>
@@ -640,9 +640,9 @@ function FaqQuestionPost({
                 {hasAcceptedAnswer ? 'Answered' : 'Open question'}
               </StatusBadge>
               <Text size="xs" c="dimmed">
-                <time dateTime={item.createdAt} title={item.createdAt}>
-                  Asked {formatStableDate(item.createdAt)}
-                </time>{' '}
+                <Tooltip label={item.createdAt}>
+                  <time dateTime={item.createdAt}>Asked {formatStableDate(item.createdAt)}</time>
+                </Tooltip>{' '}
                 · {answers.length} {answers.length === 1 ? 'answer' : 'answers'}
               </Text>
             </Group>

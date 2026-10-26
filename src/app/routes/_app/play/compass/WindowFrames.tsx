@@ -1,3 +1,4 @@
+import { Tooltip } from '@mantine/core';
 import { PanelLeft, PanelRight, PinOff } from 'lucide-react';
 
 import styles from './CompassControls.module.css';
@@ -68,24 +69,26 @@ function pinTitle(side: Side, byKey: Found, opened: OpenWindows) {
 function CentreActions({ byKey, opened }: Readonly<{ byKey: Found; opened: OpenWindows }>) {
   return (
     <>
-      <button
-        type="button"
-        className={styles.iconButton}
-        aria-label="Pin to the bottom left"
-        title={pinTitle('left', byKey, opened)}
-        onClick={() => opened.pin('left')}
-      >
-        <PanelLeft size={16} />
-      </button>
-      <button
-        type="button"
-        className={styles.iconButton}
-        aria-label="Pin to the bottom right"
-        title={pinTitle('right', byKey, opened)}
-        onClick={() => opened.pin('right')}
-      >
-        <PanelRight size={16} />
-      </button>
+      <Tooltip label={pinTitle('left', byKey, opened)}>
+        <button
+          type="button"
+          className={styles.iconButton}
+          aria-label="Pin to the bottom left"
+          onClick={() => opened.pin('left')}
+        >
+          <PanelLeft size={16} />
+        </button>
+      </Tooltip>
+      <Tooltip label={pinTitle('right', byKey, opened)}>
+        <button
+          type="button"
+          className={styles.iconButton}
+          aria-label="Pin to the bottom right"
+          onClick={() => opened.pin('right')}
+        >
+          <PanelRight size={16} />
+        </button>
+      </Tooltip>
       <button type="button" className={styles.iconButton} aria-label="Close" onClick={opened.close}>
         <CloseIcon />
       </button>
@@ -124,15 +127,11 @@ function slotFrame({ side, byKey, opened, heights, inert }: SlotFrame) {
       }}
       onTab={(tab) => opened.showTab(side, entry.key, tab)}
       actions={
-        <button
-          type="button"
-          className={styles.iconButton}
-          aria-label="Unpin"
-          title="Unpin: it disappears"
-          onClick={() => opened.unpin(side)}
-        >
-          <PinOff size={16} />
-        </button>
+        <Tooltip label="Unpin: it disappears">
+          <button type="button" className={styles.iconButton} aria-label="Unpin" onClick={() => opened.unpin(side)}>
+            <PinOff size={16} />
+          </button>
+        </Tooltip>
       }
     />
   );

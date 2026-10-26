@@ -12,7 +12,6 @@ export interface AssetLinkProps {
   name: string;
   className?: string;
   style?: CSSProperties;
-  title?: string;
 }
 
 /**
@@ -23,14 +22,8 @@ export interface AssetLinkProps {
  * this owns how an asset is cited inline anywhere in the app, so every mention looks and navigates identically.
  * The destination is hardcoded because it is the component's name.
  */
-export const AssetLink = ({ type, slug, name, className, style, title }: AssetLinkProps) => (
-  <Link
-    to="/assets/$type/$slug"
-    params={{ type, slug }}
-    className={clsx(styles.link, className)}
-    style={style}
-    title={title}
-  >
+export const AssetLink = ({ type, slug, name, className, style }: AssetLinkProps) => (
+  <Link to="/assets/$type/$slug" params={{ type, slug }} className={clsx(styles.link, className)} style={style}>
     <TopicIcon topic="assets" size={18} className={styles.icon} />
     <span className={styles.name}>{name}</span>
   </Link>

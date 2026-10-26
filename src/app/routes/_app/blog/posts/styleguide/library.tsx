@@ -1,3 +1,4 @@
+import { Tooltip } from '@mantine/core';
 import { TREACHERY_BACKGROUNDS } from '@shared/assets/treacheryStyles';
 import { resolveAsset } from '@shared/media/resolveAsset';
 import type { CSSProperties } from 'react';
@@ -161,9 +162,11 @@ export function PortraitWall() {
       <div className={styles.wall}>
         {WALL.flatMap(([faction, ring, files]) =>
           files.map((file) => (
-            <span key={file} style={{ '--ring': ring } as CSSProperties}>
-              <img src={resolveAsset(portrait(file), 'small')} alt="" loading="lazy" title={faction} />
-            </span>
+            <Tooltip key={file} label={faction}>
+              <span style={{ '--ring': ring } as CSSProperties}>
+                <img src={resolveAsset(portrait(file), 'small')} alt="" loading="lazy" />
+              </span>
+            </Tooltip>
           ))
         )}
       </div>
