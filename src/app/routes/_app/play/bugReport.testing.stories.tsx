@@ -17,15 +17,30 @@ const meta = testingPreview.meta({
   ],
 });
 
+/*
+ * The status poll holds its answer until the story has seen the creating stage, so a slow frame cannot let the poll
+ * reach complete before the brief "Creating the GitHub issue..." is read.
+ */
+let releaseStatus = () => {};
+
 export const Send = meta.story({
   beforeEach: [
     install(() => productTransport()),
     () => {
-      mocked(sendPlayBugReport).mockImplementation(async (_gameId, request) => ({
-        requestId: request.requestId,
-        stage: request.operation === 'send' ? 'creating' : 'complete',
-        ...(request.operation === 'status' ? { issueUrl: 'https://github.com/ndelangen/dunezone/issues/1' } : {}),
-      }));
+      const seen = new Promise<void>((resolve) => {
+        releaseStatus = resolve;
+      });
+      mocked(sendPlayBugReport).mockImplementation(async (_gameId, request) => {
+        if (request.operation === 'send') {
+          return { requestId: request.requestId, stage: 'creating' };
+        }
+        await seen;
+        return {
+          requestId: request.requestId,
+          stage: 'complete',
+          issueUrl: 'https://github.com/ndelangen/dunezone/issues/1',
+        };
+      });
     },
   ],
   play: async ({ canvasElement }) => {
@@ -42,6 +57,7 @@ export const Send = meta.story({
     await expect(send).toBeEnabled();
     await userEvent.click(send);
     await expect(page.findByText('Creating the GitHub issue...')).resolves.toBeVisible();
+    releaseStatus();
     await expect(page.findByRole('link', { name: 'Open GitHub issue' }, { timeout: 8000 })).resolves.toHaveAttribute(
       'href',
       'https://github.com/ndelangen/dunezone/issues/1'
