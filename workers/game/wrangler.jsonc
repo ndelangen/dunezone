@@ -32,6 +32,10 @@
       {
         "name": "HOMEPAGE_ROOMS",
         "class_name": "HomepageRoom"
+      },
+      {
+        "name": "BUG_REPORTS",
+        "class_name": "BugReports"
       }
     ]
   },
@@ -43,8 +47,13 @@
     {
       "tag": "v2",
       "new_sqlite_classes": ["HomepageRoom"]
+    },
+    {
+      "tag": "v3",
+      "new_sqlite_classes": ["BugReports"]
     }
   ],
+  "r2_buckets": [{ "binding": "BUG_REPORT_STATES", "bucket_name": "dunezone-bug-report-states" }],
   "version_metadata": {
     "binding": "CF_VERSION_METADATA"
   },
