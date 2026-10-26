@@ -256,10 +256,14 @@ export function HiddenZone({ client, table, hand }: Props) {
       return;
     }
     event.preventDefault();
+    /* A carried piece keeps the size it was lifted at, so the zoom holds still until it is let go. */
+    if (carrying.current?.moving) {
+      return;
+    }
     const box = event.currentTarget instanceof HTMLElement ? event.currentTarget.getBoundingClientRect() : null;
     if (box) {
       const at = { x: event.clientX - box.left, y: event.clientY - box.top };
-      setZoom(zoomAbout(zoom, wheelFactor(event.deltaY), at, view.scale, { width, height }));
+      setZoom(zoomAbout(zoom, wheelFactor(event.deltaY), at, { scale: view.scale, width, height }));
     }
   });
   /* A wheel listener that may cancel the scroll it would start, which React's passive one cannot. */

@@ -29,13 +29,12 @@ export function fitZoom(zoom: HiddenZoneZoom, scale: number, size: Size): Hidden
   };
 }
 
-/** Zooms by `factor` about `at`, a point in the view's pixels, which stays over the same spot of the side-table. */
+/** Zooms by `factor` about `at`, a point in the view's pixels, which stays over the same spot of the side-table; `view` is the unzoomed view's scale and size. */
 export function zoomAbout(
   zoom: HiddenZoneZoom,
   factor: number,
   at: Readonly<{ x: number; y: number }>,
-  scale: number,
-  size: Size
+  { scale, ...size }: Size & Readonly<{ scale: number }>
 ): HiddenZoneZoom {
   const from = fitZoom(zoom, scale, size);
   const by = clamp(from.by * factor, 1, HIDDEN_ZONE_MAX_ZOOM);
