@@ -170,7 +170,7 @@ for (const authored of manuscript.pages) {
   contents.pageOrder.push(pageId);
   contents.pagesById[pageId] = page;
 }
-const raw = rawRulebookSchema.parse({ settings: { size: 'square', design: 'restrained' }, contents });
+const raw = rawRulebookSchema.parse({ settings: { size: 'a4', design: 'restrained' }, contents });
 assertRulebookReferences(raw.contents, assets, bindings.resolvedFactions);
 const json = JSON.stringify(raw, null, 2) + '\n';
 rawRulebookSchema.parse(readRawAuthoringJson(json));

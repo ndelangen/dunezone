@@ -2,5 +2,6 @@
   "pages": 37,
   "expectedPages": 37,
   "extraction": "Poppler raw content order, normalized to Unicode NFKC alphanumeric boundaries; layout extraction interleaves columns and is unsuitable for this check.",
-  "unmatchedProseBoundaries": []
+  "unmatchedProseBoundaries": [],
+  "scope": "Authored top-level text, question, answer, note and caption fields on rendered Blocks; excludes resolved asset and faction data not drawn on the page."
 }

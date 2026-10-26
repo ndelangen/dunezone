@@ -1074,12 +1074,11 @@
             "evidence": []
           },
           {
-            "kind": "callout",
-            "variant": "note",
-            "title": "Deck size",
-            "text": "The base Treachery deck increases from 33 to 35 cards. Two Solaris cards are reported in the supplied physical material. Do not add an extra set of old replacement Karamas on top of the intended deck.",
+            "kind": "text",
+            "name": "Harj remains an extra move",
+            "text": "The new spelling maps to old Hajr. It gives an additional on-planet movement immediately after your own normal movement, not another shipment. Reassessing ornithopters at the additional move was already clarified.",
             "evidence": [
-              "DECK-05"
+              "TERM-03"
             ]
           }
         ],
@@ -1116,11 +1115,12 @@
             "evidence": []
           },
           {
-            "kind": "text",
-            "name": "Harj remains an extra move",
-            "text": "The new spelling maps to old Hajr. It gives an additional on-planet movement immediately after your own normal movement, not another shipment. Reassessing ornithopters at the additional move was already clarified.",
+            "kind": "callout",
+            "variant": "note",
+            "title": "Deck size",
+            "text": "The base Treachery deck increases from 33 to 35 cards. Two Solaris cards are reported in the supplied physical material. Do not add an extra set of old replacement Karamas on top of the intended deck.",
             "evidence": [
-              "TERM-03"
+              "DECK-05"
             ]
           }
         ]

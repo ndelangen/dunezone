@@ -1,5 +1,5 @@
 {
-  "manuscriptSha256": "c14d723236c353923e728f43976d624da38bc48ab550c643622d1e0f3268a0e1",
+  "manuscriptSha256": "82c5b0c948cbd4b7073bd2f75ec325927d71db84ad3ff79f6aacecda34c457dc",
   "records": [
     {
       "id": "CORE-C01",
@@ -1440,7 +1440,7 @@
       "locations": [
         {
           "pageId": "R2X8",
-          "blockId": "4HDS",
+          "blockId": "TNE2",
           "pageNumber": 16,
           "title": "Cards: information, disposal and timing"
         }
@@ -1488,7 +1488,7 @@
         },
         {
           "pageId": "R2X8",
-          "blockId": "TNE2",
+          "blockId": "4HDS",
           "pageNumber": 16,
           "title": "Cards: information, disposal and timing"
         }

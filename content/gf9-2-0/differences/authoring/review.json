@@ -3,11 +3,11 @@
   "date": "2026-10-26",
   "pages": 37,
   "settings": {
-    "size": "square",
+    "size": "a4",
     "design": "restrained"
   },
-  "rawSha256": "168f50f356f0f0ef622212cc785eacab5886545214d8d764a82853f6ffb2c5fb",
-  "pdfSha256": "9fa3e5ebc4957647b9b0a2595ce4950d0e29bd4d83cef0074363ab3fc71198e5",
+  "rawSha256": "94d3572c23f2972dc435ff6832fff221947d99bf1088f5c876fb22ce4af3fdfe",
+  "pdfSha256": "50dc12bf6fd0950b39aa268ed86e2b4e22e54a028aba3a36fd4a81033e75eddc",
   "coverage": {
     "researchRecords": 141,
     "mapped": 135,
@@ -18,22 +18,24 @@
     "unloadedImages": 0,
     "runtimeErrors": 0,
     "verticalOverflows": 0,
-    "nativeWheelPaintOverscrollPx": 2,
-    "nativeWheelNote": "The existing rotated wheel artwork reports two pixels of container scroll width; both wheels and captions are visibly within the page. No renderer CSS was changed."
+    "horizontalOverflows": 0
   },
   "pdf": {
     "pages": 37,
     "sizePt": [
-      723.12,
-      720
+      594.96,
+      841.92
     ],
     "tagged": true,
     "unmatchedProseBoundaries": 0,
     "visuallyCheckedPages": [
-      10,
-      23
+      16
     ],
     "contactSheetReviewed": true
   },
-  "productionWrites": false
+  "productionWrites": false,
+  "coverCandidate": {
+    "file": "cover-candidate-blended.png",
+    "status": "saved-separately-for-review"
+  }
 }

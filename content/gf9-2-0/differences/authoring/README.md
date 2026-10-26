@@ -1,6 +1,6 @@
 # Local differences rulebook
 
-The first review draft has 37 Square pages using the existing restrained design and existing Rulebook Blocks. It compares GF9 2019 Basic and Advanced with the 2026 default game for players who already know GF9.
+The first review draft has 37 A4 pages using the existing restrained design and existing Rulebook Blocks. It compares GF9 2019 Basic and Advanced with the 2026 default game for players who already know GF9.
 
 [Open the local review](http://127.0.0.1:4320/). The preview server must be running in this checkout. It reads production artwork and writes no application data.
 
@@ -28,7 +28,7 @@ This is a teaching draft, not a copy of the research prose. It uses the existing
 | [pdf-checks.json](pdf-checks.json) | Printed page count and extracted prose-boundary checks. |
 | [review.json](review.json) | Review identity, hashes, coverage counts and measured limitations. |
 
-The review PDF is generated locally at `output/pdf/gf9-2019-to-2-0-differences-review.pdf` from the existing renderer. It is not the production publisher's artifact and has not been uploaded. The native printed size is 255.1 by 254 mm.
+The review PDF is generated locally at `output/pdf/gf9-2019-to-2-0-differences-review.pdf` from the existing renderer. It is not the production publisher's artifact and has not been uploaded. The native printed size is 210 by 297 mm.
 
 ## Build and preview
 
@@ -47,8 +47,12 @@ After editing, inspect the actual native rendering and update the review evidenc
 
 All 141 research records are accounted for: 135 have a location in the book and six are explicitly omitted because they are already clarified or unchanged. Those counts include overlapping findings and questions; they are not a count of distinct mechanical changes.
 
-The final browser check found 37 pages, no runtime errors, no missing images and no vertical content overflow. The existing rotated wheel pair reports two pixels of container scroll width; both wheels and captions were visually checked within the page. No game-renderer CSS changed.
+The final browser check found 37 pages, no runtime errors, no missing images and no vertical content overflow. No horizontal content overflow was measured at A4. No game-renderer CSS changed.
 
-The tagged PDF has 37 uniform Square pages. All checked prose field boundaries survive extraction in raw content order. Layout-mode extraction interleaves the two columns and is unsuitable for that check. The whole-book contact sheet and the rendered PDF battle and Bene Gesserit pages were inspected visually.
+The tagged PDF has 37 uniform A4 pages. All checked prose field boundaries survive extraction in raw content order. Layout-mode extraction interleaves the two columns and is unsuitable for that check. The whole-book contact sheet and the rendered PDF card changes page were inspected visually.
 
 Confirmed differences are distinguished from old FAQ clarifications and Dune Zone judgements. Open wording and incomplete expansion announcements remain labeled. Review the underlying [dossier](../README.md) when a source question needs more detail. Publication is a later operation after review.
+
+## Cover candidate
+
+`cover-candidate-blended.png` is a proposed 4:3 blend of the existing 2019 and 2.0 artwork, generated with the built-in image tool. Its prompt and source URLs are in `cover-candidate-blended.json`. It is saved separately for review; the draft currently retains the existing 2.0 cover.
