@@ -53,6 +53,13 @@ describe('a tutorial table’s result', () => {
     expect(stored().stage).toBe('play');
   });
 
+  test('holds the Mentat Pause while the winner is being determined', () => {
+    act({ kind: 'result-open' });
+    act({ kind: 'phase' });
+    expect(table.refusal).toMatch(/winner is being determined/);
+    expect(stored().ending?.by.seat).toBe(table.seat);
+  });
+
   test('still refuses what only a game’s session runs', () => {
     act({ kind: 'removal-start', seat: table.seats().find((seat) => seat !== table.seat)! });
     expect(table.refusal).toMatch(/need a real game/);

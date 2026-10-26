@@ -1,3 +1,4 @@
+import { isBattleLeader } from '@shared/play/battle';
 import type { GameSnapshot } from '@shared/play/protocol';
 
 import type { GuideTask } from '../TutorialGuide';
@@ -47,7 +48,7 @@ function atreidesFights(snapshot: () => GameSnapshot, players: TablePlayers) {
       }
       return;
     }
-    const leader = (players.viewOf(seat).hand ?? []).find((piece) => piece.kind === 'force');
+    const leader = (players.viewOf(seat).hand ?? []).find(isBattleLeader);
     players.act(seat, {
       kind: 'battle-plan',
       battleId: battle.id,

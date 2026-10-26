@@ -5,10 +5,11 @@ import type { ClientMessage, GameSnapshot, ServerMessage, Viewer } from '@shared
 import { GameRejection } from '@shared/play/rejection';
 import { isRemovalAction } from '@shared/play/removal';
 import { isResultAction } from '@shared/play/result';
+import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { isSwapAction } from '@shared/play/swapping';
 
 import { expireBattle } from '../../../../../../workers/game/battle';
-import { applyResult } from '../../../../../../workers/game/result';
+import { applyResult, settleEnding } from '../../../../../../workers/game/result';
 import { Room } from '../../../../../../workers/game/room';
 import {
   internalAction,
@@ -84,9 +85,14 @@ export class LocalTable {
     );
   }
 
-  /** Every seat the table has a viewer for. */
+  /** Every seat a player sits in; the spectator watches and acts for no one. */
   seats() {
-    return Object.keys(this.opening.viewers);
+    return Object.keys(this.opening.viewers).filter((seat) => seat !== SPECTATOR_SEAT);
+  }
+
+  /* As the session does on every commit, an open Determine winner closes once the table leaves Mentat Pause. */
+  private settled<Snapshot extends StoredSnapshot>(snapshot: Snapshot): Snapshot {
+    return settleEnding(snapshot, () => new Set(this.seats().map((seat) => this.viewer(seat).userId)));
   }
 
   viewer(seat = this.seat): Viewer {
@@ -239,7 +245,7 @@ export class LocalTable {
     const room = this.room;
     if (message.type === 'command' && isResultAction(message.action)) {
       room.assertRevision(message.action, message.expectedRevision);
-      room.accept(applyResult(room.snapshot, viewer, message.action, Date.now()));
+      room.accept(this.settled(applyResult(room.snapshot, viewer, message.action, Date.now())));
       this.deliver(this.frame(this.seat, own ? message.commandId : undefined));
       return;
     }
@@ -251,7 +257,7 @@ export class LocalTable {
     const completedCarryId = message.type === 'drop' ? message.carryId : undefined;
     const clearAll = message.type === 'command' && message.action.kind === 'reset';
     const cleaned = room.finishSetupCleanup(next, completedCarryId, clearAll);
-    room.accept(cleaned ?? next, completedCarryId, clearAll);
+    room.accept(this.settled(cleaned ?? next), completedCarryId, clearAll);
     this.scheduleBattleReveal();
     this.deliver(this.frame(this.seat, own ? message.commandId : undefined));
   }

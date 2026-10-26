@@ -109,14 +109,15 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
         'Someone outbid you, and the bidder comes back to you. Raise with {I}, then hand it on with {P}. When everyone else passes, the card is yours.',
       anchor: disc,
       begin: () => ({ stop: othersBid(snapshot, players) }),
-      done: () => bidding()?.stage === 'won' && bidding()?.bid?.factionId === mine(),
+      /* A slip that hands the bidder on unraised lets another faction win; the round still ends, so the chapter goes on. */
+      done: () => bidding()?.stage === 'won',
       finish: (watch: { stop: () => void }) => watch.stop(),
     }),
     task({
       id: 'take-card',
-      task: 'Take the card you won',
+      task: 'Take the card',
       detail:
-        'The bidder only keeps score: you pay and take the card yourself. Right-click the Treachery deck and choose Draw a card. Paying is by hand as well: withdraw the 4 spice from your reserve, as in chapter 10.',
+        'The bidder only keeps score: the winner pays and takes the card by hand. Right-click the Treachery deck and choose Draw a card. Paying is by hand as well: withdraw what you bid from your reserve, as in chapter 10.',
       anchor: { kind: 'table', point: () => at(tableDeck(snapshot, 'left')) },
       begin: () => snapshot().hand?.length ?? 0,
       done: (start) => (snapshot().hand?.length ?? 0) > start,

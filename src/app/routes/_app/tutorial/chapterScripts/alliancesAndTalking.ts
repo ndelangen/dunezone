@@ -16,19 +16,24 @@ import { element, openedWindow, task, viaCompass, windowShown } from './guideChe
 const PARTNER = 'House Atreides';
 /* How long Atreides thinks over the offer before it accepts. */
 const ACCEPT_AFTER_MS = 1500;
+type Seat = NonNullable<GameSnapshot['roster']>['seats'][number];
 
-/* Atreides accepts the learner's offer a moment after it arrives, once; the timer stops if the task ends first. */
-function atreidesAccepts(snapshot: () => GameSnapshot, players: TablePlayers, seat: () => string | undefined) {
+/* Atreides answers each offer the learner makes to it once, a moment after it arrives; the timer stops if the task ends first. */
+function atreidesAccepts(snapshot: () => GameSnapshot, players: TablePlayers, partner: () => Seat | undefined) {
   let timer: ReturnType<typeof setTimeout> | undefined;
+  const answered = new Set<number>();
   const watch = setInterval(() => {
     const own = snapshot().bank?.factionId;
-    const partner = seat();
-    const offer = snapshot().alliances?.offers.find((entry) => entry.from === own);
-    if (!offer || !partner || timer) {
+    const seat = partner();
+    const offer = snapshot().alliances?.offers.find(
+      (entry) => entry.from === own && entry.to === seat?.faction?.id && !answered.has(entry.id)
+    );
+    if (!offer || !seat || timer) {
       return;
     }
+    answered.add(offer.id);
     timer = setTimeout(() => {
-      players.act(partner, { kind: 'alliance-accept', factionId: offer.from, offer: offer.id });
+      players.act(seat.id, { kind: 'alliance-accept', factionId: offer.from, offer: offer.id });
       timer = undefined;
     }, ACCEPT_AFTER_MS);
   }, 300);
@@ -54,7 +59,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       anchor: {
         kind: 'page',
         element: () =>
-          document.querySelector(history() ? `${chatWindow()} [aria-label="Message"]` : `[aria-label$=", ${PARTNER}"]`),
+          document.querySelector(history() ? `${chatWindow()} [aria-label="Message"]` : `[aria-label*=", ${PARTNER}"]`),
       },
       begin: () => undefined,
       /* The answer comes a moment after the learner's message, so a second dated entry in the history means both arrived. */
@@ -74,7 +79,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       detail:
         'In the faction information, press Offer alliance. An arrow runs from your token to theirs until they answer, and Atreides accepts a moment later.',
       anchor: { kind: 'page', element: element(`[data-window="${FACTION_INFO}"] button`) },
-      begin: () => ({ stop: atreidesAccepts(snapshot, players, partnerSeat) }),
+      begin: () => ({ stop: atreidesAccepts(snapshot, players, partner) }),
       done: allied,
       finish: (watch: { stop: () => void }) => watch.stop(),
     }),
