@@ -7,7 +7,7 @@ import { ArrowUpFromLine, EyeOff } from 'lucide-react';
 import { useRef, useState } from 'react';
 
 import { HandPieceCloseUp } from '../../../../widgets/tabletop/PieceCloseUp';
-import { dropOnTable } from '../multiplayer/dropOnTable';
+import { dropFromHand } from '../multiplayer/dropFromHand';
 import { PieceImage, pieceName, useHandCloseUp } from '../multiplayer/HandPiece';
 import { HandPieceMenu, handMenuAnchor } from '../multiplayer/HiddenZone';
 import type { HandMenuAnchor } from '../multiplayer/HiddenZone';
@@ -90,7 +90,7 @@ export function HandShelves(props: HandProps) {
               className={styles.row}
               onMove={actions.reorder}
               leaving={(piece) => actions.leaving(piece) !== undefined}
-              onDropOutside={(piece, point) => dropOnTable(piece.id, point.x, point.y)}
+              onDropOutside={(piece, point) => dropFromHand(piece.id, point.x, point.y)}
             >
               {(piece) => tile(piece, group.key === 'leaders' ? TILE_WIDTH.leaders : TILE_WIDTH.cards)}
             </SortableRow>

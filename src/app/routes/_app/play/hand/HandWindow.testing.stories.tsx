@@ -108,3 +108,17 @@ export const ReorderByDrag = meta.story({
     await expect(treacheryOrder(page)).toEqual(after);
   },
 });
+
+/** A card dragged off its shelf onto the private side-table is laid there. */
+export const DragToSideTable = meta.story({
+  beforeEach: at('Battle plan'),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const crysknife = await page.findByRole('button', { name: 'Drag Crysknife from hand' }, { timeout: 30_000 });
+    await dragOnto(crysknife, page.getByText(/Drag a piece here from your hand/));
+    await expect(
+      page.findByRole('button', { name: 'Move Crysknife on private side-table' }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    await waitFor(() => expect(page.queryByRole('button', { name: 'Drag Crysknife from hand' })).toBeNull());
+  },
+});
