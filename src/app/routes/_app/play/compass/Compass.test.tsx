@@ -148,3 +148,42 @@ test('a press outside the compass closes it and goes no further; one on a tile d
   expect(onClose).toHaveBeenCalledTimes(2);
   expect(behind).toHaveBeenCalledTimes(1);
 });
+
+test('the click a dismissing press ends in reaches nothing, and the next click is heard again', async () => {
+  const onClose = vi.fn();
+  const clicked = vi.fn();
+  const { container } = render(
+    <>
+      <a href="#elsewhere" onClick={clicked}>
+        Elsewhere
+      </a>
+      <Compass
+        tiles={tiles}
+        suggestions={[]}
+        spot="hub"
+        query=""
+        cursor={0}
+        refused={0}
+        input={{ current: null }}
+        onSpot={vi.fn()}
+        onQuery={vi.fn()}
+        onCursor={vi.fn()}
+        onConfirm={vi.fn()}
+        onClose={onClose}
+      />
+    </>
+  );
+  const link = container.querySelector('a')!;
+  const fire = (type: string) =>
+    act(() => void link.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true })));
+  fire('pointerdown');
+  fire('pointerup');
+  const swallowed = new MouseEvent('click', { bubbles: true, cancelable: true });
+  act(() => void link.dispatchEvent(swallowed));
+  expect(onClose).toHaveBeenCalledTimes(1);
+  expect(swallowed.defaultPrevented).toBe(true);
+  expect(clicked).not.toHaveBeenCalled();
+  await new Promise((resolve) => setTimeout(resolve));
+  fire('click');
+  expect(clicked).toHaveBeenCalledTimes(1);
+});

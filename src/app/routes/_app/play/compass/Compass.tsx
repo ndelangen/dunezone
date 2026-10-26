@@ -32,8 +32,24 @@ export type CompassProps = Readonly<{
 }>;
 
 /*
+ * The click that ends a dismissing press is swallowed too. It follows the press's pointerup in the same task, so the
+ * guard is let go just after that, and a press that ends without a click never eats a later one.
+ */
+function swallowClick() {
+  const swallow = (event: MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+  };
+  const release = () => setTimeout(() => window.removeEventListener('click', swallow, true));
+  window.addEventListener('click', swallow, { capture: true, once: true });
+  window.addEventListener('pointerup', release, { capture: true, once: true });
+  window.addEventListener('pointercancel', release, { capture: true, once: true });
+}
+
+/*
  * A press anywhere but on the compass's own tiles, search and suggestions dismisses it: on the veil, in the gaps between
- * the tiles, or on the chrome around the table. The press goes no further, so the table under the veil never acts on it.
+ * the tiles, or on the chrome around the table. The press goes no further, nor does the click it ends in, so neither the
+ * table under the veil nor a control or link beside it acts on it.
  */
 function useDismissOnPressOutside(compass: RefObject<HTMLDialogElement | null>, onClose: () => void) {
   const close = useEffectEvent(onClose);
@@ -44,6 +60,7 @@ function useDismissOnPressOutside(compass: RefObject<HTMLDialogElement | null>, 
       const inside = dialog && target instanceof Node && dialog.contains(target) && target !== dialog;
       if (!inside) {
         event.stopPropagation();
+        swallowClick();
         close();
       }
     };

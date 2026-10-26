@@ -190,6 +190,11 @@ describe('optional timed bidding', () => {
       const { turnStart: _kept, ...older } = applyBidding(opened(), { kind: 'bid-raise', round: 1 }, at('a'));
       expect(canLowerBid(older, 'a')).toBe(false);
       expect(() => applyBidding(older, { kind: 'bid-lower', round: 1 }, at('a'))).toThrow(BiddingRefusal);
+      /* Its next raise keeps the bid it found, which lowering returns to and never passes. */
+      let state = applyBidding(older, { kind: 'bid-raise', round: 1 }, at('a'));
+      state = applyBidding(state, { kind: 'bid-lower', round: 1 }, at('a'));
+      expect(state).toMatchObject({ bid: { factionId: 'a', amount: 1 } });
+      expect(canLowerBid(state, 'a')).toBe(false);
     });
   });
 });

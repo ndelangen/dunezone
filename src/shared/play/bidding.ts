@@ -237,6 +237,8 @@ function raiseBid(state: BiddingState, factionId: string, context: BiddingContex
   }
   return {
     ...state,
+    /* A round opened before the bidder kept its turn's start takes the bid as it stands now, so this raise can be lowered back to it. */
+    turnStart: state.turnStart ?? { bid: state.bid, passed: state.passed },
     bid: { factionId, amount: (state.bid?.amount ?? 0) + 1 },
     passed: [],
     deadline: turnDeadline(state, context.now),
