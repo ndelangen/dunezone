@@ -50,6 +50,12 @@ const preview = definePreview({
     resetFrameLag();
     await emulateReducedMotion(globals.motion !== 'on');
     setMotionOverride(globals.motion === 'on' ? 'on' : globals.motion === 'reduce' ? 'off' : null);
+    /* The app marks <html> with the verdict for its stylesheets, so a story pinned to motion gets the same mark; AppRoot sets its own. */
+    if (globals.motion === 'on' || globals.motion === 'reduce') {
+      document.documentElement.dataset.motion = globals.motion === 'on' ? 'ok' : 'reduce';
+    } else {
+      delete document.documentElement.dataset.motion;
+    }
     document.documentElement.setAttribute('data-mantine-color-scheme', 'dark');
   },
   parameters: {

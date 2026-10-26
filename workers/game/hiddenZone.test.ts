@@ -21,6 +21,7 @@ const bob: Identity = {
 const FACTIONS: Record<string, string> = { [bob.userId]: 'atreides' };
 const LOOSE = 'treachery-card-loose';
 const LEADER = 'fixture-leader';
+const SECOND = 'treachery-card-second';
 const LATER = Date.now() + 10 * PHASE_CHANGE_COOLDOWN_MS;
 
 /* The fixture table, with its loose card given a Treachery face and a leader disc beside it, as Play/Sandbox's hands hold. */
@@ -124,6 +125,42 @@ describe('the hidden zone', () => {
     });
     expect(room.snapshot.battleState!.plans[0]!.pieces.map((piece) => piece.id)).toEqual([LOOSE]);
     expect(JSON.stringify(room.snapshot.battleState)).not.toContain('hiddenZone');
+  });
+
+  test('keeps a hand order apart from the inventory, side-table pieces aside', () => {
+    const { room, send, hand } = roomWithHand();
+    const card = room.snapshot.factionInventories.atreides!.find((piece) => piece.id === LOOSE)!;
+    room.snapshot.table.pieces.push({ ...structuredClone(card), id: SECOND, position: [2, 0.14, 0] });
+    send({ kind: 'hand-take', pieceId: SECOND });
+    send({ kind: 'hand-zone', pieceId: LEADER, at: { x: 0.3, y: 0.4 } });
+    send({ kind: 'hand-order', pieceId: SECOND, before: LOOSE });
+    expect(room.snapshot.handOrders.atreides).toEqual([SECOND, LOOSE]);
+    expect(hand().map((piece) => piece.id)).toEqual([LOOSE, SECOND, LEADER]);
+    send({ kind: 'hand-order', pieceId: SECOND, before: null });
+    expect(room.snapshot.handOrders.atreides).toEqual([LOOSE, SECOND]);
+    expect(() =>
+      room.command(bob, { kind: 'hand-order', pieceId: LOOSE, before: LEADER }, room.snapshot.revision, LATER)
+    ).toThrow(GameRejection);
+  });
+
+  test('keeps a planned piece in the order, so it takes its old place when it comes back', () => {
+    const { room, send } = roomWithHand();
+    send({ kind: 'hand-order', pieceId: LEADER, before: LOOSE });
+    room.snapshot.phase = STANDARD_PHASES.findIndex((phase) => phase.id === 'battle');
+    send({ kind: 'battle-start', anchor: [0, 0, 0], territory: 'Arrakeen' });
+    const battleId = room.snapshot.battleState!.id;
+    send({ kind: 'battle-claim', battleId, side: 0 });
+    send({
+      kind: 'battle-plan',
+      battleId,
+      plan: { mode: 'max', troops: [], spice: 0, adjustment: 0, leaderId: null, cardIds: [LOOSE] },
+    });
+    send({ kind: 'hand-order', pieceId: LOOSE, before: LEADER });
+    expect(room.snapshot.handOrders.atreides).toEqual([LOOSE, LEADER]);
+    /* Revealed, the plan's pieces are everyone's to take, so the order stops naming them. */
+    room.snapshot.battleState!.stage = 'revealed';
+    const projection = new RoomProjection('secret');
+    expect(projection.snapshot(room.snapshot, 'atreides').handOrder).toEqual([LEADER]);
   });
 
   test('refuses a piece that is not in the hand', () => {
