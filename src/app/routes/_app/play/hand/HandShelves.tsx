@@ -90,7 +90,12 @@ export function HandShelves(props: HandProps) {
               className={styles.row}
               onMove={actions.reorder}
               leaving={(piece) => actions.leaving(piece) !== undefined}
-              onDropOutside={(piece, point) => dropFromHand(piece.id, point.x, point.y)}
+              onDropOutside={(piece, point) => {
+                const drop = dropFromHand(piece.id, point.x, point.y);
+                if (drop?.where === 'side') {
+                  actions.left(piece, drop.commandId);
+                }
+              }}
             >
               {(piece) => tile(piece, group.key === 'leaders' ? TILE_WIDTH.leaders : TILE_WIDTH.cards)}
             </SortableRow>

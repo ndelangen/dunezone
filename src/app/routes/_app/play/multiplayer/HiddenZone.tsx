@@ -260,6 +260,7 @@ export function HiddenZone({ client, table, hand }: Props) {
   const lay = (piece: TablePiece, at: HiddenZoneSpot) => {
     const commandId = client.command({ kind: 'hand-zone', pieceId: piece.id, at });
     setLanding(commandId ? { pieceId: piece.id, commandId, at, from: piece.hiddenZone } : null);
+    return commandId;
   };
   const sendTurn = (pending: Turning | null) => {
     const piece = pending && pieces.find((candidate) => candidate.id === pending.pieceId);
@@ -389,19 +390,24 @@ export function HiddenZone({ client, table, hand }: Props) {
     );
   };
 
-  /* A piece dragged here from the hand is laid where it was let go, centred under the pointer. */
-  const layFromHand = useEffectEvent(({ pieceId, clientX, clientY }: SideTableDrop) => {
-    const piece = hand.find((candidate) => candidate.id === pieceId && !candidate.hiddenZone);
+  /* A piece dragged here from the hand is laid where it was let go, centred under the pointer and kept whole inside the zone. */
+  const layFromHand = useEffectEvent((drop: SideTableDrop) => {
+    const piece = hand.find((candidate) => candidate.id === drop.pieceId && !candidate.hiddenZone);
     const zone = frame.current?.getBoundingClientRect();
     if (!enabled || !piece || !zone || scale <= 0) {
       return;
     }
-    lay(
+    const footprint = hiddenZoneFootprint(piece);
+    const across = footprint.width * scale;
+    const down = footprint.depth * scale;
+    drop.commandId = lay(
       piece,
       clampHiddenZoneSpot(
         {
-          x: (clientX - zone.left) / (HIDDEN_ZONE_WIDTH * scale),
-          y: (clientY - zone.top) / (HIDDEN_ZONE_DEPTH * scale),
+          x:
+            (inside(drop.clientX - zone.left - across / 2, zone.width - across) + across / 2) /
+            (HIDDEN_ZONE_WIDTH * scale),
+          y: (inside(drop.clientY - zone.top - down / 2, zone.height - down) + down / 2) / (HIDDEN_ZONE_DEPTH * scale),
         },
         extent
       )
