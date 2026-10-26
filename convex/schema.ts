@@ -111,21 +111,6 @@ export default defineSchema({
     session_id: v.id('authSessions'),
     expires_at: v.number(),
   }).index('by_digest', ['digest']),
-  /** Retired with the ticket admission path: nothing reads or writes these two tables, which stay declared until they are emptied and dropped. */
-  play_tickets: defineTable({
-    digest: v.string(),
-    game_id: v.id('play_games'),
-    user_id: v.id('users'),
-    session_id: v.id('authSessions'),
-    expires_at: v.number(),
-    consumed: v.boolean(),
-  }).index('by_digest', ['digest']),
-  play_auth_registrations: defineTable({
-    game_id: v.id('play_games'),
-    user_id: v.id('users'),
-    session_id: v.id('authSessions'),
-    expires_at: v.number(),
-  }).index('by_game_id_session_id', ['game_id', 'session_id']),
   /** Retained after Auth cleanup so account deletion can reach disconnected games. */
   play_game_accounts: defineTable({
     game_id: v.id('play_games'),
