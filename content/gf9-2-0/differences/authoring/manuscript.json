@@ -1,7 +1,7 @@
 {
   "title": "GF9: What changes in 2.0",
   "audience": "Experienced GF9 2019 players",
-  "status": "local-review-draft",
+  "status": "published",
   "asOf": "2026-10-26",
   "pages": [
     {
@@ -34,7 +34,7 @@
           {
             "kind": "callout",
             "variant": "note",
-            "title": "Local review draft",
+            "title": "How to use this guide",
             "text": "Confirmed rules are the main lesson. Boxes labeled \"Open wording\" retain genuine source conflicts. The expansion appendix distinguishes announced revisions from complete rules. Those boxes are review questions, not invented house rules.",
             "evidence": []
           }
@@ -80,7 +80,7 @@
           {
             "kind": "text",
             "name": "Sources for review",
-            "text": "Page references mean printed source PDF pages counted from the cover. Publication Edition numbers on dune.zone identify website versions, not the game edition. This draft uses our older publication Edition 2 books and the 2.0 publication Edition 3, pinned in the research dossier.",
+            "text": "Page references mean printed source PDF pages counted from the cover. Publication Edition numbers on dune.zone identify website versions, not the game edition. This guide uses our older publication Edition 2 books and the 2.0 publication Edition 3, pinned in the research dossier.",
             "evidence": []
           }
         ]
@@ -113,7 +113,7 @@
             "kind": "callout",
             "variant": "note",
             "title": "Open wording: faction-selection order",
-            "text": "The new prediction-card selection method says start with the lowest card, but calls the order descending. Those instructions disagree. Random faction assignment remains available; this draft does not silently repair the sentence.",
+            "text": "The new prediction-card selection method says start with the lowest card, but calls the order descending. Those instructions disagree. Random faction assignment remains available; this guide does not silently repair the sentence.",
             "evidence": [
               "CORE-C03"
             ]
@@ -243,7 +243,7 @@
             "kind": "callout",
             "variant": "note",
             "title": "No probability claim",
-            "text": "The source gives nine cards, three reshuffle instructions and a dial card. This draft does not invent the complete face distribution or card-counting probabilities.",
+            "text": "The source gives nine cards, three reshuffle instructions and a dial card. This guide does not invent the complete face distribution or card-counting probabilities.",
             "evidence": []
           }
         ]
@@ -958,7 +958,7 @@
             "kind": "callout",
             "variant": "note",
             "title": "Open wording: before or while forming",
-            "text": "The summary table says before Battle Plans are made for Emperor and Fremen; the sheets say while plans are being formed. This draft preserves the narrow timing question. Neither text permits waiting until reveal.",
+            "text": "The summary table says before Battle Plans are made for Emperor and Fremen; the sheets say while plans are being formed. This guide preserves the narrow timing question. Neither text permits waiting until reveal.",
             "evidence": []
           }
         ]
@@ -1176,7 +1176,7 @@
           {
             "kind": "text",
             "name": "Bene Gesserit exception",
-            "text": "The specific advisor rules permit the intended coexistence with an ally. Use those rules rather than treating advisors as ordinary co-occupying fighters. The general alliance paragraph does not repeat the exception, which remains flagged in this draft.",
+            "text": "The specific advisor rules permit the intended coexistence with an ally. Use those rules rather than treating advisors as ordinary co-occupying fighters. The general alliance paragraph does not repeat the exception, which remains flagged in this guide.",
             "evidence": [
               "F22"
             ]
@@ -1402,7 +1402,7 @@
             "kind": "callout",
             "variant": "note",
             "title": "Open wording: perfect ties",
-            "text": "The new text stops after equal spice and does not fully settle every special-condition overlap. Those gaps remain visible in this review draft.",
+            "text": "The new text stops after equal spice and does not fully settle every special-condition overlap. Those gaps remain visible in this guide.",
             "evidence": [
               "CORE-U06"
             ]
@@ -2665,7 +2665,7 @@
           {
             "kind": "question-answer",
             "question": "Does Solaris cover every Guild shipping type?",
-            "answer": "Its face specifies from reserves; its prose is broader. The draft teaches the clearly printed reserve case and keeps cross-shipping/return scope open.",
+            "answer": "Its face specifies from reserves; its prose is broader. This guide teaches the clearly printed reserve case and keeps cross-shipping/return scope open.",
             "evidence": [
               "Q-CARD-01"
             ]
@@ -2788,13 +2788,13 @@
           {
             "kind": "callout",
             "variant": "note",
-            "title": "Review draft",
-            "text": "This is locally authored explanation for experienced players. It is separate from the faithful reconstruction and has not been uploaded or published as a new rulebook.",
+            "title": "About this guide",
+            "text": "This guide explains edition differences for experienced players. It is a companion to the full GF9 2.0 rulebook. Open wording and incomplete expansion revisions remain labeled.",
             "evidence": []
           }
         ]
       ],
-      "source": "Research dossier: content/gf9-2-0/differences. Prepared for local review, 26 October 2026."
+      "source": "Research dossier: content/gf9-2-0/differences. Prepared 26 October 2026."
     }
   ],
   "excludedFindings": [

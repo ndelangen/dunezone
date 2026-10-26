@@ -1,0 +1,34 @@
+{
+  "status": "published",
+  "date": "2026-10-26",
+  "title": "GF9 2019 to 2.0: What changes",
+  "url": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2019-to-2-0-what-changes",
+  "rulebookId": "pd7247mr9ge6kstr2t7ta5hrb98h0f28",
+  "ruleset": "gf9-2-0",
+  "owner": "Central",
+  "assignedRulesetGroup": "GF9",
+  "method": "Normal authenticated UI creation, JSON Load, Save, five-second Publish hold. No administrative mutations.",
+  "edition": 2,
+  "draftRevision": 2,
+  "pages": 37,
+  "settings": {
+    "size": "a4",
+    "design": "restrained"
+  },
+  "html": "https://dune.zone/published/rulebooks/pd7247mr9ge6kstr2t7ta5hrb98h0f28/editions/2/rulebook.html",
+  "pdf": "https://dune.zone/published/rulebooks/pd7247mr9ge6kstr2t7ta5hrb98h0f28/editions/2/rulebook.pdf",
+  "artifactsReady": true,
+  "sourceSha256": "8ea057e17fea9b50c04508c1978de854a1512ab360e71bd7bd8397aa7173436f",
+  "productionPdfSha256": "5ee34313101fe16814f2570358d4c5c8cd2d598a78fbd1cf631077c2dc132bf8",
+  "productionPdf": {
+    "pages": 37,
+    "sizePt": [
+      595.276,
+      841.89
+    ],
+    "tagged": true,
+    "unmatchedProseBoundaries": []
+  },
+  "verification": "Reloaded saved draft, confirmed production cover loaded, opened public Edition 2 reader, downloaded and inspected publisher PDF.",
+  "recovery": "The local source and publication snapshot are versioned. Any correction can be saved and published as a new Edition."
+}

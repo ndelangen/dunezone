@@ -1,8 +1,10 @@
-# Local differences rulebook
+# GF9 edition differences rulebook
 
-The first review draft has 37 A4 pages using the existing restrained design and existing Rulebook Blocks. It compares GF9 2019 Basic and Advanced with the 2026 default game for players who already know GF9.
+The published book has 37 A4 pages using the existing restrained design and existing Rulebook Blocks. It compares GF9 2019 Basic and Advanced with the 2026 default game for players who already know GF9.
 
-[Open the local review](http://127.0.0.1:4320/). The preview server must be running in this checkout. It reads existing production artwork plus the approved local cover and writes no application data.
+[Read the published book](https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2019-to-2-0-what-changes). Edition 2 contains all 37 pages, published as Central under GF9 2.0. HTML and PDF are ready. [Publication record](publication.json).
+
+[Open the local preview](http://127.0.0.1:4320/). The preview server must be running in this checkout. It reads existing production artwork and the approved production cover and writes no application data.
 
 ## Review contents
 
@@ -20,7 +22,7 @@ This is a teaching draft, not a copy of the research prose. It uses the existing
 | File | Purpose |
 | --- | --- |
 | [manuscript.json](manuscript.json) | Editable source with page order, authored copy, visual references and research IDs. |
-| [rulebook.json](rulebook.json) | Validated raw JSON Load document. Its local cover must be uploaded before production import. |
+| [rulebook.json](rulebook.json) | Validated raw JSON Load document with the stored production cover reference. |
 | [render-document.json](render-document.json) | Resolved local renderer input using existing production references. |
 | [pages.json](pages.json) | Physical page number, chapter key and stable page ID. |
 | [coverage.json](coverage.json) | Every research record's location or explicit unchanged-rule exclusion. |
@@ -28,7 +30,7 @@ This is a teaching draft, not a copy of the research prose. It uses the existing
 | [pdf-checks.json](pdf-checks.json) | Printed page count and extracted prose-boundary checks. |
 | [review.json](review.json) | Review identity, hashes, coverage counts and measured limitations. |
 
-The review PDF is generated locally at `output/pdf/gf9-2019-to-2-0-differences-review.pdf` from the existing renderer. It is not the production publisher's artifact and has not been uploaded. The native printed size is 210 by 297 mm.
+The production PDF is copied to `output/pdf/gf9-2019-to-2-0-differences-review.pdf`. It has 37 tagged A4 pages. The publisher PDF and HTML URLs are recorded in `publication.json`.
 
 ## Build and preview
 
@@ -50,12 +52,12 @@ All 141 research records are accounted for: 135 have a location in the book and 
 
 The final browser check found 37 pages, no runtime errors, no missing images and no vertical content overflow. No horizontal content overflow was measured at A4. No game-renderer CSS changed.
 
-The tagged PDF has 37 uniform A4 pages. All checked prose field boundaries survive extraction in raw content order. Layout-mode extraction interleaves the two columns and is unsuitable for that check. The whole-book contact sheet and the rendered PDF card changes page were inspected visually.
+The tagged PDF has 37 uniform A4 pages. All checked prose field boundaries survive extraction in raw content order. Layout-mode extraction interleaves the two columns and is unsuitable for that check. The original local layout was inspected through a whole-book contact sheet. The published PDF cover was checked visually and the authored prose boundaries were checked against the production PDF.
 
-Confirmed differences are distinguished from old FAQ clarifications and Dune Zone judgements. Open wording and incomplete expansion announcements remain labeled. Review the underlying [dossier](../README.md) when a source question needs more detail. Publication is a later operation after review.
+Confirmed differences are distinguished from old FAQ clarifications and Dune Zone judgements. Open wording and incomplete expansion announcements remain labeled. Review the underlying [dossier](../README.md) when a source question needs more detail. The publication used the normal authenticated application flow. No administrative mutations were used.
 
 ## Approved cover
 
 `cover.png` is the approved blend of the existing 2019 and 2.0 artwork. `cover.jpg` is its JPEG delivery copy. The prompt, source URLs and local delivery path are in `cover.json`. The standard full-page cover renderer crops the original image to A4 and overlays the logo and title. `prepare-cover.ts` encodes its JPEG delivery copy without adding framing.
 
-The cover is served locally. Before a production JSON import, upload this approved image through the normal image flow and replace its local cover URLs with the stored production reference.
+The approved cover was ingested through the normal Save flow from its pinned GitHub source. The stored production image is recorded in `cover.json` and used by the builder. The local delivery copy remains available for fallback.
