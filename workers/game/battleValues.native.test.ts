@@ -200,7 +200,7 @@ describe('Authored troop battle values in a real game', { timeout: 120_000 }, ()
       troops: [{ faceId: 'troop-0-front', undialed: troops, dialed: 0 }],
       spice,
       adjustment: 0,
-      leaderId: null,
+      leaderIds: [],
       cardIds: [],
       ...extra,
     });

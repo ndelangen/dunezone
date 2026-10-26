@@ -5,13 +5,12 @@ import type { TileSpot } from './compassSpots';
 import type { CompassPlayer, CompassTable } from './compassTable';
 import { PlayerToken } from './PlayerToken';
 import { SHORTCUTS } from './shortcuts';
-import type { PlayerTab, TableWindow } from './windows';
+import type { TableWindow } from './windows';
 
 /** One tile at the end of a compass arm: the window it opens, and what it says while that window is missing. */
 export type Tile = Readonly<{
   spot: TileSpot;
   window?: TableWindow;
-  tab?: PlayerTab;
   label: string;
   detail: ReactNode;
   icon: ReactNode;
@@ -59,7 +58,6 @@ function tableTile(windowOf: Windows, unread: number | undefined): Tile {
   return {
     spot: 'table',
     window,
-    tab: 'conversation',
     label: 'Table chat',
     detail: unread ? `${unread} unread` : 'Everyone at the table',
     icon: <MessagesSquare {...ICON} />,
@@ -75,7 +73,6 @@ function allyTile(windowOf: Windows, ally: CompassPlayer | undefined): Tile {
   return {
     spot: 'ally',
     window,
-    tab: 'conversation',
     label: 'Ally chat',
     detail: ally ? [ally.name, ally.factionName].filter(Boolean).join(' · ') : 'No ally yet',
     icon: ally ? <PlayerToken player={ally} size={34} /> : <Handshake {...ICON} />,

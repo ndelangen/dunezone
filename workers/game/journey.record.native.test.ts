@@ -74,7 +74,7 @@ async function biddingAndShipment(journey: JourneyRecorder) {
  */
 async function battlePlan(journey: JourneyRecorder, index: number): Promise<BattlePlan> {
   const leader = (await journey.hand(index)).find((piece) => piece.kind === 'force');
-  return { mode: 'custom', troops: [], spice: 0, adjustment: 0, leaderId: required(leader).id, cardIds: [] };
+  return { mode: 'custom', troops: [], spice: 0, adjustment: 0, leaderIds: [required(leader).id], cardIds: [] };
 }
 
 /* A battle in Arrakeen between House Harkonnen and House Atreides, from the claim to an agreed outcome. */

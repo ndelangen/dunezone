@@ -93,7 +93,7 @@ describe('Replay history through the native game boundary', { timeout: 30_000 },
       troops: [],
       spice: 0,
       adjustment: 0,
-      leaderId: null,
+      leaderIds: [],
       cardIds: [],
     };
     await accepted(a, { kind: 'battle-plan', battleId, plan });

@@ -4,7 +4,7 @@ import { pageStoryMeta } from '../../storybookConfig';
 import { chapterGlobals, chapterParameters, playChapter } from './chapterStory';
 
 /*
- * Chapter 10, "The private side-table", as its page serves it: a card from the hand onto the private side-table, laid out, turned and back,
+ * Chapter 10, "The private side-table", as its page serves it: House Atreides lays its Kwisatz Haderach card and counter on the private side-table and tracks troops lost,
  * with the rail beside the table giving one task at a time. Its art comes as chapter 5's does; see that story.
  */
 

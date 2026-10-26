@@ -1,16 +1,16 @@
 import { z } from 'zod';
 
-import { SPAWN_TYPES } from '../play/inventory';
+import { CAPTURE_TYPES } from '../play/inventory';
 
 /**
  * Faction Extras (#1226, settled in #1021): catalogue references a faction supplies once at setup.
  *
- * A deck or token bundle brings its member counts;
- * a direct token is one piece, so there is no amount field.
+ * Any asset a game can capture qualifies: a deck or token bundle brings its member counts;
+ * a single card or token is one piece, so there is no amount field.
  * Missing and empty both mean none.
  * The same schema serves the faction editor, the Convex save and Play's capture.
  */
-export const FACTION_EXTRA_TYPES = SPAWN_TYPES;
+export const FACTION_EXTRA_TYPES = CAPTURE_TYPES;
 
 const factionExtraSchema = z.strictObject({
   type: z.enum(FACTION_EXTRA_TYPES),

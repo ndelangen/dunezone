@@ -14,6 +14,12 @@
 }
 
 /* The centre window keeps clear of the slots either side, and on a narrow table takes the width it needs over them. */
+/* A window whose content peeks over its top edge lets it out: the body no longer clips, and the content scrolls its own parts. */
+.window[data-peek],
+.window[data-peek] .body {
+  overflow: visible;
+}
+
 .centre {
   z-index: 13;
   bottom: var(--compass-centre-bottom, 4.6rem);
@@ -22,6 +28,11 @@
   max-height: min(32rem, calc(100% - var(--play-header-height) - var(--compass-centre-bottom, 4.6rem) - 1.4rem));
   transform: translateX(-50%);
   animation: rise 200ms ease-out;
+}
+
+/* Where the centre window reaches over a slot, the one last brought up or pressed is on top. */
+.window[data-front] {
+  z-index: 14;
 }
 
 @keyframes rise {
@@ -147,7 +158,7 @@
   outline: none;
 }
 
-/* The title row: the window's glyph and name, a player's tabs, and the frame's own buttons. */
+/* The title row: the window's glyph or a chat's faction token, its name, its help, and the frame's own buttons. */
 .title {
   display: flex;
   align-items: center;
@@ -160,15 +171,19 @@
 }
 
 .name {
-  overflow: hidden;
+  display: flex;
   min-width: 0;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.group {
-  color: var(--ink-dim);
-  font-weight: 500;
+/* The kit's truncated line takes the title's type. */
+.name > p {
+  font: inherit;
+  letter-spacing: inherit;
+}
+
+/* Only the name gives way to a narrow window; the token, the help and the frame's buttons keep their size. */
+.title > :not(.name) {
+  flex-shrink: 0;
 }
 
 .actions {
@@ -177,29 +192,26 @@
   margin-left: auto;
 }
 
-.tabs {
-  display: flex;
-  flex: 1;
-  gap: 0.15rem;
-  min-width: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.tab {
-  flex: 0 0 auto;
-  padding: 0.2rem 0.5rem;
+/* A chat's faction token, which opens that faction's information. */
+.factionButton {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 0;
   border: 0;
-  border-radius: 6px;
+  border-radius: 50%;
   background: transparent;
-  color: var(--ink-dim);
   cursor: pointer;
-  font: 500 0.76rem var(--font-sans);
+  transition: transform 120ms ease;
 }
 
-.tab[aria-selected="true"] {
-  background: rgb(from var(--color-brand) r g b / 0.16);
-  color: var(--sand);
+.factionButton:hover {
+  transform: scale(1.12);
+}
+
+.factionButton:focus-visible {
+  outline: 2px solid var(--sand);
+  outline-offset: 2px;
 }
 
 .body {
@@ -220,6 +232,11 @@
 .bodyFill {
   display: grid;
   grid-template-rows: minmax(0, 1fr);
+}
+
+/* A notice above the content, such as a refused command, takes its own height; the content keeps the rest and scrolls in it. */
+.bodyFill:has(> :nth-child(2)) {
+  grid-template-rows: auto minmax(0, 1fr);
 }
 
 /* With motion reduced a window appears in place, and a slot stops at its limit without the knock. */

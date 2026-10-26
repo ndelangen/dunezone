@@ -114,6 +114,11 @@ const suppliedAssetSchema = z.object({
 export const assetSupplySchema = suppliedAssetSchema.extend({
   members: z.array(suppliedAssetSchema.extend({ count: z.number().int().positive().max(100) })),
   membersTruncated: z.boolean(),
+  /*
+   * A single card's holding deck, whose back the card wears: the answer's back fields are then that deck's.
+   * Null when the card is in no live deck; absent for every other type, and from a catalogue one deploy behind.
+   */
+  cardDeck: supplyEntrySchema.nullable().optional(),
 });
 export type AssetSupply = z.infer<typeof assetSupplySchema>;
 
@@ -213,7 +218,7 @@ export type FactionCapture = z.infer<typeof factionCaptureSchema>;
 
 /**
  * What any viewer may read of a seated faction: the starting sheet its public faction page shows, as the game captured it.
- * The Info tab then describes the faction the table is playing, even after its source is edited.
+ * Faction info then describes the faction the table is playing, even after its source is edited.
  */
 export const publicFactionSchema = HistoricalFactionPublicationObject.pick({
   leaders: true,

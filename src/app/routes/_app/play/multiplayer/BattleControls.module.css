@@ -101,74 +101,6 @@
   transform: translate(-50%, -50%);
 }
 
-.editorFields {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-sm);
-  align-items: end;
-}
-
-.supportMode {
-  grid-column: 1 / -1;
-}
-
-.faceFields {
-  display: contents;
-}
-
-.hand {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-sm);
-  align-items: start;
-  min-height: 6.5rem;
-}
-
-.cardChoice {
-  border: 1px solid transparent;
-}
-
-.cardChoice[aria-pressed="true"] {
-  border-color: var(--selection-border);
-}
-
-.preview {
-  position: relative;
-  min-width: 0;
-  min-height: 15rem;
-}
-
-.preview .wheel {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  max-width: none;
-  padding-top: 62px;
-  transform: translateX(-50%);
-  transform-origin: top center;
-}
-
-/* Stays off the ladder with the workbench's narrow step, because Norbert judged the ladder's 48rem worse on 29 September 2026 (#1321). */
-@container workbench (max-width: 44rem) {
-  .editorFields {
-    grid-template-columns: 1fr;
-  }
-
-  .supportMode {
-    grid-column: auto;
-  }
-
-  .preview .wheel {
-    transform: translateX(-50%) scale(0.72);
-  }
-}
-
-@container workbench (width < 30rem) {
-  .preview .wheel {
-    transform: translateX(-50%) scale(0.56);
-  }
-}
-
 /*
  * Parts revealed early sit on the closed wheel in the revealed wheel's own frame: 170 px square with the same zoom
  * steps (`.wheel`), cards from its card fan, the dial's number on its strength slot and the leader on its leader slot.
@@ -179,9 +111,11 @@
   height: 100%;
 }
 
+/* Its own stacking context, so leaders stacked behind the first stay in front of the closed wheel. */
 .earlyLayer {
   position: absolute;
   inset: 0;
+  isolation: isolate;
   height: 170px;
   pointer-events: none;
 }

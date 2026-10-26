@@ -245,6 +245,11 @@ Outside the kit:
     is this case). Rendered inline with no such gate, a Picker instead defers its subscription to
     its own control's open, since its trigger must stay mounted to be clickable while its options
     must not load until wanted.
+  - **List Pickers.** A Picker that keeps a list of choices (`AssetListPicker`) also reads the
+    rows it lists, by the references the caller hands it: drawing what was chosen is presenting its
+    own value, and the caller holds only those references. It is mounted only where the list shows,
+    such as an editor chapter that mounts with its tab, and its catalogue read stays inside the open
+    add popover.
   - **Domain, not kit.** A Picker knows *what* it fetches, so it can never live in the domain-free
     kit; it renders *through* the kit (a `Select`, an `AssignPopover`). It is a peer of Widgets, not
     a seventh kit category.

@@ -35,6 +35,14 @@ export function useAssetsByTypes(types: string[], options?: { initialData?: Asse
   return toLiveQueryResult(liveData, () => options?.initialData);
 }
 
+/**
+ * The rows a list of catalogue references names, in order, with null for a reference the catalogue no longer has.
+ * A picker that lists what was chosen reads it, so it subscribes only while that list is on screen.
+ */
+export function useAssetsByReference(refs: { type: string; slug: string }[]) {
+  return toLiveQueryResult(useQuery(api.assets.listByReference, { refs }));
+}
+
 export type AssetBrowsePageData = FunctionReturnType<typeof api.assets.catalogue>;
 export type AssetBrowseEntry = AssetBrowsePageData['entries'][number];
 

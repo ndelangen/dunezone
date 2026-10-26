@@ -202,5 +202,19 @@ describe('the catalogue reads Play captures from', () => {
       ['unpublished', 1, null],
     ]);
     expect(await t.query(api.playCatalogue.assetSupply, { type: 'deck', slug: 'missing' })).toBeNull();
+    /* A single card wears its holding deck's back and names that deck; a deleted holder does not count. */
+    expect(await t.query(api.playCatalogue.assetSupply, { type: 'card-treachery', slug: 'published' })).toMatchObject({
+      asset: { id: publishedId, slug: 'published' },
+      front: publishedHref('card-treachery', publishedId, 'v1'),
+      back: publishedHref('deck', deckId, 'v1'),
+      backMode: 'authored-cardback',
+      cardDeck: { id: deckId, type: 'deck', slug: 'house' },
+    });
+    await t.run(async (ctx) => ctx.db.patch('assets', deckId, { is_deleted: true }));
+    expect(await t.query(api.playCatalogue.assetSupply, { type: 'card-treachery', slug: 'published' })).toMatchObject({
+      back: null,
+      backMode: null,
+      cardDeck: null,
+    });
   });
 });

@@ -42,7 +42,7 @@ import { predictionCardInHand } from '../prediction/predictionCardInHand';
 import { TableWait } from '../TableWait';
 import { AllianceCoinsScene } from './AllianceCoins';
 import { AlliancesPanel, AllianceStrip, showsAlliances } from './Alliances';
-import { BattleControls, BattleHistory, BattleScene } from './BattleControls';
+import { BattleControls, BattleHistory, BattleModeToggle, BattleScene } from './BattleControls';
 import { BidderScene, biddingPhase } from './Bidder';
 import { OfflineConversations } from './Conversation';
 import { DraftingOverlay, DraftingPanel } from './Drafting';
@@ -71,7 +71,7 @@ import {
 } from './panelGuidance';
 import { PlaybackControls } from './PlaybackControls';
 import { publicControlsOf } from './publicControls';
-import { PlayerWindow, usePlayerWindows } from './RemovalVotes';
+import { FactionInfo, PlayerChat, usePlayerWindows } from './RemovalVotes';
 import { useResultCelebration } from './resultCelebration';
 import { GameMenu, SeatPopover } from './SeatRequests';
 import { nextPhaseStep, stageStatus, stageToolbar } from './StageHeader';
@@ -821,10 +821,14 @@ function gameGroup({ client, table, error, declare }: ControlPanelsProps, inPlay
         ? [
             {
               key: 'battle',
-              label: 'Battle',
+              label: 'Battle plan',
               topic: 'battle' as const,
               ...battleGuidance(table),
               content: withTableError(error, <BattleControls client={client} table={table} />),
+              /* The plan fills its window under the wheel, whose cards peek over the window's top edge. */
+              ...(battle && table.snapshot.battlePlan && table.snapshot.bank
+                ? { fill: true, peek: true, actions: <BattleModeToggle client={client} table={table} /> }
+                : {}),
             },
           ]
         : []),
@@ -1039,7 +1043,8 @@ function ConnectedTable({
           <CompassTableContext
             value={{
               ...playerWindows,
-              render: (seat, tab) => <PlayerWindow client={client} table={table} seat={seat} tab={tab} error={error} />,
+              chat: (seat) => <PlayerChat client={client} table={table} seat={seat} />,
+              factionInfo: (seat) => <FactionInfo client={client} table={table} seat={seat} error={error} />,
               nextPhase: nextPhaseStep(client, table),
               token: viewerToken(client, table),
               bidding: viewerBidding(client, table),

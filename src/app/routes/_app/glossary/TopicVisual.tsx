@@ -288,13 +288,13 @@ function Wheel() {
                 <WheelCard key="weapon" front={treacheryCardFixtures.maulaPistol} />,
                 <WheelCard key="defense" front={treacheryCardFixtures.shield} />,
               ]}
-              leader={
-                <div className={styles.wheelLeader}>
+              leaders={[
+                <div key="duncan" className={styles.wheelLeader}>
                   <Disc>
                     <DuncanIdaho />
                   </Disc>
-                </div>
-              }
+                </div>,
+              ]}
               motion={revealing}
             />
           )}

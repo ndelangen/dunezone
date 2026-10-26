@@ -104,6 +104,9 @@ export function useHandActions({ client, table, hand }: HandProps) {
     const entry = outgoing.get(piece.id);
     return entry && (!entry.commandId || client.awaiting(entry.commandId)) ? entry.where : undefined;
   };
+  /* A piece dragged out of the hand to the side-table, whose command has gone: it shows gone until the room answers. */
+  const left = (piece: TablePiece, commandId: string) =>
+    setOutgoing((current) => new Map(current).set(piece.id, { where: 'side', commandId }));
   const front = frontOf(table, factionId);
   const playReason = !enabled
     ? 'You cannot handle the table right now.'
@@ -133,6 +136,7 @@ export function useHandActions({ client, table, hand }: HandProps) {
     inHand,
     groups: handGroups(inHand),
     leaving,
+    left,
     playReason,
     playInFront,
     toSideTable,

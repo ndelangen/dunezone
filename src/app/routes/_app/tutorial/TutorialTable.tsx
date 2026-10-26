@@ -4,6 +4,8 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 
+import { useCurrentProfile } from '@db/profiles';
+
 import { CompassEpochContext } from '../play/compass/compassEpoch';
 import { RememberedContext } from '../play/compass/useRemembered';
 import { GameRuntimeContext } from '../play/multiplayer/gameRuntime';
@@ -32,10 +34,12 @@ type TutorialTableControl = Readonly<{
 }>;
 
 function useTutorialTable(setup: TutorialSetup, chapter: ChapterScript) {
+  /* The players at the table greet the learner by their own name when they answer a chat message. */
+  const username = useCurrentProfile().data?.username ?? undefined;
   const [table] = useState(() => {
     const origin = window.location.origin;
     const open = () => {
-      const local = new LocalTable(startAt(setup, chapter.checkpoint, origin));
+      const local = new LocalTable(startAt(setup, chapter.checkpoint, origin, chapter));
       local.open();
       return local;
     };
@@ -66,11 +70,15 @@ function useTutorialTable(setup: TutorialSetup, chapter: ChapterScript) {
     };
     return { runtime, control, holder };
   });
+  useEffect(() => table.runtime.greet(username), [table, username]);
   /* The table keeps time only while the chapter is open, so leaving it stops the table's timers. */
   useEffect(() => {
-    const { holder } = table;
+    const { holder, runtime } = table;
     holder.current.open();
-    return () => holder.current.dispose();
+    return () => {
+      holder.current.dispose();
+      runtime.dispose();
+    };
   }, [table]);
   return table;
 }

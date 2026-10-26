@@ -5,7 +5,7 @@ import type { TableView } from '../../../../widgets/tabletop/playView';
 import { PlayerToken } from './PlayerToken';
 import { SHORTCUTS } from './shortcuts';
 import type { Command, TableCommand } from './shortcuts';
-import type { PlayerTab, TableWindow } from './windows';
+import type { TableWindow } from './windows';
 
 /** One line under the search field: a window to open or a command to run. */
 export type Suggestion = Readonly<{
@@ -88,8 +88,8 @@ export function rankSuggestions(all: readonly Candidate[], query: string): Sugge
 }
 
 export type SuggestionActions = Readonly<{
-  /** Opens a window, on a player's tab where one is asked for. */
-  open: (key: string, tab?: PlayerTab) => void;
+  /** Opens a window. */
+  open: (key: string) => void;
   /** Steps the table to the next phase; null while the table refuses it, as the header's button is then disabled. */
   nextPhase: (() => void) | null | undefined;
   /** Moves the camera, as the dial does. */

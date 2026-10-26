@@ -1,0 +1,97 @@
+.ledger {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 0.4rem;
+  height: 100%;
+  container-type: inline-size;
+}
+
+/* The head stays put; the sheet under it scrolls when the slot is short. */
+.sheet {
+  display: grid;
+  align-content: start;
+  gap: 0.4rem;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 4.6rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--ink-dim);
+  font: 600 0.68rem var(--font-sans);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* The pieces of a row, in the player's own order, which a drag along the row changes. */
+.tiles {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+/* Room above and below for a picked tile's lift, its tick and its eye. */
+.strip {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+  padding: 0.75rem 0.5rem 0.55rem 0.4rem;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+/* The leader's eye sits on the row's label: showing your leader is one choice, whichever leader it is. */
+.label .labelReveal {
+  position: static;
+}
+
+.empty {
+  color: var(--ink-dim);
+  font-size: 0.78rem;
+}
+
+.dial {
+  display: grid;
+  align-content: start;
+  gap: 0.35rem;
+  padding: 0.45rem 0.7rem 0.55rem;
+  position: relative;
+}
+
+/* The dial's eye sits at its top corner, as each tile's eye sits on the tile's, inside the sheet's scroll. */
+.dial .dialReveal {
+  top: -10px;
+  right: 0.6rem;
+  bottom: auto;
+  left: auto;
+}
+
+.spiceIcon {
+  color: var(--ui-brass);
+}
+
+.quick {
+  padding: 0.2rem 0.55rem;
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  color: var(--sand);
+  font: 600 0.72rem var(--font-sans);
+}
+
+.quick:disabled {
+  color: var(--ink-dim);
+  opacity: 0.5;
+}

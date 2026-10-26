@@ -10,7 +10,7 @@ import { commandsOf, SHORTCUTS, useShortcutKeys } from './shortcuts';
 import type { Shortcut } from './shortcuts';
 import { candidatesOf, rankSuggestions } from './suggestions';
 import { useCompassKeys } from './useCompassKeys';
-import type { PlayerTab, TableWindow } from './windows';
+import type { TableWindow } from './windows';
 
 /*
  * The compass itself: where it points, what was typed into its search, which suggestion the cursor is on, and what
@@ -26,7 +26,7 @@ type CompassInputs = Readonly<{
   table: CompassTable | null;
   onView: (view: TableView) => void;
   /** Opens a window over the table. */
-  onShow: (key: string, tab?: PlayerTab) => void;
+  onShow: (key: string, seat?: string) => void;
 }>;
 
 export function useCompass({ open, onOpen, inert, windows, table, onView, onShow }: CompassInputs) {
@@ -44,9 +44,9 @@ export function useCompass({ open, onOpen, inert, windows, table, onView, onShow
   };
   /* The hold is let go by the keys alone: Space's keyup ends it, so closing never needs to touch it. */
   const close = () => onOpen(false);
-  const show = (key: string, tab?: PlayerTab) => {
+  const show = (key: string, seat?: string) => {
     close();
-    onShow(key, tab);
+    onShow(key, seat);
   };
   const tiles = tilesOf(windows, table);
   const commands = commandsOf(table);
@@ -81,14 +81,14 @@ export function useCompass({ open, onOpen, inert, windows, table, onView, onShow
       setRefused((count) => count + 1);
       return;
     }
-    show(tile.window.key, tile.tab);
+    show(tile.window.key);
   };
   /* A letter opens its arm's window, as confirming the tile would, or runs its command; one the table lacks is left to the table. */
   const shortcut = (pressed: Shortcut) => {
     if (pressed in tiles) {
       const tile = tiles[pressed as keyof typeof tiles];
       if (tile.window && !tile.disabled) {
-        onShow(tile.window.key, tile.tab);
+        onShow(tile.window.key);
         return true;
       }
       return false;

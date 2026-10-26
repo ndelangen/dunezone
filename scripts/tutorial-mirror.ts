@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { publishedPath } from '../src/shared/asset-publishing/publicationTargets';
@@ -16,8 +16,15 @@ import { SPICE_TOKEN_HREF } from '../src/shared/play/spiceToken';
 const ROOT = path.join(import.meta.dirname, '..');
 const site = process.env.TUTORIAL_SITE ?? 'https://dune.zone';
 const catalogue = await readFile(path.join(ROOT, 'src/app/routes/_app/tutorial/setup/catalogue.json'), 'utf8');
+/* A chapter's own pieces, such as the Kwisatz Haderach tracker, name their published images in the chapter's script. */
+const SCRIPTS = path.join(ROOT, 'src/app/routes/_app/tutorial/chapterScripts');
+const scripts = await Promise.all(
+  (await readdir(SCRIPTS))
+    .filter((file) => file.endsWith('.ts'))
+    .map((file) => readFile(path.join(SCRIPTS, file), 'utf8'))
+);
 const paths = new Set(
-  [...catalogue.matchAll(/(?:https?:\/\/[^/"]+)?(\/published\/[^"?]+)/g)]
+  [...[catalogue, ...scripts].join('\n').matchAll(/(?:https?:\/\/[^/"']+)?(\/published\/[^"'?]+)/g)]
     .map((match) => match[1]!)
     .filter((address) => !address.startsWith('/published/boards/'))
     .concat(SPICE_TOKEN_HREF)

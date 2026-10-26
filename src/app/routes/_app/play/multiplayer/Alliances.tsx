@@ -25,7 +25,7 @@ export function showsAlliances(stage: string | undefined) {
   return stage === 'play' || stage === 'finished';
 }
 
-/** A player's alliance on their Info tab, with what the viewer can do about it: offer, accept or decline, withdraw, or break an alliance. */
+/** A player's alliance in their Faction info, with what the viewer can do about it: offer, accept or decline, withdraw, or break an alliance. */
 export function PlayerAlliance({ client, table, seat }: Props & Readonly<{ seat: string }>) {
   const factionId = seatFaction(table, seat);
   if (!factionId || !showsAlliances(table.snapshot.stage)) {
