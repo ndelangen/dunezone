@@ -1,4 +1,4 @@
-import { UnstyledButton } from '@mantine/core';
+import { Tooltip, UnstyledButton } from '@mantine/core';
 import type { BattleFace } from '@shared/play/battle';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { Fragment } from 'react';
@@ -180,14 +180,15 @@ function DialRows(props: BattlePlanViewProps & { disabled: boolean }) {
         <DialRow
           label={<TopicIcon topic="spice" size={18} className={styles.spiceIcon} />}
           sub={
-            <UnstyledButton
-              className={styles.quick}
-              disabled={disabled || plan.spice === fullSupport(plan, balance)}
-              onClick={() => onEdit({ spice: fullSupport(plan, balance) })}
-              title="Support every troop, as far as your spice goes"
-            >
-              All
-            </UnstyledButton>
+            <Tooltip label="Support every troop, as far as your spice goes" withArrow>
+              <UnstyledButton
+                className={styles.quick}
+                disabled={disabled || plan.spice === fullSupport(plan, balance)}
+                onClick={() => onEdit({ spice: fullSupport(plan, balance) })}
+              >
+                All
+              </UnstyledButton>
+            </Tooltip>
           }
           name="Spice"
           value={plan.spice}

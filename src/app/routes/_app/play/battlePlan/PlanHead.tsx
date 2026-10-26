@@ -1,4 +1,4 @@
-import { UnstyledButton } from '@mantine/core';
+import { Tooltip, UnstyledButton } from '@mantine/core';
 import type { TablePiece } from '@shared/play/model';
 
 import { useMotionAllowed } from '@app/styles/motion';
@@ -26,15 +26,16 @@ export function PlanHead({ view }: { view: BattlePlanViewProps }) {
   const piece = (entry: TablePiece) => {
     const isLeader = plan.leaderIds.includes(entry.id);
     return (
-      <UnstyledButton
-        className={styles.piece}
-        aria-label={`Take ${pieceName(entry)} back into your hand`}
-        title={pieceName(entry)}
-        disabled={isLeader ? locks.leaderLocked : locks.cardLocked(entry.id)}
-        onClick={() => view.onEdit(isLeader ? toggleLeader(plan, entry.id) : toggleCard(plan, entry.id))}
-      >
-        <PieceImage piece={entry} />
-      </UnstyledButton>
+      <Tooltip label={pieceName(entry)} withArrow>
+        <UnstyledButton
+          className={styles.piece}
+          aria-label={`Take ${pieceName(entry)} back into your hand`}
+          disabled={isLeader ? locks.leaderLocked : locks.cardLocked(entry.id)}
+          onClick={() => view.onEdit(isLeader ? toggleLeader(plan, entry.id) : toggleCard(plan, entry.id))}
+        >
+          <PieceImage piece={entry} />
+        </UnstyledButton>
+      </Tooltip>
     );
   };
   return (

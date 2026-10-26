@@ -411,21 +411,22 @@ export function PieceTile({
       data-selected={selected || undefined}
       data-leader={leader || undefined}
     >
-      <UnstyledButton
-        className={styles.tileButton}
-        aria-pressed={selected}
-        aria-label={`${selected ? 'Take' : 'Put'} ${name} ${selected ? 'out of' : 'into'} the plan`}
-        title={name}
-        disabled={disabled}
-        onClick={onToggle}
-      >
-        <PieceImage piece={piece} width={size} height={leader ? size : Math.round(size * 1.4)} />
-        {selected ? (
-          <span className={styles.tileCheck} aria-hidden="true">
-            <Check size={11} strokeWidth={3} />
-          </span>
-        ) : null}
-      </UnstyledButton>
+      <Tooltip label={name} withArrow>
+        <UnstyledButton
+          className={styles.tileButton}
+          aria-pressed={selected}
+          aria-label={`${selected ? 'Take' : 'Put'} ${name} ${selected ? 'out of' : 'into'} the plan`}
+          disabled={disabled}
+          onClick={onToggle}
+        >
+          <PieceImage piece={piece} width={size} height={leader ? size : Math.round(size * 1.4)} />
+          {selected ? (
+            <span className={styles.tileCheck} aria-hidden="true">
+              <Check size={11} strokeWidth={3} />
+            </span>
+          ) : null}
+        </UnstyledButton>
+      </Tooltip>
       {selected && reveal ? reveal : null}
     </div>
   );
@@ -437,15 +438,15 @@ export function OpponentLine({ opponent }: { opponent: Opponent | null }) {
     <div className={styles.battleLine}>
       {opponent ? (
         <span className={styles.opponent} data-ready={opponent.ready || undefined}>
-          <span
-            className={styles.readyDot}
-            aria-label={opponent.ready ? 'ready' : 'preparing'}
-            title={opponent.ready ? `${opponent.name} is ready` : `${opponent.name} is still planning`}
-            role="img"
-          />
-          <span className={styles.opponentName} title={`against ${opponent.name}`}>
-            against {opponent.name}
-          </span>
+          <Tooltip
+            label={opponent.ready ? `${opponent.name} is ready` : `${opponent.name} is still planning`}
+            withArrow
+          >
+            <span className={styles.readyDot} aria-label={opponent.ready ? 'ready' : 'preparing'} role="img" />
+          </Tooltip>
+          <Tooltip label={`against ${opponent.name}`} withArrow>
+            <span className={styles.opponentName}>against {opponent.name}</span>
+          </Tooltip>
         </span>
       ) : (
         <span className={styles.opponent}>waiting for a second side</span>
@@ -474,30 +475,33 @@ export function ReadyButton({
   /* The battle line already names the opponent and shows their readiness, so the button stays short enough for a slot. */
   const waiting = ready && opponent && !opponent.ready ? 'Waiting' : null;
   return (
-    <Button
-      className={styles.ready}
-      data-ready={ready || undefined}
-      data-bump={bump}
-      fullWidth={fullWidth}
-      variant={ready ? 'default' : 'filled'}
-      disabled={!canAct}
-      onClick={() => onReady(!ready)}
-      /* One name per action, however the label reads: Ready for battle, or Undo Ready. */
-      aria-label={ready ? 'Undo Ready' : 'Ready for battle'}
-      title={
-        ready ? `${waiting && opponent ? `Waiting for ${opponent.name}. ` : ''}Undo to reopen the plan` : undefined
-      }
+    <Tooltip
+      label={`${waiting && opponent ? `Waiting for ${opponent.name}. ` : ''}Undo to reopen the plan`}
+      disabled={!ready}
+      withArrow
     >
-      {ready ? (
-        /* The state on top and Undo under it, so the label never runs wider than its longest word. */
-        <span className={styles.readyStack}>
-          <span>{waiting ?? (stage === 'countdown' ? 'Revealing…' : 'Ready')}</span>
-          <small>Undo</small>
-        </span>
-      ) : (
-        (children ?? 'Ready for battle')
-      )}
-    </Button>
+      <Button
+        className={styles.ready}
+        data-ready={ready || undefined}
+        data-bump={bump}
+        fullWidth={fullWidth}
+        variant={ready ? 'default' : 'filled'}
+        disabled={!canAct}
+        onClick={() => onReady(!ready)}
+        /* One name per action, however the label reads: Ready for battle, or Undo Ready. */
+        aria-label={ready ? 'Undo Ready' : 'Ready for battle'}
+      >
+        {ready ? (
+          /* The state on top and Undo under it, so the label never runs wider than its longest word. */
+          <span className={styles.readyStack}>
+            <span>{waiting ?? (stage === 'countdown' ? 'Revealing…' : 'Ready')}</span>
+            <small>Undo</small>
+          </span>
+        ) : (
+          (children ?? 'Ready for battle')
+        )}
+      </Button>
+    </Tooltip>
   );
 }
 
