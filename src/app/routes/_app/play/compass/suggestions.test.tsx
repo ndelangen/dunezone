@@ -131,3 +131,26 @@ test('Camera: top-down carries U, unless U flips the viewer’s token up just no
   expect(topDown(null)).toBe('U');
   expect(topDown({ faceUp: false, flip: () => {}, inBidding: true })).toBeUndefined();
 });
+
+test('with nothing typed, Pass leads beside the raise while the bidder points at the viewer, and not while it does not', () => {
+  const token = { faceUp: true, flip: () => {}, inBidding: true };
+  const bidding = { raise: () => {}, lower: null, pass: () => {} };
+  const suggested = (turn: Bidding) => rankSuggestions(candidatesOf([], actions(token, undefined, turn)), '');
+  expect(
+    suggested(bidding)
+      .map((entry) => entry.label)
+      .slice(0, 2)
+  ).toEqual(['Pass', 'Up the bid by 1']);
+  /* Off its turn, Pass turns the token face down to sit the bidding out: no reason to lead. */
+  const weight = (turn: Bidding) =>
+    candidatesOf([], actions(token, undefined, turn)).find((entry) => entry.key === 'cmd:pass')?.weight;
+  expect(weight(null)).toBe(0);
+  expect(weight(bidding)).toBe(6);
+});
+
+test('Next phase is offered only while the table takes it', () => {
+  const next = (nextPhase: (() => void) | null) =>
+    candidatesOf([], { ...actions(null), nextPhase }).some((entry) => entry.key === 'cmd:next');
+  expect(next(null)).toBe(false);
+  expect(next(() => {})).toBe(true);
+});

@@ -4,7 +4,7 @@ import { Eyebrow } from '@ui/content/Eyebrow';
 import { KeyedText } from '@ui/content/Kbd';
 import { RotateCcw } from 'lucide-react';
 import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
-import type { CSSProperties, ReactNode } from 'react';
+import type { CSSProperties, MouseEvent, ReactNode } from 'react';
 import { Vector3 } from 'three';
 import type { Camera, Vector3Tuple } from 'three';
 
@@ -316,7 +316,12 @@ export function TutorialGuide({
     };
   }, [taskId, run, current]);
 
-  const reset = () => {
+  /*
+   * Reset lets go of the focus a click gave it: a control beside the table keeps Space to press itself, so Space would
+   * reset the chapter again instead of opening the compass the first task asks for.
+   */
+  const reset = (event: MouseEvent<HTMLButtonElement>) => {
+    event.currentTarget.blur();
     onReset();
     setCurrent(0);
     setRun((count) => count + 1);
