@@ -233,26 +233,31 @@ describe('no-title-tooltip', { timeout: TEST_BUDGET_MS }, () => {
     const output = await lintDiagnostics(
       'probe.tsx',
       `import { Button, Menu } from '@mantine/core';
+import * as Mantine from '@mantine/core';
 import { Link } from '@tanstack/react-router';
 export const probe = [
   <span title="Ready" />,
   <Button title="Draft" />,
   <Menu.Item title="Leave" />,
+  <Mantine.Badge title="New" />,
   <Link to="/" title="Home" />,
 ];
 `
     );
-    expect(reports(output)).toBe(4);
+    expect(reports(output)).toBe(5);
   });
 
   /* A Mantine heading, a kit prop, an iframe's name and the SVG title element are not native tooltips. */
   test('leaves headings, kit props, iframes and the SVG title element alone', async () => {
     const output = await lintDiagnostics(
       'probe.tsx',
-      `import { Alert, Timeline } from '@mantine/core';
+      `import { Alert, Alert as Warning, Timeline } from '@mantine/core';
+import * as Mantine from '@mantine/core';
 import { Card } from '@ui/surface/Card';
 export const probe = [
   <Alert title="Saved" />,
+  <Warning title="Saved" />,
+  <Mantine.Modal title="Leave the table?" />,
   <Timeline.Item title="Turn 2" />,
   <Card title="Members" />,
   <iframe title="Video" src="about:blank" />,

@@ -1,6 +1,7 @@
 import { Group, Stack, Text, Tooltip, UnstyledButton } from '@mantine/core';
 import { BID_COUNTDOWN_MS, BID_WARNING_MS } from '@shared/play/bidding';
 import type { BiddingState } from '@shared/play/bidding';
+import { TooltipTarget } from '@ui/control/TooltipTarget';
 import { useEffect, useRef } from 'react';
 
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
@@ -48,15 +49,17 @@ function StartAt({
           const sittingOut = !eligible.includes(factionId);
           return (
             <Tooltip key={factionId} label={sittingOut ? `${name} is sitting out: its token is face down` : name}>
-              <UnstyledButton
-                className={styles.pick}
-                aria-label={`Start bidding at ${name}`}
-                data-sitting-out={sittingOut || undefined}
-                disabled={!table.canInteract || !table.snapshot.bank || sittingOut}
-                onClick={() => client.command({ kind: 'bid-start', factionId })}
-              >
-                {artwork ? <FactionToken logo={artwork.logo} background={artwork.background} /> : name.slice(0, 2)}
-              </UnstyledButton>
+              <TooltipTarget>
+                <UnstyledButton
+                  className={styles.pick}
+                  aria-label={`Start bidding at ${name}`}
+                  data-sitting-out={sittingOut || undefined}
+                  disabled={!table.canInteract || !table.snapshot.bank || sittingOut}
+                  onClick={() => client.command({ kind: 'bid-start', factionId })}
+                >
+                  {artwork ? <FactionToken logo={artwork.logo} background={artwork.background} /> : name.slice(0, 2)}
+                </UnstyledButton>
+              </TooltipTarget>
             </Tooltip>
           );
         })}
@@ -174,13 +177,8 @@ export function OpenRound({
       <div className={showClock ? styles.clockWrap : undefined}>
         {showClock && <ClockRing deadline={bidding.deadline} table={table} now={now} />}
         <Tooltip label={label}>
-          <UnstyledButton
-            className={styles.disc}
-            data-bidder-turn={turn ?? undefined}
-            data-mine={mine || undefined}
-            aria-label={label}
-            disabled={!mine}
-            onClick={() => client.command({ kind: 'bid-raise', round })}
+          {/* The right-click passes on the target, so it never reaches the table even while the disc is disabled. */}
+          <TooltipTarget
             onContextMenu={(event) => {
               event.preventDefault();
               event.stopPropagation();
@@ -189,12 +187,21 @@ export function OpenRound({
               }
             }}
           >
-            {bid ? (
-              <HighBid bid={bid} table={table} />
-            ) : (
-              <span className={styles.prompt}>{mine ? 'Bid' : 'No bid'}</span>
-            )}
-          </UnstyledButton>
+            <UnstyledButton
+              className={styles.disc}
+              data-bidder-turn={turn ?? undefined}
+              data-mine={mine || undefined}
+              aria-label={label}
+              disabled={!mine}
+              onClick={() => client.command({ kind: 'bid-raise', round })}
+            >
+              {bid ? (
+                <HighBid bid={bid} table={table} />
+              ) : (
+                <span className={styles.prompt}>{mine ? 'Bid' : 'No bid'}</span>
+              )}
+            </UnstyledButton>
+          </TooltipTarget>
         </Tooltip>
       </div>
       {!showClock ? null : (

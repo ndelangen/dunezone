@@ -20,6 +20,7 @@ import { useReducer, useRef } from 'react';
 import { matchAsset, searchTerms } from './assetSearch';
 import styles from './AssetSelect.module.css';
 import { IconAction } from './IconAction';
+import { TooltipTarget } from './TooltipTarget';
 
 interface AssetSelectOption {
   value: string;
@@ -285,25 +286,27 @@ export function AssetSelect({
                           ) : null}
                           {groups.size > 1 ? (
                             <Tooltip label={activeCollection || 'Filter by collection'}>
-                              <ActionIcon
-                                aria-label={`Filter ${props['aria-label'] ?? 'artwork'} collections`}
-                                aria-pressed={Boolean(activeCollection) || choosingCollection}
-                                variant="subtle"
-                                color="gray"
-                                className={styles.filterButton}
-                                disabled={blocked}
-                                onMouseDown={(event) => event.preventDefault()}
-                                onClick={() => {
-                                  dispatch({ type: 'mode', value: choosingCollection ? 'artwork' : 'collections' });
-                                  combobox.resetSelectedOption();
-                                  combobox.openDropdown();
-                                  combobox.focusTarget();
-                                  viewport.current?.scrollTo({ top: 0 });
-                                }}
-                              >
-                                <SlidersHorizontal size={18} aria-hidden />
-                                {activeCollection ? <span className={styles.activeDot} aria-hidden /> : null}
-                              </ActionIcon>
+                              <TooltipTarget>
+                                <ActionIcon
+                                  aria-label={`Filter ${props['aria-label'] ?? 'artwork'} collections`}
+                                  aria-pressed={Boolean(activeCollection) || choosingCollection}
+                                  variant="subtle"
+                                  color="gray"
+                                  className={styles.filterButton}
+                                  disabled={blocked}
+                                  onMouseDown={(event) => event.preventDefault()}
+                                  onClick={() => {
+                                    dispatch({ type: 'mode', value: choosingCollection ? 'artwork' : 'collections' });
+                                    combobox.resetSelectedOption();
+                                    combobox.openDropdown();
+                                    combobox.focusTarget();
+                                    viewport.current?.scrollTo({ top: 0 });
+                                  }}
+                                >
+                                  <SlidersHorizontal size={18} aria-hidden />
+                                  {activeCollection ? <span className={styles.activeDot} aria-hidden /> : null}
+                                </ActionIcon>
+                              </TooltipTarget>
                             </Tooltip>
                           ) : (
                             <Combobox.Chevron />

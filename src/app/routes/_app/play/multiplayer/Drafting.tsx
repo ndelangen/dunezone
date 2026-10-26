@@ -29,6 +29,7 @@ import type { SeatRequest } from '@shared/play/participation';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { FormError } from '@ui/block/FormError';
 import { ProfileLink } from '@ui/content/ProfileLink';
+import { TooltipTarget } from '@ui/control/TooltipTarget';
 import clsx from 'clsx';
 import { Check } from 'lucide-react';
 import { useState } from 'react';
@@ -211,13 +212,15 @@ function RequestRow({ client, table, request }: Props & Readonly<{ request: Seat
                 Waiting for approval
               </Text>
               <Tooltip label="Withdraw">
-                <CloseButton
-                  size="sm"
-                  radius="xl"
-                  aria-label="Withdraw your seat request"
-                  disabled={seatLocked(table)}
-                  onClick={() => client.command({ kind: 'seat-withdraw' })}
-                />
+                <TooltipTarget>
+                  <CloseButton
+                    size="sm"
+                    radius="xl"
+                    aria-label="Withdraw your seat request"
+                    disabled={seatLocked(table)}
+                    onClick={() => client.command({ kind: 'seat-withdraw' })}
+                  />
+                </TooltipTarget>
               </Tooltip>
             </>
           ) : (

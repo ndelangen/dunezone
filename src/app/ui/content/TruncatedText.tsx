@@ -34,7 +34,15 @@ export function TruncatedText({ children, id, miw = 0, ...text }: TruncatedTextP
   }, [children]);
 
   return (
-    <Tooltip label={children} disabled={!isOverflowing} multiline maw={360} position="top-start" withArrow>
+    <Tooltip
+      label={children}
+      disabled={!isOverflowing}
+      multiline
+      maw={360}
+      position="top-start"
+      withArrow
+      events={{ hover: true, focus: true, touch: true }}
+    >
       <Text ref={ref} id={id} {...text} truncate miw={miw} tabIndex={isOverflowing ? 0 : undefined}>
         {children}
       </Text>

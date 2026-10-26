@@ -409,7 +409,8 @@ const noTitleTooltipRule: Rule = {
     },
   },
   create(context) {
-    const forwarding = new Set<string>();
+    /* Each local name bound to a forwarding library, mapped to the name the library exports; a namespace import maps to `*`. */
+    const forwarding = new Map<string, string>();
     const nameOf = (node: LintNode): string | undefined => {
       if (node.type === 'JSXIdentifier') {
         return node.name;
@@ -426,7 +427,13 @@ const noTitleTooltipRule: Rule = {
           return;
         }
         for (const specifier of node.specifiers) {
-          forwarding.add(specifier.local.name);
+          const imported =
+            specifier.type === 'ImportSpecifier' && specifier.imported.type === 'Identifier'
+              ? specifier.imported.name
+              : specifier.type === 'ImportNamespaceSpecifier'
+                ? '*'
+                : specifier.local.name;
+          forwarding.set(specifier.local.name, imported);
         }
       },
       JSXAttribute(node) {
@@ -441,8 +448,12 @@ const noTitleTooltipRule: Rule = {
         if (name === undefined || name === 'iframe') {
           return;
         }
-        const intrinsic = /^[a-z]/.test(name) && !name.includes('.');
-        const passedThrough = forwarding.has(name.split('.')[0]) && !MANTINE_HEADINGS.has(name);
+        const [local, ...members] = name.split('.');
+        const imported = forwarding.get(local);
+        /* The library's own name for the component, so an alias or a namespace import meets the heading list as the library spells it. */
+        const libraryName = imported === '*' ? members.join('.') : [imported, ...members].join('.');
+        const intrinsic = /^[a-z]/.test(name) && members.length === 0;
+        const passedThrough = imported !== undefined && !MANTINE_HEADINGS.has(libraryName);
         if (intrinsic || passedThrough) {
           context.report({ node, messageId: 'titleTooltip' });
         }
