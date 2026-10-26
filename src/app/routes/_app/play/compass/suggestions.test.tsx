@@ -1,5 +1,6 @@
 import { expect, test } from 'vite-plus/test';
 
+import { commandsOf } from './shortcuts';
 import { candidatesOf, fuzzy, rankSuggestions } from './suggestions';
 
 const candidate = (label: string, weight = 0) => ({
@@ -39,22 +40,49 @@ test('with nothing typed the heaviest lead, six at most; typed, the best eight m
   expect(rankSuggestions(all, 'zz')).toEqual([]);
 });
 
-const actions = (token: { faceUp: boolean; flip: () => void } | null, close = () => {}) => ({
+type Token = { faceUp: boolean; flip: () => void } | null;
+type Bidding = { raise: () => void; lower: (() => void) | null; pass: () => void } | null;
+
+const actions = (token: Token, close = () => {}, bidding: Bidding = null) => ({
   open: () => {},
   nextPhase: null,
   token,
+  commands: commandsOf({ token, bidding }),
+  shortcuts: {},
   view: () => {},
   close,
 });
 
-test('the token commands appear only with a token, and Pass only while it shows its face', () => {
-  const labels = (token: { faceUp: boolean; flip: () => void } | null) =>
-    candidatesOf([], actions(token))
-      .filter((entry) => entry.key.startsWith('cmd:token:'))
-      .map((entry) => entry.label);
-  expect(labels(null)).toEqual([]);
-  expect(labels({ faceUp: true, flip: () => {} })).toEqual(['Flip faction token', 'Pass']);
-  expect(labels({ faceUp: false, flip: () => {} })).toEqual(['Flip faction token']);
+const commandLabels = (token: Token, bidding: Bidding = null) =>
+  candidatesOf([], actions(token, undefined, bidding))
+    .filter((entry) => entry.key.startsWith('cmd:') && !entry.key.startsWith('cmd:camera') && entry.key !== 'cmd:next')
+    .map((entry) => `${entry.label}${entry.shortcut ? ` (${entry.shortcut})` : ''}`);
+
+test('the token commands appear only with a token: Pass while it shows its face, Flip faction token up while it does not', () => {
+  expect(commandLabels(null)).toEqual([]);
+  expect(commandLabels({ faceUp: true, flip: () => {} })).toEqual(['Pass (P)', 'Flip faction token']);
+  expect(commandLabels({ faceUp: false, flip: () => {} })).toEqual(['Flip faction token up (U)', 'Flip faction token']);
+});
+
+test('while the bidder points at the viewer, Pass hands it on, and the bid goes up, or down after a raise', () => {
+  const bidding = { raise: () => {}, lower: null, pass: () => {} };
+  expect(commandLabels({ faceUp: true, flip: () => {} }, bidding)).toEqual([
+    'Pass (P)',
+    'Up the bid by 1 (I)',
+    'Flip faction token',
+  ]);
+  expect(commandLabels(null, { ...bidding, lower: () => {} })).toEqual([
+    'Pass (P)',
+    'Up the bid by 1 (I)',
+    'Lower the bid (O)',
+  ]);
+  const calls: string[] = [];
+  const all = candidatesOf(
+    [],
+    actions(null, () => calls.push('close'), { ...bidding, pass: () => calls.push('pass') })
+  );
+  rankSuggestions(all, 'pass')[0]!.run();
+  expect(calls).toEqual(['close', 'pass']);
 });
 
 test('Pass closes the compass and turns the token over', () => {
@@ -65,6 +93,19 @@ test('Pass closes the compass and turns the token over', () => {
   );
   rankSuggestions(all, 'pass')[0]!.run();
   expect(calls).toEqual(['close', 'flip']);
+});
+
+test('a window an arm of the compass opens carries its letter', () => {
+  const hand = {
+    key: 'hand',
+    label: 'Hand & spice',
+    group: 'Hand',
+    topic: 'hand',
+    content: null,
+    layout: 'stack',
+  } as const;
+  const [entry] = candidatesOf([hand], { ...actions(null), shortcuts: { hand: 'H' } });
+  expect(entry).toMatchObject({ label: 'Hand & spice', shortcut: 'H' });
 });
 
 test('"top-down" finds the camera command, which closes the compass and turns the camera straight down', () => {

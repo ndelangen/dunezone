@@ -3,10 +3,20 @@ import type { ReactNode } from 'react';
 
 import type { TableView } from '../../../../widgets/tabletop/playView';
 import { PlayerToken } from './PlayerToken';
+import { SHORTCUTS } from './shortcuts';
+import type { Command, TableCommand } from './shortcuts';
 import type { PlayerTab, TableWindow } from './windows';
 
 /** One line under the search field: a window to open or a command to run. */
-export type Suggestion = Readonly<{ key: string; label: string; hint: string; icon: ReactNode; run: () => void }>;
+export type Suggestion = Readonly<{
+  key: string;
+  label: string;
+  hint: string;
+  icon: ReactNode;
+  run: () => void;
+  /** The letter that does the same with the compass shut. */
+  shortcut?: string;
+}>;
 
 type Candidate = Suggestion & Readonly<{ text: string; weight: number }>;
 
@@ -83,45 +93,66 @@ export type SuggestionActions = Readonly<{
   view: (view: TableView) => void;
   /** The viewer's own faction token on the table, when they have one. */
   token: Readonly<{ faceUp: boolean; flip: () => void }> | null | undefined;
+  /** The table's lettered commands, each null while the table does not offer it. */
+  commands: Readonly<Record<Command, TableCommand | null>>;
+  /** The letter of each window an arm of the compass opens, by the window's key. */
+  shortcuts: Readonly<Record<string, string>>;
   /** Closes the compass before a command runs. */
   close: () => void;
 }>;
 
-/* Turning the token over, and passing with it: facing it down says the faction sits out, so a token already down has no Pass. */
-function tokenCandidates(actions: SuggestionActions): Candidate[] {
-  const token = actions.token;
-  if (!token) {
-    return [];
-  }
-  const run = () => {
-    actions.close();
-    token.flip();
-  };
+/* What each lettered command is called, and the words it is found by. */
+const COMMANDS: Readonly<Record<Command, Readonly<{ label: string; text: string }>>> = {
+  pass: { label: 'Pass', text: 'pass' },
+  raise: { label: 'Up the bid by 1', text: 'up raise the bid by 1 one' },
+  lower: { label: 'Lower the bid', text: 'lower the bid down' },
+  faceUp: { label: 'Flip faction token up', text: 'flip faction token up face up' },
+};
+
+/* Turning the token over, and the lettered commands the table offers now: a bid while the bidder points at the viewer. */
+function commandCandidates(actions: SuggestionActions): Candidate[] {
   const icon = <TopicIcon topic="flip" size={18} />;
-  return [
-    {
-      key: 'cmd:token:flip',
-      label: 'Flip faction token',
-      hint: 'Command',
-      icon,
-      run,
-      text: 'flip faction token',
-      weight: 0,
-    },
-    ...(token.faceUp
-      ? [
-          {
-            key: 'cmd:token:pass',
-            label: 'Pass',
-            hint: 'Command: your token face down',
-            icon,
-            run,
-            text: 'pass',
-            weight: 0,
+  const token = actions.token;
+  const flip: Candidate[] = token
+    ? [
+        {
+          key: 'cmd:token:flip',
+          label: 'Flip faction token',
+          hint: 'Command',
+          icon,
+          run: () => {
+            actions.close();
+            token.flip();
           },
-        ]
-      : []),
-  ];
+          text: 'flip faction token',
+          weight: 0,
+        },
+      ]
+    : [];
+  const lettered = (Object.keys(COMMANDS) as Command[]).flatMap((command): Candidate[] => {
+    const offered = actions.commands[command];
+    if (!offered) {
+      return [];
+    }
+    const bid = command === 'raise' || command === 'lower';
+    return [
+      {
+        key: `cmd:${command}`,
+        label: COMMANDS[command].label,
+        hint: offered.hint,
+        icon: bid ? <TopicIcon topic="bidding" size={18} /> : icon,
+        run: () => {
+          actions.close();
+          offered.run();
+        },
+        shortcut: SHORTCUTS[command],
+        text: COMMANDS[command].text,
+        /* A bid waiting on the viewer leads the suggestions. */
+        weight: bid ? 6 : 0,
+      },
+    ];
+  });
+  return [...lettered, ...flip];
 }
 
 /** Every window and command the search can reach. */
@@ -137,6 +168,7 @@ export function candidatesOf(windows: readonly TableWindow[], actions: Suggestio
         <TopicIcon topic={entry.topic} size={18} />
       ),
       run: () => actions.open(entry.key),
+      shortcut: actions.shortcuts[entry.key],
       text: `${entry.label} ${entry.player?.factionName ?? ''} ${entry.group}`,
       weight: weightOf(entry),
     })),
@@ -152,7 +184,7 @@ export function candidatesOf(windows: readonly TableWindow[], actions: Suggestio
       text: 'next phase',
       weight: 4,
     },
-    ...tokenCandidates(actions),
+    ...commandCandidates(actions),
     ...(Object.keys(CAMERA_VIEWS) as TableView[]).map((view): Candidate => ({
       key: `cmd:camera:${view}`,
       label: `Camera: ${CAMERA_VIEWS[view]}`,

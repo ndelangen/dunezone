@@ -25,6 +25,8 @@ export type CompassTable = Readonly<{
   nextPhase: (() => void) | null;
   /** The viewer's own faction token on the table: which side shows, and turning it over; null without a seat or a token. */
   token: Readonly<{ faceUp: boolean; flip: () => void }> | null;
+  /** The bidder's raise by one, lowering (null unless the viewer raised this turn) and pass, while it points at the viewer. */
+  bidding?: Readonly<{ raise: () => void; lower: (() => void) | null; pass: () => void }> | null;
 }>;
 
 export const CompassTableContext = createContext<CompassTable | null>(null);

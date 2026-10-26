@@ -1,6 +1,7 @@
 import { Anchor, Button, Group, List, Loader, NumberInput, Select, Stack, Text, Tooltip } from '@mantine/core';
 import { signInReturnFrom } from '@shared/authDestination';
 import { tableHandlingOpen } from '@shared/play/admission';
+import { canLowerBid } from '@shared/play/bidding';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import { factionTokenOf } from '@shared/play/factionToken';
 import type { PublicControls, SpawnSelection } from '@shared/play/inventory';
@@ -40,7 +41,7 @@ import { TableWait } from '../TableWait';
 import { AllianceCoinsScene } from './AllianceCoins';
 import { AlliancesPanel, AllianceStrip, showsAlliances } from './Alliances';
 import { BattleControls, BattleHistory, BattleScene, HandControls } from './BattleControls';
-import { BidderScene } from './Bidder';
+import { BidderScene, biddingPhase } from './Bidder';
 import { OfflineConversations } from './Conversation';
 import { DraftingOverlay, DraftingPanel } from './Drafting';
 import { DetermineWinner, ResultControls, useDeclareChoice } from './GameResult';
@@ -90,6 +91,21 @@ function viewerToken(client: TableSession, table: TableProjection): CompassTable
     return null;
   }
   return { faceUp: token.items[0]?.faceUp ?? true, flip: () => client.flipSelected(token.id) };
+}
+
+/* The bidder's raise, lowering and pass, while it points at the viewer in an open round; none otherwise. */
+function viewerBidding(client: TableSession, table: TableProjection): CompassTable['bidding'] {
+  const bidding = table.snapshot.bidding;
+  const faction = table.snapshot.bank?.factionId ?? null;
+  if (!bidding || bidding.stage !== 'open' || !biddingPhase(table) || !table.canInteract || bidding.turn !== faction) {
+    return null;
+  }
+  const { round } = bidding;
+  return {
+    raise: () => void client.command({ kind: 'bid-raise', round }),
+    lower: canLowerBid(bidding, faction) ? () => void client.command({ kind: 'bid-lower', round }) : null,
+    pass: () => void client.command({ kind: 'bid-pass', round }),
+  };
 }
 
 const SETUP_TOPICS = {
@@ -1059,6 +1075,7 @@ function ConnectedTable({
               render: (seat, tab) => <PlayerWindow client={client} table={table} seat={seat} tab={tab} error={error} />,
               nextPhase: nextPhaseStep(client, table),
               token: viewerToken(client, table),
+              bidding: viewerBidding(client, table),
             }}
           >
             <GameTable

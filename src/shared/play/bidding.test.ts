@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vite-plus/test';
 
-import { applyBidding, BiddingRefusal, expireBid, idleBidding, reconcileBidding } from './bidding';
+import { applyBidding, BiddingRefusal, canLowerBid, expireBid, idleBidding, reconcileBidding } from './bidding';
 import type { BiddingState } from './bidding';
 
 const order = ['a', 'b', 'c', 'd'];
@@ -159,6 +159,31 @@ describe('optional timed bidding', () => {
       timed: true,
       started: false,
       deadline: null,
+    });
+  });
+
+  describe('lowering', () => {
+    test('takes back raises made this turn, down to the bid the faction found, and brings back the passes they cleared', () => {
+      let state = applyBidding(opened(), { kind: 'bid-raise', round: 1 }, at('a'));
+      state = applyBidding(state, { kind: 'bid-pass', round: 1 }, at('a'));
+      state = applyBidding(state, { kind: 'bid-pass', round: 1 }, at('b'));
+      expect(state).toMatchObject({ turn: 'c', bid: { factionId: 'a', amount: 1 }, passed: ['b'] });
+      expect(canLowerBid(state, 'c')).toBe(false);
+      state = applyBidding(state, { kind: 'bid-raise', round: 1 }, at('c'));
+      state = applyBidding(state, { kind: 'bid-raise', round: 1 }, at('c'));
+      expect(state).toMatchObject({ bid: { factionId: 'c', amount: 3 }, passed: [] });
+      state = applyBidding(state, { kind: 'bid-lower', round: 1 }, at('c'));
+      expect(state).toMatchObject({ bid: { factionId: 'c', amount: 2 }, passed: [] });
+      state = applyBidding(state, { kind: 'bid-lower', round: 1 }, at('c'));
+      expect(state).toMatchObject({ turn: 'c', bid: { factionId: 'a', amount: 1 }, passed: ['b'] });
+      expect(() => applyBidding(state, { kind: 'bid-lower', round: 1 }, at('c'))).toThrow(BiddingRefusal);
+    });
+
+    test('is refused for anyone the bidder does not point at, and for a bid the faction found', () => {
+      const raised = applyBidding(opened(), { kind: 'bid-raise', round: 1 }, at('a'));
+      expect(() => applyBidding(raised, { kind: 'bid-lower', round: 1 }, at('b'))).toThrow(BiddingRefusal);
+      expect(() => applyBidding(opened(), { kind: 'bid-lower', round: 1 }, at('a'))).toThrow(BiddingRefusal);
+      expect(applyBidding(raised, { kind: 'bid-lower', round: 1 }, at('a'))).toMatchObject({ bid: null, turn: 'a' });
     });
   });
 });

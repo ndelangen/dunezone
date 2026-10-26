@@ -1,7 +1,7 @@
 import { Kbd } from '@ui/content/Kbd';
 import { Search } from 'lucide-react';
-import { useEffect, useRef } from 'react';
-import type { RefObject } from 'react';
+import { useEffect, useEffectEvent, useRef } from 'react';
+import type { PointerEvent, RefObject } from 'react';
 
 import bar from './ChatBar.module.css';
 import styles from './Compass.module.css';
@@ -12,7 +12,7 @@ import type { Suggestion } from './suggestions';
 /*
  * The compass over the table: a tile at the end of each arm, the search field at its centre, and the suggestions below.
  * It is a dialog shown in place (`show()`, not the top layer), so the table and the pinned slots keep their stacking
- * under its veil, a press on the veil closes it, and the keys reach it through the window as they always did.
+ * under its veil, a press outside it closes it, and the keys reach it through the window as they always did.
  */
 
 export type CompassProps = Readonly<{
@@ -31,11 +31,40 @@ export type CompassProps = Readonly<{
   onClose: () => void;
 }>;
 
+/*
+ * A press anywhere but on the compass's own tiles, search and suggestions dismisses it: on the veil, in the gaps between
+ * the tiles, or on the chrome around the table. The press goes no further, so the table under the veil never acts on it.
+ */
+function useDismissOnPressOutside(compass: RefObject<HTMLDialogElement | null>, onClose: () => void) {
+  const close = useEffectEvent(onClose);
+  useEffect(() => {
+    const press = (event: globalThis.PointerEvent) => {
+      const dialog = compass.current;
+      const target = event.target;
+      const inside = dialog && target instanceof Node && dialog.contains(target) && target !== dialog;
+      if (!inside) {
+        event.stopPropagation();
+        close();
+      }
+    };
+    window.addEventListener('pointerdown', press, true);
+    return () => window.removeEventListener('pointerdown', press, true);
+  }, [compass]);
+}
+
 /* Opened as soon as it is in the document, so its first paint is the open one. */
 function open(dialog: HTMLDialogElement | null) {
   if (dialog && !dialog.open) {
     dialog.show();
   }
+}
+
+/*
+ * Only a pointer that moved points at a tile or a suggestion. A chosen tile grows and the list changes as you type, so
+ * either can slide under a pointer at rest, which the browser tells as the pointer entering; that must not undo the keys' choice.
+ */
+function moved(event: PointerEvent) {
+  return event.movementX !== 0 || event.movementY !== 0;
 }
 
 type CompassTileProps = Readonly<{
@@ -56,13 +85,16 @@ function CompassTile({ tile, selected, refused, onSpot, onConfirm }: CompassTile
       data-selected={selected || undefined}
       data-disabled={tile.disabled || undefined}
       data-refused={selected && refused ? refused % 2 : undefined}
-      onPointerEnter={() => onSpot(tile.spot)}
+      onPointerMove={(event) => selected || !moved(event) || onSpot(tile.spot)}
       onClick={() => onConfirm(tile.spot)}
     >
       <span className={styles.tileIcon}>{tile.icon}</span>
       <span className={styles.tileLabel}>{tile.label}</span>
       <span className={styles.tileDetail}>{tile.detail}</span>
       <span className={styles.tileKeys}>{tile.keys}</span>
+      <span className={styles.tileShortcut}>
+        <Kbd>{tile.shortcut}</Kbd>
+      </span>
       {tile.badge ? <span className={bar.badge}>{tile.badge}</span> : null}
     </button>
   );
@@ -101,6 +133,11 @@ function SearchHub({ spot, query, input, steering, onSpot, onQuery, onCursor }: 
         <Kbd>→</Kbd>
         <Kbd>↑</Kbd>
         <Kbd>↓</Kbd>
+        <span className={styles.hubOr}>or</span>
+        <Kbd>W</Kbd>
+        <Kbd>A</Kbd>
+        <Kbd>S</Kbd>
+        <Kbd>D</Kbd>
       </span>
     </label>
   );
@@ -134,7 +171,10 @@ function SuggestionList({ suggestions, spot, query, cursor, onSpot, onCursor }: 
           tabIndex={-1}
           aria-selected={listed && index === cursor}
           className={styles.suggestion}
-          onPointerEnter={() => {
+          onPointerMove={(event) => {
+            if ((spot === 'search' && index === cursor) || !moved(event)) {
+              return;
+            }
             onSpot('search');
             onCursor(index);
           }}
@@ -144,6 +184,11 @@ function SuggestionList({ suggestions, spot, query, cursor, onSpot, onCursor }: 
           {entry.icon}
           <span className={styles.suggestionLabel}>{entry.label}</span>
           <span className={styles.suggestionHint}>{entry.hint}</span>
+          {entry.shortcut && (
+            <span className={styles.suggestionShortcut}>
+              <Kbd>{entry.shortcut}</Kbd>
+            </span>
+          )}
         </div>
       ))}
       {suggestions.length === 0 && <div className={styles.suggestionsTitle}>Nothing matches “{query}”</div>}
@@ -167,6 +212,8 @@ export function Compass({
 }: CompassProps) {
   /* The search field keeps the caret while the arrows steer, so typing never needs a click first. */
   const steering = useRef(false);
+  const compass = useRef<HTMLDialogElement>(null);
+  useDismissOnPressOutside(compass, onClose);
   useEffect(() => {
     steering.current = true;
     input.current?.focus();
@@ -183,12 +230,14 @@ export function Compass({
     />
   );
   return (
-    <div className={styles.veil} onPointerDown={onClose}>
+    <div className={styles.veil}>
       <dialog
-        ref={open}
+        ref={(dialog) => {
+          compass.current = dialog;
+          open(dialog);
+        }}
         className={styles.compass}
         aria-label="Controls compass"
-        onPointerDown={(event) => event.stopPropagation()}
       >
         {tile(tiles.battle)}
         {tile(tiles.hidden)}
