@@ -39,7 +39,7 @@ function useTutorialTable(setup: TutorialSetup, chapter: ChapterScript) {
   const [table] = useState(() => {
     const origin = window.location.origin;
     const open = () => {
-      const local = new LocalTable(startAt(setup, chapter.checkpoint, origin));
+      const local = new LocalTable(startAt(setup, chapter.checkpoint, origin, chapter));
       local.open();
       return local;
     };

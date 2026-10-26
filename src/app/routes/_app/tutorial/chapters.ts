@@ -90,7 +90,7 @@ const CHAPTERS: readonly Omit<TutorialChapter, 'number'>[] = [
   {
     slug: 'the-private-side-table',
     title: 'The private side-table',
-    goal: 'Lay out pieces that need a specific place',
+    goal: 'Track your Kwisatz Haderach on a card of your own',
     minutes: 3,
     part: 'The table',
   },
