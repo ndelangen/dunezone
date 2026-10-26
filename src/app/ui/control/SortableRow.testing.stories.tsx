@@ -74,3 +74,21 @@ export const Reorder = meta.story({
     await expect(order(canvas)).toEqual(['Snooper', 'Crysknife', 'Shield', 'Chaumas', 'Cheap Hero']);
   },
 });
+
+/** In a scrolling box that hides part of the row, a tile let go over the hidden part leaves the row, as the pointer is over whatever shows there. */
+export const ClippedRow = meta.story({
+  render: () => (
+    <div data-testid="clip" style={{ height: 50, overflow: 'auto' }}>
+      <SortableRowDemo />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await frame();
+    const clip = canvas.getByTestId('clip').getBoundingClientRect();
+    const crysknife = canvas.getByRole('img', { name: 'Crysknife' }).getBoundingClientRect();
+    await drag(canvas.getByRole('img', { name: 'Snooper' }), { x: crysknife.left + 8, y: clip.bottom + 28 });
+    await expect(canvas.getByLabelText('Let go outside')).toHaveTextContent('Snooper');
+    await expect(order(canvas)).toEqual(['Crysknife', 'Shield', 'Snooper', 'Chaumas', 'Cheap Hero']);
+  },
+});

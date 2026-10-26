@@ -36,12 +36,30 @@ class FocusedPointerSensor extends PointerSensor {
   }
 }
 
-/* Within the row, give or take a little slack at its edges, so a drag along its last piece still counts as inside. */
+/* The part of the row on screen: a scrolling window around it hides the rest, and a drop there lands on whatever is shown instead. */
+function shownBox(row: HTMLElement) {
+  const box = row.getBoundingClientRect();
+  let { left, top, right, bottom } = box;
+  for (let node = row.parentElement; node; node = node.parentElement) {
+    const { overflowX, overflowY } = getComputedStyle(node);
+    if (overflowX === 'visible' && overflowY === 'visible') {
+      continue;
+    }
+    const clip = node.getBoundingClientRect();
+    left = Math.max(left, clip.left);
+    top = Math.max(top, clip.top);
+    right = Math.min(right, clip.right);
+    bottom = Math.min(bottom, clip.bottom);
+  }
+  return { left, top, right, bottom };
+}
+
+/* Within the row as shown, give or take a little slack at its edges, so a drag along its last piece still counts as inside. */
 function within(row: HTMLElement | null, point: Point | undefined) {
   if (!row || !point) {
     return false;
   }
-  const box = row.getBoundingClientRect();
+  const box = shownBox(row);
   const slack = 16;
   return (
     point.x >= box.left - slack &&
@@ -153,7 +171,8 @@ export function SortableRow<T extends { id: string }>({
       onDragCancel={reset}
     >
       <SortableContext items={ids} strategy={rectSortingStrategy} disabled={disabled}>
-        <div ref={row} className={className} aria-label={label}>
+        {/* A drag in progress takes Escape, which cancels it, before any window around it closes. */}
+        <div ref={row} className={className} aria-label={label} data-carried={dragging || undefined}>
           {items.map((item) => (
             <SortableTile key={item.id} id={item.id} motion={motion}>
               {children(item)}

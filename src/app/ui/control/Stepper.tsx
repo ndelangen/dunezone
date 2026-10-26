@@ -142,6 +142,7 @@ export function Stepper({
         inputMode="decimal"
         disabled={disabled}
         aria-invalid={invalid || undefined}
+        data-takes-escape={draft !== null || undefined}
         value={draft ?? format(value)}
         onChange={(event) => setDraft(event.currentTarget.value)}
         onFocus={(event) => event.currentTarget.select()}
