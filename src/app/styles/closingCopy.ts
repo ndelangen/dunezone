@@ -27,11 +27,15 @@ export function useClosingCopy(element: RefObject<HTMLElement | null>, { enabled
 type ClosingCopyOptions = { enabled: boolean; ms: number };
 
 /* What names or reaches the original goes from the copy, so nothing finds the closed thing in it. */
-const NAMING = ['role', 'id', 'aria-label', 'aria-labelledby', 'aria-describedby', 'tabindex'];
+const NAMING = ['role', 'aria-label', 'aria-labelledby', 'aria-describedby', 'tabindex'];
 
 function makeLifeless(copy: HTMLElement) {
   for (const entry of [copy, ...copy.querySelectorAll('*')]) {
     NAMING.forEach((name) => entry.removeAttribute(name));
+    /* An id inside artwork stays: its gradients, patterns and masks find their defs by it, and the original that shared it is gone. */
+    if (!entry.closest('svg')) {
+      entry.removeAttribute('id');
+    }
   }
   copy.setAttribute('aria-hidden', 'true');
   copy.inert = true;
