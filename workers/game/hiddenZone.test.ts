@@ -22,6 +22,7 @@ const FACTIONS: Record<string, string> = { [bob.userId]: 'atreides' };
 const LOOSE = 'treachery-card-loose';
 const LEADER = 'fixture-leader';
 const SECOND = 'treachery-card-second';
+const THIRD = 'treachery-card-third';
 const LATER = Date.now() + 10 * PHASE_CHANGE_COOLDOWN_MS;
 
 /* The fixture table, with its loose card given a Treachery face and a leader disc beside it, as Play/Sandbox's hands hold. */
@@ -186,6 +187,29 @@ describe('the hidden zone', () => {
       room.command(bob, { kind: 'hand-order', pieceId: SECOND, before: null }, room.snapshot.revision - 1, LATER)
     );
     expect(room.snapshot.battleState!.plans[0]!.cardIds).toEqual([LOOSE, SECOND]);
+  });
+
+  test('reordering the hand keeps a card shown to everyone where it was shown, and orders the rest around it', () => {
+    const { room, send } = roomWithHand();
+    const card = room.snapshot.factionInventories.atreides!.find((piece) => piece.id === LOOSE)!;
+    room.snapshot.table.pieces.push({ ...structuredClone(card), id: SECOND, position: [2, 0.14, 0] });
+    room.snapshot.table.pieces.push({ ...structuredClone(card), id: THIRD, position: [3, 0.14, 0] });
+    send({ kind: 'hand-take', pieceId: SECOND });
+    send({ kind: 'hand-take', pieceId: THIRD });
+    room.snapshot.phase = STANDARD_PHASES.findIndex((phase) => phase.id === 'battle');
+    send({ kind: 'battle-start', anchor: [0, 0, 0], territory: 'Arrakeen' });
+    const battleId = room.snapshot.battleState!.id;
+    send({ kind: 'battle-claim', battleId, side: 0 });
+    send({
+      kind: 'battle-plan',
+      battleId,
+      plan: { mode: 'max', troops: [], spice: 0, adjustment: 0, leaderIds: [], cardIds: [LOOSE, SECOND, THIRD] },
+    });
+    send({ kind: 'battle-disclose', battleId, disclosure: { element: 'card', cardId: LOOSE }, shown: true });
+    send({ kind: 'hand-order', pieceId: THIRD, before: LOOSE });
+    const plan = room.snapshot.battleState!.plans[0]!;
+    expect(plan.cardIds).toEqual([LOOSE, THIRD, SECOND]);
+    expect(plan.pieces.map((piece) => piece.id)).toEqual([LOOSE, THIRD, SECOND]);
   });
 
   test('refuses a piece that is not in the hand', () => {

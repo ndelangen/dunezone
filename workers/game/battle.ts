@@ -397,11 +397,14 @@ function planInOrder(snapshot: StoredSnapshot, factionId: string, order: readonl
   if (!battle || battle.stage === 'revealed' || !plan) {
     return {};
   }
-  const sorted = (ids: readonly string[]) => ids.toSorted((a, b) => order.indexOf(a) - order.indexOf(b));
+  /* Pieces shown to everyone stay where they were shown, as a plan edit keeps them; the others take the free places in the player's order. */
+  const sorted = (ids: readonly string[], shown: (id: string) => boolean) => {
+    const free = ids.filter((id) => !shown(id)).toSorted((a, b) => order.indexOf(a) - order.indexOf(b));
+    return ids.map((id) => (shown(id) ? id : free.shift()!));
+  };
   const plans: typeof battle.plans = [...battle.plans];
-  /* Leaders shown to everyone stay as they were shown, as a plan edit keeps them. */
-  const leaderIds = plan.disclosed.leader ? plan.leaderIds : sorted(plan.leaderIds);
-  const cardIds = sorted(plan.cardIds);
+  const leaderIds = sorted(plan.leaderIds, () => plan.disclosed.leader);
+  const cardIds = sorted(plan.cardIds, (id) => plan.disclosed.cardIds.includes(id));
   /* The pieces too, as an edit commits them: leaders first, then cards; the public wheel and the disclosure draw from them. */
   const pieces = [...leaderIds, ...cardIds].map((id) => plan.pieces.find((piece) => piece.id === id)!);
   plans[side as 0 | 1] = { ...plan, leaderIds, cardIds, pieces };
