@@ -1,4 +1,5 @@
 import type { ChapterScript } from './chapterScript';
+import { decksAndDealing } from './decksAndDealing';
 import { lookingAround } from './lookingAround';
 import { movingPieces } from './movingPieces';
 import { thePrivateSideTable } from './thePrivateSideTable';
@@ -11,6 +12,7 @@ export const CHAPTER_SCRIPTS: Readonly<Record<string, ChapterScript>> = {
   [whatGoesWhere.slug]: whatGoesWhere,
   [lookingAround.slug]: lookingAround,
   [movingPieces.slug]: movingPieces,
+  [decksAndDealing.slug]: decksAndDealing,
   [windows.slug]: windows,
   [yourHandAndSpice.slug]: yourHandAndSpice,
   [thePrivateSideTable.slug]: thePrivateSideTable,

@@ -4,7 +4,7 @@ import { pageStoryMeta } from '../../storybookConfig';
 import { chapterGlobals, chapterParameters, playChapter } from './chapterStory';
 
 /*
- * Chapter 10, "The private side-table", as its page serves it: House Atreides lays its Kwisatz Haderach card and counter on the private side-table and tracks troops lost,
+ * Chapter 11, "The private side-table", as its page serves it: House Atreides lays its Kwisatz Haderach card and counter on the private side-table and tracks troops lost,
  * with the rail beside the table giving one task at a time. Its art comes as chapter 5's does; see that story.
  */
 
@@ -18,5 +18,5 @@ const meta = preview.meta({
 /** The chapter as a player meets it: do what the rail says, where its arrow shows, and it moves on by itself. */
 export const Chapter = meta.story({
   parameters: chapterParameters,
-  play: playChapter('Chapter 10: The private side-table', 'Open your hand'),
+  play: playChapter('Chapter 11: The private side-table', 'Open your hand'),
 });

@@ -83,8 +83,11 @@ function focusKeepsKey(target: EventTarget | null, branch: 'spiceBank' | 'table'
   return branch === 'table' && target instanceof HTMLElement && target.closest(FOCUSED_CONTROL) !== null;
 }
 
+/* An open menu, or a dialog over the table such as a deck held open by a peek, steps through its own items with the arrows. */
 function inOpenMenu(target: EventTarget | null) {
-  return target instanceof Element && target.closest("[role='menu']") !== null;
+  return (
+    target instanceof Element && target.closest("[role='menu'], [role='dialog'], dialog, [aria-modal='true']") !== null
+  );
 }
 
 function isArrowKey(event: KeyboardEvent) {
@@ -237,7 +240,8 @@ export class TableKeyboard {
    * With the cursor over the table, an arrow key is the camera's before a focused control hears it, so a tab list or menu
    * left focused by a click never moves its focus instead; only a text field keeps its arrows.
    * Without a close look there is nothing to slide, and the arrow still stays with the table.
-   * An open menu, such as a piece's radial menu opened under the cursor, keeps its arrows to step through its items.
+   * An open menu, such as a piece's radial menu opened under the cursor, keeps its arrows to step through its items,
+   * and so does a dialog over the table, such as a peeked deck whose focused card the arrows move.
    */
   private arrowOverTable = (event: KeyboardEvent) => {
     if (

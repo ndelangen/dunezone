@@ -1,10 +1,11 @@
 import type { GuideTask } from '../TutorialGuide';
 import type { ChapterScript } from './chapterScript';
-import { element as first, task, viaCompass } from './guideChecks';
+import { element as first, openedWindow, task, viaCompass, windowShown } from './guideChecks';
 
 /*
- * Chapter 8, "Windows": Space opens a compass over the table, a window opens in the middle,
+ * Chapter 9, "Windows": Space opens a compass over the table, a window opens in the middle,
  * and it can be pinned to the bottom-left or bottom-right slot to stay open while the player plays.
+ * Each window also has a letter of its own, which the compass shows beside it, so the chapter ends on one.
  * Every task is read from the screen, so it moves on only once the player has done it with the controls.
  */
 
@@ -114,7 +115,7 @@ const windowTasks = (): GuideTask[] => [
   }),
 ];
 
-/* The chat pinned on the right and made taller, then the search and unpinning. */
+/* The chat pinned on the right and made taller, then the search, unpinning, and the chat back with its letter. */
 const slotTasks = (): GuideTask[] => [
   task({
     id: 'table-chat',
@@ -157,6 +158,14 @@ const slotTasks = (): GuideTask[] => [
     /* Whatever ended up pinned bottom right, the slot is empty once it is unpinned. */
     done: () => document.querySelector('[data-side="right"]') === null,
   }),
+  task({
+    id: 'letter',
+    task: 'Bring the chat back with one key',
+    detail:
+      'Each window has a letter, shown beside it on the compass: {H} your hand, {J} your side-table, {G} the table chat, {F} your ally, {B} your battle plan. Click an empty part of the table, so no piece is picked, then press {G}.',
+    anchor: { kind: 'page', element: first('[data-compass-launcher]') },
+    ...openedWindow(windowShown('table-chat')),
+  }),
 ];
 
 const tasks = () => [...windowTasks(), ...slotTasks()];
@@ -171,6 +180,7 @@ const learned = [
   'Pin a window to the bottom left or right to keep it open',
   'Drag a pinned window’s top edge to resize it',
   'Type anything on the compass to find it',
+  'One letter opens each window: {H}, {J}, {G}, {F} and {B}',
 ];
 
 export const windows: ChapterScript = { slug: 'windows', checkpoint: 'turn-1-storm', tasks, learned };

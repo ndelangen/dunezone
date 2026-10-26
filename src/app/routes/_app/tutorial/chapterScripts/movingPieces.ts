@@ -8,12 +8,12 @@ import type { Piece } from './guideChecks';
 /*
  * Chapter 7, "Moving pieces": the hands-on controls chapter 5 only touched, on the same table.
  * A stack split with a number key, carried whole, joined, turned and flipped; then a deck shuffled and peeked at.
- * Taking more with T, locking, dealing and laying cards from a deck with a number key wait for a later chapter.
+ * Taking more with T, locking, dealing and splitting cards off a deck with a number key wait for a later chapter.
  */
 
 /*
- * The cards of a deck held open by a peek, by the ids the peek marks them with, top first; null while no deck is open.
- * Ids rather than names, since a deck holds several cards of one name.
+ * The cards of a deck held open by a peek, by the handles the peek shows them under, top first; null while no deck is open.
+ * Handles rather than names, since a deck holds several cards of one name.
  */
 const peekedOrder = () => {
   const row = document.querySelector('[role="dialog"][aria-label^="Peeking at"] ol');
@@ -21,21 +21,20 @@ const peekedOrder = () => {
 };
 
 /*
- * Moving a card counts the order the peek first showed against the order it shows now, so the task waits for the deck to open
- * and then for one card to change place, by dragging or by the arrow keys. Only cards in both orders are compared, so pulling
- * a card out of the deck does not count as a move.
+ * Moving a card in a deck held open gives every card a new handle, so nobody else can follow it, and the peek stays open.
+ * Anything else that changes the deck's handles closes the peek, as a shuffle or a draw does, and pulling a card out changes its size.
+ * So the task waits for the deck to open, then counts a change of handles at the same size while it stays open;
+ * a peek that closes starts over from the order it shows when it opens again.
  */
 const movedInPeek = () => ({
   begin: () => ({ first: null as string[] | null }),
   done: (watch: { first: string[] | null }) => {
     const order = peekedOrder();
-    if (!order) {
+    if (!order || watch.first?.length !== order.length) {
+      watch.first = order;
       return false;
     }
-    const first = (watch.first ??= order);
-    const before = first.filter((card) => order.includes(card));
-    const now = order.filter((card) => first.includes(card));
-    return before.some((card, index) => card !== now[index]);
+    return watch.first.some((card, index) => card !== order[index]);
   },
 });
 
@@ -102,7 +101,7 @@ function stackTasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'split',
       task: 'Split three troops off',
       detail:
-        'Point at your reserves on the rim nearest you and hold 3 for a second. Three troops slide off beside them.',
+        'Point at your reserves, on the rim at your seat, and hold {3} on your keyboard for a second. Three troops slide off beside them.',
       anchor: { kind: 'table', point: () => at(biggestReserve()) },
       begin: () => reserves().filter((piece) => piece.items.length === 3).length,
       done: (start) => reserves().filter((piece) => piece.items.length === 3).length > start,
@@ -139,14 +138,14 @@ function stackTasks(snapshot: () => GameSnapshot): GuideTask[] {
     task({
       id: 'turn',
       task: 'Turn your stack',
-      detail: 'Point at your troops on the board and press Q or E. Each press turns them a step.',
+      detail: 'Point at your troops on the board and press {Q} or {E} on your keyboard. Each press turns them a step.',
       anchor: { kind: 'table', point: () => at(carried()) },
       ...changedInPlace(carriedOnly, (before, now) => before.orientation !== now.orientation),
     }),
     task({
       id: 'flip',
       task: 'Flip the whole stack',
-      detail: 'Still pointing at them, press F. A stack turns over all at once, as a single card does.',
+      detail: 'Still pointing at them, press {F}. A stack turns over all at once, as a single card does.',
       anchor: { kind: 'table', point: () => at(carried()) },
       ...changedInPlace(carriedOnly, (before, now) => (now.flipRevision ?? 0) > (before.flipRevision ?? 0)),
     }),
@@ -160,7 +159,7 @@ function deckTasks(snapshot: () => GameSnapshot): GuideTask[] {
     task({
       id: 'shuffle',
       task: 'Shuffle the Spice deck',
-      detail: 'Point at the Spice deck on the right of the table and press R.',
+      detail: 'Point at the Spice deck on the right of the table and press {R} on your keyboard.',
       anchor: { kind: 'table', point: () => at(spiceDeck()) },
       begin: () => spiceDeck()?.shuffleRevision ?? 0,
       done: (start) => (spiceDeck()?.shuffleRevision ?? 0) > start,
@@ -177,7 +176,8 @@ function deckTasks(snapshot: () => GameSnapshot): GuideTask[] {
     task({
       id: 'reorder',
       task: 'Move a card in the deck',
-      detail: 'Drag a card along the row to a new place, or move it with the arrow keys. The deck keeps the new order.',
+      detail:
+        'Drag a card along the row to a new place, or click it and move it with the arrow keys. The deck keeps the new order.',
       /* The arrow stops at the peek's edge, so its wedge never lies over the peek's own heading. */
       anchor: { kind: 'page', element: element('[role="dialog"][aria-label^="Peeking at"]') },
       ...movedInPeek(),
@@ -189,11 +189,11 @@ const tasks = (snapshot: () => GameSnapshot) => [...stackTasks(snapshot), ...dec
 
 /* One line for each part of the chapter, in the order it was played. */
 const learned = [
-  'Hold a number over a stack to split that many off',
+  'Hold a number key over a stack to split that many off',
   'Press and hold before dragging to carry a whole stack',
   'Drop a piece on its own kind to join the stack',
-  'Q and E turn a piece, F flips a whole stack',
-  'R shuffles the deck under your pointer',
+  '{Q} and {E} turn a piece, {F} flips a whole stack',
+  '{R} shuffles the deck under your pointer',
   'Peek at a deck to see it in private, and reorder it',
 ];
 
