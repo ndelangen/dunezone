@@ -23,6 +23,8 @@ import type { TableSession, TableProjection } from '../../../../db/tabletop/Tabl
 import { HandPieceCloseUp } from '../../../../widgets/tabletop/PieceCloseUp';
 import { PieceImage, pieceName, useHandCloseUp } from './HandPiece';
 import styles from './HiddenZone.module.css';
+import { fitZoom, UNZOOMED, wheelFactor, zoomAbout } from './hiddenZoneZoom';
+import type { HiddenZoneZoom } from './hiddenZoneZoom';
 import { HIDDEN_ZONE_HELP } from './panelGuidance';
 import { viewerFaction } from './tableFactions';
 
@@ -240,7 +242,36 @@ export function HiddenZone({ client, table, hand }: Props) {
   };
   const [menu, setMenu] = useState<HandMenuAnchor | null>(null);
   const pieces = hiddenZonePieces(hand);
-  const { scale, extent } = hiddenZoneView(width, height);
+  const view = hiddenZoneView(width, height);
+  const { extent } = view;
+  /* Zoomed in, the view shows part of the zone from `zoom`'s corner, and pieces past its edges are cut off rather than kept in view. */
+  const [zooming, setZoom] = useState(UNZOOMED);
+  const zoom = fitZoom(zooming, view.scale, { width, height });
+  const scale = view.scale * zoom.by;
+  const zoomed = zoom.by > 1;
+  /* Zoomed in, dragging the felt moves the view, as dragging the table's own felt moves its camera. */
+  const panning = useRef<{ pointerId: number; x: number; y: number; from: HiddenZoneZoom } | null>(null);
+  const wheel = useEffectEvent((event: WheelEvent) => {
+    if (!pieces.length || !(view.scale > 0)) {
+      return;
+    }
+    event.preventDefault();
+    const box = event.currentTarget instanceof HTMLElement ? event.currentTarget.getBoundingClientRect() : null;
+    if (box) {
+      const at = { x: event.clientX - box.left, y: event.clientY - box.top };
+      setZoom(zoomAbout(zoom, wheelFactor(event.deltaY), at, view.scale, { width, height }));
+    }
+  });
+  /* A wheel listener that may cancel the scroll it would start, which React's passive one cannot. */
+  useEffect(() => {
+    const zone = frame.current;
+    if (!zone) {
+      return;
+    }
+    const listen = (event: WheelEvent) => wheel(event);
+    zone.addEventListener('wheel', listen, { passive: false });
+    return () => zone.removeEventListener('wheel', listen);
+  }, []);
   const enabled = table.canHandleTable;
   const fitHeight = useScrollParentHeight(frame);
   const closeUp = useHandCloseUp(pieces);
@@ -378,8 +409,8 @@ export function HiddenZone({ client, table, hand }: Props) {
       piece,
       clampHiddenZoneSpot(
         {
-          x: (at.left - zone.left + (footprint.width * scale) / 2) / (HIDDEN_ZONE_WIDTH * scale),
-          y: (at.top - zone.top + (footprint.depth * scale) / 2) / (HIDDEN_ZONE_DEPTH * scale),
+          x: ((at.left - zone.left + (footprint.width * scale) / 2) / scale + zoom.x) / HIDDEN_ZONE_WIDTH,
+          y: ((at.top - zone.top + (footprint.depth * scale) / 2) / scale + zoom.y) / HIDDEN_ZONE_DEPTH,
           ...(turn ? { turn } : {}),
         },
         extent
@@ -394,6 +425,36 @@ export function HiddenZone({ client, table, hand }: Props) {
           ref={ref}
           className={styles.zone}
           style={fitHeight ? { height: fitHeight } : { aspectRatio: `${HIDDEN_ZONE_WIDTH} / ${HIDDEN_ZONE_DEPTH}` }}
+          data-zoom={zoomed ? zoom.by.toFixed(2) : undefined}
+          onDoubleClick={(event) => {
+            if (event.target === event.currentTarget) {
+              setZoom(UNZOOMED);
+            }
+          }}
+          onPointerDown={(event) => {
+            if (!zoomed || event.button !== 0 || event.target !== event.currentTarget) {
+              return;
+            }
+            event.currentTarget.setPointerCapture(event.pointerId);
+            panning.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, from: zoom };
+          }}
+          onPointerMove={(event) => {
+            const pan = panning.current;
+            if (pan && pan.pointerId === event.pointerId) {
+              const { from } = pan;
+              setZoom({
+                ...from,
+                x: from.x - (event.clientX - pan.x) / scale,
+                y: from.y - (event.clientY - pan.y) / scale,
+              });
+            }
+          }}
+          onPointerUp={() => {
+            panning.current = null;
+          }}
+          onLostPointerCapture={() => {
+            panning.current = null;
+          }}
         >
           {!pieces.length && (
             <Text size="sm" c="dimmed" className={styles.empty}>
@@ -407,12 +468,17 @@ export function HiddenZone({ client, table, hand }: Props) {
               const pieceDepth = footprint.depth * scale;
               const spot = shownSpot(piece);
               const carried = carry?.pieceId === piece.id && carry.moving ? carry : null;
-              /* Kept whole in view, as turned: a piece laid out in a roomier tab sits at this one's edge until moved. */
+              /*
+               * Kept whole in view, as turned: a piece laid out in a roomier tab sits at this one's edge until moved.
+               * Zoomed in, every piece keeps its true place, so a counter stays on its space and a piece past the edge is cut off.
+               */
               const { across, down } = turnedReach(pieceWidth, pieceDepth, spot);
+              const kept = (offset: number, max: number) => (zoomed ? offset : inside(offset, max));
               const left =
-                inside(spot.x * HIDDEN_ZONE_WIDTH * scale - across / 2, width - across) + (across - pieceWidth) / 2;
+                kept((spot.x * HIDDEN_ZONE_WIDTH - zoom.x) * scale - across / 2, width - across) +
+                (across - pieceWidth) / 2;
               const top =
-                inside(spot.y * HIDDEN_ZONE_DEPTH * scale - down / 2, height - down) + (down - pieceDepth) / 2;
+                kept((spot.y * HIDDEN_ZONE_DEPTH - zoom.y) * scale - down / 2, height - down) + (down - pieceDepth) / 2;
               const box = { width: pieceWidth, height: pieceDepth };
               const hover = closeUp.hover(piece);
               const handlers = {
