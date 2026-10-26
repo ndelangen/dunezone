@@ -251,6 +251,15 @@ export const probe = [
     expect(reports(output)).toBe(5);
   });
 
+  test('reports words kept for a hand-rolled CSS tooltip', async () => {
+    const output = await lintDiagnostics(
+      'probe.tsx',
+      `export const probe = [<button data-tip="Table chat" />, <span data-tooltip="Ready" />, <span data-ally />];
+`
+    );
+    expect(output.split('local(no-title-tooltip)').length - 1).toBe(2);
+  });
+
   /* A Mantine heading, a kit prop, an iframe's name and the SVG title element are not native tooltips. */
   test('leaves headings, kit props, iframes and the SVG title element alone', async () => {
     const output = await lintDiagnostics(
@@ -274,17 +283,17 @@ export const probe = [
 });
 
 describe('shared-overlays', { timeout: TEST_BUDGET_MS }, () => {
-  test('rejects competing overlay libraries and CSS tooltip attributes', async () => {
+  test('rejects competing overlay libraries', async () => {
     const output = await lintDiagnostics(
       'probe.tsx',
       `
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { Root } from '@radix-ui/react-popover';
 import Tippy from '@tippyjs/react';
-export const probe = [Tooltip, Root, Tippy, <button data-tip="Chat" />, <span data-tooltip="Player" />];
+export const probe = [Tooltip, Root, Tippy];
 `
     );
-    expect(output.split('local(shared-overlays)').length - 1).toBe(5);
+    expect(output.split('local(shared-overlays)').length - 1).toBe(3);
   });
 
   test('allows shared Mantine overlays and unrelated data attributes', async () => {

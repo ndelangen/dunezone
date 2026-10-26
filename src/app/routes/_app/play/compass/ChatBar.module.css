@@ -1,4 +1,4 @@
-/* The bar at the bottom of the table: the Controls button, the chats as tokens with their unread counts, and the tip over each. */
+/* The bar at the bottom of the table: the Controls button, the chats as tokens with their unread counts. */
 
 .bar {
   position: absolute;
@@ -87,6 +87,22 @@
   box-shadow:
     0 0 0 2px var(--ui-ground),
     0 0 0 4px var(--sand);
+}
+
+/* The viewer's own token stands alone on the bar's ground, left of the Controls button; after the chat rules, so it wins over them. */
+.own {
+  width: 2.9rem;
+  height: 2.9rem;
+  border: 1px solid rgb(from var(--ui-highlight) r g b / 0.2);
+  background: rgb(from var(--ui-ground) r g b / 0.86);
+  box-shadow:
+    0 18px 40px rgb(from var(--color-shadow) r g b / 0.5),
+    0 2px 6px rgb(from var(--color-shadow) r g b / 0.4);
+  backdrop-filter: blur(10px);
+}
+
+.own:hover {
+  border-color: rgb(from var(--color-brand) r g b / 0.65);
 }
 
 .token {
