@@ -1,4 +1,5 @@
 import { Button, Group, Popover, Stack, Text } from '@mantine/core';
+import { TruncatedText } from '@ui/content/TruncatedText';
 import { useState } from 'react';
 
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
@@ -29,9 +30,9 @@ export function DeckBackPicker({
   const [open, setOpen] = useState(false);
   return (
     <Group gap="xs" wrap="nowrap">
-      <Text size="sm" truncate style={{ minWidth: 0, flex: 1 }} title={picked?.name}>
+      <TruncatedText size="sm" flex={1}>
         {picked ? picked.name : 'No deck chosen yet'}
-      </Text>
+      </TruncatedText>
       {/* Gated by the popover: the picker subscribes on mount, so it must not mount until asked for. */}
       <Popover opened={open} onChange={setOpen} width={340} position="bottom-start" withinPortal>
         <Popover.Target>

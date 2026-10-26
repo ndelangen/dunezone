@@ -1,4 +1,4 @@
-import { Accordion, Box, Stack, Text, Title } from '@mantine/core';
+import { Accordion, Box, Stack, Text, Title, Tooltip } from '@mantine/core';
 import { factionSpecialRuleLabel } from '@shared/factions/specialRule';
 import type { PublicFaction } from '@shared/play/capture';
 import { Section } from '@ui/block/Section';
@@ -63,15 +63,16 @@ export function FactionDetails({ faction }: Faction) {
 function Leaders({ faction }: Faction) {
   return (
     <div className={styles.leaders}>
-      {faction.leaders.map((leader, index) => (
-        <div
-          key={`${leader.name}-${index}`}
-          className={styles.leader}
-          title={`${leader.name}, strength ${leader.strength ?? 'not specified'}`}
-        >
-          <LeaderToken {...leader} background={faction.background} logo={faction.logo} />
-        </div>
-      ))}
+      {faction.leaders.map((leader, index) => {
+        const label = `${leader.name}, strength ${leader.strength ?? 'not specified'}`;
+        return (
+          <Tooltip key={`${leader.name}-${index}`} label={label}>
+            <div className={styles.leader} role="img" aria-label={label}>
+              <LeaderToken {...leader} background={faction.background} logo={faction.logo} />
+            </div>
+          </Tooltip>
+        );
+      })}
     </div>
   );
 }

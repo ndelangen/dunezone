@@ -225,3 +225,46 @@ describe('prefer-block-comments', { timeout: TEST_BUDGET_MS }, () => {
     expect(await lintDiagnostics('probe.ts', source)).not.toContain('prefer-block-comments');
   });
 });
+
+describe('no-title-tooltip', { timeout: TEST_BUDGET_MS }, () => {
+  const reports = (output: string) => output.split('local(no-title-tooltip)').length - 1;
+
+  test('reports a title on an element and on a component that passes it through', async () => {
+    const output = await lintDiagnostics(
+      'probe.tsx',
+      `import { Button, Menu } from '@mantine/core';
+import * as Mantine from '@mantine/core';
+import { Link } from '@tanstack/react-router';
+export const probe = [
+  <span title="Ready" />,
+  <Button title="Draft" />,
+  <Menu.Item title="Leave" />,
+  <Mantine.Badge title="New" />,
+  <Link to="/" title="Home" />,
+];
+`
+    );
+    expect(reports(output)).toBe(5);
+  });
+
+  /* A Mantine heading, a kit prop, an iframe's name and the SVG title element are not native tooltips. */
+  test('leaves headings, kit props, iframes and the SVG title element alone', async () => {
+    const output = await lintDiagnostics(
+      'probe.tsx',
+      `import { Alert, Alert as Warning, Timeline } from '@mantine/core';
+import * as Mantine from '@mantine/core';
+import { Card } from '@ui/surface/Card';
+export const probe = [
+  <Alert title="Saved" />,
+  <Warning title="Saved" />,
+  <Mantine.Modal title="Leave the table?" />,
+  <Timeline.Item title="Turn 2" />,
+  <Card title="Members" />,
+  <iframe title="Video" src="about:blank" />,
+  <svg><title>Logo</title></svg>,
+];
+`
+    );
+    expect(reports(output)).toBe(0);
+  });
+});
