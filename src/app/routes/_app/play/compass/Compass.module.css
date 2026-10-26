@@ -307,7 +307,7 @@
 /*
  * The close, played on a lifeless copy (Compass leaves it only when motion is welcome): the blocks go from the top
  * down, one short beat apart, each shrinking a touch and sinking as it fades, so the compass reads as folding back
- * into the Controls button at the bottom, which catches it (ChatBar.module.css).
+ * into the Controls button at the bottom, which catches it (see the chat bar's stylesheet).
  */
 .veil[data-closing] {
   pointer-events: none;
