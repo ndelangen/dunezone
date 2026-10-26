@@ -161,12 +161,13 @@ export const pressEnter = () => ({
     const watch = { pressed: false, stop: new AbortController() };
     const press = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
-      if (event.key !== 'Enter' || event.repeat || target?.closest('input, textarea, [contenteditable="true"]')) {
+      if (event.key !== 'Enter' || target?.closest('input, textarea, [contenteditable="true"]')) {
         return;
       }
       event.preventDefault();
       event.stopPropagation();
-      watch.pressed = true;
+      /* A held Enter is taken too, so it never presses a focused button, but only a fresh press moves on. */
+      watch.pressed ||= !event.repeat;
     };
     window.addEventListener('keydown', press, { capture: true, signal: watch.stop.signal });
     return watch;
