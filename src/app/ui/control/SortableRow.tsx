@@ -1,0 +1,257 @@
+import { closestCenter, DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import type { CollisionDetection, DragEndEvent, DragStartEvent, PointerSensorProps } from '@dnd-kit/core';
+import { rectSortingStrategy, SortableContext, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
+import { createPortal } from 'react-dom';
+
+import { useMotionAllowed } from '@app/styles/motion';
+
+import styles from './SortableRow.module.css';
+
+type Point = Readonly<{ x: number; y: number }>;
+
+/*
+ * dnd-kit's pointer sensor, which also drops the drag when the window loses focus:
+ * a pointer let go in another window never reaches this one, and the next click here would otherwise end the drag where it lands.
+ */
+class FocusedPointerSensor extends PointerSensor {
+  constructor(props: PointerSensorProps) {
+    const session = new AbortController();
+    super({
+      ...props,
+      onEnd: () => {
+        session.abort();
+        props.onEnd();
+      },
+      onCancel: () => {
+        session.abort();
+        props.onCancel();
+      },
+    });
+    /* Its own cancel is private, and is what a resize or a hidden tab already calls. */
+    const cancel = () => (this as unknown as { handleCancel: () => void }).handleCancel();
+    window.addEventListener('blur', cancel, { signal: session.signal });
+  }
+}
+
+/* The part of the row on screen: a scrolling window around it hides the rest, and a drop there lands on whatever is shown instead. */
+function shownBox(row: HTMLElement) {
+  const box = row.getBoundingClientRect();
+  let { left, top, right, bottom } = box;
+  for (let node = row.parentElement; node; node = node.parentElement) {
+    const { overflowX, overflowY } = getComputedStyle(node);
+    if (overflowX === 'visible' && overflowY === 'visible') {
+      continue;
+    }
+    const clip = node.getBoundingClientRect();
+    left = Math.max(left, clip.left);
+    top = Math.max(top, clip.top);
+    right = Math.min(right, clip.right);
+    bottom = Math.min(bottom, clip.bottom);
+  }
+  return { left, top, right, bottom };
+}
+
+/* Within the row as shown, give or take a little slack at its edges, so a drag along its last piece still counts as inside. */
+function within(row: HTMLElement | null, point: Point | undefined) {
+  if (!row || !point) {
+    return false;
+  }
+  const box = shownBox(row);
+  const slack = 16;
+  return (
+    point.x >= box.left - slack &&
+    point.x <= box.right + slack &&
+    point.y >= box.top - slack &&
+    point.y <= box.bottom + slack
+  );
+}
+
+/**
+ * A wrapping row of pieces the player puts in their own order by dragging one along it.
+ * The lifted piece follows the pointer, and the others slide aside to show where it lands.
+ * A drag starts only after the pointer moves a little, so clicks and right-clicks on a piece stay its own.
+ * Let go outside the row, the pieces settle back and `onDropOutside` gets the piece and the point, for a drop onto something else, such as the table.
+ */
+export function SortableRow<T extends { id: string }>({
+  items,
+  disabled = false,
+  className,
+  label,
+  onMove,
+  onDropOutside,
+  leaving,
+  children,
+}: {
+  items: readonly T[];
+  disabled?: boolean;
+  className?: string;
+  label?: string;
+  /** Moves an item in front of another, or to the end with null. */
+  onMove: (item: T, before: string | null) => void;
+  onDropOutside?: (item: T, point: Point) => void;
+  /** An item on its way out of the row, which no longer takes a press. */
+  leaving?: (item: T) => boolean;
+  children: (item: T) => ReactNode;
+}) {
+  const motion = useMotionAllowed();
+  const row = useRef<HTMLDivElement>(null);
+  const [active, setActive] = useState<T>();
+  const [outside, setOutside] = useState(false);
+  /*
+   * Where the pointer is in the viewport, read from the pointer itself while a drag lasts:
+   * dnd-kit's own delta also counts any scroll since the drag began, which would land a drop beside the point let go.
+   */
+  const pointer = useRef<Point>(undefined);
+  const held = useRef<number>(undefined);
+  const dragging = active !== undefined;
+  useEffect(() => {
+    if (!dragging) {
+      return;
+    }
+    const track = (event: PointerEvent) => {
+      if (event.pointerId !== held.current) {
+        return;
+      }
+      pointer.current = { x: event.clientX, y: event.clientY };
+    };
+    window.addEventListener('pointermove', track, { capture: true });
+    return () => window.removeEventListener('pointermove', track, { capture: true });
+  }, [dragging]);
+  const sensors = useSensors(useSensor(FocusedPointerSensor, { activationConstraint: { distance: 6 } }));
+  const ids = items.map((item) => item.id);
+  /*
+   * Over the row the piece nearest the pointer takes the drop; anywhere else nothing does, so the row settles back.
+   * It is judged from the pointer itself: the lifted piece's measured box trails it by a frame or two, so a quick let-go
+   * would land a slot short of where the pointer is.
+   */
+  const collision: CollisionDetection = (args) => {
+    const point = args.pointerCoordinates;
+    if (!point || !within(row.current, point)) {
+      return [];
+    }
+    const { width, height } = args.collisionRect;
+    const left = point.x - width / 2;
+    const top = point.y - height / 2;
+    return closestCenter({
+      ...args,
+      collisionRect: { width, height, left, top, right: left + width, bottom: top + height },
+    });
+  };
+  const reset = () => {
+    setActive(undefined);
+    setOutside(false);
+  };
+  const onDragStart = ({ active: start, activatorEvent }: DragStartEvent) => {
+    const press = activatorEvent instanceof PointerEvent ? activatorEvent : undefined;
+    pointer.current = press && { x: press.clientX, y: press.clientY };
+    held.current = press?.pointerId;
+    setActive(items.find((item) => item.id === start.id));
+  };
+  const onDragMove = () => {
+    const away = !within(row.current, pointer.current);
+    if (away !== outside) {
+      setOutside(away);
+    }
+  };
+  const onDragEnd = (event: DragEndEvent) => {
+    reset();
+    const item = items.find((candidate) => candidate.id === event.active.id);
+    if (!item) {
+      return;
+    }
+    const point = pointer.current;
+    if (!event.over) {
+      if (point && !within(row.current, point)) {
+        onDropOutside?.(item, point);
+      }
+      return;
+    }
+    const from = ids.indexOf(item.id);
+    const to = ids.indexOf(String(event.over.id));
+    if (to < 0 || from === to) {
+      return;
+    }
+    /* Moving right it lands behind the piece it is over, moving left in front of it. */
+    const rest = ids.filter((id) => id !== item.id);
+    const at = rest.indexOf(String(event.over.id)) + (to > from ? 1 : 0);
+    onMove(item, rest[at] ?? null);
+  };
+  return (
+    <DndContext
+      sensors={sensors}
+      collisionDetection={collision}
+      onDragStart={onDragStart}
+      onDragMove={onDragMove}
+      onDragEnd={onDragEnd}
+      onDragCancel={reset}
+    >
+      <SortableContext items={ids} strategy={rectSortingStrategy} disabled={disabled}>
+        {/* A drag in progress takes Escape, which cancels it, before any window around it closes. */}
+        <div ref={row} className={className} aria-label={label} data-carried={dragging || undefined}>
+          {items.map((item) => (
+            <SortableTile
+              key={item.id}
+              id={item.id}
+              motion={motion}
+              disabled={disabled}
+              leaving={leaving?.(item) ?? false}
+            >
+              {children(item)}
+            </SortableTile>
+          ))}
+        </div>
+      </SortableContext>
+      {createPortal(
+        <DragOverlay
+          className={outside ? `${styles.lifted} ${styles.away}` : styles.lifted}
+          dropAnimation={motion && !outside ? undefined : null}
+        >
+          {active ? (
+            <div aria-hidden inert>
+              {children(active)}
+            </div>
+          ) : null}
+        </DragOverlay>,
+        document.body
+      )}
+    </DndContext>
+  );
+}
+
+function SortableTile({
+  id,
+  motion,
+  disabled,
+  leaving,
+  children,
+}: {
+  id: string;
+  motion: boolean;
+  disabled: boolean;
+  leaving: boolean;
+  children: ReactNode;
+}) {
+  const { listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+    /* A tile's own flag overrides the row's, so it carries both; a disabled row still takes right-clicks, a leaving piece nothing. */
+    disabled: disabled || leaving,
+    transition: motion ? undefined : null,
+  });
+  /* The browser's own drag of an image inside would take the pointer away from this one, so it never starts. */
+  return (
+    <div
+      ref={setNodeRef}
+      className={styles.tile}
+      data-dragging={isDragging || undefined}
+      data-leaving={leaving || undefined}
+      style={{ transform: CSS.Translate.toString(transform), transition }}
+      {...listeners}
+      onDragStart={(event) => event.preventDefault()}
+    >
+      {children}
+    </div>
+  );
+}

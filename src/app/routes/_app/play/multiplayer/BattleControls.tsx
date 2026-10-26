@@ -1,14 +1,11 @@
-import { Button, Group, Menu, Stack, Text } from '@mantine/core';
+import { Button, Group, Stack, Text } from '@mantine/core';
 import type { ButtonProps } from '@mantine/core';
-import { useElementSize } from '@mantine/hooks';
 import { Html } from '@react-three/drei/webgpu';
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { Board } from '@shared/boards/schema';
 import { troopBattleFaces } from '@shared/factions/troopBattle';
-import { isBattleLeader } from '@shared/play/battle';
 import type { BattlePlan, DisclosedPlan, PublicBattle } from '@shared/play/battle';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
-import { hiddenZoneView, nextHiddenZoneSpot } from '@shared/play/hiddenZone';
 import type { TablePiece, Vector3Tuple } from '@shared/play/model';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
 import { resolveRulebookBoardDefinition } from '@shared/rulebooks/boardDefinitions';
@@ -16,7 +13,7 @@ import { Section } from '@ui/block/Section';
 import { CalloutSurface } from '@ui/surface/CalloutSurface';
 import clsx from 'clsx';
 import type { CSSProperties, ReactNode } from 'react';
-import { useEffect, useReducer, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useReducer, useRef, useSyncExternalStore } from 'react';
 import type { Camera } from 'three';
 import { Plane, Raycaster, Vector2, Vector3 } from 'three';
 
@@ -25,7 +22,6 @@ import { BattleWheel as BattleWheelAsset } from '@game/assets/generic/BattleWhee
 import { factionTokenFixtures } from '@game/fixtures/factionTokens';
 
 import type { TableSession, TableProjection } from '../../../../db/tabletop/TableSession';
-import { HandPieceCloseUp } from '../../../../widgets/tabletop/PieceCloseUp';
 import { PointerSessionContext, usePointerSession } from '../../../../widgets/tabletop/PointerSessionContext';
 import { TABLE_PLATE_BOUNDS } from '../../../../widgets/tabletop/tablePlateGeometry';
 import { LedgerPlan } from '../battlePlan/LedgerPlan';
@@ -33,13 +29,12 @@ import { ModeToggle } from '../battlePlan/parts';
 import { planLocks, supportMatters } from '../battlePlan/planView';
 import type { BattlePlanViewProps, WheelArt } from '../battlePlan/planView';
 import { DarkSchemeIsland } from '../DarkSchemeIsland';
+import { useHandOrder } from '../hand/useHandOrder';
 import { BattleBeacon } from './BattleBeacon';
 import styles from './BattleControls.module.css';
 import { battleCapsuleY, headerInset } from './battlePlacement';
-import { PieceImage, pieceName, useHandCloseUp } from './HandPiece';
-import { HandPieceMenu, handMenuAnchor } from './HiddenZone';
-import type { HandMenuAnchor } from './HiddenZone';
-import { battleHelp, handHelp } from './panelGuidance';
+import { PieceImage, pieceName } from './HandPiece';
+import { battleHelp } from './panelGuidance';
 import { isSpectator } from './tableFactions';
 
 type Props = { client: TableSession; table: TableProjection };
@@ -180,16 +175,31 @@ function planDress(plan: BattlePlan, factionId: string, artwork?: FactionArtwork
 
 type PlanProps = Props & { plan: BattlePlan; battle: PublicBattle };
 
-/** The viewer's plan as the Battle plan window shows it: data from the table in, each intent sent to the table. */
-function planView({ client, table, plan, battle }: PlanProps): BattlePlanViewProps {
+/** The ids in the order of the pieces given; the plan lays its leaders and cards out on the wheel in the player's order. */
+const inOrderOf = (pieces: readonly TablePiece[], ids: readonly string[]) =>
+  ids.toSorted((a, b) => pieces.findIndex((piece) => piece.id === a) - pieces.findIndex((piece) => piece.id === b));
+
+/**
+ * The viewer's plan as the Battle plan window shows it: data from the table in, each intent sent to the table.
+ * Its pieces come in the player's own order, which the Hand & spice window shares and either window changes;
+ * pieces on the private side-table have no place in that order, so they follow at the end and keep their places.
+ */
+function usePlanView({ client, table, plan, battle }: PlanProps): BattlePlanViewProps {
+  const hand = table.snapshot.hand ?? [];
+  const aside = hand.filter((piece) => piece.hiddenZone);
+  const order = useHandOrder(client, table, [...hand.filter((piece) => !piece.hiddenZone), ...plan.pieces]);
   const bank = table.snapshot.bank!;
   const factionId = bank.factionId;
   const own = battle.sides.find((side) => side?.factionId === factionId);
   const other = battle.sides.find((side) => side && side.factionId !== factionId);
   const names = snapshotFactionLabels(table.snapshot);
   return {
-    plan,
-    hand: table.snapshot.hand ?? [],
+    plan: {
+      ...plan,
+      leaderIds: inOrderOf(order.pieces, plan.leaderIds),
+      cardIds: inOrderOf(order.pieces, plan.cardIds),
+    },
+    hand: [...order.pieces, ...aside],
     balance: bank.balance,
     stage: battle.stage,
     ready: own?.ready ?? false,
@@ -197,6 +207,11 @@ function planView({ client, table, plan, battle }: PlanProps): BattlePlanViewPro
     opponent: other ? { name: rosterName(other.factionId, names), ready: other.ready } : null,
     ...planDress(plan, factionId, table.snapshot.factionArtwork),
     onEdit: (patch) => client.editBattlePlan(patch),
+    onReorder: (piece, before) => {
+      if (!piece.hiddenZone) {
+        order.reorder(piece, aside.some((entry) => entry.id === before) ? null : before);
+      }
+    },
     onReady: (ready) => client.command({ kind: 'battle-ready', battleId: battle.id, ready }),
     onDisclose: (disclosure, shown) =>
       client.command({ kind: 'battle-disclose', battleId: battle.id, disclosure, shown }),
@@ -222,62 +237,6 @@ export function BattleModeToggle({ client, table }: Props) {
   );
 }
 
-export function HandControls({ client, table, hand }: Props & { hand: TablePiece[] }) {
-  const [menu, setMenu] = useState<HandMenuAnchor | null>(null);
-  /* The hidden zone is a window as wide as this one, so a piece moved there lands in what its narrow view shows. */
-  const { ref, width } = useElementSize<HTMLDivElement>();
-  const inHand = hand.filter((piece) => !piece.hiddenZone);
-  const closeUp = useHandCloseUp(inHand);
-  const pieces = useRef<HTMLDivElement>(null);
-  return (
-    <Section hiddenHeading title="Your hand and leaders" description={handHelp(table)}>
-      <Stack gap="sm" ref={ref}>
-        <Group gap="sm" ref={pieces}>
-          {inHand.map((piece) => (
-            <Button
-              variant="transparent"
-              h="auto"
-              radius={isBattleLeader(piece) ? '50%' : undefined}
-              p={0}
-              styles={{ label: { height: 'auto' } }}
-              key={piece.id}
-              className={styles.piece}
-              draggable={table.canHandleTable}
-              aria-label={`Drag ${pieceName(piece)} from hand`}
-              onDragStart={(event) => {
-                event.dataTransfer.setData('application/dune-hand', piece.id);
-                const target = event.currentTarget;
-                event.dataTransfer.setDragImage(target, target.offsetWidth / 2, target.offsetHeight / 2);
-              }}
-              onContextMenu={(event) => setMenu(handMenuAnchor(event, piece.id))}
-              {...closeUp.hover(piece)}
-            >
-              <PieceImage piece={piece} />
-            </Button>
-          ))}
-        </Group>
-      </Stack>
-      <HandPieceCloseUp area={pieces} piece={closeUp.piece} />
-      <HandPieceMenu anchor={menu} label="Hand actions" onClose={() => setMenu(null)}>
-        <Menu.Item
-          disabled={!table.canHandleTable}
-          onClick={() => {
-            if (menu) {
-              client.command({
-                kind: 'hand-zone',
-                pieceId: menu.pieceId,
-                at: nextHiddenZoneSpot(hand, width > 0 ? hiddenZoneView(width, Infinity).extent : undefined),
-              });
-            }
-            setMenu(null);
-          }}
-        >
-          Move to private side-table
-        </Menu.Item>
-      </HandPieceMenu>
-    </Section>
-  );
-}
 function BattleResults({
   results: battleResults,
   artwork,
@@ -330,11 +289,15 @@ function battleNotice(table: TableProjection, battle: PublicBattle | null | unde
   return 'Claim a side on the table to prepare your private plan.';
 }
 
+function PlanWindow(props: PlanProps) {
+  return <LedgerPlan {...usePlanView(props)} />;
+}
+
 /** The viewer's own plan for the battle on the table, or why there is none. */
 export function BattleControls({ client, table }: Props) {
   const { battle, battlePlan } = table.snapshot;
   if (battlePlan && battle && table.snapshot.bank) {
-    return <LedgerPlan {...planView({ client, table, plan: battlePlan, battle })} />;
+    return <PlanWindow client={client} table={table} plan={battlePlan} battle={battle} />;
   }
   return (
     <Section hiddenHeading title="Battle" description={battleHelp(table)}>

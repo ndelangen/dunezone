@@ -11,6 +11,7 @@ import { expectNoControl, openPanel, unpinWindow, WAIT, windowNamed } from './co
 import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
 import { battleStory, expectBattleCalloutPlacement, openTab, settled } from './playing.stories.fixture';
 import { productTransport } from './product.stories.fixture';
+import { dragOnto } from './sortable.stories.fixture';
 
 const meta = testingPreview.meta({
   ...gameMeta,
@@ -355,6 +356,35 @@ export const PlanArtwork = meta.story({
       }
       await arrived(within(page.getByLabelText(/^Your plan:/)).getByRole('img', { name: 'Feyd Rautha' }));
     });
+  },
+});
+
+/**
+ * Dragging a leader along its row moves it in the player's own order, which the room keeps for the Hand & spice window too;
+ * the row shows the new order at once.
+ */
+export const ReorderLeaders = meta.story({
+  beforeEach: battleSetup('preparing'),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await openTab(page, 'Battle plan');
+    const leaders = () => within(page.getByRole('region', { name: 'Leader' }));
+    const order = () =>
+      leaders()
+        .getAllByRole('button')
+        .map((button) => button.getAttribute('aria-label'));
+    const first = await leaders().findByRole('button', { name: 'Put Beast Rabban into the plan' }, WAIT);
+    const moved = leaders().getByRole('button', { name: 'Put Piter De Vries into the plan' });
+    await expect(order().indexOf('Put Piter De Vries into the plan')).toBeGreaterThan(
+      order().indexOf('Put Beast Rabban into the plan')
+    );
+    await dragOnto(moved, first);
+    await waitFor(() =>
+      expect(lastCommand()?.action).toMatchObject({ kind: 'hand-order', before: expect.any(String) })
+    );
+    await expect(order().indexOf('Put Piter De Vries into the plan')).toBeLessThan(
+      order().indexOf('Put Beast Rabban into the plan')
+    );
   },
 });
 

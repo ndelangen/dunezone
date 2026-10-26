@@ -34,19 +34,15 @@
   text-transform: uppercase;
 }
 
-/* Room above and below for a picked tile's lift, its tick and its eye. */
-/* A piece the player drags lifts above its neighbours and shows the grab. */
-.sortable {
-  position: relative;
+/* The pieces of a row, in the player's own order, which a drag along the row changes. */
+.tiles {
+  display: flex;
   flex: none;
-  touch-action: none;
+  align-items: center;
+  gap: 0.6rem;
 }
 
-.sortable[data-dragging] {
-  z-index: 1;
-  cursor: grabbing;
-}
-
+/* Room above and below for a picked tile's lift, its tick and its eye. */
 .strip {
   display: flex;
   align-items: center;

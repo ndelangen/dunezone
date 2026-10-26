@@ -5,11 +5,9 @@ import { piece } from '@shared/play/setupSupply';
 import { expect, test } from 'vite-plus/test';
 
 import {
-  arranged,
   cardsOf,
   fullSupport,
   planPieces,
-  seated,
   snapSpice,
   supportMatters,
   toggleIn,
@@ -53,15 +51,10 @@ test('a Traitor card stays out of the picker, unless an older plan already holds
   expect(cardsOf(pieces, ['kept']).map((entry) => entry.id)).toEqual(['treachery', 'kept']);
 });
 
-test("choosing a piece keeps the strip's order, and the plan takes the chosen ones in that order", () => {
+test("choosing a piece keeps the player's order, and the plan takes the chosen ones in that order", () => {
   const order = ['crysknife', 'shield', 'chaumas'];
   expect(toggleIn(['chaumas'], 'crysknife', order)).toEqual(['crysknife', 'chaumas']);
   expect(toggleIn(['crysknife', 'chaumas'], 'crysknife', order)).toEqual(['chaumas']);
-});
-
-test("the player's order holds as pieces come and go, and a reload seats the plan's own order", () => {
-  expect(arranged(['b', 'a', 'gone'], ['a', 'b', 'new'])).toEqual(['b', 'a', 'new']);
-  expect(seated(['a', 'b', 'c', 'd'], ['d', 'b'])).toEqual(['a', 'd', 'c', 'b']);
 });
 
 const face = (values: Partial<BattleFace>): BattleFace => ({

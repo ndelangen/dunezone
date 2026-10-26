@@ -1,3 +1,4 @@
+import { Tooltip } from '@mantine/core';
 import { emptyBattlePlan, isBattleLeader } from '@shared/play/battle';
 import type { BattleFace, BattlePlan, BattlePlanInput, Disclosure } from '@shared/play/battle';
 import type { TablePiece } from '@shared/play/model';
@@ -13,7 +14,7 @@ import { DarkSchemeIsland, darkSchemeIslandAttributes } from '../DarkSchemeIslan
 import { cardBack, factions, playingSnapshot } from '../product.stories.fixture';
 import { LedgerPlan } from './LedgerPlan';
 import { ModeToggle } from './parts';
-import { planLocks, supportMatters } from './planView';
+import { planLocks, planPieces, supportMatters } from './planView';
 import type { BattlePlanViewProps } from './planView';
 import '../dune-play.css';
 
@@ -85,7 +86,7 @@ const SEATS = {
   leaders: ['seat-5', 'fremen'],
 } as const;
 
-type Harness = Omit<BattlePlanViewProps, 'onEdit' | 'onReady' | 'onDisclose'>;
+type Harness = Omit<BattlePlanViewProps, 'onEdit' | 'onReorder' | 'onReady' | 'onDisclose'>;
 
 /** The viewer's side of the story battle: Harkonnen against Atreides, or the Emperor or the Fremen in its place. */
 export function scenario(name: Scenario): Harness {
@@ -173,7 +174,7 @@ export function scenario(name: Scenario): Harness {
 }
 
 /**
- * What the Worker makes of a plan edit, for the story: switching mode starts the dial over, Max supports as many troops as the spice reaches, Custom spends what its supported troops cost, and the committed pieces leave the hand.
+ * What the Worker makes of a plan edit, for the story: switching mode starts the dial over, Max supports as many troops as the spice reaches, Custom spends what its supported troops cost, and the committed pieces keep their places in the player's order.
  */
 function simulate(state: Harness, patch: Partial<BattlePlanInput>): Harness {
   const before = state.plan;
@@ -202,7 +203,7 @@ function simulate(state: Harness, patch: Partial<BattlePlanInput>): Harness {
     const face = faces.get(troop.faceId)!;
     return total + troop.undialed * face.strength + troop.dialed * face.supportedStrength;
   }, input.adjustment);
-  const pool = [...state.hand, ...before.pieces];
+  const pool = planPieces(before, state.hand);
   const ids = [...input.leaderIds, ...input.cardIds];
   const plan: BattlePlan = {
     ...input,
@@ -215,7 +216,7 @@ function simulate(state: Harness, patch: Partial<BattlePlanInput>): Harness {
     ...state,
     plan,
     balance: available - spice,
-    hand: pool.filter((entry) => !ids.includes(entry.id)),
+    hand: pool,
   };
 }
 
@@ -231,6 +232,21 @@ function disclose(state: Harness, part: Disclosure, shown: boolean): Harness {
     disclosed[part.element] = shown;
   }
   return { ...state, plan: { ...state.plan, disclosed } };
+}
+
+/** A piece moved in the player's order, as the Worker keeps it: the plan's leaders and cards follow that order too. */
+function reorder(state: Harness, piece: TablePiece, before: string | null): Harness {
+  const rest = planPieces(state.plan, state.hand).filter((entry) => entry.id !== piece.id);
+  const at = before ? rest.findIndex((entry) => entry.id === before) : -1;
+  rest.splice(at < 0 ? rest.length : at, 0, piece);
+  const ids = rest.map((entry) => entry.id);
+  const sorted = (chosen: readonly string[]) => chosen.toSorted((a, b) => ids.indexOf(a) - ids.indexOf(b));
+  const { plan } = state;
+  return {
+    ...state,
+    hand: rest,
+    plan: { ...plan, leaderIds: sorted(plan.leaderIds), cardIds: sorted(plan.cardIds) },
+  };
 }
 
 /** The Ledger, live: its intents change the story's own plan as the Worker would. */
@@ -251,6 +267,7 @@ export function PlanHarness({ initial, size }: { initial: Harness; size: SlotSiz
       <LedgerPlan
         {...state}
         onEdit={(patch) => setState((before) => simulate(before, patch))}
+        onReorder={(piece, before) => setState((state) => reorder(state, piece, before))}
         onReady={(ready) =>
           setState((before) => ({
             ...before,
@@ -307,14 +324,11 @@ function SlotFrame({ size, actions, children }: { size: SlotSize; actions: React
             actions={
               <>
                 {actions}
-                <button
-                  type="button"
-                  className={compassStyles.iconButton}
-                  aria-label="Unpin"
-                  title="Unpin: it disappears"
-                >
-                  <PinOff size={16} />
-                </button>
+                <Tooltip label="Unpin: it disappears" withArrow>
+                  <button type="button" className={compassStyles.iconButton} aria-label="Unpin">
+                    <PinOff size={16} />
+                  </button>
+                </Tooltip>
               </>
             }
           />

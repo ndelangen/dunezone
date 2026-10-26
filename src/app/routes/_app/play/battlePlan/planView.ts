@@ -6,9 +6,11 @@ import type { ComponentProps } from 'react';
 import type { TroopToken } from '@game/assets/faction/troop/Troop';
 import type { BackgroundRenderer } from '@game/assets/utils/BackgroundRenderer';
 
-/** What a battle plan window says it wants: a plan edit, readiness, or a part shown or hidden before the reveal. */
+/** What a battle plan window says it wants: a plan edit, a piece moved in the player's own order, readiness, or a part shown or hidden before the reveal. */
 type PlanIntents = Readonly<{
   onEdit: (patch: Partial<BattlePlanInput>) => void;
+  /** Moves a piece to just before another, or to the end with null, in the order every window lists the player's pieces in. */
+  onReorder: (piece: TablePiece, before: string | null) => void;
   onReady: (ready: boolean) => void;
   onDisclose: (disclosure: Disclosure, shown: boolean) => void;
 }>;
@@ -31,7 +33,7 @@ export type Opponent = Readonly<{ name: string; ready: boolean }>;
  */
 export type BattlePlanViewProps = Readonly<{
   plan: BattlePlan;
-  /** The viewer's hand; the plan's own pieces are added to it, so a committed piece stays in reach. */
+  /** The viewer's hand, in their own order; the plan's own pieces are added to it, so a committed piece stays in reach. */
   hand: readonly TablePiece[];
   /** The spice reserve, not counting what the plan already sets aside. */
   balance: number;
@@ -172,22 +174,12 @@ export function troopLimitOf(props: Pick<BattlePlanViewProps, 'plan' | 'troopLim
   return Math.max(0, limit - fielded);
 }
 
-/**
- * Pieces in the player's own order: the ones already placed keep their places, and new ones join at the end.
- * Choosing follows this order, so putting a piece into the plan never moves it, and the wheel shows the pieces as laid out.
- */
-export function arranged(order: readonly string[], ids: readonly string[]) {
+/** The ids in the order given, then any the order does not name. */
+function arranged(order: readonly string[], ids: readonly string[]) {
   return [...order.filter((id) => ids.includes(id)), ...ids.filter((id) => !order.includes(id))];
 }
 
-/** A strip's first order: the pieces as they come, with the chosen ones in the plan's own order across their places. */
-export function seated(ids: readonly string[], chosen: readonly string[]) {
-  const queue = chosen.filter((id) => ids.includes(id));
-  let next = 0;
-  return ids.map((id) => (queue.includes(id) ? queue[next++]! : id));
-}
-
-/** Puts a piece in among the chosen ones, in the strip's order, or takes it out. */
+/** Puts a piece in among the chosen ones, in the player's order, or takes it out. */
 export function toggleIn(chosen: readonly string[], id: string, order: readonly string[] = chosen) {
   return chosen.includes(id) ? chosen.filter((entry) => entry !== id) : arranged(order, [...chosen, id]);
 }

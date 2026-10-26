@@ -1,6 +1,7 @@
 import { Tooltip, UnstyledButton } from '@mantine/core';
 import type { BattleFace } from '@shared/play/battle';
 import { TopicIcon } from '@ui/content/TopicIcon';
+import { SortableRow } from '@ui/control/SortableRow';
 import { Fragment } from 'react';
 
 import styles from './LedgerPlan.module.css';
@@ -27,7 +28,6 @@ import {
   withTroops,
 } from './planView';
 import type { BattlePlanViewProps } from './planView';
-import { SortableStrip } from './SortableStrip';
 
 /**
  * The ledger: the whole plan on one sheet under the wheel, a row per part, so every change is one click where it shows.
@@ -35,10 +35,11 @@ import { SortableStrip } from './SortableStrip';
  * every count is a slider to sweep and a stepper to nudge.
  */
 export function LedgerPlan(props: BattlePlanViewProps) {
-  const { plan, hand, onEdit, onDisclose } = props;
+  const { plan, hand, canAct, onEdit, onReorder, onDisclose } = props;
   const locks = planLocks(props);
   const pieces = planPieces(plan, hand);
   const cards = cardsOf(pieces, plan.cardIds);
+  const order = pieces.map((piece) => piece.id);
   return (
     <div className={styles.ledger}>
       <PlanHead view={props} />
@@ -58,13 +59,8 @@ export function LedgerPlan(props: BattlePlanViewProps) {
             ) : null}
           </span>
           <div className={styles.strip}>
-            <SortableStrip
-              pieces={leadersOf(pieces)}
-              chosen={plan.leaderIds}
-              locked={locks.leaderLocked}
-              onChoose={(leaderIds) => onEdit({ leaderIds })}
-            >
-              {(piece, order) => (
+            <SortableRow items={leadersOf(pieces)} disabled={!canAct} className={styles.tiles} onMove={onReorder}>
+              {(piece) => (
                 <PieceTile
                   piece={piece}
                   selected={plan.leaderIds.includes(piece.id)}
@@ -72,19 +68,14 @@ export function LedgerPlan(props: BattlePlanViewProps) {
                   onToggle={() => onEdit(toggleLeader(plan, piece.id, order))}
                 />
               )}
-            </SortableStrip>
+            </SortableRow>
           </div>
         </section>
         <section className={styles.row} aria-label="Cards">
           <span className={styles.label}>Cards</span>
           <div className={styles.strip}>
-            <SortableStrip
-              pieces={cards}
-              chosen={plan.cardIds}
-              locked={locks.locked}
-              onChoose={(cardIds) => onEdit({ cardIds })}
-            >
-              {(piece, order) => (
+            <SortableRow items={cards} disabled={!canAct} className={styles.tiles} onMove={onReorder}>
+              {(piece) => (
                 <PieceTile
                   piece={piece}
                   width={38}
@@ -102,7 +93,7 @@ export function LedgerPlan(props: BattlePlanViewProps) {
                   }
                 />
               )}
-            </SortableStrip>
+            </SortableRow>
             {cards.length ? null : <span className={styles.empty}>No cards in hand</span>}
           </div>
         </section>

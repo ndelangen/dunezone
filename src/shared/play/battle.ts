@@ -153,6 +153,8 @@ export const battleActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('hand-play'), pieceId: id, position: tablePositionSchema }),
   /* Moves a piece in hand to a spot in its faction's hidden zone, or back to the plain inventory with null. */
   z.strictObject({ kind: z.literal('hand-zone'), pieceId: id, at: hiddenZoneSpotSchema.nullable() }),
+  /* Moves a piece of the plain hand to just before another, or to the end with null: the order the player reads it in. */
+  z.strictObject({ kind: z.literal('hand-order'), pieceId: id, before: id.nullable() }),
 ]);
 export type BattleAction = z.infer<typeof battleActionSchema>;
 export const isBattleAction = actionKindGuard(battleActionSchema);

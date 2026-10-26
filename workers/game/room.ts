@@ -550,6 +550,7 @@ export class Room {
         'hand-take',
         'hand-play',
         'hand-zone',
+        'hand-order',
         'tint-create',
         'tint-paint',
         'tint-set',
