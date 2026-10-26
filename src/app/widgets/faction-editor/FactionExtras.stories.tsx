@@ -25,3 +25,19 @@ export const Empty = meta.story({
     await expect(canvas.getByRole('button', { name: 'Save faction' })).toBeEnabled();
   },
 });
+
+/** A faction bringing a single custom card, a deck, a bundle and a token: each listed as the picker draws it. */
+export const Populated = meta.story({
+  args: {
+    faction: factionWith([
+      { type: 'card-custom', slug: 'battle-reference' },
+      { type: 'deck', slug: 'house-treachery' },
+      { type: 'bundle', slug: 'atreides-tokens' },
+      { type: 'token-enhance', slug: 'kwisatz-haderach' },
+    ]),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = await openExtras(canvasElement);
+    await expect(await canvas.findByText('Battle reference', {}, { timeout: 30_000 })).toBeVisible();
+  },
+});

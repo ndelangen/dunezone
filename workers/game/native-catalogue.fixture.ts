@@ -22,6 +22,15 @@ export function cardPage(id: string) {
   });
 }
 
+/** A single card as the catalogue answers for it alone: wearing its holding deck's back and naming that deck, or naming none. */
+export function heldCardPage(card: AssetSupply, deck: AssetSupply | null) {
+  return assetSupplySchema.parse({
+    ...card,
+    ...(deck ? { back: deck.back, backMode: deck.backMode, backDeck: deck.backDeck } : {}),
+    cardDeck: deck?.asset ?? null,
+  });
+}
+
 export function spiceCardPage(id: string) {
   return assetSupplySchema.parse({
     ...blank,
