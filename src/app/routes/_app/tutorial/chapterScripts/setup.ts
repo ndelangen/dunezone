@@ -26,8 +26,11 @@ const othersReadyUp = (players: TablePlayers) => {
   return () => timers.forEach(clearTimeout);
 };
 
+/* A card in hand shows its face; a pile on the table lies face down, and the page sees only its back, so it goes by its stack. */
 const isTraitor = (piece: { items: readonly { artwork?: { type?: string } }[] }) =>
   piece.items[0]?.artwork?.type === 'card-traitor';
+const isTraitorPile = (piece: { stackKey?: string | null; items: readonly { artwork?: { backName?: string } }[] }) =>
+  piece.stackKey === 'cards:traitor' || piece.items[0]?.artwork?.backName === 'Traitor';
 
 function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[] {
   const mine = () => snapshot().bank?.factionId ?? '';
@@ -42,7 +45,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
   const myTraitors = () => {
     const seat = factionTokenOf(snapshot().table.pieces, mine())?.position;
     return pieces()
-      .filter(isTraitor)
+      .filter(isTraitorPile)
       .sort((a, b) =>
         seat
           ? Math.hypot(a.position[0]! - seat[0]!, a.position[2]! - seat[2]!) -
