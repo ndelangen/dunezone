@@ -4,8 +4,9 @@ import { IconAction } from '@ui/control/IconAction';
 import { History, UserRoundMinus } from 'lucide-react';
 import { expect, userEvent, within } from 'storybook/test';
 
-import { AuthoringToolbar, failureStatus, groupAccessStatus } from './AuthoringToolbar';
+import { AuthoringToolbar, failureStatus } from './AuthoringToolbar';
 import { cleanStatus, cleanToolbar } from './AuthoringToolbar.stories.fixture';
+import { groupAccessStatus } from './groupAccessStatus';
 
 const SCHEDULED =
   'A new faction sheet capture is scheduled. The current PDF remains available. Last published Aug 4, 2026, 6:30 PM';
