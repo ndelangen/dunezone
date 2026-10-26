@@ -105,10 +105,7 @@ class ReportSubmission {
   private pending: Submission | null = null;
 
   async send(context: ReportContext, draft: Draft, dispatch: Dispatch<Event>) {
-    if (this.busy || !draft.acknowledged) {
-      return;
-    }
-    if (!bugReportDescriptionSchema.safeParse({ description: draft.description }).success) {
+    if (this.busy || !canSend(draft)) {
       return;
     }
     this.busy = true;
@@ -137,16 +134,24 @@ class ReportSubmission {
       const progress = await sendPlayBugReport(gameId, { operation: 'status', requestId });
       dispatch({ type: 'progress', progress });
     } catch (error) {
-      dispatch({ type: 'error', message: error instanceof Error ? error.message : 'Could not check the report.' });
+      dispatch({ type: 'error', message: reportErrorMessage(error, 'Could not check the report.') });
     }
     this.busy = false;
   }
 }
 
+function canSend(draft: Draft) {
+  return draft.acknowledged && bugReportDescriptionSchema.safeParse({ description: draft.description }).success;
+}
+
+function reportErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
+
 function submissionError(error: unknown): Event {
   return {
     type: error instanceof BugReportRejected ? 'rejected' : 'error',
-    message: error instanceof Error ? error.message : 'The report could not be sent.',
+    message: reportErrorMessage(error, 'The report could not be sent.'),
   };
 }
 
@@ -244,13 +249,7 @@ function ReportActions({ draft, dispatch, send, check }: ReportFormProps) {
       ) : draft.requestId !== null ? (
         <SubmittedActions draft={draft} check={check} send={send} />
       ) : (
-        <Button
-          color="cta"
-          onClick={send}
-          disabled={
-            !draft.acknowledged || !bugReportDescriptionSchema.safeParse({ description: draft.description }).success
-          }
-        >
+        <Button color="cta" onClick={send} disabled={!canSend(draft)}>
           Send report
         </Button>
       )}

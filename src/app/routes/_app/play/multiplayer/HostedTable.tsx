@@ -942,7 +942,9 @@ function historyGroup({ client, table, error }: ConnectionControlsProps, hasInve
 /** The left rail keeps personal resources first and omits groups with no stage content. */
 type ControlPanelsProps = ConnectionControlsProps & Readonly<{ declare: DeclareChoice }>;
 
-function controlPanels(props: ControlPanelsProps): TablePanel[] {
+function controlPanels(
+  props: ControlPanelsProps & Readonly<{ report: { enabled: boolean; content: ReactNode } }>
+): TablePanel[] {
   const { stage, hand } = props.table.snapshot;
   const inPlay = stageInPlay(stage);
   const hasInventory = inPlay || stage === 'finished' || stage === 'setup';
@@ -951,6 +953,17 @@ function controlPanels(props: ControlPanelsProps): TablePanel[] {
     gameGroup(props, inPlay),
     ...(hasInventory ? [tableGroup(props)] : []),
     ...(stage ? [historyGroup(props, hasInventory)] : []),
+    ...(props.report.enabled
+      ? [
+          {
+            key: 'report-bug',
+            label: 'Report a bug',
+            topic: 'battleUnknown' as const,
+            description: 'Describe a problem and share the full game state and browser logs.',
+            content: props.report.content,
+          },
+        ]
+      : []),
   ];
 }
 
@@ -1098,20 +1111,13 @@ function ConnectedTable({
                 ) : undefined
               }
               focus={focus}
-              panels={[
-                ...controlPanels({ client, table, error, declare }),
-                ...(reportsEnabled
-                  ? [
-                      {
-                        key: 'report-bug',
-                        label: 'Report a bug',
-                        topic: 'battleUnknown' as const,
-                        description: 'Describe a problem and share the full game state and browser logs.',
-                        content: bugReport,
-                      },
-                    ]
-                  : []),
-              ]}
+              panels={controlPanels({
+                client,
+                table,
+                error,
+                declare,
+                report: { enabled: reportsEnabled, content: bugReport },
+              })}
               tableGuidance={phaseGuidance(table)}
               tableControls={phaseTabControls({ client, table, error, progress })}
             />
