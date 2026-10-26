@@ -187,9 +187,9 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       task: 'You lost a troop in battle: put the counter on space 1',
       detail: 'Drag the counter onto the first space of the track. Up close, it lands exactly where you mean.',
       anchor: { kind: 'page', element: element(onSideTable(COUNTER)) },
-      /* Only a move made up close counts: a counter laid on space 1 at table size by luck still has to be laid again. */
-      begin: () => JSON.stringify(spotOf(COUNTER)),
-      done: (laid) => JSON.stringify(spotOf(COUNTER)) !== laid && tracked(spaceUnder) === 1,
+      /* A counter already laid on space 1 at table size counts at once: the learner is never asked to lay it where it lies. */
+      begin: () => null,
+      done: () => tracked(spaceUnder) === 1,
     }),
     task({
       id: 'more-losses',
