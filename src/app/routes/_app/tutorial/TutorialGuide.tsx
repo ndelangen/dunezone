@@ -14,6 +14,7 @@ import { DarkSchemeIsland, darkSchemeIslandAttributes } from '../play/DarkScheme
 import { ChapterComplete } from './ChapterComplete';
 import { guideShapePath, keepInView, transposed } from './guideArrow';
 import type { Target } from './guideArrow';
+import { ReadAloud } from './ReadAloud';
 import styles from './TutorialGuide.module.css';
 
 /*
@@ -353,9 +354,13 @@ export function TutorialGuide({
             {done && <VisuallyHidden> (done)</VisuallyHidden>}
           </p>
           <div className={styles.railMore} aria-hidden={!open}>
-            <p className={styles.railDetail}>
-              <KeyedText>{item.detail}</KeyedText>
-            </p>
+            <div className={styles.railBody}>
+              <p className={styles.railDetail}>
+                <KeyedText>{item.detail}</KeyedText>
+              </p>
+              {/* Keyed by the task and the run, so the voice stops as the task changes or the chapter resets. */}
+              {open && <ReadAloud key={`${run}:${item.id}`} text={`${item.task}. ${item.detail}`} />}
+            </div>
           </div>
         </div>
       </>
