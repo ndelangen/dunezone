@@ -263,8 +263,11 @@ export function HiddenZone({ client, table, hand }: Props) {
       return;
     }
     event.preventDefault();
-    /* A held piece keeps the size it was lifted at, so the zoom holds still from the press until it is let go. */
-    if (carrying.current) {
+    /*
+     * A held piece keeps the size it was lifted at, so the zoom holds still from the press until it is let go;
+     * a felt drag moves the view from where it was grabbed, so the zoom holds still through that too.
+     */
+    if (carrying.current || panning.current) {
       return;
     }
     const box = event.currentTarget instanceof HTMLElement ? event.currentTarget.getBoundingClientRect() : null;
