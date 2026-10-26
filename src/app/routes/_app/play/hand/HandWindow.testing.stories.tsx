@@ -37,12 +37,16 @@ export const HandActions = meta.story({
   },
 });
 
-/* A mouse drag as the browser sends it: pressed on one piece, moved in small steps onto the first half of another, and let go there. */
+/* A mouse drag onto another element, let go over its left quarter. */
 async function dragOnto(source: HTMLElement, target: HTMLElement, held: () => void = () => {}) {
-  const from = source.getBoundingClientRect();
   const to = target.getBoundingClientRect();
+  await dragTo(source, { x: to.left + to.width / 4, y: to.top + to.height / 2 }, held);
+}
+
+/* A mouse drag as the browser sends it: pressed on one piece, moved in small steps to a point, and let go there. */
+async function dragTo(source: HTMLElement, end: { x: number; y: number }, held: () => void = () => {}) {
+  const from = source.getBoundingClientRect();
   const start = { x: from.left + from.width / 2, y: from.top + from.height / 2 };
-  const end = { x: to.left + to.width / 4, y: to.top + to.height / 2 };
   const pointer = (type: string, x: number, y: number, on: EventTarget) =>
     on.dispatchEvent(
       new PointerEvent(type, {
@@ -106,5 +110,34 @@ export const ReorderByDrag = meta.story({
     );
     await new Promise((resolve) => requestAnimationFrame(resolve));
     await expect(treacheryOrder(page)).toEqual(after);
+  },
+});
+
+/** A card dragged off its shelf onto the private side-table is laid there. */
+export const DragToSideTable = meta.story({
+  beforeEach: at('Battle plan'),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const crysknife = await page.findByRole('button', { name: 'Drag Crysknife from hand' }, { timeout: 30_000 });
+    await dragOnto(crysknife, page.getByText(/Drag a piece here from your hand/));
+    /* It leaves the hand as it is let go, rather than settling back until the room answers. */
+    await expect(!crysknife.isConnected || crysknife.closest('[data-leaving="side"]') !== null).toBe(true);
+    await expect(
+      page.findByRole('button', { name: 'Move Crysknife on private side-table' }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    await waitFor(() => expect(page.queryByRole('button', { name: 'Drag Crysknife from hand' })).toBeNull());
+    /* Let go hard by the side-table's right edge, a card is laid whole inside it, where it shows. */
+    const sideTable = canvasElement.ownerDocument.querySelector('[data-side-table]')!;
+    const edge = sideTable.getBoundingClientRect();
+    await dragTo(page.getByRole('button', { name: 'Drag Shield from hand' }), {
+      x: edge.right - 2,
+      y: edge.top + edge.height / 2,
+    });
+    const laid = await page.findByRole('button', { name: 'Move Shield on private side-table' }, { timeout: 30_000 });
+    await waitFor(async () => {
+      const box = laid.getBoundingClientRect();
+      await expect(box.right).toBeLessThanOrEqual(edge.right + 1);
+      await expect(box.right).toBeGreaterThan(edge.right - box.width / 2);
+    });
   },
 });

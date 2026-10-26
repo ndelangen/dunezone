@@ -2,7 +2,7 @@ import { testingPreview } from '@sb/preview';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { VIEWER, faction, alliancesSnapshot } from './alliances.stories.fixture';
-import { openPanel, openPlayer } from './controls.stories.fixture';
+import { openPanel, openFactionInfo } from './controls.stories.fixture';
 import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
 import { productTransport } from './product.stories.fixture';
 
@@ -34,7 +34,7 @@ export const AlliedPlayerInfo = meta.story({
   beforeEach: install(() => productTransport(VIEWER, alliancesSnapshot())),
   play: async ({ canvasElement }) => {
     const ally = alliancesSnapshot().controls!.players.find((player) => player.seat === 'seat-4')!;
-    const page = await openPlayer(canvasElement, ally.name, 'Info');
+    const page = await openFactionInfo(canvasElement, ally.name);
     await waitFor(() => expect(page.getByText(/^Allied with/)).toBeVisible());
   },
 });

@@ -1,7 +1,7 @@
 import { testingPreview } from '@sb/preview';
-import { expect, userEvent, waitFor, within } from 'storybook/test';
+import { expect, userEvent, waitFor } from 'storybook/test';
 
-import { openControl } from './controls.stories.fixture';
+import { openFactionInfo } from './controls.stories.fixture';
 import { gameMeta, install, lastCommand } from './game.stories.fixture';
 import { productTransport, swappingSnapshot } from './product.stories.fixture';
 
@@ -22,14 +22,13 @@ export const Offers = meta.story({
     return productTransport('seat-2', snapshot);
   }),
   play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await openControl(page, 'Twaffle');
+    const page = await openFactionInfo(canvasElement, 'Twaffle');
     await page.findByRole('button', { name: 'Accept trade from House Atreides' }, { timeout: 30_000 });
-    await openControl(page, 'fectumbra');
+    await openFactionInfo(canvasElement, 'fectumbra');
     await expect(page.getByRole('button', { name: 'Offer trade to Emperor' })).toBeDisabled();
-    await openControl(page, 'Ridwan');
+    await openFactionInfo(canvasElement, 'Ridwan');
     await expect(page.getByRole('button', { name: 'Cancel offer to Fremen' })).toBeEnabled();
-    await openControl(page, 'Twaffle');
+    await openFactionInfo(canvasElement, 'Twaffle');
     await userEvent.click(page.getByRole('button', { name: 'Accept trade from House Atreides' }));
     await waitFor(() => expect(lastCommand()).toMatchObject({ action: { kind: 'swap-accept', offerId: 'offer-one' } }));
   },

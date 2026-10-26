@@ -22,6 +22,8 @@ import { createPortal } from 'react-dom';
 import type { TableSession, TableProjection } from '../../../../db/tabletop/TableSession';
 import { HandPieceCloseUp } from '../../../../widgets/tabletop/PieceCloseUp';
 import { wheelPixels } from '../../../../widgets/tabletop/wheelPixels';
+import { SIDE_TABLE_DROP } from './dropFromHand';
+import type { SideTableDrop } from './dropFromHand';
 import { PieceImage, pieceName, useHandCloseUp } from './HandPiece';
 import styles from './HiddenZone.module.css';
 import { fitZoom, UNZOOMED, wheelFactor, zoomAbout } from './hiddenZoneZoom';
@@ -31,6 +33,13 @@ import { viewerFaction } from './tableFactions';
 
 /* A piece's offset along one side, kept within the zone, or at its start where the piece is larger than the zone. */
 const inside = (offset: number, max: number) => Math.max(0, Math.min(max, offset));
+
+/*
+ * Where a piece's centre is kept along one axis, in the view's pixels: whole inside the unzoomed view, where the zone draws it once laid,
+ * and in view. `reach` is the piece's size at this zoom, `room` the view's, `shift` how far the view is moved in, `by` the zoom.
+ */
+const keptCentre = (at: number, reach: number, room: number, shift: number, by: number) =>
+  Math.min(room, room * by - reach / 2 - shift, Math.max(0, reach / 2 - shift, at));
 
 type Props = { client: TableSession; table: TableProjection; hand: TablePiece[] };
 
@@ -208,12 +217,12 @@ export function HiddenZone({ client, table, hand }: Props) {
     const { zone, zoom, scale } = current;
     const pending = turns.current && turns.current.pieceId === current.pieceId ? turns.current.by : 0;
     const { across, down } = turnedReach(current.width, current.depth, { x: 0, y: 0, turn: current.turn + pending });
-    const centre = (at: number, reach: number, room: number, from: number) => {
-      const shift = from * scale;
-      return Math.min(room, room * zoom.by - reach / 2 - shift, Math.max(0, reach / 2 - shift, at));
+    const at = {
+      x: current.x - current.grabX + current.width / 2 - zone.left,
+      y: current.y - current.grabY + current.depth / 2 - zone.top,
     };
-    const x = centre(current.x - current.grabX + current.width / 2 - zone.left, across, zone.width, zoom.x);
-    const y = centre(current.y - current.grabY + current.depth / 2 - zone.top, down, zone.height, zoom.y);
+    const x = keptCentre(at.x, across, zone.width, zoom.x * scale, zoom.by);
+    const y = keptCentre(at.y, down, zone.height, zoom.y * scale, zoom.by);
     return { left: zone.left + x - current.width / 2, top: zone.top + y - current.depth / 2 };
   };
   const place = () => {
@@ -309,6 +318,7 @@ export function HiddenZone({ client, table, hand }: Props) {
   const lay = (piece: TablePiece, at: HiddenZoneSpot) => {
     const commandId = client.command({ kind: 'hand-zone', pieceId: piece.id, at });
     setLanding(commandId ? { pieceId: piece.id, commandId, at, from: piece.hiddenZone } : null);
+    return commandId;
   };
   const sendTurn = (pending: Turning | null) => {
     const piece = pending && pieces.find((candidate) => candidate.id === pending.pieceId);
@@ -438,9 +448,36 @@ export function HiddenZone({ client, table, hand }: Props) {
     );
   };
 
+  /* A piece dragged here from the hand is laid where it was let go, centred under the pointer and kept as a carried piece is. */
+  const layFromHand = useEffectEvent((drop: SideTableDrop) => {
+    const piece = hand.find((candidate) => candidate.id === drop.pieceId && !candidate.hiddenZone);
+    const zone = frame.current?.getBoundingClientRect();
+    if (!enabled || !piece || !zone || scale <= 0) {
+      return;
+    }
+    const footprint = hiddenZoneFootprint(piece);
+    const across = footprint.width * scale;
+    const down = footprint.depth * scale;
+    const x = keptCentre(drop.clientX - zone.left, across, zone.width, zoom.x * scale, zoom.by);
+    const y = keptCentre(drop.clientY - zone.top, down, zone.height, zoom.y * scale, zoom.by);
+    drop.commandId = lay(
+      piece,
+      clampHiddenZoneSpot(
+        { x: (x / scale + zoom.x) / HIDDEN_ZONE_WIDTH, y: (y / scale + zoom.y) / HIDDEN_ZONE_DEPTH },
+        extent
+      )
+    );
+  });
+  useEffect(() => {
+    const element = frame.current;
+    const drop = (event: Event) => layFromHand((event as CustomEvent<SideTableDrop>).detail);
+    element?.addEventListener(SIDE_TABLE_DROP, drop);
+    return () => element?.removeEventListener(SIDE_TABLE_DROP, drop);
+  }, []);
+
   return (
     <Section hiddenHeading title="Private side-table" description={HIDDEN_ZONE_HELP}>
-      <div ref={frame}>
+      <div ref={frame} data-side-table>
         <div
           ref={ref}
           className={styles.zone}
@@ -482,7 +519,7 @@ export function HiddenZone({ client, table, hand }: Props) {
         >
           {!pieces.length && (
             <Text size="sm" c="dimmed" className={styles.empty}>
-              Right-click a piece in your hand and choose Move to private side-table.
+              Drag a piece here from your hand, or right-click it there and choose Move to private side-table.
             </Text>
           )}
           {scale > 0 &&
