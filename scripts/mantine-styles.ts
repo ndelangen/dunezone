@@ -38,14 +38,17 @@ function runtimeNames(entries: readonly (ts.ImportSpecifier | ts.ExportSpecifier
 
 function importNames(statement: ts.ImportDeclaration, source: ts.SourceFile) {
   const clause = statement.importClause;
-  if (clause?.isTypeOnly) {
+  if (!clause) {
+    throw new Error(`Use named Mantine imports so their styles can be traced: ${source.fileName}`);
+  }
+  if (clause.isTypeOnly) {
     return [];
   }
-  const bindings = clause?.namedBindings;
+  const bindings = clause.namedBindings;
   if (!bindings || !ts.isNamedImports(bindings)) {
     throw new Error(`Use named Mantine imports so their styles can be traced: ${source.fileName}`);
   }
-  if (clause?.name) {
+  if (clause.name) {
     throw new Error(`Default Mantine imports cannot be traced safely: ${source.fileName}`);
   }
   return runtimeNames(bindings.elements);
