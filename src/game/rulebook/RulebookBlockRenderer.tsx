@@ -280,7 +280,6 @@ export function RulebookBlockRenderer({ block }: Readonly<{ block: RulebookRende
         className={styles.sectionHeading}
         data-rulebook-block-id={block.id}
         data-faction-id={block.faction.status === 'unselected' ? undefined : block.faction.factionId}
-        title={faction?.name}
         style={
           faction ? { backgroundColor: faction.color, color: isLight(faction.color) ? '#21170f' : '#fff' } : undefined
         }

@@ -113,14 +113,14 @@ function FactionToken({
   size,
   banned = false,
   dim = false,
-  title,
+  label,
   onClick,
 }: Readonly<{
   faction: DraftFaction;
   size: number;
   banned?: boolean;
   dim?: boolean;
-  title: string;
+  label: string;
   onClick?: () => void;
 }>) {
   const className = clsx(styles.token, banned && styles.tokenBanned, dim && styles.tokenDim);
@@ -130,14 +130,18 @@ function FactionToken({
       <Token logo={faction.logo} background={faction.background} />
     </span>
   );
-  return onClick ? (
-    <button type="button" className={className} style={style} title={title} aria-label={title} onClick={onClick}>
-      {face}
-    </button>
-  ) : (
-    <span className={className} style={style} title={title} role="img" aria-label={title}>
-      {face}
-    </span>
+  return (
+    <Tooltip label={label}>
+      {onClick ? (
+        <button type="button" className={className} style={style} aria-label={label} onClick={onClick}>
+          {face}
+        </button>
+      ) : (
+        <span className={className} style={style} role="img" aria-label={label}>
+          {face}
+        </span>
+      )}
+    </Tooltip>
   );
 }
 
@@ -163,9 +167,11 @@ function PlayerMark({ player, size, ready = false }: Readonly<{ player: Player; 
       }
     />
   ) : (
-    <Avatar src={player.avatar} size={`${size}rem`} radius="50%" alt="" role="img" aria-label={name} title={name}>
-      {player.name.slice(0, 1)}
-    </Avatar>
+    <Tooltip label={name}>
+      <Avatar src={player.avatar} size={`${size}rem`} radius="50%" alt="" role="img" aria-label={name}>
+        {player.name.slice(0, 1)}
+      </Avatar>
+    </Tooltip>
   );
   return (
     <Indicator color="confirm" size={16} label={<span aria-hidden="true">✓</span>} disabled={!ready}>
@@ -204,14 +210,15 @@ function RequestRow({ client, table, request }: Props & Readonly<{ request: Seat
               <Text span size="sm" c="dimmed">
                 Waiting for approval
               </Text>
-              <CloseButton
-                size="sm"
-                radius="xl"
-                aria-label="Withdraw your seat request"
-                title="Withdraw"
-                disabled={seatLocked(table)}
-                onClick={() => client.command({ kind: 'seat-withdraw' })}
-              />
+              <Tooltip label="Withdraw">
+                <CloseButton
+                  size="sm"
+                  radius="xl"
+                  aria-label="Withdraw your seat request"
+                  disabled={seatLocked(table)}
+                  onClick={() => client.command({ kind: 'seat-withdraw' })}
+                />
+              </Tooltip>
             </>
           ) : (
             <>
@@ -265,7 +272,7 @@ function PoolZone({
                 faction={faction}
                 size={2.6}
                 banned={kind === 'banned'}
-                title={`${faction.name}, ${kind} by ${names(players, zone.by(draft, id))}`}
+                label={`${faction.name}, ${kind} by ${names(players, zone.by(draft, id))}`}
               />
             </li>
           ) : null;
@@ -301,7 +308,7 @@ export function DraftingOverlay({ client, table, error = null }: Props & Readonl
         size={size}
         banned={kind === 'ban'}
         dim={kind === 'pick' && (isBanned(draft, id) || setAsideReason(draft, id) !== undefined)}
-        title={ledgerTitle(mine, kind, faction.name, owner.name)}
+        label={ledgerTitle(mine, kind, faction.name, owner.name)}
         onClick={mine && !locked(table) ? () => client.command({ kind: undo, factionId: id }) : undefined}
       />
     );
@@ -533,7 +540,7 @@ function FactionRow({
   const banners = bannersOf(draft, faction.id);
   return (
     <li className={clsx(styles.row, banned && styles.rowBanned)}>
-      <FactionToken faction={faction} size={2.2} banned={banned} dim={!dealable} title={faction.name} />
+      <FactionToken faction={faction} size={2.2} banned={banned} dim={!dealable} label={faction.name} />
       <div>
         <Text size="sm" fw={700}>
           {faction.name}
@@ -553,7 +560,6 @@ function FactionRow({
           variant={picked ? 'filled' : 'default'}
           aria-pressed={picked}
           disabled={locked(table) || ((banned || !dealable) && !picked)}
-          title={why}
           onClick={() => client.command({ kind: picked ? 'draft-unpick' : 'draft-pick', factionId: faction.id })}
         >
           {picked ? 'Drafted' : 'Draft'}

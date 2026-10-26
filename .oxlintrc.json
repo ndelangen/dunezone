@@ -61,6 +61,17 @@
       }
     },
     {
+      /*
+       * Hover labels are the kit's Mantine `Tooltip`, never the browser's native one (Norbert, 2026-10-26).
+       * The rule reads a `title` attribute on an element, or on a Mantine or router component that passes it through.
+       * It stays inside `src`: the Storybook manager panel and the authoring tools are not the app.
+       */
+      "files": ["src/**"],
+      "rules": {
+        "local/no-title-tooltip": "error"
+      }
+    },
+    {
       /**
        * A component renders what it is given; it does not go and get things.
        *

@@ -1,4 +1,4 @@
-import { Group, Stack, Text, UnstyledButton } from '@mantine/core';
+import { Group, Stack, Text, Tooltip, UnstyledButton } from '@mantine/core';
 import { BID_COUNTDOWN_MS, BID_WARNING_MS } from '@shared/play/bidding';
 import type { BiddingState } from '@shared/play/bidding';
 import { useEffect, useRef } from 'react';
@@ -47,17 +47,17 @@ function StartAt({
           const name = factionName(table, factionId);
           const sittingOut = !eligible.includes(factionId);
           return (
-            <UnstyledButton
-              key={factionId}
-              className={styles.pick}
-              aria-label={`Start bidding at ${name}`}
-              title={sittingOut ? `${name} is sitting out: its token is face down` : name}
-              data-sitting-out={sittingOut || undefined}
-              disabled={!table.canInteract || !table.snapshot.bank || sittingOut}
-              onClick={() => client.command({ kind: 'bid-start', factionId })}
-            >
-              {artwork ? <FactionToken logo={artwork.logo} background={artwork.background} /> : name.slice(0, 2)}
-            </UnstyledButton>
+            <Tooltip key={factionId} label={sittingOut ? `${name} is sitting out: its token is face down` : name}>
+              <UnstyledButton
+                className={styles.pick}
+                aria-label={`Start bidding at ${name}`}
+                data-sitting-out={sittingOut || undefined}
+                disabled={!table.canInteract || !table.snapshot.bank || sittingOut}
+                onClick={() => client.command({ kind: 'bid-start', factionId })}
+              >
+                {artwork ? <FactionToken logo={artwork.logo} background={artwork.background} /> : name.slice(0, 2)}
+              </UnstyledButton>
+            </Tooltip>
           );
         })}
       </Group>
@@ -173,24 +173,29 @@ export function OpenRound({
     <Stack gap={2} align="center" className={styles.face}>
       <div className={showClock ? styles.clockWrap : undefined}>
         {showClock && <ClockRing deadline={bidding.deadline} table={table} now={now} />}
-        <UnstyledButton
-          className={styles.disc}
-          data-bidder-turn={turn ?? undefined}
-          data-mine={mine || undefined}
-          aria-label={label}
-          title={label}
-          disabled={!mine}
-          onClick={() => client.command({ kind: 'bid-raise', round })}
-          onContextMenu={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            if (mine) {
-              void client.command({ kind: 'bid-pass', round });
-            }
-          }}
-        >
-          {bid ? <HighBid bid={bid} table={table} /> : <span className={styles.prompt}>{mine ? 'Bid' : 'No bid'}</span>}
-        </UnstyledButton>
+        <Tooltip label={label}>
+          <UnstyledButton
+            className={styles.disc}
+            data-bidder-turn={turn ?? undefined}
+            data-mine={mine || undefined}
+            aria-label={label}
+            disabled={!mine}
+            onClick={() => client.command({ kind: 'bid-raise', round })}
+            onContextMenu={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              if (mine) {
+                void client.command({ kind: 'bid-pass', round });
+              }
+            }}
+          >
+            {bid ? (
+              <HighBid bid={bid} table={table} />
+            ) : (
+              <span className={styles.prompt}>{mine ? 'Bid' : 'No bid'}</span>
+            )}
+          </UnstyledButton>
+        </Tooltip>
       </div>
       {!showClock ? null : (
         <Text component="output" role="timer" size="xs" fw={700} className={styles.timer}>

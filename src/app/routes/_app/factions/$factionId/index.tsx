@@ -585,15 +585,16 @@ function FactionDetailContent({
                   <div className={styles.horizontalLane}>
                     {/* Position disambiguates: an author may field two identical leaders, and a
                     faction's lists carry no ids of their own. */}
-                    {data.leaders.map((leader, index) => (
-                      <article
-                        className={styles.leaderTile}
-                        key={`${leader.name}-${leader.image}-${index}`}
-                        title={`${leader.name}, strength ${leader.strength ?? 'not specified'}`}
-                      >
-                        <LeaderToken {...leader} background={data.background} logo={data.logo} />
-                      </article>
-                    ))}
+                    {data.leaders.map((leader, index) => {
+                      const label = `${leader.name}, strength ${leader.strength ?? 'not specified'}`;
+                      return (
+                        <Tooltip key={`${leader.name}-${leader.image}-${index}`} label={label}>
+                          <article className={styles.leaderTile} aria-label={label}>
+                            <LeaderToken {...leader} background={data.background} logo={data.logo} />
+                          </article>
+                        </Tooltip>
+                      );
+                    })}
                   </div>
                 </Section>
 

@@ -131,10 +131,7 @@ function RulesetRulebooks({
                       {rulebook.edition_published_at ? (
                         <>
                           Updated{' '}
-                          <time
-                            dateTime={rulebook.edition_published_at}
-                            title={formatStableDate(rulebook.edition_published_at)}
-                          >
+                          <time dateTime={rulebook.edition_published_at}>
                             {formatStableDate(rulebook.edition_published_at)}
                           </time>
                         </>
