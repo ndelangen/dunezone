@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "sourceDescription": "A user-approved AI-generated monochrome illustration developed from the user-supplied Dune_Tarot_Hilary_Clarcq.webp drawing. The supplied filename identifies Hilary Clarcq; authorship and publication were not independently verified.",
+  "source": "originals/Dune_Tarot_Hilary_Clarcq.webp",
+  "approval": {
+    "date": "2026-10-26",
+    "scope": "The user approved the monochrome bitmap and explicitly discarded every multicolor proposal. Only the monochrome design is included.",
+    "evidence": "accepted as monochrome version"
+  },
+  "assets": {
+    "/vector/decal/tarot-deck.svg": {
+      "approvedBitmap": "originals/tarot-deck-monochrome-approved.png",
+      "bitmapMaster": "bitmaps/tarot-deck-monochrome.png",
+      "alphaThreshold": 0.5,
+      "maskGaussianSigmaPixels": 0.65,
+      "minimumComponentAreaPixels": 8,
+      "trace": "Potrace 1.16, turdsize 8, alphamax 1.0, opttolerance 0.25, followed by authoring provenance, uniform square normalization and the decal optimization profile.",
+      "paint": "Inherited from the caller. Card layers, radial motif, disk, flap seams and tassel strands use transparent cutouts."
+    }
+  }
+}
