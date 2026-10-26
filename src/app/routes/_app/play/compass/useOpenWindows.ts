@@ -6,15 +6,15 @@ import type { Pulse } from './pulse';
 import { SIDES } from './slotLimits';
 import type { Side } from './slotLimits';
 import { useRemembered } from './useRemembered';
-import type { PlayerTab, TableWindow } from './windows';
+import type { TableWindow } from './windows';
 
 /*
  * Which windows are open: one in the centre, which goes when the table is clicked, and one pinned in each bottom slot,
  * which stays until unpinned. Pinning moves the centre window into a slot, replacing whatever was pinned there.
  */
 
-/** An open window; a player's also has its tab, and any removal vote against them, which it follows across seats. */
-export type Opened = Readonly<{ key: string; tab: PlayerTab; vote?: string }>;
+/** An open window; the faction information also has the seat it is set on. */
+export type Opened = Readonly<{ key: string; seat?: string }>;
 
 export type Slots = Readonly<Record<Side, Opened | null>>;
 
@@ -111,87 +111,68 @@ function usePinKeys(onPin: (side: Side) => void, enabled: boolean) {
   }, [enabled]);
 }
 
-function unlessShown(entry: Opened | null, shown: readonly (Opened | null)[]) {
-  return entry && shown.some((other) => other?.key === entry.key) ? null : entry;
-}
-
 export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boolean) {
-  const [openCentre, setCentre] = useState<Opened | null>(null);
-  const [openSlots, setSlots] = useRemembered<Slots>('slots', { left: null, right: null });
+  const [centre, setCentre] = useState<Opened | null>(null);
+  const [slots, setSlots] = useRemembered<Slots>('slots', { left: null, right: null });
   /* Bumps when a pinned window is asked for again, lighting its slot up. */
   const [flash, setFlash] = useState<Pulse>(null);
+  /*
+   * On a narrow table the centre window reaches over the slots, so the window last brought up or pressed comes to the front:
+   * the faction information a centre chat opens in a slot shows above that chat.
+   */
+  const [front, setFront] = useState<Side | 'centre' | null>(null);
 
-  /* A player's window keeps the vote against them, so it moves with them when they trade seats. */
-  const opened = (key: string, tab: PlayerTab): Opened => {
-    const vote = windows.find((entry) => entry.key === key)?.player?.vote;
-    return vote ? { key, tab, vote } : { key, tab };
-  };
-  const followed = (entry: Opened | null): Opened | null => {
-    const target = entry?.vote ? windows.find((window) => window.player?.vote === entry.vote) : undefined;
-    return entry && target && target.key !== entry.key ? { ...entry, key: target.key } : entry;
-  };
-  /* A window that followed its vote to another seat stays there, so it does not jump back once the vote ends. */
-  const [movedLeft, movedRight, movedCentre] = [
-    followed(openSlots.left),
-    followed(openSlots.right),
-    followed(openCentre),
-  ];
-  if (movedLeft !== openSlots.left || movedRight !== openSlots.right) {
-    setSlots({ left: movedLeft, right: movedRight });
-  }
-  if (movedCentre !== openCentre) {
-    setCentre(movedCentre);
-  }
-  /* Following a vote can bring two windows onto one player; the slots keep theirs, left first, and the centre gives way. */
-  const left = movedLeft;
-  const right = unlessShown(movedRight, [left]);
-  const slots: Slots = { left, right };
-  const centre = unlessShown(movedCentre, [left, right]);
-
-  /* A player's window opens on the chat when there is one to have, otherwise on what they show. */
-  const firstTab = (key: string): PlayerTab => {
-    const player = windows.find((entry) => entry.key === key)?.player;
-    return player && !player.own && player.canConverse ? 'conversation' : 'public';
-  };
-  /* Already pinned: the slot shows it, so it lights up (on the tab asked for) rather than opening twice. */
-  const showPinned = (side: Side, key: string, tab?: PlayerTab) => {
-    if (tab) {
-      setSlots((current) => ({ ...current, [side]: opened(key, tab) }));
+  const opened = (key: string, seat?: string): Opened => (seat ? { key, seat } : { key });
+  /* Already pinned: the slot shows it, so it lights up (on the seat asked for) rather than opening twice. */
+  const showPinned = (side: Side, key: string, seat?: string) => {
+    if (seat) {
+      setSlots((current) => ({ ...current, [side]: opened(key, seat) }));
     }
     setFlash(pulse(side));
+    setFront(side);
     setCentre(null);
   };
   /** Opens a window in the centre; asking again for the one already there closes it. */
-  const show = (key: string, tab?: PlayerTab) => {
+  const show = (key: string, seat?: string) => {
     const side = SIDES.find((entry) => slots[entry]?.key === key);
     if (side) {
-      showPinned(side, key, tab);
+      showPinned(side, key, seat);
       return;
     }
-    const again = (current: Opened | null) => current?.key === key && (tab === undefined || current.tab === tab);
-    setCentre((current) => (again(followed(current)) ? null : opened(key, tab ?? firstTab(key))));
+    const again = (current: Opened | null) => current?.key === key && (seat === undefined || current.seat === seat);
+    setFront('centre');
+    setCentre((current) =>
+      again(current) ? null : opened(key, seat ?? (current?.key === key ? current.seat : undefined))
+    );
   };
   /*
-   * Brings a window the table asks for into view without closing anything: a pinned one lights up, one already in the centre stays.
+   * Brings a window into view without closing anything, as the table's own openings and a chat's faction token do:
+   * a pinned one lights up, one already in the centre stays, either set on the seat asked for.
    * Else it goes into a free slot, beside the board rather than over it, and only into the centre when both slots hold a window.
    */
-  const reveal = (key: string) => {
+  const reveal = (key: string, seat?: string) => {
     const side = SIDES.find((entry) => slots[entry]?.key === key);
-    if (side) {
-      setFlash(pulse(side));
-      return;
-    }
-    if (followed(openCentre)?.key === key) {
+    const where = side ?? (centre?.key === key ? 'centre' : undefined);
+    if (where) {
+      if (seat) {
+        showSeat(where, key, seat);
+      }
+      if (side) {
+        setFlash(pulse(side));
+      }
+      setFront(where);
       return;
     }
     /* A slot is free when it holds nothing, or a window the table no longer has, such as the last battle's. */
     const free = SIDES.find((entry) => !windows.some((window) => window.key === slots[entry]?.key));
     if (free) {
-      setSlots((current) => ({ ...current, [free]: opened(key, firstTab(key)) }));
+      setSlots((current) => ({ ...current, [free]: opened(key, seat) }));
       setFlash(pulse(free));
+      setFront(free);
       return;
     }
-    setCentre(opened(key, firstTab(key)));
+    setCentre(opened(key, seat));
+    setFront('centre');
   };
   const pin = (side: Side) => {
     if (!centre) {
@@ -200,27 +181,25 @@ export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boo
     setSlots((current) => ({ ...current, [side]: centre }));
     setCentre(null);
   };
-  /* Unpinning takes the player away everywhere they were stored, so a window hidden as their duplicate cannot come back. */
-  const unpin = (side: Side) => {
-    const key = slots[side]?.key;
-    const gone = (entry: Opened | null) => (followed(entry)?.key === key ? null : entry);
-    setSlots((current) => ({ left: gone(current.left), right: gone(current.right) }));
-    setCentre(gone);
-  };
+  const unpin = (side: Side) => setSlots((current) => ({ ...current, [side]: null }));
   const close = () => setCentre(null);
-  const showTab = (side: Side | 'centre', key: string, tab: PlayerTab) => {
+  /** Sets an open window on another seat where it stands, as the faction information's tokens do. */
+  const showSeat = (side: Side | 'centre', key: string, seat: string) => {
     if (side === 'centre') {
-      setCentre(opened(key, tab));
+      setCentre(opened(key, seat));
     } else {
-      setSlots((current) => ({ ...current, [side]: opened(key, tab) }));
+      setSlots((current) => ({ ...current, [side]: opened(key, seat) }));
     }
   };
-  /** Whether a window is open anywhere: in the centre or pinned. */
-  const isOpen = (key: string) => [centre, slots.left, slots.right].some((entry) => entry?.key === key);
+  /** Whether a window is open anywhere, in the centre or pinned; with a seat, whether it is set on that seat. */
+  const isOpen = (key: string, seat?: string) =>
+    [centre, slots.left, slots.right].some(
+      (entry) => entry?.key === key && (seat === undefined || entry.seat === seat)
+    );
 
   /* Escape closes the centre window once the compass is not there to take it, and no menu, list, popover or dialog is open to take it first. */
   useEffect(() => {
-    if (compassOpen || openCentre === null) {
+    if (compassOpen || centre === null) {
       return;
     }
     const escape = (event: KeyboardEvent) => {
@@ -231,9 +210,9 @@ export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boo
     /* Seen first, before whatever is open answers the key and goes, so the window stays while Escape closed something else. */
     window.addEventListener('keydown', escape, true);
     return () => window.removeEventListener('keydown', escape, true);
-  }, [compassOpen, openCentre]);
-  useTablePress(close, openCentre !== null && !compassOpen);
-  usePinKeys(pin, openCentre !== null && !compassOpen);
+  }, [compassOpen, centre]);
+  useTablePress(close, centre !== null && !compassOpen);
+  usePinKeys(pin, centre !== null && !compassOpen);
 
-  return { centre, slots, flash, show, reveal, pin, unpin, close, showTab, isOpen };
+  return { centre, slots, flash, front, raise: setFront, show, reveal, pin, unpin, close, showSeat, isOpen };
 }

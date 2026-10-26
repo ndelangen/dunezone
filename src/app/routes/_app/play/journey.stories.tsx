@@ -1,7 +1,7 @@
 import preview from '@sb/preview';
 import { expect, within } from 'storybook/test';
 
-import { openPlayer, WAIT } from './controls.stories.fixture';
+import { openFactionInfo, WAIT } from './controls.stories.fixture';
 import { gameMeta } from './game.stories.fixture';
 import {
   chapter,
@@ -56,7 +56,7 @@ export const Trading = meta.story({
   play: async ({ canvasElement }) => {
     const { page } = await atStep(canvasElement, chapter('Trading'));
     await expect(page.findByRole('timer', { name: 'Trading time remaining' })).resolves.toBeVisible();
-    await openPlayer(canvasElement, 'Thialfi', 'Info');
+    await openFactionInfo(canvasElement, 'Thialfi');
     /* The deal is random, so Thialfi's faction comes from the recorded view. */
     const { roster } = journeyFrame(chapter('Trading') - 1, 'seat-1').snapshot;
     const faction = roster!.seats.find((seat) => seat.id === 'seat-2')!.faction!.name;

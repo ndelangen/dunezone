@@ -1,15 +1,18 @@
 import { Tooltip } from '@mantine/core';
 import { TopicIcon } from '@ui/content/TopicIcon';
+import { TruncatedText } from '@ui/content/TruncatedText';
 import clsx from 'clsx';
 import { useContext } from 'react';
 import type { CSSProperties, KeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 
+import chat from './ChatBar.module.css';
 import { CompassTableContext } from './compassTable';
 import type { CompassPlayer } from './compassTable';
+import { factionSeat, FactionTokens } from './FactionTokens';
 import { PlayerToken } from './PlayerToken';
 import type { Side } from './slotLimits';
-import { WindowBody, WindowHelp } from './windows';
-import type { PlayerTab, TableWindow, WindowLayout } from './windows';
+import { FACTION_INFO, WindowBody, WindowHelp } from './windows';
+import type { TableWindow } from './windows';
 import styles from './Windows.module.css';
 
 /** The grip on a pinned slot's top edge: dragged, nudged with the arrows, or double-clicked back to the default. */
@@ -21,7 +24,8 @@ type Resize = Readonly<{
 
 type WindowFrameProps = Readonly<{
   entry: TableWindow;
-  tab: PlayerTab;
+  /** The seat the faction information is set on, when it was asked for one. */
+  seat?: string;
   where: 'centre' | Side;
   inert: boolean;
   /** The slot's flash and bounce, alternating 0 and 1 so each replay is a change. */
@@ -29,27 +33,31 @@ type WindowFrameProps = Readonly<{
   bounce?: number;
   style?: CSSProperties;
   resize?: Resize;
-  onTab: (tab: PlayerTab) => void;
+  /** In front of the other windows, where they overlap on a narrow table: the one last brought up or pressed. */
+  front?: boolean;
+  onRaise?: () => void;
+  /** Sets the faction information on another seat, where it stands. */
+  onSeat: (seat: string) => void;
+  /** Opens the faction information on a seat, from a chat's token. */
+  onFaction: (seat: string) => void;
   /** The frame's own buttons: pin and close in the centre, unpin in a slot. */
   actions: ReactNode;
 }>;
 
-/* A player's chat fills the window; their public details stack. */
-function playerLayout(player: CompassPlayer, tab: PlayerTab): WindowLayout {
-  return tab === 'conversation' && player.canConverse && !player.own ? 'fill' : 'stack';
-}
-
-/** One window's frame, in the centre or in a slot: its title, a player's tabs, the frame's own buttons, and its content. */
+/** One window's frame, in the centre or in a slot: its title, the frame's own buttons, and its content. */
 export function WindowFrame({
   entry,
-  tab,
+  seat,
   where,
   inert,
   flash,
   bounce,
   style,
   resize,
-  onTab,
+  front,
+  onRaise,
+  onSeat,
+  onFaction,
   actions,
 }: WindowFrameProps) {
   return (
@@ -59,59 +67,81 @@ export function WindowFrame({
       data-side={where}
       data-window={entry.key}
       data-flash={flash}
+      data-front={front || undefined}
       aria-label={entry.label}
       inert={inert}
       data-hides-cursor
       data-bounce={bounce}
       style={style}
+      onPointerDownCapture={onRaise}
     >
       {resize && <ResizeEdge resize={resize} />}
-      <WindowTitle entry={entry} tab={tab} onTab={onTab} actions={actions} />
-      <WindowContent entry={entry} tab={tab} />
+      <WindowTitle entry={entry} actions={actions} onFaction={onFaction} />
+      <WindowContent entry={entry} seat={seat} onSeat={onSeat} />
     </div>
   );
 }
 
 type WindowTitleProps = Readonly<{
   entry: TableWindow;
-  tab: PlayerTab;
-  onTab: (tab: PlayerTab) => void;
   actions: ReactNode;
+  onFaction: (seat: string) => void;
 }>;
 
-/* The title bar: the window's icon or the player's token, its name, its help, a player's tabs and the frame's buttons. */
-function WindowTitle({ entry, tab, onTab, actions }: WindowTitleProps) {
+/* The title bar: the window's icon or the player's token, its name, its help and the frame's buttons. */
+/* A chat names only its player, since the token beside the name gives the faction; a long name ends in an ellipsis, with the whole of it in a tip. */
+function WindowTitle({ entry, actions, onFaction }: WindowTitleProps) {
   const player = entry.player;
   return (
     <header className={styles.title}>
-      {player ? <PlayerToken player={player} size={24} /> : <TopicIcon topic={entry.topic} size={18} />}
+      {player ? <FactionButton player={player} onFaction={onFaction} /> : <TopicIcon topic={entry.topic} size={18} />}
       <span className={styles.name}>
-        {entry.label}
-        {player && <FactionName player={player} />}
+        <TruncatedText flex={1}>{entry.label}</TruncatedText>
       </span>
-      <WindowHelp entry={entry} tab={tab} />
-      {player && <PlayerTabs player={player} tab={tab} onTab={onTab} />}
+      <WindowHelp entry={entry} />
       <span className={styles.actions}>{actions}</span>
     </header>
   );
 }
 
-/* Another player's faction follows their name; the viewer's own window names the faction already. */
-function FactionName({ player }: Readonly<{ player: CompassPlayer }>) {
-  if (!player.factionName || player.own) {
-    return null;
-  }
-  return <span className={styles.group}> · {player.factionName}</span>;
+/* A chat's token is the way to its faction: it brings the faction information up on that player's seat, marked while a vote or a seat request waits there. */
+function FactionButton({ player, onFaction }: Readonly<{ player: CompassPlayer; onFaction: (seat: string) => void }>) {
+  const faction = player.factionName ?? player.name;
+  return (
+    <Tooltip label={`${faction} info`} withinPortal>
+      <button
+        type="button"
+        className={styles.factionButton}
+        aria-label={`${faction} info`}
+        onClick={() => onFaction(player.seat)}
+      >
+        <PlayerToken player={player} size={24} />
+        {player.attention && <span className={chat.attention} aria-hidden="true" />}
+      </button>
+    </Tooltip>
+  );
 }
 
-/* A player's window shows what the table renders for their seat; any other shows its own content. */
-function WindowContent({ entry, tab }: Readonly<{ entry: TableWindow; tab: PlayerTab }>) {
+/* A chat shows the conversation with its player; the faction information scrolls its tokens with the seat's details, so a short slot keeps both in reach; any other window shows its own content. */
+function WindowContent({
+  entry,
+  seat,
+  onSeat,
+}: Readonly<{ entry: TableWindow; seat?: string; onSeat: (seat: string) => void }>) {
   const table = useContext(CompassTableContext);
-  const player = entry.player;
-  if (!player) {
-    return <WindowBody layout={entry.layout}>{entry.content}</WindowBody>;
+  if (entry.player) {
+    return <WindowBody layout="fill">{table?.chat(entry.player.seat)}</WindowBody>;
   }
-  return <WindowBody layout={playerLayout(player, tab)}>{table?.render(player.seat, tab)}</WindowBody>;
+  if (entry.key === FACTION_INFO && table) {
+    const shown = factionSeat(table.players, seat);
+    return (
+      <WindowBody layout={entry.layout}>
+        <FactionTokens players={table.players} seat={shown} onSeat={onSeat} />
+        {shown && table.factionInfo(shown)}
+      </WindowBody>
+    );
+  }
+  return <WindowBody layout={entry.layout}>{entry.content}</WindowBody>;
 }
 
 function ResizeEdge({ resize }: Readonly<{ resize: Resize }>) {
@@ -134,36 +164,5 @@ function ResizeEdge({ resize }: Readonly<{ resize: Resize }>) {
         onDoubleClick={resize.onReset}
       />
     </Tooltip>
-  );
-}
-
-function PlayerTabs({
-  player,
-  tab,
-  onTab,
-}: Readonly<{ player: CompassPlayer; tab: PlayerTab; onTab: (tab: PlayerTab) => void }>) {
-  return (
-    <span className={styles.tabs} role="tablist" aria-label={`${player.name} tabs`}>
-      {player.canConverse && !player.own && (
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === 'conversation'}
-          className={styles.tab}
-          onClick={() => onTab('conversation')}
-        >
-          Chat
-        </button>
-      )}
-      <button
-        type="button"
-        role="tab"
-        aria-selected={tab === 'public' || player.own || !player.canConverse}
-        className={styles.tab}
-        onClick={() => onTab('public')}
-      >
-        Info
-      </button>
-    </span>
   );
 }

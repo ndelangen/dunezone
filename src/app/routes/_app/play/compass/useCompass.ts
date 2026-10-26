@@ -7,7 +7,7 @@ import type { CompassTable } from './compassTable';
 import { tilesOf } from './compassTiles';
 import { candidatesOf, rankSuggestions } from './suggestions';
 import { useCompassKeys } from './useCompassKeys';
-import type { PlayerTab, TableWindow } from './windows';
+import type { TableWindow } from './windows';
 
 /*
  * The compass itself: where it points, what was typed into its search, which suggestion the cursor is on, and what
@@ -23,7 +23,7 @@ type CompassInputs = Readonly<{
   table: CompassTable | null;
   onView: (view: TableView) => void;
   /** Opens a window over the table. */
-  onShow: (key: string, tab?: PlayerTab) => void;
+  onShow: (key: string, seat?: string) => void;
 }>;
 
 export function useCompass({ open, onOpen, inert, windows, table, onView, onShow }: CompassInputs) {
@@ -41,9 +41,9 @@ export function useCompass({ open, onOpen, inert, windows, table, onView, onShow
   };
   /* The hold is let go by the keys alone: Space's keyup ends it, so closing never needs to touch it. */
   const close = () => onOpen(false);
-  const show = (key: string, tab?: PlayerTab) => {
+  const show = (key: string, seat?: string) => {
     close();
-    onShow(key, tab);
+    onShow(key, seat);
   };
   const tiles = tilesOf(windows, table);
   const suggestions = rankSuggestions(
@@ -65,7 +65,7 @@ export function useCompass({ open, onOpen, inert, windows, table, onView, onShow
       setRefused((count) => count + 1);
       return;
     }
-    show(tile.window.key, tile.tab);
+    show(tile.window.key);
   };
   useCompassKeys({
     open,

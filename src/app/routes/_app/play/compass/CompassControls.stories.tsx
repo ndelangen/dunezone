@@ -5,6 +5,7 @@ import { faction } from '../alliances.stories.fixture';
 import { gameMeta, install } from '../game.stories.fixture';
 import { battleStory } from '../playing.stories.fixture';
 import { productTransport } from '../product.stories.fixture';
+import type { Slots } from './useOpenWindows';
 
 /*
  * The compass controls: the compass with search at its centre and suggestions below,
@@ -24,7 +25,7 @@ const meta = preview.meta({
 });
 
 /* What the slots start with: the story either pins its pair or starts empty, whatever an earlier visit left. */
-function pinned(slots: Record<'left' | 'right', { key: string; tab: string } | null>, keep: boolean) {
+function pinned(slots: Slots, keep: boolean) {
   try {
     localStorage.setItem('dunezone-compass:slots', JSON.stringify(keep ? slots : { left: null, right: null }));
   } catch {
@@ -45,7 +46,7 @@ function allied(snapshot: GameSnapshot) {
 export const InBattleAndAllied = meta.story({
   beforeEach: [
     install(() => productTransport('seat-2', allied(battleStory('preparing')))),
-    () => pinned({ left: { key: 'hand', tab: 'public' }, right: { key: 'player:seat-4', tab: 'conversation' } }, false),
+    () => pinned({ left: { key: 'hand' }, right: { key: 'player:seat-4' } }, false),
   ],
 });
 
@@ -53,14 +54,14 @@ export const InBattleAndAllied = meta.story({
 export const PinnedHandAndAlly = meta.story({
   beforeEach: [
     install(() => productTransport('seat-2', allied(battleStory('preparing')))),
-    () => pinned({ left: { key: 'hand', tab: 'public' }, right: { key: 'player:seat-4', tab: 'conversation' } }, true),
+    () => pinned({ left: { key: 'hand' }, right: { key: 'player:seat-4' } }, true),
   ],
 });
 
 /* Both slots pinned and every chat in the bar, so the bar and the slots have to share the table's width. */
 const bothSlotsAndAllChats = [
   install(() => productTransport('seat-2')),
-  () => pinned({ left: { key: 'hand', tab: 'public' }, right: { key: 'table-chat', tab: 'conversation' } }, true),
+  () => pinned({ left: { key: 'hand' }, right: { key: 'table-chat' } }, true),
 ];
 
 /** The narrowest table: the slots rise above the chat bar, which has the width to itself. */

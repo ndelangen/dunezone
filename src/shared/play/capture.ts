@@ -213,7 +213,7 @@ export type FactionCapture = z.infer<typeof factionCaptureSchema>;
 
 /**
  * What any viewer may read of a seated faction: the starting sheet its public faction page shows, as the game captured it.
- * The Info tab then describes the faction the table is playing, even after its source is edited.
+ * Faction info then describes the faction the table is playing, even after its source is edited.
  */
 export const publicFactionSchema = HistoricalFactionPublicationObject.pick({
   leaders: true,

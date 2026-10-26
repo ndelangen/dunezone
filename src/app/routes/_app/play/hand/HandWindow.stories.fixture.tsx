@@ -61,11 +61,11 @@ function HandWindowHarness({ height = 448 }: Readonly<{ height?: number; seat?: 
                 ),
                 layout: 'stack',
               }}
-              tab="public"
               where="left"
               inert={false}
               style={{ height }}
-              onTab={() => {}}
+              onSeat={() => {}}
+              onFaction={() => {}}
               actions={null}
             />
           )}
@@ -80,11 +80,11 @@ function HandWindowHarness({ height = 448 }: Readonly<{ height?: number; seat?: 
                 content: <HiddenZone client={client} table={table} hand={hand} />,
                 layout: 'flush',
               }}
-              tab="public"
               where="right"
               inert={false}
               style={{ height }}
-              onTab={() => {}}
+              onSeat={() => {}}
+              onFaction={() => {}}
               actions={null}
             />
           )}
