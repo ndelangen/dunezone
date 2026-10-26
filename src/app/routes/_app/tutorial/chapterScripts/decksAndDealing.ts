@@ -31,7 +31,7 @@ const othersHold = (snapshot: GameSnapshot) =>
  * A right-click while carrying takes the next card as T does, so it counts as well.
  */
 const tookWithT = (piles: () => number) => ({
-  begin: () => ({ start: piles(), ...watchTakeMore() }),
+  begin: () => watchTakeMore({ start: piles() }),
   done: (watch: { start: number; took: boolean }) => watch.took && piles() > watch.start,
   finish: (watch: { stop: AbortController }) => watch.stop.abort(),
 });

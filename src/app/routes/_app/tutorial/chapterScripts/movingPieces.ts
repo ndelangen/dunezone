@@ -87,13 +87,13 @@ function stackTasks(snapshot: () => GameSnapshot): GuideTask[] {
         'A quick drag takes only the top troop. Press and hold on the three for a moment, then drag them onto a territory.',
       anchor: { kind: 'table', point: () => at(splitStack()) },
       /*
-       * A whole stack lands on the board in one go, so the troops there jump by two or more from one frame to the next;
-       * single troops dropped one after another never do.
+       * A whole stack lands on the board in one go, so the troops there jump by the three from one frame to the next;
+       * single troops dropped one after another never do, and the whole reserves carried instead jump by more.
        */
       begin: () => ({ last: total(onTheBoard()) }),
       done: (watch) => {
         const now = total(onTheBoard());
-        const jumped = now - watch.last >= 2;
+        const jumped = now - watch.last === 3;
         watch.last = now;
         if (jumped) {
           land();
@@ -108,7 +108,7 @@ function stackTasks(snapshot: () => GameSnapshot): GuideTask[] {
         'Quickly drag one troop off your reserves and keep holding it over them. Press {T}, or right-click, once for each troop to add: they join the one you carry. Then drop them all on a territory.',
       anchor: { kind: 'table', point: () => at(biggestReserve()) },
       /* As with a whole stack: the troops land together, so the board's count jumps by two or more in one go. */
-      begin: () => ({ last: total(onTheBoard()), ...watchTakeMore() }),
+      begin: () => watchTakeMore({ last: total(onTheBoard()) }),
       done: (watch) => {
         const now = total(onTheBoard());
         const jumped = now - watch.last >= 2;

@@ -200,10 +200,11 @@ export const closeGameMenu = () => {
 
 /*
  * Whether the player asked for more while carrying: {T}, or a right-click, takes the next piece from the stack under the pointer.
- * Either press counts wherever it lands, so the task pairs it with a check that the carry did grow.
+ * Either press counts wherever it lands, so the task pairs it with a check that the carry did grow. The watch carries the
+ * task's own fields too: the press marks this very object, so a copy of it would never see the press.
  */
-export const watchTakeMore = () => {
-  const watch = { took: false, stop: new AbortController() };
+export const watchTakeMore = <Extra extends object>(extra: Extra) => {
+  const watch = { ...extra, took: false, stop: new AbortController() };
   const took = () => {
     watch.took = true;
   };
