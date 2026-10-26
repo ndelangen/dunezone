@@ -34,7 +34,7 @@ export const HAND_HELP =
 export const HAND_GUIDANCE: Guidance = { description: 'Your cards and leaders. Only you see them.', help: HAND_HELP };
 
 export const HIDDEN_ZONE_HELP =
-  "For pieces that need to sit in a particular spot, such as a marker on a card's track. Drag pieces here from your hand and lay them out anywhere; they stay where you put them. Q and E turn the piece under the pointer. Cards stay below tokens. Pieces stay inside it as you drag them; right-click a piece to place it on the table face down, or to move it back to your hand.";
+  "For pieces that need to sit in a particular spot, such as a marker on a card's track. Drag pieces here from your hand and lay them out anywhere; they stay where you put them. Q and E turn the piece under the pointer. Scroll over it to zoom in on the spot under the pointer, drag its felt to look around, and double-click the felt or a card to zoom back out. Cards stay below tokens. Pieces stay inside it as you drag them; right-click a piece to place it on the table face down, or to move it back to your hand.";
 
 export const HIDDEN_ZONE_GUIDANCE: Guidance = {
   description: 'Your own small table for pieces that need a specific place. Only you see it.',

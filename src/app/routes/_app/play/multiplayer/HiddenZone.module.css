@@ -13,6 +13,15 @@
     inset 0 2px 12px rgb(from var(--play-black) r g b / 0.45);
 }
 
+/* Zoomed in, the felt itself is grabbed to move the view. */
+.zone[data-zoom] {
+  cursor: grab;
+}
+
+.zone[data-zoom]:active {
+  cursor: grabbing;
+}
+
 .empty {
   position: absolute;
   inset: 0;
