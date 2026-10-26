@@ -2,11 +2,18 @@ type JsonRecord = Record<string, unknown>;
 type ReadClient = { get(pathname: string): Promise<{ result: unknown; resultInfo?: JsonRecord }> };
 const ALERT_RECIPIENT = 'ALERT_EMAIL_TO';
 const ALERT_BINDINGS = ['ALERT_EMAIL', ALERT_RECIPIENT];
+const REPORT_SECRETS = [
+  'BUG_REPORT_GITHUB_APP_ID',
+  'BUG_REPORT_GITHUB_INSTALLATION_ID',
+  'BUG_REPORT_GITHUB_PRIVATE_KEY',
+];
+const OPTIONAL_SECRETS = [ALERT_RECIPIENT, ...REPORT_SECRETS];
 
 export type GameDriftReport = {
   worker: string;
   namespaceId: string;
   homepageNamespaceId: string;
+  bugReportNamespaceId: string;
   bindingCount: number;
 };
 
@@ -182,10 +189,12 @@ function checkBindings(settings: JsonRecord, config: JsonRecord): Omit<GameDrift
    * Only the recipient secret is set by hand after the deploy, so only it may be absent.
    */
   exact(
-    names.filter((name) => name !== ALERT_RECIPIENT),
+    names.filter((name) => !OPTIONAL_SECRETS.includes(name)),
     [
       'ALERT_EMAIL',
       'APPLICATION_ORIGIN',
+      'BUG_REPORT_STATES',
+      'BUG_REPORTS',
       'CF_VERSION_METADATA',
       'CONVEX_URL',
       'GAME_ROOMS',
@@ -201,6 +210,12 @@ function checkBindings(settings: JsonRecord, config: JsonRecord): Omit<GameDrift
       `${binding.name as string} binding type`
     );
   }
+  for (const binding of bindings.filter((value) => REPORT_SECRETS.includes(value.name as string))) {
+    exact(binding.type, 'secret_text', `${binding.name as string} binding type`);
+  }
+  const reportBucket = bindings.find((binding) => binding.name === 'BUG_REPORT_STATES')!;
+  exact(reportBucket.type, 'r2_bucket', 'bug report bucket type');
+  exact(reportBucket.bucket_name, 'dunezone-bug-report-states', 'bug report bucket');
   checkVariables(bindings, record(config.vars, 'configured variables'));
   exact(
     bindings.find((binding) => binding.name === 'CF_VERSION_METADATA')!.type,
@@ -209,9 +224,11 @@ function checkBindings(settings: JsonRecord, config: JsonRecord): Omit<GameDrift
   );
   const room = bindings.find((binding) => binding.name === 'GAME_ROOMS')!;
   const homepage = bindings.find((binding) => binding.name === 'HOMEPAGE_ROOMS')!;
+  const reports = bindings.find((binding) => binding.name === 'BUG_REPORTS')!;
   return {
     namespaceId: checkRoomBinding(room, config, 'GameRoom'),
     homepageNamespaceId: checkRoomBinding(homepage, config, 'HomepageRoom'),
+    bugReportNamespaceId: checkRoomBinding(reports, config, 'BugReports'),
     bindingCount: bindings.length,
   };
 }
@@ -229,7 +246,7 @@ function checkOwnedNamespace(
   }
 }
 
-/** Proves the private Worker owns both bound SQLite namespaces before the publisher routes traffic to it. */
+/** Proves the private Worker owns its bound SQLite namespaces before the publisher routes traffic to it. */
 export async function auditGameWorker(client: ReadClient, config: JsonRecord): Promise<GameDriftReport> {
   if (config.name !== 'dunezone-game') {
     throw new Error('Game Worker name differs from the deployment contract');
@@ -254,7 +271,9 @@ export async function auditGameWorker(client: ReadClient, config: JsonRecord): P
   );
   exact(record(settings.limits, 'limits').cpu_ms, record(config.limits, 'configured limits').cpu_ms, 'CPU limit');
   for (const secret of array(secrets.result, 'secrets')) {
-    exact(record(secret, 'secret').name, ALERT_RECIPIENT, 'secrets');
+    if (!OPTIONAL_SECRETS.includes(String(record(secret, 'secret').name))) {
+      throw new Error('Game secrets drift detected');
+    }
   }
   exact(array(record(schedules.result, 'schedules').schedules, 'schedules'), [], 'schedules');
   exact(array(domains.result, 'Custom Domains'), [], 'Custom Domains');
@@ -264,5 +283,6 @@ export async function auditGameWorker(client: ReadClient, config: JsonRecord): P
   exact(ingress.previews_enabled, false, 'preview ingress');
   checkOwnedNamespace(inventory, { worker, namespaceId: binding.namespaceId }, 'GameRoom');
   checkOwnedNamespace(inventory, { worker, namespaceId: binding.homepageNamespaceId }, 'HomepageRoom');
+  checkOwnedNamespace(inventory, { worker, namespaceId: binding.bugReportNamespaceId }, 'BugReports');
   return { worker, ...binding };
 }

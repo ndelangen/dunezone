@@ -1,4 +1,5 @@
 export { HomepageRoom } from './homepage';
+export { BugReports } from './bugReports';
 import { Buffer } from 'node:buffer';
 
 import { DurableObject } from 'cloudflare:workers';
@@ -22,6 +23,8 @@ import {
   playSessionCutoffRequestSchema,
   provisionPlaceholderId,
 } from '../../src/shared/play/admission';
+import { bugReportIdSchema, bugReportRequestSchema } from '../../src/shared/play/bugReports';
+import type { BugReportBrowser, BugReportRequest } from '../../src/shared/play/bugReports';
 import { playGamePathPattern } from '../../src/shared/play/callbacks';
 import { conversationPeerFor } from '../../src/shared/play/conversations';
 import {
@@ -56,12 +59,15 @@ import { GameRejection } from '../../src/shared/play/rejection';
 import { playRetireFixtureRequestSchema } from '../../src/shared/play/retire';
 import { rosterSeat, SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { playRedeemTicketOutcomeSchema } from '../../src/shared/play/seatLimit';
+import type { SeatPassPayload } from '../../src/shared/play/seatPass';
 import { setupReadyRequired, setupStep } from '../../src/shared/play/setup';
 import type { SetupState } from '../../src/shared/play/setup';
 import { SPECTATOR_COLOR } from './actors';
 import { handleAlertWebhook } from './alerts';
 import type { AlertEnv } from './alerts';
 import { answersEachOnce, AuthorizationWatch, ConvexUnavailable, gameHttpClient } from './authorization';
+import { bugReportExport } from './bugReportExport';
+import { bugReportGamePathPattern, isBugReportRequest } from './bugReportHttp';
 import { GameCatalogue } from './catalogue';
 import { RoomDelivery } from './delivery';
 import type { AdmissionRefusal } from './diagnostics';
@@ -76,6 +82,7 @@ import { RoomSummary } from './roomSummary';
 import type { ConvexCall } from './roomSummary';
 import type { HeldPass } from './seatPasses';
 import { heldPass, SeatPasses } from './seatPasses';
+import { gameServiceResponse } from './serviceHttp';
 import type { Metadata } from './session';
 import { GameSession, NotReady, readinessProblem } from './session';
 
@@ -160,7 +167,7 @@ function gameRequest(request: Request, applicationOrigin: string) {
   if (url.origin !== applicationOrigin || url.search) {
     return;
   }
-  const match = playGamePathPattern.exec(url.pathname);
+  const match = playGamePathPattern.exec(url.pathname) ?? bugReportGamePathPattern.exec(url.pathname);
   if (!match) {
     return;
   }
@@ -205,17 +212,21 @@ const credentialsMatch = (a: string, b: string) => {
   return difference === 0;
 };
 /** A request body as its schema reads it, or undefined when it is missing, oversized, not JSON or not that shape. */
-async function readRequest<T>(request: Request, schema: { parse(value: unknown): T }): Promise<T | undefined> {
-  if (!request.body || Number(request.headers.get('Content-Length') ?? 0) > 8192) {
+async function readRequest<T>(
+  request: Request,
+  schema: { parse(value: unknown): T },
+  limit = 8192
+): Promise<T | undefined> {
+  if (!request.body || Number(request.headers.get('Content-Length') ?? 0) > limit) {
     return undefined;
   }
   try {
-    return schema.parse(JSON.parse(await readLimitedBody(request.body)));
+    return schema.parse(JSON.parse(await readLimitedBody(request.body, limit)));
   } catch {
     return undefined;
   }
 }
-async function readLimitedBody(body: ReadableStream<Uint8Array>): Promise<string> {
+async function readLimitedBody(body: ReadableStream<Uint8Array>, limit: number): Promise<string> {
   const reader = body.getReader();
   let length = 0;
   let text = '';
@@ -227,7 +238,7 @@ async function readLimitedBody(body: ReadableStream<Uint8Array>): Promise<string
         break;
       }
       length += value.byteLength;
-      if (length > 8192) {
+      if (length > limit) {
         throw new Error('Request refused.');
       }
       text += decoder.decode(value, { stream: true });
@@ -425,13 +436,116 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (this.metadata?.gameId !== gameId) {
       return refused();
     }
-    if (operation === 'account-deletion') {
-      return this.receiveAccountDeletion(request, this.metadata);
-    }
-    if (operation === 'session-cutoff') {
-      return this.receiveSessionCutoff(request, this.metadata);
+    const metadata = this.metadata;
+    const handlers: Record<string, () => Promise<Response>> = {
+      'account-deletion': () => this.receiveAccountDeletion(request, metadata),
+      'session-cutoff': () => this.receiveSessionCutoff(request, metadata),
+      reports: () => this.receiveBugReport(request, gameId!),
+    };
+    const handle = handlers[operation!];
+    if (handle) {
+      return handle();
     }
     return this.openSocket(request);
+  }
+
+  private async receiveBugReport(request: Request, gameId: string): Promise<Response> {
+    if (!isBugReportRequest(request, this.env.APPLICATION_ORIGIN)) {
+      return refused();
+    }
+    if (this.closed || !this.session.ready) {
+      return refused();
+    }
+    if (this.metadata?.gameId !== gameId) {
+      return refused();
+    }
+    const input = await readRequest(request, bugReportRequestSchema, 2 * 1024 * 1024);
+    if (!input) {
+      return json({ error: 'Describe the problem and keep the report under 2 MB.' }, 400);
+    }
+    try {
+      const pass = await this.authorizeBugReport(gameId, input.pass);
+      if (!pass) {
+        return refused();
+      }
+      return await this.dispatchBugReport(gameId, input, pass);
+    } catch {
+      return json({ error: 'Bug reporting is temporarily unavailable. Try again.' }, 503);
+    }
+  }
+
+  private async authorizeBugReport(gameId: string, raw: string): Promise<SeatPassPayload | null> {
+    const secret = this.metadata!.secret;
+    const verified = await this.seatPasses().check(secret, gameId, raw);
+    if (!verified.ok) {
+      return null;
+    }
+    const authorization = await this.convex().query(api.playBugReports.authorize, { gameId, secret, pass: raw });
+    if (!authorization) {
+      return null;
+    }
+    return Date.now() < authorization.authExpiresAt ? verified.pass : null;
+  }
+
+  private async dispatchBugReport(gameId: string, input: BugReportRequest, pass: SeatPassPayload) {
+    const reports = this.env.BUG_REPORTS.getByName(pass.principalId);
+    if (input.operation === 'status') {
+      const progress = await reports.progress(input.requestId, gameId);
+      return progress ? json(progress) : json({ error: 'This report was not found.' }, 404);
+    }
+    const result = await reports.submit({
+      requestId: input.requestId,
+      description: input.description,
+      browser: input.browser,
+      gameId,
+      actorId: pass.actorId,
+      displayName: pass.displayName,
+    });
+    return json(result.progress ?? { error: result.error }, result.status);
+  }
+
+  /** Only the Worker's report coordinator can invoke this RPC; no public route accepts an export request. */
+  captureBugReport(requestId: string, actorId: string, displayName: string, browser: BugReportBrowser) {
+    if (this.closed) {
+      throw new Error('The game state is unavailable.');
+    }
+    if (!this.session.ready || !this.metadata?.confirmed) {
+      throw new Error('The game state is unavailable.');
+    }
+    bugReportIdSchema.parse(requestId);
+    this.session.recordBugReport(requestId, actorId, displayName);
+    this.announceBugReportLog();
+    return JSON.stringify({
+      server: bugReportExport(this.session, {
+        gameId: this.metadata.gameId,
+        gitSha: this.env.GIT_SHA,
+        versionId: this.env.CF_VERSION_METADATA.id,
+      }),
+      browser: this.session.bugReportBrowser(browser),
+    });
+  }
+
+  finishBugReport(requestId: string, actorId: string, displayName: string, issueUrl: string) {
+    if (this.closed || !this.session.ready) {
+      throw new Error('The game is unavailable.');
+    }
+    bugReportIdSchema.parse(requestId);
+    if (!/^https:\/\/github\.com\/ndelangen\/dunezone\/issues\/\d+$/u.test(issueUrl)) {
+      throw new Error('Invalid report issue.');
+    }
+    this.session.recordBugReport(requestId, actorId, displayName, issueUrl);
+    this.announceBugReportLog();
+  }
+
+  private announceBugReportLog() {
+    for (const [socket] of this.connections) {
+      this.send(socket, {
+        type: 'log-history',
+        tab: 'game',
+        before: Number.MAX_SAFE_INTEGER,
+        ...this.session.logPage('game', Number.MAX_SAFE_INTEGER),
+      });
+    }
   }
 
   private async provision(request: Request, gameId: string): Promise<Response> {
@@ -2585,15 +2699,9 @@ export default {
     if (alert) {
       return alert;
     }
-    if (url.pathname === '/__play/health' && request.method === 'GET') {
-      return json({
-        ok: true,
-        identity: {
-          gitSha: env.GIT_SHA,
-          workerVersionId: env.CF_VERSION_METADATA.id,
-          workerVersionTag: env.CF_VERSION_METADATA.tag,
-        },
-      });
+    const service = await gameServiceResponse(request, env);
+    if (service) {
+      return service;
     }
     if (
       url.pathname === HOMEPAGE_SOCKET_PATH &&

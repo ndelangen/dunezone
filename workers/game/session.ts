@@ -1,6 +1,7 @@
 import type { z } from 'zod';
 
 import type { playGameProvisionSchema } from '../../src/shared/play/admission';
+import type { BugReportBrowser } from '../../src/shared/play/bugReports';
 import { publicFaction } from '../../src/shared/play/capture';
 import type { CaptureReadiness } from '../../src/shared/play/capture';
 import { emptySnapshot } from '../../src/shared/play/commands';
@@ -1107,6 +1108,25 @@ export class GameSession {
   /** The room's current snapshot, for a caller that judges its next command by the stage and revision. */
   currentSnapshot(): StoredSnapshot {
     return this.room!.snapshot;
+  }
+  bugReportActivity() {
+    return { carries: [...this.room!.carries.values()], pointers: [...this.room!.pointers.values()] };
+  }
+  bugReportConversations() {
+    return this.conversations.report();
+  }
+  bugReportBrowser(browser: BugReportBrowser) {
+    return this.conversations.reportBrowser(browser);
+  }
+  recordBugReport(requestId: string, userId: string, name: string, issueUrl?: string) {
+    this.log.record({
+      key: `bug-report:${requestId}:${issueUrl ? 'complete' : 'requested'}`,
+      class: 'bug-report',
+      template: issueUrl
+        ? `Bug report ${requestId} published the full game state, including hidden information: ${issueUrl}`
+        : `{0} requested a bug report that exports the full game state, including every player's hidden information. Report ${requestId}.`,
+      people: issueUrl ? [] : [{ userId, name }],
+    });
   }
   /** The seat request a spectator has open, if any. */
   pendingSeatRequest(userId: string) {

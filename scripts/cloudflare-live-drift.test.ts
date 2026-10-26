@@ -7,6 +7,7 @@ import { checkCloudflareLiveDrift } from './cloudflare-live-drift';
 
 const ACCOUNT_ID = '0123456789abcdef0123456789abcdef';
 const HOMEPAGE_NAMESPACE_ID = 'abcdef1234567890abcdef1234567890';
+const BUG_REPORT_NAMESPACE_ID = 'c'.repeat(32);
 const WORKER = 'faction-sheet-asset-publisher';
 
 function envelope(result: unknown, resultInfo?: unknown, status = 200): Response {
@@ -102,6 +103,8 @@ function gameResponse(url: URL): Response {
       bindings: [
         { name: 'GAME_ROOMS', type: 'durable_object_namespace', namespace_id: ACCOUNT_ID },
         { name: 'HOMEPAGE_ROOMS', type: 'durable_object_namespace', namespace_id: HOMEPAGE_NAMESPACE_ID },
+        { name: 'BUG_REPORTS', type: 'durable_object_namespace', namespace_id: BUG_REPORT_NAMESPACE_ID },
+        { name: 'BUG_REPORT_STATES', type: 'r2_bucket', bucket_name: 'dunezone-bug-report-states' },
         { name: 'CF_VERSION_METADATA', type: 'version_metadata' },
         { name: 'CONVEX_URL', type: 'plain_text', text: 'https://exuberant-finch-263.eu-west-1.convex.cloud' },
         { name: 'APPLICATION_ORIGIN', type: 'plain_text', text: 'https://dune.zone' },
@@ -154,6 +157,7 @@ function liveFetcher(
         [
           { id: ACCOUNT_ID, class: 'GameRoom', script: 'dunezone-game', use_sqlite: true },
           { id: HOMEPAGE_NAMESPACE_ID, class: 'HomepageRoom', script: 'dunezone-game', use_sqlite: true },
+          { id: BUG_REPORT_NAMESPACE_ID, class: 'BugReports', script: 'dunezone-game', use_sqlite: true },
         ],
         {
           total_pages: 1,
@@ -272,7 +276,8 @@ describe('Cloudflare live drift check', () => {
         worker: 'dunezone-game',
         namespaceId: ACCOUNT_ID,
         homepageNamespaceId: HOMEPAGE_NAMESPACE_ID,
-        bindingCount: 7,
+        bugReportNamespaceId: BUG_REPORT_NAMESPACE_ID,
+        bindingCount: 9,
       },
     });
     expect(live.requests).toHaveLength(18);
