@@ -16,15 +16,9 @@ import {
   playProvisionRequestSchema,
   playSeatLimitResultSchema,
   playSessionCutoffRequestSchema,
-  provisionPlaceholderId,
 } from '../../src/shared/play/admission';
 import { playGamePathPattern } from '../../src/shared/play/callbacks';
 import { conversationPeerFor } from '../../src/shared/play/conversations';
-import {
-  PLAY_DIRECTORY_RETRY_CEILING_MS,
-  PLAY_DIRECTORY_RETRY_MS,
-  playPublishSummaryResultSchema,
-} from '../../src/shared/play/directory';
 import type { DraftFaction } from '../../src/shared/play/drafting';
 import { isDraftAction } from '../../src/shared/play/drafting';
 import type { StoredSpawnContents } from '../../src/shared/play/inventory';
@@ -32,7 +26,6 @@ import { CLIENT_MESSAGE_LIMIT } from '../../src/shared/play/messageLimit';
 import type {
   ClientMessage,
   CommitMessage,
-  PieceAction,
   PingSound,
   ServerClock,
   ServerMessage,
@@ -49,9 +42,7 @@ import {
 } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { playRetireFixtureRequestSchema } from '../../src/shared/play/retire';
-import { rosterSeat, SPECTATOR_SEAT } from '../../src/shared/play/schema';
-import { setupReadyRequired, setupStep } from '../../src/shared/play/setup';
-import type { SetupState } from '../../src/shared/play/setup';
+import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { SPECTATOR_COLOR } from './actors';
 import { handleAlertWebhook } from './alerts';
 import type { AlertEnv } from './alerts';
@@ -59,11 +50,13 @@ import { GameCatalogue } from './catalogue';
 import { RoomDelivery } from './delivery';
 import type { AdmissionRefusal } from './diagnostics';
 import { GameDiagnostics } from './diagnostics';
+import { DirectoryDelivery } from './directoryDelivery';
 import { FIXTURE_TREACHERY_DECK, hostedFixturePlan } from './fixture';
 import type { FixturePlan } from './fixture';
 import { gameHttpClient } from './gameHttpClient';
 import { isLocalIsolatedRuntime } from './localRuntime';
 import { forwardPrivacyRequest } from './privacyRequests';
+import { provisionThroughSetup } from './provisionThroughSetup';
 import { CarryHistoryExhausted } from './room';
 import { RoomDraft } from './roomDraft';
 import { RoomSummary } from './roomSummary';
@@ -161,10 +154,6 @@ function gameRequest(request: Request, applicationOrigin: string) {
 type ProvisionArgs = ReturnType<typeof playProvisionRequestSchema.parse>;
 /** An attempt Convex validated: a hosted fixture or a real game. A refused one never reaches initialization. */
 type ProvisioningValidation = Extract<ReturnType<typeof playProvisioningValidationSchema.parse>, { ok: true }>;
-/** A player provisioning seats: the creator or a placeholder. */
-type ProvisionPlayer = { userId: string; displayName: string };
-/** Executes one action as a provisioning player would send it. */
-type ProvisionCommand = (player: ProvisionPlayer, action: PieceAction) => void;
 type PageRead = Extract<ClientMessage, { type: 'log-history' | 'spice-history' | 'faction' }>;
 const isPageRead = (message: ClientMessage): message is PageRead =>
   message.type === 'log-history' || message.type === 'spice-history' || message.type === 'faction';
@@ -227,7 +216,7 @@ async function readLimitedBody(body: ReadableStream<Uint8Array>): Promise<string
 
 /** A promise the room resolves by hand, once, for handlers that wait on an event. */
 export class GameRoom extends DurableObject<GameEnv> {
-  private directoryDelivery?: Promise<void>;
+  private readonly directory: DirectoryDelivery;
   private readonly draft: RoomDraft;
   protected readonly diagnostics: GameDiagnostics;
   private confirmationEpoch = 0;
@@ -298,7 +287,14 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.closed = true;
       this.loadFailure = error;
     }
-    /* A room that did not load never reaches its draft, so it may hold no session. */
+    /* A room that did not load never reaches its directory or draft, so it may hold no session. */
+    this.directory = new DirectoryDelivery({
+      session: this.session,
+      diagnostics: this.diagnostics,
+      convex: () => this.convex(),
+      scheduleAlarm: () => this.scheduleAlarm(),
+      waitUntil: (work) => this.ctx.waitUntil(work),
+    });
     this.draft = new RoomDraft({
       session: this.session,
       diagnostics: this.diagnostics,
@@ -308,12 +304,12 @@ export class GameRoom extends DurableObject<GameEnv> {
       retainFaction: (factionId) =>
         this.retainFactionCapture(factionId, { provisional: this.metadata?.provisional === true }),
       refreshViews: () => this.refreshViews(),
-      dealt: () => this.deliverDirectorySoon(),
+      dealt: () => this.directory.soon(),
       waitUntil: (work) => this.ctx.waitUntil(work),
     });
     if (!this.closed && this.metadata) {
       if (this.metadata.confirmed && this.session.pendingDirectory()) {
-        this.deliverDirectorySoon();
+        this.directory.soon();
       }
       if (this.session.needsFixtureDeck) {
         this.ctx.waitUntil(this.adoptFixtureDeck().catch((error) => this.diagnostics.report('fixture-deck', error)));
@@ -431,7 +427,11 @@ export class GameRoom extends DurableObject<GameEnv> {
         return refused();
       }
       if ('game' in validation && validation.testStartStage === 'play') {
-        await this.provisionThroughSetup(validation.game);
+        await provisionThroughSetup(validation.game, {
+          session: this.session,
+          advanceDeadlines: () => this.advanceDeadlines(),
+          settleDraft: () => this.draft.settle(),
+        });
       }
       await this.confirmProvisioning();
       return this.metadata!.confirmed ? json({ ok: true }) : refused();
@@ -523,13 +523,13 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
   private advanceDeadlines() {
     if (this.session.advanceDeadlines()) {
-      this.deliverDirectorySoon();
+      this.directory.soon();
       this.refreshViews();
     }
   }
   private deleteActor(userId: string, eventId?: string) {
     this.session.deleteActor(userId, eventId);
-    this.deliverDirectorySoon();
+    this.directory.soon();
     for (const [socket, connection] of this.connections) {
       if (connection.viewer?.userId === userId) {
         this.deny(socket, false);
@@ -702,7 +702,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
     if (this.metadata?.confirmed) {
       this.advanceDeadlines();
-      await this.deliverDirectory();
+      await this.directory.deliver();
     } else {
       await this.confirmProvisioning();
     }
@@ -715,70 +715,6 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
     const deadline = this.session.nextDeadline();
     return deadline === undefined ? this.ctx.storage.deleteAlarm() : this.ctx.storage.setAlarm(deadline);
-  }
-
-  /** Delivery starts after the current transaction has committed, never from inside it. */
-  private deliverDirectorySoon() {
-    this.ctx.waitUntil(
-      Promise.resolve()
-        .then(() => this.deliverDirectory())
-        .catch((error) => this.diagnostics.report('directory', error))
-    );
-  }
-
-  /*
-   * Sends the pending summary until Convex holds the newest one. An acknowledgment clears only the
-   * sequence it names, so newer work staged meanwhile stays owed; a transport failure defers with
-   * backoff and the alarm retries it with no player connected; a refusal is terminal, since no
-   * retry cures a wrong credential or a game Convex no longer lists. The loop stays single-flight
-   * because its only awaits are the delivery and a storage call: a stage that lands between the
-   * last `pending()` read and the loop's end would otherwise wait for the next event.
-   */
-  private deliverDirectory(): Promise<void> {
-    this.directoryDelivery ??= this.deliverDirectoryLoop().finally(() => {
-      this.directoryDelivery = undefined;
-    });
-    return this.directoryDelivery;
-  }
-
-  private async deliverDirectoryLoop() {
-    const metadata = this.metadata;
-    /* Until confirmation settles, its recovery owns the alarm and the opening summary stays queued. */
-    if (!metadata?.confirmed) {
-      return;
-    }
-    for (let pending = this.session.pendingDirectory(); pending; pending = this.session.pendingDirectory()) {
-      const now = Date.now();
-      if (pending.retryAt > now) {
-        break;
-      }
-      try {
-        const raw: unknown = await this.convex().mutation(api.playDirectory.publishSummary, {
-          gameId: metadata.gameId,
-          secret: metadata.secret,
-          sequence: pending.sequence,
-          summary: pending.summary,
-        });
-        const result = playPublishSummaryResultSchema.parse(raw);
-        if (!result.ok) {
-          this.session.acknowledgeDirectory(pending.sequence);
-          this.diagnostics.report('directory', new Error('Directory delivery refused.'));
-        } else if (result.sequence > pending.sequence) {
-          this.session.advanceDirectory(result.sequence);
-        } else {
-          this.session.acknowledgeDirectory(pending.sequence);
-        }
-        if (result.ok) {
-          this.diagnostics.recovered('directory');
-        }
-      } catch (error) {
-        this.diagnostics.report('directory', error);
-        const wait = Math.min(PLAY_DIRECTORY_RETRY_CEILING_MS, PLAY_DIRECTORY_RETRY_MS * 2 ** pending.attempts);
-        this.session.deferDirectory(pending.sequence, Date.now() + wait);
-        break;
-      }
-    }
-    await this.scheduleAlarm();
   }
 
   private async confirmProvisioning() {
@@ -806,7 +742,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       }
       await this.ctx.storage.deleteAlarm();
       /* The opening summary waited for confirmation: only a confirmed game is listed. */
-      this.deliverDirectorySoon();
+      this.directory.soon();
       this.diagnostics.recovered('confirmation');
     } catch (error) {
       /* A superseded attempt still reports, so a first request that outlives its alarm stays visible. */
@@ -1406,7 +1342,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       const saved = this.session.sendConversation(viewer, request);
       if (saved.inserted) {
         this.publishConversationMessage(request, saved.message);
-        this.deliverDirectorySoon();
+        this.directory.soon();
       } else {
         /* A retried request was already delivered to every member; only the retrying connection needs its confirmation. */
         this.send(socket, {
@@ -1585,7 +1521,7 @@ export class GameRoom extends DurableObject<GameEnv> {
         this.draft.changed();
       }
     }
-    this.deliverDirectorySoon();
+    this.directory.soon();
     this.ctx.waitUntil(this.scheduleAlarm().catch((error) => this.diagnostics.report('battle-alarm', error)));
     this.reconcileViewers();
     this.broadcastCommittedView(connection, message);
@@ -1601,139 +1537,9 @@ export class GameRoom extends DurableObject<GameEnv> {
     );
   }
 
-  /**
-   * Takes a game a synthetic backend asked for at the play stage from creation to Turn 1 with the commands its players would send (#1594).
-   * Placeholders take the seats the creator does not hold and ready the draft beside the creator.
-   * The deal, trading and every setup step then run exactly as they do for players, and the placeholders give up their seats.
-   * Those seats stay open with their factions, so a browser flow seats its second player through a request in play, the path a replacement takes.
-   * Nothing here bypasses a rule: a step the room would refuse a player fails the provisioning.
-   */
-  private async provisionThroughSetup(game: {
-    minimumPlayers: number;
-    creator: { userId: string; displayName: string };
-  }) {
-    const creator = { userId: game.creator.userId, displayName: game.creator.displayName };
-    const placeholders = Array.from({ length: game.minimumPlayers - 1 }, (_, index) => ({
-      userId: provisionPlaceholderId(index + 2),
-      displayName: `Placeholder for seat ${index + 2}`,
-    }));
-    const everyone = [creator, ...placeholders];
-    let sequence = 0;
-    const command: ProvisionCommand = (player, action) => {
-      this.advanceDeadlines();
-      sequence += 1;
-      this.session.execute(this.session.provisionViewer(player.userId, player.displayName), {
-        type: 'command',
-        commandId: `provision-${sequence}`,
-        action,
-        expectedRevision: this.session.currentSnapshot().revision,
-      });
-    };
-    for (const placeholder of placeholders) {
-      command(placeholder, { kind: 'seat-request' });
-      const requestId = this.session.pendingSeatRequest(placeholder.userId);
-      if (!requestId) {
-        throw new Error('A placeholder seat request was not filed.');
-      }
-      command(creator, { kind: 'seat-approve', requestId });
-    }
-    for (const player of everyone) {
-      command(player, { kind: 'draft-ready', ready: true });
-    }
-    await this.draft.settle();
-    this.provisionSwapReady(everyone, command);
-    await this.provisionSetup(creator, everyone, command);
-    for (const placeholder of placeholders) {
-      command(placeholder, { kind: 'seat-depart' });
-    }
-  }
-
-  /** Every player readies the dealt trading round, which the deal must have opened. */
-  private provisionSwapReady(everyone: readonly ProvisionPlayer[], command: ProvisionCommand) {
-    const snapshot = () => this.session.currentSnapshot();
-    for (const player of everyone) {
-      const round = snapshot().swapping?.round;
-      if (snapshot().stage !== 'swapping' || round === undefined) {
-        const reason = snapshot().draft?.failure ?? `it is in ${snapshot().stage ?? 'no'} stage`;
-        throw new Error(`The provisioned game was not dealt: ${reason}`);
-      }
-      command(player, { kind: 'swap-ready', ready: true, round, seat: this.provisionSeat(player) });
-    }
-  }
-
-  /** Each setup step is done as its players would do it, and the creator moves on, until play begins. */
-  private async provisionSetup(
-    creator: ProvisionPlayer,
-    everyone: readonly ProvisionPlayer[],
-    command: ProvisionCommand
-  ) {
-    const snapshot = () => this.session.currentSnapshot();
-    for (let changes = 0; snapshot().stage === 'setup'; changes++) {
-      const steps = snapshot().setup?.steps.length ?? 0;
-      if (changes >= steps) {
-        throw new Error(`Setup did not reach play within its ${steps} steps.`);
-      }
-      this.provisionSetupStep(everyone, command);
-      await this.phaseCooldownElapsed();
-      command(creator, { kind: 'phase', direction: 1 });
-    }
-    if (snapshot().stage !== 'play') {
-      throw new Error(`The provisioned game did not reach play; it is in ${snapshot().stage ?? 'no'} stage.`);
-    }
-  }
-
-  /** What the current setup step asks of the players before the creator moves on. */
-  private provisionSetupStep(everyone: readonly ProvisionPlayer[], command: ProvisionCommand) {
-    const snapshot = this.session.currentSnapshot();
-    const setup = snapshot.setup!;
-    const step = setupStep(setup);
-    if (step?.kind === 'prediction') {
-      this.provisionPrediction(everyone, command, step);
-    } else if (setupReadyRequired(setup)) {
-      const ready = snapshot.controls?.ready ?? [];
-      everyone
-        .filter((player) => !ready.includes(this.provisionSeat(player)))
-        .forEach((player) => command(player, { kind: 'ready', ready: true }));
-    }
-  }
-
-  private provisionSeat(player: ProvisionPlayer) {
-    return this.session.provisionViewer(player.userId, player.displayName).viewerSeat;
-  }
-
-  /* A prediction gates on its lock, never on readiness; it is revealed at once so every seat starts play with the same public view. */
-  private provisionPrediction(
-    everyone: readonly ProvisionPlayer[],
-    command: ProvisionCommand,
-    step: SetupState['steps'][number]
-  ) {
-    const predictor = everyone.find((player) => this.seatFaction(this.provisionSeat(player)) === step.factionId);
-    if (!predictor) {
-      throw new Error(`No provisioned player holds the faction of ${step.title}.`);
-    }
-    command(predictor, {
-      kind: 'prediction-lock',
-      stepId: step.id,
-      choice: { factionId: step.factionId!, turn: 1 },
-    });
-    command(predictor, { kind: 'prediction-reveal', stepId: step.id });
-  }
-
   /** The catalogue this deployment reads factions, rulesets and decks from. */
   private catalogue() {
     return new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN, this.observeConvex);
-  }
-
-  private seatFaction(seat: string) {
-    return rosterSeat(this.session.currentSnapshot().roster, seat)?.faction?.id;
-  }
-
-  /** Setup's phase changes keep the game's cooldown, so a provisioning that runs at the real one waits it out. */
-  private async phaseCooldownElapsed() {
-    const wait = this.session.phaseCooldownEndsAt - Date.now();
-    if (wait > 0) {
-      await new Promise((resolve) => setTimeout(resolve, wait));
-    }
   }
 
   private broadcastCommittedView(connection: Connection, message: CommitMessage) {
