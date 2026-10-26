@@ -151,6 +151,30 @@ export const scrolled = (direction: 'in' | 'out') => ({
   finish: (watch: { stop: AbortController }) => watch.stop.abort(),
 });
 
+/*
+ * A task that only shows something has nothing to do on the table, so the player moves on with Enter.
+ * The press is counted from the moment the task starts, and taken, so it never also presses a button
+ * the focus was left on, such as Next phase; in a text field Enter keeps its own meaning.
+ */
+export const pressEnter = () => ({
+  begin: () => {
+    const watch = { pressed: false, stop: new AbortController() };
+    const press = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (event.key !== 'Enter' || event.repeat || target?.closest('input, textarea, [contenteditable="true"]')) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      watch.pressed = true;
+    };
+    window.addEventListener('keydown', press, { capture: true, signal: watch.stop.signal });
+    return watch;
+  },
+  done: (watch: { pressed: boolean }) => watch.pressed,
+  finish: (watch: { stop: AbortController }) => watch.stop.abort(),
+});
+
 /** The phase the game is in, by its id, and the turn; a fixture without its own turn plays the standard one. */
 export const phaseOf = (snapshot: () => GameSnapshot) => {
   const progress = tableProgressFor(snapshot().phase, snapshot().phases ?? STANDARD_PHASES);

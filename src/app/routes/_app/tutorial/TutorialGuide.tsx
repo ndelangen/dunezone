@@ -19,7 +19,8 @@ import styles from './TutorialGuide.module.css';
 /*
  * A tutorial chapter beside the live Play table: a rail down the left lists the chapter's tasks and opens the one to do now,
  * an arrow grown from the rail shows where,
- * and the chapter moves on only once the player has done it. There is no Next button; the table itself is the answer.
+ * and the chapter moves on only once the player has done it. There is no Next button: the table itself is the answer,
+ * and a task that only shows a part of the screen moves on when the player presses Enter.
  * The pointer follows a point on the table through the table's own camera every frame, or an element of the page.
  */
 
