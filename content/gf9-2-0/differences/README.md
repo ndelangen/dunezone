@@ -2,7 +2,7 @@
 
 Prepared on 26 October 2026 for a second rulebook under GF9 2.0. Its audience already knows the earlier GF9 game. The eventual book should explain what changes in play, with examples where an old habit gives the wrong result. It should not repeat the unchanged game.
 
-This is research and content preparation. The teaching format and the new production rulebook are the next stage. The faithful reconstruction remains a separate book.
+A [37-page local teaching draft](authoring/README.md) is now available for review. It uses existing Blocks and production artwork, with unresolved wording and expansion announcements labeled. The faithful reconstruction remains a separate book.
 
 ## Baselines
 

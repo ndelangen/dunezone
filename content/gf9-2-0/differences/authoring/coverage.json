@@ -1,0 +1,1847 @@
+{
+  "manuscriptSha256": "c14d723236c353923e728f43976d624da38bc48ab550c643622d1e0f3268a0e1",
+  "records": [
+    {
+      "id": "CORE-C01",
+      "classification": "mechanical-or-baseline-dependent-change",
+      "locations": [
+        {
+          "pageId": "2768",
+          "blockId": "K479",
+          "pageNumber": 2,
+          "title": "You know GF9. Here is what changes."
+        }
+      ]
+    },
+    {
+      "id": "CORE-C02",
+      "classification": "mechanical-or-baseline-dependent-change",
+      "locations": [
+        {
+          "pageId": "VCZX",
+          "blockId": "2R7S",
+          "pageNumber": 3,
+          "title": "Setup and familiar names"
+        }
+      ]
+    },
+    {
+      "id": "CORE-C03",
+      "classification": "unresolved-wording",
+      "locations": [
+        {
+          "pageId": "VCZX",
+          "blockId": "6K8U",
+          "pageNumber": 3,
+          "title": "Setup and familiar names"
+        },
+        {
+          "pageId": "93XK",
+          "blockId": "MFHJ",
+          "pageNumber": 36,
+          "title": "Open wording: cards, endgame and components"
+        }
+      ]
+    },
+    {
+      "id": "CORE-C04",
+      "classification": "mechanical-or-baseline-dependent-change",
+      "locations": [
+        {
+          "pageId": "G6QD",
+          "blockId": "ZNH3",
+          "pageNumber": 4,
+          "title": "Use the Storm deck every game"
+        }
+      ]
+    },
+    {
+      "id": "CORE-C05",
+      "classification": "mechanical-or-baseline-dependent-change",
+      "locations": [
+        {
+          "pageId": "G6QD",
+          "blockId": "MLF6",
+          "pageNumber": 4,
+          "title": "Use the Storm deck every game"
+        }
+      ]
+    },
+    {
+      "id": "CORE-C06",
+      "classification": "mechanical-or-baseline-dependent-change",
+      "locations": [
+        {
+          "pageId": "GEEF",
+          "blockId": "K9KA",
+          "pageNumber": 5,
+          "title": "One Spice card, two blows"
+        }
+      ]
+    },
+    {
+      "id": "CORE-C07",
+      "classification": "mechanical-or-baseline-dependent-change",
+      "locations": [
+        {
+          "pageId": "ACD7",
+          "blockId": "LQP5",
+          "pageNumber": 6,
+          "title": "Little Maker is a different event"
+        }
+      ]
+    },
+    {
+      "id": "CORE-C08",
+      "classification": "mechanical-or-baseline-dependent-change",
+      "locations": [
+        {
+          "pageId": "FRH9",
+          "blockId": "7F52",
+          "pageNumber": 13,
+          "title": "Unlock leader revival once"
+        }
+      ]
+    },
+    {
+      "id": "CORE-C09",
+      "classification": "mechanical-or-baseline-dependent-change",
+      "locations": [
+        {
+          "pageId": "YJFP",
+          "blockId": "MQEY",
+          "pageNumber": 9,
+          "title": "Spice adds strength to your force dial"
+        },
+        {
+          "pageId": "4EJA",
+          "blockId": "QQG2",
+          "pageNumber": 10,
+          "title": "Same commitment, different total"
+        }
+      ]
+    },
+    {
+      "id": "CORE-C10",
+      "classification": "mechanical-or-baseline-dependent-change",
+      "locations": [
+        {
+          "pageId": "PXSB",
+          "blockId": "5MBL",
+          "pageNumber": 11,
+          "title": "Commit spice, reveal, then settle"
+        }
+      ]
+    },
+    {
+      "id": "CORE-C11",
+      "classification": "mechanical-or-baseline-dependent-change",
+      "locations": [
+        {
+          "pageId": "PXSB",
+          "blockId": "VSNC",
+          "pageNumber": 11,
+          "title": "Commit spice, reveal, then settle"
+        }
+      ]
+    },
+    {
+      "id": "CORE-C12",
+      "classification": "mechanical-or-baseline-dependent-change",
+      "locations": [
+        {
+          "pageId": "WPPM",
+          "blockId": "95EM",
+          "pageNumber": 12,
+          "title": "Aftermath and negotiated surrender"
+        }
+      ]
+    },
+    {
+      "id": "CORE-C13",
+      "classification": "clarification",
+      "locations": [
+        {
+          "pageId": "PXSB",
+          "blockId": "2NTH",
+          "pageNumber": 11,
+          "title": "Commit spice, reveal, then settle"
+        }
+      ]
+    },
+    {
+      "id": "CORE-C14",
+      "classification": "mechanical-or-baseline-dependent-change",
+      "locations": [
+        {
+          "pageId": "NVLU",
+          "blockId": "4P3K",
+          "pageNumber": 19,
+          "title": "City income is now part of the default"
+        }
+      ]
+    },
+    {
+      "id": "CORE-C15",
+      "classification": "mechanical-or-baseline-dependent-change",
+      "locations": [
+        {
+          "pageId": "VVJC",
+          "blockId": "TC93",
+          "pageNumber": 20,
+          "title": "Normal wins have a new priority order"
+        }
+      ]
+    },
+    {
+      "id": "CORE-C16",
+      "classification": "mechanical-or-baseline-dependent-change",
+      "locations": [
+        {
+          "pageId": "RG5J",
+          "blockId": "4WM7",
+          "pageNumber": 21,
+          "title": "The end of round ten is different"
+        }
+      ]
+    },
+    {
+      "id": "CORE-C17",
+      "classification": "mechanical-or-baseline-dependent-change",
+      "locations": [
+        {
+          "pageId": "7B73",
+          "blockId": "6UWG",
+          "pageNumber": 17,
+          "title": "Allies leave shared territory differently"
+        }
+      ]
+    },
+    {
+      "id": "CORE-C18",
+      "classification": "mechanical-or-baseline-dependent-change",
+      "locations": [
+        {
+          "pageId": "7PK3",
+          "blockId": "J6CM",
+          "pageNumber": 18,
+          "title": "Deals, private information and notes"
+        }
+      ]
+    },
+    {
+      "id": "CORE-C19",
+      "classification": "mechanical-or-baseline-dependent-change",
+      "locations": [
+        {
+          "pageId": "7PK3",
+          "blockId": "W3TW",
+          "pageNumber": 18,
+          "title": "Deals, private information and notes"
+        }
+      ]
+    },
+    {
+      "id": "CORE-C20",
+      "classification": "mechanical-or-baseline-dependent-change",
+      "locations": [
+        {
+          "pageId": "7PK3",
+          "blockId": "MK3J",
+          "pageNumber": 18,
+          "title": "Deals, private information and notes"
+        }
+      ]
+    },
+    {
+      "id": "CORE-C21",
+      "classification": "mechanical-or-baseline-dependent-change",
+      "locations": [
+        {
+          "pageId": "7PK3",
+          "blockId": "UZEH",
+          "pageNumber": 18,
+          "title": "Deals, private information and notes"
+        }
+      ]
+    },
+    {
+      "id": "CORE-U01",
+      "classification": "unresolved-wording",
+      "locations": [
+        {
+          "pageId": "AF59",
+          "blockId": "LAC9",
+          "pageNumber": 35,
+          "title": "Open wording: actions and battle"
+        }
+      ]
+    },
+    {
+      "id": "CORE-U02",
+      "classification": "unresolved-wording",
+      "locations": [
+        {
+          "pageId": "7B73",
+          "blockId": "3QTC",
+          "pageNumber": 17,
+          "title": "Allies leave shared territory differently"
+        },
+        {
+          "pageId": "AF59",
+          "blockId": "XBRZ",
+          "pageNumber": 35,
+          "title": "Open wording: actions and battle"
+        }
+      ]
+    },
+    {
+      "id": "CORE-U03",
+      "classification": "unresolved-wording",
+      "locations": [
+        {
+          "pageId": "PXSB",
+          "blockId": "APY2",
+          "pageNumber": 11,
+          "title": "Commit spice, reveal, then settle"
+        },
+        {
+          "pageId": "AF59",
+          "blockId": "N4KG",
+          "pageNumber": 35,
+          "title": "Open wording: actions and battle"
+        }
+      ]
+    },
+    {
+      "id": "CORE-U04",
+      "classification": "unresolved-wording",
+      "locations": [
+        {
+          "pageId": "NVLU",
+          "blockId": "Z22D",
+          "pageNumber": 19,
+          "title": "City income is now part of the default"
+        },
+        {
+          "pageId": "AF59",
+          "blockId": "PH7R",
+          "pageNumber": 35,
+          "title": "Open wording: actions and battle"
+        }
+      ]
+    },
+    {
+      "id": "CORE-U05",
+      "classification": "unresolved-wording",
+      "locations": [
+        {
+          "pageId": "GEEF",
+          "blockId": "GKX5",
+          "pageNumber": 5,
+          "title": "One Spice card, two blows"
+        },
+        {
+          "pageId": "93XK",
+          "blockId": "Z4WK",
+          "pageNumber": 36,
+          "title": "Open wording: cards, endgame and components"
+        }
+      ]
+    },
+    {
+      "id": "CORE-U06",
+      "classification": "unresolved-wording",
+      "locations": [
+        {
+          "pageId": "RG5J",
+          "blockId": "RZEY",
+          "pageNumber": 21,
+          "title": "The end of round ten is different"
+        },
+        {
+          "pageId": "93XK",
+          "blockId": "7Z8D",
+          "pageNumber": 36,
+          "title": "Open wording: cards, endgame and components"
+        }
+      ]
+    },
+    {
+      "id": "CORE-Q01",
+      "classification": "clarification-or-unchanged",
+      "locations": [
+        {
+          "pageId": "VCZX",
+          "blockId": "FPAZ",
+          "pageNumber": 3,
+          "title": "Setup and familiar names"
+        }
+      ]
+    },
+    {
+      "id": "CORE-Q02",
+      "classification": "clarification-or-unchanged",
+      "locations": [],
+      "excludedAsUnchanged": "Already clarified or unchanged in the earlier game; not a distinct edition difference to teach."
+    },
+    {
+      "id": "CORE-Q03",
+      "classification": "clarification-or-unchanged",
+      "locations": [],
+      "excludedAsUnchanged": "Already clarified or unchanged in the earlier game; not a distinct edition difference to teach."
+    },
+    {
+      "id": "CORE-Q04",
+      "classification": "clarification-or-unchanged",
+      "locations": [],
+      "excludedAsUnchanged": "Already clarified or unchanged in the earlier game; not a distinct edition difference to teach."
+    },
+    {
+      "id": "CORE-Q05",
+      "classification": "clarification-or-unchanged",
+      "locations": [],
+      "excludedAsUnchanged": "Already clarified or unchanged in the earlier game; not a distinct edition difference to teach."
+    },
+    {
+      "id": "CORE-Q06",
+      "classification": "clarification-or-unchanged",
+      "locations": [],
+      "excludedAsUnchanged": "Already clarified or unchanged in the earlier game; not a distinct edition difference to teach."
+    },
+    {
+      "id": "CORE-Q07",
+      "classification": "clarification-or-unchanged",
+      "locations": [],
+      "excludedAsUnchanged": "Already clarified or unchanged in the earlier game; not a distinct edition difference to teach."
+    },
+    {
+      "id": "CORE-Q08",
+      "classification": "clarification-or-unchanged",
+      "locations": [
+        {
+          "pageId": "7B73",
+          "blockId": "CPGD",
+          "pageNumber": 17,
+          "title": "Allies leave shared territory differently"
+        }
+      ]
+    },
+    {
+      "id": "CORE-Q09",
+      "classification": "clarification-or-unchanged",
+      "locations": [
+        {
+          "pageId": "7PK3",
+          "blockId": "GNK6",
+          "pageNumber": 18,
+          "title": "Deals, private information and notes"
+        }
+      ]
+    },
+    {
+      "id": "CORE-Q10",
+      "classification": "clarification-or-unchanged",
+      "locations": [
+        {
+          "pageId": "7PK3",
+          "blockId": "GNK6",
+          "pageNumber": 18,
+          "title": "Deals, private information and notes"
+        }
+      ]
+    },
+    {
+      "id": "CORE-Q11",
+      "classification": "clarification-or-unchanged",
+      "locations": [
+        {
+          "pageId": "WPPM",
+          "blockId": "LU7S",
+          "pageNumber": 12,
+          "title": "Aftermath and negotiated surrender"
+        }
+      ]
+    },
+    {
+      "id": "CORE-Q12",
+      "classification": "clarification-or-unchanged",
+      "locations": [
+        {
+          "pageId": "VCZX",
+          "blockId": "SHSG",
+          "pageNumber": 3,
+          "title": "Setup and familiar names"
+        },
+        {
+          "pageId": "WPPM",
+          "blockId": "HDWB",
+          "pageNumber": 12,
+          "title": "Aftermath and negotiated surrender"
+        }
+      ]
+    },
+    {
+      "id": "CORE-Q13",
+      "classification": "clarification-or-unchanged",
+      "locations": [
+        {
+          "pageId": "G6QD",
+          "blockId": "GUC8",
+          "pageNumber": 4,
+          "title": "Use the Storm deck every game"
+        }
+      ]
+    },
+    {
+      "id": "CORE-Q14",
+      "classification": "clarification-or-unchanged",
+      "locations": [
+        {
+          "pageId": "G6QD",
+          "blockId": "6GQ4",
+          "pageNumber": 4,
+          "title": "Use the Storm deck every game"
+        }
+      ]
+    },
+    {
+      "id": "CORE-Q15",
+      "classification": "clarification-or-unchanged",
+      "locations": [
+        {
+          "pageId": "WPPM",
+          "blockId": "QTBY",
+          "pageNumber": 12,
+          "title": "Aftermath and negotiated surrender"
+        }
+      ]
+    },
+    {
+      "id": "CORE-Q16",
+      "classification": "clarification-or-unchanged",
+      "locations": [
+        {
+          "pageId": "7PK3",
+          "blockId": "JVYY",
+          "pageNumber": 18,
+          "title": "Deals, private information and notes"
+        }
+      ]
+    },
+    {
+      "id": "CORE-Q17",
+      "classification": "clarification-or-unchanged",
+      "locations": [
+        {
+          "pageId": "VVJC",
+          "blockId": "R4XW",
+          "pageNumber": 20,
+          "title": "Normal wins have a new priority order"
+        }
+      ]
+    },
+    {
+      "id": "CORE-Q18",
+      "classification": "clarification-or-unchanged",
+      "locations": [
+        {
+          "pageId": "7B73",
+          "blockId": "9WNA",
+          "pageNumber": 17,
+          "title": "Allies leave shared territory differently"
+        }
+      ]
+    },
+    {
+      "id": "CORE-Q19",
+      "classification": "clarification-or-unchanged",
+      "locations": [
+        {
+          "pageId": "HTSM",
+          "blockId": "25XQ",
+          "pageNumber": 34,
+          "title": "Compatibility: modules and reference decks"
+        }
+      ]
+    },
+    {
+      "id": "F01",
+      "classification": "component-or-roster-finding",
+      "locations": [
+        {
+          "pageId": "PJQR",
+          "blockId": "NPBA",
+          "pageNumber": 22,
+          "title": "Leaders and their changed values"
+        },
+        {
+          "pageId": "PJQR",
+          "blockId": "3DAG",
+          "pageNumber": 22,
+          "title": "Leaders and their changed values"
+        }
+      ]
+    },
+    {
+      "id": "F02",
+      "classification": "component-or-roster-finding",
+      "locations": [
+        {
+          "pageId": "PJQR",
+          "blockId": "NPBA",
+          "pageNumber": 22,
+          "title": "Leaders and their changed values"
+        }
+      ]
+    },
+    {
+      "id": "F03",
+      "classification": "component-or-roster-finding",
+      "locations": [
+        {
+          "pageId": "PJQR",
+          "blockId": "NPBA",
+          "pageNumber": 22,
+          "title": "Leaders and their changed values"
+        }
+      ]
+    },
+    {
+      "id": "F04",
+      "classification": "component-or-roster-finding",
+      "locations": [
+        {
+          "pageId": "PJQR",
+          "blockId": "NPBA",
+          "pageNumber": 22,
+          "title": "Leaders and their changed values"
+        }
+      ]
+    },
+    {
+      "id": "F05",
+      "classification": "component-or-roster-finding",
+      "locations": [
+        {
+          "pageId": "PJQR",
+          "blockId": "RBUX",
+          "pageNumber": 22,
+          "title": "Leaders and their changed values"
+        }
+      ]
+    },
+    {
+      "id": "F06",
+      "classification": "component-or-roster-finding",
+      "locations": [
+        {
+          "pageId": "PJQR",
+          "blockId": "AZ4V",
+          "pageNumber": 22,
+          "title": "Leaders and their changed values"
+        }
+      ]
+    },
+    {
+      "id": "K-F01",
+      "classification": "faction-cancellation-window",
+      "locations": [
+        {
+          "pageId": "QXRY",
+          "blockId": "P6KB",
+          "pageNumber": 14,
+          "title": "Karama: one target and its window"
+        },
+        {
+          "pageId": "MJUN",
+          "blockId": "DNV6",
+          "pageNumber": 28,
+          "title": "Atreides: information and the public token"
+        }
+      ]
+    },
+    {
+      "id": "K-F02",
+      "classification": "faction-cancellation-window",
+      "locations": [
+        {
+          "pageId": "QXRY",
+          "blockId": "P6KB",
+          "pageNumber": 14,
+          "title": "Karama: one target and its window"
+        },
+        {
+          "pageId": "XCEQ",
+          "blockId": "YA5E",
+          "pageNumber": 23,
+          "title": "Bene Gesserit: Voice, cards and prediction"
+        }
+      ]
+    },
+    {
+      "id": "K-F03",
+      "classification": "faction-cancellation-window",
+      "locations": [
+        {
+          "pageId": "QXRY",
+          "blockId": "P6KB",
+          "pageNumber": 14,
+          "title": "Karama: one target and its window"
+        },
+        {
+          "pageId": "58EY",
+          "blockId": "7XN3",
+          "pageNumber": 27,
+          "title": "Emperor: a new alliance bargain"
+        }
+      ]
+    },
+    {
+      "id": "K-F04",
+      "classification": "faction-cancellation-window",
+      "locations": [
+        {
+          "pageId": "QXRY",
+          "blockId": "P6KB",
+          "pageNumber": 14,
+          "title": "Karama: one target and its window"
+        },
+        {
+          "pageId": "Y48B",
+          "blockId": "GBU6",
+          "pageNumber": 26,
+          "title": "Fremen: free spice strength and allies"
+        }
+      ]
+    },
+    {
+      "id": "K-F05",
+      "classification": "faction-cancellation-window",
+      "locations": [
+        {
+          "pageId": "QXRY",
+          "blockId": "P6KB",
+          "pageNumber": 14,
+          "title": "Karama: one target and its window"
+        },
+        {
+          "pageId": "PJHY",
+          "blockId": "B94A",
+          "pageNumber": 29,
+          "title": "Harkonnen: redraw and exchange"
+        }
+      ]
+    },
+    {
+      "id": "K-F06",
+      "classification": "faction-cancellation-window",
+      "locations": [
+        {
+          "pageId": "QXRY",
+          "blockId": "P6KB",
+          "pageNumber": 14,
+          "title": "Karama: one target and its window"
+        },
+        {
+          "pageId": "3NRG",
+          "blockId": "83NB",
+          "pageNumber": 30,
+          "title": "Guild: shipping, rates and special victory"
+        }
+      ]
+    },
+    {
+      "id": "F07",
+      "classification": "faction-finding-see-record",
+      "locations": [
+        {
+          "pageId": "MJUN",
+          "blockId": "KYHT",
+          "pageNumber": 28,
+          "title": "Atreides: information and the public token"
+        }
+      ]
+    },
+    {
+      "id": "F08",
+      "classification": "faction-finding-see-record",
+      "locations": [
+        {
+          "pageId": "MJUN",
+          "blockId": "A7LV",
+          "pageNumber": 28,
+          "title": "Atreides: information and the public token"
+        }
+      ]
+    },
+    {
+      "id": "F09",
+      "classification": "faction-finding-see-record",
+      "locations": [
+        {
+          "pageId": "MJUN",
+          "blockId": "8CX6",
+          "pageNumber": 28,
+          "title": "Atreides: information and the public token"
+        }
+      ]
+    },
+    {
+      "id": "F10",
+      "classification": "faction-finding-see-record",
+      "locations": [
+        {
+          "pageId": "FRH9",
+          "blockId": "VRZV",
+          "pageNumber": 13,
+          "title": "Unlock leader revival once"
+        },
+        {
+          "pageId": "MJUN",
+          "blockId": "VRZS",
+          "pageNumber": 28,
+          "title": "Atreides: information and the public token"
+        }
+      ]
+    },
+    {
+      "id": "F11",
+      "classification": "faction-finding-see-record",
+      "locations": [
+        {
+          "pageId": "MJUN",
+          "blockId": "ZAD3",
+          "pageNumber": 28,
+          "title": "Atreides: information and the public token"
+        }
+      ]
+    },
+    {
+      "id": "F12",
+      "classification": "faction-finding-see-record",
+      "locations": [
+        {
+          "pageId": "MJUN",
+          "blockId": "8PMD",
+          "pageNumber": 28,
+          "title": "Atreides: information and the public token"
+        }
+      ]
+    },
+    {
+      "id": "F13",
+      "classification": "faction-finding-see-record",
+      "locations": [
+        {
+          "pageId": "XCEQ",
+          "blockId": "RJMR",
+          "pageNumber": 23,
+          "title": "Bene Gesserit: Voice, cards and prediction"
+        }
+      ]
+    },
+    {
+      "id": "F14",
+      "classification": "faction-finding-see-record",
+      "locations": [
+        {
+          "pageId": "XCEQ",
+          "blockId": "LVWT",
+          "pageNumber": 23,
+          "title": "Bene Gesserit: Voice, cards and prediction"
+        }
+      ]
+    },
+    {
+      "id": "F15",
+      "classification": "faction-finding-see-record",
+      "locations": [
+        {
+          "pageId": "XCEQ",
+          "blockId": "LVWT",
+          "pageNumber": 23,
+          "title": "Bene Gesserit: Voice, cards and prediction"
+        }
+      ]
+    },
+    {
+      "id": "F16",
+      "classification": "faction-finding-see-record",
+      "locations": [
+        {
+          "pageId": "XCEQ",
+          "blockId": "VK9A",
+          "pageNumber": 23,
+          "title": "Bene Gesserit: Voice, cards and prediction"
+        }
+      ]
+    },
+    {
+      "id": "F17",
+      "classification": "faction-finding-see-record",
+      "locations": [
+        {
+          "pageId": "866X",
+          "blockId": "4Y7V",
+          "pageNumber": 24,
+          "title": "Bene Gesserit: plan your face changes"
+        }
+      ]
+    },
+    {
+      "id": "F18",
+      "classification": "faction-finding-see-record",
+      "locations": [
+        {
+          "pageId": "866X",
+          "blockId": "4Y7V",
+          "pageNumber": 24,
+          "title": "Bene Gesserit: plan your face changes"
+        }
+      ]
+    },
+    {
+      "id": "F19",
+      "classification": "faction-finding-see-record",
+      "locations": [
+        {
+          "pageId": "866X",
+          "blockId": "AE69",
+          "pageNumber": 24,
+          "title": "Bene Gesserit: plan your face changes"
+        }
+      ]
+    },
+    {
+      "id": "F20",
+      "classification": "faction-finding-see-record",
+      "locations": [
+        {
+          "pageId": "866X",
+          "blockId": "UYJ4",
+          "pageNumber": 24,
+          "title": "Bene Gesserit: plan your face changes"
+        }
+      ]
+    },
+    {
+      "id": "F21",
+      "classification": "faction-finding-see-record",
+      "locations": [
+        {
+          "pageId": "866X",
+          "blockId": "QGRA",
+          "pageNumber": 24,
+          "title": "Bene Gesserit: plan your face changes"
+        }
+      ]
+    },
+    {
+      "id": "F22",
+      "classification": "faction-finding-see-record",
+      "locations": [
+        {
+          "pageId": "7B73",
+          "blockId": "HMLF",
+          "pageNumber": 17,
+          "title": "Allies leave shared territory differently"
+        },
+        {
+          "pageId": "866X",
+          "blockId": "MWPP",
+          "pageNumber": 24,
+          "title": "Bene Gesserit: plan your face changes"
+        }
+      ]
+    },
+    {
+      "id": "F23",
+      "classification": "faction-finding-see-record",
+      "locations": [
+        {
+          "pageId": "XCEQ",
+          "blockId": "ZDM6",
+          "pageNumber": 23,
+          "title": "Bene Gesserit: Voice, cards and prediction"
+        }
+      ]
+    },
+    {
+      "id": "F24",
+      "classification": "faction-finding-see-record",
+      "locations": [
+        {
+          "pageId": "XCEQ",
+          "blockId": "TYB7",
+          "pageNumber": 23,
+          "title": "Bene Gesserit: Voice, cards and prediction"
+        }
+      ]
+    },
+    {
+      "id": "F25",
+      "classification": "faction-finding-see-record",
+      "locations": [
+        {
+          "pageId": "VCZX",
+          "blockId": "KNDS",
+          "pageNumber": 3,
+          "title": "Setup and familiar names"
+        },
+        {
+          "pageId": "V6MJ",
+          "blockId": "VECG",
+          "pageNumber": 25,
+          "title": "Fremen: storm knowledge and worm events"
+        }
+      ]
+    },
+    {
+      "id": "F26",
+      "classification": "faction-finding-see-record",
+      "locations": [
+        {
+          "pageId": "G6QD",
+          "blockId": "B2ZX",
+          "pageNumber": 4,
+          "title": "Use the Storm deck every game"
+        },
+        {
+          "pageId": "V6MJ",
+          "blockId": "YPAK",
+          "pageNumber": 25,
+          "title": "Fremen: storm knowledge and worm events"
+        }
+      ]
+    },
+    {
+      "id": "F27",
+      "classification": "faction-finding-see-record",
+      "locations": [
+        {
+          "pageId": "V6MJ",
+          "blockId": "ZEAZ",
+          "pageNumber": 25,
+          "title": "Fremen: storm knowledge and worm events"
+        }
+      ]
+    },
+    {
+      "id": "F28",
+      "classification": "faction-finding-see-record",
+      "locations": [
+        {
+          "pageId": "V6MJ",
+          "blockId": "5NCU",
+          "pageNumber": 25,
+          "title": "Fremen: storm knowledge and worm events"
+        }
+      ]
+    },
+    {
+      "id": "F29",
+      "classification": "faction-finding-see-record",
+      "locations": [
+        {
+          "pageId": "V6MJ",
+          "blockId": "6K5K",
+          "pageNumber": 25,
+          "title": "Fremen: storm knowledge and worm events"
+        }
+      ]
+    },
+    {
+      "id": "F30",
+      "classification": "faction-finding-see-record",
+      "locations": [
+        {
+          "pageId": "Y48B",
+          "blockId": "GV84",
+          "pageNumber": 26,
+          "title": "Fremen: free spice strength and allies"
+        }
+      ]
+    },
+    {
+      "id": "F31",
+      "classification": "faction-finding-see-record",
+      "locations": [
+        {
+          "pageId": "FRH9",
+          "blockId": "KLEP",
+          "pageNumber": 13,
+          "title": "Unlock leader revival once"
+        },
+        {
+          "pageId": "Y48B",
+          "blockId": "U43B",
+          "pageNumber": 26,
+          "title": "Fremen: free spice strength and allies"
+        }
+      ],
+      "sameChangeAs": "CARD-07"
+    },
+    {
+      "id": "F32",
+      "classification": "faction-finding-see-record",
+      "locations": [
+        {
+          "pageId": "Y48B",
+          "blockId": "LHPE",
+          "pageNumber": 26,
+          "title": "Fremen: free spice strength and allies"
+        }
+      ]
+    },
+    {
+      "id": "F33",
+      "classification": "faction-finding-see-record",
+      "locations": [
+        {
+          "pageId": "Y48B",
+          "blockId": "NVD8",
+          "pageNumber": 26,
+          "title": "Fremen: free spice strength and allies"
+        }
+      ]
+    },
+    {
+      "id": "F34",
+      "classification": "faction-finding-see-record",
+      "locations": [
+        {
+          "pageId": "V6MJ",
+          "blockId": "XCNC",
+          "pageNumber": 25,
+          "title": "Fremen: storm knowledge and worm events"
+        }
+      ]
+    },
+    {
+      "id": "F35",
+      "classification": "faction-finding-see-record",
+      "locations": [
+        {
+          "pageId": "58EY",
+          "blockId": "VPL2",
+          "pageNumber": 27,
+          "title": "Emperor: a new alliance bargain"
+        }
+      ]
+    },
+    {
+      "id": "F36",
+      "classification": "faction-finding-see-record",
+      "locations": [
+        {
+          "pageId": "58EY",
+          "blockId": "YFR7",
+          "pageNumber": 27,
+          "title": "Emperor: a new alliance bargain"
+        }
+      ]
+    },
+    {
+      "id": "F37",
+      "classification": "faction-finding-see-record",
+      "locations": [
+        {
+          "pageId": "58EY",
+          "blockId": "3GKY",
+          "pageNumber": 27,
+          "title": "Emperor: a new alliance bargain"
+        }
+      ]
+    },
+    {
+      "id": "F38",
+      "classification": "faction-finding-see-record",
+      "locations": [
+        {
+          "pageId": "PJHY",
+          "blockId": "N6UV",
+          "pageNumber": 29,
+          "title": "Harkonnen: redraw and exchange"
+        }
+      ]
+    },
+    {
+      "id": "F39",
+      "classification": "faction-finding-see-record",
+      "locations": [
+        {
+          "pageId": "PJHY",
+          "blockId": "MC3M",
+          "pageNumber": 29,
+          "title": "Harkonnen: redraw and exchange"
+        }
+      ]
+    },
+    {
+      "id": "F40",
+      "classification": "faction-finding-see-record",
+      "locations": [
+        {
+          "pageId": "PJHY",
+          "blockId": "V3EN",
+          "pageNumber": 29,
+          "title": "Harkonnen: redraw and exchange"
+        }
+      ]
+    },
+    {
+      "id": "F41",
+      "classification": "faction-finding-see-record",
+      "locations": [
+        {
+          "pageId": "VCZX",
+          "blockId": "KNDS",
+          "pageNumber": 3,
+          "title": "Setup and familiar names"
+        },
+        {
+          "pageId": "3NRG",
+          "blockId": "YWVL",
+          "pageNumber": 30,
+          "title": "Guild: shipping, rates and special victory"
+        }
+      ]
+    },
+    {
+      "id": "F42",
+      "classification": "faction-finding-see-record",
+      "locations": [
+        {
+          "pageId": "3NRG",
+          "blockId": "WBCR",
+          "pageNumber": 30,
+          "title": "Guild: shipping, rates and special victory"
+        }
+      ]
+    },
+    {
+      "id": "F43",
+      "classification": "faction-finding-see-record",
+      "locations": [
+        {
+          "pageId": "3NRG",
+          "blockId": "HUAK",
+          "pageNumber": 30,
+          "title": "Guild: shipping, rates and special victory"
+        }
+      ]
+    },
+    {
+      "id": "F44",
+      "classification": "faction-finding-see-record",
+      "locations": [
+        {
+          "pageId": "RG5J",
+          "blockId": "4WM7",
+          "pageNumber": 21,
+          "title": "The end of round ten is different"
+        },
+        {
+          "pageId": "3NRG",
+          "blockId": "Y95R",
+          "pageNumber": 30,
+          "title": "Guild: shipping, rates and special victory"
+        }
+      ]
+    },
+    {
+      "id": "F45",
+      "classification": "faction-finding-see-record",
+      "locations": [
+        {
+          "pageId": "3NRG",
+          "blockId": "C54U",
+          "pageNumber": 30,
+          "title": "Guild: shipping, rates and special victory"
+        }
+      ]
+    },
+    {
+      "id": "F46",
+      "classification": "faction-finding-see-record",
+      "locations": [
+        {
+          "pageId": "PYVH",
+          "blockId": "SSCZ",
+          "pageNumber": 31,
+          "title": "Two optional variants"
+        }
+      ],
+      "sameChangeAs": "VAR-02"
+    },
+    {
+      "id": "CARD-01",
+      "classification": "card-change",
+      "locations": [
+        {
+          "pageId": "QXRY",
+          "blockId": "MNQR",
+          "pageNumber": 14,
+          "title": "Karama: one target and its window"
+        }
+      ]
+    },
+    {
+      "id": "CARD-02",
+      "classification": "card-change",
+      "locations": [
+        {
+          "pageId": "QXRY",
+          "blockId": "MNQR",
+          "pageNumber": 14,
+          "title": "Karama: one target and its window"
+        },
+        {
+          "pageId": "ERCZ",
+          "blockId": "QR7F",
+          "pageNumber": 15,
+          "title": "Solaris pays for one economic effect"
+        }
+      ]
+    },
+    {
+      "id": "CARD-03",
+      "classification": "card-change",
+      "locations": [
+        {
+          "pageId": "ERCZ",
+          "blockId": "73TX",
+          "pageNumber": 15,
+          "title": "Solaris pays for one economic effect"
+        }
+      ]
+    },
+    {
+      "id": "CARD-04",
+      "classification": "card-change",
+      "locations": [
+        {
+          "pageId": "ERCZ",
+          "blockId": "QR7F",
+          "pageNumber": 15,
+          "title": "Solaris pays for one economic effect"
+        }
+      ]
+    },
+    {
+      "id": "CARD-05",
+      "classification": "card-change",
+      "locations": [
+        {
+          "pageId": "R2X8",
+          "blockId": "TN2T",
+          "pageNumber": 16,
+          "title": "Cards: information, disposal and timing"
+        }
+      ]
+    },
+    {
+      "id": "CARD-06",
+      "classification": "card-change",
+      "locations": [
+        {
+          "pageId": "R2X8",
+          "blockId": "WEWF",
+          "pageNumber": 16,
+          "title": "Cards: information, disposal and timing"
+        }
+      ]
+    },
+    {
+      "id": "CARD-07",
+      "classification": "card-change",
+      "locations": [
+        {
+          "pageId": "FRH9",
+          "blockId": "KLEP",
+          "pageNumber": 13,
+          "title": "Unlock leader revival once"
+        }
+      ]
+    },
+    {
+      "id": "CARD-08",
+      "classification": "card-change",
+      "locations": [
+        {
+          "pageId": "R2X8",
+          "blockId": "S6MH",
+          "pageNumber": 16,
+          "title": "Cards: information, disposal and timing"
+        }
+      ]
+    },
+    {
+      "id": "DECK-01",
+      "classification": "deck-change",
+      "locations": [
+        {
+          "pageId": "GEEF",
+          "blockId": "K9KA",
+          "pageNumber": 5,
+          "title": "One Spice card, two blows"
+        }
+      ],
+      "sameChangeAs": "CORE-C06"
+    },
+    {
+      "id": "DECK-02",
+      "classification": "deck-change",
+      "locations": [
+        {
+          "pageId": "8RFA",
+          "blockId": "N27X",
+          "pageNumber": 7,
+          "title": "New Spice locations and amounts"
+        },
+        {
+          "pageId": "2W2D",
+          "blockId": "FBTW",
+          "pageNumber": 8,
+          "title": "Find the revised Spice sites"
+        }
+      ]
+    },
+    {
+      "id": "DECK-03",
+      "classification": "deck-change",
+      "locations": [
+        {
+          "pageId": "ACD7",
+          "blockId": "LQP5",
+          "pageNumber": 6,
+          "title": "Little Maker is a different event"
+        }
+      ],
+      "sameChangeAs": "CORE-C07"
+    },
+    {
+      "id": "DECK-04",
+      "classification": "deck-change",
+      "locations": [
+        {
+          "pageId": "G6QD",
+          "blockId": "ZNH3",
+          "pageNumber": 4,
+          "title": "Use the Storm deck every game"
+        }
+      ],
+      "sameChangeAs": "CORE-C04"
+    },
+    {
+      "id": "DECK-05",
+      "classification": "deck-change",
+      "locations": [
+        {
+          "pageId": "R2X8",
+          "blockId": "4HDS",
+          "pageNumber": 16,
+          "title": "Cards: information, disposal and timing"
+        }
+      ]
+    },
+    {
+      "id": "TERM-01",
+      "classification": "terminology-or-component",
+      "locations": [
+        {
+          "pageId": "VCZX",
+          "blockId": "SHSG",
+          "pageNumber": 3,
+          "title": "Setup and familiar names"
+        }
+      ]
+    },
+    {
+      "id": "TERM-02",
+      "classification": "terminology-or-component",
+      "locations": [
+        {
+          "pageId": "VCZX",
+          "blockId": "SHSG",
+          "pageNumber": 3,
+          "title": "Setup and familiar names"
+        },
+        {
+          "pageId": "2W2D",
+          "blockId": "5VED",
+          "pageNumber": 8,
+          "title": "Find the revised Spice sites"
+        }
+      ]
+    },
+    {
+      "id": "TERM-03",
+      "classification": "terminology-or-component",
+      "locations": [
+        {
+          "pageId": "VCZX",
+          "blockId": "SHSG",
+          "pageNumber": 3,
+          "title": "Setup and familiar names"
+        },
+        {
+          "pageId": "R2X8",
+          "blockId": "TNE2",
+          "pageNumber": 16,
+          "title": "Cards: information, disposal and timing"
+        }
+      ]
+    },
+    {
+      "id": "TERM-04",
+      "classification": "terminology-or-component",
+      "locations": [
+        {
+          "pageId": "VCZX",
+          "blockId": "SHSG",
+          "pageNumber": 3,
+          "title": "Setup and familiar names"
+        }
+      ]
+    },
+    {
+      "id": "VAR-01",
+      "classification": "optional-variant",
+      "locations": [
+        {
+          "pageId": "PYVH",
+          "blockId": "4B34",
+          "pageNumber": 31,
+          "title": "Two optional variants"
+        }
+      ]
+    },
+    {
+      "id": "VAR-02",
+      "classification": "optional-variant",
+      "locations": [
+        {
+          "pageId": "PYVH",
+          "blockId": "SSCZ",
+          "pageNumber": 31,
+          "title": "Two optional variants"
+        }
+      ]
+    },
+    {
+      "id": "Q-CARD-01",
+      "classification": "unresolved-or-source-gap",
+      "locations": [
+        {
+          "pageId": "ERCZ",
+          "blockId": "GD3J",
+          "pageNumber": 15,
+          "title": "Solaris pays for one economic effect"
+        },
+        {
+          "pageId": "93XK",
+          "blockId": "6KDB",
+          "pageNumber": 36,
+          "title": "Open wording: cards, endgame and components"
+        }
+      ]
+    },
+    {
+      "id": "Q-CARD-02",
+      "classification": "unresolved-or-source-gap",
+      "locations": [
+        {
+          "pageId": "ERCZ",
+          "blockId": "TPFE",
+          "pageNumber": 15,
+          "title": "Solaris pays for one economic effect"
+        },
+        {
+          "pageId": "PYVH",
+          "blockId": "573S",
+          "pageNumber": 31,
+          "title": "Two optional variants"
+        },
+        {
+          "pageId": "AF59",
+          "blockId": "EMTV",
+          "pageNumber": 35,
+          "title": "Open wording: actions and battle"
+        }
+      ]
+    },
+    {
+      "id": "Q-CARD-03",
+      "classification": "unresolved-or-source-gap",
+      "locations": [
+        {
+          "pageId": "83PL",
+          "blockId": "K8NW",
+          "pageNumber": 33,
+          "title": "Compatibility: cards and battle effects"
+        }
+      ]
+    },
+    {
+      "id": "Q-CARD-04",
+      "classification": "unresolved-or-source-gap",
+      "locations": [
+        {
+          "pageId": "83PL",
+          "blockId": "K8NW",
+          "pageNumber": 33,
+          "title": "Compatibility: cards and battle effects"
+        }
+      ]
+    },
+    {
+      "id": "Q-CARD-05",
+      "classification": "unresolved-or-source-gap",
+      "locations": [
+        {
+          "pageId": "93XK",
+          "blockId": "7ZCG",
+          "pageNumber": 36,
+          "title": "Open wording: cards, endgame and components"
+        }
+      ]
+    },
+    {
+      "id": "Q-CARD-06",
+      "classification": "unresolved-or-source-gap",
+      "locations": [
+        {
+          "pageId": "83PL",
+          "blockId": "PSMW",
+          "pageNumber": 33,
+          "title": "Compatibility: cards and battle effects"
+        }
+      ]
+    },
+    {
+      "id": "Q-CARD-07",
+      "classification": "unresolved-or-source-gap",
+      "locations": [
+        {
+          "pageId": "93XK",
+          "blockId": "M83Q",
+          "pageNumber": 36,
+          "title": "Open wording: cards, endgame and components"
+        }
+      ]
+    },
+    {
+      "id": "X-I1",
+      "classification": "publisher-announced-incomplete",
+      "locations": [
+        {
+          "pageId": "QACH",
+          "blockId": "JZV2",
+          "pageNumber": 32,
+          "title": "Expansion revisions: announced, incomplete"
+        }
+      ]
+    },
+    {
+      "id": "X-T1",
+      "classification": "publisher-announced-incomplete",
+      "locations": [
+        {
+          "pageId": "QACH",
+          "blockId": "JZV2",
+          "pageNumber": 32,
+          "title": "Expansion revisions: announced, incomplete"
+        }
+      ]
+    },
+    {
+      "id": "X-C1",
+      "classification": "publisher-announced-incomplete",
+      "locations": [
+        {
+          "pageId": "QACH",
+          "blockId": "JZV2",
+          "pageNumber": 32,
+          "title": "Expansion revisions: announced, incomplete"
+        }
+      ]
+    },
+    {
+      "id": "X-E1",
+      "classification": "publisher-announced-incomplete",
+      "locations": [
+        {
+          "pageId": "QACH",
+          "blockId": "JZV2",
+          "pageNumber": 32,
+          "title": "Expansion revisions: announced, incomplete"
+        }
+      ]
+    },
+    {
+      "id": "X-M1",
+      "classification": "publisher-announced-incomplete",
+      "locations": [
+        {
+          "pageId": "QACH",
+          "blockId": "JZV2",
+          "pageNumber": 32,
+          "title": "Expansion revisions: announced, incomplete"
+        }
+      ]
+    },
+    {
+      "id": "X-R1",
+      "classification": "publisher-announced-incomplete",
+      "locations": [
+        {
+          "pageId": "QACH",
+          "blockId": "JZV2",
+          "pageNumber": 32,
+          "title": "Expansion revisions: announced, incomplete"
+        }
+      ]
+    },
+    {
+      "id": "X-K1",
+      "classification": "compatibility-review",
+      "locations": [
+        {
+          "pageId": "83PL",
+          "blockId": "K8NW",
+          "pageNumber": 33,
+          "title": "Compatibility: cards and battle effects"
+        }
+      ]
+    },
+    {
+      "id": "X-K2",
+      "classification": "compatibility-review",
+      "locations": [
+        {
+          "pageId": "83PL",
+          "blockId": "HL78",
+          "pageNumber": 33,
+          "title": "Compatibility: cards and battle effects"
+        }
+      ]
+    },
+    {
+      "id": "X-K3",
+      "classification": "compatibility-review",
+      "locations": [
+        {
+          "pageId": "HTSM",
+          "blockId": "XBBA",
+          "pageNumber": 34,
+          "title": "Compatibility: modules and reference decks"
+        }
+      ]
+    },
+    {
+      "id": "X-K4",
+      "classification": "compatibility-review",
+      "locations": [
+        {
+          "pageId": "HTSM",
+          "blockId": "XBBA",
+          "pageNumber": 34,
+          "title": "Compatibility: modules and reference decks"
+        }
+      ]
+    },
+    {
+      "id": "X-K5",
+      "classification": "compatibility-review",
+      "locations": [
+        {
+          "pageId": "HTSM",
+          "blockId": "XBBA",
+          "pageNumber": 34,
+          "title": "Compatibility: modules and reference decks"
+        }
+      ]
+    },
+    {
+      "id": "X-K6",
+      "classification": "compatibility-review",
+      "locations": [
+        {
+          "pageId": "HTSM",
+          "blockId": "D2EG",
+          "pageNumber": 34,
+          "title": "Compatibility: modules and reference decks"
+        }
+      ]
+    },
+    {
+      "id": "X-K7",
+      "classification": "compatibility-review",
+      "locations": [
+        {
+          "pageId": "HTSM",
+          "blockId": "D2EG",
+          "pageNumber": 34,
+          "title": "Compatibility: modules and reference decks"
+        }
+      ]
+    },
+    {
+      "id": "X-K8",
+      "classification": "compatibility-review",
+      "locations": [
+        {
+          "pageId": "HTSM",
+          "blockId": "D2EG",
+          "pageNumber": 34,
+          "title": "Compatibility: modules and reference decks"
+        }
+      ]
+    },
+    {
+      "id": "X-K9",
+      "classification": "compatibility-review",
+      "locations": [
+        {
+          "pageId": "83PL",
+          "blockId": "K8NW",
+          "pageNumber": 33,
+          "title": "Compatibility: cards and battle effects"
+        }
+      ]
+    },
+    {
+      "id": "X-K10",
+      "classification": "compatibility-review",
+      "locations": [
+        {
+          "pageId": "MJUN",
+          "blockId": "A7LV",
+          "pageNumber": 28,
+          "title": "Atreides: information and the public token"
+        },
+        {
+          "pageId": "83PL",
+          "blockId": "28Z4",
+          "pageNumber": 33,
+          "title": "Compatibility: cards and battle effects"
+        }
+      ]
+    },
+    {
+      "id": "X-K11",
+      "classification": "compatibility-review",
+      "locations": [
+        {
+          "pageId": "83PL",
+          "blockId": "EXRA",
+          "pageNumber": 33,
+          "title": "Compatibility: cards and battle effects"
+        }
+      ]
+    }
+  ],
+  "unmapped": []
+}

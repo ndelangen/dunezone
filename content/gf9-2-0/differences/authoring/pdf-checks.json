@@ -1,0 +1,6 @@
+{
+  "pages": 37,
+  "expectedPages": 37,
+  "extraction": "Poppler raw content order, normalized to Unicode NFKC alphanumeric boundaries; layout extraction interleaves columns and is unsuitable for this check.",
+  "unmatchedProseBoundaries": []
+}

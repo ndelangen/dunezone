@@ -1,0 +1,39 @@
+{
+  "status": "local-review-draft",
+  "date": "2026-10-26",
+  "pages": 37,
+  "settings": {
+    "size": "square",
+    "design": "restrained"
+  },
+  "rawSha256": "168f50f356f0f0ef622212cc785eacab5886545214d8d764a82853f6ffb2c5fb",
+  "pdfSha256": "9fa3e5ebc4957647b9b0a2595ce4950d0e29bd4d83cef0074363ab3fc71198e5",
+  "coverage": {
+    "researchRecords": 141,
+    "mapped": 135,
+    "excludedAsUnchanged": 6,
+    "unmapped": []
+  },
+  "browser": {
+    "unloadedImages": 0,
+    "runtimeErrors": 0,
+    "verticalOverflows": 0,
+    "nativeWheelPaintOverscrollPx": 2,
+    "nativeWheelNote": "The existing rotated wheel artwork reports two pixels of container scroll width; both wheels and captions are visibly within the page. No renderer CSS was changed."
+  },
+  "pdf": {
+    "pages": 37,
+    "sizePt": [
+      723.12,
+      720
+    ],
+    "tagged": true,
+    "unmatchedProseBoundaries": 0,
+    "visuallyCheckedPages": [
+      10,
+      23
+    ],
+    "contactSheetReviewed": true
+  },
+  "productionWrites": false
+}

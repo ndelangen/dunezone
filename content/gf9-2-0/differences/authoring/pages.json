@@ -1,0 +1,224 @@
+[
+  {
+    "number": 1,
+    "key": "cover",
+    "title": "What changes in 2.0",
+    "id": "98HN"
+  },
+  {
+    "number": 2,
+    "key": "reading",
+    "title": "You know GF9. Here is what changes.",
+    "id": "2768"
+  },
+  {
+    "number": 3,
+    "key": "setup",
+    "title": "Setup and familiar names",
+    "id": "VCZX"
+  },
+  {
+    "number": 4,
+    "key": "storm",
+    "title": "Use the Storm deck every game",
+    "id": "G6QD"
+  },
+  {
+    "number": 5,
+    "key": "paired-spice",
+    "title": "One Spice card, two blows",
+    "id": "GEEF"
+  },
+  {
+    "number": 6,
+    "key": "little-maker",
+    "title": "Little Maker is a different event",
+    "id": "ACD7"
+  },
+  {
+    "number": 7,
+    "key": "spice-map",
+    "title": "New Spice locations and amounts",
+    "id": "8RFA"
+  },
+  {
+    "number": 8,
+    "key": "spice-map-visual",
+    "title": "Find the revised Spice sites",
+    "id": "2W2D"
+  },
+  {
+    "number": 9,
+    "key": "battle-model",
+    "title": "Spice adds strength to your force dial",
+    "id": "YJFP"
+  },
+  {
+    "number": 10,
+    "key": "battle-example",
+    "title": "Same commitment, different total",
+    "id": "4EJA"
+  },
+  {
+    "number": 11,
+    "key": "battle-payment",
+    "title": "Commit spice, reveal, then settle",
+    "id": "PXSB"
+  },
+  {
+    "number": 12,
+    "key": "battle-aftermath",
+    "title": "Aftermath and negotiated surrender",
+    "id": "WPPM"
+  },
+  {
+    "number": 13,
+    "key": "revival",
+    "title": "Unlock leader revival once",
+    "id": "FRH9"
+  },
+  {
+    "number": 14,
+    "key": "karama",
+    "title": "Karama: one target and its window",
+    "id": "QXRY"
+  },
+  {
+    "number": 15,
+    "key": "solaris",
+    "title": "Solaris pays for one economic effect",
+    "id": "ERCZ"
+  },
+  {
+    "number": 16,
+    "key": "card-habits",
+    "title": "Cards: information, disposal and timing",
+    "id": "R2X8"
+  },
+  {
+    "number": 17,
+    "key": "allies",
+    "title": "Allies leave shared territory differently",
+    "id": "7B73"
+  },
+  {
+    "number": 18,
+    "key": "deals",
+    "title": "Deals, private information and notes",
+    "id": "7PK3"
+  },
+  {
+    "number": 19,
+    "key": "city-income",
+    "title": "City income is now part of the default",
+    "id": "NVLU"
+  },
+  {
+    "number": 20,
+    "key": "victory",
+    "title": "Normal wins have a new priority order",
+    "id": "VVJC"
+  },
+  {
+    "number": 21,
+    "key": "endgame",
+    "title": "The end of round ten is different",
+    "id": "RG5J"
+  },
+  {
+    "number": 22,
+    "key": "rosters",
+    "title": "Leaders and their changed values",
+    "id": "PJQR"
+  },
+  {
+    "number": 23,
+    "key": "bg-voice",
+    "title": "Bene Gesserit: Voice, cards and prediction",
+    "id": "XCEQ"
+  },
+  {
+    "number": 24,
+    "key": "bg-faces",
+    "title": "Bene Gesserit: plan your face changes",
+    "id": "866X"
+  },
+  {
+    "number": 25,
+    "key": "fremen-storm",
+    "title": "Fremen: storm knowledge and worm events",
+    "id": "V6MJ"
+  },
+  {
+    "number": 26,
+    "key": "fremen-battle",
+    "title": "Fremen: free spice strength and allies",
+    "id": "Y48B"
+  },
+  {
+    "number": 27,
+    "key": "emperor",
+    "title": "Emperor: a new alliance bargain",
+    "id": "58EY"
+  },
+  {
+    "number": 28,
+    "key": "atreides",
+    "title": "Atreides: information and the public token",
+    "id": "MJUN"
+  },
+  {
+    "number": 29,
+    "key": "harkonnen",
+    "title": "Harkonnen: redraw and exchange",
+    "id": "PJHY"
+  },
+  {
+    "number": 30,
+    "key": "guild-setup",
+    "title": "Guild: shipping, rates and special victory",
+    "id": "3NRG"
+  },
+  {
+    "number": 31,
+    "key": "spirit-world",
+    "title": "Two optional variants",
+    "id": "PYVH"
+  },
+  {
+    "number": 32,
+    "key": "expansion-boundary",
+    "title": "Expansion revisions: announced, incomplete",
+    "id": "QACH"
+  },
+  {
+    "number": 33,
+    "key": "compatibility-cards",
+    "title": "Compatibility: cards and battle effects",
+    "id": "83PL"
+  },
+  {
+    "number": 34,
+    "key": "compatibility-modules",
+    "title": "Compatibility: modules and reference decks",
+    "id": "HTSM"
+  },
+  {
+    "number": 35,
+    "key": "open-movement",
+    "title": "Open wording: actions and battle",
+    "id": "AF59"
+  },
+  {
+    "number": 36,
+    "key": "open-reference",
+    "title": "Open wording: cards, endgame and components",
+    "id": "93XK"
+  },
+  {
+    "number": 37,
+    "key": "sources",
+    "title": "Sources and review boundaries",
+    "id": "QRKV"
+  }
+]

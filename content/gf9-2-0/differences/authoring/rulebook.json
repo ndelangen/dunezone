@@ -1,0 +1,3813 @@
+{
+  "settings": {
+    "size": "square",
+    "design": "restrained"
+  },
+  "contents": {
+    "schemaVersion": 1,
+    "pageOrder": [
+      "98HN",
+      "2768",
+      "VCZX",
+      "G6QD",
+      "GEEF",
+      "ACD7",
+      "8RFA",
+      "2W2D",
+      "YJFP",
+      "4EJA",
+      "PXSB",
+      "WPPM",
+      "FRH9",
+      "QXRY",
+      "ERCZ",
+      "R2X8",
+      "7B73",
+      "7PK3",
+      "NVLU",
+      "VVJC",
+      "RG5J",
+      "PJQR",
+      "XCEQ",
+      "866X",
+      "V6MJ",
+      "Y48B",
+      "58EY",
+      "MJUN",
+      "PJHY",
+      "3NRG",
+      "PYVH",
+      "QACH",
+      "83PL",
+      "HTSM",
+      "AF59",
+      "93XK",
+      "QRKV"
+    ],
+    "pagesById": {
+      "2768": {
+        "id": "2768",
+        "anchor": "reading",
+        "title": "You know GF9. Here is what changes.",
+        "layoutId": "two-columns",
+        "controlValues": {},
+        "blockOrderByRegion": {
+          "column1": [
+            "EK8E",
+            "K479",
+            "U3WQ"
+          ],
+          "column2": [
+            "JMR7",
+            "C4DN",
+            "WJ77",
+            "K6AD"
+          ]
+        },
+        "blocksById": {
+          "EK8E": {
+            "id": "EK8E",
+            "kind": "text",
+            "name": "The starting point",
+            "text": "This book assumes you already play Gale Force Nine's 2019 Dune. It compares that game with the 2026 second edition. Use it to replace old habits, check your faction, and identify the changed components. Keep the full 2.0 rulebook beside it for ordinary rules."
+          },
+          "K479": {
+            "id": "K479",
+            "kind": "text",
+            "name": "Basic and Advanced are different baselines",
+            "text": "The new default combines elements that used to be split between Basic and Advanced. A Basic player gains city income, advanced faction powers and a spice decision in battle. An Advanced player replaces the old support arithmetic and two\\-pile Spice procedure. Simply saying \"play Advanced\" misses those changes."
+          },
+          "U3WQ": {
+            "id": "U3WQ",
+            "kind": "callout",
+            "variant": "note",
+            "title": "Local review draft",
+            "text": "Confirmed rules are the main lesson. Boxes labeled \"Open wording\" retain genuine source conflicts. The expansion appendix distinguishes announced revisions from complete rules. Those boxes are review questions, not invented house rules."
+          },
+          "JMR7": {
+            "id": "JMR7",
+            "kind": "text",
+            "name": "What counts as a difference",
+            "text": "The old printed book, its later official FAQ and Dune Zone's existing GF9 books are separate comparisons. When a clarification was already in our old book, it is labeled \"Already familiar\". When 2.0 reverses our adopted reading, that is stated explicitly."
+          },
+          "C4DN": {
+            "id": "C4DN",
+            "kind": "reference-table",
+            "columnOrder": [
+              "c0",
+              "c1"
+            ],
+            "columnsById": {
+              "c0": {
+                "id": "c0",
+                "label": "Label"
+              },
+              "c1": {
+                "id": "c1",
+                "label": "Meaning"
+              }
+            },
+            "rowOrder": [
+              "r0",
+              "r1",
+              "r2",
+              "r3",
+              "r4"
+            ],
+            "rowsById": {
+              "r0": {
+                "id": "r0",
+                "cellsByColumnId": {
+                  "c0": "GF9 Basic",
+                  "c1": "The earlier Basic game, with later clarifications identified."
+                }
+              },
+              "r1": {
+                "id": "r1",
+                "cellsByColumnId": {
+                  "c0": "GF9 Advanced",
+                  "c1": "The earlier Advanced rules, including half\\-strength unsupported forces."
+                }
+              },
+              "r2": {
+                "id": "r2",
+                "cellsByColumnId": {
+                  "c0": "GF9 2.0",
+                  "c1": "The default 2026 second\\-edition rules."
+                }
+              },
+              "r3": {
+                "id": "r3",
+                "cellsByColumnId": {
+                  "c0": "Classic",
+                  "c1": "The optional restoration of old spice\\-support combat."
+                }
+              },
+              "r4": {
+                "id": "r4",
+                "cellsByColumnId": {
+                  "c0": "Announced",
+                  "c1": "A designer describes a revision, but complete replacement rules are still missing."
+                }
+              }
+            },
+            "note": ""
+          },
+          "WJ77": {
+            "id": "WJ77",
+            "kind": "text",
+            "name": "Sources for review",
+            "text": "Page references mean printed source PDF pages counted from the cover. Publication Edition numbers on dune.zone identify website versions, not the game edition. This draft uses our older publication Edition 2 books and the 2.0 publication Edition 3, pinned in the research dossier."
+          },
+          "K6AD": {
+            "id": "K6AD",
+            "kind": "text",
+            "text": "Sources: 2019 pp6\\-14; second edition pp3,26. Research and source links are listed at the end."
+          }
+        },
+        "showHeading": true
+      },
+      "98HN": {
+        "id": "98HN",
+        "anchor": "cover",
+        "title": "What changes in 2.0",
+        "layoutId": "cover",
+        "controlValues": {
+          "cover": {
+            "backgroundSource": {
+              "kind": "url"
+            },
+            "backgroundImageUrl": "https://dune.zone/__media/src/2dd57d692933e19797bcaaaed6c84257c9f0d7e1ca0e0aef5821c12c5f3996d9",
+            "backgroundImage": {
+              "url": "https://dune.zone/user-images/e76d8241b236ed4b3ddd627c3c14238e32d3993e6a84ed6231592f7eace51523.jpg",
+              "width": 1448,
+              "height": 1086,
+              "sourceUrl": "https://dune.zone/__media/src/2dd57d692933e19797bcaaaed6c84257c9f0d7e1ca0e0aef5821c12c5f3996d9"
+            },
+            "showDuneLogo": true,
+            "showSubtitle": true,
+            "subtitle": "GF9 2019 TO GF9 2.0",
+            "supportingText": "WHAT CHANGES\nFOR EXPERIENCED PLAYERS\nLOCAL REVIEW DRAFT"
+          }
+        },
+        "blockOrderByRegion": {},
+        "blocksById": {},
+        "showHeading": false
+      },
+      "VCZX": {
+        "id": "VCZX",
+        "anchor": "setup",
+        "title": "Setup and familiar names",
+        "layoutId": "two-columns",
+        "controlValues": {},
+        "blockOrderByRegion": {
+          "column1": [
+            "2R7S",
+            "FPAZ",
+            "6K8U"
+          ],
+          "column2": [
+            "SHSG",
+            "Z7FG",
+            "KNDS",
+            "MM5U"
+          ]
+        },
+        "blocksById": {
+          "2R7S": {
+            "id": "2R7S",
+            "kind": "text",
+            "name": "Know your hand before choosing a traitor",
+            "text": "GF9 dealt traitors before the starting Treachery cards. In 2.0, deal the starting Treachery cards first, then choose a traitor. This gives you your initial hand information during that choice. Harkonnen still starts with two Treachery cards; that count is not new."
+          },
+          "FPAZ": {
+            "id": "FPAZ",
+            "kind": "text",
+            "name": "Safe traitors were already allowed",
+            "text": "You may choose one of your own leaders as your safe traitor. This differs from the condition in the original 2019 setup paragraph, but the later FAQ and our GF9 book already allowed it. Harkonnen now has a separate own\\-traitor redraw, covered on its faction page."
+          },
+          "6K8U": {
+            "id": "6K8U",
+            "kind": "callout",
+            "variant": "note",
+            "title": "Open wording: faction-selection order",
+            "text": "The new prediction\\-card selection method says start with the lowest card, but calls the order descending. Those instructions disagree. Random faction assignment remains available; this draft does not silently repair the sentence."
+          },
+          "SHSG": {
+            "id": "SHSG",
+            "kind": "reference-table",
+            "columnOrder": [
+              "c0",
+              "c1"
+            ],
+            "columnsById": {
+              "c0": {
+                "id": "c0",
+                "label": "Earlier name"
+              },
+              "c1": {
+                "id": "c1",
+                "label": "2.0 name"
+              }
+            },
+            "rowOrder": [
+              "r0",
+              "r1",
+              "r2",
+              "r3",
+              "r4"
+            ],
+            "rowsById": {
+              "r0": {
+                "id": "r0",
+                "cellsByColumnId": {
+                  "c0": "Projectile",
+                  "c1": "Kinetic"
+                }
+              },
+              "r1": {
+                "id": "r1",
+                "cellsByColumnId": {
+                  "c0": "Habbanya Sietch",
+                  "c1": "Cave of Birds"
+                }
+              },
+              "r2": {
+                "id": "r2",
+                "cellsByColumnId": {
+                  "c0": "Hajr",
+                  "c1": "Harj, as printed"
+                }
+              },
+              "r3": {
+                "id": "r3",
+                "cellsByColumnId": {
+                  "c0": "Turn, for the full cycle",
+                  "c1": "Round"
+                }
+              },
+              "r4": {
+                "id": "r4",
+                "cellsByColumnId": {
+                  "c0": "Aggressor, for battle priority",
+                  "c1": "Player with Initiative"
+                }
+              }
+            },
+            "note": ""
+          },
+          "Z7FG": {
+            "id": "Z7FG",
+            "kind": "text",
+            "name": "Same place, new name",
+            "text": "Cave of Birds is the renamed southwest stronghold. It is not an extra stronghold. Kinetic still matches the relevant weapon and defense categories. Harj is the printed name of the familiar extra\\-movement card; it is not a second card."
+          },
+          "KNDS": {
+            "id": "KNDS",
+            "kind": "text",
+            "name": "Starting resources do change",
+            "text": "Fremen starts with four spice instead of three. Guild starts with eight spice and all twenty forces in reserves, then makes a compulsory paid setup shipment instead of receiving five forces fixed in Tuek's. Leader changes have their own reference page."
+          },
+          "MM5U": {
+            "id": "MM5U",
+            "kind": "text",
+            "text": "Sources: 2019 pp4,6,16\\-19; FAQ November 2020 p3; second edition pp6,8,25,28,33,36."
+          }
+        },
+        "showHeading": true
+      },
+      "G6QD": {
+        "id": "G6QD",
+        "anchor": "storm",
+        "title": "Use the Storm deck every game",
+        "layoutId": "two-columns",
+        "controlValues": {},
+        "blockOrderByRegion": {
+          "column1": [
+            "BSC6",
+            "ZNH3",
+            "9WXJ",
+            "6GQ4"
+          ],
+          "column2": [
+            "B2ZX",
+            "MLF6",
+            "GUC8",
+            "VHDD",
+            "WFFA"
+          ]
+        },
+        "blocksById": {
+          "BSC6": {
+            "id": "BSC6",
+            "kind": "text",
+            "name": "GF9",
+            "text": "Ordinary later storms used two players' dials. The six\\-card Storm deck was tied to Advanced Fremen. Its cards were returned and shuffled through that faction's procedure."
+          },
+          "ZNH3": {
+            "id": "ZNH3",
+            "kind": "text",
+            "name": "GF9 2.0",
+            "text": "After the first storm placement, use the shared nine\\-card Storm deck whether or not Fremen is playing. Draw into a discard pile. Three cards instruct you to reshuffle the discarded cards after moving the storm. Read the drawn instruction instead of automatically dialing every round."
+          },
+          "9WXJ": {
+            "id": "9WXJ",
+            "kind": "text",
+            "name": "The dial card",
+            "text": "One card calls for the two players who last used Battle Wheels to dial 1\\-3 each. If there was no battle in the previous round, use the specified factions beside the storm. The initial placement still uses the separate 0\\-20 dials."
+          },
+          "6GQ4": {
+            "id": "6GQ4",
+            "kind": "callout",
+            "variant": "note",
+            "title": "Different deal rules",
+            "text": "The first storm placement explicitly forbids coordination. The later dial card explicitly allows deals and bribes. Do not treat those two occasions as the same procedure."
+          },
+          "B2ZX": {
+            "id": "B2ZX",
+            "kind": "text",
+            "name": "Fremen sees the top card",
+            "text": "Fremen no longer selects and recycles a private card to set the next movement. At the end of Storm, it inspects the top Storm card under Storm Insight. This is advance knowledge of the shared deck."
+          },
+          "MLF6": {
+            "id": "MLF6",
+            "kind": "callout",
+            "variant": "example",
+            "title": "Rivals protected under the same storm",
+            "text": "Two rivals in the same stormed sector of a rock or stronghold now battle. The old FAQ prohibited battles under storm even there. If only one side is in storm, or storm separates the groups, the restriction still applies."
+          },
+          "GUC8": {
+            "id": "GUC8",
+            "kind": "text",
+            "name": "A small first-player clarification",
+            "text": "If the storm is exactly on your faction marker, you are last in storm order. This makes the old \"next approached\" rule explicit."
+          },
+          "VHDD": {
+            "id": "VHDD",
+            "kind": "callout",
+            "variant": "note",
+            "title": "No probability claim",
+            "text": "The source gives nine cards, three reshuffle instructions and a dial card. This draft does not invent the complete face distribution or card\\-counting probabilities."
+          },
+          "WFFA": {
+            "id": "WFFA",
+            "kind": "text",
+            "text": "Sources: 2019 pp7,16; FAQ November 2020 p1; second edition pp7,10,16,28."
+          }
+        },
+        "showHeading": true
+      },
+      "GEEF": {
+        "id": "GEEF",
+        "anchor": "paired-spice",
+        "title": "One Spice card, two blows",
+        "layoutId": "two-columns",
+        "controlValues": {},
+        "blockOrderByRegion": {
+          "column1": [
+            "H3AE",
+            "K9KA",
+            "CPLT"
+          ],
+          "column2": [
+            "MX6A",
+            "S4BR",
+            "XZNE",
+            "GKX5",
+            "42Y4"
+          ]
+        },
+        "blocksById": {
+          "H3AE": {
+            "id": "H3AE",
+            "kind": "text",
+            "name": "GF9 Basic and Advanced",
+            "text": "Basic drew a single\\-territory card. Advanced resolved two separate draws and two discard piles, with independent worm histories."
+          },
+          "K9KA": {
+            "id": "K9KA",
+            "kind": "text",
+            "name": "GF9 2.0",
+            "text": "A normal Spice card names two territories. Place both blows from that one card, checking each affected sector for storm. Keep one discard pile. Do not draw two new double\\-Blow cards as though you were still using the old Advanced procedure."
+          },
+          "CPLT": {
+            "id": "CPLT",
+            "kind": "referenced-illustration",
+            "source": {
+              "kind": "asset",
+              "assetId": "ns791yy132xqr9ygwxeh20nab58gthk8"
+            },
+            "size": "medium",
+            "caption": "A single published card now supplies Hagga Basin and Cielago Depression."
+          },
+          "MX6A": {
+            "id": "MX6A",
+            "kind": "callout",
+            "variant": "example",
+            "title": "The next ordinary worm",
+            "text": "Suppose the previous normal card placed spice in Hagga Basin and Cielago Depression. Shai\\-Hulud threatens the remaining spice and forces in both of those territories, subject to faction protection. Continue replacement draws until an ordinary Spice Blows card appears."
+          },
+          "S4BR": {
+            "id": "S4BR",
+            "kind": "text",
+            "name": "What changes for Atreides",
+            "text": "One top\\-card inspection now reveals the next pair, or the coming special event. Under old Advanced play the top card did not reveal both independent upcoming blows."
+          },
+          "XZNE": {
+            "id": "XZNE",
+            "kind": "text",
+            "name": "What changes for Fremen",
+            "text": "More than one location can be involved in the same worm event. Use the revised Call Sandworms and ally\\-riding rules, rather than resetting the old two\\-pile procedure."
+          },
+          "GKX5": {
+            "id": "GKX5",
+            "kind": "callout",
+            "variant": "note",
+            "title": "Open wording: Little Maker history",
+            "text": "The source includes Little Maker among prior blows a later worm can affect, but does not fully explain recording the chosen location and intervening special discards. Keep the chosen marker visible in examples; do not assume the worm skips back to the previous normal pair."
+          },
+          "42Y4": {
+            "id": "42Y4",
+            "kind": "text",
+            "text": "Sources: 2019 pp8,13,16; second edition pp11,29."
+          }
+        },
+        "showHeading": true
+      },
+      "ACD7": {
+        "id": "ACD7",
+        "anchor": "little-maker",
+        "title": "Little Maker is a different event",
+        "layoutId": "two-columns",
+        "controlValues": {},
+        "blockOrderByRegion": {
+          "column1": [
+            "LQP5",
+            "WQP8"
+          ],
+          "column2": [
+            "NS8X",
+            "SMRR",
+            "YHQB",
+            "DWW6",
+            "TQPL"
+          ]
+        },
+        "blocksById": {
+          "LQP5": {
+            "id": "LQP5",
+            "kind": "card-entry",
+            "imageSide": "left",
+            "textFlow": "beside",
+            "source": {
+              "kind": "asset",
+              "assetId": "ns7177t2mjyce6dhph7cqef6398gvh91"
+            },
+            "text": "The last player in storm order chooses an eligible empty Spice Blow marker outside storm and places ten spice there. Then a Nexus occurs. No forces or spice are devoured and nobody rides this event as a worm.",
+            "name": "Little Maker",
+            "size": "medium"
+          },
+          "WQP8": {
+            "id": "WQP8",
+            "kind": "text",
+            "name": "Recognize the card",
+            "text": "Little Maker is neither Shai\\-Hulud nor the older expansion cards Sandtrout and Great Maker. Those names have different effects. The base Spice deck now has sixteen cards rather than twenty\\-one."
+          },
+          "NS8X": {
+            "id": "NS8X",
+            "kind": "referenced-illustration",
+            "source": {
+              "kind": "asset",
+              "assetId": "ns7ahzy4f068xee36kdvt3sjbh8gvf2b"
+            },
+            "size": "medium",
+            "caption": "Shai-Hulud is still the worm event. Little Maker does not trigger abilities that require Shai-Hulud."
+          },
+          "SMRR": {
+            "id": "SMRR",
+            "kind": "question-answer",
+            "question": "What if Little Maker appears in round one?",
+            "answer": "Round one sets aside non\\-normal\\-Blow cards and reshuffles them afterward. It does not produce a first\\-round Little Maker Nexus."
+          },
+          "YHQB": {
+            "id": "YHQB",
+            "kind": "question-answer",
+            "question": "What if it appears while drawing replacements after a worm?",
+            "answer": "Discard it without effect and continue the worm's replacement draws. Do not add its ten spice or another Nexus in that sequence."
+          },
+          "DWW6": {
+            "id": "DWW6",
+            "kind": "callout",
+            "variant": "example",
+            "title": "A useful distinction",
+            "text": "The new card can give an extra chance to change alliances without creating worm destruction or a ride. That is the rule difference; it is not a promise that a particular game will have more successful Fremen rides."
+          },
+          "TQPL": {
+            "id": "TQPL",
+            "kind": "text",
+            "text": "Sources: 2019 pp5,8,13; second edition pp7,11. Card artwork is the existing production asset."
+          }
+        },
+        "showHeading": true
+      },
+      "8RFA": {
+        "id": "8RFA",
+        "anchor": "spice-map",
+        "title": "New Spice locations and amounts",
+        "layoutId": "two-columns",
+        "controlValues": {},
+        "blockOrderByRegion": {
+          "column1": [
+            "N27X",
+            "KBTY"
+          ],
+          "column2": [
+            "LKBU",
+            "J6C7",
+            "KRNY"
+          ]
+        },
+        "blocksById": {
+          "N27X": {
+            "id": "N27X",
+            "kind": "reference-table",
+            "columnOrder": [
+              "c0",
+              "c1",
+              "c2"
+            ],
+            "columnsById": {
+              "c0": {
+                "id": "c0",
+                "label": "Location"
+              },
+              "c1": {
+                "id": "c1",
+                "label": "GF9"
+              },
+              "c2": {
+                "id": "c2",
+                "label": "2.0"
+              }
+            },
+            "rowOrder": [
+              "r0",
+              "r1",
+              "r2",
+              "r3",
+              "r4",
+              "r5",
+              "r6"
+            ],
+            "rowsById": {
+              "r0": {
+                "id": "r0",
+                "cellsByColumnId": {
+                  "c0": "Broken Land",
+                  "c1": "8",
+                  "c2": "6"
+                }
+              },
+              "r1": {
+                "id": "r1",
+                "cellsByColumnId": {
+                  "c0": "The Great Flat",
+                  "c1": "10",
+                  "c2": "6"
+                }
+              },
+              "r2": {
+                "id": "r2",
+                "cellsByColumnId": {
+                  "c0": "South Mesa",
+                  "c1": "10",
+                  "c2": "9"
+                }
+              },
+              "r3": {
+                "id": "r3",
+                "cellsByColumnId": {
+                  "c0": "Habbanya Ridge Flat",
+                  "c1": "10",
+                  "c2": "9"
+                }
+              },
+              "r4": {
+                "id": "r4",
+                "cellsByColumnId": {
+                  "c0": "The Greater Flat",
+                  "c1": "No normal card",
+                  "c2": "7"
+                }
+              },
+              "r5": {
+                "id": "r5",
+                "cellsByColumnId": {
+                  "c0": "Cielago Depression",
+                  "c1": "No normal card",
+                  "c2": "8"
+                }
+              },
+              "r6": {
+                "id": "r6",
+                "cellsByColumnId": {
+                  "c0": "Cielago East",
+                  "c1": "No normal card",
+                  "c2": "8"
+                }
+              }
+            },
+            "note": ""
+          },
+          "KBTY": {
+            "id": "KBTY",
+            "kind": "text",
+            "name": "Remember the pair",
+            "text": "The normal deck now has nine paired cards showing eighteen locations. Other listed old blow amounts are retained. A later ordinary worm can threaten both sites of a pair, so the pairing is useful information, not just a condensed deck."
+          },
+          "LKBU": {
+            "id": "LKBU",
+            "kind": "reference-table",
+            "columnOrder": [
+              "c0",
+              "c1"
+            ],
+            "columnsById": {
+              "c0": {
+                "id": "c0",
+                "label": "First blow"
+              },
+              "c1": {
+                "id": "c1",
+                "label": "Second blow"
+              }
+            },
+            "rowOrder": [
+              "r0",
+              "r1",
+              "r2",
+              "r3",
+              "r4",
+              "r5",
+              "r6",
+              "r7",
+              "r8"
+            ],
+            "rowsById": {
+              "r0": {
+                "id": "r0",
+                "cellsByColumnId": {
+                  "c0": "Broken Land 6",
+                  "c1": "Cielago North 8"
+                }
+              },
+              "r1": {
+                "id": "r1",
+                "cellsByColumnId": {
+                  "c0": "Funeral Plain 6",
+                  "c1": "Sihaya Ridge 6"
+                }
+              },
+              "r2": {
+                "id": "r2",
+                "cellsByColumnId": {
+                  "c0": "Habbanya Erg 8",
+                  "c1": "The Minor Erg 8"
+                }
+              },
+              "r3": {
+                "id": "r3",
+                "cellsByColumnId": {
+                  "c0": "Hagga Basin 6",
+                  "c1": "Cielago Depression 8"
+                }
+              },
+              "r4": {
+                "id": "r4",
+                "cellsByColumnId": {
+                  "c0": "Old Gap 6",
+                  "c1": "Habbanya Ridge Flat 9"
+                }
+              },
+              "r5": {
+                "id": "r5",
+                "cellsByColumnId": {
+                  "c0": "Rock Outcroppings 6",
+                  "c1": "South Mesa 9"
+                }
+              },
+              "r6": {
+                "id": "r6",
+                "cellsByColumnId": {
+                  "c0": "The Great Flat 6",
+                  "c1": "Cielago South 12"
+                }
+              },
+              "r7": {
+                "id": "r7",
+                "cellsByColumnId": {
+                  "c0": "The Greater Flat 7",
+                  "c1": "Red Chasm 8"
+                }
+              },
+              "r8": {
+                "id": "r8",
+                "cellsByColumnId": {
+                  "c0": "Wind Pass North 6",
+                  "c1": "Cielago East 8"
+                }
+              }
+            },
+            "note": ""
+          },
+          "J6C7": {
+            "id": "J6C7",
+            "kind": "callout",
+            "variant": "note",
+            "title": "Component reference",
+            "text": "This table comes from the supplied second\\-edition card sheet and the old printed board. It gives normal blow locations, not a rule that spice can never appear elsewhere through an effect."
+          },
+          "KRNY": {
+            "id": "KRNY",
+            "kind": "text",
+            "text": "Sources: 2019 board p4; supplied second\\-edition Spice deck sheet; second edition p11."
+          }
+        },
+        "showHeading": true
+      },
+      "2W2D": {
+        "id": "2W2D",
+        "anchor": "spice-map-visual",
+        "title": "Find the revised Spice sites",
+        "layoutId": "two-columns",
+        "controlValues": {},
+        "blockOrderByRegion": {
+          "column1": [
+            "FBTW"
+          ],
+          "column2": [
+            "P33W",
+            "5VED",
+            "3LH4",
+            "4MCG"
+          ]
+        },
+        "blocksById": {
+          "FBTW": {
+            "boardId": "arrakis",
+            "caption": "The three newly used normal blow territories are highlighted. This familiar map retains the earlier labels; Cave of Birds is the name mapping explained beside it.",
+            "size": "fit-width",
+            "routes": [],
+            "players": [],
+            "troops": [],
+            "highlights": [
+              {
+                "territory": "greater-flat",
+                "color": "#bd8036",
+                "opacity": 0.55
+              },
+              {
+                "territory": "cielago-depression",
+                "color": "#a63b2b",
+                "opacity": 0.55
+              },
+              {
+                "territory": "cielago-east",
+                "color": "#6d713c",
+                "opacity": 0.55
+              }
+            ],
+            "annotations": [],
+            "id": "FBTW",
+            "kind": "board-scene"
+          },
+          "P33W": {
+            "id": "P33W",
+            "kind": "text",
+            "name": "New normal blow locations",
+            "text": "The Greater Flat now has a seven\\-spice normal blow; Cielago Depression and Cielago East each have eight. They pair with Red Chasm, Hagga Basin and Wind Pass North respectively."
+          },
+          "5VED": {
+            "id": "5VED",
+            "kind": "text",
+            "name": "A name mapping, not a new stronghold",
+            "text": "The existing production map calls the southwest stronghold Habbanya Sietch. The second\\-edition source calls that same place Cave of Birds. Read that name mapping wherever it affects a faction condition."
+          },
+          "3LH4": {
+            "id": "3LH4",
+            "kind": "callout",
+            "variant": "note",
+            "title": "Read the card for the amount",
+            "text": "Four old blow amounts also decrease. The preceding table lists them. Reusing the familiar map picture does not restore the old printed spice values."
+          },
+          "4MCG": {
+            "id": "4MCG",
+            "kind": "text",
+            "text": "Sources: 2019 board p4; second edition pp6,11,29 and supplied Spice deck sheet."
+          }
+        },
+        "showHeading": true
+      },
+      "YJFP": {
+        "id": "YJFP",
+        "anchor": "battle-model",
+        "title": "Spice adds strength to your force dial",
+        "layoutId": "two-columns",
+        "controlValues": {},
+        "blockOrderByRegion": {
+          "column1": [
+            "GUU7",
+            "HEYR",
+            "MQEY",
+            "ADHU"
+          ],
+          "column2": [
+            "QW9M",
+            "M3JV",
+            "U3NF",
+            "CQZG",
+            "ZXUH"
+          ]
+        },
+        "blocksById": {
+          "GUU7": {
+            "id": "GUU7",
+            "kind": "text",
+            "name": "GF9 Basic",
+            "text": "An ordinary committed force contributed one strength, with no battle\\-spice decision."
+          },
+          "HEYR": {
+            "id": "HEYR",
+            "kind": "text",
+            "name": "GF9 Advanced",
+            "text": "A force needed one spice to count at full strength. Unsupported forces counted at half strength, including the appropriate special\\-force values. Committing more forces without enough spice did not give the same strength as supporting them all."
+          },
+          "MQEY": {
+            "id": "MQEY",
+            "kind": "text",
+            "name": "GF9 2.0",
+            "text": "Start with full dialed force strength. You may buy one spice\\-strength tier if your force dial reaches its threshold. Add that bonus and a surviving leader's strength. The bonus does not consume extra force tokens."
+          },
+          "ADHU": {
+            "id": "ADHU",
+            "kind": "callout",
+            "variant": "note",
+            "title": "Classic is optional",
+            "text": "The old Advanced support system survives as Classic Spice Dialing. Select that variant explicitly. The default rules on this page do not use half\\-strength unsupported forces."
+          },
+          "QW9M": {
+            "id": "QW9M",
+            "kind": "reference-table",
+            "columnOrder": [
+              "c0",
+              "c1",
+              "c2"
+            ],
+            "columnsById": {
+              "c0": {
+                "id": "c0",
+                "label": "Force dial at least"
+              },
+              "c1": {
+                "id": "c1",
+                "label": "Spice cost"
+              },
+              "c2": {
+                "id": "c2",
+                "label": "Added strength"
+              }
+            },
+            "rowOrder": [
+              "r0",
+              "r1",
+              "r2"
+            ],
+            "rowsById": {
+              "r0": {
+                "id": "r0",
+                "cellsByColumnId": {
+                  "c0": "2",
+                  "c1": "2",
+                  "c2": "+1"
+                }
+              },
+              "r1": {
+                "id": "r1",
+                "cellsByColumnId": {
+                  "c0": "4",
+                  "c1": "4",
+                  "c2": "+2"
+                }
+              },
+              "r2": {
+                "id": "r2",
+                "cellsByColumnId": {
+                  "c0": "8",
+                  "c1": "8",
+                  "c2": "+3"
+                }
+              }
+            },
+            "note": ""
+          },
+          "M3JV": {
+            "id": "M3JV",
+            "kind": "callout",
+            "variant": "example",
+            "title": "Four ordinary forces",
+            "text": "With no spice, four committed ordinary forces contribute 4 in 2.0. With four spice, they contribute 6. Under old Advanced rules, those four supported forces contributed 4. With no support at all, the same four tokens contributed 2."
+          },
+          "U3NF": {
+            "id": "U3NF",
+            "kind": "text",
+            "name": "Choose a tier, not several purchases",
+            "text": "Dialing eight permits +1, +2 or +3 at the respective costs. You cannot buy +3 and +1 together. The cost progression is 2, 4, 8; it is not one spice per extra strength."
+          },
+          "CQZG": {
+            "id": "CQZG",
+            "kind": "text",
+            "name": "Count strength, not tokens",
+            "text": "One Sardaukar is normally two force strength, enough to qualify for +1 at a cost of two spice. Its special exception against Fremen still applies."
+          },
+          "ZXUH": {
+            "id": "ZXUH",
+            "kind": "text",
+            "text": "Sources: 2019 pp10\\-11,13; second edition pp16\\-18,26."
+          }
+        },
+        "showHeading": true
+      },
+      "4EJA": {
+        "id": "4EJA",
+        "anchor": "battle-example",
+        "title": "Same commitment, different total",
+        "layoutId": "two-columns",
+        "controlValues": {},
+        "blockOrderByRegion": {
+          "column1": [
+            "QQG2",
+            "ZFLH"
+          ],
+          "column2": [
+            "RUAR",
+            "R4PA",
+            "J72V",
+            "36SD",
+            "6ZQ5"
+          ]
+        },
+        "blocksById": {
+          "QQG2": {
+            "id": "QQG2",
+            "kind": "text",
+            "name": "Compare the same four ordinary forces",
+            "text": "The following wheels use the same force dial and four spice. The old Advanced calculation supports all four forces for 4 strength. The new calculation adds a +2 bonus, for 6 before leaders."
+          },
+          "ZFLH": {
+            "id": "ZFLH",
+            "kind": "battle-plans",
+            "left": {
+              "factionId": "k178pt05y4abwvwxeg247snr758gv794",
+              "role": "GF9 Advanced",
+              "revealed": true,
+              "dial": 4,
+              "spice": 4,
+              "adjustment": 0,
+              "cards": [],
+              "result": "4 strength before leader.",
+              "troops": []
+            },
+            "right": {
+              "factionId": "k178pt05y4abwvwxeg247snr758gv794",
+              "role": "GF9 2.0",
+              "revealed": true,
+              "dial": 4,
+              "spice": 4,
+              "adjustment": 2,
+              "cards": [],
+              "result": "6 strength before leader.",
+              "troops": []
+            },
+            "showSideLabels": true
+          },
+          "RUAR": {
+            "id": "RUAR",
+            "kind": "callout",
+            "variant": "example",
+            "title": "Add the same surviving leader",
+            "text": "With a strength\\-3 leader on each plan, the old Advanced total is 7 and the 2.0 total is 9. Those are two versions of the same side's plan, not opponents in an actual battle."
+          },
+          "R4PA": {
+            "id": "R4PA",
+            "kind": "text",
+            "name": "Losses follow the force contribution",
+            "text": "If this 2.0 plan wins, it loses four ordinary forces, not six. The two points bought with spice do not become extra casualties. Losing still removes the faction's forces in the territory under the normal result rules."
+          },
+          "J72V": {
+            "id": "J72V",
+            "kind": "text",
+            "name": "The force dial matters twice",
+            "text": "It is both committed force strength and access to a spice tier. Having eight forces available does not unlock +3 if you dial only four. A doubled special force contributes its force strength toward the threshold."
+          },
+          "36SD": {
+            "id": "36SD",
+            "kind": "callout",
+            "variant": "note",
+            "title": "Reading the diagrams",
+            "text": "The diagrams compare one side under two editions. They are not opposing plans. The surviving leader is excluded from the pictures and added in the calculation above."
+          },
+          "6ZQ5": {
+            "id": "6ZQ5",
+            "kind": "text",
+            "text": "Sources: 2019 p13; second edition pp16\\-18."
+          }
+        },
+        "showHeading": true
+      },
+      "PXSB": {
+        "id": "PXSB",
+        "anchor": "battle-payment",
+        "title": "Commit spice, reveal, then settle",
+        "layoutId": "two-columns",
+        "controlValues": {},
+        "blockOrderByRegion": {
+          "column1": [
+            "5MBL",
+            "3A9X",
+            "W3Z3"
+          ],
+          "column2": [
+            "JMU8",
+            "2NTH",
+            "VSNC",
+            "APY2",
+            "T7UQ"
+          ]
+        },
+        "blocksById": {
+          "5MBL": {
+            "id": "5MBL",
+            "kind": "text",
+            "name": "The new payment",
+            "text": "Keep the selected spice tier secret on the wheel until simultaneous reveal, then pay its cost to the Spice Bank. You must have spendable spice already. A general ally contribution and a leader bounty earned from this battle cannot fund it."
+          },
+          "3A9X": {
+            "id": "3A9X",
+            "kind": "text",
+            "name": "Specific exceptions matter",
+            "text": "Fremen receives its qualifying spice strength for free. Emperor halves its ally's cost. Solaris pays the cost from the Bank. These are separate exceptions to the shared payment rule; they are not permission for every ally to fund battle spice."
+          },
+          "W3Z3": {
+            "id": "W3Z3",
+            "kind": "callout",
+            "variant": "example",
+            "title": "A tempting wrong payment",
+            "text": "You expect to kill a strength\\-5 leader, but have no spendable spice. That future bounty cannot buy the +2 tier while you form your plan. Deferred bribes in front of your screen cannot buy it either."
+          },
+          "JMU8": {
+            "id": "JMU8",
+            "kind": "text",
+            "name": "Traitor results keep their asymmetry",
+            "text": "The traitor winner keeps its committed spice and loses nothing under that result. The betrayed side loses its committed spice. With two traitor calls, both lose it. Apply the stated exception even though ordinary payment happens at reveal."
+          },
+          "2NTH": {
+            "id": "2NTH",
+            "kind": "text",
+            "name": "A winner's leader can move after a traitor victory",
+            "text": "The new text explicitly releases the traitor winner's leader for use in another territory that round. Our older core book did not give that exception explicitly. Do not describe this as proof every older table played it differently."
+          },
+          "VSNC": {
+            "id": "VSNC",
+            "kind": "text",
+            "name": "Leaderlessness stays secret until reveal",
+            "text": "Previously you had to announce that no leader or Cheap Hero was available. The new book removes that advance disclosure. The absence still prevents Treachery cards in the battle plan."
+          },
+          "APY2": {
+            "id": "APY2",
+            "kind": "callout",
+            "variant": "note",
+            "title": "Open wording: Cheap Hero",
+            "text": "The source says include a leader or Cheap Hero if possible, but also describes being unwilling to use a Cheap Hero. Whether the card is compulsory when no leader disc is available needs clarification."
+          },
+          "T7UQ": {
+            "id": "T7UQ",
+            "kind": "text",
+            "text": "Sources: 2019 pp10\\-11,13; second edition pp16\\-19."
+          }
+        },
+        "showHeading": true
+      },
+      "WPPM": {
+        "id": "WPPM",
+        "anchor": "battle-aftermath",
+        "title": "Aftermath and negotiated surrender",
+        "layoutId": "two-columns",
+        "controlValues": {},
+        "blockOrderByRegion": {
+          "column1": [
+            "95EM",
+            "GFT8",
+            "HDWB",
+            "QTBY",
+            "XKSX"
+          ],
+          "column2": [
+            "LU7S",
+            "XRNL",
+            "CP76",
+            "KDSD",
+            "DSC5",
+            "67YP"
+          ]
+        },
+        "blocksById": {
+          "95EM": {
+            "id": "95EM",
+            "kind": "card-entry",
+            "imageSide": "left",
+            "textFlow": "beside",
+            "source": {
+              "kind": "asset",
+              "assetId": "ns727bsfd8exajvm3hmg9svzy58gtnhc"
+            },
+            "text": "In 2.0, a lasgun/shield explosion also kills face\\-up leaders that survived earlier battles in that territory. Our old GF9 book explicitly protected those earlier survivors as use markers. This is a change from that adopted ruling, not a clear reversal of an unambiguous sentence in the bare 2019 printing.",
+            "name": "Earlier surviving leaders are exposed",
+            "size": "medium"
+          },
+          "GFT8": {
+            "id": "GFT8",
+            "kind": "callout",
+            "variant": "example",
+            "title": "Three factions, two battles",
+            "text": "Your leader survives the first battle and remains beside the territory. The remaining rivals then detonate a lasgun and Shield. The new rule kills your earlier survivor too."
+          },
+          "HDWB": {
+            "id": "HDWB",
+            "kind": "text",
+            "name": "Initiative is the familiar priority with clearer wording",
+            "text": "The new name replaces aggressor. The player with Initiative still chooses its battles and wins ties. The new text expressly permits leaving a territory with multiple rivals, resolving a battle elsewhere, then returning to the first territory."
+          },
+          "QTBY": {
+            "id": "QTBY",
+            "kind": "text",
+            "name": "A winning plan does not preserve every card",
+            "text": "Ordinary reusable weapons and defenses can still be kept where their text permits. Revealed Worthless cards and one\\-shot Actions do not follow that general retention habit. Cheap Hero was already discarded after use in the earlier FAQ."
+          },
+          "XKSX": {
+            "id": "XKSX",
+            "kind": "callout",
+            "variant": "note",
+            "title": "Still a Shield-specific explosion",
+            "text": "A kinetic defense is not automatically a Shield. Weirding Way does not cause the explosion; Shield\\-Snooper does. That distinction was already in the expansion rules and our old books."
+          },
+          "LU7S": {
+            "id": "LU7S",
+            "kind": "text",
+            "name": "An explicit agreement template",
+            "text": "The new book describes Negotiated Surrender rather than leaving players to infer every part from the general deal rule. Both players agree on the thrown battle and its legal terms. The template normally avoids weapons, defenses and traitor calls, while allowing agreed Worthless disposal. Legal deals already permitted deliberate losses; the new book supplies an explicit template."
+          },
+          "XRNL": {
+            "id": "XRNL",
+            "kind": "text",
+            "name": "What this does not change",
+            "text": "A deal cannot grant an illegal action or transfer cards, forces, leaders, tokens or advantages without a specific rule allowing it. A thrown battle is still resolved through a legal battle plan; it is not permission to teleport the losing force into reserves."
+          },
+          "CP76": {
+            "id": "CP76",
+            "kind": "callout",
+            "variant": "example",
+            "title": "Resolve the agreed plan",
+            "text": "Agree on a losing plan, then identify its force commitment, any legal card disposal and losses. Do not treat the negotiated outcome as an exemption from the printed restrictions."
+          },
+          "KDSD": {
+            "id": "KDSD",
+            "kind": "text",
+            "name": "Atreides can still build toward its token",
+            "text": "A legal thrown battle can contribute actual battle losses toward Kwisatz Haderach. The counter is now public. The example does not add storm or worm casualties to that counter."
+          },
+          "DSC5": {
+            "id": "DSC5",
+            "kind": "text",
+            "name": "Harkonnen and expansion effects",
+            "text": "The source's surrender template excludes specified post\\-battle effects such as the revised Moritani Execute. That name reference does not provide the full new expansion procedure. Use the actual effect and agreement, not a guessed generic \"nothing triggers\" rule."
+          },
+          "67YP": {
+            "id": "67YP",
+            "kind": "text",
+            "text": "Sources: 2019 pp10\\-12,22; old GF9 judgement GF9\\-CORE\\-012; second edition pp16\\-18,22,25,31\\-32."
+          }
+        },
+        "showHeading": true
+      },
+      "FRH9": {
+        "id": "FRH9",
+        "anchor": "revival",
+        "title": "Unlock leader revival once",
+        "layoutId": "two-columns",
+        "controlValues": {},
+        "blockOrderByRegion": {
+          "column1": [
+            "4DZQ",
+            "7F52",
+            "Q7U7"
+          ],
+          "column2": [
+            "9A74",
+            "KLEP",
+            "VRZV",
+            "6MAE"
+          ]
+        },
+        "blocksById": {
+          "4DZQ": {
+            "id": "4DZQ",
+            "kind": "text",
+            "name": "GF9",
+            "text": "Ordinary revival opened once the faction's leaders were dead or otherwise covered by the clarified eligibility rule. A twice\\-killed revived leader went face down and waited for the rest of the roster's revival\\-and\\-death cycle."
+          },
+          "7F52": {
+            "id": "7F52",
+            "kind": "text",
+            "name": "GF9 2.0",
+            "text": "When all of your leaders are dead or captured, ordinary leader revival unlocks. Put your second faction token in the Tanks as a reminder. After that, you may choose any dead leader for your one normal leader revival each round, including a leader you revived before."
+          },
+          "Q7U7": {
+            "id": "Q7U7",
+            "kind": "callout",
+            "variant": "example",
+            "title": "Bring the same leader back",
+            "text": "You unlock revival, revive your strongest leader, then it dies again. Next Revival you may pay for that leader again. You do not wait for every other leader to complete another cycle."
+          },
+          "9A74": {
+            "id": "9A74",
+            "kind": "text",
+            "name": "What remains familiar",
+            "text": "Normal leader revival still costs the printed fighting strength and still allows only one leader in that phase. The leader remains subject to its original traitor card. Counting captured leaders toward opening revival was already clarified; the removal of the death cycle is the major change."
+          },
+          "KLEP": {
+            "id": "KLEP",
+            "kind": "card-entry",
+            "imageSide": "left",
+            "textFlow": "beside",
+            "source": {
+              "kind": "asset",
+              "assetId": "ns78xjv6cf60q9j1qmkdwe06718gtwa5"
+            },
+            "text": "Ghola may now revive multiple starred forces. The old FAQ explicitly kept Ghola within the one\\-Fedaykin or one\\-Sardaukar limit. Ordinary revival still has that special\\-force cap. Emperor's revised one\\-time power has its own additional exception.",
+            "name": "Special-force revivals",
+            "size": "medium"
+          },
+          "VRZV": {
+            "id": "VRZV",
+            "kind": "text",
+            "name": "Atreides token exception",
+            "text": "A dead Kwisatz Haderach can use your one leader revival for two spice even before ordinary leader revival unlocks. That explicitly reverses the eligibility requirement in our old book; it is not an extra revival."
+          },
+          "6MAE": {
+            "id": "6MAE",
+            "kind": "text",
+            "text": "Sources: 2019 pp9,16\\-19; FAQ November 2020 p2; second edition pp13,29\\-31."
+          }
+        },
+        "showHeading": true
+      },
+      "QXRY": {
+        "id": "QXRY",
+        "anchor": "karama",
+        "title": "Karama: one target and its window",
+        "layoutId": "single-column",
+        "controlValues": {},
+        "blockOrderByRegion": {
+          "content": [
+            "MNQR",
+            "P6KB",
+            "6UNE",
+            "JGHG",
+            "BCRG"
+          ]
+        },
+        "blocksById": {
+          "MNQR": {
+            "id": "MNQR",
+            "kind": "card-entry",
+            "imageSide": "left",
+            "textFlow": "beside",
+            "source": {
+              "kind": "asset",
+              "assetId": "ns7dzskjqc742nmr9wfd0z7sm98gvqe5"
+            },
+            "text": "A Karama cancels only the target faction's one designated vulnerable advantage, at its written time, or activates your own once\\-per\\-game power. It no longer buys a free auction card or a discounted shipment.",
+            "name": "Keep cancellation separate from economics",
+            "size": "small"
+          },
+          "P6KB": {
+            "id": "P6KB",
+            "kind": "reference-table",
+            "columnOrder": [
+              "c0",
+              "c1",
+              "c2"
+            ],
+            "columnsById": {
+              "c0": {
+                "id": "c0",
+                "label": "Target"
+              },
+              "c1": {
+                "id": "c1",
+                "label": "Play the cancel"
+              },
+              "c2": {
+                "id": "c2",
+                "label": "Result"
+              }
+            },
+            "rowOrder": [
+              "r0",
+              "r1",
+              "r2",
+              "r3",
+              "r4",
+              "r5"
+            ],
+            "rowsById": {
+              "r0": {
+                "id": "r0",
+                "cellsByColumnId": {
+                  "c0": "Atreides",
+                  "c1": "Immediately after it names the requested element",
+                  "c2": "No Battle Prescience for that use"
+                }
+              },
+              "r1": {
+                "id": "r1",
+                "cellsByColumnId": {
+                  "c0": "Bene Gesserit",
+                  "c1": "Immediately after it declares Voice",
+                  "c2": "That command is canceled"
+                }
+              },
+              "r2": {
+                "id": "r2",
+                "cellsByColumnId": {
+                  "c0": "Emperor",
+                  "c1": "Before reveal, in the written plan\\-formation window",
+                  "c2": "Sardaukar acts as standard forces for the battle"
+                }
+              },
+              "r3": {
+                "id": "r3",
+                "cellsByColumnId": {
+                  "c0": "Fremen",
+                  "c1": "Before reveal, in the written plan\\-formation window",
+                  "c2": "No free Battle Edge bonus; may pay normally"
+                }
+              },
+              "r4": {
+                "id": "r4",
+                "cellsByColumnId": {
+                  "c0": "Harkonnen",
+                  "c1": "After the win, before captive draw",
+                  "c2": "No Capture Leaders for that use"
+                }
+              },
+              "r5": {
+                "id": "r5",
+                "cellsByColumnId": {
+                  "c0": "Guild",
+                  "c1": "Before its normal turn has passed",
+                  "c2": "Takes normal storm order"
+                }
+              }
+            },
+            "note": ""
+          },
+          "6UNE": {
+            "id": "6UNE",
+            "kind": "text",
+            "name": "Old reference lists are unsafe",
+            "text": "The earlier FAQ and our GF9 book listed many cancelable effects. You can no longer assume that income, auction inspection, Harkonnen bonus draws, Fremen storm protection or every special\\-force effect is a legal target."
+          },
+          "JGHG": {
+            "id": "JGHG",
+            "kind": "callout",
+            "variant": "note",
+            "title": "Open wording: before or while forming",
+            "text": "The summary table says before Battle Plans are made for Emperor and Fremen; the sheets say while plans are being formed. This draft preserves the narrow timing question. Neither text permits waiting until reveal."
+          },
+          "BCRG": {
+            "id": "BCRG",
+            "kind": "text",
+            "text": "Sources: Second edition pp24,27\\-33. Ordinary Karama cannot cancel another faction's once\\-per\\-game Karama power."
+          }
+        },
+        "showHeading": true
+      },
+      "ERCZ": {
+        "id": "ERCZ",
+        "anchor": "solaris",
+        "title": "Solaris pays for one economic effect",
+        "layoutId": "two-columns",
+        "controlValues": {},
+        "blockOrderByRegion": {
+          "column1": [
+            "QR7F",
+            "6U8W"
+          ],
+          "column2": [
+            "CK93",
+            "73TX",
+            "GD3J",
+            "TPFE",
+            "6WCS"
+          ]
+        },
+        "blocksById": {
+          "QR7F": {
+            "id": "QR7F",
+            "kind": "card-entry",
+            "imageSide": "left",
+            "textFlow": "beside",
+            "source": {
+              "kind": "asset",
+              "assetId": "ns7fmbx80hnq2ejgj9c45a7mqd8gt64y"
+            },
+            "text": "Take a card for free on your own bidding turn in a normal auction; give any faction Guild rates for its reserve shipment, paid to the Bank, including Fremen; or pay the cost of your own battle spice strength from the Bank. Choose one effect. The shipping option discounts a permitted shipment; it does not create an extra Shipping action.",
+            "name": "Three alternatives",
+            "size": "medium"
+          },
+          "6U8W": {
+            "id": "6U8W",
+            "kind": "text",
+            "name": "Rates are not income",
+            "text": "Receiving Guild rates means paying the discounted price for the permitted shipment. It does not mean collecting the Guild's revenue when another faction ships."
+          },
+          "CK93": {
+            "id": "CK93",
+            "kind": "callout",
+            "variant": "example",
+            "title": "The force threshold still applies",
+            "text": "If you dial four force strength, Solaris can fund the +2 tier. It cannot give +3 when you have dialed only four. The card changes who supplies the spice, not the threshold."
+          },
+          "73TX": {
+            "id": "73TX",
+            "kind": "text",
+            "name": "No unaffordable bluff bid",
+            "text": "The older Karama clarification allowed bidding beyond your spice holdings while you held Karama. The new auction rule forbids an unaffordable bid even when you hold Solaris. Taking the current card for free on your bidding turn is a different action."
+          },
+          "GD3J": {
+            "id": "GD3J",
+            "kind": "callout",
+            "variant": "note",
+            "title": "Open wording: shipping scope",
+            "text": "The printed face specifies a shipment from reserves; the explanatory prose says any Shipping action. Cross\\-shipping and return\\-to\\-reserves discounts through Solaris should remain a qualified question, not an automatic broad extension."
+          },
+          "TPFE": {
+            "id": "TPFE",
+            "kind": "callout",
+            "variant": "note",
+            "title": "Open wording: Classic",
+            "text": "Solaris names spice strength. Classic replaces that system with old troop support. The source does not specify how to translate that payment effect."
+          },
+          "6WCS": {
+            "id": "6WCS",
+            "kind": "text",
+            "text": "Sources: FAQ November 2020 p7; second edition pp12,25\\-26. Source examples are newly written for this guide."
+          }
+        },
+        "showHeading": true
+      },
+      "R2X8": {
+        "id": "R2X8",
+        "anchor": "card-habits",
+        "title": "Cards: information, disposal and timing",
+        "layoutId": "two-columns",
+        "controlValues": {},
+        "blockOrderByRegion": {
+          "column1": [
+            "TN2T",
+            "NQMC",
+            "S8LV",
+            "WEWF",
+            "RZZY",
+            "4HDS"
+          ],
+          "column2": [
+            "S6MH",
+            "T42N",
+            "GPXM",
+            "NA5A",
+            "TNE2",
+            "WQ4R"
+          ]
+        },
+        "blocksById": {
+          "TN2T": {
+            "id": "TN2T",
+            "kind": "text",
+            "name": "Truthtrance concerns information",
+            "text": "The old FAQ allowed a binding decision about an action later that turn. The new explanation limits Truthtrance to information the player can answer truthfully. Do not ask it to bind a future shipment or a future decision."
+          },
+          "NQMC": {
+            "id": "NQMC",
+            "kind": "question-answer",
+            "question": "Can I make you promise not to attack this round?",
+            "answer": "Not through the new Truthtrance rule. Ask a question about information instead. A separate legal deal has its own rules and cannot turn the card into its old future\\-commitment power."
+          },
+          "S8LV": {
+            "id": "S8LV",
+            "kind": "text",
+            "name": "Do not use unanswerable questions as a search engine",
+            "text": "The source handles genuinely unanswerable questions without consuming the card, but forbids deliberately probing every possible traitor with questions designed to produce \"I don't know\" answers."
+          },
+          "WEWF": {
+            "id": "WEWF",
+            "kind": "card-entry",
+            "imageSide": "left",
+            "textFlow": "beside",
+            "source": {
+              "kind": "asset",
+              "assetId": "ns7b5pbv97x2zs70e9kdd5kqgs8gvnwy"
+            },
+            "text": "You can still use a Worthless card in a Weapon or Defense slot. Once revealed there, it must be discarded even if you win. Our old GF9 book allowed a winning player to retain one.",
+            "name": "Revealed Worthless cards leave your hand",
+            "size": "medium"
+          },
+          "RZZY": {
+            "id": "RZZY",
+            "kind": "text",
+            "name": "Keep these distinctions",
+            "text": "Cheap Hero remains a zero\\-strength replacement for the leader, not a Weapon or Defense card. Used Cheap Hero disposal was already in the old FAQ. Winning reusable weapons and defenses are still generally retained unless their own text says otherwise."
+          },
+          "4HDS": {
+            "id": "4HDS",
+            "kind": "callout",
+            "variant": "note",
+            "title": "Deck size",
+            "text": "The base Treachery deck increases from 33 to 35 cards. Two Solaris cards are reported in the supplied physical material. Do not add an extra set of old replacement Karamas on top of the intended deck."
+          },
+          "S6MH": {
+            "id": "S6MH",
+            "kind": "card-entry",
+            "imageSide": "left",
+            "textFlow": "beside",
+            "source": {
+              "kind": "asset",
+              "assetId": "ns7dmx88vyj0g27enj6y7n6tdx8gttvk"
+            },
+            "text": "The old FAQ allowed Weather Control and Family Atomics in either played order. The new explanation permits one after the other only when that next player is later in storm order.",
+            "name": "Resolve timing in storm order",
+            "size": "medium"
+          },
+          "T42N": {
+            "id": "T42N",
+            "kind": "text",
+            "name": "Still familiar",
+            "text": "Family Atomics still removes Shield Wall and exposes the protected areas to future storm movement. The storm does not retroactively sweep its current position just because the wall was destroyed. Its force or adjacency condition and round\\-one restriction are older rules."
+          },
+          "GPXM": {
+            "id": "GPXM",
+            "kind": "text",
+            "name": "Weather Control and the new deck",
+            "text": "Weather Control can be played before the Storm card is drawn. In that case no Storm card is drawn for that movement. Do not keep using only the old battle\\-wheel timing language."
+          },
+          "NA5A": {
+            "id": "NA5A",
+            "kind": "callout",
+            "variant": "example",
+            "title": "Seat order matters",
+            "text": "If the Family Atomics player is later in storm order than the player who just used Weather Control, the new explanation allows that sequence. A player earlier in the order cannot assume a free interrupt after a later player's card."
+          },
+          "TNE2": {
+            "id": "TNE2",
+            "kind": "text",
+            "name": "Harj remains an extra move",
+            "text": "The new spelling maps to old Hajr. It gives an additional on\\-planet movement immediately after your own normal movement, not another shipment. Reassessing ornithopters at the additional move was already clarified."
+          },
+          "WQ4R": {
+            "id": "WQ4R",
+            "kind": "text",
+            "text": "Sources: 2019 pp5,10\\-11,22; FAQ November 2020 pp1\\-2,8\\-9; second edition pp7,10,23,25."
+          }
+        },
+        "showHeading": true
+      },
+      "7B73": {
+        "id": "7B73",
+        "anchor": "allies",
+        "title": "Allies leave shared territory differently",
+        "layoutId": "two-columns",
+        "controlValues": {},
+        "blockOrderByRegion": {
+          "column1": [
+            "2T5P",
+            "6UWG",
+            "ZZ49"
+          ],
+          "column2": [
+            "CPGD",
+            "3QTC",
+            "HMLF",
+            "9WNA",
+            "DEUQ"
+          ]
+        },
+        "blocksById": {
+          "2T5P": {
+            "id": "2T5P",
+            "kind": "text",
+            "name": "GF9",
+            "text": "The first ally taking its turn could remain; the later ally had to leave or lose its forces to the Tanks. Our old book preserved that explicit ally rule."
+          },
+          "6UWG": {
+            "id": "6UWG",
+            "kind": "text",
+            "name": "GF9 2.0",
+            "text": "After a Nexus leaves you sharing a territory, the first faction with a Movement action must leave. If it cannot, those forces return to reserves at the end of its turn. If both somehow remain by phase end, the co\\-occupying forces return to reserves. The fallback is no longer a casualty in the Tanks."
+          },
+          "ZZ49": {
+            "id": "ZZ49",
+            "kind": "callout",
+            "variant": "example",
+            "title": "A first mover without a legal exit",
+            "text": "Your new ally shares the territory. You act first but cannot move out. Under the new written procedure your forces return to reserves; you do not simply stay and force your later ally to solve it."
+          },
+          "CPGD": {
+            "id": "CPGD",
+            "kind": "text",
+            "name": "Normal ally payments are retained",
+            "text": "You may still make the permitted contributions to an ally's auction purchase or shipment. That does not create a shared purse and does not permit ordinary allied battle\\-spice payments."
+          },
+          "3QTC": {
+            "id": "3QTC",
+            "kind": "callout",
+            "variant": "note",
+            "title": "Open wording: ship then move",
+            "text": "The old FAQ allowed shipping into an ally's territory if you moved out afterward. The new rule forbids ending an action there, and Shipment and Movement are distinct actions. A literal reading removes that old sequence; the exact old example is not addressed explicitly."
+          },
+          "HMLF": {
+            "id": "HMLF",
+            "kind": "text",
+            "name": "Bene Gesserit exception",
+            "text": "The specific advisor rules permit the intended coexistence with an ally. Use those rules rather than treating advisors as ordinary co\\-occupying fighters. The general alliance paragraph does not repeat the exception, which remains flagged in this draft."
+          },
+          "9WNA": {
+            "id": "9WNA",
+            "kind": "text",
+            "name": "Still blocked",
+            "text": "A stronghold occupied by two other factions still blocks ordinary entry and passage. The rare\\-case explanations are not a normal invitation for a third faction to enter."
+          },
+          "DEUQ": {
+            "id": "DEUQ",
+            "kind": "text",
+            "text": "Sources: 2019 pp12,23; FAQ November 2020 pp2,4; second edition pp14\\-15,21,28."
+          }
+        },
+        "showHeading": true
+      },
+      "7PK3": {
+        "id": "7PK3",
+        "anchor": "deals",
+        "title": "Deals, private information and notes",
+        "layoutId": "two-columns",
+        "controlValues": {},
+        "blockOrderByRegion": {
+          "column1": [
+            "J6CM",
+            "46AH",
+            "GNK6"
+          ],
+          "column2": [
+            "W3TW",
+            "UZEH",
+            "MK3J",
+            "JVYY",
+            "WSUA"
+          ]
+        },
+        "blocksById": {
+          "J6CM": {
+            "id": "J6CM",
+            "kind": "text",
+            "name": "The unified game includes bribery",
+            "text": "Bribery appeared in the old printing but the later FAQ and our book treated it as Advanced. It is now part of the default game. State nonally deals aloud; those legal deals are binding and need not include a spice bribe."
+          },
+          "46AH": {
+            "id": "46AH",
+            "kind": "text",
+            "name": "Allied promises are different",
+            "text": "Deals between allies are expressly nonbinding and cannot themselves transfer spice. The normal permitted allied payments and specific Emperor exception still work. Do not treat an alliance promise like a public binding nonally bargain."
+          },
+          "GNK6": {
+            "id": "GNK6",
+            "kind": "text",
+            "name": "Payment is still deferred",
+            "text": "Bribe spice waits in front of the recipient's screen until the start of Mentat Pause. That delay, void impossible terms and unanimous cancellation were already clarified in the earlier game."
+          },
+          "W3TW": {
+            "id": "W3TW",
+            "kind": "text",
+            "name": "No new bribes or Treachery in Mentat Pause",
+            "text": "The new book expressly forbids both. Finish those actions before the phase begins. Old \"any time\" card wording is not a blanket override of this new phase restriction."
+          },
+          "UZEH": {
+            "id": "UZEH",
+            "kind": "text",
+            "name": "Announce private exchanges",
+            "text": "You may keep information secret, but everyone must know that an exchange is taking place, including private messages or leaving the room to talk. Concealing the contents and concealing the transaction are different."
+          },
+          "MK3J": {
+            "id": "MK3J",
+            "kind": "text",
+            "name": "General notes are now prohibited",
+            "text": "The old FAQ and our GF9 book allowed general notes while reserving Treachery tracking to Atreides. The new default forbids notes except the Atreides Bidding advantage."
+          },
+          "JVYY": {
+            "id": "JVYY",
+            "kind": "callout",
+            "variant": "note",
+            "title": "Already familiar",
+            "text": "Discard piles cannot be searched without permission. That was already in our GF9 book. Watching a public discard happen is different from searching the pile later."
+          },
+          "WSUA": {
+            "id": "WSUA",
+            "kind": "text",
+            "text": "Sources: FAQ November 2020 pp1\\-3,9; second edition pp20\\-22,36."
+          }
+        },
+        "showHeading": true
+      },
+      "NVLU": {
+        "id": "NVLU",
+        "anchor": "city-income",
+        "title": "City income is now part of the default",
+        "layoutId": "two-columns",
+        "controlValues": {},
+        "blockOrderByRegion": {
+          "column1": [
+            "4P3K",
+            "K67G",
+            "Z22D"
+          ],
+          "column2": [
+            "PN2U",
+            "67DK"
+          ]
+        },
+        "blocksById": {
+          "4P3K": {
+            "id": "4P3K",
+            "kind": "text",
+            "name": "Basic veterans add this income",
+            "text": "At Spice Collection, the new default gives two spice for Arrakeen, two for Carthag and one for Tuek's Sietch to the faction controlling that stronghold. Old Basic did not include this. Old Advanced already used these amounts."
+          },
+          "K67G": {
+            "id": "K67G",
+            "kind": "text",
+            "name": "Carryalls is a familiar benefit with a name",
+            "text": "The new label names the existing three\\-spice\\-per\\-force collection rate from qualifying city occupation. It does not itself create another city income payment."
+          },
+          "Z22D": {
+            "id": "Z22D",
+            "kind": "callout",
+            "variant": "note",
+            "title": "Open wording: control timing",
+            "text": "The income paragraph uses control, while the glossary defines control at round end. The everyday sole\\-occupant case is clear; storm\\-separated rivals and the exact timing need the qualified reading in the open\\-questions section."
+          },
+          "PN2U": {
+            "boardId": "arrakis",
+            "caption": "The existing board illustration marks Arrakeen, Carthag and Tuek's. Amounts remain 2, 2 and 1 from old Advanced; their use in the unified default is the change.",
+            "size": "fit-width",
+            "routes": [],
+            "viewport": {
+              "x": 0.3,
+              "y": 0,
+              "width": 0.7,
+              "height": 1
+            },
+            "players": [],
+            "troops": [],
+            "highlights": [
+              {
+                "territory": "arrakeen",
+                "color": "#ba913b",
+                "opacity": 0.3
+              },
+              {
+                "territory": "carthag",
+                "color": "#ba913b",
+                "opacity": 0.3
+              },
+              {
+                "territory": "tueks",
+                "color": "#ba913b",
+                "opacity": 0.3
+              }
+            ],
+            "annotations": [
+              {
+                "id": "carry",
+                "title": "Arrakeen",
+                "text": "Carryalls and 2 spice stronghold income.",
+                "x": 0.7,
+                "y": 0.05,
+                "targetX": 0.655,
+                "targetY": 0.147
+              },
+              {
+                "id": "income",
+                "title": "Tuek's Sietch",
+                "text": "1 spice stronghold income.",
+                "x": 0.94,
+                "y": 0.82,
+                "targetX": 0.864,
+                "targetY": 0.707
+              },
+              {
+                "id": "carthag",
+                "title": "Carthag",
+                "text": "Carryalls and 2 spice stronghold income.",
+                "x": 0.34,
+                "y": 0.3,
+                "targetX": 0.486,
+                "targetY": 0.184
+              }
+            ],
+            "id": "PN2U",
+            "kind": "board-scene"
+          },
+          "67DK": {
+            "id": "67DK",
+            "kind": "text",
+            "text": "Sources: 2019 p13; second edition pp20,36."
+          }
+        },
+        "showHeading": true
+      },
+      "VVJC": {
+        "id": "VVJC",
+        "anchor": "victory",
+        "title": "Normal wins have a new priority order",
+        "layoutId": "two-columns",
+        "controlValues": {},
+        "blockOrderByRegion": {
+          "column1": [
+            "R4XW",
+            "TC93",
+            "95FM"
+          ],
+          "column2": [
+            "M4W7",
+            "EG7S",
+            "SNTY"
+          ]
+        },
+        "blocksById": {
+          "R4XW": {
+            "id": "R4XW",
+            "kind": "text",
+            "name": "The ordinary targets stay familiar",
+            "text": "An unallied faction normally needs three strongholds; a two\\-faction alliance normally needs four. Victory is still checked in Mentat Pause, not immediately on entry."
+          },
+          "TC93": {
+            "id": "TC93",
+            "kind": "text",
+            "name": "Competing winners no longer automatically share",
+            "text": "The old FAQ and our core book used a tied victory for simultaneously qualifying sides. The new book ranks the qualifying configurations. The Tech Token rows apply when that module is in use."
+          },
+          "95FM": {
+            "id": "95FM",
+            "kind": "callout",
+            "variant": "note",
+            "title": "The tie-break inside a position",
+            "text": "Within the applicable priority, compare strongholds, then forces in strongholds, then spice. Do not replace the printed configuration priority with one universal \"most strongholds wins\" rule."
+          },
+          "M4W7": {
+            "id": "M4W7",
+            "kind": "reference-table",
+            "columnOrder": [
+              "c0",
+              "c1"
+            ],
+            "columnsById": {
+              "c0": {
+                "id": "c0",
+                "label": "Priority"
+              },
+              "c1": {
+                "id": "c1",
+                "label": "Qualifying configuration"
+              }
+            },
+            "rowOrder": [
+              "r0",
+              "r1",
+              "r2",
+              "r3",
+              "r4",
+              "r5"
+            ],
+            "rowsById": {
+              "r0": {
+                "id": "r0",
+                "cellsByColumnId": {
+                  "c0": "1",
+                  "c1": "Unallied: at least 3 strongholds"
+                }
+              },
+              "r1": {
+                "id": "r1",
+                "cellsByColumnId": {
+                  "c0": "2",
+                  "c1": "Unallied: 2 strongholds and all 3 Tech Tokens"
+                }
+              },
+              "r2": {
+                "id": "r2",
+                "cellsByColumnId": {
+                  "c0": "3",
+                  "c1": "Alliance: at least 5 strongholds"
+                }
+              },
+              "r3": {
+                "id": "r3",
+                "cellsByColumnId": {
+                  "c0": "4",
+                  "c1": "Alliance: 4 strongholds and all 3 Tech Tokens"
+                }
+              },
+              "r4": {
+                "id": "r4",
+                "cellsByColumnId": {
+                  "c0": "5",
+                  "c1": "Alliance: 4 strongholds"
+                }
+              },
+              "r5": {
+                "id": "r5",
+                "cellsByColumnId": {
+                  "c0": "6",
+                  "c1": "Alliance: 3 strongholds and all 3 Tech Tokens"
+                }
+              }
+            },
+            "note": ""
+          },
+          "EG7S": {
+            "id": "EG7S",
+            "kind": "text",
+            "name": "Special victories have their own checks",
+            "text": "Bene Gesserit prediction, Fremen's special condition and Guild's revised condition cannot be replaced by this table alone. Check the faction text and the open overlap questions before designing a total precedence chart."
+          },
+          "SNTY": {
+            "id": "SNTY",
+            "kind": "text",
+            "text": "Sources: 2019 pp11\\-12; FAQ November 2020 p1; second edition pp5,20\\-21,27,29,33."
+          }
+        },
+        "showHeading": true
+      },
+      "RG5J": {
+        "id": "RG5J",
+        "anchor": "endgame",
+        "title": "The end of round ten is different",
+        "layoutId": "two-columns",
+        "controlValues": {},
+        "blockOrderByRegion": {
+          "column1": [
+            "4WM7",
+            "KFS3",
+            "RZEY"
+          ],
+          "column2": [
+            "63CF",
+            "JWZ6",
+            "7REA",
+            "ESRU"
+          ]
+        },
+        "blocksById": {
+          "4WM7": {
+            "id": "4WM7",
+            "kind": "text",
+            "name": "No automatic old Guild stall",
+            "text": "The old Guild could win by preventing everyone else from winning until game end. Its new special condition requires enough stronghold control. Fremen's ally\\-sensitive special condition also needs checking before generic fallback."
+          },
+          "KFS3": {
+            "id": "KFS3",
+            "kind": "text",
+            "name": "The new fallback",
+            "text": "After round ten, if no normal or applicable special victory has occurred, compare strongholds, then favor unallied over alliance on that tie, then forces in controlled strongholds, then spice. Do not import the old no\\-Guild automatic Fremen fallback or our old inferred special\\-victory order."
+          },
+          "RZEY": {
+            "id": "RZEY",
+            "kind": "callout",
+            "variant": "note",
+            "title": "Open wording: perfect ties",
+            "text": "The new text stops after equal spice and does not fully settle every special\\-condition overlap. Those gaps remain visible in this review draft."
+          },
+          "63CF": {
+            "id": "63CF",
+            "kind": "callout",
+            "variant": "example",
+            "title": "Solo Guild tied with one faction",
+            "text": "Solo Guild controls two strongholds. Atreides controls two and its Bene Gesserit ally controls one. Guild meets its special comparison against the highest individual faction, even though that other alliance totals three."
+          },
+          "JWZ6": {
+            "id": "JWZ6",
+            "kind": "callout",
+            "variant": "example",
+            "title": "Allied Guild uses alliance totals",
+            "text": "If that Guild has an Emperor ally, their alliance must meet the strongest faction or alliance total. Against the opposing total of three in the example, Emperor needs one stronghold alongside Guild's two."
+          },
+          "7REA": {
+            "id": "7REA",
+            "kind": "text",
+            "name": "Teach the comparison, not a vague tie",
+            "text": "The source distinguishes an unallied Guild's comparison from an allied Guild's. \"Guild must tie for the most\" is too compressed to teach the actual change."
+          },
+          "ESRU": {
+            "id": "ESRU",
+            "kind": "text",
+            "text": "Sources: 2019 pp19,23; second edition pp5,20,29,33."
+          }
+        },
+        "showHeading": true
+      },
+      "PJQR": {
+        "id": "PJQR",
+        "anchor": "rosters",
+        "title": "Leaders and their changed values",
+        "layoutId": "two-columns",
+        "controlValues": {},
+        "blockOrderByRegion": {
+          "column1": [
+            "NPBA",
+            "WC62",
+            "RBUX",
+            "HWZW"
+          ],
+          "column2": [
+            "AZ4V",
+            "3DAG",
+            "X7CP",
+            "EHX5",
+            "2AGP"
+          ]
+        },
+        "blocksById": {
+          "NPBA": {
+            "id": "NPBA",
+            "kind": "reference-table",
+            "columnOrder": [
+              "c0",
+              "c1",
+              "c2"
+            ],
+            "columnsById": {
+              "c0": {
+                "id": "c0",
+                "label": "Faction"
+              },
+              "c1": {
+                "id": "c1",
+                "label": "Earlier roster item"
+              },
+              "c2": {
+                "id": "c2",
+                "label": "2.0"
+              }
+            },
+            "rowOrder": [
+              "r0",
+              "r1",
+              "r2",
+              "r3",
+              "r4",
+              "r5"
+            ],
+            "rowsById": {
+              "r0": {
+                "id": "r0",
+                "cellsByColumnId": {
+                  "c0": "Atreides",
+                  "c1": "Duncan Idaho 2",
+                  "c2": "Duncan Idaho 3"
+                }
+              },
+              "r1": {
+                "id": "r1",
+                "cellsByColumnId": {
+                  "c0": "Atreides ruler",
+                  "c1": "Paul Muad'Dib",
+                  "c2": "Duke Leto Atreides"
+                }
+              },
+              "r2": {
+                "id": "r2",
+                "cellsByColumnId": {
+                  "c0": "Bene Gesserit",
+                  "c1": "Alia 5",
+                  "c2": "Lady Anirul Corrino 5"
+                }
+              },
+              "r3": {
+                "id": "r3",
+                "cellsByColumnId": {
+                  "c0": "Emperor",
+                  "c1": "Caid 3",
+                  "c2": "Bashar Garon 3"
+                }
+              },
+              "r4": {
+                "id": "r4",
+                "cellsByColumnId": {
+                  "c0": "Emperor",
+                  "c1": "Burseg 3",
+                  "c2": "Colonel Kolona 3"
+                }
+              },
+              "r5": {
+                "id": "r5",
+                "cellsByColumnId": {
+                  "c0": "Emperor",
+                  "c1": "Bashar 2",
+                  "c2": "Wensicia Corrino 2"
+                }
+              }
+            },
+            "note": ""
+          },
+          "WC62": {
+            "id": "WC62",
+            "kind": "text",
+            "name": "Separate strength from identity",
+            "text": "Duncan's strength rises by one. The Emperor replacements retain the same 6,5,3,3,2 distribution; do not describe Bashar as simply being buffed from 2 to 3. The Atreides ruler change adds no sixth battle leader."
+          },
+          "RBUX": {
+            "id": "RBUX",
+            "kind": "reference-table",
+            "columnOrder": [
+              "c0",
+              "c1"
+            ],
+            "columnsById": {
+              "c0": {
+                "id": "c0",
+                "label": "Guild before"
+              },
+              "c1": {
+                "id": "c1",
+                "label": "Guild in 2.0"
+              }
+            },
+            "rowOrder": [
+              "r0",
+              "r1",
+              "r2",
+              "r3"
+            ],
+            "rowsById": {
+              "r0": {
+                "id": "r0",
+                "cellsByColumnId": {
+                  "c0": "Staban Tuek 5",
+                  "c1": "Starguide Serello 5"
+                }
+              },
+              "r1": {
+                "id": "r1",
+                "cellsByColumnId": {
+                  "c0": "Master Bewt 3 / Esmar Tuek 3",
+                  "c1": "Ertun 4 / Olar 3"
+                }
+              },
+              "r2": {
+                "id": "r2",
+                "cellsByColumnId": {
+                  "c0": "Soo\\-Soo Sook 2",
+                  "c1": "Crozeed 2"
+                }
+              },
+              "r3": {
+                "id": "r3",
+                "cellsByColumnId": {
+                  "c0": "Guild Rep 1",
+                  "c1": "Loyxo 1"
+                }
+              }
+            },
+            "note": ""
+          },
+          "HWZW": {
+            "id": "HWZW",
+            "kind": "text",
+            "name": "Guild gains one point in its strength set",
+            "text": "The five values change from 5,3,3,2,1 to 5,4,3,2,1. The row pairing above is a strength\\-set comparison, not a claim these are the same characters renamed."
+          },
+          "AZ4V": {
+            "id": "AZ4V",
+            "kind": "text",
+            "name": "Retained rosters",
+            "text": "Fremen and Harkonnen retain their five characters and strength sets. Other Atreides values remain 5,5,4,1; the other four Bene Gesserit leaders remain strength 5."
+          },
+          "3DAG": {
+            "id": "3DAG",
+            "kind": "card-entry",
+            "imageSide": "left",
+            "textFlow": "beside",
+            "source": {
+              "kind": "faction-member",
+              "factionId": "k177h1yvxp36dxsxjfmgqx4jw58gm5jk",
+              "memberId": "918acfed-e08e-46bc-8e11-ef6e789fa347",
+              "presentation": "leader"
+            },
+            "text": "Using GF9 Basic, four ordinary committed forces and surviving Duncan total 6. In old Advanced play, the same 6 requires supporting those four forces with four spice. The leader itself contributes 2 in both modes.",
+            "name": "GF9 2019: Duncan Idaho 2",
+            "size": "large"
+          },
+          "X7CP": {
+            "id": "X7CP",
+            "kind": "card-entry",
+            "imageSide": "left",
+            "textFlow": "beside",
+            "source": {
+              "kind": "faction-member",
+              "factionId": "k178pt05y4abwvwxeg247snr758gv794",
+              "memberId": "918acfed-e08e-46bc-8e11-ef6e789fa347",
+              "presentation": "leader"
+            },
+            "text": "Under the new default, four force strength plus surviving Duncan totals 7 without spice, or 9 after buying the +2 tier for four spice. The extra leader point affects both the battle total and its printed kill/revival value.",
+            "name": "GF9 2.0: Duncan Idaho 3",
+            "size": "large"
+          },
+          "EHX5": {
+            "id": "EHX5",
+            "kind": "callout",
+            "variant": "example",
+            "title": "Do not add his point twice",
+            "text": "The strength\\-3 leader is already the source of that extra point. It is not an extra spice bonus or another force on the wheel."
+          },
+          "2AGP": {
+            "id": "2AGP",
+            "kind": "text",
+            "text": "Sources: 2019 roster illustrations pp2\\-3 and Advanced p13; second edition pp4\\-5,16\\-18. The clearer scan controls the names."
+          }
+        },
+        "showHeading": true
+      },
+      "XCEQ": {
+        "id": "XCEQ",
+        "anchor": "bg-voice",
+        "title": "Bene Gesserit: Voice, cards and prediction",
+        "layoutId": "two-columns",
+        "controlValues": {},
+        "blockOrderByRegion": {
+          "column1": [
+            "RJMR",
+            "LVWT",
+            "HKVM",
+            "46YN",
+            "VK9A",
+            "YA5E"
+          ],
+          "column2": [
+            "TYB7",
+            "B6WF",
+            "CJSR",
+            "ZDM6",
+            "PGLF",
+            "7H87",
+            "MUXQ"
+          ]
+        },
+        "blocksById": {
+          "RJMR": {
+            "id": "RJMR",
+            "kind": "text",
+            "name": "Advanced abilities become the default",
+            "text": "Start with the former Advanced placement: after Fremen, put one force in a territory of your choice, fighter if alone or advisor if sharing. Advisors and the Advanced abilities are now part of the unified game. This is new for a Basic\\-only player."
+          },
+          "LVWT": {
+            "id": "LVWT",
+            "kind": "text",
+            "name": "Voice controls weapon or defense types",
+            "text": "Name kinetic, poison or special for the relevant slot. It no longer controls Cheap Hero, Worthless or Reinforcements. The older FAQ required exact special\\-card names rather than a generic special instruction; 2.0 changes that vocabulary. Forbidding a weapon type cannot force use or avoidance of Cheap Hero."
+          },
+          "HKVM": {
+            "id": "HKVM",
+            "kind": "text",
+            "name": "Printed labels govern matching",
+            "text": "A card labeled both special and kinetic or poison is affected by either relevant label. An incidental effect is not another printed type. The new Gas Tooth example requires a special\\-weapon command."
+          },
+          "46YN": {
+            "id": "46YN",
+            "kind": "text",
+            "name": "Do not force an optional role conversion",
+            "text": "Weirding Way cannot be compelled into its optional defense role and Chemistry cannot be compelled into its optional weapon role just because that use is possible. That exception was already clarified in the old game."
+          },
+          "VK9A": {
+            "id": "VK9A",
+            "kind": "text",
+            "name": "Transmutation covers Karama and Solaris",
+            "text": "Worthless cards can act as the narrowed Karama or as Solaris, including its new bank\\-funded spice strength. The economic options did not disappear for Bene Gesserit when the deck split. A Worthless\\-as\\-Karama still cancels only the designated target."
+          },
+          "YA5E": {
+            "id": "YA5E",
+            "kind": "callout",
+            "variant": "note",
+            "title": "Cancellation window",
+            "text": "A rival cancels Voice immediately after you declare the command, before its effect resolves."
+          },
+          "TYB7": {
+            "id": "TYB7",
+            "kind": "text",
+            "name": "A broader special-victory exclusion",
+            "text": "The old base sheet named Guild and Fremen special victories. The new rule excludes any victory achieved through an advantage titled Special Victory Condition. This gives the exclusion a general form for expansion interactions."
+          },
+          "B6WF": {
+            "id": "B6WF",
+            "kind": "text",
+            "name": "Normal victory is still predictable",
+            "text": "A predicted faction may win alone or as an ally, including as your ally. That familiar permission remains. The new endgame hierarchy must be checked before guessing how prediction applies to an unusual fallback or overlapping special result."
+          },
+          "CJSR": {
+            "id": "CJSR",
+            "kind": "callout",
+            "variant": "note",
+            "title": "Already familiar",
+            "text": "Voice still precedes Atreides Prescience. Advisors still do not fight, collect, block, confer ornithopters or supply the force permission for Family Atomics."
+          },
+          "ZDM6": {
+            "id": "ZDM6",
+            "kind": "text",
+            "name": "Two-spice Charity is old Advanced",
+            "text": "Bene Gesserit still receives two spice regardless of current wealth. The new wording expressly applies effects that modify CHOAM Charity to this amount. Do not call the two\\-spice benefit a newly invented flat income."
+          },
+          "PGLF": {
+            "id": "PGLF",
+            "kind": "text",
+            "name": "No separate one-time Karama",
+            "text": "Bene Gesserit still has no faction\\-specific once\\-per\\-game Karama power. Transmutation is a repeatable card\\-conversion advantage. Spirit World does not create a missing sixth one\\-time power."
+          },
+          "7H87": {
+            "id": "7H87",
+            "kind": "callout",
+            "variant": "note",
+            "title": "Expansion detail stays provisional",
+            "text": "The express Charity\\-modifier rule is confirmed. Complete updated CHOAM effects are not supplied by the base sheet, so the appendix does not invent new percentages or payment timing for that expansion."
+          },
+          "MUXQ": {
+            "id": "MUXQ",
+            "kind": "text",
+            "text": "Sources: 2019 p18; FAQ November 2020 pp4\\-5,9; second edition pp27\\-28."
+          }
+        },
+        "showHeading": true,
+        "headingIcon": "/vector/logo/bene-gesserit.svg"
+      },
+      "866X": {
+        "id": "866X",
+        "anchor": "bg-faces",
+        "title": "Bene Gesserit: plan your face changes",
+        "layoutId": "two-columns",
+        "controlValues": {},
+        "blockOrderByRegion": {
+          "column1": [
+            "4Y7V",
+            "AE69",
+            "86HY"
+          ],
+          "column2": [
+            "UYJ4",
+            "6DL5",
+            "QGRA",
+            "MWPP",
+            "JJL2"
+          ]
+        },
+        "blocksById": {
+          "4Y7V": {
+            "id": "4Y7V",
+            "kind": "text",
+            "name": "An isolated advisor stays an advisor",
+            "text": "Under the old Advanced rule, a group automatically became fighters when left alone. In 2.0 it does not. Advisor\\-to\\-fighter changes are permitted before Shipping and Movement begins, and not otherwise except the explicit setup case."
+          },
+          "AE69": {
+            "id": "AE69",
+            "kind": "text",
+            "name": "The old mid-move flip is gone",
+            "text": "You cannot send advisors into an occupied territory and simply make them fighters on arrival as in the older model. Nor can you flip a moving group just to merge it into your opposite\\-face group at the destination."
+          },
+          "86HY": {
+            "id": "86HY",
+            "kind": "callout",
+            "variant": "example",
+            "title": "A city empties after your chance to flip",
+            "text": "Your advisors become the only force in a stronghold after Shipping and Movement has begun. They remain advisors. They do not suddenly control it, collect spice, gain ornithopters or block entry."
+          },
+          "UYJ4": {
+            "id": "UYJ4",
+            "kind": "text",
+            "name": "Normal paid shipping uses fighters",
+            "text": "You may ship normally into your fighters or a territory without your own tokens. Do not use the old allowance to ship into your advisors as a general way around the new face restrictions."
+          },
+          "6DL5": {
+            "id": "6DL5",
+            "kind": "text",
+            "name": "A moving fighter group can become advisors",
+            "text": "Entering another faction's territory where you had no forces can permit that change. If the other faction is your ally, the new text requires it. This does not grant a reciprocal advisor\\-to\\-fighter change mid\\-phase."
+          },
+          "QGRA": {
+            "id": "QGRA",
+            "kind": "text",
+            "name": "Intrusion includes deployments",
+            "text": "The new wording includes another faction deploying in, not just shipping or moving. The accompanying\\-advisor rule also retains its specific exception allowing existing fighters to become advisors before the free advisor is placed."
+          },
+          "MWPP": {
+            "id": "MWPP",
+            "kind": "callout",
+            "variant": "note",
+            "title": "Open wording: allies",
+            "text": "The specific advisor rules support coexistence with your ally; the general alliance constraint does not repeat that exemption. This guide uses the specific faction text and keeps the cross\\-reference tension flagged."
+          },
+          "JJL2": {
+            "id": "JJL2",
+            "kind": "text",
+            "text": "Sources: 2019 p18; FAQ November 2020 p4; second edition pp21,27\\-28."
+          }
+        },
+        "showHeading": true,
+        "headingIcon": "/vector/logo/bene-gesserit.svg"
+      },
+      "V6MJ": {
+        "id": "V6MJ",
+        "anchor": "fremen-storm",
+        "title": "Fremen: storm knowledge and worm events",
+        "layoutId": "two-columns",
+        "controlValues": {},
+        "blockOrderByRegion": {
+          "column1": [
+            "VECG",
+            "YPAK",
+            "ZEAZ",
+            "5NCU",
+            "NS3W",
+            "Q5UP"
+          ],
+          "column2": [
+            "6K5K",
+            "45UE",
+            "XCNC",
+            "3UEN",
+            "32JM",
+            "SG2J"
+          ]
+        },
+        "blocksById": {
+          "VECG": {
+            "id": "VECG",
+            "kind": "text",
+            "name": "Four starting spice",
+            "text": "Start with four rather than three. The normal starting distribution, two\\-territory movement and three free revivals remain familiar."
+          },
+          "YPAK": {
+            "id": "YPAK",
+            "kind": "text",
+            "name": "Inspect the next top Storm card",
+            "text": "Storm Insight now reads the shared deck at the end of Storm. You no longer select, return and reshuffle a private card each round."
+          },
+          "ZEAZ": {
+            "id": "ZEAZ",
+            "kind": "text",
+            "name": "Move or ride into storm",
+            "text": "The older FAQ prohibited normal movement or worm rides into or out of storm. The new sheet permits shipment, a one\\-territory move, and a worm ride into storm at the stated half loss. Do not turn this into unrestricted storm transit or a general permission to leave storm."
+          },
+          "5NCU": {
+            "id": "5NCU",
+            "kind": "callout",
+            "variant": "example",
+            "title": "Half means tokens",
+            "text": "Three entering forces, including any Fedaykin, lose half rounded up: two tokens. A Fedaykin is one token for storm loss, even though its battle strength is two. You may choose to lose more or all of the group."
+          },
+          "NS3W": {
+            "id": "NS3W",
+            "kind": "text",
+            "name": "One permission is not an extra movement chain",
+            "text": "The new example does not permit shipping into storm and then moving into another storm territory. A worm ride jumps to a destination sector rather than tracing an ordinary movement path."
+          },
+          "Q5UP": {
+            "id": "Q5UP",
+            "kind": "callout",
+            "variant": "note",
+            "title": "Cancellation no longer removes these powers",
+            "text": "The single vulnerable advantage is Battle Edge. Old Karama options against Storm Insight, storm protection, movement and worm riding are not imported into the new cancellation list."
+          },
+          "6K5K": {
+            "id": "6K5K",
+            "kind": "text",
+            "name": "Additional worms use one phase-wide sequence",
+            "text": "The new Call Sandworms applies to subsequent Shai\\-Hulud after the first drawn in the phase, with placed worms resolved at the end of Nexus. Our old GF9 book explicitly used per\\-pile handling. The original printed faction sentence was less explicit about that reset, so the comparison is stated against our digital baseline."
+          },
+          "45UE": {
+            "id": "45UE",
+            "kind": "text",
+            "name": "Use your or your ally's resulting territory",
+            "text": "The new wording permits riding from the territory involved by your or your ally's placed worm. Keep the new shared discard history rather than performing the old independent A/B pile sequence."
+          },
+          "XCNC": {
+            "id": "XCNC",
+            "kind": "text",
+            "name": "Bless the Maker is a drawn-worm effect",
+            "text": "The revised one\\-time power treats the worm as Shai\\-Hulud drawn during Spice Blow and Nexus. Choose the last normal card's territories or placement through Call Sandworms at the end of Nexus, as the new sheet describes."
+          },
+          "3UEN": {
+            "id": "3UEN",
+            "kind": "callout",
+            "variant": "note",
+            "title": "Nexus was already clarified",
+            "text": "The original 2019 Q&A said this Karama worm did not cause a Nexus; the later FAQ corrected it. Our GF9 book already used the corrected Nexus. The new change is its placement and procedure, not merely the existence of that Nexus."
+          },
+          "32JM": {
+            "id": "32JM",
+            "kind": "text",
+            "name": "Spirit World trigger",
+            "text": "If the optional variant is selected, Harj can trigger this same once\\-per\\-game power. It does not add a second use or also perform Harj's ordinary move."
+          },
+          "SG2J": {
+            "id": "SG2J",
+            "kind": "text",
+            "text": "Sources: 2019 pp13\\-14,16,22; FAQ November 2020 pp3,5; second edition pp11,26,28\\-29."
+          }
+        },
+        "showHeading": true,
+        "headingIcon": "/vector/logo/fremen.svg"
+      },
+      "Y48B": {
+        "id": "Y48B",
+        "anchor": "fremen-battle",
+        "title": "Fremen: free spice strength and allies",
+        "layoutId": "two-columns",
+        "controlValues": {},
+        "blockOrderByRegion": {
+          "column1": [
+            "GV84",
+            "GBU6",
+            "U43B"
+          ],
+          "column2": [
+            "LHPE",
+            "NVD8",
+            "6QA3",
+            "ZLXG"
+          ]
+        },
+        "blocksById": {
+          "GV84": {
+            "id": "GV84",
+            "kind": "text",
+            "name": "Battle Edge matches the new combat",
+            "text": "You automatically receive the spice\\-strength tier allowed by your dial, without paying spice. You are no longer simply exempt from old force\\-support costs. Under Classic, the power explicitly returns to full\\-strength forces without spice."
+          },
+          "GBU6": {
+            "id": "GBU6",
+            "kind": "callout",
+            "variant": "example",
+            "title": "Dial four ordinary forces",
+            "text": "Fremen contributes 4 force strength plus the automatic +2 spice strength, before its surviving leader. If Karama cancels Battle Edge, it may still pay for spice strength normally."
+          },
+          "U43B": {
+            "id": "U43B",
+            "kind": "text",
+            "name": "Ghola breaks the usual starred-revival cap",
+            "text": "Normal revival still allows only one Fedaykin in the round. Ghola is an explicit exception and can bring back several. Do not extend that exception to every other revival effect."
+          },
+          "LHPE": {
+            "id": "LHPE",
+            "kind": "text",
+            "name": "Special victory now accommodates the ally",
+            "text": "Sietch Tabr and Cave of Birds may be occupied by you, your ally or nobody. An allied Atreides, Harkonnen, Richese or Emperor is exempt from the relevant Tuek's prohibition. The old FAQ specifically refused to count your ally as Fremen for this test."
+          },
+          "NVD8": {
+            "id": "NVD8",
+            "kind": "text",
+            "name": "Allies may ride",
+            "text": "The new alliance text explicitly includes allowing worm rides after Nexus. Its revival wording increases the ally's free revival to three total. Our old book already treated that as a total, so do not teach it as a reduction from six."
+          },
+          "6QA3": {
+            "id": "6QA3",
+            "kind": "callout",
+            "variant": "note",
+            "title": "Same special forces",
+            "text": "Fedaykin still has strength two. The new strength comes from the revised free spice tier, not a change to the token's printed value."
+          },
+          "ZLXG": {
+            "id": "ZLXG",
+            "kind": "text",
+            "text": "Sources: 2019 pp14,16; FAQ November 2020 pp2,5; second edition pp26,29."
+          }
+        },
+        "showHeading": true,
+        "headingIcon": "/vector/logo/fremen.svg"
+      },
+      "58EY": {
+        "id": "58EY",
+        "anchor": "emperor",
+        "title": "Emperor: a new alliance bargain",
+        "layoutId": "two-columns",
+        "controlValues": {},
+        "blockOrderByRegion": {
+          "column1": [
+            "VPL2",
+            "RUSC",
+            "FH9N"
+          ],
+          "column2": [
+            "YFR7",
+            "3GKY",
+            "7XN3",
+            "XX94"
+          ]
+        },
+        "blocksById": {
+          "VPL2": {
+            "id": "VPL2",
+            "kind": "text",
+            "name": "Give spice at phase boundaries",
+            "text": "The old FAQ and our GF9 book allowed immediate gifts at any time. The new sheet allows direct gifts at the end of a phase. That changes whether an ally can use your gift during an auction or midway through its actions."
+          },
+          "RUSC": {
+            "id": "RUSC",
+            "kind": "text",
+            "name": "Keep ordinary contributions separate",
+            "text": "Normal permitted allied purchase or shipment contributions still happen at their own payment times. The Emperor's new examples distinguish its contribution sent to the Bank from the ally's own purchase payment received by Emperor."
+          },
+          "FH9N": {
+            "id": "FH9N",
+            "kind": "callout",
+            "variant": "example",
+            "title": "During bidding",
+            "text": "You may make the ordinary legal contribution to your ally's purchase. That does not create an unrestricted mid\\-auction gift that the ally can save for a different purpose."
+          },
+          "YFR7": {
+            "id": "YFR7",
+            "kind": "text",
+            "name": "Extra allied revivals are gone",
+            "text": "The old benefit paid for up to three additional allied force revivals. Its replacement halves the ally's cost for spice strength: +2 costs two spice instead of four. This is not a discount on force losses or an extra contribution to the force dial."
+          },
+          "3GKY": {
+            "id": "3GKY",
+            "kind": "text",
+            "name": "War Machine is stronger",
+            "text": "The one\\-time power now revives up to four forces, including Sardaukar, and one leader during Revival, outside normal counts. The older power gave up to three forces or one leader. Its extra\\-Sardaukar permission and Ghola are explicit exceptions to the normal cap."
+          },
+          "7XN3": {
+            "id": "7XN3",
+            "kind": "callout",
+            "variant": "note",
+            "title": "Cancellation window",
+            "text": "Sardaukar is the vulnerable advantage for the battle. The source table says before plans are made and the sheet says while being formed; both require acting before reveal. It makes them standard forces for that battle, not weaker leaders."
+          },
+          "XX94": {
+            "id": "XX94",
+            "kind": "text",
+            "text": "Sources: 2019 pp14,19; FAQ November 2020 pp2,5; second edition pp24,26,30."
+          }
+        },
+        "showHeading": true,
+        "headingIcon": "/vector/logo/emperor.svg"
+      },
+      "MJUN": {
+        "id": "MJUN",
+        "anchor": "atreides",
+        "title": "Atreides: information and the public token",
+        "layoutId": "two-columns",
+        "controlValues": {},
+        "blockOrderByRegion": {
+          "column1": [
+            "KYHT",
+            "A7LV",
+            "QQVM",
+            "ZAD3",
+            "DNV6"
+          ],
+          "column2": [
+            "8CX6",
+            "VRZS",
+            "RN76",
+            "8PMD",
+            "B7TZ",
+            "J2RA"
+          ]
+        },
+        "blocksById": {
+          "KYHT": {
+            "id": "KYHT",
+            "kind": "text",
+            "name": "Spice Vision has a broader written window",
+            "text": "The old sheet inspected at the start of Movement, before anyone moved. The new sheet permits inspection any time during Shipping and Movement. The information effect is familiar, but the printed timing window is broader. The publisher announcement calls the effect unchanged; the intention of that timing difference remains noted for review."
+          },
+          "A7LV": {
+            "id": "A7LV",
+            "kind": "text",
+            "name": "Prescience asks about the occupied slot",
+            "text": "Ask for the Treachery card in the Weapon or Defense slot, not merely whether a weapon or defense is there. This catches an expansion card occupying that slot even when it is not a weapon or defense. The earlier Ecaz/Moritani rule explicitly concealed Reinforcements and Harass & Withdraw from the narrower question."
+          },
+          "QQVM": {
+            "id": "QQVM",
+            "kind": "text",
+            "name": "The force question includes spice strength",
+            "text": "The new named element is the dialed force strength plus spice strength. Do not give the old force dial alone as though it represented the entire force\\-related contribution. Asking for that element is not permission to inspect the whole plan."
+          },
+          "ZAD3": {
+            "id": "ZAD3",
+            "kind": "text",
+            "name": "Allied Prescience names both viewers",
+            "text": "The new wording reveals the chosen element to you and your ally. The old sheet named the ally. Legal information sharing already existed, so this is an explicit access clarification rather than an entirely new information trade."
+          },
+          "DNV6": {
+            "id": "DNV6",
+            "kind": "callout",
+            "variant": "note",
+            "title": "Cancellation window",
+            "text": "Your opponent can cancel Battle Prescience immediately after you name the element, before you receive its answer. It is not an option to wait until you have seen the information and then undo it."
+          },
+          "8CX6": {
+            "id": "8CX6",
+            "kind": "text",
+            "name": "Make the counter public",
+            "text": "The 2019 sheet said to keep track of losses secretly. In 2.0 you track battle losses publicly, including losses from a traitor call. The threshold remains seven and activation is immediate. This does not add storm or worm deaths."
+          },
+          "VRZS": {
+            "id": "VRZS",
+            "kind": "text",
+            "name": "Revive the dead token earlier",
+            "text": "For two spice, the dead Kwisatz Haderach may use your one leader revival even before normal leader revival has unlocked. Our older GF9 book required normal eligibility. This is a direct change for its readers."
+          },
+          "RN76": {
+            "id": "RN76",
+            "kind": "callout",
+            "variant": "example",
+            "title": "No ordinary leaders have opened revival",
+            "text": "The token is dead but normal leader revival is still locked. The explicit 2.0 exception permits reviving the token for two spice. You do not receive an additional ordinary leader revival in the same phase."
+          },
+          "8PMD": {
+            "id": "8PMD",
+            "kind": "text",
+            "name": "Golden Path retains its broad target",
+            "text": "The once\\-per\\-game power still inspects any one player's entire Battle Plan, not just your opponent's. Its immunity to ordinary Karama was already in our older book. The optional new Spirit World trigger is Family Atomics."
+          },
+          "B7TZ": {
+            "id": "B7TZ",
+            "kind": "callout",
+            "variant": "note",
+            "title": "Retained strengths",
+            "text": "Bidding inspection, exclusive written Treachery tracking, the other four battle\\-leader values and the basic +2 token contribution remain familiar. The new default combat and narrower Karama alter their surrounding decisions."
+          },
+          "J2RA": {
+            "id": "J2RA",
+            "kind": "text",
+            "text": "Sources: 2019 pp14,17; Ecaz & Moritani p11; old GF9 judgement GF9\\-CORE\\-011; second edition pp4,13,24,26,31."
+          }
+        },
+        "showHeading": true,
+        "headingIcon": "/vector/logo/atreides.svg"
+      },
+      "PJHY": {
+        "id": "PJHY",
+        "anchor": "harkonnen",
+        "title": "Harkonnen: redraw and exchange",
+        "layoutId": "two-columns",
+        "controlValues": {},
+        "blockOrderByRegion": {
+          "column1": [
+            "N6UV",
+            "MC3M",
+            "B94A"
+          ],
+          "column2": [
+            "V3EN",
+            "K2RX",
+            "DXWB",
+            "KV7F",
+            "DHY9"
+          ]
+        },
+        "blocksById": {
+          "N6UV": {
+            "id": "N6UV",
+            "kind": "text",
+            "name": "One own-traitor redraw",
+            "text": "If your initial four include your own leaders, you may reveal and set aside some or all of those, draw that many replacements before other players return their cards, then shuffle the set\\-aside cards back. Keep the replacements even if they are your own again. It is not a repeated draw until all four are enemies."
+          },
+          "MC3M": {
+            "id": "MC3M",
+            "kind": "text",
+            "name": "Captives return when your own leaders are unavailable",
+            "text": "The new return trigger includes own leaders dead, captured or face\\-up from earlier battles. The old sheet said all killed. A leader committed elsewhere this round can now help trigger the return of captives."
+          },
+          "B94A": {
+            "id": "B94A",
+            "kind": "callout",
+            "variant": "note",
+            "title": "Cancellation window",
+            "text": "Capture Leaders can be canceled immediately after your battle win, before drawing the captive. Old Karama targets against bonus card draws and allied traitor calls are no longer on the cancellation list."
+          },
+          "V3EN": {
+            "id": "V3EN",
+            "kind": "text",
+            "name": "Vendetta replaces the old hand theft",
+            "text": "At the end of Bidding, take one random card from every other player and one from the deck. From the combined hand choose one to give to each player, and discard one if you have nine. This replaces the old exchange against one player; it is not the old power applied independently to everyone."
+          },
+          "K2RX": {
+            "id": "K2RX",
+            "kind": "text",
+            "name": "The earlier baseline already had a judgement",
+            "text": "The bare 2019 power and later FAQ differed over the maximum taken. Our old book followed the later up\\-to\\-four reading. The new table\\-wide exchange supersedes that disagreement for this power."
+          },
+          "DXWB": {
+            "id": "DXWB",
+            "kind": "callout",
+            "variant": "note",
+            "title": "Open wording: edge cases",
+            "text": "The source does not fully specify empty hands, an empty deck or every transient hand\\-limit case in Vendetta. The main exchange is clear; these corner cases remain review questions."
+          },
+          "KV7F": {
+            "id": "KV7F",
+            "kind": "text",
+            "name": "Retained setup",
+            "text": "The eight\\-card limit, two starting cards, purchase bonus when there is room and four kept traitors remain. Spirit World optionally uses Solaris for the revised one\\-time power."
+          },
+          "DHY9": {
+            "id": "DHY9",
+            "kind": "text",
+            "text": "Sources: 2019 pp14,17; FAQ November 2020 p6; second edition pp26,32."
+          }
+        },
+        "showHeading": true,
+        "headingIcon": "/vector/logo/harkonnen.svg"
+      },
+      "3NRG": {
+        "id": "3NRG",
+        "anchor": "guild-setup",
+        "title": "Guild: shipping, rates and special victory",
+        "layoutId": "two-columns",
+        "controlValues": {},
+        "blockOrderByRegion": {
+          "column1": [
+            "S3YH",
+            "YWVL",
+            "GERR",
+            "WBCR",
+            "HUAK",
+            "NQVE"
+          ],
+          "column2": [
+            "Y95R",
+            "UT82",
+            "9SHG",
+            "C54U",
+            "83NB",
+            "THKE",
+            "Z7TK"
+          ]
+        },
+        "blocksById": {
+          "S3YH": {
+            "id": "S3YH",
+            "kind": "text",
+            "name": "GF9",
+            "text": "You began with five forces in Tuek's, fifteen in reserves and five spice."
+          },
+          "YWVL": {
+            "id": "YWVL",
+            "kind": "text",
+            "name": "GF9 2.0",
+            "text": "Begin with all twenty forces in reserves and eight spice, then make a compulsory Shipping action after setup step five. Bene Gesserit may accompany it. The text does not make it free: use your shipping rules and a legal destination."
+          },
+          "GERR": {
+            "id": "GERR",
+            "kind": "callout",
+            "variant": "example",
+            "title": "Five forces to a stronghold",
+            "text": "At Guild's reserve\\-shipment rate, five cost three spice after rounding up. That leaves five spice. You now choose the group and destination rather than receiving five forces fixed in Tuek's. This is a setup action additional to normal round play."
+          },
+          "WBCR": {
+            "id": "WBCR",
+            "kind": "text",
+            "name": "Cross-shipping costs the normal rate",
+            "text": "The old Guild rate halved normal cross\\-shipment too. In 2.0 the discount applies to or from off\\-planet, while cross\\-shipping is at normal rates. Four forces crossing to a stronghold cost four spice, not two."
+          },
+          "HUAK": {
+            "id": "HUAK",
+            "kind": "text",
+            "name": "The alliance gains return-to-reserves",
+            "text": "Old FAQ and our GF9 book excluded that option for a Guild ally. The new alliance allows all three shipment types, including a return to reserves and including Fremen. The ally also uses the revised rate distinction: cross\\-shipping is not half price."
+          },
+          "NQVE": {
+            "id": "NQVE",
+            "kind": "callout",
+            "variant": "note",
+            "title": "Solaris is a separate question",
+            "text": "Do not use the broad explanation of Solaris to erase its printed reserve\\-shipment limit. The main Guild rate changes are confirmed; that card's additional scope is still flagged."
+          },
+          "Y95R": {
+            "id": "Y95R",
+            "kind": "text",
+            "name": "Solo Guild compares individual factions",
+            "text": "Its new Special Victory Condition requires controlling at least as many strongholds as the single highest faction, even when that faction is allied. It no longer wins merely because everyone else failed to finish."
+          },
+          "UT82": {
+            "id": "UT82",
+            "kind": "text",
+            "name": "Allied Guild compares faction or alliance totals",
+            "text": "With an ally, Guild must match the strongest single faction or alliance total. The allied and unallied comparisons are deliberately different. Refer back to the two examples on the round\\-ten page."
+          },
+          "9SHG": {
+            "id": "9SHG",
+            "kind": "callout",
+            "variant": "note",
+            "title": "Retain separate checks",
+            "text": "The Guild special condition is not simply the general fallback tie\\-break. Normal wins, other special criteria and fallback need their own source checks."
+          },
+          "C54U": {
+            "id": "C54U",
+            "kind": "text",
+            "name": "Fold Space remains familiar for Advanced",
+            "text": "You may still take your whole shipment/movement turn first, last or between players without announcing your plan in advance. This is now part of the unified default for Basic\\-only veterans."
+          },
+          "83NB": {
+            "id": "83NB",
+            "kind": "text",
+            "name": "The cancellation deadline matters",
+            "text": "Karama makes Guild take normal storm order, but cannot be played after its normal turn has passed. Do not wait until Guild has deferred and then attempt to cancel retroactively."
+          },
+          "THKE": {
+            "id": "THKE",
+            "kind": "text",
+            "name": "Blockade remains the same one-time job",
+            "text": "Its special power still stops the specified off\\-planet shipments. The optional Spirit World trigger is Weather Control. Guild income and its ordinary one\\-free\\-revival rate are not newly removed."
+          },
+          "Z7TK": {
+            "id": "Z7TK",
+            "kind": "text",
+            "text": "Sources: 2019 pp14,19; FAQ November 2020 pp5,9; second edition pp24\\-26,33."
+          }
+        },
+        "showHeading": true,
+        "headingIcon": "/vector/logo/guild.svg"
+      },
+      "PYVH": {
+        "id": "PYVH",
+        "anchor": "spirit-world",
+        "title": "Two optional variants",
+        "layoutId": "two-columns",
+        "controlValues": {},
+        "blockOrderByRegion": {
+          "column1": [
+            "SSCZ",
+            "YLS8",
+            "83AY",
+            "VBAG",
+            "5PAN"
+          ],
+          "column2": [
+            "4B34",
+            "CVRL",
+            "EJ72",
+            "573S",
+            "39WX",
+            "8XYL",
+            "URV8"
+          ]
+        },
+        "blocksById": {
+          "SSCZ": {
+            "id": "SSCZ",
+            "kind": "text",
+            "name": "An optional route to the same power",
+            "text": "Discard the named card instead of Karama to activate your faction's once\\-per\\-game power. It is still once per game. Ordinary use or discard of the named card does not trigger the power automatically."
+          },
+          "YLS8": {
+            "id": "YLS8",
+            "kind": "reference-table",
+            "columnOrder": [
+              "c0",
+              "c1",
+              "c2"
+            ],
+            "columnsById": {
+              "c0": {
+                "id": "c0",
+                "label": "Faction"
+              },
+              "c1": {
+                "id": "c1",
+                "label": "Spirit World card"
+              },
+              "c2": {
+                "id": "c2",
+                "label": "Power"
+              }
+            },
+            "rowOrder": [
+              "r0",
+              "r1",
+              "r2",
+              "r3",
+              "r4",
+              "r5"
+            ],
+            "rowsById": {
+              "r0": {
+                "id": "r0",
+                "cellsByColumnId": {
+                  "c0": "Atreides",
+                  "c1": "Family Atomics",
+                  "c2": "Golden Path"
+                }
+              },
+              "r1": {
+                "id": "r1",
+                "cellsByColumnId": {
+                  "c0": "Emperor",
+                  "c1": "Cheap Hero",
+                  "c2": "War Machine"
+                }
+              },
+              "r2": {
+                "id": "r2",
+                "cellsByColumnId": {
+                  "c0": "Fremen",
+                  "c1": "Harj",
+                  "c2": "Bless the Maker"
+                }
+              },
+              "r3": {
+                "id": "r3",
+                "cellsByColumnId": {
+                  "c0": "Harkonnen",
+                  "c1": "Solaris",
+                  "c2": "Vendetta"
+                }
+              },
+              "r4": {
+                "id": "r4",
+                "cellsByColumnId": {
+                  "c0": "Guild",
+                  "c1": "Weather Control",
+                  "c2": "Blockade"
+                }
+              },
+              "r5": {
+                "id": "r5",
+                "cellsByColumnId": {
+                  "c0": "Bene Gesserit",
+                  "c1": "None",
+                  "c2": "No separate one\\-time power"
+                }
+              }
+            },
+            "note": ""
+          },
+          "83AY": {
+            "id": "83AY",
+            "kind": "text",
+            "name": "It is not another use of the card",
+            "text": "Discarding Family Atomics this way does not also destroy Shield Wall. Discarding Harj does not also grant its ordinary extra move. The card supplies the trigger for the faction power, not both effects."
+          },
+          "VBAG": {
+            "id": "VBAG",
+            "kind": "text",
+            "name": "It is not another use of the power",
+            "text": "Using Karama earlier does not leave a second Spirit World use available. Nor can you spend a named card for a different faction's benefit or use it as an ordinary cancel."
+          },
+          "5PAN": {
+            "id": "5PAN",
+            "kind": "callout",
+            "variant": "note",
+            "title": "Default versus variant",
+            "text": "The default game still uses an actual Karama to trigger the one\\-time power. Decide on Spirit World before play so every player knows which cards are alternate triggers."
+          },
+          "4B34": {
+            "id": "4B34",
+            "kind": "text",
+            "name": "Choose this instead of default spice strength",
+            "text": "Classic Spice Dialing is the retained 2019 Advanced battle system. It replaces the new spice\\-strength rule. Support a force with one spice for full strength; unsupported forces count at half strength, using the appropriate special\\-force values and classic loss rules."
+          },
+          "CVRL": {
+            "id": "CVRL",
+            "kind": "text",
+            "name": "Fremen is explicitly covered",
+            "text": "Under Classic, its Battle Edge returns to full\\-strength forces without spice. Do not add the new free spice\\-strength tier on top of that old support exemption."
+          },
+          "EJ72": {
+            "id": "EJ72",
+            "kind": "callout",
+            "variant": "example",
+            "title": "Four ordinary forces without spice",
+            "text": "The default 2.0 comparison gives four force strength. Classic gives two unsupported strength. These are alternate rules, not two stages in the same calculation."
+          },
+          "573S": {
+            "id": "573S",
+            "kind": "callout",
+            "variant": "note",
+            "title": "Open wording: Solaris",
+            "text": "The card pays for spice strength, which Classic replaces. No explicit conversion to old support payment was found. Do not teach unlimited free support as an official ruling."
+          },
+          "39WX": {
+            "id": "39WX",
+            "kind": "callout",
+            "variant": "note",
+            "title": "Open wording: Emperor ally",
+            "text": "The revised ally benefit discounts spice strength. Its Classic translation is likewise not supplied. The existence of Classic does not automatically rewrite every new faction or expansion exception."
+          },
+          "8XYL": {
+            "id": "8XYL",
+            "kind": "text",
+            "name": "Do not turn a printing error into a rule",
+            "text": "The source's old wheel illustration includes the retained 8½ display. Some worked examples have inconsistent token wording. New teaching examples should use internally checked arithmetic rather than treating each printed inconsistency as a new mechanic."
+          },
+          "URV8": {
+            "id": "URV8",
+            "kind": "text",
+            "text": "Sources: 2019 p14; second edition pp26,29\\-33. 2019 p13; second edition pp26,29\\-30."
+          }
+        },
+        "showHeading": true
+      },
+      "QACH": {
+        "id": "QACH",
+        "anchor": "expansion-boundary",
+        "title": "Expansion revisions: announced, incomplete",
+        "layoutId": "single-column",
+        "controlValues": {},
+        "blockOrderByRegion": {
+          "content": [
+            "7JTY",
+            "JZV2",
+            "6AJD",
+            "UK9D",
+            "4HHB"
+          ]
+        },
+        "blocksById": {
+          "7JTY": {
+            "id": "7JTY",
+            "kind": "text",
+            "name": "Keep the base-game comparison separate",
+            "text": "Jack Reda explicitly says old expansions were not designed for complete compatibility, naming Karama, Suboid half\\-dials and Richese sales as mixed\\-edition decisions. The base book's references to seven other factions look ahead; they do not replace the old sheets."
+          },
+          "JZV2": {
+            "id": "JZV2",
+            "kind": "reference-table",
+            "columnOrder": [
+              "c0",
+              "c1",
+              "c2"
+            ],
+            "columnsById": {
+              "c0": {
+                "id": "c0",
+                "label": "Faction"
+              },
+              "c1": {
+                "id": "c1",
+                "label": "Earlier system"
+              },
+              "c2": {
+                "id": "c2",
+                "label": "Announced direction"
+              }
+            },
+            "rowOrder": [
+              "r0",
+              "r1",
+              "r2",
+              "r3",
+              "r4",
+              "r5"
+            ],
+            "rowsById": {
+              "r0": {
+                "id": "r0",
+                "cellsByColumnId": {
+                  "c0": "Ixians",
+                  "c1": "Choose any starting card from inspected set; suppress to deck top/bottom.",
+                  "c2": "Sequential starting draws with early stop and last\\-card keep; suppressed card shuffled in."
+                }
+              },
+              "r1": {
+                "id": "r1",
+                "cellsByColumnId": {
+                  "c0": "Tleilaxu",
+                  "c1": "Face Dancers can revisit factions under the old restrictions.",
+                  "c2": "Battle reveals cannot repeat a target faction. Revival Infiltration deploys up to revealed leader strength."
+                }
+              },
+              "r2": {
+                "id": "r2",
+                "cellsByColumnId": {
+                  "c0": "CHOAM",
+                  "c1": "Six Worthless effects; Karama pays per discarded card.",
+                  "c2": "Some effects strengthen; special Karama adds spice and free revivals."
+                }
+              },
+              "r3": {
+                "id": "r3",
+                "cellsByColumnId": {
+                  "c0": "Ecaz",
+                  "c1": "Occupy contribution and loss calculation before the revised choice.",
+                  "c2": "Optional contribution after reveal avoids losses in thrown battles."
+                }
+              },
+              "r4": {
+                "id": "r4",
+                "cellsByColumnId": {
+                  "c0": "Moritani",
+                  "c1": "Six Terror tokens; Advanced Assassinate Leaders.",
+                  "c2": "New Ambush removes half an entering group. Execute Leaders has fewer restrictions."
+                }
+              },
+              "r5": {
+                "id": "r5",
+                "cellsByColumnId": {
+                  "c0": "Richese",
+                  "c1": "Old cache sale replaces an auction; normally one No\\-Field.",
+                  "c2": "Larger improved cache, cache card paired with normal auction, extra low No\\-Field and paired use."
+                }
+              }
+            },
+            "note": "These announcements do not supply every new number, timing window or exception."
+          },
+          "6AJD": {
+            "id": "6AJD",
+            "kind": "callout",
+            "variant": "note",
+            "title": "Not a complete twelve-faction conversion",
+            "text": "The revised expansion sheets, decks and module procedures were not supplied or obtained. The next pages identify known interactions and missing text. Do not fill those gaps with guessed values."
+          },
+          "UK9D": {
+            "id": "UK9D",
+            "kind": "text",
+            "name": "Two old details to preserve",
+            "text": "Our old Ecaz rule already resolved the printed rounding conflict in favor of the explicit rule, not its inconsistent example. Richese already had paired No\\-Fields through a conditional Nexus benefit. Neither old detail should be mislabeled as a new default revision."
+          },
+          "4HHB": {
+            "id": "4HHB",
+            "kind": "text",
+            "text": "Sources: Original expansion rulebooks; GF9 Faction Changes, 9 October 2026; Jack Reda, BGG thread 3785979, posts 48320031 and 48320615."
+          }
+        },
+        "showHeading": true
+      },
+      "83PL": {
+        "id": "83PL",
+        "anchor": "compatibility-cards",
+        "title": "Compatibility: cards and battle effects",
+        "layoutId": "two-columns",
+        "controlValues": {},
+        "blockOrderByRegion": {
+          "column1": [
+            "K8NW",
+            "4D97"
+          ],
+          "column2": [
+            "28Z4",
+            "EXRA",
+            "PSMW",
+            "HL78",
+            "6WJ5"
+          ]
+        },
+        "blocksById": {
+          "K8NW": {
+            "id": "K8NW",
+            "kind": "reference-table",
+            "columnOrder": [
+              "c0",
+              "c1",
+              "c2"
+            ],
+            "columnsById": {
+              "c0": {
+                "id": "c0",
+                "label": "Area"
+              },
+              "c1": {
+                "id": "c1",
+                "label": "What is known"
+              },
+              "c2": {
+                "id": "c2",
+                "label": "What still needs new text"
+              }
+            },
+            "rowOrder": [
+              "r0",
+              "r1",
+              "r2"
+            ],
+            "rowsById": {
+              "r0": {
+                "id": "r0",
+                "cellsByColumnId": {
+                  "c0": "Karama targets",
+                  "c1": "Base cancellation is narrowed.",
+                  "c2": "Exact expansion vulnerable targets and timing."
+                }
+              },
+              "r1": {
+                "id": "r1",
+                "cellsByColumnId": {
+                  "c0": "Replacement cards",
+                  "c1": "Old CHOAM/Richese replaced Poison Tooth, Artillery Strike and Karama.",
+                  "c2": "New expansion faces and main\\-deck inventory."
+                }
+              },
+              "r2": {
+                "id": "r2",
+                "cellsByColumnId": {
+                  "c0": "Gas Tooth",
+                  "c1": "The new BG example names it.",
+                  "c2": "Complete face and relation to old Poison Tooth."
+                }
+              }
+            },
+            "note": ""
+          },
+          "4D97": {
+            "id": "4D97",
+            "kind": "callout",
+            "variant": "note",
+            "title": "Source precedence",
+            "text": "Use the applicable printed card edition and explicit replacement. Do not add both superseded and replacement copies simply because two old source sets were supplied."
+          },
+          "28Z4": {
+            "id": "28Z4",
+            "kind": "text",
+            "name": "Atreides slot information is confirmed",
+            "text": "The new question concerns the card occupying the Weapon or Defense slot. This changes the older Reinforcements and Harass & Withdraw concealment rule even though the future expansion decks are not yet fully documented."
+          },
+          "EXRA": {
+            "id": "EXRA",
+            "kind": "text",
+            "name": "Voice and dual-role cards",
+            "text": "The new type rules explain Weirding Way, Chemistry and Shield\\-Snooper. An optional alternate use is not automatically compulsory, and a kinetic defense is not automatically a Shield. Check new physical labels before claiming a renamed expansion card has an entirely new effect."
+          },
+          "PSMW": {
+            "id": "PSMW",
+            "kind": "text",
+            "name": "Larger alliances",
+            "text": "The new base book does not repeat the old optional larger\\-alliance arrangements. Their omission is not proof of a ban; this guide compares the default two\\-faction alliance."
+          },
+          "HL78": {
+            "id": "HL78",
+            "kind": "text",
+            "name": "Ixian strength is not automatically converted",
+            "text": "Old Suboids use half strength and Cyborgs use old support distinctions. New default combat alone does not supply their replacement strength and loss table."
+          },
+          "6WJ5": {
+            "id": "6WJ5",
+            "kind": "text",
+            "text": "Sources: Old expansion rules and replacements; second edition pp24\\-28,31. This is a compatibility checklist, not an approved hybrid deck."
+          }
+        },
+        "showHeading": true
+      },
+      "HTSM": {
+        "id": "HTSM",
+        "anchor": "compatibility-modules",
+        "title": "Compatibility: modules and reference decks",
+        "layoutId": "two-columns",
+        "controlValues": {},
+        "blockOrderByRegion": {
+          "column1": [
+            "XBBA"
+          ],
+          "column2": [
+            "D2EG",
+            "2WZM",
+            "25XQ",
+            "HMWF"
+          ]
+        },
+        "blocksById": {
+          "XBBA": {
+            "id": "XBBA",
+            "kind": "reference-table",
+            "columnOrder": [
+              "c0",
+              "c1",
+              "c2"
+            ],
+            "columnsById": {
+              "c0": {
+                "id": "c0",
+                "label": "Module"
+              },
+              "c1": {
+                "id": "c1",
+                "label": "Confirmed connection"
+              },
+              "c2": {
+                "id": "c2",
+                "label": "Still provisional"
+              }
+            },
+            "rowOrder": [
+              "r0",
+              "r1",
+              "r2"
+            ],
+            "rowsById": {
+              "r0": {
+                "id": "r0",
+                "cellsByColumnId": {
+                  "c0": "Tech Tokens",
+                  "c1": "New victory priority is printed in the base book.",
+                  "c2": "Revised capture, income and event procedures."
+                }
+              },
+              "r1": {
+                "id": "r1",
+                "cellsByColumnId": {
+                  "c0": "Leader Skills",
+                  "c1": "Combat, revival, labels and Worthless use change around old skills.",
+                  "c2": "All revised skill faces and refresh rules."
+                }
+              },
+              "r2": {
+                "id": "r2",
+                "cellsByColumnId": {
+                  "c0": "Stronghold Cards",
+                  "c1": "Cave of Birds is the new place name; combat spending changes.",
+                  "c2": "Updated cards, especially Arrakeen's old support payment."
+                }
+              }
+            },
+            "note": ""
+          },
+          "D2EG": {
+            "id": "D2EG",
+            "kind": "reference-table",
+            "columnOrder": [
+              "c0",
+              "c1"
+            ],
+            "columnsById": {
+              "c0": {
+                "id": "c0",
+                "label": "Module"
+              },
+              "c1": {
+                "id": "c1",
+                "label": "Why check it"
+              }
+            },
+            "rowOrder": [
+              "r0",
+              "r1",
+              "r2"
+            ],
+            "rowsById": {
+              "r0": {
+                "id": "r0",
+                "cellsByColumnId": {
+                  "c0": "Nexus",
+                  "c1": "Little Maker adds a Nexus event; faction effects and cancellation targets change. Obtain all revised cards."
+                }
+              },
+              "r1": {
+                "id": "r1",
+                "cellsByColumnId": {
+                  "c0": "Homeworlds",
+                  "c1": "Old battle support, shipping, income, thresholds and leader references need exact new faces."
+                }
+              },
+              "r2": {
+                "id": "r2",
+                "cellsByColumnId": {
+                  "c0": "Discovery and Sandtrout",
+                  "c1": "Paired territories, one discard history and Little Maker alter the context of old one\\-territory effects."
+                }
+              }
+            },
+            "note": ""
+          },
+          "2WZM": {
+            "id": "2WZM",
+            "kind": "callout",
+            "variant": "note",
+            "title": "Preserve the old sources",
+            "text": "The existing three expansion books remain the earlier rules. Do not edit them into an unofficial conversion while preparing this new guide."
+          },
+          "25XQ": {
+            "id": "25XQ",
+            "kind": "text",
+            "name": "Polar Sink exception is already familiar",
+            "text": "The Ixian Hidden Mobile Stronghold may create a battle territory inside Polar Sink. That expansion exception does not remove the ordinary Polar Sink haven rule for everyone."
+          },
+          "HMWF": {
+            "id": "HMWF",
+            "kind": "text",
+            "text": "Sources: Ixians & Tleilaxu pp4\\-5,11; CHOAM & Richese pp8\\-12; Ecaz & Moritani pp9\\-16; second edition pp11,16\\-17,20,24\\-28."
+          }
+        },
+        "showHeading": true
+      },
+      "AF59": {
+        "id": "AF59",
+        "anchor": "open-movement",
+        "title": "Open wording: actions and battle",
+        "layoutId": "two-columns",
+        "controlValues": {},
+        "blockOrderByRegion": {
+          "column1": [
+            "LAC9",
+            "QLG6",
+            "XBRZ",
+            "PH7R"
+          ],
+          "column2": [
+            "XRCD",
+            "FBWM",
+            "N4KG",
+            "5CF2",
+            "EMTV",
+            "BXXB"
+          ]
+        },
+        "blocksById": {
+          "LAC9": {
+            "id": "LAC9",
+            "kind": "question-answer",
+            "question": "May a move gather forces from several sectors?",
+            "answer": "The old printed Q&A allows combining clear sectors of one territory. The new rule says from one sector to one destination sector. This is a genuine printed wording difference, not OCR damage. Whether it intentionally removes consolidation is not independently settled."
+          },
+          "QLG6": {
+            "id": "QLG6",
+            "kind": "callout",
+            "variant": "example",
+            "title": "A review case",
+            "text": "Two forces occupy each of two clear sectors of Hagga Basin. Old rules can move all four together. Literal new wording selects only one origin sector. Do not teach the old permission as automatically retained."
+          },
+          "XBRZ": {
+            "id": "XBRZ",
+            "kind": "question-answer",
+            "question": "May you ship onto an ally, then move out?",
+            "answer": "The old FAQ explicitly permits it. The new ban applies at the end of an action and Shipment is separate from Movement. The literal new reading forbids that stop, but the source does not discuss the old example directly."
+          },
+          "PH7R": {
+            "id": "PH7R",
+            "kind": "question-answer",
+            "question": "When is stronghold control tested for income?",
+            "answer": "Income is in phase eight, while the glossary defines control at round end. The ordinary sole occupant is straightforward; the timing and storm\\-separated rivals require a qualified reading rather than an invented extra payout."
+          },
+          "XRCD": {
+            "id": "XRCD",
+            "kind": "question-answer",
+            "question": "Can advisors remain with an ally?",
+            "answer": "The specific Bene Gesserit text supports that exemption, including a required fighter\\-to\\-advisor change when joining the ally. The general alliance constraint does not repeat it. Preserve the specific rule and flag the cross\\-reference tension."
+          },
+          "FBWM": {
+            "id": "FBWM",
+            "kind": "callout",
+            "variant": "note",
+            "title": "Review status",
+            "text": "These boxes identify exact source questions. They do not block reviewing the confirmed changes elsewhere, and do not rewrite the faithful 2.0 reconstruction."
+          },
+          "N4KG": {
+            "id": "N4KG",
+            "kind": "question-answer",
+            "question": "Must a player use its Cheap Hero?",
+            "answer": "One new sentence says include a leader or Cheap Hero if possible. Another permits being unwilling to use Cheap Hero. The new lack of advance leaderless announcement is confirmed; compulsory consumption is not cleanly resolved."
+          },
+          "5CF2": {
+            "id": "5CF2",
+            "kind": "question-answer",
+            "question": "Can the Emperor or Fremen cancel wait during plan formation?",
+            "answer": "The cancellation table says before plans are made; the sheets say while forming them. Both prevent waiting until reveal. The exact earlier deadline remains a wording question."
+          },
+          "EMTV": {
+            "id": "EMTV",
+            "kind": "question-answer",
+            "question": "How does Solaris work under Classic?",
+            "answer": "The card pays for spice strength, which Classic replaces. The new Emperor ally discount names that same contribution. No complete official translation to old support was found."
+          },
+          "BXXB": {
+            "id": "BXXB",
+            "kind": "text",
+            "text": "Sources: 2019 and November 2020 FAQ; second edition pp8,11,14\\-16,20\\-21,24,28,36."
+          }
+        },
+        "showHeading": true
+      },
+      "93XK": {
+        "id": "93XK",
+        "anchor": "open-reference",
+        "title": "Open wording: cards, endgame and components",
+        "layoutId": "two-columns",
+        "controlValues": {},
+        "blockOrderByRegion": {
+          "column1": [
+            "6KDB",
+            "U899",
+            "FBNY",
+            "7Z8D",
+            "Z4WK"
+          ],
+          "column2": [
+            "MFHJ",
+            "7ZCG",
+            "M83Q",
+            "L9NV",
+            "TJ7B",
+            "H2L5"
+          ]
+        },
+        "blocksById": {
+          "6KDB": {
+            "id": "6KDB",
+            "kind": "question-answer",
+            "question": "Does Solaris cover every Guild shipping type?",
+            "answer": "Its face specifies from reserves; its prose is broader. The draft teaches the clearly printed reserve case and keeps cross\\-shipping/return scope open."
+          },
+          "U899": {
+            "id": "U899",
+            "kind": "question-answer",
+            "question": "What if Vendetta finds empty hands or an empty deck?",
+            "answer": "The source defines the ordinary table\\-wide exchange but not every scarcity and transient\\-count case. Keep those edge cases visible rather than designing a replacement procedure."
+          },
+          "FBNY": {
+            "id": "FBNY",
+            "kind": "question-answer",
+            "question": "Is the Spice Vision window intentionally broader?",
+            "answer": "The new sheet says any time during Shipping and Movement; the earlier sheet says at the start. The publisher describes the familiar effect as unchanged. The printed timing difference and intent claim should both stay visible."
+          },
+          "7Z8D": {
+            "id": "7Z8D",
+            "kind": "question-answer",
+            "question": "What if fallback remains tied after spice?",
+            "answer": "The source stops there. It also does not fully resolve every possible special\\-victory overlap. Do not copy the old Dune Zone inferred special\\-condition priority as though it were newly printed."
+          },
+          "Z4WK": {
+            "id": "Z4WK",
+            "kind": "question-answer",
+            "question": "Which blow does a worm target after Little Maker?",
+            "answer": "The text includes that chosen blow, but its discard\\-history and tracking explanation is incomplete. Use a visible chosen marker in examples and keep the question; do not automatically skip to the old normal pair."
+          },
+          "MFHJ": {
+            "id": "MFHJ",
+            "kind": "question-answer",
+            "question": "Who picks first using the prediction\\-card selection method?",
+            "answer": "The source says lowest first and descending in the same instruction. The optional method needs clarification before presenting a cleaned\\-up definitive order."
+          },
+          "7ZCG": {
+            "id": "7ZCG",
+            "kind": "text",
+            "name": "A complete Storm face inventory is still missing",
+            "text": "The rulebook gives the total and reshuffle instructions but not all nine faces. No exact probability table is claimed."
+          },
+          "M83Q": {
+            "id": "M83Q",
+            "kind": "text",
+            "name": "A complete new expansion atlas is still missing",
+            "text": "Gas Tooth, updated module faces and miniature map labels need their actual complete sources. Confirmed Cave of Birds, kinetic, Harj and round mappings are already in the guide."
+          },
+          "L9NV": {
+            "id": "L9NV",
+            "kind": "text",
+            "name": "Physical changes are not all rule changes",
+            "text": "The source inventory changes Spice tokens from 156 to 144. It does not create a new bank\\-exhaustion rule. Thirty traitor cards, sixteen prediction cards, six Alliance cards, five leaders and twenty forces per base faction remain the printed totals."
+          },
+          "TJ7B": {
+            "id": "TJ7B",
+            "kind": "callout",
+            "variant": "note",
+            "title": "Evidence still needed",
+            "text": "These questions require exact rule text or component wording. The confirmed changes elsewhere remain available for review."
+          },
+          "H2L5": {
+            "id": "H2L5",
+            "kind": "text",
+            "text": "Sources: Second edition pp7\\-8,11,20,24\\-27,29\\-33,36; GF9 Faction Changes, 9 October 2026."
+          }
+        },
+        "showHeading": true
+      },
+      "QRKV": {
+        "id": "QRKV",
+        "anchor": "sources",
+        "title": "Sources and review boundaries",
+        "layoutId": "two-columns",
+        "controlValues": {},
+        "blockOrderByRegion": {
+          "column1": [
+            "J36A",
+            "TZ4L",
+            "HQK8"
+          ],
+          "column2": [
+            "Q8F9",
+            "4NJW",
+            "H92T",
+            "43TY",
+            "MFUW"
+          ]
+        },
+        "blocksById": {
+          "J36A": {
+            "id": "J36A",
+            "kind": "text",
+            "name": "Printed rules",
+            "text": "GF9 Dune 2019 base rulebook, 24 pages; official November 2020 FAQ, nine pages; supplied clearer second\\-edition rulebook, 36 pages. Original expansion PDFs were also read: Ixians & Tleilaxu, CHOAM & Richese, and Ecaz & Moritani."
+          },
+          "TZ4L": {
+            "id": "TZ4L",
+            "kind": "text",
+            "name": "Our published comparison",
+            "text": "The older core and three expansion books are publication Edition 2. The reconstructed 2.0 book is publication Edition 3. These website version numbers are pinned separately from the 2019 and 2026 game\\-edition names."
+          },
+          "HQK8": {
+            "id": "HQK8",
+            "kind": "text",
+            "name": "Where the evidence lives",
+            "text": "The accompanying differences dossier records exact source hashes, pages and finding locators. Each page of this guide supplies its relevant source references. The dossier is the detailed audit trail."
+          },
+          "Q8F9": {
+            "id": "Q8F9",
+            "kind": "text",
+            "name": "Designer and community reading",
+            "text": "Nine complete BGG threads, 79 posts, include Jack Reda's direct edition, revival and compatibility explanations. Five relevant Reddit posts and displayed comments supplied recurring questions. Collapsed Reddit replies mean this is not a claim to every nested comment."
+          },
+          "4NJW": {
+            "id": "4NJW",
+            "kind": "text",
+            "name": "The supplied designer thread",
+            "text": "boardgamegeek.com/thread/3785979\nDune 2ed vs Kwisatz \\- What is What\nJack Reda's replies distinguish the shared updated rules from the deluxe expansion content and warn about mixed\\-edition compatibility."
+          },
+          "H92T": {
+            "id": "H92T",
+            "kind": "text",
+            "name": "What opinion contributes",
+            "text": "Debates over simplification, balance and component appearance identify teaching problems. They do not establish official rules. This guide does not promise a tested balance improvement or adopt suggested card nerfs."
+          },
+          "43TY": {
+            "id": "43TY",
+            "kind": "callout",
+            "variant": "note",
+            "title": "Review draft",
+            "text": "This is locally authored explanation for experienced players. It is separate from the faithful reconstruction and has not been uploaded or published as a new rulebook."
+          },
+          "MFUW": {
+            "id": "MFUW",
+            "kind": "text",
+            "text": "Sources: Research dossier: content/gf9\\-2\\-0/differences. Prepared for local review, 26 October 2026."
+          }
+        },
+        "showHeading": true
+      }
+    }
+  }
+}
