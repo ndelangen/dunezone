@@ -10,6 +10,8 @@ vi.hoisted(() => {
   window.cancelAnimationFrame = () => {};
 });
 vi.mock('@db/core', () => ({ db: {} }));
+/* The menu probes do not mount game routes or install transports. */
+vi.mock('./game.stories.fixture', () => ({ install: vi.fn() }));
 window.matchMedia = vi.fn().mockImplementation((media: string) => ({
   matches: false,
   media,
@@ -82,18 +84,54 @@ test.each([
       </div>
     </MantineProvider>
   );
+  expect(await menuOutcome(async () => (await open()).textContent)).toBe(item);
+});
+
+/* The closing pane becomes invisible before Mantine removes it from the document. */
+test.each([true, false])(
+  'the phase story checks visibility after Escape with closeOnEscape=%s',
+  async (closeOnEscape) => {
+    const { phaseControls } = await import('./playing.stories.fixture');
+    render(
+      <MantineProvider>
+        <div role="group" aria-label="Phase navigation">
+          <Menu
+            withinPortal
+            hideDetached={false}
+            closeOnEscape={closeOnEscape}
+            transitionProps={{ exitDuration: 20_000 }}
+          >
+            <Menu.Target>
+              <button>More phase actions</button>
+            </Menu.Target>
+            <Menu.Dropdown>
+              <Menu.Item>Previous phase</Menu.Item>
+            </Menu.Dropdown>
+          </Menu>
+        </div>
+      </MantineProvider>
+    );
+    const outcome = await menuOutcome(() => phaseControls(document.body).expectPrevious(true));
+    if (closeOnEscape) {
+      expect(outcome).toBeUndefined();
+      expect(document.body.querySelector('[role="menu"]')?.getAttribute('style')).toContain('opacity: 0');
+    } else {
+      expect(outcome).toBeInstanceOf(Error);
+      expect((outcome as Error).message).toContain('visible');
+    }
+  }
+);
+
+async function menuOutcome(work: () => Promise<unknown>) {
   vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] });
   let finished = false;
-  const outcome = open()
-    .then(
-      (control) => control.textContent,
-      (error: unknown) => error
-    )
+  const outcome = work()
+    .catch((error: unknown) => error)
     .finally(() => {
       finished = true;
     });
   for (let elapsed = 0; !finished && elapsed < 10_100; elapsed += 50) {
     await vi.advanceTimersByTimeAsync(50);
   }
-  expect(await outcome).toBe(item);
-});
+  return outcome;
+}
