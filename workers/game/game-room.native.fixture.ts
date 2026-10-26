@@ -62,7 +62,7 @@ export class GameRoom extends ProductionGameRoom {
       /* Native workerd schedules against the real clock; the handler observes the test clock offset. */
       await this.ctx.storage.setAlarm(realNow());
     }
-    return Response.json({ scheduledAt, observedAt });
+    return Response.json({ scheduledAt, observedAt, directoryRetryAt: this.directoryRetryAt });
   }
 }
 

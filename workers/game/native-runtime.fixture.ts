@@ -533,7 +533,7 @@ export async function createRuntime(
       const namespace = await instance.getDurableObjectNamespace('GAME_ROOMS');
       const room = namespace.get(namespace.idFromName(gameId));
       const response = await room.fetch('https://native-test/native-test/alarm', { method: advance ? 'POST' : 'GET' });
-      return fixtureJson<{ scheduledAt: number | null; observedAt: number }>(response);
+      return fixtureJson<{ scheduledAt: number | null; observedAt: number; directoryRetryAt: number | null }>(response);
     },
     /** Restarts the runtime, as a new Worker version does, optionally with changed bindings. */
     async restart(overrides?: NativeBindings) {
