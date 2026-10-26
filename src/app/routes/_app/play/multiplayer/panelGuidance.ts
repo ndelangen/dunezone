@@ -29,12 +29,12 @@ export function setupGuidance(step: ReturnType<typeof setupStep>): Guidance {
 }
 
 export const HAND_HELP =
-  'Drag a piece onto the table to play it face down. Right-click a piece to play it in front of you or move it to your private side-table. Hold Alt over a piece to see it close up.';
+  'Drag a piece onto the table to play it face down, or onto your private side-table to lay it there. Right-click a piece to play it in front of you or move it to your private side-table. Hold Alt over a piece to see it close up.';
 
 export const HAND_GUIDANCE: Guidance = { description: 'Your cards and leaders. Only you see them.', help: HAND_HELP };
 
 export const HIDDEN_ZONE_HELP =
-  "For pieces that need to sit in a particular spot, such as a marker on a card's track. Lay out pieces from your hand anywhere here; they stay where you put them. Q and E turn the piece under the pointer. Cards stay below tokens. Pieces stay inside it as you drag them; right-click a piece to place it on the table face down, or to move it back to your hand.";
+  "For pieces that need to sit in a particular spot, such as a marker on a card's track. Drag pieces here from your hand and lay them out anywhere; they stay where you put them. Q and E turn the piece under the pointer. Cards stay below tokens. Pieces stay inside it as you drag them; right-click a piece to place it on the table face down, or to move it back to your hand.";
 
 export const HIDDEN_ZONE_GUIDANCE: Guidance = {
   description: 'Your own small table for pieces that need a specific place. Only you see it.',
