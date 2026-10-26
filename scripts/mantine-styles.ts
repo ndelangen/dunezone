@@ -36,6 +36,14 @@ function runtimeNames(entries: readonly (ts.ImportSpecifier | ts.ExportSpecifier
   return entries.filter((entry) => !entry.isTypeOnly).map((entry) => (entry.propertyName ?? entry.name).text);
 }
 
+function namedImportBindings(clause: ts.ImportClause | undefined) {
+  const bindings = clause?.namedBindings;
+  if (!bindings) {
+    return undefined;
+  }
+  return ts.isNamedImports(bindings) ? bindings : undefined;
+}
+
 function importNames(statement: ts.ImportDeclaration, source: ts.SourceFile) {
   const clause = statement.importClause;
   if (!clause) {
@@ -44,8 +52,8 @@ function importNames(statement: ts.ImportDeclaration, source: ts.SourceFile) {
   if (clause.isTypeOnly) {
     return [];
   }
-  const bindings = clause.namedBindings;
-  if (!bindings || !ts.isNamedImports(bindings)) {
+  const bindings = namedImportBindings(clause);
+  if (!bindings) {
     throw new Error(`Use named Mantine imports so their styles can be traced: ${source.fileName}`);
   }
   if (clause.name) {
@@ -132,8 +140,8 @@ function moduleExports(statement: ts.Statement, source: ts.SourceFile): [string,
   if (!ts.isImportDeclaration(statement)) {
     return [];
   }
-  const bindings = statement.importClause?.namedBindings;
-  if (!bindings || !ts.isNamedImports(bindings)) {
+  const bindings = namedImportBindings(statement.importClause);
+  if (!bindings) {
     return [];
   }
   const specifier = moduleSpecifier(statement);
