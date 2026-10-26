@@ -68,11 +68,6 @@ function unrevealedIn(snapshot: StoredSnapshot, piece: StoredPiece): string[] {
   return piece.items.flatMap((item) => unrevealedStep(snapshot, item) ?? []);
 }
 
-/** Whether a piece holds a prediction card, which never goes into a battle plan. */
-export function holdsPredictionCard(piece: StoredPiece): boolean {
-  return piece.items.some((item) => item.artwork?.prediction);
-}
-
 /**
  * Placing a prediction card on the table reveals its prediction, however it got there (#1753).
  * The card itself lands face down, so turning it over stays its own moment.

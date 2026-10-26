@@ -72,11 +72,21 @@ export function WindowFrame({
       inert={inert}
       data-hides-cursor
       data-bounce={bounce}
+      data-peek={entry.peek || undefined}
       style={style}
       onPointerDownCapture={onRaise}
     >
       {resize && <ResizeEdge resize={resize} />}
-      <WindowTitle entry={entry} actions={actions} onFaction={onFaction} />
+      <WindowTitle
+        entry={entry}
+        actions={
+          <>
+            {entry.actions}
+            {actions}
+          </>
+        }
+        onFaction={onFaction}
+      />
       <WindowContent entry={entry} seat={seat} onSeat={onSeat} />
     </div>
   );

@@ -34,6 +34,10 @@ export type TableWindow = Readonly<{
   content: ReactNode;
   /** How the content sits in the window: stacked and padded, flush to the window's sides, or filling the window as a chat does. */
   layout: WindowLayout;
+  /** The content may peek over the window's top edge, as the Battle plan's cards do; it then scrolls its own parts. */
+  peek?: boolean;
+  /** The window's own buttons, in its title bar ahead of the frame's. */
+  actions?: ReactNode;
   /** The player a chat window talks to. */
   player?: CompassPlayer;
 }>;
@@ -49,7 +53,9 @@ function panelWindows(panels: readonly TablePanel[]): TableWindow[] {
       description: item.description,
       help: item.help,
       content: item.content,
-      layout: item.padding === false ? 'flush' : 'stack',
+      layout: item.fill ? 'fill' : item.padding === false ? 'flush' : 'stack',
+      peek: item.peek,
+      actions: item.actions,
     }))
   );
 }

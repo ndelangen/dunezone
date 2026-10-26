@@ -1,0 +1,487 @@
+/* The pieces every battle plan window shares: the stepper, the mode toggle, piece tiles, the reveal eye, the battle line, the sum and Ready. */
+
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  height: 2rem;
+  padding: 0 0.15rem;
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  background: rgb(from var(--ui-recess) r g b / 0.8);
+}
+
+.stepper[data-disabled] {
+  opacity: 0.55;
+}
+
+.stepperSmall {
+  height: 1.7rem;
+}
+
+.stepButton {
+  display: grid;
+  place-items: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  color: var(--ink-dim);
+  transition:
+    background 120ms,
+    color 120ms,
+    scale 120ms;
+}
+
+.stepperSmall .stepButton {
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+.stepButton:hover:not(:disabled) {
+  background: var(--ui-hover);
+  color: var(--ink);
+}
+
+.stepButton:active:not(:disabled) {
+  scale: 0.88;
+}
+
+.stepValue {
+  width: 2.4ch;
+  min-width: 2.4ch;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: none;
+  color: var(--ink);
+  font: 700 0.95rem/1 var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  field-sizing: content;
+}
+
+.stepValue:focus {
+  color: var(--sand);
+}
+
+.stepValue[data-bump="0"] {
+  animation: pop 220ms ease-out;
+}
+
+.stepValue[data-bump="1"] {
+  animation: pop2 220ms ease-out;
+}
+
+.stepSuffix {
+  color: var(--ink-dim);
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.adjustButton {
+  display: inline-grid;
+  place-items: center;
+  /* A fixed width, so the button and its popover stay put while the value inside changes. */
+  width: 3rem;
+  height: 1.6rem;
+  padding: 0;
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  background: rgb(from var(--ui-recess) r g b / 0.8);
+  color: var(--ink-dim);
+  font: 700 0.74rem var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  transition:
+    background 120ms,
+    color 120ms,
+    scale 120ms;
+}
+
+.adjustButton:hover {
+  background: var(--ui-hover);
+  color: var(--ink);
+}
+
+.adjustButton:active {
+  scale: 0.92;
+}
+
+.adjustButton[data-set] {
+  border-color: var(--sand);
+  color: var(--sand);
+}
+
+.adjust {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--ink-dim);
+  font-size: 0.72rem;
+}
+
+/* An adjustment can read −12½, wider than a troop count. */
+.adjust .stepValue {
+  width: 3.6ch;
+}
+
+/* At a limit the stepper knocks sideways and settles: the value cannot go further. */
+.stepper[data-knock="0"] {
+  animation: knock 300ms ease-out;
+}
+
+.stepper[data-knock="1"] {
+  animation: knock2 300ms ease-out;
+}
+
+@keyframes pop {
+  40% {
+    scale: 1.25;
+  }
+}
+
+@keyframes pop2 {
+  40% {
+    scale: 1.25;
+  }
+}
+
+@keyframes knock {
+  25% {
+    translate: 3px 0;
+  }
+
+  60% {
+    translate: -2px 0;
+  }
+}
+
+@keyframes knock2 {
+  25% {
+    translate: 3px 0;
+  }
+
+  60% {
+    translate: -2px 0;
+  }
+}
+
+/* The Custom toggle's sliders shift their knobs as it flips, so the change of mode reads at a glance. */
+.modeToggle svg {
+  transition: rotate 220ms cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+
+.modeToggle[aria-pressed="true"] svg {
+  rotate: 180deg;
+}
+
+.modeToggle:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+/* The dial's rows share one grid, so labels, sliders and steppers line up in columns. */
+.dial {
+  display: grid;
+  grid-template-columns: 30px auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.3rem 0.55rem;
+}
+
+.dialRow {
+  display: contents;
+}
+
+.dialRow[data-spice] {
+  --slider-color: var(--ui-brass);
+}
+
+.dialLabel {
+  display: grid;
+  grid-column: 1;
+  place-items: center;
+}
+
+.dialSub {
+  grid-column: 2;
+  color: var(--ink-dim);
+  font-size: 0.7rem;
+}
+
+.dialSlider {
+  grid-column: 3;
+}
+
+.dialStep {
+  grid-column: 4;
+}
+
+/* A troop type's token as its inputs' label: small, round, and lifted a touch on hover to say it explains itself. */
+.troopLabel {
+  display: inline-grid;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  overflow: hidden;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgb(from var(--color-shadow) r g b / 0.5);
+  cursor: help;
+  transition: translate 140ms;
+}
+
+.troopInitial {
+  display: grid;
+  place-items: center;
+  background: var(--ui-recess);
+  color: var(--ink);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.troopLabel:hover {
+  translate: 0 -1px;
+}
+
+.troopTip {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.tile {
+  position: relative;
+  flex: none;
+  transition: translate 180ms cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+
+.tile[data-selected] {
+  translate: 0 -4px;
+}
+
+.tileButton {
+  position: relative;
+  display: block;
+  border-radius: 6px;
+  outline-offset: 2px;
+  transition:
+    filter 150ms,
+    box-shadow 150ms;
+}
+
+.tile[data-leader] .tileButton {
+  border-radius: 50%;
+}
+
+.tile:not([data-selected]) .tileButton {
+  filter: saturate(0.6) brightness(0.8);
+}
+
+.tile:not([data-selected]) .tileButton:hover:not(:disabled) {
+  filter: none;
+}
+
+.tile[data-selected] .tileButton {
+  box-shadow:
+    0 0 0 2px var(--sand),
+    0 6px 14px rgb(from var(--color-shadow) r g b / 0.5);
+}
+
+/* Cards keep the rounded corners of the printed card. */
+.tile:not([data-leader]) .tileButton img {
+  border-radius: 4px;
+}
+
+.tileButton:disabled {
+  cursor: default;
+}
+
+.tileCheck {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--sand);
+  color: var(--ui-ground);
+  animation: check-in 220ms cubic-bezier(0.3, 1.5, 0.5, 1);
+}
+
+@keyframes check-in {
+  from {
+    scale: 0;
+  }
+}
+
+.reveal {
+  position: absolute;
+  bottom: -6px;
+  left: -6px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--edge);
+  border-radius: 50%;
+  background: var(--ui-ground);
+  color: var(--ink-dim);
+  transition:
+    color 120ms,
+    background 120ms;
+}
+
+.reveal:hover:not(:disabled) {
+  color: var(--ink);
+}
+
+.reveal[data-shown] {
+  border-color: var(--sand);
+  background: var(--sand);
+  color: var(--ui-ground);
+}
+
+.battleLine {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.5rem;
+  font-size: 0.78rem;
+}
+
+.opponent {
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+  white-space: nowrap;
+  align-items: flex-start;
+  gap: 0.35rem;
+  color: var(--ink-dim);
+}
+
+.opponentName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.readyDot {
+  flex: none;
+  margin-top: 0.4em;
+  width: 7px;
+  height: 7px;
+  border: 1px solid var(--ink-dim);
+  border-radius: 50%;
+}
+
+.opponent[data-ready] .readyDot {
+  border-color: var(--ui-positive);
+  background: var(--ui-positive);
+  animation: ready-in 400ms ease-out;
+}
+
+@keyframes ready-in {
+  40% {
+    scale: 1.8;
+  }
+}
+
+/* Ready may take two lines where the head leaves it a narrow column. */
+.ready {
+  height: auto;
+  max-width: 100%;
+  min-height: 2.25rem;
+  padding-block: 0.35rem;
+  padding-inline: 0.5rem;
+}
+
+.ready :global(.mantine-Button-label) {
+  white-space: normal;
+  text-align: center;
+  line-height: 1.15;
+}
+
+.readyStack {
+  display: grid;
+  font-size: 0.85em;
+  justify-items: center;
+}
+
+.readyStack small {
+  font-size: 0.72em;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.ready[data-bump="0"] {
+  animation: settle 300ms ease-out;
+}
+
+.ready[data-bump="1"] {
+  animation: settle2 300ms ease-out;
+}
+
+@keyframes settle {
+  35% {
+    scale: 0.96;
+  }
+}
+
+@keyframes settle2 {
+  35% {
+    scale: 0.96;
+  }
+}
+
+.sum {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.sumTop {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+/* Room for the widest total (two digits and a half), so the adjust button beside it never moves. */
+.sumValue {
+  width: 3.5ch;
+  color: var(--sand);
+  font: 800 1.9rem/1 var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The parts of the total, one short phrase each, wrapping where the column is narrow. */
+.sumParts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.5rem;
+  color: var(--ink-dim);
+  font-size: 0.7rem;
+  line-height: 1.3;
+}
+
+.sumParts > span {
+  white-space: nowrap;
+}
+
+:global(html[data-motion="reduce"]) :is(.stepper, .stepValue, .tileCheck, .readyDot, .ready) {
+  animation: none !important;
+}
+
+:global(html[data-motion="reduce"]) .tile,
+:global(html[data-motion="reduce"]) .modeToggle svg {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :global(html:not([data-motion="ok"])) :is(.stepper, .stepValue, .tileCheck, .readyDot, .ready) {
+    animation: none !important;
+  }
+
+  :global(html:not([data-motion="ok"])) .tile,
+  :global(html:not([data-motion="ok"])) .modeToggle svg {
+    transition: none;
+  }
+}

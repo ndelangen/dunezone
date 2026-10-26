@@ -484,7 +484,7 @@ function disclosureEntries(
   const template = card
     ? `${who} revealed a card early: ${name(card)}.`
     : plan.disclosed.leader && !was?.leader
-      ? `${who} revealed its leader early: ${name(plan.leaderId)}.`
+      ? `${who} revealed ${plan.leaderIds.length > 1 ? 'its leaders' : 'its leader'} early: ${plan.leaderIds.map(name).join(', ')}.`
       : plan.disclosed.dial && !was?.dial
         ? `${who} revealed its dial early: ${plan.strength}.`
         : null;

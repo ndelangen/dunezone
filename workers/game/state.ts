@@ -631,10 +631,10 @@ export class RoomProjection {
           { [piece.id]: this.cardId(`disclosed-piece-${battleId}-${piece.id}`) }
         )
       );
-    const leaderPiece = leader ? plan.pieces.find((piece) => piece.id === plan.leaderId) : undefined;
+    const leaders = leader ? plan.pieces.filter((piece) => plan.leaderIds.includes(piece.id)) : [];
     return {
       cards,
-      ...(leaderPiece ? { leader: leaderPiece } : {}),
+      ...(leaders.length ? { leaders } : {}),
       ...(dial ? { dial: { strength: plan.strength } } : {}),
     };
   }

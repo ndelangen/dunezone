@@ -41,33 +41,60 @@ const battlePlanInputSchema = z.strictObject({
   troops: z.array(troopDeclarationSchema),
   spice: count,
   adjustment: z.number(),
-  leaderId: id.nullable(),
+  /* Usually one leader, but a faction may commit several where its rules or a card allow it. */
+  leaderIds: z.array(id),
   cardIds: z.array(id),
 });
+/**
+ * Plans stored or sent before a plan could hold several leaders name one `leaderId`;
+ * they read as a list of that one, so saved games, replayed history and pages opened before the change keep working.
+ */
+function withLeaderList(value: unknown) {
+  if (typeof value !== 'object' || value === null || !('leaderId' in value) || 'leaderIds' in value) {
+    return value;
+  }
+  const { leaderId, ...rest } = value as { leaderId: unknown };
+  return { ...rest, leaderIds: leaderId ? [leaderId] : [] };
+}
 /** The parts of a plan its faction shows everyone before the reveal; each stays fixed while it is shown. */
 const disclosedSchema = z.object({
   leader: z.boolean().default(false),
   dial: z.boolean().default(false),
   cardIds: z.array(id).default([]),
 });
-export const battlePlanSchema = battlePlanInputSchema.extend({
+const battlePlanShape = battlePlanInputSchema.extend({
   strength: z.number(),
   pieces: z.array(tablePieceSchema),
   faces: z.array(battleFaceSchema),
   disclosed: disclosedSchema.default({ leader: false, dial: false, cardIds: [] }),
 });
-export const storedBattlePlanSchema = battlePlanSchema.extend({ pieces: z.array(storedPieceSchema) });
+/* Read through withLeaderList too, so a table a browser cached before the change still decodes. */
+export const battlePlanSchema = z.preprocess(withLeaderList, battlePlanShape);
+export const storedBattlePlanSchema = z.preprocess(
+  withLeaderList,
+  battlePlanShape.extend({ pieces: z.array(storedPieceSchema) })
+);
 export type BattlePlanInput = z.infer<typeof battlePlanInputSchema>;
 export type BattlePlan = z.infer<typeof battlePlanSchema>;
 export type StoredBattlePlan = z.infer<typeof storedBattlePlanSchema>;
 const publicSideSchema = z.object({ factionId: id, ready: z.boolean(), choice: battleOutcomeSchema.nullable() });
 /** What everyone sees of a side's plan before the reveal: only the parts its faction chose to show. */
-const disclosedPlanSchema = z.object({
-  leader: tablePieceSchema.optional(),
-  cards: z.array(tablePieceSchema),
-  /* Only the dial's number: which troops and how much spice back it stay secret until the reveal. */
-  dial: z.object({ strength: z.number() }).optional(),
-});
+const disclosedPlanSchema = z.preprocess(
+  /* A view a browser cached before a plan could hold several leaders shows one `leader`: it reads as a list of that one. */
+  (value) => {
+    if (typeof value !== 'object' || value === null || !('leader' in value) || 'leaders' in value) {
+      return value;
+    }
+    const { leader, ...rest } = value as { leader: unknown };
+    return leader ? { ...rest, leaders: [leader] } : rest;
+  },
+  z.object({
+    leaders: z.array(tablePieceSchema).optional(),
+    cards: z.array(tablePieceSchema),
+    /* Only the dial's number: which troops and how much spice back it stay secret until the reveal. */
+    dial: z.object({ strength: z.number() }).optional(),
+  })
+);
 export type DisclosedPlan = z.infer<typeof disclosedPlanSchema>;
 const disclosureSchema = z.discriminatedUnion('element', [
   z.strictObject({ element: z.literal('leader') }),
@@ -108,7 +135,11 @@ export const battleActionSchema = z.discriminatedUnion('kind', [
     territory: z.string().min(1).max(160),
   }),
   z.strictObject({ kind: z.literal('battle-claim'), battleId: id, side: battleSideSchema }),
-  z.strictObject({ kind: z.literal('battle-plan'), battleId: id, plan: battlePlanInputSchema }),
+  z.strictObject({
+    kind: z.literal('battle-plan'),
+    battleId: id,
+    plan: z.preprocess(withLeaderList, battlePlanInputSchema),
+  }),
   z.strictObject({ kind: z.literal('battle-ready'), battleId: id, ready: z.boolean() }),
   z.strictObject({
     kind: z.literal('battle-disclose'),
@@ -161,13 +192,29 @@ export function emptyBattlePlan(faces: BattleFace[]): StoredBattlePlan {
     troops: [],
     spice: 0,
     adjustment: 0,
-    leaderId: null,
+    leaderIds: [],
     cardIds: [],
     strength: 0,
     pieces: [],
     faces,
     disclosed: { leader: false, dial: false, cardIds: [] },
   };
+}
+
+/** Only Treachery cards go into a battle plan: Traitor, Alliance, prediction, Spice and every other card stays out. */
+export function isBattleCard(piece: z.infer<typeof tablePieceSchema>): boolean {
+  const artwork = piece.items[0]?.artwork;
+  if (
+    piece.kind !== 'card' ||
+    piece.items.length !== 1 ||
+    artwork?.prediction ||
+    piece.stackKey?.startsWith('prediction:')
+  ) {
+    return false;
+  }
+  const type = artwork?.type;
+  /* A card without a published face counts by the deck it was dealt from. */
+  return type ? type === 'card-treachery' : piece.stackKey === 'cards:treachery';
 }
 
 /** Published leader and disc tokens can fight; physical troops and faction tokens stay out of leader selection. */

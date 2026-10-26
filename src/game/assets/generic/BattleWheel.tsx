@@ -20,7 +20,10 @@ type Revealed = {
     artwork: ComponentProps<typeof TroopToken>;
   }[];
   cards?: readonly ReactNode[];
-  leader?: ReactNode;
+  /** Usually one; where a plan commits several, the first sits in the slot and the others stack behind it. */
+  leaders?: readonly ReactNode[];
+  /** The faint wordmark behind the numbers; left out where the wheel is drawn small and it would only blur the strength. */
+  wordmark?: boolean;
 };
 
 type Props = {
@@ -43,6 +46,9 @@ type Props = {
 );
 
 /** Callers own battle state and piece interactions; this renderer owns both faces and their reveal. */
+/* How far each further leader shifts right behind the one before it: enough to show its strength. */
+const LEADER_STEP = 15;
+
 export function BattleWheel(props: Props) {
   return (
     <div
@@ -72,7 +78,16 @@ export function BattleWheel(props: Props) {
   );
 }
 
-function RevealedWheel({ background, strength, spice, adjustment, troops, cards = [], leader }: Revealed) {
+function RevealedWheel({
+  background,
+  strength,
+  spice,
+  adjustment,
+  troops,
+  cards = [],
+  leaders = [],
+  wordmark = true,
+}: Revealed) {
   return (
     <>
       <div className={styles.cards}>
@@ -115,9 +130,7 @@ function RevealedWheel({ background, strength, spice, adjustment, troops, cards 
               </div>
               <span>{troop.undialed + troop.dialed}</span>
               <small>
-                {troop.dialed} supported
-                <br />
-                {troop.undialed} unsupported
+                {troop.dialed}/{troop.undialed + troop.dialed} supported
               </small>
             </div>
           ))}
@@ -127,9 +140,25 @@ function RevealedWheel({ background, strength, spice, adjustment, troops, cards 
             <span className={styles.spiceIcon} aria-hidden />
             <span className={styles.spiceValue}>{spice}</span>
           </div>
-          <div className={styles.leader}>
+          <div
+            className={styles.leader}
+            style={{ translate: `${-Math.max(0, leaders.length - 1) * (LEADER_STEP / 3)}px 0` }}
+          >
+            {leaders
+              .slice(1)
+              .map((behind, index) => ({ behind, index }))
+              .reverse()
+              .map(({ behind, index }) => (
+                <div
+                  key={index}
+                  className={clsx(styles.leaderPiece, styles.leaderBehind)}
+                  style={{ translate: `${(index + 1) * LEADER_STEP}px 0` }}
+                >
+                  {behind}
+                </div>
+              ))}
             <div className={styles.leaderPiece}>
-              {leader ?? (
+              {leaders[0] ?? (
                 <span className={styles.noLeader}>
                   <svg viewBox="0 0 100 100" aria-hidden="true">
                     <use href="/vector/decal/cheap-hero.svg#root" />
@@ -140,9 +169,11 @@ function RevealedWheel({ background, strength, spice, adjustment, troops, cards 
             </div>
           </div>
         </div>
-        <svg className={styles.wordmark} viewBox="0 0 100 100" aria-hidden="true">
-          <use href="/vector/decal/battlewheel-multicolor.svg#root" />
-        </svg>
+        {wordmark ? (
+          <svg className={styles.wordmark} viewBox="0 0 100 100" aria-hidden="true">
+            <use href="/vector/decal/battlewheel-multicolor.svg#root" />
+          </svg>
+        ) : null}
         {!!adjustment && (
           <div
             className={clsx(styles.adjustment, adjustment > 0 ? styles.positive : styles.negative)}

@@ -41,7 +41,7 @@ import { predictionCardInHand } from '../prediction/predictionCardInHand';
 import { TableWait } from '../TableWait';
 import { AllianceCoinsScene } from './AllianceCoins';
 import { AlliancesPanel, AllianceStrip, showsAlliances } from './Alliances';
-import { BattleControls, BattleHistory, BattleScene } from './BattleControls';
+import { BattleControls, BattleHistory, BattleModeToggle, BattleScene } from './BattleControls';
 import { BidderScene } from './Bidder';
 import { OfflineConversations } from './Conversation';
 import { DraftingOverlay, DraftingPanel } from './Drafting';
@@ -801,10 +801,14 @@ function gameGroup({ client, table, error, declare }: ControlPanelsProps, inPlay
         ? [
             {
               key: 'battle',
-              label: 'Battle',
+              label: 'Battle plan',
               topic: 'battle' as const,
               ...battleGuidance(table),
               content: withTableError(error, <BattleControls client={client} table={table} />),
+              /* The plan fills its window under the wheel, whose cards peek over the window's top edge. */
+              ...(battle && table.snapshot.battlePlan && table.snapshot.bank
+                ? { fill: true, peek: true, actions: <BattleModeToggle client={client} table={table} /> }
+                : {}),
             },
           ]
         : []),

@@ -65,7 +65,7 @@ export const Walkthrough = meta.story({
   },
 });
 
-/** The Bene Gesserit hand now holds traitor cards for other factions' leaders beside its own. */
+/** The first seat's hand now holds its traitor cards beside its own leaders. */
 export const TraitorsDealt = meta.story({
   args: { step: chapter('Traitors dealt') },
   play: async ({ canvasElement }) => {
@@ -79,8 +79,9 @@ export const TraitorsDealt = meta.story({
       .snapshot.hand!.filter((piece) => piece.stackKey === 'cards:traitor')
       .map((piece) => piece.items[0]?.artwork?.name ?? piece.label);
     await expect(traitors).toHaveLength(4);
+    /* A traitor can name one of the faction's own leaders, whose disc then shares the name. */
     for (const traitor of traitors) {
-      await expect(hand.getByRole('button', { name: `Drag ${traitor} from hand` })).toBeInTheDocument();
+      await expect(hand.getAllByRole('button', { name: `Drag ${traitor} from hand` }).length).toBeGreaterThan(0);
     }
   },
 });
@@ -101,7 +102,7 @@ export const BattleRevealed = meta.story({
   args: { step: chapter('Battle revealed'), seat: 'neutral' },
   play: async ({ canvasElement }) => {
     const { page } = await atStep(canvasElement, chapter('Battle revealed'));
-    await openControl(page, 'Battle');
+    await openControl(page, 'Battle plan');
     await waitFor(() => expect(page.getAllByLabelText(/ plan, troop strength/).length).toBeGreaterThanOrEqual(2));
     await expect(page.getByRole('button', { name: 'Left side won' })).toBeVisible();
   },
