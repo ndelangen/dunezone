@@ -258,7 +258,8 @@ export function HiddenZone({ client, table, hand }: Props) {
   /* Zoomed in, dragging the felt moves the view, as dragging the table's own felt moves its camera. */
   const panning = useRef<{ pointerId: number; x: number; y: number; from: HiddenZoneZoom } | null>(null);
   const wheel = useEffectEvent((event: WheelEvent) => {
-    if (!pieces.length || !(view.scale > 0)) {
+    /* Ctrl with the wheel, and a trackpad pinch, stay the browser's zoom, as they do over the table. */
+    if (event.ctrlKey || !pieces.length || !(view.scale > 0)) {
       return;
     }
     event.preventDefault();
