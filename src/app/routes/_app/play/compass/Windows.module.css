@@ -165,10 +165,14 @@
 }
 
 .name {
-  overflow: hidden;
+  display: flex;
   min-width: 0;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+}
+
+/* The kit's truncated line takes the title's type. */
+.name > p {
+  font: inherit;
+  letter-spacing: inherit;
 }
 
 /* Only the name gives way to a narrow window; the token, the help and the frame's buttons keep their size. */

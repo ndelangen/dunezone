@@ -1,5 +1,6 @@
 import { Tooltip } from '@mantine/core';
 import { TopicIcon } from '@ui/content/TopicIcon';
+import { TruncatedText } from '@ui/content/TruncatedText';
 import clsx from 'clsx';
 import { useContext } from 'react';
 import type { CSSProperties, KeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
@@ -88,23 +89,19 @@ type WindowTitleProps = Readonly<{
 }>;
 
 /* The title bar: the window's icon or the player's token, its name, its help and the frame's buttons. */
+/* A chat names only its player, since the token beside the name gives the faction; a long name ends in an ellipsis, with the whole of it in a tip. */
 function WindowTitle({ entry, actions, onFaction }: WindowTitleProps) {
   const player = entry.player;
   return (
     <header className={styles.title}>
       {player ? <FactionButton player={player} onFaction={onFaction} /> : <TopicIcon topic={entry.topic} size={18} />}
-      <Tooltip label={fullName(entry)} withinPortal openDelay={300}>
-        <span className={styles.name}>{entry.label}</span>
-      </Tooltip>
+      <span className={styles.name}>
+        <TruncatedText flex={1}>{entry.label}</TruncatedText>
+      </span>
       <WindowHelp entry={entry} />
       <span className={styles.actions}>{actions}</span>
     </header>
   );
-}
-
-/* A chat names only its player, since the token beside the name shows the faction; a long name ends in an ellipsis, and the tip gives it whole with the faction. */
-function fullName(entry: TableWindow) {
-  return [entry.label, entry.player?.factionName].filter(Boolean).join(' · ');
 }
 
 /* A chat's token is the way to its faction: it brings the faction information up on that player's seat, marked while a vote or a seat request waits there. */
