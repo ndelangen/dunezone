@@ -2,7 +2,7 @@
 import React from 'react';
 import { styled } from 'storybook/theming';
 
-import { segment } from './diff';
+import { segment } from '../../src/shared/jsonDiff';
 
 /*
  * A JSON value as a tree the viewer opens branch by branch, in the manager's own colours.

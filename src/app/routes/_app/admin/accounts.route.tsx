@@ -1,4 +1,4 @@
-import { Alert, Button, Group, Select, Stack, Table, Text } from '@mantine/core';
+import { Anchor, Alert, Button, Group, Select, Stack, Table, Text } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
@@ -8,30 +8,13 @@ import { useReducer } from 'react';
 
 import { authProviderNames } from '@db/accounts';
 import { useAccountManagementPage, useMergeAccounts, useResumeAccountMerge } from '@db/accounts';
-import { useSessionViewer } from '@db/profiles';
 import { pageHead } from '@app/routes/pageTitle';
-import { AdminGate, AdminPageLoading } from '@app/widgets/page-message/AdminGate';
+import { AdminPageLoading } from '@app/widgets/page-message/AdminGate';
 
-export const Route = createFileRoute('/_app/_admin/accounts')({
+export const Route = createFileRoute('/_app/admin/accounts')({
   head: () => pageHead('Accounts'),
-  component: AccountsPage,
+  component: AccountManagement,
 });
-
-function AccountsPage() {
-  const viewer = useSessionViewer();
-  return (
-    <AdminGate
-      viewer={viewer}
-      title="Accounts"
-      action="manage accounts"
-      loading={<AccountsLoading />}
-      deniedTitle="Admin access required"
-      deniedMessage="Only administrators can manage accounts."
-    >
-      <AccountManagement />
-    </AdminGate>
-  );
-}
 
 function AccountsLoading() {
   return <AdminPageLoading title="Accounts">The account list is loading.</AdminPageLoading>;
@@ -91,6 +74,9 @@ function AccountManagement() {
       <PageLayout.Header size="compact">
         <PageTitle title="Accounts" subtitle="Combine profiles and keep their sign-in methods, content and access." />
       </PageLayout.Header>
+      <PageLayout.Toolbar>
+        <Anchor renderRoot={(props) => <Link {...props} to="/admin" />}>All admin tools</Anchor>
+      </PageLayout.Toolbar>
       <PageLayout.Content>
         <Stack gap="lg">
           <MergeProfiles

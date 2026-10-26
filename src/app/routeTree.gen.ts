@@ -16,14 +16,18 @@ import { Route as App_iconsRouteRouteImport } from './routes/_app/[_]_icons.rout
 import { Route as App_jobsRouteRouteImport } from './routes/_app/[_]_jobs.route'
 import { Route as App_mediaRouteRouteImport } from './routes/_app/[_]_media.route'
 import { Route as AppJobsRouteRouteImport } from './routes/_app/[_]jobs.route'
+import { Route as AppAdminRouteRouteImport } from './routes/_app/admin/route'
 import { Route as AppImportsRouteRouteImport } from './routes/_app/imports.route'
 import { Route as AppMediaRouteRouteImport } from './routes/_app/media/route'
 import { Route as AppPlayRouteRouteImport } from './routes/_app/play/route'
 import { Route as AppTutorialRouteRouteImport } from './routes/_app/tutorial/route'
 import { Route as AuthOauthRouteRouteImport } from './routes/auth/oauth.route'
-import { Route as AppAdminAccountsRouteRouteImport } from './routes/_app/[_]admin/accounts.route'
-import { Route as AppAdminJobsRouteRouteImport } from './routes/_app/[_]admin/jobs.route'
+import { Route as AppAdminIndexRouteImport } from './routes/_app/admin/index'
+import { Route as AppAdminAccountsRouteRouteImport } from './routes/_app/admin/accounts.route'
+import { Route as AppAdminGameDebuggerRouteRouteImport } from './routes/_app/admin/game-debugger/route'
+import { Route as AppAdminJobsRouteRouteImport } from './routes/_app/admin/jobs.route'
 import { Route as AppAdminMigrationsRouteRouteImport } from './routes/_app/admin/migrations.route'
+import { Route as AppAdminPresetsRouteRouteImport } from './routes/_app/admin/presets.route'
 import { Route as AppAssetsIndexRouteImport } from './routes/_app/assets/index'
 import { Route as AppAssets_presetsRouteRouteImport } from './routes/_app/assets/[_]_presets.route'
 import { Route as AppAuthIndexRouteImport } from './routes/_app/auth/index'
@@ -49,6 +53,8 @@ import { Route as AppRulesetsCreateRouteRouteImport } from './routes/_app/rulese
 import { Route as AppTutorialIndexRouteImport } from './routes/_app/tutorial/index'
 import { Route as AppTutorialChapterRouteRouteImport } from './routes/_app/tutorial/$chapter.route'
 import { Route as PreviewSheetFactionSlugRouteRouteImport } from './routes/preview/sheet/$factionSlug.route'
+import { Route as AppAdminAccountsIndexRouteImport } from './routes/_app/[_]admin/accounts/index'
+import { Route as AppAdminJobsIndexRouteImport } from './routes/_app/[_]admin/jobs/index'
 import { Route as AppAssetsTypeIndexRouteImport } from './routes/_app/assets/$type/index'
 import { Route as AppBlogPostSlugIndexRouteImport } from './routes/_app/blog/$postSlug/index'
 import { Route as AppContributingCodeIndexRouteImport } from './routes/_app/contributing/code/index'
@@ -116,6 +122,11 @@ const AppJobsRouteRoute = AppJobsRouteRouteImport.update({
   path: '/_jobs',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppAdminRouteRoute = AppAdminRouteRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppImportsRouteRoute = AppImportsRouteRouteImport.update({
   id: '/imports',
   path: '/imports',
@@ -141,20 +152,36 @@ const AuthOauthRouteRoute = AuthOauthRouteRouteImport.update({
   path: '/auth/oauth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppAdminAccountsRouteRoute = AppAdminAccountsRouteRouteImport.update({
-  id: '/_admin/accounts',
-  path: '/_admin/accounts',
-  getParentRoute: () => AppRouteRoute,
+const AppAdminIndexRoute = AppAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppAdminRouteRoute,
 } as any)
+const AppAdminAccountsRouteRoute = AppAdminAccountsRouteRouteImport.update({
+  id: '/accounts',
+  path: '/accounts',
+  getParentRoute: () => AppAdminRouteRoute,
+} as any)
+const AppAdminGameDebuggerRouteRoute =
+  AppAdminGameDebuggerRouteRouteImport.update({
+    id: '/game-debugger',
+    path: '/game-debugger',
+    getParentRoute: () => AppAdminRouteRoute,
+  } as any)
 const AppAdminJobsRouteRoute = AppAdminJobsRouteRouteImport.update({
-  id: '/_admin/jobs',
-  path: '/_admin/jobs',
-  getParentRoute: () => AppRouteRoute,
+  id: '/jobs',
+  path: '/jobs',
+  getParentRoute: () => AppAdminRouteRoute,
 } as any)
 const AppAdminMigrationsRouteRoute = AppAdminMigrationsRouteRouteImport.update({
-  id: '/admin/migrations',
-  path: '/admin/migrations',
-  getParentRoute: () => AppRouteRoute,
+  id: '/migrations',
+  path: '/migrations',
+  getParentRoute: () => AppAdminRouteRoute,
+} as any)
+const AppAdminPresetsRouteRoute = AppAdminPresetsRouteRouteImport.update({
+  id: '/presets',
+  path: '/presets',
+  getParentRoute: () => AppAdminRouteRoute,
 } as any)
 const AppAssetsIndexRoute = AppAssetsIndexRouteImport.update({
   id: '/assets/',
@@ -283,6 +310,16 @@ const PreviewSheetFactionSlugRouteRoute =
     path: '/preview/sheet/$factionSlug',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AppAdminAccountsIndexRoute = AppAdminAccountsIndexRouteImport.update({
+  id: '/_admin/accounts/',
+  path: '/_admin/accounts/',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppAdminJobsIndexRoute = AppAdminJobsIndexRouteImport.update({
+  id: '/_admin/jobs/',
+  path: '/_admin/jobs/',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppAssetsTypeIndexRoute = AppAssetsTypeIndexRouteImport.update({
   id: '/assets/$type/',
   path: '/assets/$type/',
@@ -478,14 +515,17 @@ export interface FileRoutesByFullPath {
   '/__jobs': typeof App_jobsRouteRoute
   '/__media': typeof App_mediaRouteRoute
   '/_jobs': typeof AppJobsRouteRoute
+  '/admin': typeof AppAdminRouteRouteWithChildren
   '/imports': typeof AppImportsRouteRoute
   '/media': typeof AppMediaRouteRouteWithChildren
   '/play': typeof AppPlayRouteRouteWithChildren
   '/tutorial': typeof AppTutorialRouteRouteWithChildren
   '/auth/oauth': typeof AuthOauthRouteRoute
-  '/_admin/accounts': typeof AppAdminAccountsRouteRoute
-  '/_admin/jobs': typeof AppAdminJobsRouteRoute
+  '/admin/accounts': typeof AppAdminAccountsRouteRoute
+  '/admin/game-debugger': typeof AppAdminGameDebuggerRouteRoute
+  '/admin/jobs': typeof AppAdminJobsRouteRoute
   '/admin/migrations': typeof AppAdminMigrationsRouteRoute
+  '/admin/presets': typeof AppAdminPresetsRouteRoute
   '/assets/__presets': typeof AppAssets_presetsRouteRoute
   '/auth/error': typeof AppAuthErrorRouteRoute
   '/auth/login': typeof AppAuthLoginRouteRoute
@@ -498,6 +538,7 @@ export interface FileRoutesByFullPath {
   '/rulesets/create': typeof AppRulesetsCreateRouteRoute
   '/tutorial/$chapter': typeof AppTutorialChapterRouteRoute
   '/preview/sheet/$factionSlug': typeof PreviewSheetFactionSlugRouteRoute
+  '/admin/': typeof AppAdminIndexRoute
   '/assets/': typeof AppAssetsIndexRoute
   '/auth/': typeof AppAuthIndexRoute
   '/blog/': typeof AppBlogIndexRoute
@@ -522,6 +563,8 @@ export interface FileRoutesByFullPath {
   '/profiles/$profileSlug/delete': typeof AppProfilesProfileSlugDeleteRouteRoute
   '/profiles/$profileSlug/edit': typeof AppProfilesProfileSlugEditRouteRoute
   '/rulesets/$rulesetSlug/edit': typeof AppRulesetsRulesetSlugEditRouteRoute
+  '/_admin/accounts/': typeof AppAdminAccountsIndexRoute
+  '/_admin/jobs/': typeof AppAdminJobsIndexRoute
   '/assets/$type/': typeof AppAssetsTypeIndexRoute
   '/blog/$postSlug/': typeof AppBlogPostSlugIndexRoute
   '/contributing/code/': typeof AppContributingCodeIndexRoute
@@ -554,9 +597,11 @@ export interface FileRoutesByTo {
   '/media': typeof AppMediaRouteRouteWithChildren
   '/auth/oauth': typeof AuthOauthRouteRoute
   '/': typeof AppIndexRoute
-  '/_admin/accounts': typeof AppAdminAccountsRouteRoute
-  '/_admin/jobs': typeof AppAdminJobsRouteRoute
+  '/admin/accounts': typeof AppAdminAccountsRouteRoute
+  '/admin/game-debugger': typeof AppAdminGameDebuggerRouteRoute
+  '/admin/jobs': typeof AppAdminJobsRouteRoute
   '/admin/migrations': typeof AppAdminMigrationsRouteRoute
+  '/admin/presets': typeof AppAdminPresetsRouteRoute
   '/assets/__presets': typeof AppAssets_presetsRouteRoute
   '/auth/error': typeof AppAuthErrorRouteRoute
   '/auth/login': typeof AppAuthLoginRouteRoute
@@ -569,6 +614,7 @@ export interface FileRoutesByTo {
   '/rulesets/create': typeof AppRulesetsCreateRouteRoute
   '/tutorial/$chapter': typeof AppTutorialChapterRouteRoute
   '/preview/sheet/$factionSlug': typeof PreviewSheetFactionSlugRouteRoute
+  '/admin': typeof AppAdminIndexRoute
   '/assets': typeof AppAssetsIndexRoute
   '/auth': typeof AppAuthIndexRoute
   '/blog': typeof AppBlogIndexRoute
@@ -593,6 +639,8 @@ export interface FileRoutesByTo {
   '/profiles/$profileSlug/delete': typeof AppProfilesProfileSlugDeleteRouteRoute
   '/profiles/$profileSlug/edit': typeof AppProfilesProfileSlugEditRouteRoute
   '/rulesets/$rulesetSlug/edit': typeof AppRulesetsRulesetSlugEditRouteRoute
+  '/_admin/accounts': typeof AppAdminAccountsIndexRoute
+  '/_admin/jobs': typeof AppAdminJobsIndexRoute
   '/assets/$type': typeof AppAssetsTypeIndexRoute
   '/blog/$postSlug': typeof AppBlogPostSlugIndexRoute
   '/contributing/code': typeof AppContributingCodeIndexRoute
@@ -623,15 +671,18 @@ export interface FileRoutesById {
   '/_app/__jobs': typeof App_jobsRouteRoute
   '/_app/__media': typeof App_mediaRouteRoute
   '/_app/_jobs': typeof AppJobsRouteRoute
+  '/_app/admin': typeof AppAdminRouteRouteWithChildren
   '/_app/imports': typeof AppImportsRouteRoute
   '/_app/media': typeof AppMediaRouteRouteWithChildren
   '/_app/play': typeof AppPlayRouteRouteWithChildren
   '/_app/tutorial': typeof AppTutorialRouteRouteWithChildren
   '/auth/oauth': typeof AuthOauthRouteRoute
   '/_app/': typeof AppIndexRoute
-  '/_app/_admin/accounts': typeof AppAdminAccountsRouteRoute
-  '/_app/_admin/jobs': typeof AppAdminJobsRouteRoute
+  '/_app/admin/accounts': typeof AppAdminAccountsRouteRoute
+  '/_app/admin/game-debugger': typeof AppAdminGameDebuggerRouteRoute
+  '/_app/admin/jobs': typeof AppAdminJobsRouteRoute
   '/_app/admin/migrations': typeof AppAdminMigrationsRouteRoute
+  '/_app/admin/presets': typeof AppAdminPresetsRouteRoute
   '/_app/assets/__presets': typeof AppAssets_presetsRouteRoute
   '/_app/auth/error': typeof AppAuthErrorRouteRoute
   '/_app/auth/login': typeof AppAuthLoginRouteRoute
@@ -644,6 +695,7 @@ export interface FileRoutesById {
   '/_app/rulesets/create': typeof AppRulesetsCreateRouteRoute
   '/_app/tutorial/$chapter': typeof AppTutorialChapterRouteRoute
   '/preview/sheet/$factionSlug': typeof PreviewSheetFactionSlugRouteRoute
+  '/_app/admin/': typeof AppAdminIndexRoute
   '/_app/assets/': typeof AppAssetsIndexRoute
   '/_app/auth/': typeof AppAuthIndexRoute
   '/_app/blog/': typeof AppBlogIndexRoute
@@ -668,6 +720,8 @@ export interface FileRoutesById {
   '/_app/profiles/$profileSlug/delete': typeof AppProfilesProfileSlugDeleteRouteRoute
   '/_app/profiles/$profileSlug/edit': typeof AppProfilesProfileSlugEditRouteRoute
   '/_app/rulesets/$rulesetSlug/edit': typeof AppRulesetsRulesetSlugEditRouteRoute
+  '/_app/_admin/accounts/': typeof AppAdminAccountsIndexRoute
+  '/_app/_admin/jobs/': typeof AppAdminJobsIndexRoute
   '/_app/assets/$type/': typeof AppAssetsTypeIndexRoute
   '/_app/blog/$postSlug/': typeof AppBlogPostSlugIndexRoute
   '/_app/contributing/code/': typeof AppContributingCodeIndexRoute
@@ -699,14 +753,17 @@ export interface FileRouteTypes {
     | '/__jobs'
     | '/__media'
     | '/_jobs'
+    | '/admin'
     | '/imports'
     | '/media'
     | '/play'
     | '/tutorial'
     | '/auth/oauth'
-    | '/_admin/accounts'
-    | '/_admin/jobs'
+    | '/admin/accounts'
+    | '/admin/game-debugger'
+    | '/admin/jobs'
     | '/admin/migrations'
+    | '/admin/presets'
     | '/assets/__presets'
     | '/auth/error'
     | '/auth/login'
@@ -719,6 +776,7 @@ export interface FileRouteTypes {
     | '/rulesets/create'
     | '/tutorial/$chapter'
     | '/preview/sheet/$factionSlug'
+    | '/admin/'
     | '/assets/'
     | '/auth/'
     | '/blog/'
@@ -743,6 +801,8 @@ export interface FileRouteTypes {
     | '/profiles/$profileSlug/delete'
     | '/profiles/$profileSlug/edit'
     | '/rulesets/$rulesetSlug/edit'
+    | '/_admin/accounts/'
+    | '/_admin/jobs/'
     | '/assets/$type/'
     | '/blog/$postSlug/'
     | '/contributing/code/'
@@ -775,9 +835,11 @@ export interface FileRouteTypes {
     | '/media'
     | '/auth/oauth'
     | '/'
-    | '/_admin/accounts'
-    | '/_admin/jobs'
+    | '/admin/accounts'
+    | '/admin/game-debugger'
+    | '/admin/jobs'
     | '/admin/migrations'
+    | '/admin/presets'
     | '/assets/__presets'
     | '/auth/error'
     | '/auth/login'
@@ -790,6 +852,7 @@ export interface FileRouteTypes {
     | '/rulesets/create'
     | '/tutorial/$chapter'
     | '/preview/sheet/$factionSlug'
+    | '/admin'
     | '/assets'
     | '/auth'
     | '/blog'
@@ -814,6 +877,8 @@ export interface FileRouteTypes {
     | '/profiles/$profileSlug/delete'
     | '/profiles/$profileSlug/edit'
     | '/rulesets/$rulesetSlug/edit'
+    | '/_admin/accounts'
+    | '/_admin/jobs'
     | '/assets/$type'
     | '/blog/$postSlug'
     | '/contributing/code'
@@ -843,15 +908,18 @@ export interface FileRouteTypes {
     | '/_app/__jobs'
     | '/_app/__media'
     | '/_app/_jobs'
+    | '/_app/admin'
     | '/_app/imports'
     | '/_app/media'
     | '/_app/play'
     | '/_app/tutorial'
     | '/auth/oauth'
     | '/_app/'
-    | '/_app/_admin/accounts'
-    | '/_app/_admin/jobs'
+    | '/_app/admin/accounts'
+    | '/_app/admin/game-debugger'
+    | '/_app/admin/jobs'
     | '/_app/admin/migrations'
+    | '/_app/admin/presets'
     | '/_app/assets/__presets'
     | '/_app/auth/error'
     | '/_app/auth/login'
@@ -864,6 +932,7 @@ export interface FileRouteTypes {
     | '/_app/rulesets/create'
     | '/_app/tutorial/$chapter'
     | '/preview/sheet/$factionSlug'
+    | '/_app/admin/'
     | '/_app/assets/'
     | '/_app/auth/'
     | '/_app/blog/'
@@ -888,6 +957,8 @@ export interface FileRouteTypes {
     | '/_app/profiles/$profileSlug/delete'
     | '/_app/profiles/$profileSlug/edit'
     | '/_app/rulesets/$rulesetSlug/edit'
+    | '/_app/_admin/accounts/'
+    | '/_app/_admin/jobs/'
     | '/_app/assets/$type/'
     | '/_app/blog/$postSlug/'
     | '/_app/contributing/code/'
@@ -968,6 +1039,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppJobsRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/admin': {
+      id: '/_app/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AppAdminRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/_app/imports': {
       id: '/_app/imports'
       path: '/imports'
@@ -1003,26 +1081,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthOauthRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_app/_admin/accounts': {
-      id: '/_app/_admin/accounts'
-      path: '/_admin/accounts'
-      fullPath: '/_admin/accounts'
-      preLoaderRoute: typeof AppAdminAccountsRouteRouteImport
-      parentRoute: typeof AppRouteRoute
+    '/_app/admin/': {
+      id: '/_app/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AppAdminIndexRouteImport
+      parentRoute: typeof AppAdminRouteRoute
     }
-    '/_app/_admin/jobs': {
-      id: '/_app/_admin/jobs'
-      path: '/_admin/jobs'
-      fullPath: '/_admin/jobs'
+    '/_app/admin/accounts': {
+      id: '/_app/admin/accounts'
+      path: '/accounts'
+      fullPath: '/admin/accounts'
+      preLoaderRoute: typeof AppAdminAccountsRouteRouteImport
+      parentRoute: typeof AppAdminRouteRoute
+    }
+    '/_app/admin/game-debugger': {
+      id: '/_app/admin/game-debugger'
+      path: '/game-debugger'
+      fullPath: '/admin/game-debugger'
+      preLoaderRoute: typeof AppAdminGameDebuggerRouteRouteImport
+      parentRoute: typeof AppAdminRouteRoute
+    }
+    '/_app/admin/jobs': {
+      id: '/_app/admin/jobs'
+      path: '/jobs'
+      fullPath: '/admin/jobs'
       preLoaderRoute: typeof AppAdminJobsRouteRouteImport
-      parentRoute: typeof AppRouteRoute
+      parentRoute: typeof AppAdminRouteRoute
     }
     '/_app/admin/migrations': {
       id: '/_app/admin/migrations'
-      path: '/admin/migrations'
+      path: '/migrations'
       fullPath: '/admin/migrations'
       preLoaderRoute: typeof AppAdminMigrationsRouteRouteImport
-      parentRoute: typeof AppRouteRoute
+      parentRoute: typeof AppAdminRouteRoute
+    }
+    '/_app/admin/presets': {
+      id: '/_app/admin/presets'
+      path: '/presets'
+      fullPath: '/admin/presets'
+      preLoaderRoute: typeof AppAdminPresetsRouteRouteImport
+      parentRoute: typeof AppAdminRouteRoute
     }
     '/_app/assets/': {
       id: '/_app/assets/'
@@ -1198,6 +1297,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/preview/sheet/$factionSlug'
       preLoaderRoute: typeof PreviewSheetFactionSlugRouteRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_app/_admin/accounts/': {
+      id: '/_app/_admin/accounts/'
+      path: '/_admin/accounts'
+      fullPath: '/_admin/accounts/'
+      preLoaderRoute: typeof AppAdminAccountsIndexRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/_admin/jobs/': {
+      id: '/_app/_admin/jobs/'
+      path: '/_admin/jobs'
+      fullPath: '/_admin/jobs/'
+      preLoaderRoute: typeof AppAdminJobsIndexRouteImport
+      parentRoute: typeof AppRouteRoute
     }
     '/_app/assets/$type/': {
       id: '/_app/assets/$type/'
@@ -1426,6 +1539,28 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AppAdminRouteRouteChildren {
+  AppAdminAccountsRouteRoute: typeof AppAdminAccountsRouteRoute
+  AppAdminGameDebuggerRouteRoute: typeof AppAdminGameDebuggerRouteRoute
+  AppAdminJobsRouteRoute: typeof AppAdminJobsRouteRoute
+  AppAdminMigrationsRouteRoute: typeof AppAdminMigrationsRouteRoute
+  AppAdminPresetsRouteRoute: typeof AppAdminPresetsRouteRoute
+  AppAdminIndexRoute: typeof AppAdminIndexRoute
+}
+
+const AppAdminRouteRouteChildren: AppAdminRouteRouteChildren = {
+  AppAdminAccountsRouteRoute: AppAdminAccountsRouteRoute,
+  AppAdminGameDebuggerRouteRoute: AppAdminGameDebuggerRouteRoute,
+  AppAdminJobsRouteRoute: AppAdminJobsRouteRoute,
+  AppAdminMigrationsRouteRoute: AppAdminMigrationsRouteRoute,
+  AppAdminPresetsRouteRoute: AppAdminPresetsRouteRoute,
+  AppAdminIndexRoute: AppAdminIndexRoute,
+}
+
+const AppAdminRouteRouteWithChildren = AppAdminRouteRoute._addFileChildren(
+  AppAdminRouteRouteChildren,
+)
+
 interface AppMediaSourceRouteRouteChildren {
   AppMediaSourceKindRouteRoute: typeof AppMediaSourceKindRouteRoute
 }
@@ -1484,14 +1619,12 @@ interface AppRouteRouteChildren {
   App_jobsRouteRoute: typeof App_jobsRouteRoute
   App_mediaRouteRoute: typeof App_mediaRouteRoute
   AppJobsRouteRoute: typeof AppJobsRouteRoute
+  AppAdminRouteRoute: typeof AppAdminRouteRouteWithChildren
   AppImportsRouteRoute: typeof AppImportsRouteRoute
   AppMediaRouteRoute: typeof AppMediaRouteRouteWithChildren
   AppPlayRouteRoute: typeof AppPlayRouteRouteWithChildren
   AppTutorialRouteRoute: typeof AppTutorialRouteRouteWithChildren
   AppIndexRoute: typeof AppIndexRoute
-  AppAdminAccountsRouteRoute: typeof AppAdminAccountsRouteRoute
-  AppAdminJobsRouteRoute: typeof AppAdminJobsRouteRoute
-  AppAdminMigrationsRouteRoute: typeof AppAdminMigrationsRouteRoute
   AppAssets_presetsRouteRoute: typeof AppAssets_presetsRouteRoute
   AppAuthErrorRouteRoute: typeof AppAuthErrorRouteRoute
   AppAuthLoginRouteRoute: typeof AppAuthLoginRouteRoute
@@ -1520,6 +1653,8 @@ interface AppRouteRouteChildren {
   AppProfilesProfileSlugDeleteRouteRoute: typeof AppProfilesProfileSlugDeleteRouteRoute
   AppProfilesProfileSlugEditRouteRoute: typeof AppProfilesProfileSlugEditRouteRoute
   AppRulesetsRulesetSlugEditRouteRoute: typeof AppRulesetsRulesetSlugEditRouteRoute
+  AppAdminAccountsIndexRoute: typeof AppAdminAccountsIndexRoute
+  AppAdminJobsIndexRoute: typeof AppAdminJobsIndexRoute
   AppAssetsTypeIndexRoute: typeof AppAssetsTypeIndexRoute
   AppBlogPostSlugIndexRoute: typeof AppBlogPostSlugIndexRoute
   AppContributingCodeIndexRoute: typeof AppContributingCodeIndexRoute
@@ -1549,14 +1684,12 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   App_jobsRouteRoute: App_jobsRouteRoute,
   App_mediaRouteRoute: App_mediaRouteRoute,
   AppJobsRouteRoute: AppJobsRouteRoute,
+  AppAdminRouteRoute: AppAdminRouteRouteWithChildren,
   AppImportsRouteRoute: AppImportsRouteRoute,
   AppMediaRouteRoute: AppMediaRouteRouteWithChildren,
   AppPlayRouteRoute: AppPlayRouteRouteWithChildren,
   AppTutorialRouteRoute: AppTutorialRouteRouteWithChildren,
   AppIndexRoute: AppIndexRoute,
-  AppAdminAccountsRouteRoute: AppAdminAccountsRouteRoute,
-  AppAdminJobsRouteRoute: AppAdminJobsRouteRoute,
-  AppAdminMigrationsRouteRoute: AppAdminMigrationsRouteRoute,
   AppAssets_presetsRouteRoute: AppAssets_presetsRouteRoute,
   AppAuthErrorRouteRoute: AppAuthErrorRouteRoute,
   AppAuthLoginRouteRoute: AppAuthLoginRouteRoute,
@@ -1590,6 +1723,8 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
     AppProfilesProfileSlugDeleteRouteRoute,
   AppProfilesProfileSlugEditRouteRoute: AppProfilesProfileSlugEditRouteRoute,
   AppRulesetsRulesetSlugEditRouteRoute: AppRulesetsRulesetSlugEditRouteRoute,
+  AppAdminAccountsIndexRoute: AppAdminAccountsIndexRoute,
+  AppAdminJobsIndexRoute: AppAdminJobsIndexRoute,
   AppAssetsTypeIndexRoute: AppAssetsTypeIndexRoute,
   AppBlogPostSlugIndexRoute: AppBlogPostSlugIndexRoute,
   AppContributingCodeIndexRoute: AppContributingCodeIndexRoute,

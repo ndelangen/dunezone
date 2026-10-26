@@ -4,7 +4,7 @@ import { AddonPanel, Button, Form, TabButton, ToggleButton } from 'storybook/int
 import { addons, useArgs, useChannel } from 'storybook/manager-api';
 import { styled } from 'storybook/theming';
 
-import { changes } from './diff';
+import { changes } from '../../src/shared/jsonDiff';
 import { PLAY_DEBUGGER_EVENTS } from './events';
 import type { DebuggerState, DebuggerTimeline, TrafficEntry } from './events';
 import { JsonTree, Preview } from './JsonTree';

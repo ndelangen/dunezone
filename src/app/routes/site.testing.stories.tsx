@@ -13,7 +13,7 @@ const meta = testingPreview.meta({
 });
 /** The job queue for an administrator: the session says so, and only then does the page ask for the admin-only listing. */
 export const PublicationJobs = meta.story({
-  args: { path: '/_admin/jobs' },
+  args: { path: '/admin/jobs' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('combobox', { name: 'Status' }, { timeout: 30_000 })).resolves.toBeVisible();
@@ -57,7 +57,7 @@ export const Glossary = meta.story({
 });
 
 export const Accounts = meta.story({
-  args: { path: '/_admin/accounts' },
+  args: { path: '/admin/accounts' },
   parameters: {
     database: db((baseline) => {
       baseline.users.push({ $key: 'other-account', name: 'Discord player' });
@@ -91,7 +91,7 @@ export const Accounts = meta.story({
 
 /** The job queue reached by a reader the server does not recognise, which is a login gate rather than an alert inside a dashboard header. */
 export const PublicationJobsSignedOut = meta.story({
-  args: { path: '/_admin/jobs' },
+  args: { path: '/admin/jobs' },
   parameters: { identity: null },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -106,10 +106,10 @@ export const PublicationJobsSignedOut = meta.story({
 });
 /** The job queue reached by a signed-in reader without the administrative role. */
 export const PublicationJobsNotAuthorized = meta.story({
-  args: { path: '/_admin/jobs' },
+  args: { path: '/admin/jobs' },
   parameters: withoutAdmins,
   play: async ({ canvasElement }) => {
-    await expectRefused(canvasElement, 'You cannot view publication jobs', { role: 'combobox', name: 'Status' });
+    await expectRefused(canvasElement, 'Admin access required', { role: 'combobox', name: 'Status' });
   },
 });
 
