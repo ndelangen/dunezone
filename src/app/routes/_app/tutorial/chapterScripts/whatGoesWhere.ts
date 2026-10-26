@@ -4,13 +4,13 @@ import { TABLE_TANKS_LABEL_POSITION } from '@shared/play/tableFurnitureLayout';
 
 import type { GuideTask } from '../TutorialGuide';
 import type { ChapterScript } from './chapterScript';
-import { at, nextPhaseButton, onBoard, singleSpiceFaceUp, tableDeck, task } from './guideChecks';
+import { at, nextPhaseButton, onBoard, pressEnter, singleSpiceFaceUp, tableDeck, task } from './guideChecks';
 
 /*
  * Chapter 5, "What goes where": turn 1 played up to Shipment, one phase at a time, so each phase shows where on the table it happens.
- * Every step is one press of Next phase or one move at the place that phase uses: the Spice deck on the right, the Treachery deck
- * on the left, the Tleilaxu Tanks below the board and the reserves at the player's seat (Norbert, 2026-10-26: one thread, and
- * never two presses of Next phase for one step). Moving the camera is chapter 6's, the windows chapter 9's.
+ * Every step is one press of Next phase, one move at the place that phase uses, or a look at that place: the Spice deck on the
+ * right, the Treachery deck on the left, the Tleilaxu Tanks below the board and the reserves at the player's seat (Norbert,
+ * 2026-10-26: one thread, and never two presses of Next phase for one step). Moving the camera is chapter 6's, the windows chapter 9's.
  */
 
 /* The phase the table is at, counted from the start of the game, and where a phase falls in the first turn. */
@@ -76,13 +76,15 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       begin: () => ({ hand: snapshot().hand?.length ?? 0, deck: deck('left')?.items.length ?? 0 }),
       done: (start) => (snapshot().hand?.length ?? 0) > start.hand && (deck('left')?.items.length ?? 0) < start.deck,
     }),
-    onTo(
-      snapshot,
-      'revival',
-      'Revival',
-      'Press Next phase. Revival brings troops and leaders back from the Tleilaxu Tanks, the tray below the board where the arrow points. Nothing has died yet, so there is nothing to revive.',
-      { kind: 'table', point: () => [...TABLE_TANKS_LABEL_POSITION] }
-    ),
+    onTo(snapshot, 'revival', 'Revival', 'Press Next phase, into Revival. Watch where the camera goes.'),
+    task({
+      id: 'tanks',
+      task: 'Find the Tleilaxu Tanks',
+      detail:
+        'Revival brings troops and leaders back from the Tleilaxu Tanks, the tray below the board where the arrow points. Nothing has died yet, so there is nothing to revive. Press {Enter} to go on.',
+      anchor: { kind: 'table', point: () => [...TABLE_TANKS_LABEL_POSITION] },
+      ...pressEnter(),
+    }),
     onTo(
       snapshot,
       'shipment-and-movement',

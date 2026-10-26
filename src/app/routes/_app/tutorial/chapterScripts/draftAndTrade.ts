@@ -16,10 +16,13 @@ const LEARNER = TUTORIAL_RECIPE.learner;
 const DRAFT = 'Bene Gesserit';
 const BAN = 'Ixians';
 
-/** A button in the drafting list's row for a faction, by the button's own word. */
+/*
+ * A button in the drafting list's row for a faction, by the button's own word. The row's name must be the faction's whole name,
+ * so a search that also lists "Ixians (In Progress)" still finds the Ixians.
+ */
 const draftButton = (faction: string, word: 'Draft' | 'Ban') => () => {
   const row = [...document.querySelectorAll('[data-drafting-panel] li')].find((item) =>
-    item.textContent?.includes(faction)
+    [...item.querySelectorAll('p')].some((name) => name.textContent?.trim() === faction)
   );
   return (
     [...(row?.querySelectorAll('button') ?? [])].find((button) => button.textContent?.trim().startsWith(word)) ?? null
@@ -45,9 +48,22 @@ function othersDraft(snapshot: () => GameSnapshot, players: TablePlayers) {
       players.act(seat, { kind: 'draft-pick', factionId: id });
     }
   });
-  for (const seat of players.others()) {
-    players.act(seat, { kind: 'draft-ready', ready: true });
-  }
+  return keepOthersReady(snapshot, players);
+}
+
+/* A change to a pick or ban clears everyone's readiness, so the others ready up again whenever they find themselves not ready. */
+function keepOthersReady(snapshot: () => GameSnapshot, players: TablePlayers) {
+  const readyUp = () => {
+    const ready = snapshot().draft?.ready ?? [];
+    for (const seat of players.others()) {
+      if (!ready.includes(seat)) {
+        players.act(seat, { kind: 'draft-ready', ready: true });
+      }
+    }
+  };
+  readyUp();
+  const watch = setInterval(readyUp, 500);
+  return () => clearInterval(watch);
 }
 
 /* The others declare themselves ready to start, which ends trading once the learner is ready too. */
@@ -107,6 +123,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       anchor: { kind: 'page', element: readyButton },
       begin: () => othersDraft(snapshot, players),
       done: () => snapshot().stage === 'swapping',
+      finish: (stop: () => void) => stop(),
     }),
     task({
       id: 'dealt',
