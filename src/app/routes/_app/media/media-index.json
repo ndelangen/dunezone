@@ -11143,5 +11143,11 @@
     "tags": ["water of life", "Jessica", "ceremony", "ritual", "people", "vessel", "multicolor"],
     "subjects": ["culture", "people", "water"],
     "sourceHash": "0742b6efb63ecea65f14d5c8a07afe6e2ca711afa6bd69ce5c7ef1dd61c49cec"
+  },
+  "/vector/decal/tarot-deck.svg": {
+    "description": "A stack of cards with a circular disk and radiating bands lies in an open wrap case with a clasp, looped cord and tassel.",
+    "tags": ["tarot", "deck", "cards", "case", "cord", "tassel", "divination", "vector"],
+    "subjects": ["culture", "symbols"],
+    "sourceHash": "e3b031b1dd8b34aa7edb107aa0846f516d06484402c68fccd70bb98b17f341ff"
   }
 }

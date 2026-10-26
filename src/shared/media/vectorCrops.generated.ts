@@ -405,6 +405,7 @@ export const VECTOR_CROPS = {
   '/vector/decal/swordmaster-of-ginaz.svg': [50, 50, 100, 69.1],
   '/vector/decal/talon-bracer.svg': [47.625, 50.93, 76.45, 56.76],
   '/vector/decal/target.svg': [50, 50, 84.84, 100],
+  '/vector/decal/tarot-deck.svg': [50, 50.005, 100, 49.27],
   '/vector/decal/tasters-fork.svg': [51.045, 50.74, 93.19, 54.8],
   '/vector/decal/terms-withheld-multicolor.svg': [51.535, 50.230000000000004, 72.15, 56.38],
   '/vector/decal/terms-withheld.svg': [51.545, 50.230000000000004, 72.13, 56.38],
