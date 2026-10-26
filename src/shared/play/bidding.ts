@@ -204,7 +204,11 @@ function turnAction(
 
 /** Whether the faction the bidder points at raised since it came to them, so it can take a raise back. */
 export function canLowerBid(state: BiddingState, factionId: string | null): boolean {
-  if (state.stage !== 'open' || factionId === null || factionId !== state.turn || state.bid?.factionId !== factionId) {
+  /* A round opened before the bidder kept its turn's start has nothing safe to lower back to. */
+  if (!state.turnStart || state.stage !== 'open' || factionId === null || factionId !== state.turn) {
+    return false;
+  }
+  if (state.bid?.factionId !== factionId) {
     return false;
   }
   return state.bid.amount > (state.turnStart?.bid?.amount ?? 0);
@@ -219,7 +223,7 @@ function lowerBid(state: BiddingState, factionId: string): BiddingState {
     return refuse('Only a raise you made this turn can be lowered.');
   }
   const amount = state.bid!.amount - 1;
-  const start = state.turnStart ?? { bid: null, passed: [] };
+  const start = state.turnStart!;
   if (amount <= (start.bid?.amount ?? 0)) {
     return { ...state, bid: start.bid, passed: start.passed };
   }

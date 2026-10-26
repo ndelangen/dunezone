@@ -40,7 +40,7 @@ test('with nothing typed the heaviest lead, six at most; typed, the best eight m
   expect(rankSuggestions(all, 'zz')).toEqual([]);
 });
 
-type Token = { faceUp: boolean; flip: () => void } | null;
+type Token = { faceUp: boolean; flip: () => void; inBidding?: boolean } | null;
 type Bidding = { raise: () => void; lower: (() => void) | null; pass: () => void } | null;
 
 const actions = (token: Token, close = () => {}, bidding: Bidding = null) => ({
@@ -60,13 +60,18 @@ const commandLabels = (token: Token, bidding: Bidding = null) =>
 
 test('the token commands appear only with a token: Pass while it shows its face, Flip faction token up while it does not', () => {
   expect(commandLabels(null)).toEqual([]);
-  expect(commandLabels({ faceUp: true, flip: () => {} })).toEqual(['Pass (P)', 'Flip faction token']);
-  expect(commandLabels({ faceUp: false, flip: () => {} })).toEqual(['Flip faction token up (U)', 'Flip faction token']);
+  expect(commandLabels({ faceUp: true, flip: () => {}, inBidding: true })).toEqual(['Pass (P)', 'Flip faction token']);
+  expect(commandLabels({ faceUp: false, flip: () => {}, inBidding: true })).toEqual([
+    'Flip faction token up (U)',
+    'Flip faction token',
+  ]);
+  /* Outside the Bidding phase a token neither sits out nor comes back in, so only the plain flip is offered. */
+  expect(commandLabels({ faceUp: true, flip: () => {} })).toEqual(['Flip faction token']);
 });
 
 test('while the bidder points at the viewer, Pass hands it on, and the bid goes up, or down after a raise', () => {
   const bidding = { raise: () => {}, lower: null, pass: () => {} };
-  expect(commandLabels({ faceUp: true, flip: () => {} }, bidding)).toEqual([
+  expect(commandLabels({ faceUp: true, flip: () => {}, inBidding: true }, bidding)).toEqual([
     'Pass (P)',
     'Up the bid by 1 (I)',
     'Flip faction token',
@@ -89,7 +94,7 @@ test('Pass closes the compass and turns the token over', () => {
   const calls: string[] = [];
   const all = candidatesOf(
     [],
-    actions({ faceUp: true, flip: () => calls.push('flip') }, () => calls.push('close'))
+    actions({ faceUp: true, flip: () => calls.push('flip'), inBidding: true }, () => calls.push('close'))
   );
   rankSuggestions(all, 'pass')[0]!.run();
   expect(calls).toEqual(['close', 'flip']);

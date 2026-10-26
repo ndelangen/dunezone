@@ -90,7 +90,11 @@ function viewerToken(client: TableSession, table: TableProjection): CompassTable
   if (!token || !table.canHandleTable) {
     return null;
   }
-  return { faceUp: token.items[0]?.faceUp ?? true, flip: () => client.flipSelected(token.id) };
+  return {
+    faceUp: token.items[0]?.faceUp ?? true,
+    flip: () => client.flipSelected(token.id),
+    inBidding: biddingPhase(table),
+  };
 }
 
 /* The bidder's raise, lowering and pass, while it points at the viewer in an open round; none otherwise. */

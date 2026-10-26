@@ -185,5 +185,11 @@ describe('optional timed bidding', () => {
       expect(() => applyBidding(opened(), { kind: 'bid-lower', round: 1 }, at('a'))).toThrow(BiddingRefusal);
       expect(applyBidding(raised, { kind: 'bid-lower', round: 1 }, at('a'))).toMatchObject({ bid: null, turn: 'a' });
     });
+
+    test('is refused in a round opened before the bidder kept where the turn started', () => {
+      const { turnStart: _kept, ...older } = applyBidding(opened(), { kind: 'bid-raise', round: 1 }, at('a'));
+      expect(canLowerBid(older, 'a')).toBe(false);
+      expect(() => applyBidding(older, { kind: 'bid-lower', round: 1 }, at('a'))).toThrow(BiddingRefusal);
+    });
   });
 });
