@@ -24,7 +24,43 @@ type Revealed = {
   leaders?: readonly ReactNode[];
   /** The faint wordmark behind the numbers; left out where the wheel is drawn small and it would only blur the strength. */
   wordmark?: boolean;
+  /** How a half reads on the wheel. Only here while the options are compared side by side; one style stays. */
+  halves?: HalfStyle;
 };
+
+export type HalfStyle = 'decimal' | 'copperplate' | 'candara' | 'slashed' | 'stacked';
+
+/** Writes a number in the wheel's own way, with a half as a fraction; the Advokat face has no ½, so the fraction is built or borrowed. */
+function WheelNumber({ value, halves, signed = false }: { value: number; halves: HalfStyle; signed?: boolean }) {
+  const sign = value < 0 ? '−' : signed && value > 0 ? '+' : '';
+  const whole = Math.trunc(Math.abs(value));
+  const half = Math.abs(Math.abs(value) - whole) === 0.5;
+  if (!half || halves === 'decimal') {
+    return <>{`${signed && value > 0 ? '+' : ''}${value}`}</>;
+  }
+  const wholeText = whole === 0 ? '' : String(whole);
+  if (halves === 'copperplate' || halves === 'candara') {
+    return (
+      <>
+        {sign}
+        {wholeText}
+        <span className={clsx(styles.halfGlyph, styles[halves])}>½</span>
+      </>
+    );
+  }
+  return (
+    <>
+      {sign}
+      {wholeText}
+      <span className={styles.srOnly}>½</span>
+      <span className={clsx(styles.halfBuilt, styles[halves])} aria-hidden="true">
+        <span>1</span>
+        <span className={styles.halfBar}>{halves === 'slashed' ? '/' : ''}</span>
+        <span>2</span>
+      </span>
+    </>
+  );
+}
 
 type Props = {
   label: string;
@@ -87,6 +123,7 @@ function RevealedWheel({
   cards = [],
   leaders = [],
   wordmark = true,
+  halves = 'decimal',
 }: Revealed) {
   return (
     <>
@@ -119,7 +156,9 @@ function RevealedWheel({
           />
         </div>
         <div className={styles.strength}>
-          <span>{strength}</span>
+          <span>
+            <WheelNumber value={strength} halves={halves} />
+          </span>
           <small>Strength</small>
         </div>
         <div className={styles.troopReadout}>
@@ -180,8 +219,7 @@ function RevealedWheel({
             aria-label={`Strength adjustment ${adjustment > 0 ? 'plus' : 'minus'} ${Math.abs(adjustment)}`}
           >
             <span>
-              {adjustment > 0 ? '+' : ''}
-              {adjustment}
+              <WheelNumber value={adjustment} halves={halves} signed />
             </span>
             <small>adj.</small>
           </div>

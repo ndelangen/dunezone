@@ -6,6 +6,7 @@ import { card } from '../../data/sizes';
 import { treacheryCardFixtures } from '../../fixtures/treacheryCards';
 import { LeaderToken } from '../faction/leader/Leader';
 import { TreacheryCard } from '../treachery/Treachery';
+import { BattleWheel } from './BattleWheel';
 import { artwork, battleWheelMeta, troop, revealedArgs } from './BattleWheel.stories.fixture';
 
 const wheelCards = [treacheryCardFixtures.maulaPistol, treacheryCardFixtures.shield];
@@ -108,4 +109,30 @@ export const Unrevealed = meta.story({
 });
 export const Ready = meta.story({
   args: { state: 'unrevealed', artwork, ready: true, label: 'Atreides, ready' },
+});
+
+const halfStyles = [
+  { halves: 'decimal', name: 'Today: decimals' },
+  { halves: 'copperplate', name: 'A: ½ from Copperplate' },
+  { halves: 'candara', name: 'B: ½ from Candara' },
+  { halves: 'slashed', name: 'C: Advokat ¹⁄₂, slashed' },
+  { halves: 'stacked', name: 'D: Advokat ½, stacked' },
+] as const;
+
+/** The wheel's Advokat face has no ½ glyph, so each option either borrows one from another face or builds it from Advokat's digits. Compared at the size the wheel is drawn. */
+export const HalvesAsFractions = meta.story({
+  tags: ['!test'],
+  parameters: { layout: 'padded' },
+  render: () => (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, max-content)', gap: 24, alignItems: 'start' }}>
+      {halfStyles.map(({ halves, name }) => (
+        <figure key={halves} style={{ margin: 0, display: 'grid', gap: 12, justifyItems: 'center' }}>
+          <BattleWheel {...revealedArgs} halves={halves} strength={2.5} adjustment={-0.5} />
+          <BattleWheel {...revealedArgs} halves={halves} strength={13.5} adjustment={1.5} />
+          <BattleWheel {...revealedArgs} halves={halves} strength={0.5} />
+          <figcaption style={{ font: '13px system-ui' }}>{name}</figcaption>
+        </figure>
+      ))}
+    </div>
+  ),
 });
