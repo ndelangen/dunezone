@@ -8,6 +8,7 @@ import {
   SPICE_LAYER_PITCH,
   SPICE_MAX_VISIBLE_LAYERS,
 } from './spice';
+import { isTechToken } from './techToken';
 import { isTroopStack } from './troop';
 
 type PieceFootprint = Pick<TablePiece, 'kind' | 'orientation'> &
@@ -57,12 +58,13 @@ function isLeaderPiece(piece: Partial<Pick<TablePiece, 'kind' | 'stackKey'>>): b
   return piece.kind === 'force' && (piece.stackKey?.startsWith('leader:') ?? false);
 }
 
-/** How much wider than a troop token a 'force'-kind piece (a troop, a leader disc or a faction token) is drawn and occupies the table. */
-export function troopScale(piece: Partial<Pick<TablePiece, 'kind' | 'stackKey'>>): number {
+/** How much wider than a troop token a 'force'-kind piece (a troop, a leader disc, a tech token or a faction token) is drawn and occupies the table. */
+export function troopScale(piece: Partial<Pick<TablePiece, 'kind' | 'stackKey' | 'items'>>): number {
   if (isFactionToken(piece)) {
     return FACTION_TOKEN_SCALE;
   }
-  return isLeaderPiece(piece) ? LEADER_SCALE : 1;
+  /* A printed tech token is about as wide as a leader disc. */
+  return isLeaderPiece(piece) || isTechToken(piece) ? LEADER_SCALE : 1;
 }
 
 /** Published square and rectangle tokens retain their whole face and aspect ratio. */

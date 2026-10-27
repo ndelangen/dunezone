@@ -173,6 +173,8 @@ const tableActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('storm'), direction }),
   z.strictObject({ kind: z.literal('phase'), direction: direction.optional() }),
   z.strictObject({ kind: z.literal('spice-spawn'), count: z.number().int().min(1).max(10) }),
+  /* Takes one tech token at random out of the shared table inventory and sets it down on the table shelf. */
+  z.strictObject({ kind: z.literal('tech-token-draw') }),
   z.strictObject({ kind: z.literal('reset') }),
 ]);
 export type TableAction = z.infer<typeof tableActionSchema>;

@@ -6,7 +6,13 @@ import { isBattleAction } from '../../src/shared/play/battle';
 import type { BattleAction } from '../../src/shared/play/battle';
 import { isBiddingAction } from '../../src/shared/play/bidding';
 import type { BiddingAction } from '../../src/shared/play/bidding';
-import { accepted, applyPieceAction, nextSnapshot, requireAccepted } from '../../src/shared/play/commands';
+import {
+  accepted,
+  applyPieceAction,
+  drawTechTokenInState,
+  nextSnapshot,
+  requireAccepted,
+} from '../../src/shared/play/commands';
 import type { DraftAction } from '../../src/shared/play/drafting';
 import { emptyPublicControls, isPublicAction } from '../../src/shared/play/inventory';
 import type { PublicAction, StoredControls, StoredSpawnContents } from '../../src/shared/play/inventory';
@@ -100,11 +106,13 @@ type CarryInput<T extends 'begin' | 'pose' | 'take' | 'flip'> = Omit<Extract<Cli
  * Breaking an alliance stays strict, so a late break never leaves an alliance re-formed since the sender saw it.
  * A raise, lowering or pass names its bidding round and is judged against the live bidder's turn, so a quick second raise is not turned away by the first.
  * A spice reserve withdrawal stays strict, so two tabs of one player cannot both spend from a spice reserve they saw once.
+ * A tech token draw picks from whatever the shared table inventory holds when it arrives.
  * A hand order names the player's own pieces, which nobody else moves, and is judged against what they hold now.
  * Leaving stays strict too, since its confirmation said what it costs and a crossed departure may have left the sender the last player.
  */
 const REVISION_TOLERANT_ACTIONS = new Set<string>([
   'spice-spawn',
+  'tech-token-draw',
   'hand-order',
   'deck-draw',
   'peek',
@@ -555,6 +563,7 @@ export class Room {
         'lock',
         'rotate',
         'delete',
+        'tech-token-draw',
         'deck-draw',
         'deck-shuffle',
         'peek',
@@ -740,6 +749,10 @@ export class Room {
 
   /** A reset rebuilds the fixture's table, with its dealt deck when the room has one. */
   private nextTable(guarded: TableState, action: TableAction, identity: Identity): TableState {
+    /* A drawn tech token lands in front of the drawing seat's station, as a spice withdrawal does. */
+    if (action.kind === 'tech-token-draw') {
+      return drawTechTokenInState(guarded, seatSubject(identity.viewerSeat), this.stationFront(identity.viewerSeat));
+    }
     if (action.kind !== 'reset') {
       return applyPieceAction(guarded, action, this.snapshot.phase, seatSubject(identity.viewerSeat), this.phases());
     }
@@ -795,18 +808,27 @@ export class Room {
     };
   }
 
-  /* A withdrawal lands in front of the acting seat's station, whichever station its seating fixed. */
-  private spiceReserveStack(table: TableState, amount: number, seat: Identity['viewerSeat']): TablePiece {
-    const piece = createSpiceStack(table.nextEventNumber, 1);
-    piece.items = Array.from({ length: amount }, (_, index) => ({ id: `${piece.id}-${index + 1}`, faceUp: true }));
+  /** The spot just in front of a seat's station, whichever station its seating fixed; none for a seat without one. */
+  private stationFront(seat: Identity['viewerSeat']): Vector3Tuple | undefined {
     const roster = this.snapshot.roster;
     const station = rosterSeat(roster, seat);
     if (!roster || !station) {
+      return undefined;
+    }
+    const angle = tableSeatAngles(roster.seatCount)[station.position]!;
+    const radius = PLAYER_RING_RADIUS - 0.55;
+    return [Math.cos(angle) * radius, 0, Math.sin(angle) * radius];
+  }
+
+  /* A withdrawal lands in front of the acting seat's station. */
+  private spiceReserveStack(table: TableState, amount: number, seat: Identity['viewerSeat']): TablePiece {
+    const piece = createSpiceStack(table.nextEventNumber, 1);
+    piece.items = Array.from({ length: amount }, (_, index) => ({ id: `${piece.id}-${index + 1}`, faceUp: true }));
+    const front = this.stationFront(seat);
+    if (!front) {
       throw new GameRejection('This seat has no station on the table.');
     }
-    const angle = tableSeatAngles(roster.seatCount)[station.position];
-    const radius = PLAYER_RING_RADIUS - 0.55;
-    const origin = restingPositionAt([Math.cos(angle) * radius, 0, Math.sin(angle) * radius], piece);
+    const origin = restingPositionAt(front, piece);
     const position = nearestCollisionFreePosition(piece, origin, table.pieces);
     if (!position) {
       throw new GameRejection('Make room on the table before withdrawing spice.');
