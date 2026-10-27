@@ -59,6 +59,7 @@ export const AlliesNamedByToken = meta.story({
 export const BreaksTheAlliance = meta.story({
   args: alliancesProps(alliedSnapshot()),
   play: async ({ args, canvas }) => {
+    await expect(canvas.getByText('Your ally')).toBeVisible();
     await expect(canvas.queryByRole('button', { name: /Offer alliance|Accept/ })).toBeNull();
     await userEvent.click(canvas.getByRole('button', { name: 'Break alliance' }));
     await expect(args.onAction).toHaveBeenCalledWith(seat('seat-4'), 'alliance-break');

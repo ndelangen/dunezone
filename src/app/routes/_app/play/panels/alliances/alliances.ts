@@ -70,5 +70,8 @@ export function allianceStatus(
     return 'Offers you an alliance';
   }
   const allies = alliesOf(alliances, factionId);
+  if (own && allies.includes(own)) {
+    return 'Your ally';
+  }
   return allies.length ? `Allied with ${factionList(names, allies)}` : 'No alliance';
 }
