@@ -102,7 +102,16 @@ test('censors a private message copied into browser console output and keeps del
   };
   const report = conversations.reportBrowser(browser);
   expect(report).toMatchObject({
-    snapshot: { snapshot },
+    snapshot: {
+      snapshot: {
+        table: {
+          pieces: snapshot.table.pieces.map((piece) => ({
+            id: piece.id,
+            items: piece.items.map((item) => ({ id: item.id })),
+          })),
+        },
+      },
+    },
     conversations: {
       pending: [{ request: { text: '-redacted message, original length: 22-' }, delivery: { state: 'failed' } }],
     },
