@@ -1,0 +1,77 @@
+{
+  "captured_at": "2026-10-27T13:51:09.778423+00:00",
+  "baseline_commit": "b674d8159952adcbd2c9357690874e0b53880528",
+  "candidate_commit": "dcf6e17adea5b44cd02b40f3cdff5e596007ae0c",
+  "backend_image": "ghcr.io/convex/convex-backend:latest@sha256:d3338c4a78b622aa4d8b8ed6cdb114d8f7610efc91cdf61769c39314b79bb881",
+  "fixture": {
+    "factions": 1,
+    "faction_list_entries": 10,
+    "rulesets": 8,
+    "authored_text_bytes": 225280
+  },
+  "method": {
+    "target": "disposable local Convex backend",
+    "arguments": {
+      "cursor": null,
+      "dryRun": false,
+      "oneBatchOnly": true,
+      "batchSize": 100
+    },
+    "reset": "Restore the same exported fixture before each version.",
+    "counters": "Completion.usageStats from the two parent migration executions; component events are excluded.",
+    "source_unchanged": true
+  },
+  "measurements": [
+    {
+      "version": "baseline",
+      "functions": [
+        {
+          "name": "migrations:catalogue_entries_prune_v1",
+          "read_bytes": 3378127,
+          "write_bytes": 10044,
+          "documents_read": 4492
+        },
+        {
+          "name": "migrations:catalogue_entries_verify_v1",
+          "read_bytes": 2610111,
+          "write_bytes": 0,
+          "documents_read": 1056
+        }
+      ]
+    },
+    {
+      "version": "candidate",
+      "functions": [
+        {
+          "name": "migrations:catalogue_entries_prune_v1",
+          "read_bytes": 459641,
+          "write_bytes": 10044,
+          "documents_read": 649
+        },
+        {
+          "name": "migrations:catalogue_entries_verify_v1",
+          "read_bytes": 303193,
+          "write_bytes": 0,
+          "documents_read": 183
+        }
+      ]
+    },
+    {
+      "version": "baseline-repeat",
+      "functions": [
+        {
+          "name": "migrations:catalogue_entries_prune_v1",
+          "read_bytes": 3378127,
+          "write_bytes": 10044,
+          "documents_read": 4492
+        },
+        {
+          "name": "migrations:catalogue_entries_verify_v1",
+          "read_bytes": 2610111,
+          "write_bytes": 0,
+          "documents_read": 1056
+        }
+      ]
+    }
+  ]
+}
