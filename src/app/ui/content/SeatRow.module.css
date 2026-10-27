@@ -1,7 +1,7 @@
 /* The ground and ink default to the page's; a surface with its own, such as a dark pass, sets `--seat-row-ground` and `--seat-row-accent` round it. */
 .row {
   display: grid;
-  grid-template-columns: repeat(var(--seat-row-places), minmax(0, 2.6rem));
+  grid-template-columns: repeat(var(--seat-row-columns), minmax(0, 2.6rem));
   justify-content: space-between;
   gap: 0.3rem;
   margin: 0;

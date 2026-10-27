@@ -9,17 +9,20 @@ import styles from './SeatRow.module.css';
 export function SeatRow({
   seats,
   places,
+  perRow = 9,
   first = 'You',
 }: Readonly<{
   /** How many seats the table has. */
   seats: number;
   /** How many seats a table can have at most: the row's length. */
   places: number;
+  /** How many seats sit side by side before the row wraps onto the next line. */
+  perRow?: number;
   /** What the first seat says in place of its number. */
   first?: string;
 }>) {
   return (
-    <ol className={styles.row} style={{ '--seat-row-places': places } as CSSProperties} aria-hidden>
+    <ol className={styles.row} style={{ '--seat-row-columns': perRow } as CSSProperties} aria-hidden>
       {Array.from({ length: places }, (_, index) => (
         <li key={index} className={styles.seat} data-state={index === 0 ? 'first' : index < seats ? 'open' : 'unused'}>
           {index === 0 ? first : index + 1}

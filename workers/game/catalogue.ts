@@ -4,6 +4,7 @@ import { api } from '../../convex/_generated/api';
 import { phaseDeclarationSchema } from '../../src/shared/factions/extraPhases';
 import { IdentifiedFactionStoredSchema, toStoredHeroKey } from '../../src/shared/factions/schema';
 import { lacksBattleValues, troopBattleFaces } from '../../src/shared/factions/troopBattle';
+import { AssetCapture } from '../../src/shared/play/assetCapture';
 import type {
   CaptureProblem,
   FactionCapture,
@@ -25,7 +26,6 @@ import { captureSelectionSchema } from '../../src/shared/play/inventory';
 import { GameRejection } from '../../src/shared/play/rejection';
 import type { RulesetAssetSlot } from '../../src/shared/rulesets/assetSlots';
 import { RULESET_ASSET_SLOTS } from '../../src/shared/rulesets/assetSlots';
-import { AssetCapture } from './assetCapture';
 import { gameHttpClient } from './gameHttpClient';
 import type { ConvexObserver } from './gameHttpClient';
 

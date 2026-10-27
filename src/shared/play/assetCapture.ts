@@ -1,14 +1,14 @@
-import { cardbackPresetLabel } from '../../src/shared/assets/cardbackPresets';
-import { authoredCardback, DeckAssetInput, PhysicalSize } from '../../src/shared/assets/schema';
-import { holdsDeckMembership } from '../../src/shared/assets/types';
-import { parseAssetDataForWrite } from '../../src/shared/assets/validation';
-import type { AssetSupply } from '../../src/shared/play/capture';
-import { assetSupplySchema } from '../../src/shared/play/capture';
-import type { CaptureSelection, StoredSpawnContents } from '../../src/shared/play/inventory';
-import { storedSpawnContentsSchema } from '../../src/shared/play/inventory';
-import type { StoredPiece } from '../../src/shared/play/model';
-import { GameRejection } from '../../src/shared/play/rejection';
-import { labelForCount } from '../../src/shared/play/tableState';
+import { cardbackPresetLabel } from '../assets/cardbackPresets';
+import { authoredCardback, DeckAssetInput, PhysicalSize } from '../assets/schema';
+import { holdsDeckMembership } from '../assets/types';
+import { parseAssetDataForWrite } from '../assets/validation';
+import type { AssetSupply } from './capture';
+import { assetSupplySchema } from './capture';
+import type { CaptureSelection, StoredSpawnContents } from './inventory';
+import { storedSpawnContentsSchema } from './inventory';
+import type { StoredPiece } from './model';
+import { GameRejection } from './rejection';
+import { labelForCount } from './tableState';
 
 type SuppliedMember = AssetSupply['members'][number];
 /** The rows a supplied asset's definition spans: itself and whichever back it wears. */

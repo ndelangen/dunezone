@@ -1,10 +1,10 @@
+import type { AssetCapture } from '@shared/play/assetCapture';
 import type { PublicFaction } from '@shared/play/capture';
 import { LOG_PAGE_SIZE } from '@shared/play/log';
 import { clientMessageSchema, KEEPALIVE_PING, KEEPALIVE_PONG } from '@shared/play/protocol';
 import type { ServerMessage } from '@shared/play/protocol';
 import { GameRejection } from '@shared/play/rejection';
 
-import type { AssetCapture } from '../../../../../../workers/game/assetCapture';
 import { browserGameRuntime } from '../../play/multiplayer/gameRuntime';
 import type { GameRuntime, GameSocket } from '../../play/multiplayer/gameRuntime';
 import { LocalConversations } from './localConversations';

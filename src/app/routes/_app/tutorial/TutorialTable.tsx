@@ -1,3 +1,4 @@
+import { AssetCapture } from '@shared/play/assetCapture';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { PageTitle } from '@ui/block/PageTitle';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -7,7 +8,6 @@ import type { ReactNode } from 'react';
 import { readAssetSupply } from '@db/play';
 import { useCurrentProfile } from '@db/profiles';
 
-import { AssetCapture } from '../../../../../workers/game/assetCapture';
 import { CompassEpochContext } from '../play/compass/compassEpoch';
 import { RememberedContext } from '../play/compass/useRemembered';
 import { GameRuntimeContext } from '../play/multiplayer/gameRuntime';

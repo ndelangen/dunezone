@@ -37,7 +37,7 @@ const PROVIDED_ELSEWHERE = [
   ['--rail-width', 'TutorialGuide, which sizes its rail, via inline style'],
   ['--progress', 'TutorialGuide, the share of its chapter done, via inline style'],
   ['--ahead', 'TutorialGuide, how many tasks off each rail task is, via inline style'],
-  ['--seat-row-places', 'SeatRow in ui/content, the length of its row, via inline style'],
+  ['--seat-row-columns', 'SeatRow in ui/content, how many seats sit side by side, via inline style'],
   [
     '--compass-camera-top',
     'the compass controls (useSlotHeights), which hang the camera dial under the toolbar, via setProperty',
