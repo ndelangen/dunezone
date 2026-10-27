@@ -107,24 +107,11 @@
   gap: 2px;
 }
 
-.gridCell {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-}
-
-/* Variant B: the chosen turn's phases in one strip, each with its moments underneath. */
+/* Variant B: the chosen turn's phases in one strip, one strip high. */
 .strip {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-xs);
-}
-
-.stripCell {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
 }
 
 /* Variant D: the latest moments as rows, earlier turns folded away. */
