@@ -86,6 +86,7 @@ export function ValidationHeader<W extends ValidationHeaderWarning>({
             <Tooltip label={help} multiline maw={360} withArrow>
               {chip}
             </Tooltip>
+            {/* Mantine mounts the tooltip's label only while it is open, so the description needs a copy that is always there. */}
             <VisuallyHidden id={describedBy}>{help}</VisuallyHidden>
           </Fragment>
         ) : (

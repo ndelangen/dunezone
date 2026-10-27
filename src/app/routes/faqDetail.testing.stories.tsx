@@ -48,6 +48,9 @@ export const PickReferences = meta.story({
     );
     await expect(picker.getByRole('searchbox', { name: 'Search treachery cards' })).toHaveValue('');
     await userEvent.keyboard('{Escape}');
+    /* `FaqReferenceAdd` wires Mantine's popover itself (its `opened`, `onChange` and `returnFocus`), so closing and handing focus back are this route's own (ADR-0005). */
+    await waitFor(() => expect(page.queryByRole('dialog', { name: 'Add references' })).toBeNull());
+    await waitFor(() => expect(page.getByRole('button', { name: 'Add references' })).toHaveFocus());
     await expect(page.getByRole('button', { name: 'Remove reference to Lasgun' })).toBeVisible();
   },
 });

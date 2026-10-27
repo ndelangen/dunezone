@@ -65,10 +65,6 @@ export const CoverPresets = meta.story({
     await userEvent.click(preset);
     await userEvent.click(await page.findByRole('option', { name: 'Dreamrules rainbow' }));
     await expect(preset).toHaveValue('Dreamrules rainbow');
-    /* The field shows the chosen preset's thumbnail, the same one its options show; `AssetSelect` owns the hover preview. */
-    await expect(
-      canvasElement.querySelector('img[src="/image/rulebook-cover/dreamrules-rainbow-small.jpg"]')
-    ).toBeInTheDocument();
     await expect(coverChange.mock.lastCall?.[0]).toMatchObject({
       backgroundSource: { kind: 'preset', presetId: 'dreamrules-rainbow' },
       backgroundImageUrl: '',

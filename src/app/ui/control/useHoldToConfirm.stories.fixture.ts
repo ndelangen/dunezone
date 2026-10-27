@@ -5,7 +5,7 @@ import { HOLD_SECONDS } from './useHoldToConfirm';
 
 /**
  * Completes one hold on a hold-to-confirm trigger, for a story above the kit that proves what the hold sends (ADR-0005).
- * The kit's own stories and `useHoldToConfirm.test.tsx` cover the countdown, the early release and the hover text, so this only runs the hold to the end.
+ * `ConfirmDeleteAction.test.tsx` covers the countdown, the early release and the keyboard hold, and the kit's testing stories cover the hover words, so this only runs the hold to the end.
  * Only the hold's intervals are faked: pointer events, rendering and database waits keep their real clocks.
  */
 export async function completeHold(trigger: HTMLElement) {
