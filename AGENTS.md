@@ -480,10 +480,12 @@ text or dictate API shape ([ADR-0001](docs/adr/0001-contracts-over-expressions.m
 Write every test for a busy runner. Most past flakes came from four patterns:
 
 - **No real-time waits on animations or timers.** A loaded runner can go 5 to 10 s without drawing a
-  frame (the measurements are in `.storybook/storyWaits.ts`). Finish the animation from the test,
-  drive fake timers, or count frames. Check a tooltip's content with `toHaveAccessibleDescription`
-  rather than hovering and waiting for it to open. An animation test that only ever fails from frame
-  lag gets deleted, not loosened.
+  frame (the measurements are in `.storybook/storyWaits.ts`). Finish the animation from the test
+  (`finishTransitions`), drive fake timers, or wait on a frame with `waitForFrame` and its shared
+  bound. Open a tooltip in its component's own story; a page story checks the trigger's
+  `toHaveAccessibleDescription` instead, where the trigger carries one even while closed (as
+  `HelpMark` does).
+  An animation test that only ever fails from frame lag gets deleted, not loosened.
 - **Assert the final state, all at once.** A check that also passes on an in-between state, such as
   an empty loading grid, proves nothing. Wait on one condition that holds only when everything you
   expect is true together.
