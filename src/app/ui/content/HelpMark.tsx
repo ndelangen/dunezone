@@ -21,7 +21,8 @@ export function HelpMark({ text, id }: HelpMarkProps) {
   const descriptionId = id ?? ownId;
   return (
     <>
-      <VisuallyHidden id={descriptionId}>{text}</VisuallyHidden>
+      {/* Read aloud as one description: the tooltip's line breaks are only for the eye. */}
+      <VisuallyHidden id={descriptionId}>{typeof text === 'string' ? text.replaceAll('\n', ' ') : text}</VisuallyHidden>
       <Tooltip
         label={text}
         multiline
