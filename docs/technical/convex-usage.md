@@ -44,6 +44,17 @@ Ordinary releases should preserve dev's records and skip completed migrations.
 
 ## Read regression budgets
 
+The publication jobs dashboard reads `publication_job_listings`, which contains queue metadata without
+render payloads. An aggregate maintains exact counts and numbered-page offsets for every status and
+Asset type. Job writes maintain both in the same transaction. A 1,101-job fixture keeps a deep filtered
+25-row page under 128 KiB; the rollout fallback fails that same budget because it reads render payloads.
+
+The additive `publication_job_listings_v1` backfill copies existing job metadata. Its verifier checks
+each remaining job and both aggregate entries before the dashboard switches from the original query.
+Neither migration changes source job payloads, status, attempts or publication settings. Production
+execution requires confirmation under the production-write policy. To recover, deploy the original
+page reader while retaining the listing table, write triggers and aggregate component.
+
 `convex/assets.boardListings.test.ts` caps backend reads at 64 KiB for listings with real Arrakis
 geometry, including a ten-board catalogue. It covers asset landing, numbered catalogue, legacy
 browse, asset picker, FAQ board picker and ruleset board slots. It verifies that a full definition

@@ -47,6 +47,7 @@ export const SNAPSHOT_REBUILD_CONTRACT = {
     'faq_answers',
     'leader_skill_stock_sets',
     'publication_jobs',
+    'publication_job_listings',
     'publication_assets',
     'admin_settings',
     'counters',

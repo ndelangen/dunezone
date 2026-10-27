@@ -8,6 +8,7 @@ import { registerCatalogueTriggers } from './catalogueEntries';
 import { registerFactionCardTriggers } from './factionCards';
 import { registerProfileActivityTriggers } from './profileActivity';
 import { registerProfileDiscoveryTriggers } from './profileDiscovery';
+import { registerPublicationJobListingTriggers } from './publicationJobListings';
 import { registerStatisticsTriggers } from './statistics';
 
 export const applicationTriggers = new Triggers<DataModel, MutationCtx>();
@@ -21,3 +22,4 @@ registerCatalogueTriggers(applicationTriggers);
 registerFactionCardTriggers(applicationTriggers);
 
 registerBackgroundUseTriggers(applicationTriggers);
+registerPublicationJobListingTriggers(applicationTriggers);

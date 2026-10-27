@@ -6,6 +6,7 @@ import { internalQuery } from './_generated/server';
 import { adminQuery, internalMutation, mutation } from './functions';
 import { requireAdminUserId } from './lib/policy';
 import { publicationSettings } from './lib/publication';
+import { publicationJobListingPage } from './lib/publicationJobListings';
 
 const publicationStatus = v.union(v.literal('pending'), v.literal('in_progress'), v.literal('error'));
 
@@ -135,27 +136,12 @@ export const page = adminQuery({
     pageSize: v.number(),
   }),
   handler: async (ctx, args) => {
-    const [pending, inProgress, errors, settings] = await Promise.all([
-      ctx.db
-        .query('publication_jobs')
-        .withIndex('by_status_and_created_at', (q) => q.eq('status', 'pending'))
-        .take(1000),
-      ctx.db
-        .query('publication_jobs')
-        .withIndex('by_status_and_created_at', (q) => q.eq('status', 'in_progress'))
-        .take(1000),
-      ctx.db
-        .query('publication_jobs')
-        .withIndex('by_status_and_created_at', (q) => q.eq('status', 'error'))
-        .take(1000),
+    const pageSize = Number.isFinite(args.pageSize) ? Math.max(1, Math.min(100, Math.floor(args.pageSize))) : 1;
+    const page = Number.isFinite(args.page) ? Math.max(1, Math.floor(args.page)) : 1;
+    const [listing, settings] = await Promise.all([
+      publicationJobListingPage(ctx, { ...args, page, pageSize }),
       publicationSettings(ctx),
     ]);
-    const allJobs = [...errors, ...inProgress, ...pending]
-      .filter((job) => args.status === undefined || job.status === args.status)
-      .filter((job) => args.assetType === undefined || job.asset_type === args.assetType);
-    const pageSize = Math.max(1, Math.min(100, Math.floor(args.pageSize)));
-    const page = Math.max(1, Math.floor(args.page));
-    const offset = (page - 1) * pageSize;
 
     return {
       settings: settings
@@ -165,13 +151,9 @@ export const page = adminQuery({
             updatedAt: settings.updated_at,
           }
         : null,
-      counts: {
-        pending: pending.length,
-        inProgress: inProgress.length,
-        error: errors.length,
-      },
-      jobs: allJobs.slice(offset, offset + pageSize).map((job) => ({
-        id: job._id,
+      counts: listing.counts,
+      jobs: listing.jobs.map((job) => ({
+        id: job.job_id,
         assetType: job.asset_type,
         assetId: job.asset_id,
         status: job.status,
@@ -181,7 +163,7 @@ export const page = adminQuery({
         createdAt: job.created_at,
         updatedAt: job.updated_at,
       })),
-      total: allJobs.length,
+      total: listing.total,
       page,
       pageSize,
     };

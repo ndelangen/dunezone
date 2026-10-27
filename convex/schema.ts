@@ -31,6 +31,19 @@ const accountStateValidator = v.union(
   v.literal('deleted')
 );
 
+const publicationJobFields = v.object({
+  component_version: v.optional(v.number()),
+  asset_type: v.string(),
+  asset_id: v.string(),
+  asset_data: v.any(),
+  status: v.union(v.literal('pending'), v.literal('in_progress'), v.literal('error')),
+  attempt_counter: v.number(),
+  expires_at: v.optional(v.number()),
+  error: v.optional(v.string()),
+  created_at: v.number(),
+  updated_at: v.number(),
+});
+
 export default defineSchema({
   ...authTables,
   authSessions: defineTable({
@@ -367,22 +380,18 @@ export default defineSchema({
     cache_token: v.string(),
     published_at: v.number(),
   }).index('by_asset_type_and_asset_id', ['asset_type', 'asset_id']),
-  publication_jobs: defineTable({
-    component_version: v.optional(v.number()),
-    asset_type: v.string(),
-    asset_id: v.string(),
-    asset_data: v.any(),
-    status: v.union(v.literal('pending'), v.literal('in_progress'), v.literal('error')),
-    attempt_counter: v.number(),
-    expires_at: v.optional(v.number()),
-    error: v.optional(v.string()),
-    created_at: v.number(),
-    updated_at: v.number(),
-  })
+  publication_jobs: defineTable(publicationJobFields)
     .index('by_asset_type_and_asset_id', ['asset_type', 'asset_id'])
     .index('by_status_and_created_at', ['status', 'created_at'])
     .index('by_status_and_expires_at', ['status', 'expires_at'])
     .index('by_status_and_updated_at', ['status', 'updated_at']),
+  /** Queue metadata for the admin listing, without the captured render payload. */
+  publication_job_listings: defineTable(
+    publicationJobFields.omit('asset_data', 'component_version').extend({
+      job_id: v.id('publication_jobs'),
+      job_creation_time: v.number(),
+    })
+  ).index('by_job', ['job_id']),
   admin_settings: defineTable({
     key: v.literal('publication'),
     publication_pickup_enabled: v.boolean(),
