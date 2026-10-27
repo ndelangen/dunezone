@@ -5,6 +5,7 @@ import {
   GAME_LENGTH_GUIDANCE,
   GAME_LOG_GUIDANCE,
   REPLAY_GUIDANCE,
+  SPICE_GUIDANCE,
   TINTS_GUIDANCE,
 } from '../multiplayer/panelGuidance';
 
@@ -28,4 +29,5 @@ export const PANEL_WINDOWS = {
     description: 'Public spice transfers, newest first.',
   },
   replay: { key: 'replay', label: 'Replay', topic: 'turn', ...REPLAY_GUIDANCE },
+  spice: { key: 'spice', label: 'Spice', topic: 'spice', ...SPICE_GUIDANCE },
 } as const satisfies Record<string, PanelWindow>;

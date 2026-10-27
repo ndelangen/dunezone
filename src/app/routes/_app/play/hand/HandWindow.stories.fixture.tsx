@@ -11,9 +11,9 @@ import { GameRuntimeContext } from '../multiplayer/gameRuntime';
 import { GameSubscription } from '../multiplayer/GameSubscription';
 import { HiddenZone } from '../multiplayer/HiddenZone';
 import { HAND_AND_SPICE_GUIDANCE, HIDDEN_ZONE_GUIDANCE } from '../multiplayer/panelGuidance';
+import { ConnectedSpiceReservePanel } from '../panels/spice/useSpiceReservePanel';
 import { sandboxTransport } from '../sandbox.stories.fixture';
 import { HandShelves } from './HandShelves';
-import { SpiceReserve } from './SpiceReserve';
 import '../dune-play.css';
 
 /*
@@ -55,7 +55,7 @@ function HandWindowHarness({ height = 448 }: Readonly<{ height?: number; seat?: 
                 ...HAND_AND_SPICE_GUIDANCE,
                 content: (
                   <>
-                    <SpiceReserve client={client} table={table} />
+                    <ConnectedSpiceReservePanel client={client} table={table} />
                     <HandShelves client={client} table={table} hand={hand} />
                   </>
                 ),

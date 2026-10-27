@@ -2,8 +2,8 @@ import preview from '@sb/preview';
 import { expect, within } from 'storybook/test';
 
 import { install } from './game.stories.fixture';
-import { emptySpiceReserve, handAndSpiceMeta } from './panel.hand.stories.fixture';
-import { openTab, settled } from './playing.stories.fixture';
+import { handAndSpiceMeta } from './panel.hand.stories.fixture';
+import { openTab } from './playing.stories.fixture';
 import { productTransport, playingSnapshot as initialSnapshot } from './product.stories.fixture';
 
 const meta = preview.meta({ ...handAndSpiceMeta, title: 'Play/Panels/Hand and spice' });
@@ -27,17 +27,5 @@ export const Hand = meta.story({
     await openTab(page, 'Hand');
     await expect(page.findByRole('button', { name: 'Drag Snooper from hand' })).resolves.toBeVisible();
     await expect(page.getByRole('button', { name: 'Drag Feyd Rautha from hand' })).toBeVisible();
-  },
-});
-
-export const SpiceReserveNarrow = meta.story({
-  globals: { viewport: { value: 'contentColumn' } },
-  beforeEach: emptySpiceReserve,
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await openTab(page, 'Spice');
-    await settled(() => expect(page.getByLabelText('Spice reserve balance')).toBeVisible());
-    await expect(page.getByRole('button', { name: 'Withdraw spice' })).toBeDisabled();
-    await expect(page.queryByRole('button', { name: 'Take into spice reserve' })).toBeNull();
   },
 });

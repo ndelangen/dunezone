@@ -33,13 +33,13 @@ import { GameLink } from '../GameLink';
 import { GameTable } from '../GameTable';
 import type { TablePanel } from '../GameTable';
 import { HandShelves } from '../hand/HandShelves';
-import { SpiceReserve } from '../hand/SpiceReserve';
 import { SharedInventoryPanel } from '../inventory/SharedInventoryPanel';
 import { ConnectedAlliancesPanel } from '../panels/alliances/useAlliancesPanel';
 import { ConnectedLogPanel } from '../panels/log/useLogPanel';
 import { PANEL_WINDOWS } from '../panels/panelWindows';
 import { ConnectedReplayPanel } from '../panels/replay/useReplayPanel';
 import { ConnectedGameLengthPanel } from '../panels/settings/useGameLengthPanel';
+import { ConnectedSpiceReservePanel } from '../panels/spice/useSpiceReservePanel';
 import { ConnectedTerritoryTintsPanel } from '../panels/tints/useTerritoryTintsPanel';
 import { ConnectedSpiceTransfersPanel } from '../panels/transfers/useSpiceTransfersPanel';
 import { predictionCardInHand } from '../prediction/predictionCardInHand';
@@ -68,7 +68,6 @@ import {
   setupGuidance,
   setupHelp,
   SHARED_INVENTORY_GUIDANCE,
-  SPICE_GUIDANCE,
 } from './panelGuidance';
 import { FactionInfo, PlayerChat, usePlayerWindows } from './RemovalVotes';
 import { useResultCelebration } from './resultCelebration';
@@ -536,15 +535,7 @@ function yoursGroup({ client, table }: TableControlProps): TablePanel {
     panels: [
       ...handPanels({ client, table }),
       ...(table.snapshot.bank
-        ? [
-            {
-              key: 'spice',
-              label: 'Spice',
-              topic: 'spice' as const,
-              ...SPICE_GUIDANCE,
-              content: <SpiceReserve client={client} table={table} />,
-            },
-          ]
+        ? [{ ...PANEL_WINDOWS.spice, content: <ConnectedSpiceReservePanel client={client} table={table} /> }]
         : []),
     ],
   };
