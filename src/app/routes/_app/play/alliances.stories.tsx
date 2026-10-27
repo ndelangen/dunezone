@@ -101,3 +101,27 @@ export const ManyAlliancesFitTheHeader = meta.story({
     });
   },
 });
+
+/* Opens the Alliances window bottom left and the viewer's Faction info bottom right, whatever an earlier visit left pinned. */
+function pinAlliancesAndFactionInfo() {
+  try {
+    localStorage.setItem(
+      'dunezone-compass:slots',
+      JSON.stringify({ left: { key: 'alliances' }, right: { key: 'faction-info', seat: VIEWER } })
+    );
+  } catch {
+    /* Without storage the slots start empty. */
+  }
+}
+
+/** The Alliances window shows every faction by its token, with its allies' tokens beside its status, and the Faction info keeps all six tokens on one line, scrolling sideways when its slot is narrow. */
+export const TokensInTheWindows = meta.story({
+  globals: { viewport: { value: 'table1280' } },
+  beforeEach: [install(() => productTransport(VIEWER, alliancesSnapshot())), pinAlliancesAndFactionInfo],
+  play: async ({ canvasElement }) => {
+    const doc = canvasElement.ownerDocument;
+    const picker = await within(doc.body).findByRole('group', { name: 'Factions' }, { timeout: 30_000 });
+    const tops = new Set([...picker.querySelectorAll('button')].map((button) => button.offsetTop));
+    await expect(tops.size, 'The faction tokens wrap onto a second line.').toBe(1);
+  },
+});

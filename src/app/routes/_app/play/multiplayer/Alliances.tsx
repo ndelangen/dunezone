@@ -6,7 +6,7 @@ import { factionTokenOf } from '@shared/play/factionToken';
 import { playUiColors, withAlpha } from '@shared/uiPalette';
 import { Section } from '@ui/block/Section';
 import { TopicIcon } from '@ui/content/TopicIcon';
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import { alliedFactionColors, allianceRingStyle, factionColor } from './allianceColors';
@@ -25,38 +25,44 @@ export function showsAlliances(stage: string | undefined) {
   return stage === 'play' || stage === 'finished';
 }
 
-/** A player's alliance in their Faction info, with what the viewer can do about it: offer, accept or decline, withdraw, or break an alliance. */
-export function PlayerAlliance({ client, table, seat }: Props & Readonly<{ seat: string }>) {
+/** A seat's alliance as the Faction info shows it: the faction's allies, how it stands with the viewer, and the one action that fits; null outside play. */
+export type SeatAlliance = Readonly<{ allies: readonly string[]; status: string; action: ReactNode }>;
+
+export function seatAlliance(client: TableSession, table: TableProjection, seat: string): SeatAlliance | null {
   const factionId = seatFaction(table, seat);
   if (!factionId || !showsAlliances(table.snapshot.stage)) {
     return null;
   }
   const names = snapshotFactionLabels(table.snapshot);
   const row = { factionId, seat, player: null };
-  return (
-    <Group gap="sm" justify="space-between" wrap="wrap">
-      <Group gap="xs" wrap="nowrap">
-        <AllianceMark colors={alliedFactionColors(table.snapshot, factionId)} />
-        <Text size="sm">{rowStatus(table.snapshot.alliances, row, viewerFaction(table), names)}</Text>
-      </Group>
-      <RowAction client={client} table={table} row={row} />
-    </Group>
-  );
+  return {
+    allies: alliesOf(table.snapshot.alliances, factionId),
+    status: rowStatus(table.snapshot.alliances, row, viewerFaction(table), names),
+    action: <RowAction client={client} table={table} row={row} />,
+  };
 }
 
-function AllianceMark({ colors }: Readonly<{ colors: readonly string[] }>) {
+/** The faction's allies as their tokens, or the alliance mark while it has none. */
+export function AllianceMark({
+  table,
+  allies,
+  size = 22,
+}: Readonly<{ table: TableProjection; allies: readonly string[]; size?: number }>) {
+  if (allies.length) {
+    return (
+      <FactionTokenGroup table={table} factionIds={allies} names={snapshotFactionLabels(table.snapshot)} size={size} />
+    );
+  }
   return (
-    <span style={allianceRingStyle(colors)}>
-      <span
-        style={{
-          display: 'inline-flex',
-          borderRadius: '50%',
-          background: 'var(--color-ground)',
-          color: 'var(--color-muted)',
-        }}
-      >
-        <TopicIcon topic="alliance" size={18} />
-      </span>
+    <span
+      style={{
+        display: 'inline-flex',
+        borderRadius: '50%',
+        background: 'var(--color-ground)',
+        color: 'var(--color-muted)',
+      }}
+    >
+      <TopicIcon topic="alliance" size={size - 4} />
     </span>
   );
 }
@@ -209,27 +215,33 @@ export function AlliancesPanel({ client, table }: Props) {
     <Section hiddenHeading title="Alliances" description={ALLIANCES_HELP}>
       <Stack gap="xs">
         {rows.map((row) => {
-          const logo = snapshot.factionArtwork?.[row.factionId]?.logo;
           const colors = alliedFactionColors(snapshot, row.factionId);
+          const allies = alliesOf(snapshot.alliances, row.factionId);
           return (
             <Group key={row.factionId} justify="space-between" gap="sm" wrap="nowrap">
-              <Group gap="sm" wrap="nowrap">
-                <span style={allianceRingStyle(colors)}>
-                  <Avatar src={logo} size={32} radius="xl" alt="">
-                    {(names[row.factionId] ?? row.factionId).slice(0, 1)}
-                  </Avatar>
-                </span>
-                <Stack gap={0}>
-                  <Text size="sm" fw={700}>
-                    {names[row.factionId] ?? row.factionId}
-                    {row.player ? ` · ${row.player}` : ' · Open seat'}
+              <Group gap="sm" wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
+                <Tooltip label={names[row.factionId] ?? row.factionId} withinPortal>
+                  <span style={{ display: 'inline-flex', flexShrink: 0, ...allianceRingStyle(colors) }}>
+                    <FactionTokenFace table={table} factionId={row.factionId} names={names} size={32} />
+                  </span>
+                </Tooltip>
+                <Stack gap={0} style={{ minWidth: 0 }}>
+                  <Text size="sm" fw={700} truncate>
+                    {row.player ?? names[row.factionId] ?? row.factionId}
                   </Text>
-                  <Text size="xs" c="dimmed">
-                    {rowStatus(snapshot.alliances, row, own, names)}
-                  </Text>
+                  <Group gap={6} wrap="nowrap" style={{ minWidth: 0 }}>
+                    {allies.length > 0 && (
+                      <FactionTokenGroup table={table} factionIds={allies} names={names} size={18} />
+                    )}
+                    <Text size="xs" c="dimmed" truncate>
+                      {rowStatus(snapshot.alliances, row, own, names)}
+                    </Text>
+                  </Group>
                 </Stack>
               </Group>
-              <RowAction client={client} table={table} row={row} />
+              <div style={{ flexShrink: 0 }}>
+                <RowAction client={client} table={table} row={row} />
+              </div>
             </Group>
           );
         })}
@@ -248,7 +260,6 @@ export function AllianceStrip({ table }: Readonly<{ table: TableProjection }>) {
     return null;
   }
   const names = snapshotFactionLabels(table.snapshot);
-  const face = (factionId: string) => factionTokenOf(table.state.pieces, factionId)?.items[0]?.artwork?.front;
   return (
     <Group
       gap="xs"
@@ -274,24 +285,70 @@ export function AllianceStrip({ table }: Readonly<{ table: TableProjection }>) {
               }}
             >
               {group.map((factionId, index) => (
-                <Avatar
+                <FactionTokenFace
                   key={factionId}
-                  src={face(factionId)}
+                  table={table}
+                  factionId={factionId}
+                  names={names}
                   size={26}
-                  radius="xl"
-                  alt=""
-                  style={{
-                    marginLeft: index ? -6 : 0,
-                    border: `1px solid ${factionColor(table.snapshot, factionId) ?? playUiColors.annotationGold}`,
-                  }}
-                >
-                  {(names[factionId] ?? factionId).slice(0, 1)}
-                </Avatar>
+                  style={{ marginLeft: index ? -6 : 0 }}
+                />
               ))}
             </Group>
           </Tooltip>
         );
       })}
+    </Group>
+  );
+}
+
+type TokenProps = Readonly<{ table: TableProjection; names: Readonly<Record<string, string>> }>;
+
+/** A faction's token as it lies on the table, ringed in its colour; its initial while the table has no token for it. */
+export function FactionTokenFace({
+  table,
+  factionId,
+  names,
+  size,
+  style,
+}: TokenProps & Readonly<{ factionId: string; size: number; style?: CSSProperties }>) {
+  const face = factionTokenOf(table.state.pieces, factionId)?.items[0]?.artwork?.front;
+  return (
+    <Avatar
+      src={face}
+      size={size}
+      radius="xl"
+      alt=""
+      style={{
+        border: `1px solid ${factionColor(table.snapshot, factionId) ?? playUiColors.annotationGold}`,
+        ...style,
+      }}
+    >
+      {(names[factionId] ?? factionId).slice(0, 1)}
+    </Avatar>
+  );
+}
+
+/* Several factions' tokens overlapping in a row, each named in its tooltip. */
+function FactionTokenGroup({
+  table,
+  factionIds,
+  names,
+  size,
+}: TokenProps & Readonly<{ factionIds: readonly string[]; size: number }>) {
+  return (
+    <Group gap={0} wrap="nowrap" style={{ flexShrink: 0 }}>
+      {factionIds.map((factionId, index) => (
+        <Tooltip key={factionId} label={names[factionId] ?? factionId} withinPortal>
+          <FactionTokenFace
+            table={table}
+            factionId={factionId}
+            names={names}
+            size={size}
+            style={{ marginLeft: index ? -Math.round(size / 4) : 0 }}
+          />
+        </Tooltip>
+      ))}
     </Group>
   );
 }

@@ -1,6 +1,7 @@
-import { Button, Group, Stack, Text, VisuallyHidden } from '@mantine/core';
+import { Avatar, Button, Group, Stack, Text } from '@mantine/core';
 import { alliesOf } from '@shared/play/alliances';
 import { TABLE_CONVERSATION } from '@shared/play/conversations';
+import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import { factionTokenOf } from '@shared/play/factionToken';
 import type { PublicControls } from '@shared/play/inventory';
 import type { RemovalVote } from '@shared/play/removal';
@@ -8,16 +9,17 @@ import { rosterSeat } from '@shared/play/schema';
 import { FormError } from '@ui/block/FormError';
 import { Section } from '@ui/block/Section';
 import { StatusBadge } from '@ui/content/StatusBadge';
-import { ExternalLink } from 'lucide-react';
 import { useEffect, useSyncExternalStore } from 'react';
 
 import { useFactionPageSlug } from '@db/factions';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import type { CompassPlayer } from '../compass/compassTable';
-import { PlayerAlliance } from './Alliances';
+import { AllianceMark, FactionTokenFace, seatAlliance } from './Alliances';
 import { Conversation } from './Conversation';
 import { FactionDetails } from './FactionDetails';
+import { FactionInfoTop } from './FactionInfoLayouts';
+import type { FactionInfoModel } from './FactionInfoLayouts';
 import { requestedSeats, VacantSeatRequests } from './SeatRequests';
 import { SwappingSeat } from './Swapping';
 import { isSpectator, seatFaction } from './tableFactions';
@@ -145,55 +147,42 @@ function useFactionDetails(client: TableSession, factionId: string | undefined) 
 function PlayerInformation({ client, table, player, hasVote }: Props & Readonly<{ player: Player; hasVote: boolean }>) {
   const faction = rosterSeat(table.snapshot.roster, player.seat)?.faction;
   const count = table.snapshot.controls?.players.length ?? 0;
-  const canStart = removable(table, player.seat, hasVote);
   const { slug, details } = useFactionDetails(client, faction?.id);
+  const alliance = seatAlliance(client, table, player.seat);
+  const names = snapshotFactionLabels(table.snapshot);
+  const model: FactionInfoModel = {
+    token: (size) =>
+      faction ? (
+        <FactionTokenFace table={table} factionId={faction.id} names={names} size={size} />
+      ) : (
+        <Avatar size={size} radius="xl" alt="">
+          {player.name.slice(0, 1)}
+        </Avatar>
+      ),
+    name: player.name,
+    faction: faction?.name ?? null,
+    seat: player.seat.replace('seat-', 'Seat '),
+    own: player.seat === table.viewer.viewerSeat,
+    alliance,
+    allianceMark: <AllianceMark table={table} allies={alliance?.allies ?? []} />,
+    page: slug && faction ? { href: `/factions/${encodeURIComponent(slug)}`, name: faction.name } : null,
+    removal: removable(table, player.seat, hasVote)
+      ? {
+          start: () => client.command({ kind: 'removal-start', seat: player.seat }),
+          ...(count < 3
+            ? { disabledReason: 'Removal requires at least three players.' }
+            : !table.canInteract && { disabledReason: 'The table is not taking moves right now.' }),
+        }
+      : null,
+  };
   return (
     <Section hiddenHeading title={player.name}>
       <Stack gap="md">
-        {(slug || canStart) && (
-          <Group gap="sm">
-            {slug && faction && <FactionPageButton slug={slug} name={faction.name} />}
-            {canStart && (
-              <Button
-                color="red"
-                disabled={!table.canInteract || count < 3}
-                onClick={() => client.command({ kind: 'removal-start', seat: player.seat })}
-              >
-                Start removal vote
-              </Button>
-            )}
-          </Group>
-        )}
-        {canStart && count < 3 && (
-          <Text size="sm" c="dimmed">
-            Removal requires at least three players.
-          </Text>
-        )}
-        <Text size="sm">
-          {faction?.name ?? 'No faction assigned'} · {player.seat.replace('seat-', 'Seat ')}
-        </Text>
+        <FactionInfoTop model={model} />
         <SwappingSeat client={client} table={table} seat={player.seat} />
-        <PlayerAlliance client={client} table={table} seat={player.seat} />
         {details && <FactionDetails faction={details} />}
       </Stack>
     </Section>
-  );
-}
-
-/* A seat's faction page in a new tab, so the table stays open: what a faction starts with is public; what it holds now is not (#1007). */
-function FactionPageButton({ slug, name }: Readonly<{ slug: string; name: string }>) {
-  return (
-    <Button
-      component="a"
-      href={`/factions/${encodeURIComponent(slug)}`}
-      target="_blank"
-      rel="noreferrer"
-      variant="default"
-      rightSection={<ExternalLink size={16} aria-hidden />}
-    >
-      View {name}
-      <VisuallyHidden> (opens in a new tab)</VisuallyHidden>
-    </Button>
   );
 }
 
