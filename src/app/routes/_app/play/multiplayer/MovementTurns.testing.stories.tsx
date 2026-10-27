@@ -81,6 +81,31 @@ export const Rearranges = meta.story({
   },
 });
 
+/** A faction done keeps its place: dragged onto, nothing lands before it, and dragged itself, it stays put. */
+export const KeepsDoneInPlace = meta.story({
+  args: { done: order.slice(0, 1) },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    const first = order[0]!;
+    const second = order[1]!;
+    const last = order.at(-1)!;
+    await frame();
+    await dragOnto(
+      canvas.getByRole('button', { name: names[last] }),
+      canvas.getByRole('button', { name: names[first] })
+    );
+    await dragOnto(
+      canvas.getByRole('button', { name: names[first] }),
+      canvas.getByRole('button', { name: names[last] })
+    );
+    for (const [arranged] of args.onOrder.mock.calls) {
+      await expect(arranged[0]).toBe(first);
+    }
+    await expect(canvas.getAllByRole('button')[0]).toHaveAccessibleName(names[first]!);
+    await expect(canvas.getByRole('button', { name: names[second] })).toHaveAttribute('aria-current', 'step');
+  },
+});
+
 /** An observer's row names each faction and its standing, with nothing to press and no drag that moves anything. */
 export const ObserverOnlyLooks = meta.story({
   args: { done: order.slice(0, 1), canAct: false },

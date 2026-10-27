@@ -7,7 +7,7 @@ import type { CheckpointPhase, CheckpointTurn } from './checkpointTurns';
 import { momentLabel, phaseHolding } from './checkpointTurns';
 
 /** A phase's symbol on a sand disc, as the turn tracker draws it; a setup step without one shows its initial. */
-export function PhaseDisc({
+function PhaseDisc({
   symbol,
   label,
   size = 20,

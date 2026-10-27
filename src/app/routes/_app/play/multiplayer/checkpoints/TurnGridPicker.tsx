@@ -5,7 +5,7 @@ import styles from './CheckpointPicker.module.css';
 import { checkpointTitle, checkpointTurns } from './checkpointTurns';
 import type { CheckpointPickerProps } from './checkpointTurns';
 
-/** Variant A: every turn as a row of phase discs, newest on top, so any checkpoint is one click away. */
+/** Every turn as a row of phase discs, newest on top, so any checkpoint is one click away. */
 export function TurnGridPicker({ checkpoints, value, onChange }: CheckpointPickerProps) {
   const turns = checkpointTurns(checkpoints);
   return (

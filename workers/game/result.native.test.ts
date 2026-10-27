@@ -544,6 +544,8 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
     expect(required(arranged.snapshot.movement).order).toEqual([otherFaction, ownFaction]);
     const first = await accepted(owner, { kind: 'movement-done', factionId: otherFaction });
     expect(required(first.snapshot.movement).done).toEqual([otherFaction]);
+    /* A faction done keeps its place: nothing moves in front of it. */
+    expect(await rejected(owner, { kind: 'movement-order', order: [ownFaction, otherFaction] })).toBe(true);
     expect(await rejected(other, { kind: 'movement-done', factionId: otherFaction })).toBe(true);
     const undone = await accepted(other, { kind: 'movement-undo', factionId: otherFaction });
     expect(required(undone.snapshot.movement).done).toEqual([]);

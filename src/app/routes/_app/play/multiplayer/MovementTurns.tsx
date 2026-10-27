@@ -38,7 +38,8 @@ function turnWords(name: string, turn: Turn, canAct: boolean) {
 
 /**
  * The Shipment and Movement turns in the phase chip: every faction's token in turn order, the one up now ringed, the ones done faded under a tick.
- * A seated player clicks a token to mark its faction done, or done again to take that back, and drags the tokens into the order the table plays.
+ * A seated player clicks a token to mark its faction done, or done again to take that back, and drags the factions still to go into the order the table plays.
+ * The factions done stay first, in the order they finished.
  * An observer sees the same row with nothing to press or drag.
  */
 export function MovementTurns({ table, order, done, names, canAct, onDone, onUndo, onOrder }: Props) {
@@ -48,6 +49,21 @@ export function MovementTurns({ table, order, done, names, canAct, onDone, onUnd
   const shown = arranged?.from === order.join(',') ? arranged.to : order;
   const up = nextToMove(shown, { done });
   const turnOf = (factionId: string): Turn => (done.includes(factionId) ? 'done' : factionId === up ? 'up' : 'waiting');
+  /* The factions done lead the order and keep their places: only the factions still to go drag, and only among themselves. */
+  const locked = shown.filter((id) => done.includes(id));
+  const rest = shown.filter((id) => !done.includes(id));
+  const token = (id: string) => (
+    <Token
+      key={id}
+      table={table}
+      factionId={id}
+      name={names[id] ?? id}
+      names={names}
+      turn={turnOf(id)}
+      canAct={canAct}
+      onToggle={() => (done.includes(id) ? onUndo(id) : onDone(id))}
+    />
+  );
   return (
     <div
       role="group"
@@ -55,29 +71,20 @@ export function MovementTurns({ table, order, done, names, canAct, onDone, onUnd
       className={styles.turns}
       data-motion={motion || undefined}
     >
+      {locked.length > 0 && <div className={styles.row}>{locked.map((id) => token(id))}</div>}
       <SortableRow
-        items={shown.map((id) => ({ id }))}
+        items={rest.map((id) => ({ id }))}
         disabled={!canAct}
         className={styles.row}
         onMove={(item, before) => {
-          const rest = shown.filter((id) => id !== item.id);
-          const at = before ? rest.indexOf(before) : rest.length;
-          const next = [...rest.slice(0, at), item.id, ...rest.slice(at)];
+          const others = rest.filter((id) => id !== item.id);
+          const at = before ? others.indexOf(before) : others.length;
+          const next = [...locked, ...others.slice(0, at), item.id, ...others.slice(at)];
           setArranged({ from: order.join(','), to: next });
           onOrder(next);
         }}
       >
-        {({ id }) => (
-          <Token
-            table={table}
-            factionId={id}
-            name={names[id] ?? id}
-            names={names}
-            turn={turnOf(id)}
-            canAct={canAct}
-            onToggle={() => (done.includes(id) ? onUndo(id) : onDone(id))}
-          />
-        )}
+        {({ id }) => token(id)}
       </SortableRow>
     </div>
   );

@@ -6,6 +6,7 @@
 .turns {
   display: flex;
   align-items: center;
+  gap: 0.3rem;
   align-self: stretch;
   padding-left: 0.65rem;
   border-left: 1px solid rgb(from var(--input-border) r g b / var(--input-border-alpha));
