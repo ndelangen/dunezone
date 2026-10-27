@@ -509,10 +509,20 @@ function inRow(children: unknown, constants: Constants, depth: number): string[]
   );
 }
 
+function isHelpLines(callee: unknown) {
+  const node = callee as TextNode | undefined;
+  return node?.type === 'Identifier' && node.name === 'helpLines';
+}
+
+function isLineBreak(opening: unknown) {
+  const name = (opening as { name?: TextNode } | undefined)?.name;
+  return name?.type === 'JSXIdentifier' && name.name === 'br';
+}
+
 /**
  * The words a prop's value can show, one string per way it can render: static text in a row is joined, as the tooltip shows it, and each branch of a condition is its own rendering.
  * A constant of the same module is followed to its value;
- * what the rule cannot read, such as an import, a parameter or a call, shows as nothing, so help imported from another module is guarded by that module's own tests (as `panelGuidance.test.ts` guards Play's window help).
+ * what the rule cannot read, such as an import, a parameter or a call other than helpLines, shows as nothing, so help imported from another module is guarded by that module's own tests (as `panelGuidance.test.ts` guards Play's window help).
  */
 function writtenText(node: unknown, constants: Constants, depth = 0): string[] {
   if (!node || typeof node !== 'object' || depth > 8) {
@@ -550,8 +560,18 @@ function writtenText(node: unknown, constants: Constants, depth = 0): string[] {
       return [...next(current.left), ...next(current.right)];
     case 'ArrayExpression':
       return inRow(current.elements, constants, depth + 1);
-    /* An element's own attributes, such as a link's address, are not words the tooltip shows; its children are. */
+    /* The kit's helpLines shows its parts one per line. */
+    case 'CallExpression':
+      return isHelpLines(current.callee)
+        ? (current.arguments as unknown[]).reduce<string[]>(
+            (renderings, part, index) =>
+              followedBy(index === 0 ? renderings : followedBy(renderings, ['\n']), next(part)),
+            ['']
+          )
+        : [''];
+    /* An element's own attributes, such as a link's address, are not words the tooltip shows; its children are. A <br /> breaks the line. */
     case 'JSXElement':
+      return isLineBreak(current.openingElement) ? ['\n'] : inRow(current.children, constants, depth + 1);
     case 'JSXFragment':
       return inRow(current.children, constants, depth + 1);
     default:

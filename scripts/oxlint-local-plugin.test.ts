@@ -299,10 +299,11 @@ export const probe = [
   <HelpMark text={<>${long.slice(0, 60)}<b>${long.slice(60)}</b></>} />,
   <Tooltip label={HELP}><span /></Tooltip>,
   <HelpMark text={\`\${HELP_START} \${HELP_END}\`} />,
+  <ControlBlock title="Name" description={helpLines('Short.', '${long}')} />,
 ];
 `
     );
-    expect(reports(output)).toBe(8);
+    expect(reports(output)).toBe(9);
   });
 
   test('leaves short lines alone, however many there are, and other props', async () => {
@@ -312,6 +313,8 @@ export const probe = [
   <HelpMark text={'First short line.\\nSecond short line.\\nThird short line.'} />,
   <Section description="${long}" />,
   <HelpMark text={ready ? '${long.slice(0, 60)}' : '${long.slice(60)}'} />,
+  <HelpMark text={<>${long.slice(0, 60)}<br />${long.slice(60)}</>} />,
+  <ControlBlock title="Name" description={helpLines('${long.slice(0, 60)}', '${long.slice(60)}')} />,
   <HelpMark text={<>See <a href="https://example.com/${long.replaceAll(' ', '-')}">the guide</a>.</>} />,
 ];
 `
