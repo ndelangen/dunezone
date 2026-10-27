@@ -24,6 +24,7 @@ type AccountPage = NonNullable<ReturnType<typeof useAccountManagementPage>>;
 type ManagedProfile = AccountPage['profiles']['page'][number];
 type MergeOperation = AccountPage['operations'][number];
 type AccountManagementState = {
+  failedCursors: (string | null)[];
   cursor: string | null;
   previous: (string | null)[];
   source: string | null;
@@ -36,11 +37,21 @@ type AccountManagementState = {
 function AccountManagement() {
   const [state, dispatch] = useReducer(
     (state: AccountManagementState, update: Partial<typeof state>) => ({ ...state, ...update }),
-    { cursor: null, previous: [], source: null, target: null, review: false, busy: false, error: null }
+    {
+      failedCursors: [null],
+      cursor: null,
+      previous: [],
+      source: null,
+      target: null,
+      review: false,
+      busy: false,
+      error: null,
+    }
   );
   const page = useAccountManagementPage(
     state.cursor,
-    [state.source, state.target].filter((id): id is string => id !== null)
+    [state.source, state.target].filter((id): id is string => id !== null),
+    state.failedCursors.at(-1) ?? null
   );
   const merge = useMergeAccounts();
   const resume = useResumeAccountMerge();
@@ -101,10 +112,48 @@ function AccountManagement() {
               })
             }
           />
-          <RecentMerges
-            operations={page.operations}
-            onRetry={(operationId) => void resume({ operationId }).catch((error) => dispatch({ error: error.message }))}
-          />
+          <Section title="Failed merges">
+            <Surface padding="lg">
+              <Stack>
+                <MergeOperations
+                  operations={page.failedOperations.page}
+                  empty="No failed merges on this page."
+                  onRetry={(operationId) =>
+                    void resume({ operationId }).catch((error) => dispatch({ error: error.message }))
+                  }
+                />
+                <Group justify="space-between">
+                  <Button
+                    variant="default"
+                    disabled={page.isRefreshing || state.failedCursors.length === 1}
+                    onClick={() => dispatch({ failedCursors: state.failedCursors.slice(0, -1) })}
+                  >
+                    Previous failed merges
+                  </Button>
+                  <Button
+                    variant="default"
+                    disabled={page.isRefreshing || page.failedOperations.isDone}
+                    onClick={() =>
+                      dispatch({ failedCursors: [...state.failedCursors, page.failedOperations.continueCursor] })
+                    }
+                  >
+                    Next failed merges
+                  </Button>
+                </Group>
+              </Stack>
+            </Surface>
+          </Section>
+          <Section title="Recent merges">
+            <Surface padding="lg">
+              <MergeOperations
+                operations={page.operations.filter((operation) => operation.state !== 'failed')}
+                empty="No recent running or completed merges."
+                onRetry={(operationId) =>
+                  void resume({ operationId }).catch((error) => dispatch({ error: error.message }))
+                }
+              />
+            </Surface>
+          </Section>
         </Stack>
       </PageLayout.Content>
     </PageLayout>
@@ -243,44 +292,42 @@ function ProfilesTable({
   );
 }
 
-function RecentMerges({
+function MergeOperations({
+  empty,
   operations,
   onRetry,
 }: {
+  empty: string;
   operations: MergeOperation[];
   onRetry: (operationId: MergeOperation['_id']) => void;
 }) {
   return (
-    <Section title="Recent merges">
-      <Surface padding="lg">
-        <Stack>
-          {operations.length === 0 ? (
-            <Text c="dimmed">No merges yet.</Text>
-          ) : (
-            operations.map((operation) => (
-              <Group key={operation._id} justify="space-between">
-                <Stack gap={2}>
-                  <Text>
-                    {operation.source_name} → {operation.target_name}
-                  </Text>
-                  <Text size="sm" c={operation.state === 'failed' ? 'red' : 'dimmed'}>
-                    {operation.state === 'running'
-                      ? 'Merging profiles…'
-                      : operation.state === 'completed'
-                        ? 'Completed'
-                        : operation.error}
-                  </Text>
-                </Stack>
-                {operation.state === 'failed' && (
-                  <Button variant="default" onClick={() => onRetry(operation._id)}>
-                    Retry merge
-                  </Button>
-                )}
-              </Group>
-            ))
-          )}
-        </Stack>
-      </Surface>
-    </Section>
+    <Stack>
+      {operations.length === 0 ? (
+        <Text c="dimmed">{empty}</Text>
+      ) : (
+        operations.map((operation) => (
+          <Group key={operation._id} justify="space-between">
+            <Stack gap={2}>
+              <Text>
+                {operation.source_name} → {operation.target_name}
+              </Text>
+              <Text size="sm" c={operation.state === 'failed' ? 'red' : 'dimmed'}>
+                {operation.state === 'running'
+                  ? 'Merging profiles…'
+                  : operation.state === 'completed'
+                    ? 'Completed'
+                    : operation.error}
+              </Text>
+            </Stack>
+            {operation.state === 'failed' && (
+              <Button variant="default" onClick={() => onRetry(operation._id)}>
+                Retry merge
+              </Button>
+            )}
+          </Group>
+        ))
+      )}
+    </Stack>
   );
 }
