@@ -138,7 +138,6 @@ const REVISION_TOLERANT_ACTIONS = new Set<string>([
   'alliance-offer',
   'alliance-withdraw',
   'alliance-accept',
-  'alliance-decline',
   'last-turn',
   'tint-create',
   'tint-paint',

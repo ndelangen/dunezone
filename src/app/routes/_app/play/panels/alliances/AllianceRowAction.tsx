@@ -1,4 +1,4 @@
-import { Button, Group, Text } from '@mantine/core';
+import { Button, Text, Tooltip } from '@mantine/core';
 import type { ReactNode } from 'react';
 
 import type { AllianceCommandKind, Relation } from './alliances';
@@ -22,20 +22,19 @@ const ACTIONS: Readonly<Record<Relation, (props: ActionProps) => ReactNode>> = {
     </Text>
   ),
   incoming: ({ disabled, send }) => (
-    <Group gap="xs" wrap="nowrap">
-      <Button size="xs" disabled={disabled} onClick={() => send('alliance-accept')}>
-        Accept
-      </Button>
-      <Button size="xs" variant="subtle" disabled={disabled} onClick={() => send('alliance-decline')}>
-        Decline
-      </Button>
-    </Group>
-  ),
-  outgoing: ({ disabled, send }) => (
-    <Button size="xs" variant="subtle" disabled={disabled} onClick={() => send('alliance-withdraw')}>
-      Withdraw offer
+    <Button size="xs" disabled={disabled} onClick={() => send('alliance-accept')}>
+      Accept
     </Button>
   ),
+  /* The offer waits until it is accepted; clicking it again takes it back. */
+  outgoing: ({ disabled, send }) => (
+    <Tooltip label="Your offer is waiting. Click to withdraw it." withinPortal>
+      <Button size="xs" variant="default" disabled={disabled} onClick={() => send('alliance-withdraw')}>
+        Offering…
+      </Button>
+    </Tooltip>
+  ),
+  taken: () => null,
   none: ({ disabled, send }) => (
     <Button size="xs" variant="default" disabled={disabled} onClick={() => send('alliance-offer')}>
       Offer alliance
@@ -43,7 +42,7 @@ const ACTIONS: Readonly<Record<Relation, (props: ActionProps) => ReactNode>> = {
   ),
 };
 
-/** What the viewer may do about one faction: offer, accept or decline, withdraw an offer, or break their own alliance. */
+/** What the viewer may do about one faction: offer, accept, withdraw an offer, or break their own alliance. */
 export function AllianceRowAction({
   relation,
   disabled,

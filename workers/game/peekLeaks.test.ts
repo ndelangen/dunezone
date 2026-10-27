@@ -88,7 +88,6 @@ const STEPS: Record<Kind, (room: Room) => Step[]> = {
   'alliance-offer': () => [[bob, { kind: 'alliance-offer', factionId: 'harkonnen' }]],
   'alliance-withdraw': () => [[bob, { kind: 'alliance-withdraw', factionId: 'harkonnen', offer: 0 }]],
   'alliance-accept': () => [[bob, { kind: 'alliance-accept', factionId: 'harkonnen', offer: 0 }]],
-  'alliance-decline': () => [[bob, { kind: 'alliance-decline', factionId: 'harkonnen', offer: 0 }]],
   'alliance-break': () => [[bob, { kind: 'alliance-break', factionId: 'harkonnen' }]],
   'last-turn': () => [[bob, { kind: 'last-turn', turn: 8 }]],
   'tint-create': () => [

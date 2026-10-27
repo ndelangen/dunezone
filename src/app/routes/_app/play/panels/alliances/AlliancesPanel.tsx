@@ -1,7 +1,6 @@
 import { Group, Stack, Text } from '@mantine/core';
 import { Section } from '@ui/block/Section';
 
-import { allianceRingStyle } from '../../multiplayer/allianceColors';
 import { FactionTokenFace, FactionTokenGroup } from '../../multiplayer/FactionTokenFace';
 import type { FactionToken } from '../../multiplayer/FactionTokenFace';
 import { ALLIANCES_HELP } from '../../multiplayer/panelGuidance';
@@ -15,13 +14,13 @@ export type AllianceRow = Readonly<{
   player: string | null;
   allies: readonly FactionToken[];
   status: string;
-  /** How the viewer stands with this faction, or null when the viewer has nothing to do about it. */
+  /** How the viewer stands with this faction, or null for an observer, who sees no actions at all. */
   relation: Relation | null;
 }>;
 
 export type AlliancesPanelProps = Readonly<{
   rows: readonly AllianceRow[];
-  /** The actions are greyed out while the viewer may not act, such as while reconnecting. */
+  /** The actions are greyed out for a moment while the table reconnects, or while the viewer steps through the replay. */
   disabled: boolean;
   onAction: (factionId: string, kind: AllianceCommandKind) => void;
 }>;
@@ -36,15 +35,7 @@ export function AlliancesPanel({ rows, disabled, onAction }: AlliancesPanelProps
       <Stack gap="xs">
         {rows.map((row) => (
           <Group key={row.token.id} gap="sm" wrap="nowrap" align="flex-start">
-            <span
-              style={{
-                display: 'inline-flex',
-                flexShrink: 0,
-                ...allianceRingStyle(row.allies.flatMap((ally) => (ally.color ? [ally.color] : []))),
-              }}
-            >
-              <FactionTokenFace token={row.token} size={32} />
-            </span>
+            <FactionTokenFace token={row.token} size={32} style={{ flexShrink: 0 }} />
             {/* The name has the row's width to itself; the status and the action share the line under it. */}
             <Stack gap={2} style={{ flex: 1, minWidth: 0 }}>
               <Text size="sm" fw={700} truncate>

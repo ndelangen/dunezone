@@ -57,8 +57,6 @@ export const FinishedReadOnly = meta.story({
     await expect(await page.findByRole('img', { name: /are allied/ }, { timeout: 30_000 })).toBeVisible();
     await openPanel(canvasElement, 'Alliances');
     await expect(await page.findByText('Offers you an alliance')).toBeVisible();
-    await expect(
-      page.queryByRole('button', { name: /Offer alliance|Accept|Withdraw offer|Break alliance/ })
-    ).toBeNull();
+    await expect(page.queryByRole('button', { name: /Offer alliance|Accept|Offering…|Break alliance/ })).toBeNull();
   },
 });

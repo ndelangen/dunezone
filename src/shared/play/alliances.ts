@@ -6,8 +6,9 @@ import { tableCountSchema as count, tableIdSchema as id } from './schema';
 /**
  * Who is allied with whom (#1007): public, as the rules make alliances public.
  * A faction offers an alliance to another;
- * once that faction accepts, the two alliances (or lone factions) become one.
- * The table checks only that the factions agreed, never how large an alliance may grow or when a Nexus is open, so players apply their ruleset as they do at a physical table.
+ * once that faction accepts, the two are allied.
+ * A faction is in one alliance at a time: it breaks the alliance before it offers or accepts another.
+ * The table checks only that the factions agreed, never when a Nexus is open, so players apply their ruleset as they do at a physical table.
  */
 export const allianceStateSchema = z.object({
   /*
@@ -22,10 +23,9 @@ export type AllianceState = z.infer<typeof allianceStateSchema>;
 
 export const allianceActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('alliance-offer'), factionId: id }),
-  /* A withdrawal or an answer names the offer by its id, so a late one never reaches an offer made again since. */
+  /* A withdrawal or an accept names the offer by its id, so a late one never reaches an offer made again since. */
   z.strictObject({ kind: z.literal('alliance-withdraw'), factionId: id, offer: count }),
   z.strictObject({ kind: z.literal('alliance-accept'), factionId: id, offer: count }),
-  z.strictObject({ kind: z.literal('alliance-decline'), factionId: id, offer: count }),
   /* Names one ally the breaking faction saw; the Room also refuses a break sent against a table that has changed since. */
   z.strictObject({ kind: z.literal('alliance-break'), factionId: id }),
 ]);
@@ -74,17 +74,23 @@ function freeMark(state: AllianceState): number {
 /* The two factions an offer, an answer, a withdrawal or a break is about. */
 type Pair = Readonly<{ from: string; to: string }>;
 
-/** Joins the alliances of the two factions, dropping the offers the new alliance answered among its own members. */
+/** Allies the two factions, dropping every offer to or from either: neither may offer or accept another while allied. */
 function join(state: AllianceState, { from: a, to: b }: Pair): AllianceState {
-  const members = [a, ...alliesOf(state, a), b, ...alliesOf(state, b)];
-  const mark = allianceOf(state, a)?.mark ?? allianceOf(state, b)?.mark ?? freeMark(state);
+  const members = [a, b];
   return {
-    groups: [
-      ...state.groups.filter((group) => !group.members.includes(a) && !group.members.includes(b)),
-      { members, mark },
-    ],
-    offers: state.offers.filter((offer) => !(members.includes(offer.from) && members.includes(offer.to))),
+    groups: [...state.groups, { members, mark: freeMark(state) }],
+    offers: state.offers.filter((offer) => !members.includes(offer.from) && !members.includes(offer.to)),
   };
+}
+
+/* Refuses an offer or an accept while either faction is already in an alliance. */
+function requireUnallied(state: AllianceState, { from, to }: Pair) {
+  if (alliesOf(state, from).length) {
+    refuse('Break your alliance before you join another.');
+  }
+  if (alliesOf(state, to).length) {
+    refuse('That faction is already in an alliance.');
+  }
 }
 
 function without(state: AllianceState, { from, to }: Pair): AllianceState {
@@ -114,15 +120,13 @@ function offer(
   if (to === factionId || !factions.includes(to)) {
     return refuse('Choose another faction at the table.');
   }
-  if (alliesOf(state, factionId).includes(to)) {
-    return refuse('You are already allied with that faction.');
-  }
+  requireUnallied(state, { from: factionId, to });
   /*
    * Only an explicit accept, which names the offer its player saw, answers an offer.
    * An offer back never does, so a late offer can't re-form an alliance broken since.
    */
   if (waitingOffer(state, { from: to, to: factionId })) {
-    return refuse('That faction has offered you an alliance. Accept or decline it instead.');
+    return refuse('That faction has offered you an alliance. Accept it instead.');
   }
   if (waitingOffer(state, { from: factionId, to })) {
     return state;
@@ -130,13 +134,14 @@ function offer(
   return { ...state, offers: [...state.offers, { from: factionId, to, at: now, id: revision }] };
 }
 
-type Answer = Extract<AllianceAction, { kind: 'alliance-accept' | 'alliance-decline' }>;
-function answer(state: AllianceState, { kind, factionId: from, offer }: Answer, { factionId }: AllianceContext) {
+type Accept = Extract<AllianceAction, { kind: 'alliance-accept' }>;
+function accept(state: AllianceState, { factionId: from, offer }: Accept, { factionId }: AllianceContext) {
   const pair = { from, to: factionId };
   if (waitingOffer(state, pair)?.id !== offer) {
     return refuse('That alliance offer was withdrawn.');
   }
-  return kind === 'alliance-accept' ? join(state, pair) : without(state, pair);
+  requireUnallied(state, { from: factionId, to: from });
+  return join(state, pair);
 }
 
 /** Breaking an alliance takes the faction out of it; an alliance left with one faction is over. */
@@ -160,8 +165,7 @@ export function applyAlliance(state: AllianceState, action: AllianceAction, cont
     case 'alliance-withdraw':
       return withdraw(state, action, context);
     case 'alliance-accept':
-    case 'alliance-decline':
-      return answer(state, action, context);
+      return accept(state, action, context);
     case 'alliance-break':
       return breakAway(state, { from: context.factionId, to: action.factionId });
   }

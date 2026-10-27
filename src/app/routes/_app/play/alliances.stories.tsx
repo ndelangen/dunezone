@@ -64,7 +64,7 @@ function liveTransport() {
   return transport;
 }
 
-/** Try it by hand: accept or decline the offer, offer another faction an alliance, or break one. */
+/** Try it by hand: accept the offer, offer another faction an alliance, take an offer back, or break an alliance. */
 export const Live = meta.story({
   /* Freeze the flowing offer arrows for a repeatable visual capture. */
   globals: { motion: 'reduce' },

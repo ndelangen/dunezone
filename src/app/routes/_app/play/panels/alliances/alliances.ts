@@ -1,15 +1,13 @@
 import { alliesOf } from '@shared/play/alliances';
 import type { AllianceAction, AllianceState } from '@shared/play/alliances';
 
-/** How the viewer's faction stands with one faction at the table. */
-export type Relation = 'own-allied' | 'own' | 'ally' | 'incoming' | 'outgoing' | 'none';
+/**
+ * How the viewer's faction stands with one faction at the table.
+ * `taken` is a faction the viewer can't offer an alliance to, because one of the two is already allied.
+ */
+export type Relation = 'own-allied' | 'own' | 'ally' | 'incoming' | 'outgoing' | 'none' | 'taken';
 
-export type AllianceCommandKind =
-  | 'alliance-offer'
-  | 'alliance-withdraw'
-  | 'alliance-accept'
-  | 'alliance-decline'
-  | 'alliance-break';
+export type AllianceCommandKind = 'alliance-offer' | 'alliance-withdraw' | 'alliance-accept' | 'alliance-break';
 
 /** Factions' names as one phrase: "A", "A and B", "A, B and C". */
 export function factionList(names: Readonly<Record<string, string>>, ids: readonly string[]) {
@@ -29,6 +27,10 @@ export function relationTo(alliances: AllianceState | undefined, own: string, fa
   if (allies.includes(factionId)) {
     return 'ally';
   }
+  /* A faction is in one alliance at a time, so while either side is allied there is nothing to offer or accept. */
+  if (allies.length || alliesOf(alliances, factionId).length) {
+    return 'taken';
+  }
   if (hasOffer(alliances, factionId, own)) {
     return 'incoming';
   }
@@ -37,7 +39,7 @@ export function relationTo(alliances: AllianceState | undefined, own: string, fa
 
 /*
  * The command for one of the viewer's alliance actions about `factionId`.
- * Breaking names an ally the viewer saw, so a late click never leaves an alliance formed since; a withdrawal or an answer names the offer the viewer saw.
+ * Breaking names an ally the viewer saw, so a late click never leaves an alliance formed since; a withdrawal or an accept names the offer the viewer saw.
  */
 export function allianceAction(
   alliances: AllianceState | undefined,
@@ -65,9 +67,6 @@ export function allianceStatus(
 ) {
   if (hasOffer(alliances, factionId, own)) {
     return 'Offers you an alliance';
-  }
-  if (hasOffer(alliances, own, factionId)) {
-    return 'Your offer is waiting';
   }
   const allies = alliesOf(alliances, factionId);
   return allies.length ? `Allied with ${factionList(names, allies)}` : 'No alliance';
