@@ -11263,5 +11263,659 @@
     "tags": ["rear view", "battle mech", "robot", "rifle", "back armor", "silhouette"],
     "subjects": ["machines", "weapons"],
     "sourceHash": "b9aec71b75844c5114ef057faa48abbbeecfce90d14cab17a4ff206b8bcd9bbf"
+  },
+  "/vector/troop/cannon-crawler.svg": {
+    "description": "A squat armored caterpillar-like machine carries a raised cannon above multiple clawed feet.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "4498d68fbd4d0f6c106e62de9ae24f100219e751374b37a561824ce6e68420cc"
+  },
+  "/vector/troop/fantasy-01.svg": {
+    "description": "Horned beast wielding an axe, with a swept mane, spread legs and clawed feet.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "25e79820f0ed6ffc103585a6d879fabd8bb8a6075dc4419f3e0498882c455535"
+  },
+  "/vector/troop/fantasy-02.svg": {
+    "description": "Serpentine horned creature with raised arms, side spikes and a curled lower tail.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "d2469f4ae881ff1eea0ba6cfc9f5d3e6c782afe7ec072ee7394cca21757d70b7"
+  },
+  "/vector/troop/fantasy-03.svg": {
+    "description": "Armored warrior with an overhead sword, lowered claw and flared skirt.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "de0200fb426898c6e838e4dad386a3b0667b9e5510eab77dd0f1ca116f0f07dc"
+  },
+  "/vector/troop/fantasy-04.svg": {
+    "description": "Horned warrior holding two hooked axes beneath spiked shoulder armor.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "eb57a2be696f87cb1820ca5d6bc9e9e23ec4a21edb189dabac69ebb1f303c087"
+  },
+  "/vector/troop/fantasy-05.svg": {
+    "description": "Winged demon with upward horns, a diagonal spear, bent legs and curled tail.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "d9fc6f09003b0cc540bcc1cd29d759cf96ab7379ea5923aaf876ce0df477310b"
+  },
+  "/vector/troop/fantasy-06.svg": {
+    "description": "Leaping horned creature holding hooked blades overhead, with a curled tail.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "7c54832459355eae743eb4e8c73362590058d40cd4bf74d40eded91dcd1bd982"
+  },
+  "/vector/troop/fantasy-07.svg": {
+    "description": "Crouching horned monster with bent arms, clawed feet and a curled tail.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "b535c8a17f75207943d282746ae4370131a773fc4b2c719dbe7da6bf1708eb79"
+  },
+  "/vector/troop/fantasy-08.svg": {
+    "description": "Horned warrior with a raised serrated club, ragged skirt and trailing tail.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "830c5e6fe5daddf6c809451d45e4ace8e69583b019cfee34deb7368a0c41d11d"
+  },
+  "/vector/troop/fantasy-09.svg": {
+    "description": "Running armored figure with an upright spear, shield, helmet crest and raised knee.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "ffafee82f7707d08a75f9947c9a7749bd3f1d0ee2d6e9915fb7fa838ad487f2f"
+  },
+  "/vector/troop/fantasy-10.svg": {
+    "description": "Maned beast with two raised weapons, bent knees, clawed feet and a trailing tail.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "760620ef1a791aa7403d4641afb672e605342c62f991b0a6a575c7717f6f4430"
+  },
+  "/vector/troop/fantasy-11.svg": {
+    "description": "Crowned robed sorcerer carrying a spiked mace beneath angular shoulders.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "0e219574125f3dca2ef4ec678ea0ebe1e4046bfc19c56c40f33a4dd25328e2eb"
+  },
+  "/vector/troop/fantasy-12.svg": {
+    "description": "Archer drawing a curved spiked bow, with an arrow, cape points and separated legs.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "2b229c1bbe14397c4f2939c0cd7169251e452462d87fb7a88b8e0e948501b78e"
+  },
+  "/vector/troop/fantasy-13.svg": {
+    "description": "Lean warrior with a sweeping horned helmet, shoulder armor and a downward sword.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "7a9928ead320d7f03a4ade080f126251fd6a9b71eb61d1e0c61e3051c210ba9f"
+  },
+  "/vector/troop/fantasy-14.svg": {
+    "description": "Horned armored fighter stepping forward with a battleaxe and curved shield.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "9e2a67122f387364c7d461bdde02c7a85e758ea2ce2c54f056af8669db8cf5d5"
+  },
+  "/vector/troop/fantasy-15.svg": {
+    "description": "Plumed swordsman holding an upright curved sword and a hooked side weapon.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "287f40955aced0b132a3fb2f26e82fb4455c8fa02cc0b36600d465613e80418b"
+  },
+  "/vector/troop/fantasy-16.svg": {
+    "description": "Winged serpent with spread bat wings, two clawed hands and a curled tail.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "89ba807178fad2cdd64ce642d418d8cdaf85437fb1a5084b6fe93a84eaa92319"
+  },
+  "/vector/troop/fantasy-17.svg": {
+    "description": "Round shaman with a spiked mace, raised claw and skull-shaped finials above the head.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "80b8de6a1b2522bfe63c3e5796aab7386a4472bbb17318fdac5ce2ed1fef2635"
+  },
+  "/vector/troop/fantasy-18.svg": {
+    "description": "Horned warrior holding an axe and spiked shield beneath upturned shoulder horns.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "c39d4e738abb7f916fd6cb5ef945b0fab6cdcd212b0c47483dba48cd206507de"
+  },
+  "/vector/troop/fantasy-19.svg": {
+    "description": "Armored horned warrior with a spiked club and curved blade-shaped forearm.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "434757c2d3105efd2b126b37596b4f9bd4f617feb2c85c5160b96acae8ec6ae5"
+  },
+  "/vector/troop/fantasy-20.svg": {
+    "description": "Round horned creature with raised fist, dangling feet and flowing tentacles.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "9c0da278dbb66eb5e6491623415f4c46a52d5e7758b995e5d2d6eb63e9f5d2e4"
+  },
+  "/vector/troop/fantasy-21.svg": {
+    "description": "Feather-shouldered sorcerer holding a staff with a flame-shaped finial.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "a0ef08dd3c1aa48b8c47957e0224428f38d920d5f42c564cf842a4bdaec89107"
+  },
+  "/vector/troop/fantasy-22.svg": {
+    "description": "Robed mage with curled horns, a pointing arm, diagonal staff and visible boots.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "25217cbf714a4596dd2b5a62202d13de0e41f0611495f91143d79f38f0e6947a"
+  },
+  "/vector/troop/fantasy-23.svg": {
+    "description": "Horned knight with a lowered sword, curved shield and pointed shoulder armor.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "dd9da3723e6ce33c0b5dbef5038dcc4dcbb8edab0050050c11d64981e54774cb"
+  },
+  "/vector/troop/fantasy-24.svg": {
+    "description": "Horned samurai-like warrior with outstretched arms, shoulder plates and curved sword.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "f0b5e205128d92dadae0ccc6bfd330d5322ed708d8a4a18463fdead628a9bce1"
+  },
+  "/vector/troop/fantasy-25.svg": {
+    "description": "Beast-headed warrior with pointed snout, raised claws and a curled tail.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "8438358081d3193e9a8e2c9fdc5c0797dbe56e73a52c17a9ae05a0812db546b4"
+  },
+  "/vector/troop/fantasy-26.svg": {
+    "description": "Floating serpentine beast with horizontal horns, raised claws and an S-shaped tail.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "22e927aa14306853b2253410ae1a3b628a1444fd8424850772bcecd108c3be76"
+  },
+  "/vector/troop/fantasy-27.svg": {
+    "description": "Ram-horned warrior with a diagonal waist sword and curved shoulder projections.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "653a24f286e69137e81e9432ee321c3df6addc07c2d41b152946ac42fd20c772"
+  },
+  "/vector/troop/fantasy-28.svg": {
+    "description": "Horned warrior holding a flail and upright sword beneath shaggy shoulders.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "75c388b6021cc6960430c6469819b36c367cc07c7ea0ff4331c83ac59ffc8223"
+  },
+  "/vector/troop/fantasy-29.svg": {
+    "description": "Airborne bat-winged demon with upward horns, extended arms and bent legs.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "8fc9f1b6a2b25f742a6b55dd389a76ea855e1e1dcdaa74c9fd1910050d57d9fb"
+  },
+  "/vector/troop/fantasy-30.svg": {
+    "description": "Leaping horned creature with two axes, clawed feet and a curled tail.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "a7bae548abb5184fd4064ebf4e78245db6d28e203cddb4d9a07d09cf9b921b02"
+  },
+  "/vector/troop/fantasy-31.svg": {
+    "description": "Antlered beast mage with extended arms, pointed snout, tail and net-like ornament.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "da215feb416cbb7a625259892b6b18c25dff9e7414a08c6010a4c4e06f030e8b"
+  },
+  "/vector/troop/fantasy-32.svg": {
+    "description": "Leaping warrior with an overhead serrated blade, poleaxe and curled horns.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "a0e685d400fcf4aaf802105a42727611506e2b9c80395f1e7d3ed5affed1be29"
+  },
+  "/vector/troop/fantasy-33.svg": {
+    "description": "Leaping beast warrior with a raised spear, horns, tail and swept mane.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "7bb4524ce5f7b9223a5de3c4272224f648e17cc0120943fac3b332ebd40022d9"
+  },
+  "/vector/troop/fantasy-34.svg": {
+    "description": "Caped warrior with a raised axe, spiked mace, pointed helmet and bent legs.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "2bb21fc57e7988efc674040046c8a2ce20a5611c3d4bc5c6d07521e2f869ce57"
+  },
+  "/vector/troop/fantasy-35.svg": {
+    "description": "Horned shaman with a spiked mane, diagonal staff, reaching hand and raised leg.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "ed29ce5192214678b98a8a245bf8b475ddb777460c300656058adfe82b293b0e"
+  },
+  "/vector/troop/fantasy-36.svg": {
+    "description": "Leaping archer with sweeping horns, curved bow, trailing tail and bent legs.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "3d9b826bdd1e7fb8007e2a53c8ae2b3b412760e6bbc4ce71a3ba821758a51d4e"
+  },
+  "/vector/troop/fantasy-37.svg": {
+    "description": "Running horned beast with pointed snout, hooked blade, claws and a swept mane.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "c76c620c428b9d49b2608d5c3a9614446efb41e0c141fb1af1f0553ed3726d15"
+  },
+  "/vector/troop/fantasy-38.svg": {
+    "description": "Horned knight with pointed shoulders, spiked axe, shield and hanging chain weapon.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "272c6840b6f97fb52fd52424af76841ca48da9c0d55552509490a6988c2bede8"
+  },
+  "/vector/troop/fantasy-39.svg": {
+    "description": "Leaping plumed fighter with an upright sword, raised knee and flowing sash ribbons.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "6973087b4baeda49f0513f63cfbbd2a5fa4e151b95de4ec10755baff8ff42a71"
+  },
+  "/vector/troop/fantasy-40.svg": {
+    "description": "Bat-winged serpentine creature with a curved tail and pointed fins.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "6ddd1591b7876a70865b9796dad702b32a6b36f7778f4eceb1e434d497781cef"
+  },
+  "/vector/troop/fantasy-41.svg": {
+    "description": "Ram-horned warrior holding a branching staff and extending a clawed hand.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "25ec23989892a0cbe210cb724ec4458fb0bf93b30e18e99ca0cc7a916d0635fb"
+  },
+  "/vector/troop/fantasy-42.svg": {
+    "description": "Leaping horned beast with pointed snout, curled tail and lifted knee.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "660a64aa51ad19304722248bc09e626e3a70c212121f97e71136bfef78478752"
+  },
+  "/vector/troop/fantasy-43.svg": {
+    "description": "Squat warrior with tall curved horns, spiked collar, raised club and open hand.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "edf9dc18c57e1a00ce9308693ec7d11e703cf947fa49f34fa260160183fd417a"
+  },
+  "/vector/troop/fantasy-44.svg": {
+    "description": "Squat monster with four upward horns, massive arms, thick legs and curled tail.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "f6cfcf5c3baf534354056c5d6bff24ab6703a19ead18e654417a7c2ad793e43d"
+  },
+  "/vector/troop/fantasy-45.svg": {
+    "description": "Armored shaman with a feathered helmet, animal-topped staff and raised claw.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "6c082c7915744fbd8b56d1503f71a9cfb0a50a1cb5ad9b3c4b799d508ea2d1c1"
+  },
+  "/vector/troop/fantasy-46.svg": {
+    "description": "Antlered sorcerer with pointed collar, shoulder staff and hanging ornaments.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "886739f40f8124a852a477cc17c486a8e6a646bcd8128bdfc544ba2248fd1273"
+  },
+  "/vector/troop/fantasy-47.svg": {
+    "description": "Leaping antlered figure holding an overhead polearm beneath a flaring cloak.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "53b7ee280b8e5bfab962f05c52d8337db16694f995b73d9912a97bce01cf32b2"
+  },
+  "/vector/troop/fantasy-48.svg": {
+    "description": "Antlered archer drawing a bow beside a shoulder quiver and separated boots.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "eb792c36143d6dc0f9922f8380fb26cb13a9360ceaeff1ba4aefb4bc98e6563e"
+  },
+  "/vector/troop/ferrier.svg": {
+    "description": "A long-coated soldier supports a two-railed rifle angled upward to the left.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "b377f023deb801ef592e63181cebf853be12715eb1fac907d385ef6a8fa47d43"
+  },
+  "/vector/troop/sloan.svg": {
+    "description": "A helmeted long-coated soldier holds a slotted rifle down the left side.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "4624771a6bcb45cf3d7d8f884d0458010c388dc4ac304d3c3e9e38ce8ba39fb7"
+  },
+  "/vector/troop/the-nomad.svg": {
+    "description": "A hooded soldier with a round mask aperture carries a rectangular firearm angled down to the right.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "d84af163bf9e2c4a40754eda298362e374aa3445ebf1c86cbbfb17fe4a32fc3d"
+  },
+  "/vector/troop/semoor.svg": {
+    "description": "A hatted long-coated figure raises a cigarette and rests the other hand on a twin-pronged rifle.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "1ddc65d553b3a23fc9823a5d3f0edc7ad63e29a882f98d75903ed21365de3a4f"
+  },
+  "/vector/troop/mnemo.svg": {
+    "description": "A robed armored figure with a backpack stands beneath three floating circular companions.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "5d382ef27ef7bee24afb5fcd171b7d87148263eeb7f0324305d670b3da982cfb"
+  },
+  "/vector/troop/jane-bowie.svg": {
+    "description": "A slim armored figure with swept hair carries a shoulder gun beside a upright rifle.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "3a471d7e139fee8507749d9b1c9db9e3dce25297ea931cf432db7205f5b06d68"
+  },
+  "/vector/troop/strandwolf.svg": {
+    "description": "A lean armored warrior carries a forearm shield and a curved pickaxe.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "a546ab6d444884b138fd296c8635643382271ad670c2d41b70ef604a746a612c"
+  },
+  "/vector/troop/sam-scalptaker.svg": {
+    "description": "A long-robed soldier with crossed rods behind the shoulders holds a weapon downward to the left.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "d9f5b59ae5afe5f1c63db9a597a556bc62542583a3276e2e1002c11f11627999"
+  },
+  "/vector/troop/the-moth-eater.svg": {
+    "description": "A cloaked warrior with a crown-like helmet and raised collar carries a weapon pointing down to the right.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "fd7e774c1646a41e43b3c4bc4ca6dc2aef34ca3ef23ac4f724e65a12315e051f"
+  },
+  "/vector/troop/winfield.svg": {
+    "description": "A hooded long-coated gunner supports a huge rifle with a open barrel angled up to the right.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "2e01d644a18ac0c504d710ed91afde627a0e3f19df993d797de81f1c3c889f87"
+  },
+  "/vector/troop/cochise.svg": {
+    "description": "A long-coated figure holds a case and a raised pipe beside a animal and a flying bird.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "7276ea238ba24530bbf648cfad506962bad3813695ca361d5914dbd6b2183de4"
+  },
+  "/vector/troop/ravelle.svg": {
+    "description": "A long-coated soldier in profile carries a firearm pointing down to the right.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "e3e3f23ea773a172a1632e8d2860ef87f7c79e0e62d473e0f6069f5048d7be8d"
+  },
+  "/vector/troop/sue.svg": {
+    "description": "A hulking spiked creature stands with hanging arms and two curved tusks beneath the face.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "ce298c7b1dfdf023b7273476e9dedf1580a826dd4ba72c89040e69c689cdb05a"
+  },
+  "/vector/troop/oz.svg": {
+    "description": "A stocky figure stands with lowered arms, a round head and chunky boots.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "110ecefd39af652d5e3ee9ec5a3b0db01deeb472f1c8c55f54c9edd1a0b9930b"
+  },
+  "/vector/troop/marshall-blossom.svg": {
+    "description": "A heavily armored soldier carries a pack and lowered weapon, with a cat sitting on one shoulder.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "62f666ed105e5778d9eed9d853f081d87a59ae425e3e5e2abe7635affbf7c1c6"
+  },
+  "/vector/troop/commander-howard.svg": {
+    "description": "A hovering robot has two boxy shoulder pods, hanging claw arms and a lower skirt.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "721de160c966677b899db48a54defb8d0da22a9636f578d04c066133c57c3dfc"
+  },
+  "/vector/troop/warbucket.svg": {
+    "description": "A armored robot supports an enormous cannon pointing diagonally down to the left.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "2f6366833ec1b95c0bf5c1b3e024f23a57542d8cc05d8dd80ed26ef7eae6c3e8"
+  },
+  "/vector/troop/savage-slim.svg": {
+    "description": "A stocky armored robot has two upward-curving shoulder claws, oversized hands and separated legs.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "3ad0388d5de1e20abe96a111653e982f66b9967ffc22d7309a1ebcd8be48f11f"
+  },
+  "/vector/troop/grizzly-and-son.svg": {
+    "description": "A human rider stands atop a round-bodied walking robot with mechanical limbs and a side-mounted weapon.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "a66bf86c8919998e9834017118b5bea18c8f4cbe77f6d7144d87814b766118ac"
+  },
+  "/vector/troop/asher.svg": {
+    "description": "A stocky armored soldier carries a rectangular shield and lowered equipment.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "e9a6f38d13c1aa0122b9621ff139aa539582258b5d5fd9c5bbd52bf9c0d1644b"
+  },
+  "/vector/troop/orlando.svg": {
+    "description": "An upright armored soldier supports a firearm angled up to the right across shoulder armor.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "941ad62444659f2b5fdbacfb02496c6fe6b181a37f11829de411025c3fd84018"
+  },
+  "/vector/troop/levi.svg": {
+    "description": "A huge hunched creature stands on legs with one massive arm lowered to either side.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "829d1539f2b197df8f626322eedcc1ef2f03dcb10e207375eee934a811d10785"
+  },
+  "/vector/troop/dr-singh.svg": {
+    "description": "A masked figure wears a robe and carries a hooked instrument along one lowered arm.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "2512569c7a2ab9e16880073ca9eefebfd2216ddb2db360522dae9719b3b03b04"
+  },
+  "/vector/troop/doc-bronson.svg": {
+    "description": "A round armored robot has a domed head, raised shoulder pods and sturdy separated legs.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "949e75c46b90c380305b566872cfc2557ae455ccb097b69dd1d7768df643d729"
+  },
+  "/vector/troop/professor-grey.svg": {
+    "description": "An armored standing figure has a rounded head, shoulder armor and a lowered empty gloved hand.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "1fe6fd50fa19c6aa2bc9a51b5be81ad3984f6f704b5ca8e4c0ef43cd3bb56733"
+  },
+  "/vector/troop/captain-albright.svg": {
+    "description": "A huge armored robot stands with massive lowered arms, rounded shoulders and planted boots.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "fa415bd50d10691878d8f5028f5288a6c16226daea4aa405e46e3f67392708fc"
+  },
+  "/vector/troop/bass.svg": {
+    "description": "A armored figure carries a weapon across the waist beneath a backpack.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "786b7cf35f089b2ed4ebcb6ca2a69a5b8713eec5354896d682673176c97d0369"
+  },
+  "/vector/troop/dr-monroe.svg": {
+    "description": "A slender armored figure has a round helmet, raised shoulder equipment and separated legs.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "fdaecbfff4ff44269e258cff53a713442f3f8c0d61d9fff8b665768b000bc6eb"
+  },
+  "/vector/troop/amal.svg": {
+    "description": "An armored standing soldier supports a straight gun horizontally across the shoulders.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "bdd290b9efd6dca300ebec39df632e9c617f5e08d1117c8efb7179227a506183"
+  },
+  "/vector/troop/domeno.svg": {
+    "description": "An armored figure holds a lowered firearm beside a pack and heavy boots.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "77839c1b4de65696348b8d83818eda633eb6da0163c03880467b0ad32b6fd830"
+  },
+  "/vector/troop/old-man-frame.svg": {
+    "description": "An armored figure raises a pipe beside the head and holds a flat spatula-shaped implement in the other hand.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "7e6b2e5865e301580f221c2f775d5594e90394e20caaa617278f8a650728ac43"
+  },
+  "/vector/troop/wotan.svg": {
+    "description": "A heavy horned robot has angular shoulder armor, enormous lowered arms and two planted boots.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "c42ac807aa6ab2a51fc024aafa1fcd1c32a3aadbbbe8bad662b6c5b85e14c7d0"
+  },
+  "/vector/troop/jellybean.svg": {
+    "description": "A armored figure has a round filled helmet, antennae and a shoulder-mounted weapon.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "efa4f57ed7352c8757a998d92a0547a68b2f8112d5210f5a6057fd0a00a78272"
+  },
+  "/vector/troop/zora.svg": {
+    "description": "An armored soldier supports a rifle diagonally upward with both hands above bent separated legs.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "1df5086594321bb141388ff8920a4afb839a69ca78ad5add107285b0a2040f17"
+  },
+  "/vector/troop/raton.svg": {
+    "description": "A stocky armored gunner carries a boxy waist-level weapon, a pack and a curved hip loop.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "0045d14bead939a5abaa4e390d0bdf35fc069dea1f840a46a2caa131d2981636"
+  },
+  "/vector/troop/bo.svg": {
+    "description": "A armored figure holds a rectangular case beside heavy separated legs.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "5ae55b3a10cdc66f9c8896f974573db87af81ae13961c36c6f4bfef25b867679"
+  },
+  "/vector/troop/bacon-and-eggs.svg": {
+    "description": "An armored gunner stands beside a four-legged companion with pointed ears and a raised tail.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "2392a0b128efe1e30fa05cca2787103dec46eff15fdacb71d958958e034290ed"
+  },
+  "/vector/troop/eureka.svg": {
+    "description": "A slim armored figure supports a very rifle across the shoulders above separated legs.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "fb70d21746ef10cf547d691daecdb5472279e08588e13b6a6b1a51355fce1b50"
+  },
+  "/vector/troop/gestalt.svg": {
+    "description": "An armored trooper supports a two-railed rifle angled upward, with a gap and rounded sling loop.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "d167939f76e0b8c0127636f0703b34e793af36d9e25f05528b7a460ed97e95aa"
+  },
+  "/vector/troop/zane.svg": {
+    "description": "An armored figure with a pipe carries a gun with a triangular muzzle brace.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "d9b9b9988a0e37221d0fead7cc53b583d98ef23301bc8bf40d919bb6c2e78ce3"
+  },
+  "/vector/troop/branch-haired-dryad.svg": {
+    "description": "A standing figure in a flowing dress has hair spreading into curved branches and leaves.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "b22d0e0b1db58c41009d683ce138ca8e3c3de3fbc4997e0b7241491640158407"
+  },
+  "/vector/troop/machine-01.svg": {
+    "description": "Upright robot with two raised rectangular weapons, bent mechanical legs and feet.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "2761219fc19cb56991dc8085086e4a183191f1b7caecbd8cd5dfe1bfcff90e72"
+  },
+  "/vector/troop/machine-02.svg": {
+    "description": "Low gun walker with a raised cannon, faceted hull and bent rear support leg.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "0ab3f44b928dc590a2481fe2c826f2972f441e15fd9f557e03eebd98316a1eb3"
+  },
+  "/vector/troop/machine-03.svg": {
+    "description": "Floating turret with a horizontal barrel, curved open linkage and pointed lower hull.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "bdb26f49d9c31dc92a7c9ca6cd35fb692fd917934b49750f6af28eed6fa2f234"
+  },
+  "/vector/troop/machine-04.svg": {
+    "description": "Two-tier robot with raised gun arms, an arched torso, upper turret and flared feet.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "5eb6c6d4191a36af4866c2e3fe5c423294a2e628626105bf67581c25184e2af7"
+  },
+  "/vector/troop/machine-05.svg": {
+    "description": "Walking gun platform with twin barrels, elevated turret, forward panel and articulated legs.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "da9280c4cc4d78d1bbb275f5a835568863d5665d2e6db3ee3bb4de660fd32db5"
+  },
+  "/vector/troop/machine-06.svg": {
+    "description": "Low gun walker with a left-pointing barrel, wedge hull, raised rear turret and pointed foot.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "555f786354a2921453821300208e9b0a797afc020973a2607187f9545b2ed3b6"
+  },
+  "/vector/troop/machine-08.svg": {
+    "description": "Biped with raised gun arms, an open oval torso and mechanical feet.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "7638ed7ddcb249a9b8d89f82cc2ae10b1286c3d0dc25ca4bb51be29d41c19963"
+  },
+  "/vector/troop/machine-09.svg": {
+    "description": "Gun walker with a horizontal barrel, tapered hull, curved rear fairing and split foot.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "a5481bc5efc19f6ac2b33b7fa58f3bdefa1d5076ba5b6620521a41a268cc59ac"
+  },
+  "/vector/troop/machine-12.svg": {
+    "description": "Squat robot with round side gun pods, a dome, three chest slots and chunky boots.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "93bc916c0b93ba48b5bbd2931768c15ed74d0240c747d95ed96111d7aba64615"
+  },
+  "/vector/troop/machine-13.svg": {
+    "description": "Triangular drone with three circular sensors, ribbed body and bent side claws.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "fb2d957dfebee012a920c0275ea50648872bdb1ed51a072640ad9e99ba871d89"
+  },
+  "/vector/troop/machine-14.svg": {
+    "description": "Symmetrical heavy mech with a central housing, shoulders and bent armored legs.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "1e1b787dc30f6ee09dc83fda5189f4a726979ad8d952f4aa7a6ad69c7e3f3bcf"
+  },
+  "/vector/troop/machine-15.svg": {
+    "description": "Birdlike gun walker with a left-pointing barrel, wedge back, arched support and split toes.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "86a1adf3aaabb8420d473b5fbde28eb8e18e571d09192857dd8293f28449ebd0"
+  },
+  "/vector/troop/machine-16.svg": {
+    "description": "Insectlike robot with a domed front, rectangular vented pack and pointed claw legs.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "cc3a3085dc5278ab7c5bfeb0ffd2478c9f5b926c954fa4c120425debe6e5baf4"
+  },
+  "/vector/troop/machine-17.svg": {
+    "description": "Narrow gun walker with a level barrel, wedge hull, swept rear fairing and flat foot.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "13ab62f4be2e060e7b3de90def795c1a576bc7d8ef09d1c1184a8d05275850ba"
+  },
+  "/vector/troop/machine-18.svg": {
+    "description": "Square gun walker with a narrow barrel, bent mechanical leg and split triangular foot.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "0484ca4794d2508f144ad77d4203f6fabb65c5dd6070e631e41eccc73845e31f"
+  },
+  "/vector/troop/machine-19.svg": {
+    "description": "Birdlike walker with a raised rectangular head, jointed neck, wedge torso and pointed toes.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "668de28599caae85f340417032fd9945dd31ae4d287f0631daaeedac38030a2f"
+  },
+  "/vector/troop/machine-20.svg": {
+    "description": "Birdlike walker with a ribbed box head, curved neck, angular torso and split flat foot.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "4053ecdbafdea600d3f582b753d4d75a9ba08eb9f0559110b980679bb7d91683"
+  },
+  "/vector/troop/machine-21.svg": {
+    "description": "Multi-limbed mech with a round sensor, two raised weapons, two lower cannons and feet.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "5f80eff775dc0304565caeccf610f0345d3fc0ec77cf5654819d6d7df8ab3dd1"
+  },
+  "/vector/troop/ferrier-companion.svg": {
+    "description": "A four-legged mechanical companion has an armored head, boxy pack and swept-up tail.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "9f600c88a27103f4aeeb24c601d12fc6aa599efbc72cfbadaf17072f567015e3"
   }
 }
