@@ -1,4 +1,5 @@
 import { Text } from '@mantine/core';
+import { reviewRunning } from '@shared/play/review';
 import { setupStep } from '@shared/play/setup';
 import type { ReactNode } from 'react';
 
@@ -10,6 +11,7 @@ import { ContinuePlaying, resultTitle } from './GameResult';
 import { canStepPhase, PhaseNavigation } from './PhaseNavigation';
 import { StagePlayback } from './SeatRequests';
 import { SwappingReady, SwappingStatus } from './Swapping';
+import { TableReviewBar } from './TableReview';
 import { stageInPlay } from './tableFactions';
 
 export type GameIdentity = Readonly<{
@@ -39,13 +41,18 @@ export function stageToolbar({
    * Playback steps through the checkpoints from the header in every stage, so no tab hides the way back to live.
    * A replayed table takes no actions, so it shows none: only the playback controls.
    */
+  /* A running review shows one checkpoint to everyone, so it has no stepping and no way back but resuming play. */
+  if (reviewRunning(table.review?.current)) {
+    return <TableReviewBar client={client} table={table} />;
+  }
   if (table.playback) {
     return <StagePlayback client={client} table={table} error={error} />;
   }
-  /* In play the header steps phases beside the bidder; setup steps its phases alone. */
+  /* In play the header steps phases beside the bidder; setup steps its phases alone. An open review vote waits beside them. */
   if (inPlay || settingUp(table)) {
     return (
       <>
+        <TableReviewBar client={client} table={table} />
         {inPlay && (
           <BidderToolbar client={client} table={table} faded={bidderFaded} onFadedChange={onBidderFadedChange} />
         )}

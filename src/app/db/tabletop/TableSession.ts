@@ -23,6 +23,7 @@ import type {
   TablePing,
 } from '@shared/play/protocol';
 import { isRemovalAction } from '@shared/play/removal';
+import { isReviewAction, reviewRunning } from '@shared/play/review';
 import { CARRY_FLIPS_LIMIT, SPECTATOR_SEAT, tablePositionSchema } from '@shared/play/schema';
 import { isSwapAction } from '@shared/play/swapping';
 import {
@@ -197,6 +198,8 @@ export class TableSession {
   private pointerTimer: ReturnType<typeof setTimeout> | undefined;
   private error: string | null = null;
   private history: Extract<ServerMessage, { type: 'history' }> | null = null;
+  /* The running table review this page follows, by id; null when none holds it. */
+  private followedReview: string | null = null;
   private historyClock: (() => number) | null = null;
   private pendingHistory: number | null = null;
   /* The live room's newest history step, which grows while a viewer sits in playback. */
@@ -602,6 +605,13 @@ export class TableSession {
           }
         : null,
       historyPending: this.pendingHistory !== null,
+      ...(this.snapshot.review !== undefined && {
+        review: {
+          current: this.snapshot.review,
+          checkpoints: this.snapshot.reviewCheckpoints ?? [],
+          seat: viewer.viewerSeat === SPECTATOR_SEAT ? null : viewer.viewerSeat,
+        },
+      }),
       canInteract,
       canHandleTable,
       reconnecting: false,
@@ -896,7 +906,38 @@ export class TableSession {
     this.forgetSettledPeekClose();
     this.battle.discardReplaced(this.saved?.battle?.id);
     this.flushQueues();
+    this.followReview();
     this.emit();
+  }
+  /*
+   * A running table review shows its checkpoint to everyone at once, so this page asks for it without being asked,
+   * once per review, and goes back to the live table when the review ends.
+   */
+  private followReview() {
+    const review = this.status === 'authorized' && this.saved ? this.snapshot.review : null;
+    if (!reviewRunning(review)) {
+      if (this.followedReview !== null) {
+        this.followedReview = null;
+        this.history = null;
+        this.pendingHistory = null;
+        this.flushQueues();
+      }
+      return;
+    }
+    if (this.followedReview === review.id || this.carry) {
+      return;
+    }
+    this.followedReview = review.id;
+    this.publishPointer(null);
+    this.pendingHistory = review.step;
+    if (!this.send({ type: 'history', step: review.step })) {
+      this.pendingHistory = null;
+      this.followedReview = null;
+    }
+  }
+  /** Whether a running table review holds this page on its checkpoint. */
+  private reviewHolds() {
+    return this.followedReview !== null;
   }
   private settleRequest(message: TableSubscriptionEvent) {
     const settled = settledRequest(message);
@@ -1149,6 +1190,7 @@ export class TableSession {
     this.pages.closeSpiceHistory();
     this.history = null;
     this.pendingHistory = null;
+    this.followedReview = null;
     this.liveHistorySteps = 0;
     this.carry = null;
     this.carries = [];
@@ -1217,7 +1259,7 @@ export class TableSession {
     return this.canAct() && tableHandlingOpen(this.snapshot.stage);
   }
   requestHistory = (step: number) => {
-    if (this.status !== 'authorized' || this.carry) {
+    if (this.status !== 'authorized' || this.carry || this.reviewHolds()) {
       return;
     }
     if (!Number.isSafeInteger(step) || step < 0) {
@@ -1231,6 +1273,9 @@ export class TableSession {
     this.emit();
   };
   resumeLive = () => {
+    if (this.reviewHolds()) {
+      return;
+    }
     this.history = null;
     this.pendingHistory = null;
     this.flushQueues();
@@ -1404,7 +1449,9 @@ export class TableSession {
    * so mashing a button or key never stacks up work for the room; play by hand is answered long before it gets there.
    */
   private mayCommand(action: PieceAction) {
-    const allowed = isSeatAction(action) ? this.current() : this.canAct();
+    /* Agreeing to, withdrawing or ending a review is for a seated player whatever checkpoint shows. */
+    const live = this.subscription.ready && this.saved !== null && this.viewer?.viewerSeat !== SPECTATOR_SEAT;
+    const allowed = isReviewAction(action) ? live : isSeatAction(action) ? this.current() : this.canAct();
     return allowed && !(this.carry && !passesCarry(action)) && this.unanswered.size < UNANSWERED_COMMANDS_LIMIT;
   }
   private sendCommand(commandId: string, action: PieceAction) {

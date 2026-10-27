@@ -3,6 +3,7 @@ import { snapshotFactionTieBreaks } from '@shared/play/factionLabels';
 import type { LogTab } from '@shared/play/log';
 import type { Affordance, DraftMove, TablePiece, TableState } from '@shared/play/model';
 import type { Peek } from '@shared/play/peeking';
+import type { ReviewCheckpoint, TableReview } from '@shared/play/review';
 import { piecesOnPlates, pointerRiders, ridersOf } from '@shared/play/pointerRiders';
 import { tableForViewer } from '@shared/play/protocol';
 import type { GameSnapshot, PublicCarry, ServerMessage, Viewer } from '@shared/play/protocol';
@@ -21,6 +22,11 @@ export type TableProjection = {
   liveRevision: number;
   playback: { step: number; lastStep: number; recordedAt?: number } | null;
   historyPending: boolean;
+  /*
+   * The live table review, read from the live table even while a checkpoint shows; absent where a game cannot review.
+   * `seat` is the viewer's own live seat when they hold one, since a shown checkpoint watches the table as an observer.
+   */
+  review?: { current: TableReview | null; checkpoints: ReviewCheckpoint[]; seat: string | null };
   canInteract: boolean;
   /* Whether the viewer may handle the table's pieces: acting, at a stage whose table can change. A finished game, or one still drafting or trading, keeps its table as it is. */
   canHandleTable: boolean;

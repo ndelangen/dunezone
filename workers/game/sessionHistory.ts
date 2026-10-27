@@ -1,7 +1,9 @@
 import { tableProgressFor } from '../../src/shared/play/phases';
 import type { CommitMessage, PieceAction } from '../../src/shared/play/protocol';
+import type { ReviewCheckpoint } from '../../src/shared/play/review';
 import { isSetupAction } from '../../src/shared/play/setup';
 import type { ActorDirectory } from './actors';
+import { logContext } from './log';
 import type { Patch } from './history';
 import { applyPatch, applyPatchInPlace, diff } from './history';
 import type { SpiceLedger } from './spiceLedger';
@@ -16,6 +18,8 @@ export type HistoryRow = {
   kind: string;
   data: string;
   bytes: number;
+  /* Where the step is, as the log names it, so a review can offer it without restoring it. */
+  context: string;
 };
 
 type RowInput = Pick<HistoryRow, 'kind' | 'data' | 'step' | 'base_revision'>;
@@ -69,6 +73,7 @@ export class SessionHistory {
     storage.sql.exec(
       'CREATE TABLE IF NOT EXISTS history_clocks (step INTEGER PRIMARY KEY, recorded_at INTEGER NOT NULL)'
     );
+    storage.sql.exec('CREATE TABLE IF NOT EXISTS history_contexts (step INTEGER PRIMARY KEY, context TEXT NOT NULL)');
   }
 
   get steps() {
@@ -126,6 +131,7 @@ export class SessionHistory {
       revision: next.revision,
       phase: next.phase,
       bytes: new TextEncoder().encode(input.data).byteLength,
+      context: logContext(next),
     };
   }
 
@@ -141,6 +147,22 @@ export class SessionHistory {
       history.bytes
     );
     this.storage.sql.exec('INSERT INTO history_clocks VALUES(?,?)', history.step, Date.now());
+    this.storage.sql.exec('INSERT INTO history_contexts VALUES(?,?)', history.step, history.context);
+  }
+
+  /** The newest steps a review can show, oldest first. */
+  recent(limit: number): ReviewCheckpoint[] {
+    return this.storage.sql
+      .exec<ReviewCheckpoint>('SELECT step, context FROM history_contexts ORDER BY step DESC LIMIT ?', limit)
+      .toArray()
+      .reverse()
+      .map(({ step, context }) => ({ step, context }));
+  }
+
+  contextOf(step: number): string | undefined {
+    return this.storage.sql
+      .exec<{ context: string }>('SELECT context FROM history_contexts WHERE step=?', step)
+      .toArray()[0]?.context;
   }
 
   recordedAt(step: number): number | undefined {

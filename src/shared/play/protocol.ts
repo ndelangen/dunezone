@@ -28,6 +28,7 @@ import { peekActionSchema, peekSchema } from './peeking';
 import { TABLE_PHASES } from './phases';
 import type { TablePhaseId } from './phases';
 import { removalActionSchema, removalVoteSchema } from './removal';
+import { reviewActionSchema, reviewCheckpointSchema, tableReviewSchema } from './review';
 import { gameEndingSchema, gameResultSchema, resultActionSchema } from './result';
 import {
   carryFlipsSchema as carryFlips,
@@ -88,6 +89,10 @@ export const gameSnapshotSchema = z.object({
   setup: setupStateSchema.optional(),
   predictions: predictionsSchema.optional(),
   removalVotes: z.array(removalVoteSchema).optional(),
+  /* The table review being voted on or showing now; absent outside setup and play. */
+  review: tableReviewSchema.nullable().optional(),
+  /* The recent checkpoints a review can show, newest last; absent outside setup and play. */
+  reviewCheckpoints: z.array(reviewCheckpointSchema).optional(),
   /* Who is determining the winner during Mentat Pause, then the declared result once finished. */
   ending: gameEndingSchema.nullable().optional(),
   result: gameResultSchema.nullable().optional(),
@@ -193,6 +198,7 @@ const pieceActionSchema = z.discriminatedUnion('kind', [
   ...publicActionSchema.options,
   ...seatActionSchema.options,
   ...removalActionSchema.options,
+  ...reviewActionSchema.options,
   ...resultActionSchema.options,
   ...draftActionSchema.options,
   ...swapActionSchema.options,

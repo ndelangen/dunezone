@@ -7,6 +7,7 @@ import { factionTokenOf } from '@shared/play/factionToken';
 import type { PublicControls, SpawnSelection } from '@shared/play/inventory';
 import { lastTurnOf } from '@shared/play/lastTurn';
 import { phaseAt, tableProgressFor } from '@shared/play/phases';
+import { reviewRunning } from '@shared/play/review';
 import { setupMapVisible, setupStep } from '@shared/play/setup';
 import type { SpiceTransfer } from '@shared/play/spiceReserve';
 import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
@@ -75,6 +76,7 @@ import {
   SPICE_GUIDANCE,
 } from './panelGuidance';
 import { PlaybackControls } from './PlaybackControls';
+import { TableReviewPanel } from './TableReview';
 import { publicControlsOf } from './publicControls';
 import { FactionInfo, PlayerChat, usePlayerWindows } from './RemovalVotes';
 import { useResultCelebration } from './resultCelebration';
@@ -950,8 +952,21 @@ function historyGroup({ client, table, error }: ConnectionControlsProps, hasInve
             },
           ]
         : []),
+      /* Players may not look back alone, so a game in progress offers a review the table agrees to instead. */
+      ...(table.review
+        ? [
+            {
+              key: 'review',
+              label: 'Table review',
+              topic: 'turn' as const,
+              description:
+                'Ask the table to look back at a recent checkpoint together. It starts when a majority of the players agree; everyone sees the same board and nothing can be moved or peeked at until play resumes.',
+              content: <TableReviewPanel client={client} table={table} error={error} />,
+            },
+          ]
+        : []),
       /* Players may not keep notes, so replay opens once the game is finished; a replay already open keeps its tab. */
-      ...(table.snapshot.stage === 'finished' || table.playback || table.historyPending
+      ...(!reviewRunning(table.review?.current) && (table.snapshot.stage === 'finished' || table.playback || table.historyPending)
         ? [
             {
               key: 'replay',

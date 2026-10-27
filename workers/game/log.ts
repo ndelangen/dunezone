@@ -62,6 +62,20 @@ type VoteResult = {
   context: string;
   at: number;
 };
+export type ReviewOutcome = 'started' | 'declined' | 'withdrawn' | 'ended';
+type ReviewBallot = { userId: string | null; name: string; choice: 'review' | 'decline' | null };
+type ReviewResult = {
+  id: string;
+  result: ReviewOutcome;
+  /* The checkpoint reviewed, as its step's context reads. */
+  checkpoint: string;
+  proposer: Person;
+  ballots: ReviewBallot[];
+  /* Who ended or withdrew it; null when a seat change did. */
+  by: Person | null;
+  context: string;
+  at: number;
+};
 type PhaseChange = 'turn' | 'step' | 'back';
 
 /**
@@ -134,6 +148,10 @@ export class PublicLog {
 
   recordVote(vote: VoteResult) {
     this.record(voteEntry(vote));
+  }
+
+  recordReview(review: ReviewResult) {
+    this.record(reviewEntry(review));
   }
 
   page(tab: LogTab, before: number): { entries: LogEntry[]; more: boolean } {
@@ -629,6 +647,48 @@ function voteEntry(vote: VoteResult): Entry {
       ? `The vote about {0} ended without a result when they left ${seat}.`
       : `{0} ${vote.result === 'removed' ? 'is removed from' : 'keeps'} ${seat}: ${breakdown}.`;
   return { key: `vote:${vote.id}`, class: 'vote', template, people, context: vote.context, at: vote.at };
+}
+
+function reviewEntry(review: ReviewResult): Entry {
+  const people: Person[] = [review.proposer];
+  const named = (ballots: ReviewBallot[]) =>
+    list(
+      ballots.map((ballot) => {
+        people.push(ballot);
+        return `{${people.length - 1}}`;
+      })
+    );
+  const agreed = review.ballots.filter((ballot) => ballot.choice === 'review');
+  const declined = review.ballots.filter((ballot) => ballot.choice === 'decline');
+  const uncast = review.ballots.filter((ballot) => ballot.choice === null);
+  const breakdown = [
+    agreed.length ? `${named(agreed)} agreed` : '',
+    declined.length ? `${named(declined)} declined` : '',
+    uncast.length ? `${named(uncast)} did not vote` : '',
+  ]
+    .filter(Boolean)
+    .join('; ');
+  const by = () => {
+    if (!review.by) {
+      return 'a seat change';
+    }
+    people.push(review.by);
+    return `{${people.length - 1}}`;
+  };
+  const templates: Record<ReviewOutcome, () => string> = {
+    started: () => `The table reviews ${review.checkpoint}, as {0} proposed: ${breakdown}.`,
+    declined: () => `The table declined {0}'s review of ${review.checkpoint}: ${breakdown}.`,
+    withdrawn: () => `The review of ${review.checkpoint} {0} proposed was withdrawn by ${by()}.`,
+    ended: () => `The review of ${review.checkpoint} was ended by ${by()}, and play resumed.`,
+  };
+  return {
+    key: `review:${review.id}:${review.result}`,
+    class: 'vote',
+    template: templates[review.result](),
+    people,
+    context: review.context,
+    at: review.at,
+  };
 }
 
 function list(names: string[]): string {
