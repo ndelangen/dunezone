@@ -37,8 +37,13 @@ export const IncomingOffer = meta.story({
   },
 });
 
-/** The viewer's offer to seat 3 waits, its handshake pressed; clicking it again takes the offer back. */
-export const Offering = meta.story({ args: alliancesProps(offeringSnapshot()) });
+/** The viewer's offer to seat 3 waits: its row reads Offering…, and the pressed hourglass takes the offer back. */
+export const Offering = meta.story({
+  args: alliancesProps(offeringSnapshot()),
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText('Offering…')).toBeVisible();
+  },
+});
 
 /** Seats 4 and 5 are allied with each other, so neither can be offered an alliance; each names its ally by token. */
 export const OthersAllied = meta.story({

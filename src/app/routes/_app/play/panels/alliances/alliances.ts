@@ -69,6 +69,9 @@ export function allianceStatus(
   if (hasOffer(alliances, factionId, own)) {
     return 'Offers you an alliance';
   }
+  if (hasOffer(alliances, own, factionId)) {
+    return 'Offering…';
+  }
   const allies = alliesOf(alliances, factionId);
   if (own && allies.includes(own)) {
     return 'Your ally';

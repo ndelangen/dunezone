@@ -1,5 +1,5 @@
 import { IconAction } from '@ui/control/IconAction';
-import { Check, Handshake, Unlink } from 'lucide-react';
+import { Check, Handshake, Hourglass, Unlink } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
@@ -15,14 +15,14 @@ type ActionProps = Readonly<{
 
 const ICON = 16;
 
-/* A waiting offer: the handshake pressed and breathing, which takes the offer back when clicked again. */
+/* A waiting offer: an hourglass, pressed and breathing, which takes the offer back when clicked again. */
 function Offering({ blocked, send }: ActionProps) {
   const motion = useMotionAllowed();
   return (
     <IconAction
       label="Withdraw alliance offer"
       tooltip="Offering an alliance. Click to withdraw the offer."
-      icon={<Handshake size={ICON} className={motion ? styles.pending : undefined} />}
+      icon={<Hourglass size={ICON} className={motion ? styles.pending : undefined} />}
       emphasis="standard"
       pressed
       disabledReason={blocked}
@@ -36,6 +36,7 @@ const ACTIONS: Readonly<Record<Relation, (props: ActionProps) => ReactNode>> = {
   ally: ({ blocked, send }) => (
     <IconAction
       label="Break alliance"
+      tooltip="End your alliance with them."
       icon={<Unlink size={ICON} />}
       intent="negative"
       emphasis="standard"
@@ -59,6 +60,7 @@ const ACTIONS: Readonly<Record<Relation, (props: ActionProps) => ReactNode>> = {
   none: ({ blocked, send }) => (
     <IconAction
       label="Offer alliance"
+      tooltip="Offer them an alliance. It forms once they accept."
       icon={<Handshake size={ICON} />}
       emphasis="standard"
       disabledReason={blocked}
