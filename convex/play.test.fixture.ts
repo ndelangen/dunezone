@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import { publishingDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
+import { publishingCustomDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
 import { arrakisBoardCapture } from '../src/shared/play/fixtures/board';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
@@ -64,7 +64,7 @@ export async function playRuleset(ctx: MutationCtx, owner: Id<'users'>) {
     const deckId = await ctx.db.insert('assets', {
       owner_id: owner,
       type: 'deck',
-      data: { name: slot, about: '', cardback: publishingDeckCardback },
+      data: { name: slot, about: '', cardback: publishingCustomDeckCardback },
       slug: slot,
       created_at: stamp,
       updated_at: stamp,

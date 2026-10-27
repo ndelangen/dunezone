@@ -1,45 +1,16 @@
 // @vitest-environment jsdom
 
-import { MantineProvider, mergeThemeOverrides } from '@mantine/core';
+import { MantineProvider } from '@mantine/core';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { appContentTheme } from '@ui/theme';
+import { stubTooltipDom, tooltipTestTheme } from '@ui/tooltip.test.fixture';
 import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
 import { FactionHeadingHints } from './FactionHeadingHints';
 
 const roots: HTMLElement[] = [];
-const theme = mergeThemeOverrides(appContentTheme, {
-  components: {
-    Tooltip: {
-      defaultProps: {
-        hideDetached: false,
-        openDelay: 0,
-        closeDelay: 0,
-        transitionProps: { duration: 0 },
-      },
-    },
-  },
-});
-
 beforeEach(() => {
   vi.useFakeTimers();
-  vi.stubGlobal(
-    'matchMedia',
-    vi.fn((media: string) => ({
-      media,
-      matches: false,
-      addEventListener() {},
-      removeEventListener() {},
-    }))
-  );
-  vi.stubGlobal(
-    'ResizeObserver',
-    class {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    }
-  );
+  stubTooltipDom();
 });
 
 afterEach(() => {
@@ -71,7 +42,7 @@ function mountHints(tabIndex?: string) {
   roots.push(root);
   const reference = { current: root };
   const view = (content: unknown) => (
-    <MantineProvider theme={theme} forceColorScheme="dark">
+    <MantineProvider theme={tooltipTestTheme} forceColorScheme="dark">
       <FactionHeadingHints root={reference} content={content} />
     </MantineProvider>
   );
@@ -81,6 +52,15 @@ function mountHints(tabIndex?: string) {
 
 async function settle() {
   await act(() => vi.runOnlyPendingTimersAsync());
+}
+
+async function focusHoveredHeading() {
+  const { heading } = mountHints();
+  fireEvent.mouseEnter(heading);
+  await settle();
+  act(() => heading.focus());
+  await settle();
+  return heading;
 }
 
 test('frozen heading hints support hover, keyboard focus, Escape and a fresh hover', async () => {
@@ -108,11 +88,7 @@ test('frozen heading hints support hover, keyboard focus, Escape and a fresh hov
 });
 
 test('Escape keeps a hovered hint dismissed when keyboard focus moves away', async () => {
-  const { heading } = mountHints();
-  fireEvent.mouseEnter(heading);
-  await settle();
-  act(() => heading.focus());
-  await settle();
+  const heading = await focusHoveredHeading();
   fireEvent.keyDown(heading, { key: 'Escape' });
   await settle();
   expect(screen.queryByRole('tooltip')).toBeNull();
@@ -129,11 +105,7 @@ test('Escape keeps a hovered hint dismissed when keyboard focus moves away', asy
 });
 
 test('leaving a dismissed focused heading allows a fresh hover after blur', async () => {
-  const { heading } = mountHints();
-  fireEvent.mouseEnter(heading);
-  await settle();
-  act(() => heading.focus());
-  await settle();
+  const heading = await focusHoveredHeading();
   fireEvent.keyDown(heading, { key: 'Escape' });
   fireEvent.mouseLeave(heading);
   await settle();
@@ -147,11 +119,7 @@ test('leaving a dismissed focused heading allows a fresh hover after blur', asyn
 });
 
 test('a fresh hover reopens a dismissed hint while its heading keeps keyboard focus', async () => {
-  const { heading } = mountHints();
-  fireEvent.mouseEnter(heading);
-  await settle();
-  act(() => heading.focus());
-  await settle();
+  const heading = await focusHoveredHeading();
   fireEvent.keyDown(heading, { key: 'Escape' });
   fireEvent.mouseLeave(heading);
   await settle();
@@ -187,7 +155,7 @@ test('unmount removes the listeners attached to a frozen heading', () => {
   const added = vi.spyOn(heading, 'addEventListener');
   const removed = vi.spyOn(heading, 'removeEventListener');
   const { unmount: release } = render(
-    <MantineProvider theme={theme}>
+    <MantineProvider theme={tooltipTestTheme}>
       <FactionHeadingHints root={{ current: heading.parentElement as HTMLDivElement }} content="listeners" />
     </MantineProvider>
   );

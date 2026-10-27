@@ -1,45 +1,16 @@
 // @vitest-environment jsdom
 
-import { MantineProvider, mergeThemeOverrides } from '@mantine/core';
+import { MantineProvider } from '@mantine/core';
 import { emptySnapshot } from '@shared/play/commands';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { appContentTheme } from '@ui/theme';
+import { stubTooltipDom, tooltipTestTheme } from '@ui/tooltip.test.fixture';
 import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
 import { FactionTokenGroup } from './FactionTokenFace';
 
-const theme = mergeThemeOverrides(appContentTheme, {
-  components: {
-    Tooltip: {
-      defaultProps: {
-        hideDetached: false,
-        openDelay: 0,
-        closeDelay: 0,
-        transitionProps: { duration: 0 },
-      },
-    },
-  },
-});
-
 beforeEach(() => {
   vi.useFakeTimers();
-  vi.stubGlobal(
-    'matchMedia',
-    vi.fn((media: string) => ({
-      media,
-      matches: false,
-      addEventListener() {},
-      removeEventListener() {},
-    }))
-  );
-  vi.stubGlobal(
-    'ResizeObserver',
-    class {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    }
-  );
+  stubTooltipDom();
 });
 
 afterEach(() => {
@@ -52,7 +23,7 @@ afterEach(() => {
 test('each allied token names its own faction on hover and releases the hint on leave', async () => {
   const table = { snapshot: emptySnapshot() } as Parameters<typeof FactionTokenGroup>[0]['table'];
   render(
-    <MantineProvider theme={theme} forceColorScheme="dark">
+    <MantineProvider theme={tooltipTestTheme} forceColorScheme="dark">
       <FactionTokenGroup
         table={table}
         factionIds={['fremen', 'guild']}
