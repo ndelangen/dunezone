@@ -61,11 +61,8 @@ test('each allied token names its own faction on hover and releases the hint on 
       />
     </MantineProvider>
   );
-  for (const [initial, name] of [
-    ['F', 'Fremen'],
-    ['S', 'Spacing Guild'],
-  ]) {
-    const token = screen.getByText(initial).closest('.mantine-Avatar-root')!;
+  for (const name of ['Fremen', 'Spacing Guild']) {
+    const token = screen.getByRole('img', { name });
     fireEvent.mouseEnter(token);
     await act(() => vi.runOnlyPendingTimersAsync());
     expect(screen.getByRole('tooltip').textContent).toBe(name);
