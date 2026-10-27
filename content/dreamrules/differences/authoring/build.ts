@@ -47,7 +47,7 @@ for (const [pageIndex, authored] of manuscript.pages.entries()) {
       showDuneLogo: true,
       showSubtitle: true,
       subtitle: 'GF9 2019 ADVANCED TO DREAMRULES',
-      supportingText: 'WHAT CHANGES\nLOCAL REVIEW DRAFT',
+      supportingText: 'WHAT CHANGES',
     };
   } else {
     for (const [column, values] of authored.columns.entries()) {

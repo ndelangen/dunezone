@@ -1,8 +1,8 @@
 # GF9 Advanced to Dreamrules
 
-Local review draft for players who know GF9 Dune 2019 Advanced. It explains the changed procedures, cards and faction powers, with examples for the rules most likely to be misplayed. It also compares the Ixians and Tleilaxu with their 2020 expansion versions. Iduali, Ecaz and Moritani are outside this draft.
+A guide for players who know GF9 Dune 2019 Advanced. It explains the changed procedures, cards and faction powers, with examples for the rules most likely to be misplayed. It also compares the Ixians and Tleilaxu with their 2020 expansion versions. Iduali, Ecaz and Moritani are outside this draft.
 
-The book has 31 A4 pages and uses the existing rulebook renderer, text, callout and table blocks, and Dreamrules cover preset. It has not been imported or published to production.
+The book has 31 A4 pages and uses the existing rulebook renderer, text, callout and table blocks, and Dreamrules cover preset. It is published as Edition 2 under the [Dreamrules ruleset](https://dune.zone/rulesets/dreamrules). [Read the guide](https://dune.zone/rulesets/dreamrules/rulebooks/gf9-advanced-to-dreamrules).
 
 ## Review the book
 
@@ -23,7 +23,7 @@ The baseline is the GF9 2019 Advanced rulebook with the November 2020 FAQ. The D
 
 Norbert decided on 27 October 2026 that the Spice deck uses **six Shai-Hulud cards**. [#1838](https://github.com/ndelangen/dunezone/issues/1838#issuecomment-6442547562) records that decision. It remains open because the shuffle recipe accounts for only five. [#1837](https://github.com/ndelangen/dunezone/issues/1837) separately tracks one versus two draw piles.
 
-Fourteen questions remain open. The setup page and the appendix identify the affected procedures. This draft does not supply house rulings for those gaps. See [questions.json](questions.json) for the issue records and [decisions.json](decisions.json) for the new six-worm decision.
+Fourteen questions remain open. The setup page and the appendix identify the affected procedures. The guide does not supply house rulings for those gaps. See [questions.json](questions.json) for the issue records and [decisions.json](decisions.json) for the new six-worm decision.
 
 ## Source records
 

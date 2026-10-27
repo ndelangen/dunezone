@@ -50,7 +50,7 @@
             "status": "unselected"
           },
           "subtitle": "GF9 2019 ADVANCED TO DREAMRULES",
-          "supportingText": "WHAT CHANGES\nLOCAL REVIEW DRAFT",
+          "supportingText": "WHAT CHANGES",
           "backgroundImageUrl": "/image/rulebook-cover/dreamrules-rainbow-print.jpg",
           "showDuneLogo": true,
           "showSubtitle": true
@@ -85,7 +85,7 @@
               "id": "28ZF",
               "kind": "text",
               "name": "Choose an enemy traitor",
-              "text": "Choose traitors before dealing starting Treachery Cards. You cannot keep your own leader as your traitor. If all four choices belong to you, reveal them and everyone redraws. For Harkonnen's extra redraw options, see p17."
+              "text": "Choose traitors before dealing starting Treachery Cards. You cannot keep your own leader as your traitor. If all four choices belong to you, reveal them and everyone redraws. For Harkonnen's extra redraw options, see page 17."
             }
           ]
         },
@@ -125,7 +125,7 @@
             {
               "id": "CLJN",
               "kind": "text",
-              "text": "Sources: Quickstart v0.8, Setup and Common Rules Clarifications; Dream Rulebook Edition 3 pp10\\-11."
+              "text": "Sources: Quickstart v0.8, Setup and Common Rules Clarifications; Dream Rulebook Edition 3 pages 10\\-11."
             }
           ]
         }
@@ -310,7 +310,7 @@
             {
               "id": "YC3D",
               "kind": "text",
-              "text": "Sources: Quickstart v0.8, Treachery Deck; Dream Rulebook Edition 3 pp62\\-67."
+              "text": "Sources: Quickstart v0.8, Treachery Deck; Dream Rulebook Edition 3 pages 62\\-67."
             }
           ]
         }
@@ -366,7 +366,7 @@
             {
               "id": "82X9",
               "kind": "text",
-              "text": "Sources: Quickstart v0.8, Nexus Deck and Activity Under Storm; GF9 November 2020 FAQ p1; Dream Rulebook Edition 3 pp13\\-16."
+              "text": "Sources: Quickstart v0.8, Nexus Deck and Activity Under Storm; GF9 November 2020 FAQ page 1; Dream Rulebook Edition 3 pages 13\\-16."
             }
           ]
         }
@@ -504,13 +504,12 @@
             {
               "id": "GEJ4",
               "kind": "text",
-              "name": "Atreides can create another mine",
               "text": "Atreides can create a mine with its Fate, see page 16."
             },
             {
               "id": "WH5W",
               "kind": "text",
-              "text": "Sources: Quickstart v0.8, Spice Mines; Dream Rulebook Edition 3 pp8,17,68; mine cards."
+              "text": "Sources: Quickstart v0.8, Spice Mines; Dream Rulebook Edition 3 pages 8,17,68; mine cards."
             }
           ]
         }
@@ -798,7 +797,7 @@
             {
               "id": "ZHR8",
               "kind": "text",
-              "text": "Sources: Quickstart v0.8, Combat Steps and Common Rules Clarifications; Dreamrules council rulings in #1831; Dream Rulebook Edition 3 pp33\\-39."
+              "text": "Sources: Quickstart v0.8, Combat Steps and Common Rules Clarifications; Dreamrules council rulings in #1831; Dream Rulebook Edition 3 pages 33\\-39."
             }
           ]
         }
@@ -848,7 +847,7 @@
             {
               "id": "B9SZ",
               "kind": "text",
-              "text": "Sources: Quickstart v0.8, Mercenaries and Supplies; Dream Rulebook Edition 3 pp50,65\\-66."
+              "text": "Sources: Quickstart v0.8, Mercenaries and Supplies; Dream Rulebook Edition 3 pages 50,65\\-66."
             }
           ]
         }
@@ -904,7 +903,7 @@
             {
               "id": "8KPD",
               "kind": "text",
-              "text": "Sources: Quickstart v0.8, Break Conditioning, Atomics, Bidding and Common Rules Clarifications; Dream Rulebook Edition 3 pp19,39,51,67."
+              "text": "Sources: Quickstart v0.8, Break Conditioning, Atomics, Bidding and Common Rules Clarifications; Dream Rulebook Edition 3 pages 19,39,51,67."
             }
           ]
         }
@@ -966,7 +965,7 @@
             {
               "id": "N68Y",
               "kind": "text",
-              "text": "Sources: Quickstart v0.8, Leader Revival and Common Rules Clarifications; Dreamrules council rulings in #1831 and #1850; GF9 FAQ November 2020 pp2\\-3,8."
+              "text": "Sources: Quickstart v0.8, Leader Revival and Common Rules Clarifications; Dreamrules council rulings in #1831 and #1850; GF9 FAQ November 2020 pages 2\\-3,8."
             }
           ]
         }
@@ -1035,7 +1034,7 @@
             {
               "id": "W9XM",
               "kind": "text",
-              "text": "Sources: GF9 FAQ November 2020 p8; Quickstart v0.8, Truthtrance Logic; Dreamrules council rulings in #1831 and #1851."
+              "text": "Sources: GF9 FAQ November 2020 page 8; Quickstart v0.8, Truthtrance Logic; Dreamrules council rulings in #1831 and #1851."
             }
           ]
         }
@@ -1198,7 +1197,7 @@
             {
               "id": "EMBR",
               "kind": "text",
-              "text": "Sources: Quickstart v0.8, Tech Tokens; GF9 Ixians & Tleilaxu pp4\\-5; Dream Rulebook Edition 3 pp46\\-47."
+              "text": "Sources: Quickstart v0.8, Tech Tokens; GF9 Ixians & Tleilaxu pages 4\\-5; Dream Rulebook Edition 3 pages 46\\-47."
             }
           ]
         }
@@ -1292,7 +1291,7 @@
                   ]
                 }
               ],
-              "note": "Count strongholds and any token or Shield Wall contribution still in effect after resolving a tie."
+              "note": "Count the token point and Shield Wall here too, unless you left them out to break a tie."
             },
             {
               "id": "Z5MV",
@@ -1608,7 +1607,7 @@
             {
               "id": "Q5DL",
               "kind": "text",
-              "text": "Sources: GF9 2019 pp14,19; Quickstart v0.8, Emperor; current Emperor sheet."
+              "text": "Sources: GF9 2019 pages 14,19; Quickstart v0.8, Emperor; current Emperor sheet."
             }
           ]
         }
@@ -1682,7 +1681,7 @@
             {
               "id": "VPQX",
               "kind": "text",
-              "text": "Sources: GF9 2019 p19 and November 2020 FAQ pp5,9; Quickstart v0.8, Guild; current Guild sheet."
+              "text": "Sources: GF9 2019 page 19 and November 2020 FAQ pages 5,9; Quickstart v0.8, Guild; current Guild sheet."
             }
           ]
         }
@@ -1749,7 +1748,7 @@
             {
               "id": "HMFP",
               "kind": "text",
-              "text": "Sources: GF9 November 2020 FAQ pp3,5; Quickstart v0.8, Fremen; current Fremen sheet."
+              "text": "Sources: GF9 November 2020 FAQ pages 3,5; Quickstart v0.8, Fremen; current Fremen sheet."
             }
           ]
         }
@@ -1890,7 +1889,7 @@
             {
               "id": "FSWX",
               "kind": "text",
-              "text": "Sources: GF9 November 2020 FAQ pp4\\-5,9; Quickstart v0.8, Bene Gesserit; current sheet; Dreamrules council rulings in #1847 and #1849."
+              "text": "Sources: GF9 November 2020 FAQ pages 4\\-5,9; Quickstart v0.8, Bene Gesserit; current sheet; Dreamrules council rulings in #1847 and #1849."
             }
           ]
         }
@@ -1962,7 +1961,7 @@
             {
               "id": "K7W6",
               "kind": "text",
-              "text": "Sources: Quickstart v0.8, Bene Tleilax and setup; current sheet; GF9 Ixians & Tleilaxu pp6\\-7."
+              "text": "Sources: Quickstart v0.8, Bene Tleilax and setup; current sheet; GF9 Ixians & Tleilaxu pages 6\\-7."
             }
           ]
         }
@@ -2139,7 +2138,7 @@
             {
               "id": "7KWB",
               "kind": "text",
-              "text": "Sources: Quickstart v0.8, Ixians; current Ixian sheet; GF9 Ixians & Tleilaxu pp8\\-9."
+              "text": "Sources: Quickstart v0.8, Ixians; current Ixian sheet; GF9 Ixians & Tleilaxu pages 8\\-9."
             }
           ]
         }
@@ -2202,7 +2201,7 @@
             {
               "id": "8QND",
               "kind": "text",
-              "text": "Sources: Quickstart v0.8, Ixians; current Ixian sheet; Dream Rulebook Edition 3 p77."
+              "text": "Sources: Quickstart v0.8, Ixians; current Ixian sheet; Dream Rulebook Edition 3 page 77."
             }
           ]
         }
@@ -2388,7 +2387,7 @@
             {
               "id": "7EZ6",
               "kind": "text",
-              "text": "Sources: Current faction sheets; Dream Rulebook Edition 3 pp53\\-55; Dreamrules council ruling in #1831."
+              "text": "Sources: Current faction sheets; Dream Rulebook Edition 3 pages 53\\-55; Dreamrules council ruling in #1831."
             }
           ]
         }
@@ -2624,7 +2623,7 @@
             {
               "id": "6W5K",
               "kind": "text",
-              "text": "Sources: Current Guild and Fremen sheets; Dream Rulebook Edition 3 pp55\\-56."
+              "text": "Sources: Current Guild and Fremen sheets; Dream Rulebook Edition 3 pages 55\\-56."
             }
           ]
         }
@@ -2849,7 +2848,7 @@
             {
               "id": "EL24",
               "kind": "text",
-              "text": "Sources: Current faction sheets; Dream Rulebook Edition 3 pp57\\-58."
+              "text": "Sources: Current faction sheets; Dream Rulebook Edition 3 pages 57\\-58."
             }
           ]
         }
@@ -3157,7 +3156,7 @@
               "id": "GGL7",
               "kind": "text",
               "name": "Version",
-              "text": "Local review draft, 27 October 2026. Covers the eight finished factions."
+              "text": "27 October 2026. Covers the eight finished factions."
             }
           ]
         }

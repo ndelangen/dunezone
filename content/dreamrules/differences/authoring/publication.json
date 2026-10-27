@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-27",
+  "name": "GF9 Advanced to Dreamrules",
+  "ruleset": "Dreamrules",
+  "url": "https://dune.zone/rulesets/dreamrules/rulebooks/gf9-advanced-to-dreamrules",
+  "rulesetUrl": "https://dune.zone/rulesets/dreamrules",
+  "editorUrl": "https://dune.zone/rulesets/dreamrules/rulebooks/gf9-advanced-to-dreamrules/edit",
+  "account": "Central",
+  "method": "Normal authenticated application UI: create, load JSON, save and hold to publish.",
+  "draftRevision": 2,
+  "edition": 2,
+  "size": "a4",
+  "design": "restrained",
+  "pages": 31,
+  "rawAuthoringSha256": "32630d6799bc4fdfc46716a62e67e8b46b4a9ded7734c79c20539258be5db7a8",
+  "verified": {
+    "listedOnRuleset": true,
+    "editionAndPageCount": true,
+    "page2Reference": "see page 17",
+    "page5DuplicateHeadingRemoved": true,
+    "page14Note": "Count the token point and Shield Wall here too, unless you left them out to break a tie."
+  },
+  "artifacts": {
+    "html": {
+      "status": "preparing"
+    },
+    "pdf": {
+      "status": "preparing"
+    }
+  }
+}

@@ -19,4 +19,4 @@ The 27 October 2026 review checked all 31 rendered pages for runtime errors, mis
 
 After editing, check the affected pages in the preview and export the PDF again. Recheck both the rendered pages and extracted PDF text before sharing the result. The reports describe the saved version and must not be treated as verification of later edits.
 
-The JSON file is ready for local review. Import and publication remain separate actions.
+Use the JSON file to load the complete document into the editor. Save and publish remain separate actions. The approved document is published under Dreamrules; the production record is in publication.json.

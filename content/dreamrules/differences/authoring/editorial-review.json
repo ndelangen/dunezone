@@ -60,5 +60,14 @@
       "Added the Blackmail and Stone Burner Treachery Cards to the expansion-card exclusions.",
       "Kept the 45-card inventory unchanged."
     ]
+  },
+  "finalCopy": {
+    "record": "final-copy-2026-10-27.json",
+    "changes": [
+      "Removed the repeated mine heading on page 5.",
+      "Used page and pages consistently for internal cross-references and source citations.",
+      "Simplified the Infiltration table note without changing which points count.",
+      "Removed local-review labels for the approved production copy."
+    ]
   }
 }

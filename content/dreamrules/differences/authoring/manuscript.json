@@ -2,7 +2,7 @@
   "title": "GF9 Advanced to Dreamrules",
   "audience": "Players who know GF9 Dune 2019 Advanced with the November 2020 FAQ",
   "date": "2026-10-27",
-  "status": "local-review",
+  "status": "approved",
   "pages": [
     {
       "key": "cover",
@@ -33,7 +33,7 @@
             "key": "S03",
             "kind": "text",
             "name": "Choose an enemy traitor",
-            "text": "Choose traitors before dealing starting Treachery Cards. You cannot keep your own leader as your traitor. If all four choices belong to you, reveal them and everyone redraws. For Harkonnen's extra redraw options, see p17."
+            "text": "Choose traitors before dealing starting Treachery Cards. You cannot keep your own leader as your traitor. If all four choices belong to you, reveal them and everyone redraws. For Harkonnen's extra redraw options, see page 17."
           }
         ],
         [
@@ -69,7 +69,7 @@
           }
         ]
       ],
-      "source": "Quickstart v0.8, Setup and Common Rules Clarifications; Dream Rulebook Edition 3 pp10-11."
+      "source": "Quickstart v0.8, Setup and Common Rules Clarifications; Dream Rulebook Edition 3 pages 10-11."
     },
     {
       "key": "deck",
@@ -148,7 +148,7 @@
           }
         ]
       ],
-      "source": "Quickstart v0.8, Treachery Deck; Dream Rulebook Edition 3 pp62-67."
+      "source": "Quickstart v0.8, Treachery Deck; Dream Rulebook Edition 3 pages 62-67."
     },
     {
       "key": "nexus",
@@ -191,7 +191,7 @@
           }
         ]
       ],
-      "source": "Quickstart v0.8, Nexus Deck and Activity Under Storm; GF9 November 2020 FAQ p1; Dream Rulebook Edition 3 pp13-16."
+      "source": "Quickstart v0.8, Nexus Deck and Activity Under Storm; GF9 November 2020 FAQ page 1; Dream Rulebook Edition 3 pages 13-16."
     },
     {
       "key": "mines",
@@ -266,12 +266,11 @@
           {
             "key": "M06",
             "kind": "text",
-            "name": "Atreides can create another mine",
             "text": "Atreides can create a mine with its Fate, see page 16."
           }
         ]
       ],
-      "source": "Quickstart v0.8, Spice Mines; Dream Rulebook Edition 3 pp8,17,68; mine cards."
+      "source": "Quickstart v0.8, Spice Mines; Dream Rulebook Edition 3 pages 8,17,68; mine cards."
     },
     {
       "key": "fate",
@@ -442,7 +441,7 @@
           }
         ]
       ],
-      "source": "Quickstart v0.8, Combat Steps and Common Rules Clarifications; Dreamrules council rulings in #1831; Dream Rulebook Edition 3 pp33-39."
+      "source": "Quickstart v0.8, Combat Steps and Common Rules Clarifications; Dreamrules council rulings in #1831; Dream Rulebook Edition 3 pages 33-39."
     },
     {
       "key": "new-battle-cards",
@@ -479,7 +478,7 @@
           }
         ]
       ],
-      "source": "Quickstart v0.8, Mercenaries and Supplies; Dream Rulebook Edition 3 pp50,65-66."
+      "source": "Quickstart v0.8, Mercenaries and Supplies; Dream Rulebook Edition 3 pages 50,65-66."
     },
     {
       "key": "conditioning",
@@ -522,7 +521,7 @@
           }
         ]
       ],
-      "source": "Quickstart v0.8, Break Conditioning, Atomics, Bidding and Common Rules Clarifications; Dream Rulebook Edition 3 pp19,39,51,67."
+      "source": "Quickstart v0.8, Break Conditioning, Atomics, Bidding and Common Rules Clarifications; Dream Rulebook Edition 3 pages 19,39,51,67."
     },
     {
       "key": "revival-and-information",
@@ -571,7 +570,7 @@
           }
         ]
       ],
-      "source": "Quickstart v0.8, Leader Revival and Common Rules Clarifications; Dreamrules council rulings in #1831 and #1850; GF9 FAQ November 2020 pp2-3,8."
+      "source": "Quickstart v0.8, Leader Revival and Common Rules Clarifications; Dreamrules council rulings in #1831 and #1850; GF9 FAQ November 2020 pages 2-3,8."
     },
     {
       "key": "truthtrance",
@@ -627,7 +626,7 @@
           }
         ]
       ],
-      "source": "GF9 FAQ November 2020 p8; Quickstart v0.8, Truthtrance Logic; Dreamrules council rulings in #1831 and #1851."
+      "source": "GF9 FAQ November 2020 page 8; Quickstart v0.8, Truthtrance Logic; Dreamrules council rulings in #1831 and #1851."
     },
     {
       "key": "tech-tokens",
@@ -708,7 +707,7 @@
           }
         ]
       ],
-      "source": "Quickstart v0.8, Tech Tokens; GF9 Ixians & Tleilaxu pp4-5; Dream Rulebook Edition 3 pp46-47."
+      "source": "Quickstart v0.8, Tech Tokens; GF9 Ixians & Tleilaxu pages 4-5; Dream Rulebook Edition 3 pages 46-47."
     },
     {
       "key": "victory",
@@ -757,7 +756,7 @@
                 "The alliance normally; ignore Infiltration"
               ]
             ],
-            "note": "Count strongholds and any token or Shield Wall contribution still in effect after resolving a tie."
+            "note": "Count the token point and Shield Wall here too, unless you left them out to break a tie."
           },
           {
             "key": "V11",
@@ -987,7 +986,7 @@
           }
         ]
       ],
-      "source": "GF9 2019 pp14,19; Quickstart v0.8, Emperor; current Emperor sheet."
+      "source": "GF9 2019 pages 14,19; Quickstart v0.8, Emperor; current Emperor sheet."
     },
     {
       "key": "guild",
@@ -1048,7 +1047,7 @@
           }
         ]
       ],
-      "source": "GF9 2019 p19 and November 2020 FAQ pp5,9; Quickstart v0.8, Guild; current Guild sheet."
+      "source": "GF9 2019 page 19 and November 2020 FAQ pages 5,9; Quickstart v0.8, Guild; current Guild sheet."
     },
     {
       "key": "fremen-storm",
@@ -1102,7 +1101,7 @@
           }
         ]
       ],
-      "source": "GF9 November 2020 FAQ pp3,5; Quickstart v0.8, Fremen; current Fremen sheet."
+      "source": "GF9 November 2020 FAQ pages 3,5; Quickstart v0.8, Fremen; current Fremen sheet."
     },
     {
       "key": "fremen-battle",
@@ -1217,7 +1216,7 @@
           }
         ]
       ],
-      "source": "GF9 November 2020 FAQ pp4-5,9; Quickstart v0.8, Bene Gesserit; current sheet; Dreamrules council rulings in #1847 and #1849."
+      "source": "GF9 November 2020 FAQ pages 4-5,9; Quickstart v0.8, Bene Gesserit; current sheet; Dreamrules council rulings in #1847 and #1849."
     },
     {
       "key": "bene-tleilax",
@@ -1276,7 +1275,7 @@
           }
         ]
       ],
-      "source": "Quickstart v0.8, Bene Tleilax and setup; current sheet; GF9 Ixians & Tleilaxu pp6-7."
+      "source": "Quickstart v0.8, Bene Tleilax and setup; current sheet; GF9 Ixians & Tleilaxu pages 6-7."
     },
     {
       "key": "infiltration",
@@ -1394,7 +1393,7 @@
           }
         ]
       ],
-      "source": "Quickstart v0.8, Ixians; current Ixian sheet; GF9 Ixians & Tleilaxu pp8-9."
+      "source": "Quickstart v0.8, Ixians; current Ixian sheet; GF9 Ixians & Tleilaxu pages 8-9."
     },
     {
       "key": "surveyor",
@@ -1444,7 +1443,7 @@
           }
         ]
       ],
-      "source": "Quickstart v0.8, Ixians; current Ixian sheet; Dream Rulebook Edition 3 p77."
+      "source": "Quickstart v0.8, Ixians; current Ixian sheet; Dream Rulebook Edition 3 page 77."
     },
     {
       "key": "karama-reference-a",
@@ -1515,7 +1514,7 @@
           }
         ]
       ],
-      "source": "Current faction sheets; Dream Rulebook Edition 3 pp53-55; Dreamrules council ruling in #1831."
+      "source": "Current faction sheets; Dream Rulebook Edition 3 pages 53-55; Dreamrules council ruling in #1831."
     },
     {
       "key": "karama-reference-b",
@@ -1603,7 +1602,7 @@
           }
         ]
       ],
-      "source": "Current Guild and Fremen sheets; Dream Rulebook Edition 3 pp55-56."
+      "source": "Current Guild and Fremen sheets; Dream Rulebook Edition 3 pages 55-56."
     },
     {
       "key": "karama-reference-c",
@@ -1686,7 +1685,7 @@
           }
         ]
       ],
-      "source": "Current faction sheets; Dream Rulebook Edition 3 pp57-58."
+      "source": "Current faction sheets; Dream Rulebook Edition 3 pages 57-58."
     },
     {
       "key": "questions",
@@ -1825,7 +1824,7 @@
             "key": "SRC06",
             "kind": "text",
             "name": "Version",
-            "text": "Local review draft, 27 October 2026. Covers the eight finished factions."
+            "text": "27 October 2026. Covers the eight finished factions."
           }
         ]
       ],

@@ -1,0 +1,209 @@
+{
+  "date": "2026-10-27",
+  "subject": "Approved guide for the Dreamrules ruleset",
+  "changes": [
+    {
+      "page": 2,
+      "id": "S03",
+      "before": {
+        "key": "S03",
+        "kind": "text",
+        "name": "Choose an enemy traitor",
+        "text": "Choose traitors before dealing starting Treachery Cards. You cannot keep your own leader as your traitor. If all four choices belong to you, reveal them and everyone redraws. For Harkonnen's extra redraw options, see p17."
+      },
+      "after": {
+        "key": "S03",
+        "kind": "text",
+        "name": "Choose an enemy traitor",
+        "text": "Choose traitors before dealing starting Treachery Cards. You cannot keep your own leader as your traitor. If all four choices belong to you, reveal them and everyone redraws. For Harkonnen's extra redraw options, see page 17."
+      }
+    },
+    {
+      "page": 5,
+      "id": "M06",
+      "before": {
+        "key": "M06",
+        "kind": "text",
+        "name": "Atreides can create another mine",
+        "text": "Atreides can create a mine with its Fate, see page 16."
+      },
+      "after": {
+        "key": "M06",
+        "kind": "text",
+        "text": "Atreides can create a mine with its Fate, see page 16."
+      }
+    },
+    {
+      "page": 14,
+      "id": "V10",
+      "before": {
+        "key": "V10",
+        "kind": "reference-table",
+        "columns": [
+          "A qualifying alliance",
+          "Winners after Infiltration"
+        ],
+        "rows": [
+          [
+            "Four strongholds, one ally infiltrated",
+            "Bene Tleilax and that ally"
+          ],
+          [
+            "Four strongholds, both infiltrated",
+            "Bene Tleilax alone"
+          ],
+          [
+            "Five or more strongholds",
+            "The alliance normally; ignore Infiltration"
+          ]
+        ],
+        "note": "Count strongholds and any token or Shield Wall contribution still in effect after resolving a tie."
+      },
+      "after": {
+        "key": "V10",
+        "kind": "reference-table",
+        "columns": [
+          "A qualifying alliance",
+          "Winners after Infiltration"
+        ],
+        "rows": [
+          [
+            "Four strongholds, one ally infiltrated",
+            "Bene Tleilax and that ally"
+          ],
+          [
+            "Four strongholds, both infiltrated",
+            "Bene Tleilax alone"
+          ],
+          [
+            "Five or more strongholds",
+            "The alliance normally; ignore Infiltration"
+          ]
+        ],
+        "note": "Count the token point and Shield Wall here too, unless you left them out to break a tie."
+      }
+    },
+    {
+      "page": 31,
+      "id": "SRC06",
+      "before": {
+        "key": "SRC06",
+        "kind": "text",
+        "name": "Version",
+        "text": "Local review draft, 27 October 2026. Covers the eight finished factions."
+      },
+      "after": {
+        "key": "SRC06",
+        "kind": "text",
+        "name": "Version",
+        "text": "27 October 2026. Covers the eight finished factions."
+      }
+    }
+  ],
+  "sourceChanges": [
+    {
+      "page": 2,
+      "before": "Quickstart v0.8, Setup and Common Rules Clarifications; Dream Rulebook Edition 3 pp10-11.",
+      "after": "Quickstart v0.8, Setup and Common Rules Clarifications; Dream Rulebook Edition 3 pages 10-11."
+    },
+    {
+      "page": 3,
+      "before": "Quickstart v0.8, Treachery Deck; Dream Rulebook Edition 3 pp62-67.",
+      "after": "Quickstart v0.8, Treachery Deck; Dream Rulebook Edition 3 pages 62-67."
+    },
+    {
+      "page": 4,
+      "before": "Quickstart v0.8, Nexus Deck and Activity Under Storm; GF9 November 2020 FAQ p1; Dream Rulebook Edition 3 pp13-16.",
+      "after": "Quickstart v0.8, Nexus Deck and Activity Under Storm; GF9 November 2020 FAQ page 1; Dream Rulebook Edition 3 pages 13-16."
+    },
+    {
+      "page": 5,
+      "before": "Quickstart v0.8, Spice Mines; Dream Rulebook Edition 3 pp8,17,68; mine cards.",
+      "after": "Quickstart v0.8, Spice Mines; Dream Rulebook Edition 3 pages 8,17,68; mine cards."
+    },
+    {
+      "page": 8,
+      "before": "Quickstart v0.8, Combat Steps and Common Rules Clarifications; Dreamrules council rulings in #1831; Dream Rulebook Edition 3 pp33-39.",
+      "after": "Quickstart v0.8, Combat Steps and Common Rules Clarifications; Dreamrules council rulings in #1831; Dream Rulebook Edition 3 pages 33-39."
+    },
+    {
+      "page": 9,
+      "before": "Quickstart v0.8, Mercenaries and Supplies; Dream Rulebook Edition 3 pp50,65-66.",
+      "after": "Quickstart v0.8, Mercenaries and Supplies; Dream Rulebook Edition 3 pages 50,65-66."
+    },
+    {
+      "page": 10,
+      "before": "Quickstart v0.8, Break Conditioning, Atomics, Bidding and Common Rules Clarifications; Dream Rulebook Edition 3 pp19,39,51,67.",
+      "after": "Quickstart v0.8, Break Conditioning, Atomics, Bidding and Common Rules Clarifications; Dream Rulebook Edition 3 pages 19,39,51,67."
+    },
+    {
+      "page": 11,
+      "before": "Quickstart v0.8, Leader Revival and Common Rules Clarifications; Dreamrules council rulings in #1831 and #1850; GF9 FAQ November 2020 pp2-3,8.",
+      "after": "Quickstart v0.8, Leader Revival and Common Rules Clarifications; Dreamrules council rulings in #1831 and #1850; GF9 FAQ November 2020 pages 2-3,8."
+    },
+    {
+      "page": 12,
+      "before": "GF9 FAQ November 2020 p8; Quickstart v0.8, Truthtrance Logic; Dreamrules council rulings in #1831 and #1851.",
+      "after": "GF9 FAQ November 2020 page 8; Quickstart v0.8, Truthtrance Logic; Dreamrules council rulings in #1831 and #1851."
+    },
+    {
+      "page": 13,
+      "before": "Quickstart v0.8, Tech Tokens; GF9 Ixians & Tleilaxu pp4-5; Dream Rulebook Edition 3 pp46-47.",
+      "after": "Quickstart v0.8, Tech Tokens; GF9 Ixians & Tleilaxu pages 4-5; Dream Rulebook Edition 3 pages 46-47."
+    },
+    {
+      "page": 18,
+      "before": "GF9 2019 pp14,19; Quickstart v0.8, Emperor; current Emperor sheet.",
+      "after": "GF9 2019 pages 14,19; Quickstart v0.8, Emperor; current Emperor sheet."
+    },
+    {
+      "page": 19,
+      "before": "GF9 2019 p19 and November 2020 FAQ pp5,9; Quickstart v0.8, Guild; current Guild sheet.",
+      "after": "GF9 2019 page 19 and November 2020 FAQ pages 5,9; Quickstart v0.8, Guild; current Guild sheet."
+    },
+    {
+      "page": 20,
+      "before": "GF9 November 2020 FAQ pp3,5; Quickstart v0.8, Fremen; current Fremen sheet.",
+      "after": "GF9 November 2020 FAQ pages 3,5; Quickstart v0.8, Fremen; current Fremen sheet."
+    },
+    {
+      "page": 22,
+      "before": "GF9 November 2020 FAQ pp4-5,9; Quickstart v0.8, Bene Gesserit; current sheet; Dreamrules council rulings in #1847 and #1849.",
+      "after": "GF9 November 2020 FAQ pages 4-5,9; Quickstart v0.8, Bene Gesserit; current sheet; Dreamrules council rulings in #1847 and #1849."
+    },
+    {
+      "page": 23,
+      "before": "Quickstart v0.8, Bene Tleilax and setup; current sheet; GF9 Ixians & Tleilaxu pp6-7.",
+      "after": "Quickstart v0.8, Bene Tleilax and setup; current sheet; GF9 Ixians & Tleilaxu pages 6-7."
+    },
+    {
+      "page": 25,
+      "before": "Quickstart v0.8, Ixians; current Ixian sheet; GF9 Ixians & Tleilaxu pp8-9.",
+      "after": "Quickstart v0.8, Ixians; current Ixian sheet; GF9 Ixians & Tleilaxu pages 8-9."
+    },
+    {
+      "page": 26,
+      "before": "Quickstart v0.8, Ixians; current Ixian sheet; Dream Rulebook Edition 3 p77.",
+      "after": "Quickstart v0.8, Ixians; current Ixian sheet; Dream Rulebook Edition 3 page 77."
+    },
+    {
+      "page": 27,
+      "before": "Current faction sheets; Dream Rulebook Edition 3 pp53-55; Dreamrules council ruling in #1831.",
+      "after": "Current faction sheets; Dream Rulebook Edition 3 pages 53-55; Dreamrules council ruling in #1831."
+    },
+    {
+      "page": 28,
+      "before": "Current Guild and Fremen sheets; Dream Rulebook Edition 3 pp55-56.",
+      "after": "Current Guild and Fremen sheets; Dream Rulebook Edition 3 pages 55-56."
+    },
+    {
+      "page": 29,
+      "before": "Current faction sheets; Dream Rulebook Edition 3 pp57-58.",
+      "after": "Current faction sheets; Dream Rulebook Edition 3 pages 57-58."
+    }
+  ],
+  "publicationCopy": [
+    "Removed local-review labels from the cover and version paragraph."
+  ],
+  "approval": "Norbert approved the guide and requested adding it to the Dreamrules ruleset after these edits."
+}
