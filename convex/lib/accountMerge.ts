@@ -154,30 +154,66 @@ async function moveGroups(ctx: MutationCtx, operation: Doc<'account_merge_operat
   return rows.length;
 }
 
+/*
+ * A faction or asset can be close to the 1 MB document limit, and moving it rewrites it and its trigger rows.
+ * These phases move one row at a time and stop while this much of each transaction limit is left, so a run of large rows still drains.
+ */
+const LARGE_ROW_RESERVE = {
+  bytesRead: 4_000_000,
+  bytesWritten: 4_000_000,
+  documentsRead: 1000,
+  documentsWritten: 500,
+};
+
+async function hasLargeRowHeadroom(ctx: MutationCtx) {
+  const metrics = await ctx.meta.getTransactionMetrics();
+  return (
+    metrics.bytesRead.remaining > LARGE_ROW_RESERVE.bytesRead &&
+    metrics.bytesWritten.remaining > LARGE_ROW_RESERVE.bytesWritten &&
+    metrics.documentsRead.remaining > LARGE_ROW_RESERVE.documentsRead &&
+    metrics.documentsWritten.remaining > LARGE_ROW_RESERVE.documentsWritten
+  );
+}
+
+/** Moves the source's rows one by one; each moved row leaves the range, so the next read is the next row. */
+async function moveLargeRows(ctx: MutationCtx, next: () => Promise<{ move: () => Promise<void> } | null>) {
+  let moved = 0;
+  while (moved < BATCH) {
+    const row = await next();
+    if (!row) {
+      break;
+    }
+    await row.move();
+    moved += 1;
+    if (!(await hasLargeRowHeadroom(ctx))) {
+      break;
+    }
+  }
+  return moved;
+}
+
 async function moveFactions(ctx: MutationCtx, operation: Doc<'account_merge_operations'>) {
   const source = operation.source_user_id;
   const target = operation.target_user_id;
-  const rows = await ctx.db
-    .query('factions')
-    .withIndex('by_owner_id', (q) => q.eq('owner_id', source))
-    .take(BATCH);
-  for (const row of rows) {
-    await ctx.db.patch(row._id, { owner_id: target });
-  }
-  return rows.length;
+  return await moveLargeRows(ctx, async () => {
+    const row = await ctx.db
+      .query('factions')
+      .withIndex('by_owner_id', (q) => q.eq('owner_id', source))
+      .first();
+    return row && { move: () => ctx.db.patch(row._id, { owner_id: target }) };
+  });
 }
 
 async function moveAssets(ctx: MutationCtx, operation: Doc<'account_merge_operations'>) {
   const source = operation.source_user_id;
   const target = operation.target_user_id;
-  const rows = await ctx.db
-    .query('assets')
-    .withIndex('by_owner_deleted', (q) => q.eq('owner_id', source))
-    .take(BATCH);
-  for (const row of rows) {
-    await ctx.db.patch(row._id, { owner_id: target });
-  }
-  return rows.length;
+  return await moveLargeRows(ctx, async () => {
+    const row = await ctx.db
+      .query('assets')
+      .withIndex('by_owner_deleted', (q) => q.eq('owner_id', source))
+      .first();
+    return row && { move: () => ctx.db.patch(row._id, { owner_id: target }) };
+  });
 }
 
 async function moveRulesets(ctx: MutationCtx, operation: Doc<'account_merge_operations'>) {

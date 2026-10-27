@@ -454,3 +454,40 @@ test('a connected Discord account protects the last usable method', async () => 
     available: true,
   });
 });
+
+test('a merge moves large assets within the transaction limits', async () => {
+  const t = setup({ transactionLimits: true });
+  roomAcknowledgesCutoffs(t);
+  const source = await account(t, 'other', 'discord');
+  const target = await account(t, 'kept', 'google', true);
+  /* Thirty-three cards near the document limit: one 32-row batch of them reads past the 16 MiB limit. */
+  const text = 'x'.repeat(700 * 1024);
+  for (let index = 0; index < 33; index += 1) {
+    await t.run(async (raw) => {
+      await applicationTriggers.wrapDB(raw).db.insert('assets', {
+        type: 'card-treachery',
+        slug: `large-card-${index}`,
+        data: { name: `Large card ${index}`, description: text },
+        owner_id: source.userId,
+        group_id: null,
+        is_deleted: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+    });
+  }
+  const admin = t.withIdentity({ subject: `${target.userId}|${target.sessionId}` });
+  const operationId = await admin.mutation(api.accounts.merge, {
+    sourceUserId: source.userId,
+    targetUserId: target.userId,
+  });
+  await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+  await t.run(async (ctx) => {
+    expect((await ctx.db.get(operationId))?.state).toBe('completed');
+    const left = await ctx.db
+      .query('assets')
+      .withIndex('by_owner_deleted', (q) => q.eq('owner_id', source.userId))
+      .first();
+    expect(left).toBeNull();
+  });
+}, 60_000);

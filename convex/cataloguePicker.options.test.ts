@@ -150,3 +150,28 @@ test('selection checks links beyond the rendered page and reacts to additions an
   await t.run((ctx) => ctx.db.patch('rulesets', ids.ruleset, { is_deleted: true }));
   await expect(t.query(api.cataloguePicker.options, args)).rejects.toThrow('Ruleset not found');
 });
+
+test('a search longer than the search index takes still answers', async () => {
+  const t = applicationTest();
+  await t.run(async (rawCtx) => {
+    const ctx = applicationTriggers.wrapDB(rawCtx);
+    const owner = await ctx.db.insert('users', { name: 'Owner' });
+    await ctx.db.insert('assets', {
+      owner_id: owner,
+      group_id: null,
+      is_deleted: false,
+      created_at: '2026-10-22T00:00:00.000Z',
+      updated_at: '2026-10-22T00:00:00.000Z',
+      type: 'card-treachery',
+      slug: 'lasgun',
+      data: { name: 'Lasgun' },
+    });
+  });
+  const q = Array.from({ length: 20 }, () => 'Lasgun').join(' ');
+  const searched = await t.query(api.cataloguePicker.options, {
+    group: 'card-treachery',
+    q,
+    paginationOpts: { numItems: 5, cursor: null },
+  });
+  expect(searched.page).toMatchObject([{ choice: { kind: 'asset', asset: { name: 'Lasgun' } } }]);
+});
