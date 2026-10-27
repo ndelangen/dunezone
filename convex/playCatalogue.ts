@@ -217,7 +217,7 @@ function supplyEntry(row: Doc<'assets'>) {
 
 /** One asset's faces as the asset page resolves them, with the rows its back is authored on. */
 async function suppliedAsset(ctx: QueryCtx, row: Doc<'assets'>, presets: CardbackPresetMemo) {
-  const backToken = TOKEN_ASSET_TYPES.has(row.type) ? await tokenBackFor(ctx, row._id, row.data) : null;
+  const backToken = TOKEN_ASSET_TYPES.has(row.type) ? await tokenBackFor(ctx, row.data) : null;
   const backDeck = await referencedCardbackDeck(ctx, row);
   const back = await resolveBackHref(ctx, row, presets);
   return {

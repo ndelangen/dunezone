@@ -5,7 +5,7 @@ import { describe, expect, test, vi } from 'vite-plus/test';
 
 import { api } from '../../../convex/_generated/api';
 import { applicationTest } from '../../../convex/application.test.fixture';
-import { publishingDeckCardback } from '../../shared/assets/fixtures/publishingDeckCardback';
+import { publishingCustomDeckCardback } from '../../shared/assets/fixtures/publishingDeckCardback';
 import { publishingRectangleTokenFace } from '../../shared/assets/fixtures/publishingRectangleTokenFace';
 import { publishingTokenFace } from '../../shared/assets/fixtures/publishingTokenFace';
 import { rawAuthoringError } from '../../shared/authoring/raw';
@@ -63,7 +63,7 @@ describe('raw linked-back display reads', () => {
       const face = type === 'token-enhance' ? publishingRectangleTokenFace : publishingTokenFace;
       const data =
         type === 'deck'
-          ? { name: 'Source', about: '', cardback: publishingDeckCardback }
+          ? { name: 'Source', about: '', cardback: publishingCustomDeckCardback }
           : { name: 'Source', about: '', front: face, back: { mode: 'custom', face } };
       const ids = await t.run(async (ctx) => {
         const ownerId = await ctx.db.insert('users', { name: 'Author' });
