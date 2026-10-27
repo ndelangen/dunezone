@@ -1,6 +1,7 @@
 /** @vitest-environment jsdom */
 
 import { MantineProvider } from '@mantine/core';
+import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
 import { afterEach, expect, test, vi } from 'vite-plus/test';
@@ -12,8 +13,9 @@ import { LastTurnSettings } from './LastTurnSettings';
 stubMatchMedia();
 afterEach(cleanup);
 
-function table(lastTurn: number) {
+function table(lastTurn: number, viewerSeat = 'seat-1') {
   return {
+    viewer: { viewerSeat },
     canInteract: true,
     snapshot: { lastTurn, bank: { factionId: 'atreides', balance: 0 } },
   } as unknown as TableProjection;
@@ -45,4 +47,14 @@ test('leaving the field untouched never undoes another player change made meanwh
   fireEvent.focusOut(field);
   expect(command).not.toHaveBeenCalled();
   expect(field).toHaveProperty('value', '7');
+});
+
+test('an observer reads the last turn without a field to change it', () => {
+  render(
+    <MantineProvider theme={appContentTheme}>
+      <LastTurnSettings client={{ command: vi.fn() } as unknown as TableSession} table={table(8, SPECTATOR_SEAT)} />
+    </MantineProvider>
+  );
+  expect(screen.queryByRole('textbox', { name: 'Last turn' })).toBeNull();
+  expect(screen.getByText('Last turn: 8')).toBeTruthy();
 });
