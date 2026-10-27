@@ -75,7 +75,7 @@ export const SHARED_INVENTORY_GUIDANCE: Guidance = {
 };
 
 export const SPICE_RESERVE_HELP = helpLines(
-  'Right-click a spice stack on the table to take it into your reserve.',
+  'Right-click a spice stack on the table to take it.',
   'Drop a stack on the Spice Bank disc to return it.'
 );
 
