@@ -44,6 +44,10 @@ Ordinary releases should preserve dev's records and skip completed migrations.
 
 ## Read regression budgets
 
+Catalogue cleanup and verification check a source once across all its list entries. The source check
+still covers every list, including stale or duplicate entries. A source with ten list entries and
+220 KiB of authored text stays below a 512 KiB read budget for each migration batch.
+
 `convex/assets.boardListings.test.ts` caps backend reads at 64 KiB for listings with real Arrakis
 geometry, including a ten-board catalogue. It covers asset landing, numbered catalogue, legacy
 browse, asset picker, FAQ board picker and ruleset board slots. It verifies that a full definition

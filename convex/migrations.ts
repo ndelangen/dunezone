@@ -1332,16 +1332,27 @@ export const catalogue_entries_factions_v1 = migrations.define({
   },
 });
 
+/* A source check covers all its lists; the index chooses one entry even when its 'all' entry is missing. */
+async function isFirstCatalogueEntryForSource(ctx: MutationCtx, entry: Doc<'catalogue_entries'>) {
+  const first = await ctx.db
+    .query('catalogue_entries')
+    .withIndex('by_kind_source', (q) => q.eq('kind', entry.kind).eq('source_id', entry.source_id))
+    .first();
+  return first?._id === entry._id;
+}
+
 /** Removes entries whose source is gone or unlisted, and duplicates, which a pass over the sources cannot see. */
 export const catalogue_entries_prune_v1 = migrations.define({
   table: 'catalogue_entries',
-  /* Each entry rereads its whole faction. */
+  /* One repair reads the source and every list it belongs to. */
   batchSize: 10,
   migrateOne: async (ctx, entry) => {
-    if (isCatalogueKindName(entry.kind)) {
-      await repairCatalogueEntry(ctx, entry.kind, entry.source_id);
-    } else {
+    if (!isCatalogueKindName(entry.kind)) {
       await ctx.db.delete(entry._id);
+      return;
+    }
+    if (await isFirstCatalogueEntryForSource(ctx, entry)) {
+      await repairCatalogueEntry(ctx, entry.kind, entry.source_id);
     }
   },
 });
@@ -1349,13 +1360,15 @@ export const catalogue_entries_prune_v1 = migrations.define({
 /** Proves every entry, and its aggregate order, equals what its canonical rows say now, so none has drifted or outlived its source. */
 export const catalogue_entries_verify_v1 = migrations.define({
   table: 'catalogue_entries',
-  /* Each entry rereads its whole faction. */
+  /* One verification reads the source and every list it belongs to. */
   batchSize: 10,
   migrateOne: async (ctx, entry) => {
     if (!isCatalogueKindName(entry.kind)) {
       throw new Error(`Catalogue entry ${entry._id} has the unknown kind ${entry.kind}.`);
     }
-    await assertCatalogueSourceExact(ctx, entry.kind, entry.source_id);
+    if (await isFirstCatalogueEntryForSource(ctx, entry)) {
+      await assertCatalogueSourceExact(ctx, entry.kind, entry.source_id);
+    }
   },
 });
 
