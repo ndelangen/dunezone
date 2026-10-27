@@ -203,8 +203,8 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
     ]);
   });
 
-  it('replays only the public table while the game is played, and the seat view once it is finished', async () => {
-    const { owner, observer, stepId } = await inPlay();
+  it('replays only the public table, during play, once finished and after continuing', async () => {
+    const { owner, other, observer, stepId } = await inPlay();
     const playback = async (connection: NativeConnection, step: number) => {
       const start = connection.messages.length;
       connection.send({ type: 'history', step });
@@ -217,38 +217,63 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
       );
     };
     const steps = async (connection: NativeConnection) => {
-      const { lastStep } = await playback(connection, 0);
-      const snapshots = [];
-      for (let step = 0; step <= lastStep; step += 1) {
+      const first = await playback(connection, 0);
+      const snapshots = [first.snapshot];
+      for (let step = 1; step <= first.lastStep; step += 1) {
         snapshots.push((await playback(connection, step)).snapshot);
       }
       return snapshots;
     };
-    const live = await syncView(owner);
-    expect(live.snapshot).toHaveProperty('hand');
-    expect(live.snapshot).toHaveProperty('bank');
-
-    /* The locked prediction, the hand, the reserve, the plan and any peek stayed with the seat; replay shows none of them. */
-    const playing = await steps(owner);
-    expect(playing.some((snapshot) => snapshot.setup)).toBe(true);
-    for (const snapshot of playing) {
-      for (const key of ['hand', 'handOrder', 'bank', 'peek']) {
-        expect(snapshot).not.toHaveProperty(key);
+    /* The owner's replay must be the observer's, step for step, with nothing the seat held then. */
+    const assertPublic = async () => {
+      const seated = await steps(owner);
+      for (const snapshot of seated) {
+        for (const key of ['hand', 'handOrder', 'bank', 'peek']) {
+          expect(snapshot).not.toHaveProperty(key);
+        }
+        expect(snapshot.battlePlan ?? null).toBeNull();
+        expect(snapshot.predictions?.[stepId]?.choice ?? null).toBeNull();
       }
-      expect(snapshot.battlePlan ?? null).toBeNull();
-      expect(snapshot.predictions?.[stepId]?.choice ?? null).toBeNull();
-    }
-    expect(playing).toEqual(await steps(observer));
+      expect(seated).toEqual(await steps(observer));
+      return seated;
+    };
 
+    /* The owner peeks at a deck, then a battle settles: its checkpoint is written while that peek is still open. */
+    while (TABLE_PHASES[(await syncView(owner)).snapshot.phase % TABLE_PHASES.length].id !== 'battle') {
+      await next(owner);
+    }
+    const deck = required(
+      (await syncView(owner)).snapshot.table.pieces.find((piece) => piece.kind === 'card' && piece.items.length > 0)
+    );
+    await accepted(owner, { kind: 'peek', pieceId: deck.id });
+    const started = await accepted(owner, { kind: 'battle-start', anchor: [0.95, 0.18, -3.05], territory: 'Arrakeen' });
+    const battleId = required(started.snapshot.battle).id;
+    await accepted(owner, { kind: 'battle-claim', battleId, side: 0 });
+    await accepted(other, { kind: 'battle-claim', battleId, side: 1 });
+    const plan = { mode: 'custom' as const, troops: [], spice: 0, adjustment: 0, leaderIds: [], cardIds: [] };
+    for (const connection of [owner, other]) {
+      await accepted(connection, { kind: 'battle-plan', battleId, plan });
+      await accepted(connection, { kind: 'battle-ready', battleId, ready: true });
+    }
+    offset += 120_000;
+    await runtime.clock(offset);
+    await eventually(async () => (await syncView(owner)).snapshot.battle?.stage === 'revealed', 'reveal', 8000);
+    await accepted(owner, { kind: 'battle-outcome', battleId, outcome: 'left' });
+    await accepted(other, { kind: 'battle-outcome', battleId, outcome: 'left' });
+    const live = (await syncView(owner)).snapshot;
+    expect(live.battle).toBeNull();
+    expect(live.peek).not.toBeNull();
+    expect(live).toHaveProperty('hand');
+    expect(live).toHaveProperty('bank');
+    await assertPublic();
+
+    /* A finished game can continue, so declaring a result opens nothing either. */
     await toMentat(owner);
     await accepted(owner, { kind: 'result-open' });
     await accepted(owner, { kind: 'result-declare', result: 'none', factionIds: [] });
-    const finished = await steps(owner);
-    expect(finished.every((snapshot) => snapshot.bank?.factionId === 'atreides')).toBe(true);
-    expect(finished.some((snapshot) => snapshot.predictions?.[stepId]?.choice)).toBe(true);
-    for (const snapshot of await steps(observer)) {
-      expect(snapshot).not.toHaveProperty('bank');
-    }
+    await assertPublic();
+    await accepted(other, { kind: 'result-continue' });
+    expect((await assertPublic()).some((snapshot) => snapshot.result)).toBe(true);
   });
 
   it('tells the directory the result, then that the game is ongoing again', async () => {
