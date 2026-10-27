@@ -39,7 +39,11 @@ function Ballots({ ballots }: Readonly<{ ballots: TableReview['ballots'] }>) {
 }
 
 /** A seated player's answer to an open proposal: agree or decline until the vote settles, or withdraw their own. */
-function ProposalActions({ client, review, current }: Readonly<{ client: TableSession; review: Review; current: TableReview }>) {
+function ProposalActions({
+  client,
+  review,
+  current,
+}: Readonly<{ client: TableSession; review: Review; current: TableReview }>) {
   const own = current.ballots.find((ballot) => ballot.seat === review.seat);
   if (!own) {
     return null;
@@ -49,7 +53,11 @@ function ProposalActions({ client, review, current }: Readonly<{ client: TableSe
   return (
     <Group gap="xs" wrap="nowrap">
       {current.proposer.seat === review.seat ? (
-        <Button size="xs" variant="default" onClick={() => client.command({ kind: 'review-end', reviewId: current.id })}>
+        <Button
+          size="xs"
+          variant="default"
+          onClick={() => client.command({ kind: 'review-end', reviewId: current.id })}
+        >
           Withdraw
         </Button>
       ) : (
@@ -77,7 +85,11 @@ function ProposalActions({ client, review, current }: Readonly<{ client: TableSe
 }
 
 /** Ends a running review for everyone; only a seated player has it. */
-function ResumePlay({ client, review, current }: Readonly<{ client: TableSession; review: Review; current: TableReview }>) {
+function ResumePlay({
+  client,
+  review,
+  current,
+}: Readonly<{ client: TableSession; review: Review; current: TableReview }>) {
   return review.seat ? (
     <Button size="xs" onClick={() => client.command({ kind: 'review-end', reviewId: current.id })}>
       Resume play
@@ -101,7 +113,7 @@ export function TableReviewBar({ client, table }: Props) {
   }
   if (reviewRunning(current)) {
     return (
-      <Group gap="xs" justify="flex-end" wrap="nowrap" role="group" aria-label="Table review">
+      <Group gap="xs" justify="flex-end" wrap="nowrap" role="group" aria-label="Table review in progress">
         <Text size="sm" role="status">
           Reviewing <strong>{current.context}</strong>. Play is paused for everyone.
         </Text>

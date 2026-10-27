@@ -47,8 +47,6 @@ export function reviewThreshold(players: number): number {
 }
 
 /** Whether the table is paused for a review that is showing now. */
-export function reviewRunning(
-  review: TableReview | null | undefined
-): review is TableReview & { startedAt: number } {
+export function reviewRunning(review: TableReview | null | undefined): review is TableReview & { startedAt: number } {
   return Boolean(review && review.startedAt !== null);
 }

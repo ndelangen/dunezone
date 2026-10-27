@@ -28,8 +28,8 @@ import { peekActionSchema, peekSchema } from './peeking';
 import { TABLE_PHASES } from './phases';
 import type { TablePhaseId } from './phases';
 import { removalActionSchema, removalVoteSchema } from './removal';
-import { reviewActionSchema, reviewCheckpointSchema, tableReviewSchema } from './review';
 import { gameEndingSchema, gameResultSchema, resultActionSchema } from './result';
+import { reviewActionSchema, reviewCheckpointSchema, tableReviewSchema } from './review';
 import {
   carryFlipsSchema as carryFlips,
   draftMoveSchema as draftSchema,

@@ -3,9 +3,9 @@ import type { CommitMessage, PieceAction } from '../../src/shared/play/protocol'
 import type { ReviewCheckpoint } from '../../src/shared/play/review';
 import { isSetupAction } from '../../src/shared/play/setup';
 import type { ActorDirectory } from './actors';
-import { logContext } from './log';
 import type { Patch } from './history';
 import { applyPatch, applyPatchInPlace, diff } from './history';
+import { logContext } from './log';
 import type { SpiceLedger } from './spiceLedger';
 import type { StoredSnapshot } from './state';
 import { storedSnapshotSchema } from './state';
@@ -60,6 +60,7 @@ function isPlaybackStep(action: PieceAction, before: StoredSnapshot) {
 export class SessionHistory {
   private boundary: StoredSnapshot | undefined;
   private step = 0;
+  private recentSteps: { step: number; limit: number; checkpoints: ReviewCheckpoint[] } | undefined;
 
   constructor(
     private readonly storage: DurableObjectStorage,
@@ -150,19 +151,17 @@ export class SessionHistory {
     this.storage.sql.exec('INSERT INTO history_contexts VALUES(?,?)', history.step, history.context);
   }
 
-  /** The newest steps a review can show, oldest first. */
+  /** The newest steps a review can show, oldest first; every frame carries them, so they are read again only once a step is added. */
   recent(limit: number): ReviewCheckpoint[] {
-    return this.storage.sql
-      .exec<ReviewCheckpoint>('SELECT step, context FROM history_contexts ORDER BY step DESC LIMIT ?', limit)
-      .toArray()
-      .reverse()
-      .map(({ step, context }) => ({ step, context }));
-  }
-
-  contextOf(step: number): string | undefined {
-    return this.storage.sql
-      .exec<{ context: string }>('SELECT context FROM history_contexts WHERE step=?', step)
-      .toArray()[0]?.context;
+    if (this.recentSteps?.step !== this.step || this.recentSteps.limit !== limit) {
+      const checkpoints = this.storage.sql
+        .exec<ReviewCheckpoint>('SELECT step, context FROM history_contexts ORDER BY step DESC LIMIT ?', limit)
+        .toArray()
+        .reverse()
+        .map(({ step, context }) => ({ step, context }));
+      this.recentSteps = { step: this.step, limit, checkpoints };
+    }
+    return this.recentSteps.checkpoints;
   }
 
   recordedAt(step: number): number | undefined {

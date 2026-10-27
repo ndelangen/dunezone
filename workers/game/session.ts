@@ -26,9 +26,9 @@ import { rosterFactionIds } from '../../src/shared/play/protocol';
 import type { ClientMessage, CommitMessage, GameSnapshot, ServerMessage, Viewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { isRemovalAction } from '../../src/shared/play/removal';
+import { isResultAction } from '../../src/shared/play/result';
 import { isReviewAction, REVIEW_CHECKPOINTS } from '../../src/shared/play/review';
 import type { TableReview } from '../../src/shared/play/review';
-import { isResultAction } from '../../src/shared/play/result';
 import type { TableRoster } from '../../src/shared/play/schema';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import type { SpiceTransfer } from '../../src/shared/play/spiceReserve';
@@ -60,8 +60,8 @@ import { ownRequests, Participation } from './participation';
 import { revealPlacedPredictions } from './predictionCards';
 import { PublicActions } from './publicActions';
 import { RemovalVotes } from './removal';
-import { TableReviews } from './review';
 import { applyResult, settleEnding } from './result';
+import { TableReviews } from './review';
 import { Room } from './room';
 import type { HistoryRow } from './sessionHistory';
 import { SessionHistory } from './sessionHistory';
@@ -853,7 +853,9 @@ export class GameSession {
   ) {
     const room = this.room!;
     room.assertRevision(message.action, message.expectedRevision);
-    const next = this.withRoster(this.reconcileVotes(applyResult(room.snapshot, viewer, message.action, Date.now()), Date.now()));
+    const next = this.withRoster(
+      this.reconcileVotes(applyResult(room.snapshot, viewer, message.action, Date.now()), Date.now())
+    );
     const history = this.history.entry(message, room.snapshot, next);
     this.persistCommit({ key, viewer, message, next, history });
     room.accept(next);

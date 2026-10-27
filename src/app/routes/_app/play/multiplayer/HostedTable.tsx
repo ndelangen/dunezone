@@ -76,7 +76,6 @@ import {
   SPICE_GUIDANCE,
 } from './panelGuidance';
 import { PlaybackControls } from './PlaybackControls';
-import { TableReviewPanel } from './TableReview';
 import { publicControlsOf } from './publicControls';
 import { FactionInfo, PlayerChat, usePlayerWindows } from './RemovalVotes';
 import { useResultCelebration } from './resultCelebration';
@@ -85,6 +84,7 @@ import { nextPhaseStep, stageStatus, stageToolbar } from './StageHeader';
 import type { GameIdentity } from './StageHeader';
 import { SwapScene } from './SwapScene';
 import { factionName, factionOptions, isSpectator, stageInPlay, viewerFaction, watchedTable } from './tableFactions';
+import { TableReviewPanel } from './TableReview';
 import { TableSettings } from './TableSettings';
 import { TerritoryTints } from './TerritoryTints';
 import { ServerClockContext } from './useServerNow';
@@ -966,7 +966,8 @@ function historyGroup({ client, table, error }: ConnectionControlsProps, hasInve
           ]
         : []),
       /* Players may not keep notes, so replay opens once the game is finished; a replay already open keeps its tab. */
-      ...(!reviewRunning(table.review?.current) && (table.snapshot.stage === 'finished' || table.playback || table.historyPending)
+      ...(!reviewRunning(table.review?.current) &&
+      (table.snapshot.stage === 'finished' || table.playback || table.historyPending)
         ? [
             {
               key: 'replay',

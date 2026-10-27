@@ -3,10 +3,10 @@ import { snapshotFactionTieBreaks } from '@shared/play/factionLabels';
 import type { LogTab } from '@shared/play/log';
 import type { Affordance, DraftMove, TablePiece, TableState } from '@shared/play/model';
 import type { Peek } from '@shared/play/peeking';
-import type { ReviewCheckpoint, TableReview } from '@shared/play/review';
 import { piecesOnPlates, pointerRiders, ridersOf } from '@shared/play/pointerRiders';
 import { tableForViewer } from '@shared/play/protocol';
 import type { GameSnapshot, PublicCarry, ServerMessage, Viewer } from '@shared/play/protocol';
+import type { ReviewCheckpoint, TableReview } from '@shared/play/review';
 import { renderedPiecesFor } from '@shared/play/tableState';
 
 import type { ConversationView } from './ConversationSession';

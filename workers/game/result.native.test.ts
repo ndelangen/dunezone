@@ -583,7 +583,10 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
       );
       offset += PHASE_CHANGE_COOLDOWN_MS + 1;
       await runtime.clock(offset);
-      for (const action of [{ kind: 'phase', direction: 1 }, { kind: 'peek', pieceId: deck.id }] as PieceAction[]) {
+      for (const action of [
+        { kind: 'phase', direction: 1 },
+        { kind: 'peek', pieceId: deck.id },
+      ] as PieceAction[]) {
         expect(await rejected(owner, action)).toBe(true);
       }
       expect(await rejected(observer, { kind: 'review-end', reviewId: review.id })).toBe(true);

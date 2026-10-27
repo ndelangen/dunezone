@@ -11,8 +11,8 @@ import { ContinuePlaying, resultTitle } from './GameResult';
 import { canStepPhase, PhaseNavigation } from './PhaseNavigation';
 import { StagePlayback } from './SeatRequests';
 import { SwappingReady, SwappingStatus } from './Swapping';
-import { TableReviewBar } from './TableReview';
 import { stageInPlay } from './tableFactions';
+import { TableReviewBar } from './TableReview';
 
 export type GameIdentity = Readonly<{
   rulesetName: string | null;

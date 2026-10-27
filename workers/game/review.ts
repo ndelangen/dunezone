@@ -18,7 +18,8 @@ const REVIEWABLE_STAGES = new Set<StoredSnapshot['stage']>(['setup', 'play']);
 
 /**
  * Owns the table review: its proposal, ballots, the pause it puts on the table and its Audit rows.
- * Only one review is open at a time; the caller owns the transaction and keeps the table frozen while one runs.
+ * Only one review is open at a time.
+ * The caller owns the transaction and keeps the table frozen while one runs.
  */
 export class TableReviews {
   constructor(
@@ -92,7 +93,7 @@ export class TableReviews {
 
   /**
    * Seats are re-read on every commit, so a player who leaves takes their ballot along and a newcomer gets one.
-   * The proposer leaving withdraws the proposal; a review that reaches its majority starts at once.
+   * The proposer leaving withdraws the proposal, and a review that reaches its majority starts at once.
    */
   reconcile(snapshot: StoredSnapshot, now: number): StoredSnapshot {
     const review = this.open();

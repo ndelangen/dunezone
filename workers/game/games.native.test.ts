@@ -5,14 +5,7 @@ import type { PieceAction } from '../../src/shared/play/protocol';
 import { cardPage, deckPage, slot } from './native-catalogue.fixture.ts';
 import { required } from './native-runtime.fixture.ts';
 import type { NativePeer, NativeRuntime } from './native-runtime.fixture.ts';
-import {
-  admitPlayer,
-  createPeer,
-  createRuntime,
-  provision,
-  sendCommand,
-  syncView,
-} from './native-runtime.fixture.ts';
+import { admitPlayer, createPeer, createRuntime, provision, sendCommand, syncView } from './native-runtime.fixture.ts';
 
 const CREATOR = { userId: 'user-a', displayName: 'Synthetic A' };
 

@@ -44,8 +44,8 @@ import type {
 } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import type { RemovalAction } from '../../src/shared/play/removal';
-import type { ReviewAction } from '../../src/shared/play/review';
 import type { ResultAction } from '../../src/shared/play/result';
+import type { ReviewAction } from '../../src/shared/play/review';
 import { rosterSeat, SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { isSetupAction, phaseGate } from '../../src/shared/play/setup';
 import { isSpicePiece } from '../../src/shared/play/spice';
@@ -84,7 +84,10 @@ type FactionSetting = BiddingAction | LastTurnAction | TerritoryTintAction;
 function isFactionSetting(action: { kind: string }): action is FactionSetting {
   return action.kind === 'last-turn' || isBiddingAction(action) || isTerritoryTintAction(action);
 }
-type RoomAction = Exclude<PieceAction, SeatAction | RemovalAction | ReviewAction | ResultAction | DraftAction | SwapAction>;
+type RoomAction = Exclude<
+  PieceAction,
+  SeatAction | RemovalAction | ReviewAction | ResultAction | DraftAction | SwapAction
+>;
 type Carry = Identity & {
   id: string;
   draft: DraftMove;
@@ -1079,7 +1082,7 @@ export class Room {
 
   /** Puts every carried piece back, as a table review pauses the table. */
   cancelCarries() {
-    for (const id of [...this.carries.keys()]) {
+    for (const id of this.carries.keys()) {
       this.remove(id);
     }
   }
