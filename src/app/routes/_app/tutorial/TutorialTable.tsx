@@ -4,8 +4,10 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 
+import { readAssetSupply } from '@db/play';
 import { useCurrentProfile } from '@db/profiles';
 
+import { AssetCapture } from '../../../../../workers/game/assetCapture';
 import { CompassEpochContext } from '../play/compass/compassEpoch';
 import { RememberedContext } from '../play/compass/useRemembered';
 import { GameRuntimeContext } from '../play/multiplayer/gameRuntime';
@@ -15,7 +17,6 @@ import type { ChapterScript, TablePlayers } from './chapterScripts/chapterScript
 import setup from './setup/setup.json';
 import { startAt, withOrigin } from './setup/tutorialSetup';
 import type { TutorialSetup } from './setup/tutorialSetup';
-import { LocalCatalogue } from './table/localCatalogue';
 import { localRuntime } from './table/localRuntime';
 import { LocalTable } from './table/localTable';
 import { TutorialGuide } from './TutorialGuide';
@@ -69,7 +70,11 @@ function useTutorialTable(setup: TutorialSetup, chapter: ChapterScript) {
       return local;
     };
     const holder = { current: open() };
-    const runtime = localRuntime(() => holder.current, withOrigin(setup.factions, origin), new LocalCatalogue(origin));
+    const runtime = localRuntime(
+      () => holder.current,
+      withOrigin(setup.factions, origin),
+      new AssetCapture(readAssetSupply, origin)
+    );
     /* The guide asks every frame, so the table is projected again only once its room has moved on. */
     let seen: { room: unknown; snapshot: GameSnapshot } | undefined;
     const control: TutorialTableControl = {

@@ -25,9 +25,13 @@ const BALLOTS = [
 /* How long each player takes to vote, so the learner sees each ballot land. */
 const BALLOT_INTERVAL_MS = 1500;
 
-/* The quiet icon beside the player's name in their faction information. */
-const startButton = () =>
-  document.querySelector<HTMLElement>(`[data-window="${FACTION_INFO}"] [aria-label="Start removal vote"]`);
+/* The quiet icon beside a player's name in their faction information; another player's window does not count. */
+const startButton = (seat: string | undefined) =>
+  seat === undefined
+    ? null
+    : document.querySelector<HTMLElement>(
+        `[data-window="${FACTION_INFO}"] [data-faction-info-seat="${seat}"] [aria-label="Start removal vote"]`
+      );
 
 function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[] {
   const seats = () => snapshot().roster?.seats ?? [];
@@ -35,7 +39,6 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
   const quietSeat = () => seatOf(QUIET);
   const vote = () => snapshot().removalVotes?.find((entry) => entry.target.seat === quietSeat());
   const seated = () => snapshot().controls?.players.some((player) => player.seat === quietSeat()) ?? false;
-  const infoOpen = () => document.querySelector(`[data-window="${FACTION_INFO}"]`) !== null;
   const playerCount = () => snapshot().controls?.players.length ?? 0;
   return [
     task({
@@ -50,14 +53,14 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
           document.querySelector(`[aria-label*=", ${QUIET}"]`),
       },
       begin: () => undefined,
-      done: () => infoOpen() && startButton() !== null,
+      done: () => startButton(quietSeat()) !== null,
     }),
     task({
       id: 'start',
       task: 'Start a removal vote',
       detail:
         'Press Start removal vote, the crossed-out person beside their name. Every player sees the vote at once in this window, and the player’s token on the chat bar is marked. Starting it counts as your own Remove.',
-      anchor: { kind: 'page', element: startButton },
+      anchor: { kind: 'page', element: () => startButton(quietSeat()) },
       begin: () => undefined,
       done: () => vote() !== undefined,
     }),

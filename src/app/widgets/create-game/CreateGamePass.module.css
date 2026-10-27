@@ -1,57 +1,6 @@
-/*
- * The create page as a boarding pass: the pass on the app's paper, the stub on the table's ground,
- * and a perforation between them.
- * The stub's ground and accent are the play shell's own, so the step into the table starts here.
- */
+/* The create page is a boarding pass, a ticket whose stub sets the table; its fields read the ticket's ground and accent. */
 .pass {
-  --pass-ground: var(--color-ground);
-  --pass-accent: var(--color-brand);
   container: pass / inline-size;
-  position: relative;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  max-width: 64rem;
-  margin: 0 auto;
-  border-radius: var(--radius-md);
-  box-shadow: 0 1.5rem 3.5rem rgb(from var(--play-shadow-pass) r g b / 0.35);
-}
-
-.pass > * {
-  min-width: 0;
-}
-
-@container page-frame (width >= 48rem) {
-  .pass {
-    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
-  }
-
-  /* The perforation, drawn on the stub's edge. */
-  .stub::before {
-    content: "";
-    position: absolute;
-    top: var(--space-md);
-    bottom: var(--space-md);
-    left: -1px;
-    width: 2px;
-    background: repeating-linear-gradient(180deg, var(--pass-accent) 0 0.5rem, transparent 0.5rem 1rem);
-    opacity: 0.45;
-    z-index: 1;
-  }
-}
-
-.stub {
-  position: relative;
-  display: flex;
-  border-radius: var(--radius-md);
-  background: var(--pass-ground);
-}
-
-.stub > * {
-  flex: 1 1 auto;
-}
-
-.main {
-  height: 100%;
 }
 
 /* The printed line along the pass's foot, set like a ticket's fields. */
@@ -96,7 +45,7 @@
   font-family: "C_Advokat_Modern", sans-serif;
   font-size: 2.6rem;
   line-height: 1;
-  color: var(--pass-accent);
+  color: var(--ticket-accent);
   font-variant-numeric: tabular-nums;
 }
 
@@ -131,13 +80,13 @@
 }
 
 .berth[data-state="open"] {
-  color: var(--pass-accent);
+  color: var(--ticket-accent);
 }
 
 .berth[data-state="you"] {
-  border-color: var(--pass-accent);
-  background: var(--pass-accent);
-  color: var(--pass-ground);
+  border-color: var(--ticket-accent);
+  background: var(--ticket-accent);
+  color: var(--ticket-ground);
 }
 
 .berth[data-state="unused"] {
@@ -147,8 +96,8 @@
 
 /* The board's seats, in the pass's own ground and ink. */
 .board {
-  --board-seats-ground: var(--pass-ground);
-  --board-seats-accent: var(--pass-accent);
+  --board-seats-ground: var(--ticket-ground);
+  --board-seats-accent: var(--ticket-accent);
 }
 
 /* Leaving for the table: the page fades to the ground the table's loading frame paints, with the same pool of light, so the game page opens out of it without a flash. */

@@ -14,8 +14,7 @@ import { PageTitle } from '@ui/block/PageTitle';
 import { BoardSeats } from '@ui/content/BoardSeats';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { Surface } from '@ui/surface';
-import { DarkSchemeIsland, darkSchemeIslandAttributes } from '@ui/surface/DarkSchemeIsland';
+import { TicketSurface } from '@ui/surface/TicketSurface';
 import { Dices } from 'lucide-react';
 import type { Dispatch, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
@@ -171,48 +170,46 @@ export function CreateGamePass({
             submit();
           }}
         >
-          <Surface padding="xl">
-            <Stack gap="xl" className={styles.main}>
-              <NameField draft={draft} dispatch={dispatch} error={nameError} disabled={pending} />
-              <RulesetField
-                rulesets={rulesets}
-                value={draft.rulesetId}
-                onChange={(rulesetId) => dispatch({ kind: 'patch', update: { rulesetId } })}
-                disabled={pending}
-              />
-              {chosen && preview ? (
-                <RulesetManifest ruleset={chosen} preview={preview} rulesetLink={rulesetLink} />
-              ) : null}
-              <PassFacts ruleset={chosen?.name ?? null} seats={draft.minimumPlayers} lastTurn={draft.lastTurn} />
-            </Stack>
-          </Surface>
-          <DarkSchemeIsland>
-            <div className={styles.stub} {...darkSchemeIslandAttributes}>
-              <Surface padding="xl">
-                <Stack gap="lg">
-                  <SeatsField
-                    value={draft.minimumPlayers}
-                    onChange={(minimumPlayers) => dispatch({ kind: 'patch', update: { minimumPlayers } })}
-                    disabled={pending}
-                  />
-                  <LastTurnField
-                    value={draft.lastTurn}
-                    onChange={(lastTurn) => dispatch({ kind: 'patch', update: { lastTurn } })}
-                    disabled={pending}
-                  />
-                  {shownFailure ? <FormError title="Not created">{shownFailure}</FormError> : null}
-                  <Stack gap="xs">
-                    <Button type="submit" size="lg" fullWidth disabled={!canCreate} loading={pending}>
-                      Create game
-                    </Button>
-                    <Text size="sm" c="dimmed" ta="center" role="status">
-                      {waiting}
-                    </Text>
-                  </Stack>
+          <TicketSurface
+            main={
+              <Stack gap="xl" flex={1}>
+                <NameField draft={draft} dispatch={dispatch} error={nameError} disabled={pending} />
+                <RulesetField
+                  rulesets={rulesets}
+                  value={draft.rulesetId}
+                  onChange={(rulesetId) => dispatch({ kind: 'patch', update: { rulesetId } })}
+                  disabled={pending}
+                />
+                {chosen && preview ? (
+                  <RulesetManifest ruleset={chosen} preview={preview} rulesetLink={rulesetLink} />
+                ) : null}
+                <PassFacts ruleset={chosen?.name ?? null} seats={draft.minimumPlayers} lastTurn={draft.lastTurn} />
+              </Stack>
+            }
+            stub={
+              <Stack gap="lg">
+                <SeatsField
+                  value={draft.minimumPlayers}
+                  onChange={(minimumPlayers) => dispatch({ kind: 'patch', update: { minimumPlayers } })}
+                  disabled={pending}
+                />
+                <LastTurnField
+                  value={draft.lastTurn}
+                  onChange={(lastTurn) => dispatch({ kind: 'patch', update: { lastTurn } })}
+                  disabled={pending}
+                />
+                {shownFailure ? <FormError title="Not created">{shownFailure}</FormError> : null}
+                <Stack gap="xs">
+                  <Button type="submit" size="lg" fullWidth disabled={!canCreate} loading={pending}>
+                    Create game
+                  </Button>
+                  <Text size="sm" c="dimmed" ta="center" role="status">
+                    {waiting}
+                  </Text>
                 </Stack>
-              </Surface>
-            </div>
-          </DarkSchemeIsland>
+              </Stack>
+            }
+          />
         </form>
         {departing ? createPortal(<div className={styles.departure} aria-hidden />, document.body) : null}
       </PageLayout.Content>

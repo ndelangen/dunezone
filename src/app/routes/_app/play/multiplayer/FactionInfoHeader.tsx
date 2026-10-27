@@ -32,7 +32,8 @@ function subtitle({ name, faction, seat }: FactionInfoHeaderModel) {
 export function FactionInfoHeader({ model }: Readonly<{ model: FactionInfoHeaderModel }>) {
   const { page, removal, alliance } = model;
   return (
-    <Stack gap="sm">
+    /* The seat it shows, for a guide that points at one player's header. */
+    <Stack gap="sm" data-faction-info-seat={model.seat}>
       <Group gap="xs" justify="space-between" wrap="nowrap">
         <Group gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
           {model.token}

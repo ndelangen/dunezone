@@ -1,6 +1,9 @@
+/* @vitest-environment jsdom */
+
 import type { GameSnapshot } from '@shared/play/protocol';
 import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
+import { FACTION_INFO } from '../../play/compass/windows';
 import type { TablePlayers } from './chapterScript';
 import { moderation } from './moderation';
 
@@ -33,4 +36,23 @@ test('the others vote on a second vote after the first one fails', () => {
   vi.advanceTimersByTime(1500);
   expect(act).toHaveBeenLastCalledWith('seat-3', { kind: 'removal-ballot', voteId: 'vote-2', choice: 'remove' });
   stop();
+});
+
+/* Another player's faction information has the same button, so opening it first neither finishes the step nor moves the arrow there. */
+test('the first step waits for the Harkonnen player’s information, not another player’s', () => {
+  const view = { roster: { seats } } as unknown as GameSnapshot;
+  const players: TablePlayers = { act: vi.fn(), viewOf: () => view, others: () => [], landings: () => [] };
+  const steps = moderation.tasks(() => view, players);
+  const open = steps.find((step) => step.id === 'open')!;
+  const start = steps.find((step) => step.id === 'start')!;
+  const info = (seat: string) =>
+    `<div data-window="${FACTION_INFO}"><div data-faction-info-seat="${seat}"><button aria-label="Start removal vote"></button></div></div>`;
+  const anchor = () => (start.anchor.kind === 'page' ? start.anchor.element() : null);
+  document.body.innerHTML = info('seat-5');
+  expect(open.done(open.begin(undefined as never), undefined as never)).toBe(false);
+  expect(anchor()).toBeNull();
+  document.body.innerHTML = info('seat-2');
+  expect(open.done(open.begin(undefined as never), undefined as never)).toBe(true);
+  expect(anchor()?.closest('[data-faction-info-seat]')?.getAttribute('data-faction-info-seat')).toBe('seat-2');
+  document.body.innerHTML = '';
 });

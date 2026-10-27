@@ -1,0 +1,56 @@
+/*
+ * A ticket: the main part on the app's paper, the stub on the table's ground, and a perforation between them.
+ * The stub's ground and accent are the play shell's own, so a step into the table starts here.
+ */
+.ticket {
+  --ticket-ground: var(--color-ground);
+  --ticket-accent: var(--color-brand);
+
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 64rem;
+  margin: 0 auto;
+  border-radius: var(--radius-md);
+  box-shadow: 0 1.5rem 3.5rem rgb(from var(--play-shadow-pass) r g b / 0.35);
+}
+
+.ticket > * {
+  min-width: 0;
+}
+
+@container page-frame (width >= 48rem) {
+  .ticket {
+    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+  }
+
+  /* The perforation, drawn on the stub's edge. */
+  .stub::before {
+    content: "";
+    position: absolute;
+    top: var(--space-md);
+    bottom: var(--space-md);
+    left: -1px;
+    width: 2px;
+    background: repeating-linear-gradient(180deg, var(--ticket-accent) 0 0.5rem, transparent 0.5rem 1rem);
+    opacity: 0.45;
+    z-index: 1;
+  }
+}
+
+.stub {
+  position: relative;
+  display: flex;
+  border-radius: var(--radius-md);
+  background: var(--ticket-ground);
+}
+
+.stub > * {
+  flex: 1 1 auto;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}

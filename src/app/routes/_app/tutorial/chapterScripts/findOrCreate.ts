@@ -20,7 +20,7 @@ const rulesetInput = () =>
 const copyButton = () =>
   [...document.querySelectorAll('button')].find((button) => /game link/i.test(button.textContent ?? '')) ?? null;
 
-function tasks(state: () => LobbyState): GuideTask[] {
+function tasks(state: () => LobbyState, openCreate: () => void): GuideTask[] {
   return [
     task({
       id: 'room',
@@ -66,7 +66,7 @@ function tasks(state: () => LobbyState): GuideTask[] {
             button.checkVisibility()
           ) ?? null,
       },
-      begin: () => undefined,
+      begin: openCreate,
       done: () => state().view !== 'lobby',
     }),
     task({

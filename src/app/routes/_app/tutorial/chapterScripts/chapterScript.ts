@@ -41,6 +41,8 @@ type LobbyView = 'lobby' | 'create' | 'created';
 /** What a lobby chapter's tasks read: the page the player is on and what they chose there. */
 export type LobbyState = Readonly<{
   view: LobbyView;
+  /** Whether Create a game leads on to the create page; until the chapter gets there, the lobby keeps the learner on its steps. */
+  createOpen: boolean;
   /** The ruleset the create page's pass holds, by name, once one is chosen. */
   ruleset: string | null;
   /** The game the player created, once they have. */
@@ -51,6 +53,7 @@ export type LobbyState = Readonly<{
 export type LobbyChapterScript = Readonly<{
   slug: string;
   page: 'lobby';
-  tasks: (state: () => LobbyState) => GuideTask[];
+  /** The chapter's tasks, reading where the player is; a task calls `openCreate` once Create a game should lead on. */
+  tasks: (state: () => LobbyState, openCreate: () => void) => GuideTask[];
   learned: readonly string[];
 }>;

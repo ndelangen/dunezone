@@ -4,7 +4,7 @@ import { clientMessageSchema, KEEPALIVE_PING, KEEPALIVE_PONG } from '@shared/pla
 import type { ServerMessage } from '@shared/play/protocol';
 import { GameRejection } from '@shared/play/rejection';
 
-import type { GameCatalogue } from '../../../../../../workers/game/catalogue';
+import type { AssetCapture } from '../../../../../../workers/game/assetCapture';
 import { browserGameRuntime } from '../../play/multiplayer/gameRuntime';
 import type { GameRuntime, GameSocket } from '../../play/multiplayer/gameRuntime';
 import { LocalConversations } from './localConversations';
@@ -37,7 +37,7 @@ export type LocalRuntime = GameRuntime &
 export function localRuntime(
   table: () => LocalTable,
   factions: Readonly<Partial<Record<string, PublicFaction | null>>>,
-  catalogue: Pick<GameCatalogue, 'capture'>
+  catalogue: Pick<AssetCapture, 'capture'>
 ): LocalRuntime {
   let socket: LocalSocket | null = null;
   const conversations = new LocalConversations(table, (message) => queueMicrotask(() => socket?.deliver(message)));
