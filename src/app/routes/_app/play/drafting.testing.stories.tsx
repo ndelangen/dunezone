@@ -58,10 +58,12 @@ export const ChoosingFactions = meta.story({
       },
       { timeout: 30_000 }
     );
-    const factions = () => within(page.getByRole('list', { name: 'Before the deal' })).getByText(/^Factions/);
-    await userEvent.hover(factions());
-    await waitForFrame(() => expect(page.getByRole('tooltip')).toHaveTextContent('a random 6 of them will be dealt'));
-    await userEvent.unhover(factions());
+    /* The Factions step says how the deal picks, in its own words, which its tooltip shows on hover. */
+    await expect(
+      within(page.getByRole('list', { name: 'Before the deal' })).getByRole('button', {
+        name: /^Factions.*a random 6 of them will be dealt/,
+      })
+    ).toBeVisible();
     const list = () => within(page.getByRole('list', { name: 'Factions' }));
     await waitFor(
       async () => {

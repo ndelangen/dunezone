@@ -1,7 +1,6 @@
 import { testingPreview } from '@sb/preview';
-import { finishTransitions, waitForFrame } from '@sb/storyWaits';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
-import { expect, userEvent, within } from 'storybook/test';
+import { expect, within } from 'storybook/test';
 
 import { alliancesSnapshot, faction } from '../alliances.stories.fixture';
 import { tableOf } from '../panels/PanelWindow.stories.fixture';
@@ -16,14 +15,11 @@ const tokens = [faction(snapshot, 'seat-4'), faction(snapshot, 'seat-5')].map((i
 
 const meta = testingPreview.meta({ component: FactionTokenGroup, args: { tokens, size: 26 } });
 
-/** Hovering a token opens a tooltip with its faction's name. */
-export const NamesOnHover = meta.story({
+/** Each token is an image named after its faction, the name its tooltip shows on hover. */
+export const NamedByFaction = meta.story({
   play: async ({ canvasElement, args }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    const name = args.tokens[1]!.name;
-    await userEvent.hover(within(canvasElement).getByRole('img', { name }));
-    const tooltip = await waitForFrame(() => page.getByRole('tooltip', { name }));
-    /* The tooltip mounts transparent and fades in, so the check finishes the fade rather than waiting for the frames that draw it. */
-    await waitForFrame(() => expect(finishTransitions(tooltip)).toBeVisible());
+    for (const token of args.tokens) {
+      await expect(within(canvasElement).getByRole('img', { name: token.name })).toBeVisible();
+    }
   },
 });

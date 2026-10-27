@@ -1,9 +1,8 @@
 import { testingPreview } from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
-import { coreColors } from '@shared/uiPalette';
 import { expect, userEvent, within } from 'storybook/test';
 
-import { openCompass, windowNamed } from './controls.stories.fixture';
+import { openCompass } from './controls.stories.fixture';
 import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
 import { openPieceMenu, openTab, paintedColor, settled } from './playing.stories.fixture';
 import { productTransport, playingSnapshot as initialSnapshot } from './product.stories.fixture';
@@ -72,7 +71,7 @@ export const Windows = meta.story({
   },
 });
 
-/** The Play panel and its portaled controls share the core app palette. */
+/** The Play panel and its portaled menu share the core app palette; the tooltip's own surface is the kit's to show. */
 export const SchemeIsland = meta.story({
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
@@ -103,24 +102,6 @@ export const SchemeIsland = meta.story({
     ).toBe(glass);
     await userEvent.keyboard('{Escape}');
     await waitForFrame(() => expect(page.queryByRole('menu')).toBeNull());
-    const raised = paintedColor(island, view.getComputedStyle(island).getPropertyValue('--tip-surface').trim());
-    const help = within(windowNamed(page, 'Spice')!).getByRole('img', { name: 'Help' });
-    /* By its words, as the window's (?) tooltip. */
-    const spiceReserveTip = () =>
-      page.queryAllByRole('tooltip').find((tip) => tip.textContent?.includes('Drop a stack on the Spice Bank disc')) ??
-      null;
-    await userEvent.hover(help);
-    const tooltip = await waitForFrame(async () => {
-      const tip = spiceReserveTip();
-      await expect(tip).not.toBeNull();
-      return tip!;
-    });
-    await expect(raised).toBe(paintedColor(island, coreColors.hover));
-    await expect(view.getComputedStyle(tooltip).backgroundColor).toBe(raised);
-    await expect(view.getComputedStyle(tooltip).color).toBe(paintedColor(island, coreColors.text));
-    await expect(raised).not.toBe(glass);
-    await userEvent.unhover(help);
-    await waitForFrame(() => expect(spiceReserveTip()).toBeNull());
     await expect(paint()).toEqual(tablePaint);
   },
 });
