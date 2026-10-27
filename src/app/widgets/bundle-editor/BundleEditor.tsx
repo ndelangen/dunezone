@@ -200,7 +200,7 @@ export function BundleEditor({
                     <ControlBlock title="Name" description="Determines the bundle's URL." input={nameField} />
                     <ControlBlock
                       title="Band"
-                      description="A bundle has no face of its own, so this is what tells it apart. Stock or authored; nothing about the choice is stored either way."
+                      description="A bundle has no face of its own, so this is what tells it apart."
                       input={
                         <Select
                           aria-label="Band"
@@ -246,7 +246,9 @@ export function BundleEditor({
                   <>
                     <ControlBlock
                       title="Contents"
-                      description="Which tokens this bundle holds, and how many of each, from any community token whoever made it. Shapes may be mixed freely."
+                      description={
+                        'Which community tokens this bundle holds, and how many of each.\nShapes may be mixed freely.'
+                      }
                       tool={tokenPicker}
                       input={
                         members.length === 0 ? (

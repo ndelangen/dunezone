@@ -74,6 +74,12 @@
       }
     },
     {
+      /* Tooltip copy stays within 100 characters per line in app source (Norbert, 2026-10-27). */
+      "files": ["src/**"],
+      "excludeFiles": ["src/game/**"],
+      "rules": { "local/tooltip-length": "error" }
+    },
+    {
       /**
        * A component renders what it is given; it does not go and get things.
        *

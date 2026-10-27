@@ -2,6 +2,7 @@ import type { StoredPiece } from '@shared/play/model';
 import type { GameSnapshot, PieceAction } from '@shared/play/protocol';
 import type { TutorialCheckpoint } from '@shared/tutorial/recipe';
 
+import type { Landing } from '../table/localTable';
 import type { GuideTask } from '../TutorialGuide';
 
 /** The other players at a chapter's table, whom a task can have act, as their own seat sends a command. */
@@ -12,6 +13,8 @@ export type TablePlayers = Readonly<{
   viewOf: (seat: string) => GameSnapshot;
   /** Every seat at the table but the learner's. */
   others: () => readonly string[];
+  /** Every carry the learner has set down, oldest first. */
+  landings: () => readonly Landing[];
 }>;
 
 /** What a built chapter plays: the setup checkpoint its table starts from, and its tasks over that table. */
@@ -20,6 +23,8 @@ export type ChapterScript = Readonly<{
   checkpoint: TutorialCheckpoint;
   /** The faction the learner plays this chapter as, by its name at the table; the recipe's learner seat when absent. */
   playAs?: string;
+  /** Whether the learner opens the table as a spectator, watching rather than seated. */
+  watch?: boolean;
   /** Pieces the learner holds in this chapter besides what the setup dealt, with their images under `{{origin}}` as the setup names them. */
   hand?: readonly StoredPiece[];
   /** What the other players do as the table opens, before the learner sees it, such as moving the game on to the chapter's phase. */

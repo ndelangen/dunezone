@@ -92,7 +92,7 @@ export const NewCoverNaming = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('button', { name: 'Add Page' }, { timeout: 30_000 }));
-    await userEvent.click(await page.findByRole('menuitem', { name: 'Cover' }));
+    await userEvent.click(await waitForFrame(() => page.getByRole('menuitem', { name: 'Cover' })));
     const title = await page.findByRole('textbox', { name: 'Title' });
     await expect(title).toHaveValue('New cover');
     await userEvent.clear(title);

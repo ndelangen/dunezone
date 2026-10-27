@@ -112,6 +112,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       anchor: { kind: 'table', point: () => at(spiceDeck()) },
       ...closeUpShown(),
     }),
+    dialTask('look-back', 'map', 'Go back to the map', 'M on the dial brings the whole board back.'),
     task({
       id: 'ping',
       task: 'Show the others a spot',
@@ -120,7 +121,6 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       anchor: { kind: 'table', point: () => [0, 0, 0] },
       ...pinged(),
     }),
-    dialTask('look-back', 'map', 'Go back to the map', 'M on the dial brings the whole board back.'),
   ];
 }
 

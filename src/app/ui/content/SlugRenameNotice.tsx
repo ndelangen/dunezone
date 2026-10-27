@@ -17,9 +17,8 @@ export interface SlugRenameNoticeProps {
 export function SlugRenameNotice({ noun, url, note }: SlugRenameNoticeProps) {
   return (
     <>
-      Renaming this {noun} changes its address (<code>{url}</code>), and bookmarks or shared links to the old one stop
-      working.
-      {note ? ` ${note}` : null}
+      Renaming this {noun} changes its address (<code>{url}</code>). Old links stop working.
+      {note ? `\n${note}` : null}
     </>
   );
 }

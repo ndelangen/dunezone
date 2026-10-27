@@ -7,6 +7,7 @@ import { expect, within } from 'storybook/test';
 import type { StoredSnapshot } from '../../../../../workers/game/state';
 import { gameMeta, install } from './game.stories.fixture';
 import { chapter, journeyViewers, JourneyPage } from './journey.stories.fixture';
+import techToken from './product.stories.fixture/tech-token.json';
 import { sandbox, sandboxReady, sandboxSteps, sandboxTransport } from './sandbox.stories.fixture';
 import { shown, piece } from './sandbox.stories.fixture';
 
@@ -177,5 +178,66 @@ export const HmsCarriesItsTroops = meta.story({
       await expect(stack.position[0] - nextX).toBeCloseTo(before[index]![0]!);
       await expect(stack.position[2] - nextZ).toBeCloseTo(before[index]![1]!);
     }
+  },
+});
+
+/** Three of the published Water Extraction tech token for seat 1's faction set down on the board where nothing stands: one face up, one face down and a stack of three. */
+function withTechTokens(stored: StoredSnapshot): StoredSnapshot {
+  const seat = stored.roster!.seats.find((entry) => entry.id === 'seat-1')!;
+  const front = new URL(`/play-fixtures/product/${techToken.published.front.file}`, location.origin).href;
+  const back = new URL(`/play-fixtures/product/${techToken.published.back.file}`, location.origin).href;
+  const pieces = [...stored.table.pieces];
+  const versions = { ...stored.versions };
+  for (const [index, [count, faceUp, x]] of (
+    [
+      [1, true, -0.6],
+      [1, false, 0],
+      [3, true, 0.6],
+    ] as const
+  ).entries()) {
+    const token: StoredSnapshot['table']['pieces'][number] = {
+      id: `sandbox-tech-${index}`,
+      label: techToken.name,
+      owner: seat.faction!.id,
+      color: seat.faction!.color,
+      accent: '#ead9bb',
+      items: Array.from({ length: count }, (_, item) => ({
+        id: `sandbox-tech-${index}-${item}`,
+        faceUp,
+        artwork: { front, back, name: techToken.name, type: techToken.type },
+      })),
+      stackKey: `token:sandbox-tech-${index}`,
+      position: [0, 0, 0],
+      orientation: 0.3 * index,
+      zoneId: null,
+      locked: false,
+      kind: 'force',
+    };
+    const spot = nearestCollisionFreePosition(token, [x, 0, 1.6], pieces)!;
+    token.position = restingPositionAt(spot, token);
+    pieces.push(token);
+    versions[token.id] = stored.revision;
+  }
+  return { ...stored, table: { ...stored.table, pieces }, versions };
+}
+
+/**
+ * Tech tokens on the table are cut to the same ten-tooth gear as everywhere else they show, with their art printed on the gear.
+ * By hand: hover a gear to see it pick up only over its teeth, lift one to see its shadow, and press F while holding it to turn it over.
+ */
+export const TechTokensAreGears = meta.story({
+  args: { step: chapter('Shipment and Movement'), seat: 'seat-1' },
+  beforeEach: ({ args }: { args: { step?: number; seat?: string } }) =>
+    install(() =>
+      sandboxTransport({
+        start: Number(args.step ?? 1) - 1,
+        seat: String(args.seat ?? 'seat-1'),
+        prepare: withTechTokens,
+      })
+    )(),
+  play: async ({ canvasElement }) => {
+    await sandboxReady(within(canvasElement.ownerDocument.body));
+    const tech = shown().table.pieces.filter((candidate) => candidate.items[0]?.artwork?.type === 'token-tech');
+    await expect(tech.map((candidate) => candidate.items.length)).toEqual([1, 1, 3]);
   },
 });

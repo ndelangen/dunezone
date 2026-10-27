@@ -1,14 +1,17 @@
 /*
- * The faction tokens along the top of the faction information: one per seat, wrapping in a narrow window.
- * They sit in the window's scrolling body, run to its sides, and end in a rule above the seat's details.
+ * The faction tokens along the top of the faction information: one per seat on a single line, scrolling sideways in a narrow window.
+ * They sit in the window's scrolling body and run to its edges, so the rule under them spans the whole window above the seat's details.
  */
 
 .picker {
   display: flex;
-  flex-wrap: wrap;
   gap: 0.25rem;
-  margin: -0.4rem -0.4rem 0;
-  padding-bottom: 0.6rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  /* The window body's padding, taken back so the rule reaches both edges. */
+  margin: calc(-1 * var(--window-body-pad-block)) calc(-1 * var(--window-body-pad-inline)) 0;
+  padding: 0.5rem 0.6rem 0.6rem;
   border-bottom: 1px solid var(--edge);
 }
 
@@ -16,6 +19,7 @@
   display: grid;
   justify-items: center;
   gap: 0.2rem;
+  flex-shrink: 0;
   width: 4.2rem;
   padding: 0.3rem 0.2rem;
   border: 0;

@@ -73,7 +73,7 @@ export const SpiceReserveNarrowGuidance = meta.story({
     /* The tooltip's label mounts only from inside an animation-frame callback, so each poll runs the waiting frames itself (https://github.com/ndelangen/dunezone/issues/1422). Resting on the (?) brings the reserve's help. */
     await waitForFrame(() =>
       expect(
-        finishTransitions(within(page.getByRole('tooltip')).getByText(/Only you see this balance\./))
+        finishTransitions(within(page.getByRole('tooltip')).getByText(/Drop a stack on the Spice Bank disc/))
       ).toBeVisible()
     );
     await userEvent.unhover(help);

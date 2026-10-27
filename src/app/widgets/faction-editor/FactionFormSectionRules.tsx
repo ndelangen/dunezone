@@ -30,7 +30,9 @@ function SetupFields({ form }: { form: FactionFormApi }) {
                 <Stack gap="md">
                   <ControlBlock
                     title="Starting instructions"
-                    description="Free-form setup instructions shown in the faction rules output. Do not repeat the structured spice amount here unless the prose genuinely needs it."
+                    description={
+                      'Setup instructions shown in the faction rules.\nLeave out the spice amount; it is printed already.'
+                    }
                     input={
                       <FormattedTextInput
                         id="rules-start"

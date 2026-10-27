@@ -32,7 +32,7 @@ export const Info = meta.story({
   beforeEach: install(() => productTransport('seat-2', playingSnapshot())),
   play: async ({ canvasElement }) => {
     const page = await openFactionInfo(canvasElement, 'Twaffle');
-    const link = await page.findByRole('link', { name: 'View House Atreides (opens in a new tab)' }, WAIT);
+    const link = await page.findByRole('link', { name: 'Open the House Atreides page in a new tab' }, WAIT);
     await expect(link).toHaveAttribute('target', '_blank');
     await expect(link).toHaveAttribute('href', '/factions/house-atreides');
     await expect(page.findByText('House Atreides · Seat 1')).resolves.toBeVisible();

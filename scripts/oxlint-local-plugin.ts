@@ -499,6 +499,166 @@ const noTitleTooltipRule: Rule = {
   },
 };
 
+const TOOLTIP_LENGTH_RULE_NAME = 'tooltip-length';
+
+/* The props whose words show in a tooltip: the kit Tooltip's label, the (?)'s text, and a ControlBlock's description, which its (?) shows. */
+const TOOLTIP_PROPS: Readonly<Record<string, string>> = {
+  Tooltip: 'label',
+  HelpMark: 'text',
+  ControlBlock: 'description',
+};
+const TOOLTIP_LINE_MAX = 100;
+
+/* The most renderings a value is followed through: a tooltip with many branches keeps its longest ones. */
+const TOOLTIP_RENDERINGS_MAX = 32;
+
+type TextNode = { type?: string; value?: unknown; [key: string]: unknown };
+
+/* The renderings of two parts shown one after the other: each rendering of the first followed by each of the second. */
+function followedBy(first: string[], second: string[]): string[] {
+  const joined = first.flatMap((head) => second.map((tail) => head + tail));
+  return joined.length > TOOLTIP_RENDERINGS_MAX
+    ? joined.sort((a, b) => b.length - a.length).slice(0, TOOLTIP_RENDERINGS_MAX)
+    : joined;
+}
+
+/* The module's own constants by name, so help kept in a constant beside the component is read like help written in place. */
+type Constants = ReadonlyMap<string, unknown>;
+
+/* The renderings of children shown in a row, as a fragment or an element shows its children. */
+function inRow(children: unknown, constants: Constants, depth: number): string[] {
+  return (Array.isArray(children) ? children : []).reduce<string[]>(
+    (renderings, child) => followedBy(renderings, writtenText(child, constants, depth)),
+    ['']
+  );
+}
+
+function isHelpLines(callee: unknown) {
+  const node = callee as TextNode | undefined;
+  return node?.type === 'Identifier' && node.name === 'helpLines';
+}
+
+function isLineBreak(opening: unknown) {
+  const name = (opening as { name?: TextNode } | undefined)?.name;
+  return name?.type === 'JSXIdentifier' && name.name === 'br';
+}
+
+/**
+ * The words a prop's value can show, one string per way it can render: static text in a row is joined, as the tooltip shows it, and each branch of a condition is its own rendering.
+ * A constant of the same module is followed to its value;
+ * what the rule cannot read, such as an import, a parameter or a call other than helpLines, shows as nothing, so help imported from another module is guarded by that module's own tests (as `panelGuidance.test.ts` guards Play's window help).
+ */
+function writtenText(node: unknown, constants: Constants, depth = 0): string[] {
+  if (!node || typeof node !== 'object' || depth > 8) {
+    return [''];
+  }
+  const current = node as TextNode;
+  const next = (child: unknown) => writtenText(child, constants, depth + 1);
+  switch (current.type) {
+    case 'Identifier':
+      return constants.has(String(current.name)) ? next(constants.get(String(current.name))) : [''];
+    case 'JSXText':
+      /* JSX folds its source line breaks into spaces, so its text shows as one line. */
+      return [typeof current.value === 'string' ? current.value.replace(/\s+/g, ' ') : ''];
+    case 'Literal':
+      return [typeof current.value === 'string' ? current.value : ''];
+    case 'TemplateLiteral':
+      /* Each part of the template in turn, the values between them read like any other value. */
+      return (current.quasis as { value?: { cooked?: string } }[]).reduce<string[]>(
+        (renderings, quasi, index) =>
+          followedBy(
+            index === 0 ? renderings : followedBy(renderings, next((current.expressions as unknown[])[index - 1])),
+            [quasi.value?.cooked ?? '']
+          ),
+        ['']
+      );
+    case 'JSXExpressionContainer':
+    case 'ParenthesizedExpression':
+    case 'TSAsExpression':
+      return next(current.expression);
+    case 'BinaryExpression':
+      return current.operator === '+' ? followedBy(next(current.left), next(current.right)) : [''];
+    case 'ConditionalExpression':
+      return [...next(current.consequent), ...next(current.alternate)];
+    case 'LogicalExpression':
+      return [...next(current.left), ...next(current.right)];
+    case 'ArrayExpression':
+      return inRow(current.elements, constants, depth + 1);
+    /* The kit's helpLines shows its parts one per line. */
+    case 'CallExpression':
+      return isHelpLines(current.callee)
+        ? (current.arguments as unknown[]).reduce<string[]>(
+            (renderings, part, index) =>
+              followedBy(index === 0 ? renderings : followedBy(renderings, ['\n']), next(part)),
+            ['']
+          )
+        : [''];
+    /* An element's own attributes, such as a link's address, are not words the tooltip shows; its children are. A <br /> breaks the line. */
+    case 'JSXElement':
+      return isLineBreak(current.openingElement) ? ['\n'] : inRow(current.children, constants, depth + 1);
+    case 'JSXFragment':
+      return inRow(current.children, constants, depth + 1);
+    default:
+      return [''];
+  }
+}
+
+/* Every line a prop's value can show: each rendering split at its line breaks. */
+function writtenLines(node: unknown, constants: Constants): string[] {
+  return writtenText(node, constants).flatMap((rendering) => rendering.split('\n'));
+}
+
+/**
+ * Keeps tooltips readable (Norbert, 2026-10-27: a wall of text without breaks helps nobody).
+ * Each line of words written into a tooltip stays within 100 characters;
+ * longer help is cut down, or broken into lines with `\n`, which the (?) keeps as line breaks.
+ */
+const tooltipLengthRule: Rule = {
+  meta: {
+    name: TOOLTIP_LENGTH_RULE_NAME,
+    messages: {
+      tooLong: `A tooltip line runs past ${TOOLTIP_LINE_MAX} characters. Cut what the UI already says, and break the rest into short lines with \\n (a Tooltip keeps them when it is multiline; a HelpMark always does).`,
+    },
+  },
+  create(context) {
+    const constants = new Map<string, unknown>();
+    return {
+      /* The module's top-level constants, exported or not, gathered before any attribute is read. */
+      Program(program) {
+        const declarators = program.body.flatMap((statement) => {
+          const declaration = statement.type === 'ExportNamedDeclaration' ? statement.declaration : statement;
+          return declaration?.type === 'VariableDeclaration' && declaration.kind === 'const'
+            ? declaration.declarations
+            : [];
+        });
+        for (const declarator of declarators) {
+          if (declarator.id.type === 'Identifier' && declarator.init) {
+            constants.set(declarator.id.name, declarator.init);
+          }
+        }
+      },
+      JSXAttribute(node) {
+        const element = node.parent;
+        if (
+          node.name.type !== 'JSXIdentifier' ||
+          element.type !== 'JSXOpeningElement' ||
+          element.name.type !== 'JSXIdentifier'
+        ) {
+          return;
+        }
+        if (TOOLTIP_PROPS[element.name.name] !== node.name.name) {
+          return;
+        }
+        if (
+          writtenLines(node.value, constants).some((line) => line.trim().replace(/\s+/g, ' ').length > TOOLTIP_LINE_MAX)
+        ) {
+          context.report({ node, messageId: 'tooLong' });
+        }
+      },
+    };
+  },
+};
+
 export default {
   meta: {
     name: 'local',
@@ -510,5 +670,6 @@ export default {
     [WALL_CLOCK_RULE_NAME]: noWallClockRule,
     [TITLE_TOOLTIP_RULE_NAME]: noTitleTooltipRule,
     [SHARED_OVERLAYS_RULE_NAME]: sharedOverlaysRule,
+    [TOOLTIP_LENGTH_RULE_NAME]: tooltipLengthRule,
   },
 };

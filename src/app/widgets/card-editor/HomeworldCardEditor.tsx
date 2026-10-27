@@ -116,7 +116,9 @@ export function HomeworldCardEditor({
                   <Stack gap="md">
                     <ControlBlock
                       title="High reserve threshold"
-                      description="The minimum number of reserve forces needed for the high-reserve effect. Fewer forces use the low-reserve effect."
+                      description={
+                        'The fewest reserve forces for the high-reserve effect.\nFewer forces use the low-reserve effect.'
+                      }
                       input={
                         <NumberInput
                           aria-label="High reserve threshold"
@@ -151,7 +153,9 @@ export function HomeworldCardEditor({
                           />
                           <ControlBlock
                             title={`${label} strength`}
-                            description="The battle dial bonus at home, and the number of native forces lost to a Lasgun / Shield explosion."
+                            description={
+                              'The battle dial bonus at home.\nNative forces lost to a Lasgun / Shield explosion.'
+                            }
                             input={
                               <NumberInput
                                 aria-label={`${label} strength`}

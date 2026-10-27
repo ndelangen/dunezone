@@ -95,12 +95,10 @@ export const Narrow = meta.story({
     /* The kit's HelpMark story owns timed tooltip display; this page checks that each window's (?) carries its description and help. */
     await expect(
       within(windowNamed(page, 'Shared table inventory')!).getByRole('img', { name: 'Help' })
-    ).toHaveAccessibleDescription(
-      'Pieces every player can take. Drag an item onto the table. It lands face down. Open in the centre, [ pins it bottom left and ] bottom right.'
-    );
+    ).toHaveAccessibleDescription('Pieces every player can take. Drag an item onto the table. It lands face down.');
     await openTab(page, 'Phase');
     await expect(within(windowNamed(page, 'Phase')!).getByRole('img', { name: 'Help' })).toHaveAccessibleDescription(
-      'Storm, instructions and actions. Move the storm using the storm controls. Previous changes the tracker only. Pieces and storm position stay as they are. Open in the centre, [ pins it bottom left and ] bottom right.'
+      'Storm, instructions and actions. Move the storm using the storm controls. Previous moves the tracker back. Pieces and storm stay put.'
     );
   },
 });

@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "sourceDescription": "Robot troop silhouettes developed from user-supplied references. Original authorship and publication were not independently verified.",
+  "source": "originals/720X720-05 hard b mech robot back view.jpg",
+  "approval": {
+    "date": "2026-10-27",
+    "scope": "The user authorized publishing all three robot troops after removal of the rear-view mech's central projection.",
+    "evidence": "once you have, you may ship these 3"
+  },
+  "assets": {
+    "/vector/troop/rear-view-battle-mech.svg": {
+      "approvedVectorMaster": "originals/rear-view-battle-mech-approved.svg",
+      "bitmapProposal": "originals/rear-view-battle-mech-bitmap-proposal.png",
+      "traceMask": "bitmaps/rear-view-battle-mech-trace-mask.png",
+      "alphaThreshold": 0.5,
+      "maskGaussianSigmaPixels": 0.8,
+      "minimumComponentAreaPixels": 12,
+      "trace": "Potrace 1.16, turdsize 12, alphamax 1.0, opttolerance 0.6, followed by SVG authoring root and provenance steps, uniform square normalization and the troop optimization profile.",
+      "nativeEdits": "The traced lower-back projection between the legs was removed directly from the compound path. Its contour was replaced by a shallow curve between the inner thighs. All other path segments were retained. The approved SVG master records the final geometry; the bitmap and tracing mask record the earlier tracing input.",
+      "paint": "Inherited from the caller. Structural gaps remain transparent.",
+      "collection": "Troops, supplied by the existing vector-category fallback.",
+      "details": "A rear-view armored robot has a broad high back, bent arms, a gun projecting to the left and two sturdy legs separated by a clear gap."
+    }
+  }
+}

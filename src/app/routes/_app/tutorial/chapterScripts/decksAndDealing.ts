@@ -1,23 +1,24 @@
 import type { GameSnapshot } from '@shared/play/protocol';
 
 import type { GuideTask } from '../TutorialGuide';
-import type { ChapterScript } from './chapterScript';
-import { at, tableDeck, task } from './guideChecks';
+import type { ChapterScript, TablePlayers } from './chapterScript';
+import { at, closePieceMenu, element, grownCarryLanded, tableDeck, task } from './guideChecks';
 import type { Piece } from './guideChecks';
 
 /*
  * Chapter 8, "Decks and dealing": what a deck does beyond a draw, on the same table as chapter 7.
- * A card dealt to another player, a few cards split off with a number key, two cards taken in one carry with T, and a deck locked and unlocked.
- * These are the deck controls chapter 7 left for later (the chapter map Norbert approved, 2026-10-26).
+ * A deck shuffled, peeked at and reordered, a card dealt to another player, a few cards split off with a number key,
+ * and two cards taken in one carry with T. Everything to do with cards is here, the pieces themselves in chapter 7;
+ * locking is left out, as it is not worth teaching (Norbert, 2026-10-26).
  */
 
 /* Loose cards of one deck lying on the table in stacks of at least `size`, by the stack key they would join the deck with again. */
-const looseStacks = (pieces: readonly Piece[], deck: Piece | undefined, size: number) =>
+const loose = (pieces: readonly Piece[], deck: Piece | undefined) =>
   deck === undefined
-    ? 0
-    : pieces.filter(
-        (piece) => piece !== deck && !piece.inventory && piece.stackKey === deck.stackKey && piece.items.length >= size
-      ).length;
+    ? []
+    : pieces.filter((piece) => piece !== deck && !piece.inventory && piece.stackKey === deck.stackKey);
+const looseStacks = (pieces: readonly Piece[], deck: Piece | undefined, size: number) =>
+  loose(pieces, deck).filter((piece) => piece.items.length >= size).length;
 
 /* Every Treachery card the other players hold: a hand's size is public, as the rules make it. */
 const othersHold = (snapshot: GameSnapshot) =>
@@ -26,42 +27,63 @@ const othersHold = (snapshot: GameSnapshot) =>
     .reduce((total, [, count]) => total + count, 0);
 
 /*
- * A new pile of two from the deck, made while T was pressed: holding 2 over the deck, taught just before, makes such a pile too.
- * A right-click while carrying takes the next card as T does, so it counts as well.
+ * The cards of a deck held open by a peek, by the handles the peek shows them under, top first; null while no deck is open.
+ * Handles rather than names, since a deck holds several cards of one name.
  */
-const tookWithT = (piles: () => number) => ({
-  begin: () => {
-    const watch = { start: piles(), took: false, stop: new AbortController() };
-    const took = () => {
-      watch.took = true;
-    };
-    const press = (event: KeyboardEvent) => {
-      if (event.key.toLowerCase() === 't') {
-        took();
-      }
-    };
-    window.addEventListener('keydown', press, { capture: true, signal: watch.stop.signal });
-    window.addEventListener('contextmenu', took, { capture: true, signal: watch.stop.signal });
-    return watch;
-  },
-  done: (watch: { start: number; took: boolean }) => watch.took && piles() > watch.start,
-  finish: (watch: { stop: AbortController }) => watch.stop.abort(),
-});
+const peekedOrder = () => {
+  const row = document.querySelector('[role="dialog"][aria-label^="Peeking at"] ol');
+  return row ? [...row.querySelectorAll('[data-card]')].map((card) => card.getAttribute('data-card') ?? '') : null;
+};
 
-/* The deck's lock turned to `locked` since the task began, so a lock left over from before it never counts. */
-const turnsLocked = (lock: () => boolean | undefined, locked: boolean) => ({
-  begin: () => ({ other: lock() !== locked }),
-  done: (watch: { other: boolean }) => {
-    watch.other ||= lock() !== locked;
-    return watch.other && lock() === locked;
+/*
+ * Moving a card in a deck held open gives every card a new handle, so nobody else can follow it, and the peek stays open.
+ * Anything else that changes the deck's handles closes the peek, as a shuffle or a draw does, and pulling a card out changes its size.
+ * So the task waits for the deck to open, then counts a change of handles at the same size while it stays open;
+ * a peek that closes starts over from the order it shows when it opens again.
+ */
+const movedInPeek = () => ({
+  begin: () => ({ first: null as string[] | null }),
+  done: (watch: { first: string[] | null }) => {
+    const order = peekedOrder();
+    if (!order || watch.first?.length !== order.length) {
+      watch.first = order;
+      return false;
+    }
+    return watch.first.some((card, index) => card !== order[index]);
   },
 });
 
-function tasks(snapshot: () => GameSnapshot): GuideTask[] {
+function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[] {
   const pieces = () => snapshot().table.pieces;
   const treachery = () => tableDeck(snapshot, 'left');
   const spice = () => tableDeck(snapshot, 'right');
   return [
+    task({
+      id: 'shuffle',
+      task: 'Shuffle the Spice deck',
+      detail: 'Point at the Spice deck on the right of the table and press {R} on your keyboard.',
+      anchor: { kind: 'table', point: () => at(spice()) },
+      begin: () => spice()?.shuffleRevision ?? 0,
+      done: (start) => (spice()?.shuffleRevision ?? 0) > start,
+    }),
+    task({
+      id: 'peek',
+      task: 'Peek at the Spice deck',
+      detail:
+        'Right-click the Spice deck and choose Peek at the deck. Only you see its cards, though the others see that you looked.',
+      anchor: { kind: 'table', point: () => at(spice()) },
+      begin: () => undefined,
+      done: () => peekedOrder() !== null,
+    }),
+    task({
+      id: 'reorder',
+      task: 'Move a card in the deck',
+      detail:
+        'Drag a card along the row to a new place, or click it and move it with the arrow keys. The deck keeps the new order.',
+      /* The arrow stops at the peek's edge, so its wedge never lies over the peek's own heading. */
+      anchor: { kind: 'page', element: element('[role="dialog"][aria-label^="Peeking at"]') },
+      ...movedInPeek(),
+    }),
     task({
       id: 'deal',
       task: 'Deal a card to another player',
@@ -70,6 +92,8 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       anchor: { kind: 'table', point: () => at(treachery()) },
       begin: () => othersHold(snapshot()),
       done: (start) => othersHold(snapshot()) > start,
+      /* The ring stays open on its list of factions for another deal, and would cover the deck the next step uses. */
+      finish: closePieceMenu,
     }),
     task({
       id: 'split',
@@ -84,35 +108,21 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'take-two',
       task: 'Pick up two cards in one go',
       detail:
-        'Swipe the top Treachery card off the deck (press down and move at once), hold it back over the deck and press {T}: the next card joins it. Drop the two on the table.',
+        'As with troops: swipe the top Treachery card off the deck (press down and move at once), hold it back over the deck and press {T} or right-click: the next card joins it. Drop the two on the table.',
       anchor: { kind: 'table', point: () => at(treachery()) },
-      ...tookWithT(() => looseStacks(pieces(), treachery(), 2)),
-    }),
-    task({
-      id: 'lock',
-      task: 'Lock the Spice deck',
-      detail:
-        'Point at the Spice deck and press {L}. A locked piece stays put: nobody can move, draw from or deal from it by accident.',
-      anchor: { kind: 'table', point: () => at(spice()) },
-      ...turnsLocked(() => spice()?.locked, true),
-    }),
-    task({
-      id: 'unlock',
-      task: 'Unlock it again',
-      detail:
-        'Press {L} over it once more. Right-click it first if you like: its draw, deal and shuffle wait greyed out.',
-      anchor: { kind: 'table', point: () => at(spice()) },
-      ...turnsLocked(() => spice()?.locked, false),
+      /* Holding 2 over the deck, taught just before, makes a pile of two too, but no carry grows on the way. */
+      ...grownCarryLanded(players.landings, () => loose(pieces(), treachery())),
     }),
   ];
 }
 
 /* One line for each part of the chapter, in the order it was played. */
 const learned = [
+  '{R} shuffles the deck under your pointer',
+  'Peek at a deck to see it in private, and reorder it',
   'Right-click a deck and choose Deal a card to give one to a player',
   'Hold a number key over a deck to split that many cards off it',
-  'Press {T} while carrying a card to take the next one with it',
-  '{L} locks a piece in place, and unlocks it again',
+  'Press {T} or right-click while carrying a card to take the next one with it',
 ];
 
 export const decksAndDealing: ChapterScript = {

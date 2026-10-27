@@ -25,3 +25,8 @@ input:checked:not(:disabled, [data-disabled]) + .selectedSwitch {
 
   box-shadow: var(--tip-ring, none);
 }
+
+/* Multiline tooltips keep helpLines line breaks in the shared theme. */
+.tooltip[data-multiline] {
+  white-space: pre-line;
+}
