@@ -168,6 +168,7 @@ const STEPS: Record<Kind, (room: Room) => Step[]> = {
   storm: () => [[bob, { kind: 'storm', direction: 1 }]],
   phase: () => [[bob, { kind: 'phase' }]],
   'spice-spawn': () => [[bob, { kind: 'spice-spawn', count: 1 }]],
+  'tech-token-draw': () => [[bob, { kind: 'tech-token-draw' }]],
   reset: () => [[bob, { kind: 'reset' }]],
   'deck-draw': () => [[bob, { kind: 'deck-draw', pieceId: DECK }]],
   'deck-shuffle': () => [[bob, { kind: 'deck-shuffle', pieceId: DECK }]],
