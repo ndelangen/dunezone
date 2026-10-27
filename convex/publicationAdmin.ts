@@ -1,8 +1,10 @@
+import { paginationOptsValidator, paginationResultValidator } from 'convex/server';
 import { v } from 'convex/values';
 
 import { rendererRevisionsSchema } from '../src/shared/asset-publishing/publication';
 import { internal } from './_generated/api';
 import { internalQuery } from './_generated/server';
+import type { QueryCtx } from './_generated/server';
 import { adminQuery, internalMutation, mutation } from './functions';
 import { requireAdminUserId } from './lib/policy';
 import { publicationSettings } from './lib/publication';
@@ -103,6 +105,102 @@ export const activateRevisions = internalMutation({
   },
 });
 
+const countResult = v.object({ value: v.number(), limited: v.boolean() });
+
+async function countJobs(ctx: QueryCtx, status: 'pending' | 'in_progress' | 'error') {
+  const start = (await ctx.meta.getTransactionMetrics()).bytesRead.remaining;
+  let value = 0;
+  for await (const _job of ctx.db
+    .query('publication_jobs')
+    .withIndex('by_status_and_created_at', (q) => q.eq('status', status))) {
+    value += 1;
+    if (value >= 1000 || start - (await ctx.meta.getTransactionMetrics()).bytesRead.remaining >= 2_000_000) {
+      return { value, limited: true };
+    }
+  }
+  return { value, limited: false };
+}
+
+const jobResult = v.object({
+  id: v.id('publication_jobs'),
+  assetType: v.string(),
+  assetId: v.string(),
+  status: publicationStatus,
+  attemptCounter: v.number(),
+  expiresAt: v.union(v.number(), v.null()),
+  error: v.union(v.string(), v.null()),
+  createdAt: v.number(),
+  updatedAt: v.number(),
+});
+
+export const listing = adminQuery({
+  args: {
+    status: v.optional(publicationStatus),
+    assetType: v.optional(v.string()),
+    paginationOpts: paginationOptsValidator,
+  },
+  returns: v.object({
+    settings: v.union(settingsResult, v.null()),
+    counts: v.object({
+      pending: countResult,
+      inProgress: countResult,
+      error: countResult,
+    }),
+    ...paginationResultValidator(jobResult).fields,
+  }),
+  handler: async (ctx, args) => {
+    const query =
+      args.assetType === undefined
+        ? ctx.db
+            .query('publication_jobs')
+            .withIndex('by_status_and_created_at', (q) => (args.status === undefined ? q : q.eq('status', args.status)))
+        : ctx.db.query('publication_jobs').withIndex('by_asset_type_status_created_at', (q) => {
+            const byAsset = q.eq('asset_type', args.assetType!);
+            return args.status === undefined ? byAsset : byAsset.eq('status', args.status);
+          });
+    const jobs = await query.paginate({
+      ...args.paginationOpts,
+      numItems: Math.max(1, Math.min(100, args.paginationOpts.numItems)),
+      maximumBytesRead: Math.min(args.paginationOpts.maximumBytesRead ?? 2_000_000, 2_000_000),
+    });
+    const settings = await publicationSettings(ctx);
+    /* Each tally has its own byte budget because a job can contain a whole board definition. */
+    const pending = await countJobs(ctx, 'pending');
+    const inProgress = await countJobs(ctx, 'in_progress');
+    const errors = await countJobs(ctx, 'error');
+
+    return {
+      settings: settings
+        ? {
+            publicationPickupEnabled: settings.publication_pickup_enabled,
+            rendererRevisions: settings.renderer_revisions,
+            updatedAt: settings.updated_at,
+          }
+        : null,
+      counts: {
+        pending,
+        inProgress,
+        error: errors,
+      },
+      ...jobs,
+      page: jobs.page.map((job) => ({
+        id: job._id,
+        assetType: job.asset_type,
+        assetId: job.asset_id,
+        status: job.status,
+        attemptCounter: job.attempt_counter,
+        expiresAt: job.expires_at ?? null,
+        error: job.error ?? null,
+        createdAt: job.created_at,
+        updatedAt: job.updated_at,
+      })),
+    };
+  },
+});
+
+/* Clients loaded before cursor pagination still call this contract until they reload.
+ * The current dashboard uses listing, which has no thousand-job visibility cap.
+ */
 export const page = adminQuery({
   args: {
     status: v.optional(publicationStatus),
@@ -117,19 +215,7 @@ export const page = adminQuery({
       inProgress: v.number(),
       error: v.number(),
     }),
-    jobs: v.array(
-      v.object({
-        id: v.id('publication_jobs'),
-        assetType: v.string(),
-        assetId: v.string(),
-        status: publicationStatus,
-        attemptCounter: v.number(),
-        expiresAt: v.union(v.number(), v.null()),
-        error: v.union(v.string(), v.null()),
-        createdAt: v.number(),
-        updatedAt: v.number(),
-      })
-    ),
+    jobs: v.array(jobResult),
     total: v.number(),
     page: v.number(),
     pageSize: v.number(),
@@ -154,7 +240,7 @@ export const page = adminQuery({
       .filter((job) => args.status === undefined || job.status === args.status)
       .filter((job) => args.assetType === undefined || job.asset_type === args.assetType);
     const pageSize = Math.max(1, Math.min(100, Math.floor(args.pageSize)));
-    const page = Math.max(1, Math.floor(args.page));
+    const page = Math.max(1, Math.min(Math.ceil(allJobs.length / pageSize), Math.floor(args.page)));
     const offset = (page - 1) * pageSize;
 
     return {
