@@ -18,8 +18,8 @@ import type { CompassPlayer } from '../compass/compassTable';
 import { AllianceMark, FactionTokenFace, seatAlliance } from './Alliances';
 import { Conversation } from './Conversation';
 import { FactionDetails } from './FactionDetails';
-import { FactionInfoTop } from './FactionInfoLayouts';
-import type { FactionInfoModel } from './FactionInfoLayouts';
+import { FactionInfoHeader } from './FactionInfoHeader';
+import type { FactionInfoHeaderModel } from './FactionInfoHeader';
 import { requestedSeats, VacantSeatRequests } from './SeatRequests';
 import { SwappingSeat } from './Swapping';
 import { isSpectator, seatFaction } from './tableFactions';
@@ -150,15 +150,14 @@ function PlayerInformation({ client, table, player, hasVote }: Props & Readonly<
   const { slug, details } = useFactionDetails(client, faction?.id);
   const alliance = seatAlliance(client, table, player.seat);
   const names = snapshotFactionLabels(table.snapshot);
-  const model: FactionInfoModel = {
-    token: (size) =>
-      faction ? (
-        <FactionTokenFace table={table} factionId={faction.id} names={names} size={size} />
-      ) : (
-        <Avatar size={size} radius="xl" alt="">
-          {player.name.slice(0, 1)}
-        </Avatar>
-      ),
+  const model: FactionInfoHeaderModel = {
+    token: faction ? (
+      <FactionTokenFace table={table} factionId={faction.id} names={names} size={44} />
+    ) : (
+      <Avatar size={44} radius="xl" alt="">
+        {player.name.slice(0, 1)}
+      </Avatar>
+    ),
     name: player.name,
     faction: faction?.name ?? null,
     seat: player.seat.replace('seat-', 'Seat '),
@@ -178,7 +177,7 @@ function PlayerInformation({ client, table, player, hasVote }: Props & Readonly<
   return (
     <Section hiddenHeading title={player.name}>
       <Stack gap="md">
-        <FactionInfoTop model={model} />
+        <FactionInfoHeader model={model} />
         <SwappingSeat client={client} table={table} seat={player.seat} />
         {details && <FactionDetails faction={details} />}
       </Stack>
