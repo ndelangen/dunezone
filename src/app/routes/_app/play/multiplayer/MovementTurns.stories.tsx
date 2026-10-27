@@ -3,13 +3,14 @@ import { fn } from 'storybook/test';
 
 import { DarkSchemeIsland, darkSchemeIslandAttributes } from '../DarkSchemeIsland';
 import { MovementTurns } from './MovementTurns';
-import { names, order, table } from './movementTurns.stories.fixture';
+import { TableMovementTurns, names, order, table } from './movementTurns.stories.fixture';
 
 const meta = preview.meta({
   component: MovementTurns,
   title: 'Play/Panels/Shipment and Movement turns',
   parameters: { layout: 'centered' },
   args: { table, names, order, done: [], canAct: true, onDone: fn(), onUndo: fn(), onOrder: fn() },
+  render: (args) => <TableMovementTurns {...args} />,
   /* The row sits in the header chip over the table, so it shows on the table's dark ground. */
   decorators: [
     (Story) => (

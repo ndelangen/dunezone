@@ -3,7 +3,7 @@ import { nextToMove } from '@shared/play/movement';
 import type { MovementTurns as MovementTurnsState } from '@shared/play/movement';
 import { SortableRow } from '@ui/control/SortableRow';
 import { Check } from 'lucide-react';
-import { useId, useState } from 'react';
+import { useId } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
@@ -18,7 +18,7 @@ type Turn = 'done' | 'up' | 'waiting';
 
 type Props = Readonly<{
   table: TableProjection;
-  /** The turn order, every faction at the table once. */
+  /** The turn order, every faction at the table once; the table shows a dragged order at once, until the room answers it. */
   order: readonly string[];
   /** The factions that have finished this Shipment and Movement. */
   done: MovementTurnsState['done'];
@@ -44,14 +44,11 @@ function turnWords(name: string, turn: Turn, canAct: boolean) {
  */
 export function MovementTurns({ table, order, done, names, canAct, onDone, onUndo, onOrder }: Props) {
   const motion = useMotionAllowed();
-  /* A dragged order shows at once; the table's own order takes over as soon as it changes, which the round trip does. */
-  const [arranged, setArranged] = useState<{ from: string; to: string[] }>();
-  const shown = arranged?.from === order.join(',') ? arranged.to : order;
-  const up = nextToMove(shown, { done });
+  const up = nextToMove(order, { done });
   const turnOf = (factionId: string): Turn => (done.includes(factionId) ? 'done' : factionId === up ? 'up' : 'waiting');
   /* The factions done lead the order and keep their places: only the factions still to go drag, and only among themselves. */
-  const locked = shown.filter((id) => done.includes(id));
-  const rest = shown.filter((id) => !done.includes(id));
+  const locked = order.filter((id) => done.includes(id));
+  const rest = order.filter((id) => !done.includes(id));
   const token = (id: string) => (
     <Token
       key={id}
@@ -80,7 +77,6 @@ export function MovementTurns({ table, order, done, names, canAct, onDone, onUnd
           const others = rest.filter((id) => id !== item.id);
           const at = before ? others.indexOf(before) : others.length;
           const next = [...locked, ...others.slice(0, at), item.id, ...others.slice(at)];
-          setArranged({ from: order.join(','), to: next });
           onOrder(next);
         }}
       >

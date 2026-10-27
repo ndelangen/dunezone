@@ -239,6 +239,9 @@ export class TableSession {
   private captureInFlight: string | null = null;
   /* The order this viewer asked for the deck it holds open, shown until the room answers it. */
   private pendingArrangement: { commandId: string; pieceId: string; deck: string; order: number[] } | null = null;
+  /* The Shipment and Movement order this viewer dragged, shown until the room answers it, and the live table shown with it. */
+  private pendingMovementOrder: { commandId: string; order: string[] } | null = null;
+  private movementShown: { from: GameSnapshot; shown: GameSnapshot } | null = null;
   /*
    * The peek this viewer closed, hidden at once while the room confirms it.
    * The room's frame without the peek, a refused close, a dropped connection or asking to peek again each forget it,
@@ -577,11 +580,24 @@ export class TableSession {
     };
   }
   private presentedSnapshot() {
-    const received = this.history?.snapshot ?? this.snapshot;
+    const received = this.history?.snapshot ?? this.movementArranged();
     /* The board is captured once per game; history and reconnect messages decode fresh copies of that same definition. */
     this.retainedBoard ??= received.board;
     const authoritative = received.board === this.retainedBoard ? received : { ...received, board: this.retainedBoard };
     return this.battle.shown(authoritative, this.history !== null);
+  }
+
+  /* The live table in the order this viewer dragged, kept as one copy per frame so the projection only changes with it. */
+  private movementArranged(): GameSnapshot {
+    const pending = this.pendingMovementOrder;
+    if (!pending) {
+      return this.snapshot;
+    }
+    if (this.movementShown?.from !== this.snapshot) {
+      const movement = { ...(this.snapshot.movement ?? { done: [] }), order: pending.order };
+      this.movementShown = { from: this.snapshot, shown: { ...this.snapshot, movement } };
+    }
+    return this.movementShown.shown;
   }
 
   private liveTable(): TableProjection {
@@ -879,6 +895,7 @@ export class TableSession {
       case 'connection':
         this.conversations.disconnected(this.status === 'denied');
         this.pendingArrangement = null;
+        this.pendingMovementOrder = null;
         this.closedPeek = null;
         this.noteEndedCarry({
           held: pausedWhileHeld,
@@ -983,6 +1000,10 @@ export class TableSession {
     /* Refused, the room's order shows again; done, the frame that settles it carries the deck as arranged. */
     if (this.pendingArrangement?.commandId === id) {
       this.pendingArrangement = null;
+    }
+    /* Refused, the room's order shows again; done, the frame that settles it carries the order as dragged. */
+    if (this.pendingMovementOrder?.commandId === id) {
+      this.pendingMovementOrder = null;
     }
     if (this.captureInFlight === id) {
       this.captureInFlight = null;
@@ -1513,6 +1534,8 @@ export class TableSession {
       this.traitorGatherInFlight = commandId;
     } else if (action.kind === 'battle-disclose') {
       this.battle.disclosureSent(commandId, action);
+    } else if (action.kind === 'movement-order') {
+      this.pendingMovementOrder = { commandId, order: action.order };
     }
     this.emit();
     return this.error === null ? commandId : undefined;

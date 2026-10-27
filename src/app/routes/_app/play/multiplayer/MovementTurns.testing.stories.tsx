@@ -4,13 +4,14 @@ import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 import { DarkSchemeIsland, darkSchemeIslandAttributes } from '../DarkSchemeIsland';
 import { dragOnto } from '../sortable.stories.fixture';
 import { MovementTurns } from './MovementTurns';
-import { names, order, table } from './movementTurns.stories.fixture';
+import { TableMovementTurns, names, order, table } from './movementTurns.stories.fixture';
 
 const meta = testingPreview.meta({
   component: MovementTurns,
   title: 'Play/Panels/Shipment and Movement turns',
   parameters: { layout: 'centered' },
   args: { table, names, order, done: [], canAct: true, onDone: fn(), onUndo: fn(), onOrder: fn() },
+  render: (args) => <TableMovementTurns {...args} />,
   decorators: [
     (Story) => (
       <DarkSchemeIsland>

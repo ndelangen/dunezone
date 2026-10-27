@@ -2100,6 +2100,38 @@ describe('pointer moves', () => {
   });
 });
 
+describe('Shipment and Movement order', () => {
+  const shownOrder = (client: TableSession) => table(client).snapshot.movement?.order;
+
+  test('a dragged order shows until the room answers it, refused or done', async () => {
+    const client = await connected();
+    socket().deliver(view({ snapshot: initialSnapshot() }));
+    const before = table(client).snapshot;
+    client.command({ kind: 'movement-order', order: ['harkonnen', 'atreides'] });
+    const refused = command();
+    expect(shownOrder(client)).toEqual(['harkonnen', 'atreides']);
+    /* One copy per frame, so the projection holds still while the answer is out. */
+    expect(table(client).snapshot).toBe(table(client).snapshot);
+
+    socket().deliver({
+      type: 'rejected',
+      requestId: refused.commandId,
+      message: 'The factions done keep their places.',
+    });
+    expect(table(client).snapshot.movement).toBe(before.movement);
+
+    client.command({ kind: 'movement-order', order: ['atreides', 'harkonnen'] });
+    const done = command();
+    const movement = { done: [], order: ['atreides', 'harkonnen'] };
+    socket().deliver(view({ snapshot: { ...initialSnapshot(), movement }, completedCommandId: done.commandId }));
+    expect(table(client).snapshot.movement).toEqual(movement);
+
+    /* The room's later order wins over one this page asked for long ago. */
+    socket().deliver(view({ snapshot: { ...initialSnapshot(), movement: { done: [], order: ['harkonnen'] } } }));
+    expect(shownOrder(client)).toEqual(['harkonnen']);
+  });
+});
+
 describe('peeking', () => {
   const peeked = () => {
     const snapshot = initialSnapshot();
