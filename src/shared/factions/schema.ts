@@ -46,10 +46,8 @@ function isRecord(input: unknown): input is Record<string, unknown> {
 /**
  * Reads the Faction leader from `factionLeader`, falling back to `hero`.
  * The glossary term is "Faction leader", kept apart from the supporting `leaders`.
- * Factions saved before `faction_faction_leader_key_v1` store it under `hero`, and that migration copies it across.
- * Every faction decoder accepts both keys and hands its caller `factionLeader` alone, so the code writes the new key.
- * Narrowing, which drops `hero` from the stored rows and the live decoders, is left for a later PR once the migration has run everywhere.
- * The historical decoder keeps reading `hero` after that, since game captures and frozen sheet jobs keep the literal.
+ * Stored factions carry `factionLeader` alone since `faction_hero_key_drop_v1`, so the live decoders read that key only.
+ * Two kinds of input keep the fallback: frozen sheet jobs and game captures, which keep the `hero` literal, and a faction typed or imported from outside the app, such as raw JSON or a content package exported before the key was renamed.
  */
 function readFactionLeaderKey(input: unknown): unknown {
   if (!isRecord(input) || !('hero' in input)) {
@@ -333,13 +331,11 @@ function refineUniqueComponentIds(data: ComponentRoster, ctx: z.RefinementCtx) {
   }
 }
 
-/** The object behind `FactionInputSchema`, for reaching its fields; parse through `FactionInputSchema`, which also reads the old `hero` key. */
+/** The object behind `FactionInputSchema`, for reaching its fields; parse through `FactionInputSchema`. */
 export const FactionInputObject = z.strictObject(factionAuthoringShape);
 
 /** Rejects unknown keys (e.g. `slug` must live on the Convex row, not in `data`). */
-export const FactionInputSchema = z
-  .preprocess(readFactionLeaderKey, FactionInputObject)
-  .superRefine(refineUniqueComponentIds);
+export const FactionInputSchema = FactionInputObject.superRefine(refineUniqueComponentIds);
 
 /** A faction has zero to ten supporting leaders; five is conventional (#644). */
 export const SUPPORTING_LEADER_LIMIT = 10;
@@ -347,6 +343,7 @@ export const SUPPORTING_LEADER_LIMIT = 10;
 /**
  * What a save accepts: URL name semantics plus the supporting-leader cap.
  * Reads and renders keep `FactionInputSchema`, so draft names without URL characters and stored factions over the cap still render.
+ * A save also reads the old `hero` key, since raw JSON and imported packages come from outside the app (see `readFactionLeaderKey`).
  */
 export const FactionWriteSchema = z
   .preprocess(readFactionLeaderKey, FactionInputObject.extend({ name: FactionNameSchema }))
@@ -367,8 +364,8 @@ export const CanonicalFactionStoredObject = z.strictObject({
   troops: z.array(Troop.extend({ troopId: FactionTroopIdSchema })),
 });
 
-/** Parses stored canonical data; reads the old `hero` key through `readFactionLeaderKey`. */
-export const CanonicalFactionStoredSchema = z.preprocess(readFactionLeaderKey, CanonicalFactionStoredObject);
+/** Parses stored canonical data. */
+export const CanonicalFactionStoredSchema = CanonicalFactionStoredObject;
 
 /** Frozen sheet jobs and standalone previews may predate persistent member identity. Keep this decoder after live schema narrowing. */
 export const HistoricalFactionPublicationObject = z.strictObject({
@@ -415,7 +412,7 @@ export const IdentifiedFactionStoredSchema = CanonicalFactionStoredSchema.superR
  * genuine breaks (missing or mistyped fields) still fail the client boundary (see db/core/clientBoundary).
  */
 const canonicalFactionClientObject = z.looseObject(CanonicalFactionStoredObject.shape);
-export const CanonicalFactionClientSchema = z.preprocess(readFactionLeaderKey, canonicalFactionClientObject);
+export const CanonicalFactionClientSchema = canonicalFactionClientObject;
 
 /**
  * The faction fields a catalogue-shaped surface actually draws (#642).
@@ -435,10 +432,7 @@ const catalogueFactionMask = {
 export const CatalogueFactionStoredSchema = CanonicalFactionStoredObject.pick(catalogueFactionMask);
 
 /** Loose like its parent, so an additive server change still never breaks a stale tab. */
-export const CatalogueFactionClientSchema = z.preprocess(
-  readFactionLeaderKey,
-  canonicalFactionClientObject.pick(catalogueFactionMask)
-);
+export const CatalogueFactionClientSchema = canonicalFactionClientObject.pick(catalogueFactionMask);
 
 /**
  * Inferred from the strict variant on purpose: `.pick()` carries a `looseObject`'s catchall through, so taking this from the client schema would type every dropped field as `unknown` rather than refusing it, and a later read of `data.rules` would compile and then silently render nothing.
