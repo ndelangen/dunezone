@@ -63,6 +63,22 @@ export const ALLIANCES_GUIDANCE: Guidance = {
   help: ALLIANCES_HELP,
 };
 
+export const GAME_LENGTH_HELP = 'The turn wheel counts up to the last turn. Play can carry on past it.';
+
+export const GAME_LENGTH_GUIDANCE: Guidance = { description: 'How many turns the game lasts.', help: GAME_LENGTH_HELP };
+
+export const REPLAY_GUIDANCE: Guidance = {
+  description: 'Browse saved phases and return to the live table.',
+  help: 'Replaying leaves the live table as it is. Return to live whenever you like.',
+};
+
+export const TINTS_HELP = helpLines(
+  "Turn on a tint's paintbrush, then click territories on the board to add or remove them.",
+  'Escape stops painting.'
+);
+
+export const TINTS_GUIDANCE: Guidance = { description: 'Colour territories for everyone to see.', help: TINTS_HELP };
+
 export const SHARED_INVENTORY_HELP = 'Drag an item onto the table. It lands face down.';
 
 export const SHARED_INVENTORY_GUIDANCE: Guidance = {
