@@ -2,7 +2,7 @@
 
 Prepared on 26 October 2026 for a second rulebook under GF9 2.0. Its audience already knows the earlier GF9 game. The book explains what changes in play, with examples where an old habit gives the wrong result. It does not repeat the unchanged game.
 
-The [37-page A4 teaching book](https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2019-to-2-0-what-changes) is published as Edition 3 under Central. It uses existing Blocks and production artwork, with unresolved wording and expansion announcements labeled. The faithful reconstruction remains a separate book. [Authoring and publication record](authoring/README.md).
+The [36-page A4 teaching book](https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2019-to-2-0-what-changes) is published as Edition 4 under Central. It uses existing Blocks and production artwork, with unresolved wording and expansion announcements labeled. The faithful reconstruction remains a separate book. [Authoring and publication record](authoring/README.md).
 
 ## Baselines
 

@@ -12,111 +12,38 @@
       "source": ""
     },
     {
-      "key": "reading",
-      "title": "About this guide",
+      "key": "setup",
+      "title": "Setup and renamed terms",
       "layoutId": "two-columns",
       "columns": [
         [
           {
             "kind": "text",
-            "name": "For players who know GF9",
-            "text": "This guide compares Gale Force Nine's 2019 Dune with the 2026 second edition. It covers changed rules, faction abilities and components. Use the full 2.0 rulebook for rules that have stayed the same.",
-            "evidence": []
-          },
-          {
-            "kind": "text",
-            "name": "Basic and Advanced",
-            "text": "The new default game combines parts of the old Basic and Advanced rules. Basic players gain city income, Advanced faction abilities and spice spending in battle. Advanced players replace spice support and the two-pile Spice deck procedure.",
+            "name": "One standard ruleset",
+            "text": "The second edition combines Basic and Advanced into one standard ruleset. City income and the former Advanced faction abilities now apply by default.",
             "evidence": [
               "CORE-C01"
-            ]
-          },
-          {
-            "kind": "callout",
-            "variant": "note",
-            "title": "Unresolved rules",
-            "text": "Boxes marked \"Open wording\" describe passages that conflict or leave a rule unclear. The expansion appendix covers announced changes for which complete rules are still missing.",
-            "evidence": []
-          }
-        ],
-        [
-          {
-            "kind": "text",
-            "name": "Which earlier rules?",
-            "text": "The 2019 rulebook, its later FAQ and Dune Zone's GF9 books sometimes differ. A rule marked \"Already familiar\" was already in Dune Zone's earlier books. Changes to a Dune Zone ruling are identified separately from changes to the original printing.",
-            "evidence": []
-          },
-          {
-            "kind": "reference-table",
-            "columns": [
-              "Label",
-              "Meaning"
             ],
-            "rows": [
-              [
-                "GF9 Basic",
-                "The 2019 Basic rules, with later clarifications identified."
-              ],
-              [
-                "GF9 Advanced",
-                "The 2019 Advanced rules, including half-strength unsupported forces."
-              ],
-              [
-                "GF9 2.0",
-                "The default 2026 second-edition rules."
-              ],
-              [
-                "Classic",
-                "The optional 2019 spice-support combat rules."
-              ],
-              [
-                "Announced",
-                "A designer has described the change, but complete replacement rules are unavailable."
-              ]
-            ],
-            "note": "",
-            "evidence": []
+            "authoringKey": "setup:standard-rules"
           },
           {
             "kind": "text",
-            "name": "Page and edition references",
-            "text": "Page references count from the cover of each source PDF. Edition numbers on dune.zone are website versions. This comparison uses Edition 2 of the earlier books and Edition 3 of the 2.0 book, as recorded in the accompanying research files.",
-            "evidence": []
-          }
-        ]
-      ],
-      "source": "2019 pp6-14; second edition pp3,26. Research and source links are listed at the end."
-    },
-    {
-      "key": "setup",
-      "title": "Setup and familiar names",
-      "layoutId": "two-columns",
-      "columns": [
-        [
-          {
-            "kind": "text",
-            "name": "Know your hand before choosing a traitor",
-            "text": "Starting Treachery cards are now dealt before players choose their traitors. Previously, traitors came first. You can now consider your starting hand when choosing a traitor. Harkonnen still starts with two Treachery cards.",
+            "name": "Starting cards before traitors",
+            "text": "Deal starting Treachery cards before players choose their traitors. Previously, traitors came first, so players could not consider their starting hands when choosing.",
             "evidence": [
               "CORE-C02"
-            ]
+            ],
+            "authoringKey": "setup:column1:0"
           },
           {
             "kind": "text",
-            "name": "Choosing your own leader as a traitor",
-            "text": "You may choose one of your own leaders as a safe traitor. The original 2019 setup paragraph restricted this choice, but the later FAQ and Dune Zone's GF9 book already allowed it. Harkonnen's new redraw is covered on its faction page.",
+            "name": "Starting resources",
+            "text": "Fremen starts with four spice instead of three. Guild starts with eight spice and all twenty forces in reserves, then pays for a setup shipment. Previously it received five forces in Tuek's Sietch. Leader changes are listed on the roster page.",
             "evidence": [
-              "CORE-Q01"
-            ]
-          },
-          {
-            "kind": "callout",
-            "variant": "note",
-            "title": "Open wording: faction-selection order",
-            "text": "The prediction-card method says to start with the lowest card, then describes the order as descending. The two instructions conflict. Random faction assignment is still available.",
-            "evidence": [
-              "CORE-C03"
-            ]
+              "F25",
+              "F41"
+            ],
+            "authoringKey": "setup:column2:2"
           }
         ],
         [
@@ -155,26 +82,19 @@
               "TERM-03",
               "TERM-04",
               "CORE-Q12"
-            ]
+            ],
+            "authoringKey": "setup:column2:0"
           },
           {
             "kind": "text",
             "name": "Renamed places and cards",
             "text": "Cave of Birds is the former Habbanya Sietch stronghold in the southwest. Kinetic replaces projectile as a weapon and defense type. Harj is the printed name of the old Hajr card and has the same extra-movement effect.",
-            "evidence": []
-          },
-          {
-            "kind": "text",
-            "name": "Starting resources",
-            "text": "Fremen starts with four spice instead of three. Guild starts with eight spice and all twenty forces in reserves, then pays for a setup shipment. Previously it received five forces in Tuek's Sietch. Leader changes are listed on the roster page.",
-            "evidence": [
-              "F25",
-              "F41"
-            ]
+            "evidence": [],
+            "authoringKey": "setup:column2:1"
           }
         ]
       ],
-      "source": "2019 pp4,6,16-19; FAQ November 2020 p3; second edition pp6,8,25,28,33,36."
+      "source": "2019 pp4,6,16-19; FAQ November 2020 p3; second edition pp3,6,8,25-26,28,33,36."
     },
     {
       "key": "storm",
@@ -186,7 +106,8 @@
             "kind": "text",
             "name": "GF9",
             "text": "After the first storm placement, two players normally dialed the storm's movement. The six-card Storm deck was an Advanced Fremen ability, with its own procedure for returning and shuffling cards.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "storm:column1:0"
           },
           {
             "kind": "text",
@@ -195,13 +116,15 @@
             "evidence": [
               "CORE-C04",
               "DECK-04"
-            ]
+            ],
+            "authoringKey": "storm:column1:1"
           },
           {
             "kind": "text",
             "name": "The dial card",
             "text": "The dial card tells the two players who last used Battle Wheels to dial 1-3 each. If no battle took place in the previous round, use the factions beside the storm as specified on the card. The initial storm placement still uses 0-20 dials.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "storm:column1:2"
           },
           {
             "kind": "callout",
@@ -210,7 +133,8 @@
             "text": "Players cannot coordinate their dials for the first storm placement. Deals and bribes are allowed when the later dial card is drawn.",
             "evidence": [
               "CORE-Q14"
-            ]
+            ],
+            "authoringKey": "storm:column1:3"
           }
         ],
         [
@@ -220,7 +144,8 @@
             "text": "At the end of Storm, Fremen uses Storm Insight to inspect the top card of the shared deck. It no longer selects and recycles a private card to set the next movement.",
             "evidence": [
               "F26"
-            ]
+            ],
+            "authoringKey": "storm:column2:0"
           },
           {
             "kind": "callout",
@@ -229,22 +154,8 @@
             "text": "Rivals in the same storm-covered sector of rock or a stronghold now battle. The old FAQ prohibited this. Battles are still prevented if only one side is in storm or the storm separates the groups.",
             "evidence": [
               "CORE-C05"
-            ]
-          },
-          {
-            "kind": "text",
-            "name": "A marker under the storm",
-            "text": "A faction whose marker is exactly under the storm acts last in storm order. This clarifies the old instruction to start with the marker the storm next approaches.",
-            "evidence": [
-              "CORE-Q13"
-            ]
-          },
-          {
-            "kind": "callout",
-            "variant": "note",
-            "title": "Storm deck contents",
-            "text": "The rulebook identifies nine cards, three reshuffle instructions and a dial card. It does not list all nine card faces.",
-            "evidence": []
+            ],
+            "authoringKey": "storm:column2:1"
           }
         ]
       ],
@@ -260,7 +171,8 @@
             "kind": "text",
             "name": "GF9 Basic and Advanced",
             "text": "Basic used single-territory cards. Advanced drew twice, using two discard piles and a separate worm history for each pile.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "paired-spice:column1:0"
           },
           {
             "kind": "text",
@@ -269,14 +181,16 @@
             "evidence": [
               "CORE-C06",
               "DECK-01"
-            ]
+            ],
+            "authoringKey": "paired-spice:column1:1"
           },
           {
             "kind": "referenced-illustration",
             "cardKey": "hagga-basin-cielago-depression",
             "size": "medium",
             "caption": "Hagga Basin and Cielago Depression share one Spice card.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "paired-spice:column1:2"
           }
         ],
         [
@@ -285,28 +199,22 @@
             "variant": "example",
             "title": "A worm after a paired blow",
             "text": "If the previous normal card placed spice in Hagga Basin and Cielago Depression, Shai-Hulud threatens the remaining spice and forces in both territories. Faction protection still applies. Draw replacements until an ordinary Spice Blows card appears.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "paired-spice:column2:0"
           },
           {
             "kind": "text",
             "name": "What changes for Atreides",
             "text": "Inspecting the top card now reveals both upcoming blows, or a special event. In old Advanced play, it revealed only one of the two independent draws.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "paired-spice:column2:1"
           },
           {
             "kind": "text",
             "name": "What changes for Fremen",
             "text": "One worm event can affect more than one location. Fremen uses the revised Call Sandworms and ally-riding rules with the single discard pile.",
-            "evidence": []
-          },
-          {
-            "kind": "callout",
-            "variant": "note",
-            "title": "Open wording: Little Maker history",
-            "text": "The rulebook includes Little Maker among earlier blows that a later worm can affect. It leaves parts of the discard sequence and location tracking unexplained. Keep the chosen location marked; the text does not say to skip it and use the previous normal pair.",
-            "evidence": [
-              "CORE-U05"
-            ]
+            "evidence": [],
+            "authoringKey": "paired-spice:column2:2"
           }
         ]
       ],
@@ -329,13 +237,15 @@
             "evidence": [
               "CORE-C07",
               "DECK-03"
-            ]
+            ],
+            "authoringKey": "little-maker:column1:0"
           },
           {
             "kind": "text",
             "name": "A new Spice card",
             "text": "Little Maker is a separate card from Shai-Hulud and the older expansion cards Sandtrout and Great Maker. Each has a different effect. The base Spice deck now contains sixteen cards instead of twenty-one.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "little-maker:column1:1"
           }
         ],
         [
@@ -344,26 +254,22 @@
             "cardKey": "shai-hulud",
             "size": "medium",
             "caption": "Shai-Hulud triggers worm abilities. Little Maker does not.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "little-maker:column2:0"
           },
           {
             "kind": "question-answer",
             "question": "What if Little Maker appears in round one?",
             "answer": "Set it aside with the other non-normal-Blow cards and reshuffle them afterward. Little Maker does not cause a Nexus in round one.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "little-maker:column2:1"
           },
           {
             "kind": "question-answer",
             "question": "What if it appears while drawing replacements after a worm?",
             "answer": "Discard it without effect and continue drawing replacements. It adds neither ten spice nor another Nexus during this sequence.",
-            "evidence": []
-          },
-          {
-            "kind": "callout",
-            "variant": "example",
-            "title": "Alliances without a worm",
-            "text": "Little Maker gives players an opportunity to form or break alliances without losing forces or spice to a worm. Fremen cannot use this event for a worm ride.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "little-maker:column2:2"
           }
         ]
       ],
@@ -422,13 +328,15 @@
             "note": "",
             "evidence": [
               "DECK-02"
-            ]
+            ],
+            "authoringKey": "spice-map:column1:0"
           },
           {
             "kind": "text",
             "name": "Paired locations",
             "text": "The nine normal Spice cards show eighteen locations. Apart from the changes in the table, the old blow amounts stay the same. The pairing also determines which two territories a later Shai-Hulud can affect.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "spice-map:column1:1"
           }
         ],
         [
@@ -477,14 +385,8 @@
               ]
             ],
             "note": "",
-            "evidence": []
-          },
-          {
-            "kind": "callout",
-            "variant": "note",
-            "title": "Normal Spice Blows",
-            "text": "These locations and amounts come from the second-edition card sheet and the old board. Card and faction effects may place spice elsewhere.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "spice-map:column2:0"
           }
         ]
       ],
@@ -501,7 +403,8 @@
             "caption": "The Greater Flat, Cielago Depression and Cielago East are highlighted. This map uses the old name Habbanya Sietch for Cave of Birds.",
             "evidence": [
               "DECK-02"
-            ]
+            ],
+            "authoringKey": "spice-map-visual:column1:0"
           }
         ],
         [
@@ -509,7 +412,8 @@
             "kind": "text",
             "name": "New normal blow locations",
             "text": "The Greater Flat has a seven-spice blow. Cielago Depression and Cielago East each have eight. Their paired locations are Red Chasm, Hagga Basin and Wind Pass North respectively.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "spice-map-visual:column2:0"
           },
           {
             "kind": "text",
@@ -517,14 +421,16 @@
             "text": "Cave of Birds is called Habbanya Sietch on this map. Both names refer to the same southwest stronghold, including when checking faction victory conditions.",
             "evidence": [
               "TERM-02"
-            ]
+            ],
+            "authoringKey": "spice-map-visual:column2:1"
           },
           {
             "kind": "callout",
             "variant": "note",
             "title": "Changed amounts",
             "text": "Broken Land, The Great Flat, South Mesa and Habbanya Ridge Flat have smaller blows. Use the new card amounts listed on the preceding page, even when playing on an older board.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "spice-map-visual:column2:2"
           }
         ]
       ],
@@ -540,13 +446,15 @@
             "kind": "text",
             "name": "GF9 Basic",
             "text": "An ordinary force contributed one strength without spending spice.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "battle-model:column1:0"
           },
           {
             "kind": "text",
             "name": "GF9 Advanced",
             "text": "Each force needed one spice to fight at full strength. Unsupported forces fought at half strength, with the appropriate values for special forces.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "battle-model:column1:1"
           },
           {
             "kind": "text",
@@ -554,14 +462,16 @@
             "text": "Forces fight at full strength. You may spend spice for one strength bonus, provided your dial meets that bonus's threshold. Add the bonus and any surviving leader's strength to your force strength. The spice bonus costs no additional forces.",
             "evidence": [
               "CORE-C09"
-            ]
+            ],
+            "authoringKey": "battle-model:column1:2"
           },
           {
             "kind": "callout",
             "variant": "note",
             "title": "Classic is optional",
             "text": "Classic Spice Dialing uses the old Advanced support system. Choose this variant before play. Under the default 2.0 rules, unsupported forces no longer fight at half strength.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "battle-model:column1:3"
           }
         ],
         [
@@ -590,26 +500,30 @@
               ]
             ],
             "note": "",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "battle-model:column2:0"
           },
           {
             "kind": "callout",
             "variant": "example",
             "title": "Four ordinary forces",
             "text": "Four ordinary forces contribute 4 strength without spice, or 6 after spending four spice. Under old Advanced rules, the same four forces contributed 4 with full support or 2 without support.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "battle-model:column2:1"
           },
           {
             "kind": "text",
             "name": "Buy one bonus",
             "text": "A force dial of eight allows a +1, +2 or +3 bonus at a cost of 2, 4 or 8 spice. Choose one bonus; they cannot be combined.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "battle-model:column2:2"
           },
           {
             "kind": "text",
             "name": "Thresholds use force strength",
             "text": "One Sardaukar normally contributes two force strength. That qualifies for a +1 bonus at a cost of two spice. Its special exception against Fremen still applies.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "battle-model:column2:3"
           }
         ]
       ],
@@ -627,7 +541,8 @@
             "text": "The left wheel uses the old Advanced rules: four spice supports four ordinary forces for 4 strength. The right wheel uses 2.0: four spice buys a +2 bonus, giving the same forces 6 strength before adding a leader.",
             "evidence": [
               "CORE-C09"
-            ]
+            ],
+            "authoringKey": "battle-example:column1:0"
           },
           {
             "kind": "wheel-comparison",
@@ -635,7 +550,8 @@
             "spice": 4,
             "bonus": 2,
             "caption": "Left: old Advanced, 4 supported ordinary forces = 4. Right: 2.0, force dial 4 + spice strength 2 = 6.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "battle-example:column1:1"
           }
         ],
         [
@@ -644,26 +560,22 @@
             "variant": "example",
             "title": "Add a strength-3 leader",
             "text": "If the leader survives, the old Advanced plan totals 7 and the 2.0 plan totals 9. The wheels show the same player under each edition, rather than two opposing Battle Plans.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "battle-example:column2:0"
           },
           {
             "kind": "text",
             "name": "Force losses",
             "text": "If the 2.0 plan wins, the player loses four ordinary forces. The +2 spice bonus adds no losses. A losing player still loses their forces in the territory under the normal battle rules.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "battle-example:column2:1"
           },
           {
             "kind": "text",
             "name": "The dial sets the maximum bonus",
             "text": "Having eight forces in the territory does not qualify you for +3 if you dial only four. Special forces count at their force strength when checking the threshold.",
-            "evidence": []
-          },
-          {
-            "kind": "callout",
-            "variant": "note",
-            "title": "What the wheels show",
-            "text": "Both wheels show a force dial of 4. The leader is left out of the pictures and added in the example above.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "battle-example:column2:2"
           }
         ]
       ],
@@ -681,20 +593,23 @@
             "text": "Choose your spice bonus secretly on the wheel, then pay the Spice Bank when plans are revealed. You must already have the spice available. An ordinary allied contribution or a bounty from this battle cannot pay for it.",
             "evidence": [
               "CORE-C10"
-            ]
+            ],
+            "authoringKey": "battle-payment:column1:0"
           },
           {
             "kind": "text",
             "name": "Faction and card exceptions",
             "text": "Fremen receives its qualifying bonus for free. Emperor halves its ally's cost. Solaris pays from the Spice Bank. These exceptions do not allow other allies to pay for battle spice.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "battle-payment:column1:1"
           },
           {
             "kind": "callout",
             "variant": "example",
             "title": "A bounty cannot fund the plan",
             "text": "You have no spendable spice and expect to kill a strength-5 leader. That bounty cannot pay for a +2 bonus in this battle. Bribes waiting in front of your screen are also unavailable.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "battle-payment:column1:2"
           }
         ],
         [
@@ -702,7 +617,8 @@
             "kind": "text",
             "name": "Traitor calls",
             "text": "The winner of a traitor call keeps their committed spice and loses nothing. The betrayed player loses their committed spice. If both players call a traitor, both lose their spice.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "battle-payment:column2:0"
           },
           {
             "kind": "text",
@@ -710,7 +626,8 @@
             "text": "After winning with a traitor, you may use your leader in another territory that round. The earlier Dune Zone core book did not state this exception.",
             "evidence": [
               "CORE-C13"
-            ]
+            ],
+            "authoringKey": "battle-payment:column2:1"
           },
           {
             "kind": "text",
@@ -718,16 +635,8 @@
             "text": "You no longer announce in advance that you have no available leader or Cheap Hero. Without either in your Battle Plan, you still cannot play Treachery cards in the battle.",
             "evidence": [
               "CORE-C11"
-            ]
-          },
-          {
-            "kind": "callout",
-            "variant": "note",
-            "title": "Open wording: Cheap Hero",
-            "text": "One passage requires a leader or Cheap Hero whenever possible. Another describes a player being unwilling to use Cheap Hero. It is unclear whether you must play the card when no leader disc is available.",
-            "evidence": [
-              "CORE-U03"
-            ]
+            ],
+            "authoringKey": "battle-payment:column2:2"
           }
         ]
       ],
@@ -749,37 +658,16 @@
             "textFlow": "beside",
             "evidence": [
               "CORE-C12"
-            ]
+            ],
+            "authoringKey": "battle-aftermath:column1:0"
           },
           {
             "kind": "callout",
             "variant": "example",
             "title": "Three factions, two battles",
             "text": "Your leader survives a battle and remains beside the territory. If the remaining rivals then detonate a lasgun and Shield there, your leader dies too.",
-            "evidence": []
-          },
-          {
-            "kind": "text",
-            "name": "Initiative replaces aggressor",
-            "text": "The player with Initiative still chooses their battles and wins ties. The new rule also states that they may leave a territory containing several rivals, resolve a battle elsewhere, then return to the first territory.",
-            "evidence": [
-              "CORE-Q12"
-            ]
-          },
-          {
-            "kind": "text",
-            "name": "Cards after a victory",
-            "text": "Reusable weapons and defenses can be kept when their text allows it. Revealed Worthless cards must now be discarded. One-use Actions are also discarded. The earlier FAQ already required Cheap Hero to be discarded after use.",
-            "evidence": [
-              "CORE-Q15"
-            ]
-          },
-          {
-            "kind": "callout",
-            "variant": "note",
-            "title": "Which defenses cause an explosion?",
-            "text": "Lasgun explodes against Shield or Shield-Snooper. Weirding Way used as a kinetic defense does not cause an explosion. This distinction was already in the expansion rules and earlier Dune Zone books.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "battle-aftermath:column1:1"
           }
         ],
         [
@@ -789,32 +677,15 @@
             "text": "The new book describes how to agree on a deliberately lost battle. Both players agree on a legal plan and its terms. The usual agreement excludes weapons, defenses and traitor calls, but may allow Worthless cards to be discarded. Deliberate losses were already possible under the deal rules; the surrender section gives a procedure for them.",
             "evidence": [
               "CORE-Q11"
-            ]
-          },
-          {
-            "kind": "text",
-            "name": "Legal limits still apply",
-            "text": "A surrender agreement cannot allow illegal actions or transfers of cards, forces, leaders, tokens or advantages. Resolve the battle with a legal plan and the normal losses. Losing forces do not return to reserves simply because the loss was agreed.",
-            "evidence": []
-          },
-          {
-            "kind": "callout",
-            "variant": "example",
-            "title": "Agree on the losses",
-            "text": "Before revealing, agree on the losing force dial and any permitted card disposal. The agreement remains subject to the surrender restrictions in the rulebook.",
-            "evidence": []
-          },
-          {
-            "kind": "text",
-            "name": "Atreides battle losses still count",
-            "text": "Losses in an agreed battle count toward Kwisatz Haderach. Atreides now tracks those losses publicly. Storm and worm losses still do not count.",
-            "evidence": []
+            ],
+            "authoringKey": "battle-aftermath:column2:0"
           },
           {
             "kind": "text",
             "name": "Post-battle effects",
             "text": "The surrender procedure excludes certain effects, including Moritani's revised Execute. The base book mentions that ability but does not give its complete new expansion rules. It does not establish a general rule that every post-battle ability is canceled by surrender.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "battle-aftermath:column2:4"
           }
         ]
       ],
@@ -830,7 +701,8 @@
             "kind": "text",
             "name": "GF9",
             "text": "A faction became eligible to revive leaders after all its leaders were dead or otherwise unavailable under the clarified rules. A revived leader killed for a second time had to wait for the rest of the leaders to complete another revival-and-death cycle.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "revival:column1:0"
           },
           {
             "kind": "text",
@@ -838,23 +710,19 @@
             "text": "Once all your leaders are dead or captured, place your second faction token in the Tanks. From then on, you may revive any dead leader with your one normal leader revival each round. A leader who has already been revived is eligible again.",
             "evidence": [
               "CORE-C08"
-            ]
+            ],
+            "authoringKey": "revival:column1:1"
           },
           {
             "kind": "callout",
             "variant": "example",
             "title": "Reviving the same leader again",
             "text": "After leader revival becomes available, you revive your strongest leader and it dies again. You may pay to revive that leader in the next Revival phase without waiting for the others to die again.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "revival:column1:2"
           }
         ],
         [
-          {
-            "kind": "text",
-            "name": "Cost and limit stay the same",
-            "text": "Normal revival still costs the leader's fighting strength in spice, with one leader revival per phase. The leader is still subject to its original traitor card. Captured leaders already counted toward eligibility under the earlier clarifications.",
-            "evidence": []
-          },
           {
             "kind": "card-entry",
             "cardKey": "tleilaxu-ghola",
@@ -866,7 +734,8 @@
             "evidence": [
               "CARD-07",
               "F31"
-            ]
+            ],
+            "authoringKey": "revival:column2:1"
           },
           {
             "kind": "text",
@@ -874,7 +743,8 @@
             "text": "Atreides may use its one leader revival to revive Kwisatz Haderach for two spice, even before normal leader revival becomes available. The earlier Dune Zone book required normal eligibility. This still uses the phase's leader revival.",
             "evidence": [
               "F10"
-            ]
+            ],
+            "authoringKey": "revival:column2:2"
           }
         ]
       ],
@@ -897,7 +767,8 @@
             "evidence": [
               "CARD-01",
               "CARD-02"
-            ]
+            ],
+            "authoringKey": "karama:content:0"
           },
           {
             "kind": "reference-table",
@@ -919,12 +790,12 @@
               ],
               [
                 "Emperor",
-                "Before reveal; see timing question below",
+                "Before or during plan formation; see appendix",
                 "Sardaukar count as standard forces for this battle"
               ],
               [
                 "Fremen",
-                "Before reveal; see timing question below",
+                "Before or during plan formation; see appendix",
                 "Cancels free Battle Edge bonus; Fremen may pay normally"
               ],
               [
@@ -938,7 +809,7 @@
                 "Guild must act in normal storm order"
               ]
             ],
-            "note": "",
+            "note": "The Emperor and Fremen deadlines differ between the summary and faction sheets. See the appendix.",
             "evidence": [
               "K-F01",
               "K-F02",
@@ -946,20 +817,15 @@
               "K-F04",
               "K-F05",
               "K-F06"
-            ]
+            ],
+            "authoringKey": "karama:content:1"
           },
           {
             "kind": "text",
             "name": "Earlier cancellation lists no longer apply",
             "text": "The old FAQ and Dune Zone book listed many cancelable effects. In 2.0, Karama cannot cancel income, auction inspection, Harkonnen bonus draws or Fremen storm protection. Use the six targets above.",
-            "evidence": []
-          },
-          {
-            "kind": "callout",
-            "variant": "note",
-            "title": "Open wording: before or while forming",
-            "text": "For Emperor and Fremen, the summary says to cancel before Battle Plans are made. The sheets say while plans are being formed. The exact deadline is unclear, but both require Karama before reveal.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "karama:content:2"
           }
         ]
       ],
@@ -982,13 +848,15 @@
             "evidence": [
               "CARD-02",
               "CARD-04"
-            ]
+            ],
+            "authoringKey": "solaris:column1:0"
           },
           {
             "kind": "text",
             "name": "Guild rates",
             "text": "The shipping effect reduces the shipment's price. It does not let you collect Guild income from another faction's shipment.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "solaris:column1:1"
           }
         ],
         [
@@ -997,7 +865,8 @@
             "variant": "example",
             "title": "Dial four, gain up to +2",
             "text": "With a force dial of four, Solaris can pay for a +2 bonus. The +3 bonus still requires a force dial of eight.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "solaris:column2:0"
           },
           {
             "kind": "text",
@@ -1005,25 +874,8 @@
             "text": "The old Karama clarification allowed bids beyond your spice holdings while you held Karama. The new auction rule forbids unaffordable bids, even with Solaris. You can instead take the current card for free on your own bidding turn.",
             "evidence": [
               "CARD-03"
-            ]
-          },
-          {
-            "kind": "callout",
-            "variant": "note",
-            "title": "Open wording: shipment types",
-            "text": "The card face specifies shipment from reserves. The explanation refers more broadly to any Shipping action. It is unclear whether Solaris can discount cross-shipping or a return to reserves.",
-            "evidence": [
-              "Q-CARD-01"
-            ]
-          },
-          {
-            "kind": "callout",
-            "variant": "note",
-            "title": "Open wording: Classic",
-            "text": "Solaris pays for spice strength, which Classic replaces with force support. The rulebook gives no equivalent payment rule for Classic.",
-            "evidence": [
-              "Q-CARD-02"
-            ]
+            ],
+            "authoringKey": "solaris:column2:1"
           }
         ]
       ],
@@ -1041,19 +893,22 @@
             "text": "The old FAQ allowed Truthtrance to bind a player to a decision later that turn. It now asks for information the player can answer truthfully. It cannot bind a future shipment or decision.",
             "evidence": [
               "CARD-05"
-            ]
+            ],
+            "authoringKey": "card-habits:column1:0"
           },
           {
             "kind": "question-answer",
             "question": "Can I make you promise not to attack this round?",
             "answer": "No. Truthtrance now asks for information rather than a promise about a future action. A separate deal may bind a player under the deal rules.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "card-habits:column1:1"
           },
           {
             "kind": "text",
             "name": "Unanswerable questions",
             "text": "A genuinely unanswerable question does not consume Truthtrance. Players cannot deliberately test a series of possible traitors by asking questions intended to produce \"I don't know\" answers.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "card-habits:column1:2"
           },
           {
             "kind": "card-entry",
@@ -1065,21 +920,8 @@
             "textFlow": "beside",
             "evidence": [
               "CARD-06"
-            ]
-          },
-          {
-            "kind": "text",
-            "name": "Other cards after battle",
-            "text": "Cheap Hero is still a strength-zero replacement for a leader and is discarded after use, as required by the old FAQ. It does not fill a Weapon or Defense slot. Reusable weapons and defenses can still be kept after a win unless their own text says otherwise.",
-            "evidence": []
-          },
-          {
-            "kind": "text",
-            "name": "Harj, formerly Hajr",
-            "text": "Harj gives an additional on-planet move immediately after your normal movement. It gives no extra shipment. Checking ornithopters again for the additional move was already allowed by the earlier clarification.",
-            "evidence": [
-              "TERM-03"
-            ]
+            ],
+            "authoringKey": "card-habits:column1:3"
           }
         ],
         [
@@ -1093,26 +935,23 @@
             "textFlow": "beside",
             "evidence": [
               "CARD-08"
-            ]
-          },
-          {
-            "kind": "text",
-            "name": "Shield Wall destruction",
-            "text": "Family Atomics still removes Shield Wall, exposing the protected areas to later storm movement. The storm does not sweep its current position again when the wall is destroyed. The force or adjacency condition and round-one restriction are unchanged.",
-            "evidence": []
+            ],
+            "authoringKey": "card-habits:column2:0"
           },
           {
             "kind": "text",
             "name": "Weather Control and the new deck",
             "text": "Weather Control can be played before the Storm card is drawn. If it is, no Storm card is drawn for that movement.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "card-habits:column2:2"
           },
           {
             "kind": "callout",
             "variant": "example",
             "title": "Example of card order",
             "text": "After Weather Control is played, a player later in storm order may respond with Family Atomics. A player earlier in storm order cannot respond in that sequence.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "card-habits:column2:3"
           },
           {
             "kind": "callout",
@@ -1121,7 +960,8 @@
             "text": "The base Treachery deck increases from 33 to 35 cards. The supplied card images show two Solaris cards. The new deck does not require an extra set of the old replacement Karamas.",
             "evidence": [
               "DECK-05"
-            ]
+            ],
+            "authoringKey": "card-habits:column2:4"
           }
         ]
       ],
@@ -1137,7 +977,8 @@
             "kind": "text",
             "name": "GF9",
             "text": "After forming an alliance in a shared territory, the first ally could stay. The later ally had to leave or lose its forces to the Tanks.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "allies:column1:0"
           },
           {
             "kind": "text",
@@ -1145,49 +986,27 @@
             "text": "The first ally with a Movement action must leave the shared territory. If it cannot, its forces return to reserves at the end of its turn. If both allies remain at phase end, the forces sharing the territory return to reserves. They no longer go to the Tanks.",
             "evidence": [
               "CORE-C17"
-            ]
-          },
+            ],
+            "authoringKey": "allies:column1:1"
+          }
+        ],
+        [
           {
             "kind": "callout",
             "variant": "example",
             "title": "The first ally cannot leave",
             "text": "You form an alliance while sharing a territory. You act first but have no legal move out. Your forces return to reserves at the end of your turn; your ally does not have to leave instead.",
-            "evidence": []
-          }
-        ],
-        [
-          {
-            "kind": "text",
-            "name": "Allied payments",
-            "text": "You may still contribute to an ally's auction purchase or shipment as permitted by those rules. Ordinary allied contributions cannot pay for battle spice.",
-            "evidence": [
-              "CORE-Q08"
-            ]
-          },
-          {
-            "kind": "callout",
-            "variant": "note",
-            "title": "Open wording: ship then move",
-            "text": "The old FAQ allowed shipping into an ally's territory if you moved out afterward. The new rule forbids ending an action there, and Shipment and Movement are separate actions. Read literally, it forbids the old sequence, but the rulebook does not address that example directly.",
-            "evidence": [
-              "CORE-U02"
-            ]
+            "evidence": [],
+            "authoringKey": "allies:column1:2"
           },
           {
             "kind": "text",
             "name": "Bene Gesserit exception",
-            "text": "Bene Gesserit advisors have specific rules allowing them to stay with an ally. The general alliance paragraph does not repeat this exception. See the Bene Gesserit pages and the unresolved wording section.",
+            "text": "Bene Gesserit advisors may remain in a territory with an ally. The faction rule takes precedence over the general alliance restriction.",
             "evidence": [
               "F22"
-            ]
-          },
-          {
-            "kind": "text",
-            "name": "Occupied strongholds",
-            "text": "A stronghold occupied by two other factions still blocks ordinary entry and passage. The exceptional cases described in the rulebook do not allow a third faction to enter normally.",
-            "evidence": [
-              "CORE-Q18"
-            ]
+            ],
+            "authoringKey": "allies:column2:2"
           }
         ]
       ],
@@ -1205,22 +1024,24 @@
             "text": "The old FAQ and Dune Zone book treated bribery as Advanced, although it appeared in the old printing. It is now part of the default game. Announce deals with non-allies aloud. Legal deals are binding and do not have to include a spice bribe.",
             "evidence": [
               "CORE-C18"
-            ]
+            ],
+            "authoringKey": "deals:column1:0"
           },
           {
             "kind": "text",
             "name": "Deals between allies",
             "text": "Allied deals are nonbinding and cannot transfer spice. The usual allied contributions and Emperor's specific gift ability still apply.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "deals:column1:1"
           },
           {
             "kind": "text",
-            "name": "Bribes are paid later",
-            "text": "Bribe spice stays in front of the recipient's screen until the start of Mentat Pause. This delay is unchanged. The earlier rules also made impossible terms void and allowed deals to be canceled by unanimous agreement.",
+            "name": "Bribe payments",
+            "text": "Bribe spice stays in front of the recipient's screen until the start of Mentat Pause, when it becomes available to spend.",
             "evidence": [
-              "CORE-Q09",
-              "CORE-Q10"
-            ]
+              "CORE-Q09"
+            ],
+            "authoringKey": "deals:column1:2"
           }
         ],
         [
@@ -1230,7 +1051,8 @@
             "text": "Players cannot make new bribes or play Treachery cards during Mentat Pause. The new phase restriction applies even to cards with older \"any time\" wording.",
             "evidence": [
               "CORE-C19"
-            ]
+            ],
+            "authoringKey": "deals:column2:0"
           },
           {
             "kind": "text",
@@ -1238,7 +1060,8 @@
             "text": "Private information exchanges must be announced, including private messages and conversations outside the room. The contents may remain secret, but the exchange itself must be public.",
             "evidence": [
               "CORE-C21"
-            ]
+            ],
+            "authoringKey": "deals:column2:1"
           },
           {
             "kind": "text",
@@ -1246,16 +1069,8 @@
             "text": "The new default forbids written notes except through Atreides' Bidding advantage. The old FAQ and Dune Zone book allowed general notes, while reserving Treachery card tracking to Atreides.",
             "evidence": [
               "CORE-C20"
-            ]
-          },
-          {
-            "kind": "callout",
-            "variant": "note",
-            "title": "Already familiar",
-            "text": "Searching discard piles still requires permission, as in Dune Zone's earlier book. Players may still watch public discards as they happen.",
-            "evidence": [
-              "CORE-Q16"
-            ]
+            ],
+            "authoringKey": "deals:column2:2"
           }
         ]
       ],
@@ -1273,29 +1088,23 @@
             "text": "During Spice Collection, the controlling faction receives two spice for Arrakeen, two for Carthag and one for Tuek's Sietch. These were Advanced rules in the earlier game; they are now part of the default.",
             "evidence": [
               "CORE-C14"
-            ]
+            ],
+            "authoringKey": "city-income:column1:0"
           },
           {
             "kind": "text",
             "name": "Carryalls",
-            "text": "Carryalls is the new name for the existing three-spice-per-force collection rate from qualifying city occupation. It does not add a second city income payment.",
-            "evidence": []
-          },
-          {
-            "kind": "callout",
-            "variant": "note",
-            "title": "Open wording: control timing",
-            "text": "City income is paid during Spice Collection, but the glossary defines control at round end. A sole occupant qualifies; the timing for storm-separated rivals is unclear. See the unresolved wording section.",
-            "evidence": [
-              "CORE-U04"
-            ]
+            "text": "Carryalls is the new name for the existing three-spice-per-force collection rate from qualifying city occupation.",
+            "evidence": [],
+            "authoringKey": "city-income:column1:1"
           }
         ],
         [
           {
             "kind": "income-map",
             "caption": "Arrakeen pays two spice, Carthag two and Tuek's Sietch one. The amounts are unchanged from Advanced play.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "city-income:column2:0"
           }
         ]
       ],
@@ -1309,26 +1118,20 @@
         [
           {
             "kind": "text",
-            "name": "Stronghold targets are unchanged",
-            "text": "An unallied faction normally needs three strongholds. A two-faction alliance normally needs four. Victory is still checked during Mentat Pause.",
-            "evidence": [
-              "CORE-Q17"
-            ]
-          },
-          {
-            "kind": "text",
             "name": "Choosing between qualifying winners",
             "text": "The earlier FAQ and Dune Zone core book allowed sides that qualified together to share a tied victory. The new book gives the order below. Rows involving Tech Tokens apply only when using that module.",
             "evidence": [
               "CORE-C15"
-            ]
+            ],
+            "authoringKey": "victory:column1:1"
           },
           {
             "kind": "callout",
             "variant": "note",
             "title": "Ties at the same priority",
             "text": "Compare strongholds, then forces in strongholds, then spice. Apply these tie-breaks only after checking the priority order.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "victory:column1:2"
           }
         ],
         [
@@ -1365,13 +1168,8 @@
               ]
             ],
             "note": "",
-            "evidence": []
-          },
-          {
-            "kind": "text",
-            "name": "Special victories",
-            "text": "Bene Gesserit prediction, Fremen's condition and Guild's revised condition have their own rules. The table covers normal victories. Some overlaps with special victories remain unclear.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "victory:column2:0"
           }
         ]
       ],
@@ -1390,22 +1188,15 @@
             "evidence": [
               "CORE-C16",
               "F44"
-            ]
+            ],
+            "authoringKey": "endgame:column1:0"
           },
           {
             "kind": "text",
             "name": "If no normal or special victory applies",
             "text": "Compare strongholds. If tied, favor an unallied faction over an alliance, then compare forces in controlled strongholds, then spice. This replaces the old automatic Fremen fallback without Guild and Dune Zone's earlier inferred order for special victories.",
-            "evidence": []
-          },
-          {
-            "kind": "callout",
-            "variant": "note",
-            "title": "Open wording: perfect ties",
-            "text": "The rulebook gives no further tie-break after equal spice. It also leaves some overlaps between special victory conditions unresolved.",
-            "evidence": [
-              "CORE-U06"
-            ]
+            "evidence": [],
+            "authoringKey": "endgame:column1:1"
           }
         ],
         [
@@ -1414,20 +1205,23 @@
             "variant": "example",
             "title": "Unallied Guild example",
             "text": "Guild has two strongholds. Atreides has two and its Bene Gesserit ally has one. Guild meets its special condition because it matches the highest individual faction, despite the opposing alliance having three in total.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "endgame:column2:0"
           },
           {
             "kind": "callout",
             "variant": "example",
             "title": "Allied Guild example",
             "text": "If Guild is allied with Emperor, compare their total with the strongest faction or alliance. Against the same three-stronghold alliance, Emperor needs one stronghold to add to Guild's two.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "endgame:column2:1"
           },
           {
             "kind": "text",
             "name": "Which total to compare",
             "text": "An unallied Guild compares itself with individual factions, including members of an alliance. An allied Guild compares its alliance with both individual factions and alliances.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "endgame:column2:2"
           }
         ]
       ],
@@ -1484,13 +1278,15 @@
               "F02",
               "F03",
               "F04"
-            ]
+            ],
+            "authoringKey": "rosters:column1:0"
           },
           {
             "kind": "text",
             "name": "Leader changes",
             "text": "Duncan gains one strength. The Emperor's leader values remain 6,5,3,3,2, with three changed characters. The new Bashar Garon replaces Caid at strength 3; the old strength-2 Bashar is replaced by Wensicia Corrino. Duke Leto replaces Paul as ruler and is not a sixth battle leader.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "rosters:column1:1"
           },
           {
             "kind": "reference-table",
@@ -1519,24 +1315,18 @@
             "note": "",
             "evidence": [
               "F05"
-            ]
+            ],
+            "authoringKey": "rosters:column1:2"
           },
           {
             "kind": "text",
             "name": "Guild leader values",
             "text": "Guild changes from 5,3,3,2,1 to 5,4,3,2,1. The table compares values; it does not mean that the old characters have simply been renamed.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "rosters:column1:3"
           }
         ],
         [
-          {
-            "kind": "text",
-            "name": "Unchanged leaders",
-            "text": "Fremen and Harkonnen keep their five leaders and values. The other Atreides values remain 5,5,4,1. The other four Bene Gesserit leaders remain strength 5.",
-            "evidence": [
-              "F06"
-            ]
-          },
           {
             "kind": "leader-entry",
             "faction": "atreides",
@@ -1546,7 +1336,8 @@
             "text": "Four ordinary forces and a surviving Duncan total 6 in Basic. In Advanced, the same total requires four spice to support the forces. Duncan contributes 2 in either case.",
             "evidence": [
               "F01"
-            ]
+            ],
+            "authoringKey": "rosters:column2:1"
           },
           {
             "kind": "leader-entry",
@@ -1555,14 +1346,8 @@
             "memberId": "918acfed-e08e-46bc-8e11-ef6e789fa347",
             "name": "GF9 2.0: Duncan Idaho 3",
             "text": "Four force strength and a surviving Duncan total 7 without spice, or 9 after buying +2 for four spice. His higher value also affects the bounty for killing him and the cost to revive him.",
-            "evidence": []
-          },
-          {
-            "kind": "callout",
-            "variant": "example",
-            "title": "Duncan contributes 3",
-            "text": "The extra point is part of Duncan's strength. Add his value once, alongside force strength and any spice bonus.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "rosters:column2:2"
           }
         ]
       ],
@@ -1580,7 +1365,8 @@
             "text": "After Fremen sets up, place one force in a territory of your choice. It is a fighter if alone or an advisor if sharing. This was the Advanced setup. Advisors and Advanced faction abilities are now part of the default game.",
             "evidence": [
               "F13"
-            ]
+            ],
+            "authoringKey": "bg-voice:column1:0"
           },
           {
             "kind": "text",
@@ -1589,27 +1375,26 @@
             "evidence": [
               "F14",
               "F15"
-            ]
+            ],
+            "authoringKey": "bg-voice:column1:1"
           },
           {
             "kind": "text",
             "name": "Use the printed card types",
             "text": "A card labeled both special and kinetic or poison matches either type. An effect alone does not give a card another type. The new Gas Tooth example requires a special-weapon command.",
-            "evidence": []
-          },
-          {
-            "kind": "text",
-            "name": "Optional card roles",
-            "text": "Voice cannot force Weirding Way to act as a defense or Chemistry to act as a weapon. Their alternate roles remain optional, as clarified in the old game.",
-            "evidence": []
-          },
+            "evidence": [],
+            "authoringKey": "bg-voice:column1:2"
+          }
+        ],
+        [
           {
             "kind": "text",
             "name": "Transmutation covers Karama and Solaris",
             "text": "Worthless cards can be used as either Karama or Solaris. Bene Gesserit keeps the economic effects and can use the new Bank-funded spice strength. A Worthless card used as Karama has the same restricted cancellation targets as a normal Karama.",
             "evidence": [
               "F16"
-            ]
+            ],
+            "authoringKey": "bg-voice:column1:4"
           },
           {
             "kind": "callout",
@@ -1618,51 +1403,26 @@
             "text": "Play Karama immediately after Bene Gesserit declares Voice, before the command takes effect.",
             "evidence": [
               "K-F02"
-            ]
-          }
-        ],
-        [
+            ],
+            "authoringKey": "bg-voice:column1:5"
+          },
           {
             "kind": "text",
             "name": "Prediction excludes titled special victories",
             "text": "The old sheet excluded the Guild and Fremen special victories. The new rule excludes any victory through an advantage titled Special Victory Condition, including expansion abilities with that title.",
             "evidence": [
               "F24"
-            ]
-          },
-          {
-            "kind": "text",
-            "name": "Predicting a normal victory",
-            "text": "The predicted faction may win alone or in an alliance, including with Bene Gesserit. This is unchanged. How prediction interacts with some round-ten results and overlapping special victories remains unclear.",
-            "evidence": []
-          },
-          {
-            "kind": "callout",
-            "variant": "note",
-            "title": "Already familiar",
-            "text": "Voice still comes before Atreides Prescience. Advisors still cannot fight, collect spice, block, grant ornithopters or count as the forces needed to play Family Atomics.",
-            "evidence": []
+            ],
+            "authoringKey": "bg-voice:column2:0"
           },
           {
             "kind": "text",
             "name": "CHOAM Charity",
-            "text": "Bene Gesserit receives two spice regardless of its current holdings, as under the old Advanced rules. The new wording also applies effects that modify CHOAM Charity to this amount.",
+            "text": "Effects that modify CHOAM Charity now also apply to the Bene Gesserit two-spice Charity payment.",
             "evidence": [
               "F23"
-            ]
-          },
-          {
-            "kind": "text",
-            "name": "No once-per-game Karama power",
-            "text": "Bene Gesserit still has no faction-specific once-per-game Karama power. Transmutation can be used repeatedly with Worthless cards. Spirit World does not add a one-time power.",
-            "evidence": []
-          },
-          {
-            "kind": "callout",
-            "variant": "note",
-            "title": "CHOAM expansion rules are incomplete",
-            "text": "The new Bene Gesserit sheet allows Charity modifiers to affect its income. It does not give the updated CHOAM faction effects, amounts or payment times.",
-            "evidence": []
+            ],
+            "authoringKey": "bg-voice:column2:3"
           }
         ]
       ],
@@ -1682,7 +1442,8 @@
             "evidence": [
               "F17",
               "F18"
-            ]
+            ],
+            "authoringKey": "bg-faces:column1:0"
           },
           {
             "kind": "text",
@@ -1690,14 +1451,16 @@
             "text": "You can no longer move advisors into an occupied territory and turn them into fighters on arrival. A moving group also cannot flip merely to join your opposite-face group at its destination.",
             "evidence": [
               "F19"
-            ]
+            ],
+            "authoringKey": "bg-faces:column1:1"
           },
           {
             "kind": "callout",
             "variant": "example",
             "title": "A stronghold empties during movement",
             "text": "If your advisors are left alone after Shipping and Movement begins, they stay advisors. They cannot control the stronghold, collect spice, gain ornithopters or block entry.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "bg-faces:column1:2"
           }
         ],
         [
@@ -1707,13 +1470,15 @@
             "text": "Normal paid shipment uses fighters. You may ship into your fighters or a territory without your own tokens. The old general permission to ship into your advisors no longer applies.",
             "evidence": [
               "F20"
-            ]
+            ],
+            "authoringKey": "bg-faces:column2:0"
           },
           {
             "kind": "text",
             "name": "Fighters may become advisors when moving",
             "text": "When moving into another faction's territory where you had no forces, fighters may be allowed to become advisors. If that faction is your ally, they must. This permission does not allow advisors to become fighters during the phase.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "bg-faces:column2:1"
           },
           {
             "kind": "text",
@@ -1721,16 +1486,8 @@
             "text": "Intrusion now includes another faction deploying forces, as well as shipping or moving. When placing an accompanying advisor, you may still turn existing fighters into advisors before placing it, as specified by that ability.",
             "evidence": [
               "F21"
-            ]
-          },
-          {
-            "kind": "callout",
-            "variant": "note",
-            "title": "Open wording: allies",
-            "text": "The advisor rules allow coexistence with an ally, but the general alliance paragraph does not repeat the exemption. The specific Bene Gesserit rule allows it; the cross-reference remains unclear.",
-            "evidence": [
-              "F22"
-            ]
+            ],
+            "authoringKey": "bg-faces:column2:2"
           }
         ]
       ],
@@ -1746,10 +1503,11 @@
           {
             "kind": "text",
             "name": "Four starting spice",
-            "text": "Fremen starts with four spice instead of three. Its initial force placement, two-territory movement and three free revivals are unchanged.",
+            "text": "Fremen starts with four spice instead of three.",
             "evidence": [
               "F25"
-            ]
+            ],
+            "authoringKey": "fremen-storm:column1:0"
           },
           {
             "kind": "text",
@@ -1757,7 +1515,8 @@
             "text": "At the end of Storm, inspect the top card of the shared Storm deck. Fremen no longer selects, returns and reshuffles a private card each round.",
             "evidence": [
               "F26"
-            ]
+            ],
+            "authoringKey": "fremen-storm:column1:1"
           },
           {
             "kind": "text",
@@ -1765,7 +1524,8 @@
             "text": "The older FAQ prohibited normal movement and worm rides into or out of storm. The new sheet allows shipment, a one-territory move or a worm ride into storm, with the stated half loss. It does not allow unrestricted travel through storm or general movement out of it.",
             "evidence": [
               "F27"
-            ]
+            ],
+            "authoringKey": "fremen-storm:column1:2"
           },
           {
             "kind": "callout",
@@ -1774,20 +1534,23 @@
             "text": "A group of three entering forces loses two tokens, half rounded up. A Fedaykin counts as one token for this loss, despite its battle strength of two. You may choose to lose more, including the whole group.",
             "evidence": [
               "F28"
-            ]
+            ],
+            "authoringKey": "fremen-storm:column1:3"
           },
           {
             "kind": "text",
             "name": "Limits on storm movement",
             "text": "The new example does not allow shipment into storm followed by movement to another storm territory. A worm ride goes directly to its destination sector rather than following a normal movement path.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "fremen-storm:column1:4"
           },
           {
             "kind": "callout",
             "variant": "note",
             "title": "Karama targets Battle Edge",
             "text": "Karama can no longer cancel Storm Insight, storm protection, movement or worm riding. Battle Edge is the sole vulnerable advantage.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "fremen-storm:column1:5"
           }
         ],
         [
@@ -1797,13 +1560,15 @@
             "text": "Call Sandworms applies to Shai-Hulud drawn after the first in that phase. Placed worms resolve at the end of Nexus. The earlier Dune Zone book handled each Spice pile separately. The original printed faction rule was less clear about restarting the sequence.",
             "evidence": [
               "F29"
-            ]
+            ],
+            "authoringKey": "fremen-storm:column2:0"
           },
           {
             "kind": "text",
             "name": "Riding a placed worm",
             "text": "The new rule allows a ride from the territory affected by your placed worm or your ally's. Use the single discard pile's history, replacing the old separate sequences for piles A and B.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "fremen-storm:column2:1"
           },
           {
             "kind": "text",
@@ -1811,20 +1576,15 @@
             "text": "The revised one-time power counts as Shai-Hulud drawn during Spice Blow and Nexus. As described on the new sheet, use the last normal card's territories or place it through Call Sandworms at the end of Nexus.",
             "evidence": [
               "F34"
-            ]
-          },
-          {
-            "kind": "callout",
-            "variant": "note",
-            "title": "A Nexus was already allowed",
-            "text": "The 2019 Q&A said this Karama worm did not cause a Nexus. The later FAQ corrected that, and Dune Zone's book used the correction. The new changes concern placement and the procedure for resolving the worm.",
-            "evidence": []
+            ],
+            "authoringKey": "fremen-storm:column2:2"
           },
           {
             "kind": "text",
             "name": "Spirit World trigger",
             "text": "With Spirit World, discard Harj to use Bless the Maker. This uses the same once-per-game power and does not also give Harj's normal extra move.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "fremen-storm:column2:4"
           }
         ]
       ],
@@ -1843,7 +1603,8 @@
             "text": "Fremen automatically receives the bonus its force dial qualifies for, without paying spice. This replaces the old exemption from supporting forces. Under Classic, Battle Edge instead lets forces fight at full strength without spice.",
             "evidence": [
               "F30"
-            ]
+            ],
+            "authoringKey": "fremen-battle:column1:0"
           },
           {
             "kind": "callout",
@@ -1852,7 +1613,8 @@
             "text": "Fremen dials four ordinary forces and gains +2 spice strength for free, before adding a surviving leader. If Karama cancels Battle Edge, Fremen may pay for a bonus normally.",
             "evidence": [
               "K-F04"
-            ]
+            ],
+            "authoringKey": "fremen-battle:column1:1"
           },
           {
             "kind": "text",
@@ -1860,7 +1622,8 @@
             "text": "Normal revival still allows only one Fedaykin in the round. Ghola may now revive several. This exception applies to Ghola, rather than to revival effects in general.",
             "evidence": [
               "F31"
-            ]
+            ],
+            "authoringKey": "fremen-battle:column1:2"
           }
         ],
         [
@@ -1870,7 +1633,8 @@
             "text": "Sietch Tabr and Cave of Birds may be occupied by Fremen, its ally or nobody. Allied Atreides, Harkonnen, Richese or Emperor do not break the relevant Tuek's prohibition. The old FAQ did not count an ally as Fremen for these conditions.",
             "evidence": [
               "F32"
-            ]
+            ],
+            "authoringKey": "fremen-battle:column2:0"
           },
           {
             "kind": "text",
@@ -1878,14 +1642,8 @@
             "text": "Fremen may allow its ally to ride worms after Nexus. The ally's free revival is three forces in total. Dune Zone's old book already used that total; the change is not a reduction from six.",
             "evidence": [
               "F33"
-            ]
-          },
-          {
-            "kind": "callout",
-            "variant": "note",
-            "title": "Fedaykin remain strength two",
-            "text": "The Fedaykin token value is unchanged. Fremen gains additional battle strength through its free spice bonus.",
-            "evidence": []
+            ],
+            "authoringKey": "fremen-battle:column2:1"
           }
         ]
       ],
@@ -1904,20 +1662,23 @@
             "text": "Emperor may now give spice directly only at phase end. The old FAQ and Dune Zone book allowed gifts at any time. An ally must therefore wait until phase end to receive a gift intended for later spending.",
             "evidence": [
               "F35"
-            ]
+            ],
+            "authoringKey": "emperor:column1:0"
           },
           {
             "kind": "text",
             "name": "Auction and shipment contributions",
             "text": "Normal allied contributions still occur when payment is due. In the Emperor's new examples, its contribution goes to the Bank, while the ally's own auction payment goes to Emperor.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "emperor:column1:1"
           },
           {
             "kind": "callout",
             "variant": "example",
             "title": "Contributing during bidding",
             "text": "Emperor may contribute to an ally's auction purchase under the usual allied payment rules. This is not a direct gift that the ally can keep for another purpose.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "emperor:column1:2"
           }
         ],
         [
@@ -1927,7 +1688,8 @@
             "text": "The old benefit of paying for up to three extra allied force revivals is gone. Emperor instead halves its ally's spice-strength cost. A +2 bonus costs two spice instead of four. Force losses and the force dial are unaffected.",
             "evidence": [
               "F36"
-            ]
+            ],
+            "authoringKey": "emperor:column2:0"
           },
           {
             "kind": "text",
@@ -1935,16 +1697,18 @@
             "text": "During Revival, the one-time power now revives up to four forces, including Sardaukar, and one leader outside the normal limits. Previously it revived up to three forces or one leader. War Machine and Ghola may revive more than the normal limit of one Sardaukar.",
             "evidence": [
               "F37"
-            ]
+            ],
+            "authoringKey": "emperor:column2:1"
           },
           {
             "kind": "callout",
             "variant": "note",
             "title": "Canceling Sardaukar",
-            "text": "Karama makes Sardaukar count as standard forces for that battle. The table says to cancel before plans are made; the sheet says while they are being formed. Both require cancellation before reveal.",
+            "text": "Karama makes Sardaukar count as standard forces for the battle. The exact cancellation deadline is unclear; see the appendix.",
             "evidence": [
               "K-F03"
-            ]
+            ],
+            "authoringKey": "emperor:column2:2"
           }
         ]
       ],
@@ -1959,34 +1723,31 @@
         [
           {
             "kind": "text",
-            "name": "Spice Vision timing",
-            "text": "The old sheet allowed inspection at the start of Movement, before anyone moved. The new sheet says any time during Shipping and Movement. The publisher describes the ability as unchanged, so it is unclear whether this broader timing is intentional.",
-            "evidence": [
-              "F07"
-            ]
-          },
-          {
-            "kind": "text",
             "name": "Ask which card occupies the slot",
             "text": "Prescience asks for the Treachery card in the Weapon or Defense slot, including a card that is not itself a weapon or defense. The earlier Ecaz & Moritani rules concealed Reinforcements and Harass & Withdraw from the narrower question.",
             "evidence": [
               "F08",
               "X-K10"
-            ]
+            ],
+            "authoringKey": "atreides:column1:1"
           },
           {
             "kind": "text",
             "name": "Ask for force and spice strength together",
             "text": "The force question now reveals dialed force strength plus spice strength. It no longer reveals just the force dial. Other parts of the plan stay secret.",
-            "evidence": []
-          },
+            "evidence": [],
+            "authoringKey": "atreides:column1:2"
+          }
+        ],
+        [
           {
             "kind": "text",
             "name": "Allied Prescience reveals to both allies",
             "text": "The chosen element is revealed to Atreides and its ally. The old sheet named only the ally, although legal information sharing was already allowed.",
             "evidence": [
               "F11"
-            ]
+            ],
+            "authoringKey": "atreides:column1:3"
           },
           {
             "kind": "callout",
@@ -1995,17 +1756,17 @@
             "text": "Play Karama immediately after Atreides names the element it wants revealed, before receiving the answer.",
             "evidence": [
               "K-F01"
-            ]
-          }
-        ],
-        [
+            ],
+            "authoringKey": "atreides:column1:4"
+          },
           {
             "kind": "text",
             "name": "Track battle losses publicly",
             "text": "The old sheet told Atreides to track losses secretly. The counter is now public. Kwisatz Haderach still activates immediately after seven battle losses, including traitor losses. Storm and worm losses do not count.",
             "evidence": [
               "F09"
-            ]
+            ],
+            "authoringKey": "atreides:column2:0"
           },
           {
             "kind": "text",
@@ -2013,29 +1774,8 @@
             "text": "For two spice, Atreides may use its one leader revival to revive Kwisatz Haderach before normal leader revival becomes available. The earlier Dune Zone book required normal eligibility.",
             "evidence": [
               "F10"
-            ]
-          },
-          {
-            "kind": "callout",
-            "variant": "example",
-            "title": "Kwisatz Haderach dies before leader revival is available",
-            "text": "Atreides may still revive it for two spice. This uses the one leader revival allowed that phase.",
-            "evidence": []
-          },
-          {
-            "kind": "text",
-            "name": "Golden Path is unchanged",
-            "text": "The once-per-game power still reveals any one player's whole Battle Plan, including a player other than your opponent. Ordinary Karama could not cancel it in the earlier Dune Zone book either. Spirit World adds Family Atomics as an alternative trigger.",
-            "evidence": [
-              "F12"
-            ]
-          },
-          {
-            "kind": "callout",
-            "variant": "note",
-            "title": "Other abilities and values",
-            "text": "Auction inspection, exclusive Treachery notes, the other four battle-leader values and Kwisatz Haderach's +2 strength are unchanged.",
-            "evidence": []
+            ],
+            "authoringKey": "atreides:column2:1"
           }
         ]
       ],
@@ -2054,7 +1794,8 @@
             "text": "If the initial four traitors include your own leaders, reveal and set aside any of those you want to replace. Draw replacements before other players return their cards, then shuffle the set-aside cards back. Keep the replacements, even if they are your own leaders again.",
             "evidence": [
               "F38"
-            ]
+            ],
+            "authoringKey": "harkonnen:column1:0"
           },
           {
             "kind": "text",
@@ -2062,7 +1803,8 @@
             "text": "Captives now return when your own leaders are dead, captured or face-up from earlier battles. The old sheet required all your leaders to be killed. Leaders already committed elsewhere this round can therefore count toward returning captives.",
             "evidence": [
               "F39"
-            ]
+            ],
+            "authoringKey": "harkonnen:column1:1"
           },
           {
             "kind": "callout",
@@ -2071,7 +1813,8 @@
             "text": "Play Karama immediately after Harkonnen wins, before it draws a captive. Karama no longer cancels bonus card draws or allied traitor calls.",
             "evidence": [
               "K-F05"
-            ]
+            ],
+            "authoringKey": "harkonnen:column1:2"
           }
         ],
         [
@@ -2081,26 +1824,8 @@
             "text": "At the end of Bidding, take one random card from each other player and one from the deck. Choose one card from the combined hand to give to each player. Discard one if you have nine. This replaces the old exchange with one player.",
             "evidence": [
               "F40"
-            ]
-          },
-          {
-            "kind": "text",
-            "name": "The old four-card limit",
-            "text": "The 2019 power and later FAQ differed on how many cards could be taken. Dune Zone used the FAQ's up-to-four ruling. The revised exchange replaces that procedure.",
-            "evidence": []
-          },
-          {
-            "kind": "callout",
-            "variant": "note",
-            "title": "Open wording: edge cases",
-            "text": "The new rule does not fully explain what to do with empty hands, an empty deck or temporary hand-limit problems during Vendetta.",
-            "evidence": []
-          },
-          {
-            "kind": "text",
-            "name": "Unchanged setup and card benefits",
-            "text": "Harkonnen keeps its eight-card hand limit, two starting cards, bonus draw after a purchase when there is room, and four traitors. With Spirit World, Solaris can trigger Vendetta.",
-            "evidence": []
+            ],
+            "authoringKey": "harkonnen:column2:0"
           }
         ]
       ],
@@ -2117,7 +1842,8 @@
             "kind": "text",
             "name": "GF9",
             "text": "You began with five forces in Tuek's, fifteen in reserves and five spice.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "guild-setup:column1:0"
           },
           {
             "kind": "text",
@@ -2125,14 +1851,16 @@
             "text": "Start with all twenty forces in reserves and eight spice. After setup step five, make a compulsory paid shipment using the normal Guild rules and a legal destination. Bene Gesserit may accompany it.",
             "evidence": [
               "F41"
-            ]
+            ],
+            "authoringKey": "guild-setup:column1:1"
           },
           {
             "kind": "callout",
             "variant": "example",
             "title": "Shipping five forces to a stronghold",
             "text": "Five forces cost three spice at Guild's reserve-shipment rate, rounded up. That leaves five spice. Guild chooses the number and destination instead of receiving five forces in Tuek's. This shipment is in addition to normal round play.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "guild-setup:column1:2"
           },
           {
             "kind": "text",
@@ -2140,7 +1868,8 @@
             "text": "Guild used to pay half price for cross-shipping. The discount now applies only to shipments to or from off-planet. Four forces cross-shipping to a stronghold cost four spice instead of two.",
             "evidence": [
               "F42"
-            ]
+            ],
+            "authoringKey": "guild-setup:column1:3"
           },
           {
             "kind": "text",
@@ -2148,14 +1877,8 @@
             "text": "A Guild ally may now use all three shipment types, including returning forces to reserves. Fremen may use this benefit too. The old FAQ and Dune Zone book excluded returns to reserves. As with Guild's own shipments, cross-shipping now costs the normal rate.",
             "evidence": [
               "F43"
-            ]
-          },
-          {
-            "kind": "callout",
-            "variant": "note",
-            "title": "Solaris shipping remains unclear",
-            "text": "Solaris specifies a shipment from reserves on its face, but its explanation refers more broadly to Shipping actions. Whether it also discounts other Guild shipment types is unresolved.",
-            "evidence": []
+            ],
+            "authoringKey": "guild-setup:column1:4"
           }
         ],
         [
@@ -2165,20 +1888,15 @@
             "text": "Guild must control at least as many strongholds as the highest individual faction, even if that faction has an ally. It no longer wins simply because no one else won by game end.",
             "evidence": [
               "F44"
-            ]
+            ],
+            "authoringKey": "guild-setup:column2:0"
           },
           {
             "kind": "text",
             "name": "Allied Guild compares combined totals",
             "text": "Guild and its ally must together match the strongest faction or alliance. See the examples on the round-ten page.",
-            "evidence": []
-          },
-          {
-            "kind": "callout",
-            "variant": "note",
-            "title": "Special victory and round-ten tie-breaks",
-            "text": "The Guild's special condition is separate from the general round-ten tie-breaks. Check normal and special victories before using those tie-breaks.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "guild-setup:column2:1"
           },
           {
             "kind": "text",
@@ -2186,7 +1904,8 @@
             "text": "Guild may take its whole Shipping and Movement turn first, last or between other players without announcing the choice in advance. This was an Advanced ability and is now part of the default game.",
             "evidence": [
               "F45"
-            ]
+            ],
+            "authoringKey": "guild-setup:column2:3"
           },
           {
             "kind": "text",
@@ -2194,13 +1913,8 @@
             "text": "Karama makes Guild act in normal storm order. It must be played before Guild's normal turn has passed, even if Guild has chosen to act later.",
             "evidence": [
               "K-F06"
-            ]
-          },
-          {
-            "kind": "text",
-            "name": "Blockade is unchanged",
-            "text": "The one-time power still prevents the specified off-planet shipments. Spirit World adds Weather Control as a trigger. Guild income and its one free revival are unchanged.",
-            "evidence": []
+            ],
+            "authoringKey": "guild-setup:column2:4"
           }
         ]
       ],
@@ -2220,7 +1934,8 @@
             "evidence": [
               "VAR-02",
               "F46"
-            ]
+            ],
+            "authoringKey": "spirit-world:column1:0"
           },
           {
             "kind": "reference-table",
@@ -2262,26 +1977,22 @@
               ]
             ],
             "note": "",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "spirit-world:column1:1"
           },
           {
             "kind": "text",
             "name": "Use the faction power instead of the card effect",
             "text": "Using Family Atomics to activate Golden Path does not destroy Shield Wall. Using Harj to activate Bless the Maker gives no extra move. The discarded card activates only the faction power.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "spirit-world:column1:2"
           },
           {
             "kind": "text",
             "name": "Still once per game",
             "text": "Using the power with Karama also uses up its Spirit World activation, and vice versa. A named card cannot activate another faction's power or be used as a normal Karama cancellation.",
-            "evidence": []
-          },
-          {
-            "kind": "callout",
-            "variant": "note",
-            "title": "Choose the variant before play",
-            "text": "Without Spirit World, a once-per-game power still requires Karama. Agree on the variant before starting so players know which cards can activate their powers.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "spirit-world:column1:3"
           }
         ],
         [
@@ -2291,42 +2002,23 @@
             "text": "Classic replaces 2.0 spice strength with the 2019 Advanced support system. Pay one spice per force for full strength; unsupported forces fight at half strength. Use the appropriate special-force values and Classic loss rules.",
             "evidence": [
               "VAR-01"
-            ]
+            ],
+            "authoringKey": "spirit-world:column2:0"
           },
           {
             "kind": "text",
             "name": "Fremen under Classic",
             "text": "Battle Edge lets Fremen forces fight at full strength without spice. It does not also give the default 2.0 spice bonus.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "spirit-world:column2:1"
           },
           {
             "kind": "callout",
             "variant": "example",
             "title": "Four ordinary forces without spice",
             "text": "Four ordinary forces without spice contribute 4 in default 2.0, or 2 under Classic. Use the calculation for the chosen rules.",
-            "evidence": []
-          },
-          {
-            "kind": "callout",
-            "variant": "note",
-            "title": "Open wording: Solaris",
-            "text": "Solaris pays for spice strength. The rulebook does not explain how this works when Classic replaces spice strength with force support.",
-            "evidence": [
-              "Q-CARD-02"
-            ]
-          },
-          {
-            "kind": "callout",
-            "variant": "note",
-            "title": "Open wording: Emperor ally",
-            "text": "Emperor's allied discount also applies to spice strength. The rulebook gives no equivalent discount for Classic support costs.",
-            "evidence": []
-          },
-          {
-            "kind": "text",
-            "name": "Errors in the printed examples",
-            "text": "The rulebook retains an old wheel illustration showing 8½, and some examples use inconsistent token descriptions. These inconsistencies do not describe additional rule changes.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "spirit-world:column2:2"
           }
         ]
       ],
@@ -2342,7 +2034,8 @@
             "kind": "text",
             "name": "Old expansions need updated rules",
             "text": "Jack Reda says the old expansions are not completely compatible with 2.0. His examples are Karama, Suboid half-strength dials and Richese sales. Players mixing editions need to agree how those rules work. References to seven other factions in the base book do not replace their older sheets.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "expansion-boundary:content:0"
           },
           {
             "kind": "reference-table",
@@ -2391,20 +2084,16 @@
               "X-E1",
               "X-M1",
               "X-R1"
-            ]
+            ],
+            "authoringKey": "expansion-boundary:content:1"
           },
           {
             "kind": "callout",
             "variant": "note",
             "title": "Incomplete expansion rules",
             "text": "The revised expansion sheets, decks and module rules were unavailable for this comparison. The following pages list the known interactions and the rules still needed.",
-            "evidence": []
-          },
-          {
-            "kind": "text",
-            "name": "Two earlier rulings",
-            "text": "Dune Zone's old Ecaz book followed the printed rounding rule where its example disagreed. Richese could already use paired No-Fields through a conditional Nexus benefit. Neither is itself a new default rule.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "expansion-boundary:content:2"
           }
         ]
       ],
@@ -2446,32 +2135,19 @@
               "X-K9",
               "Q-CARD-03",
               "Q-CARD-04"
-            ]
-          },
-          {
-            "kind": "callout",
-            "variant": "note",
-            "title": "Replacement copies",
-            "text": "When a card replaces an older version, use the applicable replacement rather than both copies. The earlier replacement lists do not establish the contents of the new expansion decks.",
-            "evidence": []
+            ],
+            "authoringKey": "compatibility-cards:column1:0"
           }
         ],
         [
-          {
-            "kind": "text",
-            "name": "Atreides can ask about any card in the slot",
-            "text": "The new Weapon or Defense slot question reveals Reinforcements and Harass & Withdraw, reversing their concealment in the earlier expansion rules. This change is in the base faction rules, even without the complete new expansion decks.",
-            "evidence": [
-              "X-K10"
-            ]
-          },
           {
             "kind": "text",
             "name": "Voice and dual-role cards",
             "text": "The new type rules cover Weirding Way, Chemistry and Shield-Snooper. Voice cannot force an optional alternate role. Lasgun explodes against a Shield, rather than every kinetic defense. Other label changes need the new card faces.",
             "evidence": [
               "X-K11"
-            ]
+            ],
+            "authoringKey": "compatibility-cards:column2:1"
           },
           {
             "kind": "text",
@@ -2479,7 +2155,8 @@
             "text": "The new book does not repeat the old optional rules for larger alliances or say they are banned. This guide covers the default two-faction alliance.",
             "evidence": [
               "Q-CARD-06"
-            ]
+            ],
+            "authoringKey": "compatibility-cards:column2:2"
           },
           {
             "kind": "text",
@@ -2487,7 +2164,8 @@
             "text": "Old Suboids fight at half strength, and Cyborg rules refer to the old support system. The new base combat rules do not give replacement values or loss rules for them.",
             "evidence": [
               "X-K2"
-            ]
+            ],
+            "authoringKey": "compatibility-cards:column2:3"
           }
         ]
       ],
@@ -2528,7 +2206,8 @@
               "X-K3",
               "X-K4",
               "X-K5"
-            ]
+            ],
+            "authoringKey": "compatibility-modules:column1:0"
           }
         ],
         [
@@ -2557,22 +2236,8 @@
               "X-K6",
               "X-K7",
               "X-K8"
-            ]
-          },
-          {
-            "kind": "callout",
-            "variant": "note",
-            "title": "Using the earlier expansion books",
-            "text": "Dune Zone's three existing expansion books describe the earlier editions. They have not been converted to 2.0. Their rules may conflict with the changed base game.",
-            "evidence": []
-          },
-          {
-            "kind": "text",
-            "name": "Polar Sink exception is unchanged",
-            "text": "The Ixian Hidden Mobile Stronghold can create a battle territory inside Polar Sink. Outside that exception, Polar Sink remains a haven.",
-            "evidence": [
-              "CORE-Q19"
-            ]
+            ],
+            "authoringKey": "compatibility-modules:column2:0"
           }
         ]
       ],
@@ -2580,7 +2245,7 @@
     },
     {
       "key": "open-movement",
-      "title": "Unresolved wording: movement and battle",
+      "title": "Appendix: unclear movement and battle rules",
       "layoutId": "two-columns",
       "columns": [
         [
@@ -2590,14 +2255,16 @@
             "answer": "The old Q&A allows forces from clear sectors of one territory to move together. The new rule says to move from one sector to one destination sector. It is unclear whether the change intentionally removes the earlier permission.",
             "evidence": [
               "CORE-U01"
-            ]
+            ],
+            "authoringKey": "open-movement:column1:0"
           },
           {
             "kind": "callout",
             "variant": "example",
             "title": "Two origin sectors",
             "text": "Two forces occupy each of two clear sectors of Hagga Basin. The old rules let all four move together. A literal reading of the new rule allows only one origin sector.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "open-movement:column1:1"
           },
           {
             "kind": "question-answer",
@@ -2605,7 +2272,8 @@
             "answer": "The old FAQ allows this. The new rule prohibits ending an action in an ally's territory, and Shipment is separate from Movement. Read literally, it prohibits the stop. It does not discuss the old example directly.",
             "evidence": [
               "CORE-U02"
-            ]
+            ],
+            "authoringKey": "open-movement:column1:2"
           },
           {
             "kind": "question-answer",
@@ -2613,36 +2281,26 @@
             "answer": "Income is paid in phase eight, but the glossary defines control at round end. A sole occupant qualifies. The timing for storm-separated rivals is unclear.",
             "evidence": [
               "CORE-U04"
-            ]
+            ],
+            "authoringKey": "open-movement:column1:3"
           }
         ],
         [
-          {
-            "kind": "question-answer",
-            "question": "Can advisors remain with an ally?",
-            "answer": "The Bene Gesserit rules allow this, including requiring moving fighters to become advisors when joining an ally. The general alliance paragraph does not repeat the exception.",
-            "evidence": []
-          },
-          {
-            "kind": "callout",
-            "variant": "note",
-            "title": "Questions for clarification",
-            "text": "The passages below leave part of the rule unclear. Each question describes the disagreement rather than choosing a house rule.",
-            "evidence": []
-          },
           {
             "kind": "question-answer",
             "question": "Must a player use Cheap Hero when no leader is available?",
             "answer": "One passage requires a leader or Cheap Hero if possible. Another allows a player to be unwilling to use Cheap Hero. It is unclear whether the card is compulsory. The removal of the advance leaderless announcement is a separate, clear change.",
             "evidence": [
               "CORE-U03"
-            ]
+            ],
+            "authoringKey": "open-movement:column2:2"
           },
           {
             "kind": "question-answer",
             "question": "When must Karama be played against Emperor or Fremen?",
             "answer": "The cancellation table says before plans are made. The sheets say while plans are being formed. Both require cancellation before reveal, but the exact earlier deadline is unclear.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "open-movement:column2:3"
           },
           {
             "kind": "question-answer",
@@ -2650,7 +2308,8 @@
             "answer": "Solaris pays for spice strength, which Classic replaces with force support. Emperor's new allied discount also refers to spice strength. The rulebook gives no equivalent payment rules for Classic.",
             "evidence": [
               "Q-CARD-02"
-            ]
+            ],
+            "authoringKey": "open-movement:column2:4"
           }
         ]
       ],
@@ -2658,7 +2317,7 @@
     },
     {
       "key": "open-reference",
-      "title": "Unresolved wording: cards and victory",
+      "title": "Appendix: unclear card and victory rules",
       "layoutId": "two-columns",
       "columns": [
         [
@@ -2668,19 +2327,24 @@
             "answer": "The card face specifies shipment from reserves. The explanation refers more broadly to Shipping actions. Whether cross-shipping and returns to reserves qualify remains unclear.",
             "evidence": [
               "Q-CARD-01"
-            ]
+            ],
+            "authoringKey": "open-reference:column1:0"
           },
           {
             "kind": "question-answer",
             "question": "What if Vendetta finds empty hands or an empty deck?",
             "answer": "The new rule explains the exchange but does not cover empty hands, an empty deck or all temporary hand-limit problems. Those cases need clarification.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "open-reference:column1:1"
           },
           {
             "kind": "question-answer",
             "question": "Is the Spice Vision window intentionally broader?",
             "answer": "The new sheet allows inspection any time during Shipping and Movement. The old sheet allowed it at the start. The publisher describes the ability as unchanged, leaving the intention of the broader timing unclear.",
-            "evidence": []
+            "evidence": [
+              "F07"
+            ],
+            "authoringKey": "open-reference:column1:2"
           },
           {
             "kind": "question-answer",
@@ -2688,7 +2352,8 @@
             "answer": "The rulebook gives no further tie-break and leaves some special-victory overlaps unresolved. Dune Zone's earlier inferred priority is not stated in the new text.",
             "evidence": [
               "CORE-U06"
-            ]
+            ],
+            "authoringKey": "open-reference:column1:3"
           },
           {
             "kind": "question-answer",
@@ -2696,7 +2361,8 @@
             "answer": "The rulebook includes Little Maker's chosen blow, but does not fully explain its tracking and discard history. Mark the chosen location. The text does not say to skip it and use the previous normal pair.",
             "evidence": [
               "CORE-U05"
-            ]
+            ],
+            "authoringKey": "open-reference:column1:4"
           }
         ],
         [
@@ -2706,7 +2372,8 @@
             "answer": "The rulebook says to start with the lowest card and proceed in descending order. These instructions conflict.",
             "evidence": [
               "CORE-C03"
-            ]
+            ],
+            "authoringKey": "open-reference:column2:0"
           },
           {
             "kind": "text",
@@ -2714,7 +2381,8 @@
             "text": "The rulebook gives the deck total and reshuffle instructions but does not list all nine faces. A complete card list is needed to calculate probabilities.",
             "evidence": [
               "Q-CARD-05"
-            ]
+            ],
+            "authoringKey": "open-reference:column2:1"
           },
           {
             "kind": "text",
@@ -2722,20 +2390,15 @@
             "text": "The full Gas Tooth card, revised module cards and some small map labels remain unavailable or unreadable. The names Cave of Birds, kinetic, Harj and round are confirmed and listed earlier.",
             "evidence": [
               "Q-CARD-07"
-            ]
+            ],
+            "authoringKey": "open-reference:column2:2"
           },
           {
             "kind": "text",
             "name": "Component totals",
-            "text": "The Spice token count changes from 156 to 144. No bank-exhaustion rule is added. The totals remain thirty traitor cards, sixteen prediction cards, six Alliance cards, five leaders and twenty forces per base faction.",
-            "evidence": []
-          },
-          {
-            "kind": "callout",
-            "variant": "note",
-            "title": "Missing rules and components",
-            "text": "These questions need the complete card faces, legible labels or further rule text. The confirmed base-game changes are covered on the earlier pages.",
-            "evidence": []
+            "text": "The Spice token count changes from 156 to 144. No bank-exhaustion rule is added.",
+            "evidence": [],
+            "authoringKey": "open-reference:column2:3"
           }
         ]
       ],
@@ -2751,46 +2414,24 @@
             "kind": "text",
             "name": "Printed rules",
             "text": "The comparison uses the 24-page GF9 Dune 2019 rulebook, the nine-page November 2020 FAQ and the supplied 36-page second-edition rulebook. It also uses the original Ixians & Tleilaxu, CHOAM & Richese, and Ecaz & Moritani rulebooks.",
-            "evidence": []
+            "evidence": [],
+            "authoringKey": "sources:column1:0"
           },
           {
             "kind": "text",
             "name": "Dune Zone books",
-            "text": "The earlier core and expansion books are website Edition 2. The reconstructed 2.0 book is website Edition 3. These version numbers are separate from the 2019 and 2026 game editions.",
-            "evidence": []
-          },
-          {
-            "kind": "text",
-            "name": "Detailed references",
-            "text": "Each page lists its source references. The accompanying research files record page numbers, source versions and the evidence for each difference.",
-            "evidence": []
+            "text": "Dune Zone: GF9 core and three expansion books, Edition 2; GF9 2.0 Rulebook, Edition 3.",
+            "evidence": [],
+            "authoringKey": "sources:column1:1"
           }
         ],
         [
           {
             "kind": "text",
-            "name": "Designer and community discussions",
-            "text": "The research includes nine complete BoardGameGeek threads containing 79 posts, including Jack Reda's explanations of the editions, revival and expansion compatibility. It also includes five Reddit posts and their displayed comments. Collapsed Reddit replies were not all available.",
-            "evidence": []
-          },
-          {
-            "kind": "text",
             "name": "Jack Reda on the editions",
-            "text": "boardgamegeek.com/thread/3785979\nDune 2ed vs Kwisatz - What is What\nReda explains which updated rules are shared with the deluxe edition, which content belongs to the expansions, and the problems with mixing old expansions and new rules.",
-            "evidence": []
-          },
-          {
-            "kind": "text",
-            "name": "Community comments",
-            "text": "Player discussions helped identify common questions and confusing rules. Opinions about balance and suggested card changes are not treated as official rules.",
-            "evidence": []
-          },
-          {
-            "kind": "callout",
-            "variant": "note",
-            "title": "About this guide",
-            "text": "This companion covers edition differences for players who know the earlier GF9 game. It leaves disputed wording and incomplete expansion rules identified as such.",
-            "evidence": []
+            "text": "boardgamegeek.com/thread/3785979\nDune 2ed vs Kwisatz - What is What\nJack Reda explains the shared rules, deluxe expansion content and compatibility with earlier expansions.",
+            "evidence": [],
+            "authoringKey": "sources:column2:1"
           }
         ]
       ],
@@ -2821,6 +2462,50 @@
     {
       "id": "CORE-Q07",
       "reason": "Already clarified or unchanged in the earlier game; not a distinct edition difference to teach."
+    },
+    {
+      "id": "CORE-Q01",
+      "reason": "Choosing an own leader as traitor was already allowed by the FAQ and older Dune Zone book. Removed as unchanged."
+    },
+    {
+      "id": "CORE-Q08",
+      "reason": "Ordinary allied contributions are unchanged; the new battle-spice restriction is taught with battle payment."
+    },
+    {
+      "id": "CORE-Q10",
+      "reason": "Void deal terms and unanimous cancellation are unchanged and do not need a separate lesson."
+    },
+    {
+      "id": "CORE-Q13",
+      "reason": "The marker-under-storm order is an existing-rule clarification, not a new procedure."
+    },
+    {
+      "id": "CORE-Q15",
+      "reason": "Ordinary battle-card retention is unchanged. Mandatory Worthless disposal remains in the guide."
+    },
+    {
+      "id": "CORE-Q16",
+      "reason": "Discard-pile privacy is unchanged."
+    },
+    {
+      "id": "CORE-Q17",
+      "reason": "The ordinary stronghold targets and Mentat Pause timing are unchanged. Targets still appear where needed in the new victory-priority table."
+    },
+    {
+      "id": "CORE-Q18",
+      "reason": "Ordinary stronghold blocking is unchanged."
+    },
+    {
+      "id": "CORE-Q19",
+      "reason": "The Ixian Polar Sink exception is unchanged."
+    },
+    {
+      "id": "F06",
+      "reason": "Unchanged Fremen and Harkonnen rosters are retained in the dossier, rather than taught as differences."
+    },
+    {
+      "id": "F12",
+      "reason": "Golden Path whole-plan inspection is unchanged. Its new Spirit World trigger is listed with that variant."
     }
   ]
 }

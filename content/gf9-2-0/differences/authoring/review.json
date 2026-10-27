@@ -1,17 +1,17 @@
 {
   "status": "published",
   "date": "2026-10-27",
-  "pages": 37,
+  "pages": 36,
   "settings": {
     "size": "a4",
     "design": "restrained"
   },
-  "rawSha256": "038562b39a7642a2c705cfef97fc711d11da4335714e8ceadaf84e340fe5e993",
-  "pdfSha256": "519dead8e217c0e3f4daa20a0a75e718d10108cddf9c4b09c280bc8ced72bf1a",
+  "rawSha256": "04ce5ebe08c078ebe905a47b1b1785e18a3aa8a4261f53e403e7e0d4df973f14",
+  "pdfSha256": "97aa2d3e8069207e273f2a67e3ceb02f869efc5e1d57c1e5628b46f5f099b5b7",
   "coverage": {
     "researchRecords": 141,
-    "mapped": 135,
-    "excludedAsUnchanged": 6,
+    "mapped": 124,
+    "excludedAsUnchanged": 17,
     "unmapped": []
   },
   "browser": {
@@ -21,8 +21,8 @@
     "horizontalOverflows": 0
   },
   "pdf": {
-    "source": "Production publisher Edition 3",
-    "pages": 37,
+    "source": "Production publisher Edition 4",
+    "pages": 36,
     "sizePt": [
       595.276,
       841.89
@@ -30,9 +30,9 @@
     "tagged": true,
     "unmatchedProseBoundaries": 0,
     "visuallyCheckedPages": [
-      16
+      2
     ],
-    "contactSheetReviewed": false
+    "contactSheetReviewed": true
   },
   "productionWrites": true,
   "cover": {
@@ -43,10 +43,11 @@
   },
   "publication": {
     "url": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2019-to-2-0-what-changes",
-    "edition": 3,
+    "edition": 4,
     "owner": "Central",
     "method": "Normal authenticated UI",
-    "note": "Editorial revision published through the normal authenticated UI on 27 October 2026."
+    "note": "Focused editorial revision published through the normal authenticated UI on 27 October 2026."
   },
-  "editorialReview": "editorial-review.json"
+  "editorialReview": "editorial-review.json",
+  "editorialFocusReview": "editorial-focus-review.json"
 }

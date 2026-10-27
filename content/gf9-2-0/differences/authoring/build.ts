@@ -48,9 +48,9 @@ assets[bindings.spiceToken.assetId] = bindings.spiceToken;
 const coverage: Record<string, any[]> = {};
 const contents: any = { schemaVersion: 1, pageOrder: [], pagesById: {} };
 function block(value: any, key: string, pageId: string): any {
-  const blockId = id(key);
+  const blockId = id(value.authoringKey ?? key);
   for (const evidence of value.evidence ?? []) (coverage[evidence] ??= []).push({ pageId, blockId });
-  const { evidence, cardKey, columns, rows, faction, era, memberId, caption, ...rest } = value;
+  const { evidence, authoringKey, cardKey, columns, rows, faction, era, memberId, caption, ...rest } = value;
   let result: any = { ...rest, id: blockId };
   if (cardKey) result.source = { kind: 'asset', assetId: cards[cardKey].assetId };
   if (value.kind === 'reference-table') {

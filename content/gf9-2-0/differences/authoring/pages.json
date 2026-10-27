@@ -7,216 +7,210 @@
   },
   {
     "number": 2,
-    "key": "reading",
-    "title": "About this guide",
-    "id": "2768"
-  },
-  {
-    "number": 3,
     "key": "setup",
-    "title": "Setup and familiar names",
+    "title": "Setup and renamed terms",
     "id": "VCZX"
   },
   {
-    "number": 4,
+    "number": 3,
     "key": "storm",
     "title": "The Storm deck",
     "id": "G6QD"
   },
   {
-    "number": 5,
+    "number": 4,
     "key": "paired-spice",
     "title": "One Spice card, two blows",
     "id": "GEEF"
   },
   {
-    "number": 6,
+    "number": 5,
     "key": "little-maker",
     "title": "Little Maker",
     "id": "ACD7"
   },
   {
-    "number": 7,
+    "number": 6,
     "key": "spice-map",
     "title": "New Spice locations and amounts",
     "id": "8RFA"
   },
   {
-    "number": 8,
+    "number": 7,
     "key": "spice-map-visual",
     "title": "New Spice Blow locations",
     "id": "2W2D"
   },
   {
-    "number": 9,
+    "number": 8,
     "key": "battle-model",
     "title": "Spice strength in battle",
     "id": "YJFP"
   },
   {
-    "number": 10,
+    "number": 9,
     "key": "battle-example",
     "title": "Battle strength example",
     "id": "4EJA"
   },
   {
-    "number": 11,
+    "number": 10,
     "key": "battle-payment",
     "title": "Paying for battle spice",
     "id": "PXSB"
   },
   {
-    "number": 12,
+    "number": 11,
     "key": "battle-aftermath",
     "title": "Battle results and surrender",
     "id": "WPPM"
   },
   {
-    "number": 13,
+    "number": 12,
     "key": "revival",
     "title": "Leader revival",
     "id": "FRH9"
   },
   {
-    "number": 14,
+    "number": 13,
     "key": "karama",
     "title": "Karama cancellation",
     "id": "QXRY"
   },
   {
-    "number": 15,
+    "number": 14,
     "key": "solaris",
     "title": "Solaris",
     "id": "ERCZ"
   },
   {
-    "number": 16,
+    "number": 15,
     "key": "card-habits",
     "title": "Other Treachery card changes",
     "id": "R2X8"
   },
   {
-    "number": 17,
+    "number": 16,
     "key": "allies",
     "title": "Allies sharing a territory",
     "id": "7B73"
   },
   {
-    "number": 18,
+    "number": 17,
     "key": "deals",
     "title": "Deals, private information and notes",
     "id": "7PK3"
   },
   {
-    "number": 19,
+    "number": 18,
     "key": "city-income",
     "title": "City income",
     "id": "NVLU"
   },
   {
-    "number": 20,
+    "number": 19,
     "key": "victory",
     "title": "Victory priority",
     "id": "VVJC"
   },
   {
-    "number": 21,
+    "number": 20,
     "key": "endgame",
     "title": "Round-ten victory",
     "id": "RG5J"
   },
   {
-    "number": 22,
+    "number": 21,
     "key": "rosters",
     "title": "Leaders and their changed values",
     "id": "PJQR"
   },
   {
-    "number": 23,
+    "number": 22,
     "key": "bg-voice",
     "title": "Bene Gesserit: Voice, cards and prediction",
     "id": "XCEQ"
   },
   {
-    "number": 24,
+    "number": 23,
     "key": "bg-faces",
     "title": "Bene Gesserit: advisors and fighters",
     "id": "866X"
   },
   {
-    "number": 25,
+    "number": 24,
     "key": "fremen-storm",
     "title": "Fremen: storms and sandworms",
     "id": "V6MJ"
   },
   {
-    "number": 26,
+    "number": 25,
     "key": "fremen-battle",
     "title": "Fremen: free spice strength and allies",
     "id": "Y48B"
   },
   {
-    "number": 27,
+    "number": 26,
     "key": "emperor",
     "title": "Emperor: alliance and revival changes",
     "id": "58EY"
   },
   {
-    "number": 28,
+    "number": 27,
     "key": "atreides",
     "title": "Atreides: Prescience and Kwisatz Haderach",
     "id": "MJUN"
   },
   {
-    "number": 29,
+    "number": 28,
     "key": "harkonnen",
     "title": "Harkonnen: redraw and exchange",
     "id": "PJHY"
   },
   {
-    "number": 30,
+    "number": 29,
     "key": "guild-setup",
     "title": "Guild: shipping, rates and special victory",
     "id": "3NRG"
   },
   {
-    "number": 31,
+    "number": 30,
     "key": "spirit-world",
     "title": "Two optional variants",
     "id": "PYVH"
   },
   {
-    "number": 32,
+    "number": 31,
     "key": "expansion-boundary",
     "title": "Announced expansion changes",
     "id": "QACH"
   },
   {
-    "number": 33,
+    "number": 32,
     "key": "compatibility-cards",
     "title": "Compatibility: cards and battle effects",
     "id": "83PL"
   },
   {
-    "number": 34,
+    "number": 33,
     "key": "compatibility-modules",
     "title": "Compatibility: modules and reference decks",
     "id": "HTSM"
   },
   {
-    "number": 35,
+    "number": 34,
     "key": "open-movement",
-    "title": "Unresolved wording: movement and battle",
+    "title": "Appendix: unclear movement and battle rules",
     "id": "AF59"
   },
   {
-    "number": 36,
+    "number": 35,
     "key": "open-reference",
-    "title": "Unresolved wording: cards and victory",
+    "title": "Appendix: unclear card and victory rules",
     "id": "93XK"
   },
   {
-    "number": 37,
+    "number": 36,
     "key": "sources",
     "title": "Sources",
     "id": "QRKV"

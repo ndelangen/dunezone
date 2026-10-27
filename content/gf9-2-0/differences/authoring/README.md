@@ -1,27 +1,33 @@
 # GF9 edition differences rulebook
 
-The published book has 37 A4 pages using the existing restrained design and existing Rulebook Blocks. It compares GF9 2019 Basic and Advanced with the 2026 default game for players who already know GF9.
+The published book has 36 A4 pages using the existing restrained design and existing Rulebook Blocks. It compares GF9 2019 Basic and Advanced with the 2026 default game for players who already know GF9.
 
-[Read the published book](https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2019-to-2-0-what-changes). Edition 3 contains the revised wording across all 37 pages, published as Central under GF9 2.0. HTML and PDF are ready. [Publication record](publication.json).
+[Read the published book](https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2019-to-2-0-what-changes). Edition 4 contains the shorter guide across 36 pages, published as Central under GF9 2.0. HTML and PDF are ready. [Publication record](publication.json).
 
 [Open the local preview](http://127.0.0.1:4320/). The preview server must be running in this checkout. It reads existing production artwork and the approved production cover and writes no application data.
 
-## Editorial revision, 27 October 2026
+## Focused revision, 27 October 2026
+
+Edition 4 removes the introductory page and 72 redundant or unchanged-only Blocks. Setup now opens the guide. The unchanged own-traitor paragraph is removed; faction-selection wording and other side questions remain in the appendix. Paragraphs and answers are 2,114 words shorter than Edition 3. The complete revision record is `editorial-focus-review.json`.
+
+The book has 36 A4 pages. Schema, references, coverage, browser geometry and PDF prose checks pass. A moved paragraph received a new Block ID as required by the production importer; all other retained IDs are unchanged.
+
+## Earlier wording revision, Edition 3
 
 The wording revision was published as Edition 3 on 27 October 2026. The comparison retains Edition 2 as its before-copy. All 36 content pages were edited to remove abstract labels, repeated warnings and comments about how the guide was written. Paragraphs and answers are 732 words shorter. Rules, references, examples, artwork and pagination are retained.
 
-[Compare the wording](http://127.0.0.1:4320/editorial-review.html). The complete field-by-field comparison is saved in `editorial-review.html` and `editorial-review.json`. The revised PDF is `output/pdf/gf9-2019-to-2-0-differences-edited.pdf`; the earlier review PDF remains a copy of published Edition 2. The production Edition 3 PDF is `output/pdf/gf9-2019-to-2-0-differences-edition-3.pdf`.
+[Compare the wording](http://127.0.0.1:4320/editorial-review.html). The complete field-by-field comparison is saved in `editorial-review.html` and `editorial-review.json`. The revised PDF is `output/pdf/gf9-2019-to-2-0-differences-edited.pdf`; the earlier review PDF remains a copy of published Edition 2. The production Edition 3 PDF is `output/pdf/gf9-2019-to-2-0-differences-edition-4.pdf`.
 
 The local copy still has 37 A4 pages. Schema and reference validation pass, every research record remains accounted for, and the browser check found no overflow or missing images. The edited PDF passed the prose-boundary check. Its card changes and expansion pages were inspected visually, along with the whole-book contact sheet.
 
-## Review contents
+## Contents
 
-- Pages 2-22 cover shared changes, examples, cards, victory and rosters.
-- Pages 23-30 cover all six base factions. Each faction starts on a new page.
-- Page 31 compares Classic Spice Dialing and Spirit World.
-- Pages 32-34 separate announced expansion changes from missing complete procedures.
-- Pages 35-36 collect unresolved source wording.
-- Page 37 records sources and review boundaries.
+- Pages 2-21 cover setup, shared rules, cards, victory and changed leaders.
+- Pages 22-29 cover the six base factions.
+- Page 30 covers Classic Spice Dialing and Spirit World.
+- Pages 31-33 cover announced expansion changes and compatibility.
+- Pages 34-35 contain questions about the printed rules.
+- Page 36 lists sources.
 
 This is a teaching draft, not a copy of the research prose. It uses the existing cards, battle wheels, board scenes, leader portraits, tables, callouts and Q&A. Original game explanation is included only where it makes a changed procedure understandable.
 
@@ -38,7 +44,7 @@ This is a teaching draft, not a copy of the research prose. It uses the existing
 | [pdf-checks.json](pdf-checks.json) | Printed page count and extracted prose-boundary checks. |
 | [review.json](review.json) | Review identity, hashes, coverage counts and measured limitations. |
 
-The current production PDF is copied to `output/pdf/gf9-2019-to-2-0-differences-edition-3.pdf`. It has 37 tagged A4 pages. The publisher PDF and HTML URLs are recorded in `publication.json`.
+The current production PDF is copied to `output/pdf/gf9-2019-to-2-0-differences-edition-4.pdf`. It has 36 tagged A4 pages. The publisher PDF and HTML URLs are recorded in `publication.json`.
 
 ## Build and preview
 
@@ -56,11 +62,11 @@ After editing, inspect the actual native rendering and update the review evidenc
 
 ## Coverage and review
 
-All 141 research records are accounted for: 135 have a location in the book and six are explicitly omitted because they are already clarified or unchanged. Those counts include overlapping findings and questions; they are not a count of distinct mechanical changes.
+All 141 research records are accounted for: 124 have a location in the book and 17 are omitted as standalone lessons because they are already clarified or unchanged. Those counts include overlapping findings and questions; they are not a count of distinct mechanical changes.
 
-The final browser check found 37 pages, no runtime errors, no missing images and no vertical content overflow. No horizontal content overflow was measured at A4. No game-renderer CSS changed.
+The latest browser check found 36 pages, no runtime errors, no missing images and no vertical content overflow. No horizontal content overflow was measured at A4. No game-renderer CSS changed.
 
-The tagged PDF has 37 uniform A4 pages. All checked prose field boundaries survive extraction in raw content order. Layout-mode extraction interleaves the two columns and is unsuitable for that check. The original local layout was inspected through a whole-book contact sheet. The published PDF cover was checked visually and the authored prose boundaries were checked against the production PDF.
+The current production PDF has 36 uniform A4 pages. All checked prose field boundaries survive extraction in raw content order. Layout-mode extraction interleaves the two columns and is unsuitable for that check. The original local layout was inspected through a whole-book contact sheet. The published PDF cover was checked visually and the authored prose boundaries were checked against the production PDF.
 
 Confirmed differences are distinguished from old FAQ clarifications and Dune Zone judgements. Open wording and incomplete expansion announcements remain labeled. Review the underlying [dossier](../README.md) when a source question needs more detail. The publication used the normal authenticated application flow. No administrative mutations were used.
 

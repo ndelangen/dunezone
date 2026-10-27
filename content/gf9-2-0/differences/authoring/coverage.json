@@ -1,15 +1,15 @@
 {
-  "manuscriptSha256": "840c0ef09bfa36045c6cb0b6779ef46e534125417d78f7d343fa8527f1c1d204",
+  "manuscriptSha256": "ca179d3a4619c4281333475271d39d9f7e9c8e5aef34e78fa26c7250212af0c5",
   "records": [
     {
       "id": "CORE-C01",
       "classification": "mechanical-or-baseline-dependent-change",
       "locations": [
         {
-          "pageId": "2768",
-          "blockId": "K479",
+          "pageId": "VCZX",
+          "blockId": "SEFX",
           "pageNumber": 2,
-          "title": "About this guide"
+          "title": "Setup and renamed terms"
         }
       ]
     },
@@ -20,8 +20,8 @@
         {
           "pageId": "VCZX",
           "blockId": "2R7S",
-          "pageNumber": 3,
-          "title": "Setup and familiar names"
+          "pageNumber": 2,
+          "title": "Setup and renamed terms"
         }
       ]
     },
@@ -30,16 +30,10 @@
       "classification": "unresolved-wording",
       "locations": [
         {
-          "pageId": "VCZX",
-          "blockId": "6K8U",
-          "pageNumber": 3,
-          "title": "Setup and familiar names"
-        },
-        {
           "pageId": "93XK",
           "blockId": "MFHJ",
-          "pageNumber": 36,
-          "title": "Unresolved wording: cards and victory"
+          "pageNumber": 35,
+          "title": "Appendix: unclear card and victory rules"
         }
       ]
     },
@@ -50,7 +44,7 @@
         {
           "pageId": "G6QD",
           "blockId": "ZNH3",
-          "pageNumber": 4,
+          "pageNumber": 3,
           "title": "The Storm deck"
         }
       ]
@@ -62,7 +56,7 @@
         {
           "pageId": "G6QD",
           "blockId": "MLF6",
-          "pageNumber": 4,
+          "pageNumber": 3,
           "title": "The Storm deck"
         }
       ]
@@ -74,7 +68,7 @@
         {
           "pageId": "GEEF",
           "blockId": "K9KA",
-          "pageNumber": 5,
+          "pageNumber": 4,
           "title": "One Spice card, two blows"
         }
       ]
@@ -86,7 +80,7 @@
         {
           "pageId": "ACD7",
           "blockId": "LQP5",
-          "pageNumber": 6,
+          "pageNumber": 5,
           "title": "Little Maker"
         }
       ]
@@ -98,7 +92,7 @@
         {
           "pageId": "FRH9",
           "blockId": "7F52",
-          "pageNumber": 13,
+          "pageNumber": 12,
           "title": "Leader revival"
         }
       ]
@@ -110,13 +104,13 @@
         {
           "pageId": "YJFP",
           "blockId": "MQEY",
-          "pageNumber": 9,
+          "pageNumber": 8,
           "title": "Spice strength in battle"
         },
         {
           "pageId": "4EJA",
           "blockId": "QQG2",
-          "pageNumber": 10,
+          "pageNumber": 9,
           "title": "Battle strength example"
         }
       ]
@@ -128,7 +122,7 @@
         {
           "pageId": "PXSB",
           "blockId": "5MBL",
-          "pageNumber": 11,
+          "pageNumber": 10,
           "title": "Paying for battle spice"
         }
       ]
@@ -140,7 +134,7 @@
         {
           "pageId": "PXSB",
           "blockId": "VSNC",
-          "pageNumber": 11,
+          "pageNumber": 10,
           "title": "Paying for battle spice"
         }
       ]
@@ -152,7 +146,7 @@
         {
           "pageId": "WPPM",
           "blockId": "95EM",
-          "pageNumber": 12,
+          "pageNumber": 11,
           "title": "Battle results and surrender"
         }
       ]
@@ -164,7 +158,7 @@
         {
           "pageId": "PXSB",
           "blockId": "2NTH",
-          "pageNumber": 11,
+          "pageNumber": 10,
           "title": "Paying for battle spice"
         }
       ]
@@ -176,7 +170,7 @@
         {
           "pageId": "NVLU",
           "blockId": "4P3K",
-          "pageNumber": 19,
+          "pageNumber": 18,
           "title": "City income"
         }
       ]
@@ -188,7 +182,7 @@
         {
           "pageId": "VVJC",
           "blockId": "TC93",
-          "pageNumber": 20,
+          "pageNumber": 19,
           "title": "Victory priority"
         }
       ]
@@ -200,7 +194,7 @@
         {
           "pageId": "RG5J",
           "blockId": "4WM7",
-          "pageNumber": 21,
+          "pageNumber": 20,
           "title": "Round-ten victory"
         }
       ]
@@ -212,7 +206,7 @@
         {
           "pageId": "7B73",
           "blockId": "6UWG",
-          "pageNumber": 17,
+          "pageNumber": 16,
           "title": "Allies sharing a territory"
         }
       ]
@@ -224,7 +218,7 @@
         {
           "pageId": "7PK3",
           "blockId": "J6CM",
-          "pageNumber": 18,
+          "pageNumber": 17,
           "title": "Deals, private information and notes"
         }
       ]
@@ -236,7 +230,7 @@
         {
           "pageId": "7PK3",
           "blockId": "W3TW",
-          "pageNumber": 18,
+          "pageNumber": 17,
           "title": "Deals, private information and notes"
         }
       ]
@@ -248,7 +242,7 @@
         {
           "pageId": "7PK3",
           "blockId": "MK3J",
-          "pageNumber": 18,
+          "pageNumber": 17,
           "title": "Deals, private information and notes"
         }
       ]
@@ -260,7 +254,7 @@
         {
           "pageId": "7PK3",
           "blockId": "UZEH",
-          "pageNumber": 18,
+          "pageNumber": 17,
           "title": "Deals, private information and notes"
         }
       ]
@@ -272,8 +266,8 @@
         {
           "pageId": "AF59",
           "blockId": "LAC9",
-          "pageNumber": 35,
-          "title": "Unresolved wording: movement and battle"
+          "pageNumber": 34,
+          "title": "Appendix: unclear movement and battle rules"
         }
       ]
     },
@@ -282,16 +276,10 @@
       "classification": "unresolved-wording",
       "locations": [
         {
-          "pageId": "7B73",
-          "blockId": "3QTC",
-          "pageNumber": 17,
-          "title": "Allies sharing a territory"
-        },
-        {
           "pageId": "AF59",
           "blockId": "XBRZ",
-          "pageNumber": 35,
-          "title": "Unresolved wording: movement and battle"
+          "pageNumber": 34,
+          "title": "Appendix: unclear movement and battle rules"
         }
       ]
     },
@@ -300,16 +288,10 @@
       "classification": "unresolved-wording",
       "locations": [
         {
-          "pageId": "PXSB",
-          "blockId": "APY2",
-          "pageNumber": 11,
-          "title": "Paying for battle spice"
-        },
-        {
           "pageId": "AF59",
           "blockId": "N4KG",
-          "pageNumber": 35,
-          "title": "Unresolved wording: movement and battle"
+          "pageNumber": 34,
+          "title": "Appendix: unclear movement and battle rules"
         }
       ]
     },
@@ -318,16 +300,10 @@
       "classification": "unresolved-wording",
       "locations": [
         {
-          "pageId": "NVLU",
-          "blockId": "Z22D",
-          "pageNumber": 19,
-          "title": "City income"
-        },
-        {
           "pageId": "AF59",
           "blockId": "PH7R",
-          "pageNumber": 35,
-          "title": "Unresolved wording: movement and battle"
+          "pageNumber": 34,
+          "title": "Appendix: unclear movement and battle rules"
         }
       ]
     },
@@ -336,16 +312,10 @@
       "classification": "unresolved-wording",
       "locations": [
         {
-          "pageId": "GEEF",
-          "blockId": "GKX5",
-          "pageNumber": 5,
-          "title": "One Spice card, two blows"
-        },
-        {
           "pageId": "93XK",
           "blockId": "Z4WK",
-          "pageNumber": 36,
-          "title": "Unresolved wording: cards and victory"
+          "pageNumber": 35,
+          "title": "Appendix: unclear card and victory rules"
         }
       ]
     },
@@ -354,30 +324,18 @@
       "classification": "unresolved-wording",
       "locations": [
         {
-          "pageId": "RG5J",
-          "blockId": "RZEY",
-          "pageNumber": 21,
-          "title": "Round-ten victory"
-        },
-        {
           "pageId": "93XK",
           "blockId": "7Z8D",
-          "pageNumber": 36,
-          "title": "Unresolved wording: cards and victory"
+          "pageNumber": 35,
+          "title": "Appendix: unclear card and victory rules"
         }
       ]
     },
     {
       "id": "CORE-Q01",
       "classification": "clarification-or-unchanged",
-      "locations": [
-        {
-          "pageId": "VCZX",
-          "blockId": "FPAZ",
-          "pageNumber": 3,
-          "title": "Setup and familiar names"
-        }
-      ]
+      "locations": [],
+      "excludedAsUnchanged": "Choosing an own leader as traitor was already allowed by the FAQ and older Dune Zone book. Removed as unchanged."
     },
     {
       "id": "CORE-Q02",
@@ -418,14 +376,8 @@
     {
       "id": "CORE-Q08",
       "classification": "clarification-or-unchanged",
-      "locations": [
-        {
-          "pageId": "7B73",
-          "blockId": "CPGD",
-          "pageNumber": 17,
-          "title": "Allies sharing a territory"
-        }
-      ]
+      "locations": [],
+      "excludedAsUnchanged": "Ordinary allied contributions are unchanged; the new battle-spice restriction is taught with battle payment."
     },
     {
       "id": "CORE-Q09",
@@ -434,7 +386,7 @@
         {
           "pageId": "7PK3",
           "blockId": "GNK6",
-          "pageNumber": 18,
+          "pageNumber": 17,
           "title": "Deals, private information and notes"
         }
       ]
@@ -442,14 +394,8 @@
     {
       "id": "CORE-Q10",
       "classification": "clarification-or-unchanged",
-      "locations": [
-        {
-          "pageId": "7PK3",
-          "blockId": "GNK6",
-          "pageNumber": 18,
-          "title": "Deals, private information and notes"
-        }
-      ]
+      "locations": [],
+      "excludedAsUnchanged": "Void deal terms and unanimous cancellation are unchanged and do not need a separate lesson."
     },
     {
       "id": "CORE-Q11",
@@ -458,7 +404,7 @@
         {
           "pageId": "WPPM",
           "blockId": "LU7S",
-          "pageNumber": 12,
+          "pageNumber": 11,
           "title": "Battle results and surrender"
         }
       ]
@@ -470,28 +416,16 @@
         {
           "pageId": "VCZX",
           "blockId": "SHSG",
-          "pageNumber": 3,
-          "title": "Setup and familiar names"
-        },
-        {
-          "pageId": "WPPM",
-          "blockId": "HDWB",
-          "pageNumber": 12,
-          "title": "Battle results and surrender"
+          "pageNumber": 2,
+          "title": "Setup and renamed terms"
         }
       ]
     },
     {
       "id": "CORE-Q13",
       "classification": "clarification-or-unchanged",
-      "locations": [
-        {
-          "pageId": "G6QD",
-          "blockId": "GUC8",
-          "pageNumber": 4,
-          "title": "The Storm deck"
-        }
-      ]
+      "locations": [],
+      "excludedAsUnchanged": "The marker-under-storm order is an existing-rule clarification, not a new procedure."
     },
     {
       "id": "CORE-Q14",
@@ -500,7 +434,7 @@
         {
           "pageId": "G6QD",
           "blockId": "6GQ4",
-          "pageNumber": 4,
+          "pageNumber": 3,
           "title": "The Storm deck"
         }
       ]
@@ -508,62 +442,32 @@
     {
       "id": "CORE-Q15",
       "classification": "clarification-or-unchanged",
-      "locations": [
-        {
-          "pageId": "WPPM",
-          "blockId": "QTBY",
-          "pageNumber": 12,
-          "title": "Battle results and surrender"
-        }
-      ]
+      "locations": [],
+      "excludedAsUnchanged": "Ordinary battle-card retention is unchanged. Mandatory Worthless disposal remains in the guide."
     },
     {
       "id": "CORE-Q16",
       "classification": "clarification-or-unchanged",
-      "locations": [
-        {
-          "pageId": "7PK3",
-          "blockId": "JVYY",
-          "pageNumber": 18,
-          "title": "Deals, private information and notes"
-        }
-      ]
+      "locations": [],
+      "excludedAsUnchanged": "Discard-pile privacy is unchanged."
     },
     {
       "id": "CORE-Q17",
       "classification": "clarification-or-unchanged",
-      "locations": [
-        {
-          "pageId": "VVJC",
-          "blockId": "R4XW",
-          "pageNumber": 20,
-          "title": "Victory priority"
-        }
-      ]
+      "locations": [],
+      "excludedAsUnchanged": "The ordinary stronghold targets and Mentat Pause timing are unchanged. Targets still appear where needed in the new victory-priority table."
     },
     {
       "id": "CORE-Q18",
       "classification": "clarification-or-unchanged",
-      "locations": [
-        {
-          "pageId": "7B73",
-          "blockId": "9WNA",
-          "pageNumber": 17,
-          "title": "Allies sharing a territory"
-        }
-      ]
+      "locations": [],
+      "excludedAsUnchanged": "Ordinary stronghold blocking is unchanged."
     },
     {
       "id": "CORE-Q19",
       "classification": "clarification-or-unchanged",
-      "locations": [
-        {
-          "pageId": "HTSM",
-          "blockId": "25XQ",
-          "pageNumber": 34,
-          "title": "Compatibility: modules and reference decks"
-        }
-      ]
+      "locations": [],
+      "excludedAsUnchanged": "The Ixian Polar Sink exception is unchanged."
     },
     {
       "id": "F01",
@@ -572,13 +476,13 @@
         {
           "pageId": "PJQR",
           "blockId": "NPBA",
-          "pageNumber": 22,
+          "pageNumber": 21,
           "title": "Leaders and their changed values"
         },
         {
           "pageId": "PJQR",
           "blockId": "3DAG",
-          "pageNumber": 22,
+          "pageNumber": 21,
           "title": "Leaders and their changed values"
         }
       ]
@@ -590,7 +494,7 @@
         {
           "pageId": "PJQR",
           "blockId": "NPBA",
-          "pageNumber": 22,
+          "pageNumber": 21,
           "title": "Leaders and their changed values"
         }
       ]
@@ -602,7 +506,7 @@
         {
           "pageId": "PJQR",
           "blockId": "NPBA",
-          "pageNumber": 22,
+          "pageNumber": 21,
           "title": "Leaders and their changed values"
         }
       ]
@@ -614,7 +518,7 @@
         {
           "pageId": "PJQR",
           "blockId": "NPBA",
-          "pageNumber": 22,
+          "pageNumber": 21,
           "title": "Leaders and their changed values"
         }
       ]
@@ -626,7 +530,7 @@
         {
           "pageId": "PJQR",
           "blockId": "RBUX",
-          "pageNumber": 22,
+          "pageNumber": 21,
           "title": "Leaders and their changed values"
         }
       ]
@@ -634,14 +538,8 @@
     {
       "id": "F06",
       "classification": "component-or-roster-finding",
-      "locations": [
-        {
-          "pageId": "PJQR",
-          "blockId": "AZ4V",
-          "pageNumber": 22,
-          "title": "Leaders and their changed values"
-        }
-      ]
+      "locations": [],
+      "excludedAsUnchanged": "Unchanged Fremen and Harkonnen rosters are retained in the dossier, rather than taught as differences."
     },
     {
       "id": "K-F01",
@@ -650,13 +548,13 @@
         {
           "pageId": "QXRY",
           "blockId": "P6KB",
-          "pageNumber": 14,
+          "pageNumber": 13,
           "title": "Karama cancellation"
         },
         {
           "pageId": "MJUN",
           "blockId": "DNV6",
-          "pageNumber": 28,
+          "pageNumber": 27,
           "title": "Atreides: Prescience and Kwisatz Haderach"
         }
       ]
@@ -668,13 +566,13 @@
         {
           "pageId": "QXRY",
           "blockId": "P6KB",
-          "pageNumber": 14,
+          "pageNumber": 13,
           "title": "Karama cancellation"
         },
         {
           "pageId": "XCEQ",
           "blockId": "YA5E",
-          "pageNumber": 23,
+          "pageNumber": 22,
           "title": "Bene Gesserit: Voice, cards and prediction"
         }
       ]
@@ -686,13 +584,13 @@
         {
           "pageId": "QXRY",
           "blockId": "P6KB",
-          "pageNumber": 14,
+          "pageNumber": 13,
           "title": "Karama cancellation"
         },
         {
           "pageId": "58EY",
           "blockId": "7XN3",
-          "pageNumber": 27,
+          "pageNumber": 26,
           "title": "Emperor: alliance and revival changes"
         }
       ]
@@ -704,13 +602,13 @@
         {
           "pageId": "QXRY",
           "blockId": "P6KB",
-          "pageNumber": 14,
+          "pageNumber": 13,
           "title": "Karama cancellation"
         },
         {
           "pageId": "Y48B",
           "blockId": "GBU6",
-          "pageNumber": 26,
+          "pageNumber": 25,
           "title": "Fremen: free spice strength and allies"
         }
       ]
@@ -722,13 +620,13 @@
         {
           "pageId": "QXRY",
           "blockId": "P6KB",
-          "pageNumber": 14,
+          "pageNumber": 13,
           "title": "Karama cancellation"
         },
         {
           "pageId": "PJHY",
           "blockId": "B94A",
-          "pageNumber": 29,
+          "pageNumber": 28,
           "title": "Harkonnen: redraw and exchange"
         }
       ]
@@ -740,13 +638,13 @@
         {
           "pageId": "QXRY",
           "blockId": "P6KB",
-          "pageNumber": 14,
+          "pageNumber": 13,
           "title": "Karama cancellation"
         },
         {
           "pageId": "3NRG",
           "blockId": "83NB",
-          "pageNumber": 30,
+          "pageNumber": 29,
           "title": "Guild: shipping, rates and special victory"
         }
       ]
@@ -756,10 +654,10 @@
       "classification": "faction-finding-see-record",
       "locations": [
         {
-          "pageId": "MJUN",
-          "blockId": "KYHT",
-          "pageNumber": 28,
-          "title": "Atreides: Prescience and Kwisatz Haderach"
+          "pageId": "93XK",
+          "blockId": "FBNY",
+          "pageNumber": 35,
+          "title": "Appendix: unclear card and victory rules"
         }
       ]
     },
@@ -770,7 +668,7 @@
         {
           "pageId": "MJUN",
           "blockId": "A7LV",
-          "pageNumber": 28,
+          "pageNumber": 27,
           "title": "Atreides: Prescience and Kwisatz Haderach"
         }
       ]
@@ -782,7 +680,7 @@
         {
           "pageId": "MJUN",
           "blockId": "8CX6",
-          "pageNumber": 28,
+          "pageNumber": 27,
           "title": "Atreides: Prescience and Kwisatz Haderach"
         }
       ]
@@ -794,13 +692,13 @@
         {
           "pageId": "FRH9",
           "blockId": "VRZV",
-          "pageNumber": 13,
+          "pageNumber": 12,
           "title": "Leader revival"
         },
         {
           "pageId": "MJUN",
           "blockId": "VRZS",
-          "pageNumber": 28,
+          "pageNumber": 27,
           "title": "Atreides: Prescience and Kwisatz Haderach"
         }
       ]
@@ -812,7 +710,7 @@
         {
           "pageId": "MJUN",
           "blockId": "ZAD3",
-          "pageNumber": 28,
+          "pageNumber": 27,
           "title": "Atreides: Prescience and Kwisatz Haderach"
         }
       ]
@@ -820,14 +718,8 @@
     {
       "id": "F12",
       "classification": "faction-finding-see-record",
-      "locations": [
-        {
-          "pageId": "MJUN",
-          "blockId": "8PMD",
-          "pageNumber": 28,
-          "title": "Atreides: Prescience and Kwisatz Haderach"
-        }
-      ]
+      "locations": [],
+      "excludedAsUnchanged": "Golden Path whole-plan inspection is unchanged. Its new Spirit World trigger is listed with that variant."
     },
     {
       "id": "F13",
@@ -836,7 +728,7 @@
         {
           "pageId": "XCEQ",
           "blockId": "RJMR",
-          "pageNumber": 23,
+          "pageNumber": 22,
           "title": "Bene Gesserit: Voice, cards and prediction"
         }
       ]
@@ -848,7 +740,7 @@
         {
           "pageId": "XCEQ",
           "blockId": "LVWT",
-          "pageNumber": 23,
+          "pageNumber": 22,
           "title": "Bene Gesserit: Voice, cards and prediction"
         }
       ]
@@ -860,7 +752,7 @@
         {
           "pageId": "XCEQ",
           "blockId": "LVWT",
-          "pageNumber": 23,
+          "pageNumber": 22,
           "title": "Bene Gesserit: Voice, cards and prediction"
         }
       ]
@@ -872,7 +764,7 @@
         {
           "pageId": "XCEQ",
           "blockId": "VK9A",
-          "pageNumber": 23,
+          "pageNumber": 22,
           "title": "Bene Gesserit: Voice, cards and prediction"
         }
       ]
@@ -884,7 +776,7 @@
         {
           "pageId": "866X",
           "blockId": "4Y7V",
-          "pageNumber": 24,
+          "pageNumber": 23,
           "title": "Bene Gesserit: advisors and fighters"
         }
       ]
@@ -896,7 +788,7 @@
         {
           "pageId": "866X",
           "blockId": "4Y7V",
-          "pageNumber": 24,
+          "pageNumber": 23,
           "title": "Bene Gesserit: advisors and fighters"
         }
       ]
@@ -908,7 +800,7 @@
         {
           "pageId": "866X",
           "blockId": "AE69",
-          "pageNumber": 24,
+          "pageNumber": 23,
           "title": "Bene Gesserit: advisors and fighters"
         }
       ]
@@ -920,7 +812,7 @@
         {
           "pageId": "866X",
           "blockId": "UYJ4",
-          "pageNumber": 24,
+          "pageNumber": 23,
           "title": "Bene Gesserit: advisors and fighters"
         }
       ]
@@ -932,7 +824,7 @@
         {
           "pageId": "866X",
           "blockId": "QGRA",
-          "pageNumber": 24,
+          "pageNumber": 23,
           "title": "Bene Gesserit: advisors and fighters"
         }
       ]
@@ -944,14 +836,8 @@
         {
           "pageId": "7B73",
           "blockId": "HMLF",
-          "pageNumber": 17,
+          "pageNumber": 16,
           "title": "Allies sharing a territory"
-        },
-        {
-          "pageId": "866X",
-          "blockId": "MWPP",
-          "pageNumber": 24,
-          "title": "Bene Gesserit: advisors and fighters"
         }
       ]
     },
@@ -962,7 +848,7 @@
         {
           "pageId": "XCEQ",
           "blockId": "ZDM6",
-          "pageNumber": 23,
+          "pageNumber": 22,
           "title": "Bene Gesserit: Voice, cards and prediction"
         }
       ]
@@ -974,7 +860,7 @@
         {
           "pageId": "XCEQ",
           "blockId": "TYB7",
-          "pageNumber": 23,
+          "pageNumber": 22,
           "title": "Bene Gesserit: Voice, cards and prediction"
         }
       ]
@@ -986,13 +872,13 @@
         {
           "pageId": "VCZX",
           "blockId": "KNDS",
-          "pageNumber": 3,
-          "title": "Setup and familiar names"
+          "pageNumber": 2,
+          "title": "Setup and renamed terms"
         },
         {
           "pageId": "V6MJ",
           "blockId": "VECG",
-          "pageNumber": 25,
+          "pageNumber": 24,
           "title": "Fremen: storms and sandworms"
         }
       ]
@@ -1004,13 +890,13 @@
         {
           "pageId": "G6QD",
           "blockId": "B2ZX",
-          "pageNumber": 4,
+          "pageNumber": 3,
           "title": "The Storm deck"
         },
         {
           "pageId": "V6MJ",
           "blockId": "YPAK",
-          "pageNumber": 25,
+          "pageNumber": 24,
           "title": "Fremen: storms and sandworms"
         }
       ]
@@ -1022,7 +908,7 @@
         {
           "pageId": "V6MJ",
           "blockId": "ZEAZ",
-          "pageNumber": 25,
+          "pageNumber": 24,
           "title": "Fremen: storms and sandworms"
         }
       ]
@@ -1034,7 +920,7 @@
         {
           "pageId": "V6MJ",
           "blockId": "5NCU",
-          "pageNumber": 25,
+          "pageNumber": 24,
           "title": "Fremen: storms and sandworms"
         }
       ]
@@ -1046,7 +932,7 @@
         {
           "pageId": "V6MJ",
           "blockId": "6K5K",
-          "pageNumber": 25,
+          "pageNumber": 24,
           "title": "Fremen: storms and sandworms"
         }
       ]
@@ -1058,7 +944,7 @@
         {
           "pageId": "Y48B",
           "blockId": "GV84",
-          "pageNumber": 26,
+          "pageNumber": 25,
           "title": "Fremen: free spice strength and allies"
         }
       ]
@@ -1070,13 +956,13 @@
         {
           "pageId": "FRH9",
           "blockId": "KLEP",
-          "pageNumber": 13,
+          "pageNumber": 12,
           "title": "Leader revival"
         },
         {
           "pageId": "Y48B",
           "blockId": "U43B",
-          "pageNumber": 26,
+          "pageNumber": 25,
           "title": "Fremen: free spice strength and allies"
         }
       ],
@@ -1089,7 +975,7 @@
         {
           "pageId": "Y48B",
           "blockId": "LHPE",
-          "pageNumber": 26,
+          "pageNumber": 25,
           "title": "Fremen: free spice strength and allies"
         }
       ]
@@ -1101,7 +987,7 @@
         {
           "pageId": "Y48B",
           "blockId": "NVD8",
-          "pageNumber": 26,
+          "pageNumber": 25,
           "title": "Fremen: free spice strength and allies"
         }
       ]
@@ -1113,7 +999,7 @@
         {
           "pageId": "V6MJ",
           "blockId": "XCNC",
-          "pageNumber": 25,
+          "pageNumber": 24,
           "title": "Fremen: storms and sandworms"
         }
       ]
@@ -1125,7 +1011,7 @@
         {
           "pageId": "58EY",
           "blockId": "VPL2",
-          "pageNumber": 27,
+          "pageNumber": 26,
           "title": "Emperor: alliance and revival changes"
         }
       ]
@@ -1137,7 +1023,7 @@
         {
           "pageId": "58EY",
           "blockId": "YFR7",
-          "pageNumber": 27,
+          "pageNumber": 26,
           "title": "Emperor: alliance and revival changes"
         }
       ]
@@ -1149,7 +1035,7 @@
         {
           "pageId": "58EY",
           "blockId": "3GKY",
-          "pageNumber": 27,
+          "pageNumber": 26,
           "title": "Emperor: alliance and revival changes"
         }
       ]
@@ -1161,7 +1047,7 @@
         {
           "pageId": "PJHY",
           "blockId": "N6UV",
-          "pageNumber": 29,
+          "pageNumber": 28,
           "title": "Harkonnen: redraw and exchange"
         }
       ]
@@ -1173,7 +1059,7 @@
         {
           "pageId": "PJHY",
           "blockId": "MC3M",
-          "pageNumber": 29,
+          "pageNumber": 28,
           "title": "Harkonnen: redraw and exchange"
         }
       ]
@@ -1185,7 +1071,7 @@
         {
           "pageId": "PJHY",
           "blockId": "V3EN",
-          "pageNumber": 29,
+          "pageNumber": 28,
           "title": "Harkonnen: redraw and exchange"
         }
       ]
@@ -1197,13 +1083,13 @@
         {
           "pageId": "VCZX",
           "blockId": "KNDS",
-          "pageNumber": 3,
-          "title": "Setup and familiar names"
+          "pageNumber": 2,
+          "title": "Setup and renamed terms"
         },
         {
           "pageId": "3NRG",
           "blockId": "YWVL",
-          "pageNumber": 30,
+          "pageNumber": 29,
           "title": "Guild: shipping, rates and special victory"
         }
       ]
@@ -1215,7 +1101,7 @@
         {
           "pageId": "3NRG",
           "blockId": "WBCR",
-          "pageNumber": 30,
+          "pageNumber": 29,
           "title": "Guild: shipping, rates and special victory"
         }
       ]
@@ -1227,7 +1113,7 @@
         {
           "pageId": "3NRG",
           "blockId": "HUAK",
-          "pageNumber": 30,
+          "pageNumber": 29,
           "title": "Guild: shipping, rates and special victory"
         }
       ]
@@ -1239,13 +1125,13 @@
         {
           "pageId": "RG5J",
           "blockId": "4WM7",
-          "pageNumber": 21,
+          "pageNumber": 20,
           "title": "Round-ten victory"
         },
         {
           "pageId": "3NRG",
           "blockId": "Y95R",
-          "pageNumber": 30,
+          "pageNumber": 29,
           "title": "Guild: shipping, rates and special victory"
         }
       ]
@@ -1257,7 +1143,7 @@
         {
           "pageId": "3NRG",
           "blockId": "C54U",
-          "pageNumber": 30,
+          "pageNumber": 29,
           "title": "Guild: shipping, rates and special victory"
         }
       ]
@@ -1269,7 +1155,7 @@
         {
           "pageId": "PYVH",
           "blockId": "SSCZ",
-          "pageNumber": 31,
+          "pageNumber": 30,
           "title": "Two optional variants"
         }
       ],
@@ -1282,7 +1168,7 @@
         {
           "pageId": "QXRY",
           "blockId": "MNQR",
-          "pageNumber": 14,
+          "pageNumber": 13,
           "title": "Karama cancellation"
         }
       ]
@@ -1294,13 +1180,13 @@
         {
           "pageId": "QXRY",
           "blockId": "MNQR",
-          "pageNumber": 14,
+          "pageNumber": 13,
           "title": "Karama cancellation"
         },
         {
           "pageId": "ERCZ",
           "blockId": "QR7F",
-          "pageNumber": 15,
+          "pageNumber": 14,
           "title": "Solaris"
         }
       ]
@@ -1312,7 +1198,7 @@
         {
           "pageId": "ERCZ",
           "blockId": "73TX",
-          "pageNumber": 15,
+          "pageNumber": 14,
           "title": "Solaris"
         }
       ]
@@ -1324,7 +1210,7 @@
         {
           "pageId": "ERCZ",
           "blockId": "QR7F",
-          "pageNumber": 15,
+          "pageNumber": 14,
           "title": "Solaris"
         }
       ]
@@ -1336,7 +1222,7 @@
         {
           "pageId": "R2X8",
           "blockId": "TN2T",
-          "pageNumber": 16,
+          "pageNumber": 15,
           "title": "Other Treachery card changes"
         }
       ]
@@ -1348,7 +1234,7 @@
         {
           "pageId": "R2X8",
           "blockId": "WEWF",
-          "pageNumber": 16,
+          "pageNumber": 15,
           "title": "Other Treachery card changes"
         }
       ]
@@ -1360,7 +1246,7 @@
         {
           "pageId": "FRH9",
           "blockId": "KLEP",
-          "pageNumber": 13,
+          "pageNumber": 12,
           "title": "Leader revival"
         }
       ]
@@ -1372,7 +1258,7 @@
         {
           "pageId": "R2X8",
           "blockId": "S6MH",
-          "pageNumber": 16,
+          "pageNumber": 15,
           "title": "Other Treachery card changes"
         }
       ]
@@ -1384,7 +1270,7 @@
         {
           "pageId": "GEEF",
           "blockId": "K9KA",
-          "pageNumber": 5,
+          "pageNumber": 4,
           "title": "One Spice card, two blows"
         }
       ],
@@ -1397,13 +1283,13 @@
         {
           "pageId": "8RFA",
           "blockId": "N27X",
-          "pageNumber": 7,
+          "pageNumber": 6,
           "title": "New Spice locations and amounts"
         },
         {
           "pageId": "2W2D",
           "blockId": "FBTW",
-          "pageNumber": 8,
+          "pageNumber": 7,
           "title": "New Spice Blow locations"
         }
       ]
@@ -1415,7 +1301,7 @@
         {
           "pageId": "ACD7",
           "blockId": "LQP5",
-          "pageNumber": 6,
+          "pageNumber": 5,
           "title": "Little Maker"
         }
       ],
@@ -1428,7 +1314,7 @@
         {
           "pageId": "G6QD",
           "blockId": "ZNH3",
-          "pageNumber": 4,
+          "pageNumber": 3,
           "title": "The Storm deck"
         }
       ],
@@ -1441,7 +1327,7 @@
         {
           "pageId": "R2X8",
           "blockId": "TNE2",
-          "pageNumber": 16,
+          "pageNumber": 15,
           "title": "Other Treachery card changes"
         }
       ]
@@ -1453,8 +1339,8 @@
         {
           "pageId": "VCZX",
           "blockId": "SHSG",
-          "pageNumber": 3,
-          "title": "Setup and familiar names"
+          "pageNumber": 2,
+          "title": "Setup and renamed terms"
         }
       ]
     },
@@ -1465,13 +1351,13 @@
         {
           "pageId": "VCZX",
           "blockId": "SHSG",
-          "pageNumber": 3,
-          "title": "Setup and familiar names"
+          "pageNumber": 2,
+          "title": "Setup and renamed terms"
         },
         {
           "pageId": "2W2D",
           "blockId": "5VED",
-          "pageNumber": 8,
+          "pageNumber": 7,
           "title": "New Spice Blow locations"
         }
       ]
@@ -1483,14 +1369,8 @@
         {
           "pageId": "VCZX",
           "blockId": "SHSG",
-          "pageNumber": 3,
-          "title": "Setup and familiar names"
-        },
-        {
-          "pageId": "R2X8",
-          "blockId": "4HDS",
-          "pageNumber": 16,
-          "title": "Other Treachery card changes"
+          "pageNumber": 2,
+          "title": "Setup and renamed terms"
         }
       ]
     },
@@ -1501,8 +1381,8 @@
         {
           "pageId": "VCZX",
           "blockId": "SHSG",
-          "pageNumber": 3,
-          "title": "Setup and familiar names"
+          "pageNumber": 2,
+          "title": "Setup and renamed terms"
         }
       ]
     },
@@ -1513,7 +1393,7 @@
         {
           "pageId": "PYVH",
           "blockId": "4B34",
-          "pageNumber": 31,
+          "pageNumber": 30,
           "title": "Two optional variants"
         }
       ]
@@ -1525,7 +1405,7 @@
         {
           "pageId": "PYVH",
           "blockId": "SSCZ",
-          "pageNumber": 31,
+          "pageNumber": 30,
           "title": "Two optional variants"
         }
       ]
@@ -1535,16 +1415,10 @@
       "classification": "unresolved-or-source-gap",
       "locations": [
         {
-          "pageId": "ERCZ",
-          "blockId": "GD3J",
-          "pageNumber": 15,
-          "title": "Solaris"
-        },
-        {
           "pageId": "93XK",
           "blockId": "6KDB",
-          "pageNumber": 36,
-          "title": "Unresolved wording: cards and victory"
+          "pageNumber": 35,
+          "title": "Appendix: unclear card and victory rules"
         }
       ]
     },
@@ -1553,22 +1427,10 @@
       "classification": "unresolved-or-source-gap",
       "locations": [
         {
-          "pageId": "ERCZ",
-          "blockId": "TPFE",
-          "pageNumber": 15,
-          "title": "Solaris"
-        },
-        {
-          "pageId": "PYVH",
-          "blockId": "573S",
-          "pageNumber": 31,
-          "title": "Two optional variants"
-        },
-        {
           "pageId": "AF59",
           "blockId": "EMTV",
-          "pageNumber": 35,
-          "title": "Unresolved wording: movement and battle"
+          "pageNumber": 34,
+          "title": "Appendix: unclear movement and battle rules"
         }
       ]
     },
@@ -1579,7 +1441,7 @@
         {
           "pageId": "83PL",
           "blockId": "K8NW",
-          "pageNumber": 33,
+          "pageNumber": 32,
           "title": "Compatibility: cards and battle effects"
         }
       ]
@@ -1591,7 +1453,7 @@
         {
           "pageId": "83PL",
           "blockId": "K8NW",
-          "pageNumber": 33,
+          "pageNumber": 32,
           "title": "Compatibility: cards and battle effects"
         }
       ]
@@ -1603,8 +1465,8 @@
         {
           "pageId": "93XK",
           "blockId": "7ZCG",
-          "pageNumber": 36,
-          "title": "Unresolved wording: cards and victory"
+          "pageNumber": 35,
+          "title": "Appendix: unclear card and victory rules"
         }
       ]
     },
@@ -1615,7 +1477,7 @@
         {
           "pageId": "83PL",
           "blockId": "PSMW",
-          "pageNumber": 33,
+          "pageNumber": 32,
           "title": "Compatibility: cards and battle effects"
         }
       ]
@@ -1627,8 +1489,8 @@
         {
           "pageId": "93XK",
           "blockId": "M83Q",
-          "pageNumber": 36,
-          "title": "Unresolved wording: cards and victory"
+          "pageNumber": 35,
+          "title": "Appendix: unclear card and victory rules"
         }
       ]
     },
@@ -1639,7 +1501,7 @@
         {
           "pageId": "QACH",
           "blockId": "JZV2",
-          "pageNumber": 32,
+          "pageNumber": 31,
           "title": "Announced expansion changes"
         }
       ]
@@ -1651,7 +1513,7 @@
         {
           "pageId": "QACH",
           "blockId": "JZV2",
-          "pageNumber": 32,
+          "pageNumber": 31,
           "title": "Announced expansion changes"
         }
       ]
@@ -1663,7 +1525,7 @@
         {
           "pageId": "QACH",
           "blockId": "JZV2",
-          "pageNumber": 32,
+          "pageNumber": 31,
           "title": "Announced expansion changes"
         }
       ]
@@ -1675,7 +1537,7 @@
         {
           "pageId": "QACH",
           "blockId": "JZV2",
-          "pageNumber": 32,
+          "pageNumber": 31,
           "title": "Announced expansion changes"
         }
       ]
@@ -1687,7 +1549,7 @@
         {
           "pageId": "QACH",
           "blockId": "JZV2",
-          "pageNumber": 32,
+          "pageNumber": 31,
           "title": "Announced expansion changes"
         }
       ]
@@ -1699,7 +1561,7 @@
         {
           "pageId": "QACH",
           "blockId": "JZV2",
-          "pageNumber": 32,
+          "pageNumber": 31,
           "title": "Announced expansion changes"
         }
       ]
@@ -1711,7 +1573,7 @@
         {
           "pageId": "83PL",
           "blockId": "K8NW",
-          "pageNumber": 33,
+          "pageNumber": 32,
           "title": "Compatibility: cards and battle effects"
         }
       ]
@@ -1723,7 +1585,7 @@
         {
           "pageId": "83PL",
           "blockId": "HL78",
-          "pageNumber": 33,
+          "pageNumber": 32,
           "title": "Compatibility: cards and battle effects"
         }
       ]
@@ -1735,7 +1597,7 @@
         {
           "pageId": "HTSM",
           "blockId": "XBBA",
-          "pageNumber": 34,
+          "pageNumber": 33,
           "title": "Compatibility: modules and reference decks"
         }
       ]
@@ -1747,7 +1609,7 @@
         {
           "pageId": "HTSM",
           "blockId": "XBBA",
-          "pageNumber": 34,
+          "pageNumber": 33,
           "title": "Compatibility: modules and reference decks"
         }
       ]
@@ -1759,7 +1621,7 @@
         {
           "pageId": "HTSM",
           "blockId": "XBBA",
-          "pageNumber": 34,
+          "pageNumber": 33,
           "title": "Compatibility: modules and reference decks"
         }
       ]
@@ -1771,7 +1633,7 @@
         {
           "pageId": "HTSM",
           "blockId": "D2EG",
-          "pageNumber": 34,
+          "pageNumber": 33,
           "title": "Compatibility: modules and reference decks"
         }
       ]
@@ -1783,7 +1645,7 @@
         {
           "pageId": "HTSM",
           "blockId": "D2EG",
-          "pageNumber": 34,
+          "pageNumber": 33,
           "title": "Compatibility: modules and reference decks"
         }
       ]
@@ -1795,7 +1657,7 @@
         {
           "pageId": "HTSM",
           "blockId": "D2EG",
-          "pageNumber": 34,
+          "pageNumber": 33,
           "title": "Compatibility: modules and reference decks"
         }
       ]
@@ -1807,7 +1669,7 @@
         {
           "pageId": "83PL",
           "blockId": "K8NW",
-          "pageNumber": 33,
+          "pageNumber": 32,
           "title": "Compatibility: cards and battle effects"
         }
       ]
@@ -1819,14 +1681,8 @@
         {
           "pageId": "MJUN",
           "blockId": "A7LV",
-          "pageNumber": 28,
+          "pageNumber": 27,
           "title": "Atreides: Prescience and Kwisatz Haderach"
-        },
-        {
-          "pageId": "83PL",
-          "blockId": "28Z4",
-          "pageNumber": 33,
-          "title": "Compatibility: cards and battle effects"
         }
       ]
     },
@@ -1837,7 +1693,7 @@
         {
           "pageId": "83PL",
           "blockId": "EXRA",
-          "pageNumber": 33,
+          "pageNumber": 32,
           "title": "Compatibility: cards and battle effects"
         }
       ]

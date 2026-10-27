@@ -1,6 +1,6 @@
 {
   "url": "http://127.0.0.1:4320/",
-  "pages": 37,
+  "pages": 36,
   "errors": [],
   "missingImages": [],
   "checks": [
@@ -11,81 +11,27 @@
     },
     {
       "page": 2,
-      "id": "2768",
-      "title": "About this guide",
+      "id": "VCZX",
+      "title": "Setup and renamed terms",
       "regions": [
         {
           "region": "column1",
           "overrun": 0,
           "blocks": [
             {
-              "id": "EK8E",
+              "id": "K479",
+              "widthOverrun": 0,
+              "height": 86.0625
+            },
+            {
+              "id": "2R7S",
               "widthOverrun": 0,
               "height": 106.203125
             },
             {
-              "id": "K479",
+              "id": "KNDS",
               "widthOverrun": 0,
               "height": 126.34375
-            },
-            {
-              "id": "U3WQ",
-              "widthOverrun": 0,
-              "height": 130.75
-            }
-          ]
-        },
-        {
-          "region": "column2",
-          "overrun": 0,
-          "blocks": [
-            {
-              "id": "JMR7",
-              "widthOverrun": 0,
-              "height": 126.34375
-            },
-            {
-              "id": "C4DN",
-              "widthOverrun": 0,
-              "height": 314.5625
-            },
-            {
-              "id": "WJ77",
-              "widthOverrun": 0,
-              "height": 126.34375
-            },
-            {
-              "id": "K6AD",
-              "widthOverrun": 0,
-              "height": 40.28125
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "page": 3,
-      "id": "VCZX",
-      "title": "Setup and familiar names",
-      "regions": [
-        {
-          "region": "column1",
-          "overrun": 0,
-          "blocks": [
-            {
-              "id": "2R7S",
-              "widthOverrun": 0,
-              "height": 126.34375
-            },
-            {
-              "id": "FPAZ",
-              "widthOverrun": 0,
-              "height": 126.34375
-            },
-            {
-              "id": "6K8U",
-              "widthOverrun": 0,
-              "height": 130.75
             }
           ]
         },
@@ -104,11 +50,6 @@
               "height": 126.34375
             },
             {
-              "id": "KNDS",
-              "widthOverrun": 0,
-              "height": 126.34375
-            },
-            {
               "id": "MM5U",
               "widthOverrun": 0,
               "height": 40.28125
@@ -118,7 +59,7 @@
       ]
     },
     {
-      "page": 4,
+      "page": 3,
       "id": "G6QD",
       "title": "The Storm deck",
       "regions": [
@@ -163,16 +104,6 @@
               "height": 130.75
             },
             {
-              "id": "GUC8",
-              "widthOverrun": 0,
-              "height": 106.203125
-            },
-            {
-              "id": "VHDD",
-              "widthOverrun": 0,
-              "height": 110.609375
-            },
-            {
               "id": "WFFA",
               "widthOverrun": 0,
               "height": 40.28125
@@ -182,7 +113,7 @@
       ]
     },
     {
-      "page": 5,
+      "page": 4,
       "id": "GEEF",
       "title": "One Spice card, two blows",
       "regions": [
@@ -227,11 +158,6 @@
               "height": 86.0625
             },
             {
-              "id": "GKX5",
-              "widthOverrun": 0,
-              "height": 171.03125
-            },
-            {
               "id": "42Y4",
               "widthOverrun": 0,
               "height": 20.140625
@@ -241,7 +167,7 @@
       ]
     },
     {
-      "page": 6,
+      "page": 5,
       "id": "ACD7",
       "title": "Little Maker",
       "regions": [
@@ -281,11 +207,6 @@
               "height": 128.390625
             },
             {
-              "id": "DWW6",
-              "widthOverrun": 0,
-              "height": 130.75
-            },
-            {
               "id": "TQPL",
               "widthOverrun": 0,
               "height": 20.140625
@@ -295,7 +216,7 @@
       ]
     },
     {
-      "page": 7,
+      "page": 6,
       "id": "8RFA",
       "title": "New Spice locations and amounts",
       "regions": [
@@ -325,11 +246,6 @@
               "height": 323.53125
             },
             {
-              "id": "J6C7",
-              "widthOverrun": 0,
-              "height": 110.609375
-            },
-            {
               "id": "KRNY",
               "widthOverrun": 0,
               "height": 40.28125
@@ -339,7 +255,7 @@
       ]
     },
     {
-      "page": 8,
+      "page": 7,
       "id": "2W2D",
       "title": "New Spice Blow locations",
       "regions": [
@@ -383,7 +299,7 @@
       ]
     },
     {
-      "page": 9,
+      "page": 8,
       "id": "YJFP",
       "title": "Spice strength in battle",
       "regions": [
@@ -447,7 +363,7 @@
       ]
     },
     {
-      "page": 10,
+      "page": 9,
       "id": "4EJA",
       "title": "Battle strength example",
       "regions": [
@@ -487,11 +403,6 @@
               "height": 86.0625
             },
             {
-              "id": "36SD",
-              "widthOverrun": 0,
-              "height": 110.609375
-            },
-            {
               "id": "6ZQ5",
               "widthOverrun": 0,
               "height": 20.140625
@@ -501,7 +412,7 @@
       ]
     },
     {
-      "page": 11,
+      "page": 10,
       "id": "PXSB",
       "title": "Paying for battle spice",
       "regions": [
@@ -546,11 +457,6 @@
               "height": 106.203125
             },
             {
-              "id": "APY2",
-              "widthOverrun": 0,
-              "height": 150.890625
-            },
-            {
               "id": "T7UQ",
               "widthOverrun": 0,
               "height": 20.140625
@@ -560,7 +466,7 @@
       ]
     },
     {
-      "page": 12,
+      "page": 11,
       "id": "WPPM",
       "title": "Battle results and surrender",
       "regions": [
@@ -577,21 +483,6 @@
               "id": "GFT8",
               "widthOverrun": 0,
               "height": 110.609375
-            },
-            {
-              "id": "HDWB",
-              "widthOverrun": 0,
-              "height": 106.203125
-            },
-            {
-              "id": "QTBY",
-              "widthOverrun": 0,
-              "height": 126.34375
-            },
-            {
-              "id": "XKSX",
-              "widthOverrun": 0,
-              "height": 150.890625
             }
           ]
         },
@@ -603,21 +494,6 @@
               "id": "LU7S",
               "widthOverrun": 0,
               "height": 166.625
-            },
-            {
-              "id": "XRNL",
-              "widthOverrun": 0,
-              "height": 126.34375
-            },
-            {
-              "id": "CP76",
-              "widthOverrun": 0,
-              "height": 130.75
-            },
-            {
-              "id": "KDSD",
-              "widthOverrun": 0,
-              "height": 86.0625
             },
             {
               "id": "DSC5",
@@ -634,7 +510,7 @@
       ]
     },
     {
-      "page": 13,
+      "page": 12,
       "id": "FRH9",
       "title": "Leader revival",
       "regions": [
@@ -664,11 +540,6 @@
           "overrun": 0,
           "blocks": [
             {
-              "id": "9A74",
-              "widthOverrun": 0,
-              "height": 126.34375
-            },
-            {
               "id": "KLEP",
               "widthOverrun": 0,
               "height": 208.640625
@@ -688,7 +559,7 @@
       ]
     },
     {
-      "page": 14,
+      "page": 13,
       "id": "QXRY",
       "title": "Karama cancellation",
       "regions": [
@@ -704,17 +575,12 @@
             {
               "id": "P6KB",
               "widthOverrun": 0,
-              "height": 306.734375
+              "height": 331.390625
             },
             {
               "id": "6UNE",
               "widthOverrun": 0,
               "height": 65.921875
-            },
-            {
-              "id": "JGHG",
-              "widthOverrun": 0,
-              "height": 90.46875
             },
             {
               "id": "BCRG",
@@ -726,7 +592,7 @@
       ]
     },
     {
-      "page": 15,
+      "page": 14,
       "id": "ERCZ",
       "title": "Solaris",
       "regions": [
@@ -761,16 +627,6 @@
               "height": 126.34375
             },
             {
-              "id": "GD3J",
-              "widthOverrun": 0,
-              "height": 130.75
-            },
-            {
-              "id": "TPFE",
-              "widthOverrun": 0,
-              "height": 110.609375
-            },
-            {
               "id": "6WCS",
               "widthOverrun": 0,
               "height": 40.28125
@@ -780,7 +636,7 @@
       ]
     },
     {
-      "page": 16,
+      "page": 15,
       "id": "R2X8",
       "title": "Other Treachery card changes",
       "regions": [
@@ -807,16 +663,6 @@
               "id": "WEWF",
               "widthOverrun": 0,
               "height": 168.359375
-            },
-            {
-              "id": "RZZY",
-              "widthOverrun": 0,
-              "height": 126.34375
-            },
-            {
-              "id": "4HDS",
-              "widthOverrun": 0,
-              "height": 126.34375
             }
           ]
         },
@@ -828,11 +674,6 @@
               "id": "S6MH",
               "widthOverrun": 0,
               "height": 168.359375
-            },
-            {
-              "id": "T42N",
-              "widthOverrun": 0,
-              "height": 126.34375
             },
             {
               "id": "GPXM",
@@ -859,7 +700,7 @@
       ]
     },
     {
-      "page": 17,
+      "page": 16,
       "id": "7B73",
       "title": "Allies sharing a territory",
       "regions": [
@@ -876,11 +717,6 @@
               "id": "6UWG",
               "widthOverrun": 0,
               "height": 126.34375
-            },
-            {
-              "id": "ZZ49",
-              "widthOverrun": 0,
-              "height": 130.75
             }
           ]
         },
@@ -889,24 +725,14 @@
           "overrun": 0,
           "blocks": [
             {
-              "id": "CPGD",
+              "id": "ZZ49",
               "widthOverrun": 0,
-              "height": 86.0625
-            },
-            {
-              "id": "3QTC",
-              "widthOverrun": 0,
-              "height": 171.03125
+              "height": 130.75
             },
             {
               "id": "HMLF",
               "widthOverrun": 0,
-              "height": 106.203125
-            },
-            {
-              "id": "9WNA",
-              "widthOverrun": 0,
-              "height": 106.203125
+              "height": 86.0625
             },
             {
               "id": "DEUQ",
@@ -918,7 +744,7 @@
       ]
     },
     {
-      "page": 18,
+      "page": 17,
       "id": "7PK3",
       "title": "Deals, private information and notes",
       "regions": [
@@ -939,7 +765,7 @@
             {
               "id": "GNK6",
               "widthOverrun": 0,
-              "height": 126.34375
+              "height": 86.0625
             }
           ]
         },
@@ -963,11 +789,6 @@
               "height": 106.203125
             },
             {
-              "id": "JVYY",
-              "widthOverrun": 0,
-              "height": 110.609375
-            },
-            {
               "id": "WSUA",
               "widthOverrun": 0,
               "height": 40.28125
@@ -977,7 +798,7 @@
       ]
     },
     {
-      "page": 19,
+      "page": 18,
       "id": "NVLU",
       "title": "City income",
       "regions": [
@@ -993,12 +814,7 @@
             {
               "id": "K67G",
               "widthOverrun": 0,
-              "height": 106.203125
-            },
-            {
-              "id": "Z22D",
-              "widthOverrun": 0,
-              "height": 150.890625
+              "height": 86.0625
             }
           ]
         },
@@ -1021,7 +837,7 @@
       ]
     },
     {
-      "page": 20,
+      "page": 19,
       "id": "VVJC",
       "title": "Victory priority",
       "regions": [
@@ -1029,11 +845,6 @@
           "region": "column1",
           "overrun": 0,
           "blocks": [
-            {
-              "id": "R4XW",
-              "widthOverrun": 0,
-              "height": 86.0625
-            },
             {
               "id": "TC93",
               "widthOverrun": 0,
@@ -1056,11 +867,6 @@
               "height": 286.59375
             },
             {
-              "id": "EG7S",
-              "widthOverrun": 0,
-              "height": 106.203125
-            },
-            {
               "id": "SNTY",
               "widthOverrun": 0,
               "height": 40.28125
@@ -1070,7 +876,7 @@
       ]
     },
     {
-      "page": 21,
+      "page": 20,
       "id": "RG5J",
       "title": "Round-ten victory",
       "regions": [
@@ -1087,11 +893,6 @@
               "id": "KFS3",
               "widthOverrun": 0,
               "height": 126.34375
-            },
-            {
-              "id": "RZEY",
-              "widthOverrun": 0,
-              "height": 110.609375
             }
           ]
         },
@@ -1124,7 +925,7 @@
       ]
     },
     {
-      "page": 22,
+      "page": 21,
       "id": "PJQR",
       "title": "Leaders and their changed values",
       "regions": [
@@ -1159,11 +960,6 @@
           "overrun": 0,
           "blocks": [
             {
-              "id": "AZ4V",
-              "widthOverrun": 0,
-              "height": 86.0625
-            },
-            {
               "id": "3DAG",
               "widthOverrun": 0,
               "height": 208.640625
@@ -1172,11 +968,6 @@
               "id": "X7CP",
               "widthOverrun": 0,
               "height": 228.78125
-            },
-            {
-              "id": "EHX5",
-              "widthOverrun": 0,
-              "height": 110.609375
             },
             {
               "id": "2AGP",
@@ -1188,7 +979,7 @@
       ]
     },
     {
-      "page": 23,
+      "page": 22,
       "id": "XCEQ",
       "title": "Bene Gesserit: Voice, cards and prediction",
       "regions": [
@@ -1210,12 +1001,13 @@
               "id": "HKVM",
               "widthOverrun": 0,
               "height": 106.203125
-            },
-            {
-              "id": "46YN",
-              "widthOverrun": 0,
-              "height": 86.0625
-            },
+            }
+          ]
+        },
+        {
+          "region": "column2",
+          "overrun": 0,
+          "blocks": [
             {
               "id": "VK9A",
               "widthOverrun": 0,
@@ -1225,42 +1017,16 @@
               "id": "YA5E",
               "widthOverrun": 0,
               "height": 90.46875
-            }
-          ]
-        },
-        {
-          "region": "column2",
-          "overrun": 0,
-          "blocks": [
+            },
             {
               "id": "TYB7",
               "widthOverrun": 0,
               "height": 106.203125
             },
             {
-              "id": "B6WF",
-              "widthOverrun": 0,
-              "height": 106.203125
-            },
-            {
-              "id": "CJSR",
-              "widthOverrun": 0,
-              "height": 130.75
-            },
-            {
               "id": "ZDM6",
               "widthOverrun": 0,
-              "height": 106.203125
-            },
-            {
-              "id": "PGLF",
-              "widthOverrun": 0,
-              "height": 106.203125
-            },
-            {
-              "id": "7H87",
-              "widthOverrun": 0,
-              "height": 130.75
+              "height": 65.921875
             },
             {
               "id": "MUXQ",
@@ -1272,7 +1038,7 @@
       ]
     },
     {
-      "page": 24,
+      "page": 23,
       "id": "866X",
       "title": "Bene Gesserit: advisors and fighters",
       "regions": [
@@ -1317,11 +1083,6 @@
               "height": 126.34375
             },
             {
-              "id": "MWPP",
-              "widthOverrun": 0,
-              "height": 150.890625
-            },
-            {
               "id": "JJL2",
               "widthOverrun": 0,
               "height": 40.28125
@@ -1331,7 +1092,7 @@
       ]
     },
     {
-      "page": 25,
+      "page": 24,
       "id": "V6MJ",
       "title": "Fremen: storms and sandworms",
       "regions": [
@@ -1342,7 +1103,7 @@
             {
               "id": "VECG",
               "widthOverrun": 0,
-              "height": 86.0625
+              "height": 45.78125
             },
             {
               "id": "YPAK",
@@ -1391,11 +1152,6 @@
               "height": 106.203125
             },
             {
-              "id": "3UEN",
-              "widthOverrun": 0,
-              "height": 150.890625
-            },
-            {
               "id": "32JM",
               "widthOverrun": 0,
               "height": 86.0625
@@ -1410,7 +1166,7 @@
       ]
     },
     {
-      "page": 26,
+      "page": 25,
       "id": "Y48B",
       "title": "Fremen: free spice strength and allies",
       "regions": [
@@ -1450,11 +1206,6 @@
               "height": 106.203125
             },
             {
-              "id": "6QA3",
-              "widthOverrun": 0,
-              "height": 110.609375
-            },
-            {
               "id": "ZLXG",
               "widthOverrun": 0,
               "height": 40.28125
@@ -1464,7 +1215,7 @@
       ]
     },
     {
-      "page": 27,
+      "page": 26,
       "id": "58EY",
       "title": "Emperor: alliance and revival changes",
       "regions": [
@@ -1506,7 +1257,7 @@
             {
               "id": "7XN3",
               "widthOverrun": 0,
-              "height": 150.890625
+              "height": 110.609375
             },
             {
               "id": "XX94",
@@ -1518,7 +1269,7 @@
       ]
     },
     {
-      "page": 28,
+      "page": 27,
       "id": "MJUN",
       "title": "Atreides: Prescience and Kwisatz Haderach",
       "regions": [
@@ -1526,11 +1277,6 @@
           "region": "column1",
           "overrun": 0,
           "blocks": [
-            {
-              "id": "KYHT",
-              "widthOverrun": 0,
-              "height": 126.34375
-            },
             {
               "id": "A7LV",
               "widthOverrun": 0,
@@ -1540,7 +1286,13 @@
               "id": "QQVM",
               "widthOverrun": 0,
               "height": 86.0625
-            },
+            }
+          ]
+        },
+        {
+          "region": "column2",
+          "overrun": 0,
+          "blocks": [
             {
               "id": "ZAD3",
               "widthOverrun": 0,
@@ -1550,13 +1302,7 @@
               "id": "DNV6",
               "widthOverrun": 0,
               "height": 110.609375
-            }
-          ]
-        },
-        {
-          "region": "column2",
-          "overrun": 0,
-          "blocks": [
+            },
             {
               "id": "8CX6",
               "widthOverrun": 0,
@@ -1568,21 +1314,6 @@
               "height": 106.203125
             },
             {
-              "id": "RN76",
-              "widthOverrun": 0,
-              "height": 110.453125
-            },
-            {
-              "id": "8PMD",
-              "widthOverrun": 0,
-              "height": 126.34375
-            },
-            {
-              "id": "B7TZ",
-              "widthOverrun": 0,
-              "height": 110.609375
-            },
-            {
               "id": "J2RA",
               "widthOverrun": 0,
               "height": 60.421875
@@ -1592,7 +1323,7 @@
       ]
     },
     {
-      "page": 29,
+      "page": 28,
       "id": "PJHY",
       "title": "Harkonnen: redraw and exchange",
       "regions": [
@@ -1627,21 +1358,6 @@
               "height": 146.328125
             },
             {
-              "id": "K2RX",
-              "widthOverrun": 0,
-              "height": 106.203125
-            },
-            {
-              "id": "DXWB",
-              "widthOverrun": 0,
-              "height": 110.609375
-            },
-            {
-              "id": "KV7F",
-              "widthOverrun": 0,
-              "height": 106.203125
-            },
-            {
               "id": "DHY9",
               "widthOverrun": 0,
               "height": 40.28125
@@ -1651,7 +1367,7 @@
       ]
     },
     {
-      "page": 30,
+      "page": 29,
       "id": "3NRG",
       "title": "Guild: shipping, rates and special victory",
       "regions": [
@@ -1683,11 +1399,6 @@
               "id": "HUAK",
               "widthOverrun": 0,
               "height": 126.34375
-            },
-            {
-              "id": "NQVE",
-              "widthOverrun": 0,
-              "height": 130.75
             }
           ]
         },
@@ -1706,11 +1417,6 @@
               "height": 86.0625
             },
             {
-              "id": "9SHG",
-              "widthOverrun": 0,
-              "height": 110.609375
-            },
-            {
               "id": "C54U",
               "widthOverrun": 0,
               "height": 106.203125
@@ -1719,11 +1425,6 @@
               "id": "83NB",
               "widthOverrun": 0,
               "height": 86.0625
-            },
-            {
-              "id": "THKE",
-              "widthOverrun": 0,
-              "height": 106.203125
             },
             {
               "id": "Z7TK",
@@ -1735,7 +1436,7 @@
       ]
     },
     {
-      "page": 31,
+      "page": 30,
       "id": "PYVH",
       "title": "Two optional variants",
       "regions": [
@@ -1762,11 +1463,6 @@
               "id": "VBAG",
               "widthOverrun": 0,
               "height": 106.203125
-            },
-            {
-              "id": "5PAN",
-              "widthOverrun": 0,
-              "height": 130.75
             }
           ]
         },
@@ -1790,21 +1486,6 @@
               "height": 110.609375
             },
             {
-              "id": "573S",
-              "widthOverrun": 0,
-              "height": 110.609375
-            },
-            {
-              "id": "39WX",
-              "widthOverrun": 0,
-              "height": 110.609375
-            },
-            {
-              "id": "8XYL",
-              "widthOverrun": 0,
-              "height": 106.203125
-            },
-            {
               "id": "URV8",
               "widthOverrun": 0,
               "height": 20.140625
@@ -1814,7 +1495,7 @@
       ]
     },
     {
-      "page": 32,
+      "page": 31,
       "id": "QACH",
       "title": "Announced expansion changes",
       "regions": [
@@ -1838,11 +1519,6 @@
               "height": 90.46875
             },
             {
-              "id": "UK9D",
-              "widthOverrun": 0,
-              "height": 65.921875
-            },
-            {
               "id": "4HHB",
               "widthOverrun": 0,
               "height": 40.28125
@@ -1852,7 +1528,7 @@
       ]
     },
     {
-      "page": 33,
+      "page": 32,
       "id": "83PL",
       "title": "Compatibility: cards and battle effects",
       "regions": [
@@ -1864,11 +1540,6 @@
               "id": "K8NW",
               "widthOverrun": 0,
               "height": 370.5
-            },
-            {
-              "id": "4D97",
-              "widthOverrun": 0,
-              "height": 130.75
             }
           ]
         },
@@ -1876,11 +1547,6 @@
           "region": "column2",
           "overrun": 0,
           "blocks": [
-            {
-              "id": "28Z4",
-              "widthOverrun": 0,
-              "height": 126.34375
-            },
             {
               "id": "EXRA",
               "widthOverrun": 0,
@@ -1906,7 +1572,7 @@
       ]
     },
     {
-      "page": 34,
+      "page": 33,
       "id": "HTSM",
       "title": "Compatibility: modules and reference decks",
       "regions": [
@@ -1931,16 +1597,6 @@
               "height": 310.078125
             },
             {
-              "id": "2WZM",
-              "widthOverrun": 0,
-              "height": 130.75
-            },
-            {
-              "id": "25XQ",
-              "widthOverrun": 0,
-              "height": 86.0625
-            },
-            {
               "id": "HMWF",
               "widthOverrun": 0,
               "height": 60.421875
@@ -1950,9 +1606,9 @@
       ]
     },
     {
-      "page": 35,
+      "page": 34,
       "id": "AF59",
-      "title": "Unresolved wording: movement and battle",
+      "title": "Appendix: unclear movement and battle rules",
       "regions": [
         {
           "region": "column1",
@@ -1985,16 +1641,6 @@
           "overrun": 0,
           "blocks": [
             {
-              "id": "XRCD",
-              "widthOverrun": 0,
-              "height": 128.390625
-            },
-            {
-              "id": "FBWM",
-              "widthOverrun": 0,
-              "height": 110.609375
-            },
-            {
               "id": "N4KG",
               "widthOverrun": 0,
               "height": 168.671875
@@ -2019,9 +1665,9 @@
       ]
     },
     {
-      "page": 36,
+      "page": 35,
       "id": "93XK",
-      "title": "Unresolved wording: cards and victory",
+      "title": "Appendix: unclear card and victory rules",
       "regions": [
         {
           "region": "column1",
@@ -2076,12 +1722,7 @@
             {
               "id": "L9NV",
               "widthOverrun": 0,
-              "height": 126.34375
-            },
-            {
-              "id": "TJ7B",
-              "widthOverrun": 0,
-              "height": 130.75
+              "height": 65.921875
             },
             {
               "id": "H2L5",
@@ -2093,7 +1734,7 @@
       ]
     },
     {
-      "page": 37,
+      "page": 36,
       "id": "QRKV",
       "title": "Sources",
       "regions": [
@@ -2109,12 +1750,7 @@
             {
               "id": "TZ4L",
               "widthOverrun": 0,
-              "height": 106.203125
-            },
-            {
-              "id": "HQK8",
-              "widthOverrun": 0,
-              "height": 86.0625
+              "height": 65.921875
             }
           ]
         },
@@ -2123,24 +1759,9 @@
           "overrun": 0,
           "blocks": [
             {
-              "id": "Q8F9",
-              "widthOverrun": 0,
-              "height": 146.484375
-            },
-            {
               "id": "4NJW",
               "widthOverrun": 0,
-              "height": 146.484375
-            },
-            {
-              "id": "H92T",
-              "widthOverrun": 0,
               "height": 106.203125
-            },
-            {
-              "id": "43TY",
-              "widthOverrun": 0,
-              "height": 130.75
             },
             {
               "id": "MFUW",

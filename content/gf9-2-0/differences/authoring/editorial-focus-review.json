@@ -1,0 +1,2285 @@
+{
+  "status": "published",
+  "date": "2026-10-27",
+  "baselineEdition": 3,
+  "feedback": "Remove editorial framing and unchanged-rule asides from the differences guide.",
+  "removedPrefacePage": "reading",
+  "retainedPrefaceRule": "CORE-C01 moved to setup",
+  "removedBlocks": [
+    {
+      "page": "setup",
+      "name": "Open wording: faction-selection order",
+      "evidence": [
+        "CORE-C03"
+      ],
+      "authoringKey": "setup:column1:2"
+    },
+    {
+      "page": "setup",
+      "name": "Choosing your own leader as a traitor",
+      "evidence": [
+        "CORE-Q01"
+      ],
+      "authoringKey": "setup:column1:1"
+    },
+    {
+      "page": "storm",
+      "name": "Storm deck contents",
+      "evidence": [],
+      "authoringKey": "storm:column2:3"
+    },
+    {
+      "page": "storm",
+      "name": "A marker under the storm",
+      "evidence": [
+        "CORE-Q13"
+      ],
+      "authoringKey": "storm:column2:2"
+    },
+    {
+      "page": "paired-spice",
+      "name": "Open wording: Little Maker history",
+      "evidence": [
+        "CORE-U05"
+      ],
+      "authoringKey": "paired-spice:column2:3"
+    },
+    {
+      "page": "little-maker",
+      "name": "Alliances without a worm",
+      "evidence": [],
+      "authoringKey": "little-maker:column2:3"
+    },
+    {
+      "page": "spice-map",
+      "name": "Normal Spice Blows",
+      "evidence": [],
+      "authoringKey": "spice-map:column2:1"
+    },
+    {
+      "page": "battle-example",
+      "name": "What the wheels show",
+      "evidence": [],
+      "authoringKey": "battle-example:column2:3"
+    },
+    {
+      "page": "battle-payment",
+      "name": "Open wording: Cheap Hero",
+      "evidence": [
+        "CORE-U03"
+      ],
+      "authoringKey": "battle-payment:column2:3"
+    },
+    {
+      "page": "battle-aftermath",
+      "name": "Atreides battle losses still count",
+      "evidence": [],
+      "authoringKey": "battle-aftermath:column2:3"
+    },
+    {
+      "page": "battle-aftermath",
+      "name": "Agree on the losses",
+      "evidence": [],
+      "authoringKey": "battle-aftermath:column2:2"
+    },
+    {
+      "page": "battle-aftermath",
+      "name": "Legal limits still apply",
+      "evidence": [],
+      "authoringKey": "battle-aftermath:column2:1"
+    },
+    {
+      "page": "battle-aftermath",
+      "name": "Which defenses cause an explosion?",
+      "evidence": [],
+      "authoringKey": "battle-aftermath:column1:4"
+    },
+    {
+      "page": "battle-aftermath",
+      "name": "Cards after a victory",
+      "evidence": [
+        "CORE-Q15"
+      ],
+      "authoringKey": "battle-aftermath:column1:3"
+    },
+    {
+      "page": "battle-aftermath",
+      "name": "Initiative replaces aggressor",
+      "evidence": [
+        "CORE-Q12"
+      ],
+      "authoringKey": "battle-aftermath:column1:2"
+    },
+    {
+      "page": "revival",
+      "name": "Cost and limit stay the same",
+      "evidence": [],
+      "authoringKey": "revival:column2:0"
+    },
+    {
+      "page": "karama",
+      "name": "Open wording: before or while forming",
+      "evidence": [],
+      "authoringKey": "karama:content:3"
+    },
+    {
+      "page": "solaris",
+      "name": "Open wording: Classic",
+      "evidence": [
+        "Q-CARD-02"
+      ],
+      "authoringKey": "solaris:column2:3"
+    },
+    {
+      "page": "solaris",
+      "name": "Open wording: shipment types",
+      "evidence": [
+        "Q-CARD-01"
+      ],
+      "authoringKey": "solaris:column2:2"
+    },
+    {
+      "page": "card-habits",
+      "name": "Shield Wall destruction",
+      "evidence": [],
+      "authoringKey": "card-habits:column2:1"
+    },
+    {
+      "page": "card-habits",
+      "name": "Harj, formerly Hajr",
+      "evidence": [
+        "TERM-03"
+      ],
+      "authoringKey": "card-habits:column1:5"
+    },
+    {
+      "page": "card-habits",
+      "name": "Other cards after battle",
+      "evidence": [],
+      "authoringKey": "card-habits:column1:4"
+    },
+    {
+      "page": "allies",
+      "name": "Occupied strongholds",
+      "evidence": [
+        "CORE-Q18"
+      ],
+      "authoringKey": "allies:column2:3"
+    },
+    {
+      "page": "allies",
+      "name": "Open wording: ship then move",
+      "evidence": [
+        "CORE-U02"
+      ],
+      "authoringKey": "allies:column2:1"
+    },
+    {
+      "page": "allies",
+      "name": "Allied payments",
+      "evidence": [
+        "CORE-Q08"
+      ],
+      "authoringKey": "allies:column2:0"
+    },
+    {
+      "page": "deals",
+      "name": "Already familiar",
+      "evidence": [
+        "CORE-Q16"
+      ],
+      "authoringKey": "deals:column2:3"
+    },
+    {
+      "page": "city-income",
+      "name": "Open wording: control timing",
+      "evidence": [
+        "CORE-U04"
+      ],
+      "authoringKey": "city-income:column1:2"
+    },
+    {
+      "page": "victory",
+      "name": "Special victories",
+      "evidence": [],
+      "authoringKey": "victory:column2:1"
+    },
+    {
+      "page": "victory",
+      "name": "Stronghold targets are unchanged",
+      "evidence": [
+        "CORE-Q17"
+      ],
+      "authoringKey": "victory:column1:0"
+    },
+    {
+      "page": "endgame",
+      "name": "Open wording: perfect ties",
+      "evidence": [
+        "CORE-U06"
+      ],
+      "authoringKey": "endgame:column1:2"
+    },
+    {
+      "page": "rosters",
+      "name": "Duncan contributes 3",
+      "evidence": [],
+      "authoringKey": "rosters:column2:3"
+    },
+    {
+      "page": "rosters",
+      "name": "Unchanged leaders",
+      "evidence": [
+        "F06"
+      ],
+      "authoringKey": "rosters:column2:0"
+    },
+    {
+      "page": "bg-voice",
+      "name": "CHOAM expansion rules are incomplete",
+      "evidence": [],
+      "authoringKey": "bg-voice:column2:5"
+    },
+    {
+      "page": "bg-voice",
+      "name": "No once-per-game Karama power",
+      "evidence": [],
+      "authoringKey": "bg-voice:column2:4"
+    },
+    {
+      "page": "bg-voice",
+      "name": "Already familiar",
+      "evidence": [],
+      "authoringKey": "bg-voice:column2:2"
+    },
+    {
+      "page": "bg-voice",
+      "name": "Predicting a normal victory",
+      "evidence": [],
+      "authoringKey": "bg-voice:column2:1"
+    },
+    {
+      "page": "bg-voice",
+      "name": "Optional card roles",
+      "evidence": [],
+      "authoringKey": "bg-voice:column1:3"
+    },
+    {
+      "page": "bg-faces",
+      "name": "Open wording: allies",
+      "evidence": [
+        "F22"
+      ],
+      "authoringKey": "bg-faces:column2:3"
+    },
+    {
+      "page": "fremen-storm",
+      "name": "A Nexus was already allowed",
+      "evidence": [],
+      "authoringKey": "fremen-storm:column2:3"
+    },
+    {
+      "page": "fremen-battle",
+      "name": "Fedaykin remain strength two",
+      "evidence": [],
+      "authoringKey": "fremen-battle:column2:2"
+    },
+    {
+      "page": "atreides",
+      "name": "Other abilities and values",
+      "evidence": [],
+      "authoringKey": "atreides:column2:4"
+    },
+    {
+      "page": "atreides",
+      "name": "Golden Path is unchanged",
+      "evidence": [
+        "F12"
+      ],
+      "authoringKey": "atreides:column2:3"
+    },
+    {
+      "page": "atreides",
+      "name": "Kwisatz Haderach dies before leader revival is available",
+      "evidence": [],
+      "authoringKey": "atreides:column2:2"
+    },
+    {
+      "page": "atreides",
+      "name": "Spice Vision timing",
+      "evidence": [
+        "F07"
+      ],
+      "authoringKey": "atreides:column1:0"
+    },
+    {
+      "page": "harkonnen",
+      "name": "Unchanged setup and card benefits",
+      "evidence": [],
+      "authoringKey": "harkonnen:column2:3"
+    },
+    {
+      "page": "harkonnen",
+      "name": "Open wording: edge cases",
+      "evidence": [],
+      "authoringKey": "harkonnen:column2:2"
+    },
+    {
+      "page": "harkonnen",
+      "name": "The old four-card limit",
+      "evidence": [],
+      "authoringKey": "harkonnen:column2:1"
+    },
+    {
+      "page": "guild-setup",
+      "name": "Blockade is unchanged",
+      "evidence": [],
+      "authoringKey": "guild-setup:column2:5"
+    },
+    {
+      "page": "guild-setup",
+      "name": "Special victory and round-ten tie-breaks",
+      "evidence": [],
+      "authoringKey": "guild-setup:column2:2"
+    },
+    {
+      "page": "guild-setup",
+      "name": "Solaris shipping remains unclear",
+      "evidence": [],
+      "authoringKey": "guild-setup:column1:5"
+    },
+    {
+      "page": "spirit-world",
+      "name": "Errors in the printed examples",
+      "evidence": [],
+      "authoringKey": "spirit-world:column2:5"
+    },
+    {
+      "page": "spirit-world",
+      "name": "Open wording: Emperor ally",
+      "evidence": [],
+      "authoringKey": "spirit-world:column2:4"
+    },
+    {
+      "page": "spirit-world",
+      "name": "Open wording: Solaris",
+      "evidence": [
+        "Q-CARD-02"
+      ],
+      "authoringKey": "spirit-world:column2:3"
+    },
+    {
+      "page": "spirit-world",
+      "name": "Choose the variant before play",
+      "evidence": [],
+      "authoringKey": "spirit-world:column1:4"
+    },
+    {
+      "page": "expansion-boundary",
+      "name": "Two earlier rulings",
+      "evidence": [],
+      "authoringKey": "expansion-boundary:content:3"
+    },
+    {
+      "page": "compatibility-cards",
+      "name": "Atreides can ask about any card in the slot",
+      "evidence": [
+        "X-K10"
+      ],
+      "authoringKey": "compatibility-cards:column2:0"
+    },
+    {
+      "page": "compatibility-cards",
+      "name": "Replacement copies",
+      "evidence": [],
+      "authoringKey": "compatibility-cards:column1:1"
+    },
+    {
+      "page": "compatibility-modules",
+      "name": "Polar Sink exception is unchanged",
+      "evidence": [
+        "CORE-Q19"
+      ],
+      "authoringKey": "compatibility-modules:column2:2"
+    },
+    {
+      "page": "compatibility-modules",
+      "name": "Using the earlier expansion books",
+      "evidence": [],
+      "authoringKey": "compatibility-modules:column2:1"
+    },
+    {
+      "page": "open-movement",
+      "name": "Questions for clarification",
+      "evidence": [],
+      "authoringKey": "open-movement:column2:1"
+    },
+    {
+      "page": "open-reference",
+      "name": "Missing rules and components",
+      "evidence": [],
+      "authoringKey": "open-reference:column2:4"
+    },
+    {
+      "page": "sources",
+      "name": "About this guide",
+      "evidence": [],
+      "authoringKey": "sources:column2:3"
+    },
+    {
+      "page": "sources",
+      "name": "Community comments",
+      "evidence": [],
+      "authoringKey": "sources:column2:2"
+    },
+    {
+      "page": "sources",
+      "name": "Designer and community discussions",
+      "evidence": [],
+      "authoringKey": "sources:column2:0"
+    },
+    {
+      "page": "sources",
+      "name": "Detailed references",
+      "evidence": [],
+      "authoringKey": "sources:column1:2"
+    }
+  ],
+  "clarificationsMovedToAppendix": [
+    "CORE-C03",
+    "CORE-U02",
+    "CORE-U03",
+    "CORE-U04",
+    "CORE-U05",
+    "CORE-U06",
+    "Q-CARD-01",
+    "Q-CARD-02",
+    "F07"
+  ],
+  "newlyExcludedUnchangedFindings": {
+    "CORE-Q01": "Choosing an own leader as traitor was already allowed by the FAQ and older Dune Zone book. Removed as unchanged.",
+    "CORE-Q08": "Ordinary allied contributions are unchanged; the new battle-spice restriction is taught with battle payment.",
+    "CORE-Q10": "Void deal terms and unanimous cancellation are unchanged and do not need a separate lesson.",
+    "CORE-Q13": "The marker-under-storm order is an existing-rule clarification, not a new procedure.",
+    "CORE-Q15": "Ordinary battle-card retention is unchanged. Mandatory Worthless disposal remains in the guide.",
+    "CORE-Q16": "Discard-pile privacy is unchanged.",
+    "CORE-Q17": "The ordinary stronghold targets and Mentat Pause timing are unchanged. Targets still appear where needed in the new victory-priority table.",
+    "CORE-Q18": "Ordinary stronghold blocking is unchanged.",
+    "CORE-Q19": "The Ixian Polar Sink exception is unchanged.",
+    "F06": "Unchanged Fremen and Harkonnen rosters are retained in the dossier, rather than taught as differences.",
+    "F12": "Golden Path whole-plan inspection is unchanged. Its new Spirit World trigger is listed with that variant."
+  },
+  "sourceCheck": "The clearer original scan, page 8, does say descending order starting with the lowest card. The contradiction remains only in the appendix.",
+  "pages": 36,
+  "publication": {
+    "edition": 4,
+    "date": "2026-10-27",
+    "url": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2019-to-2-0-what-changes",
+    "html": "https://dune.zone/published/rulebooks/pd7247mr9ge6kstr2t7ta5hrb98h0f28/editions/4/rulebook.html",
+    "pdf": "https://dune.zone/published/rulebooks/pd7247mr9ge6kstr2t7ta5hrb98h0f28/editions/4/rulebook.pdf",
+    "pages": 36,
+    "owner": "Central"
+  },
+  "resolvedSideIssue": "Removed the advisor/ally pseudo-conflict. The specific faction rule takes precedence over the general rule, as the source setup note states.",
+  "localChecks": {
+    "schema": "passed",
+    "unmappedFindings": [],
+    "retainedBlockIds": "Preserved except the unified-rules paragraph moved from the deleted preface to setup. Production requires a new ID when a block changes pages.",
+    "pages": 36,
+    "blocks": 222,
+    "pdfProseFieldsChecked": 205,
+    "unmatchedProseBoundaries": [],
+    "visuallyCheckedPdfPages": [
+      2
+    ],
+    "contactSheetReviewed": true,
+    "browser": {
+      "url": "http://127.0.0.1:4320/",
+      "pages": 36,
+      "errors": [],
+      "missingImages": [],
+      "checks": [
+        {
+          "page": 1,
+          "id": "98HN",
+          "regions": []
+        },
+        {
+          "page": 2,
+          "id": "VCZX",
+          "title": "Setup and renamed terms",
+          "regions": [
+            {
+              "region": "column1",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "K479",
+                  "widthOverrun": 0,
+                  "height": 86.0625
+                },
+                {
+                  "id": "2R7S",
+                  "widthOverrun": 0,
+                  "height": 106.203125
+                },
+                {
+                  "id": "KNDS",
+                  "widthOverrun": 0,
+                  "height": 126.34375
+                }
+              ]
+            },
+            {
+              "region": "column2",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "SHSG",
+                  "widthOverrun": 0,
+                  "height": 193.71875
+                },
+                {
+                  "id": "Z7FG",
+                  "widthOverrun": 0,
+                  "height": 126.34375
+                },
+                {
+                  "id": "MM5U",
+                  "widthOverrun": 0,
+                  "height": 40.28125
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "page": 3,
+          "id": "G6QD",
+          "title": "The Storm deck",
+          "regions": [
+            {
+              "region": "column1",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "BSC6",
+                  "widthOverrun": 0,
+                  "height": 106.203125
+                },
+                {
+                  "id": "ZNH3",
+                  "widthOverrun": 0,
+                  "height": 126.34375
+                },
+                {
+                  "id": "9WXJ",
+                  "widthOverrun": 0,
+                  "height": 126.34375
+                },
+                {
+                  "id": "6GQ4",
+                  "widthOverrun": 0,
+                  "height": 110.609375
+                }
+              ]
+            },
+            {
+              "region": "column2",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "B2ZX",
+                  "widthOverrun": 0,
+                  "height": 106.203125
+                },
+                {
+                  "id": "MLF6",
+                  "widthOverrun": 0,
+                  "height": 130.75
+                },
+                {
+                  "id": "WFFA",
+                  "widthOverrun": 0,
+                  "height": 40.28125
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "page": 4,
+          "id": "GEEF",
+          "title": "One Spice card, two blows",
+          "regions": [
+            {
+              "region": "column1",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "H3AE",
+                  "widthOverrun": 0,
+                  "height": 86.0625
+                },
+                {
+                  "id": "K9KA",
+                  "widthOverrun": 0,
+                  "height": 106.203125
+                },
+                {
+                  "id": "CPLT",
+                  "widthOverrun": 0,
+                  "height": 261.4375
+                }
+              ]
+            },
+            {
+              "region": "column2",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "MX6A",
+                  "widthOverrun": 0,
+                  "height": 171.03125
+                },
+                {
+                  "id": "S4BR",
+                  "widthOverrun": 0,
+                  "height": 86.0625
+                },
+                {
+                  "id": "XZNE",
+                  "widthOverrun": 0,
+                  "height": 86.0625
+                },
+                {
+                  "id": "42Y4",
+                  "widthOverrun": 0,
+                  "height": 20.140625
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "page": 5,
+          "id": "ACD7",
+          "title": "Little Maker",
+          "regions": [
+            {
+              "region": "column1",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "LQP5",
+                  "widthOverrun": 0,
+                  "height": 168.515625
+                },
+                {
+                  "id": "WQP8",
+                  "widthOverrun": 0,
+                  "height": 106.203125
+                }
+              ]
+            },
+            {
+              "region": "column2",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "NS8X",
+                  "widthOverrun": 0,
+                  "height": 261.4375
+                },
+                {
+                  "id": "SMRR",
+                  "widthOverrun": 0,
+                  "height": 108.25
+                },
+                {
+                  "id": "YHQB",
+                  "widthOverrun": 0,
+                  "height": 128.390625
+                },
+                {
+                  "id": "TQPL",
+                  "widthOverrun": 0,
+                  "height": 20.140625
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "page": 6,
+          "id": "8RFA",
+          "title": "New Spice locations and amounts",
+          "regions": [
+            {
+              "region": "column1",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "N27X",
+                  "widthOverrun": 0,
+                  "height": 258.625
+                },
+                {
+                  "id": "KBTY",
+                  "widthOverrun": 0,
+                  "height": 106.203125
+                }
+              ]
+            },
+            {
+              "region": "column2",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "LKBU",
+                  "widthOverrun": 0,
+                  "height": 323.53125
+                },
+                {
+                  "id": "KRNY",
+                  "widthOverrun": 0,
+                  "height": 40.28125
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "page": 7,
+          "id": "2W2D",
+          "title": "New Spice Blow locations",
+          "regions": [
+            {
+              "region": "column1",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "FBTW",
+                  "widthOverrun": 0,
+                  "height": 371.515625
+                }
+              ]
+            },
+            {
+              "region": "column2",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "P33W",
+                  "widthOverrun": 0,
+                  "height": 106.203125
+                },
+                {
+                  "id": "5VED",
+                  "widthOverrun": 0,
+                  "height": 86.0625
+                },
+                {
+                  "id": "3LH4",
+                  "widthOverrun": 0,
+                  "height": 130.75
+                },
+                {
+                  "id": "4MCG",
+                  "widthOverrun": 0,
+                  "height": 40.28125
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "page": 8,
+          "id": "YJFP",
+          "title": "Spice strength in battle",
+          "regions": [
+            {
+              "region": "column1",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "GUU7",
+                  "widthOverrun": 0,
+                  "height": 65.921875
+                },
+                {
+                  "id": "HEYR",
+                  "widthOverrun": 0,
+                  "height": 86.0625
+                },
+                {
+                  "id": "MQEY",
+                  "widthOverrun": 0,
+                  "height": 126.34375
+                },
+                {
+                  "id": "ADHU",
+                  "widthOverrun": 0,
+                  "height": 130.75
+                }
+              ]
+            },
+            {
+              "region": "column2",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "QW9M",
+                  "widthOverrun": 0,
+                  "height": 128.8125
+                },
+                {
+                  "id": "M3JV",
+                  "widthOverrun": 0,
+                  "height": 150.890625
+                },
+                {
+                  "id": "U3NF",
+                  "widthOverrun": 0,
+                  "height": 86.0625
+                },
+                {
+                  "id": "CQZG",
+                  "widthOverrun": 0,
+                  "height": 106.203125
+                },
+                {
+                  "id": "ZXUH",
+                  "widthOverrun": 0,
+                  "height": 20.140625
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "page": 9,
+          "id": "4EJA",
+          "title": "Battle strength example",
+          "regions": [
+            {
+              "region": "column1",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "QQG2",
+                  "widthOverrun": 0,
+                  "height": 106.203125
+                },
+                {
+                  "id": "ZFLH",
+                  "widthOverrun": 1,
+                  "height": 269.984375
+                }
+              ]
+            },
+            {
+              "region": "column2",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "RUAR",
+                  "widthOverrun": 0,
+                  "height": 130.75
+                },
+                {
+                  "id": "R4PA",
+                  "widthOverrun": 0,
+                  "height": 106.203125
+                },
+                {
+                  "id": "J72V",
+                  "widthOverrun": 0,
+                  "height": 86.0625
+                },
+                {
+                  "id": "6ZQ5",
+                  "widthOverrun": 0,
+                  "height": 20.140625
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "page": 10,
+          "id": "PXSB",
+          "title": "Paying for battle spice",
+          "regions": [
+            {
+              "region": "column1",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "5MBL",
+                  "widthOverrun": 0,
+                  "height": 126.34375
+                },
+                {
+                  "id": "3A9X",
+                  "widthOverrun": 0,
+                  "height": 106.203125
+                },
+                {
+                  "id": "W3Z3",
+                  "widthOverrun": 0,
+                  "height": 130.75
+                }
+              ]
+            },
+            {
+              "region": "column2",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "JMU8",
+                  "widthOverrun": 0,
+                  "height": 106.203125
+                },
+                {
+                  "id": "2NTH",
+                  "widthOverrun": 0,
+                  "height": 86.0625
+                },
+                {
+                  "id": "VSNC",
+                  "widthOverrun": 0,
+                  "height": 106.203125
+                },
+                {
+                  "id": "T7UQ",
+                  "widthOverrun": 0,
+                  "height": 20.140625
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "page": 11,
+          "id": "WPPM",
+          "title": "Battle results and surrender",
+          "regions": [
+            {
+              "region": "column1",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "95EM",
+                  "widthOverrun": 0,
+                  "height": 268.90625
+                },
+                {
+                  "id": "GFT8",
+                  "widthOverrun": 0,
+                  "height": 110.609375
+                }
+              ]
+            },
+            {
+              "region": "column2",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "LU7S",
+                  "widthOverrun": 0,
+                  "height": 166.625
+                },
+                {
+                  "id": "DSC5",
+                  "widthOverrun": 0,
+                  "height": 146.484375
+                },
+                {
+                  "id": "67YP",
+                  "widthOverrun": 0,
+                  "height": 40.28125
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "page": 12,
+          "id": "FRH9",
+          "title": "Leader revival",
+          "regions": [
+            {
+              "region": "column1",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "4DZQ",
+                  "widthOverrun": 0,
+                  "height": 126.34375
+                },
+                {
+                  "id": "7F52",
+                  "widthOverrun": 0,
+                  "height": 126.34375
+                },
+                {
+                  "id": "Q7U7",
+                  "widthOverrun": 0,
+                  "height": 130.75
+                }
+              ]
+            },
+            {
+              "region": "column2",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "KLEP",
+                  "widthOverrun": 0,
+                  "height": 208.640625
+                },
+                {
+                  "id": "VRZV",
+                  "widthOverrun": 0,
+                  "height": 126.34375
+                },
+                {
+                  "id": "6MAE",
+                  "widthOverrun": 0,
+                  "height": 40.28125
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "page": 13,
+          "id": "QXRY",
+          "title": "Karama cancellation",
+          "regions": [
+            {
+              "region": "content",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "MNQR",
+                  "widthOverrun": 0,
+                  "height": 120.9375
+                },
+                {
+                  "id": "P6KB",
+                  "widthOverrun": 0,
+                  "height": 331.390625
+                },
+                {
+                  "id": "6UNE",
+                  "widthOverrun": 0,
+                  "height": 65.921875
+                },
+                {
+                  "id": "BCRG",
+                  "widthOverrun": 0,
+                  "height": 40.28125
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "page": 14,
+          "id": "ERCZ",
+          "title": "Solaris",
+          "regions": [
+            {
+              "region": "column1",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "QR7F",
+                  "widthOverrun": 0,
+                  "height": 289.203125
+                },
+                {
+                  "id": "6U8W",
+                  "widthOverrun": 0,
+                  "height": 86.0625
+                }
+              ]
+            },
+            {
+              "region": "column2",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "CK93",
+                  "widthOverrun": 0,
+                  "height": 110.609375
+                },
+                {
+                  "id": "73TX",
+                  "widthOverrun": 0,
+                  "height": 126.34375
+                },
+                {
+                  "id": "6WCS",
+                  "widthOverrun": 0,
+                  "height": 40.28125
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "page": 15,
+          "id": "R2X8",
+          "title": "Other Treachery card changes",
+          "regions": [
+            {
+              "region": "column1",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "TN2T",
+                  "widthOverrun": 0,
+                  "height": 106.203125
+                },
+                {
+                  "id": "NQMC",
+                  "widthOverrun": 0,
+                  "height": 108.25
+                },
+                {
+                  "id": "S8LV",
+                  "widthOverrun": 0,
+                  "height": 106.203125
+                },
+                {
+                  "id": "WEWF",
+                  "widthOverrun": 0,
+                  "height": 168.359375
+                }
+              ]
+            },
+            {
+              "region": "column2",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "S6MH",
+                  "widthOverrun": 0,
+                  "height": 168.359375
+                },
+                {
+                  "id": "GPXM",
+                  "widthOverrun": 0,
+                  "height": 86.0625
+                },
+                {
+                  "id": "NA5A",
+                  "widthOverrun": 0,
+                  "height": 130.75
+                },
+                {
+                  "id": "TNE2",
+                  "widthOverrun": 0,
+                  "height": 130.75
+                },
+                {
+                  "id": "WQ4R",
+                  "widthOverrun": 0,
+                  "height": 40.28125
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "page": 16,
+          "id": "7B73",
+          "title": "Allies sharing a territory",
+          "regions": [
+            {
+              "region": "column1",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "2T5P",
+                  "widthOverrun": 0,
+                  "height": 86.0625
+                },
+                {
+                  "id": "6UWG",
+                  "widthOverrun": 0,
+                  "height": 126.34375
+                }
+              ]
+            },
+            {
+              "region": "column2",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "ZZ49",
+                  "widthOverrun": 0,
+                  "height": 130.75
+                },
+                {
+                  "id": "HMLF",
+                  "widthOverrun": 0,
+                  "height": 86.0625
+                },
+                {
+                  "id": "DEUQ",
+                  "widthOverrun": 0,
+                  "height": 40.28125
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "page": 17,
+          "id": "7PK3",
+          "title": "Deals, private information and notes",
+          "regions": [
+            {
+              "region": "column1",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "J6CM",
+                  "widthOverrun": 0,
+                  "height": 126.34375
+                },
+                {
+                  "id": "46AH",
+                  "widthOverrun": 0,
+                  "height": 86.0625
+                },
+                {
+                  "id": "GNK6",
+                  "widthOverrun": 0,
+                  "height": 86.0625
+                }
+              ]
+            },
+            {
+              "region": "column2",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "W3TW",
+                  "widthOverrun": 0,
+                  "height": 86.0625
+                },
+                {
+                  "id": "UZEH",
+                  "widthOverrun": 0,
+                  "height": 106.203125
+                },
+                {
+                  "id": "MK3J",
+                  "widthOverrun": 0,
+                  "height": 106.203125
+                },
+                {
+                  "id": "WSUA",
+                  "widthOverrun": 0,
+                  "height": 40.28125
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "page": 18,
+          "id": "NVLU",
+          "title": "City income",
+          "regions": [
+            {
+              "region": "column1",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "4P3K",
+                  "widthOverrun": 0,
+                  "height": 106.203125
+                },
+                {
+                  "id": "K67G",
+                  "widthOverrun": 0,
+                  "height": 86.0625
+                }
+              ]
+            },
+            {
+              "region": "column2",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "PN2U",
+                  "widthOverrun": 0,
+                  "height": 305.875
+                },
+                {
+                  "id": "67DK",
+                  "widthOverrun": 0,
+                  "height": 20.140625
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "page": 19,
+          "id": "VVJC",
+          "title": "Victory priority",
+          "regions": [
+            {
+              "region": "column1",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "TC93",
+                  "widthOverrun": 0,
+                  "height": 106.203125
+                },
+                {
+                  "id": "95FM",
+                  "widthOverrun": 0,
+                  "height": 110.609375
+                }
+              ]
+            },
+            {
+              "region": "column2",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "M4W7",
+                  "widthOverrun": 0,
+                  "height": 286.59375
+                },
+                {
+                  "id": "SNTY",
+                  "widthOverrun": 0,
+                  "height": 40.28125
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "page": 20,
+          "id": "RG5J",
+          "title": "Round-ten victory",
+          "regions": [
+            {
+              "region": "column1",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "4WM7",
+                  "widthOverrun": 0,
+                  "height": 126.34375
+                },
+                {
+                  "id": "KFS3",
+                  "widthOverrun": 0,
+                  "height": 126.34375
+                }
+              ]
+            },
+            {
+              "region": "column2",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "63CF",
+                  "widthOverrun": 0,
+                  "height": 150.890625
+                },
+                {
+                  "id": "JWZ6",
+                  "widthOverrun": 0,
+                  "height": 130.75
+                },
+                {
+                  "id": "7REA",
+                  "widthOverrun": 0,
+                  "height": 106.203125
+                },
+                {
+                  "id": "ESRU",
+                  "widthOverrun": 0,
+                  "height": 20.140625
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "page": 21,
+          "id": "PJQR",
+          "title": "Leaders and their changed values",
+          "regions": [
+            {
+              "region": "column1",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "NPBA",
+                  "widthOverrun": 0,
+                  "height": 306.734375
+                },
+                {
+                  "id": "WC62",
+                  "widthOverrun": 0,
+                  "height": 146.484375
+                },
+                {
+                  "id": "RBUX",
+                  "widthOverrun": 0,
+                  "height": 161.265625
+                },
+                {
+                  "id": "HWZW",
+                  "widthOverrun": 0,
+                  "height": 86.0625
+                }
+              ]
+            },
+            {
+              "region": "column2",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "3DAG",
+                  "widthOverrun": 0,
+                  "height": 208.640625
+                },
+                {
+                  "id": "X7CP",
+                  "widthOverrun": 0,
+                  "height": 228.78125
+                },
+                {
+                  "id": "2AGP",
+                  "widthOverrun": 0,
+                  "height": 60.421875
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "page": 22,
+          "id": "XCEQ",
+          "title": "Bene Gesserit: Voice, cards and prediction",
+          "regions": [
+            {
+              "region": "column1",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "RJMR",
+                  "widthOverrun": 0,
+                  "height": 146.328125
+                },
+                {
+                  "id": "LVWT",
+                  "widthOverrun": 0,
+                  "height": 146.484375
+                },
+                {
+                  "id": "HKVM",
+                  "widthOverrun": 0,
+                  "height": 106.203125
+                }
+              ]
+            },
+            {
+              "region": "column2",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "VK9A",
+                  "widthOverrun": 0,
+                  "height": 126.34375
+                },
+                {
+                  "id": "YA5E",
+                  "widthOverrun": 0,
+                  "height": 90.46875
+                },
+                {
+                  "id": "TYB7",
+                  "widthOverrun": 0,
+                  "height": 106.203125
+                },
+                {
+                  "id": "ZDM6",
+                  "widthOverrun": 0,
+                  "height": 65.921875
+                },
+                {
+                  "id": "MUXQ",
+                  "widthOverrun": 0,
+                  "height": 40.28125
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "page": 23,
+          "id": "866X",
+          "title": "Bene Gesserit: advisors and fighters",
+          "regions": [
+            {
+              "region": "column1",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "4Y7V",
+                  "widthOverrun": 0,
+                  "height": 126.34375
+                },
+                {
+                  "id": "AE69",
+                  "widthOverrun": 0,
+                  "height": 106.203125
+                },
+                {
+                  "id": "86HY",
+                  "widthOverrun": 0,
+                  "height": 130.75
+                }
+              ]
+            },
+            {
+              "region": "column2",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "UYJ4",
+                  "widthOverrun": 0,
+                  "height": 106.203125
+                },
+                {
+                  "id": "6DL5",
+                  "widthOverrun": 0,
+                  "height": 126.34375
+                },
+                {
+                  "id": "QGRA",
+                  "widthOverrun": 0,
+                  "height": 126.34375
+                },
+                {
+                  "id": "JJL2",
+                  "widthOverrun": 0,
+                  "height": 40.28125
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "page": 24,
+          "id": "V6MJ",
+          "title": "Fremen: storms and sandworms",
+          "regions": [
+            {
+              "region": "column1",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "VECG",
+                  "widthOverrun": 0,
+                  "height": 45.78125
+                },
+                {
+                  "id": "YPAK",
+                  "widthOverrun": 0,
+                  "height": 86.0625
+                },
+                {
+                  "id": "ZEAZ",
+                  "widthOverrun": 0,
+                  "height": 146.484375
+                },
+                {
+                  "id": "5NCU",
+                  "widthOverrun": 0,
+                  "height": 150.890625
+                },
+                {
+                  "id": "NS3W",
+                  "widthOverrun": 0,
+                  "height": 106.203125
+                },
+                {
+                  "id": "Q5UP",
+                  "widthOverrun": 0,
+                  "height": 110.609375
+                }
+              ]
+            },
+            {
+              "region": "column2",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "6K5K",
+                  "widthOverrun": 0,
+                  "height": 146.328125
+                },
+                {
+                  "id": "45UE",
+                  "widthOverrun": 0,
+                  "height": 106.203125
+                },
+                {
+                  "id": "XCNC",
+                  "widthOverrun": 0,
+                  "height": 106.203125
+                },
+                {
+                  "id": "32JM",
+                  "widthOverrun": 0,
+                  "height": 86.0625
+                },
+                {
+                  "id": "SG2J",
+                  "widthOverrun": 0,
+                  "height": 40.28125
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "page": 25,
+          "id": "Y48B",
+          "title": "Fremen: free spice strength and allies",
+          "regions": [
+            {
+              "region": "column1",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "GV84",
+                  "widthOverrun": 0,
+                  "height": 126.34375
+                },
+                {
+                  "id": "GBU6",
+                  "widthOverrun": 0,
+                  "height": 130.75
+                },
+                {
+                  "id": "U43B",
+                  "widthOverrun": 0,
+                  "height": 106.203125
+                }
+              ]
+            },
+            {
+              "region": "column2",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "LHPE",
+                  "widthOverrun": 0,
+                  "height": 126.34375
+                },
+                {
+                  "id": "NVD8",
+                  "widthOverrun": 0,
+                  "height": 106.203125
+                },
+                {
+                  "id": "ZLXG",
+                  "widthOverrun": 0,
+                  "height": 40.28125
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "page": 26,
+          "id": "58EY",
+          "title": "Emperor: alliance and revival changes",
+          "regions": [
+            {
+              "region": "column1",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "VPL2",
+                  "widthOverrun": 0,
+                  "height": 106.203125
+                },
+                {
+                  "id": "RUSC",
+                  "widthOverrun": 0,
+                  "height": 106.203125
+                },
+                {
+                  "id": "FH9N",
+                  "widthOverrun": 0,
+                  "height": 130.75
+                }
+              ]
+            },
+            {
+              "region": "column2",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "YFR7",
+                  "widthOverrun": 0,
+                  "height": 106.203125
+                },
+                {
+                  "id": "3GKY",
+                  "widthOverrun": 0,
+                  "height": 146.484375
+                },
+                {
+                  "id": "7XN3",
+                  "widthOverrun": 0,
+                  "height": 110.609375
+                },
+                {
+                  "id": "XX94",
+                  "widthOverrun": 0,
+                  "height": 40.28125
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "page": 27,
+          "id": "MJUN",
+          "title": "Atreides: Prescience and Kwisatz Haderach",
+          "regions": [
+            {
+              "region": "column1",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "A7LV",
+                  "widthOverrun": 0,
+                  "height": 126.34375
+                },
+                {
+                  "id": "QQVM",
+                  "widthOverrun": 0,
+                  "height": 86.0625
+                }
+              ]
+            },
+            {
+              "region": "column2",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "ZAD3",
+                  "widthOverrun": 0,
+                  "height": 86.0625
+                },
+                {
+                  "id": "DNV6",
+                  "widthOverrun": 0,
+                  "height": 110.609375
+                },
+                {
+                  "id": "8CX6",
+                  "widthOverrun": 0,
+                  "height": 106.203125
+                },
+                {
+                  "id": "VRZS",
+                  "widthOverrun": 0,
+                  "height": 106.203125
+                },
+                {
+                  "id": "J2RA",
+                  "widthOverrun": 0,
+                  "height": 60.421875
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "page": 28,
+          "id": "PJHY",
+          "title": "Harkonnen: redraw and exchange",
+          "regions": [
+            {
+              "region": "column1",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "N6UV",
+                  "widthOverrun": 0,
+                  "height": 126.34375
+                },
+                {
+                  "id": "MC3M",
+                  "widthOverrun": 0,
+                  "height": 146.328125
+                },
+                {
+                  "id": "B94A",
+                  "widthOverrun": 0,
+                  "height": 110.609375
+                }
+              ]
+            },
+            {
+              "region": "column2",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "V3EN",
+                  "widthOverrun": 0,
+                  "height": 146.328125
+                },
+                {
+                  "id": "DHY9",
+                  "widthOverrun": 0,
+                  "height": 40.28125
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "page": 29,
+          "id": "3NRG",
+          "title": "Guild: shipping, rates and special victory",
+          "regions": [
+            {
+              "region": "column1",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "S3YH",
+                  "widthOverrun": 0,
+                  "height": 65.921875
+                },
+                {
+                  "id": "YWVL",
+                  "widthOverrun": 0,
+                  "height": 106.203125
+                },
+                {
+                  "id": "GERR",
+                  "widthOverrun": 0,
+                  "height": 150.890625
+                },
+                {
+                  "id": "WBCR",
+                  "widthOverrun": 0,
+                  "height": 106.203125
+                },
+                {
+                  "id": "HUAK",
+                  "widthOverrun": 0,
+                  "height": 126.34375
+                }
+              ]
+            },
+            {
+              "region": "column2",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "Y95R",
+                  "widthOverrun": 0,
+                  "height": 106.203125
+                },
+                {
+                  "id": "UT82",
+                  "widthOverrun": 0,
+                  "height": 86.0625
+                },
+                {
+                  "id": "C54U",
+                  "widthOverrun": 0,
+                  "height": 106.203125
+                },
+                {
+                  "id": "83NB",
+                  "widthOverrun": 0,
+                  "height": 86.0625
+                },
+                {
+                  "id": "Z7TK",
+                  "widthOverrun": 0,
+                  "height": 40.28125
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "page": 30,
+          "id": "PYVH",
+          "title": "Two optional variants",
+          "regions": [
+            {
+              "region": "column1",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "SSCZ",
+                  "widthOverrun": 0,
+                  "height": 106.203125
+                },
+                {
+                  "id": "YLS8",
+                  "widthOverrun": 0,
+                  "height": 306.734375
+                },
+                {
+                  "id": "83AY",
+                  "widthOverrun": 0,
+                  "height": 126.1875
+                },
+                {
+                  "id": "VBAG",
+                  "widthOverrun": 0,
+                  "height": 106.203125
+                }
+              ]
+            },
+            {
+              "region": "column2",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "4B34",
+                  "widthOverrun": 0,
+                  "height": 126.34375
+                },
+                {
+                  "id": "CVRL",
+                  "widthOverrun": 0,
+                  "height": 86.0625
+                },
+                {
+                  "id": "EJ72",
+                  "widthOverrun": 0,
+                  "height": 110.609375
+                },
+                {
+                  "id": "URV8",
+                  "widthOverrun": 0,
+                  "height": 20.140625
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "page": 31,
+          "id": "QACH",
+          "title": "Announced expansion changes",
+          "regions": [
+            {
+              "region": "content",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "7JTY",
+                  "widthOverrun": 0,
+                  "height": 86.0625
+                },
+                {
+                  "id": "JZV2",
+                  "widthOverrun": 0,
+                  "height": 432.09375
+                },
+                {
+                  "id": "6AJD",
+                  "widthOverrun": 0,
+                  "height": 90.46875
+                },
+                {
+                  "id": "4HHB",
+                  "widthOverrun": 0,
+                  "height": 40.28125
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "page": 32,
+          "id": "83PL",
+          "title": "Compatibility: cards and battle effects",
+          "regions": [
+            {
+              "region": "column1",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "K8NW",
+                  "widthOverrun": 0,
+                  "height": 370.5
+                }
+              ]
+            },
+            {
+              "region": "column2",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "EXRA",
+                  "widthOverrun": 0,
+                  "height": 126.34375
+                },
+                {
+                  "id": "PSMW",
+                  "widthOverrun": 0,
+                  "height": 86.0625
+                },
+                {
+                  "id": "HL78",
+                  "widthOverrun": 0,
+                  "height": 106.203125
+                },
+                {
+                  "id": "6WJ5",
+                  "widthOverrun": 0,
+                  "height": 40.28125
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "page": 33,
+          "id": "HTSM",
+          "title": "Compatibility: modules and reference decks",
+          "regions": [
+            {
+              "region": "column1",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "XBBA",
+                  "widthOverrun": 0,
+                  "height": 350.359375
+                }
+              ]
+            },
+            {
+              "region": "column2",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "D2EG",
+                  "widthOverrun": 0,
+                  "height": 310.078125
+                },
+                {
+                  "id": "HMWF",
+                  "widthOverrun": 0,
+                  "height": 60.421875
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "page": 34,
+          "id": "AF59",
+          "title": "Appendix: unclear movement and battle rules",
+          "regions": [
+            {
+              "region": "column1",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "LAC9",
+                  "widthOverrun": 0,
+                  "height": 148.53125
+                },
+                {
+                  "id": "QLG6",
+                  "widthOverrun": 0,
+                  "height": 130.75
+                },
+                {
+                  "id": "XBRZ",
+                  "widthOverrun": 0,
+                  "height": 148.53125
+                },
+                {
+                  "id": "PH7R",
+                  "widthOverrun": 0,
+                  "height": 108.25
+                }
+              ]
+            },
+            {
+              "region": "column2",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "N4KG",
+                  "widthOverrun": 0,
+                  "height": 168.671875
+                },
+                {
+                  "id": "5CF2",
+                  "widthOverrun": 0,
+                  "height": 148.53125
+                },
+                {
+                  "id": "EMTV",
+                  "widthOverrun": 0,
+                  "height": 128.390625
+                },
+                {
+                  "id": "BXXB",
+                  "widthOverrun": 0,
+                  "height": 40.28125
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "page": 35,
+          "id": "93XK",
+          "title": "Appendix: unclear card and victory rules",
+          "regions": [
+            {
+              "region": "column1",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "6KDB",
+                  "widthOverrun": 0,
+                  "height": 128.390625
+                },
+                {
+                  "id": "U899",
+                  "widthOverrun": 0,
+                  "height": 128.390625
+                },
+                {
+                  "id": "FBNY",
+                  "widthOverrun": 0,
+                  "height": 148.53125
+                },
+                {
+                  "id": "7Z8D",
+                  "widthOverrun": 0,
+                  "height": 128.390625
+                },
+                {
+                  "id": "Z4WK",
+                  "widthOverrun": 0,
+                  "height": 128.390625
+                }
+              ]
+            },
+            {
+              "region": "column2",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "MFHJ",
+                  "widthOverrun": 0,
+                  "height": 108.25
+                },
+                {
+                  "id": "7ZCG",
+                  "widthOverrun": 0,
+                  "height": 86.0625
+                },
+                {
+                  "id": "M83Q",
+                  "widthOverrun": 0,
+                  "height": 106.203125
+                },
+                {
+                  "id": "L9NV",
+                  "widthOverrun": 0,
+                  "height": 65.921875
+                },
+                {
+                  "id": "H2L5",
+                  "widthOverrun": 0,
+                  "height": 40.28125
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "page": 36,
+          "id": "QRKV",
+          "title": "Sources",
+          "regions": [
+            {
+              "region": "column1",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "J36A",
+                  "widthOverrun": 0,
+                  "height": 126.34375
+                },
+                {
+                  "id": "TZ4L",
+                  "widthOverrun": 0,
+                  "height": 65.921875
+                }
+              ]
+            },
+            {
+              "region": "column2",
+              "overrun": 0,
+              "blocks": [
+                {
+                  "id": "4NJW",
+                  "widthOverrun": 0,
+                  "height": 106.203125
+                },
+                {
+                  "id": "MFUW",
+                  "widthOverrun": 0,
+                  "height": 40.28125
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "proseWordsBefore": 7263,
+  "proseWordsAfter": 5149,
+  "removedNativeBlocks": 72,
+  "sourceSha256": "04ce5ebe08c078ebe905a47b1b1785e18a3aa8a4261f53e403e7e0d4df973f14",
+  "productionChecks": {
+    "htmlPages": 36,
+    "missingImages": 0,
+    "ownTraitorAside": false,
+    "prefacePage": false,
+    "pdfProseFieldsChecked": 205,
+    "unmatchedProseBoundaries": []
+  }
+}
