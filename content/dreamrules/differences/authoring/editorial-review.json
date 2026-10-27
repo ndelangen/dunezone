@@ -51,5 +51,14 @@
       "Supplies and Political Marriages remain optional card plays in the battle sequence.",
       "Leader commitment remains distinct from locking battle plans and from Truthtrance promises."
     ]
+  },
+  "fateNameClarification": {
+    "date": "2026-10-27",
+    "record": "fate-name-clarification-2026-10-27.json",
+    "changes": [
+      "Explicitly named Blackmail and Stone Burner as faction Fates in the battle instructions and faction chapters.",
+      "Added the Blackmail and Stone Burner Treachery Cards to the expansion-card exclusions.",
+      "Kept the 45-card inventory unchanged."
+    ]
   }
 }

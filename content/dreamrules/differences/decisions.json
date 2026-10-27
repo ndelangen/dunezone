@@ -8,6 +8,13 @@
       "issue": "https://github.com/ndelangen/dunezone/issues/1838",
       "comment": "https://github.com/ndelangen/dunezone/issues/1838#issuecomment-6442547562",
       "scope": "Count only. No decision about draw-pile structure or the opening shuffle recipe."
+    },
+    {
+      "id": "DR-2026-10-27-02",
+      "subject": "Stone Burner Fate and Treachery Card",
+      "decision": "Keep the Bene Tleilax Stone Burner Fate. Exclude the Stone Burner Treachery Card.",
+      "source": "Direct clarification from Norbert in this authoring conversation, 27 October 2026: Keep the Fate; exclude the card.",
+      "scope": "The Fate remains in the summary, battle timing and Bene Tleilax rules. The Treachery Card is excluded from the Dreamrules deck."
     }
   ]
 }

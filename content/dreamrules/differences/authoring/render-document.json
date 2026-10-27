@@ -299,7 +299,7 @@
               "id": "VHHW",
               "kind": "text",
               "name": "Remove the old cards that do not belong",
-              "text": "Remove Harvester and the Thumper Treachery Card. If you use GF9 expansion cards, also remove Shield Snooper, Poison Blade, Amal, Artillery Strike and Poison Tooth. Fremen uses Thumper tokens instead. Sandtrout and other expansion modules are outside this game."
+              "text": "Remove Harvester and the Thumper Treachery Card. If you use GF9 expansion cards, also remove Shield Snooper, Poison Blade, Amal, Artillery Strike, Poison Tooth, Blackmail and Stone Burner. Fremen uses Thumper tokens instead. Sandtrout and other expansion modules are outside this game."
             },
             {
               "id": "GZNU",
@@ -732,7 +732,7 @@
               "id": "BFEB",
               "kind": "text",
               "name": "Re-answer a changed dial",
-              "text": "If Atreides has already asked for the dial and Karama then changes Sardaukar, Fedaykin or Fremen support, the target may re\\-answer Prescience. Stone Burner can also change the answer. The other disclosed parts stay locked."
+              "text": "If Atreides has already asked for the dial and Karama then changes Sardaukar, Fedaykin or Fremen support, the target may re\\-answer Prescience. Bene Tleilax's Stone Burner Fate can also change the answer. The other disclosed parts stay locked."
             },
             {
               "id": "884W",
@@ -758,7 +758,7 @@
               "id": "5BMF",
               "kind": "text",
               "name": "Before plans",
-              "text": "First play any Supplies or Political Marriages you want to use. This is also the Ixians' last chance to swap a card with their ally. The Voice comes before Battle Prescience. Blackmail and Stone Burner follow Prescience. Then give everyone a chance to respond before commitment."
+              "text": "First play any Supplies or Political Marriages you want to use. This is also the Ixians' last chance to swap a card with their ally. The Voice comes before Battle Prescience. Harkonnen's Blackmail Fate and Bene Tleilax's Stone Burner Fate follow Prescience. Then give everyone a chance to respond before commitment."
             },
             {
               "id": "QNR9",
@@ -1534,7 +1534,7 @@
               "id": "HTF9",
               "kind": "text",
               "name": "Fate reveals a whole plan",
-              "text": "After Prescience, before commitment, play Blackmail to make your own or your ally's opponent reveal its whole battle plan early. This replaces the old special Karama hand exchange."
+              "text": "After Prescience, before commitment, use your Blackmail Fate to make your own or your ally's opponent reveal its whole battle plan early. This replaces the old special Karama hand exchange."
             },
             {
               "id": "YQPY",
@@ -1957,7 +1957,7 @@
               "id": "83XR",
               "kind": "text",
               "name": "Fate removes support in one territory",
-              "text": "Before commitment, play Stone Burner. For the rest of Battle, troops in that territory cannot use spice support, including Fremen."
+              "text": "Before commitment, use your Stone Burner Fate. For the rest of Battle, troops in that territory cannot use spice support, including Fremen."
             },
             {
               "id": "K7W6",

@@ -5,7 +5,7 @@
   "tagged": true,
   "fieldsChecked": 176,
   "unmatchedProseBoundaries": [],
-  "pdfSha256": "9e10e3c4c1359ca8774fd722a4f0f9d5eaceeba3da1a3cbd37dc61c9731e25db",
+  "pdfSha256": "2d2b0c4708aeabf076984c8577180deceb613307c212a029100a70bee5c2cb6e",
   "method": "Native rulebook renderer printed by Chromium; Poppler raw text normalized to Unicode NFKC alphanumeric boundaries.",
   "scope": "Authored top-level text, question, answer, note and caption fields. Table rows and all pages receive separate visual checks.",
   "openQuestionNotesChecked": 10
