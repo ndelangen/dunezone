@@ -1,0 +1,169 @@
+{
+  "date": "2026-10-27",
+  "edition": 2,
+  "pages": 31,
+  "htmlFieldsChecked": 542,
+  "pdfProseFieldsChecked": 316,
+  "failures": [],
+  "missingImages": [],
+  "pdfSha256": "675cdbcc63c1a8e292939cfa45d63194e077bc2acc639247a68799a5e5417cad",
+  "htmlPageProof": [
+    {
+      "anchor": "cover",
+      "characters": 45,
+      "sha256": "a0ad168e88eb5489f993977b136bfb4e3401d3388a155c1526c93ba7f03ad1ed"
+    },
+    {
+      "anchor": "setup",
+      "characters": 1733,
+      "sha256": "a5663bcfc4484989c9a13255383cfb23687f94e3f127c49e3c86e95da5812c4d"
+    },
+    {
+      "anchor": "deck",
+      "characters": 1455,
+      "sha256": "96ab551d59bdfecadc8d330d857fa142c81fab4394b6d54a81fc76a9fa748af2"
+    },
+    {
+      "anchor": "nexus",
+      "characters": 1333,
+      "sha256": "80f011b4f6101b22fa0d93979f6d07b573f8ee8c18398d171011251b416e3cad"
+    },
+    {
+      "anchor": "mines",
+      "characters": 1145,
+      "sha256": "f05ddf3fccd7f65bed5cb1c981b9fc7d2de43cc2801208bea8a5e70b4038b921"
+    },
+    {
+      "anchor": "fate",
+      "characters": 1463,
+      "sha256": "2ddae28b3971b24e7a12408dd149ebc2fe764c625d415128f51422eaf99fe6d5"
+    },
+    {
+      "anchor": "karama",
+      "characters": 1410,
+      "sha256": "05530f051e9670a4ab16042153e4c371316081ff5427343acd39ef8cfc99f7e7"
+    },
+    {
+      "anchor": "battle-sequence",
+      "characters": 1792,
+      "sha256": "f11989d531c326548798ce2e538b91caaeac59f05a2fd4ac55820a0af83a5d77"
+    },
+    {
+      "anchor": "new-battle-cards",
+      "characters": 1138,
+      "sha256": "18f884ce31191e6c18faf505f207c1aa6a1a31b0b2344efb9eaa696140831939"
+    },
+    {
+      "anchor": "conditioning",
+      "characters": 1554,
+      "sha256": "097a6bb1720d907c71e9f7c49905efee3c2da89fc143a33f748b8d038cb4870c"
+    },
+    {
+      "anchor": "revival-and-information",
+      "characters": 1557,
+      "sha256": "710fa9959d213211ed7b7a651ab2a3ab154355774f027b4e01c178522995ac23"
+    },
+    {
+      "anchor": "truthtrance",
+      "characters": 1711,
+      "sha256": "e3c329073355972fea04b51e200fbb01116fac97e2e18c76cba286da90242376"
+    },
+    {
+      "anchor": "tech-tokens",
+      "characters": 1542,
+      "sha256": "acc6684833595aeab6dc3d6672c7f5625eb5dce755b06511ad677133b985b8f6"
+    },
+    {
+      "anchor": "victory",
+      "characters": 1637,
+      "sha256": "26b0512e4615f234101f5d9e900d06fb6e9afb8a257c7b01a007909fe6d66e9f"
+    },
+    {
+      "anchor": "sudden-death",
+      "characters": 1249,
+      "sha256": "3a55e90a9d31252e01d94ef0f554557174872d279198088f12d4f748f84ea8d2"
+    },
+    {
+      "anchor": "atreides",
+      "characters": 1188,
+      "sha256": "4f785ed3cf3cf479d31d8d3da3715ea0e926a651f9c21a1608ae2acbb5f69642"
+    },
+    {
+      "anchor": "harkonnen",
+      "characters": 1608,
+      "sha256": "4f06bf356908445cdd6c74084c69dd41e93a05da28f3c3f63792be0bc659b62b"
+    },
+    {
+      "anchor": "emperor",
+      "characters": 1618,
+      "sha256": "a96ac336532b621668a81514ea68b1288029b09d60c65a9883551fa329c53fd6"
+    },
+    {
+      "anchor": "guild",
+      "characters": 1743,
+      "sha256": "10bcbe41c1f3037a1d07952482eedf6a6af5f783f3102c3292734d2b8fe1e858"
+    },
+    {
+      "anchor": "fremen-storm",
+      "characters": 1538,
+      "sha256": "0e51f475c4aece9be07cc88f2e07b005dc718a68562fd78fdb767bd35b592445"
+    },
+    {
+      "anchor": "fremen-battle",
+      "characters": 1659,
+      "sha256": "cace97753cafe5980163a87121cab1959c46005ec0a68539fbf7c746fc008841"
+    },
+    {
+      "anchor": "bene-gesserit",
+      "characters": 1950,
+      "sha256": "4d25473eebfaddb789da4be9c1b69bbce086b4cacd9032fbe7a00295e60ea580"
+    },
+    {
+      "anchor": "bene-tleilax",
+      "characters": 2153,
+      "sha256": "bb55e083363cec3068741e36ed1edd5b6eee3cfbcb582d027827f8db7e97e527"
+    },
+    {
+      "anchor": "infiltration",
+      "characters": 2038,
+      "sha256": "47887945b8d9c638fa0a11e301f666f3ee4ce4be62421ab9f409d3609638ced9"
+    },
+    {
+      "anchor": "ixians",
+      "characters": 2032,
+      "sha256": "64ccfc0a888d2b14438b41e72df7fc3d556d35d9a3ce48a37fa954e587e5e0fe"
+    },
+    {
+      "anchor": "surveyor",
+      "characters": 1620,
+      "sha256": "b9fee997a61c915542e281225e8f3dddb26616db7e76aab0b29fdeaa8ff3642d"
+    },
+    {
+      "anchor": "karama-reference-a",
+      "characters": 1123,
+      "sha256": "68fb68fd4c38cf6c016528a91910305ce4ce9db3647f760a19d3f2d753af9636"
+    },
+    {
+      "anchor": "karama-reference-b",
+      "characters": 1345,
+      "sha256": "95e2ef2d47726e0e1ddf757d717bb7a5fbef75ddfb90fc4dfb5498c66e764c85"
+    },
+    {
+      "anchor": "karama-reference-c",
+      "characters": 1325,
+      "sha256": "385cc0ef5c1bd40a4266ebd220a028666586bac8ba80dd2a728a26660ac6c0d2"
+    },
+    {
+      "anchor": "questions",
+      "characters": 1336,
+      "sha256": "30b0175cc8fa0fb831b3a6b91ebbc6ee4b0cd8bb9027256d5ff8d2671bccf674"
+    },
+    {
+      "anchor": "sources",
+      "characters": 617,
+      "sha256": "b5e59db6ffdbb61ca848bc0d2c5796c1112dac1de5aab44bd09c7927ba720ba1"
+    }
+  ],
+  "pdfFullFieldsChecked": 542,
+  "method": "Every authored text, heading, note, table heading and table cell was compared with its own HTML and PDF page after Unicode NFKC and alphanumeric normalization."
+}

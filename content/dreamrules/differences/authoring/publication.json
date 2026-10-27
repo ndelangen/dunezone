@@ -18,14 +18,23 @@
     "editionAndPageCount": true,
     "page2Reference": "see page 17",
     "page5DuplicateHeadingRemoved": true,
-    "page14Note": "Count the token point and Shield Wall here too, unless you left them out to break a tie."
+    "page14Note": "Count the token point and Shield Wall here too, unless you left them out to break a tie.",
+    "htmlPages": 31,
+    "pdfPages": 31,
+    "htmlFields": 542,
+    "pdfProseFields": 316,
+    "contentMismatches": 0,
+    "pdfFullFields": 542
   },
   "artifacts": {
     "html": {
-      "status": "preparing"
+      "status": "ready",
+      "url": "https://dune.zone/published/rulebooks/pd796mge4ce9yq3k70faf8ad818h2bjx/editions/2/rulebook.html"
     },
     "pdf": {
-      "status": "preparing"
+      "status": "ready",
+      "url": "https://dune.zone/published/rulebooks/pd796mge4ce9yq3k70faf8ad818h2bjx/editions/2/rulebook.pdf",
+      "sha256": "675cdbcc63c1a8e292939cfa45d63194e077bc2acc639247a68799a5e5417cad"
     }
   }
 }
