@@ -158,7 +158,8 @@ async function draftCandidates(ctx: QueryCtx, linked: ReadonlySet<Id<'factions'>
   const newest = ctx.db
     .query('factions')
     .withIndex('by_deleted', (q) => q.eq('is_deleted', false))
-    .order('desc')[Symbol.asyncIterator]();
+    .order('desc')
+    [Symbol.asyncIterator]();
   /* Linked IDs reserve their original slots and order until the scan or lookup supplies their rows. */
   const scan = async () => {
     while (chosen.size < DRAFTABLE_FACTION_LIMIT) {
