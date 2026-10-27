@@ -1,0 +1,27 @@
+/* The ledger: a fixed column for each type's name and action, its pieces beside it, rules running edge to edge between types. */
+.rows {
+  display: grid;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 6px 0;
+  border-bottom: 1px solid var(--edge);
+}
+
+.row:first-child {
+  border-top: 1px solid var(--edge);
+}
+
+.head {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.footer {
+  padding-top: 4px;
+}

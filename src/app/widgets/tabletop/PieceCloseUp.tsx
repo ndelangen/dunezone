@@ -15,6 +15,8 @@ import styles from './TabletopScene.module.css';
 const CARD_HEIGHT_PX = 380;
 const CURSOR_GAP_PX = 28;
 const EDGE_PX = 12;
+/* Room kept under a described token for its words, so the box stays clear of the window's bottom edge. */
+const DESCRIPTION_HEIGHT_PX = 120;
 
 type Point = { x: number; y: number };
 
@@ -183,12 +185,15 @@ function CloseUp({
   const box = useRef<HTMLDivElement>(null);
   const shown = alt && piece && item && src ? piece : null;
   const isCard = shown?.kind === 'card';
-  /* A disc token stays a disc, as it lies on the table. */
-  const round = shown != null && !isCard && tokenBoxRatio(shown) == null;
+  /* A tech token says what it does under its face, as its tooltip in the inventory does. */
+  const description = shown && item?.faceUp !== false ? item?.artwork?.description : undefined;
+  /* A disc token stays a disc, as it lies on the table, unless words go under it. */
+  const round = shown != null && !isCard && !description && tokenBoxRatio(shown) == null;
   const width = isCard ? cardWidthFor(CARD_HEIGHT_PX) : TOKEN_SIZE_PX;
   const height = isCard ? CARD_HEIGHT_PX : TOKEN_SIZE_PX;
   const count = shown ? pieceCount(shown) : 0;
-  useFollowPointer(box, pointer, area, shown ? { width, height: height + (count > 1 && !round ? 40 : 16) } : null);
+  const below = (count > 1 && !round ? 24 : 0) + (description ? DESCRIPTION_HEIGHT_PX : 0);
+  useFollowPointer(box, pointer, area, shown ? { width, height: height + 16 + below } : null);
   if (!shown || !item || !src) {
     return null;
   }
@@ -205,6 +210,11 @@ function CloseUp({
         radius="10px"
       />
       {count > 1 ? <div className={styles.closeUpCount}>×{count}</div> : null}
+      {description ? (
+        <p className={styles.closeUpDescription} style={{ width }}>
+          {description}
+        </p>
+      ) : null}
     </div>,
     document.body
   );

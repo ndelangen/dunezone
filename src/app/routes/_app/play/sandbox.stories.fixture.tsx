@@ -229,7 +229,13 @@ export function withTechTokens(stored: StoredSnapshot, drawn: readonly string[] 
       color: '#d5ba8c',
       accent: '#ead9bb',
       /* The bundle prints every back the same as its front. */
-      items: [{ id: `${id}-1`, faceUp: true, artwork: { front: art, back: art, name: token.name, type: token.type } }],
+      items: [
+        {
+          id: `${id}-1`,
+          faceUp: true,
+          artwork: { front: art, back: art, name: token.name, type: token.type, description: token.about },
+        },
+      ],
       stackKey: `token:${token.assetId}`,
       position: [-25, 0, -25],
       orientation: 0,

@@ -60,6 +60,15 @@
   color: var(--color-text);
 }
 
+/* What a tech token does, under its face. */
+.closeUpDescription {
+  margin: 0;
+  font-size: var(--mantine-font-size-sm);
+  line-height: 1.4;
+  color: var(--color-text);
+  white-space: pre-line;
+}
+
 /* A peek, held up to the peeker alone: flat faces over the table, as a close look shows them. */
 .peek {
   position: absolute;
