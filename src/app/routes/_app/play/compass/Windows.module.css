@@ -219,7 +219,9 @@
   min-height: 0;
   overflow: auto;
   overscroll-behavior: contain;
-  padding: 0.9rem 1rem 1rem;
+  --window-body-pad-block: 0.9rem;
+  --window-body-pad-inline: 1rem;
+  padding: var(--window-body-pad-block) var(--window-body-pad-inline) 1rem;
   --nested-tabs-panel-inset: 1rem;
 }
 
