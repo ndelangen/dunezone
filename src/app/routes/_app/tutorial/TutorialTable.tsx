@@ -15,13 +15,15 @@ import type { ChapterScript, TablePlayers } from './chapterScripts/chapterScript
 import setup from './setup/setup.json';
 import { startAt, withOrigin } from './setup/tutorialSetup';
 import type { TutorialSetup } from './setup/tutorialSetup';
+import { LocalCatalogue } from './table/localCatalogue';
 import { localRuntime } from './table/localRuntime';
 import { LocalTable } from './table/localTable';
 import { TutorialGuide } from './TutorialGuide';
 
 /*
  * A chapter's live table: the Play table itself, connected to a game Worker table running in the page from the chapter's
- * checkpoint of the shared setup. Nothing reaches the server, and Reset puts the table back as the chapter started.
+ * checkpoint of the shared setup. Nothing reaches the game server; only a catalogue pick reads the public catalogue, as the picker does.
+ * Reset puts the table back as the chapter started.
  * This module carries the Worker's table code and the setup, so the chapter page loads it lazily, and only in the browser.
  */
 
@@ -67,7 +69,7 @@ function useTutorialTable(setup: TutorialSetup, chapter: ChapterScript) {
       return local;
     };
     const holder = { current: open() };
-    const runtime = localRuntime(() => holder.current, withOrigin(setup.factions, origin));
+    const runtime = localRuntime(() => holder.current, withOrigin(setup.factions, origin), new LocalCatalogue(origin));
     /* The guide asks every frame, so the table is projected again only once its room has moved on. */
     let seen: { room: unknown; snapshot: GameSnapshot } | undefined;
     const control: TutorialTableControl = {

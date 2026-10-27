@@ -1,12 +1,8 @@
-import { isDraftAction } from '@shared/play/drafting';
+import type { StoredSpawnContents } from '@shared/play/inventory';
 import type { LogEntry, LogTab } from '@shared/play/log';
-import { isSeatAction } from '@shared/play/participation';
 import type { ClientMessage, GameSnapshot, ServerMessage, Viewer } from '@shared/play/protocol';
 import { GameRejection } from '@shared/play/rejection';
-import { isRemovalAction } from '@shared/play/removal';
 import { isResultAction } from '@shared/play/result';
-import { SPECTATOR_SEAT } from '@shared/play/schema';
-import { isSwapAction } from '@shared/play/swapping';
 
 import { expireBattle } from '../../../../../../workers/game/battle';
 import { applyResult, settleEnding } from '../../../../../../workers/game/result';
@@ -24,8 +20,9 @@ import type { RecordedDeal } from './localSession';
 /*
  * The game Worker's own table (`Room`) running in the browser, from a stored state: pieces move, cards draw, phases change
  * and battles resolve exactly as the Worker decides, for whichever seat the page is viewed as. Determine winner and its result
- * apply as the session applies them, since they change only the stored state. A table that starts before the deal also runs
- * the session's seating, draft, trading and seat requests (`LocalSession`). Removal votes and the log stay as they were stored.
+ * apply as the session applies them, since they change only the stored state. Every table also runs the session's seating,
+ * seat requests and removal votes, and one that starts before the deal its draft and trading (`LocalSession`).
+ * The log stays as it was stored.
  * The tutorial's chapters and the Play sandbox story both play on it.
  */
 
@@ -50,19 +47,13 @@ export type TableStart = Readonly<{
   draft?: Readonly<{ minimumPlayers: number; deal: RecordedDeal }>;
 }>;
 
-/* The session commits these families outside the table, so a local table refuses them. */
-const SESSION_ONLY = [isDraftAction, isSwapAction, isSeatAction, isRemovalAction];
-const sessionOnly = (action: { kind: string }) =>
-  action.kind === 'spawn-request' || SESSION_ONLY.some((family) => family(action));
-
 /** One live table started from a stored state, answering the messages the page sends as the game Worker's session would. */
 export class LocalTable {
   readonly room: Room;
   private readonly projection = new RoomProjection('local');
   private readonly opening: TableStart;
-  private readonly factions: Map<string, string>;
-  /* Before the deal, who sits where and what they play is the session's to say. */
-  private readonly session: LocalSession | undefined;
+  /* Who sits where and what they play is the session's to say, as in the Worker. */
+  private readonly session: LocalSession;
   /* The page's player, who keeps their account as their seat changes. */
   private readonly learner: string;
   /* The page's player's carries that a take has added to, and the carries they have set down. */
@@ -76,34 +67,25 @@ export class LocalTable {
   seat: string;
   /** Why the room refused the latest message it refused, for a test to assert on. */
   refusal: string | undefined;
+  /* What the catalogue captured for the spawn request being committed, as the Worker hands its capture to the commit. */
+  private spawnContents: StoredSpawnContents | undefined;
 
   constructor(start: TableStart) {
     this.opening = start;
     const { stored } = start;
-    const seatFaction = new Map(
-      stored.roster?.seats.flatMap((entry) => (entry.faction ? [[entry.id, entry.faction.id]] : []))
-    );
-    this.factions = new Map(
-      Object.values(start.viewers).flatMap((viewer) => {
-        const faction = seatFaction.get(viewer.viewerSeat);
-        return faction ? [[viewer.userId, faction]] : [];
-      })
-    );
     this.seat = start.viewers[start.seat] ? start.seat : 'seat-1';
     this.learner = start.viewers[this.seat]!.userId;
-    this.session = start.draft
-      ? new LocalSession({
-          stored,
-          viewers: Object.values(start.viewers),
-          players: start.players,
-          minimumPlayers: start.draft.minimumPlayers,
-          deal: start.draft.deal,
-        })
-      : undefined;
+    this.session = new LocalSession({
+      stored,
+      viewers: Object.values(start.viewers),
+      players: start.players,
+      minimumPlayers: start.draft?.minimumPlayers ?? 0,
+      deal: start.draft?.deal ?? [],
+    });
     /* No phase cooldown, as on the test stack: a local table is for trying things. */
     this.room = new Room(
       stored,
-      () => stored.controls?.seats ?? [],
+      () => this.session.actors.seats(),
       (userId) => this.factionFor(userId),
       undefined,
       0
@@ -111,15 +93,12 @@ export class LocalTable {
   }
 
   private factionFor(userId: string) {
-    return this.session ? this.session.factionOf(userId) : this.factions.get(userId);
+    return this.session.factionOf(userId);
   }
 
   /** Every seat a player sits in; the spectator watches and acts for no one. */
   seats() {
-    if (this.session) {
-      return this.session.actors.seats();
-    }
-    return Object.keys(this.opening.viewers).filter((seat) => seat !== SPECTATOR_SEAT);
+    return this.session.actors.seats();
   }
 
   /* As the session does on every commit, an open Determine winner closes once the table leaves Mentat Pause. */
@@ -129,10 +108,7 @@ export class LocalTable {
 
   viewer(seat = this.seat): Viewer {
     const session = this.session;
-    if (!session) {
-      return this.opening.viewers[seat]!;
-    }
-    /* Seats change hands before the deal, so a seat's viewer is whoever holds it now, the page's own player first. */
+    /* Seats change hands, so a seat's viewer is whoever holds it now, the page's own player first. */
     const viewers = Object.values(this.opening.viewers).sort((a, b) =>
       a.userId === this.learner ? -1 : b.userId === this.learner ? 1 : 0
     );
@@ -151,13 +127,12 @@ export class LocalTable {
       epoch: room.epoch,
       snapshot: {
         ...projected,
-        /* Who sits where comes from the session's directory in a real game; a local table keeps the recorded names. */
-        controls:
-          projected.controls &&
-          (this.session
-            ? this.session.forViewer(projected.controls, viewer)
-            : { ...projected.controls, players: this.opening.players, seatRequests: [] }),
-        ...(this.opening.removalVotes ? { removalVotes: this.opening.removalVotes } : {}),
+        /* Who sits where comes from the session's directory, as in a real game. */
+        controls: projected.controls && this.session.forViewer(projected.controls, viewer),
+        /* A recorded table's votes show as they were stored; the votes opened here follow them. */
+        ...(room.snapshot.stage
+          ? { removalVotes: [...(this.opening.removalVotes ?? []), ...this.session.removalVotes()] }
+          : {}),
       },
       carries: this.projection.carries(room.publicCarries(), room.snapshot),
       pointers: [...room.pointers.values()],
@@ -300,7 +275,7 @@ export class LocalTable {
    */
   private commit(message: MessageOf<'command' | 'drop'>, viewer: Viewer, own: boolean) {
     const room = this.room;
-    if (message.type === 'command' && this.session && isSessionAction(message.action)) {
+    if (message.type === 'command' && isSessionAction(message.action)) {
       room.assertRevision(message.action, message.expectedRevision);
       room.accept(this.session.commit(room.snapshot, viewer, message.action, Date.now()));
       this.seat = this.session.seatOf(this.learner);
@@ -319,7 +294,9 @@ export class LocalTable {
     const next = storedSnapshotSchema.parse(
       message.type === 'drop'
         ? room.drop(viewer, message.carryId, message)
-        : room.command(viewer, this.tableAction(message.action), message.expectedRevision)
+        : message.action.kind === 'spawn-request'
+          ? room.publicCommand(viewer, message.action, this.spawnContents)
+          : room.command(viewer, this.tableAction(message.action), message.expectedRevision)
     );
     const completedCarryId = message.type === 'drop' ? message.carryId : undefined;
     const clearAll = message.type === 'command' && message.action.kind === 'reset';
@@ -335,12 +312,22 @@ export class LocalTable {
     this.deliver(this.frame(this.seat, own ? message.commandId : undefined));
   }
 
-  private tableAction(action: MessageOf<'command'>['action']): RoomAction {
-    if (sessionOnly(action)) {
-      throw new GameRejection(
-        'This table runs the table only. Drafting, seats, votes and catalogue requests need a real game.'
-      );
+  /** A catalogue request, committed with what the page's catalogue captured for it, as the Worker commits one after its capture. */
+  requestSpawn(message: MessageOf<'command'>, contents: StoredSpawnContents) {
+    this.spawnContents = contents;
+    try {
+      this.receive(message);
+    } finally {
+      this.spawnContents = undefined;
     }
+  }
+
+  /** A captured asset as the page's catalogue answer shows it. */
+  projectContents(contents: StoredSpawnContents) {
+    return this.projection.contents(contents);
+  }
+
+  private tableAction(action: MessageOf<'command'>['action']): RoomAction {
     return internalAction(this.room.snapshot, action as RoomAction);
   }
 
@@ -381,12 +368,12 @@ export class LocalTable {
   private scheduleTradingClose() {
     clearTimeout(this.tradingTimer);
     const trading = this.room.snapshot.swapping;
-    if (!this.session || this.room.snapshot.stage !== 'swapping' || !trading || trading.closed) {
+    if (this.room.snapshot.stage !== 'swapping' || !trading || trading.closed) {
       return;
     }
     this.tradingTimer = setTimeout(
       () => {
-        const closed = this.session?.expireTrading(this.room.snapshot, Date.now());
+        const closed = this.session.expireTrading(this.room.snapshot, Date.now());
         if (closed) {
           this.room.accept(closed);
           this.deliver(this.frame());
@@ -401,7 +388,7 @@ export class LocalTable {
 
   /** Whether the page can be viewed as a seat: one recorded, or one someone holds now. */
   private seatable(seat: string) {
-    return Boolean(this.opening.viewers[seat]) || Boolean(this.session?.actors.holderOf(seat));
+    return Boolean(this.opening.viewers[seat]) || Boolean(this.session.actors.holderOf(seat));
   }
 
   /** Stops the countdown timers when the page leaves. */

@@ -2,11 +2,17 @@ import type { PublicFaction } from '@shared/play/capture';
 import { LOG_PAGE_SIZE } from '@shared/play/log';
 import { clientMessageSchema, KEEPALIVE_PING, KEEPALIVE_PONG } from '@shared/play/protocol';
 import type { ServerMessage } from '@shared/play/protocol';
+import { GameRejection } from '@shared/play/rejection';
 
+import type { GameCatalogue } from '../../../../../../workers/game/catalogue';
 import { browserGameRuntime } from '../../play/multiplayer/gameRuntime';
 import type { GameRuntime, GameSocket } from '../../play/multiplayer/gameRuntime';
 import { LocalConversations } from './localConversations';
 import type { LocalTable, TableMessage } from './localTable';
+
+/* A capture's refusal is the reason a player reads; anything else is the Worker's generic answer. */
+const refusal = (error: unknown) =>
+  error instanceof GameRejection ? error.message : 'The catalogue could not be read. Try again.';
 
 /** A page's local game: its browser effects, and what a chapter's Reset needs to start the page's connection afresh. */
 export type LocalRuntime = GameRuntime &
@@ -23,13 +29,15 @@ export type LocalRuntime = GameRuntime &
 
 /*
  * The browser effects of a game whose table runs in the page: its socket is answered by a local table, as the game Worker
- * answers a real one, and it admits itself, so nothing reaches Convex or the Worker.
+ * answers a real one, and it admits itself, so nothing reaches the Worker. A catalogue pick is captured by `catalogue`,
+ * which reads the public catalogue as the picker does.
  * `table` is read on every message, so a chapter's Reset can swap the table without the page reconnecting.
  * Its conversations outlive a Reset, as a game's chat outlives anything moved on its table.
  */
 export function localRuntime(
   table: () => LocalTable,
-  factions: Readonly<Partial<Record<string, PublicFaction | null>>>
+  factions: Readonly<Partial<Record<string, PublicFaction | null>>>,
+  catalogue: Pick<GameCatalogue, 'capture'>
 ): LocalRuntime {
   let socket: LocalSocket | null = null;
   const conversations = new LocalConversations(table, (message) => queueMicrotask(() => socket?.deliver(message)));
@@ -83,12 +91,18 @@ export function localRuntime(
         case 'history':
           this.replayed = true;
           return this.later({ type: 'history', step: 0, lastStep: 0, snapshot: table().frame().snapshot });
+        /* The catalogue answers after its read, as the Worker's capture does; a refusal is the answer's error. */
         case 'catalogue':
-          return this.later({
-            type: 'catalogue',
-            requestId: message.requestId,
-            error: 'Bringing your own pieces is not part of this chapter.',
-          });
+          return void catalogue.capture(message.selection).then(
+            (contents) =>
+              this.deliver({
+                type: 'catalogue',
+                requestId: message.requestId,
+                contents: table().projectContents(contents),
+              }),
+            (error: unknown) =>
+              this.deliver({ type: 'catalogue', requestId: message.requestId, contents: null, error: refusal(error) })
+          );
         case 'log-history': {
           const entries = (table().log()[message.tab] ?? []).filter((entry) => entry.sequence < message.before);
           return this.later({
@@ -99,6 +113,16 @@ export function localRuntime(
             more: entries.length > LOG_PAGE_SIZE,
           });
         }
+        /* A catalogue request commits once its asset is captured, as the Worker commits it, and a refusal answers the command. */
+        case 'command':
+          if (message.action.kind === 'spawn-request') {
+            return void catalogue.capture(message.action).then(
+              (contents) => table().requestSpawn(message, contents),
+              (error: unknown) =>
+                this.deliver({ type: 'rejected', requestId: message.commandId, message: refusal(error) })
+            );
+          }
+          return void table().receive(message);
         default:
           table().receive(message as TableMessage);
       }

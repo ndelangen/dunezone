@@ -7,6 +7,7 @@ import { decksAndDealing } from './decksAndDealing';
 import { draftAndTrade } from './draftAndTrade';
 import { endingAGame } from './endingAGame';
 import { lookingAround } from './lookingAround';
+import { moderation } from './moderation';
 import { movingPieces } from './movingPieces';
 import { phasesAndTurns } from './phasesAndTurns';
 import { setup } from './setup';
@@ -36,4 +37,5 @@ export const CHAPTER_SCRIPTS: Readonly<Record<string, ChapterScript>> = {
   [alliancesAndTalking.slug]: alliancesAndTalking,
   [bringYourOwnPieces.slug]: bringYourOwnPieces,
   [endingAGame.slug]: endingAGame,
+  [moderation.slug]: moderation,
 };

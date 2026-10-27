@@ -1,15 +1,13 @@
 import type { GameSnapshot } from '@shared/play/protocol';
 
-import { FACTION_INFO } from '../../play/compass/windows';
 import type { GuideTask } from '../TutorialGuide';
 import type { ChapterScript } from './chapterScript';
 import { element, task } from './guideChecks';
 
 /*
- * Chapter 18, "Ending a game": the result from Determine winner to Continue playing, and where a vote to remove a player starts.
+ * Chapter 18, "Ending a game": the result from Determine winner to Continue playing. Voting a player off is chapter 19, Moderation.
  * The others played the turn through to the Mentat Pause before the chapter opens, as only that phase offers Determine winner.
  * One player declares the result and nobody confirms it, so the chapter declares, then continues the game as anyone may.
- * A removal vote lives in the game's session, which a tutorial table does not run, so the chapter shows where it starts.
  */
 
 /* The Mentat Pause is the turn's ninth phase. */
@@ -55,17 +53,6 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       begin: () => undefined,
       done: () => snapshot().stage === 'play' && !snapshot().result,
     }),
-    task({
-      id: 'removal',
-      task: 'Find the removal vote',
-      detail:
-        'A player who has gone quiet for good can be voted off. Click any token on the chat bar, then the token in the chat’s title: the person with an × beside their name in the faction information is Start removal vote. A majority of the other players removes them, and their seat opens again.',
-      anchor: { kind: 'page', element: element('[data-window^="player:"] header button[aria-label$=" info"]') },
-      begin: () => undefined,
-      done: () =>
-        document.querySelector(`[data-window="${FACTION_INFO}"]`) !== null &&
-        buttonNamed('Start removal vote')() !== null,
-    }),
   ];
 }
 
@@ -74,7 +61,6 @@ const learned = [
   'Determine winner waits in the Mentat Pause',
   'One player declares the result, and that finishes the game',
   'Continue playing takes a result back',
-  'Start removal vote, in a player’s faction information, votes a quiet player off',
 ];
 
 export const endingAGame: ChapterScript = {

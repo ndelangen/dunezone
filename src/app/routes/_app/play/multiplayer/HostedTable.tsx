@@ -582,7 +582,8 @@ function catalogueStatus(catalogue: ReturnType<TableSession['getSnapshot']>['cat
     return checking;
   }
   if (catalogue.contents) {
-    return `${catalogue.contents.pieces.reduce((count, piece) => count + piece.items.length, 0)} items ready to add`;
+    const items = catalogue.contents.pieces.reduce((count, piece) => count + piece.items.length, 0);
+    return `${items} ${items === 1 ? 'item' : 'items'} ready to add`;
   }
   return catalogue.error || checking;
 }
@@ -594,7 +595,7 @@ function SpawnRequest({
   request,
 }: TableControlProps & Readonly<{ request: PublicControls['requests'][number] }>) {
   return (
-    <Group justify="space-between">
+    <Group justify="space-between" data-spawn-request>
       <Text>
         {request.contents.name} requested by {request.requesterName}
       </Text>

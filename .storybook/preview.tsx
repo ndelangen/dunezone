@@ -131,6 +131,7 @@ const parameters = {
             'Alliances and talking',
             'Bring your own pieces',
             'Ending a game',
+            'Moderation',
             'Chapter complete',
           ],
           '*',

@@ -94,11 +94,13 @@ export class GameCatalogue {
     private readonly observe?: ConvexObserver
   ) {}
 
+  /** The catalogue's public answer for one asset, before it is checked; a tutorial table reads it through the page's own client. */
+  protected async readSupply(selection: CaptureSelection): Promise<unknown> {
+    return await gameHttpClient(this.convexUrl, this.observe).query(api.playCatalogue.assetSupply, selection);
+  }
+
   private async supply(selection: CaptureSelection): Promise<AssetSupply> {
-    const raw: unknown = await gameHttpClient(this.convexUrl, this.observe).query(
-      api.playCatalogue.assetSupply,
-      selection
-    );
+    const raw = await this.readSupply(selection);
     const result = assetSupplySchema.safeParse(raw);
     if (!result.success || result.data.membersTruncated) {
       throw new GameRejection('This asset has no complete playable definition.');

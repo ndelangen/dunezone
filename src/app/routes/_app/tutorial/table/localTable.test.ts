@@ -1,3 +1,4 @@
+import { storedSpawnContentsSchema } from '@shared/play/inventory';
 import type { PieceAction, ServerMessage } from '@shared/play/protocol';
 import { afterEach, beforeEach, describe, expect, test } from 'vite-plus/test';
 
@@ -59,11 +60,120 @@ describe('a tutorial table’s result', () => {
     expect(table.refusal).toMatch(/winner is being determined/);
     expect(stored().ending?.by.seat).toBe(table.seat);
   });
+});
 
-  test('still refuses what only a game’s session runs', () => {
-    act({ kind: 'removal-start', seat: table.seats().find((seat) => seat !== table.seat)! });
-    expect(table.refusal).toMatch(/need a real game/);
-    expect(sent.at(-1)).toMatchObject({ type: 'view' });
+/* A catalogue request commits with what the page's catalogue captured, as the Worker commits it after its capture. */
+describe('a tutorial table’s catalogue request', () => {
+  const contents = storedSpawnContentsSchema.parse({
+    assetId: 'karama',
+    name: 'Karama',
+    type: 'token-disc',
+    pieces: [
+      {
+        id: 'member-0',
+        label: 'Karama',
+        kind: 'force',
+        owner: 'shared',
+        inventory: 'shared',
+        color: '#d5ba8c',
+        accent: '#ead9bb',
+        items: [
+          {
+            id: 'member-0-0',
+            faceUp: true,
+            artwork: {
+              front: 'https://dune.zone/published/karama',
+              back: 'https://dune.zone/published/karama',
+              name: 'Karama',
+              type: 'token-disc',
+            },
+          },
+        ],
+        stackKey: 'token:karama',
+        position: [-25, 0, -25],
+        orientation: 0,
+        zoneId: null,
+        locked: false,
+      },
+    ],
+    members: [{ assetId: 'karama', count: 1 }],
+    definitions: [],
+  });
+
+  test('waits for another player’s approval, then adds the piece to the Shared table inventory', () => {
+    const table = new LocalTable(startAt(setup as unknown as TutorialSetup, 'turn-1-storm', 'https://dune.zone'));
+    table.requestSpawn(
+      {
+        type: 'command',
+        commandId: 'request',
+        action: { kind: 'spawn-request', type: 'token-disc', slug: 'karama' },
+        expectedRevision: table.room.snapshot.revision,
+      },
+      contents
+    );
+    const [request] = table.room.snapshot.controls!.requests;
+    expect(request).toMatchObject({ requesterSeat: table.seat, contents: { name: 'Karama' } });
+    const command = (seat: string) =>
+      table.receive(
+        {
+          type: 'command',
+          commandId: `approve-${seat}`,
+          action: { kind: 'spawn-approve', requestId: request!.id },
+          expectedRevision: table.room.snapshot.revision,
+        },
+        seat
+      );
+    command(table.seat);
+    expect(table.refusal).toBe('One different seated player must approve this request.');
+    command(table.seats().find((seat) => seat !== table.seat)!);
+    expect(table.room.snapshot.controls!.requests).toEqual([]);
+    expect(table.room.snapshot.table.pieces.filter((piece) => piece.label === 'Karama')).toMatchObject([
+      { inventory: 'shared', items: [{ faceUp: true }] },
+    ]);
+    table.dispose();
+  });
+});
+
+/* A removal vote runs on the session's own rules: more than half of the whole table, the player voted on included, must vote yes. */
+describe('a tutorial table’s removal vote', () => {
+  let table: LocalTable;
+  let count = 0;
+  const act = (action: PieceAction, seat = table.seat) =>
+    table.receive(
+      { type: 'command', commandId: `vote-${++count}`, action, expectedRevision: table.room.snapshot.revision },
+      seat
+    );
+  const vote = () => table.frame().snapshot.removalVotes?.[0];
+
+  beforeEach(() => {
+    table = new LocalTable(startAt(setup as unknown as TutorialSetup, 'turn-1-storm', 'https://dune.zone'));
+  });
+
+  afterEach(() => table.dispose());
+
+  test('removes the player once four of the six vote yes, and their seat leaves the table', () => {
+    const [target, ...voters] = table.seats().filter((seat) => seat !== table.seat);
+    act({ kind: 'removal-start', seat: target! });
+    expect(vote()).toMatchObject({ target: { seat: target }, threshold: 4 });
+    expect(vote()!.ballots.find((ballot) => ballot.seat === table.seat)?.choice).toBe('remove');
+    act({ kind: 'removal-ballot', voteId: vote()!.id, choice: 'remove' }, voters[0]);
+    act({ kind: 'removal-ballot', voteId: vote()!.id, choice: 'keep' }, voters[1]);
+    expect(vote()).toBeDefined();
+    act({ kind: 'removal-ballot', voteId: vote()!.id, choice: 'remove' }, voters[2]);
+    expect(vote()!.ballots.filter((ballot) => ballot.choice === 'remove')).toHaveLength(3);
+    act({ kind: 'removal-ballot', voteId: vote()!.id, choice: 'remove' }, voters[3]);
+    expect(table.refusal).toBeUndefined();
+    expect(vote()).toBeUndefined();
+    expect(table.seats()).not.toContain(target);
+  });
+
+  test('fails as soon as enough players keep them that four yes votes cannot be reached', () => {
+    const [target, ...voters] = table.seats().filter((seat) => seat !== table.seat);
+    act({ kind: 'removal-start', seat: target! });
+    act({ kind: 'removal-ballot', voteId: vote()!.id, choice: 'keep' }, voters[0]);
+    act({ kind: 'removal-ballot', voteId: vote()!.id, choice: 'keep' }, voters[1]);
+    expect(vote()).toBeUndefined();
+    expect(table.seats()).toContain(target);
   });
 });
 

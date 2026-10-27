@@ -139,14 +139,21 @@ const CHAPTERS: readonly Omit<TutorialChapter, 'number'>[] = [
   {
     slug: 'bring-your-own-pieces',
     title: 'Bring your own pieces',
-    goal: 'Add custom decks and bundles from the Shared table inventory',
+    goal: 'Bring in a token from the catalogue, with another player approving it',
     minutes: 4,
     part: 'Beyond the basics',
   },
   {
     slug: 'ending-a-game',
     title: 'Ending a game',
-    goal: 'Call the winner, or vote a player off',
+    goal: 'Call the winner, or take the result back',
+    minutes: 2,
+    part: 'Beyond the basics',
+  },
+  {
+    slug: 'moderation',
+    title: 'Moderation',
+    goal: 'Vote a player who has gone quiet off the table',
     minutes: 2,
     part: 'Beyond the basics',
   },

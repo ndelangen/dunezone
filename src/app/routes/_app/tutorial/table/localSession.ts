@@ -3,6 +3,8 @@ import type { DraftAction } from '@shared/play/drafting';
 import { isSeatAction } from '@shared/play/participation';
 import type { SeatAction } from '@shared/play/participation';
 import type { GameSnapshot, Viewer } from '@shared/play/protocol';
+import { isRemovalAction } from '@shared/play/removal';
+import type { RemovalAction, RemovalVote } from '@shared/play/removal';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import type { TableRoster } from '@shared/play/schema';
 import { isSwapAction } from '@shared/play/swapping';
@@ -12,6 +14,7 @@ import { ActorDirectory } from '../../../../../../workers/game/actors';
 import { applyDraftAction, dealtSnapshot } from '../../../../../../workers/game/drafting';
 import type { PublicLog } from '../../../../../../workers/game/log';
 import { ownRequests, Participation } from '../../../../../../workers/game/participation';
+import { RemovalVotes } from '../../../../../../workers/game/removal';
 import type { SetupSupply } from '../../../../../../workers/game/setup';
 import type { StoredSnapshot } from '../../../../../../workers/game/state';
 import { Swapping } from '../../../../../../workers/game/swapping';
@@ -30,9 +33,9 @@ import { randomInt } from './nodeCrypto';
  */
 
 /** The action families this session commits, which the table alone refuses. */
-export type SessionAction = DraftAction | SeatAction | SwapAction;
+export type SessionAction = DraftAction | SeatAction | SwapAction | RemovalAction;
 export const isSessionAction = (action: { kind: string }): action is SessionAction =>
-  isDraftAction(action) || isSeatAction(action) || isSwapAction(action);
+  isDraftAction(action) || isSeatAction(action) || isSwapAction(action) || isRemovalAction(action);
 
 /** A seat's faction and station as the recorded deal gave them, with the faction token trading shows. */
 export type RecordedDeal = readonly { seat: string; factionId: string; position: number; token?: string }[];
@@ -47,7 +50,7 @@ export type SessionStart = Readonly<{
 }>;
 
 /* The session's public log is the Log tab, which a tutorial table keeps as recorded. */
-const UNLOGGED = { recordSeat: () => {}, recordSwap: () => {} } as unknown as PublicLog;
+const UNLOGGED = { recordSeat: () => {}, recordSwap: () => {}, recordVote: () => {} } as unknown as PublicLog;
 /* Building the setup table needs the captured faction content, so trading ends with the game waiting at the table. */
 const NO_SUPPLY = { enter: (snapshot: StoredSnapshot) => snapshot } as unknown as SetupSupply;
 
@@ -56,6 +59,7 @@ export class LocalSession {
   readonly actors: ActorDirectory;
   readonly participation: Participation;
   readonly swapping: Swapping;
+  private readonly removal: RemovalVotes;
   private readonly minimumPlayers: number;
   private readonly deal: RecordedDeal;
   private seatCount: TableRoster['seatCount'];
@@ -83,6 +87,7 @@ export class LocalSession {
     this.actors = new ActorDirectory(storage, UNLOGGED);
     this.participation = new Participation(storage, this.actors);
     this.swapping = new Swapping(storage, this.actors, NO_SUPPLY, UNLOGGED);
+    this.removal = new RemovalVotes(storage, this.actors, UNLOGGED);
     this.minimumPlayers = start.minimumPlayers;
     this.deal = start.deal;
     this.seatCount = stored.roster?.seatCount ?? (seats.length as TableRoster['seatCount']);
@@ -110,8 +115,24 @@ export class LocalSession {
     return { ...snapshot, roster: this.actors.roster(this.seatCount) };
   }
 
-  /** One drafting, seat or trading command, applied as the session commits it; a completed draft deals at once. */
+  /** The removal votes still open, as every player sees them. */
+  removalVotes(): RemovalVote[] {
+    return this.removal.current();
+  }
+
+  /** One drafting, seat, trading or removal command, applied as the session commits it; a completed draft deals at once. */
   commit(snapshot: StoredSnapshot, viewer: Viewer, action: SessionAction, now: number): StoredSnapshot {
+    if (isRemovalAction(action)) {
+      /* A ballot can decide the vote, and a removal vacates the seat as the session's own removal does. */
+      const applied = this.removal.apply(snapshot, viewer, action, now);
+      return this.withRoster(
+        this.removal.reconcile(applied, now, (before, userId, commandId) => {
+          const occupants = this.actors.seated();
+          const after = this.participation.remove(userId, before, now);
+          return this.swapping.settleParticipation({ before, after, commandId, actor: null, occupants }, () => now);
+        })
+      );
+    }
     if (isDraftAction(action)) {
       const drafted = this.withRoster(
         applyDraftAction(snapshot, viewer, action, this.actors.seats(), this.minimumPlayers)

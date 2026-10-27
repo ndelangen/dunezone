@@ -41,6 +41,11 @@ export function useSpawnableAssets(args: SpawnableAssetsArgs) {
   return toLiveQueryResult(useQuery(api.playCatalogue.spawnableAssets, args));
 }
 
+/** One asset's faces and members as a game captures it; a tutorial table captures through this, since it has no game Worker. */
+export async function readAssetSupply(selection: FunctionArgs<typeof api.playCatalogue.assetSupply>) {
+  return await db.query(api.playCatalogue.assetSupply, selection, { hold: false });
+}
+
 /** What a chosen ruleset puts on the table, as the create page's manifest lists it. */
 export type CreatableRulesetPreview = NonNullable<
   Extract<FunctionReturnType<typeof api.playGames.creatable>, { access: 'allowed' }>['preview']
