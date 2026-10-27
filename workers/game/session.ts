@@ -1128,6 +1128,11 @@ export class GameSession {
     return this.projection.contents(contents);
   }
   historyFor(viewer: Viewer, step: number): Extract<ServerMessage, { type: 'history' }> {
+    const stage = this.room!.snapshot.stage;
+    /* Players may not keep notes, so a real game opens its replay only once it is finished. */
+    if (stage !== undefined && stage !== 'finished') {
+      throw new GameRejection('Replay opens once the game is finished.');
+    }
     if (step > this.history.steps) {
       throw new GameRejection('Unknown history step.');
     }

@@ -82,7 +82,7 @@ import { GameMenu, SeatPopover } from './SeatRequests';
 import { nextPhaseStep, stageStatus, stageToolbar } from './StageHeader';
 import type { GameIdentity } from './StageHeader';
 import { SwapScene } from './SwapScene';
-import { factionName, factionOptions, isSpectator, stageInPlay, viewerFaction } from './tableFactions';
+import { factionName, factionOptions, isSpectator, stageInPlay, viewerFaction, watchedTable } from './tableFactions';
 import { TableSettings } from './TableSettings';
 import { TerritoryTints } from './TerritoryTints';
 import { ServerClockContext } from './useServerNow';
@@ -950,18 +950,23 @@ function historyGroup({ client, table, error }: ConnectionControlsProps, hasInve
             },
           ]
         : []),
-      {
-        key: 'replay',
-        label: 'Replay',
-        topic: 'turn',
-        description: 'Browse saved phases and return to the live table.',
-        content: (
-          <>
-            {error && !table.playback && <FormError title="From the table">{error}</FormError>}
-            <PlaybackControls client={client} table={table} />
-          </>
-        ),
-      },
+      /* Players may not keep notes, so replay opens once the game is finished; a replay already open keeps its tab. */
+      ...(table.snapshot.stage === 'finished' || table.playback || table.historyPending
+        ? [
+            {
+              key: 'replay',
+              label: 'Replay',
+              topic: 'turn' as const,
+              description: 'Browse saved phases and return to the live table.',
+              content: (
+                <>
+                  {error && !table.playback && <FormError title="From the table">{error}</FormError>}
+                  <PlaybackControls client={client} table={table} />
+                </>
+              ),
+            },
+          ]
+        : []),
     ],
   };
 }
@@ -1029,15 +1034,19 @@ function phaseTabControls({
   return (
     <>
       <PhaseControls table={table} />
-      {stage === 'play' && table.snapshot.setup && progress.turn === 1 && progress.activePhaseId === 'storm' && (
-        <Button
-          variant="default"
-          disabled={!table.canInteract}
-          onClick={() => client.command({ kind: 'storm-random' })}
-        >
-          Place storm randomly
-        </Button>
-      )}
+      {stage === 'play' &&
+        !isSpectator(table) &&
+        table.snapshot.setup &&
+        progress.turn === 1 &&
+        progress.activePhaseId === 'storm' && (
+          <Button
+            variant="default"
+            disabled={!table.canInteract}
+            onClick={() => client.command({ kind: 'storm-random' })}
+          >
+            Place storm randomly
+          </Button>
+        )}
       {stage === 'play' || stage === 'finished' ? (
         <>
           <DetermineWinner client={client} table={table} />
@@ -1052,7 +1061,7 @@ function phaseTabControls({
 
 function ConnectedTable({
   client,
-  table,
+  table: live,
   error,
   connection,
   identity,
@@ -1069,7 +1078,8 @@ function ConnectedTable({
   diagnostics: BrowserDiagnostics;
   reportsEnabled: boolean;
 }>) {
-  const bugReport = useBugReport({ gameId, client, table, connection, diagnostics });
+  const table = watchedTable(live);
+  const bugReport = useBugReport({ gameId, client, table: live, connection, diagnostics });
   const progress = gameProgress(table.snapshot);
   const focus = useWindowFocus(table, progress);
   const celebration = useResultCelebration(table);
@@ -1109,7 +1119,7 @@ function ConnectedTable({
               toolbarControl={stageToolbar({ client, table, error, bidderFaded, onBidderFadedChange: setBidderFaded })}
               /* The gathered Traitor pile lies under the Tleilaxu Tanks, below the Map view's frame on a wide screen (#1635). */
               requestedView={table.traitorsGathered ? { view: 'bottom', revision: table.traitorsGathered } : undefined}
-              showStormControls={stageInPlay(stage) && progress.activePhaseId === 'storm'}
+              showStormControls={!isSpectator(table) && stageInPlay(stage) && progress.activePhaseId === 'storm'}
               sceneContent={
                 <>
                   {stageScene({ client, table, bidderFaded })}

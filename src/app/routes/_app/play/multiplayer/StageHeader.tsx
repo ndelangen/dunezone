@@ -35,22 +35,23 @@ export function stageToolbar({
 }>) {
   const stage = table.snapshot.stage;
   const inPlay = stageInPlay(stage);
-  /* Playback steps through the checkpoints from the header in every stage, so no tab hides the way back to live. */
-  const playback = table.playback ? <StagePlayback client={client} table={table} error={error} /> : null;
+  /*
+   * Playback steps through the checkpoints from the header in every stage, so no tab hides the way back to live.
+   * A replayed table takes no actions, so it shows none: only the playback controls.
+   */
+  if (table.playback) {
+    return <StagePlayback client={client} table={table} error={error} />;
+  }
   /* In play the header steps phases beside the bidder; setup steps its phases alone. */
   if (inPlay || settingUp(table)) {
     return (
       <>
-        {playback}
         {inPlay && (
           <BidderToolbar client={client} table={table} faded={bidderFaded} onFadedChange={onBidderFadedChange} />
         )}
         <PhaseNavigation client={client} table={table} />
       </>
     );
-  }
-  if (playback) {
-    return playback;
   }
   const Control = STAGE_CONTROLS[stage ?? ''];
   return Control ? <Control client={client} table={table} /> : undefined;
