@@ -6,7 +6,7 @@ import { authoredCardback, DeckAssetInput, PhysicalSize } from '../../src/shared
 import { holdsDeckMembership } from '../../src/shared/assets/types';
 import { parseAssetDataForWrite } from '../../src/shared/assets/validation';
 import { phaseDeclarationSchema } from '../../src/shared/factions/extraPhases';
-import { IdentifiedFactionStoredSchema, toStoredHeroKey } from '../../src/shared/factions/schema';
+import { IdentifiedFactionStoredSchema, readFactionLeaderKey, toStoredHeroKey } from '../../src/shared/factions/schema';
 import { lacksBattleValues, troopBattleFaces } from '../../src/shared/factions/troopBattle';
 import type {
   AssetSupply,
@@ -400,7 +400,8 @@ export class GameCatalogue {
       throw new GameRejection('This faction is not available.');
     }
     const { declarations, data } = splitPhaseDeclarations(source.data);
-    const parsed = IdentifiedFactionStoredSchema.safeParse(data);
+    /* The glossary term is "Faction leader"; the catalogue answer keeps the `hero` literal. */
+    const parsed = IdentifiedFactionStoredSchema.safeParse(readFactionLeaderKey(data));
     if (!parsed.success) {
       throw new GameRejection('This faction has an incomplete definition.');
     }

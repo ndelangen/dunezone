@@ -47,9 +47,11 @@ function isRecord(input: unknown): input is Record<string, unknown> {
  * Reads the Faction leader from `factionLeader`, falling back to `hero`.
  * The glossary term is "Faction leader", kept apart from the supporting `leaders`.
  * Stored factions carry `factionLeader` alone since `faction_hero_key_drop_v1`, so the live decoders read that key only.
- * Two kinds of input keep the fallback: frozen sheet jobs and game captures, which keep the `hero` literal, and a faction typed or imported from outside the app, such as raw JSON or a content package exported before the key was renamed.
+ * Three kinds of input keep the fallback.
+ * Frozen sheet jobs and game captures keep the `hero` literal, and so does the catalogue answer a game Worker captures from.
+ * A faction typed or imported from outside the app, such as raw JSON or a content package exported before the key was renamed, may still carry it.
  */
-function readFactionLeaderKey(input: unknown): unknown {
+export function readFactionLeaderKey(input: unknown): unknown {
   if (!isRecord(input) || !('hero' in input)) {
     return input;
   }
@@ -364,9 +366,6 @@ export const CanonicalFactionStoredObject = z.strictObject({
   troops: z.array(Troop.extend({ troopId: FactionTroopIdSchema })),
 });
 
-/** Parses stored canonical data. */
-export const CanonicalFactionStoredSchema = CanonicalFactionStoredObject;
-
 /** Frozen sheet jobs and standalone previews may predate persistent member identity. Keep this decoder after live schema narrowing. */
 export const HistoricalFactionPublicationObject = z.strictObject({
   ...factionShape,
@@ -405,7 +404,7 @@ export const HeroKeyedCanonicalFactionObject = CanonicalFactionStoredObject.omit
 });
 
 /** Complete canonical data also requires unique member identities across the roster. */
-export const IdentifiedFactionStoredSchema = CanonicalFactionStoredSchema.superRefine(refineUniqueComponentIds);
+export const IdentifiedFactionStoredSchema = CanonicalFactionStoredObject.superRefine(refineUniqueComponentIds);
 
 /**
  * Client read-path variants: tolerate unknown top-level fields so additive server changes never break stale tabs;

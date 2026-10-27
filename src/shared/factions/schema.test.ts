@@ -5,7 +5,7 @@ import { assetPublishingFaction, legacyAssetPublishingFaction } from './fixtures
 import {
   Background,
   CanonicalFactionClientSchema,
-  CanonicalFactionStoredSchema,
+  CanonicalFactionStoredObject,
   FactionInputSchema,
   FactionWriteSchema,
   HistoricalFactionPublicationSchema,
@@ -17,7 +17,7 @@ describe('faction schema', () => {
     const legacy = structuredClone(legacyAssetPublishingFaction);
     const publication = { factionId: 'historical-faction', slug: 'historical-faction', faction: legacy };
 
-    expect(CanonicalFactionStoredSchema.safeParse(legacy).success).toBe(false);
+    expect(CanonicalFactionStoredObject.safeParse(legacy).success).toBe(false);
     expect(CanonicalFactionClientSchema.safeParse(legacy).success).toBe(false);
     expect(FactionInputSchema.parse(legacy)).toEqual(legacy);
     expect(parsePublicationAssetData('faction_sheet', publication)).toEqual({
@@ -26,7 +26,7 @@ describe('faction schema', () => {
     });
 
     const live = structuredClone(assetPublishingFaction);
-    expect(CanonicalFactionStoredSchema.parse(live)).toEqual(live);
+    expect(CanonicalFactionStoredObject.parse(live)).toEqual(live);
     expect(CanonicalFactionClientSchema.parse({ ...live, futureField: 'kept' })).toEqual({
       ...live,
       futureField: 'kept',
@@ -38,7 +38,7 @@ describe('faction schema', () => {
     const live = structuredClone(assetPublishingFaction);
     const stored = toStoredHeroKey(live);
 
-    expect(CanonicalFactionStoredSchema.safeParse(stored).success).toBe(false);
+    expect(CanonicalFactionStoredObject.safeParse(stored).success).toBe(false);
     expect(CanonicalFactionClientSchema.safeParse(stored).success).toBe(false);
     expect(FactionInputSchema.safeParse(stored).success).toBe(false);
     expect(FactionWriteSchema.parse(stored)).toEqual(FactionWriteSchema.parse(live));
@@ -59,7 +59,7 @@ describe('faction schema', () => {
     };
 
     expect(FactionInputSchema.safeParse(legacy).success).toBe(false);
-    expect(CanonicalFactionStoredSchema.safeParse(legacy).success).toBe(false);
+    expect(CanonicalFactionStoredObject.safeParse(legacy).success).toBe(false);
   });
 
   it('keeps canonical storage wider than current name semantics', () => {
@@ -67,11 +67,11 @@ describe('faction schema', () => {
     historical.name = '';
 
     expect(FactionInputSchema.safeParse(historical).success).toBe(false);
-    expect(CanonicalFactionStoredSchema.parse(historical).name).toBe('');
+    expect(CanonicalFactionStoredObject.parse(historical).name).toBe('');
     historical.name = '家族';
     expect(FactionWriteSchema.safeParse(historical).success).toBe(false);
     expect(FactionInputSchema.parse(historical).name).toBe('家族');
-    expect(CanonicalFactionStoredSchema.parse(historical).name).toBe('家族');
+    expect(CanonicalFactionStoredObject.parse(historical).name).toBe('家族');
     expect(HistoricalFactionPublicationSchema.parse(historical).name).toBe('家族');
   });
 
@@ -80,9 +80,9 @@ describe('faction schema', () => {
     const reference = { type: 'deck' as const, slug: 'omens' };
     const stored = { ...structuredClone(assetPublishingFaction), extras: [legacyLinks, reference] };
 
-    expect(CanonicalFactionStoredSchema.parse(stored).extras).toEqual([reference]);
+    expect(CanonicalFactionStoredObject.parse(stored).extras).toEqual([reference]);
     expect(FactionInputSchema.safeParse(stored).success).toBe(false);
-    expect(CanonicalFactionStoredSchema.safeParse({ ...stored, extras: [{ type: 'deck' }] }).success).toBe(false);
+    expect(CanonicalFactionStoredObject.safeParse({ ...stored, extras: [{ type: 'deck' }] }).success).toBe(false);
   });
 
   it('narrows authored prose while keeping legacy stored prose readable', () => {
@@ -93,8 +93,8 @@ describe('faction schema', () => {
 
     expect(FactionInputSchema.safeParse(multilineSetup).success).toBe(false);
     expect(FactionInputSchema.safeParse(invalidBody).success).toBe(false);
-    expect(CanonicalFactionStoredSchema.safeParse(multilineSetup).success).toBe(true);
-    expect(CanonicalFactionStoredSchema.safeParse(invalidBody).success).toBe(true);
+    expect(CanonicalFactionStoredObject.safeParse(multilineSetup).success).toBe(true);
+    expect(CanonicalFactionStoredObject.safeParse(invalidBody).success).toBe(true);
   });
 
   it('requires grouped complexity at authoring, storage, and client-read boundaries', () => {
@@ -102,12 +102,12 @@ describe('faction schema', () => {
 
     expect(FactionInputSchema.safeParse(withoutComplexity).success).toBe(false);
     expect(FactionInputSchema.safeParse({ ...withoutComplexity, complexity: 0.4 }).success).toBe(false);
-    expect(CanonicalFactionStoredSchema.safeParse(withoutComplexity).success).toBe(false);
-    expect(CanonicalFactionStoredSchema.safeParse({ ...withoutComplexity, complexity: 0.4 }).success).toBe(false);
+    expect(CanonicalFactionStoredObject.safeParse(withoutComplexity).success).toBe(false);
+    expect(CanonicalFactionStoredObject.safeParse({ ...withoutComplexity, complexity: 0.4 }).success).toBe(false);
     expect(CanonicalFactionClientSchema.safeParse(withoutComplexity).success).toBe(false);
     expect(CanonicalFactionClientSchema.safeParse({ ...withoutComplexity, complexity: 0.4 }).success).toBe(false);
     expect(FactionInputSchema.safeParse(assetPublishingFaction).success).toBe(true);
-    expect(CanonicalFactionStoredSchema.safeParse(assetPublishingFaction).success).toBe(true);
+    expect(CanonicalFactionStoredObject.safeParse(assetPublishingFaction).success).toBe(true);
     expect(CanonicalFactionClientSchema.safeParse(assetPublishingFaction).success).toBe(true);
   });
 
