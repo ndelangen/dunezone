@@ -203,6 +203,54 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
     ]);
   });
 
+  it('replays only the public table while the game is played, and the seat view once it is finished', async () => {
+    const { owner, observer, stepId } = await inPlay();
+    const playback = async (connection: NativeConnection, step: number) => {
+      const start = connection.messages.length;
+      connection.send({ type: 'history', step });
+      return eventually(
+        () =>
+          connection.messages
+            .slice(start)
+            .find((message): message is Extract<NativeMessage, { type: 'history' }> => message.type === 'history'),
+        `history step ${step}`
+      );
+    };
+    const steps = async (connection: NativeConnection) => {
+      const { lastStep } = await playback(connection, 0);
+      const snapshots = [];
+      for (let step = 0; step <= lastStep; step += 1) {
+        snapshots.push((await playback(connection, step)).snapshot);
+      }
+      return snapshots;
+    };
+    const live = await syncView(owner);
+    expect(live.snapshot).toHaveProperty('hand');
+    expect(live.snapshot).toHaveProperty('bank');
+
+    /* The locked prediction, the hand, the reserve, the plan and any peek stayed with the seat; replay shows none of them. */
+    const playing = await steps(owner);
+    expect(playing.some((snapshot) => snapshot.setup)).toBe(true);
+    for (const snapshot of playing) {
+      for (const key of ['hand', 'handOrder', 'bank', 'peek']) {
+        expect(snapshot).not.toHaveProperty(key);
+      }
+      expect(snapshot.battlePlan ?? null).toBeNull();
+      expect(snapshot.predictions?.[stepId]?.choice ?? null).toBeNull();
+    }
+    expect(playing).toEqual(await steps(observer));
+
+    await toMentat(owner);
+    await accepted(owner, { kind: 'result-open' });
+    await accepted(owner, { kind: 'result-declare', result: 'none', factionIds: [] });
+    const finished = await steps(owner);
+    expect(finished.every((snapshot) => snapshot.bank?.factionId === 'atreides')).toBe(true);
+    expect(finished.some((snapshot) => snapshot.predictions?.[stepId]?.choice)).toBe(true);
+    for (const snapshot of await steps(observer)) {
+      expect(snapshot).not.toHaveProperty('bank');
+    }
+  });
+
   it('tells the directory the result, then that the game is ongoing again', async () => {
     const { owner, other } = await inPlay();
     await toMentat(owner);

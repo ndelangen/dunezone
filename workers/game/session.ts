@@ -1134,10 +1134,13 @@ export class GameSession {
     /*
      * Steps stored before the face list grew only hold the fronts present then, so comparing two of them
      * could tell which hidden card left the table. Every step carries the live game's list instead.
+     * While a real game is still being played, every viewer replays the public table: a past hand, reserve, plan or
+     * peek is something the player had to remember, and the seat's current holder may not be the one who held it then.
      */
+    const live = this.room!.snapshot.stage !== undefined && this.room!.snapshot.stage !== 'finished';
     const past = this.projection.snapshot(
       this.history.restore(step),
-      this.actors.factionFor(viewer.userId),
+      live ? undefined : this.actors.factionFor(viewer.userId),
       this.room!.snapshot
     );
     return {
