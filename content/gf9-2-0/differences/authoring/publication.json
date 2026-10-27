@@ -8,18 +8,18 @@
   "owner": "Central",
   "assignedRulesetGroup": "GF9",
   "method": "Normal authenticated UI JSON Load, Save and five-second Publish hold as Central. No administrative mutations.",
-  "edition": 4,
-  "draftRevision": 4,
+  "edition": 5,
+  "draftRevision": 5,
   "pages": 36,
   "settings": {
     "size": "a4",
     "design": "restrained"
   },
-  "html": "https://dune.zone/published/rulebooks/pd7247mr9ge6kstr2t7ta5hrb98h0f28/editions/4/rulebook.html",
-  "pdf": "https://dune.zone/published/rulebooks/pd7247mr9ge6kstr2t7ta5hrb98h0f28/editions/4/rulebook.pdf",
+  "html": "https://dune.zone/published/rulebooks/pd7247mr9ge6kstr2t7ta5hrb98h0f28/editions/5/rulebook.html",
+  "pdf": "https://dune.zone/published/rulebooks/pd7247mr9ge6kstr2t7ta5hrb98h0f28/editions/5/rulebook.pdf",
   "artifactsReady": true,
-  "sourceSha256": "04ce5ebe08c078ebe905a47b1b1785e18a3aa8a4261f53e403e7e0d4df973f14",
-  "productionPdfSha256": "97aa2d3e8069207e273f2a67e3ceb02f869efc5e1d57c1e5628b46f5f099b5b7",
+  "sourceSha256": "5c33e934243d3f4dc0bba7bcf0696541072900b5dfa24a386c392924af202704",
+  "productionPdfSha256": "a19e565ac4d1cb7e393772568ee2cdae41d005e71d62f03762e05fa9edd2ba0d",
   "productionPdf": {
     "pages": 36,
     "sizePt": [
@@ -27,15 +27,15 @@
       841.89
     ],
     "tagged": true,
-    "fieldsChecked": 205,
+    "fieldsChecked": 218,
     "unmatchedProseBoundaries": [],
     "visuallyCheckedPages": [
-      2
+      35
     ],
-    "localCopy": "output/pdf/gf9-2019-to-2-0-differences-edition-4.pdf"
+    "localCopy": "output/pdf/gf9-2019-to-2-0-differences-edition-5.pdf"
   },
-  "verification": "Saved revision 4 and published Edition 4 through the normal Central session. Public reader and HTML have 36 pages. The preface and own-traitor aside are absent. All HTML images loaded, and all checked PDF prose boundaries survive extraction.",
+  "verification": "Normal authenticated Central session saved draft revision 5 and published Edition 5. Both HTML and PDF are ready. HTML has 36 pages with no missing images or internal source path. All 218 checked prose boundaries survive production PDF extraction. Local geometry and runtime checks pass.",
   "recovery": "The local source and publication snapshot are versioned. Any correction can be saved and published as a new Edition.",
-  "previousPublication": "publication-edition-3.json",
-  "change": "Removed the preface and 72 redundant or unchanged-only blocks. Setup now opens the guide; side questions are in the appendix. Prose reduced from 7,263 to 5,149 words."
+  "previousPublication": "publication-edition-4.json",
+  "change": "Applied the detailed reader review: removed source-process notes and repeated Blocks, stated rule exceptions directly, rewrote appendix answers, and checked storm and Fremen wording against the original books."
 }

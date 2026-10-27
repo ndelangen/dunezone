@@ -1,5 +1,5 @@
 {
-  "manuscriptSha256": "ca179d3a4619c4281333475271d39d9f7e9c8e5aef34e78fa26c7250212af0c5",
+  "manuscriptSha256": "965bd6749f45ab332181e9570c457dc2706126864001a100abc2d33133b97784",
   "records": [
     {
       "id": "CORE-C01",
@@ -690,12 +690,6 @@
       "classification": "faction-finding-see-record",
       "locations": [
         {
-          "pageId": "FRH9",
-          "blockId": "VRZV",
-          "pageNumber": 12,
-          "title": "Leader revival"
-        },
-        {
           "pageId": "MJUN",
           "blockId": "VRZS",
           "pageNumber": 27,
@@ -874,12 +868,6 @@
           "blockId": "KNDS",
           "pageNumber": 2,
           "title": "Setup and renamed terms"
-        },
-        {
-          "pageId": "V6MJ",
-          "blockId": "VECG",
-          "pageNumber": 24,
-          "title": "Fremen: storms and sandworms"
         }
       ]
     },
@@ -958,12 +946,6 @@
           "blockId": "KLEP",
           "pageNumber": 12,
           "title": "Leader revival"
-        },
-        {
-          "pageId": "Y48B",
-          "blockId": "U43B",
-          "pageNumber": 25,
-          "title": "Fremen: free spice strength and allies"
         }
       ],
       "sameChangeAs": "CARD-07"
@@ -1353,12 +1335,6 @@
           "blockId": "SHSG",
           "pageNumber": 2,
           "title": "Setup and renamed terms"
-        },
-        {
-          "pageId": "2W2D",
-          "blockId": "5VED",
-          "pageNumber": 7,
-          "title": "New Spice Blow locations"
         }
       ]
     },

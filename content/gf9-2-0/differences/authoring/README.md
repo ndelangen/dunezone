@@ -2,11 +2,17 @@
 
 The published book has 36 A4 pages using the existing restrained design and existing Rulebook Blocks. It compares GF9 2019 Basic and Advanced with the 2026 default game for players who already know GF9.
 
-[Read the published book](https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2019-to-2-0-what-changes). Edition 4 contains the shorter guide across 36 pages, published as Central under GF9 2.0. HTML and PDF are ready. [Publication record](publication.json).
+[Read the published book](https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2019-to-2-0-what-changes). Edition 5 applies the detailed reader review across 36 pages, published as Central under GF9 2.0. HTML and PDF are ready. [Publication record](publication.json).
 
 [Open the local preview](http://127.0.0.1:4320/). The preview server must be running in this checkout. It reads existing production artwork and the approved production cover and writes no application data.
 
-## Focused revision, 27 October 2026
+## Reader review, Edition 5
+
+Removed internal source notes, six repeated Blocks and the duplicated source footer. Rewrote vague references and appendix answers, moved the Karama power restriction into the body, and stated the Fremen victory condition directly. Checked storm dialers against second-edition page 10, the Tuek's exception against page 29, and unsupported forces against 2019 pages 13 and 16. Fremen's Advanced exemption means Fedaykin keep strength two without spice.
+
+No suggested house rulings were added. Existing page IDs, retained Block IDs, artwork references and A4 settings are preserved. The field-by-field review is `editorial-reader-review.json`.
+
+## Focused revision, Edition 4
 
 Edition 4 removes the introductory page and 72 redundant or unchanged-only Blocks. Setup now opens the guide. The unchanged own-traitor paragraph is removed; faction-selection wording and other side questions remain in the appendix. Paragraphs and answers are 2,114 words shorter than Edition 3. The complete revision record is `editorial-focus-review.json`.
 
@@ -16,9 +22,9 @@ The book has 36 A4 pages. Schema, references, coverage, browser geometry and PDF
 
 The wording revision was published as Edition 3 on 27 October 2026. The comparison retains Edition 2 as its before-copy. All 36 content pages were edited to remove abstract labels, repeated warnings and comments about how the guide was written. Paragraphs and answers are 732 words shorter. Rules, references, examples, artwork and pagination are retained.
 
-[Compare the wording](http://127.0.0.1:4320/editorial-review.html). The complete field-by-field comparison is saved in `editorial-review.html` and `editorial-review.json`. The revised PDF is `output/pdf/gf9-2019-to-2-0-differences-edited.pdf`; the earlier review PDF remains a copy of published Edition 2. The production Edition 3 PDF is `output/pdf/gf9-2019-to-2-0-differences-edition-4.pdf`.
+[Compare the wording](http://127.0.0.1:4320/editorial-review.html). The complete field-by-field comparison is saved in `editorial-review.html` and `editorial-review.json`. The revised PDF is `output/pdf/gf9-2019-to-2-0-differences-edited.pdf`; the earlier review PDF remains a copy of published Edition 2. Edition 3 is recorded in `publication-edition-3.json`.
 
-The local copy still has 37 A4 pages. Schema and reference validation pass, every research record remains accounted for, and the browser check found no overflow or missing images. The edited PDF passed the prose-boundary check. Its card changes and expansion pages were inspected visually, along with the whole-book contact sheet.
+That revision had 37 A4 pages. Schema and reference validation pass, every research record remains accounted for, and the browser check found no overflow or missing images. The edited PDF passed the prose-boundary check. Its card changes and expansion pages were inspected visually, along with the whole-book contact sheet.
 
 ## Contents
 
@@ -29,7 +35,7 @@ The local copy still has 37 A4 pages. Schema and reference validation pass, ever
 - Pages 34-35 contain questions about the printed rules.
 - Page 36 lists sources.
 
-This is a teaching draft, not a copy of the research prose. It uses the existing cards, battle wheels, board scenes, leader portraits, tables, callouts and Q&A. Original game explanation is included only where it makes a changed procedure understandable.
+The published guide teaches the changed rules to experienced players. It uses the existing cards, battle wheels, board scenes, leader portraits, tables, callouts and Q&A. Original game explanation is included only where it makes a changed procedure understandable.
 
 ## Files
 
@@ -44,7 +50,7 @@ This is a teaching draft, not a copy of the research prose. It uses the existing
 | [pdf-checks.json](pdf-checks.json) | Printed page count and extracted prose-boundary checks. |
 | [review.json](review.json) | Review identity, hashes, coverage counts and measured limitations. |
 
-The current production PDF is copied to `output/pdf/gf9-2019-to-2-0-differences-edition-4.pdf`. It has 36 tagged A4 pages. The publisher PDF and HTML URLs are recorded in `publication.json`.
+The current production PDF is copied to `output/pdf/gf9-2019-to-2-0-differences-edition-5.pdf`. It has 36 tagged A4 pages. The publisher PDF and HTML URLs are recorded in `publication.json`.
 
 ## Build and preview
 
@@ -66,7 +72,7 @@ All 141 research records are accounted for: 124 have a location in the book and 
 
 The latest browser check found 36 pages, no runtime errors, no missing images and no vertical content overflow. No horizontal content overflow was measured at A4. No game-renderer CSS changed.
 
-The current production PDF has 36 uniform A4 pages. All checked prose field boundaries survive extraction in raw content order. Layout-mode extraction interleaves the two columns and is unsuitable for that check. The original local layout was inspected through a whole-book contact sheet. The published PDF cover was checked visually and the authored prose boundaries were checked against the production PDF.
+The current production PDF has 36 uniform A4 pages. All checked prose field boundaries survive extraction in raw content order. Layout-mode extraction interleaves the two columns and is unsuitable for that check. The revised local layout was checked for overflow and missing images. The production appendix was inspected visually, and 218 authored prose boundaries were checked against the production PDF.
 
 Confirmed differences are distinguished from old FAQ clarifications and Dune Zone judgements. Open wording and incomplete expansion announcements remain labeled. Review the underlying [dossier](../README.md) when a source question needs more detail. The publication used the normal authenticated application flow. No administrative mutations were used.
 

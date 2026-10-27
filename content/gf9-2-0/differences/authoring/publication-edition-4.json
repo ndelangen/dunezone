@@ -1,0 +1,41 @@
+{
+  "status": "published",
+  "date": "2026-10-27",
+  "title": "GF9 2019 to 2.0: What changes",
+  "url": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2019-to-2-0-what-changes",
+  "rulebookId": "pd7247mr9ge6kstr2t7ta5hrb98h0f28",
+  "ruleset": "gf9-2-0",
+  "owner": "Central",
+  "assignedRulesetGroup": "GF9",
+  "method": "Normal authenticated UI JSON Load, Save and five-second Publish hold as Central. No administrative mutations.",
+  "edition": 4,
+  "draftRevision": 4,
+  "pages": 36,
+  "settings": {
+    "size": "a4",
+    "design": "restrained"
+  },
+  "html": "https://dune.zone/published/rulebooks/pd7247mr9ge6kstr2t7ta5hrb98h0f28/editions/4/rulebook.html",
+  "pdf": "https://dune.zone/published/rulebooks/pd7247mr9ge6kstr2t7ta5hrb98h0f28/editions/4/rulebook.pdf",
+  "artifactsReady": true,
+  "sourceSha256": "04ce5ebe08c078ebe905a47b1b1785e18a3aa8a4261f53e403e7e0d4df973f14",
+  "productionPdfSha256": "97aa2d3e8069207e273f2a67e3ceb02f869efc5e1d57c1e5628b46f5f099b5b7",
+  "productionPdf": {
+    "pages": 36,
+    "sizePt": [
+      595.276,
+      841.89
+    ],
+    "tagged": true,
+    "fieldsChecked": 205,
+    "unmatchedProseBoundaries": [],
+    "visuallyCheckedPages": [
+      2
+    ],
+    "localCopy": "output/pdf/gf9-2019-to-2-0-differences-edition-4.pdf"
+  },
+  "verification": "Saved revision 4 and published Edition 4 through the normal Central session. Public reader and HTML have 36 pages. The preface and own-traitor aside are absent. All HTML images loaded, and all checked PDF prose boundaries survive extraction.",
+  "recovery": "The local source and publication snapshot are versioned. Any correction can be saved and published as a new Edition.",
+  "previousPublication": "publication-edition-3.json",
+  "change": "Removed the preface and 72 redundant or unchanged-only blocks. Setup now opens the guide; side questions are in the appendix. Prose reduced from 7,263 to 5,149 words."
+}
