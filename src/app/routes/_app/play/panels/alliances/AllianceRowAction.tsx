@@ -1,5 +1,5 @@
 import { IconAction } from '@ui/control/IconAction';
-import { Check, Handshake, Hourglass, Unlink } from 'lucide-react';
+import { Handshake, Hourglass, MessageCircleQuestion, Unlink } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
@@ -44,11 +44,12 @@ const ACTIONS: Readonly<Record<Relation, (props: ActionProps) => ReactNode>> = {
       onClick={() => send('alliance-break')}
     />
   ),
+  /* A question in a speech bubble, as they are asking; a check would read as already accepted, and the window's (?) is a plain circle. */
   incoming: ({ blocked, send }) => (
     <IconAction
       label="Accept alliance"
       tooltip="Accept their alliance offer."
-      icon={<Check size={ICON} />}
+      icon={<MessageCircleQuestion size={ICON} />}
       intent="positive"
       emphasis="standard"
       disabledReason={blocked}
