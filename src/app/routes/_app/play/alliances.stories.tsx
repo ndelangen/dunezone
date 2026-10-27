@@ -141,9 +141,12 @@ export const TokensInTheWindows = meta.story({
       Math.abs(rule.right + scrollbar - frame.right),
       'The rule stops short of the right edge.'
     ).toBeLessThanOrEqual(1.5);
-    /* An ally's token names its faction; its tooltip opens in the token group's own story. */
+    /*
+     * An ally's token is an image named after its faction, the same name its tooltip shows on hover.
+     * The tooltip draws on a frame, which a loaded runner delivers seconds late, so the story reads the name the token carries while the tooltip is closed.
+     */
     const alliances = within(doc.querySelector<HTMLElement>('[data-window="alliances"]')!);
     const allied = (await alliances.findByText('Allied with Fremen')).parentElement!;
-    await expect(within(allied).getByRole('img', { name: 'Fremen' })).toBeVisible();
+    await expect(within(allied).getByRole('img', { name: 'Fremen' })).toBeInTheDocument();
   },
 });

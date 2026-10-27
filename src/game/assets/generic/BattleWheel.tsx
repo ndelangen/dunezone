@@ -26,6 +26,21 @@ type Revealed = {
   wordmark?: boolean;
 };
 
+/** Writes a number with a half as ½: the wheel's Advokat face has no ½ and no fraction feature, so the glyph comes from Candara. */
+function WheelNumber({ value, signed = false }: { value: number; signed?: boolean }) {
+  const whole = Math.trunc(Math.abs(value));
+  if (Math.abs(value) - whole !== 0.5) {
+    return <>{`${signed && value > 0 ? '+' : ''}${value}`}</>;
+  }
+  return (
+    <>
+      {value < 0 ? '-' : signed ? '+' : ''}
+      {whole === 0 ? '' : whole}
+      <span className={styles.half}>½</span>
+    </>
+  );
+}
+
 type Props = {
   label: string;
   className?: string;
@@ -119,7 +134,9 @@ function RevealedWheel({
           />
         </div>
         <div className={styles.strength}>
-          <span>{strength}</span>
+          <span>
+            <WheelNumber value={strength} />
+          </span>
           <small>Strength</small>
         </div>
         <div className={styles.troopReadout}>
@@ -180,8 +197,7 @@ function RevealedWheel({
             aria-label={`Strength adjustment ${adjustment > 0 ? 'plus' : 'minus'} ${Math.abs(adjustment)}`}
           >
             <span>
-              {adjustment > 0 ? '+' : ''}
-              {adjustment}
+              <WheelNumber value={adjustment} signed />
             </span>
             <small>adj.</small>
           </div>

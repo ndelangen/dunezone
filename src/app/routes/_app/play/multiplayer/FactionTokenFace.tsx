@@ -1,7 +1,7 @@
 import { Avatar, Group, Tooltip } from '@mantine/core';
 import { factionTokenOf } from '@shared/play/factionToken';
 import { playUiColors } from '@shared/uiPalette';
-import type { CSSProperties, Ref } from 'react';
+import type { AriaRole, CSSProperties, Ref } from 'react';
 
 import type { TableProjection } from '../../../../db/tabletop/TableSession';
 import { factionColor } from './allianceColors';
@@ -24,7 +24,6 @@ export function FactionTokenFace({
   names,
   size,
   src,
-  label,
   style,
   ref,
   ...rest
@@ -33,17 +32,16 @@ export function FactionTokenFace({
     factionId: string;
     size: number;
     src?: string | null;
-    /* The faction's name for a screen reader, where the token stands for it on its own. */
-    label?: string;
     style?: CSSProperties;
     ref?: Ref<HTMLDivElement>;
+    /** A token whose faction no text beside it names is an image named after it, so a reader hears who it is. */
+    role?: AriaRole;
+    'aria-label'?: string;
   }>) {
   return (
     <Avatar
       {...rest}
       ref={ref}
-      role={label ? 'img' : undefined}
-      aria-label={label}
       src={factionTokenFace(table, factionId) ?? src}
       size={size}
       radius="xl"
@@ -58,7 +56,10 @@ export function FactionTokenFace({
   );
 }
 
-/** Several factions' tokens overlapping in a row, each named in its tooltip and by its label. */
+/**
+ * Several factions' tokens overlapping in a row, each an image named after its faction, with the name in a tooltip for a pointer.
+ * The tooltip opens on hover only, and the token takes no focus, so without the name a keyboard or screen-reader user would never learn whose token it is.
+ */
 export function FactionTokenGroup({
   table,
   factionIds,
@@ -76,7 +77,8 @@ export function FactionTokenGroup({
               factionId={factionId}
               names={names}
               size={size}
-              label={name}
+              role="img"
+              aria-label={name}
               style={{ marginLeft: index ? -Math.round(size / 4) : 0 }}
             />
           </Tooltip>
