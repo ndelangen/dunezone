@@ -47,6 +47,7 @@ export const Default = meta.story({
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getAllByRole('listitem')).toHaveLength(3);
-    await expect(canvas.getByLabelText('40+ cards')).toHaveTextContent('40+');
+    await expect(canvas.getByText('40+ cards')).toBeInTheDocument();
+    await expect(canvas.getByText('40+')).toHaveAttribute('aria-hidden', 'true');
   },
 });

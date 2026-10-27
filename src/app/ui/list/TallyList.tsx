@@ -1,4 +1,4 @@
-import { Text } from '@mantine/core';
+import { Text, VisuallyHidden } from '@mantine/core';
 import type { ReactNode } from 'react';
 
 import styles from './TallyList.module.css';
@@ -46,8 +46,10 @@ export function TallyList({ items }: TallyListProps) {
               </Text>
             ) : null}
           </span>
-          <span className={styles.count} aria-label={item.countLabel}>
-            {item.count}
+          {/* A plain span's label is not read, so the count in words is hidden text and the printed figure is hidden from assistive tech. */}
+          <span className={styles.count}>
+            <span aria-hidden>{item.count}</span>
+            <VisuallyHidden>{item.countLabel}</VisuallyHidden>
           </span>
         </li>
       ))}

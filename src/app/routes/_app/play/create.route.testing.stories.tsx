@@ -77,7 +77,7 @@ export const Creatable = meta.story({
       await page.findByRole('region', { name: 'What Dreamrules puts on the table' }, { timeout: 10_000 })
     );
     await expect(manifest.getByText('Treachery deck')).toBeVisible();
-    await expect(manifest.getAllByLabelText('3 cards')).toHaveLength(2);
+    await expect(manifest.getAllByText('3 cards')).toHaveLength(2);
     await expect(manifest.getByText('Custom tokens')).toBeVisible();
     await expect(manifest.getByText('6 factions')).toBeVisible();
     await expect(manifest.getByText('Made for Dreamrules')).toBeVisible();
