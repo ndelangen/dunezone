@@ -3,7 +3,7 @@
 import { expect, test } from 'vite-plus/test';
 
 import { publishingCustomCard } from '../src/shared/assets/fixtures/publishingCustomCard';
-import { publishingDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
+import { publishingCustomDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
 import { publishingTreacheryCard } from '../src/shared/assets/fixtures/publishingTreacheryCard';
 import { treacheryToCustomCard } from '../src/shared/assets/treacheryToCustomCard';
 import { api } from './_generated/api';
@@ -26,7 +26,7 @@ test('admin conversion preserves identity and deck membership and replaces pendi
   const { t, owner, admin, card } = await setup();
   const deck = await owner.mutation(api.assets.create, {
     type: 'deck',
-    data: { name: 'Mixed deck', about: '', cardback: publishingDeckCardback },
+    data: { name: 'Mixed deck', about: '', cardback: publishingCustomDeckCardback },
   });
   await owner.mutation(api.assets.setMemberCount, { container_id: deck.id, member_id: card.id, count: 3 });
   const retainedPublication = await t.run((ctx) =>

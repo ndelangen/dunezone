@@ -3,7 +3,7 @@
 
 import { describe, expect, test, vi } from 'vite-plus/test';
 
-import { publishingDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
+import { publishingCustomDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
 import { arrakisBoardCapture } from '../src/shared/play/fixtures/board';
 import { normalizePlayGameSlug, playGameNameSchema } from '../src/shared/play/gameNames';
 import { playGameNameVocabulary } from '../src/shared/play/generatedGameNames';
@@ -55,7 +55,7 @@ async function world() {
       const deck = await ctx.db.insert('assets', {
         owner_id: userId,
         type: 'deck',
-        data: { name: slot, about: '', cardback: publishingDeckCardback },
+        data: { name: slot, about: '', cardback: publishingCustomDeckCardback },
         slug: slot,
         group_id: null,
         is_deleted: false,

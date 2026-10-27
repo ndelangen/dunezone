@@ -99,7 +99,7 @@ export async function rawCardbackPreset(
 
 async function importedDeckBack(ctx: Reader, deck: Doc<'assets'>): Promise<CardbackPreset['cardback']> {
   const back = DeckAsset.shape.cardback.parse(deckCardbackOf(deck.data));
-  if (!('mode' in back) || back.mode === 'custom') {
+  if (back.mode === 'custom') {
     return authoredCardback(back)!;
   }
   if (back.mode === 'preset') {
