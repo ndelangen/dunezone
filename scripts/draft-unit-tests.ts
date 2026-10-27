@@ -29,7 +29,7 @@ function runTests(files: readonly string[]): never {
   process.exit(run.status ?? 1);
 }
 
-const diff = spawnSync('git', ['diff', '--name-only', '-z', base, 'HEAD'], { encoding: 'utf8' });
+const diff = spawnSync('/usr/bin/git', ['diff', '--name-only', '-z', base, 'HEAD'], { encoding: 'utf8' });
 if (diff.status !== 0) {
   console.error(diff.stderr);
   process.exit(1);
@@ -37,7 +37,8 @@ if (diff.status !== 0) {
 const changed = diff.stdout.split('\0').filter((file) => file.length > 0);
 const everything = changed.filter(runsEveryUnitTest);
 if (everything.length > 0) {
-  summary(`Unit tests: all files, since every job reads ${everything.map((file) => `\`${file}\``).join(', ')}.`);
+  const named = everything.map((file) => '`' + file + '`').join(', ');
+  summary(`Unit tests: all files, since every job reads ${named}.`);
   runTests([]);
 }
 
