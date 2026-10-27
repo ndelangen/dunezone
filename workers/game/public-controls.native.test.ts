@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
-import { publishingDeckCardback } from '../../src/shared/assets/fixtures/publishingDeckCardback';
+import { publishingCustomDeckCardback } from '../../src/shared/assets/fixtures/publishingDeckCardback';
 import { publishingRectangleTokenFace } from '../../src/shared/assets/fixtures/publishingRectangleTokenFace';
 import { publishingTokenFace } from '../../src/shared/assets/fixtures/publishingTokenFace';
 import { publishingTreacheryCard } from '../../src/shared/assets/fixtures/publishingTreacheryCard';
@@ -377,7 +377,7 @@ describe('Hosted readiness and shared inventory through native commands', () => 
         type: 'deck',
         slug: 'deck',
         name: 'Deck',
-        data: { name: 'Deck', about: '', cardback: publishingDeckCardback },
+        data: { name: 'Deck', about: '', cardback: publishingCustomDeckCardback },
       },
       members: [{ ...card, count: 4 }],
       back: '/published/decks/deck/cardback.jpg',

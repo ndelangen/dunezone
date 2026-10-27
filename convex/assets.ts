@@ -43,7 +43,6 @@ import {
   assertReferenceableTokenBack,
   authoredDeckCardback,
   deckCardbackOf,
-  legacyRelationBackId,
   resolveBackHref,
   TOKEN_ASSET_TYPES,
   ownPublishedFace,
@@ -372,7 +371,7 @@ const assetPageValidator = v.object({
  * A soft-deleted asset reads as absent: its slug stays reserved so the address survives, but nothing behind it is a viewer's to see, and the pages render the same body they would for a slug that never existed.
  */
 async function loadAssetPageFor(ctx: QueryCtx, row: Doc<'assets'>, args: { embeddedTokenIds?: Id<'assets'>[] }) {
-  const back = TOKEN_TYPES.has(row.type) ? await tokenBackFor(ctx, row._id, row.data) : null;
+  const back = TOKEN_TYPES.has(row.type) ? await tokenBackFor(ctx, row.data) : null;
   const backDeckRow = await referencedCardbackDeck(ctx, row);
   /* The entry, the preset list and the resolved back all ask for presets; one memo reads each once. */
   const presets: CardbackPresetMemo = new Map();
@@ -550,11 +549,7 @@ async function allocateAssetSlug(ctx: MutationCtx, type: string, base: string, o
 /**
  * Save-path validation of an asset's back, the one gate every writer of it shares («The stored shape of three back modes»: one field, one writer, one rule).
  *
- * A token reference may arrive without its target: a tab opened before the draft-based pick shipped submits only the mode.
- * The stored id is preserved rather than demanded back from the client, falling through to the legacy relation row for rows the migration has not reached.
- * Named tolerance, kept one release by ruling on the back-tiles ticket;
- * it and the legacy fallthrough retire together on the release after this slice ships.
- * A reference with no target anywhere stays a dangling reference, which resolves to the front rather than to an error, the lazy rule «Which tokens are referenceable» set.
+ * A token reference always names its target, which must still qualify at save.
  */
 async function withValidatedBack(
   ctx: MutationCtx,
@@ -566,20 +561,8 @@ async function withValidatedBack(
     if (back?.mode !== 'reference') {
       return data;
     }
-    const stored = typeof back.asset_id === 'string' ? back.asset_id : null;
-    const previous = row.data ? tokenBackOf(row.data) : null;
-    const carried = typeof previous?.asset_id === 'string' ? previous.asset_id : null;
-    const legacy = row._id ? await legacyRelationBackId(ctx, row._id) : null;
-    const targetId = (stored ?? carried ?? legacy) as Id<'assets'> | null;
-    if (!stored && targetId) {
-      /* No shipped editor produces a mode-only reference any more, so each merge is a straggler tab worth counting before the tolerance retires. */
-      console.warn(`token back tolerance: mode-only reference merged for asset ${row._id ?? '(create)'}`);
-    }
-    if (!targetId) {
-      return data;
-    }
-    await assertReferenceableTokenBack(ctx, { _id: row._id ?? null, type: row.type }, targetId);
-    return { ...data, back: { mode: 'reference', asset_id: targetId } };
+    await assertReferenceableTokenBack(ctx, { _id: row._id ?? null, type: row.type }, back.asset_id as Id<'assets'>);
+    return data;
   }
   if (row.type === 'deck') {
     const cardback = deckCardbackOf(data);
@@ -885,22 +868,15 @@ const TOKEN_TYPES = TOKEN_ASSET_TYPES;
 
 /**
  * The token a given token uses as its backside, or null.
- * Reads the reference from `data.back`, falling through to the legacy `token-back` relation row until
- * `assets_back_modes_v1` has rewritten every row.
+ * Reads the reference from `data.back`.
  * Filters a soft-deleted target at read time rather than cascading on delete, the rule «Deck→card reference mechanism and deletion semantics» set for every kind in this table.
  */
-export async function tokenBackFor(ctx: QueryCtx, assetId: Id<'assets'>, data: unknown) {
+export async function tokenBackFor(ctx: QueryCtx, data: unknown) {
   const back = tokenBackOf(data);
-  const targetId =
-    back?.mode === 'reference' && typeof back.asset_id === 'string'
-      ? (back.asset_id as Id<'assets'>)
-      : back?.mode === 'reference'
-        ? ((await legacyRelationBackId(ctx, assetId)) as Id<'assets'> | null)
-        : null;
-  if (!targetId) {
+  if (back?.mode !== 'reference' || typeof back.asset_id !== 'string') {
     return null;
   }
-  const target = await ctx.db.get('assets', targetId);
+  const target = await ctx.db.get('assets', back.asset_id as Id<'assets'>);
   return target && !target.is_deleted ? target : null;
 }
 
@@ -908,7 +884,6 @@ export async function tokenBackFor(ctx: QueryCtx, assetId: Id<'assets'>, data: u
  * The deck a reference cardback points at, when the target still qualifies;
  * the deck sibling of `tokenBackFor`.
  * Qualification is `authoredDeckCardback`, the same judgement the browse presentation and the resolver apply, so the page cannot call a deck referenced that a tile would call dangling.
- * No legacy fallthrough: deck references never had a relation-row era.
  */
 export async function referencedCardbackDeck(ctx: QueryCtx, row: Doc<'assets'>) {
   if (row.type !== 'deck') {
@@ -1754,7 +1729,7 @@ export const replaceStandardStormDesigns = internalMutation({
       throw new ConvexError('The Standard Storm Deck does not exist');
     }
     const back = DeckAssetInput.parse(deck.data).cardback;
-    if (!('mode' in back) || back.mode !== 'preset' || back.key !== 'storm') {
+    if (back.mode !== 'preset' || back.key !== 'storm') {
       throw new ConvexError('The Standard Storm Deck no longer uses the shared Storm back');
     }
     const { cardIds } = await preservedStandardStormDeck(ctx, deck, ownerId);
@@ -1954,11 +1929,10 @@ export const polishGf9StrongholdDeck = internalMutation({
     const data = DeckAssetInput.parse(deck.data);
     const back = data.cardback;
     const deckChanged =
-      'mode' in back &&
       back.mode === 'custom' &&
       back.image === '/vector/icon/stronghold.svg' &&
       back.imageScale === 0.55; /* NOSONAR: the exact stored stock value identifies the untouched seed. */
-    if (deckChanged && 'mode' in back && back.mode === 'custom') {
+    if (deckChanged && back.mode === 'custom') {
       const next = {
         ...data,
         cardback: {

@@ -101,14 +101,7 @@ export function DeckEditPage({ slug, loaderData }: { slug: string; loaderData: A
     );
   }
 
-  /*
-   * The parse boundary flattens the transitional bare shape: the 'in'-narrow derives the reference
-   * member, everything else re-tags as the draft's custom member, and the editor never learns the
-   * third, transitional member the stored union still carries until the narrow.
-   */
-  const cardback = parsed.data.cardback;
-  const initialCardback: DeckDraftCardback =
-    'mode' in cardback && cardback.mode !== 'custom' ? cardback : { ...cardback, mode: 'custom' };
+  const initialCardback: DeckDraftCardback = parsed.data.cardback;
 
   return (
     <BackgroundLibrary presets={data.backgrounds ?? []} fronts={data.cardFrontPresets}>

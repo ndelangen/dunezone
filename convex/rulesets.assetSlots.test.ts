@@ -16,6 +16,7 @@ const deckData = (name: string) => ({
   name,
   about: '',
   cardback: {
+    mode: 'custom' as const,
     name: 'Treachery',
     background: {
       image: '/image/texture/015.jpg',
