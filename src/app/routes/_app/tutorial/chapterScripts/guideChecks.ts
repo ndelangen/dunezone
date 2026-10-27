@@ -199,22 +199,31 @@ export const closeGameMenu = () => {
 };
 
 /*
- * Whether the player asked for more while carrying: {T}, or a right-click, takes the next piece from the stack under the pointer.
- * Either press counts wherever it lands, so the task pairs it with a check that the carry did grow. The watch carries the
- * task's own fields too: the press marks this very object, so a copy of it would never see the press.
+ * Whether the player grew a carry and set it down. {T}, or a right-click, while carrying takes the next piece from the stack
+ * under the pointer, so the carry growing while it is held is the take itself; a key pressed with nothing carried, or a stack
+ * picked up whole, never counts. `tick` answers true in the frame the grown carry is let go, and a carry let go before it grew
+ * starts the watch over. The task pairs it with a check that the pieces landed on the table rather than went back.
  */
-export const watchTakeMore = <Extra extends object>(extra: Extra) => {
-  const watch = { ...extra, took: false, stop: new AbortController() };
-  const took = () => {
-    watch.took = true;
+export const watchCarryGrowth = (carrying: () => number) => {
+  let held = 0;
+  let grew = false;
+  return {
+    tick: () => {
+      const now = carrying();
+      const landed = grew && now === 0;
+      grew = now > 0 && (grew || (held > 0 && now > held));
+      held = now;
+      return landed;
+    },
   };
-  window.addEventListener('keydown', (event) => event.key.toLowerCase() === 't' && took(), {
-    capture: true,
-    signal: watch.stop.signal,
-  });
-  window.addEventListener('contextmenu', took, { capture: true, signal: watch.stop.signal });
-  return watch;
 };
 
-/* A press outside a piece's ring menu closes it, as a press anywhere else on the page would; a step that ends in the ring leaves it shut. */
-export const closePieceMenu = () => document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+/*
+ * A press outside a piece's ring menu closes it, as a press anywhere else on the page would; a step that ends in the ring leaves it shut.
+ * It is sent only while a ring is open, so no other window listener ever takes it for the player's own press.
+ */
+export const closePieceMenu = () => {
+  if (document.querySelector('[data-radial-menu]')) {
+    document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+  }
+};

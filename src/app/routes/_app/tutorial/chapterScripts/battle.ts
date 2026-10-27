@@ -116,10 +116,13 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'dial',
       task: 'Dial in two troops',
       detail:
-        'Under the cards, the dial says how many troops you commit. Fremen troops come in two kinds, plain troops and Fedaykin, each with its own row: raise either by two.',
-      anchor: { kind: 'page', element: element('[data-window="battle"] [aria-label="Dial"]') },
+        'Under the cards, the dial says how many troops you commit. Fremen troops come in two kinds, plain troops and Fedaykin, each with its own row: raise either by two. Leave the eye beside the dial for the next step: once it shows the dial, the dial is fixed.',
+      anchor: { kind: 'page', element: element('[data-window="battle"] [aria-label="Troops and spice"]') },
       begin: () => undefined,
-      done: () => (plan()?.troops ?? []).reduce((total, troop) => total + troop.dialed + troop.undialed, 0) >= 2,
+      /* Clicking the eye first fixes the dial where it stands, so a shown dial moves the chapter on too, to its own step. */
+      done: () =>
+        (plan()?.troops ?? []).reduce((total, troop) => total + troop.dialed + troop.undialed, 0) >= 2 ||
+        plan()?.disclosed.dial === true,
     }),
     task({
       id: 'reveal-early',

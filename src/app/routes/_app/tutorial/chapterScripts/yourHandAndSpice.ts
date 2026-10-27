@@ -45,16 +45,10 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
   const handOrder = () => JSON.stringify(snapshot().handOrder ?? []);
   /* The card the player took into their hand, by the id it arrived under, so the arrow finds it among the cards already there. */
   const taken = { id: null as string | null };
-  const handIds = () => new Set((snapshot().hand ?? []).map((piece) => piece.id));
-  const takenCard = () => {
-    const card = (snapshot().hand ?? []).find((piece) => piece.id === taken.id);
-    const name = card && (card.items[0]?.artwork?.name ?? card.label);
-    return (
-      [...document.querySelectorAll(HAND_PIECE)].find(
-        (tile) => name !== undefined && tile.getAttribute('aria-label') === `Drag ${name} from hand`
-      ) ?? lastElement(HAND_PIECE)()
-    );
-  };
+  const handIds = () => new Set((snapshot().hand ?? []).filter((piece) => !piece.hiddenZone).map((piece) => piece.id));
+  const takenCard = () =>
+    (taken.id && document.querySelector(`${HAND_PIECE}[data-piece-id="${CSS.escape(taken.id)}"]`)) ||
+    lastElement(HAND_PIECE)();
   return [
     task({
       id: 'lay-card',
@@ -73,7 +67,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       anchor: { kind: 'table', point: () => at(looseSpiceCard(pieces(), spiceDeck())) },
       begin: handIds,
       done: (start) => {
-        taken.id = (snapshot().hand ?? []).find((piece) => !start.has(piece.id))?.id ?? null;
+        taken.id = (snapshot().hand ?? []).find((piece) => !piece.hiddenZone && !start.has(piece.id))?.id ?? null;
         return taken.id !== null;
       },
     }),

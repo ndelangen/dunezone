@@ -1,8 +1,8 @@
 import type { GameSnapshot } from '@shared/play/protocol';
 
 import type { GuideTask } from '../TutorialGuide';
-import type { ChapterScript } from './chapterScript';
-import { at, closePieceMenu, element, tableDeck, task, watchTakeMore } from './guideChecks';
+import type { ChapterScript, TablePlayers } from './chapterScript';
+import { at, closePieceMenu, element, tableDeck, task, watchCarryGrowth } from './guideChecks';
 import type { Piece } from './guideChecks';
 
 /*
@@ -27,13 +27,17 @@ const othersHold = (snapshot: GameSnapshot) =>
     .reduce((total, [, count]) => total + count, 0);
 
 /*
- * A new pile of two from the deck, made while T was pressed: holding 2 over the deck, taught just before, makes such a pile too.
- * A right-click while carrying takes the next card as T does, so it counts as well.
+ * A new pile of two from the deck, landed by a carry that grew while held: holding 2 over the deck, taught just before,
+ * makes such a pile too, but no carry grows on the way. {T} and a right-click while carrying both grow it.
  */
-const tookWithT = (piles: () => number) => ({
-  begin: () => watchTakeMore({ start: piles() }),
-  done: (watch: { start: number; took: boolean }) => watch.took && piles() > watch.start,
-  finish: (watch: { stop: AbortController }) => watch.stop.abort(),
+const tookWithT = (piles: () => number, carrying: () => number) => ({
+  begin: () => ({ growth: watchCarryGrowth(carrying), last: piles() }),
+  done: (watch: { growth: ReturnType<typeof watchCarryGrowth>; last: number }) => {
+    const now = piles();
+    const grown = now > watch.last;
+    watch.last = now;
+    return watch.growth.tick() && grown;
+  },
 });
 
 /*
@@ -63,7 +67,7 @@ const movedInPeek = () => ({
   },
 });
 
-function tasks(snapshot: () => GameSnapshot): GuideTask[] {
+function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[] {
   const pieces = () => snapshot().table.pieces;
   const treachery = () => tableDeck(snapshot, 'left');
   const spice = () => tableDeck(snapshot, 'right');
@@ -120,7 +124,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       detail:
         'As with troops: swipe the top Treachery card off the deck (press down and move at once), hold it back over the deck and press {T} or right-click: the next card joins it. Drop the two on the table.',
       anchor: { kind: 'table', point: () => at(treachery()) },
-      ...tookWithT(() => looseStacks(pieces(), treachery(), 2)),
+      ...tookWithT(() => looseStacks(pieces(), treachery(), 2), players.carrying),
     }),
   ];
 }

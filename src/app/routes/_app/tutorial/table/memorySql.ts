@@ -6,7 +6,7 @@ import { SPECTATOR_SEAT } from '@shared/play/schema';
  * so a tutorial table runs the Worker's own `ActorDirectory`, `Participation` and `Swapping` instead of a copy of their rules.
  * Each statement those classes send is answered here by its exact text. A statement this does not know throws, so a change to
  * the Worker's SQL fails the tutorial's tests instead of being quietly skipped.
- * The audit and history tables keep nothing: the tutorial shows no log of them.
+ * The seat history keeps only who joined or left which seat, and the audit tables keep nothing: the tutorial shows no log of them.
  */
 
 export type MemoryActor = {

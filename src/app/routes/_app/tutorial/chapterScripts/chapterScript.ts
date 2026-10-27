@@ -12,6 +12,8 @@ export type TablePlayers = Readonly<{
   viewOf: (seat: string) => GameSnapshot;
   /** Every seat at the table but the learner's. */
   others: () => readonly string[];
+  /** How many items the learner is carrying now, or 0 with nothing in hand. */
+  carrying: () => number;
 }>;
 
 /** What a built chapter plays: the setup checkpoint its table starts from, and its tasks over that table. */

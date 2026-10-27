@@ -164,6 +164,14 @@ export class LocalTable {
     return frame as View;
   }
 
+  /** How many items the page's player is carrying now, or 0 with nothing in hand. */
+  carrying(): number {
+    return this.room
+      .publicCarries()
+      .filter((carry) => carry.viewerSeat === this.seat)
+      .reduce((total, carry) => total + carry.held.items.length, 0);
+  }
+
   /** The recorded log as it stood at the start; moves made on a local table are not logged. */
   log(): Partial<Record<LogTab, LogEntry[]>> {
     return this.opening.log;

@@ -2,8 +2,8 @@ import { factionTokenOf } from '@shared/play/factionToken';
 import type { GameSnapshot } from '@shared/play/protocol';
 
 import type { GuideTask } from '../TutorialGuide';
-import type { ChapterScript } from './chapterScript';
-import { at, onBoard, task, watchTakeMore } from './guideChecks';
+import type { ChapterScript, TablePlayers } from './chapterScript';
+import { at, onBoard, task, watchCarryGrowth } from './guideChecks';
 import type { Piece } from './guideChecks';
 
 /*
@@ -54,14 +54,14 @@ function carriedStack(onTheBoard: () => Piece[]) {
   return {
     carried,
     only: () => onTheBoard().filter((piece) => piece === carried()),
-    land: () => {
-      landed.troops = new Set(biggest(onTheBoard())?.items.map((item) => item.id));
+    land: (stack: Piece) => {
+      landed.troops = new Set(stack.items.map((item) => item.id));
     },
   };
 }
 
 /* The player's own troops: split off the reserves, carried whole onto the board, joined, turned and flipped. */
-function stackTasks(snapshot: () => GameSnapshot): GuideTask[] {
+function stackTasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[] {
   const { reserves, onTheBoard } = troops(snapshot);
   const { carried, only: carriedOnly, land } = carriedStack(onTheBoard);
   /* The biggest of the player's reserve stacks, where a split comes from, and the smallest of two or more, where it went. */
@@ -87,18 +87,19 @@ function stackTasks(snapshot: () => GameSnapshot): GuideTask[] {
         'A quick drag takes only the top troop. Press and hold on the three for a moment, then drag them onto a territory.',
       anchor: { kind: 'table', point: () => at(splitStack()) },
       /*
-       * A whole stack lands on the board in one go, so the troops there jump by the three from one frame to the next;
-       * single troops dropped one after another never do, and the whole reserves carried instead jump by more.
+       * The three are followed by their own troops, which keep their ids on the move: the step is done once one stack on the
+       * board holds all three. A single troop dragged off the top never does, nor the whole reserves carried instead,
+       * and a troop or two taken along with {T} still counts.
        */
-      begin: () => ({ last: total(onTheBoard()) }),
-      done: (watch) => {
-        const now = total(onTheBoard());
-        const jumped = now - watch.last === 3;
-        watch.last = now;
-        if (jumped) {
-          land();
+      begin: () => new Set(splitStack()?.items.map((item) => item.id)),
+      done: (three) => {
+        const stack = onTheBoard().find(
+          (piece) => three.size > 0 && [...three].every((id) => piece.items.some((item) => item.id === id))
+        );
+        if (stack) {
+          land(stack);
         }
-        return jumped;
+        return stack !== undefined;
       },
     }),
     task({
@@ -107,15 +108,14 @@ function stackTasks(snapshot: () => GameSnapshot): GuideTask[] {
       detail:
         'Quickly drag one troop off your reserves and keep holding it over them. Press {T}, or right-click, once for each troop to add: they join the one you carry. Then drop them all on a territory.',
       anchor: { kind: 'table', point: () => at(biggestReserve()) },
-      /* As with a whole stack: the troops land together, so the board's count jumps by two or more in one go. */
-      begin: () => watchTakeMore({ last: total(onTheBoard()) }),
+      /* The carry has to grow while held, then land: the board's count jumps by two or more in the frame it is let go. */
+      begin: () => ({ growth: watchCarryGrowth(players.carrying), last: total(onTheBoard()) }),
       done: (watch) => {
         const now = total(onTheBoard());
         const jumped = now - watch.last >= 2;
         watch.last = now;
-        return watch.took && jumped;
+        return watch.growth.tick() && jumped;
       },
-      finish: (watch) => watch.stop.abort(),
     }),
     task({
       id: 'join',
@@ -167,7 +167,10 @@ function tokenTasks(snapshot: () => GameSnapshot): GuideTask[] {
   ];
 }
 
-const tasks = (snapshot: () => GameSnapshot) => [...stackTasks(snapshot), ...tokenTasks(snapshot)];
+const tasks = (snapshot: () => GameSnapshot, players: TablePlayers) => [
+  ...stackTasks(snapshot, players),
+  ...tokenTasks(snapshot),
+];
 
 /* One line for each part of the chapter, in the order it was played. */
 const learned = [
