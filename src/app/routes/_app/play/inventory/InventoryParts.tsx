@@ -98,28 +98,23 @@ function useHiddenEnds(strip: RefObject<HTMLDivElement | null>, pieces: number) 
 /**
  * A row's pieces side by side, scrolling sideways rather than wrapping when they do not fit.
  * An end that hides pieces fades out, so the row shows there is more of it even where scrollbars stay hidden.
+ * Only a shelf with pieces has one.
+ * An empty shelf shows its caption alone.
  */
 export function PieceStrip({ children, label }: Readonly<{ children: ReactNode; label: string }>) {
   const strip = useRef<HTMLDivElement>(null);
   const pieces = Children.count(children);
   const ends = useHiddenEnds(strip, pieces);
-  /* An empty shelf is no list at all, only the word saying so. */
   return (
     <div
       ref={strip}
       className={styles.strip}
-      role={pieces ? 'list' : undefined}
-      aria-label={pieces ? label : undefined}
+      role="list"
+      aria-label={label}
       data-more-start={ends.start || undefined}
       data-more-end={ends.end || undefined}
     >
-      {pieces ? (
-        children
-      ) : (
-        <Text size="sm" c="dimmed">
-          Empty
-        </Text>
-      )}
+      {children}
     </div>
   );
 }

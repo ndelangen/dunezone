@@ -43,6 +43,7 @@ function shelf(key: string, label: string, pieces: TablePiece[], spawnType: Spaw
 /**
  * The shared table inventory as shelves: one for every type the catalogue can add, in the catalogue's order, each kept when it is empty so its own + can add the first;
  * then any pieces of no spawnable type.
+ * The shelves holding pieces come first and the empty ones after them, so the pieces there read first.
  */
 export function inventoryRows(pieces: readonly TablePiece[]): InventoryRow[] {
   const byType = new Map<SpawnType | null, TablePiece[]>();
@@ -51,8 +52,9 @@ export function inventoryRows(pieces: readonly TablePiece[]): InventoryRow[] {
     byType.set(type, [...(byType.get(type) ?? []), piece]);
   }
   const other = byType.get(null) ?? [];
-  return [
+  const shelves = [
     ...SPAWN_TYPES.map((type) => shelf(type, ASSET_TYPES[type].label, byType.get(type) ?? [], type)),
     ...(other.length ? [shelf('other', 'Other pieces', other, null)] : []),
   ];
+  return [...shelves.filter((row) => row.pieces.length), ...shelves.filter((row) => !row.pieces.length)];
 }

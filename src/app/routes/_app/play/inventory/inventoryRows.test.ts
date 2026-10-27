@@ -59,3 +59,17 @@ test('puts every card on the Decks shelf and every token on its own type, other 
     ['Other pieces', ['mystery'], 1, null],
   ]);
 });
+
+test('puts the shelves holding pieces first, each group in the catalogue order', () => {
+  const rows = shelves([piece('customs', 'force', 'token-tech'), piece('recovery', 'force', 'token-disc')]);
+  expect(rows.map(([label]) => label)).toEqual([
+    'Disc tokens',
+    'Tech tokens',
+    'Decks',
+    'Bundles',
+    'Leader tokens',
+    'Plate tokens',
+    'Pointer tokens',
+    'Enhance tokens',
+  ]);
+});
