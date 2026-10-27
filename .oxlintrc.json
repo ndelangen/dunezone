@@ -74,6 +74,30 @@
       }
     },
     {
+      /*
+       * A story shows only the states its own component owns (ADR-0005): above the kit, a story neither
+       * hovers nor reads a tooltip, because the kit's own stories cover both. The excluded story files
+       * predate the rule; each one leaves this list in the pull request that cleans it up, and none joins it.
+       */
+      "files": ["src/**/*.stories.tsx"],
+      "excludeFiles": [
+        "src/app/ui/**",
+        "src/app/routes/_app/play/drafting.testing.stories.tsx",
+        "src/app/routes/_app/play/multiplayer/FactionTokenFace.testing.stories.tsx",
+        "src/app/routes/_app/play/panel.hand.testing.stories.tsx",
+        "src/app/routes/_app/play/panel.layout.testing.stories.tsx",
+        "src/app/routes/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit/rulebookCoverEdit.stories.tsx",
+        "src/app/routes/_app/rulesets/rulebooks-creation.testing.stories.tsx",
+        "src/app/routes/_app/rulesets/rulebooks-editor.testing.stories.tsx",
+        "src/app/routes/_app/rulesets/rulebooks.testing.stories.tsx",
+        "src/app/routes/factions.testing.stories.tsx",
+        "src/app/widgets/authoring/AuthoringToolbar.stories.tsx",
+        "src/app/widgets/authoring/AuthoringToolbar.testing.stories.tsx",
+        "src/app/widgets/faction-editor/FactionSpecialRule.stories.tsx"
+      ],
+      "rules": { "local/story-owns-its-states": "error" }
+    },
+    {
       /* Tooltip copy stays within 100 characters per line in app source (Norbert, 2026-10-27). */
       "files": ["src/**"],
       "excludeFiles": ["src/game/**"],

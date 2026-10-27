@@ -353,6 +353,14 @@ Chromatic captures a visual story, so it shows a UI capability no other story sh
 fixture data rather than a live catalogue. Behaviour, a repeat of a captured screen, and content go
 in a `name.testing.stories.tsx` file on `testingPreview`, which CI runs and Chromatic skips.
 
+A story shows only the states its own component owns
+([ADR-0005](docs/adr/0005-stories-show-only-owned-states.md)). A composed component never shows again
+the hover, focus, disabled, pending or open states of the children it composes, nor drives their
+tooltips, holds or menus; it proves its wiring through the child's accessible name, value and
+description. Each visual story changes one thing from its component's baseline, so a story name that
+needs "and" is two stories. The `local/story-owns-its-states` lint rule rejects hovering and reading
+a tooltip in any story outside `src/app/ui`.
+
 Three filename conventions carry weight here. A story-only fixture takes the `.stories.fixture.tsx`
 suffix, which the lint overrides key on, so it is a name the tooling reads rather than a preference.
 A Picker's pure view splits into a `.parts.tsx` companion, keeping the fetching shell and the
