@@ -73,7 +73,7 @@ import { biddingAfterTable, biddingCommand } from './bidding';
 import { concealCards, deckCommand } from './decks';
 import { dealFixtureDeck } from './fixture';
 import { lastTurnCommand } from './lastTurn';
-import { movementAfterTable, movementCommand } from './movement';
+import { isMovementAction, movementAfterTable, movementCommand } from './movement';
 import { closeLostPeeks, forgetPeekers, peekCommand } from './peeks';
 import { setupCommand, gatherTraitors } from './setup-progress';
 import { storedSnapshotSchema } from './state';
@@ -85,10 +85,7 @@ export type Identity = Viewer;
 type FactionSetting = BiddingAction | LastTurnAction | MovementAction | TerritoryTintAction;
 function isFactionSetting(action: { kind: string }): action is FactionSetting {
   return (
-    action.kind === 'last-turn' ||
-    action.kind === 'movement-done' ||
-    isBiddingAction(action) ||
-    isTerritoryTintAction(action)
+    action.kind === 'last-turn' || isMovementAction(action) || isBiddingAction(action) || isTerritoryTintAction(action)
   );
 }
 type RoomAction = Exclude<
@@ -155,6 +152,8 @@ const REVISION_TOLERANT_ACTIONS = new Set<string>([
   'alliance-decline',
   'last-turn',
   'movement-done',
+  'movement-undo',
+  'movement-order',
   'tint-create',
   'tint-paint',
   'tint-set',
@@ -614,8 +613,8 @@ export class Room {
     if (isTerritoryTintAction(action)) {
       return territoryTintCommand(this.snapshot, action);
     }
-    if (action.kind === 'movement-done') {
-      return movementCommand(this.snapshot, factionId);
+    if (isMovementAction(action)) {
+      return movementCommand(this.snapshot, action);
     }
     return action.kind === 'last-turn'
       ? lastTurnCommand(this.snapshot, action)

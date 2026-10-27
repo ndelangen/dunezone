@@ -45,7 +45,7 @@ export function MovementToolbar({ client, table }: Readonly<{ client: TableSessi
           size="xs"
           variant={own === next ? 'filled' : 'light'}
           disabled={!table.canInteract}
-          onClick={() => client.command({ kind: 'movement-done' })}
+          onClick={() => own && client.command({ kind: 'movement-done', factionId: own })}
         >
           Done shipping and moving
         </Button>

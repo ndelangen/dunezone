@@ -526,28 +526,43 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
     expect(declared.snapshot.stage).toBe('finished');
   });
 
-  it('saves a checkpoint after each faction finishes Shipment and Movement, and a new phase starts with nobody done', async () => {
+  it('saves a checkpoint each time a faction is marked done in Shipment and Movement, in an order players can rearrange', async () => {
     const { owner, other, observer } = await inPlay();
-    expect(await rejected(owner, { kind: 'movement-done' })).toBe(true);
+    const ownFaction = factionOf(await syncView(owner));
+    const otherFaction = factionOf(await syncView(other));
+    expect(await rejected(owner, { kind: 'movement-done', factionId: ownFaction })).toBe(true);
     while (TABLE_PHASES[(await syncView(owner)).snapshot.phase % TABLE_PHASES.length]!.id !== 'shipment-and-movement') {
       await next(owner);
     }
-    expect(await rejected(observer, { kind: 'movement-done' })).toBe(true);
-    const first = await accepted(other, { kind: 'movement-done' });
-    expect(required(first.snapshot.movement).done).toEqual([factionOf(first)]);
-    expect(await rejected(other, { kind: 'movement-done' })).toBe(true);
-    const second = await accepted(owner, { kind: 'movement-done' });
-    expect(required(second.snapshot.movement).done).toEqual([factionOf(first), factionOf(second)]);
+    expect(await rejected(observer, { kind: 'movement-done', factionId: ownFaction })).toBe(true);
+    expect(await rejected(owner, { kind: 'movement-done', factionId: 'not-at-the-table' })).toBe(true);
+    expect(await rejected(owner, { kind: 'movement-order', order: [otherFaction, otherFaction] })).toBe(true);
+    expect(await rejected(observer, { kind: 'movement-order', order: [otherFaction, ownFaction] })).toBe(true);
 
-    /* Each finished turn is a checkpoint after the phase's start, named by the faction that finished. */
-    const checkpoints = required((await syncView(owner)).snapshot.reviewCheckpoints).slice(-3);
+    /* Any seated player may rearrange the order, or mark another faction done, as the table plays by hand. */
+    const arranged = await accepted(owner, { kind: 'movement-order', order: [otherFaction, ownFaction] });
+    expect(required(arranged.snapshot.movement).order).toEqual([otherFaction, ownFaction]);
+    const first = await accepted(owner, { kind: 'movement-done', factionId: otherFaction });
+    expect(required(first.snapshot.movement).done).toEqual([otherFaction]);
+    expect(await rejected(other, { kind: 'movement-done', factionId: otherFaction })).toBe(true);
+    const undone = await accepted(other, { kind: 'movement-undo', factionId: otherFaction });
+    expect(required(undone.snapshot.movement).done).toEqual([]);
+    expect(await rejected(other, { kind: 'movement-undo', factionId: otherFaction })).toBe(true);
+    await accepted(other, { kind: 'movement-done', factionId: otherFaction });
+    const second = await accepted(owner, { kind: 'movement-done', factionId: ownFaction });
+    expect(required(second.snapshot.movement).done).toEqual([otherFaction, ownFaction]);
+
+    /* Each faction marked done is a checkpoint after the phase's start, named by the faction; undoing keeps the checkpoint. */
+    const checkpoints = required((await syncView(owner)).snapshot.reviewCheckpoints).slice(-4);
     expect(checkpoints.map(({ moment, label }) => [moment, label])).toEqual([
       ['entered', 'Shipment and Movement'],
       ['turn', 'Shipment and Movement'],
       ['turn', 'Shipment and Movement'],
+      ['turn', 'Shipment and Movement'],
     ]);
-    expect(checkpoints[1]!.faction).toBeTruthy();
-    expect(checkpoints[1]!.faction).not.toBe(checkpoints[2]!.faction);
+    expect(checkpoints[1]!.faction).toBe(checkpoints[2]!.faction);
+    expect(checkpoints[3]!.faction).toBeTruthy();
+    expect(checkpoints[3]!.faction).not.toBe(checkpoints[2]!.faction);
 
     const moved = await next(owner);
     expect(moved.snapshot.movement).toBeUndefined();
