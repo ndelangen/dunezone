@@ -1,7 +1,7 @@
 import { Avatar, Group, Tooltip } from '@mantine/core';
 import { factionTokenOf } from '@shared/play/factionToken';
 import { playUiColors } from '@shared/uiPalette';
-import type { CSSProperties, Ref } from 'react';
+import type { AriaRole, CSSProperties, Ref } from 'react';
 
 import type { TableProjection } from '../../../../db/tabletop/TableSession';
 import { factionColor } from './allianceColors';
@@ -34,6 +34,9 @@ export function FactionTokenFace({
     src?: string | null;
     style?: CSSProperties;
     ref?: Ref<HTMLDivElement>;
+    /** Where the token stands alone with no text naming its faction, it is an image named after it. */
+    role?: AriaRole;
+    'aria-label'?: string;
   }>) {
   return (
     <Avatar
@@ -53,7 +56,10 @@ export function FactionTokenFace({
   );
 }
 
-/** Several factions' tokens overlapping in a row, each named in its tooltip. */
+/**
+ * Several factions' tokens overlapping in a row, each named for a reader, and in a tooltip for a pointer.
+ * The name is the token's accessible name: it holds while the tooltip is closed, so a test reads it instead of waiting for the tooltip to draw.
+ */
 export function FactionTokenGroup({
   table,
   factionIds,
@@ -62,17 +68,22 @@ export function FactionTokenGroup({
 }: TokenProps & Readonly<{ factionIds: readonly string[]; size: number }>) {
   return (
     <Group gap={0} wrap="nowrap" style={{ flexShrink: 0 }}>
-      {factionIds.map((factionId, index) => (
-        <Tooltip key={factionId} label={names[factionId] ?? factionId} withinPortal>
-          <FactionTokenFace
-            table={table}
-            factionId={factionId}
-            names={names}
-            size={size}
-            style={{ marginLeft: index ? -Math.round(size / 4) : 0 }}
-          />
-        </Tooltip>
-      ))}
+      {factionIds.map((factionId, index) => {
+        const name = names[factionId] ?? factionId;
+        return (
+          <Tooltip key={factionId} label={name} withinPortal>
+            <FactionTokenFace
+              table={table}
+              factionId={factionId}
+              names={names}
+              size={size}
+              role="img"
+              aria-label={name}
+              style={{ marginLeft: index ? -Math.round(size / 4) : 0 }}
+            />
+          </Tooltip>
+        );
+      })}
     </Group>
   );
 }
