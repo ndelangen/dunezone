@@ -84,9 +84,10 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Where a shelf that holds no pieces says why, in line with an empty strip's word. */
-.shelfNote {
-  padding: 4px 2px 8px;
+/* Each shelf after the first is divided from the one above by the window's own edge line. */
+.shelf + .shelf {
+  border-top: 1px solid var(--edge);
+  padding-top: var(--mantine-spacing-md);
 }
 
 .rowLabel {

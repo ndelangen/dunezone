@@ -16,11 +16,13 @@ function AddToShelf({ inventory, row }: Readonly<{ inventory: SharedInventory; r
     return null;
   }
   const open = catalogue.shelf === row.key;
+  const label = open
+    ? `Close the ${row.label.toLowerCase()} catalogue`
+    : `Add ${row.label.toLowerCase()} from the catalogue`;
   return (
     <IconAction
-      label={
-        open ? `Close the ${row.label.toLowerCase()} catalogue` : `Add ${row.label.toLowerCase()} from the catalogue`
-      }
+      label={label}
+      tooltip={row.holdsPieces ? undefined : `${label}. A bundle's tokens land on their own shelves.`}
       intent="neutral"
       emphasis="quiet"
       size="sm"
@@ -34,8 +36,11 @@ function AddToShelf({ inventory, row }: Readonly<{ inventory: SharedInventory; r
 
 /**
  * The Shared table inventory, as shelves: one for every type the catalogue can add, its name and count on the left of its caption and its own + on the right, which opens the catalogue on that type alone;
- * its pieces sit on one row that scrolls sideways.
+ * its pieces sit on one row that scrolls sideways, and a line divides it from the next.
+ * The shelves holding pieces come first.
+ * An empty one shows only its caption.
  * The Bundles shelf only adds, since a bundle's tokens land on their own shelves.
+ * Its + says so.
  * The tech token shelf also draws one of its tokens at random.
  */
 export function ShelvesInventory({ inventory, picker, requests }: SharedInventoryViewProps) {
@@ -54,7 +59,7 @@ export function ShelvesInventory({ inventory, picker, requests }: SharedInventor
           </Button>
         )}
         {inventory.rows.map((row) => (
-          <section key={row.key} aria-label={row.label}>
+          <section key={row.key} aria-label={row.label} className={styles.shelf}>
             <Group justify="space-between" wrap="nowrap" mb={4}>
               <Text size="xs" fw={700} tt="uppercase" className={styles.rowLabel}>
                 {row.label} {row.holdsPieces && <span className={styles.count}>{row.count}</span>}
@@ -73,16 +78,12 @@ export function ShelvesInventory({ inventory, picker, requests }: SharedInventor
               </Group>
             </Group>
             {catalogue?.shelf === row.key && picker}
-            {row.holdsPieces ? (
+            {row.pieces.length > 0 && (
               <PieceStrip label={row.label}>
                 {row.pieces.map((piece) => (
                   <InventoryPiece key={piece.id} inventory={inventory} piece={piece} size={64} />
                 ))}
               </PieceStrip>
-            ) : (
-              <Text size="sm" c="dimmed" className={styles.shelfNote}>
-                A bundle&rsquo;s tokens land on their own shelves.
-              </Text>
             )}
           </section>
         ))}
