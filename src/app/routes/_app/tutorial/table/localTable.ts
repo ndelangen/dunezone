@@ -277,8 +277,12 @@ export class LocalTable {
     const room = this.room;
     if (message.type === 'command' && isSessionAction(message.action)) {
       room.assertRevision(message.action, message.expectedRevision);
+      const followsLearner = this.seat === this.session.seatOf(this.learner);
       room.accept(this.session.commit(room.snapshot, viewer, message.action, Date.now()));
-      this.seat = this.session.seatOf(this.learner);
+      /* The page keeps the seat it shows, unless that is the learner's, who may have moved, or a seat the command emptied. */
+      if (followsLearner || !this.session.actors.holderOf(this.seat)) {
+        this.seat = this.session.seatOf(this.learner);
+      }
       this.scheduleTradingClose();
       this.deliver(this.frame(this.seat, own ? message.commandId : undefined));
       return;

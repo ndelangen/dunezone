@@ -169,6 +169,34 @@ describe('a tutorial table’s removal vote', () => {
     expect(table.frame().snapshot.controls?.seats).not.toContain(target);
   });
 
+  test('keeps the page on the seat it views as, and moves it off a seat the vote empties', () => {
+    const [target, viewed, ...voters] = table.seats().filter((seat) => seat !== table.seat);
+    const learner = table.seat;
+    table.viewAs(viewed!);
+    act({ kind: 'removal-start', seat: target! });
+    expect(table.seat).toBe(viewed);
+    for (const voter of [learner, ...voters].filter((seat) => seat !== table.seat)) {
+      const open = vote();
+      if (open) {
+        act({ kind: 'removal-ballot', voteId: open.id, choice: 'remove' }, voter);
+      }
+    }
+    expect(table.seats()).not.toContain(target);
+    expect(table.seat).toBe(viewed);
+    table.viewAs(learner);
+    act({ kind: 'removal-start', seat: viewed! });
+    table.viewAs(viewed!);
+    expect(table.seat).toBe(viewed);
+    for (const voter of [learner, ...voters].filter((seat) => seat !== table.seat)) {
+      const open = vote();
+      if (open) {
+        act({ kind: 'removal-ballot', voteId: open.id, choice: 'remove' }, voter);
+      }
+    }
+    expect(table.seats()).not.toContain(viewed);
+    expect(table.seat).toBe(learner);
+  });
+
   test('lapses when the player voted on leaves their seat', () => {
     const [target] = table.seats().filter((seat) => seat !== table.seat);
     act({ kind: 'removal-start', seat: target! });

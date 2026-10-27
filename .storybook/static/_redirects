@@ -1,2 +1,3 @@
 /published/boards/:id/board.jpg /play-fixtures/boards/arrakis-official.jpg 200
+/published/round-tokens/:id/token.jpg /play-fixtures/tokens/karama.jpg 200
 / /index.html 200

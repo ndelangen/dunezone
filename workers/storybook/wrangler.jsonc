@@ -11,6 +11,13 @@
     "binding": "ASSETS",
     "html_handling": "none",
     "not_found_handling": "404-page",
-    "run_worker_first": ["/m/*", "/image/*", "/web/*", "/published/*", "!/published/boards/*"]
+    "run_worker_first": [
+      "/m/*",
+      "/image/*",
+      "/web/*",
+      "/published/*",
+      "!/published/boards/*",
+      "!/published/round-tokens/00000000000000000000*"
+    ]
   }
 }

@@ -20,16 +20,23 @@ const sharedButton = (label: string) =>
   [...document.querySelectorAll<HTMLButtonElement>(`${SHARED} button`)].find(
     (button) => button.textContent?.trim() === label
   ) ?? null;
-const karamaOption = () =>
-  [...document.querySelectorAll(`${SHARED} [role="option"]`)].find((option) =>
-    /karama/i.test(option.textContent ?? '')
-  ) ?? null;
-/* The request button opens once the table has checked the picked asset. */
-const requestReady = () => {
-  const request = sharedButton('Request');
-  return request !== null && !request.disabled;
-};
 const isKarama = (label: string) => /karama/i.test(label);
+const karamaOption = () =>
+  [...document.querySelectorAll(`${SHARED} [role="option"]`)].find((option) => isKarama(option.textContent ?? '')) ??
+  null;
+/* The row the picker holds as picked; another asset picked instead keeps the chapter waiting for Karama. */
+const karamaPicked = () =>
+  isKarama(document.querySelector(`${SHARED} [role="option"][data-combobox-active]`)?.textContent ?? '');
+/* The request button opens once the table has checked the picked asset. */
+const karamaReady = () => {
+  const request = sharedButton('Request');
+  return karamaPicked() && request !== null && !request.disabled;
+};
+/* Where to look next for Karama: its row once the search names it, else the search, else the button that opens the catalogue. */
+const findKarama = () =>
+  (isKarama(document.querySelector<HTMLInputElement>(SEARCH)?.value ?? '') ? karamaOption() : null) ??
+  document.querySelector(SEARCH) ??
+  sharedButton('Add from catalogue');
 /* New lines join the bottom of the window's list, below what it shows, so the step scrolls its line into view. */
 const showInWindow = (selector: string) => document.querySelector(selector)?.scrollIntoView({ block: 'nearest' });
 
@@ -38,7 +45,8 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     snapshot()
       .table.pieces.filter((piece) => piece.inventory === 'shared')
       .reduce((total, piece) => total + piece.items.length, 0);
-  const requests = () => snapshot().controls?.requests ?? [];
+  const karamaRequested = () =>
+    (snapshot().controls?.requests ?? []).some((request) => isKarama(request.contents.name));
   const karama = () => snapshot().table.pieces.filter((piece) => isKarama(piece.label));
   return [
     task({
@@ -63,24 +71,18 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       task: 'Find Karama in the catalogue',
       detail:
         'Decks, bundles and tokens that people made in the editor can join any game. Press Add from catalogue, search for Karama and pick it. The table checks it, then says how many pieces it adds.',
-      anchor: {
-        kind: 'page',
-        element: () =>
-          (/karama/i.test(document.querySelector<HTMLInputElement>(SEARCH)?.value ?? '') ? karamaOption() : null) ??
-          document.querySelector(SEARCH) ??
-          sharedButton('Add from catalogue'),
-      },
+      anchor: { kind: 'page', element: findKarama },
       begin: () => undefined,
-      done: requestReady,
+      done: karamaReady,
     }),
     task({
       id: 'request',
       task: 'Ask the table for it',
       detail:
-        'Everyone shares this table, so a new piece needs a yes from one other player. Press Request: your request waits under the inventory until someone answers it.',
-      anchor: { kind: 'page', element: () => sharedButton('Request') },
+        'Everyone shares this table, so a new piece needs a yes from one other player. With Karama picked, press Request: your request waits under the inventory until someone answers it.',
+      anchor: { kind: 'page', element: () => (karamaPicked() ? sharedButton('Request') : findKarama()) },
       begin: () => undefined,
-      done: () => requests().length > 0 || karama().length > 0,
+      done: () => karamaRequested() || karama().length > 0,
     }),
     task({
       id: 'approved',
