@@ -22,7 +22,17 @@ const meta = preview.meta({
 /** The label is the hover text and the accessible name at once. No intent stated, which leaves the theme's primary colour, as the drag handle does. */
 export const Default = meta.story({});
 
-/** While its mutation is in flight. */
+/** While its mutation is in flight: a spinner in place of the glyph, and no second press. */
+export const Loading = meta.story({
+  args: {
+    label: 'Delete group',
+    icon: <Trash2 size={17} aria-hidden />,
+    intent: 'negative',
+    loading: true,
+  },
+});
+
+/** Not available right now. */
 export const Disabled = meta.story({
   args: {
     label: 'Delete group',

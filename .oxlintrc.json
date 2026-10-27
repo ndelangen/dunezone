@@ -85,15 +85,7 @@
         "src/app/routes/_app/play/drafting.testing.stories.tsx",
         "src/app/routes/_app/play/multiplayer/FactionTokenFace.testing.stories.tsx",
         "src/app/routes/_app/play/panel.hand.testing.stories.tsx",
-        "src/app/routes/_app/play/panel.layout.testing.stories.tsx",
-        "src/app/routes/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit/rulebookCoverEdit.stories.tsx",
-        "src/app/routes/_app/rulesets/rulebooks-creation.testing.stories.tsx",
-        "src/app/routes/_app/rulesets/rulebooks-editor.testing.stories.tsx",
-        "src/app/routes/_app/rulesets/rulebooks.testing.stories.tsx",
-        "src/app/routes/factions.testing.stories.tsx",
-        "src/app/widgets/authoring/AuthoringToolbar.stories.tsx",
-        "src/app/widgets/authoring/AuthoringToolbar.testing.stories.tsx",
-        "src/app/widgets/faction-editor/FactionSpecialRule.stories.tsx"
+        "src/app/routes/_app/play/panel.layout.testing.stories.tsx"
       ],
       "rules": { "local/story-owns-its-states": "error" }
     },
