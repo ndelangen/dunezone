@@ -1,5 +1,5 @@
 {
-  "status": "editorial-review",
+  "status": "published",
   "date": "2026-10-27",
   "pages": 37,
   "settings": {
@@ -7,7 +7,7 @@
     "design": "restrained"
   },
   "rawSha256": "038562b39a7642a2c705cfef97fc711d11da4335714e8ceadaf84e340fe5e993",
-  "pdfSha256": "55f3f8f2372b874e9c8d3e5c30f44d2be48c9f2b057cc59028bc8920d7770544",
+  "pdfSha256": "519dead8e217c0e3f4daa20a0a75e718d10108cddf9c4b09c280bc8ced72bf1a",
   "coverage": {
     "researchRecords": 141,
     "mapped": 135,
@@ -21,21 +21,20 @@
     "horizontalOverflows": 0
   },
   "pdf": {
-    "source": "Local editorial revision",
+    "source": "Production publisher Edition 3",
     "pages": 37,
     "sizePt": [
-      594.96,
-      841.92
+      595.276,
+      841.89
     ],
     "tagged": true,
     "unmatchedProseBoundaries": 0,
     "visuallyCheckedPages": [
-      16,
-      32
+      16
     ],
-    "contactSheetReviewed": true
+    "contactSheetReviewed": false
   },
-  "productionWrites": false,
+  "productionWrites": true,
   "cover": {
     "file": "cover.png",
     "status": "published",
@@ -44,10 +43,10 @@
   },
   "publication": {
     "url": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2019-to-2-0-what-changes",
-    "edition": 2,
+    "edition": 3,
     "owner": "Central",
     "method": "Normal authenticated UI",
-    "note": "Edition 2 remains published. The local editorial revision has not been published."
+    "note": "Editorial revision published through the normal authenticated UI on 27 October 2026."
   },
   "editorialReview": "editorial-review.json"
 }

@@ -1,5 +1,5 @@
 {
-  "status": "local-review",
+  "status": "published",
   "date": "2026-10-27",
   "baseline": {
     "commit": "1cc307e1a77dd370f2c38e9a6996273cbbd5dc3c",
@@ -2248,7 +2248,7 @@
       "contactSheetReviewed": true
     }
   },
-  "productionChanged": false,
+  "productionChanged": true,
   "changes": [
     {
       "page": "reading",
@@ -6102,5 +6102,12 @@
     }
   ],
   "rawSha256": "038562b39a7642a2c705cfef97fc711d11da4335714e8ceadaf84e340fe5e993",
-  "pdfSha256": "55f3f8f2372b874e9c8d3e5c30f44d2be48c9f2b057cc59028bc8920d7770544"
+  "pdfSha256": "55f3f8f2372b874e9c8d3e5c30f44d2be48c9f2b057cc59028bc8920d7770544",
+  "publication": {
+    "edition": 3,
+    "date": "2026-10-27",
+    "url": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2019-to-2-0-what-changes",
+    "productionPdfProseFieldsChecked": 276,
+    "unmatchedProseBoundaries": []
+  }
 }

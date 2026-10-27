@@ -2,15 +2,15 @@
 
 The published book has 37 A4 pages using the existing restrained design and existing Rulebook Blocks. It compares GF9 2019 Basic and Advanced with the 2026 default game for players who already know GF9.
 
-[Read the published book](https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2019-to-2-0-what-changes). Edition 2 contains all 37 pages, published as Central under GF9 2.0. HTML and PDF are ready. [Publication record](publication.json).
+[Read the published book](https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2019-to-2-0-what-changes). Edition 3 contains the revised wording across all 37 pages, published as Central under GF9 2.0. HTML and PDF are ready. [Publication record](publication.json).
 
 [Open the local preview](http://127.0.0.1:4320/). The preview server must be running in this checkout. It reads existing production artwork and the approved production cover and writes no application data.
 
 ## Editorial revision, 27 October 2026
 
-The local preview contains a revised wording pass for review. The published Edition 2 is unchanged. All 36 content pages were edited to remove abstract labels, repeated warnings and comments about how the guide was written. Paragraphs and answers are 732 words shorter. Rules, references, examples, artwork and pagination are retained.
+The wording revision was published as Edition 3 on 27 October 2026. The comparison retains Edition 2 as its before-copy. All 36 content pages were edited to remove abstract labels, repeated warnings and comments about how the guide was written. Paragraphs and answers are 732 words shorter. Rules, references, examples, artwork and pagination are retained.
 
-[Compare the wording](http://127.0.0.1:4320/editorial-review.html). The complete field-by-field comparison is saved in `editorial-review.html` and `editorial-review.json`. The revised PDF is `output/pdf/gf9-2019-to-2-0-differences-edited.pdf`; the earlier review PDF remains a copy of published Edition 2.
+[Compare the wording](http://127.0.0.1:4320/editorial-review.html). The complete field-by-field comparison is saved in `editorial-review.html` and `editorial-review.json`. The revised PDF is `output/pdf/gf9-2019-to-2-0-differences-edited.pdf`; the earlier review PDF remains a copy of published Edition 2. The production Edition 3 PDF is `output/pdf/gf9-2019-to-2-0-differences-edition-3.pdf`.
 
 The local copy still has 37 A4 pages. Schema and reference validation pass, every research record remains accounted for, and the browser check found no overflow or missing images. The edited PDF passed the prose-boundary check. Its card changes and expansion pages were inspected visually, along with the whole-book contact sheet.
 
@@ -38,7 +38,7 @@ This is a teaching draft, not a copy of the research prose. It uses the existing
 | [pdf-checks.json](pdf-checks.json) | Printed page count and extracted prose-boundary checks. |
 | [review.json](review.json) | Review identity, hashes, coverage counts and measured limitations. |
 
-The production PDF is copied to `output/pdf/gf9-2019-to-2-0-differences-review.pdf`. It has 37 tagged A4 pages. The publisher PDF and HTML URLs are recorded in `publication.json`.
+The current production PDF is copied to `output/pdf/gf9-2019-to-2-0-differences-edition-3.pdf`. It has 37 tagged A4 pages. The publisher PDF and HTML URLs are recorded in `publication.json`.
 
 ## Build and preview
 

@@ -1,25 +1,25 @@
 {
   "status": "published",
-  "date": "2026-10-26",
+  "date": "2026-10-27",
   "title": "GF9 2019 to 2.0: What changes",
   "url": "https://dune.zone/rulesets/gf9-2-0/rulebooks/gf9-2019-to-2-0-what-changes",
   "rulebookId": "pd7247mr9ge6kstr2t7ta5hrb98h0f28",
   "ruleset": "gf9-2-0",
   "owner": "Central",
   "assignedRulesetGroup": "GF9",
-  "method": "Normal authenticated UI creation, JSON Load, Save, five-second Publish hold. No administrative mutations.",
-  "edition": 2,
-  "draftRevision": 2,
+  "method": "Normal authenticated UI JSON Load, Save and five-second Publish hold as Central. No administrative mutations.",
+  "edition": 3,
+  "draftRevision": 3,
   "pages": 37,
   "settings": {
     "size": "a4",
     "design": "restrained"
   },
-  "html": "https://dune.zone/published/rulebooks/pd7247mr9ge6kstr2t7ta5hrb98h0f28/editions/2/rulebook.html",
-  "pdf": "https://dune.zone/published/rulebooks/pd7247mr9ge6kstr2t7ta5hrb98h0f28/editions/2/rulebook.pdf",
+  "html": "https://dune.zone/published/rulebooks/pd7247mr9ge6kstr2t7ta5hrb98h0f28/editions/3/rulebook.html",
+  "pdf": "https://dune.zone/published/rulebooks/pd7247mr9ge6kstr2t7ta5hrb98h0f28/editions/3/rulebook.pdf",
   "artifactsReady": true,
-  "sourceSha256": "8ea057e17fea9b50c04508c1978de854a1512ab360e71bd7bd8397aa7173436f",
-  "productionPdfSha256": "5ee34313101fe16814f2570358d4c5c8cd2d598a78fbd1cf631077c2dc132bf8",
+  "sourceSha256": "038562b39a7642a2c705cfef97fc711d11da4335714e8ceadaf84e340fe5e993",
+  "productionPdfSha256": "519dead8e217c0e3f4daa20a0a75e718d10108cddf9c4b09c280bc8ced72bf1a",
   "productionPdf": {
     "pages": 37,
     "sizePt": [
@@ -27,8 +27,15 @@
       841.89
     ],
     "tagged": true,
-    "unmatchedProseBoundaries": []
+    "unmatchedProseBoundaries": [],
+    "fieldsChecked": 276,
+    "visuallyCheckedPages": [
+      16
+    ],
+    "localCopy": "output/pdf/gf9-2019-to-2-0-differences-edition-3.pdf"
   },
-  "verification": "Reloaded saved draft, confirmed production cover loaded, opened public Edition 2 reader, downloaded and inspected publisher PDF.",
-  "recovery": "The local source and publication snapshot are versioned. Any correction can be saved and published as a new Edition."
+  "verification": "Reloaded saved draft revision 3, confirmed Edition 3 in the public reader, checked revised wording in reader and HTML, and downloaded the production PDF. HTML contains 37 pages, no missing images and the revised Traitor calls heading. The former heading is absent.",
+  "recovery": "The local source and publication snapshot are versioned. Any correction can be saved and published as a new Edition.",
+  "previousPublication": "publication-edition-2.json",
+  "change": "Plain-language edit across 36 content pages; 732 fewer words. Rules, examples, artwork, cover and 37-page A4 pagination retained."
 }
