@@ -530,6 +530,26 @@
       "id": "cardback_presets_retired_label_fields_verify_v1",
       "phase": "widen",
       "requires": ["cardback_presets_retired_label_fields_v1"]
+    },
+    {
+      "id": "faction_hero_key_narrow",
+      "phase": "narrow",
+      "requires": [
+        "faction_faction_leader_key_v1",
+        "faction_faction_leader_key_verify_v1",
+        "faction_hero_key_drop_v1",
+        "faction_hero_key_drop_verify_v1"
+      ]
+    },
+    {
+      "id": "faction_troop_red_star_narrow",
+      "phase": "narrow",
+      "requires": ["faction_troop_red_star_v1", "faction_troop_red_star_verify_v1"]
+    },
+    {
+      "id": "cardback_presets_retired_label_fields_narrow",
+      "phase": "narrow",
+      "requires": ["cardback_presets_retired_label_fields_v1", "cardback_presets_retired_label_fields_verify_v1"]
     }
   ]
 }

@@ -13,18 +13,8 @@ const iconLocation = { x: 50 - iconSize.width / 2, y: 50 - iconSize.height / 2 }
 
 type TroopTokenProps = z.infer<typeof FactionRender.troops>[0];
 
-/**
- * The star files carried baked colors until the vector train (#307): cream star over a black outline, red for the
- * `-red` variants.
- * They are colorless now;
- * `hue` recolors the star, and the old two looks remain the defaults so stored factions render unchanged.
- */
-function starHue(star: string, hue: string | undefined): string {
-  if (hue) {
-    return hue;
-  }
-  return star.includes('-red') ? 'red' : '#f6f4cc';
-}
+/* The star files are colorless; `hue` recolors the star, and cream is the default. */
+const DEFAULT_STAR_HUE = '#f6f4cc';
 
 export const TroopToken: FC<TroopTokenProps> = ({ background, image, star, hue, striped }) => {
   const cid = useId();
@@ -83,7 +73,7 @@ export const TroopToken: FC<TroopTokenProps> = ({ background, image, star, hue, 
       {star && (
         <div className={`${styles.content} ${styles.star}`}>
           <svg viewBox="0 0 100 100" role="img" aria-label="star">
-            <use xlinkHref={`${star}#star`} fill={starHue(star, hue)} />
+            <use xlinkHref={`${star}#star`} fill={hue || DEFAULT_STAR_HUE} />
             <use xlinkHref={`${star}#outline`} fill="black" />
           </svg>
         </div>
