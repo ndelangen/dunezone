@@ -1,6 +1,7 @@
-import { Button, Group, Select, Stack, Text, Title } from '@mantine/core';
+import { Button, Group, Select, Stack, Text } from '@mantine/core';
 import type { playLobbyEntrySchema } from '@shared/play/directory';
 import { phaseAt, STANDARD_PHASES, tableProgressFor } from '@shared/play/phases';
+import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageTitle } from '@ui/block/PageTitle';
 import { formatRelativeDate } from '@ui/content/dates';
 import { nameDiscColor } from '@ui/content/nameDisc';
@@ -231,13 +232,12 @@ const EMPTY_WORDS: Record<View, string> = {
   finished: 'No game has finished yet.',
 };
 
-function EmptyView({ title, children }: Readonly<{ title: string; children: ReactNode }>) {
+function EmptyView({ title, children }: Readonly<{ title: string; children: string }>) {
   return (
     <Surface padding="xl">
-      <Stack gap="xs" align="center" ta="center">
-        <Title order={2}>{title}</Title>
-        <Text c="dimmed">{children}</Text>
-      </Stack>
+      <div className={styles.empty}>
+        <NotAvailable title={title}>{children}</NotAvailable>
+      </div>
     </Surface>
   );
 }
@@ -400,7 +400,7 @@ function LobbyContent({
   const games = gamesFor(view, ready.ongoing, ready.past).filter((entry) => matches(entry, query));
   if (games.length === 0) {
     return query.trim() ? (
-      <EmptyView title="No game matches">Nothing here matches “{query.trim()}”.</EmptyView>
+      <EmptyView title="No game matches">{`Nothing here matches “${query.trim()}”.`}</EmptyView>
     ) : (
       <EmptyView title="Nothing here">{EMPTY_WORDS[view]}</EmptyView>
     );

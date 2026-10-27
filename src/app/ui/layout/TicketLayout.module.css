@@ -2,6 +2,8 @@
 .root {
   container: ticket-layout / inline-size;
   min-width: 0;
+  max-width: 64rem;
+  margin: 0 auto;
 }
 
 .layout {

@@ -88,7 +88,39 @@ export const OpenedAtChooseARuleset = meta.story({
   args: { path: '/tutorial/find-or-create?step=5' },
   play: async ({ canvasElement }) => {
     const page = await openedAt(canvasElement, 'Choose a ruleset');
-    await expect(await page.findByRole('form', { name: 'New game' })).toBeVisible();
+    const form = await page.findByRole('form', { name: 'New game' });
+    await expect(form).toBeVisible();
+    /* The arrow lands beside the ruleset field and leaves its label clear, however high the pass's name sets the form. */
+    const label = form.querySelector('.mantine-Select-root label')!;
+    const arrow = () =>
+      canvasElement.ownerDocument.querySelector<SVGPathElement>('path[data-target]:not([data-target=""])');
+    await waitFor(() => expect(arrow()).not.toBeNull(), { timeout: 20_000 });
+    /* It aims at the whole field, label and all, so the gap its tip keeps holds from the label as well as the input. */
+    const aimsAtField = () => {
+      const field = label.closest('.mantine-Select-root')!.getBoundingClientRect();
+      const [x, y] = arrow()!.getAttribute('data-target')!.split(' ').map(Number);
+      return Math.abs(x! - (field.left + field.width / 2)) <= 1 && Math.abs(y! - (field.top + field.height / 2)) <= 1;
+    };
+    const covers = () => {
+      const path = arrow()!;
+      const origin = path.ownerSVGElement!.getBoundingClientRect();
+      const box = label.getBoundingClientRect();
+      for (let x = box.left; x <= box.right; x += 4) {
+        for (let y = box.top; y <= box.bottom; y += 4) {
+          if (path.isPointInFill(new DOMPoint(x - origin.left, y - origin.top))) {
+            return true;
+          }
+        }
+      }
+      return false;
+    };
+    await waitFor(() => expect(covers()).toBe(false), { timeout: 5000 });
+    await expect(aimsAtField()).toBe(true);
+    /* A name on one line sets the form higher, which once brought the arrowhead over the label. */
+    await userEvent.click(within(form).getByRole('switch', { name: 'Set a custom name' }));
+    await userEvent.type(within(form).getByRole('textbox'), 'Ix');
+    await waitFor(() => expect(aimsAtField()).toBe(true), { timeout: 5000 });
+    await expect(covers()).toBe(false);
   },
 });
 

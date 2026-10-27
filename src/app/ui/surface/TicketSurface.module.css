@@ -1,15 +1,7 @@
 /*
- * A ticket: the main part on the app's paper, the stub on the table's ground, and a perforation between them.
- * Each part is its own pane; the ticket itself paints nothing.
+ * A ticket's parts, each its own pane in a `TicketLayout`: the main part on the app's paper, the stub on the table's ground, and a perforation between them.
  * The stub's ground and accent are the play shell's own, so a step into the table starts here.
  */
-.ticket {
-  --ticket-ground: var(--color-ground);
-  --ticket-accent: var(--color-brand);
-
-  max-width: 64rem;
-  margin: 0 auto;
-}
 
 .main {
   display: flex;
@@ -36,7 +28,7 @@
     bottom: var(--space-md);
     left: -1px;
     width: 2px;
-    background: repeating-linear-gradient(180deg, var(--ticket-accent) 0 0.5rem, transparent 0.5rem 1rem);
+    background: repeating-linear-gradient(180deg, var(--color-brand) 0 0.5rem, transparent 0.5rem 1rem);
     opacity: 0.45;
     z-index: 1;
   }

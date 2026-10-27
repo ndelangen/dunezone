@@ -1,5 +1,8 @@
-/* The create page is a boarding pass, a ticket whose stub sets the table; its fields read the ticket's ground and accent. */
+/* The create page is a boarding pass, a ticket whose stub sets the table; its fields read the ticket's ground and accent, the play shell's own. */
 .pass {
+  --ticket-ground: var(--color-ground);
+  --ticket-accent: var(--color-brand);
+
   container: pass / inline-size;
 }
 

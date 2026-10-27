@@ -12,6 +12,7 @@ const Stub: (props: PropsWithChildren) => null = () => null;
 
 /**
  * A ticket's two parts, the main part and its stub, side by side once the ticket itself is 48rem wide and stacked below that.
+ * The ticket is at most 64rem wide, centred on its page.
  * It answers to its own width rather than the page's, so a narrow ticket on a wide page stacks.
  * Each part fills the height of the row it shares.
  */

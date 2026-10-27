@@ -3,9 +3,9 @@ import preview from '@sb/preview';
 import { expect, within } from 'storybook/test';
 
 import { TicketLayout } from '../layout/TicketLayout';
-import { TicketMain, TicketStub, TicketSurface } from './TicketSurface';
+import { TicketMain, TicketStub } from './TicketSurface';
 
-/* A ticket as the create page sets one: the paper round a TicketLayout, the main part and the stub in its slots. */
+/* A ticket as the create page sets one: the main part and the stub as sibling panes in a TicketLayout's slots. */
 const parts = (
   <TicketLayout>
     <TicketLayout.Main>
@@ -31,9 +31,10 @@ const parts = (
 );
 
 const meta = preview.meta({
-  component: TicketSurface,
+  component: TicketMain,
   parameters: { layout: 'padded' },
-  args: { children: parts },
+  args: { children: null },
+  render: () => parts,
 });
 
 /** The main part on the paper, the stub on the dark ground, side by side with the perforation between them. */

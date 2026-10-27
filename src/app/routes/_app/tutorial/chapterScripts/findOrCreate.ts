@@ -15,11 +15,14 @@ const SEARCH = 'input[placeholder^="Search games"]';
 const CREATE = 'form[aria-label="New game"] button[type="submit"]';
 
 const searchValue = () => document.querySelector<HTMLInputElement>(SEARCH)?.value ?? '';
-/* The create page's ruleset field, by the label the page gives it. */
-const rulesetInput = () =>
-  [...document.querySelectorAll<HTMLInputElement>('form[aria-label="New game"] input')].find(
-    (input) => input.closest('.mantine-Select-root') !== null
-  ) ?? null;
+/*
+ * The create page's ruleset field, its label included: the arrow keeps its gap from the whole field,
+ * so its head lands beside it rather than over the label, however high the pass's name sets the form.
+ */
+const rulesetField = () =>
+  [...document.querySelectorAll<HTMLInputElement>('form[aria-label="New game"] input')]
+    .map((input) => input.closest('.mantine-Select-root'))
+    .find((field) => field !== null) ?? null;
 const copyButton = () =>
   [...document.querySelectorAll('button')].find((button) => /game link/i.test(button.textContent ?? '')) ?? null;
 
@@ -76,7 +79,7 @@ function tasks(state: () => LobbyState, openCreate: () => void): GuideTask[] {
       id: 'ruleset',
       task: 'Choose a ruleset',
       detail: `The game already has a name, drawn at random; the dice draw another. Choose ${RULESET} as its ruleset: a ruleset decides the board, the decks and the factions the game can draft.`,
-      anchor: { kind: 'page', element: rulesetInput },
+      anchor: { kind: 'page', element: rulesetField },
       begin: () => undefined,
       /* The pass holding Dreamrules, not the field reading it: typed and left unpicked, the field holds no ruleset. */
       done: () => state().ruleset === RULESET,
