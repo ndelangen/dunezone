@@ -7,7 +7,7 @@ import type { GameLengthPanelProps } from './GameLengthPanel';
 type Props = Readonly<{ client: TableSession; table: TableProjection }>;
 
 /** The game's last turn from the table, changeable by a seated player who may act. */
-export function useGameLengthPanel({ client, table }: Props): GameLengthPanelProps {
+function useGameLengthPanel({ client, table }: Props): GameLengthPanelProps {
   return {
     lastTurn: lastTurnOf(table.snapshot),
     disabled: !table.canInteract || !table.snapshot.bank,

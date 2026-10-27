@@ -11,7 +11,7 @@ export type TintDraft = Omit<TerritoryTint, 'id'>;
 export type TintSetting = Extract<TerritoryTintAction, { kind: 'tint-set' }>['setting'];
 
 /** One tint as its row shows it: what it says under its name, whether its paintbrush is on, and which try at removing it this is. */
-export type TintRowView = Readonly<{
+type TintRowView = Readonly<{
   tint: TerritoryTint;
   summary: string;
   painting: boolean;

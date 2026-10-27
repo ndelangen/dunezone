@@ -10,7 +10,7 @@ import type { PanelWindow } from './panelWindows';
 import '../dune-play.css';
 
 /** Where a panel story frames its panel: a pinned slot at its default height, or the centre window the compass opens. */
-export type PanelFrame = 'slot' | 'centre';
+type PanelFrame = 'slot' | 'centre';
 
 /* A pinned slot's default height, as the compass first gives it. */
 const SLOT_HEIGHT = 448;

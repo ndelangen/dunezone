@@ -11,7 +11,7 @@ type Props = Readonly<{ client: TableSession; table: TableProjection; tab: LogTa
 const NEWEST = Number.MAX_SAFE_INTEGER;
 
 /** A log tab's page from the table session, read again as the table changes, and the reads for the older and newest pages. */
-export function useLogPanel({ client, table, tab }: Props): LogPanelProps {
+function useLogPanel({ client, table, tab }: Props): LogPanelProps {
   const view = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
   const page = view.logHistory[tab];
   /* No update says whether the log grew, so a changed table reads the page again; a burst of changes reads it once more at its end. */

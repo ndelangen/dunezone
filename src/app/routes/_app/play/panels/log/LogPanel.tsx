@@ -20,7 +20,7 @@ const CLASSIFICATIONS = {
 const TITLES = { game: 'Game log', audit: 'Audit log' } as const satisfies Record<LogTab, string>;
 
 /** One page of a log tab: its entries newest first, whether older ones follow, and whether it is the newest page. */
-export type LogPanelPage = Readonly<{ entries: readonly LogEntry[]; more: boolean; latest: boolean }>;
+type LogPanelPage = Readonly<{ entries: readonly LogEntry[]; more: boolean; latest: boolean }>;
 
 export type LogPanelProps = Readonly<{
   tab: LogTab;

@@ -9,7 +9,7 @@ import type { SpiceTransfersPanelProps } from './SpiceTransfersPanel';
 import { spiceTransferLines } from './useSpiceTransfersPanel';
 
 /* Every kind of transfer, newest first: a return to the Spice Bank, a collection by a faction gone from the roster, a take from the bank, and a withdrawal. */
-export function transfersSnapshot(): GameSnapshot {
+function transfersSnapshot(): GameSnapshot {
   const snapshot = playingSnapshot();
   const faction = snapshot.roster!.seats[1]!.faction!;
   return {

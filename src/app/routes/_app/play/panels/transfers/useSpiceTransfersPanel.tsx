@@ -31,7 +31,7 @@ const SPICE_TRANSFER_VERBS: Readonly<Record<SpiceTransfer['kind'], string>> = {
   disposal: 'returned',
 };
 
-export function spiceTransferText(labels: Readonly<Partial<Record<string, string>>>, transfer: SpiceTransfer): string {
+function spiceTransferText(labels: Readonly<Partial<Record<string, string>>>, transfer: SpiceTransfer): string {
   const moved = `${transfer.actor} ${SPICE_TRANSFER_VERBS[transfer.kind]} ${transfer.amount} spice`;
   if (transfer.kind === 'disposal') {
     return `${moved} to the Spice Bank.`;
@@ -46,7 +46,7 @@ export function spiceTransferLines(table: TableProjection, transfers: readonly S
 }
 
 /** The Spice transfers window from the table: the page on show, read from the snapshot until an older page is asked for. */
-export function useSpiceTransfersPanel({ client, table }: Props): SpiceTransfersPanelProps {
+function useSpiceTransfersPanel({ client, table }: Props): SpiceTransfersPanelProps {
   const view = useSyncExternalStore(client.subscribe, client.getSnapshot);
   const entries = view.spiceHistory?.entries ?? table.snapshot.spiceTransfers ?? [];
   const last = entries.at(-1);

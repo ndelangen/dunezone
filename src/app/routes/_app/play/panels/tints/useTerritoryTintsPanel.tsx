@@ -165,7 +165,7 @@ export function tintPresets(table: TableProjection) {
 }
 
 /** The Territory tints window from the table: its tints with their paintbrush and removal state, and the commands each control sends. */
-export function useTerritoryTintsPanel({ client, table }: Props): TerritoryTintsPanelProps {
+function useTerritoryTintsPanel({ client, table }: Props): TerritoryTintsPanelProps {
   const tints = useMemo(() => table.snapshot.tints ?? [], [table.snapshot.tints]);
   const board = table.snapshot.board?.definition ?? retainedArrakisBoard();
   const presets = useMemo(() => territoryTintPresets(board), [board]);

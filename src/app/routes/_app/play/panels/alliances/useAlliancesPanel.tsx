@@ -55,7 +55,7 @@ export function allianceRows(table: TableProjection): AllianceRow[] {
 }
 
 /** The Alliances window from the table: its rows, and each row's action sent as the command it stands for. */
-export function useAlliancesPanel({ client, table }: Props): AlliancesPanelProps {
+function useAlliancesPanel({ client, table }: Props): AlliancesPanelProps {
   return {
     rows: allianceRows(table),
     disabled: !table.canInteract,

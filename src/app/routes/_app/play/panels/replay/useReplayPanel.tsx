@@ -5,7 +5,7 @@ import type { ReplayPanelProps, ReplayState } from './ReplayPanel';
 type Props = Readonly<{ client: TableSession; table: TableProjection }>;
 
 /** Where the table stands in its saved phases; a hosted game browses from its header, a fixture table from the panel. */
-export function replayState(table: TableProjection): ReplayState {
+function replayState(table: TableProjection): ReplayState {
   const { playback } = table;
   if (playback && table.snapshot.stage) {
     return { kind: 'header' };
@@ -16,7 +16,7 @@ export function replayState(table: TableProjection): ReplayState {
 }
 
 /** The Replay window from the table: where it stands, and the reads that step through the saved phases. */
-export function useReplayPanel({ client, table }: Props): ReplayPanelProps {
+function useReplayPanel({ client, table }: Props): ReplayPanelProps {
   return {
     replay: replayState(table),
     pending: table.historyPending,
