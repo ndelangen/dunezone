@@ -377,17 +377,18 @@ function TokenFace({
   faceUp,
   underside = false,
   itemIndex,
+  cut,
 }: {
   piece: TablePiece;
   faceUp: boolean;
   underside?: boolean;
   itemIndex: number;
+  cut: TokenCut;
 }) {
   const meshes = useSharedMeshes();
   /* A faction token has no back of its own: face down, it shows its front under a black prohibition sign. */
   const blocked = !faceUp && isFactionToken(piece);
   const href = piece.items[itemIndex]?.artwork?.[faceUp || blocked ? 'front' : 'back'];
-  const cut = tokenCut(piece);
   return (
     <PieceFace height={TROOP_LAYER_HEIGHT} underside={underside}>
       {href && <PublishedFace href={href} card={false} cut={cut} showsFront={faceUp} />}
@@ -435,8 +436,12 @@ function TroopStackLayers({ piece }: { piece: TablePiece }) {
             >
               <meshStandardMaterial color={piece.color} roughness={0.56} metalness={0.1} />
             </mesh>
-            {index === shownLayers - 1 ? <TokenFace piece={piece} faceUp={faceUp} itemIndex={itemIndex} /> : null}
-            {index === 0 ? <TokenFace piece={piece} faceUp={!faceUp} underside itemIndex={itemIndex} /> : null}
+            {index === shownLayers - 1 ? (
+              <TokenFace piece={piece} faceUp={faceUp} itemIndex={itemIndex} cut={cut} />
+            ) : null}
+            {index === 0 ? (
+              <TokenFace piece={piece} faceUp={!faceUp} underside itemIndex={itemIndex} cut={cut} />
+            ) : null}
           </group>
         );
       })}

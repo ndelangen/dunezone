@@ -7,6 +7,7 @@ import { expect, within } from 'storybook/test';
 import type { StoredSnapshot } from '../../../../../workers/game/state';
 import { gameMeta, install } from './game.stories.fixture';
 import { chapter, journeyViewers, JourneyPage } from './journey.stories.fixture';
+import techToken from './product.stories.fixture/tech-token.json';
 import { sandbox, sandboxReady, sandboxSteps, sandboxTransport } from './sandbox.stories.fixture';
 import { shown, piece } from './sandbox.stories.fixture';
 
@@ -180,16 +181,11 @@ export const HmsCarriesItsTroops = meta.story({
   },
 });
 
-/** Three tech tokens for seat 1's faction set down on the board where nothing stands: one face up, one face down and a stack of three. */
+/** Three of the published Water Extraction tech token for seat 1's faction set down on the board where nothing stands: one face up, one face down and a stack of three. */
 function withTechTokens(stored: StoredSnapshot): StoredSnapshot {
   const seat = stored.roster!.seats.find((entry) => entry.id === 'seat-1')!;
-  /* The faction's token art stands in for a tech token's front and its troops' published back for its back, each cut to the gear as a published face is. */
-  const front = stored.table.pieces.find((candidate) => candidate.stackKey === `faction-token:${seat.faction!.id}`)!
-    .items[0]!.artwork!.front;
-  const back = stored.table.pieces.find(
-    (candidate) =>
-      !!candidate.stackKey?.startsWith(`troops:${seat.faction!.id}:`) && !!candidate.items[0]?.artwork?.back
-  )!.items[0]!.artwork!.back;
+  const front = new URL(`/play-fixtures/product/${techToken.published.front.file}`, location.origin).href;
+  const back = new URL(`/play-fixtures/product/${techToken.published.back.file}`, location.origin).href;
   const pieces = [...stored.table.pieces];
   const versions = { ...stored.versions };
   for (const [index, [count, faceUp, x]] of (
@@ -201,14 +197,14 @@ function withTechTokens(stored: StoredSnapshot): StoredSnapshot {
   ).entries()) {
     const token: StoredSnapshot['table']['pieces'][number] = {
       id: `sandbox-tech-${index}`,
-      label: 'Karama tech',
+      label: techToken.name,
       owner: seat.faction!.id,
       color: seat.faction!.color,
       accent: '#ead9bb',
       items: Array.from({ length: count }, (_, item) => ({
         id: `sandbox-tech-${index}-${item}`,
         faceUp,
-        artwork: { front, back, name: 'Karama tech', type: 'token-tech' },
+        artwork: { front, back, name: techToken.name, type: techToken.type },
       })),
       stackKey: `token:sandbox-tech-${index}`,
       position: [0, 0, 0],
