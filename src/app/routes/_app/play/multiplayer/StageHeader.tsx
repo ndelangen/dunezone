@@ -8,6 +8,7 @@ import { InviteLink } from '../GameLink';
 import { BidderToolbar } from './BidderToolbar';
 import { DraftingHeader, DraftingReady } from './Drafting';
 import { ContinuePlaying, resultTitle } from './GameResult';
+import { MovementToolbar } from './MovementToolbar';
 import { canStepPhase, PhaseNavigation } from './PhaseNavigation';
 import { StagePlayback } from './SeatRequests';
 import { SwappingReady, SwappingStatus } from './Swapping';
@@ -48,7 +49,7 @@ export function stageToolbar({
   if (table.playback) {
     return <StagePlayback client={client} table={table} error={error} />;
   }
-  /* In play the header steps phases beside the bidder; setup steps its phases alone. An open review vote waits beside them. */
+  /* In play the header steps phases beside the bidder and the Shipment and Movement turns; setup steps its phases alone. An open review vote waits beside them. */
   if (inPlay || settingUp(table)) {
     return (
       <>
@@ -56,6 +57,7 @@ export function stageToolbar({
         {inPlay && (
           <BidderToolbar client={client} table={table} faded={bidderFaded} onFadedChange={onBidderFadedChange} />
         )}
+        {inPlay && <MovementToolbar client={client} table={table} />}
         <PhaseNavigation client={client} table={table} />
       </>
     );

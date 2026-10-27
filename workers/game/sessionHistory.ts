@@ -1,3 +1,4 @@
+import { rosterFactionEventName } from '../../src/shared/play/factionLabels';
 import { phaseAt, tableProgressFor } from '../../src/shared/play/phases';
 import type { CommitMessage, PieceAction } from '../../src/shared/play/protocol';
 import type { ReviewCheckpoint } from '../../src/shared/play/review';
@@ -28,7 +29,7 @@ type Moment = ReviewCheckpoint['moment'];
 
 type RowInput = Pick<HistoryRow, 'kind' | 'data' | 'step' | 'base_revision'>;
 /* Declaring a result and continuing past it are playback steps, as phase changes are. */
-const boundaryActions = new Set(['phase', 'result-declare', 'result-continue']);
+const boundaryActions = new Set(['phase', 'result-declare', 'result-continue', 'movement-done']);
 /* Ready is a playback step only while setup gates on it; phase is one everywhere. */
 const setupReady = 'ready';
 
@@ -51,10 +52,13 @@ function requiresCheckpoint(action: PieceAction, before: StoredSnapshot, next: S
   return before.battleState?.stage === 'revealed' && !next.battleState;
 }
 
-/* What a step records: a settled battle, a declared or continued result, or the table entering a phase or setup step. */
+/* What a step records: a settled battle, a faction's finished Shipment and Movement, a declared or continued result, or the table entering a phase or setup step. */
 function momentOf(action: PieceAction, before: StoredSnapshot, next: StoredSnapshot): Moment {
   if (before.battleState?.stage === 'revealed' && !next.battleState) {
     return 'battle';
+  }
+  if (action.kind === 'movement-done') {
+    return 'turn';
   }
   return action.kind === 'result-declare' || action.kind === 'result-continue' ? 'result' : 'entered';
 }
@@ -64,10 +68,18 @@ function placeOf(snapshot: StoredSnapshot, moment: Moment): Place {
   const context = logContext(snapshot);
   if (snapshot.stage === 'setup') {
     const step = snapshot.setup && setupStep(snapshot.setup);
-    return { context, turn: null, label: step?.title ?? 'Setup', symbol: step?.symbol ?? null, moment };
+    return { context, turn: null, label: step?.title ?? 'Setup', symbol: step?.symbol ?? null, moment, faction: null };
   }
   const phase = phaseAt(snapshot.phase, snapshot.phases);
-  return { context, turn: turnOf(snapshot), label: phase.label, symbol: phase.symbol, moment };
+  const finished = moment === 'turn' ? snapshot.movement?.done.at(-1) : undefined;
+  return {
+    context,
+    turn: turnOf(snapshot),
+    label: phase.label,
+    symbol: phase.symbol,
+    moment,
+    faction: finished === undefined ? null : rosterFactionEventName(snapshot.roster, finished),
+  };
 }
 
 /* Setup steps change a few entries of the table each, so they are stored as their changes like any other playback step. */

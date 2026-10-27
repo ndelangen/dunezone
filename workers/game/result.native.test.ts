@@ -526,6 +526,35 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
     expect(declared.snapshot.stage).toBe('finished');
   });
 
+  it('saves a checkpoint after each faction finishes Shipment and Movement, and a new phase starts with nobody done', async () => {
+    const { owner, other, observer } = await inPlay();
+    expect(await rejected(owner, { kind: 'movement-done' })).toBe(true);
+    while (TABLE_PHASES[(await syncView(owner)).snapshot.phase % TABLE_PHASES.length]!.id !== 'shipment-and-movement') {
+      await next(owner);
+    }
+    expect(await rejected(observer, { kind: 'movement-done' })).toBe(true);
+    const first = await accepted(other, { kind: 'movement-done' });
+    expect(required(first.snapshot.movement).done).toEqual([factionOf(first)]);
+    expect(await rejected(other, { kind: 'movement-done' })).toBe(true);
+    const second = await accepted(owner, { kind: 'movement-done' });
+    expect(required(second.snapshot.movement).done).toEqual([factionOf(first), factionOf(second)]);
+
+    /* Each finished turn is a checkpoint after the phase's start, named by the faction that finished. */
+    const checkpoints = required((await syncView(owner)).snapshot.reviewCheckpoints).slice(-3);
+    expect(checkpoints.map(({ moment, label }) => [moment, label])).toEqual([
+      ['entered', 'Shipment and Movement'],
+      ['turn', 'Shipment and Movement'],
+      ['turn', 'Shipment and Movement'],
+    ]);
+    expect(checkpoints[1]!.faction).toBeTruthy();
+    expect(checkpoints[1]!.faction).not.toBe(checkpoints[2]!.faction);
+
+    const moved = await next(owner);
+    expect(moved.snapshot.movement).toBeUndefined();
+    await next(owner, -1);
+    expect((await syncView(owner)).snapshot.movement).toBeUndefined();
+  });
+
   describe('Table review', () => {
     /* The reply to a history read: the checkpoint, or the reason it is refused. */
     async function look(connection: NativeConnection, step: number) {

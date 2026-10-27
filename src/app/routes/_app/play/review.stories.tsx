@@ -1,9 +1,11 @@
 import preview from '@sb/preview';
+import { TABLE_PHASES } from '@shared/play/phases';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { within } from 'storybook/test';
 
 import { gameMeta, install } from './game.stories.fixture';
 import { openTab } from './playing.stories.fixture';
+import { playingSnapshot, productTransport } from './product.stories.fixture';
 import { reviewableSnapshot, reviewCheckpoints, reviewOf, reviewTransport } from './review.stories.fixture';
 
 const meta = preview.meta({
@@ -43,4 +45,14 @@ export const ReviewingAsObserver = meta.story({
   beforeEach: install(() =>
     reviewTransport(SPECTATOR_SEAT, reviewOf(reviewableSnapshot(), bidding, 'seat-1', ['seat-3', 'seat-4', 'seat-5']))
   ),
+});
+
+/* Shipment and Movement with the first faction done: the header names who is up next, and this player can finish their own turn, which saves a checkpoint. */
+export const ShipmentAndMovementTurns = meta.story({
+  beforeEach: install(() => {
+    const snapshot = playingSnapshot('seat-2');
+    snapshot.phase = TABLE_PHASES.findIndex((phase) => phase.id === 'shipment-and-movement');
+    snapshot.movement = { done: [snapshot.roster!.seats[0]!.faction!.id] };
+    return productTransport('seat-2', snapshot);
+  }),
 });

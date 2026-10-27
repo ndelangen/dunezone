@@ -91,6 +91,7 @@ const STEPS: Record<Kind, (room: Room) => Step[]> = {
   'alliance-decline': () => [[bob, { kind: 'alliance-decline', factionId: 'harkonnen', offer: 0 }]],
   'alliance-break': () => [[bob, { kind: 'alliance-break', factionId: 'harkonnen' }]],
   'last-turn': () => [[bob, { kind: 'last-turn', turn: 8 }]],
+  'movement-done': () => [[bob, { kind: 'movement-done' }]],
   'tint-create': () => [
     [bob, { kind: 'tint-create', tintId: 'tint-a', name: 'Blue', color: '#2f7fe0', territories: ['carthag'] }],
   ],

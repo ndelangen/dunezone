@@ -46,22 +46,31 @@ export function checkpointTurns(checkpoints: readonly ReviewCheckpoint[]): Check
   return turns;
 }
 
-/** What a checkpoint shows within its phase: the phase's start, after its nth battle, or a declared result. */
+/** What a checkpoint shows within its phase: its start, after a faction's Shipment and Movement, after its nth battle, or a declared result. */
 export function momentLabel(phase: CheckpointPhase, checkpoint: ReviewCheckpoint): string {
-  if (checkpoint.moment === 'entered') {
-    return 'Start';
+  switch (checkpoint.moment) {
+    case 'entered':
+      return 'Start';
+    case 'result':
+      return 'Result';
+    case 'turn':
+      return `After ${checkpoint.faction ?? 'a faction'}`;
+    default: {
+      const battles = phase.checkpoints.filter((entry) => entry.moment === 'battle');
+      return `After battle ${battles.indexOf(checkpoint) + 1}`;
+    }
   }
-  if (checkpoint.moment === 'result') {
-    return 'Result';
-  }
-  const battles = phase.checkpoints.filter((entry) => entry.moment === 'battle');
-  return `After battle ${battles.indexOf(checkpoint) + 1}`;
 }
 
-/** A short name for a moment beside a phase's disc: the battle's number, or R for a result. */
-export function momentMark(phase: CheckpointPhase, checkpoint: ReviewCheckpoint): string {
-  const label = momentLabel(phase, checkpoint);
-  return label === 'Result' ? 'R' : label.replace('After battle ', '');
+/** The phase holding a checkpoint, with the turn it is in. */
+export function phaseHolding(turns: readonly CheckpointTurn[], step: number | null) {
+  for (const turn of turns) {
+    const phase = turn.phases.find((entry) => entry.checkpoints.some((checkpoint) => checkpoint.step === step));
+    if (phase) {
+      return { turn, phase };
+    }
+  }
+  return null;
 }
 
 /** The checkpoint as one line: where it is, and which moment of the phase when the phase holds more than one. */

@@ -19,6 +19,7 @@ export function reviewCheckpoints(): ReviewCheckpoint[] {
       label: 'Starting troops',
       symbol: '/vector/icon/shipment_disc.svg',
       moment: 'entered',
+      faction: null,
     },
     ...TABLE_PHASES.slice(0, BATTLE + 1).map((phase, index) => ({
       step: FIRST_PLAY_STEP + index,
@@ -27,6 +28,7 @@ export function reviewCheckpoints(): ReviewCheckpoint[] {
       label: phase.label,
       symbol: phase.symbol,
       moment: 'entered' as const,
+      faction: null,
     })),
   ];
 }

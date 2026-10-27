@@ -32,8 +32,10 @@ export const reviewCheckpointSchema = z.object({
   /* The phase or setup step it is in, and that phase's symbol. */
   label: z.string().max(200),
   symbol: z.string().max(500).nullable(),
-  /* What made the step: the table entering a phase or setup step, a settled battle, or a declared or continued result. */
-  moment: z.enum(['entered', 'battle', 'result']),
+  /* What made the step: the table entering a phase or setup step, a settled battle, a faction finishing its Shipment and Movement, or a declared or continued result. */
+  moment: z.enum(['entered', 'battle', 'turn', 'result']),
+  /* The faction whose Shipment and Movement turn the step ends; null for every other step. */
+  faction: z.string().max(200).nullable(),
 });
 export type ReviewCheckpoint = z.infer<typeof reviewCheckpointSchema>;
 

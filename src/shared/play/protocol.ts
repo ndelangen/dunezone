@@ -21,6 +21,7 @@ import {
 import { draftActionSchema, draftStateSchema } from './drafting';
 import { publicControlsSchema, publicActionSchema, spawnSelectionSchema, spawnContentsSchema } from './inventory';
 import { lastTurnActionSchema, lastTurnSchema } from './lastTurn';
+import { movementActionSchema, movementTurnsSchema } from './movement';
 import { logEntrySchema, logTabSchema } from './log';
 import type { TableState } from './model';
 import { seatActionSchema } from './participation';
@@ -105,6 +106,8 @@ export const gameSnapshotSchema = z.object({
   alliances: allianceStateSchema.optional(),
   /* The turn the table agreed the game ends after; absent means the standard ten. */
   lastTurn: lastTurnSchema.optional(),
+  /* The factions that have finished this Shipment and Movement; absent outside that phase. */
+  movement: movementTurnsSchema.optional(),
   /* Tints the table laid over territories, for everyone to see; absent until a faction makes one. */
   tints: territoryTintsSchema.optional(),
   battle: publicBattleSchema.nullable().optional(),
@@ -193,6 +196,7 @@ const pieceActionSchema = z.discriminatedUnion('kind', [
   ...biddingActionSchema.options,
   ...allianceActionSchema.options,
   lastTurnActionSchema,
+  movementActionSchema,
   ...territoryTintActionSchema.options,
   ...spiceReserveActionSchema.options,
   ...publicActionSchema.options,

@@ -1,6 +1,6 @@
 import { Accordion, Stack, Text, UnstyledButton } from '@mantine/core';
 
-import { MomentDots, PhaseButton, PhaseDisc } from './CheckpointParts';
+import { MomentStrip, PhaseButton, PhaseDisc } from './CheckpointParts';
 import styles from './CheckpointPicker.module.css';
 import { checkpointTitle, checkpointTurns } from './checkpointTurns';
 import type { CheckpointPickerProps } from './checkpointTurns';
@@ -44,10 +44,13 @@ export function RecentFirstPicker({ checkpoints, value, onChange }: CheckpointPi
                   </Text>
                   <div className={styles.gridPhases}>
                     {turn.phases.map((phase) => (
-                      <span key={phase.key} className={styles.gridCell}>
-                        <PhaseButton phase={phase} value={value} onChange={onChange} turnLabel={turn.label} />
-                        <MomentDots phase={phase} value={value} onChange={onChange} />
-                      </span>
+                      <PhaseButton
+                        key={phase.key}
+                        phase={phase}
+                        value={value}
+                        onChange={onChange}
+                        turnLabel={turn.label}
+                      />
                     ))}
                   </div>
                 </div>
@@ -56,6 +59,7 @@ export function RecentFirstPicker({ checkpoints, value, onChange }: CheckpointPi
           </Accordion.Panel>
         </Accordion.Item>
       </Accordion>
+      <MomentStrip turns={turns} value={value} onChange={onChange} />
       {value !== null && !recentSteps.has(value) && <Text size="sm">{checkpointTitle(turns, value)}</Text>}
     </Stack>
   );
