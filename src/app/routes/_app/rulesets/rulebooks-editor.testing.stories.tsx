@@ -1,4 +1,5 @@
 import { testingPreview } from '@sb/preview';
+import { completeHold } from '@ui/control/useHoldToConfirm.stories.fixture';
 import { useEffect } from 'react';
 import { expect, userEvent, waitFor, within, spyOn } from 'storybook/test';
 
@@ -156,24 +157,19 @@ export const RepeatedClippedAuthorWarnings = meta.story({
   },
 });
 
-/** Holding Publish for five seconds publishes the next Edition, and the action then says there is nothing new to publish. */
+/** A completed hold on Publish publishes the next Edition, and the action then says there is nothing new to publish. */
 export const PublishedEdition = meta.story({
   args: { path: '/rulesets/classicrules/rulebooks/book-0/edit' },
   parameters: { database: db(withUnpublishedRulebook) },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const trigger = await page.findByRole('button', { name: 'Publish Edition 2' }, { timeout: 30_000 });
-    /* The keyboard holds too: Space held down runs the countdown, which is the one real five seconds this suite waits. */
-    trigger.focus();
-    await userEvent.keyboard('[Space>]');
-    await waitFor(
-      () =>
-        expect(
-          page.getByText('The new Edition is now current. HTML and PDF are being prepared independently.')
-        ).toBeVisible(),
-      { timeout: 15_000 }
+    await completeHold(trigger);
+    await waitFor(() =>
+      expect(
+        page.getByText('The new Edition is now current. HTML and PDF are being prepared independently.')
+      ).toBeVisible()
     );
-    await userEvent.keyboard('[/Space]');
     await waitFor(() =>
       expect(page.getByRole('button', { name: /^Publish Edition/ })).toHaveAttribute('aria-disabled', 'true')
     );

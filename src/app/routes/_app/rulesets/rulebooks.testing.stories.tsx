@@ -1,7 +1,7 @@
 import { testingPreview } from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
 import { createRulebookEditorialStarterContents } from '@shared/rulebooks/fixtures';
-import { install } from '@sinonjs/fake-timers';
+import { completeHold } from '@ui/control/useHoldToConfirm.stories.fixture';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { SEED_REF_TOKEN, db, ref } from '@db/storybook';
@@ -199,17 +199,7 @@ export const DeleteFromReader = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const remove = await page.findByRole('button', { name: 'Delete Rulebook' }, { timeout: 30_000 });
-    const clock = install({ toFake: ['setInterval', 'clearInterval'], shouldClearNativeTimers: true });
-    try {
-      await userEvent.pointer({ target: remove, keys: '[MouseLeft>]' });
-      await clock.tickAsync(5000);
-    } finally {
-      try {
-        await userEvent.pointer({ target: remove, keys: '[/MouseLeft]' });
-      } finally {
-        clock.uninstall();
-      }
-    }
+    await completeHold(remove);
     const list = await page.findByRole('list', { name: 'Rulebooks' }, { timeout: 30_000 });
     await expect(within(list).queryByRole('link', { name: 'Read Rules' })).toBeNull();
     await expect(within(list).getByRole('link', { name: 'Read Quick reference' })).toBeVisible();
