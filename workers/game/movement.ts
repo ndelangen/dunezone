@@ -9,8 +9,8 @@ import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import type { StoredSnapshot } from './state';
 
 /**
- * A seated player marks a faction done or not done, or rearranges the turn order. Each player marks their own faction,
- * but the table plays by hand, so anyone seated may correct another's.
+ * A seated player marks a faction done or not done, or rearranges the turn order.
+ * Each player marks their own faction, but the table plays by hand, so anyone seated may correct another's.
  * Marking a faction done logs it and saves a checkpoint after it.
  */
 export function movementCommand(snapshot: StoredSnapshot, action: MovementAction): StoredSnapshot {
