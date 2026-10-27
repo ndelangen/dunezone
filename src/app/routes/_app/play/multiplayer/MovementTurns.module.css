@@ -1,0 +1,71 @@
+/*
+ * The Shipment and Movement turns beside the phase's words in the header chip: a token per faction in turn order,
+ * set off from the words by a rule in the chip's own border colour.
+ */
+
+.turns {
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  padding-left: 0.65rem;
+  border-left: 1px solid rgb(from var(--input-border) r g b / var(--input-border-alpha));
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.token {
+  position: relative;
+  display: inline-flex;
+  border-radius: 50%;
+}
+
+/* A player's token takes a press; the ring that marks the one up now shows faintly under a pointer on any other. */
+button.token {
+  cursor: pointer;
+}
+
+button.token:hover {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-brand) 45%, transparent);
+}
+
+button.token:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* The faction up now wears the ring in the chip's own strong colour, so it reads with the phase's name. */
+.token[data-turn="up"] {
+  box-shadow:
+    0 0 0 2px var(--color-brand-strong),
+    0 0 0 5px color-mix(in srgb, var(--color-brand) 45%, transparent);
+}
+
+/* A finished faction fades back and keeps its colour, so the row still reads as the table's factions. */
+.token[data-turn="done"] > :first-child {
+  opacity: 0.45;
+}
+
+/* The ring moves from one token to the next, and a finished one fades, only while the visitor welcomes motion. */
+.turns[data-motion] .token,
+.turns[data-motion] .token > :first-child {
+  transition:
+    box-shadow 180ms ease-out,
+    opacity 180ms ease-out;
+}
+
+.tick {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  display: grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--color-positive);
+  color: var(--ui-ground);
+}

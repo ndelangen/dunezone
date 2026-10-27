@@ -47,7 +47,7 @@ export const ReviewingAsObserver = meta.story({
   ),
 });
 
-/* Shipment and Movement with the first faction done: the header names who is up next, and this player can finish their own turn, which saves a checkpoint. */
+/* Shipment and Movement with the first faction done: the phase chip shows every faction's token in turn order, the first faded as done and the second ringed as up now, for any seated player to mark done, which saves a checkpoint. */
 export const ShipmentAndMovementTurns = meta.story({
   beforeEach: install(() => {
     const snapshot = playingSnapshot('seat-2');

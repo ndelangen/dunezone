@@ -80,7 +80,7 @@ import { publicControlsOf } from './publicControls';
 import { FactionInfo, PlayerChat, usePlayerWindows } from './RemovalVotes';
 import { useResultCelebration } from './resultCelebration';
 import { GameMenu, SeatPopover } from './SeatRequests';
-import { nextPhaseStep, stageStatus, stageToolbar } from './StageHeader';
+import { nextPhaseStep, PhaseTurns, stageStatus, stageToolbar } from './StageHeader';
 import type { GameIdentity } from './StageHeader';
 import { SwapScene } from './SwapScene';
 import { factionName, factionOptions, isSpectator, offersActions, stageInPlay, viewerFaction } from './tableFactions';
@@ -1157,6 +1157,7 @@ function ConnectedTable({
                 </>
               }
               stageStatus={stageStatus({ client, table, identity })}
+              phaseTurns={<PhaseTurns client={client} table={table} />}
               stageOverlay={
                 stage === 'drafting' ? <DraftingOverlay client={client} table={table} error={error} /> : undefined
               }

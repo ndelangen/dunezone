@@ -1,14 +1,19 @@
 import { Text } from '@mantine/core';
+import { snapshotFactionLabels } from '@shared/play/factionLabels';
+import { MOVEMENT_PHASE_ID, movementOrder } from '@shared/play/movement';
+import { phaseAt, STANDARD_PHASES } from '@shared/play/phases';
 import { reviewRunning } from '@shared/play/review';
 import { setupStep } from '@shared/play/setup';
+import { stormOrder } from '@shared/play/stormSector';
 import type { ReactNode } from 'react';
+import { useMemo } from 'react';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import { InviteLink } from '../GameLink';
 import { BidderToolbar } from './BidderToolbar';
 import { DraftingHeader, DraftingReady } from './Drafting';
 import { ContinuePlaying, resultTitle } from './GameResult';
-import { MovementToolbar } from './MovementToolbar';
+import { MovementTurns } from './MovementTurns';
 import { canStepPhase, PhaseNavigation } from './PhaseNavigation';
 import { StagePlayback } from './SeatRequests';
 import { SwappingReady, SwappingStatus } from './Swapping';
@@ -49,7 +54,7 @@ export function stageToolbar({
   if (table.playback) {
     return <StagePlayback client={client} table={table} error={error} />;
   }
-  /* In play the header steps phases beside the bidder and the Shipment and Movement turns; setup steps its phases alone. An open review vote waits beside them. */
+  /* In play the header steps phases beside the bidder; setup steps its phases alone. An open review vote waits beside them. */
   if (inPlay || settingUp(table)) {
     return (
       <>
@@ -57,7 +62,6 @@ export function stageToolbar({
         {inPlay && (
           <BidderToolbar client={client} table={table} faded={bidderFaded} onFadedChange={onBidderFadedChange} />
         )}
-        {inPlay && <MovementToolbar client={client} table={table} />}
         <PhaseNavigation client={client} table={table} />
       </>
     );
@@ -126,4 +130,44 @@ export function stageStatus({
     return <Text size="sm">{setupStep(table.snapshot.setup).title}</Text>;
   }
   return undefined;
+}
+
+/** Whether the table plays Shipment and Movement now. */
+function movementPhase(table: TableProjection) {
+  return phaseAt(table.snapshot.phase, table.snapshot.phases ?? STANDARD_PHASES).id === MOVEMENT_PHASE_ID;
+}
+
+/**
+ * The Shipment and Movement turns in the phase chip: every faction's token in the order the table plays, for a seated player to mark done or not done and to rearrange.
+ * Marking a faction done saves a checkpoint a table review can look at.
+ * Playback and a running review show the phase alone, as the turns they look back on are not the table's to change.
+ */
+export function PhaseTurns({ client, table }: Readonly<{ client: TableSession; table: TableProjection }>) {
+  const roster = table.snapshot.roster;
+  const movement = table.snapshot.movement;
+  const order = useMemo(
+    () => movementOrder(stormOrder(table.state.stormSectorIndex, roster, table.state.pieces), movement),
+    [table.state.stormSectorIndex, roster, table.state.pieces, movement]
+  );
+  if (
+    !stageInPlay(table.snapshot.stage) ||
+    !roster ||
+    !movementPhase(table) ||
+    table.playback ||
+    reviewRunning(table.review?.current)
+  ) {
+    return null;
+  }
+  return (
+    <MovementTurns
+      table={table}
+      order={order}
+      done={movement?.done ?? []}
+      names={snapshotFactionLabels(table.snapshot)}
+      canAct={table.canInteract}
+      onDone={(factionId) => client.command({ kind: 'movement-done', factionId })}
+      onUndo={(factionId) => client.command({ kind: 'movement-undo', factionId })}
+      onOrder={(next) => client.command({ kind: 'movement-order', order: next })}
+    />
+  );
 }
