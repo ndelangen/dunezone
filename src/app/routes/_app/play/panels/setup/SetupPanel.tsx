@@ -6,7 +6,7 @@ import { InlineFormattedTextSource } from '@ui/content/FormattedText';
 import { useReducer } from 'react';
 
 /** A faction's starting troops, as its rules state them. */
-export type StartingTroops = Readonly<{ factionId: string; name: string; text: string }>;
+type StartingTroops = Readonly<{ factionId: string; name: string; text: string }>;
 
 /** A predicted winner as its cards show it: the faction's name and token, and the turn. */
 type PredictedWinner = Readonly<{ name: string; token: string | null; turn: number }>;
