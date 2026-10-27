@@ -9,9 +9,9 @@ import { gameMeta, install } from '../../game.stories.fixture';
 import { chapter, journeySteps, journeyViewers } from '../../journey.stories.fixture';
 import { GameRuntimeContext } from '../../multiplayer/gameRuntime';
 import { GameSubscription } from '../../multiplayer/GameSubscription';
-import { HiddenZone } from '../../multiplayer/HiddenZone';
 import { HAND_AND_SPICE_GUIDANCE, HIDDEN_ZONE_GUIDANCE } from '../../multiplayer/panelGuidance';
 import { sandboxTransport } from '../../sandbox.stories.fixture';
+import { ConnectedPrivateSideTablePanel } from '../sideTable/usePrivateSideTablePanel';
 import { ConnectedSpiceReservePanel } from '../spice/useSpiceReservePanel';
 import { ConnectedHandPanel } from './useHandPanel';
 import '../../dune-play.css';
@@ -77,7 +77,7 @@ function HandWindowHarness({ height = 448 }: Readonly<{ height?: number; seat?: 
                 group: 'Yours',
                 topic: 'hiddenZone',
                 ...HIDDEN_ZONE_GUIDANCE,
-                content: <HiddenZone client={client} table={table} hand={hand} />,
+                content: <ConnectedPrivateSideTablePanel client={client} table={table} hand={hand} />,
                 layout: 'flush',
               }}
               where="right"

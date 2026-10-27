@@ -39,6 +39,7 @@ import { ConnectedLogPanel } from '../panels/log/useLogPanel';
 import { PANEL_WINDOWS } from '../panels/panelWindows';
 import { ConnectedReplayPanel } from '../panels/replay/useReplayPanel';
 import { ConnectedGameLengthPanel } from '../panels/settings/useGameLengthPanel';
+import { ConnectedPrivateSideTablePanel } from '../panels/sideTable/usePrivateSideTablePanel';
 import { ConnectedSpiceReservePanel } from '../panels/spice/useSpiceReservePanel';
 import { ConnectedTerritoryTintsPanel } from '../panels/tints/useTerritoryTintsPanel';
 import { ConnectedSpiceTransfersPanel } from '../panels/transfers/useSpiceTransfersPanel';
@@ -55,10 +56,8 @@ import { DetermineWinner, ResultControls, useDeclareChoice } from './GameResult'
 import type { DeclareChoice } from './GameResult';
 import { GameRuntimeContext } from './gameRuntime';
 import { HandCountsScene } from './HandCounts';
-import { HiddenZone } from './HiddenZone';
 import {
   battleGuidance,
-  HIDDEN_ZONE_GUIDANCE,
   LOG_GUIDANCE,
   phaseGuidance,
   PHASE_PREVIOUS,
@@ -492,11 +491,8 @@ function handPanels({ client, table }: TableControlProps) {
   return [
     { ...PANEL_WINDOWS.hand, content: <ConnectedHandPanel client={client} table={table} hand={hand} /> },
     {
-      key: 'hidden-zone',
-      label: 'Private side-table',
-      topic: 'hiddenZone' as const,
-      ...HIDDEN_ZONE_GUIDANCE,
-      content: <HiddenZone client={client} table={table} hand={hand} />,
+      ...PANEL_WINDOWS.sideTable,
+      content: <ConnectedPrivateSideTablePanel client={client} table={table} hand={hand} />,
     },
   ];
 }

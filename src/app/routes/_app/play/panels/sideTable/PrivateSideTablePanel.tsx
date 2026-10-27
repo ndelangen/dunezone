@@ -1,6 +1,5 @@
 import { Menu, Text } from '@mantine/core';
 import { useElementSize } from '@mantine/hooks';
-import { factionTokenOf } from '@shared/play/factionToken';
 import {
   clampHiddenZoneSpot,
   HIDDEN_ZONE_DEPTH,
@@ -11,25 +10,24 @@ import {
   turnHiddenZoneSpot,
 } from '@shared/play/hiddenZone';
 import type { HiddenZoneSpot } from '@shared/play/hiddenZone';
-import type { TablePiece, Vector3Tuple } from '@shared/play/model';
+import type { TablePiece } from '@shared/play/model';
 import { HIDDEN_ZONE_TURNS } from '@shared/play/schema';
-import { PLAYER_RING_RADIUS } from '@shared/play/tableSettings';
 import { Section } from '@ui/block/Section';
-import type { ComponentProps, MouseEvent, PointerEvent, ReactNode, RefObject } from 'react';
-import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
+import type { PointerEvent, RefObject } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import type { TableSession, TableProjection } from '../../../../db/tabletop/TableSession';
-import { HandPieceCloseUp } from '../../../../widgets/tabletop/PieceCloseUp';
-import { wheelPixels } from '../../../../widgets/tabletop/wheelPixels';
-import { SIDE_TABLE_DROP } from './dropFromHand';
-import type { SideTableDrop } from './dropFromHand';
-import { PieceImage, pieceName, useHandCloseUp } from './HandPiece';
-import styles from './HiddenZone.module.css';
+import { HandPieceCloseUp } from '../../../../../widgets/tabletop/PieceCloseUp';
+import { wheelPixels } from '../../../../../widgets/tabletop/wheelPixels';
+import { SIDE_TABLE_DROP } from '../../multiplayer/dropFromHand';
+import type { SideTableDrop } from '../../multiplayer/dropFromHand';
+import { PieceImage, pieceName, useHandCloseUp } from '../../multiplayer/HandPiece';
+import { HandPieceMenu, handMenuAnchor } from '../../multiplayer/HandPieceMenu';
+import type { HandMenuAnchor } from '../../multiplayer/HandPieceMenu';
+import { HIDDEN_ZONE_HELP } from '../../multiplayer/panelGuidance';
 import { fitZoom, UNZOOMED, wheelFactor, zoomAbout } from './hiddenZoneZoom';
 import type { HiddenZoneZoom } from './hiddenZoneZoom';
-import { HIDDEN_ZONE_HELP } from './panelGuidance';
-import { viewerFaction } from './tableFactions';
+import styles from './PrivateSideTablePanel.module.css';
 
 /* A piece's offset along one side, kept within the zone, or at its start where the piece is larger than the zone. */
 const inside = (offset: number, max: number) => Math.max(0, Math.min(max, offset));
@@ -41,59 +39,18 @@ const inside = (offset: number, max: number) => Math.max(0, Math.min(max, offset
 const keptCentre = (at: number, reach: number, room: number, shift: number, by: number) =>
   Math.min(room, room * by - reach / 2 - shift, Math.max(0, reach / 2 - shift, at));
 
-type Props = { client: TableSession; table: TableProjection; hand: TablePiece[] };
-
-export type HandMenuAnchor = { pieceId: string; x: number; y: number };
-
-/** Where a right-click opens a hand piece's menu: at the pointer, keeping the browser's own menu shut. */
-export function handMenuAnchor(event: MouseEvent, pieceId: string): HandMenuAnchor {
-  event.preventDefault();
-  return { pieceId, x: event.clientX, y: event.clientY };
-}
-
-/*
- * An empty positioning anchor at the pointer, not a control, as the table's piece menu uses.
- * It lives on the body: fixed against the viewport only there, since a window with a transform or a backdrop filter
- * (the compass's) would otherwise be its containing block and put it off-screen, where the dropdown hides itself.
- */
-function PointerAnchor({ x, y, style, ...target }: ComponentProps<'span'> & { x: number; y: number }) {
-  return createPortal(
-    <span
-      aria-hidden
-      {...target}
-      style={{ ...style, position: 'fixed', left: x, top: y, width: 1, height: 1, pointerEvents: 'none' }}
-    />,
-    document.body
-  );
-}
-
-/** A hand piece's right-click menu, opened at the pointer as the table's piece menu is. */
-export function HandPieceMenu({
-  anchor,
-  label,
-  onClose,
-  children,
-}: {
-  anchor: HandMenuAnchor | null;
-  label: string;
-  onClose: () => void;
-  children: ReactNode;
-}) {
-  const labelId = useId();
-  return (
-    <Menu opened={!!anchor} onChange={(opened) => !opened && onClose()} withinPortal position="bottom-start">
-      <Menu.Target>
-        <PointerAnchor x={anchor?.x ?? 0} y={anchor?.y ?? 0} />
-      </Menu.Target>
-      <Menu.Dropdown aria-labelledby={labelId}>
-        <span id={labelId} hidden>
-          {label}
-        </span>
-        {children}
-      </Menu.Dropdown>
-    </Menu>
-  );
-}
+export type PrivateSideTablePanelProps = Readonly<{
+  /** The viewer's whole hand: the pieces laid on the side-table, and those a drag from the hand may bring to it. */
+  hand: TablePiece[];
+  /** The viewer may move pieces now: the table is live and connected. */
+  enabled: boolean;
+  /** Lays a piece at a spot on the side-table, or back in the hand with `null`, and gives the command's id if it went. */
+  onLay: (pieceId: string, at: HiddenZoneSpot | null) => string | undefined;
+  /** Whether the room has yet to answer a command, so a dropped piece stays where it was let go until it does. */
+  awaiting: (commandId: string) => boolean;
+  /** Plays a piece onto the table, face down beside the viewer's faction token. */
+  onPlace: (pieceId: string) => void;
+}>;
 
 /* The height the window scrolling the zone shows, so the zone fills the window without scrolling, whatever its height. */
 function useScrollParentHeight(ref: RefObject<HTMLElement | null>) {
@@ -178,19 +135,6 @@ function typing(target: EventTarget | null) {
   );
 }
 
-/* How far along the seats' ring from its faction token a piece placed on the table lands; the table moves it on to a clear spot. */
-const BESIDE_TOKEN = 0.7;
-
-/* Where "Place on table" plays a piece: beside the viewer's faction token, in front of its seat, or at the near edge of a table without one. */
-function besideOwnToken(table: TableProjection): Vector3Tuple {
-  const faction = viewerFaction(table);
-  const token = faction ? factionTokenOf(table.snapshot.table.pieces, faction) : undefined;
-  const angle = token
-    ? Math.atan2(token.position[2], token.position[0]) + BESIDE_TOKEN / PLAYER_RING_RADIUS
-    : Math.PI / 2;
-  return [Math.cos(angle) * PLAYER_RING_RADIUS, 0, Math.sin(angle) * PLAYER_RING_RADIUS];
-}
-
 /**
  * The faction's hidden zone: a private top-down patch of table where it lays out pieces from its hand, such as a token on a card's track.
  * Only the faction sees it.
@@ -198,7 +142,7 @@ function besideOwnToken(table: TableProjection): Vector3Tuple {
  * A carried piece follows the pointer itself, with no drag image, and stays inside the zone.
  * Its menu places it on the table.
  */
-export function HiddenZone({ client, table, hand }: Props) {
+export function PrivateSideTablePanel({ hand, enabled, onLay, awaiting, onPlace }: PrivateSideTablePanelProps) {
   const { ref, width, height } = useElementSize<HTMLDivElement>();
   /*
    * The carry lives in a ref, and React renders only when a piece is lifted or let go.
@@ -301,13 +245,12 @@ export function HiddenZone({ client, table, hand }: Props) {
     zone.addEventListener('wheel', listen, { passive: false });
     return () => zone.removeEventListener('wheel', listen);
   }, []);
-  const enabled = table.canHandleTable;
   const fitHeight = useScrollParentHeight(frame);
   const closeUp = useHandCloseUp(pieces);
 
   /* The spot a piece shows: where it was let go while the room has not answered yet, else where the room keeps it. */
   const spotOf = (piece: TablePiece) =>
-    landing && landing.pieceId === piece.id && landing.from === piece.hiddenZone && client.awaiting(landing.commandId)
+    landing && landing.pieceId === piece.id && landing.from === piece.hiddenZone && awaiting(landing.commandId)
       ? landing.at
       : piece.hiddenZone!;
   /* The spot a piece shows with the turn this page has not sent yet. */
@@ -316,7 +259,7 @@ export function HiddenZone({ client, table, hand }: Props) {
 
   /* Lays a piece at a spot, showing it there until the room answers. */
   const lay = (piece: TablePiece, at: HiddenZoneSpot) => {
-    const commandId = client.command({ kind: 'hand-zone', pieceId: piece.id, at });
+    const commandId = onLay(piece.id, at);
     setLanding(commandId ? { pieceId: piece.id, commandId, at, from: piece.hiddenZone } : null);
     return commandId;
   };
@@ -652,7 +595,7 @@ export function HiddenZone({ client, table, hand }: Props) {
           disabled={!enabled}
           onClick={() => {
             if (menu) {
-              client.command({ kind: 'hand-play', pieceId: menu.pieceId, position: besideOwnToken(table) });
+              onPlace(menu.pieceId);
             }
             setMenu(null);
           }}
@@ -663,7 +606,7 @@ export function HiddenZone({ client, table, hand }: Props) {
           disabled={!enabled}
           onClick={() => {
             if (menu) {
-              client.command({ kind: 'hand-zone', pieceId: menu.pieceId, at: null });
+              onLay(menu.pieceId, null);
             }
             setMenu(null);
           }}

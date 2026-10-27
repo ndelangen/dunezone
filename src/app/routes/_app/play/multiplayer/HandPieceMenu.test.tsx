@@ -5,7 +5,7 @@ import { cleanup, render, screen } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
 import { afterEach, expect, test, vi } from 'vite-plus/test';
 
-import { HandPieceMenu } from './HiddenZone';
+import { HandPieceMenu } from './HandPieceMenu';
 import { stubMatchMedia } from './jsdom.test.fixture';
 
 stubMatchMedia();

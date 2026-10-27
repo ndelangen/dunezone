@@ -5,6 +5,7 @@ import {
   GAME_LENGTH_GUIDANCE,
   GAME_LOG_GUIDANCE,
   HAND_GUIDANCE,
+  HIDDEN_ZONE_GUIDANCE,
   REPLAY_GUIDANCE,
   SHARED_INVENTORY_GUIDANCE,
   SPICE_GUIDANCE,
@@ -33,5 +34,6 @@ export const PANEL_WINDOWS = {
   replay: { key: 'replay', label: 'Replay', topic: 'turn', ...REPLAY_GUIDANCE },
   inventory: { key: 'shared', label: 'Shared table inventory', topic: 'assets', ...SHARED_INVENTORY_GUIDANCE },
   hand: { key: 'hand', label: 'Hand', topic: 'hand', ...HAND_GUIDANCE },
+  sideTable: { key: 'hidden-zone', label: 'Private side-table', topic: 'hiddenZone', ...HIDDEN_ZONE_GUIDANCE },
   spice: { key: 'spice', label: 'Spice', topic: 'spice', ...SPICE_GUIDANCE },
 } as const satisfies Record<string, PanelWindow>;
