@@ -1,6 +1,7 @@
 import { PLAY_SEAT_LIMIT_MESSAGE } from '@shared/play/seatLimit';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { LoadPending } from '@ui/block/LoadPending';
+import { PageLayout } from '@ui/layout/PageLayout';
 import { useEffect, useReducer, useRef, useState } from 'react';
 import type { Dispatch } from 'react';
 
@@ -8,6 +9,7 @@ import { useCreatableRulesets, useCreateGame } from '@db/play';
 import { pageHead } from '@app/routes/pageTitle';
 import {
   CreateGamePass,
+  CreateGamePassTitle,
   createGameDraftReducer,
   initialCreateGameDraft,
 } from '@app/widgets/create-game/CreateGamePass';
@@ -128,16 +130,23 @@ function CreateGameForm({
   const createGame = useCreateGame();
   const { departing, stalled, depart } = useDeparture(createGame, dispatch);
   return (
-    <CreateGamePass
-      {...pass}
-      dispatch={dispatch}
-      pending={createGame.isPending}
-      /* A stalled request lifts the fade, so the page can say why. */
-      departing={departing && !stalled}
-      notice={stalled ? SERVER_UNREACHABLE : departing ? 'Opening the table...' : null}
-      failure={createGame.error ? 'The game could not be created. Try again.' : null}
-      onCreate={depart}
-      rulesetLink={rulesetLink}
-    />
+    <PageLayout>
+      <PageLayout.Header size="compact">
+        <CreateGamePassTitle />
+      </PageLayout.Header>
+      <PageLayout.Content>
+        <CreateGamePass
+          {...pass}
+          dispatch={dispatch}
+          pending={createGame.isPending}
+          /* A stalled request lifts the fade, so the page can say why. */
+          departing={departing && !stalled}
+          notice={stalled ? SERVER_UNREACHABLE : departing ? 'Opening the table...' : null}
+          failure={createGame.error ? 'The game could not be created. Try again.' : null}
+          onCreate={depart}
+          rulesetLink={rulesetLink}
+        />
+      </PageLayout.Content>
+    </PageLayout>
   );
 }

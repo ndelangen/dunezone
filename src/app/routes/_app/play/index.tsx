@@ -1,9 +1,16 @@
 import { Anchor, Stack, Text } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { PageLayout } from '@ui/layout/PageLayout';
 
 import { useLobbyGames } from '@db/play';
 import { pageHead } from '@app/routes/pageTitle';
-import { PlayLobby } from '@app/widgets/play-lobby/PlayLobby';
+import {
+  hasLobbyGames,
+  PlayLobbyGames,
+  PlayLobbyHeader,
+  PlayLobbyToolbar,
+  useLobbyFilter,
+} from '@app/widgets/play-lobby/PlayLobby';
 
 import { SERVER_UNREACHABLE, useServerUnreachable } from './useServerUnreachable';
 
@@ -25,14 +32,25 @@ const gameLink = (address: string) => (rootProps: object) => (
 
 function PlayLobbyPage() {
   const { data: lobby } = useLobbyGames();
+  const filter = useLobbyFilter();
+  const games = lobby?.status === 'ready' ? lobby : null;
   return (
-    <PlayLobby
-      games={lobby?.status === 'ready' ? lobby : null}
-      waiting={<LobbyWait status={lobby?.status === 'ready' ? undefined : lobby?.status} />}
-      createLink={createLink}
-      tutorialLink={tutorialLink}
-      gameLink={gameLink}
-    />
+    <PageLayout>
+      <PageLayout.Header size="hero">
+        <PlayLobbyHeader createLink={createLink} tutorialLink={tutorialLink} />
+      </PageLayout.Header>
+      <PageLayout.Toolbar>
+        {hasLobbyGames(games) ? <PlayLobbyToolbar games={games} filter={filter} createLink={createLink} /> : undefined}
+      </PageLayout.Toolbar>
+      <PageLayout.Content>
+        <PlayLobbyGames
+          games={games}
+          waiting={<LobbyWait status={lobby?.status === 'ready' ? undefined : lobby?.status} />}
+          filter={filter}
+          gameLink={gameLink}
+        />
+      </PageLayout.Content>
+    </PageLayout>
   );
 }
 

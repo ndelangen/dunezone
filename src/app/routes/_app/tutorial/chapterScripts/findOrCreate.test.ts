@@ -8,6 +8,7 @@ describe('findOrCreate.start', () => {
       expect(findOrCreate.start(firstTask)).toEqual({
         view: 'lobby',
         query: '',
+        shown: 'ongoing',
         createOpen: false,
         ruleset: null,
         created: null,

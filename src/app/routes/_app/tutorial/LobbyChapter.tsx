@@ -3,8 +3,10 @@ import { TUTORIAL_RECIPE } from '@shared/tutorial/recipe';
 import { PageTitle } from '@ui/block/PageTitle';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
-import { Fragment, useState, useSyncExternalStore } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
+
+import type { LobbyView } from '@app/widgets/play-lobby/PlayLobby';
 
 import { GameLink } from '../play/GameLink';
 import type { TutorialChapter } from './chapters';
@@ -80,8 +82,6 @@ export default function LobbyChapter({
   });
   const { store, games, tasks } = chapterState;
   const state = useSyncExternalStore(store.subscribe, store.get, store.get);
-  /* Reset starts the pages afresh, so a half-filled create page does not carry over. */
-  const [epoch, setEpoch] = useState(0);
   const page = `/tutorial/${chapter.slug}`;
   return (
     <TutorialGuide
@@ -90,18 +90,21 @@ export default function LobbyChapter({
       tasks={tasks}
       firstTask={firstTask}
       learned={script.learned}
-      onReset={() => {
-        store.set(script.start(0));
-        setEpoch((value) => value + 1);
-      }}
+      /* Reset sets the chapter back to its start: the lobby, its search cleared, and no half-filled create page. */
+      onReset={() => store.set(script.start(0))}
       chaptersLink={chaptersLink}
       nextLink={nextLink}
     >
-      <Fragment key={epoch}>
+      <>
         {state.view === 'lobby' && (
           <TutorialLobby
             games={games}
-            query={state.query}
+            filter={{
+              query: state.query,
+              setQuery: (query: string) => store.set({ ...store.get(), query }),
+              view: state.shown,
+              setView: (shown: LobbyView) => store.set({ ...store.get(), shown }),
+            }}
             createOpen={state.createOpen}
             /* Leaving the lobby before the chapter asks would strand the steps that read it, so the button waits for its step. */
             onCreate={() => store.get().createOpen && store.set({ ...store.get(), view: 'create' })}
@@ -115,7 +118,7 @@ export default function LobbyChapter({
           />
         )}
         {state.view === 'created' && state.created && <CreatedGame game={state.created} page={page} />}
-      </Fragment>
+      </>
     </TutorialGuide>
   );
 }

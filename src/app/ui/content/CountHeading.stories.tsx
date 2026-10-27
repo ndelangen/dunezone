@@ -15,6 +15,3 @@ export const Default = meta.story({
     await expect(within(canvasElement).getByText('6')).toHaveAttribute('aria-hidden', 'true');
   },
 });
-
-/** Two digits keep the same width per digit, so the figure does not jitter as a slider moves. */
-export const TwoDigits = meta.story({ args: { label: 'Last turn', value: 10 } });

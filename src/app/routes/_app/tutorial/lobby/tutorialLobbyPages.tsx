@@ -1,17 +1,19 @@
 import type { playLobbyEntrySchema } from '@shared/play/directory';
 import { normalizePlayGameSlug } from '@shared/play/gameNamePolicy';
+import { PageLayout } from '@ui/layout/PageLayout';
 import { useReducer } from 'react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
 import {
   CreateGamePass,
+  CreateGamePassTitle,
   createGameDraftReducer,
   initialCreateGameDraft,
 } from '@app/widgets/create-game/CreateGamePass';
 import type { CreateGameDraftEvent, CreateGameRequest } from '@app/widgets/create-game/CreateGamePass';
-import { PlayLobby } from '@app/widgets/play-lobby/PlayLobby';
-import type { LobbyGames } from '@app/widgets/play-lobby/PlayLobby';
+import { PlayLobbyGames, PlayLobbyHeader, PlayLobbyToolbar } from '@app/widgets/play-lobby/PlayLobby';
+import type { LobbyFilter, LobbyGames } from '@app/widgets/play-lobby/PlayLobby';
 
 import type { TutorialSetup } from '../setup/tutorialSetup';
 
@@ -125,27 +127,45 @@ const stayingLink =
   );
 
 /**
- * The lobby with the sample games;
+ * The lobby with the sample games, its search and list held by the chapter so its steps read them and a reset clears them;
  * Create a game moves the chapter to the create page, and the other links stay put.
  * Until the chapter asks for it, Create a game shows disabled and says when it opens.
  */
 export function TutorialLobby({
   games,
-  query,
+  filter,
   createOpen,
   onCreate,
-}: Readonly<{ games: LobbyGames; query: string; createOpen: boolean; onCreate: () => void }>) {
+}: Readonly<{ games: LobbyGames; filter: LobbyFilter; createOpen: boolean; onCreate: () => void }>) {
+  const createLink = stayingLink('create', onCreate);
+  const createDisabledReason = createOpen ? undefined : 'You’ll create a game in a later step';
   return (
-    <PlayLobby
-      games={games}
-      initialQuery={query}
-      waiting={null}
-      createLink={stayingLink('create', onCreate)}
-      createDisabledReason={createOpen ? undefined : 'You’ll create a game in a later step'}
-      /* The chapter is the tutorial already, and the sample games have no table to open. */
-      tutorialLink={stayingLink('tutorial')}
-      gameLink={(address) => stayingLink(`game:${address}`)}
-    />
+    <PageLayout>
+      <PageLayout.Header size="hero">
+        {/* The chapter is the tutorial already, and the sample games have no table to open. */}
+        <PlayLobbyHeader
+          createLink={createLink}
+          createDisabledReason={createDisabledReason}
+          tutorialLink={stayingLink('tutorial')}
+        />
+      </PageLayout.Header>
+      <PageLayout.Toolbar>
+        <PlayLobbyToolbar
+          games={games}
+          filter={filter}
+          createLink={createLink}
+          createDisabledReason={createDisabledReason}
+        />
+      </PageLayout.Toolbar>
+      <PageLayout.Content>
+        <PlayLobbyGames
+          games={games}
+          waiting={null}
+          filter={filter}
+          gameLink={(address) => stayingLink(`game:${address}`)}
+        />
+      </PageLayout.Content>
+    </PageLayout>
   );
 }
 
@@ -180,20 +200,27 @@ export function TutorialCreate({
     onRuleset(createGameDraftReducer(draft, event).rulesetId === TUTORIAL_RULESET.id ? TUTORIAL_RULESET.name : null);
   };
   return (
-    <CreateGamePass
-      rulesets={[TUTORIAL_RULESET]}
-      preview={null}
-      draft={draft}
-      dispatch={change}
-      pending={false}
-      departing={false}
-      notice={null}
-      failure={null}
-      onCreate={(request) => {
-        const name = nameOf(request);
-        onCreated({ name, address: normalizePlayGameSlug(name) });
-      }}
-      rulesetLink={() => stayingLink('ruleset')}
-    />
+    <PageLayout>
+      <PageLayout.Header size="compact">
+        <CreateGamePassTitle />
+      </PageLayout.Header>
+      <PageLayout.Content>
+        <CreateGamePass
+          rulesets={[TUTORIAL_RULESET]}
+          preview={null}
+          draft={draft}
+          dispatch={change}
+          pending={false}
+          departing={false}
+          notice={null}
+          failure={null}
+          onCreate={(request) => {
+            const name = nameOf(request);
+            onCreated({ name, address: normalizePlayGameSlug(name) });
+          }}
+          rulesetLink={() => stayingLink('ruleset')}
+        />
+      </PageLayout.Content>
+    </PageLayout>
   );
 }

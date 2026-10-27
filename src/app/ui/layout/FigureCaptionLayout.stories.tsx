@@ -1,5 +1,4 @@
 import preview from '@sb/preview';
-import { CardGrid } from '@ui/list/CardGrid';
 
 import { FigureCaptionLayout } from './FigureCaptionLayout';
 import {
@@ -26,37 +25,24 @@ const meta = preview.meta({
     docs: {
       description: {
         component:
-          'A figure with its caption centred beneath it; under 20rem of its own width the figure stands beside its caption instead.',
+          'A figure with its caption centred beneath it; from 26rem of its own width the figure stands beside its caption instead.',
       },
     },
   },
   render: () => figure,
 });
 
-/** With room, the caption sits beneath the figure. */
+/** Under 26rem of its own width, the caption sits beneath the figure, so it keeps the width to read. */
 export const Stacked = meta.story({
-  decorators: [(Story) => <div style={{ width: '24rem' }}>{Story()}</div>],
+  decorators: [(Story) => <div style={{ width: '18rem' }}>{Story()}</div>],
   play: async ({ canvasElement }) => {
     await expectStackedSlots(canvasElement, ['figure', 'caption']);
   },
 });
 
-/** Under 20rem of its own width, the figure stands beside its caption. */
-export const Narrow = meta.story({
-  decorators: [(Story) => <div style={{ width: '18rem' }}>{Story()}</div>],
-  play: async ({ canvasElement }) => {
-    await expectSideBySideSlots(canvasElement, ['figure', 'caption']);
-  },
-});
-
-/** It answers to its own width, not to what holds it: in a grid cell of the same width it arranges the same. */
-export const NarrowInAGrid = meta.story({
-  render: () => (
-    <CardGrid aria-label="Cards">
-      <CardGrid.Item>{figure}</CardGrid.Item>
-    </CardGrid>
-  ),
-  decorators: [(Story) => <div style={{ width: '18rem' }}>{Story()}</div>],
+/** From 26rem of its own width, the figure stands beside its caption. */
+export const Wide = meta.story({
+  decorators: [(Story) => <div style={{ width: '32rem' }}>{Story()}</div>],
   play: async ({ canvasElement }) => {
     await expectSideBySideSlots(canvasElement, ['figure', 'caption']);
   },

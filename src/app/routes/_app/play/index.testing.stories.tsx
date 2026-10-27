@@ -42,3 +42,26 @@ export const ServerUnreachable = meta.story({
     await expect(page.queryByText('Loading games.')).toBeNull();
   },
 });
+
+/** At 560px the lobby sets its cards two to a row, too narrow for a ring beside its caption, so each caption stays beneath its ring. */
+export const TwoCardsToARow = meta.story({
+  parameters: { ...signedIn },
+  decorators: [(Story) => <div style={{ width: '560px' }}>{Story()}</div>],
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const games = await page.findByRole('list', { name: 'Games' }, { timeout: 30_000 });
+    const cards = within(games).getAllByRole('listitem');
+    await expect(cards.length).toBeGreaterThan(1);
+    const [first, second] = cards.map((card) => card.getBoundingClientRect());
+    await expect(second!.top).toBe(first!.top);
+    for (const card of cards) {
+      const ring = within(card)
+        .getByLabelText(/^Seats at /)
+        .getBoundingClientRect();
+      const seated = within(card)
+        .getByText(/ seated$/)
+        .getBoundingClientRect();
+      await expect(seated.top).toBeGreaterThanOrEqual(ring.bottom);
+    }
+  },
+});

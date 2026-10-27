@@ -12,7 +12,7 @@ const Caption: (props: PropsWithChildren) => null = () => null;
 
 /**
  * A figure with its caption centred beneath it, as on a card.
- * Under 20rem of its own width the figure stands beside its caption instead, so a narrow list of cards stays a short scroll.
+ * From 26rem of its own width the figure stands beside its caption instead, where the caption still has the width to read.
  */
 function FigureCaptionLayoutBase({ children }: PropsWithChildren) {
   let figure: ReactNode = null;

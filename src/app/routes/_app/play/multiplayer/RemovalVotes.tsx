@@ -61,8 +61,9 @@ function OpenVote({ client, table, vote }: Props & Readonly<{ vote: RemovalVote 
       <Stack gap="sm">
         <Text size="sm">
           {Math.max(0, vote.threshold - approvals)} more Remove or{' '}
-          {Math.max(0, vote.ballots.length - vote.threshold + 1 - against)} more Keep to decide. Open{' '}
-          {Math.floor(elapsed / 60)}m {elapsed % 60}s.
+          {Math.max(0, vote.ballots.length - vote.threshold + 1 - against)} more Keep to decide.{' '}
+          {/* A clock reading 0m 0s says nothing a just-started vote needs, so the first second reads in words. */}
+          {elapsed < 1 ? 'Just opened.' : `Open ${Math.floor(elapsed / 60)}m ${elapsed % 60}s.`}
         </Text>
         <Ballots ballots={vote.ballots} />
         {canVote ? (

@@ -12,7 +12,6 @@ import { CallToAction } from '@ui/control/CallToAction';
 import { IconAction } from '@ui/control/IconAction';
 import { SearchRefine } from '@ui/control/SearchRefine';
 import { FigureCaptionLayout } from '@ui/layout/FigureCaptionLayout';
-import { PageLayout } from '@ui/layout/PageLayout';
 import { CardGrid } from '@ui/list/CardGrid';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
@@ -44,7 +43,8 @@ export type PlayLobbyLinks = Readonly<{
 
 type LobbyEntry = z.infer<typeof playLobbyEntrySchema>;
 type Player = LobbyEntry['players'][number];
-type View = 'ongoing' | 'yours' | 'finished';
+/** Which games the lobby lists: those under way, the viewer's own, or the finished ones. */
+export type LobbyView = 'ongoing' | 'yours' | 'finished';
 /** The games the lobby lists, under way and past. */
 export type LobbyGames = Readonly<{ ongoing: LobbyEntry[]; past: LobbyEntry[] }>;
 
@@ -90,7 +90,7 @@ function whereWords(entry: LobbyEntry): string {
     : STAGE_WORDS[entry.stage];
 }
 
-function gamesFor(view: View, ongoing: LobbyEntry[], past: LobbyEntry[]): LobbyEntry[] {
+function gamesFor(view: LobbyView, ongoing: LobbyEntry[], past: LobbyEntry[]): LobbyEntry[] {
   switch (view) {
     case 'ongoing':
       /* Your own games first; the directory already sorts by activity within each. */
@@ -231,7 +231,7 @@ function GameCard({ entry, gameLink }: Readonly<{ entry: LobbyEntry; gameLink: P
   );
 }
 
-const EMPTY_WORDS: Record<View, string> = {
+const EMPTY_WORDS: Record<LobbyView, string> = {
   ongoing: 'No game is under way.',
   yours: 'You hold no seat in a game under way.',
   finished: 'No game has finished yet.',
@@ -258,9 +258,9 @@ function LobbyToolbar({
 }: Readonly<{
   query: string;
   onQueryChange: (query: string) => void;
-  view: View;
-  onViewChange: (view: View) => void;
-  counts: Record<View, number>;
+  view: LobbyView;
+  onViewChange: (view: LobbyView) => void;
+  counts: Record<LobbyView, number>;
   createLink: RootLink;
   createDisabledReason: string | undefined;
 }>) {
@@ -275,7 +275,7 @@ function LobbyToolbar({
         { value: 'finished', label: `Finished (${counts.finished})` },
       ]}
       allowDeselect={false}
-      onChange={(value) => onViewChange((value as View | null) ?? 'ongoing')}
+      onChange={(value) => onViewChange((value as LobbyView | null) ?? 'ongoing')}
       aria-label="Show games"
       leftSection={<ListFilter size={15} aria-hidden />}
     />
@@ -312,75 +312,97 @@ function LobbyToolbar({
   );
 }
 
-/**
- * The lobby: every game under way and past, and the way to create one.
- * The page hands it the games, or what to show while there are none to list yet, and the links it leads on with.
- */
-export function PlayLobby({
-  games: ready,
-  waiting,
+/** What the lobby's toolbar holds and its list reads: the search and which games it shows. */
+export type LobbyFilter = Readonly<{
+  query: string;
+  setQuery: (query: string) => void;
+  view: LobbyView;
+  setView: (view: LobbyView) => void;
+}>;
+
+/** The lobby's search and view, which the page keeps so its toolbar and its list share them. */
+export function useLobbyFilter(initialQuery = ''): LobbyFilter {
+  const [query, setQuery] = useState(initialQuery);
+  const [view, setView] = useState<LobbyView>('ongoing');
+  return { query, setQuery, view, setView };
+}
+
+/** Whether the lobby has any game to list, so the page shows its toolbar. */
+export function hasLobbyGames(games: LobbyGames | null): games is LobbyGames {
+  return games !== null && games.ongoing.length + games.past.length > 0;
+}
+
+type CreateLinks = Pick<PlayLobbyLinks, 'createLink' | 'createDisabledReason'>;
+
+/** The lobby's hero: its title, what it is for, and the ways in, to learn or to create a game. */
+export function PlayLobbyHeader({
   createLink,
   createDisabledReason,
   tutorialLink,
-  gameLink,
-  initialQuery = '',
-}: Readonly<
-  {
-    games: LobbyGames | null;
-    waiting: ReactNode;
-    /** What the search holds as the lobby opens. */
-    initialQuery?: string;
-  } & PlayLobbyLinks
->) {
-  const [query, setQuery] = useState(initialQuery);
-  const [view, setView] = useState<View>('ongoing');
-  const hasGames = ready !== null && ready.ongoing.length + ready.past.length > 0;
-
+}: Readonly<Pick<PlayLobbyLinks, 'createLink' | 'createDisabledReason' | 'tutorialLink'>>) {
   return (
-    <PageLayout>
-      <PageLayout.Header size="hero">
-        <Stack gap="md" miw={0} align="center" ta="center">
-          <PageTitle title="Play Dune!" subtitle="Welcome to the lobby" />
-          <Text size="lg" fw={500} maw="36rem">
-            Take a seat, choose your faction, and fight for Arrakis.
-          </Text>
-          <Group gap="sm" justify="center">
-            <Button
-              variant="default"
-              size="lg"
-              leftSection={<GraduationCap size={17} aria-hidden />}
-              renderRoot={tutorialLink}
-            >
-              Learn to play
-            </Button>
-            <CallToAction direction="start" size="lg" renderRoot={createLink} disabledReason={createDisabledReason}>
-              Create a game
-            </CallToAction>
-          </Group>
-        </Stack>
-      </PageLayout.Header>
-      <PageLayout.Toolbar>
-        {hasGames ? (
-          <LobbyToolbar
-            query={query}
-            onQueryChange={setQuery}
-            view={view}
-            onViewChange={setView}
-            createLink={createLink}
-            createDisabledReason={createDisabledReason}
-            counts={{
-              ongoing: ready.ongoing.length,
-              yours: ready.ongoing.filter((entry) => entry.viewerSeated).length,
-              finished: ready.past.length,
-            }}
-          />
-        ) : undefined}
-      </PageLayout.Toolbar>
-      <PageLayout.Content>
-        <LobbyContent ready={ready} waiting={waiting} query={query} view={view} gameLink={gameLink} />
-      </PageLayout.Content>
-    </PageLayout>
+    <Stack gap="md" miw={0} align="center" ta="center">
+      <PageTitle title="Play Dune!" subtitle="Welcome to the lobby" />
+      <Text size="lg" fw={500} maw="36rem">
+        Take a seat, choose your faction, and fight for Arrakis.
+      </Text>
+      <Group gap="sm" justify="center">
+        <Button
+          variant="default"
+          size="lg"
+          leftSection={<GraduationCap size={17} aria-hidden />}
+          renderRoot={tutorialLink}
+        >
+          Learn to play
+        </Button>
+        <CallToAction direction="start" size="lg" renderRoot={createLink} disabledReason={createDisabledReason}>
+          Create a game
+        </CallToAction>
+      </Group>
+    </Stack>
   );
+}
+
+/** The lobby's toolbar over a list of games: the search, which games to show, and Create a game. */
+export function PlayLobbyToolbar({
+  games,
+  filter,
+  createLink,
+  createDisabledReason,
+}: Readonly<{ games: LobbyGames; filter: LobbyFilter } & CreateLinks>) {
+  return (
+    <LobbyToolbar
+      query={filter.query}
+      onQueryChange={filter.setQuery}
+      view={filter.view}
+      onViewChange={filter.setView}
+      createLink={createLink}
+      createDisabledReason={createDisabledReason}
+      counts={{
+        ongoing: games.ongoing.length,
+        yours: games.ongoing.filter((entry) => entry.viewerSeated).length,
+        finished: games.past.length,
+      }}
+    />
+  );
+}
+
+/**
+ * The lobby's games: every game under way and past that the filter lets through, or what to show while there are none to list yet.
+ * The page frames it, with the header and toolbar above.
+ */
+export function PlayLobbyGames({
+  games,
+  waiting,
+  filter,
+  gameLink,
+}: Readonly<{
+  games: LobbyGames | null;
+  waiting: ReactNode;
+  filter: LobbyFilter;
+  gameLink: PlayLobbyLinks['gameLink'];
+}>) {
+  return <LobbyContent ready={games} waiting={waiting} query={filter.query} view={filter.view} gameLink={gameLink} />;
 }
 
 function LobbyContent({
@@ -393,7 +415,7 @@ function LobbyContent({
   ready: LobbyGames | null;
   waiting: ReactNode;
   query: string;
-  view: View;
+  view: LobbyView;
   gameLink: PlayLobbyLinks['gameLink'];
 }>) {
   if (!ready) {

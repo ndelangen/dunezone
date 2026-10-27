@@ -14,7 +14,6 @@ const FRIEND = 'Thialfi';
 const SEARCH = 'input[placeholder^="Search games"]';
 const CREATE = 'form[aria-label="New game"] button[type="submit"]';
 
-const searchValue = () => document.querySelector<HTMLInputElement>(SEARCH)?.value ?? '';
 /*
  * The create page's ruleset field, its label included: the arrow keeps its gap from the whole field,
  * so its head lands beside it rather than over the label, however high the pass's name sets the form.
@@ -42,7 +41,7 @@ function tasks(state: () => LobbyState, openCreate: () => void): GuideTask[] {
       detail: `${FRIEND} told you they are playing. Type their name in the search above the games: it finds a game by its name or by its players.`,
       anchor: { kind: 'page', element: element(SEARCH) },
       begin: () => undefined,
-      done: () => searchValue().trim().toLowerCase() === FRIEND.toLowerCase(),
+      done: () => state().query.trim().toLowerCase() === FRIEND.toLowerCase(),
       /* The search keeps the focus, where Enter would not reach the next step, so the step lets go of it. */
       finish: () => document.querySelector<HTMLInputElement>(SEARCH)?.blur(),
     }),
@@ -122,6 +121,7 @@ function start(firstTask: number): LobbyState {
   const lobby: LobbyState = {
     view: 'lobby',
     query: firstTask >= TASK.found ? FRIEND : '',
+    shown: 'ongoing',
     createOpen: false,
     ruleset: null,
     created: null,

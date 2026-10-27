@@ -58,6 +58,9 @@ export const PlayedThrough = meta.story({
 
     await step('Start a removal vote');
     await userEvent.click(page.getByRole('button', { name: 'Start removal vote' }));
+    /* A vote just started says so in words, never with a clock at 0m 0s. */
+    await page.findByText(/more Keep to decide/);
+    await expect(page.queryByText(/0m 0s/)).toBeNull();
     await step('How a vote is decided');
     await waitFor(
       async () => {

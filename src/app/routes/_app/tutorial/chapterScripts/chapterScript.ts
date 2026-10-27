@@ -3,6 +3,8 @@ import type { StoredPiece } from '@shared/play/model';
 import type { GameSnapshot, PieceAction } from '@shared/play/protocol';
 import type { TutorialCheckpoint } from '@shared/tutorial/recipe';
 
+import type { LobbyView } from '@app/widgets/play-lobby/PlayLobby';
+
 import type { Landing } from '../table/localTable';
 import type { GuideTask } from '../TutorialGuide';
 
@@ -39,13 +41,15 @@ export type ChapterScript = Readonly<{
 }>;
 
 /** Where a lobby chapter's player is: the lobby, the create page, or the game they just created. */
-type LobbyView = 'lobby' | 'create' | 'created';
+type LobbyPage = 'lobby' | 'create' | 'created';
 
 /** What a lobby chapter's tasks read: the page the player is on and what they chose there. */
 export type LobbyState = Readonly<{
-  view: LobbyView;
-  /** What the lobby's search holds as the lobby opens; a chapter opened past the search starts with it typed. */
+  view: LobbyPage;
+  /** What the lobby's search holds; a chapter opened past the search starts with it typed, and a reset clears it. */
   query: string;
+  /** Which games the lobby lists. */
+  shown: LobbyView;
   /** Whether Create a game leads on to the create page; until the chapter gets there, the lobby keeps the learner on its steps. */
   createOpen: boolean;
   /** The ruleset the create page's pass holds, by name, once one is chosen. */

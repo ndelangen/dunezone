@@ -16,7 +16,6 @@ import { CountHeading } from '@ui/content/CountHeading';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { GameName } from '@ui/content/GameName';
 import { SeatRow } from '@ui/content/SeatRow';
-import { PageLayout } from '@ui/layout/PageLayout';
 import { TicketLayout } from '@ui/layout/TicketLayout';
 import { FactList } from '@ui/list/FactList';
 import { TicketMain, TicketStub } from '@ui/surface/TicketSurface';
@@ -37,10 +36,14 @@ import { RulesetManifest } from './RulesetManifest';
  * The Play create page and the tutorial chapter that teaches it both show it.
  */
 
-const TITLE = 'Create a game';
 const MINIMUM = TABLE_SEAT_COUNTS[0];
 const MAXIMUM = TABLE_SEAT_COUNTS[TABLE_SEAT_COUNTS.length - 1]!;
 const MARKS = [2, 6, 10, 14, 18].map((value) => ({ value, label: String(value) }));
+
+/** The create page's title, which the page puts in its header above the pass. */
+export function CreateGamePassTitle() {
+  return <PageTitle title="Create a game" subtitle="From dune.zone to the table" />;
+}
 
 /** The pass as it is being filled in, owned by the page; a refusal from the server is held with it, and the next change clears it. */
 export type CreateGameDraft = {
@@ -162,69 +165,64 @@ export function CreateGamePass({
     });
 
   return (
-    <PageLayout>
-      <PageLayout.Header size="compact">
-        <PageTitle title={TITLE} subtitle="From dune.zone to the table" />
-      </PageLayout.Header>
-      <PageLayout.Content>
-        <form
-          className={styles.pass}
-          aria-label="New game"
-          onSubmit={(event) => {
-            event.preventDefault();
-            submit();
-          }}
-        >
-          <TicketLayout>
-            <TicketLayout.Main>
-              <TicketMain>
-                <Stack gap="xl" flex={1}>
-                  <NameField draft={draft} dispatch={dispatch} error={nameError} disabled={pending} />
-                  <RulesetField
-                    rulesets={rulesets}
-                    value={draft.rulesetId}
-                    onChange={(rulesetId) => dispatch({ kind: 'patch', update: { rulesetId } })}
-                    disabled={pending}
-                  />
-                  {chosen && preview ? (
-                    <RulesetManifest ruleset={chosen} preview={preview} rulesetLink={rulesetLink} />
-                  ) : null}
-                  <Box mt="auto">
-                    <PassFacts ruleset={chosen?.name ?? null} seats={draft.minimumPlayers} lastTurn={draft.lastTurn} />
-                  </Box>
+    <>
+      <form
+        className={styles.pass}
+        aria-label="New game"
+        onSubmit={(event) => {
+          event.preventDefault();
+          submit();
+        }}
+      >
+        <TicketLayout>
+          <TicketLayout.Main>
+            <TicketMain>
+              <Stack gap="xl" flex={1}>
+                <NameField draft={draft} dispatch={dispatch} error={nameError} disabled={pending} />
+                <RulesetField
+                  rulesets={rulesets}
+                  value={draft.rulesetId}
+                  onChange={(rulesetId) => dispatch({ kind: 'patch', update: { rulesetId } })}
+                  disabled={pending}
+                />
+                {chosen && preview ? (
+                  <RulesetManifest ruleset={chosen} preview={preview} rulesetLink={rulesetLink} />
+                ) : null}
+                <Box mt="auto">
+                  <PassFacts ruleset={chosen?.name ?? null} seats={draft.minimumPlayers} lastTurn={draft.lastTurn} />
+                </Box>
+              </Stack>
+            </TicketMain>
+          </TicketLayout.Main>
+          <TicketLayout.Stub>
+            <TicketStub>
+              <Stack gap="lg">
+                <SeatsField
+                  value={draft.minimumPlayers}
+                  onChange={(minimumPlayers) => dispatch({ kind: 'patch', update: { minimumPlayers } })}
+                  disabled={pending}
+                />
+                <LastTurnField
+                  value={draft.lastTurn}
+                  onChange={(lastTurn) => dispatch({ kind: 'patch', update: { lastTurn } })}
+                  disabled={pending}
+                />
+                {shownFailure ? <FormError title="Not created">{shownFailure}</FormError> : null}
+                <Stack gap="xs">
+                  <Button type="submit" size="lg" fullWidth disabled={!canCreate} loading={pending}>
+                    Create game
+                  </Button>
+                  <Text size="sm" c="dimmed" ta="center" role="status">
+                    {waiting}
+                  </Text>
                 </Stack>
-              </TicketMain>
-            </TicketLayout.Main>
-            <TicketLayout.Stub>
-              <TicketStub>
-                <Stack gap="lg">
-                  <SeatsField
-                    value={draft.minimumPlayers}
-                    onChange={(minimumPlayers) => dispatch({ kind: 'patch', update: { minimumPlayers } })}
-                    disabled={pending}
-                  />
-                  <LastTurnField
-                    value={draft.lastTurn}
-                    onChange={(lastTurn) => dispatch({ kind: 'patch', update: { lastTurn } })}
-                    disabled={pending}
-                  />
-                  {shownFailure ? <FormError title="Not created">{shownFailure}</FormError> : null}
-                  <Stack gap="xs">
-                    <Button type="submit" size="lg" fullWidth disabled={!canCreate} loading={pending}>
-                      Create game
-                    </Button>
-                    <Text size="sm" c="dimmed" ta="center" role="status">
-                      {waiting}
-                    </Text>
-                  </Stack>
-                </Stack>
-              </TicketStub>
-            </TicketLayout.Stub>
-          </TicketLayout>
-        </form>
-        {departing ? createPortal(<div className={styles.departure} aria-hidden />, document.body) : null}
-      </PageLayout.Content>
-    </PageLayout>
+              </Stack>
+            </TicketStub>
+          </TicketLayout.Stub>
+        </TicketLayout>
+      </form>
+      {departing ? createPortal(<div className={styles.departure} aria-hidden />, document.body) : null}
+    </>
   );
 }
 
