@@ -1,6 +1,6 @@
 import { accepted, nextSnapshot } from '../../src/shared/play/commands';
 import { rosterFactionEventName } from '../../src/shared/play/factionLabels';
-import type { MovementAction } from '../../src/shared/play/movement';
+import type { MovementAction, MovementTurns } from '../../src/shared/play/movement';
 import { MOVEMENT_PHASE_ID } from '../../src/shared/play/movement';
 import { phaseAt } from '../../src/shared/play/phases';
 import { rosterFactionIds, tableForViewer } from '../../src/shared/play/protocol';
@@ -20,45 +20,50 @@ export function movementCommand(snapshot: StoredSnapshot, action: MovementAction
   const factions = rosterFactionIds(snapshot.roster);
   const movement = snapshot.movement ?? { done: [] };
   if (action.kind === 'movement-order') {
-    if (new Set(action.order).size !== action.order.length || action.order.some((id) => !factions.includes(id))) {
-      throw new GameRejection('The turn order names only the factions at the table, each once.');
-    }
-    const names = action.order.map((id) => rosterFactionEventName(snapshot.roster, id)).join(', ');
-    const table = accepted(
-      tableForViewer(snapshot, SPECTATOR_SEAT),
-      'movement-order',
-      `Shipment and Movement now goes ${names}.`
-    );
-    return { ...nextSnapshot(snapshot, table), movement: { ...movement, order: action.order } };
+    return arrange(snapshot, movement, factions, action.order);
   }
   if (!factions.includes(action.factionId)) {
     throw new GameRejection('That faction is not at the table.');
   }
-  const name = rosterFactionEventName(snapshot.roster, action.factionId);
-  const finished = movement.done.includes(action.factionId);
-  if (action.kind === 'movement-undo') {
-    if (!finished) {
-      throw new GameRejection(`${name} has not finished shipping and moving yet.`);
-    }
-    const table = accepted(
-      tableForViewer(snapshot, SPECTATOR_SEAT),
-      'movement-undo',
-      `${name} is not done shipping and moving after all.`
-    );
-    return {
-      ...nextSnapshot(snapshot, table),
-      movement: { ...movement, done: movement.done.filter((id) => id !== action.factionId) },
-    };
+  return mark(snapshot, movement, action.factionId, action.kind === 'movement-done');
+}
+
+function arrange(
+  snapshot: StoredSnapshot,
+  movement: MovementTurns,
+  factions: string[],
+  order: string[]
+): StoredSnapshot {
+  if (new Set(order).size !== order.length || order.some((id) => !factions.includes(id))) {
+    throw new GameRejection('The turn order names only the factions at the table, each once.');
   }
-  if (finished) {
-    throw new GameRejection(`${name} has already finished shipping and moving this turn.`);
-  }
+  const names = order.map((id) => rosterFactionEventName(snapshot.roster, id)).join(', ');
   const table = accepted(
     tableForViewer(snapshot, SPECTATOR_SEAT),
-    'movement-done',
-    `${name} has finished shipping and moving.`
+    'movement-order',
+    `Shipment and Movement now goes ${names}.`
   );
-  return { ...nextSnapshot(snapshot, table), movement: { ...movement, done: [...movement.done, action.factionId] } };
+  return { ...nextSnapshot(snapshot, table), movement: { ...movement, order } };
+}
+
+function mark(snapshot: StoredSnapshot, movement: MovementTurns, factionId: string, done: boolean): StoredSnapshot {
+  const name = rosterFactionEventName(snapshot.roster, factionId);
+  if (movement.done.includes(factionId) === done) {
+    throw new GameRejection(
+      done
+        ? `${name} has already finished shipping and moving this turn.`
+        : `${name} has not finished shipping and moving yet.`
+    );
+  }
+  const table = done
+    ? accepted(tableForViewer(snapshot, SPECTATOR_SEAT), 'movement-done', `${name} has finished shipping and moving.`)
+    : accepted(
+        tableForViewer(snapshot, SPECTATOR_SEAT),
+        'movement-undo',
+        `${name} is not done shipping and moving after all.`
+      );
+  const finished = done ? [...movement.done, factionId] : movement.done.filter((id) => id !== factionId);
+  return { ...nextSnapshot(snapshot, table), movement: { ...movement, done: finished } };
 }
 
 const MOVEMENT_KINDS = new Set(['movement-done', 'movement-undo', 'movement-order']);
