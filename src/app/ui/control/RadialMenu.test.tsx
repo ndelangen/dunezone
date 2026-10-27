@@ -149,6 +149,22 @@ test('closing removes the menu at once and leaves only a lifeless copy to play t
   }
 });
 
+test('a closing ring leaves no native controls in the sequential tab order', async () => {
+  vi.useFakeTimers();
+  try {
+    deckMenu();
+    cleanup();
+    await act(async () => {});
+    const copy = document.querySelector<HTMLElement>('[data-closing]')!;
+    const controls = [...copy.querySelectorAll<HTMLButtonElement>('button')];
+    expect(controls.length).toBeGreaterThan(0);
+    expect(controls.every((control) => control.tabIndex < 0)).toBe(true);
+    vi.runAllTimers();
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
 test("React's strict remount leaves no closing copy behind", async () => {
   render(
     <StrictMode>

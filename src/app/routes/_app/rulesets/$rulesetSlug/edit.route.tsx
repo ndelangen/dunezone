@@ -18,6 +18,7 @@ import { NotAvailable } from '@ui/block/NotAvailable';
 import { Section } from '@ui/block/Section';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { FactionLink } from '@ui/content/FactionLink';
+import { helpLines } from '@ui/content/helpLines';
 import { RULESET_ABOUT_HELP, rulesetAboutCount } from '@ui/content/rulesetAboutHint';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
 import { TopicIcon } from '@ui/content/TopicIcon';
@@ -242,7 +243,7 @@ function RulesetEditor({
 
               <ControlBlock
                 title="About"
-                description={`${RULESET_ABOUT_HELP} ${FORMATTED_TEXT_SYNTAX_HELP}`}
+                description={helpLines(RULESET_ABOUT_HELP, FORMATTED_TEXT_SYNTAX_HELP)}
                 input={
                   <FormattedTextInput
                     id="ruleset-settings-about"
@@ -261,7 +262,9 @@ function RulesetEditor({
 
               <ControlBlock
                 title="Cover image URL"
-                description="Optional. Use a full https:// URL. Saving copies the image into our storage, so later changes at the source will not appear here. Leave empty to clear the cover."
+                description={
+                  'Optional. A full https:// URL.\nSaving stores a copy, so later changes at the source do not show here.\nLeave empty to clear the cover.'
+                }
                 input={
                   <TextInput
                     id="ruleset-settings-cover"

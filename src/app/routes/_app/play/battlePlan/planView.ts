@@ -60,10 +60,9 @@ export type FaceTroops = Readonly<{ undialed: number; dialed: number }>;
 const DEFAULT_TROOP_LIMIT = 20;
 
 export const MODE_HELP =
-  'Max: say how many troops fight and how much spice backs them, and the spice supports as many as it can. Custom: say for each troop type how many fight unsupported and how many supported; the spice follows.';
+  'Max: pick the troops and the spice; the spice supports as many as it can.\nCustom: pick supported and unsupported troops per type; the spice follows.';
 
-export const FREE_SUPPORT_HELP =
-  'Your troops fight at full strength without spice, so there is no support to choose: say how many fight.';
+export const FREE_SUPPORT_HELP = 'Your troops fight at full strength without spice: say how many fight.';
 
 /** The pieces a plan can draw on: the hand, private side-table included, and the plan's own, each once. */
 export function planPieces(plan: BattlePlan, hand: readonly TablePiece[]): TablePiece[] {

@@ -2,7 +2,7 @@
 /* @vitest-environment edge-runtime */
 import { expect, test } from 'vite-plus/test';
 
-import { publishingDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
+import { publishingCustomDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
 import { EXAMPLE_HOMEWORLD_CARD } from '../src/shared/assets/homeworldTemplate';
 import { api } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
@@ -26,7 +26,7 @@ test('Homeworlds save without a faction, join decks, and publish the authored th
   expect(job?.asset_data.card).toEqual(EXAMPLE_HOMEWORLD_CARD);
   const deck = await owner.mutation(api.assets.create, {
     type: 'deck',
-    data: { name: 'Homeworld choices', about: '', cardback: publishingDeckCardback },
+    data: { name: 'Homeworld choices', about: '', cardback: publishingCustomDeckCardback },
   });
   await owner.mutation(api.assets.setMemberCount, { container_id: deck.id, member_id: created.id, count: 1 });
   const deckPage = await t.query(api.assets.page, { type: 'deck', slug: deck.slug });

@@ -353,6 +353,14 @@ Chromatic captures a visual story, so it shows a UI capability no other story sh
 fixture data rather than a live catalogue. Behaviour, a repeat of a captured screen, and content go
 in a `name.testing.stories.tsx` file on `testingPreview`, which CI runs and Chromatic skips.
 
+A story shows only the states its own component owns
+([ADR-0005](docs/adr/0005-stories-show-only-owned-states.md)). A composed component never shows again
+the hover, focus, disabled, pending or open states of the children it composes, nor drives their
+tooltips, holds or menus; it proves its wiring through the child's accessible name, value and
+description. Each visual story changes one thing from its component's baseline, so a story name that
+needs "and" is two stories. The `local/story-owns-its-states` lint rule rejects hovering and reading
+a tooltip in any story outside `src/app/ui`.
+
 Three filename conventions carry weight here. A story-only fixture takes the `.stories.fixture.tsx`
 suffix, which the lint overrides key on, so it is a name the tooling reads rather than a preference.
 A Picker's pure view splits into a `.parts.tsx` companion, keeping the fetching shell and the
@@ -476,6 +484,26 @@ authority and everything else derives from it; seam-level suites cover only what
 express; a few happy-path e2e specs are the confidence anchor. Before adding a test, check
 whether a type guarantee or an existing e2e path already covers it. Tests never assert on source
 text or dictate API shape ([ADR-0001](docs/adr/0001-contracts-over-expressions.md)).
+
+Write every test for a busy runner. Most past flakes came from four patterns:
+
+- **No real-time waits on animations or timers.** A loaded runner can go 5 to 10 s without drawing a
+  frame (the measurements are in `.storybook/storyWaits.ts`). Finish the animation from the test
+  (`finishTransitions`), drive fake timers, or wait on a frame with `waitForFrame` and its shared
+  bound. Open a tooltip in its component's own story; a page story checks the trigger's
+  `toHaveAccessibleDescription` instead, where the trigger carries one even while closed (as
+  `HelpMark` does).
+  An animation test that only ever fails from frame lag gets deleted, not loosened.
+- **Assert the final state, all at once.** A check that also passes on an in-between state, such as
+  an empty loading grid, proves nothing. Wait on one condition that holds only when everything you
+  expect is true together.
+- **Size limits for a short-on-CPU runner, not an idle laptop.** A 2 s query bound or Vitest's 5 s
+  default fails under load. Reuse a shared bound such as `storyWaits.ts`, or give a new limit
+  headroom and say in a comment what it covers.
+- **Diagnose before patching.** In every flake audit most red runs were real bugs (a wrongly keyed
+  edge cache, a missing component registration). Find the mechanism, and when it is unclear add
+  diagnostics and wait for the next failure. Never loosen a limit to make a failure go away, and
+  never re-run CI to get green; see [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md).
 
 Before opening or updating any PR that changes application code, publisher code, or release
 assets, run `bun run publisher:release:verify`. The publisher Worker contains the application

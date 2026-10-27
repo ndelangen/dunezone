@@ -26,6 +26,7 @@ import {
   enqueueFactionFaces,
   enqueueFactionFacePublications,
   enqueuePublicationJob,
+  publicationScanBatchSize,
 } from './lib/publication';
 import type { MutationCtx } from './types';
 
@@ -143,7 +144,7 @@ async function recaptureAssetFamily(ctx: MutationCtx, type: string, args: Family
   const page = await ctx.db
     .query('assets')
     .withIndex('by_type_deleted', (q) => q.eq('type', type).eq('is_deleted', false))
-    .paginate({ cursor: args.cursor, numItems: 20 });
+    .paginate({ cursor: args.cursor, numItems: publicationScanBatchSize(type, 20) });
   await Promise.all(
     page.page.filter((asset) => followsFamily(asset, type, args)).map((asset) => recaptureAsset(ctx, asset))
   );

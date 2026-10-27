@@ -1,5 +1,6 @@
 import { Stack } from '@mantine/core';
 import { TABLE_CONVERSATION } from '@shared/play/conversations';
+import { helpLines } from '@ui/content/helpLines';
 import { HelpMark } from '@ui/content/HelpMark';
 import type { TopicIconTopic } from '@ui/content/TopicIcon';
 import clsx from 'clsx';
@@ -9,6 +10,7 @@ import type { ReactNode } from 'react';
 import type { TablePanel } from '../GameTable';
 import {
   FACTION_INFO_GUIDANCE,
+  HAND_AND_SPICE_GUIDANCE,
   PLAYER_CONVERSATION_GUIDANCE,
   TABLE_CONVERSATION_GUIDANCE,
 } from '../multiplayer/panelGuidance';
@@ -73,8 +75,7 @@ export function useTableWindows(panels: readonly TablePanel[]): TableWindow[] {
         ? {
             ...item,
             label: 'Hand & spice',
-            description: 'Your cards, leaders and spice reserve.',
-            help: [spice.help, hand.help].filter(Boolean).join(' '),
+            ...HAND_AND_SPICE_GUIDANCE,
             content: (
               <>
                 {spice.content}
@@ -127,13 +128,10 @@ export function chattable(player: CompassPlayer) {
   return !player.own && player.canConverse;
 }
 
-/* Every window can be pinned from the centre, by its buttons or by key. */
-const PIN_HINT = 'Open in the centre, [ pins it bottom left and ] bottom right.';
-
 /** The (?) beside a window's name: one line on what the window is for, and its full guidance under it where there is one. */
 export function WindowHelp({ entry }: Readonly<{ entry: TableWindow }>) {
   const { description, help } = entry;
-  const text = [description, help, PIN_HINT].filter(Boolean).join(' ');
+  const text = helpLines(description, help);
   return text ? <HelpMark text={text} /> : null;
 }
 

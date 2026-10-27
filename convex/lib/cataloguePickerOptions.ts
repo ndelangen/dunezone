@@ -2,6 +2,7 @@ import type { PaginationOptions } from 'convex/server';
 
 import type { QueryCtx } from '../types';
 import { readBoardListing } from './boardListing';
+import { searchIndexText } from './catalogueOrder';
 import { faqReferencePreview } from './faqReferencePreviews';
 import { liveFaqReferenceTarget } from './faqReferenceTarget';
 import type { FaqReferenceTarget } from './faqReferenceTarget';
@@ -30,7 +31,7 @@ export async function loadCataloguePickerOptions(
     ? await ctx.db
         .query('catalogue_entries')
         .withSearchIndex('search_text', (q) =>
-          q.search('search_text', text).eq('kind', args.kind).eq('partition', args.partition)
+          q.search('search_text', searchIndexText(text)).eq('kind', args.kind).eq('partition', args.partition)
         )
         .paginate(args.paginationOpts)
     : await ctx.db

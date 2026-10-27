@@ -32,6 +32,10 @@ const NAMING = ['role', 'aria-label', 'aria-labelledby', 'aria-describedby', 'ta
 function makeLifeless(copy: HTMLElement) {
   for (const entry of [copy, ...copy.querySelectorAll('*')]) {
     NAMING.forEach((name) => entry.removeAttribute(name));
+    /* Retire native tab stops as well as inheriting inert from the copy. */
+    if ((entry instanceof HTMLElement || entry instanceof SVGElement) && entry.tabIndex >= 0) {
+      entry.tabIndex = -1;
+    }
     /* An id inside artwork stays: its gradients, patterns and masks find their defs by it, and the original that shared it is gone. */
     if (!entry.closest('svg')) {
       entry.removeAttribute('id');

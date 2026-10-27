@@ -3,12 +3,12 @@ import type { z } from 'zod';
 import { componentGeometrySchema } from '../../src/shared/asset-publishing/componentGeometry';
 import { factionTroopPublicationId } from '../../src/shared/asset-publishing/factionTroopPublication';
 import { publishedHref } from '../../src/shared/asset-publishing/publicationTargets';
-import type { CanonicalFactionStoredSchema } from '../../src/shared/factions/schema';
+import type { CanonicalFactionStoredObject } from '../../src/shared/factions/schema';
 import type { RulebookResolvedSource, RulebookSourceReference } from '../../src/shared/rulebooks/sources';
 import type { QueryCtx } from '../types';
 
 type TroopReference = Extract<RulebookSourceReference, { kind: 'faction-troop' }>;
-type Troop = z.infer<typeof CanonicalFactionStoredSchema>['troops'][number];
+type Troop = z.infer<typeof CanonicalFactionStoredObject>['troops'][number];
 
 /** Lists the stable references available from a faction's current troop faces. */
 export function rulebookTroopReferences(

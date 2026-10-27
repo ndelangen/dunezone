@@ -10,12 +10,14 @@ import { phaseAt, tableProgressFor } from '@shared/play/phases';
 import { setupMapVisible, setupStep } from '@shared/play/setup';
 import type { SpiceTransfer } from '@shared/play/spiceReserve';
 import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
+import { drawableTechTokens } from '@shared/play/techToken';
 import { playUiColors } from '@shared/uiPalette';
 import { Link, useLocation } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { Section } from '@ui/block/Section';
 import { InlineFormattedTextSource } from '@ui/content/FormattedText';
 import type { TopicIconTopic } from '@ui/content/TopicIcon';
+import { TooltipTarget } from '@ui/control/TooltipTarget';
 import { useContext, useEffect, useMemo, useReducer, useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 
@@ -63,6 +65,7 @@ import {
   HIDDEN_ZONE_GUIDANCE,
   LOG_GUIDANCE,
   phaseGuidance,
+  PHASE_PREVIOUS,
   phaseHelp,
   RESULT_GUIDANCE,
   setupGuidance,
@@ -249,9 +252,7 @@ function PhaseControls({ table }: Pick<ConnectionControlsProps, 'table'>) {
       title={phase.label}
       description={phaseHelp(table)}
     >
-      {!table.snapshot.stage && (
-        <Text size="sm">Previous changes the tracker only. Pieces and storm position stay as they are.</Text>
-      )}
+      {!table.snapshot.stage && <Text size="sm">{PHASE_PREVIOUS}</Text>}
     </Section>
   );
 }
@@ -469,6 +470,31 @@ function pickerReducer(_state: PickerState, event: PickerEvent): PickerState {
   return { open: event.type === 'open', selection: null, requestId: null };
 }
 
+/** Draws one tech token at random from the shared table inventory onto the table; the table picks, so nobody can choose. */
+function DrawTechToken({
+  client,
+  table,
+  pieces,
+}: TableControlProps & { pieces: TableControlProps['table']['snapshot']['table']['pieces'] }) {
+  const left = drawableTechTokens(pieces).reduce((count, piece) => count + piece.items.length, 0);
+  const reason = !left
+    ? 'No tech tokens are left in the shared table inventory.'
+    : `Picks one of the ${left} tech ${left === 1 ? 'token' : 'tokens'} left here at random and sets it down face up in front of you on the table.`;
+  return (
+    <Tooltip label={reason} multiline w={260} withArrow>
+      <TooltipTarget>
+        <Button
+          variant="default"
+          disabled={!table.canHandleTable || !left}
+          onClick={() => client.command({ kind: 'tech-token-draw' })}
+        >
+          Draw random tech token
+        </Button>
+      </TooltipTarget>
+    </Tooltip>
+  );
+}
+
 function SharedInventory({ client, table }: TableControlProps) {
   const pointerSession = usePointerSession();
   const [picker, dispatch] = useReducer(pickerReducer, {
@@ -507,6 +533,7 @@ function SharedInventory({ client, table }: TableControlProps) {
             Gather tabletop traitors
           </Button>
         )}
+        <DrawTechToken client={client} table={table} pieces={pieces} />
         {picker.open && (
           <Stack gap="sm">
             {/* The picker lists the catalogue; the table checks the choice, so a pick asks it before the request button opens. */}

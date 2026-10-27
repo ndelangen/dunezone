@@ -98,3 +98,35 @@ export function troopWithSupportNames(troop: unknown): unknown {
   const back = face.back && typeof face.back === 'object' ? faceWithSupportNames(face.back) : face.back;
   return back === face.back ? face : { ...face, back };
 }
+
+type StarredTroopFace = { star?: unknown; hue?: unknown; back?: StarredTroopFace };
+
+/* The red the renderer paints a `-red` star without a hue. */
+const RED_STAR_HUE = '#ff0000';
+
+function hasRedStar(face: StarredTroopFace | null | undefined): boolean {
+  return typeof face?.star === 'string' && face.star.includes('-red');
+}
+
+export function troopHasRedStar(troop: unknown): boolean {
+  const face = troop as StarredTroopFace | null;
+  return hasRedStar(face) || hasRedStar(face?.back);
+}
+
+/** A face with a `-red` star moved to its base star and the red as its hue, unless it sets its own; every other field stays as stored. */
+function faceWithoutRedStar(face: StarredTroopFace): StarredTroopFace {
+  if (!hasRedStar(face)) {
+    return face;
+  }
+  return { ...face, star: (face.star as string).replace('-red', ''), hue: face.hue ?? RED_STAR_HUE };
+}
+
+/* Only `star` and `hue` are rewritten, on the front and on an authored back. */
+export function troopWithoutRedStar(troop: unknown): unknown {
+  if (typeof troop !== 'object' || troop === null) {
+    return troop;
+  }
+  const face = faceWithoutRedStar(troop as StarredTroopFace);
+  const back = face.back && typeof face.back === 'object' ? faceWithoutRedStar(face.back) : face.back;
+  return back === face.back ? face : { ...face, back };
+}

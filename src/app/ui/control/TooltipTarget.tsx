@@ -2,7 +2,7 @@ import type { ComponentPropsWithRef, ReactNode } from 'react';
 
 import styles from './TooltipTarget.module.css';
 
-export interface TooltipTargetProps extends Omit<ComponentPropsWithRef<'span'>, 'className' | 'style'> {
+export interface TooltipTargetProps extends Omit<ComponentPropsWithRef<'span'>, 'className' | 'style' | 'title'> {
   /** The one control the tooltip explains. */
   children: ReactNode;
 }

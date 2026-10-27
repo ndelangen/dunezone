@@ -21,6 +21,43 @@ function html() {
 }
 
 describe('published Rulebook reading', () => {
+  test('keeps legacy faction labels and existing accessible descriptions without native hover attributes', () => {
+    const markup = html().replace(
+      '</main>',
+      '<h2 title="Atreides" data-faction-id="atreides">Movement</h2><h2 title="Old hint" aria-describedby="author-description">Battle</h2><img alt="Storm marker" title="Weather token" src="/storm.svg" /></main>'
+    );
+    const root = parseHTML(parsePublishedRulebook(markup, href).markup).document;
+    expect(root.querySelector('[title]')).toBeNull();
+    const heading = root.querySelector('h2[data-faction-id="atreides"]')!;
+    expect(heading.textContent).toBe('Movement');
+    expect(heading.getAttribute('aria-label')).toBe('Movement, Atreides');
+    expect(heading.getAttribute('data-faction-name')).toBe('Atreides');
+    const battle = root.querySelector('h2[aria-describedby="author-description"]')!;
+    expect(battle.textContent).toBe('Battle');
+    expect(battle.getAttribute('aria-description')).toBe('Old hint');
+    expect(root.querySelector('img[src="/storm.svg"][alt="Storm marker"]')?.getAttribute('aria-description')).toBe(
+      'Weather token'
+    );
+  });
+
+  test('faction hover metadata leaves published locator text unchanged', () => {
+    const source = html();
+    const marked = source.replace('<h2', '<h2 title="Atreides" data-faction-id="atreides"');
+    expect(parsePublishedRulebook(marked, href).pagesById).toEqual(parsePublishedRulebook(source, href).pagesById);
+  });
+
+  test('names a legacy faction heading once when its title already names the faction', () => {
+    const markup = html().replace(
+      '</main>',
+      '<h2 title="House Atreides" data-faction-id="atreides">House Atreides</h2></main>'
+    );
+    const root = parseHTML(parsePublishedRulebook(markup, href).markup).document;
+    const heading = root.querySelector('h2[data-faction-id="atreides"]')!;
+    expect(heading.getAttribute('aria-label')).toBe('House Atreides');
+    expect(heading.getAttribute('data-faction-name')).toBe('House Atreides');
+    expect(heading.hasAttribute('title')).toBe(false);
+  });
+
   test('keeps the artifact body and frozen styles inside the app reader, with every reading target', () => {
     const book = parsePublishedRulebook(html(), href);
     expect(book.markup).toMatch(/^<section/);

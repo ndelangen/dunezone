@@ -10,7 +10,7 @@ import { chapter, journeySteps, journeyViewers } from '../journey.stories.fixtur
 import { GameRuntimeContext } from '../multiplayer/gameRuntime';
 import { GameSubscription } from '../multiplayer/GameSubscription';
 import { HiddenZone } from '../multiplayer/HiddenZone';
-import { HIDDEN_ZONE_GUIDANCE } from '../multiplayer/panelGuidance';
+import { HAND_AND_SPICE_GUIDANCE, HIDDEN_ZONE_GUIDANCE } from '../multiplayer/panelGuidance';
 import { sandboxTransport } from '../sandbox.stories.fixture';
 import { HandShelves } from './HandShelves';
 import { SpiceReserve } from './SpiceReserve';
@@ -52,7 +52,7 @@ function HandWindowHarness({ height = 448 }: Readonly<{ height?: number; seat?: 
                 label: 'Hand & spice',
                 group: 'Yours',
                 topic: 'hand',
-                description: 'Your cards, leaders and spice reserve.',
+                ...HAND_AND_SPICE_GUIDANCE,
                 content: (
                   <>
                     <SpiceReserve client={client} table={table} />

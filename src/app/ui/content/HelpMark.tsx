@@ -6,7 +6,7 @@ import type { ReactNode } from 'react';
 import styles from './HelpMark.module.css';
 
 export interface HelpMarkProps {
-  /** The explanation: a constraint, a consequence, or what a panel is for. */
+  /** The explanation: a constraint, a consequence, or what a panel is for. A line break in a string starts a new line in the tooltip. */
   text: ReactNode;
   /** The id the text is published under, when the thing it explains names it in its own `aria-describedby`. */
   id?: string;
@@ -21,7 +21,8 @@ export function HelpMark({ text, id }: HelpMarkProps) {
   const descriptionId = id ?? ownId;
   return (
     <>
-      <VisuallyHidden id={descriptionId}>{text}</VisuallyHidden>
+      {/* Read aloud as one description: the tooltip's line breaks are only for the eye. */}
+      <VisuallyHidden id={descriptionId}>{typeof text === 'string' ? text.replaceAll('\n', ' ') : text}</VisuallyHidden>
       <Tooltip
         label={text}
         multiline

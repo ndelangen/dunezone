@@ -309,7 +309,10 @@ describe('Rulebook renderer', () => {
       <RulebookPageRenderer page={createCataloguePage('single-column', { written: true })} />
     );
     expect(container.querySelectorAll('[data-rulebook-block-id]')).toHaveLength(7);
-    expect(container.querySelector('[data-faction-id="atreides"]')?.getAttribute('title')).toBe('Atreides');
+    const heading = container.querySelector('[data-faction-id="atreides"]')!;
+    expect(heading.getAttribute('aria-label')).toBe(`${heading.textContent}, Atreides`);
+    expect(heading.getAttribute('data-faction-name')).toBe('Atreides');
+    expect(container.querySelector('[title]')).toBeNull();
     expect(
       [...container.querySelectorAll('ol > li')].map((item) => item.getAttribute('data-rulebook-item-id'))
     ).toEqual(['choose', 'move']);
@@ -334,6 +337,20 @@ describe('Rulebook renderer', () => {
       />
     );
     expect(container.querySelector<HTMLElement>('h2')?.style.color).toBe(ink);
+  });
+
+  it('names a faction heading once when its title is already the faction name', () => {
+    const { getByRole } = render(
+      <RulebookBlockCanvas
+        block={{
+          id: 'HEAD',
+          kind: 'section-heading',
+          title: 'House Atreides',
+          faction: { status: 'ready', factionId: 'atreides', name: 'House Atreides', color: '#3e6337' },
+        }}
+      />
+    );
+    expect(getByRole('heading', { name: 'House Atreides' }).getAttribute('data-faction-name')).toBe('House Atreides');
   });
 
   it('keeps the heading and exposes an unavailable faction association', () => {

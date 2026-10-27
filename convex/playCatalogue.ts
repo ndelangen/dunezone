@@ -10,7 +10,7 @@ import {
   publishedHref,
 } from '../src/shared/asset-publishing/publicationTargets';
 import { holdsDeckMembership } from '../src/shared/assets/types';
-import { CanonicalFactionStoredSchema, toStoredHeroKey } from '../src/shared/factions/schema';
+import { CanonicalFactionStoredObject, toStoredHeroKey } from '../src/shared/factions/schema';
 import { assetSupplySchema, factionDefinitionWireSchema, rulesetSupplySchema } from '../src/shared/play/capture';
 import { isSpawnType, SPAWN_TYPES } from '../src/shared/play/captureTypes';
 import { playDraftableFactionsSchema } from '../src/shared/play/drafting';
@@ -100,7 +100,7 @@ export const factionDefinition = publicQuery({
     if (!row || row.is_deleted) {
       return null;
     }
-    const parsed = CanonicalFactionStoredSchema.safeParse(row.data);
+    const parsed = CanonicalFactionStoredObject.safeParse(row.data);
     const leaders = [];
     for (const leader of parsed.success ? parsed.data.leaders : []) {
       leaders.push({
@@ -189,7 +189,7 @@ export const draftableFactions = publicQuery({
     const rows = await draftCandidates(ctx, linked);
     const factions = [];
     for (const row of rows) {
-      const parsed = CanonicalFactionStoredSchema.safeParse(row.data);
+      const parsed = CanonicalFactionStoredObject.safeParse(row.data);
       if (!parsed.success) {
         continue;
       }
@@ -217,7 +217,7 @@ function supplyEntry(row: Doc<'assets'>) {
 
 /** One asset's faces as the asset page resolves them, with the rows its back is authored on. */
 async function suppliedAsset(ctx: QueryCtx, row: Doc<'assets'>, presets: CardbackPresetMemo) {
-  const backToken = TOKEN_ASSET_TYPES.has(row.type) ? await tokenBackFor(ctx, row._id, row.data) : null;
+  const backToken = TOKEN_ASSET_TYPES.has(row.type) ? await tokenBackFor(ctx, row.data) : null;
   const backDeck = await referencedCardbackDeck(ctx, row);
   const back = await resolveBackHref(ctx, row, presets);
   return {

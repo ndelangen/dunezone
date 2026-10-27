@@ -468,8 +468,12 @@ describe('Publication regeneration and administration', () => {
       rendererRevisions: { faction_sheet: 4 },
     });
 
-    await expect(t.query(api.publicationAdmin.page, { page: 1, pageSize: 25 })).rejects.toThrow(/Not authenticated/);
-    await expect(asUser.query(api.publicationAdmin.page, { page: 1, pageSize: 25 })).rejects.toThrow(/Not authorized/);
+    await expect(
+      t.query(api.publicationAdmin.listing, { paginationOpts: { cursor: null, numItems: 25 } })
+    ).rejects.toThrow(/Not authenticated/);
+    await expect(
+      asUser.query(api.publicationAdmin.listing, { paginationOpts: { cursor: null, numItems: 25 } })
+    ).rejects.toThrow(/Not authorized/);
     await expect(asUser.mutation(api.publicationAdmin.setPickupEnabled, { enabled: true })).rejects.toThrow(
       /Not authorized/
     );
@@ -479,12 +483,14 @@ describe('Publication regeneration and administration', () => {
     await expect(asAdmin.mutation(api.publicationAdmin.setPickupEnabled, { enabled: true })).resolves.toMatchObject({
       publicationPickupEnabled: true,
     });
-    await expect(asAdmin.query(api.publicationAdmin.page, { page: 1, pageSize: 25 })).resolves.toMatchObject({
+    await expect(
+      asAdmin.query(api.publicationAdmin.listing, { paginationOpts: { cursor: null, numItems: 25 } })
+    ).resolves.toMatchObject({
       settings: {
         publicationPickupEnabled: true,
         rendererRevisions: { faction_sheet: 4 },
       },
-      jobs: [],
+      page: [],
     });
   });
 });

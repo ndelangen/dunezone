@@ -1,7 +1,7 @@
 import type { z } from 'zod';
 
 import { NEXUS_HEAD } from './nexusTemplate';
-import type { DeckAsset, NexusCardAsset } from './schema';
+import type { NexusCardAsset } from './schema';
 
 /* These rules follow the twelve 2022 GF9 card scans supplied for the Nexus correction.
  * Fremen grants three free revivals, and Richese repeats the Ixians Secret Ally in these scans.
@@ -172,17 +172,3 @@ export const GF9_NEXUS_CARDS: readonly z.infer<typeof NexusCardAsset>[] = effect
     };
   }
 );
-
-export const GF9_NEXUS_DECK: z.infer<typeof DeckAsset> = {
-  name: 'GF9 Nexus Deck',
-  about:
-    "The twelve Nexus cards from GF9's Ecaz & Moritani expansion, one of each faction. Rules follow the supplied 2022 cards. The custom Nexus back is recreated for Dune Zone.",
-  cardback: {
-    mode: 'custom',
-    name: 'Nexus',
-    image: '/vector/icon/nexus.svg',
-    imageOffset: [0, 0],
-    imageScale: 0.55,
-    background: { ...NEXUS_HEAD, colors: [...NEXUS_HEAD.colors] },
-  },
-};
