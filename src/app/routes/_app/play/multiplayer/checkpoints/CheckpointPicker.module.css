@@ -78,7 +78,7 @@
   box-shadow: inset 0 0 0 1px var(--ui-highlight);
 }
 
-/* One row per turn, newest on top, its phases left to right. */
+/* Variant A: one row per turn, newest on top, its phases left to right. */
 .grid {
   display: flex;
   flex-direction: column;
@@ -105,4 +105,29 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 2px;
+}
+
+/* Variant B: the chosen turn's phases in one strip, one strip high. */
+.strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+/* Variant D: the latest moments as rows, earlier turns folded away. */
+.recentRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  width: 100%;
+  padding: 4px var(--space-xs);
+  border-radius: var(--mantine-radius-sm);
+}
+
+.recentRow:hover {
+  background: var(--ui-hover);
+}
+
+.recentRow[data-selected] {
+  background: var(--ui-selected);
 }

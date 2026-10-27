@@ -7,7 +7,11 @@ import type { CheckpointPhase, CheckpointTurn } from './checkpointTurns';
 import { momentLabel, phaseHolding } from './checkpointTurns';
 
 /** A phase's symbol on a sand disc, as the turn tracker draws it; a setup step without one shows its initial. */
-function PhaseDisc({ symbol, label, size = 20 }: Readonly<{ symbol: string | null; label: string; size?: number }>) {
+export function PhaseDisc({
+  symbol,
+  label,
+  size = 20,
+}: Readonly<{ symbol: string | null; label: string; size?: number }>) {
   const resolve = useAssetResolver();
   return (
     <span className={styles.disc} style={{ width: size, height: size }} aria-hidden>
