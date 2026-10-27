@@ -25,6 +25,7 @@ import {
   enqueueFactionSheetPublication,
   enqueueFactionTokenPublication,
   enqueueFactionFacePublications,
+  publicationScanBatchSize,
 } from './lib/publication';
 import { enqueueRulebookFirstPagePublication } from './lib/rulebookPublication';
 import type { MutationCtx } from './types';
@@ -67,7 +68,7 @@ async function scanAssets(ctx: MutationCtx, assetType: string, cursor: string | 
   const page = await ctx.db
     .query('assets')
     .withIndex('by_type_deleted', (q) => q.eq('type', assetType).eq('is_deleted', false))
-    .paginate({ cursor, numItems: REGENERATION_BATCH_SIZE });
+    .paginate({ cursor, numItems: publicationScanBatchSize(assetType, REGENERATION_BATCH_SIZE) });
   let enqueued = 0;
   for (const asset of page.page) {
     /*
