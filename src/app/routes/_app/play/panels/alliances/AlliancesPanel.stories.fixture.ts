@@ -26,7 +26,7 @@ export function offeringSnapshot() {
   return snapshot;
 }
 
-/** The viewer allied with seat 4, so the viewer's own row offers to break it. */
+/** The viewer allied with seat 4, so seat 4's row offers to break it. */
 export function alliedSnapshot() {
   const snapshot = alliancesSnapshot();
   snapshot.alliances = {

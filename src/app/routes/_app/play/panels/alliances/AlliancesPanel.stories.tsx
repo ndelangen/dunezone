@@ -10,7 +10,7 @@ import {
 } from './AlliancesPanel.stories.fixture';
 
 /*
- * The Alliances window on its own, as seat 2 sees a six-seat game mid-play: every faction by its token,
+ * The Alliances window on its own, as seat 2 sees a six-seat game mid-play: every other faction by its token,
  * its allies and status, and the one action the viewer has about it.
  */
 const meta = preview.meta({ ...alliancesPanelMeta, title: 'Play/Panels/Alliances' });
@@ -21,7 +21,7 @@ export const Offers = meta.story({});
 /** The viewer's offer to seat 3 waits as Offering…, which takes it back when clicked again. */
 export const Offering = meta.story({ args: alliancesProps(offeringSnapshot()) });
 
-/** The viewer is allied with seat 4: their own row breaks it, the ally's row says so, and no faction can be offered one until it is broken. */
+/** The viewer is allied with seat 4: the ally's row breaks it, and no faction can be offered one until it is broken. */
 export const Allied = meta.story({ args: alliancesProps(alliedSnapshot()) });
 
 /** The game is finished: who was allied still shows, and no row has an action. */

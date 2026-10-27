@@ -97,7 +97,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'break',
       task: 'Break the alliance',
       detail:
-        'Alliances end as they start, by choice. Open the Alliances window by typing: press {Space} to open the controls, type Alliances and press {Enter}. Then press Break alliance on your own row.',
+        'Alliances end as they start, by choice. Open the Alliances window by typing: press {Space} to open the controls, type Alliances and press {Enter}. Then press Break alliance on your ally’s row.',
       anchor: {
         kind: 'page',
         element: () =>

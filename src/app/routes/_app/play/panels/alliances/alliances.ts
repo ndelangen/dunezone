@@ -5,7 +5,7 @@ import type { AllianceAction, AllianceState } from '@shared/play/alliances';
  * How the viewer's faction stands with one faction at the table.
  * `taken` is a faction the viewer can't offer an alliance to, because one of the two is already allied.
  */
-export type Relation = 'own-allied' | 'own' | 'ally' | 'incoming' | 'outgoing' | 'none' | 'taken';
+export type Relation = 'ally' | 'incoming' | 'outgoing' | 'none' | 'taken';
 
 export type AllianceCommandKind = 'alliance-offer' | 'alliance-withdraw' | 'alliance-accept' | 'alliance-break';
 
@@ -19,10 +19,11 @@ function hasOffer(alliances: AllianceState | undefined, from: string | undefined
   return alliances?.offers.some((offer) => offer.from === from && offer.to === to) ?? false;
 }
 
-export function relationTo(alliances: AllianceState | undefined, own: string, factionId: string): Relation {
+/** How the viewer stands with another faction; the viewer's own faction has no relation, as nothing is done about it. */
+export function relationTo(alliances: AllianceState | undefined, own: string, factionId: string): Relation | null {
   const allies = alliesOf(alliances, own);
   if (factionId === own) {
-    return allies.length ? 'own-allied' : 'own';
+    return null;
   }
   if (allies.includes(factionId)) {
     return 'ally';
@@ -51,7 +52,7 @@ export function allianceAction(
     return { kind, factionId };
   }
   if (kind === 'alliance-break') {
-    return { kind, factionId: alliesOf(alliances, own)[0] ?? own };
+    return { kind, factionId };
   }
   const [from, to] = kind === 'alliance-withdraw' ? [own, factionId] : [factionId, own];
   const offer = alliances?.offers.find((entry) => entry.from === from && entry.to === to);

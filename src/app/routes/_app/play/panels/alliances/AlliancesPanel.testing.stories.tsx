@@ -1,7 +1,7 @@
 import { testingPreview } from '@sb/preview';
 import { expect, userEvent } from 'storybook/test';
 
-import { alliancesSnapshot, faction, VIEWER } from '../../alliances.stories.fixture';
+import { alliancesSnapshot, faction } from '../../alliances.stories.fixture';
 import {
   alliancesPanelMeta,
   alliancesProps,
@@ -25,10 +25,11 @@ export const AcceptsAnOffer = meta.story({
   },
 });
 
-/** Only a faction outside any alliance can be offered one; the viewer's own row, the offering faction's and the allied factions' have none. */
+/** The viewer's own faction has no row; only a faction outside any alliance can be offered one. */
 export const OffersAnAlliance = meta.story({
   play: async ({ args, canvas }) => {
-    await expect(canvas.getByText('Your faction')).toBeVisible();
+    await expect(canvas.queryByText(/House Harkonnen/)).toBeNull();
+    await expect(canvas.getAllByText(/ · /)).toHaveLength(5);
     const offers = canvas.getAllByRole('button', { name: 'Offer alliance' });
     await expect(offers).toHaveLength(2);
     await userEvent.click(offers[0]!);
@@ -54,14 +55,13 @@ export const AlliesNamedByToken = meta.story({
   },
 });
 
-/** The viewer breaks their own alliance from their own row, and can offer no other alliance until they do. */
+/** The viewer breaks the alliance from their ally's row, and can offer no other alliance until they do. */
 export const BreaksTheAlliance = meta.story({
   args: alliancesProps(alliedSnapshot()),
   play: async ({ args, canvas }) => {
-    await expect(canvas.getByText('Your ally')).toBeVisible();
     await expect(canvas.queryByRole('button', { name: /Offer alliance|Accept/ })).toBeNull();
     await userEvent.click(canvas.getByRole('button', { name: 'Break alliance' }));
-    await expect(args.onAction).toHaveBeenCalledWith(seat(VIEWER), 'alliance-break');
+    await expect(args.onAction).toHaveBeenCalledWith(seat('seat-4'), 'alliance-break');
   },
 });
 
@@ -91,6 +91,6 @@ export const ObserverSeesNoActions = meta.story({
   play: async ({ canvas }) => {
     await expect(canvas.getByText('Allied with Fremen')).toBeVisible();
     await expect(canvas.queryByRole('button', { name: /Offer alliance|Accept|Offering…|Break alliance/ })).toBeNull();
-    await expect(canvas.queryByText('Your faction')).toBeNull();
+    await expect(canvas.getAllByText(/ · /)).toHaveLength(6);
   },
 });

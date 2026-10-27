@@ -31,7 +31,7 @@ export function sendAllianceAction(
   }
 }
 
-/** The Alliances window's rows from the table: each seated faction in seat order. */
+/** The Alliances window's rows from the table: each seated faction in seat order but the viewer's own. */
 export function allianceRows(table: TableProjection): AllianceRow[] {
   const { snapshot } = table;
   const names = snapshotFactionLabels(snapshot);
@@ -39,7 +39,7 @@ export function allianceRows(table: TableProjection): AllianceRow[] {
   const players = snapshot.controls?.players ?? [];
   return (
     snapshot.roster?.seats.flatMap((seat) =>
-      seat.faction
+      seat.faction && seat.faction.id !== own
         ? [
             {
               token: factionToken(table, seat.faction.id, names),

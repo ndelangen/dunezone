@@ -1,4 +1,4 @@
-import { Button, Text, Tooltip } from '@mantine/core';
+import { Button, Tooltip } from '@mantine/core';
 import type { ReactNode } from 'react';
 
 import type { AllianceCommandKind, Relation } from './alliances';
@@ -6,20 +6,11 @@ import type { AllianceCommandKind, Relation } from './alliances';
 type ActionProps = Readonly<{ disabled: boolean; send: (kind: AllianceCommandKind) => void }>;
 
 const ACTIONS: Readonly<Record<Relation, (props: ActionProps) => ReactNode>> = {
-  'own-allied': ({ disabled, send }) => (
+  /* The alliance is broken from the ally's row, the one faction it is with. */
+  ally: ({ disabled, send }) => (
     <Button size="xs" variant="default" disabled={disabled} onClick={() => send('alliance-break')}>
       Break alliance
     </Button>
-  ),
-  own: () => (
-    <Text size="sm" c="dimmed">
-      Your faction
-    </Text>
-  ),
-  ally: () => (
-    <Text size="sm" c="dimmed">
-      Your ally
-    </Text>
   ),
   incoming: ({ disabled, send }) => (
     <Button size="xs" disabled={disabled} onClick={() => send('alliance-accept')}>
@@ -42,7 +33,7 @@ const ACTIONS: Readonly<Record<Relation, (props: ActionProps) => ReactNode>> = {
   ),
 };
 
-/** What the viewer may do about one faction: offer, accept, withdraw an offer, or break their own alliance. */
+/** What the viewer may do about one faction: offer, accept, withdraw an offer, or break the alliance with their ally. */
 export function AllianceRowAction({
   relation,
   disabled,
