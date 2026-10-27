@@ -19,16 +19,18 @@ function AddToShelf({ inventory, row }: Readonly<{ inventory: SharedInventory; r
   const label = open
     ? `Close the ${row.label.toLowerCase()} catalogue`
     : `Add ${row.label.toLowerCase()} from the catalogue`;
+  /* The Bundles shelf says where its tokens go, whether its + can add or not. */
+  const note = row.holdsPieces ? '' : " A bundle's tokens land on their own shelves.";
   return (
     <IconAction
       label={label}
-      tooltip={row.holdsPieces ? undefined : `${label}. A bundle's tokens land on their own shelves.`}
+      tooltip={note ? `${label}.${note}` : undefined}
       intent="neutral"
       emphasis="quiet"
       size="sm"
       pressed={open}
       icon={<Plus size={16} aria-hidden />}
-      disabledReason={catalogue.enabled ? undefined : 'Only a seated player can add to the table.'}
+      disabledReason={catalogue.enabled ? undefined : `Only a seated player can add to the table.${note}`}
       onClick={() => catalogue.toggleShelf(row)}
     />
   );
