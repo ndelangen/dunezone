@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "sourceDescription": "Robot troop silhouettes developed from user-supplied references. Original authorship and publication were not independently verified.",
+  "source": "originals/a-robot-web-cam-pointing-a-ray-gun-angle-is-taken-from-that-cliche-FB80KP.jpg",
+  "approval": {
+    "date": "2026-10-27",
+    "scope": "The user authorized publishing all three robot troops after removal of the rear-view mech's central projection.",
+    "evidence": "once you have, you may ship these 3"
+  },
+  "assets": {
+    "/vector/troop/camera-raygun-robot.svg": {
+      "approvedVectorMaster": "originals/camera-raygun-robot-approved.svg",
+      "bitmapProposal": "originals/camera-raygun-robot-bitmap-proposal.png",
+      "traceMask": "bitmaps/camera-raygun-robot-trace-mask.png",
+      "alphaThreshold": 0.5,
+      "maskGaussianSigmaPixels": 0.8,
+      "minimumComponentAreaPixels": 12,
+      "trace": "Potrace 1.16, turdsize 12, alphamax 1.0, opttolerance 0.6, followed by SVG authoring root and provenance steps, uniform square normalization and the troop optimization profile.",
+      "nativeEdits": "No native geometry changes after tracing.",
+      "paint": "Inherited from the caller. Structural gaps remain transparent.",
+      "collection": "Troops, supplied by the existing vector-category fallback.",
+      "details": "A round-bodied robot with a small circular camera head points a large ray gun upward and forward, while its other arm ends in a hanging pincer."
+    }
+  }
+}
