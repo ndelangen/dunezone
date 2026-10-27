@@ -291,7 +291,7 @@ _Avoid_: Event log, history feed, activity feed
 
 **Replay**:
 Stepping through a finished Real game's saved checkpoints, the public table only, with no action offered. Players may not keep notes, so nobody replays a game in progress, and a game continued after its result closes the Replay again.
-_Avoid_: playback, history (for the feature), rewind
+_Avoid_: rewind
 
 **Table review**:
 A look back at one recent checkpoint that a majority of the seated Players agree to while a Real game is set up or played. It shows every viewer, Spectators included, the same public table, and nothing can be moved, carried or peeked at, nor a timed bid or battle run down, until a seated Player resumes play. The proposal, its result and its end are filed in Audit.
