@@ -44,15 +44,6 @@ export const Info = meta.story({
   },
 });
 
-/** A vote to remove a player, cast from that player's Info. */
-export const RemovalVote = meta.story({
-  beforeEach: install(() => productTransport('seat-2', removalSnapshot())),
-  play: async ({ canvasElement }) => {
-    const page = await openFactionInfo(canvasElement, 'Twaffle');
-    await expect(page.findByRole('button', { name: 'Keep' }, WAIT)).resolves.toBeVisible();
-  },
-});
-
 export const RemovalVoting = meta.story({
   beforeEach: install(() => productTransport('seat-2', removalSnapshot())),
   play: async ({ canvasElement }) => {

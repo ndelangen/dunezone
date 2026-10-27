@@ -27,6 +27,14 @@ export const predicting = () => predictionSnapshot();
 export const predictionLocked = () => predictionSnapshot(true);
 export const predictionCard = () => predictionSnapshot(true, true);
 
+/** Seat 6 predicts while seats 1 and 2 carry factions with one name. */
+export function sharedNames() {
+  const snapshot = predictionSnapshot();
+  const [first, second] = snapshot.roster!.seats;
+  second!.faction!.name = first!.faction!.name;
+  return snapshot;
+}
+
 export const setupPanelMeta = {
   ...panelMeta(setupWindow(traitors().setup!)),
   component: SetupPanel,

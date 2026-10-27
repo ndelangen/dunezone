@@ -1,8 +1,8 @@
 import { testingPreview } from '@sb/preview';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { openPanel, WAIT } from './controls.stories.fixture';
-import { gameMeta, install, lastCommand, predictionSnapshot, session } from './game.stories.fixture';
+import { openPanel } from './controls.stories.fixture';
+import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
 import { productTransport, setupSnapshot, preparedSnapshot } from './product.stories.fixture';
 
 const meta = testingPreview.meta({
@@ -48,35 +48,5 @@ export const StartingTroops = meta.story({
     ).resolves.toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Next phase' }));
     await waitFor(() => expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'phase' } }));
-  },
-});
-
-/** Setup, the locked prediction whose card is in hand: placing the card is the reveal, so the panel offers no button (#1753). */
-export const PredictionCardInHand = meta.story({
-  beforeEach: install(() => productTransport('seat-6', predictionSnapshot(true, true))),
-  play: async ({ canvasElement }) => {
-    const page = await openPanel(canvasElement, 'Setup');
-    await expect(
-      page.findByText('Prediction locked. Place your prediction card on the table to reveal it.', undefined, WAIT)
-    ).resolves.toBeVisible();
-    await expect(page.queryByRole('button', { name: 'Reveal prediction' })).toBeNull();
-  },
-});
-
-/** Two seats carry factions with one name, so each reads with its player in the prediction's options (#1667). */
-export const PredictionSharedName = meta.story({
-  beforeEach: install(() => {
-    const snapshot = predictionSnapshot();
-    const [first, second] = snapshot.roster!.seats;
-    second!.faction!.name = first!.faction!.name;
-    return productTransport('seat-6', snapshot);
-  }),
-  play: async ({ canvasElement }) => {
-    const page = await openPanel(canvasElement, 'Setup');
-    const [first, second] = predictionSnapshot().controls!.players;
-    const name = predictionSnapshot().roster!.seats[0]!.faction!.name;
-    await userEvent.click(await page.findByRole('combobox', { name: 'Predicted winner' }, WAIT));
-    await expect(page.findByRole('option', { name: `${name} (${first!.name})` }, WAIT)).resolves.toBeVisible();
-    await expect(page.findByRole('option', { name: `${name} (${second!.name})` }, WAIT)).resolves.toBeVisible();
   },
 });
