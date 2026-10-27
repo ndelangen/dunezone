@@ -5,7 +5,6 @@
     "src/app/routes/_app/play/phases.stories.tsx",
     "src/app/routes/_app/play/phases.testing.stories.tsx",
     "src/app/routes/_app/play/panel.conversations.stories.tsx",
-    "src/app/routes/_app/play/panel.hand.stories.tsx",
     "src/app/routes/_app/play/panel.hand.testing.stories.tsx",
     "src/app/routes/_app/play/panel.inventory.stories.tsx",
     "src/app/routes/_app/play/panel.layout.testing.stories.tsx",
