@@ -251,6 +251,8 @@
   font-family: "C_Candara", Candara, sans-serif;
   font-size: 0.9em;
   font-weight: 700;
+  /* The webfont has no bold, and the play shell turns synthesis off; without this the ½ would turn thin in a game. */
+  font-synthesis-weight: auto;
   -webkit-text-stroke-width: 0.5px;
 }
 
