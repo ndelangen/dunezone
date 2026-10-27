@@ -144,15 +144,9 @@ function useFactionDetails(client: TableSession, factionId: string | undefined) 
   return { slug, details: factionId ? factions[factionId] : undefined };
 }
 
-/* The token a seat shows: its faction's on the table, else the one it holds while trading seats, else its player's avatar. */
-function seatToken(table: TableProjection, player: Player) {
-  const faction = rosterSeat(table.snapshot.roster, player.seat)?.faction;
-  return (
-    (faction && factionTokenFace(table, faction.id)) ??
-    table.snapshot.swapping?.tokens[player.seat] ??
-    player.avatar ??
-    null
-  );
+/* What a seat shows where the table has no token for its faction: the token it holds while trading seats, else its player's avatar. */
+function standInToken(table: TableProjection, player: Player) {
+  return table.snapshot.swapping?.tokens[player.seat] ?? player.avatar ?? null;
 }
 
 function PlayerInformation({ client, table, player, hasVote }: Props & Readonly<{ player: Player; hasVote: boolean }>) {
@@ -163,9 +157,15 @@ function PlayerInformation({ client, table, player, hasVote }: Props & Readonly<
   const names = snapshotFactionLabels(table.snapshot);
   const model: FactionInfoHeaderModel = {
     token: faction ? (
-      <FactionTokenFace table={table} factionId={faction.id} names={names} size={44} src={seatToken(table, player)} />
+      <FactionTokenFace
+        table={table}
+        factionId={faction.id}
+        names={names}
+        size={44}
+        src={standInToken(table, player)}
+      />
     ) : (
-      <Avatar src={seatToken(table, player)} size={44} radius="xl" alt="">
+      <Avatar src={standInToken(table, player)} size={44} radius="xl" alt="">
         {player.name.slice(0, 1)}
       </Avatar>
     ),
@@ -214,7 +214,7 @@ export function usePlayerWindows(client: TableSession, table: TableProjection) {
       seat: player.seat,
       name: player.name,
       factionName: faction?.name ?? null,
-      token: seatToken(table, player),
+      token: (faction && factionTokenFace(table, faction.id)) ?? standInToken(table, player),
       unread: conversations.summaries.find((entry) => entry.peerId === peerId)?.unread ?? 0,
       own: player.seat === table.viewer.viewerSeat,
       canConverse: Boolean(peerId && conversations.context?.peers.some((peer) => peer.id === peerId)),

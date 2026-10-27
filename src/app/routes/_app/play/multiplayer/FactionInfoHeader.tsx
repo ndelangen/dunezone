@@ -22,7 +22,7 @@ export type FactionInfoHeaderModel = Readonly<{
 
 /* The faction and seat under the name; a vacant seat is named by its faction already, so it gives the seat alone. */
 function subtitle({ name, faction, seat }: FactionInfoHeaderModel) {
-  return [faction !== name && faction, seat].filter(Boolean).join(' · ');
+  return [faction === null ? 'No faction assigned' : faction !== name && faction, seat].filter(Boolean).join(' · ');
 }
 
 /**

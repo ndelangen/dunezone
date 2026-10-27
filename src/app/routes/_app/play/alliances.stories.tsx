@@ -2,7 +2,7 @@ import preview from '@sb/preview';
 import { applyAlliance } from '@shared/play/alliances';
 import type { AllianceState } from '@shared/play/alliances';
 import type { ClientMessage } from '@shared/play/protocol';
-import { expect, waitFor, within } from 'storybook/test';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { VIEWER, faction, alliancesSnapshot } from './alliances.stories.fixture';
 import { gameMeta, install } from './game.stories.fixture';
@@ -102,15 +102,20 @@ export const ManyAlliancesFitTheHeader = meta.story({
   },
 });
 
-/* Opens the Alliances window bottom left and the viewer's Faction info bottom right, whatever an earlier visit left pinned. */
+const SLOTS = 'dunezone-compass:slots';
+
+/* Opens the Alliances window bottom left and the viewer's Faction info bottom right, and puts back what was pinned before once the story ends, so the next story starts as it would have. */
 function pinAlliancesAndFactionInfo() {
   try {
+    const before = localStorage.getItem(SLOTS);
     localStorage.setItem(
-      'dunezone-compass:slots',
+      SLOTS,
       JSON.stringify({ left: { key: 'alliances' }, right: { key: 'faction-info', seat: VIEWER } })
     );
+    return () => (before === null ? localStorage.removeItem(SLOTS) : localStorage.setItem(SLOTS, before));
   } catch {
     /* Without storage the slots start empty. */
+    return undefined;
   }
 }
 
@@ -126,12 +131,21 @@ export const TokensInTheWindows = meta.story({
     await expect(picker.scrollWidth, 'Six tokens outgrow the slot, so the row scrolls.').toBeGreaterThan(
       picker.clientWidth
     );
-    /* The rule under the tokens runs to the window's border on both sides. */
+    /* The rule under the tokens runs from the window's border to its scrolling body's far edge, short only of a scrollbar. */
     const frame = picker.closest('[data-window]')!.getBoundingClientRect();
+    const body = picker.parentElement!;
+    const scrollbar = body.offsetWidth - body.clientWidth;
     const rule = picker.getBoundingClientRect();
     await expect(Math.abs(rule.left - frame.left), 'The rule stops short of the left edge.').toBeLessThanOrEqual(1.5);
-    await expect(Math.abs(rule.right - frame.right), 'The rule stops short of the right edge.').toBeLessThanOrEqual(
-      1.5
-    );
+    await expect(
+      Math.abs(rule.right + scrollbar - frame.right),
+      'The rule stops short of the right edge.'
+    ).toBeLessThanOrEqual(1.5);
+    /* An ally's token names its faction on hover. */
+    const alliances = within(doc.querySelector<HTMLElement>('[data-window="alliances"]')!);
+    const allied = (await alliances.findByText('Allied with Fremen')).parentElement!;
+    await userEvent.hover(allied.querySelector('.mantine-Avatar-root')!);
+    const tooltip = await within(doc.body).findByRole('tooltip', { name: 'Fremen' });
+    await waitFor(() => expect(tooltip).toBeVisible());
   },
 });
