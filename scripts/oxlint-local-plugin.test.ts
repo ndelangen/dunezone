@@ -229,6 +229,10 @@ describe('prefer-block-comments', { timeout: TEST_BUDGET_MS }, () => {
 describe('no-title-tooltip', { timeout: TEST_BUDGET_MS }, () => {
   const reports = (output: string) => output.split('local(no-title-tooltip)').length - 1;
 
+  test.each(['src/game/rulebook', '.storybook'])('also guards native labels in %s', async (root) => {
+    expect(reports(await lintDiagnostics('probe.tsx', 'export const probe = <h2 title="Atreides" />;', root))).toBe(1);
+  });
+
   test('reports a title on an element and on a component that passes it through', async () => {
     const output = await lintDiagnostics(
       'probe.tsx',
@@ -275,6 +279,32 @@ export const probe = [
 `
     );
     expect(reports(output)).toBe(0);
+  });
+});
+
+describe('shared-overlays', { timeout: TEST_BUDGET_MS }, () => {
+  test('rejects competing overlay libraries', async () => {
+    const output = await lintDiagnostics(
+      'probe.tsx',
+      `
+import * as Tooltip from '@radix-ui/react-tooltip';
+import { Root } from '@radix-ui/react-popover';
+import Tippy from '@tippyjs/react';
+export const probe = [Tooltip, Root, Tippy];
+`
+    );
+    expect(output.split('local(shared-overlays)').length - 1).toBe(3);
+  });
+
+  test('allows shared Mantine overlays and unrelated data attributes', async () => {
+    const output = await lintDiagnostics(
+      'probe.tsx',
+      `
+import { Tooltip, Popover } from '@mantine/core';
+export const probe = <Tooltip label="Chat"><Popover><button data-player="Paul" /></Popover></Tooltip>;
+`
+    );
+    expect(output).not.toContain('local(shared-overlays)');
   });
 });
 

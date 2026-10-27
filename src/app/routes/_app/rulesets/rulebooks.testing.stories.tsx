@@ -1,15 +1,54 @@
 import { testingPreview } from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
+import { createRulebookEditorialStarterContents } from '@shared/rulebooks/fixtures';
 import { install } from '@sinonjs/fake-timers';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { SEED_REF_TOKEN, db } from '@db/storybook';
+import { SEED_REF_TOKEN, db, ref } from '@db/storybook';
 
-import { rulebooksMeta, withFailedRulebookPreview, withSizedRulebooks } from './rulebooks.stories.fixture';
+import {
+  rulebooksMeta,
+  withRulebooks,
+  withFailedRulebookPreview,
+  withSizedRulebooks,
+} from './rulebooks.stories.fixture';
 
 const meta = testingPreview.meta({
   ...rulebooksMeta,
   title: 'Rulesets/Rulebooks',
+});
+
+export const FactionHeadingHints = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-1' },
+  parameters: {
+    database: db((baseline) => {
+      withRulebooks(baseline);
+      const faction = baseline.factions[0]!;
+      const edition = baseline.rulebook_edition_contents[1]!;
+      edition.contents = createRulebookEditorialStarterContents();
+      const page = edition.contents.pagesById.RULE!;
+      page.blocksById.HEAD = {
+        id: 'HEAD',
+        kind: 'section-heading',
+        title: 'Faction advantages',
+        factionId: ref(faction.$key!) as unknown as string,
+      };
+      page.blockOrderByRegion.content!.unshift('HEAD');
+      return baseline;
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await waitFor(
+      async () => {
+        const heading = page.getByRole('heading', { name: /^Faction advantages, / });
+        await expect(heading.getAttribute('data-faction-name')).toBeTruthy();
+        await expect(heading).toHaveAttribute('tabindex', '0');
+        await expect(heading).not.toHaveAttribute('title');
+      },
+      { timeout: 30_000 }
+    );
+  },
 });
 
 function describeFocus(storyDocument: Document) {

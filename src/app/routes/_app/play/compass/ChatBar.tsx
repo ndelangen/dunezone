@@ -69,7 +69,7 @@ export function ChatBar({ inert, hasHand, isOpen, onOpenCompass, onShow }: ChatB
 /* The viewer's own faction, which opens their Hand & spice as H does; a spectator has no seat and no token. */
 function OwnToken({ player, open, onOpen }: Readonly<{ player: CompassPlayer; open: boolean; onOpen: () => void }>) {
   return (
-    <Tooltip label={`You are playing as ${player.factionName}`}>
+    <Tooltip label={`You are playing as ${player.factionName}`} events={{ hover: true, focus: true, touch: false }}>
       <button
         type="button"
         className={clsx(styles.chat, styles.own)}
@@ -86,7 +86,7 @@ function OwnToken({ player, open, onOpen }: Readonly<{ player: CompassPlayer; op
 
 function TableChatToken({ unread, open, onOpen }: Readonly<{ unread: number; open: boolean; onOpen: () => void }>) {
   return (
-    <Tooltip label="Table chat · Space →">
+    <Tooltip label="Table chat · Space →" events={{ hover: true, focus: true, touch: false }}>
       <button
         type="button"
         className={styles.chat}
@@ -114,7 +114,10 @@ function waiting(player: CompassPlayer) {
 function ChatToken({ player, open, onOpen }: Readonly<{ player: CompassPlayer; open: boolean; onOpen: () => void }>) {
   const reason = waiting(player);
   return (
-    <Tooltip label={words(player.name, player.factionName, reason, player.ally && 'ally · Space → →').join(' · ')}>
+    <Tooltip
+      label={words(player.name, player.factionName, reason, player.ally && 'ally · Space → →').join(' · ')}
+      events={{ hover: true, focus: true, touch: false }}
+    >
       <button
         type="button"
         className={styles.chat}

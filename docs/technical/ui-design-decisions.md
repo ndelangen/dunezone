@@ -131,13 +131,22 @@ component under the taxonomy; a delivery ticket names what it builds with; and t
 review checks that line before the merge.
 
 Play's tooltips are raised rather than glass so they remain distinct from the windows (#2048). The island sets `--tip-surface`,
-`--tip-ring` and `--tip-title` in `DarkSchemeIsland.css` (not `tokens.css`, which the faction sheet renderer bundles), and the app's one dark tooltip rule reads them with
+`--tip-ring` and `--tip-title` in `DarkSchemeIsland.css` (not `tokens.css`, which the faction sheet renderer bundles), and the Tooltip class in `appContentTheme` reads them with
 the glass as fallback, so every tooltip on the island is a warm mineral card with a brass ring and shadow, a
 titled one takes the pale sand title, and nothing outside the island changes. A window's guidance lives
 behind the (?) in its header, the kit's `HelpMark`: hovering or focusing it shows the one-line
 description and the full help under it, and the compass's search shows the description as each
 window's hint. Play is desktop-only for the beta, so a touch path to that guidance is out of scope
 until touch is.
+
+Hover labels use Mantine `Tooltip`; floating panes use Mantine `Popover`, `HoverCard` or `Menu`
+under the same app theme. Components may own their interaction, such as a tab's five-second hover
+delay, while the theme owns the pane's appearance. Native `title` attributes and CSS hints stored
+in `data-tip` or `data-tooltip` are forbidden by lint, including in game renderers and previews.
+An iframe keeps its accessible `title`, and an SVG may retain a descriptive `<title>` child.
+Standalone rulebook output includes the faction in its heading label; the app reader adds the shared
+tooltip from that metadata. Legacy title attributes become accessible labels or descriptions when
+read, without changing the stored publication or its selectable text.
 
 *Guarded in part: the lint rule `local/no-title-tooltip` rejects a native `title` and the `data-tip`/`data-tooltip` words of a hand-rolled CSS tooltip, and `scripts/no-css-tooltips.test.ts` rejects a stylesheet printing an attribute as `content`, so the kit `Tooltip` stays the only tooltip look (#2550). Help reads as short lines: `helpLines` joins them with line breaks, which every multiline tooltip keeps, and the lint rule `local/tooltip-length` rejects a line past 100 characters written into a `Tooltip` label, a `HelpMark` or a `ControlBlock` description, following the module's own constants. `check:css-orphans` reads route stylesheets, and the `SchemeIsland` story in
 [`panel.layout.stories.tsx`](../../src/app/routes/_app/play/panel.layout.stories.tsx) holds the island and
