@@ -677,11 +677,12 @@ function reviewEntry(review: ReviewResult): Entry {
     people.push(review.by);
     return `{${people.length - 1}}`;
   };
+  const checkpoint = literal(review.checkpoint);
   const templates: Record<ReviewOutcome, () => string> = {
-    started: () => `The table reviews ${review.checkpoint}, as {0} proposed: ${breakdown()}.`,
-    declined: () => `The table declined {0}'s review of ${review.checkpoint}: ${breakdown()}.`,
-    withdrawn: () => `The review of ${review.checkpoint} {0} proposed was withdrawn by ${by()}.`,
-    ended: () => `The review of ${review.checkpoint} was ended by ${by()}, and play resumed.`,
+    started: () => `The table reviews ${checkpoint}, as {0} proposed: ${breakdown()}.`,
+    declined: () => `The table declined {0}'s review of ${checkpoint}: ${breakdown()}.`,
+    withdrawn: () => `The review of ${checkpoint} {0} proposed was withdrawn by ${by()}.`,
+    ended: () => `The review of ${checkpoint} was ended by ${by()}, and play resumed.`,
   };
   return {
     key: `review:${review.id}:${review.result}`,
