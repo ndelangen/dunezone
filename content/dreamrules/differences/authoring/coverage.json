@@ -1,5 +1,5 @@
 {
-  "manuscriptSha256": "b7671e15db3ab548fcf956650898e6b001ed650564566da9880fe1f6af34bf0d",
+  "manuscriptSha256": "c281b2c70710f2456555082699a666bf16e4231b81e98b5f344030434db9fa30",
   "records": [
     {
       "id": "S01",
@@ -184,19 +184,6 @@
       }
     },
     {
-      "id": "N04",
-      "page": "nexus",
-      "classification": "changed",
-      "topic": "Trade information differently",
-      "sources": "Quickstart v0.8, Nexus Deck and Activity Under Storm; #1836 and #1846; GF9 November 2020 FAQ p1; Dream Rulebook Edition 3 pp13-16.",
-      "location": {
-        "pageId": "MRCB",
-        "blockId": "HY8T",
-        "pageNumber": 4,
-        "anchor": "nexus"
-      }
-    },
-    {
       "id": "N05",
       "page": "nexus",
       "classification": "changed",
@@ -213,7 +200,7 @@
       "id": "N06",
       "page": "nexus",
       "classification": "changed",
-      "topic": "Storm can contain a battle",
+      "topic": "Battles can happen under the storm",
       "sources": "Quickstart v0.8, Nexus Deck and Activity Under Storm; #1836 and #1846; GF9 November 2020 FAQ p1; Dream Rulebook Edition 3 pp13-16.",
       "location": {
         "pageId": "MRCB",
@@ -395,7 +382,7 @@
       "id": "K03",
       "page": "karama",
       "classification": "changed",
-      "topic": "Some windows close before plans are locked",
+      "topic": "Cancel before commitment",
       "sources": "Quickstart v0.8, Full Phase Karama and Battle Prescience; #1831 full-phase confirmation, 5 October 2026; current faction sheets; #1852.",
       "location": {
         "pageId": "ZN7H",
@@ -460,7 +447,7 @@
       "id": "B03",
       "page": "battle-sequence",
       "classification": "changed",
-      "topic": "Lock the plans",
+      "topic": "Commitment",
       "sources": "Quickstart v0.8, Combat Steps and Common Rules Clarifications; approved combat rulings in #1831, 5 October 2026; Dream Rulebook Edition 3 pp33-39; #1839 and #1841.",
       "location": {
         "pageId": "6AYZ",
@@ -2043,19 +2030,6 @@
       }
     },
     {
-      "id": "Q04",
-      "page": "questions",
-      "classification": "unresolved",
-      "topic": "Six Shai-Hulud cards",
-      "sources": "Council tracker #1831 and linked questions, checked 27 October 2026.",
-      "location": {
-        "pageId": "PLT8",
-        "blockId": "QU47",
-        "pageNumber": 30,
-        "anchor": "questions"
-      }
-    },
-    {
       "id": "SRC01",
       "page": "sources",
       "classification": "sources",
@@ -2118,6 +2092,110 @@
         "blockId": "ZJR8",
         "pageNumber": 30,
         "anchor": "questions"
+      }
+    },
+    {
+      "id": "S07-question",
+      "page": "setup",
+      "classification": "open-question-note",
+      "topic": "Open question after S07",
+      "sources": "Questions on page 30 and their linked issue records.",
+      "location": {
+        "pageId": "SFT4",
+        "blockId": "AQ7X",
+        "pageNumber": 2,
+        "anchor": "setup"
+      }
+    },
+    {
+      "id": "M05-question",
+      "page": "mines",
+      "classification": "open-question-note",
+      "topic": "Open question after M05",
+      "sources": "Questions on page 30 and their linked issue records.",
+      "location": {
+        "pageId": "KP7X",
+        "blockId": "A6M6",
+        "pageNumber": 5,
+        "anchor": "mines"
+      }
+    },
+    {
+      "id": "V03-question",
+      "page": "tech-tokens",
+      "classification": "open-question-note",
+      "topic": "Open question after V03",
+      "sources": "Questions on page 30 and their linked issue records.",
+      "location": {
+        "pageId": "KFFE",
+        "blockId": "HD7N",
+        "pageNumber": 13,
+        "anchor": "tech-tokens"
+      }
+    },
+    {
+      "id": "A06-question",
+      "page": "atreides",
+      "classification": "open-question-note",
+      "topic": "Open question after A06",
+      "sources": "Questions on page 30 and their linked issue records.",
+      "location": {
+        "pageId": "DF9E",
+        "blockId": "NLTZ",
+        "pageNumber": 16,
+        "anchor": "atreides"
+      }
+    },
+    {
+      "id": "H04-question",
+      "page": "harkonnen",
+      "classification": "open-question-note",
+      "topic": "Open question after H04",
+      "sources": "Questions on page 30 and their linked issue records.",
+      "location": {
+        "pageId": "8ZT2",
+        "blockId": "4GD5",
+        "pageNumber": 17,
+        "anchor": "harkonnen"
+      }
+    },
+    {
+      "id": "G06-question",
+      "page": "guild",
+      "classification": "open-question-note",
+      "topic": "Open question after G06",
+      "sources": "Questions on page 30 and their linked issue records.",
+      "location": {
+        "pageId": "RVW6",
+        "blockId": "M432",
+        "pageNumber": 19,
+        "anchor": "guild"
+      }
+    },
+    {
+      "id": "FR02-question",
+      "page": "fremen-storm",
+      "classification": "open-question-note",
+      "topic": "Open question after FR02",
+      "sources": "Questions on page 30 and their linked issue records.",
+      "location": {
+        "pageId": "L2HH",
+        "blockId": "TUU8",
+        "pageNumber": 20,
+        "anchor": "fremen-storm"
+      }
+    },
+    {
+      "id": "FR08-question",
+      "page": "fremen-battle",
+      "classification": "open-question-note",
+      "topic": "Open question after FR08",
+      "sources": "Questions on page 30 and their linked issue records.",
+      "location": {
+        "pageId": "URNR",
+        "blockId": "QWBN",
+        "pageNumber": 21,
+        "anchor": "fremen-battle"
       }
     }
   ],

@@ -15,7 +15,7 @@ Run `bun content/dreamrules/differences/authoring/preview-server.ts` to serve th
 
 ## Verification
 
-The 27 October 2026 review checked all 31 rendered pages for runtime errors, missing images and content extending outside its page or block. `render-checks.json` contains the measurements. The PDF has 31 tagged A4 pages; `pdf-checks.json` records its hash and the checks on 180 prose fields. Table contents received separate visual review.
+The 27 October 2026 review checked all 31 rendered pages for runtime errors, missing images and content extending outside its page or block. `render-checks.json` contains the measurements. The PDF has 31 tagged A4 pages; `pdf-checks.json` records its hash and the checks on 176 prose fields. Table contents received separate visual review.
 
 After editing, check the affected pages in the preview and export the PDF again. Recheck both the rendered pages and extracted PDF text before sharing the result. The reports describe the saved version and must not be treated as verification of later edits.
 

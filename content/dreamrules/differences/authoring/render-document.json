@@ -115,7 +115,12 @@
               "kind": "callout",
               "variant": "note",
               "title": "Spice deck preparation",
-              "text": "Use fifteen ordinary Spice Blow cards, five mine cards and six Shai\\-Hulud cards. Opening\\-deck questions are on p30."
+              "text": "Use fifteen ordinary Spice Blow cards, five mine cards and six Shai\\-Hulud cards."
+            },
+            {
+              "id": "AQ7X",
+              "kind": "text",
+              "text": "Open question, see page 30."
             },
             {
               "id": "CLJN",
@@ -326,7 +331,7 @@
               "id": "HDAQ",
               "kind": "text",
               "name": "Insert Nexus after Storm",
-              "text": "The order is Storm, Nexus, Spice Blow, CHOAM Charity, Bidding, Revival, Shipment and Movement, Battle, Spice Collection, Mentat. A drawn worm no longer creates an alliance window."
+              "text": "The order is Storm, Nexus, Spice Blow, CHOAM Charity, Bidding, Revival, Shipment and Movement, Battle, Spice Collection, Mentat. A drawn worm no longer lets players change alliances."
             },
             {
               "id": "ZHYA",
@@ -347,21 +352,15 @@
           "key": "column2",
           "blocks": [
             {
-              "id": "HY8T",
-              "kind": "text",
-              "name": "Trade information differently",
-              "text": "Atreides may look at the top Nexus card instead of the top Spice card. Fremen gains Spice Blow Knowledge. Check for the Nexus before resolving any worm or mine."
-            },
-            {
               "id": "Z4EJ",
               "kind": "text",
               "name": "Worms affect the board",
-              "text": "Resolve Shai\\-Hulud against its affected territory and let Fremen use its riding powers. Track every drawn Shai\\-Hulud with a Shield Wall marker. A Thumper calls a riding worm but adds no Shield Wall marker."
+              "text": "Shai\\-Hulud eats spice and troops in its territory as usual, and Fremen can ride it. Track every drawn Shai\\-Hulud with a Shield Wall marker. A Thumper calls a riding worm but adds no Shield Wall marker."
             },
             {
               "id": "KJ5W",
               "kind": "text",
-              "name": "Storm can contain a battle",
+              "name": "Battles can happen under the storm",
               "text": "Storm blocks ordinary movement, but does not itself stop battles or advisor flips in Dreamrules. Troops separated by the storm still cannot fight across it. The old FAQ banned battles even when both armies shared a protected sector under storm; Dreamrules permits them there."
             },
             {
@@ -495,13 +494,18 @@
               "kind": "callout",
               "variant": "note",
               "title": "Replenishing a surviving mine",
-              "text": "Top the mine up to its yield; don't add that amount to the spice left there. Replenishment timing is undecided, p30."
+              "text": "Top the mine up to its yield; don't add that amount to the spice left there."
+            },
+            {
+              "id": "A6M6",
+              "kind": "text",
+              "text": "Open question, see page 30."
             },
             {
               "id": "GEJ4",
               "kind": "text",
               "name": "Atreides can create another mine",
-              "text": "Arrakis Fiefdom can place a three\\-spice mine in a sand territory without a Spice Blow marker. Its Carryall token pays when a mine sends troops to reserves. The faction chapter explains that Fate."
+              "text": "Atreides can create a mine with its Fate, see page 16."
             },
             {
               "id": "WH5W",
@@ -698,7 +702,7 @@
               "id": "XA5D",
               "kind": "text",
               "name": "Name the advantage",
-              "text": "Use Karama at that advantage's window. It remains suppressed until the current phase ends, including later uses in that phase. Other advantages still work. A Bidding cancellation ends with Bidding; a Battle cancellation lasts across that faction's later battles."
+              "text": "Use Karama at the time given for that advantage in the reference tables. It remains suppressed until the current phase ends, including later uses in that phase. Other advantages still work. A Bidding cancellation ends with Bidding; a Battle cancellation lasts across that faction's later battles."
             },
             {
               "id": "78EL",
@@ -710,8 +714,8 @@
             {
               "id": "SFCS",
               "kind": "text",
-              "name": "Some windows close before plans are locked",
-              "text": "Stop Sardaukar, Kwisatz Haderach, Spite or Retreat before plans are locked. Waiting for the leader to die or the Guild to announce Retreat is too late. The reference tables at the end list the windows."
+              "name": "Cancel before commitment",
+              "text": "Stop Sardaukar, Kwisatz Haderach, Spite or Retreat before commitment. Waiting for the leader to die or the Guild to announce Retreat is too late."
             }
           ]
         },
@@ -733,7 +737,7 @@
             {
               "id": "884W",
               "kind": "text",
-              "text": "Sources: Quickstart v0.8, Full Phase Karama and Battle Prescience; current faction sheets; Karama ruling, 5 October 2026."
+              "text": "Sources: Quickstart v0.8, Full Phase Karama and Battle Prescience; current faction sheets; Dreamrules council ruling in #1831."
             }
           ]
         }
@@ -754,7 +758,7 @@
               "id": "5BMF",
               "kind": "text",
               "name": "Before plans",
-              "text": "Resolve Supplies, Political Marriages and the final opportunity for an Ixian alliance card exchange. The Voice comes before Battle Prescience. Blackmail and Stone Burner follow Prescience. Then give everyone a chance to respond before plans are locked."
+              "text": "First play any Supplies or Political Marriages you want to use. This is also the Ixians' last chance to swap a card with their ally. The Voice comes before Battle Prescience. Blackmail and Stone Burner follow Prescience. Then give everyone a chance to respond before commitment."
             },
             {
               "id": "QNR9",
@@ -765,8 +769,8 @@
             {
               "id": "E4ZV",
               "kind": "text",
-              "name": "Lock the plans",
-              "text": "Fremen reveals any cards it wants protected by Fanatical Tactics. Infiltrated factions lock their plans first so Bene Tleilax can look. Then everyone else locks theirs. Emperor and Ixian Fates cannot interrupt this step."
+              "name": "Commitment",
+              "text": "Commitment is the step when both players lock their plans. Fremen reveals any cards it wants protected by Fanatical Tactics. Infiltrated factions commit their plans first so Bene Tleilax can look. Then everyone else commits theirs. Emperor and Ixian Fates cannot be played during commitment."
             }
           ]
         },
@@ -789,12 +793,12 @@
               "id": "CV5U",
               "kind": "text",
               "name": "Traitor winners keep their played cards",
-              "text": "GF9's FAQ lets a traitor winner discard played cards. Dreamrules requires the winner to keep them. The winning leader is available elsewhere afterward. A successful Break Conditioning result instead commits its leaders and allows the winner to discard."
+              "text": "GF9's FAQ lets a traitor winner discard played cards. Dreamrules requires the winner to keep them. The winning leader is available elsewhere afterward. After Break Conditioning, both leaders stay committed to that territory. The winner may discard played cards."
             },
             {
               "id": "ZHR8",
               "kind": "text",
-              "text": "Sources: Quickstart v0.8, Combat Steps and Common Rules Clarifications; combat rulings, 5 October 2026; Dream Rulebook Edition 3 pp33\\-39."
+              "text": "Sources: Quickstart v0.8, Combat Steps and Common Rules Clarifications; Dreamrules council rulings in #1831; Dream Rulebook Edition 3 pp33\\-39."
             }
           ]
         }
@@ -962,7 +966,7 @@
             {
               "id": "N68Y",
               "kind": "text",
-              "text": "Sources: Quickstart v0.8, Leader Revival and Common Rules Clarifications; combat ruling, 5 October 2026; notes ruling, 14 October 2026; GF9 FAQ November 2020 pp2\\-3,8."
+              "text": "Sources: Quickstart v0.8, Leader Revival and Common Rules Clarifications; Dreamrules council rulings in #1831 and #1850; GF9 FAQ November 2020 pp2\\-3,8."
             }
           ]
         }
@@ -1031,7 +1035,7 @@
             {
               "id": "W9XM",
               "kind": "text",
-              "text": "Sources: GF9 FAQ November 2020 p8; Quickstart v0.8, Truthtrance Logic; Truthtrance rulings, 5 and 14 October 2026."
+              "text": "Sources: GF9 FAQ November 2020 p8; Quickstart v0.8, Truthtrance Logic; Dreamrules council rulings in #1831 and #1851."
             }
           ]
         }
@@ -1161,12 +1165,17 @@
                     },
                     {
                       "columnId": "c1",
-                      "text": "A leader dies; Fremen exception, p30"
+                      "text": "A leader dies; Fremen exception unresolved"
                     }
                   ]
                 }
               ],
               "note": ""
+            },
+            {
+              "id": "HD7N",
+              "kind": "text",
+              "text": "Open question, see page 30."
             }
           ]
         },
@@ -1184,7 +1193,7 @@
               "id": "C3KW",
               "kind": "text",
               "name": "One faction must hold all three",
-              "text": "Holding all three standard tokens gives that faction one stronghold contribution for victory. Allies can't add their tokens together."
+              "text": "Holding all three standard tokens counts as one stronghold for victory. Allies can't add their tokens together."
             },
             {
               "id": "EMBR",
@@ -1295,7 +1304,7 @@
             {
               "id": "CFPF",
               "kind": "text",
-              "text": "Sources: Quickstart v0.8, Stronghold Shield Wall and Multiple Win Conditions; victory and Infiltration rulings, 14 October 2026."
+              "text": "Sources: Quickstart v0.8, Stronghold Shield Wall and Multiple Win Conditions; Dreamrules council rulings in #1847 and #1849."
             }
           ]
         }
@@ -1316,7 +1325,7 @@
               "id": "Q6ZR",
               "kind": "text",
               "name": "Start after turn ten's Nexus",
-              "text": "If nobody has won when turn ten's Nexus ends, enter sudden death. There is no automatic win for Fremen or Guild. This also applies when Fremen is absent."
+              "text": "If nobody has won when turn ten's Nexus ends, enter sudden death. There is no automatic win for Fremen or Guild."
             },
             {
               "id": "H4EV",
@@ -1401,7 +1410,7 @@
             {
               "id": "XWPN",
               "kind": "text",
-              "text": "Sources: Sudden\\-death and victory rulings, 14 October 2026."
+              "text": "Sources: Dreamrules council rulings in #1848 and #1847."
             }
           ]
         }
@@ -1422,7 +1431,7 @@
               "id": "9PNL",
               "kind": "text",
               "name": "Watch Nexus instead of Spice",
-              "text": "Replace Spice Prescience with Nexus Prescience. You may inspect the top Nexus card. Fremen now has the upcoming Spice information. Your auction inspection remains."
+              "text": "Nexus Prescience lets you inspect the top Nexus card. Your auction inspection remains."
             },
             {
               "id": "BB4Q",
@@ -1459,7 +1468,12 @@
               "kind": "callout",
               "variant": "note",
               "title": "Carryall income and victory",
-              "text": "Carryall is outside the seven\\-token pool. Whether it counts toward token income and victory is undecided, p30."
+              "text": "Carryall is outside the seven\\-token pool."
+            },
+            {
+              "id": "NLTZ",
+              "kind": "text",
+              "text": "Open question, see page 30."
             },
             {
               "id": "RWSV",
@@ -1509,13 +1523,18 @@
               "id": "FDZR",
               "kind": "text",
               "name": "Spite has exceptions",
-              "text": "A dead Cheap Hero, a traitor result or successful Break Conditioning does not trigger Spite. Cheap Heroes cannot be swapped. A Fremen card protected by Fanatical Tactics may only be replaced with a card of the same color. Supplies cards are an open question, p30."
+              "text": "A dead Cheap Hero, a traitor result or successful Break Conditioning does not trigger Spite. Cheap Heroes cannot be swapped. A Fremen card protected by Fanatical Tactics may only be replaced with a card of the same color."
+            },
+            {
+              "id": "4GD5",
+              "kind": "text",
+              "text": "Open question, see page 30."
             },
             {
               "id": "HTF9",
               "kind": "text",
               "name": "Fate reveals a whole plan",
-              "text": "After Prescience, before plans are locked, play Blackmail to make your own or your ally's opponent reveal its whole battle plan early. This replaces the old special Karama hand exchange."
+              "text": "After Prescience, before commitment, play Blackmail to make your own or your ally's opponent reveal its whole battle plan early. This replaces the old special Karama hand exchange."
             },
             {
               "id": "YQPY",
@@ -1577,7 +1596,7 @@
               "id": "FHG4",
               "kind": "text",
               "name": "Prison Planet is paid revival",
-              "text": "Your Fate revives up to five troops of any kind and one leader at their normal prices. You may revive pieces for other factions. These revivals bypass the ordinary leader and starred\\-troop limits, and Bene Tleilax earns no income from them. Use it at any time except while battle plans are being locked."
+              "text": "Your Fate revives up to five troops of any kind and one leader at their normal prices. You may revive pieces for other factions. These revivals bypass the ordinary leader and starred\\-troop limits, and Bene Tleilax earns no income from them. Use it at any time except during commitment."
             },
             {
               "id": "PHBK",
@@ -1647,7 +1666,12 @@
               "kind": "callout",
               "variant": "note",
               "title": "Retreat exceptions",
-              "text": "A resolved traitor or Break Conditioning prevents Retreat. The order of those choices and the opponent's losses and rewards are undecided, p30."
+              "text": "A resolved traitor or Break Conditioning prevents Retreat."
+            },
+            {
+              "id": "M432",
+              "kind": "text",
+              "text": "Open question, see page 30."
             },
             {
               "id": "Y5ZS",
@@ -1685,7 +1709,12 @@
               "id": "ABQK",
               "kind": "text",
               "name": "Inspect the Spice draws",
-              "text": "Spice Blow Knowledge transfers upcoming Spice information from Atreides to you. Which cards you may inspect depends on the unresolved draw\\-pile setup, p30."
+              "text": "Spice Blow Knowledge lets you inspect upcoming Spice cards. This replaces Atreides' Spice Prescience."
+            },
+            {
+              "id": "TUU8",
+              "kind": "text",
+              "text": "Open question, see page 30."
             },
             {
               "id": "7BMW",
@@ -1741,13 +1770,18 @@
               "id": "9K3N",
               "kind": "text",
               "name": "Reveal cards to protect them",
-              "text": "As plans are locked, Fanatical Tactics lets you publicly reveal a weapon, a defense or both from your battle plan. Keep the revealed cards even after an ordinary defeat. A traitor call against your leader or a Lasgun\\-Shield explosion still loses them."
+              "text": "During commitment, Fanatical Tactics lets you publicly reveal a weapon, a defense or both from your battle plan. Keep the revealed cards even after an ordinary defeat. A traitor call against your leader or a Lasgun\\-Shield explosion still loses them."
             },
             {
               "id": "NA2J",
               "kind": "text",
               "name": "Spite must keep the color",
-              "text": "Harkonnen may replace a protected card only with a card of the same color. Protected Supplies cards at phase end are an open question, p30."
+              "text": "Harkonnen may replace a protected card only with a card of the same color."
+            },
+            {
+              "id": "QWBN",
+              "kind": "text",
+              "text": "Open question, see page 30."
             },
             {
               "id": "GLVD",
@@ -1789,7 +1823,7 @@
             {
               "id": "QCZZ",
               "kind": "text",
-              "text": "Sources: Quickstart v0.8, Fremen; current Fremen sheet; sudden\\-death ruling, 14 October 2026."
+              "text": "Sources: Quickstart v0.8, Fremen; current Fremen sheet; Dreamrules council ruling in #1848."
             }
           ]
         }
@@ -1816,7 +1850,7 @@
               "id": "E5R5",
               "kind": "text",
               "name": "Turn advisors into fighters at the phase start",
-              "text": "At the start of Shipment and Movement, you may turn advisor groups into fighters. A group alone turns automatically. After that window, advisors stay advisors even if every other faction in their territory leaves or dies."
+              "text": "At the start of Shipment and Movement, you may turn advisor groups into fighters. A group alone turns automatically. For the rest of the phase, advisors stay advisors even if every other faction in their territory leaves or dies."
             },
             {
               "id": "CNDK",
@@ -1845,7 +1879,7 @@
               "id": "CUYP",
               "kind": "text",
               "name": "Fate extends Voice to nearby battles",
-              "text": "At the Voice window, play Political Marriages. For the rest of that turn, use Voice on one side in any battle where you have advisors. Karama cannot stop this Voice."
+              "text": "Before The Voice, play Political Marriages. For the rest of that turn, use Voice on one side in any battle where you have advisors. Karama cannot stop this Voice."
             },
             {
               "id": "AG8D",
@@ -1856,7 +1890,7 @@
             {
               "id": "FSWX",
               "kind": "text",
-              "text": "Sources: GF9 November 2020 FAQ pp4\\-5,9; Quickstart v0.8, Bene Gesserit; current sheet; victory and Infiltration rulings, 14 October 2026."
+              "text": "Sources: GF9 November 2020 FAQ pp4\\-5,9; Quickstart v0.8, Bene Gesserit; current sheet; Dreamrules council rulings in #1847 and #1849."
             }
           ]
         }
@@ -1886,6 +1920,11 @@
               "text": "In a six\\-player game, take one card from each other faction's unchosen traitors. For Harkonnen, use an undealt card instead. Choose one of these five as your traitor. The other four are Face Dancers. Shuffle the remaining traitor cards into your Face Dancer deck."
             },
             {
+              "id": "GCH9",
+              "kind": "text",
+              "text": "Open question, see page 30."
+            },
+            {
               "id": "RHS3",
               "kind": "text",
               "name": "Earn from each revived troop",
@@ -1912,20 +1951,13 @@
               "id": "38VW",
               "kind": "text",
               "name": "Deal restrictions",
-              "text": "Outside Mentat you cannot give or receive bribes. You cannot make most binding deals or bindingly show cards. You may buy binding information about auction cards and, during Mentat, promise to end a named Face Dancer Infiltration. Your ally may still share cards with you as the alliance rules allow."
+              "text": "Outside Mentat you cannot give or receive bribes. Most of your deals aren't binding, and you can't make a binding promise to show cards. You may buy binding information about auction cards and, during Mentat, promise to end a named Face Dancer Infiltration. Your ally can still show you cards."
             },
             {
               "id": "83XR",
               "kind": "text",
               "name": "Fate removes support in one territory",
-              "text": "Before plans are locked, play Stone Burner. For the rest of Battle, troops in that territory cannot use spice support, including Fremen."
-            },
-            {
-              "id": "GCH9",
-              "kind": "callout",
-              "variant": "note",
-              "title": "Other player counts",
-              "text": "The starting deal for games with fewer or more than six players is undecided, p30."
+              "text": "Before commitment, play Stone Burner. For the rest of Battle, troops in that territory cannot use spice support, including Fremen."
             },
             {
               "id": "K7W6",
@@ -1954,6 +1986,11 @@
               "text": "Infiltration replaces GF9's post\\-battle Face Dancer takeover. During Storm, choose a dead enemy leader named on one of your Face Dancer cards. Revive it for its original faction. Commit one of your own leaders on that card as the impersonator; you cannot use that committed leader in battle."
             },
             {
+              "id": "6VRV",
+              "kind": "text",
+              "text": "Open question, see page 30."
+            },
+            {
               "id": "B2SZ",
               "kind": "text",
               "name": "Use the impersonator's traitor identity",
@@ -1963,7 +2000,7 @@
               "id": "U2TK",
               "kind": "text",
               "name": "Inspect the infiltrated faction",
-              "text": "While the revived leader lives and you hold the Face Dancer card, inspect that faction's spice and Treachery Cards at any time. Inspect its battle plan as plans are locked. You may advise its opponent. When two infiltrated factions fight, let at most one change its plan after your inspection."
+              "text": "While the revived leader lives and you hold the Face Dancer card, inspect that faction's spice and Treachery Cards at any time. Inspect its battle plan during commitment. You may advise its opponent. When two infiltrated factions fight, let at most one change its plan after your inspection."
             }
           ]
         },
@@ -1989,16 +2026,9 @@
               "text": "In the next Storm, put the killed leader in front of its faction's shield and Zoal among its leaders. Zoal fights as that leader. Either identity may be called traitor. A qualifying win by the infiltrated faction can then include you, using the victory table."
             },
             {
-              "id": "6VRV",
-              "kind": "callout",
-              "variant": "note",
-              "title": "Storm window",
-              "text": "Infiltration's exact timing during Storm is undecided, p30."
-            },
-            {
               "id": "FCR2",
               "kind": "text",
-              "text": "Sources: Quickstart v0.8, Infiltration and Common Rules Clarifications; current Bene Tleilax sheet; victory and Infiltration rulings, 14 October 2026."
+              "text": "Sources: Quickstart v0.8, Infiltration and Common Rules Clarifications; current Bene Tleilax sheet; Dreamrules council rulings in #1847 and #1849."
             }
           ]
         }
@@ -2104,7 +2134,7 @@
               "id": "HQ4H",
               "kind": "text",
               "name": "Exchange a card with your ally",
-              "text": "Once per turn, you and your ally may swap or transfer one Treachery Card. Use the pre\\-plan window during battle. This replaces the GF9 benefit that let your ally discard a newly bought card and draw a replacement. It is separate from your auction\\-card exchange."
+              "text": "Once per turn, you and your ally may swap or transfer one Treachery Card. In battle, exchange cards before plans are made. This replaces the GF9 benefit that let your ally discard a newly bought card and draw a replacement. It is separate from your auction\\-card exchange."
             },
             {
               "id": "7KWB",
@@ -2160,14 +2190,14 @@
               "id": "EZD7",
               "kind": "text",
               "name": "Fate blocks one special card for the turn",
-              "text": "Play Defect before a special card is used or in response to the attempted play. Return an interrupted card to its owner. It cannot be used again that turn. To stop Mercenaries or a special weapon or defense, act before plans are made. Defect cannot interrupt the step when plans are locked."
+              "text": "Play Defect before a special card is used or in response to the attempted play. Return an interrupted card to its owner. It cannot be used again that turn. To stop Mercenaries or a special weapon or defense, act before plans are made. Defect cannot be played during commitment."
             },
             {
               "id": "FWPC",
               "kind": "callout",
               "variant": "example",
               "title": "Stop Mercenaries before planning",
-              "text": "Play Defect naming Mercenaries before battle plans are made. Opponents cannot include it later that turn. Waiting until an opposing plan reveals Mercenaries misses the window."
+              "text": "Play Defect naming Mercenaries before battle plans are made. Opponents cannot include it later that turn. After Mercenaries is revealed, Defect is too late."
             },
             {
               "id": "8QND",
@@ -2251,7 +2281,7 @@
                     },
                     {
                       "columnId": "c1",
-                      "text": "Before plans are locked: cannot use the token"
+                      "text": "Before commitment: cannot use the token"
                     }
                   ]
                 },
@@ -2303,7 +2333,7 @@
                     },
                     {
                       "columnId": "c1",
-                      "text": "Before plans are locked: no Spite swaps"
+                      "text": "Before commitment: no Spite swaps"
                     }
                   ]
                 },
@@ -2342,7 +2372,7 @@
                     },
                     {
                       "columnId": "c1",
-                      "text": "Before plans are locked: ordinary troop values; may re\\-answer dial"
+                      "text": "Before commitment: ordinary troop values; may re\\-answer dial"
                     }
                   ]
                 }
@@ -2353,12 +2383,12 @@
               "id": "P9NQ",
               "kind": "text",
               "name": "One named advantage",
-              "text": "Suppressing an income advantage leaves that faction's troop, information and alliance powers intact. Karama can't stop Harkonnen keeping four traitors."
+              "text": "Karama only stops the one advantage you name. It can't stop Harkonnen keeping four traitors."
             },
             {
               "id": "7EZ6",
               "kind": "text",
-              "text": "Sources: Current faction sheets; Dream Rulebook Edition 3 pp53\\-55; Karama ruling, 5 October 2026."
+              "text": "Sources: Current faction sheets; Dream Rulebook Edition 3 pp53\\-55; Dreamrules council ruling in #1831."
             }
           ]
         }
@@ -2450,7 +2480,7 @@
                     },
                     {
                       "columnId": "c1",
-                      "text": "Before plans are locked: no Retreat this Battle phase"
+                      "text": "Before commitment: no Retreat this Battle phase"
                     }
                   ]
                 }
@@ -2480,7 +2510,7 @@
                     },
                     {
                       "columnId": "c1",
-                      "text": "Before plans are locked: pay normal support or use unsupported strength"
+                      "text": "Before commitment: pay normal support or use unsupported strength"
                     }
                   ]
                 },
@@ -2493,7 +2523,7 @@
                     },
                     {
                       "columnId": "c1",
-                      "text": "Before plans are locked: ordinary troop values; may re\\-answer dial"
+                      "text": "Before commitment: ordinary troop values; may re\\-answer dial"
                     }
                   ]
                 },
@@ -2738,7 +2768,7 @@
                     },
                     {
                       "columnId": "c1",
-                      "text": "Before plans are locked: ordinary strength\\-two leader"
+                      "text": "Before commitment: ordinary strength\\-two leader"
                     }
                   ]
                 },
@@ -2777,7 +2807,7 @@
                     },
                     {
                       "columnId": "c1",
-                      "text": "Before plans are locked: no Suboid substitution; Cyborg strength unchanged"
+                      "text": "Before commitment: no Suboid substitution; Cyborg strength unchanged"
                     }
                   ]
                 },
@@ -2814,7 +2844,7 @@
               "id": "NBUR",
               "kind": "text",
               "name": "Political Marriages",
-              "text": "Karama cannot stop the Voice granted by this Fate. Prediction is also outside the listed cancellation effects."
+              "text": "Karama cannot stop the Voice granted by this Fate. It can't stop Prediction either."
             },
             {
               "id": "EL24",
@@ -3081,12 +3111,6 @@
               "note": ""
             },
             {
-              "id": "QU47",
-              "kind": "text",
-              "name": "Six Shai-Hulud cards",
-              "text": "Use six Shai\\-Hulud cards. How to shuffle them into the opening deck is still open."
-            },
-            {
               "id": "6JHF",
               "kind": "text",
               "text": "Sources: github.com/ndelangen/dunezone/issues/1831 and the issues listed above."
@@ -3127,7 +3151,7 @@
               "id": "E4TV",
               "kind": "text",
               "name": "Public references",
-              "text": "dune.zone/rulesets/dreamrules/rulebooks/dream\\-rulebook\ngithub.com/ndelangen/dunezone/issues/1831\nOpen questions are tracked on GitHub under issue #1831."
+              "text": "dune.zone/rulesets/dreamrules/rulebooks/dream\\-rulebook\ngithub.com/ndelangen/dunezone/issues/1831\nCouncil rulings and open questions are recorded on GitHub under issue #1831."
             },
             {
               "id": "GGL7",

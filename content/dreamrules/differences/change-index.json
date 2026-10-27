@@ -102,13 +102,6 @@
       "sources": "Quickstart v0.8, Nexus Deck and Activity Under Storm; #1836 and #1846; GF9 November 2020 FAQ p1; Dream Rulebook Edition 3 pp13-16."
     },
     {
-      "id": "N04",
-      "page": "nexus",
-      "classification": "changed",
-      "topic": "Trade information differently",
-      "sources": "Quickstart v0.8, Nexus Deck and Activity Under Storm; #1836 and #1846; GF9 November 2020 FAQ p1; Dream Rulebook Edition 3 pp13-16."
-    },
-    {
       "id": "N05",
       "page": "nexus",
       "classification": "changed",
@@ -119,7 +112,7 @@
       "id": "N06",
       "page": "nexus",
       "classification": "changed",
-      "topic": "Storm can contain a battle",
+      "topic": "Battles can happen under the storm",
       "sources": "Quickstart v0.8, Nexus Deck and Activity Under Storm; #1836 and #1846; GF9 November 2020 FAQ p1; Dream Rulebook Edition 3 pp13-16."
     },
     {
@@ -217,7 +210,7 @@
       "id": "K03",
       "page": "karama",
       "classification": "changed",
-      "topic": "Some windows close before plans are locked",
+      "topic": "Cancel before commitment",
       "sources": "Quickstart v0.8, Full Phase Karama and Battle Prescience; #1831 full-phase confirmation, 5 October 2026; current faction sheets; #1852."
     },
     {
@@ -252,7 +245,7 @@
       "id": "B03",
       "page": "battle-sequence",
       "classification": "changed",
-      "topic": "Lock the plans",
+      "topic": "Commitment",
       "sources": "Quickstart v0.8, Combat Steps and Common Rules Clarifications; approved combat rulings in #1831, 5 October 2026; Dream Rulebook Edition 3 pp33-39; #1839 and #1841."
     },
     {
@@ -1103,13 +1096,6 @@
       "sources": "Council tracker #1831 and linked questions, checked 27 October 2026."
     },
     {
-      "id": "Q04",
-      "page": "questions",
-      "classification": "unresolved",
-      "topic": "Six Shai-Hulud cards",
-      "sources": "Council tracker #1831 and linked questions, checked 27 October 2026."
-    },
-    {
       "id": "SRC01",
       "page": "sources",
       "classification": "sources",
@@ -1143,6 +1129,62 @@
       "classification": "open-question",
       "topic": "Before you play",
       "sources": "Council tracker #1831 and linked unresolved questions."
+    },
+    {
+      "id": "S07-question",
+      "page": "setup",
+      "classification": "open-question-note",
+      "topic": "Open question after S07",
+      "sources": "Questions on page 30 and their linked issue records."
+    },
+    {
+      "id": "M05-question",
+      "page": "mines",
+      "classification": "open-question-note",
+      "topic": "Open question after M05",
+      "sources": "Questions on page 30 and their linked issue records."
+    },
+    {
+      "id": "V03-question",
+      "page": "tech-tokens",
+      "classification": "open-question-note",
+      "topic": "Open question after V03",
+      "sources": "Questions on page 30 and their linked issue records."
+    },
+    {
+      "id": "A06-question",
+      "page": "atreides",
+      "classification": "open-question-note",
+      "topic": "Open question after A06",
+      "sources": "Questions on page 30 and their linked issue records."
+    },
+    {
+      "id": "H04-question",
+      "page": "harkonnen",
+      "classification": "open-question-note",
+      "topic": "Open question after H04",
+      "sources": "Questions on page 30 and their linked issue records."
+    },
+    {
+      "id": "G06-question",
+      "page": "guild",
+      "classification": "open-question-note",
+      "topic": "Open question after G06",
+      "sources": "Questions on page 30 and their linked issue records."
+    },
+    {
+      "id": "FR02-question",
+      "page": "fremen-storm",
+      "classification": "open-question-note",
+      "topic": "Open question after FR02",
+      "sources": "Questions on page 30 and their linked issue records."
+    },
+    {
+      "id": "FR08-question",
+      "page": "fremen-battle",
+      "classification": "open-question-note",
+      "topic": "Open question after FR08",
+      "sources": "Questions on page 30 and their linked issue records."
     }
   ],
   "excludedClaims": [
@@ -1241,6 +1283,24 @@
       "sources": "",
       "reason": "Reader copy review, 27 October 2026",
       "nowCoveredBy": "source records"
+    },
+    {
+      "id": "N04",
+      "page": "nexus",
+      "classification": "changed",
+      "topic": "Trade information differently",
+      "sources": "Quickstart v0.8, Nexus Deck and Activity Under Storm; #1836 and #1846; GF9 November 2020 FAQ p1; Dream Rulebook Edition 3 pp13-16.",
+      "reason": "Second reader copy review, 27 October 2026",
+      "nowCoveredBy": "N01, A01 and FR02"
+    },
+    {
+      "id": "Q04",
+      "page": "questions",
+      "classification": "unresolved",
+      "topic": "Six Shai-Hulud cards",
+      "sources": "Council tracker #1831 and linked questions, checked 27 October 2026.",
+      "reason": "Second reader copy review, 27 October 2026",
+      "nowCoveredBy": "S07 and Q01"
     }
   ]
 }
