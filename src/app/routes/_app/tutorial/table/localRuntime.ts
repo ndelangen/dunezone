@@ -149,10 +149,15 @@ export function localRuntime(
       return this.captures.delete(id);
     }
 
+    /*
+     * Answering a read frees the page's slot, and the page sends the read it queued behind it at once; that one was asked of the old table too,
+     * so it is answered in turn until nothing asked before the Reset is still out.
+     */
     settleCaptures() {
-      const answers = [...this.captures.values()];
-      this.captures.clear();
-      answers.forEach((answer) => this.deliver(answer()));
+      for (const [id, answer] of this.captures) {
+        this.captures.delete(id);
+        this.deliver(answer());
+      }
     }
 
     /* Answers leave after the message that caused them, as they do from a socket. */

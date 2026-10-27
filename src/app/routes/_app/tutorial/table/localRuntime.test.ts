@@ -48,12 +48,13 @@ describe('a tutorial page’s catalogue reads', () => {
     members: [{ assetId: 'karama', count: 1 }],
     definitions: [],
   });
-  test('a Reset answers a read still stalled, so the next request is captured and requested and the late answer is dropped', async () => {
+  test('a Reset answers the reads still stalled and the one queued behind them, so the next read and request go through and late answers are dropped', async () => {
     const open = () => new LocalTable(startAt(setup as unknown as TutorialSetup, 'turn-1-storm', 'https://dune.zone'));
     let table = open();
     const left = table;
-    let release: (value: typeof contents) => void = () => {};
-    const captures = [new Promise<typeof contents>((resolve) => (release = resolve)), Promise.resolve(contents)];
+    const releases: ((value: typeof contents) => void)[] = [];
+    const stall = () => new Promise<typeof contents>((resolve) => releases.push(resolve));
+    const captures = [stall(), stall(), Promise.resolve(contents), Promise.resolve(contents)];
     const runtime = localRuntime(() => table, {}, { capture: () => captures.shift()! });
     const client = new TableSession(
       'tutorial',
@@ -64,16 +65,23 @@ describe('a tutorial page’s catalogue reads', () => {
     await vi.waitFor(() => expect(client.getSnapshot().table).toBeTruthy());
     const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-    /* The read stalls, and the page holds every later request behind it. */
-    const stalled = client.catalogue({ type: 'token-disc', slug: 'karama' });
+    /* The first read stalls, and the page queues the second behind it. */
+    client.catalogue({ type: 'token-disc', slug: 'karama' });
+    const queued = client.catalogue({ type: 'bundle', slug: 'karama' });
     await flush();
     expect(client.getSnapshot().catalogue).toBeUndefined();
 
-    /* The chapter's Reset swaps the table and answers the read it left behind. */
+    /* The chapter's Reset swaps the table and answers both: the first frees the slot, the page sends the second, and it is answered too. */
     table = open();
     runtime.settleCaptures();
     await flush();
-    expect(client.getSnapshot().catalogue).toMatchObject({ requestId: stalled, contents: null });
+    expect(client.getSnapshot().catalogue).toMatchObject({ requestId: queued, contents: null });
+
+    /* A fresh read goes through without either old one answering. */
+    const fresh = client.catalogue({ type: 'token-disc', slug: 'karama' });
+    await vi.waitFor(() =>
+      expect(client.getSnapshot().catalogue).toMatchObject({ requestId: fresh, contents: { name: 'Karama' } })
+    );
 
     client.command({ kind: 'spawn-request', type: 'token-disc', slug: 'karama' });
     await vi.waitFor(() =>
@@ -81,10 +89,10 @@ describe('a tutorial page’s catalogue reads', () => {
     );
     expect(client.getSnapshot().error).toBeNull();
 
-    /* The stalled read answering at last changes nothing. */
-    release(contents);
+    /* The stalled reads answering at last change nothing. */
+    releases.forEach((release) => release(contents));
     await flush();
-    expect(client.getSnapshot().catalogue).toMatchObject({ requestId: stalled, contents: null });
+    expect(client.getSnapshot().catalogue).toMatchObject({ requestId: fresh });
     expect(table.room.snapshot.controls!.requests).toHaveLength(1);
     expect(left.room.snapshot.controls!.requests).toEqual([]);
     disconnect();
