@@ -24,6 +24,12 @@
   gap: 0.5rem;
 }
 
+/* The leaders take the whole width under their label, so more of them fit before the row scrolls. */
+.stacked {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+
 .label {
   display: inline-flex;
   align-items: center;
