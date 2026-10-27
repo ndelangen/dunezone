@@ -2,7 +2,7 @@ import type { GameSnapshot } from '@shared/play/protocol';
 
 import type { GuideTask } from '../TutorialGuide';
 import type { ChapterScript } from './chapterScript';
-import { at, element, tableDeck, task, watchTakeMore } from './guideChecks';
+import { at, closePieceMenu, element, tableDeck, task, watchTakeMore } from './guideChecks';
 import type { Piece } from './guideChecks';
 
 /*
@@ -102,6 +102,8 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       anchor: { kind: 'table', point: () => at(treachery()) },
       begin: () => othersHold(snapshot()),
       done: (start) => othersHold(snapshot()) > start,
+      /* The ring stays open on its list of factions for another deal, and would cover the deck the next step uses. */
+      finish: closePieceMenu,
     }),
     task({
       id: 'split',

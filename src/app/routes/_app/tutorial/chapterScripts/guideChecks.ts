@@ -215,3 +215,6 @@ export const watchTakeMore = <Extra extends object>(extra: Extra) => {
   window.addEventListener('contextmenu', took, { capture: true, signal: watch.stop.signal });
   return watch;
 };
+
+/* A press outside a piece's ring menu closes it, as a press anywhere else on the page would; a step that ends in the ring leaves it shut. */
+export const closePieceMenu = () => document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));

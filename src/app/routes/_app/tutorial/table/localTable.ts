@@ -194,7 +194,10 @@ export class LocalTable {
     }
     const viewer = this.viewer(seat);
     const own = seat === this.seat;
-    this.revealDueBattle();
+    /* A message that answers with no frame of its own, as a carry's pose, still shows a reveal it brought due. */
+    if (this.revealDueBattle()) {
+      this.deliver(this.frame());
+    }
     try {
       handle(message, viewer, own);
     } catch (error) {
