@@ -24,40 +24,19 @@ type Revealed = {
   leaders?: readonly ReactNode[];
   /** The faint wordmark behind the numbers; left out where the wheel is drawn small and it would only blur the strength. */
   wordmark?: boolean;
-  /** How a half reads on the wheel. Only here while the options are compared side by side; one style stays. */
-  halves?: HalfStyle;
 };
 
-export type HalfStyle = 'decimal' | 'copperplate' | 'candara' | 'slashed' | 'stacked';
-
-/** Writes a number in the wheel's own way, with a half as a fraction; the Advokat face has no ½, so the fraction is built or borrowed. */
-function WheelNumber({ value, halves, signed = false }: { value: number; halves: HalfStyle; signed?: boolean }) {
-  const sign = value < 0 ? '−' : signed && value > 0 ? '+' : '';
+/** Writes a number with a half as ½: the wheel's Advokat face has no ½ and no fraction feature, so the glyph comes from Candara. */
+function WheelNumber({ value, signed = false }: { value: number; signed?: boolean }) {
   const whole = Math.trunc(Math.abs(value));
-  const half = Math.abs(Math.abs(value) - whole) === 0.5;
-  if (!half || halves === 'decimal') {
+  if (Math.abs(value) - whole !== 0.5) {
     return <>{`${signed && value > 0 ? '+' : ''}${value}`}</>;
-  }
-  const wholeText = whole === 0 ? '' : String(whole);
-  if (halves === 'copperplate' || halves === 'candara') {
-    return (
-      <>
-        {sign}
-        {wholeText}
-        <span className={clsx(styles.halfGlyph, styles[halves])}>½</span>
-      </>
-    );
   }
   return (
     <>
-      {sign}
-      {wholeText}
-      <span className={styles.srOnly}>½</span>
-      <span className={clsx(styles.halfBuilt, styles[halves])} aria-hidden="true">
-        <span>1</span>
-        <span className={styles.halfBar}>{halves === 'slashed' ? '/' : ''}</span>
-        <span>2</span>
-      </span>
+      {value < 0 ? '-' : signed ? '+' : ''}
+      {whole === 0 ? '' : whole}
+      <span className={styles.half}>½</span>
     </>
   );
 }
@@ -123,7 +102,6 @@ function RevealedWheel({
   cards = [],
   leaders = [],
   wordmark = true,
-  halves = 'decimal',
 }: Revealed) {
   return (
     <>
@@ -157,7 +135,7 @@ function RevealedWheel({
         </div>
         <div className={styles.strength}>
           <span>
-            <WheelNumber value={strength} halves={halves} />
+            <WheelNumber value={strength} />
           </span>
           <small>Strength</small>
         </div>
@@ -219,7 +197,7 @@ function RevealedWheel({
             aria-label={`Strength adjustment ${adjustment > 0 ? 'plus' : 'minus'} ${Math.abs(adjustment)}`}
           >
             <span>
-              <WheelNumber value={adjustment} halves={halves} signed />
+              <WheelNumber value={adjustment} signed />
             </span>
             <small>adj.</small>
           </div>

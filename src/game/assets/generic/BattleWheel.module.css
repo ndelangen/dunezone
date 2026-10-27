@@ -246,87 +246,16 @@
   font-size: 6px;
 }
 
-/* Advokat has no ½, so a half is either borrowed from a face that has one or built from Advokat's own digits. */
-.halfGlyph {
-  -webkit-text-stroke-width: 0.5px;
-}
-
-.copperplate {
-  font-family: "C_Copperplate_Gothic", serif;
-  font-size: 0.8em;
-}
-
-.candara {
+/* Advokat has no ½, so the half is borrowed from Candara, sized and stroked to sit with Advokat's digits. */
+.half {
   font-family: "C_Candara", Candara, sans-serif;
   font-size: 0.9em;
   font-weight: 700;
-}
-
-.halfBuilt {
   -webkit-text-stroke-width: 0.5px;
 }
 
-/* ¹⁄₂: a raised one, Advokat's slash, a lowered two. */
-.slashed {
-  position: relative;
-  display: inline-block;
-  width: 0.62em;
-  height: 0.8em;
-  margin-left: 0.04em;
-  line-height: 1;
-}
-
-.slashed > span {
-  position: absolute;
-  font-size: 0.5em;
-}
-
-.slashed > span:first-child {
-  top: -0.15em;
-  left: 0;
-}
-
-.slashed > .halfBar {
-  top: 0.3em;
-  left: 0.32em;
-}
-
-.slashed > span:last-child {
-  top: 0.75em;
-  left: 0.66em;
-}
-
-/* A school fraction: one over a bar over two, as tall as the whole number beside it. */
-.stacked {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  margin-left: 0.24em;
-  font-size: 0.5em;
-  line-height: 0.8;
-  vertical-align: 0.72em;
-}
-
-.stacked > .halfBar {
-  width: 0.8em;
-  height: 0.12em;
-  margin: 0.1em 0 0.16em;
-  border-radius: 0.06em;
-  background: currentColor;
-  box-shadow: 0 0 0 0.05em #17150f;
-}
-
-.srOnly {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
 .negative {
-  color: color-mix(in srgb, var(--color-error) 70%, transparent);
+  color: var(--ui-negative-fill);
 }
 
 .wheel[data-state="unrevealed"] {
