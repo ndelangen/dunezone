@@ -21,9 +21,9 @@ import {
 import { draftActionSchema, draftStateSchema } from './drafting';
 import { publicControlsSchema, publicActionSchema, spawnSelectionSchema, spawnContentsSchema } from './inventory';
 import { lastTurnActionSchema, lastTurnSchema } from './lastTurn';
-import { movementActionSchema, movementTurnsSchema } from './movement';
 import { logEntrySchema, logTabSchema } from './log';
 import type { TableState } from './model';
+import { movementActionSchema, movementTurnsSchema } from './movement';
 import { seatActionSchema } from './participation';
 import { peekActionSchema, peekSchema } from './peeking';
 import { TABLE_PHASES } from './phases';
