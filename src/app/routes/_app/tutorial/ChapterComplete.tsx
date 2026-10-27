@@ -1,8 +1,8 @@
-import { Stack, Text, Title } from '@mantine/core';
+import { Button, Stack, Text, Title } from '@mantine/core';
 import { KeyedText } from '@ui/content/Kbd';
 import { CallToAction } from '@ui/control/CallToAction';
 import { Check } from 'lucide-react';
-import { useEffect, useId, useRef } from 'react';
+import { useEffect, useEffectEvent, useId, useRef } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 
 import { useMotionAllowed } from '../../../styles/motion';
@@ -14,15 +14,19 @@ import { ChapterConfetti } from './ChapterConfetti';
  * and one button leads on, to the next chapter when that one is built or back to the chapter list when it is not.
  * What the chapter taught comes in one line at a time, and the button only after the last (Norbert, 2026-10-23).
  * The rail beside it stays usable, so Reset still plays the chapter again.
+ * Keep playing, or {Escape}, closes the card with its veil and confetti and hands the table back (Norbert, 2026-10-27).
  */
 export function ChapterComplete({
   learned,
   chaptersLink,
   nextLink,
+  onKeepPlaying,
 }: Readonly<{
   learned: readonly string[];
   chaptersLink: (props: object) => ReactNode;
   nextLink?: ((props: object) => ReactNode) | undefined;
+  /** Closes the end, leaving the table to play on. */
+  onKeepPlaying: () => void;
 }>) {
   const heading = useId();
   const card = useRef<HTMLDivElement>(null);
@@ -31,6 +35,7 @@ export function ChapterComplete({
   const focusOn = () => card.current?.querySelector<HTMLElement>('a, button')?.focus();
   /* Where focus was as the card opened; the button only takes it from there, never from a control the player chose meanwhile. */
   const opened = useRef<Element | null>(null);
+  const keepPlaying = useEffectEvent(onKeepPlaying);
   const focusOnUnlessMoved = () => {
     if (document.activeElement === opened.current || document.activeElement === document.body) {
       focusOn();
@@ -44,6 +49,12 @@ export function ChapterComplete({
   useEffect(() => {
     const freeze = (event: KeyboardEvent) => {
       if (event.key === 'Tab') {
+        return;
+      }
+      if (event.key === 'Escape') {
+        event.stopImmediatePropagation();
+        event.preventDefault();
+        keepPlaying();
         return;
       }
       if (!(event.target instanceof Element && event.target.closest('[data-tutorial-free]'))) {
@@ -101,6 +112,9 @@ export function ChapterComplete({
               <CallToAction direction="forward" size="lg" attention renderRoot={nextLink ?? chaptersLink}>
                 {nextLink ? 'Go to the next chapter' : 'Go back to the chapter list'}
               </CallToAction>
+              <Button variant="subtle" size="sm" onClick={onKeepPlaying}>
+                Keep playing
+              </Button>
             </div>
           </Stack>
         </div>

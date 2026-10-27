@@ -231,6 +231,8 @@ export function TutorialGuide({
 }>) {
   const [current, setCurrent] = useState(() => Math.min(firstTask, tasks.length - 1));
   const [run, setRun] = useState(0);
+  /* The run whose end the player closed to keep playing at its table; the card, its veil and the confetti go with it. */
+  const [keptPlaying, setKeptPlaying] = useState<number | null>(null);
   /* Which task, in which run, the player has just done; its tick shows until the next task starts. */
   const [doneKey, setDoneKey] = useState<string | null>(null);
   const fill = useRef<SVGPathElement>(null);
@@ -447,10 +449,18 @@ export function TutorialGuide({
         </div>
       </DarkSchemeIsland>
       {/* Under the end of a chapter the table holds still: nothing in it takes focus, clicks or keys. */}
-      <div className={styles.table} inert={!task}>
+      <div className={styles.table} inert={!task && keptPlaying !== run}>
         {children}
       </div>
-      {!task && <ChapterComplete key={run} learned={learned} chaptersLink={chaptersLink} nextLink={nextLink} />}
+      {!task && keptPlaying !== run && (
+        <ChapterComplete
+          key={run}
+          learned={learned}
+          chaptersLink={chaptersLink}
+          nextLink={nextLink}
+          onKeepPlaying={() => setKeptPlaying(run)}
+        />
+      )}
     </div>
   );
 }
