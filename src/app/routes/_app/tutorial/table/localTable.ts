@@ -326,7 +326,10 @@ export class LocalTable {
     const cleaned = room.finishSetupCleanup(next, completedCarryId, clearAll);
     room.accept(this.settled(cleaned ?? next), completedCarryId, clearAll);
     if (held && completedCarryId) {
-      this.landed.push({ itemIds: held.items.map((item) => item.id), grew: this.grown.delete(completedCarryId) });
+      /* By the ids the page sees, as a card's are the projection's, under the handles it has where it landed. */
+      const { cardHandles, pieceHandles } = room.snapshot;
+      const seen = this.projection.piece(held, false, cardHandles, pieceHandles);
+      this.landed.push({ itemIds: seen.items.map((item) => item.id), grew: this.grown.delete(completedCarryId) });
     }
     this.scheduleBattleReveal();
     this.deliver(this.frame(this.seat, own ? message.commandId : undefined));

@@ -91,6 +91,20 @@ const myOffer = (snapshot: () => GameSnapshot) =>
 const tradingOver = (snapshot: () => GameSnapshot) =>
   snapshot().swapping?.closed === true || snapshot().stage !== 'swapping';
 
+/*
+ * What the deal gave the learner, and whom to offer a trade. The deal follows the recording only when the draft matches it;
+ * a learner who drafts or bans more is dealt at random, so the text names what the table actually dealt.
+ */
+const dealt = (snapshot: () => GameSnapshot) =>
+  snapshot().roster?.seats.find((entry) => entry.id === LEARNER)?.faction?.name ?? DRAFT;
+const PARTNER = 'House Atreides';
+const partner = (snapshot: () => GameSnapshot) => {
+  const others = (snapshot().roster?.seats ?? [])
+    .filter((entry) => entry.id !== LEARNER)
+    .flatMap((entry) => (entry.faction ? [entry.faction.name] : []));
+  return others.includes(PARTNER) ? PARTNER : (others[0] ?? PARTNER);
+};
+
 function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[] {
   return [
     task({
@@ -136,21 +150,24 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     task({
       id: 'dealt',
       task: 'Your faction and seat',
-      detail:
-        'You were dealt Bene Gesserit. Now there are four minutes to trade: anyone may swap their faction and seat with another player, if both agree. Press {Enter} to go on.',
+      /* Read as the task shows, after the deal. */
+      get detail() {
+        return `You were dealt ${dealt(snapshot)}. Now there are four minutes to trade: anyone may swap their faction and seat with another player, if both agree. Press {Enter} to go on.`;
+      },
       anchor: { kind: 'page', element: element('.seated-phase-status') },
       ...pressEnter(),
     }),
     task({
       id: 'offer',
       task: 'Offer a trade',
-      detail:
-        'Click the House Atreides token in the bar under the table: their window shows their faction and seat. Press Offer trade there. They see your offer as an arc across the table, and can accept it.',
+      get detail() {
+        return `Click the ${partner(snapshot)} token in the bar under the table: their window shows their faction and seat. Press Offer trade there. They see your offer as an arc across the table, and can accept it.`;
+      },
       anchor: {
         kind: 'page',
         element: () =>
           document.querySelector('button[aria-label^="Offer trade to"]') ??
-          document.querySelector('nav[aria-label="Chats"] button[aria-label*=", House Atreides"]'),
+          document.querySelector(`nav[aria-label="Chats"] button[aria-label*=", ${CSS.escape(partner(snapshot))}"]`),
       },
       begin: () => undefined,
       done: () => myOffer(snapshot) || tradingOver(snapshot),
@@ -158,8 +175,9 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     task({
       id: 'cancel',
       task: 'Take your offer back',
-      detail:
-        'Changed your mind? Press Cancel offer in their window, so you keep Bene Gesserit for the chapters after this one.',
+      get detail() {
+        return `Changed your mind? Press Cancel offer in their window, so you keep ${dealt(snapshot)} for the chapters after this one.`;
+      },
       anchor: { kind: 'page', element: element('button[aria-label^="Cancel offer to"]') },
       begin: () => undefined,
       done: () => !myOffer(snapshot) || tradingOver(snapshot),

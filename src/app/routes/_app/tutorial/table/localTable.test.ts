@@ -72,17 +72,27 @@ describe('a tutorial table’s landings', () => {
   let table: LocalTable;
   let count = 0;
   const send = (message: Parameters<LocalTable['receive']>[0]) => table.receive(message, table.seat);
-  /* A stack of three or more lying loose on the table, to carry from. */
-  const source = () =>
-    table.frame().snapshot.table.pieces.find((piece) => !piece.inventory && !piece.locked && piece.items.length >= 3)!;
-  const carry = (pickup: 'top' | 'whole', takes: number) => {
-    const piece = source();
+  type Piece = ReturnType<LocalTable['frame']>['snapshot']['table']['pieces'][number];
+  /* A stack of three or more lying loose on the table, to carry from: troops, or a deck of cards when `kind` says so. */
+  const source = (kind: Piece['kind'] = 'force') =>
+    table
+      .frame()
+      .snapshot.table.pieces.find(
+        (piece) => piece.kind === kind && !piece.inventory && !piece.locked && piece.items.length >= 3
+      )!;
+  /* Whether one stack the page sees holds every item of the landing, by the ids the page sees. */
+  const landedTogether = (itemIds: readonly string[]) =>
+    table
+      .frame()
+      .snapshot.table.pieces.some((piece) => itemIds.every((id) => piece.items.some((item) => item.id === id)));
+  const carry = (pickup: 'top' | 'whole', takes: number, kind?: Piece['kind']) => {
+    const piece = source(kind);
     const carryId = `carry-${++count}`;
     send({
       type: 'begin',
       carryId,
       sourcePieceId: piece.id,
-      expectedVersion: table.room.snapshot.versions[piece.id] ?? 0,
+      expectedVersion: table.frame().snapshot.versions[piece.id] ?? 0,
       pickup,
     });
     for (let take = 0; take < takes; take++) {
@@ -106,13 +116,22 @@ describe('a tutorial table’s landings', () => {
   afterEach(() => table.dispose());
 
   test('records a carry that grew with a take, and the items it set down', () => {
-    const piece = carry('top', 1);
+    carry('top', 1);
     expect(table.refusal).toBeUndefined();
     const [landing] = table.landings();
     expect(table.landings()).toHaveLength(1);
     expect(landing).toMatchObject({ grew: true, itemIds: expect.any(Array) });
     expect(landing!.itemIds).toHaveLength(2);
-    expect(piece.items.map((item) => item.id)).toEqual(expect.arrayContaining([...landing!.itemIds]));
+    expect(landedTogether(landing!.itemIds)).toBe(true);
+  });
+
+  test('names the cards of a carry by the ids the page sees, which hide the cards’ own', () => {
+    carry('top', 1, 'card');
+    const [landing] = table.landings();
+    expect(table.refusal).toBeUndefined();
+    expect(landing).toMatchObject({ grew: true });
+    expect(landing!.itemIds).toHaveLength(2);
+    expect(landedTogether(landing!.itemIds)).toBe(true);
   });
 
   test('records a stack picked up whole as a carry that did not grow', () => {
