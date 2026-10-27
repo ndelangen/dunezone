@@ -19,7 +19,9 @@ export const Finished = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await page.findByRole('list', { name: 'Games' }, { timeout: 30_000 });
-    await userEvent.click(page.getAllByLabelText('Show games').at(-1)!);
+    /* The refine popover holds a second, hidden Show games until it opens; the one to press is the field showing. */
+    const showGames = page.getAllByLabelText('Show games').find((field) => field.checkVisibility());
+    await userEvent.click(showGames!);
     await userEvent.click(await page.findByRole('option', { name: /^Finished/ }));
     const games = page.getByRole('list', { name: 'Games' });
     await expect(within(games).getAllByRole('listitem')).toHaveLength(1);
@@ -43,10 +45,10 @@ export const ServerUnreachable = meta.story({
   },
 });
 
-/** At 560px the lobby sets its cards two to a row, too narrow for a ring beside its caption, so each caption stays beneath its ring. */
+/** In a narrow window the lobby sets its cards two to a row, too narrow for a ring beside its caption, so each caption stays beneath its ring. */
 export const TwoCardsToARow = meta.story({
   parameters: { ...signedIn },
-  decorators: [(Story) => <div style={{ width: '560px' }}>{Story()}</div>],
+  globals: { viewport: { value: 'contentColumn' } },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const games = await page.findByRole('list', { name: 'Games' }, { timeout: 30_000 });

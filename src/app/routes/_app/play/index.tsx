@@ -1,16 +1,12 @@
 import { Anchor, Stack, Text } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { PageLayout } from '@ui/layout/PageLayout';
+import { useState } from 'react';
 
 import { useLobbyGames } from '@db/play';
 import { pageHead } from '@app/routes/pageTitle';
-import {
-  hasLobbyGames,
-  PlayLobbyGames,
-  PlayLobbyHeader,
-  PlayLobbyToolbar,
-  useLobbyFilter,
-} from '@app/widgets/play-lobby/PlayLobby';
+import { hasLobbyGames, PlayLobbyGames, PlayLobbyHeader, PlayLobbyToolbar } from '@app/widgets/play-lobby/PlayLobby';
+import type { LobbyView } from '@app/widgets/play-lobby/PlayLobby';
 
 import { SERVER_UNREACHABLE, useServerUnreachable } from './useServerUnreachable';
 
@@ -32,7 +28,10 @@ const gameLink = (address: string) => (rootProps: object) => (
 
 function PlayLobbyPage() {
   const { data: lobby } = useLobbyGames();
-  const filter = useLobbyFilter();
+  /* The page keeps the search and the list shown, so its toolbar and its games share them. */
+  const [query, setQuery] = useState('');
+  const [view, setView] = useState<LobbyView>('ongoing');
+  const filter = { query, setQuery, view, setView };
   const games = lobby?.status === 'ready' ? lobby : null;
   return (
     <PageLayout>

@@ -17,7 +17,6 @@ import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowRight, Clock, GraduationCap, ListFilter, Plus, Trophy } from 'lucide-react';
-import { useState } from 'react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
@@ -319,13 +318,6 @@ export type LobbyFilter = Readonly<{
   view: LobbyView;
   setView: (view: LobbyView) => void;
 }>;
-
-/** The lobby's search and view, which the page keeps so its toolbar and its list share them. */
-export function useLobbyFilter(initialQuery = ''): LobbyFilter {
-  const [query, setQuery] = useState(initialQuery);
-  const [view, setView] = useState<LobbyView>('ongoing');
-  return { query, setQuery, view, setView };
-}
 
 /** Whether the lobby has any game to list, so the page shows its toolbar. */
 export function hasLobbyGames(games: LobbyGames | null): games is LobbyGames {
