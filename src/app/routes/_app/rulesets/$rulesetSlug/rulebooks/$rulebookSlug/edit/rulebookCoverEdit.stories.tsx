@@ -1,5 +1,4 @@
 import { testingPreview } from '@sb/preview';
-import { waitForFrame } from '@sb/storyWaits';
 import { expect, userEvent, within } from 'storybook/test';
 
 import {
@@ -64,18 +63,12 @@ export const CoverPresets = meta.story({
     const preset = canvas.getByRole('combobox', { name: 'Cover preset' });
     await expect(preset).toHaveValue('Shai-Hulud');
     await userEvent.click(preset);
-    const option = await page.findByRole('option', { name: 'Dreamrules rainbow' });
-    await userEvent.hover(within(option).getByText('Dreamrules rainbow'));
-    const preview = await waitForFrame(() => page.getByRole('dialog', { name: 'Artwork preview' }));
-    await expect(preview.querySelector('img')).toHaveAttribute(
-      'src',
-      '/image/rulebook-cover/dreamrules-rainbow-small.jpg'
-    );
-    await userEvent.keyboard('{Escape}');
-    await expect(preset).toHaveValue('Shai-Hulud');
-    await userEvent.click(preset);
     await userEvent.click(await page.findByRole('option', { name: 'Dreamrules rainbow' }));
     await expect(preset).toHaveValue('Dreamrules rainbow');
+    /* The field shows the chosen preset's thumbnail, the same one its options show; `AssetSelect` owns the hover preview. */
+    await expect(
+      canvasElement.querySelector('img[src="/image/rulebook-cover/dreamrules-rainbow-small.jpg"]')
+    ).toBeInTheDocument();
     await expect(coverChange.mock.lastCall?.[0]).toMatchObject({
       backgroundSource: { kind: 'preset', presetId: 'dreamrules-rainbow' },
       backgroundImageUrl: '',

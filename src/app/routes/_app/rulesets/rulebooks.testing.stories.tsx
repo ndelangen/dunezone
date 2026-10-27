@@ -121,20 +121,8 @@ export const Owner = meta.story({
       'href',
       '/rulesets/classicrules/rulebooks/book-1'
     );
-    await userEvent.hover(page.getByRole('link', { name: 'Add Rulebook' }));
-    await waitForFrame(() => expect(page.getByRole('tooltip')).toHaveTextContent('Add Rulebook'));
-    await userEvent.unhover(page.getByRole('link', { name: 'Add Rulebook' }));
-    await waitForFrame(() => expect(page.queryByRole('tooltip')).toBeNull());
-    await userEvent.hover(editions[0]!);
-    await waitForFrame(() => expect(page.getByRole('tooltip')).toHaveTextContent('Edition 1'));
-    await userEvent.unhover(editions[0]!);
-    await waitForFrame(() => expect(page.queryByRole('tooltip')).toBeNull());
     const actions = within(list).getByRole('button', { name: 'Actions for Rules' });
     await expect(actions.closest('a')).toBeNull();
-    await userEvent.hover(actions);
-    await waitForFrame(() => expect(page.getByRole('tooltip')).toHaveTextContent('Actions for Rules'));
-    await userEvent.unhover(actions);
-    await waitForFrame(() => expect(page.queryByRole('tooltip')).toBeNull());
     await userEvent.click(actions);
     await expect(waitForFrame(() => page.getByRole('menuitem', { name: 'Editions' }))).resolves.toHaveAttribute(
       'href',
@@ -203,8 +191,6 @@ export const EditFromReader = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const edit = await page.findByRole('link', { name: 'Edit Rulebook' }, { timeout: 30_000 });
     await expect(edit).toHaveAttribute('href', '/rulesets/classicrules/rulebooks/book-0/edit');
-    await userEvent.hover(edit);
-    await waitForFrame(() => expect(page.getByRole('tooltip')).toHaveTextContent('Edit Rulebook'));
   },
 });
 

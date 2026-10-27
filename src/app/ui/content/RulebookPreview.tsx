@@ -1,4 +1,4 @@
-import { AspectRatio, Center, Tooltip } from '@mantine/core';
+import { AspectRatio, Box, Center, Tooltip } from '@mantine/core';
 import { getRulebookSize } from '@shared/rulebooks/settings';
 import type { RulebookSize } from '@shared/rulebooks/settings';
 
@@ -22,27 +22,38 @@ function captureLabel(name: string, status: NonNullable<RulebookPreviewStatus>) 
  * A published first page, or its capture state, at the Rulebook's physical proportions.
  * With no page, a capture on its way or failed draws the rules icon with a tooltip that says so.
  * With neither a page nor a capture, it draws `PublishedImage`'s missing state.
+ * Too small to print a name, as in a chooser's 32 px tile, `nameOnHover` names the Rulebook in a tooltip instead;
+ * the capture placeholder's own tooltip already says it, so a tile never carries two.
  */
 export function RulebookPreview({
   name,
   size = 'a4',
   imageUrl,
   status = null,
+  nameOnHover = false,
 }: {
   name: string;
   size?: RulebookSize;
   imageUrl?: string | null;
   status?: RulebookPreviewStatus;
+  nameOnHover?: boolean;
 }) {
   const dimensions = getRulebookSize(size);
   if (imageUrl || status === null) {
-    return (
+    const page = (
       <PublishedImage
         src={imageUrl || null}
         name={`First page of ${name}`}
         aspect={dimensions.heightMm / dimensions.widthMm}
         radius="var(--mantine-radius-md)"
       />
+    );
+    return nameOnHover ? (
+      <Tooltip label={name}>
+        <Box>{page}</Box>
+      </Tooltip>
+    ) : (
+      page
     );
   }
   const placeholderLabel = captureLabel(name, status);

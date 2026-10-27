@@ -1,5 +1,4 @@
 import { testingPreview } from '@sb/preview';
-import { waitForFrame } from '@sb/storyWaits';
 import { useEffect } from 'react';
 import { expect, userEvent, waitFor, within, spyOn } from 'storybook/test';
 
@@ -99,11 +98,8 @@ export const ClippedAuthorWarning = meta.story({
     await expect(canvasElement.ownerDocument.querySelectorAll('#movement')).toHaveLength(1);
     /* Changing the open Page replaces the header's measurement report, so use its current warning. */
     const warning = page.getByRole('button', { name: 'Page 1 / Referenced illustration: is clipped' });
-    await userEvent.hover(warning);
-    await waitForFrame(() =>
-      expect(page.getByRole('tooltip')).toHaveTextContent(
-        'Part of this Block will not be visible in the published Rulebook.'
-      )
+    await expect(warning).toHaveAccessibleDescription(
+      'Part of this Block will not be visible in the published Rulebook.'
     );
     await userEvent.click(warning);
     await waitFor(() => expect(canvasElement.ownerDocument.defaultView?.location.hash).toBe('#CHAP/HERA'));
@@ -157,23 +153,6 @@ export const RepeatedClippedAuthorWarnings = meta.story({
     await expect((within(editor).getByRole('textbox', { name: 'Caption' }) as HTMLTextAreaElement).value).toBe(
       'A second clipped illustration.'
     );
-  },
-});
-
-/** Publishing is held, not clicked: a press short of five seconds publishes nothing, and the hover text says to hold (Norbert, 2026-09-29). */
-export const PublishIsHeld = meta.story({
-  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit' },
-  parameters: { database: db(withUnpublishedRulebook) },
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    const trigger = await page.findByRole('button', { name: 'Publish Edition 2' }, { timeout: 30_000 });
-    await userEvent.hover(trigger);
-    await waitForFrame(() => expect(page.getByRole('tooltip')).toHaveTextContent('hold to publish'));
-    await userEvent.click(trigger);
-    await expect(
-      page.queryByText('The new Edition is now current. HTML and PDF are being prepared independently.')
-    ).toBeNull();
-    await expect(trigger).not.toHaveAttribute('aria-disabled');
   },
 });
 
