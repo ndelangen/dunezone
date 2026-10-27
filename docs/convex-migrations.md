@@ -168,12 +168,12 @@ bun run migrations:static-check
 
 ## Templates and references
 
-- Migrations live in [`convex/migrations.ts`](../convex/migrations.ts) and, for newer catalogue backfills,
-  [`convex/catalogueMigrations.ts`](../convex/catalogueMigrations.ts). Both share the one migrations component
-  and `MIGRATION_IDS`, which spreads the catalogue module's own `CATALOGUE_MIGRATION_IDS`, so the guard script
-  runs them alike and `migrations.ts` does not grow with each catalogue backfill. The `migrations:run` runner
-  only prefixes `migrations:`, so name a catalogue migration in full by hand, e.g.
-  `{"fn":"catalogueMigrations:catalogue_entries_rulesets_v1"}`.
+- Migrations live in [`convex/migrations.ts`](../convex/migrations.ts) and, since it reached its size limit,
+  in [`convex/catalogueMigrations.ts`](../convex/catalogueMigrations.ts) for newer catalogue backfills and
+  [`convex/legacyDataMigrations.ts`](../convex/legacyDataMigrations.ts) for the 27 Oct 2026 legacy-row rewrites.
+  All share the one migrations component and `MIGRATION_IDS`, which spreads each module's own ID map, so the
+  guard script runs them alike. The `migrations:run` runner only prefixes `migrations:`, so name a migration in
+  another module in full by hand, e.g. `{"fn":"catalogueMigrations:catalogue_entries_rulesets_v1"}`.
 - Convex template scaffold: [`convex/migrationsTemplate.ts`](../convex/migrationsTemplate.ts)
 - Team migration skill:
   [`.agents/skills/convex-migration-helper/SKILL.md`](../.agents/skills/convex-migration-helper/SKILL.md)

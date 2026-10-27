@@ -24,6 +24,7 @@ import type { Doc, Id } from './_generated/dataModel';
 import { internalQuery } from './_generated/server';
 import { CATALOGUE_MIGRATION_IDS } from './catalogueMigrations';
 import { adminQuery, internalMutation, mutation } from './functions';
+import { LEGACY_DATA_MIGRATION_IDS } from './legacyDataMigrations';
 import { accountStateOf } from './lib/accountLifecycle';
 import { hasAuthoredBack, TOKEN_ASSET_TYPES, tokenBackOf } from './lib/assetBacks';
 import { scheduleSessionExpiry } from './lib/authSessionLifecycle';
@@ -36,8 +37,6 @@ import {
   resolveUniqueGroupSlug,
   resolveUniqueRulesetSlug,
   troopHasLegacySupportNames,
-  troopHasRedStar,
-  troopWithoutRedStar,
   troopWithSupportNames,
 } from './lib/migrationHelpers';
 import { requireAdminUserId } from './lib/policy';
@@ -81,6 +80,7 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   catalogue_entries_faq_v1: internal.migrations.catalogue_entries_faq_v1,
   catalogue_entries_faq_verify_v1: internal.migrations.catalogue_entries_faq_verify_v1,
   ...CATALOGUE_MIGRATION_IDS,
+  ...LEGACY_DATA_MIGRATION_IDS,
   ruleset_factions_position_v1: internal.migrations.ruleset_factions_position_v1,
   catalogue_entries_prune_v1: internal.migrations.catalogue_entries_prune_v1,
   catalogue_entries_verify_v1: internal.migrations.catalogue_entries_verify_v1,
@@ -141,12 +141,6 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   faction_troop_support_names_verify_v1: internal.migrations.faction_troop_support_names_verify_v1,
   faction_faction_leader_key_v1: internal.migrations.faction_faction_leader_key_v1,
   faction_faction_leader_key_verify_v1: internal.migrations.faction_faction_leader_key_verify_v1,
-  faction_hero_key_drop_v1: internal.migrations.faction_hero_key_drop_v1,
-  faction_hero_key_drop_verify_v1: internal.migrations.faction_hero_key_drop_verify_v1,
-  faction_troop_red_star_v1: internal.migrations.faction_troop_red_star_v1,
-  faction_troop_red_star_verify_v1: internal.migrations.faction_troop_red_star_verify_v1,
-  cardback_presets_retired_label_fields_v1: internal.migrations.cardback_presets_retired_label_fields_v1,
-  cardback_presets_retired_label_fields_verify_v1: internal.migrations.cardback_presets_retired_label_fields_verify_v1,
   play_hosted_fixture_retire_v1: internal.migrations.play_hosted_fixture_retire_v1,
   account_connections_expire_v1: internal.migrations.account_connections_expire_v1,
   auth_session_expiry_jobs_v1: internal.migrations.auth_session_expiry_jobs_v1,
@@ -1271,92 +1265,6 @@ export const faction_faction_leader_key_verify_v1 = migrations.define({
     const parsed = migrationFactionLeaderKeySchema.safeParse(row.data);
     if (!parsed.success || parsed.data.factionLeader === undefined) {
       throw new Error(`Faction ${row._id} has no \`factionLeader\`.`);
-    }
-  },
-});
-
-/**
- * Drops the old `hero` key from factions that already carry `factionLeader`, without changing the faction's edit timestamp.
- * `faction_faction_leader_key_v1` copied it across and left it on the row;
- * every live reader takes `factionLeader` first, so dropping the copy changes nothing they show.
- */
-export const faction_hero_key_drop_v1 = migrations.define({
-  table: 'factions',
-  batchSize: 50,
-  migrateOne: async (_ctx, row) => {
-    const data = migrationFactionLeaderKeySchema.parse(row.data);
-    if (data.hero === undefined || data.factionLeader === undefined) {
-      return;
-    }
-    const { hero: _hero, ...rest } = data;
-    return { data: rest };
-  },
-});
-
-/** Every stored faction, including deleted sources, must be free of `hero` before the live schemas stop reading it. */
-export const faction_hero_key_drop_verify_v1 = migrations.define({
-  table: 'factions',
-  batchSize: 50,
-  migrateOne: async (_ctx, row) => {
-    const parsed = migrationFactionLeaderKeySchema.safeParse(row.data);
-    if (!parsed.success || parsed.data.hero !== undefined) {
-      throw new Error(`Faction ${row._id} still has a \`hero\` key.`);
-    }
-  },
-});
-
-/**
- * Rewrites a troop face's retired `-red` star to its base star with the same red as its hue, without changing the faction's edit timestamp.
- * The two star files are identical and the renderer paints a `-red` star without a hue `red`, so the rewrite draws the same token;
- * it is the change the editor already makes when the field renders.
- * A face that sets its own hue keeps it.
- */
-export const faction_troop_red_star_v1 = migrations.define({
-  table: 'factions',
-  batchSize: 50,
-  migrateOne: async (_ctx, row) => {
-    const data = row.data as { troops?: unknown } | null;
-    if (!data || !Array.isArray(data.troops) || !data.troops.some(troopHasRedStar)) {
-      return;
-    }
-    return { data: { ...data, troops: data.troops.map(troopWithoutRedStar) } };
-  },
-});
-
-/** Every stored faction, including deleted sources, must be free of `-red` stars before the renderer stops reading them. */
-export const faction_troop_red_star_verify_v1 = migrations.define({
-  table: 'factions',
-  batchSize: 50,
-  migrateOne: async (_ctx, row) => {
-    const troops = (row.data as { troops?: unknown } | null)?.troops;
-    if (Array.isArray(troops) && troops.some(troopHasRedStar)) {
-      throw new Error(`Faction ${row._id} still has a troop face with a \`-red\` star.`);
-    }
-  },
-});
-
-/**
- * Drops the retired `nameScale` and `nameFont` from stored card-back presets.
- * Labels have shrunk to fit and rendered in regular Busorama since those fields retired, so the renderer ignores both and the preset draws the same back.
- * The revision stays, because the published image does not change.
- */
-export const cardback_presets_retired_label_fields_v1 = migrations.define({
-  table: 'cardback_presets',
-  migrateOne: async (_ctx, row) => {
-    if (row.cardback.nameScale === undefined && row.cardback.nameFont === undefined) {
-      return;
-    }
-    const { nameScale: _nameScale, nameFont: _nameFont, ...cardback } = row.cardback;
-    return { cardback };
-  },
-});
-
-/** Every stored card-back preset must be free of the retired label fields before the schema stops accepting them. */
-export const cardback_presets_retired_label_fields_verify_v1 = migrations.define({
-  table: 'cardback_presets',
-  migrateOne: async (_ctx, row) => {
-    if (row.cardback.nameScale !== undefined || row.cardback.nameFont !== undefined) {
-      throw new Error(`Card-back preset ${row.key} still has a retired label field.`);
     }
   },
 });

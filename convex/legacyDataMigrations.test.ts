@@ -24,10 +24,10 @@ describe('faction hero key drop', () => {
       { slug: 'current', data: { factionLeader: leader }, isDeleted: true },
     ]);
 
-    await t.mutation(internal.migrations.faction_hero_key_drop_v1, {});
+    await t.mutation(internal.legacyDataMigrations.faction_hero_key_drop_v1, {});
     const first = await storedFactionData(t, ids);
-    await t.mutation(internal.migrations.faction_hero_key_drop_v1, { reset: true });
-    await t.mutation(internal.migrations.faction_hero_key_drop_verify_v1, {});
+    await t.mutation(internal.legacyDataMigrations.faction_hero_key_drop_v1, { reset: true });
+    await t.mutation(internal.legacyDataMigrations.faction_hero_key_drop_verify_v1, {});
     const second = await storedFactionData(t, ids);
 
     expect(first[0]!.data).toMatchObject({ retiredField: 'kept', factionLeader: leader });
@@ -46,9 +46,9 @@ describe('faction hero key drop', () => {
     const t = factionTest();
     const ids = await insertStoredFactions(t, [{ slug: 'unmigrated', data: { hero: leader } }]);
 
-    await t.mutation(internal.migrations.faction_hero_key_drop_v1, {});
+    await t.mutation(internal.legacyDataMigrations.faction_hero_key_drop_v1, {});
     expect((await storedFactionData(t, ids))[0]!.data).toMatchObject({ hero: leader });
-    await t.mutation(internal.migrations.faction_hero_key_drop_verify_v1, {});
+    await t.mutation(internal.legacyDataMigrations.faction_hero_key_drop_verify_v1, {});
     await expect(
       t.query(internal.migrations.assertReadyForNarrow, { required: ['faction_hero_key_drop_verify_v1'] })
     ).rejects.toThrow(/faction_hero_key_drop_verify_v1\(failed/);
@@ -74,10 +74,10 @@ describe('faction troop red star', () => {
       },
     ]);
 
-    await t.mutation(internal.migrations.faction_troop_red_star_v1, {});
+    await t.mutation(internal.legacyDataMigrations.faction_troop_red_star_v1, {});
     const first = await storedFactionData(t, ids);
-    await t.mutation(internal.migrations.faction_troop_red_star_v1, { reset: true });
-    await t.mutation(internal.migrations.faction_troop_red_star_verify_v1, {});
+    await t.mutation(internal.legacyDataMigrations.faction_troop_red_star_v1, { reset: true });
+    await t.mutation(internal.legacyDataMigrations.faction_troop_red_star_verify_v1, {});
     const second = await storedFactionData(t, ids);
 
     const [front, plain] = first[0]!.data.troops;
@@ -108,7 +108,7 @@ describe('faction troop red star', () => {
       },
     ]);
 
-    await t.mutation(internal.migrations.faction_troop_red_star_verify_v1, {});
+    await t.mutation(internal.legacyDataMigrations.faction_troop_red_star_verify_v1, {});
     await expect(
       t.query(internal.migrations.assertReadyForNarrow, { required: ['faction_troop_red_star_verify_v1'] })
     ).rejects.toThrow(/faction_troop_red_star_verify_v1\(failed/);
@@ -127,8 +127,8 @@ describe('card-back preset retired label fields', () => {
       })
     );
 
-    await t.mutation(internal.migrations.cardback_presets_retired_label_fields_v1, {});
-    await t.mutation(internal.migrations.cardback_presets_retired_label_fields_verify_v1, {});
+    await t.mutation(internal.legacyDataMigrations.cardback_presets_retired_label_fields_v1, {});
+    await t.mutation(internal.legacyDataMigrations.cardback_presets_retired_label_fields_verify_v1, {});
 
     const row = await t.run(async (ctx) => ctx.db.get(id));
     expect(row).toMatchObject({ cardback: STANDARD_STORM_CARDBACK, revision: 4, updated_at: 1 });
