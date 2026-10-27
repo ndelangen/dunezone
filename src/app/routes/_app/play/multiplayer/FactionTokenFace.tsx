@@ -34,7 +34,7 @@ export function FactionTokenFace({
     src?: string | null;
     style?: CSSProperties;
     ref?: Ref<HTMLDivElement>;
-    /** Where the token stands alone with no text naming its faction, it is an image named after it. */
+    /** A token whose faction no text beside it names is an image named after it, so a reader hears who it is. */
     role?: AriaRole;
     'aria-label'?: string;
   }>) {
@@ -57,8 +57,8 @@ export function FactionTokenFace({
 }
 
 /**
- * Several factions' tokens overlapping in a row, each named for a reader, and in a tooltip for a pointer.
- * The name is the token's accessible name: it holds while the tooltip is closed, so a test reads it instead of waiting for the tooltip to draw.
+ * Several factions' tokens overlapping in a row, each an image named after its faction, with the name in a tooltip for a pointer.
+ * The tooltip opens on hover only, and the token takes no focus, so without the name a keyboard or screen-reader user would never learn whose token it is.
  */
 export function FactionTokenGroup({
   table,
