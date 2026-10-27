@@ -63,9 +63,13 @@ function carriedStack(onTheBoard: () => Piece[]) {
 function stackTasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[] {
   const { reserves, onTheBoard } = troops(snapshot);
   const { carried, only: carriedOnly, land } = carriedStack(onTheBoard);
-  /* The biggest of the player's reserve stacks, where a split comes from, and the smallest of two or more, where it went. */
+  /*
+   * The biggest of the player's reserve stacks, where a split comes from, and the three split off it: a stack of exactly three,
+   * so a pair split off first is never taken for them, or the smallest of two or more while there is none.
+   */
   const biggestReserve = () => biggest(reserves());
   const splitStack = () =>
+    reserves().find((piece) => piece.items.length === 3) ??
     reserves()
       .filter((piece) => piece.items.length > 1)
       .toSorted((a, b) => a.items.length - b.items.length)[0];

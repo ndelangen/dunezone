@@ -94,10 +94,10 @@ export class MemorySql {
       return [];
     },
     'DELETE FROM seats WHERE seat=?': (seat: string) => {
-      this.seats.splice(
-        this.seats.findIndex((row) => row.seat === seat),
-        1
-      );
+      const index = this.seats.findIndex((row) => row.seat === seat);
+      if (index !== -1) {
+        this.seats.splice(index, 1);
+      }
       this.historySeats.add(seat);
       return [];
     },

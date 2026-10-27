@@ -390,6 +390,9 @@ export class LocalTable {
         if (closed) {
           this.room.accept(closed);
           this.deliver(this.frame());
+        } else {
+          /* A timer can fire a moment before the deadline, so it waits out the rest. */
+          this.scheduleTradingClose();
         }
       },
       Math.max(0, trading.deadline - Date.now())
