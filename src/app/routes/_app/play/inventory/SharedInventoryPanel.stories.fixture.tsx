@@ -68,7 +68,7 @@ export function inventoryArgs(): SharedInventoryViewProps {
         enabled: true,
         shelf: null,
         toggleShelf: fn(),
-        picker: { open: false, shelf: null, types: [], selection: null, requestId: null },
+        picker: { shelf: null, types: [], selection: null, requestId: null },
         select: fn(),
       },
     },
@@ -90,10 +90,15 @@ const INVENTORY_WINDOW: Omit<TableWindow, 'content'> = {
 /*
  * The panel alone, in its window's real frame, title and (?), as a pinned slot shows it:
  * inside the play shell and the compass, whose styles give the window its glass, edge and corners and the pieces their sand.
+ * The shell's ground is left out, so only the window sits on the canvas.
  */
 export const inWindow: Decorator = (Story) => (
   <DarkSchemeIsland>
-    <div className="dune-play-shell" {...darkSchemeIslandAttributes} style={{ width: '46rem', height: '52rem' }}>
+    <div
+      className="dune-play-shell"
+      {...darkSchemeIslandAttributes}
+      style={{ width: '46rem', height: '52rem', background: 'transparent' }}
+    >
       <div className={compass.root} style={{ '--slot-width': '44rem' } as CSSProperties}>
         <WindowFrame
           entry={{ ...INVENTORY_WINDOW, content: <Story /> }}

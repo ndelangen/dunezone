@@ -9,7 +9,7 @@ import { useEffect, useState } from 'react';
 import { useSpawnableAssets } from '@db/play';
 import { useGrowingLimit, useGrowingSearch } from '@app/routes/growingSearch';
 
-import { SpawnAssetCeiling, SpawnAssetOptions, spawnableKey } from './SpawnAssetPicker.parts';
+import { SpawnAssetCeiling, SpawnAssetOptions, spawnableKey, spawnTypeWords } from './SpawnAssetPicker.parts';
 
 /** How long typing settles before the catalogue is asked, so a word costs one read rather than one per keystroke. */
 const SEARCH_SETTLE_MS = 250;
@@ -27,6 +27,11 @@ export type SpawnAssetPickerProps = {
   /** Fires once per choice. The caller asks the table about it and decides what happens next. */
   onPick: (picked: SpawnableAsset) => void;
 };
+
+/* "A deck…", "An enhance token…": the placeholder starts a sentence. */
+function withArticle(words: string) {
+  return `${/^[aeiou]/i.test(words) ? 'An' : 'A'} ${words}`;
+}
 
 /** The catalogue's answer at one limit; a search term and types go only when there are some, since an absent argument is not an undefined one. */
 function useSpawnableRows(q: string, types: readonly SpawnType[], limit: number) {
@@ -91,7 +96,7 @@ export function SpawnAssetPicker({ value, types = [], disabled = false, onPick }
         <Combobox.EventsTarget>
           <TextInput
             label="Search the catalogue"
-            placeholder="A deck, bundle or token, or who made it"
+            placeholder={`${withArticle(spawnTypeWords(types).one)}, or who made it`}
             value={search}
             disabled={disabled}
             /*
@@ -110,6 +115,7 @@ export function SpawnAssetPicker({ value, types = [], disabled = false, onPick }
         </Combobox.EventsTarget>
         <SpawnAssetOptions
           entries={data.entries}
+          types={types}
           value={value}
           searched={settled !== ''}
           pending={pending}

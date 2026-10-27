@@ -11,18 +11,19 @@ import { SpawnAssetPicker } from '@app/pickers/SpawnAssetPicker';
 
 import type { TableSession } from '../../../../db/tabletop/TableSession';
 import { PieceArtwork } from '../../../../widgets/tabletop/PieceArtwork';
+import { pieceName } from '../multiplayer/HandPiece';
 import { publicControlsOf } from '../multiplayer/publicControls';
 import styles from './Inventory.module.css';
 import type { SharedInventory, SharedInventoryProps } from './useSharedInventory';
 
 /** What a piece is called where the inventory names it: a token by its own name, a card stack by its label, which never names a hidden face. */
 function inventoryName(piece: TablePiece): string {
-  return (piece.kind === 'card' ? undefined : piece.items[0]?.artwork?.name) ?? piece.label;
+  return piece.kind === 'card' ? piece.label : pieceName(piece);
 }
 
-/** A piece's tooltip: its name and count, and for a tech token what it does, as its author described it on the asset. */
+/** A piece's tooltip: its name and count, and for a tech token what it does, as its author described it on the asset; both read the top item, the one its face shows. */
 function PieceTooltipLabel({ piece }: Readonly<{ piece: TablePiece }>) {
-  const description = piece.items[0]?.artwork?.description;
+  const description = piece.items.at(-1)?.artwork?.description;
   return (
     <Stack gap={4}>
       <Text size="sm" fw={700}>
@@ -42,13 +43,12 @@ export function InventoryPiece({
   inventory,
   piece,
   size,
-  caption = false,
-}: Readonly<{ inventory: SharedInventory; piece: TablePiece; size: number; caption?: boolean }>) {
+}: Readonly<{ inventory: SharedInventory; piece: TablePiece; size: number }>) {
   const card = piece.kind === 'card';
   const src = piece.items.at(-1)?.artwork?.[card ? 'back' : 'front'] ?? null;
   const height = card ? Math.round((size * 4) / 3) : size;
   return (
-    <div className={styles.tile} data-round={!card || undefined}>
+    <div className={styles.tile} role="listitem" data-round={!card || undefined}>
       <Tooltip label={<PieceTooltipLabel piece={piece} />} multiline w={260} withArrow openDelay={250}>
         <TooltipTarget>
           <button
@@ -63,17 +63,12 @@ export function InventoryPiece({
           </button>
         </TooltipTarget>
       </Tooltip>
-      {caption && (
-        <Text size="xs" className={styles.caption} lineClamp={2} w={size + 16}>
-          {inventoryName(piece)}
-        </Text>
-      )}
     </div>
   );
 }
 
-/* Which ends of a sideways-scrolling strip hide pieces past them, kept as the strip scrolls or resizes. */
-function useHiddenEnds(strip: RefObject<HTMLDivElement | null>) {
+/* Which ends of a sideways-scrolling strip hide pieces past them, kept as the strip scrolls, resizes or gains and loses pieces. */
+function useHiddenEnds(strip: RefObject<HTMLDivElement | null>, pieces: number) {
   const [ends, setEnds] = useState({ start: false, end: false });
   useEffect(() => {
     const element = strip.current;
@@ -96,7 +91,7 @@ function useHiddenEnds(strip: RefObject<HTMLDivElement | null>) {
       resize.disconnect();
       element.removeEventListener('scroll', measure);
     };
-  });
+  }, [strip, pieces]);
   return ends;
 }
 
@@ -106,17 +101,19 @@ function useHiddenEnds(strip: RefObject<HTMLDivElement | null>) {
  */
 export function PieceStrip({ children, label }: Readonly<{ children: ReactNode; label: string }>) {
   const strip = useRef<HTMLDivElement>(null);
-  const ends = useHiddenEnds(strip);
+  const pieces = Children.count(children);
+  const ends = useHiddenEnds(strip, pieces);
+  /* An empty shelf is no list at all, only the word saying so. */
   return (
     <div
       ref={strip}
       className={styles.strip}
-      role="list"
-      aria-label={label}
+      role={pieces ? 'list' : undefined}
+      aria-label={pieces ? label : undefined}
       data-more-start={ends.start || undefined}
       data-more-end={ends.end || undefined}
     >
-      {Children.count(children) ? (
+      {pieces ? (
         children
       ) : (
         <Text size="sm" c="dimmed">

@@ -84,9 +84,9 @@
   font-variant-numeric: tabular-nums;
 }
 
-.caption {
-  color: var(--ink-dim);
-  text-align: center;
+/* Where a shelf that holds no pieces says why, in line with an empty strip's word. */
+.shelfNote {
+  padding: 4px 2px 8px;
 }
 
 .rowLabel {

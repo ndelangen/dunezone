@@ -3,7 +3,10 @@ import { isSpawnType, SPAWN_TYPES } from '@shared/play/captureTypes';
 import type { SpawnType } from '@shared/play/captureTypes';
 import type { TablePiece } from '@shared/play/model';
 
-/** One shelf of the shared table inventory: every piece of one catalogue type, which stays on its shelf however many there are. */
+/**
+ * One shelf of the shared table inventory: every piece of one catalogue type, which stays on its shelf however many there are.
+ * The Bundles shelf only adds: a bundle's tokens land on their own types' shelves, so it never holds a piece.
+ */
 export type InventoryRow = Readonly<{
   key: string;
   label: string;
@@ -12,6 +15,8 @@ export type InventoryRow = Readonly<{
   count: number;
   /** The catalogue type that adds to this shelf; null for the pieces of no spawnable type. */
   spawnType: SpawnType | null;
+  /** Whether pieces sit on the shelf, false for one that only adds to others. */
+  holdsPieces: boolean;
 }>;
 
 /* A card came in a deck; a token is of its own type. A bundle's tokens land on their own types' shelves. */
@@ -25,7 +30,14 @@ function spawnTypeOf(piece: TablePiece): SpawnType | null {
 
 /* A shelf as the window lists it. */
 function shelf(key: string, label: string, pieces: TablePiece[], spawnType: SpawnType | null): InventoryRow {
-  return { key, label, pieces, count: pieces.reduce((count, piece) => count + piece.items.length, 0), spawnType };
+  return {
+    key,
+    label,
+    pieces,
+    count: pieces.reduce((count, piece) => count + piece.items.length, 0),
+    spawnType,
+    holdsPieces: spawnType !== 'bundle',
+  };
 }
 
 /**

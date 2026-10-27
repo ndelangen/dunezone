@@ -12,28 +12,25 @@ import type { InventoryRow } from './inventoryRows';
 
 export type SharedInventoryProps = Readonly<{ client: TableSession; table: TableProjection }>;
 
-/* The catalogue picker, open on one shelf's own type, and the asset chosen in it. */
+/* The catalogue picker, open on one shelf's own type while it names a shelf, and the asset chosen in it. */
 type PickerState = Readonly<{
-  open: boolean;
   shelf: string | null;
   types: readonly SpawnType[];
   selection: SpawnSelection | null;
   requestId: string | null;
 }>;
 type PickerEvent =
-  | { type: 'open'; shelf: string | null; types: readonly SpawnType[] }
+  | { type: 'open'; shelf: string; types: readonly SpawnType[] }
   | { type: 'close' }
   | { type: 'select'; selection: SpawnSelection; requestId: string };
 
-const CLOSED: PickerState = { open: false, shelf: null, types: [], selection: null, requestId: null };
+const CLOSED: PickerState = { shelf: null, types: [], selection: null, requestId: null };
 
 function pickerReducer(state: PickerState, event: PickerEvent): PickerState {
   if (event.type === 'select') {
-    return { ...state, open: true, selection: event.selection, requestId: event.requestId };
+    return { ...state, selection: event.selection, requestId: event.requestId };
   }
-  return event.type === 'open'
-    ? { open: true, shelf: event.shelf, types: event.types, selection: null, requestId: null }
-    : CLOSED;
+  return event.type === 'open' ? { shelf: event.shelf, types: event.types, selection: null, requestId: null } : CLOSED;
 }
 
 /** What the random tech token draw says it does, or why it is off. */
@@ -82,11 +79,11 @@ export function useSharedInventory({ client, table }: SharedInventoryProps) {
         : {
             enabled: canHandle,
             /** The shelf whose catalogue is open, if any. */
-            shelf: picker.open ? picker.shelf : null,
+            shelf: picker.shelf,
             /** Opens the catalogue on one shelf's own types, or closes it when that shelf's is already open. */
             toggleShelf: (row: InventoryRow) =>
               dispatch(
-                picker.open && picker.shelf === row.key
+                picker.shelf === row.key
                   ? { type: 'close' }
                   : { type: 'open', shelf: row.key, types: row.spawnType ? [row.spawnType] : [] }
               ),

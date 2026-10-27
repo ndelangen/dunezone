@@ -11,7 +11,7 @@ import { element, openedWindow, task, windowShown } from './guideChecks';
  * piece, which a tutorial table does not have, so the chapter searches the catalogue and leaves adding to a real game.
  */
 
-const SEARCH = '[data-window="shared"] input[placeholder^="A deck, bundle or token"]';
+const SEARCH = '[data-window="shared"] input[name="catalogue-search"]';
 
 function tasks(snapshot: () => GameSnapshot): GuideTask[] {
   const shared = () =>
@@ -31,7 +31,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'take',
       task: 'Put a piece on the table',
       detail:
-        'Each line is a piece and how many there are. Drag Supplies! cache out of the window onto the table: it lands face down, for anyone to use.',
+        'Every kind of piece has its own shelf, and the number on a piece says how many there are. Drag Supplies! cache out of the window onto the table: it lands face down, for anyone to use.',
       anchor: { kind: 'page', element: element('[data-window="shared"] [aria-label^="Drag Supplies"]') },
       begin: shared,
       done: (start) => shared() < start,

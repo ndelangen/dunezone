@@ -132,8 +132,14 @@ function useFollowPointer(
       }
     };
     window.addEventListener('pointermove', onPointer);
+    /* A description that grows after it lands, as its fonts or images load, places the box again while the pointer is still. */
+    const resize = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(onPointer);
+    if (box.current) {
+      resize?.observe(box.current);
+    }
     return () => {
       window.removeEventListener('pointermove', onPointer);
+      resize?.disconnect();
       cancelAnimationFrame(frame);
     };
   }, [box, pointer, area, width, height, size?.content]);

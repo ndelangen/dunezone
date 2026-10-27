@@ -245,9 +245,9 @@ export const Catalogue = meta.story({
     await userEvent.click(search);
     await userEvent.keyboard('{Escape}t{Enter}');
     await expect(picks()).toHaveLength(0);
-    /* The shelf's search finds none of the other types: the House Treachery deck is on the Decks shelf's. */
+    /* The shelf's search finds none of the other types, and says which it searched: the House Treachery deck is on the Decks shelf's. */
     await userEvent.keyboard('reachery');
-    await expect(page.findByText('No deck, bundle or token matches.', {}, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.findByText('No disc token matches.', {}, { timeout: 30_000 })).resolves.toBeVisible();
     await userEvent.clear(search);
     await userEvent.type(search, 'Sietch Token 03');
     await waitFor(() => expect(options()).toHaveLength(1), { timeout: 30_000 });

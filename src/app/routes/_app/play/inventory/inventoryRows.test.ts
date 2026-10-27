@@ -26,6 +26,11 @@ const piece = (id: string, kind: TablePiece['kind'], type: string, count = 1, ba
 const shelves = (pieces: TablePiece[]) =>
   inventoryRows(pieces).map((row) => [row.label, row.pieces.map((entry) => entry.id), row.count, row.spawnType]);
 
+test('keeps the Bundles shelf for adding only, since a bundle unpacks onto the shelves of its tokens', () => {
+  const rows = inventoryRows([]);
+  expect(rows.filter((row) => !row.holdsPieces).map((row) => row.label)).toEqual(['Bundles']);
+});
+
 test('keeps a shelf for every type the catalogue can add, in its order, even when empty', () => {
   expect(shelves([])).toEqual([
     ['Decks', [], 0, 'deck'],
