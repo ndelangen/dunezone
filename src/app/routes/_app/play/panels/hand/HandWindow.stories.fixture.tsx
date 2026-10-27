@@ -1,20 +1,20 @@
 import { useContext, useEffect, useState, useSyncExternalStore } from 'react';
 
-import type { StoredSnapshot } from '../../../../../../workers/game/state';
-import { TableSession } from '../../../../db/tabletop/TableSession';
-import compass from '../compass/CompassControls.module.css';
-import { WindowFrame } from '../compass/WindowFrame';
-import { DarkSchemeIsland } from '../DarkSchemeIsland';
-import { gameMeta, install } from '../game.stories.fixture';
-import { chapter, journeySteps, journeyViewers } from '../journey.stories.fixture';
-import { GameRuntimeContext } from '../multiplayer/gameRuntime';
-import { GameSubscription } from '../multiplayer/GameSubscription';
-import { HiddenZone } from '../multiplayer/HiddenZone';
-import { HAND_AND_SPICE_GUIDANCE, HIDDEN_ZONE_GUIDANCE } from '../multiplayer/panelGuidance';
-import { ConnectedSpiceReservePanel } from '../panels/spice/useSpiceReservePanel';
-import { sandboxTransport } from '../sandbox.stories.fixture';
-import { HandShelves } from './HandShelves';
-import '../dune-play.css';
+import type { StoredSnapshot } from '../../../../../../../workers/game/state';
+import { TableSession } from '../../../../../db/tabletop/TableSession';
+import compass from '../../compass/CompassControls.module.css';
+import { WindowFrame } from '../../compass/WindowFrame';
+import { DarkSchemeIsland } from '../../DarkSchemeIsland';
+import { gameMeta, install } from '../../game.stories.fixture';
+import { chapter, journeySteps, journeyViewers } from '../../journey.stories.fixture';
+import { GameRuntimeContext } from '../../multiplayer/gameRuntime';
+import { GameSubscription } from '../../multiplayer/GameSubscription';
+import { HiddenZone } from '../../multiplayer/HiddenZone';
+import { HAND_AND_SPICE_GUIDANCE, HIDDEN_ZONE_GUIDANCE } from '../../multiplayer/panelGuidance';
+import { sandboxTransport } from '../../sandbox.stories.fixture';
+import { ConnectedSpiceReservePanel } from '../spice/useSpiceReservePanel';
+import { ConnectedHandPanel } from './useHandPanel';
+import '../../dune-play.css';
 
 /*
  * The Hand & spice window on its own: a live table session from the story's transport, and the window in a bottom-left slot
@@ -56,7 +56,7 @@ function HandWindowHarness({ height = 448 }: Readonly<{ height?: number; seat?: 
                 content: (
                   <>
                     <ConnectedSpiceReservePanel client={client} table={table} />
-                    <HandShelves client={client} table={table} hand={hand} />
+                    <ConnectedHandPanel client={client} table={table} hand={hand} />
                   </>
                 ),
                 layout: 'stack',

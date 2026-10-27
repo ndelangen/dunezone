@@ -6,7 +6,7 @@ import { handAndSpiceMeta } from './panel.hand.stories.fixture';
 import { openTab, settled } from './playing.stories.fixture';
 import { productTransport, playingSnapshot as initialSnapshot } from './product.stories.fixture';
 
-const meta = testingPreview.meta({ ...handAndSpiceMeta, title: 'Play/Panels/Hand and spice' });
+const meta = testingPreview.meta({ ...handAndSpiceMeta, title: 'Play/Spice' });
 
 /** A withdrawal goes to the table as a command, the room's new balance shows, and an observer's table has no reserve. */
 export const SpiceReserveRoundTrip = meta.story({

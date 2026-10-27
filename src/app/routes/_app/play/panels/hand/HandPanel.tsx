@@ -6,15 +6,14 @@ import { SortableRow } from '@ui/control/SortableRow';
 import { ArrowUpFromLine, EyeOff } from 'lucide-react';
 import { useRef, useState } from 'react';
 
-import { HandPieceCloseUp } from '../../../../widgets/tabletop/PieceCloseUp';
-import { dropFromHand } from '../multiplayer/dropFromHand';
-import { PieceImage, pieceName, useHandCloseUp } from '../multiplayer/HandPiece';
-import { HandPieceMenu, handMenuAnchor } from '../multiplayer/HiddenZone';
-import type { HandMenuAnchor } from '../multiplayer/HiddenZone';
-import { HAND_HELP } from '../multiplayer/panelGuidance';
-import styles from './Hand.module.css';
-import { useHandActions } from './useHandActions';
-import type { HandActions, HandProps } from './useHandActions';
+import { HandPieceCloseUp } from '../../../../../widgets/tabletop/PieceCloseUp';
+import { dropFromHand } from '../../multiplayer/dropFromHand';
+import { PieceImage, pieceName, useHandCloseUp } from '../../multiplayer/HandPiece';
+import { HandPieceMenu, handMenuAnchor } from '../../multiplayer/HiddenZone';
+import type { HandMenuAnchor } from '../../multiplayer/HiddenZone';
+import { HAND_HELP } from '../../multiplayer/panelGuidance';
+import styles from './HandPanel.module.css';
+import type { HandActions } from './useHandActions';
 
 /* What a right-click on a piece offers: play it in front of you, or set it on your side-table. */
 function pieceActions(actions: HandActions, piece: TablePiece, viewWidth: number) {
@@ -36,6 +35,11 @@ function pieceActions(actions: HandActions, piece: TablePiece, viewWidth: number
   ];
 }
 
+export type HandPanelProps = Readonly<{
+  /** The hand's pieces in reading order, and what each piece's menu and drags do. */
+  actions: HandActions;
+}>;
+
 /* The leaders' discs and the cards' faces, at the size the shelves read best in a pinned slot. */
 const TILE_WIDTH = { leaders: 50, cards: 54 };
 
@@ -44,8 +48,7 @@ const TILE_WIDTH = { leaders: 50, cards: 54 };
  * A piece lifts under the pointer;
  * drag it onto the table, or along its shelf to put the hand in your own order, right-click it for its actions, or hold Alt to see it close up.
  */
-export function HandShelves(props: HandProps) {
-  const actions = useHandActions(props);
+export function HandPanel({ actions }: HandPanelProps) {
   const { ref: measure, width } = useElementSize<HTMLDivElement>();
   const area = useRef<HTMLDivElement>(null);
   const ref = useMergedRef(measure, area);

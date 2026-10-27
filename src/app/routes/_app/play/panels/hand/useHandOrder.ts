@@ -1,7 +1,7 @@
 import type { TablePiece } from '@shared/play/model';
 import { useEffect, useState } from 'react';
 
-import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
+import type { TableProjection, TableSession } from '../../../../../db/tabletop/TableSession';
 
 type Move = Readonly<{ pieceId: string; before: string | null }>;
 

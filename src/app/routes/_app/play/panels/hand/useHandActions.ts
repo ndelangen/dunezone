@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
-import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
+import type { TableProjection, TableSession } from '../../../../../db/tabletop/TableSession';
 import { handGroups } from './handGroups';
 import { useHandOrder } from './useHandOrder';
 

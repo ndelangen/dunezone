@@ -1,7 +1,7 @@
 import { testingPreview } from '@sb/preview';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { dragOnto, dragTo } from '../sortable.stories.fixture';
+import { dragOnto, dragTo } from '../../sortable.stories.fixture';
 import { at, handWindowMeta } from './HandWindow.stories.fixture';
 
 const meta = testingPreview.meta({

@@ -32,9 +32,9 @@ import { FoilConfetti } from '../FoilConfetti';
 import { GameLink } from '../GameLink';
 import { GameTable } from '../GameTable';
 import type { TablePanel } from '../GameTable';
-import { HandShelves } from '../hand/HandShelves';
 import { SharedInventoryPanel } from '../inventory/SharedInventoryPanel';
 import { ConnectedAlliancesPanel } from '../panels/alliances/useAlliancesPanel';
+import { ConnectedHandPanel } from '../panels/hand/useHandPanel';
 import { ConnectedLogPanel } from '../panels/log/useLogPanel';
 import { PANEL_WINDOWS } from '../panels/panelWindows';
 import { ConnectedReplayPanel } from '../panels/replay/useReplayPanel';
@@ -58,7 +58,6 @@ import { HandCountsScene } from './HandCounts';
 import { HiddenZone } from './HiddenZone';
 import {
   battleGuidance,
-  HAND_GUIDANCE,
   HIDDEN_ZONE_GUIDANCE,
   LOG_GUIDANCE,
   phaseGuidance,
@@ -492,13 +491,7 @@ function handPanels({ client, table }: TableControlProps) {
     return [];
   }
   return [
-    {
-      key: 'hand',
-      label: 'Hand',
-      topic: 'hand' as const,
-      ...HAND_GUIDANCE,
-      content: <HandShelves client={client} table={table} hand={hand} />,
-    },
+    { ...PANEL_WINDOWS.hand, content: <ConnectedHandPanel client={client} table={table} hand={hand} /> },
     {
       key: 'hidden-zone',
       label: 'Private side-table',

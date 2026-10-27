@@ -29,7 +29,7 @@ import { ModeToggle } from '../battlePlan/parts';
 import { planLocks, supportMatters } from '../battlePlan/planView';
 import type { BattlePlanViewProps, WheelArt } from '../battlePlan/planView';
 import { DarkSchemeIsland } from '../DarkSchemeIsland';
-import { useHandOrder } from '../hand/useHandOrder';
+import { useHandOrder } from '../panels/hand/useHandOrder';
 import { BattleBeacon } from './BattleBeacon';
 import styles from './BattleControls.module.css';
 import { battleCapsuleY, headerInset } from './battlePlacement';

@@ -4,6 +4,7 @@ import {
   AUDIT_LOG_GUIDANCE,
   GAME_LENGTH_GUIDANCE,
   GAME_LOG_GUIDANCE,
+  HAND_GUIDANCE,
   REPLAY_GUIDANCE,
   SPICE_GUIDANCE,
   TINTS_GUIDANCE,
@@ -29,5 +30,6 @@ export const PANEL_WINDOWS = {
     description: 'Public spice transfers, newest first.',
   },
   replay: { key: 'replay', label: 'Replay', topic: 'turn', ...REPLAY_GUIDANCE },
+  hand: { key: 'hand', label: 'Hand', topic: 'hand', ...HAND_GUIDANCE },
   spice: { key: 'spice', label: 'Spice', topic: 'spice', ...SPICE_GUIDANCE },
 } as const satisfies Record<string, PanelWindow>;
