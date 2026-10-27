@@ -9,10 +9,10 @@ import { useReducer } from 'react';
 export type StartingTroops = Readonly<{ factionId: string; name: string; text: string }>;
 
 /** A predicted winner as its cards show it: the faction's name and token, and the turn. */
-export type PredictedWinner = Readonly<{ name: string; token: string | null; turn: number }>;
+type PredictedWinner = Readonly<{ name: string; token: string | null; turn: number }>;
 
 /** Where one prediction stands for the viewer. */
-export type PredictionState =
+type PredictionState =
   | Readonly<{
       kind: 'locked';
       revealed: boolean;
