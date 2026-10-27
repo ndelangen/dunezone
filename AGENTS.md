@@ -477,6 +477,24 @@ express; a few happy-path e2e specs are the confidence anchor. Before adding a t
 whether a type guarantee or an existing e2e path already covers it. Tests never assert on source
 text or dictate API shape ([ADR-0001](docs/adr/0001-contracts-over-expressions.md)).
 
+Write every test for a busy runner. Most past flakes came from four patterns:
+
+- **No real-time waits on animations or timers.** A loaded runner can go 5 to 10 s without drawing a
+  frame (the measurements are in `.storybook/storyWaits.ts`). Finish the animation from the test,
+  drive fake timers, or count frames. Check a tooltip's content with `toHaveAccessibleDescription`
+  rather than hovering and waiting for it to open. An animation test that only ever fails from frame
+  lag gets deleted, not loosened.
+- **Assert the final state, all at once.** A check that also passes on an in-between state, such as
+  an empty loading grid, proves nothing. Wait on one condition that holds only when everything you
+  expect is true together.
+- **Size limits for a short-on-CPU runner, not an idle laptop.** A 2 s query bound or Vitest's 5 s
+  default fails under load. Reuse a shared bound such as `storyWaits.ts`, or give a new limit
+  headroom and say in a comment what it covers.
+- **Diagnose before patching.** In every flake audit most red runs were real bugs (a wrongly keyed
+  edge cache, a missing component registration). Find the mechanism, and when it is unclear add
+  diagnostics and wait for the next failure. Never loosen a limit to make a failure go away, and
+  never re-run CI to get green; see [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md).
+
 Before opening or updating any PR that changes application code, publisher code, or release
 assets, run `bun run publisher:release:verify`. The publisher Worker contains the application
 release, while its Renderer identity intentionally excludes application-only shell and chunk
