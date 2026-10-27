@@ -1,7 +1,7 @@
 {
-  "captured_at": "2026-10-27T22:56:01.702412+00:00",
+  "captured_at": "2026-10-27T23:04:55.663025+00:00",
   "baseline_commit": "9106ab2bae2b1e6914a6464788d79db2a8208fc2",
-  "candidate_commit": "57d93c03979a9e9e30151ea120e327ec13ffc869",
+  "candidate_commit": "e46437e44a49bac0d49589e5678b80dd23d6a8eb",
   "fixture": {
     "factions": 65,
     "linked": 11,
@@ -51,5 +51,6 @@
     "queries": "One linked ruleset and one unknown ruleset per version; compare complete ordered results.",
     "counters": "Parent playCatalogue:draftableFactions Completion.usageStats database I/O bytes; component events excluded.",
     "scope": "Synthetic cold-query comparison, not a production traffic or invoice reduction estimate."
-  }
+  },
+  "candidate_source_blob": "6beeb07304cb0af9bb745e04286f4e8b748794d7"
 }
