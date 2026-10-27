@@ -160,12 +160,21 @@ export const EditCustomCard = meta.story({
               : []
           )
         ),
-        ...presetSnapshot.backs.map(({ key, label, cardback }) => ({
-          key: `back/${key}`,
-          name: `${label} back`,
-          value: cardback.background,
-          revision: 1,
-        })),
+        /* A back's authored link to its own preset stays on the back; the preset holds the plain background. */
+        ...presetSnapshot.backs.map(
+          ({
+            key,
+            label,
+            cardback: {
+              background: { source: _source, ...value },
+            },
+          }) => ({
+            key: `back/${key}`,
+            name: `${label} back`,
+            value,
+            revision: 1,
+          })
+        ),
         ...INITIAL_BACKGROUND_PRESETS,
       ];
       baseline.background_presets = backgrounds.map((preset) => ({
