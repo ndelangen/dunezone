@@ -56,4 +56,5 @@ test('a board regeneration scan takes few boards per transaction, so large board
     );
     expect(queued).toBeDefined();
   }
-});
+  /* Twenty board inserts and seven scan pages took 6.6 s on a loaded CI runner; this leaves headroom for that runner. */
+}, 60_000);

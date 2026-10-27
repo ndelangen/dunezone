@@ -490,4 +490,5 @@ test('a merge moves large assets within the transaction limits', async () => {
       .first();
     expect(left).toBeNull();
   });
+  /* Thirty-three near-limit cards and their one-row merge steps; this leaves headroom for a loaded runner. */
 }, 60_000);

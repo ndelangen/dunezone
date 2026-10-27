@@ -146,5 +146,6 @@ describe('homepage page data', () => {
     const { spotlights } = await t.query(api.homepage.get, {});
     expect(spotlights.newArrival?.slug).toBe('faction-500');
     expect(spotlights.freshlyUpdated?.slug).toBe('faction-499');
+    /* 501 trigger-backed faction inserts take about 10 s locally; this leaves headroom for a loaded runner. */
   }, 120_000);
 });
