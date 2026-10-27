@@ -5,25 +5,16 @@ import { Layers, Plus, X } from 'lucide-react';
 
 import { SHARED_INVENTORY_HELP } from '../multiplayer/panelGuidance';
 import styles from './Inventory.module.css';
-import {
-  CataloguePicker,
-  DRAW_ICON,
-  EMPTY_INVENTORY,
-  InventoryPiece,
-  PieceStrip,
-  SpawnRequests,
-} from './InventoryParts';
+import { DRAW_ICON, EMPTY_INVENTORY, InventoryPiece, PieceStrip } from './InventoryParts';
 import ledger from './LedgerInventory.module.css';
-import { useSharedInventory } from './useSharedInventory';
-import type { SharedInventoryProps } from './useSharedInventory';
+import type { InventoryLayoutProps } from './useSharedInventory';
 
 /**
  * Variant B, Ledger: one line per type, ruled edge to edge as the Battle plan's rows are.
  * The type's name, count and its own action sit in a fixed column on the left, its pieces scroll in small on the right;
  * the window's actions close it in a footer of quiet buttons.
  */
-export function LedgerInventory(props: SharedInventoryProps) {
-  const inventory = useSharedInventory(props);
+export function LedgerInventory({ inventory, picker, requests }: InventoryLayoutProps) {
   const { catalogue, gather } = inventory;
   return (
     <Section hiddenHeading title="Shared table inventory" description={SHARED_INVENTORY_HELP}>
@@ -62,8 +53,8 @@ export function LedgerInventory(props: SharedInventoryProps) {
           ))}
         </div>
         {inventory.empty && <Text c="dimmed">{EMPTY_INVENTORY}</Text>}
-        <CataloguePicker {...props} inventory={inventory} />
-        <SpawnRequests {...props} />
+        {picker}
+        {requests}
         {(catalogue || gather) && (
           <Group gap="xs" className={ledger.footer}>
             {catalogue && (

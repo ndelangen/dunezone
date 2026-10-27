@@ -2,7 +2,7 @@ import type { SpawnSelection } from '@shared/play/inventory';
 import type { TablePiece } from '@shared/play/model';
 import { drawableTechTokens, isTechToken } from '@shared/play/techToken';
 import { useReducer } from 'react';
-import type { PointerEvent as ReactPointerEvent } from 'react';
+import type { ReactNode, PointerEvent as ReactPointerEvent } from 'react';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import { usePointerSession } from '../../../../widgets/tabletop/PointerSessionContext';
@@ -18,6 +18,13 @@ function pickerReducer(_state: PickerState, event: PickerEvent): PickerState {
     return { open: true, selection: event.selection, requestId: event.requestId };
   }
   return { open: event.type === 'open', selection: null, requestId: null };
+}
+
+/** What the random tech token draw says it does, or why it is off. */
+export function drawHelp(left: number) {
+  return left
+    ? `Picks one of the ${left} tech ${left === 1 ? 'token' : 'tokens'} left here at random and sets it down face up in front of you on the table.`
+    : 'No tech tokens are left in the shared table inventory.';
 }
 
 /**
@@ -50,9 +57,7 @@ export function useSharedInventory({ client, table }: SharedInventoryProps) {
     draw: {
       left: techLeft,
       enabled: canHandle && techLeft > 0,
-      help: techLeft
-        ? `Picks one of the ${techLeft} tech ${techLeft === 1 ? 'token' : 'tokens'} left here at random and sets it down face up in front of you on the table.`
-        : 'No tech tokens are left in the shared table inventory.',
+      help: drawHelp(techLeft),
       run: () => client.command({ kind: 'tech-token-draw' }),
     },
     /* Setup gathers the Traitor cards left on the table; the catalogue opens once play starts. */
@@ -74,3 +79,6 @@ export function useSharedInventory({ client, table }: SharedInventoryProps) {
 }
 
 export type SharedInventory = ReturnType<typeof useSharedInventory>;
+
+/** What a layout of the inventory gets: the inventory, and the catalogue picker and spawn requests, which talk to the table themselves. */
+export type InventoryLayoutProps = Readonly<{ inventory: SharedInventory; picker: ReactNode; requests: ReactNode }>;

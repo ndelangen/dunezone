@@ -6,24 +6,15 @@ import { Dices } from 'lucide-react';
 import { SHARED_INVENTORY_HELP } from '../multiplayer/panelGuidance';
 import gallery from './GalleryInventory.module.css';
 import styles from './Inventory.module.css';
-import {
-  CataloguePicker,
-  DrawTechToken,
-  EMPTY_INVENTORY,
-  InventoryPiece,
-  PieceStrip,
-  SpawnRequests,
-} from './InventoryParts';
-import { useSharedInventory } from './useSharedInventory';
-import type { SharedInventoryProps } from './useSharedInventory';
+import { DrawTechToken, EMPTY_INVENTORY, InventoryPiece, PieceStrip } from './InventoryParts';
+import type { InventoryLayoutProps } from './useSharedInventory';
 
 /**
  * Variant D, Gallery: large pieces with their names, one scrolling row per type.
  * The random draw is the tech token row's first tile, a face-down token to pick from, so the action sits where its pieces are;
  * the window's own actions close it as one joined pair of equal buttons.
  */
-export function GalleryInventory(props: SharedInventoryProps) {
-  const inventory = useSharedInventory(props);
+export function GalleryInventory({ inventory, picker, requests }: InventoryLayoutProps) {
   const { catalogue, gather } = inventory;
   return (
     <Section hiddenHeading title="Shared table inventory" description={SHARED_INVENTORY_HELP}>
@@ -53,8 +44,8 @@ export function GalleryInventory(props: SharedInventoryProps) {
           </section>
         ))}
         {inventory.empty && <Text c="dimmed">{EMPTY_INVENTORY}</Text>}
-        <CataloguePicker {...props} inventory={inventory} />
-        <SpawnRequests {...props} />
+        {picker}
+        {requests}
         {(catalogue || gather) && (
           <Button.Group className={gallery.actions}>
             {catalogue && (

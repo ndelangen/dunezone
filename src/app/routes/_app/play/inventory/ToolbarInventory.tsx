@@ -5,23 +5,14 @@ import { Layers, Plus, X } from 'lucide-react';
 
 import { SHARED_INVENTORY_HELP } from '../multiplayer/panelGuidance';
 import styles from './Inventory.module.css';
-import {
-  CataloguePicker,
-  DRAW_ICON,
-  EMPTY_INVENTORY,
-  InventoryPiece,
-  PieceStrip,
-  SpawnRequests,
-} from './InventoryParts';
-import { useSharedInventory } from './useSharedInventory';
-import type { SharedInventoryProps } from './useSharedInventory';
+import { DRAW_ICON, EMPTY_INVENTORY, InventoryPiece, PieceStrip } from './InventoryParts';
+import type { InventoryLayoutProps } from './useSharedInventory';
 
 /**
  * Variant C, Toolbar: every action is one icon in a slim bar on top, beside how much the inventory holds, each named by its tooltip.
  * Below it each type has a plain heading and one scrolling row of pieces with their names underneath.
  */
-export function ToolbarInventory(props: SharedInventoryProps) {
-  const inventory = useSharedInventory(props);
+export function ToolbarInventory({ inventory, picker, requests }: InventoryLayoutProps) {
   const { catalogue, gather } = inventory;
   const total = inventory.rows.reduce((count, row) => count + row.count, 0);
   const tech = inventory.rows.some((row) => row.techTokens);
@@ -67,7 +58,7 @@ export function ToolbarInventory(props: SharedInventoryProps) {
             )}
           </Group>
         </Group>
-        <CataloguePicker {...props} inventory={inventory} />
+        {picker}
         {inventory.rows.map((row) => (
           <section key={row.key} aria-label={row.label}>
             <Text size="sm" fw={700} mb={4}>
@@ -81,7 +72,7 @@ export function ToolbarInventory(props: SharedInventoryProps) {
           </section>
         ))}
         {inventory.empty && <Text c="dimmed">{EMPTY_INVENTORY}</Text>}
-        <SpawnRequests {...props} />
+        {requests}
       </Stack>
     </Section>
   );

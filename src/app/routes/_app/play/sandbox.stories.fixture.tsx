@@ -12,10 +12,10 @@ import { storedSnapshotSchema } from '../../../../../workers/game/state';
 import type { StoredSnapshot } from '../../../../../workers/game/state';
 import { LocalTable } from '../tutorial/table/localTable';
 import type { TableMessage } from '../tutorial/table/localTable';
+import { dreamrulesTechTokenPieces } from './inventory/techTokens.stories.fixture';
 import recording from './journey.recording/journey.json';
 import { journeySteps, journeyViewers, stepCode, timelineSteps, viewerLabel } from './journey.stories.fixture';
 import { capturedFactions } from './product.stories.fixture';
-import dreamrulesTechTokens from './product.stories.fixture/dreamrules-tech-tokens.json';
 import { storyTransport } from './storyTransport';
 
 /*
@@ -217,37 +217,13 @@ export const piece = (match: (candidate: { kind: string; stackKey?: string | nul
 export function withTechTokens(stored: StoredSnapshot, drawn: readonly string[] = []): StoredSnapshot {
   const pieces = stored.table.pieces.filter((candidate) => !isTechToken(candidate));
   const versions = { ...stored.versions };
-  for (const token of dreamrulesTechTokens.tokens) {
-    const art = new URL(`/play-fixtures/dreamrules/${token.published.file}`, location.origin).href;
-    const id = `dreamrules-tech-${token.slug}`;
-    const piece: StoredSnapshot['table']['pieces'][number] = {
-      id,
-      label: token.name,
-      kind: 'force',
-      owner: 'shared',
-      inventory: 'shared',
-      color: '#d5ba8c',
-      accent: '#ead9bb',
-      /* The bundle prints every back the same as its front. */
-      items: [
-        {
-          id: `${id}-1`,
-          faceUp: true,
-          artwork: { front: art, back: art, name: token.name, type: token.type, description: token.about },
-        },
-      ],
-      stackKey: `token:${token.assetId}`,
-      position: [-25, 0, -25],
-      orientation: 0,
-      zoneId: null,
-      locked: false,
-    };
-    if (drawn.includes(token.slug)) {
+  for (const piece of dreamrulesTechTokenPieces()) {
+    if (drawn.some((slug) => piece.id === `dreamrules-tech-${slug}`)) {
       piece.inventory = undefined;
       piece.position = restingPositionAt(nearestCollisionFreePosition(piece, [-1.4, 0, -1.6], pieces)!, piece);
     }
     pieces.push(piece);
-    versions[id] = stored.revision;
+    versions[piece.id] = stored.revision;
   }
   return { ...stored, table: { ...stored.table, pieces }, versions };
 }

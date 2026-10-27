@@ -15,7 +15,7 @@ import { FormError } from '@ui/block/FormError';
 import { Section } from '@ui/block/Section';
 import { InlineFormattedTextSource } from '@ui/content/FormattedText';
 import type { TopicIconTopic } from '@ui/content/TopicIcon';
-import { createElement, useContext, useEffect, useMemo, useReducer, useState, useSyncExternalStore } from 'react';
+import { useContext, useEffect, useMemo, useReducer, useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 
 import { requestPlayAdmission, watchSeatPass } from '@db/play';
@@ -35,8 +35,7 @@ import { GameTable } from '../GameTable';
 import type { TablePanel } from '../GameTable';
 import { HandShelves } from '../hand/HandShelves';
 import { SpiceReserve } from '../hand/SpiceReserve';
-import { InventoryLayoutContext } from '../inventory/inventoryLayout';
-import { ShelvesInventory } from '../inventory/ShelvesInventory';
+import { SharedInventoryPanel } from '../inventory/SharedInventoryPanel';
 import { predictionCardInHand } from '../prediction/predictionCardInHand';
 import { TableWait } from '../TableWait';
 import { AllianceCoinsScene } from './AllianceCoins';
@@ -447,12 +446,6 @@ function SetupControls({ client, table }: TableControlProps) {
   );
 }
 
-/* The layout a story picked, while the four are compared; otherwise the shelves. */
-function SharedInventoryWindow(props: TableControlProps) {
-  const layout = useContext(InventoryLayoutContext);
-  return layout ? createElement(layout, props) : <ShelvesInventory {...props} />;
-}
-
 /*
  * A transfer's ends are a faction's id, the table or the Spice Bank, as the Worker's spice ledger records them (#1664).
  * The ledger stores the Spice Bank as `supply`; that literal is kept for stored data (see CONTEXT.md).
@@ -680,7 +673,7 @@ function tableGroup({ client, table, error }: ConnectionControlsProps): TablePan
         label: 'Shared table inventory',
         topic: 'assets',
         ...SHARED_INVENTORY_GUIDANCE,
-        content: <SharedInventoryWindow client={client} table={table} />,
+        content: <SharedInventoryPanel client={client} table={table} />,
       },
       ...(tableHandlingOpen(table.snapshot.stage)
         ? [
