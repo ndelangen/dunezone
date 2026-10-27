@@ -153,15 +153,15 @@ const DRAFTABLE_FACTION_LIMIT = 500;
 
 /* The ruleset's own factions always make the list; the rest of it holds the newest live factions, in creation order. */
 async function draftCandidates(ctx: QueryCtx, linked: ReadonlySet<Id<'factions'>>) {
-  const chosen = new Map<Id<'factions'>, Doc<'factions'>>();
+  const chosen = new Map<Id<'factions'>, Doc<'factions'> | null>([...linked].map((id) => [id, null]));
   const pending = new Set(linked);
   const newest = ctx.db
     .query('factions')
     .withIndex('by_deleted', (q) => q.eq('is_deleted', false))
     .order('desc')[Symbol.asyncIterator]();
-  /* Reserve a slot for each linked faction the scan has yet to find. */
+  /* Linked IDs reserve their original slots and order until the scan or lookup supplies their rows. */
   const scan = async () => {
-    while (chosen.size + pending.size < DRAFTABLE_FACTION_LIMIT) {
+    while (chosen.size < DRAFTABLE_FACTION_LIMIT) {
       const { value: row, done } = await newest.next();
       if (done) {
         return true;
@@ -173,10 +173,12 @@ async function draftCandidates(ctx: QueryCtx, linked: ReadonlySet<Id<'factions'>
   };
   try {
     const exhausted = await scan();
-    const rows = await Promise.all([...pending].map((id) => ctx.db.get(id)));
-    for (const row of rows) {
+    const rows = await Promise.all([...pending].map(async (id) => [id, await ctx.db.get(id)] as const));
+    for (const [id, row] of rows) {
       if (row && !row.is_deleted) {
-        chosen.set(row._id, row);
+        chosen.set(id, row);
+      } else {
+        chosen.delete(id);
       }
     }
     /* Missing and deleted links release their slots; the same scan fills those from the next newest factions. */
@@ -187,7 +189,9 @@ async function draftCandidates(ctx: QueryCtx, linked: ReadonlySet<Id<'factions'>
   } finally {
     await newest.return?.();
   }
-  return [...chosen.values()].sort((a, b) => a._creationTime - b._creationTime);
+  return [...chosen.values()]
+    .filter((row): row is Doc<'factions'> => row !== null)
+    .sort((a, b) => a._creationTime - b._creationTime);
 }
 
 /**

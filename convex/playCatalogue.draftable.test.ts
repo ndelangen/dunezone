@@ -199,4 +199,22 @@ describe('the draft reads the catalogue', () => {
     /* The live but invalid linked faction still occupies its original slot, so the same 499 valid rows remain. */
     expect(factions).toHaveLength(499);
   });
+
+  test('500 live linked factions leave no slot for a newer unlinked faction', async () => {
+    const t = applicationTest();
+    const { ruleset, linked, other } = await t.run(seed);
+    await t.run(async (ctx) => {
+      const source = (await ctx.db.get('factions', linked))!;
+      const { _id: _sourceId, _creationTime: _created, ...fields } = source;
+      for (let index = 0; index < 498; index += 1) {
+        const id = await ctx.db.insert('factions', { ...fields, slug: `linked-${index}` });
+        await ctx.db.insert('ruleset_factions', { ruleset_id: ruleset, faction_id: id, position: index + 2 });
+      }
+      await ctx.db.insert('factions', { ...fields, slug: 'newer-unlinked' });
+    });
+    const { factions } = await t.query(api.playCatalogue.draftableFactions, { rulesetId: ruleset });
+    expect(factions).toHaveLength(499);
+    expect(factions.every((faction) => faction.linked)).toBe(true);
+    expect(factions.some((faction) => faction.id === other || faction.slug === 'newer-unlinked')).toBe(false);
+  });
 });
