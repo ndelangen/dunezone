@@ -158,22 +158,9 @@ async function draftCandidates(ctx: QueryCtx, linked: ReadonlySet<Id<'factions'>
   const newest = ctx.db
     .query('factions')
     .withIndex('by_deleted', (q) => q.eq('is_deleted', false))
-    .order('desc')
-    [Symbol.asyncIterator]();
+    .order('desc');
   /* Linked IDs reserve their original slots and order until the scan or lookup supplies their rows. */
-  const scan = async () => {
-    while (chosen.size < DRAFTABLE_FACTION_LIMIT) {
-      const { value: row, done } = await newest.next();
-      if (done) {
-        return true;
-      }
-      chosen.set(row._id, row);
-      pending.delete(row._id);
-    }
-    return false;
-  };
-  try {
-    const exhausted = await scan();
+  const completeLinks = async () => {
     await Promise.all(
       [...pending].map(async (id) => {
         const row = await ctx.db.get(id);
@@ -184,14 +171,20 @@ async function draftCandidates(ctx: QueryCtx, linked: ReadonlySet<Id<'factions'>
         }
       })
     );
-    /* Missing and deleted links release their slots; the same scan fills those from the next newest factions. */
     pending.clear();
-    if (!exhausted) {
-      await scan();
+  };
+  for await (const row of newest) {
+    if (chosen.size >= DRAFTABLE_FACTION_LIMIT) {
+      /* Missing and deleted links release their slots before the scan decides whether this row can fill one. */
+      await completeLinks();
     }
-  } finally {
-    await newest.return?.();
+    if (chosen.size >= DRAFTABLE_FACTION_LIMIT) {
+      break;
+    }
+    chosen.set(row._id, row);
+    pending.delete(row._id);
   }
+  await completeLinks();
   return [...chosen.values()]
     .filter((row): row is Doc<'factions'> => row !== null)
     .sort((a, b) => a._creationTime - b._creationTime);
