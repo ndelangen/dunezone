@@ -248,7 +248,7 @@ function matchesEveryWord(query: string) {
 const SEARCH_TERM_LIMIT = 16;
 
 /** The query as the search index takes it: its first terms only, so a long query narrows by those and the every-word filter checks the rest. */
-function searchIndexText(text: string) {
+export function searchIndexText(text: string) {
   const words = searchWords(text);
   return words.length > SEARCH_TERM_LIMIT ? words.slice(0, SEARCH_TERM_LIMIT).join(' ') : text;
 }

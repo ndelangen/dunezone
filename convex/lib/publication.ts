@@ -94,6 +94,18 @@ export async function publicationJobsForAsset(ctx: PublicationReadCtx, assetType
  * The window is wider than the sibling readers' four: those tolerate missing a row, while a pending job this misses republishes a removed face.
  * The lifecycle holds rows per id to single digits (pending coalesces at enqueue, errors purge at enqueue, expired captures become errors at pickup), so the margin is safety rather than budget.
  */
+/*
+ * A board, and a Spice card that carries its linked board, can each put a board-sized payload in its job (up to 1 MB), read and written again as the job is queued.
+ * Scans that queue these types take a few rows per transaction so a page stays well under the 16 MiB limits.
+ */
+const BOARD_SIZED_ASSET_TYPES: ReadonlySet<string> = new Set(['board', SPICE_CARD_ASSET_TYPE]);
+const BOARD_SIZED_SCAN_BATCH = 3;
+
+/** How many rows of one asset type a publication scan queues per transaction. */
+export function publicationScanBatchSize(assetType: string, batchSize: number) {
+  return BOARD_SIZED_ASSET_TYPES.has(assetType) ? Math.min(batchSize, BOARD_SIZED_SCAN_BATCH) : batchSize;
+}
+
 export async function supersedePendingPublication(ctx: MutationCtx, assetType: string, assetId: string) {
   const jobs = await ctx.db
     .query('publication_jobs')
