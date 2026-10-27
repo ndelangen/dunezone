@@ -1,4 +1,5 @@
-import type { StoredSpawnContents } from '@shared/play/inventory';
+import { spawnableKey } from '@shared/play/inventory';
+import type { SpawnSelection, StoredSpawnContents } from '@shared/play/inventory';
 import type { LogEntry, LogTab } from '@shared/play/log';
 import type { ClientMessage, GameSnapshot, ServerMessage, Viewer } from '@shared/play/protocol';
 import { GameRejection } from '@shared/play/rejection';
@@ -69,6 +70,8 @@ export class LocalTable {
   refusal: string | undefined;
   /* What the catalogue captured for the spawn request being committed, as the Worker hands its capture to the commit. */
   private spawnContents: StoredSpawnContents | undefined;
+  /* The asset each catalogue selection captured, by its picker key, so the guide follows a request and its pieces by what was asked for. */
+  private readonly captured = new Map<string, string>();
 
   constructor(start: TableStart) {
     this.opening = start;
@@ -278,7 +281,15 @@ export class LocalTable {
     if (message.type === 'command' && isSessionAction(message.action)) {
       room.assertRevision(message.action, message.expectedRevision);
       const followsLearner = this.seat === this.session.seatOf(this.learner);
+      const seated = this.seats().map((seat) => this.viewer(seat));
       room.accept(this.settled(this.session.commit(room.snapshot, viewer, message.action, Date.now())));
+      /* As the Worker refreshes its viewers, a player the command moved or unseated lets go of what they carried. */
+      for (const before of seated) {
+        if (this.session.seatOf(before.userId) !== before.viewerSeat) {
+          room.clearActivity(before.connectionId);
+        }
+      }
+      this.cleanUpSetup();
       /* The page keeps the seat it shows, unless that is the learner's, who may have moved, or a seat the command emptied. */
       if (followsLearner || !this.session.actors.holderOf(this.seat)) {
         this.seat = this.session.seatOf(this.learner);
@@ -318,12 +329,20 @@ export class LocalTable {
 
   /** A catalogue request, committed with what the page's catalogue captured for it, as the Worker commits one after its capture. */
   requestSpawn(message: MessageOf<'command'>, contents: StoredSpawnContents) {
+    if (message.action.kind === 'spawn-request') {
+      this.captured.set(spawnableKey(message.action), contents.assetId);
+    }
     this.spawnContents = contents;
     try {
       this.receive(message);
     } finally {
       this.spawnContents = undefined;
     }
+  }
+
+  /** The asset a catalogue selection captured on this table, once the page has requested it. */
+  capturedAsset(selection: SpawnSelection) {
+    return this.captured.get(spawnableKey(selection));
   }
 
   /** A captured asset as the page's catalogue answer shows it. */

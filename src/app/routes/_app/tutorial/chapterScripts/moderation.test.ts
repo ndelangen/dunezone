@@ -21,7 +21,13 @@ test('the others vote on a second vote after the first one fails', () => {
     removalVotes: [{ id: 'vote-1', target: { seat: 'seat-2' }, ballots: ballots() }],
   } as unknown as GameSnapshot;
   const act = vi.fn();
-  const players: TablePlayers = { act, viewOf: () => view, others: () => [], landings: () => [] };
+  const players: TablePlayers = {
+    act,
+    viewOf: () => view,
+    others: () => [],
+    landings: () => [],
+    captured: () => undefined,
+  };
   const votes = moderation.tasks(() => view, players).find((step) => step.id === 'votes')!;
   const stop = votes.begin(undefined as never) as () => void;
   vi.advanceTimersByTime(1500);
@@ -41,7 +47,13 @@ test('the others vote on a second vote after the first one fails', () => {
 /* Another player's faction information has the same button, so opening it first neither finishes the step nor moves the arrow there. */
 test('the first step waits for the Harkonnen player’s information, not another player’s', () => {
   const view = { roster: { seats } } as unknown as GameSnapshot;
-  const players: TablePlayers = { act: vi.fn(), viewOf: () => view, others: () => [], landings: () => [] };
+  const players: TablePlayers = {
+    act: vi.fn(),
+    viewOf: () => view,
+    others: () => [],
+    landings: () => [],
+    captured: () => undefined,
+  };
   const steps = moderation.tasks(() => view, players);
   const open = steps.find((step) => step.id === 'open')!;
   const start = steps.find((step) => step.id === 'start')!;

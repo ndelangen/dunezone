@@ -1,3 +1,6 @@
+import { capturedTokenStackKey } from '@shared/play/assetCapture';
+import { spawnableKey } from '@shared/play/inventory';
+import type { SpawnSelection } from '@shared/play/inventory';
 import type { GameSnapshot } from '@shared/play/protocol';
 
 import type { GuideTask } from '../TutorialGuide';
@@ -20,23 +23,19 @@ const sharedButton = (label: string) =>
   [...document.querySelectorAll<HTMLButtonElement>(`${SHARED} button`)].find(
     (button) => button.textContent?.trim() === label
   ) ?? null;
-const isKarama = (label: string) => /karama/i.test(label);
+/* The token the chapter asks for, by type and slug: an owner, bundle or deck that merely has Karama in its name is not it. */
+const KARAMA: SpawnSelection = { type: 'token-disc', slug: 'karama' };
 const karamaOption = () =>
-  [...document.querySelectorAll(`${SHARED} [role="option"]`)].find((option) => isKarama(option.textContent ?? '')) ??
-  null;
+  document.querySelector(`${SHARED} [role="option"][data-spawn-asset="${spawnableKey(KARAMA)}"]`);
 /* The row the picker holds as picked; another asset picked instead keeps the chapter waiting for Karama. */
-const karamaPicked = () =>
-  isKarama(document.querySelector(`${SHARED} [role="option"][data-combobox-active]`)?.textContent ?? '');
+const karamaPicked = () => karamaOption()?.hasAttribute('data-combobox-active') ?? false;
 /* The request button opens once the table has checked the picked asset. */
 const karamaReady = () => {
   const request = sharedButton('Request');
   return karamaPicked() && request !== null && !request.disabled;
 };
-/* Where to look next for Karama: its row once the search names it, else the search, else the button that opens the catalogue. */
-const findKarama = () =>
-  (isKarama(document.querySelector<HTMLInputElement>(SEARCH)?.value ?? '') ? karamaOption() : null) ??
-  document.querySelector(SEARCH) ??
-  sharedButton('Add from catalogue');
+/* Where to look next for Karama: its row once the picker lists it, else the search, else the button that opens the catalogue. */
+const findKarama = () => karamaOption() ?? document.querySelector(SEARCH) ?? sharedButton('Add from catalogue');
 /* New lines join the bottom of the window's list, below what it shows, so the step scrolls its line into view. */
 const showInWindow = (selector: string) => document.querySelector(selector)?.scrollIntoView({ block: 'nearest' });
 
@@ -45,9 +44,17 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     snapshot()
       .table.pieces.filter((piece) => piece.inventory === 'shared')
       .reduce((total, piece) => total + piece.items.length, 0);
-  const karamaRequested = () =>
-    (snapshot().controls?.requests ?? []).some((request) => isKarama(request.contents.name));
-  const karama = () => snapshot().table.pieces.filter((piece) => isKarama(piece.label));
+  /* Karama's request and pieces are known by the asset its selection captured, which they carry through approval and placement. */
+  const karamaRequested = () => {
+    const assetId = players.captured(KARAMA);
+    return (snapshot().controls?.requests ?? []).some(
+      ({ contents }) => contents.type === KARAMA.type && contents.assetId === assetId
+    );
+  };
+  const karama = () => {
+    const assetId = players.captured(KARAMA);
+    return assetId ? snapshot().table.pieces.filter((piece) => piece.stackKey === capturedTokenStackKey(assetId)) : [];
+  };
   return [
     task({
       id: 'open',

@@ -7,6 +7,11 @@ import { storedPieceSchema, tableCountSchema, tableIdSchema, tablePieceSchema, t
 
 export const spawnSelectionSchema = z.object({ type: z.enum(SPAWN_TYPES), slug: z.string().min(1).max(160) });
 
+/** The key a listed asset is picked by: its type and slug, which is what the table is asked to spawn. */
+export function spawnableKey(entry: SpawnSelection): string {
+  return `${entry.type}/${entry.slug}`;
+}
+
 export const captureSelectionSchema = z.object({ type: z.enum(CAPTURE_TYPES), slug: z.string().min(1).max(160) });
 export type CaptureSelection = z.infer<typeof captureSelectionSchema>;
 

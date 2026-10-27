@@ -1,3 +1,4 @@
+import type { SpawnSelection } from '@shared/play/inventory';
 import type { StoredPiece } from '@shared/play/model';
 import type { GameSnapshot, PieceAction } from '@shared/play/protocol';
 import type { TutorialCheckpoint } from '@shared/tutorial/recipe';
@@ -15,6 +16,8 @@ export type TablePlayers = Readonly<{
   others: () => readonly string[];
   /** Every carry the learner has set down, oldest first. */
   landings: () => readonly Landing[];
+  /** The asset a catalogue selection captured at this table, once the learner has requested it. */
+  captured: (selection: SpawnSelection) => string | undefined;
 }>;
 
 /** What a built chapter plays: the setup checkpoint its table starts from, and its tasks over that table. */

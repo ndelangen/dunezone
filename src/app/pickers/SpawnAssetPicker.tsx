@@ -1,6 +1,6 @@
 import { Combobox, Stack, TextInput, useCombobox } from '@mantine/core';
 import { useDebouncedValue } from '@mantine/hooks';
-import { SPAWN_PICKER_STEP } from '@shared/play/inventory';
+import { SPAWN_PICKER_STEP, spawnableKey } from '@shared/play/inventory';
 import type { SpawnableAsset, SpawnableAssets, SpawnSelection } from '@shared/play/inventory';
 import { LoadMoreButton } from '@ui/control/LoadMoreButton';
 import { useEffect, useState } from 'react';
@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
 import { useSpawnableAssets } from '@db/play';
 import { useGrowingLimit, useGrowingSearch } from '@app/routes/growingSearch';
 
-import { SpawnAssetCeiling, SpawnAssetOptions, spawnableKey } from './SpawnAssetPicker.parts';
+import { SpawnAssetCeiling, SpawnAssetOptions } from './SpawnAssetPicker.parts';
 
 /** How long typing settles before the catalogue is asked, so a word costs one read rather than one per keystroke. */
 const SEARCH_SETTLE_MS = 250;

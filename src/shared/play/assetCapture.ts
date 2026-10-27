@@ -49,6 +49,9 @@ function deckBackName({ backMode, asset, backDeck }: AssetSupply) {
  * Turns one catalogue asset into the pieces a game keeps: the supply is checked, each member becomes a table piece, and every definition is retained.
  * It reads the catalogue's public answer through `read`, so the game Worker supplies its HTTP client and a tutorial table in the page its own query.
  */
+/** The stack key a captured token's pieces share, by the asset they were captured from, wherever they go on the table. */
+export const capturedTokenStackKey = (assetId: string) => `token:${assetId}`;
+
 export class AssetCapture {
   constructor(
     private readonly read: (selection: CaptureSelection) => Promise<unknown>,
@@ -159,7 +162,7 @@ export class AssetCapture {
         ? { label: root.asset.name, kind: 'card' as const, stackKey: `deck:${root.asset.id}`, back: root.back }
         : cardDeck
           ? { label: '', kind: 'card' as const, stackKey: `deck:${cardDeck.id}`, back: root.back }
-          : { label: asset.name, kind: 'force' as const, stackKey: `token:${asset.id}`, back: member.back };
+          : { label: asset.name, kind: 'force' as const, stackKey: capturedTokenStackKey(asset.id), back: member.back };
     const back = this.image(stack.back);
     const piece: StoredPiece = {
       id: `member-${index}`,

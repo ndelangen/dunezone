@@ -40,6 +40,11 @@ export interface SurfaceProps {
   padding?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
   /** Hide the outline for full-bleed previews while keeping the pane and rounded corners. */
   withBorder?: boolean;
+  /**
+   * `glass` is the translucent pane over the artwork.
+   * `ground` is the play table's opaque ground, for a pane that is a step into the table, such as a ticket's stub.
+   */
+  tone?: 'glass' | 'ground';
   /** Semantic element. The pane is often a `section` or `article`, not a bare box. */
   as?: 'div' | 'section' | 'article' | 'aside';
   /**
@@ -79,6 +84,7 @@ export function Surface({
   children,
   padding = 'none',
   withBorder = true,
+  tone = 'glass',
   as: Element = 'div',
   interactive = false,
   renderRoot,
@@ -99,6 +105,7 @@ export function Surface({
   const surfaceClass = clsx(
     styles.surface,
     !withBorder && styles.borderless,
+    tone === 'ground' && styles.ground,
     padding !== 'none' && styles[padding],
     interactive && styles.interactive,
     className

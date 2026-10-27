@@ -1,3 +1,4 @@
+import { capturedTokenStackKey } from '@shared/play/assetCapture';
 import { storedSpawnContentsSchema } from '@shared/play/inventory';
 import type { PieceAction, ServerMessage } from '@shared/play/protocol';
 import { afterEach, beforeEach, describe, expect, test } from 'vite-plus/test';
@@ -154,6 +155,12 @@ describe('a tutorial table’s catalogue request', () => {
     expect(table.room.snapshot.table.pieces.filter((piece) => piece.label === 'Karama')).toMatchObject([
       { inventory: 'shared', items: [{ faceUp: true }] },
     ]);
+    /* The guide follows Karama by the asset its selection captured, and the page sees the pieces under that asset's stack key. */
+    expect(table.capturedAsset({ type: 'token-disc', slug: 'karama' })).toBe('karama');
+    expect(table.capturedAsset({ type: 'bundle', slug: 'karama' })).toBeUndefined();
+    expect(
+      table.frame().snapshot.table.pieces.filter((piece) => piece.stackKey === capturedTokenStackKey('karama'))
+    ).toHaveLength(1);
     table.dispose();
   });
 
@@ -267,6 +274,51 @@ describe('a tutorial table’s removal vote', () => {
     expect(table.refusal).toBeUndefined();
     expect(table.seats()).not.toContain(target);
     expect(vote()).toBeUndefined();
+  });
+
+  /* A stack a seat picks up, held while the seat changes hands. */
+  const pickUp = (seat: string) => {
+    const piece = table
+      .frame(seat)
+      .snapshot.table.pieces.find((entry) => entry.kind === 'force' && !entry.inventory && !entry.locked)!;
+    table.receive(
+      {
+        type: 'begin',
+        carryId: `carry-${++count}`,
+        sourcePieceId: piece.id,
+        expectedVersion: table.frame(seat).snapshot.versions[piece.id] ?? 0,
+        pickup: 'whole',
+      },
+      seat
+    );
+    expect(table.room.carries.size).toBe(1);
+    expect(table.room.reservations.size).toBe(1);
+  };
+  const releasedAll = () => {
+    expect(table.room.carries.size).toBe(0);
+    expect(table.room.reservations.size).toBe(0);
+  };
+
+  test('lets go of what a player carries as they leave their seat', () => {
+    const [leaver] = table.seats().filter((seat) => seat !== table.seat);
+    pickUp(leaver!);
+    act({ kind: 'seat-depart' }, leaver);
+    expect(table.refusal).toBeUndefined();
+    releasedAll();
+  });
+
+  test('lets go of what a player carries as they are voted off the table', () => {
+    const [target, ...voters] = table.seats().filter((seat) => seat !== table.seat);
+    pickUp(target!);
+    act({ kind: 'removal-start', seat: target! });
+    for (const voter of voters) {
+      const open = vote();
+      if (open) {
+        act({ kind: 'removal-ballot', voteId: open.id, choice: 'remove' }, voter);
+      }
+    }
+    expect(table.seats()).not.toContain(target);
+    releasedAll();
   });
 
   test('fails as soon as enough players keep them that four yes votes cannot be reached', () => {
