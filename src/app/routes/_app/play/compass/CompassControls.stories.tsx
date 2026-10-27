@@ -5,7 +5,7 @@ import { faction } from '../alliances.stories.fixture';
 import { clockSetup, sittingOutSetup } from '../bidding.stories.fixture';
 import { gameMeta, install } from '../game.stories.fixture';
 import { battleStory } from '../playing.stories.fixture';
-import { productTransport } from '../product.stories.fixture';
+import { playingSnapshot, productTransport } from '../product.stories.fixture';
 import type { Slots } from './useOpenWindows';
 
 /*
@@ -35,7 +35,7 @@ function pinned(slots: Slots, keep: boolean) {
 }
 
 /* The viewer allied with seat 4, so the ally arm has someone to talk to. */
-function allied(snapshot: GameSnapshot) {
+function allied(snapshot: GameSnapshot = playingSnapshot('seat-2')) {
   snapshot.alliances = {
     groups: [{ members: [faction(snapshot, 'seat-2'), faction(snapshot, 'seat-4')], mark: 0 }],
     offers: [],
@@ -43,20 +43,22 @@ function allied(snapshot: GameSnapshot) {
   return snapshot;
 }
 
-/** In a battle and allied, with nothing pinned yet. */
-export const InBattleAndAllied = meta.story({
+/** In a battle, with nothing pinned: the battle plan arm leads to it. */
+export const InBattle = meta.story({
   beforeEach: [
-    install(() => productTransport('seat-2', allied(battleStory('preparing')))),
-    () => pinned({ left: { key: 'hand' }, right: { key: 'player:seat-4' } }, false),
+    install(() => productTransport('seat-2', battleStory('preparing'))),
+    () => pinned({ left: null, right: null }, false),
   ],
 });
 
-/** The same game with Hand & spice pinned bottom left and the ally's chat bottom right. */
-export const PinnedHandAndAlly = meta.story({
-  beforeEach: [
-    install(() => productTransport('seat-2', allied(battleStory('preparing')))),
-    () => pinned({ left: { key: 'hand' }, right: { key: 'player:seat-4' } }, true),
-  ],
+/** Allied with seat 4, with nothing pinned: the ally arm has someone to talk to. */
+export const Allied = meta.story({
+  beforeEach: [install(() => productTransport('seat-2', allied())), () => pinned({ left: null, right: null }, false)],
+});
+
+/** A quiet game with Hand & spice pinned bottom left. */
+export const PinnedHand = meta.story({
+  beforeEach: [install(() => productTransport('seat-2')), () => pinned({ left: { key: 'hand' }, right: null }, true)],
 });
 
 /* Both slots pinned and every chat in the bar, so the bar and the slots have to share the table's width. */
