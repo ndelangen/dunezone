@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "sourceDescription": "Robot troop silhouettes developed from user-supplied references. Original authorship and publication were not independently verified.",
+  "source": "originals/Skibidi-Toilet-Multiverse-Reading-Pen-Robot-Building-Block-Set-540-PCS_3272117e-6646-493c-8464-766f93119239.c0c3d1350b298a80d0013a54712a9b4f.avif",
+  "approval": {
+    "date": "2026-10-27",
+    "scope": "The user authorized publishing all three robot troops after removal of the rear-view mech's central projection.",
+    "evidence": "once you have, you may ship these 3"
+  },
+  "assets": {
+    "/vector/troop/tower-headed-robot.svg": {
+      "approvedVectorMaster": "originals/tower-headed-robot-approved.svg",
+      "bitmapProposal": "originals/tower-headed-robot-bitmap-proposal.png",
+      "traceMask": "bitmaps/tower-headed-robot-trace-mask.png",
+      "alphaThreshold": 0.5,
+      "maskGaussianSigmaPixels": 0.8,
+      "minimumComponentAreaPixels": 12,
+      "trace": "Potrace 1.16, turdsize 12, alphamax 1.0, opttolerance 0.6, followed by SVG authoring root and provenance steps, uniform square normalization and the troop optimization profile.",
+      "nativeEdits": "No native geometry changes after tracing.",
+      "paint": "Inherited from the caller. Structural gaps remain transparent.",
+      "collection": "Troops, supplied by the existing vector-category fallback.",
+      "details": "An angular robot has a tall rectangular head with a loop behind it, spread legs, clawed feet and a different tool on each lowered arm."
+    }
+  }
+}
