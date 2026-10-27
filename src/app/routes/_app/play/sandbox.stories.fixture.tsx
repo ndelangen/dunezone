@@ -1,6 +1,9 @@
 import { debuggingChanged, describeDebugging, note } from '@sb/playDebugger/preview';
 import type { LogEntry, LogTab } from '@shared/play/log';
 import type { Viewer } from '@shared/play/protocol';
+import { restingPositionAt } from '@shared/play/tableGeometry';
+import { nearestCollisionFreePosition } from '@shared/play/tablePhysics';
+import { isTechToken } from '@shared/play/techToken';
 import type { within } from 'storybook/test';
 import { expect } from 'storybook/test';
 
@@ -12,6 +15,7 @@ import type { TableMessage } from '../tutorial/table/localTable';
 import recording from './journey.recording/journey.json';
 import { journeySteps, journeyViewers, stepCode, timelineSteps, viewerLabel } from './journey.stories.fixture';
 import { capturedFactions } from './product.stories.fixture';
+import dreamrulesTechTokens from './product.stories.fixture/dreamrules-tech-tokens.json';
 import { storyTransport } from './storyTransport';
 
 /*
@@ -205,3 +209,39 @@ export const shown = () => sandbox.table!.frame().snapshot;
 /** A table piece as the page sees it, by what it is. */
 export const piece = (match: (candidate: { kind: string; stackKey?: string | null }) => boolean) =>
   shown().table.pieces.find((candidate) => !candidate.inventory && match(candidate))!;
+
+/**
+ * The Dreamrules tech tokens in the shared table inventory, as setup deals them from the ruleset's tech token bundle.
+ * The ones named in `drawn` lie face up on the board instead, as a draw would leave them, so a capture never depends on chance.
+ */
+export function withTechTokens(stored: StoredSnapshot, drawn: readonly string[] = []): StoredSnapshot {
+  const pieces = stored.table.pieces.filter((candidate) => !isTechToken(candidate));
+  const versions = { ...stored.versions };
+  for (const token of dreamrulesTechTokens.tokens) {
+    const art = new URL(`/play-fixtures/dreamrules/${token.published.file}`, location.origin).href;
+    const id = `dreamrules-tech-${token.slug}`;
+    const piece: StoredSnapshot['table']['pieces'][number] = {
+      id,
+      label: token.name,
+      kind: 'force',
+      owner: 'shared',
+      inventory: 'shared',
+      color: '#d5ba8c',
+      accent: '#ead9bb',
+      /* The bundle prints every back the same as its front. */
+      items: [{ id: `${id}-1`, faceUp: true, artwork: { front: art, back: art, name: token.name, type: token.type } }],
+      stackKey: `token:${token.assetId}`,
+      position: [-25, 0, -25],
+      orientation: 0,
+      zoneId: null,
+      locked: false,
+    };
+    if (drawn.includes(token.slug)) {
+      piece.inventory = undefined;
+      piece.position = restingPositionAt(nearestCollisionFreePosition(piece, [-1.4, 0, -1.6], pieces)!, piece);
+    }
+    pieces.push(piece);
+    versions[id] = stored.revision;
+  }
+  return { ...stored, table: { ...stored.table, pieces }, versions };
+}

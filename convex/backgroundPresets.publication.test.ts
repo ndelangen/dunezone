@@ -6,7 +6,10 @@ import { CHECKED_IN_RENDERER_REVISIONS } from '../src/shared/asset-publishing/re
 import { INITIAL_CARDBACK_PRESETS } from '../src/shared/assets/cardbackPresets';
 import { INITIAL_CARD_FRONT_PRESETS } from '../src/shared/assets/cardFrontPresets';
 import { publishingCustomCard } from '../src/shared/assets/fixtures/publishingCustomCard';
-import { publishingDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
+import {
+  publishingCustomDeckCardback,
+  publishingDeckCardback,
+} from '../src/shared/assets/fixtures/publishingDeckCardback';
 import { publishingSpiceCard } from '../src/shared/assets/fixtures/publishingSpiceCard';
 import { publishingTokenFace } from '../src/shared/assets/fixtures/publishingTokenFace';
 import { publishingTreacheryCard } from '../src/shared/assets/fixtures/publishingTreacheryCard';
@@ -530,7 +533,7 @@ test('an explicit import saves DB artwork once and source edits cannot change sh
   for (const name of ['Homeworld', 'Stronghold', 'Nexus', 'Leader Skill']) {
     await author.mutation(api.assets.create, {
       type: 'deck',
-      data: { name: `${name} Deck`, about: '', cardback: { ...publishingDeckCardback, background: value } },
+      data: { name: `${name} Deck`, about: '', cardback: { ...publishingCustomDeckCardback, background: value } },
     });
   }
   await expect(author.mutation(api.presetLibrary.initialize, {})).rejects.toThrow('Not authorized');
@@ -572,7 +575,7 @@ test('importing a missing native back recaptures it even when its shared backgro
   });
   await author.mutation(api.assets.create, {
     type: 'deck',
-    data: { name: 'Homeworld Deck', about: '', cardback: publishingDeckCardback },
+    data: { name: 'Homeworld Deck', about: '', cardback: publishingCustomDeckCardback },
   });
   await admin.mutation(api.presetLibrary.initialize, {});
   await t.finishAllScheduledFunctions(vi.runAllTimers);
@@ -596,7 +599,7 @@ test('importing a referenced deck back copies its authored target and survives t
   });
   const target = await author.mutation(api.assets.create, {
     type: 'deck',
-    data: { name: 'All Homeworlds Deck', about: '', cardback: publishingDeckCardback },
+    data: { name: 'All Homeworlds Deck', about: '', cardback: publishingCustomDeckCardback },
   });
   await author.mutation(api.assets.create, {
     type: 'deck',

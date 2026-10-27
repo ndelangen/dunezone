@@ -15,23 +15,11 @@ import { DeckAsset } from '@game/data/objects';
  * Shared by the create and edit pages of each type, which load through the same `assetLoadSource`.
  */
 
-/* The token drafts model a reference with no target as an explicit null, which the stored optional cannot say. */
-export const LoadedTokenDraft = TokenAsset.transform((token): TokenDraft => ({
-  ...token,
-  back: token.back.mode === 'reference' ? { mode: 'reference', asset_id: token.back.asset_id ?? null } : token.back,
-}));
+export const LoadedTokenDraft = TokenAsset.transform((token): TokenDraft => token);
 
-export const LoadedRectangleDraft = RectangleTokenAsset.transform((token): RectangleDraft => ({
-  ...token,
-  back: token.back.mode === 'reference' ? { mode: 'reference', asset_id: token.back.asset_id ?? null } : token.back,
-}));
+export const LoadedRectangleDraft = RectangleTokenAsset.transform((token): RectangleDraft => token);
 
-/* The transitional bare cardback re-tags as custom, the same flattening the deck edit page does at its parse boundary. */
-export const LoadedDeckDraft = DeckAsset.transform((deck): DeckDraft => ({
-  ...deck,
-  cardback:
-    'mode' in deck.cardback && deck.cardback.mode !== 'custom' ? deck.cardback : { ...deck.cardback, mode: 'custom' },
-}));
+export const LoadedDeckDraft = DeckAsset.transform((deck): DeckDraft => deck);
 
 /**
  * The toolbar's `load` for a token page, create or edit alike: another token of the same type, with the back it wears.

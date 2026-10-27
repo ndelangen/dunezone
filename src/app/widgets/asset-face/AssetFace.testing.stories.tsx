@@ -16,6 +16,7 @@ const meta = testingPreview.meta({
 
 const CARDBACK = {
   cardback: {
+    mode: 'custom' as const,
     name: 'Treachery',
     background: backgroundPresets.weapon,
     image: '/vector/icon/projectile.svg',
