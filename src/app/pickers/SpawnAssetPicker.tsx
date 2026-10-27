@@ -1,5 +1,6 @@
 import { Combobox, Stack, TextInput, useCombobox } from '@mantine/core';
 import { useDebouncedValue } from '@mantine/hooks';
+import type { SpawnType } from '@shared/play/captureTypes';
 import { SPAWN_PICKER_STEP } from '@shared/play/inventory';
 import type { SpawnableAsset, SpawnableAssets, SpawnSelection } from '@shared/play/inventory';
 import { LoadMoreButton } from '@ui/control/LoadMoreButton';
@@ -19,15 +20,17 @@ const NOTHING: SpawnableAssets = { entries: [], hasMore: false, capped: false };
 export type SpawnAssetPickerProps = {
   /** The asset chosen so far, kept marked while the table checks it. */
   value: SpawnSelection | null;
+  /** Only these types, as one shelf of the shared table inventory asks for its own; empty or absent offers every spawnable type. */
+  types?: readonly SpawnType[];
   /** While the table is reconnecting no choice can be checked, so none is offered. */
   disabled?: boolean;
   /** Fires once per choice. The caller asks the table about it and decides what happens next. */
   onPick: (picked: SpawnableAsset) => void;
 };
 
-/** The catalogue's answer at one limit; a search term goes only when there is one, since an absent argument is not an undefined one. */
-function useSpawnableRows(q: string, limit: number) {
-  return useSpawnableAssets(q ? { q, limit } : { limit }).data;
+/** The catalogue's answer at one limit; a search term and types go only when there are some, since an absent argument is not an undefined one. */
+function useSpawnableRows(q: string, types: readonly SpawnType[], limit: number) {
+  return useSpawnableAssets({ ...(q ? { q } : {}), ...(types.length ? { types: [...types] } : {}), limit }).data;
 }
 
 /**
@@ -53,7 +56,7 @@ function useHighlightFirstRow(combobox: ReturnType<typeof useCombobox>, listed: 
  * The choice leaves through `onPick`;
  * checking the asset's definitions and requesting the spawn stay with the table.
  */
-export function SpawnAssetPicker({ value, disabled = false, onPick }: SpawnAssetPickerProps) {
+export function SpawnAssetPicker({ value, types = [], disabled = false, onPick }: SpawnAssetPickerProps) {
   /*
    * Held open: the rows are inline, so there is no dropdown for Escape to close, and Mantine submits Enter only while the store is open.
    * A store that merely started open would close on Escape and leave the listed rows unpickable until an arrow key reopened it.
@@ -64,8 +67,8 @@ export function SpawnAssetPicker({ value, disabled = false, onPick }: SpawnAsset
   /* Until the typed word settles the rows on screen answer the search before it, so a pick among them would take an asset the reader did not ask for. */
   const unsettled = search.trim() !== settled;
   const pickable = !disabled && !unsettled;
-  const growing = useGrowingLimit({ q: settled }, SPAWN_PICKER_STEP);
-  const live = useSpawnableRows(settled, growing.limit);
+  const growing = useGrowingLimit({ q: settled, types }, SPAWN_PICKER_STEP);
+  const live = useSpawnableRows(settled, types, growing.limit);
   const { data, loading, loadMore } = useGrowingSearch({
     search: growing,
     initial: NOTHING,

@@ -1,23 +1,39 @@
+import type { SpawnType } from '@shared/play/captureTypes';
 import type { SpawnSelection } from '@shared/play/inventory';
 import type { TablePiece } from '@shared/play/model';
-import { drawableTechTokens, isTechToken } from '@shared/play/techToken';
+import { drawableTechTokens } from '@shared/play/techToken';
 import { useReducer } from 'react';
 import type { ReactNode, PointerEvent as ReactPointerEvent } from 'react';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import { usePointerSession } from '../../../../widgets/tabletop/PointerSessionContext';
 import { inventoryRows } from './inventoryRows';
+import type { InventoryRow } from './inventoryRows';
 
 export type SharedInventoryProps = Readonly<{ client: TableSession; table: TableProjection }>;
 
-type PickerState = Readonly<{ open: boolean; selection: SpawnSelection | null; requestId: string | null }>;
-type PickerEvent = { type: 'open' | 'close' } | { type: 'select'; selection: SpawnSelection; requestId: string };
+/* The catalogue picker, open on one shelf's own type, and the asset chosen in it. */
+type PickerState = Readonly<{
+  open: boolean;
+  shelf: string | null;
+  types: readonly SpawnType[];
+  selection: SpawnSelection | null;
+  requestId: string | null;
+}>;
+type PickerEvent =
+  | { type: 'open'; shelf: string | null; types: readonly SpawnType[] }
+  | { type: 'close' }
+  | { type: 'select'; selection: SpawnSelection; requestId: string };
 
-function pickerReducer(_state: PickerState, event: PickerEvent): PickerState {
+const CLOSED: PickerState = { open: false, shelf: null, types: [], selection: null, requestId: null };
+
+function pickerReducer(state: PickerState, event: PickerEvent): PickerState {
   if (event.type === 'select') {
-    return { open: true, selection: event.selection, requestId: event.requestId };
+    return { ...state, open: true, selection: event.selection, requestId: event.requestId };
   }
-  return { open: event.type === 'open', selection: null, requestId: null };
+  return event.type === 'open'
+    ? { open: true, shelf: event.shelf, types: event.types, selection: null, requestId: null }
+    : CLOSED;
 }
 
 /** What the random tech token draw says it does, or why it is off. */
@@ -27,23 +43,19 @@ export function drawHelp(left: number) {
     : 'No tech tokens are left in the shared table inventory.';
 }
 
-/**
- * What every layout of the shared table inventory works from: its rows, what a player may do with each piece, and its actions.
- * The layouts differ only in where they put these.
- */
+/** The shared table inventory read from the table: its shelves, what a player may do with each piece, and its actions. */
 export function useSharedInventory({ client, table }: SharedInventoryProps) {
   const pointerSession = usePointerSession();
-  const [picker, dispatch] = useReducer(pickerReducer, { open: false, selection: null, requestId: null });
+  const [picker, dispatch] = useReducer(pickerReducer, CLOSED);
   const pieces = table.snapshot.table.pieces.filter((piece) => piece.inventory === 'shared');
   /* A token another player is carrying out is not there to draw, though the snapshot still lists it. */
   const techLeft = drawableTechTokens(pieces)
     .filter((piece) => !table.reservedPieceIds.has(piece.id))
     .reduce((count, piece) => count + piece.items.length, 0);
   const canHandle = table.canHandleTable;
-  const rows = inventoryRows(pieces, table.snapshot.table.pieces.some(isTechToken));
+  const rows = inventoryRows(pieces);
   return {
     rows,
-    empty: !rows.length,
     /** Whether this piece can be dragged out now: nobody else is carrying it and the viewer may handle the table. */
     movable: (piece: TablePiece) => canHandle && !table.reservedPieceIds.has(piece.id),
     /** Picks the piece up under the pointer; Shift takes only its top item. */
@@ -69,8 +81,15 @@ export function useSharedInventory({ client, table }: SharedInventoryProps) {
         ? null
         : {
             enabled: canHandle,
-            open: picker.open,
-            toggle: () => dispatch({ type: picker.open ? 'close' : 'open' }),
+            /** The shelf whose catalogue is open, if any. */
+            shelf: picker.open ? picker.shelf : null,
+            /** Opens the catalogue on one shelf's own types, or closes it when that shelf's is already open. */
+            toggleShelf: (row: InventoryRow) =>
+              dispatch(
+                picker.open && picker.shelf === row.key
+                  ? { type: 'close' }
+                  : { type: 'open', shelf: row.key, types: row.spawnType ? [row.spawnType] : [] }
+              ),
             picker,
             select: (selection: SpawnSelection) =>
               dispatch({ type: 'select', selection, requestId: client.catalogue(selection) }),
@@ -80,5 +99,5 @@ export function useSharedInventory({ client, table }: SharedInventoryProps) {
 
 export type SharedInventory = ReturnType<typeof useSharedInventory>;
 
-/** What a layout of the inventory gets: the inventory, and the catalogue picker and spawn requests, which talk to the table themselves. */
-export type InventoryLayoutProps = Readonly<{ inventory: SharedInventory; picker: ReactNode; requests: ReactNode }>;
+/** What the inventory's view gets: the inventory, and the catalogue picker and spawn requests, which talk to the table themselves. */
+export type SharedInventoryViewProps = Readonly<{ inventory: SharedInventory; picker: ReactNode; requests: ReactNode }>;

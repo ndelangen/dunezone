@@ -40,18 +40,15 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'catalogue',
       task: 'Search the catalogue',
       detail:
-        'Decks, bundles and tokens that people made in the editor can join any game. Press Add from catalogue and search for Karama. In a game, picking one adds it here for everyone; a tutorial table has nobody to ask for it, so look only.',
+        'Decks, bundles and tokens that people made in the editor can join any game. Every shelf has its own + for its kind of piece: press the one on Tech tokens and search for Customs. In a game, picking one adds it here for everyone; a tutorial table has nobody to ask for it, so look only.',
       anchor: {
         kind: 'page',
         element: () =>
           document.querySelector(SEARCH) ??
-          [...document.querySelectorAll('[data-window="shared"] button')].find(
-            (button) => button.textContent === 'Add from catalogue'
-          ) ??
-          null,
+          document.querySelector('[data-window="shared"] [aria-label="Add tech tokens from the catalogue"]'),
       },
       begin: () => undefined,
-      done: () => /karama/i.test(document.querySelector<HTMLInputElement>(SEARCH)?.value ?? ''),
+      done: () => /customs/i.test(document.querySelector<HTMLInputElement>(SEARCH)?.value ?? ''),
     }),
   ];
 }
@@ -60,7 +57,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
 const learned = [
   'The Shared table inventory holds the pieces no seat owns',
   'Drag a piece out of it, and it lands face down on the table',
-  'Add from catalogue brings in decks, bundles and tokens made in the editor',
+  "Each shelf's + brings in its kind of piece from the catalogue of things made in the editor",
 ];
 
 export const bringYourOwnPieces: ChapterScript = {

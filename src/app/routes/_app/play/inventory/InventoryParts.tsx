@@ -120,7 +120,7 @@ export function PieceStrip({ children, label }: Readonly<{ children: ReactNode; 
         children
       ) : (
         <Text size="sm" c="dimmed">
-          All drawn
+          Empty
         </Text>
       )}
     </div>
@@ -160,7 +160,7 @@ function catalogueStatus(catalogue: ReturnType<TableSession['getSnapshot']>['cat
 export function CataloguePicker({ client, table, inventory }: SharedInventoryProps & { inventory: SharedInventory }) {
   const view = useSyncExternalStore(client.subscribe, client.getSnapshot);
   const catalogue = inventory.catalogue;
-  if (!catalogue?.open) {
+  if (!catalogue?.shelf) {
     return null;
   }
   const { selection, requestId } = catalogue.picker;
@@ -171,6 +171,7 @@ export function CataloguePicker({ client, table, inventory }: SharedInventoryPro
       {/* The picker lists the catalogue; the table checks the choice, so a pick asks it before the request button opens. */}
       <SpawnAssetPicker
         value={selection}
+        types={catalogue.picker.types}
         disabled={table.reconnecting}
         onPick={({ type, slug }) => catalogue.select({ type, slug })}
       />
@@ -232,6 +233,3 @@ export function SpawnRequests({ client, table }: SharedInventoryProps) {
     </Stack>
   ) : null;
 }
-
-/** What an empty inventory says. */
-export const EMPTY_INVENTORY = 'The shared table inventory is empty.';

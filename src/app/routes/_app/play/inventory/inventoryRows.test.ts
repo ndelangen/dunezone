@@ -23,29 +23,34 @@ const piece = (id: string, kind: TablePiece['kind'], type: string, count = 1, ba
   kind,
 });
 
-test('keeps every piece of one type on one row: cards by their back, then tokens by their type', () => {
-  const rows = inventoryRows([
+const shelves = (pieces: TablePiece[]) =>
+  inventoryRows(pieces).map((row) => [row.label, row.pieces.map((entry) => entry.id), row.count, row.spawnType]);
+
+test('keeps a shelf for every type the catalogue can add, in its order, even when empty', () => {
+  expect(shelves([])).toEqual([
+    ['Decks', [], 0, 'deck'],
+    ['Bundles', [], 0, 'bundle'],
+    ['Disc tokens', [], 0, 'token-disc'],
+    ['Leader tokens', [], 0, 'token-leader'],
+    ['Tech tokens', [], 0, 'token-tech'],
+    ['Plate tokens', [], 0, 'token-plate'],
+    ['Pointer tokens', [], 0, 'token-pointer'],
+    ['Enhance tokens', [], 0, 'token-enhance'],
+  ]);
+});
+
+test('puts every card on the Decks shelf and every token on its own type, other pieces last', () => {
+  const rows = shelves([
     piece('customs', 'force', 'token-tech'),
     piece('recovery', 'force', 'token-disc', 3),
     piece('treachery', 'card', 'card-treachery', 5, 'Treachery'),
     piece('heighliners', 'force', 'token-tech'),
     piece('mystery', 'force', 'unknown'),
   ]);
-  expect(rows.map((row) => [row.label, row.pieces.map((entry) => entry.id), row.count, row.techTokens])).toEqual([
-    ['Treachery', ['treachery'], 5, false],
-    ['Disc tokens', ['recovery'], 3, false],
-    ['Tech tokens', ['customs', 'heighliners'], 2, true],
-    ['Other pieces', ['mystery'], 1, false],
-  ]);
-});
-
-test('an empty inventory has no rows', () => {
-  expect(inventoryRows([])).toEqual([]);
-});
-
-test('keeps the tech token row, empty, once every tech token in the game is drawn', () => {
-  expect(inventoryRows([piece('recovery', 'force', 'token-disc')], true)).toEqual([
-    expect.objectContaining({ label: 'Disc tokens', count: 1, techTokens: false }),
-    { key: 'type:token-tech', label: 'Tech tokens', pieces: [], count: 0, techTokens: true },
+  expect(rows.filter(([, ids]) => (ids as string[]).length)).toEqual([
+    ['Decks', ['treachery'], 5, 'deck'],
+    ['Disc tokens', ['recovery'], 3, 'token-disc'],
+    ['Tech tokens', ['customs', 'heighliners'], 2, 'token-tech'],
+    ['Other pieces', ['mystery'], 1, null],
   ]);
 });

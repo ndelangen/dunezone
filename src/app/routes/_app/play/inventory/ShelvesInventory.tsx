@@ -1,63 +1,77 @@
 import { Button, Group, Stack, Text } from '@mantine/core';
 import { Section } from '@ui/block/Section';
-import { Layers, Plus, X } from 'lucide-react';
+import { IconAction } from '@ui/control/IconAction';
+import { Layers, Plus } from 'lucide-react';
 
 import { SHARED_INVENTORY_HELP } from '../multiplayer/panelGuidance';
 import styles from './Inventory.module.css';
-import { DRAW_ICON, DrawTechToken, EMPTY_INVENTORY, InventoryPiece, PieceStrip } from './InventoryParts';
-import type { InventoryLayoutProps } from './useSharedInventory';
+import { DRAW_ICON, DrawTechToken, InventoryPiece, PieceStrip } from './InventoryParts';
+import type { InventoryRow } from './inventoryRows';
+import type { SharedInventory, SharedInventoryViewProps } from './useSharedInventory';
+
+/* A shelf's own +, which opens the catalogue on that shelf's type alone; it is off during setup, when nothing can be added. */
+function AddToShelf({ inventory, row }: Readonly<{ inventory: SharedInventory; row: InventoryRow }>) {
+  const catalogue = inventory.catalogue;
+  if (!catalogue || !row.spawnType) {
+    return null;
+  }
+  const open = catalogue.shelf === row.key;
+  return (
+    <IconAction
+      label={
+        open ? `Close the ${row.label.toLowerCase()} catalogue` : `Add ${row.label.toLowerCase()} from the catalogue`
+      }
+      intent="neutral"
+      emphasis="quiet"
+      size="sm"
+      pressed={open}
+      icon={<Plus size={16} aria-hidden />}
+      disabledReason={catalogue.enabled ? undefined : 'Only a seated player can add to the table.'}
+      onClick={() => catalogue.toggleShelf(row)}
+    />
+  );
+}
 
 /**
- * Variant A, Shelves: the hand window's shelves, for the table.
- * The window's own actions share one bar of equal buttons on top;
- * each type then has a shelf, its name and count on the left of its caption and its own action on the right, its pieces on one scrolling row.
+ * The Shared table inventory, as shelves: one for every type the catalogue can add, its name and count on the left of its caption and its own + on the right, which opens the catalogue on that type alone;
+ * its pieces sit on one row that scrolls sideways.
+ * The tech token shelf also draws one of its tokens at random.
  */
-export function ShelvesInventory({ inventory, picker, requests }: InventoryLayoutProps) {
+export function ShelvesInventory({ inventory, picker, requests }: SharedInventoryViewProps) {
   const { catalogue, gather } = inventory;
   return (
     <Section hiddenHeading title="Shared table inventory" description={SHARED_INVENTORY_HELP}>
       <Stack gap="md">
-        {(catalogue || gather) && (
-          <Group grow gap="xs">
-            {catalogue && (
-              <Button
-                variant="default"
-                leftSection={catalogue.open ? <X size={16} aria-hidden /> : <Plus size={16} aria-hidden />}
-                disabled={!catalogue.enabled}
-                onClick={catalogue.toggle}
-              >
-                {catalogue.open ? 'Close catalogue' : 'Add from catalogue'}
-              </Button>
-            )}
-            {gather && (
-              <Button
-                variant="default"
-                leftSection={<Layers size={16} aria-hidden />}
-                disabled={!gather.enabled}
-                onClick={gather.run}
-              >
-                Gather tabletop traitors
-              </Button>
-            )}
-          </Group>
+        {gather && (
+          <Button
+            variant="default"
+            leftSection={<Layers size={16} aria-hidden />}
+            disabled={!gather.enabled}
+            onClick={gather.run}
+          >
+            Gather tabletop traitors
+          </Button>
         )}
-        {picker}
         {inventory.rows.map((row) => (
           <section key={row.key} aria-label={row.label}>
             <Group justify="space-between" wrap="nowrap" mb={4}>
               <Text size="xs" fw={700} tt="uppercase" className={styles.rowLabel}>
                 {row.label} <span className={styles.count}>{row.count}</span>
               </Text>
-              {row.techTokens && (
-                <DrawTechToken inventory={inventory}>
-                  {(control) => (
-                    <Button size="compact-sm" variant="default" leftSection={DRAW_ICON} {...control}>
-                      Draw random tech token
-                    </Button>
-                  )}
-                </DrawTechToken>
-              )}
+              <Group gap="xs" wrap="nowrap">
+                {row.spawnType === 'token-tech' && (
+                  <DrawTechToken inventory={inventory}>
+                    {(control) => (
+                      <Button size="compact-sm" variant="default" leftSection={DRAW_ICON} {...control}>
+                        Draw random tech token
+                      </Button>
+                    )}
+                  </DrawTechToken>
+                )}
+                <AddToShelf inventory={inventory} row={row} />
+              </Group>
             </Group>
+            {catalogue?.shelf === row.key && picker}
             <PieceStrip label={row.label}>
               {row.pieces.map((piece) => (
                 <InventoryPiece key={piece.id} inventory={inventory} piece={piece} size={64} />
@@ -65,7 +79,6 @@ export function ShelvesInventory({ inventory, picker, requests }: InventoryLayou
             </PieceStrip>
           </section>
         ))}
-        {inventory.empty && <Text c="dimmed">{EMPTY_INVENTORY}</Text>}
         {requests}
       </Stack>
     </Section>

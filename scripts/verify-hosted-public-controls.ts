@@ -134,7 +134,7 @@ export async function verifyPublicControls({
       requireView(a).snapshot.table.pieces.filter((piece) => !piece.inventory),
       original
     );
-    await button(a, 'Close catalogue').click();
+    await button(a, 'Close the disc tokens catalogue').click();
     await pinWindow(a, 'Shared table inventory', 'left');
     await growSlot(a, 'left');
     await button(a, 'Drag Recovery token onto the table').scrollIntoViewIfNeeded();
@@ -161,7 +161,7 @@ export async function verifyPublicControls({
     assert.equal(inventory(a).length, 1);
     assert.equal(await button(a, 'Approve').isDisabled(), true);
     await openTab(observer, 'Shared table inventory');
-    for (const name of ['Approve', 'Dismiss', 'Add from catalogue', 'Next phase']) {
+    for (const name of ['Approve', 'Dismiss', 'Add disc tokens from the catalogue', 'Next phase']) {
       assert.equal(await button(observer, name).isDisabled(), true);
     }
     assert.equal(await previousPhaseDisabled(observer), true);
@@ -186,7 +186,7 @@ export async function verifyPublicControls({
     await act(b, 'Dismiss');
     await until(() => requests(a).length === 0, 'Dismissal was not shared.');
     assert.equal(inventory(a).length, 2);
-    await button(a, 'Close catalogue').click();
+    await button(a, 'Close the disc tokens catalogue').click();
     passed('Any seated player can dismiss a request without spawning its contents');
 
     return { observer };

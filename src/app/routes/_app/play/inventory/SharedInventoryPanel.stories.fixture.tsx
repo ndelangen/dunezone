@@ -8,7 +8,7 @@ import { cardBack, factions } from '../product.stories.fixture';
 import { inventoryRows } from './inventoryRows';
 import { dreamrulesTechTokenPieces } from './techTokens.stories.fixture';
 import { drawHelp } from './useSharedInventory';
-import type { InventoryLayoutProps } from './useSharedInventory';
+import type { SharedInventoryViewProps } from './useSharedInventory';
 
 const href = (path: string) => new URL(path, location.origin).href;
 
@@ -46,25 +46,23 @@ function factionTokens(): TablePiece[] {
 }
 
 /**
- * What every layout is shown: a Treachery deck, faction tokens and the seven Dreamrules tech tokens in the shared table inventory, with the catalogue closed and no requests waiting.
+ * What the panel is shown: a Treachery deck, faction tokens and the seven Dreamrules tech tokens in the shared table inventory, with the catalogue closed and no requests waiting.
  * Every action is a spy.
  */
-export function inventoryArgs(): InventoryLayoutProps {
+export function inventoryArgs(): SharedInventoryViewProps {
   const pieces = [treacheryDeck(), ...factionTokens(), ...dreamrulesTechTokenPieces()];
-  const rows = inventoryRows(pieces, true);
   return {
     inventory: {
-      rows,
-      empty: !rows.length,
+      rows: inventoryRows(pieces),
       movable: () => true,
       carry: fn(),
       draw: { left: 7, enabled: true, help: drawHelp(7), run: fn() },
       gather: null,
       catalogue: {
         enabled: true,
-        open: false,
-        toggle: fn(),
-        picker: { open: false, selection: null, requestId: null },
+        shelf: null,
+        toggleShelf: fn(),
+        picker: { open: false, shelf: null, types: [], selection: null, requestId: null },
         select: fn(),
       },
     },
