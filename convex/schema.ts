@@ -381,6 +381,7 @@ export default defineSchema({
   })
     .index('by_asset_type_and_asset_id', ['asset_type', 'asset_id'])
     .index('by_status_and_created_at', ['status', 'created_at'])
+    .index('by_asset_type_status_created_at', ['asset_type', 'status', 'created_at'])
     .index('by_status_and_expires_at', ['status', 'expires_at'])
     .index('by_status_and_updated_at', ['status', 'updated_at']),
   admin_settings: defineTable({
