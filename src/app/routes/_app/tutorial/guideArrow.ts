@@ -89,19 +89,31 @@ function wedge(root: Point, target: Target): string[] | null {
     target.halfWidth / Math.max(Math.abs(dx / distance), 1e-6),
     target.halfHeight / Math.max(Math.abs(dy / distance), 1e-6)
   );
-  const length = distance - inside - ARROW_GAP_PX;
-  if (length < HEAD.length + FILLET + 20) {
-    return null;
-  }
+  const shortest = HEAD.length + FILLET + 20;
   const along = { x: dx / distance, y: dy / distance };
   /* The side of the shaft on the band's left, looking from the band toward the target. */
   const across = { x: along.y, y: -along.x };
-  const tip = { x: root.x + along.x * length, y: root.y + along.y * length };
-  const neck = { x: tip.x - along.x * HEAD.length, y: tip.y - along.y * HEAD.length };
-  const side = (half: number, sign: 1 | -1): Point => ({
-    x: neck.x - across.x * half * sign,
-    y: neck.y - across.y * half * sign,
-  });
+  const head = (length: number) => {
+    const tip = { x: root.x + along.x * length, y: root.y + along.y * length };
+    const neck = { x: tip.x - along.x * HEAD.length, y: tip.y - along.y * HEAD.length };
+    const side = (half: number, sign: 1 | -1): Point => ({
+      x: neck.x - across.x * half * sign,
+      y: neck.y - across.y * half * sign,
+    });
+    return { tip, side };
+  };
+  /*
+   * The tip stops short of the target's edge along its line, and then further back until the barbs clear it as well:
+   * met near a corner at a slant, a barb would otherwise reach over what sits at the target's edge, such as a field's label.
+   */
+  let length = distance - inside - ARROW_GAP_PX;
+  while (length >= shortest && !headClear(head(length), target)) {
+    length -= 2;
+  }
+  if (length < shortest) {
+    return null;
+  }
+  const { tip, side } = head(length);
   /* The corners sit on the band's edge itself, so the wedge leaves the band evenly on both sides at any angle. */
   const corner = { left: { x: root.x - ROOT, y: root.y }, right: { x: root.x + ROOT, y: root.y } };
   const neckLeft = side(NECK, 1);
@@ -117,6 +129,22 @@ function wedge(root: Point, target: Target): string[] | null {
     `L ${point(toward(corner.left, neckLeft, FILLET))}`,
     `Q ${point(corner.left)} ${point({ x: corner.left.x - FILLET, y: root.y })}`,
   ];
+}
+
+/* Whether the arrowhead, its tip, both barbs and the edges between them, keeps the gap from every side of the target's box. */
+function headClear(
+  { tip, side }: Readonly<{ tip: Point; side: (half: number, sign: 1 | -1) => Point }>,
+  target: Target
+): boolean {
+  const outside = (p: Point) =>
+    Math.abs(p.x - target.x) >= target.halfWidth + ARROW_GAP_PX ||
+    Math.abs(p.y - target.y) >= target.halfHeight + ARROW_GAP_PX;
+  return ([1, -1] as const).every((sign) => {
+    const barb = side(HEAD.half, sign);
+    return [0, 0.25, 0.5, 0.75, 1].every((t) =>
+      outside({ x: tip.x + (barb.x - tip.x) * t, y: tip.y + (barb.y - tip.y) * t })
+    );
+  });
 }
 
 /*

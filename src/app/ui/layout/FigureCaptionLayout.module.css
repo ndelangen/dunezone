@@ -1,0 +1,24 @@
+.layout {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.caption {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  text-align: center;
+}
+
+/* In a one-column grid the figure stands beside its caption. */
+@container card-grid (width < 30rem) {
+  .layout {
+    grid-template-columns: 8.5rem minmax(0, 1fr);
+    align-items: center;
+    column-gap: var(--space-md);
+  }
+
+  .caption {
+    text-align: left;
+  }
+}

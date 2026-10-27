@@ -11,7 +11,9 @@ import { StatusBadge } from '@ui/content/StatusBadge';
 import { CallToAction } from '@ui/control/CallToAction';
 import { IconAction } from '@ui/control/IconAction';
 import { SearchRefine } from '@ui/control/SearchRefine';
+import { FigureCaptionLayout } from '@ui/layout/FigureCaptionLayout';
 import { PageLayout } from '@ui/layout/PageLayout';
+import { CardGrid } from '@ui/list/CardGrid';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
@@ -21,8 +23,6 @@ import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
-
-import styles from './PlayLobby.module.css';
 
 /*
  * The lobby page's body, for the Play lobby and for the tutorial chapter that teaches it: the games as tables, their search, and the ways on.
@@ -188,11 +188,13 @@ function cardBadge(entry: LobbyEntry): ReactNode {
 
 function GameCard({ entry, gameLink }: Readonly<{ entry: LobbyEntry; gameLink: PlayLobbyLinks['gameLink'] }>) {
   return (
-    <li className={styles.cell}>
-      <Card title={entry.name} action={cardBadge(entry)} padding="md" className={styles.card}>
-        <div className={styles.cardBody}>
-          <TableRing entry={entry} />
-          <div className={styles.details}>
+    <CardGrid.Item>
+      <Card title={entry.name} action={cardBadge(entry)} padding="md">
+        <FigureCaptionLayout>
+          <FigureCaptionLayout.Figure>
+            <TableRing entry={entry} />
+          </FigureCaptionLayout.Figure>
+          <FigureCaptionLayout.Caption>
             {entry.rulesetName ? (
               <Text size="xs" c="dimmed">
                 Ruleset: {entry.rulesetName}
@@ -204,10 +206,13 @@ function GameCard({ entry, gameLink }: Readonly<{ entry: LobbyEntry; gameLink: P
             <Text size="xs" c="dimmed">
               {entry.seatsFilled} of {entry.seatCount} seated
             </Text>
-            <div className={styles.footer}>
-              <Text size="xs" c="dimmed" className={styles.age}>
-                <Clock size={12} aria-hidden /> {formatRelativeDate(new Date(entry.lastActivityAt).toISOString())}
-              </Text>
+            <Group justify="space-between" gap="xs" wrap="nowrap" pt="sm">
+              <Group gap={4} wrap="nowrap">
+                <Clock size={12} color="var(--mantine-color-dimmed)" aria-hidden />
+                <Text size="xs" c="dimmed">
+                  {formatRelativeDate(new Date(entry.lastActivityAt).toISOString())}
+                </Text>
+              </Group>
               <Button
                 renderRoot={gameLink(entry.slug ?? entry.gameId)}
                 size="compact-sm"
@@ -218,11 +223,11 @@ function GameCard({ entry, gameLink }: Readonly<{ entry: LobbyEntry; gameLink: P
               >
                 Open
               </Button>
-            </div>
-          </div>
-        </div>
+            </Group>
+          </FigureCaptionLayout.Caption>
+        </FigureCaptionLayout>
       </Card>
-    </li>
+    </CardGrid.Item>
   );
 }
 
@@ -235,9 +240,9 @@ const EMPTY_WORDS: Record<View, string> = {
 function EmptyView({ title, children }: Readonly<{ title: string; children: string }>) {
   return (
     <Surface padding="xl">
-      <div className={styles.empty}>
+      <Stack align="center" ta="center">
         <NotAvailable title={title}>{children}</NotAvailable>
-      </div>
+      </Stack>
     </Surface>
   );
 }
@@ -406,12 +411,10 @@ function LobbyContent({
     );
   }
   return (
-    <div className={styles.room}>
-      <ul className={styles.grid} aria-label="Games">
-        {games.map((entry) => (
-          <GameCard key={entry.gameId} entry={entry} gameLink={gameLink} />
-        ))}
-      </ul>
-    </div>
+    <CardGrid aria-label="Games">
+      {games.map((entry) => (
+        <GameCard key={entry.gameId} entry={entry} gameLink={gameLink} />
+      ))}
+    </CardGrid>
   );
 }

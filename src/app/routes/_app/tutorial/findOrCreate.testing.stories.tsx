@@ -105,8 +105,8 @@ export const OpenedAtChooseARuleset = meta.story({
       const path = arrow()!;
       const origin = path.ownerSVGElement!.getBoundingClientRect();
       const box = label.getBoundingClientRect();
-      for (let x = box.left; x <= box.right; x += 4) {
-        for (let y = box.top; y <= box.bottom; y += 4) {
+      for (let x = box.left; x <= box.right; x += 2) {
+        for (let y = box.top; y <= box.bottom; y += 2) {
           if (path.isPointInFill(new DOMPoint(x - origin.left, y - origin.top))) {
             return true;
           }
@@ -114,11 +114,14 @@ export const OpenedAtChooseARuleset = meta.story({
       }
       return false;
     };
-    await waitFor(() => expect(covers()).toBe(false), { timeout: 5000 });
-    await expect(aimsAtField()).toBe(true);
-    /* A name on one line sets the form higher, which once brought the arrowhead over the label. */
-    await userEvent.click(within(form).getByRole('switch', { name: 'Set a custom name' }));
-    await userEvent.type(within(form).getByRole('textbox'), 'Ix');
+    /* A name on one line sets the form higher; the barbs as well as the tip still leave the label clear (guideArrow.test.ts covers the slanted approach). */
+    const custom = within(form).getByRole('switch', { name: 'Set a custom name' });
+    if (!(custom as HTMLInputElement).checked) {
+      await userEvent.click(custom);
+    }
+    const name = within(form).getByPlaceholderText('Name your game');
+    await userEvent.clear(name);
+    await userEvent.type(name, 'Caladan wedding traitor');
     await waitFor(() => expect(aimsAtField()).toBe(true), { timeout: 5000 });
     await expect(covers()).toBe(false);
   },

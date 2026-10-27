@@ -1,4 +1,4 @@
-import { Button, Group, Select, Slider, Stack, Switch, Text } from '@mantine/core';
+import { Box, Button, Divider, Group, Select, Slider, Stack, Switch, Text } from '@mantine/core';
 import { playCreateGameRequestSchema } from '@shared/play/admission';
 import { playGameNameSchema } from '@shared/play/gameNames';
 import { generatePlayGameName } from '@shared/play/generatedGameNames';
@@ -12,10 +12,13 @@ import {
 import { FormError } from '@ui/block/FormError';
 import { PageTitle } from '@ui/block/PageTitle';
 import { BoardSeats } from '@ui/content/BoardSeats';
+import { CountHeading } from '@ui/content/CountHeading';
 import { Eyebrow } from '@ui/content/Eyebrow';
+import { GameName } from '@ui/content/GameName';
 import { SeatRow } from '@ui/content/SeatRow';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { TicketLayout } from '@ui/layout/TicketLayout';
+import { FactList } from '@ui/list/FactList';
 import { TicketMain, TicketStub } from '@ui/surface/TicketSurface';
 import { Dices } from 'lucide-react';
 import type { Dispatch, ReactNode } from 'react';
@@ -186,7 +189,9 @@ export function CreateGamePass({
                   {chosen && preview ? (
                     <RulesetManifest ruleset={chosen} preview={preview} rulesetLink={rulesetLink} />
                   ) : null}
-                  <PassFacts ruleset={chosen?.name ?? null} seats={draft.minimumPlayers} lastTurn={draft.lastTurn} />
+                  <Box mt="auto">
+                    <PassFacts ruleset={chosen?.name ?? null} seats={draft.minimumPlayers} lastTurn={draft.lastTurn} />
+                  </Box>
                 </Stack>
               </TicketMain>
             </TicketLayout.Main>
@@ -253,13 +258,7 @@ function NameField({
   return (
     <Stack gap="sm">
       <Eyebrow>This will be the name of your game</Eyebrow>
-      <p
-        className={styles.name}
-        aria-live="polite"
-        data-pending={draft.custom && !draft.customName.trim() ? '' : undefined}
-      >
-        {createdGameName(draft)}
-      </p>
+      <GameName pending={draft.custom && !draft.customName.trim()}>{createdGameName(draft)}</GameName>
       <Group gap="md">
         {draft.custom ? null : (
           <Button
@@ -305,16 +304,7 @@ function PassFacts({
     { label: 'Last turn', value: String(lastTurn) },
     { label: 'First stop', value: 'Drafting' },
   ];
-  return (
-    <dl className={styles.facts}>
-      {facts.map((fact) => (
-        <div key={fact.label}>
-          <dt>{fact.label}</dt>
-          <dd>{fact.value}</dd>
-        </div>
-      ))}
-    </dl>
-  );
+  return <FactList facts={facts} />;
 }
 
 /* A searchable dropdown, since a catalogue of forty rulesets would push the rest of the pass off the screen as a list. */
@@ -366,18 +356,6 @@ function RulesetField({
   );
 }
 
-/* A stub field's heading, with its slider's value printed large beside it. */
-function CountHeading({ label, value }: Readonly<{ label: string; value: number }>) {
-  return (
-    <Group justify="space-between" align="baseline" wrap="nowrap">
-      <Eyebrow>{label}</Eyebrow>
-      <span className={styles.count} aria-hidden>
-        {value}
-      </span>
-    </Group>
-  );
-}
-
 function SeatsField({
   value,
   onChange,
@@ -426,7 +404,8 @@ function LastTurnField({
   disabled,
 }: Readonly<{ value: number; onChange: (value: number) => void; disabled: boolean }>) {
   return (
-    <Stack gap="md" className={styles.turns}>
+    <Stack gap="md">
+      <Divider variant="dashed" />
       <CountHeading label="Last turn" value={value} />
       <Slider
         color="slate.3"

@@ -25,6 +25,21 @@ describe('guideShapePath', () => {
     expect(lowest).toBeCloseTo(target.y - target.halfHeight - ARROW_GAP_PX, 0);
   });
 
+  /* A field met near its corner at a slant: the barbs, not just the tip, keep their gap, so a label at the field's edge stays clear. */
+  test('keeps the whole arrowhead clear of a target it meets at a slant', () => {
+    const target = { x: 760, y: 420, halfWidth: 110, halfHeight: 46 };
+    for (const rootX of [120, 260, 400, 520]) {
+      const points = below(guideShapePath(band, { x: rootX, y: 72 }, target));
+      expect(points.length).toBeGreaterThan(0);
+      for (const point of points) {
+        const clear =
+          Math.abs(point.x - target.x) >= target.halfWidth + ARROW_GAP_PX - 0.5 ||
+          Math.abs(point.y - target.y) >= target.halfHeight + ARROW_GAP_PX - 0.5;
+        expect(clear, `${rootX}: ${point.x} ${point.y}`).toBe(true);
+      }
+    }
+  });
+
   test('hooks across at a target right under the band, from the side with room', () => {
     const target = { x: 1277, y: 109, halfWidth: 57, halfHeight: 18 };
     const right = below(guideShapePath(band, { x: 1277, y: 72 }, target));

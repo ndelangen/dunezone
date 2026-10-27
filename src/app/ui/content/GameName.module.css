@@ -1,0 +1,12 @@
+.name {
+  margin: 0;
+  font-family: "C_Desdemona", fantasy;
+  font-size: clamp(1.9rem, 4cqw, 2.8rem);
+  line-height: 1.05;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+
+.pending {
+  opacity: 0.4;
+}
