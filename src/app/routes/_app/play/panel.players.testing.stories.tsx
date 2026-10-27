@@ -17,7 +17,7 @@ function attentionOn(page: ReturnType<typeof within>, player: string) {
 
 const meta = testingPreview.meta({
   ...gameMeta,
-  title: 'Play/Panels/Players',
+  title: 'Play/Players',
   /* The stories load the table chunk before they render, so its cold first load falls outside their first wait (#1302). */
   loaders: [
     async () => {
