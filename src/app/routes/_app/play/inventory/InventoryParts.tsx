@@ -15,12 +15,12 @@ import styles from './Inventory.module.css';
 import type { SharedInventory, SharedInventoryProps } from './useSharedInventory';
 
 /** What a piece is called where the inventory names it: a token by its own name, a card stack by its label, which never names a hidden face. */
-export function inventoryName(piece: TablePiece): string {
+function inventoryName(piece: TablePiece): string {
   return (piece.kind === 'card' ? undefined : piece.items[0]?.artwork?.name) ?? piece.label;
 }
 
 /** A piece's tooltip: its name and count, and for a tech token what it does, as its author described it on the asset. */
-export function PieceTooltipLabel({ piece }: Readonly<{ piece: TablePiece }>) {
+function PieceTooltipLabel({ piece }: Readonly<{ piece: TablePiece }>) {
   const description = piece.items[0]?.artwork?.description;
   return (
     <Stack gap={4}>
