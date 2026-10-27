@@ -3,6 +3,8 @@ import { MAX_LAST_TURN, MIN_LAST_TURN } from '@shared/play/lastTurn';
 import { Section } from '@ui/block/Section';
 import { useEffect, useRef, useState } from 'react';
 
+import { GAME_LENGTH_HELP } from '../../multiplayer/panelGuidance';
+
 export type GameLengthPanelProps = Readonly<{
   /** The turn the table has as its last. */
   lastTurn: number;
@@ -34,7 +36,7 @@ export function GameLengthPanel({ lastTurn, disabled, onLastTurn }: GameLengthPa
     }
   }, [lastTurn]);
   return (
-    <Section title="Game length" description="The turn wheel counts up to the last turn.">
+    <Section hiddenHeading title="Game length" description={GAME_LENGTH_HELP}>
       <NumberInput
         label="Last turn"
         min={MIN_LAST_TURN}

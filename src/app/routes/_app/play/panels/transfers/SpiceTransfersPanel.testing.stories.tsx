@@ -12,7 +12,7 @@ export const EndsInWords = meta.story({
     const faction = playingSnapshot().roster!.seats[1]!.faction!;
     await expect(canvas.getAllByRole('listitem').map((item) => item.textContent)).toEqual([
       'Thialfi returned 1 spice to the Spice Bank.',
-      'Thialfi collected 3 spice from the table to a faction no longer in the game.',
+      'Thialfi collected 3 spice from the table to the spice reserve of a faction that has left the game.',
       'Twaffle took 6 spice from the Spice Bank to the table.',
       `Thialfi withdrew 2 spice from the ${faction.name} spice reserve to the table.`,
     ]);

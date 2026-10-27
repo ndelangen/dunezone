@@ -20,7 +20,7 @@ function spicePlace(labels: Readonly<Partial<Record<string, string>>>, place: st
     return 'the Spice Bank';
   }
   const name = labels[place];
-  return name ? `the ${name} spice reserve` : 'a faction no longer in the game';
+  return name ? `the ${name} spice reserve` : 'the spice reserve of a faction that has left the game';
 }
 
 /* The verb each stored transfer kind reads as; `supply` and `disposal` stay as stored, and both name the Spice Bank. */

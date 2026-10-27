@@ -2,7 +2,9 @@ import type { TablePanel } from '../GameTable';
 import {
   ALLIANCES_GUIDANCE,
   AUDIT_LOG_GUIDANCE,
+  GAME_LENGTH_GUIDANCE,
   GAME_LOG_GUIDANCE,
+  REPLAY_GUIDANCE,
   TINTS_GUIDANCE,
 } from '../multiplayer/panelGuidance';
 
@@ -16,7 +18,7 @@ export type PanelWindow = Omit<TablePanel, 'content' | 'panels' | 'actions'>;
 export const PANEL_WINDOWS = {
   alliances: { key: 'alliances', label: 'Alliances', topic: 'alliance', ...ALLIANCES_GUIDANCE },
   tints: { key: 'tints', label: 'Territory tints', topic: 'tints', ...TINTS_GUIDANCE },
-  settings: { key: 'settings', label: 'Settings', topic: 'controls', description: 'Game length.' },
+  settings: { key: 'settings', label: 'Settings', topic: 'controls', ...GAME_LENGTH_GUIDANCE },
   gameLog: { key: 'game-log', label: 'Game log', topic: 'game', ...GAME_LOG_GUIDANCE },
   audit: { key: 'audit', label: 'Audit', topic: 'audit', ...AUDIT_LOG_GUIDANCE },
   transfers: {
@@ -25,10 +27,5 @@ export const PANEL_WINDOWS = {
     topic: 'spice',
     description: 'Public spice transfers, newest first.',
   },
-  replay: {
-    key: 'replay',
-    label: 'Replay',
-    topic: 'turn',
-    description: 'Browse saved phases and return to the live table.',
-  },
+  replay: { key: 'replay', label: 'Replay', topic: 'turn', ...REPLAY_GUIDANCE },
 } as const satisfies Record<string, PanelWindow>;

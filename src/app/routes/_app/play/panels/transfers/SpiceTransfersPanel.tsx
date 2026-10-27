@@ -26,7 +26,13 @@ export function SpiceTransfersPanel({
   return (
     <Section hiddenHeading={hiddenHeading} title="Public spice transfers">
       <Stack gap="xs">
-        {transfers.length === 0 && <Text size="sm">No spice transfers yet.</Text>}
+        {transfers.length === 0 ? (
+          <Text size="sm">No spice transfers yet.</Text>
+        ) : (
+          <Text size="xs" c="dimmed">
+            Newest first
+          </Text>
+        )}
         <List type="ordered" size="sm">
           {transfers.map((transfer) => (
             <List.Item key={transfer.key}>{transfer.text}</List.Item>

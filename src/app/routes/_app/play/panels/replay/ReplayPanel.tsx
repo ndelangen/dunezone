@@ -49,16 +49,19 @@ export function ReplayPanel({ replay, pending, onStep, onLive }: ReplayPanelProp
           </Group>
         </>
       ) : (
-        <Group gap="sm" role="group" aria-label="Phase playback">
-          <Button variant="default" disabled={pending || !replay.canStart} onClick={() => onStep(0)}>
-            Replay from start
-          </Button>
-          {pending && (
-            <Button variant="default" onClick={onLive}>
-              Return to live
+        <>
+          <Text size="sm">Step through the game phase by phase, from its start.</Text>
+          <Group gap="sm" role="group" aria-label="Phase playback">
+            <Button variant="default" disabled={pending || !replay.canStart} onClick={() => onStep(0)}>
+              Replay from start
             </Button>
-          )}
-        </Group>
+            {pending && (
+              <Button variant="default" onClick={onLive}>
+                Return to live
+              </Button>
+            )}
+          </Group>
+        </>
       )}
     </>
   );
