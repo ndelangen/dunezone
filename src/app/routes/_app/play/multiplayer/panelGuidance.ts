@@ -49,9 +49,8 @@ export function battleHelp(table: TableProjection) {
   return battle ? `Battle at ${battle.territory}` : 'Drag the battle marker onto a territory to begin.';
 }
 
-export function battleGuidance(table: TableProjection): Guidance {
-  return { description: 'The battle on the table and your private plan.', help: battleHelp(table) };
-}
+/** The Battle plan window's line; its help says where the battle is, which only the table knows. */
+export const BATTLE_PLAN_GUIDANCE: Guidance = { description: 'The battle on the table and your private plan.' };
 
 export const ALLIANCES_HELP = helpLines(
   'The table shows you as allies until one of you breaks it.',

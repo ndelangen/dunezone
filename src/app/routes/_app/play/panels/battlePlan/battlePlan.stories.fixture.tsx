@@ -7,16 +7,16 @@ import { PinOff } from 'lucide-react';
 import type { CSSProperties, ReactNode } from 'react';
 import { useState } from 'react';
 
-import compassStyles from '../compass/CompassControls.module.css';
-import { WindowFrame } from '../compass/WindowFrame';
-import type { TableWindow } from '../compass/windows';
-import { DarkSchemeIsland, darkSchemeIslandAttributes } from '../DarkSchemeIsland';
-import { cardBack, factions, playingSnapshot } from '../product.stories.fixture';
+import compassStyles from '../../compass/CompassControls.module.css';
+import { WindowFrame } from '../../compass/WindowFrame';
+import type { TableWindow } from '../../compass/windows';
+import { DarkSchemeIsland, darkSchemeIslandAttributes } from '../../DarkSchemeIsland';
+import { cardBack, factions, playingSnapshot } from '../../product.stories.fixture';
 import { LedgerPlan } from './LedgerPlan';
 import { ModeToggle } from './parts';
 import { planLocks, planPieces, supportMatters } from './planView';
 import type { BattlePlanViewProps } from './planView';
-import '../dune-play.css';
+import '../../dune-play.css';
 
 type Faction = (typeof factions)[number];
 const factionBySlug = (slug: string) => factions.find((entry) => entry.slug === slug)!;

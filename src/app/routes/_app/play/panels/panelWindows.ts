@@ -1,6 +1,7 @@
 import type { TablePanel } from '../GameTable';
 import {
   ALLIANCES_GUIDANCE,
+  BATTLE_PLAN_GUIDANCE,
   AUDIT_LOG_GUIDANCE,
   GAME_LENGTH_GUIDANCE,
   GAME_LOG_GUIDANCE,
@@ -25,6 +26,7 @@ export const PANEL_WINDOWS = {
   settings: { key: 'settings', label: 'Settings', topic: 'controls', ...GAME_LENGTH_GUIDANCE },
   gameLog: { key: 'game-log', label: 'Game log', topic: 'game', ...GAME_LOG_GUIDANCE },
   audit: { key: 'audit', label: 'Audit', topic: 'audit', ...AUDIT_LOG_GUIDANCE },
+  battlePlan: { key: 'battle', label: 'Battle plan', topic: 'battle', ...BATTLE_PLAN_GUIDANCE },
   battles: {
     key: 'battles',
     label: 'Battles',

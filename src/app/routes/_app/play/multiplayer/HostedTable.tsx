@@ -33,6 +33,7 @@ import { GameLink } from '../GameLink';
 import { GameTable } from '../GameTable';
 import type { TablePanel } from '../GameTable';
 import { ConnectedAlliancesPanel } from '../panels/alliances/useAlliancesPanel';
+import { ConnectedBattlePlanPanel } from '../panels/battlePlan/useBattlePlanPanel';
 import { ConnectedBattleHistoryPanel } from '../panels/battles/useBattleHistoryPanel';
 import { ConnectedHandPanel } from '../panels/hand/useHandPanel';
 import { ConnectedSharedInventoryPanel } from '../panels/inventory/useSharedInventoryPanel';
@@ -48,7 +49,7 @@ import { predictionCardInHand } from '../prediction/predictionCardInHand';
 import { TableWait } from '../TableWait';
 import { AllianceCoinsScene } from './AllianceCoins';
 import { AllianceStrip, showsAlliances } from './Alliances';
-import { BattleControls, BattleModeToggle, BattleScene } from './BattleControls';
+import { BattleModeToggle, BattleScene } from './BattleControls';
 import { BidderScene, biddingPhase } from './Bidder';
 import { useBugReport } from './BugReport';
 import { OfflineConversations } from './Conversation';
@@ -58,7 +59,7 @@ import type { DeclareChoice } from './GameResult';
 import { GameRuntimeContext } from './gameRuntime';
 import { HandCountsScene } from './HandCounts';
 import {
-  battleGuidance,
+  battleHelp,
   LOG_GUIDANCE,
   phaseGuidance,
   PHASE_PREVIOUS,
@@ -555,11 +556,9 @@ function gameGroup({ client, table, error, declare }: ControlPanelsProps, inPlay
       ...(inPlay && (battle || activePhaseId === 'battle')
         ? [
             {
-              key: 'battle',
-              label: 'Battle plan',
-              topic: 'battle' as const,
-              ...battleGuidance(table),
-              content: withTableError(error, <BattleControls client={client} table={table} />),
+              ...PANEL_WINDOWS.battlePlan,
+              help: battleHelp(table),
+              content: withTableError(error, <ConnectedBattlePlanPanel client={client} table={table} />),
               /* The plan fills its window under the wheel, whose cards peek over the window's top edge. */
               ...(battle && table.snapshot.battlePlan && table.snapshot.bank
                 ? { fill: true, peek: true, actions: <BattleModeToggle client={client} table={table} /> }

@@ -4,7 +4,7 @@ import type { TablePiece } from '@shared/play/model';
 import { useMotionAllowed } from '@app/styles/motion';
 import { BattleWheel } from '@game/assets/generic/BattleWheel';
 
-import { PieceImage, pieceName } from '../multiplayer/HandPiece';
+import { PieceImage, pieceName } from '../../multiplayer/HandPiece';
 import { AdjustButton, OpponentLine, ReadyButton, StrengthSum, useBump } from './parts';
 import styles from './PlanHead.module.css';
 import { capableFaces, planLocks, planPieces, toggleCard, toggleLeader } from './planView';

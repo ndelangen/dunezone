@@ -10,8 +10,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useMotionAllowed } from '@app/styles/motion';
 import { TroopToken } from '@game/assets/faction/troop/Troop';
 
-import compassStyles from '../compass/CompassControls.module.css';
-import { PieceImage, pieceName } from '../multiplayer/HandPiece';
+import compassStyles from '../../compass/CompassControls.module.css';
+import { PieceImage, pieceName } from '../../multiplayer/HandPiece';
 import styles from './parts.module.css';
 import { FREE_SUPPORT_HELP, MODE_HELP, formatStrength, isShown, spiceMatters } from './planView';
 import type { BattlePlanViewProps, Opponent, WheelArt } from './planView';
