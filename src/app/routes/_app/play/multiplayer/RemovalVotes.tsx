@@ -1,23 +1,25 @@
-import { Button, Group, Stack, Text, VisuallyHidden } from '@mantine/core';
+import { Avatar, Button, Group, Stack, Text } from '@mantine/core';
 import { alliesOf } from '@shared/play/alliances';
 import { TABLE_CONVERSATION } from '@shared/play/conversations';
-import { factionTokenOf } from '@shared/play/factionToken';
+import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import type { PublicControls } from '@shared/play/inventory';
 import type { RemovalVote } from '@shared/play/removal';
 import { rosterSeat } from '@shared/play/schema';
 import { FormError } from '@ui/block/FormError';
 import { Section } from '@ui/block/Section';
 import { StatusBadge } from '@ui/content/StatusBadge';
-import { ExternalLink } from 'lucide-react';
 import { useEffect, useSyncExternalStore } from 'react';
 
 import { useFactionPageSlug } from '@db/factions';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import type { CompassPlayer } from '../compass/compassTable';
-import { PlayerAlliance } from './Alliances';
+import { seatAlliance } from './Alliances';
 import { Conversation } from './Conversation';
 import { FactionDetails } from './FactionDetails';
+import { FactionInfoHeader } from './FactionInfoHeader';
+import type { FactionInfoHeaderModel } from './FactionInfoHeader';
+import { FactionTokenFace, factionTokenFace } from './FactionTokenFace';
 import { requestedSeats, VacantSeatRequests } from './SeatRequests';
 import { SwappingSeat } from './Swapping';
 import { isSpectator, seatFaction } from './tableFactions';
@@ -142,58 +144,54 @@ function useFactionDetails(client: TableSession, factionId: string | undefined) 
   return { slug, details: factionId ? factions[factionId] : undefined };
 }
 
+/* What a seat shows where the table has no token for its faction: the token it holds while trading seats, else its player's avatar. */
+function standInToken(table: TableProjection, player: Player) {
+  return table.snapshot.swapping?.tokens[player.seat] ?? player.avatar ?? null;
+}
+
 function PlayerInformation({ client, table, player, hasVote }: Props & Readonly<{ player: Player; hasVote: boolean }>) {
   const faction = rosterSeat(table.snapshot.roster, player.seat)?.faction;
   const count = table.snapshot.controls?.players.length ?? 0;
-  const canStart = removable(table, player.seat, hasVote);
   const { slug, details } = useFactionDetails(client, faction?.id);
+  const alliance = seatAlliance(client, table, player.seat);
+  const names = snapshotFactionLabels(table.snapshot);
+  const model: FactionInfoHeaderModel = {
+    token: faction ? (
+      <FactionTokenFace
+        table={table}
+        factionId={faction.id}
+        names={names}
+        size={44}
+        src={standInToken(table, player)}
+      />
+    ) : (
+      <Avatar src={standInToken(table, player)} size={44} radius="xl" alt="">
+        {player.name.slice(0, 1)}
+      </Avatar>
+    ),
+    name: player.name,
+    faction: faction?.name ?? null,
+    seat: player.seat.replace('seat-', 'Seat '),
+    own: player.seat === table.viewer.viewerSeat,
+    alliance,
+    page: slug && faction ? { href: `/factions/${encodeURIComponent(slug)}`, name: faction.name } : null,
+    removal: removable(table, player.seat, hasVote)
+      ? {
+          start: () => client.command({ kind: 'removal-start', seat: player.seat }),
+          ...(count < 3
+            ? { disabledReason: 'Removal requires at least three players.' }
+            : !table.canInteract && { disabledReason: 'The table is not taking moves right now.' }),
+        }
+      : null,
+  };
   return (
     <Section hiddenHeading title={player.name}>
       <Stack gap="md">
-        {(slug || canStart) && (
-          <Group gap="sm">
-            {slug && faction && <FactionPageButton slug={slug} name={faction.name} />}
-            {canStart && (
-              <Button
-                color="red"
-                disabled={!table.canInteract || count < 3}
-                onClick={() => client.command({ kind: 'removal-start', seat: player.seat })}
-              >
-                Start removal vote
-              </Button>
-            )}
-          </Group>
-        )}
-        {canStart && count < 3 && (
-          <Text size="sm" c="dimmed">
-            Removal requires at least three players.
-          </Text>
-        )}
-        <Text size="sm">
-          {faction?.name ?? 'No faction assigned'} · {player.seat.replace('seat-', 'Seat ')}
-        </Text>
+        <FactionInfoHeader model={model} />
         <SwappingSeat client={client} table={table} seat={player.seat} />
-        <PlayerAlliance client={client} table={table} seat={player.seat} />
         {details && <FactionDetails faction={details} />}
       </Stack>
     </Section>
-  );
-}
-
-/* A seat's faction page in a new tab, so the table stays open: what a faction starts with is public; what it holds now is not (#1007). */
-function FactionPageButton({ slug, name }: Readonly<{ slug: string; name: string }>) {
-  return (
-    <Button
-      component="a"
-      href={`/factions/${encodeURIComponent(slug)}`}
-      target="_blank"
-      rel="noreferrer"
-      variant="default"
-      rightSection={<ExternalLink size={16} aria-hidden />}
-    >
-      View {name}
-      <VisuallyHidden> (opens in a new tab)</VisuallyHidden>
-    </Button>
   );
 }
 
@@ -210,14 +208,13 @@ export function usePlayerWindows(client: TableSession, table: TableProjection) {
   const players: CompassPlayer[] = seatPlayers(table).map((player) => {
     const faction = rosterSeat(table.snapshot.roster, player.seat)?.faction;
     const peerId = seatFaction(table, player.seat);
-    const token = faction ? factionTokenOf(table.snapshot.table.pieces, faction.id)?.items[0]?.artwork?.front : null;
     const vote = votes.find((entry) => entry.target.seat === player.seat)?.id;
     return {
       ...(vote && { vote }),
       seat: player.seat,
       name: player.name,
       factionName: faction?.name ?? null,
-      token: token ?? table.snapshot.swapping?.tokens[player.seat] ?? player.avatar ?? null,
+      token: (faction && factionTokenFace(table, faction.id)) ?? standInToken(table, player),
       unread: conversations.summaries.find((entry) => entry.peerId === peerId)?.unread ?? 0,
       own: player.seat === table.viewer.viewerSeat,
       canConverse: Boolean(peerId && conversations.context?.peers.some((peer) => peer.id === peerId)),

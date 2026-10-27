@@ -11245,5 +11245,23 @@
     "tags": ["saluting", "shield", "bearer", "Soldier Boy", "wide stance", "silhouette"],
     "subjects": ["people", "weapons"],
     "sourceHash": "4e34c3cb5af11e1bfdee64432dd4c90ecabf6277f87c6484f8296b52ff3c1fa8"
+  },
+  "/vector/troop/tower-headed-robot.svg": {
+    "description": "An angular robot has a tall rectangular head with a loop behind it, spread legs, clawed feet and a different tool on each lowered arm.",
+    "tags": ["tower headed", "robot", "sensor", "claw", "building blocks", "automaton", "silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "2d9db67fdcac86d6e97c9a24769c5e85f0087afc11ae9d84431f74efded9332c"
+  },
+  "/vector/troop/camera-raygun-robot.svg": {
+    "description": "A round-bodied robot with a small circular camera head points a large ray gun upward and forward, while its other arm ends in a hanging pincer.",
+    "tags": ["camera", "webcam", "raygun", "ray gun", "robot", "pincer", "lens", "silhouette"],
+    "subjects": ["machines", "weapons"],
+    "sourceHash": "e948303ba50f9dd4477487f1ed02190f7151ea829134121a84515be24a2f5a71"
+  },
+  "/vector/troop/rear-view-battle-mech.svg": {
+    "description": "A rear-view armored robot has a broad high back, bent arms, a gun projecting to the left and two sturdy legs separated by a clear gap.",
+    "tags": ["rear view", "battle mech", "robot", "rifle", "back armor", "silhouette"],
+    "subjects": ["machines", "weapons"],
+    "sourceHash": "b9aec71b75844c5114ef057faa48abbbeecfce90d14cab17a4ff206b8bcd9bbf"
   }
 }
