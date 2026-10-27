@@ -21,7 +21,7 @@ export function setupArgs(snapshot: GameSnapshot, seat = 'seat-2'): SetupPanelPr
 export const inSetupWindow = (snapshot: GameSnapshot) => ({ panelWindow: setupWindow(snapshot.setup!) });
 
 /* The six-seat game's setup, seen from seat 2 on the traitors step, then on starting troops; seat 6 predicts the winner. */
-export const traitors = setupSnapshot;
+const traitors = setupSnapshot;
 export const startingTroops = preparedSnapshot;
 export const predicting = () => predictionSnapshot();
 export const predictionLocked = () => predictionSnapshot(true);
