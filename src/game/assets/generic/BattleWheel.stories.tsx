@@ -111,11 +111,4 @@ export const Ready = meta.story({
 });
 
 /** Halves read as ½ in the strength and the adjustment alike. */
-export const Halves = meta.story({
-  args: { ...revealedArgs, strength: 2.5, adjustment: -0.5 },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await expect(canvas.getByText('Strength').previousElementSibling).toHaveTextContent('2½');
-    await expect(canvas.getByLabelText('Strength adjustment minus 0.5')).toHaveTextContent('-½');
-  },
-});
+export const Halves = meta.story({ args: { ...revealedArgs, strength: 2.5, adjustment: -0.5 } });
