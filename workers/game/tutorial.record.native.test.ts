@@ -68,7 +68,12 @@ async function tutorialRuntime() {
     return { id: entry.id, slug, name: entry.name };
   });
   const ban = required(draftable.factions.find((faction) => !factions.some((chosen) => chosen.id === faction.id)));
-  return new JourneyRecorder(peer, runtime, { factions, ban: { id: ban.id, name: ban.name } });
+  return new JourneyRecorder(
+    peer,
+    runtime,
+    { factions, ban: { id: ban.id, name: ban.name } },
+    new Set(['drafting', 'setup', 'play'])
+  );
 }
 
 /* Each seated faction's sheet as the Worker answers a page asking for it, so the tutorial's table answers the same. */
@@ -102,6 +107,8 @@ describe.runIf(process.env.RECORD_TUTORIAL)('The tutorial setup recording', { ti
     };
     try {
       await drafting(journey);
+      /* The draft before anyone picks: every seat taken and a spectator watching, the same on every recording. */
+      checkpoints.drafting = journey.steps.findIndex((step) => step.title === 'Table full');
       await trading(journey);
       mark('setup');
       await predict(journey);
@@ -127,7 +134,10 @@ describe.runIf(process.env.RECORD_TUTORIAL)('The tutorial setup recording', { ti
                 logSequence: step.logSequence,
                 stored: required(step.stored),
                 viewers: Object.fromEntries(views.map((view) => [view.viewer.viewerSeat, view.viewer])),
-                players: required(step.views[TUTORIAL_RECIPE.learner]).snapshot.controls?.players ?? [],
+                /* The fixture's avatar addresses name no real image, so the players show their initials, as before the deal. */
+                players: (required(step.views[TUTORIAL_RECIPE.learner]).snapshot.controls?.players ?? []).map(
+                  (player) => ({ ...player, avatar: null })
+                ),
               },
             ];
           })

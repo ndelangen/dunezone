@@ -28,6 +28,9 @@ export const Landing = meta.story({
       'href',
       '/tutorial/what-goes-where'
     );
-    await expect(page.queryByRole('link', { name: /Draft and trade/ })).toBeNull();
+    const unbuilt = TUTORIAL_CHAPTERS.find((chapter) => !(chapter.slug in CHAPTER_SCRIPTS));
+    if (unbuilt) {
+      await expect(page.queryByRole('link', { name: new RegExp(unbuilt.title) })).toBeNull();
+    }
   },
 });

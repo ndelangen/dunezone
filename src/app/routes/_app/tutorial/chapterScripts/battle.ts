@@ -10,7 +10,8 @@ import { at, element, onBoard, task } from './guideChecks';
  * The learner plays the Fremen, and the others moved the game on to the Battle phase before the chapter opens.
  * The Fremen ship into Arrakeen, where House Atreides waits, drag the battle marker there and take the aggressor's side.
  * The Fremen fight because their troops carry battle values in the shared setup, and two troop types show what the dial is for.
- * The plan goes together in the Battle plan window, the Ledger (#2498), which opens on the claim: a leader and a dial, then Ready.
+ * The plan goes together in the Battle plan window, the Ledger (#2498), which opens on the claim: a leader and a dial, the dial shown
+ * early with its eye (Norbert, 2026-10-27), then Ready.
  * Atreides answers on its own: it takes the other side, commits a leader and locks its plan, the plans reveal together,
  * and both sides agree who won. Nothing decides a battle for the players, so the result is theirs to agree on.
  */
@@ -115,10 +116,25 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'dial',
       task: 'Dial in two troops',
       detail:
-        'Under the cards, the dial says how many troops you commit. Fremen troops come in two kinds, plain troops and Fedaykin, each with its own row: raise either by two.',
-      anchor: { kind: 'page', element: element('[data-window="battle"] [aria-label="Dial"]') },
+        'Under the cards, the dial says how many troops you commit. Fremen troops come in two kinds, plain troops and Fedaykin, each with its own row: raise either by two. Leave the eye beside the dial for the next step: once it shows the dial, the dial is fixed.',
+      anchor: { kind: 'page', element: element('[data-window="battle"] [aria-label="Troops and spice"]') },
       begin: () => undefined,
-      done: () => (plan()?.troops ?? []).reduce((total, troop) => total + troop.dialed + troop.undialed, 0) >= 2,
+      /* Clicking the eye first fixes the dial where it stands, so a shown dial moves the chapter on too, to its own step. */
+      done: () =>
+        (plan()?.troops ?? []).reduce((total, troop) => total + troop.dialed + troop.undialed, 0) >= 2 ||
+        plan()?.disclosed.dial === true,
+    }),
+    task({
+      id: 'reveal-early',
+      task: 'Show your dial early',
+      detail:
+        'Some cards and powers make a side show part of its plan before the reveal. Click the eye beside the dial: everyone now sees your dial on your closed wheel under the marker. Leaders and cards have an eye of their own.',
+      anchor: {
+        kind: 'page',
+        element: element('[data-window="battle"] [aria-label="Show your dial to everyone now"]'),
+      },
+      begin: () => undefined,
+      done: () => plan()?.disclosed.dial === true,
     }),
     task({
       id: 'ready',
@@ -149,6 +165,7 @@ const learned = [
   'Drag the battle marker from the phase tracker onto a contested territory',
   'Each faction claims a side; the aggressor takes the left',
   'Your battle plan opens with the claim, and {B} shows or hides it: a leader, cards and a dial',
+  'The eye beside a part of the plan shows it to everyone before the reveal',
   'Ready locks the plan, and both reveal together',
   'The players agree who won; the table never decides it for them',
 ];

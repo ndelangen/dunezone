@@ -4,11 +4,13 @@ import { bidding } from './bidding';
 import { bringYourOwnPieces } from './bringYourOwnPieces';
 import type { ChapterScript } from './chapterScript';
 import { decksAndDealing } from './decksAndDealing';
+import { draftAndTrade } from './draftAndTrade';
 import { endingAGame } from './endingAGame';
 import { lookingAround } from './lookingAround';
 import { movingPieces } from './movingPieces';
 import { phasesAndTurns } from './phasesAndTurns';
 import { setup } from './setup';
+import { takeASeat } from './takeASeat';
 import { thePrivateSideTable } from './thePrivateSideTable';
 import { welcome } from './welcome';
 import { whatGoesWhere } from './whatGoesWhere';
@@ -18,6 +20,8 @@ import { yourHandAndSpice } from './yourHandAndSpice';
 /** The chapters built so far, by slug; every other chapter shows as coming soon. */
 export const CHAPTER_SCRIPTS: Readonly<Record<string, ChapterScript>> = {
   [welcome.slug]: welcome,
+  [takeASeat.slug]: takeASeat,
+  [draftAndTrade.slug]: draftAndTrade,
   [whatGoesWhere.slug]: whatGoesWhere,
   [lookingAround.slug]: lookingAround,
   [movingPieces.slug]: movingPieces,

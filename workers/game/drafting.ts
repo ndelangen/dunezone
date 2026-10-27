@@ -4,11 +4,13 @@ import { accepted, nextSnapshot } from '../../src/shared/play/commands';
 import { draftedPool, emptyDraft, isBanned, setAsideReason } from '../../src/shared/play/drafting';
 import type { DraftAction, DraftFaction, DraftState } from '../../src/shared/play/drafting';
 import { emptyPublicControls } from '../../src/shared/play/inventory';
+import type { StoredControls } from '../../src/shared/play/inventory';
 import { seatSubject } from '../../src/shared/play/participation';
 import { tableForViewer } from '../../src/shared/play/protocol';
 import type { Viewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
+import { openSwapping } from '../../src/shared/play/swapping';
 import type { StoredSnapshot } from './state';
 
 /*
@@ -237,7 +239,7 @@ export function draftWithSetAside(
 }
 
 /** The events that record a public assignment, one per seat and one for the count, newest first in the table. */
-export function assignmentEvents(
+function assignmentEvents(
   snapshot: StoredSnapshot,
   dealt: readonly { seat: string; factionName: string; position: number }[]
 ): StoredSnapshot {
@@ -251,4 +253,41 @@ export function assignmentEvents(
   }
   table = accepted(table, 'assignment', `Seats dealt: ${dealt.length} players, trading opens.`);
   return nextSnapshot(snapshot, table);
+}
+
+/** What the deal changes beyond the snapshot, which the caller holds: who sits, their tokens, and its open roster requests. */
+export type DealTable = Readonly<{
+  seats: string[];
+  /* The faction token each dealt seat shows while trading, by seat. */
+  tokens: Record<string, string>;
+  closeRosterRequests: (controls: StoredControls, now: number) => StoredControls;
+  now: number;
+}>;
+
+/*
+ * The deal's step, shared by a game and the tutorial's table: the draft ends, each seat's assignment is recorded,
+ * the roster requests still open close, and trading opens with nobody ready. Storing the stations is the caller's.
+ */
+export function dealtSnapshot(
+  stored: StoredSnapshot,
+  draft: DraftState,
+  deal: readonly { seat: string; factionId: string; position: number }[],
+  table: DealTable
+): StoredSnapshot {
+  const { draft: _ended, ...rest } = stored;
+  const dealt = assignmentEvents(
+    rest,
+    deal.map((entry) => ({
+      seat: entry.seat,
+      factionName: draft.factions.find((candidate) => candidate.id === entry.factionId)?.name ?? entry.factionId,
+      position: entry.position,
+    }))
+  );
+  const controls = table.closeRosterRequests(dealt.controls ?? emptyPublicControls(), table.now);
+  return {
+    ...dealt,
+    stage: 'swapping',
+    swapping: { ...openSwapping(crypto.randomUUID(), table.now), tokens: table.tokens },
+    controls: { ...controls, ready: [], seats: table.seats },
+  };
 }

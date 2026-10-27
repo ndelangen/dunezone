@@ -5,6 +5,7 @@ import type { Vector3Tuple } from 'three';
 
 import { wheelPixels } from '@app/widgets/tabletop/wheelPixels';
 
+import type { Landing } from '../table/localTable';
 import type { GuideTask, GuideView } from '../TutorialGuide';
 
 /* What the chapters check on the table and the page, shared so each chapter reads only as its tasks. */
@@ -187,3 +188,41 @@ export const nextPhaseButton = () =>
   [...document.querySelectorAll('[aria-label="Phase navigation"] button')].find(
     (button) => button.textContent?.trim() === 'Next phase'
   ) ?? null;
+
+/** The gear's game menu button in the header. */
+export const gameMenuButton = () => document.querySelector<HTMLElement>('[aria-label="Game menu"]');
+
+/** Closes the game menu if it is open, so it never stands over the chapter's closing screen. */
+export const closeGameMenu = () => {
+  if (document.querySelector('[role="menu"]')) {
+    gameMenuButton()?.click();
+  }
+};
+
+/*
+ * A carry that grew while held, set down since the task began with every item it held in one of `stacks`.
+ * {T}, or a right-click, while carrying takes the next piece from the stack under the pointer, so the carry growing is the take itself;
+ * a key pressed with nothing carried, a stack picked up whole, or pieces dropped one at a time never count.
+ * The table records each take and drop as it answers it, so a gesture faster than the guide's tick is still seen.
+ */
+export const grownCarryLanded = (landings: () => readonly Landing[], stacks: () => readonly Piece[]) => ({
+  begin: () => landings().length,
+  done: (seen: number) =>
+    landings()
+      .slice(seen)
+      .some((landing) => landing.grew && stacks().some((stack) => holdsAll(stack, landing.itemIds))),
+});
+
+/** Whether a stack holds every one of these items, by id. */
+export const holdsAll = (stack: Piece, itemIds: Iterable<string>) =>
+  [...itemIds].every((id) => stack.items.some((item) => item.id === id));
+
+/*
+ * A press outside a piece's ring menu closes it, as a press anywhere else on the page would; a step that ends in the ring leaves it shut.
+ * It is sent only while a ring is open, so no other window listener ever takes it for the player's own press.
+ */
+export const closePieceMenu = () => {
+  if (document.querySelector('[data-radial-menu]')) {
+    document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+  }
+};

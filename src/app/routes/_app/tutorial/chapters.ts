@@ -69,14 +69,14 @@ const CHAPTERS: readonly Omit<TutorialChapter, 'number'>[] = [
   {
     slug: 'moving-pieces',
     title: 'Moving pieces',
-    goal: 'Split, carry and flip stacks, shuffle and peek',
+    goal: 'Split, carry, grow and flip stacks, and move your faction token',
     minutes: 5,
     part: 'The table',
   },
   {
     slug: 'decks-and-dealing',
     title: 'Decks and dealing',
-    goal: 'Deal to a player, lay cards out, take two at once and lock a deck',
+    goal: 'Shuffle, peek and reorder, deal, split and take two at once',
     minutes: 4,
     part: 'The table',
   },

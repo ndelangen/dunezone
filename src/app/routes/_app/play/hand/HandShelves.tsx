@@ -64,6 +64,7 @@ export function HandShelves(props: HandProps) {
           type="button"
           className={styles.face}
           aria-label={`Drag ${pieceName(piece)} from hand`}
+          data-piece-id={piece.id}
           onContextMenu={(event) => setMenu(handMenuAnchor(event, piece.id))}
           {...closeUp.hover(piece)}
         >

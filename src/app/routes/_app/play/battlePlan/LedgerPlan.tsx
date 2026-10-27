@@ -3,6 +3,7 @@ import type { BattleFace } from '@shared/play/battle';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { SortableRow } from '@ui/control/SortableRow';
 import { TooltipTarget } from '@ui/control/TooltipTarget';
+import clsx from 'clsx';
 import { Fragment } from 'react';
 
 import styles from './LedgerPlan.module.css';
@@ -47,7 +48,7 @@ export function LedgerPlan(props: BattlePlanViewProps) {
     <div className={styles.ledger}>
       <PlanHead view={props} />
       <div className={styles.sheet}>
-        <section className={styles.row} aria-label="Leader">
+        <section className={clsx(styles.row, styles.stacked)} aria-label="Leader">
           <span className={styles.label}>
             Leader
             {plan.leaderIds.length ? (

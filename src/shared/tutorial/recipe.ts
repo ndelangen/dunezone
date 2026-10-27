@@ -15,5 +15,5 @@ export const TUTORIAL_RECIPE = {
 } as const;
 
 /** The named places in the setup a chapter can start from, in the order the recording reaches them. */
-export const TUTORIAL_CHECKPOINTS = ['setup', 'turn-1-storm'] as const;
+export const TUTORIAL_CHECKPOINTS = ['drafting', 'setup', 'turn-1-storm'] as const;
 export type TutorialCheckpoint = (typeof TUTORIAL_CHECKPOINTS)[number];
