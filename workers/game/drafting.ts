@@ -239,7 +239,7 @@ export function draftWithSetAside(
 }
 
 /** The events that record a public assignment, one per seat and one for the count, newest first in the table. */
-export function assignmentEvents(
+function assignmentEvents(
   snapshot: StoredSnapshot,
   dealt: readonly { seat: string; factionName: string; position: number }[]
 ): StoredSnapshot {
