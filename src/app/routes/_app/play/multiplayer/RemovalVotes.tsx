@@ -19,7 +19,7 @@ import { Conversation } from './Conversation';
 import { FactionDetails } from './FactionDetails';
 import { FactionInfoHeader } from './FactionInfoHeader';
 import type { FactionInfoHeaderModel } from './FactionInfoHeader';
-import { FactionTokenFace, factionTokenFace } from './FactionTokenFace';
+import { factionToken, FactionTokenFace, factionTokenFace } from './FactionTokenFace';
 import { requestedSeats, VacantSeatRequests } from './SeatRequests';
 import { SwappingSeat } from './Swapping';
 import { isSpectator, seatFaction } from './tableFactions';
@@ -157,13 +157,7 @@ function PlayerInformation({ client, table, player, hasVote }: Props & Readonly<
   const names = snapshotFactionLabels(table.snapshot);
   const model: FactionInfoHeaderModel = {
     token: faction ? (
-      <FactionTokenFace
-        table={table}
-        factionId={faction.id}
-        names={names}
-        size={44}
-        src={standInToken(table, player)}
-      />
+      <FactionTokenFace token={factionToken(table, faction.id, names, standInToken(table, player))} size={44} />
     ) : (
       <Avatar src={standInToken(table, player)} size={44} radius="xl" alt="">
         {player.name.slice(0, 1)}

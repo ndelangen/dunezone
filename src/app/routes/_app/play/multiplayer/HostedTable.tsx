@@ -41,10 +41,14 @@ import { GameTable } from '../GameTable';
 import type { TablePanel } from '../GameTable';
 import { HandShelves } from '../hand/HandShelves';
 import { SpiceReserve } from '../hand/SpiceReserve';
+import { ConnectedAlliancesPanel } from '../panels/alliances/useAlliancesPanel';
+import { ConnectedLogPanel } from '../panels/log/useLogPanel';
+import { PANEL_WINDOWS } from '../panels/panelWindows';
+import { ConnectedTerritoryTintsPanel } from '../panels/tints/useTerritoryTintsPanel';
 import { predictionCardInHand } from '../prediction/predictionCardInHand';
 import { TableWait } from '../TableWait';
 import { AllianceCoinsScene } from './AllianceCoins';
-import { AlliancesPanel, AllianceStrip, showsAlliances } from './Alliances';
+import { AllianceStrip, showsAlliances } from './Alliances';
 import { BattleControls, BattleHistory, BattleModeToggle, BattleScene } from './BattleControls';
 import { BidderScene, biddingPhase } from './Bidder';
 import { useBugReport } from './BugReport';
@@ -55,12 +59,8 @@ import type { DeclareChoice } from './GameResult';
 import { GameRuntimeContext } from './gameRuntime';
 import { HandCountsScene } from './HandCounts';
 import { HiddenZone } from './HiddenZone';
-import { LogEntries } from './Log';
 import {
-  ALLIANCES_GUIDANCE,
-  AUDIT_LOG_GUIDANCE,
   battleGuidance,
-  GAME_LOG_GUIDANCE,
   HAND_GUIDANCE,
   HIDDEN_ZONE_GUIDANCE,
   LOG_GUIDANCE,
@@ -84,7 +84,6 @@ import type { GameIdentity } from './StageHeader';
 import { SwapScene } from './SwapScene';
 import { factionName, factionOptions, isSpectator, stageInPlay, viewerFaction } from './tableFactions';
 import { TableSettings } from './TableSettings';
-import { TerritoryTints } from './TerritoryTints';
 import { ServerClockContext } from './useServerNow';
 import { initialWindowFocus, nextWindowFocus } from './windowFocus';
 import '../dune-play.css';
@@ -751,11 +750,8 @@ function alliancesPanel({ client, table, error }: ConnectionControlsProps) {
   }
   return [
     {
-      key: 'alliances',
-      label: 'Alliances',
-      topic: 'alliance' as const,
-      ...ALLIANCES_GUIDANCE,
-      content: withTableError(error, <AlliancesPanel client={client} table={table} />),
+      ...PANEL_WINDOWS.alliances,
+      content: withTableError(error, <ConnectedAlliancesPanel client={client} table={table} />),
     },
   ];
 }
@@ -886,11 +882,8 @@ function tableGroup({ client, table, error }: ConnectionControlsProps): TablePan
       ...(tableHandlingOpen(table.snapshot.stage)
         ? [
             {
-              key: 'tints',
-              label: 'Territory tints',
-              topic: 'tints' as const,
-              description: 'Colour territories for everyone to see.',
-              content: withTableError(error, <TerritoryTints client={client} table={table} />),
+              ...PANEL_WINDOWS.tints,
+              content: withTableError(error, <ConnectedTerritoryTintsPanel client={client} table={table} />),
             },
           ]
         : []),
@@ -918,20 +911,8 @@ function historyGroup({ client, table, error }: ConnectionControlsProps, hasInve
     ...LOG_GUIDANCE,
     content: null,
     panels: [
-      {
-        key: 'game-log',
-        label: 'Game log',
-        topic: 'game',
-        ...GAME_LOG_GUIDANCE,
-        content: <LogEntries client={client} table={table} tab="game" />,
-      },
-      {
-        key: 'audit',
-        label: 'Audit',
-        topic: 'audit',
-        ...AUDIT_LOG_GUIDANCE,
-        content: <LogEntries client={client} table={table} tab="audit" />,
-      },
+      { ...PANEL_WINDOWS.gameLog, content: <ConnectedLogPanel client={client} table={table} tab="game" /> },
+      { ...PANEL_WINDOWS.audit, content: <ConnectedLogPanel client={client} table={table} tab="audit" /> },
       ...(hasInventory
         ? [
             {

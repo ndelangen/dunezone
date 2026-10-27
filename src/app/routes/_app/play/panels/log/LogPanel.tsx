@@ -1,10 +1,8 @@
 import { Anchor, Badge, Button, Group, Stack, Text } from '@mantine/core';
-import type { LogClass, LogTab } from '@shared/play/log';
+import type { LogClass, LogEntry, LogTab } from '@shared/play/log';
 import { Section } from '@ui/block/Section';
-import { useEffect, useSyncExternalStore } from 'react';
 
-import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
-import styles from './Log.module.css';
+import styles from './LogPanel.module.css';
 
 /* Event labels identify the class; their colours reuse the app's semantic families. */
 const CLASSIFICATIONS = {
@@ -21,20 +19,23 @@ const CLASSIFICATIONS = {
 
 const TITLES = { game: 'Game log', audit: 'Audit log' } as const satisfies Record<LogTab, string>;
 
+/** One page of a log tab: its entries newest first, whether older ones follow, and whether it is the newest page. */
+export type LogPanelPage = Readonly<{ entries: readonly LogEntry[]; more: boolean; latest: boolean }>;
+
+export type LogPanelProps = Readonly<{
+  tab: LogTab;
+  /** The page on show, or null while the first one loads. */
+  page: LogPanelPage | null;
+  onEarlier: () => void;
+  onLatest: () => void;
+}>;
+
 /**
  * One tab of the retained public log, newest first, with the older pages a click away.
  * The page stays where the reader left it while the table keeps changing;
  * the newest page is one control away.
  */
-export function LogEntries({
-  client,
-  table,
-  tab,
-}: Readonly<{ client: TableSession; table: TableProjection; tab: LogTab }>) {
-  const view = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
-  const page = view.logHistory[tab];
-  /* No update says whether the log grew, so a changed table reads the page again; a burst of changes reads it once more at its end. */
-  useEffect(() => client.refreshLogHistory(tab), [client, tab, table.liveRevision, table.reconnecting]);
+export function LogPanel({ tab, page, onEarlier, onLatest }: LogPanelProps) {
   return (
     <Section hiddenHeading title={TITLES[tab]}>
       <Stack gap="md">
@@ -68,15 +69,15 @@ export function LogEntries({
             ))}
           </ol>
         )}
-        {page && (page.more || page.before !== Number.MAX_SAFE_INTEGER) && (
+        {page && (page.more || !page.latest) && (
           <Group>
             {page.more && (
-              <Button variant="default" onClick={() => client.readLogHistory(tab, page.entries.at(-1)!.sequence)}>
+              <Button variant="default" onClick={onEarlier}>
                 Earlier entries
               </Button>
             )}
-            {page.before !== Number.MAX_SAFE_INTEGER && (
-              <Button variant="default" onClick={() => client.readLogHistory(tab, Number.MAX_SAFE_INTEGER)}>
+            {!page.latest && (
+              <Button variant="default" onClick={onLatest}>
                 Latest entries
               </Button>
             )}
