@@ -581,15 +581,15 @@ const tooltipLengthRule: Rule = {
     return {
       /* The module's top-level constants, exported or not, gathered before any attribute is read. */
       Program(program) {
-        for (const statement of program.body) {
+        const declarators = program.body.flatMap((statement) => {
           const declaration = statement.type === 'ExportNamedDeclaration' ? statement.declaration : statement;
-          if (declaration?.type !== 'VariableDeclaration' || declaration.kind !== 'const') {
-            continue;
-          }
-          for (const declarator of declaration.declarations) {
-            if (declarator.id.type === 'Identifier' && declarator.init) {
-              constants.set(declarator.id.name, declarator.init);
-            }
+          return declaration?.type === 'VariableDeclaration' && declaration.kind === 'const'
+            ? declaration.declarations
+            : [];
+        });
+        for (const declarator of declarators) {
+          if (declarator.id.type === 'Identifier' && declarator.init) {
+            constants.set(declarator.id.name, declarator.init);
           }
         }
       },
