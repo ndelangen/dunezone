@@ -17,6 +17,20 @@ export function redactReportText(text: string): string {
 
 type ReportScope = 'browser' | 'game';
 
+/* Public card handles are HMACs, not credentials, and references must keep their distinct identities. */
+const CARD_REFERENCE_FIELDS = new Set([
+  'id',
+  'itemId',
+  'pieceId',
+  'sourcePieceId',
+  'targetPieceId',
+  'selectedPieceId',
+  'pickedUpItemIds',
+  'cardIds',
+  'leaderIds',
+  'handOrder',
+]);
+
 function privateReportKey(key: string, scope: ReportScope) {
   /* The server's typed game snapshots and captures use token for artwork, never authentication. */
   if (scope === 'game' && key.toLowerCase() === 'token') {
@@ -26,23 +40,30 @@ function privateReportKey(key: string, scope: ReportScope) {
 }
 
 export function redactReportData(value: unknown, scope: ReportScope = 'browser'): unknown {
+  return redactValue(value, scope);
+}
+
+function redactValue(value: unknown, scope: ReportScope, field = ''): unknown {
   if (typeof value === 'string') {
+    if (CARD_REFERENCE_FIELDS.has(field) && /^card-[a-f0-9]{64}$/u.test(value)) {
+      return value;
+    }
     return redactReportText(value);
   }
   if (Array.isArray(value)) {
-    return value.map((child) => redactReportData(child, scope));
+    return value.map((child) => redactValue(child, scope, field));
   }
   if (value instanceof Map) {
-    return redactReportData(Object.fromEntries(value), scope);
+    return redactValue(Object.fromEntries(value), scope, field);
   }
   if (value instanceof Set) {
-    return redactReportData([...value], scope);
+    return redactValue([...value], scope, field);
   }
   if (value !== null && typeof value === 'object') {
     return Object.fromEntries(
       Object.entries(value)
         .filter(([key]) => !privateReportKey(key, scope))
-        .map(([key, child]) => [key, redactReportData(child, scope)])
+        .map(([key, child]) => [key, redactValue(child, scope, key)])
     );
   }
   return value;

@@ -2,9 +2,11 @@ import { DatabaseSync } from 'node:sqlite';
 
 import { expect, test } from 'vite-plus/test';
 
+import { homepageSnapshot } from '../../src/shared/homepage/setup';
 import type { BugReportBrowser } from '../../src/shared/play/bugReports';
 import type { ActorDirectory } from './actors';
 import { Conversations } from './conversations';
+import { RoomProjection, storedSnapshotSchema } from './state';
 
 function conversationStore() {
   const database = new DatabaseSync(':memory:');
@@ -62,6 +64,12 @@ test('exports message lengths, ordering and read positions without chat bodies o
 
 test('censors a private message copied into browser console output and keeps delivery metadata', () => {
   const conversations = conversationStore();
+  const snapshot = new RoomProjection('test-game').snapshot(
+    storedSnapshotSchema.parse(homepageSnapshot('https://dune.zone'))
+  );
+  expect(snapshot.table.pieces.some((piece) => piece.items.some((item) => /^card-[a-f0-9]{64}$/u.test(item.id)))).toBe(
+    true
+  );
   conversations.save(
     { userId: 'u', displayName: 'Author', connectionId: 'c', viewerSeat: 'seat-1', color: '#fff' },
     {
@@ -74,7 +82,7 @@ test('censors a private message copied into browser console output and keeps del
     1234
   );
   const browser: BugReportBrowser = {
-    snapshot: {},
+    snapshot: { snapshot },
     conversations: {
       pending: [
         { request: { text: 'Unsent private message' }, delivery: { state: 'failed', error: 'No confirmation' } },
@@ -94,6 +102,7 @@ test('censors a private message copied into browser console output and keeps del
   };
   const report = conversations.reportBrowser(browser);
   expect(report).toMatchObject({
+    snapshot: { snapshot },
     conversations: {
       pending: [{ request: { text: '-redacted message, original length: 22-' }, delivery: { state: 'failed' } }],
     },

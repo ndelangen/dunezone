@@ -92,23 +92,26 @@ export function comparableSnapshots(report: Report) {
   };
 }
 
+/* Artwork addresses and SVG paths in the parsed snapshot, including nested pieces, board decals and faction art. */
+const ARTWORK_FIELDS = new Set(['artwork', 'front', 'back', 'image', 'logo', 'star', 'symbol', 'cardFaces']);
+
 /** An imported file may not make the table load artwork from an arbitrary host or execute SVG markup. */
-export function canRenderReport(value: unknown): boolean {
+export function canRenderReport(value: unknown, field = ''): boolean {
   if (Array.isArray(value)) {
-    return value.every(canRenderReport);
+    return value.every((entry) => canRenderReport(entry, field));
   }
   if (value && typeof value === 'object') {
-    return Object.values(value).every(canRenderReport);
+    return Object.entries(value).every(([key, entry]) => canRenderReport(entry, key));
   }
-  return typeof value !== 'string' || safeArtworkText(value);
+  return typeof value !== 'string' || !ARTWORK_FIELDS.has(field) || safeArtworkText(value);
 }
 
 function safeArtworkText(value: string): boolean {
   if (/<\s*(?:script|foreignObject|iframe|image|use)\b|\bon\w+\s*=|url\s*\(/iu.test(value)) {
     return false;
   }
-  // WHATWG URL parsing removes these controls before resolving an address.
-  // eslint-disable-next-line no-control-regex
+  /* WHATWG URL parsing removes these controls before resolving an address. */
+  /* eslint-disable-next-line no-control-regex */
   const address = value.replaceAll(/[\t\r\n]/gu, '').replaceAll(/^[\u0000-\u0020]+|[\u0000-\u0020]+$/gu, '');
   if (/^(?:https?:|[a-z][a-z\d+.-]*:\/\/|data:|blob:|javascript:|file:|[/\\])/iu.test(address)) {
     return allowedArtworkAddress(value);
