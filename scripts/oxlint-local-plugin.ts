@@ -377,6 +377,30 @@ const noWallClockRule: Rule = {
   },
 };
 
+const SHARED_OVERLAYS_RULE_NAME = 'shared-overlays';
+
+const ALTERNATIVE_OVERLAYS =
+  /^(?:@radix-ui\/react-(?:tooltip|popover|hover-card)|@tippyjs\/react|tippy\.js|react-tooltip)(?:\/|$)/;
+
+/** Keeps hover hints and floating panes on Mantine's shared theme. */
+const sharedOverlaysRule: Rule = {
+  meta: {
+    name: SHARED_OVERLAYS_RULE_NAME,
+    messages: {
+      sharedOverlay: 'Use Tooltip, Popover or HoverCard from @mantine/core under the app theme.',
+    },
+  },
+  create(context) {
+    return {
+      ImportDeclaration(node) {
+        if (ALTERNATIVE_OVERLAYS.test(String(node.source.value))) {
+          context.report({ node, messageId: 'sharedOverlay' });
+        }
+      },
+    };
+  },
+};
+
 const TITLE_TOOLTIP_RULE_NAME = 'no-title-tooltip';
 
 /* Libraries whose components forward an unknown `title` straight to the element they render. */
@@ -409,7 +433,7 @@ const noTitleTooltipRule: Rule = {
     name: TITLE_TOOLTIP_RULE_NAME,
     messages: {
       titleTooltip:
-        "A `title` attribute draws the browser's native tooltip. Wrap the element in the kit `Tooltip` instead, and keep an `aria-label` where the title was its only name.",
+        "A `title` attribute draws the browser's native tooltip. Use Mantine Tooltip for app hover text, or an accessible name or description for standalone metadata.",
       handRolledTooltip:
         'A `data-tip` or `data-tooltip` attribute feeds a hand-rolled CSS tooltip that looks unlike the kit. Wrap the element in the kit `Tooltip` instead.',
     },
@@ -645,6 +669,7 @@ export default {
     [STORY_DESCRIPTION_RULE_NAME]: noAiTellsInStoryDescriptionsRule,
     [WALL_CLOCK_RULE_NAME]: noWallClockRule,
     [TITLE_TOOLTIP_RULE_NAME]: noTitleTooltipRule,
+    [SHARED_OVERLAYS_RULE_NAME]: sharedOverlaysRule,
     [TOOLTIP_LENGTH_RULE_NAME]: tooltipLengthRule,
   },
 };

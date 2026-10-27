@@ -24,6 +24,7 @@ import type { Doc, Id } from './_generated/dataModel';
 import { internalQuery } from './_generated/server';
 import { CATALOGUE_MIGRATION_IDS } from './catalogueMigrations';
 import { adminQuery, internalMutation, mutation } from './functions';
+import { LEGACY_DATA_MIGRATION_IDS } from './legacyDataMigrations';
 import { accountStateOf } from './lib/accountLifecycle';
 import { hasAuthoredBack, TOKEN_ASSET_TYPES, tokenBackOf } from './lib/assetBacks';
 import { scheduleSessionExpiry } from './lib/authSessionLifecycle';
@@ -79,6 +80,7 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   catalogue_entries_faq_v1: internal.migrations.catalogue_entries_faq_v1,
   catalogue_entries_faq_verify_v1: internal.migrations.catalogue_entries_faq_verify_v1,
   ...CATALOGUE_MIGRATION_IDS,
+  ...LEGACY_DATA_MIGRATION_IDS,
   ruleset_factions_position_v1: internal.migrations.ruleset_factions_position_v1,
   catalogue_entries_prune_v1: internal.migrations.catalogue_entries_prune_v1,
   catalogue_entries_verify_v1: internal.migrations.catalogue_entries_verify_v1,
@@ -1205,7 +1207,7 @@ export const faction_troop_ids_verify_v1 = migrations.define({
  * Renames each troop face's `fundedStrength` and `fundingCost` to `supportedStrength` and `supportCost`, without changing the faction's edit timestamp.
  * Troops paid for with spice in battle are supported, not funded.
  * A value already under the new name wins, so a replay changes nothing.
- * Not yet listed in migration-guards.json: deploy migrates before the game and publisher Workers ship, so it is listed one release after the widened read, as `faction_troop_ids_v1` was (#1482).
+ * Listed in migration-guards.json one release after the widened read, as `faction_troop_ids_v1` was (#1482).
  * Narrowing, which drops the legacy names from the live faction schema, is a later release gated on this and its verify.
  */
 export const faction_troop_support_names_v1 = migrations.define({

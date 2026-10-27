@@ -17,3 +17,16 @@
 input:checked:not(:disabled, [data-disabled]) + .selectedSwitch {
   --switch-text-color: var(--button-toggle-fg);
 }
+
+/* Mantine inverts tooltips to light in the dark scheme; the glass aesthetic keeps them dark. The play island raises its own with the --tip- tokens (play/DarkSchemeIsland.css). */
+:global([data-mantine-color-scheme="dark"]) .tooltip {
+  --tooltip-bg: var(--tip-surface, rgb(from var(--glass-overlay) r g b / var(--glass-overlay-alpha)));
+  --tooltip-color: var(--color-text);
+
+  box-shadow: var(--tip-ring, none);
+}
+
+/* Multiline tooltips keep helpLines line breaks in the shared theme. */
+.tooltip[data-multiline] {
+  white-space: pre-line;
+}
