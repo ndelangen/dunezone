@@ -13,6 +13,7 @@ import type { LocalTable, TableMessage } from './localTable';
 /* A capture's refusal is the reason a player reads; anything else is the Worker's generic answer. */
 const refusal = (error: unknown) =>
   error instanceof GameRejection ? error.message : 'The catalogue could not be read. Try again.';
+const RESET_REFUSAL = 'The table was reset. Pick the piece again.';
 
 /** A page's local game: its browser effects, and what a chapter's Reset needs to start the page's connection afresh. */
 export type LocalRuntime = GameRuntime &
@@ -25,6 +26,8 @@ export type LocalRuntime = GameRuntime &
     replaying: () => boolean;
     /** Closes the page's connection, which it opens again at once onto whatever table is current. */
     reconnect: () => void;
+    /** Answers every catalogue read still out at once, for a Reset that left them behind; their late answers are dropped. */
+    settleCaptures: () => void;
   }>;
 
 /*
@@ -51,6 +54,11 @@ export function localRuntime(
     onmessage: ((event: { data: string }) => void) | null = null;
     onclose: ((event: { code: number }) => void) | null = null;
     onerror: (() => void) | null = null;
+    /*
+     * Catalogue reads still out, by the request they answer, each with what it answers if a Reset leaves it behind.
+     * The page holds one read at a time and refuses the next until it is answered, so a read that stalls past a Reset is answered then.
+     */
+    private readonly captures = new Map<string, () => ServerMessage>();
 
     open() {
       queueMicrotask(() => {
@@ -92,17 +100,18 @@ export function localRuntime(
           this.replayed = true;
           return this.later({ type: 'history', step: 0, lastStep: 0, snapshot: table().frame().snapshot });
         /* The catalogue answers after its read, as the Worker's capture does; a refusal is the answer's error. */
-        case 'catalogue':
+        case 'catalogue': {
+          const { requestId } = message;
+          this.captures.set(requestId, () => ({ type: 'catalogue', requestId, contents: null, error: RESET_REFUSAL }));
           return void catalogue.capture(message.selection).then(
             (contents) =>
-              this.deliver({
-                type: 'catalogue',
-                requestId: message.requestId,
-                contents: table().projectContents(contents),
-              }),
+              this.settled(requestId) &&
+              this.deliver({ type: 'catalogue', requestId, contents: table().projectContents(contents) }),
             (error: unknown) =>
-              this.deliver({ type: 'catalogue', requestId: message.requestId, contents: null, error: refusal(error) })
+              this.settled(requestId) &&
+              this.deliver({ type: 'catalogue', requestId, contents: null, error: refusal(error) })
           );
+        }
         case 'log-history': {
           const entries = (table().log()[message.tab] ?? []).filter((entry) => entry.sequence < message.before);
           return this.later({
@@ -118,22 +127,32 @@ export function localRuntime(
           if (message.action.kind === 'spawn-request') {
             /*
              * A Reset while the asset is read replaces the table; the request belonged to the one it left, so it spawns nothing.
-             * It is still answered, with the new table as it stands, or the page would wait on it and refuse every later request.
+             * The Reset answers it with the new table as it stands, or the page would wait on it and refuse every later request.
              */
-            const origin = table();
+            const { commandId } = message;
+            this.captures.set(commandId, () => table().frame(undefined, commandId));
             return void catalogue.capture(message.action).then(
-              (contents) =>
-                table() === origin
-                  ? origin.requestSpawn(message, contents)
-                  : this.deliver(table().frame(undefined, message.commandId)),
+              (contents) => this.settled(commandId) && table().requestSpawn(message, contents),
               (error: unknown) =>
-                this.deliver({ type: 'rejected', requestId: message.commandId, message: refusal(error) })
+                this.settled(commandId) &&
+                this.deliver({ type: 'rejected', requestId: commandId, message: refusal(error) })
             );
           }
           return void table().receive(message);
         default:
           table().receive(message as TableMessage);
       }
+    }
+
+    /* Whether a read is still waited on; one a Reset already answered is not answered twice. */
+    private settled(id: string) {
+      return this.captures.delete(id);
+    }
+
+    settleCaptures() {
+      const answers = [...this.captures.values()];
+      this.captures.clear();
+      answers.forEach((answer) => this.deliver(answer()));
     }
 
     /* Answers leave after the message that caused them, as they do from a socket. */
@@ -172,6 +191,7 @@ export function localRuntime(
     /* The page's pass has the shape the socket's messages require; nothing checks it but that. */
     replaying: () => socket?.replayed ?? false,
     reconnect: () => socket?.close(),
+    settleCaptures: () => socket?.settleCaptures(),
     greet: (name) => {
       conversations.learnerName = name;
     },

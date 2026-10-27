@@ -53,9 +53,9 @@ export const TwoCardsToARow = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const games = await page.findByRole('list', { name: 'Games' }, { timeout: 30_000 });
     const cards = within(games).getAllByRole('listitem');
-    await expect(cards.length).toBeGreaterThan(1);
-    const [first, second] = cards.map((card) => card.getBoundingClientRect());
-    await expect(second!.top).toBe(first!.top);
+    /* The story is only about two to a row, so it says so itself rather than trusting the viewport it asked for. */
+    const tops = cards.map((card) => Math.round(card.getBoundingClientRect().top));
+    await expect(tops.filter((top) => top === tops[0])).toHaveLength(2);
     for (const card of cards) {
       const ring = within(card)
         .getByLabelText(/^Seats at /)
