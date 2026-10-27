@@ -38,7 +38,7 @@ async function seed(ctx: MutationCtx) {
   const linked = await faction('Atreides', 'atreides');
   const other = await faction('Fremen', 'fremen');
   const broken = await faction('Broken', 'broken', { broken: true });
-  await faction('Retired', 'retired', { deleted: true });
+  const retired = await faction('Retired', 'retired', { deleted: true });
   await ctx.db.insert('ruleset_factions', { ruleset_id: ruleset, faction_id: linked, position: 0 });
   await ctx.db.insert('ruleset_factions', { ruleset_id: ruleset, faction_id: broken, position: 1 });
   /* Fremen has only the front, and a game needs both faces of the reversible token. */
@@ -50,7 +50,7 @@ async function seed(ctx: MutationCtx) {
       published_at: 1,
     });
   }
-  return { ruleset, linked, other };
+  return { ruleset, linked, other, retired };
 }
 
 describe('the draft reads the catalogue', () => {
@@ -132,9 +132,30 @@ describe('the draft reads the catalogue', () => {
     expect(factions.every((faction) => !faction.linked)).toBe(true);
   });
 
+  test('a draft with 220 KiB of linked faction text stays below a 384 KiB read budget', async () => {
+    const t = applicationTest();
+    const { ruleset, linked, other } = await t.run(seed);
+    await t.run((ctx) =>
+      ctx.db.patch('factions', linked, {
+        data: {
+          ...assetPublishingFaction,
+          rules: { ...assetPublishingFaction.rules, startText: 'x'.repeat(220 * 1024) },
+        },
+      })
+    );
+    const answer = await t.run((ctx) =>
+      ctx.runQuery(
+        api.playCatalogue.draftableFactions,
+        { rulesetId: ruleset },
+        { transactionLimits: { bytesRead: 384 * 1024 } }
+      )
+    );
+    expect(answer.factions.map((faction) => faction.id)).toEqual([linked, other]);
+  });
+
   test('a ruleset faction created after the first 500 live factions is still listed', async () => {
     const t = applicationTest();
-    const { ruleset } = await t.run(seed);
+    const { ruleset, linked, other, retired } = await t.run(seed);
     const late = await t.run(async (ctx) => {
       const owner = (await ctx.db.query('users').first())!._id;
       const stamp = { created_at: '2026-09-19T00:00:00.000Z', updated_at: '2026-09-19T00:00:00.000Z' };
@@ -157,9 +178,25 @@ describe('the draft reads the catalogue', () => {
         ...stamp,
       });
       await ctx.db.insert('ruleset_factions', { ruleset_id: ruleset, faction_id: id, position: 2 });
+      await ctx.db.insert('ruleset_factions', { ruleset_id: ruleset, faction_id: retired, position: 3 });
+      const missing = await ctx.db.insert('factions', {
+        owner_id: owner,
+        slug: 'missing',
+        data: assetPublishingFaction,
+        group_id: null,
+        is_deleted: false,
+        ...stamp,
+      });
+      await ctx.db.delete('factions', missing);
+      await ctx.db.insert('ruleset_factions', { ruleset_id: ruleset, faction_id: missing, position: 4 });
       return id;
     });
     const { factions } = await t.query(api.playCatalogue.draftableFactions, { rulesetId: ruleset });
     expect(factions.find((faction) => faction.id === late)).toMatchObject({ linked: true });
+    expect(factions[0]).toMatchObject({ id: linked, linked: true });
+    expect(factions.at(-1)).toMatchObject({ id: late, linked: true });
+    expect(factions.some((faction) => faction.id === other)).toBe(false);
+    /* The live but invalid linked faction still occupies its original slot, so the same 499 valid rows remain. */
+    expect(factions).toHaveLength(499);
   });
 });
