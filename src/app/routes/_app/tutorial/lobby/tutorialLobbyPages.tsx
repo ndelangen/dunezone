@@ -131,12 +131,14 @@ const stayingLink =
  */
 export function TutorialLobby({
   games,
+  query,
   createOpen,
   onCreate,
-}: Readonly<{ games: LobbyGames; createOpen: boolean; onCreate: () => void }>) {
+}: Readonly<{ games: LobbyGames; query: string; createOpen: boolean; onCreate: () => void }>) {
   return (
     <PlayLobby
       games={games}
+      initialQuery={query}
       waiting={null}
       createLink={stayingLink('create', onCreate)}
       createDisabledReason={createOpen ? undefined : 'You’ll create a game in a later step'}

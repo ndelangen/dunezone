@@ -41,6 +41,8 @@ type LobbyView = 'lobby' | 'create' | 'created';
 /** What a lobby chapter's tasks read: the page the player is on and what they chose there. */
 export type LobbyState = Readonly<{
   view: LobbyView;
+  /** What the lobby's search holds as the lobby opens; a chapter opened past the search starts with it typed. */
+  query: string;
   /** Whether Create a game leads on to the create page; until the chapter gets there, the lobby keeps the learner on its steps. */
   createOpen: boolean;
   /** The ruleset the create page's pass holds, by name, once one is chosen. */

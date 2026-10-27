@@ -1,0 +1,26 @@
+/* The ticket's own width decides its columns; the stub's perforation reads the same container. */
+.root {
+  container: ticket-layout / inline-size;
+  min-width: 0;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.part {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.part > * {
+  flex: 1 1 auto;
+}
+
+@container ticket-layout (width >= 48rem) {
+  .layout {
+    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+  }
+}

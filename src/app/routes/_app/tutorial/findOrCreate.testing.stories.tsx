@@ -67,6 +67,22 @@ async function openedAt(canvasElement: HTMLElement, step: string) {
   return page;
 }
 
+/* `?step=3` opens on Open seats with Thialfi's name in the search, so only their games are left as the step says, and the chapter goes on. */
+export const OpenedAtOpenSeats = meta.story({
+  args: { path: '/tutorial/find-or-create?step=3' },
+  play: async ({ canvasElement }) => {
+    const page = await openedAt(canvasElement, 'Open seats');
+    await expect(page.getByPlaceholderText(/^Search games/)).toHaveValue('Thialfi');
+    const games = within(page.getByRole('list', { name: 'Games' })).getAllByRole('listitem');
+    /* Thialfi shows as a seat round each table left, named on its face. */
+    for (const game of games) {
+      await expect(game.querySelector('[aria-label*="Thialfi"]')).not.toBeNull();
+    }
+    await userEvent.keyboard('{Enter}');
+    await waitFor(() => expect(currentStep(canvasElement)).toContain('Create a game'), { timeout: 20_000 });
+  },
+});
+
 /* `?step=5` opens on the create page, where the ruleset is chosen. */
 export const OpenedAtChooseARuleset = meta.story({
   args: { path: '/tutorial/find-or-create?step=5' },

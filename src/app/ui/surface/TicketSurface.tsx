@@ -5,21 +5,29 @@ import { Surface } from './Surface';
 import styles from './TicketSurface.module.css';
 
 /**
- * A ticket: the main part on the app's paper and a stub on the dark ground, with a perforation between them on a wide page.
- * The two sit side by side once the page frame is 48rem wide, and stack below that.
- * The stub's ground and accent are `--ticket-ground` and `--ticket-accent`, which whatever sits inside it can read.
+ * A ticket's paper: the rounded edge and the shadow it casts, round a `TicketLayout` that places its parts.
+ * Its stub's ground and accent are `--ticket-ground` and `--ticket-accent`, which whatever sits inside can read.
  */
-export function TicketSurface({ main, stub }: Readonly<{ main: ReactNode; stub: ReactNode }>) {
+export function TicketSurface({ children }: Readonly<{ children: ReactNode }>) {
+  return <div className={styles.ticket}>{children}</div>;
+}
+
+/** The ticket's main part, on the app's paper; what sits in it fills its height, so a line can sit at its foot. */
+export function TicketMain({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <div className={styles.ticket}>
-      <Surface padding="xl">
-        <div className={styles.main}>{main}</div>
-      </Surface>
-      <DarkSchemeIsland>
-        <div className={styles.stub} {...darkSchemeIslandAttributes}>
-          <Surface padding="xl">{stub}</Surface>
-        </div>
-      </DarkSchemeIsland>
-    </div>
+    <Surface padding="xl">
+      <div className={styles.main}>{children}</div>
+    </Surface>
+  );
+}
+
+/** The ticket's stub, on the table's dark ground, with a perforation along its edge once it sits beside the main part. */
+export function TicketStub({ children }: Readonly<{ children: ReactNode }>) {
+  return (
+    <DarkSchemeIsland>
+      <div className={styles.stub} {...darkSchemeIslandAttributes}>
+        <Surface padding="xl">{children}</Surface>
+      </div>
+    </DarkSchemeIsland>
   );
 }

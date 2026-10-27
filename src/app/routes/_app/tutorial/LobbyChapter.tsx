@@ -101,6 +101,7 @@ export default function LobbyChapter({
         {state.view === 'lobby' && (
           <TutorialLobby
             games={games}
+            query={state.query}
             createOpen={state.createOpen}
             /* Leaving the lobby before the chapter asks would strand the steps that read it, so the button waits for its step. */
             onCreate={() => store.get().createOpen && store.set({ ...store.get(), view: 'create' })}

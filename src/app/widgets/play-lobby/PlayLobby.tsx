@@ -318,8 +318,16 @@ export function PlayLobby({
   createDisabledReason,
   tutorialLink,
   gameLink,
-}: Readonly<{ games: LobbyGames | null; waiting: ReactNode } & PlayLobbyLinks>) {
-  const [query, setQuery] = useState('');
+  initialQuery = '',
+}: Readonly<
+  {
+    games: LobbyGames | null;
+    waiting: ReactNode;
+    /** What the search holds as the lobby opens. */
+    initialQuery?: string;
+  } & PlayLobbyLinks
+>) {
+  const [query, setQuery] = useState(initialQuery);
   const [view, setView] = useState<View>('ongoing');
   const hasGames = ready !== null && ready.ongoing.length + ready.past.length > 0;
 

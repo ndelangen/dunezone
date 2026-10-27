@@ -108,15 +108,21 @@ function tasks(state: () => LobbyState, openCreate: () => void): GuideTask[] {
 }
 
 /* The tasks, by id, in order; `start` reads where each one is played. */
-const TASK = { create: 3, ruleset: 4, set: 5, share: 6 } as const;
+const TASK = { found: 2, create: 3, ruleset: 4, set: 5, share: 6 } as const;
 const RULESET = 'Dreamrules';
 
 /*
  * A chapter opened at a later task begins on its page with what the tasks before it would have left:
- * from Choose a ruleset on the create page, from Create the game with the ruleset chosen, and from Copy its link with a game created.
+ * from Open seats with the friend's name in the search, from Choose a ruleset on the create page, from Create the game with the ruleset chosen, and from Copy its link with a game created.
  */
 function start(firstTask: number): LobbyState {
-  const lobby: LobbyState = { view: 'lobby', createOpen: false, ruleset: null, created: null };
+  const lobby: LobbyState = {
+    view: 'lobby',
+    query: firstTask >= TASK.found ? FRIEND : '',
+    createOpen: false,
+    ruleset: null,
+    created: null,
+  };
   if (firstTask < TASK.ruleset) {
     return lobby;
   }

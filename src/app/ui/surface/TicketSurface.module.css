@@ -6,25 +6,32 @@
   --ticket-ground: var(--color-ground);
   --ticket-accent: var(--color-brand);
 
-  position: relative;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
   max-width: 64rem;
   margin: 0 auto;
   border-radius: var(--radius-md);
   box-shadow: 0 1.5rem 3.5rem rgb(from var(--play-shadow-pass) r g b / 0.35);
 }
 
-.ticket > * {
-  min-width: 0;
+.main {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
-@container page-frame (width >= 48rem) {
-  .ticket {
-    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
-  }
+.stub {
+  position: relative;
+  display: flex;
+  height: 100%;
+  border-radius: var(--radius-md);
+  background: var(--ticket-ground);
+}
 
-  /* The perforation, drawn on the stub's edge. */
+.stub > * {
+  flex: 1 1 auto;
+}
+
+/* The perforation, drawn on the stub's edge once `TicketLayout` sets the stub beside the main part. */
+@container ticket-layout (width >= 48rem) {
   .stub::before {
     content: "";
     position: absolute;
@@ -36,21 +43,4 @@
     opacity: 0.45;
     z-index: 1;
   }
-}
-
-.stub {
-  position: relative;
-  display: flex;
-  border-radius: var(--radius-md);
-  background: var(--ticket-ground);
-}
-
-.stub > * {
-  flex: 1 1 auto;
-}
-
-.main {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
 }
