@@ -33,6 +33,7 @@ import { ConnectedAlliancesPanel } from '../panels/alliances/useAlliancesPanel';
 import { ConnectedBattlePlanPanel } from '../panels/battlePlan/useBattlePlanPanel';
 import { ConnectedBattleHistoryPanel } from '../panels/battles/useBattleHistoryPanel';
 import { ConnectedPlayerChat, OfflineConversations } from '../panels/chat/useConversationPanel';
+import { ConnectedFactionInfoPanel } from '../panels/factionInfo/useFactionInfoPanel';
 import { ConnectedHandPanel } from '../panels/hand/useHandPanel';
 import { ConnectedSharedInventoryPanel } from '../panels/inventory/useSharedInventoryPanel';
 import { ConnectedLogPanel } from '../panels/log/useLogPanel';
@@ -57,7 +58,7 @@ import { DetermineWinner } from './GameResult';
 import { GameRuntimeContext } from './gameRuntime';
 import { HandCountsScene } from './HandCounts';
 import { battleHelp, LOG_GUIDANCE, phaseGuidance, PHASE_PREVIOUS, phaseHelp } from './panelGuidance';
-import { FactionInfo, usePlayerWindows } from './RemovalVotes';
+import { usePlayerWindows } from './playerWindows';
 import { useResultCelebration } from './resultCelebration';
 import { GameMenu, SeatPopover } from './SeatRequests';
 import { nextPhaseStep, stageStatus, stageToolbar } from './StageHeader';
@@ -542,7 +543,9 @@ function ConnectedTable({
             value={{
               ...playerWindows,
               chat: (seat) => <ConnectedPlayerChat client={client} table={table} seat={seat} />,
-              factionInfo: (seat) => <FactionInfo client={client} table={table} seat={seat} error={error} />,
+              factionInfo: (seat) => (
+                <ConnectedFactionInfoPanel client={client} table={table} seat={seat} error={error} />
+              ),
               nextPhase: nextPhaseStep(client, table),
               token: viewerToken(client, table),
               bidding: viewerBidding(client, table),

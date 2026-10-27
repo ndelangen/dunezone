@@ -3,7 +3,7 @@ import { IconAction } from '@ui/control/IconAction';
 import { ExternalLink, UserX } from 'lucide-react';
 import type { ReactNode } from 'react';
 
-import type { SeatAlliance } from './Alliances';
+import type { SeatAlliance } from './seatAlliance';
 
 /** What the top of a seat's Faction info shows and offers. */
 export type FactionInfoHeaderModel = Readonly<{
