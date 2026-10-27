@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-27",
+  "method": "Full author review after drafting, including comparison of rule-sensitive statements with higher-priority sources. Pattern scans support the review but do not determine authorship.",
+  "changes": [
+    "Removed unsupported claim that Dreamrules bans unaffordable Karama bluff bids; that explicit change belongs to GF9 2.0.",
+    "Removed an unsupported claim that the 2019 printing expressly made discards private except for Atreides.",
+    "Replaced a vague Retreat analogy with explicit costs, leader deaths and commitment, leaving disputed aftermath open.",
+    "Applied later sudden-death, Infiltration, Prediction, notes and Truthtrance rulings instead of the older published prose.",
+    "Added missing GF9 expansion comparisons for the lost Tleilaxu Ghola ability, per-troop income, Ixian army composition, leader value and alliance benefit.",
+    "Cut repeated source-correction prose from the reader pages.",
+    "Kept examples concrete: a revealed worm redirected with a Thumper, a defender winning with Mercenaries, a Spite swap, a subsidy and the changed final winner set."
+  ],
+  "readerChecks": {
+    "noInternalFilePaths": true,
+    "noSourceInputNarration": true,
+    "noInventedHouseRulings": true,
+    "noUnchangedRulesPresentedAsNew": true,
+    "factionsStartOnNewPages": true,
+    "usesExistingBlocks": true,
+    "noNewArtwork": true
+  },
+  "remainingLimits": "Outstanding source decisions are listed on the setup page and in the appendix. This is a review draft, not a claim that the rule set has no unresolved cases."
+}

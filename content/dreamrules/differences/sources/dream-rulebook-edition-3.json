@@ -1,0 +1,1825 @@
+[
+  {
+    "anchor": "cover",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/image/rulebook-cover/dreamrules-rainbow-print.jpg"
+      },
+      {
+        "alt": "Dune",
+        "src": "https://dune.zone/page/dune_logo.svg"
+      }
+    ],
+    "page": 1,
+    "text": "DREAM RULEBOOK",
+    "title": "dream rulebook"
+  },
+  {
+    "anchor": "introduction",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      }
+    ],
+    "page": 2,
+    "text": "WHY DREAMRULES?\n\nWe made Dreamrules to keep what makes Dune compelling: distinct factions, hidden information, negotiation and battles that can turn on one decision. We wanted to address the rules that can leave players waiting for the game to end, and give every faction more meaningful choices.\n\nBalance, mastery and counterplay\n\nOur goals are balance between factions, a high skill ceiling and counterplay to every powerful effect. Balance does not mean making factions alike. Each should have a credible route to victory, with strengths worth exploiting and weaknesses opponents can challenge.\n\nA high skill ceiling means there is room to improve through reading the board, managing resources, judging opponents and negotiating well. Counterplay means a strong move should leave opponents some way to respond, whether through cards, positioning, information or a deal.\n\nEnding the Guild stallout\n\nIn GF9, the Guild can win by preventing anyone else from winning before the game ends. That creates an incentive to run out the clock. Too many games drag on as a result, and the waiting makes them less fun.\n\nDreamrules removes that Guild victory condition. The Guild keeps its shipping economy and gains other tools, including Retreat, but cannot win simply by keeping everyone else from winning. The aim is a game that rewards pursuing a victory rather than prolonging a stalemate.\n\nWhat stays familiar\n\nDreamrules builds on GF9's Advanced Game. Spice, troop support in battle, hidden battle plans, traitors, alliances and stronghold control remain central. This book is written for new and returning players. Familiarity with GF9 should not be required.\n\nWhat changes?\n\nYour Fate is a once-per-game faction power activated by a matching worthless Treachery Card. Fate replaces the old special faction Karama powers.\n\nNexus checks now use a separate deck after Storm, independent of Shai-Hulud. This gives alliance opportunities their own probability curve as the game progresses. It also lets us tune the number of worm cards to make spice collection dangerous enough and give Fremen more mobility, without changing Nexus frequency.\n\nSpice mines supply spice over several turns. Tech tokens provide income and can contribute to victory. The Shield Wall can also become a stronghold for victory purposes.\n\nMercenaries adds battle strength, Supplies provides temporary combat cards, and Break Conditioning rewards an overwhelming strength advantage. The card chapter covers the revised deck.\n\nFremen gain full storm immunity, the Guild can pay to retreat, and Bene Tleilax use lasting Infiltration. Read your faction chapter even if you know its GF9 version.\n\n2",
+    "title": "Why Dreamrules?"
+  },
+  {
+    "anchor": "contents",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      }
+    ],
+    "page": 3,
+    "text": "CONTENTS\nLearn the game\n\nStart with the overview and setup. The phase chapters follow the order of play. Use the card and faction chapters for exceptions.\n\n2. Why Dreamrules?\n4. The game\n5. Board, sectors and spice locations\n9. Strongholds\n10. Setup\n12. The turn\n13. Storm\n14. Nexus\n15. Spice Blow\n18. CHOAM Charity\n19. Bidding\n21. Revival\n22. Shipment and Movement\n29. Battle\n40. Spice Collection\n41. Mentat\n42. Alliances\n\n43. Deals and bribes\n46. Tech tokens\n48. Victory\n49. Weapons, Fate and special cards\n52. Karama\n59. Truthtrance\n62. Illustrated card reference\n68. House Atreides\n69. House Harkonnen\n70. Emperor\n71. Spacing Guild\n72. Fremen\n73. Bene Gesserit\n74. Bene Tleilax\n76. Ixians\n78. Glossary\n80. Draft status and council questions\n82. Acknowledgements\n\nWorking draft\n\nThis is the first substantive reading draft. Marked council questions remain provisional. See the draft-status pages before playing; FAQ items remain in the ruleset.\n\n3",
+    "title": "Contents"
+  },
+  {
+    "anchor": "the-game",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      }
+    ],
+    "page": 4,
+    "text": "THE GAME\nControl Arrakis\n\nEach player leads a faction seeking control of Arrakis. Troops occupy territories, leaders command battles and spice pays for the means to expand your position. Treachery Cards can decide a fight before troop strength matters. Information and agreements can be worth as much as either.\n\nStrongholds are the main route to victory. A lone faction normally needs three; two allies normally need four between them, checked during Mentat. Holding territory during the turn is only part of the task: you must still meet the victory condition when the game checks for a winner. Alliances allow two factions to pursue a shared victory. Bene Gesserit prediction, Bene Tleilax infiltration and the Fremen endgame condition can change who wins.\n\nDreamrules also gives the Shield Wall and tech tokens a role in victory. The victory chapter gives the ordinary count and the v0.8 priority between tech tokens and Shield Wall. The full interaction with Prediction and Infiltration is still tracked in #1847.\n\nFaction advantages change the choices available to each player. Atreides can obtain information before committing to a fight. The Emperor earns spice from other players' card purchases. The Guild earns spice from shipment. Your faction chapter explains when its advantages apply and which benefits an ally can receive.\n\nRead the board\n\nTerritories have names and boundaries. Storm sectors divide the planet radially. A territory can cross more than one sector, so a storm can cover only part of it. Keep troops in the sector they occupy; their position can matter even within one territory.\n\nSand territories are the open desert where spice appears and worms threaten troops. Strongholds are the principal locations players fight to control. The Polar Sink and the Shield Wall have their own rules. Do not assume every named territory behaves like a stronghold.\n\nYour reserves hold troops available to enter play. The Tleilaxu Tanks hold dead troops and leaders awaiting revival. These are different destinations. For example, the v0.8 spice-mine rule returns troops at a destroyed mine to reserves instead of killing them.\n\nSpice has several uses. It pays for Treachery Cards, shipment and revival, and can support troops committed to battle. Keep available spice separate from bribes waiting for Mentat and token income waiting for the end of its triggering phase. Those later payments are not yet part of your spendable supply.\n\nA battle plan commits troops and usually a leader, with permitted weapons, defenses and other cards. A strong leader can be killed by an undefended weapon or betrayed by a traitor. The battle chapter must therefore resolve cards and special results before comparing final strength.\n\n4",
+    "title": "The game"
+  },
+  {
+    "anchor": "board-guide",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "Arrakis board",
+        "src": "https://dune.zone/published/rulebooks/pd71pdne3ggcn8gt002y7mvqnd8fnt85/editions/3/pages/MAPA/blocks/BAQ2/illustration.svg"
+      }
+    ],
+    "page": 5,
+    "text": "READ THE BOARD\n\nArrakis is divided into named territories. The map below highlights one example of each main terrain type. Territory boundaries determine movement; the radial sector lines determine where the storm is and where spice can be collected.\n\nHighlights identify examples; other territories remain visible for context.\n1\nFuneral Plain\n\nSand. Open desert where spice can appear. Troops here face the dangers of storm and Shai-Hulud.\n\n2\nPlastic Basin\n\nRock. Brown territories shelter ordinary troops from the storm. They are not strongholds.\n\n3\nArrakeen\n\nStronghold. These enclosed locations are the main objectives of the game. Each ordinary stronghold can hold at most two fighting factions.\n\n4\nPolar Sink\n\nPolar Sink. The white territory at the center is safe from storm and worms. No battles occur here and it has no occupancy limit.\n\nPlaces off the map\n\nYour reserves hold troops available to enter play. The Tleilaxu Tanks hold dead troops and leaders awaiting revival. Keep those groups separate. The Spice Bank supplies spice; it is not any faction's treasury.\n\nSee Shipment and movement, page 22; Revival, page 21\n5",
+    "title": "Read the board"
+  },
+  {
+    "anchor": "territories-and-sectors",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "Arrakis board",
+        "src": "https://dune.zone/published/rulebooks/pd71pdne3ggcn8gt002y7mvqnd8fnt85/editions/3/pages/MAPS/blocks/BSQ2/illustration.svg"
+      }
+    ],
+    "page": 6,
+    "text": "TERRITORIES AND SECTORS\nTwo boundaries, two jobs\n\nA territory is a named area of land. A sector is one of the eighteen slices radiating from the Polar Sink. A territory can cross several sectors; crossing a sector line does not itself mean entering a new territory.\n\nFollow territory borders for movement and sector lines for storm position.\n1\nSectors\n\nThe radial lines divide the storm track into eighteen sectors. Storm movement is counted in sectors, not territories.\n\n2\nOld Gap\n\nOld Gap crosses several sectors. The storm can cover part of the territory and block movement. Dreamrules still allows battles under storm. To collect spice, troops must occupy the sector containing it.\n\n6",
+    "title": "Territories and sectors"
+  },
+  {
+    "anchor": "spice-blow-locations",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "Arrakis board",
+        "src": "https://dune.zone/published/rulebooks/pd71pdne3ggcn8gt002y7mvqnd8fnt85/editions/3/pages/MAPB/blocks/BBQ2/illustration.svg"
+      }
+    ],
+    "page": 7,
+    "text": "SPICE BLOW LOCATIONS\n\nThese fifteen territories have ordinary Spice Blow cards. The highlight identifies the territory, not the exact placement spot. When its card appears, use the printed Spice Blow marker and sector on the playing board. The card gives the amount of spice.\n\nOrdinary Spice Blows place a supply of spice to be collected. Mines work differently.\n1\nBroken Land\n2\nCielago North\n3\nCielago South\n4\nFuneral Plain\n5\nHabbanya Erg\n6\nHabbanya Ridge Flat\n7\nHagga Basin\n8\nOld Gap\n9\nRed Chasm\n10\nRock Outcroppings\n11\nSihaya Ridge\n12\nSouth Mesa\n13\nThe Great Flat\n14\nThe Minor Erg\n15\nWind Pass North\n7",
+    "title": "Spice Blow locations"
+  },
+  {
+    "anchor": "spice-mine-locations",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "Arrakis board",
+        "src": "https://dune.zone/published/rulebooks/pd71pdne3ggcn8gt002y7mvqnd8fnt85/editions/3/pages/MAPM/blocks/BMQ2/illustration.svg"
+      }
+    ],
+    "page": 8,
+    "text": "SPICE MINE LOCATIONS\nA continuing source of spice\n\nFive Spice Mine cards create mines at the sites below. Each mine supplies a set amount of spice per turn without accumulating a larger pile. Storm and Shai-Hulud destroy it; troops there return to reserves instead of the Tanks. Atreides can also create a mine through its Fate.\n\nHighlights identify the five mine territories. Use the marked site on the playing board.\n1\nArsunt\n\nMine site in the northern basin.\n\n2\nBight Of The Cliff\n\nMine site on the western edge of the map.\n\n3\nCielago East\n\nMine site in the southeast.\n\n4\nCielago West\n\nMine site west of the southern basin.\n\n5\nGara Kulon\n\nMine site on the northeast edge of the map.\n\n8",
+    "title": "Spice mine locations"
+  },
+  {
+    "anchor": "find-the-strongholds",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "Arrakis board",
+        "src": "https://dune.zone/published/rulebooks/pd71pdne3ggcn8gt002y7mvqnd8fnt85/editions/3/pages/MAPH/blocks/BHQ2/illustration.svg"
+      }
+    ],
+    "page": 9,
+    "text": "FIND THE STRONGHOLDS\nThe main objectives\n\nArrakeen, Carthag, Sietch Tabr, Habbanya Sietch and Tuek's Sietch are the five ordinary strongholds. A lone faction normally needs three at Mentat; two allies normally need four between them. The victory chapter covers faction exceptions and other contributions.\n\n1\nArrakeen\n\nAtreides starts here. Fighting troops give access to ornithopters and collect two spice during Spice Collection.\n\n2\nCarthag\n\nHarkonnen starts here. Fighting troops give access to ornithopters and collect two spice during Spice Collection.\n\n3\nSietch Tabr\n\nOne of the three territories where Fremen may place its starting troops.\n\n4\nHabbanya Sietch\n\nThe stronghold on the southwest side of Arrakis.\n\n5\nTuek's Sietch\n\nThe Guild starts here. Fighting troops collect one spice during Spice Collection.\n\n6\nShield Wall\n\nAfter four drawn Shai-Hulud cards, this territory counts as a stronghold for victory only. Its shipment cost and occupancy rules do not change.\n\n9",
+    "title": "Find the strongholds"
+  },
+  {
+    "anchor": "prepare-the-game",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      }
+    ],
+    "page": 10,
+    "text": "PREPARE THE GAME\n1. Choose which factions take part\n\nEach player selects one faction they want included in the game. This selects the factions at the table, not who will play each one. Randomize the selected factions among the players and randomize their seating positions.\n\nThis book covers Atreides, Harkonnen, Emperor, Spacing Guild, Fremen, Bene Gesserit, Bene Tleilax and Ixians. Give each player their faction pieces, shield and faction rules. Leave unused factions out of play.\n\n2. Set out the shared area\n\nPut the board in the center and the turn marker on turn one. Place each faction marker at its seat around the storm track. Keep the Spice Bank, Tanks and battle wheels within reach.\n\nLeave space for draw decks and discards. Prepare Treachery, Traitor, Fate Indicator, Nexus and Spice cards. With Fremen, prepare the six Storm cards. Keep the Supplies cache outside the Treachery draw deck.\n\n3. Prepare the cards\n\nUse the Dreamrules Treachery deck. Compared with GF9, remove Shield Snooper, Poison Blade, Amal, Thumper, Harvester, Artillery Strike and Poison Tooth. Add two Mercenaries, Supplies, Break Conditioning and Orange Catholic Bible.\n\nThe six Fate Indicators correspond to the six worthless cards. Orange Catholic Bible is not a Fate match. The Nexus deck contains one card of each number from one through seven and three blanks.\n\n4. Set aside special pieces\n\nSet aside the seven standard tech tokens. None starts with a faction. Keep the Atreides Carryall separate for its Fate. Put the Shield Wall markers within reach. Fremen take two Thumpers; Ixians take the Hidden Mobile Surveyor.\n\n5. Prepare each player area\n\nKeep available spice behind your shield. Leave space in front for a visible bribe pile and tech tokens. Keep living leaders and reserve troops apart from the Tanks.\n\nRead your faction chapter and explain its public powers, including Fate and alliance abilities. No deals may be made during setup. Ignore abilities of factions that are not playing.\n\nSpice setup needs a ruling\n\nThe v0.8 inventory lists fifteen Spice Blow cards, five Spice Mine cards and six Shai-Hulud cards. Its shuffle recipe uses only five worms. The current Fremen sheet also refers to two draw decks, while the setup text describes one. Questions #1837 and #1838 cover these conflicts. This draft does not invent a final shuffle recipe.\n\n10",
+    "title": "Prepare the game"
+  },
+  {
+    "anchor": "set-up-the-factions",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      }
+    ],
+    "page": 11,
+    "text": "SET UP THE FACTIONS\n6. Starting spice and Prediction\n\nGive each faction its starting spice and troops. The starting amounts and free revival allowance are listed in each faction chapter. Place the Atreides, Harkonnen and Guild starting troops. Keep reserves behind the appropriate player shield.\n\nBene Gesserit secretly records a predicted faction and turn before Traitor cards are dealt. Do not reveal the prediction.\n\n7. Choose traitors\n\nDeal four Traitor cards to each faction except Bene Tleilax. Normally, choose one enemy leader as your traitor and return the other cards. Harkonnen keeps all four.\n\nIf Harkonnen draws two or more of its own leaders, or three or more leaders from one faction, it may require everyone to redraw. If a faction that must choose a traitor receives only its own leaders, reveal the problem and have everyone redraw. You cannot choose your own leader as your traitor.\n\nWhen Bene Tleilax plays, keep each faction's unchosen cards separate for the Infiltration setup. Do not leave these cards with their original players.\n\n8. Bene Tleilax cards\n\nIn the v0.8 six-player setup, take one card from each other faction's unchosen traitors. If Harkonnen plays, take its contribution from undealt cards instead. Bene Tleilax chooses one of the five cards as its traitor; the other four are Face Dancer cards. Shuffle the remaining cards into its Face Dancer deck.\n\n9. Finish deployment\n\nFremen divides ten starting troops between False Wall West, False Wall South and Sietch Tabr. Its other ten troops remain in reserves.\n\nBene Gesserit places one troop in an unoccupied territory and one in the Polar Sink, leaving eighteen in reserves.\n\nIxians places the Hidden Mobile Surveyor in a non-stronghold territory, with three Cyborgs and three Suboids aboard. The remaining six Cyborgs and eight Suboids are in reserves.\n\n10. Cards and the first storm\n\nGive each player one Fate Indicator. Ixians may look at the initial Treachery cards before they are dealt randomly. Each faction starts with one Treachery Card; Harkonnen receives its extra card.\n\nDetermine the initial storm position using the procedure on the Storm page. Prepare the Spice draw sequence once the conflicts in #1837 and #1838 are resolved. Setup then ends.\n\nPlayer-count scope\n\nThe supplied Bene Tleilax setup produces five cards in a six-player game. A procedure for other player counts is tracked in #1860; use this setup for six players until it is settled.\n\n11",
+    "title": "Set up the factions"
+  },
+  {
+    "anchor": "turn-and-nexus",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/icon/alliance.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/icon/storrm_standalone.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/icon/alliance.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/icon/spice-blow_standalone.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/generic/chaom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/icon/bidding_standalone.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/icon/revival_standalone.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/icon/shipment_disc.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/icon/combat.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/icon/collection_standalone.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/icon/mentat.svg"
+      }
+    ],
+    "page": 12,
+    "text": "A TURN\nTen phases\n\nPlay each phase in the order shown. Complete it for every faction before beginning the next. The game lasts at most ten turns.\n\nStorm\nNexus\nSpice Blow\nCHOAM Charity\nBidding\nRevival\nShipment and movement\nBattle\nSpice Collection\nMentat\nYour faction changes the ordinary rule\n\nThe phase chapters explain what everyone normally does. A faction advantage changes that rule only where its text says so. Read the timing, conditions and alliance permission before using it.\n\nStorm order\n\nThe storm identifies the first player. Continue counterclockwise around the table. Bidding, shipment and movement, and choosing battles use this order unless an ability changes it.\n\nMake choices at the right time\n\nAnnounce an action early enough for players to respond with any permitted card or advantage. \"Before reveal\" means before opponents lose the opportunity to react. Do not rush a declaration into the instant of reveal.\n\nPrivate information\n\nKeep cards and battle plans secret except where a rule permits or requires disclosure. During Bidding, announce hand sizes. Players may inspect the Treachery and Spice discards. Only Atreides may keep notes about Treachery Cards; the separate question about recording public deals is #1850.\n\nAt the end of the turn\n\nSpice Collection brings in desert and stronghold income. Mentat collects bribes, provides its faction windows and checks victory. If nobody wins, advance the turn marker and begin Storm again.\n\n12",
+    "title": "A turn"
+  },
+  {
+    "anchor": "storm",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/icon/storrm_standalone.svg"
+      }
+    ],
+    "page": 13,
+    "text": "STORM\nThe first turn\n\nPlace the storm at a random sector. The standard GF9 method uses the two players whose markers are nearest either side of Storm Start. Each secretly dials a number from zero to twenty. Reveal both numbers, add them and count that many sectors counterclockwise from Storm Start. This is unchanged in Dreamrules.\n\nLater turns\n\nWith Fremen in the game, reveal the prepared Storm card and move the storm counterclockwise by its number. Return the card, shuffle the Storm deck and prepare the next card face down. Fremen may inspect it.\n\nWithout Fremen, use the GF9 procedure: the two players who last used the battle wheels each secretly dial one, two or three. Reveal and add the numbers to determine movement.\n\nBefore the storm moves\n\nResolve Weather Control before Family Atomics. After the distance has been calculated, give players the opportunity to play Atomics, then move the storm. Fremen Planetology can modify the revealed Storm card as described in its faction chapter.\n\nSee Weather Control, page 67; Family Atomics, page 67\nBene Tleilax window\n\nInfiltration belongs to Storm. Its exact position relative to storm reveal and movement remains under council review in #1835.\n\n1\n1\nA sector of the planet\n\nThe storm covers the whole radial sector. A territory may have both covered and clear ground.\n\nStorm damage\n\nTroops in exposed sand sectors swept by the storm or under its final position die and go to the Tanks. Spice in swept sectors returns to the bank. The Imperial Basin is protected while the Shield Wall stands. Rock, intact strongholds and the Polar Sink provide shelter.\n\nFremen troops are immune, although Fremen may choose to let them die. Troops aboard the Hidden Mobile Surveyor are protected. When the storm destroys a spice mine, troops at that mine return to reserves instead of the Tanks. Atomics can remove the usual protection from a sietch.\n\nRead storm order after movement\n\nThe player marker the storm next approaches counterclockwise identifies the first player. Continue counterclockwise around the table. The shipment chapter shows how a storm can divide a territory and block a route.\n\nActivity under storm\n\nStorm blocks ordinary movement into, out of or through its sector. In Dreamrules it does not itself prohibit battles or other game actions.\n\n13",
+    "title": "Storm"
+  },
+  {
+    "anchor": "nexus",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/icon/alliance.svg"
+      }
+    ],
+    "page": 14,
+    "text": "NEXUS\nCheck for a Nexus\n\nThe Nexus deck contains ten cards: one each numbered 1 through 7, plus three blanks. After Storm, reveal the top card. A number lower than the current turn number causes a Nexus. An equal or higher number, or a blank, does nothing. Return the card and reshuffle after every draw, whether or not a Nexus occurs.\n\nSee Alliances, page 42\nAlliances become more likely\n\nNo card can cause a Nexus on turn one. The chance increases by ten percentage points per turn until turn eight. From then on, all seven numbered cards qualify: a 70% chance each turn.\n\nMake alliances public\n\nAn alliance has at most two factions. During a Nexus, players may break existing alliances and agree to new ones. Announce the result before continuing. Outside a Nexus, a deal does not create an alliance.\n\nREAD THE NUMBER, THEN RESHUFFLE\nOn turn 3, reveal\tResult\n\n\n1 or 2\n\n\t\n\nA Nexus occurs.\n\n\n\n\n3 through 7\n\n\t\n\nNo Nexus.\n\n\n\n\nBlank\n\n\t\n\nNo Nexus.\n\nExample: equal is not lower\n\nOn turn 5, a 5 does nothing. A 4 causes a Nexus. In both cases return the card and reshuffle before the next turn.\n\nInformation and timing\n\nAtreides may inspect the top card through Nexus Prescience. That information can help you plan, but alliances change only if the revealed card causes a Nexus.\n\nIndependent of worms\n\nResolve Nexus after Storm and before Spice Blow. A Shai-Hulud appearance does not create another Nexus. This separation lets worm frequency change without also changing alliance frequency.\n\n14",
+    "title": "Nexus"
+  },
+  {
+    "anchor": "spice-blow",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/icon/spice-blow_standalone.svg"
+      }
+    ],
+    "page": 15,
+    "text": "SPICE BLOW\nSpice creates a reason to move\n\nSpice is the resource you spend on cards, revival, shipment and battle support. This phase places new supplies on Arrakis. Collecting them comes later, after movement and battle.\n\nRead the revealed card\n\nIdentify whether it is an ordinary Spice Blow, a Spice Mine or Shai-Hulud. The following pages explain the different effects.\n\nPlace ordinary spice\n\nUse the named territory and its printed Spice Blow symbol. Place the amount shown on the card in that sector, taking spice from the bank. If the symbol is in storm, place none.\n\nKeep the card visible\n\nPut the territory card in its discard pile. A normal worm threatens the preceding territory for that draw sequence. Keep the sequences distinguishable.\n\nDraw setup awaiting confirmation\n\nThe sources disagree about one or two draw decks and list six worms while the setup recipe uses five. Questions #1837 and #1838 track the exact draw and preparation procedure. This draft explains the card effects without selecting a conflicting recipe.\n\n1\n1\nFind the named territory\n\nHagga Basin is highlighted as a location example. Use the printed spice symbol on the playing board for the exact sector.\n\nExample: reading a Spice Blow\n\nIf a card specifies eight spice, take eight from the bank. Its symbol determines the placement sector. Troops elsewhere in the same territory will not collect that pile unless they reach its sector.\n\nTwo different kinds of information\n\nFremen may inspect upcoming Spice cards through Spice Blow Knowledge. Atreides instead has Nexus Prescience. Seeing a card early does not change how its effect resolves.\n\n15",
+    "title": "Spice Blow"
+  },
+  {
+    "anchor": "shai-hulud",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/icon/spice-blow_standalone.svg"
+      }
+    ],
+    "page": 16,
+    "text": "SHAI-HULUD\nResolve the affected territory\n\nAn ordinary worm removes spice and devours exposed troops in its affected territory. Devoured troops go to the Tleilaxu Tanks. A destroyed mine uses the different return-to-reserves rule on the next page.\n\nDevoured troops\n→\nTleilaxu Tanks\nFremen ride instead\n\nShai-Hulud does not devour Fremen troops. Those troops may worm-ride to a territory on the map. The Fremen ally is also protected from being devoured; protection alone does not grant the Fremen riding advantage.\n\nMore than one worm\n\nFremen chooses where worms after the first appear. Its Worm Riding advantage allows those later appearances in rock and strongholds too, so Fremen troops can ride from them. Resolve the destination restrictions of the ability before moving.\n\nThumpers\n\nFremen starts with two Thumper tokens. After seeing the Spice Blow cards, it may discard one to call a riding worm to a sand or polar territory containing its troops. At most one Thumper may be used each turn.\n\nA riding worm\n\nA Thumper worm removes spice but does not devour troops. Treat it as the first worm of the phase, so the Worm Riding advantage can redirect worms drawn from cards.\n\nExample: create the first worm\n\nA Shai-Hulud card is revealed. Fremen spends a Thumper at a legal location containing its troops. The Thumper supplies the first worm; Fremen can now choose where the card-drawn worm appears.\n\nMark the Shield Wall\n\nAdd one Shield Wall marker for each Shai-Hulud card drawn. Thumpers do not add markers. At four markers the Shield Wall counts toward victory, without becoming an ordinary stronghold for shipping or occupation.\n\nContinue the turn\n\nWorms do not trigger a Nexus. Keep alliance changes in the separate Nexus phase. After completing Spice Blow, continue to CHOAM Charity.\n\n16",
+    "title": "Shai-Hulud"
+  },
+  {
+    "anchor": "spice-mines",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/icon/spice-mine.svg"
+      }
+    ],
+    "page": 17,
+    "text": "SPICE MINES\nA supply that stays on the board\n\nA Spice Mine card creates a mine at its named site. Unlike an ordinary pile, the mine provides its fixed yield each turn and remains after collection. It never accumulates more than its set amount.\n\nFive printed sites\n\nArsunt, Bight of the Cliff, Cielago East, Cielago West and Gara Kulon have mine sites. The earlier board reference locates them individually. Use the yield specified for that mine.\n\nDestruction returns troops to reserves\n\nStorm and Shai-Hulud destroy mines. Troops at the destroyed mine return to their faction reserves instead of dying. They do not need revival before they can return to the board.\n\nAt the destroyed mine\n→\nReserves\nExample: no revival cost\n\nThree troops are at a mine when storm destroys it. Return all three to reserves. You may ship them in a later legal shipment, paying the normal shipping cost.\n\nAtreides and Carryall\n\nArrakis Fiefdom can create a three-spice mine in a sand territory without a Spice Blow marker. The Fate also grants Carryall, which triggers when a mine sends troops to reserves. Its token-count interactions remain in #1845.\n\nReplenishment timing\n\nThe fixed yield and cap are stated in v0.8. The exact point when a surviving mine is replenished, including uncollected spice, remains under review in #1859. Do not add a fresh full yield to an existing pile.\n\n17",
+    "title": "Spice mines"
+  },
+  {
+    "anchor": "choam-charity-and-bidding",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/generic/chaom.svg"
+      },
+      {
+        "alt": "spice",
+        "src": "https://dune.zone/vector/icon/spice.svg"
+      },
+      {
+        "alt": "spice",
+        "src": "https://dune.zone/vector/icon/spice.svg"
+      },
+      {
+        "alt": "Spice Production",
+        "src": "https://dune.zone/published/gear-tokens/ns745bwpcpcmq9e0m7g85wndk18fnddv/token.jpg?v=09100de7-6a3a-4ff8-a2cb-40247eb9465d"
+      }
+    ],
+    "page": 18,
+    "text": "CHOAM CHARITY\nClaim enough to reach two\n\nIf you have zero or one spice, announce CHOAM Charity and take enough from the Spice Bank to bring your supply to two. If you already have two or more, the ordinary rule gives you nothing.\n\nSpice before charity\tTake from the bank\tSpice afterward\n\n\n0\n\n\t\n\n2\n\n\t\n\n2\n\n\n\n\n1\n\n\t\n\n1\n\n\t\n\n2\n\n\n\n\n2 or more\n\n\t\n\n0\n\n\t\n\nUnchanged\n\nExample: one spice short\n\nYou have one spice. Take one more, leaving you with two for the coming auction. You do not receive two additional spice.\n\nBene Gesserit Charity\n\nBene Gesserit takes two spice regardless of its current total. This is its faction advantage, rather than the ordinary top-up rule.\n\nSpice Bank\n2 spice\n→\nA faction starting at zero\n2 spice\nBribes are still waiting\n\nKeep spice in your bribe pile separate from available spice. It is collected during Mentat and cannot fund ordinary bids before then.\n\nSpice Production\n\nThis tech token triggers when a faction other than Bene Gesserit takes CHOAM Charity. A token triggers at most once per turn and pays at the end of its triggering phase.\n\nNext: Bidding\n\nAfter charity and the phase's applicable token income, begin Bidding. Use the spice available to you to decide what you can afford, leaving enough for revival, shipment and battle support.\n\n18",
+    "title": "CHOAM Charity"
+  },
+  {
+    "anchor": "bidding",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/icon/bidding_standalone.svg"
+      },
+      {
+        "alt": "Orange Catholic Bible",
+        "src": "https://dune.zone/published/cards/ns7dan241k21f3pk0aems471q18fm3tq/card.jpg?v=68df8756-3b52-498b-9770-a44b307b937b"
+      }
+    ],
+    "page": 19,
+    "text": "BIDDING\nPrepare the auction\n\nAt the start of Bidding, announce how many Treachery Cards you hold. The normal hand limit is four; Harkonnen may hold eight. A faction with a full hand cannot bid.\n\nDeal one card face down for each faction eligible to bid. There are windows for appropriate cards and abilities both before and after the number is determined, before the first auction begins. Orange Catholic Bible can be given to a player with hand space in either window.\n\nBid in order\n\nThe first eligible player in storm order opens the first auction with a bid of at least one spice or a pass. Continue around the table; each bidder raises the current bid or passes. When everyone else passes, the highest bidder pays and takes the card.\n\nFor the next card, begin with the next eligible player after the player who opened the previous auction. Recheck hand space as cards are acquired. Keep hand sizes public throughout Bidding.\n\nPaying for a card\n\nYou cannot bid more than you can pay. An ally may agree to cover a shortfall. The Emperor may cover it with Shaddam's Favor. A promise of support must exist before an otherwise unaffordable bid.\n\nPay the Emperor when its Bidding Payments advantage applies; otherwise pay the bank. The Emperor pays the bank for its own purchases. Harkonnen receives its extra card after a purchase, subject to its hand limit.\n\nEnd the phase\n\nStop when all offered cards have been sold, or when nobody bids on a card. Return the unsold cards to the top of the Treachery deck. The Emperor collects spice set aside for Shaddam's Favor at the end of Bidding. Revival follows.\n\nOrange Catholic Bible\n\nAt the start of Bidding, you may give this card to a player with room in their hand. You may do so before or after the number of auction cards is determined.\n\nInformation before a bid\n\nAtreides and Ixians can inspect cards in different ways. Emperor can help pay. The following page explains these windows and the difference between knowing a card and owning it.\n\n19",
+    "title": "Bidding"
+  },
+  {
+    "anchor": "information-during-bidding",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/icon/bidding_standalone.svg"
+      }
+    ],
+    "page": 20,
+    "text": "INFORMATION DURING BIDDING\nAtreides prescience\n\nAtreides may look at each card as it comes up for bid. Other players do not automatically see it. Atreides may keep notes about Treachery Cards.\n\nInformation about an auction card can itself be traded. Bene Tleilax is allowed to buy binding information about cards up for bid, despite its normal restrictions on deals.\n\nIxian knowledge\n\nAt the beginning of Bidding, Ixians may inspect the whole batch. It may divide the batch into two piles as evenly as possible and choose which pile is auctioned first. This is information about the offered cards, not a right to choose who receives them.\n\nTechnology\n\nOnce per phase, before the first bid on a card, Ixians may replace that card with one from its hand. If Ixians did not split the batch, Atreides cannot inspect the card Ixians takes. If it did split the batch, Atreides may see that card.\n\nResolve this exchange before bidding on the replacement card. Do not mix it up with the separate once-per-turn card exchange between Ixians and its ally.\n\nShaddam's Favor\n\nWhen another faction buys a card, the Emperor may put spice in front of its shield to reduce that faction's payment by the same amount. The Emperor collects this set-aside spice at the end of Bidding.\n\nThe Emperor can agree to cover a shortfall before a bid. This support is a faction ability and does not require a binding deal with Bene Tleilax.\n\nExample: an affordable bid\n\nYou have three spice. The Emperor agrees to cover two through Shaddam's Favor, so you can bid five. If you win at five, you pay three and the Emperor sets aside two. It collects the set-aside amount at the end of Bidding.\n\nSeparate the decisions\n\nFirst determine the cards offered. Then resolve any permitted information and exchange abilities before the first bid on the relevant card. Finally auction and pay for it.\n\nDo not reveal a card to the whole table merely because one faction has permission to inspect it. Hand size is public during Bidding; card identity is not automatically public.\n\n20",
+    "title": "Information during Bidding"
+  },
+  {
+    "anchor": "revival",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/icon/revival_standalone.svg"
+      }
+    ],
+    "page": 21,
+    "text": "REVIVAL\nRevive your troops\n\nYou may normally revive up to three troops per turn. This total includes both free and paid revivals.\n\nTake the free revivals allowed by your faction. Each additional normal troop costs two spice, paid to the Spice Bank. You can only revive troops that are in the Tanks.\n\nReturn revived troops to your reserves. They do not go directly onto the board, but may ship during the coming Shipment and Movement phase.\n\nFaction exceptions\n\nAn Ixian Suboid costs one spice to revive; a Cyborg costs three. Only one Sardaukar and one Fedaykin may be revived per turn.\n\nBene Tleilax may raise a faction's troop revival limit from three to five. They receive one spice from the bank for each non-Tleilaxu troop revived, including free revivals, and collect the payments for other factions' leader revivals. They may set a price to revive one leader per faction per turn.\n\nBene Tleilax have no revival limits and pay half price, rounded up. Their own face-down leaders cost full price. Their ally shares the discount. Round each leader's cost separately; total the discounted troop cost before rounding. See the faction chapters for other revival abilities and their exceptions.\n\nRevive your leaders\n\nWhen you have one or fewer available leaders, you may begin reviving your leaders from the Tanks. You may normally revive one leader per turn, paying spice equal to that leader's strength. Continue until all your leaders have been revived.\n\nA revived leader is available for battle and remains vulnerable to a traitor call. If killed again, place that leader face down in the Tanks. It cannot be revived again until your other revivable leaders have also been revived and killed again.\n\nThe leader revival is separate from your troop revival allowance. Faction abilities and cards can provide exceptions to these limits.\n\nSee Tleilaxu Ghola, page 67\nExample: rebuilding after a battle\n\nYou have three normal troops in the Tanks and two free revivals. Revive two for free and pay two spice for the third. All three return to reserves. An eligible strength-five leader costs another five spice and does not use a troop revival.\n\nTleilaxu Tanks\n→\nReserves\n21",
+    "title": "Revival"
+  },
+  {
+    "anchor": "shipment",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/icon/shipment_disc.svg"
+      }
+    ],
+    "page": 22,
+    "text": "SHIPMENT AND MOVEMENT\n\nPosition your troops to collect spice, contest strongholds and prevent rivals from winning. In storm order, each player may make one shipment followed by one on-planet movement. Both are optional. Finish your turn before the next player acts.\n\n1. SHIPMENT\n\nBring any number of troops from reserves to one legal territory and choose their sector. Pay 1 spice per troop to a stronghold, or 2 elsewhere. Pay the Spacing Guild if its Shipping Payments advantage applies; otherwise pay the Spice Bank.\n\nReserves to Habbanya Sietch: 3 troops, 3 spice\n2. ON-PLANET MOVEMENT\n\nMove some or all troops from one territory to one adjacent territory for free. Move the group together; you cannot split it between destinations. You may move troops just shipped onto the board or a group already there.\n\n0\n1\nHabbanya Sietch to Habbanya Ridge Flat: 1 territory\n22",
+    "title": "Shipment and movement"
+  },
+  {
+    "anchor": "actions-ornithopters",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/icon/shipment_disc.svg"
+      }
+    ],
+    "page": 23,
+    "text": "ORNITHOPTERS: MOVE UP TO THREE TERRITORIES\n\nTroops in Carthag or Arrakeen when movement begins grant ornithopters: up to three territories. Shipping into either city unlocks this immediately, making them the most important territories for mobility. Choose one move below.\n\nMOVE THE NEW STACK\n0\n1\n2\n3\nShip 3 troops to Carthag\nMove that stack to Cielago North\nThe city may be left empty\n\nCross Imperial Basin (1) and the Polar Sink (2) to Cielago North (3). All three may leave Carthag: they were there when movement began.\n\nMOVE AN EXISTING STACK\n0\n1\n2\n3\nShip 3 troops to Carthag\nMove the stack from Tuek's Sietch\nOrnithopters help a group anywhere\n\nLeave the new troops in Carthag. Move from Tuek's Sietch (0) through South Mesa (1) and Cielago East (2) to Cielago South (3).\n\n23",
+    "title": "Ornithopters: move up to three territories"
+  },
+  {
+    "anchor": "actions-storm",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/icon/shipment_disc.svg"
+      }
+    ],
+    "page": 24,
+    "text": "THE STORM CAN DIVIDE A TERRITORY\n\nOrdinary troops cannot ship into, enter, leave or cross a sector in storm. Other sectors of that territory remain usable, but troops separated by the storm cannot combine into one moving group. Ornithopters extend your range; they do not let you cross the storm.\n\nTHE DIRECT CROSSING IS BLOCKED\n0\n1\n2\nThrough Imperial Basin: blocked\nClear endpoints are not enough\n\nFrom Carthag, the route through Imperial Basin crosses the storm before reaching False Wall East. You cannot take this route, even though its start and destination are clear.\n\nGO AROUND WITH ORNITHOPTERS\n0\n1\n2\n3\nA clear route: 3 territories entered\nFrom Carthag to False Wall East\n\nStart in Carthag with ornithopters. Move through Arsunt (1) and the Polar Sink (2) to False Wall East (3), going around the storm. The Polar Sink is never in storm.\n\n24",
+    "title": "The storm can divide a territory"
+  },
+  {
+    "anchor": "actions-limits",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/icon/shipment_disc.svg"
+      }
+    ],
+    "page": 25,
+    "text": "OTHER MOVEMENT RESTRICTIONS\n\nA stronghold occupied by two other factions is closed to you: you may neither ship into it nor move into or through it. Bene Gesserit advisors do not count towards this limit. Opposing troops otherwise do not block your passage.\n\nONE FACTION: ENTRY ALLOWED\nHarkonnen alone: Atreides may enter\nTWO FACTIONS: ENTRY BLOCKED\nHarkonnen + Emperor: Atreides cannot enter\nAllied troops\n\nYou may ship into your ally's territory, but must immediately move out in that same shipment-and-movement action. You cannot end the action together. The Polar Sink and explicit abilities are exceptions.\n\n25",
+    "title": "Other movement restrictions"
+  },
+  {
+    "anchor": "deployment",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/icon/shipment_disc.svg"
+      }
+    ],
+    "page": 26,
+    "text": "FREMEN DEPLOYMENT ZONE\n\nFremen deploy reserves for free onto the Great Flat or one territory within two steps of it. Choose one destination in the coloured zone. This replaces ordinary shipment; other destinations require an ability.\n\n1\n2\n3\n1\nThe Great Flat\n\nDeploy here, or count outwards from here. The Great Flat itself is not the first step.\n\n2\nOne territory away\n\nFuneral Plain, Plastic Basin, Wind Pass and the Greater Flat.\n\n3\nTwo territories away\n\nBight of the Cliff, Sietch Tabr, Rock Outcroppings, Broken Land, Tsimpo, Hagga Basin, Polar Sink, Wind Pass North, Cielago West, False Wall West and Habbanya Erg.\n\nDeployment is separate from movement\n\nDeploy to Sietch Tabr, then make your separate movement: up to two territories, or three with ornithopters.\n\n26",
+    "title": "Fremen deployment zone"
+  },
+  {
+    "anchor": "movement-and-turn-order",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/icon/shipment_disc.svg"
+      },
+      {
+        "alt": "Hajr",
+        "src": "https://dune.zone/published/cards/ns763s677pz40tsx5j4m9m0f398fm9xq/card.jpg?v=401be034-feb5-4ac8-b30f-d8b03e27c95f"
+      }
+    ],
+    "page": 27,
+    "text": "WHO ACTS WHEN?\nGUILD INTERJECTION\n\nOnce during the phase, the Spacing Guild may change turn order in one of three ways. Its shipment and movement still form one turn.\n\nChoose when to act\n\nGo first, last or between two other factions. The other players continue in storm order.\n\nSwap positions\n\nExchange your position with another faction before your normal place in the order has passed.\n\nMake another player act now\n\nForce a player to take their turn now and take their place in the order. Use this before your normal place has passed.\n\nChange the information available\n\nThe Guild can wait to see where opponents commit, or make an opponent act early before other players reveal their destinations.\n\nFREMEN DELAYED MOVEMENT\n\nWith Zensunni Path, Fremen may allow one faction, including themselves, that did not make its ordinary on-planet movement to move at the end of the phase. Wait until everyone, including the Guild, has finished.\n\nThat faction may already have shipped. Passing movement keeps it eligible; making an ordinary movement does not. A Hajr move does not disqualify it.\n\nShip now, move later\n\nFremen rally troops on their turn and pass their ordinary movement. After the last player, they use Zensunni Path on themselves and move with knowledge of the final board position.\n\nHajr\n\nPlay Hajr during your own shipment-and-movement turn to make an additional on-planet movement. Follow the normal movement restrictions. This is not another shipment, and it does not disqualify you from Zensunni Path.\n\n27",
+    "title": "Who acts when?"
+  },
+  {
+    "anchor": "exceptions",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/icon/shipment_disc.svg"
+      }
+    ],
+    "page": 28,
+    "text": "CHECK YOUR FACTION\nSPACING GUILD\n\nPay half the ordinary shipment cost, rounding the total up. You may ship reserves to a territory, territory to territory at the destination rate, or territory to reserves at the stronghold rate.\n\nFREMEN\n\nYour ordinary movement has a range of two territories. Your troops may enter, leave and cross the storm. Use the deployment-zone map for Rallying Shipment and the timing page for Zensunni Path.\n\nBENE GESSERIT\n\nBefore the first shipment, choose which advisor groups become fighters; advisors alone in a territory become fighters automatically. Advisors do not block strongholds or grant ornithopters.\n\nWhen another faction ships from off planet, you may place an advisor at its destination if you have no fighters there, or a fighter in the Polar Sink. Troops joining your existing group adopt its posture.\n\nIXIANS AND BENE TLEILAX\n\nCyborgs may move two territories; Suboids may accompany them. Ship to your Hidden Mobile Surveyor at the stronghold rate. Entering or leaving it is movement between territories.\n\nBene Tleilax may kill troops in reserves to fund shipment, each providing 1 spice through Synthetic Spice.\n\n28",
+    "title": "Check your faction"
+  },
+  {
+    "anchor": "battle-timing",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/icon/combat.svg"
+      }
+    ],
+    "page": 29,
+    "text": "INTRODUCTION TO BATTLES\nWhat battles are for\n\nBattles decide which faction can remain in a contested territory. Use them to take strongholds and prevent other players from winning. A player with troops in three strongholds is contesting a win. If the other players do not prevent it, that player wins in the Mentat phase.\n\nBattles also affect the spice economy. You can deny opponents spice collection, or attack to earn a spice bounty for killing an opposing leader and winning the battle. That bounty can make an attack cost-efficient. Even a defeat can serve your interests if securing victory costs your opponent valuable spice, troops or cards.\n\nWhat winning means\n\nThere can be only one victor in a battle; the two sides cannot share a victory. In an ordinary battle, the defeated faction loses all its troops in the territory. The victor also pays its battle costs and takes losses, so winning does not guarantee that it will have troops left to hold the territory.\n\nPart of a battle\tWhat it means\n\n\nBattle plan\n\n\t\n\nThe choices you prepare for the battle and reveal to your opponent.\n\n\n\n\nTroop dial\n\n\t\n\nThe strength committed by your troops. Spice can support troops to make them count more.\n\n\n\n\nLeader\n\n\t\n\nA character whose strength can add to your total. A Cheap Hero fills this role with 0 strength.\n\n\n\n\nWeapons and defenses\n\n\t\n\nCards that threaten your opponent or protect your own leader.\n\n\n\n\nFaction advantages\n\n\t\n\nAbilities that affect the choices, information or outcome, at specified times.\n\n\n\n\nResolution and settlement\n\n\t\n\nDetermine the victor, then settle cards, rewards, payments and losses.\n\nThe following pages explain when battles happen, then troops and leaders in turn. The example between Atreides and Harkonnen brings these parts together: prepare plans, use advantages, reveal, determine the victor and settle the battle.\n\n29",
+    "title": "Introduction to battles"
+  },
+  {
+    "anchor": "before-the-battle",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/icon/combat.svg"
+      }
+    ],
+    "page": 30,
+    "text": "CHOOSE THE BATTLE\n\nBattle occurs when opposing factions have troops in the same territory. Troops separated by the storm cannot fight each other. Follow storm order to decide who chooses the first battle.\n\n1\n2\n3\n4\n1\nStart at the storm\n\nRead counterclockwise from the storm to the next player marker. Use the player markers, not the troops closest to the storm.\n\n2\nFind the aggressor\n\nAtreides is first in storm order here and has battles to fight, so it is the aggressor. Skip any player with no battles.\n\n3\nChoose a battle\n\nSix Atreides troops and five Harkonnen troops share Hagga Basin. Atreides chooses to fight here first.\n\n4\nFinish your battles\n\nCarthag also contains both factions. Atreides chooses to fight there next, then the next player in storm order with battles becomes aggressor.\n\nExample: two shared territories\n\nAtreides chooses Hagga Basin first, then Carthag. This chapter follows the battle in Hagga Basin.\n\n30",
+    "title": "Choose the battle"
+  },
+  {
+    "anchor": "how-the-dial-works",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/icon/combat.svg"
+      }
+    ],
+    "page": 31,
+    "text": "DIAL TROOP STRENGTH\nWhat you are dialing\n\nThe number on the battle wheel is the strength your troops contribute, not a count of troop tokens. Add the strength of the troops you choose to commit.\n\nSupported and unsupported troops\n\nEach ordinary troop contributes ½ strength without spice, or 1 strength when supported with 1 spice. An uncommitted troop contributes 0.\n\nChoose your commitment\n\nUse only troops in the battle territory and spice you can commit to this battle. Each troop contributes once. You may leave some troops uncommitted; you do not have to dial the highest strength you can afford.\n\nExample: six troops, a dial of 3\n\nAtreides has six ordinary troops and chooses to spend 2 spice. It supports two troops and commits two more without support. Two troops remain uncommitted.\n\nOrdinary troops\tStrength each\tContribution\tSupport spice\n\n\n2 supported\n\n\t\n\n1\n\n\t\n\n2\n\n\t\n\n2\n\n\n\n\n2 unsupported\n\n\t\n\n½\n\n\t\n\n1\n\n\t\n\n0\n\n\n\n\n2 uncommitted\n\n\t\n\n0\n\n\t\n\n0\n\n\t\n\n0\n\n\n\n\nTotal\n\n\t\t\n\nDial 3\n\n\t\n\n2 spice\n\nSet the wheel\n\nThe total is 2 + 1 = 3, so set the wheel to 3 and set aside 2 spice. For a half point, align the mark between whole numbers with the window.\n\n31",
+    "title": "Dial troop strength"
+  },
+  {
+    "anchor": "leaders",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/icon/combat.svg"
+      },
+      {
+        "alt": "Gurney Halleck",
+        "src": "https://dune.zone/published/leaders/k17ag3gr1h60n7mmh88kj56avs8a1j7x.01f1cf94-2df1-4b96-9fbf-dd757afef27b/leader.jpg?v=fca62d74-7a13-4d83-9725-3f248085ea22"
+      },
+      {
+        "alt": "Feyd Rautha",
+        "src": "https://dune.zone/published/leaders/k174k8mvjqapvgccxtbp9qwh5h8a01b4.773ba210-69e1-4bcb-9ea8-2b5419ecd35e/leader.jpg?v=4e0674f3-0705-40c6-8e3f-5ff8abb57f74"
+      }
+    ],
+    "page": 32,
+    "text": "LEADERS\nWhat a leader contributes\n\nA leader adds the strength printed on its token to your troop dial if it survives the battle. Its strength is separate from the number on your battle wheel. Weapons and defenses determine whether the leader survives; the reveal example shows how.\n\nChoose a leader\n\nYour battle plan must include a leader or Cheap Hero if you are able to play one. A Cheap Hero has 0 strength, but still lets you play Treachery Cards.\n\nWhen none is available\n\nIf you have no leader or Cheap Hero available, you must announce this publicly prior to reveal. When you play neither, you cannot include any Treachery Cards in your battle plan.\n\nUse a leader that is available for this territory. The settlement section explains how fighting in one territory commits a leader for the rest of the phase.\n\nGurney Halleck\n\nGurney Halleck has 4 strength.\n\nFeyd Rautha\n\nFeyd Rautha has 6 strength.\n\nThe leaders in our example\n\nHarkonnen chooses the stronger leader, Feyd. Atreides chooses Gurney. The stronger leader alone does not decide who wins.\n\n32",
+    "title": "Leaders"
+  },
+  {
+    "anchor": "build-a-battle-plan",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/icon/combat.svg"
+      },
+      {
+        "alt": "Hidden card",
+        "src": "https://dune.zone/homepage-table/cardback.webp"
+      },
+      {
+        "alt": "Hidden card",
+        "src": "https://dune.zone/homepage-table/cardback.webp"
+      },
+      {
+        "alt": "Hidden card",
+        "src": "https://dune.zone/homepage-table/cardback.webp"
+      },
+      {
+        "alt": "Hidden card",
+        "src": "https://dune.zone/homepage-table/cardback.webp"
+      },
+      {
+        "alt": "Gom Jabbar",
+        "src": "https://dune.zone/published/cards/ns77am58gm55e9nw0y6mj45nbh8fmya3/card.jpg?v=8911721e-4fa0-4681-9fb8-ecaeaf82784e"
+      },
+      {
+        "alt": "Hidden card",
+        "src": "https://dune.zone/homepage-table/cardback.webp"
+      }
+    ],
+    "page": 33,
+    "text": "BUILD YOUR PLANS\n\nThroughout these illustrations, the aggressor is on the left and the defender on the right. Here, that is Atreides and Harkonnen.\n\nResolve preparation effects\n\nResolve Supplies and the last opportunity for an Ixian alliance card exchange before building plans.\n\nPrepare a battle plan\n\nYour plan may include up to one weapon, one defense and one Mercenaries card. Each has its own slot, and any slot may be empty. Keep the cards and their number secret until reveal, except for information disclosed by an advantage.\n\nResolve pre-reveal advantages\n\nFollow each applicable faction advantage's timing and conditions. The Voice precedes Battle Prescience, followed by Blackmail and Stone Burner. Fanatical Tactics and Infiltration act during commitment. Emperor and Ixian Fates cannot be used during commitment.\n\nExample: choosing cards after Prescience\n\nAtreides asks: \"Which weapon will you play?\" Harkonnen answers \"Gom Jabbar.\" That part of Harkonnen's battle plan is now locked, and cannot be changed. The rest can change until reveal. Atreides uses the answer to choose two cards.\n\nFinalize your plan\n\nAfter pre-reveal advantages are resolved, finalize your cards, dial your chosen troop strength and set aside the matching support spice.\n\n33",
+    "title": "Build your plans"
+  },
+  {
+    "anchor": "prescience-battle-example",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/icon/combat.svg"
+      },
+      {
+        "alt": "Maula Pistol",
+        "src": "https://dune.zone/published/cards/ns785225ways2hbtape9wcb16d8fnp11/card.jpg?v=8a6f98c6-adf2-47c3-8d94-5e817d564884"
+      },
+      {
+        "alt": "Snooper",
+        "src": "https://dune.zone/published/cards/ns7ahq18ww5e3b7hsdb3ztjggn8cwn08/card.jpg?v=6b748aa0-57b7-49a8-b6f5-5c870d1e99bb"
+      },
+      {
+        "alt": "Gurney Halleck",
+        "src": "https://dune.zone/published/leaders/k17ag3gr1h60n7mmh88kj56avs8a1j7x.01f1cf94-2df1-4b96-9fbf-dd757afef27b/leader.jpg?v=fca62d74-7a13-4d83-9725-3f248085ea22"
+      },
+      {
+        "alt": "Gom Jabbar",
+        "src": "https://dune.zone/published/cards/ns77am58gm55e9nw0y6mj45nbh8fmya3/card.jpg?v=8911721e-4fa0-4681-9fb8-ecaeaf82784e"
+      },
+      {
+        "alt": "Snooper",
+        "src": "https://dune.zone/published/cards/ns7ahq18ww5e3b7hsdb3ztjggn8cwn08/card.jpg?v=6b748aa0-57b7-49a8-b6f5-5c870d1e99bb"
+      },
+      {
+        "alt": "Feyd Rautha",
+        "src": "https://dune.zone/published/leaders/k174k8mvjqapvgccxtbp9qwh5h8a01b4.773ba210-69e1-4bcb-9ea8-2b5419ecd35e/leader.jpg?v=4e0674f3-0705-40c6-8e3f-5ff8abb57f74"
+      }
+    ],
+    "page": 34,
+    "text": "REVEAL AND RESOLVE\n5\nReveal and resolve weapons\n\nFinish pre-reveal abilities, then reveal both plans simultaneously. An unblocked weapon kills the opposing leader. A killed leader contributes 0 strength; its troops still count. Winning does not itself save your leader.\n\n3\nStrength\n4\n2 supported\n2 unsupported\n2\n4\nStrength\n4\n4 supported\n0 unsupported\n4\n❌\nExample: the plans are revealed\n\nAtreides reveals dial 3, 2 spice and Gurney. Harkonnen reveals dial 4, 4 spice and Feyd. Both reveal their weapon and defense. Gurney's Snooper stops Gom Jabbar. Feyd's Snooper cannot stop the Maula Pistol, so Feyd dies. The red cross marks his death.\n\n6. Determine the winner\n\nAdd the troop dial, surviving leader and permitted bonuses. Higher strength wins. The aggressor normally wins ties; Mercenaries can change that. Settle the result before cards and losses.\n\nFaction\tTroop dial\tLeader\tTotal\n\n\nAtreides\n\n\t\n\n3\n\n\t\n\nGurney survives: 4\n\n\t\n\n7, wins\n\n\n\n\nHarkonnen\n\n\t\n\n4\n\n\t\n\nFeyd killed: 0\n\n\t\n\n4\n\n34",
+    "title": "Reveal and resolve"
+  },
+  {
+    "anchor": "resolve-an-ordinary-battle",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "Snooper",
+        "src": "https://dune.zone/published/cards/ns7ahq18ww5e3b7hsdb3ztjggn8cwn08/card.jpg?v=6b748aa0-57b7-49a8-b6f5-5c870d1e99bb"
+      },
+      {
+        "alt": "Gom Jabbar",
+        "src": "https://dune.zone/published/cards/ns77am58gm55e9nw0y6mj45nbh8fmya3/card.jpg?v=8911721e-4fa0-4681-9fb8-ecaeaf82784e"
+      }
+    ],
+    "page": 35,
+    "text": "SETTLE ABILITIES AND CARDS\n7\nResolve post-reveal advantages\n\nFaction advantages may act after reveal or after the result. Check each ability's timing and conditions before continuing.\n\nAtreides\nSnooper\n⇄\nHarkonnen\nGom Jabbar\nExample: Vladimir's Spite\n\nFeyd died, allowing Vladimir's Spite. Harkonnen exchanges Gom Jabbar for Atreides' Snooper. The result stays 7 to 4.\n\n8. Settle cards and the leader reward\n\nThe ordinary winner may keep or discard played cards; the loser discards them. The winner collects the killed opposing leader's strength in spice.\n\nExample: cards and reward\n\nAtreides collects 6 spice and keeps its Pistol and new Gom Jabbar, which cannot be discarded immediately. Harkonnen discards both Snoopers.\n\nPAY AND REMOVE TROOPS\n9\nPay support and remove troops last\n\nBoth pay committed spice. The winner loses troops matching its dial and payment; the loser loses all troops in the territory. Resolve any Harkonnen capture, then choose the next battle.\n\nAtreides to Tanks\nHarkonnen to Tanks\nExample: troop losses\n\nAtreides pays 2 spice, loses four troops and keeps two. Harkonnen pays 4 spice and loses all five troops.\n\nLeaders stay committed to the territory\n\nA surviving leader remains committed to that territory for the rest of the Battle phase. It may fight again there, but cannot fight in another territory. A killed leader goes to the Tleilaxu Tanks. If revived with Ghola, it may fight again, including in another territory. Ghola must be played prior to reveal.\n\nContinue the Battle phase\n\nThe aggressor finishes all of its battles before the next eligible player chooses.\n\n35"
+  },
+  {
+    "anchor": "how-to-resolve-ties",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/icon/combat.svg"
+      },
+      {
+        "alt": "Gurney Halleck",
+        "src": "https://dune.zone/published/leaders/k17ag3gr1h60n7mmh88kj56avs8a1j7x.01f1cf94-2df1-4b96-9fbf-dd757afef27b/leader.jpg?v=fca62d74-7a13-4d83-9725-3f248085ea22"
+      },
+      {
+        "alt": "Feyd Rautha",
+        "src": "https://dune.zone/published/leaders/k174k8mvjqapvgccxtbp9qwh5h8a01b4.773ba210-69e1-4bcb-9ea8-2b5419ecd35e/leader.jpg?v=4e0674f3-0705-40c6-8e3f-5ff8abb57f74"
+      },
+      {
+        "alt": "Gurney Halleck",
+        "src": "https://dune.zone/published/leaders/k17ag3gr1h60n7mmh88kj56avs8a1j7x.01f1cf94-2df1-4b96-9fbf-dd757afef27b/leader.jpg?v=fca62d74-7a13-4d83-9725-3f248085ea22"
+      },
+      {
+        "alt": "Mercenaries",
+        "src": "https://dune.zone/published/cards/ns75q03jc0a875zxdswzxq9fwn8fnx0v/card.jpg?v=c5ad2ae8-51e2-427a-9ca7-8f49939a068b"
+      },
+      {
+        "alt": "Feyd Rautha",
+        "src": "https://dune.zone/published/leaders/k174k8mvjqapvgccxtbp9qwh5h8a01b4.773ba210-69e1-4bcb-9ea8-2b5419ecd35e/leader.jpg?v=4e0674f3-0705-40c6-8e3f-5ff8abb57f74"
+      }
+    ],
+    "page": 36,
+    "text": "HOW TO RESOLVE TIES?\n\nThe aggressor wins an ordinary tie. Mercenaries adds 1 strength and wins ties. If both sides play Mercenaries and remain tied, the aggressor wins.\n\n3\nStrength\n3\n3 supported\n0 unsupported\n3\n1\nStrength\n1\n1 supported\n0 unsupported\n1\nExample: an ordinary tie\n\nAtreides has 3 troop strength + Gurney's 4 = 7. Harkonnen has 1 troop strength + Feyd's 6 = 7. Neither plays Mercenaries, so Atreides wins as aggressor.\n\n3\nStrength\n3\n3 supported\n0 unsupported\n3\n0\nStrength\n0\n0 supported\n0 unsupported\n0\n+1\nadj.\nExample: Mercenaries wins the tie\n\nAtreides again totals 7. Harkonnen dials 0, adds Feyd's 6 and 1 from Mercenaries, for 7. Mercenaries wins the tie for Harkonnen, the defender.\n\n36",
+    "title": "How to resolve ties?"
+  },
+  {
+    "anchor": "traitors",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/icon/traitor.svg"
+      },
+      {
+        "alt": "Maula Pistol",
+        "src": "https://dune.zone/published/cards/ns785225ways2hbtape9wcb16d8fnp11/card.jpg?v=8a6f98c6-adf2-47c3-8d94-5e817d564884"
+      },
+      {
+        "alt": "Snooper",
+        "src": "https://dune.zone/published/cards/ns7ahq18ww5e3b7hsdb3ztjggn8cwn08/card.jpg?v=6b748aa0-57b7-49a8-b6f5-5c870d1e99bb"
+      },
+      {
+        "alt": "Gurney Halleck",
+        "src": "https://dune.zone/published/leaders/k17ag3gr1h60n7mmh88kj56avs8a1j7x.01f1cf94-2df1-4b96-9fbf-dd757afef27b/leader.jpg?v=fca62d74-7a13-4d83-9725-3f248085ea22"
+      },
+      {
+        "alt": "Gom Jabbar",
+        "src": "https://dune.zone/published/cards/ns77am58gm55e9nw0y6mj45nbh8fmya3/card.jpg?v=8911721e-4fa0-4681-9fb8-ecaeaf82784e"
+      },
+      {
+        "alt": "Snooper",
+        "src": "https://dune.zone/published/cards/ns7ahq18ww5e3b7hsdb3ztjggn8cwn08/card.jpg?v=6b748aa0-57b7-49a8-b6f5-5c870d1e99bb"
+      },
+      {
+        "alt": "Feyd Rautha",
+        "src": "https://dune.zone/published/leaders/k174k8mvjqapvgccxtbp9qwh5h8a01b4.773ba210-69e1-4bcb-9ea8-2b5419ecd35e/leader.jpg?v=4e0674f3-0705-40c6-8e3f-5ff8abb57f74"
+      },
+      {
+        "alt": "Maula Pistol",
+        "src": "https://dune.zone/published/cards/ns785225ways2hbtape9wcb16d8fnp11/card.jpg?v=8a6f98c6-adf2-47c3-8d94-5e817d564884"
+      },
+      {
+        "alt": "Snooper",
+        "src": "https://dune.zone/published/cards/ns7ahq18ww5e3b7hsdb3ztjggn8cwn08/card.jpg?v=6b748aa0-57b7-49a8-b6f5-5c870d1e99bb"
+      },
+      {
+        "alt": "Gurney Halleck",
+        "src": "https://dune.zone/published/leaders/k17ag3gr1h60n7mmh88kj56avs8a1j7x.01f1cf94-2df1-4b96-9fbf-dd757afef27b/leader.jpg?v=fca62d74-7a13-4d83-9725-3f248085ea22"
+      },
+      {
+        "alt": "Gom Jabbar",
+        "src": "https://dune.zone/published/cards/ns77am58gm55e9nw0y6mj45nbh8fmya3/card.jpg?v=8911721e-4fa0-4681-9fb8-ecaeaf82784e"
+      },
+      {
+        "alt": "Snooper",
+        "src": "https://dune.zone/published/cards/ns7ahq18ww5e3b7hsdb3ztjggn8cwn08/card.jpg?v=6b748aa0-57b7-49a8-b6f5-5c870d1e99bb"
+      },
+      {
+        "alt": "Feyd Rautha",
+        "src": "https://dune.zone/published/leaders/k174k8mvjqapvgccxtbp9qwh5h8a01b4.773ba210-69e1-4bcb-9ea8-2b5419ecd35e/leader.jpg?v=4e0674f3-0705-40c6-8e3f-5ff8abb57f74"
+      }
+    ],
+    "page": 37,
+    "text": "TRAITORS\nWhen to call a traitor\n\nCall traitors after both battle plans are revealed, before resolving weapons or comparing strength. A successful call replaces the ordinary battle result.\n\nWho can call\n\nIf the opposing leader matches your traitor, you may reveal the card and call treachery. A faction may always call its own leader traitor when an opponent uses that leader against it. Harkonnen may call traitor in its ally's battle.\n\nOne successful call\n\nWith one successful call, the caller wins without losing troops or committed spice. The opposing leader dies, its owner loses all troops in the territory and discards its played cards. The caller receives the traitorous leader's strength in spice. The winner keeps its played cards and may not discard them. Its leader is not committed by this battle.\n\nExample: Feyd betrays Harkonnen\n\nOnly Atreides calls a traitor, revealing Feyd's Traitor Card. Atreides keeps all six troops and its 2 committed spice, and collects 6 spice for Feyd. Harkonnen loses Feyd and all five troops.\n\n3\nStrength\n4\n2 supported\n2 unsupported\n2\n4\nStrength\n4\n4 supported\n0 unsupported\n4\n❌\nTwo successful calls\n\nIf both sides successfully call traitor, both sides lose their troops, played cards and leaders. Neither side receives spice.\n\nExample: both leaders betray their factions\n\nAtreides reveals Feyd's Traitor Card and Harkonnen reveals Gurney's. Both leaders die and both armies are lost. Neither side wins a spice bounty.\n\n3\nStrength\n4\n2 supported\n2 unsupported\n2\n❌\n4\nStrength\n4\n4 supported\n0 unsupported\n4\n❌\n37",
+    "title": "Traitors"
+  },
+  {
+    "anchor": "starred-forces-and-losses",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/icon/combat.svg"
+      },
+      {
+        "alt": "Saudarkar",
+        "src": "https://dune.zone/published/faction-troops/k17dhptwywynwmpvx18965b97h8a0abp.1257c66a-9f7c-41c1-a253-372e740469a2/troop.jpg?v=0d78a222-df6c-4602-83d2-22dc1b58aa03"
+      },
+      {
+        "alt": "Fedaykin",
+        "src": "https://dune.zone/published/faction-troops/k176nq542xz747341fc42341e18a0t45.8eefca28-56bf-4bce-bde4-687a390908b7/troop.jpg?v=c902f1b5-79e4-48bd-9eaf-dc899310dbfd"
+      },
+      {
+        "alt": "Suboid",
+        "src": "https://dune.zone/published/faction-troops/k175em553h4wfwgqhhmey5774x8a0q1k.3b6300c7-75ad-4ad1-a7fb-a1c6d2403fa2/troop.jpg?v=5292356a-2089-4098-a75b-97dc30fc4e2d"
+      },
+      {
+        "alt": "Cyborg",
+        "src": "https://dune.zone/published/faction-troops/k175em553h4wfwgqhhmey5774x8a0q1k.6725e3a9-5ef1-459a-b372-f9ea9b81a808/troop.jpg?v=018c66c6-0f7e-443b-a1b0-c6e3620e9535"
+      },
+      {
+        "alt": "Patched Cyborg",
+        "src": "https://dune.zone/published/faction-troops/k175em553h4wfwgqhhmey5774x8a0q1k.6725e3a9-5ef1-459a-b372-f9ea9b81a808.back/troop.jpg?v=7d520d89-5a6a-44e5-8404-1319eeee2da6"
+      }
+    ],
+    "page": 38,
+    "text": "SPECIAL TROOPS\n\nApply these exceptions after learning the ordinary battle. A troop worth 2 strength is still one troop token. Karama can suppress Fedaykin or Free Spice Dialing for the whole phase.\n\nTroop\tUnsupported\tWith 1 spice\tException\n\n\nOrdinary\n\n\t\n\n½\n\n\t\n\n1\n\n\t\n\nStandard support\n\n\n\n\nSardaukar\n\n\t\n\n1\n\n\t\n\n2\n\n\t\n\nOrdinary strength against Fremen\n\n\n\n\nFremen ordinary / Fedaykin\n\n\t\n\n1 / 2\n\n\t\n\nNot needed\n\n\t\n\nFree Spice Dialing; apply Karama first\n\n\n\n\nCyborg\n\n\t\n\n1\n\n\t\n\n2\n\n\t\n\nImmune to Karama\n\n\n\n\nSuboid\n\n\t\n\n½\n\n\t\n\nCannot support\n\n\t\n\nMay replace a Cyborg loss after winning\n\n\n\n\nPatched Cyborg\n\n\t\n\n2\n\n\t\n\nNot needed\n\n\t\n\nSurvives a winning commitment; flips back\n\nCyborg losses\n\nWhen Ix wins, an uncommitted Suboid may die in place of a committed Cyborg. Flip the saved Cyborg to its patched side. A patched Cyborg can be dialed in a later winning battle without dying, then flips back. These rules do not save troops from an ordinary defeat.\n\n38",
+    "title": "Special troops"
+  },
+  {
+    "anchor": "special-battle-results",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/icon/combat.svg"
+      },
+      {
+        "alt": "Break Conditioning",
+        "src": "https://dune.zone/published/cards/ns7f7psmdqgae5e0v301nj5mc18fn7rx/card.jpg?v=3c5842e8-4fd1-4599-87cd-748d0439cd6c"
+      }
+    ],
+    "page": 39,
+    "text": "OTHER BATTLE OUTCOMES\nBreak Conditioning\n\nAfter plans are revealed, determine which leaders would survive the weapons and defenses. If your resulting strength is at least twice your opponent's, Break Conditioning can replace the ordinary result. You win without losses and the opposing leader is killed.\n\nYour leader survives this result even if the weapons would have killed it. Unlike an ordinary traitor victory, v0.8 treats the battle as having happened: leaders are committed and the winner may discard played cards.\n\nGuild Retreat\n\nThe Guild may retreat only in its permitted window. Its troops can return to reserves at stronghold shipping rates. To save a played Treachery Card, pay spice equal to its leader's strength for that card.\n\nIts leader still dies if the weapons and defenses would kill it. Pay committed battle spice and retreat costs to the bank. Both leaders remain committed. A resolved traitor or Break Conditioning result prevents Retreat.\n\nZoal chooses Infiltration\n\nIf Zoal survives and the opposing leader dies, Bene Tleilax may activate Zoal. The opponent wins and loses nothing. Bene Tleilax keeps its committed spice, returns its troops to reserves and may keep its played cards. Set Zoal and the target leader aside for Infiltration during the following Storm. See the Bene Tleilax chapter.\n\nWhat does \"prior to reveal\" mean?\n\nMake the announcement early enough for your opponent to hear it and have a reasonable opportunity to react, including changing any part of their plan that is not already locked. If you have no available leader or Cheap Hero, say so publicly and allow that opportunity before revealing. An announcement made as the plans are revealed is too late.\n\n39",
+    "title": "Other battle outcomes"
+  },
+  {
+    "anchor": "spice-collection",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/icon/collection_standalone.svg"
+      },
+      {
+        "alt": "spice",
+        "src": "https://dune.zone/vector/icon/spice.svg"
+      }
+    ],
+    "page": 40,
+    "text": "SPICE COLLECTION\nCollect in the correct sector\n\nYour troops must occupy the sector containing the spice. Each normal troop collects up to two spice. If you occupy Arrakeen or Carthag at collection, that rate is three per normal troop. Take only the spice actually present.\n\nThree normal troops\nCapacity without city access\n6 spice\nExample: eight spice on the sand\n\nThree normal troops can collect six, leaving two on the board. With city access they can collect all eight. A capacity of nine does not create a ninth spice.\n\nWhat remains\n\nUncollected ordinary spice stays on the board. A mine stays in place and supplies its fixed yield each turn, without exceeding its cap. Its replenishment window is still tracked in #1859.\n\nSTRONGHOLD INCOME\nOccupied stronghold\tSpice from the bank\n\n\nArrakeen\n\n\t\n\n2\n\n\n\n\nCarthag\n\n\t\n\n2\n\n\n\n\nTuek's Sietch\n\n\t\n\n1\n\nCollect each payment\n\nThese payments are separate from desert spice. Occupying more than one of these strongholds earns each payment. You need to be there when collection occurs.\n\nFaction differences\n\nIxian Cyborgs collect three spice each. Bene Gesserit advisors do not collect spice or provide city access. Before gaining the Kwisatz Haderach, Atreides gains two spice through Leto's Tithe for one stronghold or three for at least two; that income ends permanently when it gains the token.\n\nSettle the correct income\n\nCollect triggered tech-token income at the end of its phase. Bribes remain outside your supply until Mentat. Do not combine these different payment windows.\n\n40",
+    "title": "Spice Collection"
+  },
+  {
+    "anchor": "mentat",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/icon/mentat.svg"
+      }
+    ],
+    "page": 41,
+    "text": "MENTAT\nFinish the turn\n\nMentat is the turn's final phase. Collect bribes, resolve applicable Mentat abilities and check whether the game has been won. The actions below share this phase; their placement on this page does not introduce a new timing priority.\n\nCollect bribes\n\nMove the spice waiting in your bribe pile into your available supply. Factions may give and receive bribes during Mentat, including Bene Tleilax. Before collection, spice in a bribe pile may be passed onward as another bribe, but cannot pay ordinary costs.\n\nExchange unused Fate Indicators\n\nOnce during Mentat, exchange your Fate Indicator with another faction if neither has used its Fate. Swap indicators, not Treachery Cards. Your new indicator changes which worthless card can activate your unused Fate.\n\nExample: an indicator is not the card\n\nYou exchange indicators and now need Baliset to activate your Fate. The exchange does not give you Baliset. You still need the matching Treachery Card.\n\nBene Tleilax\n\nBene Tleilax may discard face down and redraw one Face Dancer card. It may make a binding commitment to end a particular Face Dancer Infiltration in this window. Follow the faction's leader and replacement-card procedure.\n\nIxians\n\nMove the Hidden Mobile Surveyor up to three non-stronghold territories, picking up and dropping off Ixian troops along its route. It carries troops, not spice. Its faction chapter explains the shelter and Shield Wall restriction.\n\nCHECK VICTORY\nCount controlled strongholds\n\nThe ordinary threshold is three for a lone faction or four between two allies. Add any applicable token or Shield Wall contribution.\n\nApply victory exceptions\n\nUse the victory chapter for competing claims, Prediction, Infiltration and the Fremen endgame. The marked council cases remain unresolved.\n\nBegin another turn if needed\n\nIf nobody wins and the game continues, advance the turn marker and return to Storm. At the end of turn ten, apply the endgame condition instead.\n\n41",
+    "title": "Mentat"
+  },
+  {
+    "anchor": "alliances",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      }
+    ],
+    "page": 42,
+    "text": "ALLIANCES\nForm or break an alliance\n\nAn alliance contains at most two factions. Alliances are public, and a faction can belong to only one at a time. During a Nexus, any faction may leave its current alliance and form another. Once that opportunity ends, wait for the next Nexus to change alliances.\n\nThe Nexus deck creates these opportunities in Dreamrules. Shai-Hulud does not create an additional alliance window.\n\nShare a victory\n\nA normal alliance needs four strongholds between its members at the victory check. Combine the positions each member controls. See the victory chapter for exceptions.\n\nA temporary deal grants neither alliance powers nor shared strongholds.\n\nKeep troops apart\n\nAllies do not battle each other. You may ship into a territory containing your ally's troops, but must immediately leave during that same shipment-and-movement action. You cannot finish the action together. The Polar Sink and explicit faction exceptions, including Bene Gesserit advisors, allow coexistence.\n\nIf newly allied factions already share a territory, separate them during Shipment and movement. If the first ally to act does not leave, the second must leave or lose its troops there to the Tanks.\n\nNo binding deals between allies\n\nAllies cannot make binding deals with each other. Their permitted assistance still applies.\n\nWhat allies may share\n\nYou may discuss plans privately. Allies may show each other cards they have access to, including Treachery, Fate, Storm and Spice cards. They may not show each other Traitor or Prediction cards.\n\nAllies may pay for each other's shipments and bids. A faction cannot make an unaffordable shipment or bid unless its ally has agreed to cover the shortfall. Other transfers or shared powers require a specific faction ability.\n\nAlliance powers\n\nRead both faction chapters. Shared Prescience and Shared Voice let an ally bring those powers into a battle. The Guild can extend shipping powers; Bene Tleilax extends its revival discount. Emperor can transfer spice immediately. Ixians can exchange a Treachery Card with its ally.\n\nThese are defined permissions, not a general right to use every power printed on an ally's sheet.\n\nExample: paying for a shipment\n\nYour shipment costs five spice and you have three. Your ally agrees to pay the remaining two, so you may make it. Without that commitment or another valid ability, you cannot ship first and hope someone pays afterward.\n\n42",
+    "title": "Alliances"
+  },
+  {
+    "anchor": "deals-and-information",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      }
+    ],
+    "page": 43,
+    "text": "BINDING DEALS\nMake the terms public\n\nFactions that are not allied may make binding deals about legal actions, information and spice. State the terms aloud and agree to them. Once accepted, the deal must be honored. Both parties may agree to amend it.\n\nName who must do what, when they must do it and what payment is due. A discussion or an offer is not yet an agreement. No deals may be made during setup.\n\nWhat you can promise\n\nInformation, a legal future action or a spice payment can be part of a deal. For example, a player can agree not to bid on one named card, to disclose information they are allowed to disclose, or to make a particular legal move.\n\nA deal cannot authorize an illegal action, give away a faction power, or transfer cards, leaders or troops without a rule that allows that transfer.\n\nExample: buying a pass\n\nBefore bidding begins on a particular card, two non-allied factions agree: \"I pay you two spice now. You will not bid on this card.\" They announce and accept those terms. The recipient puts the spice in its bribe pile and passes for that card. The promise says nothing about the next auction.\n\nPublic terms and private discussion\n\nPlayers may discuss plans privately. State publicly the terms that are to be binding; a private discussion is not a substitute for announcing the agreement. You can negotiate about information without revealing that information to everyone.\n\nMake the agreement understandable\n\nRestate unusual terms in plain language before accepting. Both players should be able to explain the same actions, payment and timing. If they describe different agreements, settle that difference first.\n\nA clever bargain can reward careful play. Rushing through obscure wording or exploiting a language barrier makes it harder to play the game together.\n\n43",
+    "title": "Binding deals"
+  },
+  {
+    "anchor": "bribes-and-payments",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      }
+    ],
+    "page": 44,
+    "text": "BRIBES AND PAYMENTS\nUse a bribe pile\n\nWhen you receive a spice bribe before Mentat, keep it outside your hidden supply. Collect the pile during Mentat. Until collection it cannot fund ordinary purchases, shipments or spice dialing.\n\nYou may use spice already in your bribe pile to bribe another faction. It moves to that faction's bribe pile and keeps the same delayed availability. Fremen's ally also uses this pile for spice returned through Desert Power.\n\nExample: passing on a bribe\n\nA gives B three spice before Mentat. B can pass two of those spice to C as another bribe. B has one waiting in its pile and C has two. Neither can spend that spice on an ordinary payment before collecting it.\n\nA bribe is not an allied payment\n\nAllies cannot make binding deals with each other. They may pay for each other's bids and shipments as the alliance rules permit. That payment goes to its normal recipient and is not a bribe waiting for Mentat.\n\nThe Emperor's ability to give spice instantly to its ally is a separate faction advantage.\n\nSee Alliances, page 42; Emperor, page 70\nFollow the spice\n\nKeep three things distinct: spice you can spend, bribes waiting outside your shield, and income waiting on tech tokens. Receiving spice does not always make it immediately spendable.\n\nExample: payment now, spending later\n\nDuring Bidding, Harkonnen pays Atreides three spice for permitted information. Atreides has two spice behind its shield. Until Mentat, its ordinary spending supply is still two, not five. It can pass the three-spice bribe onward in another bribe, but cannot use it to pay for a card.\n\nBene Tleilax\n\nBene Tleilax normally cannot give or receive bribes outside Mentat or make binding deals. Its exceptions include buying binding information about cards up for bid, and promising during Mentat to end a named Face Dancer Infiltration. Read its faction chapter before making a deal.\n\nSee Bene Tleilax, page 74\nToken income\n\nTech tokens trigger during their named phase and pay at its end. Keep that pending income separate from a bribe pile, which is collected during Mentat.\n\nSee Tech tokens, page 46\n44",
+    "title": "Bribes and payments"
+  },
+  {
+    "anchor": "agreements-in-play",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      }
+    ],
+    "page": 45,
+    "text": "MAKE THE AGREEMENT CLEAR\nSpecify the action\n\nName the move, bid or battle-plan choice being agreed. Check that each promised action is legal and that the players can perform it.\n\nExample: arranging a battle\n\nTwo non-allied factions agree to a battle in which one will concede. They name the territory and specify that neither will play a weapon, call traitor or use Break Conditioning. The conceding player agrees to dial zero and use an available named leader.\n\nThey also specify the intended winner's leader and dial, making sure its strength will win. Any payment has an amount and a stated time. Both announce and accept the complete terms.\n\nResolve the battle normally\n\nAn agreement does not itself award a victory or remove losses. Players still make legal battle plans and resolve the battle. \"A thrown fight\" should not stand in for terms that the two players understand differently.\n\nSee Build your plans, page 33; Settle the battle, page 35\nChanging your agreement\n\nBoth parties may agree to amend a binding deal. State the revised terms clearly. One player changing their mind is not an amendment.\n\nExample: a narrower promise\n\n\"I will not move into Arrakeen during my movement this turn\" identifies a place, an action and a time. It does not promise to help defend Arrakeen, avoid bidding, or support the other player on a later turn. Agree separately to any additional obligation.\n\nGood-faith play\n\nAvoid binding deals that prevent players from trying to stop an imminent win. The v0.8 guidance treats these as poor sportsmanship. Using a faction advantage to make another player act first is part of play.\n\nTake care when selling information based on memory or notes. Mistakes do not become reliable information because a promise sounds precise.\n\nTruthtrance and records\n\nCouncil questions #1851 and #1850 cover Truthtrance conflicts and records of public deals. These examples do not settle them.\n\n45",
+    "title": "Make the agreement clear"
+  },
+  {
+    "anchor": "tech-tokens",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/generic/tech.svg"
+      }
+    ],
+    "page": 46,
+    "text": "TECH TOKENS\nBring a token into play\n\nSeven standard tech tokens begin outside the game. When a faction wins a battle without receiving a token from its opponent, and fewer than three standard tokens are in play, it takes a random token from the unused pool.\n\nA faction that loses a battle with a token gives a token to the winner. Spice already waiting on a stolen token moves with it. The precise treatment of exceptional battle results is part of #1844.\n\nTrigger and collect\n\nEach token triggers at most once per turn. Its payout is spice equal to the number of tokens its holder possesses. Collect that spice at the end of the triggering phase. Watch the event and the named exception for that token.\n\nHolding all three standard tokens counts as a stronghold for that faction's victory claim, subject to the priority procedure when more than one faction qualifies.\n\nCarryall is separate\n\nAtreides obtains Carryall through its Fate. It is not drawn from the standard pool and cannot be lost. It triggers when a mine sends troops to reserves. #1845 asks which payout and victory counts include Carryall; do not silently count it as a fourth standard token.\n\nSee Carryall, page 47; House Atreides, page 68\nIdentify each token\n\nThe next page shows all seven standard tokens and the separate Atreides Carryall. Match each token to its trigger, then apply the payout and timing rules on this page.\n\nSee Tech token reference, page 47\nExample: a token pays once\n\nYou hold two standard tokens and no Carryall. Your Heighliners token triggers when an eligible faction ships. It earns two spice, collected at the end of Shipment and Movement. Further qualifying shipments this turn do not trigger that token again.\n\n46",
+    "title": "Tech tokens"
+  },
+  {
+    "anchor": "tech-token-reference",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/generic/tech.svg"
+      },
+      {
+        "alt": "Heighliners",
+        "src": "https://dune.zone/published/gear-tokens/ns7chscma9zd7r0t2v0yg8aw9x8fnbsx/token.jpg?v=e64f838c-2b01-493a-8516-216502be746d"
+      },
+      {
+        "alt": "Tleilaxu Tanks",
+        "src": "https://dune.zone/published/gear-tokens/ns7cxf0zc8jywhvg677k2qeh258fn2yz/token.jpg?v=06845ad8-8182-4ef6-a9b2-7fe636532996"
+      },
+      {
+        "alt": "Spice Production",
+        "src": "https://dune.zone/published/gear-tokens/ns745bwpcpcmq9e0m7g85wndk18fnddv/token.jpg?v=09100de7-6a3a-4ff8-a2cb-40247eb9465d"
+      },
+      {
+        "alt": "Imperial Supplies",
+        "src": "https://dune.zone/published/gear-tokens/ns78ymrv7y2tvynaxgj1y9na4s8fmzen/token.jpg?v=495c3c84-824c-4154-90ca-c9bf9e6224b9"
+      },
+      {
+        "alt": "Spice Collection",
+        "src": "https://dune.zone/published/gear-tokens/ns78k2n1d20v5c2vqfhj1b0pax8fmxrb/token.jpg?v=897f7962-848f-440e-a6cc-dd91d596832b"
+      },
+      {
+        "alt": "Customs",
+        "src": "https://dune.zone/published/gear-tokens/ns76r5pfvrpfg36w91kqdvdzws8fme5p/token.jpg?v=b1178428-785c-4b1b-b1d2-06f04a962ec1"
+      },
+      {
+        "alt": "Water Stealing",
+        "src": "https://dune.zone/published/gear-tokens/ns74570x129hxa7g1fmbd7h6bx8cwcg7/token.jpg?v=c7944c82-365b-4a1b-8057-75e68a9ff96f"
+      },
+      {
+        "alt": "Carryall",
+        "src": "https://dune.zone/published/gear-tokens/ns7d0h01c8nf0mwx0fa2xvamf98fn1va/token.jpg?v=a20b90e1-2edb-4f65-b115-1e93b7dadf1c"
+      }
+    ],
+    "page": 47,
+    "text": "TECH TOKEN REFERENCE\nHeighliners\n\nTriggers when a faction other than the Spacing Guild ships troops.\n\nTleilaxu Tanks\n\nTriggers when a faction other than Bene Tleilax revives troops.\n\nSpice Production\n\nTriggers when a faction other than Bene Gesserit takes CHOAM Charity.\n\nImperial Supplies\n\nTriggers when a faction other than the Emperor buys a Treachery Card.\n\nSpice Collection\n\nTriggers when any faction collects spice from a sand territory.\n\nCustoms\n\nTriggers when a bribe is paid between factions other than the token holder.\n\nWater Stealing\n\nTriggers when a leader is killed. The printed Fremen exception awaits council verification in #1861.\n\nCarryall\n\nAtreides gains Carryall through its Fate. It triggers when a mine sends troops to reserves. It stays outside the standard pool and cannot be lost. Token-count questions: #1845.\n\n47",
+    "title": "Tech token reference"
+  },
+  {
+    "anchor": "victory-and-the-shield-wall",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      }
+    ],
+    "page": 48,
+    "text": "VICTORY AND THE SHIELD WALL\nCount strongholds at Mentat\n\nA lone faction normally wins with three strongholds. An alliance normally wins with four between its two members. You need troops controlling a stronghold at the victory check; visiting it earlier in the turn is not enough. Bene Gesserit advisors do not supply control.\n\nThe Hidden Mobile Surveyor is not a stronghold. Arrakeen, Carthag, Sietch Tabr, Habbanya Sietch and Tuek's Sietch are the ordinary strongholds.\n\nShield Wall markers\n\nEach Shai-Hulud card drawn adds one marker to the Shield Wall. Fremen Thumpers do not add markers. At four markers, the Shield Wall counts as a stronghold for victory only.\n\nIts shipping price and occupation rules otherwise stay unchanged. If the storm divides it and two factions occupy separate parts at Mentat, the troops on the larger part control it for this purpose. Ixians cannot move the Surveyor through it once it has become a victory stronghold.\n\nTokens can contribute\n\nA faction holding all three standard tech tokens gains one stronghold contribution. This and the Shield Wall can produce overlapping victory claims. Carryall counting is still under review in #1845.\n\nResolve overlapping claims\n\nThe v0.8 priority rule removes the tech-token contribution first if more than one faction would win. If more than one still qualifies, remove the Shield Wall contribution. Recheck the remaining ordinary strongholds.\n\nThe complete interaction with Prediction and Infiltration still needs an agreed procedure. #1847 and #1849 cover those cases, including an alliance with one or both members infiltrated.\n\nFaction victory conditions\n\nBene Gesserit can replace a predicted faction's win on the predicted turn. Its prediction does not apply to the Fremen special victory.\n\nBene Tleilax can share an infiltrated faction's win in place of that faction's ally, subject to the five-stronghold exception and the unresolved overlapping cases.\n\nIf no faction wins by the end of turn ten, Fremen wins. Its ally shares that win only if their alliance controls at least three strongholds. The Guild has no stallout victory.\n\nEndgame without Fremen\n\nThe current Fremen condition is clear. The ending when Fremen is absent, and whether any sudden-death rule applies, remains open in #1848. This draft does not select a tiebreaker from an older edition.\n\n48",
+    "title": "Victory and the Shield Wall"
+  },
+  {
+    "anchor": "weapons-and-defenses",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      }
+    ],
+    "page": 49,
+    "text": "WEAPONS AND DEFENSES\nThe ordinary pairs\n\nYour weapon attacks the opposing leader; your defense protects your own. Match the defense to the weapon. A defense of the wrong type does not help, and both leaders can die in one battle.\n\nSee Shield, page 62; Snooper, page 63\nWeapon\tDefense\tLeader\n\n\nProjectile\n\n\t\n\nShield\n\n\t\n\nProtected\n\n\n\n\nPoison\n\n\t\n\nSnooper\n\n\t\n\nProtected\n\nOrdinary matches only. Resolve card exceptions using their own rules.\n\nWorthless cards\n\nA worthless card may fill either weapon or defense slot without effect. A matching card may instead activate your Fate at its permitted time. Bene Gesserit may use worthless cards as Karamas.\n\nOrange Catholic Bible may fill either slot but cannot activate Fate. At the start of Bidding, you may give it to a player with hand space.\n\nSee Worthless cards, page 64; Orange Catholic Bible, page 67\nCheap Hero\n\nA Cheap Hero replaces a leader and has zero strength. It allows you to play a weapon and defense even when no leader is available. It cannot be called traitor or named by The Voice. Discard it after an ordinary battle. Apply the special traitor-result rule when that result overrides normal card losses.\n\nSee Cheap Hero, page 65\nLasgun\n\nLasgun kills the opposing leader without an ordinary defense stopping it. If either battle plan also contains a Shield, the combination causes an explosion. A Shield in your own plan is just as dangerous as an opposing Shield.\n\nDo not resolve the explosion before a successful traitor call that overrides it. See Special battle results.\n\nSee Lasgun, page 65; Other battle outcomes, page 39\nWeirding Way\n\nWithout another weapon in your plan, Weirding Way acts as a projectile weapon. With another weapon, it acts as projectile defense. It does not stop a Lasgun and does not cause a Lasgun-Shield explosion. The Voice must name Weirding Way specifically.\n\nSee Weirding Way, page 65\nChemistry\n\nWithout another defense in your plan, Chemistry protects against poison. With another defense, it acts as a poison weapon. The Voice must name Chemistry specifically.\n\nSee Chemistry, page 65\nExample: matching the threat\n\nYour opponent uses poison and you play a Shield. Your leader is unprotected and dies. A Snooper would stop that poison. The Shield would protect against a projectile weapon instead.\n\n49",
+    "title": "Weapons and defenses"
+  },
+  {
+    "anchor": "fate-and-treachery",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      }
+    ],
+    "page": 50,
+    "text": "FATE AND TREACHERY CARDS\nA faction Fate\n\nDuring setup, each faction receives a Fate Indicator matching one of the six worthless cards. Orange Catholic Bible is not one of these six.\n\nIf you hold the matching worthless Treachery Card, you may play it to activate your faction's Fate once per game. The faction chapter gives the permitted timing and effect. Keep the indicator separate from the Treachery Card: the indicator tells you which card works, but does not itself supply that card.\n\nOnce during each Mentat phase, you may exchange Fate Indicators with another faction, provided neither faction has used its Fate.\n\nDreamrules uses these Fate abilities instead of the old special faction Karama abilities. Do not also grant a faction its original special Karama power.\n\nMercenaries and Supplies\n\nMercenaries is played with a battle plan and uses none of its weapon, defense or leader slots. It adds one to battle strength and wins ties regardless of storm order. You may keep it if you win. Play at most one Mercenaries card in a plan. If both players use one, resolve ties by the normal priority.\n\nWhen Atreides asks for your dial, disclose the troop-and-spice total on the wheel and whether you are using Mercenaries.\n\nSupplies is played in the pre-battle window to obtain a temporary cache of four basic cards: poison weapon, projectile weapon, Shield and Snooper. They do not count toward your hand limit and are otherwise played as Treachery Cards. Return the cache cards at the end of Battle.\n\nTwo interactions remain unresolved. Question #1840 asks whether Vladimir's Spite can swap cache cards. Question #1842 asks how their expiry interacts with Fremen Fanatical Tactics. This draft does not adopt either exception.\n\nThe draw deck contains 45 cards, reconstructed from the original Dreamrules inventory. The four Supplies cache cards are kept separate from the draw deck.\n\n50",
+    "title": "Fate and Treachery Cards"
+  },
+  {
+    "anchor": "special-cards",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      }
+    ],
+    "page": 51,
+    "text": "SPECIAL CARDS\nWeather Control\n\nAfter the first turn, play Weather Control during Storm after the normal distance is known and before the storm moves. It lets you choose a counterclockwise movement of zero to ten sectors instead. Resolve it before Family Atomics.\n\nFamily Atomics\n\nAfter turn one, play after the storm distance is calculated, before the storm moves. Against the Shield Wall, you need a troop there or in an adjacent territory. Atomics destroys troops on the Shield Wall and removes its protection from Arrakeen, Carthag and the Imperial Basin.\n\nDreamrules also allows a single sietch as the target, with an activating troop inside or adjacent. That sietch becomes vulnerable to storm for the rest of the game. Playing Atomics on the sietch does not itself kill the troops inside. Remove Atomics from the game after use.\n\nHajr\n\nDuring Shipment and Movement, make an additional on-planet move, following normal movement restrictions. It may move the same group again or a different group. It does not provide another shipment. A Hajr move does not disqualify a faction from receiving Zensunni Path.\n\nTleilaxu Ghola\n\nRevive one of your leaders or up to five of your troops without paying spice. These revivals do not use the normal per-turn allowance. Return revived troops to reserves.\n\nA leader that already fought this Battle phase remains committed to that territory even if Ghola revives it. Revival does not make the leader available for a different battle location.\n\nMercenaries, Supplies and conditioning\n\nMercenaries adds strength and changes ties without using a weapon or defense slot. Supplies provides four temporary basic combat cards. Break Conditioning can replace an ordinary victory with a no-loss result when the required strength margin is met. Read Fate and Treachery Cards and Special battle results for their procedures.\n\nExample: Hajr moves another group\n\nYour ordinary move takes troops from one territory to an adjacent destination. You then use Hajr to move a separate group elsewhere. Both routes must obey movement limits, storm and occupancy restrictions.\n\n51",
+    "title": "Special cards"
+  },
+  {
+    "anchor": "karama",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/icon/karama.svg"
+      },
+      {
+        "alt": "Karama",
+        "src": "https://dune.zone/published/cards/ns74a12s7q79eyb7ywa04zva9h8fnb2w/card.jpg?v=bef1e801-0683-4349-a904-1040604759e0"
+      }
+    ],
+    "page": 52,
+    "text": "KARAMA\nKarama\n\nQuantity: 2\n\nChoose one of the three uses on this page. The draw deck contains two Karama cards. Discard the card after use.\n\nFull-phase suppression\n\nStopping an advantage suppresses that advantage for the rest of the current phase. A single use does not stop every advantage of the faction. Suppression ends with the phase.\n\nFates are separate\n\nDreamrules has no special faction Karama powers. Each faction has its own Fate ability, activated with a matching worthless card.\n\n1. Stop a faction advantage\n\nName the opposing faction and the eligible advantage you are stopping. Play at that advantage's declaration window. The following pages list what changes and when to play.\n\n2. Take an auction card\n\nDuring Bidding, when it is your bid and you have room in hand, take the card up for auction without paying spice. This use obtains that card; it does not suppress an advantage.\n\n3. Reduce a shipment's cost\n\nFor your own shipment or your ally's, pay half the normal shipping cost. Pay the Spice Bank. This use discounts the shipment; it does not suppress the Guild's advantages for the phase.\n\nBene Gesserit\n\nBene Gesserit may use a worthless card for these ordinary Karama effects. It follows the same timing and restrictions.\n\n52",
+    "title": "Karama"
+  },
+  {
+    "anchor": "karama-timing",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/icon/karama.svg"
+      }
+    ],
+    "page": 53,
+    "text": "KARAMA: TIMING AND EXAMPLES\nName the advantage and its window\n\nFirst choose the use. For suppression, name one eligible advantage and check its timing. Many windows occur as the faction attempts the action. Others close earlier. Do not wait until the result you wanted to prevent has already happened.\n\nBidding Prescience\n\nAtreides is about to inspect a card up for bid. You play Karama on Bidding Prescience. Atreides cannot inspect that card or later auction cards during this Bidding phase. The effect ends when Bidding ends.\n\nOne advantage at a time\n\nYou suppress the Guild's Shipping Payments. Shipping fees go to the bank for the phase. The Guild still has its other shipping advantages unless one of those is separately stopped.\n\nBattle declaration windows\n\nThe battle sequence matters. Ordinary Voice has its own window, followed by Battle Prescience. Several other battle advantages must be stopped before plans are committed, even when their effects would happen after reveal. Use the specific windows on the faction reference pages.\n\nPrescience can be answered again\n\nAtreides asks the Emperor for its dial. The Emperor answers, then Karama stops Sardaukar before commitment. Their strength changes, so the Emperor may answer the Prescience again. The same principle applies when Karama changes Fedaykin or Fremen Free Spice Dialing.\n\nDiscounted shipment\n\nAn otherwise ordinary shipment costs eight spice. You use Karama's shipping option and pay four to the bank. The discount applies to that shipment. Other factions still pay their own shipping costs normally.\n\nReading the faction reference\n\nThese pages compile current faction-sheet interactions. Full-phase duration is confirmed. #1852 tracks review of the interaction list and its timing windows.\n\n53",
+    "title": "Karama: timing and examples"
+  },
+  {
+    "anchor": "karama-atreides-harkonnen",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      }
+    ],
+    "page": 54,
+    "text": "KARAMA: ATREIDES AND HARKONNEN\nHOUSE ATREIDES\nBidding Prescience\n\nBidding, before inspection. Atreides cannot inspect future auction cards this phase.\n\nNexus Prescience\n\nStorm. Atreides cannot inspect the top Nexus card for the rest of this phase.\n\nBattle Prescience\n\nAt the Prescience window, including after the question but before the answer. Atreides cannot demand part of an opposing plan this Battle phase.\n\nKwisatz Haderach\n\nBefore battle-plan commitment. Atreides cannot use the token in any battle this phase.\n\nLeto's Tithe\n\nSpice Collection. Atreides collects no spice from this advantage this phase.\n\nHOUSE HARKONNEN\nExtra Treachery Cards\n\nBidding, including after winning an auction but before drawing. Harkonnen receives no bonus cards from later purchases this phase.\n\nCaptured Leaders\n\nAt the leader-capture step. Harkonnen cannot capture leaders this Battle phase.\n\nVladimir's Spite\n\nBefore battle-plan commitment. Harkonnen cannot swap the played cards this phase. The window is earlier than the leader death that would trigger Spite.\n\nExtra Traitors\n\nThe current faction sheet specifies no Karama interaction.\n\n54",
+    "title": "Karama: Atreides and Harkonnen"
+  },
+  {
+    "anchor": "karama-emperor-guild",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      }
+    ],
+    "page": 55,
+    "text": "KARAMA: EMPEROR AND GUILD\nEMPEROR\nBidding Payments\n\nBefore the first bid on a card. Payments for that card and later cards go to the bank for the phase, including spice used for subsidy.\n\nShaddam's Favor\n\nBidding, including after the final sale but before the phase ends. Discard the spice set aside for subsidy this phase.\n\nSardaukar\n\nBefore battle-plan commitment. Sardaukar count as normal troops this phase. The Emperor may answer a dial Prescience again.\n\nSPACING GUILD\nShipping Payments\n\nShipment and Movement. Shipping payments go to the bank this phase.\n\nDiscount Shipping\n\nShipment and Movement. Guild pays normal shipping rates this phase. If interrupted while shipping, Guild may change its shipment. Its ally is unaffected.\n\nThree Types of Shipment\n\nShipment and Movement. Guild and its ally may ship only from reserves to the planet this phase. Their shipping rates are unchanged.\n\nThree Types of Interjection\n\nBefore Guild's normal turn in storm order. Guild cannot change turn order this phase.\n\nRetreat\n\nBefore battle-plan commitment. Guild cannot retreat during this Battle phase.\n\n55",
+    "title": "Karama: Emperor and Guild"
+  },
+  {
+    "anchor": "karama-fremen",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/logo/fremen.svg"
+      }
+    ],
+    "page": 56,
+    "text": "KARAMA: FREMEN\nFree Spice Dialing\n\nBefore battle-plan commitment. Fremen must pay spice for full strength or use the ordinary unsupported strength rules this phase.\n\nFedaykin\n\nBefore battle-plan commitment. Fedaykin count as normal troops this phase. Fremen may answer a dial Prescience again.\n\nFanatical Tactics\n\nAt its early card-reveal window. Fremen cannot announce protected cards this phase.\n\nNative Movement\n\nShipment and Movement, including after movement is declared. Fremen redoes that move with ordinary movement limits: one territory, or three with ornithopters.\n\nZensunni Path\n\nShipment and Movement, including its closing window. Fremen cannot grant the extra move this phase.\n\nWorm Riding\n\nSpice Blow. Fremen cannot place additional worms and can be devoured this phase. Thumper riding worms are unaffected.\n\nStorm Immunity\n\nStorm or Shipment and Movement. Fremen takes full storm losses this phase. If played during its Shipment and Movement turn, Fremen may redo its whole turn in that phase.\n\nStorm Knowledge\n\nStorm. Fremen cannot inspect the top Storm card for the rest of this phase.\n\nSpice Blow Knowledge\n\nSpice Blow. Fremen cannot inspect the top cards of the Spice decks for the rest of this phase. The deck structure is tracked separately in #1837.\n\nRallying, Thumpers and victory\n\nThe faction sheet specifies no Karama interaction for Rallying Shipment, Thumpers or Rain on Arrakis.\n\n56",
+    "title": "Karama: Fremen"
+  },
+  {
+    "anchor": "karama-bene-gesserit-tleilax",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      }
+    ],
+    "page": 57,
+    "text": "KARAMA: BENE GESSERIT AND TLEILAX\nBENE GESSERIT\nCharity\n\nCHOAM Charity. Bene Gesserit loses automatic charity and must qualify under the ordinary rule, having zero or one spice.\n\nWorthless Karama\n\nAny phase, including in response to its use. Bene Gesserit discards the worthless card without effect and cannot use worthless cards as Karamas again that phase.\n\nThe Voice\n\nAt the Voice window. Bene Gesserit cannot use ordinary Voice in its own or its ally's battles this phase.\n\nSpiritual Advisors\n\nShipment and Movement, before an affected flip. Bene Gesserit troops cannot flip for the rest of that phase.\n\nPrediction and Political Marriages\n\nPrediction has no Karama interaction. The Voice granted by Political Marriages cannot be stopped by Karama.\n\nBENE TLEILAX\nInfiltration\n\nStorm. Bene Tleilax cannot start an Infiltration this phase. This does not affect Zoal's special ability.\n\nRevival Income\n\nRevival. Bene Tleilax collects no income from troop or leader revivals this phase.\n\nDiscount Revival\n\nRevival. Bene Tleilax follows normal revival limits and prices this phase, including the three-troop limit and two-spice cost per ordinary troop.\n\nSynthetic Spice\n\nShipment and Movement. Bene Tleilax cannot sacrifice reserve troops to pay shipment costs this phase.\n\nZoal\n\nBefore battle-plan commitment. Zoal is a normal strength-two leader this phase.\n\nDishonorable\n\nThe faction sheet specifies no Karama interaction.\n\n57",
+    "title": "Karama: Bene Gesserit and Tleilax"
+  },
+  {
+    "anchor": "karama-ixians",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/logo/ixian.svg"
+      }
+    ],
+    "page": 58,
+    "text": "KARAMA: IXIANS\nGeneral Bidding Knowledge\n\nBidding, before the batch is inspected or split. Ixians cannot inspect or split the batch this phase.\n\nTechnology\n\nBidding. Ixians cannot exchange a hand card with the card up for bid this phase.\n\nAugmented Troops\n\nBefore battle-plan commitment. Suboids cannot die in place of Cyborgs this phase. Cyborgs themselves are immune to Karama.\n\nHidden Mobile Surveyor\n\nMentat. Ixians cannot move the Surveyor this phase.\n\nShared Treachery Cards\n\nAny phase, including in response to a transfer. Return the cards involved. Ixians and their ally cannot transfer or swap Treachery Cards again that phase.\n\nInitial Treachery Knowledge\n\nThe faction sheet specifies no Karama interaction during setup.\n\nCyborgs keep their strength\n\nYou stop Augmented Troops before commitment. The Ixian Cyborgs keep their combat strength. If Ixians wins, it cannot use Suboids to absorb the Cyborg losses while that suppression lasts.\n\nAn interrupted transfer\n\nIxians passes a Treachery Card to its ally. A Karama stops Shared Treachery Cards in response. The card returns, and that advantage is suppressed for the rest of the phase.\n\nUse the precise consequence\n\nA power can contain several effects. Use the consequence listed for that advantage. Stopping Augmented Troops removes the Suboid substitution; it does not turn Cyborgs into ordinary troops.\n\n58",
+    "title": "Karama: Ixians"
+  },
+  {
+    "anchor": "truthtrance",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/icon/eye.svg"
+      },
+      {
+        "alt": "Truth Trance",
+        "src": "https://dune.zone/published/cards/ns724e78qxt35j7ksqjpyhpk618fm4hz/card.jpg?v=5d371f38-a41d-4049-82bc-fc20840c57f3"
+      }
+    ],
+    "page": 59,
+    "text": "TRUTHTRANCE\nTruth Trance\n\nQuantity: 2\n\nPublicly ask one player one yes-or-no question about the game. They must answer publicly and truthfully. The draw deck contains two Truthtrance cards.\n\nAsk in public\n\nName one player and ask a single yes-or-no question about the game. They answer publicly. You may ask about information they hold or a future action to which they can commit.\n\nPause play for the answer\n\nPlaying Truthtrance pauses the game completely. Ask the question and obtain the answer before play continues. No binding deals, other cards or other game actions may occur during this pause. A second Truthtrance cannot interrupt it.\n\nUse the right moment\n\nYou may play Truthtrance at any time. To constrain a battle plan, use it before commitment in the preparation window. Once plans are committed, a question does not grant permission to rewrite them.\n\nAsk about a known fact\n\n\"Do you hold Stilgar as a traitor?\"\n\nThe target knows its own Traitor Cards and can answer yes or no. The question reveals that fact to the whole table.\n\nName the card choice\n\n\"Will you play a poison weapon in our next battle this turn?\"\n\nThe question names the choice and the battle. The target must give an answer it can fulfill under the information available to it.\n\nAn answer can bind future play\n\nWhen the question concerns a future action, the answer is a commitment. The following pages explain how possibility, later events and conditions affect it.\n\n59",
+    "title": "Truthtrance"
+  },
+  {
+    "anchor": "truthtrance-promises",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/icon/eye.svg"
+      }
+    ],
+    "page": 60,
+    "text": "TRUTHTRANCE: FUTURE COMMITMENTS\nAnswer what you can fulfill\n\nAt the time of the answer, it must be theoretically possible to fulfill it, however unlikely. Consider the information available to the answering faction, including its own cards, accessible deck information and earlier revelations.\n\nKeep fulfillment possible\n\nAfter answering, you may not deliberately take an action that makes your commitment impossible. You may take a risk that could cause it to become impossible later.\n\nRisking a promised weapon\n\nBene Gesserit has promised to play a poison weapon in a later battle. It may use that weapon in an earlier fight if winning and keeping the card remains possible. It may not simply choose an action that guarantees the promised weapon becomes unavailable.\n\nWhen later events make it impossible\n\nIf later events make fulfillment impossible, the answer no longer requires an impossible action. The v0.8 rule allows the player to proceed without announcing that the commitment can no longer be fulfilled.\n\nLosing the weapon\n\nIn the earlier battle, Bene Gesserit loses its poison weapon. If there is then no possible way to fulfill the later commitment, it need not play a poison weapon it cannot obtain. Taking the earlier risk was allowed while fulfillment remained possible.\n\nKeep the horizon short\n\nA question about the next battle usually gives fewer opportunities for circumstances to change than one about a battle several turns away. Name the action and the relevant moment clearly.\n\nExisting binding deals\n\nCouncil ticket #1851 tracks conflicting wording about an answer that clashes with an existing binding deal. This chapter does not invent a precedence procedure. The other commitment rules here follow v0.8.\n\n60",
+    "title": "Truthtrance: future commitments"
+  },
+  {
+    "anchor": "truthtrance-questions",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/icon/eye.svg"
+      }
+    ],
+    "page": 61,
+    "text": "TRUTHTRANCE: CLEAR QUESTIONS\nSpecify the subject now\n\nQuestions must concern the game. Do not ask about a future Truthtrance answer, or leave a person or choice to be specified after the target answers.\n\nA forbidden future answer\n\n\"Will you answer yes to my next Truthtrance?\"\n\nThis asks about a future Truthtrance answer, so the topic is forbidden.\n\nA missing subject\n\n\"Will you ally with the faction I name afterward?\"\n\nThe faction has not been specified. Name it in the question so the target knows what it is committing to.\n\nUse questions the target can answer\n\nPrefer information the target knows or actions it can choose. Avoid relying on another player's hidden cards or a remembered note being correct.\n\nConditions are part of the commitment\n\nA conditional answer must be fulfilled only if its condition is fulfilled. Until fulfillment of the condition becomes impossible, the target must assume it will occur. Extra conditions give the target more ways for the commitment to cease applying.\n\nA conditional battle question\n\n\"If you fight me in Carthag this turn, will you play a poison weapon?\"\n\nThe target treats the battle condition as applicable while it remains possible. If you never enter Carthag and that battle cannot occur, the answer does not require a poison weapon elsewhere.\n\nFinish the question before continuing\n\nAtreides plays Truthtrance and asks Harkonnen a question. Harkonnen cannot play a card or make a binding deal before answering. No other faction may intervene with a game action either. Harkonnen gives its answer, then the game continues.\n\nClarity at the table\n\nAsk slowly enough for the target and the table to understand the exact question. Clear wording makes the commitment easier to remember and apply.\n\n61",
+    "title": "Truthtrance: clear questions"
+  },
+  {
+    "anchor": "card-reference-projectile-weapons",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "Maula Pistol",
+        "src": "https://dune.zone/published/cards/ns785225ways2hbtape9wcb16d8fnp11/card.jpg?v=8a6f98c6-adf2-47c3-8d94-5e817d564884"
+      },
+      {
+        "alt": "Crysknife",
+        "src": "https://dune.zone/published/cards/ns7b4km2h6zvc02pwhbkwq8wrs8fnn0v/card.jpg?v=999164e2-a1b3-437b-82e9-a43270af9f97"
+      },
+      {
+        "alt": "Slip Tip",
+        "src": "https://dune.zone/published/cards/ns7b79cragk9cfnmkhnx2qj07n8fntxd/card.jpg?v=2976ba62-b5e1-4454-ba1a-e65f945e0cad"
+      },
+      {
+        "alt": "Stunner",
+        "src": "https://dune.zone/published/cards/ns7fd1db09a3v38zfbdck41t1x8fn89c/card.jpg?v=8d507004-4ef5-4020-90e4-c21c4f08051f"
+      },
+      {
+        "alt": "Hunter Seeker",
+        "src": "https://dune.zone/published/cards/ns70ez7yv0y1tzfa30ht928x458fm1eg/card.jpg?v=881ad14c-d714-4dd0-b4ab-8490b95e510c"
+      },
+      {
+        "alt": "Shield",
+        "src": "https://dune.zone/published/cards/ns7b716rp17wwzxzdpmjyyxy018cxchz/card.jpg?v=23068cd2-8403-48cc-b084-8ddc13ba9b07"
+      }
+    ],
+    "page": 62,
+    "text": "PROJECTILE WEAPONS AND SHIELD\nMaula Pistol\n\nQuantity: 1\n\nPlay as your weapon in a battle plan. Kills the opposing leader unless a projectile defense protects it. You may keep it if you win.\n\nCrysknife\n\nQuantity: 1\n\nPlay as your weapon in a battle plan. Kills the opposing leader unless a projectile defense protects it. You may keep it if you win.\n\nSlip Tip\n\nQuantity: 1\n\nPlay as your weapon in a battle plan. Kills the opposing leader unless a projectile defense protects it. You may keep it if you win.\n\nStunner\n\nQuantity: 1\n\nPlay as your weapon in a battle plan. Kills the opposing leader unless a projectile defense protects it. You may keep it if you win.\n\nHunter Seeker\n\nQuantity: 1\n\nPlay as your weapon in a battle plan. Kills the opposing leader unless a projectile defense protects it. You may keep it if you win.\n\nShield\n\nQuantity: 5\n\nPlay as your defense. Protects your leader from projectile weapons. A Lasgun in either plan causes an explosion with a Shield. You may keep this card if you win.\n\n62",
+    "title": "Projectile weapons and Shield"
+  },
+  {
+    "anchor": "card-reference-poison-weapons",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "Chaumas",
+        "src": "https://dune.zone/published/cards/ns71wzr15ba6j3sws7ccp21sns8fnwdj/card.jpg?v=3b52c33d-db3d-4751-a8cf-428cda5e8c15"
+      },
+      {
+        "alt": "Chaumurky",
+        "src": "https://dune.zone/published/cards/ns7dcq7mt0gxn4w5hxjv36vfgh8fn0nn/card.jpg?v=2727ccf5-2614-45ca-b6f7-42396713a429"
+      },
+      {
+        "alt": "Gom Jabbar",
+        "src": "https://dune.zone/published/cards/ns77am58gm55e9nw0y6mj45nbh8fmya3/card.jpg?v=8911721e-4fa0-4681-9fb8-ecaeaf82784e"
+      },
+      {
+        "alt": "Ellaca Drug",
+        "src": "https://dune.zone/published/cards/ns7etv15e91687rh2gg5rry15x8fnvtk/card.jpg?v=5b4858c8-95ff-473f-8341-ba73c8237534"
+      },
+      {
+        "alt": "Basilia Weapon",
+        "src": "https://dune.zone/published/cards/ns7bjb637jh7avf4rnez044csd8fm2zq/card.jpg?v=3dd0950c-8d3e-4755-bb73-3a84c9641bb5"
+      },
+      {
+        "alt": "Snooper",
+        "src": "https://dune.zone/published/cards/ns7ahq18ww5e3b7hsdb3ztjggn8cwn08/card.jpg?v=6b748aa0-57b7-49a8-b6f5-5c870d1e99bb"
+      }
+    ],
+    "page": 63,
+    "text": "POISON WEAPONS AND SNOOPER\nChaumas\n\nQuantity: 1\n\nPlay as your weapon in a battle plan. Kills the opposing leader unless a poison defense protects it. You may keep it if you win.\n\nChaumurky\n\nQuantity: 1\n\nPlay as your weapon in a battle plan. Kills the opposing leader unless a poison defense protects it. You may keep it if you win.\n\nGom Jabbar\n\nQuantity: 1\n\nPlay as your weapon in a battle plan. Kills the opposing leader unless a poison defense protects it. You may keep it if you win.\n\nEllaca Drug\n\nQuantity: 1\n\nPlay as your weapon in a battle plan. Kills the opposing leader unless a poison defense protects it. You may keep it if you win.\n\nBasilia Weapon\n\nQuantity: 1\n\nPlay as your weapon in a battle plan. Kills the opposing leader unless a poison defense protects it. You may keep it if you win.\n\nSnooper\n\nQuantity: 5\n\nPlay as your defense. Protects your leader from poison weapons. It provides no protection from projectiles or Lasgun. You may keep this card if you win.\n\n63",
+    "title": "Poison weapons and Snooper"
+  },
+  {
+    "anchor": "card-reference-worthless-cards",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "Baliset",
+        "src": "https://dune.zone/published/cards/ns73jpdtnktfdtqy4bzef2bm3x8fmcrd/card.jpg?v=d7a98b81-3636-4905-92ba-5dde71748f40"
+      },
+      {
+        "alt": "Jubba Cloak",
+        "src": "https://dune.zone/published/cards/ns79vj3kvwmwgvvbnvf0k8rxqd8fnp2j/card.jpg?v=ee515cd2-f60e-440f-a6ed-e8c9e585b9fd"
+      },
+      {
+        "alt": "Trip to Gamont",
+        "src": "https://dune.zone/published/cards/ns7e8mvpvcq7kfyx9kdf8pnwsd8fm33b/card.jpg?v=86ee8095-caa8-491a-91c1-e7c5ab1c1ee2"
+      },
+      {
+        "alt": "Kull Wahad",
+        "src": "https://dune.zone/published/cards/ns7e1can92gnyrr6wmn1fxdtb18fm2qq/card.jpg?v=4e395d03-cd04-4114-bfd3-5c989aa09001"
+      },
+      {
+        "alt": "Kulon",
+        "src": "https://dune.zone/published/cards/ns74k9d036fae7vsqm700nwe6x8fnc9a/card.jpg?v=2ec41b56-b923-4f62-8620-da587d9f2192"
+      },
+      {
+        "alt": "La La La",
+        "src": "https://dune.zone/published/cards/ns74fmv05crczphsxrr7ar0mj98fn5je/card.jpg?v=75d5c791-c4a2-4744-b0f7-0d8f76a80f26"
+      }
+    ],
+    "page": 64,
+    "text": "WORTHLESS CARDS\nBaliset\n\nQuantity: 1\n\nHas no combat effect. Play in a weapon or defense slot. If it matches your Fate Indicator, you may instead use it for your once-per-game faction Fate, at the time your faction allows.\n\nJubba Cloak\n\nQuantity: 1\n\nHas no combat effect. Play in a weapon or defense slot. If it matches your Fate Indicator, you may instead use it for your once-per-game faction Fate, at the time your faction allows.\n\nTrip to Gamont\n\nQuantity: 1\n\nHas no combat effect. Play in a weapon or defense slot. If it matches your Fate Indicator, you may instead use it for your once-per-game faction Fate, at the time your faction allows.\n\nKull Wahad\n\nQuantity: 1\n\nHas no combat effect. Play in a weapon or defense slot. If it matches your Fate Indicator, you may instead use it for your once-per-game faction Fate, at the time your faction allows.\n\nKulon\n\nQuantity: 1\n\nHas no combat effect. Play in a weapon or defense slot. If it matches your Fate Indicator, you may instead use it for your once-per-game faction Fate, at the time your faction allows.\n\nLa La La\n\nQuantity: 1\n\nHas no combat effect. Play in a weapon or defense slot. If it matches your Fate Indicator, you may instead use it for your once-per-game faction Fate, at the time your faction allows.\n\n64",
+    "title": "Worthless cards"
+  },
+  {
+    "anchor": "card-reference-defenses-and-dual-use-cards",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "Lasgun",
+        "src": "https://dune.zone/published/cards/ns7fma63r1st08c68bf9d7sne58fn84j/card.jpg?v=5588b7c9-3afd-40d5-ba11-9e08e9a412ca"
+      },
+      {
+        "alt": "Weirding Way",
+        "src": "https://dune.zone/published/cards/ns7d2qvqg5jjadhxdp13pk5qjx8fmbxx/card.jpg?v=040cef46-f776-48fd-b77d-56dbf22bf277"
+      },
+      {
+        "alt": "Chemistry",
+        "src": "https://dune.zone/published/cards/ns768wa8gw92374wtvax4dc9pn8fmha0/card.jpg?v=e3650f2f-bd8e-41d6-a77c-ef277cdb65b4"
+      },
+      {
+        "alt": "Cheap Hero",
+        "src": "https://dune.zone/published/cards/ns7a7ja95x6rhc74mchp2x00rd8fnwcm/card.jpg?v=d15422bc-f873-403f-b39f-3d1beb648841"
+      },
+      {
+        "alt": "Cheap Heroine",
+        "src": "https://dune.zone/published/cards/ns7fsdb8nk1d4sspw94z54tvqh8fm0rf/card.jpg?v=d2c203a4-bb6c-4c44-aa00-148a7db39680"
+      },
+      {
+        "alt": "Mercenaries",
+        "src": "https://dune.zone/published/cards/ns75q03jc0a875zxdswzxq9fwn8fnx0v/card.jpg?v=c5ad2ae8-51e2-427a-9ca7-8f49939a068b"
+      }
+    ],
+    "page": 65,
+    "text": "SPECIAL BATTLE CARDS\nLasgun\n\nQuantity: 1\n\nKills the opposing leader regardless of defense. A Shield in either plan causes an explosion that destroys all troops, leaders, spice and played cards. Neither side wins. A successful traitor call takes precedence.\n\nWeirding Way\n\nQuantity: 1\n\nA projectile weapon when played alone. With another weapon, it instead becomes a projectile defense. In that role it does not protect against Lasgun and does not cause a Lasgun-Shield explosion. You may keep it if you win.\n\nChemistry\n\nQuantity: 1\n\nA poison defense when played alone. With another defense, it instead becomes a poison weapon. Determine its role from the other card in the plan. You may keep it if you win.\n\nCheap Hero\n\nQuantity: 2\n\nReplaces a leader with zero strength and permits a weapon and defense. Cannot be called traitor or named by The Voice. Normally discard after use; a traitor winner keeps played cards. All Cheap Hero artworks share these rules.\n\nCheap Heroine\n\nQuantity: 1\n\nThe female-art Cheap Hero has the same rules as Cheap Hero. The draw deck contains two Cheap Heroes and one Cheap Heroine.\n\nMercenaries\n\nQuantity: 2\n\nAdds one strength and wins ties. Uses no plan slot; play at most one. If both sides use it, normal tie priority applies. When asked for your dial, also disclose Mercenaries. You may keep it after winning.\n\n65",
+    "title": "Special battle cards"
+  },
+  {
+    "anchor": "card-reference-supplies",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "Supplies!",
+        "src": "https://dune.zone/published/cards/ns78nmym3qpth6sm9wsfj3ka9s8cw350/card.jpg?v=4bc9c995-666d-477c-8f58-1bf1089f5be5"
+      },
+      {
+        "alt": "Ernoc Seed!",
+        "src": "https://dune.zone/published/cards/ns7be7a1qgbfs50asvxc2cs7eh8cxwpp/card.jpg?v=a0140fe8-9bbf-4278-a3c5-8a09499ca0d8"
+      },
+      {
+        "alt": "Supplies Snooper!",
+        "src": "https://dune.zone/published/cards/ns79dqk8v00s31cqq4kss3kk298cw2zk/card.jpg?v=fc8a70f2-4536-4ff8-b75c-61c08897f47a"
+      },
+      {
+        "alt": "Trishula!",
+        "src": "https://dune.zone/published/cards/ns7cgwf2xm2ppj3c5jtpnnehf98cxcbq/card.jpg?v=bbe84a3b-ce7f-4c67-aa1c-7bc50589cbd6"
+      },
+      {
+        "alt": "Supplies Shield!",
+        "src": "https://dune.zone/published/cards/ns72wfphs14n0t3k6qdz61y5y58cwmt8/card.jpg?v=eb58b989-4a3b-4d25-99cd-e42d817ff5b4"
+      },
+      {
+        "alt": "Break Conditioning",
+        "src": "https://dune.zone/published/cards/ns7f7psmdqgae5e0v301nj5mc18fn7rx/card.jpg?v=3c5842e8-4fd1-4599-87cd-748d0439cd6c"
+      }
+    ],
+    "page": 66,
+    "text": "SUPPLIES AND CONDITIONING\nSupplies!\n\nQuantity: 1\n\nBefore The Voice, play Supplies to take the four cache cards shown here. They do not count toward your hand limit. Use them as their printed card types. Return cards when lost and all remaining cache cards at the end of Battle. Winning lets you keep them until then.\n\nErnoc Seed!\n\nA poison weapon. Kills the opposing leader unless protected by a poison defense. Return it to the cache when lost, or at the end of Battle.\n\nSupplies Snooper!\n\nA poison defense. Protects your leader from poison weapons. Return it to the cache when lost, or at the end of Battle.\n\nTrishula!\n\nA projectile weapon. Kills the opposing leader unless protected by a projectile defense. Return it to the cache when lost, or at the end of Battle.\n\nSupplies Shield!\n\nA projectile defense. Protects your leader from projectiles. It is a Shield for a Lasgun explosion. Return it to the cache when lost, or at the end of Battle.\n\nBreak Conditioning\n\nQuantity: 1\n\nAfter reveal, if your strength is at least twice the opponent's after leader deaths, win without losses, save your leader and kill theirs. Leaders stay committed. See Special battle results for aftermath and open timing questions.\n\n66",
+    "title": "Supplies and conditioning"
+  },
+  {
+    "anchor": "card-reference-movement-and-revival",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "Hajr",
+        "src": "https://dune.zone/published/cards/ns763s677pz40tsx5j4m9m0f398fm9xq/card.jpg?v=401be034-feb5-4ac8-b30f-d8b03e27c95f"
+      },
+      {
+        "alt": "Tleilaxu Ghola",
+        "src": "https://dune.zone/published/cards/ns78kthnprye29s6vbt157ybnn8fm1fv/card.jpg?v=3f1807e3-0e7f-44ea-9f8e-822d7422cb4c"
+      },
+      {
+        "alt": "Weather Control",
+        "src": "https://dune.zone/published/cards/ns752ym4vcb7f2xcwad3rzn4c58fmvr7/card.jpg?v=505414e5-a3cd-45e6-8348-7eabc6122185"
+      },
+      {
+        "alt": "Family Atomics",
+        "src": "https://dune.zone/published/cards/ns7c8kwxg4v5bfjfceywbwerth8fn4ew/card.jpg?v=fa940e21-5bd4-45e8-bc97-994f7acd0aca"
+      },
+      {
+        "alt": "Orange Catholic Bible",
+        "src": "https://dune.zone/published/cards/ns7dan241k21f3pk0aems471q18fm3tq/card.jpg?v=68df8756-3b52-498b-9770-a44b307b937b"
+      }
+    ],
+    "page": 67,
+    "text": "MOVEMENT, WEATHER AND INFLUENCE\nHajr\n\nQuantity: 1\n\nDuring your own turn in Shipment and movement, play Hajr to take one additional on-planet move. Move the same group again or another group, obeying normal restrictions. It grants no shipment and does not disqualify you from Zensunni Path.\n\nTleilaxu Ghola\n\nQuantity: 1\n\nRevive one leader or up to five troops for free, outside normal allowances. Troops return to reserves. A revived leader can fight again, including in another territory. During battle, play Ghola prior to reveal.\n\nWeather Control\n\nQuantity: 1\n\nAfter turn one, play during Storm after the normal distance is known and before movement. Choose a counterclockwise movement of zero to ten sectors instead. Resolve this before Family Atomics.\n\nFamily Atomics\n\nQuantity: 1\n\nAfter turn one, play before storm movement. With a troop on or adjacent to the target, destroy the Shield Wall or expose one sietch to storm. Only Shield Wall detonation kills its occupants. Then remove this card from the game.\n\nOrange Catholic Bible\n\nQuantity: 1\n\nFills a weapon or defense slot with no effect. At the start of Bidding, give it to a player with hand space before or after the auction count is set. It does not activate Fate.\n\n67",
+    "title": "Movement, weather and influence"
+  },
+  {
+    "anchor": "atreides",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/logo/atreides.svg"
+      },
+      {
+        "alt": "House Atreides faction token",
+        "src": "https://dune.zone/published/faction-tokens/k17ag3gr1h60n7mmh88kj56avs8a1j7x/token.jpg?v=b256bad7-4e16-488b-b30b-4df138147c82"
+      },
+      {
+        "alt": "Paul Atreides",
+        "src": "https://dune.zone/published/leaders/k17ag3gr1h60n7mmh88kj56avs8a1j7x.08bbac42-960c-476c-a46c-2b904edf2fe4/leader.jpg?v=81a96484-b616-447c-b3c4-1373e457e74c"
+      },
+      {
+        "alt": "Lady Jessica",
+        "src": "https://dune.zone/published/leaders/k17ag3gr1h60n7mmh88kj56avs8a1j7x.c537e132-7b96-4d9a-8140-61854961a70f/leader.jpg?v=2c01df80-d66a-4335-9b3e-5a0c1152bcc5"
+      },
+      {
+        "alt": "Thufir Hawat",
+        "src": "https://dune.zone/published/leaders/k17ag3gr1h60n7mmh88kj56avs8a1j7x.efd456e6-2374-4a9c-a033-e700d3896c47/leader.jpg?v=2e3c1a8a-6960-46c4-8c8c-df4c433c5c08"
+      },
+      {
+        "alt": "Gurney Halleck",
+        "src": "https://dune.zone/published/leaders/k17ag3gr1h60n7mmh88kj56avs8a1j7x.01f1cf94-2df1-4b96-9fbf-dd757afef27b/leader.jpg?v=fca62d74-7a13-4d83-9725-3f248085ea22"
+      },
+      {
+        "alt": "Duncan Idaho",
+        "src": "https://dune.zone/published/leaders/k17ag3gr1h60n7mmh88kj56avs8a1j7x.f81ee425-dc09-4a89-a256-6946a97fe4de/leader.jpg?v=01434f4a-8656-4e79-846e-d80970a70aba"
+      },
+      {
+        "alt": "Doctor Yueh",
+        "src": "https://dune.zone/published/leaders/k17ag3gr1h60n7mmh88kj56avs8a1j7x.a3711dc6-b2b9-4826-b7f9-1feb95c0629c/leader.jpg?v=4550c0c6-dac2-4468-8eb5-46dffbcbdbf5"
+      }
+    ],
+    "page": 68,
+    "text": "HOUSE ATREIDES\nHouse Atreides\n\nStrategy: your first game\n\nKeep a presence in Arrakeen for mobility and income. Buy a useful weapon or defense, but leave enough spice to move troops and support a battle.\n\nTrack the cards bought at auction. Before using Battle Prescience, decide which answer would actually change your plan. Fight when that information gives you an advantage.\n\nDo not sacrifice troops just to rush the Kwisatz Haderach. Surviving troops and Leto's Tithe can be worth more than gaining it early.\n\nLeaders\nAt start\n\n10 troops in Arrakeen and 10 in reserves. Start with 10 spice.\n\nFree revival: 2 troops.\n\nPrescience and the Kwisatz Haderach\n\nDuring Bidding, look at each Treachery Card as it comes up for bid. You may keep notes about these cards. Nexus Prescience lets you look at the top card of the Nexus Deck.\n\nDuring battle, force your opponent to reveal one part of their plan early: weapon, defense, leader, or dial together with whether they are playing Mercenaries. Your ally may allow you to use this advantage in their battles.\n\nAfter you have lost at least seven troops in battles, gain the Kwisatz Haderach. Play it with a leader in battles in one territory per turn. It adds two to the leader's strength and prevents that leader from being called traitor. A lasgun-shield explosion can kill the token; it can then be revived like a leader.\n\nBefore you gain the token, Leto's Tithe gives you two spice during Spice Collection if you control one stronghold, or three if you control at least two. Gaining the Kwisatz Haderach ends this income permanently.\n\nYour Fate, Arrakis Fiefdom, may be played before Ship & Move. Gain the Carryall Tech Token, which you cannot lose. It triggers when a spice mine sends troops to reserves. You may also place a three-spice mine in a sand territory without a Spice Blow marker.\n\nSee Carryall, page 47; Mercenaries, page 65\n68",
+    "title": "House Atreides"
+  },
+  {
+    "anchor": "harkonnen",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/logo/harkonnen.svg"
+      },
+      {
+        "alt": "House Harkonnen faction token",
+        "src": "https://dune.zone/published/faction-tokens/k174k8mvjqapvgccxtbp9qwh5h8a01b4/token.jpg?v=bb4310b7-3666-4769-95ba-45082d08603e"
+      },
+      {
+        "alt": "Baron Vladimir Harkonnen",
+        "src": "https://dune.zone/published/leaders/k174k8mvjqapvgccxtbp9qwh5h8a01b4.9f2287c1-cc2f-417b-a4fa-e1a9d088fabf/leader.jpg?v=11696dd3-41af-4e47-b51f-1e5706e99573"
+      },
+      {
+        "alt": "Feyd Rautha",
+        "src": "https://dune.zone/published/leaders/k174k8mvjqapvgccxtbp9qwh5h8a01b4.773ba210-69e1-4bcb-9ea8-2b5419ecd35e/leader.jpg?v=4e0674f3-0705-40c6-8e3f-5ff8abb57f74"
+      },
+      {
+        "alt": "Beast Rabban",
+        "src": "https://dune.zone/published/leaders/k174k8mvjqapvgccxtbp9qwh5h8a01b4.ec5de698-b13b-438b-95ff-8bf0ce6670c8/leader.jpg?v=4bab2ba2-ca76-4f44-99f9-f392b1b00076"
+      },
+      {
+        "alt": "Piter De Vries",
+        "src": "https://dune.zone/published/leaders/k174k8mvjqapvgccxtbp9qwh5h8a01b4.34669bf1-af9b-40a6-95eb-78ef4c4ca949/leader.jpg?v=4722fa36-eacf-4b38-b1b3-7e2dc322abf5"
+      },
+      {
+        "alt": "Cpt. Iakin Nefud",
+        "src": "https://dune.zone/published/leaders/k174k8mvjqapvgccxtbp9qwh5h8a01b4.1423d459-65bd-4f38-8859-52f69a5b3e2b/leader.jpg?v=92eec9ac-5fc4-4a2b-868f-2dd61101cbd0"
+      },
+      {
+        "alt": "Umman Kudu",
+        "src": "https://dune.zone/published/leaders/k174k8mvjqapvgccxtbp9qwh5h8a01b4.c93c96d8-a6f8-434b-98b3-e924e532d6cf/leader.jpg?v=322b9a13-4fe5-4bbd-828a-90205e36bfc7"
+      }
+    ],
+    "page": 69,
+    "text": "HOUSE HARKONNEN\nHouse Harkonnen\n\nStrategy: your first game\n\nUse Carthag's mobility and your larger hand to threaten several opponents. Buy cards early, while keeping spice for shipment and battle support.\n\nCheck your traitors before choosing a target. A small battle can clear poor cards from your hand, but count the leader and troop losses before committing.\n\nYour hand is only useful if you can afford to act. Avoid spending all your spice at auction. Treat Spite as a way to recover value from a bad result, not a reason to seek one.\n\nLeaders\nAt start\n\n10 troops in Carthag and 10 in reserves. Start with 10 spice.\n\nFree revival: 2 troops.\n\nTreachery, capture and Spite\n\nKeep all four Traitor Cards during setup. If you draw at least two of your own leaders, or at least three leaders from one faction, you may call a mulligan that makes everyone redraw.\n\nYou may hold eight Treachery Cards. During setup, and whenever you buy a card, take an extra card from the top of the deck for free.\n\nAfter winning a battle, you may randomly capture one of the loser's leaders. Exclude leaders already used elsewhere this turn. Kill the captured leader face down for two spice, or keep them for one use in combat. Return a surviving leader after that use. Return all captured leaders if you have no living Harkonnen leaders. A faction can always call its own leader traitor when you play that leader against it.\n\nIf your leader dies in battle, Vladimir's Spite lets you swap played Treachery Cards between the battle participants. Resolve the normal discards and returns after the swap. The winner cannot immediately discard a card you gave them. Spite does not change the winner.\n\nA dead Cheap Hero, a traitor result or successful Break Conditioning does not trigger Spite. Cheap Hero cards cannot be swapped. Supplies eligibility is disputed in current production and awaits council question #1840.\n\nYou may call traitor in your ally's battles. Your Fate, Blackmail, forces your own or your ally's opponent to reveal their full battle plan early.\n\n69",
+    "title": "House Harkonnen"
+  },
+  {
+    "anchor": "emperor",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/logo/emperor.svg"
+      },
+      {
+        "alt": "Emperor faction token",
+        "src": "https://dune.zone/published/faction-tokens/k17dhptwywynwmpvx18965b97h8a0abp/token.jpg?v=e3f19e21-277f-4542-9d4c-adf37f2833d7"
+      },
+      {
+        "alt": "Shaddam Corrino IV",
+        "src": "https://dune.zone/published/leaders/k17dhptwywynwmpvx18965b97h8a0abp.7a734535-fd3d-4791-bfb8-45d7dc34ae01/leader.jpg?v=201d29e5-9fda-4d33-9295-dd1dadb9000f"
+      },
+      {
+        "alt": "Hasimir Fenring",
+        "src": "https://dune.zone/published/leaders/k17dhptwywynwmpvx18965b97h8a0abp.e445cf95-3067-4260-a962-fe5d29f63f53/leader.jpg?v=3cd7d0d0-b4d8-44a2-afac-96908eb58022"
+      },
+      {
+        "alt": "Cpt. Aramsham",
+        "src": "https://dune.zone/published/leaders/k17dhptwywynwmpvx18965b97h8a0abp.5231cb41-ceea-4405-95d1-1822541a63e3/leader.jpg?v=b2e736ab-d570-494a-88b4-1633980300dd"
+      },
+      {
+        "alt": "Caid",
+        "src": "https://dune.zone/published/leaders/k17dhptwywynwmpvx18965b97h8a0abp.3fbddb6f-f500-40aa-91c6-fb7a1d154c34/leader.jpg?v=95f050fe-f145-4f72-9054-d5d17b8c71eb"
+      },
+      {
+        "alt": "Burseg",
+        "src": "https://dune.zone/published/leaders/k17dhptwywynwmpvx18965b97h8a0abp.4c5f3e11-0636-4b59-885f-a1a55296f3b1/leader.jpg?v=027a2501-baab-4296-ba85-b70a91f0a0a0"
+      },
+      {
+        "alt": "Bashar",
+        "src": "https://dune.zone/published/leaders/k17dhptwywynwmpvx18965b97h8a0abp.826f5779-ac89-4cd8-9da7-b345537b5e73/leader.jpg?v=cef08e51-cffb-4af8-88a7-82933009fe06"
+      }
+    ],
+    "page": 70,
+    "text": "EMPEROR\nEmperor\n\nStrategy: your first game\n\nUse the first auction to build a useful hand, then establish a position you can afford to defend. Keep spice available for shipment and battle support.\n\nPreserve your Sardaukar. They concentrate strength, but replace slowly and lose their advantage against Fremen. Avoid making Fremen your first target merely because it looks poor.\n\nLook for an ally whose mobility, information or battle power gives your money a clear purpose. Fund a specific plan rather than paying whenever asked.\n\nLeaders\nAt start\n\n20 troops in reserves. Start with 10 spice.\n\nFree revival: 1 troop.\n\nWealth and Sardaukar\n\nWhen another faction buys a Treachery Card during Bidding, they pay the spice to you.\n\nWith Shaddam's Favor, place spice in front of your Player Shield to reduce another faction's bidding payment by that amount. Collect this spice at the end of Bidding. A faction may bid beyond its own available spice if you agree to cover the shortfall.\n\nYour five starred troops are Sardaukar. Each has double the combat strength of a normal troop. Only one Sardaukar may be revived per turn. Against Fremen, treat Sardaukar as normal troops.\n\nYour alliance advantage, Golden Lion Throne, lets you give spice to your ally instantly, at any time. This allows you to support payments such as revival and spice dialing that ordinary allies cannot pay directly for one another.\n\nYour Fate, Prison Planet, revives up to five troops of any kind and any one leader at their normal cost. You may revive pieces for other players. The usual special-troop and leader limits do not apply to this revival, and Bene Tleilax does not collect income from it. You may play this Fate at any time except battle step 3.\n\n70",
+    "title": "Emperor"
+  },
+  {
+    "anchor": "guild",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/logo/guild.svg"
+      },
+      {
+        "alt": "Spacing Guild faction token",
+        "src": "https://dune.zone/published/faction-tokens/k175bxsjh069ksf64a189360f58a0eck/token.jpg?v=c9fa384c-b9a3-4d8f-9b71-bc03cea952eb"
+      },
+      {
+        "alt": "Navigator Edric",
+        "src": "https://dune.zone/published/leaders/k175bxsjh069ksf64a189360f58a0eck.77de5a63-ddbd-48a5-a794-dcf597ee29e1/leader.jpg?v=3eaaad30-c3e4-444f-a201-675436c62077"
+      },
+      {
+        "alt": "Stabban Tuek",
+        "src": "https://dune.zone/published/leaders/k175bxsjh069ksf64a189360f58a0eck.53bd6754-b442-470c-b8da-2af998f349e0/leader.jpg?v=1217acef-14fc-422f-bf1d-de07fe0e2f83"
+      },
+      {
+        "alt": "Esmar Tuek",
+        "src": "https://dune.zone/published/leaders/k175bxsjh069ksf64a189360f58a0eck.bc2c7eba-69f8-4725-a243-6976b5b5a7ff/leader.jpg?v=c58889c6-a2fc-4580-9257-67b6dda457b0"
+      },
+      {
+        "alt": "Master Bewt",
+        "src": "https://dune.zone/published/leaders/k175bxsjh069ksf64a189360f58a0eck.1102e32c-e145-455a-8f89-1295797bc502/leader.jpg?v=0fba3ac7-3dd1-45d2-95ec-56dba5739122"
+      },
+      {
+        "alt": "Soo Soo Sook",
+        "src": "https://dune.zone/published/leaders/k175bxsjh069ksf64a189360f58a0eck.b009e068-3f74-4f0f-8227-cbb197a973b0/leader.jpg?v=98233145-9050-4c11-80ce-b5dd57d306b5"
+      },
+      {
+        "alt": "Guild Rep.",
+        "src": "https://dune.zone/published/leaders/k175bxsjh069ksf64a189360f58a0eck.10cb0e82-70ee-45ce-aeb0-162f0f933530/leader.jpg?v=98751d6d-cad5-4c80-b5a4-95d739f04247"
+      }
+    ],
+    "page": 71,
+    "text": "SPACING GUILD\nSpacing Guild\n\nStrategy: your first game\n\nKeep Tuek's Sietch earning while shipment income builds your options. Use discounted shipping to stay within reach of several strongholds.\n\nFor your first few turns, acting late is a useful default: see where opponents commit before choosing your destination. Change that plan when acting earlier secures an important position.\n\nRetreat costs spice and does not guarantee your leader survives. Keep a reserve instead of treating it as free insurance. You must pursue a victory; there is no Guild stallout win.\n\nLeaders\nAt start\n\n5 troops in Tuek's Sietch and 15 troops in reserves. Start with 5 spice.\n\nFree revival: 1 troop.\n\nShipment, timing and retreat\n\nOther factions pay their shipping spice to you. Your own shipments cost half the normal rate. You may ship from reserves to one territory, from one territory to another at the destination's rate, or from a territory to reserves at stronghold rates.\n\nOnce during shipment and movement, choose one interjection: take your turn first, last or between other factions; swap your position with another faction; or make another faction act now and take its position. The last two choices must occur before your normal position has passed.\n\nAfter battle plans are revealed, Retreat may let you ship troops to reserves at stronghold rates. Pay spice equal to your leader's strength for each played Treachery Card you save. Your leader still dies if the opposing cards would kill them. Pay spice committed to battle and retreat costs to the bank. Both leaders remain committed to the territory.\n\nThe live sheet prohibits Retreat once a traitor or Break Conditioning has resolved the battle. The precise order and all resulting losses await questions #1839 and #1841.\n\nYour ally may use Discount Shipping. You may also allow Three Types of Shipment, including for Fremen. You can reveal spice from behind your shield to pay for your ally's shipment without losing that spice.\n\nYour Fate, Battle Training, permanently lets you play two leaders in each battle, including Cheap Heroes. Either can be called traitor, and both survive or die together. Use the lower-strength leader to price saved cards when retreating. Play the Fate before shipment and movement.\n\n71",
+    "title": "Spacing Guild"
+  },
+  {
+    "anchor": "fremen",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/logo/fremen.svg"
+      },
+      {
+        "alt": "Fremen faction token",
+        "src": "https://dune.zone/published/faction-tokens/k176nq542xz747341fc42341e18a0t45/token.jpg?v=f7499f9e-6ac1-4f50-829e-59fc06a4ee97"
+      },
+      {
+        "alt": "Leit Kynes",
+        "src": "https://dune.zone/published/leaders/k176nq542xz747341fc42341e18a0t45.15b3451f-5b15-44d8-8f9b-4200de394404/leader.jpg?v=91fa6a5b-ff79-4790-af14-b251fd54a5dc"
+      },
+      {
+        "alt": "Stilgar",
+        "src": "https://dune.zone/published/leaders/k176nq542xz747341fc42341e18a0t45.a6db2c21-0832-4093-a531-3d84a7bf8595/leader.jpg?v=632856ae-33a8-4c6e-b3e1-67652f45a064"
+      },
+      {
+        "alt": "Chani",
+        "src": "https://dune.zone/published/leaders/k176nq542xz747341fc42341e18a0t45.4423c0f7-b4f5-4402-aab2-3f893227c73f/leader.jpg?v=fb607920-38d7-47f4-8d54-c1c088e59654"
+      },
+      {
+        "alt": "Otheym",
+        "src": "https://dune.zone/published/leaders/k176nq542xz747341fc42341e18a0t45.8a455597-cc9c-4341-a4c5-5567e5cdc8a7/leader.jpg?v=8fbf4fb0-5c33-4d85-87e9-8fd2e2fe9a6b"
+      },
+      {
+        "alt": "Shaddout Mapes",
+        "src": "https://dune.zone/published/leaders/k176nq542xz747341fc42341e18a0t45.150920d2-e2a0-4389-8851-876cdabfdfcf/leader.jpg?v=09ca7012-c807-4f6f-96e1-9ffcc80a85d4"
+      },
+      {
+        "alt": "Jamis",
+        "src": "https://dune.zone/published/leaders/k176nq542xz747341fc42341e18a0t45.14bd2aa8-e1fc-4a42-a789-84c2dc64ed98/leader.jpg?v=0f28d6e3-3d35-4ce5-aaf6-67bd3cfe42a1"
+      }
+    ],
+    "page": 72,
+    "text": "FREMEN\nFremen\n\nStrategy: your first game\n\nBuild a useful combat hand without chasing every auction. Storm immunity and worm rides let you approach positions others cannot. Keep troops ready for the next opening.\n\nUse Fanatical Tactics to preserve valuable cards, and protect your Fedaykin. Your turn-ten threat gives you bargaining power, but another faction can still win sooner.\n\nLeaders\nAt start\n\n10 troops distributed on the board (see setup). 10 in reserves. Start with 3 spice.\n\nFree revival: 3 troops.\n\nIf nobody wins by the end of turn ten, you win. Your ally shares this win only if you jointly control at least three strongholds.\n\nLife in the desert\n\nRally troops for free within two territories of the Great Flat. You cannot ship normally. Your troops move two territories and need no spice to fight at full strength. Your three Fedaykin have double strength; revive at most one per turn.\n\nYour troops are immune to storm and may move into, through and out of it. You may choose to let them die in storm. Look at the top Storm card. The live sheet also permits inspection of both Spice Blow Decks; the deck structure is awaiting question #1837.\n\nShai-Hulud does not devour your troops. They may instead ride to any territory. If several worms appear, choose the locations of all after the first, including rock and stronghold territories from which your troops can ride.\n\nStart with two Thumpers. After Spice Blow cards are revealed, spend at most one per turn to summon a riding worm to a sand or polar territory containing your troops. It eats spice but not troops. Treat it as the first worm of the phase when redirecting later worms.\n\nWith Fanatical Tactics, reveal a weapon, a defense or both in your battle plan early to retain it even if you lose. A traitor call against your leader or a lasgun-shield explosion still loses it. Spite may replace a protected card only with one of the same color. Supplies expiry is awaiting question #1842.\n\nAfter all factions finish shipment and movement, Zensunni Path lets one faction, including yourself, make an on-planet move if it made none this phase. A Hajr move does not disqualify it.\n\nAlliance and Fate\n\nYour ally puts spice used for spice dialing into their bribe pile instead of the bank, and their troops are safe from worms.\n\nYour Fate, Planetology, lets you add or subtract one from the revealed Storm card, starting in the Storm Phase when you play it and continuing each turn.\n\n72",
+    "title": "Fremen"
+  },
+  {
+    "anchor": "bene-gesserit",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/logo/bene-gesserit.svg"
+      },
+      {
+        "alt": "Bene Gesserit faction token",
+        "src": "https://dune.zone/published/faction-tokens/k17fybprvb614pr3r0bpy410q58a086q/token.jpg?v=da4d715d-806a-4f30-86b1-1dd5b4dfd673"
+      },
+      {
+        "alt": "Gaius Helen Mohiam",
+        "src": "https://dune.zone/published/leaders/k17fybprvb614pr3r0bpy410q58a086q.65fe405d-a2ff-44b7-a950-457c30248cfd/leader.jpg?v=d7052d83-7f3d-469b-89b6-4640c173e63e"
+      },
+      {
+        "alt": "Alia",
+        "src": "https://dune.zone/published/leaders/k17fybprvb614pr3r0bpy410q58a086q.fcd6c3b3-2f8e-42f8-8d1b-9eb24fdad094/leader.jpg?v=d7307f8b-127e-4d88-b7f0-3ebc011f0afc"
+      },
+      {
+        "alt": "Princess Irulan",
+        "src": "https://dune.zone/published/leaders/k17fybprvb614pr3r0bpy410q58a086q.c5e76313-8b28-480b-afe5-442a47a8bb42/leader.jpg?v=60ea5d43-e28a-4aa0-a00e-ddcb3bad53af"
+      },
+      {
+        "alt": "Mother Romallo",
+        "src": "https://dune.zone/published/leaders/k17fybprvb614pr3r0bpy410q58a086q.bcbf7253-ac76-4d05-a94c-56c17b9ca1c5/leader.jpg?v=7a19913d-4a8b-4c2a-a634-9e657643a447"
+      },
+      {
+        "alt": "Wanna Yueh",
+        "src": "https://dune.zone/published/leaders/k17fybprvb614pr3r0bpy410q58a086q.cbee9874-6ab4-42e0-9db2-d015213a9a84/leader.jpg?v=7e57bab6-88bf-45e4-af52-359cf3e417d5"
+      },
+      {
+        "alt": "Margot Lady Fenring",
+        "src": "https://dune.zone/published/leaders/k17fybprvb614pr3r0bpy410q58a086q.92a4d717-bc56-4dd5-b4f0-95df1ae742b2/leader.jpg?v=5fa6f071-e9d7-48cb-8d73-06203d8531b1"
+      }
+    ],
+    "page": 73,
+    "text": "BENE GESSERIT\nBene Gesserit\n\nStrategy: your first game\n\nSpread advisors through accompanying shipments. Before turning them into fighters, decide what each group can achieve.\n\nUse The Voice to protect your leader or remove an opponent's defense. Your troops revive slowly, so choose battles carefully. Pursue Prediction while building a position that can also win through strongholds.\n\nLeaders\nAt start\n\n1 in an unoccupied territory, 1 in the polar sink, 18 troops in reserves. 5 spice.\n\nFree revival: 1 troop.\n\nSecretly predict a faction and turn during setup. If it wins on that turn, you win instead. Prediction excludes Fremen's special victory.\n\nThe Voice and spiritual advisors\n\nYou always receive CHOAM Charity. You may use worthless cards as Karamas to stop a faction advantage, ship at half price while paying the bank, or buy a Treachery Card without paying.\n\nBefore battle plans are completed, The Voice can require or forbid a Treachery Card category, such as a projectile weapon, poison defense, worthless card or Mercenaries. Name special cards such as Lasgun or Weirding Way specifically. You cannot Voice Cheap Heroes. An opponent who lacks a required card silently ignores the instruction. You may also use The Voice in your ally's battles.\n\nFighters act as normal troops. Advisors can move and coexist with enemies or allies, but do not fight, count toward occupancy limits or control territory for ornithopters or victory. Each territory has one posture for your troops. Advisors entering a territory with your fighters become fighters.\n\nWhen another faction moves into your territory, you may flip fighters to advisors. Reinforcement of a faction already there does not permit this.\n\nAt the beginning of shipment and movement, you may flip groups of advisors to fighters. A group with no other faction present flips automatically. This is the only window when an advisor territory becomes a fighter territory. You may ship either posture.\n\nWhen another faction ships from off planet, place an advisor at its destination if you have no fighters there, or a fighter in the Polar Sink.\n\nPolitical Marriages\n\nYour Fate, Political Marriages, lets you use The Voice on one side in any or all battles where you have advisors that turn. Play it at the Voice window. Karama cannot stop this Voice.\n\n73",
+    "title": "Bene Gesserit"
+  },
+  {
+    "anchor": "bene-tleilax",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/logo/bene-tleilaxu.svg"
+      },
+      {
+        "alt": "Bene Tleilax faction token",
+        "src": "https://dune.zone/published/faction-tokens/k172q46gsjea7xkftjvpg9w8ah8a1hxy/token.jpg?v=f80b725c-45a1-4831-8f81-95b52b959232"
+      },
+      {
+        "alt": "Master Council",
+        "src": "https://dune.zone/published/leaders/k172q46gsjea7xkftjvpg9w8ah8a1hxy.e27540e9-442d-4f00-8758-532553cc41d4/leader.jpg?v=4c4a82bf-f356-4f47-b79e-b4b58957b0e4"
+      },
+      {
+        "alt": "Zoal",
+        "src": "https://dune.zone/published/leaders/k172q46gsjea7xkftjvpg9w8ah8a1hxy.01f9db99-ce2c-4ef4-a292-2cbca353fdc5/leader.jpg?v=a65aed40-5fb0-4b5a-b777-408e9f13c01e"
+      },
+      {
+        "alt": "Hidar Fen Ajidica",
+        "src": "https://dune.zone/published/leaders/k172q46gsjea7xkftjvpg9w8ah8a1hxy.eafa848b-506b-4234-b807-2a24864beeb2/leader.jpg?v=a782c2cb-da8e-4df5-b399-eca0cb7a86b4"
+      },
+      {
+        "alt": "Master Zaaf",
+        "src": "https://dune.zone/published/leaders/k172q46gsjea7xkftjvpg9w8ah8a1hxy.e9a19e4b-e81b-4fdf-b291-14340b946571/leader.jpg?v=d80de9fc-001c-4891-8f91-f8640b0dee65"
+      },
+      {
+        "alt": "Wykk",
+        "src": "https://dune.zone/published/leaders/k172q46gsjea7xkftjvpg9w8ah8a1hxy.806791f0-452e-4f9b-8390-ecd67aa98b1f/leader.jpg?v=4019409f-8bc4-4402-934b-8761232d3726"
+      },
+      {
+        "alt": "Blin",
+        "src": "https://dune.zone/published/leaders/k172q46gsjea7xkftjvpg9w8ah8a1hxy.3fe51b1f-af91-4f1e-bf2e-6abd28bf7d22/leader.jpg?v=0b28fa06-4ec1-4bb9-949b-99252c2fded2"
+      }
+    ],
+    "page": 74,
+    "text": "BENE TLEILAX\nBene Tleilax\n\nStrategy: your first game\n\nWatch the Tanks and your Face Dancer cards before spending on expansion. Revival income and an available infiltration target can change which opponent you want to pressure.\n\nKeep enough of your own leaders available for battles. Committing them to Infiltration has a cost even when the information is valuable.\n\nUse Synthetic Spice to fund a shipment with a purpose. Killing reserves to land a troop that cannot achieve anything leaves you paying to rebuild. Check your deal restrictions before offering terms another faction could normally accept.\n\nLeaders\nAt start\n\n20 troops in reserves. Start with 10 spice.\n\nFree revival: 0 troops.\n\nRevival and synthetic spice\n\nDishonorable prevents you from giving or receiving bribes outside Mentat and from making binding deals, except buying information about cards up for bid. The live sheet also prohibits binding disclosure such as showing cards to other players. The special Mentat commitment to end Infiltration is described on the next page.\n\nCollect one spice whenever a non-Tleilaxu troop is revived. Collect all spice paid for non-Tleilaxu leader revival. You may set the revival price of one leader per faction per turn, increase a faction's troop-revival limit from three to five, and inspect face-down leaders in the Tanks.\n\nYour own revival has no limit. Pay half price, rounded up, except for your face-down leaders, who cost full price. Your ally shares these prices. Round each leader separately and round a group of revived troops after totaling its cost.\n\nWhen shipping, you may kill troops in reserves to generate one spice per troop from the bank toward the shipment. This is Synthetic Spice.\n\nYour Fate, Stone Burner, prevents all troops in one territory from being spice dialed for the rest of the phase, including Fremen. Play it during battle before step 3.\n\n74",
+    "title": "Bene Tleilax"
+  },
+  {
+    "anchor": "infiltration",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/logo/bene-tleilaxu.svg"
+      }
+    ],
+    "page": 75,
+    "text": "BENE TLEILAX: INFILTRATION\nFace Dancers\n\nDuring setup, receive five cards from other factions' unchosen traitors. Choose one as your traitor; the other four become Face Dancer Cards. Follow the dealing order in Set up the factions.\n\nDuring Storm, you may revive a dead enemy leader matching a Face Dancer Card as a spy. Return that leader to its original faction. Commit one of your own leaders on top of the matching card as the impersonator. You cannot use your committed leader in battle.\n\nThe target may immediately call your committed leader traitor to prevent the Infiltration. That committed leader's traitor identity also applies to the revived spy, including your ability to call your own leader traitor.\n\nWhile the revived leader lives and you retain its Face Dancer Card, you may inspect the infiltrated faction's spice and Treachery Cards at any time. Inspect its battle plan at the Infiltration window during commitment.\n\nDuring Mentat, you may discard face down and redraw one Face Dancer Card. You may make a binding promise to reshuffle a specific Face Dancer then.\n\nWhen an Infiltration ends, immediately draw a replacement Face Dancer so you again hold four. Put both the revived leader and your committed leader face down in the Tanks.\n\nZoal and shared victory\n\nIf Zoal is revealed in your plan, survives, and the enemy leader dies, you may choose Infiltration instead of the ordinary battle result. A traitor call can trigger this ability.\n\nThe opponent wins and loses nothing. You may keep your played Treachery Cards, return all your troops in the territory to reserves for free, and keep spice committed to the dial.\n\nSet aside Zoal and the killed leader until next turn's Storm Phase. Then place the target leader in front of its faction's shield and Zoal among that faction's leaders. Zoal counts as the target leader in battle. Either Zoal or the target leader can be called traitor. Otherwise apply the ordinary Infiltration rules.\n\nThe live sheet says you share an infiltrated faction's victory in place of its ally, unless that alliance controls at least five strongholds. Cases involving two infiltrated allies and competing predictions need an explicit winner table. Questions #1847 and #1849 track those rulings.\n\n75",
+    "title": "Bene Tleilax: infiltration"
+  },
+  {
+    "anchor": "ixians",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/logo/ixian.svg"
+      },
+      {
+        "alt": "Ixians faction token",
+        "src": "https://dune.zone/published/faction-tokens/k175em553h4wfwgqhhmey5774x8a0q1k/token.jpg?v=8be47c23-8ad8-4685-9235-5d16899389c9"
+      },
+      {
+        "alt": "Prince Rhombur Vernius",
+        "src": "https://dune.zone/published/leaders/k175em553h4wfwgqhhmey5774x8a0q1k.68b44d39-60fe-4933-8a9c-5700e74c02e3/leader.jpg?v=93af784f-c8e7-4a74-92eb-9526e4242698"
+      },
+      {
+        "alt": "Ctair Pilru",
+        "src": "https://dune.zone/published/leaders/k175em553h4wfwgqhhmey5774x8a0q1k.edb4c8d7-6c8d-47b2-805c-d37fca814be8/leader.jpg?v=6841faf9-ebce-4dd3-a63c-07216ab68050"
+      },
+      {
+        "alt": "Tessia Vernius",
+        "src": "https://dune.zone/published/leaders/k175em553h4wfwgqhhmey5774x8a0q1k.8b8bc331-8a76-481d-82dd-b450de04c5b1/leader.jpg?v=d6f2dcd6-f0a9-4e08-9af8-d8131d902613"
+      },
+      {
+        "alt": "Dominic Vernius",
+        "src": "https://dune.zone/published/leaders/k175em553h4wfwgqhhmey5774x8a0q1k.599ebd49-c744-439a-8060-3dedf089b270/leader.jpg?v=da36282c-2104-402c-8e08-53121e5415b7"
+      },
+      {
+        "alt": "Kailea Vernius",
+        "src": "https://dune.zone/published/leaders/k175em553h4wfwgqhhmey5774x8a0q1k.a06004be-b700-4e38-b55f-6bf463f0f05f/leader.jpg?v=f5501a8a-60c0-4c61-aa49-682e6de641ec"
+      },
+      {
+        "alt": "Cammar Pilru",
+        "src": "https://dune.zone/published/leaders/k175em553h4wfwgqhhmey5774x8a0q1k.c1e3291b-dd71-4a03-af5c-9a74461b60da/leader.jpg?v=1ed240d8-a770-4b48-bd45-4e9423d0a142"
+      }
+    ],
+    "page": 76,
+    "text": "IXIANS\nIxians\n\nStrategy: your first game\n\nKeep Cyborgs and Suboids together when their combined movement and casualty options help. Avoid spending Cyborgs in fights that cheaper troops could handle.\n\nUse your auction knowledge to improve your hand. Before exchanging a card through Technology, decide which missing weapon or defense matters most.\n\nPlan the Surveyor's Mentat route before exposing troops outside it. Its shelter helps preserve an army, but troops aboard do not hold the surrounding territory. You still need troops outside it to claim strongholds.\n\nLeaders\nAt start\n\n3 Cyborgs & 3 Suboids in the HMS. 6 Cyborgs and 8 Suboids in Reserves. 10 spice.\n\nFree revival: 1 troop, either Suboid or Cyborg.\n\nCards and augmented troops\n\nLook at the initial Treachery Cards before they are dealt. At the start of Bidding, inspect the offered batch. You may divide it into two piles as evenly as possible and choose which pile is auctioned first.\n\nOnce per Bidding Phase, before the first bid on a card, Technology lets you replace it with a card from your hand. If you did not split the batch into piles, Atreides may not inspect the card you obtain.\n\nYour nine Cyborgs have double combat strength, move two territories, collect three spice each and cost three spice to revive. Karama cannot affect Cyborgs.\n\nYour eleven Suboids always fight at half strength and cannot be spice dialed. They cost one spice to revive and may move two territories when accompanied by a Cyborg.\n\nIf you win after dialing Cyborgs, undialed Suboids can die in their place. Those Cyborgs flip to their patched side. In a later battle, a patched Cyborg can be dialed once without dying and then flips back.\n\nOnce per turn, you and your ally may swap or transfer one Treachery Card. During battle, use the pre-plan exchange window.\n\nYour Fate, Defect, prevents a special card from being used for the whole turn. Play it in advance or when a faction attempts to use that card, returning it to their hand. To stop Mercenaries or a special weapon or defense, act before battle plans are made. You cannot play Defect during battle step 3.\n\n76",
+    "title": "Ixians"
+  },
+  {
+    "anchor": "hidden-mobile-surveyor",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      },
+      {
+        "alt": "",
+        "src": "https://dune.zone/vector/logo/ixian.svg"
+      }
+    ],
+    "page": 77,
+    "text": "IXIANS: THE HIDDEN MOBILE SURVEYOR\nA sheltered territory\n\nDuring setup, place the Hidden Mobile Surveyor in any territory that is not a stronghold. Treat it as a territory within that territory. It is not itself a stronghold.\n\nYou may ship to the Surveyor at stronghold rates, and move into or out of it as a normal territory. Other factions cannot enter, including Bene Gesserit advisors.\n\nTroops inside are safe from storm and Shai-Hulud. The Surveyor carries troops, not spice. It cannot pick up spice from territories it crosses.\n\nDuring Mentat, move the Surveyor up to three non-stronghold territories. You may pick up and drop off Ixian troops along the route. Its movement can shelter troops before an approaching storm or worm.\n\nThe v0.8 Shield Wall rule prohibits the Surveyor from entering the Shield Wall after it becomes a stronghold for victory. Drawn Shai-Hulud cards add markers; Fremen Thumpers do not.\n\nPlan the route before moving\n\nFirst choose a route that stays within the Surveyor's movement allowance and avoids strongholds. Identify which Ixian troops you intend to pick up or drop off at each stop.\n\nTroops left outside the Surveyor do not gain its protection. If you want a group protected from a coming worm or storm, it must actually be aboard when that danger resolves.\n\nThe Surveyor does not turn its surrounding territory into a stronghold and does not count as one for victory. Its stronghold shipping rate is a cost exception only.\n\nExample: shelter aboard the Surveyor\n\nThe Surveyor travels through two legal territories during Mentat. It picks up your troops at the first and keeps them aboard at the second. Those troops occupy the Surveyor, not the exposed desert outside it. If you instead drop them in the second territory, they no longer have its shelter.\n\n77",
+    "title": "Ixians: the Hidden Mobile Surveyor"
+  },
+  {
+    "anchor": "glossary",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      }
+    ],
+    "page": 78,
+    "text": "GLOSSARY\nReserves and Tanks\n\nReserves are your troops available to enter play. The Tleilaxu Tanks hold dead troops and leaders awaiting revival. Returning to reserves is not the same as dying.\n\nTerritory and sector\n\nA territory is a named area of the map. A sector is a radial slice used for storm position and spice collection. One territory can span several sectors. Count territories for ordinary movement distance, and state the sector where troops finish.\n\nControl and occupation\n\nTroops occupy the territory where they stand. Control matters for stronghold victory and some faction advantages. Bene Gesserit advisors can coexist in a territory without granting control, collection or ornithopters.\n\nStorm order\n\nStart with the player marker the storm next approaches counterclockwise, then continue around the table. Abilities such as Guild interjection can change the order of a particular phase.\n\nDial and support\n\nDial, troop strength, spice support and leader commitment are explained together on the following glossary page.\n\nSee Glossary: battle, page 79\nTreachery, Traitor and Fate\n\nTreachery Cards form your playable hand. A Traitor card identifies a leader you may betray. A Fate Indicator identifies the worthless card that activates your faction power.\n\nNexus\n\nThe phase after Storm. Draw from its deck; a number below the turn allows alliances to change. Return and reshuffle the card. Worms do not trigger Nexus.\n\nBribe pile\n\nSpice waiting outside your supply until Mentat. You may pass it onward as a bribe but cannot spend it normally before collection.\n\nCommitted leader\n\nA surviving leader used in battle is normally restricted to that territory for the Battle phase. A killed leader goes to the Tanks; if revived with Ghola, it can fight again. An ordinary traitor result does not commit leaders.\n\nInfiltration\n\nBene Tleilax returns an enemy leader as a spy, gaining information and a possible shared victory. Face Dancer cards and Zoal establish it differently.\n\nTech token and spice mine\n\nA tech token earns income when its event occurs. A spice mine is a persistent location with a fixed yield each turn.\n\n78",
+    "title": "Glossary"
+  },
+  {
+    "anchor": "glossary-battle",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      }
+    ],
+    "page": 79,
+    "text": "GLOSSARY: BATTLE\nTroop\n\nOne troop token. Its battle strength depends on its type and support. Count tokens separately from strength.\n\nDial\n\nThe troop strength committed on the battle wheel. Add surviving leader strength and permitted bonuses when resolving the battle.\n\nSupport\n\nSpice spent to raise a troop from its unsupported strength to its supported strength. Ordinary troops cost 1 spice each to support.\n\nBattle strength\n\nThe dial plus the surviving leader's strength and any permitted bonuses. Use this total to determine an ordinary winner.\n\nCommitted troop\n\nA troop counted toward the battle dial. In an ordinary victory, take losses matching the dial and support spice. In an ordinary defeat, all troops in the territory die.\n\nCommitted leader\n\nA surviving leader used in battle is normally restricted to that territory for the Battle phase. A killed leader goes to the Tanks; if revived with Ghola, it can fight again. An ordinary traitor result does not commit leaders.\n\nAggressor\n\nThe player currently resolving battles in storm order. The aggressor chooses the next battle and normally wins ties.\n\n79",
+    "title": "Glossary: battle"
+  },
+  {
+    "anchor": "council-review-register",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      }
+    ],
+    "page": 80,
+    "text": "ABOUT THIS DRAFT\nA first reading draft\n\nThis book brings the current Dreamrules rules into one illustrated guide. It includes the eight finished factions, the revised card deck and the confirmed rulings used by the Dreamrules group. Iduali, Moritani and Ecaz remain playtest factions and are outside this ruleset.\n\nWhich sources it follows\n\nQuickstart v0.8 is the starting point. Later confirmed Dreamrules rulings take precedence. Current faction sheets supply faction-specific details. GF9 supplies unchanged base rules. The original JSX rulebook informs the explanations, but its older phase sequence and experimental rules are not current authority.\n\nConfirmed corrections\n\nTruthtrance pauses game actions until its question is answered. Karama suppresses the named advantage for the full phase. A killed leader revived with Ghola can fight again; play Ghola before reveal. Allied troops may share a destination only for the immediate shipment-and-movement exception described in that chapter.\n\nWhat still needs confirmation\n\nSome sources disagree or leave an interaction incomplete. Those cases remain marked with their own council issue. A provisional answer is not a confirmed rule. The following page groups the open questions so a table can identify them before play.\n\nBefore your first game\n\nResolve the Spice deck preparation and draw-pile questions first. If relevant to your table, also check the Bene Tleilax setup outside six players and the turn-ten ending without Fremen. Agree any temporary table ruling openly; it does not settle the Dreamrules council question.\n\nQuestions and corrections\n\nThe council index is github.com/ndelangen/dunezone/issues/1831. Each numbered question there has its own link, source evidence and eventual ruling. FAQ explanations belong in the ruleset rather than in this book.\n\nHow to read a draft note\n\nThe ordinary rule remains usable where it is clear. A note identifies the unresolved boundary; it does not grant permission to invent an exception. Update the affected chapter and examples together when a ruling is confirmed.\n\n80",
+    "title": "About this draft"
+  },
+  {
+    "anchor": "council-review-continued",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      }
+    ],
+    "page": 81,
+    "text": "RULES AWAITING CONFIRMATION\nSetup and spice\n\n#1837: Spice draw decks and discard piles.\n\n#1838: Worm count and prepared setup.\n\n#1859: Mine replenishment timing.\n\n#1860: Bene Tleilax setup at other player counts.\n\nFaction timing and cards\n\n#1835: Infiltration timing during Storm.\n\n#1839: Retreat and Break Conditioning order.\n\n#1840: Spite exchanges involving Supplies.\n\n#1841: Special battle aftermath.\n\n#1842: Fanatical Tactics exceptions.\n\n#1852: Karama interaction review.\n\n#1862: Reconstructed Treachery deck inventory.\n\nTokens and victory\n\n#1844: New tech tokens after exceptional battles.\n\n#1845: Carryall in token and victory counts.\n\n#1847: Overlapping victory conditions.\n\n#1848: Turn-ten ending without Fremen.\n\n#1849: Infiltrated winning alliances.\n\n#1861: Water Stealing and Fremen.\n\nAgreements\n\n#1850: Written records of public deals.\n\n#1851: Truthtrance and existing deals.\n\nCouncil review\n\nEach number refers to a separate issue in the council index on the previous page. These entries record uncertainty; they are not additional rules or FAQ answers.\n\n81",
+    "title": "Rules awaiting confirmation"
+  },
+  {
+    "anchor": "thank-you",
+    "images": [
+      {
+        "alt": "",
+        "src": "https://dune.zone/page/bottom.svg"
+      }
+    ],
+    "page": 82,
+    "text": "THANK YOU\n\nDreamrules grew around a table. Its designers brought ideas, but it took players willing to try them, challenge them and play another game to find out what worked.\n\nThank you to everyone who tested a faction, questioned an interaction, caught an unclear sentence or explained the game to someone new. Those contributions shape both the rules and the experience of playing them.\n\nDreamrules designers\nAidym\nAwpteamoose\nCentral419\nDragonJade\nIhasPineCone\nQuinn\nRidwan\nPlayers and playtesters\nWhimsies\nClockworked\nKKT2002\nBrodie\nomegas2\nLaurens\n\nThe names above come from the original Dreamrules manuscript. Our thanks also go to the wider community of players whose games and discussions continue to improve Dreamrules.\n\nWe are grateful to Dune's original designers, Bill Eberle, Jack Kittredge and Peter Olotka, and to Gale Force Nine for bringing the game to new tables.\n\nAnd thank you for playing. We hope the next game gives your table something worth talking about.\n\n82",
+    "title": "Thank you"
+  }
+]

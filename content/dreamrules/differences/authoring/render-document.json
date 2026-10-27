@@ -1,0 +1,3204 @@
+{
+  "schemaVersion": 1,
+  "settings": {
+    "size": "a4",
+    "design": "restrained"
+  },
+  "pageOrder": [
+    "SSPS",
+    "SFT4",
+    "R3TQ",
+    "MRCB",
+    "KP7X",
+    "P4F3",
+    "ZN7H",
+    "6AYZ",
+    "DXEC",
+    "BNSP",
+    "EYCJ",
+    "BJJ8",
+    "KFFE",
+    "4Z8A",
+    "HYQQ",
+    "DF9E",
+    "8ZT2",
+    "FF9N",
+    "RVW6",
+    "L2HH",
+    "URNR",
+    "86VU",
+    "PNRZ",
+    "CEJ3",
+    "FGJ6",
+    "8F65",
+    "CGW4",
+    "54C9",
+    "W4MC",
+    "PLT8",
+    "JVHW"
+  ],
+  "pagesById": {
+    "SSPS": {
+      "id": "SSPS",
+      "anchor": "cover",
+      "title": "GF9 Advanced to Dreamrules",
+      "layoutId": "cover",
+      "showHeading": false,
+      "controlValues": {
+        "cover": {
+          "artwork": {
+            "status": "unselected"
+          },
+          "subtitle": "GF9 2019 ADVANCED TO DREAMRULES",
+          "supportingText": "WHAT CHANGES\nLOCAL REVIEW DRAFT",
+          "backgroundImageUrl": "/image/rulebook-cover/dreamrules-rainbow-print.jpg",
+          "showDuneLogo": true,
+          "showSubtitle": true
+        }
+      },
+      "regions": []
+    },
+    "SFT4": {
+      "id": "SFT4",
+      "anchor": "setup",
+      "title": "Set up for Dreamrules",
+      "layoutId": "two-columns",
+      "showHeading": true,
+      "controlValues": {},
+      "regions": [
+        {
+          "key": "column1",
+          "blocks": [
+            {
+              "id": "CLXE",
+              "kind": "text",
+              "name": "Battle support",
+              "text": "Keep GF9 2019 Advanced battle support: an ordinary troop counts as half strength, or one with one spice. Fremen keeps free support."
+            },
+            {
+              "id": "9B9V",
+              "kind": "text",
+              "name": "Choose factions, then assign them",
+              "text": "Each player names one faction to include. Randomly assign the chosen factions and seats. Use Atreides, Harkonnen, Emperor, Guild, Fremen, Bene Gesserit, Bene Tleilax and Ixians. Leave Iduali, Ecaz, Moritani and other GF9 expansion modules out."
+            },
+            {
+              "id": "28ZF",
+              "kind": "text",
+              "name": "Choose an enemy traitor",
+              "text": "Choose traitors before dealing starting Treachery Cards. You cannot keep your own leader as your traitor. If all four choices belong to you, reveal them and everyone redraws. Harkonnen keeps all four and may also demand a redraw after drawing at least two of its own leaders, or at least three leaders from one faction."
+            }
+          ]
+        },
+        {
+          "key": "column2",
+          "blocks": [
+            {
+              "id": "EVKL",
+              "kind": "text",
+              "name": "Extra pieces",
+              "text": "Prepare ten Nexus cards, the six Fate Indicators, seven standard tech tokens, Shield Wall markers and the four\\-card Supplies cache. Fremen receives two Thumper tokens. Keep the Atreides Carryall separate from the standard tech tokens."
+            },
+            {
+              "id": "RPE6",
+              "kind": "text",
+              "name": "Finish the faction setup",
+              "text": "Bene Gesserit starts with one troop in an unoccupied territory and one in the Polar Sink, with eighteen in reserves. Ixians starts with three Cyborgs and three Suboids aboard its Surveyor. Its other six Cyborgs and eight Suboids stay in reserves. Bene Tleilax has its own traitor deal, explained in its chapter."
+            },
+            {
+              "id": "UCT2",
+              "kind": "text",
+              "name": "Starting cards",
+              "text": "Deal one Fate Indicator per faction. Ixians inspects the starting Treachery Cards, then everyone receives a random card. Harkonnen receives its extra card. Make no deals during setup."
+            },
+            {
+              "id": "V3MU",
+              "kind": "callout",
+              "variant": "note",
+              "title": "Spice deck preparation",
+              "text": "Use fifteen ordinary Spice Blow cards, five mine cards and six Shai\\-Hulud cards. The draw\\-pile structure and prepared\\-opening shuffle still need a ruling. Agree that procedure before play; the unresolved steps are listed at the end of this guide."
+            },
+            {
+              "id": "CLJN",
+              "kind": "text",
+              "text": "Sources: Quickstart v0.8, Setup and Common Rules Clarifications; Dream Rulebook Edition 3 pp10\\-11; count decision, #1838, 27 October 2026."
+            }
+          ]
+        }
+      ]
+    },
+    "R3TQ": {
+      "id": "R3TQ",
+      "anchor": "deck",
+      "title": "Use the Dreamrules Treachery deck",
+      "layoutId": "single-column",
+      "showHeading": true,
+      "controlValues": {},
+      "regions": [
+        {
+          "key": "content",
+          "blocks": [
+            {
+              "id": "JCW8",
+              "kind": "text",
+              "name": "Replace the deck as a set",
+              "text": "The current Dreamrules deck has 45 cards. Its inventory is shown here so you can prepare the same deck. The four Supplies cache cards stay outside the draw deck. The council inventory review remains open in #1862."
+            },
+            {
+              "id": "NEVG",
+              "kind": "reference-table",
+              "columns": [
+                {
+                  "id": "c0",
+                  "label": "Card or group"
+                },
+                {
+                  "id": "c1",
+                  "label": "Copies"
+                }
+              ],
+              "rows": [
+                {
+                  "id": "r0",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Projectile weapons: Maula Pistol, Crysknife, Slip Tip, Stunner, Hunter Seeker"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "1 each"
+                    }
+                  ]
+                },
+                {
+                  "id": "r1",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Poison weapons: Chaumas, Chaumurky, Gom Jabbar, Ellaca Drug, Basilia Weapon"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "1 each"
+                    }
+                  ]
+                },
+                {
+                  "id": "r2",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Shield / Snooper"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "5 each"
+                    }
+                  ]
+                },
+                {
+                  "id": "r3",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Baliset, Jubba Cloak, Trip to Gamont, Kull Wahad, Kulon, La La La"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "1 each"
+                    }
+                  ]
+                },
+                {
+                  "id": "r4",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Lasgun / Weirding Way / Chemistry"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "1 each"
+                    }
+                  ]
+                },
+                {
+                  "id": "r5",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Cheap Hero / Cheap Heroine"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "2 / 1"
+                    }
+                  ]
+                },
+                {
+                  "id": "r6",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Mercenaries"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "2"
+                    }
+                  ]
+                },
+                {
+                  "id": "r7",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Supplies / Break Conditioning / Orange Catholic Bible"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "1 each"
+                    }
+                  ]
+                },
+                {
+                  "id": "r8",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Hajr / Tleilaxu Ghola / Weather Control / Family Atomics"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "1 each"
+                    }
+                  ]
+                },
+                {
+                  "id": "r9",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Karama / Truthtrance"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "2 each"
+                    }
+                  ]
+                }
+              ],
+              "note": ""
+            },
+            {
+              "id": "VHHW",
+              "kind": "text",
+              "name": "Remove the old cards that do not belong",
+              "text": "Remove Harvester and the Thumper Treachery Card. If you use GF9 expansion cards, also remove Shield Snooper, Poison Blade, Amal, Artillery Strike and Poison Tooth. Fremen uses Thumper tokens instead. Sandtrout and other expansion modules are outside this game."
+            },
+            {
+              "id": "GZNU",
+              "kind": "text",
+              "name": "Weirding Way and Chemistry",
+              "text": "Weirding Way is a projectile weapon when used alone, or a projectile defense with another weapon. Chemistry is a poison defense when used alone, or a poison weapon with another defense. Weirding Way does not stop Lasgun or cause a Lasgun\\-Shield explosion."
+            },
+            {
+              "id": "YC3D",
+              "kind": "text",
+              "text": "Sources: Quickstart v0.8, Treachery Deck; Dream Rulebook Edition 3 pp62\\-67; #1862."
+            }
+          ]
+        }
+      ]
+    },
+    "MRCB": {
+      "id": "MRCB",
+      "anchor": "nexus",
+      "title": "Nexus has its own phase",
+      "layoutId": "two-columns",
+      "showHeading": true,
+      "controlValues": {},
+      "regions": [
+        {
+          "key": "column1",
+          "blocks": [
+            {
+              "id": "HDAQ",
+              "kind": "text",
+              "name": "Insert Nexus after Storm",
+              "text": "The order is Storm, Nexus, Spice Blow, CHOAM Charity, Bidding, Revival, Shipment and Movement, Battle, Spice Collection, Mentat. A drawn worm no longer creates an alliance window."
+            },
+            {
+              "id": "ZHYA",
+              "kind": "text",
+              "name": "Draw, compare, return",
+              "text": "Use ten cards: one each numbered 1 through 7, plus three blanks. Reveal one after Storm. A number strictly below the current turn causes a Nexus. Return the card and shuffle the whole deck after every draw. A blank does nothing."
+            },
+            {
+              "id": "NDJF",
+              "kind": "callout",
+              "variant": "example",
+              "title": "Turn five",
+              "text": "A 4 allows alliances to change. A 5 does not. Return either card and reshuffle. Turn one cannot have a Nexus; from turn eight onward the chance is seven in ten."
+            }
+          ]
+        },
+        {
+          "key": "column2",
+          "blocks": [
+            {
+              "id": "HY8T",
+              "kind": "text",
+              "name": "Trade information differently",
+              "text": "Atreides may look at the top Nexus card instead of the top Spice card. Fremen gains Spice Blow Knowledge. Check for the Nexus before resolving any worm or mine."
+            },
+            {
+              "id": "Z4EJ",
+              "kind": "text",
+              "name": "Worms affect the board",
+              "text": "Resolve Shai\\-Hulud against its affected territory and let Fremen use its riding powers. Track every drawn Shai\\-Hulud with a Shield Wall marker. A Thumper calls a riding worm but adds no Shield Wall marker."
+            },
+            {
+              "id": "KJ5W",
+              "kind": "text",
+              "name": "Storm can contain a battle",
+              "text": "Storm blocks ordinary movement, but does not itself stop battles or advisor flips in Dreamrules. Troops separated by the storm still cannot fight across it. The old FAQ banned battles even when both armies shared a protected sector under storm; Dreamrules permits them there."
+            },
+            {
+              "id": "82X9",
+              "kind": "text",
+              "text": "Sources: Quickstart v0.8, Nexus Deck and Activity Under Storm; #1836 and #1846; GF9 November 2020 FAQ p1; Dream Rulebook Edition 3 pp13\\-16."
+            }
+          ]
+        }
+      ]
+    },
+    "KP7X": {
+      "id": "KP7X",
+      "anchor": "mines",
+      "title": "Spice mines remain after collection",
+      "layoutId": "two-columns",
+      "showHeading": true,
+      "controlValues": {},
+      "regions": [
+        {
+          "key": "column1",
+          "blocks": [
+            {
+              "id": "YU5U",
+              "kind": "text",
+              "name": "Create a recurring supply",
+              "text": "A Mine card places a mine at its marked site. It supplies the amount below each turn and remains after collection. It never builds up a pile larger than that yield. Troops still need to reach the mine sector to collect."
+            },
+            {
+              "id": "ULK9",
+              "kind": "reference-table",
+              "columns": [
+                {
+                  "id": "c0",
+                  "label": "Mine"
+                },
+                {
+                  "id": "c1",
+                  "label": "Yield"
+                }
+              ],
+              "rows": [
+                {
+                  "id": "r0",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Arsunt"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "3"
+                    }
+                  ]
+                },
+                {
+                  "id": "r1",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Bight of the Cliff"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "4"
+                    }
+                  ]
+                },
+                {
+                  "id": "r2",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Cielago East"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "3"
+                    }
+                  ]
+                },
+                {
+                  "id": "r3",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Cielago West"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "4"
+                    }
+                  ]
+                },
+                {
+                  "id": "r4",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Gara Kulon"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "5"
+                    }
+                  ]
+                }
+              ],
+              "note": "The last card is labeled Gaia Kulon; the Cielago cards use the spelling Ceilago."
+            }
+          ]
+        },
+        {
+          "key": "column2",
+          "blocks": [
+            {
+              "id": "4QZZ",
+              "kind": "text",
+              "name": "A destroyed mine sends troops home",
+              "text": "Storm or Shai\\-Hulud destroys the mine. Troops at it return to reserves instead of dying in the Tanks. Those troops can return to the board through a later shipment without revival."
+            },
+            {
+              "id": "GZNH",
+              "kind": "callout",
+              "variant": "example",
+              "title": "Three troops at Arsunt",
+              "text": "The storm destroys Arsunt's mine. Return the troops to reserves. You keep them available for shipment, but the mine stops producing spice."
+            },
+            {
+              "id": "QK3S",
+              "kind": "callout",
+              "variant": "note",
+              "title": "Replenishing a surviving mine",
+              "text": "The yield is a cap, not an amount to add on top of uncollected spice. The exact replenishment window remains open in #1859. Agree when to restore a partly collected mine before the first mine appears."
+            },
+            {
+              "id": "GEJ4",
+              "kind": "text",
+              "name": "Atreides can create another mine",
+              "text": "Arrakis Fiefdom can place a three\\-spice mine in a sand territory without a Spice Blow marker. Its Carryall token pays when a mine sends troops to reserves. The faction chapter explains that Fate."
+            },
+            {
+              "id": "WH5W",
+              "kind": "text",
+              "text": "Sources: Quickstart v0.8, Spice Mines; Dream Rulebook Edition 3 pp8,17,68; all five production mine card faces checked 27 October 2026; #1859."
+            }
+          ]
+        }
+      ]
+    },
+    "P4F3": {
+      "id": "P4F3",
+      "anchor": "fate",
+      "title": "Fate replaces special Karama powers",
+      "layoutId": "two-columns",
+      "showHeading": true,
+      "controlValues": {},
+      "regions": [
+        {
+          "key": "column1",
+          "blocks": [
+            {
+              "id": "UJXN",
+              "kind": "text",
+              "name": "Match a Worthless card",
+              "text": "Your Fate Indicator names one of the six Worthless Treachery Cards. Play that matching card to activate your faction's Fate once per game. The indicator itself is not the playable card. Orange Catholic Bible never matches Fate."
+            },
+            {
+              "id": "USK5",
+              "kind": "text",
+              "name": "Exchange unused indicators in Mentat",
+              "text": "Once per Mentat, a faction may exchange its indicator with another faction if neither has used its Fate. The exchange changes which Worthless card you need. It transfers neither Treachery Cards nor faction powers."
+            },
+            {
+              "id": "F9EQ",
+              "kind": "callout",
+              "variant": "example",
+              "title": "You trade for Baliset",
+              "text": "Your new indicator names Baliset. You still need the Baliset Treachery Card in hand before using your Fate. Playing a different Worthless card in battle does not activate it."
+            }
+          ]
+        },
+        {
+          "key": "column2",
+          "blocks": [
+            {
+              "id": "SBJN",
+              "kind": "reference-table",
+              "columns": [
+                {
+                  "id": "c0",
+                  "label": "Faction"
+                },
+                {
+                  "id": "c1",
+                  "label": "Fate"
+                }
+              ],
+              "rows": [
+                {
+                  "id": "r0",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Atreides"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Arrakis Fiefdom: Carryall and a mine"
+                    }
+                  ]
+                },
+                {
+                  "id": "r1",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Harkonnen"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Blackmail: reveal an opposing plan"
+                    }
+                  ]
+                },
+                {
+                  "id": "r2",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Emperor"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Prison Planet: paid mass revival"
+                    }
+                  ]
+                },
+                {
+                  "id": "r3",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Guild"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Battle Training: two leaders per battle"
+                    }
+                  ]
+                },
+                {
+                  "id": "r4",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Fremen"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Planetology: alter future Storm cards"
+                    }
+                  ]
+                },
+                {
+                  "id": "r5",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Bene Gesserit"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Political Marriages: Voice through advisors"
+                    }
+                  ]
+                },
+                {
+                  "id": "r6",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Bene Tleilax"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Stone Burner: prevent spice support"
+                    }
+                  ]
+                },
+                {
+                  "id": "r7",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Ixians"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Defect: block a special card"
+                    }
+                  ]
+                }
+              ],
+              "note": ""
+            },
+            {
+              "id": "C2V5",
+              "kind": "text",
+              "name": "Keep Karama for its ordinary uses",
+              "text": "The old special Karama powers are gone. Guild cannot spend Karama to stop a shipment, and Harkonnen cannot use it to exchange hands. Each faction chapter gives its Fate's full effect and timing."
+            },
+            {
+              "id": "Z838",
+              "kind": "text",
+              "text": "Sources: Quickstart v0.8, Worthless Fate Cards and Faction Special Karamas; current faction sheets."
+            }
+          ]
+        }
+      ]
+    },
+    "ZN7H": {
+      "id": "ZN7H",
+      "anchor": "karama",
+      "title": "Karama suppresses one advantage for the phase",
+      "layoutId": "two-columns",
+      "showHeading": true,
+      "controlValues": {},
+      "regions": [
+        {
+          "key": "column1",
+          "blocks": [
+            {
+              "id": "XA5D",
+              "kind": "text",
+              "name": "Name the advantage",
+              "text": "Use Karama at that advantage's window. It remains suppressed until the current phase ends, including later uses in that phase. Other advantages still work. A Bidding cancellation ends with Bidding; a Battle cancellation lasts across that faction's later battles."
+            },
+            {
+              "id": "78EL",
+              "kind": "callout",
+              "variant": "example",
+              "title": "Stop Bidding Prescience",
+              "text": "Play Karama before Atreides inspects an auction card. Atreides sees neither that card nor later auction cards this phase. Its Battle Prescience remains available in Battle."
+            },
+            {
+              "id": "SFCS",
+              "kind": "text",
+              "name": "Some windows close before commitment",
+              "text": "Stop Sardaukar, Kwisatz Haderach, Spite or Retreat before plans are committed. Waiting for the leader to die or the Guild to announce Retreat is too late. The reference tables at the end list the current windows."
+            }
+          ]
+        },
+        {
+          "key": "column2",
+          "blocks": [
+            {
+              "id": "MCBW",
+              "kind": "text",
+              "name": "The economic uses remain",
+              "text": "On your bid, use Karama to take the auction card for free if you have hand space. For your own or your ally's shipment, use it to pay half the ordinary shipping rate to the Spice Bank. Bene Gesserit may use a Worthless card for these same effects."
+            },
+            {
+              "id": "BFEB",
+              "kind": "text",
+              "name": "Re-answer a changed dial",
+              "text": "If Atreides has already asked for the dial and Karama then changes Sardaukar, Fedaykin or Fremen support, the target may re\\-answer Prescience. Stone Burner can also change the answer. The other disclosed parts stay locked."
+            },
+            {
+              "id": "JZQU",
+              "kind": "callout",
+              "variant": "note",
+              "title": "Reference status",
+              "text": "Full\\-phase duration is settled. The individual cancellation windows below follow the current faction sheets and remain under review in #1852."
+            },
+            {
+              "id": "884W",
+              "kind": "text",
+              "text": "Sources: Quickstart v0.8, Full Phase Karama and Battle Prescience; #1831 full\\-phase confirmation, 5 October 2026; current faction sheets; #1852."
+            }
+          ]
+        }
+      ]
+    },
+    "6AYZ": {
+      "id": "6AYZ",
+      "anchor": "battle-sequence",
+      "title": "Battle sequence",
+      "layoutId": "two-columns",
+      "showHeading": true,
+      "controlValues": {},
+      "regions": [
+        {
+          "key": "column1",
+          "blocks": [
+            {
+              "id": "5BMF",
+              "kind": "text",
+              "name": "Before plans",
+              "text": "Resolve Supplies, Political Marriages and the final opportunity for an Ixian alliance card exchange. The Voice comes before Battle Prescience. Blackmail and Stone Burner follow Prescience. Stop to allow legal responses before commitment."
+            },
+            {
+              "id": "QNR9",
+              "kind": "text",
+              "name": "Commit the disclosed choices",
+              "text": "Prescience locks only the answer it reveals. The rest of the plan may change until reveal. When asked for the dial, also answer whether you are playing Mercenaries. Undisclosed cards and their number remain secret until reveal."
+            },
+            {
+              "id": "E4ZV",
+              "kind": "text",
+              "name": "During commitment",
+              "text": "Fremen reveals any cards it wants protected by Fanatical Tactics. Infiltrated factions finalize plans for Bene Tleilax to inspect; then the other plans are finalized. Emperor and Ixian Fates cannot be played during this commitment step."
+            }
+          ]
+        },
+        {
+          "key": "column2",
+          "blocks": [
+            {
+              "id": "3RGG",
+              "kind": "text",
+              "name": "After reveal",
+              "text": "Call traitors before resolving weapons or ordinary strength. Retreat and Break Conditioning have conflicting priority instructions, recorded in #1839. Resolve Zoal when its survival and the opposing leader's death permit it. Spite acts before normal card settlement. A traitor or successful Break Conditioning prevents Spite."
+            },
+            {
+              "id": "US3P",
+              "kind": "text",
+              "name": "Cards before troop losses",
+              "text": "Settle Spite and the cards each faction keeps or discards, then the killed\\-leader reward. Pay support and remove troops afterward. This order matters when Spite gives the winner a different card."
+            },
+            {
+              "id": "CV5U",
+              "kind": "text",
+              "name": "Traitor winners keep their played cards",
+              "text": "GF9's FAQ lets a traitor winner discard played cards. Dreamrules requires the winner to keep them. The winning leader is available elsewhere afterward. A successful Break Conditioning result instead commits its leaders and allows the winner to discard."
+            },
+            {
+              "id": "MBWZ",
+              "kind": "callout",
+              "variant": "note",
+              "title": "Exceptional results",
+              "text": "The complete aftermath for Retreat and other special results is still being checked in #1841. Use the explicit rules on their card or faction page; an ordinary traitor result is not a substitute for those exceptions."
+            },
+            {
+              "id": "ZHR8",
+              "kind": "text",
+              "text": "Sources: Quickstart v0.8, Combat Steps and Common Rules Clarifications; approved combat rulings in #1831, 5 October 2026; Dream Rulebook Edition 3 pp33\\-39; #1839 and #1841."
+            }
+          ]
+        }
+      ]
+    },
+    "DXEC": {
+      "id": "DXEC",
+      "anchor": "new-battle-cards",
+      "title": "Mercenaries and Supplies",
+      "layoutId": "two-columns",
+      "showHeading": true,
+      "controlValues": {},
+      "regions": [
+        {
+          "key": "column1",
+          "blocks": [
+            {
+              "id": "GXFS",
+              "kind": "text",
+              "name": "Mercenaries",
+              "text": "Play at most one with your battle plan, in addition to its leader, weapon and defense. Add one to your strength. You win an equal\\-strength battle even as defender. If both players use Mercenaries and remain tied, ordinary aggressor priority decides it. A winner may keep the card."
+            },
+            {
+              "id": "WVT2",
+              "kind": "callout",
+              "variant": "example",
+              "title": "Win a tie as defender",
+              "text": "The aggressor totals seven. You dial zero and use a surviving strength\\-six leader with Mercenaries. You also total seven and win the tie. With zero troops dialed, an ordinary win costs no troop losses."
+            }
+          ]
+        },
+        {
+          "key": "column2",
+          "blocks": [
+            {
+              "id": "SK7B",
+              "kind": "text",
+              "name": "Supplies",
+              "text": "Play it before The Voice to take the cache's projectile weapon, poison weapon, Shield and Snooper. They do not count toward your hand limit. Use them in ordinary weapon and defense slots. Return a cache card when lost, and all remaining cache cards at the end of Battle."
+            },
+            {
+              "id": "JWWQ",
+              "kind": "text",
+              "name": "A temporary hand",
+              "text": "Winning an early battle lets you use surviving Supplies cards in another battle that phase. Their expiry at phase end still matters. A Supplies Shield causes a Lasgun explosion just like an ordinary Shield."
+            },
+            {
+              "id": "4GWY",
+              "kind": "callout",
+              "variant": "note",
+              "title": "Spite and Fanatical Tactics",
+              "text": "Whether Spite can swap cache cards, and whether Fanatical Tactics can alter their expiry, remain open in #1840 and #1842. These questions concern the four cache cards, not the Supplies card that obtained them."
+            },
+            {
+              "id": "B9SZ",
+              "kind": "text",
+              "text": "Sources: Quickstart v0.8, Mercenaries and Supplies; Dream Rulebook Edition 3 pp50,65\\-66; #1840 and #1842."
+            }
+          ]
+        }
+      ]
+    },
+    "BNSP": {
+      "id": "BNSP",
+      "anchor": "conditioning",
+      "title": "Break Conditioning and other card changes",
+      "layoutId": "two-columns",
+      "showHeading": true,
+      "controlValues": {},
+      "regions": [
+        {
+          "key": "column1",
+          "blocks": [
+            {
+              "id": "ESZR",
+              "kind": "text",
+              "name": "Break Conditioning",
+              "text": "After reveal, work out leader deaths from the weapons and defenses. If your resulting strength is at least twice the opponent's, play Break Conditioning to win without losses and kill the opposing leader. Your leader survives even if the opposing weapon would have killed it. Leaders remain committed to the territory, and the winner may discard played cards."
+            },
+            {
+              "id": "V3L4",
+              "kind": "callout",
+              "variant": "example",
+              "title": "Six against three",
+              "text": "After applying the weapons, your strength would be six and the opponent's three. Break Conditioning meets the threshold. You keep your troops and committed spice, save your leader and kill theirs. Both leaders stay committed to this territory."
+            },
+            {
+              "id": "V7D8",
+              "kind": "callout",
+              "variant": "note",
+              "title": "Against Guild Retreat",
+              "text": "The Quickstart and Guild sheet put Retreat and Break Conditioning in different orders. Agree their priority before a battle where both are possible. #1839 records the exact conflict."
+            }
+          ]
+        },
+        {
+          "key": "column2",
+          "blocks": [
+            {
+              "id": "77LG",
+              "kind": "text",
+              "name": "Atomics can expose a sietch",
+              "text": "After turn one, you may target a single sietch as well as the Shield Wall. You need a troop inside or adjacent to it. The sietch becomes vulnerable to storm for the rest of the game; detonation itself does not kill its troops. Remove Atomics from the game."
+            },
+            {
+              "id": "W74U",
+              "kind": "text",
+              "name": "Weather Control comes first",
+              "text": "Determine the storm distance, resolve Weather Control, then allow Family Atomics before the storm moves. GF9's FAQ allowed those two cards in either order. Dreamrules fixes this order."
+            },
+            {
+              "id": "7EQA",
+              "kind": "text",
+              "name": "Orange Catholic Bible",
+              "text": "Play it in a weapon or defense slot with no effect. At the start of Bidding, you may give it to a player with hand space, either before or after counting the auction cards. It cannot activate Fate."
+            },
+            {
+              "id": "8KPD",
+              "kind": "text",
+              "text": "Sources: Quickstart v0.8, Break Conditioning, Atomics, Bidding and Common Rules Clarifications; Dream Rulebook Edition 3 pp19,39,51,67; #1839."
+            }
+          ]
+        }
+      ]
+    },
+    "EYCJ": {
+      "id": "EYCJ",
+      "anchor": "revival-and-information",
+      "title": "Revival and information",
+      "layoutId": "two-columns",
+      "showHeading": true,
+      "controlValues": {},
+      "regions": [
+        {
+          "key": "column1",
+          "blocks": [
+            {
+              "id": "FC5Q",
+              "kind": "text",
+              "name": "Revive leaders earlier",
+              "text": "Once you have at most one available leader, you may begin reviving your leaders from the Tanks. You no longer need every leader unavailable first. Revive one per turn at its strength cost until the cycle is complete. The face\\-down repeat\\-death restriction remains."
+            },
+            {
+              "id": "CRDU",
+              "kind": "callout",
+              "variant": "example",
+              "title": "One leader left",
+              "text": "Four leaders are dead and one is still available. During Revival, pay to bring back one of the four. Under GF9 2019 you would normally wait for the last leader to become unavailable too."
+            },
+            {
+              "id": "2YRC",
+              "kind": "text",
+              "name": "Play Ghola before reveal",
+              "text": "When using Ghola during Battle, play it before reveal. A killed leader revived with it can fight again, including in a different territory. A living leader already committed elsewhere remains unavailable."
+            }
+          ]
+        },
+        {
+          "key": "column2",
+          "blocks": [
+            {
+              "id": "E63S",
+              "kind": "text",
+              "name": "Private notes",
+              "text": "Only Atreides may record Treachery Cards and their whereabouts. Nobody may keep a private log of spice transfers, statements or other game events. With the table's agreement, write down binding deals so their wording is preserved. Written messages must be removed or erased after reading."
+            },
+            {
+              "id": "8PLS",
+              "kind": "text",
+              "name": "Discard piles are public",
+              "text": "Anyone may search the Treachery and Spice discard piles at any time."
+            },
+            {
+              "id": "MTGS",
+              "kind": "text",
+              "name": "Cards you may show an ally",
+              "text": "Allies may show one another Treachery, Fate, Storm and Spice cards they can access. They may not show Traitor or Prediction cards. Allied agreements are nonbinding. Paying an ally's bid or shipment remains permitted."
+            },
+            {
+              "id": "N68Y",
+              "kind": "text",
+              "text": "Sources: Quickstart v0.8, Leader Revival and Common Rules Clarifications; #1831 approved combat ruling, 5 October 2026; #1850 and #1843; GF9 FAQ November 2020 pp2\\-3,8."
+            }
+          ]
+        }
+      ]
+    },
+    "BJJ8": {
+      "id": "BJJ8",
+      "anchor": "truthtrance",
+      "title": "Truthtrance can bind later turns",
+      "layoutId": "two-columns",
+      "showHeading": true,
+      "controlValues": {},
+      "regions": [
+        {
+          "key": "column1",
+          "blocks": [
+            {
+              "id": "39XH",
+              "kind": "text",
+              "name": "Ask about a future action",
+              "text": "GF9's FAQ limited commitments to the current turn. Dreamrules allows later turns. Name the faction, choice and timing in the question. Questions about future Truthtrance answers, or a person you will name after the answer, are forbidden."
+            },
+            {
+              "id": "5R2Z",
+              "kind": "text",
+              "name": "Pause the game",
+              "text": "Once Truthtrance is played, ask the question and receive the answer before anyone plays another card, makes a binding deal or takes another action. A second Truthtrance cannot interrupt the pending answer."
+            },
+            {
+              "id": "ZM46",
+              "kind": "text",
+              "name": "Honor the earlier commitment",
+              "text": "A Truthtrance answer must fit a binding deal already in force. A later deal must fit the earlier Truthtrance answer."
+            }
+          ]
+        },
+        {
+          "key": "column2",
+          "blocks": [
+            {
+              "id": "M8EU",
+              "kind": "callout",
+              "variant": "example",
+              "title": "The promise came first",
+              "text": "Harkonnen has agreed not to attack Arrakeen this turn. Truthtrance asks whether it will attack there. It must answer no. If it had first promised through Truthtrance to attack, it could not later accept a conflicting deal."
+            },
+            {
+              "id": "XDD4",
+              "kind": "text",
+              "name": "Keep the answer possible",
+              "text": "Answer using information available to you. You may take a risk that could make a future commitment impossible, but cannot deliberately make it impossible. If later events remove every way to fulfill it, the impossible requirement lapses without a public announcement."
+            },
+            {
+              "id": "FR49",
+              "kind": "callout",
+              "variant": "example",
+              "title": "A promised poison weapon",
+              "text": "You promise to play poison in a later fight. You may use your poison weapon in an earlier fight if you could win and keep it. You may not deliberately discard your only possible poison weapon while the promise still applies."
+            },
+            {
+              "id": "VCPL",
+              "kind": "text",
+              "name": "Conditions matter",
+              "text": "A conditional answer applies only if its condition occurs. While the condition remains possible, assume it will occur when choosing your actions. A long delay or unnecessary condition gives events more time to release the commitment."
+            },
+            {
+              "id": "W9XM",
+              "kind": "text",
+              "text": "Sources: GF9 FAQ November 2020 p8; Quickstart v0.8, Truthtrance Logic; #1831 pause ruling, 5 October 2026; #1851, 14 October 2026."
+            }
+          ]
+        }
+      ]
+    },
+    "KFFE": {
+      "id": "KFFE",
+      "anchor": "tech-tokens",
+      "title": "Earn tech tokens through battles",
+      "layoutId": "two-columns",
+      "showHeading": true,
+      "controlValues": {},
+      "regions": [
+        {
+          "key": "column1",
+          "blocks": [
+            {
+              "id": "RVJS",
+              "kind": "text",
+              "name": "Begin with seven tokens outside play",
+              "text": "No faction receives a starting standard token. After an ordinary battle win, take one from the loser if it has any. If you receive none and fewer than three standard tokens are in play, draw a random unused token. At most three enter play this way."
+            },
+            {
+              "id": "ULD4",
+              "kind": "text",
+              "name": "Collect at phase end",
+              "text": "Each held token triggers at most once per turn. It earns spice equal to the number of tokens you hold, paid at the end of the triggering phase. Pending spice stays on a captured token and changes hands with it."
+            },
+            {
+              "id": "6MZV",
+              "kind": "reference-table",
+              "columns": [
+                {
+                  "id": "c0",
+                  "label": "Token"
+                },
+                {
+                  "id": "c1",
+                  "label": "Trigger"
+                }
+              ],
+              "rows": [
+                {
+                  "id": "r0",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Heighliners"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "A faction other than Guild ships"
+                    }
+                  ]
+                },
+                {
+                  "id": "r1",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Tleilaxu Tanks"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "A faction other than Bene Tleilax revives troops"
+                    }
+                  ]
+                },
+                {
+                  "id": "r2",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Spice Production"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "A faction other than Bene Gesserit takes Charity"
+                    }
+                  ]
+                },
+                {
+                  "id": "r3",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Imperial Supplies"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "A faction other than Emperor buys a card"
+                    }
+                  ]
+                },
+                {
+                  "id": "r4",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Spice Collection"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "A faction collects spice from sand"
+                    }
+                  ]
+                },
+                {
+                  "id": "r5",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Customs"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "A bribe passes between other factions"
+                    }
+                  ]
+                },
+                {
+                  "id": "r6",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Water Stealing"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "A leader dies; Fremen exception unresolved"
+                    }
+                  ]
+                }
+              ],
+              "note": ""
+            }
+          ]
+        },
+        {
+          "key": "column2",
+          "blocks": [
+            {
+              "id": "WC98",
+              "kind": "callout",
+              "variant": "example",
+              "title": "Two tokens, one shipment trigger",
+              "text": "You hold two standard tokens. An eligible shipment triggers Heighliners, which earns two spice. More shipments do not trigger it again this turn. Collect the two spice at the end of Shipment and Movement."
+            },
+            {
+              "id": "C3KW",
+              "kind": "text",
+              "name": "One faction must hold all three",
+              "text": "Holding all three standard tokens gives that faction one stronghold contribution for victory. Allies cannot simply pool separately held tokens to obtain it."
+            },
+            {
+              "id": "9MPG",
+              "kind": "callout",
+              "variant": "note",
+              "title": "Three narrow questions",
+              "text": "#1844 covers token awards after exceptional battle results. #1845 covers whether the separate Carryall counts for payouts or victory. #1861 asks whose Fremen involvement excludes a Water Stealing trigger. Keep Carryall separate and resolve the relevant case before using it."
+            },
+            {
+              "id": "EMBR",
+              "kind": "text",
+              "text": "Sources: Quickstart v0.8, Tech Tokens; GF9 Ixians & Tleilaxu pp4\\-5; Dream Rulebook Edition 3 pp46\\-47; #1844, #1845 and #1861."
+            }
+          ]
+        }
+      ]
+    },
+    "4Z8A": {
+      "id": "4Z8A",
+      "anchor": "victory",
+      "title": "Check victory, then Infiltration and Prediction",
+      "layoutId": "two-columns",
+      "showHeading": true,
+      "controlValues": {},
+      "regions": [
+        {
+          "key": "column1",
+          "blocks": [
+            {
+              "id": "ERWR",
+              "kind": "text",
+              "name": "The Shield Wall can count",
+              "text": "Add a marker whenever a Shai\\-Hulud card is drawn. Thumpers add none. At four markers, Shield Wall counts as a stronghold for victory. Its shipment cost and occupancy limit stay unchanged. If storm separates two occupants, the group on the larger section controls its victory contribution."
+            },
+            {
+              "id": "SB8R",
+              "kind": "text",
+              "name": "Resolve competing claims in order",
+              "text": "First check who qualifies, including tech tokens and Shield Wall. If more than one faction or alliance qualifies, remove the token contribution and check again. If several still qualify, remove Shield Wall's contribution too. Infiltration never breaks this tie."
+            },
+            {
+              "id": "C2K2",
+              "kind": "text",
+              "name": "Apply Infiltration, then Prediction",
+              "text": "After deciding which faction or alliance won, apply Bene Tleilax Infiltration using the table opposite. Then check Bene Gesserit Prediction against the resulting winners. A prediction of any final winner steals the victory."
+            }
+          ]
+        },
+        {
+          "key": "column2",
+          "blocks": [
+            {
+              "id": "SLG8",
+              "kind": "reference-table",
+              "columns": [
+                {
+                  "id": "c0",
+                  "label": "A qualifying alliance"
+                },
+                {
+                  "id": "c1",
+                  "label": "Winners after Infiltration"
+                }
+              ],
+              "rows": [
+                {
+                  "id": "r0",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Four strongholds, one ally infiltrated"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Bene Tleilax and that ally"
+                    }
+                  ]
+                },
+                {
+                  "id": "r1",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Four strongholds, both infiltrated"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Bene Tleilax alone"
+                    }
+                  ]
+                },
+                {
+                  "id": "r2",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Five or more strongholds"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "The alliance normally; ignore Infiltration"
+                    }
+                  ]
+                }
+              ],
+              "note": "Use the qualifying total after resolving any competing claim, including contributions that still count."
+            },
+            {
+              "id": "Z5MV",
+              "kind": "callout",
+              "variant": "example",
+              "title": "Prediction follows the changed winners",
+              "text": "Atreides and Fremen qualify with four strongholds. Only Fremen is infiltrated. Bene Tleilax and Fremen win. A correct Prediction of either steals that victory; a Prediction of Atreides misses."
+            },
+            {
+              "id": "S8ME",
+              "kind": "text",
+              "name": "No automatic Guild or Fremen victory",
+              "text": "The Guild's stallout win is removed. The October ruling also removes Fremen's printed Rain on Arrakis endgame win. Use sudden death if there is no winner at the transition described on the next page."
+            },
+            {
+              "id": "CFPF",
+              "kind": "text",
+              "text": "Sources: Quickstart v0.8, Stronghold Shield Wall and Multiple Win Conditions; #1846, #1847, #1848 and #1849, with rulings through 14 October 2026."
+            }
+          ]
+        }
+      ]
+    },
+    "HYQQ": {
+      "id": "HYQQ",
+      "anchor": "sudden-death",
+      "title": "Sudden death replaces the default endgame",
+      "layoutId": "two-columns",
+      "showHeading": true,
+      "controlValues": {},
+      "regions": [
+        {
+          "key": "column1",
+          "blocks": [
+            {
+              "id": "Q6ZR",
+              "kind": "text",
+              "name": "Start after turn ten's Nexus",
+              "text": "If nobody has won when turn ten's Nexus ends, enter sudden death. There is no automatic win for Fremen or Guild. This also applies when Fremen is absent."
+            },
+            {
+              "id": "H4EV",
+              "kind": "reference-table",
+              "columns": [
+                {
+                  "id": "c0",
+                  "label": "Repeat this round"
+                },
+                {
+                  "id": "c1",
+                  "label": "What happens"
+                }
+              ],
+              "rows": [
+                {
+                  "id": "r0",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "1. Fremen Revival"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Only Fremen receives a Revival phase"
+                    }
+                  ]
+                },
+                {
+                  "id": "r1",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "2. Shipment and Movement"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "All factions take their shipment and movement turns"
+                    }
+                  ]
+                },
+                {
+                  "id": "r2",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "3. Battle"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Resolve battles and check victory after every battle"
+                    }
+                  ]
+                }
+              ],
+              "note": ""
+            },
+            {
+              "id": "8AK7",
+              "kind": "text",
+              "name": "Check every battle",
+              "text": "Apply the ordinary qualification, tie, Infiltration and Prediction procedure after each battle. Stop as soon as it produces a winner. Skip Storm, Nexus, Spice Blow, Charity, Bidding, ordinary Revival, Spice Collection and Mentat during these rounds."
+            }
+          ]
+        },
+        {
+          "key": "column2",
+          "blocks": [
+            {
+              "id": "NPE8",
+              "kind": "callout",
+              "variant": "example",
+              "title": "Win before the remaining fights",
+              "text": "An alliance reaches four strongholds after the Arrakeen battle. Check its victory immediately, including Infiltration and Prediction. A scheduled battle elsewhere does not get to remove a stronghold afterward."
+            },
+            {
+              "id": "M2LA",
+              "kind": "text",
+              "name": "If nobody can win anymore",
+              "text": "Ignore all territories and sectors. Treat every troop on the board as occupying one territory and fight one round of battles. Whoever has troops remaining wins. If no faction has troops left, the game is a draw."
+            },
+            {
+              "id": "K5G9",
+              "kind": "callout",
+              "variant": "note",
+              "title": "Adopted, not yet playtested",
+              "text": "The sudden\\-death ruling is adopted but has not been playtested. Use this procedure in place of the older faction\\-sheet endings."
+            },
+            {
+              "id": "XWPN",
+              "kind": "text",
+              "text": "Sources: #1848, confirmed procedure and correction, 14 October 2026; #1847 victory order."
+            }
+          ]
+        }
+      ]
+    },
+    "DF9E": {
+      "id": "DF9E",
+      "anchor": "atreides",
+      "title": "Atreides",
+      "layoutId": "two-columns",
+      "showHeading": true,
+      "controlValues": {},
+      "regions": [
+        {
+          "key": "column1",
+          "blocks": [
+            {
+              "id": "9PNL",
+              "kind": "text",
+              "name": "Watch Nexus instead of Spice",
+              "text": "Replace Spice Prescience with Nexus Prescience. You may inspect the top Nexus card. Fremen now has the upcoming Spice information. Your auction inspection remains."
+            },
+            {
+              "id": "BB4Q",
+              "kind": "text",
+              "name": "Ask about Mercenaries with the dial",
+              "text": "A dial question also requires a yes\\-or\\-no answer about Mercenaries. The answer locks that choice along with the disclosed dial. If a later Karama or Stone Burner changes support or troop values, the target may answer the dial again."
+            },
+            {
+              "id": "T4BS",
+              "kind": "text",
+              "name": "Collect Leto's Tithe",
+              "text": "Before gaining Kwisatz Haderach, collect two spice during Spice Collection if you control one stronghold, or three for at least two. This is extra income. Gaining the token permanently ends the Tithe, even if the token later dies."
+            }
+          ]
+        },
+        {
+          "key": "column2",
+          "blocks": [
+            {
+              "id": "YVM3",
+              "kind": "callout",
+              "variant": "example",
+              "title": "Arrakeen before the seventh loss",
+              "text": "With Arrakeen as your only stronghold, collect its usual two spice plus two from Leto's Tithe. After gaining Kwisatz Haderach, the Tithe ends and Arrakeen still pays its usual two."
+            },
+            {
+              "id": "356V",
+              "kind": "text",
+              "name": "Fate may establish a mine",
+              "text": "Before Shipment and Movement, play Arrakis Fiefdom. Gain the unlosable Carryall token. You may also create a three\\-spice mine in a sand territory without a Spice Blow marker. Carryall triggers when a mine returns troops to reserves."
+            },
+            {
+              "id": "LGDD",
+              "kind": "callout",
+              "variant": "note",
+              "title": "Carryall counts",
+              "text": "Carryall is outside the seven\\-token pool. Its inclusion in income multipliers and the three\\-token victory contribution is still awaiting #1845. Do not treat it as a freely transferable standard token."
+            },
+            {
+              "id": "RWSV",
+              "kind": "text",
+              "text": "Sources: Quickstart v0.8, Atreides; current Atreides sheet; #1850 and #1845."
+            }
+          ]
+        }
+      ]
+    },
+    "8ZT2": {
+      "id": "8ZT2",
+      "anchor": "harkonnen",
+      "title": "Harkonnen",
+      "layoutId": "two-columns",
+      "showHeading": true,
+      "controlValues": {},
+      "regions": [
+        {
+          "key": "column1",
+          "blocks": [
+            {
+              "id": "X5PB",
+              "kind": "text",
+              "name": "Redraw an unsuitable traitor deal",
+              "text": "You may require everyone to redraw when your first four traitors contain at least two of your own leaders, or at least three leaders from any one faction. Keep all four after accepting the deal. The compulsory redraw for a player offered only its own leaders still applies."
+            },
+            {
+              "id": "Y4SS",
+              "kind": "text",
+              "name": "Use Spite after your leader dies",
+              "text": "Vladimir's Spite lets you swap played Treachery Cards between the two combatants after your leader is killed. Then settle normal returns and discards. It does not change who won, and the winner cannot immediately discard a card you gave it."
+            },
+            {
+              "id": "UGTF",
+              "kind": "callout",
+              "variant": "example",
+              "title": "Trade rubbish for a weapon",
+              "text": "You lose a fight in which your leader dies. You played a Worthless card; the winner played a weapon you want removed. Swap those cards. The winner must keep the Worthless card and you discard the weapon with your losing plan."
+            }
+          ]
+        },
+        {
+          "key": "column2",
+          "blocks": [
+            {
+              "id": "FDZR",
+              "kind": "text",
+              "name": "Spite has exceptions",
+              "text": "A dead Cheap Hero, a traitor result or successful Break Conditioning does not trigger Spite. Cheap Heroes cannot be swapped. A Fremen card protected by Fanatical Tactics may only be replaced with a card of the same color."
+            },
+            {
+              "id": "38DV",
+              "kind": "callout",
+              "variant": "note",
+              "title": "Supplies conflict",
+              "text": "The Harkonnen sheet forbids swapping Supplies cards; the Supplies description allows it. #1840 asks which controls. Agree this interaction before Supplies enters a Harkonnen battle."
+            },
+            {
+              "id": "HTF9",
+              "kind": "text",
+              "name": "Fate reveals a whole plan",
+              "text": "At the Blackmail window after Prescience and before commitment, play your Fate to make your own or your ally's opponent reveal its whole battle plan early. This replaces the old special Karama hand exchange."
+            },
+            {
+              "id": "YQPY",
+              "kind": "text",
+              "name": "Your captured leader is not safe from its owner",
+              "text": "Any faction may call its own leader traitor when you play that leader against it, without needing its Traitor Card. Account for that when choosing where to use a captive."
+            },
+            {
+              "id": "ERR9",
+              "kind": "text",
+              "text": "Sources: Quickstart v0.8, Harkonnen and Common Rules Clarifications; current Harkonnen and Fremen sheets; #1840."
+            }
+          ]
+        }
+      ]
+    },
+    "FF9N": {
+      "id": "FF9N",
+      "anchor": "emperor",
+      "title": "Emperor",
+      "layoutId": "two-columns",
+      "showHeading": true,
+      "controlValues": {},
+      "regions": [
+        {
+          "key": "column1",
+          "blocks": [
+            {
+              "id": "KXDL",
+              "kind": "text",
+              "name": "Subsidize any auction buyer",
+              "text": "Shaddam's Favor lets you cover some or all of another faction's auction payment. Set the subsidy in front of your shield and collect it at the end of Bidding. Promise coverage before a bid that would otherwise exceed the bidder's spice."
+            },
+            {
+              "id": "DHGN",
+              "kind": "callout",
+              "variant": "example",
+              "title": "A five-spice bid with three in hand",
+              "text": "A buyer has three spice. You agree to cover two. It may bid five. If it wins, it pays three and you set two aside; collect the two at phase end. This is a subsidy, not a bribe the buyer must wait to spend."
+            },
+            {
+              "id": "F4GY",
+              "kind": "text",
+              "name": "Karama can remove the subsidy",
+              "text": "Stopping Bidding Payments sends later card payments to the Bank. Stopping Shaddam's Favor discards subsidy spice waiting outside your shield, including after the last sale but before Bidding ends."
+            }
+          ]
+        },
+        {
+          "key": "column2",
+          "blocks": [
+            {
+              "id": "SKNG",
+              "kind": "text",
+              "name": "Alliance transfers replace extra revival",
+              "text": "Golden Lion Throne lets you give your ally spendable spice instantly, including for revival and troop support. The GF9 alliance benefit of buying three extra allied troop revivals is gone."
+            },
+            {
+              "id": "FHG4",
+              "kind": "text",
+              "name": "Prison Planet is paid revival",
+              "text": "Your Fate revives up to five troops of any kind and one leader at their normal prices. You may revive pieces for other factions. These revivals bypass the ordinary leader and starred\\-troop limits, and Bene Tleilax earns no income from them. Use it at any time except battle\\-plan commitment."
+            },
+            {
+              "id": "PHBK",
+              "kind": "callout",
+              "variant": "example",
+              "title": "Bring back two Sardaukar",
+              "text": "You use Prison Planet to revive two Sardaukar for four spice and a strength\\-five leader for five more. This costs nine, in addition to the Fate card. The old Emperor special Karama offered fewer pieces but revived them for free."
+            },
+            {
+              "id": "Q5DL",
+              "kind": "text",
+              "text": "Sources: GF9 2019 pp14,19; Quickstart v0.8, Emperor; current Emperor sheet."
+            }
+          ]
+        }
+      ]
+    },
+    "RVW6": {
+      "id": "RVW6",
+      "anchor": "guild",
+      "title": "Spacing Guild",
+      "layoutId": "two-columns",
+      "showHeading": true,
+      "controlValues": {},
+      "regions": [
+        {
+          "key": "column1",
+          "blocks": [
+            {
+              "id": "JQAA",
+              "kind": "text",
+              "name": "You must seek a victory",
+              "text": "The Guild no longer wins by preventing everyone else from winning until the game ends. Use the normal victory conditions and sudden\\-death procedure."
+            },
+            {
+              "id": "Y5PQ",
+              "kind": "text",
+              "name": "Interject once in Shipment and Movement",
+              "text": "Choose one: take your turn first, last or between other factions; swap places in the order with another faction; or force another faction to act now and take its place. The swap and forced\\-turn options close when your normal position passes."
+            },
+            {
+              "id": "ZVZ8",
+              "kind": "callout",
+              "variant": "example",
+              "title": "Make a rival commit first",
+              "text": "Before your normal turn passes, choose a rival that has not acted and make it act now. You take that rival's position in the order. You still take one shipment\\-and\\-movement turn, not an extra action."
+            },
+            {
+              "id": "VC7R",
+              "kind": "text",
+              "name": "Your ally can use all shipment types",
+              "text": "You may allow your ally to ship from reserves, cross\\-ship or return troops to reserves, including Fremen. This restores the return option the GF9 FAQ removed. You can reveal spice to pay an ally's shipment without losing the revealed spice."
+            }
+          ]
+        },
+        {
+          "key": "column2",
+          "blocks": [
+            {
+              "id": "TW3H",
+              "kind": "text",
+              "name": "Retreat after reveal",
+              "text": "Retreat returns your troops to reserves at stronghold shipping rates, with Guild's normal discount. To save each played Treachery Card, pay your leader's strength in spice. Pay committed support and retreat costs to the Bank. Weapons can still kill your leader, and both sides' leaders remain committed."
+            },
+            {
+              "id": "X3AH",
+              "kind": "callout",
+              "variant": "note",
+              "title": "Retreat priority and aftermath",
+              "text": "A resolved traitor or Break Conditioning prevents Retreat. The exact choice order and the opponent's complete aftermath remain open in #1839 and #1841. Do not assume the phrase \"as if by traitor\" settles those exceptions."
+            },
+            {
+              "id": "Y5ZS",
+              "kind": "text",
+              "name": "Fate allows two leaders permanently",
+              "text": "Before Shipment and Movement, play Battle Training. From then on you may use two leaders in every battle, including Cheap Heroes. Either can be called traitor; both survive or die together. Price saved Retreat cards using the weaker leader."
+            },
+            {
+              "id": "VPQX",
+              "kind": "text",
+              "text": "Sources: GF9 2019 p19 and November 2020 FAQ pp5,9; Quickstart v0.8, Guild; current Guild sheet; #1839, #1841 and #1848."
+            }
+          ]
+        }
+      ]
+    },
+    "L2HH": {
+      "id": "L2HH",
+      "anchor": "fremen-storm",
+      "title": "Fremen in storm and worm phases",
+      "layoutId": "two-columns",
+      "showHeading": true,
+      "controlValues": {},
+      "regions": [
+        {
+          "key": "column1",
+          "blocks": [
+            {
+              "id": "UUD6",
+              "kind": "text",
+              "name": "Move through storm unharmed",
+              "text": "Your troops are fully immune to storm. You may enter, leave and cross its sector during movement and worm rides. This replaces half storm losses and the GF9 FAQ's movement restrictions. You may still choose to let troops die in storm."
+            },
+            {
+              "id": "ABQK",
+              "kind": "text",
+              "name": "Inspect the Spice draws",
+              "text": "Spice Blow Knowledge transfers upcoming Spice information from Atreides to you. Your sheet says to inspect both draw decks. The draw\\-pile ruling remains open in #1837; it will determine the exact cards available to inspect."
+            },
+            {
+              "id": "7BMW",
+              "kind": "text",
+              "name": "Redirect later worms across the phase",
+              "text": "Choose the locations of every worm after the first in the phase, including rock and strongholds so your troops there can ride. GF9 restricted placement to sand and used separate histories for its two discard piles."
+            }
+          ]
+        },
+        {
+          "key": "column2",
+          "blocks": [
+            {
+              "id": "JNTF",
+              "kind": "text",
+              "name": "Spend the two Thumpers",
+              "text": "After seeing the Spice cards, discard at most one token per turn to call a riding worm to a sand or polar territory containing your troops. It removes spice but devours no troops. It counts as the first worm, allowing you to redirect card\\-drawn worms afterward."
+            },
+            {
+              "id": "4ZDP",
+              "kind": "callout",
+              "variant": "example",
+              "title": "Turn the revealed worm into the second",
+              "text": "A Shai\\-Hulud card appears. Use a Thumper at your troops in a legal territory. Its riding worm goes first. You may now place the card\\-drawn worm somewhere else using your later\\-worm permission."
+            },
+            {
+              "id": "QUK3",
+              "kind": "text",
+              "name": "Fate changes later Storm cards",
+              "text": "Play Planetology during Storm. Add or subtract one from that revealed Storm card, then repeat this choice each turn for the rest of the game. It changes card\\-based storm distance; it is not the old special Karama that placed a devouring worm."
+            },
+            {
+              "id": "HMFP",
+              "kind": "text",
+              "text": "Sources: GF9 November 2020 FAQ pp3,5; Quickstart v0.8, Fremen; current Fremen sheet; #1837."
+            }
+          ]
+        }
+      ]
+    },
+    "URNR": {
+      "id": "URNR",
+      "anchor": "fremen-battle",
+      "title": "Fremen cards, allies and delayed movement",
+      "layoutId": "two-columns",
+      "showHeading": true,
+      "controlValues": {},
+      "regions": [
+        {
+          "key": "column1",
+          "blocks": [
+            {
+              "id": "9K3N",
+              "kind": "text",
+              "name": "Reveal cards to protect them",
+              "text": "During commitment, Fanatical Tactics lets you publicly reveal a weapon, a defense or both from your battle plan. Keep the revealed cards even after an ordinary defeat. A traitor call against your leader or a Lasgun\\-Shield explosion still loses them."
+            },
+            {
+              "id": "NA2J",
+              "kind": "text",
+              "name": "Spite must keep the color",
+              "text": "Harkonnen may replace a protected card only with a card of the same color. The interaction with temporary Supplies expiry is still open in #1842."
+            },
+            {
+              "id": "GLVD",
+              "kind": "text",
+              "name": "Your ally recovers support as a bribe",
+              "text": "Desert Power lets your ally put spent troop\\-support spice in its bribe pile instead of the Bank. It becomes spendable at Mentat. Your ally remains protected from devouring worms; the old extra\\-free\\-revival alliance benefit is removed."
+            }
+          ]
+        },
+        {
+          "key": "column2",
+          "blocks": [
+            {
+              "id": "XX7C",
+              "kind": "callout",
+              "variant": "example",
+              "title": "Refund after a costly win",
+              "text": "Your ally spends four spice supporting four ordinary troops. It wins and removes those troops normally. The four spice goes to its bribe pile and becomes available at Mentat, not for its next battle this phase."
+            },
+            {
+              "id": "9DR9",
+              "kind": "text",
+              "name": "Grant a move after everyone else",
+              "text": "After every faction has finished Shipment and Movement, Zensunni Path lets one faction make an on\\-planet move if it skipped its ordinary movement. Choose yourself or another faction. It may already have shipped. A Hajr move does not disqualify it."
+            },
+            {
+              "id": "C3DR",
+              "kind": "callout",
+              "variant": "example",
+              "title": "Wait out the Guild",
+              "text": "You deploy reserves on your turn and skip ordinary movement. After Guild and everyone else finish, use Zensunni Path to move your troops with the whole board settled."
+            },
+            {
+              "id": "TKMH",
+              "kind": "text",
+              "name": "Revival in sudden death",
+              "text": "The later endgame ruling replaces Rain on Arrakis. In sudden death, only Fremen gets Revival before the next Shipment and Movement and Battle round. It does not receive an automatic win for reaching turn ten."
+            },
+            {
+              "id": "QCZZ",
+              "kind": "text",
+              "text": "Sources: Quickstart v0.8, Fremen; current Fremen sheet; #1842; #1848 correction, 14 October 2026."
+            }
+          ]
+        }
+      ]
+    },
+    "86VU": {
+      "id": "86VU",
+      "anchor": "bene-gesserit",
+      "title": "Bene Gesserit",
+      "layoutId": "two-columns",
+      "showHeading": true,
+      "controlValues": {},
+      "regions": [
+        {
+          "key": "column1",
+          "blocks": [
+            {
+              "id": "DHZ6",
+              "kind": "text",
+              "name": "Voice card categories, except Cheap Hero",
+              "text": "You may require or forbid weapon or defense categories, Worthless cards or Mercenaries. Name special cards such as Lasgun, Weirding Way and Chemistry individually. Unlike GF9's Advanced FAQ, Voice cannot name Cheap Hero."
+            },
+            {
+              "id": "E5R5",
+              "kind": "text",
+              "name": "Change a territory's posture at the phase start",
+              "text": "At the start of Shipment and Movement, you may turn advisor groups into fighters. A group alone turns automatically. After that window, a territory containing advisors stays in that posture even if its other occupants leave or kill each other."
+            },
+            {
+              "id": "CNDK",
+              "kind": "text",
+              "name": "Troops adopt the destination posture",
+              "text": "Your troops have one posture per territory. Advisors joining your fighters become fighters; fighters joining advisors become advisors. Moving a group away does not erase the original territory's advisor posture so Hajr can turn it into a new attack."
+            }
+          ]
+        },
+        {
+          "key": "column2",
+          "blocks": [
+            {
+              "id": "8JLA",
+              "kind": "text",
+              "name": "Reinforcement is not intrusion",
+              "text": "You may flip fighters to advisors when a different faction enters their territory. An occupying faction reinforcing its existing group does not give this option. You may ship as either posture. When accompanying an off\\-planet shipment, place an advisor at its destination only if you have no fighters there, or a fighter in the Polar Sink."
+            },
+            {
+              "id": "UP8M",
+              "kind": "text",
+              "name": "Advisors can share with an ally",
+              "text": "Advisors do not force allied troops to evacuate, unlike the GF9 FAQ. They still do not battle, collect spice, grant ornithopters or control strongholds."
+            },
+            {
+              "id": "CUYP",
+              "kind": "text",
+              "name": "Fate extends Voice to nearby battles",
+              "text": "At the Voice window, play Political Marriages. For the rest of that turn, use Voice on one side in any battle where you have advisors. Karama cannot stop this Voice."
+            },
+            {
+              "id": "AG8D",
+              "kind": "text",
+              "name": "Prediction checks the final winners",
+              "text": "Apply Infiltration before checking Prediction. Predicting the displaced ally misses. Predicting Bene Tleilax or the surviving infiltrated winner can steal the victory. The endgame gives no automatic Fremen win to exclude."
+            },
+            {
+              "id": "FSWX",
+              "kind": "text",
+              "text": "Sources: GF9 November 2020 FAQ pp4\\-5,9; Quickstart v0.8, Bene Gesserit; current sheet; #1847 and #1849."
+            }
+          ]
+        }
+      ]
+    },
+    "PNRZ": {
+      "id": "PNRZ",
+      "anchor": "bene-tleilax",
+      "title": "Bene Tleilax",
+      "layoutId": "two-columns",
+      "showHeading": true,
+      "controlValues": {},
+      "regions": [
+        {
+          "key": "column1",
+          "blocks": [
+            {
+              "id": "M8UE",
+              "kind": "text",
+              "name": "Starting pieces",
+              "text": "Start with twenty ordinary troops in reserves, ten spice and no free revival. Your leaders are Hidar Fen Ajidica 5, Master Zaaf 4, Wykk 3, Zoal 2 and Blin 0. You use the normal troop\\-support rules."
+            },
+            {
+              "id": "8LDT",
+              "kind": "text",
+              "name": "Take a traitor and four Face Dancers",
+              "text": "In a six\\-player game, take one card from each other faction's unchosen traitors. For Harkonnen, use an undealt card instead. Choose one of these five as your traitor. The other four are Face Dancers. Shuffle the remaining traitor cards into your Face Dancer deck."
+            },
+            {
+              "id": "RHS3",
+              "kind": "text",
+              "name": "Earn from each revived troop",
+              "text": "Take one spice for every non\\-Tleilaxu troop revived, including free revivals. GF9 paid once per faction using free revival or Ghola; the payment is now per troop. Receive non\\-Tleilaxu leader revival payments. You may price one leader revival per faction per turn, raise another faction's troop revival limit from three to five and inspect face\\-down leaders in the Tanks."
+            }
+          ]
+        },
+        {
+          "key": "column2",
+          "blocks": [
+            {
+              "id": "MXEB",
+              "kind": "text",
+              "name": "Revive without normal limits",
+              "text": "Pay half price, rounded up, for your own troops and face\\-up leaders. Your face\\-down leaders cost full price. Your ally shares these prices, not your unlimited revival. Round each leader separately; total troop costs before rounding. Three discounted Cyborgs cost five spice. The GF9 ability to revive enemy leaders into your own fighting roster is gone."
+            },
+            {
+              "id": "3GGE",
+              "kind": "text",
+              "name": "Sacrifice reserves for shipment",
+              "text": "Synthetic Spice lets you kill reserve troops to fund a shipment. Each killed troop generates one spice from the Bank toward the shipment. Those killed troops now need revival."
+            },
+            {
+              "id": "38VW",
+              "kind": "text",
+              "name": "Deal restrictions",
+              "text": "Outside Mentat you cannot give or receive bribes. You cannot make most binding deals or bindingly show cards. You may buy binding information about auction cards and, during Mentat, promise to end a named Face Dancer Infiltration. Your ally may still share cards with you as the alliance rules allow."
+            },
+            {
+              "id": "83XR",
+              "kind": "text",
+              "name": "Fate removes support in one territory",
+              "text": "Before commitment, play Stone Burner. For the rest of Battle, troops in that territory cannot use spice support, including Fremen. Re\\-answer any Prescience dial affected by it."
+            },
+            {
+              "id": "GCH9",
+              "kind": "callout",
+              "variant": "note",
+              "title": "Other player counts",
+              "text": "The five\\-card starting procedure above assumes six players. #1860 still needs the deal for other counts."
+            },
+            {
+              "id": "K7W6",
+              "kind": "text",
+              "text": "Sources: Quickstart v0.8, Bene Tleilax and setup; current sheet; #1860. GF9 Ixians & Tleilaxu pp6\\-7 supplies the earlier expansion comparison."
+            }
+          ]
+        }
+      ]
+    },
+    "CEJ3": {
+      "id": "CEJ3",
+      "anchor": "infiltration",
+      "title": "Bene Tleilax Infiltration",
+      "layoutId": "two-columns",
+      "showHeading": true,
+      "controlValues": {},
+      "regions": [
+        {
+          "key": "column1",
+          "blocks": [
+            {
+              "id": "CK3B",
+              "kind": "text",
+              "name": "Revive a matching enemy leader",
+              "text": "Infiltration replaces GF9's post\\-battle Face Dancer takeover. During Storm, choose a dead enemy leader named on one of your Face Dancer cards. Revive it for its original faction. Commit one of your own leaders on that card as the impersonator; you cannot use that committed leader in battle."
+            },
+            {
+              "id": "B2SZ",
+              "kind": "text",
+              "name": "Use the impersonator's traitor identity",
+              "text": "The target may immediately call your committed leader traitor to prevent Infiltration. Its traitor identity also applies when the revived spy fights. You can call your own committed leader traitor when that identity is used against you."
+            },
+            {
+              "id": "U2TK",
+              "kind": "text",
+              "name": "Inspect the infiltrated faction",
+              "text": "While the revived leader lives and you hold the Face Dancer card, inspect that faction's spice and Treachery Cards at any time. Inspect its locked battle plan during commitment. You may advise its opponent. When two infiltrated factions fight, let at most one change its plan after your inspection."
+            }
+          ]
+        },
+        {
+          "key": "column2",
+          "blocks": [
+            {
+              "id": "2L6T",
+              "kind": "text",
+              "name": "End and replace an Infiltration",
+              "text": "During Mentat, discard face down and redraw one Face Dancer if desired. When an Infiltration ends, draw a replacement so you hold four. Put both the spy and your committed leader face down in the Tanks. A Zoal Infiltration cannot be ended by promising to shuffle away a card."
+            },
+            {
+              "id": "SCQM",
+              "kind": "text",
+              "name": "Zoal can establish it through battle",
+              "text": "If Zoal survives and the opposing leader dies, you may choose Infiltration, including after calling a traitor. The opponent wins without losses. You keep committed support, return your troops to reserves and may keep played cards. Set Zoal and the killed leader aside."
+            },
+            {
+              "id": "D6ZD",
+              "kind": "text",
+              "name": "Return Zoal next Storm",
+              "text": "In the next Storm, put the killed leader in front of its faction's shield and Zoal among its leaders. Zoal fights as that leader. Either identity may be called traitor. A qualifying win by the infiltrated faction can then include you, using the victory table."
+            },
+            {
+              "id": "6VRV",
+              "kind": "callout",
+              "variant": "note",
+              "title": "Storm window",
+              "text": "#1835 asks exactly when Storm Infiltration resolves relative to revealing and moving the storm. Settle that window before an eligible spy can affect it."
+            },
+            {
+              "id": "FCR2",
+              "kind": "text",
+              "text": "Sources: Quickstart v0.8, Infiltration and Common Rules Clarifications; current Bene Tleilax sheet; #1835, #1847 and #1849."
+            }
+          ]
+        }
+      ]
+    },
+    "FGJ6": {
+      "id": "FGJ6",
+      "anchor": "ixians",
+      "title": "Ixians",
+      "layoutId": "two-columns",
+      "showHeading": true,
+      "controlValues": {},
+      "regions": [
+        {
+          "key": "column1",
+          "blocks": [
+            {
+              "id": "BJKK",
+              "kind": "text",
+              "name": "Start with two troop types",
+              "text": "Start with ten spice and one free troop revival. Put three Cyborgs and three Suboids aboard your Surveyor, with six Cyborgs and eight Suboids in reserves. You have nine Cyborgs and eleven Suboids, replacing GF9's seven and thirteen. Leaders are Ctair Pilru 5, Tessia Vernius 5, Dominic Vernius 3, Kailea Vernius 2 and Cammar Pilru 1. Dominic was strength four in GF9."
+            },
+            {
+              "id": "2T2A",
+              "kind": "text",
+              "name": "Inspect and divide auction cards",
+              "text": "Inspect the starting Treachery Cards before random dealing. At the start of Bidding, inspect the auction batch and optionally divide it into two piles as evenly as possible. Choose which pile is auctioned first. You no longer choose your starting card or remove one extra auction card as in the GF9 expansion."
+            },
+            {
+              "id": "9L78",
+              "kind": "text",
+              "name": "Replace one auction card",
+              "text": "Once per Bidding, before the first bid on a card, exchange that card with one from your hand. If you split the auction batch, Atreides may inspect the card you take. If you did not, Atreides may not inspect it."
+            }
+          ]
+        },
+        {
+          "key": "column2",
+          "blocks": [
+            {
+              "id": "QN2L",
+              "kind": "reference-table",
+              "columns": [
+                {
+                  "id": "c0",
+                  "label": "Troop"
+                },
+                {
+                  "id": "c1",
+                  "label": "Support and other rules"
+                }
+              ],
+              "rows": [
+                {
+                  "id": "r0",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Cyborg"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "1 strength unsupported, 2 with 1 spice; move 2; collect 3 spice; revive for 3"
+                    }
+                  ]
+                },
+                {
+                  "id": "r1",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Suboid"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Always ½ strength; cannot support; revive for 1; move 2 with a Cyborg"
+                    }
+                  ]
+                },
+                {
+                  "id": "r2",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Patched Cyborg"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "2 without support; survives a winning commitment, then flips back"
+                    }
+                  ]
+                }
+              ],
+              "note": ""
+            },
+            {
+              "id": "UKFD",
+              "kind": "text",
+              "name": "Save a winning Cyborg with a Suboid",
+              "text": "After winning with dialed Cyborgs, remove undialed Suboids in their place and flip the saved Cyborgs to their patched side. A patched Cyborg can fight in a later winning battle without dying, then flips back. An ordinary defeat still loses the army. Karama can stop substitution, but cannot reduce Cyborg strength."
+            },
+            {
+              "id": "HQ4H",
+              "kind": "text",
+              "name": "Exchange a card with your ally",
+              "text": "Once per turn, you and your ally may swap or transfer one Treachery Card. Use the pre\\-plan window during battle. This replaces the GF9 benefit that let your ally discard a newly bought card and draw a replacement. It is separate from your auction\\-card exchange."
+            },
+            {
+              "id": "7KWB",
+              "kind": "text",
+              "text": "Sources: Quickstart v0.8, Ixians; current Ixian sheet; GF9 Ixians & Tleilaxu pp8\\-9."
+            }
+          ]
+        }
+      ]
+    },
+    "8F65": {
+      "id": "8F65",
+      "anchor": "surveyor",
+      "title": "The Hidden Mobile Surveyor and Defect",
+      "layoutId": "two-columns",
+      "showHeading": true,
+      "controlValues": {},
+      "regions": [
+        {
+          "key": "column1",
+          "blocks": [
+            {
+              "id": "T4QZ",
+              "kind": "text",
+              "name": "A private mobile territory",
+              "text": "During setup, place the Surveyor in a non\\-stronghold territory. Only Ixian troops may enter it, including when Bene Gesserit would otherwise accompany a shipment. Ship to it at stronghold rates and move into or out of it as a separate territory."
+            },
+            {
+              "id": "VHVU",
+              "kind": "text",
+              "name": "Move it during Mentat",
+              "text": "Move up to three non\\-stronghold territories, picking up or dropping off Ixian troops along the way. Troops aboard are protected from storm and worms. The Surveyor carries no spice and does not collect spice along its route."
+            },
+            {
+              "id": "ELKW",
+              "kind": "text",
+              "name": "It grants no victory stronghold",
+              "text": "The Surveyor replaces the GF9 expansion's Hidden Mobile Stronghold. It does not count toward victory, cannot be invaded and moves in Mentat instead of before Storm. It cannot enter Shield Wall after that territory begins counting for victory."
+            }
+          ]
+        },
+        {
+          "key": "column2",
+          "blocks": [
+            {
+              "id": "L67X",
+              "kind": "callout",
+              "variant": "example",
+              "title": "Pick up before the storm",
+              "text": "During Mentat, move through a desert territory and pick up your troops. Keep them aboard. A storm sweeping that desert next turn does not kill them. Dropping them outside would leave them exposed."
+            },
+            {
+              "id": "EZD7",
+              "kind": "text",
+              "name": "Fate blocks one special card for the turn",
+              "text": "Play Defect before a special card is used or in response to the attempted play. Return an interrupted card to its owner. It cannot be used again that turn. To stop Mercenaries or a special weapon or defense, act before plans are made. Defect cannot be used during commitment."
+            },
+            {
+              "id": "FWPC",
+              "kind": "callout",
+              "variant": "example",
+              "title": "Stop Mercenaries before planning",
+              "text": "Play Defect naming Mercenaries before battle plans are made. Opponents cannot include it later that turn. Waiting until an opposing plan reveals Mercenaries misses the window."
+            },
+            {
+              "id": "8QND",
+              "kind": "text",
+              "text": "Sources: Quickstart v0.8, Ixians; current Ixian sheet; Dream Rulebook Edition 3 p77."
+            }
+          ]
+        }
+      ]
+    },
+    "CGW4": {
+      "id": "CGW4",
+      "anchor": "karama-reference-a",
+      "title": "Karama reference for Atreides, Harkonnen and Emperor",
+      "layoutId": "single-column",
+      "showHeading": true,
+      "controlValues": {},
+      "regions": [
+        {
+          "key": "content",
+          "blocks": [
+            {
+              "id": "495G",
+              "kind": "reference-table",
+              "columns": [
+                {
+                  "id": "c0",
+                  "label": "Advantage"
+                },
+                {
+                  "id": "c1",
+                  "label": "Window and effect through phase end"
+                }
+              ],
+              "rows": [
+                {
+                  "id": "r0",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Atreides Bidding Prescience"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Before inspection: no further auction inspection"
+                    }
+                  ]
+                },
+                {
+                  "id": "r1",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Atreides Nexus Prescience"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "During Storm: no top Nexus\\-card inspection"
+                    }
+                  ]
+                },
+                {
+                  "id": "r2",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Atreides Battle Prescience"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "After question, before answer: no plan questions"
+                    }
+                  ]
+                },
+                {
+                  "id": "r3",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Kwisatz Haderach"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Before commitment: cannot use the token"
+                    }
+                  ]
+                },
+                {
+                  "id": "r4",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Leto's Tithe"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Spice Collection: no Tithe income"
+                    }
+                  ]
+                },
+                {
+                  "id": "r5",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Harkonnen extra card"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Before bonus draw: no further bonus auction cards"
+                    }
+                  ]
+                },
+                {
+                  "id": "r6",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Harkonnen capture"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "At capture: no further captures"
+                    }
+                  ]
+                },
+                {
+                  "id": "r7",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Vladimir's Spite"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Before commitment: no Spite swaps"
+                    }
+                  ]
+                },
+                {
+                  "id": "r8",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Emperor Bidding Payments"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Before first bid on affected card: payments go to Bank"
+                    }
+                  ]
+                },
+                {
+                  "id": "r9",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Shaddam's Favor"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Before Bidding ends: discard set\\-aside subsidy"
+                    }
+                  ]
+                },
+                {
+                  "id": "r10",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Sardaukar"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Before commitment: ordinary troop values; may re\\-answer dial"
+                    }
+                  ]
+                }
+              ],
+              "note": ""
+            },
+            {
+              "id": "P9NQ",
+              "kind": "text",
+              "name": "One named advantage",
+              "text": "Suppressing an income advantage leaves that faction's troop, information and alliance powers intact. The sheet lists no cancellation of Harkonnen's four starting traitors."
+            },
+            {
+              "id": "7EZ6",
+              "kind": "text",
+              "text": "Sources: Current faction sheets; Dream Rulebook Edition 3 pp53\\-55; duration confirmed in #1831. Individual\\-window review: #1852."
+            }
+          ]
+        }
+      ]
+    },
+    "54C9": {
+      "id": "54C9",
+      "anchor": "karama-reference-b",
+      "title": "Karama reference for Guild and Fremen",
+      "layoutId": "single-column",
+      "showHeading": true,
+      "controlValues": {},
+      "regions": [
+        {
+          "key": "content",
+          "blocks": [
+            {
+              "id": "8UB8",
+              "kind": "reference-table",
+              "columns": [
+                {
+                  "id": "c0",
+                  "label": "Guild advantage"
+                },
+                {
+                  "id": "c1",
+                  "label": "Window and effect through phase end"
+                }
+              ],
+              "rows": [
+                {
+                  "id": "r0",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Shipping Payments"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Shipment and Movement: fees go to Bank"
+                    }
+                  ]
+                },
+                {
+                  "id": "r1",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Discount Shipping"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Shipment and Movement: Guild pays full price; ally unchanged"
+                    }
+                  ]
+                },
+                {
+                  "id": "r2",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Three Types of Shipment"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Shipment and Movement: Guild and ally can only ship reserves onto planet"
+                    }
+                  ]
+                },
+                {
+                  "id": "r3",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Interjection"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Before normal Guild turn passes: no turn\\-order changes"
+                    }
+                  ]
+                },
+                {
+                  "id": "r4",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Retreat"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Before commitment: no Retreat this Battle phase"
+                    }
+                  ]
+                }
+              ],
+              "note": ""
+            },
+            {
+              "id": "37RH",
+              "kind": "reference-table",
+              "columns": [
+                {
+                  "id": "c0",
+                  "label": "Fremen advantage"
+                },
+                {
+                  "id": "c1",
+                  "label": "Window and effect through phase end"
+                }
+              ],
+              "rows": [
+                {
+                  "id": "r0",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Free Spice Dialing"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Before commitment: pay normal support or use unsupported strength"
+                    }
+                  ]
+                },
+                {
+                  "id": "r1",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Fedaykin"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Before commitment: ordinary troop values; may re\\-answer dial"
+                    }
+                  ]
+                },
+                {
+                  "id": "r2",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Fanatical Tactics"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "At early reveal: no protected\\-card declarations"
+                    }
+                  ]
+                },
+                {
+                  "id": "r3",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Native Movement"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "At declaration: redo as ordinary movement"
+                    }
+                  ]
+                },
+                {
+                  "id": "r4",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Zensunni Path"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "By closing movement window: no delayed move"
+                    }
+                  ]
+                },
+                {
+                  "id": "r5",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Worm Riding"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Spice Blow: no later\\-worm placement or devouring immunity; Thumper ride survives"
+                    }
+                  ]
+                },
+                {
+                  "id": "r6",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Storm Immunity"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Storm or Shipment and Movement: full losses; may redo interrupted shipment\\-and\\-movement turn"
+                    }
+                  ]
+                },
+                {
+                  "id": "r7",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Storm Knowledge"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Storm: no top Storm\\-card inspection"
+                    }
+                  ]
+                },
+                {
+                  "id": "r8",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Spice Blow Knowledge"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Spice Blow: no top Spice\\-card inspection"
+                    }
+                  ]
+                }
+              ],
+              "note": ""
+            },
+            {
+              "id": "6W5K",
+              "kind": "text",
+              "text": "Sources: Current Guild and Fremen sheets; Dream Rulebook Edition 3 pp55\\-56; #1852."
+            }
+          ]
+        }
+      ]
+    },
+    "W4MC": {
+      "id": "W4MC",
+      "anchor": "karama-reference-c",
+      "title": "Karama reference for Bene Gesserit, Bene Tleilax and Ixians",
+      "layoutId": "single-column",
+      "showHeading": true,
+      "controlValues": {},
+      "regions": [
+        {
+          "key": "content",
+          "blocks": [
+            {
+              "id": "EFGK",
+              "kind": "reference-table",
+              "columns": [
+                {
+                  "id": "c0",
+                  "label": "Advantage"
+                },
+                {
+                  "id": "c1",
+                  "label": "Window and effect through phase end"
+                }
+              ],
+              "rows": [
+                {
+                  "id": "r0",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "BG Charity"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Charity: lose automatic payment; ordinary eligibility applies"
+                    }
+                  ]
+                },
+                {
+                  "id": "r1",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "BG Worthless Karama"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "In response: discard the attempted card; no further Worthless Karamas"
+                    }
+                  ]
+                },
+                {
+                  "id": "r2",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "The Voice"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "At Voice: suppress ordinary Voice in own and allied battles"
+                    }
+                  ]
+                },
+                {
+                  "id": "r3",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Spiritual Advisors"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Before an affected flip: no further flips this phase"
+                    }
+                  ]
+                },
+                {
+                  "id": "r4",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "BT Infiltration"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Storm: no new Face Dancer Infiltration; Zoal unaffected"
+                    }
+                  ]
+                },
+                {
+                  "id": "r5",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "BT Revival Income"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Revival: no troop or leader revival income"
+                    }
+                  ]
+                },
+                {
+                  "id": "r6",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "BT Discount Revival"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Revival: normal limits and prices"
+                    }
+                  ]
+                },
+                {
+                  "id": "r7",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Synthetic Spice"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Shipment and Movement: no reserve sacrifices for shipping"
+                    }
+                  ]
+                },
+                {
+                  "id": "r8",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Zoal"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Before commitment: ordinary strength\\-two leader"
+                    }
+                  ]
+                },
+                {
+                  "id": "r9",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Ixian Bidding Knowledge"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Before inspection or split: neither allowed"
+                    }
+                  ]
+                },
+                {
+                  "id": "r10",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Technology"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Bidding: no auction\\-card exchange"
+                    }
+                  ]
+                },
+                {
+                  "id": "r11",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Augmented Troops"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Before commitment: no Suboid substitution; Cyborg strength unchanged"
+                    }
+                  ]
+                },
+                {
+                  "id": "r12",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Surveyor"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Mentat: cannot move it"
+                    }
+                  ]
+                },
+                {
+                  "id": "r13",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Shared Treachery Cards"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "In response: return cards; no further allied exchanges"
+                    }
+                  ]
+                }
+              ],
+              "note": ""
+            },
+            {
+              "id": "NBUR",
+              "kind": "text",
+              "name": "Political Marriages",
+              "text": "Karama cannot stop the Voice granted by this Fate. Prediction is also outside the listed cancellation effects."
+            },
+            {
+              "id": "EL24",
+              "kind": "text",
+              "text": "Sources: Current faction sheets; Dream Rulebook Edition 3 pp57\\-58; #1852."
+            }
+          ]
+        }
+      ]
+    },
+    "PLT8": {
+      "id": "PLT8",
+      "anchor": "questions",
+      "title": "Decisions still needed at the table",
+      "layoutId": "two-columns",
+      "showHeading": true,
+      "controlValues": {},
+      "regions": [
+        {
+          "key": "column1",
+          "blocks": [
+            {
+              "id": "7MZB",
+              "kind": "reference-table",
+              "columns": [
+                {
+                  "id": "c0",
+                  "label": "Before setup"
+                },
+                {
+                  "id": "c1",
+                  "label": "Missing decision"
+                }
+              ],
+              "rows": [
+                {
+                  "id": "r0",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Spice piles, #1837"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "One or two draw piles; draw/discard order; Fremen inspection"
+                    }
+                  ]
+                },
+                {
+                  "id": "r1",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Opening shuffle, #1838"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "A recipe that accounts for all six Shai\\-Hulud cards"
+                    }
+                  ]
+                },
+                {
+                  "id": "r2",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Treachery inventory, #1862"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Council approval of the current 45\\-card reconstruction"
+                    }
+                  ]
+                },
+                {
+                  "id": "r3",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Bene Tleilax, #1860"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Starting card deal outside six players"
+                    }
+                  ]
+                }
+              ],
+              "note": ""
+            },
+            {
+              "id": "Z3B2",
+              "kind": "reference-table",
+              "columns": [
+                {
+                  "id": "c0",
+                  "label": "Before the affected play"
+                },
+                {
+                  "id": "c1",
+                  "label": "Missing decision"
+                }
+              ],
+              "rows": [
+                {
+                  "id": "r0",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Mines, #1859"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "When to restore a partly collected yield"
+                    }
+                  ]
+                },
+                {
+                  "id": "r1",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Carryall, #1845"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Income multiplier and victory counts"
+                    }
+                  ]
+                },
+                {
+                  "id": "r2",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Water Stealing, #1861"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Which Fremen involvement excludes a trigger"
+                    }
+                  ]
+                },
+                {
+                  "id": "r3",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Infiltration, #1835"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Exact Storm window before or after reveal/movement"
+                    }
+                  ]
+                }
+              ],
+              "note": ""
+            }
+          ]
+        },
+        {
+          "key": "column2",
+          "blocks": [
+            {
+              "id": "GZFB",
+              "kind": "reference-table",
+              "columns": [
+                {
+                  "id": "c0",
+                  "label": "Before the affected battle"
+                },
+                {
+                  "id": "c1",
+                  "label": "Missing decision"
+                }
+              ],
+              "rows": [
+                {
+                  "id": "r0",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Retreat, #1839"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Choice order against Break Conditioning"
+                    }
+                  ]
+                },
+                {
+                  "id": "r1",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Aftermath, #1841"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Complete special\\-result losses, rewards and commitments"
+                    }
+                  ]
+                },
+                {
+                  "id": "r2",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Supplies, #1840"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Eligibility for Spite exchange"
+                    }
+                  ]
+                },
+                {
+                  "id": "r3",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Fanatical Tactics, #1842"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Protected cache cards at phase expiry"
+                    }
+                  ]
+                },
+                {
+                  "id": "r4",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Token awards, #1844"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Which exceptional results create a new token"
+                    }
+                  ]
+                },
+                {
+                  "id": "r5",
+                  "cells": [
+                    {
+                      "columnId": "c0",
+                      "text": "Karama, #1852"
+                    },
+                    {
+                      "columnId": "c1",
+                      "text": "Review of individual sheet windows"
+                    }
+                  ]
+                }
+              ],
+              "note": ""
+            },
+            {
+              "id": "QU47",
+              "kind": "text",
+              "name": "Six worms is settled",
+              "text": "Use six Shai\\-Hulud cards. Norbert decided this on 27 October 2026. That resolves the count discrepancy, while the prepared shuffle recipe remains open."
+            },
+            {
+              "id": "366U",
+              "kind": "text",
+              "name": "Scope of this draft",
+              "text": "These are outstanding rule decisions, not extra powers. The closed rulings on Nexus, endgame, Infiltration winners, notes and Truthtrance have already been applied in the main chapters."
+            },
+            {
+              "id": "6JHF",
+              "kind": "text",
+              "text": "Sources: Council tracker #1831 and linked questions, checked 27 October 2026."
+            }
+          ]
+        }
+      ]
+    },
+    "JVHW": {
+      "id": "JVHW",
+      "anchor": "sources",
+      "title": "Rules used for this guide",
+      "layoutId": "two-columns",
+      "showHeading": true,
+      "controlValues": {},
+      "regions": [
+        {
+          "key": "column1",
+          "blocks": [
+            {
+              "id": "CZNK",
+              "kind": "text",
+              "name": "GF9 Advanced",
+              "text": "Dune 2019, 24\\-page rulebook, and the official November 2020 FAQ. Ixians & Tleilaxu, 2020, supplies the earlier expansion comparison. The baseline is Advanced, with the official FAQ corrections."
+            },
+            {
+              "id": "TZ46",
+              "kind": "text",
+              "name": "Dreamrules",
+              "text": "Quickstart Guide v0.8, the eight current faction sheets and Dream Rulebook Edition 3. Later recorded rulings take precedence over unrevised passages in the book or sheets."
+            },
+            {
+              "id": "EF92",
+              "kind": "text",
+              "name": "Current decisions",
+              "text": "The Nexus procedure and full\\-phase Karama were confirmed in October. The 14 October rulings settle victory ordering, Infiltration winners, sudden death, written notes and commitment priority. The 27 October decision sets six Shai\\-Hulud cards."
+            }
+          ]
+        },
+        {
+          "key": "column2",
+          "blocks": [
+            {
+              "id": "E4TV",
+              "kind": "text",
+              "name": "Public references",
+              "text": "dune.zone/rulesets/dreamrules/rulebooks/dream\\-rulebook\ngithub.com/ndelangen/dunezone/issues/1831\nThe individual issue numbers throughout this guide link each remaining decision to that tracker."
+            },
+            {
+              "id": "GGL7",
+              "kind": "text",
+              "name": "Version",
+              "text": "Local review draft, 27 October 2026. Covers the eight finished factions. Further changes require a new ruling or an identified correction to a cited source."
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

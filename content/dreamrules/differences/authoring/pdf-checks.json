@@ -1,0 +1,11 @@
+{
+  "pages": 31,
+  "expectedPages": 31,
+  "size": "A4",
+  "tagged": true,
+  "fieldsChecked": 189,
+  "unmatchedProseBoundaries": [],
+  "pdfSha256": "7d90cf30b94ed1b7dafff519c842a7aced3c984f128e95ba754b5013c8e0f149",
+  "method": "Native rulebook renderer printed by Chromium; Poppler raw text normalized to Unicode NFKC alphanumeric boundaries.",
+  "scope": "Authored top-level text, question, answer, note and caption fields. Table rows and all pages receive separate visual checks."
+}

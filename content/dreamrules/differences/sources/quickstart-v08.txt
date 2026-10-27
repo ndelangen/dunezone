@@ -1,0 +1,317 @@
+Dreamrules Quick Start Guide
+What is Dreamrules?
+Dreamrules is a full rules overhaul of the Dune Board Game published by Avalon Hill in 1979, inspired by the Advanced Rules in 2019 publication. Dreamrules was first invented to solve problems with the base game such as Guild Special Victory Condition, and frustration with the expansions released by Gale Force Nine. The goal of Dreamrules is to create interesting and unique decisions for all players.
+
+What is a Quick Start Guide?If you’ve played Dune before this plus the faction sheets is all you’ll need to start playing Dreamrules.
+
+What should I read before playing?
+Before playing read the Faction Sheets located in the Dreamrules discord channel and “Non-Faction Rules Changes” in this document. When the game starts go through “Step-By-Step Setup” in this document.
+“Combat Steps,” “Common Rules Clarifications,” and “Karama Interactions,” can be referenced if needed during the game. Those very familiar with Dune may prefer to read the “Faction Rules Changes” in this document instead of the Faction Sheets.
+
+What should I do if I want to play Dreamrules IRL?
+Many of us all over the world have done it. Just ping any of the Dreamrules council members in the discord.
+
+Table of Contents:
+Introduction1
+Non-Faction Rules Changes3
+Faction Rules Changes6
+Combat Steps13
+Step-by-Step Setup14
+Common Rules Clarifications15
+Non-Faction Rules Changes (from GF9 publication)
+
+Treachery Deck:
+Removed:Added:
+-Shield Snooper-Mercenaries (x2)
+-Poison Blade-Supplies
+-Amal-Break Conditioning
+-Thumper-Orange Catholic Bible
+-Harvester
+-Artillery Strike
+-Poison Tooth
+
+Mercenaries:
+Play as part of your Battle Plan. Does not take the slot of a weapon/defense/leader. Adds +1 to your combat strength and you win ties regardless of storm order. You may keep this card if you win the battle.
+
+Supplies:
+Play during battle (step 1.1) to gain the Supplies cards. These 4 cards do not count toward your hand limit and are played like normal Treachery Cards. They each represent one of the four basic combat weapon/defense cards. (Poison, Projectile, Shield, Snooper) You lose these cards at the end of Combat phase.
+
+Break Conditioning:
+Play after Battle Plans are revealed (combat step 4.2). If, after leaders would be killed/survive you would win this battle by 2X strength, you win the battle as if by Traitor. (You lose nothing, and the enemy leader is killed.) May be played after a battle simply to discard it.
+
+
+Orange Catholic Bible:Play as a weapon/defense in battle. Has no effect. You may gift this card to another player with space in their hand at the start of the Bidding phase before or after the number of cards going up for bid is calculated (your choice).
+
+Atomics on Sietches
+The Atomics card can be played on the Shield Wall as normal, but also played to make any single Sietch vulnerable to storm. The card is still played in the Storm Phase after Storm movement is calculated. The force activating the atomics must be either inside the Sietch of adjacent to it. Forces in the city are not killed. For the rest of the game that Sietch is vulnerable from Storm, and Atomics is still removed from the game.
+
+Expansion 2 & 3 Content
+CHOAM, Ecaz, Leader Skills, Discovery, Homeworlds, etc are not (yet) in Dreamrules.
+
+Tech Tokens
+7 Tech Tokens start outside the game: Heighliners, Tleilaxu Tanks, Spice Production, Imperial Supplies, Customs, Spice Collection, and Water Stealing. When a faction wins a fight and doesn't receive a tech token, if there are less than 3 standard tech tokens in play, they take a random token from outside the game. The Carryall token is reserved for the Atreides fate and is unaffected by this rule. (Otherwise tokens work RAW, they trigger once per turn to give spice equal to the number of tokens possessed, the spice is collected at the end of the phase, if a faction with a token loses a fight the token goes to the winner, if all three tokens are possessed they count as a stronghold victory point for that faction).
+Heighliners: Triggers when a faction ships forces (Except Guild).
+Tleilaxu Tanks: Triggers when a faction revives forces (Except Bene Tleilax).
+Spice Production: Triggers when a faction takes CHOAM Charity (Except Bene Gesserit).
+Spice Collection:Triggers when any faction collects spice from a sand territory
+Imperial Supplies: Triggers when a faction buys a Treachery Card (Except Emperor).
+Customs:Triggers when a faction pays a bribe (Except to/from the token holder).
+Water Stealing:Triggers when a leader is killed (Except Fremen).
+(If a token is stolen, spice on it moves with it.)
+Full Phase Karama
+Karama cards will always stop a faction advantage for the whole game phase. Specific karama advantages are listen under "Karama Interactions" on page 18. In general, karamas are played when a faction tries to use the ability.
+
+Worthless Fate Cards
+During setup each player will receive a Fate Indicator card that corresponds to one of the 6 worthless cards (Not Orange Catholic Bible). Factions may play the matching worthless card to play their faction special fate ability specified on their faction sheet once per game. Once per Mentat Phase, a faction may trade their Fate Indicator with another faction, given neither player has played their Fate this game.
+
+Faction Special Karamas
+There are no special faction karama abilities. (Ex. Guild cannot play a karama to stop a faction from shipping, Harkonnen cannot play a karama to swap hands with another player, etc.) See: Fate Abilities.
+
+Stronghold Shield Wall
+When a Shai Hulud card is drawn add a marker to the Shield Wall. (Fremen Thumpers don’t add to the Sheild Wall)
+When the Shield Wall has 4 markers it becomes a stronghold for the purposes of victory only. The wall is otherwise unchanged including shipping rates and multiple faction occupation limit. If the Storm partially covers Shield Wall this may allow 2 factions to occupy it during Mentat Phase, if this happens the forces on the larger section control it. (Ix cannot drive the HMS through the Shield Wall after it becomes a stronghold.)
+
+Multiple Win Conditions
+With Stronghold Shield Wall and Tech Tokens multiple players may reach their victory condition in one turn. If this happens Tech Token victory condition is removed, if multiple factions still win then the Stronghold Shield Wall is removed. (It is not possible for more than 2 players to win the game. The only way 2 players can with is through alliances and/or BT infiltration)
+
+Leader Revival
+When a faction has one or fewer available leaders, they may start to revive all their leaders from the tanks. One leader may be revived per turn, their cost is equal to the leader's strength.
+Nexus Deck
+There is a deck of 10 cards, numbered 1-7 with 3 blank cards. Every turn at the end of the storm phase the deck is drawn from then reshuffled like Fremen Storm deck. If the number is less than the current turn marker, there is a nexus. Atreides may peek at the top card of the deck.
+
+Calling your own leader traitor.
+Factions may always call traitor on their own leaders if an opponent plays them. (Ex. If Hark steals Stilgar, Fremen may call Stilgar traitor if Hark plays them against Fremen.)
+
+Battle Prescience + Mercenaries
+If Battle Prescience determines the dial, the target faction discloses the number they are dialing on their battle wheel (troops dialed + spice dialed). Then they answer yes/no on whether they are playing a Mercenaries card.
+
+Spice Deck
+x15 Spice Blow cards
+x5 Spice Mine cards
+x6 Shai-Hulud cards
+(Sandtrout is not in Dreamrules)
+
+Spice Mines
+The 5 special Spice Blow markers are Spice Mines. When these Spice Blow cards are drawn a mine appears. Every turn the mine is there a set amount of spice can be collected from that territory. There is never more spice than the set amount there. Mines are destroyed by the Storm and Shai-Hulud. If troops are at the mine when it is destroyed, they are sent to their faction’s reserves instead of the Tleilaxu Tanks.
+Faction Rules Changes
+Many ability names have been changed from 1979 & 2019 printings to make them more intuitive.
+Reminder: There are no faction special karama abilities.
+No change
+New Ability
+Ability is changed
+Ability is removed
+
+Atreides:
+At Start – no change
+Free Revival – no change
+Bidding Prescience – no change
+Spice Prescience – Fremen now see the Spice Deck.
+Nexus Prescience – Atreides may look at the top card of the Nexus Deck
+Battle Prescience – Asking Dial also discloses whether a faction is playing Mercenaries.
+Kwisatz Haderach – no change
+Leto’s Tithe – Atreides collects 2-3 spice during collection depending on how many strongholds they are in. They lose this income once they get their Kwisatz Haderach.
+Alliance – no change
+Fate – Play Fate: Atr get an unlosable tech token and spawn a spice mine.
+
+Harkonnen:
+At Start – no change
+Revival – no change
+Extra Traitors – Hark may now mulligan.
+Extra Treachery Cards – no change
+Captured Leaders – no change
+Vladimir’s Spite – If a hark leader is killed in battle they may remove the opponent's Treachery Cards by swapping cards between players. Cards are then discarded/kept based on who won the fight.
+Alliance – no change
+Fate – Play Fate: Hark’s opponent must reveal their whole battle plan early.
+
+
+Emperor:
+Bidding Payments – no change
+Shaddam’s Favor – Emp may help any faction buy treachery cards. Any spice they use to help they get back at the end of the bidding phase.
+Sardaukar – no change
+Alliance – removed reviving extra troops for ally (this was added by GF9 in 2019 printing)
+Fate – Play Fate: Emperor may revive any 5 forces and a leader by paying for them.
+
+Guild:
+Shipping Payments – no change
+Discount Shipping – no change
+Three Types of Shipment – no change
+Three Types of Interjection – Guild may swap their turn order spot with another player or have another faction take their turn early and guild take their old spot instead of just taking their turn whenever.
+Retreat – Once battle plans are revealed Guild may pay spice to retreat their forces and cards. If this happens the opponent wins the fight as if by traitor except that the Guild leader survives/dies based on Treachery cards played.
+Special Victory Condition – removed.
+Alliance – Added ability to reveal instead of paying for ally’s shipment (this was removed by GF9 in 2019 printing)
+Fate – Play Fate: Guild may now play 2 leaders in all their fights.
+
+Bene Tleilax:
+Dishonorable – BT can’t make most binding deals.
+Face Dancers – removed. (Replaced by Infiltration)
+Infiltration – BT can infiltrate factions by revealing unchosen traitor cards that match leaders in the Tleilaxu Tanks. This Infiltration lasts until the infiltrating leader dies. BT sees cards in hand, spice totals, and battle plans of infiltrated factions. If an infiltrated faction wins the game BT win with them. BT can redraw one unchosen traitor each Mentat phase.
+Revival Income – BT now take a static income of one per troop.
+Tleilaxu Revival – Leaders are now full price if face down. BT cannot revive other faction’s leaders.
+Synthetic Spice – BT may kill troops in reserves to pay for their shipments.
+Zoal – If Zoal kills the enemy leader with a weapon and survives BT can lose the battle to infiltrate the enemy faction. If they do they get all their troops/cards back.
+Zoal Battle Strength – Zoal now has static strength 2.
+BT Leaders – All leaders buffed by 1 strength. Blinn is 0 strength.
+Alliance – no change
+Fate – Play Fate: BT choose a territory. Forces cannot be spice dialed there this phase.
+
+Fremen:
+Rallying Shipment – no change
+Free Spice Dialing – no change (this was added by GF9 in 2019 and is in World Boardgaming Championship rule set)
+Native Movement – no change
+Worm Riding – Frem may redirect the second worm in a phase instead of a specific blow.
+Thumpers – Frem start the game with 2 Thumper tokens. Once per turn during Spice Blow after they see the cards they may discard a thumper token to summon a riding worm to any sand/polar territory where they have forces. This worm can’t eat troops. Thumpers can be used to redirect other Shai Huluds.
+Storm Knowledge – no change
+Spice Blow Knowledge – Fremen now see the top card of the Spice Deck instead of Atreides.
+Half Storm Losses – Fremen are now fully immune to storm, and may move into/through/out of storm.
+Fedaykin – no change
+Fanatical Tactics – Fremen can reveal cards from their battle plans early. If they do this they can’t lose those cards unless they get called traitor.
+Zensunni Path – Fremen may themselves, or allow a single other player to make an on-planet movement at the end of Ship + Move Phase, after the last player (including Guild) has taken their turn. They can only do this if the given faction did not make an on-planet move this turn (besides Hajr).
+Special Victory Condition – Frem now wins if no other faction wins period. Their ally only wins if the alliance controls 3 strongholds.
+Alliance – Frem’s ally now has their spice dialing bribed back to them. Additional Troop Revival is removed. (This was added by GF9 in 2019 printing)
+Fate – Play Fate: Frem can add/subtract one from the storm movement every phase for the rest of the game.
+
+Ixians:
+Initial Treachery Knowledge – Ix no longer chooses their starting card.
+General Bidding Knowledge – Ix may now split the bidding cards into two even piles. They don’t put an extra card on top/bottom of the deck.
+Technology – If Ix splits the piles Atr get to see the card they receive from technology.
+Augmented Troops – 2 Suboids are replaced with Cyborgs. Suboids are only 1 to revive. If a Cyborg has a Suboid die in place of it, it flips to a patched state that can be dialed once for free where it then flips back. Cyborgs cannot be karamad.
+Hidden Mobile Surveyor – HMS is no longer a stronghold. Other factions may not enter it. It is moved in Mentat Phase, picking up and dropping off troops to save them from worms/storm instead of picking up spice. The HMS cannot enter strongholds.
+Ix Leaders – Dominic is changed from 4 strength to 3. Good riddance.
+Alliance – Ix may swap/give/receive one Treachery Card from their ally each turn.
+Fate – Play Fate: Ix stop the use of any special card.
+
+
+Bene Gesserit:
+Charity – no change
+Worthless Karama – no change
+Prediction – no change
+The Voice – Weirding Way and Chemistry must be voiced by name. (This was changed by GF9 in November 2019 FAQ)
+Spiritual Advisors – Troops may not flip to advisors if a faction reinforces a territory. If BG sends an advisor to a location and the other faction immediately moves out the troop stays as an Advisor. Advisors can coexist with their allies. Advisors don’t flip to fighters if 2 factions lose all their troops in a territory during combat.
+Alliance – no change
+Fate – Play Fate: BG may use voice in any battles where they have advisors this turn. This voice cannot be karama’d.
+
+Combat steps
+Every battle in the combat phase goes through these steps, obviously steps may be skipped if the faction it refers to is not in the combat.
+1. Setup
+   1.1 Supplies, BG fate, Last chance for Ix alliance ability.
+   1.2 Location of battle is chosen.
+2. Preparation
+   2.1 Voice
+   2.2 Prescience
+   2.3 Hark Fate, BT fate.
+Last chance for many effects such as Karama, Truthtrance, Ix fate, Emp fate, etc.
+3. Commitment of Battle Plans
+   3.1 Fremen Fanatical Tactics
+   3.2 Infiltrated factions finalize battle plans, BT look and may advise the opponent.
+   3.3 All factions finalize Battle Plans.
+4. Reveal
+   4.1 Traitors
+   4.2 Guild Retreat
+   4.3 Break Conditioning
+   4.4 BT Activate Zoal
+   4.5 Hark Spite
+   4.6 Forces Die & Treachery Cards are Discarded
+   4.7 Harkonnen Leader Capture
+Setup – Step by Step
+No deals may be made during setup.
+If a faction is not in the game ignore their ability.
+Each player selects one faction they want in the game.
+Randomize player seating locations and factions.
+Give each player their starting spice, place Atreides, Harkonnen, and Guild in their starting locations.
+Bene Gesserit do their Prediction.
+4 Traitors are dealt to every non-Bene Tleilax faction. Harkonnen may mulligan to redo this step.
+If BT are in the game players cannot keep their unchosen traitor cards. BT take one Traitor Card from every faction's unchosen traitors. If Harkonnen are in the game, they also take one from the undealt traitors. BT select one as their traitor, placing it face down outside their hidden area, the remaining are their starting face dancers. BT shuffle together all the remaining Traitor cards to create their face dancer deck.
+Fremen choose their starting location(s) by distributing 10 forces between False Wall West, False Wall South, and Sietch Tabr.
+BG chose their starting location.
+Deal each player a pink Fate Indicator card.
+Ixians look at the initial Treachery Cards.
+Randomly deal out initial Treachery Cards.
+Initial Storm is determined by the 2 players on their side of the Storm Start icon dialing 0-20 on their battle wheels. Mark this initial Storm location
+Spice Blow Deck is created. Start with all 20 Spice Blow cards. Shuffle them and place aside the first 3 Spice Blows (two for turn 1 and one for turn 2). Then shuffle 2 worms into the deck and deal a card for the second spice blow on turn 2. Then shuffle the remaining 3 worms into the deck to create the deck for the rest of the game.
+Setup ends.
+Common Rules Clarifications (and minor changes)
+
+Written Notes
+Only Atreides may keep written notes, and only about Treachery Cards. The Treachery deck and Spice Blow deck discard piles may be searched by any faction at any time.
+
+Activity Under Storm
+The only thing that Storm prevents is movement. (Fighting, BG Advisors flipping, etc. can all happen under storm)
+
+Discarding Cards/Committed Leaders on Traitor Call
+If you win a battle via traitor, the battle effectively did not happen, so the leaders are not committed, and you may not discard cards.
+
+Choosing your own leader as traitor + Mulligan
+In Dreams you cannot choose your own leader as traitor. If a faction only has traitor choices of their own leaders, they must reveal it to the table to call a mulligan and have all factions redraw traitors. (Note: Harkonnen mulligan is always optional except in this case.)
+
+Bene Tleilax Binding Deals
+BT may not participate in binding deals or bribes.
+These are the exceptions:
+-BT may give or receive spice as bribes during Mentat phase.
+-BT may bribe any faction to receive binding Treachery Card information of cards up for bid. They may also receive binding info for free.
+-BT may bindingly tell an Infiltrated faction they will shuffle away the face dancer card during Mentat Pause to end the effect. Zoal’s Infiltration may not be ended this way.
+-Emp may subsidize BT using Shaddam’s Favor because there is technically no binding deal.
+
+
+Allies
+When two factions are in an alliance, they may not make any binding deals with each other. Allies can, however, pay for each other’s shipping and bidding. If the faction making the shipment/bid cannot pay on their own the shipment/bid cannot be made unless the ally says they will help cover it.
+Despite being unable to make binding deals, allies (including BT) can show each other any cards they have access to (Storm, Treachery, Fate, Spice). Allies CANNOT show each other Traitor Cards or Prediction Cards.
+
+Double BT Infiltrated Factions
+If two BT Infiltrated Factions fight after Step 3.2 BT may only allow one faction to change their battle plan. (BT can give them advice.)
+If two BT Infiltrated Factions are in an alliance and win with 4 strongholds, BT wins alone.
+
+BT Infiltration + Tech Tokens and Shield Wall
+Factions infiltrated by BT will win with their ally only if the alliance controls 5+ strongholds. Having 3 tech tokens and/or controlling shield wall contribute to this.
+
+BT Half Prices + Cyborgs
+If the BT revive multiple leaders in one revival phase the price is calculated on a per leader basis. (So if BT revive their 3 & 5 strength leaders the price is 2 + 3 = 5 because the costs of half rounded up) Troops on the other hand are halved at the end. Normally Cyborgs cost 3 spice, so they cost 1.5 each. (so 3 cyborgs cost 1.5 * 3 = 4.5 -> 5 spice.)
+
+Battle Prescience + Dial Effects
+If Battle Prescience determines the Dial, and the targeted faction gets hit by a Karama on Sardaukar/Fedaykin/Free Spice Dialing or BT fate, the faction may re-answer the Prescience.
+
+Double Mercenaries
+Only one Mercenaries card can be played in a battle plan. If both players play Mercenaries, ties go to the faction that would normally win ties. (Storm order)
+Bidding Phase TimingThere is time for players to activate appropriate abilities/play cards before and after the number of cards in the phase are determined, before the first card is placed up for bid. (Ex. Truthtrances, Karamas, Ix Fate, etc can be played to reduce/increase the number of cards going up for bid by emptying/filling up hands or held until after the number is determined)
+
+Guild Fate + Zoal
+If Guild use their fate to play two leaders in a battle against Zoal, and the BT activate Zoal’s ability the BT choose which leader Zoal impersonates.
+
+Traitor + Zoal
+If BT call a traitor in a fight they played Zoal in, they may activate Zoal’s ability to infiltrate.
+
+Harkonnen Leader Capture + Zoal
+If Harkonnen steal Zoal they may still activate Zoal’s ability. If this happens the killed leader is returned to its original faction and BT gain control of Zoal. If Zoal is still owned by BT and Harkonnen play another faction’s leader against Zoal, and BT activates Zoal’s ability, the leader is returned to the original faction as an infiltrator.
+
+Guild Retreat + Multiple Fights
+If Guild retreat the leader they used in the battle can’t be used in other combats this phase, as well as the opponent’s leader.
+
+Emp Fate/Ghola + Multiple Fights
+If a leader is killed, sent to the Tleilaxu Tanks, and revived using Emp Fate/Ghola it is still technically committed to the original location and can’t be played in another location.
+
+Break Conditioning and Leader Death
+If you win combat with twice your opponent’s strength and play Break Conditioning you win by traitor. This means even if you leader would’ve died in combat they do not. Your opponent’s leader will die. Although the battle did happen so leaders are committed and cards can be discarded.
+BG Advisors + Hajr
+If the BG use Hajr to move twice, can they move advisors out of a territory, have them become fighters, then move them back in now that no advisors are in the original territory? No the territory still remembers it had advisors in it.
+Weather Control + Atomics
+Weather Control must be played before atomics. Storm movement is calculated, then players are asked whether they’d like to play atomics.
+
+Bribing from Bribe Piles
+When a faction bribes another faction the spice stays outside their hidden area until the Mentat Phase. Factions may also make bribes using spice that has been bribed to them this turn and is sitting outside their hidden area. (This is technically unchanged from RAW)
+
+Double Truthtrance
+If a player plays a Truthtrance while another Truthtrance is waiting to be answered the new question from the newest Truthtrance is answered first.
+
+
+Truthtrance Logic
+When a faction answers a Truthtrance about a future action, it must be theoretically possible for them to follow their answer, however unlikely, given all publically available information (ignoring binding deals). If a player gives an answer to a Truthtrance, and the action becomes impossible for them to fulfill afterward, they can silently ignore the Truthtrance. Factions are not allowed to take an action that makes fulfilling their Truthtrance 100% impossible. Available information includes cards that faction has in hand, cards in the discard pile, any info they have access to (Ex. Storm Cards, Spice Prescience, etc), answers to Prescience, Truthtrances, or binding deals (even though deals can be amended players must assume they will not be amended).
+While factions cannot do something to make fulfilling their Truthtrance impossible, they may open to the door to it becoming impossible. For example, BG say they will play a poison weapon in a later fight; they are still allowed to play the weapon in earlier fights as long as it is possible for them to not lose the card in combat. Another example, Emperor say they will win the game after turn 5; they cannot take a game action that will deterministically win them the game on tun 4. This does not affect their ally.
+It is very inadvisable to add conditions to a Truthtrance, because it gives the target more opportunity to wiggle out of it. (Ex. If I ship to this location will you…?”) The answer to the question must only be fulfilled if the condition is fulfilled, and it must be assumed the condition will be fulfilled unless it is impossible for it to be fulfilled. Example, “Hark, will you play a poison weapon if you fight me in carthag?”: Hark must assume the condition is being fulfilled until it is impossible for the asker to fulfill it, but if the asker does not ship to Carthag the answer to the question does not matter.
+Truthtrance may obviously be used to make players commit to future actions, however the the longer the time between when the question is answered and when it is fulfilled it gives the target faction more time to wiggle out of fulfilling the answer. (Ex. Guild say they will play a Poison Weapon in a battle on turn 5, but if they lose the Poison weapon in a unrelated fight on turn 1 they might not have a poison weapon on turn 5.)
+In the extremely rare situation where a faction must choose to either follow a Truthtrance answer or a binding deal the Truthtrance trumps it. (Although this is extremely rare because Truthtrance answers cannot be made that make fulfilling a binding deal impossible)
+Besides asking questions not about the game the only other banned Truthtrance question topics are questions about future Truthtrance answers. Example, “Will you answer ‘yes’ to my next Truthtrance?”), and questions with specifics that are not specified yet. Example, “Will you ally the person I point to after answering this question?” The question must be formatted to specify which faction.
+
+Binding Deal Etiquette
+Due to the nature of binding deals it is possible for the game to become unenforceable at a tournament level. Statements about Atreides notes for example could be flawed if an Atreides player made a mistake. In a tournament setting deals like this cannot be binding, and the same obviously applies to Truthtrances. (Ex. It’s possible the Atreides thought the player bought a shield when they bought a snooper. So Atr can’t bindingly say what another player has in hand at the tournament level)
+Binding deals may be amended if both players in the deal agree.
+Another example of etiquette is making binding deals with a winning faction to not stop their win attempt. In general this should be avoided because if they are allowed it becomes a race to see who can stop the win the fastest. In general it is considered poor sportsmanship to make these deals. On the other hand, using faction abilities such as Guild manipulating turn order to force other players to stop a win is considered fair game and encouraged.
+Also, in general games will go smoother if players approach deal making in good faith. When a deal is made both players should be aware of what is expected of them, and it helps to restate the deal in more plain language so all players understand what is meant. This game should not require 5 page legal documents for every deal, but some attempt at clarity should be made. We recognize part of what makes Dune fun is trapping people in strange deals that they must follow-through on, but also if a player genuinely did not understand the wording of a deal, especially with a language barrier, this is not fun for anyone. When a strange deal is made all parties should restate multiple times what they believe the deal means. Some bad actors might quickly rattle off the arcane text of their deal hoping the opponent doesn’t notice the loophole, this is very poor sportsmanship. When playing online or in person we also generally write down any deal we consider non-standard so no one forgets what was agreed on.

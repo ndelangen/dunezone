@@ -1,0 +1,1564 @@
+{
+  "url": "http://127.0.0.1:4321/",
+  "pages": 31,
+  "errors": [],
+  "missingImages": [],
+  "checks": [
+    {
+      "page": 1,
+      "id": "SSPS",
+      "regions": []
+    },
+    {
+      "page": 2,
+      "id": "SFT4",
+      "title": "Set up for Dreamrules",
+      "regions": [
+        {
+          "region": "column1",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "CLXE",
+              "widthOverrun": 0,
+              "height": 86.0625
+            },
+            {
+              "id": "9B9V",
+              "widthOverrun": 0,
+              "height": 126.34375
+            },
+            {
+              "id": "28ZF",
+              "widthOverrun": 0,
+              "height": 166.625
+            }
+          ]
+        },
+        {
+          "region": "column2",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "EVKL",
+              "widthOverrun": 0,
+              "height": 126.34375
+            },
+            {
+              "id": "RPE6",
+              "widthOverrun": 0,
+              "height": 146.484375
+            },
+            {
+              "id": "UCT2",
+              "widthOverrun": 0,
+              "height": 106.203125
+            },
+            {
+              "id": "V3MU",
+              "widthOverrun": 0,
+              "height": 171.03125
+            },
+            {
+              "id": "CLJN",
+              "widthOverrun": 0,
+              "height": 60.421875
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "page": 3,
+      "id": "R3TQ",
+      "title": "Use the Dreamrules Treachery deck",
+      "regions": [
+        {
+          "region": "content",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "JCW8",
+              "widthOverrun": 0,
+              "height": 65.921875
+            },
+            {
+              "id": "NEVG",
+              "widthOverrun": 0,
+              "height": 355.984375
+            },
+            {
+              "id": "VHHW",
+              "widthOverrun": 0,
+              "height": 86.0625
+            },
+            {
+              "id": "GZNU",
+              "widthOverrun": 0,
+              "height": 86.0625
+            },
+            {
+              "id": "YC3D",
+              "widthOverrun": 0,
+              "height": 20.140625
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "page": 4,
+      "id": "MRCB",
+      "title": "Nexus has its own phase",
+      "regions": [
+        {
+          "region": "column1",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "HDAQ",
+              "widthOverrun": 0,
+              "height": 106.203125
+            },
+            {
+              "id": "ZHYA",
+              "widthOverrun": 0,
+              "height": 126.34375
+            },
+            {
+              "id": "NDJF",
+              "widthOverrun": 0,
+              "height": 130.75
+            }
+          ]
+        },
+        {
+          "region": "column2",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "HY8T",
+              "widthOverrun": 0,
+              "height": 106.203125
+            },
+            {
+              "id": "Z4EJ",
+              "widthOverrun": 0,
+              "height": 106.203125
+            },
+            {
+              "id": "KJ5W",
+              "widthOverrun": 0,
+              "height": 146.484375
+            },
+            {
+              "id": "82X9",
+              "widthOverrun": 0,
+              "height": 60.421875
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "page": 5,
+      "id": "KP7X",
+      "title": "Spice mines remain after collection",
+      "regions": [
+        {
+          "region": "column1",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "YU5U",
+              "widthOverrun": 0,
+              "height": 126.34375
+            },
+            {
+              "id": "ULK9",
+              "widthOverrun": 0,
+              "height": 235.484375
+            }
+          ]
+        },
+        {
+          "region": "column2",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "4QZZ",
+              "widthOverrun": 0,
+              "height": 106.203125
+            },
+            {
+              "id": "GZNH",
+              "widthOverrun": 0,
+              "height": 110.609375
+            },
+            {
+              "id": "QK3S",
+              "widthOverrun": 0,
+              "height": 150.890625
+            },
+            {
+              "id": "GEJ4",
+              "widthOverrun": 0,
+              "height": 106.203125
+            },
+            {
+              "id": "WH5W",
+              "widthOverrun": 0,
+              "height": 60.421875
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "page": 6,
+      "id": "P4F3",
+      "title": "Fate replaces special Karama powers",
+      "regions": [
+        {
+          "region": "column1",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "UJXN",
+              "widthOverrun": 0,
+              "height": 126.34375
+            },
+            {
+              "id": "USK5",
+              "widthOverrun": 0,
+              "height": 106.203125
+            },
+            {
+              "id": "F9EQ",
+              "widthOverrun": 0,
+              "height": 130.75
+            }
+          ]
+        },
+        {
+          "region": "column2",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "SBJN",
+              "widthOverrun": 0,
+              "height": 371.640625
+            },
+            {
+              "id": "C2V5",
+              "widthOverrun": 0,
+              "height": 106.203125
+            },
+            {
+              "id": "Z838",
+              "widthOverrun": 0,
+              "height": 40.28125
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "page": 7,
+      "id": "ZN7H",
+      "title": "Karama suppresses one advantage for the phase",
+      "regions": [
+        {
+          "region": "column1",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "XA5D",
+              "widthOverrun": 0,
+              "height": 126.34375
+            },
+            {
+              "id": "78EL",
+              "widthOverrun": 0,
+              "height": 130.75
+            },
+            {
+              "id": "SFCS",
+              "widthOverrun": 0,
+              "height": 106.203125
+            }
+          ]
+        },
+        {
+          "region": "column2",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "MCBW",
+              "widthOverrun": 0,
+              "height": 126.34375
+            },
+            {
+              "id": "BFEB",
+              "widthOverrun": 0,
+              "height": 126.34375
+            },
+            {
+              "id": "JZQU",
+              "widthOverrun": 0,
+              "height": 110.609375
+            },
+            {
+              "id": "884W",
+              "widthOverrun": 0,
+              "height": 60.421875
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "page": 8,
+      "id": "6AYZ",
+      "title": "Battle sequence",
+      "regions": [
+        {
+          "region": "column1",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "5BMF",
+              "widthOverrun": 0,
+              "height": 126.34375
+            },
+            {
+              "id": "QNR9",
+              "widthOverrun": 0,
+              "height": 126.34375
+            },
+            {
+              "id": "E4ZV",
+              "widthOverrun": 0,
+              "height": 126.34375
+            }
+          ]
+        },
+        {
+          "region": "column2",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "3RGG",
+              "widthOverrun": 0,
+              "height": 166.625
+            },
+            {
+              "id": "US3P",
+              "widthOverrun": 0,
+              "height": 106.203125
+            },
+            {
+              "id": "CV5U",
+              "widthOverrun": 0,
+              "height": 126.34375
+            },
+            {
+              "id": "MBWZ",
+              "widthOverrun": 0,
+              "height": 150.890625
+            },
+            {
+              "id": "ZHR8",
+              "widthOverrun": 0,
+              "height": 80.5625
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "page": 9,
+      "id": "DXEC",
+      "title": "Mercenaries and Supplies",
+      "regions": [
+        {
+          "region": "column1",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "GXFS",
+              "widthOverrun": 0,
+              "height": 146.484375
+            },
+            {
+              "id": "WVT2",
+              "widthOverrun": 0,
+              "height": 150.890625
+            }
+          ]
+        },
+        {
+          "region": "column2",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "SK7B",
+              "widthOverrun": 0,
+              "height": 146.484375
+            },
+            {
+              "id": "JWWQ",
+              "widthOverrun": 0,
+              "height": 106.203125
+            },
+            {
+              "id": "4GWY",
+              "widthOverrun": 0,
+              "height": 150.890625
+            },
+            {
+              "id": "B9SZ",
+              "widthOverrun": 0,
+              "height": 60.421875
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "page": 10,
+      "id": "BNSP",
+      "title": "Break Conditioning and other card changes",
+      "regions": [
+        {
+          "region": "column1",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "ESZR",
+              "widthOverrun": 0,
+              "height": 166.625
+            },
+            {
+              "id": "V3L4",
+              "widthOverrun": 0,
+              "height": 171.03125
+            },
+            {
+              "id": "V7D8",
+              "widthOverrun": 0,
+              "height": 130.75
+            }
+          ]
+        },
+        {
+          "region": "column2",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "77LG",
+              "widthOverrun": 0,
+              "height": 126.34375
+            },
+            {
+              "id": "W74U",
+              "widthOverrun": 0,
+              "height": 106.203125
+            },
+            {
+              "id": "7EQA",
+              "widthOverrun": 0,
+              "height": 106.203125
+            },
+            {
+              "id": "8KPD",
+              "widthOverrun": 0,
+              "height": 60.421875
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "page": 11,
+      "id": "EYCJ",
+      "title": "Revival and information",
+      "regions": [
+        {
+          "region": "column1",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "FC5Q",
+              "widthOverrun": 0,
+              "height": 146.484375
+            },
+            {
+              "id": "CRDU",
+              "widthOverrun": 0,
+              "height": 130.75
+            },
+            {
+              "id": "2YRC",
+              "widthOverrun": 0,
+              "height": 106.203125
+            }
+          ]
+        },
+        {
+          "region": "column2",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "E63S",
+              "widthOverrun": 0,
+              "height": 146.484375
+            },
+            {
+              "id": "8PLS",
+              "widthOverrun": 0,
+              "height": 65.921875
+            },
+            {
+              "id": "MTGS",
+              "widthOverrun": 0,
+              "height": 126.34375
+            },
+            {
+              "id": "N68Y",
+              "widthOverrun": 0,
+              "height": 80.5625
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "page": 12,
+      "id": "BJJ8",
+      "title": "Truthtrance can bind later turns",
+      "regions": [
+        {
+          "region": "column1",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "39XH",
+              "widthOverrun": 0,
+              "height": 126.34375
+            },
+            {
+              "id": "5R2Z",
+              "widthOverrun": 0,
+              "height": 126.34375
+            },
+            {
+              "id": "ZM46",
+              "widthOverrun": 0,
+              "height": 86.0625
+            }
+          ]
+        },
+        {
+          "region": "column2",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "M8EU",
+              "widthOverrun": 0,
+              "height": 150.890625
+            },
+            {
+              "id": "XDD4",
+              "widthOverrun": 0,
+              "height": 146.484375
+            },
+            {
+              "id": "FR49",
+              "widthOverrun": 0,
+              "height": 150.890625
+            },
+            {
+              "id": "VCPL",
+              "widthOverrun": 0,
+              "height": 126.34375
+            },
+            {
+              "id": "W9XM",
+              "widthOverrun": 0,
+              "height": 60.421875
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "page": 13,
+      "id": "KFFE",
+      "title": "Earn tech tokens through battles",
+      "regions": [
+        {
+          "region": "column1",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "RVJS",
+              "widthOverrun": 0,
+              "height": 126.34375
+            },
+            {
+              "id": "ULD4",
+              "widthOverrun": 0,
+              "height": 106.203125
+            },
+            {
+              "id": "6MZV",
+              "widthOverrun": 0,
+              "height": 379.46875
+            }
+          ]
+        },
+        {
+          "region": "column2",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "WC98",
+              "widthOverrun": 0,
+              "height": 150.890625
+            },
+            {
+              "id": "C3KW",
+              "widthOverrun": 0,
+              "height": 86.0625
+            },
+            {
+              "id": "9MPG",
+              "widthOverrun": 0,
+              "height": 171.03125
+            },
+            {
+              "id": "EMBR",
+              "widthOverrun": 0,
+              "height": 60.421875
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "page": 14,
+      "id": "4Z8A",
+      "title": "Check victory, then Infiltration and Prediction",
+      "regions": [
+        {
+          "region": "column1",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "ERWR",
+              "widthOverrun": 0,
+              "height": 146.484375
+            },
+            {
+              "id": "SB8R",
+              "widthOverrun": 0,
+              "height": 126.34375
+            },
+            {
+              "id": "C2K2",
+              "widthOverrun": 0,
+              "height": 126.34375
+            }
+          ]
+        },
+        {
+          "region": "column2",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "SLG8",
+              "widthOverrun": 0,
+              "height": 251.140625
+            },
+            {
+              "id": "Z5MV",
+              "widthOverrun": 0,
+              "height": 150.890625
+            },
+            {
+              "id": "S8ME",
+              "widthOverrun": 0,
+              "height": 106.203125
+            },
+            {
+              "id": "CFPF",
+              "widthOverrun": 0,
+              "height": 60.421875
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "page": 15,
+      "id": "HYQQ",
+      "title": "Sudden death replaces the default endgame",
+      "regions": [
+        {
+          "region": "column1",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "Q6ZR",
+              "widthOverrun": 0,
+              "height": 86.0625
+            },
+            {
+              "id": "H4EV",
+              "widthOverrun": 0,
+              "height": 229.515625
+            },
+            {
+              "id": "8AK7",
+              "widthOverrun": 0,
+              "height": 126.34375
+            }
+          ]
+        },
+        {
+          "region": "column2",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "NPE8",
+              "widthOverrun": 0,
+              "height": 150.890625
+            },
+            {
+              "id": "M2LA",
+              "widthOverrun": 0,
+              "height": 106.203125
+            },
+            {
+              "id": "K5G9",
+              "widthOverrun": 0,
+              "height": 110.609375
+            },
+            {
+              "id": "XWPN",
+              "widthOverrun": 0,
+              "height": 40.28125
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "page": 16,
+      "id": "DF9E",
+      "title": "Atreides",
+      "regions": [
+        {
+          "region": "column1",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "9PNL",
+              "widthOverrun": 0,
+              "height": 106.203125
+            },
+            {
+              "id": "BB4Q",
+              "widthOverrun": 0,
+              "height": 126.34375
+            },
+            {
+              "id": "T4BS",
+              "widthOverrun": 0,
+              "height": 126.34375
+            }
+          ]
+        },
+        {
+          "region": "column2",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "YVM3",
+              "widthOverrun": 0,
+              "height": 130.75
+            },
+            {
+              "id": "356V",
+              "widthOverrun": 0,
+              "height": 126.34375
+            },
+            {
+              "id": "LGDD",
+              "widthOverrun": 0,
+              "height": 150.890625
+            },
+            {
+              "id": "RWSV",
+              "widthOverrun": 0,
+              "height": 40.28125
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "page": 17,
+      "id": "8ZT2",
+      "title": "Harkonnen",
+      "regions": [
+        {
+          "region": "column1",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "X5PB",
+              "widthOverrun": 0,
+              "height": 126.34375
+            },
+            {
+              "id": "Y4SS",
+              "widthOverrun": 0,
+              "height": 126.34375
+            },
+            {
+              "id": "UGTF",
+              "widthOverrun": 0,
+              "height": 150.890625
+            }
+          ]
+        },
+        {
+          "region": "column2",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "FDZR",
+              "widthOverrun": 0,
+              "height": 126.34375
+            },
+            {
+              "id": "38DV",
+              "widthOverrun": 0,
+              "height": 130.75
+            },
+            {
+              "id": "HTF9",
+              "widthOverrun": 0,
+              "height": 106.203125
+            },
+            {
+              "id": "YQPY",
+              "widthOverrun": 0,
+              "height": 126.1875
+            },
+            {
+              "id": "ERR9",
+              "widthOverrun": 0,
+              "height": 60.421875
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "page": 18,
+      "id": "FF9N",
+      "title": "Emperor",
+      "regions": [
+        {
+          "region": "column1",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "KXDL",
+              "widthOverrun": 0,
+              "height": 126.34375
+            },
+            {
+              "id": "DHGN",
+              "widthOverrun": 0,
+              "height": 130.75
+            },
+            {
+              "id": "F4GY",
+              "widthOverrun": 0,
+              "height": 106.203125
+            }
+          ]
+        },
+        {
+          "region": "column2",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "SKNG",
+              "widthOverrun": 0,
+              "height": 106.203125
+            },
+            {
+              "id": "FHG4",
+              "widthOverrun": 0,
+              "height": 146.484375
+            },
+            {
+              "id": "PHBK",
+              "widthOverrun": 0,
+              "height": 150.890625
+            },
+            {
+              "id": "Q5DL",
+              "widthOverrun": 0,
+              "height": 40.28125
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "page": 19,
+      "id": "RVW6",
+      "title": "Spacing Guild",
+      "regions": [
+        {
+          "region": "column1",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "JQAA",
+              "widthOverrun": 0,
+              "height": 86.0625
+            },
+            {
+              "id": "Y5PQ",
+              "widthOverrun": 0,
+              "height": 126.34375
+            },
+            {
+              "id": "ZVZ8",
+              "widthOverrun": 0,
+              "height": 150.890625
+            },
+            {
+              "id": "VC7R",
+              "widthOverrun": 0,
+              "height": 126.34375
+            }
+          ]
+        },
+        {
+          "region": "column2",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "TW3H",
+              "widthOverrun": 0,
+              "height": 146.484375
+            },
+            {
+              "id": "X3AH",
+              "widthOverrun": 0,
+              "height": 150.890625
+            },
+            {
+              "id": "Y5ZS",
+              "widthOverrun": 0,
+              "height": 126.34375
+            },
+            {
+              "id": "VPQX",
+              "widthOverrun": 0,
+              "height": 60.421875
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "page": 20,
+      "id": "L2HH",
+      "title": "Fremen in storm and worm phases",
+      "regions": [
+        {
+          "region": "column1",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "UUD6",
+              "widthOverrun": 0,
+              "height": 126.34375
+            },
+            {
+              "id": "ABQK",
+              "widthOverrun": 0,
+              "height": 126.34375
+            },
+            {
+              "id": "7BMW",
+              "widthOverrun": 0,
+              "height": 126.34375
+            }
+          ]
+        },
+        {
+          "region": "column2",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "JNTF",
+              "widthOverrun": 0,
+              "height": 126.34375
+            },
+            {
+              "id": "4ZDP",
+              "widthOverrun": 0,
+              "height": 150.890625
+            },
+            {
+              "id": "QUK3",
+              "widthOverrun": 0,
+              "height": 126.34375
+            },
+            {
+              "id": "HMFP",
+              "widthOverrun": 0,
+              "height": 40.28125
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "page": 21,
+      "id": "URNR",
+      "title": "Fremen cards, allies and delayed movement",
+      "regions": [
+        {
+          "region": "column1",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "9K3N",
+              "widthOverrun": 0,
+              "height": 126.34375
+            },
+            {
+              "id": "NA2J",
+              "widthOverrun": 0,
+              "height": 86.0625
+            },
+            {
+              "id": "GLVD",
+              "widthOverrun": 0,
+              "height": 126.34375
+            }
+          ]
+        },
+        {
+          "region": "column2",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "XX7C",
+              "widthOverrun": 0,
+              "height": 150.890625
+            },
+            {
+              "id": "9DR9",
+              "widthOverrun": 0,
+              "height": 126.34375
+            },
+            {
+              "id": "C3DR",
+              "widthOverrun": 0,
+              "height": 130.75
+            },
+            {
+              "id": "TKMH",
+              "widthOverrun": 0,
+              "height": 126.34375
+            },
+            {
+              "id": "QCZZ",
+              "widthOverrun": 0,
+              "height": 40.28125
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "page": 22,
+      "id": "86VU",
+      "title": "Bene Gesserit",
+      "regions": [
+        {
+          "region": "column1",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "DHZ6",
+              "widthOverrun": 0,
+              "height": 126.34375
+            },
+            {
+              "id": "E5R5",
+              "widthOverrun": 0,
+              "height": 146.328125
+            },
+            {
+              "id": "CNDK",
+              "widthOverrun": 0,
+              "height": 126.34375
+            }
+          ]
+        },
+        {
+          "region": "column2",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "8JLA",
+              "widthOverrun": 0,
+              "height": 166.625
+            },
+            {
+              "id": "UP8M",
+              "widthOverrun": 0,
+              "height": 86.0625
+            },
+            {
+              "id": "CUYP",
+              "widthOverrun": 0,
+              "height": 106.203125
+            },
+            {
+              "id": "AG8D",
+              "widthOverrun": 0,
+              "height": 126.34375
+            },
+            {
+              "id": "FSWX",
+              "widthOverrun": 0,
+              "height": 40.28125
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "page": 23,
+      "id": "PNRZ",
+      "title": "Bene Tleilax",
+      "regions": [
+        {
+          "region": "column1",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "M8UE",
+              "widthOverrun": 0,
+              "height": 106.203125
+            },
+            {
+              "id": "8LDT",
+              "widthOverrun": 0,
+              "height": 126.34375
+            },
+            {
+              "id": "RHS3",
+              "widthOverrun": 0,
+              "height": 166.625
+            }
+          ]
+        },
+        {
+          "region": "column2",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "MXEB",
+              "widthOverrun": 0,
+              "height": 166.625
+            },
+            {
+              "id": "3GGE",
+              "widthOverrun": 0,
+              "height": 106.203125
+            },
+            {
+              "id": "38VW",
+              "widthOverrun": 0,
+              "height": 146.484375
+            },
+            {
+              "id": "83XR",
+              "widthOverrun": 0,
+              "height": 106.203125
+            },
+            {
+              "id": "GCH9",
+              "widthOverrun": 0,
+              "height": 110.609375
+            },
+            {
+              "id": "K7W6",
+              "widthOverrun": 0,
+              "height": 60.421875
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "page": 24,
+      "id": "CEJ3",
+      "title": "Bene Tleilax Infiltration",
+      "regions": [
+        {
+          "region": "column1",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "CK3B",
+              "widthOverrun": 0,
+              "height": 146.484375
+            },
+            {
+              "id": "B2SZ",
+              "widthOverrun": 0,
+              "height": 126.34375
+            },
+            {
+              "id": "U2TK",
+              "widthOverrun": 0,
+              "height": 146.484375
+            }
+          ]
+        },
+        {
+          "region": "column2",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "2L6T",
+              "widthOverrun": 0,
+              "height": 146.484375
+            },
+            {
+              "id": "SCQM",
+              "widthOverrun": 0,
+              "height": 146.484375
+            },
+            {
+              "id": "D6ZD",
+              "widthOverrun": 0,
+              "height": 126.34375
+            },
+            {
+              "id": "6VRV",
+              "widthOverrun": 0,
+              "height": 130.75
+            },
+            {
+              "id": "FCR2",
+              "widthOverrun": 0,
+              "height": 60.421875
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "page": 25,
+      "id": "FGJ6",
+      "title": "Ixians",
+      "regions": [
+        {
+          "region": "column1",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "BJKK",
+              "widthOverrun": 0,
+              "height": 186.765625
+            },
+            {
+              "id": "2T2A",
+              "widthOverrun": 0,
+              "height": 146.484375
+            },
+            {
+              "id": "9L78",
+              "widthOverrun": 0,
+              "height": 106.203125
+            }
+          ]
+        },
+        {
+          "region": "column2",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "QN2L",
+              "widthOverrun": 0,
+              "height": 189.234375
+            },
+            {
+              "id": "UKFD",
+              "widthOverrun": 0,
+              "height": 146.484375
+            },
+            {
+              "id": "HQ4H",
+              "widthOverrun": 0,
+              "height": 126.34375
+            },
+            {
+              "id": "7KWB",
+              "widthOverrun": 0,
+              "height": 40.28125
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "page": 26,
+      "id": "8F65",
+      "title": "The Hidden Mobile Surveyor and Defect",
+      "regions": [
+        {
+          "region": "column1",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "T4QZ",
+              "widthOverrun": 0,
+              "height": 126.34375
+            },
+            {
+              "id": "VHVU",
+              "widthOverrun": 0,
+              "height": 126.34375
+            },
+            {
+              "id": "ELKW",
+              "widthOverrun": 0,
+              "height": 126.34375
+            }
+          ]
+        },
+        {
+          "region": "column2",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "L67X",
+              "widthOverrun": 0,
+              "height": 150.890625
+            },
+            {
+              "id": "EZD7",
+              "widthOverrun": 0,
+              "height": 146.484375
+            },
+            {
+              "id": "FWPC",
+              "widthOverrun": 0,
+              "height": 130.75
+            },
+            {
+              "id": "8QND",
+              "widthOverrun": 0,
+              "height": 40.28125
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "page": 27,
+      "id": "CGW4",
+      "title": "Karama reference for Atreides, Harkonnen and Emperor",
+      "regions": [
+        {
+          "region": "content",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "495G",
+              "widthOverrun": 0,
+              "height": 388.4375
+            },
+            {
+              "id": "P9NQ",
+              "widthOverrun": 0,
+              "height": 65.921875
+            },
+            {
+              "id": "7EZ6",
+              "widthOverrun": 0,
+              "height": 40.28125
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "page": 28,
+      "id": "54C9",
+      "title": "Karama reference for Guild and Fremen",
+      "regions": [
+        {
+          "region": "content",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "8UB8",
+              "widthOverrun": 0,
+              "height": 193.71875
+            },
+            {
+              "id": "37RH",
+              "widthOverrun": 0,
+              "height": 363.8125
+            },
+            {
+              "id": "6W5K",
+              "widthOverrun": 0,
+              "height": 20.140625
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "page": 29,
+      "id": "W4MC",
+      "title": "Karama reference for Bene Gesserit, Bene Tleilax and Ixians",
+      "regions": [
+        {
+          "region": "content",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "EFGK",
+              "widthOverrun": 0,
+              "height": 485.796875
+            },
+            {
+              "id": "NBUR",
+              "widthOverrun": 0,
+              "height": 45.78125
+            },
+            {
+              "id": "EL24",
+              "widthOverrun": 0,
+              "height": 20.140625
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "page": 30,
+      "id": "PLT8",
+      "title": "Decisions still needed at the table",
+      "regions": [
+        {
+          "region": "column1",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "7MZB",
+              "widthOverrun": 0,
+              "height": 261.96875
+            },
+            {
+              "id": "Z3B2",
+              "widthOverrun": 0,
+              "height": 261.96875
+            }
+          ]
+        },
+        {
+          "region": "column2",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "GZFB",
+              "widthOverrun": 0,
+              "height": 347.015625
+            },
+            {
+              "id": "QU47",
+              "widthOverrun": 0,
+              "height": 86.0625
+            },
+            {
+              "id": "366U",
+              "widthOverrun": 0,
+              "height": 106.203125
+            },
+            {
+              "id": "6JHF",
+              "widthOverrun": 0,
+              "height": 40.28125
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "page": 31,
+      "id": "JVHW",
+      "title": "Rules used for this guide",
+      "regions": [
+        {
+          "region": "column1",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "CZNK",
+              "widthOverrun": 0,
+              "height": 106.203125
+            },
+            {
+              "id": "TZ46",
+              "widthOverrun": 0,
+              "height": 106.203125
+            },
+            {
+              "id": "EF92",
+              "widthOverrun": 0,
+              "height": 126.34375
+            }
+          ]
+        },
+        {
+          "region": "column2",
+          "overrun": 0,
+          "blocks": [
+            {
+              "id": "E4TV",
+              "widthOverrun": 0,
+              "height": 126.34375
+            },
+            {
+              "id": "GGL7",
+              "widthOverrun": 0,
+              "height": 86.0625
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

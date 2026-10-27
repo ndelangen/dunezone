@@ -1,0 +1,1217 @@
+{
+  "baseline": "GF9 2019 Advanced plus November 2020 FAQ",
+  "target": "Dreamrules v0.8 plus recorded later rulings",
+  "date": "2026-10-27",
+  "records": [
+    {
+      "id": "S01",
+      "page": "setup",
+      "classification": "changed",
+      "topic": "Battle support",
+      "sources": "Quickstart v0.8, Setup and Common Rules Clarifications; Dream Rulebook Edition 3 pp10-11; count decision, #1838, 27 October 2026."
+    },
+    {
+      "id": "S02",
+      "page": "setup",
+      "classification": "changed",
+      "topic": "Choose factions, then assign them",
+      "sources": "Quickstart v0.8, Setup and Common Rules Clarifications; Dream Rulebook Edition 3 pp10-11; count decision, #1838, 27 October 2026."
+    },
+    {
+      "id": "S03",
+      "page": "setup",
+      "classification": "changed",
+      "topic": "Choose an enemy traitor",
+      "sources": "Quickstart v0.8, Setup and Common Rules Clarifications; Dream Rulebook Edition 3 pp10-11; count decision, #1838, 27 October 2026."
+    },
+    {
+      "id": "S04",
+      "page": "setup",
+      "classification": "changed",
+      "topic": "Extra pieces",
+      "sources": "Quickstart v0.8, Setup and Common Rules Clarifications; Dream Rulebook Edition 3 pp10-11; count decision, #1838, 27 October 2026."
+    },
+    {
+      "id": "S05",
+      "page": "setup",
+      "classification": "changed",
+      "topic": "Finish the faction setup",
+      "sources": "Quickstart v0.8, Setup and Common Rules Clarifications; Dream Rulebook Edition 3 pp10-11; count decision, #1838, 27 October 2026."
+    },
+    {
+      "id": "S06",
+      "page": "setup",
+      "classification": "changed",
+      "topic": "Starting cards",
+      "sources": "Quickstart v0.8, Setup and Common Rules Clarifications; Dream Rulebook Edition 3 pp10-11; count decision, #1838, 27 October 2026."
+    },
+    {
+      "id": "S07",
+      "page": "setup",
+      "classification": "changed",
+      "topic": "Spice deck preparation",
+      "sources": "Quickstart v0.8, Setup and Common Rules Clarifications; Dream Rulebook Edition 3 pp10-11; count decision, #1838, 27 October 2026."
+    },
+    {
+      "id": "D01",
+      "page": "deck",
+      "classification": "inventory",
+      "topic": "Replace the deck as a set",
+      "sources": "Quickstart v0.8, Treachery Deck; Dream Rulebook Edition 3 pp62-67; #1862."
+    },
+    {
+      "id": "D02",
+      "page": "deck",
+      "classification": "inventory",
+      "topic": "Card or group",
+      "sources": "Quickstart v0.8, Treachery Deck; Dream Rulebook Edition 3 pp62-67; #1862."
+    },
+    {
+      "id": "D03",
+      "page": "deck",
+      "classification": "inventory",
+      "topic": "Remove the old cards that do not belong",
+      "sources": "Quickstart v0.8, Treachery Deck; Dream Rulebook Edition 3 pp62-67; #1862."
+    },
+    {
+      "id": "D04",
+      "page": "deck",
+      "classification": "inventory",
+      "topic": "Weirding Way and Chemistry",
+      "sources": "Quickstart v0.8, Treachery Deck; Dream Rulebook Edition 3 pp62-67; #1862."
+    },
+    {
+      "id": "N01",
+      "page": "nexus",
+      "classification": "changed",
+      "topic": "Insert Nexus after Storm",
+      "sources": "Quickstart v0.8, Nexus Deck and Activity Under Storm; #1836 and #1846; GF9 November 2020 FAQ p1; Dream Rulebook Edition 3 pp13-16."
+    },
+    {
+      "id": "N02",
+      "page": "nexus",
+      "classification": "changed",
+      "topic": "Draw, compare, return",
+      "sources": "Quickstart v0.8, Nexus Deck and Activity Under Storm; #1836 and #1846; GF9 November 2020 FAQ p1; Dream Rulebook Edition 3 pp13-16."
+    },
+    {
+      "id": "N03",
+      "page": "nexus",
+      "classification": "changed",
+      "topic": "Turn five",
+      "sources": "Quickstart v0.8, Nexus Deck and Activity Under Storm; #1836 and #1846; GF9 November 2020 FAQ p1; Dream Rulebook Edition 3 pp13-16."
+    },
+    {
+      "id": "N04",
+      "page": "nexus",
+      "classification": "changed",
+      "topic": "Trade information differently",
+      "sources": "Quickstart v0.8, Nexus Deck and Activity Under Storm; #1836 and #1846; GF9 November 2020 FAQ p1; Dream Rulebook Edition 3 pp13-16."
+    },
+    {
+      "id": "N05",
+      "page": "nexus",
+      "classification": "changed",
+      "topic": "Worms affect the board",
+      "sources": "Quickstart v0.8, Nexus Deck and Activity Under Storm; #1836 and #1846; GF9 November 2020 FAQ p1; Dream Rulebook Edition 3 pp13-16."
+    },
+    {
+      "id": "N06",
+      "page": "nexus",
+      "classification": "changed",
+      "topic": "Storm can contain a battle",
+      "sources": "Quickstart v0.8, Nexus Deck and Activity Under Storm; #1836 and #1846; GF9 November 2020 FAQ p1; Dream Rulebook Edition 3 pp13-16."
+    },
+    {
+      "id": "M01",
+      "page": "mines",
+      "classification": "new",
+      "topic": "Create a recurring supply",
+      "sources": "Quickstart v0.8, Spice Mines; Dream Rulebook Edition 3 pp8,17,68; all five production mine card faces checked 27 October 2026; #1859."
+    },
+    {
+      "id": "M02",
+      "page": "mines",
+      "classification": "new",
+      "topic": "Mine",
+      "sources": "Quickstart v0.8, Spice Mines; Dream Rulebook Edition 3 pp8,17,68; all five production mine card faces checked 27 October 2026; #1859."
+    },
+    {
+      "id": "M03",
+      "page": "mines",
+      "classification": "new",
+      "topic": "A destroyed mine sends troops home",
+      "sources": "Quickstart v0.8, Spice Mines; Dream Rulebook Edition 3 pp8,17,68; all five production mine card faces checked 27 October 2026; #1859."
+    },
+    {
+      "id": "M04",
+      "page": "mines",
+      "classification": "new",
+      "topic": "Three troops at Arsunt",
+      "sources": "Quickstart v0.8, Spice Mines; Dream Rulebook Edition 3 pp8,17,68; all five production mine card faces checked 27 October 2026; #1859."
+    },
+    {
+      "id": "M05",
+      "page": "mines",
+      "classification": "new",
+      "topic": "Replenishing a surviving mine",
+      "sources": "Quickstart v0.8, Spice Mines; Dream Rulebook Edition 3 pp8,17,68; all five production mine card faces checked 27 October 2026; #1859."
+    },
+    {
+      "id": "M06",
+      "page": "mines",
+      "classification": "new",
+      "topic": "Atreides can create another mine",
+      "sources": "Quickstart v0.8, Spice Mines; Dream Rulebook Edition 3 pp8,17,68; all five production mine card faces checked 27 October 2026; #1859."
+    },
+    {
+      "id": "F01",
+      "page": "fate",
+      "classification": "changed",
+      "topic": "Match a Worthless card",
+      "sources": "Quickstart v0.8, Worthless Fate Cards and Faction Special Karamas; current faction sheets."
+    },
+    {
+      "id": "F02",
+      "page": "fate",
+      "classification": "changed",
+      "topic": "Exchange unused indicators in Mentat",
+      "sources": "Quickstart v0.8, Worthless Fate Cards and Faction Special Karamas; current faction sheets."
+    },
+    {
+      "id": "F03",
+      "page": "fate",
+      "classification": "changed",
+      "topic": "You trade for Baliset",
+      "sources": "Quickstart v0.8, Worthless Fate Cards and Faction Special Karamas; current faction sheets."
+    },
+    {
+      "id": "F04",
+      "page": "fate",
+      "classification": "changed",
+      "topic": "Faction",
+      "sources": "Quickstart v0.8, Worthless Fate Cards and Faction Special Karamas; current faction sheets."
+    },
+    {
+      "id": "F05",
+      "page": "fate",
+      "classification": "changed",
+      "topic": "Keep Karama for its ordinary uses",
+      "sources": "Quickstart v0.8, Worthless Fate Cards and Faction Special Karamas; current faction sheets."
+    },
+    {
+      "id": "K01",
+      "page": "karama",
+      "classification": "changed",
+      "topic": "Name the advantage",
+      "sources": "Quickstart v0.8, Full Phase Karama and Battle Prescience; #1831 full-phase confirmation, 5 October 2026; current faction sheets; #1852."
+    },
+    {
+      "id": "K02",
+      "page": "karama",
+      "classification": "changed",
+      "topic": "Stop Bidding Prescience",
+      "sources": "Quickstart v0.8, Full Phase Karama and Battle Prescience; #1831 full-phase confirmation, 5 October 2026; current faction sheets; #1852."
+    },
+    {
+      "id": "K03",
+      "page": "karama",
+      "classification": "changed",
+      "topic": "Some windows close before commitment",
+      "sources": "Quickstart v0.8, Full Phase Karama and Battle Prescience; #1831 full-phase confirmation, 5 October 2026; current faction sheets; #1852."
+    },
+    {
+      "id": "K04",
+      "page": "karama",
+      "classification": "changed",
+      "topic": "The economic uses remain",
+      "sources": "Quickstart v0.8, Full Phase Karama and Battle Prescience; #1831 full-phase confirmation, 5 October 2026; current faction sheets; #1852."
+    },
+    {
+      "id": "K05",
+      "page": "karama",
+      "classification": "changed",
+      "topic": "Re-answer a changed dial",
+      "sources": "Quickstart v0.8, Full Phase Karama and Battle Prescience; #1831 full-phase confirmation, 5 October 2026; current faction sheets; #1852."
+    },
+    {
+      "id": "K06",
+      "page": "karama",
+      "classification": "changed",
+      "topic": "Reference status",
+      "sources": "Quickstart v0.8, Full Phase Karama and Battle Prescience; #1831 full-phase confirmation, 5 October 2026; current faction sheets; #1852."
+    },
+    {
+      "id": "B01",
+      "page": "battle-sequence",
+      "classification": "changed",
+      "topic": "Before plans",
+      "sources": "Quickstart v0.8, Combat Steps and Common Rules Clarifications; approved combat rulings in #1831, 5 October 2026; Dream Rulebook Edition 3 pp33-39; #1839 and #1841."
+    },
+    {
+      "id": "B02",
+      "page": "battle-sequence",
+      "classification": "changed",
+      "topic": "Commit the disclosed choices",
+      "sources": "Quickstart v0.8, Combat Steps and Common Rules Clarifications; approved combat rulings in #1831, 5 October 2026; Dream Rulebook Edition 3 pp33-39; #1839 and #1841."
+    },
+    {
+      "id": "B03",
+      "page": "battle-sequence",
+      "classification": "changed",
+      "topic": "During commitment",
+      "sources": "Quickstart v0.8, Combat Steps and Common Rules Clarifications; approved combat rulings in #1831, 5 October 2026; Dream Rulebook Edition 3 pp33-39; #1839 and #1841."
+    },
+    {
+      "id": "B04",
+      "page": "battle-sequence",
+      "classification": "changed",
+      "topic": "After reveal",
+      "sources": "Quickstart v0.8, Combat Steps and Common Rules Clarifications; approved combat rulings in #1831, 5 October 2026; Dream Rulebook Edition 3 pp33-39; #1839 and #1841."
+    },
+    {
+      "id": "B05",
+      "page": "battle-sequence",
+      "classification": "changed",
+      "topic": "Cards before troop losses",
+      "sources": "Quickstart v0.8, Combat Steps and Common Rules Clarifications; approved combat rulings in #1831, 5 October 2026; Dream Rulebook Edition 3 pp33-39; #1839 and #1841."
+    },
+    {
+      "id": "B06",
+      "page": "battle-sequence",
+      "classification": "changed",
+      "topic": "Traitor winners keep their played cards",
+      "sources": "Quickstart v0.8, Combat Steps and Common Rules Clarifications; approved combat rulings in #1831, 5 October 2026; Dream Rulebook Edition 3 pp33-39; #1839 and #1841."
+    },
+    {
+      "id": "B07",
+      "page": "battle-sequence",
+      "classification": "changed",
+      "topic": "Exceptional results",
+      "sources": "Quickstart v0.8, Combat Steps and Common Rules Clarifications; approved combat rulings in #1831, 5 October 2026; Dream Rulebook Edition 3 pp33-39; #1839 and #1841."
+    },
+    {
+      "id": "C01",
+      "page": "new-battle-cards",
+      "classification": "new",
+      "topic": "Mercenaries",
+      "sources": "Quickstart v0.8, Mercenaries and Supplies; Dream Rulebook Edition 3 pp50,65-66; #1840 and #1842."
+    },
+    {
+      "id": "C02",
+      "page": "new-battle-cards",
+      "classification": "new",
+      "topic": "Win a tie as defender",
+      "sources": "Quickstart v0.8, Mercenaries and Supplies; Dream Rulebook Edition 3 pp50,65-66; #1840 and #1842."
+    },
+    {
+      "id": "C03",
+      "page": "new-battle-cards",
+      "classification": "new",
+      "topic": "Supplies",
+      "sources": "Quickstart v0.8, Mercenaries and Supplies; Dream Rulebook Edition 3 pp50,65-66; #1840 and #1842."
+    },
+    {
+      "id": "C04",
+      "page": "new-battle-cards",
+      "classification": "new",
+      "topic": "A temporary hand",
+      "sources": "Quickstart v0.8, Mercenaries and Supplies; Dream Rulebook Edition 3 pp50,65-66; #1840 and #1842."
+    },
+    {
+      "id": "C05",
+      "page": "new-battle-cards",
+      "classification": "new",
+      "topic": "Spite and Fanatical Tactics",
+      "sources": "Quickstart v0.8, Mercenaries and Supplies; Dream Rulebook Edition 3 pp50,65-66; #1840 and #1842."
+    },
+    {
+      "id": "C06",
+      "page": "conditioning",
+      "classification": "changed",
+      "topic": "Break Conditioning",
+      "sources": "Quickstart v0.8, Break Conditioning, Atomics, Bidding and Common Rules Clarifications; Dream Rulebook Edition 3 pp19,39,51,67; #1839."
+    },
+    {
+      "id": "C07",
+      "page": "conditioning",
+      "classification": "changed",
+      "topic": "Six against three",
+      "sources": "Quickstart v0.8, Break Conditioning, Atomics, Bidding and Common Rules Clarifications; Dream Rulebook Edition 3 pp19,39,51,67; #1839."
+    },
+    {
+      "id": "C08",
+      "page": "conditioning",
+      "classification": "changed",
+      "topic": "Against Guild Retreat",
+      "sources": "Quickstart v0.8, Break Conditioning, Atomics, Bidding and Common Rules Clarifications; Dream Rulebook Edition 3 pp19,39,51,67; #1839."
+    },
+    {
+      "id": "C09",
+      "page": "conditioning",
+      "classification": "changed",
+      "topic": "Atomics can expose a sietch",
+      "sources": "Quickstart v0.8, Break Conditioning, Atomics, Bidding and Common Rules Clarifications; Dream Rulebook Edition 3 pp19,39,51,67; #1839."
+    },
+    {
+      "id": "C10",
+      "page": "conditioning",
+      "classification": "changed",
+      "topic": "Weather Control comes first",
+      "sources": "Quickstart v0.8, Break Conditioning, Atomics, Bidding and Common Rules Clarifications; Dream Rulebook Edition 3 pp19,39,51,67; #1839."
+    },
+    {
+      "id": "C11",
+      "page": "conditioning",
+      "classification": "changed",
+      "topic": "Orange Catholic Bible",
+      "sources": "Quickstart v0.8, Break Conditioning, Atomics, Bidding and Common Rules Clarifications; Dream Rulebook Edition 3 pp19,39,51,67; #1839."
+    },
+    {
+      "id": "R01",
+      "page": "revival-and-information",
+      "classification": "changed",
+      "topic": "Revive leaders earlier",
+      "sources": "Quickstart v0.8, Leader Revival and Common Rules Clarifications; #1831 approved combat ruling, 5 October 2026; #1850 and #1843; GF9 FAQ November 2020 pp2-3,8."
+    },
+    {
+      "id": "R02",
+      "page": "revival-and-information",
+      "classification": "changed",
+      "topic": "One leader left",
+      "sources": "Quickstart v0.8, Leader Revival and Common Rules Clarifications; #1831 approved combat ruling, 5 October 2026; #1850 and #1843; GF9 FAQ November 2020 pp2-3,8."
+    },
+    {
+      "id": "R03",
+      "page": "revival-and-information",
+      "classification": "procedure-context",
+      "topic": "Play Ghola before reveal",
+      "sources": "Quickstart v0.8, Leader Revival and Common Rules Clarifications; #1831 approved combat ruling, 5 October 2026; #1850 and #1843; GF9 FAQ November 2020 pp2-3,8."
+    },
+    {
+      "id": "R04",
+      "page": "revival-and-information",
+      "classification": "changed",
+      "topic": "Private notes",
+      "sources": "Quickstart v0.8, Leader Revival and Common Rules Clarifications; #1831 approved combat ruling, 5 October 2026; #1850 and #1843; GF9 FAQ November 2020 pp2-3,8."
+    },
+    {
+      "id": "R05",
+      "page": "revival-and-information",
+      "classification": "procedure-context",
+      "topic": "Discard piles are public",
+      "sources": "Quickstart v0.8, Leader Revival and Common Rules Clarifications; #1831 approved combat ruling, 5 October 2026; #1850 and #1843; GF9 FAQ November 2020 pp2-3,8."
+    },
+    {
+      "id": "R06",
+      "page": "revival-and-information",
+      "classification": "procedure-context",
+      "topic": "Cards you may show an ally",
+      "sources": "Quickstart v0.8, Leader Revival and Common Rules Clarifications; #1831 approved combat ruling, 5 October 2026; #1850 and #1843; GF9 FAQ November 2020 pp2-3,8."
+    },
+    {
+      "id": "T01",
+      "page": "truthtrance",
+      "classification": "changed",
+      "topic": "Ask about a future action",
+      "sources": "GF9 FAQ November 2020 p8; Quickstart v0.8, Truthtrance Logic; #1831 pause ruling, 5 October 2026; #1851, 14 October 2026."
+    },
+    {
+      "id": "T02",
+      "page": "truthtrance",
+      "classification": "changed",
+      "topic": "Pause the game",
+      "sources": "GF9 FAQ November 2020 p8; Quickstart v0.8, Truthtrance Logic; #1831 pause ruling, 5 October 2026; #1851, 14 October 2026."
+    },
+    {
+      "id": "T03",
+      "page": "truthtrance",
+      "classification": "changed",
+      "topic": "Honor the earlier commitment",
+      "sources": "GF9 FAQ November 2020 p8; Quickstart v0.8, Truthtrance Logic; #1831 pause ruling, 5 October 2026; #1851, 14 October 2026."
+    },
+    {
+      "id": "T04",
+      "page": "truthtrance",
+      "classification": "changed",
+      "topic": "The promise came first",
+      "sources": "GF9 FAQ November 2020 p8; Quickstart v0.8, Truthtrance Logic; #1831 pause ruling, 5 October 2026; #1851, 14 October 2026."
+    },
+    {
+      "id": "T05",
+      "page": "truthtrance",
+      "classification": "changed",
+      "topic": "Keep the answer possible",
+      "sources": "GF9 FAQ November 2020 p8; Quickstart v0.8, Truthtrance Logic; #1831 pause ruling, 5 October 2026; #1851, 14 October 2026."
+    },
+    {
+      "id": "T06",
+      "page": "truthtrance",
+      "classification": "changed",
+      "topic": "A promised poison weapon",
+      "sources": "GF9 FAQ November 2020 p8; Quickstart v0.8, Truthtrance Logic; #1831 pause ruling, 5 October 2026; #1851, 14 October 2026."
+    },
+    {
+      "id": "T07",
+      "page": "truthtrance",
+      "classification": "changed",
+      "topic": "Conditions matter",
+      "sources": "GF9 FAQ November 2020 p8; Quickstart v0.8, Truthtrance Logic; #1831 pause ruling, 5 October 2026; #1851, 14 October 2026."
+    },
+    {
+      "id": "V01",
+      "page": "tech-tokens",
+      "classification": "new",
+      "topic": "Begin with seven tokens outside play",
+      "sources": "Quickstart v0.8, Tech Tokens; GF9 Ixians & Tleilaxu pp4-5; Dream Rulebook Edition 3 pp46-47; #1844, #1845 and #1861."
+    },
+    {
+      "id": "V02",
+      "page": "tech-tokens",
+      "classification": "new",
+      "topic": "Collect at phase end",
+      "sources": "Quickstart v0.8, Tech Tokens; GF9 Ixians & Tleilaxu pp4-5; Dream Rulebook Edition 3 pp46-47; #1844, #1845 and #1861."
+    },
+    {
+      "id": "V03",
+      "page": "tech-tokens",
+      "classification": "new",
+      "topic": "Token",
+      "sources": "Quickstart v0.8, Tech Tokens; GF9 Ixians & Tleilaxu pp4-5; Dream Rulebook Edition 3 pp46-47; #1844, #1845 and #1861."
+    },
+    {
+      "id": "V04",
+      "page": "tech-tokens",
+      "classification": "new",
+      "topic": "Two tokens, one shipment trigger",
+      "sources": "Quickstart v0.8, Tech Tokens; GF9 Ixians & Tleilaxu pp4-5; Dream Rulebook Edition 3 pp46-47; #1844, #1845 and #1861."
+    },
+    {
+      "id": "V05",
+      "page": "tech-tokens",
+      "classification": "new",
+      "topic": "One faction must hold all three",
+      "sources": "Quickstart v0.8, Tech Tokens; GF9 Ixians & Tleilaxu pp4-5; Dream Rulebook Edition 3 pp46-47; #1844, #1845 and #1861."
+    },
+    {
+      "id": "V06",
+      "page": "tech-tokens",
+      "classification": "new",
+      "topic": "Three narrow questions",
+      "sources": "Quickstart v0.8, Tech Tokens; GF9 Ixians & Tleilaxu pp4-5; Dream Rulebook Edition 3 pp46-47; #1844, #1845 and #1861."
+    },
+    {
+      "id": "V07",
+      "page": "victory",
+      "classification": "changed",
+      "topic": "The Shield Wall can count",
+      "sources": "Quickstart v0.8, Stronghold Shield Wall and Multiple Win Conditions; #1846, #1847, #1848 and #1849, with rulings through 14 October 2026."
+    },
+    {
+      "id": "V08",
+      "page": "victory",
+      "classification": "changed",
+      "topic": "Resolve competing claims in order",
+      "sources": "Quickstart v0.8, Stronghold Shield Wall and Multiple Win Conditions; #1846, #1847, #1848 and #1849, with rulings through 14 October 2026."
+    },
+    {
+      "id": "V09",
+      "page": "victory",
+      "classification": "changed",
+      "topic": "Apply Infiltration, then Prediction",
+      "sources": "Quickstart v0.8, Stronghold Shield Wall and Multiple Win Conditions; #1846, #1847, #1848 and #1849, with rulings through 14 October 2026."
+    },
+    {
+      "id": "V10",
+      "page": "victory",
+      "classification": "changed",
+      "topic": "A qualifying alliance",
+      "sources": "Quickstart v0.8, Stronghold Shield Wall and Multiple Win Conditions; #1846, #1847, #1848 and #1849, with rulings through 14 October 2026."
+    },
+    {
+      "id": "V11",
+      "page": "victory",
+      "classification": "changed",
+      "topic": "Prediction follows the changed winners",
+      "sources": "Quickstart v0.8, Stronghold Shield Wall and Multiple Win Conditions; #1846, #1847, #1848 and #1849, with rulings through 14 October 2026."
+    },
+    {
+      "id": "V12",
+      "page": "victory",
+      "classification": "changed",
+      "topic": "No automatic Guild or Fremen victory",
+      "sources": "Quickstart v0.8, Stronghold Shield Wall and Multiple Win Conditions; #1846, #1847, #1848 and #1849, with rulings through 14 October 2026."
+    },
+    {
+      "id": "V13",
+      "page": "sudden-death",
+      "classification": "later-ruling",
+      "topic": "Start after turn ten's Nexus",
+      "sources": "#1848, confirmed procedure and correction, 14 October 2026; #1847 victory order."
+    },
+    {
+      "id": "V14",
+      "page": "sudden-death",
+      "classification": "later-ruling",
+      "topic": "Repeat this round",
+      "sources": "#1848, confirmed procedure and correction, 14 October 2026; #1847 victory order."
+    },
+    {
+      "id": "V15",
+      "page": "sudden-death",
+      "classification": "later-ruling",
+      "topic": "Check every battle",
+      "sources": "#1848, confirmed procedure and correction, 14 October 2026; #1847 victory order."
+    },
+    {
+      "id": "V16",
+      "page": "sudden-death",
+      "classification": "later-ruling",
+      "topic": "Win before the remaining fights",
+      "sources": "#1848, confirmed procedure and correction, 14 October 2026; #1847 victory order."
+    },
+    {
+      "id": "V17",
+      "page": "sudden-death",
+      "classification": "later-ruling",
+      "topic": "If nobody can win anymore",
+      "sources": "#1848, confirmed procedure and correction, 14 October 2026; #1847 victory order."
+    },
+    {
+      "id": "V18",
+      "page": "sudden-death",
+      "classification": "later-ruling",
+      "topic": "Adopted, not yet playtested",
+      "sources": "#1848, confirmed procedure and correction, 14 October 2026; #1847 victory order."
+    },
+    {
+      "id": "A01",
+      "page": "atreides",
+      "classification": "faction",
+      "topic": "Watch Nexus instead of Spice",
+      "sources": "Quickstart v0.8, Atreides; current Atreides sheet; #1850 and #1845."
+    },
+    {
+      "id": "A02",
+      "page": "atreides",
+      "classification": "faction",
+      "topic": "Ask about Mercenaries with the dial",
+      "sources": "Quickstart v0.8, Atreides; current Atreides sheet; #1850 and #1845."
+    },
+    {
+      "id": "A03",
+      "page": "atreides",
+      "classification": "faction",
+      "topic": "Collect Leto's Tithe",
+      "sources": "Quickstart v0.8, Atreides; current Atreides sheet; #1850 and #1845."
+    },
+    {
+      "id": "A04",
+      "page": "atreides",
+      "classification": "faction",
+      "topic": "Arrakeen before the seventh loss",
+      "sources": "Quickstart v0.8, Atreides; current Atreides sheet; #1850 and #1845."
+    },
+    {
+      "id": "A05",
+      "page": "atreides",
+      "classification": "faction",
+      "topic": "Fate may establish a mine",
+      "sources": "Quickstart v0.8, Atreides; current Atreides sheet; #1850 and #1845."
+    },
+    {
+      "id": "A06",
+      "page": "atreides",
+      "classification": "faction",
+      "topic": "Carryall counts",
+      "sources": "Quickstart v0.8, Atreides; current Atreides sheet; #1850 and #1845."
+    },
+    {
+      "id": "H01",
+      "page": "harkonnen",
+      "classification": "faction",
+      "topic": "Redraw an unsuitable traitor deal",
+      "sources": "Quickstart v0.8, Harkonnen and Common Rules Clarifications; current Harkonnen and Fremen sheets; #1840."
+    },
+    {
+      "id": "H02",
+      "page": "harkonnen",
+      "classification": "faction",
+      "topic": "Use Spite after your leader dies",
+      "sources": "Quickstart v0.8, Harkonnen and Common Rules Clarifications; current Harkonnen and Fremen sheets; #1840."
+    },
+    {
+      "id": "H03",
+      "page": "harkonnen",
+      "classification": "faction",
+      "topic": "Trade rubbish for a weapon",
+      "sources": "Quickstart v0.8, Harkonnen and Common Rules Clarifications; current Harkonnen and Fremen sheets; #1840."
+    },
+    {
+      "id": "H04",
+      "page": "harkonnen",
+      "classification": "faction",
+      "topic": "Spite has exceptions",
+      "sources": "Quickstart v0.8, Harkonnen and Common Rules Clarifications; current Harkonnen and Fremen sheets; #1840."
+    },
+    {
+      "id": "H05",
+      "page": "harkonnen",
+      "classification": "faction",
+      "topic": "Supplies conflict",
+      "sources": "Quickstart v0.8, Harkonnen and Common Rules Clarifications; current Harkonnen and Fremen sheets; #1840."
+    },
+    {
+      "id": "H06",
+      "page": "harkonnen",
+      "classification": "faction",
+      "topic": "Fate reveals a whole plan",
+      "sources": "Quickstart v0.8, Harkonnen and Common Rules Clarifications; current Harkonnen and Fremen sheets; #1840."
+    },
+    {
+      "id": "H07",
+      "page": "harkonnen",
+      "classification": "faction",
+      "topic": "Your captured leader is not safe from its owner",
+      "sources": "Quickstart v0.8, Harkonnen and Common Rules Clarifications; current Harkonnen and Fremen sheets; #1840."
+    },
+    {
+      "id": "E01",
+      "page": "emperor",
+      "classification": "faction",
+      "topic": "Subsidize any auction buyer",
+      "sources": "GF9 2019 pp14,19; Quickstart v0.8, Emperor; current Emperor sheet."
+    },
+    {
+      "id": "E02",
+      "page": "emperor",
+      "classification": "faction",
+      "topic": "A five-spice bid with three in hand",
+      "sources": "GF9 2019 pp14,19; Quickstart v0.8, Emperor; current Emperor sheet."
+    },
+    {
+      "id": "E03",
+      "page": "emperor",
+      "classification": "faction",
+      "topic": "Karama can remove the subsidy",
+      "sources": "GF9 2019 pp14,19; Quickstart v0.8, Emperor; current Emperor sheet."
+    },
+    {
+      "id": "E04",
+      "page": "emperor",
+      "classification": "faction",
+      "topic": "Alliance transfers replace extra revival",
+      "sources": "GF9 2019 pp14,19; Quickstart v0.8, Emperor; current Emperor sheet."
+    },
+    {
+      "id": "E05",
+      "page": "emperor",
+      "classification": "faction",
+      "topic": "Prison Planet is paid revival",
+      "sources": "GF9 2019 pp14,19; Quickstart v0.8, Emperor; current Emperor sheet."
+    },
+    {
+      "id": "E06",
+      "page": "emperor",
+      "classification": "faction",
+      "topic": "Bring back two Sardaukar",
+      "sources": "GF9 2019 pp14,19; Quickstart v0.8, Emperor; current Emperor sheet."
+    },
+    {
+      "id": "G01",
+      "page": "guild",
+      "classification": "faction",
+      "topic": "You must seek a victory",
+      "sources": "GF9 2019 p19 and November 2020 FAQ pp5,9; Quickstart v0.8, Guild; current Guild sheet; #1839, #1841 and #1848."
+    },
+    {
+      "id": "G02",
+      "page": "guild",
+      "classification": "faction",
+      "topic": "Interject once in Shipment and Movement",
+      "sources": "GF9 2019 p19 and November 2020 FAQ pp5,9; Quickstart v0.8, Guild; current Guild sheet; #1839, #1841 and #1848."
+    },
+    {
+      "id": "G03",
+      "page": "guild",
+      "classification": "faction",
+      "topic": "Make a rival commit first",
+      "sources": "GF9 2019 p19 and November 2020 FAQ pp5,9; Quickstart v0.8, Guild; current Guild sheet; #1839, #1841 and #1848."
+    },
+    {
+      "id": "G04",
+      "page": "guild",
+      "classification": "faction",
+      "topic": "Your ally can use all shipment types",
+      "sources": "GF9 2019 p19 and November 2020 FAQ pp5,9; Quickstart v0.8, Guild; current Guild sheet; #1839, #1841 and #1848."
+    },
+    {
+      "id": "G05",
+      "page": "guild",
+      "classification": "faction",
+      "topic": "Retreat after reveal",
+      "sources": "GF9 2019 p19 and November 2020 FAQ pp5,9; Quickstart v0.8, Guild; current Guild sheet; #1839, #1841 and #1848."
+    },
+    {
+      "id": "G06",
+      "page": "guild",
+      "classification": "faction",
+      "topic": "Retreat priority and aftermath",
+      "sources": "GF9 2019 p19 and November 2020 FAQ pp5,9; Quickstart v0.8, Guild; current Guild sheet; #1839, #1841 and #1848."
+    },
+    {
+      "id": "G07",
+      "page": "guild",
+      "classification": "faction",
+      "topic": "Fate allows two leaders permanently",
+      "sources": "GF9 2019 p19 and November 2020 FAQ pp5,9; Quickstart v0.8, Guild; current Guild sheet; #1839, #1841 and #1848."
+    },
+    {
+      "id": "FR01",
+      "page": "fremen-storm",
+      "classification": "faction",
+      "topic": "Move through storm unharmed",
+      "sources": "GF9 November 2020 FAQ pp3,5; Quickstart v0.8, Fremen; current Fremen sheet; #1837."
+    },
+    {
+      "id": "FR02",
+      "page": "fremen-storm",
+      "classification": "faction",
+      "topic": "Inspect the Spice draws",
+      "sources": "GF9 November 2020 FAQ pp3,5; Quickstart v0.8, Fremen; current Fremen sheet; #1837."
+    },
+    {
+      "id": "FR03",
+      "page": "fremen-storm",
+      "classification": "faction",
+      "topic": "Redirect later worms across the phase",
+      "sources": "GF9 November 2020 FAQ pp3,5; Quickstart v0.8, Fremen; current Fremen sheet; #1837."
+    },
+    {
+      "id": "FR04",
+      "page": "fremen-storm",
+      "classification": "faction",
+      "topic": "Spend the two Thumpers",
+      "sources": "GF9 November 2020 FAQ pp3,5; Quickstart v0.8, Fremen; current Fremen sheet; #1837."
+    },
+    {
+      "id": "FR05",
+      "page": "fremen-storm",
+      "classification": "faction",
+      "topic": "Turn the revealed worm into the second",
+      "sources": "GF9 November 2020 FAQ pp3,5; Quickstart v0.8, Fremen; current Fremen sheet; #1837."
+    },
+    {
+      "id": "FR06",
+      "page": "fremen-storm",
+      "classification": "faction",
+      "topic": "Fate changes later Storm cards",
+      "sources": "GF9 November 2020 FAQ pp3,5; Quickstart v0.8, Fremen; current Fremen sheet; #1837."
+    },
+    {
+      "id": "FR07",
+      "page": "fremen-battle",
+      "classification": "faction",
+      "topic": "Reveal cards to protect them",
+      "sources": "Quickstart v0.8, Fremen; current Fremen sheet; #1842; #1848 correction, 14 October 2026."
+    },
+    {
+      "id": "FR08",
+      "page": "fremen-battle",
+      "classification": "faction",
+      "topic": "Spite must keep the color",
+      "sources": "Quickstart v0.8, Fremen; current Fremen sheet; #1842; #1848 correction, 14 October 2026."
+    },
+    {
+      "id": "FR09",
+      "page": "fremen-battle",
+      "classification": "faction",
+      "topic": "Your ally recovers support as a bribe",
+      "sources": "Quickstart v0.8, Fremen; current Fremen sheet; #1842; #1848 correction, 14 October 2026."
+    },
+    {
+      "id": "FR10",
+      "page": "fremen-battle",
+      "classification": "faction",
+      "topic": "Refund after a costly win",
+      "sources": "Quickstart v0.8, Fremen; current Fremen sheet; #1842; #1848 correction, 14 October 2026."
+    },
+    {
+      "id": "FR11",
+      "page": "fremen-battle",
+      "classification": "faction",
+      "topic": "Grant a move after everyone else",
+      "sources": "Quickstart v0.8, Fremen; current Fremen sheet; #1842; #1848 correction, 14 October 2026."
+    },
+    {
+      "id": "FR12",
+      "page": "fremen-battle",
+      "classification": "faction",
+      "topic": "Wait out the Guild",
+      "sources": "Quickstart v0.8, Fremen; current Fremen sheet; #1842; #1848 correction, 14 October 2026."
+    },
+    {
+      "id": "FR13",
+      "page": "fremen-battle",
+      "classification": "faction",
+      "topic": "Revival in sudden death",
+      "sources": "Quickstart v0.8, Fremen; current Fremen sheet; #1842; #1848 correction, 14 October 2026."
+    },
+    {
+      "id": "BG01",
+      "page": "bene-gesserit",
+      "classification": "faction",
+      "topic": "Voice card categories, except Cheap Hero",
+      "sources": "GF9 November 2020 FAQ pp4-5,9; Quickstart v0.8, Bene Gesserit; current sheet; #1847 and #1849."
+    },
+    {
+      "id": "BG02",
+      "page": "bene-gesserit",
+      "classification": "faction",
+      "topic": "Change a territory's posture at the phase start",
+      "sources": "GF9 November 2020 FAQ pp4-5,9; Quickstart v0.8, Bene Gesserit; current sheet; #1847 and #1849."
+    },
+    {
+      "id": "BG03",
+      "page": "bene-gesserit",
+      "classification": "faction",
+      "topic": "Troops adopt the destination posture",
+      "sources": "GF9 November 2020 FAQ pp4-5,9; Quickstart v0.8, Bene Gesserit; current sheet; #1847 and #1849."
+    },
+    {
+      "id": "BG04",
+      "page": "bene-gesserit",
+      "classification": "faction",
+      "topic": "Reinforcement is not intrusion",
+      "sources": "GF9 November 2020 FAQ pp4-5,9; Quickstart v0.8, Bene Gesserit; current sheet; #1847 and #1849."
+    },
+    {
+      "id": "BG05",
+      "page": "bene-gesserit",
+      "classification": "faction",
+      "topic": "Advisors can share with an ally",
+      "sources": "GF9 November 2020 FAQ pp4-5,9; Quickstart v0.8, Bene Gesserit; current sheet; #1847 and #1849."
+    },
+    {
+      "id": "BG06",
+      "page": "bene-gesserit",
+      "classification": "faction",
+      "topic": "Fate extends Voice to nearby battles",
+      "sources": "GF9 November 2020 FAQ pp4-5,9; Quickstart v0.8, Bene Gesserit; current sheet; #1847 and #1849."
+    },
+    {
+      "id": "BG07",
+      "page": "bene-gesserit",
+      "classification": "faction",
+      "topic": "Prediction checks the final winners",
+      "sources": "GF9 November 2020 FAQ pp4-5,9; Quickstart v0.8, Bene Gesserit; current sheet; #1847 and #1849."
+    },
+    {
+      "id": "BT01",
+      "page": "bene-tleilax",
+      "classification": "new-faction",
+      "topic": "Starting pieces",
+      "sources": "Quickstart v0.8, Bene Tleilax and setup; current sheet; #1860. GF9 Ixians & Tleilaxu pp6-7 supplies the earlier expansion comparison."
+    },
+    {
+      "id": "BT02",
+      "page": "bene-tleilax",
+      "classification": "new-faction",
+      "topic": "Take a traitor and four Face Dancers",
+      "sources": "Quickstart v0.8, Bene Tleilax and setup; current sheet; #1860. GF9 Ixians & Tleilaxu pp6-7 supplies the earlier expansion comparison."
+    },
+    {
+      "id": "BT03",
+      "page": "bene-tleilax",
+      "classification": "new-faction",
+      "topic": "Earn from each revived troop",
+      "sources": "Quickstart v0.8, Bene Tleilax and setup; current sheet; #1860. GF9 Ixians & Tleilaxu pp6-7 supplies the earlier expansion comparison."
+    },
+    {
+      "id": "BT04",
+      "page": "bene-tleilax",
+      "classification": "new-faction",
+      "topic": "Revive without normal limits",
+      "sources": "Quickstart v0.8, Bene Tleilax and setup; current sheet; #1860. GF9 Ixians & Tleilaxu pp6-7 supplies the earlier expansion comparison."
+    },
+    {
+      "id": "BT05",
+      "page": "bene-tleilax",
+      "classification": "new-faction",
+      "topic": "Sacrifice reserves for shipment",
+      "sources": "Quickstart v0.8, Bene Tleilax and setup; current sheet; #1860. GF9 Ixians & Tleilaxu pp6-7 supplies the earlier expansion comparison."
+    },
+    {
+      "id": "BT06",
+      "page": "bene-tleilax",
+      "classification": "new-faction",
+      "topic": "Deal restrictions",
+      "sources": "Quickstart v0.8, Bene Tleilax and setup; current sheet; #1860. GF9 Ixians & Tleilaxu pp6-7 supplies the earlier expansion comparison."
+    },
+    {
+      "id": "BT07",
+      "page": "bene-tleilax",
+      "classification": "new-faction",
+      "topic": "Fate removes support in one territory",
+      "sources": "Quickstart v0.8, Bene Tleilax and setup; current sheet; #1860. GF9 Ixians & Tleilaxu pp6-7 supplies the earlier expansion comparison."
+    },
+    {
+      "id": "BT08",
+      "page": "bene-tleilax",
+      "classification": "new-faction",
+      "topic": "Other player counts",
+      "sources": "Quickstart v0.8, Bene Tleilax and setup; current sheet; #1860. GF9 Ixians & Tleilaxu pp6-7 supplies the earlier expansion comparison."
+    },
+    {
+      "id": "BT09",
+      "page": "infiltration",
+      "classification": "new-faction",
+      "topic": "Revive a matching enemy leader",
+      "sources": "Quickstart v0.8, Infiltration and Common Rules Clarifications; current Bene Tleilax sheet; #1835, #1847 and #1849."
+    },
+    {
+      "id": "BT10",
+      "page": "infiltration",
+      "classification": "new-faction",
+      "topic": "Use the impersonator's traitor identity",
+      "sources": "Quickstart v0.8, Infiltration and Common Rules Clarifications; current Bene Tleilax sheet; #1835, #1847 and #1849."
+    },
+    {
+      "id": "BT11",
+      "page": "infiltration",
+      "classification": "new-faction",
+      "topic": "Inspect the infiltrated faction",
+      "sources": "Quickstart v0.8, Infiltration and Common Rules Clarifications; current Bene Tleilax sheet; #1835, #1847 and #1849."
+    },
+    {
+      "id": "BT12",
+      "page": "infiltration",
+      "classification": "new-faction",
+      "topic": "End and replace an Infiltration",
+      "sources": "Quickstart v0.8, Infiltration and Common Rules Clarifications; current Bene Tleilax sheet; #1835, #1847 and #1849."
+    },
+    {
+      "id": "BT13",
+      "page": "infiltration",
+      "classification": "new-faction",
+      "topic": "Zoal can establish it through battle",
+      "sources": "Quickstart v0.8, Infiltration and Common Rules Clarifications; current Bene Tleilax sheet; #1835, #1847 and #1849."
+    },
+    {
+      "id": "BT14",
+      "page": "infiltration",
+      "classification": "new-faction",
+      "topic": "Return Zoal next Storm",
+      "sources": "Quickstart v0.8, Infiltration and Common Rules Clarifications; current Bene Tleilax sheet; #1835, #1847 and #1849."
+    },
+    {
+      "id": "BT15",
+      "page": "infiltration",
+      "classification": "new-faction",
+      "topic": "Storm window",
+      "sources": "Quickstart v0.8, Infiltration and Common Rules Clarifications; current Bene Tleilax sheet; #1835, #1847 and #1849."
+    },
+    {
+      "id": "IX01",
+      "page": "ixians",
+      "classification": "new-faction",
+      "topic": "Start with two troop types",
+      "sources": "Quickstart v0.8, Ixians; current Ixian sheet; GF9 Ixians & Tleilaxu pp8-9."
+    },
+    {
+      "id": "IX02",
+      "page": "ixians",
+      "classification": "new-faction",
+      "topic": "Inspect and divide auction cards",
+      "sources": "Quickstart v0.8, Ixians; current Ixian sheet; GF9 Ixians & Tleilaxu pp8-9."
+    },
+    {
+      "id": "IX03",
+      "page": "ixians",
+      "classification": "new-faction",
+      "topic": "Replace one auction card",
+      "sources": "Quickstart v0.8, Ixians; current Ixian sheet; GF9 Ixians & Tleilaxu pp8-9."
+    },
+    {
+      "id": "IX04",
+      "page": "ixians",
+      "classification": "new-faction",
+      "topic": "Troop",
+      "sources": "Quickstart v0.8, Ixians; current Ixian sheet; GF9 Ixians & Tleilaxu pp8-9."
+    },
+    {
+      "id": "IX05",
+      "page": "ixians",
+      "classification": "new-faction",
+      "topic": "Save a winning Cyborg with a Suboid",
+      "sources": "Quickstart v0.8, Ixians; current Ixian sheet; GF9 Ixians & Tleilaxu pp8-9."
+    },
+    {
+      "id": "IX06",
+      "page": "ixians",
+      "classification": "new-faction",
+      "topic": "Exchange a card with your ally",
+      "sources": "Quickstart v0.8, Ixians; current Ixian sheet; GF9 Ixians & Tleilaxu pp8-9."
+    },
+    {
+      "id": "IX07",
+      "page": "surveyor",
+      "classification": "new-faction",
+      "topic": "A private mobile territory",
+      "sources": "Quickstart v0.8, Ixians; current Ixian sheet; Dream Rulebook Edition 3 p77."
+    },
+    {
+      "id": "IX08",
+      "page": "surveyor",
+      "classification": "new-faction",
+      "topic": "Move it during Mentat",
+      "sources": "Quickstart v0.8, Ixians; current Ixian sheet; Dream Rulebook Edition 3 p77."
+    },
+    {
+      "id": "IX09",
+      "page": "surveyor",
+      "classification": "new-faction",
+      "topic": "It grants no victory stronghold",
+      "sources": "Quickstart v0.8, Ixians; current Ixian sheet; Dream Rulebook Edition 3 p77."
+    },
+    {
+      "id": "IX10",
+      "page": "surveyor",
+      "classification": "new-faction",
+      "topic": "Pick up before the storm",
+      "sources": "Quickstart v0.8, Ixians; current Ixian sheet; Dream Rulebook Edition 3 p77."
+    },
+    {
+      "id": "IX11",
+      "page": "surveyor",
+      "classification": "new-faction",
+      "topic": "Fate blocks one special card for the turn",
+      "sources": "Quickstart v0.8, Ixians; current Ixian sheet; Dream Rulebook Edition 3 p77."
+    },
+    {
+      "id": "IX12",
+      "page": "surveyor",
+      "classification": "new-faction",
+      "topic": "Stop Mercenaries before planning",
+      "sources": "Quickstart v0.8, Ixians; current Ixian sheet; Dream Rulebook Edition 3 p77."
+    },
+    {
+      "id": "KA01",
+      "page": "karama-reference-a",
+      "classification": "reference",
+      "topic": "Advantage",
+      "sources": "Current faction sheets; Dream Rulebook Edition 3 pp53-55; duration confirmed in #1831. Individual-window review: #1852."
+    },
+    {
+      "id": "KA02",
+      "page": "karama-reference-a",
+      "classification": "reference",
+      "topic": "One named advantage",
+      "sources": "Current faction sheets; Dream Rulebook Edition 3 pp53-55; duration confirmed in #1831. Individual-window review: #1852."
+    },
+    {
+      "id": "KB01",
+      "page": "karama-reference-b",
+      "classification": "reference",
+      "topic": "Guild advantage",
+      "sources": "Current Guild and Fremen sheets; Dream Rulebook Edition 3 pp55-56; #1852."
+    },
+    {
+      "id": "KB02",
+      "page": "karama-reference-b",
+      "classification": "reference",
+      "topic": "Fremen advantage",
+      "sources": "Current Guild and Fremen sheets; Dream Rulebook Edition 3 pp55-56; #1852."
+    },
+    {
+      "id": "KC01",
+      "page": "karama-reference-c",
+      "classification": "reference",
+      "topic": "Advantage",
+      "sources": "Current faction sheets; Dream Rulebook Edition 3 pp57-58; #1852."
+    },
+    {
+      "id": "KC02",
+      "page": "karama-reference-c",
+      "classification": "reference",
+      "topic": "Political Marriages",
+      "sources": "Current faction sheets; Dream Rulebook Edition 3 pp57-58; #1852."
+    },
+    {
+      "id": "Q01",
+      "page": "questions",
+      "classification": "unresolved",
+      "topic": "Before setup",
+      "sources": "Council tracker #1831 and linked questions, checked 27 October 2026."
+    },
+    {
+      "id": "Q02",
+      "page": "questions",
+      "classification": "unresolved",
+      "topic": "Before the affected play",
+      "sources": "Council tracker #1831 and linked questions, checked 27 October 2026."
+    },
+    {
+      "id": "Q03",
+      "page": "questions",
+      "classification": "unresolved",
+      "topic": "Before the affected battle",
+      "sources": "Council tracker #1831 and linked questions, checked 27 October 2026."
+    },
+    {
+      "id": "Q04",
+      "page": "questions",
+      "classification": "unresolved",
+      "topic": "Six worms is settled",
+      "sources": "Council tracker #1831 and linked questions, checked 27 October 2026."
+    },
+    {
+      "id": "Q05",
+      "page": "questions",
+      "classification": "unresolved",
+      "topic": "Scope of this draft",
+      "sources": "Council tracker #1831 and linked questions, checked 27 October 2026."
+    },
+    {
+      "id": "SRC01",
+      "page": "sources",
+      "classification": "sources",
+      "topic": "GF9 Advanced",
+      "sources": ""
+    },
+    {
+      "id": "SRC02",
+      "page": "sources",
+      "classification": "sources",
+      "topic": "Dreamrules",
+      "sources": ""
+    },
+    {
+      "id": "SRC03",
+      "page": "sources",
+      "classification": "sources",
+      "topic": "Current decisions",
+      "sources": ""
+    },
+    {
+      "id": "SRC04",
+      "page": "sources",
+      "classification": "sources",
+      "topic": "Public references",
+      "sources": ""
+    },
+    {
+      "id": "SRC06",
+      "page": "sources",
+      "classification": "sources",
+      "topic": "Version",
+      "sources": ""
+    }
+  ],
+  "excludedClaims": [
+    {
+      "claim": "Holding Karama no longer permits unaffordable bidding",
+      "reason": "Not an explicit v0.8 change. Do not import the separate GF9 2.0 rule."
+    }
+  ]
+}

@@ -1,0 +1,104 @@
+{
+  "date": "2026-10-27",
+  "authorityOrder": [
+    "Later explicit Norbert or council rulings for the named rule",
+    "Quickstart v0.8 and current faction sheets, with conflicts retained",
+    "Dream Rulebook Edition 3 as a chapter reference",
+    "GF9 2019 Advanced with November 2020 FAQ for unchanged procedures"
+  ],
+  "sources": [
+    {
+      "id": "GF9-2019",
+      "title": "GF9 Dune Rulebook 2019",
+      "pages": 24,
+      "url": "https://www.gf9games.com/dunegame/wp-content/uploads/Dune-Rulebook.pdf",
+      "sha256": "6c55d28e93b6948a34d20b0f50e1087494e06f237f8c43e7e4c0cac3810b752d"
+    },
+    {
+      "id": "GF9-FAQ",
+      "title": "GF9 Dune Questions and Answers November 2020",
+      "pages": 9,
+      "url": "https://www.gf9games.com/dune/wp-content/uploads/2020/11/Dune-FAQ-Nov-2020.pdf",
+      "sha256": "b6dc77d7778fb0fee800e3995e6fbf620531f7a6b1fd32af2303266f60bf2039"
+    },
+    {
+      "id": "GF9-IX-BT",
+      "title": "GF9 Ixians and Tleilaxu 2020",
+      "pages": 12,
+      "sha256": "9dc631968839d6e8935acb30ac301301cfea7ed07a78a3aac266648f21cf357d",
+      "url": "https://github.com/user-attachments/files/33447701/BA7A5BD340F4B147740B6D25209C917D6DF2DFC0_IxianAndTleilaxuRulebook.pdf"
+    },
+    {
+      "id": "DREAM-Q08",
+      "title": "Dreamrules Quickstart Guide v0.8",
+      "original": "/Users/me/Downloads/Dreamrules Quickstart Guide v0.8.docx",
+      "sha256": "ce3363767e8f21ef612e5a4afa430476c0fdc2aa28f2e7c9f378ca5563664e30",
+      "extractedText": "sources/quickstart-v08.txt"
+    },
+    {
+      "id": "DREAM-BOOK3",
+      "title": "Dream Rulebook Edition 3",
+      "pages": 82,
+      "published": "2026-10-07",
+      "url": "https://dune.zone/published/rulebooks/pd71pdne3ggcn8gt002y7mvqnd8fnt85/editions/3/rulebook.html",
+      "snapshot": "sources/dream-rulebook-edition-3.json",
+      "sha256": "8fc423cc6639ad1da6cbd1d7b4b771019f1efd887cbefbb6ec7ff9365bd9ff58"
+    },
+    {
+      "id": "DREAM-SHEETS",
+      "title": "Eight current finished Dreamrules factions",
+      "url": "https://dune.zone/factions?ruleset=dreamrules",
+      "snapshot": "sources/factions-2026-10-27.json",
+      "sha256": "99b8b00dd9343988432e2ef0c8b21e7471bb10f1772d4348054b62eabfc8eda6"
+    },
+    {
+      "id": "DREAM-RULINGS",
+      "title": "Dreamrules council tracker and 22 question records",
+      "url": "https://github.com/ndelangen/dunezone/issues/1831",
+      "snapshot": "sources/issue-1831.json"
+    }
+  ],
+  "mineCardFaces": [
+    {
+      "name": "Arsunt",
+      "url": "https://dune.zone/assets/card-spice/arsunt-2",
+      "image": "https://dune.zone/published/spice-cards/ns7bwpps78qcc50x0brmn2n5198gr7tc/card.jpg?v=de00bf67-def2-4198-b451-a5f67c53d950",
+      "sha256": "5b6b011c4f82881328464df5a3749409fb630280ccc552462075224f4fd015c5",
+      "yield": 3
+    },
+    {
+      "name": "Bight of the Cliff",
+      "url": "https://dune.zone/assets/card-spice/bight-of-the-cliff-1",
+      "image": "https://dune.zone/published/spice-cards/ns71qnp0s60g9q4c0b2933myn98gsveh/card.jpg?v=009ff759-ab59-460d-a6e7-43c1c20490a7",
+      "sha256": "4f71d51aaea5141ed0b39e21be441f24420cf15c25adce5b041d59c1793df883",
+      "yield": 4
+    },
+    {
+      "name": "Ceilago East",
+      "url": "https://dune.zone/assets/card-spice/ceilago-east-1",
+      "image": "https://dune.zone/published/spice-cards/ns7aqrydhhm0whq2464fpdeks98grn74/card.jpg?v=f9d7c54d-b75b-4694-a015-ab8d27d36283",
+      "sha256": "74ee66ade06d8c8204ceca5d36709fb9492e9576f00a545edfab1f0426de5879",
+      "yield": 3
+    },
+    {
+      "name": "Ceilago West",
+      "url": "https://dune.zone/assets/card-spice/ceilago-west-1",
+      "image": "https://dune.zone/published/spice-cards/ns7dmhkm00gs54zgc9jxzj0bt58grvdy/card.jpg?v=ad31e371-0904-40ca-935d-38ec6ce5a276",
+      "sha256": "7da91d8da5dc3a3e58bfae7fa397b4705bcd6c9fa074ba2f70bf70cee60551e4",
+      "yield": 4
+    },
+    {
+      "name": "Gaia Kulon",
+      "url": "https://dune.zone/assets/card-spice/gaia-kulon-1",
+      "image": "https://dune.zone/published/spice-cards/ns7f3ye20hrymr19evxf3nrjqh8gswzn/card.jpg?v=ee29e546-90c5-4d32-aaf0-578049e901f4",
+      "sha256": "d1f5b213ce9aef5799e9d0a6e9a6c0d37cb3510cb807b2a1131408a4b0262ae0",
+      "yield": 5
+    }
+  ],
+  "readingLimits": [
+    "No new community rules were adopted. This comparison follows the selected current Dreamrules sources.",
+    "The published book predates five later closed rulings. Its open-question labels are not current evidence of unresolved status.",
+    "Fourteen issue records still have unresolved procedures or interactions. The six-worm count is now settled, while #1838 remains open for the shuffle recipe.",
+    "All five current mine About descriptions repeat unrelated GF9 Discovery text. Mine yields were read from the published card faces instead. Those descriptions were excluded as rule evidence."
+  ]
+}

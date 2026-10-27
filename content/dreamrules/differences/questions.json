@@ -1,0 +1,159 @@
+{
+  "date": "2026-10-27",
+  "questions": [
+    {
+      "number": 1835,
+      "state": "OPEN",
+      "title": "Dreamrules ruling: When during Storm does Infiltration resolve?",
+      "url": "https://github.com/ndelangen/dunezone/issues/1835",
+      "status": "open"
+    },
+    {
+      "number": 1836,
+      "state": "CLOSED",
+      "title": "Dreamrules ruling: Does the ten-card Nexus deck replace all other Nexus triggers?",
+      "url": "https://github.com/ndelangen/dunezone/issues/1836",
+      "status": "closed"
+    },
+    {
+      "number": 1837,
+      "state": "OPEN",
+      "title": "Dreamrules ruling: Are Spice Blows drawn from one prepared deck or two?",
+      "url": "https://github.com/ndelangen/dunezone/issues/1837",
+      "status": "open"
+    },
+    {
+      "number": 1838,
+      "state": "OPEN",
+      "title": "Dreamrules ruling: How are six Shai-Hulud cards distributed during setup?",
+      "url": "https://github.com/ndelangen/dunezone/issues/1838",
+      "status": "Six cards settled; shuffle recipe still open"
+    },
+    {
+      "number": 1839,
+      "state": "OPEN",
+      "title": "Dreamrules ruling: Does Guild Retreat resolve before or after Break Conditioning?",
+      "url": "https://github.com/ndelangen/dunezone/issues/1839",
+      "status": "open"
+    },
+    {
+      "number": 1840,
+      "state": "OPEN",
+      "title": "Dreamrules ruling: Can Vladimir's Spite swap cards from the Supplies cache?",
+      "url": "https://github.com/ndelangen/dunezone/issues/1840",
+      "status": "open"
+    },
+    {
+      "number": 1841,
+      "state": "OPEN",
+      "title": "Dreamrules ruling: What is kept, discarded and committed after each special battle result?",
+      "url": "https://github.com/ndelangen/dunezone/issues/1841",
+      "status": "open"
+    },
+    {
+      "number": 1842,
+      "state": "OPEN",
+      "title": "Dreamrules ruling: What are all exceptions to retaining cards through Fanatical Tactics?",
+      "url": "https://github.com/ndelangen/dunezone/issues/1842",
+      "status": "open"
+    },
+    {
+      "number": 1843,
+      "state": "CLOSED",
+      "title": "Dreamrules ruling: What may spice in a bribe pile be used for before collection?",
+      "url": "https://github.com/ndelangen/dunezone/issues/1843",
+      "status": "closed"
+    },
+    {
+      "number": 1844,
+      "state": "OPEN",
+      "title": "Dreamrules ruling: Which exceptional battle results award a new tech token?",
+      "url": "https://github.com/ndelangen/dunezone/issues/1844",
+      "status": "open"
+    },
+    {
+      "number": 1845,
+      "state": "OPEN",
+      "title": "Dreamrules ruling: What does the Atreides Carryall count toward?",
+      "url": "https://github.com/ndelangen/dunezone/issues/1845",
+      "status": "open"
+    },
+    {
+      "number": 1846,
+      "state": "CLOSED",
+      "title": "Dreamrules ruling: Which events add the four Shield Wall markers?",
+      "url": "https://github.com/ndelangen/dunezone/issues/1846",
+      "status": "closed"
+    },
+    {
+      "number": 1847,
+      "state": "CLOSED",
+      "title": "Dreamrules ruling: What is the ordered procedure when multiple factions qualify to win?",
+      "url": "https://github.com/ndelangen/dunezone/issues/1847",
+      "status": "closed"
+    },
+    {
+      "number": 1848,
+      "state": "CLOSED",
+      "title": "Dreamrules ruling: How does the game end on turn ten, especially without Fremen?",
+      "url": "https://github.com/ndelangen/dunezone/issues/1848",
+      "status": "closed"
+    },
+    {
+      "number": 1849,
+      "state": "CLOSED",
+      "title": "Dreamrules ruling: Who wins when Bene Tleilax infiltrates one or both members of a winning alliance?",
+      "url": "https://github.com/ndelangen/dunezone/issues/1849",
+      "status": "closed"
+    },
+    {
+      "number": 1850,
+      "state": "CLOSED",
+      "title": "Dreamrules ruling: May players record public deals despite the Atreides-only notes rule?",
+      "url": "https://github.com/ndelangen/dunezone/issues/1850",
+      "status": "closed"
+    },
+    {
+      "number": 1851,
+      "state": "CLOSED",
+      "title": "Dreamrules ruling: How does Truthtrance interact with an existing binding deal?",
+      "url": "https://github.com/ndelangen/dunezone/issues/1851",
+      "status": "closed"
+    },
+    {
+      "number": 1852,
+      "state": "OPEN",
+      "title": "Dreamrules ruling: Which current faction advantages can Karama stop, and at which windows?",
+      "url": "https://github.com/ndelangen/dunezone/issues/1852",
+      "status": "open"
+    },
+    {
+      "number": 1859,
+      "state": "OPEN",
+      "title": "Dreamrules ruling: When is a spice mine replenished?",
+      "url": "https://github.com/ndelangen/dunezone/issues/1859",
+      "status": "open"
+    },
+    {
+      "number": 1860,
+      "state": "OPEN",
+      "title": "Dreamrules ruling: How are Bene Tleilax starting cards dealt outside six-player games?",
+      "url": "https://github.com/ndelangen/dunezone/issues/1860",
+      "status": "open"
+    },
+    {
+      "number": 1861,
+      "state": "OPEN",
+      "title": "Dreamrules ruling: What does the Fremen exception on Water Stealing exclude?",
+      "url": "https://github.com/ndelangen/dunezone/issues/1861",
+      "status": "open"
+    },
+    {
+      "number": 1862,
+      "state": "OPEN",
+      "title": "Dreamrules ruling: What is the complete current Dreamrules Treachery deck inventory?",
+      "url": "https://github.com/ndelangen/dunezone/issues/1862",
+      "status": "open"
+    }
+  ]
+}

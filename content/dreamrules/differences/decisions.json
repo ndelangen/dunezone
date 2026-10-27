@@ -1,0 +1,13 @@
+{
+  "decisions": [
+    {
+      "id": "DR-2026-10-27-01",
+      "subject": "Shai-Hulud count",
+      "decision": "Use six Shai-Hulud cards.",
+      "source": "Direct instruction from Norbert in this authoring conversation, 27 October 2026.",
+      "issue": "https://github.com/ndelangen/dunezone/issues/1838",
+      "comment": "https://github.com/ndelangen/dunezone/issues/1838#issuecomment-6442547562",
+      "scope": "Count only. No decision about draw-pile structure or the opening shuffle recipe."
+    }
+  ]
+}
