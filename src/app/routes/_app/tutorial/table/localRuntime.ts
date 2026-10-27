@@ -130,9 +130,11 @@ export function localRuntime(
              * The Reset answers it with the new table as it stands, or the page would wait on it and refuse every later request.
              */
             const { commandId } = message;
+            const origin = table();
             this.captures.set(commandId, () => table().frame(undefined, commandId));
             return void catalogue.capture(message.action).then(
-              (contents) => this.settled(commandId) && table().requestSpawn(message, contents),
+              /* Only onto the table it was asked of: a Reset that came by another way, such as a reconnect, still leaves it behind. */
+              (contents) => this.settled(commandId) && table() === origin && origin.requestSpawn(message, contents),
               (error: unknown) =>
                 this.settled(commandId) &&
                 this.deliver({ type: 'rejected', requestId: commandId, message: refusal(error) })
@@ -153,6 +155,11 @@ export function localRuntime(
      * Answering a read frees the page's slot, and the page sends the read it queued behind it at once; that one was asked of the old table too,
      * so it is answered in turn until nothing asked before the Reset is still out.
      */
+    /* What this connection asked is answered to no one once it closes or the page leaves; the page asks again on its next connection. */
+    forgetCaptures() {
+      this.captures.clear();
+    }
+
     settleCaptures() {
       for (const [id, answer] of this.captures) {
         this.captures.delete(id);
@@ -178,6 +185,7 @@ export function localRuntime(
 
     close(code = 1000) {
       this.readyState = WebSocket.CLOSED;
+      this.forgetCaptures();
       if (socket === this) {
         socket = null;
       }
@@ -200,7 +208,10 @@ export function localRuntime(
     greet: (name) => {
       conversations.learnerName = name;
     },
-    dispose: () => conversations.dispose(),
+    dispose: () => {
+      socket?.forgetCaptures();
+      conversations.dispose();
+    },
     admission: {
       request: () => Promise.resolve({ ok: true as const, pass: 'tutorial.local' }),
     },

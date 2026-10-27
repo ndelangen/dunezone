@@ -11,10 +11,8 @@ import { StatusBadge } from '@ui/content/StatusBadge';
 import { CallToAction } from '@ui/control/CallToAction';
 import { IconAction } from '@ui/control/IconAction';
 import { SearchRefine } from '@ui/control/SearchRefine';
-import { FigureCaptionLayout } from '@ui/layout/FigureCaptionLayout';
 import { CardGrid } from '@ui/list/CardGrid';
 import { Surface } from '@ui/surface';
-import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowRight, Clock, GraduationCap, ListFilter, Plus, Trophy } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -185,49 +183,47 @@ function cardBadge(entry: LobbyEntry): ReactNode {
   return null;
 }
 
-function GameCard({ entry, gameLink }: Readonly<{ entry: LobbyEntry; gameLink: PlayLobbyLinks['gameLink'] }>) {
-  return (
-    <CardGrid.Item>
-      <Card title={entry.name} action={cardBadge(entry)} padding="md">
-        <FigureCaptionLayout>
-          <FigureCaptionLayout.Figure>
-            <TableRing entry={entry} />
-          </FigureCaptionLayout.Figure>
-          <FigureCaptionLayout.Caption>
-            {entry.rulesetName ? (
-              <Text size="xs" c="dimmed">
-                Ruleset: {entry.rulesetName}
-              </Text>
-            ) : null}
-            <Text size="sm" fw={600} lh={1.35}>
-              {whereWords(entry)}
-            </Text>
+/* A game as the lobby's grid shows it: its table as a ring, and where it stands, how full it is, when it last moved and the way in. */
+function gameCard(entry: LobbyEntry, gameLink: PlayLobbyLinks['gameLink']) {
+  return {
+    key: entry.gameId,
+    title: entry.name,
+    badge: cardBadge(entry),
+    figure: <TableRing entry={entry} />,
+    caption: (
+      <>
+        {entry.rulesetName ? (
+          <Text size="xs" c="dimmed">
+            Ruleset: {entry.rulesetName}
+          </Text>
+        ) : null}
+        <Text size="sm" fw={600} lh={1.35}>
+          {whereWords(entry)}
+        </Text>
+        <Text size="xs" c="dimmed">
+          {entry.seatsFilled} of {entry.seatCount} seated
+        </Text>
+        <Group justify="space-between" gap="xs" wrap="nowrap" pt="sm">
+          <Group gap="xs" wrap="nowrap">
+            <Clock size={12} color="var(--mantine-color-dimmed)" aria-hidden />
             <Text size="xs" c="dimmed">
-              {entry.seatsFilled} of {entry.seatCount} seated
+              {formatRelativeDate(new Date(entry.lastActivityAt).toISOString())}
             </Text>
-            <Group justify="space-between" gap="xs" wrap="nowrap" pt="sm">
-              <Group gap="xs" wrap="nowrap">
-                <Clock size={12} color="var(--mantine-color-dimmed)" aria-hidden />
-                <Text size="xs" c="dimmed">
-                  {formatRelativeDate(new Date(entry.lastActivityAt).toISOString())}
-                </Text>
-              </Group>
-              <Button
-                renderRoot={gameLink(entry.slug ?? entry.gameId)}
-                size="compact-sm"
-                color="slate"
-                variant={entry.viewerSeated ? 'filled' : 'light'}
-                rightSection={<ArrowRight size={15} aria-hidden />}
-                aria-label={`Open ${entry.name}`}
-              >
-                Open
-              </Button>
-            </Group>
-          </FigureCaptionLayout.Caption>
-        </FigureCaptionLayout>
-      </Card>
-    </CardGrid.Item>
-  );
+          </Group>
+          <Button
+            renderRoot={gameLink(entry.slug ?? entry.gameId)}
+            size="compact-sm"
+            color="slate"
+            variant={entry.viewerSeated ? 'filled' : 'light'}
+            rightSection={<ArrowRight size={15} aria-hidden />}
+            aria-label={`Open ${entry.name}`}
+          >
+            Open
+          </Button>
+        </Group>
+      </>
+    ),
+  };
 }
 
 const EMPTY_WORDS: Record<LobbyView, string> = {
@@ -424,11 +420,5 @@ function LobbyContent({
       <EmptyView title="Nothing here">{EMPTY_WORDS[view]}</EmptyView>
     );
   }
-  return (
-    <CardGrid aria-label="Games">
-      {games.map((entry) => (
-        <GameCard key={entry.gameId} entry={entry} gameLink={gameLink} />
-      ))}
-    </CardGrid>
-  );
+  return <CardGrid aria-label="Games" items={games.map((entry) => gameCard(entry, gameLink))} />;
 }

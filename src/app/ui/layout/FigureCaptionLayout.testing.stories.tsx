@@ -12,20 +12,19 @@ const meta = testingPreview.meta({
 /** It answers to its own width, not to what holds it: in a grid of one column as wide, the figure stands beside its caption as it does alone. */
 export const WideInAGrid = meta.story({
   render: () => (
-    <CardGrid aria-label="Cards">
-      <CardGrid.Item>
-        <FigureCaptionLayout>
-          <FigureCaptionLayout.Figure>
-            <LayoutSlotPlaceholder name="figure" tone="primary" minHeight={100} />
-          </FigureCaptionLayout.Figure>
-          <FigureCaptionLayout.Caption>
-            <LayoutSlotPlaceholder name="caption" tone="secondary" minHeight={100} />
-          </FigureCaptionLayout.Caption>
-        </FigureCaptionLayout>
-      </CardGrid.Item>
-    </CardGrid>
+    <CardGrid
+      aria-label="Cards"
+      items={[
+        {
+          key: 'card',
+          title: 'A card',
+          figure: <LayoutSlotPlaceholder name="figure" tone="primary" minHeight={100} />,
+          caption: <LayoutSlotPlaceholder name="caption" tone="secondary" minHeight={100} />,
+        },
+      ]}
+    />
   ),
-  decorators: [(Story) => <div style={{ width: '28rem' }}>{Story()}</div>],
+  decorators: [(Story) => <div style={{ width: '29.5rem' }}>{Story()}</div>],
   play: async ({ canvasElement }) => {
     await expectSideBySideSlots(canvasElement, ['figure', 'caption']);
   },

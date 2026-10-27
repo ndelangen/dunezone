@@ -1,5 +1,4 @@
 import preview from '@sb/preview';
-import { Card } from '@ui/surface/Card';
 import { expect, within } from 'storybook/test';
 
 import { CardGrid } from './CardGrid';
@@ -11,13 +10,12 @@ const meta = preview.meta({
   parameters: { layout: 'padded' },
   args: {
     'aria-label': 'Games',
-    children: cards.map((name) => (
-      <CardGrid.Item key={name}>
-        <Card title={name} padding="md">
-          A card in the grid.
-        </Card>
-      </CardGrid.Item>
-    )),
+    items: cards.map((name) => ({
+      key: name,
+      title: name,
+      figure: <div style={{ aspectRatio: '1', borderRadius: '50%', border: '1px dashed currentColor' }} />,
+      caption: 'A card in the grid.',
+    })),
   },
 });
 
