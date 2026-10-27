@@ -29,8 +29,8 @@ Fourteen questions remain open. The setup page and the appendix identify the aff
 
 - [sources.json](sources.json) records source precedence, URLs, hashes and limits.
 - [sources/](sources/) preserves the text and public page captures used for the comparison, including the council issues and current faction sheets.
-- [change-index.json](change-index.json) records 172 authored topics, examples and reference entries. That count is not a count of distinct mechanical changes.
+- [change-index.json](change-index.json) records 163 authored topics, examples and reference entries. That count is not a count of distinct mechanical changes.
 - [authoring/coverage.json](authoring/coverage.json) maps every indexed topic to its page and block.
-- [authoring/editorial-review.json](authoring/editorial-review.json) records the copy review and claims removed during the rules check.
+- [authoring/editorial-review.json](authoring/editorial-review.json) records the rules check and copy review. [The detailed edit record](authoring/copy-review-2026-10-27.json) shows the changes made after the reader review. The open questions appear together on page 30; affected sections use short page references.
 
 The five mine yields were checked against the published card faces. Their catalogue descriptions contain unrelated Discovery rules, so those descriptions were excluded as rules evidence.

@@ -1,5 +1,5 @@
 {
-  "manuscriptSha256": "f3905fd1b1d69c89542f1212294d1ed340841823dc9a9c948ac7f89b1438f1e7",
+  "manuscriptSha256": "b7671e15db3ab548fcf956650898e6b001ed650564566da9880fe1f6af34bf0d",
   "records": [
     {
       "id": "S01",
@@ -395,7 +395,7 @@
       "id": "K03",
       "page": "karama",
       "classification": "changed",
-      "topic": "Some windows close before commitment",
+      "topic": "Some windows close before plans are locked",
       "sources": "Quickstart v0.8, Full Phase Karama and Battle Prescience; #1831 full-phase confirmation, 5 October 2026; current faction sheets; #1852.",
       "location": {
         "pageId": "ZN7H",
@@ -431,19 +431,6 @@
       }
     },
     {
-      "id": "K06",
-      "page": "karama",
-      "classification": "changed",
-      "topic": "Reference status",
-      "sources": "Quickstart v0.8, Full Phase Karama and Battle Prescience; #1831 full-phase confirmation, 5 October 2026; current faction sheets; #1852.",
-      "location": {
-        "pageId": "ZN7H",
-        "blockId": "JZQU",
-        "pageNumber": 7,
-        "anchor": "karama"
-      }
-    },
-    {
       "id": "B01",
       "page": "battle-sequence",
       "classification": "changed",
@@ -460,7 +447,7 @@
       "id": "B02",
       "page": "battle-sequence",
       "classification": "changed",
-      "topic": "Commit the disclosed choices",
+      "topic": "Keep the disclosed choices",
       "sources": "Quickstart v0.8, Combat Steps and Common Rules Clarifications; approved combat rulings in #1831, 5 October 2026; Dream Rulebook Edition 3 pp33-39; #1839 and #1841.",
       "location": {
         "pageId": "6AYZ",
@@ -473,7 +460,7 @@
       "id": "B03",
       "page": "battle-sequence",
       "classification": "changed",
-      "topic": "During commitment",
+      "topic": "Lock the plans",
       "sources": "Quickstart v0.8, Combat Steps and Common Rules Clarifications; approved combat rulings in #1831, 5 October 2026; Dream Rulebook Edition 3 pp33-39; #1839 and #1841.",
       "location": {
         "pageId": "6AYZ",
@@ -517,19 +504,6 @@
       "location": {
         "pageId": "6AYZ",
         "blockId": "CV5U",
-        "pageNumber": 8,
-        "anchor": "battle-sequence"
-      }
-    },
-    {
-      "id": "B07",
-      "page": "battle-sequence",
-      "classification": "changed",
-      "topic": "Exceptional results",
-      "sources": "Quickstart v0.8, Combat Steps and Common Rules Clarifications; approved combat rulings in #1831, 5 October 2026; Dream Rulebook Edition 3 pp33-39; #1839 and #1841.",
-      "location": {
-        "pageId": "6AYZ",
-        "blockId": "MBWZ",
         "pageNumber": 8,
         "anchor": "battle-sequence"
       }
@@ -587,19 +561,6 @@
       }
     },
     {
-      "id": "C05",
-      "page": "new-battle-cards",
-      "classification": "new",
-      "topic": "Spite and Fanatical Tactics",
-      "sources": "Quickstart v0.8, Mercenaries and Supplies; Dream Rulebook Edition 3 pp50,65-66; #1840 and #1842.",
-      "location": {
-        "pageId": "DXEC",
-        "blockId": "4GWY",
-        "pageNumber": 9,
-        "anchor": "new-battle-cards"
-      }
-    },
-    {
       "id": "C06",
       "page": "conditioning",
       "classification": "changed",
@@ -621,19 +582,6 @@
       "location": {
         "pageId": "BNSP",
         "blockId": "V3L4",
-        "pageNumber": 10,
-        "anchor": "conditioning"
-      }
-    },
-    {
-      "id": "C08",
-      "page": "conditioning",
-      "classification": "changed",
-      "topic": "Against Guild Retreat",
-      "sources": "Quickstart v0.8, Break Conditioning, Atomics, Bidding and Common Rules Clarifications; Dream Rulebook Edition 3 pp19,39,51,67; #1839.",
-      "location": {
-        "pageId": "BNSP",
-        "blockId": "V7D8",
         "pageNumber": 10,
         "anchor": "conditioning"
       }
@@ -785,7 +733,7 @@
       "id": "T03",
       "page": "truthtrance",
       "classification": "changed",
-      "topic": "Honor the earlier commitment",
+      "topic": "Honor the earlier promise",
       "sources": "GF9 FAQ November 2020 p8; Quickstart v0.8, Truthtrance Logic; #1831 pause ruling, 5 October 2026; #1851, 14 October 2026.",
       "location": {
         "pageId": "BJJ8",
@@ -912,19 +860,6 @@
       }
     },
     {
-      "id": "V06",
-      "page": "tech-tokens",
-      "classification": "new",
-      "topic": "Three narrow questions",
-      "sources": "Quickstart v0.8, Tech Tokens; GF9 Ixians & Tleilaxu pp4-5; Dream Rulebook Edition 3 pp46-47; #1844, #1845 and #1861.",
-      "location": {
-        "pageId": "KFFE",
-        "blockId": "9MPG",
-        "pageNumber": 13,
-        "anchor": "tech-tokens"
-      }
-    },
-    {
       "id": "V07",
       "page": "victory",
       "classification": "changed",
@@ -990,19 +925,6 @@
       }
     },
     {
-      "id": "V12",
-      "page": "victory",
-      "classification": "changed",
-      "topic": "No automatic Guild or Fremen victory",
-      "sources": "Quickstart v0.8, Stronghold Shield Wall and Multiple Win Conditions; #1846, #1847, #1848 and #1849, with rulings through 14 October 2026.",
-      "location": {
-        "pageId": "4Z8A",
-        "blockId": "S8ME",
-        "pageNumber": 14,
-        "anchor": "victory"
-      }
-    },
-    {
       "id": "V13",
       "page": "sudden-death",
       "classification": "later-ruling",
@@ -1063,19 +985,6 @@
       "location": {
         "pageId": "HYQQ",
         "blockId": "M2LA",
-        "pageNumber": 15,
-        "anchor": "sudden-death"
-      }
-    },
-    {
-      "id": "V18",
-      "page": "sudden-death",
-      "classification": "later-ruling",
-      "topic": "Adopted, not yet playtested",
-      "sources": "#1848, confirmed procedure and correction, 14 October 2026; #1847 victory order.",
-      "location": {
-        "pageId": "HYQQ",
-        "blockId": "K5G9",
         "pageNumber": 15,
         "anchor": "sudden-death"
       }
@@ -1149,7 +1058,7 @@
       "id": "A06",
       "page": "atreides",
       "classification": "faction",
-      "topic": "Carryall counts",
+      "topic": "Carryall income and victory",
       "sources": "Quickstart v0.8, Atreides; current Atreides sheet; #1850 and #1845.",
       "location": {
         "pageId": "DF9E",
@@ -1211,19 +1120,6 @@
       }
     },
     {
-      "id": "H05",
-      "page": "harkonnen",
-      "classification": "faction",
-      "topic": "Supplies conflict",
-      "sources": "Quickstart v0.8, Harkonnen and Common Rules Clarifications; current Harkonnen and Fremen sheets; #1840.",
-      "location": {
-        "pageId": "8ZT2",
-        "blockId": "38DV",
-        "pageNumber": 17,
-        "anchor": "harkonnen"
-      }
-    },
-    {
       "id": "H06",
       "page": "harkonnen",
       "classification": "faction",
@@ -1240,7 +1136,7 @@
       "id": "H07",
       "page": "harkonnen",
       "classification": "faction",
-      "topic": "Your captured leader is not safe from its owner",
+      "topic": "A captive's owner can call it traitor",
       "sources": "Quickstart v0.8, Harkonnen and Common Rules Clarifications; current Harkonnen and Fremen sheets; #1840.",
       "location": {
         "pageId": "8ZT2",
@@ -1331,7 +1227,7 @@
       "id": "G01",
       "page": "guild",
       "classification": "faction",
-      "topic": "You must seek a victory",
+      "topic": "Victory",
       "sources": "GF9 2019 p19 and November 2020 FAQ pp5,9; Quickstart v0.8, Guild; current Guild sheet; #1839, #1841 and #1848.",
       "location": {
         "pageId": "RVW6",
@@ -1396,7 +1292,7 @@
       "id": "G06",
       "page": "guild",
       "classification": "faction",
-      "topic": "Retreat priority and aftermath",
+      "topic": "Retreat exceptions",
       "sources": "GF9 2019 p19 and November 2020 FAQ pp5,9; Quickstart v0.8, Guild; current Guild sheet; #1839, #1841 and #1848.",
       "location": {
         "pageId": "RVW6",
@@ -1604,7 +1500,7 @@
       "id": "BG02",
       "page": "bene-gesserit",
       "classification": "faction",
-      "topic": "Change a territory's posture at the phase start",
+      "topic": "Turn advisors into fighters at the phase start",
       "sources": "GF9 November 2020 FAQ pp4-5,9; Quickstart v0.8, Bene Gesserit; current sheet; #1847 and #1849.",
       "location": {
         "pageId": "86VU",
@@ -1617,7 +1513,7 @@
       "id": "BG03",
       "page": "bene-gesserit",
       "classification": "faction",
-      "topic": "Troops adopt the destination posture",
+      "topic": "Joining advisors or fighters",
       "sources": "GF9 November 2020 FAQ pp4-5,9; Quickstart v0.8, Bene Gesserit; current sheet; #1847 and #1849.",
       "location": {
         "pageId": "86VU",
@@ -1630,7 +1526,7 @@
       "id": "BG04",
       "page": "bene-gesserit",
       "classification": "faction",
-      "topic": "Reinforcement is not intrusion",
+      "topic": "Flip when a different faction enters",
       "sources": "GF9 November 2020 FAQ pp4-5,9; Quickstart v0.8, Bene Gesserit; current sheet; #1847 and #1849.",
       "location": {
         "pageId": "86VU",
@@ -2111,7 +2007,7 @@
       "id": "Q01",
       "page": "questions",
       "classification": "unresolved",
-      "topic": "Before setup",
+      "topic": "Setup",
       "sources": "Council tracker #1831 and linked questions, checked 27 October 2026.",
       "location": {
         "pageId": "PLT8",
@@ -2124,7 +2020,7 @@
       "id": "Q02",
       "page": "questions",
       "classification": "unresolved",
-      "topic": "Before the affected play",
+      "topic": "Spice and movement",
       "sources": "Council tracker #1831 and linked questions, checked 27 October 2026.",
       "location": {
         "pageId": "PLT8",
@@ -2137,7 +2033,7 @@
       "id": "Q03",
       "page": "questions",
       "classification": "unresolved",
-      "topic": "Before the affected battle",
+      "topic": "Battle",
       "sources": "Council tracker #1831 and linked questions, checked 27 October 2026.",
       "location": {
         "pageId": "PLT8",
@@ -2150,24 +2046,11 @@
       "id": "Q04",
       "page": "questions",
       "classification": "unresolved",
-      "topic": "Six worms is settled",
+      "topic": "Six Shai-Hulud cards",
       "sources": "Council tracker #1831 and linked questions, checked 27 October 2026.",
       "location": {
         "pageId": "PLT8",
         "blockId": "QU47",
-        "pageNumber": 30,
-        "anchor": "questions"
-      }
-    },
-    {
-      "id": "Q05",
-      "page": "questions",
-      "classification": "unresolved",
-      "topic": "Scope of this draft",
-      "sources": "Council tracker #1831 and linked questions, checked 27 October 2026.",
-      "location": {
-        "pageId": "PLT8",
-        "blockId": "366U",
         "pageNumber": 30,
         "anchor": "questions"
       }
@@ -2199,19 +2082,6 @@
       }
     },
     {
-      "id": "SRC03",
-      "page": "sources",
-      "classification": "sources",
-      "topic": "Current decisions",
-      "sources": "",
-      "location": {
-        "pageId": "JVHW",
-        "blockId": "EF92",
-        "pageNumber": 31,
-        "anchor": "sources"
-      }
-    },
-    {
       "id": "SRC04",
       "page": "sources",
       "classification": "sources",
@@ -2235,6 +2105,19 @@
         "blockId": "GGL7",
         "pageNumber": 31,
         "anchor": "sources"
+      }
+    },
+    {
+      "id": "Q00",
+      "page": "questions",
+      "classification": "open-question",
+      "topic": "Before you play",
+      "sources": "Council tracker #1831 and linked unresolved questions.",
+      "location": {
+        "pageId": "PLT8",
+        "blockId": "ZJR8",
+        "pageNumber": 30,
+        "anchor": "questions"
       }
     }
   ],

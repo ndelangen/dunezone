@@ -19,5 +19,20 @@
     "usesExistingBlocks": true,
     "noNewArtwork": true
   },
-  "remainingLimits": "Outstanding source decisions are listed on the setup page and in the appendix. This is a review draft, not a claim that the rule set has no unresolved cases."
+  "remainingLimits": "Outstanding source decisions are listed on the setup page and in the appendix. This is a review draft, not a claim that the rule set has no unresolved cases.",
+  "readerReview": {
+    "date": "2026-10-27",
+    "record": "copy-review-2026-10-27.json",
+    "changes": [
+      "Collected the fourteen unresolved questions on page 30 and removed issue numbers from rules pages.",
+      "Removed source-checking narration, repeated warnings and repeated open-question explanations.",
+      "Replaced posture with advisors and fighters, and abstract plan commitment with locking plans.",
+      "Rewrote the Hajr sentence and battle-plan inspection order.",
+      "Preserved the worked examples and the conditions on rule timing and victory totals."
+    ],
+    "ruleChecks": [
+      "Kept the source wording that Carryall cannot be lost; did not infer a separate trading rule.",
+      "Kept the Infiltration table condition about token and Shield Wall contributions that survive a tie."
+    ]
+  }
 }
