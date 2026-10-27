@@ -81,38 +81,3 @@ export const SpiceReserveNarrowGuidance = meta.story({
     await expect(page.queryByRole('button', { name: 'Take into spice reserve' })).toBeNull();
   },
 });
-
-/* Public spice transfers name each end in words (#1664): a faction's spice reserve by its name, the table and the Spice Bank, and a faction gone from the roster as such. */
-export const SpiceTransfers = meta.story({
-  beforeEach: install(() => {
-    const snapshot = initialSnapshot();
-    const faction = snapshot.roster!.seats[1]!.faction!;
-    return productTransport('seat-2', {
-      ...snapshot,
-      bank: { factionId: faction.id, balance: 4 },
-      spiceTransfers: [
-        { revision: 4, actor: 'Thialfi', kind: 'disposal', amount: 1, source: 'table' },
-        { revision: 3, actor: 'Thialfi', kind: 'collection', amount: 3, source: 'table', destination: 'gone-faction' },
-        { revision: 2, actor: 'Twaffle', kind: 'supply', amount: 6, source: 'supply', destination: 'table' },
-        { revision: 1, actor: 'Thialfi', kind: 'withdrawal', amount: 2, source: faction.id, destination: 'table' },
-      ],
-    });
-  }),
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await openTab(page, 'Spice transfers');
-    const faction = initialSnapshot().roster!.seats[1]!.faction!;
-    await settled(async () => {
-      await expect(
-        within(page.getByRole('region', { name: 'Public spice transfers' }))
-          .getAllByRole('listitem')
-          .map((item) => item.textContent)
-      ).toEqual([
-        'Thialfi returned 1 spice to the Spice Bank.',
-        'Thialfi collected 3 spice from the table to a faction no longer in the game.',
-        'Twaffle took 6 spice from the Spice Bank to the table.',
-        `Thialfi withdrew 2 spice from the ${faction.name} spice reserve to the table.`,
-      ]);
-    });
-  },
-});

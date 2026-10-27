@@ -1,11 +1,15 @@
 import { NumberInput } from '@mantine/core';
-import { MAX_LAST_TURN, MIN_LAST_TURN, lastTurnOf } from '@shared/play/lastTurn';
+import { MAX_LAST_TURN, MIN_LAST_TURN } from '@shared/play/lastTurn';
 import { Section } from '@ui/block/Section';
 import { useEffect, useRef, useState } from 'react';
 
-import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
-
-type Props = { client: TableSession; table: TableProjection };
+export type GameLengthPanelProps = Readonly<{
+  /** The turn the table has as its last. */
+  lastTurn: number;
+  disabled: boolean;
+  /** Sets a new last turn, sent once the player leaves the field. */
+  onLastTurn: (turn: number) => void;
+}>;
 
 /** A typed last turn, held within the allowed range as the field shows it, when the table does not already have it; else null. */
 function changedTurn(draft: number | string, current: number) {
@@ -18,8 +22,7 @@ function changedTurn(draft: number | string, current: number) {
 }
 
 /** The turn the game ends after, which the turn wheel counts up to; play carries on past it if the table wants. */
-export function LastTurnSettings({ client, table }: Props) {
-  const lastTurn = lastTurnOf(table.snapshot);
+export function GameLengthPanel({ lastTurn, disabled, onLastTurn }: GameLengthPanelProps) {
   const [draft, setDraft] = useState<number | string>(lastTurn);
   /* Another player's change replaces the shown turn, but never one this player is still typing; leaving the field settles it. */
   const editing = useRef(false);
@@ -37,7 +40,7 @@ export function LastTurnSettings({ client, table }: Props) {
         min={MIN_LAST_TURN}
         max={MAX_LAST_TURN}
         value={draft}
-        disabled={!table.canInteract || !table.snapshot.bank}
+        disabled={disabled}
         onChange={(value) => {
           edited.current = true;
           setDraft(value);
@@ -53,7 +56,7 @@ export function LastTurnSettings({ client, table }: Props) {
             setDraft(lastTurn);
             return;
           }
-          void client.command({ kind: 'last-turn', turn: next });
+          onLastTurn(next);
         }}
       />
     </Section>

@@ -14,7 +14,7 @@ const CLASSIFICATIONS = {
   deletion: { label: 'Deleted', color: 'gray' },
   seat: { label: 'Seat', color: 'blue' },
   vote: { label: 'Vote', color: 'confirm' },
-  'bug-report': { label: 'Bug report', color: 'caution' },
+  'bug-report': { label: 'Bug report', color: 'orange' },
 } as const satisfies Record<LogClass, { label: string; color: string }>;
 
 const TITLES = { game: 'Game log', audit: 'Audit log' } as const satisfies Record<LogTab, string>;

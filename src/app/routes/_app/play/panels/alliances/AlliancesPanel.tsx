@@ -35,39 +35,40 @@ export function AlliancesPanel({ rows, disabled, onAction }: AlliancesPanelProps
     <Section hiddenHeading title="Alliances" description={ALLIANCES_HELP}>
       <Stack gap="xs">
         {rows.map((row) => (
-          <Group key={row.token.id} justify="space-between" gap="sm" wrap="nowrap">
-            <Group gap="sm" wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
-              <span
-                style={{
-                  display: 'inline-flex',
-                  flexShrink: 0,
-                  ...allianceRingStyle(row.allies.flatMap((ally) => (ally.color ? [ally.color] : []))),
-                }}
-              >
-                <FactionTokenFace token={row.token} size={32} />
-              </span>
-              <Stack gap={0} style={{ minWidth: 0 }}>
-                <Text size="sm" fw={700} truncate>
-                  {row.token.name}
-                  {row.player ? ` · ${row.player}` : ' · Open seat'}
-                </Text>
+          <Group key={row.token.id} gap="sm" wrap="nowrap" align="flex-start">
+            <span
+              style={{
+                display: 'inline-flex',
+                flexShrink: 0,
+                ...allianceRingStyle(row.allies.flatMap((ally) => (ally.color ? [ally.color] : []))),
+              }}
+            >
+              <FactionTokenFace token={row.token} size={32} />
+            </span>
+            {/* The name has the row's width to itself; the status and the action share the line under it. */}
+            <Stack gap={2} style={{ flex: 1, minWidth: 0 }}>
+              <Text size="sm" fw={700} truncate>
+                {row.token.name}
+                {row.player ? ` · ${row.player}` : ' · Open seat'}
+              </Text>
+              <Group justify="space-between" gap="sm" wrap="nowrap">
                 <Group gap={6} wrap="nowrap" style={{ minWidth: 0 }}>
                   {row.allies.length > 0 && <FactionTokenGroup tokens={row.allies} size={18} />}
                   <Text size="xs" c="dimmed" truncate>
                     {row.status}
                   </Text>
                 </Group>
-              </Stack>
-            </Group>
-            <div style={{ flexShrink: 0 }}>
-              {row.relation && (
-                <AllianceRowAction
-                  relation={row.relation}
-                  disabled={disabled}
-                  onAction={(kind) => onAction(row.token.id, kind)}
-                />
-              )}
-            </div>
+                {row.relation && (
+                  <div style={{ flexShrink: 0 }}>
+                    <AllianceRowAction
+                      relation={row.relation}
+                      disabled={disabled}
+                      onAction={(kind) => onAction(row.token.id, kind)}
+                    />
+                  </div>
+                )}
+              </Group>
+            </Stack>
           </Group>
         ))}
       </Stack>

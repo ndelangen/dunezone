@@ -63,6 +63,13 @@ export const ALLIANCES_GUIDANCE: Guidance = {
   help: ALLIANCES_HELP,
 };
 
+export const TINTS_HELP = helpLines(
+  "Turn on a tint's paintbrush, then click territories on the board to add or remove them.",
+  'Escape stops painting.'
+);
+
+export const TINTS_GUIDANCE: Guidance = { description: 'Colour territories for everyone to see.', help: TINTS_HELP };
+
 export const SHARED_INVENTORY_HELP = 'Drag an item onto the table. It lands face down.';
 
 export const SHARED_INVENTORY_GUIDANCE: Guidance = {

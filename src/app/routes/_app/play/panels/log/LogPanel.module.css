@@ -3,11 +3,16 @@
   margin: 0;
   padding: 0;
   display: grid;
+  /* One column for every entry's badge, as wide as the widest, so each entry's text starts at the same edge. */
+  grid-template-columns: max-content 1fr;
   gap: var(--space-sm);
 }
 .entry {
+  grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: auto 1fr;
-  gap: var(--space-sm);
+  grid-template-columns: subgrid;
   align-items: baseline;
+}
+.entry > :first-child {
+  justify-self: start;
 }

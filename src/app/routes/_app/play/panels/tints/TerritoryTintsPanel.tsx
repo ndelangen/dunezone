@@ -5,6 +5,7 @@ import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { Eye, EyeOff } from 'lucide-react';
 
 import { NewTints, TintRow } from '../../../../../widgets/tabletop/TintControls';
+import { TINTS_HELP } from '../../multiplayer/panelGuidance';
 
 export type TintDraft = Omit<TerritoryTint, 'id'>;
 export type TintSetting = Extract<TerritoryTintAction, { kind: 'tint-set' }>['setting'];
@@ -42,22 +43,24 @@ function Presets({
     return null;
   }
   return (
-    <Group gap="xs">
-      <Text size="xs" c="dimmed" mr={4}>
+    <Stack gap={4}>
+      <Text size="xs" c="dimmed">
         Presets
       </Text>
-      {presets.map((preset) => (
-        <Button
-          key={preset.name}
-          size="compact-sm"
-          variant="default"
-          disabled={!enabled}
-          onClick={() => onCreate(preset)}
-        >
-          {preset.name}
-        </Button>
-      ))}
-    </Group>
+      <Group gap="xs">
+        {presets.map((preset) => (
+          <Button
+            key={preset.name}
+            size="compact-sm"
+            variant="default"
+            disabled={!enabled}
+            onClick={() => onCreate(preset)}
+          >
+            {preset.name}
+          </Button>
+        ))}
+      </Group>
+    </Stack>
   );
 }
 
@@ -74,10 +77,7 @@ export function TerritoryTintsPanel({
   onRemove,
 }: TerritoryTintsPanelProps) {
   return (
-    <Section
-      title="Territory tints"
-      description="Everyone sees these. Turn on a tint's paintbrush, then click territories on the board to add or remove them. Escape stops painting."
-    >
+    <Section hiddenHeading title="Territory tints" description={TINTS_HELP}>
       <Stack gap="xs">
         {rows.map(({ tint, summary, painting, removalAttempt }) => (
           <TintRow

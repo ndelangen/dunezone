@@ -5,24 +5,16 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { appContentTheme } from '@ui/theme';
 import { afterEach, expect, test, vi } from 'vite-plus/test';
 
-import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
-import { stubMatchMedia } from './jsdom.test.fixture';
-import { LastTurnSettings } from './LastTurnSettings';
+import { stubMatchMedia } from '../../multiplayer/jsdom.test.fixture';
+import { GameLengthPanel } from './GameLengthPanel';
 
 stubMatchMedia();
 afterEach(cleanup);
 
-function table(lastTurn: number) {
-  return {
-    canInteract: true,
-    snapshot: { lastTurn, bank: { factionId: 'atreides', balance: 0 } },
-  } as unknown as TableProjection;
-}
-
-function renderSettings(client: TableSession, lastTurn: number) {
+function renderSettings(onLastTurn: (turn: number) => void, lastTurn: number) {
   return (
     <MantineProvider theme={appContentTheme}>
-      <LastTurnSettings client={client} table={table(lastTurn)} />
+      <GameLengthPanel lastTurn={lastTurn} disabled={false} onLastTurn={onLastTurn} />
     </MantineProvider>
   );
 }
@@ -36,13 +28,12 @@ async function focus(field: HTMLElement) {
 }
 
 test('leaving the field untouched never undoes another player change made meanwhile', async () => {
-  const command = vi.fn();
-  const client = { command } as unknown as TableSession;
-  const { rerender } = render(renderSettings(client, 10));
+  const onLastTurn = vi.fn();
+  const { rerender } = render(renderSettings(onLastTurn, 10));
   const field = screen.getByRole('textbox', { name: 'Last turn' });
   await focus(field);
-  rerender(renderSettings(client, 7));
+  rerender(renderSettings(onLastTurn, 7));
   fireEvent.focusOut(field);
-  expect(command).not.toHaveBeenCalled();
+  expect(onLastTurn).not.toHaveBeenCalled();
   expect(field).toHaveProperty('value', '7');
 });

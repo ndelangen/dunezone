@@ -1,4 +1,4 @@
-import { Anchor, Button, Group, List, Loader, NumberInput, Select, Stack, Text, Tooltip } from '@mantine/core';
+import { Anchor, Button, Group, Loader, NumberInput, Select, Stack, Text, Tooltip } from '@mantine/core';
 import { signInReturnFrom } from '@shared/authDestination';
 import { tableHandlingOpen } from '@shared/play/admission';
 import { canLowerBid } from '@shared/play/bidding';
@@ -8,7 +8,6 @@ import type { PublicControls, SpawnSelection } from '@shared/play/inventory';
 import { lastTurnOf } from '@shared/play/lastTurn';
 import { phaseAt, tableProgressFor } from '@shared/play/phases';
 import { setupMapVisible, setupStep } from '@shared/play/setup';
-import type { SpiceTransfer } from '@shared/play/spiceReserve';
 import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
 import { drawableTechTokens } from '@shared/play/techToken';
 import { playUiColors } from '@shared/uiPalette';
@@ -44,7 +43,10 @@ import { SpiceReserve } from '../hand/SpiceReserve';
 import { ConnectedAlliancesPanel } from '../panels/alliances/useAlliancesPanel';
 import { ConnectedLogPanel } from '../panels/log/useLogPanel';
 import { PANEL_WINDOWS } from '../panels/panelWindows';
+import { ConnectedReplayPanel } from '../panels/replay/useReplayPanel';
+import { ConnectedGameLengthPanel } from '../panels/settings/useGameLengthPanel';
 import { ConnectedTerritoryTintsPanel } from '../panels/tints/useTerritoryTintsPanel';
+import { ConnectedSpiceTransfersPanel } from '../panels/transfers/useSpiceTransfersPanel';
 import { predictionCardInHand } from '../prediction/predictionCardInHand';
 import { TableWait } from '../TableWait';
 import { AllianceCoinsScene } from './AllianceCoins';
@@ -74,7 +76,6 @@ import {
   SHARED_INVENTORY_HELP,
   SPICE_GUIDANCE,
 } from './panelGuidance';
-import { PlaybackControls } from './PlaybackControls';
 import { publicControlsOf } from './publicControls';
 import { FactionInfo, PlayerChat, usePlayerWindows } from './RemovalVotes';
 import { useResultCelebration } from './resultCelebration';
@@ -83,7 +84,6 @@ import { nextPhaseStep, stageStatus, stageToolbar } from './StageHeader';
 import type { GameIdentity } from './StageHeader';
 import { SwapScene } from './SwapScene';
 import { factionName, factionOptions, isSpectator, stageInPlay, viewerFaction } from './tableFactions';
-import { TableSettings } from './TableSettings';
 import { ServerClockContext } from './useServerNow';
 import { initialWindowFocus, nextWindowFocus } from './windowFocus';
 import '../dune-play.css';
@@ -157,7 +157,7 @@ function ConnectionControls({ client, table, error }: ConnectionControlsProps) {
     >
       <Stack gap="sm">
         {error && <FormError title="From the table">{error}</FormError>}
-        <PlaybackControls client={client} table={table} />
+        <ConnectedReplayPanel client={client} table={table} />
       </Stack>
     </Section>
   );
@@ -653,68 +653,6 @@ function SpawnRequest({
   );
 }
 
-/*
- * A transfer's ends are a faction's id, the table or the Spice Bank, as the Worker's spice ledger records them (#1664).
- * The ledger stores the Spice Bank as `supply`; that literal is kept for stored data (see CONTEXT.md).
- */
-function spicePlace(labels: Readonly<Partial<Record<string, string>>>, place: string): string {
-  if (place === 'table') {
-    return 'the table';
-  }
-  if (place === 'supply') {
-    return 'the Spice Bank';
-  }
-  const name = labels[place];
-  return name ? `the ${name} spice reserve` : 'a faction no longer in the game';
-}
-
-/* The verb each stored transfer kind reads as; `supply` and `disposal` stay as stored, and both name the Spice Bank. */
-const SPICE_TRANSFER_VERBS: Readonly<Record<SpiceTransfer['kind'], string>> = {
-  withdrawal: 'withdrew',
-  collection: 'collected',
-  supply: 'took',
-  disposal: 'returned',
-};
-
-function spiceTransferText(labels: Readonly<Partial<Record<string, string>>>, transfer: SpiceTransfer): string {
-  const moved = `${transfer.actor} ${SPICE_TRANSFER_VERBS[transfer.kind]} ${transfer.amount} spice`;
-  if (transfer.kind === 'disposal') {
-    return `${moved} to the Spice Bank.`;
-  }
-  return `${moved} from ${spicePlace(labels, transfer.source)} to ${spicePlace(labels, transfer.destination ?? 'table')}.`;
-}
-
-function SpiceHistory({ client, table }: TableControlProps) {
-  const view = useSyncExternalStore(client.subscribe, client.getSnapshot);
-  const entries = view.spiceHistory?.entries ?? table.snapshot.spiceTransfers ?? [];
-  const more = view.spiceHistory?.more ?? entries.length === 20;
-  const labels = snapshotFactionLabels(table.snapshot);
-  return (
-    <Section hiddenHeading={Boolean(table.snapshot.stage)} title="Public spice transfers">
-      <Stack gap="xs">
-        {entries.length === 0 && <Text size="sm">No spice transfers yet.</Text>}
-        <List type="ordered" size="sm">
-          {entries.map((entry) => (
-            <List.Item key={entry.revision}>{spiceTransferText(labels, entry)}</List.Item>
-          ))}
-        </List>
-        <Group>
-          {more && (
-            <Button variant="default" onClick={() => client.readSpiceHistory(entries.at(-1)!.revision)}>
-              Earlier spice transfers
-            </Button>
-          )}
-          {view.spiceHistory && (
-            <Button variant="default" onClick={() => client.readSpiceHistory()}>
-              Latest spice transfers
-            </Button>
-          )}
-        </Group>
-      </Stack>
-    </Section>
-  );
-}
-
 /* A lost connection keeps the last table read-only, with recovery stated above it and explained on hover. */
 function ConnectionStatus({ table }: Readonly<{ table: TableProjection }>) {
   if (!table.reconnecting) {
@@ -890,11 +828,8 @@ function tableGroup({ client, table, error }: ConnectionControlsProps): TablePan
       ...(table.snapshot.stage === 'play'
         ? [
             {
-              key: 'settings',
-              label: 'Settings',
-              topic: 'controls' as const,
-              description: 'Game length.',
-              content: withTableError(error, <TableSettings client={client} table={table} />),
+              ...PANEL_WINDOWS.settings,
+              content: withTableError(error, <ConnectedGameLengthPanel client={client} table={table} />),
             },
           ]
         : []),
@@ -923,23 +858,17 @@ function historyGroup({ client, table, error }: ConnectionControlsProps, hasInve
               content: <BattleHistory table={table} />,
             },
             {
-              key: 'transfers',
-              label: 'Spice transfers',
-              topic: 'spice' as const,
-              description: 'Public spice transfers, newest first.',
-              content: <SpiceHistory client={client} table={table} />,
+              ...PANEL_WINDOWS.transfers,
+              content: <ConnectedSpiceTransfersPanel client={client} table={table} />,
             },
           ]
         : []),
       {
-        key: 'replay',
-        label: 'Replay',
-        topic: 'turn',
-        description: 'Browse saved phases and return to the live table.',
+        ...PANEL_WINDOWS.replay,
         content: (
           <>
             {error && !table.playback && <FormError title="From the table">{error}</FormError>}
-            <PlaybackControls client={client} table={table} />
+            <ConnectedReplayPanel client={client} table={table} />
           </>
         ),
       },
