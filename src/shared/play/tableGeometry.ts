@@ -1,3 +1,4 @@
+import { tokenShapeOfType } from '../assets/tokenOutline';
 import { isFactionToken } from './factionToken';
 import type { TablePiece, Vector3Tuple } from './model';
 import { POINTER_BODY_RADIUS, POINTER_HEIGHT, isPointerToken, pointerCovers, pointerDistanceTo } from './pointerToken';
@@ -66,6 +67,11 @@ export function troopScale(piece: Partial<Pick<TablePiece, 'kind' | 'stackKey'>>
 }
 
 /** Published square and rectangle tokens retain their whole face and aspect ratio. */
+/** Whether a token is a tech token, which the table cuts to the same ten-tooth gear its face is cut to everywhere else. */
+export function isGearToken(piece: Pick<TablePiece, 'items'>): boolean {
+  return tokenShapeOfType(piece.items[0]?.artwork?.type) === 'gear';
+}
+
 export function tokenBoxRatio(piece: Pick<TablePiece, 'items'>): number | null {
   const type = piece.items[0]?.artwork?.type;
   return type === 'token-plate' ? 1 : type === 'token-enhance' ? 372 / 600 : null;

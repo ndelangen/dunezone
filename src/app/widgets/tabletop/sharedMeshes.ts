@@ -15,6 +15,7 @@ import {
   ShapeGeometry,
 } from 'three';
 
+import { gearFaceGeometry, gearSlabGeometry } from './gearTokenGeometry';
 import { createRoundedRectangleShape } from './tablePlateGeometry';
 
 /*
@@ -65,6 +66,11 @@ function sharedMeshes() {
           .translate(0, 0, -height / 2)
           .rotateX(-Math.PI / 2)
       ),
+    /* A tech token's gear, its face (mirrored for the underside) and its slab, from `gearTokenGeometry`. */
+    gearPlane: (radius: number, mirrored = false) =>
+      cached(`gear-plane:${radius}:${mirrored}`, () => gearFaceGeometry(radius, mirrored)),
+    gearSlab: (radius: number, height: number) =>
+      cached(`gear-slab:${radius}:${height}`, () => gearSlabGeometry(radius, height)),
     circle: (radius: number, segments: number) =>
       cached(`circle:${radius}:${segments}`, () => new CircleGeometry(radius, segments)),
     ring: (inner: number, outer: number, segments: number) =>
