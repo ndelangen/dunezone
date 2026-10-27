@@ -31,7 +31,7 @@ import type { TableRoster } from '../../src/shared/play/schema';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import type { SpiceTransfer } from '../../src/shared/play/spiceReserve';
 import { stormOrder } from '../../src/shared/play/stormSector';
-import { isSwapAction, openSwapping } from '../../src/shared/play/swapping';
+import { isSwapAction } from '../../src/shared/play/swapping';
 import { isTableSeatCount } from '../../src/shared/play/tableSettings';
 import { eventId as tableEventId } from '../../src/shared/play/tableState';
 import type { RoomFrame } from '../../src/shared/play/updates';
@@ -43,7 +43,7 @@ import { Conversations } from './conversations';
 import { DirectoryOutbox } from './directory';
 import {
   applyDraftAction,
-  assignmentEvents,
+  dealtSnapshot,
   draftWithCatalogue,
   draftWithSetAside,
   rewrittenDraft,
@@ -906,25 +906,14 @@ export class GameSession {
 
   /** Records the public assignment and forms the opening swapping state inside the deal's transaction. */
   private recordAssignment(stored: StoredSnapshot, current: DraftState, deal: ReturnType<typeof dealSeats>) {
-    const { draft: _ended, ...rest } = stored;
-    const dealt = assignmentEvents(
-      rest,
-      deal.map((entry) => ({
-        seat: entry.seat,
-        factionName: current.factions.find((candidate) => candidate.id === entry.factionId)?.name ?? entry.factionId,
-        position: entry.position,
-      }))
-    );
-    const controls = this.participation.closeRosterRequests(dealt.controls ?? emptyPublicControls(), Date.now());
-    return this.withRoster({
-      ...dealt,
-      stage: 'swapping' as const,
-      swapping: {
-        ...openSwapping(crypto.randomUUID(), Date.now()),
+    return this.withRoster(
+      dealtSnapshot(stored, current, deal, {
+        seats: this.actors.seats(),
         tokens: this.assignmentTokens(deal),
-      },
-      controls: { ...controls, ready: [], seats: this.actors.seats() },
-    });
+        closeRosterRequests: (controls, now) => this.participation.closeRosterRequests(controls, now),
+        now: Date.now(),
+      })
+    );
   }
 
   completeAssignment(prepared: NonNullable<ReturnType<GameSession['prepareAssignment']>>) {

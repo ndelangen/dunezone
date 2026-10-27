@@ -1,16 +1,15 @@
 import { dealSeats, draftGates, isDraftAction, resolveFactionPool } from '@shared/play/drafting';
 import type { DraftAction } from '@shared/play/drafting';
-import { emptyPublicControls } from '@shared/play/inventory';
 import { isSeatAction } from '@shared/play/participation';
 import type { SeatAction } from '@shared/play/participation';
 import type { GameSnapshot, Viewer } from '@shared/play/protocol';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import type { TableRoster } from '@shared/play/schema';
-import { isSwapAction, openSwapping } from '@shared/play/swapping';
+import { isSwapAction } from '@shared/play/swapping';
 import type { SwapAction } from '@shared/play/swapping';
 
 import { ActorDirectory } from '../../../../../../workers/game/actors';
-import { applyDraftAction, assignmentEvents } from '../../../../../../workers/game/drafting';
+import { applyDraftAction, dealtSnapshot } from '../../../../../../workers/game/drafting';
 import type { PublicLog } from '../../../../../../workers/game/log';
 import { ownRequests, Participation } from '../../../../../../workers/game/participation';
 import type { SetupSupply } from '../../../../../../workers/game/setup';
@@ -191,27 +190,20 @@ export class LocalSession {
       );
     }
     this.seatCount = seated.length as TableRoster['seatCount'];
-    const { draft: _ended, ...rest } = snapshot;
-    const dealt = assignmentEvents(
-      rest,
-      deal.map((entry) => ({
-        seat: entry.seat,
-        factionName: draft.factions.find((candidate) => candidate.id === entry.factionId)?.name ?? entry.factionId,
-        position: entry.position,
-      }))
-    );
-    const controls = this.participation.closeRosterRequests(dealt.controls ?? emptyPublicControls(), now);
+    /* The recording's tokens stand in for the faction captures a game reads them from. */
     const tokens = Object.fromEntries(
       deal.flatMap((entry) => {
         const token = this.deal.find((recordedEntry) => recordedEntry.factionId === entry.factionId)?.token;
         return token ? [[entry.seat, token]] : [];
       })
     );
-    return this.withRoster({
-      ...dealt,
-      stage: 'swapping',
-      swapping: { ...openSwapping(crypto.randomUUID(), now), tokens },
-      controls: { ...controls, ready: [], seats: this.actors.seats() },
-    });
+    return this.withRoster(
+      dealtSnapshot(snapshot, draft, deal, {
+        seats: this.actors.seats(),
+        tokens,
+        closeRosterRequests: (controls, at) => this.participation.closeRosterRequests(controls, at),
+        now,
+      })
+    );
   }
 }
