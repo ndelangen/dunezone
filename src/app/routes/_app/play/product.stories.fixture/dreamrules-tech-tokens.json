@@ -1,0 +1,122 @@
+{
+  "bundle": {
+    "id": "ns70qxne5z3ggbewfacsjbjck98cx43w",
+    "slug": "dreamrules-techtokens",
+    "name": "Dreamrules Techtokens"
+  },
+  "readAt": "2026-10-27T11:35:32Z",
+  "tokens": [
+    {
+      "assetId": "ns74570x129hxa7g1fmbd7h6bx8cwcg7",
+      "slug": "water-stealing",
+      "name": "Water Stealing",
+      "type": "token-tech",
+      "about": "This tech token triggers when any leader (including your own) is send to the Tleilaxu tanks.\n\nSpice on the token goes with the token if it's stolen during the Battle phase.",
+      "backMode": "same",
+      "published": {
+        "url": "https://dune.zone/published/gear-tokens/ns74570x129hxa7g1fmbd7h6bx8cwcg7/token.jpg?v=05c5b120-d500-4adc-803e-25e05301c498",
+        "contentType": "image/jpeg",
+        "bytes": 57560,
+        "sha256": "602b9a9758c2f2f021e975e72bfbd68839f4504a3f691b7e3a76410012b64253",
+        "revision": "05c5b120-d500-4adc-803e-25e05301c498",
+        "file": "tech-water-stealing.jpg"
+      }
+    },
+    {
+      "assetId": "ns7chscma9zd7r0t2v0yg8aw9x8fnbsx",
+      "slug": "heighliners",
+      "name": "Heighliners",
+      "type": "token-tech",
+      "about": "Triggers when a faction other than the Spacing Guild ships forces.",
+      "backMode": "same",
+      "published": {
+        "url": "https://dune.zone/published/gear-tokens/ns7chscma9zd7r0t2v0yg8aw9x8fnbsx/token.jpg?v=c75f2546-aae8-4c61-8d82-9519617cc5fe",
+        "contentType": "image/jpeg",
+        "bytes": 27349,
+        "sha256": "08690418600476f82f60d1b9defdaa5ae8cd257d0c6b21161da682d28097c444",
+        "revision": "c75f2546-aae8-4c61-8d82-9519617cc5fe",
+        "file": "tech-heighliners.jpg"
+      }
+    },
+    {
+      "assetId": "ns7cxf0zc8jywhvg677k2qeh258fn2yz",
+      "slug": "tleilaxu-tanks",
+      "name": "Tleilaxu Tanks",
+      "type": "token-tech",
+      "about": "Triggers when a faction other than Bene Tleilax revives forces.",
+      "backMode": "same",
+      "published": {
+        "url": "https://dune.zone/published/gear-tokens/ns7cxf0zc8jywhvg677k2qeh258fn2yz/token.jpg?v=f34ed8a1-363f-4e54-9f53-d69684e25e54",
+        "contentType": "image/jpeg",
+        "bytes": 30398,
+        "sha256": "e7b854c74e15fde1e3b7add6faf18016a9c052ba3c196c311c4f7436945eabb7",
+        "revision": "f34ed8a1-363f-4e54-9f53-d69684e25e54",
+        "file": "tech-tleilaxu-tanks.jpg"
+      }
+    },
+    {
+      "assetId": "ns745bwpcpcmq9e0m7g85wndk18fnddv",
+      "slug": "spice-production",
+      "name": "Spice Production",
+      "type": "token-tech",
+      "about": "Triggers when a faction other than Bene Gesserit takes CHOAM Charity.",
+      "backMode": "same",
+      "published": {
+        "url": "https://dune.zone/published/gear-tokens/ns745bwpcpcmq9e0m7g85wndk18fnddv/token.jpg?v=7903852d-d891-49e5-a259-2e62bd0b632a",
+        "contentType": "image/jpeg",
+        "bytes": 38807,
+        "sha256": "83f3bd60698c7e2cb67ffd7bd8105fd0af7c93832f7913b527a1fe79add693e7",
+        "revision": "7903852d-d891-49e5-a259-2e62bd0b632a",
+        "file": "tech-spice-production.jpg"
+      }
+    },
+    {
+      "assetId": "ns78ymrv7y2tvynaxgj1y9na4s8fmzen",
+      "slug": "imperial-supplies",
+      "name": "Imperial Supplies",
+      "type": "token-tech",
+      "about": "Triggers when a faction other than the Emperor buys a Treachery Card.",
+      "backMode": "same",
+      "published": {
+        "url": "https://dune.zone/published/gear-tokens/ns78ymrv7y2tvynaxgj1y9na4s8fmzen/token.jpg?v=484b2c7a-14c8-4472-93f7-9b57f7068d1a",
+        "contentType": "image/jpeg",
+        "bytes": 34111,
+        "sha256": "f5e6e63cb3df9eee8d14fac80d59c83faf37d17a0846e2b60d5bb8687219d3cf",
+        "revision": "484b2c7a-14c8-4472-93f7-9b57f7068d1a",
+        "file": "tech-imperial-supplies.jpg"
+      }
+    },
+    {
+      "assetId": "ns78k2n1d20v5c2vqfhj1b0pax8fmxrb",
+      "slug": "spice-collection",
+      "name": "Spice Collection",
+      "type": "token-tech",
+      "about": "Triggers when any faction collects spice from a sand territory.",
+      "backMode": "same",
+      "published": {
+        "url": "https://dune.zone/published/gear-tokens/ns78k2n1d20v5c2vqfhj1b0pax8fmxrb/token.jpg?v=e149437a-de87-4a40-beb0-24e75f7ad351",
+        "contentType": "image/jpeg",
+        "bytes": 36415,
+        "sha256": "1d4cabc36db54455c15a9ca282e8c4bb5920de66ccb1e2efffab74893af8435a",
+        "revision": "e149437a-de87-4a40-beb0-24e75f7ad351",
+        "file": "tech-spice-collection.jpg"
+      }
+    },
+    {
+      "assetId": "ns76r5pfvrpfg36w91kqdvdzws8fme5p",
+      "slug": "customs",
+      "name": "Customs",
+      "type": "token-tech",
+      "about": "Triggers when a bribe is paid between factions other than the token holder.",
+      "backMode": "same",
+      "published": {
+        "url": "https://dune.zone/published/gear-tokens/ns76r5pfvrpfg36w91kqdvdzws8fme5p/token.jpg?v=06f5e12b-677a-4c9f-bb4a-1df0614ef516",
+        "contentType": "image/jpeg",
+        "bytes": 26185,
+        "sha256": "904f159c7abdf59f39370c9c2c5e3e5fd8444ee65a05f0ebe3fbabe65a9dd623",
+        "revision": "06f5e12b-677a-4c9f-bb4a-1df0614ef516",
+        "file": "tech-customs.jpg"
+      }
+    }
+  ]
+}
