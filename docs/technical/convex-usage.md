@@ -44,9 +44,14 @@ Ordinary releases should preserve dev's records and skip completed migrations.
 
 ## Read regression budgets
 
-Catalogue cleanup and verification check a source once across all its list entries. The source check
-still covers every list, including stale or duplicate entries. A source with ten list entries and
-220 KiB of authored text stays below a 512 KiB read budget for each migration batch.
+Catalogue cleanup and verification select one entry to check all of a source's lists, avoiding the
+same full source check per list. The check still covers stale and duplicate entries. A source with
+ten list entries and 220 KiB of authored text stays below a 512 KiB read budget for each batch.
+
+The [backend benchmark](./convex-catalogue-migration-benchmark.json) restored the same fixture before
+each version. Combined migration reads fell from 5,988,238 to 762,834 bytes, with the same write
+volume. Repeating the baseline reproduced its counters exactly. Compare the first scheduled refresh
+through the daily usage reports before translating this fixture result into monthly savings.
 
 `convex/assets.boardListings.test.ts` caps backend reads at 64 KiB for listings with real Arrakis
 geometry, including a ten-board catalogue. It covers asset landing, numbered catalogue, legacy
