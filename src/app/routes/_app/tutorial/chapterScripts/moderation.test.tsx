@@ -1,11 +1,18 @@
 /* @vitest-environment jsdom */
 
+import { MantineProvider } from '@mantine/core';
 import type { GameSnapshot } from '@shared/play/protocol';
+import { cleanup, render } from '@testing-library/react';
+import { appContentTheme } from '@ui/theme';
 import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
 import { FACTION_INFO } from '../../play/compass/windows';
+import { FactionInfoHeader } from '../../play/multiplayer/FactionInfoHeader';
+import { stubMatchMedia } from '../../play/multiplayer/jsdom.test.fixture';
 import type { TablePlayers } from './chapterScript';
 import { moderation } from './moderation';
+
+stubMatchMedia();
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
@@ -57,14 +64,34 @@ test('the first step waits for the Harkonnen player’s information, not another
   const steps = moderation.tasks(() => view, players);
   const open = steps.find((step) => step.id === 'open')!;
   const start = steps.find((step) => step.id === 'start')!;
-  const info = (seat: string) =>
-    `<div data-window="${FACTION_INFO}"><div data-faction-info-seat="${seat}"><button aria-label="Start removal vote"></button></div></div>`;
+  /* The header the table renders, named as it names a seat, so the guide reads what a player sees rather than markup of its own. */
+  const info = (seatId: string, faction: string) =>
+    render(
+      <MantineProvider theme={appContentTheme} forceColorScheme="light">
+        <div data-window={FACTION_INFO}>
+          <FactionInfoHeader
+            model={{
+              token: null,
+              name: 'Thialfi',
+              faction,
+              seatId,
+              seat: seatId.replace('seat-', 'Seat '),
+              own: false,
+              alliance: null,
+              page: null,
+              removal: { start: vi.fn() },
+            }}
+          />
+        </div>
+      </MantineProvider>
+    );
   const anchor = () => (start.anchor.kind === 'page' ? start.anchor.element() : null);
-  document.body.innerHTML = info('seat-5');
+  info('seat-5', 'House Atreides');
   expect(open.done(open.begin(undefined as never), undefined as never)).toBe(false);
   expect(anchor()).toBeNull();
-  document.body.innerHTML = info('seat-2');
+  cleanup();
+  info('seat-2', 'House Harkonnen');
   expect(open.done(open.begin(undefined as never), undefined as never)).toBe(true);
   expect(anchor()?.closest('[data-faction-info-seat]')?.getAttribute('data-faction-info-seat')).toBe('seat-2');
-  document.body.innerHTML = '';
+  cleanup();
 });

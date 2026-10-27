@@ -207,7 +207,7 @@ function GameCard({ entry, gameLink }: Readonly<{ entry: LobbyEntry; gameLink: P
               {entry.seatsFilled} of {entry.seatCount} seated
             </Text>
             <Group justify="space-between" gap="xs" wrap="nowrap" pt="sm">
-              <Group gap={4} wrap="nowrap">
+              <Group gap="xs" wrap="nowrap">
                 <Clock size={12} color="var(--mantine-color-dimmed)" aria-hidden />
                 <Text size="xs" c="dimmed">
                   {formatRelativeDate(new Date(entry.lastActivityAt).toISOString())}

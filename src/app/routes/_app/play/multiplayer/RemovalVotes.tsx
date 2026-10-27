@@ -171,6 +171,7 @@ function PlayerInformation({ client, table, player, hasVote }: Props & Readonly<
     ),
     name: player.name,
     faction: faction?.name ?? null,
+    seatId: player.seat,
     seat: player.seat.replace('seat-', 'Seat '),
     own: player.seat === table.viewer.viewerSeat,
     alliance,

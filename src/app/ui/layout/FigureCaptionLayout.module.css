@@ -1,3 +1,9 @@
+/* The layout's own width decides whether the caption sits beneath the figure or beside it. */
+.root {
+  container: figure-caption / inline-size;
+  min-width: 0;
+}
+
 .layout {
   display: grid;
   gap: var(--space-sm);
@@ -10,8 +16,8 @@
   text-align: center;
 }
 
-/* In a one-column grid the figure stands beside its caption. */
-@container card-grid (width < 30rem) {
+/* Too narrow to stand the caption under a figure without a tall, thin column, so the figure stands beside it. */
+@container figure-caption (width < 20rem) {
   .layout {
     grid-template-columns: 8.5rem minmax(0, 1fr);
     align-items: center;

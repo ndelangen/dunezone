@@ -26,45 +26,38 @@ const meta = preview.meta({
     docs: {
       description: {
         component:
-          'A figure with its caption centred beneath it; in a one-column CardGrid the figure stands beside its caption instead.',
+          'A figure with its caption centred beneath it; under 20rem of its own width the figure stands beside its caption instead.',
       },
     },
   },
   render: () => figure,
 });
 
-/** On its own, the caption sits beneath the figure. */
+/** With room, the caption sits beneath the figure. */
 export const Stacked = meta.story({
+  decorators: [(Story) => <div style={{ width: '24rem' }}>{Story()}</div>],
   play: async ({ canvasElement }) => {
     await expectStackedSlots(canvasElement, ['figure', 'caption']);
   },
 });
 
-/** In a CardGrid narrow enough for one column, the figure stands beside its caption. */
-export const InANarrowGrid = meta.story({
-  render: () => (
-    <CardGrid aria-label="Cards">
-      <CardGrid.Item>{figure}</CardGrid.Item>
-    </CardGrid>
-  ),
-  decorators: [(Story) => <div style={{ width: '24rem' }}>{Story()}</div>],
+/** Under 20rem of its own width, the figure stands beside its caption. */
+export const Narrow = meta.story({
+  decorators: [(Story) => <div style={{ width: '18rem' }}>{Story()}</div>],
   play: async ({ canvasElement }) => {
     await expectSideBySideSlots(canvasElement, ['figure', 'caption']);
   },
 });
 
-/** In a CardGrid of two or more columns, the caption sits beneath the figure again. */
-export const InAWideGrid = meta.story({
+/** It answers to its own width, not to what holds it: in a grid cell of the same width it arranges the same. */
+export const NarrowInAGrid = meta.story({
   render: () => (
     <CardGrid aria-label="Cards">
       <CardGrid.Item>{figure}</CardGrid.Item>
-      <CardGrid.Item>
-        <LayoutSlotPlaceholder name="other" tone="secondary" minHeight={60} />
-      </CardGrid.Item>
     </CardGrid>
   ),
-  decorators: [(Story) => <div style={{ width: '40rem' }}>{Story()}</div>],
+  decorators: [(Story) => <div style={{ width: '18rem' }}>{Story()}</div>],
   play: async ({ canvasElement }) => {
-    await expectStackedSlots(canvasElement, ['figure', 'caption']);
+    await expectSideBySideSlots(canvasElement, ['figure', 'caption']);
   },
 });

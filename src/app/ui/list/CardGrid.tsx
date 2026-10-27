@@ -14,7 +14,6 @@ export interface CardGridProps {
  *
  * Callers own the cards;
  * this component owns that they are a list and how many sit in a row.
- * Its width is the `card-grid` container, which a card's own arrangement may read, as `FigureCaptionLayout` does.
  */
 export function CardGrid({ 'aria-label': ariaLabel, children }: CardGridProps) {
   return (

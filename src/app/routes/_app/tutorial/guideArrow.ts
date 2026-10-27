@@ -9,6 +9,8 @@
 
 export type Point = Readonly<{ x: number; y: number }>;
 export type Edges = Readonly<{ left: number; right: number; bottom: number }>;
+/** A box on the page the arrow should not cross, such as an open window. */
+export type Obstacle = Readonly<{ left: number; top: number; right: number; bottom: number }>;
 /** Where the arrow points: a spot, and the half size of the thing there, so the gap is kept from its edge, not its middle. */
 export type Target = Readonly<{ x: number; y: number; halfWidth: number; halfHeight: number }>;
 
@@ -203,6 +205,70 @@ function backwards(steps: readonly (readonly Point[])[]): Point[][] {
     result.push(step.length === 2 ? [step[0]!, end(steps[index - 1]!)] : [end(steps[index - 1]!)]);
   }
   return result;
+}
+
+/* How much of the segment from `from` to `to` runs through `box`, as a share of its length, by clipping it to the box's slabs. */
+function inside(from: Point, to: Point, box: Obstacle): number {
+  let enter = 0;
+  let leave = 1;
+  for (const [start, delta, low, high] of [
+    [from.x, to.x - from.x, box.left, box.right],
+    [from.y, to.y - from.y, box.top, box.bottom],
+  ] as const) {
+    if (Math.abs(delta) < 1e-9) {
+      if (start < low || start > high) {
+        return 0;
+      }
+      continue;
+    }
+    const a = (low - start) / delta;
+    const b = (high - start) / delta;
+    enter = Math.max(enter, Math.min(a, b));
+    leave = Math.min(leave, Math.max(a, b));
+  }
+  return Math.max(0, leave - enter);
+}
+
+/**
+ * Where along the band's edge the arrow leaves from so it crosses as little of `obstacles` as it can, none where there is a way, as near `preferred` as that allows.
+ * A box holding the target itself is not in the way.
+ */
+export function clearRoot(
+  band: Edges,
+  preferred: number,
+  target: Target,
+  obstacles: readonly Obstacle[],
+  margin: number
+): number {
+  /* Each box grows by the shaft's half width and a little, so the wedge's sides keep off it too, not just its line. */
+  const grow = NECK + 4;
+  const blocking = obstacles
+    .filter((box) => !(target.x >= box.left && target.x <= box.right && target.y >= box.top && target.y <= box.bottom))
+    .map((box) => ({ left: box.left - grow, top: box.top - grow, right: box.right + grow, bottom: box.bottom + grow }));
+  /* How far the arrow from `x` would run over the boxes, or nothing when the wedge could not be drawn from there at all. */
+  const overlap = (x: number) => {
+    const from = { x, y: band.bottom };
+    const distance = Math.hypot(target.x - x, target.y - band.bottom);
+    if (distance <= 0 || (target.y - band.bottom) / distance < 0.5) {
+      return Infinity;
+    }
+    return blocking.reduce((total, box) => total + inside(from, target, box) * distance, 0);
+  };
+  let best = preferred;
+  let least = overlap(preferred);
+  const low = band.left + margin;
+  const high = band.right - margin;
+  for (let offset = 8; least > 0 && offset <= high - low; offset += 8) {
+    for (const x of [preferred - offset, preferred + offset]) {
+      const over = x >= low && x <= high ? overlap(x) : Infinity;
+      /* A root nearer the preferred one wins unless a further one crosses clearly less. */
+      if (over < least - 1) {
+        best = x;
+        least = over;
+      }
+    }
+  }
+  return best;
 }
 
 /**

@@ -10,7 +10,7 @@ import type { Camera, Vector3Tuple } from 'three';
 import { useMotionAllowed } from '@app/styles/motion';
 
 import { ChapterComplete } from './ChapterComplete';
-import { guideShapePath, keepInView, transposed } from './guideArrow';
+import { clearRoot, guideShapePath, keepInView, transposed } from './guideArrow';
 import type { Target } from './guideArrow';
 import { ReadAloud } from './ReadAloud';
 import type { Box, TableLens } from './tableLens';
@@ -58,6 +58,12 @@ function place(anchor: GuideAnchor, shown: Box, table: TableLens | null): Target
   return table && point ? table.project(point, shown) : null;
 }
 
+/* The play table's open windows, which the arrow goes round rather than across. */
+const openWindows = (): Box[] =>
+  [...document.querySelectorAll('[data-window]')]
+    .map((window) => window.getBoundingClientRect())
+    .filter((box) => box.width > 0 && box.height > 0);
+
 /* The window right of the rail. */
 const windowBox = (rail: DOMRect | undefined): Box => ({
   left: rail?.right ?? 0,
@@ -87,7 +93,13 @@ function onScreen(element: Element | null, shown: Box): Target | null {
  * The arrow leaves the rail partway between the task's number and the spot, so it reads as coming from the instruction.
  * The outline is worked out as if the rail lay along the top of the window, then turned onto its side: mirrored across the diagonal.
  */
-function aim(paths: readonly (SVGPathElement | null)[], badge: DOMRect, rail: DOMRect, spot: Target | null) {
+function aim(
+  paths: readonly (SVGPathElement | null)[],
+  badge: DOMRect,
+  rail: DOMRect,
+  spot: Target | null,
+  windows: readonly Box[] = []
+) {
   const flip = (box: DOMRect) => new DOMRect(box.y, box.x, box.height, box.width);
   const along = spot && {
     x: spot.y,
@@ -103,8 +115,11 @@ function aim(paths: readonly (SVGPathElement | null)[], badge: DOMRect, rail: DO
   /* It runs out at least as steeply as it runs along the rail, so a target close beside the rail is not pointed at along its edge. */
   const drop = Math.max(0, (along?.y ?? 0) - edges.bottom);
   const steep = along ? clamp(midway, along.x - drop, along.x + drop) : midway;
+  const preferred = clamp(steep, edges.left + margin, edges.right - margin);
+  /* Open windows are turned onto their side with the rest, and the arrow leaves from wherever it can reach its spot without crossing one. */
+  const obstacles = windows.map((box) => ({ left: box.top, top: box.left, right: box.bottom, bottom: box.right }));
   const root = {
-    x: clamp(steep, edges.left + margin, edges.right - margin),
+    x: along ? clearRoot(edges, preferred, along, obstacles, margin) : preferred,
     y: edges.bottom,
   };
   const outline = transposed(guideShapePath(edges, root, along));
@@ -187,7 +202,7 @@ export function TutorialGuide({
       const box = rail.current?.getBoundingClientRect();
       /* With no number showing, as once the chapter is done, the arrow-less outline still needs a box to draw from. */
       if (box) {
-        aim([fill.current, edge.current], badge ?? box, box, spot);
+        aim([fill.current, edge.current], badge ?? box, box, spot, spot ? openWindows() : []);
       }
     };
     /* Once the chapter is done the rail stays, without its arrow. */

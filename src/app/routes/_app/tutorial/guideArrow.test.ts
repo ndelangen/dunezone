@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vite-plus/test';
 
-import { ARROW_GAP_PX, guideShapePath, keepInView, transposed } from './guideArrow';
+import { ARROW_GAP_PX, clearRoot, guideShapePath, keepInView, transposed } from './guideArrow';
 
 const band = { left: 0, right: 1440, bottom: 72 };
 const numbers = (path: string) => path.match(/-?\d+(\.\d+)?/g)!.map(Number);
@@ -85,4 +85,31 @@ describe('keepInView', () => {
 
 test('a transposed outline swaps every point across the diagonal, curves included', () => {
   expect(transposed('M -4.0 10.5 L 20.0 30.0 Q 1.0 2.0 3.0 4.0 Z')).toBe('M 10.5 -4.0 L 30.0 20.0 Q 2.0 1.0 4.0 3.0 Z');
+});
+
+/* An open window between the band and the spot: the arrow leaves from further along the band, so its line goes round the window. */
+describe('clearRoot', () => {
+  const target = { x: 700, y: 600, halfWidth: 20, halfHeight: 20 };
+  const window = { left: 520, top: 250, right: 760, bottom: 420 };
+
+  test('keeps the preferred root when nothing is in the way', () => {
+    expect(clearRoot(band, 700, target, [], 60)).toBe(700);
+    expect(clearRoot(band, 700, target, [{ left: 1000, top: 100, right: 1200, bottom: 300 }], 60)).toBe(700);
+  });
+
+  test('moves along the band until the line to the spot misses the window, as near the preferred root as it can', () => {
+    const root = clearRoot(band, 700, target, [window], 60);
+    expect(root).not.toBe(700);
+    /* The line from there passes the window, grown by the shaft's half width, on one side or the other. */
+    const at = (y: number) => root + ((target.x - root) * (y - band.bottom)) / (target.y - band.bottom);
+    for (let y = window.top - 13; y <= window.bottom + 13; y += 4) {
+      const x = at(y);
+      expect(x < window.left - 13 || x > window.right + 13).toBe(true);
+    }
+  });
+
+  test('does not count the window that holds the spot', () => {
+    const holding = { left: 600, top: 500, right: 800, bottom: 700 };
+    expect(clearRoot(band, 700, target, [holding], 60)).toBe(700);
+  });
 });
