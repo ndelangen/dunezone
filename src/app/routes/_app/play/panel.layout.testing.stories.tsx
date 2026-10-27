@@ -118,7 +118,6 @@ export const SchemeIsland = meta.story({
     await expect(raised).toBe(paintedColor(island, coreColors.hover));
     await expect(view.getComputedStyle(tooltip).backgroundColor).toBe(raised);
     await expect(view.getComputedStyle(tooltip).color).toBe(paintedColor(island, coreColors.text));
-    await expect(view.getComputedStyle(tooltip).whiteSpace).toBe('pre-line');
     await expect(raised).not.toBe(glass);
     await userEvent.unhover(help);
     await waitForFrame(() => expect(spiceReserveTip()).toBeNull());

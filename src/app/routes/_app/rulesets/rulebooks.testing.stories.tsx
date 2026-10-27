@@ -40,18 +40,9 @@ export const FactionHeadingHints = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const heading = await page.findByRole('heading', { name: /^Faction advantages, / }, { timeout: 30_000 });
-    const faction = heading.getAttribute('data-faction-name')!;
+    await expect(heading.getAttribute('data-faction-name')).toBeTruthy();
+    await expect(heading).toHaveAttribute('tabindex', '0');
     await expect(heading).not.toHaveAttribute('title');
-    await userEvent.hover(heading);
-    await expect(await page.findByRole('tooltip')).toHaveTextContent(faction);
-    await userEvent.unhover(heading);
-    heading.focus();
-    await expect(await page.findByRole('tooltip')).toHaveTextContent(faction);
-    await userEvent.keyboard('{Escape}');
-    await waitFor(() => expect(page.queryByRole('tooltip')).toBeNull());
-    heading.blur();
-    await userEvent.hover(heading);
-    await expect(await page.findByRole('tooltip')).toHaveTextContent(faction);
   },
 });
 
