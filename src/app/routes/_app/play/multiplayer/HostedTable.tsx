@@ -40,6 +40,8 @@ import { ConnectedSharedInventoryPanel } from '../panels/inventory/useSharedInve
 import { ConnectedLogPanel } from '../panels/log/useLogPanel';
 import { PANEL_WINDOWS } from '../panels/panelWindows';
 import { ConnectedReplayPanel } from '../panels/replay/useReplayPanel';
+import { ConnectedResultPanel, useDeclareChoice } from '../panels/result/useResultPanel';
+import type { DeclareChoice } from '../panels/result/useResultPanel';
 import { ConnectedGameLengthPanel } from '../panels/settings/useGameLengthPanel';
 import { ConnectedPrivateSideTablePanel } from '../panels/sideTable/usePrivateSideTablePanel';
 import { ConnectedSpiceReservePanel } from '../panels/spice/useSpiceReservePanel';
@@ -54,8 +56,7 @@ import { BidderScene, biddingPhase } from './Bidder';
 import { useBugReport } from './BugReport';
 import { OfflineConversations } from './Conversation';
 import { DraftingOverlay, DraftingPanel } from './Drafting';
-import { DetermineWinner, ResultControls, useDeclareChoice } from './GameResult';
-import type { DeclareChoice } from './GameResult';
+import { DetermineWinner } from './GameResult';
 import { GameRuntimeContext } from './gameRuntime';
 import { HandCountsScene } from './HandCounts';
 import {
@@ -64,7 +65,6 @@ import {
   phaseGuidance,
   PHASE_PREVIOUS,
   phaseHelp,
-  RESULT_GUIDANCE,
   setupGuidance,
   setupHelp,
 } from './panelGuidance';
@@ -504,11 +504,8 @@ function resultPanels({ client, table, error, declare }: ControlPanelsProps) {
   return resultFocus(table)
     ? [
         {
-          key: 'result',
-          label: 'Result',
-          topic: 'result' as const,
-          ...RESULT_GUIDANCE,
-          content: withTableError(error, <ResultControls client={client} table={table} declare={declare} />),
+          ...PANEL_WINDOWS.result,
+          content: withTableError(error, <ConnectedResultPanel client={client} table={table} declare={declare} />),
         },
       ]
     : [];
