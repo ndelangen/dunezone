@@ -123,15 +123,7 @@ export class LocalSession {
   /** One drafting, seat, trading or removal command, applied as the session commits it; a completed draft deals at once. */
   commit(snapshot: StoredSnapshot, viewer: Viewer, action: SessionAction, now: number): StoredSnapshot {
     if (isRemovalAction(action)) {
-      /* A ballot can decide the vote, and a removal vacates the seat as the session's own removal does. */
-      const applied = this.removal.apply(snapshot, viewer, action, now);
-      return this.withRoster(
-        this.removal.reconcile(applied, now, (before, userId, commandId) => {
-          const occupants = this.actors.seated();
-          const after = this.participation.remove(userId, before, now);
-          return this.swapping.settleParticipation({ before, after, commandId, actor: null, occupants }, () => now);
-        })
-      );
+      return this.withRoster(this.reconcileVotes(this.removal.apply(snapshot, viewer, action, now), now));
     }
     if (isDraftAction(action)) {
       const drafted = this.withRoster(
@@ -140,8 +132,11 @@ export class LocalSession {
       return this.dealIfReady(drafted, now);
     }
     if (isSwapAction(action)) {
-      return this.withRoster(
-        this.swapping.apply({ snapshot, viewer, action, commandId: `local-${snapshot.revision + 1}`, now })
+      return this.reconcileVotes(
+        this.withRoster(
+          this.swapping.apply({ snapshot, viewer, action, commandId: `local-${snapshot.revision + 1}`, now })
+        ),
+        now
       );
     }
     const occupants = this.actors.seated();
@@ -163,7 +158,19 @@ export class LocalSession {
       () => now
     );
     this.seatCount = Math.max(this.seatCount, this.sql.seats.length) as TableRoster['seatCount'];
-    return this.withRoster(settled);
+    return this.withRoster(this.reconcileVotes(settled, now));
+  }
+
+  /*
+   * After every seat, trading or removal commit, as the session reconciles them: a ballot can decide a vote, a vote
+   * whose target has left lapses, and a removal vacates the seat as the session's own removal does.
+   */
+  private reconcileVotes(snapshot: StoredSnapshot, now: number): StoredSnapshot {
+    return this.removal.reconcile(snapshot, now, (before, userId, commandId) => {
+      const occupants = this.actors.seated();
+      const after = this.participation.remove(userId, before, now);
+      return this.swapping.settleParticipation({ before, after, commandId, actor: null, occupants }, () => now);
+    });
   }
 
   /** Trading closes on its deadline as the session's alarm closes it. */

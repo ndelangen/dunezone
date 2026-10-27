@@ -165,6 +165,18 @@ describe('a tutorial table’s removal vote', () => {
     expect(table.refusal).toBeUndefined();
     expect(vote()).toBeUndefined();
     expect(table.seats()).not.toContain(target);
+    /* The seat it vacates shows as open, so a spectator can ask for it. */
+    expect(table.frame().snapshot.controls?.seats).not.toContain(target);
+  });
+
+  test('lapses when the player voted on leaves their seat', () => {
+    const [target] = table.seats().filter((seat) => seat !== table.seat);
+    act({ kind: 'removal-start', seat: target! });
+    expect(vote()).toBeDefined();
+    act({ kind: 'seat-depart' }, target);
+    expect(table.refusal).toBeUndefined();
+    expect(table.seats()).not.toContain(target);
+    expect(vote()).toBeUndefined();
   });
 
   test('fails as soon as enough players keep them that four yes votes cannot be reached', () => {
