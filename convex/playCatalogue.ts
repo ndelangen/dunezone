@@ -153,21 +153,41 @@ const DRAFTABLE_FACTION_LIMIT = 500;
 
 /* The ruleset's own factions always make the list; the rest of it holds the newest live factions, in creation order. */
 async function draftCandidates(ctx: QueryCtx, linked: ReadonlySet<Id<'factions'>>) {
-  const rows = await Promise.all([...linked].map((id) => ctx.db.get(id)));
-  const chosen = new Map(
-    rows.filter((row): row is Doc<'factions'> => row !== null && !row.is_deleted).map((row) => [row._id, row])
-  );
+  const chosen = new Map<Id<'factions'>, Doc<'factions'> | null>([...linked].map((id) => [id, null]));
+  const pending = new Set(linked);
   const newest = ctx.db
     .query('factions')
     .withIndex('by_deleted', (q) => q.eq('is_deleted', false))
     .order('desc');
+  /* Linked IDs reserve their original slots and order until the scan or lookup supplies their rows. */
+  const completeLinks = async () => {
+    await Promise.all(
+      [...pending].map(async (id) => {
+        const row = await ctx.db.get(id);
+        if (row && !row.is_deleted) {
+          chosen.set(id, row);
+        } else {
+          chosen.delete(id);
+        }
+      })
+    );
+    pending.clear();
+  };
   for await (const row of newest) {
+    if (chosen.size >= DRAFTABLE_FACTION_LIMIT) {
+      /* Missing and deleted links release their slots before the scan decides whether this row can fill one. */
+      await completeLinks();
+    }
     if (chosen.size >= DRAFTABLE_FACTION_LIMIT) {
       break;
     }
     chosen.set(row._id, row);
+    pending.delete(row._id);
   }
-  return [...chosen.values()].sort((a, b) => a._creationTime - b._creationTime);
+  await completeLinks();
+  return [...chosen.values()]
+    .filter((row): row is Doc<'factions'> => row !== null)
+    .sort((a, b) => a._creationTime - b._creationTime);
 }
 
 /**
