@@ -12,7 +12,7 @@ import {
 } from '@shared/assetIds';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 
-import metadata from './media-index.json';
+import metadata from './mediaSearchIndex.generated.json';
 import { indexedMediaKinds, mediaKinds } from './mediaSearchParams';
 import type { MediaKind } from './mediaSearchParams';
 

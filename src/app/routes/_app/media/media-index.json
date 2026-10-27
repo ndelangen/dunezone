@@ -11917,5 +11917,77 @@
     "tags": ["silhouette"],
     "subjects": ["machines"],
     "sourceHash": "9f600c88a27103f4aeeb24c601d12fc6aa599efbc72cfbadaf17072f567015e3"
+  },
+  "/vector/troop/wizard-raised-hand.svg": {
+    "description": "Robed wizard raises a hand beside a forked staff.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "6240bf3453942909e7bc78ade8ffe605a7751889518f6b64c230aba52ca4c1b7"
+  },
+  "/vector/troop/wizard-orb-keeper.svg": {
+    "description": "Wizard holds an orb beside a crescent staff.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "2bf96004a531b4b9aeaaadf96cf91a01a23d8d9d52869e0172096fcc4e9f049d"
+  },
+  "/vector/troop/wizard-flame-palm.svg": {
+    "description": "Pointed-hat wizard holds a flame and crooked staff.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "a455aa7d6fe19dd939619d6acf3cab7f996f9a6950cea873ca14e51c123ce09e"
+  },
+  "/vector/troop/wizard-overhead-spell.svg": {
+    "description": "Cloaked wizard casts overhead.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "4216cfc2359287644fa7756590234002c540e7bb15c928b3f5f32cb8cdad4c9c"
+  },
+  "/vector/troop/wizard-wand-caster.svg": {
+    "description": "Robed wizard points a wand.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "8d9a0929e4635eeb25cdbae6069e69f57920129272ac310c28728b13627069e0"
+  },
+  "/vector/troop/wizard-battle-caster.svg": {
+    "description": "Wizard casts from both hands above a sweeping cloak.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "a7073eaeb8e16d237d31d041e90580d455de6382e46b77b238f2fa88f6a66523"
+  },
+  "/vector/troop/plumed-musketeer.svg": {
+    "description": "Plumed swordsman holds a raised rapier.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "ec189999c62211e3d751cffdc1d3bb6ce3e3d4576b613508f422c5c2fc5297b8"
+  },
+  "/vector/troop/compact-round-mech.svg": {
+    "description": "Round-bodied mech has lowered arms and a straight barrel.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "621b4d78a67428f9ba1d8c7cc81784e34377ed881bf6d608fc13d02cdff1429a"
+  },
+  "/vector/troop/petal-headed-stalker.svg": {
+    "description": "Petal-headed creature with long arms and broad claws.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "167cc8b423fe7c39cda3c7d36f1da4d448b8fcf479465cd907164ca141b58f3f"
+  },
+  "/vector/troop/fin-tailed-stalker.svg": {
+    "description": "Curved fin-tailed creature with swept arms.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "9646c751288e9c337f6b6f7b263f053169ac9dc9d7f2c08081dc0419d7e55b6d"
+  },
+  "/vector/troop/swept-horn-warrior.svg": {
+    "description": "Warrior with sweeping horns and a diagonal blade.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "1f4989eefaafa4309c6b4819803e56bcf5b0b27c6b3a1796ee40e34051dd323d"
+  },
+  "/vector/troop/shield-cover-team.svg": {
+    "description": "Crouching shield bearer and standing rifleman.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "6002ed9b423b7665a5666cc0a23702469f4f5b3330341612a243ed3c65d38eeb"
   }
 }

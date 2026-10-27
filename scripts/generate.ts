@@ -137,6 +137,23 @@ if (formatted.errors.length > 0) {
 }
 await Bun.write(join(import.meta.dirname, '..', 'src/shared/assetIds.ts'), formatted.code);
 
+/* Search needs reviewed words and facets; byte-verification hashes stay in the source index. */
+const mediaDirectory = join(import.meta.dirname, '..', 'src/app/routes/_app/media');
+const mediaIndex = JSON.parse(readFileSync(join(mediaDirectory, 'media-index.json'), 'utf8')) as Record<
+  string,
+  { description: string; tags: string[]; subjects: string[]; sourceHash: string }
+>;
+const searchIndex = Object.fromEntries(
+  Object.entries(mediaIndex).map(([key, { description, tags, subjects }]) => [key, { description, tags, subjects }])
+);
+const searchIndexOutput = await format('mediaSearchIndex.generated.json', JSON.stringify(searchIndex), formatOptions);
+if (searchIndexOutput.errors.length > 0) {
+  throw new Error(
+    `Media search index did not format: ${searchIndexOutput.errors.map((error) => error.message).join('; ')}`
+  );
+}
+await Bun.write(join(mediaDirectory, 'mediaSearchIndex.generated.json'), searchIndexOutput.code);
+
 /* Geometry retains the artwork's shape and centre without depending on a platform's raster encoder. */
 const vectorCrops: Record<string, readonly [number, number, number, number]> = {};
 const loader = new SVGLoader();
