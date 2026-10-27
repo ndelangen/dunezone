@@ -46,6 +46,11 @@ export function reviewThreshold(players: number): number {
   return Math.floor(players / 2) + 1;
 }
 
+/** Where a review can be asked for: once the seats are dealt and before the game ends. */
+export function reviewableStage(stage: string | undefined): boolean {
+  return stage === 'setup' || stage === 'play';
+}
+
 /** Whether the table is paused for a review that is showing now. */
 export function reviewRunning(review: TableReview | null | undefined): review is TableReview & { startedAt: number } {
   return Boolean(review && review.startedAt !== null);

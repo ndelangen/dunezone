@@ -8,9 +8,9 @@ export function isSpectator(table: TableProjection): boolean {
   return table.viewer.viewerSeat === SPECTATOR_SEAT;
 }
 
-/** A replay is watched as a spectator watches the table: a past table takes no actions, so none are offered, not even greyed. */
-export function watchedTable(table: TableProjection): TableProjection {
-  return table.playback ? { ...table, viewer: { ...table.viewer, viewerSeat: SPECTATOR_SEAT } } : table;
+/** Whether the viewer is offered table actions: a seated viewer at the live table. A past table takes none, so none are offered, not even greyed. */
+export function offersActions(table: TableProjection): boolean {
+  return !isSpectator(table) && !table.playback;
 }
 
 /** The faction a seat carries, if it carries one. */
@@ -21,6 +21,11 @@ export function seatFaction(table: TableProjection, seat: string): string | unde
 /** The faction the viewer's seat carries, if it carries one. */
 export function viewerFaction(table: TableProjection): string | undefined {
   return seatFaction(table, table.viewer.viewerSeat);
+}
+
+/** The faction the viewer acts for at the live table; none while a past table shows. */
+export function actingFaction(table: TableProjection): string | undefined {
+  return table.playback ? undefined : viewerFaction(table);
 }
 
 /** A faction's name at this table, or its id when the table has no label for it. */

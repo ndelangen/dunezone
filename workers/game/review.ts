@@ -1,6 +1,6 @@
 import type { Viewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
-import { reviewThreshold } from '../../src/shared/play/review';
+import { reviewThreshold, reviewableStage } from '../../src/shared/play/review';
 import type { ReviewAction, TableReview } from '../../src/shared/play/review';
 import type { ActorDirectory } from './actors';
 import { DELETED_USER, logContext } from './log';
@@ -13,15 +13,27 @@ type Review = Omit<TableReview, 'proposer' | 'ballots'> & {
   proposer: Person;
   ballots: (TableReview['ballots'][number] & { userId: string | null })[];
 };
-/* Where a review can be asked for: once the seats are dealt and before the game ends. */
-const REVIEWABLE_STAGES = new Set<StoredSnapshot['stage']>(['setup', 'play']);
+/** One review action as a player sent it, with the saved checkpoint context a proposal names. */
+export type ReviewCommand = {
+  snapshot: StoredSnapshot;
+  viewer: Viewer;
+  action: ReviewAction;
+  now: number;
+  checkpoint: (step: number) => string | undefined;
+};
+/** How a review left the table: its result, the table it was recorded at, and who ended it, if anyone did. */
+type Outcome = { result: ReviewOutcome; snapshot: StoredSnapshot; now: number; by: Person | null };
 
 /**
  * Owns the table review: its proposal, ballots, the pause it puts on the table and its Audit rows.
  * Only one review is open at a time.
  * The caller owns the transaction and keeps the table frozen while one runs.
+ * The open review is cached, and the caller calls `forget()` when a transaction that touched it fails.
  */
 export class TableReviews {
+  /* The open review as storage holds it, or undefined until it is read. */
+  private cached: Review | null | undefined;
+
   constructor(
     private readonly storage: DurableObjectStorage,
     private readonly actors: ActorDirectory,
@@ -32,63 +44,22 @@ export class TableReviews {
     );
   }
 
-  apply(
-    snapshot: StoredSnapshot,
-    viewer: Viewer,
-    action: ReviewAction,
-    now: number,
-    checkpoint: (step: number) => string | undefined
-  ): StoredSnapshot {
-    const players = this.actors.occupants();
-    const own = players.find((player) => player.userId === viewer.userId);
-    if (!own || !REVIEWABLE_STAGES.has(snapshot.stage)) {
+  apply(command: ReviewCommand): StoredSnapshot {
+    const { snapshot, viewer, action } = command;
+    const own = this.actors.occupants().find((player) => player.userId === viewer.userId);
+    if (!own || !reviewableStage(snapshot.stage)) {
       throw new GameRejection('Only current players can review the table during a game.');
     }
-    const open = this.open();
     if (action.kind === 'review-propose') {
-      if (open) {
-        throw new GameRejection('Another table review is already open.');
-      }
-      const context = checkpoint(action.step);
-      if (context === undefined) {
-        throw new GameRejection('That checkpoint cannot be reviewed.');
-      }
-      const review: Review = {
-        id: `review-${snapshot.revision + 1}`,
-        step: action.step,
-        context,
-        proposer: own,
-        openedAt: now,
-        threshold: reviewThreshold(players.length),
-        ballots: players.map((player) => ({
-          ...player,
-          choice: player.userId === viewer.userId ? 'review' : null,
-        })),
-        startedAt: null,
-      };
-      this.storage.sql.exec('INSERT INTO table_reviews(review_id,data) VALUES(?,?)', review.id, JSON.stringify(review));
-      return revised(snapshot);
+      return this.propose(command, action.step, own);
     }
+    const open = this.open();
     if (!open || open.id !== action.reviewId) {
       throw new GameRejection('That table review has ended.');
     }
-    if (action.kind === 'review-end') {
-      if (open.startedAt === null && open.proposer.userId !== viewer.userId) {
-        throw new GameRejection('Only the proposer can withdraw this review.');
-      }
-      this.finish(open, open.startedAt === null ? 'withdrawn' : 'ended', snapshot, now, own);
-      return revised(snapshot);
-    }
-    if (open.startedAt !== null) {
-      throw new GameRejection('The table is already reviewing.');
-    }
-    const ballot = open.ballots.find((entry) => entry.userId === viewer.userId);
-    if (!ballot || ballot.choice === action.choice) {
-      return snapshot;
-    }
-    ballot.choice = action.choice;
-    this.save(open);
-    return revised(snapshot);
+    return action.kind === 'review-end'
+      ? this.end(command, open, own)
+      : this.ballot(snapshot, open, viewer, action.choice);
   }
 
   /**
@@ -101,8 +72,8 @@ export class TableReviews {
       return snapshot;
     }
     const players = this.actors.occupants();
-    if (!REVIEWABLE_STAGES.has(snapshot.stage) || !players.some((player) => player.userId === review.proposer.userId)) {
-      this.finish(review, review.startedAt === null ? 'withdrawn' : 'ended', snapshot, now, null);
+    if (!reviewableStage(snapshot.stage) || !players.some((player) => player.userId === review.proposer.userId)) {
+      this.finish(review, { result: review.startedAt === null ? 'withdrawn' : 'ended', snapshot, now, by: null });
       return revised(snapshot);
     }
     if (review.startedAt !== null) {
@@ -114,16 +85,15 @@ export class TableReviews {
       ...player,
       choice: review.ballots.find((ballot) => ballot.userId === player.userId)?.choice ?? null,
     }));
-    const agreed = review.ballots.filter((ballot) => ballot.choice === 'review').length;
-    const open = review.ballots.filter((ballot) => ballot.choice === null).length;
+    const { agreed, open } = count(review);
     if (agreed >= review.threshold) {
       review.startedAt = now;
       this.save(review);
-      this.record(review, 'started', snapshot, now, null);
+      this.record(review, { result: 'started', snapshot, now, by: null });
       return revised(snapshot);
     }
     if (agreed + open < review.threshold) {
-      this.finish(review, 'declined', snapshot, now, null);
+      this.finish(review, { result: 'declined', snapshot, now, by: null });
       return revised(snapshot);
     }
     if (JSON.stringify(review) !== before) {
@@ -144,6 +114,11 @@ export class TableReviews {
     return review && review.startedAt !== null ? publicReview(review) : null;
   }
 
+  /** Drops the cached open review, so the next read sees what storage kept after a failed transaction. */
+  forget() {
+    this.cached = undefined;
+  }
+
   /** Retain every choice and result while removing all identifying data for a deleted account. */
   scrub(userId: string) {
     for (const row of this.storage.sql.exec<{ data: string }>('SELECT data FROM table_reviews').toArray()) {
@@ -154,11 +129,72 @@ export class TableReviews {
       review.ballots = review.ballots.map((ballot) =>
         ballot.userId === userId ? { ...ballot, userId: null, name: DELETED_USER } : ballot
       );
-      this.save(review);
+      this.storage.sql.exec('UPDATE table_reviews SET data=? WHERE review_id=?', JSON.stringify(review), review.id);
     }
+    this.forget();
+  }
+
+  private propose({ snapshot, viewer, now, checkpoint }: ReviewCommand, step: number, own: Person): StoredSnapshot {
+    if (this.open()) {
+      throw new GameRejection('Another table review is already open.');
+    }
+    const context = checkpoint(step);
+    if (context === undefined) {
+      throw new GameRejection('That checkpoint cannot be reviewed.');
+    }
+    const players = this.actors.occupants();
+    const review: Review = {
+      id: `review-${snapshot.revision + 1}`,
+      step,
+      context,
+      proposer: own,
+      openedAt: now,
+      threshold: reviewThreshold(players.length),
+      ballots: players.map((player) => ({
+        ...player,
+        choice: player.userId === viewer.userId ? 'review' : null,
+      })),
+      startedAt: null,
+    };
+    this.storage.sql.exec('INSERT INTO table_reviews(review_id,data) VALUES(?,?)', review.id, JSON.stringify(review));
+    this.cached = review;
+    return revised(snapshot);
+  }
+
+  /* The proposer withdraws an open proposal; once the review runs, any seated player resumes play. */
+  private end({ snapshot, viewer, now }: ReviewCommand, open: Review, own: Person): StoredSnapshot {
+    if (open.startedAt === null && open.proposer.userId !== viewer.userId) {
+      throw new GameRejection('Only the proposer can withdraw this review.');
+    }
+    this.finish(open, { result: open.startedAt === null ? 'withdrawn' : 'ended', snapshot, now, by: own });
+    return revised(snapshot);
+  }
+
+  private ballot(
+    snapshot: StoredSnapshot,
+    open: Review,
+    viewer: Viewer,
+    choice: TableReview['ballots'][number]['choice']
+  ): StoredSnapshot {
+    if (open.startedAt !== null) {
+      throw new GameRejection('The table is already reviewing.');
+    }
+    const ballot = open.ballots.find((entry) => entry.userId === viewer.userId);
+    if (!ballot || ballot.choice === choice) {
+      return snapshot;
+    }
+    ballot.choice = choice;
+    this.save(open);
+    return revised(snapshot);
   }
 
   private open(): Review | null {
+    const open = this.cached === undefined ? this.stored() : this.cached;
+    this.cached = open;
+    /* Callers change the review they read before saving it, so each gets its own copy. */
+    return open && structuredClone(open);
+  }
+  private stored(): Review | null {
     const row = this.storage.sql
       .exec<{ data: string }>('SELECT data FROM table_reviews WHERE result IS NULL ORDER BY sequence DESC LIMIT 1')
       .toArray()[0];
@@ -166,24 +202,20 @@ export class TableReviews {
   }
   private save(review: Review) {
     this.storage.sql.exec('UPDATE table_reviews SET data=? WHERE review_id=?', JSON.stringify(review), review.id);
+    this.cached = review;
   }
-  private finish(
-    review: Review,
-    result: Exclude<ReviewOutcome, 'started'>,
-    snapshot: StoredSnapshot,
-    now: number,
-    by: Person | null
-  ) {
+  private finish(review: Review, outcome: Outcome) {
     this.storage.sql.exec(
       'UPDATE table_reviews SET data=?, result=?, resolved_at=? WHERE review_id=?',
       JSON.stringify(review),
-      result,
-      now,
+      outcome.result,
+      outcome.now,
       review.id
     );
-    this.record(review, result, snapshot, now, by);
+    this.cached = null;
+    this.record(review, outcome);
   }
-  private record(review: Review, result: ReviewOutcome, snapshot: StoredSnapshot, now: number, by: Person | null) {
+  private record(review: Review, { result, snapshot, now, by }: Outcome) {
     this.log.recordReview({
       id: review.id,
       result,
@@ -195,6 +227,13 @@ export class TableReviews {
       at: now,
     });
   }
+}
+
+function count(review: Review) {
+  return {
+    agreed: review.ballots.filter((ballot) => ballot.choice === 'review').length,
+    open: review.ballots.filter((ballot) => ballot.choice === null).length,
+  };
 }
 
 function publicReview(review: Review): TableReview {

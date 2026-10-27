@@ -27,7 +27,7 @@ import type { ClientMessage, CommitMessage, GameSnapshot, ServerMessage, Viewer 
 import { GameRejection } from '../../src/shared/play/rejection';
 import { isRemovalAction } from '../../src/shared/play/removal';
 import { isResultAction } from '../../src/shared/play/result';
-import { isReviewAction, REVIEW_CHECKPOINTS } from '../../src/shared/play/review';
+import { isReviewAction, REVIEW_CHECKPOINTS, reviewableStage, reviewRunning } from '../../src/shared/play/review';
 import type { TableReview } from '../../src/shared/play/review';
 import type { TableRoster } from '../../src/shared/play/schema';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
@@ -62,6 +62,7 @@ import { PublicActions } from './publicActions';
 import { RemovalVotes } from './removal';
 import { applyResult, settleEnding } from './result';
 import { TableReviews } from './review';
+import type { ReviewCommand } from './review';
 import { Room } from './room';
 import type { HistoryRow } from './sessionHistory';
 import { SessionHistory } from './sessionHistory';
@@ -489,50 +490,70 @@ export class GameSession {
   deleteActor(userId: string, eventId?: string) {
     const oldSeat = this.actors.seatFor(userId);
     const occupants = this.actors.seated();
-    const committed = this.storage.transactionSync(() => {
-      const stored = this.room ? this.storedSnapshot() : undefined;
-      /* The vacated row and the event it names are written apart; they agree on the id the table hands out next. */
-      const vacatedEventId =
-        stored?.stage && occupants.some((occupant) => occupant.userId === userId)
-          ? tableEventId(stored.table.nextEventNumber)
-          : undefined;
-      this.removal.scrub(userId);
-      this.reviews.scrub(userId);
-      this.conversations.scrub(userId);
-      this.actors.delete(userId, eventId, vacatedEventId);
-      this.spiceLedger.deleteActor(userId);
-      if (!stored) {
-        return;
-      }
-      const scrubbed = this.storedSnapshot();
-      const departed = this.participation.afterDeletion(userId, oldSeat, {
-        snapshot: scrubbed,
-        roster: this.actors.roster(this.seatCount()),
-        now: Date.now(),
-      });
-      const settled = this.swapping.settleParticipation({
-        before: scrubbed,
-        after: departed,
-        commandId: eventId ?? `deletion-${departed.revision}`,
-        actor: null,
-        occupants,
-      });
-      const voted = this.reconcileVotes(settled, Date.now());
-      const next = this.withRoster(
-        this.spiceLedger.project({
-          ...voted,
-          controls: voted.controls && { ...voted.controls, seats: this.actors.seats() },
-        })
-      );
-      this.log.recordStage(scrubbed, next);
-      this.writeState(next);
-      this.stageDirectory(next, Date.now());
-      return { snapshot: next, boundary: this.history.restore(this.history.steps) };
-    });
+    const committed = this.withReviewCache(() =>
+      this.storage.transactionSync(() => {
+        const stored = this.room ? this.storedSnapshot() : undefined;
+        /* The vacated row and the event it names are written apart; they agree on the id the table hands out next. */
+        const vacatedEventId =
+          stored?.stage && occupants.some((occupant) => occupant.userId === userId)
+            ? tableEventId(stored.table.nextEventNumber)
+            : undefined;
+        this.removal.scrub(userId);
+        this.reviews.scrub(userId);
+        this.conversations.scrub(userId);
+        this.actors.delete(userId, eventId, vacatedEventId);
+        this.spiceLedger.deleteActor(userId);
+        if (!stored) {
+          return;
+        }
+        const scrubbed = this.storedSnapshot();
+        const departed = this.participation.afterDeletion(userId, oldSeat, {
+          snapshot: scrubbed,
+          roster: this.actors.roster(this.seatCount()),
+          now: Date.now(),
+        });
+        const settled = this.swapping.settleParticipation({
+          before: scrubbed,
+          after: departed,
+          commandId: eventId ?? `deletion-${departed.revision}`,
+          actor: null,
+          occupants,
+        });
+        const voted = this.reconcileVotes(settled, Date.now());
+        const next = this.withRoster(
+          this.spiceLedger.project({
+            ...voted,
+            controls: voted.controls && { ...voted.controls, seats: this.actors.seats() },
+          })
+        );
+        this.log.recordStage(scrubbed, next);
+        this.writeState(next);
+        this.stageDirectory(next, Date.now());
+        return { snapshot: next, boundary: this.history.restore(this.history.steps) };
+      })
+    );
     this.reloadMetadata();
     if (committed) {
       this.room!.accept(committed.snapshot);
       this.history.accept(this.history.steps, committed.boundary);
+      this.putBackCarriesForReview();
+    }
+  }
+
+  /* The open review is cached; a transaction that fails rolls storage back, so the cache is dropped with it. */
+  private withReviewCache<T>(run: () => T): T {
+    try {
+      return run();
+    } catch (error) {
+      this.reviews.forget();
+      throw error;
+    }
+  }
+
+  /* A review that runs puts every carried piece back, since the table takes no move until it ends. */
+  private putBackCarriesForReview() {
+    if (this.reviews.running()) {
+      this.room?.cancelCarries();
     }
   }
 
@@ -570,16 +591,9 @@ export class GameSession {
     return this.resumedAfterReview(running, this.reviews.reconcile(removed, now), now);
   }
 
-  /*
-   * A review pauses the table's clocks with it: a timed bid or battle countdown resumes with the time it had left.
-   * A review that starts puts every carried piece back, since the table takes no move until it ends.
-   */
+  /* A review pauses the table's clocks with it: a timed bid or battle countdown resumes with the time it had left. */
   private resumedAfterReview(running: TableReview | null, next: StoredSnapshot, now: number): StoredSnapshot {
-    const after = this.reviews.running();
-    if (after && !running) {
-      this.room?.cancelCarries();
-    }
-    if (!running || after || running.startedAt === null) {
+    if (!reviewRunning(running) || this.reviews.running()) {
       return next;
     }
     const paused = now - running.startedAt;
@@ -712,7 +726,7 @@ export class GameSession {
     const carries = this.projection.carries(room.publicCarries(), room.snapshot);
     const pointers = [...room.pointers.values()];
     const snapshots = new Map<string, RoomFrame['snapshot']>();
-    const review = reviewable(room.snapshot.stage)
+    const review = reviewableStage(room.snapshot.stage)
       ? { review: this.reviews.current(), reviewCheckpoints: this.history.recent(REVIEW_CHECKPOINTS) }
       : {};
     return (viewer) => {
@@ -821,18 +835,20 @@ export class GameSession {
     room.accept(next);
   }
 
-  private commitReview(
-    key: string,
-    viewer: Viewer,
-    message: CommandMessage & { action: Parameters<TableReviews['apply']>[2] }
-  ) {
+  private commitReview(key: string, viewer: Viewer, message: CommandMessage & { action: ReviewCommand['action'] }) {
     const room = this.room!;
     room.assertRevision(message.action, message.expectedRevision);
     const action = message.action;
     const next = this.storage.transactionSync(() => {
       const now = Date.now();
       const running = this.reviews.running();
-      const applied = this.reviews.apply(room.snapshot, viewer, action, now, (step) => this.reviewable(step));
+      const applied = this.reviews.apply({
+        snapshot: room.snapshot,
+        viewer,
+        action,
+        now,
+        checkpoint: (step) => this.reviewable(step),
+      });
       const settled = this.resumedAfterReview(running, this.reviews.reconcile(applied, now), now);
       this.persistCommit({ key, viewer, message, next: settled });
       return settled;
@@ -853,11 +869,14 @@ export class GameSession {
   ) {
     const room = this.room!;
     room.assertRevision(message.action, message.expectedRevision);
-    const next = this.withRoster(
-      this.reconcileVotes(applyResult(room.snapshot, viewer, message.action, Date.now()), Date.now())
-    );
-    const history = this.history.entry(message, room.snapshot, next);
-    this.persistCommit({ key, viewer, message, next, history });
+    const action = message.action;
+    const { next, history } = this.storage.transactionSync(() => {
+      const now = Date.now();
+      const settled = this.withRoster(this.reconcileVotes(applyResult(room.snapshot, viewer, action, now), now));
+      const entry = this.history.entry(message, room.snapshot, settled);
+      this.persistCommit({ key, viewer, message, next: settled, history: entry });
+      return { next: settled, history: entry };
+    });
     room.accept(next);
     if (history) {
       this.history.accept(history.step, next);
@@ -1121,9 +1140,12 @@ export class GameSession {
     if (this.hasReceipt(key, message)) {
       return false;
     }
-    this.room!.commit(message.type === 'command' ? message.action.kind : undefined, () =>
-      this.applyCommand(key, viewer, message, contents)
+    this.withReviewCache(() =>
+      this.room!.commit(message.type === 'command' ? message.action.kind : undefined, () =>
+        this.applyCommand(key, viewer, message, contents)
+      )
     );
+    this.putBackCarriesForReview();
     this.reloadMetadata();
     return true;
   }
@@ -1408,11 +1430,6 @@ export class GameSession {
 }
 
 const REVIEW_PAUSE = 'The table is paused for a review.';
-
-/* A review can be asked for once the seats are dealt and until the game ends. */
-function reviewable(stage: StoredSnapshot['stage']) {
-  return stage === 'setup' || stage === 'play';
-}
 
 /* A fixture carries no stage and plays its phases from the start. */
 function inPlay(stage: StoredSnapshot['stage']) {

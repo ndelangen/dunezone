@@ -83,7 +83,7 @@ import { GameMenu, SeatPopover } from './SeatRequests';
 import { nextPhaseStep, stageStatus, stageToolbar } from './StageHeader';
 import type { GameIdentity } from './StageHeader';
 import { SwapScene } from './SwapScene';
-import { factionName, factionOptions, isSpectator, stageInPlay, viewerFaction, watchedTable } from './tableFactions';
+import { factionName, factionOptions, isSpectator, offersActions, stageInPlay, viewerFaction } from './tableFactions';
 import { TableReviewPanel } from './TableReview';
 import { TableSettings } from './TableSettings';
 import { TerritoryTints } from './TerritoryTints';
@@ -965,9 +965,12 @@ function historyGroup({ client, table, error }: ConnectionControlsProps, hasInve
             },
           ]
         : []),
-      /* Players may not keep notes, so replay opens once the game is finished; a replay already open keeps its tab. */
+      /* Players may not keep notes, so replay opens once the game is finished or on a fixture; a replay already open keeps its tab. */
       ...(!reviewRunning(table.review?.current) &&
-      (table.snapshot.stage === 'finished' || table.playback || table.historyPending)
+      (table.snapshot.stage === 'finished' ||
+        table.snapshot.stage === undefined ||
+        table.playback ||
+        table.historyPending)
         ? [
             {
               key: 'replay',
@@ -1051,7 +1054,7 @@ function phaseTabControls({
     <>
       <PhaseControls table={table} />
       {stage === 'play' &&
-        !isSpectator(table) &&
+        offersActions(table) &&
         table.snapshot.setup &&
         progress.turn === 1 &&
         progress.activePhaseId === 'storm' && (
@@ -1077,7 +1080,7 @@ function phaseTabControls({
 
 function ConnectedTable({
   client,
-  table: live,
+  table,
   error,
   connection,
   identity,
@@ -1094,8 +1097,7 @@ function ConnectedTable({
   diagnostics: BrowserDiagnostics;
   reportsEnabled: boolean;
 }>) {
-  const table = watchedTable(live);
-  const bugReport = useBugReport({ gameId, client, table: live, connection, diagnostics });
+  const bugReport = useBugReport({ gameId, client, table, connection, diagnostics });
   const progress = gameProgress(table.snapshot);
   const focus = useWindowFocus(table, progress);
   const celebration = useResultCelebration(table);
@@ -1135,7 +1137,7 @@ function ConnectedTable({
               toolbarControl={stageToolbar({ client, table, error, bidderFaded, onBidderFadedChange: setBidderFaded })}
               /* The gathered Traitor pile lies under the Tleilaxu Tanks, below the Map view's frame on a wide screen (#1635). */
               requestedView={table.traitorsGathered ? { view: 'bottom', revision: table.traitorsGathered } : undefined}
-              showStormControls={!isSpectator(table) && stageInPlay(stage) && progress.activePhaseId === 'storm'}
+              showStormControls={offersActions(table) && stageInPlay(stage) && progress.activePhaseId === 'storm'}
               sceneContent={
                 <>
                   {stageScene({ client, table, bidderFaded })}

@@ -126,7 +126,13 @@ function sameSave(
 
 /* Commands a held piece does not hold back: a phase change, a removal, a seat, and letting go of a peek, which the room allows mid-carry. */
 function passesCarry(action: PieceAction) {
-  return action.kind === 'phase' || action.kind === 'peek-close' || isRemovalAction(action) || isSeatAction(action);
+  return (
+    action.kind === 'phase' ||
+    action.kind === 'peek-close' ||
+    isRemovalAction(action) ||
+    isSeatAction(action) ||
+    isReviewAction(action)
+  );
 }
 
 /* A deck's cards as they stand, by id; the room gives every card a new id whenever it rearranges the deck. */

@@ -11,7 +11,7 @@ import type { TableProjection, TableSession } from '../../../../db/tabletop/Tabl
 import { alliedFactionColors, allianceRingStyle } from './allianceColors';
 import { FactionTokenFace, FactionTokenGroup } from './FactionTokenFace';
 import { ALLIANCES_HELP } from './panelGuidance';
-import { seatFaction, viewerFaction } from './tableFactions';
+import { actingFaction, seatFaction, viewerFaction } from './tableFactions';
 
 type Props = Readonly<{ client: TableSession; table: TableProjection }>;
 
@@ -160,7 +160,7 @@ function allianceAction(
 
 /* What the viewer may do about one faction: offer, accept or decline, withdraw an offer, or break their own alliance. */
 function RowAction({ client, table, row }: Props & Readonly<{ row: Row }>) {
-  const own = viewerFaction(table);
+  const own = actingFaction(table);
   /* Alliances change only while the game is in play. */
   if (!own || table.snapshot.stage !== 'play') {
     return null;

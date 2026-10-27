@@ -4,7 +4,7 @@ import { Section } from '@ui/block/Section';
 import { useEffect, useRef, useState } from 'react';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
-import { isSpectator } from './tableFactions';
+import { offersActions } from './tableFactions';
 
 type Props = { client: TableSession; table: TableProjection };
 
@@ -31,7 +31,7 @@ export function LastTurnSettings({ client, table }: Props) {
       setDraft(lastTurn);
     }
   }, [lastTurn]);
-  if (isSpectator(table)) {
+  if (!offersActions(table)) {
     return (
       <Section title="Game length" description="The turn wheel counts up to the last turn.">
         <Text size="sm">Last turn: {lastTurn}</Text>

@@ -661,13 +661,15 @@ function reviewEntry(review: ReviewResult): Entry {
   const agreed = review.ballots.filter((ballot) => ballot.choice === 'review');
   const declined = review.ballots.filter((ballot) => ballot.choice === 'decline');
   const uncast = review.ballots.filter((ballot) => ballot.choice === null);
-  const breakdown = [
-    agreed.length ? `${named(agreed)} agreed` : '',
-    declined.length ? `${named(declined)} declined` : '',
-    uncast.length ? `${named(uncast)} did not vote` : '',
-  ]
-    .filter(Boolean)
-    .join('; ');
+  /* Only a vote that settled names its ballots, so a withdrawn or ended review names just who ended it. */
+  const breakdown = () =>
+    [
+      agreed.length ? `${named(agreed)} agreed` : '',
+      declined.length ? `${named(declined)} declined` : '',
+      uncast.length ? `${named(uncast)} did not vote` : '',
+    ]
+      .filter(Boolean)
+      .join('; ');
   const by = () => {
     if (!review.by) {
       return 'a seat change';
@@ -676,8 +678,8 @@ function reviewEntry(review: ReviewResult): Entry {
     return `{${people.length - 1}}`;
   };
   const templates: Record<ReviewOutcome, () => string> = {
-    started: () => `The table reviews ${review.checkpoint}, as {0} proposed: ${breakdown}.`,
-    declined: () => `The table declined {0}'s review of ${review.checkpoint}: ${breakdown}.`,
+    started: () => `The table reviews ${review.checkpoint}, as {0} proposed: ${breakdown()}.`,
+    declined: () => `The table declined {0}'s review of ${review.checkpoint}: ${breakdown()}.`,
     withdrawn: () => `The review of ${review.checkpoint} {0} proposed was withdrawn by ${by()}.`,
     ended: () => `The review of ${review.checkpoint} was ended by ${by()}, and play resumed.`,
   };

@@ -12,7 +12,7 @@ import type { TableProjection, TableSession } from '../../../../db/tabletop/Tabl
 import type { TerritoryBrush } from '../../../../widgets/tabletop/territoryBrush';
 import { setTerritoryBrush, territoryBrush, useTerritoryBrush } from '../../../../widgets/tabletop/territoryBrush';
 import { NewTints, TintRow } from '../../../../widgets/tabletop/TintControls';
-import { isSpectator } from './tableFactions';
+import { offersActions } from './tableFactions';
 import { territoryTintPresets } from './territoryTintPresets';
 
 type Props = { client: TableSession; table: TableProjection };
@@ -275,7 +275,7 @@ export function TerritoryTints({ client, table }: Props) {
           />
         ))}
         {/* A spectator, or a replay, sees the tints but is offered nothing to make. */}
-        {!isSpectator(table) && (
+        {offersActions(table) && (
           <>
             <NewTints
               tints={tints}
