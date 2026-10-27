@@ -210,6 +210,24 @@ function assertInertEmbeddedArtwork(body: Element) {
   }
 }
 
+/* Older publications named faction headings with native hover text. Keep those words accessible in the reader. */
+function replaceNativeTitles(root: Element) {
+  for (const element of root.querySelectorAll('[title]')) {
+    const title = element.getAttribute('title');
+    if (title && element.matches('h2[data-faction-id]')) {
+      const name = element.getAttribute('aria-label') || element.textContent?.trim();
+      element.setAttribute('aria-label', [...new Set([name, title].filter(Boolean))].join(', '));
+      element.setAttribute('data-faction-name', title);
+    } else if (title) {
+      element.setAttribute(
+        'aria-description',
+        [element.getAttribute('aria-description'), title].filter(Boolean).join('. ')
+      );
+    }
+    element.removeAttribute('title');
+  }
+}
+
 /** Reads only publisher-generated markup, retaining its frozen styles and stable reading targets. */
 export function parsePublishedRulebook(html: string, href: string): PublishedRulebook {
   const { document } = parseHTML(html);
@@ -226,6 +244,7 @@ export function parsePublishedRulebook(html: string, href: string): PublishedRul
   }
   assertNoExecutableAttributes(document.body);
   assertInertEmbeddedArtwork(document.body);
+  replaceNativeTitles(root);
   return {
     href,
     markup: publishedSectionMarkup(document, root),

@@ -80,7 +80,9 @@ export const UnsavedFactionReference = meta.story({
     await expect(page.getByRole('button', { name: 'Save' })).toBeEnabled();
     const preview = page.getByRole('article', { name: 'Rulebook page: Introduction' });
     const heading = preview.querySelector('[data-rulebook-block-id="HEAD"]');
-    await waitFor(() => expect(heading).toHaveAttribute('title', 'House Atreides'));
+    await waitFor(() => expect(heading).toHaveAttribute('data-faction-name', 'House Atreides'));
+    await expect(heading).toHaveAccessibleName(/House Atreides/);
+    await expect(heading).not.toHaveAttribute('title');
   },
 });
 
@@ -90,7 +92,7 @@ export const NewCoverNaming = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('button', { name: 'Add Page' }, { timeout: 30_000 }));
-    await userEvent.click(await page.findByRole('menuitem', { name: 'Cover' }));
+    await userEvent.click(await waitForFrame(() => page.getByRole('menuitem', { name: 'Cover' })));
     const title = await page.findByRole('textbox', { name: 'Title' });
     await expect(title).toHaveValue('New cover');
     await userEvent.clear(title);

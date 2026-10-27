@@ -155,18 +155,15 @@ async function factionLinksByScan(ctx: QueryCtx) {
   return linksByFaction;
 }
 
-/** Homepage spotlights omit ruleset enrichment because they only render faction identity. */
+/** Homepage spotlights omit ruleset enrichment because they only render faction identity; they are the catalogue page's own two entries. */
 export async function loadFactionCatalogueSpotlightPreviews(ctx: QueryCtx) {
-  const cards = await ctx.db
-    .query('faction_cards')
-    .withIndex('by_deleted_created', (q) => q.eq('is_deleted', false))
-    .take(FACTION_LIMIT);
-  const selected = selectFactionCatalogueSpotlights(cards.map((card) => ({ ...card, _id: card.faction_id })));
-  const preview = async (card: Doc<'faction_cards'> | undefined) => {
-    if (!card) {
+  const spotlights = await selectSpotlightEntries(ctx);
+  const card = factionCardReader(ctx, []);
+  const preview = async (entry: { source_id: string; facets: string[] } | null) => {
+    const faction = await card(entry);
+    if (!faction) {
       return null;
     }
-    const faction = await catalogueFactionFromCard(ctx, card, []);
     return {
       slug: faction.slug,
       created_at: faction.created_at,
@@ -178,12 +175,11 @@ export async function loadFactionCatalogueSpotlightPreviews(ctx: QueryCtx) {
       },
     };
   };
-  const cardOf = (selection: { faction_id: Id<'factions'> } | null) =>
-    selection ? cards.find((card) => card.faction_id === selection.faction_id) : undefined;
-  return {
-    newArrival: await preview(cardOf(selected.newArrival)),
-    freshlyUpdated: await preview(cardOf(selected.freshlyUpdated)),
-  };
+  const [newArrival, freshlyUpdated] = await Promise.all([
+    preview(spotlights.newArrival),
+    preview(spotlights.freshlyUpdated),
+  ]);
+  return { newArrival, freshlyUpdated };
 }
 
 export function selectFactionCatalogueSpotlights<T extends Pick<Doc<'factions'>, '_id' | 'created_at' | 'updated_at'>>(

@@ -26,6 +26,7 @@ import { publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RulebookDocumentRenderer } from '@game/rulebook/RulebookRenderer';
 
+import { FactionHeadingHints } from './FactionHeadingHints';
 import styles from './index.module.css';
 import {
   loadReaderView,
@@ -827,6 +828,11 @@ function RulebookReader({ data, published }: Readonly<{ data: ReaderData; publis
                 </Stack>
               </nav>
             </Surface>
+            <FactionHeadingHints
+              key={published?.href ?? data.edition.edition_number}
+              root={readerRef}
+              content={published ?? renderDocument}
+            />
             <div ref={readerRef} className={styles.readerDocument} data-rulebook-reader-document>
               {published ? (
                 <div data-published-rulebook>

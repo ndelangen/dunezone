@@ -240,16 +240,13 @@ export const TokenFace = FactionSide.extend({
  * Three modes, decided on «The stored shape of three back modes, and the migration»:
  * `custom` carries an authored face, `same` repeats the front, `reference` names another token whose authored back this one wears.
  * The target rides the data and is written at save, so the stored row is the single owner of its back;
- * the `token-back` relation rows this replaces are dropped by `assets_back_modes_v1`.
- *
- * `asset_id` is optional only until that migration completes everywhere;
- * the narrow that requires it rides a later release, the widen-migrate-narrow convention.
+ * the `token-back` relation rows this replaced were dropped by `asset_relations_token_back_drop_v1`.
  */
 function tokenBackUnion<TFace extends z.ZodType>(face: TFace) {
   return z.discriminatedUnion('mode', [
     z.strictObject({ mode: z.literal('custom'), face }),
     z.strictObject({ mode: z.literal('same') }),
-    z.strictObject({ mode: z.literal('reference'), asset_id: z.string().min(1).optional() }),
+    z.strictObject({ mode: z.literal('reference'), asset_id: z.string().min(1) }),
   ]);
 }
 
@@ -276,10 +273,6 @@ export const CardBack = z.strictObject({
   imageScale: z.number().min(0).max(2),
   background: Background,
   name: z.string(),
-  /* Accept retired label sizing in saved cards; labels now shrink automatically from their fixed size. */
-  nameScale: z.number().min(0.5).max(2).optional(),
-  /* Accept the retired font selection in saved cards; every label renders in regular Busorama. */
-  nameFont: z.enum(['C_Busorama', 'C_Busorama_Bold']).optional(),
   emblemBackground: z
     .strictObject({
       color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
@@ -298,7 +291,6 @@ export const CardBack = z.strictObject({
  *
  * A cardback may instead reference another deck's authored cardback («The stored shape of three back modes»): the tagged member names the target, and the authored member spreads `CardBack` under `mode: 'custom'`.
  * There is no `same` mode, since the cardback is a deck's only face.
- * The bare member is transitional: it keeps every pre-wrap row valid until `assets_deck_cardback_wrap_v1` has tagged them all, and the narrow that removes it rides a later release.
  */
 export const DeckAsset = z.strictObject({
   name: z.string(),
@@ -307,15 +299,11 @@ export const DeckAsset = z.strictObject({
     CardBack.extend({ mode: z.literal('custom') }),
     z.strictObject({ mode: z.literal('preset'), key: cardbackPresetKeySchema }),
     z.strictObject({ mode: z.literal('reference'), asset_id: z.string().min(1) }),
-    CardBack,
   ]),
 });
 
-/** The authored composition of a deck's cardback, bare or wrapped alike, or null when the cardback is a reference. */
+/** The authored composition of a deck's cardback, or null when the cardback is a preset link or a reference. */
 export function authoredCardback(cardback: z.infer<typeof DeckAsset>['cardback']): z.infer<typeof CardBack> | null {
-  if (!('mode' in cardback)) {
-    return cardback;
-  }
   if (cardback.mode !== 'custom') {
     return null;
   }

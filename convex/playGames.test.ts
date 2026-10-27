@@ -4,7 +4,7 @@
 import { describe, expect, test } from 'vite-plus/test';
 import type { z } from 'zod';
 
-import { publishingDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
+import { publishingCustomDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
 import {
   PLAY_DISPLAY_NAME_MAX_LENGTH,
   PLAY_FIXTURE_KEY,
@@ -50,7 +50,7 @@ async function catalogue(ctx: MutationCtx, owner: Id<'users'>) {
     ctx.db.insert('assets', {
       owner_id: owner,
       type,
-      data: type === 'deck' ? { name: slug, about: '', cardback: publishingDeckCardback } : { name: slug },
+      data: type === 'deck' ? { name: slug, about: '', cardback: publishingCustomDeckCardback } : { name: slug },
       slug,
       created_at: stamp,
       updated_at: stamp,

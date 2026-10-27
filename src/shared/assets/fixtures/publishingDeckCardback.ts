@@ -23,3 +23,6 @@ export const publishingDeckCardback: z.infer<typeof CardBack> = {
     definition: 1,
   },
 };
+
+/** The same Cardback as a deck stores it, under the `custom` mode every authored deck back wears in production. */
+export const publishingCustomDeckCardback = { mode: 'custom' as const, ...publishingDeckCardback };

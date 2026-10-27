@@ -6,7 +6,7 @@ import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import type { Faction } from '@db/factions';
 
@@ -16,9 +16,8 @@ import type { FactionFormApi } from './factionFormTypes';
 
 const troopImageOptions = stockAssetOptions(TROOP.options);
 
-/* The -red variants predate the star color field and are redundant with it: the editor
-   offers only the base stars, while the schema and renderer keep accepting stored -red
-   values so unedited factions render unchanged. */
+/* The -red star files predate the star color field and are redundant with it, so the editor
+   offers only the base stars and the color field sets the red. */
 const troopStarOptions = TROOP_MODIFIER.options
   .filter((value) => !value.includes('-red'))
   .map((value) => ({
@@ -26,38 +25,19 @@ const troopStarOptions = TROOP_MODIFIER.options
     label: troopStarOptionToLabel(value),
   }));
 
-/* The exact red the renderer paints for a -red star with no hue set (see starHue in Troop.tsx). */
-const LEGACY_RED_STAR_HUE = '#ff0000';
-
 type StarValue = Faction['troops'][number]['star'];
 
-/* Normalizes a stored legacy -red star the moment its field renders (the planet auto-pick
-   pattern, deliberate and ruled on wayfinder #488): a visible draft change to the modern shape,
-   the base star plus the renderer's red in the hue field, never a silent rewrite of anything the
-   color field already overrides. Rendering the field is the touch; no interaction is awaited. */
 function StarModifierSelect({
   id,
   title,
   value,
-  hue,
   onChange,
-  onNormalize,
 }: {
   id: string;
   title: string;
   value: StarValue;
-  hue: string | undefined;
   onChange: (value: StarValue) => void;
-  onNormalize: (base: NonNullable<StarValue>, hue: string | undefined) => void;
 }) {
-  const legacyRed = value != null && value.includes('-red');
-
-  useEffect(() => {
-    if (legacyRed && value != null) {
-      onNormalize(value.replace('-red', '') as NonNullable<StarValue>, hue ?? LEGACY_RED_STAR_HUE);
-    }
-  }, [legacyRed, value, hue, onNormalize]);
-
   return (
     <AssetSelect
       id={id}
@@ -67,7 +47,7 @@ function StarModifierSelect({
       data={troopStarOptions}
       getPreviewSrc={assetOptionToPreviewSrc}
       glyphPreviews
-      value={legacyRed ? null : (value ?? null)}
+      value={value ?? null}
       onChange={(next) => onChange(next ? (next as NonNullable<StarValue>) : undefined)}
     />
   );
@@ -335,18 +315,7 @@ export function TroopSideFields({
                     id={`${idBase}-star`}
                     title={title}
                     value={field.state.value}
-                    hue={
-                      form.state.values.troops[i]
-                        ? isBack
-                          ? form.state.values.troops[i].back?.hue
-                          : form.state.values.troops[i].hue
-                        : undefined
-                    }
                     onChange={field.handleChange}
-                    onNormalize={(base, hue) => {
-                      field.handleChange(base);
-                      form.setFieldValue(hueField, hue);
-                    }}
                   />
                 }
               />

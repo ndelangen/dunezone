@@ -480,6 +480,76 @@
       "id": "faction_cards_ready",
       "phase": "narrow",
       "requires": ["faction_cards_v1"]
+    },
+    {
+      "id": "assets_back_modes_narrow",
+      "phase": "narrow",
+      "requires": ["assets_back_modes_v1", "asset_relations_token_back_drop_v1", "assets_back_modes_verify_v1"]
+    },
+    {
+      "id": "assets_deck_cardback_wrap_narrow",
+      "phase": "narrow",
+      "requires": ["assets_deck_cardback_wrap_v1", "assets_deck_cardback_wrap_verify_v1"]
+    },
+    {
+      "id": "faction_troop_support_names_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "faction_troop_support_names_verify_v1",
+      "phase": "widen",
+      "requires": ["faction_troop_support_names_v1"]
+    },
+    {
+      "id": "faction_hero_key_drop_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "faction_hero_key_drop_verify_v1",
+      "phase": "widen",
+      "requires": ["faction_hero_key_drop_v1"]
+    },
+    {
+      "id": "faction_troop_red_star_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "faction_troop_red_star_verify_v1",
+      "phase": "widen",
+      "requires": ["faction_troop_red_star_v1"]
+    },
+    {
+      "id": "cardback_presets_retired_label_fields_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "cardback_presets_retired_label_fields_verify_v1",
+      "phase": "widen",
+      "requires": ["cardback_presets_retired_label_fields_v1"]
+    },
+    {
+      "id": "faction_hero_key_narrow",
+      "phase": "narrow",
+      "requires": [
+        "faction_faction_leader_key_v1",
+        "faction_faction_leader_key_verify_v1",
+        "faction_hero_key_drop_v1",
+        "faction_hero_key_drop_verify_v1"
+      ]
+    },
+    {
+      "id": "faction_troop_red_star_narrow",
+      "phase": "narrow",
+      "requires": ["faction_troop_red_star_v1", "faction_troop_red_star_verify_v1"]
+    },
+    {
+      "id": "cardback_presets_retired_label_fields_narrow",
+      "phase": "narrow",
+      "requires": ["cardback_presets_retired_label_fields_v1", "cardback_presets_retired_label_fields_verify_v1"]
     }
   ]
 }
