@@ -41,6 +41,8 @@ type LobbyView = 'lobby' | 'create' | 'created';
 /** What a lobby chapter's tasks read: the page the player is on and what they chose there. */
 export type LobbyState = Readonly<{
   view: LobbyView;
+  /** The ruleset the create page's pass holds, by name, once one is chosen. */
+  ruleset: string | null;
   /** The game the player created, once they have. */
   created: Readonly<{ name: string; address: string }> | null;
 }>;

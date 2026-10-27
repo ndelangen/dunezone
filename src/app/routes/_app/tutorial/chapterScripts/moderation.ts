@@ -72,7 +72,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'votes',
       task: 'Watch the others vote',
       detail:
-        'Each player votes from the same window: Remove, Keep, or Withdraw to take their ballot back. The vote ends the moment the count decides it.',
+        'Each player votes from the same window: Remove, Keep, or Withdraw to take their ballot back. The vote ends the moment the count decides it; if it fails, start another the same way.',
       anchor: { kind: 'page', element: element(`[data-window="${FACTION_INFO}"]`) },
       begin: () => voteInTurn(players, vote, seatOf),
       done: () => vote() === undefined && !seated(),
@@ -89,7 +89,10 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
   ];
 }
 
-/* The others cast their ballots one at a time, each a moment after the last, until the vote has ended. */
+/*
+ * The others cast their ballots one at a time, each a moment after the last.
+ * They keep watching once a vote ends: a learner who turns their own ballot to Keep can sink the vote, and the next vote they start gets its ballots too.
+ */
 function voteInTurn(
   players: TablePlayers,
   vote: () => { id: string; ballots: readonly { seat: string; choice: string | null }[] } | undefined,
@@ -103,7 +106,6 @@ function voteInTurn(
     });
     const seat = next && seatOf(next.faction);
     if (!open || !next || !seat) {
-      clearInterval(timer);
       return;
     }
     players.act(seat, { kind: 'removal-ballot', voteId: open.id, choice: next.choice });

@@ -11,6 +11,7 @@ import {
 } from '@shared/play/tableSettings';
 import { FormError } from '@ui/block/FormError';
 import { PageTitle } from '@ui/block/PageTitle';
+import { BoardSeats } from '@ui/content/BoardSeats';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
@@ -118,7 +119,7 @@ export function CreateGamePass({
   dispatch: Dispatch<CreateGameDraftEvent>;
   /** Whether the request is on its way. */
   pending: boolean;
-  /** Whether the page is fading to the table, once the game is created. */
+  /** Whether the page is fading to the table's ground while the game is created and opened. */
   departing: boolean;
   /** What the line under Create game says in place of the pass's own summary, such as the server being out of reach. */
   notice: string | null;
@@ -213,9 +214,7 @@ export function CreateGamePass({
             </div>
           </DarkSchemeIsland>
         </form>
-        {departing && notice === null
-          ? createPortal(<div className={styles.departure} aria-hidden />, document.body)
-          : null}
+        {departing ? createPortal(<div className={styles.departure} aria-hidden />, document.body) : null}
       </PageLayout.Content>
     </PageLayout>
   );
@@ -398,7 +397,13 @@ function SeatsField({
         mb="md"
       />
       <SeatRow seats={value} />
-      <SeatRing seats={value} />
+      <div className={styles.board}>
+        <BoardSeats
+          angles={isTableSeatCount(value) ? tableSeatAngles(value) : []}
+          board="/vector/background/map.svg"
+          label={`${value} seats round the board`}
+        />
+      </div>
       <Text size="sm" c="dimmed">
         The minimum number of players is the number of seats. You take the first; drafting seats the rest, and anyone
         who arrives after that watches.
@@ -448,35 +453,5 @@ function SeatRow({ seats }: Readonly<{ seats: number }>) {
         </li>
       ))}
     </ol>
-  );
-}
-
-const RING_RADIUS = 118;
-
-/* The board as the table lays it out: the seats sit round its rim at the angles the table uses, seat one nearest you. */
-function SeatRing({ seats }: Readonly<{ seats: number }>) {
-  const angles = isTableSeatCount(seats) ? tableSeatAngles(seats) : [];
-  return (
-    <svg className={styles.ring} viewBox="-140 -140 280 280" role="img" aria-label={`${seats} seats round the board`}>
-      <circle className={styles.ringGround} r="132" />
-      <image href="/vector/background/map.svg" x="-100" y="-100" width="200" height="200" />
-      {angles.map((angle, index) => {
-        /* The table measures counter-clockwise from the right; the page's y axis runs down. */
-        const degrees = (-angle * 180) / Math.PI;
-        return (
-          <g
-            key={index}
-            className={styles.station}
-            data-you={index === 0 ? '' : undefined}
-            style={{ transform: `rotate(${degrees}deg) translateX(${RING_RADIUS}px) rotate(${-degrees}deg)` }}
-          >
-            <circle r={index === 0 ? 12 : 9} />
-            <text textAnchor="middle" dy="3.5">
-              {index === 0 ? 'You' : index + 1}
-            </text>
-          </g>
-        );
-      })}
-    </svg>
   );
 }

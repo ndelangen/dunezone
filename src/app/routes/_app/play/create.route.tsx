@@ -132,7 +132,8 @@ function CreateGameForm({
       {...pass}
       dispatch={dispatch}
       pending={createGame.isPending}
-      departing={departing}
+      /* A stalled request lifts the fade, so the page can say why. */
+      departing={departing && !stalled}
       notice={stalled ? SERVER_UNREACHABLE : departing ? 'Opening the table...' : null}
       failure={createGame.error ? 'The game could not be created. Try again.' : null}
       onCreate={depart}

@@ -76,7 +76,8 @@ function tasks(state: () => LobbyState): GuideTask[] {
         'The game already has a name, drawn at random; the dice draw another. Choose Dreamrules as its ruleset: a ruleset decides the board, the decks and the factions the game can draft.',
       anchor: { kind: 'page', element: rulesetInput },
       begin: () => undefined,
-      done: () => rulesetInput()?.value === 'Dreamrules',
+      /* The pass holding Dreamrules, not the field reading it: typed and left unpicked, the field holds no ruleset. */
+      done: () => state().ruleset === 'Dreamrules',
     }),
     task({
       id: 'set',

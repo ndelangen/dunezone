@@ -145,44 +145,10 @@
   opacity: 0.35;
 }
 
-.ring {
-  display: block;
-  width: 100%;
-  max-width: 15rem;
-  height: auto;
-  margin: 0 auto;
-  overflow: visible;
-}
-
-.ringGround {
-  fill: var(--pass-ground);
-  stroke: var(--pass-accent);
-  stroke-opacity: 0.2;
-}
-
-.station {
-  transition: transform 0.45s cubic-bezier(0.3, 0.7, 0.2, 1);
-}
-
-.station circle {
-  fill: var(--pass-ground);
-  stroke: var(--pass-accent);
-  stroke-width: 2;
-}
-
-.station text {
-  fill: var(--pass-accent);
-  font-family: "C_Advokat_Modern", sans-serif;
-  font-size: 9px;
-}
-
-.station[data-you] circle {
-  fill: var(--pass-accent);
-}
-
-.station[data-you] text {
-  fill: var(--pass-ground);
-  font-size: 7.5px;
+/* The board's seats, in the pass's own ground and ink. */
+.board {
+  --board-seats-ground: var(--pass-ground);
+  --board-seats-accent: var(--pass-accent);
 }
 
 /* Leaving for the table: the page fades to the ground the table's loading frame paints, with the same pool of light, so the game page opens out of it without a flash. */
@@ -205,7 +171,6 @@
   }
 }
 
-html[data-motion="reduce"] .station,
 html[data-motion="reduce"] .berth {
   transition: none;
 }
@@ -215,7 +180,6 @@ html[data-motion="reduce"] .departure {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html:not([data-motion="ok"]) .station,
   html:not([data-motion="ok"]) .berth {
     transition: none;
   }

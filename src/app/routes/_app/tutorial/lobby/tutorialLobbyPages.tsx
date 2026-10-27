@@ -9,7 +9,7 @@ import {
   createGameDraftReducer,
   initialCreateGameDraft,
 } from '@app/widgets/create-game/CreateGamePass';
-import type { CreateGameRequest } from '@app/widgets/create-game/CreateGamePass';
+import type { CreateGameDraftEvent, CreateGameRequest } from '@app/widgets/create-game/CreateGamePass';
 import { PlayLobby } from '@app/widgets/play-lobby/PlayLobby';
 import type { LobbyGames } from '@app/widgets/play-lobby/PlayLobby';
 
@@ -144,15 +144,27 @@ type Created = Readonly<{ name: string; address: string }>;
 const nameOf = (request: CreateGameRequest) =>
   'name' in request ? request.name.trim() : (request.generatedName ?? 'New game');
 
-/** The create page with the chapter's one ruleset; the game it creates exists on the chapter's page alone. */
-export function TutorialCreate({ onCreated }: Readonly<{ onCreated: (game: Created) => void }>) {
+/**
+ * The create page with the chapter's one ruleset;
+ * the game it creates exists on the chapter's page alone.
+ * It tells the chapter which ruleset the pass holds, so a step sees the one chosen rather than what the field shows.
+ */
+export function TutorialCreate({
+  onRuleset,
+  onCreated,
+}: Readonly<{ onRuleset: (name: string | null) => void; onCreated: (game: Created) => void }>) {
   const [draft, dispatch] = useReducer(createGameDraftReducer, undefined, initialCreateGameDraft);
+  /* Each change to the draft reaches the chapter as it is made, so the step sees the ruleset the pass will create the game with. */
+  const change = (event: CreateGameDraftEvent) => {
+    dispatch(event);
+    onRuleset(createGameDraftReducer(draft, event).rulesetId === TUTORIAL_RULESET.id ? TUTORIAL_RULESET.name : null);
+  };
   return (
     <CreateGamePass
       rulesets={[TUTORIAL_RULESET]}
       preview={null}
       draft={draft}
-      dispatch={dispatch}
+      dispatch={change}
       pending={false}
       departing={false}
       notice={null}

@@ -60,6 +60,29 @@ describe('a tutorial table’s result', () => {
     expect(table.refusal).toMatch(/winner is being determined/);
     expect(stored().ending?.by.seat).toBe(table.seat);
   });
+
+  test('closes when the player determining the winner leaves their seat', () => {
+    const opener = table.seats().find((seat) => seat !== table.seat)!;
+    act({ kind: 'result-open' }, opener);
+    expect(stored().ending?.by.seat).toBe(opener);
+    act({ kind: 'seat-depart' }, opener);
+    expect(table.refusal).toBeUndefined();
+    expect(stored().ending).toBeNull();
+  });
+
+  test('closes when the player determining the winner is voted off the table', () => {
+    const [opener, ...voters] = table.seats().filter((seat) => seat !== table.seat);
+    act({ kind: 'result-open' }, opener);
+    act({ kind: 'removal-start', seat: opener! });
+    for (const voter of voters) {
+      const open = table.frame().snapshot.removalVotes?.[0];
+      if (open) {
+        act({ kind: 'removal-ballot', voteId: open.id, choice: 'remove' }, voter);
+      }
+    }
+    expect(table.seats()).not.toContain(opener);
+    expect(stored().ending).toBeNull();
+  });
 });
 
 /* A catalogue request commits with what the page's catalogue captured, as the Worker commits it after its capture. */

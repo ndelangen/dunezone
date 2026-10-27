@@ -1,9 +1,11 @@
-import { Button, Group, Select, Stack, Text, Title, Tooltip } from '@mantine/core';
+import { Button, Group, Select, Stack, Text, Title } from '@mantine/core';
 import type { playLobbyEntrySchema } from '@shared/play/directory';
 import { phaseAt, STANDARD_PHASES, tableProgressFor } from '@shared/play/phases';
 import { PageTitle } from '@ui/block/PageTitle';
 import { formatRelativeDate } from '@ui/content/dates';
 import { nameDiscColor } from '@ui/content/nameDisc';
+import { SeatedTable, TableCentre } from '@ui/content/SeatedTable';
+import type { TableSeat } from '@ui/content/SeatedTable';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { CallToAction } from '@ui/control/CallToAction';
 import { IconAction } from '@ui/control/IconAction';
@@ -12,10 +14,9 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
-import clsx from 'clsx';
-import { ArrowRight, Clock, Crown, GraduationCap, ListFilter, Plus, Trophy } from 'lucide-react';
+import { ArrowRight, Clock, GraduationCap, ListFilter, Plus, Trophy } from 'lucide-react';
 import { useState } from 'react';
-import type { CSSProperties, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
@@ -53,7 +54,7 @@ const STAGE_WORDS: Record<LobbyEntry['stage'], string> = {
   discarded: 'Discarded',
 };
 
-/* The turn tracker's ten sectors: the ring fills towards the last of them. */
+/* The turn tracker's ten sectors: the table's arc fills towards the last of them. */
 const TURNS = 10;
 
 const turnOf = (entry: LobbyEntry) =>
@@ -112,59 +113,6 @@ function matches(entry: LobbyEntry, query: string): boolean {
  * Ring geometry, in the 100-unit box the table is drawn in.
  * Seats sit on the outer circle; a disc grows to the gap between neighbours and never past a comfortable size.
  */
-const SEAT_RADIUS = 42;
-const TABLE_RADIUS = 28;
-const ARC_RADIUS = 32;
-const ARC_LENGTH = 2 * Math.PI * ARC_RADIUS;
-
-function seatPlacement(index: number, count: number): CSSProperties {
-  const angle = (index / count) * 2 * Math.PI - Math.PI / 2;
-  const size = Math.min(19, 0.84 * 2 * SEAT_RADIUS * Math.sin(Math.PI / count));
-  return {
-    '--seat-x': `${50 + SEAT_RADIUS * Math.cos(angle)}%`,
-    '--seat-y': `${50 + SEAT_RADIUS * Math.sin(angle)}%`,
-    '--seat-size': `${size}cqi`,
-  } as CSSProperties;
-}
-
-/* Ten ticks round the table, one per turn, and an arc for how much of the game has been played. */
-function TableArt({ progress }: Readonly<{ progress: number | null }>) {
-  return (
-    <svg className={styles.tableArt} viewBox="0 0 100 100" aria-hidden>
-      <circle className={styles.tableTop} cx="50" cy="50" r={TABLE_RADIUS} />
-      <circle className={styles.tableInlay} cx="50" cy="50" r={TABLE_RADIUS - 3.5} />
-      {progress === null ? null : (
-        <>
-          {Array.from({ length: TURNS }, (_, turn) => {
-            const angle = (turn / TURNS) * 2 * Math.PI - Math.PI / 2;
-            const inner = ARC_RADIUS - 1.4;
-            const outer = ARC_RADIUS + 1.4;
-            return (
-              <line
-                key={turn}
-                className={styles.tick}
-                x1={50 + inner * Math.cos(angle)}
-                y1={50 + inner * Math.sin(angle)}
-                x2={50 + outer * Math.cos(angle)}
-                y2={50 + outer * Math.sin(angle)}
-              />
-            );
-          })}
-          <circle className={styles.arcTrack} cx="50" cy="50" r={ARC_RADIUS} />
-          <circle
-            className={styles.arc}
-            cx="50"
-            cy="50"
-            r={ARC_RADIUS}
-            strokeDasharray={`${ARC_LENGTH * progress} ${ARC_LENGTH}`}
-            transform="rotate(-90 50 50)"
-          />
-        </>
-      )}
-    </svg>
-  );
-}
-
 function seatWords(player: Player, won: boolean): string {
   const who = player.viewer ? `${player.displayName} (you)` : player.displayName;
   const faction = player.faction ? player.faction.name : 'no faction yet';
@@ -172,40 +120,20 @@ function seatWords(player: Player, won: boolean): string {
 }
 
 /* A taken seat: the player's avatar, with their faction's token pinned to it once the faction is public. */
-function TakenSeat({ player, won, style }: Readonly<{ player: Player; won: boolean; style: CSSProperties }>) {
-  const words = seatWords(player, won);
-  return (
-    <Tooltip label={words} withArrow>
-      <span
-        role="img"
-        aria-label={words}
-        className={clsx(styles.seat, styles.seatTaken, player.viewer && styles.seatViewer)}
-        style={
-          {
-            ...style,
-            '--seat-fill': nameDiscColor(player.displayName),
-            '--seat-edge': player.faction?.color ?? 'var(--color-paper)',
-          } as CSSProperties
-        }
-      >
-        {player.avatarUrl ? (
-          <img className={styles.avatar} src={player.avatarUrl} alt="" />
-        ) : (
-          <span className={styles.initial}>{player.displayName.trim().charAt(0).toUpperCase()}</span>
-        )}
-        {player.faction?.token ? (
-          <span className={styles.faction}>
-            <FactionToken logo={player.faction.token.logo} background={player.faction.token.background} />
-          </span>
-        ) : null}
-        {won ? (
-          <span className={styles.crown}>
-            <Crown aria-hidden />
-          </span>
-        ) : null}
-      </span>
-    </Tooltip>
-  );
+function tableSeat(player: Player): TableSeat {
+  const won = player.faction?.won ?? false;
+  return {
+    label: seatWords(player, won),
+    fill: nameDiscColor(player.displayName),
+    edge: player.faction?.color ?? null,
+    image: player.avatarUrl ?? null,
+    initial: player.displayName.trim().charAt(0).toUpperCase(),
+    badge: player.faction?.token ? (
+      <FactionToken logo={player.faction.token.logo} background={player.faction.token.background} />
+    ) : null,
+    crowned: won,
+    highlighted: player.viewer,
+  };
 }
 
 function TableRing({ entry }: Readonly<{ entry: LobbyEntry }>) {
@@ -215,32 +143,16 @@ function TableRing({ entry }: Readonly<{ entry: LobbyEntry }>) {
       ? Math.min(1, (entry.phase + 1) / (TURNS * STANDARD_PHASES.length))
       : null;
   return (
-    <div
-      className={styles.ring}
-      role="group"
-      aria-label={`Seats at ${entry.name}, ${entry.seatsFilled} of ${entry.seatCount} taken`}
-    >
-      <TableArt progress={progress} />
-      <div className={styles.centre}>
-        <RingCentre entry={entry} />
-      </div>
-      {Array.from({ length: seats }, (_, index) => {
-        const placement = seatPlacement(index, seats);
+    <SeatedTable
+      label={`Seats at ${entry.name}, ${entry.seatsFilled} of ${entry.seatCount} taken`}
+      seats={Array.from({ length: seats }, (_, index) => {
         const player = entry.players[index];
-        if (!player) {
-          return (
-            <span
-              key={index}
-              role="img"
-              aria-label="Open seat"
-              className={clsx(styles.seat, styles.seatOpen)}
-              style={placement}
-            />
-          );
-        }
-        return <TakenSeat key={index} player={player} won={player.faction?.won ?? false} style={placement} />;
+        return player ? tableSeat(player) : null;
       })}
-    </div>
+      progress={progress}
+      turns={TURNS}
+      centre={<RingCentre entry={entry} />}
+    />
   );
 }
 
@@ -249,28 +161,15 @@ function RingCentre({ entry }: Readonly<{ entry: LobbyEntry }>) {
   const turn = turnOf(entry);
   if (entry.stage === 'finished') {
     return entry.result?.kind === 'none' ? (
-      <span className={styles.centreWord}>{STAGE_WORDS.finished}</span>
+      <TableCentre word={STAGE_WORDS.finished} />
     ) : (
-      <Trophy aria-hidden className={styles.centreGlyph} />
+      <TableCentre glyph={<Trophy aria-hidden />} />
     );
   }
   if (turn !== null) {
-    return (
-      <>
-        <span className={styles.centreSmall}>Turn</span>
-        <span className={styles.centreNumber}>{turn}</span>
-        {turn <= TURNS ? <span className={styles.centreSmall}>of {TURNS}</span> : null}
-      </>
-    );
+    return <TableCentre above="Turn" number={turn} below={turn <= TURNS ? `of ${TURNS}` : undefined} />;
   }
-  return (
-    <>
-      <span className={styles.centreWord}>{STAGE_WORDS[entry.stage]}</span>
-      <span className={styles.centreSmall}>
-        {entry.seatsFilled} of {entry.seatCount}
-      </span>
-    </>
-  );
+  return <TableCentre word={STAGE_WORDS[entry.stage]} below={`${entry.seatsFilled} of ${entry.seatCount}`} />;
 }
 
 /** A game still under way with a seat nobody holds. */
