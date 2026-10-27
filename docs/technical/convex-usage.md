@@ -55,6 +55,10 @@ Neither migration changes source job payloads, status, attempts or publication s
 execution requires confirmation under the production-write policy. To recover, deploy the original
 page reader while retaining the listing table, write triggers and aggregate component.
 
+After production backfill and live publishing measurements confirm the read budget, remove the legacy
+reader and readiness fallback in a separate cleanup PR. Keep migration replay and snapshot loading
+compatible with the derived listing.
+
 `convex/assets.boardListings.test.ts` caps backend reads at 64 KiB for listings with real Arrakis
 geometry, including a ten-board catalogue. It covers asset landing, numbered catalogue, legacy
 browse, asset picker, FAQ board picker and ruleset board slots. It verifies that a full definition
