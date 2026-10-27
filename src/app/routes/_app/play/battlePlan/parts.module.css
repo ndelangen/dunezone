@@ -241,11 +241,6 @@
   translate: 0 -1px;
 }
 
-/* The support toggle's help: Max and Custom each on a line of their own. */
-.modeTip {
-  white-space: pre-line;
-}
-
 .troopTip {
   display: grid;
   gap: 0.2rem;

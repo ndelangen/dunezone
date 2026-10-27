@@ -6,6 +6,7 @@ import type { BOARD_TERRITORY_TYPES, BoardTint, BoardTokenPlacement } from '@sha
 import { boardTerritoryNames, missingTintTerritories } from '@shared/boards/tintDrawing';
 import { TINT_STAMPS } from '@shared/boards/tints';
 import type { TintStamp } from '@shared/boards/tints';
+import { helpLines } from '@ui/content/helpLines';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { ChevronDown, ChevronUp } from 'lucide-react';
@@ -161,7 +162,11 @@ export function BoardTintFields({
       ) : null}
       <ControlBlock
         title="Tints"
-        description={`Turn on a tint's paintbrush, then click territories on ${surface} to add or remove them.`}
+        description={helpLines(
+          `Turn on a tint's paintbrush, then click territories on ${surface}.`,
+          'A click adds a territory, or removes it if it is already in.',
+          'Escape stops painting.'
+        )}
         input={
           <Stack gap="xs">
             {tints.map((tint) => (

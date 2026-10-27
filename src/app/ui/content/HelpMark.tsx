@@ -27,7 +27,6 @@ export function HelpMark({ text, id }: HelpMarkProps) {
         label={text}
         multiline
         maw={360}
-        classNames={{ tooltip: styles.tip }}
         position="top-start"
         withArrow
         events={{ hover: true, focus: true, touch: true }}

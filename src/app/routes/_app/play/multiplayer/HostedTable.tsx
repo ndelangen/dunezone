@@ -63,6 +63,7 @@ import {
   HIDDEN_ZONE_GUIDANCE,
   LOG_GUIDANCE,
   phaseGuidance,
+  PHASE_PREVIOUS,
   phaseHelp,
   RESULT_GUIDANCE,
   setupGuidance,
@@ -249,7 +250,7 @@ function PhaseControls({ table }: Pick<ConnectionControlsProps, 'table'>) {
       title={phase.label}
       description={phaseHelp(table)}
     >
-      {!table.snapshot.stage && <Text size="sm">Previous moves the tracker back. Pieces and storm stay put.</Text>}
+      {!table.snapshot.stage && <Text size="sm">{PHASE_PREVIOUS}</Text>}
     </Section>
   );
 }

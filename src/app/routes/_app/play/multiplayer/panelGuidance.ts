@@ -1,5 +1,6 @@
 import { phaseAt } from '@shared/play/phases';
 import type { setupStep } from '@shared/play/setup';
+import { helpLines } from '@ui/content/helpLines';
 
 import type { TableProjection } from '../../../../db/tabletop/TableSession';
 
@@ -12,11 +13,6 @@ import type { TableProjection } from '../../../../db/tabletop/TableSession';
  */
 
 type Guidance = Readonly<{ description: string; help?: string }>;
-
-/** Help as short lines, each its own line in the tooltip. */
-export function helpLines(...lines: readonly (string | false | undefined)[]) {
-  return lines.filter(Boolean).join('\n');
-}
 
 const SETUP_PREVIOUS = 'Previous steps the setup back. Pieces stay put.';
 
@@ -84,10 +80,10 @@ export const SPICE_GUIDANCE: Guidance = {
   help: SPICE_RESERVE_HELP,
 };
 
-/** Hand and Spice share one window: one line for both, then the hand's help and the spice's. */
+/** Hand and Spice share one window: one line for both, then the spice's help and the hand's, in the order the window shows them. */
 export const HAND_AND_SPICE_GUIDANCE: Guidance = {
   description: 'Your cards, leaders and spice. Only you see them.',
-  help: helpLines(HAND_HELP, SPICE_RESERVE_HELP),
+  help: helpLines(SPICE_RESERVE_HELP, HAND_HELP),
 };
 
 export const LOG_GUIDANCE: Guidance = { description: 'What happened at this table, newest first.' };
@@ -98,11 +94,14 @@ export const GAME_LOG_GUIDANCE: Guidance = {
 
 export const AUDIT_LOG_GUIDANCE: Guidance = { description: 'Seats and removal votes.' };
 
+/** What Previous does once the game is under way, said in the Phase window and on a plain table alike. */
+export const PHASE_PREVIOUS = 'Previous moves the tracker back. Pieces and storm stay put.';
+
 export function phaseHelp(table: TableProjection) {
   const phase = phaseAt(table.snapshot.phase, table.snapshot.phases);
   return table.snapshot.stage === 'finished' || !table.snapshot.stage
     ? phase.instructions
-    : helpLines(phase.instructions, 'Previous moves the tracker back. Pieces and storm stay put.');
+    : helpLines(phase.instructions, PHASE_PREVIOUS);
 }
 
 /** The Phase panel's guidance; a fixture table without a stage keeps its plain Table panel. */

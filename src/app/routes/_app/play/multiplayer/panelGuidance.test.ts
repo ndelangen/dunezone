@@ -1,3 +1,4 @@
+import { helpLines } from '@ui/content/helpLines';
 import { expect, test } from 'vite-plus/test';
 
 import * as guidance from './panelGuidance';
@@ -15,7 +16,7 @@ const texts = Object.entries(guidance).flatMap(([name, value]) => {
     return [[name, value] as const];
   }
   if (value && typeof value === 'object' && 'description' in value) {
-    return [[name, guidance.helpLines(value.description, value.help)] as const];
+    return [[name, helpLines(value.description, value.help)] as const];
   }
   return [];
 });
@@ -29,7 +30,5 @@ test.each(texts)('%s stays a few short lines', (_name, text) => {
 });
 
 test('the hand and spice window covers both panels', () => {
-  expect(guidance.HAND_AND_SPICE_GUIDANCE.help).toBe(
-    guidance.helpLines(guidance.HAND_HELP, guidance.SPICE_RESERVE_HELP)
-  );
+  expect(guidance.HAND_AND_SPICE_GUIDANCE.help).toBe(helpLines(guidance.SPICE_RESERVE_HELP, guidance.HAND_HELP));
 });

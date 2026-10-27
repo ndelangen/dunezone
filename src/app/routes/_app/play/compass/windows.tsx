@@ -1,5 +1,6 @@
 import { Stack } from '@mantine/core';
 import { TABLE_CONVERSATION } from '@shared/play/conversations';
+import { helpLines } from '@ui/content/helpLines';
 import { HelpMark } from '@ui/content/HelpMark';
 import type { TopicIconTopic } from '@ui/content/TopicIcon';
 import clsx from 'clsx';
@@ -10,7 +11,6 @@ import type { TablePanel } from '../GameTable';
 import {
   FACTION_INFO_GUIDANCE,
   HAND_AND_SPICE_GUIDANCE,
-  helpLines,
   PLAYER_CONVERSATION_GUIDANCE,
   TABLE_CONVERSATION_GUIDANCE,
 } from '../multiplayer/panelGuidance';

@@ -19,6 +19,11 @@ body:has([data-app-root]) {
   font-family: var(--mantine-font-family-headings);
 }
 
+/* A multiline tooltip keeps the line breaks in its words, so longer help reads as short lines (helpLines). */
+.mantine-Tooltip-tooltip[data-multiline] {
+  white-space: pre-line;
+}
+
 /* Mantine inverts tooltips to light in the dark scheme; the glass aesthetic keeps them dark. The play island raises its own with the --tip- tokens (play/DarkSchemeIsland.css). */
 [data-mantine-color-scheme="dark"] .mantine-Tooltip-tooltip {
   --tooltip-bg: var(--tip-surface, rgb(from var(--glass-overlay) r g b / var(--glass-overlay-alpha)));
