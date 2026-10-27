@@ -25,6 +25,12 @@ export const PANEL_WINDOWS = {
   settings: { key: 'settings', label: 'Settings', topic: 'controls', ...GAME_LENGTH_GUIDANCE },
   gameLog: { key: 'game-log', label: 'Game log', topic: 'game', ...GAME_LOG_GUIDANCE },
   audit: { key: 'audit', label: 'Audit', topic: 'audit', ...AUDIT_LOG_GUIDANCE },
+  battles: {
+    key: 'battles',
+    label: 'Battles',
+    topic: 'battle',
+    description: 'Agreed battle results and revealed plans.',
+  },
   transfers: {
     key: 'transfers',
     label: 'Spice transfers',

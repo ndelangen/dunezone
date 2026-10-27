@@ -33,6 +33,7 @@ import { GameLink } from '../GameLink';
 import { GameTable } from '../GameTable';
 import type { TablePanel } from '../GameTable';
 import { ConnectedAlliancesPanel } from '../panels/alliances/useAlliancesPanel';
+import { ConnectedBattleHistoryPanel } from '../panels/battles/useBattleHistoryPanel';
 import { ConnectedHandPanel } from '../panels/hand/useHandPanel';
 import { ConnectedSharedInventoryPanel } from '../panels/inventory/useSharedInventoryPanel';
 import { ConnectedLogPanel } from '../panels/log/useLogPanel';
@@ -47,7 +48,7 @@ import { predictionCardInHand } from '../prediction/predictionCardInHand';
 import { TableWait } from '../TableWait';
 import { AllianceCoinsScene } from './AllianceCoins';
 import { AllianceStrip, showsAlliances } from './Alliances';
-import { BattleControls, BattleHistory, BattleModeToggle, BattleScene } from './BattleControls';
+import { BattleControls, BattleModeToggle, BattleScene } from './BattleControls';
 import { BidderScene, biddingPhase } from './Bidder';
 import { useBugReport } from './BugReport';
 import { OfflineConversations } from './Conversation';
@@ -615,13 +616,7 @@ function historyGroup({ client, table, error }: ConnectionControlsProps, hasInve
       { ...PANEL_WINDOWS.audit, content: <ConnectedLogPanel client={client} table={table} tab="audit" /> },
       ...(hasInventory
         ? [
-            {
-              key: 'battles',
-              label: 'Battles',
-              topic: 'battle' as const,
-              description: 'Agreed battle results and revealed plans.',
-              content: <BattleHistory table={table} />,
-            },
+            { ...PANEL_WINDOWS.battles, content: <ConnectedBattleHistoryPanel table={table} /> },
             {
               ...PANEL_WINDOWS.transfers,
               content: <ConnectedSpiceTransfersPanel client={client} table={table} />,

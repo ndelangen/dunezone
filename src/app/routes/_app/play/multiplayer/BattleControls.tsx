@@ -12,7 +12,7 @@ import { resolveRulebookBoardDefinition } from '@shared/rulebooks/boardDefinitio
 import { Section } from '@ui/block/Section';
 import { CalloutSurface } from '@ui/surface/CalloutSurface';
 import clsx from 'clsx';
-import type { CSSProperties, ReactNode } from 'react';
+import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 import { useEffect, useReducer, useRef, useSyncExternalStore } from 'react';
 import type { Camera } from 'three';
 import { Plane, Raycaster, Vector2, Vector3 } from 'three';
@@ -39,15 +39,15 @@ import { isSpectator } from './tableFactions';
 
 type Props = { client: TableSession; table: TableProjection };
 type Outcome = NonNullable<NonNullable<PublicBattle['sides'][number]>['choice']>;
-const OUTCOME_LABELS: Readonly<Record<Outcome, string>> = {
+export const OUTCOME_LABELS: Readonly<Record<Outcome, string>> = {
   left: 'Left side won',
   none: 'No winner',
   right: 'Right side won',
 };
-type FactionArtwork = TableProjection['snapshot']['factionArtwork'];
-type FactionNames = TableProjection['state']['factionNames'];
+export type FactionArtwork = TableProjection['snapshot']['factionArtwork'];
+export type FactionNames = TableProjection['state']['factionNames'];
 /* A real game keys factions by their Convex ids, so every battle label reads the roster's name and keeps the id only when the roster has none. */
-function rosterName(factionId: string, names: FactionNames) {
+export function rosterName(factionId: string, names: FactionNames) {
   return names[factionId] ?? factionId;
 }
 type WheelProps = {
@@ -64,8 +64,16 @@ function factionArtwork(factionId: string, artwork?: FactionArtwork) {
 function visiblePiece(piece: TablePiece, active?: Set<string>) {
   return !active || active.has(piece.id);
 }
-function DraggablePiece({ piece, client, style }: { piece: TablePiece; client?: TableSession; style?: CSSProperties }) {
-  const pointerSession = usePointerSession();
+/* A piece on a wheel, as a button so its name reads the same whether it can be carried or not. */
+function WheelPiece({
+  piece,
+  style,
+  onPointerDown,
+}: {
+  piece: TablePiece;
+  style?: CSSProperties;
+  onPointerDown?: (event: ReactPointerEvent<HTMLButtonElement>) => void;
+}) {
   return (
     <Button
       variant="transparent"
@@ -75,18 +83,33 @@ function DraggablePiece({ piece, client, style }: { piece: TablePiece; client?: 
       style={style}
       className={styles.piece}
       aria-label={`Drag ${pieceName(piece)} onto table`}
-      disabled={!client}
+      disabled={!onPointerDown}
+      onPointerDown={onPointerDown}
+    >
+      <PieceImage piece={piece} />
+    </Button>
+  );
+}
+/* A wheel piece the viewer can carry onto the table; the pointer session belongs to a live table. */
+function CarriedPiece({ piece, style }: { piece: TablePiece; style?: CSSProperties }) {
+  const pointerSession = usePointerSession();
+  return (
+    <WheelPiece
+      piece={piece}
+      style={style}
       onPointerDown={(event) => {
-        if (event.button !== 0 || !client) {
+        if (event.button !== 0) {
           return;
         }
         event.preventDefault();
         pointerSession.carry(event.nativeEvent, piece.id, 'whole');
       }}
-    >
-      <PieceImage piece={piece} />
-    </Button>
+    />
   );
+}
+/* A wheel piece, carried onto the table at a live table; a past battle's wheel only shows it. */
+function DraggablePiece({ piece, client, style }: { piece: TablePiece; client?: TableSession; style?: CSSProperties }) {
+  return client ? <CarriedPiece piece={piece} style={style} /> : <WheelPiece piece={piece} style={style} />;
 }
 /* The plan's capable troops as the wheel shows them, each dressed in the faction's own troop artwork. */
 function wheelTroops(
@@ -125,7 +148,7 @@ function wheelTroops(
     });
 }
 /** Play owns piece visibility, pointer sessions and the Motion verdict; the asset owns the wheel artwork. */
-function BattleWheel({ plan, factionId, factionName, client, active, artwork }: WheelProps) {
+export function BattleWheel({ plan, factionId, factionName, client, active, artwork }: WheelProps) {
   const leaders = plan.pieces.filter((piece) => plan.leaderIds.includes(piece.id) && visiblePiece(piece, active));
   const motion = useMotionAllowed();
   const retained = artwork?.[factionId];
@@ -240,44 +263,6 @@ export function BattleModeToggle({ client, table }: Props) {
   );
 }
 
-function BattleResults({
-  results: battleResults,
-  artwork,
-  names,
-}: {
-  results: NonNullable<TableProjection['snapshot']['battleResults']>;
-  artwork?: FactionArtwork;
-  names: FactionNames;
-}) {
-  return (
-    <Section hiddenHeading title="Battle results">
-      {battleResults.length ? (
-        battleResults.map((result) => (
-          <Stack key={result.id} gap="xs">
-            <Text>
-              {result.territory}: {result.factions.map((id) => rosterName(id, names)).join(' against ')}.{' '}
-              {OUTCOME_LABELS[result.outcome]}.
-            </Text>
-            <Group pt={40}>
-              {result.plans.map((plan, side) => (
-                <BattleWheel
-                  key={side}
-                  plan={plan}
-                  factionId={result.factions[side]}
-                  factionName={rosterName(result.factions[side], names)}
-                  artwork={artwork}
-                />
-              ))}
-            </Group>
-          </Stack>
-        ))
-      ) : (
-        <Text size="sm">No agreed battle results yet.</Text>
-      )}
-    </Section>
-  );
-}
-
 /* Without a plan of its own, the panel says why: no battle, the plans are out, or the viewer cannot claim a side. */
 function battleNotice(table: TableProjection, battle: PublicBattle | null | undefined) {
   if (!battle) {
@@ -306,17 +291,6 @@ export function BattleControls({ client, table }: Props) {
     <Section hiddenHeading title="Battle" description={battleHelp(table)}>
       <Text size="sm">{battleNotice(table, battle)}</Text>
     </Section>
-  );
-}
-
-/** Agreed battle results remain readable independently of the current battle and phase. */
-export function BattleHistory({ table }: Pick<Props, 'table'>) {
-  return (
-    <BattleResults
-      results={table.snapshot.battleResults ?? []}
-      artwork={table.snapshot.factionArtwork}
-      names={snapshotFactionLabels(table.snapshot)}
-    />
   );
 }
 
