@@ -25,8 +25,9 @@ const BALLOTS = [
 /* How long each player takes to vote, so the learner sees each ballot land. */
 const BALLOT_INTERVAL_MS = 1500;
 
-const buttonNamed = (name: string) => () =>
-  [...document.querySelectorAll('button')].find((button) => button.textContent?.trim() === name) ?? null;
+/* The quiet icon beside the player's name in their faction information. */
+const startButton = () =>
+  document.querySelector<HTMLElement>(`[data-window="${FACTION_INFO}"] [aria-label="Start removal vote"]`);
 
 function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[] {
   const seats = () => snapshot().roster?.seats ?? [];
@@ -49,14 +50,14 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
           document.querySelector(`[aria-label*=", ${QUIET}"]`),
       },
       begin: () => undefined,
-      done: () => infoOpen() && buttonNamed('Start removal vote')() !== null,
+      done: () => infoOpen() && startButton() !== null,
     }),
     task({
       id: 'start',
       task: 'Start a removal vote',
       detail:
-        'Press Start removal vote. Every player sees the vote at once in this window, and the player’s token on the chat bar is marked. Starting it counts as your own Remove.',
-      anchor: { kind: 'page', element: buttonNamed('Start removal vote') },
+        'Press Start removal vote, the crossed-out person beside their name. Every player sees the vote at once in this window, and the player’s token on the chat bar is marked. Starting it counts as your own Remove.',
+      anchor: { kind: 'page', element: startButton },
       begin: () => undefined,
       done: () => vote() !== undefined,
     }),
