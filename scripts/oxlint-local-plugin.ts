@@ -491,7 +491,14 @@ function writtenLines(node: unknown, lines: string[] = []): string[] {
     return lines;
   }
   const current = node as { type?: string; value?: unknown };
-  if ((current.type === 'Literal' || current.type === 'JSXText') && typeof current.value === 'string') {
+  /* An element's own attributes, such as a link's address, are not words the tooltip shows. */
+  if (current.type === 'JSXAttribute') {
+    return lines;
+  }
+  if (current.type === 'JSXText' && typeof current.value === 'string') {
+    /* JSX folds its source line breaks into spaces, so its text shows as one line. */
+    lines.push(current.value);
+  } else if (current.type === 'Literal' && typeof current.value === 'string') {
     lines.push(...current.value.split('\n'));
   } else if (current.type === 'TemplateElement') {
     const cooked = (current.value as { cooked?: string } | undefined)?.cooked ?? '';
