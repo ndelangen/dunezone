@@ -28,12 +28,24 @@ function footprint(geometry: BufferGeometry, turn = new Matrix4()) {
 
 /* The page's gear on the table, page right along +x and page down along +z, as the published face is shown. */
 const PAGE_GEAR = new Set(GEAR_OUTLINE.map(([x, y]) => key(x * RADIUS, y * RADIUS)));
+/* The gear turned over, as a face-down layer lies. */
+const TURNED_GEAR = new Set(GEAR_OUTLINE.map(([x, y]) => key(-x * RADIUS, y * RADIUS)));
+/* A face-down layer's turn (`TroopStackLayers`), which is also the half turn a flip swings a piece's new state in from, so a flip starts where the piece lay. */
+const HALF_TURN = new Matrix4().makeRotationZ(Math.PI);
 
 describe('tech token gear', () => {
-  test('the slab and both faces lie on the gear the page cuts the face to', () => {
+  test('a face-up layer and both its faces lie on the gear the page cuts the face to', () => {
     expect(footprint(gearSlabGeometry(RADIUS, HEIGHT))).toEqual(PAGE_GEAR);
+    /* The front on top; the back, mirrored, underneath. */
     expect(footprint(gearFaceGeometry(RADIUS, false), TOP)).toEqual(PAGE_GEAR);
     expect(footprint(gearFaceGeometry(RADIUS, true), UNDERSIDE)).toEqual(PAGE_GEAR);
+  });
+
+  test('a face-down layer and both its faces lie on the gear turned over', () => {
+    expect(footprint(gearSlabGeometry(RADIUS, HEIGHT), HALF_TURN)).toEqual(TURNED_GEAR);
+    /* The back, mirrored, on top; the front underneath. */
+    expect(footprint(gearFaceGeometry(RADIUS, true), TOP)).toEqual(TURNED_GEAR);
+    expect(footprint(gearFaceGeometry(RADIUS, false), UNDERSIDE)).toEqual(TURNED_GEAR);
   });
 
   test('the slab stands on its centre, as thick as a token layer', () => {

@@ -2,9 +2,9 @@ import { GEAR_OUTLINE } from '@shared/assets/tokenOutline';
 import { ExtrudeGeometry, Shape, ShapeGeometry, Vector2 } from 'three';
 
 /*
- * A tech token's gear in a face's plane at `radius`, as the page draws it: a face lays its plane flat by turning it
- * about x, which carries the page's y down to the table's +z, so the outline's y is negated here. `mirrored` flips it
- * left for right, for the underside, which a half turn about the plane's normal and then over shows the other way round.
+ * A tech token's gear in a face's plane at `radius`. A face is laid flat by a quarter turn about x, which carries the
+ * page's y down to the table's +z, so the outline's y is negated here. `mirrored` flips it left for right: the
+ * underside's turn mirrors x, and a face-down layer is the gear mirrored.
  */
 function gearShape(radius: number, mirrored: boolean): Shape {
   const side = mirrored ? -1 : 1;

@@ -2,6 +2,7 @@
 
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { ThreeEvent } from '@react-three/fiber/webgpu';
+import { tokenShapeOfType } from '@shared/assets/tokenOutline';
 import { retainedArrakisBoard } from '@shared/boards/geometry';
 import { gameAssetColors, rendererColors } from '@shared/play/assetColors';
 import { isFactionToken } from '@shared/play/factionToken';
@@ -28,7 +29,6 @@ import {
   TROOP_BOTTOM_RADIUS,
   TROOP_FACE_RADIUS,
   tokenBoxRatio,
-  isGearToken,
   TROOP_LAYER_HEIGHT,
   TROOP_LAYER_PITCH,
   TROOP_TOP_RADIUS,
@@ -224,20 +224,25 @@ function usePublishedFace(href: string | undefined): Texture | undefined {
   return useSyncExternalStore(subscribe, snapshot, snapshot);
 }
 
-/* The outline a token is cut to on the table: a box token's rectangle at its ratio, a tech token's gear, or a disc. */
-type TokenCut = { ratio: number } | 'gear' | 'disc';
+/* The outline a token is cut to on the table: a box token's rectangle at its ratio, a tech token's gear, or round. */
+type TokenCut = { ratio: number } | 'gear' | 'round';
 
 function tokenCut(piece: TablePiece): TokenCut {
   const ratio = tokenBoxRatio(piece);
-  return ratio != null ? { ratio } : isGearToken(piece) ? 'gear' : 'disc';
+  return ratio != null ? { ratio } : tokenShapeOfType(piece.items[0]?.artwork?.type) === 'gear' ? 'gear' : 'round';
 }
 
-/* A token's face in that outline; an underside's gear is mirrored, so the face turned over still lies on the gear. */
-function tokenFaceGeometry(meshes: SharedMeshes, cut: TokenCut, underside = false) {
+/*
+ * A token's face in that outline.
+ * A gear is not the same turned over: a face-down layer is the gear mirrored, as a real token turned over is, so a flip
+ * swings the outline over instead of the teeth jumping round. Whichever side of the layer it is on, the face showing the
+ * token's back lies on that mirrored gear and the face showing its front on the gear the page cuts.
+ */
+function tokenFaceGeometry(meshes: SharedMeshes, cut: TokenCut, showsFront = true) {
   if (cut === 'gear') {
-    return meshes.gearPlane(TROOP_FACE_RADIUS, underside);
+    return meshes.gearPlane(TROOP_FACE_RADIUS, !showsFront);
   }
-  return cut === 'disc'
+  return cut === 'round'
     ? meshes.circle(TROOP_FACE_RADIUS, 48)
     : meshes.plane(TROOP_FACE_RADIUS * 2, TROOP_FACE_RADIUS * 2 * cut.ratio);
 }
@@ -275,13 +280,13 @@ function ArrivingFaceMaterial({ texture }: { texture: Texture }) {
 function PublishedFace({
   href,
   card,
-  cut = 'disc',
-  underside = false,
+  cut = 'round',
+  showsFront = true,
 }: {
   href: string;
   card: boolean;
   cut?: TokenCut;
-  underside?: boolean;
+  showsFront?: boolean;
 }) {
   const meshes = useSharedMeshes();
   /* Piece art skips useTexture so a missing publication image retries in place instead of suspending the table. */
@@ -295,7 +300,7 @@ function PublishedFace({
       geometry={
         card
           ? meshes.roundedPlane(CARD_WIDTH, CARD_DEPTH, CARD_CORNER_RADIUS)
-          : tokenFaceGeometry(meshes, cut, underside)
+          : tokenFaceGeometry(meshes, cut, showsFront)
       }
     >
       {/* Printed art is drawn unlit: the warm table light washed out card, leader and token faces (#1756). The renderer still tone maps the whole frame in its output pass. The placeholder stays lit, like the piece beneath it. */}
@@ -385,9 +390,9 @@ function TokenFace({
   const cut = tokenCut(piece);
   return (
     <PieceFace height={TROOP_LAYER_HEIGHT} underside={underside}>
-      {href && <PublishedFace href={href} card={false} cut={cut} underside={underside} />}
+      {href && <PublishedFace href={href} card={false} cut={cut} showsFront={faceUp} />}
       {blocked && <SittingOutSign />}
-      <mesh renderOrder={PHYSICAL_OBJECT_RENDER_ORDER} geometry={tokenFaceGeometry(meshes, cut, underside)}>
+      <mesh renderOrder={PHYSICAL_OBJECT_RENDER_ORDER} geometry={tokenFaceGeometry(meshes, cut, faceUp)}>
         <meshStandardMaterial color={plainTokenFaceColor(piece, faceUp, !!href)} roughness={0.5} metalness={0.08} />
       </mesh>
       {!faceUp && !piece.items[itemIndex]?.artwork ? (
@@ -424,8 +429,8 @@ function TroopStackLayers({ piece }: { piece: TablePiece }) {
             <mesh
               position={[0, TROOP_LAYER_HEIGHT / 2, 0]}
               renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
-              /* A disc tapers, so a face-down one stands on its other end; a gear is straight-sided, and turned it would no longer lie under its faces. */
-              rotation={[0, 0, faceUp || cut === 'gear' ? 0 : Math.PI]}
+              /* A face-down layer is turned over: a disc stands on its other end, and a gear is mirrored under its faces. */
+              rotation={[0, 0, faceUp ? 0 : Math.PI]}
               geometry={tokenLayerGeometry(meshes, cut)}
             >
               <meshStandardMaterial color={piece.color} roughness={0.56} metalness={0.1} />
@@ -444,7 +449,7 @@ function tokenLayerGeometry(meshes: SharedMeshes, cut: TokenCut) {
   if (cut === 'gear') {
     return meshes.gearSlab(TROOP_TOP_RADIUS, TROOP_LAYER_HEIGHT);
   }
-  return cut === 'disc'
+  return cut === 'round'
     ? meshes.cylinder(TROOP_TOP_RADIUS, TROOP_BOTTOM_RADIUS, TROOP_LAYER_HEIGHT, 48)
     : meshes.box(TROOP_TOP_RADIUS * 2, TROOP_LAYER_HEIGHT, TROOP_TOP_RADIUS * 2 * cut.ratio);
 }

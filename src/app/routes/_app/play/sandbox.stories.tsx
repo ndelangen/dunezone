@@ -183,9 +183,13 @@ export const HmsCarriesItsTroops = meta.story({
 /** Three tech tokens for seat 1's faction set down on the board where nothing stands: one face up, one face down and a stack of three. */
 function withTechTokens(stored: StoredSnapshot): StoredSnapshot {
   const seat = stored.roster!.seats.find((entry) => entry.id === 'seat-1')!;
-  /* The faction's own token art stands in for a tech token's face, cut to the gear as a published one is. */
-  const art = stored.table.pieces.find((candidate) => candidate.stackKey === `faction-token:${seat.faction!.id}`)!
-    .items[0]!.artwork!;
+  /* The faction's token art stands in for a tech token's front and its troops' published back for its back, each cut to the gear as a published face is. */
+  const front = stored.table.pieces.find((candidate) => candidate.stackKey === `faction-token:${seat.faction!.id}`)!
+    .items[0]!.artwork!.front;
+  const back = stored.table.pieces.find(
+    (candidate) =>
+      !!candidate.stackKey?.startsWith(`troops:${seat.faction!.id}:`) && !!candidate.items[0]?.artwork?.back
+  )!.items[0]!.artwork!.back;
   const pieces = [...stored.table.pieces];
   const versions = { ...stored.versions };
   for (const [index, [count, faceUp, x]] of (
@@ -204,7 +208,7 @@ function withTechTokens(stored: StoredSnapshot): StoredSnapshot {
       items: Array.from({ length: count }, (_, item) => ({
         id: `sandbox-tech-${index}-${item}`,
         faceUp,
-        artwork: { front: art.front, back: art.back, name: 'Karama tech', type: 'token-tech' },
+        artwork: { front, back, name: 'Karama tech', type: 'token-tech' },
       })),
       stackKey: `token:sandbox-tech-${index}`,
       position: [0, 0, 0],
