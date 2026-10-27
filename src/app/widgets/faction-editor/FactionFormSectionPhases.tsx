@@ -163,7 +163,9 @@ function PhaseBehaviourFields({
         {(field) => (
           <ControlBlock
             title="Everyone must be ready"
-            description="Next waits until every player is ready, like Mentat Pause. A prediction phase gates on its lock instead."
+            description={
+              'Next waits until every player is ready, like Mentat Pause.\nA prediction phase waits on its lock instead.'
+            }
             input={
               <Switch
                 id={`phase-${index}-ready`}

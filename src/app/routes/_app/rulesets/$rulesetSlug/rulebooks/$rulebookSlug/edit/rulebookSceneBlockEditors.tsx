@@ -56,7 +56,7 @@ function BoardChoice({
   return (
     <ControlBlock
       title="Board"
-      description="The board the scene draws: the maintained Arrakis map, or a saved board. Saved boards take tints and tokens."
+      description={'The board the scene draws: the Arrakis map, or a saved board.\nSaved boards take tints and tokens.'}
       input={
         <BoardPicker
           label="Board"

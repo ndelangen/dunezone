@@ -107,7 +107,8 @@ export const SchemeIsland = meta.story({
     const help = within(windowNamed(page, 'Spice')!).getByRole('img', { name: 'Help' });
     /* By its words, as the window's (?) tooltip. */
     const spiceReserveTip = () =>
-      page.queryAllByRole('tooltip').find((tip) => tip.textContent?.includes('Only you see this balance')) ?? null;
+      page.queryAllByRole('tooltip').find((tip) => tip.textContent?.includes('Drop a stack on the Spice Bank disc')) ??
+      null;
     await userEvent.hover(help);
     const tooltip = await waitForFrame(async () => {
       const tip = spiceReserveTip();

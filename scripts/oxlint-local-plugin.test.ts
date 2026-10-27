@@ -277,3 +277,48 @@ export const probe = [
     expect(reports(output)).toBe(0);
   });
 });
+
+describe('tooltip-length', { timeout: TEST_BUDGET_MS }, () => {
+  const reports = (output: string) => output.split('local(tooltip-length)').length - 1;
+  const long = 'word '.repeat(25).trim();
+
+  test('reports a tooltip line past 100 characters, in a label, a (?) and a ControlBlock description', async () => {
+    const output = await lintDiagnostics(
+      'probe.tsx',
+      `import { Tooltip } from '@mantine/core';
+const HELP = '${long}';
+export const HELP_START = '${long.slice(0, 60)}';
+const HELP_END = '${long.slice(60)}';
+export const probe = [
+  <Tooltip label="${long}"><span /></Tooltip>,
+  <HelpMark text={ready ? 'Ready' : \`${long}\`} />,
+  <ControlBlock title="Name" description={<>${long}</>} />,
+  <HelpMark text={<>${long.slice(0, 60)}
+    ${long.slice(60)}</>} />,
+  <HelpMark text={'${long.slice(0, 60)}' + '${long.slice(60)}'} />,
+  <HelpMark text={<>${long.slice(0, 60)}<b>${long.slice(60)}</b></>} />,
+  <Tooltip label={HELP}><span /></Tooltip>,
+  <HelpMark text={\`\${HELP_START} \${HELP_END}\`} />,
+  <ControlBlock title="Name" description={helpLines('Short.', '${long}')} />,
+];
+`
+    );
+    expect(reports(output)).toBe(9);
+  });
+
+  test('leaves short lines alone, however many there are, and other props', async () => {
+    const output = await lintDiagnostics(
+      'probe.tsx',
+      `export const probe = [
+  <HelpMark text={'First short line.\\nSecond short line.\\nThird short line.'} />,
+  <Section description="${long}" />,
+  <HelpMark text={ready ? '${long.slice(0, 60)}' : '${long.slice(60)}'} />,
+  <HelpMark text={<>${long.slice(0, 60)}<br />${long.slice(60)}</>} />,
+  <ControlBlock title="Name" description={helpLines('${long.slice(0, 60)}', '${long.slice(60)}')} />,
+  <HelpMark text={<>See <a href="https://example.com/${long.replaceAll(' ', '-')}">the guide</a>.</>} />,
+];
+`
+    );
+    expect(reports(output)).toBe(0);
+  });
+});

@@ -112,7 +112,7 @@ export async function renameRulebook(canvasElement: HTMLElement, arrival: Editor
   const form = page.getByRole('form', { name: 'Rename Rulebook' });
   await userEvent.clear(within(form).getByRole('textbox', { name: 'Rulebook name' }));
   await userEvent.type(within(form).getByRole('textbox', { name: 'Rulebook name' }), 'Battle reference');
-  await expect(page.getByText(/bookmarks or shared links to the old one stop/)).toBeVisible();
+  await expect(page.getByText(/Old links stop working/)).toBeVisible();
   await userEvent.click(within(form).getByRole('button', { name: 'Rename Rulebook' }));
   await waitFor(() => expect(page.queryByRole('textbox', { name: 'Rulebook name' })).toBeNull());
   /* The old toolbar still answers this name until its slug's subscription refuses it.

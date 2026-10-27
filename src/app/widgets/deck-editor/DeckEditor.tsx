@@ -342,7 +342,9 @@ export function DeckEditor({
                   <>
                     <ControlBlock
                       title="Composition"
-                      description="How many of each card this deck holds, from any community card whoever made it. Duplicates are a count, not repeated rows."
+                      description={
+                        'Which community cards this deck holds, and how many of each.\nDuplicates are a count, not repeated rows.'
+                      }
                       tool={cardPicker}
                       input={
                         members.length === 0 ? (

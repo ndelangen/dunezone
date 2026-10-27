@@ -2,6 +2,7 @@ import { Anchor, Button, Group, Select, Stack, Text, Tooltip } from '@mantine/co
 import { resolveAsset } from '@shared/media/resolveAsset';
 import { createFileRoute, Link, useParams } from '@tanstack/react-router';
 import { Section } from '@ui/block/Section';
+import { helpLines } from '@ui/content/helpLines';
 import { TOPIC_ICON_TOPICS, TopicIcon } from '@ui/content/TopicIcon';
 import { IconAction } from '@ui/control/IconAction';
 import { SearchRefine } from '@ui/control/SearchRefine';
@@ -264,7 +265,7 @@ function MediaPreview({ entry, large = false }: Readonly<{ entry: MediaEntry; la
 }
 
 function mediaDetails(entry: MediaEntry) {
-  return `${entry.description} Keywords: ${entry.tags.join(', ')}. File: ${entry.value}`;
+  return helpLines(entry.description, `Keywords: ${entry.tags.join(', ')}.`, `File: ${entry.value}`);
 }
 
 function FocusedMedia({ focused, onClose }: Readonly<{ focused: MediaEntry; onClose: () => void }>) {
