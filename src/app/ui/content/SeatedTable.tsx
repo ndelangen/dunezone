@@ -25,6 +25,19 @@ export type TableSeat = Readonly<{
   highlighted: boolean;
 }>;
 
+/**
+ * What the middle of a {@link SeatedTable} says, top to bottom: a small heading, a large number, a word, a glyph and a small footnote.
+ * Each is left out when not given, so one table reads "Turn 3 of 10" and another "Drafting, 3 of 6".
+ */
+export type TableCentre = Readonly<{
+  above?: string | undefined;
+  number?: number | undefined;
+  word?: string | undefined;
+  /** An icon in place of words, such as a trophy. */
+  glyph?: ReactNode;
+  below?: string | undefined;
+}>;
+
 /* The turn tracker's sectors default to ten, as a game of Dune runs. */
 const TURNS = 10;
 const SEAT_RADIUS = 42;
@@ -110,7 +123,7 @@ function TakenSeat({ seat, style }: Readonly<{ seat: TableSeat; style: CSSProper
 /**
  * A round table seen from above, its seats drawn round the rim (direction C of #1739): a glance tells who sits where, which seats are open and, from the arc of turn ticks, how far the game has come.
  * A null seat is open.
- * The centre holds whatever says where the game is, usually a {@link TableCentre}.
+ * The centre says where the game is.
  */
 export function SeatedTable({
   label,
@@ -124,12 +137,14 @@ export function SeatedTable({
   /** How much of the game has been played, from 0 to 1; null draws no tracker. */
   progress: number | null;
   turns?: number;
-  centre: ReactNode;
+  centre: TableCentre;
 }>) {
   return (
     <div className={styles.ring} role="group" aria-label={label}>
       <TableArt progress={progress} turns={turns} />
-      <div className={styles.centre}>{centre}</div>
+      <div className={styles.centre}>
+        <Centre {...centre} />
+      </div>
       {seats.map((seat, index) => {
         const placement = seatPlacement(index, seats.length);
         return seat ? (
@@ -148,17 +163,8 @@ export function SeatedTable({
   );
 }
 
-/**
- * The middle of a {@link SeatedTable}, top to bottom: a small heading, a large number, a word, a glyph and a small footnote.
- * Each is left out when not given, so one table reads "Turn 3 of 10" and another "Drafting, 3 of 6".
- */
-export function TableCentre({
-  above,
-  number,
-  word,
-  glyph,
-  below,
-}: Readonly<{ above?: string; number?: number; word?: string; glyph?: ReactNode; below?: string }>) {
+/* The middle of the table, from its words and number. */
+function Centre({ above, number, word, glyph, below }: TableCentre) {
   return (
     <>
       {above ? <span className={styles.centreSmall}>{above}</span> : null}

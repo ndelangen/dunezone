@@ -37,7 +37,6 @@ const meta = testingPreview.meta({
         ...pressEnter(),
       }),
     ],
-    withTable: false,
     onReset: fn(),
     chaptersLink: link('#chapters'),
     nextLink: link('#next'),

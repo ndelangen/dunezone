@@ -90,7 +90,6 @@ export default function LobbyChapter({
       tasks={tasks}
       firstTask={firstTask}
       learned={script.learned}
-      withTable={false}
       onReset={() => {
         store.set(script.start(0));
         setEpoch((value) => value + 1);

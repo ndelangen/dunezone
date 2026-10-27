@@ -4,7 +4,7 @@ import { Trophy } from 'lucide-react';
 import { expect, within } from 'storybook/test';
 
 import { nameDiscColor } from './nameDisc';
-import { SeatedTable, TableCentre } from './SeatedTable';
+import { SeatedTable } from './SeatedTable';
 import type { TableSeat } from './SeatedTable';
 
 const seat = (name: string, edge: string | null, extra: Partial<TableSeat> = {}): TableSeat => ({
@@ -34,7 +34,7 @@ const meta = preview.meta({
       seat('Ilesa', '#7a5a9a'),
     ],
     progress: 0.27,
-    centre: <TableCentre above="Turn" number={3} below="of 10" />,
+    centre: { above: 'Turn', number: 3, below: 'of 10' },
   },
 });
 
@@ -53,7 +53,7 @@ export const SeatsOpen = meta.story({
     label: 'Seats at Midnight Caladan tea break, 3 of 6 taken',
     seats: [seat('Thialfi', null), null, seat('Rabban', null), null, seat('Alia', null), null],
     progress: null,
-    centre: <TableCentre word="Drafting" below="3 of 6" />,
+    centre: { word: 'Drafting', below: '3 of 6' },
   },
   play: async ({ canvasElement }) => {
     await expect(within(canvasElement).getAllByRole('img', { name: 'Open seat' })).toHaveLength(3);
@@ -71,7 +71,7 @@ export const Finished = meta.story({
       seat('Duncan', '#2f5f8c'),
     ],
     progress: null,
-    centre: <TableCentre glyph={<Trophy aria-hidden />} />,
+    centre: { glyph: <Trophy aria-hidden /> },
   },
 });
 
@@ -86,7 +86,7 @@ export const SeatCounts = meta.story({
             label={`${count} seats`}
             seats={Array.from({ length: count }, (_, index) => (index % 2 ? null : seat(`Player ${index + 1}`, null)))}
             progress={null}
-            centre={<TableCentre word="Setup" below={`${count} seats`} />}
+            centre={{ word: 'Setup', below: `${count} seats` }}
           />
         </div>
       ))}

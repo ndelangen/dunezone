@@ -19,6 +19,7 @@ import { startAt, withOrigin } from './setup/tutorialSetup';
 import type { TutorialSetup } from './setup/tutorialSetup';
 import { localRuntime } from './table/localRuntime';
 import { LocalTable } from './table/localTable';
+import { sceneTableLens } from './tableLens';
 import { TutorialGuide } from './TutorialGuide';
 
 /*
@@ -143,6 +144,7 @@ export default function ChapterPlay({
       number={chapter.number}
       title={chapter.title}
       tasks={tasks}
+      table={sceneTableLens}
       firstTask={firstTask}
       learned={script.learned}
       onReset={() => {

@@ -4,8 +4,8 @@ import { phaseAt, STANDARD_PHASES, tableProgressFor } from '@shared/play/phases'
 import { PageTitle } from '@ui/block/PageTitle';
 import { formatRelativeDate } from '@ui/content/dates';
 import { nameDiscColor } from '@ui/content/nameDisc';
-import { SeatedTable, TableCentre } from '@ui/content/SeatedTable';
-import type { TableSeat } from '@ui/content/SeatedTable';
+import { SeatedTable } from '@ui/content/SeatedTable';
+import type { TableCentre, TableSeat } from '@ui/content/SeatedTable';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { CallToAction } from '@ui/control/CallToAction';
 import { IconAction } from '@ui/control/IconAction';
@@ -153,25 +153,21 @@ function TableRing({ entry }: Readonly<{ entry: LobbyEntry }>) {
       })}
       progress={progress}
       turns={TURNS}
-      centre={<RingCentre entry={entry} />}
+      centre={ringCentre(entry)}
     />
   );
 }
 
 /* What sits in the middle of the table: the turn in play, the stage before play, a trophy once it is over. */
-function RingCentre({ entry }: Readonly<{ entry: LobbyEntry }>) {
+function ringCentre(entry: LobbyEntry): TableCentre {
   const turn = turnOf(entry);
   if (entry.stage === 'finished') {
-    return entry.result?.kind === 'none' ? (
-      <TableCentre word={STAGE_WORDS.finished} />
-    ) : (
-      <TableCentre glyph={<Trophy aria-hidden />} />
-    );
+    return entry.result?.kind === 'none' ? { word: STAGE_WORDS.finished } : { glyph: <Trophy aria-hidden /> };
   }
   if (turn !== null) {
-    return <TableCentre above="Turn" number={turn} below={turn <= TURNS ? `of ${TURNS}` : undefined} />;
+    return { above: 'Turn', number: turn, below: turn <= TURNS ? `of ${TURNS}` : undefined };
   }
-  return <TableCentre word={STAGE_WORDS[entry.stage]} below={`${entry.seatsFilled} of ${entry.seatCount}`} />;
+  return { word: STAGE_WORDS[entry.stage], below: `${entry.seatsFilled} of ${entry.seatCount}` };
 }
 
 /** A game still under way with a seat nobody holds. */
