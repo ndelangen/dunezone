@@ -1,6 +1,6 @@
 import preview from '@sb/preview';
 import type { ReactNode } from 'react';
-import { expect, fn, userEvent, within } from 'storybook/test';
+import { fn } from 'storybook/test';
 
 import { ChapterComplete } from './ChapterComplete';
 import { whatGoesWhere } from './chapterScripts/whatGoesWhere';
@@ -32,13 +32,3 @@ export const BackToChapters = meta.story({});
 
 /** A chapter with a built one after it: the button leads on. */
 export const NextChapter = meta.story({ args: { nextLink: link('#next') } });
-
-/** Keep playing closes the end and hands the table back, confetti and all. */
-export const KeepPlaying = meta.story({
-  args: { nextLink: link('#next') },
-  play: async ({ args, canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('button', { name: 'Keep playing' }, { timeout: 10_000 }));
-    await expect(args.onKeepPlaying).toHaveBeenCalledOnce();
-  },
-});

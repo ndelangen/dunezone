@@ -9,6 +9,7 @@ import { element, pressEnter, task } from './guideChecks';
 
 const FRIEND = 'Thialfi';
 const SEARCH = 'input[placeholder^="Search games"]';
+const CREATE = 'form[aria-label="New game"] button[type="submit"]';
 
 const searchValue = () => document.querySelector<HTMLInputElement>(SEARCH)?.value ?? '';
 /* The create page's ruleset field, by the label the page gives it. */
@@ -82,8 +83,9 @@ function tasks(state: () => LobbyState): GuideTask[] {
       task: 'Create the game',
       detail:
         'The dark stub of the pass is the table: how many seats it has, and the turn the game ends on. Six seats suit a first game. Press Create game.',
-      anchor: { kind: 'page', element: element('form[aria-label="New game"] button[type="submit"]') },
-      begin: () => undefined,
+      anchor: { kind: 'page', element: element(CREATE) },
+      /* The button sits at the foot of the stub, below a short window; brought to the middle, the arrow reaches it past the stub's foot, clear of the fields above. */
+      begin: () => document.querySelector(CREATE)?.scrollIntoView({ block: 'center' }),
       done: () => state().view === 'created',
     }),
     task({

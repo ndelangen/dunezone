@@ -11,11 +11,11 @@ import { stormOrder } from '@shared/play/stormSector';
 import { BOARD_RADIUS, BOARD_SURFACE_Y } from '@shared/play/tableGeometry';
 import { PLAYER_RING_RADIUS, tableSeatAngles } from '@shared/play/tableSettings';
 import { playUiColors } from '@shared/uiPalette';
+import { DarkSchemeIsland } from '@ui/surface/DarkSchemeIsland';
 import { useContext, useEffect, useMemo } from 'react';
 import { ExtrudeGeometry, Shape } from 'three';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
-import { DarkSchemeIsland } from '../DarkSchemeIsland';
 import styles from './Bidder.module.css';
 import { OpenRound, RoundResult } from './BidderFace';
 import { faceHalfHeight, faceHalfWidth, faceOnCanvas } from './bidderFacePosition';

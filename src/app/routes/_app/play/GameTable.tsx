@@ -8,6 +8,7 @@ import { TABLE_SECTOR_COUNT } from '@shared/play/tableSettings';
 import type { TableSeatCount } from '@shared/play/tableSettings';
 import { Section } from '@ui/block/Section';
 import type { TopicIconTopic } from '@ui/content/TopicIcon';
+import { DarkSchemeIsland, darkSchemeIslandAttributes } from '@ui/surface/DarkSchemeIsland';
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
@@ -40,7 +41,6 @@ import type { TabletopContextValue } from '../../../widgets/tabletop/TabletopCon
 import { TabletopScene } from '../../../widgets/tabletop/TabletopScene';
 import type { TableProgress } from '../../../widgets/tabletop/tableTrackers';
 import { CompassControls } from './compass/CompassControls';
-import { DarkSchemeIsland, darkSchemeIslandAttributes } from './DarkSchemeIsland';
 import { TableLabelsContext } from './tableLabels';
 import type { TableLabels } from './tableLabels';
 import { TableWait } from './TableWait';

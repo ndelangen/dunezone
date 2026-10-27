@@ -1,16 +1,15 @@
 import { Anchor, Group, Stack, Text } from '@mantine/core';
 import { tokenShapeOfType } from '@shared/assets/tokenOutline';
 import type { RulesetAssetSlot } from '@shared/rulesets/assetSlots';
-import { Link } from '@tanstack/react-router';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { TokenImage } from '@ui/content/TokenImage';
 import { ExternalLink } from 'lucide-react';
 import type { ReactNode } from 'react';
 
-import type { CreatableRuleset, CreatableRulesetPreview } from '@db/play';
+import type { CreatableRulesetPreview } from '@db/play';
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 
-import styles from './create.module.css';
+import styles from './CreateGamePass.module.css';
 
 /* One line per slot, in the words a player reads on the pass rather than the editor's slot names. */
 const SLOT_LABELS: Record<RulesetAssetSlot, string> = {
@@ -33,19 +32,19 @@ type Faction = CreatableRulesetPreview['factions'][number];
 export function RulesetManifest({
   ruleset,
   preview,
-}: Readonly<{ ruleset: CreatableRuleset; preview: CreatableRulesetPreview }>) {
+  rulesetLink,
+}: Readonly<{
+  ruleset: Readonly<{ name: string; slug: string }>;
+  preview: CreatableRulesetPreview;
+  rulesetLink: (slug: string) => (rootProps: object) => ReactNode;
+}>) {
   const own = preview.factions.filter((faction) => faction.own);
   const shared = preview.factions.filter((faction) => !faction.own);
   return (
     <section className={styles.manifest} aria-label={`What ${ruleset.name} puts on the table`}>
       <Group justify="space-between" wrap="nowrap">
         <Eyebrow>Packed for the table</Eyebrow>
-        <Anchor
-          size="sm"
-          renderRoot={(props) => (
-            <Link {...props} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: ruleset.slug }} target="_blank" />
-          )}
-        >
+        <Anchor size="sm" renderRoot={rulesetLink(ruleset.slug)} target="_blank">
           <Group gap={4} component="span" wrap="nowrap">
             Read the ruleset
             <ExternalLink size={13} aria-label="opens in a new tab" />

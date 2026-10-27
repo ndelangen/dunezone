@@ -10,14 +10,11 @@ export function GameNameInput({
   onChange,
   error,
   disabled,
-  useAvailability = useGameNameAvailability,
 }: Readonly<{
   value: string;
   onChange: (value: string) => void;
   error?: string;
   disabled?: boolean;
-  /** Where the address hint comes from: Convex, unless the page answers it itself, as the tutorial does. */
-  useAvailability?: typeof useGameNameAvailability;
 }>) {
   const [settled, setSettled] = useState<string | null>(null);
   useEffect(() => {
@@ -36,16 +33,13 @@ export function GameNameInput({
         error={error}
         disabled={disabled}
       />
-      {probe ? <NameAdvice key={value} name={value} useAvailability={useAvailability} /> : null}
+      {probe ? <NameAdvice key={value} name={value} /> : null}
     </Stack>
   );
 }
 
-function NameAdvice({
-  name,
-  useAvailability,
-}: Readonly<{ name: string; useAvailability: typeof useGameNameAvailability }>) {
-  const advice = useAvailability(name);
+function NameAdvice({ name }: Readonly<{ name: string }>) {
+  const advice = useGameNameAvailability(name);
   return advice ? (
     <Text size="sm" c="dimmed" role="status">
       {advice.duplicate

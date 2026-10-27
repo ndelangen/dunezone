@@ -1,22 +1,36 @@
 import type { playLobbyEntrySchema } from '@shared/play/directory';
 import { normalizePlayGameSlug } from '@shared/play/gameNamePolicy';
+import { useReducer } from 'react';
+import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
-import type { useCreateGame } from '@db/play';
-import { useLiveOperation } from '@app/db/core/live';
+import {
+  CreateGamePass,
+  createGameDraftReducer,
+  initialCreateGameDraft,
+} from '@app/widgets/create-game/CreateGamePass';
+import type { CreateGameRequest } from '@app/widgets/create-game/CreateGamePass';
+import { PlayLobby } from '@app/widgets/play-lobby/PlayLobby';
+import type { LobbyGames } from '@app/widgets/play-lobby/PlayLobby';
 
-import type { PlayPages } from '../../play/playPages';
 import type { TutorialSetup } from '../setup/tutorialSetup';
 
 /*
  * The lobby and create pages as a lobby chapter shows them: a room of sample games seated by the recording's players,
  * one ruleset to start a game with, and a creation that stays on the chapter's page instead of reaching Convex.
+ * Each is the Play page's own widget, handed the chapter's data and callbacks where the Play page hands it Convex's.
  */
 
 type LobbyEntry = z.infer<typeof playLobbyEntrySchema>;
 type Player = LobbyEntry['players'][number];
 
-const TUTORIAL_RULESET = { id: 'tutorial-dreamrules', slug: 'dreamrules', name: 'Dreamrules' } as const;
+const TUTORIAL_RULESET = {
+  id: 'tutorial-dreamrules',
+  slug: 'dreamrules',
+  name: 'Dreamrules',
+  objection: null,
+  selectable: true,
+} as const;
 const MINUTE = 60_000;
 const PHASES_PER_TURN = 9;
 
@@ -35,7 +49,7 @@ function playersOf(setup: TutorialSetup, learner: string) {
 }
 
 /** The sample room: a game of the learner's under way, two with seats open, one trading and one finished. */
-export function sampleLobby(setup: TutorialSetup, learner: string, now = Date.now()) {
+export function sampleLobby(setup: TutorialSetup, learner: string, now = Date.now()): LobbyGames {
   const people = playersOf(setup, learner);
   const seated = (indexes: readonly number[], withFactions: boolean, winners: readonly string[] = []): Player[] =>
     indexes.flatMap((index) => {
@@ -78,7 +92,6 @@ export function sampleLobby(setup: TutorialSetup, learner: string, now = Date.no
   });
   const winners = ['Fremen', 'House Atreides'];
   return {
-    status: 'ready' as const,
     ongoing: [
       entry(1, 'Arrakeen picnic', 'play', 6, seated([0, 1, 2, 3, 4, 5], true), {
         phase: 2 * PHASES_PER_TURN + 4,
@@ -102,59 +115,53 @@ export function sampleLobby(setup: TutorialSetup, learner: string, now = Date.no
   };
 }
 
-type Request = Parameters<ReturnType<typeof useCreateGame>['mutate']>[0];
+/* A button standing in for a link the chapter keeps on its page, marked for the guide's arrow. */
+const stayingLink =
+  (target: string, onClick: () => void = () => undefined) =>
+  ({ children, ...rootProps }: { children?: ReactNode }) => (
+    <button {...rootProps} type="button" data-tutorial-target={target} onClick={onClick}>
+      {children}
+    </button>
+  );
+
+/** The lobby with the sample games; Create a game moves the chapter to the create page, and the other links stay put. */
+export function TutorialLobby({ games, onCreate }: Readonly<{ games: LobbyGames; onCreate: () => void }>) {
+  return (
+    <PlayLobby
+      games={games}
+      waiting={null}
+      createLink={stayingLink('create', onCreate)}
+      /* The chapter is the tutorial already, and the sample games have no table to open. */
+      tutorialLink={stayingLink('tutorial')}
+      gameLink={(address) => stayingLink(`game:${address}`)}
+    />
+  );
+}
+
 type Created = Readonly<{ name: string; address: string }>;
 
-/** Whatever name the page sends, the game it creates: a custom name as typed, else the generated one. */
-const nameOf = (request: Request) => ('name' in request ? request.name.trim() : (request.generatedName ?? 'New game'));
+/* Whatever name the pass sends, the game it creates: a custom name as typed, else the generated one. */
+const nameOf = (request: CreateGameRequest) =>
+  'name' in request ? request.name.trim() : (request.generatedName ?? 'New game');
 
-/** The pages' sources for a lobby chapter; `go` moves the chapter between the lobby and the create page. */
-export function tutorialPlayPages({
-  lobby,
-  go,
-  created,
-}: Readonly<{
-  lobby: ReturnType<typeof sampleLobby>;
-  go: (view: 'lobby' | 'create') => void;
-  created: (game: Created) => void;
-}>): PlayPages {
-  let made: Created | null = null;
-  const button =
-    (onClick: () => void, target: string) =>
-    ({ children, ...rootProps }: { children?: unknown }) => (
-      <button {...rootProps} type="button" data-tutorial-target={target} onClick={onClick}>
-        {children as never}
-      </button>
-    );
-  return {
-    /* The sample games keep to the lobby's schema; Convex's own type names its ids by table, which a sample has none of. */
-    useLobbyGames: () => ({ data: lobby as never, isPending: false, isLoading: false }),
-    useCreatableRulesets: () => {
-      return {
-        data: {
-          access: 'allowed' as const,
-          rulesets: [{ ...TUTORIAL_RULESET, objection: null, selectable: true }],
-          preview: null,
-        },
-        isPending: false,
-        isLoading: false,
-      } as never;
-    },
-    useGameNameAvailability: (name) => ({ base: normalizePlayGameSlug(name), duplicate: false }),
-    useCreateGame: () =>
-      useLiveOperation(async (request: Request) => {
+/** The create page with the chapter's one ruleset; the game it creates exists on the chapter's page alone. */
+export function TutorialCreate({ onCreated }: Readonly<{ onCreated: (game: Created) => void }>) {
+  const [draft, dispatch] = useReducer(createGameDraftReducer, undefined, initialCreateGameDraft);
+  return (
+    <CreateGamePass
+      rulesets={[TUTORIAL_RULESET]}
+      preview={null}
+      draft={draft}
+      dispatch={dispatch}
+      pending={false}
+      departing={false}
+      notice={null}
+      failure={null}
+      onCreate={(request) => {
         const name = nameOf(request);
-        made = { name, address: normalizePlayGameSlug(name) };
-        return { ok: true as const, gameId: 'tutorial-new-game', slug: made.address };
-      }) as ReturnType<typeof useCreateGame>,
-    useOpenGame: () => () => {
-      if (made) {
-        created(made);
-      }
-    },
-    createLink: button(() => go('create'), 'create'),
-    /* The chapter is the tutorial already, and the sample games have no table to open. */
-    tutorialLink: button(() => undefined, 'tutorial'),
-    gameLink: (address) => button(() => undefined, `game:${address}`),
-  };
+        onCreated({ name, address: normalizePlayGameSlug(name) });
+      }}
+      rulesetLink={() => stayingLink('ruleset')}
+    />
+  );
 }

@@ -3,16 +3,13 @@ import { TUTORIAL_RECIPE } from '@shared/tutorial/recipe';
 import { PageTitle } from '@ui/block/PageTitle';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
-import { useState, useSyncExternalStore } from 'react';
+import { Fragment, useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 
-import { CreateGamePage } from '../play/create.route';
 import { GameLink } from '../play/GameLink';
-import { PlayLobby } from '../play/index';
-import { PlayPagesContext } from '../play/playPages';
 import type { TutorialChapter } from './chapters';
 import type { LobbyChapterScript, LobbyState } from './chapterScripts/chapterScript';
-import { sampleLobby, tutorialPlayPages } from './lobby/tutorialPlayPages';
+import { sampleLobby, TutorialCreate, TutorialLobby } from './lobby/tutorialLobbyPages';
 import setup from './setup/setup.json';
 import type { TutorialSetup } from './setup/tutorialSetup';
 import { TutorialGuide } from './TutorialGuide';
@@ -78,15 +75,11 @@ export default function LobbyChapter({
     const store = lobbyStore();
     return {
       store,
-      pages: tutorialPlayPages({
-        lobby: sampleLobby(setup as unknown as TutorialSetup, TUTORIAL_RECIPE.learner),
-        go: (view) => store.set({ ...store.get(), view }),
-        created: (created) => store.set({ view: 'created', created }),
-      }),
+      games: sampleLobby(setup as unknown as TutorialSetup, TUTORIAL_RECIPE.learner),
       tasks: script.tasks(store.get),
     };
   });
-  const { store, pages, tasks } = chapterState;
+  const { store, games, tasks } = chapterState;
   const state = useSyncExternalStore(store.subscribe, store.get, store.get);
   /* Reset starts the pages afresh, so a half-filled create page does not carry over. */
   const [epoch, setEpoch] = useState(0);
@@ -106,14 +99,13 @@ export default function LobbyChapter({
       chaptersLink={chaptersLink}
       nextLink={nextLink}
     >
-      {/* The pages start at the rail's right edge, as a table chapter's table does. */}
-      <div style={{ marginInlineStart: 'var(--rail-width)' }}>
-        <PlayPagesContext key={epoch} value={pages}>
-          {state.view === 'lobby' && <PlayLobby />}
-          {state.view === 'create' && <CreateGamePage />}
-          {state.view === 'created' && state.created && <CreatedGame game={state.created} page={page} />}
-        </PlayPagesContext>
-      </div>
+      <Fragment key={epoch}>
+        {state.view === 'lobby' && (
+          <TutorialLobby games={games} onCreate={() => store.set({ ...store.get(), view: 'create' })} />
+        )}
+        {state.view === 'create' && <TutorialCreate onCreated={(created) => store.set({ view: 'created', created })} />}
+        {state.view === 'created' && state.created && <CreatedGame game={state.created} page={page} />}
+      </Fragment>
     </TutorialGuide>
   );
 }

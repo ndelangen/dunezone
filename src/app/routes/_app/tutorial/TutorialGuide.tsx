@@ -2,6 +2,7 @@ import { Button, Group, Text, VisuallyHidden } from '@mantine/core';
 import { _roots } from '@react-three/fiber/webgpu';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { KeyedText } from '@ui/content/Kbd';
+import { DarkSchemeIsland, darkSchemeIslandAttributes } from '@ui/surface/DarkSchemeIsland';
 import { RotateCcw } from 'lucide-react';
 import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
 import type { CSSProperties, MouseEvent, ReactNode } from 'react';
@@ -10,7 +11,6 @@ import type { Camera, Vector3Tuple } from 'three';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
-import { DarkSchemeIsland, darkSchemeIslandAttributes } from '../play/DarkSchemeIsland';
 import { ChapterComplete } from './ChapterComplete';
 import { guideShapePath, keepInView, transposed } from './guideArrow';
 import type { Target } from './guideArrow';
@@ -190,13 +190,8 @@ function aim(paths: readonly (SVGPathElement | null)[], badge: DOMRect, rail: DO
   paths[0]?.setAttribute('data-target', spot ? `${Math.round(spot.x)} ${Math.round(spot.y)}` : '');
 }
 
-/*
- * How wide the rail is. The rail gives way first, down to a floor of 16rem, so the table beside it keeps 720px on any desktop window
- * wider than 976px. The rail never covers the table (Norbert, 2026-10-25): in a narrower window the table gets narrower too,
- * as Play is desktop-only for now.
- */
-const TABLE_MIN_WIDTH = '720px';
-const RAIL_WIDTH = `clamp(16rem, 100vw - ${TABLE_MIN_WIDTH}, 25rem)`;
+/* How wide the rail is, set in the stylesheet so the page beside a lobby chapter can make room for it as well. */
+const RAIL_WIDTH = 'var(--tutorial-rail-width)';
 
 /**
  * The guide for one chapter, beside whatever page holds the table.
@@ -452,7 +447,11 @@ export function TutorialGuide({
         </div>
       </DarkSchemeIsland>
       {/* Under the end of a chapter the table holds still: nothing in it takes focus, clicks or keys. */}
-      <div className={styles.table} inert={!task && keptPlaying !== run}>
+      <div
+        className={styles.table}
+        data-tutorial-pages={withTable ? undefined : ''}
+        inert={!task && keptPlaying !== run}
+      >
         {children}
       </div>
       {!task && keptPlaying !== run && (

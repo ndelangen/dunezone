@@ -30,9 +30,26 @@
   stroke-linejoin: round;
 }
 
+/*
+ * How wide the rail is. The rail gives way first, down to a floor of 16rem, so the table beside it keeps 720px on any desktop window
+ * wider than 976px. The rail never covers the table (Norbert, 2026-10-25): in a narrower window the table gets narrower too,
+ * as Play is desktop-only for now. It is set on the root, so the shell's frame round a lobby chapter's pages can read it too.
+ */
+:global(:root):has(.frame) {
+  --tutorial-rail-width: clamp(16rem, 100vw - 720px, 25rem);
+}
+
 /* The guide and the page it wraps share one box; only the custom properties it sets reach the page. */
 .frame {
   display: contents;
+}
+
+/*
+ * A lobby chapter's pages join the shell's grid as any page does, so the whole frame, band and content, starts at the rail's right edge,
+ * as a table chapter's table does.
+ */
+:global([data-app-frame]):has([data-tutorial-pages]) {
+  margin-inline-start: var(--tutorial-rail-width);
 }
 
 /* The page the guide wraps, in a box of its own only so it can be made inert; it lays out as if the box were not there. */
