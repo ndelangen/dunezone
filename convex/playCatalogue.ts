@@ -174,14 +174,16 @@ async function draftCandidates(ctx: QueryCtx, linked: ReadonlySet<Id<'factions'>
   };
   try {
     const exhausted = await scan();
-    const rows = await Promise.all([...pending].map(async (id) => [id, await ctx.db.get(id)] as const));
-    for (const [id, row] of rows) {
-      if (row && !row.is_deleted) {
-        chosen.set(id, row);
-      } else {
-        chosen.delete(id);
-      }
-    }
+    await Promise.all(
+      [...pending].map(async (id) => {
+        const row = await ctx.db.get(id);
+        if (row && !row.is_deleted) {
+          chosen.set(id, row);
+        } else {
+          chosen.delete(id);
+        }
+      })
+    );
     /* Missing and deleted links release their slots; the same scan fills those from the next newest factions. */
     pending.clear();
     if (!exhausted) {
