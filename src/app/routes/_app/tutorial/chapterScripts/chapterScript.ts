@@ -55,5 +55,7 @@ export type LobbyChapterScript = Readonly<{
   page: 'lobby';
   /** The chapter's tasks, reading where the player is; a task calls `openCreate` once Create a game should lead on. */
   tasks: (state: () => LobbyState, openCreate: () => void) => GuideTask[];
+  /** Where a chapter opened at a later task begins, so a direct link to it lands where its task can be done. */
+  start: (firstTask: number) => LobbyState;
   learned: readonly string[];
 }>;

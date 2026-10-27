@@ -14,11 +14,9 @@ import setup from './setup/setup.json';
 import type { TutorialSetup } from './setup/tutorialSetup';
 import { TutorialGuide } from './TutorialGuide';
 
-const START: LobbyState = { view: 'lobby', createOpen: false, ruleset: null, created: null };
-
 /* Where the player is, kept outside React so the tasks read it as it is now and the page follows it. */
-function lobbyStore() {
-  let state = START;
+function lobbyStore(start: LobbyState) {
+  let state = start;
   const listeners = new Set<() => void>();
   return {
     get: () => state,
@@ -72,7 +70,8 @@ export default function LobbyChapter({
   nextLink?: ((props: object) => ReactNode) | undefined;
 }>) {
   const [chapterState] = useState(() => {
-    const store = lobbyStore();
+    /* A chapter opened at a later task starts where that task is played. */
+    const store = lobbyStore(script.start(firstTask));
     return {
       store,
       games: sampleLobby(setup as unknown as TutorialSetup, TUTORIAL_RECIPE.learner),
@@ -93,7 +92,7 @@ export default function LobbyChapter({
       learned={script.learned}
       withTable={false}
       onReset={() => {
-        store.set(START);
+        store.set(script.start(0));
         setEpoch((value) => value + 1);
       }}
       chaptersLink={chaptersLink}
@@ -103,12 +102,14 @@ export default function LobbyChapter({
         {state.view === 'lobby' && (
           <TutorialLobby
             games={games}
+            createOpen={state.createOpen}
             /* Leaving the lobby before the chapter asks would strand the steps that read it, so the button waits for its step. */
             onCreate={() => store.get().createOpen && store.set({ ...store.get(), view: 'create' })}
           />
         )}
         {state.view === 'create' && (
           <TutorialCreate
+            ruleset={state.ruleset}
             onRuleset={(ruleset) => store.set({ ...store.get(), ruleset })}
             onCreated={(created) => store.set({ ...store.get(), view: 'created', created })}
           />

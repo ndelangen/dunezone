@@ -1,0 +1,50 @@
+/* The ground and ink default to the page's; a surface with its own, such as a dark pass, sets `--seat-row-ground` and `--seat-row-accent` round it. */
+.row {
+  display: grid;
+  grid-template-columns: repeat(var(--seat-row-places), minmax(0, 2.6rem));
+  justify-content: space-between;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.seat {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  border: 1.5px solid currentColor;
+  border-radius: var(--radius-sm);
+  font-family: "C_Advokat_Modern", sans-serif;
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  transition:
+    color 0.2s,
+    background-color 0.2s,
+    opacity 0.2s;
+}
+
+.seat[data-state="open"] {
+  color: var(--seat-row-accent, var(--color-brand));
+}
+
+.seat[data-state="first"] {
+  border-color: var(--seat-row-accent, var(--color-brand));
+  background: var(--seat-row-accent, var(--color-brand));
+  color: var(--seat-row-ground, var(--color-ground));
+}
+
+.seat[data-state="unused"] {
+  border-style: dashed;
+  opacity: 0.35;
+}
+
+html[data-motion="reduce"] .seat {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-motion="ok"]) .seat {
+    transition: none;
+  }
+}

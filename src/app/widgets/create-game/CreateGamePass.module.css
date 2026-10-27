@@ -54,48 +54,10 @@
   border-top: 1px dashed var(--mantine-color-default-border);
 }
 
-.berths {
-  display: grid;
-  grid-template-columns: repeat(9, minmax(0, 2.6rem));
-  justify-content: space-between;
-  gap: 0.3rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.berth {
-  display: grid;
-  place-items: center;
-  aspect-ratio: 1;
-  border: 1.5px solid currentColor;
-  border-radius: var(--radius-sm);
-  font-family: "C_Advokat_Modern", sans-serif;
-  font-size: 0.75rem;
-  color: var(--color-muted);
-  transition:
-    color 0.2s,
-    background-color 0.2s,
-    opacity 0.2s;
-}
-
-.berth[data-state="open"] {
-  color: var(--ticket-accent);
-}
-
-.berth[data-state="you"] {
-  border-color: var(--ticket-accent);
-  background: var(--ticket-accent);
-  color: var(--ticket-ground);
-}
-
-.berth[data-state="unused"] {
-  border-style: dashed;
-  opacity: 0.35;
-}
-
-/* The board's seats, in the pass's own ground and ink. */
-.board {
+/* The seats, in a row and round the board, in the pass's own ground and ink. */
+.inked {
+  --seat-row-ground: var(--ticket-ground);
+  --seat-row-accent: var(--ticket-accent);
   --board-seats-ground: var(--ticket-ground);
   --board-seats-accent: var(--ticket-accent);
 }
@@ -120,19 +82,11 @@
   }
 }
 
-html[data-motion="reduce"] .berth {
-  transition: none;
-}
-
 html[data-motion="reduce"] .departure {
   animation: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html:not([data-motion="ok"]) .berth {
-    transition: none;
-  }
-
   html:not([data-motion="ok"]) .departure {
     animation: none;
   }

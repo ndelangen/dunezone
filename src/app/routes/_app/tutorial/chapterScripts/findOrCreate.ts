@@ -1,3 +1,6 @@
+import { normalizePlayGameSlug } from '@shared/play/gameNamePolicy';
+import { generatePlayGameName } from '@shared/play/generatedGameNames';
+
 import type { GuideTask } from '../TutorialGuide';
 import type { LobbyChapterScript, LobbyState } from './chapterScript';
 import { element, pressEnter, task } from './guideChecks';
@@ -72,12 +75,11 @@ function tasks(state: () => LobbyState, openCreate: () => void): GuideTask[] {
     task({
       id: 'ruleset',
       task: 'Choose a ruleset',
-      detail:
-        'The game already has a name, drawn at random; the dice draw another. Choose Dreamrules as its ruleset: a ruleset decides the board, the decks and the factions the game can draft.',
+      detail: `The game already has a name, drawn at random; the dice draw another. Choose ${RULESET} as its ruleset: a ruleset decides the board, the decks and the factions the game can draft.`,
       anchor: { kind: 'page', element: rulesetInput },
       begin: () => undefined,
       /* The pass holding Dreamrules, not the field reading it: typed and left unpicked, the field holds no ruleset. */
-      done: () => state().ruleset === 'Dreamrules',
+      done: () => state().ruleset === RULESET,
     }),
     task({
       id: 'set',
@@ -105,6 +107,32 @@ function tasks(state: () => LobbyState, openCreate: () => void): GuideTask[] {
   ];
 }
 
+/* The tasks, by id, in order; `start` reads where each one is played. */
+const TASK = { create: 3, ruleset: 4, set: 5, share: 6 } as const;
+const RULESET = 'Dreamrules';
+
+/*
+ * A chapter opened at a later task begins on its page with what the tasks before it would have left:
+ * from Choose a ruleset on the create page, from Create the game with the ruleset chosen, and from Copy its link with a game created.
+ */
+function start(firstTask: number): LobbyState {
+  const lobby: LobbyState = { view: 'lobby', createOpen: false, ruleset: null, created: null };
+  if (firstTask < TASK.ruleset) {
+    return lobby;
+  }
+  const create: LobbyState = {
+    ...lobby,
+    view: 'create',
+    createOpen: true,
+    ruleset: firstTask >= TASK.set ? RULESET : null,
+  };
+  if (firstTask < TASK.share) {
+    return create;
+  }
+  const name = generatePlayGameName();
+  return { ...create, view: 'created', created: { name, address: normalizePlayGameSlug(name) } };
+}
+
 /* One line for each part of the chapter, in the order it was played. */
 const learned = [
   'The lobby shows every game as a table, with its players and its stage',
@@ -113,4 +141,4 @@ const learned = [
   'Create a game: a name, a ruleset and the seats, then share its link',
 ];
 
-export const findOrCreate: LobbyChapterScript = { slug: 'find-or-create', page: 'lobby', tasks, learned };
+export const findOrCreate: LobbyChapterScript = { slug: 'find-or-create', page: 'lobby', tasks, start, learned };

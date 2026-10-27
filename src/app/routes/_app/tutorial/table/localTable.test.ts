@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, test } from 'vite-plus/test';
 import setup from '../setup/setup.json';
 import { startAt } from '../setup/tutorialSetup';
 import type { TutorialSetup } from '../setup/tutorialSetup';
+import { localRuntime } from './localRuntime';
 import { LocalTable } from './localTable';
 
 /* Determine winner and its result change only the stored state, so a tutorial table runs them as the session does. */
@@ -153,6 +154,44 @@ describe('a tutorial table’s catalogue request', () => {
     expect(table.room.snapshot.table.pieces.filter((piece) => piece.label === 'Karama')).toMatchObject([
       { inventory: 'shared', items: [{ faceUp: true }] },
     ]);
+    table.dispose();
+  });
+
+  test('answers a request a Reset left behind, so the next one is captured and requested', async () => {
+    const open = () => new LocalTable(startAt(setup as unknown as TutorialSetup, 'turn-1-storm', 'https://dune.zone'));
+    let table = open();
+    const left = table;
+    let release: (value: typeof contents) => void = () => {};
+    const captures = [new Promise<typeof contents>((resolve) => (release = resolve)), Promise.resolve(contents)];
+    const runtime = localRuntime(() => table, {}, { capture: () => captures.shift()! });
+    const socket = runtime.openSocket('tutorial');
+    const received: ServerMessage[] = [];
+    socket.onmessage = (event) => received.push(JSON.parse(event.data as string));
+    const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+    await flush();
+    const request = (commandId: string) =>
+      socket.send(
+        JSON.stringify({
+          type: 'command',
+          commandId,
+          action: { kind: 'spawn-request', type: 'token-disc', slug: 'karama' },
+          expectedRevision: table.room.snapshot.revision,
+        })
+      );
+
+    request('before-reset');
+    table = open();
+    release(contents);
+    await flush();
+    expect(received).toContainEqual(expect.objectContaining({ type: 'view', completedCommandId: 'before-reset' }));
+    expect(table.room.snapshot.controls!.requests).toEqual([]);
+    expect(left.room.snapshot.controls!.requests).toEqual([]);
+
+    request('after-reset');
+    await flush();
+    expect(table.room.snapshot.controls!.requests).toMatchObject([{ contents: { name: 'Karama' } }]);
+    runtime.dispose();
+    left.dispose();
     table.dispose();
   });
 });

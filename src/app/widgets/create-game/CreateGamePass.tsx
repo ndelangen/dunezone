@@ -13,6 +13,7 @@ import { FormError } from '@ui/block/FormError';
 import { PageTitle } from '@ui/block/PageTitle';
 import { BoardSeats } from '@ui/content/BoardSeats';
 import { Eyebrow } from '@ui/content/Eyebrow';
+import { SeatRow } from '@ui/content/SeatRow';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { TicketSurface } from '@ui/surface/TicketSurface';
 import { Dices } from 'lucide-react';
@@ -393,8 +394,10 @@ function SeatsField({
         disabled={disabled}
         mb="md"
       />
-      <SeatRow seats={value} />
-      <div className={styles.board}>
+      <div className={styles.inked}>
+        <SeatRow seats={value} places={MAXIMUM} />
+      </div>
+      <div className={styles.inked}>
         <BoardSeats
           angles={isTableSeatCount(value) ? tableSeatAngles(value) : []}
           board="/vector/background/map.svg"
@@ -437,18 +440,5 @@ function LastTurnField({
         The turn wheel counts to it. The table can play on past it, and the Phase tab changes it during the game.
       </Text>
     </Stack>
-  );
-}
-
-/* Every possible seat, numbered: the table's seats lit, the rest left as places a larger game would add. */
-function SeatRow({ seats }: Readonly<{ seats: number }>) {
-  return (
-    <ol className={styles.berths} aria-hidden>
-      {Array.from({ length: MAXIMUM }, (_, index) => (
-        <li key={index} className={styles.berth} data-state={index === 0 ? 'you' : index < seats ? 'open' : 'unused'}>
-          {index === 0 ? 'You' : index + 1}
-        </li>
-      ))}
-    </ol>
   );
 }

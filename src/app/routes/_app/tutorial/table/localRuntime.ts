@@ -116,10 +116,16 @@ export function localRuntime(
         /* A catalogue request commits once its asset is captured, as the Worker commits it, and a refusal answers the command. */
         case 'command':
           if (message.action.kind === 'spawn-request') {
-            /* A Reset while the asset is read replaces the table; the request belonged to the one it left. */
+            /*
+             * A Reset while the asset is read replaces the table; the request belonged to the one it left, so it spawns nothing.
+             * It is still answered, with the new table as it stands, or the page would wait on it and refuse every later request.
+             */
             const origin = table();
             return void catalogue.capture(message.action).then(
-              (contents) => table() === origin && origin.requestSpawn(message, contents),
+              (contents) =>
+                table() === origin
+                  ? origin.requestSpawn(message, contents)
+                  : this.deliver(table().frame(undefined, message.commandId)),
               (error: unknown) =>
                 this.deliver({ type: 'rejected', requestId: message.commandId, message: refusal(error) })
             );

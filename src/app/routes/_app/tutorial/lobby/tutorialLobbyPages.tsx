@@ -124,13 +124,22 @@ const stayingLink =
     </button>
   );
 
-/** The lobby with the sample games; Create a game moves the chapter to the create page, and the other links stay put. */
-export function TutorialLobby({ games, onCreate }: Readonly<{ games: LobbyGames; onCreate: () => void }>) {
+/**
+ * The lobby with the sample games;
+ * Create a game moves the chapter to the create page, and the other links stay put.
+ * Until the chapter asks for it, Create a game shows disabled and says when it opens.
+ */
+export function TutorialLobby({
+  games,
+  createOpen,
+  onCreate,
+}: Readonly<{ games: LobbyGames; createOpen: boolean; onCreate: () => void }>) {
   return (
     <PlayLobby
       games={games}
       waiting={null}
       createLink={stayingLink('create', onCreate)}
+      createDisabledReason={createOpen ? undefined : 'You’ll create a game in a later step'}
       /* The chapter is the tutorial already, and the sample games have no table to open. */
       tutorialLink={stayingLink('tutorial')}
       gameLink={(address) => stayingLink(`game:${address}`)}
@@ -150,10 +159,19 @@ const nameOf = (request: CreateGameRequest) =>
  * It tells the chapter which ruleset the pass holds, so a step sees the one chosen rather than what the field shows.
  */
 export function TutorialCreate({
+  ruleset,
   onRuleset,
   onCreated,
-}: Readonly<{ onRuleset: (name: string | null) => void; onCreated: (game: Created) => void }>) {
-  const [draft, dispatch] = useReducer(createGameDraftReducer, undefined, initialCreateGameDraft);
+}: Readonly<{
+  /** The ruleset the pass starts with, by name: a chapter opened past choosing one starts with it chosen. */
+  ruleset: string | null;
+  onRuleset: (name: string | null) => void;
+  onCreated: (game: Created) => void;
+}>) {
+  const [draft, dispatch] = useReducer(createGameDraftReducer, undefined, () => ({
+    ...initialCreateGameDraft(),
+    rulesetId: ruleset === TUTORIAL_RULESET.name ? TUTORIAL_RULESET.id : '',
+  }));
   /* Each change to the draft reaches the chapter as it is made, so the step sees the ruleset the pass will create the game with. */
   const change = (event: CreateGameDraftEvent) => {
     dispatch(event);

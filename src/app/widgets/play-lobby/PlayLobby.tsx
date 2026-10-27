@@ -35,6 +35,8 @@ type RootLink = (rootProps: object) => ReactNode;
 /** Where the lobby leads: creating a game, the tutorial, and each listed game by its address. */
 export type PlayLobbyLinks = Readonly<{
   createLink: RootLink;
+  /** Why creating a game is not open yet, when it is not; the create buttons show disabled and say why. */
+  createDisabledReason?: string | undefined;
   tutorialLink: RootLink;
   gameLink: (address: string) => RootLink;
 }>;
@@ -251,6 +253,7 @@ function LobbyToolbar({
   onViewChange,
   counts,
   createLink,
+  createDisabledReason,
 }: Readonly<{
   query: string;
   onQueryChange: (query: string) => void;
@@ -258,6 +261,7 @@ function LobbyToolbar({
   onViewChange: (view: View) => void;
   counts: Record<View, number>;
   createLink: RootLink;
+  createDisabledReason: string | undefined;
 }>) {
   const viewSelect = (label?: string, joined = false) => (
     <Select
@@ -299,6 +303,7 @@ function LobbyToolbar({
           intent="positive"
           size="lg"
           renderRoot={createLink}
+          disabledReason={createDisabledReason}
           icon={<Plus size={17} aria-hidden />}
         />
       </Toolbar.Right>
@@ -314,6 +319,7 @@ export function PlayLobby({
   games: ready,
   waiting,
   createLink,
+  createDisabledReason,
   tutorialLink,
   gameLink,
 }: Readonly<{ games: LobbyGames | null; waiting: ReactNode } & PlayLobbyLinks>) {
@@ -338,7 +344,7 @@ export function PlayLobby({
             >
               Learn to play
             </Button>
-            <CallToAction direction="start" size="lg" renderRoot={createLink}>
+            <CallToAction direction="start" size="lg" renderRoot={createLink} disabledReason={createDisabledReason}>
               Create a game
             </CallToAction>
           </Group>
@@ -352,6 +358,7 @@ export function PlayLobby({
             view={view}
             onViewChange={setView}
             createLink={createLink}
+            createDisabledReason={createDisabledReason}
             counts={{
               ongoing: ready.ongoing.length,
               yours: ready.ongoing.filter((entry) => entry.viewerSeated).length,
