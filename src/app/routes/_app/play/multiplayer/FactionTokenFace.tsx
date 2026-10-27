@@ -24,6 +24,7 @@ export function FactionTokenFace({
   names,
   size,
   src,
+  label,
   style,
   ref,
   ...rest
@@ -32,6 +33,8 @@ export function FactionTokenFace({
     factionId: string;
     size: number;
     src?: string | null;
+    /* The faction's name for a screen reader, where the token stands for it on its own. */
+    label?: string;
     style?: CSSProperties;
     ref?: Ref<HTMLDivElement>;
   }>) {
@@ -39,6 +42,8 @@ export function FactionTokenFace({
     <Avatar
       {...rest}
       ref={ref}
+      role={label ? 'img' : undefined}
+      aria-label={label}
       src={factionTokenFace(table, factionId) ?? src}
       size={size}
       radius="xl"
@@ -53,7 +58,7 @@ export function FactionTokenFace({
   );
 }
 
-/** Several factions' tokens overlapping in a row, each named in its tooltip. */
+/** Several factions' tokens overlapping in a row, each named in its tooltip and by its label. */
 export function FactionTokenGroup({
   table,
   factionIds,
@@ -62,17 +67,21 @@ export function FactionTokenGroup({
 }: TokenProps & Readonly<{ factionIds: readonly string[]; size: number }>) {
   return (
     <Group gap={0} wrap="nowrap" style={{ flexShrink: 0 }}>
-      {factionIds.map((factionId, index) => (
-        <Tooltip key={factionId} label={names[factionId] ?? factionId} withinPortal>
-          <FactionTokenFace
-            table={table}
-            factionId={factionId}
-            names={names}
-            size={size}
-            style={{ marginLeft: index ? -Math.round(size / 4) : 0 }}
-          />
-        </Tooltip>
-      ))}
+      {factionIds.map((factionId, index) => {
+        const name = names[factionId] ?? factionId;
+        return (
+          <Tooltip key={factionId} label={name} withinPortal>
+            <FactionTokenFace
+              table={table}
+              factionId={factionId}
+              names={names}
+              size={size}
+              label={name}
+              style={{ marginLeft: index ? -Math.round(size / 4) : 0 }}
+            />
+          </Tooltip>
+        );
+      })}
     </Group>
   );
 }

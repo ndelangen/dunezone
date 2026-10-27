@@ -2,7 +2,7 @@ import preview from '@sb/preview';
 import { applyAlliance } from '@shared/play/alliances';
 import type { AllianceState } from '@shared/play/alliances';
 import type { ClientMessage } from '@shared/play/protocol';
-import { expect, userEvent, waitFor, within } from 'storybook/test';
+import { expect, waitFor, within } from 'storybook/test';
 
 import { VIEWER, faction, alliancesSnapshot } from './alliances.stories.fixture';
 import { gameMeta, install } from './game.stories.fixture';
@@ -141,11 +141,9 @@ export const TokensInTheWindows = meta.story({
       Math.abs(rule.right + scrollbar - frame.right),
       'The rule stops short of the right edge.'
     ).toBeLessThanOrEqual(1.5);
-    /* An ally's token names its faction on hover. */
+    /* An ally's token names its faction; its tooltip opens in the token group's own story. */
     const alliances = within(doc.querySelector<HTMLElement>('[data-window="alliances"]')!);
     const allied = (await alliances.findByText('Allied with Fremen')).parentElement!;
-    await userEvent.hover(allied.querySelector('.mantine-Avatar-root')!);
-    const tooltip = await within(doc.body).findByRole('tooltip', { name: 'Fremen' });
-    await waitFor(() => expect(tooltip).toBeVisible());
+    await expect(within(allied).getByRole('img', { name: 'Fremen' })).toBeVisible();
   },
 });
