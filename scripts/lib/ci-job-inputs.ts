@@ -27,8 +27,12 @@ const EVERY_JOB: readonly string[] = [
   'vite.config.ts',
   'coverage-denominator.ts',
   'browser-launch-tests.ts',
+  /* What vite.config.ts imports, which every Vitest run loads. */
+  'scripts/lib/browserBundleBudgets.ts',
+  'scripts/lib/jsonc.ts',
   'scripts/lib/reactCompiler.ts',
   'scripts/lib/threeRendererStack.ts',
+  'scripts/lib/unsyncedMediaPreview.ts',
   'scripts/ci-job-key.ts',
   'scripts/lib/ci-job-inputs.ts',
   'scripts/lib/hosted-play-closure.ts',
