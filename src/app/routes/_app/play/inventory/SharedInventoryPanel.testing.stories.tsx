@@ -1,10 +1,10 @@
-import preview from '@sb/preview';
+import { testingPreview } from '@sb/preview';
 import { expect, userEvent, within } from 'storybook/test';
 
 import { inventoryArgs, inWindow } from './SharedInventoryPanel.stories.fixture';
 import { ShelvesInventory } from './ShelvesInventory';
 
-const meta = preview.meta({
+const meta = testingPreview.meta({
   title: 'Play/Panels/Shared table inventory shelves',
   component: ShelvesInventory,
   decorators: [inWindow],

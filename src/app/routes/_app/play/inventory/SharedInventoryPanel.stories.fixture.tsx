@@ -1,9 +1,15 @@
 import type { TablePiece } from '@shared/play/model';
 import { item, piece } from '@shared/play/setupSupply';
 import type { Decorator } from '@storybook/tanstack-react';
+import type { CSSProperties } from 'react';
 import { fn } from 'storybook/test';
 
-import windows from '../compass/Windows.module.css';
+import compass from '../compass/CompassControls.module.css';
+import { WindowFrame } from '../compass/WindowFrame';
+import type { TableWindow } from '../compass/windows';
+import { DarkSchemeIsland, darkSchemeIslandAttributes } from '../DarkSchemeIsland';
+import '../dune-play.css';
+import { SHARED_INVENTORY_GUIDANCE } from '../multiplayer/panelGuidance';
 import { cardBack, factions } from '../product.stories.fixture';
 import { inventoryRows } from './inventoryRows';
 import { dreamrulesTechTokenPieces } from './techTokens.stories.fixture';
@@ -71,14 +77,34 @@ export function inventoryArgs(): SharedInventoryViewProps {
   };
 }
 
-/* The panel alone, in a centre window's frame and width, as the compass opens it over the table. */
+/* The window as HostedTable lists it, with its title and (?). */
+const INVENTORY_WINDOW: Omit<TableWindow, 'content'> = {
+  key: 'shared',
+  label: 'Shared table inventory',
+  group: 'Table',
+  topic: 'assets',
+  ...SHARED_INVENTORY_GUIDANCE,
+  layout: 'stack',
+};
+
+/*
+ * The panel alone, in its window's real frame, title and (?), as a pinned slot shows it:
+ * inside the play shell and the compass, whose styles give the window its glass, edge and corners and the pieces their sand.
+ */
 export const inWindow: Decorator = (Story) => (
-  <div
-    className={windows.window}
-    style={{ position: 'relative', width: '44rem', maxWidth: '100%', margin: '2rem auto' }}
-  >
-    <div className={windows.body}>
-      <Story />
+  <DarkSchemeIsland>
+    <div className="dune-play-shell" {...darkSchemeIslandAttributes} style={{ width: '46rem', height: '52rem' }}>
+      <div className={compass.root} style={{ '--slot-width': '44rem' } as CSSProperties}>
+        <WindowFrame
+          entry={{ ...INVENTORY_WINDOW, content: <Story /> }}
+          where="left"
+          inert={false}
+          style={{ height: '50rem' }}
+          onSeat={() => undefined}
+          onFaction={() => undefined}
+          actions={null}
+        />
+      </div>
     </div>
-  </div>
+  </DarkSchemeIsland>
 );
