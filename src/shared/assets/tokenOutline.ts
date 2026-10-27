@@ -1,16 +1,27 @@
-/** The ten-tooth outline shared by tech-token faces and document illustrations. */
-export const GEAR_CLIP = (() => {
+/* The ten teeth as alternating tip and root corners round the centre, at `tip` and `root` from it, each pair a tooth's or a gap's flat. */
+function gearCorners(tip: number, root: number): [x: number, y: number][] {
   const steps = 20;
-  const points: string[] = [];
+  const points: [number, number][] = [];
   for (let i = 0; i < steps; i++) {
     const angle = (i / steps) * 2 * Math.PI;
     const next = ((i + 0.72) / steps) * 2 * Math.PI;
-    const r = i % 2 === 0 ? 50 : 41;
-    points.push(`${50 + r * Math.cos(angle)}% ${50 + r * Math.sin(angle)}%`);
-    points.push(`${50 + r * Math.cos(next)}% ${50 + r * Math.sin(next)}%`);
+    const r = i % 2 === 0 ? tip : root;
+    points.push([r * Math.cos(angle), r * Math.sin(angle)]);
+    points.push([r * Math.cos(next), r * Math.sin(next)]);
   }
-  return `polygon(${points.join(', ')})`;
-})();
+  return points;
+}
+
+/** The ten-tooth outline shared by tech-token faces and document illustrations. */
+export const GEAR_CLIP = `polygon(${gearCorners(50, 41)
+  .map(([x, y]) => `${50 + x}% ${50 + y}%`)
+  .join(', ')})`;
+
+/**
+ * The same ten-tooth outline as points round its centre in units of its outer radius, y pointing down as on a page.
+ * The table's tech token traces it, so the piece is cut where the page cuts its face.
+ */
+export const GEAR_OUTLINE: ReadonlyArray<readonly [x: number, y: number]> = gearCorners(1, 41 / 50);
 
 /**
  * The outline a token is shown in.
