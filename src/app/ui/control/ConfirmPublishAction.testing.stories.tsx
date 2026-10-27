@@ -45,3 +45,15 @@ export const BlockedMidHold = meta.story({
     await userEvent.keyboard('{/Enter}');
   },
 });
+
+/** Resting the pointer says the trigger is held, and a plain click fires nothing: the words that explain a click's silence. */
+export const SaysHoldOnHover = meta.story({
+  play: async ({ args, canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const trigger = page.getByRole('button', { name: 'Publish Edition 4' });
+    await userEvent.hover(trigger);
+    await expect(await page.findByRole('tooltip')).toHaveTextContent('hold to publish');
+    await userEvent.click(trigger);
+    await expect(args.onConfirm).not.toHaveBeenCalled();
+  },
+});

@@ -29,7 +29,6 @@ import type * as faq from "../faq.js";
 import type * as faqReferences from "../faqReferences.js";
 import type * as formerAddresses from "../formerAddresses.js";
 import type * as functions from "../functions.js";
-import type * as glossaryWordingRepair from "../glossaryWordingRepair.js";
 import type * as groups from "../groups.js";
 import type * as homepage from "../homepage.js";
 import type * as homepageAdmission from "../homepageAdmission.js";
@@ -80,7 +79,6 @@ import type * as lib_faqReferences from "../lib/faqReferences.js";
 import type * as lib_faqRulesetList from "../lib/faqRulesetList.js";
 import type * as lib_faqTags from "../lib/faqTags.js";
 import type * as lib_formerSlugs from "../lib/formerSlugs.js";
-import type * as lib_glossaryStockWording from "../lib/glossaryStockWording.js";
 import type * as lib_groupAssignPicker from "../lib/groupAssignPicker.js";
 import type * as lib_ids from "../lib/ids.js";
 import type * as lib_ingestTokens from "../lib/ingestTokens.js";
@@ -171,7 +169,6 @@ import type * as rulesetBoards from "../rulesetBoards.js";
 import type * as rulesetCovers from "../rulesetCovers.js";
 import type * as rulesets from "../rulesets.js";
 import type * as slugAllocationTesting from "../slugAllocationTesting.js";
-import type * as spiceDeckMerge from "../spiceDeckMerge.js";
 import type * as statistics from "../statistics.js";
 import type * as types from "../types.js";
 
@@ -204,7 +201,6 @@ const fullApi: ApiFromModules<{
   faqReferences: typeof faqReferences;
   formerAddresses: typeof formerAddresses;
   functions: typeof functions;
-  glossaryWordingRepair: typeof glossaryWordingRepair;
   groups: typeof groups;
   homepage: typeof homepage;
   homepageAdmission: typeof homepageAdmission;
@@ -255,7 +251,6 @@ const fullApi: ApiFromModules<{
   "lib/faqRulesetList": typeof lib_faqRulesetList;
   "lib/faqTags": typeof lib_faqTags;
   "lib/formerSlugs": typeof lib_formerSlugs;
-  "lib/glossaryStockWording": typeof lib_glossaryStockWording;
   "lib/groupAssignPicker": typeof lib_groupAssignPicker;
   "lib/ids": typeof lib_ids;
   "lib/ingestTokens": typeof lib_ingestTokens;
@@ -346,7 +341,6 @@ const fullApi: ApiFromModules<{
   rulesetCovers: typeof rulesetCovers;
   rulesets: typeof rulesets;
   slugAllocationTesting: typeof slugAllocationTesting;
-  spiceDeckMerge: typeof spiceDeckMerge;
   statistics: typeof statistics;
   types: typeof types;
 }> = anyApi as unknown as typeof fullApi;

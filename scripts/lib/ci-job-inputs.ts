@@ -14,7 +14,7 @@ import { byCodeUnit } from './storybook-shards';
 const KEY_VERSION = 'ci-job-inputs-v1';
 
 /* What every job reads: its own definition, the shared actions, the dependency graph and the root configuration Vitest and the TypeScript projects load. */
-const EVERY_JOB: readonly string[] = [
+export const EVERY_JOB: readonly string[] = [
   '.github/workflows/ci-pr.yml',
   '.github/workflows/reusable-verify.yml',
   '.github/actions/**',

@@ -1,6 +1,6 @@
 import type { z } from 'zod';
 
-import type { LeaderSkillAsset, DeckAsset, CardBack } from './schema';
+import type { LeaderSkillAsset, CardBack } from './schema';
 
 /** GF9 CHOAM & Richese cards, transcribed from the original fourteen card scans. */
 const SKILLS = [
@@ -141,10 +141,3 @@ export const GF9_LEADER_SKILL_DECK_BACK = {
   imageOffset: [0, 10],
   imageScale: 0.9,
 } satisfies z.infer<typeof CardBack>;
-
-export const GF9_LEADER_SKILL_DECK: z.infer<typeof DeckAsset> = {
-  name: 'GF9 Leader Skill Deck',
-  about:
-    "The fourteen leader skill cards from GF9's CHOAM & Richese expansion, one copy of each. At setup, deal two to each player, keep one and shuffle the other back into the deck.",
-  cardback: { mode: 'custom', ...GF9_LEADER_SKILL_DECK_BACK },
-};

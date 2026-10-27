@@ -3,7 +3,6 @@
 
 import { describe, expect, test } from 'vite-plus/test';
 
-import { STANDARD_STORM_CARDBACK } from '../src/shared/assets/standardStormDeck';
 import { internal } from './_generated/api';
 import { factionTest, insertStoredFactions, storedFactionData } from './factions.test.fixture';
 
@@ -112,31 +111,5 @@ describe('faction troop red star', () => {
     await expect(
       t.query(internal.migrations.assertReadyForNarrow, { required: ['faction_troop_red_star_verify_v1'] })
     ).rejects.toThrow(/faction_troop_red_star_verify_v1\(failed/);
-  });
-});
-
-describe('card-back preset retired label fields', () => {
-  test('drops `nameScale` and `nameFont`, keeps the revision, and verifies', async () => {
-    const t = factionTest();
-    const id = await t.run(async (ctx) =>
-      ctx.db.insert('cardback_presets', {
-        key: 'storm',
-        cardback: { ...STANDARD_STORM_CARDBACK, nameFont: 'C_Busorama', nameScale: 1 },
-        revision: 4,
-        updated_at: 1,
-      })
-    );
-
-    await t.mutation(internal.legacyDataMigrations.cardback_presets_retired_label_fields_v1, {});
-    await t.mutation(internal.legacyDataMigrations.cardback_presets_retired_label_fields_verify_v1, {});
-
-    const row = await t.run(async (ctx) => ctx.db.get(id));
-    expect(row).toMatchObject({ cardback: STANDARD_STORM_CARDBACK, revision: 4, updated_at: 1 });
-    expect(row!.cardback).not.toHaveProperty('nameFont');
-    await expect(
-      t.query(internal.migrations.assertReadyForNarrow, {
-        required: ['cardback_presets_retired_label_fields_v1', 'cardback_presets_retired_label_fields_verify_v1'],
-      })
-    ).resolves.toMatchObject({ ok: true });
   });
 });

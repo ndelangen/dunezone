@@ -1,7 +1,7 @@
 import { testingPreview } from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
 import { createRulebookEditorialStarterContents } from '@shared/rulebooks/fixtures';
-import { install } from '@sinonjs/fake-timers';
+import { completeHold } from '@ui/control/useHoldToConfirm.stories.fixture';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { SEED_REF_TOKEN, db, ref } from '@db/storybook';
@@ -121,20 +121,8 @@ export const Owner = meta.story({
       'href',
       '/rulesets/classicrules/rulebooks/book-1'
     );
-    await userEvent.hover(page.getByRole('link', { name: 'Add Rulebook' }));
-    await waitForFrame(() => expect(page.getByRole('tooltip')).toHaveTextContent('Add Rulebook'));
-    await userEvent.unhover(page.getByRole('link', { name: 'Add Rulebook' }));
-    await waitForFrame(() => expect(page.queryByRole('tooltip')).toBeNull());
-    await userEvent.hover(editions[0]!);
-    await waitForFrame(() => expect(page.getByRole('tooltip')).toHaveTextContent('Edition 1'));
-    await userEvent.unhover(editions[0]!);
-    await waitForFrame(() => expect(page.queryByRole('tooltip')).toBeNull());
     const actions = within(list).getByRole('button', { name: 'Actions for Rules' });
     await expect(actions.closest('a')).toBeNull();
-    await userEvent.hover(actions);
-    await waitForFrame(() => expect(page.getByRole('tooltip')).toHaveTextContent('Actions for Rules'));
-    await userEvent.unhover(actions);
-    await waitForFrame(() => expect(page.queryByRole('tooltip')).toBeNull());
     await userEvent.click(actions);
     await expect(waitForFrame(() => page.getByRole('menuitem', { name: 'Editions' }))).resolves.toHaveAttribute(
       'href',
@@ -203,8 +191,6 @@ export const EditFromReader = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const edit = await page.findByRole('link', { name: 'Edit Rulebook' }, { timeout: 30_000 });
     await expect(edit).toHaveAttribute('href', '/rulesets/classicrules/rulebooks/book-0/edit');
-    await userEvent.hover(edit);
-    await waitForFrame(() => expect(page.getByRole('tooltip')).toHaveTextContent('Edit Rulebook'));
   },
 });
 
@@ -213,17 +199,7 @@ export const DeleteFromReader = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const remove = await page.findByRole('button', { name: 'Delete Rulebook' }, { timeout: 30_000 });
-    const clock = install({ toFake: ['setInterval', 'clearInterval'], shouldClearNativeTimers: true });
-    try {
-      await userEvent.pointer({ target: remove, keys: '[MouseLeft>]' });
-      await clock.tickAsync(5000);
-    } finally {
-      try {
-        await userEvent.pointer({ target: remove, keys: '[/MouseLeft]' });
-      } finally {
-        clock.uninstall();
-      }
-    }
+    await completeHold(remove);
     const list = await page.findByRole('list', { name: 'Rulebooks' }, { timeout: 30_000 });
     await expect(within(list).queryByRole('link', { name: 'Read Rules' })).toBeNull();
     await expect(within(list).getByRole('link', { name: 'Read Quick reference' })).toBeVisible();

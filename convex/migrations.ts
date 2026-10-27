@@ -1243,8 +1243,8 @@ const migrationFactionLeaderKeySchema = z.looseObject({
 
 /**
  * Copies the Faction leader from the old `hero` key to `factionLeader`, without changing authored fields or the faction's edit timestamp.
- * The old key stays on the row.
- * Dropping it is the narrowing, left for a later PR together with `readFactionLeaderKey`.
+ * The old key stays on the row;
+ * `faction_hero_key_drop_v1` drops it.
  */
 export const faction_faction_leader_key_v1 = migrations.define({
   table: 'factions',

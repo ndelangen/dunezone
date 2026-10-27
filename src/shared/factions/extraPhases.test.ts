@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vite-plus/test';
 
 import { phaseDeclarationProblems, phaseDeclarationSchema } from './extraPhases';
 import { assetPublishingFaction } from './fixtures/assetPublishingFaction';
-import { CanonicalFactionStoredSchema, FactionInputSchema } from './schema';
+import { CanonicalFactionStoredObject, FactionInputSchema } from './schema';
 
 const valid = {
   id: 'phase-1',
@@ -72,12 +72,12 @@ describe('faction phase declarations (#1138)', () => {
     const older = structuredClone(assetPublishingFaction);
     expect('extraPhases' in older).toBe(false);
     expect(FactionInputSchema.parse(older)).toEqual(older);
-    expect(CanonicalFactionStoredSchema.parse(older)).toEqual(older);
+    expect(CanonicalFactionStoredObject.parse(older)).toEqual(older);
     expect(FactionInputSchema.parse(withPhases([]))).toEqual(withPhases([]));
   });
 
   it('refuses an invalid row at the faction boundary the Convex save uses', () => {
     expect(FactionInputSchema.safeParse(withPhases([{ ...valid, before: 'karama' }])).success).toBe(false);
-    expect(CanonicalFactionStoredSchema.safeParse(withPhases([{ ...valid, extra: true }])).success).toBe(false);
+    expect(CanonicalFactionStoredObject.safeParse(withPhases([{ ...valid, extra: true }])).success).toBe(false);
   });
 });

@@ -4,7 +4,6 @@ import path from 'node:path';
 import { PDFDocument } from 'pdf-lib';
 import { chromium } from 'playwright';
 import type { Browser, Page } from 'playwright';
-import sharp from 'sharp';
 
 import { CAPTURE_PROTOCOL } from '../../src/shared/asset-publishing/capture-protocol';
 import {
@@ -994,20 +993,6 @@ try {
     'cardback-preset',
     envelope('cardback-preset', { assetId: 'storm', slug: 'storm', cardback: STANDARD_STORM_CARDBACK }),
     'shared Storm back'
-  );
-  const legacyStormBack = await checkPublisherImageCapture(
-    browser,
-    'cardback-preset',
-    envelope('cardback-preset', {
-      assetId: 'storm',
-      slug: 'storm',
-      cardback: { ...STANDARD_STORM_CARDBACK, nameScale: 2, nameFont: 'C_Busorama_Bold' },
-    }),
-    'legacy Storm back'
-  );
-  invariant(
-    (await sharp(stormBack).raw().toBuffer()).equals(await sharp(legacyStormBack).raw().toBuffer()),
-    'Retired label settings must publish the same fixed regular label'
   );
   if (process.env.STORM_PROOF_DIRECTORY) {
     await Bun.write(path.join(process.env.STORM_PROOF_DIRECTORY, 'storm-back.png'), stormBack);

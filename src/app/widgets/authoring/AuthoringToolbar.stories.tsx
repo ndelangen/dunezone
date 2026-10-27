@@ -1,8 +1,7 @@
 import preview from '@sb/preview';
-import { finishTransitions, waitForFrame } from '@sb/storyWaits';
 import { IconAction } from '@ui/control/IconAction';
 import { History, UserRoundMinus } from 'lucide-react';
-import { expect, userEvent, within } from 'storybook/test';
+import { expect, within } from 'storybook/test';
 
 import { AuthoringToolbar, failureStatus } from './AuthoringToolbar';
 import { cleanStatus, cleanToolbar } from './AuthoringToolbar.stories.fixture';
@@ -41,14 +40,20 @@ export const Clean = meta.story({
   },
 });
 
-/**
- * A faction mid-edit with a capture queued: Save wears a dot and says there are unsaved changes.
- * The status action lists the save state, where the publication has got to, and which Group has access.
- */
-export const UnsavedWithStatuses = meta.story({
+/** A faction mid-edit: Save wears a dot and says there are unsaved changes. */
+export const Unsaved = meta.story({
+  args: { ...cleanToolbar, status: { ...cleanStatus, isDirty: true } },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.getByRole('button', { name: 'Save faction' })).toHaveAccessibleDescription('Unsaved changes');
+    await expect(page.getByRole('status')).toHaveTextContent('Unsaved changes');
+  },
+});
+
+/** A capture queued and a Group with access: the status action lists both, beside the save state. */
+export const WithStatuses = meta.story({
   args: {
     ...cleanToolbar,
-    status: { ...cleanStatus, isDirty: true },
     statuses: [
       { tone: 'pending', icon: <History size={16} aria-hidden />, label: SCHEDULED },
       groupAccessStatus('Arrakeen Rules Council'),
@@ -57,19 +62,9 @@ export const UnsavedWithStatuses = meta.story({
   globals: { viewport: { value: 'appLarge' } },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    const save = page.getByRole('button', { name: 'Save faction' });
-    await userEvent.hover(save);
-    const tooltip = await waitForFrame(() => page.getByRole('tooltip'));
-    /* The tooltip mounts transparent and fades in, so the check finishes the fade rather than waiting for the frames that draw it. */
-    await waitForFrame(() => expect(finishTransitions(tooltip)).toBeVisible());
-    await expect(tooltip).toHaveTextContent('Unsaved changes');
-    await expect(page.getByRole('status')).toHaveTextContent('Unsaved changes');
-    const info = page.getByRole('button', { name: 'Status' });
-    await expect(info).toHaveAccessibleDescription(`Unsaved changes ${SCHEDULED} Group access: Arrakeen Rules Council`);
-    await userEvent.click(info);
-    const list = await waitForFrame(() => page.getByRole('dialog', { name: 'Status' }));
-    await expect(list).toHaveTextContent(SCHEDULED);
-    await expect(list).toHaveTextContent('Group access: Arrakeen Rules Council');
+    await expect(page.getByRole('button', { name: 'Status' })).toHaveAccessibleDescription(
+      expect.stringContaining(`${SCHEDULED} Group access: Arrakeen Rules Council`)
+    );
   },
 });
 

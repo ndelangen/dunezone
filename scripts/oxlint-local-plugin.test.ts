@@ -352,3 +352,56 @@ export const probe = [
     expect(reports(output)).toBe(0);
   });
 });
+
+describe('story-owns-its-states', { timeout: TEST_BUDGET_MS }, () => {
+  const reports = (output: string) => output.split('local(story-owns-its-states)').length - 1;
+
+  const composedStory = `import { expect, userEvent, within } from 'storybook/test';
+export const Help = {
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const help = page.getByRole('img', { name: 'Help' });
+    await userEvent.hover(help);
+    await expect(await page.findByRole('tooltip')).toHaveTextContent('Dealt at random');
+    await userEvent.unhover(help);
+    await expect(page.queryAllByRole('tooltip')).toEqual([]);
+  },
+};
+`;
+
+  test('reports a hover and a tooltip read in a story above the kit', async () => {
+    expect(reports(await lintDiagnostics('probe.stories.tsx', composedStory))).toBe(4);
+  });
+
+  test('reports a hover through any user-event instance', async () => {
+    const output = await lintDiagnostics(
+      'probe.stories.tsx',
+      `import { userEvent, within } from 'storybook/test';
+export const Help = {
+  play: async ({ canvasElement }) => {
+    const pointer = userEvent.setup();
+    await pointer.hover(within(canvasElement).getByRole('img', { name: 'Help' }));
+  },
+};
+`
+    );
+    expect(reports(output)).toBe(1);
+  });
+
+  test('leaves the kit, which owns the tooltip, and assertions through the accessible description', async () => {
+    expect(reports(await lintDiagnostics('probe.stories.tsx', composedStory, 'src/app/ui/control'))).toBe(0);
+    const output = await lintDiagnostics(
+      'probe.stories.tsx',
+      `import { expect, within } from 'storybook/test';
+export const Help = {
+  play: async ({ canvasElement }) => {
+    const help = within(canvasElement).getByRole('img', { name: 'Help' });
+    await expect(help).toHaveAccessibleDescription('Dealt at random');
+    await expect(within(canvasElement).getByRole('button', { name: 'Ready' })).toBeEnabled();
+  },
+};
+`
+    );
+    expect(reports(output)).toBe(0);
+  });
+});

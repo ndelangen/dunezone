@@ -2,12 +2,12 @@ import { ConvexError } from 'convex/values';
 
 import { ensureFactionComponentIds } from '../../src/shared/factions/componentIdentity';
 import { factionMembersHaveIds } from '../../src/shared/factions/memberIdentity';
-import { CanonicalFactionStoredSchema, FactionWriteSchema } from '../../src/shared/factions/schema';
+import { CanonicalFactionStoredObject, FactionWriteSchema } from '../../src/shared/factions/schema';
 import { factionTroopsHaveIds } from '../../src/shared/factions/troopIdentity';
 import type { Doc } from '../_generated/dataModel';
 
 export function parseStoredFactionForRead(input: unknown) {
-  return CanonicalFactionStoredSchema.parse(input);
+  return CanonicalFactionStoredObject.parse(input);
 }
 
 /**
@@ -22,7 +22,7 @@ export function parseFactionInput(
   input: unknown,
   { requireAuthoringSemantics = false }: { requireAuthoringSemantics?: boolean } = {}
 ) {
-  const parsed = (requireAuthoringSemantics ? FactionWriteSchema : CanonicalFactionStoredSchema).safeParse(input);
+  const parsed = (requireAuthoringSemantics ? FactionWriteSchema : CanonicalFactionStoredObject).safeParse(input);
   if (!parsed.success) {
     const firstIssue = parsed.error.issues[0];
     const issuePath = firstIssue?.path.join('.') ?? 'data';
