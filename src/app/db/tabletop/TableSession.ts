@@ -241,7 +241,7 @@ export class TableSession {
   private pendingArrangement: { commandId: string; pieceId: string; deck: string; order: number[] } | null = null;
   /* The Shipment and Movement order this viewer dragged, shown until the room answers it, and the live table shown with it. */
   private pendingMovementOrder: { commandId: string; order: string[] } | null = null;
-  private movementShown: { from: GameSnapshot; shown: GameSnapshot } | null = null;
+  private movementShown: { from: GameSnapshot; commandId: string; shown: GameSnapshot } | null = null;
   /*
    * The peek this viewer closed, hidden at once while the room confirms it.
    * The room's frame without the peek, a refused close, a dropped connection or asking to peek again each forget it,
@@ -587,15 +587,15 @@ export class TableSession {
     return this.battle.shown(authoritative, this.history !== null);
   }
 
-  /* The live table in the order this viewer dragged, kept as one copy per frame so the projection only changes with it. */
+  /* The live table in the order this viewer last dragged, kept as one copy per frame and drag so the projection only changes with them. */
   private movementArranged(): GameSnapshot {
     const pending = this.pendingMovementOrder;
     if (!pending) {
       return this.snapshot;
     }
-    if (this.movementShown?.from !== this.snapshot) {
+    if (this.movementShown?.from !== this.snapshot || this.movementShown.commandId !== pending.commandId) {
       const movement = { ...(this.snapshot.movement ?? { done: [] }), order: pending.order };
-      this.movementShown = { from: this.snapshot, shown: { ...this.snapshot, movement } };
+      this.movementShown = { from: this.snapshot, commandId: pending.commandId, shown: { ...this.snapshot, movement } };
     }
     return this.movementShown.shown;
   }

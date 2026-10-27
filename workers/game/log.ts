@@ -71,8 +71,8 @@ type ReviewResult = {
   checkpoint: string;
   proposer: Person;
   ballots: ReviewBallot[];
-  /* Who ended or withdrew it; null when a seat change did. */
-  by: Person | null;
+  /* Who ended or withdrew it, or what did: a seat change, or the game ending. */
+  by: Person | 'seats' | 'game-ended' | null;
   context: string;
   at: number;
 };
@@ -671,18 +671,24 @@ function reviewEntry(review: ReviewResult): Entry {
       .filter(Boolean)
       .join('; ');
   const by = () => {
-    if (!review.by) {
-      return 'a seat change';
+    if (review.by === 'game-ended') {
+      return 'as the game ended';
+    }
+    if (review.by === null || review.by === 'seats') {
+      return 'by a seat change';
     }
     people.push(review.by);
-    return `{${people.length - 1}}`;
+    return `by {${people.length - 1}}`;
   };
   const checkpoint = literal(review.checkpoint);
   const templates: Record<ReviewOutcome, () => string> = {
     started: () => `The table reviews ${checkpoint}, as {0} proposed: ${breakdown()}.`,
     declined: () => `The table declined {0}'s review of ${checkpoint}: ${breakdown()}.`,
-    withdrawn: () => `The review of ${checkpoint} {0} proposed was withdrawn by ${by()}.`,
-    ended: () => `The review of ${checkpoint} was ended by ${by()}, and play resumed.`,
+    withdrawn: () => `The review of ${checkpoint} {0} proposed was withdrawn ${by()}.`,
+    ended: () =>
+      review.by === 'game-ended'
+        ? `The review of ${checkpoint} ended as the game ended.`
+        : `The review of ${checkpoint} was ended ${by()}, and play resumed.`,
   };
   return {
     key: `review:${review.id}:${review.result}`,

@@ -19,8 +19,8 @@ export type HistoryRow = {
   kind: string;
   data: string;
   bytes: number;
-  /* Where the step is and what made it, so a review can offer it without restoring it. */
-  place: Place;
+  /* Where the step is and what made it, so a review can offer it without restoring it; none before setup, which no review shows. */
+  place: Place | null;
 };
 type Place = Omit<ReviewCheckpoint, 'step'>;
 /* A row as the history table keeps it; its place is kept beside it. */
@@ -63,8 +63,11 @@ function momentOf(action: PieceAction, before: StoredSnapshot, next: StoredSnaps
   return action.kind === 'result-declare' || action.kind === 'result-continue' ? 'result' : 'entered';
 }
 
-/* Where a stored state is: its turn and phase in play, or its setup step before it. */
-function placeOf(snapshot: StoredSnapshot, moment: Moment): Place {
+/* Where a stored state is: its turn and phase in play, or its setup step before it; drafting and swapping have no place a review offers. */
+function placeOf(snapshot: StoredSnapshot, moment: Moment): Place | null {
+  if (snapshot.stage === 'drafting' || snapshot.stage === 'swapping') {
+    return null;
+  }
   const context = logContext(snapshot);
   if (snapshot.stage === 'setup') {
     const step = snapshot.setup && setupStep(snapshot.setup);
@@ -186,7 +189,9 @@ export class SessionHistory {
       history.bytes
     );
     this.storage.sql.exec('INSERT INTO history_clocks VALUES(?,?)', history.step, Date.now());
-    this.storage.sql.exec('INSERT INTO history_places VALUES(?,?)', history.step, JSON.stringify(history.place));
+    if (history.place) {
+      this.storage.sql.exec('INSERT INTO history_places VALUES(?,?)', history.step, JSON.stringify(history.place));
+    }
   }
 
   /** The newest steps a review can show, oldest first; every frame carries them, so they are read again only once a step is added. */

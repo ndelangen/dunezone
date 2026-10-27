@@ -656,6 +656,19 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
       ]).toContain(audit[1]);
     });
 
+    it('is withdrawn as the game ends, which the Audit tab says', async () => {
+      const { owner, observer } = await inPlay();
+      await toMentat(owner);
+      const target = await checkpoint(owner);
+      await accepted(owner, { kind: 'review-propose', step: target.step });
+      await accepted(owner, { kind: 'result-open' });
+      const finished = await accepted(owner, { kind: 'result-declare', result: 'faction', factionIds: ['atreides'] });
+      expect(finished.snapshot.review).toBeUndefined();
+      const audit = (await page(observer, 'audit')).map((entry) => entry.text);
+      const proposer = finished.viewer.displayName;
+      expect(audit).toContain(`The review of ${target.context} ${proposer} proposed was withdrawn as the game ended.`);
+    });
+
     it('is declined without a majority and withdrawn only by its proposer', async () => {
       const { owner, other, observer } = await inPlay();
       const target = await checkpoint(owner);

@@ -38,7 +38,7 @@ function arrange(
     throw new GameRejection('The turn order names only the factions at the table, each once.');
   }
   /* A faction done has played its turn, so its place is locked: the order keeps them first, in the order they finished. */
-  if (movement.done.some((id, index) => order[index] !== id)) {
+  if (movement.done.filter((id) => factions.includes(id)).some((id, index) => order[index] !== id)) {
     throw new GameRejection('The factions done keep their places; only the factions still to go move.');
   }
   const names = order.map((id) => rosterFactionEventName(snapshot.roster, id)).join(', ');

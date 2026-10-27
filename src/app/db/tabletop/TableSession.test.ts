@@ -2112,6 +2112,15 @@ describe('Shipment and Movement order', () => {
     expect(shownOrder(client)).toEqual(['harkonnen', 'atreides']);
     /* One copy per frame, so the projection holds still while the answer is out. */
     expect(table(client).snapshot).toBe(table(client).snapshot);
+    /* A second drag before any frame shows at once too. */
+    client.command({ kind: 'movement-order', order: ['atreides', 'harkonnen'] });
+    const second = command();
+    expect(shownOrder(client)).toEqual(['atreides', 'harkonnen']);
+    socket().deliver({
+      type: 'rejected',
+      requestId: second.commandId,
+      message: 'The factions done keep their places.',
+    });
 
     socket().deliver({
       type: 'rejected',

@@ -22,7 +22,12 @@ export type ReviewCommand = {
   checkpoint: (step: number) => string | undefined;
 };
 /** How a review left the table: its result, the table it was recorded at, and who ended it, if anyone did. */
-type Outcome = { result: ReviewOutcome; snapshot: StoredSnapshot; now: number; by: Person | null };
+type Outcome = {
+  result: ReviewOutcome;
+  snapshot: StoredSnapshot;
+  now: number;
+  by: Person | 'seats' | 'game-ended' | null;
+};
 
 /**
  * Owns the table review: its proposal, ballots, the pause it puts on the table and its Audit rows.
@@ -73,7 +78,8 @@ export class TableReviews {
     }
     const players = this.actors.occupants();
     if (!reviewableStage(snapshot.stage) || !players.some((player) => player.userId === review.proposer.userId)) {
-      this.finish(review, { result: review.startedAt === null ? 'withdrawn' : 'ended', snapshot, now, by: null });
+      const by = reviewableStage(snapshot.stage) ? 'seats' : 'game-ended';
+      this.finish(review, { result: review.startedAt === null ? 'withdrawn' : 'ended', snapshot, now, by });
       return revised(snapshot);
     }
     if (review.startedAt !== null) {
@@ -104,13 +110,13 @@ export class TableReviews {
   }
 
   current(): TableReview | null {
-    const review = this.open();
+    const review = this.read();
     return review && publicReview(review);
   }
 
   /** The review showing now, if the table is paused for one. */
   running(): TableReview | null {
-    const review = this.open();
+    const review = this.read();
     return review && review.startedAt !== null ? publicReview(review) : null;
   }
 
@@ -188,9 +194,15 @@ export class TableReviews {
     return revised(snapshot);
   }
 
+  /* The open review to read; `publicReview` copies what it hands out, so reading needs no copy of its own. */
+  private read(): Review | null {
+    if (this.cached === undefined) {
+      this.cached = this.stored();
+    }
+    return this.cached;
+  }
   private open(): Review | null {
-    const open = this.cached === undefined ? this.stored() : this.cached;
-    this.cached = open;
+    const open = this.read();
     /* Callers change the review they read before saving it, so each gets its own copy. */
     return open && structuredClone(open);
   }

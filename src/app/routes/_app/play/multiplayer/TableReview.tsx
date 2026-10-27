@@ -131,7 +131,9 @@ export function TableReviewBar({ client, table }: Props) {
 function Propose({ client, table, review }: Props & Readonly<{ review: Review }>) {
   const newest = review.checkpoints.at(-1);
   const [chosen, setChosen] = useState<number | null>(null);
-  const step = chosen ?? newest?.step ?? null;
+  /* A chosen checkpoint that has since rolled out of the offered ones gives way to the newest, which the table can still review. */
+  const offered = review.checkpoints.some((checkpoint) => checkpoint.step === chosen);
+  const step = (offered ? chosen : null) ?? newest?.step ?? null;
   if (!review.seat) {
     return <Text size="sm">Only seated players can ask for a review.</Text>;
   }
