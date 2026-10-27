@@ -281,7 +281,7 @@ export function RulebookBlockRenderer({ block }: Readonly<{ block: RulebookRende
         data-rulebook-block-id={block.id}
         data-faction-id={block.faction.status === 'unselected' ? undefined : block.faction.factionId}
         data-faction-name={faction?.name}
-        aria-label={faction ? `${block.title}, ${faction.name}` : undefined}
+        aria-label={faction && block.title !== faction.name ? `${block.title}, ${faction.name}` : undefined}
         style={
           faction ? { backgroundColor: faction.color, color: isLight(faction.color) ? '#21170f' : '#fff' } : undefined
         }

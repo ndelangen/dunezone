@@ -339,6 +339,20 @@ describe('Rulebook renderer', () => {
     expect(container.querySelector<HTMLElement>('h2')?.style.color).toBe(ink);
   });
 
+  it('names a faction heading once when its title is already the faction name', () => {
+    const { getByRole } = render(
+      <RulebookBlockCanvas
+        block={{
+          id: 'HEAD',
+          kind: 'section-heading',
+          title: 'House Atreides',
+          faction: { status: 'ready', factionId: 'atreides', name: 'House Atreides', color: '#3e6337' },
+        }}
+      />
+    );
+    expect(getByRole('heading', { name: 'House Atreides' }).getAttribute('data-faction-name')).toBe('House Atreides');
+  });
+
   it('keeps the heading and exposes an unavailable faction association', () => {
     const { container } = render(
       <RulebookBlockCanvas

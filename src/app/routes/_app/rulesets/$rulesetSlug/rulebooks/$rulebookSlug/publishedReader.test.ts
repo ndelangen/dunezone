@@ -46,6 +46,18 @@ describe('published Rulebook reading', () => {
     expect(parsePublishedRulebook(marked, href).pagesById).toEqual(parsePublishedRulebook(source, href).pagesById);
   });
 
+  test('names a legacy faction heading once when its title already names the faction', () => {
+    const markup = html().replace(
+      '</main>',
+      '<h2 title="House Atreides" data-faction-id="atreides">House Atreides</h2></main>'
+    );
+    const root = parseHTML(parsePublishedRulebook(markup, href).markup).document;
+    const heading = root.querySelector('h2[data-faction-id="atreides"]')!;
+    expect(heading.getAttribute('aria-label')).toBe('House Atreides');
+    expect(heading.getAttribute('data-faction-name')).toBe('House Atreides');
+    expect(heading.hasAttribute('title')).toBe(false);
+  });
+
   test('keeps the artifact body and frozen styles inside the app reader, with every reading target', () => {
     const book = parsePublishedRulebook(html(), href);
     expect(book.markup).toMatch(/^<section/);

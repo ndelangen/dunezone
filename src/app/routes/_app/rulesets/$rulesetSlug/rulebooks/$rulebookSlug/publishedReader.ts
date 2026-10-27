@@ -216,7 +216,7 @@ function replaceNativeTitles(root: Element) {
     const title = element.getAttribute('title');
     if (title && element.matches('h2[data-faction-id]')) {
       const name = element.getAttribute('aria-label') || element.textContent?.trim();
-      element.setAttribute('aria-label', [name, title].filter(Boolean).join(', '));
+      element.setAttribute('aria-label', [...new Set([name, title].filter(Boolean))].join(', '));
       element.setAttribute('data-faction-name', title);
     } else if (title) {
       element.setAttribute(
