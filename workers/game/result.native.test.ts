@@ -560,6 +560,10 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
 
       /* Until the majority agrees, the table plays on and nobody looks back. */
       await next(owner);
+      /* Each offered checkpoint names its turn and phase, so the picker can lay them out by turn. */
+      const entered = required(required((await syncView(owner)).snapshot.reviewCheckpoints).at(-1));
+      expect(entered).toMatchObject({ turn: expect.any(Number), moment: 'entered', symbol: expect.any(String) });
+      expect(entered.context).toBe(`Turn ${entered.turn}, ${entered.label}`);
       expect(await look(observer, target.step)).toMatchObject({ type: 'rejected' });
       const started = await accepted(other, { kind: 'review-ballot', reviewId: review.id, choice: 'review' });
       expect(required(started.snapshot.review).startedAt).not.toBeNull();

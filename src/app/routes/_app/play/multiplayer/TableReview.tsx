@@ -1,12 +1,13 @@
-import { Button, Group, Select, Stack, Text } from '@mantine/core';
+import { Button, Group, Stack, Text } from '@mantine/core';
 import { reviewRunning } from '@shared/play/review';
-import type { ReviewCheckpoint, TableReview } from '@shared/play/review';
+import type { TableReview } from '@shared/play/review';
 import { FormError } from '@ui/block/FormError';
 import { Section } from '@ui/block/Section';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { useState } from 'react';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
+import { TurnGridPicker } from './checkpoints/TurnGridPicker';
 
 type Props = Readonly<{ client: TableSession; table: TableProjection }>;
 type Review = NonNullable<TableProjection['review']>;
@@ -17,11 +18,6 @@ const BALLOT_BADGES = {
   decline: { tone: 'negative', label: 'Declined' },
   uncast: { tone: 'neutral', label: 'Not voted' },
 } as const;
-
-/** A checkpoint as a proposal names it: where it is, and which saved step, since a phase can hold several. */
-function checkpointLabel(checkpoint: ReviewCheckpoint) {
-  return `${checkpoint.context} · checkpoint ${checkpoint.step}`;
-}
 
 function Ballots({ ballots }: Readonly<{ ballots: TableReview['ballots'] }>) {
   return (
@@ -134,8 +130,8 @@ export function TableReviewBar({ client, table }: Props) {
 
 function Propose({ client, table, review }: Props & Readonly<{ review: Review }>) {
   const newest = review.checkpoints.at(-1);
-  const [chosen, setChosen] = useState<string | null>(null);
-  const step = chosen ?? (newest ? String(newest.step) : null);
+  const [chosen, setChosen] = useState<number | null>(null);
+  const step = chosen ?? newest?.step ?? null;
   if (!review.seat) {
     return <Text size="sm">Only seated players can ask for a review.</Text>;
   }
@@ -144,21 +140,11 @@ function Propose({ client, table, review }: Props & Readonly<{ review: Review }>
   }
   return (
     <Stack gap="sm">
-      <Select
-        label="Checkpoint"
-        data={review.checkpoints
-          .slice()
-          .reverse()
-          .map((checkpoint) => ({ value: String(checkpoint.step), label: checkpointLabel(checkpoint) }))}
-        value={step}
-        onChange={setChosen}
-        allowDeselect={false}
-        comboboxProps={{ withinPortal: true }}
-      />
+      <TurnGridPicker checkpoints={review.checkpoints} value={step} onChange={setChosen} />
       <Group>
         <Button
           disabled={step === null || table.reconnecting}
-          onClick={() => step !== null && client.command({ kind: 'review-propose', step: Number(step) })}
+          onClick={() => step !== null && client.command({ kind: 'review-propose', step })}
         >
           Ask the table to review
         </Button>

@@ -12,10 +12,21 @@ const FIRST_PLAY_STEP = 8;
 
 export function reviewCheckpoints(): ReviewCheckpoint[] {
   return [
-    { step: FIRST_PLAY_STEP - 1, context: 'Setup, Traitors' },
+    {
+      step: FIRST_PLAY_STEP - 1,
+      context: 'Setup, Starting troops',
+      turn: null,
+      label: 'Starting troops',
+      symbol: '/vector/icon/shipment_disc.svg',
+      moment: 'entered',
+    },
     ...TABLE_PHASES.slice(0, BATTLE + 1).map((phase, index) => ({
       step: FIRST_PLAY_STEP + index,
       context: `Turn 1, ${phase.label}`,
+      turn: 1,
+      label: phase.label,
+      symbol: phase.symbol,
+      moment: 'entered' as const,
     })),
   ];
 }

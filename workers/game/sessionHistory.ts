@@ -1,7 +1,7 @@
-import { tableProgressFor } from '../../src/shared/play/phases';
+import { phaseAt, tableProgressFor } from '../../src/shared/play/phases';
 import type { CommitMessage, PieceAction } from '../../src/shared/play/protocol';
 import type { ReviewCheckpoint } from '../../src/shared/play/review';
-import { isSetupAction } from '../../src/shared/play/setup';
+import { isSetupAction, setupStep } from '../../src/shared/play/setup';
 import type { ActorDirectory } from './actors';
 import type { Patch } from './history';
 import { applyPatch, applyPatchInPlace, diff } from './history';
@@ -18,9 +18,13 @@ export type HistoryRow = {
   kind: string;
   data: string;
   bytes: number;
-  /* Where the step is, as the log names it, so a review can offer it without restoring it. */
-  context: string;
+  /* Where the step is and what made it, so a review can offer it without restoring it. */
+  place: Place;
 };
+type Place = Omit<ReviewCheckpoint, 'step'>;
+/* A row as the history table keeps it; its place is kept beside it. */
+type StoredRow = Omit<HistoryRow, 'place'>;
+type Moment = ReviewCheckpoint['moment'];
 
 type RowInput = Pick<HistoryRow, 'kind' | 'data' | 'step' | 'base_revision'>;
 /* Declaring a result and continuing past it are playback steps, as phase changes are. */
@@ -45,6 +49,25 @@ function requiresCheckpoint(action: PieceAction, before: StoredSnapshot, next: S
   }
   /* A revealed battle settles by agreed outcome or by cancel; either is a checkpoint. */
   return before.battleState?.stage === 'revealed' && !next.battleState;
+}
+
+/* What a step records: a settled battle, a declared or continued result, or the table entering a phase or setup step. */
+function momentOf(action: PieceAction, before: StoredSnapshot, next: StoredSnapshot): Moment {
+  if (before.battleState?.stage === 'revealed' && !next.battleState) {
+    return 'battle';
+  }
+  return action.kind === 'result-declare' || action.kind === 'result-continue' ? 'result' : 'entered';
+}
+
+/* Where a stored state is: its turn and phase in play, or its setup step before it. */
+function placeOf(snapshot: StoredSnapshot, moment: Moment): Place {
+  const context = logContext(snapshot);
+  if (snapshot.stage === 'setup') {
+    const step = snapshot.setup && setupStep(snapshot.setup);
+    return { context, turn: null, label: step?.title ?? 'Setup', symbol: step?.symbol ?? null, moment };
+  }
+  const phase = phaseAt(snapshot.phase, snapshot.phases);
+  return { context, turn: turnOf(snapshot), label: phase.label, symbol: phase.symbol, moment };
 }
 
 /* Setup steps change a few entries of the table each, so they are stored as their changes like any other playback step. */
@@ -74,7 +97,7 @@ export class SessionHistory {
     storage.sql.exec(
       'CREATE TABLE IF NOT EXISTS history_clocks (step INTEGER PRIMARY KEY, recorded_at INTEGER NOT NULL)'
     );
-    storage.sql.exec('CREATE TABLE IF NOT EXISTS history_contexts (step INTEGER PRIMARY KEY, context TEXT NOT NULL)');
+    storage.sql.exec('CREATE TABLE IF NOT EXISTS history_places (step INTEGER PRIMARY KEY, place TEXT NOT NULL)');
   }
 
   get steps() {
@@ -87,7 +110,9 @@ export class SessionHistory {
   }
 
   seed(snapshot: StoredSnapshot) {
-    this.write(this.row(snapshot, { kind: 'checkpoint', data: JSON.stringify(snapshot), step: 0, base_revision: 0 }));
+    this.write(
+      this.row(snapshot, 'entered', { kind: 'checkpoint', data: JSON.stringify(snapshot), step: 0, base_revision: 0 })
+    );
   }
 
   accept(step: number, snapshot: StoredSnapshot) {
@@ -95,8 +120,8 @@ export class SessionHistory {
     this.boundary = snapshot;
   }
 
-  checkpoint(next: StoredSnapshot, after?: HistoryRow): HistoryRow {
-    return this.row(next, {
+  checkpoint(next: StoredSnapshot, after?: HistoryRow, moment: Moment = 'entered'): HistoryRow {
+    return this.row(next, moment, {
       kind: 'checkpoint',
       data: JSON.stringify(next),
       step: (after?.step ?? this.step) + 1,
@@ -108,17 +133,18 @@ export class SessionHistory {
     if (next.revision === before.revision || message.type !== 'command') {
       return;
     }
+    const moment = momentOf(message.action, before, next);
     if (requiresCheckpoint(message.action, before, next)) {
-      return this.checkpoint(next);
+      return this.checkpoint(next, undefined, moment);
     }
     if (isPlaybackStep(message.action, before)) {
-      return this.patch(next);
+      return this.patch(next, moment);
     }
   }
 
   /** A playback step stored as its change from the last recorded step; restore replays it onto the checkpoint before it. */
-  patch(next: StoredSnapshot): HistoryRow {
-    return this.row(next, {
+  patch(next: StoredSnapshot, moment: Moment = 'entered'): HistoryRow {
+    return this.row(next, moment, {
       kind: 'patch',
       data: JSON.stringify(diff(this.boundary!, next)),
       step: this.step + 1,
@@ -126,13 +152,13 @@ export class SessionHistory {
     });
   }
 
-  private row(next: StoredSnapshot, input: RowInput): HistoryRow {
+  private row(next: StoredSnapshot, moment: Moment, input: RowInput): HistoryRow {
     return {
       ...input,
       revision: next.revision,
       phase: next.phase,
       bytes: new TextEncoder().encode(input.data).byteLength,
-      context: logContext(next),
+      place: placeOf(next, moment),
     };
   }
 
@@ -148,17 +174,20 @@ export class SessionHistory {
       history.bytes
     );
     this.storage.sql.exec('INSERT INTO history_clocks VALUES(?,?)', history.step, Date.now());
-    this.storage.sql.exec('INSERT INTO history_contexts VALUES(?,?)', history.step, history.context);
+    this.storage.sql.exec('INSERT INTO history_places VALUES(?,?)', history.step, JSON.stringify(history.place));
   }
 
   /** The newest steps a review can show, oldest first; every frame carries them, so they are read again only once a step is added. */
   recent(limit: number): ReviewCheckpoint[] {
     if (this.recentSteps?.step !== this.step || this.recentSteps.limit !== limit) {
       const checkpoints = this.storage.sql
-        .exec<ReviewCheckpoint>('SELECT step, context FROM history_contexts ORDER BY step DESC LIMIT ?', limit)
+        .exec<{ step: number; place: string }>(
+          'SELECT step, place FROM history_places ORDER BY step DESC LIMIT ?',
+          limit
+        )
         .toArray()
         .reverse()
-        .map(({ step, context }) => ({ step, context }));
+        .map(({ step, place }) => ({ step, ...(JSON.parse(place) as Place) }));
       this.recentSteps = { step: this.step, limit, checkpoints };
     }
     return this.recentSteps.checkpoints;
@@ -172,10 +201,10 @@ export class SessionHistory {
 
   restore(step: number): StoredSnapshot {
     const checkpoint = this.storage.sql
-      .exec<HistoryRow>("SELECT * FROM history WHERE kind='checkpoint' AND step<=? ORDER BY step DESC LIMIT 1", step)
+      .exec<StoredRow>("SELECT * FROM history WHERE kind='checkpoint' AND step<=? ORDER BY step DESC LIMIT 1", step)
       .one();
     const rows = this.storage.sql
-      .exec<HistoryRow>('SELECT * FROM history WHERE step>? AND step<=? ORDER BY step', checkpoint.step, step)
+      .exec<StoredRow>('SELECT * FROM history WHERE step>? AND step<=? ORDER BY step', checkpoint.step, step)
       .toArray();
     let restoredStep = checkpoint.step;
     for (const row of rows) {
@@ -195,7 +224,7 @@ export class SessionHistory {
    * A patch written across a release that added a default can reach into a part only a read fills in;
    * such a chain is replayed by reading each step through the schema, as every restore once did.
    */
-  private replay(checkpoint: HistoryRow, rows: HistoryRow[]): StoredSnapshot {
+  private replay(checkpoint: StoredRow, rows: StoredRow[]): StoredSnapshot {
     try {
       return this.replayInPlace(checkpoint, rows);
     } catch {
@@ -203,7 +232,7 @@ export class SessionHistory {
     }
   }
 
-  private replayInPlace(checkpoint: HistoryRow, rows: HistoryRow[]): StoredSnapshot {
+  private replayInPlace(checkpoint: StoredRow, rows: StoredRow[]): StoredSnapshot {
     let snapshot = storedSnapshotSchema.parse(JSON.parse(checkpoint.data));
     for (const row of rows) {
       assertBase(snapshot, row);
@@ -216,7 +245,7 @@ export class SessionHistory {
     return storedSnapshotSchema.parse(snapshot);
   }
 
-  private replayPerStep(checkpoint: HistoryRow, rows: HistoryRow[]): StoredSnapshot {
+  private replayPerStep(checkpoint: StoredRow, rows: StoredRow[]): StoredSnapshot {
     let snapshot = storedSnapshotSchema.parse(JSON.parse(checkpoint.data));
     for (const row of rows) {
       assertBase(snapshot, row);
@@ -225,7 +254,7 @@ export class SessionHistory {
     return snapshot;
   }
 
-  private restorePatch(snapshot: StoredSnapshot, row: HistoryRow): StoredSnapshot {
+  private restorePatch(snapshot: StoredSnapshot, row: StoredRow): StoredSnapshot {
     const next = storedSnapshotSchema.parse(applyPatch(snapshot, JSON.parse(row.data) as Patch[]));
     if (next.revision !== row.revision) {
       throw new Error('History is incomplete.');
@@ -234,7 +263,7 @@ export class SessionHistory {
   }
 }
 
-function assertBase(snapshot: StoredSnapshot, row: HistoryRow) {
+function assertBase(snapshot: StoredSnapshot, row: StoredRow) {
   if (row.base_revision !== snapshot.revision) {
     throw new Error('History is incomplete.');
   }

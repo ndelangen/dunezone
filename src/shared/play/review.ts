@@ -23,7 +23,18 @@ export const tableReviewSchema = z.object({
 export type TableReview = z.infer<typeof tableReviewSchema>;
 
 /** A checkpoint the table can review, newest last. */
-export const reviewCheckpointSchema = z.object({ step: tableCountSchema, context: z.string().max(200) });
+export const reviewCheckpointSchema = z.object({
+  step: tableCountSchema,
+  /* Where it is, as the log names it: a turn and phase, or a setup step. */
+  context: z.string().max(200),
+  /* The turn it is in, or null before play. */
+  turn: tableCountSchema.nullable(),
+  /* The phase or setup step it is in, and that phase's symbol. */
+  label: z.string().max(200),
+  symbol: z.string().max(500).nullable(),
+  /* What made the step: the table entering a phase or setup step, a settled battle, or a declared or continued result. */
+  moment: z.enum(['entered', 'battle', 'result']),
+});
 export type ReviewCheckpoint = z.infer<typeof reviewCheckpointSchema>;
 
 /* The checkpoints a proposal offers: recent enough to settle what just happened. */
