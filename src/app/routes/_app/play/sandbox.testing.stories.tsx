@@ -1,6 +1,8 @@
 import { PLAY_DEBUGGER_EVENTS } from '@sb/playDebugger/events';
 import { testingPreview } from '@sb/preview';
 import { factionTokenOf } from '@shared/play/factionToken';
+import { troopScale } from '@shared/play/tableGeometry';
+import { drawableTechTokens, isTechToken } from '@shared/play/techToken';
 import { addons } from 'storybook/preview-api';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
@@ -8,7 +10,7 @@ import { gameMeta, install } from './game.stories.fixture';
 import { chapter, journeyViewers, JourneyPage } from './journey.stories.fixture';
 import { expectHeaderPhase, openTab, phaseControls } from './playing.stories.fixture';
 import { sandbox, sandboxReady, sandboxSteps, sandboxTransport } from './sandbox.stories.fixture';
-import { shown, piece } from './sandbox.stories.fixture';
+import { shown, piece, withTechTokens } from './sandbox.stories.fixture';
 
 const meta = testingPreview.meta({
   ...gameMeta,
@@ -497,5 +499,44 @@ export const HandToTable = meta.story({
       timeout: 10_000,
     });
     await expect(table.refusal).toBeUndefined();
+  },
+});
+
+/**
+ * Seat 1 draws the seven Dreamrules tech tokens at random from the shared table inventory, one press at a time: each lands face up on the table at leader size, and once none are left the button turns off and its tooltip says why.
+ */
+export const DrawRandomTechToken = meta.story({
+  args: { step: chapter('Shipment and Movement'), seat: 'seat-1' },
+  beforeEach: ({ args }) =>
+    install(() =>
+      sandboxTransport({
+        start: Number(args.step ?? 1) - 1,
+        seat: String(args.seat ?? 'seat-1'),
+        prepare: (stored) => withTechTokens(stored),
+      })
+    )(),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await sandboxReady(page);
+    await openTab(page, 'Shared table inventory');
+    const tokens = () => shown().table.pieces.filter(isTechToken);
+    const button = page.getByRole('button', { name: 'Draw random tech token' });
+    for (let left = 7; left > 0; left--) {
+      await expect(drawableTechTokens(tokens())).toHaveLength(left);
+      await userEvent.click(button);
+      await waitFor(() => expect(drawableTechTokens(tokens())).toHaveLength(left - 1));
+    }
+    const drawn = tokens().filter((candidate) => !candidate.inventory);
+    await expect(new Set(drawn.map((candidate) => candidate.items[0]!.artwork?.name)).size).toBe(7);
+    for (const token of drawn) {
+      await expect(token.items[0]!.faceUp).toBe(true);
+      await expect(troopScale(token)).toBe(troopScale({ kind: 'force', stackKey: 'leader:any' }));
+    }
+    await waitFor(() => expect(button).toBeDisabled());
+    await userEvent.hover(button.parentElement!);
+    await waitFor(
+      () => expect(page.getByText('No tech tokens are left in the shared table inventory.')).toBeVisible(),
+      { timeout: 10_000 }
+    );
   },
 });

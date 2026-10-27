@@ -3,15 +3,14 @@ import { POINTER_TOKEN_TYPE } from '@shared/play/pointerToken';
 import { restingPositionAt, troopScale } from '@shared/play/tableGeometry';
 import { nearestCollisionFreePosition } from '@shared/play/tablePhysics';
 import { drawableTechTokens, isTechToken } from '@shared/play/techToken';
-import { expect, userEvent, waitFor, within } from 'storybook/test';
+import { expect, within } from 'storybook/test';
 
 import type { StoredSnapshot } from '../../../../../workers/game/state';
 import { openControl } from './controls.stories.fixture';
 import { gameMeta, install } from './game.stories.fixture';
 import { chapter, journeyViewers, JourneyPage } from './journey.stories.fixture';
-import dreamrulesTechTokens from './product.stories.fixture/dreamrules-tech-tokens.json';
 import { sandbox, sandboxReady, sandboxSteps, sandboxTransport } from './sandbox.stories.fixture';
-import { shown, piece } from './sandbox.stories.fixture';
+import { shown, piece, withTechTokens } from './sandbox.stories.fixture';
 
 const meta = preview.meta({
   ...gameMeta,
@@ -183,60 +182,30 @@ export const HmsCarriesItsTroops = meta.story({
   },
 });
 
-/** The Dreamrules tech tokens in the shared table inventory, as setup deals them from the ruleset's tech token bundle. */
-function withTechTokens(stored: StoredSnapshot): StoredSnapshot {
-  const pieces = stored.table.pieces.filter((candidate) => !isTechToken(candidate));
-  const versions = { ...stored.versions };
-  for (const token of dreamrulesTechTokens.tokens) {
-    const art = new URL(`/play-fixtures/dreamrules/${token.published.file}`, location.origin).href;
-    const id = `dreamrules-tech-${token.slug}`;
-    pieces.push({
-      id,
-      label: token.name,
-      kind: 'force',
-      owner: 'shared',
-      inventory: 'shared',
-      color: '#d5ba8c',
-      accent: '#ead9bb',
-      /* The bundle prints every back the same as its front. */
-      items: [{ id: `${id}-1`, faceUp: true, artwork: { front: art, back: art, name: token.name, type: token.type } }],
-      stackKey: `token:${token.assetId}`,
-      position: [-25, 0, -25],
-      orientation: 0,
-      zoneId: null,
-      locked: false,
-    });
-    versions[id] = stored.revision;
-  }
-  return { ...stored, table: { ...stored.table, pieces }, versions };
-}
-
 /**
- * Seat 1 draws a tech token at random from the shared table inventory: it lands face up in front of seat 1, as wide as a leader disc and cut to its gear.
- * By hand: press "Draw random tech token" until the seven are gone and the button turns off and says why;
+ * The seven Dreamrules tech tokens, dealt into the shared table inventory, with Customs already drawn and lying face up on the table: a tech token is as wide as a leader disc and cut to its gear.
+ * By hand: press "Draw random tech token" until the inventory is empty and the button turns off and says why;
  * lift a drawn token to see its shadow, and press F while holding it to turn it over.
+ * Play/Sandbox/Draw Random Tech Token tests the draw itself.
  */
-export const DrawRandomTechToken = meta.story({
+export const TechTokens = meta.story({
   args: { step: chapter('Shipment and Movement'), seat: 'seat-1' },
   beforeEach: ({ args }: { args: { step?: number; seat?: string } }) =>
     install(() =>
       sandboxTransport({
         start: Number(args.step ?? 1) - 1,
         seat: String(args.seat ?? 'seat-1'),
-        prepare: withTechTokens,
+        prepare: (stored) => withTechTokens(stored, ['customs']),
       })
     )(),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await sandboxReady(page);
     await openControl(page, 'Shared table inventory');
-    const tokens = () => shown().table.pieces.filter(isTechToken);
-    await expect(drawableTechTokens(tokens())).toHaveLength(7);
-    await userEvent.click(page.getByRole('button', { name: 'Draw random tech token' }));
-    await waitFor(() => expect(drawableTechTokens(tokens())).toHaveLength(6));
-    const drawn = tokens().filter((candidate) => !candidate.inventory);
-    await expect(drawn).toHaveLength(1);
-    await expect(drawn[0]!.items[0]!.faceUp).toBe(true);
-    await expect(troopScale(drawn[0]!)).toBe(troopScale({ kind: 'force', stackKey: 'leader:any' }));
+    const tokens = shown().table.pieces.filter(isTechToken);
+    await expect(drawableTechTokens(tokens)).toHaveLength(6);
+    const [customs] = tokens.filter((candidate) => !candidate.inventory);
+    await expect(troopScale(customs!)).toBe(troopScale({ kind: 'force', stackKey: 'leader:any' }));
+    await expect(page.getByRole('button', { name: 'Draw random tech token' })).toBeEnabled();
   },
 });
