@@ -30,7 +30,9 @@ export const TraitorSelection = meta.story({
     await openPanel(canvasElement, 'Spice');
     await expect(page.findByLabelText('Spice reserve balance')).resolves.toBeVisible();
     await openPanel(canvasElement, 'Shared table inventory');
-    await expect(page.queryByRole('button', { name: 'Add from catalogue' })).toBeNull();
+    /* The shelves show in setup, but none of their + buttons: the catalogue opens once play starts. */
+    await expect(page.findByRole('region', { name: 'Tech tokens' })).resolves.toBeVisible();
+    await expect(page.queryAllByRole('button', { name: /from the catalogue$/ })).toEqual([]);
     await openPanel(canvasElement, 'Hand');
   },
 });

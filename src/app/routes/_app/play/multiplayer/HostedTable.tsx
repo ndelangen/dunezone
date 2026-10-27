@@ -4,31 +4,25 @@ import { tableHandlingOpen } from '@shared/play/admission';
 import { canLowerBid } from '@shared/play/bidding';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import { factionTokenOf } from '@shared/play/factionToken';
-import type { PublicControls, SpawnSelection } from '@shared/play/inventory';
 import { lastTurnOf } from '@shared/play/lastTurn';
 import { phaseAt, tableProgressFor } from '@shared/play/phases';
 import { setupMapVisible, setupStep } from '@shared/play/setup';
 import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
-import { drawableTechTokens } from '@shared/play/techToken';
 import { playUiColors } from '@shared/uiPalette';
 import { Link, useLocation } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { Section } from '@ui/block/Section';
 import { InlineFormattedTextSource } from '@ui/content/FormattedText';
 import type { TopicIconTopic } from '@ui/content/TopicIcon';
-import { TooltipTarget } from '@ui/control/TooltipTarget';
 import { useContext, useEffect, useMemo, useReducer, useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 
 import { requestPlayAdmission, watchSeatPass } from '@db/play';
-import { SpawnAssetPicker } from '@app/pickers/SpawnAssetPicker';
 import { GameSubscription } from '@app/routes/_app/play/multiplayer/GameSubscription';
 
 import { TableSession } from '../../../../db/tabletop/TableSession';
 import type { TableProjection } from '../../../../db/tabletop/TableSession';
 import { usePreloadedCardFaces } from '../../../../widgets/tabletop/cardFacePreload';
-import { PieceArtwork } from '../../../../widgets/tabletop/PieceArtwork';
-import { usePointerSession } from '../../../../widgets/tabletop/PointerSessionContext';
 import { PredictionLogosContext } from '../../../../widgets/tabletop/prediction/predictionFace';
 import { TabletopSessionProvider } from '../../../../widgets/tabletop/TabletopContext';
 import { BrowserDiagnostics } from '../browserDiagnostics';
@@ -40,6 +34,7 @@ import { GameTable } from '../GameTable';
 import type { TablePanel } from '../GameTable';
 import { HandShelves } from '../hand/HandShelves';
 import { SpiceReserve } from '../hand/SpiceReserve';
+import { SharedInventoryPanel } from '../inventory/SharedInventoryPanel';
 import { ConnectedAlliancesPanel } from '../panels/alliances/useAlliancesPanel';
 import { ConnectedLogPanel } from '../panels/log/useLogPanel';
 import { PANEL_WINDOWS } from '../panels/panelWindows';
@@ -73,10 +68,8 @@ import {
   setupGuidance,
   setupHelp,
   SHARED_INVENTORY_GUIDANCE,
-  SHARED_INVENTORY_HELP,
   SPICE_GUIDANCE,
 } from './panelGuidance';
-import { publicControlsOf } from './publicControls';
 import { FactionInfo, PlayerChat, usePlayerWindows } from './RemovalVotes';
 import { useResultCelebration } from './resultCelebration';
 import { GameMenu, SeatPopover } from './SeatRequests';
@@ -452,207 +445,6 @@ function SetupControls({ client, table }: TableControlProps) {
   );
 }
 
-type PickerState = {
-  open: boolean;
-  selection: SpawnSelection | null;
-  requestId: string | null;
-};
-type PickerEvent = { type: 'open' | 'close' } | { type: 'select'; selection: SpawnSelection; requestId: string };
-function pickerReducer(_state: PickerState, event: PickerEvent): PickerState {
-  if (event.type === 'select') {
-    return {
-      open: true,
-      selection: event.selection,
-      requestId: event.requestId,
-    };
-  }
-  return { open: event.type === 'open', selection: null, requestId: null };
-}
-
-/** Draws one tech token at random from the shared table inventory onto the table; the table picks, so nobody can choose. */
-function DrawTechToken({
-  client,
-  table,
-  pieces,
-}: TableControlProps & { pieces: TableControlProps['table']['snapshot']['table']['pieces'] }) {
-  const left = drawableTechTokens(pieces).reduce((count, piece) => count + piece.items.length, 0);
-  const reason = !left
-    ? 'No tech tokens are left in the shared table inventory.'
-    : `Picks one of the ${left} tech ${left === 1 ? 'token' : 'tokens'} left here at random and sets it down face up in front of you on the table.`;
-  return (
-    <Tooltip label={reason} multiline w={260} withArrow>
-      <TooltipTarget>
-        <Button
-          variant="default"
-          disabled={!table.canHandleTable || !left}
-          onClick={() => client.command({ kind: 'tech-token-draw' })}
-        >
-          Draw random tech token
-        </Button>
-      </TooltipTarget>
-    </Tooltip>
-  );
-}
-
-function SharedInventory({ client, table }: TableControlProps) {
-  const pointerSession = usePointerSession();
-  const [picker, dispatch] = useReducer(pickerReducer, {
-    open: false,
-    selection: null,
-    requestId: null,
-  });
-  const view = useSyncExternalStore(client.subscribe, client.getSnapshot);
-  const controls = publicControlsOf(table);
-  const contents = view.catalogue?.requestId === picker.requestId ? view.catalogue.contents : null;
-  const pieces = table.snapshot.table.pieces.filter((piece) => piece.inventory === 'shared');
-  return (
-    <Section
-      hiddenHeading={Boolean(table.snapshot.stage)}
-      title="Shared table inventory"
-      description={SHARED_INVENTORY_HELP}
-      action={
-        table.snapshot.stage !== 'setup' && (
-          <Button
-            variant="default"
-            disabled={!table.canHandleTable}
-            onClick={() => dispatch({ type: picker.open ? 'close' : 'open' })}
-          >
-            {picker.open ? 'Close catalogue' : 'Add from catalogue'}
-          </Button>
-        )
-      }
-    >
-      <Stack gap="md">
-        {table.snapshot.setup && (
-          <Button
-            variant="default"
-            disabled={!table.canHandleTable}
-            onClick={() => client.command({ kind: 'traitors-gather' })}
-          >
-            Gather tabletop traitors
-          </Button>
-        )}
-        <DrawTechToken client={client} table={table} pieces={pieces} />
-        {picker.open && (
-          <Stack gap="sm">
-            {/* The picker lists the catalogue; the table checks the choice, so a pick asks it before the request button opens. */}
-            <SpawnAssetPicker
-              value={picker.selection}
-              disabled={table.reconnecting}
-              onPick={({ type, slug }) =>
-                dispatch({ type: 'select', selection: { type, slug }, requestId: client.catalogue({ type, slug }) })
-              }
-            />
-            <Group align="center">
-              <Button
-                disabled={!table.canHandleTable || !contents || !picker.selection}
-                onClick={() => {
-                  if (picker.selection) {
-                    client.command({
-                      kind: 'spawn-request',
-                      type: picker.selection.type,
-                      slug: picker.selection.slug,
-                    });
-                  }
-                }}
-              >
-                {controls.seats.length === 1 ? 'Spawn' : 'Request'}
-              </Button>
-              {picker.selection && <Text size="sm">{catalogueStatus(view.catalogue, picker.requestId)}</Text>}
-            </Group>
-          </Stack>
-        )}
-        <Group align="start">
-          {!pieces.length && <Text c="dimmed">The shared table inventory is empty.</Text>}
-          {pieces.map((piece) => (
-            <Stack gap={4} key={piece.id} align="center">
-              <Button
-                variant="transparent"
-                disabled={!table.canHandleTable || table.reservedPieceIds.has(piece.id)}
-                aria-label={`Drag ${piece.label} onto the table`}
-                style={{ height: 100, padding: 0, touchAction: 'none' }}
-                onPointerDown={(event) => {
-                  if (event.button !== 0) {
-                    return;
-                  }
-                  event.preventDefault();
-                  pointerSession.carry(event.nativeEvent, piece.id, event.shiftKey ? 'top' : 'whole');
-                }}
-              >
-                <PieceArtwork
-                  piece={piece}
-                  src={piece.items.at(-1)?.artwork?.[piece.kind === 'card' ? 'back' : 'front'] ?? null}
-                  name={piece.label}
-                  width={72}
-                  height={96}
-                />
-              </Button>
-              <Text size="sm">
-                {piece.label} × {piece.items.length}
-              </Text>
-            </Stack>
-          ))}
-        </Group>
-        {controls.requests.map((request) => (
-          <SpawnRequest key={request.id} client={client} table={table} request={request} />
-        ))}
-      </Stack>
-    </Section>
-  );
-}
-
-/* What the picker says about the chosen asset: how many items it adds, why it cannot, or that it is still being checked. */
-function catalogueStatus(catalogue: ReturnType<TableSession['getSnapshot']>['catalogue'], requestId: string | null) {
-  const checking = 'Checking published definitions and images...';
-  if (!catalogue || catalogue.requestId !== requestId) {
-    return checking;
-  }
-  if (catalogue.contents) {
-    return `${catalogue.contents.pieces.reduce((count, piece) => count + piece.items.length, 0)} items ready to add`;
-  }
-  return catalogue.error || checking;
-}
-
-/* A request to spawn an asset, which any other player can approve and anyone can dismiss. */
-function SpawnRequest({
-  client,
-  table,
-  request,
-}: TableControlProps & Readonly<{ request: PublicControls['requests'][number] }>) {
-  return (
-    <Group justify="space-between">
-      <Text>
-        {request.contents.name} requested by {request.requesterName}
-      </Text>
-      <Group gap="xs">
-        <Button
-          disabled={!table.canHandleTable || request.requesterSeat === table.viewer.viewerSeat}
-          onClick={() =>
-            client.command({
-              kind: 'spawn-approve',
-              requestId: request.id,
-            })
-          }
-        >
-          Approve
-        </Button>
-        <Button
-          variant="default"
-          disabled={!table.canHandleTable}
-          onClick={() =>
-            client.command({
-              kind: 'spawn-dismiss',
-              requestId: request.id,
-            })
-          }
-        >
-          Dismiss
-        </Button>
-      </Group>
-    </Group>
-  );
-}
-
 /* A lost connection keeps the last table read-only, with recovery stated above it and explained on hover. */
 function ConnectionStatus({ table }: Readonly<{ table: TableProjection }>) {
   if (!table.reconnecting) {
@@ -815,7 +607,7 @@ function tableGroup({ client, table, error }: ConnectionControlsProps): TablePan
         label: 'Shared table inventory',
         topic: 'assets',
         ...SHARED_INVENTORY_GUIDANCE,
-        content: <SharedInventory client={client} table={table} />,
+        content: <SharedInventoryPanel client={client} table={table} />,
       },
       ...(tableHandlingOpen(table.snapshot.stage)
         ? [
