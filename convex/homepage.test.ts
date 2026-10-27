@@ -138,7 +138,7 @@ describe('homepage page data', () => {
           slug: `faction-${index}`,
           data: { ...assetPublishingFaction, name: `Faction ${index}` },
           created_at: stamp,
-          updated_at: index === 501 - 2 ? '2026-12-01T00:00:00.000Z' : stamp,
+          updated_at: index === 499 ? '2026-12-01T00:00:00.000Z' : stamp,
         });
       }
     });

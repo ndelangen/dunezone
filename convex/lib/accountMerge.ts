@@ -175,10 +175,14 @@ async function hasLargeRowHeadroom(ctx: MutationCtx) {
   );
 }
 
-/** Moves the source's rows one by one; each moved row leaves the range, so the next read is the next row. */
-async function moveLargeRows(ctx: MutationCtx, next: () => Promise<{ move: () => Promise<void> } | null>) {
+/** Moves up to `limit` of the source's rows one by one; each moved row leaves the range, so the next read is the next row. */
+async function moveLargeRows(
+  ctx: MutationCtx,
+  limit: number,
+  next: () => Promise<{ move: () => Promise<void> } | null>
+) {
   let moved = 0;
-  while (moved < BATCH) {
+  while (moved < limit) {
     const row = await next();
     if (!row) {
       break;
@@ -195,7 +199,8 @@ async function moveLargeRows(ctx: MutationCtx, next: () => Promise<{ move: () =>
 async function moveFactions(ctx: MutationCtx, operation: Doc<'account_merge_operations'>) {
   const source = operation.source_user_id;
   const target = operation.target_user_id;
-  return await moveLargeRows(ctx, async () => {
+  /* A faction's owner change also rewrites a catalogue entry per linked ruleset, each listing every link: one faction is a transaction. */
+  return await moveLargeRows(ctx, 1, async () => {
     const row = await ctx.db
       .query('factions')
       .withIndex('by_owner_id', (q) => q.eq('owner_id', source))
@@ -207,7 +212,7 @@ async function moveFactions(ctx: MutationCtx, operation: Doc<'account_merge_oper
 async function moveAssets(ctx: MutationCtx, operation: Doc<'account_merge_operations'>) {
   const source = operation.source_user_id;
   const target = operation.target_user_id;
-  return await moveLargeRows(ctx, async () => {
+  return await moveLargeRows(ctx, BATCH, async () => {
     const row = await ctx.db
       .query('assets')
       .withIndex('by_owner_deleted', (q) => q.eq('owner_id', source))

@@ -7,6 +7,7 @@ import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPub
 import { api } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
+import { searchIndexText } from './lib/catalogueOrder';
 
 test('catalogue choices page within a type, search every page, and omit deleted targets', async () => {
   const t = applicationTest();
@@ -151,6 +152,13 @@ test('selection checks links beyond the rendered page and reacts to additions an
   await expect(t.query(api.cataloguePicker.options, args)).rejects.toThrow('Ruleset not found');
 });
 
+test('the search index gets at most 16 terms, which Convex refuses past', () => {
+  const words = Array.from({ length: 20 }, (_, index) => `word${index}`);
+  expect(searchIndexText(words.join(' ')).split(' ')).toEqual(words.slice(0, 16));
+  expect(searchIndexText('Lasgun shield')).toBe('Lasgun shield');
+});
+
+/* convex-test does not enforce the term limit, so this only shows a long query still finds by its first terms. */
 test('a search longer than the search index takes still answers', async () => {
   const t = applicationTest();
   await t.run(async (rawCtx) => {
