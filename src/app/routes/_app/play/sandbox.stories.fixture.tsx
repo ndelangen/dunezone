@@ -12,9 +12,9 @@ import { storedSnapshotSchema } from '../../../../../workers/game/state';
 import type { StoredSnapshot } from '../../../../../workers/game/state';
 import { LocalTable } from '../tutorial/table/localTable';
 import type { TableMessage } from '../tutorial/table/localTable';
-import { dreamrulesTechTokenPieces } from './inventory/techTokens.stories.fixture';
 import recording from './journey.recording/journey.json';
 import { journeySteps, journeyViewers, stepCode, timelineSteps, viewerLabel } from './journey.stories.fixture';
+import { dreamrulesTechTokenPieces } from './panels/inventory/techTokens.stories.fixture';
 import { capturedFactions } from './product.stories.fixture';
 import { storyTransport } from './storyTransport';
 

@@ -4,13 +4,13 @@ import type { Decorator } from '@storybook/tanstack-react';
 import type { CSSProperties } from 'react';
 import { fn } from 'storybook/test';
 
-import compass from '../compass/CompassControls.module.css';
-import { WindowFrame } from '../compass/WindowFrame';
-import type { TableWindow } from '../compass/windows';
-import { DarkSchemeIsland, darkSchemeIslandAttributes } from '../DarkSchemeIsland';
-import '../dune-play.css';
-import { SHARED_INVENTORY_GUIDANCE } from '../multiplayer/panelGuidance';
-import { cardBack, factions } from '../product.stories.fixture';
+import compass from '../../compass/CompassControls.module.css';
+import { WindowFrame } from '../../compass/WindowFrame';
+import type { TableWindow } from '../../compass/windows';
+import { DarkSchemeIsland, darkSchemeIslandAttributes } from '../../DarkSchemeIsland';
+import '../../dune-play.css';
+import { cardBack, factions } from '../../product.stories.fixture';
+import { PANEL_WINDOWS } from '../panelWindows';
 import { inventoryRows } from './inventoryRows';
 import { dreamrulesTechTokenPieces } from './techTokens.stories.fixture';
 import { drawHelp } from './useSharedInventory';
@@ -78,14 +78,7 @@ export function inventoryArgs(): SharedInventoryViewProps {
 }
 
 /* The window as HostedTable lists it, with its title and (?). */
-const INVENTORY_WINDOW: Omit<TableWindow, 'content'> = {
-  key: 'shared',
-  label: 'Shared table inventory',
-  group: 'Table',
-  topic: 'assets',
-  ...SHARED_INVENTORY_GUIDANCE,
-  layout: 'stack',
-};
+const INVENTORY_WINDOW: Omit<TableWindow, 'content'> = { ...PANEL_WINDOWS.inventory, group: 'Table', layout: 'stack' };
 
 /*
  * The panel alone, in its window's real frame, title and (?), as a pinned slot shows it:

@@ -32,9 +32,9 @@ import { FoilConfetti } from '../FoilConfetti';
 import { GameLink } from '../GameLink';
 import { GameTable } from '../GameTable';
 import type { TablePanel } from '../GameTable';
-import { SharedInventoryPanel } from '../inventory/SharedInventoryPanel';
 import { ConnectedAlliancesPanel } from '../panels/alliances/useAlliancesPanel';
 import { ConnectedHandPanel } from '../panels/hand/useHandPanel';
+import { ConnectedSharedInventoryPanel } from '../panels/inventory/useSharedInventoryPanel';
 import { ConnectedLogPanel } from '../panels/log/useLogPanel';
 import { PANEL_WINDOWS } from '../panels/panelWindows';
 import { ConnectedReplayPanel } from '../panels/replay/useReplayPanel';
@@ -66,7 +66,6 @@ import {
   RESULT_GUIDANCE,
   setupGuidance,
   setupHelp,
-  SHARED_INVENTORY_GUIDANCE,
 } from './panelGuidance';
 import { FactionInfo, PlayerChat, usePlayerWindows } from './RemovalVotes';
 import { useResultCelebration } from './resultCelebration';
@@ -586,13 +585,7 @@ function tableGroup({ client, table, error }: ConnectionControlsProps): TablePan
     description: 'Shared pieces and table settings.',
     content: null,
     panels: [
-      {
-        key: 'shared',
-        label: 'Shared table inventory',
-        topic: 'assets',
-        ...SHARED_INVENTORY_GUIDANCE,
-        content: <SharedInventoryPanel client={client} table={table} />,
-      },
+      { ...PANEL_WINDOWS.inventory, content: <ConnectedSharedInventoryPanel client={client} table={table} /> },
       ...(tableHandlingOpen(table.snapshot.stage)
         ? [
             {

@@ -1,15 +1,15 @@
 import preview from '@sb/preview';
 
+import { SharedInventoryPanel } from './SharedInventoryPanel';
 import { inventoryArgs, inWindow } from './SharedInventoryPanel.stories.fixture';
-import { ShelvesInventory } from './ShelvesInventory';
 
 /*
  * The Shared table inventory window's content alone, in a window's frame: a shelf for every type the catalogue can add,
  * each with its own +, its pieces on one row that scrolls sideways. Hover a tech token for what it does.
  */
 const meta = preview.meta({
-  title: 'Play/Panels/Shared table inventory shelves',
-  component: ShelvesInventory,
+  title: 'Play/Panels/Shared table inventory',
+  component: SharedInventoryPanel,
   decorators: [inWindow],
   globals: { motion: 'on' },
   args: inventoryArgs(),

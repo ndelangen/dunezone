@@ -1,6 +1,6 @@
 import type { StoredPiece } from '@shared/play/model';
 
-import dreamrulesTechTokens from '../product.stories.fixture/dreamrules-tech-tokens.json';
+import dreamrulesTechTokens from '../../product.stories.fixture/dreamrules-tech-tokens.json';
 
 /**
  * The Dreamrules tech tokens in the shared table inventory, as setup deals them from the ruleset's tech token bundle, each with its published art and the description its author saved on the asset.

@@ -9,10 +9,10 @@ import type { ReactNode, RefObject } from 'react';
 
 import { SpawnAssetPicker } from '@app/pickers/SpawnAssetPicker';
 
-import type { TableSession } from '../../../../db/tabletop/TableSession';
-import { PieceArtwork } from '../../../../widgets/tabletop/PieceArtwork';
-import { pieceName } from '../multiplayer/HandPiece';
-import { publicControlsOf } from '../multiplayer/publicControls';
+import type { TableSession } from '../../../../../db/tabletop/TableSession';
+import { PieceArtwork } from '../../../../../widgets/tabletop/PieceArtwork';
+import { pieceName } from '../../multiplayer/HandPiece';
+import { publicControlsOf } from '../../multiplayer/publicControls';
 import styles from './Inventory.module.css';
 import type { SharedInventory, SharedInventoryProps } from './useSharedInventory';
 

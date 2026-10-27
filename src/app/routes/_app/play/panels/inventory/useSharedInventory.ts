@@ -5,8 +5,8 @@ import { drawableTechTokens } from '@shared/play/techToken';
 import { useReducer } from 'react';
 import type { ReactNode, PointerEvent as ReactPointerEvent } from 'react';
 
-import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
-import { usePointerSession } from '../../../../widgets/tabletop/PointerSessionContext';
+import type { TableProjection, TableSession } from '../../../../../db/tabletop/TableSession';
+import { usePointerSession } from '../../../../../widgets/tabletop/PointerSessionContext';
 import { inventoryRows } from './inventoryRows';
 import type { InventoryRow } from './inventoryRows';
 

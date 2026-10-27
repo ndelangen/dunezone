@@ -3,7 +3,7 @@ import { Section } from '@ui/block/Section';
 import { IconAction } from '@ui/control/IconAction';
 import { Layers, Plus } from 'lucide-react';
 
-import { SHARED_INVENTORY_HELP } from '../multiplayer/panelGuidance';
+import { SHARED_INVENTORY_HELP } from '../../multiplayer/panelGuidance';
 import styles from './Inventory.module.css';
 import { DRAW_ICON, DrawTechToken, InventoryPiece, PieceStrip } from './InventoryParts';
 import type { InventoryRow } from './inventoryRows';
@@ -45,7 +45,7 @@ function AddToShelf({ inventory, row }: Readonly<{ inventory: SharedInventory; r
  * Its + says so.
  * The tech token shelf also draws one of its tokens at random.
  */
-export function ShelvesInventory({ inventory, picker, requests }: SharedInventoryViewProps) {
+export function SharedInventoryPanel({ inventory, picker, requests }: SharedInventoryViewProps) {
   const { catalogue, gather } = inventory;
   return (
     <Section hiddenHeading title="Shared table inventory" description={SHARED_INVENTORY_HELP}>

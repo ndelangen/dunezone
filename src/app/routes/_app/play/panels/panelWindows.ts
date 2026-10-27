@@ -6,6 +6,7 @@ import {
   GAME_LOG_GUIDANCE,
   HAND_GUIDANCE,
   REPLAY_GUIDANCE,
+  SHARED_INVENTORY_GUIDANCE,
   SPICE_GUIDANCE,
   TINTS_GUIDANCE,
 } from '../multiplayer/panelGuidance';
@@ -30,6 +31,7 @@ export const PANEL_WINDOWS = {
     description: 'Public spice transfers, newest first.',
   },
   replay: { key: 'replay', label: 'Replay', topic: 'turn', ...REPLAY_GUIDANCE },
+  inventory: { key: 'shared', label: 'Shared table inventory', topic: 'assets', ...SHARED_INVENTORY_GUIDANCE },
   hand: { key: 'hand', label: 'Hand', topic: 'hand', ...HAND_GUIDANCE },
   spice: { key: 'spice', label: 'Spice', topic: 'spice', ...SPICE_GUIDANCE },
 } as const satisfies Record<string, PanelWindow>;
