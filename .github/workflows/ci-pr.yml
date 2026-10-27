@@ -26,7 +26,7 @@ jobs:
     permissions:
       contents: read
       actions: read
-    # A draft runs only lint, test and game_release: agents iterate on drafts, and each push to a full
+    # A draft runs only lint, test (affected unit tests only) and game_release: agents iterate on drafts, and each push to a full
     # run costs about 80 of the account's runner minutes (#1921).
     with:
       draft: ${{ github.event.pull_request.draft == true }}
