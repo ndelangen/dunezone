@@ -5,10 +5,10 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { appContentTheme } from '@ui/theme';
 import { afterEach, expect, test, vi } from 'vite-plus/test';
 
-import type { ConversationView } from '../../../../db/tabletop/ConversationSession';
-import type { TableSession } from '../../../../db/tabletop/TableSession';
-import { Conversation } from './Conversation';
-import { ServerClockContext } from './useServerNow';
+import type { ConversationView } from '../../../../../db/tabletop/ConversationSession';
+import type { TableSession } from '../../../../../db/tabletop/TableSession';
+import { ServerClockContext } from '../../multiplayer/useServerNow';
+import { ConnectedConversationPanel } from './useConversationPanel';
 
 window.matchMedia = vi.fn().mockImplementation((query: string) => ({
   matches: false,
@@ -68,7 +68,7 @@ test('a failed send is an alert', () => {
   });
   render(
     <MantineProvider theme={appContentTheme}>
-      <Conversation client={client} peerId="peer" />
+      <ConnectedConversationPanel client={client} peerId="peer" />
     </MantineProvider>
   );
   const history = screen.getByRole('region', { name: 'Conversation history' });
@@ -86,7 +86,7 @@ test('Enter sends the message, and Shift+Enter starts a new line', () => {
   });
   render(
     <MantineProvider theme={appContentTheme}>
-      <Conversation client={client} peerId="peer" />
+      <ConnectedConversationPanel client={client} peerId="peer" />
     </MantineProvider>
   );
   const field = screen.getByRole('textbox', { name: 'Message' }) as HTMLTextAreaElement;
@@ -129,7 +129,7 @@ test('only messages from the other faction that arrive after the history loaded 
   render(
     <MantineProvider theme={appContentTheme}>
       <ServerClockContext.Provider value={() => 0}>
-        <Conversation client={client} peerId="peer" />
+        <ConnectedConversationPanel client={client} peerId="peer" />
       </ServerClockContext.Provider>
     </MantineProvider>
   );
@@ -160,7 +160,7 @@ test("a message's time follows the server clock's tick into minutes and hours", 
   render(
     <MantineProvider theme={appContentTheme}>
       <ServerClockContext.Provider value={() => now}>
-        <Conversation client={client} peerId="peer" />
+        <ConnectedConversationPanel client={client} peerId="peer" />
       </ServerClockContext.Provider>
     </MantineProvider>
   );
@@ -194,7 +194,7 @@ test('an unsent message comes back when the conversation is shown again', () => 
   });
   const view = () => (
     <MantineProvider theme={appContentTheme}>
-      <Conversation client={client} peerId="peer" />
+      <ConnectedConversationPanel client={client} peerId="peer" />
     </MantineProvider>
   );
   const first = render(view());

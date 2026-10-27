@@ -15,7 +15,6 @@ import { useFactionPageSlug } from '@db/factions';
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import type { CompassPlayer } from '../compass/compassTable';
 import { seatAlliance } from './Alliances';
-import { Conversation } from './Conversation';
 import { FactionDetails } from './FactionDetails';
 import { FactionInfoHeader } from './FactionInfoHeader';
 import type { FactionInfoHeaderModel } from './FactionInfoHeader';
@@ -222,17 +221,6 @@ export function usePlayerWindows(client: TableSession, table: TableProjection) {
       ? { unread: conversations.summaries.find((entry) => entry.peerId === TABLE_CONVERSATION)?.unread ?? 0 }
       : null,
   };
-}
-
-/** The chat with a seat's player, or the table's. */
-export function PlayerChat({ client, table, seat }: Props & Readonly<{ seat: string }>) {
-  const { conversations } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
-  const peerId = seat === TABLE_CONVERSATION ? TABLE_CONVERSATION : seatFaction(table, seat);
-  const context = conversations.context;
-  if (!context || !peerId || (peerId !== TABLE_CONVERSATION && !context.peers.some((peer) => peer.id === peerId))) {
-    return null;
-  }
-  return <Conversation key={`${context.factionId}:${peerId}`} client={client} peerId={peerId} />;
 }
 
 /** A seat's faction information, with any vote against its player and any request for the seat. */

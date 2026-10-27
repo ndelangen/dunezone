@@ -1,40 +1,68 @@
-import { Badge, Button, Group, Select, Stack, Text, Textarea, Tooltip, VisuallyHidden } from '@mantine/core';
-import { TABLE_CONVERSATION } from '@shared/play/conversations';
+import { Badge, Button, Group, Stack, Text, Textarea, Tooltip, VisuallyHidden } from '@mantine/core';
 import type { ConversationMessage } from '@shared/play/conversations';
 import { Section } from '@ui/block/Section';
-import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from 'react';
 
-import type { ConversationView } from '../../../../db/tabletop/ConversationSession';
-import type { TableSession } from '../../../../db/tabletop/TableSession';
-import styles from './Conversation.module.css';
-import { CONVERSATION_HELP } from './panelGuidance';
-import { useServerNowAs } from './useServerNow';
+import type { ConversationView } from '../../../../../db/tabletop/ConversationSession';
+import { CONVERSATION_HELP } from '../../multiplayer/panelGuidance';
+import { useServerNowAs } from '../../multiplayer/useServerNow';
+import styles from './ConversationPanel.module.css';
 
 const EMPTY_MESSAGES: ConversationMessage[] = [];
 /* A message keeps its line breaks and wraps even a long unbroken word. */
 const MESSAGE_TEXT_STYLE = { whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' } as const;
 
-/** The caller selects the faction pair; this panel owns composing and observing the visible newest message. */
-export function Conversation({ client, peerId }: Readonly<{ client: TableSession; peerId: string }>) {
-  const { conversations: view } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
-  const page = view.pages[peerId];
+type Page = ConversationView['pages'][string];
+type Pending = ConversationView['pending'][number];
+
+export type ConversationPanelProps = Readonly<{
+  /** The conversation's other side: a faction, or the whole table. */
+  peerId: string;
+  /** The viewer's own faction, whose messages read as sent. */
+  factionId: string | undefined;
+  /** Whether the table is connected; offline, messages wait to be sent. */
+  online: boolean;
+  /** The saved history so far, or undefined before it first loads. */
+  page: Page | undefined;
+  /** The viewer's messages on their way, oldest first. */
+  pending: readonly Pending[];
+  /** At the table every faction writes, so each message there also names its writer's faction; null in a chat with one player. */
+  senders: Readonly<Record<string, string>> | null;
+  /** Whether the newest message is unread, so seeing it marks the conversation read. */
+  unread: boolean;
+  /** Unsent messages by conversation, which outlive the composer. */
+  drafts: Map<string, string>;
+  onLoad: (before?: number) => void;
+  onRead: (through: number) => void;
+  onRetry: (requestId: string) => void;
+  /** Sends a message; false keeps it in the composer. */
+  onSubmit: (text: string) => boolean;
+}>;
+
+/** A conversation with one player or the table: its history, the viewer's pending messages and the composer. */
+export function ConversationPanel({
+  peerId,
+  factionId,
+  online,
+  page,
+  pending,
+  senders,
+  unread,
+  drafts,
+  onLoad,
+  onRead,
+  onRetry,
+  onSubmit,
+}: ConversationPanelProps) {
   const entries = page?.entries ?? EMPTY_MESSAGES;
   const latest = entries.at(-1)?.sequence ?? 0;
-  const pending = view.pending.filter((entry) => entry.request.peerId === peerId);
-  useEffect(() => {
-    if (view.online && !page) {
-      client.conversations.load({ peerId });
-    }
-  }, [client, peerId, page, view.online]);
   const { viewport, onScroll } = useConversationScroll(entries, pending.length);
-  const newest = useVisibleRead(client, peerId, latest, view);
-  const arrival = useArrivalAnnouncement(peerId, page, view.context?.factionId);
+  const newest = useVisibleRead(online && unread ? latest : null, onRead);
+  const arrival = useArrivalAnnouncement(peerId, page, factionId);
   return (
     <Section hiddenHeading title="Conversation" description={CONVERSATION_HELP} className={styles.panel}>
       <Stack gap="sm" className={styles.body}>
-        {!view.online && (
-          <Text size="sm">Offline. Pending messages will send after your faction access is checked.</Text>
-        )}
+        {!online && <Text size="sm">Offline. Pending messages will send after your faction access is checked.</Text>}
         <Stack
           ref={viewport}
           gap="sm"
@@ -45,50 +73,24 @@ export function Conversation({ client, peerId }: Readonly<{ client: TableSession
           tabIndex={0}
           onScroll={onScroll}
         >
-          <HistoryStatus page={page} load={(before) => client.conversations.load({ peerId, before })} />
+          <HistoryStatus page={page} load={onLoad} />
           {entries.map((message) => (
             <SavedMessage
               key={message.sequence}
               message={message}
-              factionId={view.context?.factionId}
-              /* Every faction writes at the table, so each message there also names its writer's faction. */
-              faction={peerId === TABLE_CONVERSATION ? senderName(view.context, message.senderFactionId) : undefined}
+              factionId={factionId}
+              faction={senders?.[message.senderFactionId]}
             />
           ))}
           <div ref={newest} style={{ minHeight: 1 }} aria-hidden />
           {pending.map((entry) => (
-            <PendingMessage key={entry.request.requestId} entry={entry} retry={client.conversations.retry} />
+            <PendingMessage key={entry.request.requestId} entry={entry} retry={onRetry} />
           ))}
         </Stack>
         <VisuallyHidden role="status">{arrival}</VisuallyHidden>
-        <Composer
-          drafts={draftsOf(client)}
-          draftKey={`${view.context?.factionId ?? ''}:${peerId}`}
-          submit={(text) => client.conversations.submit({ peerId, text })}
-        />
+        <Composer drafts={drafts} draftKey={`${factionId ?? ''}:${peerId}`} submit={onSubmit} />
       </Stack>
     </Section>
-  );
-}
-
-export function OfflineConversations({ client }: Readonly<{ client: TableSession }>) {
-  const { conversations: view } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
-  const [selected, setSelected] = useState<string | null>(null);
-  const peers = view.context ? [...view.context.peers, { id: TABLE_CONVERSATION, name: 'Table' }] : [];
-  const peerId = peers.find((peer) => peer.id === selected)?.id ?? peers[0]?.id;
-  if (!peerId) {
-    return null;
-  }
-  return (
-    <Stack gap="sm" w="min(36rem, 90vw)" h="70vh" style={{ overflow: 'hidden' }}>
-      <Select
-        label="Conversation"
-        value={peerId}
-        onChange={setSelected}
-        data={peers.map((peer) => ({ value: peer.id, label: peer.name }))}
-      />
-      <Conversation key={`${view.context?.factionId}:${peerId}`} client={client} peerId={peerId} />
-    </Stack>
   );
 }
 
@@ -140,16 +142,17 @@ function useConversationScroll(entries: ConversationMessage[], pendingCount: num
   return { viewport, onScroll };
 }
 
-function useVisibleRead(client: TableSession, peerId: string, latest: number, view: ConversationView) {
+/* Marks the conversation read through its newest message once that message is seen; null while there is nothing to mark. */
+function useVisibleRead(through: number | null, onRead: (through: number) => void) {
   const newest = useRef<HTMLDivElement>(null);
-  const summary = view.summaries.find((entry) => entry.peerId === peerId);
+  const read = useEffectEvent(onRead);
   useEffect(() => {
     const target = newest.current;
-    if (!target || !view.online || !summary?.unread || latest !== summary.latest) {
+    if (!target || through === null) {
       return;
     }
-    return observeVisible(target, () => client.conversations.read({ peerId, through: latest }));
-  }, [client, peerId, latest, summary?.latest, summary?.unread, view.online]);
+    return observeVisible(target, () => read(through));
+  }, [through]);
   return newest;
 }
 
@@ -157,11 +160,7 @@ function useVisibleRead(client: TableSession, peerId: string, latest: number, vi
  * The history is a scrollback that also grows at the top when earlier pages load, so it is not itself live.
  * Only another faction's messages saved after the history first loaded are read out, one polite line per arrival.
  */
-function useArrivalAnnouncement(
-  peerId: string,
-  page: ConversationView['pages'][string] | undefined,
-  factionId: string | undefined
-) {
+function useArrivalAnnouncement(peerId: string, page: Page | undefined, factionId: string | undefined) {
   const seen = useRef<{ peerId: string; sequence: number } | null>(null);
   const [announcement, setAnnouncement] = useState('');
   const settled = page !== undefined && page.load.state !== 'loading';
@@ -184,13 +183,6 @@ function useArrivalAnnouncement(
   return announcement;
 }
 
-function senderName(context: ConversationView['context'], factionId: string) {
-  if (context?.factionId === factionId) {
-    return context.factionName;
-  }
-  return context?.peers.find((peer) => peer.id === factionId)?.name;
-}
-
 function SavedMessage({
   message,
   factionId,
@@ -211,10 +203,7 @@ function SavedMessage({
   );
 }
 
-function PendingMessage({
-  entry,
-  retry,
-}: Readonly<{ entry: ConversationView['pending'][number]; retry: (requestId: string) => void }>) {
+function PendingMessage({ entry, retry }: Readonly<{ entry: Pending; retry: (requestId: string) => void }>) {
   return (
     <Stack gap="xs">
       <Text size="sm" style={MESSAGE_TEXT_STYLE}>
@@ -223,21 +212,6 @@ function PendingMessage({
       <PendingStatus entry={entry} retry={retry} />
     </Stack>
   );
-}
-
-/*
- * Unsent messages, per table session and conversation, outlive the composer: a window the table swaps for another
- * (a battle, a phase's panel) gives the draft back when the conversation opens again.
- */
-const DRAFTS = new WeakMap<TableSession, Map<string, string>>();
-
-function draftsOf(client: TableSession) {
-  let drafts = DRAFTS.get(client);
-  if (!drafts) {
-    drafts = new Map();
-    DRAFTS.set(client, drafts);
-  }
-  return drafts;
 }
 
 function Composer({
@@ -291,10 +265,7 @@ function Composer({
   );
 }
 
-function HistoryStatus({
-  page,
-  load,
-}: Readonly<{ page: ConversationView['pages'][string] | undefined; load: (before?: number) => void }>) {
+function HistoryStatus({ page, load }: Readonly<{ page: Page | undefined; load: (before?: number) => void }>) {
   if (!page) {
     return null;
   }
@@ -391,10 +362,7 @@ function MessageTime({ savedAt }: Readonly<{ savedAt: number }>) {
   );
 }
 
-function PendingStatus({
-  entry,
-  retry,
-}: Readonly<{ entry: ConversationView['pending'][number]; retry: (requestId: string) => void }>) {
+function PendingStatus({ entry, retry }: Readonly<{ entry: Pending; retry: (requestId: string) => void }>) {
   const { delivery, request } = entry;
   switch (delivery.state) {
     case 'unsent':
@@ -429,10 +397,7 @@ function ComposerSubmit({ disabled }: Readonly<{ disabled: boolean }>) {
   );
 }
 
-function HistoryLoad({
-  load,
-  retry,
-}: Readonly<{ load: ConversationView['pages'][string]['load']; retry: () => void }>) {
+function HistoryLoad({ load, retry }: Readonly<{ load: Page['load']; retry: () => void }>) {
   switch (load.state) {
     case 'idle':
       return null;

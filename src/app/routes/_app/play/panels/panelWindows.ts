@@ -2,15 +2,18 @@ import type { TablePanel } from '../GameTable';
 import {
   ALLIANCES_GUIDANCE,
   BATTLE_PLAN_GUIDANCE,
+  FACTION_INFO_GUIDANCE,
   AUDIT_LOG_GUIDANCE,
   GAME_LENGTH_GUIDANCE,
   GAME_LOG_GUIDANCE,
   HAND_GUIDANCE,
   HIDDEN_ZONE_GUIDANCE,
+  PLAYER_CONVERSATION_GUIDANCE,
   REPLAY_GUIDANCE,
   RESULT_GUIDANCE,
   SHARED_INVENTORY_GUIDANCE,
   SPICE_GUIDANCE,
+  TABLE_CONVERSATION_GUIDANCE,
   TINTS_GUIDANCE,
 } from '../multiplayer/panelGuidance';
 
@@ -46,4 +49,8 @@ export const PANEL_WINDOWS = {
   hand: { key: 'hand', label: 'Hand', topic: 'hand', ...HAND_GUIDANCE },
   sideTable: { key: 'hidden-zone', label: 'Private side-table', topic: 'hiddenZone', ...HIDDEN_ZONE_GUIDANCE },
   spice: { key: 'spice', label: 'Spice', topic: 'spice', ...SPICE_GUIDANCE },
+  tableChat: { key: 'table-chat', label: 'Table chat', topic: 'planet', ...TABLE_CONVERSATION_GUIDANCE },
+  /* A chat with a player takes that player's name and seat; this is what every one of them shares. */
+  playerChat: { key: 'player', label: 'Player', topic: 'factions', ...PLAYER_CONVERSATION_GUIDANCE },
+  factionInfo: { key: 'faction-info', label: 'Faction info', topic: 'factions', ...FACTION_INFO_GUIDANCE },
 } as const satisfies Record<string, PanelWindow>;
