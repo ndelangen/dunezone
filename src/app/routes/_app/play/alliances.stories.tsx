@@ -123,5 +123,15 @@ export const TokensInTheWindows = meta.story({
     const picker = await within(doc.body).findByRole('group', { name: 'Factions' }, { timeout: 30_000 });
     const tops = new Set([...picker.querySelectorAll('button')].map((button) => button.offsetTop));
     await expect(tops.size, 'The faction tokens wrap onto a second line.').toBe(1);
+    await expect(picker.scrollWidth, 'Six tokens outgrow the slot, so the row scrolls.').toBeGreaterThan(
+      picker.clientWidth
+    );
+    /* The rule under the tokens runs to the window's border on both sides. */
+    const frame = picker.closest('[data-window]')!.getBoundingClientRect();
+    const rule = picker.getBoundingClientRect();
+    await expect(Math.abs(rule.left - frame.left), 'The rule stops short of the left edge.').toBeLessThanOrEqual(1.5);
+    await expect(Math.abs(rule.right - frame.right), 'The rule stops short of the right edge.').toBeLessThanOrEqual(
+      1.5
+    );
   },
 });

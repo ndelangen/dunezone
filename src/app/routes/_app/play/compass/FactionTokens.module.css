@@ -10,7 +10,7 @@
   overscroll-behavior-x: contain;
   scrollbar-width: thin;
   /* The window body's padding, taken back so the rule reaches both edges. */
-  margin: -0.9rem -1rem 0;
+  margin: calc(-1 * var(--window-body-pad-block)) calc(-1 * var(--window-body-pad-inline)) 0;
   padding: 0.5rem 0.6rem 0.6rem;
   border-bottom: 1px solid var(--edge);
 }

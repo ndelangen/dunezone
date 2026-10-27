@@ -59,7 +59,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'removal',
       task: 'Find the removal vote',
       detail:
-        'A player who has gone quiet for good can be voted off. Click any token on the chat bar, then the token in the chat’s title: the crossed-out person beside their name in the faction information is Start removal vote. A majority of the other players removes them, and their seat opens again.',
+        'A player who has gone quiet for good can be voted off. Click any token on the chat bar, then the token in the chat’s title: the person with an × beside their name in the faction information is Start removal vote. A majority of the other players removes them, and their seat opens again.',
       anchor: { kind: 'page', element: element('[data-window^="player:"] header button[aria-label$=" info"]') },
       begin: () => undefined,
       done: () =>

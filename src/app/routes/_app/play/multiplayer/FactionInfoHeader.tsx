@@ -15,8 +15,6 @@ export type FactionInfoHeaderModel = Readonly<{
   seat: string;
   own: boolean;
   alliance: SeatAlliance | null;
-  /** The faction's allies as tokens, or the alliance mark. */
-  allianceMark: ReactNode;
   page: Readonly<{ href: string; name: string }> | null;
   /** Starting a removal vote against the player, with why it cannot start yet. */
   removal: Readonly<{ start: () => void; disabledReason?: string }> | null;
@@ -74,7 +72,7 @@ export function FactionInfoHeader({ model }: Readonly<{ model: FactionInfoHeader
       {alliance && (
         <Group gap="sm" justify="space-between" wrap="nowrap">
           <Group gap="xs" wrap="nowrap" style={{ minWidth: 0 }}>
-            {model.allianceMark}
+            {alliance.mark}
             <Text size="sm">{alliance.status}</Text>
           </Group>
           {alliance.action}
