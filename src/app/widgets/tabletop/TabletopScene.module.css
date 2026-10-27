@@ -62,11 +62,14 @@
 
 /* What a tech token does, under its face. */
 .closeUpDescription {
-  margin: 0;
-  font-size: var(--mantine-font-size-sm);
-  line-height: 1.4;
+  max-height: min(40vh, 320px);
+  overflow: hidden;
   color: var(--color-text);
-  white-space: pre-line;
+}
+
+/* Words past the cap fade out, so a cut description reads as cut. */
+.closeUpDescription[data-clipped] {
+  mask-image: linear-gradient(to bottom, black calc(100% - 48px), transparent);
 }
 
 /* A peek, held up to the peeker alone: flat faces over the table, as a close look shows them. */

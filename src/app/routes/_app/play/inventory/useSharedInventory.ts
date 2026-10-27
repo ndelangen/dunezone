@@ -1,6 +1,6 @@
 import type { SpawnSelection } from '@shared/play/inventory';
 import type { TablePiece } from '@shared/play/model';
-import { drawableTechTokens } from '@shared/play/techToken';
+import { drawableTechTokens, isTechToken } from '@shared/play/techToken';
 import { useReducer } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 
@@ -33,9 +33,10 @@ export function useSharedInventory({ client, table }: SharedInventoryProps) {
     .filter((piece) => !table.reservedPieceIds.has(piece.id))
     .reduce((count, piece) => count + piece.items.length, 0);
   const canHandle = table.canHandleTable;
+  const rows = inventoryRows(pieces, table.snapshot.table.pieces.some(isTechToken));
   return {
-    rows: inventoryRows(pieces),
-    empty: !pieces.length,
+    rows,
+    empty: !rows.length,
     /** Whether this piece can be dragged out now: nobody else is carrying it and the viewer may handle the table. */
     movable: (piece: TablePiece) => canHandle && !table.reservedPieceIds.has(piece.id),
     /** Picks the piece up under the pointer; Shift takes only its top item. */

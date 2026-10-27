@@ -1,10 +1,11 @@
 import { Button, Group, Stack, Text, Tooltip } from '@mantine/core';
 import type { PublicControls } from '@shared/play/inventory';
 import type { TablePiece } from '@shared/play/model';
+import { FormattedTextSource } from '@ui/content/FormattedText';
 import { TooltipTarget } from '@ui/control/TooltipTarget';
 import { Dices } from 'lucide-react';
-import { useSyncExternalStore } from 'react';
-import type { ReactNode } from 'react';
+import { Children, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import type { ReactNode, RefObject } from 'react';
 
 import { SpawnAssetPicker } from '@app/pickers/SpawnAssetPicker';
 
@@ -28,11 +29,7 @@ function PieceTooltipLabel({ piece }: Readonly<{ piece: TablePiece }>) {
         {inventoryName(piece)}
         {piece.items.length > 1 ? ` × ${piece.items.length}` : ''}
       </Text>
-      {description && (
-        <Text size="sm" className={styles.description}>
-          {description}
-        </Text>
-      )}
+      {description && <FormattedTextSource source={description} size="sm" />}
     </Stack>
   );
 }
@@ -75,11 +72,57 @@ export function InventoryPiece({
   );
 }
 
-/** A row's pieces side by side, scrolling sideways rather than wrapping when they do not fit. */
+/* Which ends of a sideways-scrolling strip hide pieces past them, kept as the strip scrolls or resizes. */
+function useHiddenEnds(strip: RefObject<HTMLDivElement | null>) {
+  const [ends, setEnds] = useState({ start: false, end: false });
+  useEffect(() => {
+    const element = strip.current;
+    if (!element) {
+      return;
+    }
+    const measure = () => {
+      const start = element.scrollLeft > 1;
+      const end = element.scrollLeft + element.clientWidth < element.scrollWidth - 1;
+      setEnds((last) => (last.start === start && last.end === end ? last : { start, end }));
+    };
+    measure();
+    const resize = new ResizeObserver(measure);
+    resize.observe(element);
+    for (const child of element.children) {
+      resize.observe(child);
+    }
+    element.addEventListener('scroll', measure, { passive: true });
+    return () => {
+      resize.disconnect();
+      element.removeEventListener('scroll', measure);
+    };
+  });
+  return ends;
+}
+
+/**
+ * A row's pieces side by side, scrolling sideways rather than wrapping when they do not fit.
+ * An end that hides pieces fades out, so the row shows there is more of it even where scrollbars stay hidden.
+ */
 export function PieceStrip({ children, label }: Readonly<{ children: ReactNode; label: string }>) {
+  const strip = useRef<HTMLDivElement>(null);
+  const ends = useHiddenEnds(strip);
   return (
-    <div className={styles.strip} role="list" aria-label={label}>
-      {children}
+    <div
+      ref={strip}
+      className={styles.strip}
+      role="list"
+      aria-label={label}
+      data-more-start={ends.start || undefined}
+      data-more-end={ends.end || undefined}
+    >
+      {Children.count(children) ? (
+        children
+      ) : (
+        <Text size="sm" c="dimmed">
+          All drawn
+        </Text>
+      )}
     </div>
   );
 }

@@ -130,10 +130,15 @@ export const Arrival = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await openTab(page, 'Shared table inventory');
     await settled(async () => {
-      for (const label of ['Treachery deck', ...drawerFactions.map(({ data }) => `${data.name} tokens`)]) {
+      /* A stack is dragged by its label; a token's image is named for the token itself, as its tooltip names it. */
+      const thumbnails = [
+        { label: 'Treachery deck', image: 'Treachery deck' },
+        ...drawerFactions.map(({ data }) => ({ label: `${data.name} tokens`, image: `${data.name} token` })),
+      ];
+      for (const { label, image } of thumbnails) {
         const thumbnail = page.getByRole('button', { name: `Drag ${label} onto the table` });
         await expect(thumbnail).toBeEnabled();
-        await expect(within(thumbnail).getByRole('img', { name: label }).closest('[data-phase]')).toHaveAttribute(
+        await expect(within(thumbnail).getByRole('img', { name: image }).closest('[data-phase]')).toHaveAttribute(
           'data-phase',
           'shown'
         );

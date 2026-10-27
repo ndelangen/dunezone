@@ -11,6 +11,19 @@
   scrollbar-width: thin;
 }
 
+/* An end with pieces past it fades out: the row has more to scroll to there. */
+.strip[data-more-end] {
+  mask-image: linear-gradient(to right, black calc(100% - 48px), transparent);
+}
+
+.strip[data-more-start] {
+  mask-image: linear-gradient(to left, black calc(100% - 48px), transparent);
+}
+
+.strip[data-more-start][data-more-end] {
+  mask-image: linear-gradient(to right, transparent, black 48px, black calc(100% - 48px), transparent);
+}
+
 .tile {
   position: relative;
   display: grid;
@@ -74,10 +87,6 @@
 .caption {
   color: var(--ink-dim);
   text-align: center;
-}
-
-.description {
-  white-space: pre-line;
 }
 
 .rowLabel {

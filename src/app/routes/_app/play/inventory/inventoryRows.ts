@@ -26,9 +26,17 @@ function rowOf(piece: TablePiece): { key: string; label: string } {
     : { key: 'other', label: 'Other pieces' };
 }
 
-/** The shared table inventory as rows: cards by their back first, then tokens by their type, each in name order. */
-export function inventoryRows(pieces: readonly TablePiece[]): InventoryRow[] {
+const TECH_ROW = { key: 'type:token-tech', label: ASSET_TYPES['token-tech'].label };
+
+/**
+ * The shared table inventory as rows: cards by their back first, then tokens by their type, each in name order.
+ * While the game has tech tokens, their row stays even once every one is drawn, so its draw stays in place, turned off.
+ */
+export function inventoryRows(pieces: readonly TablePiece[], techTokensInGame = false): InventoryRow[] {
   const rows = new Map<string, { label: string; pieces: TablePiece[] }>();
+  if (techTokensInGame) {
+    rows.set(TECH_ROW.key, { label: TECH_ROW.label, pieces: [] });
+  }
   for (const piece of pieces) {
     const { key, label } = rowOf(piece);
     const row = rows.get(key) ?? { label, pieces: [] };
@@ -43,6 +51,6 @@ export function inventoryRows(pieces: readonly TablePiece[]): InventoryRow[] {
       label: row.label,
       pieces: row.pieces,
       count: row.pieces.reduce((count, piece) => count + piece.items.length, 0),
-      techTokens: row.pieces.some(isTechToken),
+      techTokens: key === TECH_ROW.key || row.pieces.some(isTechToken),
     }));
 }

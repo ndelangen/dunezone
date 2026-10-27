@@ -42,3 +42,10 @@ test('keeps every piece of one type on one row: cards by their back, then tokens
 test('an empty inventory has no rows', () => {
   expect(inventoryRows([])).toEqual([]);
 });
+
+test('keeps the tech token row, empty, once every tech token in the game is drawn', () => {
+  expect(inventoryRows([piece('recovery', 'force', 'token-disc')], true)).toEqual([
+    expect.objectContaining({ label: 'Disc tokens', count: 1, techTokens: false }),
+    { key: 'type:token-tech', label: 'Tech tokens', pieces: [], count: 0, techTokens: true },
+  ]);
+});
