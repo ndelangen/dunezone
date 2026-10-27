@@ -53,6 +53,12 @@ export const faction_hero_key_drop_verify_v1 = migrations.define({
   },
 });
 
+/** A stored faction's troops as written, or none when the row has no troop list. */
+function storedTroops(data: unknown): unknown[] {
+  const troops = (data as { troops?: unknown } | null)?.troops;
+  return Array.isArray(troops) ? troops : [];
+}
+
 /**
  * Rewrites a troop face's retired `-red` star to its base star with the same red as its hue, without changing the faction's edit timestamp.
  * The two star files are identical and the renderer paints a `-red` star without a hue `red`, so the rewrite draws the same token;
@@ -63,11 +69,11 @@ export const faction_troop_red_star_v1 = migrations.define({
   table: 'factions',
   batchSize: 50,
   migrateOne: async (_ctx, row) => {
-    const data = row.data as { troops?: unknown } | null;
-    if (!data || !Array.isArray(data.troops) || !data.troops.some(troopHasRedStar)) {
+    const troops = storedTroops(row.data);
+    if (!troops.some(troopHasRedStar)) {
       return;
     }
-    return { data: { ...data, troops: data.troops.map(troopWithoutRedStar) } };
+    return { data: { ...(row.data as object), troops: troops.map(troopWithoutRedStar) } };
   },
 });
 
@@ -76,8 +82,7 @@ export const faction_troop_red_star_verify_v1 = migrations.define({
   table: 'factions',
   batchSize: 50,
   migrateOne: async (_ctx, row) => {
-    const troops = (row.data as { troops?: unknown } | null)?.troops;
-    if (Array.isArray(troops) && troops.some(troopHasRedStar)) {
+    if (storedTroops(row.data).some(troopHasRedStar)) {
       throw new Error(`Faction ${row._id} still has a troop face with a \`-red\` star.`);
     }
   },
