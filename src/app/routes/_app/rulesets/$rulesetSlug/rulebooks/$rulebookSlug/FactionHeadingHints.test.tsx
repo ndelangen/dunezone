@@ -107,6 +107,62 @@ test('frozen heading hints support hover, keyboard focus, Escape and a fresh hov
   expect(screen.getByRole('tooltip').textContent).toBe('House Atreides');
 });
 
+test('Escape keeps a hovered hint dismissed when keyboard focus moves away', async () => {
+  const { heading } = mountHints();
+  fireEvent.mouseEnter(heading);
+  await settle();
+  act(() => heading.focus());
+  await settle();
+  fireEvent.keyDown(heading, { key: 'Escape' });
+  await settle();
+  expect(screen.queryByRole('tooltip')).toBeNull();
+
+  act(() => heading.blur());
+  await settle();
+  expect(screen.queryByRole('tooltip')).toBeNull();
+
+  fireEvent.mouseLeave(heading);
+  await settle();
+  fireEvent.mouseEnter(heading);
+  await settle();
+  expect(screen.getByRole('tooltip').textContent).toBe('House Atreides');
+});
+
+test('leaving a dismissed focused heading allows a fresh hover after blur', async () => {
+  const { heading } = mountHints();
+  fireEvent.mouseEnter(heading);
+  await settle();
+  act(() => heading.focus());
+  await settle();
+  fireEvent.keyDown(heading, { key: 'Escape' });
+  fireEvent.mouseLeave(heading);
+  await settle();
+  act(() => heading.blur());
+  await settle();
+  expect(screen.queryByRole('tooltip')).toBeNull();
+
+  fireEvent.mouseEnter(heading);
+  await settle();
+  expect(screen.getByRole('tooltip').textContent).toBe('House Atreides');
+});
+
+test('a fresh hover reopens a dismissed hint while its heading keeps keyboard focus', async () => {
+  const { heading } = mountHints();
+  fireEvent.mouseEnter(heading);
+  await settle();
+  act(() => heading.focus());
+  await settle();
+  fireEvent.keyDown(heading, { key: 'Escape' });
+  fireEvent.mouseLeave(heading);
+  await settle();
+  expect(screen.queryByRole('tooltip')).toBeNull();
+  expect(document.activeElement).toBe(heading);
+
+  fireEvent.mouseEnter(heading);
+  await settle();
+  expect(screen.getByRole('tooltip').textContent).toBe('House Atreides');
+});
+
 test.each([undefined, '-1', '3'])('unmount restores the original tabindex %s', (tabIndex) => {
   const { heading, unmount } = mountHints(tabIndex);
   unmount();

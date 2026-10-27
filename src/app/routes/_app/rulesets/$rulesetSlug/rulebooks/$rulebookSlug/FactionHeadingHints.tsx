@@ -7,9 +7,18 @@ function FactionHeadingTooltip({ target }: { target: HTMLElement }) {
   const [opened, setOpened] = useState<boolean | undefined>(undefined);
   useEffect(() => {
     const tabIndex = target.getAttribute('tabindex');
+    let hovering = false;
     const focus = () => setOpened(true);
-    const blur = () => setOpened(undefined);
+    /* Mantine retains its hover state while this heading controls focus or Escape dismissal. */
+    const blur = () => setOpened((current) => (current === false && hovering ? false : undefined));
+    const enter = () => {
+      hovering = true;
+      if (target.ownerDocument.activeElement === target) {
+        setOpened(true);
+      }
+    };
     const leave = () => {
+      hovering = false;
       if (target.ownerDocument.activeElement !== target) {
         setOpened(undefined);
       }
@@ -23,6 +32,7 @@ function FactionHeadingTooltip({ target }: { target: HTMLElement }) {
     target.addEventListener('focus', focus);
     target.addEventListener('blur', blur);
     target.addEventListener('keydown', escape);
+    target.addEventListener('mouseenter', enter);
     target.addEventListener('mouseleave', leave);
     return () => {
       if (tabIndex === null) {
@@ -33,6 +43,7 @@ function FactionHeadingTooltip({ target }: { target: HTMLElement }) {
       target.removeEventListener('focus', focus);
       target.removeEventListener('blur', blur);
       target.removeEventListener('keydown', escape);
+      target.removeEventListener('mouseenter', enter);
       target.removeEventListener('mouseleave', leave);
     };
   }, [target]);
