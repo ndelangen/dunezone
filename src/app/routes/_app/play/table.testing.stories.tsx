@@ -528,6 +528,9 @@ export const DeckShortcutsEndOffTheTable = meta.story({
  * A canvas leave ends the disc's hover while the viewer cannot act, too: another player continues the finished game during this replay.
  * The pointer moves over the disc during playback and leaves the canvas, so after Return to live the number keys send nothing until the pointer is back on the disc.
  */
+/* Cursors that offer nothing: unset, the default, and the 'auto' the camera controls set when they connect. */
+const UNOFFERED_CURSORS = ['', 'default', 'auto'];
+
 export const SpiceDiscForgetsAPlaybackHover = meta.story({
   beforeEach: install(() => productTransport('seat-2', finishedSnapshot('seat-2'))),
   play: async ({ canvasElement }) => {
@@ -547,14 +550,14 @@ export const SpiceDiscForgetsAPlaybackHover = meta.story({
     const scene = document.querySelector('canvas')!;
     const pointer = { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', clientX, clientY };
     scene.dispatchEvent(new PointerEvent('pointermove', pointer));
-    /* The canvas never offered the disc, so its cursor is unset or the default one. */
-    await waitFor(() => expect(['', 'default'], 'playback disables the disc').toContain(scene.style.cursor));
+    /* The canvas never offered the disc. */
+    await waitFor(() => expect(UNOFFERED_CURSORS, 'playback disables the disc').toContain(scene.style.cursor));
     leaveTheCanvas(page, scene, pointer);
 
     await userEvent.click(page.getByRole('button', { name: 'Return to live' }));
     await waitFor(() => expect(page.queryByRole('button', { name: 'Earlier phase' })).toBeNull());
     await userEvent.keyboard('3');
-    await expect(['', 'default'], 'returning to live retains no earlier hover').toContain(scene.style.cursor);
+    await expect(UNOFFERED_CURSORS, 'returning to live retains no earlier hover').toContain(scene.style.cursor);
     await expect(session.transport.messages.some((message) => message.type === 'command')).toBe(false);
 
     /* Move onto the returning disc on each poll while its 3D target settles; the live table's panels may move the canvas, so the point is mapped again. */

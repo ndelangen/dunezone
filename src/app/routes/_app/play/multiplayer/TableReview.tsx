@@ -19,7 +19,7 @@ const BALLOT_BADGES = {
 } as const;
 
 /** A checkpoint as a proposal names it: where it is, and which saved step, since a phase can hold several. */
-export function checkpointLabel(checkpoint: ReviewCheckpoint) {
+function checkpointLabel(checkpoint: ReviewCheckpoint) {
   return `${checkpoint.context} · checkpoint ${checkpoint.step}`;
 }
 

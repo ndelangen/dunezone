@@ -61,7 +61,7 @@ export function reviewOf(
 }
 
 /** The public table a checkpoint shows: the live table's phase then, with nothing private. */
-export function checkpointSnapshot(step: number): GameSnapshot {
+function checkpointSnapshot(step: number): GameSnapshot {
   const { hand: _hand, bank: _bank, handOrder: _order, battlePlan: _plan, ...past } = playingSnapshot();
   return { ...past, phase: Math.max(0, step - FIRST_PLAY_STEP) };
 }

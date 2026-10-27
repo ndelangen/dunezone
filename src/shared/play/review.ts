@@ -21,7 +21,6 @@ export const tableReviewSchema = z.object({
   startedAt: tableCountSchema.nullable(),
 });
 export type TableReview = z.infer<typeof tableReviewSchema>;
-export type ReviewChoice = TableReview['ballots'][number]['choice'];
 
 /** A checkpoint the table can review, newest last. */
 export const reviewCheckpointSchema = z.object({ step: tableCountSchema, context: z.string().max(200) });
