@@ -79,7 +79,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'offer',
       task: 'Offer them an alliance',
       detail:
-        'In the faction information, press Offer alliance. An arrow runs from your token to theirs until they answer, and Atreides accepts a moment later.',
+        'In the faction information, press Offer alliance, the handshake beside their status. An arrow runs from your token to theirs until they answer, and Atreides accepts a moment later.',
       anchor: { kind: 'page', element: buttonIn(FACTION_INFO, 'Offer alliance') },
       begin: () => ({ stop: atreidesAccepts(snapshot, players, partner) }),
       done: allied,
@@ -97,13 +97,12 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'break',
       task: 'Break the alliance',
       detail:
-        'Alliances end as they start, by choice. Open the Alliances window by typing: press {Space} to open the controls, type Alliances and press {Enter}. Then press Break alliance on your ally’s row.',
+        'Alliances end as they start, by choice. Open the Alliances window by typing: press {Space} to open the controls, type Alliances and press {Enter}. Then press Break alliance, the broken link on your ally’s row.',
       anchor: {
         kind: 'page',
         element: () =>
-          [...document.querySelectorAll('[data-window="alliances"] button')].find(
-            (button) => button.textContent === 'Break alliance'
-          ) ?? document.querySelector('[aria-label="Search controls"], [data-compass-launcher]'),
+          buttonIn('alliances', 'Break alliance')() ??
+          document.querySelector('[aria-label="Search controls"], [data-compass-launcher]'),
       },
       begin: () => undefined,
       done: () => allies().length === 0,

@@ -19,7 +19,7 @@ export const element = (selector: string) => () => document.querySelector(select
 /** The button with exactly this text inside a window, rather than the window's own frame buttons that come first. */
 export const buttonIn = (windowKey: string, text: string) => (): HTMLButtonElement | null =>
   [...document.querySelectorAll<HTMLButtonElement>(`[data-window="${windowKey}"] button`)].find(
-    (button) => button.textContent?.trim() === text
+    (button) => (button.textContent?.trim() || button.getAttribute('aria-label')) === text
   ) ?? null;
 
 export const lastElement = (selector: string) => () => [...document.querySelectorAll(selector)].at(-1) ?? null;

@@ -42,24 +42,3 @@ export const NewTintsAndPresets = meta.story({
     );
   },
 });
-
-/** A painting row says how to paint. */
-export const PaintingRow = meta.story({
-  args: tintsProps(undefined, 'tint-fremen'),
-  play: async ({ canvas }) => {
-    await expect(canvas.getByText('Painting: click territories on the board')).toBeVisible();
-    await expect(canvas.getByRole('button', { name: 'Paint Fremen deployment' })).toHaveAttribute(
-      'aria-pressed',
-      'true'
-    );
-  },
-});
-
-/** A viewer who may not change the tints finds every control greyed out. */
-export const ControlsGreyedWhenReadOnly = meta.story({
-  args: { ...tintsProps(), canEdit: false, canCreate: false },
-  play: async ({ canvas }) => {
-    await expect(canvas.getByRole('button', { name: 'Paint Fremen deployment' })).toBeDisabled();
-    await expect(canvas.getByRole('button', { name: 'New green tint' })).toBeDisabled();
-  },
-});

@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import { expect } from 'storybook/test';
 
 import { replayPanelMeta } from './ReplayPanel.stories.fixture';
 
@@ -7,6 +8,14 @@ const meta = preview.meta({ ...replayPanelMeta, title: 'Play/Panels/Replay' });
 
 /** At the live table: the replay starts from the first saved phase. */
 export const Live = meta.story({});
+
+/** While a phase loads, the window says so, with the way back to live. */
+export const Loading = meta.story({
+  args: { pending: true },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText('Loading playback...')).toBeVisible();
+  },
+});
 
 /** A fixture table browsing its saved phases from the window, step by step. */
 export const Browsing = meta.story({ args: { replay: { kind: 'browsing', step: 3, lastStep: 9 } } });

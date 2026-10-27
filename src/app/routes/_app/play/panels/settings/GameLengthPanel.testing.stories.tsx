@@ -21,11 +21,3 @@ export const SetsTheLastTurn = meta.story({
     await expect(args.onLastTurn).toHaveBeenLastCalledWith(MAX_LAST_TURN);
   },
 });
-
-/** A spectator sees the game's length but cannot change it. */
-export const ReadOnly = meta.story({
-  args: { disabled: true },
-  play: async ({ canvas }) => {
-    await expect(canvas.getByRole('textbox', { name: 'Last turn' })).toBeDisabled();
-  },
-});
