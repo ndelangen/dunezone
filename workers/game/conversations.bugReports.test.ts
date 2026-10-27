@@ -1,6 +1,7 @@
 import { DatabaseSync } from 'node:sqlite';
 
 import { expect, test } from 'vite-plus/test';
+import { z } from 'zod';
 
 import { homepageSnapshot } from '../../src/shared/homepage/setup';
 import type { BugReportBrowser } from '../../src/shared/play/bugReports';
@@ -82,7 +83,7 @@ test('censors a private message copied into browser console output and keeps del
     1234
   );
   const browser: BugReportBrowser = {
-    snapshot: { snapshot },
+    snapshot: z.json().parse(JSON.parse(JSON.stringify({ snapshot }))),
     conversations: {
       pending: [
         { request: { text: 'Unsent private message' }, delivery: { state: 'failed', error: 'No confirmation' } },
