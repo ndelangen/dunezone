@@ -1,17 +1,4 @@
-import {
-  Anchor,
-  Alert,
-  Badge,
-  Center,
-  Code,
-  Group,
-  Pagination,
-  Select,
-  Stack,
-  Switch,
-  Table,
-  Text,
-} from '@mantine/core';
+import { Anchor, Alert, Badge, Button, Code, Group, Select, Stack, Switch, Table, Text } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { StatusBadge } from '@ui/content/StatusBadge';
@@ -43,23 +30,29 @@ function PublicationJobsLoading() {
 
 /** Mounted only for an administrator, so the admin-only query is never asked by anyone else. */
 function PublicationJobsDashboard() {
-  /* One listing query, one reducer: a filter change resets the page in the same event, so a third
-     filter cannot forget the reset (the one-event-two-setters shape, #608). */
   const [listing, dispatch] = useReducer(
     (
-      state: { status: PublicationJobStatus | undefined; assetType: string | undefined; page: number },
+      state: { status: PublicationJobStatus | undefined; assetType: string | undefined; cursors: (string | null)[] },
       event:
         | { kind: 'filter'; update: Partial<Pick<typeof state, 'status' | 'assetType'>> }
-        | { kind: 'page'; page: number }
-    ) => (event.kind === 'page' ? { ...state, page: event.page } : { ...state, ...event.update, page: 1 }),
-    { status: undefined, assetType: undefined, page: 1 }
+        | { kind: 'next'; cursor: string }
+        | { kind: 'previous' }
+    ) => {
+      if (event.kind === 'filter') {
+        return { ...state, ...event.update, cursors: [null] };
+      }
+      if (event.kind === 'next') {
+        return { ...state, cursors: [...state.cursors, event.cursor] };
+      }
+      return { ...state, cursors: state.cursors.slice(0, -1) };
+    },
+    { status: undefined, assetType: undefined, cursors: [null] }
   );
-  const { status, assetType, page } = listing;
+  const { status, assetType, cursors } = listing;
   const result = usePublicationJobsPage({
     status,
     assetType,
-    page,
-    pageSize: PAGE_SIZE,
+    paginationOpts: { cursor: cursors.at(-1) ?? null, numItems: PAGE_SIZE },
   });
   const pickupMutation = useSetPublicationPickupEnabled();
 
@@ -127,6 +120,11 @@ function PublicationJobsDashboard() {
                   </Group>
                 </div>
               </Group>
+              {Object.values(result.counts).some((count) => count.limited) && (
+                <Text size="sm" c="dimmed">
+                  Counts ending in + are lower bounds. All jobs remain available in the pages below.
+                </Text>
+              )}
             </Stack>
           </Surface>
 
@@ -163,7 +161,7 @@ function PublicationJobsDashboard() {
                 />
               </Group>
               <Text size="sm" c="dimmed">
-                {result.total} {result.total === 1 ? 'job' : 'jobs'}
+                Page {cursors.length}
               </Text>
             </Group>
 
@@ -181,8 +179,8 @@ function PublicationJobsDashboard() {
                   </Table.Tr>
                 </Table.Thead>
                 <Table.Tbody>
-                  {result.jobs.length > 0 ? (
-                    result.jobs.map((job) => (
+                  {result.page.length > 0 ? (
+                    result.page.map((job) => (
                       <Table.Tr key={job.id}>
                         <Table.Td>
                           <JobStatusBadge status={job.status} />
@@ -208,7 +206,9 @@ function PublicationJobsDashboard() {
                     <Table.Tr>
                       <Table.Td colSpan={7}>
                         <Text ta="center" c="dimmed" py="lg">
-                          No publication jobs match these filters.
+                          {cursors.length > 1
+                            ? 'No jobs remain on this page. Use Previous to return to earlier jobs.'
+                            : 'No publication jobs match these filters.'}
                         </Text>
                       </Table.Td>
                     </Table.Tr>
@@ -218,17 +218,18 @@ function PublicationJobsDashboard() {
             </Table.ScrollContainer>
           </Surface>
 
-          {result.total > PAGE_SIZE ? (
-            <Center>
-              <Pagination
-                value={result.page}
-                onChange={(next) => dispatch({ kind: 'page', page: next })}
-                total={Math.ceil(result.total / result.pageSize)}
-                withEdges
-                aria-label="Publication job pages"
-              />
-            </Center>
-          ) : null}
+          <Group justify="center" aria-label="Publication job pages">
+            <Button variant="default" disabled={cursors.length === 1} onClick={() => dispatch({ kind: 'previous' })}>
+              Previous
+            </Button>
+            <Button
+              variant="default"
+              disabled={result.isDone}
+              onClick={() => dispatch({ kind: 'next', cursor: result.continueCursor })}
+            >
+              Next
+            </Button>
+          </Group>
         </Stack>
       </PageLayout.Content>
     </PageLayout>
@@ -238,14 +239,23 @@ function PublicationJobsDashboard() {
 /* The same three meanings the job badges carry, at the tally's own size. */
 const COUNT_TONE_COLOR = { pending: 'yellow', progress: 'blue', negative: 'red' } as const;
 
-function Count({ label, value, tone }: { label: string; value: number; tone: keyof typeof COUNT_TONE_COLOR }) {
+function Count({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: { value: number; limited: boolean };
+  tone: keyof typeof COUNT_TONE_COLOR;
+}) {
   return (
     <div>
       <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
         {label}
       </Text>
       <Badge size="xl" color={COUNT_TONE_COLOR[tone]} variant="light" mt={4}>
-        {value}
+        {value.value.toLocaleString()}
+        {value.limited ? '+' : ''}
       </Badge>
     </div>
   );
