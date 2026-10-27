@@ -51,18 +51,26 @@ function othersDraft(snapshot: () => GameSnapshot, players: TablePlayers) {
   return keepOthersReady(snapshot, players);
 }
 
-/* A change to a pick or ban clears everyone's readiness, so the others ready up again whenever they find themselves not ready. */
-function keepOthersReady(snapshot: () => GameSnapshot, players: TablePlayers) {
+/*
+ * A change to a pick or ban clears everyone's readiness, so the others ready up again whenever they find themselves not ready.
+ * Once the deal ends the draft there is nothing left to be ready for, so they stop rather than send what the table refuses.
+ */
+export function keepOthersReady(snapshot: () => GameSnapshot, players: TablePlayers) {
   const readyUp = () => {
-    const ready = snapshot().draft?.ready ?? [];
+    const { stage, draft } = snapshot();
+    if (stage !== 'drafting' || !draft) {
+      clearInterval(watch);
+      return;
+    }
+    const ready = draft.ready;
     for (const seat of players.others()) {
       if (!ready.includes(seat)) {
         players.act(seat, { kind: 'draft-ready', ready: true });
       }
     }
   };
-  readyUp();
   const watch = setInterval(readyUp, 500);
+  readyUp();
   return () => clearInterval(watch);
 }
 

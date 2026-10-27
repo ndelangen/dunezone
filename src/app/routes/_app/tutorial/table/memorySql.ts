@@ -36,6 +36,8 @@ type SeatRequestRow = {
   approver_name: string | null;
 };
 
+type SeatHistoryRow = { user_id: string | null; seat: string; event: 'joined' | 'vacated' };
+
 type Cursor<Row> = { toArray(): Row[]; one(): Row; [Symbol.iterator](): IterableIterator<Row> };
 const cursor = <Row>(rows: Row[]): Cursor<Row> => ({
   toArray: () => rows,
@@ -54,6 +56,8 @@ export class MemorySql {
   readonly actors: MemoryActor[];
   readonly seats: MemorySeat[];
   readonly seatRequests: SeatRequestRow[] = [];
+  /** Who joined or left which seat, in order, as the seat history table keeps it. */
+  readonly seatHistory: SeatHistoryRow[] = [];
   /* Every seat a seat history row would name, so a retired drafting place is never renumbered. */
   private readonly historySeats = new Set<string>();
 
@@ -101,8 +105,9 @@ export class MemorySql {
       [...new Set([...this.seats.map((row) => row.seat), ...this.historySeats])].map((seat) => ({ seat })),
     'SELECT * FROM seats ORDER BY position': () => [...this.seats].sort((a, b) => a.position - b.position),
     'INSERT INTO seat_history(user_id,display_name,seat,event,created_at,cause,approver_id,approver_name,event_id) VALUES(?,?,?,?,?,?,?,?,?)':
-      (_userId: string, _name: string, seat: string) => {
+      (userId: string | null, _name: string, seat: string, event: SeatHistoryRow['event']) => {
         this.historySeats.add(seat);
+        this.seatHistory.push({ user_id: userId, seat, event });
         return [];
       },
     "SELECT request_id FROM seat_requests WHERE user_id=? AND state='pending'": (userId: string) =>
@@ -170,7 +175,8 @@ export class MemorySql {
     if (!statement) {
       throw new Error(`A tutorial table does not run this statement: ${query}`);
     }
-    return cursor((statement as (...values: unknown[]) => Row[])(...args));
+    /* Rows leave as copies, as SQLite returns them, so a caller that changes a row it read changes nothing stored. */
+    return cursor((statement as (...values: unknown[]) => Row[])(...args).map((row) => ({ ...row })));
   }
 
   /** The storage object the Worker's classes take, answering only `sql` and its synchronous transactions. */
