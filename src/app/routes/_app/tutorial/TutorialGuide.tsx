@@ -212,6 +212,7 @@ export function TutorialGuide({
   onReset,
   chaptersLink,
   nextLink,
+  withTable = true,
   children,
 }: Readonly<{
   /** The chapter's place in the tutorial. */
@@ -227,6 +228,8 @@ export function TutorialGuide({
   chaptersLink: (props: object) => ReactNode;
   /** Renders the way on to the next chapter, when that one is built. */
   nextLink?: ((props: object) => ReactNode) | undefined;
+  /** Whether the page holds a table, whose camera the first task waits for; a chapter on the lobby pages has none. */
+  withTable?: boolean;
   children: ReactNode;
 }>) {
   const [current, setCurrent] = useState(() => Math.min(firstTask, tasks.length - 1));
@@ -281,7 +284,7 @@ export function TutorialGuide({
      */
     const settled = current === 0 ? settling() : () => true;
     const start = (view: GuideView) => {
-      if (!view.camera || !settled(view.camera)) {
+      if (withTable && (!view.camera || !settled(view.camera))) {
         return false;
       }
       baseline = task.begin(view);
@@ -318,7 +321,7 @@ export function TutorialGuide({
         task.finish?.(baseline as never);
       }
     };
-  }, [taskId, run, current]);
+  }, [taskId, run, current, withTable]);
 
   /*
    * Reset lets go of the focus a click gave it: a control beside the table keeps Space to press itself, so Space would

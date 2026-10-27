@@ -34,3 +34,21 @@ export type ChapterScript = Readonly<{
   /** What the learner can do once the chapter is done, one short line each, listed on its end screen. */
   learned: readonly string[];
 }>;
+
+/** Where a lobby chapter's player is: the lobby, the create page, or the game they just created. */
+type LobbyView = 'lobby' | 'create' | 'created';
+
+/** What a lobby chapter's tasks read: the page the player is on and what they chose there. */
+export type LobbyState = Readonly<{
+  view: LobbyView;
+  /** The game the player created, once they have. */
+  created: Readonly<{ name: string; address: string }> | null;
+}>;
+
+/** A chapter played on the lobby and create pages, with sample games and no table. */
+export type LobbyChapterScript = Readonly<{
+  slug: string;
+  page: 'lobby';
+  tasks: (state: () => LobbyState) => GuideTask[];
+  learned: readonly string[];
+}>;

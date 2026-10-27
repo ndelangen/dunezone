@@ -10,7 +10,7 @@ import {
   TABLE_SEAT_COUNTS,
   tableSeatAngles,
 } from '@shared/play/tableSettings';
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { LoadPending } from '@ui/block/LoadPending';
 import { PageTitle } from '@ui/block/PageTitle';
@@ -22,8 +22,7 @@ import { useEffect, useReducer, useRef, useState } from 'react';
 import type { Dispatch } from 'react';
 import { createPortal } from 'react-dom';
 
-import { useCreatableRulesets, useCreateGame } from '@db/play';
-import type { CreatableRuleset, CreatableRulesetPreview } from '@db/play';
+import type { CreatableRuleset, CreatableRulesetPreview, useCreateGame } from '@db/play';
 import { GameNameInput } from '@app/pickers/GameNameInput';
 import { pageHead } from '@app/routes/pageTitle';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
@@ -31,6 +30,7 @@ import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import styles from './create.module.css';
 import { DarkSchemeIsland, darkSchemeIslandAttributes } from './DarkSchemeIsland';
+import { usePlayPages } from './playPages';
 import { RulesetManifest } from './RulesetManifest';
 import {
   SERVER_RETRYING,
@@ -106,7 +106,9 @@ function shownName(draft: Draft) {
   return draft.custom && draft.customName.trim() ? draft.customName.trim() : draft.generatedName;
 }
 
-function CreateGamePage() {
+/** The create page: the game's name, ruleset, seats and last turn, and the button that creates it. */
+export function CreateGamePage() {
+  const { useCreatableRulesets } = usePlayPages();
   /* The draft lives here so the page's one query can carry the chosen ruleset and answer with its manifest. */
   const [draft, dispatch] = useReducer(draftReducer, undefined, initialDraft);
   const { data } = useCreatableRulesets(draft.rulesetId);
@@ -156,7 +158,7 @@ type CreateGame = ReturnType<typeof useCreateGame>;
 
 /* Pressing Create game fades the page to the table's ground; the game opens once the fade is complete, and a refusal lifts it again. */
 function useDeparture(createGame: CreateGame, dispatch: Dispatch<DraftEvent>) {
-  const navigate = useNavigate();
+  const openGame = usePlayPages().useOpenGame();
   const [departing, setDeparting] = useState(false);
   const departedAt = useRef(0);
   const opening = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -170,10 +172,7 @@ function useDeparture(createGame: CreateGame, dispatch: Dispatch<DraftEvent>) {
       onSuccess: (result) => {
         if (result.ok) {
           const remaining = Math.max(0, DEPARTURE_MS - (performance.now() - departedAt.current));
-          opening.current = setTimeout(
-            () => void navigate({ to: '/play/$gameId', params: { gameId: result.slug ?? result.gameId } }),
-            remaining
-          );
+          opening.current = setTimeout(() => openGame(result.slug ?? result.gameId), remaining);
         } else {
           setDeparting(false);
           dispatch({ kind: 'refused', reason: REFUSALS[result.reason] });
@@ -196,7 +195,7 @@ function CreateGameForm({
   draft: Draft;
   dispatch: Dispatch<DraftEvent>;
 }>) {
-  const createGame = useCreateGame();
+  const createGame = usePlayPages().useCreateGame();
   const chosen = rulesets.find((ruleset) => ruleset.id === draft.rulesetId);
   const request = playCreateGameRequestSchema.safeParse({
     rulesetId: draft.rulesetId,
@@ -312,6 +311,7 @@ function NameField({
   error,
   disabled,
 }: Readonly<{ draft: Draft; dispatch: (event: DraftEvent) => void; error?: string; disabled: boolean }>) {
+  const { useGameNameAvailability } = usePlayPages();
   return (
     <Stack gap="sm">
       <Eyebrow>This will be the name of your game</Eyebrow>
@@ -348,6 +348,7 @@ function NameField({
           onChange={(customName) => dispatch({ kind: 'patch', update: { customName } })}
           error={error}
           disabled={disabled}
+          useAvailability={useGameNameAvailability}
         />
       ) : null}
     </Stack>

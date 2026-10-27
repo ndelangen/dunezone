@@ -34,7 +34,7 @@ describe('The Play sandbox', () => {
     table.dispose();
   });
 
-  test('the table changes on a phase command and tells the page, while a session-only command is refused', () => {
+  test('the table changes on a phase command and tells the page, and runs a removal vote as a game does', () => {
     /* The recording ends with the winner being determined, which holds the phase, so the test starts just before. */
     const start = sandboxSteps()
       .filter((step) => !journeySteps()[step]!.views['seat-1']!.snapshot.ending)
@@ -58,8 +58,12 @@ describe('The Play sandbox', () => {
       expectedRevision: revision + 1,
       action: { kind: 'removal-start', seat: 'seat-2' },
     });
-    expect(table.refusal).toMatch(/runs the table only/);
-    expect(delivered).toContainEqual(expect.objectContaining({ type: 'rejected', requestId: 'remove' }));
+    expect(table.refusal).toBeUndefined();
+    expect(delivered.at(-1)).toMatchObject({
+      type: 'view',
+      completedCommandId: 'remove',
+      snapshot: { removalVotes: [expect.objectContaining({ target: expect.objectContaining({ seat: 'seat-2' }) })] },
+    });
     table.dispose();
   });
 

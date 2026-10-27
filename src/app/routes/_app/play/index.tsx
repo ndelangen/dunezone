@@ -19,11 +19,11 @@ import { useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import type { z } from 'zod';
 
-import { useLobbyGames } from '@db/play';
 import { pageHead } from '@app/routes/pageTitle';
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
 
 import styles from './index.module.css';
+import { usePlayPages } from './playPages';
 import { SERVER_UNREACHABLE, useServerUnreachable } from './useServerUnreachable';
 
 /*
@@ -287,6 +287,7 @@ function cardBadge(entry: LobbyEntry): ReactNode {
 }
 
 function GameCard({ entry }: Readonly<{ entry: LobbyEntry }>) {
+  const { gameLink } = usePlayPages();
   return (
     <li className={styles.cell}>
       <Card title={entry.name} action={cardBadge(entry)} padding="md" className={styles.card}>
@@ -309,9 +310,7 @@ function GameCard({ entry }: Readonly<{ entry: LobbyEntry }>) {
                 <Clock size={12} aria-hidden /> {formatRelativeDate(new Date(entry.lastActivityAt).toISOString())}
               </Text>
               <Button
-                renderRoot={(rootProps) => (
-                  <Link {...rootProps} to="/play/$gameId" params={{ gameId: entry.slug ?? entry.gameId }} />
-                )}
+                renderRoot={gameLink(entry.slug ?? entry.gameId)}
                 size="compact-sm"
                 color="slate"
                 variant={entry.viewerSeated ? 'filled' : 'light'}
@@ -367,9 +366,6 @@ function LobbyWait({ status }: Readonly<{ status: 'sign_in_required' | undefined
   );
 }
 
-const createLink = (rootProps: object) => <Link {...rootProps} to="/play/create" />;
-const tutorialLink = (rootProps: object) => <Link {...rootProps} to="/tutorial" />;
-
 function LobbyToolbar({
   query,
   onQueryChange,
@@ -383,6 +379,7 @@ function LobbyToolbar({
   onViewChange: (view: View) => void;
   counts: Record<View, number>;
 }>) {
+  const { createLink } = usePlayPages();
   const viewSelect = (label?: string, joined = false) => (
     <Select
       variant={joined ? 'unstyled' : 'default'}
@@ -430,7 +427,9 @@ function LobbyToolbar({
   );
 }
 
-function PlayLobby() {
+/** The lobby: every game under way and past, and the way to create one. */
+export function PlayLobby() {
+  const { useLobbyGames, createLink, tutorialLink } = usePlayPages();
   const { data: lobby } = useLobbyGames();
   const [query, setQuery] = useState('');
   const [view, setView] = useState<View>('ongoing');
