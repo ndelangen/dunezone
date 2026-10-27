@@ -100,6 +100,7 @@ function AccountManagement() {
           />
           <ProfilesTable
             profiles={page.profiles}
+            isRefreshing={page.isRefreshing}
             canGoBack={state.previous.length > 0}
             onPrevious={() =>
               dispatch({ cursor: state.previous.at(-1) ?? null, previous: state.previous.slice(0, -1), review: false })
@@ -235,11 +236,13 @@ function MergeProfiles({
 
 function ProfilesTable({
   profiles,
+  isRefreshing,
   canGoBack,
   onPrevious,
   onNext,
 }: {
   profiles: AccountPage['profiles'];
+  isRefreshing: boolean;
   canGoBack: boolean;
   onPrevious: () => void;
   onNext: () => void;
@@ -279,10 +282,10 @@ function ProfilesTable({
             </Table>
           </Table.ScrollContainer>
           <Group>
-            <Button variant="default" disabled={!canGoBack} onClick={onPrevious}>
+            <Button variant="default" disabled={isRefreshing || !canGoBack} onClick={onPrevious}>
               Previous
             </Button>
-            <Button variant="default" disabled={profiles.isDone} onClick={onNext}>
+            <Button variant="default" disabled={isRefreshing || profiles.isDone} onClick={onNext}>
               Next
             </Button>
           </Group>

@@ -1,4 +1,6 @@
+import { homepageSnapshot } from '@shared/homepage/setup';
 import { initialSnapshot } from '@shared/play/commands';
+import { redactReportData } from '@shared/play/reportRedaction';
 import { describe, expect, it } from 'vite-plus/test';
 
 import { canRenderReport, comparableSnapshots, MAX_REPORT_BYTES, parseReport, renderSnapshot } from './report';
@@ -26,6 +28,37 @@ const fixture = () => ({
 });
 
 describe('report import', () => {
+  it('renders exported card handles without merging their identities', () => {
+    const snapshot = homepageSnapshot('https://dune.zone');
+    const ids = ['a', 'b'].map((digit) => `card-${digit.repeat(64)}`);
+    snapshot.table.pieces[0]!.items = ids.map((id) => ({ ...snapshot.table.pieces[0]!.items[0]!, id }));
+    const input = fixture();
+    input.browser.snapshot.snapshot = snapshot;
+    const report = parseReport(JSON.stringify({ ...input, browser: redactReportData(input.browser) }));
+    expect(renderSnapshot(report, 'browser')?.table.pieces[0]?.items.map((item) => item.id)).toEqual(ids);
+  });
+
+  it('renders URL-like names and instructions while refusing the same text as artwork', () => {
+    const snapshot = homepageSnapshot('https://dune.zone');
+    snapshot.table.pieces[0]!.label = 'https://example.com';
+    snapshot.table.pieces[0]!.items[0]!.artwork!.name = '<image onload="example">';
+    snapshot.phases = [
+      {
+        id: 'custom',
+        label: '/phase',
+        symbol: '',
+        instructions: 'https://example.com/rules',
+        allPlayersMustBeReady: false,
+        kind: 'faction',
+      },
+    ];
+    const input = fixture();
+    input.browser.snapshot.snapshot = snapshot;
+    expect(renderSnapshot(parseReport(JSON.stringify(input)), 'browser')).not.toBeNull();
+    snapshot.table.pieces[0]!.items[0]!.artwork!.front = 'https://example.com/track.png';
+    expect(renderSnapshot(parseReport(JSON.stringify(input)), 'browser')).toBeNull();
+  });
+
   it('keeps private state, censored conversations and truncation evidence without converting them to a live game', () => {
     const report = parseReport(JSON.stringify(fixture()));
     expect(report.server.state.privatePredictions).toEqual({ example: 'hidden' });
@@ -52,8 +85,8 @@ describe('report import', () => {
   });
 
   it('refuses foreign artwork and active markup before the renderer sees it', () => {
-    expect(canRenderReport({ face: 'https://dune.zone/published/cards/card/front.jpg?v=2' })).toBe(true);
-    expect(canRenderReport({ logo: '/vector/logo/atreides.svg', texture: '/image/texture/001.jpg' })).toBe(true);
+    expect(canRenderReport({ front: 'https://dune.zone/published/cards/card/front.jpg?v=2' })).toBe(true);
+    expect(canRenderReport({ logo: '/vector/logo/atreides.svg', image: '/image/texture/001.jpg' })).toBe(true);
     for (const face of [
       'https://example.com/track.png',
       'ht\ttps://example.com/track.png',
@@ -71,7 +104,25 @@ describe('report import', () => {
       '<svg onload="alert(1)">',
       '<image href="https://example.com/track.png"/>',
     ]) {
-      expect(canRenderReport({ face })).toBe(false);
+      expect(canRenderReport({ front: face })).toBe(false);
+    }
+  });
+
+  it('checks artwork nested in boards, hidden pieces, phases, faction art and preload lists', () => {
+    const address = 'https://example.com/track.png';
+    for (const artwork of [
+      { board: { definition: { properties: { area: { decals: [{ artwork: address }] } } } } },
+      { hand: [{ items: [{ artwork: { back: address } }] }] },
+      { peek: { piece: { items: [{ artwork: { front: address } }] } } },
+      { phases: [{ symbol: address }] },
+      { setup: { steps: [{ symbol: address }] } },
+      { factionArtwork: { faction: { logo: address } } },
+      { factionArtwork: { faction: { background: { image: address } } } },
+      { factionArtwork: { faction: { troops: [{ star: address }] } } },
+      { combatFaces: { faction: [{ image: address }] } },
+      { cardFaces: [address] },
+    ]) {
+      expect(canRenderReport(artwork)).toBe(false);
     }
   });
 });

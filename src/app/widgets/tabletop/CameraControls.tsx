@@ -132,8 +132,8 @@ function advanceCameraGlide(
   controls.update();
   if (cameraAt(camera, controls, glide)) {
     settleCameraDestination(camera, controls, playback, glide);
-    return;
   }
+  /* The tags over the board may have read the camera earlier in this frame, so one more frame places them where it settled (#2510). */
   invalidate();
 }
 
@@ -153,8 +153,8 @@ function advanceCameraTransition(
   controls.update();
   if (progress >= 1) {
     settleCameraDestination(camera, controls, playback, activeTransition);
-    return;
   }
+  /* As for a glide, one more frame places the tags where the move ends. */
   invalidate();
 }
 

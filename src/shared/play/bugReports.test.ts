@@ -29,6 +29,36 @@ test('exports hidden gameplay while removing account identities and credentials'
   expect(JSON.stringify(output)).not.toContain('person@example.com');
 });
 
+test('preserves only exact card handles in game references while still redacting credentials and free text', () => {
+  const handle = `card-${'a'.repeat(64)}`;
+  const credential = 'b'.repeat(64);
+  const input = {
+    id: handle,
+    handOrder: [handle],
+    cardIds: [handle],
+    selectedPieceId: handle,
+    references: [{ itemId: handle, pieceId: handle }],
+    token: handle,
+    password: handle,
+    secret: credential,
+    label: handle,
+    invalid: { id: `${handle}-extra` },
+    other: { id: credential },
+    logs: [handle, credential],
+  };
+  expect(redactReportData(input)).toEqual({
+    id: handle,
+    handOrder: [handle],
+    cardIds: [handle],
+    selectedPieceId: handle,
+    references: [{ itemId: handle, pieceId: handle }],
+    label: 'card-[redacted credential]',
+    invalid: { id: 'card-[redacted credential]-extra' },
+    other: { id: '[redacted credential]' },
+    logs: ['card-[redacted credential]', '[redacted credential]'],
+  });
+});
+
 test('censors quoted chat, preserves lengths and does not re-censor existing replacements', () => {
   const original = {
     messages: [{ text: 'Hi 🌙', author: 'Private name', sequence: 8 }],
