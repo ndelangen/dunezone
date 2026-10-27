@@ -23,7 +23,7 @@ function mountsPageLayout(source: string): boolean {
 }
 
 /**
- * Whether a route hands its page off to something that mounts the layout for it.
+ * Whether a route hands its page off to something that mounts the layout for it, a sibling file or a widget.
  *
  * A route that dispatches on a param renders no page of its own, exactly like an `Outlet` passthrough, so it cannot contain `<PageLayout` and should not have to.
  * Resolving one hop keeps the rule real rather than granting such routes a blanket exemption: the file it delegates to still has to mount the layout.
@@ -31,10 +31,14 @@ function mountsPageLayout(source: string): boolean {
 function delegatesToPageLayout(path: string, source: string): boolean {
   const directory = dirname(path);
   return (
-    [...source.matchAll(/import\s+\{([^}]+)\}\s+from\s+'(\.[^']+)'/g)]
+    [...source.matchAll(/import\s+\{([^}]+)\}\s+from\s+'((?:\.|@app\/)[^']+)'/g)]
       .flatMap((match) => {
         const names = (match[1] ?? '').split(',').map((name) => name.replace(/\s+as\s+\w+/, '').trim());
-        const base = resolve(directory, match[2] ?? '');
+        const specifier = match[2] ?? '';
+        /* A page assembled by a widget is delegated to it as much as to a sibling file, so the app alias resolves as a relative path does. */
+        const base = specifier.startsWith('@app/')
+          ? resolve(appDirectory, specifier.slice('@app/'.length))
+          : resolve(directory, specifier);
         return [`${base}.tsx`, `${base}/index.tsx`].map((candidate) => ({ candidate, names }));
       })
       .filter(({ candidate }) => existsSync(candidate))

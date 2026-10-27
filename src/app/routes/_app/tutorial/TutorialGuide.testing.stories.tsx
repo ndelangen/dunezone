@@ -54,8 +54,19 @@ async function endChapter(canvasElement: HTMLElement) {
   const document = canvasElement.ownerDocument;
   const page = within(document.body);
   await page.findByRole('banner', { name: /A short chapter/ }, { timeout: 30_000 });
-  await userEvent.keyboard('{Enter}');
-  await expect(await page.findByRole('dialog', {}, { timeout: 10_000 })).toBeVisible();
+  /*
+   * The task starts listening for Enter on the guide's next frame, which a loaded runner can hold back,
+   * so Enter is pressed again, a second apart, until the end comes up; never once it has, where Enter would press its button.
+   */
+  await waitFor(
+    async () => {
+      if (!page.queryByRole('dialog')) {
+        await userEvent.keyboard('{Enter}');
+      }
+      await expect(page.getByRole('dialog')).toBeVisible();
+    },
+    { timeout: 20_000, interval: 1000 }
+  );
   await expect(document.querySelector('[data-chapter-confetti]')).not.toBeNull();
   await expect(page.getByRole('button', { name: 'A button on the page' }).closest('[inert]')).not.toBeNull();
   return page;
