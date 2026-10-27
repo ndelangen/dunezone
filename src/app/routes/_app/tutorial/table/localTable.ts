@@ -30,6 +30,9 @@ import type { RecordedDeal } from './localSession';
  */
 
 type View = Extract<ServerMessage, { type: 'view' }>;
+/** A carry the page's player set down: the items it held, by id, and whether a take added to it while it was held. */
+export type Landing = Readonly<{ itemIds: readonly string[]; grew: boolean }>;
+
 export type TableMessage = Exclude<ClientMessage, { type: 'admit' | 'log-history' | 'conversation-history' }>;
 type MessageOf<Type extends TableMessage['type']> = Extract<TableMessage, { type: Type }>;
 type RoomAction = Parameters<Room['command']>[1];
@@ -62,6 +65,9 @@ export class LocalTable {
   private readonly session: LocalSession | undefined;
   /* The page's player, who keeps their account as their seat changes. */
   private readonly learner: string;
+  /* The page's player's carries that a take has added to, and the carries they have set down. */
+  private readonly grown = new Set<string>();
+  private readonly landed: Landing[] = [];
   private tradingTimer: ReturnType<typeof setTimeout> | undefined;
   private battleTimer: ReturnType<typeof setTimeout> | undefined;
   /** Delivers a frame to the page; the transport sets it once the page connects. */
@@ -164,12 +170,9 @@ export class LocalTable {
     return frame as View;
   }
 
-  /** How many items the page's player is carrying now, or 0 with nothing in hand. */
-  carrying(): number {
-    return this.room
-      .publicCarries()
-      .filter((carry) => carry.viewerSeat === this.seat)
-      .reduce((total, carry) => total + carry.held.items.length, 0);
+  /** Every carry the page's player has set down, oldest first. */
+  landings(): readonly Landing[] {
+    return this.landed;
   }
 
   /** The recorded log as it stood at the start; moves made on a local table are not logged. */
@@ -277,8 +280,12 @@ export class LocalTable {
       draft = room.begin(viewer, { ...message, sourcePieceId: internalPieceId(room.snapshot, message.sourcePieceId) });
     } else if (message.type === 'take') {
       draft = room.take(viewer, { ...message, donorPieceId: internalPieceId(room.snapshot, message.donorPieceId) });
+      if (viewer.viewerSeat === this.seat) {
+        this.grown.add(message.carryId);
+      }
     } else {
       room.cancel(viewer, message.carryId);
+      this.grown.delete(message.carryId);
     }
     this.cleanUpSetup();
     if (draft && own) {
@@ -307,6 +314,8 @@ export class LocalTable {
       this.deliver(this.frame(this.seat, own ? message.commandId : undefined));
       return;
     }
+    /* What the page's player holds as they let go, read before the drop ends the carry. */
+    const held = message.type === 'drop' && viewer.viewerSeat === this.seat ? room.heldFor(message.carryId) : null;
     const next = storedSnapshotSchema.parse(
       message.type === 'drop'
         ? room.drop(viewer, message.carryId, message)
@@ -316,6 +325,9 @@ export class LocalTable {
     const clearAll = message.type === 'command' && message.action.kind === 'reset';
     const cleaned = room.finishSetupCleanup(next, completedCarryId, clearAll);
     room.accept(this.settled(cleaned ?? next), completedCarryId, clearAll);
+    if (held && completedCarryId) {
+      this.landed.push({ itemIds: held.items.map((item) => item.id), grew: this.grown.delete(completedCarryId) });
+    }
     this.scheduleBattleReveal();
     this.deliver(this.frame(this.seat, own ? message.commandId : undefined));
   }

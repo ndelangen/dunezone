@@ -2,7 +2,7 @@ import type { GameSnapshot } from '@shared/play/protocol';
 
 import type { GuideTask } from '../TutorialGuide';
 import type { ChapterScript, TablePlayers } from './chapterScript';
-import { at, closePieceMenu, element, tableDeck, task, watchCarryGrowth } from './guideChecks';
+import { at, closePieceMenu, element, grownCarryLanded, tableDeck, task } from './guideChecks';
 import type { Piece } from './guideChecks';
 
 /*
@@ -13,32 +13,18 @@ import type { Piece } from './guideChecks';
  */
 
 /* Loose cards of one deck lying on the table in stacks of at least `size`, by the stack key they would join the deck with again. */
-const looseStacks = (pieces: readonly Piece[], deck: Piece | undefined, size: number) =>
+const loose = (pieces: readonly Piece[], deck: Piece | undefined) =>
   deck === undefined
-    ? 0
-    : pieces.filter(
-        (piece) => piece !== deck && !piece.inventory && piece.stackKey === deck.stackKey && piece.items.length >= size
-      ).length;
+    ? []
+    : pieces.filter((piece) => piece !== deck && !piece.inventory && piece.stackKey === deck.stackKey);
+const looseStacks = (pieces: readonly Piece[], deck: Piece | undefined, size: number) =>
+  loose(pieces, deck).filter((piece) => piece.items.length >= size).length;
 
 /* Every Treachery card the other players hold: a hand's size is public, as the rules make it. */
 const othersHold = (snapshot: GameSnapshot) =>
   Object.entries(snapshot.handCounts ?? {})
     .filter(([factionId]) => factionId !== snapshot.bank?.factionId)
     .reduce((total, [, count]) => total + count, 0);
-
-/*
- * A new pile of two from the deck, landed by a carry that grew while held: holding 2 over the deck, taught just before,
- * makes such a pile too, but no carry grows on the way. {T} and a right-click while carrying both grow it.
- */
-const tookWithT = (piles: () => number, carrying: () => number) => ({
-  begin: () => ({ growth: watchCarryGrowth(carrying), last: piles() }),
-  done: (watch: { growth: ReturnType<typeof watchCarryGrowth>; last: number }) => {
-    const now = piles();
-    const grown = now > watch.last;
-    watch.last = now;
-    return watch.growth.tick() && grown;
-  },
-});
 
 /*
  * The cards of a deck held open by a peek, by the handles the peek shows them under, top first; null while no deck is open.
@@ -124,7 +110,8 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       detail:
         'As with troops: swipe the top Treachery card off the deck (press down and move at once), hold it back over the deck and press {T} or right-click: the next card joins it. Drop the two on the table.',
       anchor: { kind: 'table', point: () => at(treachery()) },
-      ...tookWithT(() => looseStacks(pieces(), treachery(), 2), players.carrying),
+      /* Holding 2 over the deck, taught just before, makes a pile of two too, but no carry grows on the way. */
+      ...grownCarryLanded(players.landings, () => loose(pieces(), treachery())),
     }),
   ];
 }

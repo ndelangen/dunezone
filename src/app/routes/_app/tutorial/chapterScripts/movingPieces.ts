@@ -3,7 +3,7 @@ import type { GameSnapshot } from '@shared/play/protocol';
 
 import type { GuideTask } from '../TutorialGuide';
 import type { ChapterScript, TablePlayers } from './chapterScript';
-import { at, onBoard, task, watchCarryGrowth } from './guideChecks';
+import { at, grownCarryLanded, holdsAll, onBoard, task } from './guideChecks';
 import type { Piece } from './guideChecks';
 
 /*
@@ -29,7 +29,6 @@ const changedInPlace = (stacks: () => Piece[], changed: (before: Piece, now: Pie
     }),
 });
 
-const total = (stacks: Piece[]) => stacks.reduce((sum, piece) => sum + piece.items.length, 0);
 const biggest = (stacks: Piece[]) => stacks.toSorted((a, b) => b.items.length - a.items.length)[0];
 
 /* Where the player's troops are: in their reserves on the rim, or on the board. */
@@ -87,15 +86,17 @@ function stackTasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideT
         'A quick drag takes only the top troop. Press and hold on the three for a moment, then drag them onto a territory.',
       anchor: { kind: 'table', point: () => at(splitStack()) },
       /*
-       * The three are followed by their own troops, which keep their ids on the move: the step is done once one stack on the
-       * board holds all three. A single troop dragged off the top never does, nor the whole reserves carried instead,
-       * and a troop or two taken along with {T} still counts.
+       * The three keep their ids on the move: the step is done once one carry set all three down together and a stack on the board
+       * holds them. A single troop dragged off the top never does, nor the three dropped one by one, nor the whole reserves carried
+       * instead; a troop or two taken along with {T} still counts.
        */
-      begin: () => new Set(splitStack()?.items.map((item) => item.id)),
-      done: (three) => {
-        const stack = onTheBoard().find(
-          (piece) => three.size > 0 && [...three].every((id) => piece.items.some((item) => item.id === id))
-        );
+      begin: () => ({ three: new Set(splitStack()?.items.map((item) => item.id)), seen: players.landings().length }),
+      done: ({ three, seen }) => {
+        const together = players
+          .landings()
+          .slice(seen)
+          .some((landing) => three.size > 0 && [...three].every((id) => landing.itemIds.includes(id)));
+        const stack = together ? onTheBoard().find((piece) => holdsAll(piece, three)) : undefined;
         if (stack) {
           land(stack);
         }
@@ -108,14 +109,7 @@ function stackTasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideT
       detail:
         'Quickly drag one troop off your reserves and keep holding it over them. Press {T}, or right-click, once for each troop to add: they join the one you carry. Then drop them all on a territory.',
       anchor: { kind: 'table', point: () => at(biggestReserve()) },
-      /* The carry has to grow while held, then land: the board's count jumps by two or more in the frame it is let go. */
-      begin: () => ({ growth: watchCarryGrowth(players.carrying), last: total(onTheBoard()) }),
-      done: (watch) => {
-        const now = total(onTheBoard());
-        const jumped = now - watch.last >= 2;
-        watch.last = now;
-        return watch.growth.tick() && jumped;
-      },
+      ...grownCarryLanded(players.landings, onTheBoard),
     }),
     task({
       id: 'join',

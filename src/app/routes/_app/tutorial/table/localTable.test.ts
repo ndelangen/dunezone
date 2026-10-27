@@ -66,3 +66,57 @@ describe('a tutorial table’s result', () => {
     expect(sent.at(-1)).toMatchObject({ type: 'view' });
   });
 });
+
+/* The guide reads what the learner's carries did from the table's record, so a gesture faster than its tick still counts. */
+describe('a tutorial table’s landings', () => {
+  let table: LocalTable;
+  let count = 0;
+  const send = (message: Parameters<LocalTable['receive']>[0]) => table.receive(message, table.seat);
+  /* A stack of three or more lying loose on the table, to carry from. */
+  const source = () =>
+    table.frame().snapshot.table.pieces.find((piece) => !piece.inventory && !piece.locked && piece.items.length >= 3)!;
+  const carry = (pickup: 'top' | 'whole', takes: number) => {
+    const piece = source();
+    const carryId = `carry-${++count}`;
+    send({
+      type: 'begin',
+      carryId,
+      sourcePieceId: piece.id,
+      expectedVersion: table.room.snapshot.versions[piece.id] ?? 0,
+      pickup,
+    });
+    for (let take = 0; take < takes; take++) {
+      send({ type: 'take', requestId: `take-${++count}`, carryId, donorPieceId: piece.id });
+    }
+    send({
+      type: 'drop',
+      commandId: `drop-${++count}`,
+      carryId,
+      position: [piece.position[0] + 0.3, piece.position[1], piece.position[2] + 0.3],
+      orientation: piece.orientation,
+    });
+    return piece;
+  };
+
+  beforeEach(() => {
+    table = new LocalTable(startAt(setup as unknown as TutorialSetup, 'turn-1-storm', 'https://dune.zone'));
+    table.deliver = () => {};
+  });
+
+  afterEach(() => table.dispose());
+
+  test('records a carry that grew with a take, and the items it set down', () => {
+    const piece = carry('top', 1);
+    expect(table.refusal).toBeUndefined();
+    const [landing] = table.landings();
+    expect(table.landings()).toHaveLength(1);
+    expect(landing).toMatchObject({ grew: true, itemIds: expect.any(Array) });
+    expect(landing!.itemIds).toHaveLength(2);
+    expect(piece.items.map((item) => item.id)).toEqual(expect.arrayContaining([...landing!.itemIds]));
+  });
+
+  test('records a stack picked up whole as a carry that did not grow', () => {
+    const piece = carry('whole', 0);
+    expect(table.landings()).toEqual([{ itemIds: piece.items.map((item) => item.id), grew: false }]);
+  });
+});

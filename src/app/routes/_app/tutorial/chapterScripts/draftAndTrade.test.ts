@@ -11,7 +11,7 @@ afterEach(() => vi.useRealTimers());
 test('the others stop readying up once the draft has ended', () => {
   let view = { stage: 'drafting', draft: { ready: ['seat-2'] } } as unknown as GameSnapshot;
   const act = vi.fn();
-  const players: TablePlayers = { act, viewOf: () => view, others: () => ['seat-2', 'seat-3'], carrying: () => 0 };
+  const players: TablePlayers = { act, viewOf: () => view, others: () => ['seat-2', 'seat-3'], landings: () => [] };
   const stop = keepOthersReady(() => view, players);
   expect(act).toHaveBeenCalledExactlyOnceWith('seat-3', { kind: 'draft-ready', ready: true });
   view = { stage: 'swapping' } as unknown as GameSnapshot;

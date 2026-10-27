@@ -2,6 +2,7 @@ import type { StoredPiece } from '@shared/play/model';
 import type { GameSnapshot, PieceAction } from '@shared/play/protocol';
 import type { TutorialCheckpoint } from '@shared/tutorial/recipe';
 
+import type { Landing } from '../table/localTable';
 import type { GuideTask } from '../TutorialGuide';
 
 /** The other players at a chapter's table, whom a task can have act, as their own seat sends a command. */
@@ -12,8 +13,8 @@ export type TablePlayers = Readonly<{
   viewOf: (seat: string) => GameSnapshot;
   /** Every seat at the table but the learner's. */
   others: () => readonly string[];
-  /** How many items the learner is carrying now, or 0 with nothing in hand. */
-  carrying: () => number;
+  /** Every carry the learner has set down, oldest first. */
+  landings: () => readonly Landing[];
 }>;
 
 /** What a built chapter plays: the setup checkpoint its table starts from, and its tasks over that table. */

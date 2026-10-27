@@ -5,6 +5,7 @@ import type { Vector3Tuple } from 'three';
 
 import { wheelPixels } from '@app/widgets/tabletop/wheelPixels';
 
+import type { Landing } from '../table/localTable';
 import type { GuideTask, GuideView } from '../TutorialGuide';
 
 /* What the chapters check on the table and the page, shared so each chapter reads only as its tasks. */
@@ -199,24 +200,22 @@ export const closeGameMenu = () => {
 };
 
 /*
- * Whether the player grew a carry and set it down. {T}, or a right-click, while carrying takes the next piece from the stack
- * under the pointer, so the carry growing while it is held is the take itself; a key pressed with nothing carried, or a stack
- * picked up whole, never counts. `tick` answers true in the frame the grown carry is let go, and a carry let go before it grew
- * starts the watch over. The task pairs it with a check that the pieces landed on the table rather than went back.
+ * A carry that grew while held, set down since the task began with every item it held in one of `stacks`.
+ * {T}, or a right-click, while carrying takes the next piece from the stack under the pointer, so the carry growing is the take itself;
+ * a key pressed with nothing carried, a stack picked up whole, or pieces dropped one at a time never count.
+ * The table records each take and drop as it answers it, so a gesture faster than the guide's tick is still seen.
  */
-export const watchCarryGrowth = (carrying: () => number) => {
-  let held = 0;
-  let grew = false;
-  return {
-    tick: () => {
-      const now = carrying();
-      const landed = grew && now === 0;
-      grew = now > 0 && (grew || (held > 0 && now > held));
-      held = now;
-      return landed;
-    },
-  };
-};
+export const grownCarryLanded = (landings: () => readonly Landing[], stacks: () => readonly Piece[]) => ({
+  begin: () => landings().length,
+  done: (seen: number) =>
+    landings()
+      .slice(seen)
+      .some((landing) => landing.grew && stacks().some((stack) => holdsAll(stack, landing.itemIds))),
+});
+
+/** Whether a stack holds every one of these items, by id. */
+export const holdsAll = (stack: Piece, itemIds: Iterable<string>) =>
+  [...itemIds].every((id) => stack.items.some((item) => item.id === id));
 
 /*
  * A press outside a piece's ring menu closes it, as a press anywhere else on the page would; a step that ends in the ring leaves it shut.
