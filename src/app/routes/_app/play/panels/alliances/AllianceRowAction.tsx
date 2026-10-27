@@ -44,12 +44,12 @@ const ACTIONS: Readonly<Record<Relation, (props: ActionProps) => ReactNode>> = {
       onClick={() => send('alliance-break')}
     />
   ),
-  /* A question in a speech bubble, as they are asking; a check would read as already accepted, and the window's (?) is a plain circle. */
+  /* A question in a speech bubble, as they are asking; a check would read as already accepted, and the window’s (?) is a plain circle. Drawn larger and bolder, so the question reads on the green tile. */
   incoming: ({ blocked, send }) => (
     <IconAction
       label="Accept alliance"
       tooltip="Accept their alliance offer."
-      icon={<MessageCircleQuestion size={ICON} />}
+      icon={<MessageCircleQuestion size={20} strokeWidth={2.5} />}
       intent="positive"
       emphasis="standard"
       disabledReason={blocked}
