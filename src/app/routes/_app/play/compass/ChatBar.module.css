@@ -6,7 +6,11 @@
   bottom: var(--edge-gap);
   left: 50%;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  justify-content: center;
+  /* An auto width would shrink to the half-table remaining after left: 50%. */
+  width: max-content;
   max-width: calc(100% - 2 * var(--edge-gap));
   gap: 0.6rem;
   transform: translateX(-50%);
@@ -27,6 +31,7 @@
 }
 
 .launcher {
+  flex-shrink: 0;
   gap: 0.6rem;
   padding: 0 0.7rem 0 0.95rem;
   color: var(--color-muted);
@@ -68,6 +73,7 @@
 .chat {
   position: relative;
   display: grid;
+  flex-shrink: 0;
   place-items: center;
   width: 2.3rem;
   height: 2.3rem;
