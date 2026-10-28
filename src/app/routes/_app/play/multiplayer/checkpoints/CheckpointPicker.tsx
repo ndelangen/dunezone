@@ -29,6 +29,7 @@ export function CheckpointPicker({ checkpoints, value, onChange }: CheckpointPic
   if (!current) {
     return <Text size="sm">No checkpoint has been saved yet.</Text>;
   }
+  const title = checkpointTitle(turns, current.step) ?? current.context;
   const choose = (next: number) => onChange(checkpoints[Math.min(checkpoints.length - 1, Math.max(0, next))]!.step);
   /* The retained window can start mid-turn, so only a boundary between two offered checkpoints proves a turn's start. */
   const marks = checkpoints.flatMap((checkpoint, position) =>
@@ -38,17 +39,20 @@ export function CheckpointPicker({ checkpoints, value, onChange }: CheckpointPic
   );
   return (
     <Stack gap="md">
-      <Slider
-        min={0}
-        max={checkpoints.length - 1}
-        step={1}
-        value={index}
-        onChange={choose}
-        marks={marks}
-        label={(position) => checkpointTitle(turns, checkpoints[position]!.step)}
-        thumbLabel="Checkpoint"
-        mb="md"
-      />
+      {checkpoints.length > 1 && (
+        <Slider
+          min={0}
+          max={checkpoints.length - 1}
+          step={1}
+          value={index}
+          onChange={choose}
+          marks={marks}
+          label={(position) => checkpointTitle(turns, checkpoints[position]!.step)}
+          thumbLabel="Checkpoint"
+          thumbValueText={title}
+          mb="md"
+        />
+      )}
       <Group gap="xs" wrap="nowrap">
         <IconAction
           label="Earlier checkpoint"
@@ -59,7 +63,7 @@ export function CheckpointPicker({ checkpoints, value, onChange }: CheckpointPic
         />
         <PhaseDisc symbol={current.symbol} label={current.label} size={28} />
         <Text size="sm" style={{ flex: 1 }}>
-          {checkpointTitle(turns, current.step)}
+          {title}
         </Text>
         <IconAction
           label="Later checkpoint"
