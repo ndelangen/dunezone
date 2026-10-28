@@ -13,7 +13,7 @@ import { beforeAll, expect, test } from 'vite-plus/test';
 const root = path.resolve(import.meta.dirname, '..');
 const assetPath = 'public/previous-aaaa.js';
 const asset = Buffer.from('export const previous = true;');
-const manifest = JSON.stringify({
+const manifest = {
   version: 1,
   files: [
     {
@@ -24,7 +24,7 @@ const manifest = JSON.stringify({
       lastUsedAt: 1,
     },
   ],
-});
+};
 let command: string;
 beforeAll(async () => {
   const result = await build({
@@ -60,7 +60,11 @@ function writeFixtureResponse(response: ServerResponse, bytes: Buffer, contentTy
   response.end(failure === 'corrupt' || failure === 'json' ? Buffer.alloc(bytes.length, 'x') : bytes);
 }
 
-async function retain(failures: Failure[], failManifest = false) {
+async function retain(failures: Failure[], failManifest = false, assetCount = 1) {
+  const files = Array.from({ length: assetCount }, (_, index) => ({
+    ...manifest.files[0]!,
+    path: index === 0 ? assetPath : `public/previous${index}-aaaa.js`,
+  }));
   const directory = mkdtempSync(path.join(tmpdir(), 'retention-transfer-'));
   const output = path.join(directory, 'workers/publisher/dist');
   mkdirSync(path.join(directory, 'scripts'));
@@ -82,6 +86,10 @@ async function retain(failures: Failure[], failManifest = false) {
   }
   let manifestRequests = 0;
   let assetRequests = 0;
+  const requests: { path: string; cacheControl: string | undefined }[] = [];
+  const waiting: (() => void)[] = [];
+  let peakWaiting = 0;
+  let released = false;
   let interrupted: ServerResponse | undefined;
   const server = createServer((request, response) => {
     const url = new URL(request.url!, 'http://local');
@@ -91,15 +99,30 @@ async function retain(failures: Failure[], failManifest = false) {
       return;
     }
     const metadata = url.pathname === '/application-assets.json';
+    requests.push({ path: request.url!, cacheControl: request.headers['cache-control'] });
     if (metadata) {
       manifestRequests++;
     } else {
       assetRequests++;
     }
-    const failing = failManifest === metadata;
+    const failing = failManifest ? metadata : url.pathname === `/${assetPath}`;
     const failure = failing ? failures.shift() : undefined;
-    const bytes = metadata ? Buffer.from(manifest) : asset;
-    interrupted = writeFixtureResponse(response, bytes, metadata ? 'application/json' : 'text/javascript', failure);
+    const bytes = metadata ? Buffer.from(JSON.stringify({ ...manifest, files })) : asset;
+    const respond = () => {
+      interrupted = writeFixtureResponse(response, bytes, metadata ? 'application/json' : 'text/javascript', failure);
+    };
+    if (!metadata && !released) {
+      waiting.push(respond);
+      peakWaiting = waiting.length;
+      if (waiting.length === assetCount) {
+        released = true;
+        for (const respond of waiting.reverse()) {
+          respond();
+        }
+      }
+    } else {
+      respond();
+    }
   });
   try {
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
@@ -147,6 +170,13 @@ async function retain(failures: Failure[], failManifest = false) {
       stderr,
       manifestRequests,
       assetRequests,
+      requests,
+      peakWaiting,
+      manifest: JSON.parse(readFileSync(path.join(output, 'application-assets.json'), 'utf8')),
+      files: files.map((file) => ({
+        path: file.path,
+        bytes: existsSync(path.join(output, file.path)) ? readFileSync(path.join(output, file.path)) : null,
+      })),
       retained: existsSync(path.join(output, assetPath)) ? readFileSync(path.join(output, assetPath)) : null,
     };
   } finally {
@@ -155,6 +185,43 @@ async function retain(failures: Failure[], failManifest = false) {
     rmSync(directory, { recursive: true, force: true });
   }
 }
+
+test(
+  'the retention CLI overlaps downloads and retries a 5xx without changing manifest order',
+  { timeout: 15_000 },
+  async () => {
+    const result = await retain(['status'], false, 3);
+    expect(result.code, result.stderr).toBe(0);
+    expect(result.peakWaiting).toBe(3);
+    expect(result.assetRequests).toBe(4);
+    expect(result.stderr).toContain(`${assetPath}: attempt 1 of 4 failed (HTTP 502)`);
+    expect(result.manifest.files.map((file: { path: string }) => file.path)).toEqual(
+      result.files.map((file) => file.path)
+    );
+    for (const file of result.files) {
+      expect(file.bytes).toEqual(asset);
+    }
+    for (const request of result.requests) {
+      expect(request.path).not.toContain('?');
+      expect(request.cacheControl).toBeUndefined();
+    }
+  }
+);
+
+test(
+  'one corrupt download fails the concurrent CLI run without publishing its manifest',
+  { timeout: 15_000 },
+  async () => {
+    const result = await retain(['corrupt'], false, 3);
+    expect(result.code).toBe(1);
+    expect(result.peakWaiting).toBe(3);
+    expect(result.assetRequests).toBe(3);
+    expect(result.stderr).toContain('digest check');
+    expect(result.stderr).not.toContain('retrying');
+    expect(result.retained).toBeNull();
+    expect(result.manifest).toEqual({ version: 1, files: [] });
+  }
+);
 
 test(
   'the retention CLI recovers status and body failures within one transport attempt budget',
