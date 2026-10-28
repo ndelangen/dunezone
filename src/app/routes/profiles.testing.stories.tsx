@@ -182,10 +182,11 @@ export const DirectoryPagesAndSearch = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const main = within(await page.findByRole('main', {}, { timeout: 30_000 }));
-    /* A to Z, the viewer sorts after every Fremen, so page two holds the last seven of the thirty-one. */
-    await expect(main.findByRole('link', { name: /Fremen 25/ }, { timeout: 30_000 })).resolves.toBeVisible();
-    await expect(main.getByRole('link', { name: /Central/ })).toBeVisible();
-    await expect(main.queryByRole('link', { name: /Fremen 24/ })).toBeNull();
+    /* Central sorts first, so the second page starts with Fremen 24 and ends with Fremen 30. */
+    await expect(main.findByRole('link', { name: /Fremen 24/ }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(main.getByRole('link', { name: /Fremen 30/ })).toBeVisible();
+    await expect(main.queryByRole('link', { name: /Fremen 23/ })).toBeNull();
+    await expect(main.queryByRole('link', { name: /Central/ })).toBeNull();
     await expect(page.getByRole('link', { name: 'First page' })).toHaveAttribute('href', '/profiles');
 
     await userEvent.type(page.getByRole('textbox', { name: 'Search profiles' }), 'Fremen 07');
