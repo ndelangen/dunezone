@@ -7,7 +7,7 @@ import { StatusBadge } from '@ui/content/StatusBadge';
 import { useState } from 'react';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
-import { TurnGridPicker } from './checkpoints/TurnGridPicker';
+import { CheckpointPicker } from './checkpoints/CheckpointPicker';
 
 type Props = Readonly<{ client: TableSession; table: TableProjection }>;
 type Review = NonNullable<TableProjection['review']>;
@@ -142,7 +142,7 @@ function Propose({ client, table, review }: Props & Readonly<{ review: Review }>
   }
   return (
     <Stack gap="sm">
-      <TurnGridPicker checkpoints={review.checkpoints} value={step} onChange={setChosen} />
+      <CheckpointPicker checkpoints={review.checkpoints} value={step} onChange={setChosen} />
       <Group>
         <Button
           disabled={step === null || table.reconnecting}

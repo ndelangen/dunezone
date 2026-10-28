@@ -1,7 +1,7 @@
 import type { ReviewCheckpoint } from '@shared/play/review';
 
 /** One phase or setup step of a turn, with every checkpoint saved in it: entering it, then each settled battle or result. */
-export type CheckpointPhase = {
+type CheckpointPhase = {
   key: string;
   label: string;
   symbol: string | null;
@@ -47,7 +47,7 @@ export function checkpointTurns(checkpoints: readonly ReviewCheckpoint[]): Check
 }
 
 /** What a checkpoint shows within its phase: its start, after a faction's Shipment and Movement, after its nth battle, or a declared result. */
-export function momentLabel(phase: CheckpointPhase, checkpoint: ReviewCheckpoint): string {
+function momentLabel(phase: CheckpointPhase, checkpoint: ReviewCheckpoint): string {
   switch (checkpoint.moment) {
     case 'entered':
       return 'Start';
@@ -62,24 +62,15 @@ export function momentLabel(phase: CheckpointPhase, checkpoint: ReviewCheckpoint
   }
 }
 
-/** The phase holding a checkpoint, with the turn it is in. */
-export function phaseHolding(turns: readonly CheckpointTurn[], step: number | null) {
-  for (const turn of turns) {
-    const phase = turn.phases.find((entry) => entry.checkpoints.some((checkpoint) => checkpoint.step === step));
-    if (phase) {
-      return { turn, phase };
-    }
-  }
-  return null;
-}
-
 /** The checkpoint as one line: where it is, and which moment of the phase when the phase holds more than one. */
 export function checkpointTitle(turns: readonly CheckpointTurn[], step: number): string | null {
   for (const turn of turns) {
     for (const phase of turn.phases) {
       const checkpoint = phase.checkpoints.find((entry) => entry.step === step);
       if (checkpoint) {
-        const moment = phase.checkpoints.length > 1 ? ` · ${momentLabel(phase, checkpoint).toLowerCase()}` : '';
+        /* Only the label's first letter drops, so a faction it names keeps its capitals: "after Fremen". */
+        const label = momentLabel(phase, checkpoint);
+        const moment = phase.checkpoints.length > 1 ? ` · ${label.charAt(0).toLowerCase()}${label.slice(1)}` : '';
         return `${checkpoint.context}${moment}`;
       }
     }
