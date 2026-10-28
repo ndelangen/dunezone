@@ -56,12 +56,16 @@ export const ChatBarWrapsOnNarrowTables = meta.story({
   globals: { viewport: { value: 'appMobileNarrow' } },
   play: async ({ canvasElement }) => {
     const { chats, launcher, own, buttons } = await chatBar(canvasElement);
+    const bar = chats.closest('[data-compass-bar]')!;
+    const table = chats.closest('[data-compass-controls]')!;
     await waitFor(async () => {
       const chat = chats.getBoundingClientRect();
       const control = launcher.getBoundingClientRect();
+      const bounds = bar.getBoundingClientRect();
+      const tableBounds = table.getBoundingClientRect();
       await expect(chat.top).toBeGreaterThanOrEqual(control.bottom);
-      await expect(chat.left).toBeGreaterThanOrEqual(12);
-      await expect(chat.right).toBeLessThanOrEqual(window.innerWidth - 12);
+      await expect(bounds.left).toBeGreaterThanOrEqual(tableBounds.left + 12);
+      await expect(bounds.right).toBeLessThanOrEqual(tableBounds.right - 12);
       await expect(own.getBoundingClientRect().width).toBeCloseTo(own.getBoundingClientRect().height, 0);
       const tops = buttons.map((button) => Math.round(button.getBoundingClientRect().top));
       await expect(new Set(tops).size).toBe(1);
