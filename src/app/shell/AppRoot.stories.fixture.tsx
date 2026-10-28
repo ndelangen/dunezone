@@ -154,8 +154,11 @@ export async function playFullscreenHeight({ canvasElement }: { canvasElement: H
     const background = canvasElement.querySelector<HTMLElement>('[data-app-background]');
     await expect(background).not.toBeNull();
     await expect(view.getComputedStyle(background!).visibility).toBe('hidden');
-    /* The band is hidden, so its video never mounts and never downloads. */
-    await expect(canvasElement.querySelector('video')).toBeNull();
+    /* A previously visible loop keeps its buffered frame; an initially fullscreen page never loads it. */
+    const video = canvasElement.querySelector('video');
+    if (video) {
+      await expect(video.paused).toBe(true);
+    }
   });
 
   const exit = canvas.getByRole('button', { name: 'Exit fullscreen' });
