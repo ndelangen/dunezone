@@ -43,13 +43,26 @@
 }
 :global(.dune-play-shell) :global(.seated-header) > :not(:has([data-recall-return])),
 :global(.dune-play-shell) :global(.seated-camera),
-:global([data-recall-controls]) > :not([data-window="hand"], [data-window="hidden-zone"]) {
+:global([data-recall-controls]) > :not([data-window="hand"], [data-window="hidden-zone"], [data-compass-bar]),
+:global([data-recall-controls] [data-compass-bar]) > :not([data-own-token]) {
   transition: filter 900ms ease;
 }
 :global(.dune-play-shell)[data-mentat-recall="true"] :global(.seated-header) > :not(:has([data-recall-return])),
 :global(.dune-play-shell)[data-mentat-recall="true"] :global(.seated-camera),
-:global([data-recall-controls="true"]) > :not([data-window="hand"], [data-window="hidden-zone"]) {
+:global([data-recall-controls="true"]) > :not([data-window="hand"], [data-window="hidden-zone"], [data-compass-bar]),
+:global([data-recall-controls="true"] [data-compass-bar]) > :not([data-own-token]),
+:global([data-recall-controls="true"] > :is([data-window="hand"], [data-window="hidden-zone"]) > header),
+:global([data-recall-controls="true"] :is([data-hand-label], [data-frozen-balance])),
+:global(
+  body:has(.dune-play-shell[data-mentat-recall="true"]) > :is([data-portal], [data-scheme-dark]) [role="tooltip"]
+) {
   filter: hue-rotate(150deg) saturate(0.78);
+}
+
+/* Retint the pane's paint while the recorded artwork keeps its original colours. */
+:global([data-recall-controls="true"] > :is([data-window="hand"], [data-window="hidden-zone"])) {
+  background: hsl(from var(--glass) calc(h + 150) calc(s * 0.78) l);
+  border-color: hsl(from var(--edge) calc(h + 150) calc(s * 0.78) l);
 }
 :global([data-recall-controls="true"] [role="option"][aria-disabled="true"]) {
   opacity: 0.5;
@@ -58,25 +71,11 @@
 .inventoryScroll {
   overflow: auto;
 }
-.hand {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: start;
-  gap: var(--space-md);
-}
 .sideTable {
   position: relative;
 }
-.piece,
 .placed {
   margin: 0;
-}
-.piece figcaption,
-.placed figcaption {
-  font-size: 11px;
-  color: var(--color-muted);
-  max-width: 100px;
-  overflow-wrap: anywhere;
 }
 .placed {
   position: absolute;
@@ -91,7 +90,8 @@
   :global(.dune-play-shell) :global(.scene) canvas,
   :global(.dune-play-shell) :global(.seated-header) > :not(:has([data-recall-return])),
   :global(.dune-play-shell) :global(.seated-camera),
-  :global([data-recall-controls]) > :not([data-window="hand"], [data-window="hidden-zone"]) {
+  :global([data-recall-controls]) > :not([data-window="hand"], [data-window="hidden-zone"], [data-compass-bar]),
+  :global([data-recall-controls] [data-compass-bar]) > :not([data-own-token]) {
     transition: none;
   }
 }

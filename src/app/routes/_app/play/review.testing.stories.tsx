@@ -20,6 +20,49 @@ const newest = reviewCheckpoints().at(-1)!;
 const bidding = reviewCheckpoints().find((checkpoint) => checkpoint.context === 'Turn 1, Bidding')!;
 const commands = () => session.transport.messages.filter((message) => message.type === 'command');
 
+/* The footer opens the frozen hand and the recall's own chat, whose composer sends both lines with Enter. */
+export const RecallFooter = meta.story({
+  beforeEach: install(() =>
+    reviewTransport('seat-2', reviewOf(reviewableSnapshot(), bidding, 'seat-1', ['seat-3', 'seat-4', 'seat-5']))
+  ),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const own = await page.findByRole(
+      'button',
+      { name: /Your recalled hand, you are playing as/ },
+      { timeout: 30_000 }
+    );
+    const compass = page.getByRole('button', { name: /^Controls/ });
+    const chat = page.getByRole('button', { name: 'Recall chat' });
+    await expect(own.compareDocumentPosition(compass) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    await expect(compass.compareDocumentPosition(chat) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    await expect(page.queryByRole('button', { name: /^Table chat/ })).toBeNull();
+    await userEvent.click(own);
+    await expect(page.getByLabelText('Spice reserve balance')).toBeVisible();
+    await expect(page.queryByRole('button', { name: /^Drag|Withdraw spice/ })).toBeNull();
+    await userEvent.click(chat);
+    const frame = canvasElement.ownerDocument.querySelector('[data-window="recall-chat"]')!;
+    await expect(within(frame as HTMLElement).getByRole('img', { name: 'Help' })).toHaveAccessibleDescription(
+      'This chat is separate from table chat. All messages and drafts disappear when this recall closes.'
+    );
+    const composer = page.getByRole('textbox', { name: 'Message' });
+    await userEvent.type(composer, 'Earlier');
+    await userEvent.keyboard('{Shift>}{Enter}{/Shift}');
+    await userEvent.type(composer, 'position');
+    await expect(composer).toHaveValue('Earlier\nposition');
+    await userEvent.keyboard('{Enter}');
+    await expect(composer).toHaveValue('');
+    await expect(session.transport.messages).toContainEqual(
+      expect.objectContaining({
+        type: 'conversation-send',
+        peerId: expect.stringMatching(/^@recall:/),
+        text: 'Earlier\nposition',
+      })
+    );
+    await expect(commands()).toHaveLength(0);
+  },
+});
+
 /* Asking opens a vote; once the majority agrees, the page shows the shared checkpoint with no way to change game contents, until play resumes. */
 export const AskingShowsTheCheckpointToEveryone = meta.story({
   beforeEach: install(() => reviewTransport('seat-2', null, { agreeAfterMs: null })),
@@ -34,9 +77,6 @@ export const AskingShowsTheCheckpointToEveryone = meta.story({
     (session.transport as ReturnType<typeof reviewTransport>).othersAgree();
 
     const reviewing = await page.findByRole('group', { name: 'Mentat recall in progress' }, { timeout: 5000 });
-    await expect(within(reviewing).getByRole('status')).toHaveTextContent(
-      'Everyone is viewing the past. Play is paused.'
-    );
     await waitFor(() =>
       expect(session.transport.messages).toContainEqual(expect.objectContaining({ type: 'history', step: newest.step }))
     );
@@ -77,10 +117,7 @@ export const ObserverWatchesAReview = meta.story({
   ),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    const reviewing = await page.findByRole('group', { name: 'Mentat recall in progress' }, { timeout: 30_000 });
-    await expect(within(reviewing).getByRole('status')).toHaveTextContent(
-      'Everyone is viewing the past. Play is paused.'
-    );
+    await page.findByRole('group', { name: 'Mentat recall in progress' }, { timeout: 30_000 });
     await waitFor(() =>
       expect(session.transport.messages).toContainEqual(
         expect.objectContaining({ type: 'history', step: bidding.step })

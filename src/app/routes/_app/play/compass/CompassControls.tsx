@@ -61,9 +61,11 @@ export function CompassControls({ scene, decoration, overlay, header, camera, ..
       {header}
       {camera}
       <CompassActiveContext value={!recall}>
-        <div style={{ display: recall ? 'none' : 'contents' }} inert={Boolean(recall)}>
-          <Controls key={epoch} rootRef={rootRef} {...controls} />
-        </div>
+        <CompassTableContext value={table ? { ...table, recall: undefined } : null}>
+          <div style={{ display: recall ? 'none' : 'contents' }} inert={Boolean(recall)}>
+            <Controls key={epoch} rootRef={rootRef} {...controls} />
+          </div>
+        </CompassTableContext>
       </CompassActiveContext>
       {recall && table && <RecallControls key={recall.id} table={table} onView={controls.onView} />}
     </div>
@@ -74,7 +76,14 @@ export function CompassControls({ scene, decoration, overlay, header, camera, ..
 function RecallControls({ table, onView }: Readonly<{ table: CompassTable; onView: CompassControlsProps['onView'] }>) {
   const rootRef = useRef<HTMLDivElement>(null);
   const recall = table.recall!;
-  const frozen = { ...table, players: [], tableChat: null, nextPhase: null, token: null, bidding: null };
+  const frozen = {
+    ...table,
+    players: table.players.filter((player) => player.own),
+    tableChat: null,
+    nextPhase: null,
+    token: null,
+    bidding: null,
+  };
   return (
     <RememberedContext value={false}>
       <CompassTableContext value={frozen}>

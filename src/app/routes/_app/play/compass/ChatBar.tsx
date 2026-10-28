@@ -32,12 +32,22 @@ function words(...parts: (string | null | false | 0 | undefined)[]) {
 export function ChatBar({ inert, hasHand, isOpen, onOpenCompass, onShow }: ChatBarProps) {
   const table = useContext(CompassTableContext);
   /* The other players to talk to, and the viewer too while a removal vote stands against them. */
-  const others = table?.players.filter((player) => !player.own || player.vote) ?? [];
-  const tableChat = table?.tableChat;
+  const recall = table?.recall;
+  const others = recall ? [] : (table?.players.filter((player) => !player.own || player.vote) ?? []);
+  const tableChat = recall ? recall.chat : table?.tableChat;
+  const chatKey = recall ? 'recall-chat' : 'table-chat';
+  const chatLabel = recall ? 'Recall chat' : 'Table chat';
   const own = table?.players.find((player) => player.own);
   return (
     <div className={styles.bar} inert={inert} data-hides-cursor data-compass-bar>
-      {hasHand && own?.factionName && <OwnToken player={own} open={isOpen('hand')} onOpen={() => onShow('hand')} />}
+      {hasHand && own?.factionName && (
+        <OwnToken
+          player={own}
+          label={recall ? 'Your recalled hand' : 'Hand & spice'}
+          open={isOpen('hand')}
+          onOpen={() => onShow('hand')}
+        />
+      )}
       <button type="button" className={styles.launcher} data-compass-launcher onClick={onOpenCompass}>
         <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" className={base.glyph}>
           <circle cx="12" cy="12" r="8" />
@@ -49,7 +59,12 @@ export function ChatBar({ inert, hasHand, isOpen, onOpenCompass, onShow }: ChatB
       {(tableChat || others.length > 0) && (
         <nav className={styles.chats} aria-label="Chats">
           {tableChat && (
-            <TableChatToken unread={tableChat.unread} open={isOpen('table-chat')} onOpen={() => onShow('table-chat')} />
+            <GroupChatToken
+              label={chatLabel}
+              unread={tableChat.unread}
+              open={isOpen(chatKey)}
+              onOpen={() => onShow(chatKey)}
+            />
           )}
           {/* A token opens the chat with its player, or their faction's information when there is no chat to have. */}
           {others.map((player) => (
@@ -67,14 +82,19 @@ export function ChatBar({ inert, hasHand, isOpen, onOpenCompass, onShow }: ChatB
 }
 
 /* The viewer's own faction, which opens their Hand & spice as H does; a spectator has no seat and no token. */
-function OwnToken({ player, open, onOpen }: Readonly<{ player: CompassPlayer; open: boolean; onOpen: () => void }>) {
+function OwnToken({
+  player,
+  label,
+  open,
+  onOpen,
+}: Readonly<{ player: CompassPlayer; label: string; open: boolean; onOpen: () => void }>) {
   return (
     <Tooltip label={`You are playing as ${player.factionName}`} events={{ hover: true, focus: true, touch: false }}>
       <button
         type="button"
         className={clsx(styles.chat, styles.own)}
         aria-pressed={open}
-        aria-label={`Hand & spice, you are playing as ${player.factionName}`}
+        aria-label={`${label}, you are playing as ${player.factionName}`}
         data-own-token
         onClick={onOpen}
       >
@@ -84,14 +104,19 @@ function OwnToken({ player, open, onOpen }: Readonly<{ player: CompassPlayer; op
   );
 }
 
-function TableChatToken({ unread, open, onOpen }: Readonly<{ unread: number; open: boolean; onOpen: () => void }>) {
+function GroupChatToken({
+  label,
+  unread,
+  open,
+  onOpen,
+}: Readonly<{ label: string; unread: number; open: boolean; onOpen: () => void }>) {
   return (
-    <Tooltip label="Table chat · Space →" events={{ hover: true, focus: true, touch: false }}>
+    <Tooltip label={`${label} · Space →`} events={{ hover: true, focus: true, touch: false }}>
       <button
         type="button"
         className={styles.chat}
         aria-pressed={open}
-        aria-label={words('Table chat', unread && `${unread} unread`).join(', ')}
+        aria-label={words(label, unread && `${unread} unread`).join(', ')}
         onClick={onOpen}
       >
         <span className={clsx(styles.token, styles.planet)}>

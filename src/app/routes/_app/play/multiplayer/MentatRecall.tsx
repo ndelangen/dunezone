@@ -1,4 +1,4 @@
-import { Button, Loader, Stack, Text, VisuallyHidden } from '@mantine/core';
+import { Button, Loader, Stack, Text } from '@mantine/core';
 import { recallConversation } from '@shared/play/conversations';
 import {
   HIDDEN_ZONE_DEPTH,
@@ -17,6 +17,8 @@ import { PieceArtwork } from '@app/widgets/tabletop/PieceArtwork';
 
 import type { CompassTable } from '../compass/compassTable';
 import { ConnectedConversationPanel } from '../panels/chat/useConversationPanel';
+import { HandPanel } from '../panels/hand/HandPanel';
+import { SpiceReservePanel } from '../panels/spice/SpiceReservePanel';
 import { CheckpointPicker } from './checkpoints/CheckpointPicker';
 import styles from './MentatRecall.module.css';
 
@@ -41,13 +43,20 @@ export function mentatRecall(client: TableSession, table: TableProjection): Comp
         order={table.snapshot.handOrder ?? []}
         side={side}
         balance={table.snapshot.bank?.balance}
-        context={current.context}
       />
     );
   return {
     id: current.id,
     context: current.context,
     loading,
+    chat: review.seat
+      ? {
+          unread:
+            client
+              .getSnapshot()
+              .conversations.summaries.find((entry) => entry.peerId === recallConversation(current.id))?.unread ?? 0,
+        }
+      : undefined,
     panels: [
       {
         key: 'recall-history',
@@ -86,27 +95,29 @@ export function mentatRecall(client: TableSession, table: TableProjection): Comp
       },
       ...(review.seat
         ? [
-            { key: 'hand', label: 'Your recalled hand', topic: 'hand' as const, content: inventory(false) },
+            {
+              key: 'hand',
+              label: 'Your recalled hand',
+              topic: 'hand' as const,
+              description: `Your seat's items at ${current.context}. Frozen and visible only to this seat.`,
+              content: inventory(false),
+            },
             {
               key: 'hidden-zone',
               label: 'Your recalled private side table',
               topic: 'hiddenZone' as const,
+              description: `Your seat's items at ${current.context}. Frozen and visible only to this seat.`,
               content: inventory(true),
             },
             {
               key: 'recall-chat',
               label: 'Recall chat',
               topic: 'planet' as const,
-              description: 'Only this recall. All messages and drafts disappear when play resumes.',
+              description:
+                'This chat is separate from table chat. All messages and drafts disappear when this recall closes.',
+              fill: true,
               content: (
-                <Stack gap="sm">
-                  <Text size="sm">This chat is separate from table chat. It disappears when this recall closes.</Text>
-                  <ConnectedConversationPanel
-                    key={current.id}
-                    client={client}
-                    peerId={recallConversation(current.id)}
-                  />
-                </Stack>
+                <ConnectedConversationPanel key={current.id} client={client} peerId={recallConversation(current.id)} />
               ),
             },
           ]
@@ -119,31 +130,33 @@ function FrozenInventory({
   hand,
   order,
   side,
-  context,
   balance,
-}: Readonly<{ hand: TablePiece[]; order: readonly string[]; side: boolean; context: string; balance?: number }>) {
-  const pieces = side ? hiddenZonePieces(hand) : orderedHand(hand, order);
-  const layout = side ? sideTableLayout(pieces) : undefined;
+}: Readonly<{ hand: TablePiece[]; order: readonly string[]; side: boolean; balance?: number }>) {
+  if (!side) {
+    return (
+      <Stack gap="lg">
+        {balance !== undefined && <SpiceReservePanel isFrozen balance={balance} hiddenHeading />}
+        <HandPanel isFrozen pieces={orderedHand(hand, order)} />
+      </Stack>
+    );
+  }
+  const pieces = hiddenZonePieces(hand);
+  const layout = sideTableLayout(pieces);
   return (
     <Stack gap="sm">
-      <Text size="sm">Your seat's items at {context}. Frozen and visible only to this seat.</Text>
-      {!side && balance !== undefined && <Text size="sm">Spice reserve: {balance}</Text>}
       {pieces.length === 0 ? (
         <Text size="sm" c="dimmed">
           Nothing was here at this checkpoint.
         </Text>
       ) : (
         <div className={styles.inventoryScroll}>
-          <div className={side ? styles.sideTable : styles.hand} style={layout?.size}>
+          <div className={styles.sideTable} style={layout.size}>
             {pieces.map((piece, index) => (
-              <FrozenPiece key={piece.id} piece={piece} placement={layout?.placements[index]} />
+              <FrozenPiece key={piece.id} piece={piece} placement={layout.placements[index]!} />
             ))}
           </div>
         </div>
       )}
-      <Text size="xs" c="dimmed">
-        Read only. No moving, rearranging, flipping or peeking.
-      </Text>
     </Stack>
   );
 }
@@ -190,30 +203,25 @@ function sideTableLayout(pieces: readonly TablePiece[]) {
 
 type FrozenPlacement = ReturnType<typeof sideTableLayout>['placements'][number];
 
-function frozenArtwork(piece: TablePiece, side: boolean) {
+function frozenArtwork(piece: TablePiece) {
   const item = piece.items.at(-1);
   if (!item?.artwork) {
     return { source: undefined, name: piece.label };
   }
   const artwork = item.artwork;
-  const visible = !side || item.faceUp;
+  const visible = item.faceUp;
   return {
     source: visible ? (artwork.front ?? artwork.back) : artwork.back,
     name: visible ? (artwork.name ?? piece.label) : (artwork.backName ?? 'Face-down piece'),
   };
 }
 
-function handPieceSize(piece: TablePiece) {
-  return piece.kind === 'card' ? { width: 100, height: 140 } : { width: 64, height: 64 };
-}
-
-function FrozenPiece({ piece, placement }: Readonly<{ piece: TablePiece; placement?: FrozenPlacement }>) {
-  const { source, name } = frozenArtwork(piece, Boolean(placement));
-  const { width, height } = placement ?? handPieceSize(piece);
-  const caption = `${name}${piece.items.length > 1 ? ` × ${piece.items.length}` : ''}`;
+function FrozenPiece({ piece, placement }: Readonly<{ piece: TablePiece; placement: FrozenPlacement }>) {
+  const { source, name } = frozenArtwork(piece);
+  const { width, height } = placement;
   return (
     <figure
-      className={placement ? styles.placed : styles.piece}
+      className={styles.placed}
       style={
         placement && {
           left: placement.x,
@@ -225,11 +233,6 @@ function FrozenPiece({ piece, placement }: Readonly<{ piece: TablePiece; placeme
       }
     >
       <PieceArtwork piece={piece} src={source ?? null} name={name} width={width} height={height} />
-      {placement ? (
-        <VisuallyHidden component="figcaption">{caption}</VisuallyHidden>
-      ) : (
-        <figcaption>{caption}</figcaption>
-      )}
     </figure>
   );
 }

@@ -49,7 +49,7 @@
   padding: 0;
   background: transparent;
   color: inherit;
-  cursor: grab;
+  cursor: default;
   transition:
     transform 140ms ease-out,
     filter 140ms ease-out,
@@ -61,7 +61,11 @@
 }
 
 /* Under the pointer a piece lifts off its shelf, ready to be dragged or right-clicked. */
-.face:hover {
+.face:is(button) {
+  cursor: grab;
+}
+
+.face:is(button):hover {
   transform: translateY(-3px);
   filter: drop-shadow(0 6px 8px rgb(from var(--color-shadow) r g b / 0.55));
 }

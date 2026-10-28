@@ -1,4 +1,5 @@
 import type { TablePiece } from '@shared/play/model';
+import { createElement } from 'react';
 import { fn } from 'storybook/test';
 
 import { playingSnapshot } from '../../product.stories.fixture';
@@ -6,6 +7,7 @@ import { panelMeta } from '../PanelWindow.stories.fixture';
 import { PANEL_WINDOWS } from '../panelWindows';
 import { handGroups } from './handGroups';
 import { HandPanel } from './HandPanel';
+import type { HandPanelProps } from './HandPanel';
 import type { HandActions } from './useHandActions';
 
 /* The viewer's hand in a game in play, with the loose Treachery card drawn into it beside its leaders and Traitor. */
@@ -33,5 +35,6 @@ export function handActions(inHand: TablePiece[] = heldPieces()): HandActions {
 export const handPanelMeta = {
   ...panelMeta(PANEL_WINDOWS.hand),
   component: HandPanel,
-  args: { actions: handActions() },
+  render: (args: Extract<HandPanelProps, { actions: HandActions }>) => createElement(HandPanel, args),
+  args: { isFrozen: false as const, actions: handActions() },
 };

@@ -9,19 +9,21 @@ import styles from './SpiceReservePanel.module.css';
 export type SpiceReservePanelProps = Readonly<{
   /** The faction's spice in its private reserve. */
   balance: number;
-  /** The viewer may withdraw now: the table is live and connected. */
-  enabled: boolean;
   /** The heading is only for assistive technology inside a game's window. */
   hiddenHeading: boolean;
-  /** Withdraws an amount onto the table, and says whether the command went. */
-  onWithdraw: (amount: number) => boolean;
-}>;
+}> &
+  (
+    | Readonly<{ isFrozen?: false; enabled: boolean; onWithdraw: (amount: number) => boolean }>
+    | Readonly<{ isFrozen: true }>
+  );
 
 /**
  * The faction's private spice reserve: its balance, and the amount to withdraw onto the table, on the kit stepper: − and +, the wheel, or typed.
  * The balance bumps as it changes, and a withdrawn amount floats up off it toward the table.
  */
-export function SpiceReservePanel({ balance, enabled, hiddenHeading, onWithdraw }: SpiceReservePanelProps) {
+export function SpiceReservePanel(props: SpiceReservePanelProps) {
+  const { balance, hiddenHeading } = props;
+  const isFrozen = props.isFrozen === true;
   const [amount, setAmount] = useState(1);
   /* What is being typed, judged before it commits, so an amount past the balance cannot be withdrawn. */
   const [draft, setDraft] = useState<string | null>(null);
@@ -35,24 +37,28 @@ export function SpiceReservePanel({ balance, enabled, hiddenHeading, onWithdraw 
   const valid = Number.isSafeInteger(current) && current > 0 && current <= balance;
   const withdraw = () => {
     /* The amount floats away only when the command goes; a closed connection or a full queue sends nothing. */
-    if (enabled && valid && onWithdraw(current)) {
+    if (!props.isFrozen && props.enabled && valid && props.onWithdraw(current)) {
       setWithdrawn({ amount: current, key: (withdrawn?.key ?? 0) + 1 });
     }
   };
   return (
-    <Section hiddenHeading={hiddenHeading} title="Spice reserve" description={SPICE_RESERVE_HELP}>
-      <div className={styles.spice}>
+    <Section
+      hiddenHeading={hiddenHeading}
+      title="Spice reserve"
+      description={isFrozen ? undefined : SPICE_RESERVE_HELP}
+    >
+      <div className={styles.spice} data-frozen-balance={isFrozen || undefined}>
         <div className={styles.balance}>
           {/* The two keys share one parent, so each names what it counts: the first withdrawal and the first bump are both 1. */}
           <output
             key={`balance-${seen.bump}`}
             aria-label="Spice reserve balance"
             className={styles.balanceNumber}
-            data-bump={seen.bump > 0 || undefined}
+            data-bump={(!isFrozen && seen.bump > 0) || undefined}
           >
             {balance}
           </output>
-          {withdrawn && (
+          {!isFrozen && withdrawn && (
             <span key={`withdrawn-${withdrawn.key}`} className={styles.floatAway} aria-hidden>
               −{withdrawn.amount}
             </span>
@@ -61,20 +67,27 @@ export function SpiceReservePanel({ balance, enabled, hiddenHeading, onWithdraw 
             spice
           </Text>
         </div>
-        <Group gap={6} wrap="nowrap">
-          <Stepper
-            label="Spice to withdraw"
-            value={Math.min(amount, Math.max(balance, 1))}
-            min={1}
-            max={Math.max(balance, 1)}
-            disabled={!enabled || balance < 1}
-            onChange={setAmount}
-            onDraftChange={setDraft}
-          />
-          <Button size="compact-sm" aria-label="Withdraw spice" disabled={!enabled || !valid} onClick={withdraw}>
-            Withdraw
-          </Button>
-        </Group>
+        {!props.isFrozen && (
+          <Group gap={6} wrap="nowrap">
+            <Stepper
+              label="Spice to withdraw"
+              value={Math.min(amount, Math.max(balance, 1))}
+              min={1}
+              max={Math.max(balance, 1)}
+              disabled={!props.enabled || balance < 1}
+              onChange={setAmount}
+              onDraftChange={setDraft}
+            />
+            <Button
+              size="compact-sm"
+              aria-label="Withdraw spice"
+              disabled={!props.enabled || !valid}
+              onClick={withdraw}
+            >
+              Withdraw
+            </Button>
+          </Group>
+        )}
       </div>
     </Section>
   );
