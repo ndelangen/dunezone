@@ -437,7 +437,7 @@ function predictionEntries(next: StoredSnapshot, action: PieceAction, faction: F
   ];
 }
 
-/* An alliance formed or grown names all its factions, and a faction leaving names the allies it left; offers stay out of the log. */
+/* An alliance formed names both its factions, and a faction leaving names the allies it left; offers stay out of the log. */
 function allianceEntries(
   before: StoredSnapshot,
   next: StoredSnapshot,

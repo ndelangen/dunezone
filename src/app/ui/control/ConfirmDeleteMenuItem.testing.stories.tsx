@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 
 import { ConfirmDeleteMenuItem } from './ConfirmDeleteMenuItem';
+import { HOLD_SECONDS } from './useHoldToConfirm';
 
 const meta = testingPreview.meta({
   title: 'ConfirmDeleteMenuItem',
@@ -64,7 +65,7 @@ export const RetryAfterFailure = meta.story({
     try {
       for (let attempt = 1; attempt <= 2; attempt++) {
         await userEvent.pointer([{ keys: '[MouseLeft>]', target: item }]);
-        await clock.tickAsync(5000);
+        await clock.tickAsync(HOLD_SECONDS * 1000);
         await waitFor(() => expect(args.onConfirm).toHaveBeenCalledTimes(attempt));
         await expect(item).toBeDisabled();
         await userEvent.pointer([{ keys: '[/MouseLeft]', target: canvasElement.ownerDocument.body }]);

@@ -76,7 +76,7 @@ function resolvedBattle(rekey: (snapshot: GameSnapshot) => GameSnapshot = (snaps
   });
 }
 
-/** A seated snapshot in play with a loose Treachery card moved into the viewer's hand, as Play/Panels/Hand and spice/Hand does. */
+/** A seated snapshot in play with a loose Treachery card moved into the viewer's hand, as Play/Panels/Hand shows it. */
 function withCardInHand(snapshot: GameSnapshot) {
   const card = snapshot.table.pieces.find((piece) => piece.kind === 'card' && piece.items.length === 1);
   if (!card || !snapshot.hand) {

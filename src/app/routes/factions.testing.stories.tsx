@@ -150,11 +150,6 @@ export const DetailWithTroopStrengths = meta.story({
     await userEvent.tab({ shift: true });
     await userEvent.tab();
     await expect(reverse).toHaveFocus();
-    await expect(page.findByRole('tooltip')).resolves.toHaveTextContent(
-      'The reverse side supports the faction without joining battles.'
-    );
-    await userEvent.keyboard('{Escape}');
-    await waitFor(() => expect(page.queryByRole('tooltip')).not.toBeInTheDocument());
   },
 });
 
@@ -168,19 +163,10 @@ export const DetailWithPlanets = meta.story({
     const planets = within(sidebar).getByRole('region', { name: 'Planets' });
     const planet = within(planets).getByRole('listitem', { name: 'Space Hulk Leviathan' });
     await expect(planet).toHaveAccessibleDescription(spaceOrks.planet[0].description);
-    await userEvent.hover(planet);
-    await expect(page.findByRole('tooltip')).resolves.toHaveTextContent(spaceOrks.planet[0].description);
-    await userEvent.unhover(planet);
-    await waitFor(() => expect(page.queryByRole('tooltip')).not.toBeInTheDocument());
-
     planet.focus();
     await userEvent.tab({ shift: true });
     await userEvent.tab();
     await expect(planet).toHaveFocus();
-    // The troop hint behind Shift+Tab can still be fading out, so wait for the planet's own tooltip.
-    await page.findByRole('tooltip', { name: spaceOrks.planet[0].description });
-    await userEvent.keyboard('{Escape}');
-    await waitFor(() => expect(page.queryByRole('tooltip')).not.toBeInTheDocument());
   },
 });
 
@@ -190,11 +176,8 @@ export const DetailWithUndescribedPlanet = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const planet = await page.findByRole('listitem', { name: 'Space Hulk Leviathan' });
-    await userEvent.hover(planet);
-    await expect(page.queryByRole('tooltip')).not.toBeInTheDocument();
     await expect(planet).not.toHaveAccessibleDescription();
     await expect(planet.tabIndex).toBe(-1);
-    await userEvent.unhover(planet);
   },
 });
 
@@ -211,6 +194,7 @@ export const EditEscapeClosesTheSheetReview = meta.story({
     await userEvent.click(await page.findByRole('button', { name: 'Review faction sheet' }, { timeout: 30_000 }));
     /* The review plane opens from inside a second animation-frame callback, so each poll runs the waiting frames itself. */
     await waitForFrame(() => expect(review()?.hasAttribute('data-review-open')).toBe(true), { timeout: 30_000 });
+    /* oxlint-disable-next-line local/story-owns-its-states -- The open tooltip is this story's precondition, not its subject: Mantine's tooltip stops Escape on the document. */
     await expect(page.findByRole('tooltip', { name: 'Review faction sheet' })).resolves.toBeInTheDocument();
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(review()?.hasAttribute('data-review-open')).toBe(false));

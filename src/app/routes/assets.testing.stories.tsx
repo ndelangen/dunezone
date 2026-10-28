@@ -1,7 +1,7 @@
 import { testingPreview } from '@sb/preview';
 import { publishingTreacheryCard } from '@shared/assets/fixtures/publishingTreacheryCard';
 import { GF9_LEADER_SKILLS } from '@shared/assets/gf9LeaderSkills';
-import { install } from '@sinonjs/fake-timers';
+import { completeHold } from '@ui/control/useHoldToConfirm.stories.fixture';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { db, ref, asset } from '@db/storybook';
@@ -271,14 +271,7 @@ export const ConvertTreacheryCard = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const trigger = await page.findByRole('button', { name: 'Convert to custom card' }, { timeout: 30_000 });
     await waitFor(() => expect(trigger).toBeEnabled());
-    const clock = install({ toFake: ['setInterval', 'clearInterval'], shouldClearNativeTimers: true });
-    try {
-      await userEvent.pointer({ target: trigger, keys: '[MouseLeft>]' });
-      await clock.tickAsync(5000);
-    } finally {
-      await userEvent.pointer({ target: trigger, keys: '[/MouseLeft]' });
-      clock.uninstall();
-    }
+    await completeHold(trigger);
     await expect(
       page.findByRole('tablist', { name: 'Custom card chapters' }, { timeout: 30_000 })
     ).resolves.toBeVisible();
@@ -322,14 +315,7 @@ export const ConvertAnotherCreatorsCard = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const trigger = await page.findByRole('button', { name: 'Convert to custom card' }, { timeout: 30_000 });
     await waitFor(() => expect(trigger).toBeEnabled());
-    const clock = install({ toFake: ['setInterval', 'clearInterval'], shouldClearNativeTimers: true });
-    try {
-      await userEvent.pointer({ target: trigger, keys: '[MouseLeft>]' });
-      await clock.tickAsync(5000);
-    } finally {
-      await userEvent.pointer({ target: trigger, keys: '[/MouseLeft]' });
-      clock.uninstall();
-    }
+    await completeHold(trigger);
     await expect(page.findByRole('link', { name: /^Custom cards$/ }, { timeout: 30_000 })).resolves.toBeVisible();
     await expect(page.getByRole('link', { name: 'House Treachery ×3' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Another creator' })).toBeVisible();

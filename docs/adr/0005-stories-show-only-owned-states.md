@@ -168,7 +168,9 @@ moving never loses a check. A child the app uses that has no stories of its own,
   `scripts/oxlint-local-plugin.ts`, rejects `userEvent.hover`, `userEvent.unhover` and any
   `ByRole('tooltip')` query in a story file outside `src/app/ui`. The story files that predate the
   rule sit in that override's `excludeFiles` in `.oxlintrc.json`. Each one leaves the list in the pull
-  request that cleans it up, and no file joins it.
+  request that cleans it up, and no file joins it. A story whose subject needs a tooltip open as its
+  precondition, such as Escape closing a review while the opening button's tooltip still shows, keeps
+  that one query behind a disable comment that says so.
 - **Review for the judgment part.** No lint rule can tell one signal from two, or tell a composed
   capture whose only difference is a child's state. Code review checks both against this record. A
   story's doc comment names its one signal, so the reviewer compares the comment with the canvas.

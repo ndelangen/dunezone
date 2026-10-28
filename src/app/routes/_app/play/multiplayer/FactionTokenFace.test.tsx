@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 
 import { MantineProvider } from '@mantine/core';
-import { emptySnapshot } from '@shared/play/commands';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { stubTooltipDom, tooltipTestTheme } from '@ui/tooltip.test.fixture';
 import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
@@ -21,13 +20,13 @@ afterEach(() => {
 });
 
 test('each allied token names its own faction on hover and releases the hint on leave', async () => {
-  const table = { snapshot: emptySnapshot() } as Parameters<typeof FactionTokenGroup>[0]['table'];
   render(
     <MantineProvider theme={tooltipTestTheme} forceColorScheme="dark">
       <FactionTokenGroup
-        table={table}
-        factionIds={['fremen', 'guild']}
-        names={{ fremen: 'Fremen', guild: 'Spacing Guild' }}
+        tokens={[
+          { id: 'fremen', name: 'Fremen' },
+          { id: 'guild', name: 'Spacing Guild' },
+        ]}
         size={24}
       />
     </MantineProvider>

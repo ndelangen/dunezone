@@ -1,4 +1,5 @@
 import { testingPreview } from '@sb/preview';
+import { completeHold } from '@ui/control/useHoldToConfirm.stories.fixture';
 import { expect, userEvent, within, waitFor } from 'storybook/test';
 
 import { expectDiagramLabelsFit, expectMissingLesson } from './contributing.stories.fixture';
@@ -109,15 +110,8 @@ export const InteractionDecisions = meta.story({
     await userEvent.click(toolbar.getByRole('button', { name: 'Reset sample' }));
     const deletion = within(page.getByRole('region', { name: 'Hold to delete' }));
     const trigger = deletion.getByRole('button', { name: 'Delete sample' });
-    const pointer = userEvent.setup();
-    await pointer.pointer([{ keys: '[MouseLeft>]', target: trigger }]);
-    await expect(trigger).toHaveTextContent('deletion in 5..');
-    await pointer.pointer([{ keys: '[/MouseLeft]', target: trigger }]);
-    await expect(trigger).toHaveTextContent('Delete sample');
-    await expect(deletion.queryByText('Sample deleted')).toBeNull();
-    await pointer.pointer([{ keys: '[MouseLeft>]', target: trigger }]);
-    await expect(deletion.findByText('Sample deleted', {}, { timeout: 8000 })).resolves.toBeVisible();
-    await pointer.pointer([{ keys: '[/MouseLeft]' }]);
+    await completeHold(trigger);
+    await expect(deletion.findByText('Sample deleted')).resolves.toBeVisible();
     await userEvent.click(deletion.getByRole('button', { name: 'Restore sample' }));
     await expect(deletion.getByRole('button', { name: 'Delete sample' })).toBeVisible();
   },

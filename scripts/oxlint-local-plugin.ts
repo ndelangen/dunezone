@@ -688,10 +688,9 @@ const storyOwnsItsStatesRule: Rule = {
           return;
         }
         const method = callee.property.name;
+        /* Any receiver: `userEvent`, the play context's own `userEvent`, or an instance from `userEvent.setup()` under another name. */
         if (method === 'hover' || method === 'unhover') {
-          if (callee.object.type === 'Identifier' && callee.object.name === 'userEvent') {
-            context.report({ node, messageId: 'hover' });
-          }
+          context.report({ node, messageId: 'hover' });
           return;
         }
         const [role] = node.arguments;

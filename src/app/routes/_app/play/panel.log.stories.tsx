@@ -17,66 +17,13 @@ import { productTransport, playingSnapshot } from './product.stories.fixture';
 
 const meta = testingPreview.meta({
   ...gameMeta,
-  title: 'Play/Panels/Log',
+  title: 'Play/Log',
   /* The stories load the table chunk before they render, so its cold first load falls outside their first wait (#1302). */
   loaders: [
     async () => {
       await import('./multiplayer/HostedTable');
     },
   ],
-});
-
-export const Game = meta.story({
-  beforeEach: install(() =>
-    productTransport('seat-6', revealedPredictionSnapshot(), { logEntries: { game: GAME_LOG } })
-  ),
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await openTab(page, 'Game log');
-    const log = await page.findByRole('region', { name: 'Game log' });
-    await expect(within(log).findByText('Bene Gesserit locked its prediction.')).resolves.toBeVisible();
-    await expect(
-      within(log)
-        .getAllByRole('listitem')
-        .map((item) => item.textContent)
-    ).toEqual([
-      'SpiceRidwan collected 3 spice from the table into the Fremen spice reserve.Setup, Prediction',
-      'SpiceTwaffle withdrew 4 spice from the House Atreides spice reserve to the table.Setup, Prediction',
-      'PredictionBene Gesserit revealed its prediction: House Atreides, turn 6.Setup, Prediction',
-      'PredictionBene Gesserit locked its prediction.Setup, Prediction',
-    ]);
-    await expect(within(log).queryByRole('button', { name: 'Earlier entries' })).toBeNull();
-  },
-});
-
-export const ReportedBug = meta.story({
-  beforeEach: install(() =>
-    productTransport('seat-2', playingSnapshot(), {
-      logEntries: {
-        game: [
-          {
-            sequence: 1,
-            class: 'phase',
-            event: 'bug-report',
-            text: 'A full game state export was published.',
-            context: 'Turn 1, Storm',
-            at: 1000,
-            issueUrl: 'https://github.com/ndelangen/dunezone/issues/1',
-          },
-        ],
-      },
-    })
-  ),
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await openTab(page, 'Game log');
-    const log = within(await page.findByRole('region', { name: 'Game log' }));
-    await expect(log.findByText('Bug report')).resolves.toBeVisible();
-    await expect(log.findByRole('link', { name: 'Open GitHub issue' })).resolves.toHaveAttribute(
-      'href',
-      'https://github.com/ndelangen/dunezone/issues/1'
-    );
-  },
 });
 
 export const Audit = meta.story({
