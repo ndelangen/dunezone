@@ -77,7 +77,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       begin: () => {
         const timer = setInterval(() => {
           const review = snapshot().review;
-          if (!review || review.startedAt !== null) {
+          if (!review || review.step !== 0 || review.startedAt !== null) {
             return;
           }
           const seat = players
@@ -89,7 +89,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
         }, BALLOT_INTERVAL_MS);
         return () => clearInterval(timer);
       },
-      done: () => snapshot().review?.startedAt != null,
+      done: () => snapshot().review?.step === 0 && snapshot().review?.startedAt != null,
       finish: (stop) => stop(),
     }),
     task({
