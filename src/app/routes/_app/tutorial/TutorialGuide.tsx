@@ -30,7 +30,7 @@ type GuideAnchor =
   | Readonly<{ kind: 'page'; element: () => Element | null }>;
 
 /** What the table looks like to a task as it checks whether the player has done it. */
-export type GuideView = Readonly<{ camera: Camera | null }>;
+export type GuideView = Readonly<{ camera: Camera | null; pieceAt?: TableLens['pieceAt'] | undefined }>;
 
 export type GuideTask<Baseline = unknown> = Readonly<{
   id: string;
@@ -234,7 +234,7 @@ export function TutorialGuide({
     };
     const tick = () => {
       frame = requestAnimationFrame(tick);
-      const view = { camera: table?.camera() ?? null };
+      const view = { camera: table?.camera() ?? null, pieceAt: table?.pieceAt };
       const spot =
         started && doneAt === null ? place(task.anchor, windowBox(rail.current?.getBoundingClientRect()), table) : null;
       draw(spot);

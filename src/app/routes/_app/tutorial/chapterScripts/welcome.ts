@@ -6,17 +6,22 @@ import { trackerArcSlots } from '@shared/play/tableTrackers';
 import { TUTORIAL_RECIPE } from '@shared/tutorial/recipe';
 import type { Vector3Tuple } from 'three';
 
-import type { GuideTask } from '../TutorialGuide';
+import type { GuideTask, GuideView } from '../TutorialGuide';
 import type { ChapterScript } from './chapterScript';
-import { closeGameMenu, element, gameMenuButton, nextPhaseButton, phaseOf, pressEnter, task } from './guideChecks';
+import {
+  closeGameMenu,
+  element,
+  gameMenuButton,
+  nextPhaseButton,
+  openedWindow,
+  phaseOf,
+  pressEnter,
+  task,
+} from './guideChecks';
 
 /*
- * "Welcome": what is on the screen and what each part means, before any of the controls.
- * The rail points at each part in turn: the board, each player's faction token on a tour round the table,
- * the phase and turn in the corner chip, the phase discs and the turn wheel along the board's far edge, Next phase, and the gear. Nothing on the table checks the rules or takes a step for the players,
- * so the player moves the game on with Next phase, and copies the game's link from the gear to invite the others;
- * everything else is read and passed with Enter.
- * The controls compass waits for its own chapter.
+ * Welcome introduces the board and its trackers, then asks the learner to select a faction token,
+ * advance the phase, open the game menu and copy the invitation link.
  */
 
 /* The disc for the phase the game is in, and the turn wheel, on the arc of trackers beside the board. */
@@ -38,10 +43,7 @@ const copyLink = () =>
 /* How long the arrow rests on each stop as it goes round once. */
 const TOUR_STOP_MS = 1200;
 
-/*
- * The arrow's tour of a row of things on the table: one stop at a time, once through, then it rests on the last.
- * It runs by the clock from the moment its step starts, so Enter at any point ends the step and the tour with it.
- */
+/* The arrow visits each stop once, starting with its task, then rests on the last stop. */
 function tour(stops: () => readonly Vector3Tuple[]) {
   let startedAt = 0;
   const point = (): Vector3Tuple | null => {
@@ -49,16 +51,46 @@ function tour(stops: () => readonly Vector3Tuple[]) {
     const step = Math.floor((performance.now() - startedAt) / TOUR_STOP_MS);
     return all[Math.min(step, all.length - 1)] ?? null;
   };
-  const enter = pressEnter();
   return {
     point,
     begin: () => {
       startedAt = performance.now();
-      return enter.begin();
     },
-    done: enter.done,
-    finish: enter.finish,
   };
+}
+
+/* Count the token under this click, regardless of what was selected before the task began. */
+function clickedFactionToken(snapshot: () => GameSnapshot, view: GuideView) {
+  const watch = { clicked: false, stop: new AbortController() };
+  document.addEventListener(
+    'click',
+    (event) => {
+      if (event.button !== 0 || !(event.target instanceof HTMLCanvasElement)) {
+        return;
+      }
+      const hit = view.pieceAt?.(event.clientX, event.clientY);
+      watch.clicked ||= snapshot().table.pieces.some((piece) => piece.id === hit && isFactionToken(piece));
+    },
+    { capture: true, signal: watch.stop.signal }
+  );
+  return watch;
+}
+
+/* Enter must not advance another phase while the learner is finding the gear or copying the link. */
+function guardNextPhase() {
+  const stop = new AbortController();
+  window.addEventListener(
+    'keydown',
+    (event) => {
+      if (event.key === 'Enter' && event.target === nextPhaseButton()) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    },
+    { capture: true, signal: stop.signal }
+  );
+  (nextPhaseButton() as HTMLElement | null)?.blur();
+  return stop;
 }
 
 const pointOf = (position: readonly number[]): Vector3Tuple => [position[0]!, position[1]!, position[2]!];
@@ -86,6 +118,8 @@ function phaseStops(snapshot: () => GameSnapshot): Vector3Tuple[] {
 function tasks(snapshot: () => GameSnapshot): GuideTask[] {
   const tokens = tour(() => tokenStops(snapshot));
   const phases = tour(() => phaseStops(snapshot));
+  const phaseRead = pressEnter();
+  const menu = openedWindow(() => copyLink() !== null);
   return [
     task({
       id: 'speaking-mode',
@@ -98,21 +132,23 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     }),
     task({
       id: 'board',
-      task: 'This is the table',
+      task: 'The board',
       detail:
-        'This is your shared table, with the board, decks and pieces ready to play.\n\nPress {Enter} to continue.',
+        'The board shows the planet Arrakis.\n\nThis is a sandbox, so you can move troops however you want.\n\nThe players enforce the rules of the game.\n\nPress {Enter} to continue.',
       anchor: { kind: 'table', point: () => [0, TABLE_SURFACE_Y, 0] },
       ...pressEnter(),
     }),
     task({
       id: 'players',
       task: 'The players',
-      detail:
-        'Each player has a faction token beside their seat. The arrow points to each one, ending with yours.\n\nPress {Enter} to continue.',
+      detail: 'Each player has a faction token around the board.\n\nClick one of the faction tokens to continue.',
       anchor: { kind: 'table', point: tokens.point },
-      begin: tokens.begin,
-      done: tokens.done,
-      finish: tokens.finish,
+      begin: (view) => {
+        tokens.begin();
+        return clickedFactionToken(snapshot, view);
+      },
+      done: (watch) => watch.clicked,
+      finish: (watch) => watch.stop.abort(),
     }),
     task({
       id: 'status',
@@ -124,16 +160,21 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     task({
       id: 'phases',
       task: 'The phases of a turn',
-      detail: 'These discs show the phases in order. The current phase is lit up.\n\nPress {Enter} to continue.',
+      detail:
+        'A second place to see the current phase is above the board.\n\nIt also shows past and future phases.\n\nPress {Enter} to continue.',
       anchor: { kind: 'table', point: phases.point },
-      begin: phases.begin,
-      done: phases.done,
-      finish: phases.finish,
+      begin: () => {
+        phases.begin();
+        return phaseRead.begin();
+      },
+      done: phaseRead.done,
+      finish: phaseRead.finish,
     }),
     task({
       id: 'turn',
       task: 'The turn tracker',
-      detail: 'The wheel beside the phase discs shows the current turn.\n\nPress {Enter} to continue.',
+      detail:
+        'The turn tracker is to the left of the phase tracker. Its pointer shows the current turn.\n\nPress {Enter} to continue.',
       anchor: { kind: 'table', point: () => trackerAt(snapshot, 'turn') },
       ...pressEnter(),
     }),
@@ -141,32 +182,27 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'next',
       task: 'Advance to the next phase',
       detail:
-        'You and the other players decide when a phase is finished.\n\nPress Next phase in the top right to move on.',
+        'You and the other players decide when a phase is finished.\n\nPress "Next phase" in the top right to progress.',
       anchor: { kind: 'page', element: nextPhaseButton },
       begin: () => undefined,
       done: () => phaseOf(snapshot).id !== 'storm',
     }),
     task({
+      id: 'settings',
+      task: 'Open the game menu',
+      detail: 'To change settings, look for the gear icon in the top right.\n\nClick it to open the menu.',
+      anchor: { kind: 'page', element: gameMenuButton },
+      begin: () => ({ menu: menu.begin(), stop: guardNextPhase() }),
+      done: (watch) => menu.done(watch.menu),
+      finish: (watch) => watch.stop.abort(),
+    }),
+    task({
       id: 'share',
       task: 'Copy the game link',
-      detail: 'Open the gear menu in the top right and press Copy game link.\n\nShare it to invite other players.',
+      detail:
+        'What is Dune without its players?\n\nIn a real game, share this link with a friend to invite them to play or observe.\n\nClick "Copy game link" to complete this tutorial.',
       anchor: { kind: 'page', element: () => copyLink() ?? gameMenuButton() },
-      /*
-       * Next phase can keep the focus once pressed, so a habitual Enter here would move the game on again:
-       * the step lets go of that focus and takes Enter off the button while it runs.
-       */
-      begin: () => {
-        const watch = { refused: false, stop: new AbortController() };
-        const guard = (event: KeyboardEvent) => {
-          if (event.key === 'Enter' && event.target === nextPhaseButton()) {
-            event.preventDefault();
-            event.stopPropagation();
-          }
-        };
-        window.addEventListener('keydown', guard, { capture: true, signal: watch.stop.signal });
-        (nextPhaseButton() as HTMLElement | null)?.blur();
-        return watch;
-      },
+      begin: () => ({ refused: false, stop: guardNextPhase() }),
       done: (watch: { refused: boolean; stop: AbortController }) => {
         if ((copyLink()?.textContent ?? '').includes('copied')) {
           return true;
@@ -189,11 +225,11 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
 /* One line for each part of the chapter, in the order it was played. */
 const learned = [
   'The speaking mode button or Z turns spoken instructions on or off',
-  'Each player’s faction token marks their place around the board',
-  'The chip in the top left shows the turn and the phase',
-  'The discs along the board are the phases; the numbered wheel counts the turns',
-  'Play is a table, not a referee: you move the game on with Next phase',
-  'The gear holds the game’s settings and the link that invites the others',
+  'Players enforce the rules in this sandbox',
+  "Each player's faction token marks their place around the board",
+  'The current phase and turn appear in the top left and on the trackers above the board',
+  'Next phase moves the game on when everyone is ready',
+  'The gear menu holds the settings and Copy game link',
 ];
 
 export const welcome: ChapterScript = { slug: 'welcome', checkpoint: 'turn-1-storm', tasks, learned };

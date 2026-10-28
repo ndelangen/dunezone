@@ -1,6 +1,6 @@
 import { _roots } from '@react-three/fiber/webgpu';
-import { Vector3 } from 'three';
-import type { Camera, Vector3Tuple } from 'three';
+import { Raycaster, Vector2, Vector3 } from 'three';
+import type { Camera, Object3D, Scene, Vector3Tuple } from 'three';
 
 import { keepInView } from './guideArrow';
 import type { Target } from './guideArrow';
@@ -20,6 +20,8 @@ export type TableLens = Readonly<{
   settling: () => (camera: Camera) => boolean;
   /** Where a point on the table shows within `shown`; one out of view, or behind the camera, is pointed toward from the table's edge. */
   project: (point: Vector3Tuple, shown: Box) => Target | null;
+  /** The piece under a viewport point, or null when the nearest surface is not a piece. */
+  pieceAt: (x: number, y: number) => string | null;
 }>;
 
 /* How many frames the camera holds still before a run's first task takes its baseline. */
@@ -31,11 +33,11 @@ const onPage = (canvas: unknown): canvas is HTMLCanvasElement =>
   canvas instanceof HTMLCanvasElement && canvas.isConnected;
 
 /* The table's camera and canvas, read from the scene that drew it; the scene has no camera until its first frame. */
-function tableView(): { camera: Camera; canvas: HTMLCanvasElement } | null {
+function tableView(): { camera: Camera; canvas: HTMLCanvasElement; scene: Scene } | null {
   for (const [canvas, root] of _roots) {
     const camera = root.store.getState().camera as Camera | null;
     if (camera && onPage(canvas)) {
-      return { camera, canvas };
+      return { camera, canvas, scene: root.store.getState().scene };
     }
   }
   return null;
@@ -87,9 +89,34 @@ function project(point: Vector3Tuple, shown: Box): Target | null {
   );
 }
 
+const raycaster = new Raycaster();
+const pointer = new Vector2();
+
+function pieceAt(x: number, y: number): string | null {
+  const view = tableView();
+  if (!view) {
+    return null;
+  }
+  const bounds = view.canvas.getBoundingClientRect();
+  if (x < bounds.left || x > bounds.right || y < bounds.top || y > bounds.bottom) {
+    return null;
+  }
+  pointer.set(((x - bounds.left) / bounds.width) * 2 - 1, 1 - ((y - bounds.top) / bounds.height) * 2);
+  raycaster.setFromCamera(pointer, view.camera);
+  const hit = raycaster.intersectObjects(view.scene.children, true)[0];
+  for (let object: Object3D | null = hit?.object ?? null; object; object = object.parent) {
+    const piece = object.userData.duneTablePiece;
+    if (piece && typeof piece.id === 'string') {
+      return piece.id;
+    }
+  }
+  return null;
+}
+
 /** The lens onto the table the page's scene draws. */
 export const sceneTableLens: TableLens = {
   camera: () => tableView()?.camera ?? null,
   settling,
   project,
+  pieceAt,
 };
