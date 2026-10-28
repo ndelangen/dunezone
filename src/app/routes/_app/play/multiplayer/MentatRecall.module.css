@@ -76,8 +76,6 @@
 }
 .placed {
   margin: 0;
-}
-.placed {
   position: absolute;
 }
 .backdrop[data-motion="false"],

@@ -39,7 +39,7 @@ export const RecallFooter = meta.story({
     await expect(page.queryByRole('button', { name: /^Table chat/ })).toBeNull();
     await userEvent.click(own);
     await expect(page.getByLabelText('Spice reserve balance')).toBeVisible();
-    await expect(page.queryByRole('button', { name: /^Drag|Withdraw spice/ })).toBeNull();
+    await expect(page.queryByRole('button', { name: /^(?:Drag|Withdraw spice)/ })).toBeNull();
     await userEvent.click(chat);
     const frame = canvasElement.ownerDocument.querySelector('[data-window="recall-chat"]')!;
     await expect(within(frame as HTMLElement).getByRole('img', { name: 'Help' })).toHaveAccessibleDescription(
