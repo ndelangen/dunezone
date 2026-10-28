@@ -182,6 +182,7 @@ export const snapshotPolicy = {
   faq_answers: { drop: 'excluded by the ruling on #1310' },
   rulebook_drafts: { drop: 'unpublished drafts; the load seeds each live Rulebook a draft from its current Edition' },
   publication_jobs: { drop: 'work claims that must never run outside production' },
+  publication_job_listings: { drop: 'derived publication queue metadata' },
   leader_skill_stock_sets: { drop: 'GF9 stock installation identity, which belongs only to its original deployment' },
   publication_assets: { drop: 'publication records, which must never be acted on outside production' },
   admin_settings: { drop: 'operational settings, not content' },
@@ -376,6 +377,7 @@ export const installedComponents = {
   profileDiscovery: 'a derived index, which the loaders rebuild',
   profileActivity: 'derived counts per user and the ids they count, which the loaders rebuild',
   catalogueOrder: 'derived catalogue order, which the catalogue backfill rebuilds',
+  publicationQueue: 'derived publication queue order and counts',
 } satisfies { [Name in keyof typeof components]: string };
 
 /**
