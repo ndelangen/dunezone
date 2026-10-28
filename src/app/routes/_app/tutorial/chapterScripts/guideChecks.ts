@@ -15,14 +15,11 @@ export type Piece = GameSnapshot['table']['pieces'][number];
 export const at = (piece: { position: readonly number[] } | undefined) =>
   piece ? (piece.position as Vector3Tuple) : null;
 export const element = (selector: string) => () => document.querySelector(selector);
-/* The last match, as a piece just taken into the hand is listed last. */
 /** The button with exactly this text inside a window, rather than the window's own frame buttons that come first. */
 export const buttonIn = (windowKey: string, text: string) => (): HTMLButtonElement | null =>
   [...document.querySelectorAll<HTMLButtonElement>(`[data-window="${windowKey}"] button`)].find(
     (button) => (button.textContent?.trim() || button.getAttribute('aria-label')) === text
   ) ?? null;
-
-export const lastElement = (selector: string) => () => [...document.querySelectorAll(selector)].at(-1) ?? null;
 
 /* Each task keeps its own kind of baseline; the guide only hands it back. */
 export const task = <Baseline>(definition: GuideTask<Baseline>) => definition as unknown as GuideTask;
