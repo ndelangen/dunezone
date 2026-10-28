@@ -574,6 +574,38 @@ function measureHeader(node: HTMLElement | null) {
   return () => observer.disconnect();
 }
 
+function useTableViewController(
+  viewPhase: Exclude<Parameters<typeof createTableViewState>[0], undefined>,
+  requestedView: GameTableProps['requestedView']
+) {
+  const [viewState, dispatchView] = useReducer(reduceTableView, viewPhase, createTableViewState);
+  if (viewState.phase !== viewPhase) {
+    /* The phase changed since the last render; the reducer answers it before this render commits. */
+    dispatchView({ type: 'phase.changed', phase: viewPhase });
+  }
+  const cameraView = useMemo<CameraViewCommand>(
+    () => ({
+      view: viewState.activeView,
+      revision: viewState.cameraRevision,
+    }),
+    [viewState.activeView, viewState.cameraRevision]
+  );
+
+  useRequestedView(requestedView, dispatchView);
+
+  const handleInteractionActiveChange = useCallback((active: boolean) => {
+    dispatchView({ type: 'interaction.changed', active });
+  }, []);
+  const handleSceneReady = useCallback(() => dispatchView({ type: 'scene.ready' }), []);
+  /* A renderer whose initialisation never settles (the story runner's headless one is such a renderer) must not keep the shell closed for good: the clock reports for it, and a later real report changes nothing. */
+  useEffect(() => {
+    const timer = setTimeout(handleSceneReady, SCENE_READY_FALLBACK_MS);
+    return () => clearTimeout(timer);
+  }, [handleSceneReady]);
+
+  return { viewState, dispatchView, cameraView, handleInteractionActiveChange, handleSceneReady };
+}
+
 export function GameTable({
   sceneContent,
   readOnly = false,
@@ -608,31 +640,9 @@ export function GameTable({
   /* A faction phase takes the camera view of the standard phase it precedes (#1138). */
   const activePhase = tableProgress.phases.find((entry) => entry.id === tableProgress.activePhaseId);
   const viewPhase = frame.word || !activePhase ? null : standardPhaseOf(activePhase);
-  const [viewState, dispatchView] = useReducer(reduceTableView, viewPhase, createTableViewState);
-  if (viewState.phase !== viewPhase) {
-    /* The phase changed since the last render; the reducer answers it before this render commits. */
-    dispatchView({ type: 'phase.changed', phase: viewPhase });
-  }
+  const { viewState, dispatchView, cameraView, handleInteractionActiveChange, handleSceneReady } =
+    useTableViewController(viewPhase, requestedView);
   const overlaysInert = viewState.interactionActive || gestureActive;
-  const cameraView = useMemo<CameraViewCommand>(
-    () => ({
-      view: viewState.activeView,
-      revision: viewState.cameraRevision,
-    }),
-    [viewState.activeView, viewState.cameraRevision]
-  );
-
-  useRequestedView(requestedView, dispatchView);
-
-  const handleInteractionActiveChange = useCallback((active: boolean) => {
-    dispatchView({ type: 'interaction.changed', active });
-  }, []);
-  const handleSceneReady = useCallback(() => dispatchView({ type: 'scene.ready' }), []);
-  /* A renderer whose initialisation never settles (the story runner's headless one is such a renderer) must not keep the shell closed for good: the clock reports for it, and a later real report changes nothing. */
-  useEffect(() => {
-    const timer = setTimeout(handleSceneReady, SCENE_READY_FALLBACK_MS);
-    return () => clearTimeout(timer);
-  }, [handleSceneReady]);
 
   const scene = (
     <TableKeyboardContext value={tableKeyboard}>

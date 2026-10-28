@@ -1,7 +1,7 @@
 import type { ConversationMessage } from '@shared/play/conversations';
 import { recallConversation } from '@shared/play/conversations';
 import { TABLE_PHASES } from '@shared/play/phases';
-import type { GameSnapshot } from '@shared/play/protocol';
+import type { ClientMessage, GameSnapshot } from '@shared/play/protocol';
 import { reviewThreshold } from '@shared/play/review';
 import type { ReviewCheckpoint, TableReview } from '@shared/play/review';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
@@ -120,95 +120,106 @@ export function reviewTransport(
     admitView: () => ({ ...transport.view(live), pointers }),
     receive: (message) => {
       if (message.type === 'conversation-send' || message.type === 'conversation-history') {
-        const current = live.review;
-        if (!current || current.startedAt === null || message.peerId !== recallConversation(current.id)) {
-          return false;
-        }
-        if (message.type === 'conversation-history') {
-          queueMicrotask(() =>
-            transport.deliver({
-              ...message,
-              entries: messages.filter((entry) => entry.sequence < message.before),
-              more: false,
-            })
-          );
-        } else {
-          const saved = {
-            sequence: messages.length + 1,
-            requestId: message.requestId,
-            senderFactionId: message.factionId,
-            author: live.controls?.players.find((player) => player.seat === viewerSeat)?.name ?? 'Player',
-            text: message.text,
-            savedAt: STORYBOOK_NOW,
-          };
-          messages.push(saved);
-          queueMicrotask(() =>
-            transport.deliver({
-              type: 'conversation-message',
-              factionId: message.factionId,
-              peerId: message.peerId,
-              message: saved,
-            })
-          );
-        }
-        return true;
+        return receiveConversation(message);
       }
       if (message.type === 'history') {
-        queueMicrotask(() =>
-          transport.deliver({
-            type: 'history',
-            ...(message.requestId ? { requestId: message.requestId } : {}),
-            step: message.step,
-            lastStep: reviewCheckpoints().at(-1)!.step,
-            snapshot: checkpointSnapshot(message.step, viewerSeat),
-          })
-        );
-        return true;
+        return receiveHistory(message);
       }
-      if (message.type !== 'command') {
-        return false;
+      if (message.type === 'command') {
+        return receiveReview(message);
       }
-      const { action } = message;
-      const current = live.review ?? null;
-      let next: TableReview | null | undefined;
-      if (action.kind === 'review-propose') {
-        const checkpoint = reviewCheckpoints().find((entry) => entry.step === action.step)!;
-        const proposed = reviewOf(live, checkpoint, viewerSeat);
-        next = proposed;
-        agree = () => {
-          agree = null;
-          const others = live.controls!.players.filter((player) => player.seat !== viewerSeat).map((p) => p.seat);
-          publish(reviewOf(live, checkpoint, viewerSeat, others.slice(0, proposed.threshold - 1)));
-        };
-        if (agreeAfterMs !== null) {
-          setTimeout(() => agree?.(), agreeAfterMs);
-        }
-      } else if (action.kind === 'review-ballot' && current) {
-        next = {
-          ...current,
-          ballots: current.ballots.map((ballot) =>
-            ballot.seat === viewerSeat ? { ...ballot, choice: action.choice } : ballot
-          ),
-        };
-        const agreed = next.ballots.filter((ballot) => ballot.choice === 'review').length;
-        const open = next.ballots.filter((ballot) => ballot.choice === null).length;
-        next = agreed >= next.threshold ? { ...next, startedAt: 1 } : agreed + open < next.threshold ? null : next;
-      } else if (action.kind === 'review-seek' && current && current.startedAt !== null) {
-        const checkpoint = reviewCheckpoints().find((entry) => entry.step === action.step);
-        next = current && checkpoint ? { ...current, step: checkpoint.step, context: checkpoint.context } : undefined;
-      } else if (action.kind === 'review-end') {
-        agree = null;
-        messages.length = 0;
-        next = null;
-      }
-      if (next === undefined) {
-        return false;
-      }
-      const answer = next;
-      queueMicrotask(() => publish(answer, message.commandId));
-      return true;
+      return false;
     },
   });
+  function receiveConversation(
+    message: Extract<ClientMessage, { type: 'conversation-send' | 'conversation-history' }>
+  ) {
+    const current = live.review;
+    if (!current || current.startedAt === null || message.peerId !== recallConversation(current.id)) {
+      return false;
+    }
+    if (message.type === 'conversation-history') {
+      queueMicrotask(() =>
+        transport.deliver({
+          ...message,
+          entries: messages.filter((entry) => entry.sequence < message.before),
+          more: false,
+        })
+      );
+    } else {
+      const saved = {
+        sequence: messages.length + 1,
+        requestId: message.requestId,
+        senderFactionId: message.factionId,
+        author: live.controls?.players.find((player) => player.seat === viewerSeat)?.name ?? 'Player',
+        text: message.text,
+        savedAt: STORYBOOK_NOW,
+      };
+      messages.push(saved);
+      queueMicrotask(() =>
+        transport.deliver({
+          type: 'conversation-message',
+          factionId: message.factionId,
+          peerId: message.peerId,
+          message: saved,
+        })
+      );
+    }
+    return true;
+  }
+  function receiveHistory(message: Extract<ClientMessage, { type: 'history' }>) {
+    queueMicrotask(() =>
+      transport.deliver({
+        type: 'history',
+        ...(message.requestId ? { requestId: message.requestId } : {}),
+        step: message.step,
+        lastStep: reviewCheckpoints().at(-1)!.step,
+        snapshot: checkpointSnapshot(message.step, viewerSeat),
+      })
+    );
+    return true;
+  }
+  function receiveReview(message: Extract<ClientMessage, { type: 'command' }>) {
+    const { action } = message;
+    const current = live.review ?? null;
+    let next: TableReview | null | undefined;
+    if (action.kind === 'review-propose') {
+      const checkpoint = reviewCheckpoints().find((entry) => entry.step === action.step)!;
+      const proposed = reviewOf(live, checkpoint, viewerSeat);
+      next = proposed;
+      agree = () => {
+        agree = null;
+        const others = live.controls!.players.filter((player) => player.seat !== viewerSeat).map((p) => p.seat);
+        publish(reviewOf(live, checkpoint, viewerSeat, others.slice(0, proposed.threshold - 1)));
+      };
+      if (agreeAfterMs !== null) {
+        setTimeout(() => agree?.(), agreeAfterMs);
+      }
+    } else if (action.kind === 'review-ballot' && current) {
+      next = {
+        ...current,
+        ballots: current.ballots.map((ballot) =>
+          ballot.seat === viewerSeat ? { ...ballot, choice: action.choice } : ballot
+        ),
+      };
+      const agreed = next.ballots.filter((ballot) => ballot.choice === 'review').length;
+      const open = next.ballots.filter((ballot) => ballot.choice === null).length;
+      next = agreed >= next.threshold ? { ...next, startedAt: 1 } : agreed + open < next.threshold ? null : next;
+    } else if (action.kind === 'review-seek' && current && current.startedAt !== null) {
+      const checkpoint = reviewCheckpoints().find((entry) => entry.step === action.step);
+      next = current && checkpoint ? { ...current, step: checkpoint.step, context: checkpoint.context } : undefined;
+    } else if (action.kind === 'review-end') {
+      agree = null;
+      messages.length = 0;
+      next = null;
+    }
+    if (next === undefined) {
+      return false;
+    }
+    const answer = next;
+    queueMicrotask(() => publish(answer, message.commandId));
+    return true;
+  }
   function publish(next: TableReview | null, commandId?: string) {
     revision += 1;
     live = { ...live, revision, review: next };

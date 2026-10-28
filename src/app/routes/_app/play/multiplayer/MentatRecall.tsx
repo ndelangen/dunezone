@@ -121,20 +121,49 @@ function FrozenInventory({
   context,
   balance,
 }: Readonly<{ hand: TablePiece[]; order: readonly string[]; side: boolean; context: string; balance?: number }>) {
+  const pieces = side ? hiddenZonePieces(hand) : orderedHand(hand, order);
+  const layout = side ? sideTableLayout(pieces) : undefined;
+  return (
+    <Stack gap="sm">
+      <Text size="sm">Your seat's items at {context}. Frozen and visible only to this seat.</Text>
+      {!side && balance !== undefined && <Text size="sm">Spice reserve: {balance}</Text>}
+      {pieces.length === 0 ? (
+        <Text size="sm" c="dimmed">
+          Nothing was here at this checkpoint.
+        </Text>
+      ) : (
+        <div className={styles.inventoryScroll}>
+          <div className={side ? styles.sideTable : styles.hand} style={layout?.size}>
+            {pieces.map((piece, index) => (
+              <FrozenPiece key={piece.id} piece={piece} placement={layout?.placements[index]} />
+            ))}
+          </div>
+        </div>
+      )}
+      <Text size="xs" c="dimmed">
+        Read only. No moving, rearranging, flipping or peeking.
+      </Text>
+    </Stack>
+  );
+}
+
+function orderedHand(hand: readonly TablePiece[], order: readonly string[]) {
   const positions = new Map(order.map((id, index) => [id, index]));
-  const pieces = side
-    ? hiddenZonePieces(hand)
-    : hand
-        .filter((piece) => !piece.hiddenZone)
-        .sort((a, b) => (positions.get(a.id) ?? Infinity) - (positions.get(b.id) ?? Infinity));
+  return hand
+    .filter((piece) => !piece.hiddenZone)
+    .sort((a, b) => (positions.get(a.id) ?? Infinity) - (positions.get(b.id) ?? Infinity));
+}
+
+function sideTableLayout(pieces: readonly TablePiece[]) {
   const placements = pieces.map((piece) => {
     const footprint = hiddenZoneFootprint(piece);
     const width = footprint.width * HIDDEN_ZONE_MIN_SCALE;
     const height = footprint.depth * HIDDEN_ZONE_MIN_SCALE;
-    const angle = ((piece.hiddenZone?.turn ?? 0) * 2 * Math.PI) / HIDDEN_ZONE_TURNS;
+    const { x, y, turn = 0 } = piece.hiddenZone!;
+    const angle = (turn * 2 * Math.PI) / HIDDEN_ZONE_TURNS;
     return {
-      x: (piece.hiddenZone?.x ?? 0) * HIDDEN_ZONE_WIDTH * HIDDEN_ZONE_MIN_SCALE,
-      y: (piece.hiddenZone?.y ?? 0) * HIDDEN_ZONE_DEPTH * HIDDEN_ZONE_MIN_SCALE,
+      x: x * HIDDEN_ZONE_WIDTH * HIDDEN_ZONE_MIN_SCALE,
+      y: y * HIDDEN_ZONE_DEPTH * HIDDEN_ZONE_MIN_SCALE,
       width,
       height,
       angle,
@@ -152,68 +181,55 @@ function FrozenInventory({
     HIDDEN_ZONE_DEPTH * HIDDEN_ZONE_MIN_SCALE,
     ...placements.map((spot) => spot.y + spot.halfHeight)
   );
+  return {
+    placements: placements.map((spot) => ({ ...spot, x: spot.x - left, y: spot.y - top })),
+    size: { width: right - left, height: bottom - top },
+  };
+}
+
+type FrozenPlacement = ReturnType<typeof sideTableLayout>['placements'][number];
+
+function frozenArtwork(piece: TablePiece, side: boolean) {
+  const item = piece.items.at(-1);
+  if (!item?.artwork) {
+    return { source: undefined, name: piece.label };
+  }
+  const artwork = item.artwork;
+  const visible = !side || item.faceUp;
+  return {
+    source: visible ? (artwork.front ?? artwork.back) : artwork.back,
+    name: visible ? (artwork.name ?? piece.label) : (artwork.backName ?? 'Face-down piece'),
+  };
+}
+
+function handPieceSize(piece: TablePiece) {
+  return piece.kind === 'card' ? { width: 100, height: 140 } : { width: 64, height: 64 };
+}
+
+function FrozenPiece({ piece, placement }: Readonly<{ piece: TablePiece; placement?: FrozenPlacement }>) {
+  const { source, name } = frozenArtwork(piece, Boolean(placement));
+  const { width, height } = placement ?? handPieceSize(piece);
+  const caption = `${name}${piece.items.length > 1 ? ` × ${piece.items.length}` : ''}`;
   return (
-    <Stack gap="sm">
-      <Text size="sm">Your seat's items at {context}. Frozen and visible only to this seat.</Text>
-      {!side && balance !== undefined && <Text size="sm">Spice reserve: {balance}</Text>}
-      {pieces.length === 0 ? (
-        <Text size="sm" c="dimmed">
-          Nothing was here at this checkpoint.
-        </Text>
+    <figure
+      className={placement ? styles.placed : styles.piece}
+      style={
+        placement && {
+          left: placement.x,
+          top: placement.y,
+          width,
+          height,
+          transform: `translate(-50%, -50%) rotate(${placement.angle}rad)`,
+        }
+      }
+    >
+      <PieceArtwork piece={piece} src={source ?? null} name={name} width={width} height={height} />
+      {placement ? (
+        <VisuallyHidden component="figcaption">{caption}</VisuallyHidden>
       ) : (
-        <div className={styles.inventoryScroll}>
-          <div
-            className={side ? styles.sideTable : styles.hand}
-            style={side ? { width: right - left, height: bottom - top } : undefined}
-          >
-            {pieces.map((piece, index) => {
-              const item = piece.items.at(-1);
-              const visible = !side || item?.faceUp;
-              const source = visible ? (item?.artwork?.front ?? item?.artwork?.back) : item?.artwork?.back;
-              const name = visible
-                ? (item?.artwork?.name ?? piece.label)
-                : (item?.artwork?.backName ?? 'Face-down piece');
-              const spot = placements[index]!;
-              const width = side ? spot.width : piece.kind === 'card' ? 100 : 64;
-              const height = side ? spot.height : piece.kind === 'card' ? 140 : 64;
-              return (
-                <figure
-                  key={piece.id}
-                  className={side ? styles.placed : styles.piece}
-                  style={
-                    side
-                      ? {
-                          left: spot.x - left,
-                          top: spot.y - top,
-                          width,
-                          height,
-                          transform: `translate(-50%, -50%) rotate(${((piece.hiddenZone!.turn ?? 0) * 360) / HIDDEN_ZONE_TURNS}deg)`,
-                        }
-                      : undefined
-                  }
-                >
-                  <PieceArtwork piece={piece} src={source ?? null} name={name} width={width} height={height} />
-                  {side ? (
-                    <VisuallyHidden component="figcaption">
-                      {name}
-                      {piece.items.length > 1 ? ` × ${piece.items.length}` : ''}
-                    </VisuallyHidden>
-                  ) : (
-                    <figcaption>
-                      {name}
-                      {piece.items.length > 1 ? ` × ${piece.items.length}` : ''}
-                    </figcaption>
-                  )}
-                </figure>
-              );
-            })}
-          </div>
-        </div>
+        <figcaption>{caption}</figcaption>
       )}
-      <Text size="xs" c="dimmed">
-        Read only. No moving, rearranging, flipping or peeking.
-      </Text>
-    </Stack>
+    </figure>
   );
 }
 

@@ -538,7 +538,7 @@ export class TableSession {
       return null;
     }
     const table = this.liveTable();
-    if (!table.playback && !table.historyPending && !reviewRunning(this.saved?.review)) {
+    if (this.current() && !reviewRunning(this.saved?.review)) {
       this.lastLive = { table };
     }
     return table;
@@ -607,13 +607,7 @@ export class TableSession {
   private liveTable(): TableProjection {
     const viewer = this.viewer!;
     const displayed = this.presentedSnapshot();
-    const state = {
-      ...tableForViewer(displayed, viewer.viewerSeat),
-      factionTieBreaks: snapshotFactionTieBreaks(displayed),
-      /* A selection made before handling closed is not shown, so nothing offers to act on it. */
-      selectedPieceId: this.canAct() && tableHandlingOpen(this.snapshot.stage) ? this.selectedId : null,
-      draftMove: this.carry?.draft ?? null,
-    };
+    const state = this.stateForView(displayed);
     const { carries: remote } = this.activityForView();
     const local = this.localProjection(state);
     const canInteract = this.canAct();
@@ -648,6 +642,27 @@ export class TableSession {
       renderedPieces,
       selectedPiece: renderedPieces.find((piece) => piece.id === state.selectedPieceId) ?? null,
       affordances: affordancesFor({ ...state, pieces: renderedPieces }),
+      ...this.interactionProjection(displayed),
+      ...remoteIds,
+      reservedPieceIds,
+      gestureActivePieceId: local.gestureActivePieceId,
+      hoveredPieceId: this.hoveredId,
+      flippingPieceIds: local.flippingPieceIds,
+      serverNow: this.clockForView(),
+    };
+  }
+  private stateForView(displayed: GameSnapshot) {
+    return {
+      ...tableForViewer(displayed, this.viewer!.viewerSeat),
+      factionTieBreaks: snapshotFactionTieBreaks(displayed),
+      selectedPieceId: this.canHandle() ? this.selectedId : null,
+      draftMove: this.carry?.draft ?? null,
+    };
+  }
+  private interactionProjection(displayed: GameSnapshot) {
+    const canInteract = this.canAct();
+    const canHandleTable = this.canHandle();
+    return {
       spiceReserveControls: canHandleTable && displayed.bank ? this.spiceReserveControls : undefined,
       deckControls:
         canHandleTable && this.subscription.supportsCommand('deck-draw') ? this.deckControls(displayed) : undefined,
@@ -660,12 +675,6 @@ export class TableSession {
           : this.arrangedPeek(displayed.peek ?? null),
       peekControls: canHandleTable && displayed.bank ? this.peekControls : undefined,
       closePeek: canInteract && displayed.peek ? this.peekCloser(displayed.peek.piece.id) : undefined,
-      ...remoteIds,
-      reservedPieceIds,
-      gestureActivePieceId: local.gestureActivePieceId,
-      hoveredPieceId: this.hoveredId,
-      flippingPieceIds: local.flippingPieceIds,
-      serverNow: this.clockForView(),
     };
   }
   private clockForView() {
@@ -882,16 +891,23 @@ export class TableSession {
     return changed;
   }
   private canSend(message: Exclude<ClientMessage, { type: 'admit' | 'sync' }>): boolean {
-    /* A seat command is the spectator's one way to act, so it passes without a seat; `command` holds it to a current view. */
-    const seat = message.type === 'command' && isSeatAction(message.action);
-    /* Answering or ending a table review goes out while its checkpoint shows; `command` holds it to a seated viewer. */
-    const review = message.type === 'command' && isReviewAction(message.action);
-    /* Putting a held piece back also passes while a resync pauses the table, so the Worker never keeps a piece the tab let go of. */
-    const release = message.type === 'cancel' && this.carry !== null;
-    const presence = (message.type === 'pointer' || message.type === 'ping') && this.canPoint();
-    return (
-      this.status === 'authorized' && (isReadRequest(message) || seat || review || release || presence || this.canAct())
-    );
+    if (this.status !== 'authorized') {
+      return false;
+    }
+    if (isReadRequest(message)) {
+      return true;
+    }
+    if (message.type === 'pointer' || message.type === 'ping') {
+      return this.canPoint();
+    }
+    return this.canAct() || this.canSendWhilePaused(message);
+  }
+  private canSendWhilePaused(message: Exclude<ClientMessage, { type: 'admit' | 'sync' }>): boolean {
+    if (message.type === 'command') {
+      return isSeatAction(message.action) || isReviewAction(message.action);
+    }
+    /* A held piece must return even while resync or recall pauses the table. */
+    return message.type === 'cancel' && this.carry !== null;
   }
   private send(message: Exclude<ClientMessage, { type: 'admit' | 'sync' }>): boolean {
     return this.canSend(message) && this.subscription.send(message);
@@ -1075,10 +1091,10 @@ export class TableSession {
     }
   }
   private receiveHistory(message: Extract<ServerMessage, { type: 'history' }>) {
-    if (
-      this.pendingHistory !== message.step ||
-      (message.requestId !== undefined && message.requestId !== this.historyRequestId)
-    ) {
+    if (this.pendingHistory !== message.step) {
+      return;
+    }
+    if (message.requestId !== undefined && message.requestId !== this.historyRequestId) {
       return;
     }
     this.history = message;
@@ -1088,19 +1104,18 @@ export class TableSession {
     this.pendingHistory = null;
   }
   private receiveRejection(message: Extract<ServerMessage, { type: 'rejected' }>) {
-    if (
-      message.requestId.startsWith('history-') &&
-      (this.pendingHistory === null || message.requestId !== this.historyRequestId)
-    ) {
-      return;
+    if (message.requestId.startsWith('history-')) {
+      if (this.pendingHistory === null) {
+        return;
+      }
+      if (message.requestId !== this.historyRequestId) {
+        return;
+      }
     }
     this.error = message.message;
     this.pages.forgetFactionReads();
     if (this.pendingHistory !== null && message.requestId === (this.historyRequestId ?? 'message')) {
-      /*
-       * A history read carries no id, so the Worker refuses it as 'message'. It never gets a history reply, so the
-       * viewer stays on the checkpoint they were on and sees the reason instead of waiting.
-       */
+      /* A refused read keeps the previous checkpoint and exposes the reason for retry. */
       this.pendingHistory = null;
     }
     if (message.requestId === this.catalogueRequestId) {
@@ -1261,14 +1276,21 @@ export class TableSession {
   refreshLogHistory = (tab: LogTab) => this.pages.refreshLog(tab);
   readFaction = (factionId: string) => this.pages.readFaction(factionId);
   readSpiceHistory = (before?: number) => this.pages.readSpice(before);
+  private expireHistoryRequest() {
+    if (this.pendingHistory === null) {
+      return;
+    }
+    if (this.runtime.monotonicNow() - this.historyRequestedAt < 15_000) {
+      return;
+    }
+    this.pendingHistory = null;
+    this.error = 'The checkpoint did not arrive. Try loading it again.';
+    this.emit();
+  }
   /* Carries and pointers expire on the Worker, which broadcasts each removal; the tab keeps what the last frame held. */
   private readonly tickActivity = () => {
     this.conversations.tick();
-    if (this.pendingHistory !== null && this.runtime.monotonicNow() - this.historyRequestedAt >= 15_000) {
-      this.pendingHistory = null;
-      this.error = 'The checkpoint did not arrive. Try loading it again.';
-      this.emit();
-    }
+    this.expireHistoryRequest();
     if (this.carry && !this.carry.pendingDrop) {
       this.send({ type: 'renew', carryId: this.carry.id });
     }

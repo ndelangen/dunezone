@@ -110,6 +110,7 @@ import { territoryAtTablePoint } from './TerritoryTints';
 import { useTurnedDownFaces } from './turnedDownFaces';
 import { useDeckShuffleAnimation } from './useDeckShuffleAnimation';
 import { usePieceFlipAnimation } from './usePieceFlipAnimation';
+import { useSceneInteractions } from './useSceneInteractions';
 import { PlatePosesProvider, useTablePose } from './useTablePose';
 
 type TabletopSceneProps = {
@@ -1140,28 +1141,17 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
   );
 });
 
-function useSceneInteractions(onInteractionActiveChange: TabletopSceneProps['onInteractionActiveChange']) {
-  const gestureActivePieceId = useTabletopSelector((table) => table.gestureActivePieceId);
-  const [pointerActive, setPointerActive] = useState(false);
-  const onPointerSessionChange = useCallback(
-    (nextActive: boolean) => {
-      setPointerActive(nextActive);
-      if (nextActive) {
-        onInteractionActiveChange?.(true);
-      }
-    },
-    [onInteractionActiveChange]
-  );
-  const sceneInteractionActive = pointerActive || gestureActivePieceId !== null;
-
-  useEffect(() => {
-    onInteractionActiveChange?.(sceneInteractionActive);
-  }, [onInteractionActiveChange, sceneInteractionActive]);
-  useEffect(() => () => onInteractionActiveChange?.(false), [onInteractionActiveChange]);
-
-  return {
-    controlsEnabled: !gestureActivePieceId && !pointerActive,
-    onPointerSessionChange,
+function boardSelection(
+  board: GameSnapshot['board'],
+  view: Parameters<typeof paintClick>[2] & Pick<TabletopSceneProps, 'readOnly'>,
+  selectPiece: TabletopContextValue['selectPiece']
+) {
+  return (event: ThreeEvent<MouseEvent>) => {
+    if (view.readOnly) {
+      return;
+    }
+    paintClick(event, board, view);
+    selectPiece(null);
   };
 }
 
@@ -1216,15 +1206,7 @@ function SceneContents({
           <ScenePings />
         </Suspense>
       )}
-      <group
-        onClick={(event) => {
-          if (readOnly) {
-            return;
-          }
-          paintClick(event, board, { stage, mapVisible });
-          selectPiece(null);
-        }}
-      >
+      <group onClick={boardSelection(board, { stage, mapVisible, readOnly }, selectPiece)}>
         {drawBoard && (
           <TabletopBoard
             board={board}
@@ -1279,6 +1261,7 @@ export function TabletopScene({
   stage,
   mapVisible,
 }: TabletopSceneProps) {
+  const editing = presentation === 'play' && !readOnly;
   const { takeAdditionalFromTarget } = useTabletopCommands();
   /* The frame around the canvas follows only what it shows, so a held piece moving renders the pieces and not the canvas. */
   const hasDraft = useTabletopSelector((table) => table.state.draftMove !== null);
@@ -1310,7 +1293,7 @@ export function TabletopScene({
         }
       }}
     >
-      {presentation === 'play' && !readOnly && (
+      {editing && (
         <Suspense fallback={null}>
           <TabletopTools
             pieceMenu={pieceMenu}
@@ -1320,7 +1303,7 @@ export function TabletopScene({
           />
         </Suspense>
       )}
-      <PieceMenuContext.Provider value={presentation === 'play' && !readOnly && menuAvailable ? openPieceMenu : null}>
+      <PieceMenuContext.Provider value={editing && menuAvailable ? openPieceMenu : null}>
         <TabletopCanvas
           camera={camera}
           presentation={presentation}
