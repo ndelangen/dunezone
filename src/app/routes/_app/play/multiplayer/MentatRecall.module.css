@@ -1,7 +1,7 @@
 .backdrop {
   position: absolute;
   inset: 0;
-  z-index: 6;
+  z-index: 1;
   pointer-events: none;
   opacity: 0;
   transition: opacity 900ms ease;
@@ -41,14 +41,14 @@
 :global(.dune-play-shell)[data-mentat-recall="true"] :global(.scene) canvas {
   filter: saturate(0.72) contrast(1.02) brightness(0.98);
 }
-:global(.dune-play-shell) :global(.seated-header),
+:global(.dune-play-shell) :global(.seated-header) > :not(:has([data-recall-return])),
 :global(.dune-play-shell) :global(.seated-camera),
-:global([data-recall-controls]) {
+:global([data-recall-controls]) > :not([data-window="hand"]):not([data-window="hidden-zone"]) {
   transition: filter 900ms ease;
 }
-:global(.dune-play-shell)[data-mentat-recall="true"] :global(.seated-header),
+:global(.dune-play-shell)[data-mentat-recall="true"] :global(.seated-header) > :not(:has([data-recall-return])),
 :global(.dune-play-shell)[data-mentat-recall="true"] :global(.seated-camera),
-:global([data-recall-controls="true"]) {
+:global([data-recall-controls="true"]) > :not([data-window="hand"]):not([data-window="hidden-zone"]) {
   filter: hue-rotate(150deg) saturate(0.78);
 }
 :global([data-recall-controls="true"] [role="option"][aria-disabled="true"]) {
@@ -89,13 +89,18 @@
 @media (prefers-reduced-motion: reduce) {
   .backdrop,
   :global(.dune-play-shell) :global(.scene) canvas,
-  :global(.dune-play-shell) :global(.seated-header),
+  :global(.dune-play-shell) :global(.seated-header) > :not(:has([data-recall-return])),
   :global(.dune-play-shell) :global(.seated-camera),
-  :global([data-recall-controls]) {
+  :global([data-recall-controls]) > :not([data-window="hand"]):not([data-window="hidden-zone"]) {
     transition: none;
   }
 }
 
 :global(.dune-play-shell)[data-mentat-recall-loading="true"] :global(.scene) {
   opacity: 0.2;
+}
+
+/* Pointer hands stay above the recall tint with their recorded player colours. */
+:global(.dune-play-shell)[data-mentat-recall="true"] :global(.scene--immersive) {
+  z-index: auto;
 }

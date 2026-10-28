@@ -56,9 +56,9 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     }),
     task({
       id: 'review-propose',
-      task: 'Ask to review Storm',
+      task: 'Ask to recall Storm',
       detail:
-        'Press {Space}, type Table review and confirm with {Enter}.\n\nUse Earlier checkpoint to select Turn 1, Storm, then Ask the table to review.\n\nIf you picked the wrong checkpoint, withdraw the request and try again.',
+        'Press {Space}, type Mentat recall and confirm with {Enter}.\n\nUse Earlier checkpoint to select Turn 1, Storm, then Ask the table to recall.\n\nIf you picked the wrong checkpoint, withdraw the request and try again.',
       anchor: {
         kind: 'page',
         element: () =>
@@ -69,19 +69,19 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     }),
     task({
       id: 'review-majority',
-      task: 'Agree to a review',
+      task: 'Agree to recall',
       detail:
-        'A review needs agreement from more than half the seated players. Your request counts as your agreement.\n\nOther players can agree or decline.\n\nIf you withdraw the request, ask to review Turn 1, Storm again.\n\nPress {Enter} to let them respond.',
-      anchor: { kind: 'page', element: element('[aria-label="Table review vote"]') },
+        'A recall needs agreement from more than half the seated players. Your request counts as your agreement.\n\nOther players can agree or decline.\n\nIf you withdraw the request, ask to recall Turn 1, Storm again.\n\nPress {Enter} to let them respond.',
+      anchor: { kind: 'page', element: element('[aria-label="Mentat recall vote"]') },
       ...continueReview,
       done: (watch) =>
         snapshot().review?.step === 0 && snapshot().review?.id === continuedReviewId && continueReview.done(watch),
     }),
     task({
       id: 'review-votes',
-      task: 'Watch the review vote',
+      task: 'Watch the recall vote',
       detail:
-        'The other players are agreeing now. Once a majority agrees, play pauses and everyone sees the saved public position.\n\nIf you withdraw the request, ask to review Turn 1, Storm again.',
+        'The other players are agreeing now. Once a majority agrees, play pauses and everyone sees the saved public position.\n\nIf you withdraw the request, ask to recall Turn 1, Storm again.',
       anchor: { kind: 'page', element: element('[data-window="review"]') },
       begin: () => {
         const timer = setInterval(() => {
@@ -105,20 +105,21 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'review-discuss',
       task: 'Discuss the saved position',
       detail:
-        'You are all looking at the Storm checkpoint. Pieces cannot move, peeking is disabled, and private hands and plans stay hidden.\n\nUse table chat or talk aloud to resolve the dispute.\n\nPress {Enter} when you are ready to resume.',
-      anchor: { kind: 'page', element: element('[aria-label="Table review in progress"]') },
+        'You are all looking at the Storm checkpoint. All game contents are frozen. Your seat can see its recorded hand, private side table and spice reserve.\n\nUse Recall chat or talk aloud to resolve the dispute. Recall chat is separate from table chat and disappears when play resumes.\n\nPress {Enter} when you are ready to resume.',
+      anchor: { kind: 'page', element: element('[aria-label="Mentat recall in progress"]') },
       ...pressEnter(),
     }),
     task({
       id: 'review-resume',
       task: 'Resume the current game',
       detail:
-        'Press Resume play. Any seated player can do this. You all return to the live Spice Blow position.\n\nReviewing an earlier position does not undo any moves.',
+        'Press Return to the game. Any seated player can do this. You all return to the live Spice Blow position.\n\nRecalling an earlier position does not undo any moves.',
       anchor: {
         kind: 'page',
         element: () =>
-          [...document.querySelectorAll('button')].find((button) => button.textContent?.trim() === 'Resume play') ??
-          null,
+          [...document.querySelectorAll('button')].find(
+            (button) => button.textContent?.trim() === 'Return to the game'
+          ) ?? null,
       },
       begin: () => undefined,
       done: () => !snapshot().review,
@@ -211,8 +212,8 @@ function voteInTurn(
 /* One line for each part of the chapter, in the order it was played. */
 const learned = [
   'Game log records public events; Audit records seats and votes',
-  'Table review needs a majority to inspect one saved public position',
-  'Review pauses play; Resume play returns everyone to the current game',
+  'Mentat recall needs a majority to inspect one saved public position',
+  'Recall pauses play; Return to the game returns everyone to the current game',
   'Start removal vote waits in a player’s faction information',
   'More than half of the whole table must vote Remove',
   'Enough Keep votes end a vote early',

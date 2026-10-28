@@ -2047,7 +2047,7 @@ async function seededCustomContent(a: HostedPeer, b: HostedPeer) {
 }
 
 /**
- * A table review both players agree to shows each of them the same checkpoint and pauses the table, then Resume play returns both to the live table.
+ * A Mentat recall both players agree to shows each of them the same checkpoint and pauses the table, then Return to the game returns both to the live table.
  * Players may not look back alone, so a game in progress offers no Replay.
  */
 async function verifyTableReview(a: HostedPeer, b: HostedPeer) {
@@ -2057,12 +2057,12 @@ async function verifyTableReview(a: HostedPeer, b: HostedPeer) {
   await revision(b, before + 1);
   await displayedPhase(a, TABLE_PHASES.length);
   assert.equal(await windowOf(b, 'Replay').count(), 0);
-  await openTab(b, 'Table review');
+  await openTab(b, 'Mentat recall');
   const historyFrom = [a.rawMessages.length, b.rawMessages.length];
-  await windowOf(b, 'Table review').getByRole('button', { name: 'Ask the table to review' }).click();
-  await a.page.getByRole('group', { name: 'Table review vote' }).getByRole('button', { name: 'Agree' }).click();
+  await windowOf(b, 'Mentat recall').getByRole('button', { name: 'Ask the table to recall' }).click();
+  await a.page.getByRole('group', { name: 'Mentat recall vote' }).getByRole('button', { name: 'Agree' }).click();
   for (const [index, who] of [a, b].entries()) {
-    await who.page.getByRole('group', { name: 'Table review in progress' }).waitFor();
+    await who.page.getByRole('group', { name: 'Mentat recall in progress' }).waitFor();
     await until(
       () => who.rawMessages.slice(historyFrom[index]).some((message) => message.type === 'history'),
       `${who.label} was not shown the reviewed checkpoint.`
@@ -2070,8 +2070,8 @@ async function verifyTableReview(a: HostedPeer, b: HostedPeer) {
     assert.equal(await who.page.getByRole('button', { name: 'Next phase', exact: true }).count(), 0);
   }
   await a.page
-    .getByRole('group', { name: 'Table review in progress' })
-    .getByRole('button', { name: 'Resume play' })
+    .getByRole('group', { name: 'Mentat recall in progress' })
+    .getByRole('button', { name: 'Return to the game' })
     .click();
   for (const who of [a, b]) {
     /* The live table's cooldown (#1139) can still be running; the controls refresh on its next tick. */
@@ -2083,7 +2083,7 @@ async function verifyTableReview(a: HostedPeer, b: HostedPeer) {
     await displayedPhase(who, TABLE_PHASES.length);
   }
   passed(
-    'A table review both players agree to shows each the same checkpoint with no table controls, and Resume play returns both to the live table'
+    'A Mentat recall both players agree to shows each the same checkpoint with no table controls, and Return to the game returns both to the live table'
   );
   return requireView(a).snapshot.revision;
 }
@@ -2235,7 +2235,7 @@ async function verifyRegular() {
   await sharedPhaseFlow(a, b);
   await sharedTrackerFlow(a, b);
   /* The live table sits at Mentat Pause, whose advance is gated on readiness (#1139); readiness
-     is declared before the table review, which pauses every control. */
+     is declared before the Mentat recall, which pauses every control. */
   await readyBeforeAdvance(a, b);
   const reviewed = await verifyTableReview(a, b);
 

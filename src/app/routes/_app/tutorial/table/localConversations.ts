@@ -1,7 +1,14 @@
-import { conversationMembers, conversationPeerFor, TABLE_CONVERSATION } from '@shared/play/conversations';
+import {
+  conversationMembers,
+  conversationPeerFor,
+  TABLE_CONVERSATION,
+  isRecallConversation,
+  recallConversation,
+} from '@shared/play/conversations';
 import type { ConversationMessage } from '@shared/play/conversations';
 import type { ClientMessage, ServerMessage } from '@shared/play/protocol';
 import { rosterFactionIds } from '@shared/play/protocol';
+import { reviewRunning } from '@shared/play/review';
 
 import type { LocalTable } from './localTable';
 
@@ -13,7 +20,9 @@ export const REPLY_AFTER_MS = 1500;
 
 /* Both sides of a pair share one key, as in the Worker; the table is one conversation for everyone. */
 const pairKey = (factionId: string, peerId: string) =>
-  peerId === TABLE_CONVERSATION ? TABLE_CONVERSATION : [factionId, peerId].sort((a, b) => a.localeCompare(b)).join('|');
+  peerId === TABLE_CONVERSATION || isRecallConversation(peerId)
+    ? peerId
+    : [factionId, peerId].sort((a, b) => a.localeCompare(b)).join('|');
 
 /**
  * The conversations of a table running in the page, kept as the game Worker keeps them, for the learner's seat.
@@ -24,6 +33,8 @@ export class LocalConversations {
   /** The signed-in player's own name, which the answers greet; the seat's name stands in without one. */
   learnerName: string | undefined;
   private messages: Saved[] = [];
+  private recall: string | undefined;
+  private origin: LocalTable | undefined;
   private readonly reads = new Map<string, number>();
   private readonly timers = new Set<ReturnType<typeof setTimeout>>();
 
@@ -33,6 +44,14 @@ export class LocalConversations {
   ) {}
 
   receive(request: Request) {
+    this.authority();
+    if (!this.mayUse(request.peerId, request.type === 'conversation-send')) {
+      return this.deliver({
+        type: 'rejected',
+        requestId: request.requestId,
+        message: 'This conversation is not available.',
+      });
+    }
     switch (request.type) {
       case 'conversation-history': {
         const entries = this.page(request.factionId, request.peerId).filter((entry) => entry.sequence < request.before);
@@ -50,11 +69,41 @@ export class LocalConversations {
 
   /** Gives a page that just connected the learner's conversations as they stand, as the Worker does with each view. */
   admitted() {
+    this.authority();
     const learner = this.factionOf(this.table().seat);
     /* A seat with no faction has no conversations, and the Worker sends it no summaries. */
     if (learner) {
       this.summaries(learner);
     }
+  }
+
+  /** A recall's messages and read positions end with that instance, including across a chapter reset. */
+  authority() {
+    const table = this.table();
+    const sameTable = this.origin === table;
+    const review = table.frame().snapshot.review;
+    const peer = reviewRunning(review) ? recallConversation(review.id) : undefined;
+    if (sameTable && this.recall === peer) {
+      return;
+    }
+    this.origin = table;
+    this.recall = peer;
+    const retained = sameTable ? peer : undefined;
+    this.messages = this.messages.filter((entry) => !isRecallConversation(entry.pair) || entry.pair === retained);
+    for (const key of this.reads.keys()) {
+      if (key.startsWith('@recall:')) {
+        this.reads.delete(key);
+      }
+    }
+  }
+  private mayUse(peerId: string, sending: boolean) {
+    if (isRecallConversation(peerId)) {
+      return peerId === this.recall;
+    }
+    if (sending && this.recall) {
+      return false;
+    }
+    return true;
   }
 
   /** Stops any answer still on its way, as leaving the chapter does. */
@@ -86,17 +135,24 @@ export class LocalConversations {
 
   /** The other side answers a moment later: the player written to, or on the table chat the first other player. */
   private answer(learner: string, peerId: string, seated: readonly string[]) {
-    const onTable = peerId === TABLE_CONVERSATION;
+    const onTable = peerId === TABLE_CONVERSATION || isRecallConversation(peerId);
     const replier = onTable ? seated.find((faction) => faction !== learner) : peerId;
     const seat = replier && this.seatOf(replier);
     if (!replier || !seat) {
       return;
     }
-    const name = this.learnerName || this.table().viewer().displayName;
+    const origin = this.table();
+    const name = this.learnerName || origin.viewer().displayName;
     const timer = setTimeout(() => {
       this.timers.delete(timer);
+      if (isRecallConversation(peerId) && origin !== this.table()) {
+        return;
+      }
+      if (!this.mayUse(peerId, true)) {
+        return;
+      }
       const author = this.table().viewer(seat).displayName;
-      this.save(replier, onTable ? TABLE_CONVERSATION : learner, author, `Hey, nice of you to message me, ${name}!`);
+      this.save(replier, onTable ? peerId : learner, author, `Hey, nice of you to message me, ${name}!`);
     }, REPLY_AFTER_MS);
     this.timers.add(timer);
   }
@@ -138,7 +194,8 @@ export class LocalConversations {
   /** The learner's conversations with each other faction, then the table, with what they have not read. */
   private summaries(factionId: string) {
     const peers = rosterFactionIds(this.table().room.snapshot.roster).filter((peer) => peer !== factionId);
-    const entries = [...peers, TABLE_CONVERSATION].map((peerId) => {
+    const groups = this.recall ? [TABLE_CONVERSATION, this.recall] : [TABLE_CONVERSATION];
+    const entries = [...peers, ...groups].map((peerId) => {
       const pair = pairKey(factionId, peerId);
       const read = this.reads.get(`${pair}/${factionId}`) ?? 0;
       const messages = this.messages.filter((entry) => entry.pair === pair);

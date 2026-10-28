@@ -87,7 +87,7 @@ function ResumePlay({
   current,
 }: Readonly<{ client: TableSession; review: Review; current: TableReview }>) {
   return review.seat ? (
-    <Stack gap={2}>
+    <Stack gap={2} data-recall-return>
       <Button size="xs" onClick={() => client.command({ kind: 'review-end', reviewId: current.id })}>
         Return to the game
       </Button>

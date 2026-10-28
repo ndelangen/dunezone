@@ -127,3 +127,33 @@ export const SharedHistoryKeepsTheLiveLayout = meta.story({
     await expect(original).toHaveAttribute('data-side', 'right');
   },
 });
+
+/* A later view can clear an old refusal, but it cannot hide retry while the selected checkpoint is still missing. */
+export const MissingCheckpointCanRetry = meta.story({
+  beforeEach: install(() => {
+    const snapshot = reviewableSnapshot();
+    const review = reviewOf(snapshot, bidding, 'seat-1', ['seat-3', 'seat-4', 'seat-5']);
+    const transport = reviewTransport('seat-2', review);
+    const deliver = transport.deliver;
+    let refused = false;
+    transport.deliver = (message) => {
+      if (message.type === 'history' && !refused) {
+        refused = true;
+        deliver({ type: 'rejected', requestId: message.requestId ?? 'message', message: 'Checkpoint read refused.' });
+        queueMicrotask(() => deliver(transport.view({ ...snapshot, review, revision: snapshot.revision + 1 })));
+        return;
+      }
+      deliver(message);
+    };
+    return transport;
+  }),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const fallback = 'The selected checkpoint is not loaded.';
+    await expect(await page.findByText(fallback, {}, { timeout: 30_000 })).toBeVisible();
+    await userEvent.click(page.getAllByRole('button', { name: 'Retry checkpoint' })[0]!);
+    await waitFor(() => expect(page.queryByText(fallback)).toBeNull());
+    await expect(page.getByRole('slider', { name: 'Checkpoint' })).toBeVisible();
+    await expect(session.transport.messages.filter((message) => message.type === 'history')).toHaveLength(2);
+  },
+});

@@ -192,18 +192,32 @@ export class LocalTable {
     if (step > this.session.history.steps || step < 0) {
       throw new GameRejection('Unknown history step.');
     }
-    const past = this.projection.snapshot(
-      this.session.history.restore(step),
-      live.stage === undefined ? this.factionFor(this.viewer().userId) : undefined,
-      live
-    );
     return {
       type: 'history',
       step,
       lastStep: this.session.history.steps,
       recordedAt: this.session.history.recordedAt(step),
-      snapshot: past,
+      snapshot: this.historicalSnapshot(step),
     };
+  }
+
+  private historicalSnapshot(step: number) {
+    const live = this.room.snapshot;
+    const past = this.session.history.restore(step);
+    const projected = this.projection.snapshot(
+      past,
+      live.stage === undefined ? this.factionFor(this.viewer().userId) : undefined,
+      live
+    );
+    const faction = this.recallFaction(past, step);
+    return faction ? { ...projected, ...this.projection.frozenInventory(past, faction) } : projected;
+  }
+  private recallFaction(past: StoredSnapshot, step: number) {
+    if (this.session.reviews.running()?.step !== step) {
+      return undefined;
+    }
+    const seat = this.session.seatOf(this.viewer().userId);
+    return past.roster?.seats.find((entry) => entry.id === seat)?.faction?.id;
   }
 
   /** Shows the page as another seat; the seat it leaves lets go of anything it was carrying. */
@@ -284,7 +298,7 @@ export class LocalTable {
     [Type in TableMessage['type']]?: (message: MessageOf<Type>, viewer: Viewer, own: boolean) => void;
   } = {
     sync: () => this.deliver(this.frame()),
-    history: (message) => this.deliver(this.history(message.step)),
+    history: (message) => this.deliver({ ...this.history(message.step), requestId: message.requestId }),
     pointer: (message, viewer) => {
       this.room.pointer(viewer, message.position, Date.now(), message.seq);
     },

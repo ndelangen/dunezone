@@ -99,12 +99,13 @@ export function stageStatus({
   const recall = table.review?.current;
   if (reviewRunning(recall)) {
     const unavailable = table.playback?.step !== recall.step;
-    const failure = unavailable && !table.historyPending ? client.getSnapshot().error : null;
+    const failed = unavailable && !table.historyPending;
+    const failure = client.getSnapshot().error ?? 'The selected checkpoint is not loaded.';
     return (
       <div className="seated-phase-status__copy">
         <span>Mentat recall</span>
         <strong>{recall.context}</strong>
-        {failure ? (
+        {failed ? (
           <>
             <Text size="xs" role="alert">
               Checkpoint unavailable: {failure}

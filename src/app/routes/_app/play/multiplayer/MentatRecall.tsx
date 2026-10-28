@@ -28,7 +28,8 @@ export function mentatRecall(client: TableSession, table: TableProjection): Comp
     return;
   }
   const loading = table.historyPending || table.playback?.step !== current.step;
-  const failure = loading && !table.historyPending ? client.getSnapshot().error : null;
+  const failed = loading && !table.historyPending;
+  const failure = client.getSnapshot().error ?? 'The selected checkpoint is not loaded.';
   const inventory = (side: boolean) =>
     loading ? (
       <Loader size="sm" aria-label="Loading recalled inventory" />
@@ -55,7 +56,7 @@ export function mentatRecall(client: TableSession, table: TableProjection): Comp
         description: 'Changing the checkpoint moves everyone. Your camera and panel layout are personal.',
         content: (
           <Stack gap="sm">
-            {failure ? (
+            {failed ? (
               <Stack gap="xs">
                 <Text size="sm" role="alert">
                   {failure}

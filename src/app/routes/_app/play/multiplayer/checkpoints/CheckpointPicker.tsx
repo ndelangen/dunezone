@@ -1,6 +1,7 @@
-import { Group, Slider, Stack, Text } from '@mantine/core';
+import { Group, Slider, Stack, Text, Tooltip } from '@mantine/core';
 import { IconAction } from '@ui/control/IconAction';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useId } from 'react';
 
 import { useAssetResolver } from '@game/assets/assetRenderMode';
 
@@ -20,6 +21,7 @@ function PhaseDisc({ symbol, label, size }: Readonly<{ symbol: string | null; la
 
 /** The checkpoint a table review asks for: one slider across every checkpoint, marked at each turn, with arrows for one step at a time. */
 export function CheckpointPicker({ checkpoints, value, onChange }: CheckpointPickerProps) {
+  const thumbId = useId();
   const turns = checkpointTurns(checkpoints);
   const index = Math.max(
     0,
@@ -40,18 +42,27 @@ export function CheckpointPicker({ checkpoints, value, onChange }: CheckpointPic
   return (
     <Stack gap="md">
       {checkpoints.length > 1 && (
-        <Slider
-          min={0}
-          max={checkpoints.length - 1}
-          step={1}
-          value={index}
-          onChange={choose}
-          marks={marks}
-          label={(position) => checkpointTitle(turns, checkpoints[position]!.step)}
-          thumbLabel="Checkpoint"
-          thumbValueText={title}
-          mb="md"
-        />
+        <>
+          <Slider
+            min={0}
+            max={checkpoints.length - 1}
+            step={1}
+            value={index}
+            onChange={choose}
+            marks={marks}
+            label={null}
+            thumbProps={{ id: thumbId }}
+            thumbLabel="Checkpoint"
+            thumbValueText={title}
+            mb="md"
+          />
+          <Tooltip
+            target={`[id="${thumbId}"]`}
+            label={title}
+            events={{ hover: true, focus: true, touch: false }}
+            withinPortal
+          />
+        </>
       )}
       <Group gap="xs" wrap="nowrap">
         <IconAction
