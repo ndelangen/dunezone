@@ -113,7 +113,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'take-card',
       task: 'Take the card',
       detail:
-        'You won. Right-click the Treachery deck and choose Draw a card. In a real game, you also need to withdraw and pay the winning bid yourself.',
+        'Practice taking the card. Right-click the Treachery deck and choose Draw a card. In a real game, the winner takes the card and pays the winning bid themselves.',
       anchor: { kind: 'table', point: () => at(tableDeck(snapshot, 'left')) },
       begin: () => snapshot().hand?.length ?? 0,
       done: (start) => (snapshot().hand?.length ?? 0) > start,
@@ -121,8 +121,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     task({
       id: 'sit-out',
       task: 'Sit out the next round',
-      detail:
-        'While another player is bidding, press {P} to sit out. Your faction token turns face down and bidding skips you.',
+      detail: 'Press {P} to sit out the next round. Your faction token turns face down and bidding skips you.',
       anchor: { kind: 'table', point: () => (myToken()?.position as [number, number, number] | undefined) ?? null },
       begin: () => undefined,
       done: () => !tokenUp(),

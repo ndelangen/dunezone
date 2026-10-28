@@ -146,7 +146,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'votes',
       task: 'Watch the others vote',
       detail:
-        'Players can choose Remove or Keep, or withdraw their vote. The vote ends as soon as the result is decided.',
+        'Players can choose Remove or Keep, or withdraw their vote. The vote ends as soon as the result is decided. If it fails, start another removal vote to continue this exercise.',
       anchor: { kind: 'page', element: element(`[data-window="${FACTION_INFO}"]`) },
       begin: () => voteInTurn(players, vote, seatOf),
       done: () => vote() === undefined && !seated(),

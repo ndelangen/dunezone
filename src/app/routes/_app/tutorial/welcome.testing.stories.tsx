@@ -1,6 +1,6 @@
 import { testingPreview } from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
-import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
+import { expect, fn, userEvent, within } from 'storybook/test';
 
 import { pageStoryMeta } from '../../storybookConfig';
 import { chapterParameters } from './chapterStory';
@@ -57,7 +57,7 @@ export const SpeakingMode = meta.story({
     await expect(spoken).toHaveBeenCalledTimes(1);
     await expect(getComputedStyle(toggle).animationName).toBe('none');
     await userEvent.keyboard('z');
-    await waitFor(() => expect(spoken).toHaveBeenCalledTimes(2));
+    await waitForFrame(() => expect(spoken).toHaveBeenCalledTimes(2));
     await expect(spoken.mock.calls.at(-1)![0].text).toMatch(/^This is your shared table/);
     await expect(spoken.mock.calls.at(-1)![0].text).not.toMatch(/^This is the table\./);
     await expect(rail.getByRole('button', { name: 'Turn speaking mode off' })).toHaveAttribute('aria-pressed', 'true');

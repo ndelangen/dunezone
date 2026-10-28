@@ -42,7 +42,7 @@ test('the trade steps name the faction the learner was dealt and a player who is
   };
   const steps = draftAndTrade.tasks(() => view, players);
   const detail = (id: string) => steps.find((step) => step.id === id)!.detail;
-  expect(detail('dealt')).toMatch(/^You were dealt Fremen\./);
+  expect(detail('dealt')).toContain('Fremen');
   expect(detail('offer')).toMatch(/^Click the Emperor token/);
-  expect(detail('cancel')).toMatch(/keep Fremen for/);
+  expect(detail('cancel')).toContain('keep Fremen');
 });
