@@ -7,3 +7,6 @@ const meta = preview.meta({ ...gameLengthPanelMeta, title: 'Play/Panels/Settings
 
 /** A seated player may change the last turn. */
 export const GameLength = meta.story({});
+
+/** An observer reads the last turn, with no field to change it. */
+export const Observer = meta.story({ args: { observing: true } });

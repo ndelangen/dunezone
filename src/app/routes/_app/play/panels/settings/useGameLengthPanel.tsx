@@ -1,6 +1,7 @@
 import { lastTurnOf } from '@shared/play/lastTurn';
 
 import type { TableProjection, TableSession } from '../../../../../db/tabletop/TableSession';
+import { offersActions } from '../../multiplayer/tableFactions';
 import { GameLengthPanel } from './GameLengthPanel';
 import type { GameLengthPanelProps } from './GameLengthPanel';
 
@@ -11,6 +12,7 @@ function useGameLengthPanel({ client, table }: Props): GameLengthPanelProps {
   return {
     lastTurn: lastTurnOf(table.snapshot),
     disabled: !table.canInteract || !table.snapshot.bank,
+    observing: !offersActions(table),
     onLastTurn: (turn) => void client.command({ kind: 'last-turn', turn }),
   };
 }

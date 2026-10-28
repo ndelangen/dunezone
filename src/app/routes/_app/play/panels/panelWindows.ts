@@ -45,6 +45,13 @@ export const PANEL_WINDOWS = {
   },
   result: { key: 'result', label: 'Result', topic: 'result', ...RESULT_GUIDANCE },
   replay: { key: 'replay', label: 'Replay', topic: 'turn', ...REPLAY_GUIDANCE },
+  review: {
+    key: 'review',
+    label: 'Table review',
+    topic: 'turn',
+    description:
+      'Ask the table to look back at a recent checkpoint together. It starts when a majority of the players agree; everyone sees the same board and nothing can be moved or peeked at until play resumes.',
+  },
   inventory: { key: 'shared', label: 'Shared table inventory', topic: 'assets', ...SHARED_INVENTORY_GUIDANCE },
   hand: { key: 'hand', label: 'Hand', topic: 'hand', ...HAND_GUIDANCE },
   sideTable: { key: 'hidden-zone', label: 'Private side-table', topic: 'hiddenZone', ...HIDDEN_ZONE_GUIDANCE },

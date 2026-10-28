@@ -203,7 +203,7 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
     ]);
   });
 
-  it('replays only the public table, during play, once finished and after continuing', async () => {
+  it('replays only the public table, and only while the game is finished', async () => {
     const { owner, other, observer, stepId } = await inPlay();
     const playback = async (connection: NativeConnection, step: number) => {
       const start = connection.messages.length;
@@ -223,6 +223,17 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
         snapshots.push((await playback(connection, step)).snapshot);
       }
       return snapshots;
+    };
+    const refused = async (...connections: NativeConnection[]) => {
+      for (const connection of connections) {
+        const start = connection.messages.length;
+        connection.send({ type: 'history', step: 0 });
+        const reply = await eventually(
+          () => connection.messages.slice(start).find((message) => message.type === 'rejected'),
+          'refused history'
+        );
+        expect(reply).toMatchObject({ message: 'Replay opens once the game is finished.' });
+      }
     };
     /* The owner's replay must be the observer's, step for step, with nothing the seat held then. */
     const assertPublic = async () => {
@@ -265,15 +276,15 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
     expect(live.peek).not.toBeNull();
     expect(live).toHaveProperty('hand');
     expect(live).toHaveProperty('bank');
-    await assertPublic();
+    /* Players may not keep notes, so nobody looks back while the game is played. */
+    await refused(owner, observer);
 
-    /* A finished game can continue, so declaring a result opens nothing either. */
     await toMentat(owner);
     await accepted(owner, { kind: 'result-open' });
     await accepted(owner, { kind: 'result-declare', result: 'none', factionIds: [] });
-    await assertPublic();
-    await accepted(other, { kind: 'result-continue' });
     expect((await assertPublic()).some((snapshot) => snapshot.result)).toBe(true);
+    await accepted(other, { kind: 'result-continue' });
+    await refused(owner, observer);
   });
 
   it('tells the directory the result, then that the game is ongoing again', async () => {
@@ -303,7 +314,7 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
   });
 
   it('names a deleted declarer as a deleted user in the result and its history', async () => {
-    const { owner, other, observer } = await inPlay();
+    const { owner, observer } = await inPlay();
     await toMentat(owner);
     const { userId } = (await accepted(owner, { kind: 'result-open' })).viewer;
     await accepted(owner, { kind: 'result-declare', result: 'none', factionIds: [] });
@@ -325,8 +336,7 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
     expect((await page(observer)).map((entry) => entry.text)).toContain(
       '[deleted user] declared the result: No winner.'
     );
-    /* Playback of the finished table, once the game continues, names the deleted declarer too. */
-    await accepted(other, { kind: 'result-continue' });
+    /* Playback of the finished table names the deleted declarer too. */
     const playback = async (step: number) => {
       const start = observer.messages.length;
       observer.send({ type: 'history', step });
@@ -514,5 +524,168 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
     });
     const declared = await accepted(owner, { kind: 'result-declare', result: 'none', factionIds: [] });
     expect(declared.snapshot.stage).toBe('finished');
+  });
+
+  it('saves a checkpoint each time a faction is marked done in Shipment and Movement, in an order players can rearrange', async () => {
+    const { owner, other, observer } = await inPlay();
+    const ownFaction = factionOf(await syncView(owner));
+    const otherFaction = factionOf(await syncView(other));
+    expect(await rejected(owner, { kind: 'movement-done', factionId: ownFaction })).toBe(true);
+    while (TABLE_PHASES[(await syncView(owner)).snapshot.phase % TABLE_PHASES.length]!.id !== 'shipment-and-movement') {
+      await next(owner);
+    }
+    expect(await rejected(observer, { kind: 'movement-done', factionId: ownFaction })).toBe(true);
+    expect(await rejected(owner, { kind: 'movement-done', factionId: 'not-at-the-table' })).toBe(true);
+    expect(await rejected(owner, { kind: 'movement-order', order: [otherFaction, otherFaction] })).toBe(true);
+    expect(await rejected(observer, { kind: 'movement-order', order: [otherFaction, ownFaction] })).toBe(true);
+
+    /* Any seated player may rearrange the order, or mark another faction done, as the table plays by hand. */
+    const arranged = await accepted(owner, { kind: 'movement-order', order: [otherFaction, ownFaction] });
+    expect(required(arranged.snapshot.movement).order).toEqual([otherFaction, ownFaction]);
+    const first = await accepted(owner, { kind: 'movement-done', factionId: otherFaction });
+    expect(required(first.snapshot.movement).done).toEqual([otherFaction]);
+    /* A faction done keeps its place: nothing moves in front of it. */
+    expect(await rejected(owner, { kind: 'movement-order', order: [ownFaction, otherFaction] })).toBe(true);
+    expect(await rejected(other, { kind: 'movement-done', factionId: otherFaction })).toBe(true);
+    const undone = await accepted(other, { kind: 'movement-undo', factionId: otherFaction });
+    expect(required(undone.snapshot.movement).done).toEqual([]);
+    expect(await rejected(other, { kind: 'movement-undo', factionId: otherFaction })).toBe(true);
+    await accepted(other, { kind: 'movement-done', factionId: otherFaction });
+    const second = await accepted(owner, { kind: 'movement-done', factionId: ownFaction });
+    expect(required(second.snapshot.movement).done).toEqual([otherFaction, ownFaction]);
+
+    /* Each faction marked done is a checkpoint after the phase's start, named by the faction; undoing keeps the checkpoint. */
+    const checkpoints = required((await syncView(owner)).snapshot.reviewCheckpoints).slice(-4);
+    expect(checkpoints.map(({ moment, label }) => [moment, label])).toEqual([
+      ['entered', 'Shipment and Movement'],
+      ['turn', 'Shipment and Movement'],
+      ['turn', 'Shipment and Movement'],
+      ['turn', 'Shipment and Movement'],
+    ]);
+    expect(checkpoints[1]!.faction).toBe(checkpoints[2]!.faction);
+    expect(checkpoints[3]!.faction).toBeTruthy();
+    expect(checkpoints[3]!.faction).not.toBe(checkpoints[2]!.faction);
+
+    const moved = await next(owner);
+    expect(moved.snapshot.movement).toBeUndefined();
+    await next(owner, -1);
+    expect((await syncView(owner)).snapshot.movement).toBeUndefined();
+  });
+
+  describe('Table review', () => {
+    /* The reply to a history read: the checkpoint, or the reason it is refused. */
+    async function look(connection: NativeConnection, step: number) {
+      const start = connection.messages.length;
+      connection.send({ type: 'history', step });
+      return eventually(
+        () =>
+          connection.messages
+            .slice(start)
+            .find(
+              (message): message is Extract<NativeMessage, { type: 'history' | 'rejected' }> =>
+                message.type === 'history' || message.type === 'rejected'
+            ),
+        `history step ${step}`
+      );
+    }
+    async function checkpoint(connection: NativeConnection) {
+      const checkpoints = required((await syncView(connection)).snapshot.reviewCheckpoints);
+      return required(checkpoints.at(0));
+    }
+
+    it('starts on a majority, shows everyone the same public checkpoint, freezes the table and resumes play', async () => {
+      const { owner, other, observer } = await inPlay();
+      const target = await checkpoint(owner);
+      expect(await rejected(observer, { kind: 'review-propose', step: target.step })).toBe(true);
+      expect(await rejected(owner, { kind: 'review-propose', step: LATEST })).toBe(true);
+      const proposed = await accepted(owner, { kind: 'review-propose', step: target.step });
+      const review = required(proposed.snapshot.review);
+      expect(review).toMatchObject({ step: target.step, context: target.context, startedAt: null, threshold: 2 });
+      expect(required((await syncView(observer)).snapshot.review).id).toBe(review.id);
+      expect(await rejected(other, { kind: 'review-propose', step: target.step })).toBe(true);
+
+      /* Until the majority agrees, the table plays on and nobody looks back. */
+      await next(owner);
+      /* Each offered checkpoint names its turn and phase, so the picker can lay them out by turn. */
+      const entered = required(required((await syncView(owner)).snapshot.reviewCheckpoints).at(-1));
+      expect(entered).toMatchObject({ turn: expect.any(Number), moment: 'entered', symbol: expect.any(String) });
+      expect(entered.context).toBe(`Turn ${entered.turn}, ${entered.label}`);
+      expect(await look(observer, target.step)).toMatchObject({ type: 'rejected' });
+      const started = await accepted(other, { kind: 'review-ballot', reviewId: review.id, choice: 'review' });
+      expect(required(started.snapshot.review).startedAt).not.toBeNull();
+
+      const shown = [];
+      for (const connection of [owner, other, observer]) {
+        const reply = await look(connection, target.step);
+        expect(reply.type).toBe('history');
+        const { snapshot } = reply as Extract<NativeMessage, { type: 'history' }>;
+        for (const key of ['hand', 'handOrder', 'bank', 'peek']) {
+          expect(snapshot).not.toHaveProperty(key);
+        }
+        shown.push(snapshot);
+      }
+      expect(shown[0]).toEqual(shown[2]);
+      expect(await look(observer, target.step + 1)).toMatchObject({ type: 'rejected' });
+
+      /* Nothing moves while the table reviews, not even a peek. */
+      const deck = required(
+        (await syncView(owner)).snapshot.table.pieces.find((piece) => piece.kind === 'card' && piece.items.length > 0)
+      );
+      offset += PHASE_CHANGE_COOLDOWN_MS + 1;
+      await runtime.clock(offset);
+      for (const action of [
+        { kind: 'phase', direction: 1 },
+        { kind: 'peek', pieceId: deck.id },
+      ] as PieceAction[]) {
+        expect(await rejected(owner, action)).toBe(true);
+      }
+      expect(await rejected(observer, { kind: 'review-end', reviewId: review.id })).toBe(true);
+
+      const ended = await accepted(other, { kind: 'review-end', reviewId: review.id });
+      expect(ended.snapshot.review).toBeNull();
+      expect(await look(observer, target.step)).toMatchObject({ type: 'rejected' });
+      await next(owner);
+
+      const proposer = proposed.viewer.displayName;
+      const resumer = ended.viewer.displayName;
+      const audit = (await page(observer, 'audit')).map((entry) => entry.text);
+      expect(audit[0]).toBe(`The review of ${target.context} was ended by ${resumer}, and play resumed.`);
+      expect([
+        `The table reviews ${target.context}, as ${proposer} proposed: ${proposer} and ${resumer} agreed.`,
+        `The table reviews ${target.context}, as ${proposer} proposed: ${resumer} and ${proposer} agreed.`,
+      ]).toContain(audit[1]);
+    });
+
+    it('is withdrawn as the game ends, which the Audit tab says', async () => {
+      const { owner, observer } = await inPlay();
+      await toMentat(owner);
+      const target = await checkpoint(owner);
+      await accepted(owner, { kind: 'review-propose', step: target.step });
+      await accepted(owner, { kind: 'result-open' });
+      const finished = await accepted(owner, { kind: 'result-declare', result: 'faction', factionIds: ['atreides'] });
+      expect(finished.snapshot.review).toBeUndefined();
+      const audit = (await page(observer, 'audit')).map((entry) => entry.text);
+      const proposer = finished.viewer.displayName;
+      expect(audit).toContain(`The review of ${target.context} ${proposer} proposed was withdrawn as the game ended.`);
+    });
+
+    it('is declined without a majority and withdrawn only by its proposer', async () => {
+      const { owner, other, observer } = await inPlay();
+      const target = await checkpoint(owner);
+      const first = required((await accepted(owner, { kind: 'review-propose', step: target.step })).snapshot.review);
+      const declined = await accepted(other, { kind: 'review-ballot', reviewId: first.id, choice: 'decline' });
+      expect(declined.snapshot.review).toBeNull();
+      expect(await look(observer, target.step)).toMatchObject({ type: 'rejected' });
+
+      const second = required((await accepted(owner, { kind: 'review-propose', step: target.step })).snapshot.review);
+      expect(await rejected(other, { kind: 'review-end', reviewId: second.id })).toBe(true);
+      expect((await accepted(owner, { kind: 'review-end', reviewId: second.id })).snapshot.review).toBeNull();
+      const audit = (await page(observer, 'audit')).map((entry) => entry.text);
+      const proposer = (await syncView(owner)).viewer.displayName;
+      expect(audit.slice(0, 2)).toEqual([
+        `The review of ${target.context} ${proposer} proposed was withdrawn by ${proposer}.`,
+        `The table declined ${proposer}'s review of ${target.context}: ${proposer} agreed; ${(await syncView(other)).viewer.displayName} declined.`,
+      ]);
+    });
   });
 });

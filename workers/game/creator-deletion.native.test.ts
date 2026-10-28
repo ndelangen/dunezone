@@ -68,10 +68,6 @@ describe('A real game removes its deleted creator from retained names', () => {
 
   async function assertAnonymized(observer: NativeConnection) {
     expect(openingSeatEvent((await syncView(observer)).snapshot)?.message).toBe('Seat 1 is taken by the creator.');
-    observer.send({ type: 'history', step: 0 });
-    expect(openingSeatEvent((await observer.message('history')).snapshot)?.message).toBe(
-      'Seat 1 is taken by the creator.'
-    );
     expect(JSON.stringify(await runtime.exec<{ data: string }>('SELECT data FROM history'))).not.toContain(
       'Synthetic B'
     );

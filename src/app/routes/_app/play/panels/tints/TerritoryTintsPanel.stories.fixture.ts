@@ -56,6 +56,7 @@ export function tintsProps(snapshot: GameSnapshot = tintedSnapshot(), painting?:
     rows: tintRows(table, painting),
     canEdit: true,
     canCreate: true,
+    observing: false,
     presets: tintPresets(table),
     onCreate: fn(),
     onBrush: fn(),

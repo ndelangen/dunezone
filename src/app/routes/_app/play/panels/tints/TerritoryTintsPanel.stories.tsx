@@ -22,3 +22,6 @@ export const Painting = meta.story({
 
 /** A table with no tints yet: only the new-tint swatches and the presets. */
 export const Empty = meta.story({ args: tintsProps(untintedSnapshot()) });
+
+/** An observer sees the tints with nothing offered to make. */
+export const Observer = meta.story({ args: { observing: true, canEdit: false, canCreate: false } });

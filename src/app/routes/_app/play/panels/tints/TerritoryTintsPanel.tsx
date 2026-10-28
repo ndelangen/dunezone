@@ -25,6 +25,8 @@ export type TerritoryTintsPanelProps = Readonly<{
   canEdit: boolean;
   /** Whether a new tint fits: the viewer may change the tints and the table holds fewer than its most. */
   canCreate: boolean;
+  /** An observer, or a replay, sees the tints but is offered nothing to make. */
+  observing: boolean;
   presets: readonly TintDraft[];
   /** Makes a tint; `paint` switches its paintbrush on straight away. */
   onCreate: (tint: TintDraft, paint: boolean) => void;
@@ -69,6 +71,7 @@ export function TerritoryTintsPanel({
   rows,
   canEdit,
   canCreate,
+  observing,
   presets,
   onCreate,
   onBrush,
@@ -117,12 +120,16 @@ export function TerritoryTintsPanel({
             }
           />
         ))}
-        <NewTints
-          tints={rows.map((row) => row.tint)}
-          enabled={canCreate}
-          onCreate={(tint) => onCreate({ ...tint, territories: [] }, true)}
-        />
-        <Presets presets={presets} enabled={canCreate} onCreate={(tint) => onCreate(tint, false)} />
+        {!observing && (
+          <>
+            <NewTints
+              tints={rows.map((row) => row.tint)}
+              enabled={canCreate}
+              onCreate={(tint) => onCreate({ ...tint, territories: [] }, true)}
+            />
+            <Presets presets={presets} enabled={canCreate} onCreate={(tint) => onCreate(tint, false)} />
+          </>
+        )}
       </Stack>
     </Section>
   );
