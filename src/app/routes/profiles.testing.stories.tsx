@@ -252,7 +252,7 @@ export const DetailFactionsPreview = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('link', { name: 'All 9 factions' }, { timeout: 30_000 })).resolves.toHaveAttribute(
       'href',
-      '/factions?owner=storybook-viewer&sort=created'
+      '/factions?owner=central&sort=created'
     );
     const factions = within(page.getByRole('region', { name: 'Factions created' }));
     const cards = factions.getAllByRole('link', { name: /Sietch|House Atreides/ });

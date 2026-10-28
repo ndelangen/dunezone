@@ -65,11 +65,11 @@ export const createAGame: LobbyChapterScript = {
       begin: () => {
         const watch = { confirmed: false, release: () => undefined as void };
         const confirm = (event: KeyboardEvent) => {
-          if (
-            event.key !== 'Enter' ||
-            !state().draft.custom ||
-            !playGameNameSchema.safeParse(state().draft.customName).success
-          ) {
+          if (event.key !== 'Enter') {
+            return;
+          }
+          const draft = state().draft;
+          if (!draft.custom || !playGameNameSchema.safeParse(draft.customName).success) {
             return;
           }
           event.preventDefault();

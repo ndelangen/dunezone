@@ -616,9 +616,11 @@ function useTableViewController(
     viewState,
     dispatchView,
     cameraView,
-    handleInteractionActiveChange,
-    handleSceneReady,
-    handleSceneUnavailable,
+    sceneEvents: {
+      onInteractionActiveChange: handleInteractionActiveChange,
+      onSceneReady: handleSceneReady,
+      onSceneUnavailable: handleSceneUnavailable,
+    },
   };
 }
 
@@ -656,15 +658,8 @@ export function GameTable({
   /* The camera follows the phase while the header names one: in play, and on the fixture. */
   /* A faction phase takes the camera view of the standard phase it precedes (#1138). */
   const activePhase = tableProgress.phases.find((entry) => entry.id === tableProgress.activePhaseId);
-  const {
-    viewPhase,
-    viewState,
-    dispatchView,
-    cameraView,
-    handleInteractionActiveChange,
-    handleSceneReady,
-    handleSceneUnavailable,
-  } = useTableViewController(activePhase, frame.word, requestedView, onSceneReady);
+  const controller = useTableViewController(activePhase, frame.word, requestedView, onSceneReady);
+  const { viewPhase, viewState, dispatchView, cameraView, sceneEvents } = controller;
   const overlaysInert = viewState.interactionActive || gestureActive;
 
   const scene = (
@@ -672,9 +667,7 @@ export function GameTable({
       <TabletopScene
         className="scene scene--immersive"
         cameraView={cameraView}
-        onSceneReady={handleSceneReady}
-        onSceneUnavailable={handleSceneUnavailable}
-        onInteractionActiveChange={handleInteractionActiveChange}
+        {...sceneEvents}
         readOnly={readOnly}
         seatCount={seatCount}
         tableProgress={tableProgress}

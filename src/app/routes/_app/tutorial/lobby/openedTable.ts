@@ -29,15 +29,16 @@ export function openedTable(
   origin: string
 ): TableStart {
   const base = startAt(setup, 'drafting', origin);
-  const created = opened.kind === 'created';
-  const seats = created ? ['seat-1'] : FRIEND_SEATS;
-  const count = created ? opened.request.minimumPlayers : 6;
+  const { seats, seat, count, lastTurn } =
+    opened.kind === 'created'
+      ? { seats: ['seat-1'], seat: 'seat-1', count: opened.request.minimumPlayers, lastTurn: opened.request.lastTurn }
+      : { seats: FRIEND_SEATS, seat: SPECTATOR_SEAT, count: 6, lastTurn: 10 };
   if (!isTableSeatCount(count)) {
     throw new Error('Unsupported seat count.');
   }
   const players = base.players.filter((player) => seats.includes(player.seat));
   const viewers = Object.fromEntries(
-    Object.entries(base.viewers).filter(([seat]) => seats.includes(seat) || (!created && seat === SPECTATOR_SEAT))
+    Object.entries(base.viewers).filter(([viewerSeat]) => seats.includes(viewerSeat) || viewerSeat === seat)
   );
   const roster = { seatCount: count, seats: seats.map((id, position) => ({ id, position, faction: null })) };
   const empty = emptySnapshot();
@@ -45,7 +46,7 @@ export function openedTable(
     ...base,
     players,
     viewers,
-    seat: created ? 'seat-1' : SPECTATOR_SEAT,
+    seat,
     log: {},
     stored: storedSnapshotSchema.parse({
       ...empty,
@@ -53,7 +54,7 @@ export function openedTable(
       roster,
       controls: { ...emptyPublicControls(), seats, players },
       draft: emptyDraft(count, base.stored.draft?.factions ?? [], Date.now()),
-      lastTurn: created ? opened.request.lastTurn : 10,
+      lastTurn,
     }),
     draft: { minimumPlayers: count, deal: [] },
   };
