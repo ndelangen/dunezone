@@ -994,6 +994,7 @@ describe('slug allocation', () => {
     expect(await t.query(api.assets.slugTaken, { type: 'card-treachery', slug: 'lasgun' })).toBe('live');
   });
 
+  /* Keep all 75 copies; coverage on shared CI runners exceeds the default five-second budget. */
   test('many large copies allocate without rescanning their contents, and crowded legacy suffixes remain usable', async () => {
     const t = applicationTest();
     const { ownerId } = await seedCard(t);
@@ -1021,7 +1022,7 @@ describe('slug allocation', () => {
     const crowded = await owner.mutation(api.assets.create, { type: 'card-treachery', data: cardData('Lasgun') });
     expect(crowded.slug).toMatch(/^lasgun-[a-z0-9]{12,}$/);
     expect((await assetPageAs(t, { type: 'card-treachery', slug: crowded.slug }))?.asset.name).toBe('Lasgun');
-  });
+  }, 15_000);
 
   test('reserved creation paths and legacy addresses stay usable across spelling and genuine renames', async () => {
     const t = applicationTest();
