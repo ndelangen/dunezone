@@ -154,12 +154,14 @@ describe('a tutorial table’s catalogue request', () => {
     expect(table.room.snapshot.table.pieces.filter((piece) => piece.label === 'Karama')).toMatchObject([
       { inventory: 'shared', items: [{ faceUp: true }] },
     ]);
-    /* The guide follows Karama by the asset its selection captured, and the page sees the pieces under that asset's stack key. */
+    /* The guide follows the exact capture through its projected pieces, whose stack keys conceal catalogue identity. */
     expect(table.capturedAsset({ type: 'token-disc', slug: 'karama' })).toBe('karama');
     expect(table.capturedAsset({ type: 'bundle', slug: 'karama' })).toBeUndefined();
-    expect(
-      table.frame().snapshot.table.pieces.filter((piece) => piece.stackKey === capturedTokenStackKey('karama'))
-    ).toHaveLength(1);
+    const captured = table.capturedPieces({ type: 'token-disc', slug: 'karama' });
+    expect(captured).toHaveLength(1);
+    expect(captured[0]!.stackKey).not.toBe(capturedTokenStackKey('karama'));
+    expect(table.frame().snapshot.table.pieces).toContain(captured[0]);
+    expect(table.capturedPieces({ type: 'bundle', slug: 'karama' })).toEqual([]);
     table.dispose();
   });
 });

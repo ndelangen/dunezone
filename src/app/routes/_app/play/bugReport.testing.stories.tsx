@@ -1,5 +1,5 @@
 import { testingPreview } from '@sb/preview';
-import { expect, mocked, userEvent, within } from 'storybook/test';
+import { expect, mocked, userEvent, waitFor, within } from 'storybook/test';
 
 import { sendPlayBugReport } from '@db/playBugReports';
 
@@ -60,6 +60,43 @@ export const Send = meta.story({
       operation: 'send',
       description: 'Dragging a troop from Arrakeen leaves it behind.',
       browser: { logs: expect.any(Array), snapshot: expect.any(Object) },
+    });
+  },
+});
+
+export const RecoverFromRejection = meta.story({
+  beforeEach: [
+    install(() => productTransport()),
+    () => {
+      mocked(sendPlayBugReport).mockImplementation(async (_gameId, request) => ({
+        requestId: request.requestId,
+        stage: 'failed',
+        message: 'The report could not be sent. Your description is still here.',
+      }));
+    },
+  ],
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await openTab(page, 'Report a bug');
+    await userEvent.type(page.getByRole('textbox', { name: 'What went wrong?' }), 'The troop did not move.');
+    await userEvent.click(page.getByRole('checkbox'));
+    await userEvent.click(page.getByRole('button', { name: 'Send report' }));
+    await expect(
+      page.findByText('The report could not be sent. Your description is still here.')
+    ).resolves.toBeVisible();
+    const latestSend = () =>
+      mocked(sendPlayBugReport)
+        .mock.calls.map(([, request]) => request)
+        .findLast((request) => request.operation === 'send');
+    const first = latestSend();
+    await userEvent.click(page.getByRole('button', { name: 'Write another report' }));
+    await userEvent.type(page.getByRole('textbox', { name: 'What went wrong?' }), 'The troop is still stuck.');
+    await userEvent.click(page.getByRole('checkbox'));
+    await userEvent.click(page.getByRole('button', { name: 'Send report' }));
+    await waitFor(() => expect(latestSend()?.requestId).not.toBe(first?.requestId));
+    await expect(latestSend()).toMatchObject({
+      operation: 'send',
+      description: 'The troop is still stuck.',
     });
   },
 });

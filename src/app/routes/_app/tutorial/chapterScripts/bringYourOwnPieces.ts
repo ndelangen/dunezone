@@ -1,4 +1,3 @@
-import { capturedTokenStackKey } from '@shared/play/assetCapture';
 import { spawnableKey } from '@shared/play/inventory';
 import type { SpawnSelection } from '@shared/play/inventory';
 import type { GameSnapshot } from '@shared/play/protocol';
@@ -55,10 +54,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       ({ contents }) => contents.type === KARAMA.type && contents.assetId === assetId
     );
   };
-  const karama = () => {
-    const assetId = players.captured(KARAMA);
-    return assetId ? snapshot().table.pieces.filter((piece) => piece.stackKey === capturedTokenStackKey(assetId)) : [];
-  };
+  const karama = () => players.capturedPieces(KARAMA);
   return [
     task({
       id: 'open',

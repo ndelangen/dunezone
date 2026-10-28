@@ -57,6 +57,7 @@ function playersAt(local: () => LocalTable): TablePlayers {
         .filter((seat) => seat !== local().seat),
     landings: () => local().landings(),
     captured: (selection) => local().capturedAsset(selection),
+    capturedPieces: (selection) => local().capturedPieces(selection),
   };
 }
 

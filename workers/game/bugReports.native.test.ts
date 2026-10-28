@@ -8,6 +8,7 @@ let script: string;
 let worker: Miniflare;
 let issuePosts: Array<{ title: string; body: string; labels: string[] }>;
 let ambiguous: boolean;
+let rejectionStatus: number | undefined;
 let githubRequests: { url: string; authorization: string | null; body?: unknown }[];
 const requestId = randomUUID();
 const input = {
@@ -69,6 +70,7 @@ beforeAll(async () => {
 beforeEach(async () => {
   issuePosts = [];
   ambiguous = false;
+  rejectionStatus = undefined;
   githubRequests = [];
   const { privateKey } = generateKeyPairSync('rsa', {
     modulusLength: 2048,
@@ -101,6 +103,9 @@ beforeEach(async () => {
         }
 
         if (request.method === 'POST') {
+          if (rejectionStatus) {
+            return NativeResponse.json({ message: 'Request rejected' }, { status: rejectionStatus });
+          }
           issuePosts.push((await request.json()) as (typeof issuePosts)[number]);
           return ambiguous
             ? new NativeResponse(null, { status: 502 })
@@ -109,6 +114,9 @@ beforeEach(async () => {
                 labels: [{ name: 'reported-bug' }],
                 body: issuePosts[0]!.body,
               });
+        }
+        if (rejectionStatus) {
+          return NativeResponse.json([]);
         }
         return NativeResponse.json([
           {
@@ -159,3 +167,38 @@ test('reconciles an ambiguous GitHub result without another issue POST', async (
   expect(githubRequests[0]?.body).toEqual({ repositories: ['dunezone'], permissions: { issues: 'write' } });
   expect(githubRequests.every((request) => new URL(request.url).origin === 'https://api.github.com')).toBe(true);
 }, 12_000);
+
+test.each([401, 403, 404, 410, 422, 429])(
+  'a definite GitHub %s rejection settles as failed',
+  async (status) => {
+    rejectionStatus = status;
+    await json();
+    const until = Date.now() + 8000;
+    let progress: Record<string, unknown> = {};
+    while (Date.now() < until) {
+      progress = await json({ operation: 'status' });
+      if (progress.stage !== 'collecting' && progress.stage !== 'creating') {
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 30));
+    }
+    expect(progress.stage).toBe('failed');
+    expect(progress.issueUrl).toBeUndefined();
+    expect(await json({ operation: 'status' })).toMatchObject({ stage: 'failed' });
+    expect((await json()).progress).toMatchObject({ stage: 'failed' });
+    expect(githubRequests.filter((request) => request.url.endsWith('/issues'))).toHaveLength(1);
+  },
+  12_000
+);
+
+test.each([408, 503])(
+  'a GitHub %s result remains uncertain and never repeats the POST',
+  async (status) => {
+    rejectionStatus = status;
+    await json();
+    await settled('uncertain');
+    expect((await json()).progress).toMatchObject({ stage: 'uncertain' });
+    expect(githubRequests.filter((request) => request.url.endsWith('/issues'))).toHaveLength(1);
+  },
+  12_000
+);

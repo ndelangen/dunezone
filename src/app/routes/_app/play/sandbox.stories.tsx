@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { POINTER_TOKEN_TYPE } from '@shared/play/pointerToken';
+import { isPointerToken, POINTER_TOKEN_TYPE } from '@shared/play/pointerToken';
 import { restingPositionAt, troopScale } from '@shared/play/tableGeometry';
 import { nearestCollisionFreePosition } from '@shared/play/tablePhysics';
 import { drawableTechTokens, isTechToken } from '@shared/play/techToken';
@@ -128,7 +128,7 @@ async function boardHms(canvasElement: HTMLElement) {
   await sandboxReady(within(canvasElement.ownerDocument.body));
   const table = sandbox.table!;
   const faction = shown().bank!.factionId;
-  const plate = () => piece((candidate) => candidate.stackKey === 'token:sandbox-hms');
+  const plate = () => shown().table.pieces.find(isPointerToken)!;
   const carry = async (id: string, pieceId: string, position: [number, number, number], orientation = 0) => {
     table.receive({
       type: 'begin',

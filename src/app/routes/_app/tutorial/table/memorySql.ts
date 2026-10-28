@@ -323,7 +323,7 @@ export class MemorySql {
       return cursor([]);
     }
     if (
-      /^SELECT sequence, class, template, people, context, created_at FROM public_log WHERE class IN \([?,]+\) AND sequence<\? ORDER BY sequence DESC LIMIT \?$/.test(
+      /^SELECT sequence, key, class, template, people, context, created_at FROM public_log WHERE class IN \([?,]+\) AND sequence<\? ORDER BY sequence DESC LIMIT \?$/.test(
         query
       )
     ) {

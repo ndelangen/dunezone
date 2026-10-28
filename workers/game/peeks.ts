@@ -2,7 +2,13 @@ import { accepted, nextSnapshot } from '../../src/shared/play/commands';
 import { rosterFactionEventName } from '../../src/shared/play/factionLabels';
 import type { StoredPiece } from '../../src/shared/play/model';
 import { nearestZone } from '../../src/shared/play/model';
-import { hasHiddenFace, PEEK_DECK_LIMIT, peeksWholeDeck, rearrangeable } from '../../src/shared/play/peeking';
+import {
+  hasHiddenFace,
+  publicPieceLabel,
+  PEEK_DECK_LIMIT,
+  peeksWholeDeck,
+  rearrangeable,
+} from '../../src/shared/play/peeking';
 import type { PeekAction } from '../../src/shared/play/peeking';
 import { rosterFactionNames, tableForViewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
@@ -93,7 +99,7 @@ function peek(peeker: Peeker, pieceId: string): StoredSnapshot {
   const verb = peeksWholeDeck(piece) ? 'looked through' : 'peeked at';
   const next = commit(snapshot, replacing(snapshot, markPeeked(piece, factionId)), {
     command: 'piece.peek',
-    message: `${peekerName(peeker)} ${verb} ${piece.label}.`,
+    message: `${peekerName(peeker)} ${verb} ${publicPieceLabel(piece)}.`,
   });
   return granted(next, factionId, piece.id);
 }
