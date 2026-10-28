@@ -15,6 +15,12 @@ const meta = preview.meta({
   },
 });
 
+async function tabAfterClosingCopies(doc: Document) {
+  /* Simulated Tab includes inert buttons, so a previous story's closing copy must leave first. */
+  await waitForFrame(() => expect(doc.querySelector('[data-closing]')).toBeNull());
+  await userEvent.tab();
+}
+
 /**
  * A state with no charge: nothing to save.
  * Tabbing to the glyph opens its tooltip, which is how a keyboard reader gets the words a pointer gets on hover.
@@ -22,7 +28,7 @@ const meta = preview.meta({
 export const Neutral = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await userEvent.tab();
+    await tabAfterClosingCopies(canvasElement.ownerDocument);
     await expect(page.getByRole('img', { name: 'No unsaved changes' })).toHaveFocus();
     await expect(waitForFrame(() => page.getByRole('tooltip'))).resolves.toHaveTextContent('No unsaved changes');
   },
@@ -78,7 +84,7 @@ export const StandsInForSeveral = meta.story({
     await expect(mark).toHaveAccessibleDescription(
       'Unsaved changes Public assets are current. Group access: Arrakeen Rules Council'
     );
-    await userEvent.tab();
+    await tabAfterClosingCopies(canvasElement.ownerDocument);
     const tooltip = await waitForFrame(() => page.getByRole('tooltip'));
     await expect(tooltip).toHaveTextContent('Unsaved changes');
     await expect(tooltip).toHaveTextContent('Public assets are current.');

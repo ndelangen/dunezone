@@ -377,6 +377,30 @@ const noWallClockRule: Rule = {
   },
 };
 
+const SHARED_OVERLAYS_RULE_NAME = 'shared-overlays';
+
+const ALTERNATIVE_OVERLAYS =
+  /^(?:@radix-ui\/react-(?:tooltip|popover|hover-card)|@tippyjs\/react|tippy\.js|react-tooltip)(?:\/|$)/;
+
+/** Keeps hover hints and floating panes on Mantine's shared theme. */
+const sharedOverlaysRule: Rule = {
+  meta: {
+    name: SHARED_OVERLAYS_RULE_NAME,
+    messages: {
+      sharedOverlay: 'Use Tooltip, Popover or HoverCard from @mantine/core under the app theme.',
+    },
+  },
+  create(context) {
+    return {
+      ImportDeclaration(node) {
+        if (ALTERNATIVE_OVERLAYS.test(String(node.source.value))) {
+          context.report({ node, messageId: 'sharedOverlay' });
+        }
+      },
+    };
+  },
+};
+
 const TITLE_TOOLTIP_RULE_NAME = 'no-title-tooltip';
 
 /* Libraries whose components forward an unknown `title` straight to the element they render. */
@@ -409,7 +433,7 @@ const noTitleTooltipRule: Rule = {
     name: TITLE_TOOLTIP_RULE_NAME,
     messages: {
       titleTooltip:
-        "A `title` attribute draws the browser's native tooltip. Wrap the element in the kit `Tooltip` instead, and keep an `aria-label` where the title was its only name.",
+        "A `title` attribute draws the browser's native tooltip. Use Mantine Tooltip for app hover text, or an accessible name or description for standalone metadata.",
       handRolledTooltip:
         'A `data-tip` or `data-tooltip` attribute feeds a hand-rolled CSS tooltip that looks unlike the kit. Wrap the element in the kit `Tooltip` instead.',
     },
@@ -635,6 +659,49 @@ const tooltipLengthRule: Rule = {
   },
 };
 
+const STORY_OWNERSHIP_RULE_NAME = 'story-owns-its-states';
+
+/* Every Testing Library query that can reach a role: the tooltip is reached by any of them. */
+const ROLE_QUERY = /^(?:get|query|find)(?:All)?ByRole$/;
+
+/**
+ * A story shows only the states its own component owns (ADR-0005).
+ * A tooltip opening on hover and closing on leave is the kit's state, covered by the kit's own stories, so a story above the kit neither hovers nor reads a tooltip.
+ * The words a composed component puts in a tooltip are still its own: it asserts them where the kit publishes them, as the control's accessible name or description.
+ * The files glob in `.oxlintrc.json` keeps the kit and the stories that predate the rule out of scope.
+ */
+const storyOwnsItsStatesRule: Rule = {
+  meta: {
+    name: STORY_OWNERSHIP_RULE_NAME,
+    messages: {
+      hover:
+        "Hovering drives a kit component's own state, which its own stories cover. Assert the words through the control's accessible name or description instead (ADR-0005).",
+      tooltip:
+        "An open tooltip is the kit's state, which its own stories cover. Assert the words through the control's accessible name or description instead (ADR-0005).",
+    },
+  },
+  create(context) {
+    return {
+      CallExpression(node) {
+        const callee = node.callee;
+        if (callee.type !== 'MemberExpression' || callee.computed || callee.property.type !== 'Identifier') {
+          return;
+        }
+        const method = callee.property.name;
+        /* Any receiver: `userEvent`, the play context's own `userEvent`, or an instance from `userEvent.setup()` under another name. */
+        if (method === 'hover' || method === 'unhover') {
+          context.report({ node, messageId: 'hover' });
+          return;
+        }
+        const [role] = node.arguments;
+        if (ROLE_QUERY.test(method) && role?.type === 'Literal' && role.value === 'tooltip') {
+          context.report({ node, messageId: 'tooltip' });
+        }
+      },
+    };
+  },
+};
+
 export default {
   meta: {
     name: 'local',
@@ -645,6 +712,8 @@ export default {
     [STORY_DESCRIPTION_RULE_NAME]: noAiTellsInStoryDescriptionsRule,
     [WALL_CLOCK_RULE_NAME]: noWallClockRule,
     [TITLE_TOOLTIP_RULE_NAME]: noTitleTooltipRule,
+    [SHARED_OVERLAYS_RULE_NAME]: sharedOverlaysRule,
     [TOOLTIP_LENGTH_RULE_NAME]: tooltipLengthRule,
+    [STORY_OWNERSHIP_RULE_NAME]: storyOwnsItsStatesRule,
   },
 };

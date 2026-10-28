@@ -1,5 +1,6 @@
-import { Tooltip, UnstyledButton } from '@mantine/core';
+import { Tooltip, UnstyledButton, VisuallyHidden } from '@mantine/core';
 import { TriangleAlert } from 'lucide-react';
+import { Fragment, useId } from 'react';
 
 import styles from './ValidationHeader.module.css';
 
@@ -31,6 +32,8 @@ function formatMissingList(missing: string[]): string {
  * It positions absolutely to the band's bottom edge, and `useEditPageHeader` is what mounts it there;
  * reach for that hook rather than this component.
  *
+ * A chip's help shows on hover and is also its accessible description, so it reads without the pointer.
+ *
  * With no warnings it renders nothing at all.
  * The latch deliberately holds the band open past the moment the last warning clears, so that the band does not pump mid-keystroke, and for that window the strip has nothing true to say: a bare "Needs attention" over no chips claims attention is needed when none is (#897).
  */
@@ -41,6 +44,7 @@ export function ValidationHeader<W extends ValidationHeaderWarning>({
   warnings: W[];
   onFocusWarning: (warning: W) => void;
 }) {
+  const helpId = useId();
   if (warnings.length === 0) {
     return null;
   }
@@ -61,20 +65,30 @@ export function ValidationHeader<W extends ValidationHeaderWarning>({
         <TriangleAlert size={15} aria-hidden />
         Needs attention
       </span>
-      {[...groups.entries()].map(([source, sourceWarnings]) => {
+      {[...groups.entries()].map(([source, sourceWarnings], index) => {
         const missing = sourceWarnings.flatMap((warning) => ('missing' in warning ? [warning.missing] : []));
         const complaints = sourceWarnings.flatMap((warning) => ('complaint' in warning ? [warning.complaint] : []));
         const parts = [...(missing.length > 0 ? [`missing ${formatMissingList(missing)}`] : []), ...complaints];
         const help = [...new Set(sourceWarnings.flatMap((warning) => (warning.help ? [warning.help] : [])))].join(' ');
+        const describedBy = help ? `${helpId}-${index}` : undefined;
         const chip = (
-          <UnstyledButton key={source} className={styles.chip} onClick={() => onFocusWarning(sourceWarnings[0] as W)}>
+          <UnstyledButton
+            key={source}
+            className={styles.chip}
+            aria-describedby={describedBy}
+            onClick={() => onFocusWarning(sourceWarnings[0] as W)}
+          >
             <span className={styles.chipSource}>{source}</span>: {parts.join('; ')}
           </UnstyledButton>
         );
         return help ? (
-          <Tooltip label={help} multiline maw={360} withArrow key={source}>
-            {chip}
-          </Tooltip>
+          <Fragment key={source}>
+            <Tooltip label={help} multiline maw={360} withArrow>
+              {chip}
+            </Tooltip>
+            {/* Mantine mounts the tooltip's label only while it is open, so the description needs a copy that is always there. */}
+            <VisuallyHidden id={describedBy}>{help}</VisuallyHidden>
+          </Fragment>
         ) : (
           chip
         );

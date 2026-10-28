@@ -1,6 +1,6 @@
 import { expect, test } from 'vite-plus/test';
 
-import { alliedFactionColors, allianceRingStyle } from './allianceColors';
+import { alliedFactionColors } from './allianceColors';
 
 const snapshot = {
   alliances: { groups: [{ members: ['a', 'b', 'c'], mark: 7 }], offers: [] },
@@ -29,12 +29,4 @@ test('retained token colours cover older data, while missing factions invent no 
   expect(alliedFactionColors({ ...snapshot, roster: undefined }, 'a')).toEqual(['#654321']);
   expect(alliedFactionColors(snapshot, 'unallied')).toEqual([]);
   expect(alliedFactionColors(snapshot, undefined)).toEqual([]);
-});
-
-test('multi-faction rings give every ally a segment at a constant width', () => {
-  expect(allianceRingStyle(['#123456', '#abcdef'])).toMatchObject({
-    padding: 2,
-    background: 'conic-gradient(#123456 0% 50%, #abcdef 50% 100%)',
-  });
-  expect(allianceRingStyle([])).toBeUndefined();
 });

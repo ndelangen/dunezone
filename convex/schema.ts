@@ -383,6 +383,7 @@ export default defineSchema({
   publication_jobs: defineTable(publicationJobFields)
     .index('by_asset_type_and_asset_id', ['asset_type', 'asset_id'])
     .index('by_status_and_created_at', ['status', 'created_at'])
+    .index('by_asset_type_status_created_at', ['asset_type', 'status', 'created_at'])
     .index('by_status_and_expires_at', ['status', 'expires_at'])
     .index('by_status_and_updated_at', ['status', 'updated_at']),
   /** Queue metadata for the admin listing, without the captured render payload. */
@@ -391,7 +392,15 @@ export default defineSchema({
       job_id: v.id('publication_jobs'),
       job_creation_time: v.number(),
     })
-  ).index('by_job', ['job_id']),
+  )
+    .index('by_job', ['job_id'])
+    .index('by_status_created_at_job_creation_time', ['status', 'created_at', 'job_creation_time'])
+    .index('by_asset_type_status_created_at_job_creation_time', [
+      'asset_type',
+      'status',
+      'created_at',
+      'job_creation_time',
+    ]),
   admin_settings: defineTable({
     key: v.literal('publication'),
     publication_pickup_enabled: v.boolean(),

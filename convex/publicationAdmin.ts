@@ -1,3 +1,4 @@
+import { paginationOptsValidator, paginationResultValidator } from 'convex/server';
 import { v } from 'convex/values';
 
 import { rendererRevisionsSchema } from '../src/shared/asset-publishing/publication';
@@ -6,7 +7,7 @@ import { internalQuery } from './_generated/server';
 import { adminQuery, internalMutation, mutation } from './functions';
 import { requireAdminUserId } from './lib/policy';
 import { publicationSettings } from './lib/publication';
-import { publicationJobListingPage } from './lib/publicationJobListings';
+import { publicationJobListingPage, publicationJobListing } from './lib/publicationJobListings';
 
 const publicationStatus = v.union(v.literal('pending'), v.literal('in_progress'), v.literal('error'));
 
@@ -104,6 +105,65 @@ export const activateRevisions = internalMutation({
   },
 });
 
+const countResult = v.object({ value: v.number(), limited: v.boolean() });
+
+const jobResult = v.object({
+  id: v.id('publication_jobs'),
+  assetType: v.string(),
+  assetId: v.string(),
+  status: publicationStatus,
+  attemptCounter: v.number(),
+  expiresAt: v.union(v.number(), v.null()),
+  error: v.union(v.string(), v.null()),
+  createdAt: v.number(),
+  updatedAt: v.number(),
+});
+
+export const listing = adminQuery({
+  args: {
+    status: v.optional(publicationStatus),
+    assetType: v.optional(v.string()),
+    paginationOpts: paginationOptsValidator,
+  },
+  returns: v.object({
+    settings: v.union(settingsResult, v.null()),
+    counts: v.object({
+      pending: countResult,
+      inProgress: countResult,
+      error: countResult,
+    }),
+    ...paginationResultValidator(jobResult).fields,
+  }),
+  handler: async (ctx, args) => {
+    const [jobs, settings] = await Promise.all([publicationJobListing(ctx, args), publicationSettings(ctx)]);
+
+    return {
+      settings: settings
+        ? {
+            publicationPickupEnabled: settings.publication_pickup_enabled,
+            rendererRevisions: settings.renderer_revisions,
+            updatedAt: settings.updated_at,
+          }
+        : null,
+      ...jobs,
+      page: jobs.page.map((job) => ({
+        id: job.job_id,
+        assetType: job.asset_type,
+        assetId: job.asset_id,
+        status: job.status,
+        attemptCounter: job.attempt_counter,
+        expiresAt: job.expires_at ?? null,
+        error: job.error ?? null,
+        createdAt: job.created_at,
+        updatedAt: job.updated_at,
+      })),
+    };
+  },
+});
+
+/* Clients loaded before cursor pagination still call this contract until they reload.
+ * The current dashboard uses listing, which has no thousand-job visibility cap.
+ */
 export const page = adminQuery({
   args: {
     status: v.optional(publicationStatus),
@@ -118,19 +178,7 @@ export const page = adminQuery({
       inProgress: v.number(),
       error: v.number(),
     }),
-    jobs: v.array(
-      v.object({
-        id: v.id('publication_jobs'),
-        assetType: v.string(),
-        assetId: v.string(),
-        status: publicationStatus,
-        attemptCounter: v.number(),
-        expiresAt: v.union(v.number(), v.null()),
-        error: v.union(v.string(), v.null()),
-        createdAt: v.number(),
-        updatedAt: v.number(),
-      })
-    ),
+    jobs: v.array(jobResult),
     total: v.number(),
     page: v.number(),
     pageSize: v.number(),
@@ -164,7 +212,7 @@ export const page = adminQuery({
         updatedAt: job.updated_at,
       })),
       total: listing.total,
-      page,
+      page: listing.page,
       pageSize,
     };
   },

@@ -353,6 +353,14 @@ Chromatic captures a visual story, so it shows a UI capability no other story sh
 fixture data rather than a live catalogue. Behaviour, a repeat of a captured screen, and content go
 in a `name.testing.stories.tsx` file on `testingPreview`, which CI runs and Chromatic skips.
 
+A story shows only the states its own component owns
+([ADR-0005](docs/adr/0005-stories-show-only-owned-states.md)). A composed component never shows again
+the hover, focus, disabled, pending or open states of the children it composes, nor drives their
+tooltips, holds or menus; it proves its wiring through the child's accessible name, value and
+description. Each visual story changes one thing from its component's baseline, so a story name that
+needs "and" is two stories. The `local/story-owns-its-states` lint rule rejects hovering and reading
+a tooltip in any story outside `src/app/ui`.
+
 Three filename conventions carry weight here. A story-only fixture takes the `.stories.fixture.tsx`
 suffix, which the lint overrides key on, so it is a name the tooling reads rather than a preference.
 A Picker's pure view splits into a `.parts.tsx` companion, keeping the fetching shell and the
@@ -534,7 +542,9 @@ landed while the previous run was still going, one per review bot as each one re
 - Commit locally as often as you like. Only pushes cost CI.
 - Open every pull request as a draft.
 - Mark it ready for review only when the change is finished. A draft's run is lint, test and
-  game_release alone, about 9 runner minutes, and reports as `ci_draft`. Marking it ready starts the
+  game_release alone, about 9 runner minutes or less, and reports as `ci_draft`. Its test job runs
+  only the unit test files the change affects and those that read files by path
+  ([`scripts/draft-unit-tests.ts`](scripts/draft-unit-tests.ts)). Marking it ready starts the
   full run, and only that run's `ci_ok` lets it merge. Every push after that runs in full again.
 - Before the first push, find what CI and the review bots would find: run `bun run check`,
   `bun run typecheck`, and the unit tests and story files your change touches, and review your own

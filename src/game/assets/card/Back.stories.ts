@@ -47,17 +47,6 @@ export const LongLabel = meta.story({
   args: { ...STANDARD_STORM_CARDBACK, name: 'A very long custom storm deck label' },
   play: verifyLabelPaint,
 });
-export const LegacyLabelSize = meta.story({
-  args: { ...STANDARD_STORM_CARDBACK, nameScale: 2, nameFont: 'C_Busorama_Bold' },
-  play: async (context) => {
-    await verifyLabelPaint(context);
-    for (const text of context.canvasElement.querySelectorAll('text')) {
-      await expect(getComputedStyle(text).fontSize).toBe('90px');
-      /* The legacy bold font renders as regular C_Busorama. */
-      await expect(getComputedStyle(text).fontFamily).toBe('C_Busorama');
-    }
-  },
-});
 export const TintedEmblemBackground = meta.story({
   args: {
     ...GF9_LEADER_SKILL_DECK_BACK,

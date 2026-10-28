@@ -23,8 +23,10 @@ function tracked(pattern: RegExp): string[] {
  * The application's own entry is the router, whose generated route tree names every page.
  */
 const APPLICATION = ['src/app/router.tsx', 'vite.config.ts'];
+/* The root configuration every Vitest run loads, the narrow game job's included. */
+const ROOT_CONFIGURATION = ['vite.config.ts', 'coverage-denominator.ts', 'browser-launch-tests.ts'];
 const ENTRY_POINTS: Record<ReusableJob, () => string[]> = {
-  game_release: () => tracked(/^workers\/game\/.*\.ts$/u),
+  game_release: () => [...tracked(/^workers\/game\/.*\.ts$/u), ...ROOT_CONFIGURATION],
   publisher_release: () => [
     ...tracked(/^workers\/publisher\/.*\.ts$/u),
     ...APPLICATION,

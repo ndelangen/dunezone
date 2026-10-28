@@ -1334,7 +1334,7 @@ describe('captured reference compatibility before ready payloads', () => {
       }
     }
   );
-  test.each(['custom', 'bare', 'preset', 'reference', 'self'] as const)(
+  test.each(['custom', 'preset', 'reference', 'self'] as const)(
     'a deck cardback checks the captured target %s mode and refuses self-reference',
     async (mode) => {
       const f = await fixture();
@@ -1346,13 +1346,11 @@ describe('captured reference compatibility before ready payloads', () => {
         f.authored.set(record.key, structuredClone(data));
       }
       const cardback =
-        mode === 'bare'
-          ? publishingDeckCardback
-          : mode === 'preset'
-            ? { mode: 'preset', key: 'treachery' }
-            : mode === 'reference'
-              ? { mode: 'reference', asset_id: 'fixture-gf9-c' }
-              : { mode: 'custom', ...publishingDeckCardback };
+        mode === 'preset'
+          ? { mode: 'preset', key: 'treachery' }
+          : mode === 'reference'
+            ? { mode: 'reference', asset_id: 'fixture-gf9-c' }
+            : { mode: 'custom', ...publishingDeckCardback };
       f.saved.get('gf9-b')!.data = { name: 'gf9-b', about: '', cardback };
       (f.authored.get('gf9-a') as { cardback?: unknown }).cardback = {
         mode: 'reference',
@@ -1372,8 +1370,8 @@ describe('captured reference compatibility before ready payloads', () => {
         now,
       });
       const entry = prepared.report.entries.find((row) => row.key === 'gf9-a')!;
-      expect(entry.status).toBe(['custom', 'bare'].includes(mode) ? 'ready' : 'blocked');
-      if (!['custom', 'bare'].includes(mode)) {
+      expect(entry.status).toBe(mode === 'custom' ? 'ready' : 'blocked');
+      if (mode !== 'custom') {
         expect(entry.error).toMatch(mode === 'self' ? /own cardback/ : /authored cardback/);
         await expect(readFile(path.join(f.root, 'generated/local/references/gf9-a.json'))).rejects.toMatchObject({
           code: 'ENOENT',

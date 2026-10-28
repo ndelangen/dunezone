@@ -2,7 +2,7 @@ import preview from '@sb/preview';
 import { applyAlliance } from '@shared/play/alliances';
 import type { AllianceState } from '@shared/play/alliances';
 import type { ClientMessage } from '@shared/play/protocol';
-import { expect, userEvent, waitFor, within } from 'storybook/test';
+import { expect, waitFor, within } from 'storybook/test';
 
 import { VIEWER, faction, alliancesSnapshot } from './alliances.stories.fixture';
 import { gameMeta, install } from './game.stories.fixture';
@@ -64,7 +64,7 @@ function liveTransport() {
   return transport;
 }
 
-/** Try it by hand: accept or decline the offer, offer another faction an alliance, or break one. */
+/** Try it by hand: accept the offer, offer another faction an alliance, take an offer back, or break an alliance. */
 export const Live = meta.story({
   /* Freeze the flowing offer arrows for a repeatable visual capture. */
   globals: { motion: 'reduce' },
@@ -99,53 +99,5 @@ export const ManyAlliancesFitTheHeader = meta.story({
         true
       );
     });
-  },
-});
-
-const SLOTS = 'dunezone-compass:slots';
-
-/* Opens the Alliances window bottom left and the viewer's Faction info bottom right, and puts back what was pinned before once the story ends, so the next story starts as it would have. */
-function pinAlliancesAndFactionInfo() {
-  try {
-    const before = localStorage.getItem(SLOTS);
-    localStorage.setItem(
-      SLOTS,
-      JSON.stringify({ left: { key: 'alliances' }, right: { key: 'faction-info', seat: VIEWER } })
-    );
-    return () => (before === null ? localStorage.removeItem(SLOTS) : localStorage.setItem(SLOTS, before));
-  } catch {
-    /* Without storage the slots start empty. */
-    return undefined;
-  }
-}
-
-/** The Alliances window shows every faction by its token, with its allies' tokens beside its status, and the Faction info keeps all six tokens on one line, scrolling sideways when its slot is narrow. */
-export const TokensInTheWindows = meta.story({
-  globals: { viewport: { value: 'table1280' } },
-  beforeEach: [install(() => productTransport(VIEWER, alliancesSnapshot())), pinAlliancesAndFactionInfo],
-  play: async ({ canvasElement }) => {
-    const doc = canvasElement.ownerDocument;
-    const picker = await within(doc.body).findByRole('group', { name: 'Factions' }, { timeout: 30_000 });
-    const tops = new Set([...picker.querySelectorAll('button')].map((button) => button.offsetTop));
-    await expect(tops.size, 'The faction tokens wrap onto a second line.').toBe(1);
-    await expect(picker.scrollWidth, 'Six tokens outgrow the slot, so the row scrolls.').toBeGreaterThan(
-      picker.clientWidth
-    );
-    /* The rule under the tokens runs from the window's border to its scrolling body's far edge, short only of a scrollbar. */
-    const frame = picker.closest('[data-window]')!.getBoundingClientRect();
-    const body = picker.parentElement!;
-    const scrollbar = body.offsetWidth - body.clientWidth;
-    const rule = picker.getBoundingClientRect();
-    await expect(Math.abs(rule.left - frame.left), 'The rule stops short of the left edge.').toBeLessThanOrEqual(1.5);
-    await expect(
-      Math.abs(rule.right + scrollbar - frame.right),
-      'The rule stops short of the right edge.'
-    ).toBeLessThanOrEqual(1.5);
-    /* An ally's token names its faction on hover. */
-    const alliances = within(doc.querySelector<HTMLElement>('[data-window="alliances"]')!);
-    const allied = (await alliances.findByText('Allied with Fremen')).parentElement!;
-    await userEvent.hover(allied.querySelector('.mantine-Avatar-root')!);
-    const tooltip = await within(doc.body).findByRole('tooltip', { name: 'Fremen' });
-    await waitFor(() => expect(tooltip).toBeVisible());
   },
 });

@@ -1,9 +1,13 @@
 import { homepageSnapshot } from '@shared/homepage/setup';
+import { redactReportData } from '@shared/play/reportRedaction';
 import { expect, userEvent, within } from 'storybook/test';
 
 /** Public homepage game data in the report envelope, with a deliberately older browser revision. */
 function reportFile() {
   const snapshot = homepageSnapshot('https://dune.zone');
+  /* Exercise export redaction and distinguish plain labels from artwork addresses in the table preview. */
+  snapshot.table.pieces.find((piece) => piece.kind === 'card')!.items[0]!.id = `card-${'a'.repeat(64)}`;
+  snapshot.table.pieces[0]!.label = 'https://example.com';
   return new File(
     [
       JSON.stringify({
@@ -25,7 +29,7 @@ function reportFile() {
             audit: { entries: [], more: false },
           },
         },
-        browser: {
+        browser: redactReportData({
           snapshot: { snapshot: { ...snapshot, revision: 13 } },
           conversations: {},
           diagnostics: { clientRevision: 13, connection: 'reconnecting' },
@@ -37,7 +41,7 @@ function reportFile() {
             },
           ],
           droppedLogs: 3,
-        },
+        }),
       }),
     ],
     'example-report.json',

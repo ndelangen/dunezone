@@ -1,5 +1,6 @@
 import { DirectAggregate } from '@convex-dev/aggregate';
 import type { Triggers } from 'convex-helpers/server/triggers';
+import type { PaginationOptions } from 'convex/server';
 
 import { components } from '../_generated/api';
 import type { DataModel, Doc, Id } from '../_generated/dataModel';
@@ -136,10 +137,12 @@ async function legacyPage(ctx: QueryCtx, args: PageArgs) {
         (args.assetType === undefined || row.asset_type === args.assetType)
     );
   const [error, inProgress, pending] = rows.map((group) => group.length);
-  const offset = (args.page - 1) * args.pageSize;
+  const page = Math.max(1, Math.min(Math.ceil(jobs.length / args.pageSize), args.page));
+  const offset = (page - 1) * args.pageSize;
   return {
     counts: { error: error!, inProgress: inProgress!, pending: pending! },
     total: jobs.length,
+    page,
     jobs: jobs.slice(offset, offset + args.pageSize).map(fields),
   };
 }
@@ -147,12 +150,16 @@ async function legacyPage(ctx: QueryCtx, args: PageArgs) {
 type PageArgs = { status?: Status; assetType?: string; page: number; pageSize: number };
 
 /** Exact counts and page offsets read the aggregate; only the displayed metadata rows are hydrated. */
-export async function publicationJobListingPage(ctx: QueryCtx, args: PageArgs) {
+async function listingsReady(ctx: QueryCtx) {
   const marker = await ctx.db
     .query('migration_runs')
     .withIndex('by_migration_id', (q) => q.eq('migration_id', 'publication_job_listings_verify_v1'))
     .unique();
-  if (marker?.state !== 'success' || !marker.is_done) {
+  return marker?.state === 'success' && marker.is_done;
+}
+
+export async function publicationJobListingPage(ctx: QueryCtx, args: PageArgs) {
+  if (!(await listingsReady(ctx))) {
     return await legacyPage(ctx, args);
   }
   const allCounts = await order.countBatch(
@@ -172,7 +179,8 @@ export async function publicationJobListingPage(ctx: QueryCtx, args: PageArgs) {
     count: args.status === undefined || status === args.status ? (selectedCounts[index] ?? 0) : 0,
   }));
   const total = selected.reduce((sum, group) => sum + group.count, 0);
-  let offset = (args.page - 1) * args.pageSize;
+  const pageNumber = Math.max(1, Math.min(Math.ceil(total / args.pageSize), args.page));
+  let offset = (pageNumber - 1) * args.pageSize;
   const jobs: Fields[] = [];
   for (const group of selected) {
     if (jobs.length >= args.pageSize) {
@@ -199,5 +207,93 @@ export async function publicationJobListingPage(ctx: QueryCtx, args: PageArgs) {
     }
     offset = 0;
   }
-  return { counts: { error, inProgress, pending }, total, jobs };
+  return { counts: { error, inProgress, pending }, total, jobs, page: pageNumber };
+}
+
+async function countJobs(ctx: QueryCtx, status: 'pending' | 'in_progress' | 'error') {
+  const start = (await ctx.meta.getTransactionMetrics()).bytesRead.remaining;
+  let value = 0;
+  for await (const _job of ctx.db
+    .query('publication_jobs')
+    .withIndex('by_status_and_created_at', (q) => q.eq('status', status))) {
+    value += 1;
+    if (value >= 1000 || start - (await ctx.meta.getTransactionMetrics()).bytesRead.remaining >= 2_000_000) {
+      return { value, limited: true };
+    }
+  }
+  return { value, limited: false };
+}
+
+const LISTING_CURSOR = 'publication-listing-v1:';
+
+/** A cursor keeps its source for the whole traversal, including across the backfill cutover. */
+export async function publicationJobListing(
+  ctx: QueryCtx,
+  args: { status?: Status; assetType?: string; paginationOpts: PaginationOptions }
+) {
+  const ready = await listingsReady(ctx);
+  const boundary = args.paginationOpts.cursor ?? args.paginationOpts.endCursor;
+  const indexed = boundary ? boundary.startsWith(LISTING_CURSOR) : ready;
+  const decode = (cursor: string | null | undefined) => {
+    if (cursor == null) {
+      return cursor;
+    }
+    if (cursor.startsWith(LISTING_CURSOR) !== indexed) {
+      throw new Error('Publication page cursors use different sources');
+    }
+    return indexed ? cursor.slice(LISTING_CURSOR.length) : cursor;
+  };
+  const paginationOpts = {
+    ...args.paginationOpts,
+    cursor: decode(args.paginationOpts.cursor) ?? null,
+    endCursor: decode(args.paginationOpts.endCursor),
+    numItems: Number.isFinite(args.paginationOpts.numItems)
+      ? Math.max(1, Math.min(100, Math.floor(args.paginationOpts.numItems)))
+      : 1,
+    maximumBytesRead: Math.min(args.paginationOpts.maximumBytesRead ?? 2_000_000, 2_000_000),
+  };
+  const jobs = indexed
+    ? await (
+        args.assetType === undefined
+          ? ctx.db
+              .query('publication_job_listings')
+              .withIndex('by_status_created_at_job_creation_time', (q) =>
+                args.status === undefined ? q : q.eq('status', args.status)
+              )
+          : ctx.db
+              .query('publication_job_listings')
+              .withIndex('by_asset_type_status_created_at_job_creation_time', (q) => {
+                const byAsset = q.eq('asset_type', args.assetType!);
+                return args.status === undefined ? byAsset : byAsset.eq('status', args.status);
+              })
+      ).paginate(paginationOpts)
+    : await (
+        args.assetType === undefined
+          ? ctx.db
+              .query('publication_jobs')
+              .withIndex('by_status_and_created_at', (q) =>
+                args.status === undefined ? q : q.eq('status', args.status)
+              )
+          : ctx.db.query('publication_jobs').withIndex('by_asset_type_status_created_at', (q) => {
+              const byAsset = q.eq('asset_type', args.assetType!);
+              return args.status === undefined ? byAsset : byAsset.eq('status', args.status);
+            })
+      ).paginate(paginationOpts);
+  const counts = ready
+    ? (
+        await order.countBatch(
+          ctx,
+          STATUS_ORDER.map((status) => ({ namespace: [status, 'all'] as Namespace }))
+        )
+      ).map((value) => ({ value, limited: false }))
+    : [await countJobs(ctx, 'error'), await countJobs(ctx, 'in_progress'), await countJobs(ctx, 'pending')];
+  return {
+    ...jobs,
+    continueCursor: indexed ? LISTING_CURSOR + jobs.continueCursor : jobs.continueCursor,
+    ...(jobs.splitCursor != null
+      ? { splitCursor: indexed ? LISTING_CURSOR + jobs.splitCursor : jobs.splitCursor }
+      : {}),
+    page: jobs.page.map((row) => ('job_id' in row ? row : fields(row))),
+    counts: { error: counts[0]!, inProgress: counts[1]!, pending: counts[2]! },
+  };
 }

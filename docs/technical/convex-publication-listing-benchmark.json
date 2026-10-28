@@ -1,0 +1,119 @@
+{
+  "date": "2026-10-28",
+  "environment": "Disposable local Convex backend, synthetic data only",
+  "fixture": {
+    "jobs": 30,
+    "payloadBytesPerJob": 900000,
+    "requestedPageSize": 25
+  },
+  "migration": {
+    "batchSize": 4,
+    "dryRunListingCount": 0,
+    "verifiedListingCount": 30
+  },
+  "reads": {
+    "before": {
+      "bytesRead": 5401825,
+      "counts": {
+        "error": {
+          "limited": false,
+          "value": 0
+        },
+        "inProgress": {
+          "limited": false,
+          "value": 0
+        },
+        "pending": {
+          "limited": true,
+          "value": 3
+        }
+      },
+      "documentsRead": 10,
+      "isDone": false,
+      "rowCount": 3
+    },
+    "after": {
+      "bytesRead": 12127,
+      "counts": {
+        "error": {
+          "limited": false,
+          "value": 0
+        },
+        "inProgress": {
+          "limited": false,
+          "value": 0
+        },
+        "pending": {
+          "limited": false,
+          "value": 30
+        }
+      },
+      "documentsRead": 34,
+      "isDone": false,
+      "rowCount": 25
+    },
+    "oldCursorAfter": {
+      "bytesRead": 2706433,
+      "counts": {
+        "error": {
+          "limited": false,
+          "value": 0
+        },
+        "inProgress": {
+          "limited": false,
+          "value": 0
+        },
+        "pending": {
+          "limited": false,
+          "value": 30
+        }
+      },
+      "documentsRead": 12,
+      "isDone": false,
+      "rowCount": 3
+    },
+    "next": {
+      "bytesRead": 7077,
+      "counts": {
+        "error": {
+          "limited": false,
+          "value": 0
+        },
+        "inProgress": {
+          "limited": false,
+          "value": 0
+        },
+        "pending": {
+          "limited": false,
+          "value": 30
+        }
+      },
+      "documentsRead": 14,
+      "isDone": true,
+      "rowCount": 5
+    }
+  },
+  "smallJobWrites": {
+    "insert": {
+      "bytesRead": 25158,
+      "bytesWritten": 8802,
+      "documentsWritten": 6
+    },
+    "status": {
+      "bytesRead": 18702,
+      "bytesWritten": 5526,
+      "documentsWritten": 12
+    },
+    "payload": {
+      "bytesRead": 906,
+      "bytesWritten": 220,
+      "documentsWritten": 1
+    },
+    "delete": {
+      "bytesRead": 2612,
+      "bytesWritten": 164,
+      "documentsWritten": 4
+    }
+  },
+  "limits": "Backend transaction counters, not an invoice estimate. Aggregate maintenance adds writes even when the admin dashboard is closed."
+}

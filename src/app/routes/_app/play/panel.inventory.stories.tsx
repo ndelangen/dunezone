@@ -20,7 +20,7 @@ import {
 
 const meta = preview.meta({
   ...gameMeta,
-  title: 'Play/Panels/Shared table inventory',
+  title: 'Play/Shared table inventory',
   /* The stories load the table chunk before they render, so its cold first load falls outside their first wait (#1302). */
   loaders: [
     async () => {
@@ -130,10 +130,15 @@ export const Arrival = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await openTab(page, 'Shared table inventory');
     await settled(async () => {
-      for (const label of ['Treachery deck', ...drawerFactions.map(({ data }) => `${data.name} tokens`)]) {
+      /* A stack is dragged by its label; a token's image is named for the token itself, as its tooltip names it. */
+      const thumbnails = [
+        { label: 'Treachery deck', image: 'Treachery deck' },
+        ...drawerFactions.map(({ data }) => ({ label: `${data.name} tokens`, image: `${data.name} token` })),
+      ];
+      for (const { label, image } of thumbnails) {
         const thumbnail = page.getByRole('button', { name: `Drag ${label} onto the table` });
         await expect(thumbnail).toBeEnabled();
-        await expect(within(thumbnail).getByRole('img', { name: label }).closest('[data-phase]')).toHaveAttribute(
+        await expect(within(thumbnail).getByRole('img', { name: image }).closest('[data-phase]')).toHaveAttribute(
           'data-phase',
           'shown'
         );
@@ -184,7 +189,9 @@ export const HiddenDeckBacks = meta.story({
 });
 
 /* The baseline holds six spawnable assets; these take the catalogue past the picker's first page, so Load more has something to load. */
-const EXTRA_TOKENS = 10;
+const EXTRA_TOKENS = 14;
+/* How many disc tokens the catalogue holds, the seeded ones and the product's own; the database counts them as it builds. */
+let discTokens = 0;
 const catalogueDatabase = db((baseline) => {
   productGameDatabase(baseline, { state: 'ready' });
   for (let index = 1; index <= EXTRA_TOKENS; index += 1) {
@@ -200,11 +207,11 @@ const catalogueDatabase = db((baseline) => {
       })
     );
   }
+  discTokens = baseline.assets.filter((entry) => entry.type === 'token-disc' && !entry.is_deleted).length;
 });
-const SPAWNABLE_ASSETS = 6 + EXTRA_TOKENS;
 
 /**
- * The catalogue picker: the newest spawnable assets a page at a time, a server search over the asset's and its owner's name, and a keyboard pick that asks the table to check the asset before it can be requested.
+ * The Disc tokens shelf's catalogue picker: the newest disc tokens a page at a time and no other type, a server search over the asset's and its owner's name, and a keyboard pick that asks the table to check the asset before it can be requested.
  * The story's transport answers no catalogue read, so the check stays pending, as it does while the Worker reads the definitions.
  */
 export const Catalogue = meta.story({
@@ -213,7 +220,9 @@ export const Catalogue = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await openTab(page, 'Shared table inventory');
-    await userEvent.click(await page.findByRole('button', { name: 'Add from catalogue' }, { timeout: 30_000 }));
+    await userEvent.click(
+      await page.findByRole('button', { name: 'Add disc tokens from the catalogue' }, { timeout: 30_000 })
+    );
     const options = () => within(page.getByRole('listbox', { name: 'Catalogue assets' })).getAllByRole('option');
     /* The row Enter would pick: Mantine marks it on the row itself, since the rows are inline rather than in a dropdown of their own. */
     const highlighted = () => options().findIndex((option) => option.hasAttribute('data-combobox-selected'));
@@ -226,7 +235,7 @@ export const Catalogue = meta.story({
     await userEvent.keyboard('{ArrowDown}');
     await expect(highlighted()).toBe(1);
     await userEvent.click(page.getByRole('button', { name: 'Load more' }));
-    await waitFor(() => expect(options()).toHaveLength(SPAWNABLE_ASSETS), { timeout: 30_000 });
+    await waitFor(() => expect(options()).toHaveLength(discTokens), { timeout: 30_000 });
     await expect(page.queryByRole('button', { name: 'Load more' })).toBeNull();
     await expect(highlighted()).toBe(1);
     /*
@@ -236,15 +245,18 @@ export const Catalogue = meta.story({
     await userEvent.click(search);
     await userEvent.keyboard('{Escape}t{Enter}');
     await expect(picks()).toHaveLength(0);
-    /* The search matches the deck and not the treachery card of the same name, which no game spawns on its own. */
+    /* The shelf's search finds none of the other types, and says which it searched: the House Treachery deck is on the Decks shelf's. */
     await userEvent.keyboard('reachery');
+    await expect(page.findByText('No disc token matches.', {}, { timeout: 30_000 })).resolves.toBeVisible();
+    await userEvent.clear(search);
+    await userEvent.type(search, 'Sietch Token 03');
     await waitFor(() => expect(options()).toHaveLength(1), { timeout: 30_000 });
-    await expect(options()[0]).toHaveTextContent('House Treachery');
+    await expect(options()[0]).toHaveTextContent('Sietch Token 03');
     /* The best match is highlighted as soon as it lists, so Enter from the search box picks it without an arrow key first. */
     await userEvent.keyboard('{Enter}');
     await waitFor(() =>
       expect(picks()).toEqual([
-        expect.objectContaining({ type: 'catalogue', selection: { type: 'deck', slug: 'house-treachery' } }),
+        expect.objectContaining({ type: 'catalogue', selection: { type: 'token-disc', slug: 'sietch-token-03' } }),
       ])
     );
     await expect(page.getByText('Checking published definitions and images...')).toBeVisible();

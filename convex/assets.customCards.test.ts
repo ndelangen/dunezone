@@ -3,7 +3,7 @@
 import { expect, test } from 'vite-plus/test';
 
 import { publishingCustomCard } from '../src/shared/assets/fixtures/publishingCustomCard';
-import { publishingDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
+import { publishingCustomDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
 import { api } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
 import { assetPageAs } from './viewerAccess.test.fixture';
@@ -24,7 +24,7 @@ test('custom cards save their ordered composition, publish it and join mixed dec
   expect(job?.asset_data).toEqual({ assetId: created.id, slug: created.slug, card: publishingCustomCard });
   const deck = await owner.mutation(api.assets.create, {
     type: 'deck',
-    data: { name: 'Reference deck', about: '', cardback: publishingDeckCardback },
+    data: { name: 'Reference deck', about: '', cardback: publishingCustomDeckCardback },
   });
   await owner.mutation(api.assets.setMemberCount, { container_id: deck.id, member_id: created.id, count: 2 });
   const deckPage = await assetPageAs(t, { type: 'deck', slug: deck.slug });

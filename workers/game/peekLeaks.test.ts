@@ -88,7 +88,6 @@ const STEPS: Record<Kind, (room: Room) => Step[]> = {
   'alliance-offer': () => [[bob, { kind: 'alliance-offer', factionId: 'harkonnen' }]],
   'alliance-withdraw': () => [[bob, { kind: 'alliance-withdraw', factionId: 'harkonnen', offer: 0 }]],
   'alliance-accept': () => [[bob, { kind: 'alliance-accept', factionId: 'harkonnen', offer: 0 }]],
-  'alliance-decline': () => [[bob, { kind: 'alliance-decline', factionId: 'harkonnen', offer: 0 }]],
   'alliance-break': () => [[bob, { kind: 'alliance-break', factionId: 'harkonnen' }]],
   'last-turn': () => [[bob, { kind: 'last-turn', turn: 8 }]],
   'tint-create': () => [
@@ -168,6 +167,7 @@ const STEPS: Record<Kind, (room: Room) => Step[]> = {
   storm: () => [[bob, { kind: 'storm', direction: 1 }]],
   phase: () => [[bob, { kind: 'phase' }]],
   'spice-spawn': () => [[bob, { kind: 'spice-spawn', count: 1 }]],
+  'tech-token-draw': () => [[bob, { kind: 'tech-token-draw' }]],
   reset: () => [[bob, { kind: 'reset' }]],
   'deck-draw': () => [[bob, { kind: 'deck-draw', pieceId: DECK }]],
   'deck-shuffle': () => [[bob, { kind: 'deck-shuffle', pieceId: DECK }]],

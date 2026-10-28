@@ -16,16 +16,22 @@ export function useSignInProviders() {
 
 export type { AuthProvider } from '../../../convex/lib/accountMethods';
 /** The admin accounts page. Choosing a profile or another page changes the arguments, so the last answer stays on screen until the next one arrives rather than the form unmounting into a loading state. */
-export function useAccountManagementPage(cursor: string | null, selectedUserIds: string[]) {
+export function useAccountManagementPage(
+  cursor: string | null,
+  selectedUserIds: string[],
+  failedCursor: string | null = null
+) {
   const page = useQuery(api.accounts.adminPage, {
     paginationOpts: { cursor, numItems: 40 },
+    failedPaginationOpts: { cursor: failedCursor, numItems: 20 },
     selectedUserIds: selectedUserIds as Id<'users'>[],
   });
   const [shown, setShown] = useState(page);
   if (page !== undefined && page !== shown) {
     setShown(page);
   }
-  return page ?? shown;
+  const result = page ?? shown;
+  return result ? { ...result, isRefreshing: page === undefined } : undefined;
 }
 export function useMergeAccounts() {
   const mutate = useMutation(api.accounts.merge);

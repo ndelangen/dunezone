@@ -16,7 +16,7 @@ const migrations = new Migrations(components.migrations, {
 export const publication_job_listings_v1 = migrations.define({
   table: 'publication_jobs',
   /* A captured render payload can approach the document limit. */
-  batchSize: 8,
+  batchSize: 4,
   migrateOne: async (ctx, row) => {
     await syncPublicationJobListing(ctx, row._id, row);
   },
@@ -25,7 +25,7 @@ export const publication_job_listings_v1 = migrations.define({
 /** Enables indexed reads only after every remaining job has its exact metadata and both order entries. */
 export const publication_job_listings_verify_v1 = migrations.define({
   table: 'publication_jobs',
-  batchSize: 8,
+  batchSize: 4,
   migrateOne: async (ctx, row) => {
     await assertPublicationJobListing(ctx, row);
   },

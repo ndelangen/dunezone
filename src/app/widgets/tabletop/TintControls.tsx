@@ -122,6 +122,9 @@ function StickerPicker({
   );
 }
 
+/* A ring around every swatch, so a near-black tint still shows on the table's dark ground. */
+const SWATCH_OUTLINE = '1px solid var(--mantine-color-default-border)';
+
 /** The tint's colour swatch, which opens a picker: a preset colour or any other, reported once the pick settles. */
 function TintColor({
   tint,
@@ -146,7 +149,7 @@ function TintColor({
               setDraft(withFillOpacity(tint.color));
               setOpened((open) => !open);
             }}
-            style={{ cursor: enabled ? 'pointer' : 'default', flexShrink: 0 }}
+            style={{ cursor: enabled ? 'pointer' : 'default', flexShrink: 0, outline: SWATCH_OUTLINE }}
           />
         </Tooltip>
       </Popover.Target>
@@ -270,7 +273,7 @@ export function NewTints({
               size={22}
               aria-label={label}
               disabled={!enabled}
-              style={{ cursor: enabled ? 'pointer' : 'not-allowed' }}
+              style={{ cursor: enabled ? 'pointer' : 'not-allowed', outline: SWATCH_OUTLINE }}
               onClick={() => onCreate({ name: freshTintName(color, tints), color })}
             />
           </Tooltip>

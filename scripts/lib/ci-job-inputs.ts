@@ -14,7 +14,7 @@ import { byCodeUnit } from './storybook-shards';
 const KEY_VERSION = 'ci-job-inputs-v1';
 
 /* What every job reads: its own definition, the shared actions, the dependency graph and the root configuration Vitest and the TypeScript projects load. */
-const EVERY_JOB: readonly string[] = [
+export const EVERY_JOB: readonly string[] = [
   '.github/workflows/ci-pr.yml',
   '.github/workflows/reusable-verify.yml',
   '.github/actions/**',
@@ -27,8 +27,12 @@ const EVERY_JOB: readonly string[] = [
   'vite.config.ts',
   'coverage-denominator.ts',
   'browser-launch-tests.ts',
+  /* What vite.config.ts imports, which every Vitest run loads. */
+  'scripts/lib/browserBundleBudgets.ts',
+  'scripts/lib/jsonc.ts',
   'scripts/lib/reactCompiler.ts',
   'scripts/lib/threeRendererStack.ts',
+  'scripts/lib/unsyncedMediaPreview.ts',
   'scripts/ci-job-key.ts',
   'scripts/lib/ci-job-inputs.ts',
   'scripts/lib/hosted-play-closure.ts',

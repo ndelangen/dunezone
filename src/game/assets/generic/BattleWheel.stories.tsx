@@ -64,7 +64,7 @@ export const WithCards = meta.story({
     for (const { name } of wheelCards) {
       await expect(canvas.getByText(name)).toBeInTheDocument();
     }
-    await expect(canvas.getByLabelText('Strength adjustment plus 1.5')).toHaveTextContent('+1.5');
+    await expect(canvas.getByLabelText('Strength adjustment plus 1.5')).toHaveTextContent('+1½');
   },
 });
 export const MultipleTroopFaces = meta.story({
@@ -109,3 +109,6 @@ export const Unrevealed = meta.story({
 export const Ready = meta.story({
   args: { state: 'unrevealed', artwork, ready: true, label: 'Atreides, ready' },
 });
+
+/** Halves read as ½ in the strength and the adjustment alike. */
+export const Halves = meta.story({ args: { ...revealedArgs, strength: 2.5, adjustment: -0.5 } });

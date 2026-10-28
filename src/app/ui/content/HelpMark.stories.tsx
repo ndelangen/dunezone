@@ -26,5 +26,8 @@ export const Default = meta.story({
     await expect(mark).toHaveAccessibleDescription('Messages to every seated faction.');
     await userEvent.hover(mark);
     await waitForFrame(() => expect(page.getByRole('tooltip')).toHaveTextContent('Messages to every seated faction.'));
+    await expect(canvasElement.ownerDocument.defaultView!.getComputedStyle(page.getByRole('tooltip')).whiteSpace).toBe(
+      'pre-line'
+    );
   },
 });

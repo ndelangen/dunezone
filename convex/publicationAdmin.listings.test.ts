@@ -78,7 +78,11 @@ test('indexed admin pages retain status precedence, filters and live job transit
     total: 0,
     jobs: [],
   });
-  expect(await admin.query(api.publicationAdmin.page, { ...PAGE, page: 100 })).toMatchObject({ total: 4, jobs: [] });
+  expect(await admin.query(api.publicationAdmin.page, { ...PAGE, page: 100 })).toMatchObject({
+    total: 4,
+    page: 2,
+    jobs: [{ id: ids[2] }, { id: ids[0] }],
+  });
   await t.run(async (raw) => {
     const ctx = applicationTriggers.wrapDB(raw);
     await ctx.db.patch('publication_jobs', ids[0]!, { status: 'in_progress', expires_at: 999, updated_at: 99 });
@@ -142,5 +146,79 @@ test('a deep filtered page stays below 128 KiB among 1,101 captured jobs', { tim
   expect(result.jobs.at(-1)?.assetId).toBe('publication-1098');
   await t.run(async (ctx) => ctx.db.patch('migration_runs', marker, { is_done: false }));
   /* The same public query's rollout fallback proves full render-payload scans exceed this budget. */
+  await expect(bounded()).rejects.toThrow(/Read too much data/);
+});
+
+test('cursor pages preserve ordering, filters and open traversals across migration cutover', async () => {
+  const { t, admin } = await fixture();
+  const ids = await t.run(async (raw) => {
+    const ctx = applicationTriggers.wrapDB(raw);
+    return [
+      await ctx.db.insert('publication_jobs', job(1, 'pending')),
+      await ctx.db.insert('publication_jobs', job(2, 'error', 'card')),
+      await ctx.db.insert('publication_jobs', job(3, 'in_progress')),
+      await ctx.db.insert('publication_jobs', job(4, 'error')),
+    ];
+  });
+  const firstArgs = { paginationOpts: { cursor: null, numItems: 2 } };
+  const legacy = await admin.query(api.publicationAdmin.listing, firstArgs);
+  await ready(t);
+  const indexed = await admin.query(api.publicationAdmin.listing, firstArgs);
+  expect(indexed.page).toEqual(legacy.page);
+  expect(indexed.page.map((row) => row.id)).toEqual([ids[1], ids[3]]);
+  for (const cursor of [legacy.continueCursor, indexed.continueCursor]) {
+    const next = await admin.query(api.publicationAdmin.listing, { paginationOpts: { cursor, numItems: 2 } });
+    expect(next.page.map((row) => row.id)).toEqual([ids[2], ids[0]]);
+    expect(next.isDone).toBe(true);
+  }
+  const bounded = await admin.query(api.publicationAdmin.listing, {
+    paginationOpts: { cursor: null, endCursor: indexed.continueCursor, numItems: 100 },
+  });
+  expect(bounded.page).toEqual(indexed.page);
+  const filtered = await admin.query(api.publicationAdmin.listing, {
+    assetType: 'board',
+    status: 'error',
+    ...firstArgs,
+  });
+  expect(filtered.page.map((row) => row.id)).toEqual([ids[3]]);
+  expect(filtered.counts).toEqual({
+    pending: { value: 1, limited: false },
+    inProgress: { value: 1, limited: false },
+    error: { value: 2, limited: false },
+  });
+  await t.run((raw) => applicationTriggers.wrapDB(raw).db.delete('publication_jobs', ids[0]!));
+  const drained = await admin.query(api.publicationAdmin.listing, {
+    paginationOpts: { cursor: indexed.continueCursor, numItems: 2 },
+  });
+  expect(drained.page.map((row) => row.id)).toEqual([ids[2]]);
+});
+
+test('current dashboard reads metadata within 128 KiB and refuses non-admin callers', async () => {
+  const { t, admin } = await fixture();
+  for (let index = 0; index < 30; index += 1) {
+    await t.run((raw) =>
+      applicationTriggers
+        .wrapDB(raw)
+        .db.insert('publication_jobs', { ...job(index), asset_data: { payload: 'x'.repeat(900_000) } })
+    );
+  }
+  const marker = await ready(t);
+  const args = { paginationOpts: { cursor: null, numItems: 25 } };
+  const bounded = () =>
+    admin.run((ctx) =>
+      ctx.runQuery(api.publicationAdmin.listing, args, { transactionLimits: { bytesRead: 128 * 1024 } })
+    );
+  const first = await bounded();
+  expect(first.page).toHaveLength(25);
+  expect(first.counts.pending).toEqual({ value: 30, limited: false });
+  const next = await admin.query(api.publicationAdmin.listing, {
+    paginationOpts: { cursor: first.continueCursor, numItems: 25 },
+  });
+  expect(next.page).toHaveLength(5);
+  expect(next.isDone).toBe(true);
+  await expect(t.query(api.publicationAdmin.listing, args)).rejects.toThrow();
+  const user = await t.run((ctx) => ctx.db.insert('users', { name: 'Ordinary user' }));
+  await expect(t.withIdentity({ subject: user }).query(api.publicationAdmin.listing, args)).rejects.toThrow();
+  await t.run((ctx) => ctx.db.patch('migration_runs', marker, { is_done: false }));
   await expect(bounded()).rejects.toThrow(/Read too much data/);
 });

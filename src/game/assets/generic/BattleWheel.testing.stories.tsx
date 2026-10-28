@@ -49,3 +49,13 @@ export const Reveal = meta.story({
     await expect(canvas.queryByRole('button')).toBeNull();
   },
 });
+
+/** The strength and the signed adjustment both write a half as ½. */
+export const HalvesAsFractions = meta.story({
+  args: { ...revealedArgs, strength: 2.5, adjustment: -0.5 },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText('Strength').previousElementSibling).toHaveTextContent('2½');
+    await expect(canvas.getByLabelText('Strength adjustment minus 0.5')).toHaveTextContent('-½');
+  },
+});

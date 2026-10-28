@@ -1,6 +1,7 @@
 import { pieceCount } from '@shared/play/model';
 import type { TablePiece } from '@shared/play/model';
 import { tokenBoxRatio } from '@shared/play/tableGeometry';
+import { FormattedTextSource } from '@ui/content/FormattedText';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 import { createPortal } from 'react-dom';
@@ -106,7 +107,7 @@ function useFollowPointer(
   box: RefObject<HTMLDivElement | null>,
   pointer: RefObject<Point>,
   area: RefObject<HTMLElement | null>,
-  size: Readonly<{ width: number; height: number }> | null
+  size: Readonly<{ width: number; height: number; content?: string }> | null
 ) {
   const width = size?.width;
   const height = size?.height;
@@ -115,7 +116,9 @@ function useFollowPointer(
       return;
     }
     const place = () => {
-      const position = placeBeside(pointer.current, width, height, closeUpBounds(area.current));
+      /* The box as laid out, so words under a face count at the height they render, not a guess at it. */
+      const measured = box.current?.offsetHeight || height;
+      const position = placeBeside(pointer.current, width, measured, closeUpBounds(area.current));
       box.current?.style.setProperty('transform', `translate3d(${position.left}px, ${position.top}px, 0)`);
     };
     place();
@@ -129,11 +132,17 @@ function useFollowPointer(
       }
     };
     window.addEventListener('pointermove', onPointer);
+    /* A description that grows after it lands, as its fonts or images load, places the box again while the pointer is still. */
+    const resize = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(onPointer);
+    if (box.current) {
+      resize?.observe(box.current);
+    }
     return () => {
       window.removeEventListener('pointermove', onPointer);
+      resize?.disconnect();
       cancelAnimationFrame(frame);
     };
-  }, [box, pointer, area, width, height]);
+  }, [box, pointer, area, width, height, size?.content]);
 }
 
 type CloseUpProps = Readonly<{ area: RefObject<HTMLElement | null> }>;
@@ -167,6 +176,21 @@ export function HandPieceCloseUp({ area, piece }: CloseUpProps & Readonly<{ piec
 
 type Item = TablePiece['items'][number];
 
+/* A described token's words under its face, as its author formatted them; past the box's cap they fade out rather than run off the window. */
+function CloseUpDescription({ source, width }: Readonly<{ source: string; width: number }>) {
+  const text = useRef<HTMLDivElement>(null);
+  const [clipped, setClipped] = useState(false);
+  useLayoutEffect(() => {
+    const element = text.current;
+    setClipped(element ? element.scrollHeight > element.clientHeight : false);
+  }, [source]);
+  return (
+    <div ref={text} className={styles.closeUpDescription} style={{ width }} data-clipped={clipped || undefined}>
+      <FormattedTextSource source={source} size="sm" />
+    </div>
+  );
+}
+
 /* The close-up of one item of a piece, shown while Alt is held; the piece's other items only count. */
 function CloseUp({
   area,
@@ -183,12 +207,15 @@ function CloseUp({
   const box = useRef<HTMLDivElement>(null);
   const shown = alt && piece && item && src ? piece : null;
   const isCard = shown?.kind === 'card';
-  /* A disc token stays a disc, as it lies on the table. */
-  const round = shown != null && !isCard && tokenBoxRatio(shown) == null;
+  /* A tech token says what it does under its face, as its tooltip in the inventory does. */
+  const description = shown && item?.faceUp !== false ? item?.artwork?.description : undefined;
+  /* A disc token stays a disc, as it lies on the table, unless words go under it. */
+  const round = shown != null && !isCard && !description && tokenBoxRatio(shown) == null;
   const width = isCard ? cardWidthFor(CARD_HEIGHT_PX) : TOKEN_SIZE_PX;
   const height = isCard ? CARD_HEIGHT_PX : TOKEN_SIZE_PX;
   const count = shown ? pieceCount(shown) : 0;
-  useFollowPointer(box, pointer, area, shown ? { width, height: height + (count > 1 && !round ? 40 : 16) } : null);
+  const below = count > 1 && !round ? 24 : 0;
+  useFollowPointer(box, pointer, area, shown ? { width, height: height + 16 + below, content: description } : null);
   if (!shown || !item || !src) {
     return null;
   }
@@ -205,6 +232,7 @@ function CloseUp({
         radius="10px"
       />
       {count > 1 ? <div className={styles.closeUpCount}>×{count}</div> : null}
+      {description ? <CloseUpDescription source={description} width={width} /> : null}
     </div>,
     document.body
   );
