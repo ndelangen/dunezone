@@ -134,7 +134,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'open-hand',
       task: 'Open your hand',
       detail:
-        'You are playing House Atreides. Press {H} to open your hand and find the Kwisatz Haderach card and its counter.',
+        'You are playing House Atreides.\n\nPress {H} to open your hand and find the Kwisatz Haderach card and its counter.',
       anchor: { kind: 'page', element: viaCompass('hand') },
       ...openedWindow(windowShown('hand')),
     }),
@@ -149,7 +149,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     task({
       id: 'open-zone',
       task: 'Open your private side-table',
-      detail: 'Press {J} to open your private side-table. Only you can see the pieces you place here.',
+      detail: 'Press {J} to open your private side-table.\n\nOnly you can see the pieces you place here.',
       anchor: { kind: 'page', element: viaCompass('hidden') },
       ...openedWindow(windowShown('hidden-zone')),
     }),
@@ -157,7 +157,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'card',
       task: 'Place the Kwisatz Haderach card',
       detail:
-        'Drag the Kwisatz Haderach card from your hand onto the felt. You will use it to track troops lost in battle.',
+        'Drag the Kwisatz Haderach card from your hand onto the felt.\n\nYou will use it to track troops lost in battle.',
       anchor: { kind: 'page', element: element(inHand(CARD)) },
       begin: () => null,
       done: () => spotOf(CARD) !== undefined,
@@ -181,7 +181,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     task({
       id: 'zoom',
       task: 'Zoom in on the track',
-      detail: 'Scroll over the counter to zoom in. Drag the felt to pan, or double-click to zoom out again.',
+      detail: 'Scroll over the counter to zoom in.\n\nDrag the felt to pan, or double-click to zoom out again.',
       anchor: { kind: 'page', element: element(onSideTable(COUNTER)) },
       begin: () => null,
       done: () =>
@@ -199,7 +199,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     task({
       id: 'more-losses',
       task: 'Record two more losses',
-      detail: 'Move the counter to space 3. At seven troops lost in battle, you gain the Kwisatz Haderach.',
+      detail: 'Move the counter to space 3.\n\nAt seven troops lost in battle, you gain the Kwisatz Haderach.',
       anchor: { kind: 'page', element: element(onSideTable(COUNTER)) },
       begin: () => null,
       done: () => tracked(spaceUnder) === 3,

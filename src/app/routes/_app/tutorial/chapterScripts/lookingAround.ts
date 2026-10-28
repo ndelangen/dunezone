@@ -108,7 +108,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'close-up',
       task: 'Read a card up close',
       detail:
-        'Hover over the Spice deck and hold {Alt} to see its top card up close. Release {Alt} when you have finished reading.',
+        'Hover over the Spice deck and hold {Alt} to see its top card up close.\n\nRelease {Alt} when you have finished reading.',
       anchor: { kind: 'table', point: () => at(spiceDeck()) },
       ...closeUpShown(),
     }),

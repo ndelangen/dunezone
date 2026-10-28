@@ -87,7 +87,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     task({
       id: 'play',
       task: 'Play it back onto the table',
-      detail: 'Drag the card from your hand onto the table. Cards in your hand are private until you play them.',
+      detail: 'Drag the card from your hand onto the table.\n\nCards in your hand are private until you play them.',
       anchor: { kind: 'page', element: takenCard },
       begin: inHand,
       done: (start) => inHand() < start,
@@ -104,7 +104,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'withdraw',
       task: 'Take spice from your reserve',
       detail:
-        'Your spice reserve is shown at the top of Hand & spice. Choose an amount, then press Withdraw to put that spice on the table.',
+        'Your spice reserve is shown at the top of Hand & spice.\n\nChoose an amount, then press Withdraw to put that spice on the table.',
       anchor: { kind: 'page', element: element('[data-window="hand"] [aria-label="Spice reserve balance"]') },
       begin: reserve,
       done: (start) => reserve() < start,

@@ -43,13 +43,13 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       snapshot,
       'spice-blow',
       'the Spice Blow',
-      'The game is in Storm. Press Next phase in the top right to advance to Spice Blow.'
+      'The game is in Storm.\n\nPress Next phase in the top right to advance to Spice Blow.'
     ),
     task({
       id: 'spice',
       task: 'Turn over the top Spice card',
       detail:
-        'Drag the top card off the Spice deck on the right. Drop it on the table, then hover over it and press {F} to flip it. Start dragging straight away, or you will pick up the whole deck.',
+        'Drag the top card off the Spice deck on the right. Drop it on the table, then hover over it and press {F} to flip it.\n\nStart dragging straight away, or you will pick up the whole deck.',
       anchor: { kind: 'table', point: () => at(deck('right')) },
       begin: () => singleSpiceFaceUp(pieces()),
       done: (start) => singleSpiceFaceUp(pieces()) > start,
@@ -58,19 +58,19 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       snapshot,
       'choam-charity',
       'CHOAM Charity',
-      'Press Next phase to advance to CHOAM Charity. In a real game, players collect any spice they are owed from the Spice Bank.'
+      'Press Next phase to advance to CHOAM Charity.\n\nIn a real game, players collect any spice they are owed from the Spice Bank.'
     ),
     onTo(
       snapshot,
       'bidding',
       'Bidding',
-      'Press Next phase to begin Bidding. The camera moves to the part of the table used in each phase.'
+      'Press Next phase to begin Bidding.\n\nThe camera moves to the part of the table used in each phase.'
     ),
     task({
       id: 'draw',
       task: 'Draw a Treachery card',
       detail:
-        'The Treachery deck is on the left. After winning a card in bidding, right-click this deck and choose Draw a card. Try it now.',
+        'The Treachery deck is on the left.\n\nAfter winning a card in bidding, right-click this deck and choose Draw a card. Try it now.',
       anchor: { kind: 'table', point: () => at(deck('left')) },
       /* The card must leave the Treachery deck, so a Spice card drawn instead does not count. */
       begin: () => ({ hand: snapshot().hand?.length ?? 0, deck: deck('left')?.items.length ?? 0 }),
@@ -81,7 +81,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'tanks',
       task: 'Find the Tleilaxu Tanks',
       detail:
-        'Defeated troops and leaders go in the Tleilaxu Tanks below the board. You can bring them back during Revival. The tanks are empty for now. Press {Enter} to continue.',
+        'Defeated troops and leaders go in the Tleilaxu Tanks below the board. You can bring them back during Revival.\n\nThe tanks are empty for now.\n\nPress {Enter} to continue.',
       /* Just left of the label, so the arrow coming from the rail ends at its first letter rather than over it. */
       anchor: {
         kind: 'table',

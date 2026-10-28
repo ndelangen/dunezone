@@ -67,7 +67,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     task({
       id: 'start',
       task: 'Start a round at your faction',
-      detail: 'It is the Bidding phase. Click your faction on the bidding disc to start a round with you.',
+      detail: 'It is the Bidding phase.\n\nClick your faction on the bidding disc to start a round with you.',
       anchor: { kind: 'page', element: () => document.querySelector(`[aria-label="Start bidding at ${myName()}"]`) },
       begin: () => undefined,
       done: () => bidding()?.stage === 'open' && bidding()?.turn === mine(),
@@ -83,7 +83,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     task({
       id: 'lower',
       task: 'Take it back down to 1',
-      detail: 'Press {O} to lower your bid by one. You can only undo increases you made on this bidding turn.',
+      detail: 'Press {O} to lower your bid by one.\n\nYou can only undo increases you made on this bidding turn.',
       anchor: disc,
       /* A raise of 2 or more came first, so a bid of 1 now can only be a raise taken back. */
       begin: () => undefined,
@@ -102,7 +102,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'win',
       task: 'Win the card',
       detail:
-        'Wait until the bidder points at your faction. Press {I} to raise, then {P} to pass to the next bidder. You win when everyone else passes.',
+        'Wait until the bidder points at your faction. Press {I} to raise, then {P} to pass to the next bidder.\n\nYou win when everyone else passes.',
       anchor: disc,
       begin: () => ({ stop: othersBid(snapshot, players) }),
       /* A slip that hands the bidder on unraised lets another faction win; the round still ends, so the chapter goes on. */
@@ -113,7 +113,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'take-card',
       task: 'Take the card',
       detail:
-        'Practice taking the card. Right-click the Treachery deck and choose Draw a card. In a real game, the winner takes the card and pays the winning bid themselves.',
+        'Practice taking the card. Right-click the Treachery deck and choose Draw a card.\n\nIn a real game, the winner takes the card and pays the winning bid themselves.',
       anchor: { kind: 'table', point: () => at(tableDeck(snapshot, 'left')) },
       begin: () => snapshot().hand?.length ?? 0,
       done: (start) => (snapshot().hand?.length ?? 0) > start,
