@@ -43,12 +43,12 @@
 }
 :global(.dune-play-shell) :global(.seated-header) > :not(:has([data-recall-return])),
 :global(.dune-play-shell) :global(.seated-camera),
-:global([data-recall-controls]) > :not([data-window="hand"]):not([data-window="hidden-zone"]) {
+:global([data-recall-controls]) > :not([data-window="hand"], [data-window="hidden-zone"]) {
   transition: filter 900ms ease;
 }
 :global(.dune-play-shell)[data-mentat-recall="true"] :global(.seated-header) > :not(:has([data-recall-return])),
 :global(.dune-play-shell)[data-mentat-recall="true"] :global(.seated-camera),
-:global([data-recall-controls="true"]) > :not([data-window="hand"]):not([data-window="hidden-zone"]) {
+:global([data-recall-controls="true"]) > :not([data-window="hand"], [data-window="hidden-zone"]) {
   filter: hue-rotate(150deg) saturate(0.78);
 }
 :global([data-recall-controls="true"] [role="option"][aria-disabled="true"]) {
@@ -91,7 +91,7 @@
   :global(.dune-play-shell) :global(.scene) canvas,
   :global(.dune-play-shell) :global(.seated-header) > :not(:has([data-recall-return])),
   :global(.dune-play-shell) :global(.seated-camera),
-  :global([data-recall-controls]) > :not([data-window="hand"]):not([data-window="hidden-zone"]) {
+  :global([data-recall-controls]) > :not([data-window="hand"], [data-window="hidden-zone"]) {
     transition: none;
   }
 }

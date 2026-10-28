@@ -56,12 +56,7 @@ export function CheckpointPicker({ checkpoints, value, onChange }: CheckpointPic
             thumbValueText={title}
             mb="md"
           />
-          <Tooltip
-            target={`[id="${thumbId}"]`}
-            label={title}
-            events={{ hover: true, focus: true, touch: false }}
-            withinPortal
-          />
+          <Tooltip target={`[id="${thumbId}"]`} label={title} withinPortal />
         </>
       )}
       <Group gap="xs" wrap="nowrap">
