@@ -46,6 +46,15 @@ export const SpeakingMode = meta.story({
     const banner = await page.findByRole('banner', { name: 'Chapter 1: Welcome' }, { timeout: 60_000 });
     const rail = within(banner);
     await waitForFrame(() => expect(spoken).toHaveBeenCalledTimes(1), { timeout: 60_000 });
+    const introduction = rail.getByText('Welcome to the first tutorial.');
+    const shortcut = rail.getByText(/on your keyboard to toggle speaking mode/);
+    const start = rail.getByText(/to start\./);
+    await expect(introduction.tagName).toBe('P');
+    await expect(shortcut.tagName).toBe('P');
+    await expect(start.tagName).toBe('P');
+    await expect(shortcut.getBoundingClientRect().top).toBeGreaterThan(introduction.getBoundingClientRect().bottom);
+    await expect(start.getBoundingClientRect().top).toBeGreaterThan(shortcut.getBoundingClientRect().bottom);
+    await expect(spoken.mock.calls[0]![0].text.split('\n\n')).toHaveLength(3);
     const toggle = rail.getByRole('button', { name: 'Turn speaking mode on' });
     await expect(toggle).toHaveAttribute('aria-pressed', 'false');
     /* This invitation intentionally pulses even with motion off. */

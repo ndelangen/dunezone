@@ -81,7 +81,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'ship',
       task: 'Ship troops into Arrakeen',
       detail:
-        'You are playing Fremen. Drag troops from your reserves into Arrakeen, where the green Atreides troops are standing.',
+        'You are playing Fremen.\n\nDrag troops from your reserves into Arrakeen, where the green Atreides troops are standing.',
       anchor: { kind: 'table', point: () => at(myReserves()) },
       begin: myTroopsOnBoard,
       done: (start) => myTroopsOnBoard() > start,
@@ -98,7 +98,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'claim',
       task: 'Take the aggressor side',
       detail:
-        'Press Claim left side below the marker. Atreides will take the right side. Your battle plan opens on the left. Press {B} whenever you need to hide or reopen it.',
+        'Press Claim left side below the marker. Atreides will take the right side.\n\nYour battle plan opens on the left. Press {B} whenever you need to hide or reopen it.',
       anchor: { kind: 'page', element: element('[aria-label="Claim left side"]') },
       ...fightsUntil(() => mySide() === 0 && Boolean(battle()?.sides[1])),
     }),
@@ -106,7 +106,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'leader',
       task: 'Send a leader into battle',
       detail:
-        'Choose a leader in the Leader row. Their strength is added to your total. Your plan stays private until both sides are ready.',
+        'Choose a leader in the Leader row. Their strength is added to your total.\n\nYour plan stays private until both sides are ready.',
       anchor: { kind: 'page', element: element('[data-window="battle"] [aria-label="Leader"]') },
       begin: () => undefined,
       done: () => (plan()?.leaderIds.length ?? 0) > 0,
@@ -115,7 +115,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'card',
       task: 'Add a card to your plan',
       detail:
-        'Choose Shield in the Cards row. Click a selected card again to remove it. You and your opponent apply the card effects yourselves.',
+        'Choose Shield in the Cards row. Click a selected card again to remove it.\n\nYou and your opponent apply the card effects yourselves.',
       anchor: { kind: 'page', element: element('[data-window="battle"] [aria-label="Put Shield into the plan"]') },
       begin: () => undefined,
       done: () => (plan()?.cardIds.length ?? 0) > 0,
@@ -124,7 +124,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'dial',
       task: 'Dial in two troops',
       detail:
-        'Increase either the regular troop dial or the Fedaykin dial by two. Leave the eye button alone for now so your dial stays private.',
+        'Increase either the regular troop dial or the Fedaykin dial by two.\n\nLeave the eye button alone for now so your dial stays private.',
       anchor: { kind: 'page', element: element('[data-window="battle"] [aria-label="Troops and spice"]') },
       begin: () => undefined,
       /* Clicking the eye first fixes the dial where it stands, so a shown dial moves the chapter on too, to its own step. */
@@ -144,7 +144,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'outcome',
       task: 'Agree who won',
       detail:
-        'Compare the plans and agree on the winner, then select the winning side below the marker. The battle ends when both players choose the same result.',
+        'Compare the plans and agree on the winner, then select the winning side below the marker.\n\nThe battle ends when both players choose the same result.',
       anchor: { kind: 'page', element: element('[aria-label="Left side won"]') },
       ...fightsUntil(() => !battle() && (snapshot().battleResults?.length ?? 0) > 0),
     }),
@@ -152,7 +152,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'practice-mark',
       task: 'Start a practice battle',
       detail:
-        'Drag the battle marker onto Arrakeen again. This time, you will reveal your dial before locking your plan.',
+        'Drag the battle marker onto Arrakeen again.\n\nThis time, you will reveal your dial before locking your plan.',
       anchor: { kind: 'table', point: () => at(atreidesTroops()) },
       begin: () => undefined,
       done: () => Boolean(battle()),
@@ -168,7 +168,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'reveal-early',
       task: 'Show your dial early',
       detail:
-        'Some cards and powers require an early reveal. Press the eye beside your dial to make it public. Once revealed, it cannot change during this battle. Leaders and cards have their own eye buttons.',
+        'Some cards and powers require an early reveal.\n\nPress the eye beside your dial to make it public. Once revealed, it cannot change during this battle.\n\nLeaders and cards have their own eye buttons.',
       anchor: {
         kind: 'page',
         element: element('[data-window="battle"] [aria-label="Show your dial to everyone now"]'),

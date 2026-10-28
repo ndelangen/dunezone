@@ -31,14 +31,14 @@ function tasks(state: () => LobbyState, openCreate: () => void): GuideTask[] {
       id: 'room',
       task: 'The lobby',
       detail:
-        'The lobby shows games you can join or watch. Each table shows its players, progress and available seats. Press {Enter} to continue.',
+        'The lobby shows games you can join or watch. Each table shows its players, progress and available seats.\n\nPress {Enter} to continue.',
       anchor: { kind: 'page', element: element('ul[aria-label="Games"]') },
       ...pressEnter(),
     }),
     task({
       id: 'find',
       task: 'Find a friend’s game',
-      detail: `${FRIEND} is playing here. Type their name in the search box. You can search by game name or player name.`,
+      detail: `${FRIEND} is playing here. Type their name in the search box.\n\nYou can search by game name or player name.`,
       anchor: { kind: 'page', element: element(SEARCH) },
       begin: () => undefined,
       done: () => state().query.trim().toLowerCase() === FRIEND.toLowerCase(),
@@ -49,7 +49,7 @@ function tasks(state: () => LobbyState, openCreate: () => void): GuideTask[] {
       id: 'found',
       task: 'Open seats',
       detail:
-        'These are the games your friend is in. Look for Seats open to ask to join. You can still watch a full game. Press {Enter} to continue.',
+        'These are the games your friend is in. Look for Seats open to ask to join. You can still watch a full game.\n\nPress {Enter} to continue.',
       anchor: {
         kind: 'page',
         element: () =>
@@ -77,7 +77,7 @@ function tasks(state: () => LobbyState, openCreate: () => void): GuideTask[] {
     task({
       id: 'ruleset',
       task: 'Choose a ruleset',
-      detail: `Choose ${RULESET}. The ruleset supplies the board, decks and available factions. You can also change the suggested game name or roll the dice for another.`,
+      detail: `Choose ${RULESET}. The ruleset supplies the board, decks and available factions.\n\nYou can also change the suggested game name or roll the dice for another.`,
       anchor: { kind: 'page', element: rulesetField },
       begin: () => undefined,
       /* The pass holding Dreamrules, not the field reading it: typed and left unpicked, the field holds no ruleset. */
@@ -87,7 +87,7 @@ function tasks(state: () => LobbyState, openCreate: () => void): GuideTask[] {
       id: 'set',
       task: 'Create the game',
       detail:
-        'The panel on the right lets you set the number of seats and the final turn. Leave these as they are and press Create game.',
+        'The panel on the right lets you set the number of seats and the final turn.\n\nLeave these as they are and press Create game.',
       anchor: { kind: 'page', element: element(CREATE) },
       /* The button sits at the foot of the stub, below a short window; brought to the middle, the arrow reaches it past the stub's foot, clear of the fields above. */
       begin: () => document.querySelector(CREATE)?.scrollIntoView({ block: 'center' }),
@@ -97,7 +97,7 @@ function tasks(state: () => LobbyState, openCreate: () => void): GuideTask[] {
       id: 'share',
       task: 'Share the game link',
       detail:
-        'You have the first seat. Press Copy game link to get a link you can share. Your friends can use it to watch or ask for a seat.',
+        'You have the first seat. Press Copy game link to get a link you can share.\n\nYour friends can use it to watch or ask for a seat.',
       anchor: { kind: 'page', element: copyButton },
       begin: () => ({ refused: false }),
       done: (watch: { refused: boolean }) => {

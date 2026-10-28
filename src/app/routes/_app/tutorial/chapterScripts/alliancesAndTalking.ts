@@ -55,7 +55,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'chat',
       task: 'Say hello to House Atreides',
       detail:
-        'Click the Atreides token below the table, type a message and press {Enter}. Only the two of you can read this chat.',
+        'Click the Atreides token below the table, type a message and press {Enter}.\n\nOnly the two of you can read this chat.',
       anchor: {
         kind: 'page',
         element: () =>
@@ -87,15 +87,14 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'ally-chat',
       task: 'Talk to your ally',
       detail:
-        'The coloured rings under your faction tokens show that you are allies. Close the chat, then press {F} to open it through the ally shortcut. You can also hold {Space}, tap {→} twice and release.',
+        'The coloured rings under your faction tokens show that you are allies.\n\nClose the chat, then press {F} to open it through the ally shortcut.\n\nYou can also hold {Space}, tap {→} twice and release.',
       anchor: { kind: 'page', element: viaCompass('ally') },
       ...openedWindow(() => document.querySelector(chatWindow()) !== null),
     }),
     task({
       id: 'break',
       task: 'Break the alliance',
-      detail:
-        'Press {Space}, type Alliances and press {Enter}. In the Alliances window, press Break alliance beside your ally.',
+      detail: 'Press {Space}, type Alliances and confirm with {Enter}.\n\nChoose Break alliance beside your ally.',
       anchor: {
         kind: 'page',
         element: () =>

@@ -64,7 +64,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'open',
       task: 'Open the Shared table inventory',
       detail:
-        'Press {Space}, type Shared and press {Enter} to open the Shared table inventory. It holds pieces that are available to everyone.',
+        'Press {Space}, type Shared and confirm with {Enter} to open the Shared table inventory.\n\nIt holds pieces that are available to everyone.',
       anchor: { kind: 'page', element: element('[aria-label="Search controls"], [data-compass-launcher]') },
       ...openedWindow(windowShown('shared')),
     }),
@@ -80,7 +80,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'find',
       task: 'Find Karama in the catalogue',
       detail:
-        'Press the + on the Disc tokens row. Search for Karama and select it to see what will be added. You can use the catalogue to bring custom pieces into a game.',
+        'Press the + on the Disc tokens row. Search for Karama and select it to see what will be added.\n\nYou can use the catalogue to bring custom pieces into a game.',
       anchor: { kind: 'page', element: findKarama },
       begin: () => undefined,
       done: karamaReady,
@@ -97,7 +97,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'approved',
       task: 'Wait for approval',
       detail:
-        'Another player will approve Karama in a moment. You cannot approve your own request. Any player can dismiss a request instead. Once Karama arrives, press {Enter} to continue.',
+        'Another player will approve Karama in a moment.\n\nYou cannot approve your own request. Any player can dismiss a request instead.\n\nOnce Karama arrives, press {Enter} to continue.',
       anchor: { kind: 'page', element: element(`${SHARED} [data-spawn-request]`) },
       begin: () => {
         showInWindow(`${SHARED} [data-spawn-request]`);
