@@ -15,7 +15,7 @@ const meta = preview.meta({
 });
 
 function Harness({ checkpoints }: Readonly<{ checkpoints: ReviewCheckpoint[] }>) {
-  const [value, setValue] = useState<number | null>(checkpoints.at(-1)?.step ?? null);
+  const [value, setValue] = useState(checkpoints.at(-1)?.step ?? 0);
   return (
     <Box w={380} p="md" bg="var(--ui-ground)" style={{ borderRadius: 8 }}>
       <Stack gap="xs">

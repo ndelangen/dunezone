@@ -30,10 +30,12 @@ export function CheckpointPicker({ checkpoints, value, onChange }: CheckpointPic
     return <Text size="sm">No checkpoint has been saved yet.</Text>;
   }
   const choose = (next: number) => onChange(checkpoints[Math.min(checkpoints.length - 1, Math.max(0, next))]!.step);
-  /* A mark where each turn starts, named by its number, so a long game reads as its turns; setup is the unnamed stretch before them. */
-  const marks = turns
-    .filter((turn) => turn.turn !== null)
-    .map((turn) => ({ value: checkpoints.indexOf(turn.phases[0]!.checkpoints[0]!), label: String(turn.turn) }));
+  /* The retained window can start mid-turn, so only a boundary between two offered checkpoints proves a turn's start. */
+  const marks = checkpoints.flatMap((checkpoint, position) =>
+    checkpoint.turn !== null && position > 0 && checkpoint.turn !== checkpoints[position - 1]!.turn
+      ? [{ value: position, label: String(checkpoint.turn) }]
+      : []
+  );
   return (
     <Stack gap="md">
       <Slider
@@ -57,7 +59,7 @@ export function CheckpointPicker({ checkpoints, value, onChange }: CheckpointPic
         />
         <PhaseDisc symbol={current.symbol} label={current.label} size={28} />
         <Text size="sm" style={{ flex: 1 }}>
-          {value === null ? 'Choose a checkpoint.' : checkpointTitle(turns, current.step)}
+          {checkpointTitle(turns, current.step)}
         </Text>
         <IconAction
           label="Later checkpoint"

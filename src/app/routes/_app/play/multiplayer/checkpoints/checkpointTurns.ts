@@ -80,6 +80,6 @@ export function checkpointTitle(turns: readonly CheckpointTurn[], step: number):
 
 export type CheckpointPickerProps = Readonly<{
   checkpoints: readonly ReviewCheckpoint[];
-  value: number | null;
+  value: number;
   onChange: (step: number) => void;
 }>;

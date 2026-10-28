@@ -133,21 +133,18 @@ function Propose({ client, table, review }: Props & Readonly<{ review: Review }>
   const [chosen, setChosen] = useState<number | null>(null);
   /* A chosen checkpoint that has since rolled out of the offered ones gives way to the newest, which the table can still review. */
   const offered = review.checkpoints.some((checkpoint) => checkpoint.step === chosen);
-  const step = (offered ? chosen : null) ?? newest?.step ?? null;
   if (!review.seat) {
     return <Text size="sm">Only seated players can ask for a review.</Text>;
   }
   if (!newest) {
     return <Text size="sm">No checkpoint has been saved yet.</Text>;
   }
+  const step = (offered ? chosen : null) ?? newest.step;
   return (
     <Stack gap="sm">
       <CheckpointPicker checkpoints={review.checkpoints} value={step} onChange={setChosen} />
       <Group>
-        <Button
-          disabled={step === null || table.reconnecting}
-          onClick={() => step !== null && client.command({ kind: 'review-propose', step })}
-        >
+        <Button disabled={table.reconnecting} onClick={() => client.command({ kind: 'review-propose', step })}>
           Ask the table to review
         </Button>
       </Group>
