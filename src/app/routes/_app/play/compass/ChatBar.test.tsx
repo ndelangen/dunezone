@@ -43,10 +43,11 @@ const player = (seat: string, own: boolean): CompassPlayer => ({
   ally: false,
 });
 
-function renderBar(players: readonly CompassPlayer[], hasHand = true) {
+function renderBar(players: readonly CompassPlayer[], hasHand = true, recall?: CompassTable['recall']) {
   const onShow = vi.fn();
   const table: CompassTable = {
     players,
+    recall,
     tableChat: null,
     chat: () => null,
     factionInfo: () => null,
@@ -70,6 +71,32 @@ test('the own token sits left of the Controls button and opens Hand & spice', ()
   expect(own.compareDocumentPosition(launcher) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   fireEvent.click(own);
   expect(onShow).toHaveBeenCalledWith('hand');
+});
+
+test('recall puts the own hand left of Controls and only the recall chat to its right', () => {
+  const onShow = renderBar([{ ...player('seat-1', true), vote: 'removal' }, player('seat-2', false)], true, {
+    id: 'one',
+    context: 'Storm',
+    loading: false,
+    panels: [],
+    chat: { unread: 2 },
+  });
+  const own = screen.getByRole('button', { name: 'Your recalled hand, you are playing as Atreides' });
+  const launcher = screen.getByRole('button', { name: /Controls/ });
+  const chat = screen.getByRole('button', { name: 'Recall chat, 2 unread' });
+  expect(own.compareDocumentPosition(launcher) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(launcher.compareDocumentPosition(chat) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(screen.getAllByRole('button')).toHaveLength(3);
+  fireEvent.click(own);
+  expect(onShow).toHaveBeenLastCalledWith('hand');
+  fireEvent.click(chat);
+  expect(onShow).toHaveBeenLastCalledWith('recall-chat');
+});
+
+test('an observing recall has no private hand or chat control', () => {
+  renderBar([player('seat-2', false)], false, { id: 'one', context: 'Storm', loading: false, panels: [] });
+  expect(screen.getAllByRole('button')).toHaveLength(1);
+  expect(screen.getByRole('button', { name: /Controls/ })).toBeTruthy();
 });
 
 test('a spectator has no own token', () => {

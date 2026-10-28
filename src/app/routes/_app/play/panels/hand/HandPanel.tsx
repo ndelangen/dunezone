@@ -4,14 +4,18 @@ import type { TablePiece } from '@shared/play/model';
 import { Section } from '@ui/block/Section';
 import { SortableRow } from '@ui/control/SortableRow';
 import { ArrowUpFromLine, EyeOff } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useContext, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 
 import { HandPieceCloseUp } from '../../../../../widgets/tabletop/PieceCloseUp';
+import { CompassActiveContext } from '../../compass/controlsActive';
 import { dropFromHand } from '../../multiplayer/dropFromHand';
 import { PieceImage, pieceName, useHandCloseUp } from '../../multiplayer/HandPiece';
 import { HandPieceMenu, handMenuAnchor } from '../../multiplayer/HandPieceMenu';
 import type { HandMenuAnchor } from '../../multiplayer/HandPieceMenu';
 import { HAND_HELP } from '../../multiplayer/panelGuidance';
+import { handGroups } from './handGroups';
+import type { HandGroup } from './handGroups';
 import styles from './HandPanel.module.css';
 import type { HandActions } from './useHandActions';
 
@@ -35,20 +39,72 @@ function pieceActions(actions: HandActions, piece: TablePiece, viewWidth: number
   ];
 }
 
-export type HandPanelProps = Readonly<{
-  /** The hand's pieces in reading order, and what each piece's menu and drags do. */
-  actions: HandActions;
-}>;
+export type HandPanelProps =
+  | Readonly<{
+      isFrozen?: false;
+      /** The hand's pieces in reading order, and what each piece's menu and drags do. */
+      actions: HandActions;
+    }>
+  | Readonly<{ isFrozen: true; pieces: readonly TablePiece[] }>;
 
 /* The leaders' discs and the cards' faces, at the size the shelves read best in a pinned slot. */
 const TILE_WIDTH = { leaders: 50, cards: 54 };
 
 /**
- * The hand as shelves: the Treachery cards, the leaders on a row of their own, then each other kind of card under its name and count.
- * A piece lifts under the pointer;
- * drag it onto the table, or along its shelf to put the hand in your own order, right-click it for its actions, or hold Alt to see it close up.
+ * The hand's shared shelves and artwork, with a frozen state that mounts no menus or drag targets.
  */
-export function HandPanel({ actions }: HandPanelProps) {
+export function HandPanel(props: HandPanelProps) {
+  return props.isFrozen ? <FrozenHand pieces={props.pieces} /> : <InteractiveHand actions={props.actions} />;
+}
+
+function HandShelf({ group, children }: Readonly<{ group: HandGroup; children: ReactNode }>) {
+  return (
+    <section className={styles.shelf} data-group={group.key} aria-label={group.label}>
+      <Text size="xs" fw={700} tt="uppercase" className={styles.caption} data-hand-label>
+        {group.label} <span className={styles.count}>{group.pieces.length}</span>
+      </Text>
+      {children}
+    </section>
+  );
+}
+
+function FrozenHand({ pieces }: Readonly<{ pieces: readonly TablePiece[] }>) {
+  const groups = handGroups(pieces);
+  return (
+    <Section hiddenHeading title="Your hand and leaders">
+      <div className={styles.shelves}>
+        {groups.map((group) => (
+          <HandShelf key={group.key} group={group}>
+            <div className={styles.row}>
+              {group.pieces.map((piece) => {
+                const width = group.key === 'leaders' ? TILE_WIDTH.leaders : TILE_WIDTH.cards;
+                return (
+                  <div key={piece.id} className={styles.tile} data-round={piece.kind !== 'card' || undefined}>
+                    <div className={styles.face} data-piece-id={piece.id}>
+                      <PieceImage
+                        piece={piece}
+                        width={width}
+                        height={piece.kind === 'card' ? (width * 4) / 3 : width}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </HandShelf>
+        ))}
+        {!groups.length && (
+          <Text size="sm" c="dimmed">
+            Your hand is empty.
+          </Text>
+        )}
+      </div>
+    </Section>
+  );
+}
+
+function InteractiveHand({ actions }: Readonly<{ actions: HandActions }>) {
+  const active = useContext(CompassActiveContext);
   const { ref: measure, width } = useElementSize<HTMLDivElement>();
   const area = useRef<HTMLDivElement>(null);
   const ref = useMergedRef(measure, area);
@@ -84,13 +140,10 @@ export function HandPanel({ actions }: HandPanelProps) {
     <Section hiddenHeading title="Your hand and leaders" description={HAND_HELP}>
       <div ref={ref} className={styles.shelves}>
         {actions.groups.map((group) => (
-          <section key={group.key} className={styles.shelf} data-group={group.key} aria-label={group.label}>
-            <Text size="xs" fw={700} tt="uppercase" className={styles.caption}>
-              {group.label} <span className={styles.count}>{group.pieces.length}</span>
-            </Text>
+          <HandShelf key={group.key} group={group}>
             <SortableRow
               items={group.pieces}
-              disabled={!actions.enabled}
+              disabled={!active || !actions.enabled}
               className={styles.row}
               onMove={actions.reorder}
               leaving={(piece) => actions.leaving(piece) !== undefined}
@@ -103,7 +156,7 @@ export function HandPanel({ actions }: HandPanelProps) {
             >
               {(piece) => tile(piece, group.key === 'leaders' ? TILE_WIDTH.leaders : TILE_WIDTH.cards)}
             </SortableRow>
-          </section>
+          </HandShelf>
         ))}
         {!actions.groups.length && (
           <Text size="sm" c="dimmed">
@@ -111,23 +164,25 @@ export function HandPanel({ actions }: HandPanelProps) {
           </Text>
         )}
       </div>
-      <HandPieceCloseUp area={area} piece={closeUp.piece} />
-      <HandPieceMenu anchor={menu} label="Hand actions" onClose={() => setMenu(null)}>
-        {menuPiece &&
-          pieceActions(actions, menuPiece, width).map((action) => (
-            <Menu.Item
-              key={action.key}
-              leftSection={action.icon}
-              disabled={action.disabled}
-              onClick={() => {
-                action.run();
-                setMenu(null);
-              }}
-            >
-              {action.label}
-            </Menu.Item>
-          ))}
-      </HandPieceMenu>
+      {active && <HandPieceCloseUp area={area} piece={closeUp.piece} />}
+      {active && (
+        <HandPieceMenu anchor={menu} label="Hand actions" onClose={() => setMenu(null)}>
+          {menuPiece &&
+            pieceActions(actions, menuPiece, width).map((action) => (
+              <Menu.Item
+                key={action.key}
+                leftSection={action.icon}
+                disabled={action.disabled}
+                onClick={() => {
+                  action.run();
+                  setMenu(null);
+                }}
+              >
+                {action.label}
+              </Menu.Item>
+            ))}
+        </HandPieceMenu>
+      )}
     </Section>
   );
 }

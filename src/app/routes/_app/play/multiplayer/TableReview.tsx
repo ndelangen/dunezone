@@ -88,12 +88,9 @@ function ResumePlay({
 }: Readonly<{ client: TableSession; review: Review; current: TableReview }>) {
   return review.seat ? (
     <Stack gap={2} data-recall-return>
-      <Button size="xs" onClick={() => client.command({ kind: 'review-end', reviewId: current.id })}>
+      <Button color="cta" onClick={() => client.command({ kind: 'review-end', reviewId: current.id })}>
         Return to the game
       </Button>
-      <Text size="xs" c="dimmed">
-        Resumes play for everyone
-      </Text>
     </Stack>
   ) : null;
 }
@@ -115,9 +112,6 @@ export function TableReviewBar({ client, table }: Props) {
   if (reviewRunning(current)) {
     return (
       <Group gap="xs" justify="flex-end" wrap="nowrap" role="group" aria-label="Mentat recall in progress">
-        <Text size="sm" role="status">
-          Everyone is viewing the past. Play is paused. All game contents are frozen.
-        </Text>
         <ResumePlay client={client} review={review} current={current} />
       </Group>
     );

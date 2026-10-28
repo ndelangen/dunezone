@@ -81,6 +81,9 @@ export function useTableWindows(panels: readonly TablePanel[]): TableWindow[] {
           }
         : item
     );
+  if (table?.recall) {
+    return windows;
+  }
   if (table?.tableChat) {
     windows.push({
       ...PANEL_WINDOWS.tableChat,

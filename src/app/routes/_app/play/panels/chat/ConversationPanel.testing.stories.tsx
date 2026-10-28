@@ -16,6 +16,21 @@ export const Sends = meta.story({
   },
 });
 
+/** Shift+Enter keeps a line break in the draft; Enter sends both lines together. */
+export const MultilineMessage = meta.story({
+  play: async ({ args, canvas }) => {
+    const composer = canvas.getByRole('textbox', { name: 'Message' });
+    await userEvent.type(composer, 'First line');
+    await userEvent.keyboard('{Shift>}{Enter}{/Shift}');
+    await userEvent.type(composer, 'Second line');
+    await expect(composer).toHaveValue('First line\nSecond line');
+    await expect(args.onSubmit).not.toHaveBeenCalled();
+    await userEvent.keyboard('{Enter}');
+    await expect(args.onSubmit).toHaveBeenCalledWith('First line\nSecond line');
+    await expect(composer).toHaveValue('');
+  },
+});
+
 /** Earlier messages loads the page before the oldest one shown. */
 export const LoadsEarlierMessages = meta.story({
   play: async ({ args, canvas }) => {

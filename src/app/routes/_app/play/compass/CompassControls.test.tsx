@@ -31,6 +31,16 @@ globalThis.ResizeObserver = class ResizeObserver {
 
 afterEach(cleanup);
 
+/* jsdom does not implement the native dialog's open and close methods. */
+Object.assign(HTMLDialogElement.prototype, {
+  show(this: HTMLDialogElement) {
+    this.setAttribute('open', '');
+  },
+  close(this: HTMLDialogElement) {
+    this.removeAttribute('open');
+  },
+});
+
 const table: CompassTable = {
   players: [
     {
@@ -84,5 +94,62 @@ test('a new epoch closes the open window and keeps the scene mounted', () => {
   rerender(controls(1));
   expect(screen.queryByText('Your hand')).toBeNull();
   expect(screen.getByText('The table')).toBeTruthy();
+  expect(mounts).toBe(1);
+});
+
+test('recall retains the self token without adding live faction or player windows', () => {
+  render(
+    <MantineProvider>
+      <CompassTableContext
+        value={{
+          ...table,
+          recall: {
+            id: 'one',
+            context: 'Storm',
+            loading: false,
+            chat: { unread: 0 },
+            panels: [
+              { key: 'hand', label: 'Your recalled hand', topic: 'hand', content: <p>Frozen hand</p> },
+              { key: 'recall-chat', label: 'Recall chat', topic: 'planet', content: <p>Temporary chat</p> },
+            ],
+          },
+        }}
+      >
+        <CompassControls scene={null} header={null} camera={null} inert={false} panels={[]} onView={() => undefined} />
+      </CompassTableContext>
+    </MantineProvider>
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Your recalled hand, you are playing as Atreides' }));
+  expect(screen.getByText('Frozen hand')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Recall chat' }));
+  expect(screen.getByText('Temporary chat')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: /Controls/ }));
+  fireEvent.change(screen.getByRole('textbox', { name: 'Search controls' }), { target: { value: 'Faction' } });
+  expect(screen.queryByRole('option')).toBeNull();
+});
+
+test('the normal chat remains mounted across recall and returns with its own state', () => {
+  let mounts = 0;
+  function OrdinaryChat() {
+    useEffect(() => {
+      mounts += 1;
+    }, []);
+    return <p>Ordinary chat</p>;
+  }
+  const normal = { ...table, tableChat: { unread: 0 }, chat: () => <OrdinaryChat /> };
+  const renderControls = (recall?: CompassTable['recall']) => (
+    <MantineProvider>
+      <CompassTableContext value={{ ...normal, recall }}>
+        <CompassControls scene={null} header={null} camera={null} inert={false} panels={[]} onView={() => undefined} />
+      </CompassTableContext>
+    </MantineProvider>
+  );
+  const { rerender } = render(renderControls());
+  fireEvent.click(screen.getByRole('button', { name: 'Table chat' }));
+  const original = screen.getByText('Ordinary chat');
+  rerender(renderControls({ id: 'one', context: 'Storm', loading: false, panels: [] }));
+  expect(screen.getByText('Ordinary chat')).toBe(original);
+  rerender(renderControls());
+  expect(screen.getByText('Ordinary chat')).toBe(original);
   expect(mounts).toBe(1);
 });

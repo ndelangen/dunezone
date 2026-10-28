@@ -1,3 +1,4 @@
+import { createElement } from 'react';
 import { fn } from 'storybook/test';
 
 import { panelMeta } from '../PanelWindow.stories.fixture';
@@ -8,7 +9,10 @@ import type { SpiceReservePanelProps } from './SpiceReservePanel';
 export const spiceReservePanelMeta = {
   ...panelMeta(PANEL_WINDOWS.spice),
   component: SpiceReservePanel,
+  render: (args: Extract<SpiceReservePanelProps, { onWithdraw: (amount: number) => boolean }>) =>
+    createElement(SpiceReservePanel, args),
   args: {
+    isFrozen: false,
     balance: 37,
     enabled: true,
     hiddenHeading: true,
