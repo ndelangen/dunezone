@@ -1,7 +1,5 @@
-/// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import { convexTest } from 'convex-test';
 import { afterEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { PUBLICATION_MAX_PICKUP, takeWorkResultSchema } from '../src/shared/asset-publishing/publication';
@@ -10,11 +8,9 @@ import { assetPublishingFaction as legacyFaction } from '../src/shared/factions/
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { applicationTest } from './application.test.fixture';
-import schema from './schema';
 
 const assetPublishingFaction = ensureFactionComponentIds(legacyFaction);
 
-const modules = import.meta.glob('./**/*.ts');
 const CACHE_TOKEN = `v1.${'a'.repeat(22)}.${'b'.repeat(43)}`;
 
 async function authenticatedTest(options: { admin?: boolean } = {}) {
@@ -39,7 +35,7 @@ async function createFaction(
   });
 }
 
-async function jobsFor(t: ReturnType<typeof convexTest>, factionId: Id<'factions'>) {
+async function jobsFor(t: ReturnType<typeof applicationTest>, factionId: Id<'factions'>) {
   return await t.run(async (ctx) =>
     (await ctx.db.query('publication_jobs').collect()).filter(
       (job) => job.asset_type === 'faction_sheet' && job.asset_id === factionId
@@ -497,7 +493,7 @@ describe('Publication regeneration and administration', () => {
 
 describe('Publication pickup read budget', () => {
   async function largeJobs(jobs: Array<{ status: 'pending' | 'in_progress'; assetId: string; createdAt: number }>) {
-    const t = convexTest({ schema, modules, transactionLimits: true });
+    const t = applicationTest({ transactionLimits: true });
     await t.run(async (ctx) => {
       await ctx.db.insert('admin_settings', {
         key: 'publication',
