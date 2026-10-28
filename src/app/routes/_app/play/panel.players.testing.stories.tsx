@@ -17,7 +17,7 @@ function attentionOn(page: ReturnType<typeof within>, player: string) {
 
 const meta = testingPreview.meta({
   ...gameMeta,
-  title: 'Play/Panels/Players',
+  title: 'Play/Players',
   /* The stories load the table chunk before they render, so its cold first load falls outside their first wait (#1302). */
   loaders: [
     async () => {
@@ -32,7 +32,7 @@ export const Info = meta.story({
   beforeEach: install(() => productTransport('seat-2', playingSnapshot())),
   play: async ({ canvasElement }) => {
     const page = await openFactionInfo(canvasElement, 'Twaffle');
-    const link = await page.findByRole('link', { name: 'View House Atreides (opens in a new tab)' }, WAIT);
+    const link = await page.findByRole('link', { name: 'Open the House Atreides page in a new tab' }, WAIT);
     await expect(link).toHaveAttribute('target', '_blank');
     await expect(link).toHaveAttribute('href', '/factions/house-atreides');
     await expect(page.findByText('House Atreides · Seat 1')).resolves.toBeVisible();
@@ -41,15 +41,6 @@ export const Info = meta.story({
       'true'
     );
     await expect(page.getByRole('button', { name: 'Setup' })).toHaveAttribute('aria-expanded', 'false');
-  },
-});
-
-/** A vote to remove a player, cast from that player's Info. */
-export const RemovalVote = meta.story({
-  beforeEach: install(() => productTransport('seat-2', removalSnapshot())),
-  play: async ({ canvasElement }) => {
-    const page = await openFactionInfo(canvasElement, 'Twaffle');
-    await expect(page.findByRole('button', { name: 'Keep' }, WAIT)).resolves.toBeVisible();
   },
 });
 

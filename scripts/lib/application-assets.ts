@@ -6,6 +6,7 @@ import { z } from 'zod';
 
 export const APPLICATION_ASSET_MANIFEST = 'application-assets.json';
 export const APPLICATION_ASSET_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
+const CONCURRENCY = 32;
 const manifestSchema = z.object({
   version: z.literal(1),
   files: z
@@ -97,7 +98,7 @@ export async function retainApplicationAssets(
     JSON.parse(readFileSync(path.join(directory, APPLICATION_ASSET_MANIFEST), 'utf8'))
   );
   const files = new Map(current.files.map((file) => [file.path, file]));
-  let retained = 0;
+  const queue: ApplicationAssetManifest['files'] = [];
   for (const file of previous.files) {
     const existing = files.get(file.path);
     if (existing) {
@@ -111,18 +112,47 @@ export async function retainApplicationAssets(
     if (now - lastUsedAt > APPLICATION_ASSET_RETENTION_MS) {
       continue;
     }
-    const bytes = await readPrevious(file.path);
-    assertDownloadedAsset(file, bytes);
-    mkdirSync(path.dirname(path.join(directory, file.path)), { recursive: true });
-    writeFileSync(path.join(directory, file.path), bytes);
-    files.set(file.path, { ...file, current: false, lastUsedAt });
-    retained++;
+    const retained = { ...file, current: false, lastUsedAt };
+    files.set(file.path, retained);
+    queue.push(retained);
   }
+  const retained = queue.length;
+  await downloadApplicationAssets(directory, queue, readPrevious);
   writeFileSync(
     path.join(directory, APPLICATION_ASSET_MANIFEST),
     JSON.stringify({ version: 1, files: [...files.values()] })
   );
   return retained;
+}
+
+async function downloadApplicationAssets(
+  directory: string,
+  queue: ApplicationAssetManifest['files'],
+  readPrevious: (assetPath: string) => Promise<Uint8Array>
+): Promise<void> {
+  let failed = false;
+  async function worker() {
+    while (!failed) {
+      const file = queue.shift();
+      if (!file) {
+        return;
+      }
+      try {
+        const bytes = await readPrevious(file.path);
+        /* Another worker may have failed while this download was in flight. */
+        if (failed) {
+          return;
+        }
+        assertDownloadedAsset(file, bytes);
+        mkdirSync(path.dirname(path.join(directory, file.path)), { recursive: true });
+        writeFileSync(path.join(directory, file.path), bytes);
+      } catch (error) {
+        failed = true;
+        throw error;
+      }
+    }
+  }
+  await Promise.all(Array.from({ length: CONCURRENCY }, worker));
 }
 
 function assertDownloadedAsset(file: ApplicationAssetManifest['files'][number], bytes: Uint8Array): void {

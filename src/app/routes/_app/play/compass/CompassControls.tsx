@@ -1,5 +1,5 @@
 import { useContext, useRef, useState } from 'react';
-import type { ReactNode } from 'react';
+import type { ReactNode, RefObject } from 'react';
 
 import type { TableView } from '../../../../widgets/tabletop/playView';
 import type { TablePanel } from '../GameTable';
@@ -38,9 +38,24 @@ export type CompassControlsProps = Readonly<{
   focus?: Readonly<{ key: string; token: string }> | null;
 }>;
 
-export function CompassControls(props: CompassControlsProps) {
+/*
+ * The scene and the chrome that only shows what it is handed stay mounted across an epoch; only the controls' own state starts afresh,
+ * so the tutorial's Reset clears what was open, pinned or resized without building the table's scene again.
+ */
+export function CompassControls({ scene, overlay, header, camera, ...controls }: CompassControlsProps) {
   const epoch = useContext(CompassEpochContext);
-  return <Controls key={epoch} {...props} />;
+  const rootRef = useRef<HTMLDivElement>(null);
+  return (
+    <div className={styles.root} ref={rootRef} data-compass-controls>
+      <div className={styles.scene}>
+        <div className={styles.board}>{scene}</div>
+      </div>
+      {overlay}
+      {header}
+      {camera}
+      <Controls key={epoch} rootRef={rootRef} {...controls} />
+    </div>
+  );
 }
 
 /*
@@ -60,11 +75,17 @@ function useFocusedWindow(
   }
 }
 
-function Controls({ scene, overlay, header, camera, inert, panels, onView, focus }: CompassControlsProps) {
+function Controls({
+  rootRef,
+  inert,
+  panels,
+  onView,
+  focus,
+}: Omit<CompassControlsProps, 'scene' | 'overlay' | 'header' | 'camera'> &
+  Readonly<{ rootRef: RefObject<HTMLDivElement | null> }>) {
   const table = useContext(CompassTableContext);
   const windows = useTableWindows(panels);
   const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
   const opened = useOpenWindows(windows, open);
   const heights = useSlotHeights(rootRef, {
     left: opened.slots.left?.key ?? null,
@@ -73,16 +94,16 @@ function Controls({ scene, overlay, header, camera, inert, panels, onView, focus
   useFocusedWindow(focus, windows, opened.reveal);
   const compass = useCompass({ open, onOpen: setOpen, inert, windows, table, onView, onShow: opened.show });
   return (
-    <div className={styles.root} ref={rootRef} data-compass-controls>
-      <div className={styles.scene}>
-        <div className={styles.board}>{scene}</div>
-      </div>
-      {overlay}
-      {header}
-      {camera}
+    <>
       <WindowFrames windows={windows} opened={opened} heights={heights} inert={inert} />
-      <ChatBar inert={inert} isOpen={opened.isOpen} onOpenCompass={compass.openCompass} onShow={compass.show} />
+      <ChatBar
+        inert={inert}
+        hasHand={windows.some((entry) => entry.key === 'hand')}
+        isOpen={opened.isOpen}
+        onOpenCompass={compass.openCompass}
+        onShow={compass.show}
+      />
       {open && <Compass {...compass.props} />}
-    </div>
+    </>
   );
 }

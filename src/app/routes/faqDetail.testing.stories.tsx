@@ -1,4 +1,5 @@
 import { testingPreview } from '@sb/preview';
+import { completeHold } from '@ui/control/useHoldToConfirm.stories.fixture';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { db, ref } from '@db/storybook';
@@ -47,6 +48,7 @@ export const PickReferences = meta.story({
     );
     await expect(picker.getByRole('searchbox', { name: 'Search treachery cards' })).toHaveValue('');
     await userEvent.keyboard('{Escape}');
+    /* `FaqReferenceAdd` wires Mantine's popover itself (its `opened`, `onChange` and `returnFocus`), so closing and handing focus back are this route's own (ADR-0005). */
     await waitFor(() => expect(page.queryByRole('dialog', { name: 'Add references' })).toBeNull());
     await waitFor(() => expect(page.getByRole('button', { name: 'Add references' })).toHaveFocus());
     await expect(page.getByRole('button', { name: 'Remove reference to Lasgun' })).toBeVisible();
@@ -161,15 +163,8 @@ export const DeleteAnswer = meta.story({
     await userEvent.click(answer.getByRole('button', { name: 'Actions for answer' }));
     const deletion = await page.findByRole('menuitem', { name: 'Hold to delete answer' });
     await waitFor(() => expect(deletion).toBeVisible());
-    await userEvent.pointer([{ keys: '[MouseLeft>]', target: deletion }]);
-    try {
-      await waitFor(() => expect(page.getByText('Deleting in 5..')).toBeVisible());
-      await waitFor(() => expect(page.queryByRole('article', { name: "Mara N.'s answer" })).toBeNull(), {
-        timeout: 10_000,
-      });
-    } finally {
-      await userEvent.pointer([{ keys: '[/MouseLeft]', target: canvasElement.ownerDocument.body }]);
-    }
+    await completeHold(deletion);
+    await waitFor(() => expect(page.queryByRole('article', { name: "Mara N.'s answer" })).toBeNull());
     await expect(page.getByRole('region', { name: '2 answers' })).toBeVisible();
     await expect(page.queryByRole('button', { name: 'Accept answer' })).toBeNull();
   },

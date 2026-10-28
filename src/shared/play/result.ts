@@ -27,7 +27,6 @@ export const gameResultSchema = z.object({
   by: actorSchema,
   declaredAt: tableCountSchema,
 });
-export type GameResult = z.infer<typeof gameResultSchema>;
 
 export const resultActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('result-open') }),

@@ -257,7 +257,9 @@ export class JourneyRecorder {
   constructor(
     readonly peer: NativePeer,
     readonly runtime: NativeRuntime,
-    readonly cast: JourneyCast = FIXTURE_CAST
+    readonly cast: JourneyCast = FIXTURE_CAST,
+    /* The stages whose steps keep the room's stored state; the tutorial also keeps the draft's. */
+    private readonly storedStages: ReadonlySet<string> = SANDBOX_STAGES
   ) {}
 
   /** The id the game knows a faction by, from its slug. */
@@ -353,7 +355,7 @@ export class JourneyRecorder {
       action,
       logSequence: latest?.sequence ?? 0,
       views: Object.fromEntries(views.map(({ type: _type, ...view }) => [view.viewer.viewerSeat, view])),
-      ...(stored.stage !== undefined && SANDBOX_STAGES.has(stored.stage) ? { stored } : {}),
+      ...(stored.stage !== undefined && this.storedStages.has(stored.stage) ? { stored } : {}),
     });
   }
 

@@ -21,6 +21,6 @@ export const WithExtraRule = meta.story({
   args: {
     noun: 'profile',
     url: '…/profiles/paul-atreides',
-    note: 'A number is appended when the derived id is already taken.',
+    note: 'A taken id gets a number added.',
   },
 });

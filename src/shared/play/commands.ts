@@ -1,6 +1,7 @@
 import { isFactionToken } from './factionToken';
 import { freshTableState, gestureBlockReason, nearestZone, pieceCount } from './model';
-import type { TablePiece, TableState } from './model';
+import type { TablePiece, TableState, Vector3Tuple } from './model';
+import { publicPieceLabel } from './peeking';
 import { phaseAt, STANDARD_PHASES, stepPhase, tableProgressFor } from './phases';
 import type { PhaseEntry } from './phases';
 import { placementRules, withRidersCarried } from './pointerRiders';
@@ -9,6 +10,7 @@ import type { DurableTable, GameSnapshot, TableAction } from './protocol';
 import { GameRejection } from './rejection';
 import { isSpicePiece } from './spice';
 import { createSpiceStack } from './spiceBank';
+import { SHARED_ITEM_PLACEMENT_ANCHORS } from './tableFurnitureLayout';
 import { planarDistance, restingPositionAt, stackPreviewPositionFor } from './tableGeometry';
 import { isCollisionFreePosition, nearestCollisionFreePosition } from './tablePhysics';
 import {
@@ -20,6 +22,7 @@ import {
   moveStormInState,
   pieceUnits,
 } from './tableState';
+import { drawableTechTokens } from './techToken';
 
 export { accepted };
 
@@ -106,6 +109,8 @@ function applyTableAction(
     }
     case 'spice-spawn':
       return spawnSpiceInState(state, action.count, actorName);
+    case 'tech-token-draw':
+      return drawTechTokenInState(state, actorName);
   }
 }
 
@@ -157,12 +162,12 @@ export function deletablePiece(piece: TablePiece): boolean {
 export function deletedName(piece: TablePiece): string {
   const [item] = piece.items;
   const name = piece.kind === 'card' && piece.items.length === 1 && item?.faceUp ? item.artwork?.name : undefined;
-  return name ? `${name} card` : piece.label;
+  return name ? `${name} card` : publicPieceLabel(piece);
 }
 
 function deletePiece(state: TableState, piece: TablePiece, actorName: string): TableState {
   if (!deletablePiece(piece)) {
-    throw new GameRejection(`${piece.label} cannot be removed from the game.`);
+    throw new GameRejection(`${publicPieceLabel(piece)} cannot be removed from the game.`);
   }
   return accepted(
     {
@@ -215,6 +220,65 @@ export function spawnSpiceInState(state: TableState, count: number, actorName = 
   );
 }
 
+/* Web Crypto is in the Worker, the browser and Node alike; rejection sampling keeps every index equally likely. */
+function randomIndex(count: number): number {
+  const limit = Math.floor(2 ** 32 / count) * count;
+  const [value] = crypto.getRandomValues(new Uint32Array(1));
+  return value! < limit ? value! % count : randomIndex(count);
+}
+
+/** The free spot nearest `near`; without one, the first free shared item spot on the shelf, else the free spot nearest it. */
+function techTokenPosition(piece: TablePiece, obstacles: TablePiece[], near?: Vector3Tuple): Vector3Tuple | null {
+  if (near) {
+    return nearestCollisionFreePosition(piece, restingPositionAt(near, piece), obstacles);
+  }
+  const free = SHARED_ITEM_PLACEMENT_ANCHORS.map((anchor) => restingPositionAt(anchor.position, piece)).find(
+    (position) => isCollisionFreePosition(piece, position, obstacles)
+  );
+  return free ?? nearestCollisionFreePosition(piece, SHARED_ITEM_PLACEMENT_ANCHORS[0]!.position, obstacles);
+}
+
+/**
+ * One tech token, picked at random from every token left in the shared table inventory, set down face up near `near`, or on the table shelf when there is none.
+ * Each token is as likely as any other, however they are stacked;
+ * one drawn off a stack leaves the rest in the inventory.
+ */
+export function drawTechTokenInState(
+  state: TableState,
+  actorName = 'A player',
+  near?: Vector3Tuple,
+  pick = randomIndex
+): TableState {
+  const sources = drawableTechTokens(state.pieces);
+  const tokens = sources.flatMap((piece) => piece.items.map((item) => ({ piece, item })));
+  if (!tokens.length) {
+    throw new GameRejection('There are no tech tokens left in the shared table inventory.');
+  }
+  const { piece: source, item } = tokens[pick(tokens.length)]!;
+  const rest = source.items.filter((candidate) => candidate !== item);
+  const drawn: TablePiece = {
+    ...source,
+    id: rest.length ? `tech-${state.nextEventNumber}` : source.id,
+    inventory: undefined,
+    items: [{ ...item, faceUp: true }],
+  };
+  /* A tech token keeps its name on the table and in the inventory, where a counted label would only say "Shared tokens". */
+  const pieces = state.pieces.flatMap((candidate) =>
+    candidate !== source ? [candidate] : rest.length ? [{ ...source, items: rest }] : []
+  );
+  const position = techTokenPosition(drawn, pieces, near);
+  if (!position) {
+    throw new GameRejection('Make room on the table before drawing a tech token.');
+  }
+  drawn.position = restingPositionAt(position, drawn);
+  drawn.zoneId = nearestZone(position)?.id ?? null;
+  return accepted(
+    { ...state, pieces: [...pieces, drawn], selectedPieceId: drawn.id },
+    'tech-token.draw',
+    `${actorName} drew ${item.artwork?.name ?? drawn.label} from the tech tokens.`
+  );
+}
+
 function lockPiece(state: TableState, piece: TablePiece): TableState {
   const locked = !piece.locked;
   return accepted(
@@ -223,7 +287,7 @@ function lockPiece(state: TableState, piece: TablePiece): TableState {
       pieces: state.pieces.map((candidate) => (candidate.id === piece.id ? { ...piece, locked } : candidate)),
     },
     'piece.lock',
-    `${piece.label} ${locked ? 'locked' : 'unlocked'}.`
+    `${publicPieceLabel(piece)} ${locked ? 'locked' : 'unlocked'}.`
   );
 }
 
@@ -260,11 +324,11 @@ export function rotatedPiece(state: TableState, piece: TablePiece, turns: number
 
 function rotatePiece(state: TableState, piece: TablePiece, direction: -1 | 1, steps = 1): TableState {
   if (isFactionToken(piece)) {
-    throw new GameRejection(`${piece.label} always faces the board.`);
+    throw new GameRejection(`${publicPieceLabel(piece)} always faces the board.`);
   }
   const rotated = rotatedPiece(state, piece, direction * steps);
   if (!rotated) {
-    throw new GameRejection(`There is no room to rotate ${piece.label} here.`);
+    throw new GameRejection(`There is no room to rotate ${publicPieceLabel(piece)} here.`);
   }
   return accepted(
     {
@@ -274,7 +338,7 @@ function rotatePiece(state: TableState, piece: TablePiece, direction: -1 | 1, st
       ),
     },
     'piece.rotate',
-    `${piece.label} rotated ${direction > 0 ? 'clockwise' : 'counterclockwise'} by ${steps * 15} degrees.`
+    `${publicPieceLabel(piece)} rotated ${direction > 0 ? 'clockwise' : 'counterclockwise'} by ${steps * 15} degrees.`
   );
 }
 
@@ -326,7 +390,7 @@ function splitPlacement(state: TableState, piece: TablePiece, count: number) {
   const pieces = remainingPieces(state, piece, remaining);
   const position = nearestCollisionFreePosition(split, split.position, pieces);
   if (!position) {
-    throw new GameRejection(`There is no clear space beside ${piece.label}.`);
+    throw new GameRejection(`There is no clear space beside ${publicPieceLabel(piece)}.`);
   }
   split.position = restingPositionAt(position, split);
   split.zoneId = nearestZone(position)?.id ?? null;
@@ -335,7 +399,7 @@ function splitPlacement(state: TableState, piece: TablePiece, count: number) {
 
 function splitDescription(piece: TablePiece, count: number) {
   const [one, many] = pieceUnits(piece);
-  return `${count} ${count === 1 ? one : many} taken from ${piece.label}.`;
+  return `${count} ${count === 1 ? one : many} taken from ${publicPieceLabel(piece)}.`;
 }
 
 function splitPiece(state: TableState, piece: TablePiece, requestedCount: number): TableState {

@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "sourceDescription": "Troop silhouettes generated from user-supplied image references and traced from the approved bitmap masters. Original authorship and publication were not independently verified.",
+  "source": "originals/SLAVE-OGRES-MALE-PIRATE-1-1920x1920.jpg",
+  "assets": {
+    "/vector/troop/ogre-pirate-hammer.svg": {
+      "approvedBitmap": "originals/ogre-pirate-hammer-approved.png",
+      "bitmapMaster": "bitmaps/ogre-pirate-hammer.png",
+      "approval": "The user approved all nine numbered troop proposals on 2026-10-26 with the reply \"Approve all nine\".",
+      "alphaThreshold": 0.5,
+      "maskGaussianSigmaPixels": 0.8,
+      "minimumComponentAreaPixels": 12,
+      "trace": "Potrace 1.16, turdsize 12, alphamax 1.0, opttolerance 0.6, followed by the SVG authoring root and provenance steps, uniform square normalization and the troop optimization profile.",
+      "paint": "Inherited from the caller. Essential gaps remain transparent.",
+      "collection": "Troops, supplied by the existing vector-category fallback.",
+      "details": "A broad bandanna-wearing figure holds a large rectangular hammer across its body, with a loop beneath the hammer head."
+    },
+    "/vector/troop/ogre-pirate-captain.svg": {
+      "approvedBitmap": "originals/ogre-pirate-captain-approved.png",
+      "bitmapMaster": "bitmaps/ogre-pirate-captain.png",
+      "approval": "The user approved all nine numbered troop proposals on 2026-10-26 with the reply \"Approve all nine\".",
+      "alphaThreshold": 0.5,
+      "maskGaussianSigmaPixels": 0.8,
+      "minimumComponentAreaPixels": 12,
+      "trace": "Potrace 1.16, turdsize 12, alphamax 1.0, opttolerance 0.6, followed by the SVG authoring root and provenance steps, uniform square normalization and the troop optimization profile.",
+      "paint": "Inherited from the caller. Essential gaps remain transparent.",
+      "collection": "Troops, supplied by the existing vector-category fallback.",
+      "details": "A broad figure in a feathered pirate hat and long coat raises a curved sword while a hook hangs from its other arm."
+    },
+    "/vector/troop/ogre-pirate-blades.svg": {
+      "approvedBitmap": "originals/ogre-pirate-blades-approved.png",
+      "bitmapMaster": "bitmaps/ogre-pirate-blades.png",
+      "approval": "The user approved all nine numbered troop proposals on 2026-10-26 with the reply \"Approve all nine\".",
+      "alphaThreshold": 0.5,
+      "maskGaussianSigmaPixels": 0.8,
+      "minimumComponentAreaPixels": 12,
+      "trace": "Potrace 1.16, turdsize 12, alphamax 1.0, opttolerance 0.6, followed by the SVG authoring root and provenance steps, uniform square normalization and the troop optimization profile.",
+      "paint": "Inherited from the caller. Essential gaps remain transparent.",
+      "collection": "Troops, supplied by the existing vector-category fallback.",
+      "details": "A broad bandanna-wearing figure holds a long curved sword upward and a large axe across its body."
+    },
+    "/vector/troop/ogre-pirate-gunner.svg": {
+      "approvedBitmap": "originals/ogre-pirate-gunner-approved.png",
+      "bitmapMaster": "bitmaps/ogre-pirate-gunner.png",
+      "approval": "The user approved all nine numbered troop proposals on 2026-10-26 with the reply \"Approve all nine\".",
+      "alphaThreshold": 0.5,
+      "maskGaussianSigmaPixels": 0.8,
+      "minimumComponentAreaPixels": 12,
+      "trace": "Potrace 1.16, turdsize 12, alphamax 1.0, opttolerance 0.6, followed by the SVG authoring root and provenance steps, uniform square normalization and the troop optimization profile.",
+      "paint": "Inherited from the caller. Essential gaps remain transparent.",
+      "collection": "Troops, supplied by the existing vector-category fallback.",
+      "details": "A broad figure in a long coat carries a large blocky gun across its front and a raised staff with a ring at its lower tip."
+    },
+    "/vector/troop/ogre-pirate-mace.svg": {
+      "approvedBitmap": "originals/ogre-pirate-mace-approved.png",
+      "bitmapMaster": "bitmaps/ogre-pirate-mace.png",
+      "approval": "The user approved all nine numbered troop proposals on 2026-10-26 with the reply \"Approve all nine\".",
+      "alphaThreshold": 0.5,
+      "maskGaussianSigmaPixels": 0.8,
+      "minimumComponentAreaPixels": 12,
+      "trace": "Potrace 1.16, turdsize 12, alphamax 1.0, opttolerance 0.6, followed by the SVG authoring root and provenance steps, uniform square normalization and the troop optimization profile.",
+      "paint": "Inherited from the caller. Essential gaps remain transparent.",
+      "collection": "Troops, supplied by the existing vector-category fallback.",
+      "details": "A broad bandanna-wearing figure with one heavy boot and one peg leg holds a short spiked mace out to the side."
+    }
+  }
+}

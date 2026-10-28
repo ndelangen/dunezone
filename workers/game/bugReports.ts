@@ -5,6 +5,7 @@ import { redactReportText } from '../../src/shared/play/reportRedaction';
 import {
   bugReportConfigured,
   bugReportInstallationToken,
+  BugReportIssueRejected,
   createBugReportIssue,
   findBugReportIssue,
   reportMarker,
@@ -184,9 +185,9 @@ export class BugReports extends DurableObject<GameEnv & BugReportSecrets> {
       const issueUrl = await createBugReportIssue(token, input.description, body);
       this.setStage(input.requestId, 'complete', issueUrl);
       await this.logCompletion(this.report(input.requestId)!);
-    } catch {
+    } catch (error) {
       if (this.report(input.requestId)?.stage !== 'complete') {
-        this.setStage(input.requestId, creating ? 'uncertain' : 'failed');
+        this.setStage(input.requestId, creating && !(error instanceof BugReportIssueRejected) ? 'uncertain' : 'failed');
       }
     }
   }

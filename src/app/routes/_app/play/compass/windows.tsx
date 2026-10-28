@@ -1,5 +1,6 @@
 import { Stack } from '@mantine/core';
 import { TABLE_CONVERSATION } from '@shared/play/conversations';
+import { helpLines } from '@ui/content/helpLines';
 import { HelpMark } from '@ui/content/HelpMark';
 import type { TopicIconTopic } from '@ui/content/TopicIcon';
 import clsx from 'clsx';
@@ -7,17 +8,14 @@ import { useContext } from 'react';
 import type { ReactNode } from 'react';
 
 import type { TablePanel } from '../GameTable';
-import {
-  FACTION_INFO_GUIDANCE,
-  PLAYER_CONVERSATION_GUIDANCE,
-  TABLE_CONVERSATION_GUIDANCE,
-} from '../multiplayer/panelGuidance';
+import { HAND_AND_SPICE_GUIDANCE } from '../multiplayer/panelGuidance';
+import { PANEL_WINDOWS } from '../panels/panelWindows';
 import { CompassTableContext } from './compassTable';
 import type { CompassPlayer } from './compassTable';
 import styles from './Windows.module.css';
 
 /** The one window that shows a faction's information, set on whichever faction was asked for. */
-export const FACTION_INFO = 'faction-info';
+export const FACTION_INFO = PANEL_WINDOWS.factionInfo.key;
 
 export type WindowLayout = 'stack' | 'flush' | 'fill';
 
@@ -73,8 +71,7 @@ export function useTableWindows(panels: readonly TablePanel[]): TableWindow[] {
         ? {
             ...item,
             label: 'Hand & spice',
-            description: 'Your cards, leaders and spice reserve.',
-            help: [spice.help, hand.help].filter(Boolean).join(' '),
+            ...HAND_AND_SPICE_GUIDANCE,
             content: (
               <>
                 {spice.content}
@@ -86,23 +83,18 @@ export function useTableWindows(panels: readonly TablePanel[]): TableWindow[] {
     );
   if (table?.tableChat) {
     windows.push({
-      key: 'table-chat',
-      label: 'Table chat',
+      ...PANEL_WINDOWS.tableChat,
       group: 'Players',
-      topic: 'planet',
-      description: TABLE_CONVERSATION_GUIDANCE.description,
-      help: TABLE_CONVERSATION_GUIDANCE.help,
       content: table.chat(TABLE_CONVERSATION),
       layout: 'fill',
     });
   }
   for (const player of table?.players.filter(chattable) ?? []) {
     windows.push({
+      ...PANEL_WINDOWS.playerChat,
       key: `player:${player.seat}`,
       label: player.name,
       group: 'Players',
-      topic: 'factions',
-      ...PLAYER_CONVERSATION_GUIDANCE,
       content: null,
       layout: 'fill',
       player,
@@ -110,11 +102,8 @@ export function useTableWindows(panels: readonly TablePanel[]): TableWindow[] {
   }
   if (table?.players.length) {
     windows.push({
-      key: FACTION_INFO,
-      label: 'Faction info',
+      ...PANEL_WINDOWS.factionInfo,
       group: 'Players',
-      topic: 'factions',
-      ...FACTION_INFO_GUIDANCE,
       content: null,
       layout: 'stack',
     });
@@ -127,13 +116,10 @@ export function chattable(player: CompassPlayer) {
   return !player.own && player.canConverse;
 }
 
-/* Every window can be pinned from the centre, by its buttons or by key. */
-const PIN_HINT = 'Open in the centre, [ pins it bottom left and ] bottom right.';
-
 /** The (?) beside a window's name: one line on what the window is for, and its full guidance under it where there is one. */
 export function WindowHelp({ entry }: Readonly<{ entry: TableWindow }>) {
   const { description, help } = entry;
-  const text = [description, help, PIN_HINT].filter(Boolean).join(' ');
+  const text = helpLines(description, help);
   return text ? <HelpMark text={text} /> : null;
 }
 

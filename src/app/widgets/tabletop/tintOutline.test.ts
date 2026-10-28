@@ -4,7 +4,7 @@ import { boardTerritories } from '@shared/boards/territories';
 import { offRim, offsetPath, outerSegments, outlinePaths } from '@shared/boards/tintOutline';
 import { describe, expect, it } from 'vitest';
 
-import { territoryTintPresets } from '../../routes/_app/play/multiplayer/territoryTintPresets';
+import { territoryTintPresets } from '../../routes/_app/play/panels/tints/territoryTintPresets';
 
 type Point = readonly [number, number];
 

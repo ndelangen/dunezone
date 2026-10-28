@@ -23,12 +23,14 @@ import { publicControlsSchema, publicActionSchema, spawnSelectionSchema, spawnCo
 import { lastTurnActionSchema, lastTurnSchema } from './lastTurn';
 import { logEntrySchema, logTabSchema } from './log';
 import type { TableState } from './model';
+import { movementActionSchema, movementTurnsSchema } from './movement';
 import { seatActionSchema } from './participation';
 import { peekActionSchema, peekSchema } from './peeking';
 import { TABLE_PHASES } from './phases';
 import type { TablePhaseId } from './phases';
 import { removalActionSchema, removalVoteSchema } from './removal';
 import { gameEndingSchema, gameResultSchema, resultActionSchema } from './result';
+import { reviewActionSchema, reviewCheckpointSchema, tableReviewSchema } from './review';
 import {
   carryFlipsSchema as carryFlips,
   draftMoveSchema as draftSchema,
@@ -88,6 +90,10 @@ export const gameSnapshotSchema = z.object({
   setup: setupStateSchema.optional(),
   predictions: predictionsSchema.optional(),
   removalVotes: z.array(removalVoteSchema).optional(),
+  /* The table review being voted on or showing now; absent outside setup and play. */
+  review: tableReviewSchema.nullable().optional(),
+  /* The recent checkpoints a review can show, newest last; absent outside setup and play. */
+  reviewCheckpoints: z.array(reviewCheckpointSchema).optional(),
   /* Who is determining the winner during Mentat Pause, then the declared result once finished. */
   ending: gameEndingSchema.nullable().optional(),
   result: gameResultSchema.nullable().optional(),
@@ -100,6 +106,8 @@ export const gameSnapshotSchema = z.object({
   alliances: allianceStateSchema.optional(),
   /* The turn the table agreed the game ends after; absent means the standard ten. */
   lastTurn: lastTurnSchema.optional(),
+  /* The factions that have finished this Shipment and Movement; absent outside that phase. */
+  movement: movementTurnsSchema.optional(),
   /* Tints the table laid over territories, for everyone to see; absent until a faction makes one. */
   tints: territoryTintsSchema.optional(),
   battle: publicBattleSchema.nullable().optional(),
@@ -173,6 +181,8 @@ const tableActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('storm'), direction }),
   z.strictObject({ kind: z.literal('phase'), direction: direction.optional() }),
   z.strictObject({ kind: z.literal('spice-spawn'), count: z.number().int().min(1).max(10) }),
+  /* Takes one tech token at random out of the shared table inventory and sets it down on the table shelf. */
+  z.strictObject({ kind: z.literal('tech-token-draw') }),
   z.strictObject({ kind: z.literal('reset') }),
 ]);
 export type TableAction = z.infer<typeof tableActionSchema>;
@@ -186,11 +196,13 @@ const pieceActionSchema = z.discriminatedUnion('kind', [
   ...biddingActionSchema.options,
   ...allianceActionSchema.options,
   lastTurnActionSchema,
+  movementActionSchema,
   ...territoryTintActionSchema.options,
   ...spiceReserveActionSchema.options,
   ...publicActionSchema.options,
   ...seatActionSchema.options,
   ...removalActionSchema.options,
+  ...reviewActionSchema.options,
   ...resultActionSchema.options,
   ...draftActionSchema.options,
   ...swapActionSchema.options,

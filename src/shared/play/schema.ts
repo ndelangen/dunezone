@@ -69,6 +69,9 @@ export function rosterSeat(roster: TableRoster | undefined, seatId: string) {
   return roster?.seats.find((seat) => seat.id === seatId);
 }
 
+/** The longest description a captured token keeps; a longer one is cut to it. */
+export const ARTWORK_DESCRIPTION_LIMIT = 2000;
+
 /* A card's or token's artwork as the game captured it. */
 const artworkSchema = z.object({
   front: z.string().url().optional(),
@@ -79,6 +82,8 @@ const artworkSchema = z.object({
   type: z.string(),
   /* A token's physical size as its author set it, a share of the standard size; absent means standard. */
   size: PhysicalSize.optional(),
+  /** What a tech token does, as its author described it on the asset; its tooltip shows it. */
+  description: z.string().min(1).max(ARTWORK_DESCRIPTION_LIMIT).optional(),
   /* A prediction card's choice, drawn over its front (#1753); a hidden card's copy leaves it out with the front. */
   prediction: z.object({ stepId: tableIdSchema, factionId: tableIdSchema, turn: tableCountSchema.min(1) }).optional(),
 });
@@ -144,6 +149,7 @@ const concealedArtworkSchema = z.strictObject({
   name: z.never().optional(),
   type: z.never().optional(),
   size: z.never().optional(),
+  description: z.never().optional(),
   prediction: z.never().optional(),
 });
 
@@ -177,6 +183,8 @@ const tableEventSchema = z.object({
   command: z.string(),
   message: z.string(),
   status: z.enum(['accepted', 'rejected']),
+  /* Version 1 uses public labels for hidden pieces. Older messages may contain their names. */
+  publicCopyVersion: z.literal(1).optional(),
 });
 
 export const durableTableSchema = z.object({

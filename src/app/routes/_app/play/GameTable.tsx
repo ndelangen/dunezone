@@ -8,6 +8,7 @@ import { TABLE_SECTOR_COUNT } from '@shared/play/tableSettings';
 import type { TableSeatCount } from '@shared/play/tableSettings';
 import { Section } from '@ui/block/Section';
 import type { TopicIconTopic } from '@ui/content/TopicIcon';
+import { DarkSchemeIsland, darkSchemeIslandAttributes } from '@ui/surface/DarkSchemeIsland';
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
@@ -40,7 +41,6 @@ import type { TabletopContextValue } from '../../../widgets/tabletop/TabletopCon
 import { TabletopScene } from '../../../widgets/tabletop/TabletopScene';
 import type { TableProgress } from '../../../widgets/tabletop/tableTrackers';
 import { CompassControls } from './compass/CompassControls';
-import { DarkSchemeIsland, darkSchemeIslandAttributes } from './DarkSchemeIsland';
 import { TableLabelsContext } from './tableLabels';
 import type { TableLabels } from './tableLabels';
 import { TableWait } from './TableWait';
@@ -95,6 +95,8 @@ type GameTableProps = {
   mapVisible?: boolean;
   /* The header's centre during a stage that says more than its word: the drafting counts and status. */
   stageStatus?: ReactNode;
+  /* The phase's turns beside its words, in play during Shipment and Movement: the factions' tokens in turn order. */
+  phaseTurns?: ReactNode;
   /* Play chrome laid over the scene for a stage, under the header: the drafting ledger. */
   stageOverlay?: ReactNode;
   /* A stage's own panel, leading the Game group: the drafting panel. Its window is flush, so the content insets itself. */
@@ -567,6 +569,7 @@ export function GameTable({
   tableGuidance,
   gameMenu,
   stageStatus,
+  phaseTurns,
   stage,
   mapVisible,
   stageOverlay,
@@ -663,6 +666,7 @@ export function GameTable({
               />
             )}
           </div>
+          {phaseTurns}
         </div>
         <div className="seated-chip seated-chip--game" data-hides-cursor>
           {alliances}

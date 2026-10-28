@@ -9,6 +9,7 @@ import { gameMeta, install, lastCommand, session } from './game.stories.fixture'
 import { factionPhaseSnapshot } from './phases.stories.fixture';
 import { expectHeaderPhase, openTab, phaseControls } from './playing.stories.fixture';
 import { productTransport, playingSnapshot as initialSnapshot, playingSnapshot, SIX } from './product.stories.fixture';
+import { finishedSnapshot } from './results.stories.fixture';
 
 const meta = testingPreview.meta({
   ...gameMeta,
@@ -106,7 +107,7 @@ export const FactionPhase = meta.story({
     const phaseHelp = within(windowNamed(page, 'Phase')!).getByRole('img', { name: 'Help' });
     /* The kit's HelpMark story owns timed tooltip display, since a slow frame here can outlast it; this page checks that the window's (?) carries the phase's description and its instructions. */
     await expect(phaseHelp).toHaveAccessibleDescription(
-      'Guild negotiations, instructions and actions. Agree any shipment deals before bidding opens. Previous changes the tracker only. Pieces and storm position stay as they are. Open in the centre, [ pins it bottom left and ] bottom right.'
+      'Guild negotiations, instructions and actions. Agree any shipment deals before bidding opens. Previous moves the tracker back. Pieces and storm stay put.'
     );
     const header = canvasElement.ownerDocument.querySelector('.seated-header') as HTMLElement;
     await expect(within(header).getByText('Guild negotiations')).toBeVisible();
@@ -225,21 +226,23 @@ export const Cooldown = meta.story({
   },
 });
 
+/* Replaying a finished game shows no phase controls; the game continued meanwhile, and Return to live brings them back at the live phase. */
 export const PlaybackKeepsLivePhaseSeparate = meta.story({
-  beforeEach: install(() => productTransport('seat-2', { ...initialSnapshot(), phase: 5 })),
+  beforeEach: install(() => productTransport('seat-2', finishedSnapshot('seat-2'))),
   play: async ({ canvasElement }) => {
-    const { page, controls, waitForPhase, expectPrevious } = phaseControls(canvasElement);
-    await waitForPhase(() => expect(page.getByRole('button', { name: /^Controls/ })).toBeVisible());
+    const { page, controls, waitForPhase } = phaseControls(canvasElement);
+    await page.findByText(/Declared by/, {}, { timeout: 30_000 });
     await openTab(page, 'Replay');
-    await waitForPhase(() => expect(page.getByRole('button', { name: 'Replay from start' })).toBeEnabled());
-    await userEvent.click(page.getByRole('button', { name: 'Replay from start' }));
+    await userEvent.click(await page.findByRole('button', { name: 'Replay from start' }));
     await expect(session.transport.messages).toContainEqual({ type: 'history', step: 0 });
     session.transport.deliver({ type: 'history', step: 0, lastStep: 1, snapshot: initialSnapshot() });
-    await waitForPhase(() => expect(controls().getByRole('button', { name: 'Next phase' })).toBeDisabled());
-    await expectPrevious(false);
+    await waitFor(async () => {
+      await expect(page.getByRole('button', { name: 'Return to live' })).toBeVisible();
+      await expect(page.queryByRole('group', { name: 'Phase navigation' })).toBeNull();
+    });
 
     await openTab(page, 'Phase');
-    session.transport.deliver(session.transport.view({ ...initialSnapshot(), phase: 6, revision: 1 }));
+    session.transport.deliver(session.transport.view({ ...initialSnapshot(), phase: 6, revision: 100 }));
     await expect(page.getByRole('region', { name: TABLE_PHASES[0].label })).toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Return to live' }));
     await waitForPhase(async () => {

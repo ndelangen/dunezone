@@ -9,11 +9,12 @@ import {
   storedBattleResultSchema,
 } from '../../src/shared/play/battle';
 import { nextSnapshot } from '../../src/shared/play/commands';
+import { isFactionToken } from '../../src/shared/play/factionToken';
 import { treacheryHandCounts } from '../../src/shared/play/handCounts';
 import { storedControlsSchema } from '../../src/shared/play/inventory';
 import type { SpawnContents } from '../../src/shared/play/inventory';
-import type { DraftMove, StoredPiece, TableItem, TablePiece } from '../../src/shared/play/model';
-import { showsPeeker } from '../../src/shared/play/peeking';
+import type { DraftMove, StoredPiece, TableEvent, TableItem, TablePiece } from '../../src/shared/play/model';
+import { publicPieceLabel, showsPeeker } from '../../src/shared/play/peeking';
 import { gameSnapshotSchema, rosterFactionIds, tableForViewer } from '../../src/shared/play/protocol';
 import type { GameSnapshot, PublicCarry, PieceAction } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
@@ -350,6 +351,17 @@ export function withKnownCardFaces(before: StoredSnapshot, next: StoredSnapshot)
   };
 }
 
+/** Old piece messages lack enough context to separate hidden names from public ones. */
+function publicEvent(event: TableEvent): TableEvent {
+  if (event.publicCopyVersion === 1 || !/^(piece|stack)\./u.test(event.command)) {
+    return event;
+  }
+  return {
+    ...event,
+    message: event.status === 'rejected' ? 'A piece action was rejected.' : 'A piece action was completed.',
+  };
+}
+
 /** Every delivery uses this projection before serialization or delta computation. */
 export class RoomProjection {
   private readonly snapshots = new WeakMap<StoredSnapshot, Map<string | undefined, GameSnapshot>>();
@@ -375,7 +387,7 @@ export class RoomProjection {
     pieceHandles: StoredSnapshot['pieceHandles'] = {}
   ): TablePiece {
     if (piece.kind !== 'card') {
-      return piece;
+      return piece.kind === 'force' && !isFactionToken(piece) ? this.token(piece, visible) : piece;
     }
     const handleKey = [
       pieceHandles[piece.id] ?? piece.id,
@@ -402,6 +414,45 @@ export class RoomProjection {
         this.pieces.set(piece, variants);
       }
     }
+    return projected;
+  }
+
+  /** Token geometry stays public; its hidden face and catalogue identity do not. */
+  private token(piece: TablePiece, visible: boolean): TablePiece {
+    const cacheKey = visible ? 'token-visible' : 'token-public';
+    const variants = this.pieces.get(piece) ?? new Map<string, TablePiece>();
+    const cached = variants.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+    const hidden = (item: TableItem) => !visible && !item.faceUp;
+    const key = piece.stackKey;
+    // Troop supply layout groups by faction; leader size and troop controls use the category prefix.
+    const prefix = key?.startsWith('troops:')
+      ? `troops:${piece.owner}:`
+      : key?.startsWith('forces:')
+        ? 'forces:'
+        : key?.startsWith('leader:')
+          ? 'leader:'
+          : 'token:';
+    const projected: TablePiece = {
+      ...piece,
+      label: visible ? piece.label : publicPieceLabel(piece),
+      stackKey: key === null ? null : `${prefix}${this.cardId(`token-stack-${key}`)}`,
+      items: piece.items.map((item) => {
+        if (!hidden(item) || !item.artwork) {
+          return item;
+        }
+        const { back, backName, type, size } = item.artwork;
+        return {
+          ...item,
+          artwork:
+            type === undefined ? { back, backName } : { back, backName, type, ...(size === undefined ? {} : { size }) },
+        };
+      }),
+    };
+    variants.set(cacheKey, projected);
+    this.pieces.set(piece, variants);
     return projected;
   }
 
@@ -490,6 +541,7 @@ export class RoomProjection {
         })),
         table: {
           ...table,
+          events: table.events.map(publicEvent),
           pieces: table.pieces.map((piece) => this.piece(piece, false, snapshot.cardHandles, snapshot.pieceHandles)),
         },
         versions: Object.fromEntries(
@@ -547,6 +599,7 @@ export class RoomProjection {
       ...(snapshot.bidding ? { bidding: snapshot.bidding } : {}),
       ...(snapshot.alliances ? { alliances: snapshot.alliances } : {}),
       ...(snapshot.lastTurn ? { lastTurn: snapshot.lastTurn } : {}),
+      ...(snapshot.movement ? { movement: snapshot.movement } : {}),
       ...(snapshot.tints?.length ? { tints: snapshot.tints } : {}),
       controls: shared.controls,
       ...(spiceTransfers ? { spiceTransfers } : {}),

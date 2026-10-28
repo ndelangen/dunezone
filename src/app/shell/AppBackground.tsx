@@ -5,6 +5,13 @@ import planet from './planet.webp?url';
 
 const HOUR = 3_600_000;
 
+function updateParallax(frame: HTMLElement | null) {
+  const scroller = document.scrollingElement ?? document.documentElement;
+  const available = scroller.scrollHeight - scroller.clientHeight;
+  const progress = available > 0 ? Math.min(1, Math.max(0, scroller.scrollTop / available)) : 0;
+  frame?.style.setProperty('--scroll-progress', String(progress));
+}
+
 const stars = (() => {
   let seed = 3417;
   const random = () => {
@@ -25,6 +32,7 @@ const stars = (() => {
 /** The shell's fixed planet and independently turning SVG stars. */
 export function AppBackground({ motion }: { motion: boolean }) {
   const gradientId = useId();
+  const background = useRef<HTMLDivElement>(null);
   const starsFrame = useRef<HTMLDivElement>(null);
   const starsLayer = useRef<SVGSVGElement>(null);
   const planetLayer = useRef<SVGSVGElement>(null);
@@ -47,16 +55,62 @@ export function AppBackground({ motion }: { motion: boolean }) {
     if (!motion) {
       return;
     }
-    const onVisible = () => {
-      if (document.visibilityState === 'visible') {
+    const element = background.current;
+    if (!element) {
+      return;
+    }
+    let timer: number | undefined;
+    let suspended: boolean | undefined;
+    const refresh = () => {
+      const next = document.visibilityState === 'hidden' || getComputedStyle(element).visibility === 'hidden';
+      if (next === suspended) {
+        if (!next) {
+          synchronize();
+          updateParallax(starsFrame.current);
+        }
+        return;
+      }
+      suspended = next;
+      window.clearInterval(timer);
+      element.toggleAttribute('data-suspended', next);
+      if (!next) {
         synchronize();
+        updateParallax(starsFrame.current);
+        timer = window.setInterval(synchronize, 60_000);
       }
     };
-    const timer = window.setInterval(synchronize, 60_000);
-    document.addEventListener('visibilitychange', onVisible);
+    refresh();
+    /* Fullscreen hides the background without resizing it; only page-layout changes can change that state. */
+    const observer = new MutationObserver((records) => {
+      if (
+        records.some(
+          (record) =>
+            record.type === 'attributes' ||
+            [...record.addedNodes, ...record.removedNodes].some(
+              (node) =>
+                node instanceof Element &&
+                (node.matches('[data-page-layout-height]') || node.querySelector('[data-page-layout-height]'))
+            )
+        )
+      ) {
+        refresh();
+      }
+    });
+    const shell = element.closest('[data-app-root]');
+    if (shell) {
+      observer.observe(shell, {
+        subtree: true,
+        childList: true,
+        attributes: true,
+        attributeFilter: ['data-page-layout-height'],
+      });
+    }
+    document.addEventListener('visibilitychange', refresh);
     return () => {
       window.clearInterval(timer);
-      document.removeEventListener('visibilitychange', onVisible);
+      observer.disconnect();
+      document.removeEventListener('visibilitychange', refresh);
+      element.removeAttribute('data-suspended');
     };
   }, [motion]);
 
@@ -72,12 +126,15 @@ export function AppBackground({ motion }: { motion: boolean }) {
     let pending: number | null = null;
     const update = () => {
       pending = null;
-      const documentScroll = document.scrollingElement ?? document.documentElement;
-      const available = documentScroll.scrollHeight - documentScroll.clientHeight;
-      const progress = available > 0 ? Math.min(1, Math.max(0, documentScroll.scrollTop / available)) : 0;
-      frame.style.setProperty('--scroll-progress', String(progress));
+      if (background.current?.hasAttribute('data-suspended')) {
+        return;
+      }
+      updateParallax(frame);
     };
     const schedule = () => {
+      if (background.current?.hasAttribute('data-suspended')) {
+        return;
+      }
       if (pending === null) {
         pending = requestAnimationFrame(update);
       }
@@ -98,7 +155,13 @@ export function AppBackground({ motion }: { motion: boolean }) {
   }, [motion]);
 
   return (
-    <div className={styles.background} data-app-background data-motion={motion ? 'ok' : 'reduce'} aria-hidden>
+    <div
+      ref={background}
+      className={styles.background}
+      data-app-background
+      data-motion={motion ? 'ok' : 'reduce'}
+      aria-hidden
+    >
       <div ref={starsFrame} className={styles.starsFrame} data-background-stars>
         <svg ref={starsLayer} className={styles.stars} viewBox="0 0 1600 1600">
           <defs>

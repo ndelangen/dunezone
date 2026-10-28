@@ -90,11 +90,7 @@ export function TokenEditPage({
     );
   }
 
-  /* The draft's reference member models pick-pending as an explicit null, which the stored optional cannot say. */
-  const initialBack =
-    parsed.data.back.mode === 'reference'
-      ? { mode: 'reference' as const, asset_id: parsed.data.back.asset_id ?? null }
-      : parsed.data.back;
+  const initialBack = parsed.data.back;
 
   return (
     <BackgroundLibrary presets={data.backgrounds ?? []} fronts={data.cardFrontPresets}>

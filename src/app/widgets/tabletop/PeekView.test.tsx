@@ -82,6 +82,16 @@ test('the card moved with the keyboard keeps focus when the room gives the deck 
   expect(arrow.defaultPrevented).toBe(true);
 });
 
+test('a click on a card gives it focus, so the arrow keys move it next', () => {
+  const { controls } = liveTable(deck);
+  const top = handles()[0]!;
+  top.setPointerCapture = vi.fn();
+  fireEvent.pointerDown(top, { button: 0, pointerId: 1, clientX: 10 });
+  expect(document.activeElement).toBe(top);
+  fireEvent.keyDown(document.activeElement!, { key: 'ArrowRight' });
+  expect(controls.arrange).toHaveBeenCalledWith('treachery-deck', [0, 1, 3, 2]);
+});
+
 test('a locked deck can be looked through, but offers no move and no pull', () => {
   const { controls } = liveTable({ ...deck, locked: true });
   expect(screen.getByText('Only you see these cards. Unlock the deck to change it.')).toBeTruthy();

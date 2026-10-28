@@ -50,7 +50,9 @@ export const FailedCapture = meta.story({
   },
 });
 
+/** A chooser's 32 px tile, too small to print a name, names its Rulebook on hover instead. */
 export const ChooserSize = meta.story({
+  args: { nameOnHover: true },
   decorators: [
     (Story) => (
       <Box w={32}>

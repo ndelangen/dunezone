@@ -4,17 +4,15 @@
 import { describe, expect, test } from 'vite-plus/test';
 
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
-import { toStoredHeroKey } from '../src/shared/factions/schema';
 import { api } from './_generated/api';
 import { factionTest } from './factions.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
 
 const STAMP = '2026-09-28T00:00:00.000Z';
 const storedLeader = assetPublishingFaction.factionLeader;
-const renamedLeader = { ...storedLeader, name: 'Paul Atreides' };
 
 /*
- * The glossary term is "Faction leader"; rows saved before `faction_faction_leader_key_v1` store it as `hero`, and migrated rows hold both keys.
+ * The glossary term is "Faction leader"; rows store it as `factionLeader`, and the game catalogue answer keeps the old `hero` literal.
  * Every read that returns faction data must answer with the key its wire contract names.
  */
 async function seed() {
@@ -56,47 +54,45 @@ async function seed() {
         is_deleted: false,
         group_id: groupId,
       });
-    const heroOnly = await row('hero-only', toStoredHeroKey(assetPublishingFaction));
-    const both = await row('both-keys', { ...toStoredHeroKey(assetPublishingFaction), factionLeader: renamedLeader });
-    return { ownerId, heroOnly, both };
+    const first = await row('first', assetPublishingFaction);
+    const second = await row('second', assetPublishingFaction);
+    return { ownerId, first, second };
   });
   return { t, ids, viewer: t.withIdentity({ subject: ids.ownerId }) };
 }
 
-const expected = { 'hero-only': storedLeader, 'both-keys': renamedLeader } as Record<string, unknown>;
-
-function expectLeaderKey(slug: string, data: Record<string, unknown>) {
-  expect(data.factionLeader).toEqual(expected[slug]);
+function expectLeaderKey(data: Record<string, unknown>) {
+  expect(data.factionLeader).toEqual(storedLeader);
   expect(data).not.toHaveProperty('hero');
 }
 
-describe('faction reads across the Faction leader key rename', () => {
+describe('faction reads name the Faction leader by their wire contract', () => {
   test('the group page, detail page, list, catalogue and load picker answer with `factionLeader`', async () => {
     const { viewer } = await seed();
 
     const group = await viewer.query(api.groups.detailPage, { slug: 'leaders-group' });
     expect(group.factions).toHaveLength(2);
-    group.factions.forEach((row) => expectLeaderKey(row.slug, row.data));
+    group.factions.forEach((row) => expectLeaderKey(row.data));
 
-    for (const slug of ['hero-only', 'both-keys']) {
+    for (const slug of ['first', 'second']) {
       const page = await viewer.query(api.factions.pageBySlug, { slug });
-      expectLeaderKey(slug, page.faction.data);
+      expectLeaderKey(page.faction.data);
     }
 
     const list = await viewer.query(api.factions.list, {});
-    list.forEach((row) => expectLeaderKey(row.slug, row.data));
+    list.forEach((row) => expectLeaderKey(row.data));
 
     const catalogue = await viewer.query(api.factions.cataloguePage, {});
     expect(catalogue.factions).toHaveLength(2);
-    catalogue.factions.forEach((row) => expectLeaderKey(row.slug, row.data));
+    catalogue.factions.forEach((row) => expectLeaderKey(row.data));
 
     const paged = await viewer.query(api.factions.catalogue, {});
     expect(paged.cards).toHaveLength(2);
-    paged.cards.forEach((row) => expectLeaderKey(row.slug, row.data));
+    paged.cards.forEach((row) => expectLeaderKey(row.data));
 
     const picker = await viewer.query(api.factions.listForLoadPicker, {});
     expect(picker.rows).toHaveLength(2);
-    picker.rows.forEach((row) => expectLeaderKey(row.slug, row.data));
+    picker.rows.forEach((row) => expectLeaderKey(row.data));
     /* The picker labels each row with its group's name and its owner's username, read beside the faction data. */
     expect(picker.rows.map((row) => ({ groupLabel: row.groupLabel, ownerUsername: row.ownerUsername }))).toEqual([
       { groupLabel: 'Leaders Group', ownerUsername: 'Owner' },
@@ -110,11 +106,8 @@ describe('faction reads across the Faction leader key rename', () => {
   test('the game catalogue answer keeps the `hero` literal for a Worker one deploy behind', async () => {
     const { viewer, ids } = await seed();
 
-    const heroOnly = await viewer.query(api.playCatalogue.factionDefinition, { factionId: ids.heroOnly });
-    const both = await viewer.query(api.playCatalogue.factionDefinition, { factionId: ids.both });
-    expect(heroOnly?.data?.hero).toEqual(storedLeader);
-    expect(both?.data?.hero).toEqual(renamedLeader);
-    expect(heroOnly?.data).not.toHaveProperty('factionLeader');
-    expect(both?.data).not.toHaveProperty('factionLeader');
+    const definition = await viewer.query(api.playCatalogue.factionDefinition, { factionId: ids.first });
+    expect(definition?.data?.hero).toEqual(storedLeader);
+    expect(definition?.data).not.toHaveProperty('factionLeader');
   });
 });

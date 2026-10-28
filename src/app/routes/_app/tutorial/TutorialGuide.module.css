@@ -30,9 +30,26 @@
   stroke-linejoin: round;
 }
 
+/*
+ * How wide the rail is. The rail gives way first, down to a floor of 16rem, so the table beside it keeps 720px on any desktop window
+ * wider than 976px. The rail never covers the table (Norbert, 2026-10-25): in a narrower window the table gets narrower too,
+ * as Play is desktop-only for now. It is set on the root, so the shell's frame round a lobby chapter's pages can read it too.
+ */
+:global(:root):has(.frame) {
+  --tutorial-rail-width: clamp(16rem, 100vw - 720px, 25rem);
+}
+
 /* The guide and the page it wraps share one box; only the custom properties it sets reach the page. */
 .frame {
   display: contents;
+}
+
+/*
+ * A lobby chapter's pages join the shell's grid as any page does, so the whole frame, band and content, starts at the rail's right edge,
+ * as a table chapter's table does.
+ */
+:global([data-app-frame]):has([data-tutorial-pages]) {
+  margin-inline-start: var(--tutorial-rail-width);
 }
 
 /* The page the guide wraps, in a box of its own only so it can be made inert; it lays out as if the box were not there. */
@@ -95,9 +112,10 @@
 }
 
 .railStep {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-md);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  column-gap: var(--space-sm);
   transition:
     filter var(--pace) var(--ease),
     opacity var(--pace) var(--ease),
@@ -120,15 +138,16 @@
   display: inline-grid;
   flex: none;
   place-items: center;
-  width: 1.35rem;
-  height: 1.35rem;
+  width: 1.2rem;
+  height: 1.2rem;
   margin-top: 0.1rem;
   border-radius: 50%;
   background: transparent;
   box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--color-text) 35%, transparent);
   color: var(--color-muted);
   font-size: 0.75rem;
-  font-weight: 700;
+  font-family: "C_Advokat_Modern", serif;
+  font-weight: 400;
   font-variant-numeric: tabular-nums;
   transition:
     width var(--pace) var(--ease),
@@ -141,9 +160,9 @@
 }
 
 .railStep[data-state="current"] .step {
-  width: 2rem;
-  height: 2rem;
-  margin-top: 0;
+  width: 1.6rem;
+  height: 1.6rem;
+  margin-top: 0.1rem;
   background: var(--color-caution-inverse);
   box-shadow: inset 0 0 0 0 transparent;
   color: var(--color-ink);
@@ -224,9 +243,10 @@
 .railText {
   display: grid;
   min-width: 0;
+  grid-column: 1 / -1;
 }
 
-.railText p {
+.railStep p {
   margin: 0;
 }
 
@@ -250,6 +270,7 @@
 
 /* What the task at hand says about where; it unfolds under the title as the task opens and folds away as it is done. */
 .railMore {
+  grid-column: 1 / -1;
   display: grid;
   grid-template-rows: 0fr;
   opacity: 0;
@@ -274,10 +295,17 @@
     visibility 0s;
 }
 
-.railDetail {
+/* The description uses the rail's full width below the number and title. */
+.railBody {
   min-height: 0;
   overflow: hidden;
   padding-top: var(--space-xs);
+}
+
+.railDetail {
+  display: grid;
+  gap: var(--space-sm);
+  min-width: 0;
   font-size: 1.15rem;
   line-height: 1.5;
   color: color-mix(in srgb, var(--color-text) 85%, transparent);
@@ -312,8 +340,8 @@
 }
 
 /* Without motion every state shows at once. */
-.guide[data-motion="reduce"] *,
-.guide[data-motion="reduce"] *::after {
+.guide[data-motion="reduce"] *:not([data-attention]),
+.guide[data-motion="reduce"] *:not([data-attention])::after {
   transition: none !important;
   animation: none !important;
 }

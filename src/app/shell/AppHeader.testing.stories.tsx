@@ -40,3 +40,29 @@ export const DefaultHeader = meta.story({
     await waitFor(() => expect(band!.querySelector('video')).not.toBeNull(), { timeout: 30_000 });
   },
 });
+
+export const VideoResumesAfterScrolling = meta.story({
+  globals: { viewport: { value: 'appDesktop' }, motion: 'on' },
+  play: async ({ canvasElement }) => {
+    const view = canvasElement.ownerDocument.defaultView!;
+    await waitFor(() => expect(canvasElement.querySelector('video')).toHaveAttribute('data-ready', 'true'), {
+      timeout: 30_000,
+    });
+    const video = canvasElement.querySelector('video')!;
+    await waitFor(() => expect(view.getComputedStyle(video).opacity).toBe('1'));
+    try {
+      view.scrollTo({ top: canvasElement.ownerDocument.documentElement.scrollHeight, behavior: 'instant' });
+      await waitFor(() => expect(video.paused).toBe(true));
+      const pausedAt = video.currentTime;
+      await new Promise((resolve) => view.setTimeout(resolve, 150));
+      await expect(video.currentTime).toBe(pausedAt);
+      view.scrollTo({ top: 0, behavior: 'instant' });
+      await waitFor(() => expect(video.paused).toBe(false));
+      await expect(canvasElement.querySelector('video')).toBe(video);
+      await expect(video).toHaveAttribute('data-ready', 'true');
+      await expect(view.getComputedStyle(video).opacity).toBe('1');
+    } finally {
+      view.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  },
+});

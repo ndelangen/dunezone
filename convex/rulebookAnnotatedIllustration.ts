@@ -6,7 +6,7 @@ import {
   factionMemberPublicationId,
   parseFactionMemberPublicationId,
 } from '../src/shared/asset-publishing/componentPublication';
-import { CanonicalFactionStoredSchema } from '../src/shared/factions/schema';
+import { CanonicalFactionStoredObject } from '../src/shared/factions/schema';
 import {
   resolveRulebookAnnotatedIllustrationResponseSchema,
   rulebookAnnotatedIllustrationIdentitySchema,
@@ -39,7 +39,7 @@ async function resolveSource(ctx: QueryCtx, reference: RulebookSourceReference |
   if (reference.kind === 'faction') {
     const id = ctx.db.normalizeId('factions', reference.factionId);
     const faction = id ? await ctx.db.get('factions', id) : null;
-    const parsed = faction && !faction.is_deleted ? CanonicalFactionStoredSchema.safeParse(faction.data) : null;
+    const parsed = faction && !faction.is_deleted ? CanonicalFactionStoredObject.safeParse(faction.data) : null;
     return parsed?.success && RULEBOOK_STOCK_ARTWORK.some((id) => id === parsed.data.logo)
       ? { status: 'stock', reference, artworkId: parsed.data.logo, name: parsed.data.name }
       : { status: 'unavailable' };

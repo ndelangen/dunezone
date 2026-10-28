@@ -3,18 +3,9 @@ import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 import { arrakisBoardCapture } from '../../src/shared/play/fixtures/board';
 import type { PieceAction } from '../../src/shared/play/protocol';
 import { cardPage, deckPage, slot } from './native-catalogue.fixture.ts';
-import type { NativeMessage } from './native-runtime.fixture.ts';
 import { required } from './native-runtime.fixture.ts';
 import type { NativePeer, NativeRuntime } from './native-runtime.fixture.ts';
-import {
-  admitPlayer,
-  createPeer,
-  createRuntime,
-  eventually,
-  provision,
-  sendCommand,
-  syncView,
-} from './native-runtime.fixture.ts';
+import { admitPlayer, createPeer, createRuntime, provision, sendCommand, syncView } from './native-runtime.fixture.ts';
 
 const CREATOR = { userId: 'user-a', displayName: 'Synthetic A' };
 
@@ -83,12 +74,9 @@ describe('A real game provisions from its ruleset', () => {
     const creator = await admitPlayer(runtime, 'a');
     expect((await syncView(creator)).snapshot.board).toEqual(captured);
     peer.rulesets.delete('ruleset-one');
-    creator.send({ type: 'history', step: 0 });
-    const history = await eventually(
-      () => creator.messages.find((m): m is Extract<NativeMessage, { type: 'history' }> => m.type === 'history'),
-      'retained board in history'
-    );
-    expect(history.snapshot.board).toEqual(captured);
+    const stored = await runtime.exec<{ data: string }>('SELECT data FROM history');
+    expect(stored.length).toBeGreaterThan(0);
+    expect(stored.every((row) => !('board' in JSON.parse(row.data)))).toBe(true);
     const persisted: unknown = JSON.parse(
       (await runtime.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1'))[0].data
     );

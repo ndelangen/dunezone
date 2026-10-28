@@ -67,7 +67,7 @@ function compass(options: { inert?: boolean; suggestions?: number } = {}) {
   return { ...hook, onConfirm };
 }
 
-type Key = Partial<Pick<KeyboardEvent, 'key' | 'code' | 'repeat' | 'metaKey' | 'ctrlKey'>>;
+type Key = Partial<Pick<KeyboardEvent, 'key' | 'code' | 'repeat' | 'metaKey' | 'ctrlKey' | 'isComposing' | 'keyCode'>>;
 
 /* A key as the browser sends it: to the target, up through the document, where the hook hears it on the window. */
 function press(type: 'keydown' | 'keyup', key: Key, target: EventTarget = document.body) {
@@ -229,4 +229,47 @@ test('Space on a piece’s radial ring, left open after a draw, opens the compas
   const { result } = compass();
   expect(press('keydown', SPACE, spoke).defaultPrevented).toBe(true);
   expect(result.current.open).toBe(true);
+});
+
+// Safari can finish composition with isComposing false while retaining key code 229.
+const COMPOSITION_EVENTS = [{ isComposing: true }, { keyCode: 229 }];
+
+test.each(COMPOSITION_EVENTS)('composing keys stay with the compass search: %j', (composition) => {
+  const { input } = page();
+  const { result, onConfirm } = compass();
+  press('keydown', SPACE);
+  press('keyup', SPACE);
+  act(() => result.current.setQuery('sp'));
+  for (const key of ['Enter', 'ArrowDown', 'Escape']) {
+    const event = press('keydown', { key, ...composition }, input);
+    expect(event.defaultPrevented).toBe(false);
+    expect(result.current.open).toBe(true);
+    expect(result.current.spot).toBe('hub');
+    expect(result.current.cursor).toBe(0);
+    expect(onConfirm).not.toHaveBeenCalled();
+  }
+  // An ordinary Enter still confirms after the composition ends.
+  press('keydown', { key: 'Enter' }, input);
+  expect(onConfirm).toHaveBeenCalledTimes(1);
+});
+
+test.each(COMPOSITION_EVENTS)('composing Space does not open the compass: %j', (composition) => {
+  page();
+  const { result, onConfirm } = compass();
+  expect(press('keydown', { ...SPACE, ...composition }).defaultPrevented).toBe(false);
+  press('keyup', { ...SPACE, ...composition });
+  expect(result.current.open).toBe(false);
+  expect(onConfirm).not.toHaveBeenCalled();
+});
+
+test.each(COMPOSITION_EVENTS)('composing Space release does not confirm a held compass: %j', (composition) => {
+  const { input } = page();
+  const { onConfirm } = compass();
+  press('keydown', SPACE);
+  press('keydown', { key: 'ArrowRight' });
+  press('keyup', { ...SPACE, ...composition }, input);
+  expect(onConfirm).not.toHaveBeenCalled();
+  // The released hold is gone, so another keyup cannot confirm it later.
+  press('keyup', SPACE, input);
+  expect(onConfirm).not.toHaveBeenCalled();
 });

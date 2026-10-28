@@ -59,7 +59,7 @@
           {
             "title": "The Voice",
             "text": "During battle (step 2.1) you may force your opponent to play/not play a Treachery Card in their Battle Plan. (Projectile Weapon, Poison Defense, Worthless Card, Mercenaries, etc) Cheap Heroes may not be voiced. Special battle cards like Lazgun and Weirding Way must be voiced by name. If you force the use of a card the opponent does not have, they may silently ignore The Voice.",
-            "karama": "(Battle step 2.1) BG may not use Voice in their or their ally’s battles this phase."
+            "karama": "(Battle step 2.1) BG may not use Voice in their or their ally\u2019s battles this phase."
           },
           {
             "title": "Spiritual Advisors",
@@ -144,7 +144,7 @@
           {
             "title": "Leto's Tithe",
             "text": "During Spice Collection phase take 2 spice from the Spice Bank if you control one stronghold. Take 3 instead if you control at least two strongholds. You permanently lose this advantage once you gain the Kwisatz Haderach token.",
-            "karama": "Leto’s Tithe – (Collection Phase) Atreides collects no spice from Leto’s Tithe this phase."
+            "karama": "Leto\u2019s Tithe \u2013 (Collection Phase) Atreides collects no spice from Leto\u2019s Tithe this phase."
           }
         ],
         "fate": {
@@ -358,17 +358,17 @@
           {
             "title": "Discount Shipping",
             "text": "You pay half the normal shipping rates.",
-            "karama": "(Shipment and Movement Phase) Guild must pay normal shipping rates to ship their troops. If played while Guild is shipping, they may change their shipment after Karama is played. Does not affect Guild’s ally."
+            "karama": "(Shipment and Movement Phase) Guild must pay normal shipping rates to ship their troops. If played while Guild is shipping, they may change their shipment after Karama is played. Does not affect Guild\u2019s ally."
           },
           {
             "title": "Three Types of Shipment",
             "text": "When you ship troops choose one:\n\n- Ship normally from reserves to one territory\n- Ship from one territory to another (at rates of destination territory).\n- Ship from one territory to reserves (at stronghold rates).",
-            "karama": "(Shipment and Movement Phase) Guild and their ally can only ship from reserves to the planet this phase. Doesn’t affect their shipping rate."
+            "karama": "(Shipment and Movement Phase) Guild and their ally can only ship from reserves to the planet this phase. Doesn\u2019t affect their shipping rate."
           },
           {
             "title": "Three Types of Interjection",
             "text": "Once at any point during Shipment and Movement Phase you may affect turn order in one of the following ways:\n\n- Take your turn first, last, or between any other factions.\n- Swap your turn position with another faction  (cannot be done after your normal spot in turn order).\n- Force another player to go now, and you take their place in turn order (cannot be done after your normal spot in turn order).",
-            "karama": "(Shipment and Movement Phase before Guild’s turn in Storm Order) Guild cannot effect storm order this phase."
+            "karama": "(Shipment and Movement Phase before Guild\u2019s turn in Storm Order) Guild cannot effect storm order this phase."
           },
           {
             "title": "Retreat",
@@ -512,6 +512,1296 @@
     }
   },
   "checkpoints": {
+    "drafting": {
+      "title": "Table full",
+      "logSequence": 0,
+      "stored": {
+        "revision": 10,
+        "table": {
+          "stormSectorIndex": 5,
+          "pieces": [],
+          "events": [
+            {
+              "id": "evt-012",
+              "command": "seat-approve",
+              "message": "Seat 6 is taken, approved by seat 1.",
+              "status": "accepted"
+            },
+            {
+              "id": "evt-011",
+              "command": "seat-request",
+              "message": "A spectator asks for a seat.",
+              "status": "accepted"
+            },
+            {
+              "id": "evt-010",
+              "command": "seat-approve",
+              "message": "Seat 5 is taken, approved by seat 1.",
+              "status": "accepted"
+            },
+            {
+              "id": "evt-009",
+              "command": "seat-request",
+              "message": "A spectator asks for a seat.",
+              "status": "accepted"
+            },
+            {
+              "id": "evt-008",
+              "command": "seat-approve",
+              "message": "Seat 4 is taken, approved by seat 1.",
+              "status": "accepted"
+            },
+            {
+              "id": "evt-007",
+              "command": "seat-request",
+              "message": "A spectator asks for a seat.",
+              "status": "accepted"
+            },
+            {
+              "id": "evt-006",
+              "command": "seat-approve",
+              "message": "Seat 3 is taken, approved by seat 1.",
+              "status": "accepted"
+            },
+            {
+              "id": "evt-005",
+              "command": "seat-request",
+              "message": "A spectator asks for a seat.",
+              "status": "accepted"
+            }
+          ],
+          "nextEventNumber": 13
+        },
+        "versions": {},
+        "phase": 0,
+        "roster": {
+          "seatCount": 6,
+          "seats": [
+            { "id": "seat-1", "position": 0, "faction": null },
+            { "id": "seat-2", "position": 1, "faction": null },
+            { "id": "seat-3", "position": 2, "faction": null },
+            { "id": "seat-4", "position": 3, "faction": null },
+            { "id": "seat-5", "position": 4, "faction": null },
+            { "id": "seat-6", "position": 5, "faction": null }
+          ]
+        },
+        "stage": "drafting",
+        "draft": {
+          "minimum": 6,
+          "factions": [
+            {
+              "id": "k171dpxhhgjn9x3qmnhtywn33s848xq7",
+              "slug": "test-faction",
+              "name": "Test Faction",
+              "logo": "/vector/logo/oath-chain.svg",
+              "background": {
+                "image": "/image/texture/042.jpg",
+                "colors": ["#172f33", "#d2a85f"],
+                "invert": true,
+                "definition": 0.3,
+                "influence": 0.5444
+              },
+              "color": "#313b3a",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k178k1ymctpthqhjr0nkn18pd5856rc7",
+              "slug": "richese-herring-edition-unfinished",
+              "name": "Richese (Herring Edition) (Unfinished)",
+              "logo": "/vector/logo/richese.svg",
+              "background": {
+                "image": "/image/texture/021.jpg",
+                "colors": ["#e8e8e8", "#5e5e5e"],
+                "invert": true,
+                "definition": 0.5,
+                "influence": 1
+              },
+              "color": "#757575",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k171ewc58zq9jfyqhwqmgy1nb585b21b",
+              "slug": "emperor-choam",
+              "name": "Emperor (CHOAM)",
+              "logo": "/vector/logo/emperor.svg",
+              "background": {
+                "image": "/image/texture/021.jpg",
+                "colors": ["#0c0904", "#7a2827"],
+                "invert": true,
+                "definition": 0.36,
+                "influence": 1
+              },
+              "color": "#7a2827",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k17948j9ty95csxfnn92nrf58985d3zk",
+              "slug": "space-orks",
+              "name": "Space Orks",
+              "logo": "/vector/generic/axes.svg",
+              "background": {
+                "image": "/image/texture/021.jpg",
+                "colors": ["#52a32b", "#52a32b"],
+                "invert": true,
+                "definition": 0.5,
+                "influence": 1
+              },
+              "color": "#52a32b",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k171189n75fm50tx64a61b9spn85cv3k",
+              "slug": "ixians-in-progress",
+              "name": "Ixians (In Progress)",
+              "logo": "/vector/logo/ixian.svg",
+              "background": {
+                "image": "/image/texture/021.jpg",
+                "colors": ["#444444", "#222222"],
+                "invert": true,
+                "definition": 0.5,
+                "influence": 1
+              },
+              "color": "#444444",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k176fcr7w22q4zxa6h6778gred863p79",
+              "slug": "mindwardens",
+              "name": "Mindwardens",
+              "logo": "/vector/logo/closed-helm.svg",
+              "background": {
+                "image": "/image/texture/021.jpg",
+                "colors": ["#444444", "#222222"],
+                "invert": true,
+                "definition": 0.5,
+                "influence": 1
+              },
+              "color": "#000000",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k173h7mgxxrqr1jjqttrqe2nm1865qam",
+              "slug": "hivers",
+              "name": "Hivers",
+              "logo": "/vector/generic/8472.svg",
+              "background": {
+                "image": "/image/texture/021.jpg",
+                "colors": [
+                  {
+                    "type": "radial",
+                    "stops": [
+                      ["#816b3b", 0.2],
+                      ["#453629", 0.9]
+                    ]
+                  },
+                  "#b55f29"
+                ],
+                "invert": true,
+                "definition": 0.49,
+                "influence": 0.85
+              },
+              "color": "#816b3b",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k1771vkwhewqt3tff69rywmk1187ak79",
+              "slug": "ocm",
+              "name": "OCM",
+              "logo": "/vector/generic/alliance.svg",
+              "background": {
+                "image": "/image/texture/021.jpg",
+                "colors": ["#38756a", "#384d75"],
+                "invert": true,
+                "definition": 0.66,
+                "influence": 0.4671
+              },
+              "color": "#32a9c7",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k170kfytj1te2bk2j9ej5t79x989bbht",
+              "slug": "smugglers",
+              "name": "Smugglers",
+              "logo": "/vector/generic/smugglers.svg",
+              "background": {
+                "image": "/image/texture/001.jpg",
+                "colors": ["#f4641d", "#713b17"],
+                "invert": true,
+                "definition": 0.5,
+                "influence": 0.75
+              },
+              "color": "#f4641d",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k172q46gsjea7xkftjvpg9w8ah8a1hxy",
+              "slug": "bene-tleilax",
+              "name": "Bene Tleilax",
+              "logo": "/vector/logo/bene-tleilaxu.svg",
+              "background": {
+                "image": "/image/texture/073.jpg",
+                "colors": ["#3c0a78", "#741890"],
+                "invert": true,
+                "definition": 0.61,
+                "influence": 1
+              },
+              "color": "#410c7a",
+              "linked": true,
+              "published": true
+            },
+            {
+              "id": "k176nq542xz747341fc42341e18a0t45",
+              "slug": "fremen",
+              "name": "Fremen",
+              "logo": "/vector/logo/fremen.svg",
+              "background": {
+                "image": "/image/texture/019.jpg",
+                "colors": ["#fcb843", "#d2781d"],
+                "invert": false,
+                "definition": 0.3,
+                "influence": 0.634
+              },
+              "color": "#e4942e",
+              "linked": true,
+              "published": true
+            },
+            {
+              "id": "k175em553h4wfwgqhhmey5774x8a0q1k",
+              "slug": "ixians",
+              "name": "Ixians",
+              "logo": "/vector/logo/ixian.svg",
+              "background": {
+                "image": "/image/texture/022.jpg",
+                "colors": ["#b29b54", "#d1be82"],
+                "invert": true,
+                "definition": 0.25,
+                "influence": 0.9008
+              },
+              "color": "#c1ab69",
+              "linked": true,
+              "published": true
+            },
+            {
+              "id": "k175bxsjh069ksf64a189360f58a0eck",
+              "slug": "spacing-guild",
+              "name": "Spacing Guild",
+              "logo": "/vector/logo/guild.svg",
+              "background": {
+                "image": "/image/texture/006.jpg",
+                "colors": ["#bd3108", "#e05719"],
+                "invert": false,
+                "definition": 0.2,
+                "influence": 1
+              },
+              "color": "#dc5317",
+              "linked": true,
+              "published": true
+            },
+            {
+              "id": "k17ag3gr1h60n7mmh88kj56avs8a1j7x",
+              "slug": "house-atreides",
+              "name": "House Atreides",
+              "logo": "/vector/logo/atreides.svg",
+              "background": {
+                "image": "/image/texture/082.jpg",
+                "colors": ["#393d05", "#5c5d10"],
+                "invert": true,
+                "definition": 0.5,
+                "influence": 1
+              },
+              "color": "#4a4c08",
+              "linked": true,
+              "published": true
+            },
+            {
+              "id": "k174k8mvjqapvgccxtbp9qwh5h8a01b4",
+              "slug": "house-harkonnen",
+              "name": "House Harkonnen",
+              "logo": "/vector/logo/harkonnen.svg",
+              "background": {
+                "image": "/image/texture/026.jpg",
+                "colors": ["#0a080b", "#363636"],
+                "invert": false,
+                "definition": 0.1,
+                "influence": 1
+              },
+              "color": "#151315",
+              "linked": true,
+              "published": true
+            },
+            {
+              "id": "k17dhptwywynwmpvx18965b97h8a0abp",
+              "slug": "emperor",
+              "name": "Emperor",
+              "logo": "/vector/logo/emperor.svg",
+              "background": {
+                "image": "/image/texture/055.jpg",
+                "colors": ["#8C0402", "#db1918"],
+                "invert": false,
+                "definition": 0.31,
+                "influence": 1
+              },
+              "color": "#be1010",
+              "linked": true,
+              "published": true
+            },
+            {
+              "id": "k17fybprvb614pr3r0bpy410q58a086q",
+              "slug": "bene-gesserit",
+              "name": "Bene Gesserit",
+              "logo": "/vector/logo/bene-gesserit.svg",
+              "background": {
+                "image": "/image/texture/019.jpg",
+                "colors": ["#132b74", "#34478b"],
+                "invert": false,
+                "definition": 0.09,
+                "influence": 0.8878
+              },
+              "color": "#253b82",
+              "linked": true,
+              "published": true
+            },
+            {
+              "id": "k172k7x1ha1fkc3bkdj6kspf8h8a1g6d",
+              "slug": "house-richese",
+              "name": "House Richese",
+              "logo": "/vector/logo/richese.svg",
+              "background": {
+                "image": "/image/texture/021.jpg",
+                "colors": ["#949494", "#949494"],
+                "invert": true,
+                "definition": 0.5,
+                "influence": 1
+              },
+              "color": "#949494",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k171h2c7zgyhfxwqe6e282jd8n8a5avw",
+              "slug": "choam",
+              "name": "CHOAM",
+              "logo": "/vector/generic/guildeyes.svg",
+              "background": {
+                "image": "/image/texture/021.jpg",
+                "colors": ["#5f0000", "#5f0000"],
+                "invert": true,
+                "definition": 0.5,
+                "influence": 1
+              },
+              "color": "#5f0000",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k1772qbd8ywsz7sa6temc48r2s8a7n7w",
+              "slug": "iduali",
+              "name": "Iduali",
+              "logo": "/vector/logo/iduali.svg",
+              "background": {
+                "image": "/image/texture/082.jpg",
+                "colors": ["#663b01", "#3e2400"],
+                "invert": false,
+                "definition": 1,
+                "influence": 0.8704
+              },
+              "color": "#663b01",
+              "linked": true,
+              "published": true
+            },
+            {
+              "id": "k170fwyhn83s285hj6ycwnmc7d8a7vzn",
+              "slug": "ecaz-ecaz-moritani",
+              "name": "Ecaz (Ecaz/Moritani)",
+              "logo": "/vector/logo/ecaz.svg",
+              "background": {
+                "image": "/image/texture/021.jpg",
+                "colors": [
+                  "#cd49c0",
+                  {
+                    "type": "radial",
+                    "stops": [
+                      ["#b818a8", 0],
+                      ["#b818a8", 0.4],
+                      ["#ff4885", 0.6],
+                      ["#ff4885", 1]
+                    ]
+                  }
+                ],
+                "invert": false,
+                "definition": 1,
+                "influence": 1
+              },
+              "color": "#cd49c0",
+              "linked": true,
+              "published": true
+            },
+            {
+              "id": "k170k7stxyswe4c2n4jy6maxw58a7xy7",
+              "slug": "moritani-ecaz-moritani",
+              "name": "Moritani (Ecaz/Moritani)",
+              "logo": "/vector/logo/moritani.svg",
+              "background": {
+                "image": "/image/texture/030.jpg",
+                "colors": [
+                  "#56cee3",
+                  {
+                    "type": "linear",
+                    "angle": 270,
+                    "stops": [
+                      ["#3e9aab", 0],
+                      ["#5cdff7", 1]
+                    ]
+                  }
+                ],
+                "invert": false,
+                "definition": 1,
+                "influence": 1
+              },
+              "color": "#56cee3",
+              "linked": true,
+              "published": true
+            },
+            {
+              "id": "k17cm0y721xyd3dn220pxs2ry98aakvc",
+              "slug": "thinking-machines",
+              "name": "Thinking Machines",
+              "logo": "/vector/generic/detector.svg",
+              "background": {
+                "image": "/image/texture/021.jpg",
+                "colors": ["#808080", "#222222"],
+                "invert": true,
+                "definition": 0.5,
+                "influence": 1
+              },
+              "color": "#808080",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k17ehv7kfznyw5f26xxjx6etfn8b1k26",
+              "slug": "corrino",
+              "name": "Corrino",
+              "logo": "/vector/generic/flauqre.svg",
+              "background": {
+                "image": "/image/texture/021.jpg",
+                "colors": ["#ff08b2", "#ff08b2"],
+                "invert": true,
+                "definition": 0.5,
+                "influence": 1
+              },
+              "color": "#ff08b2",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k17ceq3srs9m2zz0qzkw6w84qd8b1n44",
+              "slug": "nobirds",
+              "name": "Nobirds",
+              "logo": "/vector/generic/orbsword.svg",
+              "background": {
+                "image": "/image/texture/021.jpg",
+                "colors": [
+                  "#cc0d0d",
+                  {
+                    "type": "linear",
+                    "angle": 90,
+                    "stops": [
+                      ["#d47777", 0],
+                      ["#222222", 1]
+                    ]
+                  }
+                ],
+                "invert": true,
+                "definition": 0.5,
+                "influence": 1
+              },
+              "color": "#443333",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k17csn8c7tfkj7d0f7ev02ckns8b5e2r",
+              "slug": "ordos",
+              "name": "Ordos",
+              "logo": "/vector/generic/tech.svg",
+              "background": {
+                "image": "/image/texture/021.jpg",
+                "colors": ["#004020", "#222222"],
+                "invert": true,
+                "definition": 0.5,
+                "influence": 1
+              },
+              "color": "#004020",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k17cna0gvp9pz0txwqzwec1a258bwjvf",
+              "slug": "honored-matres",
+              "name": "Honored Matres",
+              "logo": "/vector/generic/matres.svg",
+              "background": {
+                "image": "/image/texture/021.jpg",
+                "colors": [
+                  {
+                    "type": "radial",
+                    "stops": [
+                      ["#ff4000", 0],
+                      ["#444444", 1]
+                    ]
+                  },
+                  "#222222"
+                ],
+                "invert": true,
+                "definition": 0.76,
+                "influence": 1
+              },
+              "color": "#913414",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k17a4s2jf2qz1sn2gvsc3g6gas8c63ts",
+              "slug": "landsraad-council",
+              "name": "Landsraad Council",
+              "logo": "/vector/generic/council.svg",
+              "background": {
+                "image": "/image/texture/001.jpg",
+                "colors": ["#444444", "#222222"],
+                "invert": true,
+                "definition": 0.5,
+                "influence": 1
+              },
+              "color": "#6e6464",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k17cs7b2k2fskahh737h40m1cs8c6we1",
+              "slug": "ginaz-swordmasters",
+              "name": "Ginaz Swordmasters",
+              "logo": "/vector/logo/ginaz.svg",
+              "background": {
+                "image": "/image/texture/019.jpg",
+                "colors": ["#8c0000", "#965209"],
+                "invert": true,
+                "definition": 1,
+                "influence": 1
+              },
+              "color": "#965209",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k179hp5p0e9h5c9yg3xpmkgavh8c7kz1",
+              "slug": "suk-medics",
+              "name": "Suk Medics",
+              "logo": "/vector/generic/bluks.svg",
+              "background": {
+                "image": "/image/texture/035.jpg",
+                "colors": ["#37c71a", "#37c71a"],
+                "invert": true,
+                "definition": 0.5,
+                "influence": 1
+              },
+              "color": "#37c71a",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k178y5n9dpqr1na1xzv9cpt7vx8c7xe7",
+              "slug": "spice-smugglers",
+              "name": "Spice Smugglers",
+              "logo": "/vector/generic/smugglers.svg",
+              "background": {
+                "image": "/image/texture/002.jpg",
+                "colors": ["#e6e663", "#cccc56"],
+                "invert": true,
+                "definition": 1,
+                "influence": 0.9639
+              },
+              "color": "#cccc56",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k1734y2cmkk46g02z22b90v4zs8cp6yn",
+              "slug": "shrek",
+              "name": "Shrek",
+              "logo": "/vector/generic/mortal.svg",
+              "background": {
+                "image": "/image/texture/021.jpg",
+                "colors": ["#444444", "#222222"],
+                "invert": true,
+                "definition": 0.5,
+                "influence": 0.9999
+              },
+              "color": "#c5ff17",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k177dt6jakwtfgq6t7yb6wywg18cw7tm",
+              "slug": "combine-honnete-ober-advancer-mercantiles-unfinished",
+              "name": "Combine Honnete Ober Advancer Mercantiles (Unfinished)",
+              "logo": "/vector/generic/guildeyes.svg",
+              "background": {
+                "image": "/image/texture/021.jpg",
+                "colors": ["#5f0000", "#5f0000"],
+                "invert": true,
+                "definition": 0.5,
+                "influence": 1
+              },
+              "color": "#5f0000",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k171eymmyn70d4wga8jex1eh758e576z",
+              "slug": "ginaz",
+              "name": "Ginaz",
+              "logo": "/vector/logo/ginaz.svg",
+              "background": {
+                "image": "/image/texture/022.jpg",
+                "colors": ["#009080", "#004D40"],
+                "invert": true,
+                "definition": 0,
+                "influence": 0.2518
+              },
+              "color": "#009080",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k174g527412y593m8egc8y64ad8eamvg",
+              "slug": "moritani-herring-edition",
+              "name": "Moritani (Herring Edition)",
+              "logo": "/vector/logo/moritani.svg",
+              "background": {
+                "image": "/image/texture/030.jpg",
+                "colors": [
+                  "#56cee3",
+                  {
+                    "type": "linear",
+                    "angle": 270,
+                    "stops": [
+                      ["#3e9aab", 0],
+                      ["#5cdff7", 1]
+                    ]
+                  }
+                ],
+                "invert": false,
+                "definition": 1,
+                "influence": 1
+              },
+              "color": "#56cee3",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k173gw8s2nv5eas8d0az39g5658eeqnc",
+              "slug": "thaydean-ixians",
+              "name": "Thaydean-Ixians",
+              "logo": "/vector/logo/ixian.svg",
+              "background": {
+                "image": "/image/texture/021.jpg",
+                "colors": ["#444444", "#222222"],
+                "invert": true,
+                "definition": 0.5,
+                "influence": 1
+              },
+              "color": "#444444",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k172ctk6mrn1737apwefk4dyvd8fewhr",
+              "slug": "cryo-sleepers",
+              "name": "Cryo-Sleepers",
+              "logo": "/vector/generic/ice.svg",
+              "background": {
+                "image": "/image/texture/019.jpg",
+                "colors": ["#21b19b", "#ffffff"],
+                "invert": false,
+                "definition": 1,
+                "influence": 0.75
+              },
+              "color": "#21b19b",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k179h86dn39bh2m1jh82x1smjh8fhmem",
+              "slug": "discord-legends",
+              "name": "Discord Legends",
+              "logo": "/vector/logo/foldspace-knot.svg",
+              "background": {
+                "image": "/image/texture/021.jpg",
+                "colors": ["#444444", "#222222"],
+                "invert": true,
+                "definition": 1,
+                "influence": 1
+              },
+              "color": "#050101",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k17dwc0dpbf4qm4aytbk9fz6v18fvgba",
+              "slug": "nerv",
+              "name": "NeRV",
+              "logo": "/vector/generic/pyramid.svg",
+              "background": {
+                "image": "/image/texture/021.jpg",
+                "colors": ["#4a1cd4", "#3a5c35"],
+                "invert": true,
+                "definition": 0.5,
+                "influence": 1
+              },
+              "color": "#4723a1",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k17fm70tvzmwy9gkpwqvcb8rs18g9s2x",
+              "slug": "clone-legions",
+              "name": "Clone Legions",
+              "logo": "/vector/generic/asterisk.svg",
+              "background": {
+                "image": "/image/texture/021.jpg",
+                "colors": ["#0e548d", "#222222"],
+                "invert": true,
+                "definition": 0.5,
+                "influence": 1
+              },
+              "color": "#0e548d",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k17b2bkrmqc8je5c89exjfj9218gd3dk",
+              "slug": "house-atreides-kiss",
+              "name": "House Atreides (KISS)",
+              "logo": "/vector/logo/atreides.svg",
+              "background": {
+                "image": "/image/texture/021.jpg",
+                "colors": ["#444444", "#49630f"],
+                "invert": true,
+                "definition": 0.7,
+                "influence": 0.9216
+              },
+              "color": "#4b5e12",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k179g3k4pmbnprb3dz3hzwc01x8gc1t8",
+              "slug": "house-harkonnen-kiss",
+              "name": "House Harkonnen (KISS)",
+              "logo": "/vector/logo/harkonnen.svg",
+              "background": {
+                "image": "/image/texture/021.jpg",
+                "colors": ["#444444", "#030202"],
+                "invert": true,
+                "definition": 0.5,
+                "influence": 1
+              },
+              "color": "#1c1b1b",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k17bye19hgc7jrpneptqmaqfq58gc9zc",
+              "slug": "bene-tleilax-kiss",
+              "name": "Bene Tleilax (KISS)",
+              "logo": "/vector/logo/bene-tleilaxu.svg",
+              "background": {
+                "image": "/image/texture/021.jpg",
+                "colors": ["#8d32c9", "#222222"],
+                "invert": true,
+                "definition": 0.5,
+                "influence": 1
+              },
+              "color": "#57356e",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k17em1xf2fvrc298wfyxdn7bnx8gdggm",
+              "slug": "fremen-1",
+              "name": "Fremen",
+              "logo": "/vector/logo/fremen.svg",
+              "background": {
+                "image": "/image/texture/044.jpg",
+                "colors": ["#ffc400", "#222222"],
+                "invert": true,
+                "definition": 0.53,
+                "influence": 0.3111
+              },
+              "color": "#f7bf00",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k170x31qvcjyy2qge877ezns0x8gcb5v",
+              "slug": "emperor-1",
+              "name": "Emperor",
+              "logo": "/vector/logo/emperor.svg",
+              "background": {
+                "image": "/image/texture/021.jpg",
+                "colors": ["#b50000", "#222222"],
+                "invert": true,
+                "definition": 0.8,
+                "influence": 0.75
+              },
+              "color": "#b50000",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k17a9ejn69zp0g2hzbxx51dpzs8gf4te",
+              "slug": "spacing-guild-1",
+              "name": "Spacing Guild",
+              "logo": "/vector/logo/guild.svg",
+              "background": {
+                "image": "/image/texture/042.jpg",
+                "colors": ["#ff910a", "#c96404"],
+                "invert": true,
+                "definition": 0.59,
+                "influence": 1
+              },
+              "color": "#db6816",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k177h1yvxp36dxsxjfmgqx4jw58gm5jk",
+              "slug": "atreides",
+              "name": "Atreides",
+              "logo": "/vector/logo/atreides.svg",
+              "background": {
+                "image": "/image/texture/082.jpg",
+                "colors": ["#393d05", "#5c5d10"],
+                "invert": true,
+                "definition": 0.5,
+                "influence": 1
+              },
+              "color": "#4a4c08",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k1758sk6c1qky3yknx56hstk8x8gmcxm",
+              "slug": "harkonnen",
+              "name": "Harkonnen",
+              "logo": "/vector/logo/harkonnen.svg",
+              "background": {
+                "image": "/image/texture/026.jpg",
+                "colors": ["#0a080b", "#363636"],
+                "invert": false,
+                "definition": 0.1,
+                "influence": 1
+              },
+              "color": "#151315",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k174q1wrg9y646pdvbdr9r1sxx8gmct2",
+              "slug": "emperor-2",
+              "name": "Emperor",
+              "logo": "/vector/logo/emperor.svg",
+              "background": {
+                "image": "/image/texture/055.jpg",
+                "colors": ["#8C0402", "#db1918"],
+                "invert": false,
+                "definition": 0.31,
+                "influence": 1
+              },
+              "color": "#be1010",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k1782pjyezpza51gk5fj8rr47s8gnp0w",
+              "slug": "spacing-guild-2",
+              "name": "Spacing Guild",
+              "logo": "/vector/logo/guild.svg",
+              "background": {
+                "image": "/image/texture/006.jpg",
+                "colors": ["#bd3108", "#e05719"],
+                "invert": false,
+                "definition": 0.2,
+                "influence": 1
+              },
+              "color": "#dc5317",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k170rt7fn11fxdtbe3vx2bg0xx8gnrx1",
+              "slug": "fremen-2",
+              "name": "Fremen",
+              "logo": "/vector/logo/fremen.svg",
+              "background": {
+                "image": "/image/texture/019.jpg",
+                "colors": ["#fcb843", "#d2781d"],
+                "invert": false,
+                "definition": 0.3,
+                "influence": 0.634
+              },
+              "color": "#e4942e",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k172tkm3r2r4sc96q7wnb3axvx8gn8g1",
+              "slug": "bene-gesserit-1",
+              "name": "Bene Gesserit",
+              "logo": "/vector/logo/bene-gesserit.svg",
+              "background": {
+                "image": "/image/texture/019.jpg",
+                "colors": ["#132b74", "#34478b"],
+                "invert": false,
+                "definition": 0.09,
+                "influence": 0.8878
+              },
+              "color": "#253b82",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k178rj7eevbaab0dnnb9474t3h8gn526",
+              "slug": "ixians-1",
+              "name": "Ixians",
+              "logo": "/vector/logo/ixian.svg",
+              "background": {
+                "image": "/image/texture/082.jpg",
+                "colors": ["#A8A172", "#252527"],
+                "invert": false,
+                "definition": 0.5,
+                "influence": 0.65
+              },
+              "color": "#A8A172",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k171j14cgdjbev5xyghs0ejc918gm9he",
+              "slug": "tleilaxu",
+              "name": "Tleilaxu",
+              "logo": "/vector/logo/bene-tleilaxu.svg",
+              "background": {
+                "image": "/image/texture/082.jpg",
+                "colors": ["#6A1B8E", "#252527"],
+                "invert": false,
+                "definition": 0.5,
+                "influence": 0.65
+              },
+              "color": "#6A1B8E",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k172w8tgrgjy7hehp17p9hr9xs8gms95",
+              "slug": "richese",
+              "name": "Richese",
+              "logo": "/vector/logo/richese.svg",
+              "background": {
+                "image": "/image/texture/082.jpg",
+                "colors": ["#B7B6A9", "#252527"],
+                "invert": false,
+                "definition": 0.5,
+                "influence": 0.65
+              },
+              "color": "#B7B6A9",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k171sa4cvaa4qnn1n1x6rsedf58gnyp0",
+              "slug": "choam-1",
+              "name": "CHOAM",
+              "logo": "/vector/logo/choam.svg",
+              "background": {
+                "image": "/image/texture/082.jpg",
+                "colors": [
+                  {
+                    "type": "linear",
+                    "angle": 270,
+                    "stops": [
+                      ["#EB0220", 0.5],
+                      ["#252527", 0.5]
+                    ]
+                  },
+                  {
+                    "type": "linear",
+                    "angle": 270,
+                    "stops": [
+                      ["#B90010", 0.5],
+                      ["#0C0C0C", 0.5]
+                    ]
+                  }
+                ],
+                "invert": false,
+                "definition": 0.5,
+                "influence": 0.65
+              },
+              "color": "#B11B20",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k172hdb8cgry21wrdwxvavqc0h8gmp1k",
+              "slug": "ecaz",
+              "name": "Ecaz",
+              "logo": "/vector/logo/ecaz.svg",
+              "background": {
+                "image": "/image/texture/082.jpg",
+                "colors": ["#8B3C8C", "#252527"],
+                "invert": false,
+                "definition": 0.5,
+                "influence": 0.65
+              },
+              "color": "#8B3C8C",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k179ta04t9nz6hjjrgtcq1pmx58gnp4y",
+              "slug": "moritani",
+              "name": "Moritani",
+              "logo": "/vector/logo/moritani.svg",
+              "background": {
+                "image": "/image/texture/082.jpg",
+                "colors": ["#3C8798", "#252527"],
+                "invert": false,
+                "definition": 0.5,
+                "influence": 0.65
+              },
+              "color": "#3C8798",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k17evzrze296vrzmv048qzr16n8gpcvz",
+              "slug": "village-hidden-in-the-leaf",
+              "name": "Village Hidden in the Leaf",
+              "logo": "/vector/logo/antler-tower.svg",
+              "background": {
+                "image": "/image/texture/021.jpg",
+                "colors": ["#444444", "#222222"],
+                "invert": true,
+                "definition": 0.5,
+                "influence": 1
+              },
+              "color": "#444444",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k178pt05y4abwvwxeg247snr758gv794",
+              "slug": "atreides-1",
+              "name": "Atreides",
+              "logo": "/vector/logo/atreides.svg",
+              "background": {
+                "image": "/image/texture/082.jpg",
+                "colors": ["#393d05", "#5c5d10"],
+                "invert": true,
+                "definition": 0.5,
+                "influence": 1
+              },
+              "color": "#4a4c08",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k1755fjba9y9b2hkfph4ztdy3s8gvwm8",
+              "slug": "bene-gesserit-2",
+              "name": "Bene Gesserit",
+              "logo": "/vector/logo/bene-gesserit.svg",
+              "background": {
+                "image": "/image/texture/019.jpg",
+                "colors": ["#132b74", "#34478b"],
+                "invert": false,
+                "definition": 0.09,
+                "influence": 0.8878
+              },
+              "color": "#253b82",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k17awq8h6dd3ge61y8peg14z2h8gvpzy",
+              "slug": "emperor-3",
+              "name": "Emperor",
+              "logo": "/vector/logo/emperor.svg",
+              "background": {
+                "image": "/image/texture/055.jpg",
+                "colors": ["#8C0402", "#db1918"],
+                "invert": false,
+                "definition": 0.31,
+                "influence": 1
+              },
+              "color": "#be1010",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k170ex3wwnd6ygv289qw1ypvdd8gtfv7",
+              "slug": "fremen-3",
+              "name": "Fremen",
+              "logo": "/vector/logo/fremen.svg",
+              "background": {
+                "image": "/image/texture/019.jpg",
+                "colors": ["#fcb843", "#d2781d"],
+                "invert": false,
+                "definition": 0.3,
+                "influence": 0.634
+              },
+              "color": "#e4942e",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k17fvtpc5h6hfxvcwdgayvqfz58gtch1",
+              "slug": "harkonnen-1",
+              "name": "Harkonnen",
+              "logo": "/vector/logo/harkonnen.svg",
+              "background": {
+                "image": "/image/texture/026.jpg",
+                "colors": ["#0a080b", "#363636"],
+                "invert": false,
+                "definition": 0.1,
+                "influence": 1
+              },
+              "color": "#151315",
+              "linked": false,
+              "published": true
+            },
+            {
+              "id": "k1716zfezm7w1ppfzp8gwzk63d8gvmhy",
+              "slug": "spacing-guild-3",
+              "name": "Spacing Guild",
+              "logo": "/vector/logo/guild.svg",
+              "background": {
+                "image": "/image/texture/006.jpg",
+                "colors": ["#bd3108", "#e05719"],
+                "invert": false,
+                "definition": 0.2,
+                "influence": 1
+              },
+              "color": "#dc5317",
+              "linked": false,
+              "published": true
+            }
+          ],
+          "catalogueAt": 1793047429323,
+          "picks": {},
+          "bans": {},
+          "ready": [],
+          "failure": null
+        },
+        "controls": {
+          "seats": ["seat-1", "seat-2", "seat-3", "seat-4", "seat-5", "seat-6"],
+          "ready": [],
+          "phaseChangedAt": 0,
+          "requests": [],
+          "seatRequests": [],
+          "players": []
+        },
+        "cardFaces": [],
+        "combatFaces": {},
+        "battleResults": [],
+        "ending": null,
+        "result": null,
+        "privatePredictions": {},
+        "pendingTraitors": [],
+        "battleState": null,
+        "factionInventories": {},
+        "handOrders": {},
+        "peeks": {},
+        "predictionFaces": {},
+        "factionBanks": {},
+        "cardHandles": {},
+        "pieceHandles": {},
+        "boardLayout": 4
+      },
+      "viewers": {
+        "seat-1": {
+          "connectionId": "9e7a4e0d-ddf8-452e-a703-cc6a2d629255",
+          "userId": "user-a",
+          "viewerSeat": "seat-1",
+          "displayName": "Twaffle",
+          "color": "#75d8a7"
+        },
+        "seat-2": {
+          "connectionId": "1f375114-c58e-4c02-9c8a-d60b7fc1545f",
+          "userId": "user-b",
+          "viewerSeat": "seat-2",
+          "displayName": "Thialfi",
+          "color": "#75d8a7"
+        },
+        "seat-3": {
+          "connectionId": "a52345c9-d4b0-4238-b2b9-f81cbfaa0be1",
+          "userId": "user-c",
+          "viewerSeat": "seat-3",
+          "displayName": "Fectumbra",
+          "color": "#75d8a7"
+        },
+        "seat-4": {
+          "connectionId": "34404622-4902-4ab7-b1ce-5c67180c5ef3",
+          "userId": "user-d",
+          "viewerSeat": "seat-4",
+          "displayName": "Erickenneth",
+          "color": "#75d8a7"
+        },
+        "seat-5": {
+          "connectionId": "134dc78a-55ec-4ca1-814f-2afa31119c12",
+          "userId": "user-e",
+          "viewerSeat": "seat-5",
+          "displayName": "Ridwan",
+          "color": "#75d8a7"
+        },
+        "seat-6": {
+          "connectionId": "1a95098e-4278-43f2-8394-8892ff6c8e92",
+          "userId": "user-f",
+          "viewerSeat": "seat-6",
+          "displayName": "Argelius",
+          "color": "#75d8a7"
+        },
+        "neutral": {
+          "connectionId": "f02e7c64-84f8-4d0c-9605-8b4917c73b45",
+          "userId": "user-watcher",
+          "viewerSeat": "neutral",
+          "displayName": "Klyzx",
+          "color": "#d0c8b9"
+        }
+      },
+      "players": [
+        { "seat": "seat-1", "name": "Twaffle", "avatar": null, "slug": "twaffle" },
+        { "seat": "seat-2", "name": "Thialfi", "avatar": null, "slug": "thialfi" },
+        { "seat": "seat-3", "name": "Fectumbra", "avatar": null, "slug": "fectumbra" },
+        {
+          "seat": "seat-4",
+          "name": "Erickenneth",
+          "avatar": null,
+          "slug": "erickenneth"
+        },
+        { "seat": "seat-5", "name": "Ridwan", "avatar": null, "slug": "ridwan" },
+        { "seat": "seat-6", "name": "Argelius", "avatar": null, "slug": "argelius" }
+      ]
+    },
     "setup": {
       "title": "Setup begins",
       "logSequence": 8,

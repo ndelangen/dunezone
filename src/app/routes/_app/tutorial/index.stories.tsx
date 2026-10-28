@@ -23,11 +23,14 @@ export const Landing = meta.story({
     }
     await expect(page.getAllByRole('listitem')).toHaveLength(TUTORIAL_CHAPTERS.length);
     const built = TUTORIAL_CHAPTERS.filter((chapter) => chapter.slug in CHAPTER_SCRIPTS).length;
-    await expect(page.getAllByText('Coming soon')).toHaveLength(TUTORIAL_CHAPTERS.length - built);
-    await expect(page.getByRole('link', { name: 'Chapter 5: What goes where' })).toHaveAttribute(
+    await expect(page.queryAllByText('Coming soon')).toHaveLength(TUTORIAL_CHAPTERS.length - built);
+    await expect(page.getByRole('link', { name: 'Chapter 10: What goes where' })).toHaveAttribute(
       'href',
       '/tutorial/what-goes-where'
     );
-    await expect(page.queryByRole('link', { name: /Battle/ })).toBeNull();
+    const unbuilt = TUTORIAL_CHAPTERS.find((chapter) => !(chapter.slug in CHAPTER_SCRIPTS));
+    if (unbuilt) {
+      await expect(page.queryByRole('link', { name: new RegExp(unbuilt.title) })).toBeNull();
+    }
   },
 });

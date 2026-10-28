@@ -1,14 +1,16 @@
 import preview from '@sb/preview';
-import { POINTER_TOKEN_TYPE } from '@shared/play/pointerToken';
-import { restingPositionAt } from '@shared/play/tableGeometry';
+import { isPointerToken, POINTER_TOKEN_TYPE } from '@shared/play/pointerToken';
+import { restingPositionAt, troopScale } from '@shared/play/tableGeometry';
 import { nearestCollisionFreePosition } from '@shared/play/tablePhysics';
+import { drawableTechTokens, isTechToken } from '@shared/play/techToken';
 import { expect, within } from 'storybook/test';
 
 import type { StoredSnapshot } from '../../../../../workers/game/state';
+import { openControl } from './controls.stories.fixture';
 import { gameMeta, install } from './game.stories.fixture';
 import { chapter, journeyViewers, JourneyPage } from './journey.stories.fixture';
 import { sandbox, sandboxReady, sandboxSteps, sandboxTransport } from './sandbox.stories.fixture';
-import { shown, piece } from './sandbox.stories.fixture';
+import { shown, piece, withTechTokens } from './sandbox.stories.fixture';
 
 const meta = preview.meta({
   ...gameMeta,
@@ -126,7 +128,7 @@ async function boardHms(canvasElement: HTMLElement) {
   await sandboxReady(within(canvasElement.ownerDocument.body));
   const table = sandbox.table!;
   const faction = shown().bank!.factionId;
-  const plate = () => piece((candidate) => candidate.stackKey === 'token:sandbox-hms');
+  const plate = () => shown().table.pieces.find(isPointerToken)!;
   const carry = async (id: string, pieceId: string, position: [number, number, number], orientation = 0) => {
     table.receive({
       type: 'begin',
@@ -177,5 +179,33 @@ export const HmsCarriesItsTroops = meta.story({
       await expect(stack.position[0] - nextX).toBeCloseTo(before[index]![0]!);
       await expect(stack.position[2] - nextZ).toBeCloseTo(before[index]![1]!);
     }
+  },
+});
+
+/**
+ * The seven Dreamrules tech tokens, dealt into the shared table inventory, with Customs already drawn and lying face up on the table: a tech token is as wide as a leader disc and cut to its gear.
+ * By hand: press "Draw random tech token" until the inventory is empty and the button turns off and says why;
+ * lift a drawn token to see its shadow, and press F while holding it to turn it over.
+ * Play/Sandbox/Draw Random Tech Token tests the draw itself.
+ */
+export const TechTokens = meta.story({
+  args: { step: chapter('Shipment and Movement'), seat: 'seat-1' },
+  beforeEach: ({ args }: { args: { step?: number; seat?: string } }) =>
+    install(() =>
+      sandboxTransport({
+        start: Number(args.step ?? 1) - 1,
+        seat: String(args.seat ?? 'seat-1'),
+        prepare: (stored) => withTechTokens(stored, ['customs']),
+      })
+    )(),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await sandboxReady(page);
+    await openControl(page, 'Shared table inventory');
+    const tokens = shown().table.pieces.filter(isTechToken);
+    await expect(drawableTechTokens(tokens)).toHaveLength(6);
+    const [customs] = tokens.filter((candidate) => !candidate.inventory);
+    await expect(troopScale(customs!)).toBe(troopScale({ kind: 'force', stackKey: 'leader:any' }));
+    await expect(page.getByRole('button', { name: 'Draw random tech token' })).toBeEnabled();
   },
 });

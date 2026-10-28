@@ -1,241 +1,14 @@
-import { Avatar, Button, Group, Stack, Text, Tooltip } from '@mantine/core';
-import { alliesOf } from '@shared/play/alliances';
-import type { AllianceAction, AllianceState } from '@shared/play/alliances';
+import { Group, Tooltip } from '@mantine/core';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
-import { factionTokenOf } from '@shared/play/factionToken';
 import { playUiColors, withAlpha } from '@shared/uiPalette';
-import { Section } from '@ui/block/Section';
-import { TopicIcon } from '@ui/content/TopicIcon';
-import type { ReactNode } from 'react';
 
-import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
-import { alliedFactionColors, allianceRingStyle, factionColor } from './allianceColors';
-import { ALLIANCES_HELP } from './panelGuidance';
-import { seatFaction, viewerFaction } from './tableFactions';
-
-type Props = Readonly<{ client: TableSession; table: TableProjection }>;
-
-function factionList(names: Readonly<Record<string, string>>, ids: readonly string[]) {
-  const labels = ids.map((id) => names[id] ?? id);
-  return labels.length < 2 ? (labels[0] ?? '') : `${labels.slice(0, -1).join(', ')} and ${labels.at(-1)}`;
-}
+import type { TableProjection } from '../../../../db/tabletop/TableSession';
+import { factionList } from '../panels/alliances/alliances';
+import { factionToken, FactionTokenFace } from './FactionTokenFace';
 
 /** Alliances show while the game is in play and, read-only, once it is finished, so everyone still sees who was allied at the end. */
 export function showsAlliances(stage: string | undefined) {
   return stage === 'play' || stage === 'finished';
-}
-
-/** A player's alliance in their Faction info, with what the viewer can do about it: offer, accept or decline, withdraw, or break an alliance. */
-export function PlayerAlliance({ client, table, seat }: Props & Readonly<{ seat: string }>) {
-  const factionId = seatFaction(table, seat);
-  if (!factionId || !showsAlliances(table.snapshot.stage)) {
-    return null;
-  }
-  const names = snapshotFactionLabels(table.snapshot);
-  const row = { factionId, seat, player: null };
-  return (
-    <Group gap="sm" justify="space-between" wrap="wrap">
-      <Group gap="xs" wrap="nowrap">
-        <AllianceMark colors={alliedFactionColors(table.snapshot, factionId)} />
-        <Text size="sm">{rowStatus(table.snapshot.alliances, row, viewerFaction(table), names)}</Text>
-      </Group>
-      <RowAction client={client} table={table} row={row} />
-    </Group>
-  );
-}
-
-function AllianceMark({ colors }: Readonly<{ colors: readonly string[] }>) {
-  return (
-    <span style={allianceRingStyle(colors)}>
-      <span
-        style={{
-          display: 'inline-flex',
-          borderRadius: '50%',
-          background: 'var(--color-ground)',
-          color: 'var(--color-muted)',
-        }}
-      >
-        <TopicIcon topic="alliance" size={18} />
-      </span>
-    </span>
-  );
-}
-
-type Row = Readonly<{ factionId: string; seat: string; player: string | null }>;
-
-/* How the viewer's faction stands with one faction at the table. */
-type Relation = 'own-allied' | 'own' | 'ally' | 'incoming' | 'outgoing' | 'none';
-
-function hasOffer(alliances: AllianceState | undefined, from: string | undefined, to: string | undefined) {
-  return alliances?.offers.some((offer) => offer.from === from && offer.to === to) ?? false;
-}
-
-function relationTo(alliances: AllianceState | undefined, own: string, factionId: string): Relation {
-  const allies = alliesOf(alliances, own);
-  if (factionId === own) {
-    return allies.length ? 'own-allied' : 'own';
-  }
-  if (allies.includes(factionId)) {
-    return 'ally';
-  }
-  if (hasOffer(alliances, factionId, own)) {
-    return 'incoming';
-  }
-  return hasOffer(alliances, own, factionId) ? 'outgoing' : 'none';
-}
-
-type ActionProps = Readonly<{ disabled: boolean; send: (kind: AllianceCommandKind) => void }>;
-type AllianceCommandKind =
-  | 'alliance-offer'
-  | 'alliance-withdraw'
-  | 'alliance-accept'
-  | 'alliance-decline'
-  | 'alliance-break';
-
-const ACTIONS: Readonly<Record<Relation, (props: ActionProps) => ReactNode>> = {
-  'own-allied': ({ disabled, send }) => (
-    <Button size="xs" variant="default" disabled={disabled} onClick={() => send('alliance-break')}>
-      Break alliance
-    </Button>
-  ),
-  own: () => (
-    <Text size="sm" c="dimmed">
-      Your faction
-    </Text>
-  ),
-  ally: () => (
-    <Text size="sm" c="dimmed">
-      Your ally
-    </Text>
-  ),
-  incoming: ({ disabled, send }) => (
-    <Group gap="xs" wrap="nowrap">
-      <Button size="xs" disabled={disabled} onClick={() => send('alliance-accept')}>
-        Accept
-      </Button>
-      <Button size="xs" variant="subtle" disabled={disabled} onClick={() => send('alliance-decline')}>
-        Decline
-      </Button>
-    </Group>
-  ),
-  outgoing: ({ disabled, send }) => (
-    <Button size="xs" variant="subtle" disabled={disabled} onClick={() => send('alliance-withdraw')}>
-      Withdraw offer
-    </Button>
-  ),
-  none: ({ disabled, send }) => (
-    <Button size="xs" variant="default" disabled={disabled} onClick={() => send('alliance-offer')}>
-      Offer alliance
-    </Button>
-  ),
-};
-
-/*
- * The command for one of the viewer's alliance actions about `factionId`.
- * Breaking names an ally the viewer saw, so a late click never leaves an alliance formed since; a withdrawal or an answer names the offer the viewer saw.
- */
-function allianceAction(
-  alliances: AllianceState | undefined,
-  kind: AllianceCommandKind,
-  own: string,
-  factionId: string
-): AllianceAction | null {
-  if (kind === 'alliance-offer') {
-    return { kind, factionId };
-  }
-  if (kind === 'alliance-break') {
-    return { kind, factionId: alliesOf(alliances, own)[0] ?? own };
-  }
-  const [from, to] = kind === 'alliance-withdraw' ? [own, factionId] : [factionId, own];
-  const offer = alliances?.offers.find((entry) => entry.from === from && entry.to === to);
-  return offer ? { kind, factionId, offer: offer.id } : null;
-}
-
-/* What the viewer may do about one faction: offer, accept or decline, withdraw an offer, or break their own alliance. */
-function RowAction({ client, table, row }: Props & Readonly<{ row: Row }>) {
-  const own = viewerFaction(table);
-  /* Alliances change only while the game is in play. */
-  if (!own || table.snapshot.stage !== 'play') {
-    return null;
-  }
-  const Action = ACTIONS[relationTo(table.snapshot.alliances, own, row.factionId)];
-  const send = (kind: AllianceCommandKind) => {
-    const action = allianceAction(table.snapshot.alliances, kind, own, row.factionId);
-    if (action) {
-      client.command(action);
-    }
-  };
-  return <Action disabled={!table.canInteract} send={send} />;
-}
-
-function rowStatus(
-  alliances: AllianceState | undefined,
-  row: Row,
-  own: string | undefined,
-  names: Readonly<Record<string, string>>
-) {
-  if (hasOffer(alliances, row.factionId, own)) {
-    return 'Offers you an alliance';
-  }
-  if (hasOffer(alliances, own, row.factionId)) {
-    return 'Your offer is waiting';
-  }
-  const allies = alliesOf(alliances, row.factionId);
-  return allies.length ? `Allied with ${factionList(names, allies)}` : 'No alliance';
-}
-
-/**
- * The Alliances tab: every faction at the table in seat order, its alliance, and what the viewer can do about it.
- * Like trading seats during setup, each row carries the one action that fits, so offers start here.
- */
-export function AlliancesPanel({ client, table }: Props) {
-  const { snapshot } = table;
-  const names = snapshotFactionLabels(snapshot);
-  const own = viewerFaction(table);
-  const players = snapshot.controls?.players ?? [];
-  const rows: Row[] =
-    snapshot.roster?.seats.flatMap((seat) =>
-      seat.faction
-        ? [
-            {
-              factionId: seat.faction.id,
-              seat: seat.id,
-              player: players.find((entry) => entry.seat === seat.id)?.name ?? null,
-            },
-          ]
-        : []
-    ) ?? [];
-  return (
-    <Section hiddenHeading title="Alliances" description={ALLIANCES_HELP}>
-      <Stack gap="xs">
-        {rows.map((row) => {
-          const logo = snapshot.factionArtwork?.[row.factionId]?.logo;
-          const colors = alliedFactionColors(snapshot, row.factionId);
-          return (
-            <Group key={row.factionId} justify="space-between" gap="sm" wrap="nowrap">
-              <Group gap="sm" wrap="nowrap">
-                <span style={allianceRingStyle(colors)}>
-                  <Avatar src={logo} size={32} radius="xl" alt="">
-                    {(names[row.factionId] ?? row.factionId).slice(0, 1)}
-                  </Avatar>
-                </span>
-                <Stack gap={0}>
-                  <Text size="sm" fw={700}>
-                    {names[row.factionId] ?? row.factionId}
-                    {row.player ? ` · ${row.player}` : ' · Open seat'}
-                  </Text>
-                  <Text size="xs" c="dimmed">
-                    {rowStatus(snapshot.alliances, row, own, names)}
-                  </Text>
-                </Stack>
-              </Group>
-              <RowAction client={client} table={table} row={row} />
-            </Group>
-          );
-        })}
-      </Stack>
-    </Section>
-  );
 }
 
 /**
@@ -248,7 +21,6 @@ export function AllianceStrip({ table }: Readonly<{ table: TableProjection }>) {
     return null;
   }
   const names = snapshotFactionLabels(table.snapshot);
-  const face = (factionId: string) => factionTokenOf(table.state.pieces, factionId)?.items[0]?.artwork?.front;
   return (
     <Group
       gap="xs"
@@ -274,19 +46,12 @@ export function AllianceStrip({ table }: Readonly<{ table: TableProjection }>) {
               }}
             >
               {group.map((factionId, index) => (
-                <Avatar
+                <FactionTokenFace
                   key={factionId}
-                  src={face(factionId)}
+                  token={factionToken(table, factionId, names)}
                   size={26}
-                  radius="xl"
-                  alt=""
-                  style={{
-                    marginLeft: index ? -6 : 0,
-                    border: `1px solid ${factionColor(table.snapshot, factionId) ?? playUiColors.annotationGold}`,
-                  }}
-                >
-                  {(names[factionId] ?? factionId).slice(0, 1)}
-                </Avatar>
+                  style={{ marginLeft: index ? -6 : 0 }}
+                />
               ))}
             </Group>
           </Tooltip>

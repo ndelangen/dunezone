@@ -9,7 +9,7 @@ on:
         default: false
         required: false
       draft:
-        description: The pull request is a draft, so only lint, test and game_release run; the full set runs once it is marked ready for review (#1921).
+        description: The pull request is a draft, so only lint, test (on the unit tests its changes affect) and game_release run; the full set runs once it is marked ready for review (#1921).
         type: boolean
         default: false
         required: false
@@ -342,9 +342,11 @@ jobs:
           BASE_REF: ${{ github.base_ref }}
         run: |
           set -euo pipefail
-          DIFF="$(git diff --unified=0 "origin/${BASE_REF}...HEAD" -- convex/schema.ts || true)"
-          if echo "$DIFF" | grep -Eq "^-\\s*slug:\\s*v\\.optional\\(v\\.string\\(\\)\\)" && \
-             echo "$DIFF" | grep -Eq "^\\+\\s*slug:\\s*v\\.string\\(\\)"; then
+          # git diff exits 0 on a difference, so a failure here is a diff it could not read, and the step fails rather than skip the guard.
+          DIFF="$(git diff --unified=0 "origin/${BASE_REF}...HEAD" -- convex/schema.ts)"
+          # Here-strings, not echo pipes: with pipefail, grep -q closing the pipe early could fail the echo and read as no match.
+          if grep -Eq "^-\\s*slug:\\s*v\\.optional\\(v\\.string\\(\\)\\)" <<< "$DIFF" && \
+             grep -Eq "^\\+\\s*slug:\\s*v\\.string\\(\\)" <<< "$DIFF"; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "changed=false" >> "$GITHUB_OUTPUT"
@@ -392,6 +394,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          # A draft compares the merge commit with its first parent, the base branch, to pick the unit tests the change affects.
+          fetch-depth: ${{ inputs.draft && 2 || 1 }}
       # This job takes a full shallow checkout, so its size tracks the clone a contributor gets (#1888 aims for 40 MB or less).
       - name: Record shallow checkout size
         run: echo "Shallow checkout $(du -sm --exclude=.git . | cut -f1) MB working tree, $(du -sm .git | cut -f1) MB .git" | tee -a "$GITHUB_STEP_SUMMARY"
@@ -400,8 +404,15 @@ jobs:
       - name: Authoring tool tests
         run: bun run tool:test
       - name: Unit tests
+        if: ${{ !inputs.draft }}
         run: bun run test --coverage --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-unit.junit.xml
+      # A draft runs the unit tests its changes affect and those that read files by path; the full run that ci_ok waits for runs every one.
+      - name: Unit tests affected by the pull request
+        if: ${{ inputs.draft }}
+        run: bun scripts/draft-unit-tests.ts HEAD^1 --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-unit.junit.xml
+      # A draft's partial run would report most files as uncovered, so only the full run uploads unit coverage.
       - name: Upload coverage to Codecov
+        if: ${{ !inputs.draft }}
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -453,6 +464,19 @@ jobs:
         run: bun run app:build
         env:
           VITE_CONVEX_URL: https://example.convex.cloud
+      # The generators above rewrite committed files: src/shared/assetIds.ts, the vector crops, the palette and any
+      # media/vector source that is not pretty-printed. deploy-main.yml refuses a release whose build changed the
+      # merged source, so a pull request that left one stale must fail here, before it merges, not at the deploy.
+      - name: Require generated sources to be committed
+        run: |
+          set -euo pipefail
+          drift="$(git status --porcelain --untracked-files=all)"
+          if [ -n "$drift" ]; then
+            echo "$drift"
+            git --no-pager diff --stat
+            echo "::error::The generators changed committed files. Run bun run generate and bun run generate:vectors, then commit the result."
+            exit 1
+          fi
       - name: Upload bundle stats to Codecov (per category)
         # Direct Codecov core reporting avoids the analyzer CLI's vulnerable glob dependency;
         # one bundle per asset category so media regeneration can't bury an app-code

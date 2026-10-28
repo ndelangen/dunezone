@@ -286,8 +286,16 @@ _Avoid_: Custom game, user game
 The retained private messages between two factions in one Real game, available from setup. Each faction's current Player inherits the full history; former occupants and Spectators cannot read or send. A message is Sent once the game database saves it. Unread clears only when the newest messages are visible in the open Conversation tab; there are no recipient read receipts.
 
 **Game log**:
-The retained public record of a Real game, read in the controls panel by every viewer, Spectators included, during and after play. Game holds what happened on the table: phases, spice transfers, battle results and predictions. Audit holds who sat where and how removal votes ended. Every entry is one sentence with its classification and the turn, setup step or stage it happened in; each producer files its entry inside the transaction that commits the event, and a deleted account reads `[deleted user]` wherever it appears. Private cards, unrevealed plans, spice reserve balances, Conversations and territory names never enter it.
+The retained public record of a Real game, read in the controls panel by every viewer, Spectators included, during and after play. Game holds what happened on the table: phases, spice transfers, battle results and predictions. Audit holds who sat where and how removal votes and Table reviews ended. Every entry is one sentence with its classification and the turn, setup step or stage it happened in; each producer files its entry inside the transaction that commits the event, and a deleted account reads `[deleted user]` wherever it appears. Private cards, unrevealed plans, spice reserve balances, Conversations and territory names never enter it.
 _Avoid_: Event log, history feed, activity feed
+
+**Replay**:
+Stepping through a finished Real game's saved checkpoints, the public table only, with no action offered. Players may not keep notes, so nobody replays a game in progress, and a game continued after its result closes the Replay again.
+_Avoid_: rewind
+
+**Table review**:
+A look back at one recent checkpoint that a majority of the seated Players agree to while a Real game is set up or played. It shows every viewer, Spectators included, the same public table, and nothing can be moved, carried or peeked at, nor a timed bid or battle run down, until a seated Player resumes play. The proposal, its result and its end are filed in Audit.
+_Avoid_: rewind, dispute check, private replay
 
 **Spice Bank**:
 The shared, unlimited pile of spice outside any faction, drawn as the spice disc. Stored data still calls it `supply`.

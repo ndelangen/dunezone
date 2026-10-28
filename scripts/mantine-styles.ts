@@ -4,9 +4,9 @@ import { fileURLToPath } from 'node:url';
 
 import ts from 'typescript';
 
-function sourceFiles(folder: string): string[] {
+export function sourceFiles(folder: string): string[] {
   return readdirSync(folder, { recursive: true, withFileTypes: true })
-    .filter((entry) => entry.isFile() && /\.(?:ts|tsx|mjs|css)$/.test(entry.name))
+    .filter((entry) => entry.isFile() && /\.(?:[cm]?[jt]sx?|css)$/.test(entry.name))
     .map((entry) => join(entry.parentPath, entry.name));
 }
 
@@ -94,14 +94,21 @@ function importedNames(statement: ts.Statement, source: ts.SourceFile): string[]
 }
 
 function mantineReference(node: ts.Node) {
-  return ts.isStringLiteral(node) && node.text.startsWith('@mantine/core');
+  if (ts.isStringLiteralLike(node)) {
+    return node.text.startsWith('@mantine/core');
+  }
+  return ts.isTemplateExpression(node) && node.head.text.startsWith('@mantine/core');
 }
 
 function dynamicMantineImport(node: ts.Node) {
+  if (ts.isExternalModuleReference(node)) {
+    return Boolean(node.expression && mantineReference(node.expression));
+  }
   if (!ts.isCallExpression(node)) {
     return false;
   }
-  if (node.expression.kind !== ts.SyntaxKind.ImportKeyword) {
+  const isRequire = ts.isIdentifier(node.expression) && node.expression.text === 'require';
+  if (node.expression.kind !== ts.SyntaxKind.ImportKeyword && !isRequire) {
     return false;
   }
   return node.arguments.some(mantineReference);

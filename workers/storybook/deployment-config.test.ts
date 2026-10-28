@@ -30,7 +30,14 @@ describe('public Storybook deployment', () => {
       binding: 'ASSETS',
       html_handling: 'none',
       not_found_handling: '404-page',
-      run_worker_first: ['/m/*', '/image/*', '/web/*', '/published/*', '!/published/boards/*'],
+      run_worker_first: [
+        '/m/*',
+        '/image/*',
+        '/web/*',
+        '/published/*',
+        '!/published/boards/*',
+        '!/published/round-tokens/00000000000000000000*',
+      ],
     });
   });
 
@@ -50,6 +57,8 @@ describe('public Storybook deployment', () => {
       expect(isMediaPath('/web/logo.svg')).toBe(true);
       expect(isMediaPath('/published/assets/a.webp')).toBe(true);
       expect(isMediaPath('/published/boards/b/board.jpg')).toBe(false);
+      expect(isMediaPath('/published/round-tokens/00000000000000000000010063assets/token.jpg')).toBe(false);
+      expect(isMediaPath('/published/round-tokens/ns7ccz318tqavsz7nkfv5hq4gh8gnn7h/token.jpg')).toBe(true);
       expect(isMediaPath('/iframe.html')).toBe(false);
       expect(isMediaPath('/media/x')).toBe(false);
 

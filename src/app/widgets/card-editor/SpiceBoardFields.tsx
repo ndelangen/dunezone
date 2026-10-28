@@ -116,7 +116,9 @@ function BoardChoice({
   return (
     <ControlBlock
       title="Board"
-      description="The board the card's map draws: the classic Arrakis map, or a saved board. Saving that board redraws this card."
+      description={
+        "The board the card's map draws: the Arrakis map, or a saved board.\nSaving that board redraws this card."
+      }
       input={boardSelect({
         label: 'Board',
         value: link?.asset_id ?? CLASSIC_MAP,

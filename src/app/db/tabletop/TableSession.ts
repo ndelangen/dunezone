@@ -23,6 +23,7 @@ import type {
   TablePing,
 } from '@shared/play/protocol';
 import { isRemovalAction } from '@shared/play/removal';
+import { isReviewAction, reviewRunning } from '@shared/play/review';
 import { CARRY_FLIPS_LIMIT, SPECTATOR_SEAT, tablePositionSchema } from '@shared/play/schema';
 import { isSwapAction } from '@shared/play/swapping';
 import {
@@ -125,7 +126,13 @@ function sameSave(
 
 /* Commands a held piece does not hold back: a phase change, a removal, a seat, and letting go of a peek, which the room allows mid-carry. */
 function passesCarry(action: PieceAction) {
-  return action.kind === 'phase' || action.kind === 'peek-close' || isRemovalAction(action) || isSeatAction(action);
+  return (
+    action.kind === 'phase' ||
+    action.kind === 'peek-close' ||
+    isRemovalAction(action) ||
+    isSeatAction(action) ||
+    isReviewAction(action)
+  );
 }
 
 /* A deck's cards as they stand, by id; the room gives every card a new id whenever it rearranges the deck. */
@@ -197,6 +204,8 @@ export class TableSession {
   private pointerTimer: ReturnType<typeof setTimeout> | undefined;
   private error: string | null = null;
   private history: Extract<ServerMessage, { type: 'history' }> | null = null;
+  /* The running table review this page follows, by id; null when none holds it. */
+  private followedReview: string | null = null;
   private historyClock: (() => number) | null = null;
   private pendingHistory: number | null = null;
   /* The live room's newest history step, which grows while a viewer sits in playback. */
@@ -230,6 +239,9 @@ export class TableSession {
   private captureInFlight: string | null = null;
   /* The order this viewer asked for the deck it holds open, shown until the room answers it. */
   private pendingArrangement: { commandId: string; pieceId: string; deck: string; order: number[] } | null = null;
+  /* The Shipment and Movement order this viewer dragged, shown until the room answers it, and the live table shown with it. */
+  private pendingMovementOrder: { commandId: string; order: string[] } | null = null;
+  private movementShown: { from: GameSnapshot; commandId: string; shown: GameSnapshot } | null = null;
   /*
    * The peek this viewer closed, hidden at once while the room confirms it.
    * The room's frame without the peek, a refused close, a dropped connection or asking to peek again each forget it,
@@ -568,11 +580,24 @@ export class TableSession {
     };
   }
   private presentedSnapshot() {
-    const received = this.history?.snapshot ?? this.snapshot;
+    const received = this.history?.snapshot ?? this.movementArranged();
     /* The board is captured once per game; history and reconnect messages decode fresh copies of that same definition. */
     this.retainedBoard ??= received.board;
     const authoritative = received.board === this.retainedBoard ? received : { ...received, board: this.retainedBoard };
     return this.battle.shown(authoritative, this.history !== null);
+  }
+
+  /* The live table in the order this viewer last dragged, kept as one copy per frame and drag so the projection only changes with them. */
+  private movementArranged(): GameSnapshot {
+    const pending = this.pendingMovementOrder;
+    if (!pending) {
+      return this.snapshot;
+    }
+    if (this.movementShown?.from !== this.snapshot || this.movementShown.commandId !== pending.commandId) {
+      const movement = { ...(this.snapshot.movement ?? { done: [] }), order: pending.order };
+      this.movementShown = { from: this.snapshot, commandId: pending.commandId, shown: { ...this.snapshot, movement } };
+    }
+    return this.movementShown.shown;
   }
 
   private liveTable(): TableProjection {
@@ -602,6 +627,13 @@ export class TableSession {
           }
         : null,
       historyPending: this.pendingHistory !== null,
+      ...(this.snapshot.review !== undefined && {
+        review: {
+          current: this.snapshot.review,
+          checkpoints: this.snapshot.reviewCheckpoints ?? [],
+          seat: viewer.viewerSeat === SPECTATOR_SEAT ? null : viewer.viewerSeat,
+        },
+      }),
       canInteract,
       canHandleTable,
       reconnecting: false,
@@ -848,9 +880,11 @@ export class TableSession {
   private canSend(message: Exclude<ClientMessage, { type: 'admit' | 'sync' }>): boolean {
     /* A seat command is the spectator's one way to act, so it passes without a seat; `command` holds it to a current view. */
     const seat = message.type === 'command' && isSeatAction(message.action);
+    /* Answering or ending a table review goes out while its checkpoint shows; `command` holds it to a seated viewer. */
+    const review = message.type === 'command' && isReviewAction(message.action);
     /* Putting a held piece back also passes while a resync pauses the table, so the Worker never keeps a piece the tab let go of. */
     const release = message.type === 'cancel' && this.carry !== null;
-    return this.status === 'authorized' && (isReadRequest(message) || seat || release || this.canAct());
+    return this.status === 'authorized' && (isReadRequest(message) || seat || review || release || this.canAct());
   }
   private send(message: Exclude<ClientMessage, { type: 'admit' | 'sync' }>): boolean {
     return this.canSend(message) && this.subscription.send(message);
@@ -861,6 +895,7 @@ export class TableSession {
       case 'connection':
         this.conversations.disconnected(this.status === 'denied');
         this.pendingArrangement = null;
+        this.pendingMovementOrder = null;
         this.closedPeek = null;
         this.noteEndedCarry({
           held: pausedWhileHeld,
@@ -896,7 +931,38 @@ export class TableSession {
     this.forgetSettledPeekClose();
     this.battle.discardReplaced(this.saved?.battle?.id);
     this.flushQueues();
+    this.followReview();
     this.emit();
+  }
+  /*
+   * A running table review shows its checkpoint to everyone at once, so this page asks for it without being asked,
+   * once per review, and goes back to the live table when the review ends.
+   */
+  private followReview() {
+    const review = this.status === 'authorized' && this.saved ? this.snapshot.review : null;
+    if (!reviewRunning(review)) {
+      if (this.followedReview !== null) {
+        this.followedReview = null;
+        this.history = null;
+        this.pendingHistory = null;
+        this.flushQueues();
+      }
+      return;
+    }
+    if (this.followedReview === review.id || this.carry) {
+      return;
+    }
+    this.followedReview = review.id;
+    this.publishPointer(null);
+    this.pendingHistory = review.step;
+    if (!this.send({ type: 'history', step: review.step })) {
+      this.pendingHistory = null;
+      this.followedReview = null;
+    }
+  }
+  /** Whether a running table review holds this page on its checkpoint. */
+  private reviewHolds() {
+    return this.followedReview !== null;
   }
   private settleRequest(message: TableSubscriptionEvent) {
     const settled = settledRequest(message);
@@ -934,6 +1000,10 @@ export class TableSession {
     /* Refused, the room's order shows again; done, the frame that settles it carries the deck as arranged. */
     if (this.pendingArrangement?.commandId === id) {
       this.pendingArrangement = null;
+    }
+    /* Refused, the room's order shows again; done, the frame that settles it carries the order as dragged. */
+    if (this.pendingMovementOrder?.commandId === id) {
+      this.pendingMovementOrder = null;
     }
     if (this.captureInFlight === id) {
       this.captureInFlight = null;
@@ -1149,6 +1219,7 @@ export class TableSession {
     this.pages.closeSpiceHistory();
     this.history = null;
     this.pendingHistory = null;
+    this.followedReview = null;
     this.liveHistorySteps = 0;
     this.carry = null;
     this.carries = [];
@@ -1217,7 +1288,7 @@ export class TableSession {
     return this.canAct() && tableHandlingOpen(this.snapshot.stage);
   }
   requestHistory = (step: number) => {
-    if (this.status !== 'authorized' || this.carry) {
+    if (this.status !== 'authorized' || this.carry || this.reviewHolds()) {
       return;
     }
     if (!Number.isSafeInteger(step) || step < 0) {
@@ -1231,6 +1302,9 @@ export class TableSession {
     this.emit();
   };
   resumeLive = () => {
+    if (this.reviewHolds()) {
+      return;
+    }
     this.history = null;
     this.pendingHistory = null;
     this.flushQueues();
@@ -1404,7 +1478,9 @@ export class TableSession {
    * so mashing a button or key never stacks up work for the room; play by hand is answered long before it gets there.
    */
   private mayCommand(action: PieceAction) {
-    const allowed = isSeatAction(action) ? this.current() : this.canAct();
+    /* Agreeing to, withdrawing or ending a review is for a seated player whatever checkpoint shows. */
+    const live = this.subscription.ready && this.saved !== null && this.viewer?.viewerSeat !== SPECTATOR_SEAT;
+    const allowed = isReviewAction(action) ? live : isSeatAction(action) ? this.current() : this.canAct();
     return allowed && !(this.carry && !passesCarry(action)) && this.unanswered.size < UNANSWERED_COMMANDS_LIMIT;
   }
   private sendCommand(commandId: string, action: PieceAction) {
@@ -1458,6 +1534,8 @@ export class TableSession {
       this.traitorGatherInFlight = commandId;
     } else if (action.kind === 'battle-disclose') {
       this.battle.disclosureSent(commandId, action);
+    } else if (action.kind === 'movement-order') {
+      this.pendingMovementOrder = { commandId, order: action.order };
     }
     this.emit();
     return this.error === null ? commandId : undefined;

@@ -423,13 +423,15 @@ deploying. In every other case the `deploy` job runs:
    vectors (`verify:vectors`) and OBJ pieces (`generate:objs`), then log the
    output digest.
 7. Build the SPA and capture bundle once with the production Convex URL.
-8. Verify assembled assets and reject generated-source drift.
+8. Remove raster copies served from R2, then retain the previous browser bundles. Check the final
+   Static Assets file count and reject generated-source drift. The earlier local rehearsal keeps its
+   raster copies because its buckets start empty.
 9. Dry-run both Worker releases with their exact checked-in configurations.
 10. Deploy the private game Worker first. Require its exact tagged version to be active, then verify
     its bound SQLite namespace, configuration and lack of public ingress before deploying the publisher.
 11. Publish the release's raster variants before it goes live (#1888). The job mints a one-off
-    `MEDIA_PUBLISH_TOKEN`, drops the raster copies from the release (`publisher:omit-static-rasters`),
-    installs the token on the live publisher Worker, then runs `bun run media:publish --await-token`.
+    `MEDIA_PUBLISH_TOKEN`, installs it on the live publisher Worker, then runs
+    `bun run media:publish --await-token`.
     This probes authentication with invalid JSON, which cannot write a release record, and waits up to
     one minute for the new bearer to reach the Worker. A secret update succeeded before the previous
     token stopped serving requests in the #2037 reproduction; the new token became usable after 9.4

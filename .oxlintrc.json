@@ -64,15 +64,30 @@
       /*
        * Hover labels are the kit's Mantine `Tooltip`, never the browser's native one (Norbert, 2026-10-26).
        * The rule reads a `title` attribute on an element, or on a Mantine or router component that passes it through.
-       * It stays inside `src`: the Storybook manager panel and the authoring tools are not the app.
-       * `src/game` is left out because it renders without Mantine for the publisher's captures, and a change there
-       * moves the renderer identity, which recaptures every published asset.
+       * The same guard covers application source and its Storybook previews.
+       * Standalone game renderers keep accessible descriptions rather than native hover labels.
        */
+      "files": ["src/**", ".storybook/**"],
+      "rules": {
+        "local/no-title-tooltip": "error",
+        "local/shared-overlays": "error"
+      }
+    },
+    {
+      /*
+       * A story shows only the states its own component owns (ADR-0005): above the kit, a story neither
+       * hovers nor reads a tooltip, because the kit's own stories cover both. The excluded story files
+       * predate the rule; each one leaves this list in the pull request that cleans it up, and none joins it.
+       */
+      "files": ["src/**/*.stories.tsx"],
+      "excludeFiles": ["src/app/ui/**"],
+      "rules": { "local/story-owns-its-states": "error" }
+    },
+    {
+      /* Tooltip copy stays within 100 characters per line in app source (Norbert, 2026-10-27). */
       "files": ["src/**"],
       "excludeFiles": ["src/game/**"],
-      "rules": {
-        "local/no-title-tooltip": "error"
-      }
+      "rules": { "local/tooltip-length": "error" }
     },
     {
       /**

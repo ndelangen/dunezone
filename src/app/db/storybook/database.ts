@@ -4,7 +4,7 @@ import type { WithoutSystemFields } from 'convex/server';
 import type { Doc, TableNames } from '../../../../convex/_generated/dataModel';
 import schema from '../../../../convex/schema';
 import { publishingCustomCard } from '../../../shared/assets/fixtures/publishingCustomCard';
-import { publishingDeckCardback } from '../../../shared/assets/fixtures/publishingDeckCardback';
+import { publishingCustomDeckCardback } from '../../../shared/assets/fixtures/publishingDeckCardback';
 import { publishingRectangleTokenFace } from '../../../shared/assets/fixtures/publishingRectangleTokenFace';
 import { publishingSpiceCard } from '../../../shared/assets/fixtures/publishingSpiceCard';
 import { publishingTokenFace } from '../../../shared/assets/fixtures/publishingTokenFace';
@@ -116,7 +116,7 @@ function baselineDatabase(): StorybookDatabase {
     data: {
       name: 'House Treachery',
       about: 'The standard treachery deck for the page-story baseline.',
-      cardback: publishingDeckCardback,
+      cardback: publishingCustomDeckCardback,
     },
   });
   const disc = asset({

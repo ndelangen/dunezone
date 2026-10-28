@@ -16,7 +16,7 @@ import {
 import type { Piece } from './guideChecks';
 
 /*
- * Chapter 9, "Your hand and spice": a card goes from the table into the player's hand and back out,
+ * "Your hand and spice": a card goes from the table into the player's hand and back out,
  * and spice comes out of their reserve, all through the Hand & spice window.
  */
 
@@ -42,11 +42,19 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
   /* The hand as the Hand & spice window shows it: what the player laid on the private side-table is not in it. */
   const inHand = () => (snapshot().hand ?? []).filter((piece) => !piece.hiddenZone).length;
   const reserve = () => snapshot().bank?.balance ?? 0;
+  const handOrder = () => JSON.stringify(snapshot().handOrder ?? []);
+  /* The card the player took into their hand, by the id it arrived under, so the arrow finds it among the cards already there. */
+  const taken = { id: null as string | null };
+  const handIds = () => new Set((snapshot().hand ?? []).filter((piece) => !piece.hiddenZone).map((piece) => piece.id));
+  const takenCard = () =>
+    (taken.id && document.querySelector(`${HAND_PIECE}[data-piece-id="${CSS.escape(taken.id)}"]`)) ||
+    lastElement(HAND_PIECE)();
   return [
     task({
       id: 'lay-card',
       task: 'Lay a Spice card on the table',
-      detail: 'Drag the top card off the Spice deck, on the right of the table, and drop it beside the deck.',
+      detail:
+        'Drag the top card off the Spice deck on the right. Start moving straight away to take one card, then drop it beside the deck.',
       anchor: { kind: 'table', point: () => at(spiceDeck()) },
       begin: () => spiceDeck()?.items.length ?? 0,
       done: (start) => (spiceDeck()?.items.length ?? 0) < start,
@@ -54,40 +62,49 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     task({
       id: 'take',
       task: 'Take it into your hand',
-      detail:
-        'Right-click the card and choose Take into hand. A card or a leader on the table can always go to your hand.',
+      detail: 'Right-click the card and choose Take into hand. This also works for leaders.',
       anchor: { kind: 'table', point: () => at(looseSpiceCard(pieces(), spiceDeck())) },
-      begin: inHand,
-      done: (start) => inHand() > start,
+      begin: handIds,
+      done: (start) => {
+        taken.id = (snapshot().hand ?? []).find((piece) => !piece.hiddenZone && !start.has(piece.id))?.id ?? null;
+        return taken.id !== null;
+      },
     }),
     task({
       id: 'open-hand',
       task: 'Open your hand',
-      detail: 'Your hand is in the Hand & spice window. Press {Space}, then {←} and {Space} again.',
+      detail: 'Press {H} to open Hand & spice.',
       anchor: { kind: 'page', element: viaCompass('hand') },
       ...openedWindow(windowShown('hand')),
     }),
     task({
       id: 'close-up',
       task: 'Read the card up close',
-      detail:
-        'Point at the card in your hand and hold {Alt}. It shows flat and large, as on the table; read it, then let go.',
-      anchor: { kind: 'page', element: lastElement(HAND_PIECE) },
+      detail: 'Hover over the card and hold {Alt} to read it. Release {Alt} to close the preview.',
+      anchor: { kind: 'page', element: takenCard },
       ...closeUpShown(),
     }),
     task({
       id: 'play',
       task: 'Play it back onto the table',
-      detail:
-        'Drag the card out of the window and drop it on the table. Only you saw its face while it was in your hand.',
-      anchor: { kind: 'page', element: lastElement(HAND_PIECE) },
+      detail: 'Drag the card from your hand onto the table.\n\nCards in your hand are private until you play them.',
+      anchor: { kind: 'page', element: takenCard },
       begin: inHand,
       done: (start) => inHand() < start,
     }),
     task({
+      id: 'reorder',
+      task: 'Reorder your leaders',
+      detail: 'Drag a leader to a new position in the Leaders row. This changes the order in your hand only.',
+      anchor: { kind: 'page', element: element('[data-window="hand"] [data-group="leaders"]') },
+      begin: handOrder,
+      done: (start) => handOrder() !== start,
+    }),
+    task({
       id: 'withdraw',
       task: 'Take spice from your reserve',
-      detail: 'The big number under your hand is your reserve. Pick an amount below it and press Withdraw spice.',
+      detail:
+        'Your spice reserve is shown at the top of Hand & spice.\n\nChoose an amount, then press Withdraw to put that spice on the table.',
       anchor: { kind: 'page', element: element('[data-window="hand"] [aria-label="Spice reserve balance"]') },
       begin: reserve,
       done: (start) => reserve() < start,
@@ -98,9 +115,10 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
 /* One line for each part of the chapter, in the order it was played. */
 const learned = [
   'Right-click a card on the table and choose Take into hand',
-  '{Space} {←} opens your Hand & spice',
+  '{H}, or {Space} {←}, opens your Hand & spice',
   'Hold {Alt} over a card in your hand to read it',
   'Drag a card from your hand onto the table to play it',
+  'Drag a card or leader along its shelf to sort your hand',
   'Withdraw spice from your reserve onto the table',
 ];
 

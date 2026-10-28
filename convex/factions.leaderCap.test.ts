@@ -4,7 +4,7 @@
 import { describe, expect, test } from 'vite-plus/test';
 
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
-import { CanonicalFactionStoredSchema, SUPPORTING_LEADER_LIMIT } from '../src/shared/factions/schema';
+import { CanonicalFactionStoredObject, SUPPORTING_LEADER_LIMIT } from '../src/shared/factions/schema';
 import { api } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
 
@@ -43,7 +43,7 @@ describe('the supporting-leader cap on faction saves (#644)', () => {
       const row = await ctx.db.get(created._id);
       await ctx.db.patch(created._id, { data: { ...row!.data, leaders: eleven } });
     });
-    const stored = CanonicalFactionStoredSchema.parse(
+    const stored = CanonicalFactionStoredObject.parse(
       (await t.run(async (ctx) => await ctx.db.get(created._id)))!.data
     );
     expect(stored.leaders).toHaveLength(SUPPORTING_LEADER_LIMIT + 1);

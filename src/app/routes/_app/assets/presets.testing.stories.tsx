@@ -9,7 +9,7 @@ import { administratorDatabase } from './presets.stories.fixture';
 const meta = testingPreview.meta({
   ...pageStoryMeta,
   title: 'Assets/Card presets',
-  args: { path: '/assets/__presets' },
+  args: { path: '/admin/presets' },
 });
 export const Families = meta.story({
   parameters: { database: administratorDatabase },
@@ -45,7 +45,7 @@ export const SignedOut = meta.story({
   parameters: { identity: null },
   play: async ({ canvasElement }) => {
     await expect(
-      within(canvasElement.ownerDocument.body).findByText('to edit presets.', { exact: false }, { timeout: 30_000 })
+      within(canvasElement.ownerDocument.body).findByText('to use admin tools.', { exact: false }, { timeout: 30_000 })
     ).resolves.toBeVisible();
   },
 });
@@ -59,7 +59,7 @@ export const NotAdministrator = meta.story({
     await expect(
       within(canvasElement.ownerDocument.body).findByRole(
         'heading',
-        { name: 'Administrator access required' },
+        { name: 'Admin access required' },
         { timeout: 30_000 }
       )
     ).resolves.toBeVisible();

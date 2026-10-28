@@ -32,7 +32,8 @@ export interface AppHeaderProps {
  *
  * The artwork itself is a three-layer stack: an inlined blurred frame that costs no request, the sharp poster photograph over it, and the looping video fading in on top once it actually plays.
  * The video only mounts client-side after `prefers-reduced-motion` says motion is welcome, so reduced-motion visitors get the poster and never download the loop.
- * It also waits for the band to take up space: a fullscreen page hides the band, and a hidden autoplay video still downloads its whole megabyte.
+ * It also waits for the band to take up space before loading the loop.
+ * Once playing, the same video stays mounted and pauses outside the viewport or in a hidden tab, retaining its frame and buffer.
  * The `motion` cookie, `AppFooter`'s switch, overrides that OS hint for this site alone, live in both directions.
  */
 export function AppHeader({ children }: AppHeaderProps) {
@@ -41,26 +42,59 @@ export function AppHeader({ children }: AppHeaderProps) {
   const [videoReady, setVideoReady] = useState(false);
   const motionOk = useMotionAllowed();
   const bandShown = useShown(bandRef);
-  const playVideo = motionOk && bandShown;
+  const mountVideo = motionOk && (bandShown || videoReady);
   const frameRef = useRef<HTMLDivElement>(null);
   const mediaRef = useRef<HTMLDivElement>(null);
   useFrameLeft(frameRef);
   useBandMotion(frameRef, bandRef, mediaRef, motionOk);
 
-  if (!playVideo && videoReady) {
+  if (!motionOk && videoReady) {
     setVideoReady(false);
   }
 
   // The video may already be playing (or fully buffered) before this render attaches `onPlaying`.
   useEffect(() => {
-    if (!playVideo) {
+    if (!mountVideo) {
       return;
     }
     const video = videoRef.current;
     if (video) {
-      setVideoReady(!video.paused && video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA);
+      setVideoReady((ready) => ready || (!video.paused && video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA));
     }
-  }, [playVideo]);
+  }, [mountVideo]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    const band = bandRef.current;
+    if (!mountVideo || !video || !band) {
+      return;
+    }
+    const bounds = band.getBoundingClientRect();
+    let intersects = bounds.width > 0 && bounds.height > 0 && bounds.bottom > 0 && bounds.top < window.innerHeight;
+    const refresh = () => {
+      if (!bandShown || !intersects || document.visibilityState === 'hidden') {
+        video.pause();
+      } else if (video.paused) {
+        /* A browser may refuse autoplay; the existing poster remains available. */
+        void video.play().catch(() => {});
+      }
+    };
+    const observer =
+      typeof IntersectionObserver === 'undefined'
+        ? null
+        : new IntersectionObserver(([entry]) => {
+            intersects = entry.isIntersecting;
+            refresh();
+          });
+    observer?.observe(band);
+    document.addEventListener('visibilitychange', refresh);
+    refresh();
+    return () => {
+      observer?.disconnect();
+      document.removeEventListener('visibilitychange', refresh);
+      video.pause();
+    };
+  }, [mountVideo, bandShown]);
 
   return (
     <div ref={frameRef} className={styles.frame} data-app-frame>
@@ -69,7 +103,7 @@ export function AppHeader({ children }: AppHeaderProps) {
         <div ref={mediaRef} className={styles.bandMedia}>
           <img alt="" aria-hidden className={styles.bandPlaceholder} src={bandPlaceholder} />
           <img alt="" aria-hidden className={styles.bandPoster} src={bandPoster} />
-          {playVideo && (
+          {mountVideo && (
             <video
               ref={videoRef}
               className={styles.bandVideo}

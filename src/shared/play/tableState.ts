@@ -8,6 +8,7 @@ import {
 } from './factionToken';
 import { gestureBlockReason, isFlippablePiece, nearestZone, pieceCount, zoneById } from './model';
 import type { DraftMove, TableEvent, TableItem, TablePiece, TableState, Vector3Tuple } from './model';
+import { publicPieceLabel } from './peeking';
 import { placementRules, withRidersCarried } from './pointerRiders';
 import { isSpicePiece } from './spice';
 import { isSpiceBankPosition } from './spiceBank';
@@ -275,7 +276,10 @@ function appendEvent(state: TableState, event: TableEvent): Pick<TableState, 'ev
 }
 
 function logged(state: TableState, command: string, message: string, status: TableEvent['status']): TableState {
-  return { ...state, ...appendEvent(state, { id: eventId(state.nextEventNumber), command, message, status }) };
+  return {
+    ...state,
+    ...appendEvent(state, { id: eventId(state.nextEventNumber), command, message, status, publicCopyVersion: 1 }),
+  };
 }
 
 /** The table with one accepted event appended, numbered from the table's own event counter. */
@@ -511,7 +515,7 @@ function turnedOver(items: TablePiece['items']): TablePiece['items'] {
 }
 
 function flipMessageFor(flipped: TablePiece): string {
-  return `${flipped.label} flipped ${flipped.items.at(-1)?.faceUp ? 'face up' : 'face down'}.`;
+  return `${publicPieceLabel(flipped)} flipped ${flipped.items.at(-1)?.faceUp ? 'face up' : 'face down'}.`;
 }
 
 /* A carry that landed turned over is logged as a flip first, as if it were flipped where it was picked up. */
@@ -593,7 +597,7 @@ function withdrawalConstraintMessage(state: TableState, draft: DraftMove): strin
       return blocked;
     }
     if (available.items.at(-1)?.id !== withdrawal.itemId) {
-      return `The top of ${available.source.label} changed while the group was held.`;
+      return `The top of ${publicPieceLabel(available.source)} changed while the group was held.`;
     }
     available.items.pop();
   }
@@ -689,7 +693,7 @@ function mergeMessageFor(piece: TablePiece, target: TablePiece): string {
   const [one, many] = pieceUnits(piece);
   const unit = count === 1 ? one : many;
   const placement = piece.kind === 'card' ? 'placed on' : 'stacked with';
-  return `${count} ${unit} ${placement} ${target.label}.`;
+  return `${count} ${unit} ${placement} ${publicPieceLabel(target)}.`;
 }
 
 function mergeHeldItems(
@@ -776,8 +780,8 @@ function applyFactionTokenMove(application: DraftApplication, movedPiece: TableP
     { ...current, pieces: swap?.pieces ?? pieces, selectedPieceId: movedPiece.id, draftMove: null },
     'piece.move',
     swap
-      ? `${piece.label} swapped places with ${swap.occupant.label}.`
-      : `${piece.label} moved to sector ${sectorIndexAt(draft.position) + 1}.`
+      ? `${publicPieceLabel(piece)} swapped places with ${swap.occupant.label}.`
+      : `${publicPieceLabel(piece)} moved to sector ${sectorIndexAt(draft.position) + 1}.`
   );
 }
 
@@ -801,7 +805,7 @@ function applyMove(application: DraftApplication): TableState {
       draftMove: null,
     },
     moveCommandFor(application),
-    `${piece.label} moved to ${destination}.`
+    `${publicPieceLabel(piece)} moved to ${destination}.`
   );
 }
 

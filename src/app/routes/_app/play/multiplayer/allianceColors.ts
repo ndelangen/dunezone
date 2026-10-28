@@ -1,7 +1,6 @@
 import { alliesOf } from '@shared/play/alliances';
 import type { AllianceState } from '@shared/play/alliances';
 import { factionTokenOf } from '@shared/play/factionToken';
-import type { CSSProperties } from 'react';
 
 type AllianceColorsData = {
   alliances?: AllianceState;
@@ -25,16 +24,4 @@ export function alliedFactionColors(snapshot: AllianceColorsData, factionId: str
         return color ? [color] : [];
       })
     : [];
-}
-
-/** A constant-width ring gives every ally a segment without growing with alliance size. */
-export function allianceRingStyle(colors: readonly string[]): CSSProperties | undefined {
-  return colors.length
-    ? {
-        display: 'inline-flex',
-        padding: 2,
-        borderRadius: '50%',
-        background: `conic-gradient(${colors.map((color, index) => `${color} ${(index * 100) / colors.length}% ${((index + 1) * 100) / colors.length}%`).join(', ')})`,
-      }
-    : undefined;
 }

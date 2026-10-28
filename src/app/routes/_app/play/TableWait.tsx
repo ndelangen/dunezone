@@ -1,7 +1,7 @@
 import { Group, Text } from '@mantine/core';
+import { DarkSchemeIsland, darkSchemeIslandAttributes } from '@ui/surface/DarkSchemeIsland';
 import type { ReactNode } from 'react';
 
-import { DarkSchemeIsland, darkSchemeIslandAttributes } from './DarkSchemeIsland';
 import styles from './TableWait.module.css';
 
 /**

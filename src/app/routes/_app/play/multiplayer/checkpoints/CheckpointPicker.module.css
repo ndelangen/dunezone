@@ -1,0 +1,18 @@
+/* A phase disc in the turn tracker's sand, so the picker reads as the same phases the board shows. */
+.disc {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--ui-brass);
+  color: var(--ui-ground);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.disc img {
+  width: 72%;
+  height: 72%;
+  object-fit: contain;
+}

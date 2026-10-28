@@ -35,6 +35,34 @@ records the public issue link. Both entries use a stable export ID, so retries c
 Open Game logs receive the entries immediately; older pages keep their selected cursor. The log
 keeps the activity after account deletion, with the existing deleted-account name treatment.
 
+## Inspecting a report
+
+The [Admin tools directory](/admin) links to Accounts, Card presets, Migration activity,
+Publication jobs and the [Game debugger](/admin/game-debugger). The `/admin` parent checks the
+current administrator role before mounting a tool. Existing Convex functions continue to enforce
+their own authorization. The previous `/_admin/accounts`, `/_admin/jobs`, `/assets/__presets`,
+`/_jobs` and `/__jobs` addresses redirect to their corresponding `/admin` pages.
+
+Download `state.json` from a reported issue and choose it in the debugger. The file stays in the
+tab's memory; it is not uploaded or persisted. Closing the report or leaving the page discards it.
+The importer accepts the existing v1 export and bounds file size, nesting and node count before
+inspection. State fields open individually, and long values show an explicit display limit.
+
+The debugger shows server and browser snapshots, their shared-field differences, retained Game and
+Audit events, console output, diagnostics and censored conversations. It preserves the report's
+recorded release and omission counts. Differences can reflect capture timing, different revisions
+or player-specific projections; they do not by themselves prove a synchronization bug.
+
+The Table tab reuses the normal table renderer and session projection with a fixed subscription
+that cannot send commands or connect to a game. It loads artwork only from Dune Zone's published
+artwork, built-in images and vectors, and homepage example paths. Unsupported snapshot shapes or artwork addresses leave the
+data inspectable without rendering it. The renderer is the current application version, not an
+execution of the recorded release.
+
+Current exports contain one captured moment and recent event pages, not replay checkpoints or a
+complete command history. The debugger makes that limit visible and does not invent intermediate
+states. Full historical replay requires an export-format extension.
+
 ## Authentication and delivery
 
 The browser sends an existing game-scoped seat pass to the same-origin Game Worker. It never sends

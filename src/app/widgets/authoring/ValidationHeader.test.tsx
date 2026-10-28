@@ -67,3 +67,27 @@ describe('an empty warning list', () => {
     expect(container.querySelector('div')).toBeNull();
   });
 });
+
+describe('a chip with help', () => {
+  test('describes itself with the help its tooltip shows, so it reads without the pointer', () => {
+    render(
+      <MantineProvider theme={appContentTheme} forceColorScheme="light">
+        <ValidationHeader
+          warnings={[
+            { source: 'Page 1 / Movement', complaint: 'is clipped', help: 'Part of this Block will not be visible.' },
+            { source: 'Page 2 / Combat', complaint: 'is clipped' },
+          ]}
+          onFocusWarning={() => undefined}
+        />
+      </MantineProvider>
+    );
+    const helped = screen.getByRole('button', { name: 'Page 1 / Movement: is clipped' });
+    const describedBy = helped.getAttribute('aria-describedby');
+    expect(describedBy && document.getElementById(describedBy)?.textContent).toBe(
+      'Part of this Block will not be visible.'
+    );
+    expect(screen.getByRole('button', { name: 'Page 2 / Combat: is clipped' }).hasAttribute('aria-describedby')).toBe(
+      false
+    );
+  });
+});

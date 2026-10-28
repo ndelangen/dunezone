@@ -8,7 +8,7 @@ import type { ChapterScript } from './chapterScript';
 import { element, openedWindow, task, viaCompass, windowShown } from './guideChecks';
 
 /*
- * Chapter 10, "The private side-table": a small table of the player's own for pieces that need a specific place.
+ * "The private side-table": a small table of the player's own for pieces that need a specific place.
  * Its reason clicks at once with the Atreides Kwisatz Haderach tracker (Norbert, 2026-10-26): the learner plays House Atreides,
  * lays the tracker card and its tiny Battle Loss Counter on the side-table, and moves the counter along the card's track as troops are lost.
  * The card and the counter are the site's published Kwisatz Haderach art; the chapter puts them in the Atreides hand itself,
@@ -134,40 +134,46 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'open-hand',
       task: 'Open your hand',
       detail:
-        'You play House Atreides here. Press {Space}, then {←} and {Space} again: your Kwisatz Haderach card and its counter are there.',
+        'You are playing House Atreides.\n\nPress {H} to open your hand and find the Kwisatz Haderach card and its counter.',
       anchor: { kind: 'page', element: viaCompass('hand') },
       ...openedWindow(windowShown('hand')),
     }),
     task({
+      id: 'pin-hand',
+      task: 'Keep your hand open',
+      detail: 'Use the left pin beside the window title, or press {[}, to keep your hand open in the bottom left.',
+      anchor: { kind: 'page', element: element('[aria-label="Pin to the bottom left"]') },
+      begin: () => null,
+      done: () => document.querySelector('[data-side="left"][data-window="hand"]') !== null,
+    }),
+    task({
+      id: 'open-zone',
+      task: 'Open your private side-table',
+      detail: 'Press {J} to open your private side-table.\n\nOnly you can see the pieces you place here.',
+      anchor: { kind: 'page', element: viaCompass('hidden') },
+      ...openedWindow(windowShown('hidden-zone')),
+    }),
+    task({
       id: 'card',
-      task: 'Move the Kwisatz Haderach card to your private side-table',
+      task: 'Place the Kwisatz Haderach card',
       detail:
-        'It tracks the troops you lose in battles. Right-click it in your hand and choose Move to private side-table.',
+        'Drag the Kwisatz Haderach card from your hand onto the felt.\n\nYou will use it to track troops lost in battle.',
       anchor: { kind: 'page', element: element(inHand(CARD)) },
       begin: () => null,
       done: () => spotOf(CARD) !== undefined,
     }),
     task({
       id: 'counter',
-      task: 'Move the Battle Loss Counter there too',
-      detail:
-        'The tiny token is the marker for the card’s track. Right-click it and choose Move to private side-table.',
+      task: 'Add the Battle Loss Counter',
+      detail: 'Right-click the Battle Loss Counter in your hand and choose Move to private side-table.',
       anchor: { kind: 'page', element: element(inHand(COUNTER)) },
       begin: () => null,
       done: () => spotOf(COUNTER) !== undefined,
     }),
     task({
-      id: 'open-zone',
-      task: 'Open your private side-table',
-      detail: 'It sits twice left on the compass: press {Space}, then {←} {←} and {Space}. Nobody else ever sees it.',
-      anchor: { kind: 'page', element: viaCompass('hidden') },
-      ...openedWindow(windowShown('hidden-zone')),
-    }),
-    task({
       id: 'on-track',
-      task: 'Lay the counter on the card’s track',
-      detail:
-        'Drag the tiny counter onto the row of numbered spaces at the foot of the card. Pieces stay exactly where you lay them, which is what the side-table is for.',
+      task: 'Place the counter on the track',
+      detail: 'Drag the counter onto the numbered track at the bottom of the card. It stays wherever you place it.',
       anchor: { kind: 'page', element: element(onSideTable(COUNTER)) },
       begin: () => null,
       done: () => tracked(onTrack) === true,
@@ -175,8 +181,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     task({
       id: 'zoom',
       task: 'Zoom in on the track',
-      detail:
-        'Scroll over the counter to bring the track up close. Drag the felt to look around, and double-click to zoom back out.',
+      detail: 'Scroll over the counter to zoom in.\n\nDrag the felt to pan, or double-click to zoom out again.',
       anchor: { kind: 'page', element: element(onSideTable(COUNTER)) },
       begin: () => null,
       done: () =>
@@ -184,8 +189,8 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     }),
     task({
       id: 'first-loss',
-      task: 'You lost a troop in battle: put the counter on space 1',
-      detail: 'Drag the counter onto the first space of the track. Up close, it lands exactly where you mean.',
+      task: 'Record one troop lost',
+      detail: 'Suppose you lost a troop in battle. Drag the counter onto space 1.',
       anchor: { kind: 'page', element: element(onSideTable(COUNTER)) },
       /* A counter already laid on space 1 at table size counts at once: the learner is never asked to lay it where it lies. */
       begin: () => null,
@@ -193,9 +198,8 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     }),
     task({
       id: 'more-losses',
-      task: 'You lost 2 more: move it to space 3',
-      detail:
-        'Every troop lost in battle moves it one space. After 7 you gain the Kwisatz Haderach, so the card always shows how close you are.',
+      task: 'Record two more losses',
+      detail: 'Move the counter to space 3.\n\nAt seven troops lost in battle, you gain the Kwisatz Haderach.',
       anchor: { kind: 'page', element: element(onSideTable(COUNTER)) },
       begin: () => null,
       done: () => tracked(spaceUnder) === 3,
@@ -205,8 +209,9 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
 
 /* One line for each part of the chapter, in the order it was played. */
 const learned = [
-  'Right-click a piece in your hand to move it to your private side-table',
-  '{Space} {←} {←} opens your private side-table, and only you see it',
+  'Pin a window with {[} or {]} to keep it open beside another',
+  '{J}, or {Space} {←} {←}, opens your private side-table, and only you see it',
+  'Drag a piece from your hand onto the side-table, or right-click it and choose Move to private side-table',
   'Pieces stay where you lay them, so a counter can sit on a card’s track',
   'Scroll over the side-table to zoom in on a card',
   'Atreides counts troops lost in battles on the Kwisatz Haderach card, and gains it after 7',

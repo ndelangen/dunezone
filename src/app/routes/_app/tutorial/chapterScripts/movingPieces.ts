@@ -1,43 +1,12 @@
+import { factionTokenOf } from '@shared/play/factionToken';
 import type { GameSnapshot } from '@shared/play/protocol';
 
 import type { GuideTask } from '../TutorialGuide';
-import type { ChapterScript } from './chapterScript';
-import { at, element, onBoard, tableDeck, task } from './guideChecks';
+import type { ChapterScript, TablePlayers } from './chapterScript';
+import { at, grownCarryLanded, holdsAll, onBoard, task } from './guideChecks';
 import type { Piece } from './guideChecks';
 
-/*
- * Chapter 7, "Moving pieces": the hands-on controls chapter 5 only touched, on the same table.
- * A stack split with a number key, carried whole, joined, turned and flipped; then a deck shuffled and peeked at.
- * Taking more with T, locking, dealing and laying cards from a deck with a number key wait for a later chapter.
- */
-
-/*
- * The cards of a deck held open by a peek, by the ids the peek marks them with, top first; null while no deck is open.
- * Ids rather than names, since a deck holds several cards of one name.
- */
-const peekedOrder = () => {
-  const row = document.querySelector('[role="dialog"][aria-label^="Peeking at"] ol');
-  return row ? [...row.querySelectorAll('[data-card]')].map((card) => card.getAttribute('data-card') ?? '') : null;
-};
-
-/*
- * Moving a card counts the order the peek first showed against the order it shows now, so the task waits for the deck to open
- * and then for one card to change place, by dragging or by the arrow keys. Only cards in both orders are compared, so pulling
- * a card out of the deck does not count as a move.
- */
-const movedInPeek = () => ({
-  begin: () => ({ first: null as string[] | null }),
-  done: (watch: { first: string[] | null }) => {
-    const order = peekedOrder();
-    if (!order) {
-      return false;
-    }
-    const first = (watch.first ??= order);
-    const before = first.filter((card) => order.includes(card));
-    const now = order.filter((card) => first.includes(card));
-    return before.some((card, index) => card !== now[index]);
-  },
-});
+/* Moving one troop comes first, then holding a stack, splitting it and combining pieces. */
 
 /*
  * A piece changed where it lies, by id: turning and flipping leave a piece in place under the same id.
@@ -56,7 +25,6 @@ const changedInPlace = (stacks: () => Piece[], changed: (before: Piece, now: Pie
     }),
 });
 
-const total = (stacks: Piece[]) => stacks.reduce((sum, piece) => sum + piece.items.length, 0);
 const biggest = (stacks: Piece[]) => stacks.toSorted((a, b) => b.items.length - a.items.length)[0];
 
 /* Where the player's troops are: in their reserves on the rim, or on the board. */
@@ -81,28 +49,71 @@ function carriedStack(onTheBoard: () => Piece[]) {
   return {
     carried,
     only: () => onTheBoard().filter((piece) => piece === carried()),
-    land: () => {
-      landed.troops = new Set(biggest(onTheBoard())?.items.map((item) => item.id));
+    land: (stack: Piece) => {
+      landed.troops = new Set(stack.items.map((item) => item.id));
     },
   };
 }
 
 /* The player's own troops: split off the reserves, carried whole onto the board, joined, turned and flipped. */
-function stackTasks(snapshot: () => GameSnapshot): GuideTask[] {
+function stackTasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[] {
   const { reserves, onTheBoard } = troops(snapshot);
   const { carried, only: carriedOnly, land } = carriedStack(onTheBoard);
-  /* The biggest of the player's reserve stacks, where a split comes from, and the smallest of two or more, where it went. */
+  /*
+   * The biggest of the player's reserve stacks, where a split comes from, and the three split off it: a stack of exactly three,
+   * so a pair split off first is never taken for them, or the smallest of two or more while there is none.
+   */
   const biggestReserve = () => biggest(reserves());
   const splitStack = () =>
+    reserves().find((piece) => piece.items.length === 3) ??
     reserves()
       .filter((piece) => piece.items.length > 1)
       .toSorted((a, b) => a.items.length - b.items.length)[0];
   return [
     task({
-      id: 'split',
-      task: 'Split three troops off',
+      id: 'move-one',
+      task: 'Move one troop',
       detail:
-        'Point at your reserves on the rim nearest you and hold 3 for a second. Three troops slide off beside them.',
+        'Drag a troop from your reserves onto the board. Start dragging straight away to pick up only the top piece.',
+      anchor: { kind: 'table', point: () => at(biggestReserve()) },
+      begin: () => ({
+        seen: players.landings().length,
+        ids: new Set(reserves().flatMap((piece) => piece.items.map((item) => item.id))),
+      }),
+      done: ({ seen, ids }) =>
+        players
+          .landings()
+          .slice(seen)
+          .some(
+            (landing) =>
+              landing.itemIds.length === 1 &&
+              ids.has(landing.itemIds[0]!) &&
+              onTheBoard().some((piece) => holdsAll(piece, new Set(landing.itemIds)))
+          ),
+    }),
+    task({
+      id: 'carry-reserves',
+      task: 'Move a whole stack',
+      detail:
+        'Press and hold your reserve stack briefly before dragging it. This picks up the whole stack.\n\nDrop it beside your seat so you can use it in the next step.',
+      anchor: { kind: 'table', point: () => at(biggestReserve()) },
+      begin: () => ({
+        seen: players.landings().length,
+        ids: new Set(biggestReserve()?.items.map((item) => item.id)),
+        position: biggestReserve()?.position.join(),
+      }),
+      done: ({ seen, ids, position }) =>
+        ids.size > 1 &&
+        players
+          .landings()
+          .slice(seen)
+          .some((landing) => [...ids].every((id) => landing.itemIds.includes(id))) &&
+        reserves().some((piece) => holdsAll(piece, ids) && piece.position.join() !== position),
+    }),
+    task({
+      id: 'split',
+      task: 'Split off three troops',
+      detail: 'Hover over your reserves and hold {3} for a second. Three troops form a new stack beside them.',
       anchor: { kind: 'table', point: () => at(biggestReserve()) },
       begin: () => reserves().filter((piece) => piece.items.length === 3).length,
       done: (start) => reserves().filter((piece) => piece.items.length === 3).length > start,
@@ -110,28 +121,38 @@ function stackTasks(snapshot: () => GameSnapshot): GuideTask[] {
     task({
       id: 'carry-stack',
       task: 'Carry all three at once',
-      detail:
-        'A quick drag takes only the top troop. Press and hold on the three for a moment, then drag them onto a territory.',
+      detail: 'Press and hold the new stack, then drag all three troops onto a territory.',
       anchor: { kind: 'table', point: () => at(splitStack()) },
       /*
-       * A whole stack lands on the board in one go, so the troops there jump by two or more from one frame to the next;
-       * single troops dropped one after another never do.
+       * The three keep their ids on the move: the step is done once one carry set all three down together and a stack on the board
+       * holds them. A single troop dragged off the top never does, nor the three dropped one by one, nor the whole reserves carried
+       * instead; a troop or two taken along with {T} still counts.
        */
-      begin: () => ({ last: total(onTheBoard()) }),
-      done: (watch) => {
-        const now = total(onTheBoard());
-        const jumped = now - watch.last >= 2;
-        watch.last = now;
-        if (jumped) {
-          land();
+      begin: () => ({ three: new Set(splitStack()?.items.map((item) => item.id)), seen: players.landings().length }),
+      done: ({ three, seen }) => {
+        const together = players
+          .landings()
+          .slice(seen)
+          .some((landing) => three.size > 0 && [...three].every((id) => landing.itemIds.includes(id)));
+        const stack = together ? onTheBoard().find((piece) => holdsAll(piece, three)) : undefined;
+        if (stack) {
+          land(stack);
         }
-        return jumped;
+        return stack !== undefined;
       },
     }),
     task({
+      id: 'take-more',
+      task: 'Take a few more',
+      detail:
+        'Pick up one reserve troop and keep holding it over the stack.\n\nPress {T} or right-click to add another troop.\n\nTry this a few times, then drop them on the board.',
+      anchor: { kind: 'table', point: () => at(biggestReserve()) },
+      ...grownCarryLanded(players.landings, onTheBoard),
+    }),
+    task({
       id: 'join',
-      task: 'Add a troop to them',
-      detail: 'Quickly drag one troop from your reserves and let go right on top of your three. It joins their stack.',
+      task: 'Combine stacks',
+      detail: 'Drag one reserve troop onto the stack of three. It joins the stack when you let go.',
       anchor: { kind: 'table', point: () => at(carried()) },
       begin: () => carried()?.items.length ?? 0,
       done: (start) => (carried()?.items.length ?? 0) > start,
@@ -139,62 +160,59 @@ function stackTasks(snapshot: () => GameSnapshot): GuideTask[] {
     task({
       id: 'turn',
       task: 'Turn your stack',
-      detail: 'Point at your troops on the board and press Q or E. Each press turns them a step.',
+      detail: 'Hover over your troops and press {Q} or {E} to rotate the stack.',
       anchor: { kind: 'table', point: () => at(carried()) },
       ...changedInPlace(carriedOnly, (before, now) => before.orientation !== now.orientation),
     }),
     task({
       id: 'flip',
       task: 'Flip the whole stack',
-      detail: 'Still pointing at them, press F. A stack turns over all at once, as a single card does.',
+      detail: 'Hover over the stack and press {F} to flip every troop in it.',
       anchor: { kind: 'table', point: () => at(carried()) },
       ...changedInPlace(carriedOnly, (before, now) => (now.flipRevision ?? 0) > (before.flipRevision ?? 0)),
     }),
   ];
 }
 
-/* The Spice deck: shuffled, then peeked at and one card moved. */
-function deckTasks(snapshot: () => GameSnapshot): GuideTask[] {
-  const spiceDeck = () => tableDeck(snapshot, 'right');
+/* The player's faction token on the ring: carried to another sector, then flipped face down. */
+function tokenTasks(snapshot: () => GameSnapshot): GuideTask[] {
+  const token = () => factionTokenOf(snapshot().table.pieces, snapshot().bank?.factionId ?? '');
   return [
     task({
-      id: 'shuffle',
-      task: 'Shuffle the Spice deck',
-      detail: 'Point at the Spice deck on the right of the table and press R.',
-      anchor: { kind: 'table', point: () => at(spiceDeck()) },
-      begin: () => spiceDeck()?.shuffleRevision ?? 0,
-      done: (start) => (spiceDeck()?.shuffleRevision ?? 0) > start,
-    }),
-    task({
-      id: 'peek',
-      task: 'Peek at the Spice deck',
+      id: 'token-move',
+      task: 'Move your faction token',
       detail:
-        'Right-click the Spice deck and choose Peek at the deck. Only you see its cards, though the others see that you looked.',
-      anchor: { kind: 'table', point: () => at(spiceDeck()) },
-      begin: () => undefined,
-      done: () => peekedOrder() !== null,
+        'Your faction token marks your place in storm order.\n\nDrag it along the rim and release it over another sector.',
+      anchor: { kind: 'table', point: () => at(token()) },
+      begin: () => token()?.position.join(),
+      done: (start) => token() !== undefined && token()!.position.join() !== start,
     }),
     task({
-      id: 'reorder',
-      task: 'Move a card in the deck',
-      detail: 'Drag a card along the row to a new place, or move it with the arrow keys. The deck keeps the new order.',
-      /* The arrow stops at the peek's edge, so its wedge never lies over the peek's own heading. */
-      anchor: { kind: 'page', element: element('[role="dialog"][aria-label^="Peeking at"]') },
-      ...movedInPeek(),
+      id: 'token-flip',
+      task: 'Flip your faction token',
+      detail:
+        'Hover over your faction token and press {F}.\n\nA face-down token can show that you are passing, for example during bidding.',
+      anchor: { kind: 'table', point: () => at(token()) },
+      begin: () => token()?.flipRevision ?? 0,
+      done: (start) => (token()?.flipRevision ?? 0) > start,
     }),
   ];
 }
 
-const tasks = (snapshot: () => GameSnapshot) => [...stackTasks(snapshot), ...deckTasks(snapshot)];
+const tasks = (snapshot: () => GameSnapshot, players: TablePlayers) => [
+  ...stackTasks(snapshot, players),
+  ...tokenTasks(snapshot),
+];
 
 /* One line for each part of the chapter, in the order it was played. */
 const learned = [
-  'Hold a number over a stack to split that many off',
+  'A quick drag moves one piece',
   'Press and hold before dragging to carry a whole stack',
+  'Hold a number key over a stack to split that many off',
+  'While carrying, {T} or a right-click over the stack takes one more',
   'Drop a piece on its own kind to join the stack',
-  'Q and E turn a piece, F flips a whole stack',
-  'R shuffles the deck under your pointer',
-  'Peek at a deck to see it in private, and reorder it',
+  '{Q} and {E} turn a piece, {F} flips a whole stack',
+  'Your faction token slides along the rim, and {F} turns it face down to sit out',
 ];
 
 export const movingPieces: ChapterScript = { slug: 'moving-pieces', checkpoint: 'turn-1-storm', tasks, learned };

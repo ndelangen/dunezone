@@ -1,4 +1,5 @@
-import { expect, waitFor, within } from 'storybook/test';
+import { waitForFrame } from '@sb/storyWaits';
+import { expect, within } from 'storybook/test';
 
 /*
  * What every chapter's story shares: its page shows with motion on whatever the viewing machine prefers
@@ -18,10 +19,10 @@ export const playChapter =
   async ({ canvasElement }: { canvasElement: HTMLElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const banner = await page.findByRole('banner', { name: rail }, { timeout: 60_000 });
-    await expect(await within(banner).findByText(firstTask, {}, { timeout: 60_000 })).toBeVisible();
+    await waitForFrame(() => expect(within(banner).getByText(firstTask)).toBeVisible(), { timeout: 60_000 });
     await expect(within(banner).queryByRole('button', { name: 'Next' })).toBeNull();
     /* The arrow is a curve-cornered wedge in the rail's outline. */
-    await waitFor(
+    await waitForFrame(
       async () => {
         const outline = canvasElement.ownerDocument.querySelector('[data-tutorial-pointer]')!;
         await expect(outline.getAttribute('d') ?? '').toContain('Q');

@@ -4,7 +4,7 @@ import { join, resolve } from 'node:path';
 
 import { afterEach, describe, expect, test } from 'vite-plus/test';
 
-import { mantineStyles } from './mantine-styles';
+import { mantineStyles, sourceFiles } from './mantine-styles';
 
 const roots: string[] = [];
 const vendor = resolve('node_modules/@mantine/core');
@@ -18,6 +18,15 @@ function entry(source: string, extension = 'tsx') {
 afterEach(() => roots.splice(0).forEach((root) => rmSync(root, { recursive: true, force: true })));
 
 describe('Mantine stylesheet coverage', () => {
+  test('discovers imports in every supported source extension', () => {
+    const files = ['js', 'jsx', 'mjs', 'cjs', 'ts', 'tsx', 'mts', 'cts'].map((extension) =>
+      entry("import { Modal } from '@mantine/core';", extension)
+    );
+    for (const file of files) {
+      expect(mantineStyles(sourceFiles(resolve(file, '..')), vendor).sheets).toContain('Modal');
+    }
+  });
+
   test('retains Button dependencies rather than only its directly imported stylesheet', () => {
     const result = mantineStyles([entry("import { Button as Action, type ModalProps } from '@mantine/core';")], vendor);
     expect(result.sheets).toEqual(
@@ -66,6 +75,10 @@ describe('Mantine stylesheet coverage', () => {
     "import * as UI from '@mantine/core';",
     "export * from '@mantine/core';",
     "const UI = await import('@mantine/core');",
+    'const UI = await import(`@mantine/core`);',
+    'const UI = await import(`@mantine/core/${component}`);',
+    "const UI = require('@mantine/core');",
+    "import UI = require('@mantine/core');",
     "import { Button } from '@mantine/core/esm/components/Button/Button.mjs';",
   ])('fails rather than guessing when a consumer cannot be traced: %s', (source) =>
     expect(() => mantineStyles([entry(source)], vendor)).toThrow(/traced|trace/)

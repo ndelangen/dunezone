@@ -8,6 +8,10 @@ const meta = preview.meta({
   ...pageStoryMeta,
 });
 
+export const Tools = meta.story({
+  args: { path: '/admin' },
+});
+
 /** The dashboard for an administrator: the session says so, and only then does the page ask for the admin-only dashboard. */
 export const Migrations = meta.story({
   args: { path: '/admin/migrations' },

@@ -44,6 +44,55 @@ Ordinary releases should preserve dev's records and skip completed migrations.
 
 ## Read regression budgets
 
+The publication jobs dashboard's cursor query reads `publication_job_listings`, which contains queue
+metadata without render payloads. Its native indexes preserve status and creation order. The aggregate
+provides exact counts and supports offsets for older clients using the numbered-page query. Existing
+cursors keep reading their original table through the migration cutover; a new traversal uses metadata
+once verification succeeds. Both query contracts have a 128 KiB regression budget.
+
+The [local backend rehearsal](./convex-publication-listing-benchmark.json) used thirty synthetic jobs,
+each with a 900,000-byte payload. The current query read 5,401,825 bytes for three rows and a bounded
+count; after verification it read 12,127 bytes for twenty-five rows and an exact count. The final five
+rows required 7,077 bytes. The old cursor remained usable after cutover.
+
+These savings apply to dashboard reads. Maintaining the listing and aggregate costs writes even when
+the dashboard is closed. In the same backend, a small job's insert wrote six documents and 8,802 bytes;
+a status transition wrote twelve documents and 5,526 bytes. A payload-only change wrote just the source
+job. This does not establish lower total monthly usage; compare actual queue traffic and dashboard use
+before making that claim.
+
+The additive `publication_job_listings_v1` backfill copies existing job metadata in batches of four.
+The migration component reads source rows again while processing them, so a batch must leave room for
+two reads of each near-limit payload. Its verifier checks each remaining job and both aggregate entries
+before new dashboard traversals switch to metadata. The local dry run left no listing rows behind,
+and the subsequent backfill and verification produced all thirty listings.
+
+Neither migration changes source job payloads, status, attempts or publication settings. Production
+execution requires confirmation under the production-write policy. To recover, restore the source-job
+reader while retaining the listing table, triggers and aggregate. Keep decoding tagged cursors, or
+reset dashboard pagination when switching sources, so open pages remain usable.
+
+After production verification and live publishing measurements confirm the read budget, remove the
+legacy reader and readiness fallback in a separate cleanup PR. Keep migration replay and snapshot
+loading compatible with the derived listing.
+
+Catalogue cleanup and verification select one entry to check all of a source's lists, avoiding the
+same full source check per list. The check still covers stale and duplicate entries. A source with
+ten list entries and 220 KiB of authored text stays below a 512 KiB read budget for each batch.
+
+The [backend benchmark](./convex-catalogue-migration-benchmark.json) restored the same fixture before
+each version. Combined migration reads fell from 5,988,238 to 762,834 bytes, with the same write
+volume. Repeating the baseline reproduced its counters exactly. Compare the first scheduled refresh
+through the daily usage reports before translating this fixture result into monthly savings.
+
+Faction drafting reuses linked faction rows encountered by its catalogue scan. Its
+[backend benchmark](./convex-faction-drafting-benchmark.json) compares identical ordered answers
+from a synthetic 65-faction catalogue with 11 linked factions. Linked-query reads fell from
+242,255 to 213,147 bytes (12.0%); unlinked reads stayed at 210,320 bytes and writes stayed at zero.
+The repeated baseline reproduced both counters. This is a cold-query fixture result, not a monthly
+savings estimate. `convex/playCatalogue.draftable.test.ts` caps reads at 384 KiB with 220 KiB of
+linked faction text and covers missing/deleted links and the full 500-linked limit.
+
 `convex/assets.boardListings.test.ts` caps backend reads at 64 KiB for listings with real Arrakis
 geometry, including a ten-board catalogue. It covers asset landing, numbered catalogue, legacy
 browse, asset picker, FAQ board picker and ruleset board slots. It verifies that a full definition

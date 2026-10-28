@@ -1,9 +1,11 @@
+import { STANDARD_PHASES, tableProgressFor } from '@shared/play/phases';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
 import type { Vector3Tuple } from 'three';
 
 import { wheelPixels } from '@app/widgets/tabletop/wheelPixels';
 
+import type { Landing } from '../table/localTable';
 import type { GuideTask, GuideView } from '../TutorialGuide';
 
 /* What the chapters check on the table and the page, shared so each chapter reads only as its tasks. */
@@ -14,6 +16,12 @@ export const at = (piece: { position: readonly number[] } | undefined) =>
   piece ? (piece.position as Vector3Tuple) : null;
 export const element = (selector: string) => () => document.querySelector(selector);
 /* The last match, as a piece just taken into the hand is listed last. */
+/** The button with exactly this text inside a window, rather than the window's own frame buttons that come first. */
+export const buttonIn = (windowKey: string, text: string) => (): HTMLButtonElement | null =>
+  [...document.querySelectorAll<HTMLButtonElement>(`[data-window="${windowKey}"] button`)].find(
+    (button) => (button.textContent?.trim() || button.getAttribute('aria-label')) === text
+  ) ?? null;
+
 export const lastElement = (selector: string) => () => [...document.querySelectorAll(selector)].at(-1) ?? null;
 
 /* Each task keeps its own kind of baseline; the guide only hands it back. */
@@ -143,3 +151,81 @@ export const scrolled = (direction: 'in' | 'out') => ({
     (direction === 'in' ? cameraDistance(view) < watch.from * 0.85 : cameraDistance(view) > watch.from * 1.15),
   finish: (watch: { stop: AbortController }) => watch.stop.abort(),
 });
+
+/*
+ * A task that only shows something has nothing to do on the table, so the player moves on with Enter.
+ * The press is counted from the moment the task starts, and taken, so it never also presses a button
+ * the focus was left on, such as Next phase; in a text field and on the tutorial's own rail Enter keeps its own meaning.
+ * A caller can reject a press while its action is unavailable; Enter is still taken so it cannot activate a table control.
+ */
+export const pressEnter = (accept: () => boolean = () => true) => ({
+  begin: () => {
+    const watch = { pressed: false, stop: new AbortController() };
+    const press = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (event.key !== 'Enter' || target?.closest('input, textarea, [contenteditable="true"], [data-tutorial-free]')) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      /* A held Enter is taken too, so it never presses a focused button, but only a fresh press moves on. */
+      if (!event.repeat && accept()) {
+        watch.pressed = true;
+      }
+    };
+    window.addEventListener('keydown', press, { capture: true, signal: watch.stop.signal });
+    return watch;
+  },
+  done: (watch: { pressed: boolean }) => watch.pressed,
+  finish: (watch: { stop: AbortController }) => watch.stop.abort(),
+});
+
+/** The phase the game is in, by its id, and the turn; a fixture without its own turn plays the standard one. */
+export const phaseOf = (snapshot: () => GameSnapshot) => {
+  const progress = tableProgressFor(snapshot().phase, snapshot().phases ?? STANDARD_PHASES);
+  return { id: progress.activePhaseId, turn: progress.turn };
+};
+
+/** The header's Next phase button. */
+export const nextPhaseButton = () =>
+  [...document.querySelectorAll('[aria-label="Phase navigation"] button')].find(
+    (button) => button.textContent?.trim() === 'Next phase'
+  ) ?? null;
+
+/** The gear's game menu button in the header. */
+export const gameMenuButton = () => document.querySelector<HTMLElement>('[aria-label="Game menu"]');
+
+/** Closes the game menu if it is open, so it never stands over the chapter's closing screen. */
+export const closeGameMenu = () => {
+  if (document.querySelector('[role="menu"]')) {
+    gameMenuButton()?.click();
+  }
+};
+
+/*
+ * A carry that grew while held, set down since the task began with every item it held in one of `stacks`.
+ * {T}, or a right-click, while carrying takes the next piece from the stack under the pointer, so the carry growing is the take itself;
+ * a key pressed with nothing carried, a stack picked up whole, or pieces dropped one at a time never count.
+ * The table records each take and drop as it answers it, so a gesture faster than the guide's tick is still seen.
+ */
+export const grownCarryLanded = (landings: () => readonly Landing[], stacks: () => readonly Piece[]) => ({
+  begin: () => landings().length,
+  done: (seen: number) =>
+    landings()
+      .slice(seen)
+      .some((landing) => landing.grew && stacks().some((stack) => holdsAll(stack, landing.itemIds))),
+});
+
+/** Whether a stack holds every one of these items, by id. */
+export const holdsAll = (stack: Piece, itemIds: Iterable<string>) =>
+  [...itemIds].every((id) => stack.items.some((item) => item.id === id));
+
+/*
+ * A press outside a piece's ring menu closes it, as a press anywhere else on the page would; a step that ends in the ring leaves it shut.
+ * It is sent only while a ring is open, so no other window listener ever takes it for the player's own press.
+ */
+export const closePieceMenu = () => {
+  if (document.querySelector('[data-radial-menu]')) {
+    document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+  }
+};

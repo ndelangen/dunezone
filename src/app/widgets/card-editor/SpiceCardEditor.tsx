@@ -227,7 +227,9 @@ function BodyFields({ draft, patch }: { draft: SpiceDraft; patch: Patch }) {
       />
       <ControlBlock
         title="Body"
-        description="The card's text. It starts as the standard sentence for its name and amount, and follows them until you edit it; an emptied body prints that sentence again."
+        description={
+          'Starts as the standard sentence for the name and amount, until you edit it.\nEmpty it to bring the standard sentence back.'
+        }
         input={
           <FormattedTextInput
             aria-label="Body"

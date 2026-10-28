@@ -1,10 +1,11 @@
 import type { GuideTask } from '../TutorialGuide';
 import type { ChapterScript } from './chapterScript';
-import { element as first, task, viaCompass } from './guideChecks';
+import { element as first, openedWindow, task, viaCompass, windowShown } from './guideChecks';
 
 /*
- * Chapter 8, "Windows": Space opens a compass over the table, a window opens in the middle,
+ * "Windows": Space opens a compass over the table, a window opens in the middle,
  * and it can be pinned to the bottom-left or bottom-right slot to stay open while the player plays.
+ * Each window also has a letter of its own, which the compass shows beside it, so the chapter ends on one.
  * Every task is read from the screen, so it moves on only once the player has done it with the controls.
  */
 
@@ -82,7 +83,7 @@ const windowTasks = (): GuideTask[] => [
   task({
     id: 'open-compass',
     task: 'Open the controls',
-    detail: 'Press {Space}. The compass opens over the table; {Escape} or a click outside closes it again.',
+    detail: 'Press {Space} to open the controls.',
     anchor: { kind: 'page', element: first('[data-compass-launcher]') },
     begin: nothing,
     done: compassOpen,
@@ -90,16 +91,16 @@ const windowTasks = (): GuideTask[] => [
   task({
     id: 'hand',
     task: 'Open your hand',
-    detail: 'Left on the compass is your hand. Press {←} then {Space}, or hold {Space}, tap {←} and let go.',
+    detail: 'Your hand is on the left. Press {←}, then {Space} to open it.',
     anchor: { kind: 'page', element: viaCompass('hand') },
     begin: nothing,
     done: () => windowAt('centre', 'hand'),
   }),
   task({
     id: 'help',
-    task: 'Find out what a window is for',
+    task: 'Read a window hint',
     detail:
-      'Every window has a (?) beside its name. Point at it, read what the window holds, then move the pointer away.',
+      'Hover over the question mark beside the window title to read its help text. Move the pointer away when you are done.',
     anchor: { kind: 'page', element: first(HELP) },
     ...readHelp(),
   }),
@@ -107,19 +108,19 @@ const windowTasks = (): GuideTask[] => [
     id: 'pin-hand',
     task: 'Keep your hand open',
     detail:
-      'A window in the middle closes when you click the table. Pin it to the bottom left with the button in its title.',
+      'Use the left pin beside the window title to keep your hand open in the bottom left.\n\nUnpinned windows close when you click the table.',
     anchor: { kind: 'page', element: first('[aria-label="Pin to the bottom left"]') },
     begin: nothing,
     done: () => windowAt('left', 'hand'),
   }),
 ];
 
-/* The chat pinned on the right and made taller, then the search and unpinning. */
+/* The chat pinned on the right and made taller, then the search, unpinning, and the chat back with its letter. */
 const slotTasks = (): GuideTask[] => [
   task({
     id: 'table-chat',
     task: 'Open the table chat',
-    detail: 'Right on the compass is the chat everyone at the table reads. Hold {Space}, tap {→} and let go.',
+    detail: 'Press {Space}, {→}, then {Space} to open table chat.\n\nEveryone at the table can read these messages.',
     anchor: { kind: 'page', element: inCompass('[data-spot="table"]') },
     begin: nothing,
     done: () => windowAt('centre', 'table-chat'),
@@ -127,7 +128,8 @@ const slotTasks = (): GuideTask[] => [
   task({
     id: 'pin-chat',
     task: 'Pin the chat to the bottom right',
-    detail: 'Use the other pin in the window’s title. Each slot holds one window; pinning another replaces it.',
+    detail:
+      'Use the right pin beside the chat title.\n\nEach corner holds one window, so pinning a new one there replaces the old one.',
     anchor: { kind: 'page', element: first('[aria-label="Pin to the bottom right"]') },
     begin: nothing,
     done: () => windowAt('right', 'table-chat'),
@@ -135,14 +137,15 @@ const slotTasks = (): GuideTask[] => [
   task({
     id: 'resize',
     task: 'Make the chat taller',
-    detail: 'Drag the grip on the top edge of the pinned chat upward. Double-click the grip to put it back.',
+    detail:
+      'Drag the grip above the pinned chat upward to make it taller.\n\nDouble-click the grip to restore its original height.',
     anchor: { kind: 'page', element: first(RESIZE_GRIP) },
     ...resizedTaller(),
   }),
   task({
     id: 'search',
-    task: 'Look at the right bay by typing',
-    detail: 'Open the controls and just type: “right” finds the camera view. Press {Enter} to pick it.',
+    task: 'Search the controls',
+    detail: 'Press {Space}, type "right" and confirm with {Enter} to select the right camera view.',
     anchor: { kind: 'page', element: inCompass('[aria-label="Search controls"]') },
     begin: nothing,
     done: () => showing('right'),
@@ -150,12 +153,19 @@ const slotTasks = (): GuideTask[] => [
   task({
     id: 'unpin',
     task: 'Unpin table chat',
-    detail:
-      'The crossed-out pin in the chat’s title takes it off the screen at once. {Space} {→} brings it back any time.',
+    detail: 'Press the crossed-out pin in the chat title to close the pinned window.',
     anchor: { kind: 'page', element: first('[data-side="right"] [aria-label="Unpin"]') },
     begin: nothing,
     /* Whatever ended up pinned bottom right, the slot is empty once it is unpinned. */
     done: () => document.querySelector('[data-side="right"]') === null,
+  }),
+  task({
+    id: 'letter',
+    task: 'Open chat with a shortcut',
+    detail:
+      'Click the table, then press {G} to open table chat.\n\nEach window has a shortcut shown in the controls.\n\nYou can also hold {Space}, tap a direction and release it to open a window.',
+    anchor: { kind: 'page', element: first('[data-compass-launcher]') },
+    ...openedWindow(windowShown('table-chat')),
   }),
 ];
 
@@ -171,6 +181,7 @@ const learned = [
   'Pin a window to the bottom left or right to keep it open',
   'Drag a pinned window’s top edge to resize it',
   'Type anything on the compass to find it',
+  'One letter opens each window: {H}, {J}, {G}, {F} and {B}',
 ];
 
 export const windows: ChapterScript = { slug: 'windows', checkpoint: 'turn-1-storm', tasks, learned };

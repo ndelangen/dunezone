@@ -26,6 +26,283 @@ const REGION = { width: 960, height: 600 };
 sb.mock(import('../src/app/db/core/index.ts'));
 sb.mock(import('../src/app/db/playBugReports.ts'));
 
+/* Storybook reads the sidebar order (`options.storySort`) from this file without running it, and finds it only through
+   the default export's `parameters`, so the parameters are a constant both previews name. */
+const parameters = {
+  /* A capture of a moving frame differs from build to build. */
+  chromatic: { prefersReducedMotion: 'reduce' as const },
+  options: {
+    storySort: {
+      order: [
+        'Rulebook',
+        [
+          'Document',
+          ['Complete book', 'Sizes and styles'],
+          'Page',
+          [
+            'Cover',
+            ['Rendered', 'Editing'],
+            'Details',
+            ['Rendered', 'Editing'],
+            'Layouts',
+            ['Rendered', 'Editing'],
+            'Composition',
+            ['Rendered', 'Editing'],
+          ],
+          'Blocks',
+          [
+            'Annotated component',
+            ['Rendered', 'Editing'],
+            'Callout',
+            ['Rendered', 'Editing'],
+            'Card group',
+            ['Rendered', 'Editing'],
+            'Component entry',
+            ['Rendered', 'Editing'],
+            'Credits',
+            ['Rendered', 'Editing'],
+            'Faction introduction',
+            ['Rendered', 'Editing'],
+            'Illustration',
+            ['Rendered', 'Editing'],
+            'Inventory',
+            ['Rendered', 'Editing'],
+            'List',
+            ['Rendered', 'Editing'],
+            'Question and answer',
+            ['Rendered', 'Editing'],
+            'Section heading',
+            ['Rendered', 'Editing'],
+            'Table',
+            ['Rendered', 'Editing'],
+            'Text',
+            ['Rendered', 'Editing'],
+          ],
+        ],
+        'Pages',
+        [
+          'Admin',
+          'Assets',
+          'Auth',
+          'Factions',
+          'Groups',
+          'Home',
+          'Media',
+          /* Play reads in the order a game runs, with the recorded game and the sandbox last. */
+          'Play',
+          [
+            'Lobby',
+            'Create',
+            'Opening',
+            'Drafting',
+            'Trading',
+            'Setup',
+            'Table',
+            'Panels',
+            ['Layout', 'Hand and spice', 'Shared inventory', 'Log', 'Conversations', 'Players'],
+            'Phases',
+            'Bidding',
+            'Battles',
+            'Alliances',
+            'Territory tints',
+            'Results',
+            'Journey',
+            'Sandbox',
+          ],
+          /* The tutorial reads in chapter order, as `TUTORIAL_CHAPTERS` lists it; a test keeps the two in step. */
+          'Tutorial',
+          [
+            'Landing',
+            'Welcome',
+            'Find or create a game',
+            'Take a seat',
+            'Draft and trade',
+            'Looking around',
+            'Moving pieces',
+            'Windows',
+            'Your hand and spice',
+            'Decks and dealing',
+            'What goes where',
+            'Setup',
+            'Phases and turns',
+            'Talking & Alliances',
+            'Bidding',
+            'Battle',
+            'Ending a game',
+            'The private side-table',
+            'Bring your own pieces',
+            'Moderation and disputes',
+            'Chapter complete',
+          ],
+          '*',
+        ],
+        '*',
+      ],
+    },
+  },
+  layout: 'centered' as const,
+  backgrounds: {
+    options: {
+      dark: { name: 'Warm dark', value: coreColors.ground },
+      light: { name: 'Paper', value: coreColors.paper },
+    },
+  },
+  viewport: {
+    options: {
+      /* Constrained widths a story can select when its subject *is* the behaviour at that
+         width. Stories are otherwise left responsive, which is the more useful default. */
+      contentNarrow: { name: 'Content narrow', styles: { width: '260px', height: '620px' } },
+      contentColumn: { name: 'Content column', styles: { width: '620px', height: '620px' } },
+      page: {
+        name: 'Page',
+        styles: {
+          width: `${Math.round(sizes.page.width)}px`,
+          height: `${Math.round(sizes.page.height)}px`,
+        },
+      },
+      card: {
+        name: 'Card',
+        styles: {
+          width: `${Math.round(sizes.card.width)}px`,
+          height: `${Math.round(sizes.card.height)}px`,
+        },
+      },
+      shield: {
+        name: 'Shield',
+        styles: {
+          width: `${Math.round(sizes.shield.width)}px`,
+          height: `${Math.round(sizes.shield.height)}px`,
+        },
+      },
+      tokenRectangle: {
+        name: 'Rectangle token',
+        styles: {
+          width: `${Math.round(sizes.tokenRectangle.width)}px`,
+          height: `${Math.round(sizes.tokenRectangle.height)}px`,
+        },
+      },
+      disc: {
+        name: 'Disc',
+        styles: {
+          width: `${Math.round(sizes.disc.width)}px`,
+          height: `${Math.round(sizes.disc.height)}px`,
+        },
+      },
+      appDesktop: {
+        name: 'App desktop',
+        styles: {
+          width: '1200px',
+          height: '900px',
+        },
+      },
+      appAuthoringWide: {
+        name: 'Authoring wide',
+        styles: {
+          width: '1280px',
+          height: '900px',
+        },
+      },
+      appAuthoringCompact: {
+        name: 'Authoring compact',
+        styles: {
+          width: '1074px',
+          height: '1199px',
+        },
+      },
+      appAuthoringTablet: {
+        name: 'Authoring tablet',
+        styles: {
+          width: '900px',
+          height: '1000px',
+        },
+      },
+      appLarge: {
+        name: 'App large',
+        styles: {
+          width: '1440px',
+          height: '1200px',
+        },
+      },
+      appShort: {
+        name: 'App short',
+        styles: {
+          width: '1200px',
+          height: '320px',
+        },
+      },
+      appLow: {
+        name: 'App low',
+        styles: {
+          width: '1200px',
+          height: '445px',
+        },
+      },
+      appConstrained: {
+        name: 'App constrained',
+        styles: {
+          width: '860px',
+          height: '760px',
+        },
+      },
+      region: {
+        name: 'Region',
+        styles: {
+          width: `${REGION.width}px`,
+          height: `${REGION.height}px`,
+        },
+      },
+      /* The play table at the widths its chrome is checked at: the narrowest it lays out, a middling and a wide one. */
+      table760: { name: 'Table 760', styles: { width: '760px', height: '800px' } },
+      table1000: { name: 'Table 1000', styles: { width: '1000px', height: '800px' } },
+      table1280: { name: 'Table 1280', styles: { width: '1280px', height: '800px' } },
+      appMobile: {
+        name: 'App mobile',
+        styles: {
+          width: '390px',
+          height: '844px',
+        },
+      },
+      /* The narrowest phone the authoring toolbar is held to, beside the tablet and laptop widths it is also checked at. */
+      appMobileNarrow: {
+        name: 'App mobile narrow',
+        styles: {
+          width: '360px',
+          height: '800px',
+        },
+      },
+      appShortCanvas: {
+        name: 'App short canvas',
+        styles: {
+          width: '360px',
+          height: '298px',
+        },
+      },
+      appTablet: {
+        name: 'App tablet',
+        styles: {
+          width: '768px',
+          height: '1024px',
+        },
+      },
+      appLaptop: {
+        name: 'App laptop',
+        styles: {
+          width: '1100px',
+          height: '900px',
+        },
+      },
+      /* A window just wider than a phone, where the widest editor row (the faction editor with its name cleared) must still fit unfolded. */
+      appAuthoringToolbarUnfolded: {
+        name: 'Authoring toolbar unfolded',
+        styles: {
+          width: '552px',
+          height: '900px',
+        },
+      },
+    },
+  },
+};
+
 const preview = definePreview({
   addons: [addonDocs()],
   loaders: [loadStorybookDatabase],
@@ -59,255 +336,7 @@ const preview = definePreview({
     }
     document.documentElement.setAttribute('data-mantine-color-scheme', 'dark');
   },
-  parameters: {
-    /* A capture of a moving frame differs from build to build. */
-    chromatic: { prefersReducedMotion: 'reduce' },
-    options: {
-      storySort: {
-        order: [
-          'Rulebook',
-          [
-            'Document',
-            ['Complete book', 'Sizes and styles'],
-            'Page',
-            [
-              'Cover',
-              ['Rendered', 'Editing'],
-              'Details',
-              ['Rendered', 'Editing'],
-              'Layouts',
-              ['Rendered', 'Editing'],
-              'Composition',
-              ['Rendered', 'Editing'],
-            ],
-            'Blocks',
-            [
-              'Annotated component',
-              ['Rendered', 'Editing'],
-              'Callout',
-              ['Rendered', 'Editing'],
-              'Card group',
-              ['Rendered', 'Editing'],
-              'Component entry',
-              ['Rendered', 'Editing'],
-              'Credits',
-              ['Rendered', 'Editing'],
-              'Faction introduction',
-              ['Rendered', 'Editing'],
-              'Illustration',
-              ['Rendered', 'Editing'],
-              'Inventory',
-              ['Rendered', 'Editing'],
-              'List',
-              ['Rendered', 'Editing'],
-              'Question and answer',
-              ['Rendered', 'Editing'],
-              'Section heading',
-              ['Rendered', 'Editing'],
-              'Table',
-              ['Rendered', 'Editing'],
-              'Text',
-              ['Rendered', 'Editing'],
-            ],
-          ],
-          'Pages',
-          [
-            'Admin',
-            'Assets',
-            'Auth',
-            'Factions',
-            'Groups',
-            'Home',
-            'Media',
-            /* Play reads in the order a game runs, with the recorded game and the sandbox last. */
-            'Play',
-            [
-              'Lobby',
-              'Create',
-              'Opening',
-              'Drafting',
-              'Trading',
-              'Setup',
-              'Table',
-              'Panels',
-              ['Layout', 'Hand and spice', 'Shared inventory', 'Log', 'Conversations', 'Players'],
-              'Phases',
-              'Bidding',
-              'Battles',
-              'Alliances',
-              'Territory tints',
-              'Results',
-              'Journey',
-              'Sandbox',
-            ],
-            '*',
-          ],
-          '*',
-        ],
-      },
-    },
-    layout: 'centered',
-    backgrounds: {
-      options: {
-        dark: { name: 'Warm dark', value: coreColors.ground },
-        light: { name: 'Paper', value: coreColors.paper },
-      },
-    },
-    viewport: {
-      options: {
-        /* Constrained widths a story can select when its subject *is* the behaviour at that
-           width. Stories are otherwise left responsive, which is the more useful default. */
-        contentNarrow: { name: 'Content narrow', styles: { width: '260px', height: '620px' } },
-        contentColumn: { name: 'Content column', styles: { width: '620px', height: '620px' } },
-        page: {
-          name: 'Page',
-          styles: {
-            width: `${Math.round(sizes.page.width)}px`,
-            height: `${Math.round(sizes.page.height)}px`,
-          },
-        },
-        card: {
-          name: 'Card',
-          styles: {
-            width: `${Math.round(sizes.card.width)}px`,
-            height: `${Math.round(sizes.card.height)}px`,
-          },
-        },
-        shield: {
-          name: 'Shield',
-          styles: {
-            width: `${Math.round(sizes.shield.width)}px`,
-            height: `${Math.round(sizes.shield.height)}px`,
-          },
-        },
-        tokenRectangle: {
-          name: 'Rectangle token',
-          styles: {
-            width: `${Math.round(sizes.tokenRectangle.width)}px`,
-            height: `${Math.round(sizes.tokenRectangle.height)}px`,
-          },
-        },
-        disc: {
-          name: 'Disc',
-          styles: {
-            width: `${Math.round(sizes.disc.width)}px`,
-            height: `${Math.round(sizes.disc.height)}px`,
-          },
-        },
-        appDesktop: {
-          name: 'App desktop',
-          styles: {
-            width: '1200px',
-            height: '900px',
-          },
-        },
-        appAuthoringWide: {
-          name: 'Authoring wide',
-          styles: {
-            width: '1280px',
-            height: '900px',
-          },
-        },
-        appAuthoringCompact: {
-          name: 'Authoring compact',
-          styles: {
-            width: '1074px',
-            height: '1199px',
-          },
-        },
-        appAuthoringTablet: {
-          name: 'Authoring tablet',
-          styles: {
-            width: '900px',
-            height: '1000px',
-          },
-        },
-        appLarge: {
-          name: 'App large',
-          styles: {
-            width: '1440px',
-            height: '1200px',
-          },
-        },
-        appShort: {
-          name: 'App short',
-          styles: {
-            width: '1200px',
-            height: '320px',
-          },
-        },
-        appLow: {
-          name: 'App low',
-          styles: {
-            width: '1200px',
-            height: '445px',
-          },
-        },
-        appConstrained: {
-          name: 'App constrained',
-          styles: {
-            width: '860px',
-            height: '760px',
-          },
-        },
-        region: {
-          name: 'Region',
-          styles: {
-            width: `${REGION.width}px`,
-            height: `${REGION.height}px`,
-          },
-        },
-        /* The play table at the widths its chrome is checked at: the narrowest it lays out, a middling and a wide one. */
-        table760: { name: 'Table 760', styles: { width: '760px', height: '800px' } },
-        table1000: { name: 'Table 1000', styles: { width: '1000px', height: '800px' } },
-        table1280: { name: 'Table 1280', styles: { width: '1280px', height: '800px' } },
-        appMobile: {
-          name: 'App mobile',
-          styles: {
-            width: '390px',
-            height: '844px',
-          },
-        },
-        /* The narrowest phone the authoring toolbar is held to, beside the tablet and laptop widths it is also checked at. */
-        appMobileNarrow: {
-          name: 'App mobile narrow',
-          styles: {
-            width: '360px',
-            height: '800px',
-          },
-        },
-        appShortCanvas: {
-          name: 'App short canvas',
-          styles: {
-            width: '360px',
-            height: '298px',
-          },
-        },
-        appTablet: {
-          name: 'App tablet',
-          styles: {
-            width: '768px',
-            height: '1024px',
-          },
-        },
-        appLaptop: {
-          name: 'App laptop',
-          styles: {
-            width: '1100px',
-            height: '900px',
-          },
-        },
-        /* A window just wider than a phone, where the widest editor row (the faction editor with its name cleared) must still fit unfolded. */
-        appAuthoringToolbarUnfolded: {
-          name: 'Authoring toolbar unfolded',
-          styles: {
-            width: '552px',
-            height: '900px',
-          },
-        },
-      },
-    },
-  },
+  parameters,
   decorators: [
     (Story, { globals, title }) => {
       const { viewport } = globals;
@@ -388,4 +417,4 @@ export const testingPreview = definePreview({
   parameters: { ...preview.input.parameters, chromatic: { disableSnapshot: true } },
 });
 
-export default definePreview({ ...preview.input, addons: [addonDocs()] });
+export default definePreview({ ...preview.input, parameters, addons: [addonDocs()] });

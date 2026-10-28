@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "sourceDescription": "Troop silhouettes generated from user-supplied image references and traced from the approved bitmap masters. Original authorship and publication were not independently verified.",
+  "source": "originals/720X720-Ogre Updated 3.jpeg",
+  "assets": {
+    "/vector/troop/ogre-club-brute.svg": {
+      "approvedBitmap": "originals/ogre-club-brute-approved.png",
+      "bitmapMaster": "bitmaps/ogre-club-brute.png",
+      "approval": "The user approved all nine numbered troop proposals on 2026-10-26 with the reply \"Approve all nine\".",
+      "alphaThreshold": 0.5,
+      "maskGaussianSigmaPixels": 0.8,
+      "minimumComponentAreaPixels": 12,
+      "trace": "Potrace 1.16, turdsize 12, alphamax 1.0, opttolerance 0.6, followed by the SVG authoring root and provenance steps, uniform square normalization and the troop optimization profile.",
+      "paint": "Inherited from the caller. Essential gaps remain transparent.",
+      "collection": "Troops, supplied by the existing vector-category fallback.",
+      "details": "A broad pointed-ear figure stands with bent arms, a short spiked club, a simple loincloth and heavy boots."
+    }
+  }
+}

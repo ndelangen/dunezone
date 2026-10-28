@@ -1,0 +1,35 @@
+/*
+ * A ticket's parts, each its own pane in a `TicketLayout`: the main part on the app's paper, the stub on the table's ground, and a perforation between them.
+ * The stub's ground and accent are the play shell's own, so a step into the table starts here.
+ */
+
+.main {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.stub {
+  position: relative;
+  display: flex;
+  height: 100%;
+}
+
+.stub > * {
+  flex: 1 1 auto;
+}
+
+/* The perforation, drawn on the stub's edge once `TicketLayout` sets the stub beside the main part. */
+@container ticket-layout (width >= 48rem) {
+  .stub::before {
+    content: "";
+    position: absolute;
+    top: var(--space-md);
+    bottom: var(--space-md);
+    left: -1px;
+    width: 2px;
+    background: repeating-linear-gradient(180deg, var(--color-brand) 0 0.5rem, transparent 0.5rem 1rem);
+    opacity: 0.45;
+    z-index: 1;
+  }
+}

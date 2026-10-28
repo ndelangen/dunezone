@@ -6,6 +6,7 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { openPanel } from './controls.stories.fixture';
 import { gameMeta, install, lastCommand } from './game.stories.fixture';
+import { tintedSnapshot } from './panels/tints/TerritoryTintsPanel.stories.fixture';
 import { playingSnapshot, productTransport } from './product.stories.fixture';
 
 const meta = testingPreview.meta({
@@ -19,44 +20,6 @@ const meta = testingPreview.meta({
 });
 
 const VIEWER = 'seat-2';
-
-function tintedSnapshot(): GameSnapshot {
-  return {
-    ...playingSnapshot(VIEWER),
-    bank: { factionId: 'house-harkonnen', balance: 0 },
-    tints: [
-      {
-        id: 'tint-fremen',
-        name: 'Fremen deployment',
-        color: '#2b5ea7',
-        territories: [
-          'the_great_flat',
-          'the_greater_flat',
-          'wind_pass',
-          'plastic_basin',
-          'funeral_plain',
-          'habbanya_erg',
-          'false_wall_west',
-          'cielago_west',
-          'hagga_basin',
-          'wind_pass_north',
-          'polar_sink',
-          'tsimpo',
-          'broken_land',
-          'rock_outcroppings',
-          'bight_of_the_cliff',
-          'tabr',
-        ],
-      },
-      {
-        id: 'tint-shield',
-        name: 'Shield Wall destroyed',
-        color: '#1b1b1b',
-        territories: ['shield_wall'],
-      },
-    ],
-  };
-}
 
 /** The table as the Worker runs it, refusals included, so painting can be tried by hand; refuseCreate refuses every new tint, as a full table would, and refuseRemove every removal. */
 function liveTransport(start: GameSnapshot, { refuseCreate = false, refuseRemove = false } = {}) {

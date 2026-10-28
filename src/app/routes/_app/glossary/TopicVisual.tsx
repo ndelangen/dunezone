@@ -158,8 +158,8 @@ function PiecesVisual() {
           <TroopToken
             background={backgroundPresets.fremen}
             image="/vector/troop/fremen.svg"
-            star="/vector/troop_modifier/star-left-red.svg"
-            hue={undefined}
+            star="/vector/troop_modifier/star-left.svg"
+            hue="red"
             striped={undefined}
           />
         </Disc>

@@ -31,7 +31,8 @@ function functionPath(body: unknown) {
 export function gameHttpClient(url: string, observe?: ConvexObserver): ConvexHttpClient {
   return new ConvexHttpClient(url, {
     logger: false,
-    fetch: async (input, init) => {
+    /* Bun's own `fetch` type adds `preconnect`, which the client never calls; the page's tutorial tables type-check this file under Bun. */
+    fetch: (async (input: RequestInfo | URL, init?: RequestInit) => {
       const startedAt = Date.now();
       const signal = AbortSignal.timeout(PLAY_REQUEST_TIMEOUT_MS);
       const settle = (ok: boolean) =>
@@ -79,6 +80,6 @@ export function gameHttpClient(url: string, observe?: ConvexObserver): ConvexHtt
               { cause: error }
             );
       }
-    },
+    }) as typeof fetch,
   });
 }

@@ -306,6 +306,13 @@ preview turns Chromatic snapshots off for the whole file. Its plays still run in
 the Vitest story shards on every pull request, and the stories stay in Storybook. Each CSF file renders
 with the preview its meta came from, so a file holds stories of one kind only.
 
+A story is about one thing its own component owns ([ADR-0005](adr/0005-stories-show-only-owned-states.md)).
+A panel, widget or page never repeats the states of the kit components it composes, such as a
+button's hover or a tooltip opening, because their own stories cover them. Its testing stories prove
+the wiring instead: the right data reaches the child, asserted through the child's accessible name,
+value or description, and the child's simplest gesture sends the right intent. Each visual story
+changes one thing from its component's baseline story.
+
 A file that has stories of both kinds is split into a pair: `name.stories.tsx` keeps the presentation
 stories and `name.testing.stories.tsx` holds the testing ones under the same `title`, so both appear in
 one Storybook entry and keep their story ids. Helpers both files use live in `name.stories.fixture.ts(x)`.

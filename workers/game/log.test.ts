@@ -155,21 +155,21 @@ describe('the public log', () => {
     });
     log.recordCommit({
       holders: [],
-      before: at(2, [['house', 'fremen']]),
-      next: at(3, [['house', 'fremen', 'guild']]),
+      before: at(2, []),
+      next: at(3, [['house', 'fremen']]),
       message: command({ kind: 'alliance-accept', factionId: 'house', offer: 0 }),
       viewer: viewer as never,
     });
     log.recordCommit({
       holders: [],
-      before: at(3, [['house', 'fremen', 'guild']]),
-      next: at(4, [['fremen', 'guild']]),
+      before: at(3, [['house', 'fremen']]),
+      next: at(4, []),
       message: command({ kind: 'alliance-break', factionId: 'fremen' }),
       viewer: viewer as never,
     });
     expect(log.page('game', Number.MAX_SAFE_INTEGER).entries.map((entry) => entry.text)).toEqual([
-      'House broke its alliance with Fremen and Guild.',
-      'House, Fremen and Guild are now allied.',
+      'House broke its alliance with Fremen.',
+      'House and Fremen are now allied.',
     ]);
   });
 
@@ -300,4 +300,34 @@ describe('the public log', () => {
       'Alice deleted Family Atomics card from the game.',
     ]);
   });
+});
+
+it('reads old deletion rows without secret names and keeps new safe detail across reloads', () => {
+  const storage = memoryStorage();
+  const log = new PublicLog(storage, () => 'Turn 2');
+  log.enabled = true;
+  const entry = {
+    key: 'deletion:17',
+    class: 'deletion' as const,
+    template: '{0} deleted Secret leader from the game.',
+    people: [{ userId: 'alice', name: 'Alice' }],
+    at: 123,
+  };
+  log.record(entry);
+  log.record({ ...entry, key: 'deletion:v2:18', template: '{0} deleted Visible leader from the game.' });
+  const restored = new PublicLog(storage, () => 'Turn 3');
+  const rows = restored.page('game', Number.MAX_SAFE_INTEGER).entries;
+  expect(rows.map((row) => row.text)).toEqual([
+    'Alice deleted Visible leader from the game.',
+    'Alice deleted a piece from the game.',
+  ]);
+  expect(rows[1]).toMatchObject({ context: 'Turn 2', at: 123 });
+  restored.scrub('alice');
+  expect(restored.page('game', Number.MAX_SAFE_INTEGER).entries[1].text).toBe(
+    '[deleted user] deleted a piece from the game.'
+  );
+  expect(
+    storage.sql.exec<{ template: string }>('SELECT template FROM public_log WHERE key=?', 'deletion:17').toArray()[0]
+      .template
+  ).toBe(entry.template);
 });

@@ -27,11 +27,13 @@ import type { ClientMessage, CommitMessage, GameSnapshot, ServerMessage, Viewer 
 import { GameRejection } from '../../src/shared/play/rejection';
 import { isRemovalAction } from '../../src/shared/play/removal';
 import { isResultAction } from '../../src/shared/play/result';
+import { isReviewAction, REVIEW_CHECKPOINTS, reviewableStage, reviewRunning } from '../../src/shared/play/review';
+import type { TableReview } from '../../src/shared/play/review';
 import type { TableRoster } from '../../src/shared/play/schema';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import type { SpiceTransfer } from '../../src/shared/play/spiceReserve';
 import { stormOrder } from '../../src/shared/play/stormSector';
-import { isSwapAction, openSwapping } from '../../src/shared/play/swapping';
+import { isSwapAction } from '../../src/shared/play/swapping';
 import { isTableSeatCount } from '../../src/shared/play/tableSettings';
 import { eventId as tableEventId } from '../../src/shared/play/tableState';
 import type { RoomFrame } from '../../src/shared/play/updates';
@@ -43,7 +45,7 @@ import { Conversations } from './conversations';
 import { DirectoryOutbox } from './directory';
 import {
   applyDraftAction,
-  assignmentEvents,
+  dealtSnapshot,
   draftWithCatalogue,
   draftWithSetAside,
   rewrittenDraft,
@@ -59,6 +61,8 @@ import { revealPlacedPredictions } from './predictionCards';
 import { PublicActions } from './publicActions';
 import { RemovalVotes } from './removal';
 import { applyResult, settleEnding } from './result';
+import { TableReviews } from './review';
+import type { ReviewCommand } from './review';
 import { Room } from './room';
 import type { HistoryRow } from './sessionHistory';
 import { SessionHistory } from './sessionHistory';
@@ -159,6 +163,7 @@ export class GameSession {
   private readonly actors: ActorDirectory;
   private readonly log: PublicLog;
   private readonly removal: RemovalVotes;
+  private readonly reviews: TableReviews;
   private readonly conversations: Conversations;
   private readonly participation: Participation;
   private readonly swapping: Swapping;
@@ -194,6 +199,7 @@ export class GameSession {
     this.swapping = new Swapping(this.storage, this.actors, new SetupSupply(this.storage, this.captures), this.log);
     this.actors.participation = this.participation;
     this.removal = new RemovalVotes(this.storage, this.actors, this.log);
+    this.reviews = new TableReviews(this.storage, this.actors, this.log);
     this.conversations = new Conversations(this.storage, this.actors);
     const metadata = sql.exec<{ data: string }>('SELECT data FROM metadata WHERE id=1').toArray()[0];
     if (metadata) {
@@ -484,49 +490,70 @@ export class GameSession {
   deleteActor(userId: string, eventId?: string) {
     const oldSeat = this.actors.seatFor(userId);
     const occupants = this.actors.seated();
-    const committed = this.storage.transactionSync(() => {
-      const stored = this.room ? this.storedSnapshot() : undefined;
-      /* The vacated row and the event it names are written apart; they agree on the id the table hands out next. */
-      const vacatedEventId =
-        stored?.stage && occupants.some((occupant) => occupant.userId === userId)
-          ? tableEventId(stored.table.nextEventNumber)
-          : undefined;
-      this.removal.scrub(userId);
-      this.conversations.scrub(userId);
-      this.actors.delete(userId, eventId, vacatedEventId);
-      this.spiceLedger.deleteActor(userId);
-      if (!stored) {
-        return;
-      }
-      const scrubbed = this.storedSnapshot();
-      const departed = this.participation.afterDeletion(userId, oldSeat, {
-        snapshot: scrubbed,
-        roster: this.actors.roster(this.seatCount()),
-        now: Date.now(),
-      });
-      const settled = this.swapping.settleParticipation({
-        before: scrubbed,
-        after: departed,
-        commandId: eventId ?? `deletion-${departed.revision}`,
-        actor: null,
-        occupants,
-      });
-      const voted = this.reconcileVotes(settled, Date.now());
-      const next = this.withRoster(
-        this.spiceLedger.project({
-          ...voted,
-          controls: voted.controls && { ...voted.controls, seats: this.actors.seats() },
-        })
-      );
-      this.log.recordStage(scrubbed, next);
-      this.writeState(next);
-      this.stageDirectory(next, Date.now());
-      return { snapshot: next, boundary: this.history.restore(this.history.steps) };
-    });
+    const committed = this.withReviewCache(() =>
+      this.storage.transactionSync(() => {
+        const stored = this.room ? this.storedSnapshot() : undefined;
+        /* The vacated row and the event it names are written apart; they agree on the id the table hands out next. */
+        const vacatedEventId =
+          stored?.stage && occupants.some((occupant) => occupant.userId === userId)
+            ? tableEventId(stored.table.nextEventNumber)
+            : undefined;
+        this.removal.scrub(userId);
+        this.reviews.scrub(userId);
+        this.conversations.scrub(userId);
+        this.actors.delete(userId, eventId, vacatedEventId);
+        this.spiceLedger.deleteActor(userId);
+        if (!stored) {
+          return;
+        }
+        const scrubbed = this.storedSnapshot();
+        const departed = this.participation.afterDeletion(userId, oldSeat, {
+          snapshot: scrubbed,
+          roster: this.actors.roster(this.seatCount()),
+          now: Date.now(),
+        });
+        const settled = this.swapping.settleParticipation({
+          before: scrubbed,
+          after: departed,
+          commandId: eventId ?? `deletion-${departed.revision}`,
+          actor: null,
+          occupants,
+        });
+        const voted = this.reconcileVotes(settled, Date.now());
+        const next = this.withRoster(
+          this.spiceLedger.project({
+            ...voted,
+            controls: voted.controls && { ...voted.controls, seats: this.actors.seats() },
+          })
+        );
+        this.log.recordStage(scrubbed, next);
+        this.writeState(next);
+        this.stageDirectory(next, Date.now());
+        return { snapshot: next, boundary: this.history.restore(this.history.steps) };
+      })
+    );
     this.reloadMetadata();
     if (committed) {
       this.room!.accept(committed.snapshot);
       this.history.accept(this.history.steps, committed.boundary);
+      this.putBackCarriesForReview();
+    }
+  }
+
+  /* The open review is cached; a transaction that fails rolls storage back, so the cache is dropped with it. */
+  private withReviewCache<T>(run: () => T): T {
+    try {
+      return run();
+    } catch (error) {
+      this.reviews.forget();
+      throw error;
+    }
+  }
+
+  /* A review that runs puts every carried piece back, since the table takes no move until it ends. */
+  private putBackCarriesForReview() {
+    if (this.reviews.running()) {
+      this.room?.cancelCarries();
     }
   }
 
@@ -559,7 +586,24 @@ export class GameSession {
   };
 
   private reconcileVotes(snapshot: StoredSnapshot, now: number) {
-    return this.removal.reconcile(snapshot, now, this.removeVotedPlayer);
+    const running = this.reviews.running();
+    const removed = this.removal.reconcile(snapshot, now, this.removeVotedPlayer);
+    return this.resumedAfterReview(running, this.reviews.reconcile(removed, now), now);
+  }
+
+  /* A review pauses the table's clocks with it: a timed bid or battle countdown resumes with the time it had left. */
+  private resumedAfterReview(running: TableReview | null, next: StoredSnapshot, now: number): StoredSnapshot {
+    if (!reviewRunning(running) || this.reviews.running()) {
+      return next;
+    }
+    const paused = now - running.startedAt;
+    const battle = next.battleState;
+    const bidding = next.bidding;
+    return {
+      ...next,
+      ...(battle?.deadline ? { battleState: { ...battle, deadline: battle.deadline + paused } } : {}),
+      ...(bidding?.deadline ? { bidding: { ...bidding, deadline: bidding.deadline + paused } } : {}),
+    };
   }
 
   /*
@@ -682,6 +726,9 @@ export class GameSession {
     const carries = this.projection.carries(room.publicCarries(), room.snapshot);
     const pointers = [...room.pointers.values()];
     const snapshots = new Map<string, RoomFrame['snapshot']>();
+    const review = reviewableStage(room.snapshot.stage)
+      ? { review: this.reviews.current(), reviewCheckpoints: this.history.recent(REVIEW_CHECKPOINTS) }
+      : {};
     return (viewer) => {
       const factionId = this.actors.factionFor(viewer.userId);
       const own = viewer.viewerSeat === SPECTATOR_SEAT ? this.participation.pendingRequestId(viewer.userId) : undefined;
@@ -691,6 +738,7 @@ export class GameSession {
         snapshot = {
           ...this.forViewer(this.projection.snapshot(room.snapshot, factionId), viewer),
           ...(room.snapshot.stage ? { removalVotes: this.removal.current() } : {}),
+          ...review,
         };
         snapshots.set(audience, snapshot);
       }
@@ -698,10 +746,16 @@ export class GameSession {
     };
   }
   private applyCommand(key: string, viewer: Viewer, message: CommitMessage, contents?: StoredSpawnContents) {
+    if (this.reviews.running() && !(message.type === 'command' && isReviewAction(message.action))) {
+      throw new GameRejection(REVIEW_PAUSE);
+    }
     if (message.type === 'drop') {
       return this.commitTable(key, viewer, message);
     }
     const { action } = message;
+    if (isReviewAction(action)) {
+      return this.commitReview(key, viewer, { ...message, action });
+    }
     if (isSwapAction(action)) {
       return this.commitSwap(key, viewer, { ...message, action });
     }
@@ -781,6 +835,32 @@ export class GameSession {
     room.accept(next);
   }
 
+  private commitReview(key: string, viewer: Viewer, message: CommandMessage & { action: ReviewCommand['action'] }) {
+    const room = this.room!;
+    room.assertRevision(message.action, message.expectedRevision);
+    const action = message.action;
+    const next = this.storage.transactionSync(() => {
+      const now = Date.now();
+      const running = this.reviews.running();
+      const applied = this.reviews.apply({
+        snapshot: room.snapshot,
+        viewer,
+        action,
+        now,
+        checkpoint: (step) => this.reviewable(step),
+      });
+      const settled = this.resumedAfterReview(running, this.reviews.reconcile(applied, now), now);
+      this.persistCommit({ key, viewer, message, next: settled });
+      return settled;
+    });
+    room.accept(next);
+  }
+
+  /* A review shows one of the recent checkpoints, named as the log names it. */
+  private reviewable(step: number) {
+    return this.history.recent(REVIEW_CHECKPOINTS).find((checkpoint) => checkpoint.step === step)?.context;
+  }
+
   /* Determine winner, its declaration and Continue playing commit with their log rows and the summary the lobby is owed. */
   private commitResult(
     key: string,
@@ -789,9 +869,14 @@ export class GameSession {
   ) {
     const room = this.room!;
     room.assertRevision(message.action, message.expectedRevision);
-    const next = this.withRoster(applyResult(room.snapshot, viewer, message.action, Date.now()));
-    const history = this.history.entry(message, room.snapshot, next);
-    this.persistCommit({ key, viewer, message, next, history });
+    const action = message.action;
+    const { next, history } = this.storage.transactionSync(() => {
+      const now = Date.now();
+      const settled = this.withRoster(this.reconcileVotes(applyResult(room.snapshot, viewer, action, now), now));
+      const entry = this.history.entry(message, room.snapshot, settled);
+      this.persistCommit({ key, viewer, message, next: settled, history: entry });
+      return { next: settled, history: entry };
+    });
     room.accept(next);
     if (history) {
       this.history.accept(history.step, next);
@@ -906,25 +991,14 @@ export class GameSession {
 
   /** Records the public assignment and forms the opening swapping state inside the deal's transaction. */
   private recordAssignment(stored: StoredSnapshot, current: DraftState, deal: ReturnType<typeof dealSeats>) {
-    const { draft: _ended, ...rest } = stored;
-    const dealt = assignmentEvents(
-      rest,
-      deal.map((entry) => ({
-        seat: entry.seat,
-        factionName: current.factions.find((candidate) => candidate.id === entry.factionId)?.name ?? entry.factionId,
-        position: entry.position,
-      }))
-    );
-    const controls = this.participation.closeRosterRequests(dealt.controls ?? emptyPublicControls(), Date.now());
-    return this.withRoster({
-      ...dealt,
-      stage: 'swapping' as const,
-      swapping: {
-        ...openSwapping(crypto.randomUUID(), Date.now()),
+    return this.withRoster(
+      dealtSnapshot(stored, current, deal, {
+        seats: this.actors.seats(),
         tokens: this.assignmentTokens(deal),
-      },
-      controls: { ...controls, ready: [], seats: this.actors.seats() },
-    });
+        closeRosterRequests: (controls, now) => this.participation.closeRosterRequests(controls, now),
+        now: Date.now(),
+      })
+    );
   }
 
   completeAssignment(prepared: NonNullable<ReturnType<GameSession['prepareAssignment']>>) {
@@ -1044,17 +1118,20 @@ export class GameSession {
     return this.room ? biddingDeadline(this.room.snapshot) : 0;
   }
   nextDeadline() {
+    /* A running review holds the table's clocks; they resume, with the time they had left, when it ends. */
+    const paused = this.reviews.running() !== null;
     const deadlines = [
-      this.battleDeadline,
-      this.biddingDeadline,
+      paused ? 0 : this.battleDeadline,
+      paused ? 0 : this.biddingDeadline,
       this.directory.pending()?.retryAt,
       this.tradingDeadline,
     ].filter((deadline): deadline is number => Boolean(deadline));
     return deadlines.length ? Math.min(...deadlines) : undefined;
   }
   advanceDeadlines() {
-    const battle = this.applyDue(expireBattle);
-    const bidding = this.applyDue(expireBidding);
+    const paused = this.reviews.running() !== null;
+    const battle = !paused && this.applyDue(expireBattle);
+    const bidding = !paused && this.applyDue(expireBidding);
     const trading = this.closeDueTrading();
     return Boolean(battle || bidding || trading);
   }
@@ -1063,9 +1140,12 @@ export class GameSession {
     if (this.hasReceipt(key, message)) {
       return false;
     }
-    this.room!.commit(message.type === 'command' ? message.action.kind : undefined, () =>
-      this.applyCommand(key, viewer, message, contents)
+    this.withReviewCache(() =>
+      this.room!.commit(message.type === 'command' ? message.action.kind : undefined, () =>
+        this.applyCommand(key, viewer, message, contents)
+      )
     );
+    this.putBackCarriesForReview();
     this.reloadMetadata();
     return true;
   }
@@ -1139,16 +1219,27 @@ export class GameSession {
     return this.projection.contents(contents);
   }
   historyFor(viewer: Viewer, step: number): Extract<ServerMessage, { type: 'history' }> {
+    const stage = this.room!.snapshot.stage;
+    /*
+     * Players may not keep notes, so a real game opens its replay only once it is finished.
+     * Before that, everyone sees the one checkpoint a table review shows while it runs, and nothing else.
+     */
+    if (stage !== undefined && stage !== 'finished' && this.reviews.running()?.step !== step) {
+      throw new GameRejection('Replay opens once the game is finished.');
+    }
     if (step > this.history.steps) {
       throw new GameRejection('Unknown history step.');
     }
     /*
      * Steps stored before the face list grew only hold the fronts present then, so comparing two of them
      * could tell which hidden card left the table. Every step carries the live game's list instead.
+     * A real game replays the public table to every viewer: a past hand, reserve, plan or peek is something the
+     * player had to remember, the seat's current holder may not be the one who held it then, and a finished game
+     * can still continue. Only the hosted fixture, which has no stage, replays its seat's view.
      */
     const past = this.projection.snapshot(
       this.history.restore(step),
-      this.actors.factionFor(viewer.userId),
+      this.room!.snapshot.stage === undefined ? this.actors.factionFor(viewer.userId) : undefined,
       this.room!.snapshot
     );
     return {
@@ -1252,6 +1343,9 @@ export class GameSession {
     message: Extract<ClientMessage, { type: 'begin' | 'take' | 'flip' | 'renew' | 'cancel' }>
   ): Extract<ServerMessage, { type: 'carry' }> | undefined {
     const room = this.room!;
+    if (this.reviews.running() && (message.type === 'begin' || message.type === 'take' || message.type === 'flip')) {
+      throw new GameRejection(REVIEW_PAUSE);
+    }
     let draft;
     switch (message.type) {
       case 'begin':
@@ -1334,6 +1428,8 @@ export class GameSession {
     return true;
   }
 }
+
+const REVIEW_PAUSE = 'The table is paused for a review.';
 
 /* A fixture carries no stage and plays its phases from the start. */
 function inPlay(stage: StoredSnapshot['stage']) {

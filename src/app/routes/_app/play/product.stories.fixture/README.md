@@ -19,6 +19,13 @@ slug, definition and update time.
   - the shared prediction card and its back (`prediction.jpg`, `prediction-back.jpg`).
 - Traitor back: the published Administrator preset. `traitor-preset.json` records its URL,
   revision and design. The JPEG is copied unchanged into the isolated story assets.
+- Tech tokens: the seven tokens of the Dreamrules Techtokens bundle, the bundle the public
+  Dreamrules ruleset fills its tech token slot with. Their published fronts were read on
+  27 October 2026 from the public `assets:page` query and
+  `https://dune.zone/published/gear-tokens/<id>/token.jpg`, and copied unchanged into
+  `.storybook/static/play-fixtures/dreamrules` as `tech-<slug>.jpg`. Every one prints its back
+  the same as its front. `dreamrules-tech-tokens.json` preserves their ids, published URLs,
+  revisions and checksums.
 - Treachery cards: the card back and the Snooper face, copied from the published Dreamrules deck
   into `.storybook/static/play-fixtures/dreamrules`.
 - Spice card: `broken-land.jpg` in the same folder, a capture of the Game Assets / Cards / Spice

@@ -1,5 +1,6 @@
 import type { z } from 'zod';
 
+import { publicPieceLabel } from './peeking';
 import { phaseAt } from './phases';
 import type {
   draftMoveSchema,
@@ -209,7 +210,7 @@ export function topItemFaceUp(piece: TablePiece): boolean {
 
 export function gestureBlockReason(piece: TablePiece): string | null {
   if (piece.locked) {
-    return `Unlock ${piece.label} first.`;
+    return `Unlock ${publicPieceLabel(piece)} first.`;
   }
   return null;
 }

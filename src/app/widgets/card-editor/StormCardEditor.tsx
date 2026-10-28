@@ -51,7 +51,7 @@ function StormIdentity({ draft, patch, nameField }: Readonly<Pick<Props, 'draft'
       />
       <ControlBlock
         title="Movement"
-        description="The storm moves counterclockwise. This value sets the printed title, instruction and corner number."
+        description={'The storm moves counterclockwise.\nSets the printed title, instruction and corner number.'}
         input={
           <Select
             aria-label="Storm movement"
