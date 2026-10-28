@@ -257,6 +257,8 @@ export function TutorialGuide({
         setCurrent((index) => index + 1);
       }
     };
+    /* Arm page actions when the task mounts, before a fast click or key press can reach the next frame. */
+    started = start({ camera: table?.camera() ?? null, pieceAt: table?.pieceAt });
     frame = requestAnimationFrame(tick);
     return () => {
       cancelAnimationFrame(frame);

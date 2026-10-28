@@ -18,5 +18,5 @@ const meta = preview.meta({
 /** The chapter as a player meets it: do what the rail says, where its arrow shows, and it moves on by itself. */
 export const Chapter = meta.story({
   parameters: chapterParameters,
-  play: playChapter('Chapter 9: Your hand and spice', 'Take a card from the deck'),
+  play: playChapter('Chapter 9: Your hand and spice', 'Draw four Treachery cards'),
 });

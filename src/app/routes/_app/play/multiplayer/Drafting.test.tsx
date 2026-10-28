@@ -15,7 +15,7 @@ stubMatchMedia();
 afterEach(cleanup);
 
 /* Unlinked, so the ledger draws their avatars without a router to lead to their profiles. */
-const PLAYERS = [storyPlayer('seat-1', 'thialfi'), storyPlayer('seat-2', 'ridwan')].map((player) => ({
+const PLAYERS = [storyPlayer('seat-1', 'central'), storyPlayer('seat-2', 'ridwan')].map((player) => ({
   ...player,
   slug: null,
 }));
