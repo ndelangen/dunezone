@@ -58,6 +58,7 @@ import { DraftingOverlay, DraftingPanel } from './Drafting';
 import { DetermineWinner } from './GameResult';
 import { GameRuntimeContext } from './gameRuntime';
 import { HandCountsScene } from './HandCounts';
+import { mentatRecall } from './MentatRecall';
 import { battleHelp, LOG_GUIDANCE, phaseGuidance, PHASE_PREVIOUS, phaseHelp } from './panelGuidance';
 import { usePlayerWindows } from './playerWindows';
 import { useResultCelebration } from './resultCelebration';
@@ -461,6 +462,9 @@ function controlPanels(
 
 /* The pieces the stage stands on the board: the trade and setup scenes before play, then the battle, bidder, hands and coins. */
 function stageScene({ client, table, bidderFaded }: TableControlProps & Readonly<{ bidderFaded: boolean }>) {
+  if (reviewRunning(table.review?.current)) {
+    return null;
+  }
   const stage = table.snapshot.stage;
   if (stage === 'swapping' || stage === 'setup') {
     return (
@@ -539,6 +543,8 @@ function ConnectedTable({
   reportsEnabled: boolean;
 }>) {
   const bugReport = useBugReport({ gameId, client, table, connection, diagnostics });
+  const recall = mentatRecall(client, table);
+  const normal = recall ? (client.getLastLiveTable() ?? table) : table;
   const progress = gameProgress(table.snapshot);
   const focus = useWindowFocus(table, progress);
   const celebration = useResultCelebration(table);
@@ -561,6 +567,7 @@ function ConnectedTable({
           <CompassTableContext
             value={{
               ...playerWindows,
+              recall,
               chat: (seat) => <ConnectedPlayerChat client={client} table={table} seat={seat} />,
               factionInfo: (seat) => (
                 <ConnectedFactionInfoPanel client={client} table={table} seat={seat} error={error} />
@@ -571,6 +578,7 @@ function ConnectedTable({
             }}
           >
             <GameTable
+              readOnly={Boolean(table.playback || table.historyPending || recall)}
               seatCount={table.snapshot.roster?.seatCount ?? DEFAULT_TABLE_SEAT_COUNT}
               tableProgress={progress}
               stage={stage}
@@ -612,7 +620,7 @@ function ConnectedTable({
               focus={focus}
               panels={controlPanels({
                 client,
-                table,
+                table: normal,
                 error,
                 declare,
                 report: { enabled: reportsEnabled, content: bugReport },

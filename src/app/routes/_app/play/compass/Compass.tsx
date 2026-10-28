@@ -190,6 +190,7 @@ function SuggestionList({ suggestions, spot, query, cursor, onSpot, onCursor }: 
           role="option"
           tabIndex={-1}
           aria-selected={listed && index === cursor}
+          aria-disabled={entry.disabled || undefined}
           className={styles.suggestion}
           onPointerMove={(event) => {
             if ((spot === 'search' && index === cursor) || !moved(event)) {
@@ -198,8 +199,8 @@ function SuggestionList({ suggestions, spot, query, cursor, onSpot, onCursor }: 
             onSpot('search');
             onCursor(index);
           }}
-          onClick={() => entry.run()}
-          onKeyDown={(event) => event.key === 'Enter' && entry.run()}
+          onClick={() => !entry.disabled && entry.run()}
+          onKeyDown={(event) => !entry.disabled && event.key === 'Enter' && entry.run()}
         >
           {entry.icon}
           <span className={styles.suggestionLabel}>{entry.label}</span>
@@ -245,16 +246,17 @@ export function Compass({
     input.current?.focus();
     steering.current = false;
   }, [input, spot]);
-  const tile = (entry: Tile) => (
-    <CompassTile
-      key={entry.spot}
-      tile={entry}
-      selected={spot === entry.spot}
-      refused={refused}
-      onSpot={onSpot}
-      onConfirm={onConfirm}
-    />
-  );
+  const tile = (entry: Tile) =>
+    entry.hidden ? null : (
+      <CompassTile
+        key={entry.spot}
+        tile={entry}
+        selected={spot === entry.spot}
+        refused={refused}
+        onSpot={onSpot}
+        onConfirm={onConfirm}
+      />
+    );
   return (
     <div ref={veil} className={styles.veil}>
       <dialog

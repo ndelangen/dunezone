@@ -42,7 +42,8 @@ export class TableReviews {
   constructor(
     private readonly storage: DurableObjectStorage,
     private readonly actors: ActorDirectory,
-    private readonly log: PublicLog
+    private readonly log: PublicLog,
+    private readonly closed: (reviewId: string) => void = () => {}
   ) {
     storage.sql.exec(
       'CREATE TABLE IF NOT EXISTS table_reviews (sequence INTEGER PRIMARY KEY, review_id TEXT UNIQUE NOT NULL, data TEXT NOT NULL, result TEXT, resolved_at INTEGER)'
@@ -53,14 +54,28 @@ export class TableReviews {
     const { snapshot, viewer, action } = command;
     const own = this.actors.occupants().find((player) => player.userId === viewer.userId);
     if (!own || !reviewableStage(snapshot.stage)) {
-      throw new GameRejection('Only current players can review the table during a game.');
+      throw new GameRejection('Only current players can recall the table during a game.');
     }
     if (action.kind === 'review-propose') {
       return this.propose(command, action.step, own);
     }
     const open = this.open();
     if (!open || open.id !== action.reviewId) {
-      throw new GameRejection('That table review has ended.');
+      throw new GameRejection('That Mentat recall has ended.');
+    }
+    if (action.kind === 'review-seek') {
+      if (open.startedAt === null) {
+        throw new GameRejection('Mentat recall has not started.');
+      }
+      const context = command.checkpoint(action.step);
+      if (context === undefined) {
+        throw new GameRejection('That checkpoint cannot be recalled.');
+      }
+      if (open.step === action.step) {
+        return snapshot;
+      }
+      this.save({ ...open, step: action.step, context });
+      return revised(snapshot);
     }
     return action.kind === 'review-end'
       ? this.end(command, open, own)
@@ -142,11 +157,11 @@ export class TableReviews {
 
   private propose({ snapshot, viewer, now, checkpoint }: ReviewCommand, step: number, own: Person): StoredSnapshot {
     if (this.open()) {
-      throw new GameRejection('Another table review is already open.');
+      throw new GameRejection('Another Mentat recall is already open.');
     }
     const context = checkpoint(step);
     if (context === undefined) {
-      throw new GameRejection('That checkpoint cannot be reviewed.');
+      throw new GameRejection('That checkpoint cannot be recalled.');
     }
     const players = this.actors.occupants();
     const review: Review = {
@@ -170,7 +185,7 @@ export class TableReviews {
   /* The proposer withdraws an open proposal; once the review runs, any seated player resumes play. */
   private end({ snapshot, viewer, now }: ReviewCommand, open: Review, own: Person): StoredSnapshot {
     if (open.startedAt === null && open.proposer.userId !== viewer.userId) {
-      throw new GameRejection('Only the proposer can withdraw this review.');
+      throw new GameRejection('Only the proposer can withdraw this recall.');
     }
     this.finish(open, { result: open.startedAt === null ? 'withdrawn' : 'ended', snapshot, now, by: own });
     return revised(snapshot);
@@ -183,7 +198,7 @@ export class TableReviews {
     choice: TableReview['ballots'][number]['choice']
   ): StoredSnapshot {
     if (open.startedAt !== null) {
-      throw new GameRejection('The table is already reviewing.');
+      throw new GameRejection('Mentat recall has already started.');
     }
     const ballot = open.ballots.find((entry) => entry.userId === viewer.userId);
     if (!ballot || ballot.choice === choice) {
@@ -225,6 +240,7 @@ export class TableReviews {
       review.id
     );
     this.cached = null;
+    this.closed(review.id);
     this.record(review, outcome);
   }
   private record(review: Review, { result, snapshot, now, by }: Outcome) {

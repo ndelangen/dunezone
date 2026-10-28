@@ -47,7 +47,7 @@ export const PANEL_WINDOWS = {
   replay: { key: 'replay', label: 'Replay', topic: 'turn', ...REPLAY_GUIDANCE },
   review: {
     key: 'review',
-    label: 'Table review',
+    label: 'Mentat recall',
     topic: 'turn',
     description:
       'Ask the table to look back at a recent checkpoint together. It starts when a majority of the players agree; everyone sees the same board and nothing can be moved or peeked at until play resumes.',

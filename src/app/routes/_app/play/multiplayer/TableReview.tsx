@@ -87,9 +87,14 @@ function ResumePlay({
   current,
 }: Readonly<{ client: TableSession; review: Review; current: TableReview }>) {
   return review.seat ? (
-    <Button size="xs" onClick={() => client.command({ kind: 'review-end', reviewId: current.id })}>
-      Resume play
-    </Button>
+    <Stack gap={2}>
+      <Button size="xs" onClick={() => client.command({ kind: 'review-end', reviewId: current.id })}>
+        Return to the game
+      </Button>
+      <Text size="xs" c="dimmed">
+        Resumes play for everyone
+      </Text>
+    </Stack>
   ) : null;
 }
 
@@ -109,18 +114,18 @@ export function TableReviewBar({ client, table }: Props) {
   }
   if (reviewRunning(current)) {
     return (
-      <Group gap="xs" justify="flex-end" wrap="nowrap" role="group" aria-label="Table review in progress">
+      <Group gap="xs" justify="flex-end" wrap="nowrap" role="group" aria-label="Mentat recall in progress">
         <Text size="sm" role="status">
-          Reviewing <strong>{current.context}</strong>. Play is paused for everyone.
+          Everyone is viewing the past. Play is paused. All game contents are frozen.
         </Text>
         <ResumePlay client={client} review={review} current={current} />
       </Group>
     );
   }
   return (
-    <Group gap="xs" justify="flex-end" wrap="nowrap" role="group" aria-label="Table review vote">
+    <Group gap="xs" justify="flex-end" wrap="nowrap" role="group" aria-label="Mentat recall vote">
       <Text size="sm" role="status">
-        {current.proposer.name} asks to review <strong>{current.context}</strong> ({agreedCount(current)} of{' '}
+        {current.proposer.name} asks to recall <strong>{current.context}</strong> ({agreedCount(current)} of{' '}
         {current.threshold} agreed)
       </Text>
       <ProposalActions client={client} review={review} current={current} />
@@ -134,7 +139,7 @@ function Propose({ client, table, review }: Props & Readonly<{ review: Review }>
   /* A chosen checkpoint that has since rolled out of the offered ones gives way to the newest, which the table can still review. */
   const offered = review.checkpoints.some((checkpoint) => checkpoint.step === chosen);
   if (!review.seat) {
-    return <Text size="sm">Only seated players can ask for a review.</Text>;
+    return <Text size="sm">Only seated players can ask for a recall.</Text>;
   }
   if (!newest) {
     return <Text size="sm">No checkpoint has been saved yet.</Text>;
@@ -145,7 +150,7 @@ function Propose({ client, table, review }: Props & Readonly<{ review: Review }>
       <CheckpointPicker checkpoints={review.checkpoints} value={step} onChange={setChosen} />
       <Group>
         <Button disabled={table.reconnecting} onClick={() => client.command({ kind: 'review-propose', step })}>
-          Ask the table to review
+          Ask the table to recall
         </Button>
       </Group>
     </Stack>
@@ -163,12 +168,12 @@ export function TableReviewPanel({ client, table, error }: Props & Readonly<{ er
     <Stack gap="md">
       {error && <FormError title="From the table">{error}</FormError>}
       {current ? (
-        <Section hiddenHeading title={`Review of ${current.context}`}>
+        <Section hiddenHeading title={`Recall of ${current.context}`}>
           <Stack gap="sm">
             <Text size="sm">
               {reviewRunning(current)
                 ? `Everyone is looking at ${current.context}. Nothing on the table can be moved or peeked at until play resumes.`
-                : `${current.proposer.name} asks to review ${current.context}. It starts once ${current.threshold} players agree.`}
+                : `${current.proposer.name} asks to recall ${current.context}. It starts once ${current.threshold} players agree.`}
             </Text>
             <Ballots ballots={current.ballots} />
             {reviewRunning(current) ? (

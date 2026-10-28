@@ -4,7 +4,9 @@ import { tableCountSchema, tableIdSchema, tableIdentitySchema } from './schema';
 
 /**
  * A table review: the seated players agree, by majority, to look back at one checkpoint together.
- * While it runs every viewer, seated or watching, sees that checkpoint's public board and nothing else, and the table takes no move, carry or peek.
+ * While it runs every viewer sees the same public checkpoint, with private historical inventory limited to the player currently occupying its seat.
+ * The table takes no move, carry, rearrangement or peek.
+ * Cameras, pointers and pings remain available.
  * It settles a dispute about what the board showed without letting anyone look back alone.
  */
 const reviewChoiceSchema = z.enum(['review', 'decline']).nullable();
@@ -47,10 +49,16 @@ export const reviewActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('review-ballot'), reviewId: tableIdSchema, choice: reviewChoiceSchema }),
   /* The proposer withdraws an open proposal; once the review runs, any seated player resumes play. */
   z.strictObject({ kind: z.literal('review-end'), reviewId: tableIdSchema }),
+  z.strictObject({ kind: z.literal('review-seek'), reviewId: tableIdSchema, step: tableCountSchema }),
 ]);
 export type ReviewAction = z.infer<typeof reviewActionSchema>;
 export function isReviewAction(action: { kind: string }): action is ReviewAction {
-  return action.kind === 'review-propose' || action.kind === 'review-ballot' || action.kind === 'review-end';
+  return (
+    action.kind === 'review-propose' ||
+    action.kind === 'review-ballot' ||
+    action.kind === 'review-end' ||
+    action.kind === 'review-seek'
+  );
 }
 
 /** A majority of the seated players, the proposer included. */

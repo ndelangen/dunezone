@@ -217,7 +217,7 @@ function messageId(message: ClientMessage): string {
     return message.commandId;
   }
   if ('requestId' in message) {
-    return message.requestId;
+    return message.requestId ?? 'message';
   }
   if ('carryId' in message) {
     return message.carryId;
@@ -1648,7 +1648,7 @@ export class GameRoom extends DurableObject<GameEnv> {
         this.handleConversation(socket, connection.viewer!, message);
         return;
       case 'history':
-        this.sendHistory(socket, message.step);
+        this.sendHistory(socket, message.step, message.requestId);
         return;
       case 'metrics':
         this.sendMetrics(socket);
@@ -1738,8 +1738,11 @@ export class GameRoom extends DurableObject<GameEnv> {
     this.send(socket, message);
   }
 
-  private sendHistory(socket: WebSocket, step: number) {
-    this.send(socket, this.session.historyFor(this.connections.get(socket)!.viewer!, step));
+  private sendHistory(socket: WebSocket, step: number, requestId?: string) {
+    this.send(socket, {
+      ...this.session.historyFor(this.connections.get(socket)!.viewer!, step),
+      ...(requestId ? { requestId } : {}),
+    });
   }
 
   private sendMetrics(socket: WebSocket) {

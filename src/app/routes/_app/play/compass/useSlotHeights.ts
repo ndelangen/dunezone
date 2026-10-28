@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties, PointerEvent as ReactPointerEvent, RefObject } from 'react';
 
 import { pulse } from './pulse';
@@ -35,7 +35,7 @@ function slotOn(root: HTMLElement, side: Side) {
  * a slot keeps from it, the centre window over the bar, and the slots beside the bar while the table is wide enough
  * for both and the bar, else above it.
  */
-function placeAroundBar(root: HTMLElement) {
+function placeCamera(root: HTMLElement) {
   const box = root.getBoundingClientRect();
   const toolbar = root.querySelector('.seated-toolbar');
   if (toolbar) {
@@ -44,6 +44,10 @@ function placeAroundBar(root: HTMLElement) {
       `${Math.round(toolbar.getBoundingClientRect().bottom - box.top + OVERLAY_GAP)}px`
     );
   }
+}
+
+function placeAroundBar(root: HTMLElement) {
+  const box = root.getBoundingClientRect();
   const bar = root.querySelector('[data-compass-bar]');
   if (!bar) {
     return;
@@ -61,13 +65,24 @@ function placeAroundBar(root: HTMLElement) {
   }
 }
 
-export function useSlotHeights(rootRef: RefObject<HTMLElement | null>, pinned: Readonly<Record<Side, string | null>>) {
+export function useSlotHeights(
+  rootRef: RefObject<HTMLElement | null>,
+  pinned: Readonly<Record<Side, string | null>>,
+  active = true
+) {
   /* Each slot's height in pixels, remembered once its top edge is dragged; null keeps the default. */
   const [heights, setHeights] = useRemembered<Heights>('heights', NONE);
   /* The tallest each slot may grow before its top edge meets an overlay above it; null until measured. */
   const [limits, setLimits] = useState<Heights>(NONE);
   /* Bumps each time a drag or a nudge runs into the limit, replaying the bounce. */
   const [bounce, setBounce] = useState<Pulse>(null);
+  const stopResize = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    if (!active) {
+      stopResize.current?.();
+    }
+    return () => stopResize.current?.();
+  }, [active]);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -75,6 +90,10 @@ export function useSlotHeights(rootRef: RefObject<HTMLElement | null>, pinned: R
       return;
     }
     const measure = () => {
+      placeCamera(root);
+      if (!active) {
+        return;
+      }
       placeAroundBar(root);
       const next: Heights = { ...NONE };
       for (const side of SIDES) {
@@ -104,7 +123,7 @@ export function useSlotHeights(rootRef: RefObject<HTMLElement | null>, pinned: R
       observer.disconnect();
       mutations.disconnect();
     };
-  }, [rootRef, pinned.left, pinned.right]);
+  }, [rootRef, pinned.left, pinned.right, active]);
 
   const set = (side: Side, wanted: number, limit: number) => {
     const fit = fitHeight(wanted, limit);
@@ -122,6 +141,10 @@ export function useSlotHeights(rootRef: RefObject<HTMLElement | null>, pinned: R
   };
   /** Dragging a slot's top edge: up makes it taller, down shorter. It stops short of any overlay above it and bounces there. */
   const resize = (side: Side) => (event: ReactPointerEvent<HTMLElement>) => {
+    if (!active) {
+      return;
+    }
+    stopResize.current?.();
     event.preventDefault();
     const slot = event.currentTarget.parentElement!;
     const start = { y: event.clientY, height: slot.getBoundingClientRect().height };
@@ -145,7 +168,9 @@ export function useSlotHeights(rootRef: RefObject<HTMLElement | null>, pinned: R
       window.removeEventListener('pointerup', up);
       window.removeEventListener('pointercancel', up);
       window.removeEventListener('blur', up);
+      stopResize.current = null;
     }
+    stopResize.current = up;
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
     window.addEventListener('pointercancel', up);

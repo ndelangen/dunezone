@@ -7,9 +7,12 @@ import { ChatBar } from './ChatBar';
 import { Compass } from './Compass';
 import styles from './CompassControls.module.css';
 import { CompassEpochContext } from './compassEpoch';
+import type { CompassTable } from './compassTable';
 import { CompassTableContext } from './compassTable';
+import { CompassActiveContext } from './controlsActive';
 import { useCompass } from './useCompass';
 import { useOpenWindows } from './useOpenWindows';
+import { RememberedContext } from './useRemembered';
 import { useSlotHeights } from './useSlotHeights';
 import { WindowFrames } from './WindowFrames';
 import { useTableWindows } from './windows';
@@ -24,6 +27,7 @@ import type { TableWindow } from './windows';
 export type CompassControlsProps = Readonly<{
   /** The table scene, which the controls lie over. */
   scene: ReactNode;
+  decoration?: ReactNode;
   /** A stage's layer over the scene, under the header, which keeps to the table's box as the controls do. */
   overlay?: ReactNode;
   header: ReactNode;
@@ -35,26 +39,58 @@ export type CompassControlsProps = Readonly<{
   /** Moves the camera, as the dial does. */
   onView: (view: TableView) => void;
   /** The window an event asks for (a battle, the end of the game, a phase with a panel of its own), once per token. */
-  focus?: Readonly<{ key: string; token: string }> | null;
+  focus?: Readonly<{ key: string; token: string; placement?: 'centre' }> | null;
 }>;
 
 /*
  * The scene and the chrome that only shows what it is handed stay mounted across an epoch; only the controls' own state starts afresh,
  * so the tutorial's Reset clears what was open, pinned or resized without building the table's scene again.
  */
-export function CompassControls({ scene, overlay, header, camera, ...controls }: CompassControlsProps) {
+export function CompassControls({ scene, decoration, overlay, header, camera, ...controls }: CompassControlsProps) {
   const epoch = useContext(CompassEpochContext);
+  const table = useContext(CompassTableContext);
+  const recall = table?.recall;
   const rootRef = useRef<HTMLDivElement>(null);
   return (
     <div className={styles.root} ref={rootRef} data-compass-controls>
       <div className={styles.scene}>
         <div className={styles.board}>{scene}</div>
       </div>
+      {decoration}
       {overlay}
       {header}
       {camera}
-      <Controls key={epoch} rootRef={rootRef} {...controls} />
+      <CompassActiveContext value={!recall}>
+        <div style={{ display: recall ? 'none' : 'contents' }} inert={Boolean(recall)}>
+          <Controls key={epoch} rootRef={rootRef} {...controls} />
+        </div>
+      </CompassActiveContext>
+      {recall && table && <RecallControls key={recall.id} table={table} onView={controls.onView} />}
     </div>
+  );
+}
+
+/* A recall keeps its own slots and heights in memory; closing it leaves the normal controller untouched. */
+function RecallControls({ table, onView }: Readonly<{ table: CompassTable; onView: CompassControlsProps['onView'] }>) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const recall = table.recall!;
+  const frozen = { ...table, players: [], tableChat: null, nextPhase: null, token: null, bidding: null };
+  return (
+    <RememberedContext value={false}>
+      <CompassTableContext value={frozen}>
+        <CompassActiveContext value>
+          <div ref={rootRef} className={`${styles.root} ${styles.recallRoot}`} data-recall-controls="true">
+            <Controls
+              rootRef={rootRef}
+              inert={false}
+              panels={recall.panels}
+              onView={onView}
+              focus={{ key: 'recall-history', token: recall.id, placement: 'centre' }}
+            />
+          </div>
+        </CompassActiveContext>
+      </CompassTableContext>
+    </RememberedContext>
   );
 }
 
@@ -65,11 +101,12 @@ export function CompassControls({ scene, overlay, header, camera, ...controls }:
 function useFocusedWindow(
   focus: CompassControlsProps['focus'],
   windows: readonly TableWindow[],
-  reveal: (key: string) => void
+  reveal: (key: string) => void,
+  active: boolean
 ) {
   const [followed, setFollowed] = useState<string | null>(null);
   const key = focus?.key === 'spice' ? 'hand' : focus?.key;
-  if (focus && key && focus.token !== followed && windows.some((entry) => entry.key === key)) {
+  if (active && focus && key && focus.token !== followed && windows.some((entry) => entry.key === key)) {
     setFollowed(focus.token);
     reveal(key);
   }
@@ -84,15 +121,28 @@ function Controls({
 }: Omit<CompassControlsProps, 'scene' | 'overlay' | 'header' | 'camera'> &
   Readonly<{ rootRef: RefObject<HTMLDivElement | null> }>) {
   const table = useContext(CompassTableContext);
+  const active = useContext(CompassActiveContext);
   const windows = useTableWindows(panels);
   const [open, setOpen] = useState(false);
-  const opened = useOpenWindows(windows, open);
-  const heights = useSlotHeights(rootRef, {
-    left: opened.slots.left?.key ?? null,
-    right: opened.slots.right?.key ?? null,
+  const opened = useOpenWindows(windows, open, active);
+  const heights = useSlotHeights(
+    rootRef,
+    {
+      left: opened.slots.left?.key ?? null,
+      right: opened.slots.right?.key ?? null,
+    },
+    active
+  );
+  useFocusedWindow(focus, windows, focus?.placement === 'centre' ? opened.show : opened.reveal, active);
+  const compass = useCompass({
+    open: open && active,
+    onOpen: setOpen,
+    inert: inert || !active,
+    windows,
+    table,
+    onView,
+    onShow: opened.show,
   });
-  useFocusedWindow(focus, windows, opened.reveal);
-  const compass = useCompass({ open, onOpen: setOpen, inert, windows, table, onView, onShow: opened.show });
   return (
     <>
       <WindowFrames windows={windows} opened={opened} heights={heights} inert={inert} />
@@ -103,7 +153,7 @@ function Controls({
         onOpenCompass={compass.openCompass}
         onShow={compass.show}
       />
-      {open && <Compass {...compass.props} />}
+      {open && active && <Compass {...compass.props} />}
     </>
   );
 }

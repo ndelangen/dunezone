@@ -274,7 +274,7 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('renew'), carryId: id }),
   z.strictObject({ type: z.literal('command'), commandId: id, action: pieceActionSchema, expectedRevision: count }),
   z.strictObject({ type: z.literal('catalogue'), requestId: id, selection: spawnSelectionSchema }),
-  z.strictObject({ type: z.literal('history'), step: count }),
+  z.strictObject({ type: z.literal('history'), step: count, requestId: id.optional() }),
   z.strictObject({ type: z.literal('spice-history'), before: count }),
   z.strictObject({ type: z.literal('log-history'), tab: logTabSchema, before: count }),
   /* A seated faction's starting sheet as the game captured it; nothing when the game holds no capture of it. */
@@ -406,6 +406,7 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('rejected'), requestId: id, message: z.string() }),
   z.object({
     type: z.literal('history'),
+    requestId: id.optional(),
     step: count,
     lastStep: count,
     recordedAt: count.optional(),

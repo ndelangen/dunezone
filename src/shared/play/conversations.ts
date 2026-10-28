@@ -4,7 +4,15 @@ import { tableCountSchema as count, tableIdSchema as id } from './schema';
 
 /* The whole table's conversation; its id holds a character a faction id never does, so it never collides with one. */
 export const TABLE_CONVERSATION = '@table';
-export const conversationPeerSchema = z.union([id, z.literal(TABLE_CONVERSATION)]);
+export const conversationPeerSchema = z.union([
+  id,
+  z.literal(TABLE_CONVERSATION),
+  z.string().regex(/^@recall:[a-zA-Z0-9_-]{1,160}$/),
+]);
+
+/** The conversation belongs to one recall and is discarded when that recall closes. */
+export const recallConversation = (reviewId: string) => `@recall:${reviewId}`;
+export const isRecallConversation = (peerId: string) => peerId.startsWith('@recall:');
 
 export const conversationTextSchema = z.string().trim().min(1).max(2000);
 export const conversationMessageSchema = z.object({
@@ -32,7 +40,7 @@ export function conversationMembers(factionId: string, peerId: string, seated: r
   if (!seated.includes(factionId)) {
     return undefined;
   }
-  if (peerId === TABLE_CONVERSATION) {
+  if (peerId === TABLE_CONVERSATION || isRecallConversation(peerId)) {
     return [...seated];
   }
   return peerId !== factionId && seated.includes(peerId) ? [factionId, peerId] : undefined;
@@ -40,7 +48,7 @@ export function conversationMembers(factionId: string, peerId: string, seated: r
 
 /** How `viewer` names a conversation `sender` wrote in: the table is the same for everyone, a pair is named by its other side. */
 export function conversationPeerFor(viewer: string, sender: string, peerId: string) {
-  if (peerId === TABLE_CONVERSATION || viewer === sender) {
+  if (peerId === TABLE_CONVERSATION || isRecallConversation(peerId) || viewer === sender) {
     return peerId;
   }
   return sender;

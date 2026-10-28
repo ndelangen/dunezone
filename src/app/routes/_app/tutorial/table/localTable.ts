@@ -546,7 +546,7 @@ function requestId(message: TableMessage) {
     return message.commandId;
   }
   if ('requestId' in message) {
-    return message.requestId;
+    return message.requestId ?? 'message';
   }
   if ('carryId' in message) {
     return message.carryId;

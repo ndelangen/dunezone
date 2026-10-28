@@ -208,6 +208,8 @@ export class TableSession {
   private followedReview: string | null = null;
   private historyClock: (() => number) | null = null;
   private pendingHistory: number | null = null;
+  private historyRequestedAt = 0;
+  private historyRequestId: string | null = null;
   /* The live room's newest history step, which grows while a viewer sits in playback. */
   private liveHistorySteps = 0;
   private epoch = '';
@@ -412,6 +414,8 @@ export class TableSession {
     return () => this.tableListeners.delete(listener);
   };
   getTable = () => this.shownTable;
+  /** The normal controls keep their own last live presentation while recall uses another controller. */
+  getLastLiveTable = () => this.lastLive?.table ?? null;
   /*
    * The other players' pointers, apart from the table: they move many times a second, and only the scene's hands follow them,
    * so an update that moves nothing else leaves the table, and everything that reads it, as it was.
@@ -477,7 +481,7 @@ export class TableSession {
   };
   /* This page's ping on the table surface under its cursor, while it has a cursor on the table and may act. */
   private pingHere(sound: PingSound | undefined): TablePing | null {
-    if (!this.canAct()) {
+    if (!this.canPoint()) {
       return null;
     }
     const viewer = this.viewer;
@@ -489,7 +493,7 @@ export class TableSession {
   }
   /* A ping changes nothing on the table, so it skips the update every other message makes. */
   private receivePing(ping: TablePing) {
-    if (this.status === 'authorized' && this.current()) {
+    if (this.status === 'authorized' && this.seesSharedTable()) {
       this.emitPing(ping);
     }
   }
@@ -534,7 +538,7 @@ export class TableSession {
       return null;
     }
     const table = this.liveTable();
-    if (!table.playback && !table.historyPending) {
+    if (!table.playback && !table.historyPending && !reviewRunning(this.saved?.review)) {
       this.lastLive = { table };
     }
     return table;
@@ -607,7 +611,7 @@ export class TableSession {
       ...tableForViewer(displayed, viewer.viewerSeat),
       factionTieBreaks: snapshotFactionTieBreaks(displayed),
       /* A selection made before handling closed is not shown, so nothing offers to act on it. */
-      selectedPieceId: tableHandlingOpen(this.snapshot.stage) ? this.selectedId : null,
+      selectedPieceId: this.canAct() && tableHandlingOpen(this.snapshot.stage) ? this.selectedId : null,
       draftMove: this.carry?.draft ?? null,
     };
     const { carries: remote } = this.activityForView();
@@ -767,12 +771,12 @@ export class TableSession {
   }
 
   private activityForView() {
-    if (this.history) {
+    if (this.history && !reviewRunning(this.saved?.review)) {
       return { carries: [], pointers: [] };
     }
     const connectionId = this.viewer?.connectionId;
     return {
-      carries: this.carries.filter((carry) => carry.connectionId !== connectionId),
+      carries: this.history ? [] : this.carries.filter((carry) => carry.connectionId !== connectionId),
       pointers: this.pointers.filter((pointer) => pointer.connectionId !== connectionId),
     };
   }
@@ -884,7 +888,10 @@ export class TableSession {
     const review = message.type === 'command' && isReviewAction(message.action);
     /* Putting a held piece back also passes while a resync pauses the table, so the Worker never keeps a piece the tab let go of. */
     const release = message.type === 'cancel' && this.carry !== null;
-    return this.status === 'authorized' && (isReadRequest(message) || seat || review || release || this.canAct());
+    const presence = (message.type === 'pointer' || message.type === 'ping') && this.canPoint();
+    return (
+      this.status === 'authorized' && (isReadRequest(message) || seat || review || release || presence || this.canAct())
+    );
   }
   private send(message: Exclude<ClientMessage, { type: 'admit' | 'sync' }>): boolean {
     return this.canSend(message) && this.subscription.send(message);
@@ -949,13 +956,16 @@ export class TableSession {
       }
       return;
     }
-    if (this.followedReview === review.id || this.carry) {
+    const selected = `${review.id}:${review.step}`;
+    if (this.followedReview === selected || this.carry) {
       return;
     }
-    this.followedReview = review.id;
+    this.followedReview = selected;
     this.publishPointer(null);
     this.pendingHistory = review.step;
-    if (!this.send({ type: 'history', step: review.step })) {
+    this.historyRequestId = `history-${crypto.randomUUID()}`;
+    this.historyRequestedAt = this.runtime.monotonicNow();
+    if (!this.send({ type: 'history', step: review.step, requestId: this.historyRequestId })) {
       this.pendingHistory = null;
       this.followedReview = null;
     }
@@ -1065,18 +1075,28 @@ export class TableSession {
     }
   }
   private receiveHistory(message: Extract<ServerMessage, { type: 'history' }>) {
-    if (this.pendingHistory !== message.step) {
+    if (
+      this.pendingHistory !== message.step ||
+      (message.requestId !== undefined && message.requestId !== this.historyRequestId)
+    ) {
       return;
     }
     this.history = message;
+    this.error = null;
     const recordedAt = message.recordedAt ?? this.subscription.serverNow();
     this.historyClock = () => recordedAt;
     this.pendingHistory = null;
   }
   private receiveRejection(message: Extract<ServerMessage, { type: 'rejected' }>) {
+    if (
+      message.requestId.startsWith('history-') &&
+      (this.pendingHistory === null || message.requestId !== this.historyRequestId)
+    ) {
+      return;
+    }
     this.error = message.message;
     this.pages.forgetFactionReads();
-    if (this.pendingHistory !== null && message.requestId === 'message') {
+    if (this.pendingHistory !== null && message.requestId === (this.historyRequestId ?? 'message')) {
       /*
        * A history read carries no id, so the Worker refuses it as 'message'. It never gets a history reply, so the
        * viewer stays on the checkpoint they were on and sees the reason instead of waiting.
@@ -1244,10 +1264,15 @@ export class TableSession {
   /* Carries and pointers expire on the Worker, which broadcasts each removal; the tab keeps what the last frame held. */
   private readonly tickActivity = () => {
     this.conversations.tick();
+    if (this.pendingHistory !== null && this.runtime.monotonicNow() - this.historyRequestedAt >= 15_000) {
+      this.pendingHistory = null;
+      this.error = 'The checkpoint did not arrive. Try loading it again.';
+      this.emit();
+    }
     if (this.carry && !this.carry.pendingDrop) {
       this.send({ type: 'renew', carryId: this.carry.id });
     }
-    if (this.pointer !== null && this.canAct()) {
+    if (this.pointer !== null && this.canPoint()) {
       this.send({ type: 'pointer', seq: ++this.seq, position: this.pointer });
     }
     if (this.table?.phaseCooling && !this.phaseCooling()) {
@@ -1281,8 +1306,29 @@ export class TableSession {
   private current() {
     return this.subscription.ready && this.saved !== null && this.history === null && this.pendingHistory === null;
   }
+  private seesSharedTable() {
+    const review = this.saved?.review;
+    return (
+      this.subscription.ready &&
+      this.saved !== null &&
+      (this.current() || (reviewRunning(review) && this.history?.step === review.step && this.pendingHistory === null))
+    );
+  }
+  private canPoint() {
+    return this.viewer?.viewerSeat !== SPECTATOR_SEAT && this.seesSharedTable();
+  }
+  /** Retry the shared checkpoint without changing what everyone has selected. */
+  retryRecall = () => {
+    if (!reviewRunning(this.saved?.review) || this.pendingHistory !== null) {
+      return;
+    }
+    this.followedReview = null;
+    this.error = null;
+    this.followReview();
+    this.emit();
+  };
   private canAct() {
-    return this.viewer?.viewerSeat !== SPECTATOR_SEAT && this.current();
+    return this.viewer?.viewerSeat !== SPECTATOR_SEAT && this.current() && !reviewRunning(this.saved?.review);
   }
   private canHandle() {
     return this.canAct() && tableHandlingOpen(this.snapshot.stage);
@@ -1296,6 +1342,8 @@ export class TableSession {
     }
     this.publishPointer(null);
     this.pendingHistory = step;
+    this.historyRequestId = null;
+    this.historyRequestedAt = this.runtime.monotonicNow();
     if (!this.send({ type: 'history', step })) {
       this.pendingHistory = null;
     }
@@ -1692,7 +1740,7 @@ export class TableSession {
   /** Publishes the cursor, and keeps `surface`, the table under it, for a ping to mark. */
   publishPointer = (position: Vector3Tuple | null, surface: Vector3Tuple | null = null) => {
     this.pingPoint = position ? onTable(surface) : null;
-    if (!this.canAct()) {
+    if (!this.canPoint()) {
       this.pointer = null;
       clearTimeout(this.pointerTimer);
       this.pointerTimer = undefined;

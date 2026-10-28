@@ -1,5 +1,11 @@
 import type { BugReportBrowser } from '../../src/shared/play/bugReports';
-import { conversationMembers, conversationsAvailable, TABLE_CONVERSATION } from '../../src/shared/play/conversations';
+import {
+  conversationMembers,
+  conversationsAvailable,
+  TABLE_CONVERSATION,
+  isRecallConversation,
+  recallConversation,
+} from '../../src/shared/play/conversations';
 import type { ConversationMessage } from '../../src/shared/play/conversations';
 import { rosterFactionIds } from '../../src/shared/play/protocol';
 import type { ClientMessage, Viewer } from '../../src/shared/play/protocol';
@@ -28,7 +34,7 @@ type MessageRow = {
 };
 /* The table is stored under its own id, which every faction shares; a faction pair under both ids, sorted. */
 const pairKey = ({ factionId, peerId }: Pair) =>
-  peerId === TABLE_CONVERSATION
+  peerId === TABLE_CONVERSATION || isRecallConversation(peerId)
     ? peerId
     : JSON.stringify([factionId, peerId].sort((a, b) => (a < b ? -1 : Number(a > b))));
 const present = (row: MessageRow): ConversationMessage => ({
@@ -63,7 +69,10 @@ export class Conversations {
     return conversationsAvailable(snapshot.stage) ? this.actors.factionFor(viewer.userId) : undefined;
   }
 
-  authorize(snapshot: StoredSnapshot, viewer: Viewer, pair: Pair) {
+  authorize(snapshot: StoredSnapshot, viewer: Viewer, pair: Pair, runningRecall?: string) {
+    if (isRecallConversation(pair.peerId) && pair.peerId !== (runningRecall && recallConversation(runningRecall))) {
+      throw new GameRejection('That Mentat recall has ended.');
+    }
     const own = this.faction(snapshot, viewer);
     if (!own || own !== pair.factionId || !conversationMembers(own, pair.peerId, rosterFactionIds(snapshot.roster))) {
       throw new GameRejection('This conversation is not available.');
@@ -115,8 +124,12 @@ export class Conversations {
   }
 
   /** The faction's pairs, then the table. */
-  summaries(faction: string, peers: string[]) {
-    return [...peers.filter((peer) => peer !== faction), TABLE_CONVERSATION].map((peerId) => {
+  summaries(faction: string, peers: string[], recallId?: string) {
+    return [
+      ...peers.filter((peer) => peer !== faction),
+      TABLE_CONVERSATION,
+      ...(recallId ? [recallConversation(recallId)] : []),
+    ].map((peerId) => {
       const pair = pairKey({ factionId: faction, peerId });
       const row = this.storage.sql
         .exec<{ latest: number; unread: number }>(
@@ -148,6 +161,13 @@ export class Conversations {
       faction,
       through
     );
+  }
+
+  /** No recall text or read positions survive closing the recall, including retried message IDs. */
+  discardRecall(reviewId: string) {
+    const pair = recallConversation(reviewId);
+    this.storage.sql.exec('DELETE FROM conversation_messages WHERE pair=?', pair);
+    this.storage.sql.exec('DELETE FROM conversation_reads WHERE pair=?', pair);
   }
 
   generation() {

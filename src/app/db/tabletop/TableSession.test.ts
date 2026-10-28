@@ -2609,3 +2609,79 @@ describe('a plate another player carries', () => {
     ]);
   });
 });
+
+test('shared seeking correlates old rejections, retries failed reads and keeps the table frozen', async () => {
+  const client = await connected();
+  const initial = initialSnapshot();
+  const recall = {
+    id: 'recall',
+    step: 0,
+    context: 'First',
+    proposer: { name: 'One', seat: viewer.viewerSeat },
+    openedAt: 1,
+    threshold: 1,
+    ballots: [{ name: 'One', seat: viewer.viewerSeat, choice: 'review' as const }],
+    startedAt: 1,
+  };
+  authorize({ ...initial, revision: 1, review: recall });
+  const requests = () => socket().sent.filter((message) => message.type === 'history');
+  const first = requests().at(-1)!;
+  expect(table(client).canInteract).toBe(false);
+  authorize({ ...initial, revision: 2, review: { ...recall, step: 1, context: 'Second' } });
+  const second = requests().at(-1)!;
+  expect(second.requestId).not.toBe(first.requestId);
+  socket().deliver({ type: 'rejected', requestId: first.requestId!, message: 'Old checkpoint is no longer shared.' });
+  expect(table(client).historyPending).toBe(true);
+  expect(client.getSnapshot().error).toBeNull();
+  socket().deliver({ type: 'history', requestId: second.requestId, step: 1, lastStep: 1, snapshot: initial });
+  expect(table(client).playback?.step).toBe(1);
+  expect(table(client).canInteract).toBe(false);
+  authorize({ ...initial, revision: 3, review: { ...recall, step: 2, context: 'Third' } });
+  const third = requests().at(-1)!;
+  socket().deliver({ type: 'rejected', requestId: third.requestId!, message: 'Could not load this checkpoint.' });
+  expect(table(client).historyPending).toBe(false);
+  expect(table(client).canInteract).toBe(false);
+  client.retryRecall();
+  const retry = requests().at(-1)!;
+  expect(retry.requestId).not.toBe(third.requestId);
+  socket().deliver({ type: 'history', requestId: retry.requestId, step: 2, lastStep: 2, snapshot: initial });
+  expect(table(client).playback?.step).toBe(2);
+  expect(client.getSnapshot().error).toBeNull();
+});
+
+test('spectators receive public pings during live play and collective recall without publishing', async () => {
+  const client = await connected();
+  const watching = { ...viewer, viewerSeat: 'neutral' };
+  const initial = initialSnapshot();
+  const pings = vi.fn();
+  client.subscribePings(pings);
+  const ping: TablePing = {
+    connectionId: 'other',
+    viewerSeat: 'seat-2',
+    displayName: 'Other',
+    color: 'blue',
+    position: [1, 0, 1],
+  };
+  authorize(initial, watching);
+  socket().deliver({ type: 'ping', ping });
+  expect(pings).toHaveBeenCalledTimes(1);
+  const recall = {
+    id: 'recall',
+    step: 0,
+    context: 'First',
+    proposer: { name: 'One', seat: 'seat-1' },
+    openedAt: 1,
+    threshold: 1,
+    ballots: [{ name: 'One', seat: 'seat-1', choice: 'review' as const }],
+    startedAt: 1,
+  };
+  authorize({ ...initial, revision: 1, review: recall }, watching);
+  const read = socket()
+    .sent.filter((message) => message.type === 'history')
+    .at(-1)!;
+  socket().deliver({ type: 'history', requestId: read.requestId, step: 0, lastStep: 0, snapshot: initial });
+  socket().deliver({ type: 'ping', ping });
+  expect(pings).toHaveBeenCalledTimes(2);
+  client.publishPointer([1, 0, 1], [1, 0, 1]);
+  expect(client.ping()).toBe(false);
+});

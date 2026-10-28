@@ -1,4 +1,4 @@
-import { Text } from '@mantine/core';
+import { Button, Text } from '@mantine/core';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import { MOVEMENT_PHASE_ID, movementOrder } from '@shared/play/movement';
 import { phaseAt, STANDARD_PHASES } from '@shared/play/phases';
@@ -47,7 +47,7 @@ export function stageToolbar({
    * Playback steps through the checkpoints from the header in every stage, so no tab hides the way back to live.
    * A replayed table takes no actions, so it shows none: only the playback controls.
    */
-  /* A running review shows one checkpoint to everyone, so it has no stepping and no way back but resuming play. */
+  /* A running recall puts shared history in its own panel and keeps the return action in the header. */
   if (reviewRunning(table.review?.current)) {
     return <TableReviewBar client={client} table={table} />;
   }
@@ -96,6 +96,33 @@ export function stageStatus({
   table,
   identity,
 }: Readonly<{ client: TableSession; table: TableProjection; identity: GameIdentity }>) {
+  const recall = table.review?.current;
+  if (reviewRunning(recall)) {
+    const unavailable = table.playback?.step !== recall.step;
+    const failure = unavailable && !table.historyPending ? client.getSnapshot().error : null;
+    return (
+      <div className="seated-phase-status__copy">
+        <span>Mentat recall</span>
+        <strong>{recall.context}</strong>
+        {failure ? (
+          <>
+            <Text size="xs" role="alert">
+              Checkpoint unavailable: {failure}
+            </Text>
+            <Button size="xs" variant="subtle" onClick={client.retryRecall}>
+              Retry checkpoint
+            </Button>
+          </>
+        ) : (
+          (table.historyPending || unavailable) && (
+            <Text size="xs" role="status">
+              Loading checkpoint...
+            </Text>
+          )
+        )}
+      </div>
+    );
+  }
   const stage = table.snapshot.stage;
   const result = resultTitle(table);
   if (stage === 'drafting') {

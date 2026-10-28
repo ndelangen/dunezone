@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
 
 import { TOP_VIEW } from '../../../../widgets/tabletop/playView';
 import type { TableView } from '../../../../widgets/tabletop/playView';
@@ -50,6 +51,11 @@ export function useCompass({ open, onOpen, inert, windows, table, onView, onShow
   };
   const tiles = tilesOf(windows, table);
   const commands = commandsOf(table);
+  const chooseSpot: Dispatch<SetStateAction<Spot>> = (next) =>
+    setSpot((current) => {
+      const target = typeof next === 'function' ? next(current) : next;
+      return target === 'ally' && tiles.ally.hidden ? 'table' : target;
+    });
   /* A window an arm opens shows the arm's letter in the search too. */
   const shortcuts = Object.fromEntries(
     Object.values(tiles).flatMap((tile) => (tile.window ? [[tile.window.key, SHORTCUTS[tile.spot]]] : []))
@@ -63,6 +69,7 @@ export function useCompass({ open, onOpen, inert, windows, table, onView, onShow
       shortcuts,
       view: onView,
       close,
+      frozen: Boolean(table?.recall),
     }),
     query
   );
@@ -73,7 +80,10 @@ export function useCompass({ open, onOpen, inert, windows, table, onView, onShow
       return;
     }
     if (at === 'hub' || at === 'search') {
-      suggestions[cursor]?.run();
+      const suggestion = suggestions[cursor];
+      if (suggestion && !suggestion.disabled) {
+        suggestion.run();
+      }
       return;
     }
     const tile = tiles[at];
@@ -116,7 +126,7 @@ export function useCompass({ open, onOpen, inert, windows, table, onView, onShow
     input,
     onOpen: openCompass,
     onClose: close,
-    onSpot: setSpot,
+    onSpot: chooseSpot,
     onCursor: setCursor,
     onConfirm: confirm,
   });
@@ -129,7 +139,7 @@ export function useCompass({ open, onOpen, inert, windows, table, onView, onShow
     cursor,
     refused,
     input,
-    onSpot: setSpot,
+    onSpot: chooseSpot,
     onQuery: setQuery,
     onCursor: setCursor,
     onConfirm: confirm,

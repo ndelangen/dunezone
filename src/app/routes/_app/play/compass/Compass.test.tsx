@@ -187,3 +187,43 @@ test('the click a dismissing press ends in reaches nothing, and the next click i
   fire('click');
   expect(clicked).toHaveBeenCalledTimes(1);
 });
+
+test('a disabled search command exposes its state and refuses both clicks and Enter', () => {
+  const blocked = vi.fn();
+  const allowed = vi.fn();
+  function Subject() {
+    const input = useRef<HTMLInputElement>(null);
+    return (
+      <Compass
+        tiles={tiles}
+        suggestions={[
+          { key: 'blocked', label: 'Next phase', hint: 'History is frozen', icon: null, disabled: true, run: blocked },
+          { key: 'allowed', label: 'Shared history', hint: 'Open panel', icon: null, run: allowed },
+        ]}
+        spot="search"
+        query=""
+        cursor={0}
+        refused={0}
+        input={input}
+        onSpot={() => {}}
+        onQuery={() => {}}
+        onCursor={() => {}}
+        onConfirm={() => {}}
+        onClose={() => {}}
+      />
+    );
+  }
+  render(<Subject />);
+  const command = screen.getByRole('option', { name: /Next phase/ });
+  expect(command.getAttribute('aria-disabled')).toBe('true');
+  act(() => void command.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+  act(() => void command.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })));
+  expect(blocked).not.toHaveBeenCalled();
+  act(
+    () =>
+      void screen
+        .getByRole('option', { name: /Shared history/ })
+        .dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  );
+  expect(allowed).toHaveBeenCalledTimes(1);
+});
