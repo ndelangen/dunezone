@@ -342,7 +342,8 @@ describe('Publication captures one job per asset at a time', () => {
       asset_data: { faction: { name: 'Saved while capturing' } },
     });
   });
-  test('held successors do not fill the batch and keep other work waiting', async () => {
+  // Creating and updating twenty full factions needs the stress-test budget under CI coverage.
+  test('held successors do not fill the batch and keep other work waiting', { timeout: 30_000 }, async () => {
     const { t, asUser } = await authenticatedTest();
     await t.mutation(internal.publicationAdmin.initialize, { rendererRevisions: { faction_sheet: 4 } });
     const adminId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Admin', isAdmin: true }));
