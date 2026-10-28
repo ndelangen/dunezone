@@ -8,18 +8,14 @@ import { useContext } from 'react';
 import type { ReactNode } from 'react';
 
 import type { TablePanel } from '../GameTable';
-import {
-  FACTION_INFO_GUIDANCE,
-  HAND_AND_SPICE_GUIDANCE,
-  PLAYER_CONVERSATION_GUIDANCE,
-  TABLE_CONVERSATION_GUIDANCE,
-} from '../multiplayer/panelGuidance';
+import { HAND_AND_SPICE_GUIDANCE } from '../multiplayer/panelGuidance';
+import { PANEL_WINDOWS } from '../panels/panelWindows';
 import { CompassTableContext } from './compassTable';
 import type { CompassPlayer } from './compassTable';
 import styles from './Windows.module.css';
 
 /** The one window that shows a faction's information, set on whichever faction was asked for. */
-export const FACTION_INFO = 'faction-info';
+export const FACTION_INFO = PANEL_WINDOWS.factionInfo.key;
 
 export type WindowLayout = 'stack' | 'flush' | 'fill';
 
@@ -87,23 +83,18 @@ export function useTableWindows(panels: readonly TablePanel[]): TableWindow[] {
     );
   if (table?.tableChat) {
     windows.push({
-      key: 'table-chat',
-      label: 'Table chat',
+      ...PANEL_WINDOWS.tableChat,
       group: 'Players',
-      topic: 'planet',
-      description: TABLE_CONVERSATION_GUIDANCE.description,
-      help: TABLE_CONVERSATION_GUIDANCE.help,
       content: table.chat(TABLE_CONVERSATION),
       layout: 'fill',
     });
   }
   for (const player of table?.players.filter(chattable) ?? []) {
     windows.push({
+      ...PANEL_WINDOWS.playerChat,
       key: `player:${player.seat}`,
       label: player.name,
       group: 'Players',
-      topic: 'factions',
-      ...PLAYER_CONVERSATION_GUIDANCE,
       content: null,
       layout: 'fill',
       player,
@@ -111,11 +102,8 @@ export function useTableWindows(panels: readonly TablePanel[]): TableWindow[] {
   }
   if (table?.players.length) {
     windows.push({
-      key: FACTION_INFO,
-      label: 'Faction info',
+      ...PANEL_WINDOWS.factionInfo,
       group: 'Players',
-      topic: 'factions',
-      ...FACTION_INFO_GUIDANCE,
       content: null,
       layout: 'stack',
     });

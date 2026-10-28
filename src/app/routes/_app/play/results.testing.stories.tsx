@@ -164,23 +164,6 @@ export const DeclaringOnAPhone = meta.story({
   },
 });
 
-/** A real game deals the locked prediction as a card, so placing that card on the table is the reveal and the bar offers no button. */
-export const DeterminingElsewhere = meta.story({
-  beforeEach: install(() => {
-    const snapshot = mentatSnapshot('seat-2', { prediction: true, card: true });
-    snapshot.ending = { by: { seat: 'seat-1', name: SIX[0]!.name }, startedAt: 1 };
-    return productTransport('seat-2', snapshot);
-  }),
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    const title = await page.findByText(`${SIX[0]!.name} is determining the winner`, {}, { timeout: 30_000 });
-    const bar = title.closest('section')!;
-    await expect(within(bar).getByText(/You hold a locked prediction. Place its card on the table now/)).toBeVisible();
-    await expect(within(bar).queryByRole('button', { name: 'Declare' })).toBeNull();
-    await expect(within(bar).queryByRole('button', { name: 'Reveal prediction' })).toBeNull();
-  },
-});
-
 /** Without captured prediction faces the Worker deals no card, so the Result tab falls back to a reveal button. */
 export const DeterminingElsewhereWithoutACard = meta.story({
   beforeEach: install(() => {

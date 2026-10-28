@@ -20,7 +20,7 @@ import {
 
 const meta = preview.meta({
   ...gameMeta,
-  title: 'Play/Panels/Shared table inventory',
+  title: 'Play/Shared table inventory',
   /* The stories load the table chunk before they render, so its cold first load falls outside their first wait (#1302). */
   loaders: [
     async () => {

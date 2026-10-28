@@ -1,4 +1,4 @@
-import { Anchor, Button, Group, Loader, NumberInput, Select, Stack, Text, Tooltip } from '@mantine/core';
+import { Anchor, Button, Group, Loader, Stack, Text, Tooltip } from '@mantine/core';
 import { signInReturnFrom } from '@shared/authDestination';
 import { tableHandlingOpen } from '@shared/play/admission';
 import { canLowerBid } from '@shared/play/bidding';
@@ -6,15 +6,12 @@ import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import { factionTokenOf } from '@shared/play/factionToken';
 import { lastTurnOf } from '@shared/play/lastTurn';
 import { phaseAt, tableProgressFor } from '@shared/play/phases';
-import { setupMapVisible, setupStep } from '@shared/play/setup';
+import { setupMapVisible } from '@shared/play/setup';
 import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
-import { playUiColors } from '@shared/uiPalette';
 import { Link, useLocation } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { Section } from '@ui/block/Section';
-import { InlineFormattedTextSource } from '@ui/content/FormattedText';
-import type { TopicIconTopic } from '@ui/content/TopicIcon';
-import { useContext, useEffect, useMemo, useReducer, useState, useSyncExternalStore } from 'react';
+import { useContext, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 
 import { requestPlayAdmission, watchSeatPass } from '@db/play';
@@ -32,51 +29,42 @@ import { FoilConfetti } from '../FoilConfetti';
 import { GameLink } from '../GameLink';
 import { GameTable } from '../GameTable';
 import type { TablePanel } from '../GameTable';
-import { HandShelves } from '../hand/HandShelves';
-import { SpiceReserve } from '../hand/SpiceReserve';
-import { SharedInventoryPanel } from '../inventory/SharedInventoryPanel';
 import { ConnectedAlliancesPanel } from '../panels/alliances/useAlliancesPanel';
+import { ConnectedBattlePlanPanel } from '../panels/battlePlan/useBattlePlanPanel';
+import { ConnectedBattleHistoryPanel } from '../panels/battles/useBattleHistoryPanel';
+import { ConnectedPlayerChat, OfflineConversations } from '../panels/chat/useConversationPanel';
+import { ConnectedFactionInfoPanel } from '../panels/factionInfo/useFactionInfoPanel';
+import { ConnectedHandPanel } from '../panels/hand/useHandPanel';
+import { ConnectedSharedInventoryPanel } from '../panels/inventory/useSharedInventoryPanel';
 import { ConnectedLogPanel } from '../panels/log/useLogPanel';
 import { PANEL_WINDOWS } from '../panels/panelWindows';
 import { ConnectedReplayPanel } from '../panels/replay/useReplayPanel';
+import { ConnectedResultPanel, useDeclareChoice } from '../panels/result/useResultPanel';
+import type { DeclareChoice } from '../panels/result/useResultPanel';
 import { ConnectedGameLengthPanel } from '../panels/settings/useGameLengthPanel';
+import { ConnectedSetupPanel, setupWindow } from '../panels/setup/useSetupPanel';
+import { ConnectedPrivateSideTablePanel } from '../panels/sideTable/usePrivateSideTablePanel';
+import { ConnectedSpiceReservePanel } from '../panels/spice/useSpiceReservePanel';
 import { ConnectedTerritoryTintsPanel } from '../panels/tints/useTerritoryTintsPanel';
 import { ConnectedSpiceTransfersPanel } from '../panels/transfers/useSpiceTransfersPanel';
-import { predictionCardInHand } from '../prediction/predictionCardInHand';
 import { TableWait } from '../TableWait';
 import { AllianceCoinsScene } from './AllianceCoins';
 import { AllianceStrip, showsAlliances } from './Alliances';
-import { BattleControls, BattleHistory, BattleModeToggle, BattleScene } from './BattleControls';
+import { BattleModeToggle, BattleScene } from './BattleControls';
 import { BidderScene, biddingPhase } from './Bidder';
 import { useBugReport } from './BugReport';
-import { OfflineConversations } from './Conversation';
 import { DraftingOverlay, DraftingPanel } from './Drafting';
-import { DetermineWinner, ResultControls, useDeclareChoice } from './GameResult';
-import type { DeclareChoice } from './GameResult';
+import { DetermineWinner } from './GameResult';
 import { GameRuntimeContext } from './gameRuntime';
 import { HandCountsScene } from './HandCounts';
-import { HiddenZone } from './HiddenZone';
-import {
-  battleGuidance,
-  HAND_GUIDANCE,
-  HIDDEN_ZONE_GUIDANCE,
-  LOG_GUIDANCE,
-  phaseGuidance,
-  PHASE_PREVIOUS,
-  phaseHelp,
-  RESULT_GUIDANCE,
-  setupGuidance,
-  setupHelp,
-  SHARED_INVENTORY_GUIDANCE,
-  SPICE_GUIDANCE,
-} from './panelGuidance';
-import { FactionInfo, PlayerChat, usePlayerWindows } from './RemovalVotes';
+import { battleHelp, LOG_GUIDANCE, phaseGuidance, PHASE_PREVIOUS, phaseHelp } from './panelGuidance';
+import { usePlayerWindows } from './playerWindows';
 import { useResultCelebration } from './resultCelebration';
 import { GameMenu, SeatPopover } from './SeatRequests';
 import { nextPhaseStep, stageStatus, stageToolbar } from './StageHeader';
 import type { GameIdentity } from './StageHeader';
 import { SwapScene } from './SwapScene';
-import { factionName, factionOptions, isSpectator, stageInPlay, viewerFaction } from './tableFactions';
+import { isSpectator, stageInPlay, viewerFaction } from './tableFactions';
 import { ServerClockContext } from './useServerNow';
 import { initialWindowFocus, nextWindowFocus } from './windowFocus';
 import '../dune-play.css';
@@ -109,13 +97,6 @@ function viewerBidding(client: TableSession, table: TableProjection): CompassTab
     pass: () => void client.command({ kind: 'bid-pass', round }),
   };
 }
-
-const SETUP_TOPICS = {
-  traitors: 'leaders',
-  forces: 'troops',
-  prediction: 'fate',
-  instruction: 'setup',
-} as const satisfies Record<string, TopicIconTopic>;
 
 type ConnectionControlsProps = Readonly<{
   client: TableSession;
@@ -249,202 +230,6 @@ function PhaseControls({ table }: Pick<ConnectionControlsProps, 'table'>) {
   );
 }
 
-function PredictionCards({ table, factionId, turn }: { table: TableProjection; factionId: string; turn: number }) {
-  const seat = table.snapshot.roster?.seats.find((entry) => entry.faction?.id === factionId);
-  const token = seat && table.snapshot.swapping?.tokens[seat.id];
-  const name = factionName(table, factionId);
-  return (
-    <svg width="300" height="190" viewBox="0 0 300 190" role="img" aria-label={`${name}, turn ${turn}`}>
-      <rect
-        x="2"
-        y="2"
-        width="142"
-        height="184"
-        rx="10"
-        fill={playUiColors.demoCard}
-        stroke={playUiColors.demoCardBorder}
-        strokeWidth="3"
-      />
-      <rect
-        x="156"
-        y="2"
-        width="142"
-        height="184"
-        rx="10"
-        fill={playUiColors.demoCard}
-        stroke={playUiColors.demoCardBorder}
-        strokeWidth="3"
-      />
-      {token && <image href={token} x="23" y="20" width="100" height="100" />}
-      <text x="73" y="153" textAnchor="middle" fill={playUiColors.demoCardInk} fontSize="13">
-        {name}
-      </text>
-      <text x="227" y="62" textAnchor="middle" fill={playUiColors.demoCardInk} fontSize="20">
-        TURN
-      </text>
-      <text x="227" y="135" textAnchor="middle" fill={playUiColors.demoCardInk} fontSize="68">
-        {turn}
-      </text>
-    </svg>
-  );
-}
-
-function PredictionInput({ client, table, stepId }: TableControlProps & { stepId: string }) {
-  const [choice, change] = useReducer(
-    (
-      state: { factionId: string | null; turn: string | number },
-      patch: Partial<{ factionId: string | null; turn: string | number }>
-    ) => ({ ...state, ...patch }),
-    { factionId: null, turn: 1 }
-  );
-  const valid =
-    choice.factionId && typeof choice.turn === 'number' && Number.isSafeInteger(choice.turn) && choice.turn >= 1;
-  return (
-    <Stack gap="sm">
-      <Select
-        label="Predicted winner"
-        data={factionOptions(table)}
-        value={choice.factionId}
-        onChange={(factionId) => change({ factionId })}
-        disabled={!table.canInteract}
-      />
-      <NumberInput
-        label="Predicted turn"
-        min={1}
-        allowDecimal={false}
-        allowNegative={false}
-        value={choice.turn}
-        onChange={(turn) => change({ turn })}
-        disabled={!table.canInteract}
-      />
-      <Button
-        disabled={!table.canInteract || !valid}
-        onClick={() =>
-          valid &&
-          client.command({
-            kind: 'prediction-lock',
-            stepId,
-            choice: { factionId: choice.factionId!, turn: Number(choice.turn) },
-          })
-        }
-      >
-        Lock prediction
-      </Button>
-    </Stack>
-  );
-}
-
-/* A locked prediction is revealed, waits for its card on the table, or stays locked until its player reveals it. */
-function lockedPredictionText(revealed: boolean, byCard: boolean) {
-  if (revealed) {
-    return 'Prediction revealed';
-  }
-  return byCard ? 'Prediction locked. Place your prediction card on the table to reveal it.' : 'Prediction locked';
-}
-
-function Predictions({ client, table }: TableControlProps) {
-  const ownFaction = viewerFaction(table);
-  const current = table.snapshot.setup && setupStep(table.snapshot.setup);
-  return table.snapshot.setup?.steps
-    .filter((step) => step.kind === 'prediction')
-    .map((step) => {
-      const prediction = table.snapshot.predictions?.[step.id];
-      const own = step.factionId === ownFaction;
-      /* While its card is in hand, placing the card is the reveal; a game that dealt none keeps the button during setup and in the winner bars. */
-      const byCard = own && prediction?.revealedAt === null && predictionCardInHand(table, step.id);
-      return (
-        /* The Setup panel's guidance names the current step only, so every other declaration keeps its heading in view. */
-        <Section
-          hiddenHeading={Boolean(table.snapshot.stage) && current?.id === step.id}
-          key={step.id}
-          title={step.title}
-          description={setupHelp(step)}
-        >
-          <Stack gap="sm">
-            {prediction ? (
-              <>
-                <Text size="sm">{lockedPredictionText(prediction.revealedAt !== null, byCard)}</Text>
-                {prediction.choice && !byCard && (
-                  <PredictionCards
-                    table={table}
-                    factionId={prediction.choice.factionId}
-                    turn={prediction.choice.turn}
-                  />
-                )}
-                {own && prediction.revealedAt === null && !byCard && (
-                  <Button
-                    variant="default"
-                    disabled={!table.canInteract}
-                    onClick={() =>
-                      client.command({
-                        kind: 'prediction-reveal',
-                        stepId: step.id,
-                      })
-                    }
-                  >
-                    Reveal prediction
-                  </Button>
-                )}
-              </>
-            ) : own && current?.id === step.id && table.snapshot.stage === 'setup' ? (
-              <PredictionInput key={step.id} client={client} table={table} stepId={step.id} />
-            ) : (
-              <Text size="sm">Waiting for the faction player to lock a prediction.</Text>
-            )}
-          </Stack>
-        </Section>
-      );
-    });
-}
-
-function SetupControls({ client, table }: TableControlProps) {
-  const setup = table.snapshot.setup;
-  if (!setup) {
-    return null;
-  }
-  const step = setupStep(setup);
-  /* The viewer's own starting troops lead, so a narrow window shows the line that seat has to follow. */
-  const ownFaction = viewerFaction(table);
-  const instructions =
-    step.kind === 'forces'
-      ? [
-          ...setup.instructions.filter((entry) => entry.factionId === ownFaction),
-          ...setup.instructions.filter((entry) => entry.factionId !== ownFaction),
-        ]
-      : [];
-  return (
-    <Stack gap="md">
-      {step.kind !== 'prediction' && (
-        <Section hiddenHeading={Boolean(table.snapshot.stage)} title={step.title} description={setupHelp(step)}>
-          <Stack gap="sm">
-            {step.kind === 'traitors' && (
-              <Button
-                variant="default"
-                disabled={!table.canInteract}
-                onClick={() => client.command({ kind: 'traitors-gather' })}
-              >
-                Gather tabletop traitors
-              </Button>
-            )}
-            {step.kind === 'forces' &&
-              instructions.map((entry) => (
-                /* A visible heading, not help-only: the faction name is what tells the lines apart. */
-                <Section key={entry.factionId} title={factionName(table, entry.factionId)}>
-                  <Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>
-                    <InlineFormattedTextSource
-                      source={entry.text || 'Follow your faction rules for starting troops.'}
-                    />
-                  </Text>
-                </Section>
-              ))}
-          </Stack>
-        </Section>
-      )}
-      <Predictions client={client} table={table} />
-    </Stack>
-  );
-}
-
 /* A lost connection keeps the last table read-only, with recovery stated above it and explained on hover. */
 function ConnectionStatus({ table }: Readonly<{ table: TableProjection }>) {
   if (!table.reconnecting) {
@@ -493,19 +278,10 @@ function handPanels({ client, table }: TableControlProps) {
     return [];
   }
   return [
+    { ...PANEL_WINDOWS.hand, content: <ConnectedHandPanel client={client} table={table} hand={hand} /> },
     {
-      key: 'hand',
-      label: 'Hand',
-      topic: 'hand' as const,
-      ...HAND_GUIDANCE,
-      content: <HandShelves client={client} table={table} hand={hand} />,
-    },
-    {
-      key: 'hidden-zone',
-      label: 'Private side-table',
-      topic: 'hiddenZone' as const,
-      ...HIDDEN_ZONE_GUIDANCE,
-      content: <HiddenZone client={client} table={table} hand={hand} />,
+      ...PANEL_WINDOWS.sideTable,
+      content: <ConnectedPrivateSideTablePanel client={client} table={table} hand={hand} />,
     },
   ];
 }
@@ -515,11 +291,8 @@ function resultPanels({ client, table, error, declare }: ControlPanelsProps) {
   return resultFocus(table)
     ? [
         {
-          key: 'result',
-          label: 'Result',
-          topic: 'result' as const,
-          ...RESULT_GUIDANCE,
-          content: withTableError(error, <ResultControls client={client} table={table} declare={declare} />),
+          ...PANEL_WINDOWS.result,
+          content: withTableError(error, <ConnectedResultPanel client={client} table={table} declare={declare} />),
         },
       ]
     : [];
@@ -536,15 +309,7 @@ function yoursGroup({ client, table }: TableControlProps): TablePanel {
     panels: [
       ...handPanels({ client, table }),
       ...(table.snapshot.bank
-        ? [
-            {
-              key: 'spice',
-              label: 'Spice',
-              topic: 'spice' as const,
-              ...SPICE_GUIDANCE,
-              content: <SpiceReserve client={client} table={table} />,
-            },
-          ]
+        ? [{ ...PANEL_WINDOWS.spice, content: <ConnectedSpiceReservePanel client={client} table={table} /> }]
         : []),
     ],
   };
@@ -564,22 +329,17 @@ function gameGroup({ client, table, error, declare }: ControlPanelsProps, inPlay
       ...(setup && stage === 'setup'
         ? [
             {
-              key: 'setup',
-              label: 'Setup',
-              topic: SETUP_TOPICS[setupStep(setup).kind],
-              ...setupGuidance(setupStep(setup)),
-              content: withTableError(error, <SetupControls client={client} table={table} />),
+              ...setupWindow(setup),
+              content: withTableError(error, <ConnectedSetupPanel client={client} table={table} />),
             },
           ]
         : []),
       ...(inPlay && (battle || activePhaseId === 'battle')
         ? [
             {
-              key: 'battle',
-              label: 'Battle plan',
-              topic: 'battle' as const,
-              ...battleGuidance(table),
-              content: withTableError(error, <BattleControls client={client} table={table} />),
+              ...PANEL_WINDOWS.battlePlan,
+              help: battleHelp(table),
+              content: withTableError(error, <ConnectedBattlePlanPanel client={client} table={table} />),
               /* The plan fills its window under the wheel, whose cards peek over the window's top edge. */
               ...(battle && table.snapshot.battlePlan && table.snapshot.bank
                 ? { fill: true, peek: true, actions: <BattleModeToggle client={client} table={table} /> }
@@ -602,13 +362,7 @@ function tableGroup({ client, table, error }: ConnectionControlsProps): TablePan
     description: 'Shared pieces and table settings.',
     content: null,
     panels: [
-      {
-        key: 'shared',
-        label: 'Shared table inventory',
-        topic: 'assets',
-        ...SHARED_INVENTORY_GUIDANCE,
-        content: <SharedInventoryPanel client={client} table={table} />,
-      },
+      { ...PANEL_WINDOWS.inventory, content: <ConnectedSharedInventoryPanel client={client} table={table} /> },
       ...(tableHandlingOpen(table.snapshot.stage)
         ? [
             {
@@ -642,13 +396,7 @@ function historyGroup({ client, table, error }: ConnectionControlsProps, hasInve
       { ...PANEL_WINDOWS.audit, content: <ConnectedLogPanel client={client} table={table} tab="audit" /> },
       ...(hasInventory
         ? [
-            {
-              key: 'battles',
-              label: 'Battles',
-              topic: 'battle' as const,
-              description: 'Agreed battle results and revealed plans.',
-              content: <BattleHistory table={table} />,
-            },
+            { ...PANEL_WINDOWS.battles, content: <ConnectedBattleHistoryPanel table={table} /> },
             {
               ...PANEL_WINDOWS.transfers,
               content: <ConnectedSpiceTransfersPanel client={client} table={table} />,
@@ -794,8 +542,10 @@ function ConnectedTable({
           <CompassTableContext
             value={{
               ...playerWindows,
-              chat: (seat) => <PlayerChat client={client} table={table} seat={seat} />,
-              factionInfo: (seat) => <FactionInfo client={client} table={table} seat={seat} error={error} />,
+              chat: (seat) => <ConnectedPlayerChat client={client} table={table} seat={seat} />,
+              factionInfo: (seat) => (
+                <ConnectedFactionInfoPanel client={client} table={table} seat={seat} error={error} />
+              ),
               nextPhase: nextPhaseStep(client, table),
               token: viewerToken(client, table),
               bidding: viewerBidding(client, table),

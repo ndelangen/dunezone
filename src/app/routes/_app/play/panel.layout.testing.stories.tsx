@@ -9,7 +9,7 @@ import { productTransport, playingSnapshot as initialSnapshot } from './product.
 
 const meta = testingPreview.meta({
   ...gameMeta,
-  title: 'Play/Panels/Layout',
+  title: 'Play/Layout',
   /* The stories load the table chunk before they render, so its cold first load falls outside their first wait (#1302). */
   loaders: [
     async () => {

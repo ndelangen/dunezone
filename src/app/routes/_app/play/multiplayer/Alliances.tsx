@@ -1,65 +1,14 @@
 import { Group, Tooltip } from '@mantine/core';
-import { alliesOf } from '@shared/play/alliances';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import { playUiColors, withAlpha } from '@shared/uiPalette';
-import { TopicIcon } from '@ui/content/TopicIcon';
-import type { ReactNode } from 'react';
 
-import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
-import { AllianceRowAction } from '../panels/alliances/AllianceRowAction';
-import { allianceStatus, factionList } from '../panels/alliances/alliances';
-import { sendAllianceAction, viewerRelation } from '../panels/alliances/useAlliancesPanel';
-import { factionToken, FactionTokenFace, FactionTokenGroup } from './FactionTokenFace';
-import type { FactionToken } from './FactionTokenFace';
-import { seatFaction, viewerFaction } from './tableFactions';
+import type { TableProjection } from '../../../../db/tabletop/TableSession';
+import { factionList } from '../panels/alliances/alliances';
+import { factionToken, FactionTokenFace } from './FactionTokenFace';
 
 /** Alliances show while the game is in play and, read-only, once it is finished, so everyone still sees who was allied at the end. */
 export function showsAlliances(stage: string | undefined) {
   return stage === 'play' || stage === 'finished';
-}
-
-/** A seat's alliance as the Faction info shows it: the faction's allies as tokens, how it stands with the viewer, and the one action that fits. */
-export type SeatAlliance = Readonly<{ mark: ReactNode; status: string; action: ReactNode }>;
-
-/** The seat's alliance, or null outside play and for a seat without a faction. */
-export function seatAlliance(client: TableSession, table: TableProjection, seat: string): SeatAlliance | null {
-  const factionId = seatFaction(table, seat);
-  if (!factionId || !showsAlliances(table.snapshot.stage)) {
-    return null;
-  }
-  const names = snapshotFactionLabels(table.snapshot);
-  const allies = alliesOf(table.snapshot.alliances, factionId).map((id) => factionToken(table, id, names));
-  const relation = viewerRelation(table, factionId);
-  return {
-    mark: <AllianceMark allies={allies} />,
-    status: allianceStatus(table.snapshot.alliances, factionId, viewerFaction(table), names),
-    action: relation && (
-      <AllianceRowAction
-        relation={relation}
-        disabled={!table.canInteract}
-        onAction={(kind) => sendAllianceAction(client, table, factionId, kind)}
-      />
-    ),
-  };
-}
-
-/* The faction's allies as their tokens, or the alliance mark while it has none. */
-function AllianceMark({ allies, size = 22 }: Readonly<{ allies: readonly FactionToken[]; size?: number }>) {
-  if (allies.length) {
-    return <FactionTokenGroup tokens={allies} size={size} />;
-  }
-  return (
-    <span
-      style={{
-        display: 'inline-flex',
-        borderRadius: '50%',
-        background: 'var(--color-ground)',
-        color: 'var(--color-muted)',
-      }}
-    >
-      <TopicIcon topic="alliance" size={size - 4} />
-    </span>
-  );
 }
 
 /**
