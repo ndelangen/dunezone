@@ -536,7 +536,8 @@ function useHostedControls(client: TableSession, table: TableProjection, error: 
     token: viewerToken(client, table),
     bidding: viewerBidding(client, table),
   };
-  return { recall, normal, compassTable };
+  const readOnly = Boolean(table.playback || table.historyPending || recall);
+  return { readOnly, normal, compassTable };
 }
 
 function HostedGameMenu({
@@ -585,7 +586,7 @@ function ConnectedTable({
   const declare = useDeclareChoice(table);
   /* Each player fades the bidder for themselves, so the choice stays in this browser tab. */
   const [bidderFaded, setBidderFaded] = useState(false);
-  const { recall, normal, compassTable } = useHostedControls(client, table, error);
+  const { readOnly, normal, compassTable } = useHostedControls(client, table, error);
   const stage = table.snapshot.stage;
   const factionArtwork = table.snapshot.factionArtwork;
   const predictionLogos = useMemo(
@@ -600,7 +601,7 @@ function ConnectedTable({
           {/* What the compass shows of the table beyond its panels: the players, the chats and its commands. */}
           <CompassTableContext value={compassTable}>
             <GameTable
-              readOnly={Boolean(table.playback || table.historyPending || recall)}
+              readOnly={readOnly}
               seatCount={table.snapshot.roster?.seatCount ?? DEFAULT_TABLE_SEAT_COUNT}
               tableProgress={progress}
               stage={stage}
