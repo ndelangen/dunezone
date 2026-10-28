@@ -13,7 +13,7 @@ runs:
       with:
         bun-version-file: package.json
     - name: Install dependencies
-      run: bash "$SETUP_ACTION_PATH/install-dependencies.sh"
+      run: node "$SETUP_ACTION_PATH/install-dependencies.ts"
       shell: bash
       env:
         SETUP_ACTION_PATH: ${{ github.action_path }}
