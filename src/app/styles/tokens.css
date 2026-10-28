@@ -27,17 +27,13 @@
   --action-neutral-hover-bg: var(--button-neutral-hover-bg);
   --action-neutral-fg: var(--button-neutral-fg);
 
-  --glass-blur-sm: 6px;
   --glass-blur-md: 10px;
 
   --panel-bg: var(--glass-surface-1);
-  --panel-radius: 6px;
-  --input-bg: var(--glass-input);
 
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-pill: 999px;
-  --border-strong: 2px solid var(--panel-border);
 
   /*
    * The one spacing scale. CSS writes var(--space-md); TSX writes gap="md", because theme.ts binds
@@ -53,17 +49,9 @@
   --space-lg: 1.25rem;
   --space-xl: 2rem;
 
-  --control-h-sm: 2rem;
   --control-h-md: 2.2rem;
-  --control-prefix-w: 2.2rem;
-  --control-px-sm: 0.45rem;
-  --control-px-md: 0.58rem;
-
-  --icon-sm: 0.95rem;
-  --icon-md: 1.1rem;
 
   --transition-fast: 140ms ease;
-  --transition-base: 200ms ease;
 }
 
 /*
@@ -114,8 +102,6 @@
   --button-toggle-fg: var(--button-neutral-fg);
   --selection-border: var(--button-toggle-fg);
   --panel-bg: var(--glass-surface-1);
-  --input-bg: var(--glass-input);
-  --border-strong: 2px solid var(--panel-border);
 
   /* Inherited text resolves at body, outside this subtree, so the ink is set directly. */
   color: var(--color-text);

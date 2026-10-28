@@ -55,22 +55,19 @@ A button's intent is said with a variant word rather than a colour family; see t
 
 - `--glass-surface-0`, `--glass-surface-1`, `--glass-surface-2`
 - `--glass-input`, `--glass-overlay`
-- `--glass-blur-sm`, `--glass-blur-md`
+- `--glass-blur-md`
 
 ### Shared form foundations
 
-- `--panel-bg`, `--panel-border`, `--panel-shadow`, `--panel-radius`
-- `--input-bg`, `--input-border`
-- `--border-strong` (canonical 2px border)
+- `--panel-bg`, `--panel-border`, `--panel-shadow`
+- `--input-border`
 - `--input-border-strong`, `--field-shadow` for high-contrast controls
 
 ### Radius, spacing, sizing
 
 - `--radius-sm`, `--radius-md`, `--radius-pill`
 - `--space-xs` through `--space-xl`, the one spacing scale, responsive at 48rem and 62rem
-- `--control-h-sm`, `--control-h-md`
-- `--control-px-sm`, `--control-px-md`
-- `--icon-sm`, `--icon-md`
+- `--control-h-md`
 
 ## Controls
 

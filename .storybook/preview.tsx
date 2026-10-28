@@ -4,7 +4,7 @@ import { definePreview } from '@storybook/tanstack-react';
 import { sb } from 'storybook/test';
 
 import { loadStorybookDatabase, StorybookDatabaseProvider, storybookViewer } from '../src/app/db/storybook';
-import '@mantine/core/styles.layer.css';
+import '../src/app/styles/mantine.generated.css';
 import '../src/app/styles/fonts.css';
 import '@fontsource/caladea/latin-700.css';
 import '../src/app/styles/tokens.css';
