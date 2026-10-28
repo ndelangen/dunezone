@@ -134,10 +134,7 @@ describe.runIf(process.env.RECORD_TUTORIAL)('The tutorial setup recording', { ti
                 logSequence: step.logSequence,
                 stored: required(step.stored),
                 viewers: Object.fromEntries(views.map((view) => [view.viewer.viewerSeat, view.viewer])),
-                /* The fixture's avatar addresses name no real image, so the players show their initials, as before the deal. */
-                players: (required(step.views[TUTORIAL_RECIPE.learner]).snapshot.controls?.players ?? []).map(
-                  (player) => ({ ...player, avatar: null })
-                ),
+                players: required(step.views[TUTORIAL_RECIPE.learner]).snapshot.controls?.players ?? [],
               },
             ];
           })

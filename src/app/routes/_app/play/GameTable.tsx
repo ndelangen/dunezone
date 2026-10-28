@@ -83,6 +83,7 @@ export type TablePanel = Readonly<{
 }>;
 
 type GameTableProps = {
+  onSceneReady?: (() => void) | undefined;
   sceneContent?: ReactNode;
   readOnly?: boolean;
   /** The host's panels, grouped, ahead of the fixture's own Table panel. */
@@ -577,7 +578,8 @@ function measureHeader(node: HTMLElement | null) {
 function useTableViewController(
   activePhase: GameTableProps['tableProgress']['phases'][number] | undefined,
   word: StageFrame['word'],
-  requestedView: GameTableProps['requestedView']
+  requestedView: GameTableProps['requestedView'],
+  onSceneReady: GameTableProps['onSceneReady']
 ) {
   const viewPhase = word || !activePhase ? null : standardPhaseOf(activePhase);
   const [viewState, dispatchView] = useReducer(reduceTableView, viewPhase, createTableViewState);
@@ -598,17 +600,30 @@ function useTableViewController(
   const handleInteractionActiveChange = useCallback((active: boolean) => {
     dispatchView({ type: 'interaction.changed', active });
   }, []);
-  const handleSceneReady = useCallback(() => dispatchView({ type: 'scene.ready' }), []);
+  const handleSceneUnavailable = useCallback(() => dispatchView({ type: 'scene.ready' }), []);
+  const handleSceneReady = useCallback(() => {
+    dispatchView({ type: 'scene.ready' });
+    onSceneReady?.();
+  }, [onSceneReady]);
   /* A renderer whose initialisation never settles (the story runner's headless one is such a renderer) must not keep the shell closed for good: the clock reports for it, and a later real report changes nothing. */
   useEffect(() => {
-    const timer = setTimeout(handleSceneReady, SCENE_READY_FALLBACK_MS);
+    const timer = setTimeout(() => dispatchView({ type: 'scene.ready' }), SCENE_READY_FALLBACK_MS);
     return () => clearTimeout(timer);
   }, [handleSceneReady]);
 
-  return { viewPhase, viewState, dispatchView, cameraView, handleInteractionActiveChange, handleSceneReady };
+  return {
+    viewPhase,
+    viewState,
+    dispatchView,
+    cameraView,
+    handleInteractionActiveChange,
+    handleSceneReady,
+    handleSceneUnavailable,
+  };
 }
 
 export function GameTable({
+  onSceneReady,
   sceneContent,
   readOnly = false,
   panels,
@@ -641,8 +656,15 @@ export function GameTable({
   /* The camera follows the phase while the header names one: in play, and on the fixture. */
   /* A faction phase takes the camera view of the standard phase it precedes (#1138). */
   const activePhase = tableProgress.phases.find((entry) => entry.id === tableProgress.activePhaseId);
-  const { viewPhase, viewState, dispatchView, cameraView, handleInteractionActiveChange, handleSceneReady } =
-    useTableViewController(activePhase, frame.word, requestedView);
+  const {
+    viewPhase,
+    viewState,
+    dispatchView,
+    cameraView,
+    handleInteractionActiveChange,
+    handleSceneReady,
+    handleSceneUnavailable,
+  } = useTableViewController(activePhase, frame.word, requestedView, onSceneReady);
   const overlaysInert = viewState.interactionActive || gestureActive;
 
   const scene = (
@@ -651,6 +673,7 @@ export function GameTable({
         className="scene scene--immersive"
         cameraView={cameraView}
         onSceneReady={handleSceneReady}
+        onSceneUnavailable={handleSceneUnavailable}
         onInteractionActiveChange={handleInteractionActiveChange}
         readOnly={readOnly}
         seatCount={seatCount}

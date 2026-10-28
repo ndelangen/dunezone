@@ -3,17 +3,20 @@ import { TUTORIAL_RECIPE } from '@shared/tutorial/recipe';
 
 import type { GuideTask } from '../TutorialGuide';
 import type { ChapterScript, TablePlayers } from './chapterScript';
-import { element, pressEnter, task } from './guideChecks';
+import { element, task } from './guideChecks';
 
 /*
  * "Draft and trade": the table from the moment the last seat is taken, before anyone has drafted.
- * The learner drafts Bene Gesserit and bans the Ixians, the others draft the rest of the official six, and once everyone is ready
+ * The learner searches the catalogue, drafts one of three familiar factions and bans the Ixians, the others draft the rest of the official six, and once everyone is ready
  * the table deals each player a faction and a station, as the recording dealt them. Then four minutes of trading:
  * the learner offers a trade, takes it back, and readies with the rest, which ends trading and starts the setup.
  */
 
 const LEARNER = TUTORIAL_RECIPE.learner;
-const DRAFT = 'Bene Gesserit';
+const DRAFT_CHOICES = ['Emperor', 'Fremen', 'House Harkonnen'] as const;
+const SEARCH = '[data-drafting-panel] input[aria-label="Search factions"]';
+const search = () => document.querySelector<HTMLInputElement>(SEARCH);
+const searched = (text: string) => search()?.value.trim().toLowerCase() === text.toLowerCase();
 const BAN = 'Ixians';
 
 /*
@@ -21,8 +24,10 @@ const BAN = 'Ixians';
  * so a search that also lists "Ixians (In Progress)" still finds the Ixians.
  */
 const draftButton = (faction: string, word: 'Draft' | 'Ban') => () => {
-  const row = [...document.querySelectorAll('[data-drafting-panel] li')].find((item) =>
-    [...item.querySelectorAll('p')].some((name) => name.textContent?.trim() === faction)
+  const row = [...document.querySelectorAll('[data-drafting-panel] li')].find(
+    (item) =>
+      [...item.querySelectorAll('p')].some((name) => name.textContent?.trim() === faction) &&
+      [...item.querySelectorAll('p')].some((note) => note.textContent?.trim() === 'suitable for this ruleset')
   );
   return (
     [...(row?.querySelectorAll('button') ?? [])].find((button) => button.textContent?.trim().startsWith(word)) ?? null
@@ -38,9 +43,11 @@ const factionId = (snapshot: () => GameSnapshot, name: string) =>
   snapshot().draft?.factions.find((faction) => faction.linked && faction.name === name)?.id;
 
 /* The others draft the factions the recording dealt them and declare themselves ready, as players at a real table would. */
-function othersDraft(snapshot: () => GameSnapshot, players: TablePlayers) {
+function othersDraft(snapshot: () => GameSnapshot, players: TablePlayers, selected: string) {
   const seats = snapshot().roster?.seats ?? [];
-  const official = ['Fremen', 'House Atreides', 'House Harkonnen', 'Emperor', 'Spacing Guild'];
+  const official = ['Bene Gesserit', 'Fremen', 'House Atreides', 'House Harkonnen', 'Emperor', 'Spacing Guild'].filter(
+    (name) => name !== selected
+  );
   players.others().forEach((seat, index) => {
     const name = official[index];
     const id = name && factionId(snapshot, name);
@@ -96,7 +103,7 @@ const tradingOver = (snapshot: () => GameSnapshot) =>
  * a learner who drafts or bans more is dealt at random, so the text names what the table actually dealt.
  */
 const dealt = (snapshot: () => GameSnapshot) =>
-  snapshot().roster?.seats.find((entry) => entry.id === LEARNER)?.faction?.name ?? DRAFT;
+  snapshot().roster?.seats.find((entry) => entry.id === LEARNER)?.faction?.name ?? 'your faction';
 const PARTNER = 'House Atreides';
 const partner = (snapshot: () => GameSnapshot) => {
   const others = (snapshot().roster?.seats ?? [])
@@ -105,32 +112,49 @@ const partner = (snapshot: () => GameSnapshot) => {
   return others.includes(PARTNER) ? PARTNER : (others[0] ?? PARTNER);
 };
 
-function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[] {
+function tasks(snapshot: () => GameSnapshot, players: TablePlayers, random: () => number = Math.random): GuideTask[] {
+  const draft = DRAFT_CHOICES[Math.floor(random() * DRAFT_CHOICES.length)]!;
+  const spokenDraft = draft.replace(/^House /, '');
   return [
     task({
-      id: 'table-full',
-      task: 'The table is full',
+      id: 'search',
+      task: 'Find a faction',
       detail:
-        'All seats are taken, so drafting can begin. Players choose which factions to include or ban before anyone is assigned one.\n\nPress {Enter} to continue.',
-      anchor: { kind: 'page', element: element('.seated-phase-status') },
-      ...pressEnter(),
+        "Everyone's here! Before factions are dealt, you choose which ones go into the pool together.\n\nThe search box helps you find them. Type atr to look for Atreides.",
+      anchor: { kind: 'page', element: element(SEARCH) },
+      begin: () => undefined,
+      done: () => searched('atr'),
+    }),
+    task({
+      id: 'suitability',
+      task: 'Find a suitable faction',
+      detail: `See "suitable for this ruleset"? That version of the faction fits the rules you're playing.\n\nA faction can appear more than once because people have made different versions. You can mix and match them, but drafting the same faction more than once gets confusing for players.\n\nLet's try ${spokenDraft}. Replace atr in the search box with ${spokenDraft}.`,
+      anchor: {
+        kind: 'page',
+        element: () =>
+          [...document.querySelectorAll('[data-drafting-panel] p')].find(
+            (node) => node.textContent?.trim() === 'suitable for this ruleset'
+          ) ?? search(),
+      },
+      begin: () => undefined,
+      done: () => searched(spokenDraft),
     }),
     task({
       id: 'draft',
-      task: `Draft ${DRAFT}`,
-      detail: `Press Draft beside ${DRAFT} to add it to the pool.\n\nAnyone could be dealt this faction, including you.`,
-      anchor: { kind: 'page', element: draftButton(DRAFT, 'Draft') },
+      task: `Draft ${spokenDraft}`,
+      detail: `Fancy seeing ${spokenDraft} in the game? Find the version marked "suitable for this ruleset" and press Draft to add it to the pool.\n\nAnyone could be dealt this faction, including you.`,
+      anchor: { kind: 'page', element: () => draftButton(draft, 'Draft')() ?? search() },
       begin: () => undefined,
       done: () => {
-        const id = factionId(snapshot, DRAFT);
+        const id = factionId(snapshot, draft);
         return Boolean(id && snapshot().draft?.picks[LEARNER]?.includes(id));
       },
     }),
     task({
       id: 'ban',
       task: `Ban the ${BAN}`,
-      detail: `Press Ban beside the ${BAN}.\n\nA banned faction cannot be dealt, even if another player drafts it.`,
-      anchor: { kind: 'page', element: draftButton(BAN, 'Ban') },
+      detail: `Not keen on playing against the ${BAN}? Search for Ixians, then press Ban beside the version marked "suitable for this ruleset".\n\nA banned faction can't be dealt, even if another player drafts it.`,
+      anchor: { kind: 'page', element: () => draftButton(BAN, 'Ban')() ?? search() },
       begin: () => undefined,
       done: () => {
         const id = factionId(snapshot, BAN);
@@ -143,25 +167,15 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       detail:
         'The other players have made their picks. Press Ready in the top right.\n\nWhen everyone is ready, each player gets a random faction and seat.',
       anchor: { kind: 'page', element: readyButton },
-      begin: () => othersDraft(snapshot, players),
+      begin: () => othersDraft(snapshot, players, draft),
       done: () => snapshot().stage === 'swapping',
       finish: (stop: () => void) => stop(),
-    }),
-    task({
-      id: 'dealt',
-      task: 'Your faction and seat',
-      /* Read as the task shows, after the deal. */
-      get detail() {
-        return `You got ${dealt(snapshot)}.\n\nYou now have four minutes to agree on a trade with another player. A trade swaps both your factions and seats.\n\nPress {Enter} to continue.`;
-      },
-      anchor: { kind: 'page', element: element('.seated-phase-status') },
-      ...pressEnter(),
     }),
     task({
       id: 'offer',
       task: 'Offer a trade',
       get detail() {
-        return `Click the ${partner(snapshot)} token below the table, then press Offer trade.\n\nThat player can accept your offer.`;
+        return `You got ${dealt(snapshot)}! You have four minutes to agree on a trade, which swaps both factions and seats.\n\nWant to try? Click the ${partner(snapshot)} token below the table, then press Offer trade. They can choose whether to accept.`;
       },
       anchor: {
         kind: 'page',
@@ -174,9 +188,9 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     }),
     task({
       id: 'cancel',
-      task: 'Cancel the trade offer',
+      task: 'Cancel your offer',
       get detail() {
-        return `Press Cancel offer in the same window to keep ${dealt(snapshot)}.`;
+        return `Changed your mind? Press Cancel offer in the same window to keep ${dealt(snapshot)}.`;
       },
       anchor: { kind: 'page', element: element('button[aria-label^="Cancel offer to"]') },
       begin: () => undefined,
@@ -196,6 +210,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
 
 /* One line for each part of the chapter, in the order it was played. */
 const learned = [
+  'Search for a faction and check whether it suits the ruleset',
   'A full table drafts the factions it wants and bans the ones it doesn’t',
   'Once everyone is ready, each player is dealt a drafted faction and a seat at random',
   'For four minutes after the deal, two players can trade if both agree',

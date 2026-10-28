@@ -47,9 +47,9 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
   return [
     task({
       id: 'game-log',
-      task: 'Check the Game log',
+      task: 'Check what happened',
       detail:
-        'Someone disputes what happened at the start of Storm.\n\nPress {Space}, type Game log and confirm with {Enter} to check the public events and phase changes.',
+        "Someone disputes what happened at the start of Storm. Let's check together.\n\nPress {Space}, type Game log and confirm with {Enter} to see public events and phase changes.",
       anchor: { kind: 'page', element: element('[data-compass-launcher]') },
       begin: () => undefined,
       done: () => document.querySelector('[data-window="game-log"]') !== null,
@@ -58,7 +58,8 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'review-propose',
       task: 'Ask to recall Storm',
       detail:
-        'Press {Space}, type Mentat recall and confirm with {Enter}.\n\nUse Earlier checkpoint to select Turn 1, Storm, then Ask the table to recall.\n\nIf you picked the wrong checkpoint, withdraw the request and try again.',
+        "The log isn't the only way to look back. Press {Space}, type Mentat recall and confirm with {Enter}.\n\nUse Earlier checkpoint to select Turn 1, Storm, then Ask the table to recall.\n\nIf you picked the wrong checkpoint, withdraw the request and try again.",
+
       anchor: {
         kind: 'page',
         element: () =>
@@ -79,9 +80,10 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     }),
     task({
       id: 'review-votes',
-      task: 'Watch the recall vote',
+      task: 'Wait for the others',
       detail:
         'The other players are agreeing now. Once a majority agrees, play pauses and everyone sees the saved public position.\n\nIf you withdraw the request, ask to recall Turn 1, Storm again.',
+
       anchor: { kind: 'page', element: element('[data-window="review"]') },
       begin: () => {
         const timer = setInterval(() => {
@@ -102,18 +104,10 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       finish: (stop) => stop(),
     }),
     task({
-      id: 'review-discuss',
-      task: 'Discuss the saved position',
-      detail:
-        'You are all looking at the Storm checkpoint. All game contents are frozen. Your seat can see its recorded hand, private side table and spice reserve.\n\nUse Recall chat or talk aloud to resolve the dispute. Recall chat is separate from table chat and disappears when play resumes.\n\nPress {Enter} when you are ready to resume.',
-      anchor: { kind: 'page', element: element('[aria-label="Mentat recall in progress"]') },
-      ...pressEnter(),
-    }),
-    task({
       id: 'review-resume',
-      task: 'Resume the current game',
+      task: 'Talk it through',
       detail:
-        'Press Return to the game. Any seated player can do this. You all return to the live Spice Blow position.\n\nRecalling an earlier position does not undo any moves.',
+        "You're all looking at the Storm checkpoint. Everything is frozen, including your recorded hand, private side table and spice.\n\nUse Recall chat or talk aloud to settle the dispute. Recall chat is separate from table chat and disappears when you return.\n\nWhen you're ready, press Return to the game. Any seated player can do this. You'll return to the live Spice Blow position. Recalling an earlier position doesn't undo any moves.",
       anchor: {
         kind: 'page',
         element: () =>
@@ -126,9 +120,9 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     }),
     task({
       id: 'open',
-      task: 'Open the player details',
+      task: 'Open player details',
       detail:
-        'Suppose the Harkonnen player has stopped responding.\n\nClick their token below the table, then click the token beside the chat title to open their details.',
+        "Now suppose the Harkonnen player has stopped responding. Let's see what the table can do.\n\nClick their token below the table, then click the token beside the chat title to open their details.",
       anchor: {
         kind: 'page',
         element: () =>
@@ -165,18 +159,10 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       finish: (stop) => stop(),
     }),
     task({
-      id: 'vacant',
-      task: 'Their seat is open',
-      detail:
-        'The Harkonnen seat is now open. Its faction and pieces stay on the table for a replacement player.\n\nA spectator can request the seat, and a seated player can approve them.\n\nPress {Enter} to continue.',
-      anchor: { kind: 'page', element: element(`[data-window="${FACTION_INFO}"]`) },
-      ...pressEnter(),
-    }),
-    task({
       id: 'audit',
       task: 'Read the Audit record',
       detail:
-        'Press {Space}, type Audit and confirm with {Enter}.\n\nCheck the record of the review, the removal vote and the player leaving their seat.',
+        "The Harkonnen seat is open. Its faction and pieces stay for a replacement, and a seated player can approve their request to join.\n\nLet's check the record. Press {Space}, type Audit and confirm with {Enter} to see the recall, removal vote and player leaving their seat.",
       anchor: { kind: 'page', element: element('[data-compass-launcher]') },
       begin: () => undefined,
       done: () => document.querySelector('[data-window="audit"]') !== null,

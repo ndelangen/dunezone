@@ -22,7 +22,7 @@ import ruleset from './product.stories.fixture/ruleset.json';
 import { storyTransport } from './storyTransport';
 
 export { factions };
-export const SIX = ['twaffle', 'thialfi', 'fectumbra', 'erickenneth', 'ridwan', 'argelius'].map((slug, index) =>
+export const SIX = ['central', 'krell', 'jaded-af', 'eichmal', 'ridwan', 'tautrimas'].map((slug, index) =>
   storyPlayer(`seat-${index + 1}`, slug)
 );
 export const GAME_KEY = 'game:real';
@@ -40,7 +40,7 @@ function troopArtwork<Face extends { capable?: boolean; combat?: unknown }>(face
 export function productDatabase(baseline: StorybookDatabase) {
   const viewer = SIX[1]!;
   baseline.users[0]!.name = viewer.name;
-  Object.assign(baseline.profiles[0]!, { username: viewer.name, slug: 'thialfi', avatar_url: viewer.avatar });
+  Object.assign(baseline.profiles[0]!, { username: viewer.name, slug: 'krell', avatar_url: viewer.avatar });
   Object.assign(baseline.rulesets[0]!, { name: ruleset.name, slug: ruleset.slug, about: ruleset.about });
   baseline.factions[0]!.data = factions[0]!.data;
   baseline.factions[0]!.slug = factions[0]!.slug;

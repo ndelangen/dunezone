@@ -2,7 +2,7 @@ import type { GameSnapshot } from '@shared/play/protocol';
 
 import type { GuideTask } from '../TutorialGuide';
 import type { ChapterScript, TablePlayers } from './chapterScript';
-import { closeGameMenu, element, gameMenuButton, pressEnter, task } from './guideChecks';
+import { closeGameMenu, element, gameMenuButton, task } from './guideChecks';
 
 /*
  * "Take a seat": the learner opens the link of a game that is already drafting, as a spectator.
@@ -12,7 +12,7 @@ import { closeGameMenu, element, gameMenuButton, pressEnter, task } from './guid
 
 /* The player who approves the learner's request, after a moment, as someone at a real table would. */
 const APPROVER = 'seat-1';
-const APPROVE_AFTER_MS = 2500;
+const APPROVE_AFTER_MS = 7000;
 
 /* The game menu's hold-to-leave item, while the menu is open. */
 const leaveItem = () =>
@@ -54,40 +54,39 @@ function approveEachRequest(players: TablePlayers) {
 function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[] {
   return [
     task({
-      id: 'watching',
-      task: 'You are watching',
-      detail:
-        "You've joined as a spectator. You can see the public table, but you need a seat to play.\n\nPress {Enter} to continue.",
-      anchor: { kind: 'page', element: element('section[aria-label="Players"]') },
-      ...pressEnter(),
-    }),
-    task({
       id: 'ask',
-      task: 'Ask for a seat',
-      detail: 'Press the + below the players to request a seat. Factions will be assigned after the draft.',
+      task: "Let's get you a seat",
+      detail:
+        "You've joined a game! Congrats! You're a spectator for now, but you're here to play, so let's ask for a seat.\n\nClick the + button below the players.",
       anchor: { kind: 'page', element: element('[aria-label="Take a seat"]') },
       begin: () => undefined,
       done: () => requested(snapshot),
     }),
     task({
       id: 'approved',
-      task: 'Wait for approval',
-      detail:
-        'Any seated player can approve your request. You can keep watching while you wait, or press the cross to cancel.',
+      task: 'A little patience',
+      waitingForPlayers: true,
+      detail: "The seated players can see your request. I'm sure they'll let you in right away!",
       anchor: { kind: 'page', element: element('[aria-label="Your seat request"]') },
       begin: () => ({ stop: approveEachRequest(players), start: seatCount(snapshot) }),
       done: (watch: { start: number; stop: () => void }) => seatCount(snapshot) > watch.start,
       finish: (watch: { start: number; stop: () => void }) => watch.stop(),
     }),
     task({
-      id: 'leave',
-      task: 'Give up your place',
+      id: 'menu',
+      task: 'Room for one more?',
       detail:
-        'Twaffle approved your request.\n\nTo leave again, open the gear menu in the top right. Press and hold Give up your place until the countdown finishes.',
-      anchor: {
-        kind: 'page',
-        element: () => leaveItem() ?? gameMenuButton(),
-      },
+        "You have a seat! A table can hold up to 18 players, though that can be quite a crowd.\n\nYou can give up your seat at any time. During drafting, this removes the player slot. After drafting, the slot stays so someone else can take over.\n\nLet's try it. Open the gear menu in the top right.",
+      anchor: { kind: 'page', element: gameMenuButton },
+      begin: () => undefined,
+      done: () => leaveItem() !== null,
+    }),
+    task({
+      id: 'leave',
+      task: 'Give up your seat',
+      detail:
+        'Click and hold Give up your place until the timer runs out.\n\nYou can stay and watch, or ask for a seat again later.',
+      anchor: { kind: 'page', element: leaveItem },
       begin: () => ({ start: seatCount(snapshot) }),
       done: (watch: { start: number }) => seatCount(snapshot) < watch.start,
       finish: closeGameMenu,

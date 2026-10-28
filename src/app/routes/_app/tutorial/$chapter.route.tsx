@@ -1,11 +1,12 @@
 import { Button } from '@mantine/core';
-import { ClientOnly, createFileRoute, Link } from '@tanstack/react-router';
+import { ClientOnly, createFileRoute, Link, redirect } from '@tanstack/react-router';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageTitle } from '@ui/block/PageTitle';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { lazy, Suspense } from 'react';
 import type { ReactNode } from 'react';
 
+import { useCurrentProfile } from '@db/profiles';
 import { pageHead } from '@app/routes/pageTitle';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
@@ -22,6 +23,11 @@ const LobbyPlay = lazy(() => import('./LobbyChapter'));
 
 /* A chapter's page: its table and its rail, for a chapter that is built. Unlisted like the landing page. */
 export const Route = createFileRoute('/_app/tutorial/$chapter')({
+  beforeLoad: ({ params }) => {
+    if (params.chapter === 'find-or-create') {
+      throw redirect({ to: '/tutorial/$chapter', params: { chapter: 'find-a-game' }, search: {} });
+    }
+  },
   head: ({ params }) => pageHead(chapterAt(params.chapter)?.title ?? 'Learn to play', { noindex: true }),
   /* `?step=4` opens a chapter at its fourth task, so a later task can be tried without playing the ones before it. */
   validateSearch: (params: Record<string, unknown>): { step?: number } => {
@@ -51,6 +57,7 @@ function nextLinkAfter(slug: string) {
 }
 
 function ChapterPage() {
+  const current = useCurrentProfile();
   const { chapter: slug } = Route.useParams();
   const { step } = Route.useSearch();
   const chapter = chapterAt(slug);
@@ -80,23 +87,29 @@ function ChapterPage() {
       </PageLayout.Content>
     </PageLayout>
   );
+  if (current.data === undefined) {
+    return loading;
+  }
   return (
     <ClientOnly fallback={loading}>
       <Suspense fallback={loading}>
         {'page' in script ? (
           <LobbyPlay
-            key={slug}
+            key={`${slug}:${current.data?.slug ?? 'guest'}`}
             chapter={chapter}
             script={script}
+            viewer={current.data}
+            exit={exit}
             firstTask={step === undefined ? 0 : step - 1}
             chaptersLink={chaptersLink}
             nextLink={nextLinkAfter(slug)}
           />
         ) : (
           <ChapterPlay
-            key={slug}
+            key={`${slug}:${current.data?.slug ?? 'guest'}`}
             chapter={chapter}
             script={script}
+            viewer={current.data}
             firstTask={step === undefined ? 0 : step - 1}
             chaptersLink={chaptersLink}
             nextLink={nextLinkAfter(slug)}

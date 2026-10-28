@@ -149,7 +149,7 @@ export function removalSnapshot() {
   return snapshot;
 }
 
-/* The log a game at its prediction step has written, newest first, as the table answers a page read: Bene Gesserit holds seat 6 and predicts, Twaffle holds House Atreides in seat 1 and Ridwan holds Fremen in seat 5. */
+/* The log a game at its prediction step has written, newest first, as the table answers a page read: Bene Gesserit holds seat 6 and predicts, Central holds House Atreides in seat 1 and Ridwan holds Fremen in seat 5. */
 export const GAME_LOG: LogEntry[] = [
   {
     sequence: 5,
@@ -161,7 +161,7 @@ export const GAME_LOG: LogEntry[] = [
   {
     sequence: 4,
     class: 'spice',
-    text: 'Twaffle withdrew 4 spice from the House Atreides spice reserve to the table.',
+    text: 'Central withdrew 4 spice from the House Atreides spice reserve to the table.',
     context: 'Setup, Prediction',
     at: 4,
   },
@@ -180,16 +180,16 @@ export const GAME_LOG: LogEntry[] = [
     at: 2,
   },
 ];
-/* Seat 6 changed hands during swapping: its first occupant's account was deleted, then Argelius took the vacancy. */
+/* Seat 6 changed hands during swapping: its first occupant's account was deleted, then Tautrimas took the vacancy. */
 export const AUDIT_LOG: LogEntry[] = [
   {
     sequence: 8,
     class: 'vote',
-    text: 'Twaffle keeps seat 1: Thialfi voted remove; Fectumbra and Erickenneth voted keep; Ridwan and Argelius did not vote.',
+    text: 'Central keeps seat 1: Krell voted remove; Jaded AF and Eichmal voted keep; Ridwan and Tautrimas did not vote.',
     context: 'Setup, Traitor selection',
     at: 8,
   },
-  { sequence: 7, class: 'seat', text: 'Argelius took seat 6, approved by Twaffle.', context: 'Swapping', at: 7 },
+  { sequence: 7, class: 'seat', text: 'Tautrimas took seat 6, approved by Central.', context: 'Swapping', at: 7 },
   {
     sequence: 6,
     class: 'seat',
@@ -197,7 +197,7 @@ export const AUDIT_LOG: LogEntry[] = [
     context: 'Swapping',
     at: 6,
   },
-  { sequence: 1, class: 'seat', text: 'Twaffle created the game and took seat 1.', context: 'Drafting', at: 1 },
+  { sequence: 1, class: 'seat', text: 'Central created the game and took seat 1.', context: 'Drafting', at: 1 },
 ];
 
 export type LogRead = Extract<ClientMessage, { type: 'log-history' }>;
@@ -223,7 +223,7 @@ export const conversationMessages = () =>
     sequence: index + 1,
     requestId: `saved-${index}`,
     senderFactionId: conversationPair().peerId,
-    author: 'Twaffle',
+    author: 'Central',
     text: index === 54 ? 'Shall we keep the southern route open?' : `Earlier plan ${index + 1}`,
     savedAt: 1_800_000_000_000 + index * 60_000,
   }));

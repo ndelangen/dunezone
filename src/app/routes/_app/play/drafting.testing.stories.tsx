@@ -50,7 +50,7 @@ export const ChoosingFactions = meta.story({
         await expect(within(header as HTMLElement).getByText('Waiting for 5 to be ready')).toBeVisible();
         await expect(
           within(page.getByRole('region', { name: 'Banned factions' })).getByRole('img', {
-            name: /Ixians, banned by Twaffle/,
+            name: /Ixians, banned by Central/,
           })
         ).toBeVisible();
         await expect(within(page.getByRole('region', { name: 'Drafted factions' })).getAllByRole('img')).toHaveLength(
@@ -133,7 +133,7 @@ export const NamedGame = meta.story({
     4,
     'Annual Bene Gesserit wedding traitor and the unexpected Arrakeen dinner ambush'
   ),
-  beforeEach: install(() => productTransport('seat-1', draftingSnapshot([storyPlayer('seat-1', 'thialfi')], 4))),
+  beforeEach: install(() => productTransport('seat-1', draftingSnapshot([storyPlayer('seat-1', 'krell')], 4))),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByText(/· Dreamrules/, {}, { timeout: 30_000 })).resolves.toBeVisible();

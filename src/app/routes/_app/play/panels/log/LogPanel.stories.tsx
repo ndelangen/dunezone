@@ -16,7 +16,7 @@ export const GameLog = meta.story({
   play: async ({ canvas }) => {
     await expect(canvas.getAllByRole('listitem').map((item) => item.textContent)).toEqual([
       'SpiceRidwan collected 3 spice from the table into the Fremen spice reserve.Setup, Prediction',
-      'SpiceTwaffle withdrew 4 spice from the House Atreides spice reserve to the table.Setup, Prediction',
+      'SpiceCentral withdrew 4 spice from the House Atreides spice reserve to the table.Setup, Prediction',
       'PredictionBene Gesserit revealed its prediction: House Atreides, turn 6.Setup, Prediction',
       'PredictionBene Gesserit locked its prediction.Setup, Prediction',
     ]);

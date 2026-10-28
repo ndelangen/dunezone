@@ -75,8 +75,6 @@ test('follows the request and pieces Karama’s selection captured, whatever els
     controls: { requests: [] },
     table: { pieces: [piece(capturedTokenStackKey(KARAMA_ID), 'Karama', 'shared')] },
   } as unknown as GameSnapshot;
-  expect(approved.done(watch, undefined as never)).toBe(false);
-  document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
   expect(approved.done(watch, undefined as never)).toBe(true);
   approved.finish?.(watch);
   expect(step(snapshot, KARAMA_ID, 'place').done(undefined as never, undefined as never)).toBe(false);

@@ -2,7 +2,7 @@ import { Button, Group, Text, VisuallyHidden } from '@mantine/core';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { KeyedText } from '@ui/content/Kbd';
 import { DarkSchemeIsland, darkSchemeIslandAttributes } from '@ui/surface/DarkSchemeIsland';
-import { RotateCcw } from 'lucide-react';
+import { Hourglass, RotateCcw } from 'lucide-react';
 import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
 import type { CSSProperties, MouseEvent, ReactNode } from 'react';
 import type { Camera, Vector3Tuple } from 'three';
@@ -40,6 +40,8 @@ export type GuideTask<Baseline = unknown> = Readonly<{
   detail: string;
   /** Introduces the speaking toggle before the learner has chosen whether to use it. */
   introducesSpeakingMode?: boolean;
+  /** Shows an hourglass while the other players answer. */
+  waitingForPlayers?: boolean;
   anchor: GuideAnchor;
   /** What the task remembers as it starts, to compare against. */
   begin: (view: GuideView) => Baseline;
@@ -301,6 +303,9 @@ export function TutorialGuide({
         <div className={styles.railMore} aria-hidden={!open}>
           <div className={styles.railBody}>
             <div className={styles.railDetail}>
+              {item.waitingForPlayers && open && !done && (
+                <Hourglass className={styles.waitingHourglass} size={28} role="img" aria-label="Waiting for a player" />
+              )}
               {item.detail.split('\n\n').map((paragraph) => (
                 <p key={paragraph}>
                   <KeyedText>{paragraph}</KeyedText>

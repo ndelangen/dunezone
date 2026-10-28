@@ -1,4 +1,4 @@
-import { Button, Group, Select, Stack, Text } from '@mantine/core';
+import { Avatar, Button, Group, Select, Stack, Text, Tooltip } from '@mantine/core';
 import type { playLobbyEntrySchema } from '@shared/play/directory';
 import { phaseAt, STANDARD_PHASES, tableProgressFor } from '@shared/play/phases';
 import { NotAvailable } from '@ui/block/NotAvailable';
@@ -119,7 +119,7 @@ function seatWords(player: Player, won: boolean): string {
   return `${who}, ${faction}${won ? ', a winner' : ''}`;
 }
 
-/* A taken seat: the player's avatar, with their faction's token pinned to it once the faction is public. */
+/* A dealt seat shows its faction token; hover reveals the player's portrait. */
 function tableSeat(player: Player): TableSeat {
   const won = player.faction?.won ?? false;
   return {
@@ -128,7 +128,7 @@ function tableSeat(player: Player): TableSeat {
     edge: player.faction?.color ?? null,
     image: player.avatarUrl ?? null,
     initial: player.displayName.trim().charAt(0).toUpperCase(),
-    badge: player.faction?.token ? (
+    token: player.faction?.token ? (
       <FactionToken logo={player.faction.token.logo} background={player.faction.token.background} />
     ) : null,
     crowned: won,
@@ -188,7 +188,17 @@ function gameCard(entry: LobbyEntry, gameLink: PlayLobbyLinks['gameLink']) {
   return {
     key: entry.gameId,
     title: entry.name,
-    badge: cardBadge(entry),
+    badge: (
+      <Stack gap="xs" align="flex-end">
+        <Group gap="xs" wrap="nowrap">
+          <Clock size={12} color="var(--mantine-color-dimmed)" aria-hidden />
+          <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>
+            {formatRelativeDate(new Date(entry.lastActivityAt).toISOString())}
+          </Text>
+        </Group>
+        {cardBadge(entry)}
+      </Stack>
+    ),
     figure: <TableRing entry={entry} />,
     caption: (
       <>
@@ -204,12 +214,32 @@ function gameCard(entry: LobbyEntry, gameLink: PlayLobbyLinks['gameLink']) {
           {entry.seatsFilled} of {entry.seatCount} seated
         </Text>
         <Group justify="space-between" gap="xs" wrap="nowrap" pt="sm">
-          <Group gap="xs" wrap="nowrap">
-            <Clock size={12} color="var(--mantine-color-dimmed)" aria-hidden />
-            <Text size="xs" c="dimmed">
-              {formatRelativeDate(new Date(entry.lastActivityAt).toISOString())}
-            </Text>
-          </Group>
+          <Avatar.Group spacing={10} aria-label={`Players at ${entry.name}`}>
+            {entry.players.slice(0, 6).map((player) => (
+              <Tooltip key={player.displayName} label={player.displayName} withArrow>
+                <Avatar
+                  src={player.avatarUrl}
+                  name={player.displayName}
+                  alt={player.displayName}
+                  size="sm"
+                  radius="xl"
+                />
+              </Tooltip>
+            ))}
+            {entry.players.length > 6 && (
+              <Tooltip
+                label={entry.players
+                  .slice(6)
+                  .map((player) => player.displayName)
+                  .join(', ')}
+                withArrow
+              >
+                <Avatar size="sm" radius="xl">
+                  +{entry.players.length - 6}
+                </Avatar>
+              </Tooltip>
+            )}
+          </Avatar.Group>
           <Button
             renderRoot={gameLink(entry.slug ?? entry.gameId)}
             size="compact-sm"

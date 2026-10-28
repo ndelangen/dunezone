@@ -47,9 +47,9 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     ),
     task({
       id: 'spice',
-      task: 'Turn over the top Spice card',
+      task: 'Turn over a Spice card',
       detail:
-        'Drag the top card off the Spice deck on the right. Drop it on the table, then hover over it and press {F} to flip it.\n\nStart dragging straight away, or you will pick up the whole deck.',
+        'Time for a Spice Blow! Drag the top card off the Spice deck on the right and drop it on the table. Hover over it and press {F} to flip it.\n\nStart dragging straight away to pick up one card rather than the whole deck.',
       anchor: { kind: 'table', point: () => at(deck('right')) },
       begin: () => singleSpiceFaceUp(pieces()),
       done: (start) => singleSpiceFaceUp(pieces()) > start,
@@ -81,7 +81,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'tanks',
       task: 'Find the Tleilaxu Tanks',
       detail:
-        'Defeated troops and leaders go in the Tleilaxu Tanks below the board. You can bring them back during Revival.\n\nThe tanks are empty for now.\n\nPress {Enter} to continue.',
+        "The Tleilaxu Tanks are below the board. Defeated troops and leaders go there, ready to be brought back during Revival.\n\nThey're empty for now. Press {Enter} to carry on.",
       /* Just left of the label, so the arrow coming from the rail ends at its first letter rather than over it. */
       anchor: {
         kind: 'table',

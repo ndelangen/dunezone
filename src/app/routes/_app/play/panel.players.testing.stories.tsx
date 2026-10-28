@@ -31,7 +31,7 @@ export const Info = meta.story({
   decorators: [seatFactionsResolve],
   beforeEach: install(() => productTransport('seat-2', playingSnapshot())),
   play: async ({ canvasElement }) => {
-    const page = await openFactionInfo(canvasElement, 'Twaffle');
+    const page = await openFactionInfo(canvasElement, 'Central');
     const link = await page.findByRole('link', { name: 'Open the House Atreides page in a new tab' }, WAIT);
     await expect(link).toHaveAttribute('target', '_blank');
     await expect(link).toHaveAttribute('href', '/factions/house-atreides');
@@ -47,11 +47,11 @@ export const Info = meta.story({
 export const RemovalVoting = meta.story({
   beforeEach: install(() => productTransport('seat-2', removalSnapshot())),
   play: async ({ canvasElement }) => {
-    const page = await openFactionInfo(canvasElement, 'Twaffle');
+    const page = await openFactionInfo(canvasElement, 'Central');
     /* The token in the chat bar carries a mark while the vote stands, and says so in its name. */
-    await expect(attentionOn(page, 'Twaffle')).not.toBeNull();
+    await expect(attentionOn(page, 'Central')).not.toBeNull();
     await expect(
-      within(page.getByRole('navigation', { name: 'Chats' })).getByRole('button', { name: /^Twaffle.*removal vote/u })
+      within(page.getByRole('navigation', { name: 'Chats' })).getByRole('button', { name: /^Central.*removal vote/u })
     ).toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Withdraw' }));
     await expect(lastCommand()).toMatchObject({
@@ -70,7 +70,7 @@ export const RemovalResolution = meta.story({
           {
             sequence: 1,
             class: 'vote',
-            text: 'Twaffle keeps seat 1: Thialfi and Fectumbra voted keep; Erickenneth, Ridwan and Argelius did not vote.',
+            text: 'Central keeps seat 1: Krell and Jaded AF voted keep; Eichmal, Ridwan and Tautrimas did not vote.',
             context: 'Setup, Traitor selection',
             at: 1,
           },
@@ -79,7 +79,7 @@ export const RemovalResolution = meta.story({
     });
   }),
   play: async ({ canvasElement }) => {
-    const page = await openFactionInfo(canvasElement, 'Twaffle');
+    const page = await openFactionInfo(canvasElement, 'Central');
     await userEvent.click(page.getByRole('button', { name: 'Keep' }));
     const command = lastCommand();
     await expect(command).toMatchObject({ action: { kind: 'removal-ballot', choice: 'keep' } });
@@ -87,18 +87,18 @@ export const RemovalResolution = meta.story({
     resolved.removalVotes = [];
     resolved.revision += 1;
     session.transport.deliver(session.transport.view(resolved, command!.commandId));
-    await waitFor(() => expect(page.queryByRole('heading', { name: 'Remove Twaffle?' })).toBeNull());
-    await expect(page.queryByRole('heading', { name: 'Remove Twaffle?' })).toBeNull();
-    await expect(attentionOn(page, 'Twaffle')).toBeNull();
+    await waitFor(() => expect(page.queryByRole('heading', { name: 'Remove Central?' })).toBeNull());
+    await expect(page.queryByRole('heading', { name: 'Remove Central?' })).toBeNull();
+    await expect(attentionOn(page, 'Central')).toBeNull();
     await openTab(page, 'Audit');
-    await expect(page.findByText(/Twaffle keeps seat 1/)).resolves.toBeVisible();
+    await expect(page.findByText(/Central keeps seat 1/)).resolves.toBeVisible();
   },
 });
 
 export const RemovalRejected = meta.story({
   beforeEach: install(() => productTransport('seat-2', removalSnapshot())),
   play: async ({ canvasElement }) => {
-    const page = await openFactionInfo(canvasElement, 'Twaffle');
+    const page = await openFactionInfo(canvasElement, 'Central');
     await userEvent.click(page.getByRole('button', { name: 'Keep' }));
     session.transport.deliver({
       type: 'rejected',

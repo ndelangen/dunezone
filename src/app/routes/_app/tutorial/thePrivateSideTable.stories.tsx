@@ -18,5 +18,5 @@ const meta = preview.meta({
 /** The chapter as a player meets it: do what the rail says, where its arrow shows, and it moves on by itself. */
 export const Chapter = meta.story({
   parameters: chapterParameters,
-  play: playChapter('Chapter 17: The private side-table', 'Open your hand'),
+  play: playChapter('Chapter 18: The private side-table', 'Find your tracking card'),
 });

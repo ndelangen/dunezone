@@ -131,7 +131,7 @@ export function stageStatus({
       <DraftingHeader
         table={table}
         rulesetName={identity.rulesetName ?? undefined}
-        invite={<InviteLink address={identity.address} />}
+        invite={<InviteLink address={identity.address} page={identity.page} />}
       />
     );
   }

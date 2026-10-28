@@ -18,7 +18,7 @@ export const BoardGameGeekLink = meta.story({
   args: { path: '/profiles/central/edit' },
   parameters: {
     database: db((baseline) => {
-      const profile = baseline.profiles.find((row) => row.slug === 'storybook-viewer');
+      const profile = baseline.profiles.find((row) => row.slug === 'central');
       if (profile) {
         profile.username = 'Central';
         profile.slug = 'central';
@@ -52,13 +52,13 @@ export const BoardGameGeekLink = meta.story({
  * The retype-then-blur close is the settle latch working: an empty warnings list closes the band only on a settle signal, and the form's blur capture is that signal here.
  */
 export const SettingsInvalidNameOpensTheBand = meta.story({
-  args: { path: '/profiles/storybook-viewer/edit' },
+  args: { path: '/profiles/central/edit' },
   parameters: {
     /* The baseline viewer predates the schema floors (hyphenated username, no avatar), which would
        open the band at load and leave this story probing the seed instead of the derivation.
        A valid starting draft is what makes the band's opening attributable to the clear alone. */
     database: db((baseline) => {
-      const viewer = baseline.profiles.find((row) => row.slug === 'storybook-viewer');
+      const viewer = baseline.profiles.find((row) => row.slug === 'central');
       if (viewer) {
         viewer.username = 'StorybookViewer';
         viewer.avatar_url = 'https://example.com/avatar.png';
@@ -81,7 +81,7 @@ export const SettingsInvalidNameOpensTheBand = meta.story({
 
 /** With nobody to hand ownership to, the page says what will be soft-deleted and still waits for the acknowledgement. */
 export const DeleteAccountReplacementPicker = meta.story({
-  args: { path: '/profiles/storybook-viewer/delete' },
+  args: { path: '/profiles/central/delete' },
   play: async ({ canvasElement }) => {
     const page = await findDeletionPage(canvasElement);
     const ownership = within(page.getByRole('list'));
@@ -100,7 +100,7 @@ export const SignInMethods = meta.story({
   parameters: {
     database: db((baseline) => {
       /* Central's public profile fields, copied from production on 2026-10-10. */
-      const profile = baseline.profiles.find((row) => row.slug === 'storybook-viewer');
+      const profile = baseline.profiles.find((row) => row.slug === 'central');
       if (profile) {
         profile.username = 'Central';
         profile.slug = 'central';
@@ -132,7 +132,7 @@ export const SignInMethods = meta.story({
  * Coverable since the session gate reads `useSessionViewer` and the seam's signed-out answer stopped collapsing into the pending shape (#803).
  */
 export const SettingsSignedOut = meta.story({
-  args: { path: '/profiles/storybook-viewer/edit' },
+  args: { path: '/profiles/central/edit' },
   parameters: { identity: null },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -184,13 +184,13 @@ export const DirectoryPagesAndSearch = meta.story({
     const main = within(await page.findByRole('main', {}, { timeout: 30_000 }));
     /* A to Z, the viewer sorts after every Fremen, so page two holds the last seven of the thirty-one. */
     await expect(main.findByRole('link', { name: /Fremen 25/ }, { timeout: 30_000 })).resolves.toBeVisible();
-    await expect(main.getByRole('link', { name: /storybook-viewer/ })).toBeVisible();
+    await expect(main.getByRole('link', { name: /Central/ })).toBeVisible();
     await expect(main.queryByRole('link', { name: /Fremen 24/ })).toBeNull();
     await expect(page.getByRole('link', { name: 'First page' })).toHaveAttribute('href', '/profiles');
 
     await userEvent.type(page.getByRole('textbox', { name: 'Search profiles' }), 'Fremen 07');
     await expect(main.findByRole('link', { name: /Fremen 07/ }, { timeout: 30_000 })).resolves.toBeVisible();
-    await waitFor(() => expect(main.queryByRole('link', { name: /storybook-viewer/ })).toBeNull());
+    await waitFor(() => expect(main.queryByRole('link', { name: /Central/ })).toBeNull());
     /* The search is one short list: no pages and no count. */
     await expect(page.queryByRole('link', { name: 'First page' })).toBeNull();
     await expect(page.queryByText(/of \d+ profiles/)).toBeNull();
@@ -210,7 +210,7 @@ export const DirectorySearched = meta.story({
     const main = within(await page.findByRole('main', {}, { timeout: 30_000 }));
     const loadMore = await main.findByRole('button', { name: 'Load more' }, { timeout: 30_000 });
     await expect(profileRows(main, /Fremen/)).toHaveLength(24);
-    await expect(main.queryByRole('link', { name: /storybook-viewer/ })).toBeNull();
+    await expect(main.queryByRole('link', { name: /Central/ })).toBeNull();
     await expect(page.queryByLabelText('Profile pages')).toBeNull();
     await expect(page.queryByText(/of \d+ profiles/)).toBeNull();
     await expect(page.getByRole('textbox', { name: 'Search profiles' })).toHaveValue('fremen');
@@ -232,7 +232,7 @@ export const DirectorySearched = meta.story({
  * A list that asked the window would show one column here.
  */
 export const DetailTablet = meta.story({
-  args: { path: '/profiles/storybook-viewer' },
+  args: { path: '/profiles/central' },
   globals: { viewport: { value: 'appTablet' } },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -246,7 +246,7 @@ export const DetailTablet = meta.story({
  * The header counts the whole list rather than the slice.
  */
 export const DetailFactionsPreview = meta.story({
-  args: { path: '/profiles/storybook-viewer' },
+  args: { path: '/profiles/central' },
   parameters: { database: db(seedMoreFactions) },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -263,10 +263,10 @@ export const DetailFactionsPreview = meta.story({
 });
 
 export const BoardGameGeekProfileLink = meta.story({
-  args: { path: '/profiles/storybook-viewer' },
+  args: { path: '/profiles/central' },
   parameters: {
     database: db((baseline) => {
-      const profile = baseline.profiles.find((row) => row.slug === 'storybook-viewer');
+      const profile = baseline.profiles.find((row) => row.slug === 'central');
       if (profile) {
         profile.bgg_profile_url = 'https://boardgamegeek.com/user/ExamplePlayer';
       }

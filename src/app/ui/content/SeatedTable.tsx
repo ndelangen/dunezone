@@ -5,7 +5,7 @@ import type { CSSProperties, ReactNode } from 'react';
 
 import styles from './SeatedTable.module.css';
 
-/** One taken seat round a {@link SeatedTable}: the player's face, ringed in their colour, with an optional badge and crown. */
+/** One taken seat round a {@link SeatedTable}: a faction token or player portrait, with an optional crown. */
 export type TableSeat = Readonly<{
   /** What the seat says to a screen reader and in its tooltip. */
   label: string;
@@ -17,8 +17,8 @@ export type TableSeat = Readonly<{
   image: string | null;
   /** The letter on the disc when there is no picture. */
   initial: string;
-  /** Pinned to the lower right of the face, such as the faction's token. */
-  badge: ReactNode;
+  /** The seat's token; hovering reveals the player's portrait beneath it. */
+  token: ReactNode;
   /** A crown on the upper right, for a winner. */
   crowned: boolean;
   /** Outlined, for the viewer's own seat. */
@@ -109,7 +109,7 @@ function TakenSeat({ seat, style }: Readonly<{ seat: TableSeat; style: CSSProper
         ) : (
           <span className={styles.initial}>{seat.initial}</span>
         )}
-        {seat.badge ? <span className={styles.badge}>{seat.badge}</span> : null}
+        {seat.token ? <span className={styles.token}>{seat.token}</span> : null}
         {seat.crowned ? (
           <span className={styles.crown}>
             <Crown aria-hidden />

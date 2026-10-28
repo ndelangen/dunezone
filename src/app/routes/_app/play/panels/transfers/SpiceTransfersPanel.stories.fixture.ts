@@ -16,10 +16,10 @@ function transfersSnapshot(): GameSnapshot {
     ...snapshot,
     bank: { factionId: faction.id, balance: 4 },
     spiceTransfers: [
-      { revision: 4, actor: 'Thialfi', kind: 'disposal', amount: 1, source: 'table' },
-      { revision: 3, actor: 'Thialfi', kind: 'collection', amount: 3, source: 'table', destination: 'gone-faction' },
-      { revision: 2, actor: 'Twaffle', kind: 'supply', amount: 6, source: 'supply', destination: 'table' },
-      { revision: 1, actor: 'Thialfi', kind: 'withdrawal', amount: 2, source: faction.id, destination: 'table' },
+      { revision: 4, actor: 'Krell', kind: 'disposal', amount: 1, source: 'table' },
+      { revision: 3, actor: 'Krell', kind: 'collection', amount: 3, source: 'table', destination: 'gone-faction' },
+      { revision: 2, actor: 'Central', kind: 'supply', amount: 6, source: 'supply', destination: 'table' },
+      { revision: 1, actor: 'Krell', kind: 'withdrawal', amount: 2, source: faction.id, destination: 'table' },
     ],
   };
 }

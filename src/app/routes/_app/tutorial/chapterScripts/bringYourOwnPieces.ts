@@ -4,7 +4,7 @@ import type { GameSnapshot } from '@shared/play/protocol';
 
 import type { GuideTask } from '../TutorialGuide';
 import type { ChapterScript, TablePlayers } from './chapterScript';
-import { element, openedWindow, pressEnter, task, windowShown } from './guideChecks';
+import { element, openedWindow, task, windowShown } from './guideChecks';
 
 /*
  * "Bring your own pieces": the Shared table inventory, where the pieces live that belong to no seat,
@@ -42,7 +42,6 @@ const findKarama = () =>
 const showInWindow = (selector: string) => document.querySelector(selector)?.scrollIntoView({ block: 'nearest' });
 
 function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[] {
-  const continueApproval = pressEnter();
   const shared = () =>
     snapshot()
       .table.pieces.filter((piece) => piece.inventory === 'shared')
@@ -58,9 +57,9 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
   return [
     task({
       id: 'open',
-      task: 'Open the Shared table inventory',
+      task: 'Open the shared inventory',
       detail:
-        'Press {Space}, type Shared and confirm with {Enter} to open the Shared table inventory.\n\nIt holds pieces that are available to everyone.',
+        "Want to bring your own pieces into a game? Let's start with the shared inventory.\n\nPress {Space}, type Shared and confirm with {Enter}. It holds pieces available to everyone.",
       anchor: { kind: 'page', element: element('[aria-label="Search controls"], [data-compass-launcher]') },
       ...openedWindow(windowShown('shared')),
     }),
@@ -76,7 +75,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'find',
       task: 'Find Karama in the catalogue',
       detail:
-        'Press the + on the Disc tokens row. Search for Karama and select it to see what will be added.\n\nYou can use the catalogue to bring custom pieces into a game.',
+        "Let's add something new. Press the + on the Disc tokens row, search for Karama and select it to preview the piece.\n\nThe catalogue has custom pieces you can bring into a game.",
       anchor: { kind: 'page', element: findKarama },
       begin: () => undefined,
       done: karamaReady,
@@ -93,17 +92,14 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'approved',
       task: 'Wait for approval',
       detail:
-        'Another player will approve Karama in a moment.\n\nYou cannot approve your own request. Any player can dismiss a request instead.\n\nOnce Karama arrives, press {Enter} to continue.',
+        "Another player will approve Karama in a moment. You can't approve your own request, and any player can dismiss one instead.",
       anchor: { kind: 'page', element: element(`${SHARED} [data-spawn-request]`) },
       begin: () => {
         showInWindow(`${SHARED} [data-spawn-request]`);
-        return { stop: approveSoon(snapshot, players), enter: continueApproval.begin() };
+        return approveSoon(snapshot, players);
       },
-      done: (watch) => karama().length > 0 && continueApproval.done(watch.enter),
-      finish: (watch) => {
-        watch.stop();
-        continueApproval.finish(watch.enter);
-      },
+      done: () => karama().length > 0,
+      finish: (stop) => stop(),
     }),
     task({
       id: 'place',

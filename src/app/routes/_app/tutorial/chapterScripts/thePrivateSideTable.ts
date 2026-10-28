@@ -132,9 +132,9 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
   return [
     task({
       id: 'open-hand',
-      task: 'Open your hand',
+      task: 'Find your tracking card',
       detail:
-        'You are playing House Atreides.\n\nPress {H} to open your hand and find the Kwisatz Haderach card and its counter.',
+        "You're playing House Atreides. Let's use a private side-table to track your Kwisatz Haderach.\n\nPress {H} to open your hand and find the card and its counter.",
       anchor: { kind: 'page', element: viaCompass('hand') },
       ...openedWindow(windowShown('hand')),
     }),
@@ -149,7 +149,8 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     task({
       id: 'open-zone',
       task: 'Open your private side-table',
-      detail: 'Press {J} to open your private side-table.\n\nOnly you can see the pieces you place here.',
+      detail:
+        "Press {J} to open your private side-table. It's yours alone: only you can see the pieces you place here.",
       anchor: { kind: 'page', element: viaCompass('hidden') },
       ...openedWindow(windowShown('hidden-zone')),
     }),
@@ -189,8 +190,8 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     }),
     task({
       id: 'first-loss',
-      task: 'Record one troop lost',
-      detail: 'Suppose you lost a troop in battle. Drag the counter onto space 1.',
+      task: 'Record a loss',
+      detail: 'Suppose you lost a troop in battle. Drag the counter onto space 1 to record it.',
       anchor: { kind: 'page', element: element(onSideTable(COUNTER)) },
       /* A counter already laid on space 1 at table size counts at once: the learner is never asked to lay it where it lies. */
       begin: () => null,

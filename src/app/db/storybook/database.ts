@@ -1,4 +1,5 @@
 import { STANDARD_STORM_CARDS } from '@shared/assets/standardStormDeck';
+import { TUTORIAL_PLAYERS } from '@shared/tutorial/players';
 import type { WithoutSystemFields } from 'convex/server';
 
 import type { Doc, TableNames } from '../../../../convex/_generated/dataModel';
@@ -66,17 +67,17 @@ export function emptyDatabase(): StorybookDatabase {
 }
 
 function viewerRow(): StorybookRow<'users'> {
-  return { $key: VIEWER_KEY, name: 'Storybook viewer', isAdmin: true };
+  return { $key: VIEWER_KEY, name: TUTORIAL_PLAYERS[0]!.name, isAdmin: true };
 }
 
 function viewerProfileRow(): StorybookRow<'profiles'> {
   return {
     $key: 'storybook-viewer-profile',
     user_id: ref(VIEWER_KEY),
-    username: 'storybook-viewer',
-    avatar_url: null,
+    username: TUTORIAL_PLAYERS[0]!.name,
+    avatar_url: TUTORIAL_PLAYERS[0]!.avatar,
     account_state: 'active',
-    slug: 'storybook-viewer',
+    slug: TUTORIAL_PLAYERS[0]!.slug,
     created_at: STORY_TIME,
     updated_at: STORY_TIME,
   };
@@ -405,6 +406,6 @@ export function db(change: DatabaseChange): DatabaseDefinition {
 }
 
 export const storybookViewer = {
-  name: 'Storybook viewer',
+  name: TUTORIAL_PLAYERS[0]!.name,
   subjectKey: VIEWER_KEY,
 } satisfies WorkerIdentity;

@@ -119,12 +119,14 @@ export function CreateGamePass({
   failure,
   onCreate,
   rulesetLink,
+  disabledReason,
 }: Readonly<{
   rulesets: readonly PassRuleset[];
   preview: CreatableRulesetPreview | null;
   draft: CreateGameDraft;
   dispatch: Dispatch<CreateGameDraftEvent>;
   /** Whether the request is on its way. */
+  disabledReason?: string | undefined;
   pending: boolean;
   /** Whether the page is fading to the table's ground while the game is created and opened. */
   departing: boolean;
@@ -144,7 +146,13 @@ export function CreateGamePass({
   const { nameError, nameReady } = customNameCheck(draft);
   const objection = chosen?.objection ?? null;
   const canCreate =
-    nameReady && request.success && chosen !== undefined && objection === null && !pending && !departing;
+    !disabledReason &&
+    nameReady &&
+    request.success &&
+    chosen !== undefined &&
+    objection === null &&
+    !pending &&
+    !departing;
   const submit = () => {
     if (canCreate && request.success) {
       onCreate(
@@ -156,6 +164,7 @@ export function CreateGamePass({
   };
   const shownFailure = draft.refusal ?? failure;
   const waiting =
+    disabledReason ??
     notice ??
     readiness({
       chosen,

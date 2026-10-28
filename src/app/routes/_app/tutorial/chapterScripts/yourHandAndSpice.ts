@@ -52,17 +52,17 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
   return [
     task({
       id: 'lay-card',
-      task: 'Lay a Spice card on the table',
+      task: 'Take a card from the deck',
       detail:
-        'Drag the top card off the Spice deck on the right. Start moving straight away to take one card, then drop it beside the deck.',
+        "Let's see how your hand works. Drag the top Spice card off the deck on the right and drop it beside the deck.\n\nStart moving straight away to take just one card.",
       anchor: { kind: 'table', point: () => at(spiceDeck()) },
       begin: () => spiceDeck()?.items.length ?? 0,
       done: (start) => (spiceDeck()?.items.length ?? 0) < start,
     }),
     task({
       id: 'take',
-      task: 'Take it into your hand',
-      detail: 'Right-click the card and choose Take into hand. This also works for leaders.',
+      task: 'Put it in your hand',
+      detail: 'Right-click the card and choose Take into hand. You can do the same with leaders.',
       anchor: { kind: 'table', point: () => at(looseSpiceCard(pieces(), spiceDeck())) },
       begin: handIds,
       done: (start) => {
@@ -86,8 +86,9 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     }),
     task({
       id: 'play',
-      task: 'Play it back onto the table',
-      detail: 'Drag the card from your hand onto the table.\n\nCards in your hand are private until you play them.',
+      task: 'Play the card',
+      detail:
+        'Ready to put it back? Drag the card from your hand onto the table.\n\nCards in your hand stay private until you play them.',
       anchor: { kind: 'page', element: takenCard },
       begin: inHand,
       done: (start) => inHand() < start,
@@ -104,7 +105,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'withdraw',
       task: 'Take spice from your reserve',
       detail:
-        'Your spice reserve is shown at the top of Hand & spice.\n\nChoose an amount, then press Withdraw to put that spice on the table.',
+        'Need spice on the table? Your reserve is at the top of Hand & spice.\n\nChoose an amount and press Withdraw.',
       anchor: { kind: 'page', element: element('[data-window="hand"] [aria-label="Spice reserve balance"]') },
       begin: reserve,
       done: (start) => reserve() < start,
