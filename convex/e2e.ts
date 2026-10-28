@@ -39,6 +39,7 @@ async function clearAllAppData(ctx: MutationCtx) {
     'card_front_presets',
     'asset_relations',
     'ruleset_asset_slots',
+    'publication_job_listings',
     'publication_jobs',
     'publication_assets',
     'former_slugs',

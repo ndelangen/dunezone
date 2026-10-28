@@ -112,6 +112,7 @@ import type * as lib_profileSummary from "../lib/profileSummary.js";
 import type * as lib_provisioningContract from "../lib/provisioningContract.js";
 import type * as lib_publication from "../lib/publication.js";
 import type * as lib_publicationHttp from "../lib/publicationHttp.js";
+import type * as lib_publicationJobListings from "../lib/publicationJobListings.js";
 import type * as lib_rulebookCoverImage from "../lib/rulebookCoverImage.js";
 import type * as lib_rulebookDraftValidation from "../lib/rulebookDraftValidation.js";
 import type * as lib_rulebookEditionArtifacts from "../lib/rulebookEditionArtifacts.js";
@@ -157,6 +158,7 @@ import type * as provisioningChecks from "../provisioningChecks.js";
 import type * as publicSitemap from "../publicSitemap.js";
 import type * as publicationAdmin from "../publicationAdmin.js";
 import type * as publicationJobs from "../publicationJobs.js";
+import type * as publicationMigrations from "../publicationMigrations.js";
 import type * as publicationRegeneration from "../publicationRegeneration.js";
 import type * as queryAudience from "../queryAudience.js";
 import type * as rulebookAnnotatedIllustration from "../rulebookAnnotatedIllustration.js";
@@ -284,6 +286,7 @@ const fullApi: ApiFromModules<{
   "lib/provisioningContract": typeof lib_provisioningContract;
   "lib/publication": typeof lib_publication;
   "lib/publicationHttp": typeof lib_publicationHttp;
+  "lib/publicationJobListings": typeof lib_publicationJobListings;
   "lib/rulebookCoverImage": typeof lib_rulebookCoverImage;
   "lib/rulebookDraftValidation": typeof lib_rulebookDraftValidation;
   "lib/rulebookEditionArtifacts": typeof lib_rulebookEditionArtifacts;
@@ -329,6 +332,7 @@ const fullApi: ApiFromModules<{
   publicSitemap: typeof publicSitemap;
   publicationAdmin: typeof publicationAdmin;
   publicationJobs: typeof publicationJobs;
+  publicationMigrations: typeof publicationMigrations;
   publicationRegeneration: typeof publicationRegeneration;
   queryAudience: typeof queryAudience;
   rulebookAnnotatedIllustration: typeof rulebookAnnotatedIllustration;
@@ -378,4 +382,5 @@ export const components = componentsGeneric() as unknown as {
   profileDiscovery: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"profileDiscovery">;
   profileActivity: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"profileActivity">;
   catalogueOrder: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"catalogueOrder">;
+  publicationQueue: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"publicationQueue">;
 };

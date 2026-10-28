@@ -65,6 +65,7 @@ import {
 } from './lib/statistics';
 import { nowIso } from './lib/utils';
 import { retireHostedFixture } from './playDeletion';
+import { PUBLICATION_MIGRATION_IDS } from './publicationMigrations';
 import schema from './schema';
 import type { MutationCtx } from './types';
 
@@ -80,6 +81,7 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   catalogue_entries_faq_v1: internal.migrations.catalogue_entries_faq_v1,
   catalogue_entries_faq_verify_v1: internal.migrations.catalogue_entries_faq_verify_v1,
   ...CATALOGUE_MIGRATION_IDS,
+  ...PUBLICATION_MIGRATION_IDS,
   ...LEGACY_DATA_MIGRATION_IDS,
   ruleset_factions_position_v1: internal.migrations.ruleset_factions_position_v1,
   catalogue_entries_prune_v1: internal.migrations.catalogue_entries_prune_v1,

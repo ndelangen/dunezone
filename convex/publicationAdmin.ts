@@ -4,10 +4,10 @@ import { v } from 'convex/values';
 import { rendererRevisionsSchema } from '../src/shared/asset-publishing/publication';
 import { internal } from './_generated/api';
 import { internalQuery } from './_generated/server';
-import type { QueryCtx } from './_generated/server';
 import { adminQuery, internalMutation, mutation } from './functions';
 import { requireAdminUserId } from './lib/policy';
 import { publicationSettings } from './lib/publication';
+import { publicationJobListingPage, publicationJobListing } from './lib/publicationJobListings';
 
 const publicationStatus = v.union(v.literal('pending'), v.literal('in_progress'), v.literal('error'));
 
@@ -107,20 +107,6 @@ export const activateRevisions = internalMutation({
 
 const countResult = v.object({ value: v.number(), limited: v.boolean() });
 
-async function countJobs(ctx: QueryCtx, status: 'pending' | 'in_progress' | 'error') {
-  const start = (await ctx.meta.getTransactionMetrics()).bytesRead.remaining;
-  let value = 0;
-  for await (const _job of ctx.db
-    .query('publication_jobs')
-    .withIndex('by_status_and_created_at', (q) => q.eq('status', status))) {
-    value += 1;
-    if (value >= 1000 || start - (await ctx.meta.getTransactionMetrics()).bytesRead.remaining >= 2_000_000) {
-      return { value, limited: true };
-    }
-  }
-  return { value, limited: false };
-}
-
 const jobResult = v.object({
   id: v.id('publication_jobs'),
   assetType: v.string(),
@@ -149,25 +135,7 @@ export const listing = adminQuery({
     ...paginationResultValidator(jobResult).fields,
   }),
   handler: async (ctx, args) => {
-    const query =
-      args.assetType === undefined
-        ? ctx.db
-            .query('publication_jobs')
-            .withIndex('by_status_and_created_at', (q) => (args.status === undefined ? q : q.eq('status', args.status)))
-        : ctx.db.query('publication_jobs').withIndex('by_asset_type_status_created_at', (q) => {
-            const byAsset = q.eq('asset_type', args.assetType!);
-            return args.status === undefined ? byAsset : byAsset.eq('status', args.status);
-          });
-    const jobs = await query.paginate({
-      ...args.paginationOpts,
-      numItems: Math.max(1, Math.min(100, args.paginationOpts.numItems)),
-      maximumBytesRead: Math.min(args.paginationOpts.maximumBytesRead ?? 2_000_000, 2_000_000),
-    });
-    const settings = await publicationSettings(ctx);
-    /* Each tally has its own byte budget because a job can contain a whole board definition. */
-    const pending = await countJobs(ctx, 'pending');
-    const inProgress = await countJobs(ctx, 'in_progress');
-    const errors = await countJobs(ctx, 'error');
+    const [jobs, settings] = await Promise.all([publicationJobListing(ctx, args), publicationSettings(ctx)]);
 
     return {
       settings: settings
@@ -177,14 +145,9 @@ export const listing = adminQuery({
             updatedAt: settings.updated_at,
           }
         : null,
-      counts: {
-        pending,
-        inProgress,
-        error: errors,
-      },
       ...jobs,
       page: jobs.page.map((job) => ({
-        id: job._id,
+        id: job.job_id,
         assetType: job.asset_type,
         assetId: job.asset_id,
         status: job.status,
@@ -221,27 +184,12 @@ export const page = adminQuery({
     pageSize: v.number(),
   }),
   handler: async (ctx, args) => {
-    const [pending, inProgress, errors, settings] = await Promise.all([
-      ctx.db
-        .query('publication_jobs')
-        .withIndex('by_status_and_created_at', (q) => q.eq('status', 'pending'))
-        .take(1000),
-      ctx.db
-        .query('publication_jobs')
-        .withIndex('by_status_and_created_at', (q) => q.eq('status', 'in_progress'))
-        .take(1000),
-      ctx.db
-        .query('publication_jobs')
-        .withIndex('by_status_and_created_at', (q) => q.eq('status', 'error'))
-        .take(1000),
+    const pageSize = Number.isFinite(args.pageSize) ? Math.max(1, Math.min(100, Math.floor(args.pageSize))) : 1;
+    const page = Number.isFinite(args.page) ? Math.max(1, Math.floor(args.page)) : 1;
+    const [listing, settings] = await Promise.all([
+      publicationJobListingPage(ctx, { ...args, page, pageSize }),
       publicationSettings(ctx),
     ]);
-    const allJobs = [...errors, ...inProgress, ...pending]
-      .filter((job) => args.status === undefined || job.status === args.status)
-      .filter((job) => args.assetType === undefined || job.asset_type === args.assetType);
-    const pageSize = Math.max(1, Math.min(100, Math.floor(args.pageSize)));
-    const page = Math.max(1, Math.min(Math.ceil(allJobs.length / pageSize), Math.floor(args.page)));
-    const offset = (page - 1) * pageSize;
 
     return {
       settings: settings
@@ -251,13 +199,9 @@ export const page = adminQuery({
             updatedAt: settings.updated_at,
           }
         : null,
-      counts: {
-        pending: pending.length,
-        inProgress: inProgress.length,
-        error: errors.length,
-      },
-      jobs: allJobs.slice(offset, offset + pageSize).map((job) => ({
-        id: job._id,
+      counts: listing.counts,
+      jobs: listing.jobs.map((job) => ({
+        id: job.job_id,
         assetType: job.asset_type,
         assetId: job.asset_id,
         status: job.status,
@@ -267,8 +211,8 @@ export const page = adminQuery({
         createdAt: job.created_at,
         updatedAt: job.updated_at,
       })),
-      total: allJobs.length,
-      page,
+      total: listing.total,
+      page: listing.page,
       pageSize,
     };
   },
