@@ -45,11 +45,8 @@ async function ready(t: ReturnType<typeof applicationTest>) {
   );
 }
 
-afterEach(() => vi.useRealTimers());
-
-test('indexed admin pages retain status precedence, filters and live job transitions', async () => {
-  const { t, admin } = await fixture();
-  const ids = await t.run(async (raw) => {
+async function mixedQueue(t: ReturnType<typeof applicationTest>) {
+  return await t.run(async (raw) => {
     const ctx = applicationTriggers.wrapDB(raw);
     return [
       await ctx.db.insert('publication_jobs', job(1, 'pending')),
@@ -58,6 +55,13 @@ test('indexed admin pages retain status precedence, filters and live job transit
       await ctx.db.insert('publication_jobs', job(4, 'error')),
     ];
   });
+}
+
+afterEach(() => vi.useRealTimers());
+
+test('indexed admin pages retain status precedence, filters and live job transitions', async () => {
+  const { t, admin } = await fixture();
+  const ids = await mixedQueue(t);
   const legacy = await admin.query(api.publicationAdmin.page, PAGE);
   const marker = await ready(t);
   await t.run(async (ctx) => ctx.db.patch('migration_runs', marker, { state: 'failed' }));
@@ -151,15 +155,7 @@ test('a deep filtered page stays below 128 KiB among 1,101 captured jobs', { tim
 
 test('cursor pages preserve ordering, filters and open traversals across migration cutover', async () => {
   const { t, admin } = await fixture();
-  const ids = await t.run(async (raw) => {
-    const ctx = applicationTriggers.wrapDB(raw);
-    return [
-      await ctx.db.insert('publication_jobs', job(1, 'pending')),
-      await ctx.db.insert('publication_jobs', job(2, 'error', 'card')),
-      await ctx.db.insert('publication_jobs', job(3, 'in_progress')),
-      await ctx.db.insert('publication_jobs', job(4, 'error')),
-    ];
-  });
+  const ids = await mixedQueue(t);
   const firstArgs = { paginationOpts: { cursor: null, numItems: 2 } };
   const legacy = await admin.query(api.publicationAdmin.listing, firstArgs);
   await ready(t);

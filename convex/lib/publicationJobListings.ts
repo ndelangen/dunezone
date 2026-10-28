@@ -49,11 +49,11 @@ export async function syncPublicationJobListing(ctx: MutationCtx, jobId: Id<'pub
   const next = fields(job);
   if (!previous) {
     await ctx.db.insert('publication_job_listings', next);
-  } else {
-    const { _id, _creationTime: _creation, ...stored } = previous;
-    if (canonicalJson(stored) !== canonicalJson(next)) {
-      await ctx.db.replace(_id, next);
-    }
+    return;
+  }
+  const { _id, _creationTime: _creation, ...stored } = previous;
+  if (canonicalJson(stored) !== canonicalJson(next)) {
+    await ctx.db.replace(_id, next);
   }
 }
 
@@ -72,6 +72,29 @@ function namespaces(row: Listing): Namespace[] {
   ];
 }
 
+type OrderItem = ReturnType<typeof item>;
+
+async function syncOrderItem(ctx: MutationCtx, before: OrderItem | null, after: OrderItem | null) {
+  if (canonicalJson(before) === canonicalJson(after)) {
+    return;
+  }
+  if (before && after) {
+    await order.replaceOrInsert(ctx, before, after);
+    return;
+  }
+  if (before) {
+    await order.deleteIfExists(ctx, before);
+    return;
+  }
+  if (after) {
+    await order.insertIfDoesNotExist(ctx, after);
+  }
+}
+
+function orderItem(row: Listing | null, index: number) {
+  return row ? item(row, namespaces(row)[index]!) : null;
+}
+
 /** Queue writes, their small listing rows and both ordered indexes share one transaction. */
 export function registerPublicationJobListingTriggers(triggers: Triggers<DataModel, MutationCtx>) {
   triggers.register('publication_jobs', async (ctx, change) => {
@@ -79,17 +102,7 @@ export function registerPublicationJobListingTriggers(triggers: Triggers<DataMod
   });
   triggers.register('publication_job_listings', async (ctx, change) => {
     for (const index of [0, 1]) {
-      const before = change.oldDoc ? item(change.oldDoc, namespaces(change.oldDoc)[index]!) : null;
-      const after = change.newDoc ? item(change.newDoc, namespaces(change.newDoc)[index]!) : null;
-      if (before && after) {
-        if (canonicalJson(before) !== canonicalJson(after)) {
-          await order.replaceOrInsert(ctx, before, after);
-        }
-      } else if (before) {
-        await order.deleteIfExists(ctx, before);
-      } else if (after) {
-        await order.insertIfDoesNotExist(ctx, after);
-      }
+      await syncOrderItem(ctx, orderItem(change.oldDoc, index), orderItem(change.newDoc, index));
     }
   });
 }
@@ -149,7 +162,7 @@ async function legacyPage(ctx: QueryCtx, args: PageArgs) {
 
 type PageArgs = { status?: Status; assetType?: string; page: number; pageSize: number };
 
-/** Exact counts and page offsets read the aggregate; only the displayed metadata rows are hydrated. */
+/** Verification enables metadata reads for new traversals. */
 async function listingsReady(ctx: QueryCtx) {
   const marker = await ctx.db
     .query('migration_runs')
@@ -158,56 +171,71 @@ async function listingsReady(ctx: QueryCtx) {
   return marker?.state === 'success' && marker.is_done;
 }
 
-export async function publicationJobListingPage(ctx: QueryCtx, args: PageArgs) {
-  if (!(await listingsReady(ctx))) {
-    return await legacyPage(ctx, args);
-  }
-  const allCounts = await order.countBatch(
+function namespaceFor(status: Status, assetType?: string): Namespace {
+  return assetType === undefined ? [status, 'all'] : [status, 'type', assetType];
+}
+
+function queueCounts(ctx: QueryCtx, assetType?: string) {
+  return order.countBatch(
     ctx,
-    STATUS_ORDER.map((status) => ({ namespace: [status, 'all'] as Namespace }))
+    STATUS_ORDER.map((status) => ({ namespace: namespaceFor(status, assetType) }))
   );
-  const [error = 0, inProgress = 0, pending = 0] = allCounts;
-  const selectedCounts =
-    args.assetType === undefined
-      ? allCounts
-      : await order.countBatch(
-          ctx,
-          STATUS_ORDER.map((status) => ({ namespace: [status, 'type', args.assetType!] as Namespace }))
-        );
-  const selected = STATUS_ORDER.map((status, index) => ({
-    status,
-    count: args.status === undefined || status === args.status ? (selectedCounts[index] ?? 0) : 0,
-  }));
-  const total = selected.reduce((sum, group) => sum + group.count, 0);
-  const pageNumber = Math.max(1, Math.min(Math.ceil(total / args.pageSize), args.page));
-  let offset = (pageNumber - 1) * args.pageSize;
+}
+
+async function listingRow(ctx: QueryCtx, id: Id<'publication_job_listings'>) {
+  const row = await ctx.db.get('publication_job_listings', id);
+  if (!row) {
+    throw new Error('Publication queue index references a missing listing');
+  }
+  return row;
+}
+
+async function pageJobs(
+  ctx: QueryCtx,
+  groups: { namespace: Namespace; count: number }[],
+  offset: number,
+  size: number
+) {
   const jobs: Fields[] = [];
-  for (const group of selected) {
-    if (jobs.length >= args.pageSize) {
+  for (const { namespace, count } of groups) {
+    if (jobs.length >= size) {
       break;
     }
-    if (offset >= group.count) {
-      offset -= group.count;
+    if (offset >= count) {
+      offset -= count;
       continue;
     }
-    const namespace: Namespace =
-      args.assetType === undefined ? [group.status, 'all'] : [group.status, 'type', args.assetType];
     const first = await order.at(ctx, offset, { namespace });
     const { page } = await order.paginate(ctx, {
       namespace,
       bounds: { lower: { key: first.key, id: first.id, inclusive: true } },
-      pageSize: Math.min(args.pageSize - jobs.length, group.count - offset),
+      pageSize: Math.min(size - jobs.length, count - offset),
     });
     for (const entry of page) {
-      const row = await ctx.db.get('publication_job_listings', entry.id);
-      if (!row) {
-        throw new Error('Publication queue index references a missing listing');
-      }
-      jobs.push(row);
+      jobs.push(await listingRow(ctx, entry.id));
     }
     offset = 0;
   }
-  return { counts: { error, inProgress, pending }, total, jobs, page: pageNumber };
+  return jobs;
+}
+
+/** Exact counts and page offsets read the aggregate; only the displayed metadata rows are hydrated. */
+export async function publicationJobListingPage(ctx: QueryCtx, args: PageArgs) {
+  if (!(await listingsReady(ctx))) {
+    return await legacyPage(ctx, args);
+  }
+  const allCounts = await queueCounts(ctx);
+  const [error, inProgress, pending] = allCounts;
+  const selectedCounts = args.assetType === undefined ? allCounts : await queueCounts(ctx, args.assetType);
+  const groups = STATUS_ORDER.map((status, index) => ({
+    status,
+    namespace: namespaceFor(status, args.assetType),
+    count: selectedCounts[index]!,
+  })).filter((group) => args.status === undefined || group.status === args.status);
+  const total = groups.reduce((sum, group) => sum + group.count, 0);
+  const page = Math.max(1, Math.min(Math.ceil(total / args.pageSize), args.page));
+  const jobs = await pageJobs(ctx, groups, (page - 1) * args.pageSize, args.pageSize);
+  return { counts: { error: error!, inProgress: inProgress!, pending: pending! }, total, jobs, page };
 }
 
 async function countJobs(ctx: QueryCtx, status: 'pending' | 'in_progress' | 'error') {
@@ -226,74 +254,80 @@ async function countJobs(ctx: QueryCtx, status: 'pending' | 'in_progress' | 'err
 
 const LISTING_CURSOR = 'publication-listing-v1:';
 
+type Filters = { status?: Status; assetType?: string };
+
+function metadataQuery(ctx: QueryCtx, args: Filters) {
+  if (args.assetType === undefined) {
+    return ctx.db
+      .query('publication_job_listings')
+      .withIndex('by_status_created_at_job_creation_time', (q) =>
+        args.status === undefined ? q : q.eq('status', args.status)
+      );
+  }
+  return ctx.db
+    .query('publication_job_listings')
+    .withIndex('by_asset_type_status_created_at_job_creation_time', (q) => {
+      const byAsset = q.eq('asset_type', args.assetType!);
+      return args.status === undefined ? byAsset : byAsset.eq('status', args.status);
+    });
+}
+
+function sourceQuery(ctx: QueryCtx, args: Filters) {
+  if (args.assetType === undefined) {
+    return ctx.db
+      .query('publication_jobs')
+      .withIndex('by_status_and_created_at', (q) => (args.status === undefined ? q : q.eq('status', args.status)));
+  }
+  return ctx.db.query('publication_jobs').withIndex('by_asset_type_status_created_at', (q) => {
+    const byAsset = q.eq('asset_type', args.assetType!);
+    return args.status === undefined ? byAsset : byAsset.eq('status', args.status);
+  });
+}
+
+function decodeCursor(cursor: string | null | undefined, indexed: boolean) {
+  if (cursor == null) {
+    return cursor;
+  }
+  if (cursor.startsWith(LISTING_CURSOR) !== indexed) {
+    throw new Error('Publication page cursors use different sources');
+  }
+  return indexed ? cursor.slice(LISTING_CURSOR.length) : cursor;
+}
+
+function encodeCursor(cursor: string, indexed: boolean) {
+  return indexed ? LISTING_CURSOR + cursor : cursor;
+}
+
+function cursorOptions(options: PaginationOptions, indexed: boolean): PaginationOptions {
+  return {
+    ...options,
+    cursor: decodeCursor(options.cursor, indexed) ?? null,
+    endCursor: decodeCursor(options.endCursor, indexed),
+    numItems: Number.isFinite(options.numItems) ? Math.max(1, Math.min(100, Math.floor(options.numItems))) : 1,
+    maximumBytesRead: Math.min(options.maximumBytesRead ?? 2_000_000, 2_000_000),
+  };
+}
+
+async function cursorCounts(ctx: QueryCtx, ready: boolean) {
+  const counts = ready
+    ? (await queueCounts(ctx)).map((value) => ({ value, limited: false }))
+    : [await countJobs(ctx, 'error'), await countJobs(ctx, 'in_progress'), await countJobs(ctx, 'pending')];
+  return { error: counts[0]!, inProgress: counts[1]!, pending: counts[2]! };
+}
+
 /** A cursor keeps its source for the whole traversal, including across the backfill cutover. */
-export async function publicationJobListing(
-  ctx: QueryCtx,
-  args: { status?: Status; assetType?: string; paginationOpts: PaginationOptions }
-) {
+export async function publicationJobListing(ctx: QueryCtx, args: Filters & { paginationOpts: PaginationOptions }) {
   const ready = await listingsReady(ctx);
   const boundary = args.paginationOpts.cursor ?? args.paginationOpts.endCursor;
   const indexed = boundary ? boundary.startsWith(LISTING_CURSOR) : ready;
-  const decode = (cursor: string | null | undefined) => {
-    if (cursor == null) {
-      return cursor;
-    }
-    if (cursor.startsWith(LISTING_CURSOR) !== indexed) {
-      throw new Error('Publication page cursors use different sources');
-    }
-    return indexed ? cursor.slice(LISTING_CURSOR.length) : cursor;
-  };
-  const paginationOpts = {
-    ...args.paginationOpts,
-    cursor: decode(args.paginationOpts.cursor) ?? null,
-    endCursor: decode(args.paginationOpts.endCursor),
-    numItems: Number.isFinite(args.paginationOpts.numItems)
-      ? Math.max(1, Math.min(100, Math.floor(args.paginationOpts.numItems)))
-      : 1,
-    maximumBytesRead: Math.min(args.paginationOpts.maximumBytesRead ?? 2_000_000, 2_000_000),
-  };
-  const jobs = indexed
-    ? await (
-        args.assetType === undefined
-          ? ctx.db
-              .query('publication_job_listings')
-              .withIndex('by_status_created_at_job_creation_time', (q) =>
-                args.status === undefined ? q : q.eq('status', args.status)
-              )
-          : ctx.db
-              .query('publication_job_listings')
-              .withIndex('by_asset_type_status_created_at_job_creation_time', (q) => {
-                const byAsset = q.eq('asset_type', args.assetType!);
-                return args.status === undefined ? byAsset : byAsset.eq('status', args.status);
-              })
-      ).paginate(paginationOpts)
-    : await (
-        args.assetType === undefined
-          ? ctx.db
-              .query('publication_jobs')
-              .withIndex('by_status_and_created_at', (q) =>
-                args.status === undefined ? q : q.eq('status', args.status)
-              )
-          : ctx.db.query('publication_jobs').withIndex('by_asset_type_status_created_at', (q) => {
-              const byAsset = q.eq('asset_type', args.assetType!);
-              return args.status === undefined ? byAsset : byAsset.eq('status', args.status);
-            })
-      ).paginate(paginationOpts);
-  const counts = ready
-    ? (
-        await order.countBatch(
-          ctx,
-          STATUS_ORDER.map((status) => ({ namespace: [status, 'all'] as Namespace }))
-        )
-      ).map((value) => ({ value, limited: false }))
-    : [await countJobs(ctx, 'error'), await countJobs(ctx, 'in_progress'), await countJobs(ctx, 'pending')];
+  const options = cursorOptions(args.paginationOpts, indexed);
+  const query = indexed ? metadataQuery(ctx, args) : sourceQuery(ctx, args);
+  const jobs = await query.paginate(options);
   return {
     ...jobs,
-    continueCursor: indexed ? LISTING_CURSOR + jobs.continueCursor : jobs.continueCursor,
-    ...(jobs.splitCursor != null
-      ? { splitCursor: indexed ? LISTING_CURSOR + jobs.splitCursor : jobs.splitCursor }
-      : {}),
+    continueCursor: encodeCursor(jobs.continueCursor, indexed),
+    ...(jobs.splitCursor != null ? { splitCursor: encodeCursor(jobs.splitCursor, indexed) } : {}),
     page: jobs.page.map((row) => ('job_id' in row ? row : fields(row))),
-    counts: { error: counts[0]!, inProgress: counts[1]!, pending: counts[2]! },
+    counts: await cursorCounts(ctx, ready),
   };
 }
