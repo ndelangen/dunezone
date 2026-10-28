@@ -36,7 +36,7 @@ export type GuideTask<Baseline = unknown> = Readonly<{
   id: string;
   /** The one thing to do, as an instruction. */
   task: string;
-  /** Where to find it and what it is, in one line. */
+  /** Where to find it and what to do; blank lines separate paragraphs. */
   detail: string;
   /** Introduces the speaking toggle before the learner has chosen whether to use it. */
   introducesSpeakingMode?: boolean;
@@ -300,9 +300,13 @@ export function TutorialGuide({
         </p>
         <div className={styles.railMore} aria-hidden={!open}>
           <div className={styles.railBody}>
-            <p className={styles.railDetail}>
-              <KeyedText>{item.detail}</KeyedText>
-            </p>
+            <div className={styles.railDetail}>
+              {item.detail.split('\n\n').map((paragraph) => (
+                <p key={paragraph}>
+                  <KeyedText>{paragraph}</KeyedText>
+                </p>
+              ))}
+            </div>
           </div>
         </div>
       </>

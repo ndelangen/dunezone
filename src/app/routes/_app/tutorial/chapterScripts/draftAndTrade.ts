@@ -111,14 +111,14 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'table-full',
       task: 'The table is full',
       detail:
-        'All seats are taken, so drafting can begin. Players choose which factions to include or ban before anyone is assigned one. Press {Enter} to continue.',
+        'All seats are taken, so drafting can begin. Players choose which factions to include or ban before anyone is assigned one.\n\nPress {Enter} to continue.',
       anchor: { kind: 'page', element: element('.seated-phase-status') },
       ...pressEnter(),
     }),
     task({
       id: 'draft',
       task: `Draft ${DRAFT}`,
-      detail: `Press Draft beside ${DRAFT} to include it. This adds it to the pool. It does not reserve it for you.`,
+      detail: `Press Draft beside ${DRAFT} to add it to the pool.\n\nAnyone could be dealt this faction, including you.`,
       anchor: { kind: 'page', element: draftButton(DRAFT, 'Draft') },
       begin: () => undefined,
       done: () => {
@@ -129,7 +129,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     task({
       id: 'ban',
       task: `Ban the ${BAN}`,
-      detail: `Press Ban beside the ${BAN}. A banned faction cannot be dealt, even if another player drafts it.`,
+      detail: `Press Ban beside the ${BAN}.\n\nA banned faction cannot be dealt, even if another player drafts it.`,
       anchor: { kind: 'page', element: draftButton(BAN, 'Ban') },
       begin: () => undefined,
       done: () => {
@@ -141,7 +141,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'ready',
       task: 'Ready for the deal',
       detail:
-        'The other players have made their picks. Press Ready in the top right. When everyone is ready, each player gets a random faction and seat.',
+        'The other players have made their picks. Press Ready in the top right.\n\nWhen everyone is ready, each player gets a random faction and seat.',
       anchor: { kind: 'page', element: readyButton },
       begin: () => othersDraft(snapshot, players),
       done: () => snapshot().stage === 'swapping',
@@ -152,7 +152,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       task: 'Your faction and seat',
       /* Read as the task shows, after the deal. */
       get detail() {
-        return `You got ${dealt(snapshot)}. You now have four minutes to agree on a trade with another player. A trade swaps both your factions and seats. Press {Enter} to continue.`;
+        return `You got ${dealt(snapshot)}.\n\nYou now have four minutes to agree on a trade with another player. A trade swaps both your factions and seats.\n\nPress {Enter} to continue.`;
       },
       anchor: { kind: 'page', element: element('.seated-phase-status') },
       ...pressEnter(),
@@ -161,7 +161,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'offer',
       task: 'Offer a trade',
       get detail() {
-        return `Click the ${partner(snapshot)} token below the table, then press Offer trade. That player can accept your offer.`;
+        return `Click the ${partner(snapshot)} token below the table, then press Offer trade.\n\nThat player can accept your offer.`;
       },
       anchor: {
         kind: 'page',

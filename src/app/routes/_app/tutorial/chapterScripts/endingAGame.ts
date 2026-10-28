@@ -25,7 +25,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'determine',
       task: 'Start determining the winner',
       detail:
-        'The game is in Mentat Pause. Press {Space}, type Phase and press {Enter}. In the Phase window, press Determine winner. Players with predictions are reminded to reveal them.',
+        'The game is in Mentat Pause.\n\nPress {Space}, type Phase and confirm with {Enter}. Choose Determine winner in the window.\n\nPlayers with predictions are reminded to reveal them.',
       anchor: {
         kind: 'page',
         element: () =>
@@ -39,7 +39,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'declare',
       task: 'Declare a winner',
       detail:
-        'Agree on the winner with the other players first. In the Result window, leave Faction selected, choose a Winning faction and press Declare. This records the result immediately, without a vote.',
+        'Agree on the winner with the other players first.\n\nIn the Result window, leave Faction selected, choose a Winning faction and press Declare.\n\nThis records the result immediately, without a vote.',
       anchor: { kind: 'page', element: element('[data-window="result"]') },
       begin: () => undefined,
       done: () => snapshot().stage === 'finished',
@@ -48,7 +48,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'replay',
       task: 'Replay the finished game',
       detail:
-        'Press {Space}, type Replay and press {Enter}. Choose Replay from start to see the saved public positions. Private hands and plans stay hidden.',
+        'Press {Space}, type Replay and confirm with {Enter}.\n\nChoose Replay from start to see the saved public positions.\n\nPrivate hands and plans stay hidden.',
       anchor: {
         kind: 'page',
         element: () => buttonNamed('Replay from start')() ?? document.querySelector('[data-compass-launcher]'),
@@ -59,7 +59,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     task({
       id: 'replay-step',
       task: 'Step through the saved phases',
-      detail: 'Press Later phase to see the next saved position. Replay does not change the live table.',
+      detail: 'Press Later phase to see the next saved position.\n\nReplay does not change the live table.',
       anchor: { kind: 'page', element: buttonNamed('Later phase') },
       begin: () => undefined,
       /* Earlier phase opens only after replay leaves its first checkpoint, even if the learner steps ahead immediately. */
@@ -85,7 +85,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'replay-closed',
       task: 'Replay closes when play resumes',
       detail:
-        'Replay is only available after a game ends. To inspect an earlier position during play, use Table review, covered in Moderation and disputes. Press {Enter} to finish.',
+        'Replay is only available after a game ends. To inspect an earlier position during play, use Table review, covered in Moderation and disputes.\n\nPress {Enter} to finish.',
       anchor: { kind: 'page', element: element('[aria-label="Phase navigation"]') },
       ...pressEnter(),
     }),
