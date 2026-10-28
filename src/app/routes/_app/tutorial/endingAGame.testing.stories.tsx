@@ -29,9 +29,9 @@ export const PlayedThrough = meta.story({
     await openWindow('Phase');
     await userEvent.click(await page.findByRole('button', { name: 'Determine winner' }));
     await step('Declare a winner');
-    await userEvent.click(await page.findByLabelText('Winning faction'));
+    await userEvent.click(await page.findByRole('combobox', { name: 'Winning faction' }));
     await userEvent.click(await page.findByRole('option', { name: /Atreides/ }));
-    await userEvent.click(page.getByRole('button', { name: 'Declare', exact: true }));
+    await userEvent.click(page.getByRole('button', { name: 'Declare' }));
     await step('Replay the finished game');
     await openWindow('Replay');
     await userEvent.click(await page.findByRole('button', { name: 'Replay from start' }));

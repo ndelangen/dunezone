@@ -50,7 +50,7 @@ export const PlayedThrough = meta.story({
     await openWindow('Game log');
     await step('Ask to review Storm');
     await openWindow('Table review');
-    await userEvent.click(await page.findByRole('button', { name: 'Turn 1, Storm', exact: true }));
+    await userEvent.click(await page.findByRole('button', { name: 'Turn 1, Storm' }));
     await userEvent.click(page.getByRole('button', { name: 'Ask the table to review' }));
     await enterAt('A review needs the table to agree');
     await step('Discuss the saved position');
