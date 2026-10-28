@@ -4,8 +4,8 @@ import { pageStoryMeta } from '../../storybookConfig';
 import { chapterGlobals, chapterParameters, playChapter } from './chapterStory';
 
 /*
- * Chapter 18, "Ending a game", as its page serves it: the table from the tutorial's recorded setup, running in the page,
- * with the rail beside it giving one task at a time. Its art comes as chapter 5's does; see that story.
+ * "Ending a game", as its page serves it: the table from the tutorial's recorded setup, running in the page,
+ * with the rail beside it giving one task at a time. Its art comes from the recorded tutorial setup.
  */
 
 const meta = preview.meta({
@@ -18,5 +18,5 @@ const meta = preview.meta({
 /** The chapter as a player meets it: do what the rail says, where its arrow shows, and it moves on by itself. */
 export const Chapter = meta.story({
   parameters: chapterParameters,
-  play: playChapter('Chapter 18: Ending a game', 'Start determining the winner'),
+  play: playChapter('Chapter 16: Ending a game', 'Start determining the winner'),
 });

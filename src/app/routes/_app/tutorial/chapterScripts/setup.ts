@@ -6,7 +6,7 @@ import type { ChapterScript, TablePlayers } from './chapterScript';
 import { at, buttonIn, nextPhaseButton, onBoard, openedWindow, task, viaCompass, windowShown } from './guideChecks';
 
 /*
- * Chapter 12, "Setup": the game's setup steps as the Setup window runs them, from the Bene Gesserit prediction to the starting troops.
+ * "Setup": the game's setup steps as the Setup window runs them, from the Bene Gesserit prediction to the starting troops.
  * The learner plays the Bene Gesserit, the one faction in the shared setup with a prediction, so the chapter opens on it.
  * Then the hand shows what each faction starts with, the Traitor step deals five face down in front of every seat,
  * and the starting troops go onto the board once the map shows. What a faction keeps and where its troops start are its own

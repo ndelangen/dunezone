@@ -19,7 +19,13 @@ function carryStack(...more: ReturnType<typeof troop>[]) {
   let pieces = [...more, troop(RIM, 'a', 'b', 'c'), troop(RIM, 'd', 'e', 'f', 'g')];
   const snapshot = () => ({ bank: { factionId: 'atreides' }, table: { pieces } }) as unknown as GameSnapshot;
   const landings: Landing[] = [];
-  const players: TablePlayers = { act: () => {}, viewOf: snapshot, others: () => [], landings: () => landings };
+  const players: TablePlayers = {
+    act: () => {},
+    viewOf: snapshot,
+    others: () => [],
+    landings: () => landings,
+    captured: () => undefined,
+  };
   const step = movingPieces.tasks(snapshot, players).find((candidate) => candidate.id === 'carry-stack')!;
   const baseline = step.begin({} as never);
   return {

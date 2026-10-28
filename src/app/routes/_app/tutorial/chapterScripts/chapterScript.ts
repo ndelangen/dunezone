@@ -1,6 +1,9 @@
+import type { SpawnSelection } from '@shared/play/inventory';
 import type { StoredPiece } from '@shared/play/model';
 import type { GameSnapshot, PieceAction } from '@shared/play/protocol';
 import type { TutorialCheckpoint } from '@shared/tutorial/recipe';
+
+import type { LobbyView } from '@app/widgets/play-lobby/PlayLobby';
 
 import type { Landing } from '../table/localTable';
 import type { GuideTask } from '../TutorialGuide';
@@ -15,6 +18,8 @@ export type TablePlayers = Readonly<{
   others: () => readonly string[];
   /** Every carry the learner has set down, oldest first. */
   landings: () => readonly Landing[];
+  /** The asset a catalogue selection captured at this table, once the learner has requested it. */
+  captured: (selection: SpawnSelection) => string | undefined;
 }>;
 
 /** What a built chapter plays: the setup checkpoint its table starts from, and its tasks over that table. */
@@ -32,5 +37,34 @@ export type ChapterScript = Readonly<{
   /** The chapter's tasks, in order, reading the table as the learner sees it. */
   tasks: (snapshot: () => GameSnapshot, players: TablePlayers) => GuideTask[];
   /** What the learner can do once the chapter is done, one short line each, listed on its end screen. */
+  learned: readonly string[];
+}>;
+
+/** Where a lobby chapter's player is: the lobby, the create page, or the game they just created. */
+type LobbyPage = 'lobby' | 'create' | 'created';
+
+/** What a lobby chapter's tasks read: the page the player is on and what they chose there. */
+export type LobbyState = Readonly<{
+  view: LobbyPage;
+  /** What the lobby's search holds; a chapter opened past the search starts with it typed, and a reset clears it. */
+  query: string;
+  /** Which games the lobby lists. */
+  shown: LobbyView;
+  /** Whether Create a game leads on to the create page; until the chapter gets there, the lobby keeps the learner on its steps. */
+  createOpen: boolean;
+  /** The ruleset the create page's pass holds, by name, once one is chosen. */
+  ruleset: string | null;
+  /** The game the player created, once they have. */
+  created: Readonly<{ name: string; address: string }> | null;
+}>;
+
+/** A chapter played on the lobby and create pages, with sample games and no table. */
+export type LobbyChapterScript = Readonly<{
+  slug: string;
+  page: 'lobby';
+  /** The chapter's tasks, reading where the player is; a task calls `openCreate` once Create a game should lead on. */
+  tasks: (state: () => LobbyState, openCreate: () => void) => GuideTask[];
+  /** Where a chapter opened at a later task begins, so a direct link to it lands where its task can be done. */
+  start: (firstTask: number) => LobbyState;
   learned: readonly string[];
 }>;

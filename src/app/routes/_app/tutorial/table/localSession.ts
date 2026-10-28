@@ -3,6 +3,8 @@ import type { DraftAction } from '@shared/play/drafting';
 import { isSeatAction } from '@shared/play/participation';
 import type { SeatAction } from '@shared/play/participation';
 import type { GameSnapshot, Viewer } from '@shared/play/protocol';
+import { isRemovalAction } from '@shared/play/removal';
+import type { RemovalAction, RemovalVote } from '@shared/play/removal';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import type { TableRoster } from '@shared/play/schema';
 import { isSwapAction } from '@shared/play/swapping';
@@ -10,9 +12,13 @@ import type { SwapAction } from '@shared/play/swapping';
 
 import { ActorDirectory } from '../../../../../../workers/game/actors';
 import { applyDraftAction, dealtSnapshot } from '../../../../../../workers/game/drafting';
-import type { PublicLog } from '../../../../../../workers/game/log';
+import { PublicLog, logContext } from '../../../../../../workers/game/log';
 import { ownRequests, Participation } from '../../../../../../workers/game/participation';
+import { RemovalVotes } from '../../../../../../workers/game/removal';
+import { TableReviews } from '../../../../../../workers/game/review';
+import { SessionHistory } from '../../../../../../workers/game/sessionHistory';
 import type { SetupSupply } from '../../../../../../workers/game/setup';
+import { SpiceLedger } from '../../../../../../workers/game/spiceLedger';
 import type { StoredSnapshot } from '../../../../../../workers/game/state';
 import { Swapping } from '../../../../../../workers/game/swapping';
 import { MemorySql } from './memorySql';
@@ -30,9 +36,9 @@ import { randomInt } from './nodeCrypto';
  */
 
 /** The action families this session commits, which the table alone refuses. */
-export type SessionAction = DraftAction | SeatAction | SwapAction;
+export type SessionAction = DraftAction | SeatAction | SwapAction | RemovalAction;
 export const isSessionAction = (action: { kind: string }): action is SessionAction =>
-  isDraftAction(action) || isSeatAction(action) || isSwapAction(action);
+  isDraftAction(action) || isSeatAction(action) || isSwapAction(action) || isRemovalAction(action);
 
 /** A seat's faction and station as the recorded deal gave them, with the faction token trading shows. */
 export type RecordedDeal = readonly { seat: string; factionId: string; position: number; token?: string }[];
@@ -44,24 +50,29 @@ export type SessionStart = Readonly<{
   players: NonNullable<GameSnapshot['controls']>['players'];
   minimumPlayers: number;
   deal: RecordedDeal;
+  logOffset?: number;
 }>;
 
-/* The session's public log is the Log tab, which a tutorial table keeps as recorded. */
-const UNLOGGED = { recordSeat: () => {}, recordSwap: () => {} } as unknown as PublicLog;
 /* Building the setup table needs the captured faction content, so trading ends with the game waiting at the table. */
 const NO_SUPPLY = { enter: (snapshot: StoredSnapshot) => snapshot } as unknown as SetupSupply;
 
 export class LocalSession {
   private readonly sql: MemorySql;
   readonly actors: ActorDirectory;
+  readonly log: PublicLog;
+  readonly history: SessionHistory;
+  readonly reviews: TableReviews;
+  currentSnapshot: StoredSnapshot;
   readonly participation: Participation;
   readonly swapping: Swapping;
+  private readonly removal: RemovalVotes;
   private readonly minimumPlayers: number;
   private readonly deal: RecordedDeal;
   private seatCount: TableRoster['seatCount'];
 
   constructor(start: SessionStart) {
     const { stored } = start;
+    this.currentSnapshot = stored;
     const profiles = new Map(start.players.map((player) => [player.seat, player]));
     const actors: MemoryActor[] = start.viewers.map((viewer) => ({
       user_id: viewer.userId,
@@ -79,10 +90,18 @@ export class LocalSession {
       faction_color: seat.faction?.color ?? null,
     }));
     this.sql = new MemorySql(actors, seats);
+    this.sql.logOffset = start.logOffset ?? 0;
     const storage = this.sql.storage();
-    this.actors = new ActorDirectory(storage, UNLOGGED);
+    this.log = new PublicLog(storage, () => logContext(this.currentSnapshot));
+    this.log.enabled = stored.stage !== undefined;
+    this.actors = new ActorDirectory(storage, this.log);
     this.participation = new Participation(storage, this.actors);
-    this.swapping = new Swapping(storage, this.actors, NO_SUPPLY, UNLOGGED);
+    this.swapping = new Swapping(storage, this.actors, NO_SUPPLY, this.log);
+    this.removal = new RemovalVotes(storage, this.actors, this.log);
+    this.history = new SessionHistory(storage, this.actors, new SpiceLedger(storage));
+    this.history.seed(stored);
+    this.history.accept(0, stored);
+    this.reviews = new TableReviews(storage, this.actors, this.log);
     this.minimumPlayers = start.minimumPlayers;
     this.deal = start.deal;
     this.seatCount = stored.roster?.seatCount ?? (seats.length as TableRoster['seatCount']);
@@ -110,8 +129,16 @@ export class LocalSession {
     return { ...snapshot, roster: this.actors.roster(this.seatCount) };
   }
 
-  /** One drafting, seat or trading command, applied as the session commits it; a completed draft deals at once. */
+  /** The removal votes still open, as every player sees them. */
+  removalVotes(): RemovalVote[] {
+    return this.removal.current();
+  }
+
+  /** One drafting, seat, trading or removal command, applied as the session commits it; a completed draft deals at once. */
   commit(snapshot: StoredSnapshot, viewer: Viewer, action: SessionAction, now: number): StoredSnapshot {
+    if (isRemovalAction(action)) {
+      return this.withRoster(this.reconcileVotes(this.removal.apply(snapshot, viewer, action, now), now));
+    }
     if (isDraftAction(action)) {
       const drafted = this.withRoster(
         applyDraftAction(snapshot, viewer, action, this.actors.seats(), this.minimumPlayers)
@@ -119,8 +146,11 @@ export class LocalSession {
       return this.dealIfReady(drafted, now);
     }
     if (isSwapAction(action)) {
-      return this.withRoster(
-        this.swapping.apply({ snapshot, viewer, action, commandId: `local-${snapshot.revision + 1}`, now })
+      return this.reconcileVotes(
+        this.withRoster(
+          this.swapping.apply({ snapshot, viewer, action, commandId: `local-${snapshot.revision + 1}`, now })
+        ),
+        now
       );
     }
     const occupants = this.actors.seated();
@@ -142,7 +172,19 @@ export class LocalSession {
       () => now
     );
     this.seatCount = Math.max(this.seatCount, this.sql.seats.length) as TableRoster['seatCount'];
-    return this.withRoster(settled);
+    return this.withRoster(this.reconcileVotes(settled, now));
+  }
+
+  /*
+   * After every seat, trading or removal commit, as the session reconciles them: a ballot can decide a vote, a vote
+   * whose target has left lapses, and a removal vacates the seat as the session's own removal does.
+   */
+  private reconcileVotes(snapshot: StoredSnapshot, now: number): StoredSnapshot {
+    return this.removal.reconcile(snapshot, now, (before, userId, commandId) => {
+      const occupants = this.actors.seated();
+      const after = this.participation.remove(userId, before, now);
+      return this.swapping.settleParticipation({ before, after, commandId, actor: null, occupants }, () => now);
+    });
   }
 
   /** Trading closes on its deadline as the session's alarm closes it. */

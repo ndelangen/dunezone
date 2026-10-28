@@ -1,9 +1,11 @@
+import { AssetCapture } from '@shared/play/assetCapture';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { PageTitle } from '@ui/block/PageTitle';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 
+import { readAssetSupply } from '@db/play';
 import { useCurrentProfile } from '@db/profiles';
 
 import { CompassEpochContext } from '../play/compass/compassEpoch';
@@ -17,11 +19,13 @@ import { startAt, withOrigin } from './setup/tutorialSetup';
 import type { TutorialSetup } from './setup/tutorialSetup';
 import { localRuntime } from './table/localRuntime';
 import { LocalTable } from './table/localTable';
+import { sceneTableLens } from './tableLens';
 import { TutorialGuide } from './TutorialGuide';
 
 /*
  * A chapter's live table: the Play table itself, connected to a game Worker table running in the page from the chapter's
- * checkpoint of the shared setup. Nothing reaches the server, and Reset puts the table back as the chapter started.
+ * checkpoint of the shared setup. Nothing reaches the game server; only a catalogue pick reads the public catalogue, as the picker does.
+ * Reset puts the table back as the chapter started.
  * This module carries the Worker's table code and the setup, so the chapter page loads it lazily, and only in the browser.
  */
 
@@ -52,6 +56,7 @@ function playersAt(local: () => LocalTable): TablePlayers {
         .seats()
         .filter((seat) => seat !== local().seat),
     landings: () => local().landings(),
+    captured: (selection) => local().capturedAsset(selection),
   };
 }
 
@@ -67,7 +72,11 @@ function useTutorialTable(setup: TutorialSetup, chapter: ChapterScript) {
       return local;
     };
     const holder = { current: open() };
-    const runtime = localRuntime(() => holder.current, withOrigin(setup.factions, origin));
+    const runtime = localRuntime(
+      () => holder.current,
+      withOrigin(setup.factions, origin),
+      new AssetCapture(readAssetSupply, origin)
+    );
     /* The guide asks every frame, so the table is projected again only once its room has moved on. */
     let seen: { room: unknown; snapshot: GameSnapshot } | undefined;
     const control: TutorialTableControl = {
@@ -84,6 +93,8 @@ function useTutorialTable(setup: TutorialSetup, chapter: ChapterScript) {
         holder.current.dispose();
         holder.current = open();
         holder.current.deliver = deliver;
+        /* A read the old table left behind is answered now, so a stalled one does not hold the page's next request. */
+        runtime.settleCaptures();
         /* A page replaying the old table leaves its replay only on a fresh connection, so it reconnects onto the new table. */
         if (runtime.replaying()) {
           runtime.reconnect();
@@ -136,6 +147,7 @@ export default function ChapterPlay({
       number={chapter.number}
       title={chapter.title}
       tasks={tasks}
+      table={sceneTableLens}
       firstTask={firstTask}
       learned={script.learned}
       onReset={() => {

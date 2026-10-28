@@ -1,15 +1,13 @@
 import type { GameSnapshot } from '@shared/play/protocol';
 
-import { FACTION_INFO } from '../../play/compass/windows';
 import type { GuideTask } from '../TutorialGuide';
 import type { ChapterScript } from './chapterScript';
-import { element, task } from './guideChecks';
+import { element, pressEnter, task } from './guideChecks';
 
 /*
- * Chapter 18, "Ending a game": the result from Determine winner to Continue playing, and where a vote to remove a player starts.
+ * "Ending a game": the result from Determine winner to Continue playing. Table review and player removal belong to Moderation and disputes.
  * The others played the turn through to the Mentat Pause before the chapter opens, as only that phase offers Determine winner.
  * One player declares the result and nobody confirms it, so the chapter declares, then continues the game as anyone may.
- * A removal vote lives in the game's session, which a tutorial table does not run, so the chapter shows where it starts.
  */
 
 /* The Mentat Pause is the turn's ninth phase. */
@@ -47,6 +45,35 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       done: () => snapshot().stage === 'finished',
     }),
     task({
+      id: 'replay',
+      task: 'Replay the finished game',
+      detail:
+        'A finished game opens Replay. Press {Space}, type Replay and press {Enter}, then choose Replay from start. It shows saved public positions; private hands and plans stay hidden.',
+      anchor: {
+        kind: 'page',
+        element: () => buttonNamed('Replay from start')() ?? document.querySelector('[data-compass-launcher]'),
+      },
+      begin: () => undefined,
+      done: () => buttonNamed('Return to live')() !== null,
+    }),
+    task({
+      id: 'replay-step',
+      task: 'Step through the saved phases',
+      detail: 'Press Later phase to see the next saved position. Replaying leaves the live table as it was.',
+      anchor: { kind: 'page', element: buttonNamed('Later phase') },
+      begin: () => undefined,
+      /* Earlier phase opens only after replay leaves its first checkpoint, even if the learner steps ahead immediately. */
+      done: () => buttonNamed('Earlier phase')()?.disabled === false,
+    }),
+    task({
+      id: 'live',
+      task: 'Return to the live table',
+      detail: 'Press Return to live. The declared result is still there.',
+      anchor: { kind: 'page', element: buttonNamed('Return to live') },
+      begin: () => undefined,
+      done: () => buttonNamed('Return to live')() === null && buttonNamed('Continue playing')() !== null,
+    }),
+    task({
       id: 'continue',
       task: 'Take it back and play on',
       detail:
@@ -56,15 +83,12 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       done: () => snapshot().stage === 'play' && !snapshot().result,
     }),
     task({
-      id: 'removal',
-      task: 'Find the removal vote',
+      id: 'replay-closed',
+      task: 'Replay closes when play resumes',
       detail:
-        'A player who has gone quiet for good can be voted off. Click any token on the chat bar, then the token in the chat’s title: the person with an × beside their name in the faction information is Start removal vote. A majority of the other players removes them, and their seat opens again.',
-      anchor: { kind: 'page', element: element('[data-window^="player:"] header button[aria-label$=" info"]') },
-      begin: () => undefined,
-      done: () =>
-        document.querySelector(`[data-window="${FACTION_INFO}"]`) !== null &&
-        buttonNamed('Start removal vote')() !== null,
+        'The game is live again, so Replay is no longer available. During play, use Table review to ask everyone to inspect a disputed checkpoint together. That comes in Moderation and disputes. Press {Enter} to finish.',
+      anchor: { kind: 'page', element: element('[aria-label="Phase navigation"]') },
+      ...pressEnter(),
     }),
   ];
 }
@@ -73,8 +97,9 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
 const learned = [
   'Determine winner waits in the Mentat Pause',
   'One player declares the result, and that finishes the game',
-  'Continue playing takes a result back',
-  'Start removal vote, in a player’s faction information, votes a quiet player off',
+  'Replay shows saved public positions once the game is finished',
+  'Return to live leaves the result in place',
+  'Continue playing takes a result back and closes replay',
 ];
 
 export const endingAGame: ChapterScript = {

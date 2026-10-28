@@ -1,20 +1,19 @@
 import { Button, Group, Text, VisuallyHidden } from '@mantine/core';
-import { _roots } from '@react-three/fiber/webgpu';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { KeyedText } from '@ui/content/Kbd';
+import { DarkSchemeIsland, darkSchemeIslandAttributes } from '@ui/surface/DarkSchemeIsland';
 import { RotateCcw } from 'lucide-react';
 import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
 import type { CSSProperties, MouseEvent, ReactNode } from 'react';
-import { Vector3 } from 'three';
 import type { Camera, Vector3Tuple } from 'three';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
-import { DarkSchemeIsland, darkSchemeIslandAttributes } from '../play/DarkSchemeIsland';
 import { ChapterComplete } from './ChapterComplete';
-import { guideShapePath, keepInView, transposed } from './guideArrow';
+import { clearRoot, guideShapePath, keepInView, transposed } from './guideArrow';
 import type { Target } from './guideArrow';
 import { ReadAloud } from './ReadAloud';
+import type { Box, TableLens } from './tableLens';
 import styles from './TutorialGuide.module.css';
 
 /*
@@ -50,47 +49,20 @@ export type GuideTask<Baseline = unknown> = Readonly<{
 
 /* How long the tick shows on a finished task before the next one starts. */
 const DONE_PAUSE_MS = 900;
-/* How many frames the camera holds still before a run's first task takes its baseline. */
-const SETTLE_FRAMES = 20;
-
-const projected = new Vector3();
-
-/* The table's camera and canvas, read from the scene that drew it; the scene has no camera until its first frame. */
-function tableView(): { camera: Camera; canvas: HTMLCanvasElement } | null {
-  for (const [canvas, root] of _roots) {
-    const camera = root.store.getState().camera as Camera | null;
-    if (camera && onPage(canvas)) {
-      return { camera, canvas };
-    }
-  }
-  return null;
-}
-
-const onPage = (canvas: unknown): canvas is HTMLCanvasElement =>
-  canvas instanceof HTMLCanvasElement && canvas.isConnected;
-
-/* Whether the camera has held still for a run of frames, so a task's baseline is taken from where it came to rest. */
-function settling() {
-  let still = 0;
-  const resting = new Vector3();
-  return (camera: Camera) => {
-    still = camera.position.distanceToSquared(resting) < 1e-8 ? still + 1 : 0;
-    resting.copy(camera.position);
-    return still >= SETTLE_FRAMES;
-  };
-}
-
 /* The part of the window the guide leaves to the page, where what is out of view is pointed toward from its edge. */
-type Box = Readonly<{
-  left: number;
-  top: number;
-  right: number;
-  bottom: number;
-}>;
-
-function place(anchor: GuideAnchor, shown: Box): Target | null {
-  return anchor.kind === 'page' ? onScreen(anchor.element(), shown) : onTable(anchor.point(), shown);
+function place(anchor: GuideAnchor, shown: Box, table: TableLens | null): Target | null {
+  if (anchor.kind === 'page') {
+    return onScreen(anchor.element(), shown);
+  }
+  const point = anchor.point();
+  return table && point ? table.project(point, shown) : null;
 }
+
+/* The play table's open windows, which the arrow goes round rather than across. */
+const openWindows = (): Box[] =>
+  [...document.querySelectorAll('[data-window]')]
+    .map((window) => window.getBoundingClientRect())
+    .filter((box) => box.width > 0 && box.height > 0);
 
 /* The window right of the rail. */
 const windowBox = (rail: DOMRect | undefined): Box => ({
@@ -116,49 +88,18 @@ function onScreen(element: Element | null, shown: Box): Target | null {
   );
 }
 
-/* A point on the table where the camera shows it; one out of view, or behind the camera, is pointed toward from the table's edge. */
-function onTable(point: Vector3Tuple | null, shown: Box): Target | null {
-  const view = tableView();
-  if (!view || !point) {
-    return null;
-  }
-  const box = view.canvas.getBoundingClientRect();
-  projected.set(...point).project(view.camera);
-  let { x, y } = projected;
-  /*
-   * Behind the camera the projection comes out mirrored through the middle, and can land inside the view.
-   * It is turned back to the side the point is on and pushed well past the edge, so it is always pointed toward from there;
-   * one straight behind has no side, so it is pointed toward from the near edge, behind the player.
-   */
-  if (projected.z > 1) {
-    const length = Math.hypot(x, y);
-    [x, y] = length < 1e-6 ? [0, -10] : [(-x / length) * 10, (-y / length) * 10];
-  }
-  const visible = {
-    left: Math.max(box.left, shown.left),
-    top: Math.max(box.top, shown.top),
-    right: Math.min(box.right, shown.right),
-    bottom: Math.min(box.bottom, shown.bottom),
-  };
-  /* A table scrolled wholly out of the window is pointed toward from the window's edge instead. */
-  const empty = visible.left >= visible.right || visible.top >= visible.bottom;
-  return keepInView(
-    {
-      x: box.left + ((x + 1) / 2) * box.width,
-      y: box.top + ((1 - y) / 2) * box.height,
-      halfWidth: 0,
-      halfHeight: 0,
-    },
-    empty ? shown : visible
-  );
-}
-
 /*
  * Redraws the rail's outline, with its arrow toward a spot when there is one.
  * The arrow leaves the rail partway between the task's number and the spot, so it reads as coming from the instruction.
  * The outline is worked out as if the rail lay along the top of the window, then turned onto its side: mirrored across the diagonal.
  */
-function aim(paths: readonly (SVGPathElement | null)[], badge: DOMRect, rail: DOMRect, spot: Target | null) {
+function aim(
+  paths: readonly (SVGPathElement | null)[],
+  badge: DOMRect,
+  rail: DOMRect,
+  spot: Target | null,
+  windows: readonly Box[] = []
+) {
   const flip = (box: DOMRect) => new DOMRect(box.y, box.x, box.height, box.width);
   const along = spot && {
     x: spot.y,
@@ -174,8 +115,11 @@ function aim(paths: readonly (SVGPathElement | null)[], badge: DOMRect, rail: DO
   /* It runs out at least as steeply as it runs along the rail, so a target close beside the rail is not pointed at along its edge. */
   const drop = Math.max(0, (along?.y ?? 0) - edges.bottom);
   const steep = along ? clamp(midway, along.x - drop, along.x + drop) : midway;
+  const preferred = clamp(steep, edges.left + margin, edges.right - margin);
+  /* Open windows are turned onto their side with the rest, and the arrow leaves from wherever it can reach its spot without crossing one. */
+  const obstacles = windows.map((box) => ({ left: box.top, top: box.left, right: box.bottom, bottom: box.right }));
   const root = {
-    x: clamp(steep, edges.left + margin, edges.right - margin),
+    x: along ? clearRoot(edges, preferred, along, obstacles, margin) : preferred,
     y: edges.bottom,
   };
   const outline = transposed(guideShapePath(edges, root, along));
@@ -190,13 +134,8 @@ function aim(paths: readonly (SVGPathElement | null)[], badge: DOMRect, rail: DO
   paths[0]?.setAttribute('data-target', spot ? `${Math.round(spot.x)} ${Math.round(spot.y)}` : '');
 }
 
-/*
- * How wide the rail is. The rail gives way first, down to a floor of 16rem, so the table beside it keeps 720px on any desktop window
- * wider than 976px. The rail never covers the table (Norbert, 2026-10-25): in a narrower window the table gets narrower too,
- * as Play is desktop-only for now.
- */
-const TABLE_MIN_WIDTH = '720px';
-const RAIL_WIDTH = `clamp(16rem, 100vw - ${TABLE_MIN_WIDTH}, 25rem)`;
+/* How wide the rail is, set in the stylesheet so the page beside a lobby chapter can make room for it as well. */
+const RAIL_WIDTH = 'var(--tutorial-rail-width)';
 
 /**
  * The guide for one chapter, beside whatever page holds the table.
@@ -212,6 +151,7 @@ export function TutorialGuide({
   onReset,
   chaptersLink,
   nextLink,
+  table = null,
   children,
 }: Readonly<{
   /** The chapter's place in the tutorial. */
@@ -227,10 +167,14 @@ export function TutorialGuide({
   chaptersLink: (props: object) => ReactNode;
   /** Renders the way on to the next chapter, when that one is built. */
   nextLink?: ((props: object) => ReactNode) | undefined;
+  /** How the guide sees the page's table, whose camera the first task waits for; a chapter on the lobby pages has none. */
+  table?: TableLens | null;
   children: ReactNode;
 }>) {
   const [current, setCurrent] = useState(() => Math.min(firstTask, tasks.length - 1));
   const [run, setRun] = useState(0);
+  /* The run whose end the player closed to keep playing at its table; the card, its veil and the confetti go with it. */
+  const [keptPlaying, setKeptPlaying] = useState<number | null>(null);
   /* Which task, in which run, the player has just done; its tick shows until the next task starts. */
   const [doneKey, setDoneKey] = useState<string | null>(null);
   const fill = useRef<SVGPathElement>(null);
@@ -258,7 +202,7 @@ export function TutorialGuide({
       const box = rail.current?.getBoundingClientRect();
       /* With no number showing, as once the chapter is done, the arrow-less outline still needs a box to draw from. */
       if (box) {
-        aim([fill.current, edge.current], badge ?? box, box, spot);
+        aim([fill.current, edge.current], badge ?? box, box, spot, spot ? openWindows() : []);
       }
     };
     /* Once the chapter is done the rail stays, without its arrow. */
@@ -277,9 +221,9 @@ export function TutorialGuide({
      * As a run opens the camera may still be gliding into its view, so its first task starts counting from where it comes to rest,
      * and the rail shows the task only then. Later tasks start at once, so a move the player makes straight away counts.
      */
-    const settled = current === 0 ? settling() : () => true;
+    const settled = current === 0 && table ? table.settling() : () => true;
     const start = (view: GuideView) => {
-      if (!view.camera || !settled(view.camera)) {
+      if (table && (!view.camera || !settled(view.camera))) {
         return false;
       }
       baseline = task.begin(view);
@@ -288,9 +232,9 @@ export function TutorialGuide({
     };
     const tick = () => {
       frame = requestAnimationFrame(tick);
-      const view = { camera: tableView()?.camera ?? null };
+      const view = { camera: table?.camera() ?? null };
       const spot =
-        started && doneAt === null ? place(task.anchor, windowBox(rail.current?.getBoundingClientRect())) : null;
+        started && doneAt === null ? place(task.anchor, windowBox(rail.current?.getBoundingClientRect()), table) : null;
       draw(spot);
       /* With nothing on screen to point at, only a key can be the way in, so the keys in the task call for attention instead. */
       rail.current?.toggleAttribute('data-keys-only', started && doneAt === null && spot === null);
@@ -316,7 +260,7 @@ export function TutorialGuide({
         task.finish?.(baseline as never);
       }
     };
-  }, [taskId, run, current]);
+  }, [taskId, run, current, table]);
 
   /*
    * Reset lets go of the focus a click gave it: a control beside the table keeps Space to press itself, so Space would
@@ -447,10 +391,18 @@ export function TutorialGuide({
         </div>
       </DarkSchemeIsland>
       {/* Under the end of a chapter the table holds still: nothing in it takes focus, clicks or keys. */}
-      <div className={styles.table} inert={!task}>
+      <div className={styles.table} data-tutorial-pages={table ? undefined : ''} inert={!task && keptPlaying !== run}>
         {children}
       </div>
-      {!task && <ChapterComplete key={run} learned={learned} chaptersLink={chaptersLink} nextLink={nextLink} />}
+      {!task && keptPlaying !== run && (
+        <ChapterComplete
+          key={run}
+          learned={learned}
+          chaptersLink={chaptersLink}
+          nextLink={nextLink}
+          onKeepPlaying={() => setKeptPlaying(run)}
+        />
+      )}
     </div>
   );
 }

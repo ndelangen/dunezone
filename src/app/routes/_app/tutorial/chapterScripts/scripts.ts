@@ -2,11 +2,13 @@ import { alliancesAndTalking } from './alliancesAndTalking';
 import { battle } from './battle';
 import { bidding } from './bidding';
 import { bringYourOwnPieces } from './bringYourOwnPieces';
-import type { ChapterScript } from './chapterScript';
+import type { ChapterScript, LobbyChapterScript } from './chapterScript';
 import { decksAndDealing } from './decksAndDealing';
 import { draftAndTrade } from './draftAndTrade';
 import { endingAGame } from './endingAGame';
+import { findOrCreate } from './findOrCreate';
 import { lookingAround } from './lookingAround';
+import { moderation } from './moderation';
 import { movingPieces } from './movingPieces';
 import { phasesAndTurns } from './phasesAndTurns';
 import { setup } from './setup';
@@ -18,8 +20,9 @@ import { windows } from './windows';
 import { yourHandAndSpice } from './yourHandAndSpice';
 
 /** The chapters built so far, by slug; every other chapter shows as coming soon. */
-export const CHAPTER_SCRIPTS: Readonly<Record<string, ChapterScript>> = {
+export const CHAPTER_SCRIPTS: Readonly<Record<string, ChapterScript | LobbyChapterScript>> = {
   [welcome.slug]: welcome,
+  [findOrCreate.slug]: findOrCreate,
   [takeASeat.slug]: takeASeat,
   [draftAndTrade.slug]: draftAndTrade,
   [whatGoesWhere.slug]: whatGoesWhere,
@@ -36,4 +39,5 @@ export const CHAPTER_SCRIPTS: Readonly<Record<string, ChapterScript>> = {
   [alliancesAndTalking.slug]: alliancesAndTalking,
   [bringYourOwnPieces.slug]: bringYourOwnPieces,
   [endingAGame.slug]: endingAGame,
+  [moderation.slug]: moderation,
 };

@@ -33,3 +33,8 @@ export const LongLabel = meta.story({
   parameters: { layout: 'padded' },
   globals: { viewport: { value: 'contentNarrow' } },
 });
+
+/** Not open yet: disabled, but hovering still says why, and it leads nowhere. */
+export const Disabled = meta.story({
+  args: { disabledReason: 'You’ll create a faction in a later step' },
+});

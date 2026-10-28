@@ -71,8 +71,8 @@ function OpenVote({
     <Section hiddenHeading title={`Remove ${vote.target}?`}>
       <Stack gap="sm">
         <Text size="sm">
-          {vote.needed.remove} more Remove or {vote.needed.keep} more Keep to decide. Open {Math.floor(elapsed / 60)}m{' '}
-          {elapsed % 60}s.
+          {vote.needed.remove} more Remove or {vote.needed.keep} more Keep to decide.{' '}
+          {elapsed < 1 ? 'Just opened.' : `Open ${Math.floor(elapsed / 60)}m ${elapsed % 60}s.`}
         </Text>
         <Ballots ballots={vote.ballots} />
         {'choice' in ballot ? (

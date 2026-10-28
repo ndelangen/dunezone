@@ -1,0 +1,30 @@
+/* The layout's own width decides whether the caption sits beneath the figure or beside it. */
+.root {
+  container: figure-caption / inline-size;
+  min-width: 0;
+}
+
+.layout {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.caption {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  text-align: center;
+}
+
+/* Only with room for the figure and a caption wide enough to read does the figure stand beside it; narrower, the caption stays beneath. */
+@container figure-caption (width >= 26rem) {
+  .layout {
+    grid-template-columns: 8.5rem minmax(0, 1fr);
+    align-items: center;
+    column-gap: var(--space-md);
+  }
+
+  .caption {
+    text-align: left;
+  }
+}

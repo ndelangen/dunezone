@@ -1,7 +1,7 @@
 import preview from '@sb/preview';
+import { DarkSchemeIsland, darkSchemeIslandAttributes } from '@ui/surface/DarkSchemeIsland';
 import { fn } from 'storybook/test';
 
-import { DarkSchemeIsland, darkSchemeIslandAttributes } from '../DarkSchemeIsland';
 import { MovementTurns } from './MovementTurns';
 import { TableMovementTurns, names, order, table } from './movementTurns.stories.fixture';
 

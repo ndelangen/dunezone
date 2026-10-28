@@ -1,0 +1,43 @@
+/* The create page is a boarding pass, a ticket whose stub sets the table; its fields read the ticket's ground and accent, the play shell's own. */
+.pass {
+  --ticket-ground: var(--color-ground);
+  --ticket-accent: var(--color-brand);
+}
+
+/* The seats, in a row and round the board, in the pass's own ground and ink. */
+.inked {
+  --seat-row-ground: var(--ticket-ground);
+  --seat-row-accent: var(--ticket-accent);
+  --board-seats-ground: var(--ticket-ground);
+  --board-seats-accent: var(--ticket-accent);
+}
+
+/* Leaving for the table: the page fades to the ground the table's loading frame paints, with the same pool of light, so the game page opens out of it without a flash. */
+.departure {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background:
+    radial-gradient(38% 34% at 50% 46%, color-mix(in srgb, var(--color-brand) 14%, transparent), transparent 70%),
+    var(--color-ground);
+  animation: create-departure 0.7s ease-in forwards;
+}
+
+@keyframes create-departure {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+html[data-motion="reduce"] .departure {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-motion="ok"]) .departure {
+    animation: none;
+  }
+}

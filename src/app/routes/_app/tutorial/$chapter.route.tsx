@@ -17,6 +17,8 @@ import { CHAPTER_SCRIPTS } from './chapterScripts/scripts';
  * The table carries the game Worker's code and the recorded setup, so it loads only in the browser, and only on a chapter page.
  */
 const ChapterPlay = lazy(() => import('./TutorialTable'));
+/* A lobby chapter shows the lobby and create pages with sample games instead, so it loads no table. */
+const LobbyPlay = lazy(() => import('./LobbyChapter'));
 
 /* A chapter's page: its table and its rail, for a chapter that is built. Unlisted like the landing page. */
 export const Route = createFileRoute('/_app/tutorial/$chapter')({
@@ -81,15 +83,26 @@ function ChapterPage() {
   return (
     <ClientOnly fallback={loading}>
       <Suspense fallback={loading}>
-        <ChapterPlay
-          key={slug}
-          chapter={chapter}
-          script={script}
-          firstTask={step === undefined ? 0 : step - 1}
-          chaptersLink={chaptersLink}
-          nextLink={nextLinkAfter(slug)}
-          exit={exit}
-        />
+        {'page' in script ? (
+          <LobbyPlay
+            key={slug}
+            chapter={chapter}
+            script={script}
+            firstTask={step === undefined ? 0 : step - 1}
+            chaptersLink={chaptersLink}
+            nextLink={nextLinkAfter(slug)}
+          />
+        ) : (
+          <ChapterPlay
+            key={slug}
+            chapter={chapter}
+            script={script}
+            firstTask={step === undefined ? 0 : step - 1}
+            chaptersLink={chaptersLink}
+            nextLink={nextLinkAfter(slug)}
+            exit={exit}
+          />
+        )}
       </Suspense>
     </ClientOnly>
   );

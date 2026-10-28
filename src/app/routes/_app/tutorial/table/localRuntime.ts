@@ -1,12 +1,18 @@
+import type { AssetCapture } from '@shared/play/assetCapture';
 import type { PublicFaction } from '@shared/play/capture';
-import { LOG_PAGE_SIZE } from '@shared/play/log';
 import { clientMessageSchema, KEEPALIVE_PING, KEEPALIVE_PONG } from '@shared/play/protocol';
 import type { ServerMessage } from '@shared/play/protocol';
+import { GameRejection } from '@shared/play/rejection';
 
 import { browserGameRuntime } from '../../play/multiplayer/gameRuntime';
 import type { GameRuntime, GameSocket } from '../../play/multiplayer/gameRuntime';
 import { LocalConversations } from './localConversations';
 import type { LocalTable, TableMessage } from './localTable';
+
+/* A capture's refusal is the reason a player reads; anything else is the Worker's generic answer. */
+const refusal = (error: unknown) =>
+  error instanceof GameRejection ? error.message : 'The catalogue could not be read. Try again.';
+const RESET_REFUSAL = 'The table was reset. Pick the piece again.';
 
 /** A page's local game: its browser effects, and what a chapter's Reset needs to start the page's connection afresh. */
 export type LocalRuntime = GameRuntime &
@@ -19,17 +25,21 @@ export type LocalRuntime = GameRuntime &
     replaying: () => boolean;
     /** Closes the page's connection, which it opens again at once onto whatever table is current. */
     reconnect: () => void;
+    /** Answers every catalogue read still out at once, for a Reset that left them behind; their late answers are dropped. */
+    settleCaptures: () => void;
   }>;
 
 /*
  * The browser effects of a game whose table runs in the page: its socket is answered by a local table, as the game Worker
- * answers a real one, and it admits itself, so nothing reaches Convex or the Worker.
+ * answers a real one, and it admits itself, so nothing reaches the Worker. A catalogue pick is captured by `catalogue`,
+ * which reads the public catalogue as the picker does.
  * `table` is read on every message, so a chapter's Reset can swap the table without the page reconnecting.
  * Its conversations outlive a Reset, as a game's chat outlives anything moved on its table.
  */
 export function localRuntime(
   table: () => LocalTable,
-  factions: Readonly<Partial<Record<string, PublicFaction | null>>>
+  factions: Readonly<Partial<Record<string, PublicFaction | null>>>,
+  catalogue: Pick<AssetCapture, 'capture'>
 ): LocalRuntime {
   let socket: LocalSocket | null = null;
   const conversations = new LocalConversations(table, (message) => queueMicrotask(() => socket?.deliver(message)));
@@ -43,6 +53,11 @@ export function localRuntime(
     onmessage: ((event: { data: string }) => void) | null = null;
     onclose: ((event: { code: number }) => void) | null = null;
     onerror: (() => void) | null = null;
+    /*
+     * Catalogue reads still out, by the request they answer, each with what it answers if a Reset leaves it behind.
+     * The page holds one read at a time and refuses the next until it is answered, so a read that stalls past a Reset is answered then.
+     */
+    private readonly captures = new Map<string, () => ServerMessage>();
 
     open() {
       queueMicrotask(() => {
@@ -79,28 +94,67 @@ export function localRuntime(
           return conversations.receive(message);
         case 'spice-history':
           return this.later({ ...message, entries: [], more: false });
-        /* A local table keeps no replay, so its history is the table as it stands. */
+        /* History is recorded by the local session at the same boundaries as multiplayer. */
         case 'history':
           this.replayed = true;
-          return this.later({ type: 'history', step: 0, lastStep: 0, snapshot: table().frame().snapshot });
-        case 'catalogue':
-          return this.later({
-            type: 'catalogue',
-            requestId: message.requestId,
-            error: 'Bringing your own pieces is not part of this chapter.',
-          });
-        case 'log-history': {
-          const entries = (table().log()[message.tab] ?? []).filter((entry) => entry.sequence < message.before);
-          return this.later({
-            type: 'log-history',
-            tab: message.tab,
-            before: message.before,
-            entries: entries.slice(0, LOG_PAGE_SIZE),
-            more: entries.length > LOG_PAGE_SIZE,
-          });
+          return void table().receive(message);
+        /* The catalogue answers after its read, as the Worker's capture does; a refusal is the answer's error. */
+        case 'catalogue': {
+          const { requestId } = message;
+          this.captures.set(requestId, () => ({ type: 'catalogue', requestId, contents: null, error: RESET_REFUSAL }));
+          return void catalogue.capture(message.selection).then(
+            (contents) =>
+              this.settled(requestId) &&
+              this.deliver({ type: 'catalogue', requestId, contents: table().projectContents(contents) }),
+            (error: unknown) =>
+              this.settled(requestId) &&
+              this.deliver({ type: 'catalogue', requestId, contents: null, error: refusal(error) })
+          );
         }
+        case 'log-history':
+          return this.later({ ...message, ...table().logPage(message.tab, message.before) });
+        /* A catalogue request commits once its asset is captured, as the Worker commits it, and a refusal answers the command. */
+        case 'command':
+          if (message.action.kind === 'spawn-request') {
+            /*
+             * A Reset while the asset is read replaces the table; the request belonged to the one it left, so it spawns nothing.
+             * The Reset answers it with the new table as it stands, or the page would wait on it and refuse every later request.
+             */
+            const { commandId } = message;
+            const origin = table();
+            this.captures.set(commandId, () => table().frame(undefined, commandId));
+            return void catalogue.capture(message.action).then(
+              /* Only onto the table it was asked of: a Reset that came by another way, such as a reconnect, still leaves it behind. */
+              (contents) => this.settled(commandId) && table() === origin && origin.requestSpawn(message, contents),
+              (error: unknown) =>
+                this.settled(commandId) &&
+                this.deliver({ type: 'rejected', requestId: commandId, message: refusal(error) })
+            );
+          }
+          return void table().receive(message);
         default:
           table().receive(message as TableMessage);
+      }
+    }
+
+    /* Whether a read is still waited on; one a Reset already answered is not answered twice. */
+    private settled(id: string) {
+      return this.captures.delete(id);
+    }
+
+    /*
+     * Answering a read frees the page's slot, and the page sends the read it queued behind it at once; that one was asked of the old table too,
+     * so it is answered in turn until nothing asked before the Reset is still out.
+     */
+    /* What this connection asked is answered to no one once it closes or the page leaves; the page asks again on its next connection. */
+    forgetCaptures() {
+      this.captures.clear();
+    }
+
+    settleCaptures() {
+      for (const [id, answer] of this.captures) {
+        this.captures.delete(id);
+        this.deliver(answer());
       }
     }
 
@@ -122,6 +176,7 @@ export function localRuntime(
 
     close(code = 1000) {
       this.readyState = WebSocket.CLOSED;
+      this.forgetCaptures();
       if (socket === this) {
         socket = null;
       }
@@ -140,10 +195,14 @@ export function localRuntime(
     /* The page's pass has the shape the socket's messages require; nothing checks it but that. */
     replaying: () => socket?.replayed ?? false,
     reconnect: () => socket?.close(),
+    settleCaptures: () => socket?.settleCaptures(),
     greet: (name) => {
       conversations.learnerName = name;
     },
-    dispose: () => conversations.dispose(),
+    dispose: () => {
+      socket?.forgetCaptures();
+      conversations.dispose();
+    },
     admission: {
       request: () => Promise.resolve({ ok: true as const, pass: 'tutorial.local' }),
     },

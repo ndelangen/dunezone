@@ -7,7 +7,7 @@ import type { ChapterScript, TablePlayers } from './chapterScript';
 import { buttonIn, element, openedWindow, task, viaCompass, windowShown } from './guideChecks';
 
 /*
- * Chapter 16, "Alliances and talking": a word with one player, a look at their faction, and an alliance from offer to break.
+ * "Talking & Alliances": a word with one player, a look at their faction, and an alliance from offer to break.
  * The chat bar under the table holds a token for every player; a token opens that player's chat, and the token in the chat's
  * title opens their faction information, where the alliance offer sits. House Atreides answers the chat and accepts the offer
  * by itself, as a player at the table would, and the ally then sits twice right on the compass.

@@ -22,6 +22,11 @@ export const Borderless = meta.story({
   args: { withBorder: false },
 });
 
+/** The play table's opaque ground: no artwork shows through, for a pane that is a step into the table, such as a ticket's stub. */
+export const Ground = meta.story({
+  args: { tone: 'ground' },
+});
+
 /**
  * The gutters side by side: none for children that manage their own insets, sm for toolbars and single-line rows, md for prose and controls, the common case.
  */

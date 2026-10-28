@@ -4,8 +4,8 @@ import { pageStoryMeta } from '../../storybookConfig';
 import { chapterGlobals, chapterParameters, playChapter } from './chapterStory';
 
 /*
- * Chapter 4, "Draft and trade", as its page serves it: the draft before anyone has picked, then the deal and trading,
- * with the rail beside the table giving one task at a time. Its art comes as chapter 5's does; see that story.
+ * "Draft and trade", as its page serves it: the draft before anyone has picked, then the deal and trading,
+ * with the rail beside the table giving one task at a time. Its art comes from the recorded tutorial setup.
  */
 
 const meta = preview.meta({

@@ -1,13 +1,13 @@
 import type { TablePiece } from '@shared/play/model';
 import { item, piece } from '@shared/play/setupSupply';
 import type { Decorator } from '@storybook/tanstack-react';
+import { DarkSchemeIsland, darkSchemeIslandAttributes } from '@ui/surface/DarkSchemeIsland';
 import type { CSSProperties } from 'react';
 import { fn } from 'storybook/test';
 
 import compass from '../../compass/CompassControls.module.css';
 import { WindowFrame } from '../../compass/WindowFrame';
 import type { TableWindow } from '../../compass/windows';
-import { DarkSchemeIsland, darkSchemeIslandAttributes } from '../../DarkSchemeIsland';
 import '../../dune-play.css';
 import { cardBack, factions } from '../../product.stories.fixture';
 import { PANEL_WINDOWS } from '../panelWindows';

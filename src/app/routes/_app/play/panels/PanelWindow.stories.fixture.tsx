@@ -1,11 +1,11 @@
 import type { GameSnapshot, Viewer } from '@shared/play/protocol';
 import type { Decorator } from '@storybook/tanstack-react';
+import { DarkSchemeIsland } from '@ui/surface/DarkSchemeIsland';
 
 import { storedProjection } from '../../../../db/tabletop/tableProjection';
 import type { TableProjection } from '../../../../db/tabletop/TableSession';
 import compass from '../compass/CompassControls.module.css';
 import { WindowFrame } from '../compass/WindowFrame';
-import { DarkSchemeIsland } from '../DarkSchemeIsland';
 import type { PanelWindow } from './panelWindows';
 import '../dune-play.css';
 

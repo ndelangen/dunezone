@@ -11,7 +11,13 @@ afterEach(() => vi.useRealTimers());
 test('the others stop readying up once the draft has ended', () => {
   let view = { stage: 'drafting', draft: { ready: ['seat-2'] } } as unknown as GameSnapshot;
   const act = vi.fn();
-  const players: TablePlayers = { act, viewOf: () => view, others: () => ['seat-2', 'seat-3'], landings: () => [] };
+  const players: TablePlayers = {
+    act,
+    viewOf: () => view,
+    others: () => ['seat-2', 'seat-3'],
+    landings: () => [],
+    captured: () => undefined,
+  };
   const stop = keepOthersReady(() => view, players);
   expect(act).toHaveBeenCalledExactlyOnceWith('seat-3', { kind: 'draft-ready', ready: true });
   view = { stage: 'swapping' } as unknown as GameSnapshot;
@@ -27,7 +33,13 @@ test('the trade steps name the faction the learner was dealt and a player who is
     stage: 'swapping',
     roster: { seats: [seat('seat-1', 'Fremen'), seat('seat-2', 'Emperor'), seat('seat-3', 'Spacing Guild')] },
   } as unknown as GameSnapshot;
-  const players: TablePlayers = { act: vi.fn(), viewOf: () => view, others: () => [], landings: () => [] };
+  const players: TablePlayers = {
+    act: vi.fn(),
+    viewOf: () => view,
+    others: () => [],
+    landings: () => [],
+    captured: () => undefined,
+  };
   const steps = draftAndTrade.tasks(() => view, players);
   const detail = (id: string) => steps.find((step) => step.id === id)!.detail;
   expect(detail('dealt')).toMatch(/^You were dealt Fremen\./);

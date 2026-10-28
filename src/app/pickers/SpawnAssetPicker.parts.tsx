@@ -1,6 +1,7 @@
 import { Combobox, ScrollArea, Stack, Text } from '@mantine/core';
 import { ASSET_TYPES, assetTypeNoun } from '@shared/assets/types';
 import type { SpawnType } from '@shared/play/captureTypes';
+import { spawnableKey } from '@shared/play/inventory';
 import type { SpawnableAsset, SpawnSelection } from '@shared/play/inventory';
 
 /**
@@ -17,11 +18,6 @@ export function spawnTypeWords(types: readonly SpawnType[]): Readonly<{ one: str
     one: either(types.map((type) => assetTypeNoun(type).toLowerCase())),
     many: either(types.map((type) => ASSET_TYPES[type].label.toLowerCase())),
   };
-}
-
-/** The key a listed asset is picked by: its type and slug, which is what the table is asked to spawn. */
-export function spawnableKey(entry: SpawnSelection): string {
-  return `${entry.type}/${entry.slug}`;
 }
 
 function SpawnAssetOptionRow({ entry }: { entry: SpawnableAsset }) {
@@ -85,7 +81,7 @@ export function SpawnAssetOptions({
         {entries.map((entry) => {
           const key = spawnableKey(entry);
           return (
-            <Combobox.Option value={key} key={key} active={key === chosen} disabled={disabled}>
+            <Combobox.Option value={key} key={key} active={key === chosen} disabled={disabled} data-spawn-asset={key}>
               <SpawnAssetOptionRow entry={entry} />
             </Combobox.Option>
           );

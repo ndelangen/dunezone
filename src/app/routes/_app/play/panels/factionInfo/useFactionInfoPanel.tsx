@@ -76,6 +76,7 @@ function headerModel(
       </Avatar>
     ),
     name: player.name,
+    seatId: player.seat,
     faction: faction?.name ?? null,
     seat: player.seat.replace('seat-', 'Seat '),
     own: player.seat === table.viewer.viewerSeat,

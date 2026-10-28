@@ -6,7 +6,7 @@ import type { ChapterScript, TablePlayers } from './chapterScript';
 import { at, element, tableDeck, task } from './guideChecks';
 
 /*
- * Chapter 14, "Bidding": one round on the bidder, the teardrop over the board, from its start to a card won.
+ * "Bidding": one round on the bidder, the teardrop over the board, from its start to a card won.
  * The others moved the game on to Bidding before the chapter opens. The learner opens the round at their own faction,
  * raises, takes a raise back and hands the bidder on with the letter keys, and the other players answer: one outbids them,
  * the rest pass, and the learner wins the card back. Then P turns their faction token face down to sit rounds out, and U turns it up.
@@ -117,7 +117,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'take-card',
       task: 'Take the card',
       detail:
-        'The bidder only keeps score: the winner pays and takes the card by hand. Right-click the Treachery deck and choose Draw a card. Paying is by hand as well: withdraw what you bid from your reserve, as in chapter 10.',
+        'The bidder only keeps score: the winner pays and takes the card by hand. Right-click the Treachery deck and choose Draw a card. Paying is by hand as well: withdraw what you bid from your reserve, as in Your hand and spice.',
       anchor: { kind: 'table', point: () => at(tableDeck(snapshot, 'left')) },
       begin: () => snapshot().hand?.length ?? 0,
       done: (start) => (snapshot().hand?.length ?? 0) > start,

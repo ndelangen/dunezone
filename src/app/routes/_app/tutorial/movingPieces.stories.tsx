@@ -4,8 +4,8 @@ import { pageStoryMeta } from '../../storybookConfig';
 import { chapterGlobals, chapterParameters, playChapter } from './chapterStory';
 
 /*
- * Chapter 7, "Moving pieces", as its page serves it: the table from the tutorial's recorded setup, running in the page,
- * with the rail beside it giving one task at a time. Its art comes as chapter 5's does; see that story.
+ * "Moving pieces", as its page serves it: the table from the tutorial's recorded setup, running in the page,
+ * with the rail beside it giving one task at a time. Its art comes from the recorded tutorial setup.
  */
 
 const meta = preview.meta({
@@ -18,12 +18,12 @@ const meta = preview.meta({
 /** The chapter as a player meets it: do what the rail says, where its arrow shows, and it moves on by itself. */
 export const Chapter = meta.story({
   parameters: chapterParameters,
-  play: playChapter('Chapter 7: Moving pieces', 'Split three troops off'),
+  play: playChapter('Chapter 6: Moving pieces', 'Move one troop'),
 });
 
-/** The chapter opened at its fifth task with `?step=5`, so the later tasks can be tried without carrying a stack first. */
+/** The chapter opened at its seventh task with `?step=7`, so the later tasks can be tried without carrying a stack first. */
 export const FromTurning = meta.story({
-  args: { path: '/tutorial/moving-pieces?step=5' },
+  args: { path: '/tutorial/moving-pieces?step=7' },
   parameters: chapterParameters,
-  play: playChapter('Chapter 7: Moving pieces', 'Turn your stack'),
+  play: playChapter('Chapter 6: Moving pieces', 'Turn your stack'),
 });

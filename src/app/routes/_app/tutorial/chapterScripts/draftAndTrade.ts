@@ -6,7 +6,7 @@ import type { ChapterScript, TablePlayers } from './chapterScript';
 import { element, pressEnter, task } from './guideChecks';
 
 /*
- * Chapter 4, "Draft and trade": the table from the moment the last seat is taken, before anyone has drafted.
+ * "Draft and trade": the table from the moment the last seat is taken, before anyone has drafted.
  * The learner drafts Bene Gesserit and bans the Ixians, the others draft the rest of the official six, and once everyone is ready
  * the table deals each player a faction and a station, as the recording dealt them. Then four minutes of trading:
  * the learner offers a trade, takes it back, and readies with the rest, which ends trading and starts the setup.

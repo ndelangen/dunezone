@@ -12,6 +12,9 @@ export type FactionInfoHeaderModel = Readonly<{
   /** The player, or the faction's name for a vacant seat. */
   name: string;
   faction: string | null;
+  /** The seat's id, such as `seat-2`, which a guide finds the header by. */
+  seatId: string;
+  /** The seat as the header names it, such as Seat 2. */
   seat: string;
   own: boolean;
   alliance: SeatAlliance | null;
@@ -32,7 +35,8 @@ function subtitle({ name, faction, seat }: FactionInfoHeaderModel) {
 export function FactionInfoHeader({ model }: Readonly<{ model: FactionInfoHeaderModel }>) {
   const { page, removal, alliance } = model;
   return (
-    <Stack gap="sm">
+    /* The seat it shows, for a guide that points at one player's header. */
+    <Stack gap="sm" data-faction-info-seat={model.seatId}>
       <Group gap="xs" justify="space-between" wrap="nowrap">
         <Group gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
           {model.token}

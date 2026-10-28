@@ -1,15 +1,11 @@
 import type { z } from 'zod';
 
 import { api } from '../../convex/_generated/api';
-import { cardbackPresetLabel } from '../../src/shared/assets/cardbackPresets';
-import { authoredCardback, DeckAssetInput, PhysicalSize } from '../../src/shared/assets/schema';
-import { holdsDeckMembership } from '../../src/shared/assets/types';
-import { parseAssetDataForWrite } from '../../src/shared/assets/validation';
 import { phaseDeclarationSchema } from '../../src/shared/factions/extraPhases';
 import { IdentifiedFactionStoredSchema, readFactionLeaderKey, toStoredHeroKey } from '../../src/shared/factions/schema';
 import { lacksBattleValues, troopBattleFaces } from '../../src/shared/factions/troopBattle';
+import { AssetCapture } from '../../src/shared/play/assetCapture';
 import type {
-  AssetSupply,
   CaptureProblem,
   FactionCapture,
   RulesetCapture,
@@ -17,7 +13,6 @@ import type {
   SlotCapture,
 } from '../../src/shared/play/capture';
 import {
-  assetSupplySchema,
   factionCaptureSchema,
   factionDefinitionSchema,
   readiness,
@@ -27,59 +22,14 @@ import {
 import type { DraftFaction } from '../../src/shared/play/drafting';
 import { playDraftableFactionsSchema } from '../../src/shared/play/drafting';
 import type { CaptureSelection, StoredSpawnContents } from '../../src/shared/play/inventory';
-import { captureSelectionSchema, storedSpawnContentsSchema } from '../../src/shared/play/inventory';
-import type { StoredPiece } from '../../src/shared/play/model';
+import { captureSelectionSchema } from '../../src/shared/play/inventory';
 import { GameRejection } from '../../src/shared/play/rejection';
-import { ARTWORK_DESCRIPTION_LIMIT } from '../../src/shared/play/schema';
-import { labelForCount } from '../../src/shared/play/tableState';
 import type { RulesetAssetSlot } from '../../src/shared/rulesets/assetSlots';
 import { RULESET_ASSET_SLOTS } from '../../src/shared/rulesets/assetSlots';
 import { gameHttpClient } from './gameHttpClient';
 import type { ConvexObserver } from './gameHttpClient';
 
-type SuppliedMember = AssetSupply['members'][number];
 type SlotAsset = RulesetSupply['slots'][number]['asset'];
-/** The rows a supplied asset's definition spans: itself and whichever back it wears. */
-function definitionsOf({ asset, backToken, backDeck }: Omit<SuppliedMember, 'count'>) {
-  return [asset, backToken, backDeck].filter((entry) => entry !== null);
-}
-
-/* A token's physical size as its author set it; a definition without one, or with one out of range, plays at the standard size. */
-function physicalSizeOf(data: unknown): number | undefined {
-  const size = (data as { physicalSize?: unknown } | null)?.physicalSize;
-  return PhysicalSize.safeParse(size).data;
-}
-
-/* What a tech token does, as its author wrote it on the asset; another type, or a token left undescribed, carries none. */
-function descriptionOf(type: string, data: unknown): string | undefined {
-  const about = (data as { about?: unknown } | null)?.about;
-  return type === 'token-tech' && typeof about === 'string' && about.trim()
-    ? about.trim().slice(0, ARTWORK_DESCRIPTION_LIMIT)
-    : undefined;
-}
-
-/**
- * The word printed across a deck's back, read from the definition that back is authored on.
- * A preset gives its fixed label.
- * An authored back, the deck's own or the one it references, gives the name printed on it.
- * The supply's definitions were parsed when it arrived, so reading them again cannot fail.
- */
-function deckBackName({ backMode, asset, backDeck }: AssetSupply) {
-  const cardback = (data: unknown) => DeckAssetInput.parse(data).cardback;
-  const printed = (data: unknown) => authoredCardback(cardback(data))?.name.trim() || undefined;
-  switch (backMode) {
-    case 'preset': {
-      const preset = cardback(asset.data);
-      return 'key' in preset ? cardbackPresetLabel(preset.key) : undefined;
-    }
-    case 'authored-cardback':
-      return printed(asset.data);
-    case 'reference':
-      return backDeck ? printed(backDeck.data) : undefined;
-    default:
-      return undefined;
-  }
-}
 
 /** The decks a ruleset must fill before a game can start; every other slot is optional. */
 const REQUIRED_DECKS: Partial<Record<RulesetAssetSlot, string>> = {
@@ -97,154 +47,27 @@ export class GameCatalogue {
     return playDraftableFactionsSchema.parse(raw).factions;
   }
 
+  private readonly assets: AssetCapture;
+
   constructor(
     private readonly convexUrl: string,
-    private readonly applicationOrigin: string,
+    applicationOrigin: string,
     private readonly observe?: ConvexObserver
-  ) {}
-
-  private async supply(selection: CaptureSelection): Promise<AssetSupply> {
-    const raw: unknown = await gameHttpClient(this.convexUrl, this.observe).query(
-      api.playCatalogue.assetSupply,
-      selection
-    );
-    const result = assetSupplySchema.safeParse(raw);
-    if (!result.success || result.data.membersTruncated) {
-      throw new GameRejection('This asset has no complete playable definition.');
-    }
-    this.assertDefinitions(result.data);
-    return result.data;
-  }
-
-  private assertDefinitions(supplied: Omit<SuppliedMember, 'count'>) {
-    if (supplied.backMode === 'dangling') {
-      throw new GameRejection('This asset has a missing back definition.');
-    }
-    for (const entry of definitionsOf(supplied)) {
-      try {
-        parseAssetDataForWrite(entry.type, entry.data);
-      } catch {
-        throw new GameRejection('This asset has an incomplete definition.');
-      }
-    }
-  }
-
-  /**
-   * A publication's address, without the cache token the catalogue serves it with.
-   * The path always serves the current file, and every publish mints a new token, so the address is what names one back for the whole game.
-   */
-  private image(href: string | null | undefined): string {
-    if (!href) {
-      throw new GameRejection('Publish every member and back before requesting this asset.');
-    }
-    const url = new URL(href, this.applicationOrigin);
-    if (url.origin !== this.applicationOrigin || !url.pathname.startsWith('/published/')) {
-      throw new GameRejection('This asset has an invalid publication reference.');
-    }
-    return `${url.origin}${url.pathname}`;
-  }
-
-  async capture(selection: CaptureSelection): Promise<StoredSpawnContents> {
-    const root = await this.supply({ type: selection.type, slug: selection.slug });
-    const cardDeck = holdsDeckMembership(selection.type) ? root.cardDeck : null;
-    if (holdsDeckMembership(selection.type) && !cardDeck) {
-      throw new GameRejection('A single card wears the back of the deck that holds it. Add this card to a deck first.');
-    }
-    if (cardDeck) {
-      /* The holding deck's back name is read from its definition, so it is checked like the card's own. */
-      this.assertDefinitions({ ...root, asset: cardDeck });
-    }
-    const definitions = [...definitionsOf(root), ...(cardDeck ? [cardDeck] : [])];
-    const members = selection.type === 'deck' || selection.type === 'bundle' ? root.members : [{ ...root, count: 1 }];
-    if (!members.length) {
-      throw new GameRejection('Add playable members before requesting this asset.');
-    }
-    const backName =
-      selection.type === 'deck'
-        ? deckBackName(root)
-        : cardDeck
-          ? deckBackName({ ...root, asset: cardDeck })
-          : undefined;
-    const pieces: StoredPiece[] = [];
-    for (const member of members) {
-      pieces.push(this.captureMember(root, selection.type, member, pieces.length, backName, cardDeck));
-      definitions.push(...definitionsOf(member));
-    }
-    if (selection.type === 'deck') {
-      const items = pieces.flatMap((piece) => piece.items);
-      pieces.splice(1);
-      pieces[0].items = items;
-    }
-    return storedSpawnContentsSchema.parse({
-      assetId: root.asset.id,
-      name: root.asset.name,
-      type: selection.type,
-      pieces,
-      members: members.map(({ asset, count }) => ({ assetId: asset.id, count })),
-      definitions: [...new Map(definitions.map(({ id, type, data }) => [id, { id, type, data }])).values()],
-    });
-  }
-
-  /**
-   * One member as a table piece.
-   * A single card is its own member and stacks with its holding deck, whose back and back name it wears.
-   */
-  private captureMember(
-    root: AssetSupply,
-    type: CaptureSelection['type'],
-    member: SuppliedMember,
-    index: number,
-    backName: string | undefined,
-    cardDeck: AssetSupply['cardDeck']
   ) {
-    const { asset, count } = member;
-    const isCard = type === 'deck' || holdsDeckMembership(type);
-    if (isCard ? !asset.type.startsWith('card-') : !asset.type.startsWith('token-')) {
-      throw new GameRejection('This container has incompatible members.');
-    }
-    this.assertDefinitions(member);
-    const front = this.image(member.front);
-    const size = isCard ? undefined : physicalSizeOf(asset.data);
-    const description = descriptionOf(asset.type, asset.data);
-    const stack =
-      type === 'deck'
-        ? { label: root.asset.name, kind: 'card' as const, stackKey: `deck:${root.asset.id}`, back: root.back }
-        : cardDeck
-          ? { label: '', kind: 'card' as const, stackKey: `deck:${cardDeck.id}`, back: root.back }
-          : { label: asset.name, kind: 'force' as const, stackKey: `token:${asset.id}`, back: member.back };
-    const back = this.image(stack.back);
-    const piece: StoredPiece = {
-      id: `member-${index}`,
-      label: stack.label,
-      kind: stack.kind,
-      owner: 'shared',
-      inventory: 'shared',
-      color: '#d5ba8c',
-      accent: '#ead9bb',
-      items: Array.from({ length: count }, (_, itemIndex) => ({
-        id: `member-${index}-${itemIndex}`,
-        faceUp: true,
-        artwork: {
-          front,
-          back,
-          ...(backName ? { backName } : {}),
-          name: asset.name,
-          type: asset.type,
-          ...(size === undefined ? {} : { size }),
-          ...(description ? { description } : {}),
-        },
-      })),
-      stackKey: stack.stackKey,
-      position: [-25, 0, -25],
-      orientation: 0,
-      zoneId: null,
-      locked: false,
-    };
-    if (cardDeck && type !== 'deck') {
-      /* A single card can be played face down, so it is named by its back, as a dealt card is, never by its front. */
-      piece.label = labelForCount(piece, count, {}, true);
-    }
-    return piece;
+    this.assets = new AssetCapture(
+      async (selection) =>
+        await gameHttpClient(this.convexUrl, this.observe).query(api.playCatalogue.assetSupply, selection),
+      applicationOrigin
+    );
+  }
+
+  /** The pieces a catalogue asset brings to the table, captured as the game keeps them. */
+  async capture(selection: CaptureSelection): Promise<StoredSpawnContents> {
+    return await this.assets.capture(selection);
+  }
+
+  private image(href: string | null | undefined): string {
+    return this.assets.image(href);
   }
 
   /**
