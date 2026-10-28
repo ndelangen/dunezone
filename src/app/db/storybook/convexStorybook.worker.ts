@@ -141,6 +141,7 @@ async function createWorld(seed: SeedDocument[]): Promise<World> {
   world.test.registerComponent('profileActivity', aggregateSchema, aggregateModules);
   world.test.registerComponent('profileDiscovery', aggregateSchema, aggregateModules);
   world.test.registerComponent('catalogueOrder', aggregateSchema, aggregateModules);
+  world.test.registerComponent('publicationQueue', aggregateSchema, aggregateModules);
   world.test.registerComponent('migrations', migrationsSchema, migrationsModules);
   world.test.registerComponent('rateLimiter', rateLimiterSchema, rateLimiterModules);
   await insertDocuments(world, seed);
