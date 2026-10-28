@@ -17,6 +17,7 @@ test('the others stop readying up once the draft has ended', () => {
     others: () => ['seat-2', 'seat-3'],
     landings: () => [],
     captured: () => undefined,
+    capturedPieces: () => [],
   };
   const stop = keepOthersReady(() => view, players);
   expect(act).toHaveBeenCalledExactlyOnceWith('seat-3', { kind: 'draft-ready', ready: true });
@@ -39,6 +40,7 @@ test('the trade steps name the faction the learner was dealt and a player who is
     others: () => [],
     landings: () => [],
     captured: () => undefined,
+    capturedPieces: () => [],
   };
   const steps = draftAndTrade.tasks(() => view, players);
   const detail = (id: string) => steps.find((step) => step.id === id)!.detail;

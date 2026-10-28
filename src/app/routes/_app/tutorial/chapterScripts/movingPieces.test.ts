@@ -25,6 +25,7 @@ function carryStack(...more: ReturnType<typeof troop>[]) {
     others: () => [],
     landings: () => landings,
     captured: () => undefined,
+    capturedPieces: () => [],
   };
   const step = movingPieces.tasks(snapshot, players).find((candidate) => candidate.id === 'carry-stack')!;
   const baseline = step.begin({} as never);

@@ -13,12 +13,13 @@ afterEach(() => {
 });
 
 const KARAMA_ID = 'asset-karama';
-const players = (captured: string | undefined): TablePlayers => ({
+const players = (captured: string | undefined, snapshot: () => GameSnapshot): TablePlayers => ({
   act: vi.fn(),
   viewOf: () => ({}) as GameSnapshot,
   others: () => [],
   landings: () => [],
   captured: () => captured,
+  capturedPieces: () => (captured ? snapshot().table.pieces.filter((piece) => piece.id === captured) : []),
 });
 const request = (assetId: string, name: string, type = 'token-disc') => ({
   id: `spawn-${assetId}`,
@@ -27,14 +28,14 @@ const request = (assetId: string, name: string, type = 'token-disc') => ({
   contents: { assetId, name, type },
 });
 const piece = (stackKey: string, label: string, inventory?: 'shared') => ({
-  id: stackKey,
+  id: stackKey === capturedTokenStackKey(KARAMA_ID) ? KARAMA_ID : stackKey,
   label,
-  stackKey,
+  stackKey: `token:opaque-${stackKey.length}`,
   inventory,
   items: [],
 });
 const step = (snapshot: () => GameSnapshot, captured: string | undefined, id: string) =>
-  bringYourOwnPieces.tasks(snapshot, players(captured)).find((task) => task.id === id)!;
+  bringYourOwnPieces.tasks(snapshot, players(captured, snapshot)).find((task) => task.id === id)!;
 
 /* An owner, bundle or deck with Karama in its name lists in the same search, so only the token's own row is Karama. */
 test('finding Karama waits for the token-disc row to be picked, not a row named for it', () => {
@@ -69,7 +70,7 @@ test('follows the request and pieces Karama’s selection captured, whatever els
   /* Before the learner asks, nothing at the table is Karama's. */
   expect(step(snapshot, undefined, 'request').done(undefined as never, undefined as never)).toBe(false);
 
-  /* Approved, it waits in the inventory; placed, it keeps its stack key whatever its label says. */
+  /* Approved, it waits in the inventory; placed, its projected identity stays usable whatever its label or opaque stack key says. */
   view = {
     controls: { requests: [] },
     table: { pieces: [piece(capturedTokenStackKey(KARAMA_ID), 'Karama', 'shared')] },
