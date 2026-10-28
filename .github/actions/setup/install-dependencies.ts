@@ -1,4 +1,10 @@
 import { spawnSync } from 'node:child_process';
+import { isAbsolute } from 'node:path';
+
+const executable = process.env.BUN_EXECUTABLE;
+if (!executable || !isAbsolute(executable)) {
+  throw new Error('The setup action must supply an absolute Bun executable path.');
+}
 
 /* A stalled install consumed 838 s of the unit job's 15-minute limit in #2593. */
 const timeout = Number(process.env.BUN_CI_INSTALL_TIMEOUT_MS ?? 120_000);
@@ -7,7 +13,7 @@ if (!Number.isSafeInteger(timeout) || timeout <= 0) {
 }
 for (let attempt = 1; attempt <= 3; attempt++) {
   console.log(`Frozen dependency install, attempt ${attempt} of 3, limit ${timeout} ms.`);
-  const result = spawnSync('bun', ['install', '--frozen-lockfile', '--ignore-scripts'], {
+  const result = spawnSync(executable, ['install', '--frozen-lockfile', '--ignore-scripts'], {
     stdio: 'inherit',
     timeout,
     killSignal: 'SIGKILL',
