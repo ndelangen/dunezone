@@ -19,8 +19,8 @@ const currentStep = (canvasElement: HTMLElement) =>
   canvasElement.ownerDocument.querySelector('[data-state="current"]')?.textContent ?? '';
 
 /*
- * The whole chapter played through the page as a learner plays it: open the Harkonnen player's information from the chat bar,
- * start the vote from their header, and watch the others vote them off, so a guide that no longer finds what it reads fails here.
+ * Review a saved position, resume play, then remove an absent player through the page's real controls.
+ * The guide must recognize each action and reach the Audit record.
  */
 export const PlayedThrough = meta.story({
   play: async ({ canvasElement }) => {
@@ -50,7 +50,8 @@ export const PlayedThrough = meta.story({
     await openWindow('Game log');
     await step('Ask to review Storm');
     await openWindow('Table review');
-    await userEvent.click(await page.findByRole('button', { name: 'Turn 1, Storm' }));
+    await userEvent.click(await page.findByRole('button', { name: 'Earlier checkpoint' }));
+    await expect(page.getByRole('slider', { name: 'Checkpoint' })).toHaveAttribute('aria-valuenow', '0');
     await userEvent.click(page.getByRole('button', { name: 'Ask the table to review' }));
     await enterAt('A review needs the table to agree');
     await step('Discuss the saved position');

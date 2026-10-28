@@ -61,21 +61,9 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       task: 'Step through the saved phases',
       detail: 'Press Later phase to see the next saved position. Replaying leaves the live table as it was.',
       anchor: { kind: 'page', element: buttonNamed('Later phase') },
-      begin: () => {
-        const watch = { clicked: false, stop: new AbortController() };
-        document.addEventListener(
-          'click',
-          (event) => {
-            if ((event.target as Element)?.closest('button')?.textContent?.trim() === 'Later phase') {
-              watch.clicked = true;
-            }
-          },
-          { capture: true, signal: watch.stop.signal }
-        );
-        return watch;
-      },
-      done: (watch) => watch.clicked,
-      finish: (watch) => watch.stop.abort(),
+      begin: () => undefined,
+      /* Earlier phase opens only after replay leaves its first checkpoint, even if the learner steps ahead immediately. */
+      done: () => buttonNamed('Earlier phase')()?.disabled === false,
     }),
     task({
       id: 'live',

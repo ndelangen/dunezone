@@ -49,7 +49,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'review-propose',
       task: 'Ask to review Storm',
       detail:
-        'Press {Space}, type Table review and press {Enter}. Choose Storm in Turn 1, then Ask the table to review. If you choose another checkpoint, Withdraw and try again. Your proposal counts as your agreement.',
+        'Press {Space}, type Table review and press {Enter}. Use Earlier checkpoint to choose Storm in Turn 1, then Ask the table to review. If you choose another checkpoint, Withdraw and try again. Your proposal counts as your agreement.',
       anchor: {
         kind: 'page',
         element: () =>
