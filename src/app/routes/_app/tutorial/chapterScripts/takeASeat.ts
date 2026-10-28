@@ -57,7 +57,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'watching',
       task: 'You are watching',
       detail:
-        "You've joined as a spectator. You can see the public table, but you need a seat to play. Press {Enter} to continue.",
+        "You've joined as a spectator. You can see the public table, but you need a seat to play.\n\nPress {Enter} to continue.",
       anchor: { kind: 'page', element: element('section[aria-label="Players"]') },
       ...pressEnter(),
     }),
@@ -83,7 +83,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'leave',
       task: 'Give up your place',
       detail:
-        'Twaffle approved your request. To leave again, open the gear menu in the top right. Press and hold Give up your place until the countdown finishes.',
+        'Twaffle approved your request.\n\nTo leave again, open the gear menu in the top right. Press and hold Give up your place until the countdown finishes.',
       anchor: {
         kind: 'page',
         element: () => leaveItem() ?? gameMenuButton(),

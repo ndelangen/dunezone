@@ -91,7 +91,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'speaking-mode',
       task: 'Hear the steps aloud',
       detail:
-        'Welcome to the first tutorial. To keep hearing each step aloud, turn on speaking mode with the button above or press {Z}. Press {Z} again to turn it off. Press {Enter} to start.',
+        'Welcome to the first tutorial.\n\nPress {Z} on your keyboard to toggle speaking mode on or off.\n\nPress {Enter} to start.',
       introducesSpeakingMode: true,
       anchor: { kind: 'page', element: () => null },
       ...pressEnter(),
@@ -99,7 +99,8 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     task({
       id: 'board',
       task: 'This is the table',
-      detail: 'This is your shared table, with the board, decks and pieces ready to play. Press {Enter} to continue.',
+      detail:
+        'This is your shared table, with the board, decks and pieces ready to play.\n\nPress {Enter} to continue.',
       anchor: { kind: 'table', point: () => [0, TABLE_SURFACE_Y, 0] },
       ...pressEnter(),
     }),
@@ -107,7 +108,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'players',
       task: 'The players',
       detail:
-        'Each player has a faction token beside their seat. The arrow points to each one, ending with yours. Press {Enter} to continue.',
+        'Each player has a faction token beside their seat. The arrow points to each one, ending with yours.\n\nPress {Enter} to continue.',
       anchor: { kind: 'table', point: tokens.point },
       begin: tokens.begin,
       done: tokens.done,
@@ -116,14 +117,14 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     task({
       id: 'status',
       task: 'Phase and turn',
-      detail: 'In the top left, you can see the current phase and turn. Press {Enter} to continue.',
+      detail: 'In the top left, you can see the current phase and turn.\n\nPress {Enter} to continue.',
       anchor: { kind: 'page', element: element('.seated-phase-status') },
       ...pressEnter(),
     }),
     task({
       id: 'phases',
       task: 'The phases of a turn',
-      detail: 'These discs show the phases in order. The current phase is lit up. Press {Enter} to continue.',
+      detail: 'These discs show the phases in order. The current phase is lit up.\n\nPress {Enter} to continue.',
       anchor: { kind: 'table', point: phases.point },
       begin: phases.begin,
       done: phases.done,
@@ -132,7 +133,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     task({
       id: 'turn',
       task: 'The turn tracker',
-      detail: 'The wheel beside the phase discs shows the current turn. Press {Enter} to continue.',
+      detail: 'The wheel beside the phase discs shows the current turn.\n\nPress {Enter} to continue.',
       anchor: { kind: 'table', point: () => trackerAt(snapshot, 'turn') },
       ...pressEnter(),
     }),
@@ -140,7 +141,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'next',
       task: 'Advance to the next phase',
       detail:
-        'You and the other players decide when a phase is finished. Press Next phase in the top right to move on.',
+        'You and the other players decide when a phase is finished.\n\nPress Next phase in the top right to move on.',
       anchor: { kind: 'page', element: nextPhaseButton },
       begin: () => undefined,
       done: () => phaseOf(snapshot).id !== 'storm',
@@ -148,7 +149,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     task({
       id: 'share',
       task: 'Copy the game link',
-      detail: 'Open the gear menu in the top right and press Copy game link. Share this link to invite other players.',
+      detail: 'Open the gear menu in the top right and press Copy game link.\n\nShare it to invite other players.',
       anchor: { kind: 'page', element: () => copyLink() ?? gameMenuButton() },
       /*
        * Next phase can keep the focus once pressed, so a habitual Enter here would move the game on again:
