@@ -89,29 +89,19 @@ export const faction_troop_red_star_verify_v1 = migrations.define({
 });
 
 /**
- * Drops the retired `nameScale` and `nameFont` from stored card-back presets.
- * Labels have shrunk to fit and rendered in regular Busorama since those fields retired, so the renderer ignores both and the preset draws the same back.
- * The revision stays, because the published image does not change.
+ * Dropped the retired `nameScale` and `nameFont` from stored card-back presets.
+ * Production has run it, and the schema no longer accepts either field, so its body is a no-op.
+ * Its id stays so the narrow guard can require it and every snapshot load can replay it.
  */
 export const cardback_presets_retired_label_fields_v1 = migrations.define({
   table: 'cardback_presets',
-  migrateOne: async (_ctx, row) => {
-    if (row.cardback.nameScale === undefined && row.cardback.nameFont === undefined) {
-      return;
-    }
-    const { nameScale: _nameScale, nameFont: _nameFont, ...cardback } = row.cardback;
-    return { cardback };
-  },
+  migrateOne: async () => {},
 });
 
-/** Every stored card-back preset must be free of the retired label fields before the schema stops accepting them. */
+/** Proved every card-back preset was free of the retired label fields; the schema itself now rules them out. */
 export const cardback_presets_retired_label_fields_verify_v1 = migrations.define({
   table: 'cardback_presets',
-  migrateOne: async (_ctx, row) => {
-    if (row.cardback.nameScale !== undefined || row.cardback.nameFont !== undefined) {
-      throw new Error(`Card-back preset ${row.key} still has a retired label field.`);
-    }
-  },
+  migrateOne: async () => {},
 });
 
 export const LEGACY_DATA_MIGRATION_IDS: Record<string, FunctionReference<'mutation', 'internal'>> = {

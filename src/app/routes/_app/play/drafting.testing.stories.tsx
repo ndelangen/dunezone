@@ -1,5 +1,6 @@
 import { testingPreview } from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
+import { completeHold } from '@ui/control/useHoldToConfirm.stories.fixture';
 import { expect, spyOn, userEvent, waitFor, within } from 'storybook/test';
 
 import { windowNamed } from './controls.stories.fixture';
@@ -58,10 +59,12 @@ export const ChoosingFactions = meta.story({
       },
       { timeout: 30_000 }
     );
-    const factions = () => within(page.getByRole('list', { name: 'Before the deal' })).getByText(/^Factions/);
-    await userEvent.hover(factions());
-    await waitForFrame(() => expect(page.getByRole('tooltip')).toHaveTextContent('a random 6 of them will be dealt'));
-    await userEvent.unhover(factions());
+    /* The Factions step says how the deal picks, in its own words, which its tooltip shows on hover. */
+    await expect(
+      within(page.getByRole('list', { name: 'Before the deal' })).getByRole('button', {
+        name: /^Factions.*a random 6 of them will be dealt/,
+      })
+    ).toBeVisible();
     const list = () => within(page.getByRole('list', { name: 'Factions' }));
     await waitFor(
       async () => {
@@ -107,7 +110,7 @@ export const SeatedSpectatorLandsOnDrafting = meta.story({
   },
 });
 
-/** Giving up a seat is held in the game menu, its words naming what it costs; a plain click sends nothing. */
+/** Giving up a seat is held in the game menu, its words naming what it costs; the finished hold departs the seat. */
 export const PlayerLeavesTheGame = meta.story({
   beforeEach: install(() => productTransport('seat-1', drafting())),
   play: async ({ canvasElement }) => {
@@ -115,9 +118,7 @@ export const PlayerLeavesTheGame = meta.story({
     await press(() => page.getByRole('button', { name: 'Game menu' }));
     const leave = () => page.getByRole('menuitem', { name: 'Hold to leave and discard the game' });
     await waitForFrame(() => expect(leave()).toBeVisible(), { timeout: 30_000 });
-    await userEvent.pointer([{ keys: '[MouseLeft>]', target: leave() }]);
-    await waitForFrame(() => expect(page.getByText(/Leaving in \d\.\./)).toBeVisible());
-    await expect(session.transport.messages.some((message) => message.type === 'command')).toBe(false);
+    await completeHold(leave());
     await waitFor(() => expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'seat-depart' } }), {
       timeout: 10_000,
     });

@@ -29,8 +29,6 @@ describe('alliances', () => {
     expect(allianceOf(state, 'emperor')?.mark).toBe(1);
     state = ally(state, 'atreides', 'fremen');
     expect(allianceOf(state, 'fremen')?.mark).toBe(0);
-    state = ally(state, 'fremen', 'emperor');
-    expect(allianceOf(state, 'harkonnen')?.mark).toBe(0);
   });
 
   test('an accepted offer allies both factions and clears the offer', () => {
@@ -54,19 +52,12 @@ describe('alliances', () => {
     });
     state = act(state, 'fremen', { kind: 'alliance-break', factionId: 'atreides' });
     state = act(state, 'atreides', { kind: 'alliance-offer', factionId: 'fremen' });
-    expect(() => act(state, 'fremen', { kind: 'alliance-offer', factionId: 'atreides' })).toThrow('Accept or decline');
+    expect(() => act(state, 'fremen', { kind: 'alliance-offer', factionId: 'atreides' })).toThrow('Accept it instead');
     expect(alliesOf(state, 'fremen')).toEqual([]);
   });
 
-  test('a declined or withdrawn offer leaves everyone alone', () => {
+  test('a withdrawn offer leaves everyone alone', () => {
     const offered = act(emptyAlliances(), 'atreides', { kind: 'alliance-offer', factionId: 'fremen' });
-    expect(
-      act(offered, 'fremen', {
-        kind: 'alliance-decline',
-        factionId: 'atreides',
-        offer: offerId(offered, 'atreides', 'fremen'),
-      })
-    ).toEqual(emptyAlliances());
     expect(
       act(offered, 'atreides', {
         kind: 'alliance-withdraw',
@@ -79,26 +70,48 @@ describe('alliances', () => {
     );
   });
 
-  test('a faction joining an alliance joins all of it, and breaking takes only that faction out', () => {
-    let state = act(emptyAlliances(), 'atreides', { kind: 'alliance-offer', factionId: 'fremen' });
+  test('an allied faction neither offers nor accepts another alliance until it breaks its own', () => {
+    let state = act(emptyAlliances(), 'emperor', { kind: 'alliance-offer', factionId: 'fremen' });
+    state = act(state, 'harkonnen', { kind: 'alliance-offer', factionId: 'atreides' });
+    const waiting = offerId(state, 'emperor', 'fremen');
+    state = act(state, 'atreides', { kind: 'alliance-offer', factionId: 'fremen' });
     state = act(state, 'fremen', {
       kind: 'alliance-accept',
       factionId: 'atreides',
       offer: offerId(state, 'atreides', 'fremen'),
     });
-    state = act(state, 'emperor', { kind: 'alliance-offer', factionId: 'fremen' });
-    state = act(state, 'fremen', {
-      kind: 'alliance-accept',
-      factionId: 'emperor',
-      offer: offerId(state, 'emperor', 'fremen'),
-    });
-    expect(alliesOf(state, 'emperor').sort()).toEqual(['atreides', 'fremen']);
-    state = act(state, 'emperor', { kind: 'alliance-break', factionId: 'fremen' });
-    expect(alliesOf(state, 'atreides')).toEqual(['fremen']);
+    /* Every offer to or from either ally is gone, so neither is left holding one it may not answer. */
+    expect(state.offers).toEqual([]);
+    expect(() => act(state, 'fremen', { kind: 'alliance-accept', factionId: 'emperor', offer: waiting })).toThrow(
+      'withdrawn'
+    );
+    expect(() => act(state, 'atreides', { kind: 'alliance-offer', factionId: 'emperor' })).toThrow(
+      'Break your alliance'
+    );
+    expect(() => act(state, 'emperor', { kind: 'alliance-offer', factionId: 'fremen' })).toThrow(
+      'already in an alliance'
+    );
     state = act(state, 'atreides', { kind: 'alliance-break', factionId: 'fremen' });
     expect(state.groups).toEqual([]);
     /* A break sent for an alliance that has since changed is turned away rather than leaving a newer one. */
     expect(() => act(state, 'atreides', { kind: 'alliance-break', factionId: 'fremen' })).toThrow('already changed');
+    expect(act(state, 'atreides', { kind: 'alliance-offer', factionId: 'emperor' }).offers).toMatchObject([
+      { from: 'atreides', to: 'emperor' },
+    ]);
+  });
+
+  test('an offer made before the receiver allied elsewhere can no longer be accepted', () => {
+    let state = act(emptyAlliances(), 'atreides', { kind: 'alliance-offer', factionId: 'fremen' });
+    state = act(state, 'harkonnen', { kind: 'alliance-offer', factionId: 'emperor' });
+    state = { ...state, groups: [{ members: ['fremen', 'emperor'], mark: 0 }] };
+    const fremen = offerId(state, 'atreides', 'fremen');
+    expect(() => act(state, 'fremen', { kind: 'alliance-accept', factionId: 'atreides', offer: fremen })).toThrow(
+      'Break your alliance'
+    );
+    const emperor = offerId(state, 'harkonnen', 'emperor');
+    expect(() => act(state, 'emperor', { kind: 'alliance-accept', factionId: 'harkonnen', offer: emperor })).toThrow(
+      'Break your alliance'
+    );
   });
 
   test('a late answer to a withdrawn offer never reaches an offer made again since', () => {
@@ -111,10 +124,11 @@ describe('alliances', () => {
       factionId: 'atreides',
       offer: offerId(state, 'atreides', 'emperor'),
     });
+    state = act(state, 'atreides', { kind: 'alliance-break', factionId: 'emperor' });
     state = act(state, 'atreides', { kind: 'alliance-offer', factionId: 'fremen' });
-    for (const kind of ['alliance-accept', 'alliance-decline'] as const) {
-      expect(() => act(state, 'fremen', { kind, factionId: 'atreides', offer: seen })).toThrow('withdrawn');
-    }
+    expect(() => act(state, 'fremen', { kind: 'alliance-accept', factionId: 'atreides', offer: seen })).toThrow(
+      'withdrawn'
+    );
     expect(state.offers).toMatchObject([{ from: 'atreides', to: 'fremen' }]);
   });
 
@@ -127,6 +141,8 @@ describe('alliances', () => {
       factionId: 'atreides',
       offer: offerId(state, 'atreides', 'fremen'),
     });
-    expect(() => act(state, 'atreides', { kind: 'alliance-offer', factionId: 'fremen' })).toThrow('already allied');
+    expect(() => act(state, 'atreides', { kind: 'alliance-offer', factionId: 'fremen' })).toThrow(
+      'Break your alliance'
+    );
   });
 });

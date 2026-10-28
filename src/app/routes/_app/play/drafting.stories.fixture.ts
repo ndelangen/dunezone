@@ -1,5 +1,5 @@
 import type { Background } from '@shared/factions/schema';
-import { CanonicalFactionStoredSchema } from '@shared/factions/schema';
+import { CanonicalFactionStoredObject } from '@shared/factions/schema';
 import { emptySnapshot } from '@shared/play/commands';
 import type { DraftFaction, DraftState } from '@shared/play/drafting';
 import type { PublicControls } from '@shared/play/inventory';
@@ -26,7 +26,7 @@ import capturedFactions from './product.stories.fixture/factions.json';
 /** The six product factions of the Play page stories, with their provenance beside the JSON. */
 export const factions = capturedFactions.map((entry) => ({
   ...entry,
-  data: CanonicalFactionStoredSchema.parse(entry.data),
+  data: CanonicalFactionStoredObject.parse(entry.data),
 }));
 
 type CatalogueSnapshotEntry = {

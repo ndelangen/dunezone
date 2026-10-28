@@ -1,0 +1,10 @@
+/* A waiting offer breathes, so it reads as pending rather than done. */
+.pending {
+  animation: pending 1.6s ease-in-out infinite;
+}
+
+@keyframes pending {
+  50% {
+    opacity: 0.45;
+  }
+}

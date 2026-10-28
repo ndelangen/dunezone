@@ -53,6 +53,14 @@ each version. Combined migration reads fell from 5,988,238 to 762,834 bytes, wit
 volume. Repeating the baseline reproduced its counters exactly. Compare the first scheduled refresh
 through the daily usage reports before translating this fixture result into monthly savings.
 
+Faction drafting reuses linked faction rows encountered by its catalogue scan. Its
+[backend benchmark](./convex-faction-drafting-benchmark.json) compares identical ordered answers
+from a synthetic 65-faction catalogue with 11 linked factions. Linked-query reads fell from
+242,255 to 213,147 bytes (12.0%); unlinked reads stayed at 210,320 bytes and writes stayed at zero.
+The repeated baseline reproduced both counters. This is a cold-query fixture result, not a monthly
+savings estimate. `convex/playCatalogue.draftable.test.ts` caps reads at 384 KiB with 220 KiB of
+linked faction text and covers missing/deleted links and the full 500-linked limit.
+
 `convex/assets.boardListings.test.ts` caps backend reads at 64 KiB for listings with real Arrakis
 geometry, including a ten-board catalogue. It covers asset landing, numbered catalogue, legacy
 browse, asset picker, FAQ board picker and ruleset board slots. It verifies that a full definition

@@ -18,21 +18,24 @@ const meta = testingPreview.meta({
   parameters: { layout: 'fullscreen' },
 });
 
+/** The section name's help says where the name shows. */
+export const NamingHelp = meta.story({
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole('tab', { name: /^Rules/ }));
+    await expect(canvas.getByRole('group', { name: /^Section name$/ })).toHaveAccessibleDescription(
+      "Used on this faction's page, in Play, and on its sheet and PDF."
+    );
+  },
+});
+
+/** The section name and the rule title survive a trip to another tab, and Save writes them. */
 export const NamingChoice = meta.story({
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
     const openRules = () => userEvent.click(canvas.getByRole('tab', { name: /^Rules/ }));
     await openRules();
     await expect(canvas.getByRole('radio', { name: 'Faction Special Karama' })).toBeChecked();
-    const naming = within(canvas.getByRole('group', { name: /^Section name$/ }));
-    const help = naming.getByRole('img', { name: 'Help' });
-    await userEvent.hover(help);
-    await waitForFrame(() =>
-      expect(screen.getByRole('tooltip')).toHaveTextContent(
-        "Used on this faction's page, in Play, and on its sheet and PDF."
-      )
-    );
-    await userEvent.unhover(help);
     const title = canvas.getByRole('textbox', { name: 'Rule title (optional)' });
     await userEvent.type(title, 'Preserved rule title');
 

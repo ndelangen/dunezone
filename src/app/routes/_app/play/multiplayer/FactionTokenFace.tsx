@@ -6,52 +6,59 @@ import type { AriaRole, CSSProperties, Ref } from 'react';
 import type { TableProjection } from '../../../../db/tabletop/TableSession';
 import { factionColor } from './allianceColors';
 
-type TokenProps = Readonly<{ table: TableProjection; names: Readonly<Record<string, string>> }>;
+/** What a faction's token shows: its face as it lies on the table, its colour, and the name its initial stands in for. */
+export type FactionToken = Readonly<{ id: string; name: string; src?: string | null; color?: string }>;
 
 /** A faction's token face as it lies on the table. */
 export function factionTokenFace(table: TableProjection, factionId: string) {
   return factionTokenOf(table.snapshot.table.pieces, factionId)?.items[0]?.artwork?.front;
 }
 
+/** A faction's token as the table has it, named from `names`; `standIn` is the face to show where the table has no token for it. */
+export function factionToken(
+  table: TableProjection,
+  factionId: string,
+  names: Readonly<Record<string, string>>,
+  standIn?: string | null
+): FactionToken {
+  return {
+    id: factionId,
+    name: names[factionId] ?? factionId,
+    src: factionTokenFace(table, factionId) ?? standIn,
+    color: factionColor(table.snapshot, factionId),
+  };
+}
+
 /**
- * A faction's token as it lies on the table, ringed in its colour.
- * Where the table has no token for it, `src` stands in, else its initial does.
+ * A faction's token, ringed in its colour, or its initial where it has no face.
  * Any further props, a tooltip's handlers and ref among them, reach the token itself.
  */
 export function FactionTokenFace({
-  table,
-  factionId,
-  names,
+  token,
   size,
-  src,
   style,
   ref,
   ...rest
-}: TokenProps &
-  Readonly<{
-    factionId: string;
-    size: number;
-    src?: string | null;
-    style?: CSSProperties;
-    ref?: Ref<HTMLDivElement>;
-    /** A token whose faction no text beside it names is an image named after it, so a reader hears who it is. */
-    role?: AriaRole;
-    'aria-label'?: string;
-  }>) {
+}: Readonly<{
+  token: FactionToken;
+  size: number;
+  style?: CSSProperties;
+  ref?: Ref<HTMLDivElement>;
+  /** A token whose faction no text beside it names is an image named after it, so a reader hears who it is. */
+  role?: AriaRole;
+  'aria-label'?: string;
+}>) {
   return (
     <Avatar
       {...rest}
       ref={ref}
-      src={factionTokenFace(table, factionId) ?? src}
+      src={token.src}
       size={size}
       radius="xl"
       alt=""
-      style={{
-        border: `1px solid ${factionColor(table.snapshot, factionId) ?? playUiColors.annotationGold}`,
-        ...style,
-      }}
+      style={{ border: `1px solid ${token.color ?? playUiColors.annotationGold}`, ...style }}
     >
-      {(names[factionId] ?? factionId).slice(0, 1)}
+      {token.name.slice(0, 1)}
     </Avatar>
   );
 }
@@ -60,30 +67,20 @@ export function FactionTokenFace({
  * Several factions' tokens overlapping in a row, each an image named after its faction, with the name in a tooltip for a pointer.
  * The tooltip opens on hover only, and the token takes no focus, so without the name a keyboard or screen-reader user would never learn whose token it is.
  */
-export function FactionTokenGroup({
-  table,
-  factionIds,
-  names,
-  size,
-}: TokenProps & Readonly<{ factionIds: readonly string[]; size: number }>) {
+export function FactionTokenGroup({ tokens, size }: Readonly<{ tokens: readonly FactionToken[]; size: number }>) {
   return (
     <Group gap={0} wrap="nowrap" style={{ flexShrink: 0 }}>
-      {factionIds.map((factionId, index) => {
-        const name = names[factionId] ?? factionId;
-        return (
-          <Tooltip key={factionId} label={name} withinPortal>
-            <FactionTokenFace
-              table={table}
-              factionId={factionId}
-              names={names}
-              size={size}
-              role="img"
-              aria-label={name}
-              style={{ marginLeft: index ? -Math.round(size / 4) : 0 }}
-            />
-          </Tooltip>
-        );
-      })}
+      {tokens.map((token, index) => (
+        <Tooltip key={token.id} label={token.name} withinPortal>
+          <FactionTokenFace
+            token={token}
+            size={size}
+            role="img"
+            aria-label={token.name}
+            style={{ marginLeft: index ? -Math.round(size / 4) : 0 }}
+          />
+        </Tooltip>
+      ))}
     </Group>
   );
 }

@@ -112,3 +112,14 @@ export const FactionEmblems = meta.story({
     await expect(screen.getByRole('group', { name: 'Faction emblems / Board game factions' })).toBeVisible();
   },
 });
+
+/** Resting the pointer on an option opens a larger preview of its artwork beside the list, read from `getPreviewSrc`. */
+export const PreviewOnHover = meta.story({
+  play: async ({ canvasElement, userEvent }) => {
+    await userEvent.click(within(canvasElement).getByRole('combobox', { name: 'Artifact symbol' }));
+    const option = await screen.findByRole('option', { name: 'Ocean emblem' });
+    await userEvent.hover(within(option).getByText('Ocean emblem'));
+    const preview = await waitFor(() => screen.getByRole('dialog', { name: 'Artwork preview' }));
+    await expect(preview.querySelector('img')).toHaveAttribute('src', previews.ocean);
+  },
+});

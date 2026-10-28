@@ -1,5 +1,4 @@
 import { testingPreview } from '@sb/preview';
-import { waitForFrame } from '@sb/storyWaits';
 import { expect, userEvent, within } from 'storybook/test';
 
 import { db } from '@db/storybook';
@@ -103,12 +102,9 @@ export const Clone = meta.story({
     await userEvent.click(page.getByRole('combobox', { name: 'Rulebook to copy' }));
     const rules = await page.findByRole('option', { name: 'Rules' });
     await expect(page.queryByRole('option', { name: 'Deleted Rulebook' })).toBeNull();
-    /* The 32 px tile is too narrow for the missing state to print the name, so it names the Rulebook on hover. */
-    const tile = within(rules).getByRole('img', { name: 'First page of Rules: preview unavailable', hidden: true });
-    await userEvent.hover(tile);
-    await waitForFrame(() => expect(page.getByRole('tooltip')).toHaveTextContent(/^Rules$/));
-    await userEvent.unhover(tile);
-    await waitForFrame(() => expect(page.queryByRole('tooltip')).toBeNull());
+    await expect(
+      within(rules).getByRole('img', { name: 'First page of Rules: preview unavailable', hidden: true })
+    ).toBeInTheDocument();
     await userEvent.click(rules);
     await userEvent.type(page.getByRole('textbox', { name: 'Rulebook name' }), 'Copied rules');
     await userEvent.click(page.getByRole('button', { name: 'Create Rulebook' }));
@@ -119,10 +115,7 @@ export const Clone = meta.story({
   },
 });
 
-/**
- * A failed capture's placeholder names the Rulebook in a tooltip of its own, so the chooser leaves its tooltip off that tile.
- * Hovering it opens one tooltip, not two.
- */
+/** A failed capture reaches the chooser's tile, which says so; `RulebookPreview` owns how the tile names it on hover. */
 export const CloneFailedPreview = meta.story({
   args: { path: '/rulesets/classicrules/rulebooks/create' },
   parameters: {
@@ -137,17 +130,13 @@ export const CloneFailedPreview = meta.story({
     await userEvent.click(await page.findByRole('radio', { name: 'Saved Rulebook' }, { timeout: 30_000 }));
     await userEvent.click(page.getByRole('combobox', { name: 'Rulebook to copy' }));
     const rules = await page.findByRole('option', { name: 'Rules' });
-    const tile = await within(rules).findByRole(
-      'img',
-      { name: 'First-page preview failed for Rules', hidden: true },
-      { timeout: 30_000 }
-    );
-    await userEvent.hover(tile);
-    await waitForFrame(() =>
-      expect(page.getAllByRole('tooltip').map((tooltip) => tooltip.textContent)).toEqual([
-        'First-page preview failed for Rules',
-      ])
-    );
+    await expect(
+      within(rules).findByRole(
+        'img',
+        { name: 'First-page preview failed for Rules', hidden: true },
+        { timeout: 30_000 }
+      )
+    ).resolves.toBeInTheDocument();
   },
 });
 

@@ -39,7 +39,7 @@ export async function verifyBattles(toolkit: HostedToolkit) {
   await act(a, 'Request');
   await openTab(b, 'Shared table inventory');
   await act(b, 'Approve');
-  await button(a, 'Close catalogue').click();
+  await button(a, 'Close the disc tokens catalogue').click();
   const token = required(
     requireView(a).snapshot.table.pieces.find((piece) => piece.inventory),
     'token'

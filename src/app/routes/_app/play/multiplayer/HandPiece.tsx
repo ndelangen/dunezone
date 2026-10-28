@@ -10,8 +10,9 @@ import { card } from '@game/data/sizes';
 
 import { PieceArtwork } from '../../../../widgets/tabletop/PieceArtwork';
 
+/** What a piece is called: its top item's name, the one its face shows, or its label. */
 export function pieceName(piece: TablePiece) {
-  return piece.items[0]?.artwork?.name ?? piece.label;
+  return piece.items.at(-1)?.artwork?.name ?? piece.label;
 }
 
 /**

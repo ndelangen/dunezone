@@ -8,7 +8,7 @@ import { useId } from 'react';
 import { useMotionAllowed } from '@app/styles/motion';
 
 import type { TableProjection } from '../../../../db/tabletop/TableSession';
-import { FactionTokenFace } from './FactionTokenFace';
+import { factionToken, FactionTokenFace } from './FactionTokenFace';
 import styles from './MovementTurns.module.css';
 
 const TOKEN_SIZE = 28;
@@ -108,7 +108,7 @@ function Token({
   const words = turnWords(name, turn, canAct);
   const face = (
     <>
-      <FactionTokenFace table={table} factionId={factionId} names={names} size={TOKEN_SIZE} />
+      <FactionTokenFace token={factionToken(table, factionId, names)} size={TOKEN_SIZE} />
       {turn === 'done' && (
         <span className={styles.tick} aria-hidden="true">
           <Check size={10} strokeWidth={3} />

@@ -2,6 +2,7 @@ import { testingPreview } from '@sb/preview';
 import { finishTransitions, waitForFrame } from '@sb/storyWaits';
 import { publishingSpiceCard } from '@shared/assets/fixtures/publishingSpiceCard';
 import { useNavigate } from '@tanstack/react-router';
+import { completeHold } from '@ui/control/useHoldToConfirm.stories.fixture';
 import { expect, mocked, userEvent, waitFor, within } from 'storybook/test';
 
 import { loadAssetPage } from '@db/assets';
@@ -369,13 +370,10 @@ export const RawConversionKeepsIdentity = meta.story({
     await expect((await loadAssetPage('card-custom', 'battle-reference'))!.asset.data).toEqual(before.asset.data);
     await waitForFrame(() => expect(page.getByRole('button', { name: 'Load existing card' })).toHaveFocus());
     const convert = page.getByRole('button', { name: 'Convert to spice card' });
-    await userEvent.pointer([{ keys: '[MouseLeft>]', target: convert }]);
-    await waitFor(
-      async () =>
-        expect((await loadAssetPage('card-spice', 'reviewed-native-conversion'))?.asset.id).toBe(before.asset.id),
-      { timeout: 10_000 }
+    await completeHold(convert);
+    await waitFor(async () =>
+      expect((await loadAssetPage('card-spice', 'reviewed-native-conversion'))?.asset.id).toBe(before.asset.id)
     );
-    await userEvent.pointer([{ keys: '[/MouseLeft]' }]);
     const after = (await loadAssetPage('card-spice', 'reviewed-native-conversion'))!;
     await expect(after.assignedGroup).toEqual(before.assignedGroup);
     await expect(after.inDecks).toEqual(before.inDecks);

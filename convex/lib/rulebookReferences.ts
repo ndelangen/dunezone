@@ -7,7 +7,7 @@ import {
 } from '../../src/shared/asset-publishing/publicationTargets';
 import { parseBoardData } from '../../src/shared/assets/validation';
 import { BoardAsset } from '../../src/shared/boards/schema';
-import { CanonicalFactionStoredSchema, TroopArtwork } from '../../src/shared/factions/schema';
+import { CanonicalFactionStoredObject, TroopArtwork } from '../../src/shared/factions/schema';
 import type { RulebookEditionContentsV1 } from '../../src/shared/rulebooks/contents';
 import type {
   RulebookResolvedAssetsById,
@@ -133,7 +133,7 @@ export async function resolveRulebookReferences(
         if (!faction || faction.is_deleted) {
           return null;
         }
-        const parsed = CanonicalFactionStoredSchema.safeParse(faction.data);
+        const parsed = CanonicalFactionStoredObject.safeParse(faction.data);
         if (!parsed.success) {
           return null;
         }
