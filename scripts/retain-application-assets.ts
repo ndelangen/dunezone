@@ -10,7 +10,6 @@ import { TransientError, describeError, retryTransient } from './retry-transient
 
 const origin = 'https://dune.zone';
 const directory = path.resolve(import.meta.dir, '../workers/publisher/dist');
-const nonce = Date.now();
 const RETRY_DELAYS_MS = [2000, 4000, 8000];
 /*
  * One transport attempt includes headers and the complete body.
@@ -22,8 +21,7 @@ const request = (pathname: string) =>
     async () => {
       let response: Response;
       try {
-        response = await fetch(`${origin}/${pathname}?retention=${nonce}`, {
-          headers: { 'Cache-Control': 'no-cache' },
+        response = await fetch(`${origin}/${pathname}`, {
           redirect: 'error',
           signal: AbortSignal.timeout(30_000),
         });
