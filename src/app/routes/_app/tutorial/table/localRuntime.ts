@@ -1,6 +1,5 @@
 import type { AssetCapture } from '@shared/play/assetCapture';
 import type { PublicFaction } from '@shared/play/capture';
-import { LOG_PAGE_SIZE } from '@shared/play/log';
 import { clientMessageSchema, KEEPALIVE_PING, KEEPALIVE_PONG } from '@shared/play/protocol';
 import type { ServerMessage } from '@shared/play/protocol';
 import { GameRejection } from '@shared/play/rejection';
@@ -95,10 +94,10 @@ export function localRuntime(
           return conversations.receive(message);
         case 'spice-history':
           return this.later({ ...message, entries: [], more: false });
-        /* A local table keeps no replay, so its history is the table as it stands. */
+        /* History is recorded by the local session at the same boundaries as multiplayer. */
         case 'history':
           this.replayed = true;
-          return this.later({ type: 'history', step: 0, lastStep: 0, snapshot: table().frame().snapshot });
+          return void table().receive(message);
         /* The catalogue answers after its read, as the Worker's capture does; a refusal is the answer's error. */
         case 'catalogue': {
           const { requestId } = message;
@@ -112,16 +111,8 @@ export function localRuntime(
               this.deliver({ type: 'catalogue', requestId, contents: null, error: refusal(error) })
           );
         }
-        case 'log-history': {
-          const entries = (table().log()[message.tab] ?? []).filter((entry) => entry.sequence < message.before);
-          return this.later({
-            type: 'log-history',
-            tab: message.tab,
-            before: message.before,
-            entries: entries.slice(0, LOG_PAGE_SIZE),
-            more: entries.length > LOG_PAGE_SIZE,
-          });
-        }
+        case 'log-history':
+          return this.later({ ...message, ...table().logPage(message.tab, message.before) });
         /* A catalogue request commits once its asset is captured, as the Worker commits it, and a refusal answers the command. */
         case 'command':
           if (message.action.kind === 'spawn-request') {

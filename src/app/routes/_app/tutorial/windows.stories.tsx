@@ -4,8 +4,8 @@ import { pageStoryMeta } from '../../storybookConfig';
 import { chapterGlobals, chapterParameters, playChapter } from './chapterStory';
 
 /*
- * Chapter 9, "Windows", as its page serves it: the compass on Space, a window in the middle, two slots to pin it in,
- * with the rail beside the table giving one task at a time. Its art comes as chapter 5's does; see that story.
+ * "Windows", as its page serves it: the compass on Space, a window in the middle, two slots to pin it in,
+ * with the rail beside the table giving one task at a time. Its art comes from the recorded tutorial setup.
  */
 
 const meta = preview.meta({
@@ -18,5 +18,5 @@ const meta = preview.meta({
 /** The chapter as a player meets it: do what the rail says, where its arrow shows, and it moves on by itself. */
 export const Chapter = meta.story({
   parameters: chapterParameters,
-  play: playChapter('Chapter 9: Windows', 'Open the controls'),
+  play: playChapter('Chapter 7: Windows', 'Open the controls'),
 });

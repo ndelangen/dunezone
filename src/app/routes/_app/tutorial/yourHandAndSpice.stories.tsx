@@ -4,8 +4,8 @@ import { pageStoryMeta } from '../../storybookConfig';
 import { chapterGlobals, chapterParameters, playChapter } from './chapterStory';
 
 /*
- * Chapter 10, "Your hand and spice", as its page serves it: a card into the hand and back onto the table, and spice out of the reserve,
- * with the rail beside the table giving one task at a time. Its art comes as chapter 5's does; see that story.
+ * "Your hand and spice", as its page serves it: a card into the hand and back onto the table, and spice out of the reserve,
+ * with the rail beside the table giving one task at a time. Its art comes from the recorded tutorial setup.
  */
 
 const meta = preview.meta({
@@ -18,5 +18,5 @@ const meta = preview.meta({
 /** The chapter as a player meets it: do what the rail says, where its arrow shows, and it moves on by itself. */
 export const Chapter = meta.story({
   parameters: chapterParameters,
-  play: playChapter('Chapter 10: Your hand and spice', 'Lay a Spice card on the table'),
+  play: playChapter('Chapter 8: Your hand and spice', 'Lay a Spice card on the table'),
 });

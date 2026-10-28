@@ -6,11 +6,7 @@ import type { ChapterScript, TablePlayers } from './chapterScript';
 import { at, grownCarryLanded, holdsAll, onBoard, task } from './guideChecks';
 import type { Piece } from './guideChecks';
 
-/*
- * Chapter 7, "Moving pieces": the hands-on controls chapter 5 only touched, on the same table.
- * A stack split with a number key, carried whole, grown with T while carried, joined, turned and flipped; then the faction
- * token moved along the rim and flipped. Everything to do with cards is chapter 8's (Norbert, 2026-10-26).
- */
+/* Moving one troop comes first, then holding a stack, splitting it and combining pieces. */
 
 /*
  * A piece changed where it lies, by id: turning and flipping leave a piece in place under the same id.
@@ -74,6 +70,46 @@ function stackTasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideT
       .filter((piece) => piece.items.length > 1)
       .toSorted((a, b) => a.items.length - b.items.length)[0];
   return [
+    task({
+      id: 'move-one',
+      task: 'Move one troop',
+      detail:
+        'Quickly drag a troop from your reserves onto an empty part of the board. A quick drag picks up just the top piece.',
+      anchor: { kind: 'table', point: () => at(biggestReserve()) },
+      begin: () => ({
+        seen: players.landings().length,
+        ids: new Set(reserves().flatMap((piece) => piece.items.map((item) => item.id))),
+      }),
+      done: ({ seen, ids }) =>
+        players
+          .landings()
+          .slice(seen)
+          .some(
+            (landing) =>
+              landing.itemIds.length === 1 &&
+              ids.has(landing.itemIds[0]!) &&
+              onTheBoard().some((piece) => holdsAll(piece, new Set(landing.itemIds)))
+          ),
+    }),
+    task({
+      id: 'carry-reserves',
+      task: 'Move a whole stack',
+      detail:
+        'Press and hold your reserve stack for a moment, then drag it a short distance along the rim and let go. The hold picks up the whole stack. Keep it beside your seat for the next exercise.',
+      anchor: { kind: 'table', point: () => at(biggestReserve()) },
+      begin: () => ({
+        seen: players.landings().length,
+        ids: new Set(biggestReserve()?.items.map((item) => item.id)),
+        position: biggestReserve()?.position.join(),
+      }),
+      done: ({ seen, ids, position }) =>
+        ids.size > 1 &&
+        players
+          .landings()
+          .slice(seen)
+          .some((landing) => [...ids].every((id) => landing.itemIds.includes(id))) &&
+        reserves().some((piece) => holdsAll(piece, ids) && piece.position.join() !== position),
+    }),
     task({
       id: 'split',
       task: 'Split three troops off',
@@ -172,8 +208,9 @@ const tasks = (snapshot: () => GameSnapshot, players: TablePlayers) => [
 
 /* One line for each part of the chapter, in the order it was played. */
 const learned = [
-  'Hold a number key over a stack to split that many off',
+  'A quick drag moves one piece',
   'Press and hold before dragging to carry a whole stack',
+  'Hold a number key over a stack to split that many off',
   'While carrying, {T} or a right-click over the stack takes one more',
   'Drop a piece on its own kind to join the stack',
   '{Q} and {E} turn a piece, {F} flips a whole stack',

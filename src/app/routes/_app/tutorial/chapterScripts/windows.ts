@@ -3,7 +3,7 @@ import type { ChapterScript } from './chapterScript';
 import { element as first, openedWindow, task, viaCompass, windowShown } from './guideChecks';
 
 /*
- * Chapter 9, "Windows": Space opens a compass over the table, a window opens in the middle,
+ * "Windows": Space opens a compass over the table, a window opens in the middle,
  * and it can be pinned to the bottom-left or bottom-right slot to stay open while the player plays.
  * Each window also has a letter of its own, which the compass shows beside it, so the chapter ends on one.
  * Every task is read from the screen, so it moves on only once the player has done it with the controls.
@@ -91,7 +91,7 @@ const windowTasks = (): GuideTask[] => [
   task({
     id: 'hand',
     task: 'Open your hand',
-    detail: 'Left on the compass is your hand. Press {←} then {Space}, or hold {Space}, tap {←} and let go.',
+    detail: 'Left on the compass is your hand. Press {←} then {Space}.',
     anchor: { kind: 'page', element: viaCompass('hand') },
     begin: nothing,
     done: () => windowAt('centre', 'hand'),
@@ -120,7 +120,8 @@ const slotTasks = (): GuideTask[] => [
   task({
     id: 'table-chat',
     task: 'Open the table chat',
-    detail: 'Right on the compass is the chat everyone at the table reads. Hold {Space}, tap {→} and let go.',
+    detail:
+      'Right on the compass is the chat everyone at the table reads. Press {Space}, then {→}, then {Space} again.',
     anchor: { kind: 'page', element: inCompass('[data-spot="table"]') },
     begin: nothing,
     done: () => windowAt('centre', 'table-chat'),
@@ -162,7 +163,7 @@ const slotTasks = (): GuideTask[] => [
     id: 'letter',
     task: 'Bring the chat back with one key',
     detail:
-      'Each window has a letter, shown beside it on the compass: {H} your hand, {J} your side-table, {G} the table chat, {F} your ally, {B} your battle plan. Click an empty part of the table, so no piece is picked, then press {G}.',
+      'The compass shows a shortcut beside each window. Table chat uses {G}: click an empty part of the table, then press {G}. You can also hold {Space}, tap a direction and release to open that compass window.',
     anchor: { kind: 'page', element: first('[data-compass-launcher]') },
     ...openedWindow(windowShown('table-chat')),
   }),

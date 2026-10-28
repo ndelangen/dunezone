@@ -12,10 +12,13 @@ import type { SwapAction } from '@shared/play/swapping';
 
 import { ActorDirectory } from '../../../../../../workers/game/actors';
 import { applyDraftAction, dealtSnapshot } from '../../../../../../workers/game/drafting';
-import type { PublicLog } from '../../../../../../workers/game/log';
+import { PublicLog, logContext } from '../../../../../../workers/game/log';
 import { ownRequests, Participation } from '../../../../../../workers/game/participation';
 import { RemovalVotes } from '../../../../../../workers/game/removal';
+import { TableReviews } from '../../../../../../workers/game/review';
+import { SessionHistory } from '../../../../../../workers/game/sessionHistory';
 import type { SetupSupply } from '../../../../../../workers/game/setup';
+import { SpiceLedger } from '../../../../../../workers/game/spiceLedger';
 import type { StoredSnapshot } from '../../../../../../workers/game/state';
 import { Swapping } from '../../../../../../workers/game/swapping';
 import { MemorySql } from './memorySql';
@@ -47,16 +50,19 @@ export type SessionStart = Readonly<{
   players: NonNullable<GameSnapshot['controls']>['players'];
   minimumPlayers: number;
   deal: RecordedDeal;
+  logOffset?: number;
 }>;
 
-/* The session's public log is the Log tab, which a tutorial table keeps as recorded. */
-const UNLOGGED = { recordSeat: () => {}, recordSwap: () => {}, recordVote: () => {} } as unknown as PublicLog;
 /* Building the setup table needs the captured faction content, so trading ends with the game waiting at the table. */
 const NO_SUPPLY = { enter: (snapshot: StoredSnapshot) => snapshot } as unknown as SetupSupply;
 
 export class LocalSession {
   private readonly sql: MemorySql;
   readonly actors: ActorDirectory;
+  readonly log: PublicLog;
+  readonly history: SessionHistory;
+  readonly reviews: TableReviews;
+  currentSnapshot: StoredSnapshot;
   readonly participation: Participation;
   readonly swapping: Swapping;
   private readonly removal: RemovalVotes;
@@ -66,6 +72,7 @@ export class LocalSession {
 
   constructor(start: SessionStart) {
     const { stored } = start;
+    this.currentSnapshot = stored;
     const profiles = new Map(start.players.map((player) => [player.seat, player]));
     const actors: MemoryActor[] = start.viewers.map((viewer) => ({
       user_id: viewer.userId,
@@ -83,11 +90,18 @@ export class LocalSession {
       faction_color: seat.faction?.color ?? null,
     }));
     this.sql = new MemorySql(actors, seats);
+    this.sql.logOffset = start.logOffset ?? 0;
     const storage = this.sql.storage();
-    this.actors = new ActorDirectory(storage, UNLOGGED);
+    this.log = new PublicLog(storage, () => logContext(this.currentSnapshot));
+    this.log.enabled = stored.stage !== undefined;
+    this.actors = new ActorDirectory(storage, this.log);
     this.participation = new Participation(storage, this.actors);
-    this.swapping = new Swapping(storage, this.actors, NO_SUPPLY, UNLOGGED);
-    this.removal = new RemovalVotes(storage, this.actors, UNLOGGED);
+    this.swapping = new Swapping(storage, this.actors, NO_SUPPLY, this.log);
+    this.removal = new RemovalVotes(storage, this.actors, this.log);
+    this.history = new SessionHistory(storage, this.actors, new SpiceLedger(storage));
+    this.history.seed(stored);
+    this.history.accept(0, stored);
+    this.reviews = new TableReviews(storage, this.actors, this.log);
     this.minimumPlayers = start.minimumPlayers;
     this.deal = start.deal;
     this.seatCount = stored.roster?.seatCount ?? (seats.length as TableRoster['seatCount']);

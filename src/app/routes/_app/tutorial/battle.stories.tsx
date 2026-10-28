@@ -4,8 +4,8 @@ import { pageStoryMeta } from '../../storybookConfig';
 import { chapterGlobals, chapterParameters, playChapter } from './chapterStory';
 
 /*
- * Chapter 15, "Battle", as its page serves it: the table from the tutorial's recorded setup, running in the page,
- * with the rail beside it giving one task at a time. Its art comes as chapter 5's does; see that story.
+ * "Battle", as its page serves it: the table from the tutorial's recorded setup, running in the page,
+ * with the rail beside it giving one task at a time. Its art comes from the recorded tutorial setup.
  */
 
 const meta = preview.meta({

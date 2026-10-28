@@ -16,7 +16,7 @@ import {
 import type { Piece } from './guideChecks';
 
 /*
- * Chapter 10, "Your hand and spice": a card goes from the table into the player's hand and back out,
+ * "Your hand and spice": a card goes from the table into the player's hand and back out,
  * and spice comes out of their reserve, all through the Hand & spice window.
  */
 

@@ -8,7 +8,7 @@ import type { ChapterScript, TablePlayers } from './chapterScript';
 import { element, openedWindow, task, windowShown } from './guideChecks';
 
 /*
- * Chapter 17, "Bring your own pieces": the Shared table inventory, where the pieces live that belong to no seat,
+ * "Bring your own pieces": the Shared table inventory, where the pieces live that belong to no seat,
  * and its catalogue of decks, bundles and tokens people made in the editor (Norbert, 2026-10-27: really spawn one, and get it approved).
  * The learner asks the table for Karama, another player approves the request, and the token lands in the Shared table inventory,
  * captured from the catalogue as a real game captures it.

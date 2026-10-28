@@ -6,9 +6,9 @@ import { at, closePieceMenu, element, grownCarryLanded, tableDeck, task } from '
 import type { Piece } from './guideChecks';
 
 /*
- * Chapter 8, "Decks and dealing": what a deck does beyond a draw, on the same table as chapter 7.
+ * "Decks and dealing": what a deck does beyond a draw, on the same table as Moving pieces.
  * A deck shuffled, peeked at and reordered, a card dealt to another player, a few cards split off with a number key,
- * and two cards taken in one carry with T. Everything to do with cards is here, the pieces themselves in chapter 7;
+ * and two cards taken in one carry with T. Everything to do with cards is here, the pieces themselves in Moving pieces;
  * locking is left out, as it is not worth teaching (Norbert, 2026-10-26).
  */
 

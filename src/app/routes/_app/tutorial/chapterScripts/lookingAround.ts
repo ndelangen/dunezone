@@ -6,7 +6,7 @@ import type { ChapterScript } from './chapterScript';
 import { at, closeUpShown, dialTask, scrolled, tableDeck, task } from './guideChecks';
 
 /*
- * Chapter 6, "Looking around": the same table as chapter 5, seen through the camera.
+ * "Looking around": the same table as chapter 5, seen through the camera.
  * In close with the wheel, along the board with the keys, back out, round the table with the dial, a ping for the others,
  * and a card read up close with Alt.
  * Tilting is left out: on a desktop the table has no tilt of its own, only a trackpad's two fingers.

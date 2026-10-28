@@ -1,9 +1,11 @@
 import { spawnableKey } from '@shared/play/inventory';
 import type { SpawnSelection, StoredSpawnContents } from '@shared/play/inventory';
+import { LOG_PAGE_SIZE } from '@shared/play/log';
 import type { LogEntry, LogTab } from '@shared/play/log';
 import type { ClientMessage, GameSnapshot, ServerMessage, Viewer } from '@shared/play/protocol';
 import { GameRejection } from '@shared/play/rejection';
 import { isResultAction } from '@shared/play/result';
+import { isReviewAction, REVIEW_CHECKPOINTS, reviewableStage, reviewRunning } from '@shared/play/review';
 
 import { expireBattle } from '../../../../../../workers/game/battle';
 import { applyResult, settleEnding } from '../../../../../../workers/game/result';
@@ -23,7 +25,7 @@ import type { RecordedDeal } from './localSession';
  * and battles resolve exactly as the Worker decides, for whichever seat the page is viewed as. Determine winner and its result
  * apply as the session applies them, since they change only the stored state. Every table also runs the session's seating,
  * seat requests and removal votes, and one that starts before the deal its draft and trading (`LocalSession`).
- * The log stays as it was stored.
+ * Checkpoints, review votes and public events are recorded by the Worker's history and log classes.
  * The tutorial's chapters and the Play sandbox story both play on it.
  */
 
@@ -84,6 +86,12 @@ export class LocalTable {
       players: start.players,
       minimumPlayers: start.draft?.minimumPlayers ?? 0,
       deal: start.draft?.deal ?? [],
+      logOffset: Math.max(
+        0,
+        ...Object.values(start.log)
+          .flat()
+          .map((entry) => entry.sequence)
+      ),
     });
     /* No phase cooldown, as on the test stack: a local table is for trying things. */
     this.room = new Room(
@@ -130,6 +138,12 @@ export class LocalTable {
       epoch: room.epoch,
       snapshot: {
         ...projected,
+        ...(reviewableStage(room.snapshot.stage)
+          ? {
+              review: this.session.reviews.current(),
+              reviewCheckpoints: this.session.history.recent(REVIEW_CHECKPOINTS),
+            }
+          : {}),
         /* Who sits where comes from the session's directory, as in a real game. */
         controls: projected.controls && this.session.forViewer(projected.controls, viewer),
         /* A recorded table's votes show as they were stored; the votes opened here follow them. */
@@ -153,9 +167,42 @@ export class LocalTable {
     return this.landed;
   }
 
-  /** The recorded log as it stood at the start; moves made on a local table are not logged. */
+  /** The latest pages, also used by the sandbox transport. */
   log(): Partial<Record<LogTab, LogEntry[]>> {
-    return this.opening.log;
+    return {
+      game: this.logPage('game', Number.MAX_SAFE_INTEGER).entries,
+      audit: this.logPage('audit', Number.MAX_SAFE_INTEGER).entries,
+    };
+  }
+
+  /** New events follow the chapter's recorded log, using the same sequence across both tabs. */
+  logPage(tab: LogTab, before: number) {
+    const recent = this.session.log.page(tab, before);
+    const entries = [...recent.entries, ...(this.opening.log[tab] ?? []).filter((entry) => entry.sequence < before)];
+    return { entries: entries.slice(0, LOG_PAGE_SIZE), more: recent.more || entries.length > LOG_PAGE_SIZE };
+  }
+
+  /** Finished games replay publicly; during play only the agreed review checkpoint is readable. */
+  history(step: number): Extract<ServerMessage, { type: 'history' }> {
+    const live = this.room.snapshot;
+    if (live.stage !== undefined && live.stage !== 'finished' && this.session.reviews.running()?.step !== step) {
+      throw new GameRejection('Replay opens once the game is finished.');
+    }
+    if (step > this.session.history.steps || step < 0) {
+      throw new GameRejection('Unknown history step.');
+    }
+    const past = this.projection.snapshot(
+      this.session.history.restore(step),
+      live.stage === undefined ? this.factionFor(this.viewer().userId) : undefined,
+      live
+    );
+    return {
+      type: 'history',
+      step,
+      lastStep: this.session.history.steps,
+      recordedAt: this.session.history.recordedAt(step),
+      snapshot: past,
+    };
   }
 
   /** Shows the page as another seat; the seat it leaves lets go of anything it was carrying. */
@@ -188,7 +235,44 @@ export class LocalTable {
       this.deliver(this.frame());
     }
     try {
+      const before = this.room.snapshot;
+      const running = this.session.reviews.running();
+      const committing = message.type === 'command' || message.type === 'drop';
+      if (
+        running &&
+        ((committing && !(message.type === 'command' && isReviewAction(message.action))) ||
+          ['begin', 'take', 'flip'].includes(message.type))
+      ) {
+        throw new GameRejection('The table is paused for a review.');
+      }
+      this.session.currentSnapshot = before;
       handle(message, viewer, own);
+      if (committing) {
+        let next = this.session.reviews.reconcile(this.room.snapshot, Date.now());
+        if (reviewRunning(running) && !this.session.reviews.running()) {
+          const paused = Date.now() - running.startedAt;
+          const battle = next.battleState;
+          const bidding = next.bidding;
+          next = {
+            ...next,
+            ...(battle?.deadline ? { battleState: { ...battle, deadline: battle.deadline + paused } } : {}),
+            ...(bidding?.deadline ? { bidding: { ...bidding, deadline: bidding.deadline + paused } } : {}),
+          };
+        }
+        this.room.accept(next);
+        if (this.session.reviews.running()) {
+          this.room.cancelCarries();
+        }
+        const entry = this.session.history.entry(message, before, next);
+        if (entry) {
+          this.session.history.write(entry);
+          this.session.history.accept(entry.step, next);
+        }
+        this.session.log.recordCommit({ before, next, message, viewer, holders: this.session.actors.occupants() });
+        this.session.currentSnapshot = next;
+        this.scheduleBattleReveal();
+        this.deliver(this.frame(this.seat, own ? message.commandId : undefined));
+      }
     } catch (error) {
       this.refuse(message, viewer, own, error);
     }
@@ -199,6 +283,7 @@ export class LocalTable {
     [Type in TableMessage['type']]?: (message: MessageOf<Type>, viewer: Viewer, own: boolean) => void;
   } = {
     sync: () => this.deliver(this.frame()),
+    history: (message) => this.deliver(this.history(message.step)),
     pointer: (message, viewer) => {
       this.room.pointer(viewer, message.position, Date.now(), message.seq);
     },
@@ -230,8 +315,8 @@ export class LocalTable {
       this.deliver(this.frame());
     },
     cancel: (message, viewer, own) => this.activity(message, viewer, own),
-    command: (message, viewer, own) => this.commit(message, viewer, own),
-    drop: (message, viewer, own) => this.commit(message, viewer, own),
+    command: (message, viewer) => this.commit(message, viewer),
+    drop: (message, viewer) => this.commit(message, viewer),
   };
 
   /* A refusal as the Worker sends one: a rejected drop lets go of its carry, and an unexpected error is reported but still answered. */
@@ -276,8 +361,22 @@ export class LocalTable {
    * The table half of the session's commit: the room decides, then setup's Traitor clean-up runs, and nothing is stored.
    * The session's roster pass is left out, so the turn keeps the phase order recorded at the starting step and spice transfers are not described.
    */
-  private commit(message: MessageOf<'command' | 'drop'>, viewer: Viewer, own: boolean) {
+  private commit(message: MessageOf<'command' | 'drop'>, viewer: Viewer) {
     const room = this.room;
+    if (message.type === 'command' && isReviewAction(message.action)) {
+      room.assertRevision(message.action, message.expectedRevision);
+      room.accept(
+        this.session.reviews.apply({
+          snapshot: room.snapshot,
+          viewer,
+          action: message.action,
+          now: Date.now(),
+          checkpoint: (step) =>
+            this.session.history.recent(REVIEW_CHECKPOINTS).find((entry) => entry.step === step)?.context,
+        })
+      );
+      return;
+    }
     if (message.type === 'command' && isSessionAction(message.action)) {
       room.assertRevision(message.action, message.expectedRevision);
       const followsLearner = this.seat === this.session.seatOf(this.learner);
@@ -295,13 +394,11 @@ export class LocalTable {
         this.seat = this.session.seatOf(this.learner);
       }
       this.scheduleTradingClose();
-      this.deliver(this.frame(this.seat, own ? message.commandId : undefined));
       return;
     }
     if (message.type === 'command' && isResultAction(message.action)) {
       room.assertRevision(message.action, message.expectedRevision);
       room.accept(this.settled(applyResult(room.snapshot, viewer, message.action, Date.now())));
-      this.deliver(this.frame(this.seat, own ? message.commandId : undefined));
       return;
     }
     /* What the page's player holds as they let go, read before the drop ends the carry. */
@@ -323,8 +420,6 @@ export class LocalTable {
       const seen = this.projection.piece(held, false, cardHandles, pieceHandles);
       this.landed.push({ itemIds: seen.items.map((item) => item.id), grew: this.grown.delete(completedCarryId) });
     }
-    this.scheduleBattleReveal();
-    this.deliver(this.frame(this.seat, own ? message.commandId : undefined));
   }
 
   /** A catalogue request, committed with what the page's catalogue captured for it, as the Worker commits one after its capture. */
@@ -363,6 +458,9 @@ export class LocalTable {
 
   /* A battle countdown ends on the room's deadline, as the Worker's alarm ends it. */
   private revealDueBattle() {
+    if (this.session.reviews.running()) {
+      return false;
+    }
     const next: StoredSnapshot | undefined = expireBattle(this.room.snapshot, Date.now());
     if (next) {
       this.room.accept(next);
@@ -374,7 +472,7 @@ export class LocalTable {
   private scheduleBattleReveal() {
     clearTimeout(this.battleTimer);
     const deadline = this.room.snapshot.battleState?.deadline;
-    if (this.room.snapshot.battleState?.stage !== 'countdown' || !deadline) {
+    if (this.session.reviews.running() || this.room.snapshot.battleState?.stage !== 'countdown' || !deadline) {
       return;
     }
     this.battleTimer = setTimeout(

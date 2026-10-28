@@ -11,7 +11,7 @@ import type { ChapterScript } from './chapterScript';
 import { closeGameMenu, element, gameMenuButton, nextPhaseButton, phaseOf, pressEnter, task } from './guideChecks';
 
 /*
- * Chapter 1, "Welcome": what is on the screen and what each part means, before any of the controls.
+ * "Welcome": what is on the screen and what each part means, before any of the controls.
  * The rail points at each part in turn: the board, each player's faction token on a tour round the table,
  * the phase and turn in the corner chip, the phase discs and the turn wheel along the board's far edge, Next phase, and the gear. Nothing on the table checks the rules or takes a step for the players,
  * so the player moves the game on with Next phase, and copies the game's link from the gear to invite the others;

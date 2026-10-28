@@ -8,7 +8,7 @@ import type { ChapterScript } from './chapterScript';
 import { element, openedWindow, task, viaCompass, windowShown } from './guideChecks';
 
 /*
- * Chapter 11, "The private side-table": a small table of the player's own for pieces that need a specific place.
+ * "The private side-table": a small table of the player's own for pieces that need a specific place.
  * Its reason clicks at once with the Atreides Kwisatz Haderach tracker (Norbert, 2026-10-26): the learner plays House Atreides,
  * lays the tracker card and its tiny Battle Loss Counter on the side-table, and moves the counter along the card's track as troops are lost.
  * The card and the counter are the site's published Kwisatz Haderach art; the chapter puts them in the Atreides hand itself,

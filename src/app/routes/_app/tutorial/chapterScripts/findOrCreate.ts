@@ -6,7 +6,7 @@ import type { LobbyChapterScript, LobbyState } from './chapterScript';
 import { element, pressEnter, task } from './guideChecks';
 
 /*
- * Chapter 2, "Find or create a game": the lobby with a room of sample games, then the create page.
+ * "Find or create a game": the lobby with a room of sample games, then the create page.
  * The learner reads the room, finds a friend's game by name, and creates a game of their own, which ends at its link.
  */
 

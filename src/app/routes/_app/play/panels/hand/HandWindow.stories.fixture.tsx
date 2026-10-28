@@ -1,10 +1,10 @@
+import { DarkSchemeIsland } from '@ui/surface/DarkSchemeIsland';
 import { useContext, useEffect, useState, useSyncExternalStore } from 'react';
 
 import type { StoredSnapshot } from '../../../../../../../workers/game/state';
 import { TableSession } from '../../../../../db/tabletop/TableSession';
 import compass from '../../compass/CompassControls.module.css';
 import { WindowFrame } from '../../compass/WindowFrame';
-import { DarkSchemeIsland } from '@ui/surface/DarkSchemeIsland';
 import { gameMeta, install } from '../../game.stories.fixture';
 import { chapter, journeySteps, journeyViewers } from '../../journey.stories.fixture';
 import { GameRuntimeContext } from '../../multiplayer/gameRuntime';

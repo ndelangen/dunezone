@@ -6,7 +6,7 @@ import { chapterGlobals, chapterParameters } from './chapterStory';
 
 const meta = testingPreview.meta({
   ...pageStoryMeta,
-  title: 'Tutorial/Moderation',
+  title: 'Tutorial/Moderation and disputes',
   args: { path: '/tutorial/moderation' },
   globals: chapterGlobals,
   parameters: chapterParameters,
@@ -28,7 +28,35 @@ export const PlayedThrough = meta.story({
     const page = within(document.body);
     const step = (title: string, timeout = 30_000) =>
       waitFor(() => expect(currentStep(canvasElement)).toContain(title), { timeout });
-    await page.findByRole('banner', { name: 'Chapter 19: Moderation' }, { timeout: 60_000 });
+    await page.findByRole('banner', { name: 'Chapter 19: Moderation and disputes' }, { timeout: 60_000 });
+    const openWindow = async (name: string) => {
+      await userEvent.keyboard(' ');
+      await userEvent.type(await page.findByRole('textbox', { name: 'Search controls' }), name);
+      await userEvent.keyboard('{Enter}');
+    };
+    const enterAt = async (title: string) => {
+      await step(title);
+      await waitFor(
+        async () => {
+          if (currentStep(canvasElement).includes(title)) {
+            await userEvent.keyboard('{Enter}');
+          }
+          await expect(currentStep(canvasElement)).not.toContain(title);
+        },
+        { timeout: 20_000, interval: 1000 }
+      );
+    };
+    await step('Check the Game log', 60_000);
+    await openWindow('Game log');
+    await step('Ask to review Storm');
+    await openWindow('Table review');
+    await userEvent.click(await page.findByRole('button', { name: 'Turn 1, Storm', exact: true }));
+    await userEvent.click(page.getByRole('button', { name: 'Ask the table to review' }));
+    await enterAt('A review needs the table to agree');
+    await step('Discuss the saved position');
+    await expect(page.getByRole('group', { name: 'Table review in progress' })).toBeVisible();
+    await enterAt('Discuss the saved position');
+    await userEvent.click(page.getAllByRole('button', { name: 'Resume play' })[0]!);
     await step('Open the Harkonnen player’s information', 60_000);
 
     const token = await waitFor(
@@ -71,15 +99,9 @@ export const PlayedThrough = meta.story({
       },
       { timeout: 20_000, interval: 1000 }
     );
-    await step('Their seat is open', 30_000);
-    await waitFor(
-      async () => {
-        if (!page.queryByRole('dialog')) {
-          await userEvent.keyboard('{Enter}');
-        }
-        await expect(page.getByRole('dialog')).toBeVisible();
-      },
-      { timeout: 20_000, interval: 1000 }
-    );
+    await enterAt('Their seat is open');
+    await step('Read the Audit record');
+    await openWindow('Audit');
+    await page.findByRole('dialog', {}, { timeout: 20_000 });
   },
 });

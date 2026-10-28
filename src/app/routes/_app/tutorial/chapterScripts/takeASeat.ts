@@ -5,7 +5,7 @@ import type { ChapterScript, TablePlayers } from './chapterScript';
 import { closeGameMenu, element, gameMenuButton, pressEnter, task } from './guideChecks';
 
 /*
- * Chapter 3, "Take a seat": the learner opens the link of a game that is already drafting, as a spectator.
+ * "Take a seat": the learner opens the link of a game that is already drafting, as a spectator.
  * They ask for a seat, a player at the table approves it, and then they give the place up again from the gear,
  * so the chapter ends where it began: watching.
  */

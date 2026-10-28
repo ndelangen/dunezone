@@ -4,13 +4,13 @@ import { pageStoryMeta } from '../../storybookConfig';
 import { chapterGlobals, chapterParameters, playChapter } from './chapterStory';
 
 /*
- * Chapter 19, "Moderation", as its page serves it: the table from the tutorial's recorded setup, running in the page,
- * with the rail beside it giving one task at a time. Its art comes as chapter 5's does; see that story.
+ * "Moderation", as its page serves it: the table from the tutorial's recorded setup, running in the page,
+ * with the rail beside it giving one task at a time. Its art comes from the recorded tutorial setup.
  */
 
 const meta = preview.meta({
   ...pageStoryMeta,
-  title: 'Tutorial/Moderation',
+  title: 'Tutorial/Moderation and disputes',
   args: { path: '/tutorial/moderation' },
   globals: chapterGlobals,
 });
@@ -18,5 +18,5 @@ const meta = preview.meta({
 /** The chapter as a player meets it: do what the rail says, where its arrow shows, and it moves on by itself. */
 export const Chapter = meta.story({
   parameters: chapterParameters,
-  play: playChapter('Chapter 19: Moderation', 'Open the Harkonnen player’s information'),
+  play: playChapter('Chapter 19: Moderation and disputes', 'Check the Game log'),
 });
