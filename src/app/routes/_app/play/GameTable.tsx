@@ -575,9 +575,11 @@ function measureHeader(node: HTMLElement | null) {
 }
 
 function useTableViewController(
-  viewPhase: Exclude<Parameters<typeof createTableViewState>[0], undefined>,
+  activePhase: GameTableProps['tableProgress']['phases'][number] | undefined,
+  word: StageFrame['word'],
   requestedView: GameTableProps['requestedView']
 ) {
+  const viewPhase = word || !activePhase ? null : standardPhaseOf(activePhase);
   const [viewState, dispatchView] = useReducer(reduceTableView, viewPhase, createTableViewState);
   if (viewState.phase !== viewPhase) {
     /* The phase changed since the last render; the reducer answers it before this render commits. */
@@ -603,7 +605,7 @@ function useTableViewController(
     return () => clearTimeout(timer);
   }, [handleSceneReady]);
 
-  return { viewState, dispatchView, cameraView, handleInteractionActiveChange, handleSceneReady };
+  return { viewPhase, viewState, dispatchView, cameraView, handleInteractionActiveChange, handleSceneReady };
 }
 
 export function GameTable({
@@ -639,9 +641,8 @@ export function GameTable({
   /* The camera follows the phase while the header names one: in play, and on the fixture. */
   /* A faction phase takes the camera view of the standard phase it precedes (#1138). */
   const activePhase = tableProgress.phases.find((entry) => entry.id === tableProgress.activePhaseId);
-  const viewPhase = frame.word || !activePhase ? null : standardPhaseOf(activePhase);
-  const { viewState, dispatchView, cameraView, handleInteractionActiveChange, handleSceneReady } =
-    useTableViewController(viewPhase, requestedView);
+  const { viewPhase, viewState, dispatchView, cameraView, handleInteractionActiveChange, handleSceneReady } =
+    useTableViewController(activePhase, frame.word, requestedView);
   const overlaysInert = viewState.interactionActive || gestureActive;
 
   const scene = (

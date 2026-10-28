@@ -179,32 +179,42 @@ export function reviewTransport(
     );
     return true;
   }
+  function proposeRecall(step: number) {
+    const checkpoint = reviewCheckpoints().find((entry) => entry.step === step)!;
+    const proposed = reviewOf(live, checkpoint, viewerSeat);
+    agree = () => {
+      agree = null;
+      const others = live.controls!.players.filter((player) => player.seat !== viewerSeat).map((p) => p.seat);
+      publish(reviewOf(live, checkpoint, viewerSeat, others.slice(0, proposed.threshold - 1)));
+    };
+    if (agreeAfterMs !== null) {
+      setTimeout(() => agree?.(), agreeAfterMs);
+    }
+    return proposed;
+  }
+  function castBallot(current: TableReview, choice: TableReview['ballots'][number]['choice']) {
+    const next = {
+      ...current,
+      ballots: current.ballots.map((ballot) => (ballot.seat === viewerSeat ? { ...ballot, choice } : ballot)),
+    };
+    const agreed = next.ballots.filter((ballot) => ballot.choice === 'review').length;
+    const open = next.ballots.filter((ballot) => ballot.choice === null).length;
+    if (agreed >= next.threshold) {
+      return { ...next, startedAt: 1 };
+    }
+    if (agreed + open < next.threshold) {
+      return null;
+    }
+    return next;
+  }
   function receiveReview(message: Extract<ClientMessage, { type: 'command' }>) {
     const { action } = message;
     const current = live.review ?? null;
     let next: TableReview | null | undefined;
     if (action.kind === 'review-propose') {
-      const checkpoint = reviewCheckpoints().find((entry) => entry.step === action.step)!;
-      const proposed = reviewOf(live, checkpoint, viewerSeat);
-      next = proposed;
-      agree = () => {
-        agree = null;
-        const others = live.controls!.players.filter((player) => player.seat !== viewerSeat).map((p) => p.seat);
-        publish(reviewOf(live, checkpoint, viewerSeat, others.slice(0, proposed.threshold - 1)));
-      };
-      if (agreeAfterMs !== null) {
-        setTimeout(() => agree?.(), agreeAfterMs);
-      }
+      next = proposeRecall(action.step);
     } else if (action.kind === 'review-ballot' && current) {
-      next = {
-        ...current,
-        ballots: current.ballots.map((ballot) =>
-          ballot.seat === viewerSeat ? { ...ballot, choice: action.choice } : ballot
-        ),
-      };
-      const agreed = next.ballots.filter((ballot) => ballot.choice === 'review').length;
-      const open = next.ballots.filter((ballot) => ballot.choice === null).length;
-      next = agreed >= next.threshold ? { ...next, startedAt: 1 } : agreed + open < next.threshold ? null : next;
+      next = castBallot(current, action.choice);
     } else if (action.kind === 'review-seek' && current && current.startedAt !== null) {
       const checkpoint = reviewCheckpoints().find((entry) => entry.step === action.step);
       next = current && checkpoint ? { ...current, step: checkpoint.step, context: checkpoint.context } : undefined;
