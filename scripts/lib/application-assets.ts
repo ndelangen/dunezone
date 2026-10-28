@@ -117,6 +117,19 @@ export async function retainApplicationAssets(
     queue.push(retained);
   }
   const retained = queue.length;
+  await downloadApplicationAssets(directory, queue, readPrevious);
+  writeFileSync(
+    path.join(directory, APPLICATION_ASSET_MANIFEST),
+    JSON.stringify({ version: 1, files: [...files.values()] })
+  );
+  return retained;
+}
+
+async function downloadApplicationAssets(
+  directory: string,
+  queue: ApplicationAssetManifest['files'],
+  readPrevious: (assetPath: string) => Promise<Uint8Array>
+): Promise<void> {
   let failed = false;
   async function worker() {
     while (!failed) {
@@ -140,11 +153,6 @@ export async function retainApplicationAssets(
     }
   }
   await Promise.all(Array.from({ length: CONCURRENCY }, worker));
-  writeFileSync(
-    path.join(directory, APPLICATION_ASSET_MANIFEST),
-    JSON.stringify({ version: 1, files: [...files.values()] })
-  );
-  return retained;
 }
 
 function assertDownloadedAsset(file: ApplicationAssetManifest['files'][number], bytes: Uint8Array): void {
