@@ -79,7 +79,9 @@ export function checkpointTitle(turns: readonly CheckpointTurn[], step: number):
     for (const phase of turn.phases) {
       const checkpoint = phase.checkpoints.find((entry) => entry.step === step);
       if (checkpoint) {
-        const moment = phase.checkpoints.length > 1 ? ` · ${momentLabel(phase, checkpoint).toLowerCase()}` : '';
+        /* Only the label's first letter drops, so a faction it names keeps its capitals: "after Fremen". */
+        const label = momentLabel(phase, checkpoint);
+        const moment = phase.checkpoints.length > 1 ? ` · ${label.charAt(0).toLowerCase()}${label.slice(1)}` : '';
         return `${checkpoint.context}${moment}`;
       }
     }
