@@ -164,6 +164,11 @@ jobs:
         env:
           VITE_CONVEX_URL: ${{ vars.VITE_CONVEX_URL }}
 
+      # The local rehearsal above needs raster copies with empty buckets. Production serves them from
+      # R2, so remove them before retention checks the final Static Assets file count.
+      - name: Omit raster copies from the release
+        run: bun run publisher:omit-static-rasters
+
       - name: Retain browser bundles from the previous application release
         run: bun run publisher:retain-assets
 
@@ -227,10 +232,6 @@ jobs:
       # (#1888 step 7b). The live Worker takes this release's token first, then the variants and the
       # release's prepared record go up through it, and only then does the new Worker deploy, keeping the
       # same token through --secrets-file. A failure here stops the deploy with the previous release live.
-      # The checks above ran a local Worker with empty buckets, which needs the raster copies.
-      - name: Omit raster copies from the release
-        run: bun run publisher:omit-static-rasters
-
       - name: Install the variant publish token on the live Worker
         run: bun run publisher:secret:publish-token < "$RUNNER_TEMP/media-publish-token"
         env:

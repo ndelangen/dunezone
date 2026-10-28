@@ -450,17 +450,19 @@ describe('production homepage showcase budget', () => {
   });
 });
 
-test('deployment configuration orders rehearsal before production assembly and retained-bundle checks', () => {
+test('deployment rehearses before assembly, then omits raster copies before retaining browser bundles', () => {
   const workflow = parse(
     readFileSync(path.resolve(import.meta.dirname, '../.github/workflows/deploy-main.yml'), 'utf8')
   );
   const commands = workflow.jobs.deploy.steps.map((step: { run?: string }) => step.run ?? '');
   const rehearsal = commands.indexOf('bun run scripts/verify-application-runtime-local.ts');
   const assembly = commands.indexOf('bun run publisher:assets');
+  const omission = commands.indexOf('bun run publisher:omit-static-rasters');
   const retention = commands.indexOf('bun run publisher:retain-assets');
   const exactRelease = commands.indexOf('bun run publisher:release:dry-run');
   expect(rehearsal).toBeGreaterThan(-1);
   expect(assembly).toBeGreaterThan(rehearsal);
-  expect(retention).toBeGreaterThan(assembly);
+  expect(omission).toBeGreaterThan(assembly);
+  expect(retention).toBeGreaterThan(omission);
   expect(exactRelease).toBeGreaterThan(retention);
 });
