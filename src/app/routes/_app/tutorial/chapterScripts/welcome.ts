@@ -91,7 +91,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'speaking-mode',
       task: 'Hear the steps aloud',
       detail:
-        'Welcome to the first tutorial. Want to hear each step aloud? Turn on speaking mode with the button above or press {Z}. Press {Z} again to turn it off. Press {Enter} to start.',
+        'Welcome to the first tutorial. To keep hearing each step aloud, turn on speaking mode with the button above or press {Z}. Press {Z} again to turn it off. Press {Enter} to start.',
       introducesSpeakingMode: true,
       anchor: { kind: 'page', element: () => null },
       ...pressEnter(),
