@@ -70,7 +70,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'peek',
       task: 'Peek at the Spice deck',
       detail:
-        'Right-click the Spice deck and choose Peek at the deck. Only you see the cards, but the other players can see that you peeked.',
+        'Right-click the Spice deck and choose Peek at the deck.\n\nOnly you see the cards, but the other players can see that you peeked.',
       anchor: { kind: 'table', point: () => at(spice()) },
       begin: () => undefined,
       done: () => peekedOrder() !== null,
@@ -79,7 +79,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'reorder',
       task: 'Move a card in the deck',
       detail:
-        'Drag a card to another position in the row. You can also select it and use the arrow keys. Your changes set the order of the deck.',
+        'Drag a card to another position in the row. You can also select it and use the arrow keys.\n\nYour changes set the order of the deck.',
       /* The arrow stops at the peek's edge, so its wedge never lies over the peek's own heading. */
       anchor: { kind: 'page', element: element('[role="dialog"][aria-label^="Peeking at"]') },
       ...movedInPeek(),
@@ -88,7 +88,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'deal',
       task: 'Deal a card to another player',
       detail:
-        "Right-click the Treachery deck on the left. Choose Deal a card, then choose a faction. The card goes straight into that player's hand.",
+        "Right-click the Treachery deck on the left. Choose Deal a card, then a faction.\n\nThe card goes straight into that player's hand.",
       anchor: { kind: 'table', point: () => at(treachery()) },
       begin: () => othersHold(snapshot()),
       done: (start) => othersHold(snapshot()) > start,
@@ -108,7 +108,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'take-two',
       task: 'Pick up two cards',
       detail:
-        'Drag the top Treachery card off the deck, then hold it over the deck again. Press {T} or right-click to add a second card. Drop both on the table.',
+        'Drag the top Treachery card off the deck, then hold it over the deck again. Press {T} or right-click to add a second card.\n\nDrop both on the table.',
       anchor: { kind: 'table', point: () => at(treachery()) },
       /* Holding 2 over the deck, taught just before, makes a pile of two too, but no carry grows on the way. */
       ...grownCarryLanded(players.landings, () => loose(pieces(), treachery())),

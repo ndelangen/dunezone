@@ -108,7 +108,7 @@ const windowTasks = (): GuideTask[] => [
     id: 'pin-hand',
     task: 'Keep your hand open',
     detail:
-      'Use the left pin beside the window title to keep your hand open in the bottom left. Unpinned windows close when you click the table.',
+      'Use the left pin beside the window title to keep your hand open in the bottom left.\n\nUnpinned windows close when you click the table.',
     anchor: { kind: 'page', element: first('[aria-label="Pin to the bottom left"]') },
     begin: nothing,
     done: () => windowAt('left', 'hand'),
@@ -120,7 +120,7 @@ const slotTasks = (): GuideTask[] => [
   task({
     id: 'table-chat',
     task: 'Open the table chat',
-    detail: 'Press {Space}, {→}, then {Space} to open table chat. Everyone at the table can read these messages.',
+    detail: 'Press {Space}, {→}, then {Space} to open table chat.\n\nEveryone at the table can read these messages.',
     anchor: { kind: 'page', element: inCompass('[data-spot="table"]') },
     begin: nothing,
     done: () => windowAt('centre', 'table-chat'),
@@ -129,7 +129,7 @@ const slotTasks = (): GuideTask[] => [
     id: 'pin-chat',
     task: 'Pin the chat to the bottom right',
     detail:
-      'Use the right pin beside the chat title. Each corner holds one window, so pinning a new one there replaces the old one.',
+      'Use the right pin beside the chat title.\n\nEach corner holds one window, so pinning a new one there replaces the old one.',
     anchor: { kind: 'page', element: first('[aria-label="Pin to the bottom right"]') },
     begin: nothing,
     done: () => windowAt('right', 'table-chat'),
@@ -138,14 +138,14 @@ const slotTasks = (): GuideTask[] => [
     id: 'resize',
     task: 'Make the chat taller',
     detail:
-      'Drag the grip above the pinned chat upward to make it taller. Double-click the grip to restore its original height.',
+      'Drag the grip above the pinned chat upward to make it taller.\n\nDouble-click the grip to restore its original height.',
     anchor: { kind: 'page', element: first(RESIZE_GRIP) },
     ...resizedTaller(),
   }),
   task({
     id: 'search',
     task: 'Search the controls',
-    detail: 'Press {Space} and type "right" to find the right camera view. Press {Enter} to select it.',
+    detail: 'Press {Space}, type "right" and confirm with {Enter} to select the right camera view.',
     anchor: { kind: 'page', element: inCompass('[aria-label="Search controls"]') },
     begin: nothing,
     done: () => showing('right'),
@@ -163,7 +163,7 @@ const slotTasks = (): GuideTask[] => [
     id: 'letter',
     task: 'Open chat with a shortcut',
     detail:
-      'Click the table, then press {G} to open table chat. Each window has a shortcut shown in the controls. You can also hold {Space}, tap a direction and release it to open a window.',
+      'Click the table, then press {G} to open table chat.\n\nEach window has a shortcut shown in the controls.\n\nYou can also hold {Space}, tap a direction and release it to open a window.',
     anchor: { kind: 'page', element: first('[data-compass-launcher]') },
     ...openedWindow(windowShown('table-chat')),
   }),

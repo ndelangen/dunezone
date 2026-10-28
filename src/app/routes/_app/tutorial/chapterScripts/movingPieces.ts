@@ -95,7 +95,7 @@ function stackTasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideT
       id: 'carry-reserves',
       task: 'Move a whole stack',
       detail:
-        'Press and hold your reserve stack briefly before dragging it. This picks up the whole stack. Drop it beside your seat so you can use it in the next step.',
+        'Press and hold your reserve stack briefly before dragging it. This picks up the whole stack.\n\nDrop it beside your seat so you can use it in the next step.',
       anchor: { kind: 'table', point: () => at(biggestReserve()) },
       begin: () => ({
         seen: players.landings().length,
@@ -145,7 +145,7 @@ function stackTasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideT
       id: 'take-more',
       task: 'Take a few more',
       detail:
-        'Pick up one reserve troop and keep holding it over the stack. Press {T} or right-click to add another troop. Try this a few times, then drop them on the board.',
+        'Pick up one reserve troop and keep holding it over the stack.\n\nPress {T} or right-click to add another troop.\n\nTry this a few times, then drop them on the board.',
       anchor: { kind: 'table', point: () => at(biggestReserve()) },
       ...grownCarryLanded(players.landings, onTheBoard),
     }),
@@ -182,7 +182,7 @@ function tokenTasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'token-move',
       task: 'Move your faction token',
       detail:
-        'Your faction token marks your place in storm order. Drag it along the rim and release it over another sector.',
+        'Your faction token marks your place in storm order.\n\nDrag it along the rim and release it over another sector.',
       anchor: { kind: 'table', point: () => at(token()) },
       begin: () => token()?.position.join(),
       done: (start) => token() !== undefined && token()!.position.join() !== start,
@@ -191,7 +191,7 @@ function tokenTasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'token-flip',
       task: 'Flip your faction token',
       detail:
-        'Hover over your faction token and press {F}. A face-down token can show that you are passing, for example during bidding.',
+        'Hover over your faction token and press {F}.\n\nA face-down token can show that you are passing, for example during bidding.',
       anchor: { kind: 'table', point: () => at(token()) },
       begin: () => token()?.flipRevision ?? 0,
       done: (start) => (token()?.flipRevision ?? 0) > start,

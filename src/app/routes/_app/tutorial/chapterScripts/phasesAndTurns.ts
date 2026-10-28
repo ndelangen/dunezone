@@ -31,7 +31,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'back',
       task: 'Step back to the Storm',
       detail:
-        'The game just advanced to Spice Blow. Open the arrow beside Next phase and choose Previous phase to return to Storm.',
+        'The game just advanced to Spice Blow.\n\nOpen the arrow beside Next phase and choose Previous phase to return to Storm.',
       anchor: { kind: 'page', element: element('[aria-label="More phase actions"]') },
       begin: () => undefined,
       done: () => phase().id === 'storm',
@@ -48,7 +48,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'ready',
       task: 'Ready for the next turn',
       detail:
-        'Mentat Pause waits for everyone to be ready. Press Ready. The count shows how many players have confirmed.',
+        'Mentat Pause waits for everyone to be ready.\n\nPress Ready. The count shows how many players have confirmed.',
       anchor: {
         kind: 'page',
         element: () =>

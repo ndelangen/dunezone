@@ -41,7 +41,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'game-log',
       task: 'Check the Game log',
       detail:
-        'Someone disputes what happened at the start of Storm. Press {Space}, type Game log and press {Enter} to check the public events and phase changes.',
+        'Someone disputes what happened at the start of Storm.\n\nPress {Space}, type Game log and confirm with {Enter} to check the public events and phase changes.',
       anchor: { kind: 'page', element: element('[data-compass-launcher]') },
       begin: () => undefined,
       done: () => document.querySelector('[data-window="game-log"]') !== null,
@@ -50,7 +50,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'review-propose',
       task: 'Ask to review Storm',
       detail:
-        'Press {Space}, type Table review and press {Enter}. Use Earlier checkpoint to select Turn 1, Storm, then press Ask the table to review. If you picked the wrong checkpoint, withdraw the request and try again.',
+        'Press {Space}, type Table review and confirm with {Enter}.\n\nUse Earlier checkpoint to select Turn 1, Storm, then Ask the table to review.\n\nIf you picked the wrong checkpoint, withdraw the request and try again.',
       anchor: {
         kind: 'page',
         element: () =>
@@ -63,7 +63,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'review-majority',
       task: 'Agree to a review',
       detail:
-        'A review needs agreement from more than half the seated players. Your request counts as your agreement. Other players can agree or decline. If you withdraw the request, ask to review Turn 1, Storm again. Press {Enter} to let them respond.',
+        'A review needs agreement from more than half the seated players. Your request counts as your agreement.\n\nOther players can agree or decline.\n\nIf you withdraw the request, ask to review Turn 1, Storm again.\n\nPress {Enter} to let them respond.',
       anchor: { kind: 'page', element: element('[aria-label="Table review vote"]') },
       ...continueReview,
       done: (watch) => snapshot().review?.step === 0 && continueReview.done(watch),
@@ -72,7 +72,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'review-votes',
       task: 'Watch the review vote',
       detail:
-        'The other players are agreeing now. Once a majority agrees, play pauses and everyone sees the saved public position. If you withdraw the request, ask to review Turn 1, Storm again.',
+        'The other players are agreeing now. Once a majority agrees, play pauses and everyone sees the saved public position.\n\nIf you withdraw the request, ask to review Turn 1, Storm again.',
       anchor: { kind: 'page', element: element('[data-window="review"]') },
       begin: () => {
         const timer = setInterval(() => {
@@ -96,7 +96,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'review-discuss',
       task: 'Discuss the saved position',
       detail:
-        'You are all looking at the Storm checkpoint. Pieces cannot move, peeking is disabled, and private hands and plans stay hidden. Use table chat or talk aloud to resolve the dispute. Press {Enter} when you are ready to resume.',
+        'You are all looking at the Storm checkpoint. Pieces cannot move, peeking is disabled, and private hands and plans stay hidden.\n\nUse table chat or talk aloud to resolve the dispute.\n\nPress {Enter} when you are ready to resume.',
       anchor: { kind: 'page', element: element('[aria-label="Table review in progress"]') },
       ...pressEnter(),
     }),
@@ -104,7 +104,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'review-resume',
       task: 'Resume the current game',
       detail:
-        'Press Resume play. Any seated player can do this. You all return to the live Spice Blow position. Reviewing an earlier position does not undo any moves.',
+        'Press Resume play. Any seated player can do this. You all return to the live Spice Blow position.\n\nReviewing an earlier position does not undo any moves.',
       anchor: {
         kind: 'page',
         element: () =>
@@ -118,7 +118,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'open',
       task: 'Open the player details',
       detail:
-        'Suppose the Harkonnen player has stopped responding. Click their token below the table, then click the token beside the chat title to open their details.',
+        'Suppose the Harkonnen player has stopped responding.\n\nClick their token below the table, then click the token beside the chat title to open their details.',
       anchor: {
         kind: 'page',
         element: () =>
@@ -132,7 +132,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'start',
       task: 'Start a removal vote',
       detail:
-        'Press Start removal vote beside their name. The other players will see the vote, and your Remove vote is counted automatically.',
+        'Press Start removal vote beside their name.\n\nThe other players will see the vote, and your Remove vote is counted automatically.',
       anchor: { kind: 'page', element: () => startButton(quietSeat()) },
       begin: () => undefined,
       done: () => vote() !== undefined,
@@ -140,7 +140,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     task({
       id: 'majority',
       task: 'How a vote is decided',
-      detail: `Removing a player needs more than half the seats to vote Remove. With ${playerCount()} players, that means ${removalThreshold(playerCount())} votes. The player being removed cannot vote. A vote fails if enough players choose Keep, and removal is unavailable with fewer than three players. Press {Enter} to let the others vote.`,
+      detail: `Removing a player needs more than half the seats to vote Remove. With ${playerCount()} players, that means ${removalThreshold(playerCount())} votes.\n\nThe player being removed cannot vote. A vote fails if enough players choose Keep, and removal is unavailable with fewer than three players.\n\nPress {Enter} to let the others vote.`,
       anchor: { kind: 'page', element: element(`[data-window="${FACTION_INFO}"]`) },
       ...pressEnter(),
     }),
@@ -148,7 +148,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'votes',
       task: 'Watch the others vote',
       detail:
-        'Players can choose Remove or Keep, or withdraw their vote. The vote ends as soon as the result is decided. If it fails, start another removal vote to continue this exercise.',
+        'Players can choose Remove or Keep, or withdraw their vote. The vote ends as soon as the result is decided.\n\nIf it fails, start another removal vote to continue this exercise.',
       anchor: { kind: 'page', element: element(`[data-window="${FACTION_INFO}"]`) },
       begin: () => voteInTurn(players, vote, seatOf),
       done: () => vote() === undefined && !seated(),
@@ -158,7 +158,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'vacant',
       task: 'Their seat is open',
       detail:
-        'The Harkonnen seat is now open. Its faction and pieces stay on the table for a replacement player. A spectator can request the seat, and a seated player can approve them. Press {Enter} to continue.',
+        'The Harkonnen seat is now open. Its faction and pieces stay on the table for a replacement player.\n\nA spectator can request the seat, and a seated player can approve them.\n\nPress {Enter} to continue.',
       anchor: { kind: 'page', element: element(`[data-window="${FACTION_INFO}"]`) },
       ...pressEnter(),
     }),
@@ -166,7 +166,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'audit',
       task: 'Read the Audit record',
       detail:
-        'Press {Space}, type Audit and press {Enter}. Check the record of the review, the removal vote and the player leaving their seat.',
+        'Press {Space}, type Audit and confirm with {Enter}.\n\nCheck the record of the review, the removal vote and the player leaving their seat.',
       anchor: { kind: 'page', element: element('[data-compass-launcher]') },
       begin: () => undefined,
       done: () => document.querySelector('[data-window="audit"]') !== null,
