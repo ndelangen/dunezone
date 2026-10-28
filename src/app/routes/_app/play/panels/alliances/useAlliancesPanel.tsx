@@ -3,7 +3,7 @@ import { snapshotFactionLabels } from '@shared/play/factionLabels';
 
 import type { TableProjection, TableSession } from '../../../../../db/tabletop/TableSession';
 import { factionToken } from '../../multiplayer/FactionTokenFace';
-import { viewerFaction } from '../../multiplayer/tableFactions';
+import { actingFaction, viewerFaction } from '../../multiplayer/tableFactions';
 import { allianceAction, allianceStatus, relationTo } from './alliances';
 import type { AllianceCommandKind, Relation } from './alliances';
 import { AlliancesPanel } from './AlliancesPanel';
@@ -11,9 +11,9 @@ import type { AllianceRow, AlliancesPanelProps } from './AlliancesPanel';
 
 type Props = Readonly<{ client: TableSession; table: TableProjection }>;
 
-/** How the viewer stands with a faction, while the game is in play and the viewer holds a faction; alliances change only then. */
+/** How the viewer stands with a faction, while the game is in play and the viewer acts for a faction at the live table; alliances change only then. */
 export function viewerRelation(table: TableProjection, factionId: string): Relation | null {
-  const own = viewerFaction(table);
+  const own = actingFaction(table);
   return own && table.snapshot.stage === 'play' ? relationTo(table.snapshot.alliances, own, factionId) : null;
 }
 
@@ -24,7 +24,7 @@ export function sendAllianceAction(
   factionId: string,
   kind: AllianceCommandKind
 ) {
-  const own = viewerFaction(table);
+  const own = actingFaction(table);
   const action = own && allianceAction(table.snapshot.alliances, kind, own, factionId);
   if (action) {
     client.command(action);

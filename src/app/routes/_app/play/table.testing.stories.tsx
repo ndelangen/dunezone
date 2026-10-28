@@ -16,6 +16,7 @@ import {
   productTransport,
   playingSnapshot as initialSnapshot,
 } from './product.stories.fixture';
+import { factionOf, finishedSnapshot } from './results.stories.fixture';
 import { openTableSettings } from './table.stories.fixture';
 
 const meta = testingPreview.meta({
@@ -524,45 +525,50 @@ export const DeckShortcutsEndOffTheTable = meta.story({
 });
 
 /**
- * A canvas leave ends the disc's hover while the viewer cannot act, too.
- * The pointer rests on the disc when playback starts and leaves the canvas during playback, so after Return to live the number keys send nothing until the pointer is back on the disc.
+ * A canvas leave ends the disc's hover while the viewer cannot act, too: another player continues the finished game during this replay.
+ * The pointer moves over the disc during playback and leaves the canvas, so after Return to live the number keys send nothing until the pointer is back on the disc.
  */
+/* Cursors that offer nothing: unset, the default, and the 'auto' the camera controls set when they connect. */
+const UNOFFERED_CURSORS = ['', 'default', 'auto'];
+
 export const SpiceDiscForgetsAPlaybackHover = meta.story({
-  beforeEach: install(() => productTransport()),
+  beforeEach: install(() => productTransport('seat-2', finishedSnapshot('seat-2'))),
   play: async ({ canvasElement }) => {
-    const { page, document } = await tablePage(canvasElement);
+    const finished = finishedSnapshot('seat-2');
+    const { page, document } = await tablePage(
+      canvasElement,
+      `${factionOf(finished, 0).name} and ${factionOf(finished, 2).name} won as an alliance`
+    );
     await openTab(page, 'Replay');
+    await userEvent.click(await page.findByRole('button', { name: 'Replay from start' }));
+    session.transport.deliver({ type: 'history', step: 0, lastStep: 1, snapshot: playingSnapshot() });
+    await expect(await page.findByRole('button', { name: 'Earlier phase' })).toBeVisible();
+    session.transport.deliver(session.transport.view({ ...playingSnapshot(), revision: 100 }));
+
     const slot = spiceBankSlot();
     const [clientX, clientY] = mapViewPoint(document, [slot.position[0], TRACKER_DISC_TOP_Y + 0.015, slot.position[2]]);
     const scene = document.querySelector('canvas')!;
     const pointer = { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', clientX, clientY };
-    await waitFor(
-      async () => {
-        scene.dispatchEvent(new PointerEvent('pointermove', pointer));
-        await expect(scene.style.cursor, 'the initial hover reaches the live disc').toBe('pointer');
-      },
-      { timeout: 30_000 }
-    );
-
-    await userEvent.click(page.getByRole('button', { name: 'Replay from start' }));
-    session.transport.deliver({ type: 'history', step: 0, lastStep: 1, snapshot: playingSnapshot() });
-    await waitFor(async () => {
-      await expect(page.getByRole('button', { name: 'Earlier phase' })).toBeVisible();
-      await expect(scene.style.cursor, 'playback disables the disc').toBe('default');
-    });
+    scene.dispatchEvent(new PointerEvent('pointermove', pointer));
+    /* The canvas never offered the disc. */
+    await waitFor(() => expect(UNOFFERED_CURSORS, 'playback disables the disc').toContain(scene.style.cursor));
     leaveTheCanvas(page, scene, pointer);
 
     await userEvent.click(page.getByRole('button', { name: 'Return to live' }));
-    await waitFor(() => expect(page.getByRole('button', { name: 'Replay from start' })).toBeEnabled());
+    await waitFor(() => expect(page.queryByRole('button', { name: 'Earlier phase' })).toBeNull());
     await userEvent.keyboard('3');
-    await expect(scene.style.cursor, 'returning to live retains no earlier hover').toBe('default');
+    await expect(UNOFFERED_CURSORS, 'returning to live retains no earlier hover').toContain(scene.style.cursor);
     await expect(session.transport.messages.some((message) => message.type === 'command')).toBe(false);
 
-    /* Move onto the returning disc on each poll, as for the initial hover, while its 3D target settles. */
-    await waitFor(async () => {
-      scene.dispatchEvent(new PointerEvent('pointermove', { ...pointer, clientX: clientX + 1 }));
-      await expect(scene.style.cursor, 'the pointer returns to the live disc').toBe('pointer');
-    });
+    /* Move onto the returning disc on each poll while its 3D target settles; the live table's panels may move the canvas, so the point is mapped again. */
+    await waitFor(
+      async () => {
+        const [liveX, liveY] = mapViewPoint(document, [slot.position[0], TRACKER_DISC_TOP_Y + 0.015, slot.position[2]]);
+        scene.dispatchEvent(new PointerEvent('pointermove', { ...pointer, clientX: liveX + 1, clientY: liveY }));
+        await expect(scene.style.cursor, 'the pointer returns to the live disc').toBe('pointer');
+      },
+      { timeout: 30_000 }
+    );
     await userEvent.keyboard('3');
     await waitFor(() =>
       expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'spice-spawn', count: 3 } })

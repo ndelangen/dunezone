@@ -1,4 +1,4 @@
-import { NumberInput } from '@mantine/core';
+import { NumberInput, Text } from '@mantine/core';
 import { MAX_LAST_TURN, MIN_LAST_TURN } from '@shared/play/lastTurn';
 import { Section } from '@ui/block/Section';
 import { useEffect, useRef, useState } from 'react';
@@ -9,6 +9,8 @@ export type GameLengthPanelProps = Readonly<{
   /** The turn the table has as its last. */
   lastTurn: number;
   disabled: boolean;
+  /** An observer, or a replay, reads the last turn with no field to change it. */
+  observing: boolean;
   /** Sets a new last turn, sent once the player leaves the field. */
   onLastTurn: (turn: number) => void;
 }>;
@@ -24,7 +26,7 @@ function changedTurn(draft: number | string, current: number) {
 }
 
 /** The turn the game ends after, which the turn wheel counts up to; play carries on past it if the table wants. */
-export function GameLengthPanel({ lastTurn, disabled, onLastTurn }: GameLengthPanelProps) {
+export function GameLengthPanel({ lastTurn, disabled, observing, onLastTurn }: GameLengthPanelProps) {
   const [draft, setDraft] = useState<number | string>(lastTurn);
   /* Another player's change replaces the shown turn, but never one this player is still typing; leaving the field settles it. */
   const editing = useRef(false);
@@ -35,6 +37,13 @@ export function GameLengthPanel({ lastTurn, disabled, onLastTurn }: GameLengthPa
       setDraft(lastTurn);
     }
   }, [lastTurn]);
+  if (observing) {
+    return (
+      <Section hiddenHeading title="Game length" description={GAME_LENGTH_HELP}>
+        <Text size="sm">Last turn: {lastTurn}</Text>
+      </Section>
+    );
+  }
   return (
     <Section hiddenHeading title="Game length" description={GAME_LENGTH_HELP}>
       <NumberInput

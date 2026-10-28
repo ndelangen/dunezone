@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { TableProjection, TableSession } from '../../../../../db/tabletop/TableSession';
 import type { TerritoryBrush } from '../../../../../widgets/tabletop/territoryBrush';
 import { setTerritoryBrush, territoryBrush, useTerritoryBrush } from '../../../../../widgets/tabletop/territoryBrush';
+import { offersActions } from '../../multiplayer/tableFactions';
 import { territoryTintPresets } from './territoryTintPresets';
 import { TerritoryTintsPanel } from './TerritoryTintsPanel';
 import type { TerritoryTintsPanelProps, TintDraft, TintSetting } from './TerritoryTintsPanel';
@@ -184,6 +185,7 @@ function useTerritoryTintsPanel({ client, table }: Props): TerritoryTintsPanelPr
     rows: tintRows(table, brush?.tintId, removals.attempt),
     canEdit,
     canCreate: canEdit && tints.length < MAX_TINTS,
+    observing: !offersActions(table),
     presets,
     onCreate: create,
     onBrush: toggle,

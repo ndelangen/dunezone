@@ -63,8 +63,6 @@ export const Windows = meta.story({
     await expect(page.queryByRole('region', { name: 'Spice reserve' })).toBeNull();
     await openTab(page, 'Settings');
     await expect(page.getByRole('textbox', { name: 'Last turn' })).toBeVisible();
-    await openTab(page, 'Replay');
-    await expect(page.getByRole('button', { name: 'Replay from start' })).toBeVisible();
     await openTab(page, 'Hand');
     /* The phase controls stay in the header, outside the windows. */
     await expect(page.getByRole('group', { name: 'Phase navigation' }).closest('header')).not.toBeNull();
@@ -106,8 +104,8 @@ export const SchemeIsland = meta.story({
   },
 });
 
-/** Rejections stay visible in the destinations that sent the setting or history request. */
-export const SettingsAndReplayRefusals = meta.story({
+/** A rejection stays visible in the destination that sent the setting. */
+export const SettingsRefusal = meta.story({
   beforeEach: install(() => productTransport('seat-2')),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -123,14 +121,5 @@ export const SettingsAndReplayRefusals = meta.story({
       message: 'The game length could not be changed.',
     });
     await expect(page.findByText('The game length could not be changed.')).resolves.toBeVisible();
-    await openTab(page, 'Replay');
-    await userEvent.click(page.getByRole('button', { name: 'Replay from start' }));
-    session.transport.deliver({
-      type: 'rejected',
-      requestId: 'message',
-      message: 'That checkpoint could not be loaded.',
-    });
-    await expect(page.findByText('That checkpoint could not be loaded.')).resolves.toBeVisible();
-    await expect(page.getByRole('button', { name: 'Replay from start' })).toBeEnabled();
   },
 });

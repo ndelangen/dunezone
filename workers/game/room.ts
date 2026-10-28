@@ -19,6 +19,7 @@ import type { PublicAction, StoredControls, StoredSpawnContents } from '../../sr
 import type { LastTurnAction } from '../../src/shared/play/lastTurn';
 import { gestureBlockReason } from '../../src/shared/play/model';
 import type { DraftMove, TablePiece, TableState, Vector3Tuple } from '../../src/shared/play/model';
+import type { MovementAction } from '../../src/shared/play/movement';
 import { seatSubject } from '../../src/shared/play/participation';
 import type { SeatAction } from '../../src/shared/play/participation';
 import { isPeekAction } from '../../src/shared/play/peeking';
@@ -45,6 +46,7 @@ import type {
 import { GameRejection } from '../../src/shared/play/rejection';
 import type { RemovalAction } from '../../src/shared/play/removal';
 import type { ResultAction } from '../../src/shared/play/result';
+import type { ReviewAction } from '../../src/shared/play/review';
 import { rosterSeat, SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { isSetupAction, phaseGate } from '../../src/shared/play/setup';
 import { isSpicePiece } from '../../src/shared/play/spice';
@@ -71,6 +73,7 @@ import { biddingAfterTable, biddingCommand } from './bidding';
 import { concealCards, deckCommand } from './decks';
 import { dealFixtureDeck } from './fixture';
 import { lastTurnCommand } from './lastTurn';
+import { isMovementAction, movementAfterTable, movementCommand } from './movement';
 import { closeLostPeeks, forgetPeekers, peekCommand } from './peeks';
 import { setupCommand, gatherTraitors } from './setup-progress';
 import { storedSnapshotSchema } from './state';
@@ -79,11 +82,16 @@ import { territoryTintCommand } from './territoryTints';
 
 export type Identity = Viewer;
 /* The session routes the lifecycle families to their own modules; the room applies every other action. */
-type FactionSetting = BiddingAction | LastTurnAction | TerritoryTintAction;
+type FactionSetting = BiddingAction | LastTurnAction | MovementAction | TerritoryTintAction;
 function isFactionSetting(action: { kind: string }): action is FactionSetting {
-  return action.kind === 'last-turn' || isBiddingAction(action) || isTerritoryTintAction(action);
+  return (
+    action.kind === 'last-turn' || isMovementAction(action) || isBiddingAction(action) || isTerritoryTintAction(action)
+  );
 }
-type RoomAction = Exclude<PieceAction, SeatAction | RemovalAction | ResultAction | DraftAction | SwapAction>;
+type RoomAction = Exclude<
+  PieceAction,
+  SeatAction | RemovalAction | ReviewAction | ResultAction | DraftAction | SwapAction
+>;
 type Carry = Identity & {
   id: string;
   draft: DraftMove;
@@ -128,6 +136,9 @@ const REVISION_TOLERANT_ACTIONS = new Set<string>([
   'draft-ban',
   'draft-unban',
   'removal-ballot',
+  'review-propose',
+  'review-ballot',
+  'review-end',
   'seat-request',
   'seat-withdraw',
   'seat-approve',
@@ -139,6 +150,9 @@ const REVISION_TOLERANT_ACTIONS = new Set<string>([
   'alliance-withdraw',
   'alliance-accept',
   'last-turn',
+  'movement-done',
+  'movement-undo',
+  'movement-order',
   'tint-create',
   'tint-paint',
   'tint-set',
@@ -592,11 +606,14 @@ export class Room {
     }
   }
 
-  /** The bidder, the last turn and the territory tints: commands any seated faction sends that touch no piece. */
+  /** The bidder, the last turn, finishing a Shipment and Movement turn and the territory tints: commands any seated faction sends that touch no piece. */
   private factionSettingCommand(identity: Identity, action: FactionSetting, now: number): StoredSnapshot {
     const factionId = this.requireFaction(identity);
     if (isTerritoryTintAction(action)) {
       return territoryTintCommand(this.snapshot, action);
+    }
+    if (isMovementAction(action)) {
+      return movementCommand(this.snapshot, action);
     }
     return action.kind === 'last-turn'
       ? lastTurnCommand(this.snapshot, action)
@@ -715,6 +732,7 @@ export class Room {
     return {
       ...next,
       ...biddingAfterTable(this.snapshot, next, now),
+      ...movementAfterTable(this.snapshot, next),
       controls: {
         ...controls,
         seats: this.seatedPlayers(),
@@ -1068,6 +1086,13 @@ export class Room {
       throw new GameRejection('That carry belongs to another connection.');
     }
     if (carry) {
+      this.remove(id);
+    }
+  }
+
+  /** Puts every carried piece back, as a table review pauses the table. */
+  cancelCarries() {
+    for (const id of this.carries.keys()) {
       this.remove(id);
     }
   }

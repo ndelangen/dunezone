@@ -186,14 +186,17 @@ export async function verifyPrivateSpiceReserves(toolkit: HostedToolkit) {
     const tab = await peer('player-b-tab', b.context);
     await enter(tab);
     assert.deepEqual(requireView(tab).snapshot.bank, requireView(b).snapshot.bank);
-    await openTab(tab, 'Replay');
-    await button(tab, 'Replay from start').click();
-    await until(() => tab.rawMessages.some((message) => message.type === 'history'), 'Private history did not arrive.');
-    await openTab(observer, 'Replay');
-    await button(observer, 'Replay from start').click();
+    /* A table review the players agree to sends every viewer the reviewed checkpoint, public as replay always is. */
+    await openTab(tab, 'Table review');
+    await windowOf(tab, 'Table review').getByRole('button', { name: 'Ask the table to review' }).click();
+    await a.page.getByRole('group', { name: 'Table review vote' }).getByRole('button', { name: 'Agree' }).click();
+    await until(
+      () => tab.rawMessages.some((message) => message.type === 'history'),
+      'Reviewed checkpoint did not arrive.'
+    );
     await until(
       () => observer.rawMessages.some((message) => message.type === 'history'),
-      'Observer history did not arrive.'
+      'Observer was not shown the reviewed checkpoint.'
     );
     for (const [who, factionId] of [
       [a, factionA],
@@ -214,10 +217,16 @@ export async function verifyPrivateSpiceReserves(toolkit: HostedToolkit) {
     passed(
       'Raw snapshots, compact deltas and historical frames contain only the spice reserve of the recipient faction; observer and guessed HTTP paths expose no spice reserve; reconnect and a second tab restore the current spice reserve'
     );
-    /* A real game's history starts at drafting, which has no Spice window; its playback bar returns a viewer to the live table.
-       The sign-out step opens the Spice window on both viewers that replayed here, so both go back. */
+    /* Resume play returns every viewer to the live table, where the sign-out step opens the Spice window again. */
+    await tab.page
+      .getByRole('group', { name: 'Table review in progress' })
+      .getByRole('button', { name: 'Resume play' })
+      .click();
     for (const who of [tab, observer]) {
-      await who.page.getByRole('button', { name: 'Return to live' }).click();
+      await until(
+        async () => (await who.page.getByRole('group', { name: 'Table review in progress' }).count()) === 0,
+        `${who.label} stayed in the table review.`
+      );
       await openTab(who, who === observer ? 'Spice transfers' : 'Spice');
     }
     return tab;

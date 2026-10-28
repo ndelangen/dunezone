@@ -6,6 +6,7 @@ import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import { factionTokenOf } from '@shared/play/factionToken';
 import { lastTurnOf } from '@shared/play/lastTurn';
 import { phaseAt, tableProgressFor } from '@shared/play/phases';
+import { reviewRunning } from '@shared/play/review';
 import { setupMapVisible } from '@shared/play/setup';
 import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
 import { Link, useLocation } from '@tanstack/react-router';
@@ -61,10 +62,11 @@ import { battleHelp, LOG_GUIDANCE, phaseGuidance, PHASE_PREVIOUS, phaseHelp } fr
 import { usePlayerWindows } from './playerWindows';
 import { useResultCelebration } from './resultCelebration';
 import { GameMenu, SeatPopover } from './SeatRequests';
-import { nextPhaseStep, stageStatus, stageToolbar } from './StageHeader';
+import { nextPhaseStep, PhaseTurns, stageStatus, stageToolbar } from './StageHeader';
 import type { GameIdentity } from './StageHeader';
 import { SwapScene } from './SwapScene';
-import { isSpectator, stageInPlay, viewerFaction } from './tableFactions';
+import { isSpectator, offersActions, stageInPlay, viewerFaction } from './tableFactions';
+import { TableReviewPanel } from './TableReview';
 import { ServerClockContext } from './useServerNow';
 import { initialWindowFocus, nextWindowFocus } from './windowFocus';
 import '../dune-play.css';
@@ -403,15 +405,28 @@ function historyGroup({ client, table, error }: ConnectionControlsProps, hasInve
             },
           ]
         : []),
-      {
-        ...PANEL_WINDOWS.replay,
-        content: (
-          <>
-            {error && !table.playback && <FormError title="From the table">{error}</FormError>}
-            <ConnectedReplayPanel client={client} table={table} />
-          </>
-        ),
-      },
+      /* Players may not look back alone, so a game in progress offers a review the table agrees to instead. */
+      ...(table.review
+        ? [{ ...PANEL_WINDOWS.review, content: <TableReviewPanel client={client} table={table} error={error} /> }]
+        : []),
+      /* Players may not keep notes, so replay opens once the game is finished or on a fixture; a replay already open keeps its tab. */
+      ...(!reviewRunning(table.review?.current) &&
+      (table.snapshot.stage === 'finished' ||
+        table.snapshot.stage === undefined ||
+        table.playback ||
+        table.historyPending)
+        ? [
+            {
+              ...PANEL_WINDOWS.replay,
+              content: (
+                <>
+                  {error && !table.playback && <FormError title="From the table">{error}</FormError>}
+                  <ConnectedReplayPanel client={client} table={table} />
+                </>
+              ),
+            },
+          ]
+        : []),
     ],
   };
 }
@@ -479,15 +494,19 @@ function phaseTabControls({
   return (
     <>
       <PhaseControls table={table} />
-      {stage === 'play' && table.snapshot.setup && progress.turn === 1 && progress.activePhaseId === 'storm' && (
-        <Button
-          variant="default"
-          disabled={!table.canInteract}
-          onClick={() => client.command({ kind: 'storm-random' })}
-        >
-          Place storm randomly
-        </Button>
-      )}
+      {stage === 'play' &&
+        offersActions(table) &&
+        table.snapshot.setup &&
+        progress.turn === 1 &&
+        progress.activePhaseId === 'storm' && (
+          <Button
+            variant="default"
+            disabled={!table.canInteract}
+            onClick={() => client.command({ kind: 'storm-random' })}
+          >
+            Place storm randomly
+          </Button>
+        )}
       {stage === 'play' || stage === 'finished' ? (
         <>
           <DetermineWinner client={client} table={table} />
@@ -561,7 +580,7 @@ function ConnectedTable({
               toolbarControl={stageToolbar({ client, table, error, bidderFaded, onBidderFadedChange: setBidderFaded })}
               /* The gathered Traitor pile lies under the Tleilaxu Tanks, below the Map view's frame on a wide screen (#1635). */
               requestedView={table.traitorsGathered ? { view: 'bottom', revision: table.traitorsGathered } : undefined}
-              showStormControls={stageInPlay(stage) && progress.activePhaseId === 'storm'}
+              showStormControls={offersActions(table) && stageInPlay(stage) && progress.activePhaseId === 'storm'}
               sceneContent={
                 <>
                   {stageScene({ client, table, bidderFaded })}
@@ -581,6 +600,7 @@ function ConnectedTable({
                 </>
               }
               stageStatus={stageStatus({ client, table, identity })}
+              phaseTurns={<PhaseTurns client={client} table={table} />}
               stageOverlay={
                 stage === 'drafting' ? <DraftingOverlay client={client} table={table} error={error} /> : undefined
               }
