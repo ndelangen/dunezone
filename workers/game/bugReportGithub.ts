@@ -74,6 +74,9 @@ export async function bugReportInstallationToken(env: BugReportSecrets): Promise
 
 export const reportMarker = (requestId: string) => `<!-- dunezone-play-report:${requestId} -->`;
 
+/** GitHub refused the request without creating an issue; a new report is safe. */
+export class BugReportIssueRejected extends Error {}
+
 /** Once this request starts, a lost answer is ambiguous; callers must reconcile it rather than repeat the POST. */
 export async function createBugReportIssue(token: string, title: string, body: string) {
   const response = await github(`/repos/${BUG_REPORT_REPOSITORY}/issues`, token, {
@@ -83,6 +86,10 @@ export async function createBugReportIssue(token: string, title: string, body: s
   });
   if (!response.ok) {
     await response.body?.cancel();
+    /* A timeout or server error can follow a successful write. Explicit client rejections cannot. */
+    if (response.status >= 400 && response.status < 500 && response.status !== 408) {
+      throw new BugReportIssueRejected('GitHub rejected the report.');
+    }
     throw new Error('GitHub did not confirm the issue.');
   }
   const issue = issueSchema.parse(await response.json());

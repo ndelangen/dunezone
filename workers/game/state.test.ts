@@ -6,7 +6,8 @@ import { initialSnapshot } from '../../src/shared/play/commands';
 import { freshTableState } from '../../src/shared/play/model';
 import { composeTurn } from '../../src/shared/play/phases';
 import { factionSupply, piece, place } from '../../src/shared/play/setupSupply';
-import { stackPreviewPositionFor } from '../../src/shared/play/tableGeometry';
+import { stackPreviewPositionFor, tokenBoxRatio, troopScale } from '../../src/shared/play/tableGeometry';
+import { piecesCanStack } from '../../src/shared/play/tablePhysics';
 import { applyDraftToState } from '../../src/shared/play/tableState';
 import {
   RoomProjection,
@@ -362,4 +363,62 @@ test('a list that grows by an empty entry keeps its new length', () => {
   const first = { id: 'a' };
 
   expect(withUnchangedParts([first], [first, undefined])).toEqual([first, undefined]);
+});
+
+test('token privacy preserves physical shape, stack compatibility and authorized faces', () => {
+  const source = freshTableState().pieces.find((entry) => entry.kind === 'force')!;
+  const token = {
+    ...source,
+    label: 'Secret leader',
+    stackKey: 'leader:atreides:secret-member',
+    items: [
+      {
+        id: 'opaque-item',
+        faceUp: false,
+        artwork: {
+          front: 'https://table.test/secret.png',
+          back: 'https://table.test/back.png',
+          name: 'Secret leader',
+          type: 'token-enhance',
+          size: 1,
+          description: 'Secret ability',
+        },
+      },
+    ],
+  };
+  const projection = new RoomProjection('secret');
+  const hidden = projection.piece(token);
+  const visible = projection.piece(token, true);
+  const flipped = projection.piece({ ...token, items: token.items.map((item) => ({ ...item, faceUp: true })) });
+  expect(hidden).toMatchObject({
+    id: token.id,
+    label: 'Token',
+    position: token.position,
+    orientation: token.orientation,
+  });
+  expect(hidden.items[0]).toEqual({
+    id: 'opaque-item',
+    faceUp: false,
+    artwork: {
+      back: 'https://table.test/back.png',
+      backName: undefined,
+      type: 'token-enhance',
+      size: 1,
+    },
+  });
+  expect(hidden.stackKey).toMatch(/^leader:/);
+  expect(tokenBoxRatio(hidden)).toBe(tokenBoxRatio(token));
+  expect(troopScale(hidden)).toBe(troopScale(token));
+  expect(hidden.stackKey).not.toContain('secret-member');
+  expect(visible.stackKey).toBe(hidden.stackKey);
+  expect(flipped.stackKey).toBe(hidden.stackKey);
+  expect(visible.items).toEqual(token.items);
+  expect(visible.label).toBe(token.label);
+  expect(flipped.items[0].artwork).toEqual(token.items[0].artwork);
+  // Another audience's peek cannot warm a cache that exposes the face in the public copy.
+  expect(projection.piece(token)).toBe(hidden);
+  expect(piecesCanStack(hidden, flipped)).toBe(piecesCanStack(token, { ...token, items: flipped.items }));
+  expect(projection.piece({ ...token, stackKey: null }).stackKey).toBeNull();
+  const factionToken = { ...token, stackKey: 'faction-token:atreides' };
+  expect(projection.piece(factionToken)).toBe(factionToken);
 });

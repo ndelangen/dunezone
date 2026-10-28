@@ -301,3 +301,33 @@ describe('the public log', () => {
     ]);
   });
 });
+
+it('reads old deletion rows without secret names and keeps new safe detail across reloads', () => {
+  const storage = memoryStorage();
+  const log = new PublicLog(storage, () => 'Turn 2');
+  log.enabled = true;
+  const entry = {
+    key: 'deletion:17',
+    class: 'deletion' as const,
+    template: '{0} deleted Secret leader from the game.',
+    people: [{ userId: 'alice', name: 'Alice' }],
+    at: 123,
+  };
+  log.record(entry);
+  log.record({ ...entry, key: 'deletion:v2:18', template: '{0} deleted Visible leader from the game.' });
+  const restored = new PublicLog(storage, () => 'Turn 3');
+  const rows = restored.page('game', Number.MAX_SAFE_INTEGER).entries;
+  expect(rows.map((row) => row.text)).toEqual([
+    'Alice deleted Visible leader from the game.',
+    'Alice deleted a piece from the game.',
+  ]);
+  expect(rows[1]).toMatchObject({ context: 'Turn 2', at: 123 });
+  restored.scrub('alice');
+  expect(restored.page('game', Number.MAX_SAFE_INTEGER).entries[1].text).toBe(
+    '[deleted user] deleted a piece from the game.'
+  );
+  expect(
+    storage.sql.exec<{ template: string }>('SELECT template FROM public_log WHERE key=?', 'deletion:17').toArray()[0]
+      .template
+  ).toBe(entry.template);
+});
