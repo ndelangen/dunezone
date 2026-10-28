@@ -191,7 +191,7 @@ function tokenTasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'token-flip',
       task: 'Flip your faction token',
       detail:
-        'Hover over your faction token and press {F}. A face-down token can show that you are passing, for example during bidding. Press {F} again to turn it back.',
+        'Hover over your faction token and press {F}. A face-down token can show that you are passing, for example during bidding.',
       anchor: { kind: 'table', point: () => at(token()) },
       begin: () => token()?.flipRevision ?? 0,
       done: (start) => (token()?.flipRevision ?? 0) > start,

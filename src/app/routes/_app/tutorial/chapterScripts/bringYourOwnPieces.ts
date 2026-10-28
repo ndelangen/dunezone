@@ -5,7 +5,7 @@ import type { GameSnapshot } from '@shared/play/protocol';
 
 import type { GuideTask } from '../TutorialGuide';
 import type { ChapterScript, TablePlayers } from './chapterScript';
-import { element, openedWindow, task, windowShown } from './guideChecks';
+import { element, openedWindow, pressEnter, task, windowShown } from './guideChecks';
 
 /*
  * "Bring your own pieces": the Shared table inventory, where the pieces live that belong to no seat,
@@ -43,6 +43,7 @@ const findKarama = () =>
 const showInWindow = (selector: string) => document.querySelector(selector)?.scrollIntoView({ block: 'nearest' });
 
 function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[] {
+  const continueApproval = pressEnter();
   const shared = () =>
     snapshot()
       .table.pieces.filter((piece) => piece.inventory === 'shared')
@@ -96,14 +97,17 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'approved',
       task: 'Wait for approval',
       detail:
-        'Another player will approve Karama in a moment. You cannot approve your own request. Any player can dismiss a request instead.',
+        'Another player will approve Karama in a moment. You cannot approve your own request. Any player can dismiss a request instead. Once Karama arrives, press {Enter} to continue.',
       anchor: { kind: 'page', element: element(`${SHARED} [data-spawn-request]`) },
       begin: () => {
         showInWindow(`${SHARED} [data-spawn-request]`);
-        return approveSoon(snapshot, players);
+        return { stop: approveSoon(snapshot, players), enter: continueApproval.begin() };
       },
-      done: () => karama().length > 0,
-      finish: (stop) => stop(),
+      done: (watch) => karama().length > 0 && continueApproval.done(watch.enter),
+      finish: (watch) => {
+        watch.stop();
+        continueApproval.finish(watch.enter);
+      },
     }),
     task({
       id: 'place',

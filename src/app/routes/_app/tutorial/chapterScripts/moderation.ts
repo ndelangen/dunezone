@@ -29,6 +29,7 @@ const startButton = (seat: string | undefined) =>
       );
 
 function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[] {
+  const continueReview = pressEnter();
   const seats = () => snapshot().roster?.seats ?? [];
   const seatOf = (faction: string) => seats().find((seat) => seat.faction?.name === faction)?.id;
   const quietSeat = () => seatOf(QUIET);
@@ -62,15 +63,16 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'review-majority',
       task: 'Agree to a review',
       detail:
-        'A review needs agreement from more than half the seated players. Your request counts as your agreement. Other players can agree or decline, and you can withdraw it. Press {Enter} to let them respond.',
+        'A review needs agreement from more than half the seated players. Your request counts as your agreement. Other players can agree or decline. If you withdraw the request, ask to review Turn 1, Storm again. Press {Enter} to let them respond.',
       anchor: { kind: 'page', element: element('[aria-label="Table review vote"]') },
-      ...pressEnter(),
+      ...continueReview,
+      done: (watch) => snapshot().review?.step === 0 && continueReview.done(watch),
     }),
     task({
       id: 'review-votes',
       task: 'Watch the review vote',
       detail:
-        'The other players are agreeing now. Once a majority agrees, play pauses and everyone sees the saved public position.',
+        'The other players are agreeing now. Once a majority agrees, play pauses and everyone sees the saved public position. If you withdraw the request, ask to review Turn 1, Storm again.',
       anchor: { kind: 'page', element: element('[data-window="review"]') },
       begin: () => {
         const timer = setInterval(() => {

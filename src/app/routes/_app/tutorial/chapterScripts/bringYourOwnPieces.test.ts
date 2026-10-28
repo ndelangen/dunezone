@@ -9,6 +9,7 @@ import type { TablePlayers } from './chapterScript';
 
 afterEach(() => {
   document.body.innerHTML = '';
+  vi.useRealTimers();
 });
 
 const KARAMA_ID = 'asset-karama';
@@ -57,8 +58,11 @@ test('follows the request and pieces Karama’s selection captured, whatever els
     table: { pieces: [piece(capturedTokenStackKey('asset-pack'), 'Karama', 'shared')] },
   } as unknown as GameSnapshot;
   const snapshot = () => view;
+  vi.useFakeTimers();
+  const approved = step(snapshot, KARAMA_ID, 'approved');
+  const watch = approved.begin(undefined as never);
   expect(step(snapshot, KARAMA_ID, 'request').done(undefined as never, undefined as never)).toBe(false);
-  expect(step(snapshot, KARAMA_ID, 'approved').done(undefined as never, undefined as never)).toBe(false);
+  expect(approved.done(watch, undefined as never)).toBe(false);
 
   view = { ...view, controls: { requests: [request(KARAMA_ID, 'Karama')] } } as unknown as GameSnapshot;
   expect(step(snapshot, KARAMA_ID, 'request').done(undefined as never, undefined as never)).toBe(true);
@@ -70,7 +74,10 @@ test('follows the request and pieces Karama’s selection captured, whatever els
     controls: { requests: [] },
     table: { pieces: [piece(capturedTokenStackKey(KARAMA_ID), 'Karama', 'shared')] },
   } as unknown as GameSnapshot;
-  expect(step(snapshot, KARAMA_ID, 'approved').done(undefined as never, undefined as never)).toBe(true);
+  expect(approved.done(watch, undefined as never)).toBe(false);
+  document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+  expect(approved.done(watch, undefined as never)).toBe(true);
+  approved.finish?.(watch);
   expect(step(snapshot, KARAMA_ID, 'place').done(undefined as never, undefined as never)).toBe(false);
   view = {
     controls: { requests: [] },

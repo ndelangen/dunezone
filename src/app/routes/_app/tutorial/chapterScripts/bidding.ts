@@ -102,7 +102,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'win',
       task: 'Win the card',
       detail:
-        'You have been outbid. Press {I} to raise, then {P} to pass to the next bidder. You win when everyone else passes.',
+        'Wait until the bidder points at your faction. Press {I} to raise, then {P} to pass to the next bidder. You win when everyone else passes.',
       anchor: disc,
       begin: () => ({ stop: othersBid(snapshot, players) }),
       /* A slip that hands the bidder on unraised lets another faction win; the round still ends, so the chapter goes on. */

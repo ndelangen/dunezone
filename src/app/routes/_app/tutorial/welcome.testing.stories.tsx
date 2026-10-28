@@ -54,6 +54,9 @@ export const SpeakingMode = meta.story({
     await waitForFrame(() =>
       expect(rail.getByText('This is the table').closest('li')).toHaveAttribute('data-state', 'current')
     );
+    await waitForFrame(() =>
+      expect(document.querySelector('[data-tutorial-pointer]')?.getAttribute('d') ?? '').toContain('Q')
+    );
     await expect(spoken).toHaveBeenCalledTimes(1);
     await expect(getComputedStyle(toggle).animationName).toBe('none');
     await userEvent.keyboard('z');

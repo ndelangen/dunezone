@@ -83,7 +83,7 @@ const windowTasks = (): GuideTask[] => [
   task({
     id: 'open-compass',
     task: 'Open the controls',
-    detail: 'Press {Space} to open the controls. Press {Escape} or click outside to close them.',
+    detail: 'Press {Space} to open the controls.',
     anchor: { kind: 'page', element: first('[data-compass-launcher]') },
     begin: nothing,
     done: compassOpen,

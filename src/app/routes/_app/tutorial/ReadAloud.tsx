@@ -23,10 +23,14 @@ function Speaking() {
 
 const PREFERENCE = 'dunezone-tutorial:speaking-mode';
 
+/* A missing or invalid preference leaves the Welcome invitation available. */
 function rememberedMode(): boolean | null {
   try {
     const stored = localStorage.getItem(PREFERENCE);
-    return stored === 'true' ? true : stored === 'false' ? false : null;
+    if (stored === 'true') {
+      return true;
+    }
+    return stored === 'false' ? false : null;
   } catch {
     return null;
   }
@@ -105,6 +109,7 @@ export function ReadAloud({
     changeMode();
   };
   const label = enabled ? 'Turn speaking mode off' : 'Turn speaking mode on';
+  const idleIcon = enabled ? <Volume2 size={18} aria-hidden /> : <VolumeX size={18} aria-hidden />;
   return (
     <IconAction
       label={label}
@@ -116,9 +121,7 @@ export function ReadAloud({
       data-speaking-mode
       data-attention={introduce && preference === null ? '' : undefined}
       aria-keyshortcuts="Z"
-      icon={
-        speech.speaking ? <Speaking /> : enabled ? <Volume2 size={18} aria-hidden /> : <VolumeX size={18} aria-hidden />
-      }
+      icon={speech.speaking ? <Speaking /> : idleIcon}
       onClick={toggle}
     />
   );

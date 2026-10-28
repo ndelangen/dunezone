@@ -1,4 +1,5 @@
 import { testingPreview } from '@sb/preview';
+import { waitForFrame } from '@sb/storyWaits';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { pageStoryMeta } from '../../storybookConfig';
@@ -27,7 +28,7 @@ export const PlayedThrough = meta.story({
     const document = canvasElement.ownerDocument;
     const page = within(document.body);
     const step = (title: string, timeout = 30_000) =>
-      waitFor(() => expect(currentStep(canvasElement)).toContain(title), { timeout });
+      waitForFrame(() => expect(currentStep(canvasElement)).toContain(title), { timeout });
     await page.findByRole('banner', { name: 'Chapter 19: Moderation and disputes' }, { timeout: 60_000 });
     const openWindow = async (name: string) => {
       await userEvent.keyboard(' ');
@@ -36,7 +37,7 @@ export const PlayedThrough = meta.story({
     };
     const enterAt = async (title: string) => {
       await step(title);
-      await waitFor(
+      await waitForFrame(
         async () => {
           if (currentStep(canvasElement).includes(title)) {
             await userEvent.keyboard('{Enter}');
@@ -50,6 +51,13 @@ export const PlayedThrough = meta.story({
     await openWindow('Game log');
     await step('Ask to review Storm');
     await openWindow('Table review');
+    await userEvent.click(await page.findByRole('button', { name: 'Earlier checkpoint' }));
+    await expect(page.getByRole('slider', { name: 'Checkpoint' })).toHaveAttribute('aria-valuenow', '0');
+    await userEvent.click(page.getByRole('button', { name: 'Ask the table to review' }));
+    await step('Agree to a review');
+    await userEvent.click(page.getAllByRole('button', { name: 'Withdraw' })[0]!);
+    await userEvent.keyboard('{Enter}');
+    await waitForFrame(() => expect(currentStep(canvasElement)).toContain('Agree to a review'));
     await userEvent.click(await page.findByRole('button', { name: 'Earlier checkpoint' }));
     await expect(page.getByRole('slider', { name: 'Checkpoint' })).toHaveAttribute('aria-valuenow', '0');
     await userEvent.click(page.getByRole('button', { name: 'Ask the table to review' }));
