@@ -53,12 +53,12 @@ export const PlayedThrough = meta.story({
     await userEvent.click(await page.findByRole('button', { name: 'Earlier checkpoint' }));
     await expect(page.getByRole('slider', { name: 'Checkpoint' })).toHaveAttribute('aria-valuenow', '0');
     await userEvent.click(page.getByRole('button', { name: 'Ask the table to review' }));
-    await enterAt('A review needs the table to agree');
+    await enterAt('Agree to a review');
     await step('Discuss the saved position');
     await expect(page.getByRole('group', { name: 'Table review in progress' })).toBeVisible();
     await enterAt('Discuss the saved position');
     await userEvent.click(page.getAllByRole('button', { name: 'Resume play' })[0]!);
-    await step('Open the Harkonnen player’s information', 60_000);
+    await step('Open the player details', 60_000);
 
     const token = await waitFor(
       () => {

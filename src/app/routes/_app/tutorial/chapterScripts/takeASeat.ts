@@ -57,24 +57,23 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'watching',
       task: 'You are watching',
       detail:
-        'A friend sent you this game’s link, but its six players are already drafting. Opening a link never takes a seat: you watch, and see what every player sees of the table, but you can’t touch anything. Press {Enter} to go on.',
+        "You've joined as a spectator. You can see the public table, but you need a seat to play. Press {Enter} to continue.",
       anchor: { kind: 'page', element: element('section[aria-label="Players"]') },
       ...pressEnter(),
     }),
     task({
       id: 'ask',
       task: 'Ask for a seat',
-      detail:
-        'Press the + under the players to ask for a place at the table. While the game is drafting, a place is all you ask for: the draft deals the factions later.',
+      detail: 'Press the + below the players to request a seat. Factions will be assigned after the draft.',
       anchor: { kind: 'page', element: element('[aria-label="Take a seat"]') },
       begin: () => undefined,
       done: () => requested(snapshot),
     }),
     task({
       id: 'approved',
-      task: 'Wait for a player to approve you',
+      task: 'Wait for approval',
       detail:
-        'Your request shows under the players as Waiting for approval, and any one of them can approve it. Until then you keep watching, and the × beside it withdraws it.',
+        'Any seated player can approve your request. You can keep watching while you wait, or press the cross to cancel.',
       anchor: { kind: 'page', element: element('[aria-label="Your seat request"]') },
       begin: () => ({ stop: approveEachRequest(players), start: seatCount(snapshot) }),
       done: (watch: { start: number; stop: () => void }) => seatCount(snapshot) > watch.start,
@@ -84,7 +83,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'leave',
       task: 'Give up your place',
       detail:
-        'Twaffle approved you: you have a place in the draft. Leaving is for good, so it is held rather than clicked. Open the gear, top right, and hold Hold to give up your place until it counts down.',
+        'Twaffle approved your request. To leave again, open the gear menu in the top right. Press and hold Give up your place until the countdown finishes.',
       anchor: {
         kind: 'page',
         element: () => leaveItem() ?? gameMenuButton(),

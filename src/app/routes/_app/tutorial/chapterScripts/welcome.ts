@@ -88,10 +88,18 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
   const phases = tour(() => phaseStops(snapshot));
   return [
     task({
+      id: 'speaking-mode',
+      task: 'Hear the steps aloud',
+      detail:
+        'Welcome to the first tutorial. Want to hear each step aloud? Turn on speaking mode with the button above or press {Z}. Press {Z} again to turn it off. Press {Enter} to start.',
+      introducesSpeakingMode: true,
+      anchor: { kind: 'page', element: () => null },
+      ...pressEnter(),
+    }),
+    task({
       id: 'board',
       task: 'This is the table',
-      detail:
-        'The board, the decks and every player’s pieces lie on one shared table, as around a real board. Press {Enter} on your keyboard to go on.',
+      detail: 'This is your shared table, with the board, decks and pieces ready to play. Press {Enter} to continue.',
       anchor: { kind: 'table', point: () => [0, TABLE_SURFACE_Y, 0] },
       ...pressEnter(),
     }),
@@ -99,7 +107,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'players',
       task: 'The players',
       detail:
-        'Every player has a faction token at their place around the board; the arrow goes round them once, ending on yours. Press {Enter} to go on.',
+        'Each player has a faction token beside their seat. The arrow points to each one, ending with yours. Press {Enter} to continue.',
       anchor: { kind: 'table', point: tokens.point },
       begin: tokens.begin,
       done: tokens.done,
@@ -107,17 +115,15 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     }),
     task({
       id: 'status',
-      task: 'Where the game stands',
-      detail:
-        'The chip in the top left shows the turn, out of the game’s last turn, and the phase the game is in, with that phase’s symbol. Press {Enter} to go on.',
+      task: 'Phase and turn',
+      detail: 'In the top left, you can see the current phase and turn. Press {Enter} to continue.',
       anchor: { kind: 'page', element: element('.seated-phase-status') },
       ...pressEnter(),
     }),
     task({
       id: 'phases',
       task: 'The phases of a turn',
-      detail:
-        'The row of discs along the far edge of the board is the turn’s phases; the arrow walks them in order, ending on the lit disc, the phase the game is in now. Press {Enter} to go on.',
+      detail: 'These discs show the phases in order. The current phase is lit up. Press {Enter} to continue.',
       anchor: { kind: 'table', point: phases.point },
       begin: phases.begin,
       done: phases.done,
@@ -126,16 +132,15 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     task({
       id: 'turn',
       task: 'The turn tracker',
-      detail:
-        'The numbered wheel at the left end of the row counts the turns; its pointer shows the turn the game is in. Press {Enter} to go on.',
+      detail: 'The wheel beside the phase discs shows the current turn. Press {Enter} to continue.',
       anchor: { kind: 'table', point: () => trackerAt(snapshot, 'turn') },
       ...pressEnter(),
     }),
     task({
       id: 'next',
-      task: 'Move the game on yourself',
+      task: 'Advance to the next phase',
       detail:
-        'Play is a table, not a referee: it never checks the rules or takes a step for you. When the table has done a phase, anyone presses Next phase, top right. Press it now, and watch the lit disc and the chip move on.',
+        'You and the other players decide when a phase is finished. Press Next phase in the top right to move on.',
       anchor: { kind: 'page', element: nextPhaseButton },
       begin: () => undefined,
       done: () => phaseOf(snapshot).id !== 'storm',
@@ -143,8 +148,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     task({
       id: 'share',
       task: 'Copy the game link',
-      detail:
-        'The gear beside Next phase holds the game’s settings: the table’s lighting and labels, how fast the camera pans, and leaving your seat. It also holds the game’s link, which is how you invite the others: open the gear and press Copy game link, then send it to them.',
+      detail: 'Open the gear menu in the top right and press Copy game link. Share this link to invite other players.',
       anchor: { kind: 'page', element: () => copyLink() ?? gameMenuButton() },
       /*
        * Next phase can keep the focus once pressed, so a habitual Enter here would move the game on again:
@@ -183,6 +187,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
 
 /* One line for each part of the chapter, in the order it was played. */
 const learned = [
+  'The speaking mode button or Z turns spoken instructions on or off',
   'Each player’s faction token marks their place around the board',
   'The chip in the top left shows the turn and the phase',
   'The discs along the board are the phases; the numbered wheel counts the turns',

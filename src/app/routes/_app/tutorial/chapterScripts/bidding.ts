@@ -67,8 +67,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     task({
       id: 'start',
       task: 'Start a round at your faction',
-      detail:
-        'The others moved the game on to Bidding, and the bidder hovers over the board. Its face lists the factions in storm order: click yours to open the round with you.',
+      detail: 'It is the Bidding phase. Click your faction on the bidding disc to start a round with you.',
       anchor: { kind: 'page', element: () => document.querySelector(`[aria-label="Start bidding at ${myName()}"]`) },
       begin: () => undefined,
       done: () => bidding()?.stage === 'open' && bidding()?.turn === mine(),
@@ -76,8 +75,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     task({
       id: 'raise',
       task: 'Bid 2 spice',
-      detail:
-        'The bidder points at you. Press {I} on your keyboard to raise the bid by one, or click the disc in the middle. Raise it twice.',
+      detail: 'Press {I} or click the centre of the disc to raise your bid by one spice. Do this twice.',
       anchor: disc,
       begin: () => undefined,
       done: () => myBid() >= 2,
@@ -85,8 +83,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     task({
       id: 'lower',
       task: 'Take it back down to 1',
-      detail:
-        'Raised too far? Press {O} to lower your bid by one, as often as you need. Only a raise you made this turn comes off.',
+      detail: 'Press {O} to lower your bid by one. You can only undo increases you made on this bidding turn.',
       anchor: disc,
       /* A raise of 2 or more came first, so a bid of 1 now can only be a raise taken back. */
       begin: () => undefined,
@@ -94,9 +91,8 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     }),
     task({
       id: 'hand-on',
-      task: 'Hand the bidder on',
-      detail:
-        'Happy with your bid? Press {P}, or right-click the disc. The bidder turns to the next faction, and the others answer.',
+      task: 'Pass to the next bidder',
+      detail: 'Press {P} or right-click the disc to finish your bidding turn. The next faction can now respond.',
       anchor: disc,
       begin: () => ({ stop: othersBid(snapshot, players) }),
       done: () => bidding()?.turn !== mine(),
@@ -106,7 +102,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'win',
       task: 'Win the card',
       detail:
-        'Someone outbid you, and the bidder comes back to you. Raise with {I}, then hand it on with {P}. When everyone else passes, the card is yours.',
+        'You have been outbid. Press {I} to raise, then {P} to pass to the next bidder. You win when everyone else passes.',
       anchor: disc,
       begin: () => ({ stop: othersBid(snapshot, players) }),
       /* A slip that hands the bidder on unraised lets another faction win; the round still ends, so the chapter goes on. */
@@ -117,7 +113,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'take-card',
       task: 'Take the card',
       detail:
-        'The bidder only keeps score: the winner pays and takes the card by hand. Right-click the Treachery deck and choose Draw a card. Paying is by hand as well: withdraw what you bid from your reserve, as in Your hand and spice.',
+        'You won. Right-click the Treachery deck and choose Draw a card. In a real game, you also need to withdraw and pay the winning bid yourself.',
       anchor: { kind: 'table', point: () => at(tableDeck(snapshot, 'left')) },
       begin: () => snapshot().hand?.length ?? 0,
       done: (start) => (snapshot().hand?.length ?? 0) > start,
@@ -126,7 +122,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'sit-out',
       task: 'Sit out the next round',
       detail:
-        'Hand full, or saving spice? While the bidder is not waiting on you, {P} passes for good: it turns your faction token face down. On the bidder your faction greys out, and rounds skip you.',
+        'While another player is bidding, press {P} to sit out. Your faction token turns face down and bidding skips you.',
       anchor: { kind: 'table', point: () => (myToken()?.position as [number, number, number] | undefined) ?? null },
       begin: () => undefined,
       done: () => !tokenUp(),
@@ -134,7 +130,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     task({
       id: 'back-in',
       task: 'Join the bidding again',
-      detail: 'Press {U} to turn your token face up again. The next round counts you in.',
+      detail: 'Press {U} to turn your faction token face up and rejoin bidding in the next round.',
       anchor: { kind: 'table', point: () => (myToken()?.position as [number, number, number] | undefined) ?? null },
       begin: () => undefined,
       done: () => tokenUp(),

@@ -43,13 +43,13 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       snapshot,
       'spice-blow',
       'the Spice Blow',
-      'Turn 1 starts in the Storm, as the chip top left says. Every phase happens somewhere on the table; you move from one to the next yourself. Press Next phase, top right, once.'
+      'The game is in Storm. Press Next phase in the top right to advance to Spice Blow.'
     ),
     task({
       id: 'spice',
       task: 'Turn over the top Spice card',
       detail:
-        'The Spice Blow happens at the Spice deck, on the right of the table. To draw one card, press down on the deck and swipe away at once: the top card comes with you. Wait a moment before you move and the whole deck comes instead. Drop the card on the table, then point at it and press {F} on your keyboard to turn it over.',
+        'Drag the top card off the Spice deck on the right. Drop it on the table, then hover over it and press {F} to flip it. Start dragging straight away, or you will pick up the whole deck.',
       anchor: { kind: 'table', point: () => at(deck('right')) },
       begin: () => singleSpiceFaceUp(pieces()),
       done: (start) => singleSpiceFaceUp(pieces()) > start,
@@ -58,30 +58,30 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       snapshot,
       'choam-charity',
       'CHOAM Charity',
-      'Press Next phase once more. CHOAM Charity is paid out of the spice bank by hand; your hand and spice chapter shows how. Nobody needs it now.'
+      'Press Next phase to advance to CHOAM Charity. In a real game, players collect any spice they are owed from the Spice Bank.'
     ),
     onTo(
       snapshot,
       'bidding',
       'Bidding',
-      'Press Next phase again. Watch the camera: each phase turns it to the part of the table that phase uses.'
+      'Press Next phase to begin Bidding. The camera moves to the part of the table used in each phase.'
     ),
     task({
       id: 'draw',
       task: 'Draw a Treachery card',
       detail:
-        'Bidding sells cards from the Treachery deck, on the left of the table; the Bidding chapter covers the auction. Say you won a card: right-click the deck and choose Draw a card. It goes to your hand.',
+        'The Treachery deck is on the left. After winning a card in bidding, right-click this deck and choose Draw a card. Try it now.',
       anchor: { kind: 'table', point: () => at(deck('left')) },
       /* The card must leave the Treachery deck, so a Spice card drawn instead does not count. */
       begin: () => ({ hand: snapshot().hand?.length ?? 0, deck: deck('left')?.items.length ?? 0 }),
       done: (start) => (snapshot().hand?.length ?? 0) > start.hand && (deck('left')?.items.length ?? 0) < start.deck,
     }),
-    onTo(snapshot, 'revival', 'Revival', 'Press Next phase, into Revival. Watch where the camera goes.'),
+    onTo(snapshot, 'revival', 'Revival', 'Press Next phase to begin Revival.'),
     task({
       id: 'tanks',
       task: 'Find the Tleilaxu Tanks',
       detail:
-        'Revival brings troops and leaders back from the Tleilaxu Tanks, the tray below the board where the arrow points. Nothing has died yet, so there is nothing to revive. Press {Enter} to go on.',
+        'Defeated troops and leaders go in the Tleilaxu Tanks below the board. You can bring them back during Revival. The tanks are empty for now. Press {Enter} to continue.',
       /* Just left of the label, so the arrow coming from the rail ends at its first letter rather than over it. */
       anchor: {
         kind: 'table',
@@ -96,13 +96,12 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       snapshot,
       'shipment-and-movement',
       'Shipment and Movement',
-      'Press Next phase once more, into Shipment and Movement.'
+      'Press Next phase to begin Shipment and Movement.'
     ),
     task({
       id: 'ship',
       task: 'Ship troops onto the board',
-      detail:
-        'Your reserves wait on the rim at your seat, where the arrow points. Drag a troop from the stack onto any territory.',
+      detail: 'Drag a troop from your reserves beside your seat onto any territory.',
       anchor: {
         kind: 'table',
         point: () => at(pieces().find((piece) => piece.stackKey?.startsWith(`troops:${mine()}:`) && !onBoard(piece))),

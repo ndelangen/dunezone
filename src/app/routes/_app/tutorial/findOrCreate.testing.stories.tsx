@@ -134,7 +134,7 @@ export const OpenedAtCreateTheGame = meta.story({
     const page = await openedAt(canvasElement, 'Create the game');
     const form = await page.findByRole('form', { name: 'New game' });
     await userEvent.click(within(form).getByRole('button', { name: /Create game/ }));
-    await waitFor(() => expect(currentStep(canvasElement)).toContain('Copy its link'), { timeout: 20_000 });
+    await waitFor(() => expect(currentStep(canvasElement)).toContain('Share the game link'), { timeout: 20_000 });
   },
 });
 
@@ -142,7 +142,7 @@ export const OpenedAtCreateTheGame = meta.story({
 export const OpenedAtCopyItsLink = meta.story({
   args: { path: '/tutorial/find-or-create?step=7' },
   play: async ({ canvasElement }) => {
-    const page = await openedAt(canvasElement, 'Copy its link');
+    const page = await openedAt(canvasElement, 'Share the game link');
     await expect(await page.findByText('Your new game')).toBeVisible();
     await expect(page.getByRole('button', { name: /game link/i })).toBeVisible();
   },

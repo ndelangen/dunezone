@@ -111,14 +111,14 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'table-full',
       task: 'The table is full',
       detail:
-        'Every seat is taken, so the draft is on. Nobody has a faction yet: first everyone drafts the factions they want in the game and bans the ones they don’t. The bar at the top shows what the deal still waits for. Press {Enter} to go on.',
+        'All seats are taken, so drafting can begin. Players choose which factions to include or ban before anyone is assigned one. Press {Enter} to continue.',
       anchor: { kind: 'page', element: element('.seated-phase-status') },
       ...pressEnter(),
     }),
     task({
       id: 'draft',
       task: `Draft ${DRAFT}`,
-      detail: `The list holds the factions made for this ruleset. Press Draft beside ${DRAFT} to put it in the game. A drafted faction is not yet yours: the deal decides who plays what.`,
+      detail: `Press Draft beside ${DRAFT} to include it. This adds it to the pool. It does not reserve it for you.`,
       anchor: { kind: 'page', element: draftButton(DRAFT, 'Draft') },
       begin: () => undefined,
       done: () => {
@@ -129,7 +129,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     task({
       id: 'ban',
       task: `Ban the ${BAN}`,
-      detail: `Press Ban beside the ${BAN} to keep them out of this game, whoever drafts them.`,
+      detail: `Press Ban beside the ${BAN}. A banned faction cannot be dealt, even if another player drafts it.`,
       anchor: { kind: 'page', element: draftButton(BAN, 'Ban') },
       begin: () => undefined,
       done: () => {
@@ -139,9 +139,9 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     }),
     task({
       id: 'ready',
-      task: 'Say you are ready',
+      task: 'Ready for the deal',
       detail:
-        'The others have drafted the rest of the six and are ready. Press Ready, top right. Once everyone is ready, the table deals each player one of the drafted factions and a place at the table, at random.',
+        'The other players have made their picks. Press Ready in the top right. When everyone is ready, each player gets a random faction and seat.',
       anchor: { kind: 'page', element: readyButton },
       begin: () => othersDraft(snapshot, players),
       done: () => snapshot().stage === 'swapping',
@@ -152,7 +152,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       task: 'Your faction and seat',
       /* Read as the task shows, after the deal. */
       get detail() {
-        return `You were dealt ${dealt(snapshot)}. Now there are four minutes to trade: anyone may swap their faction and seat with another player, if both agree. Press {Enter} to go on.`;
+        return `You got ${dealt(snapshot)}. You now have four minutes to agree on a trade with another player. A trade swaps both your factions and seats. Press {Enter} to continue.`;
       },
       anchor: { kind: 'page', element: element('.seated-phase-status') },
       ...pressEnter(),
@@ -161,7 +161,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'offer',
       task: 'Offer a trade',
       get detail() {
-        return `Click the ${partner(snapshot)} token in the bar under the table: their window shows their faction and seat. Press Offer trade there. They see your offer as an arc across the table, and can accept it.`;
+        return `Click the ${partner(snapshot)} token below the table, then press Offer trade. That player can accept your offer.`;
       },
       anchor: {
         kind: 'page',
@@ -174,9 +174,9 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     }),
     task({
       id: 'cancel',
-      task: 'Take your offer back',
+      task: 'Cancel the trade offer',
       get detail() {
-        return `Changed your mind? Press Cancel offer in their window, so you keep ${dealt(snapshot)} for the chapters after this one.`;
+        return `Press Cancel offer in the same window to keep ${dealt(snapshot)}.`;
       },
       anchor: { kind: 'page', element: element('button[aria-label^="Cancel offer to"]') },
       begin: () => undefined,
@@ -186,7 +186,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'start',
       task: 'Start the game',
       detail:
-        'The others are ready to play. Press Ready, top right: once everyone is ready, or the four minutes run out, trading ends and the setup begins.',
+        'Press Ready in the top right. Setup begins when everyone is ready or the four-minute trading period ends.',
       anchor: { kind: 'page', element: readyButton },
       begin: () => othersReady(players),
       done: () => tradingOver(snapshot),

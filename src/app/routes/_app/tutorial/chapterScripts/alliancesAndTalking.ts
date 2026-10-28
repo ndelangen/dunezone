@@ -55,7 +55,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'chat',
       task: 'Say hello to House Atreides',
       detail:
-        'The chat bar under the table has a token for every player. Click the Atreides token to open a chat only the two of you read, type a message and press {Enter}.',
+        'Click the Atreides token below the table, type a message and press {Enter}. Only the two of you can read this chat.',
       anchor: {
         kind: 'page',
         element: () =>
@@ -70,16 +70,14 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     task({
       id: 'faction',
       task: 'Look up their faction',
-      detail:
-        'Who are you talking to? Click the Atreides token in the chat’s title. Their faction information opens: the rules they play by, their leaders and their alliance.',
+      detail: 'Click the Atreides token beside the chat title to see their faction rules, leaders and alliance.',
       anchor: { kind: 'page', element: element(`${chatWindow()} header button[aria-label="${PARTNER} info"]`) },
       ...openedWindow(windowShown(FACTION_INFO)),
     }),
     task({
       id: 'offer',
       task: 'Offer them an alliance',
-      detail:
-        'In the faction information, press Offer alliance, the handshake beside their status. An arrow runs from your token to theirs until they answer, and Atreides accepts a moment later.',
+      detail: 'Press Offer alliance, the handshake beside their status. Atreides will accept your offer in a moment.',
       anchor: { kind: 'page', element: buttonIn(FACTION_INFO, 'Offer alliance') },
       begin: () => ({ stop: atreidesAccepts(snapshot, players, partner) }),
       done: allied,
@@ -89,7 +87,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'ally-chat',
       task: 'Talk to your ally',
       detail:
-        'Allies show on the table: both faction tokens now stand on coins in each other’s colour. Close the chat with the × in its title. Your ally has a place of its own on the compass, twice right, so the chat is always at hand: hold {Space}, tap {→} twice and let go, or press {F}.',
+        'The coloured rings under your faction tokens show that you are allies. Close the chat, then press {F} to open it through the ally shortcut. You can also hold {Space}, tap {→} twice and release.',
       anchor: { kind: 'page', element: viaCompass('ally') },
       ...openedWindow(() => document.querySelector(chatWindow()) !== null),
     }),
@@ -97,7 +95,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'break',
       task: 'Break the alliance',
       detail:
-        'Alliances end as they start, by choice. Open the Alliances window by typing: press {Space} to open the controls, type Alliances and press {Enter}. Then press Break alliance, the broken link on your ally’s row.',
+        'Press {Space}, type Alliances and press {Enter}. In the Alliances window, press Break alliance beside your ally.',
       anchor: {
         kind: 'page',
         element: () =>

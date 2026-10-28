@@ -74,8 +74,8 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     }),
     task({
       id: 'slide',
-      task: 'Slide along the board',
-      detail: 'While you are in close, the arrow keys or {W}, {A}, {S} and {D} slide the view. Hold one for a moment.',
+      task: 'Pan across the board',
+      detail: 'When zoomed in, hold an arrow key or {W}, {A}, {S} or {D} to move the view.',
       anchor: { kind: 'table', point: () => [0, 0, 0] },
       ...slid(),
     }),
@@ -90,34 +90,33 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       'look-left',
       'left',
       'Look at the left of the table',
-      'The camera dial, top right of the table, jumps the view. Click its L.'
+      'Click L on the camera dial in the top right to look at the left side of the table.'
     ),
     dialTask(
       'look-bottom',
       'bottom',
       'Look at the bottom of the table',
-      'B on the same dial turns to the rim below the board.'
+      'Click B on the camera dial to look at the bottom of the table.'
     ),
     dialTask(
       'look-right',
       'right',
       'Look at the right of the table',
-      'R on the dial turns to the right side, where the Spice deck lies.'
+      'Click R on the camera dial to look at the Spice deck on the right.'
     ),
     task({
       id: 'close-up',
       task: 'Read a card up close',
       detail:
-        'Point at the Spice deck and hold {Alt}. Its top card shows flat and large beside the pointer; read it, then let go.',
+        'Hover over the Spice deck and hold {Alt} to see its top card up close. Release {Alt} when you have finished reading.',
       anchor: { kind: 'table', point: () => at(spiceDeck()) },
       ...closeUpShown(),
     }),
-    dialTask('look-back', 'map', 'Go back to the map', 'M on the dial brings the whole board back.'),
+    dialTask('look-back', 'map', 'Go back to the map', 'Click M on the camera dial to return to the map.'),
     task({
       id: 'ping',
-      task: 'Show the others a spot',
-      detail:
-        'Point at any territory and press {Tab}. A ripple in your colour shows there for everyone at the table, with a sound.',
+      task: 'Point something out',
+      detail: 'Hover over a territory and press {Tab}. Everyone sees a ripple in your colour and hears a ping.',
       anchor: { kind: 'table', point: () => [0, 0, 0] },
       ...pinged(),
     }),

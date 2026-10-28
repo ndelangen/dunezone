@@ -74,7 +74,7 @@ function stackTasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideT
       id: 'move-one',
       task: 'Move one troop',
       detail:
-        'Quickly drag a troop from your reserves onto an empty part of the board. A quick drag picks up just the top piece.',
+        'Drag a troop from your reserves onto the board. Start dragging straight away to pick up only the top piece.',
       anchor: { kind: 'table', point: () => at(biggestReserve()) },
       begin: () => ({
         seen: players.landings().length,
@@ -95,7 +95,7 @@ function stackTasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideT
       id: 'carry-reserves',
       task: 'Move a whole stack',
       detail:
-        'Press and hold your reserve stack for a moment, then drag it a short distance along the rim and let go. The hold picks up the whole stack. Keep it beside your seat for the next exercise.',
+        'Press and hold your reserve stack briefly before dragging it. This picks up the whole stack. Drop it beside your seat so you can use it in the next step.',
       anchor: { kind: 'table', point: () => at(biggestReserve()) },
       begin: () => ({
         seen: players.landings().length,
@@ -112,9 +112,8 @@ function stackTasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideT
     }),
     task({
       id: 'split',
-      task: 'Split three troops off',
-      detail:
-        'Point at your reserves, on the rim at your seat, and hold {3} on your keyboard for a second. Three troops slide off beside them.',
+      task: 'Split off three troops',
+      detail: 'Hover over your reserves and hold {3} for a second. Three troops form a new stack beside them.',
       anchor: { kind: 'table', point: () => at(biggestReserve()) },
       begin: () => reserves().filter((piece) => piece.items.length === 3).length,
       done: (start) => reserves().filter((piece) => piece.items.length === 3).length > start,
@@ -122,8 +121,7 @@ function stackTasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideT
     task({
       id: 'carry-stack',
       task: 'Carry all three at once',
-      detail:
-        'A quick drag takes only the top troop. Press and hold on the three for a moment, then drag them onto a territory.',
+      detail: 'Press and hold the new stack, then drag all three troops onto a territory.',
       anchor: { kind: 'table', point: () => at(splitStack()) },
       /*
        * The three keep their ids on the move: the step is done once one carry set all three down together and a stack on the board
@@ -147,14 +145,14 @@ function stackTasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideT
       id: 'take-more',
       task: 'Take a few more',
       detail:
-        'Quickly drag one troop off your reserves and keep holding it over them. Press {T}, or right-click, once for each troop to add: they join the one you carry. Then drop them all on a territory.',
+        'Pick up one reserve troop and keep holding it over the stack. Press {T} or right-click to add another troop. Try this a few times, then drop them on the board.',
       anchor: { kind: 'table', point: () => at(biggestReserve()) },
       ...grownCarryLanded(players.landings, onTheBoard),
     }),
     task({
       id: 'join',
-      task: 'Add a troop to them',
-      detail: 'Quickly drag one troop from your reserves and let go right on top of your three. It joins their stack.',
+      task: 'Combine stacks',
+      detail: 'Drag one reserve troop onto the stack of three. It joins the stack when you let go.',
       anchor: { kind: 'table', point: () => at(carried()) },
       begin: () => carried()?.items.length ?? 0,
       done: (start) => (carried()?.items.length ?? 0) > start,
@@ -162,14 +160,14 @@ function stackTasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideT
     task({
       id: 'turn',
       task: 'Turn your stack',
-      detail: 'Point at your troops on the board and press {Q} or {E} on your keyboard. Each press turns them a step.',
+      detail: 'Hover over your troops and press {Q} or {E} to rotate the stack.',
       anchor: { kind: 'table', point: () => at(carried()) },
       ...changedInPlace(carriedOnly, (before, now) => before.orientation !== now.orientation),
     }),
     task({
       id: 'flip',
       task: 'Flip the whole stack',
-      detail: 'Still pointing at them, press {F}. A stack turns over all at once, as a single card does.',
+      detail: 'Hover over the stack and press {F} to flip every troop in it.',
       anchor: { kind: 'table', point: () => at(carried()) },
       ...changedInPlace(carriedOnly, (before, now) => (now.flipRevision ?? 0) > (before.flipRevision ?? 0)),
     }),
@@ -184,7 +182,7 @@ function tokenTasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'token-move',
       task: 'Move your faction token',
       detail:
-        'Your faction token stands on the rim at your seat and marks your place in storm order. Drag it: it slides along the rim and settles in the sector you let go over.',
+        'Your faction token marks your place in storm order. Drag it along the rim and release it over another sector.',
       anchor: { kind: 'table', point: () => at(token()) },
       begin: () => token()?.position.join(),
       done: (start) => token() !== undefined && token()!.position.join() !== start,
@@ -193,7 +191,7 @@ function tokenTasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'token-flip',
       task: 'Flip your faction token',
       detail:
-        'Point at your token and press {F}. Face down, it tells the table you sit something out, such as a round of bidding. {F} again turns it back.',
+        'Hover over your faction token and press {F}. A face-down token can show that you are passing, for example during bidding. Press {F} again to turn it back.',
       anchor: { kind: 'table', point: () => at(token()) },
       begin: () => token()?.flipRevision ?? 0,
       done: (start) => (token()?.flipRevision ?? 0) > start,

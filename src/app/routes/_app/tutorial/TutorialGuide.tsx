@@ -38,6 +38,8 @@ export type GuideTask<Baseline = unknown> = Readonly<{
   task: string;
   /** Where to find it and what it is, in one line. */
   detail: string;
+  /** Introduces the speaking toggle before the learner has chosen whether to use it. */
+  introducesSpeakingMode?: boolean;
   anchor: GuideAnchor;
   /** What the task remembers as it starts, to compare against. */
   begin: (view: GuideView) => Baseline;
@@ -292,19 +294,15 @@ export function TutorialGuide({
             <path d="M5 12.5 9.5 17 19 7" pathLength={1} />
           </svg>
         </span>
-        <div className={styles.railText}>
-          <p className={styles.railTitle}>
-            {index === current && waiting ? 'Setting the table…' : <KeyedText>{item.task}</KeyedText>}
-            {done && <VisuallyHidden> (done)</VisuallyHidden>}
-          </p>
-          <div className={styles.railMore} aria-hidden={!open}>
-            <div className={styles.railBody}>
-              <p className={styles.railDetail}>
-                <KeyedText>{item.detail}</KeyedText>
-              </p>
-              {/* Keyed by the task and the run, so the voice stops as the task changes or the chapter resets. */}
-              {open && <ReadAloud key={`${run}:${item.id}`} text={`${item.task}. ${item.detail}`} />}
-            </div>
+        <p className={styles.railTitle}>
+          {index === current && waiting ? 'Setting the table…' : <KeyedText>{item.task}</KeyedText>}
+          {done && <VisuallyHidden> (done)</VisuallyHidden>}
+        </p>
+        <div className={styles.railMore} aria-hidden={!open}>
+          <div className={styles.railBody}>
+            <p className={styles.railDetail}>
+              <KeyedText>{item.detail}</KeyedText>
+            </p>
           </div>
         </div>
       </>
@@ -349,9 +347,16 @@ export function TutorialGuide({
           <header ref={rail} className={styles.rail} data-tutorial-free aria-label={`${kicker}: ${title}`}>
             <div className={styles.railHead}>
               <Eyebrow>{`${kicker} · ${Math.min(current + 1, tasks.length)} of ${tasks.length}`}</Eyebrow>
-              <Text fz="xl" fw={700}>
-                {title}
-              </Text>
+              <Group justify="space-between" wrap="nowrap" gap="xs">
+                <Text fz="xl" fw={700}>
+                  {title}
+                </Text>
+                <ReadAloud
+                  text={!waiting ? (task?.detail ?? null) : null}
+                  stepKey={`${run}:${taskId ?? 'complete'}`}
+                  introduce={!waiting && !finished && task?.introducesSpeakingMode === true}
+                />
+              </Group>
               <div
                 className={styles.progress}
                 style={

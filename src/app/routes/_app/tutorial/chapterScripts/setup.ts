@@ -62,7 +62,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'prediction',
       task: 'Lock your prediction',
       detail:
-        'Setup runs as steps in the Setup window, and the header names the step. You play the Bene Gesserit, whose step comes first: pick a Predicted winner and a Predicted turn, then press Lock prediction. Only you see the choice.',
+        'You are playing Bene Gesserit. In the Setup window, choose a Predicted winner and Predicted turn, then press Lock prediction. Your prediction is private.',
       /* The faction to pick first, then the button once the choice is complete. */
       anchor: {
         kind: 'page',
@@ -76,16 +76,16 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     }),
     task({
       id: 'hand',
-      task: 'Look at what you start with',
+      task: 'Check your hand',
       detail:
-        'Your prediction is now a card in your hand, beside your leaders, your alliance card and any Extras your faction brings. Press {H} to open Hand & spice.',
+        'Press {H} to open Hand & spice. Your prediction is here, along with your leaders, alliance card and faction extras.',
       anchor: { kind: 'page', element: viaCompass('hand') },
       ...openedWindow(windowShown('hand')),
     }),
     task({
       id: 'to-traitors',
       task: 'Move on to Traitor selection',
-      detail: 'The prediction needs nobody else, so Next phase, top right, moves setup on to its next step.',
+      detail: 'Press Next phase in the top right to begin Traitor selection.',
       anchor: { kind: 'page', element: nextPhaseButton },
       begin: () => undefined,
       done: () => setupIndex() >= 1,
@@ -94,25 +94,25 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'peek-traitors',
       task: 'Look at your traitors',
       detail:
-        'Every seat has five Traitor cards face down in front of it. Right-click the pile in front of yours and choose Peek at the deck: the faces show only to you.',
+        'Each player has five face-down Traitor cards in front of them. Right-click your pile and choose Peek at the deck. Only you can see the faces.',
       anchor: { kind: 'table', point: () => at(myTraitors()) },
       begin: () => undefined,
       done: () => document.querySelector('[role="dialog"][aria-label^="Peeking at"]') !== null,
     }),
     task({
       id: 'keep-traitor',
-      task: 'Keep one',
+      task: 'Keep a traitor',
       detail:
-        'Your faction’s rules say how many traitors you keep; most keep one. Drag the one you keep to the front of the peek, close it, then right-click the pile and choose Draw a card. The rest stay face down on the table.',
+        'Drag the traitor you want to the front of the row, then close the peek. Right-click your pile and choose Draw a card. The remaining cards stay face down. Most factions keep one traitor, but check your faction rules.',
       anchor: { kind: 'table', point: () => at(myTraitors()) },
       begin: () => undefined,
       done: () => traitorsInHand() === 1,
     }),
     task({
       id: 'ready',
-      task: 'Say you are ready',
+      task: 'Ready for the next step',
       detail:
-        'Traitor selection waits for every player. Press Ready, top right; the count beside it climbs as the others confirm.',
+        'Press Ready in the top right when you have chosen your traitor. Setup can continue once every player is ready.',
       anchor: {
         kind: 'page',
         element: () =>
@@ -125,8 +125,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     task({
       id: 'to-troops',
       task: 'Move on to the starting troops',
-      detail:
-        'With everyone ready, press Next phase. The board shows, and the Setup window lists where each faction starts.',
+      detail: "Press Next phase. The Setup window now lists each faction's starting troops and territories.",
       anchor: { kind: 'page', element: nextPhaseButton },
       begin: () => undefined,
       done: () => setupIndex() >= 2,
@@ -135,7 +134,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'troops',
       task: 'Place a starting troop',
       detail:
-        'Your line leads the Setup window: the Bene Gesserit start with one troop in the Polar Sink, the board’s centre. Drag a troop from your reserves, where the arrow points, onto it.',
+        'Bene Gesserit start with one troop in the Polar Sink, at the centre of the board. Drag a troop there from your reserves.',
       anchor: { kind: 'table', point: () => at(myReserves()) },
       begin: myTroopsOnBoard,
       done: (start) => myTroopsOnBoard() > start,

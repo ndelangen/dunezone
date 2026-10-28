@@ -61,7 +61,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     task({
       id: 'shuffle',
       task: 'Shuffle the Spice deck',
-      detail: 'Point at the Spice deck on the right of the table and press {R} on your keyboard.',
+      detail: 'Hover over the Spice deck on the right and press {R} to shuffle it.',
       anchor: { kind: 'table', point: () => at(spice()) },
       begin: () => spice()?.shuffleRevision ?? 0,
       done: (start) => (spice()?.shuffleRevision ?? 0) > start,
@@ -70,7 +70,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'peek',
       task: 'Peek at the Spice deck',
       detail:
-        'Right-click the Spice deck and choose Peek at the deck. Only you see its cards, though the others see that you looked.',
+        'Right-click the Spice deck and choose Peek at the deck. Only you see the cards, but the other players can see that you peeked.',
       anchor: { kind: 'table', point: () => at(spice()) },
       begin: () => undefined,
       done: () => peekedOrder() !== null,
@@ -79,7 +79,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'reorder',
       task: 'Move a card in the deck',
       detail:
-        'Drag a card along the row to a new place, or click it and move it with the arrow keys. The deck keeps the new order.',
+        'Drag a card to another position in the row. You can also select it and use the arrow keys. Your changes set the order of the deck.',
       /* The arrow stops at the peek's edge, so its wedge never lies over the peek's own heading. */
       anchor: { kind: 'page', element: element('[role="dialog"][aria-label^="Peeking at"]') },
       ...movedInPeek(),
@@ -88,7 +88,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'deal',
       task: 'Deal a card to another player',
       detail:
-        'Right-click the Treachery deck on the left of the table, choose Deal a card, then a faction. The card goes straight into their hand.',
+        "Right-click the Treachery deck on the left. Choose Deal a card, then choose a faction. The card goes straight into that player's hand.",
       anchor: { kind: 'table', point: () => at(treachery()) },
       begin: () => othersHold(snapshot()),
       done: (start) => othersHold(snapshot()) > start,
@@ -97,18 +97,18 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     }),
     task({
       id: 'split',
-      task: 'Split three cards off the Spice deck',
+      task: 'Split off three cards',
       detail:
-        'Point at the Spice deck on the right and hold {3} on your keyboard for a second, as you split troops. The top three cards slide off beside it as a pile of their own, still face down.',
+        'Hover over the Spice deck and hold {3} for a second. The top three cards form a separate face-down pile.',
       anchor: { kind: 'table', point: () => at(spice()) },
       begin: () => looseStacks(pieces(), spice(), 3),
       done: (start) => looseStacks(pieces(), spice(), 3) > start,
     }),
     task({
       id: 'take-two',
-      task: 'Pick up two cards in one go',
+      task: 'Pick up two cards',
       detail:
-        'As with troops: swipe the top Treachery card off the deck (press down and move at once), hold it back over the deck and press {T} or right-click: the next card joins it. Drop the two on the table.',
+        'Drag the top Treachery card off the deck, then hold it over the deck again. Press {T} or right-click to add a second card. Drop both on the table.',
       anchor: { kind: 'table', point: () => at(treachery()) },
       /* Holding 2 over the deck, taught just before, makes a pile of two too, but no carry grows on the way. */
       ...grownCarryLanded(players.landings, () => loose(pieces(), treachery())),
