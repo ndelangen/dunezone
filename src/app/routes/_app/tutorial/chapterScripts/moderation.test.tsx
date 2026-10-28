@@ -58,6 +58,7 @@ test('the others vote on a second vote after the first one fails', () => {
     others: () => [],
     landings: () => [],
     captured: () => undefined,
+    capturedPieces: () => [],
   };
   const votes = moderation.tasks(() => view, players).find((step) => step.id === 'votes')!;
   const stop = votes.begin(undefined as never) as () => void;
@@ -84,6 +85,7 @@ test('the first step waits for the Harkonnen player’s information, not another
     others: () => [],
     landings: () => [],
     captured: () => undefined,
+    capturedPieces: () => [],
   };
   const steps = moderation.tasks(() => view, players);
   const open = steps.find((step) => step.id === 'open')!;

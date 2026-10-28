@@ -33,6 +33,7 @@ type Entry = {
   at?: number;
 };
 type Row = {
+  key: string;
   sequence: number;
   class: LogClass;
   template: string;
@@ -158,7 +159,7 @@ export class PublicLog {
     const classes = (Object.keys(LOG_CLASS_TABS) as LogClass[]).filter((entry) => LOG_CLASS_TABS[entry] === tab);
     const rows = this.storage.sql
       .exec<Row>(
-        `SELECT sequence, class, template, people, context, created_at FROM public_log WHERE class IN (${classes.map(() => '?').join(',')}) AND sequence<? ORDER BY sequence DESC LIMIT ?`,
+        `SELECT sequence, key, class, template, people, context, created_at FROM public_log WHERE class IN (${classes.map(() => '?').join(',')}) AND sequence<? ORDER BY sequence DESC LIMIT ?`,
         ...classes,
         before,
         LOG_PAGE_SIZE + 1
@@ -166,7 +167,12 @@ export class PublicLog {
       .toArray();
     return {
       entries: rows.slice(0, LOG_PAGE_SIZE).map((row) => {
-        const text = render(row.template, JSON.parse(row.people) as Person[]);
+        // Old deletion templates did not distinguish a hidden token's name from its public label.
+        const template =
+          row.class === 'deletion' && !row.key.startsWith('deletion:v2:')
+            ? '{0} deleted a piece from the game.'
+            : row.template;
+        const text = render(template, JSON.parse(row.people) as Person[]);
         const issueUrl =
           row.class === 'bug-report'
             ? /https:\/\/github\.com\/ndelangen\/dunezone\/issues\/\d+$/u.exec(text)?.[0]
@@ -297,7 +303,7 @@ function deletionEntries(
   }
   return [
     {
-      key: `deletion:${next.revision}`,
+      key: `deletion:v2:${next.revision}`,
       class: 'deletion',
       template: `{0} deleted ${literal(deletedName(piece))} from the game.`,
       people: [{ userId: viewer.userId, name: viewer.displayName }],

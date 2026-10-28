@@ -172,6 +172,11 @@ function arrowOf(event: KeyboardEvent, query: string, holding: boolean): Arrow |
   return WASD[event.key.toLowerCase()];
 }
 
+/* Safari may end composition before Enter arrives, keeping only its composing key code. */
+function composing(event: KeyboardEvent) {
+  return event.isComposing || event.keyCode === 229;
+}
+
 export function useCompassKeys(keys: CompassKeys) {
   const hold = useRef<Hold>({ down: false, steered: false });
 
@@ -204,6 +209,9 @@ export function useCompassKeys(keys: CompassKeys) {
     }
   };
   const keydown = useEffectEvent((event: KeyboardEvent) => {
+    if (composing(event)) {
+      return;
+    }
     if (keys.open && event.key === 'Tab') {
       event.stopPropagation();
       keepFocus(event, keys.input.current?.closest('dialog') ?? null);
@@ -236,7 +244,7 @@ export function useCompassKeys(keys: CompassKeys) {
     }
     const steered = hold.current.steered;
     hold.current = { down: false, steered: false };
-    if (steered && keys.open) {
+    if (steered && keys.open && !composing(event)) {
       keys.onConfirm();
     }
   });

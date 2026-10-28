@@ -183,6 +183,8 @@ const tableEventSchema = z.object({
   command: z.string(),
   message: z.string(),
   status: z.enum(['accepted', 'rejected']),
+  /* Version 1 uses public labels for hidden pieces. Older messages may contain their names. */
+  publicCopyVersion: z.literal(1).optional(),
 });
 
 export const durableTableSchema = z.object({

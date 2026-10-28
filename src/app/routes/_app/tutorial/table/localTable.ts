@@ -1,3 +1,4 @@
+import { capturedTokenStackKey } from '@shared/play/assetCapture';
 import { spawnableKey } from '@shared/play/inventory';
 import type { SpawnSelection, StoredSpawnContents } from '@shared/play/inventory';
 import { LOG_PAGE_SIZE } from '@shared/play/log';
@@ -438,6 +439,20 @@ export class LocalTable {
   /** The asset a catalogue selection captured on this table, once the page has requested it. */
   capturedAsset(selection: SpawnSelection) {
     return this.captured.get(spawnableKey(selection));
+  }
+
+  /** The selected token's pieces in the learner's projected view, without relying on public stack keys. */
+  capturedPieces(selection: SpawnSelection) {
+    const assetId = this.capturedAsset(selection);
+    if (!assetId) {
+      return [];
+    }
+    const ids = new Set(
+      this.room.snapshot.table.pieces
+        .filter((piece) => piece.stackKey === capturedTokenStackKey(assetId))
+        .map((piece) => piece.id)
+    );
+    return this.frame().snapshot.table.pieces.filter((piece) => ids.has(piece.id));
   }
 
   /** A captured asset as the page's catalogue answer shows it. */

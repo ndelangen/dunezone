@@ -1,6 +1,7 @@
 import { isFactionToken } from './factionToken';
 import { freshTableState, gestureBlockReason, nearestZone, pieceCount } from './model';
 import type { TablePiece, TableState, Vector3Tuple } from './model';
+import { publicPieceLabel } from './peeking';
 import { phaseAt, STANDARD_PHASES, stepPhase, tableProgressFor } from './phases';
 import type { PhaseEntry } from './phases';
 import { placementRules, withRidersCarried } from './pointerRiders';
@@ -161,12 +162,12 @@ export function deletablePiece(piece: TablePiece): boolean {
 export function deletedName(piece: TablePiece): string {
   const [item] = piece.items;
   const name = piece.kind === 'card' && piece.items.length === 1 && item?.faceUp ? item.artwork?.name : undefined;
-  return name ? `${name} card` : piece.label;
+  return name ? `${name} card` : publicPieceLabel(piece);
 }
 
 function deletePiece(state: TableState, piece: TablePiece, actorName: string): TableState {
   if (!deletablePiece(piece)) {
-    throw new GameRejection(`${piece.label} cannot be removed from the game.`);
+    throw new GameRejection(`${publicPieceLabel(piece)} cannot be removed from the game.`);
   }
   return accepted(
     {
@@ -286,7 +287,7 @@ function lockPiece(state: TableState, piece: TablePiece): TableState {
       pieces: state.pieces.map((candidate) => (candidate.id === piece.id ? { ...piece, locked } : candidate)),
     },
     'piece.lock',
-    `${piece.label} ${locked ? 'locked' : 'unlocked'}.`
+    `${publicPieceLabel(piece)} ${locked ? 'locked' : 'unlocked'}.`
   );
 }
 
@@ -323,11 +324,11 @@ export function rotatedPiece(state: TableState, piece: TablePiece, turns: number
 
 function rotatePiece(state: TableState, piece: TablePiece, direction: -1 | 1, steps = 1): TableState {
   if (isFactionToken(piece)) {
-    throw new GameRejection(`${piece.label} always faces the board.`);
+    throw new GameRejection(`${publicPieceLabel(piece)} always faces the board.`);
   }
   const rotated = rotatedPiece(state, piece, direction * steps);
   if (!rotated) {
-    throw new GameRejection(`There is no room to rotate ${piece.label} here.`);
+    throw new GameRejection(`There is no room to rotate ${publicPieceLabel(piece)} here.`);
   }
   return accepted(
     {
@@ -337,7 +338,7 @@ function rotatePiece(state: TableState, piece: TablePiece, direction: -1 | 1, st
       ),
     },
     'piece.rotate',
-    `${piece.label} rotated ${direction > 0 ? 'clockwise' : 'counterclockwise'} by ${steps * 15} degrees.`
+    `${publicPieceLabel(piece)} rotated ${direction > 0 ? 'clockwise' : 'counterclockwise'} by ${steps * 15} degrees.`
   );
 }
 
@@ -389,7 +390,7 @@ function splitPlacement(state: TableState, piece: TablePiece, count: number) {
   const pieces = remainingPieces(state, piece, remaining);
   const position = nearestCollisionFreePosition(split, split.position, pieces);
   if (!position) {
-    throw new GameRejection(`There is no clear space beside ${piece.label}.`);
+    throw new GameRejection(`There is no clear space beside ${publicPieceLabel(piece)}.`);
   }
   split.position = restingPositionAt(position, split);
   split.zoneId = nearestZone(position)?.id ?? null;
@@ -398,7 +399,7 @@ function splitPlacement(state: TableState, piece: TablePiece, count: number) {
 
 function splitDescription(piece: TablePiece, count: number) {
   const [one, many] = pieceUnits(piece);
-  return `${count} ${count === 1 ? one : many} taken from ${piece.label}.`;
+  return `${count} ${count === 1 ? one : many} taken from ${publicPieceLabel(piece)}.`;
 }
 
 function splitPiece(state: TableState, piece: TablePiece, requestedCount: number): TableState {

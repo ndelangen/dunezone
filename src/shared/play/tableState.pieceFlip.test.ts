@@ -36,6 +36,7 @@ describe('flipping cards and tokens', () => {
       command: 'piece.flip',
       message: `${original.label} flipped face down.`,
       status: 'accepted',
+      publicCopyVersion: 1,
     });
     expect(next.nextEventNumber).toBe(3);
     expect(itemIds(next)).toEqual(itemIds(state));
