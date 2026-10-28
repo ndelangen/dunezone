@@ -156,8 +156,9 @@ export const scrolled = (direction: 'in' | 'out') => ({
  * A task that only shows something has nothing to do on the table, so the player moves on with Enter.
  * The press is counted from the moment the task starts, and taken, so it never also presses a button
  * the focus was left on, such as Next phase; in a text field and on the tutorial's own rail Enter keeps its own meaning.
+ * A caller can reject a press while its action is unavailable; Enter is still taken so it cannot activate a table control.
  */
-export const pressEnter = () => ({
+export const pressEnter = (accept: () => boolean = () => true) => ({
   begin: () => {
     const watch = { pressed: false, stop: new AbortController() };
     const press = (event: KeyboardEvent) => {
@@ -168,7 +169,9 @@ export const pressEnter = () => ({
       event.preventDefault();
       event.stopPropagation();
       /* A held Enter is taken too, so it never presses a focused button, but only a fresh press moves on. */
-      watch.pressed ||= !event.repeat;
+      if (!event.repeat && accept()) {
+        watch.pressed = true;
+      }
     };
     window.addEventListener('keydown', press, { capture: true, signal: watch.stop.signal });
     return watch;
