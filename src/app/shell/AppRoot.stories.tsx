@@ -64,5 +64,8 @@ export const HeaderlessPage = meta.story({
 export const FullscreenHeightMobile = meta.story({
   globals: { viewport: { value: 'appMobile' } },
   args: { children: <FullscreenShellPage /> },
-  play: playFullscreenHeight,
+  play: async (context) => {
+    await playFullscreenHeight(context);
+    await expect(context.canvasElement.querySelector('video')).toBeNull();
+  },
 });
