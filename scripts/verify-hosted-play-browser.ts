@@ -1303,14 +1303,14 @@ function treacheryDeck(who: HostedPeer) {
   return deck.id;
 }
 /**
- * Picks one asset in the Shared table inventory's catalogue the way a player does: opens the catalogue, searches the asset's name and clicks its row.
+ * Picks one disc token in the Shared table inventory's catalogue the way a player does: opens the Disc tokens shelf's catalogue, searches the asset's name and clicks its row.
  * The rows are busy until the typed word's own matches list, and a click before that lands on the rows of the search before it, which the picker ignores.
  * A row names its type and owner beside the asset, so the row is found by the name it shows rather than by its whole label.
  */
 async function pickCatalogueAsset(who: HostedPeer, name: string) {
   await openTab(who, 'Shared table inventory');
-  if (await button(who, 'Add from catalogue').count()) {
-    await button(who, 'Add from catalogue').click();
+  if (await button(who, 'Add disc tokens from the catalogue').count()) {
+    await button(who, 'Add disc tokens from the catalogue').click();
   }
   await who.page.getByRole('searchbox', { name: 'Search the catalogue' }).fill(name);
   await who.page
@@ -2046,51 +2046,46 @@ async function seededCustomContent(a: HostedPeer, b: HostedPeer) {
   );
 }
 
-/** Replays earlier stages while another player advances live play, then returns to the current table. */
-async function verifyCheckpointPlayback(a: HostedPeer, b: HostedPeer) {
-  const beforePlayback = requireView(a).snapshot.revision;
-  await openTab(b, 'Replay');
-  await b.page.getByRole('button', { name: 'Replay from start' }).click();
-  await b.page.getByText(/Playback checkpoint 0 of/).waitFor();
-  /* A real game's first checkpoints are its stages before play, stepped from the header; stepping reaches Turn 1. */
-  let checkpoint = 0;
-  while (
-    (await b.page
-      .locator('.seated-header')
-      .getByText(/^Turn 1 of/u)
-      .count()) === 0
-  ) {
-    const later = b.page.getByRole('button', { name: 'Later phase' });
-    /* The last checkpoint disables the button; a click there would wait out Playwright's timeout instead of saying why. */
-    assert.ok(await later.isEnabled(), `Playback ran out of checkpoints at ${checkpoint} before reaching play.`);
-    await later.click();
-    checkpoint += 1;
-    await b.page.getByText(new RegExp(`Playback checkpoint ${checkpoint} of`, 'u')).waitFor();
-  }
-  assert.ok(checkpoint > 0);
-  assert.equal(await b.page.getByRole('button', { name: 'Next phase', exact: true }).isDisabled(), true);
-  assert.equal(await previousPhaseDisabled(b), true);
-  await displayedPhase(b, 0);
+/**
+ * A table review both players agree to shows each of them the same checkpoint and pauses the table, then Resume play returns both to the live table.
+ * Players may not look back alone, so a game in progress offers no Replay.
+ */
+async function verifyTableReview(a: HostedPeer, b: HostedPeer) {
+  const before = requireView(a).snapshot.revision;
   await a.page.getByRole('button', { name: 'Next phase', exact: true }).click();
-  await revision(a, beforePlayback + 1);
-  await revision(b, beforePlayback + 1);
+  await revision(a, before + 1);
+  await revision(b, before + 1);
   await displayedPhase(a, TABLE_PHASES.length);
-  await displayedPhase(b, 0);
-  await b.page.getByRole('button', { name: 'Later phase' }).click();
-  await b.page.getByText(new RegExp(`Playback checkpoint ${checkpoint + 1} of`, 'u')).waitFor();
-  await b.page.getByRole('button', { name: 'Return to live' }).click();
-  /* The live table's cooldown (#1139) can still be running; the controls refresh on its next tick. */
-  await until(
-    () => b.page.getByRole('button', { name: 'Next phase', exact: true }).isEnabled(),
-    'Next phase did not re-enable after returning to live.',
-    20_000
-  );
-  await displayedPhase(b, TABLE_PHASES.length);
+  assert.equal(await windowOf(b, 'Replay').count(), 0);
+  await openTab(b, 'Table review');
+  const historyFrom = [a.rawMessages.length, b.rawMessages.length];
+  await windowOf(b, 'Table review').getByRole('button', { name: 'Ask the table to review' }).click();
+  await a.page.getByRole('group', { name: 'Table review vote' }).getByRole('button', { name: 'Agree' }).click();
+  for (const [index, who] of [a, b].entries()) {
+    await who.page.getByRole('group', { name: 'Table review in progress' }).waitFor();
+    await until(
+      () => who.rawMessages.slice(historyFrom[index]).some((message) => message.type === 'history'),
+      `${who.label} was not shown the reviewed checkpoint.`
+    );
+    assert.equal(await who.page.getByRole('button', { name: 'Next phase', exact: true }).count(), 0);
+  }
+  await a.page
+    .getByRole('group', { name: 'Table review in progress' })
+    .getByRole('button', { name: 'Resume play' })
+    .click();
+  for (const who of [a, b]) {
+    /* The live table's cooldown (#1139) can still be running; the controls refresh on its next tick. */
+    await until(
+      () => who.page.getByRole('button', { name: 'Next phase', exact: true }).isEnabled(),
+      `Next phase did not return for ${who.label} after the review.`,
+      20_000
+    );
+    await displayedPhase(who, TABLE_PHASES.length);
+  }
   passed(
-    'Real phase checkpoint playback steps from drafting into play, is read-only and returns to the current live table'
+    'A table review both players agree to shows each the same checkpoint with no table controls, and Resume play returns both to the live table'
   );
-
-  return beforePlayback;
+  return requireView(a).snapshot.revision;
 }
 
 /** The regular flow, for the broad tabletop interactions the named flows leave out. */
@@ -2240,9 +2235,9 @@ async function verifyRegular() {
   await sharedPhaseFlow(a, b);
   await sharedTrackerFlow(a, b);
   /* The live table sits at Mentat Pause, whose advance is gated on readiness (#1139); readiness
-     is declared before the other player enters read-only playback, where Ready is disabled. */
+     is declared before the table review, which pauses every control. */
   await readyBeforeAdvance(a, b);
-  const beforePlayback = await verifyCheckpointPlayback(a, b);
+  const reviewed = await verifyTableReview(a, b);
 
   const connectionId = requireView(b).viewer.connectionId;
   const oldDocumentSockets = [...b.sockets];
@@ -2253,7 +2248,7 @@ async function verifyRegular() {
   await until(() => requireView(b).viewer.connectionId !== connectionId, 'Reload did not get a fresh connection.');
   await b.page.locator('[data-connection="authorized"]').waitFor();
   assert.equal(requireView(b).viewer.viewerSeat, seatB);
-  assert.equal(requireView(b).snapshot.revision, beforePlayback + 1);
+  assert.equal(requireView(b).snapshot.revision, reviewed);
   assert.equal(requireView(b).snapshot.phase, TABLE_PHASES.length);
   await displayedPhase(b, TABLE_PHASES.length);
   passed('Reload gets a fresh admitted connection while retaining seat and durable revision');

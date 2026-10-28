@@ -373,6 +373,21 @@ export const Help = {
     expect(reports(await lintDiagnostics('probe.stories.tsx', composedStory))).toBe(4);
   });
 
+  test('reports a hover through any user-event instance', async () => {
+    const output = await lintDiagnostics(
+      'probe.stories.tsx',
+      `import { userEvent, within } from 'storybook/test';
+export const Help = {
+  play: async ({ canvasElement }) => {
+    const pointer = userEvent.setup();
+    await pointer.hover(within(canvasElement).getByRole('img', { name: 'Help' }));
+  },
+};
+`
+    );
+    expect(reports(output)).toBe(1);
+  });
+
   test('leaves the kit, which owns the tooltip, and assertions through the accessible description', async () => {
     expect(reports(await lintDiagnostics('probe.stories.tsx', composedStory, 'src/app/ui/control'))).toBe(0);
     const output = await lintDiagnostics(

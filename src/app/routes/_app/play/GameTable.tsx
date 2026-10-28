@@ -95,6 +95,8 @@ type GameTableProps = {
   mapVisible?: boolean;
   /* The header's centre during a stage that says more than its word: the drafting counts and status. */
   stageStatus?: ReactNode;
+  /* The phase's turns beside its words, in play during Shipment and Movement: the factions' tokens in turn order. */
+  phaseTurns?: ReactNode;
   /* Play chrome laid over the scene for a stage, under the header: the drafting ledger. */
   stageOverlay?: ReactNode;
   /* A stage's own panel, leading the Game group: the drafting panel. Its window is flush, so the content insets itself. */
@@ -567,6 +569,7 @@ export function GameTable({
   tableGuidance,
   gameMenu,
   stageStatus,
+  phaseTurns,
   stage,
   mapVisible,
   stageOverlay,
@@ -663,6 +666,7 @@ export function GameTable({
               />
             )}
           </div>
+          {phaseTurns}
         </div>
         <div className="seated-chip seated-chip--game" data-hides-cursor>
           {alliances}

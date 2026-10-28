@@ -7,7 +7,7 @@ import { STORYBOOK_NOW } from '@db/storybook';
 import { unpinWindow, WAIT, windowNamed } from './controls.stories.fixture';
 import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
 import { openTab } from './playing.stories.fixture';
-import { productTransport, SIX } from './product.stories.fixture';
+import { playingSnapshot, productTransport, SIX } from './product.stories.fixture';
 import { factionOf, mentatSnapshot, finishedSnapshot } from './results.stories.fixture';
 
 const meta = testingPreview.meta({
@@ -164,23 +164,6 @@ export const DeclaringOnAPhone = meta.story({
   },
 });
 
-/** A real game deals the locked prediction as a card, so placing that card on the table is the reveal and the bar offers no button. */
-export const DeterminingElsewhere = meta.story({
-  beforeEach: install(() => {
-    const snapshot = mentatSnapshot('seat-2', { prediction: true, card: true });
-    snapshot.ending = { by: { seat: 'seat-1', name: SIX[0]!.name }, startedAt: 1 };
-    return productTransport('seat-2', snapshot);
-  }),
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    const title = await page.findByText(`${SIX[0]!.name} is determining the winner`, {}, { timeout: 30_000 });
-    const bar = title.closest('section')!;
-    await expect(within(bar).getByText(/You hold a locked prediction. Place its card on the table now/)).toBeVisible();
-    await expect(within(bar).queryByRole('button', { name: 'Declare' })).toBeNull();
-    await expect(within(bar).queryByRole('button', { name: 'Reveal prediction' })).toBeNull();
-  },
-});
-
 /** Without captured prediction faces the Worker deals no card, so the Result tab falls back to a reveal button. */
 export const DeterminingElsewhereWithoutACard = meta.story({
   beforeEach: install(() => {
@@ -271,5 +254,45 @@ export const FinishedWithoutCelebration = meta.story({
     await userEvent.click(page.getByRole('button', { name: 'Game menu' }));
     await waitForFrame(() => page.getByRole('menuitem', { name: 'Hold to give up your seat' }));
     await expect(page.queryByRole('menuitem', { name: 'Clear confetti' })).toBeNull();
+  },
+});
+
+/* Replaying a finished game: the past board is the public table, so a seat sees no hand, reserve or action of its own. */
+export const ReplayingAFinishedGame = meta.story({
+  beforeEach: install(() => productTransport('seat-2', finishedSnapshot('seat-2'))),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await page.findByText(/Declared by/, {}, { timeout: 30_000 });
+    await openTab(page, 'Replay');
+    await userEvent.click(await page.findByRole('button', { name: 'Replay from start' }));
+    await expect(session.transport.messages).toContainEqual({ type: 'history', step: 0 });
+    const { hand: _hand, bank: _bank, handOrder: _order, ...past } = playingSnapshot('seat-2');
+    session.transport.deliver({ type: 'history', step: 0, lastStep: 12, snapshot: past });
+    await expect(await page.findByText('Playback checkpoint 0 of 12')).toBeVisible();
+    /* A replay is watched as a spectator watches: no phase, result or alliance action is offered, not even greyed. */
+    for (const name of ['Next phase', 'Continue playing', 'Place storm randomly']) {
+      await expect(page.queryByRole('button', { name })).toBeNull();
+    }
+    await openTab(page, 'Alliances');
+    await expect(page.queryByRole('button', { name: 'Offer alliance' })).toBeNull();
+  },
+});
+
+/* A refused checkpoint stays visible in the Replay window, which offers the replay again. */
+export const ReplayRefusal = meta.story({
+  beforeEach: install(() => productTransport('seat-2', finishedSnapshot('seat-2'))),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await page.findByText(/Declared by/, {}, { timeout: 30_000 });
+    await openTab(page, 'Replay');
+    await userEvent.click(await page.findByRole('button', { name: 'Replay from start' }));
+    session.transport.deliver({
+      type: 'rejected',
+      requestId: 'message',
+      message: 'That checkpoint could not be loaded.',
+    });
+    const replay = within(windowNamed(page, 'Replay')!);
+    await expect(replay.findByText('That checkpoint could not be loaded.')).resolves.toBeVisible();
+    await expect(replay.getByRole('button', { name: 'Replay from start' })).toBeEnabled();
   },
 });

@@ -94,6 +94,24 @@ describe('the spawn picker reads the catalogue', () => {
     expect(nothing).toEqual({ entries: [], hasMore: false, capped: false });
   });
 
+  test('a shelf lists and searches only its own types', async () => {
+    const t = applicationTest();
+    await seedAssets(t, [
+      { type: 'token-tech', name: 'Spice Harvester' },
+      { type: 'deck', name: 'Spice Deck' },
+      { type: 'token-disc', name: 'Karama' },
+      { type: 'token-tech', name: 'Customs' },
+    ]);
+    const tech = await t.query(api.playCatalogue.spawnableAssets, { types: ['token-tech'] });
+    expect(names(tech)).toEqual(['Customs', 'Spice Harvester']);
+
+    const searched = await t.query(api.playCatalogue.spawnableAssets, { q: 'spice', types: ['token-tech'] });
+    expect(names(searched)).toEqual(['Spice Harvester']);
+
+    const every = await t.query(api.playCatalogue.spawnableAssets, { types: [] });
+    expect(names(every)).toEqual(['Customs', 'Karama', 'Spice Deck', 'Spice Harvester']);
+  });
+
   test('an inactive owner names nobody, and an entry whose asset is gone is dropped', async () => {
     const t = applicationTest();
     await seedAssets(t, [

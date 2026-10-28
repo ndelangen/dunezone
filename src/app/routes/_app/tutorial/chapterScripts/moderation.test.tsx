@@ -7,8 +7,8 @@ import { appContentTheme } from '@ui/theme';
 import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
 import { FACTION_INFO } from '../../play/compass/windows';
-import { FactionInfoHeader } from '../../play/multiplayer/FactionInfoHeader';
 import { stubMatchMedia } from '../../play/multiplayer/jsdom.test.fixture';
+import { FactionInfoHeader } from '../../play/panels/factionInfo/FactionInfoHeader';
 import type { TablePlayers } from './chapterScript';
 import { moderation } from './moderation';
 

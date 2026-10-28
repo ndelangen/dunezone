@@ -15,7 +15,7 @@ import { element, openedWindow, task, windowShown } from './guideChecks';
  */
 
 const SHARED = '[data-window="shared"]';
-const SEARCH = `${SHARED} input[placeholder^="A deck, bundle or token"]`;
+const SEARCH = `${SHARED} input[name="catalogue-search"]`;
 /* How long the request waits before another player approves it, so the learner sees it waiting first. */
 const APPROVAL_DELAY_MS = 1800;
 
@@ -35,7 +35,10 @@ const karamaReady = () => {
   return karamaPicked() && request !== null && !request.disabled;
 };
 /* Where to look next for Karama: its row once the picker lists it, else the search, else the button that opens the catalogue. */
-const findKarama = () => karamaOption() ?? document.querySelector(SEARCH) ?? sharedButton('Add from catalogue');
+const findKarama = () =>
+  karamaOption() ??
+  document.querySelector(SEARCH) ??
+  document.querySelector(`${SHARED} [aria-label="Add disc tokens from the catalogue"]`);
 /* New lines join the bottom of the window's list, below what it shows, so the step scrolls its line into view. */
 const showInWindow = (selector: string) => document.querySelector(selector)?.scrollIntoView({ block: 'nearest' });
 
@@ -68,7 +71,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'take',
       task: 'Put a piece on the table',
       detail:
-        'Each line is a piece and how many there are. Drag Supplies! cache out of the window onto the table: it lands face down, for anyone to use.',
+        'Each shelf holds one kind of piece. Drag Supplies! cache out of the window onto the table: it lands face down, for anyone to use.',
       anchor: { kind: 'page', element: element(`${SHARED} [aria-label^="Drag Supplies"]`) },
       begin: shared,
       done: (start) => shared() < start,
@@ -77,7 +80,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'find',
       task: 'Find Karama in the catalogue',
       detail:
-        'Decks, bundles and tokens that people made in the editor can join any game. Press Add from catalogue, search for Karama and pick it. The table checks it, then says how many pieces it adds.',
+        'Decks, bundles and tokens that people made in the editor can join any game. Press the + on the Disc tokens shelf, search for Karama and pick it. The table checks it, then says how many pieces it adds.',
       anchor: { kind: 'page', element: findKarama },
       begin: () => undefined,
       done: karamaReady,
@@ -133,7 +136,7 @@ function approveSoon(snapshot: () => GameSnapshot, players: TablePlayers) {
 const learned = [
   'The Shared table inventory holds the pieces no seat owns',
   'Drag a piece out of it, and it lands face down on the table',
-  'Add from catalogue brings in decks, bundles and tokens made in the editor',
+  "Each shelf's + brings in that kind of piece from the catalogue",
   'A new piece needs one other player to approve it',
 ];
 

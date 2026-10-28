@@ -13,6 +13,7 @@ import { holdsDeckMembership } from '../src/shared/assets/types';
 import { CanonicalFactionStoredObject, toStoredHeroKey } from '../src/shared/factions/schema';
 import { assetSupplySchema, factionDefinitionWireSchema, rulesetSupplySchema } from '../src/shared/play/capture';
 import { isSpawnType, SPAWN_TYPES } from '../src/shared/play/captureTypes';
+import type { SpawnType } from '../src/shared/play/captureTypes';
 import { playDraftableFactionsSchema } from '../src/shared/play/drafting';
 import { SPAWN_PICKER_STEP, spawnableAssetsSchema } from '../src/shared/play/inventory';
 import type { SpawnableAsset } from '../src/shared/play/inventory';
@@ -152,21 +153,41 @@ const DRAFTABLE_FACTION_LIMIT = 500;
 
 /* The ruleset's own factions always make the list; the rest of it holds the newest live factions, in creation order. */
 async function draftCandidates(ctx: QueryCtx, linked: ReadonlySet<Id<'factions'>>) {
-  const rows = await Promise.all([...linked].map((id) => ctx.db.get(id)));
-  const chosen = new Map(
-    rows.filter((row): row is Doc<'factions'> => row !== null && !row.is_deleted).map((row) => [row._id, row])
-  );
+  const chosen = new Map<Id<'factions'>, Doc<'factions'> | null>([...linked].map((id) => [id, null]));
+  const pending = new Set(linked);
   const newest = ctx.db
     .query('factions')
     .withIndex('by_deleted', (q) => q.eq('is_deleted', false))
     .order('desc');
+  /* Linked IDs reserve their original slots and order until the scan or lookup supplies their rows. */
+  const completeLinks = async () => {
+    await Promise.all(
+      [...pending].map(async (id) => {
+        const row = await ctx.db.get(id);
+        if (row && !row.is_deleted) {
+          chosen.set(id, row);
+        } else {
+          chosen.delete(id);
+        }
+      })
+    );
+    pending.clear();
+  };
   for await (const row of newest) {
+    if (chosen.size >= DRAFTABLE_FACTION_LIMIT) {
+      /* Missing and deleted links release their slots before the scan decides whether this row can fill one. */
+      await completeLinks();
+    }
     if (chosen.size >= DRAFTABLE_FACTION_LIMIT) {
       break;
     }
     chosen.set(row._id, row);
+    pending.delete(row._id);
   }
-  return [...chosen.values()].sort((a, b) => a._creationTime - b._creationTime);
+  await completeLinks();
+  return [...chosen.values()]
+    .filter((row): row is Doc<'factions'> => row !== null)
+    .sort((a, b) => a._creationTime - b._creationTime);
 }
 
 /**
@@ -293,8 +314,12 @@ async function nextRow(rows: AsyncIterator<Doc<'assets'>>) {
  * The newest live assets of the spawnable types, newest first across the types.
  * Each type's index is walked from its newest row only as far as the merge needs, so the read is the limit plus one row per type, however many assets there are.
  */
-async function newestSpawnables(ctx: QueryCtx, limit: number): Promise<SpawnableSelection> {
-  const lists = SPAWN_TYPES.map((type) => ({
+async function newestSpawnables(
+  ctx: QueryCtx,
+  types: readonly SpawnType[],
+  limit: number
+): Promise<SpawnableSelection> {
+  const lists = types.map((type) => ({
     rows: ctx.db
       .query('assets')
       .withIndex('by_type_deleted', (q) => q.eq('type', type).eq('is_deleted', false))
@@ -320,11 +345,16 @@ async function newestSpawnables(ctx: QueryCtx, limit: number): Promise<Spawnable
 }
 
 /** The best matches of the asset catalogue's search among the spawnable types, each type's list taken in turn, read back to their live rows. */
-async function searchedSpawnables(ctx: QueryCtx, text: string, limit: number): Promise<SpawnableSelection> {
+async function searchedSpawnables(
+  ctx: QueryCtx,
+  types: readonly SpawnType[],
+  text: string,
+  limit: number
+): Promise<SpawnableSelection> {
   const selection = await selectCatalogueSearch(ctx, {
     kind: 'asset',
-    partition: SPAWN_TYPES[0],
-    partitions: [...SPAWN_TYPES],
+    partition: types[0]!,
+    partitions: [...types],
     text,
     limit,
   });
@@ -363,12 +393,17 @@ export const spawnableAssets = publicQuery({
     q: v.optional(v.string()),
     /** How many rows to return; Load more asks again with a larger one. */
     limit: v.optional(v.number()),
+    /** Only these types, as a shelf of the shared table inventory asks for its own; empty or absent lists every spawnable type. */
+    types: v.optional(v.array(v.union(...SPAWN_TYPES.map((type) => v.literal(type))))),
   },
   returns: zodToConvex(spawnableAssetsSchema),
   handler: async (ctx, args) => {
     const limit = catalogueSearchLimit(args.limit, SPAWN_PICKER_STEP);
     const text = args.q?.trim() ?? '';
-    const selection = text ? await searchedSpawnables(ctx, text, limit) : await newestSpawnables(ctx, limit);
+    const types = args.types?.length ? [...new Set(args.types)] : SPAWN_TYPES;
+    const selection = text
+      ? await searchedSpawnables(ctx, types, text, limit)
+      : await newestSpawnables(ctx, types, limit);
     return {
       entries: await spawnableEntries(ctx, selection.rows),
       ...catalogueSearchReach(selection, limit, SPAWN_PICKER_STEP),

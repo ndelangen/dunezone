@@ -1,5 +1,4 @@
-import { gameMeta, install } from './game.stories.fixture';
-import { productTransport, playingSnapshot as initialSnapshot } from './product.stories.fixture';
+import { gameMeta } from './game.stories.fixture';
 
 export const handAndSpiceMeta = {
   ...gameMeta,
@@ -10,10 +9,3 @@ export const handAndSpiceMeta = {
     },
   ],
 };
-
-export const emptySpiceReserve = install(() =>
-  productTransport('seat-1', {
-    ...initialSnapshot('seat-1'),
-    bank: { factionId: 'house-atreides', balance: 0 },
-  })
-);

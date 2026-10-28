@@ -8,6 +8,7 @@ import type { CaptureSelection, StoredSpawnContents } from './inventory';
 import { storedSpawnContentsSchema } from './inventory';
 import type { StoredPiece } from './model';
 import { GameRejection } from './rejection';
+import { ARTWORK_DESCRIPTION_LIMIT } from './schema';
 import { labelForCount } from './tableState';
 
 type SuppliedMember = AssetSupply['members'][number];
@@ -20,6 +21,14 @@ function definitionsOf({ asset, backToken, backDeck }: Omit<SuppliedMember, 'cou
 function physicalSizeOf(data: unknown): number | undefined {
   const size = (data as { physicalSize?: unknown } | null)?.physicalSize;
   return PhysicalSize.safeParse(size).data;
+}
+
+/* What a tech token does, as its author wrote it on the asset; another type, or a token left undescribed, carries none. */
+function descriptionOf(type: string, data: unknown): string | undefined {
+  const about = (data as { about?: unknown } | null)?.about;
+  return type === 'token-tech' && typeof about === 'string' && about.trim()
+    ? about.trim().slice(0, ARTWORK_DESCRIPTION_LIMIT)
+    : undefined;
 }
 
 /**
@@ -157,6 +166,7 @@ export class AssetCapture {
     this.assertDefinitions(member);
     const front = this.image(member.front);
     const size = isCard ? undefined : physicalSizeOf(asset.data);
+    const description = descriptionOf(asset.type, asset.data);
     const stack =
       type === 'deck'
         ? { label: root.asset.name, kind: 'card' as const, stackKey: `deck:${root.asset.id}`, back: root.back }
@@ -182,6 +192,7 @@ export class AssetCapture {
           name: asset.name,
           type: asset.type,
           ...(size === undefined ? {} : { size }),
+          ...(description ? { description } : {}),
         },
       })),
       stackKey: stack.stackKey,

@@ -23,7 +23,7 @@ export const IncomingOffer = meta.story({
     /* An offer flows across the table as arcs; it is answered in the Alliances tab. */
     await openPanel(canvasElement, 'Alliances');
     await expect(page.findByText('Offers you an alliance')).resolves.toBeVisible();
-    await userEvent.click(await page.findByRole('button', { name: 'Accept' }));
+    await userEvent.click(await page.findByRole('button', { name: 'Accept alliance' }));
     await expect(lastCommand()).toMatchObject({
       action: { kind: 'alliance-accept', factionId: faction(session.transport.snapshot, 'seat-1'), offer: 0 },
     });
@@ -58,7 +58,7 @@ export const FinishedReadOnly = meta.story({
     await openPanel(canvasElement, 'Alliances');
     await expect(await page.findByText('Offers you an alliance')).toBeVisible();
     await expect(
-      page.queryByRole('button', { name: /Offer alliance|Accept|Withdraw offer|Break alliance/ })
+      page.queryByRole('button', { name: /Offer alliance|Accept alliance|Withdraw alliance offer|Break alliance/ })
     ).toBeNull();
   },
 });

@@ -547,6 +547,7 @@ export class RoomProjection {
       ...(snapshot.bidding ? { bidding: snapshot.bidding } : {}),
       ...(snapshot.alliances ? { alliances: snapshot.alliances } : {}),
       ...(snapshot.lastTurn ? { lastTurn: snapshot.lastTurn } : {}),
+      ...(snapshot.movement ? { movement: snapshot.movement } : {}),
       ...(snapshot.tints?.length ? { tints: snapshot.tints } : {}),
       controls: shared.controls,
       ...(spiceTransfers ? { spiceTransfers } : {}),

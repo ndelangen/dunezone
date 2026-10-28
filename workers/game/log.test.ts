@@ -155,21 +155,21 @@ describe('the public log', () => {
     });
     log.recordCommit({
       holders: [],
-      before: at(2, [['house', 'fremen']]),
-      next: at(3, [['house', 'fremen', 'guild']]),
+      before: at(2, []),
+      next: at(3, [['house', 'fremen']]),
       message: command({ kind: 'alliance-accept', factionId: 'house', offer: 0 }),
       viewer: viewer as never,
     });
     log.recordCommit({
       holders: [],
-      before: at(3, [['house', 'fremen', 'guild']]),
-      next: at(4, [['fremen', 'guild']]),
+      before: at(3, [['house', 'fremen']]),
+      next: at(4, []),
       message: command({ kind: 'alliance-break', factionId: 'fremen' }),
       viewer: viewer as never,
     });
     expect(log.page('game', Number.MAX_SAFE_INTEGER).entries.map((entry) => entry.text)).toEqual([
-      'House broke its alliance with Fremen and Guild.',
-      'House, Fremen and Guild are now allied.',
+      'House broke its alliance with Fremen.',
+      'House and Fremen are now allied.',
     ]);
   });
 

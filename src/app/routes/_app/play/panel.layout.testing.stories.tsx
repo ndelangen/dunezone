@@ -1,16 +1,15 @@
 import { testingPreview } from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
-import { coreColors } from '@shared/uiPalette';
 import { expect, userEvent, within } from 'storybook/test';
 
-import { openCompass, windowNamed } from './controls.stories.fixture';
+import { openCompass } from './controls.stories.fixture';
 import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
 import { openPieceMenu, openTab, paintedColor, settled } from './playing.stories.fixture';
 import { productTransport, playingSnapshot as initialSnapshot } from './product.stories.fixture';
 
 const meta = testingPreview.meta({
   ...gameMeta,
-  title: 'Play/Panels/Layout',
+  title: 'Play/Layout',
   /* The stories load the table chunk before they render, so its cold first load falls outside their first wait (#1302). */
   loaders: [
     async () => {
@@ -64,15 +63,13 @@ export const Windows = meta.story({
     await expect(page.queryByRole('region', { name: 'Spice reserve' })).toBeNull();
     await openTab(page, 'Settings');
     await expect(page.getByRole('textbox', { name: 'Last turn' })).toBeVisible();
-    await openTab(page, 'Replay');
-    await expect(page.getByRole('button', { name: 'Replay from start' })).toBeVisible();
     await openTab(page, 'Hand');
     /* The phase controls stay in the header, outside the windows. */
     await expect(page.getByRole('group', { name: 'Phase navigation' }).closest('header')).not.toBeNull();
   },
 });
 
-/** The Play panel and its portaled controls share the core app palette. */
+/** The Play panel and its portaled menu share the core app palette; the tooltip's own surface is the kit's to show. */
 export const SchemeIsland = meta.story({
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
@@ -103,30 +100,12 @@ export const SchemeIsland = meta.story({
     ).toBe(glass);
     await userEvent.keyboard('{Escape}');
     await waitForFrame(() => expect(page.queryByRole('menu')).toBeNull());
-    const raised = paintedColor(island, view.getComputedStyle(island).getPropertyValue('--tip-surface').trim());
-    const help = within(windowNamed(page, 'Spice')!).getByRole('img', { name: 'Help' });
-    /* By its words, as the window's (?) tooltip. */
-    const spiceReserveTip = () =>
-      page.queryAllByRole('tooltip').find((tip) => tip.textContent?.includes('Drop a stack on the Spice Bank disc')) ??
-      null;
-    await userEvent.hover(help);
-    const tooltip = await waitForFrame(async () => {
-      const tip = spiceReserveTip();
-      await expect(tip).not.toBeNull();
-      return tip!;
-    });
-    await expect(raised).toBe(paintedColor(island, coreColors.hover));
-    await expect(view.getComputedStyle(tooltip).backgroundColor).toBe(raised);
-    await expect(view.getComputedStyle(tooltip).color).toBe(paintedColor(island, coreColors.text));
-    await expect(raised).not.toBe(glass);
-    await userEvent.unhover(help);
-    await waitForFrame(() => expect(spiceReserveTip()).toBeNull());
     await expect(paint()).toEqual(tablePaint);
   },
 });
 
-/** Rejections stay visible in the destinations that sent the setting or history request. */
-export const SettingsAndReplayRefusals = meta.story({
+/** A rejection stays visible in the destination that sent the setting. */
+export const SettingsRefusal = meta.story({
   beforeEach: install(() => productTransport('seat-2')),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -142,14 +121,5 @@ export const SettingsAndReplayRefusals = meta.story({
       message: 'The game length could not be changed.',
     });
     await expect(page.findByText('The game length could not be changed.')).resolves.toBeVisible();
-    await openTab(page, 'Replay');
-    await userEvent.click(page.getByRole('button', { name: 'Replay from start' }));
-    session.transport.deliver({
-      type: 'rejected',
-      requestId: 'message',
-      message: 'That checkpoint could not be loaded.',
-    });
-    await expect(page.findByText('That checkpoint could not be loaded.')).resolves.toBeVisible();
-    await expect(page.getByRole('button', { name: 'Replay from start' })).toBeEnabled();
   },
 });

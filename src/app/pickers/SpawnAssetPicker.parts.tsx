@@ -1,7 +1,24 @@
 import { Combobox, ScrollArea, Stack, Text } from '@mantine/core';
-import { ASSET_TYPES } from '@shared/assets/types';
+import { ASSET_TYPES, assetTypeNoun } from '@shared/assets/types';
+import type { SpawnType } from '@shared/play/captureTypes';
 import { spawnableKey } from '@shared/play/inventory';
 import type { SpawnableAsset, SpawnSelection } from '@shared/play/inventory';
+
+/**
+ * What the picker offers, in words: a deck, bundle or token by default, or the types a shelf narrowed it to.
+ * `one` names a single asset, `many` the lot.
+ */
+export function spawnTypeWords(types: readonly SpawnType[]): Readonly<{ one: string; many: string }> {
+  if (types.length === 0) {
+    return { one: 'deck, bundle or token', many: 'decks, bundles or tokens' };
+  }
+  const either = (words: string[]) =>
+    words.length > 1 ? `${words.slice(0, -1).join(', ')} or ${words.at(-1)}` : (words[0] ?? '');
+  return {
+    one: either(types.map((type) => assetTypeNoun(type).toLowerCase())),
+    many: either(types.map((type) => ASSET_TYPES[type].label.toLowerCase())),
+  };
+}
 
 function SpawnAssetOptionRow({ entry }: { entry: SpawnableAsset }) {
   return (
@@ -20,6 +37,8 @@ export type SpawnAssetOptionsProps = {
   entries: SpawnableAsset[];
   /** The asset chosen so far, kept marked while the table checks it. */
   value: SpawnSelection | null;
+  /** The types on offer, which the empty list names. */
+  types: readonly SpawnType[];
   /** Whether the entries are a search's matches rather than the newest assets, which changes what an empty list means. */
   searched: boolean;
   /** The first answer for this search is still on its way. */
@@ -30,7 +49,15 @@ export type SpawnAssetOptionsProps = {
 };
 
 /** The picker's rows, inline in the pane: one floating layer only, never a dropdown of their own. */
-export function SpawnAssetOptions({ entries, value, searched, pending, loading, disabled }: SpawnAssetOptionsProps) {
+export function SpawnAssetOptions({
+  entries,
+  types,
+  value,
+  searched,
+  pending,
+  loading,
+  disabled,
+}: SpawnAssetOptionsProps) {
   if (pending) {
     return (
       <Text role="status" size="sm" c="dimmed">
@@ -41,7 +68,9 @@ export function SpawnAssetOptions({ entries, value, searched, pending, loading, 
   if (entries.length === 0) {
     return (
       <Text role="status" size="sm" c="dimmed">
-        {searched ? 'No deck, bundle or token matches.' : 'The catalogue has no decks, bundles or tokens yet.'}
+        {searched
+          ? `No ${spawnTypeWords(types).one} matches.`
+          : `The catalogue has no ${spawnTypeWords(types).many} yet.`}
       </Text>
     );
   }
@@ -52,14 +81,7 @@ export function SpawnAssetOptions({ entries, value, searched, pending, loading, 
         {entries.map((entry) => {
           const key = spawnableKey(entry);
           return (
-            <Combobox.Option
-              value={key}
-              key={key}
-              active={key === chosen}
-              disabled={disabled}
-              /* The asset a row offers, by type and slug, for a reader that must not go by the names it shows. */
-              data-spawn-asset={key}
-            >
+            <Combobox.Option value={key} key={key} active={key === chosen} disabled={disabled} data-spawn-asset={key}>
               <SpawnAssetOptionRow entry={entry} />
             </Combobox.Option>
           );
