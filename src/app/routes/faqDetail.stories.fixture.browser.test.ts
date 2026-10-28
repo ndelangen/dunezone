@@ -6,7 +6,7 @@ import { expect, test } from 'vite-plus/test';
 
 import type * as FaqFixture from './faqDetail.stories.fixture';
 
-test('the FAQ picker wait finishes a stalled entrance and still rejects a hidden dialog', async () => {
+async function compilePickerFixture() {
   const compiled = await build({
     stdin: {
       contents: "export { openReferencePicker } from './faqDetail.stories.fixture';",
@@ -31,6 +31,11 @@ test('the FAQ picker wait finishes a stalled entrance and still rejects a hidden
       },
     ],
   });
+  return compiled.outputFiles[0]!.text;
+}
+
+test('the FAQ picker wait finishes a stalled entrance and still rejects a hidden dialog', async () => {
+  const source = await compilePickerFixture();
   const browser = await chromium.launch();
   try {
     for (const hidden of [false, true]) {
@@ -42,7 +47,7 @@ test('the FAQ picker wait finishes a stalled entrance and still rejects a hidden
             [role=dialog] { animation: enter 1000s paused; opacity: 1; }
           </style>
           <h1>When should we declare a Karama card?</h1><button>Add references</button>`);
-        await page.addScriptTag({ content: compiled.outputFiles[0]!.text });
+        await page.addScriptTag({ content: source });
         await page.evaluate((hide) => {
           document.querySelector('button')!.addEventListener('click', () => {
             const picker = document.createElement('div');
