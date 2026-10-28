@@ -90,11 +90,28 @@ export const KeepsDoneInPlace = meta.story({
     const first = order[0]!;
     const second = order[1]!;
     const last = order.at(-1)!;
+    /* Report each boundary separately if the order changes under CI load. */
+    const checkOrder = async (stage: string) => {
+      const tokens = canvas.getAllByRole('button');
+      const detail = JSON.stringify({
+        stage,
+        calls: args.onOrder.mock.calls,
+        tokens: tokens.map((token) => ({
+          name: token.getAttribute('aria-label'),
+          current: token.getAttribute('aria-current'),
+          box: token.getBoundingClientRect().toJSON(),
+        })),
+      });
+      await expect(tokens[0], detail).toHaveAccessibleName(names[first]!);
+      await expect(canvas.getByRole('button', { name: names[second] }), detail).toHaveAttribute('aria-current', 'step');
+    };
     await frame();
+    await checkOrder('before dragging');
     await dragOnto(
       canvas.getByRole('button', { name: names[last] }),
       canvas.getByRole('button', { name: names[first] })
     );
+    await checkOrder('after dropping onto the finished faction');
     await dragOnto(
       canvas.getByRole('button', { name: names[first] }),
       canvas.getByRole('button', { name: names[last] })
@@ -102,8 +119,7 @@ export const KeepsDoneInPlace = meta.story({
     for (const [arranged] of args.onOrder.mock.calls) {
       await expect(arranged[0]).toBe(first);
     }
-    await expect(canvas.getAllByRole('button')[0]).toHaveAccessibleName(names[first]!);
-    await expect(canvas.getByRole('button', { name: names[second] })).toHaveAttribute('aria-current', 'step');
+    await checkOrder('after dragging the finished faction');
   },
 });
 

@@ -29,6 +29,7 @@ const startButton = (seat: string | undefined) =>
       );
 
 function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[] {
+  const continueReview = pressEnter();
   const seats = () => snapshot().roster?.seats ?? [];
   const seatOf = (faction: string) => seats().find((seat) => seat.faction?.name === faction)?.id;
   const quietSeat = () => seatOf(QUIET);
@@ -40,7 +41,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'game-log',
       task: 'Check the Game log',
       detail:
-        'The table has moved into Spice Blow, but someone disputes the position at the start of Storm. Press {Space}, type Game log and press {Enter}. The log records public events and phase changes.',
+        'Someone disputes what happened at the start of Storm. Press {Space}, type Game log and press {Enter} to check the public events and phase changes.',
       anchor: { kind: 'page', element: element('[data-compass-launcher]') },
       begin: () => undefined,
       done: () => document.querySelector('[data-window="game-log"]') !== null,
@@ -49,7 +50,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'review-propose',
       task: 'Ask to review Storm',
       detail:
-        'Press {Space}, type Table review and press {Enter}. Use Earlier checkpoint to choose Storm in Turn 1, then Ask the table to review. If you choose another checkpoint, Withdraw and try again. Your proposal counts as your agreement.',
+        'Press {Space}, type Table review and press {Enter}. Use Earlier checkpoint to select Turn 1, Storm, then press Ask the table to review. If you picked the wrong checkpoint, withdraw the request and try again.',
       anchor: {
         kind: 'page',
         element: () =>
@@ -60,22 +61,23 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     }),
     task({
       id: 'review-majority',
-      task: 'A review needs the table to agree',
+      task: 'Agree to a review',
       detail:
-        'More than half of the seated players must agree before anyone looks back. Others can Agree or Decline; the proposer can Withdraw. Press {Enter} to let the others answer.',
+        'A review needs agreement from more than half the seated players. Your request counts as your agreement. Other players can agree or decline. If you withdraw the request, ask to review Turn 1, Storm again. Press {Enter} to let them respond.',
       anchor: { kind: 'page', element: element('[aria-label="Table review vote"]') },
-      ...pressEnter(),
+      ...continueReview,
+      done: (watch) => snapshot().review?.step === 0 && continueReview.done(watch),
     }),
     task({
       id: 'review-votes',
       task: 'Watch the review vote',
       detail:
-        'The others agree one at a time. When the majority is reached, everyone sees the same saved public position and play pauses.',
+        'The other players are agreeing now. Once a majority agrees, play pauses and everyone sees the saved public position. If you withdraw the request, ask to review Turn 1, Storm again.',
       anchor: { kind: 'page', element: element('[data-window="review"]') },
       begin: () => {
         const timer = setInterval(() => {
           const review = snapshot().review;
-          if (!review || review.startedAt !== null) {
+          if (!review || review.step !== 0 || review.startedAt !== null) {
             return;
           }
           const seat = players
@@ -87,14 +89,14 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
         }, BALLOT_INTERVAL_MS);
         return () => clearInterval(timer);
       },
-      done: () => snapshot().review?.startedAt != null,
+      done: () => snapshot().review?.step === 0 && snapshot().review?.startedAt != null,
       finish: (stop) => stop(),
     }),
     task({
       id: 'review-discuss',
       task: 'Discuss the saved position',
       detail:
-        'You are looking at Storm together. Nobody can move pieces or peek at cards while the review runs. Private hands and plans stay hidden. Discuss the disagreement out loud or in table chat. This view does not undo any moves. Press {Enter} when you are ready to resume.',
+        'You are all looking at the Storm checkpoint. Pieces cannot move, peeking is disabled, and private hands and plans stay hidden. Use table chat or talk aloud to resolve the dispute. Press {Enter} when you are ready to resume.',
       anchor: { kind: 'page', element: element('[aria-label="Table review in progress"]') },
       ...pressEnter(),
     }),
@@ -102,7 +104,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'review-resume',
       task: 'Resume the current game',
       detail:
-        'Press Resume play in the header or Table review window. Any seated player can resume. Everyone returns to the current Spice Blow position; the review has changed no pieces.',
+        'Press Resume play. Any seated player can do this. You all return to the live Spice Blow position. Reviewing an earlier position does not undo any moves.',
       anchor: {
         kind: 'page',
         element: () =>
@@ -114,9 +116,9 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     }),
     task({
       id: 'open',
-      task: 'Open the Harkonnen player’s information',
+      task: 'Open the player details',
       detail:
-        'Now a different problem: the Harkonnen player has not moved or written in an hour, and the game is stuck waiting on them. Click the Harkonnen token on the chat bar under the table, then the token in the chat’s title: their faction information opens.',
+        'Suppose the Harkonnen player has stopped responding. Click their token below the table, then click the token beside the chat title to open their details.',
       anchor: {
         kind: 'page',
         element: () =>
@@ -130,7 +132,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'start',
       task: 'Start a removal vote',
       detail:
-        'Press Start removal vote, the crossed-out person beside their name. Every player sees the vote at once in this window, and the player’s token on the chat bar is marked. Starting it counts as your own Remove.',
+        'Press Start removal vote beside their name. The other players will see the vote, and your Remove vote is counted automatically.',
       anchor: { kind: 'page', element: () => startButton(quietSeat()) },
       begin: () => undefined,
       done: () => vote() !== undefined,
@@ -138,7 +140,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     task({
       id: 'majority',
       task: 'How a vote is decided',
-      detail: `More than half of the whole table must vote Remove, the quiet player included, though they cannot vote on themselves. At ${playerCount()} players that is ${removalThreshold(playerCount())} Remove votes. The vote fails as soon as enough players vote Keep that it can no longer get there, and a table of fewer than three players cannot remove anyone. Press {Enter} to let the others vote.`,
+      detail: `Removing a player needs more than half the seats to vote Remove. With ${playerCount()} players, that means ${removalThreshold(playerCount())} votes. The player being removed cannot vote. A vote fails if enough players choose Keep, and removal is unavailable with fewer than three players. Press {Enter} to let the others vote.`,
       anchor: { kind: 'page', element: element(`[data-window="${FACTION_INFO}"]`) },
       ...pressEnter(),
     }),
@@ -146,7 +148,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'votes',
       task: 'Watch the others vote',
       detail:
-        'Each player votes from the same window: Remove, Keep, or Withdraw to take their ballot back. The vote ends the moment the count decides it; if it fails, start another the same way.',
+        'Players can choose Remove or Keep, or withdraw their vote. The vote ends as soon as the result is decided. If it fails, start another removal vote to continue this exercise.',
       anchor: { kind: 'page', element: element(`[data-window="${FACTION_INFO}"]`) },
       begin: () => voteInTurn(players, vote, seatOf),
       done: () => vote() === undefined && !seated(),
@@ -156,7 +158,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'vacant',
       task: 'Their seat is open',
       detail:
-        'The Harkonnen seat is empty now; its faction and pieces stay on the table. Someone watching can ask for the seat, and a player lets them in. Press {Enter} to check the record.',
+        'The Harkonnen seat is now open. Its faction and pieces stay on the table for a replacement player. A spectator can request the seat, and a seated player can approve them. Press {Enter} to continue.',
       anchor: { kind: 'page', element: element(`[data-window="${FACTION_INFO}"]`) },
       ...pressEnter(),
     }),
@@ -164,7 +166,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'audit',
       task: 'Read the Audit record',
       detail:
-        'Press {Space}, type Audit and press {Enter}. It records how the review and removal votes ended, and who left a seat.',
+        'Press {Space}, type Audit and press {Enter}. Check the record of the review, the removal vote and the player leaving their seat.',
       anchor: { kind: 'page', element: element('[data-compass-launcher]') },
       begin: () => undefined,
       done: () => document.querySelector('[data-window="audit"]') !== null,

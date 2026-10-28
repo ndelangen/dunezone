@@ -134,15 +134,14 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'open-hand',
       task: 'Open your hand',
       detail:
-        'You play House Atreides here. Press {H}, or {Space}, then {←} and {Space} again: your Kwisatz Haderach card and its counter are there.',
+        'You are playing House Atreides. Press {H} to open your hand and find the Kwisatz Haderach card and its counter.',
       anchor: { kind: 'page', element: viaCompass('hand') },
       ...openedWindow(windowShown('hand')),
     }),
     task({
       id: 'pin-hand',
       task: 'Keep your hand open',
-      detail:
-        'Pin it to the bottom left with the button in its title, or press {[}. It stays open beside the next window.',
+      detail: 'Use the left pin beside the window title, or press {[}, to keep your hand open in the bottom left.',
       anchor: { kind: 'page', element: element('[aria-label="Pin to the bottom left"]') },
       begin: () => null,
       done: () => document.querySelector('[data-side="left"][data-window="hand"]') !== null,
@@ -150,34 +149,31 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     task({
       id: 'open-zone',
       task: 'Open your private side-table',
-      detail:
-        'Press {J}, or find it twice left on the compass: {Space}, then {←} {←} and {Space}. Nobody else ever sees it.',
+      detail: 'Press {J} to open your private side-table. Only you can see the pieces you place here.',
       anchor: { kind: 'page', element: viaCompass('hidden') },
       ...openedWindow(windowShown('hidden-zone')),
     }),
     task({
       id: 'card',
-      task: 'Drag the Kwisatz Haderach card onto the side-table',
+      task: 'Place the Kwisatz Haderach card',
       detail:
-        'It tracks the troops you lose in battles. Drag it out of your hand and drop it on the side-table’s felt.',
+        'Drag the Kwisatz Haderach card from your hand onto the felt. You will use it to track troops lost in battle.',
       anchor: { kind: 'page', element: element(inHand(CARD)) },
       begin: () => null,
       done: () => spotOf(CARD) !== undefined,
     }),
     task({
       id: 'counter',
-      task: 'Move the Battle Loss Counter there too',
-      detail:
-        'The tiny token is the marker for the card’s track. This time right-click it in your hand and choose Move to private side-table.',
+      task: 'Add the Battle Loss Counter',
+      detail: 'Right-click the Battle Loss Counter in your hand and choose Move to private side-table.',
       anchor: { kind: 'page', element: element(inHand(COUNTER)) },
       begin: () => null,
       done: () => spotOf(COUNTER) !== undefined,
     }),
     task({
       id: 'on-track',
-      task: 'Lay the counter on the card’s track',
-      detail:
-        'Drag the tiny counter onto the row of numbered spaces at the foot of the card. Pieces stay exactly where you lay them, which is what the side-table is for.',
+      task: 'Place the counter on the track',
+      detail: 'Drag the counter onto the numbered track at the bottom of the card. It stays wherever you place it.',
       anchor: { kind: 'page', element: element(onSideTable(COUNTER)) },
       begin: () => null,
       done: () => tracked(onTrack) === true,
@@ -185,8 +181,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     task({
       id: 'zoom',
       task: 'Zoom in on the track',
-      detail:
-        'Scroll over the counter to bring the track up close. Drag the felt to look around, and double-click to zoom back out.',
+      detail: 'Scroll over the counter to zoom in. Drag the felt to pan, or double-click to zoom out again.',
       anchor: { kind: 'page', element: element(onSideTable(COUNTER)) },
       begin: () => null,
       done: () =>
@@ -194,8 +189,8 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     }),
     task({
       id: 'first-loss',
-      task: 'You lost a troop in battle: put the counter on space 1',
-      detail: 'Drag the counter onto the first space of the track. Up close, it lands exactly where you mean.',
+      task: 'Record one troop lost',
+      detail: 'Suppose you lost a troop in battle. Drag the counter onto space 1.',
       anchor: { kind: 'page', element: element(onSideTable(COUNTER)) },
       /* A counter already laid on space 1 at table size counts at once: the learner is never asked to lay it where it lies. */
       begin: () => null,
@@ -203,9 +198,8 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     }),
     task({
       id: 'more-losses',
-      task: 'You lost 2 more: move it to space 3',
-      detail:
-        'Every troop lost in battle moves it one space. After 7 you gain the Kwisatz Haderach, so the card always shows how close you are.',
+      task: 'Record two more losses',
+      detail: 'Move the counter to space 3. At seven troops lost in battle, you gain the Kwisatz Haderach.',
       anchor: { kind: 'page', element: element(onSideTable(COUNTER)) },
       begin: () => null,
       done: () => tracked(spaceUnder) === 3,

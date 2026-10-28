@@ -1,4 +1,5 @@
 import { testingPreview } from '@sb/preview';
+import { waitForFrame } from '@sb/storyWaits';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { pageStoryMeta } from '../../storybookConfig';
@@ -27,7 +28,7 @@ export const PlayedThrough = meta.story({
     const document = canvasElement.ownerDocument;
     const page = within(document.body);
     const step = (title: string, timeout = 30_000) =>
-      waitFor(() => expect(currentStep(canvasElement)).toContain(title), { timeout });
+      waitForFrame(() => expect(currentStep(canvasElement)).toContain(title), { timeout });
     await page.findByRole('banner', { name: 'Chapter 19: Moderation and disputes' }, { timeout: 60_000 });
     const openWindow = async (name: string) => {
       await userEvent.keyboard(' ');
@@ -36,7 +37,7 @@ export const PlayedThrough = meta.story({
     };
     const enterAt = async (title: string) => {
       await step(title);
-      await waitFor(
+      await waitForFrame(
         async () => {
           if (currentStep(canvasElement).includes(title)) {
             await userEvent.keyboard('{Enter}');
@@ -53,12 +54,19 @@ export const PlayedThrough = meta.story({
     await userEvent.click(await page.findByRole('button', { name: 'Earlier checkpoint' }));
     await expect(page.getByRole('slider', { name: 'Checkpoint' })).toHaveAttribute('aria-valuenow', '0');
     await userEvent.click(page.getByRole('button', { name: 'Ask the table to review' }));
-    await enterAt('A review needs the table to agree');
+    await step('Agree to a review');
+    await userEvent.click(page.getAllByRole('button', { name: 'Withdraw' })[0]!);
+    await userEvent.keyboard('{Enter}');
+    await waitForFrame(() => expect(currentStep(canvasElement)).toContain('Agree to a review'));
+    await userEvent.click(await page.findByRole('button', { name: 'Earlier checkpoint' }));
+    await expect(page.getByRole('slider', { name: 'Checkpoint' })).toHaveAttribute('aria-valuenow', '0');
+    await userEvent.click(page.getByRole('button', { name: 'Ask the table to review' }));
+    await enterAt('Agree to a review');
     await step('Discuss the saved position');
     await expect(page.getByRole('group', { name: 'Table review in progress' })).toBeVisible();
     await enterAt('Discuss the saved position');
     await userEvent.click(page.getAllByRole('button', { name: 'Resume play' })[0]!);
-    await step('Open the Harkonnen player’s information', 60_000);
+    await step('Open the player details', 60_000);
 
     const token = await waitFor(
       () => {

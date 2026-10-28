@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
 /*
  * Reading a task aloud, with the browser's own voice: no server, and nothing to download.
@@ -45,20 +45,24 @@ export function useSpeech() {
   const [speaking, setSpeaking] = useState(false);
   /* The utterance under way. The browser drops its events once nothing holds it, so it is held here until it ends. */
   const current = useRef<SpeechSynthesisUtterance | null>(null);
+  const pending = useRef<string | null>(null);
   /* Known only in the browser; the server renders no voice, so the page it sends matches the first render. */
   const supported = useSyncExternalStore(noChanges, hasVoice, noVoice);
 
-  const stop = () => {
+  const stop = useCallback(() => {
+    pending.current = null;
     current.current = null;
     setSpeaking(false);
     synthesis()?.cancel();
-  };
+  }, []);
 
-  const speak = (text: string) => {
+  const speak = useCallback((text: string) => {
     const voice = synthesis();
     if (!voice) {
       return;
     }
+    pending.current = null;
+    current.current = null;
     voice.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'en';
@@ -75,14 +79,24 @@ export function useSpeech() {
       }
     };
     utterance.addEventListener('end', ended);
-    utterance.addEventListener('error', ended);
+    utterance.addEventListener('error', (event) => {
+      if (current.current !== utterance) {
+        return;
+      }
+      ended();
+      /* A fresh page may require an interaction before speech; only the current step may retry. */
+      if (event.error === 'not-allowed') {
+        pending.current = text;
+      }
+    });
     current.current = utterance;
     setSpeaking(true);
     voice.speak(utterance);
-  };
+  }, []);
 
   useEffect(() => {
     const quiet = () => {
+      pending.current = null;
       current.current = null;
       synthesis()?.cancel();
     };
@@ -91,12 +105,21 @@ export function useSpeech() {
       quiet();
       setSpeaking(false);
     };
+    const retry = () => {
+      if (pending.current !== null) {
+        speak(pending.current);
+      }
+    };
     window.addEventListener('pagehide', leave);
+    window.addEventListener('pointerdown', retry);
+    window.addEventListener('keydown', retry);
     return () => {
       window.removeEventListener('pagehide', leave);
+      window.removeEventListener('pointerdown', retry);
+      window.removeEventListener('keydown', retry);
       quiet();
     };
-  }, []);
+  }, [speak]);
 
   return { supported, speaking, speak, stop };
 }

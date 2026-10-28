@@ -31,25 +31,24 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'back',
       task: 'Step back to the Storm',
       detail:
-        'The others have just advanced to Spice Blow. To correct a phase change, open the small arrow beside Next phase and choose Previous phase. Everyone sees the step back.',
+        'The game just advanced to Spice Blow. Open the arrow beside Next phase and choose Previous phase to return to Storm.',
       anchor: { kind: 'page', element: element('[aria-label="More phase actions"]') },
       begin: () => undefined,
       done: () => phase().id === 'storm',
     }),
     task({
       id: 'to-pause',
-      task: 'Play the turn through to the Mentat Pause',
-      detail:
-        'Press Next phase once for each phase: the header walks through Spice Blow, CHOAM Charity, Bidding, Revival, Shipment and Movement, Battle and Spice Collection.',
+      task: 'Advance to Mentat Pause',
+      detail: 'Keep pressing Next phase until you reach Mentat Pause, the last phase of the turn.',
       anchor: { kind: 'page', element: nextPhaseButton },
       begin: () => undefined,
       done: () => phase().id === 'mentat-pause',
     }),
     task({
       id: 'ready',
-      task: 'Say you are ready',
+      task: 'Ready for the next turn',
       detail:
-        'The Mentat Pause waits for every player. Watch the count on Ready climb as the others confirm, then press Ready yourself.',
+        'Mentat Pause waits for everyone to be ready. Press Ready. The count shows how many players have confirmed.',
       anchor: {
         kind: 'page',
         element: () =>
@@ -64,8 +63,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     task({
       id: 'turn-2',
       task: 'Start turn 2',
-      detail:
-        'With everyone ready, Next phase opens again. Press it: the turn counter moves on and the Storm starts the new turn.',
+      detail: 'Now that everyone is ready, press Next phase to start the Storm phase of turn 2.',
       anchor: { kind: 'page', element: nextPhaseButton },
       begin: () => undefined,
       done: () => phase().turn === 2 && phase().id === 'storm',

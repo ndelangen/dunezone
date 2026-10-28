@@ -1,7 +1,21 @@
-/* Sits beside the task's explanation, level with its first line. */
+/* The speaking toggle stays beside the chapter title. */
 .button {
   flex: none;
-  margin-top: 0.1rem;
+}
+
+/* The Welcome introduction calls attention to this choice even when reduced motion is preferred. */
+.button[data-attention] {
+  animation: invite 1.8s ease-in-out infinite;
+}
+
+@keyframes invite {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.18);
+  }
 }
 
 .speaking {

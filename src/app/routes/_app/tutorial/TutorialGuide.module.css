@@ -112,9 +112,10 @@
 }
 
 .railStep {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-md);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  column-gap: var(--space-sm);
   transition:
     filter var(--pace) var(--ease),
     opacity var(--pace) var(--ease),
@@ -137,15 +138,16 @@
   display: inline-grid;
   flex: none;
   place-items: center;
-  width: 1.35rem;
-  height: 1.35rem;
+  width: 1.2rem;
+  height: 1.2rem;
   margin-top: 0.1rem;
   border-radius: 50%;
   background: transparent;
   box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--color-text) 35%, transparent);
   color: var(--color-muted);
   font-size: 0.75rem;
-  font-weight: 700;
+  font-family: "C_Advokat_Modern", serif;
+  font-weight: 400;
   font-variant-numeric: tabular-nums;
   transition:
     width var(--pace) var(--ease),
@@ -158,9 +160,9 @@
 }
 
 .railStep[data-state="current"] .step {
-  width: 2rem;
-  height: 2rem;
-  margin-top: 0;
+  width: 1.6rem;
+  height: 1.6rem;
+  margin-top: 0.1rem;
   background: var(--color-caution-inverse);
   box-shadow: inset 0 0 0 0 transparent;
   color: var(--color-ink);
@@ -241,9 +243,10 @@
 .railText {
   display: grid;
   min-width: 0;
+  grid-column: 1 / -1;
 }
 
-.railText p {
+.railStep p {
   margin: 0;
 }
 
@@ -267,6 +270,7 @@
 
 /* What the task at hand says about where; it unfolds under the title as the task opens and folds away as it is done. */
 .railMore {
+  grid-column: 1 / -1;
   display: grid;
   grid-template-rows: 0fr;
   opacity: 0;
@@ -291,18 +295,14 @@
     visibility 0s;
 }
 
-/* The task's explanation, with the button that reads the task aloud beside it. */
+/* The description uses the rail's full width below the number and title. */
 .railBody {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-xs);
   min-height: 0;
   overflow: hidden;
   padding-top: var(--space-xs);
 }
 
 .railDetail {
-  flex: 1;
   min-width: 0;
   font-size: 1.15rem;
   line-height: 1.5;
@@ -338,8 +338,8 @@
 }
 
 /* Without motion every state shows at once. */
-.guide[data-motion="reduce"] *,
-.guide[data-motion="reduce"] *::after {
+.guide[data-motion="reduce"] *:not([data-attention]),
+.guide[data-motion="reduce"] *:not([data-attention])::after {
   transition: none !important;
   animation: none !important;
 }

@@ -39,7 +39,7 @@ export const PlayedThrough = meta.story({
     await userEvent.click(page.getAllByRole('button', { name: 'Later phase' })[0]!);
     await step('Return to the live table');
     await userEvent.click(page.getAllByRole('button', { name: 'Return to live' })[0]!);
-    await step('Take it back and play on');
+    await step('Continue playing');
     await userEvent.click(await page.findByRole('button', { name: 'Continue playing' }));
     await step('Replay closes when play resumes');
     await expect(page.queryByRole('button', { name: 'Replay from start' })).toBeNull();

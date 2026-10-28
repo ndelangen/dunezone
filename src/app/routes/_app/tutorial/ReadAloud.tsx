@@ -1,5 +1,7 @@
+import { KeyedText } from '@ui/content/Kbd';
 import { IconAction } from '@ui/control/IconAction';
-import { Volume2 } from 'lucide-react';
+import { Volume2, VolumeX } from 'lucide-react';
+import { useEffect, useEffectEvent, useState } from 'react';
 import type { MouseEvent } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
@@ -19,13 +21,83 @@ function Speaking() {
   );
 }
 
-/**
- * Reads a text aloud on a press, with its key caps said by name, and stops at once on the next press.
- * The voice stops too as the button goes;
- * where the browser has no voice there is no button.
- */
-export function ReadAloud({ text }: Readonly<{ text: string }>) {
+const PREFERENCE = 'dunezone-tutorial:speaking-mode';
+
+/* A missing or invalid preference leaves the Welcome invitation available. */
+function rememberedMode(): boolean | null {
+  try {
+    const stored = localStorage.getItem(PREFERENCE);
+    if (stored === 'true') {
+      return true;
+    }
+    return stored === 'false' ? false : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Keeps the learner's speaking preference while each active step supplies its description. */
+export function ReadAloud({
+  text,
+  stepKey,
+  introduce = false,
+}: Readonly<{ text: string | null; stepKey: string; introduce?: boolean }>) {
   const speech = useSpeech();
+  const [preference, setPreference] = useState(rememberedMode);
+  const enabled = preference === true;
+  const shouldSpeak = enabled || (introduce && preference === null);
+  const { supported, speak, stop } = speech;
+
+  useEffect(() => {
+    if (preference !== null) {
+      try {
+        localStorage.setItem(PREFERENCE, String(preference));
+      } catch {
+        /* Blocked storage still permits a choice for this chapter. */
+      }
+    }
+  }, [preference]);
+
+  useEffect(() => {
+    if (supported && text && shouldSpeak) {
+      speak(spokenText(text));
+    }
+    return stop;
+  }, [supported, text, stepKey, shouldSpeak, speak, stop]);
+
+  const changeMode = () => {
+    if (enabled) {
+      stop();
+    }
+    setPreference(!enabled);
+  };
+  const keyboardToggle = useEffectEvent(changeMode);
+  useEffect(() => {
+    if (!supported) {
+      return;
+    }
+    const press = (event: KeyboardEvent) => {
+      const target = event.target;
+      if (
+        event.key.toLowerCase() !== 'z' ||
+        event.defaultPrevented ||
+        event.repeat ||
+        event.isComposing ||
+        event.ctrlKey ||
+        event.metaKey ||
+        event.altKey ||
+        (target instanceof HTMLElement &&
+          (target.isContentEditable || target.closest('input, textarea, select, [contenteditable="true"]')))
+      ) {
+        return;
+      }
+      event.preventDefault();
+      keyboardToggle();
+    };
+    window.addEventListener('keydown', press);
+    return () => window.removeEventListener('keydown', press);
+  }, [supported]);
+
   if (!speech.supported) {
     return null;
   }
@@ -34,20 +106,22 @@ export function ReadAloud({ text }: Readonly<{ text: string }>) {
     if (event.detail > 0) {
       event.currentTarget.blur();
     }
-    if (speech.speaking) {
-      speech.stop();
-    } else {
-      speech.speak(spokenText(text));
-    }
+    changeMode();
   };
+  const label = enabled ? 'Turn speaking mode off' : 'Turn speaking mode on';
+  const idleIcon = enabled ? <Volume2 size={18} aria-hidden /> : <VolumeX size={18} aria-hidden />;
   return (
     <IconAction
-      label={speech.speaking ? 'Stop reading' : 'Read aloud'}
+      label={label}
+      tooltip={<KeyedText>{`${label} {Z}`}</KeyedText>}
       emphasis="quiet"
       size="lg"
-      pressed={speech.speaking}
+      pressed={enabled}
       className={styles.button}
-      icon={speech.speaking ? <Speaking /> : <Volume2 size={18} aria-hidden />}
+      data-speaking-mode
+      data-attention={introduce && preference === null ? '' : undefined}
+      aria-keyshortcuts="Z"
+      icon={speech.speaking ? <Speaking /> : idleIcon}
       onClick={toggle}
     />
   );

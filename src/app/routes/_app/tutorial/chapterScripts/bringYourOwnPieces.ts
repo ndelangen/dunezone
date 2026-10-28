@@ -5,7 +5,7 @@ import type { GameSnapshot } from '@shared/play/protocol';
 
 import type { GuideTask } from '../TutorialGuide';
 import type { ChapterScript, TablePlayers } from './chapterScript';
-import { element, openedWindow, task, windowShown } from './guideChecks';
+import { element, openedWindow, pressEnter, task, windowShown } from './guideChecks';
 
 /*
  * "Bring your own pieces": the Shared table inventory, where the pieces live that belong to no seat,
@@ -43,6 +43,7 @@ const findKarama = () =>
 const showInWindow = (selector: string) => document.querySelector(selector)?.scrollIntoView({ block: 'nearest' });
 
 function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[] {
+  const continueApproval = pressEnter();
   const shared = () =>
     snapshot()
       .table.pieces.filter((piece) => piece.inventory === 'shared')
@@ -63,15 +64,14 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'open',
       task: 'Open the Shared table inventory',
       detail:
-        'Pieces that belong to no seat wait in the Shared table inventory. Open it by typing: press {Space}, type Shared and press {Enter}.',
+        'Press {Space}, type Shared and press {Enter} to open the Shared table inventory. It holds pieces that are available to everyone.',
       anchor: { kind: 'page', element: element('[aria-label="Search controls"], [data-compass-launcher]') },
       ...openedWindow(windowShown('shared')),
     }),
     task({
       id: 'take',
       task: 'Put a piece on the table',
-      detail:
-        'Each shelf holds one kind of piece. Drag Supplies! cache out of the window onto the table: it lands face down, for anyone to use.',
+      detail: 'Drag Supplies! cache from the inventory onto the table. It lands face down and any player can use it.',
       anchor: { kind: 'page', element: element(`${SHARED} [aria-label^="Drag Supplies"]`) },
       begin: shared,
       done: (start) => shared() < start,
@@ -80,37 +80,39 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'find',
       task: 'Find Karama in the catalogue',
       detail:
-        'Decks, bundles and tokens that people made in the editor can join any game. Press the + on the Disc tokens shelf, search for Karama and pick it. The table checks it, then says how many pieces it adds.',
+        'Press the + on the Disc tokens row. Search for Karama and select it to see what will be added. You can use the catalogue to bring custom pieces into a game.',
       anchor: { kind: 'page', element: findKarama },
       begin: () => undefined,
       done: karamaReady,
     }),
     task({
       id: 'request',
-      task: 'Ask the table for it',
-      detail:
-        'Everyone shares this table, so a new piece needs a yes from one other player. With Karama picked, press Request: your request waits under the inventory until someone answers it.',
+      task: 'Request the piece',
+      detail: 'Press Request. One other player must approve before Karama is added to the shared inventory.',
       anchor: { kind: 'page', element: () => (karamaPicked() ? sharedButton('Request') : findKarama()) },
       begin: () => undefined,
       done: () => karamaRequested() || karama().length > 0,
     }),
     task({
       id: 'approved',
-      task: 'Wait for a yes',
+      task: 'Wait for approval',
       detail:
-        'Any other player can Approve your request, and anyone can Dismiss it. You cannot approve your own. Watch: another player approves it, and Karama joins the inventory.',
+        'Another player will approve Karama in a moment. You cannot approve your own request. Any player can dismiss a request instead. Once Karama arrives, press {Enter} to continue.',
       anchor: { kind: 'page', element: element(`${SHARED} [data-spawn-request]`) },
       begin: () => {
         showInWindow(`${SHARED} [data-spawn-request]`);
-        return approveSoon(snapshot, players);
+        return { stop: approveSoon(snapshot, players), enter: continueApproval.begin() };
       },
-      done: () => karama().length > 0,
-      finish: (stop) => stop(),
+      done: (watch) => karama().length > 0 && continueApproval.done(watch.enter),
+      finish: (watch) => {
+        watch.stop();
+        continueApproval.finish(watch.enter);
+      },
     }),
     task({
       id: 'place',
       task: 'Put Karama on the table',
-      detail: 'It is a piece like any other now. Drag Karama out of the Shared table inventory onto the table.',
+      detail: 'Drag Karama from the Shared table inventory onto the table.',
       anchor: { kind: 'page', element: element(`${SHARED} [aria-label^="Drag Karama"]`) },
       begin: () => showInWindow(`${SHARED} [aria-label^="Drag Karama"]`),
       done: () => karama().some((piece) => !piece.inventory),
