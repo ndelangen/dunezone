@@ -9,6 +9,8 @@ const config: KnipConfig = {
   workspaces: {
     '.': {
       entry: [
+        /* The setup action invokes this entry through github.action_path. */
+        '.github/actions/setup/install-dependencies.ts',
         /* TanStack Start file-based routing: routes are loaded by the router
            plugin, not imported anywhere knip can see. */
         'src/app/router.tsx',
