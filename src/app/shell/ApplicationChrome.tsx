@@ -2,7 +2,7 @@ import { MantineProvider } from '@mantine/core';
 import { appColorSchemeManager, appContentTheme } from '@ui/theme';
 import type { ReactNode } from 'react';
 
-import '@mantine/core/styles.layer.css';
+import '../styles/mantine.generated.css';
 import '../styles/mantine-shell-compatibility.css';
 import { AppRoot } from './AppRoot';
 
