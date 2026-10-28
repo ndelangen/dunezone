@@ -43,7 +43,7 @@ const meta = testingPreview.meta({
 });
 
 /* The second seat's player, who joins between J01 and J02. */
-const PLAYERS_AT_TABLE_FULL = 'Thialfi';
+const PLAYERS_AT_TABLE_FULL = 'Krell';
 
 /** The whole game: start at J01 and step through it from the Play debugger panel; the canvas holds the page alone. */
 export const Walkthrough = meta.story({
@@ -93,7 +93,7 @@ export const SpiceBlow = meta.story({
     const { page } = await atStep(canvasElement, chapter('Spice placed'));
     await openControl(page, 'Game log');
     const log = within(await page.findByRole('region', { name: 'Game log' }));
-    await expect(log.findByText('Twaffle took 8 spice from the Spice Bank to the table.')).resolves.toBeVisible();
+    await expect(log.findByText('Central took 8 spice from the Spice Bank to the table.')).resolves.toBeVisible();
   },
 });
 

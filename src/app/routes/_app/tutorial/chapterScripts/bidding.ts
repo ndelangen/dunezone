@@ -66,8 +66,8 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
   return [
     task({
       id: 'start',
-      task: 'Start a round at your faction',
-      detail: 'It is the Bidding phase.\n\nClick your faction on the bidding disc to start a round with you.',
+      task: 'Start a bidding round',
+      detail: "It's time to bid! Click your faction on the bidding disc to start the round with you.",
       anchor: { kind: 'page', element: () => document.querySelector(`[aria-label="Start bidding at ${myName()}"]`) },
       begin: () => undefined,
       done: () => bidding()?.stage === 'open' && bidding()?.turn === mine(),
@@ -75,15 +75,16 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     task({
       id: 'raise',
       task: 'Bid 2 spice',
-      detail: 'Press {I} or click the centre of the disc to raise your bid by one spice. Do this twice.',
+      detail: 'Press {I} or click the centre of the disc to raise your bid by one spice. Do it twice to bid 2.',
       anchor: disc,
       begin: () => undefined,
       done: () => myBid() >= 2,
     }),
     task({
       id: 'lower',
-      task: 'Take it back down to 1',
-      detail: 'Press {O} to lower your bid by one.\n\nYou can only undo increases you made on this bidding turn.',
+      task: 'Change your bid',
+      detail:
+        'Changed your mind? Press {O} to lower your bid by one.\n\nYou can only undo increases you made on this bidding turn.',
       anchor: disc,
       /* A raise of 2 or more came first, so a bid of 1 now can only be a raise taken back. */
       begin: () => undefined,
@@ -102,7 +103,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'win',
       task: 'Win the card',
       detail:
-        'Wait until the bidder points at your faction. Press {I} to raise, then {P} to pass to the next bidder.\n\nYou win when everyone else passes.',
+        "You're back in the bidding! When the bidder points at your faction, press {I} to raise, then {P} to pass to the next bidder.\n\nYou win when everyone else passes.",
       anchor: disc,
       begin: () => ({ stop: othersBid(snapshot, players) }),
       /* A slip that hands the bidder on unraised lets another faction win; the round still ends, so the chapter goes on. */

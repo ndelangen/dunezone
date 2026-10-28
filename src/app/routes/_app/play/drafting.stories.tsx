@@ -12,7 +12,7 @@ const meta = preview.meta({
 
 /** A real game opens drafting: the creator alone in seat 1, the three steps before the deal in the header, and no (+) for a player. */
 export const WaitingForPlayers = meta.story({
-  beforeEach: install(() => productTransport('seat-1', draftingSnapshot([storyPlayer('seat-1', 'thialfi')], 4))),
+  beforeEach: install(() => productTransport('seat-1', draftingSnapshot([storyPlayer('seat-1', 'krell')], 4))),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(
@@ -39,8 +39,8 @@ export const WaitingForPlayers = meta.story({
         await expect(canvasElement.ownerDocument.querySelector('[data-decision-bar]')).toBeNull();
         /* The seated player is cited through ProfileLink, leading to their profile. */
         await expect(
-          within(page.getByRole('region', { name: 'Players' })).getByRole('link', { name: 'Thialfi' })
-        ).toHaveAttribute('href', '/profiles/thialfi');
+          within(page.getByRole('region', { name: 'Players' })).getByRole('link', { name: 'Krell' })
+        ).toHaveAttribute('href', '/profiles/krell');
       },
       { timeout: 30_000 }
     );
@@ -118,7 +118,10 @@ export const FactionSetAside = meta.story({
 /** The requester waits in the roster, where their (+) was, and can take the request back. */
 export const WaitingForApproval = meta.story({
   beforeEach: install(() =>
-    productTransport('neutral', drafting([{ id: 'seat-request-2', requesterName: 'Klyzx', seat: null, own: true }]))
+    productTransport(
+      'neutral',
+      drafting([{ id: 'seat-request-2', requesterName: 'IHasPinecone', seat: null, own: true }])
+    )
   ),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -135,18 +138,18 @@ export const PlayerApprovesARequest = meta.story({
     productTransport(
       'seat-1',
       drafting([
-        { id: 'seat-request-2', requesterName: 'Klyzx', seat: null },
-        { id: 'seat-request-3', requesterName: 'Erickenneth', seat: null },
+        { id: 'seat-request-2', requesterName: 'IHasPinecone', seat: null },
+        { id: 'seat-request-3', requesterName: 'Eichmal', seat: null },
       ])
     )
   ),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const players = () => within(page.getByRole('region', { name: 'Players' }));
-    await shows(() => players().getByRole('img', { name: 'Klyzx asks for a seat' }));
-    await shows(() => players().getByRole('img', { name: 'Erickenneth asks for a seat' }));
-    const klyzx = () => within(players().getByText('Klyzx').closest('li') as HTMLElement);
-    await press(() => klyzx().getByRole('button', { name: 'Approve' }));
+    await shows(() => players().getByRole('img', { name: 'IHasPinecone asks for a seat' }));
+    await shows(() => players().getByRole('img', { name: 'Eichmal asks for a seat' }));
+    const ihaspinecone = () => within(players().getByText('IHasPinecone').closest('li') as HTMLElement);
+    await press(() => ihaspinecone().getByRole('button', { name: 'Approve' }));
     await waitFor(() =>
       expect(lastCommand()).toMatchObject({
         type: 'command',

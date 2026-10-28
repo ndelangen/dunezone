@@ -79,17 +79,18 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
   return [
     task({
       id: 'ship',
-      task: 'Ship troops into Arrakeen',
+      task: 'Meet in Arrakeen',
       detail:
-        'You are playing Fremen.\n\nDrag troops from your reserves into Arrakeen, where the green Atreides troops are standing.',
+        "You're playing Fremen, and Atreides is waiting in Arrakeen. Let's set up a battle.\n\nDrag troops from your reserves into Arrakeen, where the green troops are standing.",
       anchor: { kind: 'table', point: () => at(myReserves()) },
       begin: myTroopsOnBoard,
       done: (start) => myTroopsOnBoard() > start,
     }),
     task({
       id: 'mark',
-      task: 'Mark the battle',
-      detail: 'Drag the battle marker from the Battle phase disc onto Arrakeen to start a battle.',
+      task: 'Start the battle',
+      detail:
+        'Drag the battle marker from the Battle phase disc onto Arrakeen. That opens a battle for the two sides to claim.',
       anchor: { kind: 'table', point: () => at(atreidesTroops()) },
       begin: () => undefined,
       done: () => Boolean(battle()),
@@ -104,9 +105,9 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     }),
     task({
       id: 'leader',
-      task: 'Send a leader into battle',
+      task: 'Choose a leader',
       detail:
-        'Choose a leader in the Leader row. Their strength is added to your total.\n\nYour plan stays private until both sides are ready.',
+        'Who will lead your troops? Choose a leader in the Leader row. Their strength adds to your total.\n\nYour plan stays private until both sides are ready.',
       anchor: { kind: 'page', element: element('[data-window="battle"] [aria-label="Leader"]') },
       begin: () => undefined,
       done: () => (plan()?.leaderIds.length ?? 0) > 0,
@@ -136,23 +137,23 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'ready',
       task: 'Lock your plan',
       detail:
-        'Press Ready for battle. Once both players are ready, a short countdown ends with both plans revealed together.',
+        'Happy with your plan? Press Ready for battle. Once both players are ready, a short countdown reveals the plans together.',
       anchor: { kind: 'page', element: element('[aria-label="Ready for battle"]') },
       ...fightsUntil(() => battle()?.stage === 'revealed'),
     }),
     task({
       id: 'outcome',
-      task: 'Agree who won',
+      task: 'Agree on the winner',
       detail:
-        'Compare the plans and agree on the winner, then select the winning side below the marker.\n\nThe battle ends when both players choose the same result.',
+        'Time to see how you did! Compare the plans and agree on the winner, then select the winning side below the marker.\n\nThe battle ends when you both choose the same result.',
       anchor: { kind: 'page', element: element('[aria-label="Left side won"]') },
       ...fightsUntil(() => !battle() && (snapshot().battleResults?.length ?? 0) > 0),
     }),
     task({
       id: 'practice-mark',
-      task: 'Start a practice battle',
+      task: 'Try an early reveal',
       detail:
-        'Drag the battle marker onto Arrakeen again.\n\nThis time, you will reveal your dial before locking your plan.',
+        "Let's try one more battle. Drag the marker onto Arrakeen again.\n\nThis time you'll reveal your dial before locking your plan.",
       anchor: { kind: 'table', point: () => at(atreidesTroops()) },
       begin: () => undefined,
       done: () => Boolean(battle()),

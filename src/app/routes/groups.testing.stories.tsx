@@ -74,7 +74,7 @@ export const Create = meta.story({
  * Each member is cited once, by one link that carries its own avatar.
  *
  * The roster used to mount a page-level avatar next to a `ProfileLink` given no image of its own, so every row drew the picture and the initials circle side by side.
- * This story gives the viewer an avatar, which the shared baseline leaves null: with null, both the defect and the fix render a placeholder and the assertion could not tell them apart.
+ * This story gives the viewer a known avatar so the assertion can count its appearances.
  */
 export const DetailMemberRowCitesOnce = meta.story({
   args: { path: '/groups/arrakeen-rules-council' },
@@ -97,9 +97,9 @@ export const DetailMemberRowCitesOnce = meta.story({
 
     /*
      * By role and name, which this story could not do while the avatar and the initials both spoke:
-     * a citation announced as "storybook-viewer storybook-viewer" matches no name a reader would use.
+     * a citation announced as "Central Central" matches no name a reader would use.
      */
-    const citations = await page.findAllByRole('link', { name: 'storybook-viewer' }, { timeout: 30_000 });
+    const citations = await page.findAllByRole('link', { name: 'Central' }, { timeout: 30_000 });
     await expect(citations.length).toBeGreaterThan(0);
     for (const citation of citations) {
       await expect(citation.querySelectorAll('img')).toHaveLength(1);

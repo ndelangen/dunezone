@@ -23,9 +23,9 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
   return [
     task({
       id: 'determine',
-      task: 'Start determining the winner',
+      task: 'Determine the winner',
       detail:
-        'The game is in Mentat Pause.\n\nPress {Space}, type Phase and confirm with {Enter}. Choose Determine winner in the window.\n\nPlayers with predictions are reminded to reveal them.',
+        "You've reached Mentat Pause. If the game is over, it's time to work out who won.\n\nPress {Space}, type Phase and confirm with {Enter}. Choose Determine winner in the window.\n\nPlayers with predictions will be reminded to reveal them.",
       anchor: {
         kind: 'page',
         element: () =>
@@ -37,18 +37,18 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     }),
     task({
       id: 'declare',
-      task: 'Declare a winner',
+      task: 'Declare the result',
       detail:
-        'Agree on the winner with the other players first.\n\nIn the Result window, leave Faction selected, choose a Winning faction and press Declare.\n\nThis records the result immediately, without a vote.',
+        'Agree on the winner with the other players first.\n\nIn the Result window, leave Faction selected, choose a Winning faction and press Declare. This records the result immediately, without a vote.',
       anchor: { kind: 'page', element: element('[data-window="result"]') },
       begin: () => undefined,
       done: () => snapshot().stage === 'finished',
     }),
     task({
       id: 'replay',
-      task: 'Replay the finished game',
+      task: 'Look back at the game',
       detail:
-        'Press {Space}, type Replay and confirm with {Enter}.\n\nChoose Replay from start to see the saved public positions.\n\nPrivate hands and plans stay hidden.',
+        'Want to revisit how it unfolded? Press {Space}, type Replay and confirm with {Enter}.\n\nChoose Replay from start to see the saved public positions. Private hands and plans stay hidden.',
       anchor: {
         kind: 'page',
         element: () => buttonNamed('Replay from start')() ?? document.querySelector('[data-compass-launcher]'),
@@ -75,8 +75,9 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     }),
     task({
       id: 'continue',
-      task: 'Continue playing',
-      detail: 'Press Continue playing in the top right to clear the result and return to Mentat Pause.',
+      task: 'Keep playing',
+      detail:
+        "Decided the game isn't over after all? Press Continue playing in the top right to clear the result and return to Mentat Pause.",
       anchor: { kind: 'page', element: buttonNamed('Continue playing') },
       begin: () => undefined,
       done: () => snapshot().stage === 'play' && !snapshot().result,

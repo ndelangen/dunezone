@@ -47,7 +47,7 @@ export const Detail = meta.story({
     const ownedBy = await page.findByText('Owned by', {}, { timeout: 30_000 });
     const line = ownedBy.parentElement;
     /* By href rather than accessible name: the avatar placeholder puts its initials into the name. */
-    await expect(line?.querySelector('a[href="/profiles/storybook-viewer"]')).not.toBeNull();
+    await expect(line?.querySelector('a[href="/profiles/central"]')).not.toBeNull();
     /* The standing follows the viewer, which the browser resolves after the shared page. */
     await waitFor(() => expect(line?.textContent).toContain('Owner'), { timeout: 30_000 });
     /* The member count is the band's too, so the roster card no longer repeats it in its title. */

@@ -80,11 +80,11 @@ export const Accounts = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('combobox', { name: 'Profile to keep' }, { timeout: 30_000 }));
-    await userEvent.click(await page.findByRole('option', { name: 'storybook-viewer · storybook-viewer' }));
+    await userEvent.click(await page.findByRole('option', { name: 'Central · central' }));
     await userEvent.click(page.getByRole('combobox', { name: 'Profile to merge into it' }));
     await userEvent.click(await page.findByRole('option', { name: 'Discord player · discord-player' }));
     await userEvent.click(page.getByRole('button', { name: 'Review merge' }));
-    await expect(page.findByRole('button', { name: 'Merge into storybook-viewer' })).resolves.toBeVisible();
+    await expect(page.findByRole('button', { name: 'Merge into Central' })).resolves.toBeVisible();
     await expect(page.getByText('This merge cannot be undone. The other profile will be signed out.')).toBeVisible();
   },
 });

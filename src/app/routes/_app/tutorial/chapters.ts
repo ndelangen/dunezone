@@ -32,9 +32,16 @@ const CHAPTERS: readonly Omit<TutorialChapter, 'number'>[] = [
     part: 'Getting into a game',
   },
   {
-    slug: 'find-or-create',
-    title: 'Find or create a game',
-    goal: 'Create a game and share its link',
+    slug: 'create-a-game',
+    title: 'Create your own game',
+    goal: 'Choose the settings, name your game and open the table',
+    minutes: 3,
+    part: 'Getting into a game',
+  },
+  {
+    slug: 'find-a-game',
+    title: 'Join an existing game',
+    goal: 'Find a friend and open their table',
     minutes: 3,
     part: 'Getting into a game',
   },
@@ -172,4 +179,5 @@ export const chapterAt = (slug: string): TutorialChapter | undefined =>
  * The picture on a chapter's tile: a still of the Play table standing in for the live preview each tile will animate.
  * The stills are display copies in public/tutorial, named by the chapter's slug.
  */
-export const chapterArt = (chapter: TutorialChapter) => `/tutorial/${chapter.slug}.webp`;
+export const chapterArt = (chapter: TutorialChapter) =>
+  `/tutorial/${['find-a-game', 'create-a-game'].includes(chapter.slug) ? 'find-or-create' : chapter.slug}.webp`;

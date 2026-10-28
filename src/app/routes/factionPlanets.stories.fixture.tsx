@@ -3,7 +3,7 @@ import type { FactionInput } from '@shared/factions/schema';
 /*
  * Public Space Orks faction copied from https://dune.zone/factions/space-orks on 2026-10-01.
  * Source: the faction page query, now factions:pageBySlug, on exuberant-finch-263, queried without authentication.
- * Artwork keys resolve to the checked-in media sources; BigDave's public avatar already lives in the isolated Play fixtures.
+ * Artwork keys resolve to the checked-in media sources; Central's public avatar already lives in the isolated Play fixtures.
  */
 export const spaceOrks = {
   background: {
@@ -125,9 +125,9 @@ export const spaceOrks = {
 } satisfies FactionInput;
 
 export const spaceOrksOwner = {
-  username: 'BigDave',
-  slug: 'bigdave',
-  avatar_url: '/play-fixtures/product/83308406d85921ae46daaa6ab5da2387b3e773b29251951012a20d64a917a5c0.jpg',
+  username: 'Central',
+  slug: 'central',
+  avatar_url: '/user-images/135c0f3ded60c3943f4acb17448c5258a53229f4d6f7f02aab7710610059b0fa.jpg',
 };
 
 export const spaceOrksPublication = {

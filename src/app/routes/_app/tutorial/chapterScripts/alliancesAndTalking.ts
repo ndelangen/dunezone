@@ -55,7 +55,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'chat',
       task: 'Say hello to House Atreides',
       detail:
-        'Click the Atreides token below the table, type a message and press {Enter}.\n\nOnly the two of you can read this chat.',
+        "Let's have a private chat. Click the Atreides token below the table, type a message and press {Enter}.\n\nOnly the two of you can read it.",
       anchor: {
         kind: 'page',
         element: () =>
@@ -69,15 +69,17 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     }),
     task({
       id: 'faction',
-      task: 'Look up their faction',
-      detail: 'Click the Atreides token beside the chat title to see their faction rules, leaders and alliance.',
+      task: 'Get to know Atreides',
+      detail:
+        'Want to check what your new friend can do? Click the Atreides token beside the chat title to see their faction rules, leaders and alliance.',
       anchor: { kind: 'page', element: element(`${chatWindow()} header button[aria-label="${PARTNER} info"]`) },
       ...openedWindow(windowShown(FACTION_INFO)),
     }),
     task({
       id: 'offer',
-      task: 'Offer them an alliance',
-      detail: 'Press Offer alliance, the handshake beside their status. Atreides will accept your offer in a moment.',
+      task: 'Offer an alliance',
+      detail:
+        "Let's team up! Press Offer alliance, the handshake beside their status. Atreides will accept in a moment.",
       anchor: { kind: 'page', element: buttonIn(FACTION_INFO, 'Offer alliance') },
       begin: () => ({ stop: atreidesAccepts(snapshot, players, partner) }),
       done: allied,
@@ -93,8 +95,9 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     }),
     task({
       id: 'break',
-      task: 'Break the alliance',
-      detail: 'Press {Space}, type Alliances and confirm with {Enter}.\n\nChoose Break alliance beside your ally.',
+      task: 'End the alliance',
+      detail:
+        'Sometimes alliances come to an end. Press {Space}, type Alliances and confirm with {Enter}.\n\nChoose Break alliance beside your ally.',
       anchor: {
         kind: 'page',
         element: () =>

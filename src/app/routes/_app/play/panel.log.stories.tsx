@@ -37,9 +37,9 @@ export const Audit = meta.story({
     await openTab(page, 'Game log');
     await openTab(page, 'Audit');
     const log = await page.findByRole('region', { name: 'Audit log' });
-    await expect(within(log).findByText(/Twaffle keeps seat 1/)).resolves.toBeVisible();
+    await expect(within(log).findByText(/Central keeps seat 1/)).resolves.toBeVisible();
     await expect(within(log).getByText('[deleted user] left seat 6 when the account was deleted.')).toBeVisible();
-    await expect(page.queryByRole('tab', { name: 'Twaffle, removal vote in progress' })).toBeNull();
+    await expect(page.queryByRole('tab', { name: 'Central, removal vote in progress' })).toBeNull();
   },
 });
 

@@ -72,9 +72,9 @@ function stackTasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideT
   return [
     task({
       id: 'move-one',
-      task: 'Move one troop',
+      task: 'Move a troop',
       detail:
-        'Drag a troop from your reserves onto the board. Start dragging straight away to pick up only the top piece.',
+        "Let's move some pieces! Drag a troop from your reserves onto the board. Start dragging straight away to pick up just the top piece.",
       anchor: { kind: 'table', point: () => at(biggestReserve()) },
       begin: () => ({
         seen: players.landings().length,
@@ -95,7 +95,7 @@ function stackTasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideT
       id: 'carry-reserves',
       task: 'Move a whole stack',
       detail:
-        'Press and hold your reserve stack briefly before dragging it. This picks up the whole stack.\n\nDrop it beside your seat so you can use it in the next step.',
+        'Need the whole stack instead? Press and hold your reserves briefly before dragging.\n\nDrop the stack beside your seat for the next step.',
       anchor: { kind: 'table', point: () => at(biggestReserve()) },
       begin: () => ({
         seen: players.landings().length,
@@ -113,7 +113,8 @@ function stackTasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideT
     task({
       id: 'split',
       task: 'Split off three troops',
-      detail: 'Hover over your reserves and hold {3} for a second. Three troops form a new stack beside them.',
+      detail:
+        "You don't have to move the whole stack. Hover over your reserves and hold {3} for a second to split off three troops.",
       anchor: { kind: 'table', point: () => at(biggestReserve()) },
       begin: () => reserves().filter((piece) => piece.items.length === 3).length,
       done: (start) => reserves().filter((piece) => piece.items.length === 3).length > start,
@@ -143,9 +144,9 @@ function stackTasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideT
     }),
     task({
       id: 'take-more',
-      task: 'Take a few more',
+      task: 'Pick up a few more',
       detail:
-        'Pick up one reserve troop and keep holding it over the stack.\n\nPress {T} or right-click to add another troop.\n\nTry this a few times, then drop them on the board.',
+        "You can add pieces while you're carrying them. Pick up one reserve troop and keep holding it over the stack.\n\nPress {T} or right-click to add another. Try it a few times, then drop them on the board.",
       anchor: { kind: 'table', point: () => at(biggestReserve()) },
       ...grownCarryLanded(players.landings, onTheBoard),
     }),
@@ -191,7 +192,7 @@ function tokenTasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'token-flip',
       task: 'Flip your faction token',
       detail:
-        'Hover over your faction token and press {F}.\n\nA face-down token can show that you are passing, for example during bidding.',
+        "A face-down faction token can show you're passing, for example during bidding.\n\nHover over yours and press {F} to flip it.",
       anchor: { kind: 'table', point: () => at(token()) },
       begin: () => token()?.flipRevision ?? 0,
       done: (start) => (token()?.flipRevision ?? 0) > start,

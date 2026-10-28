@@ -1,22 +1,21 @@
-import { Stack, Text } from '@mantine/core';
-import { TUTORIAL_RECIPE } from '@shared/tutorial/recipe';
-import { PageTitle } from '@ui/block/PageTitle';
-import { PageLayout } from '@ui/layout/PageLayout';
-import { Surface } from '@ui/surface';
-import { useState, useSyncExternalStore } from 'react';
+import { lazy, Suspense, useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 
-import type { LobbyView } from '@app/widgets/play-lobby/PlayLobby';
+import { createGameDraftReducer } from '@app/widgets/create-game/CreateGamePass';
 
-import { GameLink } from '../play/GameLink';
+import { TableWait } from '../play/TableWait';
 import type { TutorialChapter } from './chapters';
 import type { LobbyChapterScript, LobbyState } from './chapterScripts/chapterScript';
-import { sampleLobby, TutorialCreate, TutorialLobby } from './lobby/tutorialLobbyPages';
+import { FRIEND_ADDRESS, sampleLobby } from './lobby/lobbyGames';
+import { TutorialCreate, TutorialLobby } from './lobby/tutorialLobbyPages';
+import { seatTutorialPlayers, useTutorialPlayers } from './players';
+import type { TutorialViewer } from './players';
 import setup from './setup/setup.json';
 import type { TutorialSetup } from './setup/tutorialSetup';
 import { TutorialGuide } from './TutorialGuide';
 
-/* Where the player is, kept outside React so the tasks read it as it is now and the page follows it. */
+const LobbyTable = lazy(() => import('./lobby/LobbyTable'));
+
 function lobbyStore(start: LobbyState) {
   let state = start;
   const listeners = new Set<() => void>();
@@ -33,56 +32,45 @@ function lobbyStore(start: LobbyState) {
   };
 }
 
-/* What a created game looks like from the chapter: its name, and the link that brings the others to it. */
-function CreatedGame({ game, page }: Readonly<{ game: NonNullable<LobbyState['created']>; page: string }>) {
-  return (
-    <PageLayout>
-      <PageLayout.Header size="compact">
-        <PageTitle title={game.name} subtitle="Your new game" />
-      </PageLayout.Header>
-      <PageLayout.Content>
-        <Surface padding="xl">
-          <Stack gap="sm" align="center" ta="center">
-            <Text fw={600}>The table is set, and you hold its first seat.</Text>
-            <Text c="dimmed" maw="32rem">
-              The draft starts once enough players have taken a seat. Send them the game’s link.
-            </Text>
-            <GameLink address={game.address} page={page} />
-          </Stack>
-        </Surface>
-      </PageLayout.Content>
-    </PageLayout>
-  );
-}
-
-/**
- * A chapter played on the lobby and the create page rather than at a table: the rail beside the pages, which show sample games and create a game on the chapter's page alone.
- */
 export default function LobbyChapter({
   chapter,
   script,
   firstTask = 0,
   chaptersLink,
   nextLink,
+  exit,
+  viewer,
 }: Readonly<{
   chapter: TutorialChapter;
   script: LobbyChapterScript;
   firstTask?: number;
   chaptersLink: (props: object) => ReactNode;
   nextLink?: ((props: object) => ReactNode) | undefined;
+  exit: ReactNode;
+  viewer: TutorialViewer;
 }>) {
+  const people = useTutorialPlayers(viewer);
   const [chapterState] = useState(() => {
-    /* A chapter opened at a later task starts where that task is played. */
-    const store = lobbyStore(script.start(firstTask));
+    const seated = seatTutorialPlayers(setup as unknown as TutorialSetup, people, {
+      watch: script.slug === 'find-a-game',
+    });
+    const friend = seated.checkpoints.drafting.players[1]!.name;
+    const store = lobbyStore(script.start(firstTask, friend));
     return {
+      seated,
+      friend,
       store,
-      games: sampleLobby(setup as unknown as TutorialSetup, TUTORIAL_RECIPE.learner),
-      tasks: script.tasks(store.get, () => store.set({ ...store.get(), createOpen: true })),
+      games: sampleLobby(seated),
+      tasks: script.tasks(store.get, () => store.set({ ...store.get(), actionOpen: true }), friend),
+      ready: () => {
+        if (store.get().view === 'table') {
+          store.set({ ...store.get(), tableReady: true });
+        }
+      },
     };
   });
-  const { store, games, tasks } = chapterState;
+  const { seated, friend, store, games, tasks, ready } = chapterState;
   const state = useSyncExternalStore(store.subscribe, store.get, store.get);
-  const page = `/tutorial/${chapter.slug}`;
   return (
     <TutorialGuide
       number={chapter.number}
@@ -90,8 +78,7 @@ export default function LobbyChapter({
       tasks={tasks}
       firstTask={firstTask}
       learned={script.learned}
-      /* Reset sets the chapter back to its start: the lobby, its search cleared, and no half-filled create page. */
-      onReset={() => store.set(script.start(0))}
+      onReset={() => store.set(script.start(0, friend))}
       chaptersLink={chaptersLink}
       nextLink={nextLink}
     >
@@ -99,25 +86,43 @@ export default function LobbyChapter({
         {state.view === 'lobby' && (
           <TutorialLobby
             games={games}
+            openGame={state.actionOpen ? FRIEND_ADDRESS : null}
             filter={{
               query: state.query,
-              setQuery: (query: string) => store.set({ ...store.get(), query }),
+              setQuery: (query) => store.set({ ...store.get(), query }),
               view: state.shown,
-              setView: (shown: LobbyView) => store.set({ ...store.get(), shown }),
+              setView: (shown) => store.set({ ...store.get(), shown }),
             }}
-            createOpen={state.createOpen}
-            /* Leaving the lobby before the chapter asks would strand the steps that read it, so the button waits for its step. */
-            onCreate={() => store.get().createOpen && store.set({ ...store.get(), view: 'create' })}
+            onOpen={(address) => {
+              if (store.get().actionOpen && address === FRIEND_ADDRESS) {
+                store.set({ ...store.get(), view: 'table', opened: { kind: 'found', address } });
+              }
+            }}
           />
         )}
         {state.view === 'create' && (
           <TutorialCreate
-            ruleset={state.ruleset}
-            onRuleset={(ruleset) => store.set({ ...store.get(), ruleset })}
-            onCreated={(created) => store.set({ ...store.get(), view: 'created', created })}
+            draft={state.draft}
+            open={state.actionOpen}
+            dispatch={(event) => store.set({ ...store.get(), draft: createGameDraftReducer(store.get().draft, event) })}
+            onCreate={(request) => {
+              if (store.get().actionOpen) {
+                store.set({ ...store.get(), view: 'table', opened: { kind: 'created', request } });
+              }
+            }}
           />
         )}
-        {state.view === 'created' && state.created && <CreatedGame game={state.created} page={page} />}
+        {state.view === 'table' && state.opened && (
+          <Suspense fallback={<TableWait status="Setting the table...">{exit}</TableWait>}>
+            <LobbyTable
+              setup={seated}
+              opened={state.opened}
+              page={`/tutorial/${chapter.slug}`}
+              exit={exit}
+              onReady={ready}
+            />
+          </Suspense>
+        )}
       </>
     </TutorialGuide>
   );

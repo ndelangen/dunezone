@@ -60,9 +60,9 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
   return [
     task({
       id: 'prediction',
-      task: 'Lock your prediction',
+      task: 'Make your prediction',
       detail:
-        'You are playing Bene Gesserit.\n\nIn the Setup window, choose a Predicted winner and Predicted turn, then press Lock prediction. Your prediction is private.',
+        "You're playing Bene Gesserit, so you get a secret prediction! In the Setup window, choose a Predicted winner and Predicted turn, then press Lock prediction.\n\nOnly you can see it.",
       /* The faction to pick first, then the button once the choice is complete. */
       anchor: {
         kind: 'page',
@@ -92,18 +92,18 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     }),
     task({
       id: 'peek-traitors',
-      task: 'Look at your traitors',
+      task: 'Meet your traitors',
       detail:
-        'Each player has five face-down Traitor cards in front of them.\n\nRight-click your pile and choose Peek at the deck. Only you can see the faces.',
+        "Everyone has five face-down Traitor cards in front of them. Let's see yours.\n\nRight-click your pile and choose Peek at the deck. Only you can see the faces.",
       anchor: { kind: 'table', point: () => at(myTraitors()) },
       begin: () => undefined,
       done: () => document.querySelector('[role="dialog"][aria-label^="Peeking at"]') !== null,
     }),
     task({
       id: 'keep-traitor',
-      task: 'Keep a traitor',
+      task: 'Choose a traitor',
       detail:
-        'Drag the traitor you want to the front of the row, then close the peek.\n\nRight-click your pile and choose Draw a card. The remaining cards stay face down.\n\nMost factions keep one traitor, but check your faction rules.',
+        'See one you like? Drag it to the front of the row and close the peek. Then right-click your pile and choose Draw a card. The rest stay face down.\n\nMost factions keep one traitor, but check your faction rules.',
       anchor: { kind: 'table', point: () => at(myTraitors()) },
       begin: () => undefined,
       done: () => traitorsInHand() === 1,
@@ -132,7 +132,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     }),
     task({
       id: 'troops',
-      task: 'Place a starting troop',
+      task: 'Place your first troop',
       detail:
         'Bene Gesserit start with one troop in the Polar Sink, at the centre of the board.\n\nDrag a troop there from your reserves.',
       anchor: { kind: 'table', point: () => at(myReserves()) },

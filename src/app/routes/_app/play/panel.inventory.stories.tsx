@@ -62,7 +62,7 @@ export const Requests = meta.story({
             {
               id: 'own-request',
               requesterSeat: 'seat-2',
-              requesterName: 'Thialfi',
+              requesterName: 'Krell',
               contents: {
                 assetId: 'recovery',
                 name: 'House Atreides token',
@@ -90,7 +90,7 @@ export const Narrow = meta.story({
     await openTab(page, 'Shared table inventory');
     await waitForPhase(async () => {
       await expect(page.getByRole('button', { name: 'Approve' })).toBeEnabled();
-      await expect(page.getByText('House Atreides tokens requested by Twaffle')).toBeVisible();
+      await expect(page.getByText('House Atreides tokens requested by Central')).toBeVisible();
     });
     /* The kit's HelpMark story owns timed tooltip display; this page checks that each window's (?) carries its description and help. */
     await expect(

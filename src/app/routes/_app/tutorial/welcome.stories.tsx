@@ -22,6 +22,6 @@ export const Chapter = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const rail = await page.findByRole('banner', { name: 'Chapter 1: Welcome' }, { timeout: 60_000 });
-    await expect(await within(rail).findByText('Hear the steps aloud', {}, { timeout: 60_000 })).toBeVisible();
+    await expect(await within(rail).findByText('Welcome to the table', {}, { timeout: 60_000 })).toBeVisible();
   },
 });

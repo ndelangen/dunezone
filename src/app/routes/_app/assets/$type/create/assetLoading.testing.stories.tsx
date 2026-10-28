@@ -145,7 +145,7 @@ export const RawDeckLinkedBack = meta.story({
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await page.findByRole('button', { name: 'storybook-viewer' });
+    await page.findByRole('button', { name: 'Central' });
     await page.findByRole('textbox', { name: 'Name' });
     await userEvent.click(page.getByRole('tab', { name: 'Back' }));
     await userEvent.click(page.getByRole('radio', { name: /Another deck's back/ }));
@@ -180,7 +180,7 @@ export const RawStyledTokenSave = meta.story({
   args: { path: '/assets/token-disc/karama/edit' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await page.findByRole('button', { name: 'storybook-viewer' });
+    await page.findByRole('button', { name: 'Central' });
     await page.findByRole('textbox', { name: 'Name' });
     const before = (await loadAssetPage('token-disc', 'karama'))!;
     const data = before.asset.data as { name: string; front: object };
@@ -249,7 +249,7 @@ function rawLinkedToken(type: 'token-disc' | 'token-enhance', slug: string) {
     },
     play: async ({ canvasElement }: { canvasElement: HTMLElement }) => {
       const page = within(canvasElement.ownerDocument.body);
-      await page.findByRole('button', { name: 'storybook-viewer' });
+      await page.findByRole('button', { name: 'Central' });
       await page.findByRole('textbox', { name: 'Name' });
       await userEvent.click(page.getByRole('radio', { name: /Another token's back/ }));
       await userEvent.click(page.getByRole('button', { name: 'Choose' }));

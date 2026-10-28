@@ -876,16 +876,18 @@ function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carr
         hovered.current = true;
         setHoveredPiece(piece.id);
       }
-      get().renderer.domElement.style.cursor = pieceHoverCursor(
-        canHandleTable,
-        interactionBlocked,
-        Boolean(gestureBlocked)
-      );
+      if (!pointerSession.busy) {
+        get().renderer.domElement.style.cursor = pieceHoverCursor(
+          canHandleTable,
+          interactionBlocked,
+          Boolean(gestureBlocked)
+        );
+      }
     },
     onPointerLeave: () => {
       hovered.current = false;
       setHoveredPiece(null);
-      if (!pointerSession.isDragging(piece.id)) {
+      if (!pointerSession.busy) {
         get().renderer.domElement.style.cursor = 'default';
       }
     },

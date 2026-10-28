@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import { publishedPath } from '../src/shared/asset-publishing/publicationTargets';
 import { SPICE_TOKEN_HREF } from '../src/shared/play/spiceToken';
+import players from '../src/shared/tutorial/players.json';
 
 /*
  * Copies every published image the tutorial setup names into Storybook's static files, at the same path,
@@ -68,3 +69,12 @@ for (const id of [...tokenIds].sort((a, b) => a.localeCompare(b))) {
 console.log(
   `Mirrored ${paths.size} published images (${(bytes / 1e6).toFixed(1)} MB) into .storybook/static/published.`
 );
+
+/* Keep player portraits available to isolated stories. */
+for (const player of players.profiles) {
+  const response = await fetch(player.image);
+  if (!response.ok) {
+    throw new Error(`Could not mirror ${player.slug}: ${response.status}`);
+  }
+  await Bun.write(`.storybook/static${new URL(player.image).pathname}`, response);
+}

@@ -54,7 +54,7 @@ async function findReaderNotice(canvasElement: HTMLElement, notice: string, stat
 export const CatalogueBackToAMembersList = meta.story({
   args: { path: '/factions?ruleset=classicrules' },
   parameters: { database: db(seedAnotherMember) },
-  loaders: [memoryHistory('/factions?owner=storybook-viewer', '/factions?ruleset=classicrules')],
+  loaders: [memoryHistory('/factions?owner=central', '/factions?ruleset=classicrules')],
   render: (args, { loaded }) => <StorybookPage {...args} history={pageHistory(loaded)} />,
   play: async ({ canvasElement, loaded }) => {
     const history = pageHistory(loaded);
@@ -71,7 +71,7 @@ export const CatalogueBackToAMembersList = meta.story({
       },
       { timeout: 30_000 }
     );
-    await expect(history.location.search).toBe('?owner=storybook-viewer');
+    await expect(history.location.search).toBe('?owner=central');
     await expect(page.getByRole('button', { name: 'Refine factions by member, ruleset and complexity' })).toBeVisible();
 
     history.forward();
@@ -529,7 +529,7 @@ export const CataloguePaged = meta.story({
  * The catalogue narrowed to one member, as a profile's "All N factions" opens it: their factions alone, the member named among the refinements, and a way back to everyone's.
  */
 export const CatalogueByOwner = meta.story({
-  args: { path: '/factions?owner=storybook-viewer' },
+  args: { path: '/factions?owner=central' },
   parameters: { database: db(seedAnotherMember) },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -539,7 +539,7 @@ export const CatalogueByOwner = meta.story({
     await userEvent.click(page.getByRole('button', { name: 'Refine factions by member, ruleset and complexity' }));
     /* The popover fades in, so its words are in the document a moment before they are visible. */
     await waitFor(() => expect(page.getByRole('group', { name: 'Member' })).toBeVisible());
-    await expect(page.getByText('By storybook-viewer')).toBeVisible();
+    await expect(page.getByText('By Central')).toBeVisible();
     await expect(page.getByText('1 of 2 factions')).toBeVisible();
     await userEvent.click(page.getByRole('button', { name: "Show every member's factions" }));
     await waitFor(() => expect(main.getByRole('link', { name: /Sietch Tabr/ })).toBeVisible(), { timeout: 30_000 });
@@ -551,16 +551,16 @@ export const CatalogueByOwner = meta.story({
  * The change replaces the history entry, as every filter does, so Back from here would leave the catalogue.
  */
 export const CatalogueRulesetLeavesTheMembersList = meta.story({
-  args: { path: '/factions?owner=storybook-viewer' },
+  args: { path: '/factions?owner=central' },
   parameters: { database: db(seedAnotherMember) },
-  loaders: [memoryHistory('/factions?owner=storybook-viewer')],
+  loaders: [memoryHistory('/factions?owner=central')],
   render: (args, { loaded }) => <StorybookPage {...args} history={pageHistory(loaded)} />,
   play: async ({ canvasElement, loaded }) => {
     const history = pageHistory(loaded);
     const page = within(canvasElement.ownerDocument.body);
     await waitFor(() => expect(gridCards(page, /House Atreides/)).toHaveLength(1), { timeout: 30_000 });
     await expect(gridCards(page, /Sietch Tabr/)).toHaveLength(0);
-    await expect(history.location.search).toBe('?owner=storybook-viewer');
+    await expect(history.location.search).toBe('?owner=central');
 
     await userEvent.click(page.getByRole('button', { name: 'Refine factions by member, ruleset and complexity' }));
     const rulesets = await page.findByRole('group', { name: 'Filter factions by ruleset' });
@@ -613,9 +613,9 @@ export const CatalogueByFormerOwnerSlug = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await waitFor(() => expect(gridCards(page, /House Atreides/)).toHaveLength(1), { timeout: 30_000 });
     await expect(gridCards(page, /Sietch Tabr/)).toHaveLength(0);
-    await waitFor(() => expect(history.location.search).toBe('?owner=storybook-viewer'), { timeout: 30_000 });
+    await waitFor(() => expect(history.location.search).toBe('?owner=central'), { timeout: 30_000 });
     await userEvent.click(page.getByRole('button', { name: 'Refine factions by member, ruleset and complexity' }));
-    await waitFor(() => expect(page.getByText('By storybook-viewer')).toBeVisible());
+    await waitFor(() => expect(page.getByText('By Central')).toBeVisible());
   },
 });
 
