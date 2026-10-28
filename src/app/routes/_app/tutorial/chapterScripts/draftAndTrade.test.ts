@@ -44,7 +44,30 @@ test('the trade steps name the faction the learner was dealt and a player who is
   };
   const steps = draftAndTrade.tasks(() => view, players);
   const detail = (id: string) => steps.find((step) => step.id === id)!.detail;
-  expect(detail('dealt')).toContain('Fremen');
-  expect(detail('offer')).toMatch(/^Click the Emperor token/);
+  expect(detail('offer')).toContain('Fremen');
+  expect(detail('offer')).toMatch(/Click the Emperor token/);
   expect(detail('cancel')).toContain('keep Fremen');
+});
+
+test.each([
+  [0, 'Emperor'],
+  [0.4, 'Fremen'],
+  [0.9, 'Harkonnen'],
+] as const)('drafts a familiar faction for random value %s', (random, name) => {
+  const steps = draftAndTrade.tasks(
+    () => ({}) as GameSnapshot,
+    {} as TablePlayers,
+    () => random
+  );
+  expect(steps.find((step) => step.id === 'draft')?.task).toBe(`Draft ${name}`);
+  expect(steps.map((step) => step.id)).toEqual([
+    'search',
+    'suitability',
+    'draft',
+    'ban',
+    'ready',
+    'offer',
+    'cancel',
+    'start',
+  ]);
 });

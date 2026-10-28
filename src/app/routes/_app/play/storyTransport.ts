@@ -78,7 +78,7 @@ export function storyTransport(
   const viewer: Viewer = {
     connectionId: 'story-connection',
     userId: 'story-user',
-    displayName: snapshot.controls?.players.find((player) => player.seat === viewerSeat)?.name ?? 'Klyzx',
+    displayName: snapshot.controls?.players.find((player) => player.seat === viewerSeat)?.name ?? 'IHasPinecone',
     viewerSeat,
     color: '#ed927c',
   };

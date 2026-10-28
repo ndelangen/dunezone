@@ -4,15 +4,17 @@ import { definePreview } from '@storybook/tanstack-react';
 import { sb } from 'storybook/test';
 
 import { loadStorybookDatabase, StorybookDatabaseProvider, storybookViewer } from '../src/app/db/storybook';
+import type { DatabaseDefinition, WorkerIdentity } from '../src/app/db/storybook';
+import { TutorialPlayersContext } from '../src/app/routes/_app/tutorial/players';
 import '../src/app/styles/mantine.generated.css';
 import '../src/app/styles/fonts.css';
 import '@fontsource/caladea/latin-700.css';
 import '../src/app/styles/tokens.css';
 import '../src/app/styles/mantine-shell-compatibility.css';
-import type { DatabaseDefinition, WorkerIdentity } from '../src/app/db/storybook';
 import { setMotionOverride } from '../src/app/styles/motion';
 import { appColorSchemeManager, appContentTheme } from '../src/app/ui/theme';
 import * as sizes from '../src/game/data/sizes';
+import { TUTORIAL_PLAYERS } from '../src/shared/tutorial/players';
 import { coreColors } from '../src/shared/uiPalette';
 import { emulateReducedMotion } from './browserMotion';
 import { settleStoryViewport } from './storyViewport';
@@ -114,7 +116,8 @@ const parameters = {
           [
             'Landing',
             'Welcome',
-            'Find or create a game',
+            'Create your own game',
+            'Join an existing game',
             'Take a seat',
             'Draft and trade',
             'Looking around',
@@ -338,6 +341,11 @@ const preview = definePreview({
   },
   parameters,
   decorators: [
+    (Story) => (
+      <TutorialPlayersContext value={TUTORIAL_PLAYERS}>
+        <Story />
+      </TutorialPlayersContext>
+    ),
     (Story, { globals, title }) => {
       const { viewport } = globals;
       const viewportValue = viewport.value as keyof typeof sizes;

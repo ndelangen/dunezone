@@ -382,9 +382,10 @@ still uses production-copied data; an intentional loading indicator is not place
 The current canonical database supplies a connected viewer, Group, ruleset, faction, FAQ and
 representative Assets. That mechanical seed alone does not establish page realism. Populate the
 story's `database: db(...)` callback with the production-derived records and relationships its
-complete state needs, then vary only what explains the scenario. The Groups and Profiles page
-stories still show the seed's synthetic `storybook-viewer`, and the Rulesets stories attribute
-their records to it. These stories need migration to this requirement.
+complete state needs, then vary only what explains the scenario. The viewer uses Central's public
+profile, while `storybook-viewer` remains its database seed key. The shared tutorial cast records
+seven public profiles and their source URLs in `src/shared/tutorial/players.json`. Using those
+profiles does not make the seed's Groups, rulesets or other content production-derived.
 
 The callback receives a fresh mutable baseline. Return `emptyDatabase()` or another database to
 replace it. Helpers supply deterministic mechanical values and validate shared semantic contracts;

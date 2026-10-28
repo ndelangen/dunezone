@@ -289,7 +289,7 @@ export const RawNativeSpiceSave = meta.story({
   args: { path: '/assets/card-spice/arsunt/edit' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await page.findByRole('button', { name: 'storybook-viewer' });
+    await page.findByRole('button', { name: 'Central' });
     await page.findByRole('textbox', { name: 'Name' });
     const before = (await loadAssetPage('card-spice', 'arsunt'))!;
     const board = (await loadAssetPage('board', 'arrakis-official'))!;
@@ -337,7 +337,7 @@ export const RawConversionKeepsIdentity = meta.story({
   args: { path: '/assets/card-custom/battle-reference/convert-to-spice' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await page.findByRole('button', { name: 'storybook-viewer' });
+    await page.findByRole('button', { name: 'Central' });
     const name = await page.findByRole('textbox', { name: 'Name' });
     const before = (await loadAssetPage('card-custom', 'battle-reference'))!;
     const replacement = {

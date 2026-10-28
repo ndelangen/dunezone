@@ -25,7 +25,7 @@ export function savedPage(entries: ConversationMessage[], more = false): Convers
   return { entries, more, load: { state: 'idle' } };
 }
 
-/** Seat 2's chat with Twaffle in seat 1: the newest fifty of their messages, with earlier ones still to load. */
+/** Seat 2's chat with Central in seat 1: the newest fifty of their messages, with earlier ones still to load. */
 export function playerChatArgs(): ConversationPanelProps {
   const { factionId, peerId } = conversationPair();
   return {
@@ -70,8 +70,8 @@ export function pendingMessage(delivery: ConversationPanelProps['pending'][numbe
   };
 }
 
-/** The chat window with a player: named by its player in the table, so here by Twaffle. */
-const PLAYER_CHAT_WINDOW = { ...PANEL_WINDOWS.playerChat, label: 'Twaffle', fill: true };
+/** The chat window with a player: named by its player in the table, so here by Central. */
+const PLAYER_CHAT_WINDOW = { ...PANEL_WINDOWS.playerChat, label: 'Central', fill: true };
 
 export const conversationPanelMeta = {
   ...panelMeta(PLAYER_CHAT_WINDOW),

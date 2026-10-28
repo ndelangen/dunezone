@@ -14,7 +14,7 @@ export const Swapping = meta.story({
   beforeEach: install(() => productTransport('seat-2', swappingSnapshot())),
   play: async ({ canvasElement }) => {
     /* A trade is offered from the other player's Info. */
-    const page = await openFactionInfo(canvasElement, 'Twaffle');
+    const page = await openFactionInfo(canvasElement, 'Central');
     const offer = await page.findByRole('button', { name: 'Offer trade to House Atreides' }, WAIT);
     /* The deadline is four minutes past the view's serverNow, and the countdown runs on the page's monotonic clock from there. */
     await expect(page.getByLabelText('Trading time remaining')).toHaveTextContent(/^(4:00|3:[0-5]\d) left$/);

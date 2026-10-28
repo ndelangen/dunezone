@@ -18,12 +18,12 @@ const meta = preview.meta({
 /** The chapter as a player meets it: do what the rail says, where its arrow shows, and it moves on by itself. */
 export const Chapter = meta.story({
   parameters: chapterParameters,
-  play: playChapter('Chapter 6: Moving pieces', 'Move one troop'),
+  play: playChapter('Chapter 7: Moving pieces', 'Move a troop'),
 });
 
 /** The chapter opened at its seventh task with `?step=7`, so the later tasks can be tried without carrying a stack first. */
 export const FromTurning = meta.story({
   args: { path: '/tutorial/moving-pieces?step=7' },
   parameters: chapterParameters,
-  play: playChapter('Chapter 6: Moving pieces', 'Turn your stack'),
+  play: playChapter('Chapter 7: Moving pieces', 'Turn your stack'),
 });

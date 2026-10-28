@@ -378,7 +378,7 @@ export const RawJsonSettingsAndContents = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     /* Account changes discard pending Load sessions; settle the signed-in identity before pasting. */
-    await page.findByRole('button', { name: 'storybook-viewer' });
+    await page.findByRole('button', { name: 'Central' });
     await page.findByRole('button', { name: 'Load existing Rulebook' });
     const before = await loadRulebookEditor({ rulesetSlug: 'classicrules', rulebookSlug: 'book-0' });
     if (before?.kind !== 'editable') {
@@ -418,7 +418,7 @@ export const RawJsonReferencePreflight = meta.story({
   parameters: { database: db(withFinalRulebooks) },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await page.findByRole('button', { name: 'storybook-viewer' });
+    await page.findByRole('button', { name: 'Central' });
     await page.findByRole('button', { name: 'Load existing Rulebook' });
     const before = await loadRulebookEditor({ rulesetSlug: 'classicrules', rulebookSlug: 'book-0' });
     if (before?.kind !== 'editable') {

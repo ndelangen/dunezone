@@ -566,6 +566,7 @@ function ConnectedTable({
   error,
   connection,
   identity,
+  onReady,
   gameId,
   diagnostics,
   reportsEnabled,
@@ -575,6 +576,7 @@ function ConnectedTable({
   error: string | null;
   connection: string;
   identity: GameIdentity;
+  onReady?: (() => void) | undefined;
   gameId: string;
   diagnostics: BrowserDiagnostics;
   reportsEnabled: boolean;
@@ -602,6 +604,7 @@ function ConnectedTable({
           <CompassTableContext value={compassTable}>
             <GameTable
               readOnly={readOnly}
+              onSceneReady={onReady}
               seatCount={table.snapshot.roster?.seatCount ?? DEFAULT_TABLE_SEAT_COUNT}
               tableProgress={progress}
               stage={stage}
@@ -659,10 +662,12 @@ export default function HostedTable({
   gameId,
   exitControl,
   identity,
+  onReady,
 }: Readonly<{
   gameId: string;
   exitControl: ReactNode;
   identity: GameIdentity;
+  onReady?: (() => void) | undefined;
 }>) {
   const runtime = useContext(GameRuntimeContext);
   const [diagnostics] = useState(() => new BrowserDiagnostics());
@@ -704,6 +709,7 @@ export default function HostedTable({
         diagnostics={diagnostics}
         reportsEnabled={runtime.admission === undefined}
         identity={identity}
+        onReady={onReady}
         client={client}
         table={view.table}
         error={view.error}

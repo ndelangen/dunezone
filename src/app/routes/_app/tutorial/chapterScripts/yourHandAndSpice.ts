@@ -4,107 +4,115 @@ import type { GuideTask } from '../TutorialGuide';
 import type { ChapterScript } from './chapterScript';
 import {
   at,
+  closePieceMenu,
   closeUpShown,
   element,
-  lastElement,
   openedWindow,
   tableDeck,
   task,
   viaCompass,
   windowShown,
 } from './guideChecks';
-import type { Piece } from './guideChecks';
 
 /*
  * "Your hand and spice": a card goes from the table into the player's hand and back out,
  * and spice comes out of their reserve, all through the Hand & spice window.
  */
 
-const HAND_PIECE = '[data-window="hand"] [aria-label$=" from hand"]';
+const HAND_CARD = '[data-window="hand"] [data-group="card:Treachery"] [aria-label$=" from hand"]';
 
-/*
- * A Spice card lying on the table on its own, not the deck it came from. A face-down card shows no face,
- * so it is known by the stack it would join again: the deck's own.
- */
-const looseSpiceCard = (pieces: readonly Piece[], deck: Piece | undefined) =>
-  pieces.find(
-    (piece) =>
-      deck !== undefined &&
-      piece !== deck &&
-      !piece.inventory &&
-      piece.items.length === 1 &&
-      piece.stackKey === deck.stackKey
+const treacheryCards = (snapshot: GameSnapshot) =>
+  (snapshot.hand ?? []).filter(
+    (piece) => !piece.hiddenZone && piece.items.some((item) => item.artwork?.type === 'card-treachery')
   );
+
+/** The Treachery row's order, unaffected by rearranging leaders or other shelves. */
+function cardOrder(snapshot: GameSnapshot) {
+  const cards = treacheryCards(snapshot).map((piece) => piece.id);
+  const order = snapshot.handOrder ?? [];
+  return [...order.filter((id) => cards.includes(id)), ...cards.filter((id) => !order.includes(id))];
+}
 
 function tasks(snapshot: () => GameSnapshot): GuideTask[] {
   const pieces = () => snapshot().table.pieces;
-  const spiceDeck = () => tableDeck(snapshot, 'right');
-  /* The hand as the Hand & spice window shows it: what the player laid on the private side-table is not in it. */
-  const inHand = () => (snapshot().hand ?? []).filter((piece) => !piece.hiddenZone).length;
+  const treacheryDeck = () => tableDeck(snapshot, 'left');
+  const cards = () => treacheryCards(snapshot());
   const reserve = () => snapshot().bank?.balance ?? 0;
-  const handOrder = () => JSON.stringify(snapshot().handOrder ?? []);
-  /* The card the player took into their hand, by the id it arrived under, so the arrow finds it among the cards already there. */
-  const taken = { id: null as string | null };
-  const handIds = () => new Set((snapshot().hand ?? []).filter((piece) => !piece.hiddenZone).map((piece) => piece.id));
-  const takenCard = () =>
-    (taken.id && document.querySelector(`${HAND_PIECE}[data-piece-id="${CSS.escape(taken.id)}"]`)) ||
-    lastElement(HAND_PIECE)();
+  /* Playing a private card gives it a new public handle. Flipping keeps that handle. */
+  const played = { id: null as string | null };
+  const playedCard = () => pieces().find((piece) => piece.id === played.id);
   return [
     task({
-      id: 'lay-card',
-      task: 'Lay a Spice card on the table',
+      id: 'draw',
+      task: 'Draw four Treachery cards',
       detail:
-        'Drag the top card off the Spice deck on the right. Start moving straight away to take one card, then drop it beside the deck.',
-      anchor: { kind: 'table', point: () => at(spiceDeck()) },
-      begin: () => spiceDeck()?.items.length ?? 0,
-      done: (start) => (spiceDeck()?.items.length ?? 0) < start,
-    }),
-    task({
-      id: 'take',
-      task: 'Take it into your hand',
-      detail: 'Right-click the card and choose Take into hand. This also works for leaders.',
-      anchor: { kind: 'table', point: () => at(looseSpiceCard(pieces(), spiceDeck())) },
-      begin: handIds,
-      done: (start) => {
-        taken.id = (snapshot().hand ?? []).find((piece) => !piece.hiddenZone && !start.has(piece.id))?.id ?? null;
-        return taken.id !== null;
-      },
+        "Let's give you a hand to practice with. Right-click the Treachery deck on the left and choose Draw a card four times.\n\nEach card goes straight into your hand.",
+      anchor: { kind: 'table', point: () => at(treacheryDeck()) },
+      begin: () => cards().length,
+      done: (start) => cards().length >= start + 4,
+      finish: closePieceMenu,
     }),
     task({
       id: 'open-hand',
       task: 'Open your hand',
-      detail: 'Press {H} to open Hand & spice.',
+      detail: "Press {H} to open Hand & spice. Only you can see what's in your hand.",
       anchor: { kind: 'page', element: viaCompass('hand') },
       ...openedWindow(windowShown('hand')),
     }),
     task({
       id: 'close-up',
       task: 'Read the card up close',
-      detail: 'Hover over the card and hold {Alt} to read it. Release {Alt} to close the preview.',
-      anchor: { kind: 'page', element: takenCard },
+      detail: 'Hover over a Treachery card and hold {Alt} to read it. Release {Alt} to close the preview.',
+      anchor: { kind: 'page', element: element(HAND_CARD) },
       ...closeUpShown(),
     }),
     task({
-      id: 'play',
-      task: 'Play it back onto the table',
-      detail: 'Drag the card from your hand onto the table.\n\nCards in your hand are private until you play them.',
-      anchor: { kind: 'page', element: takenCard },
-      begin: inHand,
-      done: (start) => inHand() < start,
+      id: 'reorder',
+      task: 'Reorder your cards',
+      detail:
+        'Drag a card to another position in the Treachery row. The other cards will make room for it.\n\nThis only changes the order in your hand.',
+      anchor: { kind: 'page', element: element('[data-window="hand"] [data-group="card:Treachery"]') },
+      begin: () => ({ order: cardOrder(snapshot()) }),
+      done: (start) => {
+        const order = cardOrder(snapshot());
+        if (order.length !== start.order.length || order.some((id) => !start.order.includes(id))) {
+          start.order = order;
+          return false;
+        }
+        return order.some((id, index) => id !== start.order[index]);
+      },
     }),
     task({
-      id: 'reorder',
-      task: 'Reorder your leaders',
-      detail: 'Drag a leader to a new position in the Leaders row. This changes the order in your hand only.',
-      anchor: { kind: 'page', element: element('[data-window="hand"] [data-group="leaders"]') },
-      begin: handOrder,
-      done: (start) => handOrder() !== start,
+      id: 'play',
+      task: 'Play a card',
+      detail:
+        'Drag one of your Treachery cards from your hand onto a clear spot on the table, away from the decks and other cards.\n\nAnything you drag from your hand to the table lands face down, including cards. You choose when to reveal it.',
+      anchor: { kind: 'page', element: element(HAND_CARD) },
+      begin: () => ({ hand: cards().length, table: new Set(pieces().map((piece) => piece.id)) }),
+      done: (start) => {
+        if (cards().length >= start.hand) {
+          return false;
+        }
+        played.id =
+          pieces().find(
+            (piece) => !piece.inventory && !start.table.has(piece.id) && piece.stackKey === treacheryDeck()?.stackKey
+          )?.id ?? null;
+        return played.id !== null;
+      },
+    }),
+    task({
+      id: 'reveal',
+      task: 'Reveal your card',
+      detail: 'To show everyone your card, hover over it and press {F} to turn it face up.',
+      anchor: { kind: 'table', point: () => at(playedCard()) },
+      begin: () => undefined,
+      done: () => playedCard()?.items.every((item) => item.faceUp) === true,
     }),
     task({
       id: 'withdraw',
       task: 'Take spice from your reserve',
       detail:
-        'Your spice reserve is shown at the top of Hand & spice.\n\nChoose an amount, then press Withdraw to put that spice on the table.',
+        'Need spice on the table? Your reserve is at the top of Hand & spice.\n\nChoose an amount and press Withdraw.',
       anchor: { kind: 'page', element: element('[data-window="hand"] [aria-label="Spice reserve balance"]') },
       begin: reserve,
       done: (start) => reserve() < start,
@@ -114,11 +122,12 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
 
 /* One line for each part of the chapter, in the order it was played. */
 const learned = [
-  'Right-click a card on the table and choose Take into hand',
+  'Right-click the Treachery deck and choose Draw a card',
   '{H}, or {Space} {←}, opens your Hand & spice',
   'Hold {Alt} over a card in your hand to read it',
-  'Drag a card from your hand onto the table to play it',
-  'Drag a card or leader along its shelf to sort your hand',
+  'Pieces dragged from your hand to the table land face down',
+  'Hover over a played card and press {F} to reveal it',
+  'Drag cards along the Treachery row to sort your hand',
   'Withdraw spice from your reserve onto the table',
 ];
 

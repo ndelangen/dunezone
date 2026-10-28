@@ -102,7 +102,7 @@ export function pendingRequestTransport() {
         {
           id: 'pending-token',
           requesterSeat: 'seat-1',
-          requesterName: 'Twaffle',
+          requesterName: 'Central',
           contents: {
             assetId: 'token',
             name: 'House Atreides tokens',

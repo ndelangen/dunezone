@@ -17,7 +17,7 @@ import {
  */
 const meta = preview.meta({ ...factionInfoPanelMeta, title: 'Play/Panels/Faction info' });
 
-/** Twaffle's House Atreides in seat 1: its page, its alliance, and its leaders, with the advantages open. */
+/** Central's House Atreides in seat 1: its page, its alliance, and its leaders, with the advantages open. */
 export const AnotherPlayer = meta.story({
   play: async ({ canvas }) => {
     await expect(canvas.getByText('House Atreides · Seat 1')).toBeVisible();
@@ -48,7 +48,7 @@ export const WithoutTheFactionSheet = meta.story({
   },
 });
 
-/** A vote to remove Twaffle, which the viewer has voted to remove. */
+/** A vote to remove Central, which the viewer has voted to remove. */
 export const RemovalVote = meta.story({
   args: factionInfoArgs(removalSnapshot()),
   play: async ({ canvas }) => {

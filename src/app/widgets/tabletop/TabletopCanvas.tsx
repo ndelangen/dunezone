@@ -94,18 +94,17 @@ export function TabletopCanvas({
             camera={camera}
             dpr={[1, 2]}
             /* Startup owns its first painted frames; later draws follow interaction and artwork changes. */
-            frameloop={presentation === 'preview' && !painted ? 'always' : 'demand'}
+            frameloop={!painted ? 'always' : 'demand'}
             renderer={{
               antialias: true,
               alpha: presentation === 'preview',
               powerPreference: 'high-performance',
               toneMapping: NeutralToneMapping,
             }}
-            onCreated={presentation === 'play' ? onSceneReady : undefined}
           >
             <ReleaseSharedMeshesOnUnmount />
             <TableLights />
-            {presentation === 'preview' && <PaintedFrames onReady={ready} />}
+            <PaintedFrames onReady={ready} />
             {children}
           </Canvas>
         </TableGraphicsBoundary>

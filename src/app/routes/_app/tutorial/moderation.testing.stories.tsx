@@ -29,7 +29,7 @@ export const PlayedThrough = meta.story({
     const page = within(document.body);
     const step = (title: string, timeout = 30_000) =>
       waitForFrame(() => expect(currentStep(canvasElement)).toContain(title), { timeout });
-    await page.findByRole('banner', { name: 'Chapter 19: Moderation and disputes' }, { timeout: 60_000 });
+    await page.findByRole('banner', { name: 'Chapter 20: Moderation and disputes' }, { timeout: 60_000 });
     const openWindow = async (name: string) => {
       await userEvent.keyboard(' ');
       await userEvent.type(await page.findByRole('textbox', { name: 'Search controls' }), name);
@@ -47,7 +47,7 @@ export const PlayedThrough = meta.story({
         { timeout: 20_000, interval: 1000 }
       );
     };
-    await step('Check the Game log', 60_000);
+    await step('Check what happened', 60_000);
     await openWindow('Game log');
     await step('Ask to recall Storm');
     await openWindow('Mentat recall');
@@ -63,11 +63,10 @@ export const PlayedThrough = meta.story({
     await expect(page.getByRole('slider', { name: 'Checkpoint' })).toHaveAttribute('aria-valuenow', '0');
     await userEvent.click(page.getByRole('button', { name: 'Ask the table to recall' }));
     await enterAt('Agree to recall');
-    await step('Discuss the saved position');
+    await step('Talk it through');
     await expect(page.getByRole('group', { name: 'Mentat recall in progress' })).toBeVisible();
-    await enterAt('Discuss the saved position');
     await userEvent.click(page.getAllByRole('button', { name: 'Return to the game' })[0]!);
-    await step('Open the player details', 60_000);
+    await step('Open player details', 60_000);
 
     const token = await waitFor(
       () => {
@@ -109,7 +108,6 @@ export const PlayedThrough = meta.story({
       },
       { timeout: 20_000, interval: 1000 }
     );
-    await enterAt('Their seat is open');
     await step('Read the Audit record');
     await openWindow('Audit');
     await page.findByRole('dialog', {}, { timeout: 20_000 });

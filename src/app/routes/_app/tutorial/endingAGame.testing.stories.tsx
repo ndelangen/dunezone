@@ -1,4 +1,5 @@
 import { testingPreview } from '@sb/preview';
+import { waitForFrame } from '@sb/storyWaits';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { pageStoryMeta } from '../../storybookConfig';
@@ -18,28 +19,28 @@ export const PlayedThrough = meta.story({
     const document = canvasElement.ownerDocument;
     const page = within(document.body);
     const current = () => document.querySelector('[data-state="current"]')?.textContent ?? '';
-    const step = (title: string) => waitFor(() => expect(current()).toContain(title), { timeout: 60_000 });
+    const step = (title: string) => waitForFrame(() => expect(current()).toContain(title), { timeout: 60_000 });
     const openWindow = async (name: string) => {
       await userEvent.click(await page.findByRole('button', { name: 'Controls Space' }));
       await userEvent.type(await page.findByRole('textbox', { name: 'Search controls' }), name);
       await userEvent.keyboard('{Enter}');
     };
-    await page.findByRole('banner', { name: 'Chapter 16: Ending a game' }, { timeout: 60_000 });
-    await step('Start determining the winner');
+    await page.findByRole('banner', { name: 'Chapter 17: Ending a game' }, { timeout: 60_000 });
+    await step('Determine the winner');
     await openWindow('Phase');
     await userEvent.click(await page.findByRole('button', { name: 'Determine winner' }));
-    await step('Declare a winner');
+    await step('Declare the result');
     await userEvent.click(await page.findByRole('combobox', { name: 'Winning faction' }));
     await userEvent.click(await page.findByRole('option', { name: /Atreides/ }));
     await userEvent.click(page.getByRole('button', { name: 'Declare' }));
-    await step('Replay the finished game');
+    await step('Look back at the game');
     await openWindow('Replay');
     await userEvent.click(await page.findByRole('button', { name: 'Replay from start' }));
     await step('Step through the saved phases');
     await userEvent.click(page.getAllByRole('button', { name: 'Later phase' })[0]!);
     await step('Return to the live table');
     await userEvent.click(page.getAllByRole('button', { name: 'Return to live' })[0]!);
-    await step('Continue playing');
+    await step('Keep playing');
     await userEvent.click(await page.findByRole('button', { name: 'Continue playing' }));
     await step('Replay closes when play resumes');
     await expect(page.queryByRole('button', { name: 'Replay from start' })).toBeNull();

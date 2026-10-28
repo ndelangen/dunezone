@@ -1,3 +1,4 @@
+import { finishTransitions, waitForFrame } from '@sb/storyWaits';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { ref, ruleset } from '@db/storybook';
@@ -143,8 +144,11 @@ export async function openReferencePicker({ canvasElement }: { canvasElement: HT
     await userEvent.click(toggle);
   }
   await userEvent.click(await page.findByRole('button', { name: 'Add references' }, { timeout: 30_000 }));
-  const picker = await page.findByRole('dialog', { name: 'Add references' });
-  await waitFor(() => expect(picker).toBeVisible());
+  const picker = await waitForFrame(async () => {
+    const dialog = page.getByRole('dialog', { name: 'Add references' });
+    await expect(finishTransitions(dialog)).toBeVisible();
+    return dialog;
+  });
   await expect(within(picker).getByRole('combobox', { name: 'Reference type' })).toHaveValue('card-treachery');
   await expect(within(picker).getByRole('searchbox', { name: 'Search treachery cards' })).toBeVisible();
   await expect(within(picker).findByRole('option', { name: 'Lasgun' }, { timeout: 30_000 })).resolves.toBeVisible();

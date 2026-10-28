@@ -123,25 +123,25 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
   return [
     task({
       id: 'speaking-mode',
-      task: 'Hear the steps aloud',
+      task: 'Welcome to the table',
       detail:
-        'Welcome to the first tutorial.\n\nPress {Z} on your keyboard to toggle speaking mode on or off.\n\nPress {Enter} to start.',
+        "Welcome! I'll show you around the table and help you get comfortable.\n\nWant to hear the steps aloud? Press {Z} to turn speaking mode on or off.\n\nPress {Enter} when you're ready to start.",
       introducesSpeakingMode: true,
       anchor: { kind: 'page', element: () => null },
       ...pressEnter(),
     }),
     task({
       id: 'board',
-      task: 'The board',
+      task: 'Meet Arrakis',
       detail:
-        'The board shows the planet Arrakis.\n\nThis is a sandbox, so you can move troops however you want.\n\nThe players enforce the rules of the game.\n\nPress {Enter} to continue.',
+        "Here's Arrakis, the board at the heart of your game.\n\nThis table is a sandbox: you can move pieces freely, and the players enforce the rules together.\n\nPress {Enter} to carry on.",
       anchor: { kind: 'table', point: () => [0, TABLE_SURFACE_Y, 0] },
       ...pressEnter(),
     }),
     task({
       id: 'players',
-      task: 'The players',
-      detail: 'Each player has a faction token around the board.\n\nClick one of the faction tokens to continue.',
+      task: 'Meet the players',
+      detail: 'Those faction tokens around the board belong to the players.\n\nClick one to take a closer look.',
       anchor: { kind: 'table', point: tokens.point },
       begin: (view) => {
         tokens.begin();
@@ -152,16 +152,17 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     }),
     task({
       id: 'status',
-      task: 'Phase and turn',
-      detail: 'In the top left, you can see the current phase and turn.\n\nPress {Enter} to continue.',
+      task: 'Where are we in the game?',
+      detail:
+        'The top left tells you the current phase and turn, so you can always find your place.\n\nPress {Enter} to carry on.',
       anchor: { kind: 'page', element: element('.seated-phase-status') },
       ...pressEnter(),
     }),
     task({
       id: 'phases',
-      task: 'The phases of a turn',
+      task: 'See the phases',
       detail:
-        'A second place to see the current phase is above the board.\n\nIt also shows past and future phases.\n\nPress {Enter} to continue.',
+        'The tracker above the board shows where you are in the turn, along with the phases before and after it.\n\nPress {Enter} to carry on.',
       anchor: { kind: 'table', point: phases.point },
       begin: () => {
         phases.begin();
@@ -172,17 +173,17 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     }),
     task({
       id: 'turn',
-      task: 'The turn tracker',
+      task: 'See the turn',
       detail:
-        'The turn tracker is to the left of the phase tracker. Its pointer shows the current turn.\n\nPress {Enter} to continue.',
+        'Just left of the phase tracker is the turn tracker. Its pointer shows the current turn.\n\nPress {Enter} to carry on.',
       anchor: { kind: 'table', point: () => trackerAt(snapshot, 'turn') },
       ...pressEnter(),
     }),
     task({
       id: 'next',
-      task: 'Advance to the next phase',
+      task: 'Move to the next phase',
       detail:
-        'You and the other players decide when a phase is finished.\n\nPress "Next phase" in the top right to progress.',
+        'Once everyone agrees the phase is finished, anyone can move the game on.\n\nPress Next phase in the top right and give it a try.',
       anchor: { kind: 'page', element: nextPhaseButton },
       begin: () => undefined,
       done: () => phaseOf(snapshot).id !== 'storm',
@@ -190,7 +191,8 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     task({
       id: 'settings',
       task: 'Open the game menu',
-      detail: 'To change settings, look for the gear icon in the top right.\n\nClick it to open the menu.',
+      detail:
+        "Need to change a setting? The gear in the top right is where you'll find the game menu.\n\nClick it to open it.",
       anchor: { kind: 'page', element: gameMenuButton },
       begin: () => ({ menu: menu.begin(), stop: guardNextPhase() }),
       done: (watch) => menu.done(watch.menu),
@@ -198,9 +200,9 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     }),
     task({
       id: 'share',
-      task: 'Copy the game link',
+      task: 'Share the game',
       detail:
-        'What is Dune without its players?\n\nIn a real game, share this link with a friend to invite them to play or observe.\n\nClick "Copy game link" to complete this tutorial.',
+        'A game is better with friends! In a real game, you can share this link to invite them to play or watch.\n\nClick Copy game link to finish the tutorial.',
       anchor: { kind: 'page', element: () => copyLink() ?? gameMenuButton() },
       begin: () => ({ refused: false, stop: guardNextPhase() }),
       done: (watch: { refused: boolean; stop: AbortController }) => {

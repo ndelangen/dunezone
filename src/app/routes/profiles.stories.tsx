@@ -17,15 +17,15 @@ export const Directory = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const main = within(await page.findByRole('main', {}, { timeout: 30_000 }));
-    await expect(main.findByRole('link', { name: /storybook-viewer/ }, { timeout: 30_000 })).resolves.toHaveAttribute(
+    await expect(main.findByRole('link', { name: /Central/ }, { timeout: 30_000 })).resolves.toHaveAttribute(
       'href',
-      '/profiles/storybook-viewer'
+      '/profiles/central'
     );
   },
 });
 /** A contributor's two FAQ sections use the shared question rows. */
 export const Detail = meta.story({
-  args: { path: '/profiles/storybook-viewer' },
+  args: { path: '/profiles/central' },
   parameters: {
     database: db((baseline) => {
       for (const row of baseline.rulesets) {
@@ -51,7 +51,7 @@ export const Detail = meta.story({
 });
 /** At phone width both FAQ sections inherit the standard Lean rows. */
 export const DetailNarrow = meta.story({
-  args: { path: '/profiles/storybook-viewer' },
+  args: { path: '/profiles/central' },
   globals: { viewport: { value: 'appMobile' } },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -70,12 +70,12 @@ export const DetailNarrow = meta.story({
 });
 
 export const Settings = meta.story({
-  args: { path: '/profiles/storybook-viewer/edit' },
-  play: ({ canvasElement }) => expectFieldValue(canvasElement, 'Display name', 'storybook-viewer'),
+  args: { path: '/profiles/central/edit' },
+  play: ({ canvasElement }) => expectFieldValue(canvasElement, 'Display name', 'Central'),
 });
 
 export const DeleteAccount = meta.story({
-  args: { path: '/profiles/storybook-viewer/delete' },
+  args: { path: '/profiles/central/delete' },
   play: async ({ canvasElement }) => {
     const page = await findDeletionPage(canvasElement);
     await expect(page.getByRole('button', { name: 'Choose a replacement owner' })).toBeVisible();

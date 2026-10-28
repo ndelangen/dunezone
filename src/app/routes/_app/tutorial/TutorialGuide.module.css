@@ -345,3 +345,20 @@
   transition: none !important;
   animation: none !important;
 }
+
+.waitingHourglass {
+  display: block;
+  color: var(--color-brand);
+  animation: hourglass-turn 2s ease-in-out infinite;
+}
+
+@keyframes hourglass-turn {
+  0%,
+  60% {
+    transform: rotate(0deg);
+  }
+  90%,
+  100% {
+    transform: rotate(180deg);
+  }
+}

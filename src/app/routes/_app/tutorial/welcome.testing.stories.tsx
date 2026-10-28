@@ -54,9 +54,9 @@ export const SpeakingMode = meta.story({
     const banner = await page.findByRole('banner', { name: 'Chapter 1: Welcome' }, { timeout: 60_000 });
     const rail = within(banner);
     await waitForFrame(() => expect(spoken).toHaveBeenCalledTimes(1), { timeout: 60_000 });
-    const introduction = rail.getByText('Welcome to the first tutorial.');
-    const shortcut = rail.getByText(/on your keyboard to toggle speaking mode/);
-    const start = rail.getByText(/to start\./);
+    const introduction = rail.getByText("Welcome! I'll show you around the table and help you get comfortable.");
+    const shortcut = rail.getByText(/to turn speaking mode on or off/);
+    const start = rail.getByText(/when you're ready to start\./);
     await expect(introduction.tagName).toBe('P');
     await expect(shortcut.tagName).toBe('P');
     await expect(start.tagName).toBe('P');
@@ -69,7 +69,7 @@ export const SpeakingMode = meta.story({
     await expect(getComputedStyle(toggle).animationName).not.toBe('none');
     await userEvent.keyboard('{Enter}');
     await waitForFrame(() =>
-      expect(rail.getByText('The board').closest('li')).toHaveAttribute('data-state', 'current')
+      expect(rail.getByText('Meet Arrakis').closest('li')).toHaveAttribute('data-state', 'current')
     );
     await waitForFrame(() =>
       expect(document.querySelector('[data-tutorial-pointer]')?.getAttribute('d') ?? '').toContain('Q')
@@ -78,12 +78,12 @@ export const SpeakingMode = meta.story({
     await expect(getComputedStyle(toggle).animationName).toBe('none');
     await userEvent.keyboard('z');
     await waitForFrame(() => expect(spoken).toHaveBeenCalledTimes(2));
-    await expect(spoken.mock.calls.at(-1)![0].text).toMatch(/^The board shows the planet Arrakis/);
-    await expect(spoken.mock.calls.at(-1)![0].text).not.toMatch(/^The board\./);
+    await expect(spoken.mock.calls.at(-1)![0].text).toMatch(/^Here's Arrakis/);
+    await expect(spoken.mock.calls.at(-1)![0].text).not.toMatch(/^Meet Arrakis/);
     await expect(rail.getByRole('button', { name: 'Turn speaking mode off' })).toHaveAttribute('aria-pressed', 'true');
-    const title = rail.getByText('The board');
+    const title = rail.getByText('Meet Arrakis');
     const row = title.closest('li')!;
-    const description = within(row).getByText(/The board shows the planet Arrakis/);
+    const description = within(row).getByText(/Here's Arrakis/);
     const badge = row.querySelector('span')!;
     await expect(description.getBoundingClientRect().left).toBeCloseTo(row.getBoundingClientRect().left, 0);
     await expect(description.getBoundingClientRect().width).toBeCloseTo(row.getBoundingClientRect().width, 0);
@@ -91,11 +91,11 @@ export const SpeakingMode = meta.story({
     await expect(badge.getBoundingClientRect().width).toBeLessThan(30);
     await userEvent.keyboard('{Enter}');
     await waitForFrame(() => expect(spoken).toHaveBeenCalledTimes(3));
-    await expect(spoken.mock.calls.at(-1)![0].text).toMatch(/^Each player has a faction token/);
+    await expect(spoken.mock.calls.at(-1)![0].text).toMatch(/^Those faction tokens around the board/);
     await userEvent.click(rail.getByRole('button', { name: 'Turn speaking mode off' }));
     await userEvent.click(rail.getByRole('button', { name: 'Reset' }));
     await waitForFrame(() =>
-      expect(rail.getByText('Hear the steps aloud').closest('li')).toHaveAttribute('data-state', 'current')
+      expect(rail.getByText('Welcome to the table').closest('li')).toHaveAttribute('data-state', 'current')
     );
     await expect(rail.getByRole('button', { name: 'Turn speaking mode on' })).toHaveAttribute('aria-pressed', 'false');
     await expect(spoken).toHaveBeenCalledTimes(3);
@@ -145,26 +145,26 @@ export const PlayedThrough = meta.story({
     const token = stored.table.pieces.filter(isFactionToken).sort((a, b) => b.position[2] - a.position[2])[0]!;
     const tokenPoint = [token.position[0], token.position[1] + stackTopHeight(token), token.position[2]] as const;
     await waitForPlayCamera(document);
-    await step('Hear the steps aloud');
+    await step('Welcome to the table');
     await userEvent.keyboard('{Enter}');
-    await step('The board');
+    await step('Meet Arrakis');
     await clickAt(tokenPoint);
     await waitForFrame(() => expect(selection(), 'The token is selected before its tutorial step.').toBe(token.id));
     await userEvent.keyboard('{Enter}');
-    await step('The players');
+    await step('Meet the players');
     const canvas = document.querySelector('canvas')!;
     const bounds = canvas.getBoundingClientRect();
     await clickCanvas(bounds.right - 4, bounds.top + 4);
     await waitForFrame(() => expect(selection(), 'A background miss retains the earlier selection.').toBe(token.id));
-    await step('The players');
+    await step('Meet the players');
     /* An earlier selection and Enter cannot do the new click task. */
     await userEvent.keyboard('{Enter}');
-    await step('The players');
+    await step('Meet the players');
     await clickAt([0.8, TABLE_SURFACE_Y, 0.6]);
-    await step('The players');
+    await step('Meet the players');
     await clickAt(tokenPoint);
-    await step('Phase and turn');
-    for (const next of ['The phases of a turn', 'The turn tracker', 'Advance to the next phase']) {
+    await step('Where are we in the game?');
+    for (const next of ['See the phases', 'See the turn', 'Move to the next phase']) {
       await userEvent.keyboard('{Enter}');
       await step(next);
     }
@@ -174,7 +174,7 @@ export const PlayedThrough = meta.story({
     await step('Open the game menu');
     await expect(page.getByText('Spice Blow', { exact: true })).toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Game menu' }));
-    await step('Copy the game link');
+    await step('Share the game');
     const writeText = spyOn(document.defaultView!.navigator.clipboard, 'writeText').mockResolvedValue();
     await userEvent.click(page.getByRole('button', { name: 'Copy game link' }));
     await expect(writeText).toHaveBeenCalledWith(expect.stringContaining('/tutorial/welcome'));

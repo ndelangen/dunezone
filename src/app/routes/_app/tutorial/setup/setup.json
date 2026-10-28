@@ -59,7 +59,7 @@
           {
             "title": "The Voice",
             "text": "During battle (step 2.1) you may force your opponent to play/not play a Treachery Card in their Battle Plan. (Projectile Weapon, Poison Defense, Worthless Card, Mercenaries, etc) Cheap Heroes may not be voiced. Special battle cards like Lazgun and Weirding Way must be voiced by name. If you force the use of a card the opponent does not have, they may silently ignore The Voice.",
-            "karama": "(Battle step 2.1) BG may not use Voice in their or their ally\u2019s battles this phase."
+            "karama": "(Battle step 2.1) BG may not use Voice in their or their ally’s battles this phase."
           },
           {
             "title": "Spiritual Advisors",
@@ -144,7 +144,7 @@
           {
             "title": "Leto's Tithe",
             "text": "During Spice Collection phase take 2 spice from the Spice Bank if you control one stronghold. Take 3 instead if you control at least two strongholds. You permanently lose this advantage once you gain the Kwisatz Haderach token.",
-            "karama": "Leto\u2019s Tithe \u2013 (Collection Phase) Atreides collects no spice from Leto\u2019s Tithe this phase."
+            "karama": "Leto’s Tithe – (Collection Phase) Atreides collects no spice from Leto’s Tithe this phase."
           }
         ],
         "fate": {
@@ -358,17 +358,17 @@
           {
             "title": "Discount Shipping",
             "text": "You pay half the normal shipping rates.",
-            "karama": "(Shipment and Movement Phase) Guild must pay normal shipping rates to ship their troops. If played while Guild is shipping, they may change their shipment after Karama is played. Does not affect Guild\u2019s ally."
+            "karama": "(Shipment and Movement Phase) Guild must pay normal shipping rates to ship their troops. If played while Guild is shipping, they may change their shipment after Karama is played. Does not affect Guild’s ally."
           },
           {
             "title": "Three Types of Shipment",
             "text": "When you ship troops choose one:\n\n- Ship normally from reserves to one territory\n- Ship from one territory to another (at rates of destination territory).\n- Ship from one territory to reserves (at stronghold rates).",
-            "karama": "(Shipment and Movement Phase) Guild and their ally can only ship from reserves to the planet this phase. Doesn\u2019t affect their shipping rate."
+            "karama": "(Shipment and Movement Phase) Guild and their ally can only ship from reserves to the planet this phase. Doesn’t affect their shipping rate."
           },
           {
             "title": "Three Types of Interjection",
             "text": "Once at any point during Shipment and Movement Phase you may affect turn order in one of the following ways:\n\n- Take your turn first, last, or between any other factions.\n- Swap your turn position with another faction  (cannot be done after your normal spot in turn order).\n- Force another player to go now, and you take their place in turn order (cannot be done after your normal spot in turn order).",
-            "karama": "(Shipment and Movement Phase before Guild\u2019s turn in Storm Order) Guild cannot effect storm order this phase."
+            "karama": "(Shipment and Movement Phase before Guild’s turn in Storm Order) Guild cannot effect storm order this phase."
           },
           {
             "title": "Retreat",
@@ -1742,28 +1742,28 @@
           "connectionId": "9e7a4e0d-ddf8-452e-a703-cc6a2d629255",
           "userId": "user-a",
           "viewerSeat": "seat-1",
-          "displayName": "Twaffle",
+          "displayName": "Central",
           "color": "#75d8a7"
         },
         "seat-2": {
           "connectionId": "1f375114-c58e-4c02-9c8a-d60b7fc1545f",
           "userId": "user-b",
           "viewerSeat": "seat-2",
-          "displayName": "Thialfi",
+          "displayName": "Krell",
           "color": "#75d8a7"
         },
         "seat-3": {
           "connectionId": "a52345c9-d4b0-4238-b2b9-f81cbfaa0be1",
           "userId": "user-c",
           "viewerSeat": "seat-3",
-          "displayName": "Fectumbra",
+          "displayName": "Jaded AF",
           "color": "#75d8a7"
         },
         "seat-4": {
           "connectionId": "34404622-4902-4ab7-b1ce-5c67180c5ef3",
           "userId": "user-d",
           "viewerSeat": "seat-4",
-          "displayName": "Erickenneth",
+          "displayName": "Eichmal",
           "color": "#75d8a7"
         },
         "seat-5": {
@@ -1777,29 +1777,54 @@
           "connectionId": "1a95098e-4278-43f2-8394-8892ff6c8e92",
           "userId": "user-f",
           "viewerSeat": "seat-6",
-          "displayName": "Argelius",
+          "displayName": "Tautrimas",
           "color": "#75d8a7"
         },
         "neutral": {
           "connectionId": "f02e7c64-84f8-4d0c-9605-8b4917c73b45",
           "userId": "user-watcher",
           "viewerSeat": "neutral",
-          "displayName": "Klyzx",
+          "displayName": "IHasPinecone",
           "color": "#d0c8b9"
         }
       },
       "players": [
-        { "seat": "seat-1", "name": "Twaffle", "avatar": null, "slug": "twaffle" },
-        { "seat": "seat-2", "name": "Thialfi", "avatar": null, "slug": "thialfi" },
-        { "seat": "seat-3", "name": "Fectumbra", "avatar": null, "slug": "fectumbra" },
+        {
+          "seat": "seat-1",
+          "name": "Central",
+          "avatar": "/user-images/135c0f3ded60c3943f4acb17448c5258a53229f4d6f7f02aab7710610059b0fa.jpg",
+          "slug": "central"
+        },
+        {
+          "seat": "seat-2",
+          "name": "Krell",
+          "avatar": "/user-images/409fbbeb9c14078b27140eb9f76bd68cacbb246db0f5ec32cb43215654769c9d.jpg",
+          "slug": "krell"
+        },
+        {
+          "seat": "seat-3",
+          "name": "Jaded AF",
+          "avatar": "/user-images/4c76179e0f54fb2644da18a766b602bcafc5a0d6e37501d05e54d3de994d8a5b.jpg",
+          "slug": "jaded-af"
+        },
         {
           "seat": "seat-4",
-          "name": "Erickenneth",
-          "avatar": null,
-          "slug": "erickenneth"
+          "name": "Eichmal",
+          "avatar": "/user-images/b148132451fc3628b14701a6e9972b61e8eeb6d2e9e3093c2856a390cb66d229.jpg",
+          "slug": "eichmal"
         },
-        { "seat": "seat-5", "name": "Ridwan", "avatar": null, "slug": "ridwan" },
-        { "seat": "seat-6", "name": "Argelius", "avatar": null, "slug": "argelius" }
+        {
+          "seat": "seat-5",
+          "name": "Ridwan",
+          "avatar": "/user-images/a3b41128abc9c359f8a7e82edcf3b18b4c371182b7ed02d1d4edab1f8f257211.jpg",
+          "slug": "ridwan"
+        },
+        {
+          "seat": "seat-6",
+          "name": "Tautrimas",
+          "avatar": "/user-images/0b4c82b2e1e9d897993b7882941ba50231c84a28d389002ade01da871c6f38c2.jpg",
+          "slug": "tautrimas"
+        }
       ]
     },
     "setup": {
@@ -6269,28 +6294,28 @@
           "connectionId": "0367c37c-2226-4f7a-86ee-f07a649edc7a",
           "userId": "user-a",
           "viewerSeat": "seat-1",
-          "displayName": "Twaffle",
+          "displayName": "Central",
           "color": "#253b82"
         },
         "seat-2": {
           "connectionId": "4d3ab555-2853-4f33-bbe8-bb50abdab32b",
           "userId": "user-b",
           "viewerSeat": "seat-2",
-          "displayName": "Thialfi",
+          "displayName": "Krell",
           "color": "#151315"
         },
         "seat-3": {
           "connectionId": "fa089d6a-f691-4a52-bd10-1532899a345d",
           "userId": "user-c",
           "viewerSeat": "seat-3",
-          "displayName": "Fectumbra",
+          "displayName": "Jaded AF",
           "color": "#be1010"
         },
         "seat-4": {
           "connectionId": "0cfed1ee-7f68-4def-978e-5d92eee6e624",
           "userId": "user-d",
           "viewerSeat": "seat-4",
-          "displayName": "Erickenneth",
+          "displayName": "Eichmal",
           "color": "#dc5317"
         },
         "seat-5": {
@@ -6304,24 +6329,54 @@
           "connectionId": "407a2768-977e-4855-800d-56b4445f030f",
           "userId": "user-f",
           "viewerSeat": "seat-6",
-          "displayName": "Argelius",
+          "displayName": "Tautrimas",
           "color": "#4a4c08"
         },
         "neutral": {
           "connectionId": "adfac325-c22b-4f8f-b1e8-9674ac082873",
           "userId": "user-watcher",
           "viewerSeat": "neutral",
-          "displayName": "Klyzx",
+          "displayName": "IHasPinecone",
           "color": "#d0c8b9"
         }
       },
       "players": [
-        { "seat": "seat-1", "name": "Twaffle", "avatar": null, "slug": "twaffle" },
-        { "seat": "seat-2", "name": "Thialfi", "avatar": null, "slug": "thialfi" },
-        { "seat": "seat-3", "name": "Fectumbra", "avatar": null, "slug": "fectumbra" },
-        { "seat": "seat-4", "name": "Erickenneth", "avatar": null, "slug": "erickenneth" },
-        { "seat": "seat-5", "name": "Ridwan", "avatar": null, "slug": "ridwan" },
-        { "seat": "seat-6", "name": "Argelius", "avatar": null, "slug": "argelius" }
+        {
+          "seat": "seat-1",
+          "name": "Central",
+          "avatar": "/user-images/135c0f3ded60c3943f4acb17448c5258a53229f4d6f7f02aab7710610059b0fa.jpg",
+          "slug": "central"
+        },
+        {
+          "seat": "seat-2",
+          "name": "Krell",
+          "avatar": "/user-images/409fbbeb9c14078b27140eb9f76bd68cacbb246db0f5ec32cb43215654769c9d.jpg",
+          "slug": "krell"
+        },
+        {
+          "seat": "seat-3",
+          "name": "Jaded AF",
+          "avatar": "/user-images/4c76179e0f54fb2644da18a766b602bcafc5a0d6e37501d05e54d3de994d8a5b.jpg",
+          "slug": "jaded-af"
+        },
+        {
+          "seat": "seat-4",
+          "name": "Eichmal",
+          "avatar": "/user-images/b148132451fc3628b14701a6e9972b61e8eeb6d2e9e3093c2856a390cb66d229.jpg",
+          "slug": "eichmal"
+        },
+        {
+          "seat": "seat-5",
+          "name": "Ridwan",
+          "avatar": "/user-images/a3b41128abc9c359f8a7e82edcf3b18b4c371182b7ed02d1d4edab1f8f257211.jpg",
+          "slug": "ridwan"
+        },
+        {
+          "seat": "seat-6",
+          "name": "Tautrimas",
+          "avatar": "/user-images/0b4c82b2e1e9d897993b7882941ba50231c84a28d389002ade01da871c6f38c2.jpg",
+          "slug": "tautrimas"
+        }
       ]
     },
     "turn-1-storm": {
@@ -11113,28 +11168,28 @@
           "connectionId": "0367c37c-2226-4f7a-86ee-f07a649edc7a",
           "userId": "user-a",
           "viewerSeat": "seat-1",
-          "displayName": "Twaffle",
+          "displayName": "Central",
           "color": "#253b82"
         },
         "seat-2": {
           "connectionId": "4d3ab555-2853-4f33-bbe8-bb50abdab32b",
           "userId": "user-b",
           "viewerSeat": "seat-2",
-          "displayName": "Thialfi",
+          "displayName": "Krell",
           "color": "#151315"
         },
         "seat-3": {
           "connectionId": "fa089d6a-f691-4a52-bd10-1532899a345d",
           "userId": "user-c",
           "viewerSeat": "seat-3",
-          "displayName": "Fectumbra",
+          "displayName": "Jaded AF",
           "color": "#be1010"
         },
         "seat-4": {
           "connectionId": "0cfed1ee-7f68-4def-978e-5d92eee6e624",
           "userId": "user-d",
           "viewerSeat": "seat-4",
-          "displayName": "Erickenneth",
+          "displayName": "Eichmal",
           "color": "#dc5317"
         },
         "seat-5": {
@@ -11148,24 +11203,54 @@
           "connectionId": "407a2768-977e-4855-800d-56b4445f030f",
           "userId": "user-f",
           "viewerSeat": "seat-6",
-          "displayName": "Argelius",
+          "displayName": "Tautrimas",
           "color": "#4a4c08"
         },
         "neutral": {
           "connectionId": "adfac325-c22b-4f8f-b1e8-9674ac082873",
           "userId": "user-watcher",
           "viewerSeat": "neutral",
-          "displayName": "Klyzx",
+          "displayName": "IHasPinecone",
           "color": "#d0c8b9"
         }
       },
       "players": [
-        { "seat": "seat-1", "name": "Twaffle", "avatar": null, "slug": "twaffle" },
-        { "seat": "seat-2", "name": "Thialfi", "avatar": null, "slug": "thialfi" },
-        { "seat": "seat-3", "name": "Fectumbra", "avatar": null, "slug": "fectumbra" },
-        { "seat": "seat-4", "name": "Erickenneth", "avatar": null, "slug": "erickenneth" },
-        { "seat": "seat-5", "name": "Ridwan", "avatar": null, "slug": "ridwan" },
-        { "seat": "seat-6", "name": "Argelius", "avatar": null, "slug": "argelius" }
+        {
+          "seat": "seat-1",
+          "name": "Central",
+          "avatar": "/user-images/135c0f3ded60c3943f4acb17448c5258a53229f4d6f7f02aab7710610059b0fa.jpg",
+          "slug": "central"
+        },
+        {
+          "seat": "seat-2",
+          "name": "Krell",
+          "avatar": "/user-images/409fbbeb9c14078b27140eb9f76bd68cacbb246db0f5ec32cb43215654769c9d.jpg",
+          "slug": "krell"
+        },
+        {
+          "seat": "seat-3",
+          "name": "Jaded AF",
+          "avatar": "/user-images/4c76179e0f54fb2644da18a766b602bcafc5a0d6e37501d05e54d3de994d8a5b.jpg",
+          "slug": "jaded-af"
+        },
+        {
+          "seat": "seat-4",
+          "name": "Eichmal",
+          "avatar": "/user-images/b148132451fc3628b14701a6e9972b61e8eeb6d2e9e3093c2856a390cb66d229.jpg",
+          "slug": "eichmal"
+        },
+        {
+          "seat": "seat-5",
+          "name": "Ridwan",
+          "avatar": "/user-images/a3b41128abc9c359f8a7e82edcf3b18b4c371182b7ed02d1d4edab1f8f257211.jpg",
+          "slug": "ridwan"
+        },
+        {
+          "seat": "seat-6",
+          "name": "Tautrimas",
+          "avatar": "/user-images/0b4c82b2e1e9d897993b7882941ba50231c84a28d389002ade01da871c6f38c2.jpg",
+          "slug": "tautrimas"
+        }
       ]
     }
   },
@@ -11198,42 +11283,42 @@
       {
         "sequence": 6,
         "class": "seat",
-        "text": "Argelius took seat 6, approved by Twaffle.",
+        "text": "Tautrimas took seat 6, approved by Central.",
         "context": "Drafting",
         "at": 1792776602055
       },
       {
         "sequence": 5,
         "class": "seat",
-        "text": "Ridwan took seat 5, approved by Twaffle.",
+        "text": "Ridwan took seat 5, approved by Central.",
         "context": "Drafting",
         "at": 1792776601952
       },
       {
         "sequence": 4,
         "class": "seat",
-        "text": "Erickenneth took seat 4, approved by Twaffle.",
+        "text": "Eichmal took seat 4, approved by Central.",
         "context": "Drafting",
         "at": 1792776601852
       },
       {
         "sequence": 3,
         "class": "seat",
-        "text": "Fectumbra took seat 3, approved by Twaffle.",
+        "text": "Jaded AF took seat 3, approved by Central.",
         "context": "Drafting",
         "at": 1792776601741
       },
       {
         "sequence": 2,
         "class": "seat",
-        "text": "Thialfi took seat 2, approved by Twaffle.",
+        "text": "Krell took seat 2, approved by Central.",
         "context": "Drafting",
         "at": 1792776601632
       },
       {
         "sequence": 1,
         "class": "seat",
-        "text": "Twaffle created the game and took seat 1.",
+        "text": "Central created the game and took seat 1.",
         "context": "Drafting",
         "at": 1792776601247
       }

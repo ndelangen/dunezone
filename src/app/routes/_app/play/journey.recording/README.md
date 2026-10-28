@@ -26,7 +26,7 @@ longer parses, and `sandbox.stories.fixture.test.ts` when a stored state no long
   Every faction deals Traitors with their published fronts, and Bene Gesserit opens setup with
   its prediction where it is seated.
 - People: the synthetic accounts are renamed to the public profiles the other Play stories seat
-  (Twaffle, Thialfi, Fectumbra, Erickenneth, Ridwan, Argelius) and the spectator Klyzx.
+  (Central, Krell, Jaded AF, Eichmal, Ridwan, Tautrimas) and the spectator IHasPinecone.
 - Faction assignment and shuffles are random, so each recording deals differently.
 - Stored state: the room's whole snapshot, hidden cards included, as `current_state` holds it. Only
   the sandbox reads it; the journey stories show the recorded views.

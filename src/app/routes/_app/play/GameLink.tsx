@@ -21,9 +21,9 @@ export function GameLink({ address, page }: Readonly<{ address: string; page?: s
 }
 
 /** The drafting chip's invitation while seats are still open: one compact button that copies the game link. */
-export function InviteLink({ address }: Readonly<{ address: string }>) {
+export function InviteLink({ address, page }: Readonly<{ address: string; page?: string | undefined }>) {
   const clipboard = useClipboard();
-  const url = new URL(`/play/${address}`, window.location.origin).href;
+  const url = new URL(page ?? `/play/${address}`, window.location.origin).href;
   /* When copying fails the link opens beneath the button as text, for the player to copy by hand. */
   return (
     <Popover opened={Boolean(clipboard.error)} onChange={(open) => !open && clipboard.reset()} withinPortal>

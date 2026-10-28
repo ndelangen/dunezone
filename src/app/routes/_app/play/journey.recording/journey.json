@@ -3,7 +3,7 @@
   "steps": [
     {
       "title": "Game created",
-      "detail": "Twaffle created the game and holds seat 1 while the draft waits for players.",
+      "detail": "Central created the game and holds seat 1 while the draft waits for players.",
       "actor": null,
       "action": null,
       "logSequence": 0,
@@ -11,7 +11,7 @@
     },
     {
       "title": "Table full",
-      "detail": "Six players are seated through the creator's approval, and Klyzx watches as a spectator.",
+      "detail": "Six players are seated through the creator's approval, and IHasPinecone watches as a spectator.",
       "actor": null,
       "action": null,
       "logSequence": 0,
@@ -19,7 +19,7 @@
     },
     {
       "title": "Draft pick",
-      "detail": "Twaffle picks House Atreides for the draft.",
+      "detail": "Central picks House Atreides for the draft.",
       "actor": "seat-1",
       "action": { "kind": "draft-pick", "factionId": "house-atreides" },
       "logSequence": 0,
@@ -27,7 +27,7 @@
     },
     {
       "title": "Draft pick",
-      "detail": "Thialfi picks House Harkonnen for the draft.",
+      "detail": "Krell picks House Harkonnen for the draft.",
       "actor": "seat-2",
       "action": { "kind": "draft-pick", "factionId": "house-harkonnen" },
       "logSequence": 0,
@@ -35,7 +35,7 @@
     },
     {
       "title": "Draft pick",
-      "detail": "Fectumbra picks Emperor for the draft.",
+      "detail": "Jaded AF picks Emperor for the draft.",
       "actor": "seat-3",
       "action": { "kind": "draft-pick", "factionId": "emperor" },
       "logSequence": 0,
@@ -43,7 +43,7 @@
     },
     {
       "title": "Draft pick",
-      "detail": "Erickenneth picks Spacing Guild for the draft.",
+      "detail": "Eichmal picks Spacing Guild for the draft.",
       "actor": "seat-4",
       "action": { "kind": "draft-pick", "factionId": "spacing-guild" },
       "logSequence": 0,
@@ -59,7 +59,7 @@
     },
     {
       "title": "Draft pick",
-      "detail": "Argelius picks Bene Gesserit for the draft.",
+      "detail": "Tautrimas picks Bene Gesserit for the draft.",
       "actor": "seat-6",
       "action": { "kind": "draft-pick", "factionId": "bene-gesserit" },
       "logSequence": 0,
@@ -67,7 +67,7 @@
     },
     {
       "title": "Draft ban",
-      "detail": "Twaffle bans Ixians from the draft.",
+      "detail": "Central bans Ixians from the draft.",
       "actor": "seat-1",
       "action": { "kind": "draft-ban", "factionId": "ixians" },
       "logSequence": 0,
@@ -75,7 +75,7 @@
     },
     {
       "title": "Draft nearly ready",
-      "detail": "Five seats are ready; Argelius has not confirmed yet.",
+      "detail": "Five seats are ready; Tautrimas has not confirmed yet.",
       "actor": null,
       "action": { "kind": "draft-ready", "ready": true },
       "logSequence": 0,
@@ -83,7 +83,7 @@
     },
     {
       "title": "Factions dealt",
-      "detail": "The deal assigned Twaffle (Emperor), Thialfi (House Harkonnen), Fectumbra (Bene Gesserit), Erickenneth (House Atreides), Ridwan (Fremen), Argelius (Spacing Guild). Trading opens.",
+      "detail": "The deal assigned Central (Emperor), Krell (House Harkonnen), Jaded AF (Bene Gesserit), Eichmal (House Atreides), Ridwan (Fremen), Tautrimas (Spacing Guild). Trading opens.",
       "actor": "seat-6",
       "action": { "kind": "draft-ready", "ready": true },
       "logSequence": 7,
@@ -113,7 +113,7 @@
     },
     {
       "title": "Prediction locked",
-      "detail": "Fectumbra (Bene Gesserit) locks a secret prediction.",
+      "detail": "Jaded AF (Bene Gesserit) locks a secret prediction.",
       "actor": "seat-3",
       "action": {
         "kind": "prediction-lock",
@@ -135,7 +135,7 @@
     },
     {
       "title": "Traitors gathered",
-      "detail": "Twaffle combines every Traitor deck into one pile.",
+      "detail": "Central combines every Traitor deck into one pile.",
       "actor": "seat-1",
       "action": { "kind": "traitors-gather" },
       "logSequence": 9,
@@ -144,7 +144,7 @@
     },
     {
       "title": "Traitors shuffled",
-      "detail": "Twaffle shuffles the Traitor pile.",
+      "detail": "Central shuffles the Traitor pile.",
       "actor": "seat-1",
       "action": { "kind": "deck-shuffle", "pieceId": "b2401733-bcbd-4494-b10a-42242a730f2a" },
       "logSequence": 9,
@@ -153,7 +153,7 @@
     },
     {
       "title": "Dealing Traitors",
-      "detail": "Twaffle has dealt one Traitor to every seat.",
+      "detail": "Central has dealt one Traitor to every seat.",
       "actor": "seat-1",
       "action": { "kind": "deck-draw" },
       "logSequence": 9,
@@ -171,7 +171,7 @@
     },
     {
       "title": "Traitor kept",
-      "detail": "Twaffle (Emperor) keeps one Traitor and returns three to the pile.",
+      "detail": "Central (Emperor) keeps one Traitor and returns three to the pile.",
       "actor": "seat-1",
       "action": { "kind": "hand-play" },
       "logSequence": 9,
@@ -198,7 +198,7 @@
     },
     {
       "title": "Starting troops",
-      "detail": "Erickenneth (House Atreides) places 10 troops in Arrakeen.",
+      "detail": "Eichmal (House Atreides) places 10 troops in Arrakeen.",
       "actor": "seat-4",
       "action": { "kind": "drop" },
       "logSequence": 9,
@@ -207,7 +207,7 @@
     },
     {
       "title": "Starting troops",
-      "detail": "Thialfi (House Harkonnen) places 10 troops in Carthag.",
+      "detail": "Krell (House Harkonnen) places 10 troops in Carthag.",
       "actor": "seat-2",
       "action": { "kind": "drop" },
       "logSequence": 9,
@@ -216,7 +216,7 @@
     },
     {
       "title": "Starting troops",
-      "detail": "Argelius (Spacing Guild) places 5 troops in Tuek's Sietch.",
+      "detail": "Tautrimas (Spacing Guild) places 5 troops in Tuek's Sietch.",
       "actor": "seat-6",
       "action": { "kind": "drop" },
       "logSequence": 9,
@@ -252,7 +252,7 @@
     },
     {
       "title": "Starting troops",
-      "detail": "Fectumbra (Bene Gesserit) places 1 troop in Polar Sink.",
+      "detail": "Jaded AF (Bene Gesserit) places 1 troop in Polar Sink.",
       "actor": "seat-3",
       "action": { "kind": "drop" },
       "logSequence": 9,
@@ -279,7 +279,7 @@
     },
     {
       "title": "Storm moved",
-      "detail": "Twaffle moves the storm three sectors.",
+      "detail": "Central moves the storm three sectors.",
       "actor": "seat-1",
       "action": { "kind": "storm", "direction": 1 },
       "logSequence": 10,
@@ -297,7 +297,7 @@
     },
     {
       "title": "Spice card drawn",
-      "detail": "Twaffle draws the top Spice card into hand.",
+      "detail": "Central draws the top Spice card into hand.",
       "actor": "seat-1",
       "action": { "kind": "deck-draw", "pieceId": "42aa10a5-9b7d-447f-98b6-cd3a11536493" },
       "logSequence": 11,
@@ -306,7 +306,7 @@
     },
     {
       "title": "Spice card played",
-      "detail": "Twaffle plays the Spice card beside the deck.",
+      "detail": "Central plays the Spice card beside the deck.",
       "actor": "seat-1",
       "action": {
         "kind": "hand-play",
@@ -319,7 +319,7 @@
     },
     {
       "title": "Spice card revealed",
-      "detail": "Twaffle turns the Spice card face up.",
+      "detail": "Central turns the Spice card face up.",
       "actor": "seat-1",
       "action": { "kind": "flip", "pieceId": "ba39c726-6400-4309-b098-1df431528d9a" },
       "logSequence": 11,
@@ -328,7 +328,7 @@
     },
     {
       "title": "Spice from the Spice Bank",
-      "detail": "Twaffle takes the 8 spice the card names from the Spice Bank.",
+      "detail": "Central takes the 8 spice the card names from the Spice Bank.",
       "actor": "seat-1",
       "action": { "kind": "spice-spawn", "count": 8 },
       "logSequence": 12,
@@ -337,7 +337,7 @@
     },
     {
       "title": "Spice placed",
-      "detail": "Twaffle places 8 spice on Broken Land.",
+      "detail": "Central places 8 spice on Broken Land.",
       "actor": "seat-1",
       "action": { "kind": "drop" },
       "logSequence": 12,
@@ -364,7 +364,7 @@
     },
     {
       "title": "Card won",
-      "detail": "Erickenneth (House Atreides) wins the first Treachery card.",
+      "detail": "Eichmal (House Atreides) wins the first Treachery card.",
       "actor": "seat-1",
       "action": {
         "kind": "deck-draw",
@@ -377,7 +377,7 @@
     },
     {
       "title": "Bid paid",
-      "detail": "Erickenneth (House Atreides) pays 2 spice for it.",
+      "detail": "Eichmal (House Atreides) pays 2 spice for it.",
       "actor": "seat-4",
       "action": { "kind": "bank-withdraw", "amount": 2 },
       "logSequence": 15,
@@ -386,7 +386,7 @@
     },
     {
       "title": "Card won",
-      "detail": "Twaffle (Emperor) wins the second Treachery card.",
+      "detail": "Central (Emperor) wins the second Treachery card.",
       "actor": "seat-1",
       "action": { "kind": "deck-draw", "pieceId": "6da6a761-fefd-4204-8d0c-345ba02ddbb5", "recipient": "emperor" },
       "logSequence": 15,
@@ -395,7 +395,7 @@
     },
     {
       "title": "Bid paid",
-      "detail": "Twaffle (Emperor) pays 2 spice for it.",
+      "detail": "Central (Emperor) pays 2 spice for it.",
       "actor": "seat-1",
       "action": { "kind": "bank-withdraw", "amount": 2 },
       "logSequence": 16,
@@ -422,7 +422,7 @@
     },
     {
       "title": "Shipment",
-      "detail": "Thialfi (House Harkonnen) ships 5 troops to Arrakeen.",
+      "detail": "Krell (House Harkonnen) ships 5 troops to Arrakeen.",
       "actor": "seat-2",
       "action": { "kind": "drop" },
       "logSequence": 18,
@@ -431,7 +431,7 @@
     },
     {
       "title": "Shipment",
-      "detail": "Argelius (Spacing Guild) ships 3 troops to Imperial Basin.",
+      "detail": "Tautrimas (Spacing Guild) ships 3 troops to Imperial Basin.",
       "actor": "seat-6",
       "action": { "kind": "drop" },
       "logSequence": 18,
@@ -449,7 +449,7 @@
     },
     {
       "title": "Battle started",
-      "detail": "Thialfi (House Harkonnen) opens a battle in Arrakeen.",
+      "detail": "Krell (House Harkonnen) opens a battle in Arrakeen.",
       "actor": "seat-2",
       "action": { "kind": "battle-start" },
       "logSequence": 19,
@@ -458,7 +458,7 @@
     },
     {
       "title": "Battle side",
-      "detail": "Thialfi (House Harkonnen) takes the left side.",
+      "detail": "Krell (House Harkonnen) takes the left side.",
       "actor": "seat-2",
       "action": { "kind": "battle-claim", "battleId": "834c29e7-1166-46a1-b553-a6dd447ac049", "side": 0 },
       "logSequence": 19,
@@ -467,7 +467,7 @@
     },
     {
       "title": "Battle side",
-      "detail": "Erickenneth (House Atreides) takes the right side.",
+      "detail": "Eichmal (House Atreides) takes the right side.",
       "actor": "seat-4",
       "action": { "kind": "battle-claim", "battleId": "834c29e7-1166-46a1-b553-a6dd447ac049", "side": 1 },
       "logSequence": 19,
@@ -476,7 +476,7 @@
     },
     {
       "title": "Battle plan",
-      "detail": "Thialfi (House Harkonnen) commits a leader; the fixture troops have no battle values to dial.",
+      "detail": "Krell (House Harkonnen) commits a leader; the fixture troops have no battle values to dial.",
       "actor": "seat-2",
       "action": {
         "kind": "battle-plan",
@@ -496,7 +496,7 @@
     },
     {
       "title": "Battle plan",
-      "detail": "Erickenneth (House Atreides) commits a leader; the fixture troops have no battle values to dial.",
+      "detail": "Eichmal (House Atreides) commits a leader; the fixture troops have no battle values to dial.",
       "actor": "seat-4",
       "action": {
         "kind": "battle-plan",
@@ -516,7 +516,7 @@
     },
     {
       "title": "Battle ready",
-      "detail": "Thialfi (House Harkonnen) locks the plan.",
+      "detail": "Krell (House Harkonnen) locks the plan.",
       "actor": "seat-2",
       "action": { "kind": "battle-ready", "battleId": "834c29e7-1166-46a1-b553-a6dd447ac049", "ready": true },
       "logSequence": 19,
@@ -525,7 +525,7 @@
     },
     {
       "title": "Battle countdown",
-      "detail": "Erickenneth (House Atreides) locks the plan; the reveal counts down.",
+      "detail": "Eichmal (House Atreides) locks the plan; the reveal counts down.",
       "actor": "seat-4",
       "action": { "kind": "battle-ready", "battleId": "834c29e7-1166-46a1-b553-a6dd447ac049", "ready": true },
       "logSequence": 19,
@@ -543,7 +543,7 @@
     },
     {
       "title": "Battle outcome",
-      "detail": "Thialfi (House Harkonnen) agrees House Atreides won.",
+      "detail": "Krell (House Harkonnen) agrees House Atreides won.",
       "actor": "seat-2",
       "action": { "kind": "battle-outcome", "battleId": "834c29e7-1166-46a1-b553-a6dd447ac049", "outcome": "right" },
       "logSequence": 19,
@@ -552,7 +552,7 @@
     },
     {
       "title": "Battle resolved",
-      "detail": "Erickenneth (House Atreides) agrees; the battle is settled.",
+      "detail": "Eichmal (House Atreides) agrees; the battle is settled.",
       "actor": "seat-4",
       "action": { "kind": "battle-outcome", "battleId": "834c29e7-1166-46a1-b553-a6dd447ac049", "outcome": "right" },
       "logSequence": 20,
@@ -579,7 +579,7 @@
     },
     {
       "title": "Determining the winner",
-      "detail": "Twaffle opens the result.",
+      "detail": "Central opens the result.",
       "actor": "seat-1",
       "action": { "kind": "result-open" },
       "logSequence": 23,
@@ -588,7 +588,7 @@
     },
     {
       "title": "Game finished",
-      "detail": "Twaffle declares House Atreides the winner.",
+      "detail": "Central declares House Atreides the winner.",
       "actor": "seat-1",
       "action": { "kind": "result-declare", "result": "faction", "factionIds": ["house-atreides"] },
       "logSequence": 24,
@@ -735,7 +735,14 @@
       "phaseChangedAt": 0,
       "requests": [],
       "seatRequests": [],
-      "players": [{ "seat": "seat-1", "name": "Twaffle", "avatar": null, "slug": "twaffle" }]
+      "players": [
+        {
+          "seat": "seat-1",
+          "name": "Central",
+          "avatar": "/user-images/135c0f3ded60c3943f4acb17448c5258a53229f4d6f7f02aab7710610059b0fa.jpg",
+          "slug": "central"
+        }
+      ]
     },
     "nwpmFQbE4NVC": {
       "n0": [304.34200788, 39.08594545],
@@ -1809,42 +1816,36 @@
       {
         "kind": "M",
         "values": [
-          {
-            "edge": "n0:n1",
-            "t": 0.000013720670605271589,
-            "offset": [0.000006862542136332195, 0.000001922400350906628]
-          }
+          { "edge": "n0:n1", "t": 1.3720670605271589e-5, "offset": [6.862542136332195e-6, 1.922400350906628e-6] }
         ]
       },
       {
         "kind": "L",
         "values": [
-          { "edge": "n1:n2", "t": 0.000048393308537469894, "offset": [0.00034412563417163256, -0.00008631980924889149] }
+          { "edge": "n1:n2", "t": 4.8393308537469894e-5, "offset": [0.00034412563417163256, -8.631980924889149e-5] }
         ]
       },
       {
         "kind": "L",
         "values": [
-          { "edge": "n2:n3", "t": 0.00013189026897129675, "offset": [0.00006069661168339735, 0.000012364738665837649] }
+          { "edge": "n2:n3", "t": 0.00013189026897129675, "offset": [6.069661168339735e-5, 1.2364738665837649e-5] }
         ]
       },
       {
         "kind": "L",
         "values": [
-          { "edge": "n3:n4", "t": 0.00006797554357621533, "offset": [-0.0009494658858670846, -0.0005200799705491477] }
+          { "edge": "n3:n4", "t": 6.797554357621533e-5, "offset": [-0.0009494658858670846, -0.0005200799705491477] }
         ]
       },
       {
         "kind": "L",
         "values": [
-          { "edge": "n3:n4", "t": 0.9999640724355705, "offset": [-0.000035143876289112086, -0.000019250429559747317] }
+          { "edge": "n3:n4", "t": 0.9999640724355705, "offset": [-3.5143876289112086e-5, -1.9250429559747317e-5] }
         ]
       },
       {
         "kind": "L",
-        "values": [
-          { "edge": "n4:n5", "t": 0.9999798726519052, "offset": [0.000015193186584383511, 0.0000130727445082357] }
-        ]
+        "values": [{ "edge": "n4:n5", "t": 0.9999798726519052, "offset": [1.5193186584383511e-5, 1.30727445082357e-5] }]
       },
       {
         "kind": "L",
@@ -1853,7 +1854,7 @@
       {
         "kind": "L",
         "values": [
-          { "edge": "n7:n8", "t": 0.000015593959421765675, "offset": [-0.00024158593134870898, 0.00010280507203219713] }
+          { "edge": "n7:n8", "t": 1.5593959421765675e-5, "offset": [-0.00024158593134870898, 0.00010280507203219713] }
         ]
       },
       {
@@ -1865,7 +1866,7 @@
       {
         "kind": "L",
         "values": [
-          { "edge": "n10:n9", "t": 0.00008404614191577736, "offset": [-0.00004748869292825475, 0.0001502377460695925] }
+          { "edge": "n10:n9", "t": 8.404614191577736e-5, "offset": [-4.748869292825475e-5, 0.0001502377460695925] }
         ]
       },
       {
@@ -1877,17 +1878,13 @@
       {
         "kind": "L",
         "values": [
-          { "edge": "n10:n11", "t": 0.9999909152584895, "offset": [0.00011309411593174445, 0.00006529844780800431] }
+          { "edge": "n10:n11", "t": 0.9999909152584895, "offset": [0.00011309411593174445, 6.529844780800431e-5] }
         ]
       },
       {
         "kind": "L",
         "values": [
-          {
-            "edge": "n12:n13",
-            "t": 0.000014864926445890934,
-            "offset": [0.000011557483787782985, -0.000010078562681314907]
-          }
+          { "edge": "n12:n13", "t": 1.4864926445890934e-5, "offset": [1.1557483787782985e-5, -1.0078562681314907e-5] }
         ]
       },
       {
@@ -1897,11 +1894,7 @@
       {
         "kind": "L",
         "values": [
-          {
-            "edge": "n0:n14",
-            "t": 0.000019219456660803014,
-            "offset": [0.000015918742064968683, 0.00045329313445563457]
-          }
+          { "edge": "n0:n14", "t": 1.9219456660803014e-5, "offset": [1.5918742064968683e-5, 0.00045329313445563457] }
         ]
       },
       { "kind": "Z", "values": [] },
@@ -3047,59 +3040,43 @@
       {
         "kind": "M",
         "values": [
-          { "edge": "n15:n25", "t": 0.9999879183718273, "offset": [7.088021902745822e-8, 0.00001111956854060736] }
+          { "edge": "n15:n25", "t": 0.9999879183718273, "offset": [7.088021902745822e-8, 1.111956854060736e-5] }
         ]
       },
       {
         "kind": "L",
         "values": [
-          { "edge": "n15:n16", "t": 0.9999901325428677, "offset": [-0.00017220013677388124, -0.00007212451413352028] }
+          { "edge": "n15:n16", "t": 0.9999901325428677, "offset": [-0.00017220013677388124, -7.212451413352028e-5] }
         ]
       },
       {
         "kind": "L",
         "values": [
-          {
-            "edge": "n17:n18",
-            "t": 0.000006717137026088174,
-            "offset": [0.0004940987697068522, -0.00027730584595531127]
-          }
+          { "edge": "n17:n18", "t": 6.717137026088174e-6, "offset": [0.0004940987697068522, -0.00027730584595531127] }
         ]
       },
       {
         "kind": "L",
         "values": [
-          {
-            "edge": "n18:n19",
-            "t": 0.000028902224522612442,
-            "offset": [-0.000016629225200404107, 0.00008489066763672781]
-          }
+          { "edge": "n18:n19", "t": 2.8902224522612442e-5, "offset": [-1.6629225200404107e-5, 8.489066763672781e-5] }
         ]
       },
       {
         "kind": "L",
         "values": [
-          {
-            "edge": "n19:n20",
-            "t": 0.00008430960276340094,
-            "offset": [-0.00035163471832788673, -0.0006125834378565287]
-          }
+          { "edge": "n19:n20", "t": 8.430960276340094e-5, "offset": [-0.00035163471832788673, -0.0006125834378565287] }
         ]
       },
       {
         "kind": "L",
         "values": [
-          { "edge": "n19:n20", "t": 0.9999987607198206, "offset": [0.00007863992902912287, 0.000136998753433204] }
+          { "edge": "n19:n20", "t": 0.9999987607198206, "offset": [7.863992902912287e-5, 0.000136998753433204] }
         ]
       },
       {
         "kind": "L",
         "values": [
-          {
-            "edge": "n21:n335",
-            "t": 0.00001783498679800445,
-            "offset": [-0.0003953275480625962, 0.00006969405296786135]
-          }
+          { "edge": "n21:n335", "t": 1.783498679800445e-5, "offset": [-0.0003953275480625962, 6.969405296786135e-5] }
         ]
       },
       {
@@ -3111,7 +3088,7 @@
       {
         "kind": "L",
         "values": [
-          { "edge": "n22:n23", "t": 0.999905109952803, "offset": [-0.000018465895863073456, 0.00026006734825045896] }
+          { "edge": "n22:n23", "t": 0.999905109952803, "offset": [-1.8465895863073456e-5, 0.00026006734825045896] }
         ]
       },
       {
@@ -3530,7 +3507,7 @@
       {
         "kind": "L",
         "values": [
-          { "edge": "n26:n27", "t": 0.9999908382788442, "offset": [-0.00006105329458705455, -0.00006860930409402499] }
+          { "edge": "n26:n27", "t": 0.9999908382788442, "offset": [-6.105329458705455e-5, -6.860930409402499e-5] }
         ]
       },
       {
@@ -3540,11 +3517,7 @@
       {
         "kind": "L",
         "values": [
-          {
-            "edge": "n29:n30",
-            "t": 0.000026305502338932675,
-            "offset": [-0.0004192976275021465, -0.00012128001435485203]
-          }
+          { "edge": "n29:n30", "t": 2.6305502338932675e-5, "offset": [-0.0004192976275021465, -0.00012128001435485203] }
         ]
       },
       {
@@ -3554,31 +3527,19 @@
       {
         "kind": "L",
         "values": [
-          {
-            "edge": "n31:n32",
-            "t": 0.00005953278034600167,
-            "offset": [-0.000060389311443032057, 0.000059526496045236854]
-          }
+          { "edge": "n31:n32", "t": 5.953278034600167e-5, "offset": [-6.0389311443032057e-5, 5.9526496045236854e-5] }
         ]
       },
       {
         "kind": "L",
         "values": [
-          {
-            "edge": "n32:n33",
-            "t": 0.00002679615761554405,
-            "offset": [0.00004817655610622751, -0.00040874314095162845]
-          }
+          { "edge": "n32:n33", "t": 2.679615761554405e-5, "offset": [4.817655610622751e-5, -0.00040874314095162845] }
         ]
       },
       {
         "kind": "L",
         "values": [
-          {
-            "edge": "n33:n34",
-            "t": 0.00004229248208925049,
-            "offset": [0.00006729092245905122, -0.00027355898515679655]
-          }
+          { "edge": "n33:n34", "t": 4.229248208925049e-5, "offset": [6.729092245905122e-5, -0.00027355898515679655] }
         ]
       },
       {
@@ -3590,29 +3551,29 @@
       {
         "kind": "L",
         "values": [
-          { "edge": "n34:n35", "t": 0.9999989653044575, "offset": [-0.00007837868810156579, -0.00004453298015505425] }
+          { "edge": "n34:n35", "t": 0.9999989653044575, "offset": [-7.837868810156579e-5, -4.453298015505425e-5] }
         ]
       },
       {
         "kind": "L",
-        "values": [{ "edge": "n35:n36", "t": 1, "offset": [-0.0003875400000765694, -0.000034599999878537346] }]
+        "values": [{ "edge": "n35:n36", "t": 1, "offset": [-0.0003875400000765694, -3.4599999878537346e-5] }]
       },
       {
         "kind": "L",
         "values": [
-          { "edge": "n36:n37", "t": 0.9999774924992293, "offset": [-0.00005639993997874626, 0.000011983430795226013] }
-        ]
-      },
-      {
-        "kind": "L",
-        "values": [
-          { "edge": "n37:n38", "t": 0.9999815320584087, "offset": [0.0001599992632463909, 0.000017370028558616468] }
+          { "edge": "n36:n37", "t": 0.9999774924992293, "offset": [-5.639993997874626e-5, 1.1983430795226013e-5] }
         ]
       },
       {
         "kind": "L",
         "values": [
-          { "edge": "n38:n39", "t": 0.9999613922254352, "offset": [-0.00011562759078742602, 0.000027439630400749593] }
+          { "edge": "n37:n38", "t": 0.9999815320584087, "offset": [0.0001599992632463909, 1.7370028558616468e-5] }
+        ]
+      },
+      {
+        "kind": "L",
+        "values": [
+          { "edge": "n38:n39", "t": 0.9999613922254352, "offset": [-0.00011562759078742602, 2.7439630400749593e-5] }
         ]
       },
       { "kind": "Z", "values": [] },
@@ -3945,7 +3906,7 @@
       {
         "kind": "L",
         "values": [
-          { "edge": "n40:n41", "t": 0.9999804376547009, "offset": [0.00011489912277795611, 0.00003382985275379724] }
+          { "edge": "n40:n41", "t": 0.9999804376547009, "offset": [0.00011489912277795611, 3.382985275379724e-5] }
         ]
       },
       {
@@ -3957,91 +3918,67 @@
       {
         "kind": "L",
         "values": [
-          {
-            "edge": "n43:n44",
-            "t": 0.00009324678486895913,
-            "offset": [0.00023491069812564547, -0.00029998459589819504]
-          }
+          { "edge": "n43:n44", "t": 9.324678486895913e-5, "offset": [0.00023491069812564547, -0.00029998459589819504] }
         ]
       },
       {
         "kind": "L",
         "values": [
-          {
-            "edge": "n44:n45",
-            "t": 0.000025489236287579417,
-            "offset": [-0.00019861370692808578, 0.000007853225866938374]
-          }
+          { "edge": "n44:n45", "t": 2.5489236287579417e-5, "offset": [-0.00019861370692808578, 7.853225866938374e-6] }
         ]
       },
       {
         "kind": "L",
         "values": [
-          { "edge": "n44:n45", "t": 0.9999212981954113, "offset": [-0.00016803635810447304, 0.000006644191358873286] }
+          { "edge": "n44:n45", "t": 0.9999212981954113, "offset": [-0.00016803635810447304, 6.644191358873286e-6] }
         ]
       },
       {
         "kind": "L",
         "values": [
-          {
-            "edge": "n46:n47",
-            "t": 0.000008699430476519334,
-            "offset": [0.00008820330097591977, -0.00001856978853709279]
-          }
+          { "edge": "n46:n47", "t": 8.699430476519334e-6, "offset": [8.820330097591977e-5, -1.856978853709279e-5] }
         ]
       },
       {
         "kind": "L",
         "values": [
-          { "edge": "n46:n47", "t": 0.9999845479429185, "offset": [0.0003081744317086077, -0.00006488117752212474] }
+          { "edge": "n46:n47", "t": 0.9999845479429185, "offset": [0.0003081744317086077, -6.488117752212474e-5] }
         ]
       },
       {
         "kind": "L",
         "values": [
-          {
-            "edge": "n48:n49",
-            "t": 0.000011345458888358192,
-            "offset": [0.00021545766468022975, 0.00023960086734575725]
-          }
+          { "edge": "n48:n49", "t": 1.1345458888358192e-5, "offset": [0.00021545766468022975, 0.00023960086734575725] }
         ]
       },
       {
         "kind": "L",
         "values": [
-          {
-            "edge": "n49:n50",
-            "t": 0.00004529170371109064,
-            "offset": [-0.00003289454244992385, -0.000004559305082807441]
-          }
+          { "edge": "n49:n50", "t": 4.529170371109064e-5, "offset": [-3.289454244992385e-5, -4.559305082807441e-6] }
         ]
       },
       {
         "kind": "L",
         "values": [
-          {
-            "edge": "n50:n51",
-            "t": 0.00007517448401060927,
-            "offset": [-0.00015661953840861997, -0.00008717962924720268]
-          }
+          { "edge": "n50:n51", "t": 7.517448401060927e-5, "offset": [-0.00015661953840861997, -8.717962924720268e-5] }
         ]
       },
       {
         "kind": "L",
         "values": [
-          { "edge": "n51:n52", "t": 0.00009287039134369703, "offset": [0.00005233959213057915, 0.0001593622897644309] }
+          { "edge": "n51:n52", "t": 9.287039134369703e-5, "offset": [5.233959213057915e-5, 0.0001593622897644309] }
         ]
       },
       {
         "kind": "L",
         "values": [
-          { "edge": "n51:n52", "t": 0.9999365742081194, "offset": [0.0000812437204018579, 0.0002473688614088587] }
+          { "edge": "n51:n52", "t": 0.9999365742081194, "offset": [8.12437204018579e-5, 0.0002473688614088587] }
         ]
       },
       {
         "kind": "L",
         "values": [
-          { "edge": "n52:n53", "t": 0.9999501856127005, "offset": [-0.0003895892986065519, -0.00006726749572294466] }
+          { "edge": "n52:n53", "t": 0.9999501856127005, "offset": [-0.0003895892986065519, -6.726749572294466e-5] }
         ]
       },
       {
@@ -4053,21 +3990,13 @@
       {
         "kind": "L",
         "values": [
-          {
-            "edge": "n55:n56",
-            "t": 0.000011473951415356014,
-            "offset": [-0.00007699561681562272, -0.00013306201108775895]
-          }
+          { "edge": "n55:n56", "t": 1.1473951415356014e-5, "offset": [-7.699561681562272e-5, -0.00013306201108775895] }
         ]
       },
       {
         "kind": "L",
         "values": [
-          {
-            "edge": "n56:n57",
-            "t": 0.000013312553485339062,
-            "offset": [-0.00011791997024346301, 0.0002748306235389464]
-          }
+          { "edge": "n56:n57", "t": 1.3312553485339062e-5, "offset": [-0.00011791997024346301, 0.0002748306235389464] }
         ]
       },
       {
@@ -4079,7 +4008,7 @@
       {
         "kind": "L",
         "values": [
-          { "edge": "n40:n58", "t": 0.00004004288553958731, "offset": [0.0000787039740828277, -0.0003024487521940955] }
+          { "edge": "n40:n58", "t": 4.004288553958731e-5, "offset": [7.87039740828277e-5, -0.0003024487521940955] }
         ]
       },
       { "kind": "Z", "values": [] },
@@ -4234,33 +4163,25 @@
       {
         "kind": "M",
         "values": [
-          {
-            "edge": "n59:n60",
-            "t": 0.000009350258994049665,
-            "offset": [-0.00022488003868659234, 0.00011213114407837566]
-          }
+          { "edge": "n59:n60", "t": 9.350258994049665e-6, "offset": [-0.00022488003868659234, 0.00011213114407837566] }
         ]
       },
       {
         "kind": "L",
         "values": [
-          { "edge": "n59:n60", "t": 0.9999514295982955, "offset": [-0.0001767325364738781, 0.00008812352410814128] }
+          { "edge": "n59:n60", "t": 0.9999514295982955, "offset": [-0.0001767325364738781, 8.812352410814128e-5] }
         ]
       },
       {
         "kind": "L",
         "values": [
-          { "edge": "n60:n61", "t": 0.999961474741256, "offset": [-0.00014247368876851851, 0.000010626040705119522] }
+          { "edge": "n60:n61", "t": 0.999961474741256, "offset": [-0.00014247368876851851, 1.0626040705119522e-5] }
         ]
       },
       {
         "kind": "L",
         "values": [
-          {
-            "edge": "n62:n63",
-            "t": 0.000051989550323910465,
-            "offset": [-0.00019016333565957666, 0.0007903446302179873]
-          }
+          { "edge": "n62:n63", "t": 5.1989550323910465e-5, "offset": [-0.00019016333565957666, 0.0007903446302179873] }
         ]
       },
       {
@@ -4272,23 +4193,19 @@
       {
         "kind": "L",
         "values": [
-          { "edge": "n64:n65", "t": 0.0000489405994617622, "offset": [0.001103705883807038, 0.0006748652609189776] }
+          { "edge": "n64:n65", "t": 4.89405994617622e-5, "offset": [0.001103705883807038, 0.0006748652609189776] }
         ]
       },
       {
         "kind": "L",
         "values": [
-          { "edge": "n65:n66", "t": 0.00006803695911612887, "offset": [0.0004625565387001984, -0.00013138277722646308] }
+          { "edge": "n65:n66", "t": 6.803695911612887e-5, "offset": [0.0004625565387001984, -0.00013138277722646308] }
         ]
       },
       {
         "kind": "L",
         "values": [
-          {
-            "edge": "n66:n67",
-            "t": 0.00003828447876990979,
-            "offset": [0.00021883035581993227, -0.00020209409615290497]
-          }
+          { "edge": "n66:n67", "t": 3.828447876990979e-5, "offset": [0.00021883035581993227, -0.00020209409615290497] }
         ]
       },
       {
@@ -4556,7 +4473,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -4607,12 +4524,42 @@
       { "id": "seat-6", "position": 5, "faction": null }
     ],
     "5gE1tY7y1X3t": [
-      { "seat": "seat-1", "name": "Twaffle", "avatar": null, "slug": "twaffle" },
-      { "seat": "seat-2", "name": "Thialfi", "avatar": null, "slug": "thialfi" },
-      { "seat": "seat-3", "name": "Fectumbra", "avatar": null, "slug": "fectumbra" },
-      { "seat": "seat-4", "name": "Erickenneth", "avatar": null, "slug": "erickenneth" },
-      { "seat": "seat-5", "name": "Ridwan", "avatar": null, "slug": "ridwan" },
-      { "seat": "seat-6", "name": "Argelius", "avatar": null, "slug": "argelius" }
+      {
+        "seat": "seat-1",
+        "name": "Central",
+        "avatar": "/user-images/135c0f3ded60c3943f4acb17448c5258a53229f4d6f7f02aab7710610059b0fa.jpg",
+        "slug": "central"
+      },
+      {
+        "seat": "seat-2",
+        "name": "Krell",
+        "avatar": "/user-images/409fbbeb9c14078b27140eb9f76bd68cacbb246db0f5ec32cb43215654769c9d.jpg",
+        "slug": "krell"
+      },
+      {
+        "seat": "seat-3",
+        "name": "Jaded AF",
+        "avatar": "/user-images/4c76179e0f54fb2644da18a766b602bcafc5a0d6e37501d05e54d3de994d8a5b.jpg",
+        "slug": "jaded-af"
+      },
+      {
+        "seat": "seat-4",
+        "name": "Eichmal",
+        "avatar": "/user-images/b148132451fc3628b14701a6e9972b61e8eeb6d2e9e3093c2856a390cb66d229.jpg",
+        "slug": "eichmal"
+      },
+      {
+        "seat": "seat-5",
+        "name": "Ridwan",
+        "avatar": "/user-images/a3b41128abc9c359f8a7e82edcf3b18b4c371182b7ed02d1d4edab1f8f257211.jpg",
+        "slug": "ridwan"
+      },
+      {
+        "seat": "seat-6",
+        "name": "Tautrimas",
+        "avatar": "/user-images/0b4c82b2e1e9d897993b7882941ba50231c84a28d389002ade01da871c6f38c2.jpg",
+        "slug": "tautrimas"
+      }
     ],
     "PKG9cPi8gGSU": {
       "battle": null,
@@ -4645,7 +4592,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -4663,7 +4610,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -4681,7 +4628,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -4699,7 +4646,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -4735,7 +4682,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -4753,7 +4700,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -4852,7 +4799,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -4870,7 +4817,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -4888,7 +4835,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -4906,7 +4853,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -4942,7 +4889,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -4960,7 +4907,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -5054,7 +5001,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -5072,7 +5019,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -5090,7 +5037,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -5108,7 +5055,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -5144,7 +5091,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -5162,7 +5109,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -5256,7 +5203,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -5274,7 +5221,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -5292,7 +5239,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -5310,7 +5257,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -5346,7 +5293,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -5364,7 +5311,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -5458,7 +5405,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -5476,7 +5423,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -5494,7 +5441,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -5512,7 +5459,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -5548,7 +5495,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -5566,7 +5513,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -5661,7 +5608,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -5679,7 +5626,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -5697,7 +5644,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -5715,7 +5662,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -5751,7 +5698,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -5769,7 +5716,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -5860,7 +5807,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -5878,7 +5825,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -5896,7 +5843,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -5914,7 +5861,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -5950,7 +5897,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -5968,7 +5915,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -6059,7 +6006,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -6077,7 +6024,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -6095,7 +6042,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -6113,7 +6060,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -6149,7 +6096,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -6167,7 +6114,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -6253,7 +6200,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -6271,7 +6218,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -6289,7 +6236,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -6307,7 +6254,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -6343,7 +6290,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#75d8a7"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -6361,7 +6308,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -6592,7 +6539,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -6654,7 +6601,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -6716,7 +6663,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -6778,7 +6725,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -6902,7 +6849,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -6961,7 +6908,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -7068,7 +7015,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -7122,7 +7069,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -7176,7 +7123,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -7230,7 +7177,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -7338,7 +7285,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -7389,7 +7336,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -8828,7 +8775,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -9024,7 +8971,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -9220,7 +9167,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -9416,7 +9363,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -9808,7 +9755,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -9867,7 +9814,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -11534,7 +11481,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -11625,7 +11572,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -11750,7 +11697,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -11841,7 +11788,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -12023,7 +11970,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -12084,7 +12031,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -12312,7 +12259,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -12376,7 +12323,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -12446,7 +12393,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -12510,7 +12457,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -12638,7 +12585,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -12692,7 +12639,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -12928,7 +12875,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -12992,7 +12939,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -13062,7 +13009,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -13126,7 +13073,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -13254,7 +13201,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -13308,7 +13255,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -13779,7 +13726,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -13843,7 +13790,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -13913,7 +13860,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -13977,7 +13924,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -14105,7 +14052,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -14159,7 +14106,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -14558,7 +14505,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -14643,7 +14590,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -14735,7 +14682,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -14820,7 +14767,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -14990,7 +14937,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -15044,7 +14991,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -15604,7 +15551,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -15733,7 +15680,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -15868,7 +15815,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -15997,7 +15944,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -16255,7 +16202,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -16309,7 +16256,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -16992,7 +16939,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -17049,7 +16996,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -17111,7 +17058,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -17168,7 +17115,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -17282,7 +17229,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -17336,7 +17283,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -17768,7 +17715,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -17825,7 +17772,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -17887,7 +17834,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -17952,7 +17899,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -18082,7 +18029,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -18136,7 +18083,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -18484,7 +18431,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -18541,7 +18488,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -18603,7 +18550,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -18668,7 +18615,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -18798,7 +18745,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -18852,7 +18799,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -19092,7 +19039,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -19149,7 +19096,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -19211,7 +19158,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -19276,7 +19223,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -19406,7 +19353,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -19460,7 +19407,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -19752,7 +19699,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -19809,7 +19756,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -19871,7 +19818,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -19936,7 +19883,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -20066,7 +20013,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -20120,7 +20067,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -20421,7 +20368,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -20478,7 +20425,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -20540,7 +20487,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -20605,7 +20552,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -20735,7 +20682,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -20789,7 +20736,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -21101,7 +21048,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -21158,7 +21105,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -21220,7 +21167,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -21285,7 +21232,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -21415,7 +21362,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -21469,7 +21416,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -21781,7 +21728,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -21838,7 +21785,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -21900,7 +21847,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -21965,7 +21912,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -22095,7 +22042,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -22149,7 +22096,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -22462,7 +22409,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -22519,7 +22466,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -22581,7 +22528,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -22646,7 +22593,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -22776,7 +22723,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -22830,7 +22777,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -23154,7 +23101,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -23211,7 +23158,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -23273,7 +23220,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -23338,7 +23285,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -23468,7 +23415,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -23522,7 +23469,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -23725,7 +23672,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -23782,7 +23729,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -23844,7 +23791,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -23909,7 +23856,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -24039,7 +23986,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -24093,7 +24040,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -24253,7 +24200,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -24310,7 +24257,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -24372,7 +24319,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -24437,7 +24384,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -24567,7 +24514,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -24621,7 +24568,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -24759,7 +24706,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -24816,7 +24763,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -24878,7 +24825,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -24943,7 +24890,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -25073,7 +25020,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -25127,7 +25074,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -25273,7 +25220,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -25330,7 +25277,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -25392,7 +25339,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -25457,7 +25404,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -25587,7 +25534,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -25641,7 +25588,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -25875,7 +25822,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -25932,7 +25879,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -25994,7 +25941,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -26059,7 +26006,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -26189,7 +26136,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -26243,7 +26190,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -26627,7 +26574,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -26684,7 +26631,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -26746,7 +26693,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -26811,7 +26758,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -26941,7 +26888,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -26995,7 +26942,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -27354,7 +27301,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -27411,7 +27358,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -27473,7 +27420,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -27538,7 +27485,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -27668,7 +27615,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -27722,7 +27669,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -28003,7 +27950,7 @@
       "spiceTransfers": [
         {
           "revision": 126,
-          "actor": "Twaffle",
+          "actor": "Central",
           "kind": "supply",
           "amount": 8,
           "source": "supply",
@@ -28020,7 +27967,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -28070,7 +28017,7 @@
       "spiceTransfers": [
         {
           "revision": 126,
-          "actor": "Twaffle",
+          "actor": "Central",
           "kind": "supply",
           "amount": 8,
           "source": "supply",
@@ -28087,7 +28034,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -28142,7 +28089,7 @@
       "spiceTransfers": [
         {
           "revision": 126,
-          "actor": "Twaffle",
+          "actor": "Central",
           "kind": "supply",
           "amount": 8,
           "source": "supply",
@@ -28159,7 +28106,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -28217,7 +28164,7 @@
       "spiceTransfers": [
         {
           "revision": 126,
-          "actor": "Twaffle",
+          "actor": "Central",
           "kind": "supply",
           "amount": 8,
           "source": "supply",
@@ -28234,7 +28181,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -28292,7 +28239,7 @@
       "spiceTransfers": [
         {
           "revision": 126,
-          "actor": "Twaffle",
+          "actor": "Central",
           "kind": "supply",
           "amount": 8,
           "source": "supply",
@@ -28367,7 +28314,7 @@
       "spiceTransfers": [
         {
           "revision": 126,
-          "actor": "Twaffle",
+          "actor": "Central",
           "kind": "supply",
           "amount": 8,
           "source": "supply",
@@ -28384,7 +28331,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -28432,7 +28379,7 @@
       "spiceTransfers": [
         {
           "revision": 126,
-          "actor": "Twaffle",
+          "actor": "Central",
           "kind": "supply",
           "amount": 8,
           "source": "supply",
@@ -28448,7 +28395,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -28556,7 +28503,7 @@
         {
           "revision": 126,
           "kind": "supply",
-          "actor": "Twaffle",
+          "actor": "Central",
           "amount": 8,
           "source": "supply",
           "destination": "table"
@@ -28722,7 +28669,7 @@
         {
           "revision": 126,
           "kind": "supply",
-          "actor": "Twaffle",
+          "actor": "Central",
           "amount": 8,
           "source": "supply",
           "destination": "table"
@@ -28738,7 +28685,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -28789,7 +28736,7 @@
         {
           "revision": 126,
           "kind": "supply",
-          "actor": "Twaffle",
+          "actor": "Central",
           "amount": 8,
           "source": "supply",
           "destination": "table"
@@ -28805,7 +28752,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -28861,7 +28808,7 @@
         {
           "revision": 126,
           "kind": "supply",
-          "actor": "Twaffle",
+          "actor": "Central",
           "amount": 8,
           "source": "supply",
           "destination": "table"
@@ -28877,7 +28824,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -28936,7 +28883,7 @@
         {
           "revision": 126,
           "kind": "supply",
-          "actor": "Twaffle",
+          "actor": "Central",
           "amount": 8,
           "source": "supply",
           "destination": "table"
@@ -28952,7 +28899,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -29011,7 +28958,7 @@
         {
           "revision": 126,
           "kind": "supply",
-          "actor": "Twaffle",
+          "actor": "Central",
           "amount": 8,
           "source": "supply",
           "destination": "table"
@@ -29086,7 +29033,7 @@
         {
           "revision": 126,
           "kind": "supply",
-          "actor": "Twaffle",
+          "actor": "Central",
           "amount": 8,
           "source": "supply",
           "destination": "table"
@@ -29102,7 +29049,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -29151,7 +29098,7 @@
         {
           "revision": 126,
           "kind": "supply",
-          "actor": "Twaffle",
+          "actor": "Central",
           "amount": 8,
           "source": "supply",
           "destination": "table"
@@ -29166,7 +29113,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -29274,7 +29221,7 @@
         {
           "revision": 126,
           "kind": "supply",
-          "actor": "Twaffle",
+          "actor": "Central",
           "amount": 8,
           "source": "supply",
           "destination": "table"
@@ -29377,7 +29324,7 @@
         {
           "revision": 126,
           "kind": "supply",
-          "actor": "Twaffle",
+          "actor": "Central",
           "amount": 8,
           "source": "supply",
           "destination": "table"
@@ -29393,7 +29340,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -29444,7 +29391,7 @@
         {
           "revision": 126,
           "kind": "supply",
-          "actor": "Twaffle",
+          "actor": "Central",
           "amount": 8,
           "source": "supply",
           "destination": "table"
@@ -29460,7 +29407,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -29516,7 +29463,7 @@
         {
           "revision": 126,
           "kind": "supply",
-          "actor": "Twaffle",
+          "actor": "Central",
           "amount": 8,
           "source": "supply",
           "destination": "table"
@@ -29532,7 +29479,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -29591,7 +29538,7 @@
         {
           "revision": 126,
           "kind": "supply",
-          "actor": "Twaffle",
+          "actor": "Central",
           "amount": 8,
           "source": "supply",
           "destination": "table"
@@ -29607,7 +29554,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -29666,7 +29613,7 @@
         {
           "revision": 126,
           "kind": "supply",
-          "actor": "Twaffle",
+          "actor": "Central",
           "amount": 8,
           "source": "supply",
           "destination": "table"
@@ -29741,7 +29688,7 @@
         {
           "revision": 126,
           "kind": "supply",
-          "actor": "Twaffle",
+          "actor": "Central",
           "amount": 8,
           "source": "supply",
           "destination": "table"
@@ -29757,7 +29704,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -29806,7 +29753,7 @@
         {
           "revision": 126,
           "kind": "supply",
-          "actor": "Twaffle",
+          "actor": "Central",
           "amount": 8,
           "source": "supply",
           "destination": "table"
@@ -29821,7 +29768,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -29873,7 +29820,7 @@
         {
           "revision": 126,
           "kind": "supply",
-          "actor": "Twaffle",
+          "actor": "Central",
           "amount": 8,
           "source": "supply",
           "destination": "table"
@@ -29976,7 +29923,7 @@
         {
           "revision": 126,
           "kind": "supply",
-          "actor": "Twaffle",
+          "actor": "Central",
           "amount": 8,
           "source": "supply",
           "destination": "table"
@@ -29992,7 +29939,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -30043,7 +29990,7 @@
         {
           "revision": 126,
           "kind": "supply",
-          "actor": "Twaffle",
+          "actor": "Central",
           "amount": 8,
           "source": "supply",
           "destination": "table"
@@ -30059,7 +30006,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -30115,7 +30062,7 @@
         {
           "revision": 126,
           "kind": "supply",
-          "actor": "Twaffle",
+          "actor": "Central",
           "amount": 8,
           "source": "supply",
           "destination": "table"
@@ -30131,7 +30078,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -30190,7 +30137,7 @@
         {
           "revision": 126,
           "kind": "supply",
-          "actor": "Twaffle",
+          "actor": "Central",
           "amount": 8,
           "source": "supply",
           "destination": "table"
@@ -30206,7 +30153,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -30265,7 +30212,7 @@
         {
           "revision": 126,
           "kind": "supply",
-          "actor": "Twaffle",
+          "actor": "Central",
           "amount": 8,
           "source": "supply",
           "destination": "table"
@@ -30340,7 +30287,7 @@
         {
           "revision": 126,
           "kind": "supply",
-          "actor": "Twaffle",
+          "actor": "Central",
           "amount": 8,
           "source": "supply",
           "destination": "table"
@@ -30356,7 +30303,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -30405,7 +30352,7 @@
         {
           "revision": 126,
           "kind": "supply",
-          "actor": "Twaffle",
+          "actor": "Central",
           "amount": 8,
           "source": "supply",
           "destination": "table"
@@ -30420,7 +30367,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -30472,7 +30419,7 @@
         {
           "revision": 126,
           "kind": "supply",
-          "actor": "Twaffle",
+          "actor": "Central",
           "amount": 8,
           "source": "supply",
           "destination": "table"
@@ -30655,7 +30602,7 @@
         {
           "revision": 126,
           "kind": "supply",
-          "actor": "Twaffle",
+          "actor": "Central",
           "amount": 8,
           "source": "supply",
           "destination": "table"
@@ -30671,7 +30618,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -30722,7 +30669,7 @@
         {
           "revision": 126,
           "kind": "supply",
-          "actor": "Twaffle",
+          "actor": "Central",
           "amount": 8,
           "source": "supply",
           "destination": "table"
@@ -30738,7 +30685,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -30794,7 +30741,7 @@
         {
           "revision": 126,
           "kind": "supply",
-          "actor": "Twaffle",
+          "actor": "Central",
           "amount": 8,
           "source": "supply",
           "destination": "table"
@@ -30810,7 +30757,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -30891,7 +30838,7 @@
         {
           "revision": 126,
           "kind": "supply",
-          "actor": "Twaffle",
+          "actor": "Central",
           "amount": 8,
           "source": "supply",
           "destination": "table"
@@ -30907,7 +30854,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -30966,7 +30913,7 @@
         {
           "revision": 126,
           "kind": "supply",
-          "actor": "Twaffle",
+          "actor": "Central",
           "amount": 8,
           "source": "supply",
           "destination": "table"
@@ -31041,7 +30988,7 @@
         {
           "revision": 126,
           "kind": "supply",
-          "actor": "Twaffle",
+          "actor": "Central",
           "amount": 8,
           "source": "supply",
           "destination": "table"
@@ -31057,7 +31004,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -31106,7 +31053,7 @@
         {
           "revision": 126,
           "kind": "supply",
-          "actor": "Twaffle",
+          "actor": "Central",
           "amount": 8,
           "source": "supply",
           "destination": "table"
@@ -31121,7 +31068,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -31364,7 +31311,7 @@
         {
           "revision": 126,
           "kind": "supply",
-          "actor": "Twaffle",
+          "actor": "Central",
           "amount": 8,
           "source": "supply",
           "destination": "table"
@@ -31501,13 +31448,13 @@
     "WXsuiWmqqv5w": [
       {
         "revision": 131,
-        "actor": "Erickenneth",
+        "actor": "Eichmal",
         "kind": "withdrawal",
         "amount": 2,
         "source": "house-atreides",
         "destination": "table"
       },
-      { "revision": 126, "kind": "supply", "actor": "Twaffle", "amount": 8, "source": "supply", "destination": "table" }
+      { "revision": 126, "kind": "supply", "actor": "Central", "amount": 8, "source": "supply", "destination": "table" }
     ],
     "impT-ywX4Acr": {
       "battle": null,
@@ -31563,7 +31510,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -31621,7 +31568,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -31684,7 +31631,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -31742,7 +31689,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -31874,7 +31821,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -31929,7 +31876,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -32012,12 +31959,12 @@
       {
         "revision": 131,
         "kind": "withdrawal",
-        "actor": "Erickenneth",
+        "actor": "Eichmal",
         "amount": 2,
         "source": "house-atreides",
         "destination": "table"
       },
-      { "revision": 126, "kind": "supply", "actor": "Twaffle", "amount": 8, "source": "supply", "destination": "table" }
+      { "revision": 126, "kind": "supply", "actor": "Central", "amount": 8, "source": "supply", "destination": "table" }
     ],
     "gxoX8TahdosG": {
       "revision": 131,
@@ -32259,7 +32206,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -32317,7 +32264,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -32380,7 +32327,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -32438,7 +32385,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -32570,7 +32517,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -32625,7 +32572,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -32996,7 +32943,7 @@
     "3Ri0LBdf2yg5": [
       {
         "revision": 133,
-        "actor": "Twaffle",
+        "actor": "Central",
         "kind": "withdrawal",
         "amount": 2,
         "source": "emperor",
@@ -33005,12 +32952,12 @@
       {
         "revision": 131,
         "kind": "withdrawal",
-        "actor": "Erickenneth",
+        "actor": "Eichmal",
         "amount": 2,
         "source": "house-atreides",
         "destination": "table"
       },
-      { "revision": 126, "kind": "supply", "actor": "Twaffle", "amount": 8, "source": "supply", "destination": "table" }
+      { "revision": 126, "kind": "supply", "actor": "Central", "amount": 8, "source": "supply", "destination": "table" }
     ],
     "oNaUtTAzEXu0": {
       "battle": null,
@@ -33058,7 +33005,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -33116,7 +33063,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -33179,7 +33126,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -33237,7 +33184,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -33369,7 +33316,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -33424,7 +33371,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -33509,7 +33456,7 @@
       {
         "revision": 133,
         "kind": "withdrawal",
-        "actor": "Twaffle",
+        "actor": "Central",
         "amount": 2,
         "source": "emperor",
         "destination": "table"
@@ -33517,12 +33464,12 @@
       {
         "revision": 131,
         "kind": "withdrawal",
-        "actor": "Erickenneth",
+        "actor": "Eichmal",
         "amount": 2,
         "source": "house-atreides",
         "destination": "table"
       },
-      { "revision": 126, "kind": "supply", "actor": "Twaffle", "amount": 8, "source": "supply", "destination": "table" }
+      { "revision": 126, "kind": "supply", "actor": "Central", "amount": 8, "source": "supply", "destination": "table" }
     ],
     "1fJtZ5vQk4b6": {
       "revision": 133,
@@ -33663,7 +33610,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -33721,7 +33668,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -33784,7 +33731,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -33842,7 +33789,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -33974,7 +33921,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -34029,7 +33976,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -34189,7 +34136,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -34247,7 +34194,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -34310,7 +34257,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -34368,7 +34315,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -34500,7 +34447,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -34555,7 +34502,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -34821,7 +34768,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -34879,7 +34826,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -34942,7 +34889,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -35000,7 +34947,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -35132,7 +35079,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -35187,7 +35134,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -35522,7 +35469,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -35580,7 +35527,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -35643,7 +35590,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -35701,7 +35648,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -35833,7 +35780,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -35888,7 +35835,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -36122,7 +36069,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -36180,7 +36127,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -36243,7 +36190,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -36301,7 +36248,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -36433,7 +36380,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -36488,7 +36435,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -36619,7 +36566,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -36677,7 +36624,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -36740,7 +36687,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -36798,7 +36745,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -36930,7 +36877,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -36985,7 +36932,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -37125,7 +37072,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -37205,7 +37152,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -37268,7 +37215,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -37326,7 +37273,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -37458,7 +37405,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -37513,7 +37460,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -37656,7 +37603,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -37714,7 +37661,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -37777,7 +37724,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -37857,7 +37804,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -37989,7 +37936,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -38044,7 +37991,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -38178,7 +38125,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -38269,7 +38216,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -38332,7 +38279,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -38390,7 +38337,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -38522,7 +38469,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -38577,7 +38524,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -38746,7 +38693,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -38804,7 +38751,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -38867,7 +38814,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -38955,7 +38902,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -39087,7 +39034,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -39142,7 +39089,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -39320,7 +39267,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -39378,7 +39325,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -39441,7 +39388,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -39507,7 +39454,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -39639,7 +39586,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -39694,7 +39641,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -39840,7 +39787,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -39898,7 +39845,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -39961,7 +39908,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -40027,7 +39974,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -40159,7 +40106,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -40214,7 +40161,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -40458,7 +40405,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -40516,7 +40463,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -40579,7 +40526,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -40645,7 +40592,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -40777,7 +40724,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -40832,7 +40779,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -41110,7 +41057,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -41168,7 +41115,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -41231,7 +41178,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -41297,7 +41244,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -41429,7 +41376,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -41484,7 +41431,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -41723,7 +41670,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -41781,7 +41728,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -41844,7 +41791,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -41910,7 +41857,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -42042,7 +41989,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -42097,7 +42044,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -42330,7 +42277,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -42388,7 +42335,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -42451,7 +42398,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -42517,7 +42464,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -42649,7 +42596,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -42704,7 +42651,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -42864,7 +42811,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -42922,7 +42869,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -42985,7 +42932,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -43051,7 +42998,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -43183,7 +43130,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -43238,7 +43185,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -43350,7 +43297,7 @@
       "swapping": { "$": "zUOselEZt6SU" },
       "controls": { "$": "RWeTxYUG3zw1" },
       "spiceTransfers": { "$": "AaRbZZcji4E-" },
-      "ending": { "by": { "seat": "seat-1", "name": "Twaffle" }, "startedAt": 1792960231161 },
+      "ending": { "by": { "seat": "seat-1", "name": "Central" }, "startedAt": 1792960231161 },
       "bank": { "factionId": "emperor", "balance": 8 },
       "board": { "$": "URMh2t_8Ymwz" },
       "removalVotes": []
@@ -43361,7 +43308,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -43409,7 +43356,7 @@
       "swapping": { "$": "zUOselEZt6SU" },
       "controls": { "$": "RWeTxYUG3zw1" },
       "spiceTransfers": { "$": "AaRbZZcji4E-" },
-      "ending": { "by": { "seat": "seat-1", "name": "Twaffle" }, "startedAt": 1792960231161 },
+      "ending": { "by": { "seat": "seat-1", "name": "Central" }, "startedAt": 1792960231161 },
       "bank": { "factionId": "house-harkonnen", "balance": 10 },
       "board": { "$": "URMh2t_8Ymwz" },
       "removalVotes": []
@@ -43420,7 +43367,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -43473,7 +43420,7 @@
       "swapping": { "$": "zUOselEZt6SU" },
       "controls": { "$": "RWeTxYUG3zw1" },
       "spiceTransfers": { "$": "AaRbZZcji4E-" },
-      "ending": { "by": { "seat": "seat-1", "name": "Twaffle" }, "startedAt": 1792960231161 },
+      "ending": { "by": { "seat": "seat-1", "name": "Central" }, "startedAt": 1792960231161 },
       "bank": { "factionId": "bene-gesserit", "balance": 5 },
       "board": { "$": "URMh2t_8Ymwz" },
       "removalVotes": []
@@ -43484,7 +43431,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -43540,7 +43487,7 @@
       "swapping": { "$": "zUOselEZt6SU" },
       "controls": { "$": "RWeTxYUG3zw1" },
       "spiceTransfers": { "$": "AaRbZZcji4E-" },
-      "ending": { "by": { "seat": "seat-1", "name": "Twaffle" }, "startedAt": 1792960231161 },
+      "ending": { "by": { "seat": "seat-1", "name": "Central" }, "startedAt": 1792960231161 },
       "bank": { "factionId": "house-atreides", "balance": 8 },
       "board": { "$": "URMh2t_8Ymwz" },
       "removalVotes": []
@@ -43551,7 +43498,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -43607,7 +43554,7 @@
       "swapping": { "$": "zUOselEZt6SU" },
       "controls": { "$": "RWeTxYUG3zw1" },
       "spiceTransfers": { "$": "AaRbZZcji4E-" },
-      "ending": { "by": { "seat": "seat-1", "name": "Twaffle" }, "startedAt": 1792960231161 },
+      "ending": { "by": { "seat": "seat-1", "name": "Central" }, "startedAt": 1792960231161 },
       "bank": { "factionId": "fremen", "balance": 10 },
       "board": { "$": "URMh2t_8Ymwz" },
       "removalVotes": []
@@ -43674,7 +43621,7 @@
       "swapping": { "$": "zUOselEZt6SU" },
       "controls": { "$": "RWeTxYUG3zw1" },
       "spiceTransfers": { "$": "AaRbZZcji4E-" },
-      "ending": { "by": { "seat": "seat-1", "name": "Twaffle" }, "startedAt": 1792960231161 },
+      "ending": { "by": { "seat": "seat-1", "name": "Central" }, "startedAt": 1792960231161 },
       "bank": { "factionId": "spacing-guild", "balance": 10 },
       "board": { "$": "URMh2t_8Ymwz" },
       "removalVotes": []
@@ -43685,7 +43632,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -43731,7 +43678,7 @@
       "swapping": { "$": "zUOselEZt6SU" },
       "controls": { "$": "RWeTxYUG3zw1" },
       "spiceTransfers": { "$": "AaRbZZcji4E-" },
-      "ending": { "by": { "seat": "seat-1", "name": "Twaffle" }, "startedAt": 1792960231161 },
+      "ending": { "by": { "seat": "seat-1", "name": "Central" }, "startedAt": 1792960231161 },
       "board": { "$": "URMh2t_8Ymwz" },
       "removalVotes": []
     },
@@ -43741,7 +43688,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -43790,7 +43737,7 @@
       "combatFaces": { "$": "ZtolC4xKbcHq" },
       "battleResults": [{ "$": "7epf66-2ZHwe" }],
       "spiceTransfers": { "$": "AaRbZZcji4E-" },
-      "ending": { "by": { "seat": "seat-1", "name": "Twaffle", "userId": "user-a" }, "startedAt": 1792960231161 },
+      "ending": { "by": { "seat": "seat-1", "name": "Central", "userId": "user-a" }, "startedAt": 1792960231161 },
       "result": null,
       "privatePredictions": {
         "faction-step-0": {
@@ -43856,7 +43803,7 @@
       "result": {
         "kind": "faction",
         "factionIds": ["house-atreides"],
-        "by": { "seat": "seat-1", "name": "Twaffle" },
+        "by": { "seat": "seat-1", "name": "Central" },
         "declaredAt": 1792960231284
       },
       "bank": { "factionId": "emperor", "balance": 8 },
@@ -43869,7 +43816,7 @@
         "connectionId": "ca5f5069-c365-4bc4-a6fc-8e1892eacc1f",
         "userId": "user-a",
         "viewerSeat": "seat-1",
-        "displayName": "Twaffle",
+        "displayName": "Central",
         "color": "#be1010"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -43920,7 +43867,7 @@
       "result": {
         "kind": "faction",
         "factionIds": ["house-atreides"],
-        "by": { "seat": "seat-1", "name": "Twaffle" },
+        "by": { "seat": "seat-1", "name": "Central" },
         "declaredAt": 1792960231284
       },
       "bank": { "factionId": "house-harkonnen", "balance": 10 },
@@ -43933,7 +43880,7 @@
         "connectionId": "1ad10766-2dd8-421f-9c7a-3f3da1ffca16",
         "userId": "user-b",
         "viewerSeat": "seat-2",
-        "displayName": "Thialfi",
+        "displayName": "Krell",
         "color": "#151315"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -43989,7 +43936,7 @@
       "result": {
         "kind": "faction",
         "factionIds": ["house-atreides"],
-        "by": { "seat": "seat-1", "name": "Twaffle" },
+        "by": { "seat": "seat-1", "name": "Central" },
         "declaredAt": 1792960231284
       },
       "bank": { "factionId": "bene-gesserit", "balance": 5 },
@@ -44002,7 +43949,7 @@
         "connectionId": "44e9e49e-0c22-4b4d-8a18-566fb2aca896",
         "userId": "user-c",
         "viewerSeat": "seat-3",
-        "displayName": "Fectumbra",
+        "displayName": "Jaded AF",
         "color": "#253b82"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -44061,7 +44008,7 @@
       "result": {
         "kind": "faction",
         "factionIds": ["house-atreides"],
-        "by": { "seat": "seat-1", "name": "Twaffle" },
+        "by": { "seat": "seat-1", "name": "Central" },
         "declaredAt": 1792960231284
       },
       "bank": { "factionId": "house-atreides", "balance": 8 },
@@ -44074,7 +44021,7 @@
         "connectionId": "34cc2fc2-4eea-440c-bfec-68fa0ceb25c6",
         "userId": "user-d",
         "viewerSeat": "seat-4",
-        "displayName": "Erickenneth",
+        "displayName": "Eichmal",
         "color": "#4a4c08"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -44133,7 +44080,7 @@
       "result": {
         "kind": "faction",
         "factionIds": ["house-atreides"],
-        "by": { "seat": "seat-1", "name": "Twaffle" },
+        "by": { "seat": "seat-1", "name": "Central" },
         "declaredAt": 1792960231284
       },
       "bank": { "factionId": "fremen", "balance": 10 },
@@ -44205,7 +44152,7 @@
       "result": {
         "kind": "faction",
         "factionIds": ["house-atreides"],
-        "by": { "seat": "seat-1", "name": "Twaffle" },
+        "by": { "seat": "seat-1", "name": "Central" },
         "declaredAt": 1792960231284
       },
       "bank": { "factionId": "spacing-guild", "balance": 10 },
@@ -44218,7 +44165,7 @@
         "connectionId": "c01bd2c4-8f63-462a-adf1-c7d07f601d5e",
         "userId": "user-f",
         "viewerSeat": "seat-6",
-        "displayName": "Argelius",
+        "displayName": "Tautrimas",
         "color": "#dc5317"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -44267,7 +44214,7 @@
       "result": {
         "kind": "faction",
         "factionIds": ["house-atreides"],
-        "by": { "seat": "seat-1", "name": "Twaffle" },
+        "by": { "seat": "seat-1", "name": "Central" },
         "declaredAt": 1792960231284
       },
       "board": { "$": "URMh2t_8Ymwz" },
@@ -44279,7 +44226,7 @@
         "connectionId": "13f661bf-c283-4358-a69f-5eab621cdb98",
         "userId": "user-watcher",
         "viewerSeat": "neutral",
-        "displayName": "Klyzx",
+        "displayName": "IHasPinecone",
         "color": "#d0c8b9"
       },
       "epoch": "8ce9f90a-3c45-41b0-b16b-6c39f41645a2",
@@ -44306,14 +44253,14 @@
       {
         "sequence": 24,
         "class": "phase",
-        "text": "Twaffle declared the result: House Atreides won.",
+        "text": "Central declared the result: House Atreides won.",
         "context": "Turn 1, Mentat Pause",
         "at": 1792960231287
       },
       {
         "sequence": 23,
         "class": "phase",
-        "text": "Twaffle started determining the winner.",
+        "text": "Central started determining the winner.",
         "context": "Turn 1, Mentat Pause",
         "at": 1792960231163
       },
@@ -44350,14 +44297,14 @@
       {
         "sequence": 16,
         "class": "spice",
-        "text": "Twaffle withdrew 2 spice from the Emperor spice reserve to the table.",
+        "text": "Central withdrew 2 spice from the Emperor spice reserve to the table.",
         "context": "Turn 1, Bidding",
         "at": 1792960213169
       },
       {
         "sequence": 15,
         "class": "spice",
-        "text": "Erickenneth withdrew 2 spice from the House Atreides spice reserve to the table.",
+        "text": "Eichmal withdrew 2 spice from the House Atreides spice reserve to the table.",
         "context": "Turn 1, Bidding",
         "at": 1792960212919
       },
@@ -44372,7 +44319,7 @@
       {
         "sequence": 12,
         "class": "spice",
-        "text": "Twaffle took 8 spice from the Spice Bank to the table.",
+        "text": "Central took 8 spice from the Spice Bank to the table.",
         "context": "Turn 1, Spice Blow",
         "at": 1792960208190
       },
@@ -44410,42 +44357,42 @@
       {
         "sequence": 6,
         "class": "seat",
-        "text": "Argelius took seat 6, approved by Twaffle.",
+        "text": "Tautrimas took seat 6, approved by Central.",
         "context": "Drafting",
         "at": 1792960175110
       },
       {
         "sequence": 5,
         "class": "seat",
-        "text": "Ridwan took seat 5, approved by Twaffle.",
+        "text": "Ridwan took seat 5, approved by Central.",
         "context": "Drafting",
         "at": 1792960175008
       },
       {
         "sequence": 4,
         "class": "seat",
-        "text": "Erickenneth took seat 4, approved by Twaffle.",
+        "text": "Eichmal took seat 4, approved by Central.",
         "context": "Drafting",
         "at": 1792960174909
       },
       {
         "sequence": 3,
         "class": "seat",
-        "text": "Fectumbra took seat 3, approved by Twaffle.",
+        "text": "Jaded AF took seat 3, approved by Central.",
         "context": "Drafting",
         "at": 1792960174812
       },
       {
         "sequence": 2,
         "class": "seat",
-        "text": "Thialfi took seat 2, approved by Twaffle.",
+        "text": "Krell took seat 2, approved by Central.",
         "context": "Drafting",
         "at": 1792960174699
       },
       {
         "sequence": 1,
         "class": "seat",
-        "text": "Twaffle created the game and took seat 1.",
+        "text": "Central created the game and took seat 1.",
         "context": "Drafting",
         "at": 1792960174255
       }

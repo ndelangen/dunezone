@@ -82,8 +82,8 @@ const readHelp = () => ({
 const windowTasks = (): GuideTask[] => [
   task({
     id: 'open-compass',
-    task: 'Open the controls',
-    detail: 'Press {Space} to open the controls.',
+    task: 'Find your controls',
+    detail: "There's more to the table than the board. Press {Space} to open the controls and see what's available.",
     anchor: { kind: 'page', element: first('[data-compass-launcher]') },
     begin: nothing,
     done: compassOpen,
@@ -100,7 +100,7 @@ const windowTasks = (): GuideTask[] => [
     id: 'help',
     task: 'Read a window hint',
     detail:
-      'Hover over the question mark beside the window title to read its help text. Move the pointer away when you are done.',
+      "Not sure what a window does? Hover over the question mark beside its title to read its help text. Move the pointer away when you're done.",
     anchor: { kind: 'page', element: first(HELP) },
     ...readHelp(),
   }),
@@ -108,7 +108,7 @@ const windowTasks = (): GuideTask[] => [
     id: 'pin-hand',
     task: 'Keep your hand open',
     detail:
-      'Use the left pin beside the window title to keep your hand open in the bottom left.\n\nUnpinned windows close when you click the table.',
+      'Want your hand close by? Use the left pin beside the window title to keep it open in the bottom left.\n\nUnpinned windows close when you click the table.',
     anchor: { kind: 'page', element: first('[aria-label="Pin to the bottom left"]') },
     begin: nothing,
     done: () => windowAt('left', 'hand'),
@@ -163,7 +163,7 @@ const slotTasks = (): GuideTask[] => [
     id: 'letter',
     task: 'Open chat with a shortcut',
     detail:
-      'Click the table, then press {G} to open table chat.\n\nEach window has a shortcut shown in the controls.\n\nYou can also hold {Space}, tap a direction and release it to open a window.',
+      "Here's a quicker way back to chat. Click the table, then press {G}.\n\nEach window has a shortcut shown in the controls. You can also hold {Space}, tap a direction and release it to open a window.",
     anchor: { kind: 'page', element: first('[data-compass-launcher]') },
     ...openedWindow(windowShown('table-chat')),
   }),

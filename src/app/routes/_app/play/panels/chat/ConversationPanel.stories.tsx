@@ -16,7 +16,7 @@ import {
  */
 const meta = preview.meta({ ...conversationPanelMeta, title: 'Play/Panels/Chat' });
 
-/** A private chat with Twaffle, with earlier messages still to load above the newest fifty. */
+/** A private chat with Central, with earlier messages still to load above the newest fifty. */
 export const WithAPlayer = meta.story({
   play: async ({ canvas }) => {
     await expect(canvas.getByText('Shall we keep the southern route open?')).toBeVisible();

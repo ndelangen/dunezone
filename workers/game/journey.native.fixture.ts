@@ -16,6 +16,7 @@ import type { ServerMessage } from '../../src/shared/play/protocol';
 import type { PieceAction, GameSnapshot, ClientMessage } from '../../src/shared/play/protocol';
 import { BOARD_RADIUS } from '../../src/shared/play/tableGeometry';
 import board from '../../src/shared/rulebooks/boards/arrakis.json';
+import { TUTORIAL_PLAYERS } from '../../src/shared/tutorial/players';
 import { cardPage, deckPage, slot, spiceCardPage } from './native-catalogue.fixture.ts';
 import type { NativePeer, NativeRuntime, NativeConnection, NativeView } from './native-runtime.fixture.ts';
 import { required } from './native-runtime.fixture.ts';
@@ -60,7 +61,7 @@ const DREAMRULES = '/published/story-dreamrules/';
 const fixture = (path: string) => path.replace('/play-fixtures/product/', PRODUCT);
 export const SUFFIXES = ['a', 'b', 'c', 'd', 'e', 'f'];
 /* The public profiles the other Play stories seat, in seat order (drafting.stories.fixture.ts). */
-export const PLAYERS = ['Twaffle', 'Thialfi', 'Fectumbra', 'Erickenneth', 'Ridwan', 'Argelius'];
+export const PLAYERS = TUTORIAL_PLAYERS.slice(0, 6).map((player) => player.name);
 /* The stages the sandbox story runs the table in; drafting and trading stay with the recorded journey. */
 const SANDBOX_STAGES = new Set(['setup', 'play']);
 
@@ -214,9 +215,22 @@ export function renamed(text: string) {
   for (const [index, suffix] of SUFFIXES.entries()) {
     result = result
       .replaceAll(`Synthetic ${suffix.toUpperCase()}`, PLAYERS[index])
-      .replaceAll(`synthetic-${suffix}`, PLAYERS[index].toLowerCase());
+      .replaceAll(`synthetic-${suffix}`, TUTORIAL_PLAYERS[index]!.slug);
   }
-  return result.replaceAll('Synthetic WATCHER', 'Klyzx').replaceAll('synthetic-watcher', 'klyzx');
+  result = result
+    .replaceAll('Synthetic WATCHER', TUTORIAL_PLAYERS[6]!.name)
+    .replaceAll('synthetic-watcher', TUTORIAL_PLAYERS[6]!.slug);
+  return JSON.stringify(
+    JSON.parse(result, (_key, value: unknown) => {
+      if (value && typeof value === 'object' && 'seat' in value && 'avatar' in value && 'name' in value) {
+        const profile = TUTORIAL_PLAYERS.find((player) => player.name === value.name);
+        if (profile) {
+          return { ...value, ...profile };
+        }
+      }
+      return value;
+    })
+  );
 }
 
 /** One recording in progress: the runtime, the connected viewers, the clock the room reads, and the steps kept so far. */

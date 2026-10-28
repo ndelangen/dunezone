@@ -30,5 +30,5 @@ const karamaPublished = db((baseline) => {
 /** The chapter as a player meets it: do what the rail says, where its arrow shows, and it moves on by itself. */
 export const Chapter = meta.story({
   parameters: { ...chapterParameters, database: karamaPublished },
-  play: playChapter('Chapter 18: Bring your own pieces', 'Open the Shared table inventory'),
+  play: playChapter('Chapter 19: Bring your own pieces', 'Open the shared inventory'),
 });

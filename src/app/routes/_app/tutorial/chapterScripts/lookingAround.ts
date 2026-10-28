@@ -68,14 +68,14 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     task({
       id: 'zoom-in',
       task: 'Look closer at Arrakis',
-      detail: 'Scroll down over the board. The camera moves in toward the spot under your pointer.',
+      detail: "Let's take a closer look! Scroll down over the board to move toward the spot under your pointer.",
       anchor: { kind: 'table', point: () => [0, 0, 0] },
       ...scrolled('in'),
     }),
     task({
       id: 'slide',
-      task: 'Pan across the board',
-      detail: 'When zoomed in, hold an arrow key or {W}, {A}, {S} or {D} to move the view.',
+      task: 'Move across the board',
+      detail: 'You can explore while zoomed in. Hold an arrow key or {W}, {A}, {S} or {D} to move the view.',
       anchor: { kind: 'table', point: () => [0, 0, 0] },
       ...slid(),
     }),
@@ -116,7 +116,8 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     task({
       id: 'ping',
       task: 'Point something out',
-      detail: 'Hover over a territory and press {Tab}. Everyone sees a ripple in your colour and hears a ping.',
+      detail:
+        "Want everyone to look at the same place? Hover over a territory and press {Tab}. They'll see a ripple in your colour and hear a ping.",
       anchor: { kind: 'table', point: () => [0, 0, 0] },
       ...pinged(),
     }),

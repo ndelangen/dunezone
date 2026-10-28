@@ -22,13 +22,13 @@ export const Offers = meta.story({
     return productTransport('seat-2', snapshot);
   }),
   play: async ({ canvasElement }) => {
-    const page = await openFactionInfo(canvasElement, 'Twaffle');
+    const page = await openFactionInfo(canvasElement, 'Central');
     await page.findByRole('button', { name: 'Accept trade from House Atreides' }, { timeout: 30_000 });
-    await openFactionInfo(canvasElement, 'fectumbra');
+    await openFactionInfo(canvasElement, 'Jaded AF');
     await expect(page.getByRole('button', { name: 'Offer trade to Emperor' })).toBeDisabled();
     await openFactionInfo(canvasElement, 'Ridwan');
     await expect(page.getByRole('button', { name: 'Cancel offer to Fremen' })).toBeEnabled();
-    await openFactionInfo(canvasElement, 'Twaffle');
+    await openFactionInfo(canvasElement, 'Central');
     await userEvent.click(page.getByRole('button', { name: 'Accept trade from House Atreides' }));
     await waitFor(() => expect(lastCommand()).toMatchObject({ action: { kind: 'swap-accept', offerId: 'offer-one' } }));
   },
