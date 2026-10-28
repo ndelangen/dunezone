@@ -118,10 +118,15 @@ export const ReducedMotionHeaderResize = meta.story({
 });
 
 export const FullscreenExitRestoresDocument = meta.story({
-  globals: { viewport: { value: 'appLarge' } },
+  globals: { viewport: { value: 'appLarge' }, motion: 'on' },
   args: { children: <FullscreenShellPage /> },
   play: async ({ canvasElement }) => {
     await playFullscreenHeight({ canvasElement });
+    const background = canvasElement.querySelector<HTMLElement>('[data-app-background]')!;
+    await waitFor(() => expect(background).toHaveAttribute('data-suspended'));
+    await expect(
+      background.getAnimations({ subtree: true }).every((animation) => animation.playState === 'paused')
+    ).toBe(true);
     const { root, view, navigation, content, footer } = fullscreenElements(canvasElement);
     await userEvent.click(within(canvasElement).getByRole('button', { name: 'Exit fullscreen' }));
 
@@ -131,16 +136,25 @@ export const FullscreenExitRestoresDocument = meta.story({
       await expect(footer).toBeVisible();
       await expect(root.scrollHeight).toBeGreaterThan(root.clientHeight);
       await expect(content.getBoundingClientRect().width).toBeLessThan(view.innerWidth);
-      const background = canvasElement.querySelector<HTMLElement>('[data-app-background]');
-      await expect(view.getComputedStyle(background!).visibility).toBe('visible');
+      await expect(view.getComputedStyle(background).visibility).toBe('visible');
+      await expect(background).not.toHaveAttribute('data-suspended');
+      await expect(
+        background.getAnimations({ subtree: true }).every((animation) => animation.playState === 'running')
+      ).toBe(true);
       await expect(view.getComputedStyle(root).scrollbarGutter).toBe('stable both-edges');
     });
 
     view.scrollTo({ top: 100 });
     await waitFor(() => expect(view.scrollY).toBe(100));
     view.scrollTo({ top: 0 });
+    await waitFor(() => expect(canvasElement.querySelector('video')?.getAttribute('data-ready')).toBe('true'), {
+      timeout: 30_000,
+    });
+    const video = canvasElement.querySelector('video')!;
     await userEvent.click(within(canvasElement).getByRole('button', { name: 'Enter fullscreen' }));
     await playFullscreenHeight({ canvasElement });
+    await expect(canvasElement.querySelector('video')).toBe(video);
+    await expect(video).toHaveAttribute('data-ready', 'true');
   },
 });
 

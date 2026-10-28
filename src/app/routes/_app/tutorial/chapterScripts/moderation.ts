@@ -29,7 +29,15 @@ const startButton = (seat: string | undefined) =>
       );
 
 function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[] {
-  const continueReview = pressEnter();
+  let continuedReviewId: string | undefined;
+  const continueReview = pressEnter(() => {
+    const review = snapshot().review;
+    if (review?.step !== 0) {
+      return false;
+    }
+    continuedReviewId = review.id;
+    return true;
+  });
   const seats = () => snapshot().roster?.seats ?? [];
   const seatOf = (faction: string) => seats().find((seat) => seat.faction?.name === faction)?.id;
   const quietSeat = () => seatOf(QUIET);
@@ -66,7 +74,8 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
         'A review needs agreement from more than half the seated players. Your request counts as your agreement.\n\nOther players can agree or decline.\n\nIf you withdraw the request, ask to review Turn 1, Storm again.\n\nPress {Enter} to let them respond.',
       anchor: { kind: 'page', element: element('[aria-label="Table review vote"]') },
       ...continueReview,
-      done: (watch) => snapshot().review?.step === 0 && continueReview.done(watch),
+      done: (watch) =>
+        snapshot().review?.step === 0 && snapshot().review?.id === continuedReviewId && continueReview.done(watch),
     }),
     task({
       id: 'review-votes',
