@@ -10,6 +10,7 @@ export const browserLaunchTests = [
   'scripts/storybook-publication-images.test.ts',
   '.storybook/storyImagesWorker.test.ts',
   '.storybook/storyViewport.browser.test.ts',
+  'src/app/routes/faqDetail.stories.fixture.browser.test.ts',
   'workers/storybook/media-transfer.browser.test.ts',
   'scripts/lib/synthetic-accounts.test.ts',
   'scripts/play-load/browsers.test.ts',
