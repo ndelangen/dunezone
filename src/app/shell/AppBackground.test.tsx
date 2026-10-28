@@ -116,6 +116,49 @@ describe('orbital background', () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
+  it('suspends clock and scroll work in a hidden tab and restores the current clock pose', () => {
+    const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+    const { container } = render(<AppBackground motion />);
+    document.documentElement.scrollTop = 250;
+    act(() => {
+      window.dispatchEvent(new Event('scroll'));
+    });
+    expect(frames.size).toBe(1);
+    visibility.mockReturnValue('hidden');
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    expect(container.querySelector('[data-app-background]')?.hasAttribute('data-suspended')).toBe(true);
+    expect(vi.getTimerCount()).toBe(0);
+    act(() => {
+      for (const [id, callback] of frames) {
+        frames.delete(id);
+        callback(0);
+      }
+    });
+    expect(
+      container.querySelector<HTMLElement>('[data-background-stars]')?.style.getPropertyValue('--scroll-progress')
+    ).toBe('0');
+    act(() => {
+      window.dispatchEvent(new Event('scroll'));
+    });
+    expect(frames.size).toBe(0);
+
+    vi.setSystemTime(new Date(2026, 9, 22, 16, 0, 0));
+    document.documentElement.scrollTop = 500;
+    visibility.mockReturnValue('visible');
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    expect(container.querySelector('[data-app-background]')?.hasAttribute('data-suspended')).toBe(false);
+    expect(orbitTime(container, 'planet')).toBe(0);
+    expect(orbitTime(container, 'stars')).toBe(0);
+    expect(
+      container.querySelector<HTMLElement>('[data-background-stars]')?.style.getPropertyValue('--scroll-progress')
+    ).toBe('0.5');
+    expect(vi.getTimerCount()).toBe(1);
+  });
+
   it('freezes the current clock pose and removes parallax when motion is disabled', async () => {
     const { container, rerender } = render(<AppBackground motion />);
     rerender(<AppBackground motion={false} />);

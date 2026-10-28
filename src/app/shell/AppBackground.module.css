@@ -1,6 +1,7 @@
 .background {
   --planet-orbit-duration: 3600s;
   --star-orbit-duration: 7200s;
+  --background-animation-state: running;
 
   position: fixed;
   inset: 0;
@@ -29,6 +30,7 @@
   max-width: none;
   height: 150vmax;
   animation: stars-orbit var(--star-orbit-duration) linear infinite;
+  animation-play-state: var(--background-animation-state);
   will-change: transform;
 }
 
@@ -87,17 +89,18 @@
   max-width: none;
   transform-origin: 50% 50%;
   animation: planet-orbit var(--planet-orbit-duration) linear infinite;
+  animation-play-state: var(--background-animation-state);
   will-change: transform;
 }
 
 .star {
   animation: star-twinkle 10s ease-in-out infinite alternate;
+  animation-play-state: var(--background-animation-state);
 }
 
-.background[data-motion="reduce"] .stars,
-.background[data-motion="reduce"] .planet,
-.background[data-motion="reduce"] .star {
-  animation-play-state: paused;
+.background[data-motion="reduce"],
+.background[data-suspended] {
+  --background-animation-state: paused;
 }
 
 @keyframes stars-orbit {

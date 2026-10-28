@@ -56,6 +56,7 @@ export const PlayedThrough = meta.story({
     await userEvent.click(page.getByRole('button', { name: 'Ask the table to review' }));
     await step('Agree to a review');
     await userEvent.click(page.getAllByRole('button', { name: 'Withdraw' })[0]!);
+    await page.findByRole('button', { name: 'Ask the table to review' });
     await userEvent.keyboard('{Enter}');
     await waitForFrame(() => expect(currentStep(canvasElement)).toContain('Agree to a review'));
     await userEvent.click(await page.findByRole('button', { name: 'Earlier checkpoint' }));

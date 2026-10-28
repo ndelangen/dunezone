@@ -21,6 +21,30 @@ const FACTIONS = ['House Harkonnen', 'Fremen', 'Emperor', 'House Atreides', 'Spa
 const seats = FACTIONS.map((name, index) => ({ id: `seat-${index + 2}`, faction: { name } }));
 const ballots = () => seats.slice(1).map((seat) => ({ seat: seat.id, choice: null }));
 
+test.each([
+  { name: 'without a review', review: null },
+  { name: 'for a withdrawn review', review: { id: 'old-review', step: 0 } },
+])('an Enter pressed $name cannot agree to a later review', ({ review }) => {
+  let view = { controls: { players: [] }, review } as unknown as GameSnapshot;
+  const players = { others: () => [], act: vi.fn() } as unknown as TablePlayers;
+  const agreement = moderation.tasks(() => view, players).find((step) => step.id === 'review-majority')!;
+  const watch = agreement.begin(undefined as never);
+  const enter = () => {
+    const event = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true });
+    document.body.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(true);
+  };
+  try {
+    enter();
+    view = { ...view, review: { id: 'new-review', step: 0 } } as unknown as GameSnapshot;
+    expect(agreement.done(watch, undefined as never)).toBe(false);
+    enter();
+    expect(agreement.done(watch, undefined as never)).toBe(true);
+  } finally {
+    agreement.finish?.(watch);
+  }
+});
+
 /* A learner who turns their ballot to Keep can sink the vote; the vote they start next still gets the others' ballots. */
 test('the others vote on a second vote after the first one fails', () => {
   let view = {
