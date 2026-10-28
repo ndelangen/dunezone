@@ -1,10 +1,23 @@
-import { conversationMembers, conversationsAvailable, conversationTextSchema } from '@shared/play/conversations';
+import {
+  conversationMembers,
+  conversationsAvailable,
+  conversationTextSchema,
+  isRecallConversation,
+  recallConversation,
+} from '@shared/play/conversations';
 import type { ConversationMessage, ConversationSummary } from '@shared/play/conversations';
 import type { ClientMessage, GameSnapshot, ServerMessage, Viewer } from '@shared/play/protocol';
+import { reviewRunning } from '@shared/play/review';
 import { rosterSeat } from '@shared/play/schema';
 
 type Request = Extract<ClientMessage, { type: 'conversation-send' | 'conversation-history' | 'conversation-read' }>;
-type Context = { userId: string; factionId: string; factionName: string; peers: { id: string; name: string }[] };
+type Context = {
+  recallPeer?: string;
+  userId: string;
+  factionId: string;
+  factionName: string;
+  peers: { id: string; name: string }[];
+};
 type Delivery = { state: 'unsent' } | { state: 'sent'; at: number } | { state: 'failed'; error: string };
 type Load =
   | { state: 'idle' }
@@ -26,6 +39,7 @@ export type ConversationView = {
 
 /** Owns session-only outgoing messages and private history; the caller supplies current authority and transport. */
 export class ConversationSession {
+  readonly drafts = new Map<string, string>();
   private context: Context | null = null;
   private online = false;
   private generation?: number;
@@ -59,11 +73,27 @@ export class ConversationSession {
     if (this.context?.factionId !== factionId || this.context.userId !== viewer.userId) {
       this.clear();
     }
+    const recallPeer = reviewRunning(snapshot.review) ? recallConversation(snapshot.review.id) : undefined;
+    const previousRecall = this.context?.recallPeer;
+    if (previousRecall && previousRecall !== recallPeer) {
+      const pages = { ...this.pages };
+      delete pages[previousRecall];
+      this.pages = pages;
+      this.pending = this.pending.filter((entry) => entry.request.peerId !== previousRecall);
+      this.summaries = this.summaries.filter((entry) => entry.peerId !== previousRecall);
+      this.forgetRead(previousRecall);
+      for (const key of this.drafts.keys()) {
+        if (key.endsWith(`:${previousRecall}`)) {
+          this.drafts.delete(key);
+        }
+      }
+    }
     this.context = stableContext(this.context, {
       userId: viewer.userId,
       factionId,
       factionName: factionName(snapshot, factionId),
       peers: otherFactions(snapshot, factionId),
+      ...(recallPeer ? { recallPeer } : {}),
     });
     this.online = true;
     this.flush();
@@ -86,13 +116,15 @@ export class ConversationSession {
       peers: otherFactions(snapshot, factionId),
     };
     this.pending = pending
-      .filter((request) => request.factionId === factionId)
+      .filter((request) => request.factionId === factionId && !isRecallConversation(request.peerId))
       .map((request) => ({ request, delivery: { state: 'unsent' } }));
   }
 
   /** The messages the room has not confirmed, which a reload should keep; one the room rejected stays behind, as across a reconnect. */
   unconfirmed(): Extract<Request, { type: 'conversation-send' }>[] {
-    return this.pending.filter((entry) => entry.delivery.state !== 'failed').map((entry) => entry.request);
+    return this.pending
+      .filter((entry) => entry.delivery.state !== 'failed' && !isRecallConversation(entry.request.peerId))
+      .map((entry) => entry.request);
   }
 
   disconnected(denied: boolean) {
@@ -109,6 +141,7 @@ export class ConversationSession {
   }
 
   private clear() {
+    this.drafts.clear();
     this.context = null;
     this.online = false;
     this.generation = undefined;
@@ -127,6 +160,9 @@ export class ConversationSession {
       case 'conversation-history':
       case 'conversation-message':
         if (!this.online || message.factionId !== this.context?.factionId) {
+          return true;
+        }
+        if (message.type !== 'conversations' && isRecallConversation(message.peerId) && !this.reaches(message.peerId)) {
           return true;
         }
         this.receivePrivate(message);
@@ -187,7 +223,9 @@ export class ConversationSession {
       this.reads.clear();
     }
     this.generation = message.generation;
-    this.summaries = message.entries;
+    this.summaries = message.entries.filter(
+      (entry) => !isRecallConversation(entry.peerId) || this.reaches(entry.peerId)
+    );
   }
 
   private receiveHistory(message: Extract<ServerMessage, { type: 'conversation-history' }>) {
@@ -215,7 +253,7 @@ export class ConversationSession {
   }
 
   load = ({ peerId, before }: { peerId: string; before?: number }) => {
-    if (!this.context || !this.online) {
+    if (!this.context || !this.online || !this.reaches(peerId)) {
       return;
     }
     const previous = this.pages[peerId]?.load;
@@ -252,7 +290,7 @@ export class ConversationSession {
     if (!parsed.success) {
       return false;
     }
-    if (!this.context || !this.reaches(peerId)) {
+    if (!this.context || !this.reaches(peerId) || (this.context.recallPeer && peerId !== this.context.recallPeer)) {
       return false;
     }
     this.pending = [
@@ -275,6 +313,9 @@ export class ConversationSession {
 
   /** Whether this faction may write to `peerId`: another seated faction, or the table. */
   reaches(peerId: string) {
+    if (isRecallConversation(peerId)) {
+      return peerId === this.context?.recallPeer;
+    }
     const { factionId, peers } = this.context ?? { factionId: '', peers: [] };
     return Boolean(conversationMembers(factionId, peerId, [factionId, ...peers.map((peer) => peer.id)]));
   }
@@ -354,6 +395,9 @@ export class ConversationSession {
     this.pending = this.pending.map((entry) => this.sendPending(entry));
   }
   private sendPending(entry: Pending): Pending {
+    if (this.context?.recallPeer && !isRecallConversation(entry.request.peerId)) {
+      return entry;
+    }
     if (entry.delivery.state !== 'unsent') {
       return entry;
     }
@@ -368,6 +412,7 @@ function stableContext(previous: Context | null, next: Context): Context {
     previous.userId !== next.userId ||
     previous.factionId !== next.factionId ||
     previous.factionName !== next.factionName ||
+    previous.recallPeer !== next.recallPeer ||
     previous.peers.length !== next.peers.length ||
     previous.peers.some((peer, index) => peer.id !== next.peers[index]!.id || peer.name !== next.peers[index]!.name)
   ) {

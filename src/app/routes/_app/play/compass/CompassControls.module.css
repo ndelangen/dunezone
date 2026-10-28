@@ -71,3 +71,11 @@
 .iconButton[aria-pressed="true"] {
   color: var(--sand);
 }
+
+.recallRoot {
+  z-index: 15;
+  pointer-events: none;
+}
+.recallRoot > * {
+  pointer-events: auto;
+}

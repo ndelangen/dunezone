@@ -509,6 +509,24 @@ export class RoomProjection {
     };
   }
 
+  /** The seat's recorded inventory with its normal visibility, without active peeks or plans. */
+  frozenInventory(snapshot: StoredSnapshot, factionId: string): Pick<GameSnapshot, 'hand' | 'handOrder' | 'bank'> {
+    const hand = (snapshot.factionInventories[factionId] ?? []).map((piece) => {
+      const projected = this.piece(piece, !piece.hiddenZone, snapshot.cardHandles, snapshot.pieceHandles);
+      const top = projected.items.at(-1);
+      const label =
+        projected.kind === 'card' && top?.faceUp === false
+          ? (top.artwork?.backName ?? 'Face-down card')
+          : publicPieceLabel(projected);
+      return { ...projected, label };
+    });
+    return {
+      hand,
+      handOrder: (snapshot.handOrders[factionId] ?? []).map((id) => snapshot.pieceHandles[id] ?? id),
+      bank: { factionId, balance: snapshot.factionBanks[factionId] ?? 0 },
+    };
+  }
+
   /** `faces` is the game whose card faces go along; a history step passes the live game (see Session.historyFor). */
   snapshot(snapshot: StoredSnapshot, factionId?: string, faces: StoredSnapshot = snapshot): GameSnapshot {
     let audiences = this.snapshots.get(snapshot);

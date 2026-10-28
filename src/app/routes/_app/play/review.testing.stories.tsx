@@ -8,7 +8,7 @@ import { reviewableSnapshot, reviewCheckpoints, reviewOf, reviewTransport } from
 
 const meta = testingPreview.meta({
   ...gameMeta,
-  title: 'Play/Panels/Table review',
+  title: 'Play/Panels/Mentat recall',
   loaders: [
     async () => {
       await import('./multiplayer/HostedTable');
@@ -20,30 +20,34 @@ const newest = reviewCheckpoints().at(-1)!;
 const bidding = reviewCheckpoints().find((checkpoint) => checkpoint.context === 'Turn 1, Bidding')!;
 const commands = () => session.transport.messages.filter((message) => message.type === 'command');
 
-/* Asking opens a vote; once the majority agrees, the page shows the checkpoint with no way to act or step, until play resumes. */
+/* Asking opens a vote; once the majority agrees, the page shows the shared checkpoint with no way to change game contents, until play resumes. */
 export const AskingShowsTheCheckpointToEveryone = meta.story({
   beforeEach: install(() => reviewTransport('seat-2', null, { agreeAfterMs: null })),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(await page.findByRole('button', { name: 'Next phase' }, { timeout: 30_000 })).toBeVisible();
-    await openTab(page, 'Table review');
-    await userEvent.click(await page.findByRole('button', { name: 'Ask the table to review' }));
+    await openTab(page, 'Mentat recall');
+    await userEvent.click(await page.findByRole('button', { name: 'Ask the table to recall' }));
     await expect(commands().at(-1)).toMatchObject({ action: { kind: 'review-propose', step: newest.step } });
-    const vote = await page.findByRole('group', { name: 'Table review vote' });
+    const vote = await page.findByRole('group', { name: 'Mentat recall vote' });
     await expect(within(vote).getByRole('button', { name: 'Withdraw' })).toBeVisible();
     (session.transport as ReturnType<typeof reviewTransport>).othersAgree();
 
-    const reviewing = await page.findByRole('group', { name: 'Table review in progress' }, { timeout: 5000 });
-    await expect(within(reviewing).getByRole('status')).toHaveTextContent(`Reviewing ${newest.context}.`);
-    await waitFor(() => expect(session.transport.messages).toContainEqual({ type: 'history', step: newest.step }));
+    const reviewing = await page.findByRole('group', { name: 'Mentat recall in progress' }, { timeout: 5000 });
+    await expect(within(reviewing).getByRole('status')).toHaveTextContent(
+      'Everyone is viewing the past. Play is paused.'
+    );
+    await waitFor(() =>
+      expect(session.transport.messages).toContainEqual(expect.objectContaining({ type: 'history', step: newest.step }))
+    );
     for (const name of ['Next phase', 'Earlier phase', 'Return to live']) {
       await expect(page.queryByRole('button', { name })).toBeNull();
     }
 
-    await userEvent.click(within(reviewing).getByRole('button', { name: 'Resume play' }));
+    await userEvent.click(within(reviewing).getByRole('button', { name: 'Return to the game' }));
     await expect(commands().at(-1)).toMatchObject({ action: { kind: 'review-end' } });
     await expect(await page.findByRole('button', { name: 'Next phase' })).toBeVisible();
-    await expect(page.queryByRole('group', { name: 'Table review in progress' })).toBeNull();
+    await expect(page.queryByRole('group', { name: 'Mentat recall in progress' })).toBeNull();
   },
 });
 
@@ -54,9 +58,9 @@ export const AnsweringAProposal = meta.story({
   ),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    const vote = await page.findByRole('group', { name: 'Table review vote' }, { timeout: 30_000 });
+    const vote = await page.findByRole('group', { name: 'Mentat recall vote' }, { timeout: 30_000 });
     await expect(within(vote).getByRole('status')).toHaveTextContent(
-      /asks to review Turn 1, Bidding \(1 of 4 agreed\)/
+      /asks to recall Turn 1, Bidding \(1 of 4 agreed\)/
     );
     await userEvent.click(within(vote).getByRole('button', { name: 'Decline' }));
     await expect(commands().at(-1)).toMatchObject({ action: { kind: 'review-ballot', choice: 'decline' } });
@@ -73,9 +77,83 @@ export const ObserverWatchesAReview = meta.story({
   ),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    const reviewing = await page.findByRole('group', { name: 'Table review in progress' }, { timeout: 30_000 });
-    await expect(within(reviewing).getByRole('status')).toHaveTextContent('Reviewing Turn 1, Bidding.');
-    await waitFor(() => expect(session.transport.messages).toContainEqual({ type: 'history', step: bidding.step }));
-    await expect(page.queryByRole('button', { name: 'Resume play' })).toBeNull();
+    const reviewing = await page.findByRole('group', { name: 'Mentat recall in progress' }, { timeout: 30_000 });
+    await expect(within(reviewing).getByRole('status')).toHaveTextContent(
+      'Everyone is viewing the past. Play is paused.'
+    );
+    await waitFor(() =>
+      expect(session.transport.messages).toContainEqual(
+        expect.objectContaining({ type: 'history', step: bidding.step })
+      )
+    );
+    await expect(page.queryByRole('button', { name: 'Return to the game' })).toBeNull();
+  },
+});
+
+/* Shared seeking changes the recalled checkpoint while game commands stay frozen and personal docks survive the recall. */
+export const SharedHistoryKeepsTheLiveLayout = meta.story({
+  beforeEach: install(() => reviewTransport('seat-2', null, { agreeAfterMs: null })),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(await page.findByRole('button', { name: 'Next phase' }, { timeout: 30_000 })).toBeVisible();
+    await openTab(page, 'Game log');
+    await userEvent.click(page.getByRole('button', { name: 'Pin to the bottom right' }));
+    const original = canvasElement.ownerDocument.querySelector('[data-window="game-log"]');
+    await openTab(page, 'Mentat recall');
+    await userEvent.click(page.getByRole('button', { name: 'Ask the table to recall' }));
+    (session.transport as ReturnType<typeof reviewTransport>).othersAgree();
+    const slider = await page.findByRole('slider', { name: 'Checkpoint' });
+    slider.focus();
+    await userEvent.keyboard('{Home}');
+    await waitFor(() =>
+      expect(commands().at(-1)).toMatchObject({ action: { kind: 'review-seek', step: reviewCheckpoints()[0]!.step } })
+    );
+    await waitFor(() =>
+      expect(session.transport.messages).toContainEqual(
+        expect.objectContaining({ type: 'history', step: reviewCheckpoints()[0]!.step })
+      )
+    );
+    await userEvent.click(page.getByRole('button', { name: /^Controls/ }));
+    await userEvent.type(page.getByRole('textbox', { name: 'Search controls' }), 'Next phase');
+    const blocked = page.getByRole('option', { name: /Next phase/ });
+    await expect(blocked).toHaveAttribute('aria-disabled', 'true');
+    const count = commands().length;
+    await userEvent.keyboard('{Enter}');
+    await expect(commands()).toHaveLength(count);
+    await userEvent.keyboard('{Escape}');
+    await userEvent.click(page.getByRole('button', { name: 'Return to the game' }));
+    await expect(await page.findByRole('button', { name: 'Next phase' })).toBeVisible();
+    await expect(original).toBeVisible();
+    await expect(original).toHaveAttribute('data-side', 'right');
+  },
+});
+
+/* A later view can clear an old refusal, but it cannot hide retry while the selected checkpoint is still missing. */
+export const MissingCheckpointCanRetry = meta.story({
+  beforeEach: install(() => {
+    const snapshot = reviewableSnapshot();
+    const review = reviewOf(snapshot, bidding, 'seat-1', ['seat-3', 'seat-4', 'seat-5']);
+    const transport = reviewTransport('seat-2', review);
+    const deliver = transport.deliver;
+    let refused = false;
+    transport.deliver = (message) => {
+      if (message.type === 'history' && !refused) {
+        refused = true;
+        deliver({ type: 'rejected', requestId: message.requestId ?? 'message', message: 'Checkpoint read refused.' });
+        queueMicrotask(() => deliver(transport.view({ ...snapshot, review, revision: snapshot.revision + 1 })));
+        return;
+      }
+      deliver(message);
+    };
+    return transport;
+  }),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const fallback = 'The selected checkpoint is not loaded.';
+    await expect(await page.findByText(fallback, {}, { timeout: 30_000 })).toBeVisible();
+    await userEvent.click(page.getAllByRole('button', { name: 'Retry checkpoint' })[0]!);
+    await waitFor(() => expect(page.queryByText(fallback)).toBeNull());
+    await expect(page.getByRole('slider', { name: 'Checkpoint' })).toBeVisible();
+    await expect(session.transport.messages.filter((message) => message.type === 'history')).toHaveLength(2);
   },
 });

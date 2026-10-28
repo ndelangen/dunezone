@@ -49,7 +49,13 @@ function clientWith(conversations: ConversationView) {
       snapshot = { conversations: next };
       listeners.forEach((listener) => listener());
     },
-    conversations: { load: vi.fn(), read: vi.fn(), retry: vi.fn(), submit: vi.fn(() => true) },
+    conversations: {
+      drafts: new Map<string, string>(),
+      load: vi.fn(),
+      read: vi.fn(),
+      retry: vi.fn(),
+      submit: vi.fn(() => true),
+    },
   } as unknown as TableSession;
 }
 

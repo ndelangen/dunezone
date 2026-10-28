@@ -186,10 +186,10 @@ export async function verifyPrivateSpiceReserves(toolkit: HostedToolkit) {
     const tab = await peer('player-b-tab', b.context);
     await enter(tab);
     assert.deepEqual(requireView(tab).snapshot.bank, requireView(b).snapshot.bank);
-    /* A table review the players agree to sends every viewer the reviewed checkpoint, public as replay always is. */
-    await openTab(tab, 'Table review');
-    await windowOf(tab, 'Table review').getByRole('button', { name: 'Ask the table to review' }).click();
-    await a.page.getByRole('group', { name: 'Table review vote' }).getByRole('button', { name: 'Agree' }).click();
+    /* A Mentat recall the players agree to sends everyone the same public checkpoint with only their own seat's private contents. */
+    await openTab(tab, 'Mentat recall');
+    await windowOf(tab, 'Mentat recall').getByRole('button', { name: 'Ask the table to recall' }).click();
+    await a.page.getByRole('group', { name: 'Mentat recall vote' }).getByRole('button', { name: 'Agree' }).click();
     await until(
       () => tab.rawMessages.some((message) => message.type === 'history'),
       'Reviewed checkpoint did not arrive.'
@@ -217,15 +217,15 @@ export async function verifyPrivateSpiceReserves(toolkit: HostedToolkit) {
     passed(
       'Raw snapshots, compact deltas and historical frames contain only the spice reserve of the recipient faction; observer and guessed HTTP paths expose no spice reserve; reconnect and a second tab restore the current spice reserve'
     );
-    /* Resume play returns every viewer to the live table, where the sign-out step opens the Spice window again. */
+    /* Return to the game returns every viewer to the live table, where the sign-out step opens the Spice window again. */
     await tab.page
-      .getByRole('group', { name: 'Table review in progress' })
-      .getByRole('button', { name: 'Resume play' })
+      .getByRole('group', { name: 'Mentat recall in progress' })
+      .getByRole('button', { name: 'Return to the game' })
       .click();
     for (const who of [tab, observer]) {
       await until(
-        async () => (await who.page.getByRole('group', { name: 'Table review in progress' }).count()) === 0,
-        `${who.label} stayed in the table review.`
+        async () => (await who.page.getByRole('group', { name: 'Mentat recall in progress' }).count()) === 0,
+        `${who.label} stayed in the Mentat recall.`
       );
       await openTab(who, who === observer ? 'Spice transfers' : 'Spice');
     }

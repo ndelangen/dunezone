@@ -1,0 +1,106 @@
+.backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 900ms ease;
+}
+.backdrop[data-active="true"] {
+  opacity: 1;
+}
+.tint {
+  position: absolute;
+  inset: 0;
+  background: var(--play-territory-blue);
+  opacity: 0.24;
+  mask-image: radial-gradient(ellipse 70% 75% at 50% 65%, var(--ui-ground) 55%, transparent 100%);
+}
+.backdrop[data-active="true"][data-motion="true"] .tint {
+  animation: frozen-breath 5s ease-in-out infinite;
+}
+@keyframes frozen-breath {
+  0%,
+  100% {
+    opacity: 0.18;
+  }
+  50% {
+    opacity: 0.32;
+  }
+}
+.pattern {
+  position: absolute;
+  inset: 0;
+  fill: var(--action-export-fg);
+  opacity: 0.18;
+  mask-image: radial-gradient(ellipse 59% 58% at 50% 68%, transparent 66%, var(--ui-ground) 100%);
+}
+:global(.dune-play-shell) :global(.scene) canvas {
+  transition: filter 900ms ease;
+}
+:global(.dune-play-shell)[data-mentat-recall="true"] :global(.scene) canvas {
+  filter: saturate(0.72) contrast(1.02) brightness(0.98);
+}
+:global(.dune-play-shell) :global(.seated-header) > :not(:has([data-recall-return])),
+:global(.dune-play-shell) :global(.seated-camera),
+:global([data-recall-controls]) > :not([data-window="hand"], [data-window="hidden-zone"]) {
+  transition: filter 900ms ease;
+}
+:global(.dune-play-shell)[data-mentat-recall="true"] :global(.seated-header) > :not(:has([data-recall-return])),
+:global(.dune-play-shell)[data-mentat-recall="true"] :global(.seated-camera),
+:global([data-recall-controls="true"]) > :not([data-window="hand"], [data-window="hidden-zone"]) {
+  filter: hue-rotate(150deg) saturate(0.78);
+}
+:global([data-recall-controls="true"] [role="option"][aria-disabled="true"]) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.inventoryScroll {
+  overflow: auto;
+}
+.hand {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  gap: var(--space-md);
+}
+.sideTable {
+  position: relative;
+}
+.piece,
+.placed {
+  margin: 0;
+}
+.piece figcaption,
+.placed figcaption {
+  font-size: 11px;
+  color: var(--color-muted);
+  max-width: 100px;
+  overflow-wrap: anywhere;
+}
+.placed {
+  position: absolute;
+}
+.backdrop[data-motion="false"],
+.backdrop[data-motion="false"] * {
+  animation: none;
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .backdrop,
+  :global(.dune-play-shell) :global(.scene) canvas,
+  :global(.dune-play-shell) :global(.seated-header) > :not(:has([data-recall-return])),
+  :global(.dune-play-shell) :global(.seated-camera),
+  :global([data-recall-controls]) > :not([data-window="hand"], [data-window="hidden-zone"]) {
+    transition: none;
+  }
+}
+
+:global(.dune-play-shell)[data-mentat-recall-loading="true"] :global(.scene) {
+  opacity: 0.2;
+}
+
+/* Pointer hands stay above the recall tint with their recorded player colours. */
+:global(.dune-play-shell)[data-mentat-recall="true"] :global(.scene--immersive) {
+  z-index: auto;
+}

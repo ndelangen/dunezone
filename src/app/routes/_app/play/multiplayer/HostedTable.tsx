@@ -58,6 +58,7 @@ import { DraftingOverlay, DraftingPanel } from './Drafting';
 import { DetermineWinner } from './GameResult';
 import { GameRuntimeContext } from './gameRuntime';
 import { HandCountsScene } from './HandCounts';
+import { mentatRecall } from './MentatRecall';
 import { battleHelp, LOG_GUIDANCE, phaseGuidance, PHASE_PREVIOUS, phaseHelp } from './panelGuidance';
 import { usePlayerWindows } from './playerWindows';
 import { useResultCelebration } from './resultCelebration';
@@ -461,6 +462,9 @@ function controlPanels(
 
 /* The pieces the stage stands on the board: the trade and setup scenes before play, then the battle, bidder, hands and coins. */
 function stageScene({ client, table, bidderFaded }: TableControlProps & Readonly<{ bidderFaded: boolean }>) {
+  if (reviewRunning(table.review?.current)) {
+    return null;
+  }
   const stage = table.snapshot.stage;
   if (stage === 'swapping' || stage === 'setup') {
     return (
@@ -519,6 +523,43 @@ function phaseTabControls({
   );
 }
 
+function useHostedControls(client: TableSession, table: TableProjection, error: string | null) {
+  const recall = mentatRecall(client, table);
+  const normal = recall ? (client.getLastLiveTable() ?? table) : table;
+  const players = usePlayerWindows(client, table);
+  const compassTable: CompassTable = {
+    ...players,
+    recall,
+    chat: (seat) => <ConnectedPlayerChat client={client} table={table} seat={seat} />,
+    factionInfo: (seat) => <ConnectedFactionInfoPanel client={client} table={table} seat={seat} error={error} />,
+    nextPhase: nextPhaseStep(client, table),
+    token: viewerToken(client, table),
+    bidding: viewerBidding(client, table),
+  };
+  const readOnly = Boolean(table.playback || table.historyPending || recall);
+  return { readOnly, normal, compassTable };
+}
+
+function HostedGameMenu({
+  client,
+  table,
+  identity,
+  error,
+  onClearConfetti,
+}: ConnectionControlsProps & Readonly<{ identity: GameIdentity; onClearConfetti?: () => void }>) {
+  return (
+    <>
+      {table.snapshot.stage !== 'drafting' && <SeatPopover client={client} table={table} error={error} />}
+      <GameMenu
+        sharing={<GameLink address={identity.address} page={identity.page} />}
+        client={client}
+        table={table}
+        onClearConfetti={onClearConfetti}
+      />
+    </>
+  );
+}
+
 function ConnectedTable({
   client,
   table,
@@ -545,7 +586,7 @@ function ConnectedTable({
   const declare = useDeclareChoice(table);
   /* Each player fades the bidder for themselves, so the choice stays in this browser tab. */
   const [bidderFaded, setBidderFaded] = useState(false);
-  const playerWindows = usePlayerWindows(client, table);
+  const { readOnly, normal, compassTable } = useHostedControls(client, table, error);
   const stage = table.snapshot.stage;
   const factionArtwork = table.snapshot.factionArtwork;
   const predictionLogos = useMemo(
@@ -558,19 +599,9 @@ function ConnectedTable({
         {/* A boxless wrapper carries the connection state the browser verification waits on, whichever browser tab is open. */}
         <div data-connection={connection} data-revision={table.liveRevision} style={{ display: 'contents' }}>
           {/* What the compass shows of the table beyond its panels: the players, the chats and its commands. */}
-          <CompassTableContext
-            value={{
-              ...playerWindows,
-              chat: (seat) => <ConnectedPlayerChat client={client} table={table} seat={seat} />,
-              factionInfo: (seat) => (
-                <ConnectedFactionInfoPanel client={client} table={table} seat={seat} error={error} />
-              ),
-              nextPhase: nextPhaseStep(client, table),
-              token: viewerToken(client, table),
-              bidding: viewerBidding(client, table),
-            }}
-          >
+          <CompassTableContext value={compassTable}>
             <GameTable
+              readOnly={readOnly}
               seatCount={table.snapshot.roster?.seatCount ?? DEFAULT_TABLE_SEAT_COUNT}
               tableProgress={progress}
               stage={stage}
@@ -588,16 +619,13 @@ function ConnectedTable({
                 </>
               }
               gameMenu={
-                <>
-                  {/* While drafting a spectator asks with the (+) in the roster on the table, so the popover waits for play. */}
-                  {stage !== 'drafting' && <SeatPopover client={client} table={table} error={error} />}
-                  <GameMenu
-                    sharing={<GameLink address={identity.address} page={identity.page} />}
-                    client={client}
-                    table={table}
-                    onClearConfetti={celebration.hasConfetti ? celebration.clear : undefined}
-                  />
-                </>
+                <HostedGameMenu
+                  client={client}
+                  table={table}
+                  identity={identity}
+                  error={error}
+                  onClearConfetti={celebration.hasConfetti ? celebration.clear : undefined}
+                />
               }
               stageStatus={stageStatus({ client, table, identity })}
               phaseTurns={<PhaseTurns client={client} table={table} />}
@@ -612,7 +640,7 @@ function ConnectedTable({
               focus={focus}
               panels={controlPanels({
                 client,
-                table,
+                table: normal,
                 error,
                 declare,
                 report: { enabled: reportsEnabled, content: bugReport },

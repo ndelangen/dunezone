@@ -9,7 +9,17 @@ import type { TableSeatCount } from '@shared/play/tableSettings';
 import { Section } from '@ui/block/Section';
 import type { TopicIconTopic } from '@ui/content/TopicIcon';
 import { DarkSchemeIsland, darkSchemeIslandAttributes } from '@ui/surface/DarkSchemeIsland';
-import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react';
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from 'react';
 import type { ReactNode } from 'react';
 
 import {
@@ -41,6 +51,8 @@ import type { TabletopContextValue } from '../../../widgets/tabletop/TabletopCon
 import { TabletopScene } from '../../../widgets/tabletop/TabletopScene';
 import type { TableProgress } from '../../../widgets/tabletop/tableTrackers';
 import { CompassControls } from './compass/CompassControls';
+import { CompassTableContext } from './compass/compassTable';
+import { MentatRecallBackdrop } from './multiplayer/MentatRecall';
 import { TableLabelsContext } from './tableLabels';
 import type { TableLabels } from './tableLabels';
 import { TableWait } from './TableWait';
@@ -72,6 +84,7 @@ export type TablePanel = Readonly<{
 
 type GameTableProps = {
   sceneContent?: ReactNode;
+  readOnly?: boolean;
   /** The host's panels, grouped, ahead of the fixture's own Table panel. */
   panels?: readonly TablePanel[];
   /** A window to open once per token, as a battle opens on the viewer's side; the player can close it and it stays closed. */
@@ -561,44 +574,17 @@ function measureHeader(node: HTMLElement | null) {
   return () => observer.disconnect();
 }
 
-export function GameTable({
-  sceneContent,
-  panels,
-  focus,
-  tableControls,
-  tableGuidance,
-  gameMenu,
-  stageStatus,
-  phaseTurns,
-  stage,
-  mapVisible,
-  stageOverlay,
-  panelContent,
-  toolbarControl,
-  connectionStatus,
-  alliances,
-  showStormControls,
-  seatCount,
-  tableProgress,
-  requestedView,
-}: GameTableProps) {
-  const [pointerSession] = useState(() => new PointerSession());
-  const [tableKeyboard] = useState(() => new TableKeyboard());
-  useTableKeyboardBinding(tableKeyboard);
-  const gestureActive = useTabletopSelector((table) => table.gestureActivePieceId !== null);
-  const heldOverlays = useHeldOverlays();
-  const tableLabels = usePinnedLabels();
-  const frame = stageFrame(stage);
-  /* The camera follows the phase while the header names one: in play, and on the fixture. */
-  /* A faction phase takes the camera view of the standard phase it precedes (#1138). */
-  const activePhase = tableProgress.phases.find((entry) => entry.id === tableProgress.activePhaseId);
-  const viewPhase = frame.word || !activePhase ? null : standardPhaseOf(activePhase);
+function useTableViewController(
+  activePhase: GameTableProps['tableProgress']['phases'][number] | undefined,
+  word: StageFrame['word'],
+  requestedView: GameTableProps['requestedView']
+) {
+  const viewPhase = word || !activePhase ? null : standardPhaseOf(activePhase);
   const [viewState, dispatchView] = useReducer(reduceTableView, viewPhase, createTableViewState);
   if (viewState.phase !== viewPhase) {
     /* The phase changed since the last render; the reducer answers it before this render commits. */
     dispatchView({ type: 'phase.changed', phase: viewPhase });
   }
-  const overlaysInert = viewState.interactionActive || gestureActive;
   const cameraView = useMemo<CameraViewCommand>(
     () => ({
       view: viewState.activeView,
@@ -619,6 +605,46 @@ export function GameTable({
     return () => clearTimeout(timer);
   }, [handleSceneReady]);
 
+  return { viewPhase, viewState, dispatchView, cameraView, handleInteractionActiveChange, handleSceneReady };
+}
+
+export function GameTable({
+  sceneContent,
+  readOnly = false,
+  panels,
+  focus,
+  tableControls,
+  tableGuidance,
+  gameMenu,
+  stageStatus,
+  phaseTurns,
+  stage,
+  mapVisible,
+  stageOverlay,
+  panelContent,
+  toolbarControl,
+  connectionStatus,
+  alliances,
+  showStormControls,
+  seatCount,
+  tableProgress,
+  requestedView,
+}: GameTableProps) {
+  const recall = useContext(CompassTableContext)?.recall;
+  const [pointerSession] = useState(() => new PointerSession());
+  const [tableKeyboard] = useState(() => new TableKeyboard());
+  useTableKeyboardBinding(tableKeyboard);
+  const gestureActive = useTabletopSelector((table) => table.gestureActivePieceId !== null);
+  const heldOverlays = useHeldOverlays();
+  const tableLabels = usePinnedLabels();
+  const frame = stageFrame(stage);
+  /* The camera follows the phase while the header names one: in play, and on the fixture. */
+  /* A faction phase takes the camera view of the standard phase it precedes (#1138). */
+  const activePhase = tableProgress.phases.find((entry) => entry.id === tableProgress.activePhaseId);
+  const { viewPhase, viewState, dispatchView, cameraView, handleInteractionActiveChange, handleSceneReady } =
+    useTableViewController(activePhase, frame.word, requestedView);
+  const overlaysInert = viewState.interactionActive || gestureActive;
+
   const scene = (
     <TableKeyboardContext value={tableKeyboard}>
       <TabletopScene
@@ -626,6 +652,7 @@ export function GameTable({
         cameraView={cameraView}
         onSceneReady={handleSceneReady}
         onInteractionActiveChange={handleInteractionActiveChange}
+        readOnly={readOnly}
         seatCount={seatCount}
         tableProgress={tableProgress}
         stage={stage}
@@ -696,11 +723,14 @@ export function GameTable({
               {...darkSchemeIslandAttributes}
               data-board-gesture-active={overlaysInert}
               data-table-view={viewState.activeView}
+              data-mentat-recall={Boolean(recall)}
+              data-mentat-recall-loading={Boolean(recall?.loading)}
               data-show-counts={heldOverlays.counts || tableLabels.pinned.counts}
               data-show-names={heldOverlays.names || tableLabels.pinned.names}
             >
               <CompassControls
                 scene={scene}
+                decoration={<MentatRecallBackdrop active={Boolean(recall)} />}
                 overlay={overlay}
                 header={header}
                 camera={camera}

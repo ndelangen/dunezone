@@ -611,6 +611,7 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
       expect(entered).toMatchObject({ turn: expect.any(Number), moment: 'entered', symbol: expect.any(String) });
       expect(entered.context).toBe(`Turn ${entered.turn}, ${entered.label}`);
       expect(await look(observer, target.step)).toMatchObject({ type: 'rejected' });
+      expect(await rejected(owner, { kind: 'review-seek', reviewId: review.id, step: target.step })).toBe(true);
       const started = await accepted(other, { kind: 'review-ballot', reviewId: review.id, choice: 'review' });
       expect(required(started.snapshot.review).startedAt).not.toBeNull();
 
@@ -619,12 +620,21 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
         const reply = await look(connection, target.step);
         expect(reply.type).toBe('history');
         const { snapshot } = reply as Extract<NativeMessage, { type: 'history' }>;
-        for (const key of ['hand', 'handOrder', 'bank', 'peek']) {
+        for (const key of ['peek']) {
           expect(snapshot).not.toHaveProperty(key);
+        }
+        if (connection === observer) {
+          expect(snapshot).not.toHaveProperty('bank');
+          expect(snapshot).not.toHaveProperty('hand');
+        } else {
+          expect(snapshot.hand?.length).toBeGreaterThan(0);
+          expect(
+            snapshot.hand?.every((piece) => piece.owner === factionOf(connection === owner ? proposed : started))
+          ).toBe(true);
         }
         shown.push(snapshot);
       }
-      expect(shown[0]).toEqual(shown[2]);
+      expect(shown[0]!.table).toEqual(shown[2]!.table);
       expect(await look(observer, target.step + 1)).toMatchObject({ type: 'rejected' });
 
       /* Nothing moves while the table reviews, not even a peek. */
@@ -639,6 +649,15 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
       ] as PieceAction[]) {
         expect(await rejected(owner, action)).toBe(true);
       }
+      expect(await rejected(observer, { kind: 'review-seek', reviewId: review.id, step: entered.step })).toBe(true);
+      expect(await rejected(owner, { kind: 'review-seek', reviewId: review.id, step: LATEST })).toBe(true);
+      await accepted(other, { kind: 'review-seek', reviewId: review.id, step: entered.step });
+      for (const connection of [owner, other, observer]) {
+        expect((await syncView(connection)).snapshot.review?.step).toBe(entered.step);
+        expect((await look(connection, entered.step)).type).toBe('history');
+        expect((await look(connection, target.step)).type).toBe('rejected');
+      }
+      await accepted(owner, { kind: 'review-seek', reviewId: review.id, step: target.step });
       expect(await rejected(observer, { kind: 'review-end', reviewId: review.id })).toBe(true);
 
       const ended = await accepted(other, { kind: 'review-end', reviewId: review.id });
@@ -649,11 +668,114 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
       const proposer = proposed.viewer.displayName;
       const resumer = ended.viewer.displayName;
       const audit = (await page(observer, 'audit')).map((entry) => entry.text);
-      expect(audit[0]).toBe(`The review of ${target.context} was ended by ${resumer}, and play resumed.`);
+      expect(audit[0]).toBe(`The recall of ${target.context} was ended by ${resumer}, and play resumed.`);
       expect([
-        `The table reviews ${target.context}, as ${proposer} proposed: ${proposer} and ${resumer} agreed.`,
-        `The table reviews ${target.context}, as ${proposer} proposed: ${resumer} and ${proposer} agreed.`,
+        `The table recalls ${target.context}, as ${proposer} proposed: ${proposer} and ${resumer} agreed.`,
+        `The table recalls ${target.context}, as ${proposer} proposed: ${resumer} and ${proposer} agreed.`,
       ]).toContain(audit[1]);
+    });
+
+    it('keeps recall chat separate, rejects stale requests and removes every message on close', async () => {
+      const { owner, other } = await inPlay();
+      const target = await checkpoint(owner);
+      const review = required((await accepted(owner, { kind: 'review-propose', step: target.step })).snapshot.review);
+      await accepted(other, { kind: 'review-ballot', reviewId: review.id, choice: 'review' });
+      const channel = `@recall:${review.id}`;
+      const faction = factionOf(await syncView(owner));
+      const normal = owner.messages.length;
+      owner.send({
+        type: 'conversation-send',
+        requestId: 'ordinary-chat',
+        factionId: faction,
+        peerId: '@table',
+        text: 'Must not persist during recall',
+      });
+      await eventually(
+        () =>
+          owner.messages
+            .slice(normal)
+            .find((message) => message.type === 'rejected' && message.requestId === 'ordinary-chat'),
+        'ordinary chat stays paused'
+      );
+      const sent = owner.messages.length;
+      owner.send({
+        type: 'conversation-send',
+        requestId: 'recall-message',
+        factionId: faction,
+        peerId: channel,
+        text: 'Temporary recall message',
+      });
+      const saved = await eventually(
+        () =>
+          owner.messages
+            .slice(sent)
+            .find((message) => message.type === 'conversation-message' && message.peerId === channel),
+        'recall chat delivery'
+      );
+      expect(saved.type).toBe('conversation-message');
+      expect(await runtime.exec('SELECT text FROM conversation_messages WHERE pair=?', [channel])).toHaveLength(1);
+      expect(
+        await runtime.exec("SELECT payload FROM receipts WHERE payload LIKE '%Temporary recall message%'", [])
+      ).toHaveLength(0);
+      await accepted(other, { kind: 'review-end', reviewId: review.id });
+      expect(await runtime.exec('SELECT text FROM conversation_messages WHERE pair=?', [channel])).toHaveLength(0);
+      expect(await runtime.exec('SELECT * FROM conversation_reads WHERE pair=?', [channel])).toHaveLength(0);
+      const after = owner.messages.length;
+      owner.send({
+        type: 'conversation-send',
+        requestId: 'recall-message',
+        factionId: faction,
+        peerId: channel,
+        text: 'Temporary recall message',
+      });
+      await eventually(
+        () =>
+          owner.messages
+            .slice(after)
+            .find((message) => message.type === 'rejected' && message.requestId === 'recall-message'),
+        'closed recall rejects a queued send'
+      );
+      const second = required((await accepted(owner, { kind: 'review-propose', step: target.step })).snapshot.review);
+      await accepted(other, { kind: 'review-ballot', reviewId: second.id, choice: 'review' });
+      const read = owner.messages.length;
+      owner.send({
+        type: 'conversation-history',
+        requestId: 'new-recall',
+        factionId: faction,
+        peerId: `@recall:${second.id}`,
+        before: Number.MAX_SAFE_INTEGER,
+      });
+      const fresh = await eventually(
+        () =>
+          owner.messages
+            .slice(read)
+            .find(
+              (message): message is Extract<NativeMessage, { type: 'conversation-history' }> =>
+                message.type === 'conversation-history' && message.requestId === 'new-recall'
+            ),
+        'fresh recall chat'
+      );
+      expect(fresh.entries).toEqual([]);
+    });
+
+    it('keeps historical private contents with the seat when its player is replaced', async () => {
+      const { owner, other, observer } = await inPlay();
+      const before = await syncView(owner);
+      const target = await checkpoint(owner);
+      const oldSeat = before.viewer.viewerSeat;
+      const faction = factionOf(before);
+      await accepted(owner, { kind: 'seat-depart' });
+      await seat(observer, other, oldSeat);
+      const review = required((await accepted(other, { kind: 'review-propose', step: target.step })).snapshot.review);
+      await accepted(observer, { kind: 'review-ballot', reviewId: review.id, choice: 'review' });
+      const replacement = messageOf(await look(observer, target.step), 'history').snapshot;
+      expect(replacement.hand?.length).toBeGreaterThan(0);
+      expect(replacement.bank).toEqual(before.snapshot.bank);
+      expect(replacement.hand?.every((piece) => piece.owner === faction)).toBe(true);
+      expect(messageOf(await look(owner, target.step), 'history').snapshot.hand).toBeUndefined();
+      const remaining = messageOf(await look(other, target.step), 'history').snapshot;
+      expect(remaining.hand?.length).toBeGreaterThan(0);
+      expect(remaining.hand?.every((piece) => piece.owner !== faction)).toBe(true);
     });
 
     it('is withdrawn as the game ends, which the Audit tab says', async () => {
@@ -666,7 +788,7 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
       expect(finished.snapshot.review).toBeUndefined();
       const audit = (await page(observer, 'audit')).map((entry) => entry.text);
       const proposer = finished.viewer.displayName;
-      expect(audit).toContain(`The review of ${target.context} ${proposer} proposed was withdrawn as the game ended.`);
+      expect(audit).toContain(`The recall of ${target.context} ${proposer} proposed was withdrawn as the game ended.`);
     });
 
     it('is declined without a majority and withdrawn only by its proposer', async () => {
@@ -683,8 +805,8 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
       const audit = (await page(observer, 'audit')).map((entry) => entry.text);
       const proposer = (await syncView(owner)).viewer.displayName;
       expect(audit.slice(0, 2)).toEqual([
-        `The review of ${target.context} ${proposer} proposed was withdrawn by ${proposer}.`,
-        `The table declined ${proposer}'s review of ${target.context}: ${proposer} agreed; ${(await syncView(other)).viewer.displayName} declined.`,
+        `The recall of ${target.context} ${proposer} proposed was withdrawn by ${proposer}.`,
+        `The table declined ${proposer}'s recall of ${target.context}: ${proposer} agreed; ${(await syncView(other)).viewer.displayName} declined.`,
       ]);
     });
   });

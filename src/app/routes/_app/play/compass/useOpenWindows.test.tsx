@@ -281,3 +281,26 @@ test('the window last brought up or pressed is in front, where the centre reache
   act(() => result.current.reveal('faction-info', 'seat-2'));
   expect(result.current.front).toBe('left');
 });
+
+test('suspended controls keep their docked and floating windows through keys and board presses', () => {
+  const canvas = document.body.appendChild(document.createElement('canvas'));
+  const { result, rerender } = renderHook(({ active }) => useOpenWindows(windows, false, active), {
+    initialProps: { active: true },
+  });
+  act(() => result.current.show('hand'));
+  act(() => result.current.pin('left'));
+  act(() => result.current.show('battle'));
+  const before = { centre: result.current.centre, slots: result.current.slots };
+  rerender({ active: false });
+  act(() => {
+    document.body.dispatchEvent(new KeyboardEvent('keydown', { key: ']', bubbles: true }));
+    document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    canvas.dispatchEvent(new MouseEvent('pointerdown', { button: 0, bubbles: true }));
+  });
+  expect({ centre: result.current.centre, slots: result.current.slots }).toEqual(before);
+  rerender({ active: true });
+  expect({ centre: result.current.centre, slots: result.current.slots }).toEqual(before);
+  act(() => void document.body.dispatchEvent(new KeyboardEvent('keydown', { key: ']', bubbles: true })));
+  expect(result.current.slots).toEqual({ left: { key: 'hand' }, right: { key: 'battle' } });
+  expect(result.current.centre).toBeNull();
+});

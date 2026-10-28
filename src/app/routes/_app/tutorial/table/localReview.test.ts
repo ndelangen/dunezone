@@ -40,8 +40,8 @@ test('a majority reviews a saved public position, freezes play and resumes the u
   expect(view().review?.startedAt).toEqual(expect.any(Number));
   const past = table.history(0).snapshot;
   expect(past.phase).toBe(storm);
-  expect(past.hand ?? []).toHaveLength(0);
-  expect(past.bank).toBeUndefined();
+  expect(past.hand?.length).toBeGreaterThan(0);
+  expect(past.bank).toEqual(view().bank);
   expect(past.battlePlan).toBeNull();
   expect(() => table.history(1)).toThrow();
   act({ kind: 'phase' });
@@ -56,7 +56,7 @@ test('a majority reviews a saved public position, freezes play and resumes the u
     .logPage('audit', Number.MAX_SAFE_INTEGER)
     .entries.map((entry) => entry.text)
     .join('\n');
-  expect(audit).toMatch(/review/i);
+  expect(audit).toMatch(/recall/i);
   expect(audit).toMatch(/resumed/i);
 });
 
@@ -84,6 +84,6 @@ test('a departed proposer withdraws a pending review and records the outcome', (
   expect(
     table
       .logPage('audit', Number.MAX_SAFE_INTEGER)
-      .entries.some((entry) => /review.*withdraw|withdrew.*review/i.test(entry.text))
+      .entries.some((entry) => /recall.*withdraw|withdrew.*recall/i.test(entry.text))
   ).toBe(true);
 });

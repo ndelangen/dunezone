@@ -165,6 +165,9 @@ export function localRuntime(
 
     /* Every frame carries the table's clock, which is the browser's. */
     deliver(message: ServerMessage) {
+      if (message.type === 'view') {
+        conversations.authority();
+      }
       this.answer(JSON.stringify(message.type === 'admission' ? message : { serverNow: Date.now(), ...message }));
     }
 

@@ -49,24 +49,24 @@ export const PlayedThrough = meta.story({
     };
     await step('Check the Game log', 60_000);
     await openWindow('Game log');
-    await step('Ask to review Storm');
-    await openWindow('Table review');
+    await step('Ask to recall Storm');
+    await openWindow('Mentat recall');
     await userEvent.click(await page.findByRole('button', { name: 'Earlier checkpoint' }));
     await expect(page.getByRole('slider', { name: 'Checkpoint' })).toHaveAttribute('aria-valuenow', '0');
-    await userEvent.click(page.getByRole('button', { name: 'Ask the table to review' }));
-    await step('Agree to a review');
+    await userEvent.click(page.getByRole('button', { name: 'Ask the table to recall' }));
+    await step('Agree to recall');
     await userEvent.click(page.getAllByRole('button', { name: 'Withdraw' })[0]!);
-    await page.findByRole('button', { name: 'Ask the table to review' });
+    await page.findByRole('button', { name: 'Ask the table to recall' });
     await userEvent.keyboard('{Enter}');
-    await waitForFrame(() => expect(currentStep(canvasElement)).toContain('Agree to a review'));
+    await waitForFrame(() => expect(currentStep(canvasElement)).toContain('Agree to recall'));
     await userEvent.click(await page.findByRole('button', { name: 'Earlier checkpoint' }));
     await expect(page.getByRole('slider', { name: 'Checkpoint' })).toHaveAttribute('aria-valuenow', '0');
-    await userEvent.click(page.getByRole('button', { name: 'Ask the table to review' }));
-    await enterAt('Agree to a review');
+    await userEvent.click(page.getByRole('button', { name: 'Ask the table to recall' }));
+    await enterAt('Agree to recall');
     await step('Discuss the saved position');
-    await expect(page.getByRole('group', { name: 'Table review in progress' })).toBeVisible();
+    await expect(page.getByRole('group', { name: 'Mentat recall in progress' })).toBeVisible();
     await enterAt('Discuss the saved position');
-    await userEvent.click(page.getAllByRole('button', { name: 'Resume play' })[0]!);
+    await userEvent.click(page.getAllByRole('button', { name: 'Return to the game' })[0]!);
     await step('Open the player details', 60_000);
 
     const token = await waitFor(

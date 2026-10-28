@@ -139,6 +139,7 @@ const REVISION_TOLERANT_ACTIONS = new Set<string>([
   'review-propose',
   'review-ballot',
   'review-end',
+  'review-seek',
   'seat-request',
   'seat-withdraw',
   'seat-approve',

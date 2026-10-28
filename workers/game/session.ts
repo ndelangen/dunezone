@@ -5,6 +5,7 @@ import type { BugReportBrowser } from '../../src/shared/play/bugReports';
 import { publicFaction } from '../../src/shared/play/capture';
 import type { CaptureReadiness } from '../../src/shared/play/capture';
 import { emptySnapshot } from '../../src/shared/play/commands';
+import { isRecallConversation } from '../../src/shared/play/conversations';
 import { conversationMembers } from '../../src/shared/play/conversations';
 import type { PlayDirectorySummary } from '../../src/shared/play/directory';
 import type { DraftFaction, DraftState } from '../../src/shared/play/drafting';
@@ -199,7 +200,7 @@ export class GameSession {
     this.swapping = new Swapping(this.storage, this.actors, new SetupSupply(this.storage, this.captures), this.log);
     this.actors.participation = this.participation;
     this.removal = new RemovalVotes(this.storage, this.actors, this.log);
-    this.reviews = new TableReviews(this.storage, this.actors, this.log);
+    this.reviews = new TableReviews(this.storage, this.actors, this.log, (id) => this.conversations.discardRecall(id));
     this.conversations = new Conversations(this.storage, this.actors);
     const metadata = sql.exec<{ data: string }>('SELECT data FROM metadata WHERE id=1').toArray()[0];
     if (metadata) {
@@ -1231,39 +1232,48 @@ export class GameSession {
       throw new GameRejection('Unknown history step.');
     }
     /*
-     * Steps stored before the face list grew only hold the fronts present then, so comparing two of them
-     * could tell which hidden card left the table. Every step carries the live game's list instead.
-     * A real game replays the public table to every viewer: a past hand, reserve, plan or peek is something the
-     * player had to remember, the seat's current holder may not be the one who held it then, and a finished game
-     * can still continue. Only the hosted fixture, which has no stage, replays its seat's view.
+     * Every checkpoint uses the live game's complete face list, so comparing old checkpoints cannot reveal a hidden card's departure.
+     * Ordinary replay remains public.
+     * A collective recall separately includes only the current seat's frozen historical inventory, including a predecessor's contents at that seat.
      */
+    const restored = this.history.restore(step);
     const past = this.projection.snapshot(
-      this.history.restore(step),
+      restored,
       this.room!.snapshot.stage === undefined ? this.actors.factionFor(viewer.userId) : undefined,
       this.room!.snapshot
     );
+    const seat = this.actors.seatFor(viewer.userId);
+    const faction =
+      this.reviews.running()?.step === step && seat && seat !== SPECTATOR_SEAT
+        ? restored.roster?.seats.find((entry) => entry.id === seat)?.faction?.id
+        : undefined;
+    const recalled = faction ? { ...past, ...this.projection.frozenInventory(restored, faction) } : past;
+
     return {
       type: 'history',
       step,
       lastStep: this.history.steps,
       recordedAt: this.history.recordedAt(step),
-      snapshot: this.forViewer(past, viewer),
+      snapshot: this.forViewer(recalled, viewer),
     };
   }
   conversationFaction(viewer: Viewer) {
     return this.conversations.faction(this.room!.snapshot, viewer);
   }
   conversationPage(viewer: Viewer, request: Extract<ClientMessage, { type: 'conversation-history' }>) {
-    this.conversations.authorize(this.room!.snapshot, viewer, request);
+    this.conversations.authorize(this.room!.snapshot, viewer, request, this.reviews.running()?.id);
     return { ...request, ...this.conversations.page(request) };
   }
   markConversationRead(viewer: Viewer, request: Extract<ClientMessage, { type: 'conversation-read' }>) {
-    const faction = this.conversations.authorize(this.room!.snapshot, viewer, request);
+    const faction = this.conversations.authorize(this.room!.snapshot, viewer, request, this.reviews.running()?.id);
     this.conversations.read(request);
     return faction;
   }
   sendConversation(viewer: Viewer, request: Extract<ClientMessage, { type: 'conversation-send' }>) {
-    this.conversations.authorize(this.room!.snapshot, viewer, request);
+    if (this.reviews.running() && !isRecallConversation(request.peerId)) {
+      throw new GameRejection('Only recall chat is available during Mentat recall.');
+    }
+    this.conversations.authorize(this.room!.snapshot, viewer, request, this.reviews.running()?.id);
     return this.storage.transactionSync(() => {
       const saved = this.conversations.save(viewer, request, Date.now());
       if (saved.inserted) {
@@ -1285,7 +1295,7 @@ export class GameSession {
       type: 'conversations',
       factionId,
       generation: this.conversations.generation(),
-      entries: this.conversations.summaries(factionId, peers),
+      entries: this.conversations.summaries(factionId, peers, this.reviews.running()?.id),
     };
   }
   draftWork() {

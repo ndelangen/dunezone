@@ -243,6 +243,51 @@ test('every viewer, spectators included, sees how many Treachery cards each seat
   expect(projection.snapshot(battle('revealed'), 'fremen').handCounts).toEqual({ atreides: 0, fremen: 0 });
 });
 
+test("recall shows a seat's hand faces and preserves face-down private side-table pieces", () => {
+  const card = (id: string) => ({
+    ...piece(id, 'Secret Lasgun', 'atreides', '#000', 'card', `cards:${id}`),
+    items: [
+      {
+        id: `${id}-item`,
+        faceUp: false,
+        artwork: {
+          front: 'https://table.test/lasgun.jpg',
+          back: TRAITOR_BACK,
+          name: 'Secret Lasgun',
+          backName: 'Traitor',
+          type: 'card-traitor',
+        },
+      },
+    ],
+  });
+  const stored = storedSnapshotSchema.parse({
+    ...initialSnapshot(),
+    factionInventories: {
+      atreides: [card('hand'), { ...card('side'), hiddenZone: { x: 0, y: 0, turn: 3 } }],
+      fremen: [card('other-seat')],
+    },
+    handOrders: { atreides: ['hand'] },
+    factionBanks: { atreides: 7, fremen: 20 },
+    pieceHandles: { hand: 'held-hand', side: 'held-side' },
+  });
+  const inventory = new RoomProjection('secret').frozenInventory(stored, 'atreides');
+  expect(inventory.hand).toHaveLength(2);
+  expect(inventory.bank).toEqual({ factionId: 'atreides', balance: 7 });
+  expect(inventory.handOrder).toEqual(['held-hand']);
+  expect(inventory.hand![0]).toMatchObject({
+    id: 'held-hand',
+    items: [{ faceUp: true, artwork: { name: 'Secret Lasgun' } }],
+  });
+  expect(inventory.hand![1]).toMatchObject({
+    id: 'held-side',
+    label: 'Traitor',
+    hiddenZone: { x: 0, y: 0, turn: 3 },
+    items: [{ faceUp: false, artwork: { back: TRAITOR_BACK } }],
+  });
+  expect(inventory.hand![1]!.items[0]!.artwork).not.toHaveProperty('front');
+  expect(inventory.hand![1]!.items[0]!.artwork).not.toHaveProperty('name');
+});
+
 test('every viewer is sent the same sorted card faces, and a card taken out of the game stays among them, history included', () => {
   const initial = storedSnapshotSchema.parse(initialSnapshot());
   const face = (name: string) => `https://table.test/published/treachery/${name}.jpg`;

@@ -111,7 +111,7 @@ function usePinKeys(onPin: (side: Side) => void, enabled: boolean) {
   }, [enabled]);
 }
 
-export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boolean) {
+export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boolean, active = true) {
   const [centre, setCentre] = useState<Opened | null>(null);
   const [slots, setSlots] = useRemembered<Slots>('slots', { left: null, right: null });
   /* Bumps when a pinned window is asked for again, lighting its slot up. */
@@ -199,7 +199,7 @@ export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boo
 
   /* Escape closes the centre window once the compass is not there to take it, and no menu, list, popover or dialog is open to take it first. */
   useEffect(() => {
-    if (compassOpen || centre === null) {
+    if (!active || compassOpen || centre === null) {
       return;
     }
     const escape = (event: KeyboardEvent) => {
@@ -210,9 +210,9 @@ export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boo
     /* Seen first, before whatever is open answers the key and goes, so the window stays while Escape closed something else. */
     window.addEventListener('keydown', escape, true);
     return () => window.removeEventListener('keydown', escape, true);
-  }, [compassOpen, centre]);
-  useTablePress(close, centre !== null && !compassOpen);
-  usePinKeys(pin, centre !== null && !compassOpen);
+  }, [active, compassOpen, centre]);
+  useTablePress(close, active && centre !== null && !compassOpen);
+  usePinKeys(pin, active && centre !== null && !compassOpen);
 
   return { centre, slots, flash, front, raise: setFront, show, reveal, pin, unpin, close, showSeat, isOpen };
 }

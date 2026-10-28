@@ -1,4 +1,4 @@
-import { EyeOff, Hand, Handshake, MessagesSquare, Swords } from 'lucide-react';
+import { Clock3, EyeOff, Hand, Handshake, MessagesSquare, Swords } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import type { TileSpot } from './compassSpots';
@@ -18,6 +18,7 @@ export type Tile = Readonly<{
   /** The letter that opens the window with the compass shut. */
   shortcut: string;
   disabled?: boolean;
+  hidden?: boolean;
   badge?: number;
 }>;
 
@@ -103,11 +104,34 @@ export function tilesOf(windows: readonly TableWindow[], table: CompassTable | n
   return {
     hand: handTile(windowOf),
     hidden: hiddenTile(windowOf),
-    table: tableTile(windowOf, table?.tableChat?.unread),
-    ally: allyTile(
-      windowOf,
-      table?.players.find((player) => player.ally)
-    ),
-    battle: battleTile(windowOf),
+    table: table?.recall
+      ? {
+          spot: 'table',
+          window: windowOf('recall-chat'),
+          label: 'Recall chat',
+          detail: 'Discarded when recall closes',
+          icon: <MessagesSquare {...ICON} />,
+          keys: '→',
+          shortcut: SHORTCUTS.table,
+          disabled: !windowOf('recall-chat'),
+        }
+      : tableTile(windowOf, table?.tableChat?.unread),
+    ally: table?.recall
+      ? { spot: 'ally', label: '', detail: '', icon: null, keys: '', shortcut: '', disabled: true, hidden: true }
+      : allyTile(
+          windowOf,
+          table?.players.find((player) => player.ally)
+        ),
+    battle: table?.recall
+      ? {
+          spot: 'battle',
+          window: windowOf('recall-history'),
+          label: 'Shared history',
+          detail: 'One checkpoint for everyone',
+          icon: <Clock3 {...ICON} />,
+          keys: '↑',
+          shortcut: SHORTCUTS.battle,
+        }
+      : battleTile(windowOf),
   };
 }

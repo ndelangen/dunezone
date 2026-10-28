@@ -1,26 +1,11 @@
 import { Select, Stack } from '@mantine/core';
-import { TABLE_CONVERSATION } from '@shared/play/conversations';
+import { TABLE_CONVERSATION, isRecallConversation } from '@shared/play/conversations';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 
 import type { ConversationView } from '../../../../../db/tabletop/ConversationSession';
 import type { TableProjection, TableSession } from '../../../../../db/tabletop/TableSession';
 import { seatFaction } from '../../multiplayer/tableFactions';
 import { ConversationPanel } from './ConversationPanel';
-
-/*
- * Unsent messages, per table session and conversation, outlive the composer: a window the table swaps for another
- * (a battle, a phase's panel) gives the draft back when the conversation opens again.
- */
-const DRAFTS = new WeakMap<TableSession, Map<string, string>>();
-
-function draftsOf(client: TableSession) {
-  let drafts = DRAFTS.get(client);
-  if (!drafts) {
-    drafts = new Map();
-    DRAFTS.set(client, drafts);
-  }
-  return drafts;
-}
 
 /* Every faction's name at the table, the viewer's own among them, by faction. */
 function senderNames(context: ConversationView['context']): Record<string, string> {
@@ -50,9 +35,9 @@ export function ConnectedConversationPanel({ client, peerId }: Readonly<{ client
       online={view.online}
       page={page}
       pending={view.pending.filter((entry) => entry.request.peerId === peerId)}
-      senders={peerId === TABLE_CONVERSATION ? senderNames(view.context) : null}
+      senders={peerId === TABLE_CONVERSATION || isRecallConversation(peerId) ? senderNames(view.context) : null}
       unread={Boolean(summary?.unread) && latest === summary?.latest}
-      drafts={draftsOf(client)}
+      drafts={client.conversations.drafts}
       onLoad={(before) => client.conversations.load({ peerId, before })}
       onRead={(through) => client.conversations.read({ peerId, through })}
       onRetry={client.conversations.retry}

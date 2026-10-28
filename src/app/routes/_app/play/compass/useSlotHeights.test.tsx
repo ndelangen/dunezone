@@ -160,3 +160,47 @@ test('a dragged height is remembered for the next visit', () => {
   const again = heights(root);
   expect(again.result.current.styleOf('left')).toEqual({ height: 448 + RESIZE_STEP });
 });
+
+test('suspending the controls ends an existing drag and preserves its remembered height', () => {
+  const { root, grip } = table();
+  const rootRef = { current: root };
+  const { result, rerender } = renderHook(
+    ({ active }) => useSlotHeights(rootRef, { left: 'hand', right: null }, active),
+    { initialProps: { active: true } }
+  );
+  const start = {
+    clientY: 440,
+    currentTarget: grip,
+    preventDefault: () => {},
+  } as unknown as ReactPointerEvent<HTMLElement>;
+  act(() => result.current.resize('left')(start));
+  act(() => {
+    window.dispatchEvent(new PointerEvent('pointermove', { clientY: 400, buttons: 1 }));
+  });
+  expect(result.current.styleOf('left')).toEqual({ height: 488 });
+  const remembered = localStorage.getItem('dunezone-compass:heights');
+  rerender({ active: false });
+  act(() => {
+    window.dispatchEvent(new PointerEvent('pointermove', { clientY: 300, buttons: 1 }));
+  });
+  expect(localStorage.getItem('dunezone-compass:heights')).toBe(remembered);
+  rerender({ active: true });
+  act(() => {
+    window.dispatchEvent(new PointerEvent('pointermove', { clientY: 200, buttons: 1 }));
+  });
+  expect(result.current.styleOf('left')).toEqual({ height: 488 });
+});
+
+test('the camera still follows the shared header while personal slot measurements are suspended', () => {
+  const { root } = table();
+  const rootRef = { current: root };
+  const { result, rerender } = renderHook(
+    ({ active }) => useSlotHeights(rootRef, { left: 'hand', right: null }, active),
+    { initialProps: { active: true } }
+  );
+  const original = result.current.styleOf('left');
+  root.querySelector<HTMLElement>('.seated-toolbar')!.getBoundingClientRect = () => ({ bottom: 180 }) as DOMRect;
+  rerender({ active: false });
+  expect(root.style.getPropertyValue('--compass-camera-top')).toBe(`${180 + OVERLAY_GAP}px`);
+  expect(result.current.styleOf('left')).toEqual(original);
+});

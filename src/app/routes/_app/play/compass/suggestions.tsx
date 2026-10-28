@@ -10,6 +10,8 @@ import type { TableWindow } from './windows';
 /** One line under the search field: a window to open or a command to run. */
 export type Suggestion = Readonly<{
   key: string;
+  /** A visible command that this mode does not allow. */
+  disabled?: boolean;
   label: string;
   hint: string;
   icon: ReactNode;
@@ -88,6 +90,7 @@ export function rankSuggestions(all: readonly Candidate[], query: string): Sugge
 }
 
 export type SuggestionActions = Readonly<{
+  frozen?: boolean;
   /** Opens a window. */
   open: (key: string) => void;
   /** Steps the table to the next phase; null while the table refuses it, as the header's button is then disabled. */
@@ -182,7 +185,29 @@ function nextPhaseCandidate(nextPhase: SuggestionActions['nextPhase'], close: ()
 
 /** Every window and command the search can reach. */
 export function candidatesOf(windows: readonly TableWindow[], actions: SuggestionActions): Candidate[] {
+  const frozen: Candidate[] = actions.frozen
+    ? [
+        'Next phase',
+        'Move a piece',
+        'Draw a card',
+        'Flip a piece',
+        'Peek at a card',
+        'Rearrange hand',
+        'Raise the bid',
+        'Pass',
+      ].map((label) => ({
+        key: `frozen:${label}`,
+        label,
+        hint: 'Disabled during Mentat recall',
+        icon: <TopicIcon topic="controls" size={18} />,
+        disabled: true,
+        run: () => {},
+        text: label.toLowerCase(),
+        weight: -100,
+      }))
+    : [];
   return [
+    ...frozen,
     ...windows.map((entry): Candidate => ({
       key: entry.key,
       label: entry.label,
