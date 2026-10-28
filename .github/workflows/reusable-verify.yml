@@ -118,11 +118,44 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+  # Decide on Linux before requesting a scarce macOS runner (#2608). The Linux shards keep deciding
+  # independently so their early start does not wait for this job.
+  hosted_play_webgpu_decision:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    if: ${{ !inputs.draft }}
+    outputs:
+      run: ${{ steps.closure.outputs.run }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            /*
+            !/media/image/
+          sparse-checkout-cone-mode: false
+      # The classifier imports only local modules and Node built-ins; it needs no dependency install.
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+      - name: Decide whether WebGPU runs
+        id: closure
+        uses: ./.github/actions/play-closure
+      - name: Require a valid WebGPU decision
+        env:
+          RUN_WEBGPU: ${{ steps.closure.outputs.run }}
+        run: |
+          case "$RUN_WEBGPU" in
+            true|false) ;;
+            *) echo "::error::The Play closure returned no valid WebGPU decision"; exit 1 ;;
+          esac
+
   # The regular flow once more, on macOS, where full Chromium draws the Play table with WebGPU on the
   # runner's Metal device (#1322). The Linux shards draw WebGL2 on SwiftShader, so they pass a defect
   # that only WebGPU shows, such as #1272's vertex buffer validation error.
   hosted_play_webgpu:
     name: hosted_play_webgpu (regular)
+    needs: hosted_play_webgpu_decision
     # A standard runner, which costs nothing on a public repository; a larger macOS runner is billed even
     # there. Pinned rather than macos-latest, because the WebGPU adapter comes with the image.
     runs-on: macos-26
@@ -130,7 +163,7 @@ jobs:
     # Setup took about 45 s and the build and boot about 70 s, which comes near seventeen minutes.
     # A passing job took 249 to 276 s when this was measured (#1322).
     timeout-minutes: 18
-    if: ${{ !inputs.draft }}
+    if: ${{ !inputs.draft && needs.hosted_play_webgpu_decision.result == 'success' && needs.hosted_play_webgpu_decision.outputs.run == 'true' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -141,20 +174,13 @@ jobs:
             !/media/image/
           sparse-checkout-cone-mode: false
       - uses: ./.github/actions/setup
-      # As in hosted_play: the job decides for itself, so it is queued with the rest of the run.
-      - name: Decide whether the flows run
-        id: closure
-        uses: ./.github/actions/play-closure
       - uses: ./.github/actions/generated-images
-        if: steps.closure.outputs.run == 'true'
       - name: Install full Chromium
-        if: steps.closure.outputs.run == 'true'
         # Not the playwright-chromium action: it caches Linux's ~/.cache/ms-playwright, and on macOS
         # Playwright installs to ~/Library/Caches/ms-playwright. The download takes about 10 s here.
         # The lockfile's own Playwright CLI, because npx would fetch a package that is not installed.
         run: node_modules/.bin/playwright install --no-shell chromium
       - name: Select full Chromium in new headless mode
-        if: steps.closure.outputs.run == 'true'
         # On macOS the browser driver adds no switch, so Chromium chooses its own WebGPU adapter.
         run: |
           chromium_path="$(bun -e 'import { chromium } from "playwright"; console.log(chromium.executablePath())')"
@@ -162,19 +188,18 @@ jobs:
           "$chromium_path" --version
           echo "CHROMIUM=$chromium_path" >> "$GITHUB_ENV"
       - name: Run the regular flow expecting WebGPU
-        if: steps.closure.outputs.run == 'true'
         # The generated-images step above already wrote the image and vector output.
         run: bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate --stop-on-failure --shard regular --browser-only --browser "$CHROMIUM" --expect-renderer webgpu
       - name: Summarise each flow
         # As in hosted_play: always() for a timed-out job, and the summary never changes the job's result.
-        if: always() && steps.closure.outputs.run == 'true'
+        if: always()
         continue-on-error: true
         uses: ./.github/actions/hosted-play-summary
         with:
           heading: hosted_play_webgpu regular
           shard: regular
       - name: Retain hosted game integration evidence
-        if: always() && steps.closure.outputs.run == 'true'
+        if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: hosted-play-evidence-${{ github.run_id }}-webgpu-regular
