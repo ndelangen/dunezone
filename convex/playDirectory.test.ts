@@ -146,7 +146,11 @@ describe('the directory keeps the newest published summary and lists it to every
       ctx.db.insert('factions', {
         owner_id: ids.admin,
         slug: 'atreides',
-        data: { ...assetPublishingFaction, name: 'Atreides' },
+        data: {
+          ...assetPublishingFaction,
+          name: 'Atreides',
+          background: { ...assetPublishingFaction.background, source: { kind: 'custom' } },
+        },
         group_id: null,
         is_deleted: false,
         created_at: '2026-10-01T00:00:00Z',
