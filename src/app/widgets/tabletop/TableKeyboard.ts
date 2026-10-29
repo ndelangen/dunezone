@@ -388,6 +388,21 @@ export class TableKeyboard {
 
   private restingPieceKey(event: KeyboardEvent, pieceId: string, controls: Controls) {
     switch (event.key.toLowerCase()) {
+      case 't': {
+        const piece = controls.state.pieces.find((candidate) => candidate.id === pieceId);
+        if (
+          controls.canHandleTable &&
+          controls.hoveredPieceId === pieceId &&
+          piece?.kind === 'card' &&
+          piece.items.length > 0 &&
+          !piece.locked &&
+          !piece.inventory &&
+          controls.deckControls
+        ) {
+          pressOnce(event, () => controls.deckControls?.draw(pieceId));
+        }
+        return;
+      }
       case 'r': {
         const piece = controls.state.pieces.find((candidate) => candidate.id === pieceId);
         if (
@@ -410,7 +425,7 @@ export class TableKeyboard {
         return;
     }
     const digit = digitOf(event);
-    if (digit !== null && digit > 0) {
+    if (digit !== null) {
       event.preventDefault();
       this.startDraw(event, digit, pieceId);
     }
@@ -425,7 +440,7 @@ export class TableKeyboard {
     this.drawCode = event.code === 'Unidentified' ? '' : event.code;
     this.drawTimer = setTimeout(() => {
       this.cancelDraw();
-      this.binding?.read().splitSelected(digit, pieceId);
+      this.binding?.read().splitSelected(digit === 0 ? 10 : digit, pieceId);
     }, DRAW_HOLD_MS);
   }
 }

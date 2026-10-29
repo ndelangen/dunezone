@@ -38,6 +38,25 @@
   color: var(--ink-dim);
 }
 
+.token {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: grab;
+  touch-action: none;
+}
+
+.token:active {
+  cursor: grabbing;
+}
+
+.token:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 /* The amount just withdrawn floats up off the balance and fades, toward the table. */
 .floatAway {
   position: absolute;

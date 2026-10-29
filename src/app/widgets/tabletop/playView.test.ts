@@ -31,6 +31,15 @@ import type { ScreenRect } from './playView';
 import { mapViewFramingPoints } from './tablePlateGeometry';
 
 describe('table views', () => {
+  test('CHOAM Charity focuses the map on entry and when the phase changes', () => {
+    expect(createTableViewState('choam-charity').activeView).toBe('map');
+    const state = reduceTableView(createTableViewState('spice-blow'), {
+      type: 'phase.changed',
+      phase: 'choam-charity',
+    });
+    expect(state.activeView).toBe('map');
+  });
+
   test('frames the complete map area while preserving its approved angle', () => {
     const pose = cameraPoseFor('map', 1, mapViewFramingPoints(trackerArcSlots(9)));
     const scale = (pose.position[1] - pose.target[1]) / 9.4;

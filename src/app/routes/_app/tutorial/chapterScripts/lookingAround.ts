@@ -2,7 +2,7 @@ import type { GameSnapshot } from '@shared/play/protocol';
 import type { Vector3 } from 'three';
 
 import type { GuideTask, GuideView } from '../TutorialGuide';
-import type { ChapterScript } from './chapterScript';
+import type { ChapterScript, TablePlayers } from './chapterScript';
 import { at, closeUpShown, dialTask, scrolled, tableDeck, task } from './guideChecks';
 
 /*
@@ -38,30 +38,16 @@ const slid = () => ({
   finish: (watch: { stop: AbortController }) => watch.stop.abort(),
 });
 
-/*
- * Tab pings where the pointer is over the table, and the table claims the key when it does; a Tab it leaves alone moves the focus as usual.
- * So the task counts a Tab the table took, read once the table's own listener has had the key.
- */
-const pinged = () => ({
-  begin: () => {
-    const watch = { pinged: false, stop: new AbortController() };
-    const press = (event: KeyboardEvent) => {
-      /* The compass and a piece's ring take Tab for their own focus, and the table never pings under them. */
-      const covered = document.querySelector('dialog[aria-label="Controls compass"][open], [role="menu"]') !== null;
-      if (event.key === 'Tab' && !event.repeat && !covered) {
-        setTimeout(() => {
-          watch.pinged ||= event.defaultPrevented;
-        });
-      }
-    };
-    window.addEventListener('keydown', press, { capture: true, signal: watch.stop.signal });
-    return watch;
+/* A ping is counted when the table receives it, so focus navigation and repeated keys never count. */
+export const pingedTwice = (pings: () => readonly number[]) => ({
+  begin: () => pings().length,
+  done: (start: number) => {
+    const second = pings()[start + 1];
+    return second !== undefined && Date.now() - second >= 1000;
   },
-  done: (watch: { pinged: boolean }) => watch.pinged,
-  finish: (watch: { stop: AbortController }) => watch.stop.abort(),
 });
 
-function tasks(snapshot: () => GameSnapshot): GuideTask[] {
+function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[] {
   /* The Spice deck lies on the right of the table, where the table lays it out. */
   const spiceDeck = () => tableDeck(snapshot, 'right');
   return [
@@ -117,9 +103,9 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'ping',
       task: 'Point something out',
       detail:
-        "Want everyone to look at the same place? Hover over a territory and press {Tab}. They'll see a ripple in your colour and hear a ping.",
+        "Want everyone to look at the same place? Hover over a territory and press {Tab} twice. They'll see a ripple in your colour and hear a ping.",
       anchor: { kind: 'table', point: () => [0, 0, 0] },
-      ...pinged(),
+      ...pingedTwice(players.pings),
     }),
   ];
 }

@@ -1,4 +1,5 @@
 .callout {
+  --callout-background: rgb(from var(--ui-ground) r g b / 0.86);
   width: min(500px, 88vw);
   pointer-events: auto;
 }

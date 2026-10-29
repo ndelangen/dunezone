@@ -167,6 +167,14 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       begin: () => undefined,
       done: () => document.querySelector('[data-window="audit"]') !== null,
     }),
+    task({
+      id: 'read-audit',
+      task: 'Take a look at the record',
+      detail:
+        'The Audit log records who requested the vote, how players voted and when the player left. Take your time reading it.\n\nPress {Enter} when you are ready to finish.',
+      anchor: { kind: 'page', element: element('[data-window="audit"]') },
+      ...pressEnter(() => document.querySelector('[data-window="audit"]') !== null),
+    }),
   ];
 }
 

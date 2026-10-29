@@ -21,5 +21,5 @@ const meta = preview.meta({
 /** The chapter as a player meets it: do what the rail says, where its arrow shows, and it moves on by itself. */
 export const Chapter = meta.story({
   parameters: chapterParameters,
-  play: playChapter('Chapter 11: What goes where', 'Move on to the Spice Blow'),
+  play: playChapter('Chapter 11: What goes where', 'Place the storm'),
 });

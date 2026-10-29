@@ -1,5 +1,5 @@
 import { testingPreview } from '@sb/preview';
-import { waitForFrame } from '@sb/storyWaits';
+import { finishTransitions, waitForFrame } from '@sb/storyWaits';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { pageStoryMeta } from '../../storybookConfig';
@@ -110,6 +110,10 @@ export const PlayedThrough = meta.story({
     );
     await step('Read the Audit record');
     await openWindow('Audit');
+    await step('Take a look at the record');
+    await waitForFrame(() => expect(finishTransitions(page.getByRole('group', { name: 'Audit' }))).toBeVisible());
+    await expect(page.queryByRole('dialog', { name: 'Chapter complete, congratulations!' })).toBeNull();
+    await userEvent.keyboard('{Enter}');
     await page.findByRole('dialog', {}, { timeout: 20_000 });
   },
 });

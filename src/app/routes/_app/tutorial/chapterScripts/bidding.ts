@@ -69,8 +69,24 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       task: 'Start a bidding round',
       detail: "It's time to bid! Click your faction on the bidding disc to start the round with you.",
       anchor: { kind: 'page', element: () => document.querySelector(`[aria-label="Start bidding at ${myName()}"]`) },
-      begin: () => undefined,
-      done: () => bidding()?.stage === 'open' && bidding()?.turn === mine(),
+      begin: () => {
+        const timer = setInterval(() => {
+          const round = bidding();
+          const seat = players.others()[0];
+          if (seat && round?.stage === 'open' && round.turn !== mine()) {
+            players.act(seat, { kind: 'bid-start', factionId: mine() });
+          }
+        }, 200);
+        return () => clearInterval(timer);
+      },
+      done: (stop) => {
+        const ready = bidding()?.stage === 'open' && bidding()?.turn === mine();
+        if (ready) {
+          stop();
+        }
+        return ready;
+      },
+      finish: (stop) => stop(),
     }),
     task({
       id: 'raise',
@@ -114,10 +130,19 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'take-card',
       task: 'Take the card',
       detail:
-        'Practice taking the card. Right-click the Treachery deck and choose Draw a card.\n\nIn a real game, the winner takes the card and pays the winning bid themselves.',
+        'Practice paying for the card, then taking it.\n\nPlace the amount of spice you bid near the Emperor faction token.\n\nOnce paid, right-click the Treachery deck and draw a card.',
       anchor: { kind: 'table', point: () => at(tableDeck(snapshot, 'left')) },
-      begin: () => snapshot().hand?.length ?? 0,
-      done: (start) => (snapshot().hand?.length ?? 0) > start,
+      begin: () => ({ seen: players.acceptedActions().length, deck: tableDeck(snapshot, 'left')?.id }),
+      done: ({ seen, deck }) =>
+        players
+          .acceptedActions()
+          .slice(seen)
+          .some(
+            ({ action }) =>
+              action.kind === 'deck-draw' &&
+              action.pieceId === deck &&
+              (!action.recipient || action.recipient === mine())
+          ),
     }),
     task({
       id: 'sit-out',

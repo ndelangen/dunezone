@@ -594,7 +594,7 @@ export function DraftingPanel({ client, table, error }: Props & Readonly<{ error
   const players = playersOf(table);
   const needle = query.trim().toLowerCase();
   const rows = draft.factions.filter(
-    (faction) => (showAll || faction.linked || needle.length > 0) && faction.name.toLowerCase().includes(needle)
+    (faction) => (showAll || faction.linked) && faction.name.toLowerCase().includes(needle)
   );
   return (
     <Stack gap="sm" className={styles.panel} data-drafting-panel="">

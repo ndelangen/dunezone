@@ -15,7 +15,7 @@ import clsx from 'clsx';
 import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 import { useEffect, useReducer, useRef, useSyncExternalStore } from 'react';
 import type { Camera } from 'three';
-import { Plane, Raycaster, Vector2, Vector3 } from 'three';
+import { Vector3 } from 'three';
 
 import { useMotionAllowed } from '@app/styles/motion';
 import { BattleWheel as BattleWheelAsset } from '@game/assets/generic/BattleWheel';
@@ -30,6 +30,10 @@ import { BattleBeacon } from './BattleBeacon';
 import styles from './BattleControls.module.css';
 import { battleCapsuleY, headerInset } from './battlePlacement';
 import { PieceImage, pieceName } from './HandPiece';
+import { KeyboardSpicePlacement } from './KeyboardSpicePlacement';
+import { SPICE_RESERVE_DROP } from './spiceReserveDrop';
+import type { SpiceReserveDrop } from './spiceReserveDrop';
+import { tableDropPosition } from './tableDropPosition';
 
 type Props = { client: TableSession; table: TableProjection };
 type Outcome = NonNullable<NonNullable<PublicBattle['sides'][number]>['choice']>;
@@ -236,19 +240,6 @@ function useBattlePlacement(battle: PublicBattle | null | undefined) {
   });
   return placement;
 }
-function dropPosition(event: DragEvent, canvas: HTMLCanvasElement, camera: Camera) {
-  const bounds = canvas.getBoundingClientRect();
-  const ray = new Raycaster();
-  ray.setFromCamera(
-    new Vector2(
-      ((event.clientX - bounds.left) / bounds.width) * 2 - 1,
-      (-(event.clientY - bounds.top) / bounds.height) * 2 + 1
-    ),
-    camera
-  );
-  const point = ray.ray.intersectPlane(new Plane(new Vector3(0, 1, 0), -0.18), new Vector3());
-  return point && ([point.x, 0.18, point.z] as Vector3Tuple);
-}
 /* The plate reaches past the board to the card bays and shelves, and a hand piece may land anywhere on it. */
 function onTablePlate([x, , z]: Vector3Tuple) {
   const { minX, maxX, minZ, maxZ } = TABLE_PLATE_BOUNDS;
@@ -311,18 +302,30 @@ function useInventoryDrop({ client, table }: Props) {
       if (!table.canHandleTable) {
         return;
       }
-      const position = dropPosition(event, canvas, camera);
+      const position = tableDropPosition(event, canvas, camera);
       if (position) {
         void sendDrop(client, event, position).catch(() => {
           /* A failed geometry load leaves the marker available for another drop. */
         });
       }
     };
+    const withdraw = (event: Event) => {
+      const detail = (event as CustomEvent<SpiceReserveDrop>).detail;
+      if (!client.getTable()?.canHandleTable) {
+        return;
+      }
+      const position = tableDropPosition(detail, canvas, camera);
+      if (position && onTablePlate(position)) {
+        detail.commandId = client.command({ kind: 'bank-withdraw', amount: detail.amount, position });
+      }
+    };
     canvas.addEventListener('dragover', over);
     canvas.addEventListener('drop', drop);
+    canvas.addEventListener(SPICE_RESERVE_DROP, withdraw);
     return () => {
       canvas.removeEventListener('dragover', over);
       canvas.removeEventListener('drop', drop);
+      canvas.removeEventListener(SPICE_RESERVE_DROP, withdraw);
     };
   }, [camera, renderer, client, table.canHandleTable]);
 }
@@ -615,6 +618,7 @@ export function BattleScene(props: Props) {
   useInventoryDrop(props);
   return (
     <>
+      <KeyboardSpicePlacement {...props} />
       <BattleBeacon
         table={props.table}
         battle={battle}

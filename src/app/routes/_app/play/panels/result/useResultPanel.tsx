@@ -88,9 +88,16 @@ export function predictionReveal(table: TableProjection): PredictionReveal {
 
 function useResultPanel({ client, table, declare }: Props & Readonly<{ declare: DeclareChoice }>): ResultPanelProps {
   const { choice, change } = declare;
+  const own = viewerFaction(table);
+  const revealed = Object.values(table.snapshot.predictions ?? {}).find(
+    (prediction) => prediction.factionId === own && prediction.revealedAt !== null && prediction.choice
+  );
   return {
     state: resultState(table, choice),
     prediction: predictionReveal(table),
+    revealedPrediction: revealed?.choice
+      ? `Your prediction was revealed: ${factionName(table, revealed.choice.factionId)}, turn ${revealed.choice.turn}.`
+      : undefined,
     disabled: !table.canInteract,
     onReveal: () => {
       const stepId = unrevealedPrediction(table);

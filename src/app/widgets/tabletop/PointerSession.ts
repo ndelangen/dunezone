@@ -35,6 +35,7 @@ type ActivePress = {
 export class PointerSession {
   private binding: Binding | null = null;
   private active: ActivePress | null = null;
+  private holdTimer: ReturnType<typeof setTimeout> | null = null;
 
   get busy() {
     return this.active !== null;
@@ -55,7 +56,27 @@ export class PointerSession {
   }
 
   press(input: PointerInput, pieceId: string) {
-    return this.start(input, pieceId, 'table');
+    if (!this.start(input, pieceId, 'table')) {
+      return false;
+    }
+    this.holdTimer = setTimeout(() => {
+      this.holdTimer = null;
+      const controls = this.binding?.read();
+      if (
+        !controls?.canHandleTable ||
+        !controls.piece(pieceId) ||
+        !controls.isPublicPoint(input.clientX, input.clientY)
+      ) {
+        this.cancel();
+        return;
+      }
+      const point = this.point(input);
+      if (point) {
+        this.beginDrag('whole');
+        controls.updateGesture(point);
+      }
+    }, STACK_HOLD_MS);
+    return true;
   }
 
   carry(input: PointerInput, pieceId: string, pickup: 'top' | 'whole') {
@@ -118,7 +139,7 @@ export class PointerSession {
     if (!controls.canHandleTable || !controls.piece(pieceId)) {
       return false;
     }
-    this.active = { input, pieceId, origin, dragging: false, draftObserved: false };
+    this.active = { input, pieceId, origin, dragging: false, draftObserved: false, last: input };
     this.listen(this.binding);
     controls.onActiveChange(true);
     try {
@@ -139,6 +160,7 @@ export class PointerSession {
   }
 
   private release(cursor: string) {
+    this.cancelHold();
     const active = this.active;
     const binding = this.binding;
     if (!active || !binding) {
@@ -165,12 +187,20 @@ export class PointerSession {
   }
 
   private beginDrag(pickup: 'top' | 'whole') {
+    this.cancelHold();
     if (!this.active || !this.binding) {
       return;
     }
     this.active.dragging = true;
     this.binding.read().beginGesture(this.active.pieceId, pickup);
     this.binding.canvas.style.cursor = 'grabbing';
+  }
+
+  private cancelHold() {
+    if (this.holdTimer !== null) {
+      clearTimeout(this.holdTimer);
+      this.holdTimer = null;
+    }
   }
 
   private dragAfterThreshold(input: PointerInput) {

@@ -3,7 +3,8 @@ import { spawnableKey } from '@shared/play/inventory';
 import type { SpawnSelection, StoredSpawnContents } from '@shared/play/inventory';
 import { LOG_PAGE_SIZE } from '@shared/play/log';
 import type { LogEntry, LogTab } from '@shared/play/log';
-import type { ClientMessage, GameSnapshot, ServerMessage, Viewer } from '@shared/play/protocol';
+import type { TablePiece } from '@shared/play/model';
+import type { ClientMessage, GameSnapshot, PieceAction, ServerMessage, Viewer } from '@shared/play/protocol';
 import { GameRejection } from '@shared/play/rejection';
 import { isResultAction } from '@shared/play/result';
 import { isReviewAction, REVIEW_CHECKPOINTS, reviewableStage, reviewRunning } from '@shared/play/review';
@@ -34,6 +35,9 @@ type View = Extract<ServerMessage, { type: 'view' }>;
 /** A carry the page's player set down: the items it held, by id, and whether a take added to it while it was held. */
 export type Landing = Readonly<{ itemIds: readonly string[]; grew: boolean }>;
 
+/** A command the learner's table accepted, with its visible source before it changed. */
+export type AcceptedTutorialAction = Readonly<{ action: PieceAction; at: number; source?: TablePiece }>;
+
 export type TableMessage = Exclude<ClientMessage, { type: 'admit' | 'log-history' | 'conversation-history' }>;
 type MessageOf<Type extends TableMessage['type']> = Extract<TableMessage, { type: Type }>;
 type RoomAction = Parameters<Room['command']>[1];
@@ -63,6 +67,8 @@ export class LocalTable {
   /* The page's player's carries that a take has added to, and the carries they have set down. */
   private readonly grown = new Set<string>();
   private readonly landed: Landing[] = [];
+  private readonly accepted: AcceptedTutorialAction[] = [];
+  private readonly pingTimes: number[] = [];
   private tradingTimer: ReturnType<typeof setTimeout> | undefined;
   private battleTimer: ReturnType<typeof setTimeout> | undefined;
   /** Delivers a frame to the page; the transport sets it once the page connects. */
@@ -168,6 +174,16 @@ export class LocalTable {
     return this.landed;
   }
 
+  /** Successful learner commands in order. Rejected commands and simulated players are excluded. */
+  acceptedActions(): readonly AcceptedTutorialAction[] {
+    return this.accepted;
+  }
+
+  /** Times the learner sent a ping over the table, in milliseconds since the epoch. */
+  pings(): readonly number[] {
+    return this.pingTimes;
+  }
+
   /** The latest pages, also used by the sandbox transport. */
   log(): Partial<Record<LogTab, LogEntry[]>> {
     return {
@@ -261,6 +277,9 @@ export class LocalTable {
         throw new GameRejection('The table is paused for a review.');
       }
       this.session.currentSnapshot = before;
+      const sourceId = message.type === 'command' && 'pieceId' in message.action ? message.action.pieceId : undefined;
+      const source =
+        own && sourceId ? this.frame().snapshot.table.pieces.find((piece) => piece.id === sourceId) : undefined;
       handle(message, viewer, own);
       if (committing) {
         let next = this.session.reviews.reconcile(this.room.snapshot, Date.now());
@@ -286,6 +305,9 @@ export class LocalTable {
         this.session.log.recordCommit({ before, next, message, viewer, holders: this.session.actors.occupants() });
         this.session.currentSnapshot = next;
         this.scheduleBattleReveal();
+        if (own && message.type === 'command') {
+          this.accepted.push({ action: message.action, at: Date.now(), ...(source ? { source } : {}) });
+        }
         this.deliver(this.frame(this.seat, own ? message.commandId : undefined));
       }
     } catch (error) {
@@ -303,7 +325,11 @@ export class LocalTable {
       this.room.pointer(viewer, message.position, Date.now(), message.seq);
     },
     /* The page shows its own ping as it sends it, and a local table has no other page to pass it on to. */
-    ping: () => {},
+    ping: (_message, _viewer, own) => {
+      if (own) {
+        this.pingTimes.push(Date.now());
+      }
+    },
     pose: (message, viewer, own) => {
       if (this.room.pose(viewer, message) && !own) {
         this.deliver(this.frame());

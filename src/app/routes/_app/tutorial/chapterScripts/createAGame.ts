@@ -42,7 +42,7 @@ export const createAGame: LobbyChapterScript = {
       id: 'seats',
       task: 'Make room for friends',
       detail:
-        'How many friends are coming? This is the minimum number of players you need before dealing factions. More can join, and anyone can watch.\n\nSet the minimum to four for this practice game.',
+        'How many friends are coming? This is the minimum number of players you need before dealing factions. More can join before drafting starts, the maximum number of players is 18.\n\nSet the minimum to four for this practice game.',
       anchor: { kind: 'page', element: field('[role="slider"][aria-label="Minimum players"]') },
       begin: () => undefined,
       done: () => state().draft.minimumPlayers === 4,

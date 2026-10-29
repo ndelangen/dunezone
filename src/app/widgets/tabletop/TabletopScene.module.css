@@ -37,6 +37,7 @@
 
   /* Placed by a transform that follows the pointer every frame, on its own layer so moving it repaints nothing. */
   will-change: transform;
+  transform-origin: top left;
 }
 
 /* A disc token sits in a round frame, with its count on the frame's lower edge. */

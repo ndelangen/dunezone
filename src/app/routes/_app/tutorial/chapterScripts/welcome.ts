@@ -134,14 +134,14 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'board',
       task: 'Meet Arrakis',
       detail:
-        "Here's Arrakis, the board at the heart of your game.\n\nThis table is a sandbox: you can move pieces freely, and the players enforce the rules together.\n\nPress {Enter} to carry on.",
+        "Here's Arrakis, the board at the heart of your game.\n\nThis table is a sandbox: you and the players enforce the rules together.\n\nPress {Enter} to carry on.",
       anchor: { kind: 'table', point: () => [0, TABLE_SURFACE_Y, 0] },
       ...pressEnter(),
     }),
     task({
       id: 'players',
       task: 'Meet the players',
-      detail: 'Those faction tokens around the board belong to the players.\n\nClick one to take a closer look.',
+      detail: 'These faction tokens around the board are players seated and playing a faction\n\nClick one to proceed.',
       anchor: { kind: 'table', point: tokens.point },
       begin: (view) => {
         tokens.begin();
@@ -183,7 +183,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'next',
       task: 'Move to the next phase',
       detail:
-        'Once everyone agrees the phase is finished, anyone can move the game on.\n\nPress Next phase in the top right and give it a try.',
+        'Players decide together when the current phase is finished, any player can move the game on.\n\nPress Next phase in the top right and give it a try.',
       anchor: { kind: 'page', element: nextPhaseButton },
       begin: () => undefined,
       done: () => phaseOf(snapshot).id !== 'storm',

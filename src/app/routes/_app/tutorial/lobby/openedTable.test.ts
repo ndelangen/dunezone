@@ -17,7 +17,7 @@ const origin = 'https://dune.zone';
 describe('tutorial players and lobby transitions', () => {
   it('shuffles distinct people while preserving every mechanical seat and faction', () => {
     const people = shuffledPlayers(() => 0.25);
-    expect(new Set(people.map((player) => player.slug)).size).toBe(7);
+    expect(new Set(people.map((player) => player.slug)).size).toBe(TUTORIAL_PLAYERS.length);
     expect(people).not.toEqual(TUTORIAL_PLAYERS);
     const relabelled = seatTutorialPlayers(setup, people);
     const before = startAt(setup, 'turn-1-storm', origin);

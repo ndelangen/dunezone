@@ -216,9 +216,6 @@ function keepInside(value: number, margin: number, size: number) {
 /* The close is short; past this the copy goes even if no animation reports its end, as when the page is hidden. */
 const CLOSE_MS = 300;
 
-/* How long the pointer rests on an item with choices before the ring steps into it. */
-const STEP_IN_MS = 450;
-
 /**
  * A piece's actions as a ring around the pointer: one flick in a direction instead of reading down a list.
  * An item with choices (Deal) is stepped into: the ring gives way to a ring of those choices, sized to fit them all, with a back button at its centre;
@@ -246,7 +243,6 @@ export function RadialMenu({
   const menu = useRef<HTMLDivElement>(null);
   const [caption, setCaption] = useState<Caption | null>(null);
   const [steppedInto, setSteppedInto] = useState<string | null>(null);
-  const restTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const level = actions.find((action) => action.key === steppedInto && action.targets);
   const targets = level?.targets ?? [];
   const { disc, radius } = targetRing(targets.length);
@@ -257,12 +253,6 @@ export function RadialMenu({
     top: keepInside(y, Math.max(EDGE.top, EDGE.bottom, reach), window.innerHeight),
   };
 
-  const cancelRest = () => {
-    if (restTimer.current) {
-      clearTimeout(restTimer.current);
-      restTimer.current = null;
-    }
-  };
   /* The item the pointer last moved onto, so moving within it does not start it over. */
   const pointed = useRef<string | null>(null);
   const onPoint = (event: ReactPointerEvent<HTMLElement>) => {
@@ -274,9 +264,7 @@ export function RadialMenu({
   };
   const unpoint = () => {
     pointed.current = null;
-    cancelRest();
   };
-  useEffect(() => cancelRest, []);
 
   const stepInto = (action: RadialAction) => {
     unpoint();
@@ -329,7 +317,7 @@ export function RadialMenu({
   const plain = actions.filter((action) => !action.held);
   const held = actions.find((action) => action.held);
 
-  /* What pointing at an item does: its caption, and for Deal the rest that steps into its ring. */
+  /* Pointing shows the caption; only a click opens an item's choices. */
   const pointAt = (key: string) => {
     if (key === 'back') {
       setCaption({ text: 'Back', shortcut: 'Esc' });
@@ -347,10 +335,6 @@ export function RadialMenu({
     setCaption(
       action.held ? { text: action.label, tone: 'danger' } : { text: action.label, shortcut: action.shortcut }
     );
-    if (action.targets && !action.disabled) {
-      cancelRest();
-      restTimer.current = setTimeout(() => stepInto(action), STEP_IN_MS);
-    }
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {

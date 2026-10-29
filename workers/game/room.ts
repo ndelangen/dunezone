@@ -54,7 +54,7 @@ import { createSpiceStack } from '../../src/shared/play/spiceBank';
 import type { SpiceReserveAction } from '../../src/shared/play/spiceReserve';
 import type { SwapAction } from '../../src/shared/play/swapping';
 import { restingPositionAt } from '../../src/shared/play/tableGeometry';
-import { nearestCollisionFreePosition } from '../../src/shared/play/tablePhysics';
+import { clampPositionToTable, nearestCollisionFreePosition } from '../../src/shared/play/tablePhysics';
 import { PLAYER_RING_RADIUS, TABLE_SECTOR_COUNT, tableSeatAngles } from '../../src/shared/play/tableSettings';
 import {
   applyDraftToState,
@@ -793,17 +793,23 @@ export class Room {
     const table = tableForViewer(this.snapshot, identity.viewerSeat);
     const change =
       action.kind === 'bank-withdraw'
-        ? this.withdrawSpice(table, balance, action.amount, identity.viewerSeat)
+        ? this.withdrawSpice(table, balance, action.amount, identity.viewerSeat, action.position)
         : this.collectSpice(table, balance, action.pieceId);
     const next = nextSnapshot(this.snapshot, accepted(change.table, action.kind, `${factionId} ${change.message}`));
     return { ...next, factionBanks: { ...this.snapshot.factionBanks, [factionId]: change.balance } };
   }
 
-  private withdrawSpice(table: TableState, balance: number, amount: number, seat: Identity['viewerSeat']) {
+  private withdrawSpice(
+    table: TableState,
+    balance: number,
+    amount: number,
+    seat: Identity['viewerSeat'],
+    position?: Vector3Tuple
+  ) {
     if (amount > balance) {
       throw new GameRejection('There is not enough spice in the spice reserve for that withdrawal.');
     }
-    const piece = this.spiceReserveStack(table, amount, seat);
+    const piece = this.spiceReserveStack(table, amount, seat, position);
     return {
       balance: balance - amount,
       table: { ...table, pieces: [...table.pieces, piece] },
@@ -838,15 +844,24 @@ export class Room {
     return [Math.cos(angle) * radius, 0, Math.sin(angle) * radius];
   }
 
-  /* A withdrawal lands in front of the acting seat's station. */
-  private spiceReserveStack(table: TableState, amount: number, seat: Identity['viewerSeat']): TablePiece {
+  /* New withdrawals use the chosen drop point; older clients retain their station-front placement. */
+  private spiceReserveStack(
+    table: TableState,
+    amount: number,
+    seat: Identity['viewerSeat'],
+    requested?: Vector3Tuple
+  ): TablePiece {
     const piece = createSpiceStack(table.nextEventNumber, 1);
     piece.items = Array.from({ length: amount }, (_, index) => ({ id: `${piece.id}-${index + 1}`, faceUp: true }));
     const front = this.stationFront(seat);
     if (!front) {
       throw new GameRejection('This seat has no station on the table.');
     }
-    const origin = restingPositionAt(front, piece);
+    const origin = restingPositionAt(requested ?? front, piece);
+    const supported = clampPositionToTable(piece, origin);
+    if (requested && Math.hypot(supported[0] - origin[0], supported[2] - origin[2]) > 1e-6) {
+      throw new GameRejection('Drop the spice on the table.');
+    }
     const position = nearestCollisionFreePosition(piece, origin, table.pieces);
     if (!position) {
       throw new GameRejection('Make room on the table before withdrawing spice.');

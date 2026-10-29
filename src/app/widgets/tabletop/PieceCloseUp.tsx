@@ -12,6 +12,7 @@ import { topFaceHref, topItem } from './pieceFaceHref';
 import { seatedHeaderOf } from './seatedHeader';
 import { useTabletopSelector } from './TabletopContext';
 import styles from './TabletopScene.module.css';
+import { wheelPixels } from './wheelPixels';
 
 const CARD_HEIGHT_PX = 380;
 const CURSOR_GAP_PX = 28;
@@ -111,17 +112,51 @@ function useFollowPointer(
 ) {
   const width = size?.width;
   const height = size?.height;
+  const zoom = useRef(1);
   useLayoutEffect(() => {
     if (width == null || height == null) {
       return;
     }
-    const place = () => {
-      /* The box as laid out, so words under a face count at the height they render, not a guess at it. */
-      const measured = box.current?.offsetHeight || height;
-      const position = placeBeside(pointer.current, width, measured, closeUpBounds(area.current));
-      box.current?.style.setProperty('transform', `translate3d(${position.left}px, ${position.top}px, 0)`);
+    const place = (requested?: number) => {
+      const element = box.current;
+      if (!element) {
+        return;
+      }
+      /* Measure the whole frame, including padding, stack count and description, before scaling it. */
+      const measuredWidth = element.offsetWidth || width;
+      const measuredHeight = element.offsetHeight || height;
+      const bounds = closeUpBounds(area.current);
+      const maximum = Math.max(
+        0.001,
+        Math.min(
+          4,
+          (bounds.right - bounds.left - 2 * EDGE_PX) / measuredWidth,
+          (bounds.bottom - bounds.top - 2 * EDGE_PX) / measuredHeight
+        )
+      );
+      zoom.current = Math.min(maximum, Math.max(Math.min(0.35, maximum), requested ?? zoom.current));
+      const position = placeBeside(
+        pointer.current,
+        measuredWidth * zoom.current,
+        measuredHeight * zoom.current,
+        bounds
+      );
+      element.style.setProperty(
+        'transform',
+        `translate3d(${position.left}px, ${position.top}px, 0) scale(${zoom.current})`
+      );
     };
     place();
+    const onResize = () => place();
+    const onWheel = (event: WheelEvent) => {
+      if (!event.altKey || event.ctrlKey || event.metaKey || event.defaultPrevented) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      const delta = Math.max(-1000, Math.min(1000, wheelPixels(event.deltaY, event.deltaMode)));
+      place(zoom.current * Math.exp(delta * 0.002));
+    };
     let frame = 0;
     const onPointer = () => {
       if (!frame) {
@@ -132,6 +167,8 @@ function useFollowPointer(
       }
     };
     window.addEventListener('pointermove', onPointer);
+    window.addEventListener('resize', onResize);
+    window.addEventListener('wheel', onWheel, { capture: true, passive: false });
     /* A description that grows after it lands, as its fonts or images load, places the box again while the pointer is still. */
     const resize = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(onPointer);
     if (box.current) {
@@ -139,6 +176,8 @@ function useFollowPointer(
     }
     return () => {
       window.removeEventListener('pointermove', onPointer);
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('wheel', onWheel, { capture: true });
       resize?.disconnect();
       cancelAnimationFrame(frame);
     };
@@ -221,7 +260,16 @@ function CloseUp({
   }
   /* On the page's body, so the table's own stacking cannot slide it under a panel it spills over. */
   return createPortal(
-    <div ref={box} className={styles.closeUp} data-round={round || undefined} data-piece-close-up aria-hidden>
+    <div
+      ref={box}
+      className={styles.closeUp}
+      data-round={round || undefined}
+      data-piece-close-up
+      data-piece-id={shown.id}
+      data-piece-item={item.id}
+      data-piece-type={item.artwork?.type}
+      aria-hidden
+    >
       {/* Only the top item, so a stack of prediction cards that share one front shows the top card's prediction. */}
       <PieceArtwork
         piece={{ ...shown, items: [item] }}

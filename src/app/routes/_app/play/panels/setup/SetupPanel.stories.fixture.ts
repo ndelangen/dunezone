@@ -12,6 +12,7 @@ import { setupPanelProps, setupWindow } from './useSetupPanel';
 export function setupArgs(snapshot: GameSnapshot, seat = 'seat-2'): SetupPanelProps {
   return setupPanelProps(tableOf(snapshot, seat), {
     onGatherTraitors: fn(),
+    onDealTraitors: fn(),
     onLockPrediction: fn(),
     onRevealPrediction: fn(),
   })!;

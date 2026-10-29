@@ -24,6 +24,8 @@ function carryStack(...more: ReturnType<typeof troop>[]) {
     viewOf: snapshot,
     others: () => [],
     landings: () => landings,
+    acceptedActions: () => [],
+    pings: () => [],
     captured: () => undefined,
     capturedPieces: () => [],
   };

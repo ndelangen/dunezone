@@ -1,10 +1,11 @@
 import { alliesOf } from '@shared/play/alliances';
+import { factionTokenOf } from '@shared/play/factionToken';
 import type { GameSnapshot } from '@shared/play/protocol';
 
 import { FACTION_INFO } from '../../play/compass/windows';
 import type { GuideTask } from '../TutorialGuide';
 import type { ChapterScript, TablePlayers } from './chapterScript';
-import { buttonIn, element, openedWindow, task, viaCompass, windowShown } from './guideChecks';
+import { at, buttonIn, element, openedWindow, pressEnter, task, viaCompass, windowShown } from './guideChecks';
 
 /*
  * "Talking & Alliances": a word with one player, a look at their faction, and an alliance from offer to break.
@@ -86,10 +87,29 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       finish: (watch: { stop: () => void }) => watch.stop(),
     }),
     task({
+      id: 'alliance-rings',
+      task: 'Spot the alliance rings',
+      detail:
+        'The coloured rings under your faction tokens show that you are allies. They stay visible while you play.\n\nPress {Enter} to continue.',
+      anchor: {
+        kind: 'table',
+        point: () => at(factionTokenOf(snapshot().table.pieces, snapshot().bank?.factionId ?? '')),
+      },
+      ...pressEnter(),
+    }),
+    task({
+      id: 'alliance-list',
+      task: 'See every alliance',
+      detail:
+        'The left side of the screen also shows the alliances. You can check who is teamed up without opening a window.\n\nPress {Enter} to continue.',
+      anchor: { kind: 'page', element: element('[aria-label="Alliances"]') },
+      ...pressEnter(),
+    }),
+    task({
       id: 'ally-chat',
       task: 'Talk to your ally',
       detail:
-        'The coloured rings under your faction tokens show that you are allies.\n\nClose the chat, then press {F} to open it through the ally shortcut.\n\nYou can also hold {Space}, tap {→} twice and release.',
+        'Close the chat, then press {F} to open it through the ally shortcut.\n\nYou can also hold {Space}, tap {→} twice and release.',
       anchor: { kind: 'page', element: viaCompass('ally') },
       ...openedWindow(() => document.querySelector(chatWindow()) !== null),
     }),

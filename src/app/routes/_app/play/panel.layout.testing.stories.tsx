@@ -76,7 +76,7 @@ export const SchemeIsland = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await openTab(page, 'Spice');
     const balance = await page.findByLabelText('Spice reserve balance');
-    const button = page.getByRole('button', { name: 'Withdraw spice' });
+    const button = page.getByRole('button', { name: 'Drag 1 spice to the table' });
     const island = balance.closest<HTMLElement>('[data-scheme-dark]')!;
     const root = canvasElement.ownerDocument.documentElement;
     const view = canvasElement.ownerDocument.defaultView!;

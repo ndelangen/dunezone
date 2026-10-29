@@ -6,7 +6,7 @@ import type { TutorialCheckpoint } from '@shared/tutorial/recipe';
 import type { CreateGameDraft, CreateGameRequest } from '@app/widgets/create-game/CreateGamePass';
 import type { LobbyView } from '@app/widgets/play-lobby/PlayLobby';
 
-import type { Landing } from '../table/localTable';
+import type { AcceptedTutorialAction, Landing } from '../table/localTable';
 import type { GuideTask } from '../TutorialGuide';
 
 /** The other players at a chapter's table, whom a task can have act, as their own seat sends a command. */
@@ -19,6 +19,10 @@ export type TablePlayers = Readonly<{
   others: () => readonly string[];
   /** Every carry the learner has set down, oldest first. */
   landings: () => readonly Landing[];
+  /** Commands the learner successfully committed, with their visible source before the command. */
+  acceptedActions: () => readonly AcceptedTutorialAction[];
+  /** Times the learner sent table pings, in milliseconds since the epoch. */
+  pings: () => readonly number[];
   /** The asset a catalogue selection captured at this table, once the learner has requested it. */
   captured: (selection: SpawnSelection) => string | undefined;
   /** The selected token's pieces as the learner sees them after approval. */

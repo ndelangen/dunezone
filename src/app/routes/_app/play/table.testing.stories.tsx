@@ -385,8 +385,8 @@ export const PhaseViews = meta.story({
     await expect(shell).toHaveAttribute('data-table-view', 'map');
 
     session.transport.deliver(session.transport.view({ ...playingSnapshot(), phase: 2, revision: 1 }));
-    await waitFor(() => expect(shell).toHaveAttribute('data-table-view', 'bottom'));
-    await expect(views.getByRole('button', { name: 'Focus on bottom, recommended for this phase' })).toHaveAttribute(
+    await waitFor(() => expect(shell).toHaveAttribute('data-table-view', 'map'));
+    await expect(views.getByRole('button', { name: 'Focus on map, recommended for this phase' })).toHaveAttribute(
       'aria-pressed',
       'true'
     );

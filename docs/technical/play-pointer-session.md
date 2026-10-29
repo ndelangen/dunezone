@@ -14,9 +14,9 @@ It also converts screen coordinates to table coordinates. `PointerSession` calls
 the existing table gesture operations; `TableSession` still owns the local draft
 and sends authoritative commands. The server decides whether a drop is valid.
 
-Table presses start dragging after four pixels of movement. Holding for at least
-320 milliseconds before crossing that threshold picks up the whole stack;
-otherwise it picks up the top piece. Panel controls start carrying immediately
+Moving four pixels before 320 milliseconds picks up the top piece. Holding for
+320 milliseconds picks up the whole stack and visibly lifts it, even before the
+pointer moves. Panel controls start carrying immediately
 with their chosen pickup mode. An inventory pickup can travel from its panel to
 the table. A table pickup cancels when it leaves the public table.
 

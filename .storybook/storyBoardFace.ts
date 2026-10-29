@@ -8,19 +8,21 @@ const fixture = (path: string) => fileURLToPath(new URL(`./static/play-fixtures/
 /*
  * Each published face a story can name, with the fixture that answers it.
  * Storybook ids are not production ids, so no story could name a real publication: Storybook's only board is Arrakis,
- * and its only published round token is the Karama of its database (`src/app/db/storybook/database.ts`), whose ids start with twenty zeros.
+ * its seeded tokens use IDs beginning with twenty zeros.
  */
 const FIXTURES = [
   { path: /^\/published\/boards\/[^/]+\/board\.jpg$/, file: fixture('boards/arrakis-official.jpg') },
   { path: /^\/published\/round-tokens\/0{20}[^/]*\/token\.jpg$/, file: fixture('tokens/karama.jpg') },
+  { path: /^\/published\/pointer-tokens\/0{20}[^/]*\/token\.jpg$/, file: fixture('tokens/hms.jpg') },
 ];
 
 /**
- * Answers every published board face with the Arrakis board and every seeded round token with Karama, so a story drawing them shows real art.
- * The board fixture is `BoardMap` drawing Arrakis, which is what the publisher captures (`PublisherCapture.tsx`);
- * the token is the token editor drawing the database's Karama at the publisher's 600 px.
- * Both the Storybook builder and the story test runner register it;
- * the static build gets the same answer from `static/_redirects`.
+ * Answers every published board face with the Arrakis board, seeded round tokens with Karama, and seeded pointer tokens with HMS.
+ * The board fixture is `BoardMap` drawing Arrakis, which is what the publisher captures (`PublisherCapture.tsx`).
+ * Karama is the token editor drawing the database's token.
+ * HMS is the published 600 px image.
+ * Both the Storybook builder and the story test runner register it.
+ * The static build gets the same answer from `static/_redirects`.
  */
 export function storyBoardFace(): Plugin {
   return {

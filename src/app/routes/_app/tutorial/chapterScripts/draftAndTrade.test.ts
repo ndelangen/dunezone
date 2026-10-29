@@ -16,6 +16,8 @@ test('the others stop readying up once the draft has ended', () => {
     viewOf: () => view,
     others: () => ['seat-2', 'seat-3'],
     landings: () => [],
+    acceptedActions: () => [],
+    pings: () => [],
     captured: () => undefined,
     capturedPieces: () => [],
   };
@@ -39,6 +41,8 @@ test('the trade steps name the faction the learner was dealt and a player who is
     viewOf: () => view,
     others: () => [],
     landings: () => [],
+    acceptedActions: () => [],
+    pings: () => [],
     captured: () => undefined,
     capturedPieces: () => [],
   };
@@ -49,20 +53,18 @@ test('the trade steps name the faction the learner was dealt and a player who is
   expect(detail('cancel')).toContain('keep Fremen');
 });
 
-test.each([
-  [0, 'Emperor'],
-  [0.4, 'Fremen'],
-  [0.9, 'Harkonnen'],
-] as const)('drafts a familiar faction for random value %s', (random, name) => {
-  const steps = draftAndTrade.tasks(
-    () => ({}) as GameSnapshot,
-    {} as TablePlayers,
-    () => random
-  );
-  expect(steps.find((step) => step.id === 'draft')?.task).toBe(`Draft ${name}`);
+test('drafts the unlinked Space Orks after widening the catalogue search', () => {
+  const view = {
+    draft: { factions: [{ id: 'orks', name: 'Space Orks', linked: false }], picks: { 'seat-1': ['orks'] } },
+  } as unknown as GameSnapshot;
+  const steps = draftAndTrade.tasks(() => view, {} as TablePlayers);
+  const draft = steps.find((step) => step.id === 'draft')!;
+  expect(draft.task).toBe('Draft Space Orks');
+  expect(draft.done(undefined, {} as never)).toBe(true);
   expect(steps.map((step) => step.id)).toEqual([
     'search',
     'suitability',
+    'search-orks',
     'draft',
     'ban',
     'ready',

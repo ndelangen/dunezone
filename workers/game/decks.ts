@@ -60,23 +60,29 @@ function shuffleDeck(snapshot: StoredSnapshot, deck: StoredPiece): DeckTransitio
   };
 }
 
-function drawCard(snapshot: StoredSnapshot, deck: StoredPiece, recipient: string): DeckTransition {
+function drawCards(snapshot: StoredSnapshot, deck: StoredPiece, recipient: string, count: number): DeckTransition {
   const faction = seatedFaction(snapshot, recipient);
   if (!faction) {
     throw new GameRejection('That faction has no seat at this table.');
   }
-  const drawn = {
-    ...deck,
-    id: randomUUID(),
-    /* A dealt card is named as a card split off the deck would be, so a hand and the table agree. */
-    label: labelForCount(deck, 1, rosterFactionNames(snapshot.roster)),
-    owner: recipient,
-    /* A hand forgets who peeked at its cards, so a card later played face down out of it cannot be told apart by its marks. */
-    items: deck.items.slice(-1).map(({ peekedBy: _peekedBy, ...item }) => ({ ...item, faceUp: false })),
-    shuffleRevision: undefined,
-    battleOverlay: undefined,
-  };
-  const remaining = deck.items.slice(0, -1);
+  if (deck.items.length < count) {
+    throw new GameRejection('There are not enough cards in that deck.');
+  }
+  const drawn = deck.items
+    .slice(-count)
+    .reverse()
+    .map(({ peekedBy: _peekedBy, ...item }) => ({
+      ...deck,
+      id: randomUUID(),
+      /* A dealt card is named as a card split off the deck would be, so a hand and the table agree. */
+      label: labelForCount(deck, 1, rosterFactionNames(snapshot.roster)),
+      owner: recipient,
+      /* A hand forgets who peeked at its cards, so a card later played face down out of it cannot be told apart by its marks. */
+      items: [{ ...item, faceUp: false }],
+      shuffleRevision: undefined,
+      battleOverlay: undefined,
+    }));
+  const remaining = deck.items.slice(0, -count);
   return {
     pieces: snapshot.table.pieces.flatMap((piece) => {
       if (piece.id !== deck.id) {
@@ -95,10 +101,10 @@ function drawCard(snapshot: StoredSnapshot, deck: StoredPiece, recipient: string
     }),
     inventories: {
       ...snapshot.factionInventories,
-      [recipient]: [...(snapshot.factionInventories[recipient] ?? []), drawn],
+      [recipient]: [...(snapshot.factionInventories[recipient] ?? []), ...drawn],
     },
-    concealed: [drawn],
-    message: `One card was dealt to ${rosterFactionEventName(snapshot.roster, recipient)}.`,
+    concealed: drawn,
+    message: `${count === 1 ? 'One card was' : `${count} cards were`} dealt to ${rosterFactionEventName(snapshot.roster, recipient)}.`,
   };
 }
 
@@ -122,7 +128,7 @@ export function deckCommand(snapshot: StoredSnapshot, factionId: string, action:
   const transition =
     action.kind === 'deck-shuffle'
       ? shuffleDeck(snapshot, deck)
-      : drawCard(snapshot, deck, action.recipient ?? factionId);
+      : drawCards(snapshot, deck, action.recipient ?? factionId, action.count ?? 1);
   const table = tableForViewer(snapshot, SPECTATOR_SEAT);
   const next = nextSnapshot(
     snapshot,

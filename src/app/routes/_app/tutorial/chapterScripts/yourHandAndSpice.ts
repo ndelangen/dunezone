@@ -46,7 +46,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'draw',
       task: 'Draw four Treachery cards',
       detail:
-        "Let's give you a hand to practice with. Right-click the Treachery deck on the left and choose Draw a card four times.\n\nEach card goes straight into your hand.",
+        "Let's give you a hand to practice with. Hover over the Treachery deck on the left and press {T} four times. Each card goes straight into your hand.\n\nYou can also right-click the deck and choose Draw a card.",
       anchor: { kind: 'table', point: () => at(treacheryDeck()) },
       begin: () => cards().length,
       done: (start) => cards().length >= start + 4,
@@ -112,7 +112,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'withdraw',
       task: 'Take spice from your reserve',
       detail:
-        'Need spice on the table? Your reserve is at the top of Hand & spice.\n\nChoose an amount and press Withdraw.',
+        'Need spice on the table? Your reserve is at the top of Hand & spice.\n\nChoose an amount, then grab the spice token preview and drag it onto the table. You decide exactly where it goes.',
       anchor: { kind: 'page', element: element('[data-window="hand"] [aria-label="Spice reserve balance"]') },
       begin: reserve,
       done: (start) => reserve() < start,
@@ -122,13 +122,13 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
 
 /* One line for each part of the chapter, in the order it was played. */
 const learned = [
-  'Right-click the Treachery deck and choose Draw a card',
+  'Hover over a deck and press {T} to draw a card, or use Draw a card in its menu',
   '{H}, or {Space} {←}, opens your Hand & spice',
   'Hold {Alt} over a card in your hand to read it',
   'Pieces dragged from your hand to the table land face down',
   'Hover over a played card and press {F} to reveal it',
   'Drag cards along the Treachery row to sort your hand',
-  'Withdraw spice from your reserve onto the table',
+  'Choose an amount of spice, then drag it from your reserve onto the table',
 ];
 
 export const yourHandAndSpice: ChapterScript = {

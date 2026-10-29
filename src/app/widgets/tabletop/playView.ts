@@ -23,7 +23,7 @@ export type TableView = (typeof TABLE_VIEW_OPTIONS)[number]['id'] | typeof TOP_V
 export const PHASE_VIEWS: Record<TablePhaseId, TableView> = {
   storm: 'map',
   'spice-blow': 'right',
-  'choam-charity': 'bottom',
+  'choam-charity': 'map',
   bidding: 'left',
   revival: 'bottom',
   'shipment-and-movement': 'map',

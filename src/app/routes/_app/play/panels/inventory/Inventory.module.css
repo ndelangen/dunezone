@@ -1,5 +1,16 @@
 /* The shared table inventory, inside a compass window: the window's own ink, edge and sand accent, as the hand's shelves use. */
 
+.requests {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--ui-ground);
+}
+
+.requests:empty {
+  display: none;
+}
+
 /* One type of piece per row: the row never wraps, it scrolls sideways. */
 .strip {
   display: flex;

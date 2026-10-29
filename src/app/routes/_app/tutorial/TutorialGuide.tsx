@@ -1,9 +1,9 @@
-import { Button, Group, Text, VisuallyHidden } from '@mantine/core';
+import { Button, Group, Text, UnstyledButton, VisuallyHidden } from '@mantine/core';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { KeyedText } from '@ui/content/Kbd';
 import { DarkSchemeIsland, darkSchemeIslandAttributes } from '@ui/surface/DarkSchemeIsland';
 import { Hourglass, RotateCcw } from 'lucide-react';
-import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useId, useReducer, useRef } from 'react';
 import type { CSSProperties, MouseEvent, ReactNode } from 'react';
 import type { Camera, Vector3Tuple } from 'three';
 
@@ -141,6 +141,35 @@ function aim(
 /* How wide the rail is, set in the stylesheet so the page beside a lobby chapter can make room for it as well. */
 const RAIL_WIDTH = 'var(--tutorial-rail-width)';
 
+type GuideState = {
+  current: number;
+  run: number;
+  doneKey: string | null;
+  readyRun: number | null;
+  expanded: string | null;
+};
+type GuideEvent =
+  | { type: 'ready'; run: number }
+  | { type: 'done'; key: string }
+  | { type: 'advance' }
+  | { type: 'reset' }
+  | { type: 'read'; id: string };
+
+function guideReducer(state: GuideState, event: GuideEvent): GuideState {
+  switch (event.type) {
+    case 'ready':
+      return { ...state, readyRun: event.run };
+    case 'done':
+      return { ...state, doneKey: event.key };
+    case 'advance':
+      return { ...state, current: state.current + 1 };
+    case 'reset':
+      return { current: 0, run: state.run + 1, doneKey: null, readyRun: null, expanded: null };
+    case 'read':
+      return { ...state, expanded: state.expanded === event.id ? null : event.id };
+  }
+}
+
 /**
  * The guide for one chapter, beside whatever page holds the table.
  * Callers own the tasks and what Reset puts back;
@@ -175,12 +204,13 @@ export function TutorialGuide({
   table?: TableLens | null;
   children: ReactNode;
 }>) {
-  const [current, setCurrent] = useState(() => Math.min(firstTask, tasks.length - 1));
-  const [run, setRun] = useState(0);
-  /* The run whose end the player closed to keep playing at its table; the card, its veil and the confetti go with it. */
-  const [keptPlaying, setKeptPlaying] = useState<number | null>(null);
-  /* Which task, in which run, the player has just done; its tick shows until the next task starts. */
-  const [doneKey, setDoneKey] = useState<string | null>(null);
+  const [{ current, run, doneKey, readyRun, expanded }, dispatch] = useReducer(guideReducer, {
+    current: Math.min(firstTask, tasks.length - 1),
+    run: 0,
+    doneKey: null,
+    readyRun: null,
+    expanded: null,
+  });
   const fill = useRef<SVGPathElement>(null);
   const edge = useRef<SVGPathElement>(null);
   const rail = useRef<HTMLElement>(null);
@@ -194,7 +224,6 @@ export function TutorialGuide({
   const inset = `${useId()}-inset`;
   const finished = doneKey === `${run}:${current}`;
   /* Which run has its table in place; until then the rail says it is setting up, so nothing the player does is lost. */
-  const [readyRun, setReadyRun] = useState<number | null>(null);
   const waiting = readyRun !== run;
 
   /* Every frame the pointer moves to its part, and the task is asked whether it is done. */
@@ -231,7 +260,7 @@ export function TutorialGuide({
         return false;
       }
       baseline = task.begin(view);
-      setReadyRun(run);
+      dispatch({ type: 'ready', run });
       return true;
     };
     const tick = () => {
@@ -250,11 +279,11 @@ export function TutorialGuide({
       }
       if (doneAt === null && task.done(baseline as never, view)) {
         doneAt = performance.now();
-        setDoneKey(`${run}:${current}`);
+        dispatch({ type: 'done', key: `${run}:${current}` });
       }
       if (doneAt !== null && performance.now() - doneAt > DONE_PAUSE_MS) {
         cancelAnimationFrame(frame);
-        setCurrent((index) => index + 1);
+        dispatch({ type: 'advance' });
       }
     };
     /* Arm page actions when the task mounts, before a fast click or key press can reach the next frame. */
@@ -277,8 +306,7 @@ export function TutorialGuide({
       event.currentTarget.blur();
     }
     onReset();
-    setCurrent(0);
-    setRun((count) => count + 1);
+    dispatch({ type: 'reset' });
   };
 
   /*
@@ -289,7 +317,9 @@ export function TutorialGuide({
   const railTask = (index: number) => {
     const item = tasks[index]!;
     const done = index < current || (index === current && finished);
-    const open = index === current && !waiting;
+    const completed = index < current;
+    const open = (index === current && !waiting) || (completed && expanded === item.id);
+    const detailId = `${inset}-detail-${item.id}`;
     return (
       <>
         <span ref={index === current ? step : undefined} className={styles.step}>
@@ -298,11 +328,24 @@ export function TutorialGuide({
             <path d="M5 12.5 9.5 17 19 7" pathLength={1} />
           </svg>
         </span>
-        <p className={styles.railTitle}>
-          {index === current && waiting ? 'Setting the table…' : <KeyedText>{item.task}</KeyedText>}
-          {done && <VisuallyHidden> (done)</VisuallyHidden>}
-        </p>
-        <div className={styles.railMore} aria-hidden={!open}>
+        {completed ? (
+          <UnstyledButton
+            className={styles.railTitle}
+            aria-expanded={open}
+            aria-controls={detailId}
+            aria-label={`${item.task} (done)`}
+            onClick={() => dispatch({ type: 'read', id: item.id })}
+          >
+            <KeyedText>{item.task}</KeyedText>
+            <VisuallyHidden> (done)</VisuallyHidden>
+          </UnstyledButton>
+        ) : (
+          <p className={styles.railTitle}>
+            {index === current && waiting ? 'Setting the table…' : <KeyedText>{item.task}</KeyedText>}
+            {done && <VisuallyHidden> (done)</VisuallyHidden>}
+          </p>
+        )}
+        <div id={detailId} className={styles.railMore} aria-hidden={!open} data-expanded={open || undefined}>
           <div className={styles.railBody}>
             <div className={styles.railDetail}>
               {item.waitingForPlayers && open && !done && (
@@ -407,18 +450,10 @@ export function TutorialGuide({
         </div>
       </DarkSchemeIsland>
       {/* Under the end of a chapter the table holds still: nothing in it takes focus, clicks or keys. */}
-      <div className={styles.table} data-tutorial-pages={table ? undefined : ''} inert={!task && keptPlaying !== run}>
+      <div className={styles.table} data-tutorial-pages={table ? undefined : ''} inert={!task}>
         {children}
       </div>
-      {!task && keptPlaying !== run && (
-        <ChapterComplete
-          key={run}
-          learned={learned}
-          chaptersLink={chaptersLink}
-          nextLink={nextLink}
-          onKeepPlaying={() => setKeptPlaying(run)}
-        />
-      )}
+      {!task && <ChapterComplete key={run} learned={learned} chaptersLink={chaptersLink} nextLink={nextLink} />}
     </div>
   );
 }

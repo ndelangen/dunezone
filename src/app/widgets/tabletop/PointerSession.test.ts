@@ -10,6 +10,7 @@ afterEach(() => {
   for (const stop of stops.splice(0)) {
     stop();
   }
+  vi.useRealTimers();
 });
 
 function pointer(type: string, x = 10, pointerId = 1, timeStamp = 0) {
@@ -54,6 +55,61 @@ test('a click captures and releases its pointer without starting a carry', () =>
   expect(controls.finishGesture).not.toHaveBeenCalled();
   expect(canvas.releasePointerCapture).toHaveBeenCalledWith(1);
   expect(session.busy).toBe(false);
+});
+
+test('holding a stack lifts it before the pointer moves', () => {
+  vi.useFakeTimers();
+  const { session, controls, canvas, piece } = table();
+  session.press(pointer('pointerdown'), piece.id);
+  vi.advanceTimersByTime(319);
+  expect(controls.beginGesture).not.toHaveBeenCalled();
+  vi.advanceTimersByTime(1);
+  expect(controls.beginGesture).toHaveBeenCalledExactlyOnceWith(piece.id, 'whole');
+  expect(controls.updateGesture).toHaveBeenCalledExactlyOnceWith([10, 0, 10]);
+  expect(canvas.style.cursor).toBe('grabbing');
+  expect(session.isDragging(piece.id)).toBe(true);
+});
+
+test.each(['release', 'blur', 'Escape', 'lost capture', 'unbind', 'permission loss'])(
+  'a pending hold cancelled by %s never picks up a stack',
+  (reason) => {
+    vi.useFakeTimers();
+    const { session, controls, canvas, piece, stop } = table();
+    session.press(pointer('pointerdown'), piece.id);
+    vi.advanceTimersByTime(100);
+    if (reason === 'release') {
+      window.dispatchEvent(pointer('pointerup'));
+    }
+    if (reason === 'blur') {
+      window.dispatchEvent(new Event('blur'));
+    }
+    if (reason === 'Escape') {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    }
+    if (reason === 'lost capture') {
+      canvas.dispatchEvent(pointer('lostpointercapture'));
+    }
+    if (reason === 'unbind') {
+      stop();
+    }
+    if (reason === 'permission loss') {
+      controls.canHandleTable = false;
+      session.reconcile();
+    }
+    vi.advanceTimersByTime(1000);
+    expect(controls.beginGesture).not.toHaveBeenCalled();
+    expect(controls.finishGesture).not.toHaveBeenCalled();
+  }
+);
+
+test('moving before the hold picks up the top piece without a later whole-stack pickup', () => {
+  vi.useFakeTimers();
+  const { session, controls, piece } = table();
+  session.press(pointer('pointerdown'), piece.id);
+  vi.advanceTimersByTime(100);
+  window.dispatchEvent(pointer('pointermove', 20, 1, 100));
+  vi.advanceTimersByTime(1000);
+  expect(controls.beginGesture).toHaveBeenCalledExactlyOnceWith(piece.id, 'top');
 });
 
 test('other pointers cannot cancel, replace, move or drop the active carry', () => {

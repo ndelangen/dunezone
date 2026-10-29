@@ -1,4 +1,5 @@
 import type { TableProjection, TableSession } from '../../../../../db/tabletop/TableSession';
+import { dropSpiceFromReserve, pickUpSpiceFromReserve } from '../../multiplayer/spiceReserveDrop';
 import { SpiceReservePanel } from './SpiceReservePanel';
 import type { SpiceReservePanelProps } from './SpiceReservePanel';
 
@@ -12,7 +13,13 @@ function useSpiceReservePanel({ client, table }: Props): SpiceReservePanelProps 
         balance: reserve.balance,
         enabled: table.canHandleTable,
         hiddenHeading: Boolean(table.snapshot.stage),
-        onWithdraw: (amount) => Boolean(client.command({ kind: 'bank-withdraw', amount })),
+        onStartPlacement: (amount) => {
+          if (client.getTable()?.canHandleTable) {
+            pickUpSpiceFromReserve(amount);
+          }
+        },
+        onWithdraw: (amount, point) =>
+          Boolean(client.getTable()?.canHandleTable && dropSpiceFromReserve(amount, point)),
       }
     : null;
 }

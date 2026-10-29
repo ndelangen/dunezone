@@ -1,9 +1,15 @@
-import { Button, NumberInput, Select, Stack, Text } from '@mantine/core';
+import { Button, Group, Select, Stack, Text } from '@mantine/core';
 import type { setupStep } from '@shared/play/setup';
 import { playUiColors } from '@shared/uiPalette';
 import { Section } from '@ui/block/Section';
 import { InlineFormattedTextSource } from '@ui/content/FormattedText';
+import { IconAction } from '@ui/control/IconAction';
+import { Stepper } from '@ui/control/Stepper';
+import { Layers } from 'lucide-react';
 import { useReducer } from 'react';
+
+import { factionOption } from '../../multiplayer/factionOption';
+import type { FactionOption } from '../../multiplayer/factionOption';
 
 /** A faction's starting troops, as its rules state them. */
 type StartingTroops = Readonly<{ factionId: string; name: string; text: string }>;
@@ -24,7 +30,7 @@ type PredictionState =
       canReveal: boolean;
     }>
   /** The viewer locks this prediction now. */
-  | Readonly<{ kind: 'choosing'; options: readonly { value: string; label: string }[] }>
+  | Readonly<{ kind: 'choosing'; options: readonly FactionOption[] }>
   | Readonly<{ kind: 'waiting' }>;
 
 export type PredictionRow = Readonly<{
@@ -44,9 +50,11 @@ export type SetupPanelProps = Readonly<{
   /** For the starting-troops step: each faction's line, the viewer's own first. */
   instructions: readonly StartingTroops[];
   predictions: readonly PredictionRow[];
+  traitors: Readonly<{ factions: readonly FactionOption[]; available: number }> | null;
   /** The actions are greyed out while the table is not taking moves. */
   disabled: boolean;
   onGatherTraitors: () => void;
+  onDealTraitors: (factionId: string, count: 1 | 4) => void;
   onLockPrediction: (stepId: string, choice: { factionId: string; turn: number }) => void;
   onRevealPrediction: (stepId: string) => void;
 }>;
@@ -93,14 +101,14 @@ function PredictionInput({
   disabled,
   onLock,
 }: Readonly<{
-  options: readonly { value: string; label: string }[];
+  options: readonly FactionOption[];
   disabled: boolean;
   onLock: (choice: { factionId: string; turn: number }) => void;
 }>) {
   const [choice, change] = useReducer(
     (
-      state: { factionId: string | null; turn: string | number },
-      patch: Partial<{ factionId: string | null; turn: string | number }>
+      state: { factionId: string | null; turn: number },
+      patch: Partial<{ factionId: string | null; turn: number }>
     ) => ({ ...state, ...patch }),
     { factionId: null, turn: 1 }
   );
@@ -111,15 +119,14 @@ function PredictionInput({
       <Select
         label="Predicted winner"
         data={options}
+        renderOption={({ option }) => factionOption(options, option.value)}
         value={choice.factionId}
         onChange={(factionId) => change({ factionId })}
         disabled={disabled}
       />
-      <NumberInput
+      <Stepper
         label="Predicted turn"
         min={1}
-        allowDecimal={false}
-        allowNegative={false}
         value={choice.turn}
         onChange={(turn) => change({ turn })}
         disabled={disabled}
@@ -182,16 +189,48 @@ function Prediction({
 
 /** The Setup window: the current setup step's instructions and action, then every prediction at the table. */
 export function SetupPanel(props: SetupPanelProps) {
-  const { step, hiddenHeading, instructions, predictions, disabled, onGatherTraitors } = props;
+  const { step, hiddenHeading, instructions, predictions, traitors, disabled, onGatherTraitors, onDealTraitors } =
+    props;
   return (
     <Stack gap="md">
       {step.kind !== 'prediction' && (
         <Section hiddenHeading={hiddenHeading} title={step.title} description={step.help}>
           <Stack gap="sm">
             {step.kind === 'traitors' && (
-              <Button variant="default" disabled={disabled} onClick={onGatherTraitors}>
-                Gather tabletop traitors
-              </Button>
+              <>
+                <Button variant="default" disabled={disabled} onClick={onGatherTraitors}>
+                  Gather tabletop traitors
+                </Button>
+                {traitors?.factions.map((faction) => (
+                  <Group key={faction.value} justify="space-between" wrap="nowrap">
+                    {factionOption(traitors.factions, faction.value)}
+                    <Group gap="xs" wrap="nowrap">
+                      {([1, 4] as const).map((count) => (
+                        <IconAction
+                          key={count}
+                          label={`Deal ${count} to ${faction.label}`}
+                          intent="neutral"
+                          emphasis="quiet"
+                          icon={
+                            <>
+                              <Layers size={14} aria-hidden />
+                              <span aria-hidden>{count}</span>
+                            </>
+                          }
+                          disabledReason={
+                            disabled
+                              ? 'The table is unavailable.'
+                              : traitors.available < count
+                                ? 'Combine enough traitor cards first.'
+                                : undefined
+                          }
+                          onClick={() => onDealTraitors(faction.value, count)}
+                        />
+                      ))}
+                    </Group>
+                  </Group>
+                ))}
+              </>
             )}
             {step.kind === 'forces' &&
               instructions.map((entry) => (
