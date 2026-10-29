@@ -413,11 +413,11 @@ export async function createPeer(): Promise<NativePeer> {
 export async function createRuntime(
   peer: NativePeer,
   kind: keyof typeof runtimeEntries = 'game',
-  bindings: NativeBindings = {}
+  bindings: NativeBindings = {},
+  script = runtimeScripts.get(kind)
 ) {
   const logs: V4WorkerdStructuredLog[] = [];
   const origin = bindings.APPLICATION_ORIGIN ?? 'http://table.test';
-  const script = runtimeScripts.get(kind);
   if (script === undefined) {
     throw new Error(`The native ${kind} Worker was not compiled during fixture loading.`);
   }
@@ -568,9 +568,9 @@ export async function createRuntime(
       await room.fetch('https://native-test/native-test/forget-quiet', { method: 'POST' });
     },
     /** Fetches a path from the room object with any name, as a Worker version routing another game would. */
-    async object(name: string, path: string) {
+    async object(name: string, path: string, init?: RequestInit) {
       const namespace = await instance.getDurableObjectNamespace('GAME_ROOMS');
-      return namespace.get(namespace.idFromName(name)).fetch(`https://native-test${path}`);
+      return namespace.get(namespace.idFromName(name)).fetch(`https://native-test${path}`, init);
     },
     /**
      * Runs one statement against the room's SQLite file with the runtime down.

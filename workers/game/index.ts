@@ -361,6 +361,10 @@ export class GameRoom extends DurableObject<GameEnv> {
       );
     } catch (error) {
       this.diagnostics.report('load', error);
+      /* SQLite can remain usable after this failure; discard the failed room so the next request can reload it. */
+      if (error instanceof Error && error.message === 'out of memory: SQLITE_NOMEM') {
+        throw error;
+      }
       this.closed = true;
       this.loadFailure = error;
     }

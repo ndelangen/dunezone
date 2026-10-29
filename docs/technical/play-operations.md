@@ -260,8 +260,12 @@ What recovers by itself:
   reconnect with their seat pass (the `GameRoom` constructor in `workers/game/index.ts`). Carries and
   pointers are lost by design; the table, receipts and history are kept
   (`docs/technical/play-hosted.md:30-35`).
+- A load that fails with `out of memory: SQLITE_NOMEM` throws after reporting the failure, so the
+  next request constructs a new room. SQLite can remain usable after this error; retaining a closed
+  room would keep refusing connections after storage recovered. This permits another load attempt;
+  it does not repair persistent allocation failures or establish what caused them.
 
-What does not: a room whose stored game no longer loads is closed and answers only a retirement, and
+What does not: other load failures leave the room closed and answering only a retirement, and
 its alarm throws so Cloudflare retries it a few times (the `GameRoom` load path and `alarm` in
 `workers/game/index.ts`). Retirement accepts only the hosted fixture and refuses a real game
 (`retire` in `workers/game/index.ts`). There is no operator procedure for a real game in that state;
