@@ -11,8 +11,14 @@ import type { Piece } from './guideChecks';
 export type SpiceBlow = Readonly<{ name: string; amount: number; territory: string }>;
 
 function revealedSpiceFront(piece: Piece): string | undefined {
+  if (piece.items.length !== 1) {
+    return undefined;
+  }
   const face = piece.items[0];
-  if (piece.items.length !== 1 || !face?.faceUp || face.artwork?.type !== 'card-spice') {
+  if (!face?.faceUp) {
+    return undefined;
+  }
+  if (face.artwork?.type !== 'card-spice') {
     return undefined;
   }
   return face.artwork.front;
