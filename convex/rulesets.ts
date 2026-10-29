@@ -1,5 +1,6 @@
 import { v } from 'convex/values';
 
+import { MAX_EXTRA_BOARDS } from '../src/shared/play/boardLayout';
 import { RULESET_ASSET_SLOTS } from '../src/shared/rulesets/assetSlots';
 import {
   RULESET_CATALOGUE_PAGE_SIZE,
@@ -512,6 +513,7 @@ export const removeFaction = mutation({
  */
 const assetSlotValidator = v.union(
   v.literal('board'),
+  v.literal('extraBoards'),
   v.literal('treachery'),
   v.literal('spice'),
   v.literal('custom'),
@@ -555,6 +557,10 @@ export const setAssetSlot = mutation({
     /* The read window is the slot's stated capacity, not a sample of it. Without the ceiling, a slot past the window would take duplicates and clear partially, silently. */
     if (!rule.single && existing.length >= SLOT_CONTENTS_LIMIT) {
       throw new Error(`The ${rule.label} slot is full`);
+    }
+    /* The table has room for six boards round the main one. */
+    if (args.slot === 'extraBoards' && existing.length >= MAX_EXTRA_BOARDS) {
+      throw new Error(`The ${rule.label} slot holds at most ${MAX_EXTRA_BOARDS} boards`);
     }
     if (rule.single) {
       for (const row of existing) {

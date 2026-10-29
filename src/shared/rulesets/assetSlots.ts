@@ -12,6 +12,8 @@
  */
 export const RULESET_ASSET_SLOTS = {
   board: { holds: 'board', single: true, label: 'Board', noun: 'a board' },
+  /* Up to six more boards round the main one, placed in the order they were added (play/boardLayout.ts). */
+  extraBoards: { holds: 'board', single: false, label: 'Extra boards', noun: 'boards' },
   treachery: { holds: 'deck', single: true, label: 'Treachery deck', noun: 'a deck' },
   spice: { holds: 'deck', single: true, label: 'Spice deck', noun: 'a deck' },
   custom: { holds: 'deck', single: false, label: 'Custom decks', noun: 'decks' },
@@ -24,6 +26,7 @@ export type RulesetAssetSlot = keyof typeof RULESET_ASSET_SLOTS;
 /** Presentation order. Single-asset slots first, since they are the ones a ruleset is expected to fill. */
 export const RULESET_ASSET_SLOT_ORDER = [
   'board',
+  'extraBoards',
   'treachery',
   'spice',
   'techToken',

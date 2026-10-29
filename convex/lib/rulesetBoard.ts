@@ -1,4 +1,5 @@
 import { parseBoardData } from '../../src/shared/assets/validation';
+import { MAX_EXTRA_BOARDS } from '../../src/shared/play/boardLayout';
 import type { BoardCapture } from '../../src/shared/play/capture';
 import type { Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
@@ -15,10 +16,34 @@ export async function rulesetBoard(
     .query('ruleset_asset_slots')
     .withIndex('by_ruleset_slot', (q) => q.eq('ruleset_id', rulesetId).eq('slot', 'board'))
     .first();
-  if (slot && cache.has(slot.asset_id)) {
-    return cache.get(slot.asset_id)!;
+  return slot ? await boardCapture(ctx, slot.asset_id, cache) : null;
+}
+
+/**
+ * The extra boards a game captures round its main board, in the order they were added to the ruleset.
+ * A deleted board or one whose saved data no longer parses is left out, and the rest close up behind it.
+ */
+export async function rulesetExtraBoards(ctx: QueryCtx, rulesetId: Id<'rulesets'>): Promise<BoardCapture[]> {
+  const slots = await ctx.db
+    .query('ruleset_asset_slots')
+    .withIndex('by_ruleset_slot', (q) => q.eq('ruleset_id', rulesetId).eq('slot', 'extraBoards'))
+    .take(MAX_EXTRA_BOARDS);
+  const boards: BoardCapture[] = [];
+  const cache: BoardReadCache = new Map();
+  for (const slot of slots) {
+    const board = await boardCapture(ctx, slot.asset_id, cache);
+    if (board) {
+      boards.push(board);
+    }
   }
-  const asset = slot ? await ctx.db.get('assets', slot.asset_id) : null;
+  return boards;
+}
+
+async function boardCapture(ctx: QueryCtx, assetId: Id<'assets'>, cache: BoardReadCache): Promise<BoardCapture | null> {
+  if (cache.has(assetId)) {
+    return cache.get(assetId)!;
+  }
+  const asset = await ctx.db.get('assets', assetId);
   if (!asset || asset.is_deleted || asset.type !== 'board') {
     return null;
   }
@@ -29,7 +54,7 @@ export async function rulesetBoard(
   } catch {
     /* Invalid legacy data cannot become a new game's board. */
   }
-  cache.set(asset._id, result);
+  cache.set(assetId, result);
   return result;
 }
 
