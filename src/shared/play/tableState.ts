@@ -1,3 +1,4 @@
+import { tableLayoutOf } from './boardLayout';
 import {
   factionTokenInSector,
   factionTokenRingAngle,
@@ -351,14 +352,14 @@ export function projectCarryAtPosition(state: TableState, draft: DraftMove, posi
   if (!piece) {
     return null;
   }
-  if (isSpicePiece(piece) && isSpiceBankPosition(position)) {
+  if (isSpicePiece(piece) && isSpiceBankPosition(position, tableLayoutOf(state.tableLayout))) {
     return moveDraftTo(draft, [...position], null);
   }
   if (isFactionToken(piece)) {
     const pose = factionTokenRingPose(factionTokenRingAngle(position), position[1]);
     return { ...moveDraftTo(draft, pose.position, null), orientation: pose.orientation };
   }
-  const placementAnchor = placementAnchorAtPosition(piece, position);
+  const placementAnchor = placementAnchorAtPosition(piece, position, tableLayoutOf(state.tableLayout));
   const targetPiece = anchoredStackTarget(state, draft, piece, position, placementAnchor);
   if (targetPiece) {
     return {
@@ -425,7 +426,7 @@ function settleMoveAtPosition(
   if (isFactionToken(piece)) {
     return settleFactionTokenAt(state, draft, piece, position);
   }
-  const placementAnchor = placementAnchorAtPosition(piece, position);
+  const placementAnchor = placementAnchorAtPosition(piece, position, tableLayoutOf(state.tableLayout));
   if (placementAnchor) {
     const anchoredPiece = {
       ...piece,
@@ -441,20 +442,14 @@ function settleMoveAtPosition(
     }
     return { ...moveDraftTo(draft, anchoredPosition, null), orientation: placementAnchor.orientation };
   }
-  const extraBoards = state.extraBoardCount ?? 0;
-  const clampedPosition = clampPositionToTable(piece, restingPositionAt(position, piece, extraBoards), extraBoards);
+  const layout = tableLayoutOf(state.tableLayout);
+  const clampedPosition = clampPositionToTable(piece, restingPositionAt(position, piece, layout), layout);
   const rules = placementRules(state.pieces, piece, placementObstaclesFor(state, draft));
-  const resolvedPosition = nearestCollisionFreePosition(
-    piece,
-    clampedPosition,
-    rules.obstacles,
-    rules.fits,
-    extraBoards
-  );
+  const resolvedPosition = nearestCollisionFreePosition(piece, clampedPosition, rules.obstacles, rules.fits, layout);
   if (!resolvedPosition) {
     return null;
   }
-  const restingPosition = restingPositionAt(resolvedPosition, piece, extraBoards);
+  const restingPosition = restingPositionAt(resolvedPosition, piece, layout);
   return moveDraftTo(draft, restingPosition, nearestZone(restingPosition)?.id ?? null);
 }
 
@@ -467,7 +462,7 @@ export function settleCarryAtPosition(state: TableState, draft: DraftMove, posit
   if (!piece) {
     return null;
   }
-  if (isSpicePiece(piece) && isSpiceBankPosition(position)) {
+  if (isSpicePiece(piece) && isSpiceBankPosition(position, tableLayoutOf(state.tableLayout))) {
     return projected;
   }
   if (projected.operation === 'merge' && projected.targetPieceId) {
@@ -490,7 +485,7 @@ export function settleCarryAtPosition(state: TableState, draft: DraftMove, posit
  * A drop that misses every anchor returns null so the caller keeps its own placement.
  */
 export function playFromHandAtAnchor(state: TableState, piece: TablePiece, position: Vector3Tuple): TableState | null {
-  if (!placementAnchorAtPosition(piece, position)) {
+  if (!placementAnchorAtPosition(piece, position, tableLayoutOf(state.tableLayout))) {
     return null;
   }
   const table = { ...state, pieces: [...state.pieces, piece] };
@@ -825,7 +820,7 @@ function returnSpiceDraftToSpiceBank(current: TableState, draft: DraftMove, acto
   const sources = [draft.sourcePieceId, ...draft.withdrawals.map((withdrawal) => withdrawal.sourcePieceId)];
   if (
     !isSpicePiece(piece) ||
-    !isSpiceBankPosition(draft.position) ||
+    !isSpiceBankPosition(draft.position, tableLayoutOf(current.tableLayout)) ||
     sources.some((id) => !isSpicePiece(current.pieces.find((candidate) => candidate.id === id)))
   ) {
     return rejection(rejectedBase, 'spice.return', 'Only carried spice can be dropped on the Spice Bank.');
@@ -838,7 +833,10 @@ function returnSpiceDraftToSpiceBank(current: TableState, draft: DraftMove, acto
 }
 
 export function applyDraftToState(current: TableState, requestedDraft: DraftMove, actorName = 'A player'): TableState {
-  if (isSpiceBankPosition(requestedDraft.position) && isSpicePiece(heldPieceFor(current, requestedDraft))) {
+  if (
+    isSpiceBankPosition(requestedDraft.position, tableLayoutOf(current.tableLayout)) &&
+    isSpicePiece(heldPieceFor(current, requestedDraft))
+  ) {
     return returnSpiceDraftToSpiceBank(current, requestedDraft, actorName);
   }
   const application = resolveDraftApplication(current, requestedDraft);

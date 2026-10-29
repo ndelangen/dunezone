@@ -1,4 +1,5 @@
-import { extraBoardRounds, extraTableOutline, isOnExtraTable } from '@shared/play/boardLayout';
+import { isOnTwoBoardTable, SECOND_BOARD_PLACEMENT, twoBoardTableOutline } from '@shared/play/boardLayout';
+import type { TableLayout } from '@shared/play/boardLayout';
 import type { Vector3Tuple } from '@shared/play/model';
 import { supplyReserveReach } from '@shared/play/setupLayout';
 import {
@@ -71,12 +72,13 @@ export function mapViewFramingPoints(
   slots: readonly TrackerArcSlot[],
   seatCount: TableSeatCount = DEFAULT_TABLE_SEAT_COUNT,
   troopKinds?: number,
-  extraBoards = 0
+  layout: TableLayout = 'one-board'
 ): Vector3Tuple[] {
   const points: Vector3Tuple[] = [];
-  /* Every extra board's round of table, so the map view takes in all of a game's boards. */
-  for (const round of extraBoardRounds(extraBoards)) {
-    appendCircleBoundary(points, [round.x, BOARD_RIM_SURFACE_Y, round.z], round.radius, 64);
+  /* The second board's rim, so the map view takes in both of a two-board game's boards. */
+  if (layout === 'two-boards') {
+    const { x, z } = SECOND_BOARD_PLACEMENT;
+    appendCircleBoundary(points, [x, BOARD_RIM_SURFACE_Y, z], BOARD_RIM_RADIUS, 96);
   }
   const reserveReach = supplyReserveReach(troopKinds);
   appendCircleBoundary(points, [0, BOARD_RIM_SURFACE_Y, 0], BOARD_RIM_RADIUS, 96);
@@ -306,35 +308,32 @@ export function createTablePlateLayers(slots: readonly TrackerArcSlot[] = []): T
 }
 
 /*
- * The table the extra boards add: one smooth piece round the main table, drawn at the main plate's heights as a shape
- * of its own, since the main plate's outline cannot take it in. The base below reaches a little wider, as the main base does.
+ * The two-board table: one piece drawn from its traced outline at the main plate's heights. The base below reaches a
+ *little wider, as the main base does.
  */
-const EXTRA_PLATE_BASE_SPREAD = 0.1;
+const TWO_BOARD_PLATE_BASE_SPREAD = 0.1;
 
-function extraPlateShape(extraBoards: number, spread: number): Shape {
+function twoBoardPlateShape(spread: number): Shape {
   const shape = new Shape();
-  extraTableOutline(extraBoards, spread).forEach(([x, z], index) =>
-    index === 0 ? shape.moveTo(x, z) : shape.lineTo(x, z)
-  );
+  twoBoardTableOutline(spread).forEach(([x, z], index) => (index === 0 ? shape.moveTo(x, z) : shape.lineTo(x, z)));
   shape.closePath();
   return shape;
 }
 
-export function createExtraTablePlateLayers(extraBoards: number): Readonly<{
-  upper: Shape;
-  lower: Shape;
-  upperSurfaceY: number;
-  lowerSurfaceY: number;
-  upperThickness: number;
-  lowerThickness: number;
-}> {
+export function createTwoBoardTablePlateLayers(): TablePlateLayers {
   return {
-    upper: extraPlateShape(extraBoards, 0),
-    lower: extraPlateShape(extraBoards, EXTRA_PLATE_BASE_SPREAD),
-    upperSurfaceY: FURNITURE_SURFACE_Y,
-    lowerSurfaceY: FURNITURE_SURFACE_Y - TABLE_PLATE_THICKNESS + TABLE_BASE_OVERLAP,
-    upperThickness: TABLE_PLATE_THICKNESS,
-    lowerThickness: TABLE_BASE_THICKNESS,
+    upper: {
+      shape: twoBoardPlateShape(0),
+      outlineScale: 1,
+      surfaceY: FURNITURE_SURFACE_Y,
+      thickness: TABLE_PLATE_THICKNESS,
+    },
+    lower: {
+      shape: twoBoardPlateShape(TWO_BOARD_PLATE_BASE_SPREAD),
+      outlineScale: 1,
+      surfaceY: FURNITURE_SURFACE_Y - TABLE_PLATE_THICKNESS + TABLE_BASE_OVERLAP,
+      thickness: TABLE_BASE_THICKNESS,
+    },
   };
 }
 
@@ -366,10 +365,12 @@ export function tableSurfacePointOnRay(
   origin: Vector3Tuple,
   direction: Vector3Tuple,
   outline: TablePlateOutline,
-  extraBoards = 0
+  layout: TableLayout = 'one-board'
 ): Vector3Tuple | null {
-  const point = surfacePointOnRay(origin, direction, extraBoards);
-  return point && (tablePlateContains(outline, point) || isOnExtraTable(extraBoards, point[0], point[2]))
-    ? point
-    : null;
+  const point = surfacePointOnRay(origin, direction, layout);
+  if (!point) {
+    return null;
+  }
+  const onTable = layout === 'two-boards' ? isOnTwoBoardTable(point[0], point[2]) : tablePlateContains(outline, point);
+  return onTable ? point : null;
 }

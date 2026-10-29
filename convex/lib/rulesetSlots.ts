@@ -39,7 +39,7 @@ export async function readRulesetAssetSlots(
   const entries = [];
   for (const row of rows) {
     /* A board row is the whole board definition, hundreds of kilobytes; a caller that resolves the board its own way skips it. */
-    const boardSlot = row.slot === 'board' || row.slot === 'extraBoards';
+    const boardSlot = row.slot === 'board' || row.slot === 'secondBoard';
     if (skipBoard && boardSlot) {
       continue;
     }

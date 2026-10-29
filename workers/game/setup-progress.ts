@@ -1,6 +1,8 @@
 import { randomInt } from 'node:crypto';
 
 import { SETUP_PHASE_TARGETS } from '../../src/shared/factions/extraPhases';
+import { tableLayoutOf } from '../../src/shared/play/boardLayout';
+import type { TableLayout } from '../../src/shared/play/boardLayout';
 import { capturedDeclarations } from '../../src/shared/play/capture';
 import type { FactionCapture } from '../../src/shared/play/capture';
 import { accepted, nextSnapshot } from '../../src/shared/play/commands';
@@ -18,7 +20,7 @@ import type { TableRoster } from '../../src/shared/play/schema';
 import { phaseGate, setupStep, setupReadyRequired } from '../../src/shared/play/setup';
 import type { SetupState } from '../../src/shared/play/setup';
 import { stormOrder } from '../../src/shared/play/stormSector';
-import { SHARED_ITEM_PLACEMENT_ANCHORS } from '../../src/shared/play/tableFurnitureLayout';
+import { sharedItemAnchors } from '../../src/shared/play/tableFurnitureLayout';
 import { restingPositionAt } from '../../src/shared/play/tableGeometry';
 import { isCollisionFreePosition } from '../../src/shared/play/tablePhysics';
 import { labelForCount } from '../../src/shared/play/tableState';
@@ -328,7 +330,8 @@ export function gatherTraitors(snapshot: StoredSnapshot, reserved: ReadonlySet<s
   }
   const { candidates, held } = pendingTraitors(snapshot.table.pieces, pending, reserved);
   const pieces = parkTraitors(snapshot, candidates);
-  const waitingForSpace = candidates.length > 0 && !pieces && !parkedTraitors(candidates);
+  const waitingForSpace =
+    candidates.length > 0 && !pieces && !parkedTraitors(candidates, tableLayoutOf(snapshot.table.tableLayout));
   const remaining = held || waitingForSpace ? [...pending] : [];
   if (!pieces && JSON.stringify(remaining) === JSON.stringify(snapshot.pendingTraitors)) {
     return snapshot;
@@ -342,12 +345,12 @@ export function gatherTraitors(snapshot: StoredSnapshot, reserved: ReadonlySet<s
   );
 }
 
-function parkedTraitors(candidates: StoredPiece[]) {
+function parkedTraitors(candidates: StoredPiece[], layout: TableLayout) {
   if (candidates.length !== 1) {
     return false;
   }
   const piece = candidates[0];
-  return SHARED_ITEM_PLACEMENT_ANCHORS.some(
+  return sharedItemAnchors(layout).some(
     (anchor) =>
       piece.position[0] === anchor.position[0] &&
       piece.position[2] === anchor.position[2] &&
@@ -356,7 +359,8 @@ function parkedTraitors(candidates: StoredPiece[]) {
 }
 
 function parkTraitors(snapshot: StoredSnapshot, candidates: StoredPiece[]) {
-  if (!candidates.length || parkedTraitors(candidates)) {
+  const layout = tableLayoutOf(snapshot.table.tableLayout);
+  if (!candidates.length || parkedTraitors(candidates, layout)) {
     return null;
   }
   const ids = new Set(candidates.map((piece) => piece.id));
@@ -376,13 +380,13 @@ function parkTraitors(snapshot: StoredSnapshot, candidates: StoredPiece[]) {
   };
   const others = snapshot.table.pieces.filter((piece) => !ids.has(piece.id));
   const obstacles = others.filter((piece) => !piece.inventory);
-  const vacant = SHARED_ITEM_PLACEMENT_ANCHORS.find((anchor) =>
-    isCollisionFreePosition(deck, anchor.position, obstacles)
+  const vacant = sharedItemAnchors(layout).find((anchor) =>
+    isCollisionFreePosition(deck, anchor.position, obstacles, layout)
   );
   if (!vacant) {
     return null;
   }
-  deck.position = restingPositionAt(vacant.position, deck);
+  deck.position = restingPositionAt(vacant.position, deck, layout);
   return [...others, deck];
 }
 

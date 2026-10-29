@@ -83,9 +83,9 @@ import {
 } from './state';
 import { Swapping } from './swapping';
 
-/** The opening table stands as many extra boards round its main board as the ruleset brought. */
-function withExtraBoards(snapshot: GameSnapshot, count: number | undefined): GameSnapshot {
-  return count ? { ...snapshot, table: { ...snapshot.table, extraBoardCount: count } } : snapshot;
+/** A ruleset that brings a second board opens the game on the two-board table. */
+function withSecondBoard(snapshot: GameSnapshot, secondBoard: unknown): GameSnapshot {
+  return secondBoard ? { ...snapshot, table: { ...snapshot.table, tableLayout: 'two-boards' } } : snapshot;
 }
 
 /** The opening table records that the creator holds the first seat, so the log starts with the seating and not after it. */
@@ -335,7 +335,7 @@ export class GameSession {
     this.log.enabled = Boolean(game);
     const snapshot = game
       ? storedSnapshotSchema.parse({
-          ...withExtraBoards(creatorSeated(emptySnapshot(), roster), this.captures.ruleset()?.extraBoards?.length),
+          ...withSecondBoard(creatorSeated(emptySnapshot(), roster), this.captures.ruleset()?.secondBoard),
           draft: emptyDraft(game.minimumPlayers, factions ?? [], factions ? Date.now() : 0),
           ...(game.lastTurn === undefined ? {} : { lastTurn: game.lastTurn }),
         })
@@ -701,12 +701,12 @@ export class GameSession {
    * request is theirs. Nobody's id travels.
    */
   private forViewer(projected: GameSnapshot, viewer: Viewer): GameSnapshot {
-    const { board, extraBoards } = this.captures.ruleset() ?? {};
+    const { board, secondBoard } = this.captures.ruleset() ?? {};
     if (board) {
       projected = { ...projected, board };
     }
-    if (extraBoards?.length) {
-      projected = { ...projected, extraBoards };
+    if (secondBoard) {
+      projected = { ...projected, secondBoard };
     }
     if (!projected.controls) {
       return projected;

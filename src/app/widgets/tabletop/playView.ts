@@ -1,4 +1,5 @@
-import { extraBoardRounds, extraTableDepth, nearestOnExtraTable } from '@shared/play/boardLayout';
+import { nearestOnTwoBoardTable, twoBoardTableDistance, twoBoardTableOutline } from '@shared/play/boardLayout';
+import type { TableLayout } from '@shared/play/boardLayout';
 import type { Vector3Tuple } from '@shared/play/model';
 import type { TablePhaseId } from '@shared/play/phases';
 import { BOTTOM_SHELF_POSITION, BOTTOM_SHELF_SIZE, FURNITURE_SURFACE_Y } from '@shared/play/tableFurnitureLayout';
@@ -276,6 +277,21 @@ function verticalImbalance(
   return topLimit - highest - (lowest + MAP_VIEW_BOTTOM_LIMIT);
 }
 
+/* A frame that reaches this much further to one side than the other, as the two-board table's does, is centred across. */
+const MAP_VIEW_LOPSIDED_FRAME = 0.5;
+
+/* Where across the table the map view looks: the middle of a lopsided frame, otherwise straight down the table's middle. */
+function frameMiddleAcross(framingPoints: readonly Vector3Tuple[]): number {
+  let min = Infinity;
+  let max = -Infinity;
+  for (const [x] of framingPoints) {
+    min = Math.min(min, x);
+    max = Math.max(max, x);
+  }
+  const middle = (min + max) / 2;
+  return Math.abs(middle) > MAP_VIEW_LOPSIDED_FRAME ? middle : TABLE_VIEW_TARGETS.map[0];
+}
+
 /*
  * Where along the table's depth the map view looks: where the frame sits midway between the canvas's top and bottom.
  * Where the frame fills the canvas's height that is also where the camera comes closest, and where the width or the closest
@@ -290,7 +306,8 @@ function centredMapTarget(
   obstacles: readonly ScreenRect[]
 ): Vector3Tuple {
   const approved = TABLE_VIEW_TARGETS.map;
-  const targetAt = (depth: number): Vector3Tuple => [approved[0], approved[1], depth];
+  const across = frameMiddleAcross(framingPoints);
+  const targetAt = (depth: number): Vector3Tuple => [across, approved[1], depth];
   const imbalanceAt = (depth: number) =>
     verticalImbalance(
       framingPoints,
@@ -499,13 +516,16 @@ const CAMERA_ZOOM_TARGET_RECTANGLES = [
   [-BOTTOM_SHELF_SIZE[0] / 2, BOTTOM_SHELF_SIZE[0] / 2, 0, BOTTOM_SHELF_POSITION[2] + BOTTOM_SHELF_SIZE[2] / 2],
 ] as const;
 
-/** How many extra boards the table has (boardLayout.ts): a close look may reach the table they add as well. */
-export type ZoomReach = number;
-const NO_EXTRA_REACH: ZoomReach = 0;
+/** Which table a close look roams (boardLayout.ts): on the two-board table it may centre anywhere over the table. */
+export type ZoomReach = TableLayout;
+const NO_EXTRA_REACH: ZoomReach = 'one-board';
 
 /** How far inside the reachable area a table point lies; negative outside it. */
 function zoomTargetDepth(x: number, z: number, reach: ZoomReach): number {
-  let depth = Math.max(CAMERA_ZOOM_TARGET_RADIUS - Math.hypot(x, z), extraTableDepth(reach, x, z));
+  if (reach === 'two-boards') {
+    return -twoBoardTableDistance(x, z);
+  }
+  let depth = CAMERA_ZOOM_TARGET_RADIUS - Math.hypot(x, z);
   for (const [minX, maxX, minZ, maxZ] of CAMERA_ZOOM_TARGET_RECTANGLES) {
     depth = Math.max(depth, Math.min(x - minX, maxX - x, z - minZ, maxZ - z));
   }
@@ -514,6 +534,9 @@ function zoomTargetDepth(x: number, z: number, reach: ZoomReach): number {
 
 /** The nearest point of the reachable area. */
 function nearestZoomTarget(x: number, z: number, reach: ZoomReach): [number, number] {
+  if (reach === 'two-boards') {
+    return nearestOnTwoBoardTable(x, z);
+  }
   const distance = Math.hypot(x, z);
   const candidates: [number, number][] = [
     distance <= CAMERA_ZOOM_TARGET_RADIUS
@@ -523,7 +546,6 @@ function nearestZoomTarget(x: number, z: number, reach: ZoomReach): [number, num
       Math.min(maxX, Math.max(minX, x)),
       Math.min(maxZ, Math.max(minZ, z)),
     ]),
-    ...(reach > 0 ? [nearestOnExtraTable(reach, x, z)] : []),
   ];
   return candidates.reduce((best, candidate) =>
     Math.hypot(candidate[0] - x, candidate[1] - z) < Math.hypot(best[0] - x, best[1] - z) ? candidate : best
@@ -761,16 +783,18 @@ export function cameraViewTransitionProgress(elapsedMs: number): number {
   return progress * progress * (3 - 2 * progress);
 }
 
-/* Fog stays this far behind the furthest extra board's edge, so a far board is never lost in it. */
+/* On the two-board table fog stays this far behind the table's furthest edge, so the far board is never lost in it. */
 const CAMERA_FOG_EXTRA_MARGIN = 3;
+const CAMERA_FOG_OUTLINE_STRIDE = 24;
 
 export function cameraFogRange(position: Vector3Tuple, reach: ZoomReach = NO_EXTRA_REACH): CameraFogRange {
   const heightAboveTable = Math.abs(position[1] - 0.1);
   const scale = Math.max(1, heightAboveTable / CAMERA_FOG_REFERENCE_HEIGHT);
   let far = CAMERA_FOG_FAR * scale;
-  for (const round of extraBoardRounds(reach)) {
-    const distance = Math.hypot(round.x - position[0], 0.1 - position[1], round.z - position[2]);
-    far = Math.max(far, distance + round.radius + CAMERA_FOG_EXTRA_MARGIN);
+  const outline = reach === 'two-boards' ? twoBoardTableOutline() : [];
+  for (let index = 0; index < outline.length; index += CAMERA_FOG_OUTLINE_STRIDE) {
+    const [x, z] = outline[index]!;
+    far = Math.max(far, Math.hypot(x - position[0], 0.1 - position[1], z - position[2]) + CAMERA_FOG_EXTRA_MARGIN);
   }
   return { near: far * (CAMERA_FOG_NEAR / CAMERA_FOG_FAR), far };
 }

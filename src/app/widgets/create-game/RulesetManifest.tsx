@@ -14,7 +14,7 @@ import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 /* One line per slot, in the words a player reads on the pass rather than the editor's slot names. */
 const SLOT_LABELS: Record<RulesetAssetSlot, string> = {
   board: 'Board',
-  extraBoards: 'Extra board',
+  secondBoard: 'Second board',
   treachery: 'Treachery deck',
   spice: 'Spice deck',
   techToken: 'Tech tokens',

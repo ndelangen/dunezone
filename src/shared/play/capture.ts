@@ -10,7 +10,6 @@ import {
   HistoricalFactionPublicationObject,
 } from '../factions/schema';
 import { RULESET_ASSET_SLOT_ORDER } from '../rulesets/assetSlots';
-import { MAX_EXTRA_BOARDS } from './boardLayout';
 import { storedSpawnContentsSchema } from './inventory';
 import { tableCountSchema } from './schema';
 
@@ -38,8 +37,8 @@ export type BoardCapture = z.infer<typeof boardCaptureSchema>;
 export const rulesetSupplySchema = z.object({
   ruleset: sourceSchema,
   board: boardCaptureSchema.nullish(),
-  /* The boards round the main board, in slot order; absent from catalogues that predate extra boards. */
-  extraBoards: z.array(boardCaptureSchema).max(MAX_EXTRA_BOARDS).optional(),
+  /* The second board, for a game on the two-board table; absent when the ruleset has none. */
+  secondBoard: boardCaptureSchema.nullish(),
   slots: z.array(z.object({ slot: z.enum(RULESET_ASSET_SLOT_ORDER), asset: slotAssetSchema })),
 });
 export type RulesetSupply = z.infer<typeof rulesetSupplySchema>;
@@ -149,8 +148,8 @@ export const rulesetCaptureSchema = z.object({
   ruleset: sourceSchema,
   /* Absent only in games retained before ruleset boards. */
   board: boardCaptureSchema.optional(),
-  /* The extra boards round the main board, in slot order; absent when the ruleset has none. */
-  extraBoards: z.array(boardCaptureSchema).max(MAX_EXTRA_BOARDS).optional(),
+  /* The second board, for a game on the two-board table; absent when the ruleset has none. */
+  secondBoard: boardCaptureSchema.optional(),
   capturedAt: tableCountSchema,
   decks: z.object({
     treachery: slotCaptureSchema.nullable(),

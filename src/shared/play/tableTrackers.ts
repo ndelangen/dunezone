@@ -1,5 +1,9 @@
+import { SECOND_BOARD_PLACEMENT } from './boardLayout';
+import type { TableLayout } from './boardLayout';
 import type { Vector3Tuple } from './model';
-import { TABLE_SURFACE_Y } from './tableGeometry';
+
+/* The table's surface height, repeated from tableGeometry, which reaches this module through boardLayout. */
+const TABLE_SURFACE_Y = 0.005;
 
 export type TrackerArcSlot = Readonly<{
   kind: 'spice' | 'turn' | 'phase';
@@ -84,14 +88,43 @@ function arcRadiusFor(radii: readonly number[]): number {
 }
 
 /* The standard turn's nine phases fix the arc: the Spice Bank and turn discs never move, whatever a game adds (#1138). */
-const STANDARD_PHASE_COUNT = 9;
+export const STANDARD_PHASE_COUNT = 9;
 
 /**
  * The tracker arc: the Spice Bank, the turn disc, then one disc per phase of the turn.
  * The layout of the standard nine is fixed.
  * A composed turn keeps the Spice Bank and turn discs where they are, and refits its phase discs evenly into the span the standard nine cover, shrinking them only when they would otherwise touch.
  */
-export function trackerArcSlots(phaseCount: number): TrackerArcSlot[] {
+export function trackerArcSlots(phaseCount: number, layout: TableLayout = 'one-board'): TrackerArcSlot[] {
+  const slots = standardTableArcSlots(phaseCount);
+  return layout === 'two-boards' ? slots.map(overSecondBoard) : slots;
+}
+
+/*
+ * On the two-board table the same arc runs along the top over the second board, turned a little toward the main
+ * board, so the discs keep clear of the main board's stations. Each slot's angle and arc radius are then about the
+ * second board's centre.
+ */
+const TWO_BOARD_TRACKER_TURN = -Math.PI * 0.06;
+
+/** The point a layout's tracker arc curves round. */
+export function trackerArcCenter(layout: TableLayout = 'one-board'): Vector3Tuple {
+  return layout === 'two-boards'
+    ? [SECOND_BOARD_PLACEMENT.x, TABLE_SURFACE_Y, SECOND_BOARD_PLACEMENT.z]
+    : [0, TABLE_SURFACE_Y, 0];
+}
+
+function overSecondBoard(slot: TrackerArcSlot): TrackerArcSlot {
+  const angle = slot.angle + TWO_BOARD_TRACKER_TURN;
+  const [x, y, z] = trackerArcCenter('two-boards');
+  return {
+    ...slot,
+    angle,
+    position: [x + Math.cos(angle) * slot.arcRadius, y, z + Math.sin(angle) * slot.arcRadius],
+  };
+}
+
+function standardTableArcSlots(phaseCount: number): TrackerArcSlot[] {
   if (!Number.isInteger(phaseCount) || phaseCount < 0) {
     throw new RangeError('Phase count must be a non-negative integer.');
   }

@@ -36,7 +36,7 @@ import { resolveBackgrounds } from './lib/backgroundPresets';
 import type { CardbackPresetMemo } from './lib/cardbackPresets';
 import { catalogueSearchLimit, catalogueSearchReach, selectCatalogueSearch } from './lib/catalogueOrder';
 import { profileSummaryReader } from './lib/profileSummary';
-import { rulesetBoard, rulesetExtraBoards } from './lib/rulesetBoard';
+import { rulesetBoard, rulesetSecondBoard } from './lib/rulesetBoard';
 import { listRulesetAssetSlots } from './lib/rulesetSlots';
 
 /*
@@ -84,7 +84,7 @@ export const rulesetSupply = publicQuery({
       /* Older Workers accept only deck and bundle slots during the additive rollout. */
       slots: await listRulesetAssetSlots(ctx, row._id, { skipBoard: true }),
       board: await rulesetBoard(ctx, row._id),
-      extraBoards: await rulesetExtraBoards(ctx, row._id),
+      secondBoard: await rulesetSecondBoard(ctx, row._id),
     };
   },
 });

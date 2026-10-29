@@ -6,6 +6,7 @@ import { isBattleAction } from '../../src/shared/play/battle';
 import type { BattleAction } from '../../src/shared/play/battle';
 import { isBiddingAction } from '../../src/shared/play/bidding';
 import type { BiddingAction } from '../../src/shared/play/bidding';
+import { tableLayoutOf } from '../../src/shared/play/boardLayout';
 import {
   accepted,
   applyPieceAction,
@@ -857,13 +858,13 @@ export class Room {
     if (!front) {
       throw new GameRejection('This seat has no station on the table.');
     }
-    const extraBoards = table.extraBoardCount ?? 0;
-    const origin = restingPositionAt(requested ?? front, piece, extraBoards);
-    const supported = clampPositionToTable(piece, origin, extraBoards);
+    const layout = tableLayoutOf(table.tableLayout);
+    const origin = restingPositionAt(requested ?? front, piece, layout);
+    const supported = clampPositionToTable(piece, origin, layout);
     if (requested && Math.hypot(supported[0] - origin[0], supported[2] - origin[2]) > 1e-6) {
       throw new GameRejection('Drop the spice on the table.');
     }
-    const position = nearestCollisionFreePosition(piece, origin, table.pieces, undefined, extraBoards);
+    const position = nearestCollisionFreePosition(piece, origin, table.pieces, undefined, layout);
     if (!position) {
       throw new GameRejection('Make room on the table before withdrawing spice.');
     }

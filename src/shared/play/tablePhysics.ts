@@ -1,4 +1,5 @@
-import { isOnExtraTable, nearestOnExtraTable } from './boardLayout';
+import { isOnTwoBoardTable, nearestOnTwoBoardTable } from './boardLayout';
+import type { TableLayout } from './boardLayout';
 import type { TablePiece, Vector3Tuple } from './model';
 import { fromPieceFrame, POINTER_OUTLINE, isPointerToken } from './pointerToken';
 import type { PlanePoint } from './pointerToken';
@@ -327,26 +328,19 @@ function isOnTanksShelf(piece: TablePiece, position: Vector3Tuple): boolean {
 
 const JOIN_SAMPLE_COUNT = 32;
 
-function isPointOnTabletop(x: number, z: number, extraBoards: number): boolean {
+function isPointOnTabletop(x: number, z: number): boolean {
   return (
     Math.hypot(x, z) <= TABLE_PLAY_RADIUS ||
-    (x >= TANKS_PLAY_AREA.minX &&
-      x <= TANKS_PLAY_AREA.maxX &&
-      z >= TANKS_PLAY_AREA.minZ &&
-      z <= TANKS_PLAY_AREA.maxZ) ||
-    isOnExtraTable(extraBoards, x, z)
+    (x >= TANKS_PLAY_AREA.minX && x <= TANKS_PLAY_AREA.maxX && z >= TANKS_PLAY_AREA.minZ && z <= TANKS_PLAY_AREA.maxZ)
   );
 }
 
-/*
- * A piece may straddle a join, between the round table and the Tanks shelf or onto the table round an extra board,
- * when its whole reach lies on one part or another.
- */
-function isAcrossTableJoin(piece: TablePiece, position: Vector3Tuple, extraBoards: number): boolean {
+/* A piece may straddle the join between the round table and the Tanks shelf when its whole reach lies on one or the other. */
+function isAcrossTanksJoin(piece: TablePiece, position: Vector3Tuple): boolean {
   const reach = footprintTableRadius(piece);
   for (let sample = 0; sample < JOIN_SAMPLE_COUNT; sample += 1) {
     const angle = (sample / JOIN_SAMPLE_COUNT) * Math.PI * 2;
-    if (!isPointOnTabletop(position[0] + Math.cos(angle) * reach, position[2] + Math.sin(angle) * reach, extraBoards)) {
+    if (!isPointOnTabletop(position[0] + Math.cos(angle) * reach, position[2] + Math.sin(angle) * reach)) {
       return false;
     }
   }
@@ -373,34 +367,31 @@ function clampToTanksShelf(piece: TablePiece, position: Vector3Tuple): Vector3Tu
   ];
 }
 
-/* The spot nearest `position`, toward the middle, where the piece lies wholly on the table the extra boards add. */
-function clampToExtraTable(piece: TablePiece, position: Vector3Tuple, extraBoards: number): Vector3Tuple[] {
-  if (extraBoards === 0) {
-    return [];
-  }
-  const [x, z] = nearestOnExtraTable(extraBoards, position[0], position[2], footprintTableRadius(piece));
-  return [[x, position[1], z]];
-}
-
-export function clampPositionToTable(piece: TablePiece, position: Vector3Tuple, extraBoards = 0): Vector3Tuple {
-  if (isSupportedPosition(piece, position, extraBoards)) {
+export function clampPositionToTable(
+  piece: TablePiece,
+  position: Vector3Tuple,
+  layout: TableLayout = 'one-board'
+): Vector3Tuple {
+  if (isSupportedPosition(piece, position, layout)) {
     return [...position];
   }
-  const candidates = [
-    clampToRoundTable(piece, position),
-    clampToTanksShelf(piece, position),
-    ...clampToExtraTable(piece, position, extraBoards),
-  ];
+  /* The two-board table is one piece: a piece off it comes back to the nearest spot it lies wholly on. */
+  if (layout === 'two-boards') {
+    const [x, z] = nearestOnTwoBoardTable(position[0], position[2], footprintTableRadius(piece));
+    return [x, position[1], z];
+  }
+  const candidates = [clampToRoundTable(piece, position), clampToTanksShelf(piece, position)];
   return nearestBy(candidates, (candidate) => planarDistance(candidate, position)) ?? candidates[0]!;
 }
 
-function isSupportedPosition(piece: TablePiece, position: Vector3Tuple, extraBoards: number): boolean {
-  return (
-    placementAnchorForPose(piece, position) !== null ||
-    isOnRoundTable(piece, position) ||
-    isOnTanksShelf(piece, position) ||
-    isAcrossTableJoin(piece, position, extraBoards)
-  );
+function isSupportedPosition(piece: TablePiece, position: Vector3Tuple, layout: TableLayout): boolean {
+  if (placementAnchorForPose(piece, position, layout) !== null) {
+    return true;
+  }
+  if (layout === 'two-boards') {
+    return isOnTwoBoardTable(position[0], position[2], footprintTableRadius(piece));
+  }
+  return isOnRoundTable(piece, position) || isOnTanksShelf(piece, position) || isAcrossTanksJoin(piece, position);
 }
 
 export function isOverlapFreePosition(
@@ -423,11 +414,9 @@ export function isCollisionFreePosition(
   movingPiece: TablePiece,
   position: Vector3Tuple,
   obstacles: TablePiece[],
-  extraBoards = 0
+  layout: TableLayout = 'one-board'
 ): boolean {
-  return (
-    isSupportedPosition(movingPiece, position, extraBoards) && isOverlapFreePosition(movingPiece, position, obstacles)
-  );
+  return isSupportedPosition(movingPiece, position, layout) && isOverlapFreePosition(movingPiece, position, obstacles);
 }
 
 function searchAngleFor(pieceId: string): number {
@@ -445,10 +434,10 @@ export function nearestCollisionFreePosition(
   requestedPosition: Vector3Tuple,
   obstacles: TablePiece[],
   fits: (position: Vector3Tuple) => boolean = () => true,
-  extraBoards = 0
+  layout: TableLayout = 'one-board'
 ): Vector3Tuple | null {
   const free = (position: Vector3Tuple) =>
-    isCollisionFreePosition(movingPiece, position, obstacles, extraBoards) && fits(position);
+    isCollisionFreePosition(movingPiece, position, obstacles, layout) && fits(position);
   if (free(requestedPosition)) {
     return [...requestedPosition];
   }

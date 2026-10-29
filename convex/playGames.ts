@@ -124,7 +124,7 @@ async function packedFor(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
       .take(PREVIEW_CONTAINER_LIMIT - packed.length);
     for (const row of rows) {
       const asset = await ctx.db.get(row.asset_id);
-      if ((slot === 'board' || slot === 'extraBoards') && asset && !asset.is_deleted) {
+      if ((slot === 'board' || slot === 'secondBoard') && asset && !asset.is_deleted) {
         const publication = await ctx.db
           .query('publication_assets')
           .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'board').eq('asset_id', asset._id))

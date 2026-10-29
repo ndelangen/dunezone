@@ -1,12 +1,13 @@
 import preview from '@sb/preview';
 
-import { boardSystemSnapshot } from './boards.stories.fixture';
+import { twoBoardSnapshot } from './boards.stories.fixture';
 import { gameMeta, install } from './game.stories.fixture';
 import { productTransport } from './product.stories.fixture';
 
 /*
- * A game with several boards (Norbert, 2026-10-29): one main board and up to six extra boards round its upper half,
- * each about two thirds its size. The extras fill their slots in order: one on top, two left and right, then up the sides.
+ * The two-board table(Norbert, 2026-10-29): the main board with the player stations on the right, a second board of
+ *the same size on the left with the trackers along the top over it, and four tabs below for the decks, the Tleilaxu
+ * Tanks and the shared table inventory.
  */
 const meta = preview.meta({
   ...gameMeta,
@@ -21,32 +22,7 @@ const meta = preview.meta({
   ],
 });
 
-/** One extra board, on top. */
-export const OneExtraBoard = meta.story({
-  beforeEach: install(() => productTransport('seat-2', boardSystemSnapshot(1))),
-});
-
-/** Two extra boards, left and right, past the card shelves. */
-export const TwoExtraBoards = meta.story({
-  beforeEach: install(() => productTransport('seat-2', boardSystemSnapshot(2))),
-});
-
-/** Three extra boards: left, right and top. */
-export const ThreeExtraBoards = meta.story({
-  beforeEach: install(() => productTransport('seat-2', boardSystemSnapshot(3))),
-});
-
-/** Four extra boards: left, right, and up both sides. */
-export const FourExtraBoards = meta.story({
-  beforeEach: install(() => productTransport('seat-2', boardSystemSnapshot(4))),
-});
-
-/** Five extra boards: four round the sides and one on top. */
-export const FiveExtraBoards = meta.story({
-  beforeEach: install(() => productTransport('seat-2', boardSystemSnapshot(5))),
-});
-
-/** Six extra boards, the most: seven boards in all. */
-export const SixExtraBoards = meta.story({
-  beforeEach: install(() => productTransport('seat-2', boardSystemSnapshot(6))),
+/** A game in play on the two-board table, seen from a seat. */
+export const TwoBoardTable = meta.story({
+  beforeEach: install(() => productTransport('seat-2', twoBoardSnapshot())),
 });

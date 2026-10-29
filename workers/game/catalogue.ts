@@ -91,7 +91,7 @@ export class GameCatalogue {
     return rulesetCaptureSchema.parse({
       ruleset: supply.ruleset,
       board: supply.board,
-      ...(supply.extraBoards?.length ? { extraBoards: supply.extraBoards } : {}),
+      ...(supply.secondBoard ? { secondBoard: supply.secondBoard } : {}),
       capturedAt: now,
       decks: {
         treachery: single(await this.captureSlots('treachery', supply, problems)),

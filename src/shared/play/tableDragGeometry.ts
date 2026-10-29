@@ -1,3 +1,4 @@
+import type { TableLayout } from './boardLayout';
 import type { TablePiece, Vector3Tuple } from './model';
 import { isSpicePiece } from './spice';
 import { isSpiceBankPosition } from './spiceBank';
@@ -7,11 +8,12 @@ import { TRACKER_DISC_TOP_Y } from './tableTrackers';
 export function pointOnPieceDragRay(
   piece: TablePiece,
   origin: Vector3Tuple,
-  direction: Vector3Tuple
+  direction: Vector3Tuple,
+  layout: TableLayout = 'one-board'
 ): Vector3Tuple | null {
   if (isSpicePiece(piece)) {
     const spiceBankPoint = pointOnRayAtHeight(origin, direction, TRACKER_DISC_TOP_Y + 0.015);
-    if (spiceBankPoint && isSpiceBankPosition(spiceBankPoint)) {
+    if (spiceBankPoint && isSpiceBankPosition(spiceBankPoint, layout)) {
       return spiceBankPoint;
     }
   }

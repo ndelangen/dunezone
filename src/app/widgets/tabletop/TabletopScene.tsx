@@ -5,6 +5,7 @@ import type { ThreeEvent } from '@react-three/fiber/webgpu';
 import { tokenShapeOfType } from '@shared/assets/tokenOutline';
 import { retainedArrakisBoard } from '@shared/boards/geometry';
 import { gameAssetColors, rendererColors } from '@shared/play/assetColors';
+import { tableLayoutOf } from '@shared/play/boardLayout';
 import { isFactionToken } from '@shared/play/factionToken';
 import { gestureBlockReason, pieceCount } from '@shared/play/model';
 import type { TablePiece, TableState, Vector3Tuple } from '@shared/play/model';
@@ -1031,8 +1032,8 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
   const shuffleRef = useDeckShuffleAnimation(piece, carried || emptyProjection);
   const drawnPiece = useTurnedDownFaces(piece);
   const flipPivotY = stackTopHeight(piece) / 2;
-  const extraBoards = useTabletopSelector((value) => value.state.extraBoardCount ?? 0);
-  const shadowLocalY = contactShadowHeightAt(piece.position, piece, extraBoards) - piece.position[1];
+  const layout = useTabletopSelector((value) => tableLayoutOf(value.state.tableLayout));
+  const shadowLocalY = contactShadowHeightAt(piece.position, piece, layout) - piece.position[1];
 
   return (
     <group
@@ -1156,8 +1157,8 @@ function SceneContents({
   const table = useTabletop();
   const palette = useTablePalette();
   const board = useTabletopSelector((value) => value.snapshot.board);
-  const extraBoards = useTabletopSelector((value) => value.state.extraBoardCount ?? 0);
-  const extraBoardCaptures = useTabletopSelector((value) => value.snapshot.extraBoards);
+  const layout = useTabletopSelector((value) => tableLayoutOf(value.state.tableLayout));
+  const secondBoard = useTabletopSelector((value) => value.snapshot.secondBoard);
   const tints = useTabletopSelector((value) => value.snapshot.tints);
   const { state, renderedPieces, selectPiece } = table;
   const { controlsEnabled, onPointerSessionChange } = useSceneInteractions(onInteractionActiveChange);
@@ -1176,7 +1177,7 @@ function SceneContents({
       {presentation !== 'preview' && (
         <>
           <Suspense fallback={null}>
-            <ScenePresence showNames trackerSlots={trackerSlots} extraBoards={extraBoards} />
+            <ScenePresence showNames trackerSlots={trackerSlots} layout={layout} />
             <ScenePings />
           </Suspense>
           <SceneCardDraws />
@@ -1194,8 +1195,8 @@ function SceneContents({
             mapVisible={mapVisible}
             tableProgress={tableProgress}
             trackerSlots={trackerSlots}
-            extraBoards={extraBoards}
-            extraBoardCaptures={extraBoardCaptures}
+            layout={layout}
+            secondBoard={secondBoard}
           />
         )}
         <PlatePosesProvider>
@@ -1256,13 +1257,13 @@ export function TabletopScene({
   const openPieceMenu = useCallback((pieceId: string, x: number, y: number) => setPieceMenu({ pieceId, x, y }), []);
   /* A custom faction with four or more troop kinds spreads its reserves wider than the stock framing reaches. */
   const troopKinds = useTabletopSelector((table) => widestTroopSupply(table.state.pieces));
-  const extraBoards = useTabletopSelector((table) => table.state.extraBoardCount ?? 0);
+  const layout = useTabletopSelector((table) => tableLayoutOf(table.state.tableLayout));
   const { tableProgress, trackerSlots, mapFramingPoints, zoomReach, camera } = useTableFraming(
     stage,
     providedProgress,
     seatCount,
     troopKinds,
-    extraBoards
+    layout
   );
   const areaRef = useRef<HTMLDivElement>(null);
   const painting = usePaintingArea(className);

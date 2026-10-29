@@ -1,183 +1,213 @@
 /*
- * A game's boards (Norbert, 2026-10-29): one main board in the middle of the table and up to six extra boards, each
- * about two thirds its size. The extras stand on one arc round the main board, spread evenly over its upper half:
- * one extra sits on top, two sit left and right, and more share the arc between them. The table keeps close to each
- * board and reaches it from the main table through a neck, with small curved fillets where they meet.
+ * A game's table layout (Norbert, 2026-10-29). The standard table holds one board. The two-board table holds a second
+ * board of the same size to the left of the main board, on one rounded table shaped round both: the main board keeps
+ * the player stations, the trackers run along the top over the second board, and four tabs below the boards hold,
+ * from left to right, the shared table inventory, the Tleilaxu Tanks, the Treachery deck and the Spice deck.
  */
 
-export const MAX_EXTRA_BOARDS = 6;
-/* An extra board is this much the size of the main board: its map, its rim and the pieces' room on it. */
-export const EXTRA_BOARD_SCALE = 0.63;
-/* Every extra board's centre lies this far from the main board's: just past the card shelves at the sides. */
-const EXTRA_BOARD_ARC_RADIUS = 10.3;
-/* The table round an extra board reaches this far past its rim, as the main table reaches past the main board's. */
-const EXTRA_TABLE_MARGIN = 0.75;
-/* Main board numbers repeated from tableGeometry, which imports this module. */
-const MAIN_BOARD_RIM_RADIUS = 4.23;
-export const EXTRA_BOARD_TABLE_RADIUS = MAIN_BOARD_RIM_RADIUS * EXTRA_BOARD_SCALE + EXTRA_TABLE_MARGIN;
-/* The joins start from a round just inside the main table's edge, so they flow out of it rather than meeting it. */
-const MAIN_JOIN_RADIUS = 5.3;
-/* Each extra board's round meets the main table through a neck this wide either side of the line between their centres. */
-const NECK_HALF_WIDTH = 1.4;
-/* How soft the joins are: the fillet where a neck meets a round, or where two rounds nearly touch. Small keeps the edge close to the boards. */
-const JOIN_SOFTNESS = 1.5;
-/* The outline is kept as the table's reach in this many directions round the middle. */
-const OUTLINE_SAMPLES = 720;
-const OUTLINE_SEARCH_LIMIT = 16;
-const OUTLINE_SEARCH_STEP = 0.1;
-const OUTLINE_REFINEMENTS = 12;
+import { STANDARD_PHASE_COUNT, trackerArcSlots } from './tableTrackers';
+import type { TrackerArcSlot } from './tableTrackers';
+
+export const TABLE_LAYOUTS = ['one-board', 'two-boards'] as const;
+export type TableLayout = (typeof TABLE_LAYOUTS)[number];
+
+/** A table's layout, from its stored value; a table that stores none is the standard one-board table. */
+export function tableLayoutOf(layout: TableLayout | undefined): TableLayout {
+  return layout ?? 'one-board';
+}
 
 /** One board on the table: where its centre stands and how large it is against the main board. */
 export type BoardPlacement = Readonly<{ x: number; z: number; scale: number }>;
 
 export const MAIN_BOARD_PLACEMENT: BoardPlacement = { x: 0, z: 0, scale: 1 };
 
-/** How many extra boards a table has, from its stored count; anything out of range counts as none or the most. */
-export function extraBoardCount(count: number | undefined): number {
-  return Math.max(0, Math.min(MAX_EXTRA_BOARDS, Math.trunc(count ?? 0)));
+/* The second board's centre lies this far left of the main board's: the boards' rims stand a little under a unit apart. */
+const SECOND_BOARD_X = -9.4;
+export const SECOND_BOARD_PLACEMENT: BoardPlacement = { x: SECOND_BOARD_X, z: 0, scale: 1 };
+
+const ONE_BOARD: readonly BoardPlacement[] = [MAIN_BOARD_PLACEMENT];
+const TWO_BOARDS: readonly BoardPlacement[] = [MAIN_BOARD_PLACEMENT, SECOND_BOARD_PLACEMENT];
+
+/** Every board on the table, the main board first. */
+export function boardPlacements(layout: TableLayout = 'one-board'): readonly BoardPlacement[] {
+  return layout === 'two-boards' ? TWO_BOARDS : ONE_BOARD;
 }
 
-/* Where on the arc each extra stands, as an angle on the table: -π/2 is the top, π the left and 0 the right. */
-function arcAngles(count: number): number[] {
-  if (count === 1) {
-    return [-Math.PI / 2];
-  }
-  return Array.from({ length: count }, (_, index) => Math.PI + (index * Math.PI) / (count - 1));
+/*
+ * The two-board table, as a distance from its edge: negative on the table. Its body is a capsule round both boards;
+ * the tracker discs push scallops out of its top edge, and four tabs reach down from its bottom edge, joined to the
+ * body in small curves. Rendering, physics, zoom and pings all read this one shape.
+ */
+
+/* The body reaches this far past each board's centre, as the standard table reaches past its board. */
+const BODY_RADIUS = 5.47;
+/* The tabs below the boards, as [left, right] across the table. */
+export const TWO_BOARD_TABS = {
+  inventory: [-12.3, -9.05],
+  tanks: [-8.07, -2.35],
+  treachery: [-1.75, 0.8],
+  spice: [1.35, 3.85],
+} as const satisfies Record<string, readonly [number, number]>;
+/* Every tab starts inside the body and ends this far down the table. */
+const TAB_TOP_Z = 3.5;
+export const TAB_BOTTOM_Z = 11.2;
+const TAB_CORNER_RADIUS = 0.32;
+/* The tracker scallops reach this far past each disc, as on the standard table's crown. */
+const SCALLOP_BORDER = 0.16;
+const SCALLOP_SOFTNESS = 0.3;
+const TAB_SOFTNESS = 0.45;
+
+/* The tracker discs the table's scallops wrap round: the standard turn's, worked out on first use. */
+let trackerDiscs: readonly TrackerArcSlot[] | null = null;
+
+function twoBoardTrackerDiscs(): readonly TrackerArcSlot[] {
+  trackerDiscs ??= trackerArcSlots(STANDARD_PHASE_COUNT, 'two-boards');
+  return trackerDiscs;
 }
 
-/* Worked out once per count: the table's surface is asked for its boards on every move. */
-const PLACEMENTS: readonly (readonly BoardPlacement[])[] = Array.from({ length: MAX_EXTRA_BOARDS + 1 }, (_, count) => [
-  MAIN_BOARD_PLACEMENT,
-  ...arcAngles(count).map((angle) => ({
-    x: Math.cos(angle) * EXTRA_BOARD_ARC_RADIUS,
-    z: Math.sin(angle) * EXTRA_BOARD_ARC_RADIUS,
-    scale: EXTRA_BOARD_SCALE,
-  })),
-]);
-
-/** Every board on the table, the main board first, then the extras in board order, left to right over the top. */
-export function boardPlacements(count: number | undefined): readonly BoardPlacement[] {
-  return PLACEMENTS[extraBoardCount(count)] ?? [MAIN_BOARD_PLACEMENT];
-}
-
-/** The extra boards' placements, in board order: the game's second board first. */
-export function extraBoardPlacements(count: number | undefined): readonly BoardPlacement[] {
-  return boardPlacements(count).slice(1);
-}
-
-/** The round of table each extra board stands on. */
-export type ExtraBoardRound = Readonly<{ x: number; z: number; radius: number }>;
-
-export function extraBoardRounds(count: number | undefined): readonly ExtraBoardRound[] {
-  return extraBoardPlacements(count).map(({ x, z }) => ({ x, z, radius: EXTRA_BOARD_TABLE_RADIUS }));
-}
-
-/* A union of two distances that blends where they come within `softness` of each other, so rounds join in curves. */
+/* A union of two distances that blends where they come within `softness` of each other, so shapes join in curves. */
 function smoothUnion(a: number, b: number, softness: number): number {
   const blend = Math.max(softness - Math.abs(a - b), 0) / softness;
   return Math.min(a, b) - (blend * blend * softness) / 4;
 }
 
-/* How far a point lies from the line from the table's middle to a round's centre. */
-function neckDistance(round: ExtraBoardRound, x: number, z: number): number {
-  const along = Math.max(0, Math.min(1, (x * round.x + z * round.z) / (round.x * round.x + round.z * round.z)));
-  return Math.hypot(x - round.x * along, z - round.z * along);
+function tabDistance([left, right]: readonly [number, number], x: number, z: number): number {
+  const halfX = (right - left) / 2 - TAB_CORNER_RADIUS;
+  const halfZ = (TAB_BOTTOM_Z - TAB_TOP_Z) / 2 - TAB_CORNER_RADIUS;
+  const qx = Math.abs(x - (left + right) / 2) - halfX;
+  const qz = Math.abs(z - (TAB_TOP_Z + TAB_BOTTOM_Z) / 2) - halfZ;
+  return Math.hypot(Math.max(qx, 0), Math.max(qz, 0)) + Math.min(Math.max(qx, qz), 0) - TAB_CORNER_RADIUS;
 }
 
-/* How far outside the table the extras add a point lies; zero or less is on it. */
-function extraTableDistance(rounds: readonly ExtraBoardRound[], x: number, z: number): number {
-  let distance = Math.hypot(x, z) - MAIN_JOIN_RADIUS;
-  for (const round of rounds) {
-    distance = smoothUnion(distance, Math.hypot(x - round.x, z - round.z) - round.radius, JOIN_SOFTNESS);
-    distance = smoothUnion(distance, neckDistance(round, x, z) - NECK_HALF_WIDTH, JOIN_SOFTNESS);
+/** How far outside the two-board table a point lies; zero or less is on it. */
+export function twoBoardTableDistance(x: number, z: number): number {
+  const along = Math.max(SECOND_BOARD_X, Math.min(0, x));
+  let distance = Math.hypot(x - along, z) - BODY_RADIUS;
+  for (const { position, radius } of twoBoardTrackerDiscs()) {
+    const disc = Math.hypot(x - position[0], z - position[2]) - radius - SCALLOP_BORDER;
+    distance = smoothUnion(distance, disc, SCALLOP_SOFTNESS);
+  }
+  for (const tab of Object.values(TWO_BOARD_TABS)) {
+    distance = smoothUnion(distance, tabDistance(tab, x, z), TAB_SOFTNESS);
   }
   return distance;
 }
 
-/* The table's reach from the middle in one direction: the furthest point along it that is still on the table. */
-function reachAlong(rounds: readonly ExtraBoardRound[], angle: number): number {
-  const cos = Math.cos(angle);
-  const sin = Math.sin(angle);
-  const on = (radius: number) => extraTableDistance(rounds, cos * radius, sin * radius) <= 0;
-  let outside = OUTLINE_SEARCH_LIMIT;
-  let inside = outside - OUTLINE_SEARCH_STEP;
-  while (inside > MAIN_JOIN_RADIUS && !on(inside)) {
-    outside = inside;
-    inside -= OUTLINE_SEARCH_STEP;
-  }
-  for (let step = 0; step < OUTLINE_REFINEMENTS; step++) {
-    const middle = (inside + outside) / 2;
-    if (on(middle)) {
-      inside = middle;
-    } else {
-      outside = middle;
-    }
-  }
-  return Math.max(inside, MAIN_JOIN_RADIUS);
+/** Whether a point lies on the two-board table, at least `inset` in from its edge. */
+export function isOnTwoBoardTable(x: number, z: number, inset = 0): boolean {
+  return twoBoardTableDistance(x, z) + inset <= 0;
 }
 
-/*
- * The extra table's edge as its reach in every direction, worked out once per count on first use. Seen from the middle
- * the shape never folds back on itself, so its reach in each direction says everything: what is drawn, where a piece
- * may rest and where a close look may go all read the same edge.
- */
-const REACHES = new Map<number, Float64Array>();
+const GRADIENT_STEP = 1e-3;
+const PROJECTION_STEPS = 12;
 
-function reaches(count: number): Float64Array {
-  const known = REACHES.get(count);
+/** The point nearest a point off the two-board table that lies `inset` in from its edge. */
+export function nearestOnTwoBoardTable(x: number, z: number, inset = 0): [number, number] {
+  let px = x;
+  let pz = z;
+  for (let step = 0; step < PROJECTION_STEPS; step++) {
+    const distance = twoBoardTableDistance(px, pz) + inset;
+    if (distance <= 0) {
+      break;
+    }
+    const gx = (twoBoardTableDistance(px + GRADIENT_STEP, pz) - twoBoardTableDistance(px - GRADIENT_STEP, pz)) / 2;
+    const gz = (twoBoardTableDistance(px, pz + GRADIENT_STEP) - twoBoardTableDistance(px, pz - GRADIENT_STEP)) / 2;
+    const length = Math.hypot(gx, gz) || 1;
+    /* A hair past the edge, so the point lands on the table rather than on its line. */
+    px -= ((distance + 1e-4) * gx) / length;
+    pz -= ((distance + 1e-4) * gz) / length;
+  }
+  return [px, pz];
+}
+
+/* The outline is traced over a grid this fine, over bounds that hold the whole table. */
+const OUTLINE_CELL = 0.04;
+const OUTLINE_BOUNDS = { minX: -15.6, maxX: 6.6, minZ: -7.8, maxZ: 11.8 } as const;
+const OUTLINES = new Map<number, readonly (readonly [x: number, z: number])[]>();
+
+/*
+ * The two-board table's edge as [x, z] corners, `spread` outside it, traced by marching squares and worked out once per
+ * spread. The table is one piece without holes, so its longest loop is its edge.
+ */
+export function twoBoardTableOutline(spread = 0): readonly (readonly [x: number, z: number])[] {
+  const known = OUTLINES.get(spread);
   if (known) {
     return known;
   }
-  const rounds = extraBoardRounds(count);
-  const found = new Float64Array(OUTLINE_SAMPLES);
-  for (let index = 0; index < OUTLINE_SAMPLES; index++) {
-    found[index] = reachAlong(rounds, (index / OUTLINE_SAMPLES) * Math.PI * 2);
+  const columns = Math.ceil((OUTLINE_BOUNDS.maxX - OUTLINE_BOUNDS.minX) / OUTLINE_CELL) + 1;
+  const rows = Math.ceil((OUTLINE_BOUNDS.maxZ - OUTLINE_BOUNDS.minZ) / OUTLINE_CELL) + 1;
+  const values = new Float64Array(columns * rows);
+  for (let row = 0; row < rows; row++) {
+    for (let column = 0; column < columns; column++) {
+      values[row * columns + column] =
+        twoBoardTableDistance(OUTLINE_BOUNDS.minX + column * OUTLINE_CELL, OUTLINE_BOUNDS.minZ + row * OUTLINE_CELL) -
+        spread;
+    }
   }
-  REACHES.set(count, found);
-  return found;
-}
-
-/** How far the table the extras add reaches from the middle at a direction, between the samples. */
-export function extraTableReach(count: number | undefined, angle: number): number {
-  const extras = extraBoardCount(count);
-  if (extras === 0) {
-    return 0;
+  /* Each crossing sits on a grid edge, keyed by that edge, so neighbouring cells share their ends exactly. */
+  const points = new Map<string, readonly [number, number]>();
+  const crossing = (column: number, row: number, horizontal: boolean): string => {
+    const key = `${horizontal ? 'h' : 'v'}${column},${row}`;
+    if (!points.has(key)) {
+      const a = values[row * columns + column]!;
+      const b = horizontal ? values[row * columns + column + 1]! : values[(row + 1) * columns + column]!;
+      const t = a / (a - b);
+      const x = OUTLINE_BOUNDS.minX + (column + (horizontal ? t : 0)) * OUTLINE_CELL;
+      const z = OUTLINE_BOUNDS.minZ + (row + (horizontal ? 0 : t)) * OUTLINE_CELL;
+      points.set(key, [x, z]);
+    }
+    return key;
+  };
+  /* Each crossing joins the one or two crossings it shares a cell with; the loop is walked from neighbour to neighbour. */
+  const neighbours = new Map<string, string[]>();
+  const join = (a: string, b: string) => {
+    neighbours.set(a, [...(neighbours.get(a) ?? []), b]);
+    neighbours.set(b, [...(neighbours.get(b) ?? []), a]);
+  };
+  for (let row = 0; row < rows - 1; row++) {
+    for (let column = 0; column < columns - 1; column++) {
+      const inside = (c: number, r: number) => values[r * columns + c]! <= 0;
+      const corners = [
+        inside(column, row),
+        inside(column + 1, row),
+        inside(column + 1, row + 1),
+        inside(column, row + 1),
+      ];
+      /* The cell's edges in turn round it: top, right, bottom, left, each between two corners. */
+      const edges = [
+        () => crossing(column, row, true),
+        () => crossing(column + 1, row, false),
+        () => crossing(column, row + 1, true),
+        () => crossing(column, row, false),
+      ];
+      const crossed: string[] = [];
+      for (let edge = 0; edge < 4; edge++) {
+        if (corners[edge] !== corners[(edge + 1) % 4]) {
+          crossed.push(edges[edge]!());
+        }
+      }
+      for (let index = 0; index + 1 < crossed.length; index += 2) {
+        join(crossed[index]!, crossed[index + 1]!);
+      }
+    }
   }
-  const samples = reaches(extras);
-  const position = ((((angle / (Math.PI * 2)) % 1) + 1) % 1) * OUTLINE_SAMPLES;
-  const below = Math.floor(position) % OUTLINE_SAMPLES;
-  const above = (below + 1) % OUTLINE_SAMPLES;
-  const blend = position - Math.floor(position);
-  return samples[below]! * (1 - blend) + samples[above]! * blend;
-}
-
-/** How far inside the table the extras add a point lies; negative outside it. */
-export function extraTableDepth(count: number | undefined, x: number, z: number): number {
-  return extraBoardCount(count) === 0
-    ? Number.NEGATIVE_INFINITY
-    : extraTableReach(count, Math.atan2(z, x)) - Math.hypot(x, z);
-}
-
-/** Whether a point on the table lies over the table the extra boards add. */
-export function isOnExtraTable(count: number | undefined, x: number, z: number): boolean {
-  return extraTableDepth(count, x, z) >= 0;
-}
-
-/** The point of the extra table nearest a point outside it, `inset` in from the edge, toward the middle. */
-export function nearestOnExtraTable(count: number | undefined, x: number, z: number, inset = 0): [number, number] {
-  const angle = Math.atan2(z, x);
-  const radius = Math.min(Math.hypot(x, z), Math.max(0, extraTableReach(count, angle) - inset));
-  return [Math.cos(angle) * radius, Math.sin(angle) * radius];
-}
-
-/** The extra table's edge, as [x, z] corners round the middle; empty without extra boards. */
-export function extraTableOutline(count: number | undefined, spread = 0): readonly (readonly [x: number, z: number])[] {
-  const extras = extraBoardCount(count);
-  if (extras === 0) {
-    return [];
+  let longest: (readonly [number, number])[] = [];
+  const seen = new Set<string>();
+  for (const start of neighbours.keys()) {
+    if (seen.has(start)) {
+      continue;
+    }
+    const loop: (readonly [number, number])[] = [];
+    let key: string | undefined = start;
+    while (key !== undefined) {
+      seen.add(key);
+      loop.push(points.get(key)!);
+      key = neighbours.get(key)!.find((neighbour) => !seen.has(neighbour));
+    }
+    if (loop.length > longest.length) {
+      longest = loop;
+    }
   }
-  return Array.from(reaches(extras), (reach, index) => {
-    const angle = (index / OUTLINE_SAMPLES) * Math.PI * 2;
-    return [Math.cos(angle) * (reach + spread), Math.sin(angle) * (reach + spread)] as const;
-  });
+  OUTLINES.set(spread, longest);
+  return longest;
 }

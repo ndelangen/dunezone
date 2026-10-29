@@ -1,22 +1,27 @@
 /* @jsxImportSource ./three-jsx */
 
+import type { TableLayout } from '@shared/play/boardLayout';
 import type { Vector3Tuple } from '@shared/play/model';
 import {
   cardBaySlotPositions,
-  SHARED_ITEM_PLACEMENT_ANCHORS,
+  sharedItemAnchors,
   TABLE_TANKS_LABEL,
-  TABLE_TANKS_LABEL_POSITION,
+  tanksLabelPosition,
 } from '@shared/play/tableFurnitureLayout';
 import type { CardBaySide } from '@shared/play/tableFurnitureLayout';
 import { CARD_DEPTH, CARD_WIDTH } from '@shared/play/tableGeometry';
 import type { TrackerArcSlot } from '@shared/play/tableTrackers';
 import { useMemo } from 'react';
-import type { ExtrudeGeometry, Shape } from 'three';
+import type { ExtrudeGeometry } from 'three';
 
 import { ignoreRaycast } from './ignoreRaycast';
 import { TableLabel } from './TableLabel';
 import { useTablePalette } from './tablePalette';
-import { createExtraTablePlateLayers, createRoundedRectangleShape, createTablePlateLayers } from './tablePlateGeometry';
+import {
+  createRoundedRectangleShape,
+  createTablePlateLayers,
+  createTwoBoardTablePlateLayers,
+} from './tablePlateGeometry';
 
 const TABLE_PLATE_EXTRUDE_OPTIONS = {
   bevelEnabled: false,
@@ -32,9 +37,12 @@ const SLOT_RIM_SHAPE = createRoundedRectangleShape(
 );
 const SLOT_WELL_SHAPE = createRoundedRectangleShape(CARD_WIDTH, CARD_DEPTH, 0.08);
 
-function TablePlate({ trackerSlots }: { trackerSlots: readonly TrackerArcSlot[] }) {
+function TablePlate({ trackerSlots, layout }: { trackerSlots: readonly TrackerArcSlot[]; layout: TableLayout }) {
   const palette = useTablePalette();
-  const layers = useMemo(() => createTablePlateLayers(trackerSlots), [trackerSlots]);
+  const layers = useMemo(
+    () => (layout === 'two-boards' ? createTwoBoardTablePlateLayers() : createTablePlateLayers(trackerSlots)),
+    [layout, trackerSlots]
+  );
   const geometryArgs = useMemo(
     () => ({
       upper: [
@@ -77,66 +85,6 @@ function TablePlate({ trackerSlots }: { trackerSlots: readonly TrackerArcSlot[] 
   );
 }
 
-function ExtraPlateMesh({
-  shape,
-  surfaceY,
-  thickness,
-  color,
-  metalness,
-  roughness,
-}: {
-  shape: Shape;
-  surfaceY: number;
-  thickness: number;
-  color: string;
-  metalness: number;
-  roughness: number;
-}) {
-  const args = useMemo(
-    () =>
-      [shape, { ...TABLE_PLATE_EXTRUDE_OPTIONS, depth: thickness }] as ConstructorParameters<typeof ExtrudeGeometry>,
-    [shape, thickness]
-  );
-  return (
-    <mesh
-      key={shape.uuid}
-      position={[0, surfaceY, 0]}
-      raycast={ignoreRaycast}
-      receiveShadow
-      rotation={[Math.PI / 2, 0, 0]}
-    >
-      <extrudeGeometry args={args} />
-      <meshStandardMaterial color={color} metalness={metalness} roughness={roughness} />
-    </mesh>
-  );
-}
-
-/* The table the extra boards add, in the main plate's colours and at its heights. */
-function ExtraTablePlates({ extraBoards }: { extraBoards: number }) {
-  const palette = useTablePalette();
-  const layers = useMemo(() => createExtraTablePlateLayers(extraBoards), [extraBoards]);
-  return (
-    <group>
-      <ExtraPlateMesh
-        shape={layers.lower}
-        surfaceY={layers.lowerSurfaceY}
-        thickness={layers.lowerThickness}
-        color={palette.base}
-        metalness={0.06}
-        roughness={0.74}
-      />
-      <ExtraPlateMesh
-        shape={layers.upper}
-        surfaceY={layers.upperSurfaceY}
-        thickness={layers.upperThickness}
-        color={palette.top}
-        metalness={0.02}
-        roughness={0.9}
-      />
-    </group>
-  );
-}
-
 function CardWell({ position }: { position: Vector3Tuple }) {
   const palette = useTablePalette();
   return (
@@ -153,10 +101,10 @@ function CardWell({ position }: { position: Vector3Tuple }) {
   );
 }
 
-function SideCardBay({ side }: { side: CardBaySide }) {
+function SideCardBay({ side, layout }: { side: CardBaySide; layout: TableLayout }) {
   return (
     <group>
-      {cardBaySlotPositions(side).map((position, index) => (
+      {cardBaySlotPositions(side, layout).map((position, index) => (
         <CardWell key={`${side}-${index}`} position={position} />
       ))}
     </group>
@@ -165,21 +113,20 @@ function SideCardBay({ side }: { side: CardBaySide }) {
 
 export function TableFurniture({
   trackerSlots,
-  extraBoards = 0,
+  layout = 'one-board',
 }: {
   trackerSlots: readonly TrackerArcSlot[];
-  extraBoards?: number;
+  layout?: TableLayout;
 }) {
   return (
     <group>
-      <TablePlate trackerSlots={trackerSlots} />
-      {extraBoards > 0 ? <ExtraTablePlates extraBoards={extraBoards} /> : null}
-      <SideCardBay side="left" />
-      <SideCardBay side="right" />
-      {SHARED_ITEM_PLACEMENT_ANCHORS.map((anchor) => (
+      <TablePlate trackerSlots={trackerSlots} layout={layout} />
+      <SideCardBay side="left" layout={layout} />
+      <SideCardBay side="right" layout={layout} />
+      {sharedItemAnchors(layout).map((anchor) => (
         <CardWell key={anchor.id} position={anchor.position} />
       ))}
-      <TableLabel position={TABLE_TANKS_LABEL_POSITION}>{TABLE_TANKS_LABEL}</TableLabel>
+      <TableLabel position={tanksLabelPosition(layout)}>{TABLE_TANKS_LABEL}</TableLabel>
     </group>
   );
 }

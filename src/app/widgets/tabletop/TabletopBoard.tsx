@@ -4,8 +4,8 @@ import { useTexture } from '@react-three/drei/webgpu';
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
 import { retainedArrakisBoard } from '@shared/boards/geometry';
 import { rendererColors } from '@shared/play/assetColors';
-import { extraBoardPlacements } from '@shared/play/boardLayout';
-import type { BoardPlacement } from '@shared/play/boardLayout';
+import { SECOND_BOARD_PLACEMENT } from '@shared/play/boardLayout';
+import type { BoardPlacement, TableLayout } from '@shared/play/boardLayout';
 import type { Vector3Tuple } from '@shared/play/model';
 import type { GameSnapshot } from '@shared/play/protocol';
 import {
@@ -465,8 +465,8 @@ function BoardMap({
   );
 }
 
-/* An extra board's rim: a plain round, without the main rim's player stations. */
-function ExtraBoardRim() {
+/* The second board's rim: a plain round, without the main rim's player stations. */
+function SecondBoardRim() {
   const palette = useTablePalette();
   const shape = useMemo(() => {
     const round = new Shape();
@@ -492,10 +492,10 @@ function ExtraBoardRim() {
 }
 
 /*
- * An extra board where its slot puts it: the main board's rim, shadow and map, drawn at the extra's size.
+ * The second board beside the main board: its own rim, shadow and map.
  * The storm, the territory tints and the player stations stay on the main board.
  */
-function ExtraBoard({
+function SecondBoard({
   placement,
   board,
   stage,
@@ -508,7 +508,7 @@ function ExtraBoard({
 }) {
   return (
     <group position={[placement.x, 0, placement.z]} scale={[placement.scale, 1, placement.scale]}>
-      <ExtraBoardRim />
+      <SecondBoardRim />
       <BoardRimShadow />
       {(stage !== 'setup' || mapVisible) && <BoardMap animate={stage === 'setup'} board={board} />}
     </group>
@@ -526,13 +526,13 @@ export function TabletopBoard({
   trackerSlots,
   interactive = false,
   onClick,
-  extraBoards = 0,
-  extraBoardCaptures,
+  layout = 'one-board',
+  secondBoard,
 }: {
   board?: GameSnapshot['board'];
-  /** How many extra boards stand round the main board, and what each shows; an extra without a capture shows Arrakis. */
-  extraBoards?: number;
-  extraBoardCaptures?: GameSnapshot['extraBoards'];
+  /** Which table the game is played on, and what its second board shows; a second board without a capture shows Arrakis. */
+  layout?: TableLayout;
+  secondBoard?: GameSnapshot['secondBoard'];
   tints?: GameSnapshot['tints'];
   seatCount: TableSeatCount;
   stormSectorIndex?: number;
@@ -546,16 +546,10 @@ export function TabletopBoard({
   const meshes = useSharedMeshes();
   return (
     <group onClick={onClick}>
-      <TableFurniture trackerSlots={trackerSlots} extraBoards={extraBoards} />
-      {extraBoardPlacements(extraBoards).map((placement, index) => (
-        <ExtraBoard
-          key={index}
-          placement={placement}
-          board={extraBoardCaptures?.[index]}
-          stage={stage}
-          mapVisible={mapVisible}
-        />
-      ))}
+      <TableFurniture trackerSlots={trackerSlots} layout={layout} />
+      {layout === 'two-boards' ? (
+        <SecondBoard placement={SECOND_BOARD_PLACEMENT} board={secondBoard} stage={stage} mapVisible={mapVisible} />
+      ) : null}
       <BoardRim seatCount={seatCount} />
       <BoardRimShadow />
       {/* The storm's texture must suspend inside its boundary so it cannot hide an already-painted board. */}

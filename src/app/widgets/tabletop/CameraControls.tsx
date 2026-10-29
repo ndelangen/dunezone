@@ -221,7 +221,7 @@ type PoseAt = { current: ((tilt: number) => CameraPose) | null };
  * `poseAt` is the view's pose at a tilt.
  */
 function useCloseLook(enabled: boolean, viewKey: string, poseAt: PoseAt, reach: ZoomReach): WheelView {
-  /* The handlers read the reach as it is now, without listening again when a game's boards arrive. */
+  /* The handlers read the reach as it is now, without listening again when a game's table arrives. */
   const reachNow = useRef(reach);
   useEffect(() => {
     reachNow.current = reach;
@@ -399,11 +399,11 @@ type SeatedCameraProps = {
   command: CameraViewCommand;
   enabled: boolean;
   mapFramingPoints: readonly Vector3Tuple[];
-  /* The table a game's extra boards add, which a close look may reach too. */
+  /* The table a close look may roam: the two-board table reaches further than the standard one. */
   zoomReach?: ZoomReach;
 };
 
-const NO_ZOOM_REACH: ZoomReach = 0;
+const NO_ZOOM_REACH: ZoomReach = 'one-board';
 
 function useSeatedCameraTransition({
   command,
