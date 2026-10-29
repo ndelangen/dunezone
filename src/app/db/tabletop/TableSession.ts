@@ -470,7 +470,7 @@ export class TableSession {
     if (!this.canShowCardDraws()) {
       return;
     }
-    if (draw.epoch !== this.epoch || draw.revision !== this.saved?.revision) {
+    if (draw.epoch !== this.epoch || draw.revision !== this.snapshot.revision) {
       return;
     }
     if (this.lastDraw?.epoch === draw.epoch && draw.revision <= this.lastDraw.revision) {
