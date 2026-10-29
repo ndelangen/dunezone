@@ -1,4 +1,3 @@
-import { extraTableAreas } from '@shared/play/boardLayout';
 import type { GameSnapshot } from '@shared/play/protocol';
 import type { TableSeatCount } from '@shared/play/tableSettings';
 import { trackerArcSlots } from '@shared/play/tableTrackers';
@@ -29,7 +28,7 @@ export function useTableFraming(
     [extraBoards, seatCount, trackerSlots, troopKinds]
   );
   /* A close look may slide over to the extra boards too. */
-  const zoomReach = extraTableAreas(extraBoards);
+  const zoomReach = extraBoards;
   const camera = useMemo(
     () => ({
       position: cameraPoseFor('map', 1, mapFramingPoints).position,

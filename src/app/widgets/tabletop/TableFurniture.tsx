@@ -11,13 +11,12 @@ import type { CardBaySide } from '@shared/play/tableFurnitureLayout';
 import { CARD_DEPTH, CARD_WIDTH } from '@shared/play/tableGeometry';
 import type { TrackerArcSlot } from '@shared/play/tableTrackers';
 import { useMemo } from 'react';
-import type { ExtrudeGeometry } from 'three';
+import type { ExtrudeGeometry, Shape } from 'three';
 
 import { ignoreRaycast } from './ignoreRaycast';
 import { TableLabel } from './TableLabel';
 import { useTablePalette } from './tablePalette';
 import { createExtraTablePlateLayers, createRoundedRectangleShape, createTablePlateLayers } from './tablePlateGeometry';
-import type { ExtraPlate } from './tablePlateGeometry';
 
 const TABLE_PLATE_EXTRUDE_OPTIONS = {
   bevelEnabled: false,
@@ -79,14 +78,14 @@ function TablePlate({ trackerSlots }: { trackerSlots: readonly TrackerArcSlot[] 
 }
 
 function ExtraPlateMesh({
-  plate,
+  shape,
   surfaceY,
   thickness,
   color,
   metalness,
   roughness,
 }: {
-  plate: ExtraPlate;
+  shape: Shape;
   surfaceY: number;
   thickness: number;
   color: string;
@@ -95,15 +94,13 @@ function ExtraPlateMesh({
 }) {
   const args = useMemo(
     () =>
-      [plate.shape, { ...TABLE_PLATE_EXTRUDE_OPTIONS, depth: thickness }] as ConstructorParameters<
-        typeof ExtrudeGeometry
-      >,
-    [plate.shape, thickness]
+      [shape, { ...TABLE_PLATE_EXTRUDE_OPTIONS, depth: thickness }] as ConstructorParameters<typeof ExtrudeGeometry>,
+    [shape, thickness]
   );
   return (
     <mesh
-      key={plate.shape.uuid}
-      position={[plate.offset[0], surfaceY, plate.offset[1]]}
+      key={shape.uuid}
+      position={[0, surfaceY, 0]}
       raycast={ignoreRaycast}
       receiveShadow
       rotation={[Math.PI / 2, 0, 0]}
@@ -114,34 +111,28 @@ function ExtraPlateMesh({
   );
 }
 
-/* The table round each extra board, in the main plate's colours and at its heights. */
+/* The table the extra boards add, in the main plate's colours and at its heights. */
 function ExtraTablePlates({ extraBoards }: { extraBoards: number }) {
   const palette = useTablePalette();
   const layers = useMemo(() => createExtraTablePlateLayers(extraBoards), [extraBoards]);
   return (
     <group>
-      {layers.lower.map((plate) => (
-        <ExtraPlateMesh
-          key={`lower-${plate.shape.uuid}`}
-          plate={plate}
-          surfaceY={layers.lowerSurfaceY}
-          thickness={layers.lowerThickness}
-          color={palette.base}
-          metalness={0.06}
-          roughness={0.74}
-        />
-      ))}
-      {layers.upper.map((plate) => (
-        <ExtraPlateMesh
-          key={`upper-${plate.shape.uuid}`}
-          plate={plate}
-          surfaceY={layers.upperSurfaceY}
-          thickness={layers.upperThickness}
-          color={palette.top}
-          metalness={0.02}
-          roughness={0.9}
-        />
-      ))}
+      <ExtraPlateMesh
+        shape={layers.lower}
+        surfaceY={layers.lowerSurfaceY}
+        thickness={layers.lowerThickness}
+        color={palette.base}
+        metalness={0.06}
+        roughness={0.74}
+      />
+      <ExtraPlateMesh
+        shape={layers.upper}
+        surfaceY={layers.upperSurfaceY}
+        thickness={layers.upperThickness}
+        color={palette.top}
+        metalness={0.02}
+        roughness={0.9}
+      />
     </group>
   );
 }

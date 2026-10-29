@@ -1,4 +1,4 @@
-import { extraTableAreas, isOnExtraTable } from './boardLayout';
+import { isOnExtraTable, nearestOnExtraTable } from './boardLayout';
 import type { TablePiece, Vector3Tuple } from './model';
 import { fromPieceFrame, POINTER_OUTLINE, isPointerToken } from './pointerToken';
 import type { PlanePoint } from './pointerToken';
@@ -334,7 +334,7 @@ function isPointOnTabletop(x: number, z: number, extraBoards: number): boolean {
       x <= TANKS_PLAY_AREA.maxX &&
       z >= TANKS_PLAY_AREA.minZ &&
       z <= TANKS_PLAY_AREA.maxZ) ||
-    isOnExtraTable(extraTableAreas(extraBoards), x, z)
+    isOnExtraTable(extraBoards, x, z)
   );
 }
 
@@ -373,23 +373,13 @@ function clampToTanksShelf(piece: TablePiece, position: Vector3Tuple): Vector3Tu
   ];
 }
 
-/* The spot nearest `position` where the piece lies wholly on an extra board's round of table. */
-function clampToExtraRounds(piece: TablePiece, position: Vector3Tuple, extraBoards: number): Vector3Tuple[] {
-  const reach = footprintTableRadius(piece);
-  return extraTableAreas(extraBoards).flatMap((area) => {
-    if (area.kind !== 'circle') {
-      return [];
-    }
-    const dx = position[0] - area.x;
-    const dz = position[2] - area.z;
-    const distance = Math.hypot(dx, dz);
-    const limit = area.radius - reach;
-    if (distance <= limit) {
-      return [[...position] as Vector3Tuple];
-    }
-    const scale = limit / distance;
-    return [[area.x + dx * scale, position[1], area.z + dz * scale] as Vector3Tuple];
-  });
+/* The spot nearest `position`, toward the middle, where the piece lies wholly on the table the extra boards add. */
+function clampToExtraTable(piece: TablePiece, position: Vector3Tuple, extraBoards: number): Vector3Tuple[] {
+  if (extraBoards === 0) {
+    return [];
+  }
+  const [x, z] = nearestOnExtraTable(extraBoards, position[0], position[2], footprintTableRadius(piece));
+  return [[x, position[1], z]];
 }
 
 export function clampPositionToTable(piece: TablePiece, position: Vector3Tuple, extraBoards = 0): Vector3Tuple {
@@ -399,7 +389,7 @@ export function clampPositionToTable(piece: TablePiece, position: Vector3Tuple, 
   const candidates = [
     clampToRoundTable(piece, position),
     clampToTanksShelf(piece, position),
-    ...clampToExtraRounds(piece, position, extraBoards),
+    ...clampToExtraTable(piece, position, extraBoards),
   ];
   return nearestBy(candidates, (candidate) => planarDistance(candidate, position)) ?? candidates[0]!;
 }

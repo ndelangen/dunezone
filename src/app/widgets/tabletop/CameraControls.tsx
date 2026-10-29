@@ -403,7 +403,7 @@ type SeatedCameraProps = {
   zoomReach?: ZoomReach;
 };
 
-const NO_ZOOM_REACH: ZoomReach = [];
+const NO_ZOOM_REACH: ZoomReach = 0;
 
 function useSeatedCameraTransition({
   command,

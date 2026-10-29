@@ -1,4 +1,4 @@
-import type { ExtraTableArea } from '@shared/play/boardLayout';
+import { extraBoardRounds, extraTableDepth, nearestOnExtraTable } from '@shared/play/boardLayout';
 import type { Vector3Tuple } from '@shared/play/model';
 import type { TablePhaseId } from '@shared/play/phases';
 import { BOTTOM_SHELF_POSITION, BOTTOM_SHELF_SIZE, FURNITURE_SURFACE_Y } from '@shared/play/tableFurnitureLayout';
@@ -499,48 +499,31 @@ const CAMERA_ZOOM_TARGET_RECTANGLES = [
   [-BOTTOM_SHELF_SIZE[0] / 2, BOTTOM_SHELF_SIZE[0] / 2, 0, BOTTOM_SHELF_POSITION[2] + BOTTOM_SHELF_SIZE[2] / 2],
 ] as const;
 
-/** The table a game's extra boards add (boardLayout.ts), which a close look may reach as well. */
-export type ZoomReach = readonly ExtraTableArea[];
-const NO_EXTRA_REACH: ZoomReach = [];
-
-/* How far inside one part of the reachable area a point lies, and that part's nearest point to it. */
-function rectangleDepth(x: number, z: number, [minX, maxX, minZ, maxZ]: readonly number[]): number {
-  return Math.min(x - minX!, maxX! - x, z - minZ!, maxZ! - z);
-}
-function rectangleNearest(x: number, z: number, [minX, maxX, minZ, maxZ]: readonly number[]): [number, number] {
-  return [Math.min(maxX!, Math.max(minX!, x)), Math.min(maxZ!, Math.max(minZ!, z))];
-}
-function circleNearest(x: number, z: number, cx: number, cz: number, radius: number): [number, number] {
-  const distance = Math.hypot(x - cx, z - cz);
-  return distance <= radius ? [x, z] : [cx + ((x - cx) / distance) * radius, cz + ((z - cz) / distance) * radius];
-}
-function areaBox(area: Extract<ExtraTableArea, { kind: 'rect' }>): readonly number[] {
-  return [area.minX, area.maxX, area.minZ, area.maxZ];
-}
+/** How many extra boards the table has (boardLayout.ts): a close look may reach the table they add as well. */
+export type ZoomReach = number;
+const NO_EXTRA_REACH: ZoomReach = 0;
 
 /** How far inside the reachable area a table point lies; negative outside it. */
 function zoomTargetDepth(x: number, z: number, reach: ZoomReach): number {
-  let depth = CAMERA_ZOOM_TARGET_RADIUS - Math.hypot(x, z);
-  for (const rectangle of CAMERA_ZOOM_TARGET_RECTANGLES) {
-    depth = Math.max(depth, rectangleDepth(x, z, rectangle));
-  }
-  for (const area of reach) {
-    depth = Math.max(
-      depth,
-      area.kind === 'circle' ? area.radius - Math.hypot(x - area.x, z - area.z) : rectangleDepth(x, z, areaBox(area))
-    );
+  let depth = Math.max(CAMERA_ZOOM_TARGET_RADIUS - Math.hypot(x, z), extraTableDepth(reach, x, z));
+  for (const [minX, maxX, minZ, maxZ] of CAMERA_ZOOM_TARGET_RECTANGLES) {
+    depth = Math.max(depth, Math.min(x - minX, maxX - x, z - minZ, maxZ - z));
   }
   return depth;
 }
 
 /** The nearest point of the reachable area. */
 function nearestZoomTarget(x: number, z: number, reach: ZoomReach): [number, number] {
+  const distance = Math.hypot(x, z);
   const candidates: [number, number][] = [
-    circleNearest(x, z, 0, 0, CAMERA_ZOOM_TARGET_RADIUS),
-    ...CAMERA_ZOOM_TARGET_RECTANGLES.map((rectangle) => rectangleNearest(x, z, rectangle)),
-    ...reach.map((area) =>
-      area.kind === 'circle' ? circleNearest(x, z, area.x, area.z, area.radius) : rectangleNearest(x, z, areaBox(area))
-    ),
+    distance <= CAMERA_ZOOM_TARGET_RADIUS
+      ? [x, z]
+      : [(x / distance) * CAMERA_ZOOM_TARGET_RADIUS, (z / distance) * CAMERA_ZOOM_TARGET_RADIUS],
+    ...CAMERA_ZOOM_TARGET_RECTANGLES.map(([minX, maxX, minZ, maxZ]): [number, number] => [
+      Math.min(maxX, Math.max(minX, x)),
+      Math.min(maxZ, Math.max(minZ, z)),
+    ]),
+    ...(reach > 0 ? [nearestOnExtraTable(reach, x, z)] : []),
   ];
   return candidates.reduce((best, candidate) =>
     Math.hypot(candidate[0] - x, candidate[1] - z) < Math.hypot(best[0] - x, best[1] - z) ? candidate : best
@@ -785,11 +768,9 @@ export function cameraFogRange(position: Vector3Tuple, reach: ZoomReach = NO_EXT
   const heightAboveTable = Math.abs(position[1] - 0.1);
   const scale = Math.max(1, heightAboveTable / CAMERA_FOG_REFERENCE_HEIGHT);
   let far = CAMERA_FOG_FAR * scale;
-  for (const area of reach) {
-    if (area.kind === 'circle') {
-      const distance = Math.hypot(area.x - position[0], 0.1 - position[1], area.z - position[2]);
-      far = Math.max(far, distance + area.radius + CAMERA_FOG_EXTRA_MARGIN);
-    }
+  for (const round of extraBoardRounds(reach)) {
+    const distance = Math.hypot(round.x - position[0], 0.1 - position[1], round.z - position[2]);
+    far = Math.max(far, distance + round.radius + CAMERA_FOG_EXTRA_MARGIN);
   }
   return { near: far * (CAMERA_FOG_NEAR / CAMERA_FOG_FAR), far };
 }
