@@ -12,6 +12,7 @@ import {
 } from './battle';
 import { biddingActionSchema, biddingStateSchema } from './bidding';
 import { boardCaptureSchema, publicFactionSchema } from './capture';
+import { cardDrawSchema } from './cardDraw';
 import {
   conversationMessageSchema,
   conversationPeerSchema,
@@ -384,6 +385,7 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('ping'), ping: pingSchema }),
   z.object({
     type: z.literal('view'),
+    cardDraw: cardDrawSchema.optional(),
     phaseCooldownMs: count.optional(),
     battleCountdownMs: count.optional(),
     /* The room's newest history step, so playback offers the steps saved while a viewer looks back. */
@@ -398,6 +400,7 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
   }),
   z.object({
     type: z.literal('update'),
+    cardDraw: cardDrawSchema.optional(),
     phaseCooldownMs: count.optional(),
     battleCountdownMs: count.optional(),
     historySteps: count.optional(),

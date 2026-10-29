@@ -11,6 +11,55 @@ import type { TutorialSetup } from '../setup/tutorialSetup';
 import { localRuntime } from './localRuntime';
 import { LocalTable } from './localTable';
 
+test('local tutorials deliver accepted draws by another seat through the same subscription', async () => {
+  const table = new LocalTable(startAt(setup as unknown as TutorialSetup, 'turn-1-storm', 'https://dune.zone'));
+  const runtime = localRuntime(
+    () => table,
+    {},
+    {
+      capture: async () => {
+        throw new Error('This test does not fetch catalogue assets.');
+      },
+    }
+  );
+  const client = new TableSession(
+    'tutorial',
+    new GameSubscription('tutorial', runtime.admission!.request, runtime),
+    runtime
+  );
+  const draws = vi.fn();
+  const stop = client.subscribeCardDraws(draws);
+  const disconnect = client.connect();
+  try {
+    await vi.waitFor(() => expect(client.getSnapshot().table).toBeTruthy());
+    const other = table.room.snapshot.roster!.seats.find((seat) => seat.id !== table.seat)!;
+    const storedSource = table.room.snapshot.table.pieces.find(
+      (piece) => piece.kind === 'card' && piece.items.length >= 4 && piece.items[0]?.artwork?.type === 'card-treachery'
+    )!;
+    const source = table
+      .frame(other.id)
+      .snapshot.table.pieces.find((piece) => piece.stackKey === storedSource.stackKey)!;
+    table.receive(
+      {
+        type: 'command',
+        commandId: 'remote-draw',
+        expectedRevision: table.room.snapshot.revision,
+        action: { kind: 'deck-draw', pieceId: source.id, count: 4 },
+      },
+      other.id
+    );
+    expect(table.refusal).toBeUndefined();
+    await vi.waitFor(() => expect(draws).toHaveBeenCalledTimes(1));
+    expect(draws.mock.lastCall?.[0]).toMatchObject({ recipient: other.faction!.id, count: 4 });
+    expect(table.frame()).not.toHaveProperty('cardDraw');
+  } finally {
+    stop();
+    disconnect();
+    runtime.dispose();
+    table.dispose();
+  }
+});
+
 /* The page's table session talks to the local table as it talks to the Worker, one catalogue read at a time. */
 describe('a tutorial page’s catalogue reads', () => {
   const contents = storedSpawnContentsSchema.parse({

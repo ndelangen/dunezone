@@ -1,4 +1,5 @@
 import { capturedTokenStackKey } from '@shared/play/assetCapture';
+import { describeCardDraw } from '@shared/play/cardDraw';
 import { spawnableKey } from '@shared/play/inventory';
 import type { SpawnSelection, StoredSpawnContents } from '@shared/play/inventory';
 import { LOG_PAGE_SIZE } from '@shared/play/log';
@@ -280,6 +281,10 @@ export class LocalTable {
       const sourceId = message.type === 'command' && 'pieceId' in message.action ? message.action.pieceId : undefined;
       const source =
         own && sourceId ? this.frame().snapshot.table.pieces.find((piece) => piece.id === sourceId) : undefined;
+      const draw =
+        message.type === 'command' && message.action.kind === 'deck-draw'
+          ? describeCardDraw(this.frame(seat).snapshot, message.action, this.factionFor(viewer.userId))
+          : undefined;
       handle(message, viewer, own);
       if (committing) {
         let next = this.session.reviews.reconcile(this.room.snapshot, Date.now());
@@ -308,7 +313,10 @@ export class LocalTable {
         if (own && message.type === 'command') {
           this.accepted.push({ action: message.action, at: Date.now(), ...(source ? { source } : {}) });
         }
-        this.deliver(this.frame(this.seat, own ? message.commandId : undefined));
+        this.deliver({
+          ...this.frame(this.seat, own ? message.commandId : undefined),
+          ...(draw && { cardDraw: { ...draw, epoch: this.room.epoch, revision: next.revision } }),
+        });
       }
     } catch (error) {
       this.refuse(message, viewer, own, error);

@@ -62,25 +62,14 @@ import {
   useMemo,
   useRef,
   useState,
-  useSyncExternalStore,
 } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import type { Ray, Texture } from 'three';
-import {
-  DoubleSide,
-  Mesh,
-  MeshBasicMaterial,
-  Plane,
-  Raycaster,
-  RingGeometry,
-  SRGBColorSpace,
-  Vector2,
-  Vector3,
-} from 'three';
+import { DoubleSide, Mesh, MeshBasicMaterial, Plane, Raycaster, RingGeometry, Vector2, Vector3 } from 'three';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
-import { loadFaceTexture, tableCardFaceKey } from './cardFaceTexture';
+import { tableCardFaceKey } from './cardFaceTexture';
 import { ignoreRaycast } from './ignoreRaycast';
 import { MapPreviewCamera } from './MapPreviewCamera';
 import { PieceArrival } from './PieceArrival';
@@ -89,7 +78,7 @@ import { pieceHasMenu } from './pieceMenu';
 import type { CameraViewCommand } from './playView';
 import { usePointerSession } from './PointerSessionContext';
 import { POINTER_SELECTION_RING, PointerTokenPlate } from './PointerTokenPlate';
-import { sharedPublishedFaces } from './publishedFaceRetry';
+import { SceneCardDraws } from './SceneCardDraws';
 import { useSharedMeshes } from './sharedMeshes';
 import type { SharedMeshes } from './sharedMeshes';
 import { SpiceBankInteraction } from './SpiceBank';
@@ -110,6 +99,7 @@ import { territoryAtTablePoint } from './TerritoryTints';
 import { useTurnedDownFaces } from './turnedDownFaces';
 import { useDeckShuffleAnimation } from './useDeckShuffleAnimation';
 import { usePieceFlipAnimation } from './usePieceFlipAnimation';
+import { usePublishedFace } from './usePublishedFace';
 import { useSceneInteractions } from './useSceneInteractions';
 import { PlatePosesProvider, useTablePose } from './useTablePose';
 
@@ -200,30 +190,6 @@ function PieceFace({ height, underside, children }: { height: number; underside:
       {children}
     </group>
   );
-}
-
-/* Every piece and every stack layer that shows the same published image draws one shared texture, so the image is uploaded once rather than once per face. */
-const subscribePublishedFace = sharedPublishedFaces<Texture>({
-  load: loadFaceTexture,
-  prepare: (value) => {
-    value.colorSpace = SRGBColorSpace;
-    value.anisotropy = 8;
-  },
-  release: (value) => value.dispose(),
-});
-
-/*
- * Holds one published image and returns it once loaded. The shared store is the only source of truth, read through
- * useSyncExternalStore, so a face never draws a texture released while it showed another image, and a retried load
- * that lands later always re-renders it.
- */
-function usePublishedFace(href: string | undefined): Texture | undefined {
-  const subscribe = useCallback(
-    (onChange: () => void) => (href ? subscribePublishedFace(href, onChange) : () => {}),
-    [href]
-  );
-  const snapshot = useCallback(() => (href ? subscribePublishedFace.peek(href) : undefined), [href]);
-  return useSyncExternalStore(subscribe, snapshot, snapshot);
 }
 
 /* The outline a token is cut to on the table: a box token's rectangle at its ratio, a tech token's gear, or round. */
@@ -1203,10 +1169,13 @@ function SceneContents({
         </>
       )}
       {presentation !== 'preview' && (
-        <Suspense fallback={null}>
-          <ScenePresence showNames trackerSlots={trackerSlots} />
-          <ScenePings />
-        </Suspense>
+        <>
+          <Suspense fallback={null}>
+            <ScenePresence showNames trackerSlots={trackerSlots} />
+            <ScenePings />
+          </Suspense>
+          <SceneCardDraws />
+        </>
       )}
       <group onClick={boardSelection(board, { stage, mapVisible, readOnly }, selectPiece)}>
         {drawBoard && (

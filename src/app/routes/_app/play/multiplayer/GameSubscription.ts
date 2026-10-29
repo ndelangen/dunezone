@@ -1,4 +1,5 @@
 import { PLAY_ADMISSION_RETRY_MAX_MS, PLAY_PENDING_TIMEOUT_MS, PLAY_REQUEST_TIMEOUT_MS } from '@shared/play/admission';
+import type { CardDraw } from '@shared/play/cardDraw';
 import {
   ADMISSION_REFUSED_CLOSE_CODE,
   KEEPALIVE_INTERVAL_MS,
@@ -519,20 +520,38 @@ export class GameSubscription {
       return;
     }
     if (message.type === 'view') {
-      this.receiveView(message);
+      const { cardDraw, ...frame } = message;
+      const current = this.ready && this.current?.epoch === frame.epoch;
+      this.receiveView(frame);
+      this.emitCardDraw(cardDraw, current);
       return;
     }
     if (this.status !== 'authorized') {
       return;
     }
     if (message.type === 'update') {
-      this.receiveUpdate(message);
+      const { cardDraw, ...frame } = message;
+      const current = this.ready && this.current?.epoch === frame.epoch;
+      this.receiveUpdate(frame);
+      this.emitCardDraw(cardDraw, current);
       return;
     }
     if (message.type === 'rejected') {
       this.telemetry.rejected(message.requestId);
     }
     this.listener?.(message);
+  }
+
+  private emitCardDraw(draw: CardDraw | undefined, wasCurrent: boolean) {
+    if (
+      draw &&
+      wasCurrent &&
+      this.ready &&
+      this.current?.epoch === draw.epoch &&
+      this.current.snapshot.revision === draw.revision
+    ) {
+      this.listener?.({ type: 'card-draw', draw });
+    }
   }
 
   /* The Worker admits every socket as suspended until its authorization is confirmed, so on a first connect the pause is the connection still opening and reads as such. */
