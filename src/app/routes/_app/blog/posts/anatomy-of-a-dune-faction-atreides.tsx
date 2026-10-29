@@ -31,8 +31,8 @@ export default function Post() {
     <>
       <Lead>
         At the end of <PostLink slug="all-in-one-dune-board-game-webapp">my earlier attempts</PostLink> I promised to
-        show where the data lives now, and how it all fits together. This is that post. It takes House Atreides apart:
-        first its ingredients, then how they combine into every card, token and sheet you see on dune.zone.
+        show where the data lives now, and how it all fits together. So here is House Atreides, taken apart, and how it
+        turns into every card, token and sheet on dune.zone.
       </Lead>
       <Section title="The ingredients">
         <Paragraph>
@@ -62,8 +62,8 @@ export default function Post() {
         </Paragraph>
         <FactionRecipe />
         <Paragraph>
-          A small detail I like: the complexity rating on the faction page is worked out from the faction&rsquo;s own
-          rules, and the author can still override it.
+          The complexity rating on the faction page is worked out from the faction&rsquo;s own rules, though the author
+          can still override it.
         </Paragraph>
       </Section>
       <Section title="Adding your own cards and tokens">
@@ -76,9 +76,9 @@ export default function Post() {
       </Section>
       <Section title="It took five years to get this shape">
         <Paragraph>
-          Getting here took five years and four projects. Their stories are in{' '}
-          <PostLink slug="all-in-one-dune-board-game-webapp">the earlier post</PostLink>, so here is only the shape the
-          faction had in each.
+          There were four projects along the way. Their stories are in{' '}
+          <PostLink slug="all-in-one-dune-board-game-webapp">the earlier post</PostLink>, so here is just how each one
+          stored a faction.
         </Paragraph>
         <Paragraph>
           In 2021, dune.games stored game results, and a faction was a name on one. In 2023, dune-app had a real
@@ -90,9 +90,9 @@ export default function Post() {
       </Section>
       <Section title="Where it lives now">
         <Paragraph>
-          Now for the slightly technical part, kept short. The whole faction lives in one document in a factions table,
-          with everything above inside it. Before anything is saved, the server checks it against one set of rules, the
-          same rules the faction editor uses while you work.
+          The whole faction lives in one document in a factions table, with everything above inside it. Before anything
+          is saved, the server checks it against one set of rules, the same rules the faction editor uses while you
+          work.
         </Paragraph>
         <SavedCheck />
         <Paragraph>
@@ -101,7 +101,7 @@ export default function Post() {
         </Paragraph>
         <Paragraph>
           Some of those rules are older than the site. The ones for decals and for rule text are the 2024 versions from
-          dune-assets, almost unchanged. It is nice to see something from an earlier attempt carry on.
+          dune-assets, almost unchanged.
         </Paragraph>
       </Section>
       <Section title="Why the shape matters for homebrew">
@@ -110,8 +110,8 @@ export default function Post() {
           and sheet, ready for the table, for print and play, and for the rulebook.
         </Paragraph>
         <Paragraph>
-          <FactionLink slug="smugglers">Smugglers</FactionLink> by Argelius is a good example. Below is its set, drawn
-          the same way as Atreides. If you have a faction of your own in mind,{' '}
+          Here is <FactionLink slug="smugglers">Smugglers</FactionLink>, a faction by Argelius, drawn the same way as
+          Atreides. If you have a faction of your own in mind,{' '}
           <Anchor renderRoot={(props) => <Link {...props} to="/factions/create" />} inherit>
             the faction creator
           </Anchor>{' '}
