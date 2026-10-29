@@ -44,7 +44,7 @@ const running = (id = 'recall-1', step = 0, startedAt: number | null = 1) => ({
 });
 const people = () => ({ others: () => ['other'], act: vi.fn() }) as unknown as TablePlayers;
 const viewWith = (review: ReturnType<typeof running> | null) =>
-  ({ review, controls: { players: [] } }) as unknown as GameSnapshot;
+  ({ review, controls: { players: [] }, reviewCheckpoints: [{ step: 0 }, { step: 23 }] }) as unknown as GameSnapshot;
 const stepAt = (id: string, view: () => GameSnapshot, players = people()) =>
   mentatRecall.tasks(view, players).find((step) => step.id === id)!;
 const recallFrame = () => {
@@ -73,7 +73,7 @@ test('the retained live hand and a loading recalled inventory cannot complete th
 
 test('an early return can be followed by another recall, with a fresh timeline baseline and no leftover ballot timer', () => {
   const root = recallFrame();
-  root.innerHTML = '<div data-window="recall-history"><div role="slider"></div></div>';
+  root.innerHTML = '<div data-window="recall-history" data-side="right"><div role="slider"></div></div>';
   let view = viewWith(running());
   const players = people();
   const step = stepAt('shared-history', () => view, players);
@@ -87,9 +87,11 @@ test('an early return can be followed by another recall, with a fresh timeline b
     reviewId: 'replacement',
     choice: 'review',
   });
-  view = viewWith(running('replacement', 1));
+  view = viewWith(running('replacement', 23));
   expect(step.done(watch, undefined as never)).toBe(false);
   view = viewWith(running('replacement', 0));
+  expect(step.done(watch, undefined as never)).toBe(false);
+  view = viewWith(running('replacement', 23));
   expect(step.done(watch, undefined as never)).toBe(true);
   step.finish?.(watch);
   view = viewWith(running('after-reset', 0, null));
@@ -139,4 +141,22 @@ test('leaving the chat task removes its submit listener', () => {
   root.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true }));
   root.querySelector('[aria-label="Conversation history"]')!.innerHTML = '<span data-saved-own-message>Sent</span>';
   expect(step.done(watch, undefined as never)).toBe(false);
+});
+
+test.each([
+  '<img alt="Atreides Battle Loss Counter">',
+  '<div role="img" aria-label="Atreides Battle Loss Counter: preview unavailable"></div>',
+])('the later tracker task recognizes its inventory with %s', (image) => {
+  const root = recallFrame();
+  root.innerHTML = `<div data-window="hidden-zone">${image}</div>`;
+  let view = viewWith(running('recall', 0));
+  const step = stepAt('later-counter', () => view);
+  const watch = step.begin(undefined as never);
+  try {
+    expect(step.done(watch, undefined as never)).toBe(false);
+    view = viewWith(running('recall', 23));
+    expect(step.done(watch, undefined as never)).toBe(true);
+  } finally {
+    step.finish?.(watch);
+  }
 });

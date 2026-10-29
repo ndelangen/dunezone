@@ -68,16 +68,19 @@ function hasModifier(event: KeyboardEvent) {
  */
 const FOCUSED_CONTROL = "button, a[href], [role='button'], [role='separator']";
 
-function isTextField(target: EventTarget | null) {
-  return target instanceof HTMLElement && (target.isContentEditable || target.matches('input, textarea, select'));
+function isInputControl(target: EventTarget | null) {
+  return (
+    target instanceof HTMLElement &&
+    (target.isContentEditable || target.matches('input, textarea, select, [role="slider"]'))
+  );
 }
 
 /*
- * A focused text field keeps its keys from the table.
+ * A focused input, including an ARIA slider, keeps its keys from the table.
  * The table's shortcuts also leave any other focused control or link alone, while the spice disc, or the cursor over the table, answers over them.
  */
 function focusKeepsKey(target: EventTarget | null, branch: 'spiceBank' | 'table') {
-  if (isTextField(target)) {
+  if (isInputControl(target)) {
     return true;
   }
   return branch === 'table' && target instanceof HTMLElement && target.closest(FOCUSED_CONTROL) !== null;
@@ -238,7 +241,7 @@ export class TableKeyboard {
 
   /*
    * With the cursor over the table, an arrow key is the camera's before a focused control hears it, so a tab list or menu
-   * left focused by a click never moves its focus instead; only a text field keeps its arrows.
+   * left focused by a click never moves its focus instead; input controls keep their arrows.
    * Without a close look there is nothing to slide, and the arrow still stays with the table.
    * An open menu, such as a piece's radial menu opened under the cursor, keeps its arrows to step through its items,
    * and so does a dialog over the table, such as a peeked deck whose focused card the arrows move.
@@ -248,7 +251,7 @@ export class TableKeyboard {
       !this.tableHovered ||
       !isArrowKey(event) ||
       hasModifier(event) ||
-      isTextField(event.target) ||
+      isInputControl(event.target) ||
       inOpenMenu(event.target)
     ) {
       return;

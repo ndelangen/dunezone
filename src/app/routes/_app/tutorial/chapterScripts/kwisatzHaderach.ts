@@ -27,3 +27,31 @@ export const KWISATZ_HADERACH: StoredPiece = {
   locked: false,
   kind: 'card',
 };
+
+/** The counter that marks troops lost on the Kwisatz Haderach card. */
+export const ATREIDES_BATTLE_LOSS_COUNTER: StoredPiece = {
+  id: 'tutorial-battle-loss-counter',
+  label: 'Atreides Battle Loss Counter',
+  owner: '',
+  color: '#d5ba8c',
+  accent: '#ead9bb',
+  items: [
+    {
+      id: 'tutorial-battle-loss-counter-token',
+      faceUp: true,
+      artwork: {
+        front: '{{origin}}/published/round-tokens/ns7ccz318tqavsz7nkfv5hq4gh8gnn7h/token.jpg',
+        back: '{{origin}}/published/round-tokens/ns7ccz318tqavsz7nkfv5hq4gh8gnn7h/token.jpg',
+        name: 'Atreides Battle Loss Counter',
+        type: 'token-disc',
+        size: 0.5,
+      },
+    },
+  ],
+  stackKey: 'token:ns7ccz318tqavsz7nkfv5hq4gh8gnn7h',
+  position: [-25, 0, -25],
+  orientation: 0,
+  zoneId: null,
+  locked: false,
+  kind: 'force',
+};

@@ -1,25 +1,26 @@
-import type { StoredPiece } from '@shared/play/model';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { reviewRunning } from '@shared/play/review';
 
 import type { GuideTask } from '../TutorialGuide';
 import type { ChapterScript, TablePlayers } from './chapterScript';
 import { element, phaseOf, pressEnter, task } from './guideChecks';
-import { KWISATZ_HADERACH } from './kwisatzHaderach';
-
-/* A recorded tracker gives the private side-table something to inspect at both checkpoints. */
-const hand: StoredPiece[] = [{ ...KWISATZ_HADERACH, hiddenZone: { x: 0.5, y: 0.5 } }];
+import { openRecallHistory, recallHand } from './mentatRecallOpening';
 
 /* Normal windows stay mounted during recall; only this controller shows the historical contents. */
 const RECALL = '[data-recall-controls="true"]';
 const panel = (key: string) => document.querySelector(`${RECALL} [data-window="${key}"]`);
 const historySlider = () => panel('recall-history')?.querySelector('[role="slider"]');
+const newestStep = (snapshot: () => GameSnapshot) => snapshot().reviewCheckpoints!.at(-1)!.step;
 const recallElement = (selector: string) => () => document.querySelector(`${RECALL} ${selector}`);
 const returnButton = () => document.querySelector('[data-recall-return]');
 const loaded = () =>
   document.querySelector(RECALL) !== null &&
   document.querySelector(`${RECALL} [aria-label="Loading recalled inventory"], ${RECALL} [role="alert"]`) === null &&
   panel('recall-history')?.querySelector('[role="status"]') == null;
+const FIRST_RECALL_RECOVERY =
+  'If recall closes early, ask for Storm again in the Mentat recall window. If it is closed, open it through Controls. The practice players will agree.';
+const LATER_RECALL_RECOVERY =
+  'If recall closes early, open Mentat recall through Controls if needed. Move its slider all the way right and ask for Turn 3, Spice Blow. The practice players will agree. Shared history opens with the new recall; pin it to the bottom right, then continue this exercise. If you closed it, reopen it with {Space}, {↑}, {Space}.';
 
 /* The practice players answer through their seats, including a new proposal after an early return. */
 function answerProposals(snapshot: () => GameSnapshot, players: TablePlayers, stormOnly: boolean) {
@@ -56,12 +57,12 @@ function recallAnchor(snapshot: () => GameSnapshot, anchor: GuideTask['anchor'])
 }
 
 /* A replacement recall starts fresh baselines, and every task releases its timers and listeners on Reset or exit. */
-function duringRecall(snapshot: () => GameSnapshot, players: TablePlayers) {
+function duringRecall(snapshot: () => GameSnapshot, players: TablePlayers, recovery = FIRST_RECALL_RECOVERY) {
   return <Baseline>(definition: GuideTask<Baseline>): GuideTask => {
     const anchor = definition.anchor;
     return task({
       ...definition,
-      detail: `${definition.detail}\n\nIf recall closes early, ask for Storm again in the Mentat recall window. If it is closed, open it through Controls. The practice players will agree.`,
+      detail: `${definition.detail}\n\n${recovery}`,
       anchor: recallAnchor(snapshot, anchor),
       begin: (view) => ({
         id: snapshot().review?.id,
@@ -98,7 +99,7 @@ function openingTasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'purpose',
       task: 'Look back together',
       detail:
-        'Not sure what the board showed earlier? Mentat recall lets the table inspect a saved checkpoint together. It can settle a dispute or help you retrace what happened.\n\nIt does not undo moves or let you change the past. In this practice game, Storm has finished and the live game is in Spice Blow.\n\nPress {Enter} to try it.',
+        'Not sure what the board showed earlier? Mentat recall lets the table inspect a saved checkpoint together. It can settle a dispute or help you retrace what happened.\n\nThis table has played two turns. The storm moved, cards were dealt and played, spice was spent and the private tracker advanced. There are 24 checkpoints to explore; live play is now at Turn 3, Spice Blow.\n\nRecall does not undo moves or let you change the past. Press {Enter} to try it.',
       anchor: { kind: 'page', element: element('[data-compass-launcher]') },
       ...pressEnter(),
     }),
@@ -120,7 +121,7 @@ function openingTasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'review-propose',
       task: 'Ask to recall Storm',
       detail:
-        'Press {Space}, type Mentat recall and confirm with {Enter}.\n\nUse Earlier checkpoint to select Turn 1, Storm, then press Ask the table to recall. If you pick the wrong checkpoint, withdraw the request and try again.',
+        'Press {Space}, type Mentat recall and confirm with {Enter}.\n\nMove the checkpoint slider all the way left to Turn 1, Storm, then press Ask the table to recall. You can focus the slider and press {Home} to reach the first checkpoint. If you pick the wrong checkpoint, withdraw the request and try again.',
       anchor: {
         kind: 'page',
         element: () =>
@@ -184,7 +185,7 @@ function inspectionTasks(snapshot: () => GameSnapshot, players: TablePlayers): G
       id: 'recalled-hand',
       task: 'Inspect your recalled hand',
       detail:
-        "Click your faction token to the left of Controls to open Your recalled hand.\n\nThese are your seat's cards, leaders and spice reserve at the selected checkpoint, not its current inventory. Only your seat can see them, including items recorded before a replacement player took that seat.\n\nYou cannot play, rearrange or flip the contents, or withdraw spice.",
+        "Click your faction token to the left of Controls to open Your recalled hand.\n\nAt Turn 1, Storm, your reserve was 10 spice and you had no Treachery cards. These are your seat's recorded items, including anything from before a replacement player took the seat. Only your seat can see them.\n\nYou cannot play, rearrange or flip the contents, or withdraw spice. Later checkpoints will show a different hand and reserve.",
       anchor: { kind: 'page', element: recallElement('[data-own-token]') },
       begin: () => undefined,
       done: () => Boolean(panel('hand')?.querySelector('[aria-label="Spice reserve balance"]')),
@@ -193,7 +194,7 @@ function inspectionTasks(snapshot: () => GameSnapshot, players: TablePlayers): G
       id: 'recalled-side-table',
       task: 'Inspect your private side table',
       detail:
-        'Press {J}, or open Controls and go left twice, to see your recalled private side table.\n\nThe Kwisatz Haderach tracker was already here at Storm. Its position and contents are frozen too. You can inspect your own recorded items, but cannot move, edit or peek at them.',
+        'Press {J}, or open Controls and go left twice, to see your recalled private side table.\n\nThe Kwisatz Haderach counter was on space 1 at Turn 1, Storm. Its recorded position is frozen too. You can inspect your own items, but cannot move, edit or peek at them.\n\nRemember that counter position; you will compare it with a later checkpoint.',
       anchor: { kind: 'page', element: recallElement('[data-compass-launcher]') },
       begin: () => undefined,
       done: () => Boolean(panel('hidden-zone')?.querySelector('figure')),
@@ -201,31 +202,90 @@ function inspectionTasks(snapshot: () => GameSnapshot, players: TablePlayers): G
   ];
 }
 
-function historyTasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[] {
-  const recalling = duringRecall(snapshot, players);
-  return [
-    recalling({
-      id: 'shared-history',
-      task: 'Slide through time',
-      detail:
-        'Press {Space}, {↑}, then {Space} to open Shared history. Drag the slider to another checkpoint. The arrows move one checkpoint at a time; turn numbers mark the start of each turn.\n\nAny seated player can change this selection. Everyone follows the same checkpoint, including their own recorded inventory. Your camera and panel positions stay personal.',
-      anchor: {
-        kind: 'page',
-        element: () => historySlider() ?? document.querySelector(`${RECALL} [data-compass-launcher]`),
-      },
-      begin: () => snapshot().review?.step,
-      done: (step) => snapshot().review?.step !== step && Boolean(historySlider()),
-    }),
-    recalling({
-      id: 'earlier-checkpoint',
-      task: 'Step back one checkpoint',
-      detail:
-        "Press Earlier checkpoint to return to Storm. The arrows move one saved checkpoint at a time.\n\nThe board and every seat's recorded inventory follow the shared selection. Changing checkpoints still makes no changes to the live game.",
-      anchor: { kind: 'page', element: recallElement('[aria-label="Earlier checkpoint"]') },
-      begin: () => undefined,
-      done: () => snapshot().review?.step === 0 && Boolean(historySlider()),
-    }),
-  ];
+function sharedHistoryTask(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask {
+  return duringRecall(
+    snapshot,
+    players
+  )({
+    id: 'shared-history',
+    task: 'Slide through time',
+    detail:
+      'Press {Space}, {↑}, then {Space} to open Shared history. Pin it to the bottom right so you can inspect inventory beside it.\n\nScrub through the checkpoints, then move all the way right to Turn 3, Spice Blow. Turn numbers mark each turn; there are also checkpoints after factions finish Shipment and Movement.\n\nEveryone follows the same checkpoint, including their recorded inventory. Any seated player can change it. Cameras and panel positions stay personal.',
+    anchor: {
+      kind: 'page',
+      element: () => historySlider() ?? document.querySelector(`${RECALL} [data-compass-launcher]`),
+    },
+    begin: () => ({ step: snapshot().review?.step, moved: false }),
+    done: (watch) => {
+      watch.moved ||= snapshot().review?.step !== watch.step;
+      return (
+        watch.moved &&
+        snapshot().review?.step === newestStep(snapshot) &&
+        panel('recall-history')?.getAttribute('data-side') === 'right'
+      );
+    },
+  });
+}
+
+function laterHandTask(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask {
+  return duringRecall(
+    snapshot,
+    players,
+    LATER_RECALL_RECOVERY
+  )({
+    id: 'later-hand',
+    task: 'Compare your later hand',
+    detail:
+      'Open Your recalled hand again with your faction token.\n\nAt Turn 3, Spice Blow, your reserve is 6 spice and you have two Treachery cards. Bidding and battles changed both during the two completed turns. The storm and public cards have changed on the table too.\n\nThese later contents are just as frozen as the earlier ones. Sliding changes which record you inspect; it never edits that record.',
+    anchor: { kind: 'page', element: recallElement('[data-own-token]') },
+    begin: () => undefined,
+    done: () =>
+      snapshot().review?.step === newestStep(snapshot) &&
+      panel('hand')?.querySelector('[aria-label="Spice reserve balance"]')?.textContent === '6',
+  });
+}
+
+function laterCounterTask(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask {
+  return duringRecall(
+    snapshot,
+    players,
+    LATER_RECALL_RECOVERY
+  )({
+    id: 'later-counter',
+    task: 'Compare the private tracker',
+    detail:
+      'Press {J} to reopen your recalled private side table.\n\nThe counter is now on space 6 of the Kwisatz Haderach card. It was on space 1 at the first checkpoint. Private positions travel through history along with the public board and hand.\n\nYou still cannot drag the counter or change anything on this recorded side table.',
+    anchor: { kind: 'page', element: recallElement('[data-compass-launcher]') },
+    begin: () => undefined,
+    done: () =>
+      snapshot().review?.step === newestStep(snapshot) &&
+      Boolean(
+        panel('hidden-zone')?.querySelector(
+          'img[alt="Atreides Battle Loss Counter"], [aria-label^="Atreides Battle Loss Counter"]'
+        )
+      ),
+  });
+}
+
+function earlierCheckpointTask(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask {
+  return duringRecall(
+    snapshot,
+    players,
+    LATER_RECALL_RECOVERY
+  )({
+    id: 'earlier-checkpoint',
+    task: 'Step back one checkpoint',
+    detail:
+      "Press Earlier checkpoint in the pinned Shared history panel to reach Turn 3, Storm. The storm has not yet made its latest move at this checkpoint.\n\nThe arrows move one saved checkpoint at a time. The board and every seat's recorded inventory follow the shared selection, with no changes to the live game.",
+    anchor: {
+      kind: 'page',
+      element: () =>
+        panel('recall-history')?.querySelector('[aria-label="Earlier checkpoint"]') ??
+        document.querySelector(`${RECALL} [data-compass-launcher]`),
+    },
+    begin: () => undefined,
+    done: () => snapshot().review?.step === newestStep(snapshot) - 1 && Boolean(historySlider()),
+  });
 }
 
 function conversationTasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[] {
@@ -268,11 +328,14 @@ function returnTasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'return',
       task: 'Return to the game',
       detail:
-        'Press Return to the game in the top right. Any seated player can end recall for everyone.\n\nPlay resumes at the live Spice Blow position. Looking at Storm did not undo anything. Your normal pinned panels return, and the recall chat and its drafts are discarded.',
+        'Press Return to the game in the top right. Any seated player can end recall for everyone.\n\nPlay resumes at Turn 3, Spice Blow, with the same board, hand, spice and private tracker as before recall. Looking at older checkpoints did not undo anything. Your normal pinned panels return, and the recall chat and its drafts are discarded.',
       anchor: { kind: 'page', element: returnButton },
       begin: () => undefined,
       done: () =>
-        !snapshot().review && phaseOf(snapshot).id === 'spice-blow' && document.querySelector(RECALL) === null,
+        !snapshot().review &&
+        phaseOf(snapshot).turn === 3 &&
+        phaseOf(snapshot).id === 'spice-blow' &&
+        document.querySelector(RECALL) === null,
     }),
   ];
 }
@@ -283,7 +346,10 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     consentTask(snapshot),
     ballotTask(snapshot, players),
     ...inspectionTasks(snapshot, players),
-    ...historyTasks(snapshot, players),
+    sharedHistoryTask(snapshot, players),
+    laterHandTask(snapshot, players),
+    laterCounterTask(snapshot, players),
+    earlierCheckpointTask(snapshot, players),
     ...conversationTasks(snapshot, players),
     ...returnTasks(snapshot),
   ];
@@ -293,13 +359,8 @@ export const mentatRecall: ChapterScript = {
   slug: 'mentat-recall',
   checkpoint: 'turn-1-storm',
   playAs: 'House Atreides',
-  hand,
-  opening: (players) => {
-    const seat = players.others()[0];
-    if (seat) {
-      players.act(seat, { kind: 'phase' });
-    }
-  },
+  hand: recallHand,
+  opening: openRecallHistory,
   tasks,
   learned: [
     'Ask for Mentat recall through Controls; more than half the seated players must agree',
