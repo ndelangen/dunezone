@@ -86,10 +86,8 @@ export const SHARED_INVENTORY_GUIDANCE: Guidance = {
 };
 
 export const SPICE_RESERVE_HELP = helpLines(
-  'Choose an amount and drag the spice token onto the table.',
-  'For keyboard placement, focus the token and press Enter. Arrow keys move it; Enter places it; Escape cancels.',
-  'Right-click a spice stack on the table to take it.',
-  'Drop a stack on the Spice Bank disc to return it.'
+  'Choose an amount and drag the token onto the table. Focus it and press Enter for keyboard placement.',
+  'Right-click a stack to collect it. Drop it on the Spice Bank to return it.'
 );
 
 export const SPICE_GUIDANCE: Guidance = {
