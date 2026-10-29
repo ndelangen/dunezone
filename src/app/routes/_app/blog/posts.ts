@@ -34,7 +34,7 @@ export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
   'anatomy-of-a-dune-faction-atreides': {
     slug: 'anatomy-of-a-dune-faction-atreides',
     title: 'Anatomy of a Dune faction: how House Atreides becomes every card, token and sheet',
-    date: '2026-10-28',
+    date: '2026-10-29',
     author: 'Central419',
     summary:
       'House Atreides, taken apart: the logo, colours, leaders and rules it is made of, and how dune.zone draws every card, token and sheet from that one faction.',
