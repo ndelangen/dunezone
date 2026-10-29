@@ -18,5 +18,5 @@ const meta = preview.meta({
 /** The chapter as a player meets it: do what the rail says, where its arrow shows, and it moves on by itself. */
 export const Chapter = meta.story({
   parameters: chapterParameters,
-  play: playChapter('Chapter 20: Moderation and disputes', 'Check what happened'),
+  play: playChapter('Chapter 21: Moderation and disputes', 'Check what happened'),
 });

@@ -20,7 +20,7 @@ const currentStep = (canvasElement: HTMLElement) =>
   canvasElement.ownerDocument.querySelector('[data-state="current"]')?.textContent ?? '';
 
 /*
- * Review a saved position, resume play, then remove an absent player through the page's real controls.
+ * Remove an absent player through the page's real controls after checking the log.
  * The guide must recognize each action and reach the Audit record.
  */
 export const PlayedThrough = meta.story({
@@ -29,43 +29,14 @@ export const PlayedThrough = meta.story({
     const page = within(document.body);
     const step = (title: string, timeout = 30_000) =>
       waitForFrame(() => expect(currentStep(canvasElement)).toContain(title), { timeout });
-    await page.findByRole('banner', { name: 'Chapter 20: Moderation and disputes' }, { timeout: 60_000 });
+    await page.findByRole('banner', { name: 'Chapter 21: Moderation and disputes' }, { timeout: 60_000 });
     const openWindow = async (name: string) => {
       await userEvent.keyboard(' ');
       await userEvent.type(await page.findByRole('textbox', { name: 'Search controls' }), name);
       await userEvent.keyboard('{Enter}');
     };
-    const enterAt = async (title: string) => {
-      await step(title);
-      await waitForFrame(
-        async () => {
-          if (currentStep(canvasElement).includes(title)) {
-            await userEvent.keyboard('{Enter}');
-          }
-          await expect(currentStep(canvasElement)).not.toContain(title);
-        },
-        { timeout: 20_000, interval: 1000 }
-      );
-    };
     await step('Check what happened', 60_000);
     await openWindow('Game log');
-    await step('Ask to recall Storm');
-    await openWindow('Mentat recall');
-    await userEvent.click(await page.findByRole('button', { name: 'Earlier checkpoint' }));
-    await expect(page.getByRole('slider', { name: 'Checkpoint' })).toHaveAttribute('aria-valuenow', '0');
-    await userEvent.click(page.getByRole('button', { name: 'Ask the table to recall' }));
-    await step('Agree to recall');
-    await userEvent.click(page.getAllByRole('button', { name: 'Withdraw' })[0]!);
-    await page.findByRole('button', { name: 'Ask the table to recall' });
-    await userEvent.keyboard('{Enter}');
-    await waitForFrame(() => expect(currentStep(canvasElement)).toContain('Agree to recall'));
-    await userEvent.click(await page.findByRole('button', { name: 'Earlier checkpoint' }));
-    await expect(page.getByRole('slider', { name: 'Checkpoint' })).toHaveAttribute('aria-valuenow', '0');
-    await userEvent.click(page.getByRole('button', { name: 'Ask the table to recall' }));
-    await enterAt('Agree to recall');
-    await step('Talk it through');
-    await expect(page.getByRole('group', { name: 'Mentat recall in progress' })).toBeVisible();
-    await userEvent.click(page.getAllByRole('button', { name: 'Return to the game' })[0]!);
     await step('Open player details', 60_000);
 
     const token = await waitFor(

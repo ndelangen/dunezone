@@ -6,7 +6,7 @@ import type { GuideTask } from '../TutorialGuide';
 import type { ChapterScript, TablePlayers } from './chapterScript';
 import { element, pressEnter, task } from './guideChecks';
 
-/* A disputed position and an absent player are separate exercises, each using the table's real vote. */
+/* The public log, an absent player's removal vote and the audit record. */
 
 /* The player who has gone quiet. */
 const QUIET = 'House Harkonnen';
@@ -29,15 +29,6 @@ const startButton = (seat: string | undefined) =>
       );
 
 function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[] {
-  let continuedReviewId: string | undefined;
-  const continueReview = pressEnter(() => {
-    const review = snapshot().review;
-    if (review?.step !== 0) {
-      return false;
-    }
-    continuedReviewId = review.id;
-    return true;
-  });
   const seats = () => snapshot().roster?.seats ?? [];
   const seatOf = (faction: string) => seats().find((seat) => seat.faction?.name === faction)?.id;
   const quietSeat = () => seatOf(QUIET);
@@ -55,74 +46,10 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       done: () => document.querySelector('[data-window="game-log"]') !== null,
     }),
     task({
-      id: 'review-propose',
-      task: 'Ask to recall Storm',
-      detail:
-        "The log isn't the only way to look back. Press {Space}, type Mentat recall and confirm with {Enter}.\n\nUse Earlier checkpoint to select Turn 1, Storm, then Ask the table to recall.\n\nIf you picked the wrong checkpoint, withdraw the request and try again.",
-
-      anchor: {
-        kind: 'page',
-        element: () =>
-          document.querySelector('[data-window="review"]') ?? document.querySelector('[data-compass-launcher]'),
-      },
-      begin: () => undefined,
-      done: () => snapshot().review?.step === 0,
-    }),
-    task({
-      id: 'review-majority',
-      task: 'Agree to recall',
-      detail:
-        'A recall needs agreement from more than half the seated players. Your request counts as your agreement.\n\nOther players can agree or decline.\n\nIf you withdraw the request, ask to recall Turn 1, Storm again.\n\nPress {Enter} to let them respond.',
-      anchor: { kind: 'page', element: element('[aria-label="Mentat recall vote"]') },
-      ...continueReview,
-      done: (watch) =>
-        snapshot().review?.step === 0 && snapshot().review?.id === continuedReviewId && continueReview.done(watch),
-    }),
-    task({
-      id: 'review-votes',
-      task: 'Wait for the others',
-      detail:
-        'The other players are agreeing now. Once a majority agrees, play pauses and everyone sees the saved public position.\n\nIf you withdraw the request, ask to recall Turn 1, Storm again.',
-
-      anchor: { kind: 'page', element: element('[data-window="review"]') },
-      begin: () => {
-        const timer = setInterval(() => {
-          const review = snapshot().review;
-          if (!review || review.step !== 0 || review.startedAt !== null) {
-            return;
-          }
-          const seat = players
-            .others()
-            .find((seat) => review.ballots.some((ballot) => ballot.seat === seat && ballot.choice === null));
-          if (seat) {
-            players.act(seat, { kind: 'review-ballot', reviewId: review.id, choice: 'review' });
-          }
-        }, BALLOT_INTERVAL_MS);
-        return () => clearInterval(timer);
-      },
-      done: () => snapshot().review?.step === 0 && snapshot().review?.startedAt != null,
-      finish: (stop) => stop(),
-    }),
-    task({
-      id: 'review-resume',
-      task: 'Talk it through',
-      detail:
-        "You're all looking at the Storm checkpoint. Everything is frozen, including your recorded hand, private side table and spice.\n\nUse Recall chat or talk aloud to settle the dispute. Recall chat is separate from table chat and disappears when you return.\n\nWhen you're ready, press Return to the game. Any seated player can do this. You'll return to the live Spice Blow position. Recalling an earlier position doesn't undo any moves.",
-      anchor: {
-        kind: 'page',
-        element: () =>
-          [...document.querySelectorAll('button')].find(
-            (button) => button.textContent?.trim() === 'Return to the game'
-          ) ?? null,
-      },
-      begin: () => undefined,
-      done: () => !snapshot().review,
-    }),
-    task({
       id: 'open',
       task: 'Open player details',
       detail:
-        "Now suppose the Harkonnen player has stopped responding. Let's see what the table can do.\n\nClick their token below the table, then click the token beside the chat title to open their details.",
+        "The Harkonnen player has stopped responding. Let's see what the table can do.\n\nClick their token below the table, then click the token beside the chat title to open their details.",
       anchor: {
         kind: 'page',
         element: () =>
@@ -162,7 +89,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'audit',
       task: 'Read the Audit record',
       detail:
-        "The Harkonnen seat is open. Its faction and pieces stay for a replacement, and a seated player can approve their request to join.\n\nLet's check the record. Press {Space}, type Audit and confirm with {Enter} to see the recall, removal vote and player leaving their seat.",
+        "The Harkonnen seat is open. Its faction and pieces stay for a replacement, and a seated player can approve their request to join.\n\nLet's check the record. Press {Space}, type Audit and confirm with {Enter} to see the removal vote and the player leaving their seat.",
       anchor: { kind: 'page', element: element('[data-compass-launcher]') },
       begin: () => undefined,
       done: () => document.querySelector('[data-window="audit"]') !== null,
@@ -206,8 +133,6 @@ function voteInTurn(
 /* One line for each part of the chapter, in the order it was played. */
 const learned = [
   'Game log records public events; Audit records seats and votes',
-  'Mentat recall needs a majority to inspect one saved public position',
-  'Recall pauses play; Return to the game returns everyone to the current game',
   'Start removal vote waits in a player’s faction information',
   'More than half of the whole table must vote Remove',
   'Enough Keep votes end a vote early',
