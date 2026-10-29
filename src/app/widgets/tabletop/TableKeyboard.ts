@@ -209,6 +209,10 @@ export class TableKeyboard {
   }
 
   private keyDown = (event: KeyboardEvent) => {
+    /* Escape cancels a number-key hold before it can split the stack; the pointer session cancels any existing carry. */
+    if (event.key === 'Escape') {
+      this.cancelDraw();
+    }
     /* macOS sends no keyup for a key let go while Cmd is down, so Cmd lets go of a held pan, draw or rumble rather than leave it running. */
     if (event.key === 'Meta') {
       this.releasePan();

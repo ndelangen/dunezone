@@ -3,6 +3,7 @@ import { freshTableState } from '@shared/play/model';
 import { draftForGesture } from '@shared/play/tableState';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
+import { PointerSession } from './PointerSession';
 import { TableKeyboard } from './TableKeyboard';
 
 const unbinds: (() => void)[] = [];
@@ -45,6 +46,37 @@ function table() {
 function key(type: 'keydown' | 'keyup', init: KeyboardEventInit, target: EventTarget = window) {
   target.dispatchEvent(new KeyboardEvent(type, { bubbles: true, cancelable: true, ...init }));
 }
+
+test('Escape cancels a number-key split before its hold finishes', () => {
+  const { controls } = table();
+  const pointer = new PointerSession();
+  const cancelDraft = vi.fn();
+  unbinds.push(
+    pointer.bind({
+      events: window,
+      canvas: document.createElement('canvas'),
+      read: () => ({
+        canHandleTable: true,
+        hasDraft: false,
+        piece: () => undefined,
+        point: () => null,
+        isPublicPoint: () => true,
+        beginGesture: vi.fn(),
+        updateGesture: vi.fn(),
+        finishGesture: vi.fn(),
+        cancelDraft,
+        publishPointer: vi.fn(),
+        onActiveChange: vi.fn(),
+      }),
+    })
+  );
+  key('keydown', { key: '3', code: 'Digit3' });
+  vi.advanceTimersByTime(500);
+  key('keydown', { key: 'Escape' });
+  expect(cancelDraft).toHaveBeenCalledOnce();
+  vi.advanceTimersByTime(500);
+  expect(controls.splitSelected).not.toHaveBeenCalled();
+});
 
 test('T draws once from the hovered deck and 0 splits ten pieces', () => {
   const { controls } = table();

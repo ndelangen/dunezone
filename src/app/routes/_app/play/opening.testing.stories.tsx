@@ -1,11 +1,13 @@
 import { testingPreview } from '@sb/preview';
 import { finishTransitions } from '@sb/storyWaits';
+import { createMemoryHistory } from '@tanstack/react-router';
 import { expect, waitFor, within } from 'storybook/test';
 
 import { storedAuthTokenKey, STORED_PLAY_TABLE_PREFIX } from '@db/playTables';
 import { convexNeverAnswers, STORYBOOK_NOW } from '@db/storybook';
 
 import { storedTableText } from '../../../db/tabletop/storedTable';
+import { StorybookPage } from '../../storybook';
 import { gameMeta, install, session } from './game.stories.fixture';
 import { browserGameRuntime } from './multiplayer/gameRuntime';
 import { nativeGetContext, withoutGraphics, expectGraphicsMessage } from './opening.stories.fixture';
@@ -27,6 +29,45 @@ const meta = testingPreview.meta({
       await import('./multiplayer/HostedTable');
     },
   ],
+});
+
+/* A signed-in player whose table rejects admission must be able to choose a fresh sign-in. */
+let recoveryHistory = createMemoryHistory({ initialEntries: ['/play/dreamrules'] });
+export const SignsInAfterAdmissionDenied = meta.story({
+  args: { path: '/play/dreamrules' },
+  render: (args) => <StorybookPage {...args} history={recoveryHistory} />,
+  beforeEach: install(() => {
+    recoveryHistory = createMemoryHistory({ initialEntries: ['/play/dreamrules'] });
+    const transport = productTransport('seat-2', initialSnapshot(), { holdView: true });
+    const open = transport.runtime.openSocket.bind(transport.runtime);
+    transport.runtime.openSocket = (gameId) => {
+      const socket = open(gameId);
+      const send = socket.send.bind(socket);
+      socket.send = (data) => {
+        send(data);
+        if (typeof data === 'string' && JSON.parse(data).type === 'admit') {
+          queueMicrotask(() => transport.deliver({ type: 'admission', status: 'denied' }));
+        }
+      };
+      return socket;
+    };
+    return transport;
+  }),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const signIn = await page.findByRole('link', { name: 'Sign in again' }, { timeout: 30_000 });
+    /* Storybook logs Link clicks; follow the rendered destination through the page router. */
+    recoveryHistory.push(signIn.getAttribute('href')!);
+    await waitFor(
+      async () => {
+        await expect(page.getByRole('heading', { name: 'Sign in again', level: 1 })).toBeVisible();
+        await expect(page.getByRole('button', { name: 'Continue with Google' })).toBeVisible();
+        await expect(recoveryHistory.location.pathname).toBe('/auth/login');
+        await expect(session.transport.messages.filter((message) => message.type === 'admit')).toHaveLength(1);
+      },
+      { timeout: 30_000 }
+    );
+  },
 });
 
 /* The table canvases' WebGL2 contexts, in the order the renderer created them. */
