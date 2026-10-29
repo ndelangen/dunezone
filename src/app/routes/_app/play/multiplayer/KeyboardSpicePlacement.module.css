@@ -15,6 +15,7 @@
 }
 
 /* Reduced motion must not animate visibility before the token or its help control can take focus. */
+.overlay,
 .placement,
 .placement > button,
 .help,

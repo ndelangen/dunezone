@@ -217,6 +217,7 @@ export function KeyboardSpicePlacement({ client, table }: Readonly<{ client: Tab
     <Html
       position={placement?.position ?? [0, 0.18, 0]}
       center
+      className={styles.overlay}
       zIndexRange={[40, 30]}
       /* The measurable Html wrapper must not intercept table drops while its dialog is hidden. */
       style={{ visibility: visible ? 'visible' : 'hidden', pointerEvents: visible ? 'auto' : 'none' }}

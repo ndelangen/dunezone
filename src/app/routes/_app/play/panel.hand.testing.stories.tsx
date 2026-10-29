@@ -258,6 +258,7 @@ export const SpicePlacementHelpKeepsPlacement = meta.story({
     const placement = within(dialog).getByRole('button', { name: 'Place 1 spice here' });
     const help = within(dialog).getByRole('img', { name: 'Help' });
     const description = 'Arrow keys move the spice. Hold Shift for smaller steps. Enter places it; Escape cancels.';
+    await expect(placement).toHaveFocus();
     await expect(placement).toHaveAccessibleDescription(description);
     await expect(help).toHaveAccessibleDescription(description);
     await userEvent.tab();
