@@ -43,14 +43,14 @@ export function boardPlacements(layout: TableLayout = 'one-board'): readonly Boa
 const BODY_RADIUS = 5.47;
 /* The tabs below the boards, as [left, right] across the table. */
 export const TWO_BOARD_TABS = {
-  inventory: [-12.3, -9.05],
+  inventory: [-12.45, -8.95],
   tanks: [-8.07, -2.35],
   treachery: [-1.75, 0.8],
   spice: [1.35, 3.85],
 } as const satisfies Record<string, readonly [number, number]>;
 /* Every tab starts inside the body and ends this far down the table. */
 const TAB_TOP_Z = 3.5;
-export const TAB_BOTTOM_Z = 11.2;
+export const TAB_BOTTOM_Z = 9.5;
 const TAB_CORNER_RADIUS = 0.32;
 /* The tracker scallops reach this far past each disc, as on the standard table's crown. */
 const SCALLOP_BORDER = 0.16;

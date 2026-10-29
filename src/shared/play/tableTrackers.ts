@@ -96,16 +96,17 @@ export const STANDARD_PHASE_COUNT = 9;
  * A composed turn keeps the Spice Bank and turn discs where they are, and refits its phase discs evenly into the span the standard nine cover, shrinking them only when they would otherwise touch.
  */
 export function trackerArcSlots(phaseCount: number, layout: TableLayout = 'one-board'): TrackerArcSlot[] {
-  const slots = standardTableArcSlots(phaseCount);
-  return layout === 'two-boards' ? slots.map(overSecondBoard) : slots;
+  return layout === 'two-boards' ? twoBoardRowSlots(phaseCount) : standardTableArcSlots(phaseCount);
 }
 
 /*
- * On the two-board table the same arc runs along the top over the second board, turned a little toward the main
- * board, so the discs keep clear of the main board's stations. Each slot's angle and arc radius are then about the
- * second board's centre.
+ * On the two-board table the trackers run in a straight row along the table's top (Norbert's sketch, 2026-10-29): the
+ * turn disc over the second board's top, the Spice Bank just before it, and the phase discs on toward the main board.
+ * A composed turn refits its phase discs into the span the standard nine cover, as on the arc. Each slot's angle and
+ * arc radius are about the second board's centre, so a stack set down by the Spice Bank lands toward that board.
  */
-const TWO_BOARD_TRACKER_TURN = -Math.PI * 0.06;
+const TWO_BOARD_ROW_Z = -5.6;
+const TWO_BOARD_TURN_X = -9.05;
 
 /** The point a layout's tracker arc curves round. */
 export function trackerArcCenter(layout: TableLayout = 'one-board'): Vector3Tuple {
@@ -114,14 +115,36 @@ export function trackerArcCenter(layout: TableLayout = 'one-board'): Vector3Tupl
     : [0, TABLE_SURFACE_Y, 0];
 }
 
-function overSecondBoard(slot: TrackerArcSlot): TrackerArcSlot {
-  const angle = slot.angle + TWO_BOARD_TRACKER_TURN;
-  const [x, y, z] = trackerArcCenter('two-boards');
+function rowSlot(kind: TrackerArcSlot['kind'], phaseIndex: number | null, x: number, radius: number): TrackerArcSlot {
+  const [centerX, , centerZ] = trackerArcCenter('two-boards');
   return {
-    ...slot,
-    angle,
-    position: [x + Math.cos(angle) * slot.arcRadius, y, z + Math.sin(angle) * slot.arcRadius],
+    kind,
+    phaseIndex,
+    arcRadius: Math.hypot(x - centerX, TWO_BOARD_ROW_Z - centerZ),
+    radius,
+    angle: Math.atan2(TWO_BOARD_ROW_Z - centerZ, x - centerX),
+    position: [x, TABLE_SURFACE_Y, TWO_BOARD_ROW_Z],
   };
+}
+
+function twoBoardRowSlots(phaseCount: number): TrackerArcSlot[] {
+  if (!Number.isInteger(phaseCount) || phaseCount < 0) {
+    throw new RangeError('Phase count must be a non-negative integer.');
+  }
+  const spiceX = TWO_BOARD_TURN_X - TURN_TRACKER_RADIUS - TRACKER_EDGE_GAP - PHASE_TRACKER_RADIUS;
+  const start = TWO_BOARD_TURN_X + TURN_TRACKER_RADIUS + TRACKER_EDGE_GAP;
+  const standardPitch = PHASE_TRACKER_RADIUS * 2 + TRACKER_EDGE_GAP;
+  const span = standardPitch * STANDARD_PHASE_COUNT;
+  const pitch = phaseCount > 0 ? span / phaseCount : 0;
+  /* A very long turn gives up the edge gap before a disc could shrink to nothing. */
+  const radius = Math.min(PHASE_TRACKER_RADIUS, Math.max(pitch / 2 - TRACKER_EDGE_GAP / 2, (pitch / 2) * 0.8));
+  return [
+    rowSlot('spice', null, spiceX, PHASE_TRACKER_RADIUS),
+    rowSlot('turn', null, TWO_BOARD_TURN_X, TURN_TRACKER_RADIUS),
+    ...Array.from({ length: phaseCount }, (_, phaseIndex) =>
+      rowSlot('phase', phaseIndex, start + pitch * (phaseIndex + 0.5), radius)
+    ),
+  ];
 }
 
 function standardTableArcSlots(phaseCount: number): TrackerArcSlot[] {

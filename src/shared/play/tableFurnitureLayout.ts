@@ -77,28 +77,36 @@ export const SHARED_ITEM_PLACEMENT_ANCHORS: readonly PlacementAnchor[] = Array.f
 /*
  * On the two-board table the shared table inventory, the Tanks and the decks move to the tabs below the boards (Norbert,
  * 2026-10-29), left to right: the inventory, the Tanks, the Treachery bay (the left bay) and the Spice bay (the right
- * bay). Each bay keeps its two columns and three rows; the inventory stands in four rows.
+ * bay). Each bay keeps its two columns and three rows.
  */
 const TAB_COLUMN_PITCH = CARD_WIDTH + CARD_SLOT_GAP;
 const TAB_ROW_PITCH = 1.32;
-const TAB_FIRST_ROW_Z = TAB_BOTTOM_Z - 0.9 - TAB_ROW_PITCH * 3;
+/* Three rows fill each tab, the last a little in from its end; the first starts where the tab leaves the table. */
+const TAB_ROW_ZS = [2, 1, 0].map((row) => TAB_BOTTOM_Z - 0.95 - TAB_ROW_PITCH * row);
 
-function tabColumns([left, right]: readonly [number, number]): [inner: number, outer: number] {
+/* Columns spread evenly about a tab's middle. */
+function tabColumns([left, right]: readonly [number, number], count: number): number[] {
   const middle = (left + right) / 2;
-  return [middle - TAB_COLUMN_PITCH / 2, middle + TAB_COLUMN_PITCH / 2];
+  return Array.from({ length: count }, (_, index) => middle + (index - (count - 1) / 2) * TAB_COLUMN_PITCH);
 }
 
 function tabCardBayPositions(side: CardBaySide): Vector3Tuple[] {
-  const [first, second] = tabColumns(side === 'left' ? TWO_BOARD_TABS.treachery : TWO_BOARD_TABS.spice);
-  const row = (index: number) => TAB_FIRST_ROW_Z + TAB_ROW_PITCH * (index + 0.5);
+  const [first, second] = tabColumns(side === 'left' ? TWO_BOARD_TABS.treachery : TWO_BOARD_TABS.spice, 2) as [
+    number,
+    number,
+  ];
+  const [top, middle, bottom] = TAB_ROW_ZS as [number, number, number];
   return [
-    [first, FURNITURE_SURFACE_Y, row(0)],
-    [second, FURNITURE_SURFACE_Y, row(0)],
-    [first, FURNITURE_SURFACE_Y, row(1)],
-    [second, FURNITURE_SURFACE_Y, row(1)],
-    [first, FURNITURE_SURFACE_Y, row(2)],
+    [first, FURNITURE_SURFACE_Y, top],
+    [second, FURNITURE_SURFACE_Y, top],
+    [first, FURNITURE_SURFACE_Y, middle],
+    [second, FURNITURE_SURFACE_Y, middle],
+    [first, FURNITURE_SURFACE_Y, bottom],
   ];
 }
+
+/* The shared table inventory's eight wells stand three by three in its wide tab, the last corner left open. */
+const INVENTORY_COLUMNS = 3;
 
 const TWO_BOARD_ANCHORS: readonly PlacementAnchor[] = [
   ...(['left', 'right'] as const).flatMap((side) =>
@@ -111,10 +119,14 @@ const TWO_BOARD_ANCHORS: readonly PlacementAnchor[] = [
     }))
   ),
   ...Array.from({ length: 8 }, (_, index): PlacementAnchor => {
-    const columns = tabColumns(TWO_BOARD_TABS.inventory);
+    const columns = tabColumns(TWO_BOARD_TABS.inventory, INVENTORY_COLUMNS);
     return {
       id: `shared-item-${index + 1}`,
-      position: [columns[index % 2]!, FURNITURE_SURFACE_Y, TAB_FIRST_ROW_Z + TAB_ROW_PITCH * Math.floor(index / 2)],
+      position: [
+        columns[index % INVENTORY_COLUMNS]!,
+        FURNITURE_SURFACE_Y,
+        TAB_ROW_ZS[Math.floor(index / INVENTORY_COLUMNS)]!,
+      ],
       orientation: 0,
       acceptedKinds: ['card', 'force', 'marker'],
       captureSize: CARD_SLOT_OUTER_SIZE,
@@ -141,7 +153,7 @@ export function sharedItemAnchors(layout: TableLayout = 'one-board'): readonly P
 export function tanksLabelPosition(layout: TableLayout = 'one-board'): Vector3Tuple {
   const [left, right] = TWO_BOARD_TABS.tanks;
   return layout === 'two-boards'
-    ? [(left + right) / 2, FURNITURE_SURFACE_Y + 0.012, 6.4]
+    ? [(left + right) / 2, FURNITURE_SURFACE_Y + 0.012, TAB_ROW_ZS[0]!]
     : [...TABLE_TANKS_LABEL_POSITION];
 }
 
