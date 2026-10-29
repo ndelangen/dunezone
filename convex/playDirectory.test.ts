@@ -140,13 +140,53 @@ describe('the directory keeps the newest published summary and lists it to every
     expect(lobby.past.map((entry) => entry.gameId)).not.toContain(game._id);
   });
 
+  test('a seated faction uses its linked preset instead of its saved fallback background', async () => {
+    const { t, admin, ids, publish, summary } = await world();
+    const preset: typeof assetPublishingFaction.background = {
+      ...assetPublishingFaction.background,
+      colors: ['#112233', '#445566'],
+    };
+    const factionId = await t.run(async (ctx) => {
+      await ctx.db.insert('background_presets', {
+        key: 'lobby-test',
+        name: 'Lobby test',
+        value: preset,
+        revision: 1,
+        updated_at: 1,
+      });
+      return await ctx.db.insert('factions', {
+        owner_id: ids.admin,
+        slug: 'atreides',
+        data: {
+          ...assetPublishingFaction,
+          background: { ...assetPublishingFaction.background, source: { kind: 'preset', key: 'lobby-test' } },
+        },
+        group_id: null,
+        is_deleted: false,
+        created_at: '2026-10-01T00:00:00Z',
+        updated_at: '2026-10-01T00:00:00Z',
+      });
+    });
+    const seated = summary([ids.admin]);
+    seated.seats[0]!.faction = { id: factionId, name: 'Atreides', color: '#2f7d32' };
+    await publish(1, seated);
+
+    expect(await admin.query(api.playDirectory.listGames, {})).toMatchObject({
+      ongoing: [{ players: [{ faction: { token: { background: preset } } }] }],
+    });
+  });
+
   test('a seated faction carries its catalogue token, and a faction the catalogue no longer holds carries none', async () => {
     const { t, admin, ids, publish, summary } = await world();
     const factionId = await t.run(async (ctx) =>
       ctx.db.insert('factions', {
         owner_id: ids.admin,
         slug: 'atreides',
-        data: { ...assetPublishingFaction, name: 'Atreides' },
+        data: {
+          ...assetPublishingFaction,
+          name: 'Atreides',
+          background: { ...assetPublishingFaction.background, source: { kind: 'custom' } },
+        },
         group_id: null,
         is_deleted: false,
         created_at: '2026-10-01T00:00:00Z',

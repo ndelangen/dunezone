@@ -32,6 +32,7 @@ import {
 import { publicQuery } from './functions';
 import { resolveBackHref, TOKEN_ASSET_TYPES } from './lib/assetBacks';
 import { assetDisplayName } from './lib/assetInput';
+import { resolveBackgrounds } from './lib/backgroundPresets';
 import type { CardbackPresetMemo } from './lib/cardbackPresets';
 import { catalogueSearchLimit, catalogueSearchReach, selectCatalogueSearch } from './lib/catalogueOrder';
 import { profileSummaryReader } from './lib/profileSummary';
@@ -228,7 +229,7 @@ export const draftableFactions = publicQuery({
           (await publishedFace(ctx, 'faction-token', publicationFaceId(row._id, 'back'))) !== null,
       });
     }
-    return { factions };
+    return await resolveBackgrounds(ctx, { factions });
   },
 });
 
