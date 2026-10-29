@@ -70,9 +70,13 @@ function cameraDestinationFor(
   mapFramingPoints: readonly Vector3Tuple[],
   mapObstacles: readonly ScreenRect[],
   tilt: number,
-  zoom: CameraZoom
+  zoom: CameraZoom,
+  layout: ZoomReach
 ): CameraDestination {
-  const pose = zoomedCameraPose(cameraPoseFor(command.view, aspectRatio, mapFramingPoints, tilt, mapObstacles), zoom);
+  const pose = zoomedCameraPose(
+    cameraPoseFor(command.view, aspectRatio, mapFramingPoints, tilt, mapObstacles, layout),
+    zoom
+  );
   return {
     commandKey: `${command.view}:${command.revision}`,
     signature: [
@@ -446,8 +450,9 @@ function useSeatedCameraTransition({
 
   /* The view's pose at a tilt changes only with the view and the canvas, so a close look's frames reuse it. */
   useLayoutEffect(() => {
-    poseAt.current = (atTilt) => cameraPoseFor(command.view, aspectRatio, mapFramingPoints, atTilt, overlays);
-  }, [aspectRatio, command.view, mapFramingPoints, overlays]);
+    poseAt.current = (atTilt) =>
+      cameraPoseFor(command.view, aspectRatio, mapFramingPoints, atTilt, overlays, zoomReach);
+  }, [aspectRatio, command.view, mapFramingPoints, overlays, zoomReach]);
 
   useLayoutEffect(() => {
     const controls = controlsRef.current;
@@ -457,7 +462,8 @@ function useSeatedCameraTransition({
       mapFramingPoints,
       overlays,
       tilt,
-      zoom
+      zoom,
+      zoomReach
     );
     /* A wheel turn glides, and so does a pan that starts while a glide is still on its way, instead of jumping the rest of it. */
     const glide = glidingRevision.current !== zoomRevision || playback.current.glide !== null;
@@ -490,6 +496,7 @@ function useSeatedCameraTransition({
     pointerSession,
     tilt,
     zoom,
+    zoomReach,
     zoomRevision,
   ]);
 

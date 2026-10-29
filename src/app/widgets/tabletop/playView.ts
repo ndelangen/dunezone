@@ -1,4 +1,11 @@
-import { nearestOnTwoBoardTable, twoBoardTableDistance, twoBoardTableOutline } from '@shared/play/boardLayout';
+import {
+  nearestOnTwoBoardTable,
+  SECOND_BOARD_PLACEMENT,
+  TAB_BOTTOM_Z,
+  TWO_BOARD_TABS,
+  twoBoardTableDistance,
+  twoBoardTableOutline,
+} from '@shared/play/boardLayout';
 import type { TableLayout } from '@shared/play/boardLayout';
 import type { Vector3Tuple } from '@shared/play/model';
 import type { TablePhaseId } from '@shared/play/phases';
@@ -123,6 +130,19 @@ const BOTTOM_VIEW_FRAMING_POINTS: readonly Vector3Tuple[] = [-1, 1].flatMap((x) 
     FURNITURE_SURFACE_Y,
     BOTTOM_SHELF_POSITION[2] + (z * BOTTOM_SHELF_SIZE[2]) / 2,
   ])
+);
+
+/*
+ * On the two-board table the bottom view takes in all four tabs below the boards, and the left view looks at the second
+ * board, where the standard table's left card bay was.
+ */
+const TWO_BOARD_TAB_SPAN = [TWO_BOARD_TABS.inventory[0], TWO_BOARD_TABS.spice[1]] as const;
+const TWO_BOARD_VIEW_TARGETS = {
+  bottom: [(TWO_BOARD_TAB_SPAN[0] + TWO_BOARD_TAB_SPAN[1]) / 2, 0.1, TAB_BOTTOM_Z - 3.9],
+  left: [SECOND_BOARD_PLACEMENT.x, 0.1, 0],
+} as const satisfies Record<'bottom' | 'left', Vector3Tuple>;
+const TWO_BOARD_BOTTOM_VIEW_FRAMING_POINTS: readonly Vector3Tuple[] = TWO_BOARD_TAB_SPAN.flatMap((x) =>
+  [TAB_BOTTOM_Z - 5.6, TAB_BOTTOM_Z].map((z): Vector3Tuple => [x, FURNITURE_SURFACE_Y, z])
 );
 
 /* The camera's direction from its target and its screen axes at a tilt: 0 is the approved angle, 1 is near top-down. */
@@ -338,7 +358,14 @@ function centredMapTarget(
 }
 
 /* Where a side or bottom view looks; a narrow canvas moves a side view further out, so its card well stays in frame. */
-function fixedViewTarget(view: Exclude<TableView, 'map' | 'top'>, aspectRatio: number): Vector3Tuple {
+function fixedViewTarget(
+  view: Exclude<TableView, 'map' | 'top'>,
+  aspectRatio: number,
+  layout: TableLayout = 'one-board'
+): Vector3Tuple {
+  if (layout === 'two-boards' && view !== 'right') {
+    return [...TWO_BOARD_VIEW_TARGETS[view]];
+  }
   const baseTarget = TABLE_VIEW_TARGETS[view];
   if (view === 'bottom') {
     return [...baseTarget];
@@ -431,7 +458,8 @@ export function cameraPoseFor(
   aspectRatio = 1,
   mapFramingPoints: readonly Vector3Tuple[] = DEFAULT_MAP_VIEW_FRAMING_POINTS,
   tilt = 0,
-  mapObstacles: readonly ScreenRect[] = NO_SCREEN_RECTS
+  mapObstacles: readonly ScreenRect[] = NO_SCREEN_RECTS,
+  layout: TableLayout = 'one-board'
 ): CameraPose {
   const basis = view === 'top' ? TOP_VIEW_BASIS : cameraBasisFor(tilt);
   const safeAspectRatio = Number.isFinite(aspectRatio) && aspectRatio > 0 ? aspectRatio : 1;
@@ -447,7 +475,7 @@ export function cameraPoseFor(
         )
       : view === 'map'
         ? cachedMapTarget(safeAspectRatio, mapFramingPoints, clampCameraTilt(tilt), mapObstacles)
-        : fixedViewTarget(view, safeAspectRatio);
+        : fixedViewTarget(view, safeAspectRatio, layout);
   const cameraScale = framesMap
     ? cameraScaleForFraming(
         safeAspectRatio,
@@ -461,7 +489,7 @@ export function cameraPoseFor(
     : view === 'bottom'
       ? cameraScaleForFraming(
           safeAspectRatio,
-          BOTTOM_VIEW_FRAMING_POINTS,
+          layout === 'two-boards' ? TWO_BOARD_BOTTOM_VIEW_FRAMING_POINTS : BOTTOM_VIEW_FRAMING_POINTS,
           MAP_VIEW_TOP_LIMIT,
           basis,
           target,
