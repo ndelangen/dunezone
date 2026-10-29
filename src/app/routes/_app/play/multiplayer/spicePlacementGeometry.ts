@@ -8,20 +8,37 @@ import { tableDropPosition } from './tableDropPosition';
 
 const footprint = createSpiceStack(0, 1);
 const SAMPLES = [0.5, 0.25, 0.75, 0.1, 0.9];
-const PREVIEW_RADIUS = 32;
 type Viewport = Pick<DOMRect, 'width' | 'height'>;
-type ScreenPoint = Readonly<{ x: number; y: number }>;
+type Area = Readonly<{ left: number; top: number; width: number; height: number }>;
+export type SpicePreviewSize = Readonly<{ width: number; height: number }>;
 
 function within(value: number, minimum: number, maximum: number): boolean {
   return value >= minimum && value <= maximum;
 }
 
-/* The whole preview remains on screen, rather than only its center. */
-function fitsViewport(point: ScreenPoint, bounds: Viewport): boolean {
+function fitsViewport(area: Area, bounds: Viewport): boolean {
+  return within(area.left, 0, bounds.width - area.width) && within(area.top, 0, bounds.height - area.height);
+}
+
+function overlapsAxis(start: number, length: number, otherStart: number, otherLength: number): boolean {
+  return start < otherStart + otherLength && start + length > otherStart;
+}
+
+function overlaps(area: Area, other: Area): boolean {
   return (
-    within(point.x, PREVIEW_RADIUS, bounds.width - PREVIEW_RADIUS) &&
-    within(point.y, PREVIEW_RADIUS, bounds.height - PREVIEW_RADIUS)
+    overlapsAxis(area.left, area.width, other.left, other.width) &&
+    overlapsAxis(area.top, area.height, other.top, other.height)
   );
+}
+
+/* Match tablePointerPoint's occlusion rules, using full rectangles instead of one pointer position. */
+function tableObstacles(canvas: HTMLCanvasElement, bounds: DOMRect): Area[] {
+  return Array.from(canvas.ownerDocument.querySelectorAll<HTMLElement>('[data-private-hand], [data-hides-cursor]'))
+    .filter((element) => !element.hidden && element.getClientRects().length > 0)
+    .map((element) => {
+      const rect = element.getBoundingClientRect();
+      return { left: rect.left - bounds.left, top: rect.top - bounds.top, width: rect.width, height: rect.height };
+    });
 }
 
 function projectPosition(position: Vector3Tuple, camera: Camera, bounds: Viewport) {
@@ -33,13 +50,32 @@ function projectPosition(position: Vector3Tuple, camera: Camera, bounds: Viewpor
   };
 }
 
-function visiblePosition(position: Vector3Tuple, camera: Camera, bounds: Viewport): boolean {
+function areaIsClear(area: Area, bounds: Viewport, obstacles: Area[]): boolean {
+  return fitsViewport(area, bounds) && !obstacles.some((obstacle) => overlaps(area, obstacle));
+}
+
+/** The compact token and its help control stay within the viewport and clear of panels. */
+export function spicePreviewIsClear(
+  canvas: HTMLCanvasElement,
+  camera: Camera,
+  position: Vector3Tuple,
+  size: SpicePreviewSize
+): boolean {
+  const bounds = canvas.getBoundingClientRect();
   const point = projectPosition(position, camera, bounds);
-  return within(point.depth, -1, 1) && fitsViewport(point, bounds);
+  if (!within(point.depth, -1, 1)) {
+    return false;
+  }
+  const area = { left: point.x - size.width / 2, top: point.y - size.height / 2, ...size };
+  return areaIsClear(area, bounds, tableObstacles(canvas, bounds));
 }
 
 /** Starts where this camera can see the table, including when its center points beyond an edge. */
-export function visibleSpicePosition(canvas: HTMLCanvasElement, camera: Camera): Vector3Tuple | null {
+export function visibleSpicePosition(
+  canvas: HTMLCanvasElement,
+  camera: Camera,
+  size: SpicePreviewSize
+): Vector3Tuple | null {
   const bounds = canvas.getBoundingClientRect();
   for (const x of SAMPLES) {
     for (const y of SAMPLES) {
@@ -52,7 +88,7 @@ export function visibleSpicePosition(canvas: HTMLCanvasElement, camera: Camera):
         continue;
       }
       const position = clampPositionToTable(footprint, hit);
-      if (visiblePosition(position, camera, bounds)) {
+      if (spicePreviewIsClear(canvas, camera, position, size)) {
         return position;
       }
     }
@@ -65,18 +101,19 @@ export function moveSpicePosition(
   canvas: HTMLCanvasElement,
   camera: Camera,
   from: Vector3Tuple,
-  offset: readonly [number, number]
+  offset: readonly [number, number],
+  size: SpicePreviewSize
 ): Vector3Tuple | null {
   const bounds = canvas.getBoundingClientRect();
   const before = projectPosition(from, camera, bounds);
   const next = { x: before.x + offset[0], y: before.y + offset[1] };
-  if (!fitsViewport(next, bounds)) {
-    return null;
-  }
   const position = tableDropPosition({ clientX: bounds.left + next.x, clientY: bounds.top + next.y }, canvas, camera);
   if (!position) {
     return null;
   }
   const supported = clampPositionToTable(footprint, position);
-  return Math.hypot(supported[0] - position[0], supported[2] - position[2]) <= 1e-6 ? position : null;
+  if (Math.hypot(supported[0] - position[0], supported[2] - position[2]) > 1e-6) {
+    return null;
+  }
+  return spicePreviewIsClear(canvas, camera, position, size) ? position : null;
 }

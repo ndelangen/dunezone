@@ -29,8 +29,8 @@ export const Empty = meta.story({
   args: { balance: 0 },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(page.getByRole('img', { name: 'Help' })).toHaveAccessibleDescription(
-      /Drop a stack on the Spice Bank disc/
-    );
+    await expect(
+      within(page.getByRole('region', { name: 'Spice reserve' })).getByRole('img', { name: 'Help' })
+    ).toHaveAccessibleDescription(/Right-click a stack to collect it\. Drop it on the Spice Bank to return it\./);
   },
 });
