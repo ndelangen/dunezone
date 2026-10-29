@@ -54,6 +54,46 @@ async function seed(ctx: MutationCtx) {
 }
 
 describe('the draft reads the catalogue', () => {
+  test('returns render backgrounds for custom and preset-linked factions', async () => {
+    const t = applicationTest();
+    const { ruleset, linked, other } = await t.run(seed);
+    const custom: typeof assetPublishingFaction.background = {
+      ...assetPublishingFaction.background,
+      colors: ['#98a0a6', '#2a7982'],
+      source: { kind: 'custom' },
+    };
+    const preset: typeof assetPublishingFaction.background = {
+      ...assetPublishingFaction.background,
+      colors: ['#112233', '#445566'],
+    };
+    await t.run(async (ctx) => {
+      await ctx.db.insert('background_presets', {
+        key: 'draft-test',
+        name: 'Draft test',
+        value: preset,
+        revision: 1,
+        updated_at: 1,
+      });
+      await ctx.db.patch('factions', linked, { data: { ...assetPublishingFaction, background: custom } });
+      await ctx.db.patch('factions', other, {
+        data: {
+          ...assetPublishingFaction,
+          background: { ...assetPublishingFaction.background, source: { kind: 'preset', key: 'draft-test' } },
+        },
+      });
+    });
+
+    const { factions } = await t.query(api.playCatalogue.draftableFactions, { rulesetId: ruleset });
+    expect(factions.find((faction) => faction.id === linked)?.background).toEqual({
+      ...assetPublishingFaction.background,
+      colors: custom.colors,
+    });
+    expect(factions.find((faction) => faction.id === other)?.background).toEqual(preset);
+    expect(await t.run((ctx) => ctx.db.get('factions', linked))).toMatchObject({
+      data: { background: custom },
+    });
+  });
+
   test('lists every live faction that parses, with its ruleset link and whether both token faces are published', async () => {
     const t = applicationTest();
     const { ruleset, linked, other } = await t.run(seed);

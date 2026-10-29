@@ -13,6 +13,7 @@ import type { QueryCtx } from './_generated/server';
 import { mutation, viewerQuery } from './functions';
 import { canonicalAccount } from './lib/accountIdentity';
 import { isActiveProfile } from './lib/accountLifecycle';
+import { resolveBackgrounds } from './lib/backgroundPresets';
 import { authenticatedPlayRequest, currentPlaySession, isRealGame } from './lib/playAuthorization';
 
 /*
@@ -60,7 +61,9 @@ async function factionToken(ctx: QueryCtx, factionId: string) {
     return null;
   }
   const parsed = CanonicalFactionStoredObject.safeParse(row.data);
-  return parsed.success ? { logo: parsed.data.logo, background: parsed.data.background } : null;
+  return parsed.success
+    ? { logo: parsed.data.logo, background: await resolveBackgrounds(ctx, parsed.data.background) }
+    : null;
 }
 
 /** Who a seat holds, by current account: a deleted or unknown account leaves the seat unnamed. */
