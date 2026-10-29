@@ -273,3 +273,11 @@ test.each(COMPOSITION_EVENTS)('composing Space release does not confirm a held c
   press('keyup', SPACE, input);
   expect(onConfirm).not.toHaveBeenCalled();
 });
+
+test('a control with an explicit Space shortcut keeps Space for its own action', () => {
+  const { button } = page();
+  button.setAttribute('aria-keyshortcuts', 'Enter Space');
+  const { result } = compass();
+  expect(press('keydown', SPACE, button).defaultPrevented).toBe(false);
+  expect(result.current.open).toBe(false);
+});

@@ -1,14 +1,13 @@
-import { factionTokenOf } from '@shared/play/factionToken';
 import type { GameSnapshot } from '@shared/play/protocol';
 
 import type { GuideTask } from '../TutorialGuide';
 import type { ChapterScript, TablePlayers } from './chapterScript';
-import { at, buttonIn, nextPhaseButton, onBoard, openedWindow, task, viaCompass, windowShown } from './guideChecks';
+import { at, buttonIn, closePieceMenu, closeUpShown, nextPhaseButton, onBoard, task, viaCompass } from './guideChecks';
 
 /*
  * "Setup": the game's setup steps as the Setup window runs them, from the Bene Gesserit prediction to the starting troops.
  * The learner plays the Bene Gesserit, the one faction in the shared setup with a prediction, so the chapter opens on it.
- * Then the hand shows what each faction starts with, the Traitor step deals five face down in front of every seat,
+ * Then the learner combines and shuffles the tabletop traitors, deals four, keeps one and clears the discards,
  * and the starting troops go onto the board once the map shows. What a faction keeps and where its troops start are its own
  * rules, which the Setup window quotes; the chapter teaches where they happen, never the rules.
  */
@@ -41,18 +40,16 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
   const traitorsInHand = () =>
     (snapshot().hand ?? []).filter(isTraitor).reduce((total, piece) => total + piece.items.length, 0);
   const myReserves = () => pieces().find((piece) => piece.stackKey?.startsWith(`troops:${mine()}:`) && !onBoard(piece));
-  /* The learner's five lie face down between their seat and the board; the pile nearest their faction token is theirs. */
-  const myTraitors = () => {
-    const seat = factionTokenOf(snapshot().table.pieces, mine())?.position;
-    return pieces()
-      .filter(isTraitorPile)
-      .sort((a, b) =>
-        seat
-          ? Math.hypot(a.position[0]! - seat[0]!, a.position[2]! - seat[2]!) -
-            Math.hypot(b.position[0]! - seat[0]!, b.position[2]! - seat[2]!)
-          : 0
-      )[0];
-  };
+  const traitorPiles = () => pieces().filter(isTraitorPile);
+  const tabletopTraitors = () => traitorPiles().reduce((total, pile) => total + pile.items.length, 0);
+  const combined = () => (traitorPiles().length === 1 ? traitorPiles()[0] : undefined);
+  const myName = () =>
+    snapshot().roster?.seats.find((seat) => seat.faction?.id === mine())?.faction?.name ?? 'your faction';
+  const gatheredSince = (seen: number) =>
+    players
+      .acceptedActions()
+      .slice(seen)
+      .some(({ action }) => action.kind === 'traitors-gather');
   const myTroopsOnBoard = () =>
     pieces()
       .filter((piece) => piece.stackKey?.startsWith(`troops:${mine()}:`) && onBoard(piece))
@@ -78,9 +75,9 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'hand',
       task: 'Check your hand',
       detail:
-        'Press {H} to open Hand & spice. Your prediction is here, along with your leaders, alliance card and faction extras.',
+        'Press {H} to open Hand & spice. Your prediction is here, along with your leaders, alliance card and faction extras.\n\nHold {Alt} over your prediction card to read it. Release {Alt} when you are done.',
       anchor: { kind: 'page', element: viaCompass('hand') },
-      ...openedWindow(windowShown('hand')),
+      ...closeUpShown('[data-piece-close-up][data-piece-type="card-prediction"]'),
     }),
     task({
       id: 'to-traitors',
@@ -91,22 +88,88 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       done: () => setupIndex() >= 1,
     }),
     task({
-      id: 'peek-traitors',
-      task: 'Meet your traitors',
+      id: 'gather-traitors',
+      task: 'Combine the traitor cards',
       detail:
-        "Everyone has five face-down Traitor cards in front of them. Let's see yours.\n\nRight-click your pile and choose Peek at the deck. Only you can see the faces.",
-      anchor: { kind: 'table', point: () => at(myTraitors()) },
-      begin: () => undefined,
-      done: () => document.querySelector('[role="dialog"][aria-label^="Peeking at"]') !== null,
+        'Each faction brought its traitor cards. First we need one deck.\n\nIn the Setup window, press Gather tabletop traitors to combine the piles.',
+      anchor: { kind: 'page', element: () => buttonIn('setup', 'Gather tabletop traitors')() ?? viaCompass('setup')() },
+      begin: () => ({ seen: players.acceptedActions().length, count: tabletopTraitors() }),
+      done: ({ seen, count }) => count > 0 && gatheredSince(seen) && combined()?.items.length === count,
+    }),
+    task({
+      id: 'shuffle-traitors',
+      task: 'Shuffle the traitor deck',
+      detail:
+        'Close Hand & spice so you can see the combined deck. Hover over it and press {R} to shuffle. Everyone should get a surprise!',
+      anchor: { kind: 'table', point: () => at(combined()) },
+      begin: () => players.acceptedActions().length,
+      done: (seen) =>
+        players
+          .acceptedActions()
+          .slice(seen)
+          .some(({ action, source }) => action.kind === 'deck-shuffle' && source && isTraitorPile(source)),
+    }),
+    task({
+      id: 'deal-traitors',
+      task: 'Deal yourself four traitors',
+      get detail() {
+        return `The Setup window has Deal 1 and Deal 4 buttons beside each faction.\n\nPress Deal 4 beside ${myName()} to give yourself four cards. If you deal too many, drag the extras back onto the table until four remain.`;
+      },
+      anchor: {
+        kind: 'page',
+        element: () =>
+          document.querySelector(`[data-window="setup"] button[aria-label="Deal 4 to ${CSS.escape(myName())}"]`) ??
+          viaCompass('setup')(),
+      },
+      begin: () => players.acceptedActions().length,
+      done: (seen) =>
+        traitorsInHand() === 4 &&
+        players
+          .acceptedActions()
+          .slice(seen)
+          .some(
+            ({ action, source }) =>
+              action.kind === 'deck-draw' &&
+              action.count === 4 &&
+              (!action.recipient || action.recipient === mine()) &&
+              source &&
+              isTraitorPile(source)
+          ),
     }),
     task({
       id: 'keep-traitor',
-      task: 'Choose a traitor',
+      task: 'Choose your traitor',
       detail:
-        'See one you like? Drag it to the front of the row and close the peek. Then right-click your pile and choose Draw a card. The rest stay face down.\n\nMost factions keep one traitor, but check your faction rules.',
-      anchor: { kind: 'table', point: () => at(myTraitors()) },
-      begin: () => undefined,
-      done: () => traitorsInHand() === 1,
+        'Open Hand & spice with {H} and have a look at your four traitors. Hold {Alt} over a card to read it.\n\nKeep one you like and drag the other three onto the table. They land face down, so your choice stays secret.',
+      anchor: { kind: 'page', element: () => document.querySelector('[data-window="hand"]') ?? viaCompass('hand')() },
+      begin: tabletopTraitors,
+      done: (count) => traitorsInHand() === 1 && tabletopTraitors() >= count + 3,
+    }),
+    task({
+      id: 'gather-discards',
+      task: 'Gather the leftover traitors',
+      detail:
+        'Back in the Setup window, press Gather tabletop traitors again. It collects the discarded and undealt cards into one pile, leaving your chosen traitor in hand.',
+      anchor: { kind: 'page', element: () => buttonIn('setup', 'Gather tabletop traitors')() ?? viaCompass('setup')() },
+      begin: () => ({ seen: players.acceptedActions().length, count: tabletopTraitors() }),
+      done: ({ seen, count }) => count > 0 && gatheredSince(seen) && combined()?.items.length === count,
+    }),
+    task({
+      id: 'delete-discards',
+      task: 'Delete the leftover pile',
+      detail:
+        'The leftover traitors can leave the game now. Right-click the gathered pile and hold the trash icon until the countdown ends.\n\nCareful: deletion is permanent. Make sure you have kept your chosen traitor before deleting the pile.',
+      anchor: { kind: 'table', point: () => at(combined()) },
+      begin: () => ({ seen: players.acceptedActions().length, id: combined()?.id }),
+      done: ({ seen, id }) =>
+        !!id &&
+        traitorsInHand() === 1 &&
+        tabletopTraitors() === 0 &&
+        players
+          .acceptedActions()
+          .slice(seen)
+          .some(({ action }) => action.kind === 'delete' && action.pieceId === id),
+      finish: closePieceMenu,
     }),
     task({
       id: 'ready',
@@ -147,7 +210,8 @@ const learned = [
   'The Setup window runs setup step by step, and the header names the step',
   'A prediction locks in the Setup window and becomes a card in your hand',
   'Your hand holds your leaders, your alliance card and your faction’s Extras',
-  'Traitors come face down in front of your seat: peek at them and draw the ones you keep',
+  'Gather and shuffle the traitor cards, then use the phase panel to deal four',
+  'Keep one traitor, discard three, gather the leftovers and delete their pile',
   'Steps that wait for everyone need Ready before Next phase',
 ];
 

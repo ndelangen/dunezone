@@ -1,5 +1,5 @@
 .root {
-  --callout-fill: color-mix(in srgb, var(--mantine-color-body) 92%, transparent);
+  --callout-fill: var(--callout-background, color-mix(in srgb, var(--mantine-color-body) 92%, transparent));
   --callout-curved-inset: calc(var(--space-lg) * 1.1);
   position: relative;
   isolation: isolate;

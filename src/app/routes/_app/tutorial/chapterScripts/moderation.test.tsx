@@ -33,6 +33,8 @@ test('the others vote on a second vote after the first one fails', () => {
     viewOf: () => view,
     others: () => [],
     landings: () => [],
+    acceptedActions: () => [],
+    pings: () => [],
     captured: () => undefined,
     capturedPieces: () => [],
   };
@@ -60,6 +62,8 @@ test('the first step waits for the Harkonnen player’s information, not another
     viewOf: () => view,
     others: () => [],
     landings: () => [],
+    acceptedActions: () => [],
+    pings: () => [],
     captured: () => undefined,
     capturedPieces: () => [],
   };

@@ -1,11 +1,11 @@
-import { Button, Group, Stack, Text } from '@mantine/core';
+import { Group, Stack, Text } from '@mantine/core';
 import { Section } from '@ui/block/Section';
 import { IconAction } from '@ui/control/IconAction';
 import { Layers, Plus } from 'lucide-react';
 
 import { SHARED_INVENTORY_HELP } from '../../multiplayer/panelGuidance';
 import styles from './Inventory.module.css';
-import { DRAW_ICON, DrawTechToken, InventoryPiece, PieceStrip } from './InventoryParts';
+import { DRAW_ICON, InventoryPiece, PieceStrip } from './InventoryParts';
 import type { InventoryRow } from './inventoryRows';
 import type { SharedInventory, SharedInventoryViewProps } from './useSharedInventory';
 
@@ -50,15 +50,16 @@ export function SharedInventoryPanel({ inventory, picker, requests }: SharedInve
   return (
     <Section hiddenHeading title="Shared table inventory" description={SHARED_INVENTORY_HELP}>
       <Stack gap="md">
+        {requests && <div className={styles.requests}>{requests}</div>}
         {gather && (
-          <Button
-            variant="default"
-            leftSection={<Layers size={16} aria-hidden />}
-            disabled={!gather.enabled}
+          <IconAction
+            label="Gather tabletop traitors"
+            intent="neutral"
+            emphasis="quiet"
+            icon={<Layers size={16} aria-hidden />}
+            disabledReason={gather.enabled ? undefined : 'Cannot gather traitors now.'}
             onClick={gather.run}
-          >
-            Gather tabletop traitors
-          </Button>
+          />
         )}
         {inventory.rows.map((row) => (
           <section key={row.key} aria-label={row.label} className={styles.shelf}>
@@ -68,13 +69,16 @@ export function SharedInventoryPanel({ inventory, picker, requests }: SharedInve
               </Text>
               <Group gap="xs" wrap="nowrap">
                 {row.spawnType === 'token-tech' && (
-                  <DrawTechToken inventory={inventory}>
-                    {(control) => (
-                      <Button size="compact-sm" variant="default" leftSection={DRAW_ICON} {...control}>
-                        Draw random tech token
-                      </Button>
-                    )}
-                  </DrawTechToken>
+                  <IconAction
+                    label="Draw random tech token"
+                    tooltip={inventory.draw.help}
+                    intent="neutral"
+                    emphasis="quiet"
+                    size="sm"
+                    icon={DRAW_ICON}
+                    disabledReason={inventory.draw.enabled ? undefined : inventory.draw.help}
+                    onClick={inventory.draw.run}
+                  />
                 )}
                 <AddToShelf inventory={inventory} row={row} />
               </Group>
@@ -89,7 +93,6 @@ export function SharedInventoryPanel({ inventory, picker, requests }: SharedInve
             )}
           </section>
         ))}
-        {requests}
       </Stack>
     </Section>
   );

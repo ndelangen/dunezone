@@ -114,7 +114,7 @@ function stackTasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideT
       id: 'split',
       task: 'Split off three troops',
       detail:
-        "You don't have to move the whole stack. Hover over your reserves and hold {3} for a second to split off three troops.",
+        "You don't have to move the whole stack. Hover over your reserves and hold {3} for a second to split off three troops.\n\nThree is just an example. Any number key works, and {0} means ten troops.",
       anchor: { kind: 'table', point: () => at(biggestReserve()) },
       begin: () => reserves().filter((piece) => piece.items.length === 3).length,
       done: (start) => reserves().filter((piece) => piece.items.length === 3).length > start,

@@ -1,0 +1,122 @@
+[
+  {
+    "assetId": "ns71r4jh0veyz2w9d372deayp98fbjtt",
+    "name": "Broken Land",
+    "amount": 8,
+    "territory": "broken_land"
+  },
+  {
+    "assetId": "ns790dz7jrazct3kk2tzmpxj858fa002",
+    "name": "Cielago North",
+    "amount": 8,
+    "territory": "cielago_north"
+  },
+  {
+    "assetId": "ns78f4q6wse2ctvdx8qehzn4ds8fb406",
+    "name": "Cielago South",
+    "amount": 12,
+    "territory": "cielago_south"
+  },
+  {
+    "assetId": "ns736jntt093pb232vkv23rj0d8fbnkr",
+    "name": "Funeral Plain",
+    "amount": 6,
+    "territory": "funeral_plain"
+  },
+  {
+    "assetId": "ns7318ca1xzwn28q5fyawk8ghn8famt0",
+    "name": "Habbanya Erg",
+    "amount": 8,
+    "territory": "habbanya_erg"
+  },
+  {
+    "assetId": "ns70mpsrq6wy3mw4hwbaaj6pgx8faxz7",
+    "name": "Habbanya Ridge Flat",
+    "amount": 10,
+    "territory": "habbanya_ridge_flat"
+  },
+  {
+    "assetId": "ns79e4nh50t6198t3jntxawt5s8fbzg9",
+    "name": "Hagga Basin",
+    "amount": 6,
+    "territory": "hagga_basin"
+  },
+  {
+    "assetId": "ns704j1zbmnb8p09s6ejaaskjx8fbspg",
+    "name": "Old Gap",
+    "amount": 6,
+    "territory": "old_gap"
+  },
+  {
+    "assetId": "ns7e7xhjmsf14nsrr13yr09wrn8fbsgc",
+    "name": "Red Chasm",
+    "amount": 8,
+    "territory": "red_chasm"
+  },
+  {
+    "assetId": "ns7fmwbc1svzhsht500enggjxs8fb2dp",
+    "name": "Rock Outcroppings",
+    "amount": 6,
+    "territory": "rock_outcroppings"
+  },
+  {
+    "assetId": "ns73r37csetrvprqpqw4fn07558fav37",
+    "name": "Sihaya Ridge",
+    "amount": 6,
+    "territory": "sihaya_ridge"
+  },
+  {
+    "assetId": "ns7278anbad90qczvfwcte095d8fbsn2",
+    "name": "South Mesa",
+    "amount": 10,
+    "territory": "south_mesa"
+  },
+  {
+    "assetId": "ns7b1kdynasphfb7trnc5msfp18fbp9j",
+    "name": "The Great Flat",
+    "amount": 10,
+    "territory": "the_great_flat"
+  },
+  {
+    "assetId": "ns7fjzp4kzkqh45zv602dxh1ys8fanbf",
+    "name": "The Minor Erg",
+    "amount": 8,
+    "territory": "the_minor_erg"
+  },
+  {
+    "assetId": "ns75bxpaktkmcbskbnfxew4ben8fahm8",
+    "name": "Wind Pass North",
+    "amount": 6,
+    "territory": "wind_pass_north"
+  },
+  {
+    "assetId": "ns7bwpps78qcc50x0brmn2n5198gr7tc",
+    "name": "Arsunt",
+    "amount": 3,
+    "territory": "arsunt"
+  },
+  {
+    "assetId": "ns71qnp0s60g9q4c0b2933myn98gsveh",
+    "name": "Bight of the Cliff",
+    "amount": 4,
+    "territory": "bight_of_the_cliff"
+  },
+  {
+    "assetId": "ns7aqrydhhm0whq2464fpdeks98grn74",
+    "name": "Ceilago East",
+    "amount": 3,
+    "territory": "cielago_east"
+  },
+  {
+    "assetId": "ns7dmhkm00gs54zgc9jxzj0bt58grvdy",
+    "name": "Ceilago West",
+    "amount": 4,
+    "territory": "cielago_west"
+  },
+  {
+    "assetId": "ns7f3ye20hrymr19evxf3nrjqh8gswzn",
+    "name": "Gaia Kulon",
+    "amount": 5,
+    "territory": "gara_kulon"
+  }
+]

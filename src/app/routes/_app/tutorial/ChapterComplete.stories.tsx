@@ -1,6 +1,5 @@
 import preview from '@sb/preview';
 import type { ReactNode } from 'react';
-import { fn } from 'storybook/test';
 
 import { ChapterComplete } from './ChapterComplete';
 import { whatGoesWhere } from './chapterScripts/whatGoesWhere';
@@ -24,7 +23,7 @@ const meta = preview.meta({
   parameters: { layout: 'fullscreen' },
   globals: { motion: 'on' },
   argTypes: { chaptersLink: { control: false }, nextLink: { control: false } },
-  args: { learned: whatGoesWhere.learned, chaptersLink: link('#chapters'), onKeepPlaying: fn() },
+  args: { learned: whatGoesWhere.learned, chaptersLink: link('#chapters') },
 });
 
 /** The last chapter built so far: the button leads back to the chapter list. */

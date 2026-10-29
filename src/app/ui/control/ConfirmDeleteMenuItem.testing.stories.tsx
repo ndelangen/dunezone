@@ -78,3 +78,26 @@ export const RetryAfterFailure = meta.story({
     }
   },
 });
+
+/** A short click leaves a menu open when its caller asks it to. */
+export const StaysOpenOnClick = meta.story({
+  render: (args) => (
+    <Menu withinPortal={false}>
+      <Menu.Target>
+        <Button>Game menu</Button>
+      </Menu.Target>
+      <Menu.Dropdown>
+        <ConfirmDeleteMenuItem {...args} closeMenuOnClick={false} />
+      </Menu.Dropdown>
+    </Menu>
+  ),
+  play: async ({ canvas, args }) => {
+    await userEvent.click(canvas.getByRole('button', { name: 'Game menu' }));
+    const item = await waitForFrame(() =>
+      finishTransitions(canvas.getByRole('menuitem', { name: 'Hold to delete permanently' }))
+    );
+    await userEvent.click(item);
+    await waitFor(() => expect(item).toBeVisible());
+    await expect(args.onConfirm).not.toHaveBeenCalled();
+  },
+});

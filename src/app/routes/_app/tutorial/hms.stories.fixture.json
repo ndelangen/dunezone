@@ -1,0 +1,50 @@
+{
+  "asset": {
+    "data": {
+      "about": "The HMS is a troop transporting platform.",
+      "back": {
+        "mode": "same"
+      },
+      "front": {
+        "background": {
+          "colors": [
+            "#47472d",
+            {
+              "r": 34,
+              "stops": [
+                ["#27260C", 0],
+                ["#424222", 0.5],
+                ["#aeae6d", 0.51],
+                ["#b3b372", 1]
+              ],
+              "type": "radial"
+            }
+          ],
+          "definition": 0.48,
+          "image": "/image/texture/032.jpg",
+          "influence": 1,
+          "invert": false
+        },
+        "bottomFirst": "",
+        "bottomSecond": "",
+        "image": "/vector/icon/hms.svg",
+        "ring": true,
+        "ringShadow": true,
+        "symbolScale": 0.9,
+        "top": ""
+      },
+      "name": "HMS"
+    },
+    "id": "ns70y1ghbeqpcbnncy5j19hqcn8gc85p",
+    "name": "HMS",
+    "slug": "hms",
+    "type": "token-pointer"
+  },
+  "back": "/published/pointer-tokens/ns70y1ghbeqpcbnncy5j19hqcn8gc85p/token.jpg?v=176ed1a9-497a-4095-83e6-3b53dcc44649",
+  "backDeck": null,
+  "backMode": "same",
+  "backToken": null,
+  "front": "/published/pointer-tokens/ns70y1ghbeqpcbnncy5j19hqcn8gc85p/token.jpg?v=176ed1a9-497a-4095-83e6-3b53dcc44649",
+  "members": [],
+  "membersTruncated": false
+}

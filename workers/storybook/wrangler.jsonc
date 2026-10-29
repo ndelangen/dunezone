@@ -17,7 +17,8 @@
       "/web/*",
       "/published/*",
       "!/published/boards/*",
-      "!/published/round-tokens/00000000000000000000*"
+      "!/published/round-tokens/00000000000000000000*",
+      "!/published/pointer-tokens/00000000000000000000*"
     ]
   }
 }

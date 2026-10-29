@@ -2,7 +2,7 @@ import type { GameSnapshot } from '@shared/play/protocol';
 
 import type { GuideTask } from '../TutorialGuide';
 import type { ChapterScript, TablePlayers } from './chapterScript';
-import { at, closePieceMenu, element, grownCarryLanded, tableDeck, task } from './guideChecks';
+import { at, closePieceMenu, element, grownCarryLanded, holdsAll, tableDeck, task } from './guideChecks';
 import type { Piece } from './guideChecks';
 
 /*
@@ -17,8 +17,6 @@ const loose = (pieces: readonly Piece[], deck: Piece | undefined) =>
   deck === undefined
     ? []
     : pieces.filter((piece) => piece !== deck && !piece.inventory && piece.stackKey === deck.stackKey);
-const looseStacks = (pieces: readonly Piece[], deck: Piece | undefined, size: number) =>
-  loose(pieces, deck).filter((piece) => piece.items.length >= size).length;
 
 /* Every Treachery card the other players hold: a hand's size is public, as the rules make it. */
 const othersHold = (snapshot: GameSnapshot) =>
@@ -88,7 +86,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'deal',
       task: 'Deal a card',
       detail:
-        "You can deal straight into another player's hand. Right-click the Treachery deck on the left, choose Deal a card, then choose a faction.",
+        "You can deal straight into another player's hand. Right-click the Treachery deck on the left, click Deal a card to open its choices, then click a faction.",
       anchor: { kind: 'table', point: () => at(treachery()) },
       begin: () => othersHold(snapshot()),
       done: (start) => othersHold(snapshot()) > start,
@@ -97,12 +95,34 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     }),
     task({
       id: 'split',
-      task: 'Split off three cards',
+      task: 'Split off six Treachery cards',
       detail:
-        'Need a small pile? Hover over the Spice deck and hold {3} for a second. The top three cards form a separate face-down pile.',
-      anchor: { kind: 'table', point: () => at(spice()) },
-      begin: () => looseStacks(pieces(), spice(), 3),
-      done: (start) => looseStacks(pieces(), spice(), 3) > start,
+        'Need a pile for bidding? Hover over the Treachery deck on the left and hold {6} for a second. The top six cards form a separate face-down pile.',
+      anchor: { kind: 'table', point: () => at(treachery()) },
+      begin: () => ({ seen: players.acceptedActions().length, deck: treachery()?.id }),
+      done: ({ seen, deck }) =>
+        players
+          .acceptedActions()
+          .slice(seen)
+          .some(
+            ({ action, source }) =>
+              action.kind === 'split' &&
+              action.pieceId === deck &&
+              action.count === 6 &&
+              source &&
+              source.items.length >= 6 &&
+              pieces().some(
+                (piece) =>
+                  piece.id !== deck &&
+                  !piece.inventory &&
+                  piece.items.length === 6 &&
+                  piece.items.every((item) => !item.faceUp) &&
+                  holdsAll(
+                    piece,
+                    source.items.slice(-6).map((item) => item.id)
+                  )
+              )
+          ),
     }),
     task({
       id: 'take-two',

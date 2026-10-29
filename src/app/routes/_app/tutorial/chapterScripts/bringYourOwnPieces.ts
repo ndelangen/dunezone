@@ -9,7 +9,7 @@ import { element, openedWindow, task, windowShown } from './guideChecks';
 /*
  * "Bring your own pieces": the Shared table inventory, where the pieces live that belong to no seat,
  * and its catalogue of decks, bundles and tokens people made in the editor (Norbert, 2026-10-27: really spawn one, and get it approved).
- * The learner asks the table for Karama, another player approves the request, and the token lands in the Shared table inventory,
+ * The learner asks the table for HMS, another player approves the request, and the token lands in the Shared table inventory,
  * captured from the catalogue as a real game captures it.
  */
 
@@ -20,24 +20,23 @@ const APPROVAL_DELAY_MS = 1800;
 
 const sharedButton = (label: string) =>
   [...document.querySelectorAll<HTMLButtonElement>(`${SHARED} button`)].find(
-    (button) => button.textContent?.trim() === label
+    (button) => (button.textContent?.trim() || button.getAttribute('aria-label')) === label
   ) ?? null;
-/* The token the chapter asks for, by type and slug: an owner, bundle or deck that merely has Karama in its name is not it. */
-const KARAMA: SpawnSelection = { type: 'token-disc', slug: 'karama' };
-const karamaOption = () =>
-  document.querySelector(`${SHARED} [role="option"][data-spawn-asset="${spawnableKey(KARAMA)}"]`);
-/* The row the picker holds as picked; another asset picked instead keeps the chapter waiting for Karama. */
-const karamaPicked = () => karamaOption()?.hasAttribute('data-combobox-active') ?? false;
+/* The token the chapter asks for, by type and slug: an owner, bundle or deck that merely has HMS in its name is not it. */
+const HMS: SpawnSelection = { type: 'token-pointer', slug: 'hms' };
+const hmsOption = () => document.querySelector(`${SHARED} [role="option"][data-spawn-asset="${spawnableKey(HMS)}"]`);
+/* The row the picker holds as picked; another asset picked instead keeps the chapter waiting for HMS. */
+const hmsPicked = () => hmsOption()?.hasAttribute('data-combobox-active') ?? false;
 /* The request button opens once the table has checked the picked asset. */
-const karamaReady = () => {
+const hmsReady = () => {
   const request = sharedButton('Request');
-  return karamaPicked() && request !== null && !request.disabled;
+  return hmsPicked() && request !== null && !request.disabled && request.getAttribute('aria-disabled') !== 'true';
 };
-/* Where to look next for Karama: its row once the picker lists it, else the search, else the button that opens the catalogue. */
-const findKarama = () =>
-  karamaOption() ??
+/* Where to look next for HMS: its row once the picker lists it, else the search, else the button that opens the catalogue. */
+const findHMS = () =>
+  hmsOption() ??
   document.querySelector(SEARCH) ??
-  document.querySelector(`${SHARED} [aria-label="Add disc tokens from the catalogue"]`);
+  document.querySelector(`${SHARED} [aria-label="Add pointer tokens from the catalogue"]`);
 /* New lines join the bottom of the window's list, below what it shows, so the step scrolls its line into view. */
 const showInWindow = (selector: string) => document.querySelector(selector)?.scrollIntoView({ block: 'nearest' });
 
@@ -46,14 +45,14 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     snapshot()
       .table.pieces.filter((piece) => piece.inventory === 'shared')
       .reduce((total, piece) => total + piece.items.length, 0);
-  /* Karama's request and pieces are known by the asset its selection captured, which they carry through approval and placement. */
-  const karamaRequested = () => {
-    const assetId = players.captured(KARAMA);
+  /* HMS's request and pieces are known by the asset its selection captured, which they carry through approval and placement. */
+  const hmsRequested = () => {
+    const assetId = players.captured(HMS);
     return (snapshot().controls?.requests ?? []).some(
-      ({ contents }) => contents.type === KARAMA.type && contents.assetId === assetId
+      ({ contents }) => contents.type === HMS.type && contents.assetId === assetId
     );
   };
-  const karama = () => players.capturedPieces(KARAMA);
+  const hms = () => players.capturedPieces(HMS);
   return [
     task({
       id: 'open',
@@ -73,41 +72,41 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     }),
     task({
       id: 'find',
-      task: 'Find Karama in the catalogue',
+      task: 'Find HMS in the catalogue',
       detail:
-        "Let's add something new. Press the + on the Disc tokens row, search for Karama and select it to preview the piece.\n\nThe catalogue has custom pieces you can bring into a game.",
-      anchor: { kind: 'page', element: findKarama },
+        "Let's add something new. Press the + on the Pointer tokens row, search for HMS and select it to preview the piece.\n\nThe catalogue has custom pieces you can bring into a game.",
+      anchor: { kind: 'page', element: findHMS },
       begin: () => undefined,
-      done: karamaReady,
+      done: hmsReady,
     }),
     task({
       id: 'request',
       task: 'Request the piece',
-      detail: 'Press Request. One other player must approve before Karama is added to the shared inventory.',
-      anchor: { kind: 'page', element: () => (karamaPicked() ? sharedButton('Request') : findKarama()) },
+      detail: 'Press Request. One other player must approve before HMS is added to the shared inventory.',
+      anchor: { kind: 'page', element: () => (hmsPicked() ? sharedButton('Request') : findHMS()) },
       begin: () => undefined,
-      done: () => karamaRequested() || karama().length > 0,
+      done: () => hmsRequested() || hms().length > 0,
     }),
     task({
       id: 'approved',
       task: 'Wait for approval',
       detail:
-        "Another player will approve Karama in a moment. You can't approve your own request, and any player can dismiss one instead.",
+        "Another player will approve HMS in a moment. You can't approve your own request, and any player can dismiss one instead.",
       anchor: { kind: 'page', element: element(`${SHARED} [data-spawn-request]`) },
       begin: () => {
         showInWindow(`${SHARED} [data-spawn-request]`);
         return approveSoon(snapshot, players);
       },
-      done: () => karama().length > 0,
+      done: () => hms().length > 0,
       finish: (stop) => stop(),
     }),
     task({
       id: 'place',
-      task: 'Put Karama on the table',
-      detail: 'Drag Karama from the Shared table inventory onto the table.',
-      anchor: { kind: 'page', element: element(`${SHARED} [aria-label^="Drag Karama"]`) },
-      begin: () => showInWindow(`${SHARED} [aria-label^="Drag Karama"]`),
-      done: () => karama().some((piece) => !piece.inventory),
+      task: 'Put HMS on the table',
+      detail: 'Drag HMS from the Shared table inventory onto the table.',
+      anchor: { kind: 'page', element: element(`${SHARED} [aria-label^="Drag HMS"]`) },
+      begin: () => showInWindow(`${SHARED} [aria-label^="Drag HMS"]`),
+      done: () => hms().some((piece) => !piece.inventory),
     }),
   ];
 }

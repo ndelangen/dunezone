@@ -2,6 +2,7 @@ import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import { rosterSeat, SPECTATOR_SEAT } from '@shared/play/schema';
 
 import type { TableProjection } from '../../../../db/tabletop/TableSession';
+import { factionToken } from './FactionTokenFace';
 
 /** Whether the viewer watches the table rather than holding a seat at it. */
 export function isSpectator(table: TableProjection): boolean {
@@ -35,7 +36,8 @@ export function factionName(table: TableProjection, id: string): string {
 
 /** The table's factions as select options. */
 export function factionOptions(table: TableProjection) {
-  return Object.entries(snapshotFactionLabels(table.snapshot)).map(([value, label]) => ({ value, label }));
+  const names = snapshotFactionLabels(table.snapshot);
+  return Object.entries(names).map(([value, label]) => ({ value, label, token: factionToken(table, value, names) }));
 }
 
 /** Whether a stage plays like a game in play: a hosted game in play, or the fixture, which has no stage. */

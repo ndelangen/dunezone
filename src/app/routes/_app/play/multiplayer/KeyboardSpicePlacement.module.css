@@ -1,0 +1,18 @@
+.placement {
+  position: relative;
+  width: 64px;
+  height: 64px;
+}
+
+.instructions {
+  position: absolute;
+  bottom: calc(100% + var(--space-xs));
+  left: 50%;
+  translate: -50% 0;
+  pointer-events: none;
+}
+
+.instructions[data-below] {
+  top: calc(100% + var(--space-xs));
+  bottom: auto;
+}

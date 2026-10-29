@@ -1,7 +1,10 @@
-import { Button, Group, MultiSelect, Radio, Select, Stack, VisuallyHidden } from '@mantine/core';
+import { Button, Group, MultiSelect, Radio, Select, Stack, Text, VisuallyHidden } from '@mantine/core';
 import type { GameResultKind } from '@shared/play/result';
 import { Section } from '@ui/block/Section';
 import type { ReactNode } from 'react';
+
+import { factionOption } from '../../multiplayer/factionOption';
+import type { FactionOption } from '../../multiplayer/factionOption';
 
 const KINDS: { value: GameResultKind; label: string }[] = [
   { value: 'faction', label: 'Faction' },
@@ -29,7 +32,7 @@ export type ResultState =
   | Readonly<{
       /** The viewer is determining the winner: one faction, an alliance of factions or no winner, then Declare. */
       kind: 'declaring';
-      options: readonly { value: string; label: string }[];
+      options: readonly FactionOption[];
       choice: Choice;
       /** Whether the choice names as many factions as its kind needs. */
       valid: boolean;
@@ -48,6 +51,7 @@ export type ResultPanelProps = Readonly<{
   /** Nothing to settle: no ending is under way and the game is not finished, or the table shows an earlier turn. */
   state: ResultState | null;
   prediction: PredictionReveal;
+  revealedPrediction?: string;
   /** The actions are greyed out while the table is not taking moves. */
   disabled: boolean;
   onReveal: () => void;
@@ -112,6 +116,7 @@ function DeclareBar({
             <Select
               label="Winning faction"
               data={options}
+              renderOption={({ option }) => factionOption(options, option.value)}
               value={choice.faction}
               onChange={(faction) => onChange({ faction })}
               disabled={disabled}
@@ -121,6 +126,7 @@ function DeclareBar({
             <MultiSelect
               label="Winning alliance"
               data={options}
+              renderOption={({ option }) => factionOption(options, option.value)}
               value={choice.alliance}
               onChange={(alliance) => onChange({ alliance })}
               disabled={disabled}
@@ -189,11 +195,22 @@ export function ResultPanel(props: ResultPanelProps) {
   if (!state) {
     return null;
   }
-  if (state.kind === 'declaring') {
-    return <DeclareBar {...props} state={state} />;
+  let result: ReactNode;
+  switch (state.kind) {
+    case 'declaring':
+      result = <DeclareBar {...props} state={state} />;
+      break;
+    case 'determining':
+      result = <DeterminingBar {...props} name={state.name} />;
+      break;
+    case 'finished':
+      result = <FinishedBar {...props} state={state} />;
+      break;
   }
-  if (state.kind === 'determining') {
-    return <DeterminingBar {...props} name={state.name} />;
-  }
-  return <FinishedBar {...props} state={state} />;
+  return (
+    <Stack gap="sm">
+      {result}
+      {props.revealedPrediction && <Text size="sm">{props.revealedPrediction}</Text>}
+    </Stack>
+  );
 }

@@ -2,12 +2,12 @@ import type { GameSnapshot } from '@shared/play/protocol';
 
 import type { GuideTask } from '../TutorialGuide';
 import type { ChapterScript } from './chapterScript';
-import { element, pressEnter, task } from './guideChecks';
+import { element, task } from './guideChecks';
 
 /*
- * "Ending a game": the result from Determine winner to Continue playing. Mentat recall and player removal each have their own chapter.
+ * "Ending a game": agree on the winner, then declare the result.
  * The others played the turn through to the Mentat Pause before the chapter opens, as only that phase offers Determine winner.
- * One player declares the result and nobody confirms it, so the chapter declares, then continues the game as anyone may.
+ * One player declares the result after the table agrees on who won.
  */
 
 /* The Mentat Pause is the turn's ninth phase. */
@@ -44,52 +44,6 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       begin: () => undefined,
       done: () => snapshot().stage === 'finished',
     }),
-    task({
-      id: 'replay',
-      task: 'Look back at the game',
-      detail:
-        'Want to revisit how it unfolded? Press {Space}, type Replay and confirm with {Enter}.\n\nChoose Replay from start to see the saved public positions. Private hands and plans stay hidden.',
-      anchor: {
-        kind: 'page',
-        element: () => buttonNamed('Replay from start')() ?? document.querySelector('[data-compass-launcher]'),
-      },
-      begin: () => undefined,
-      done: () => buttonNamed('Return to live')() !== null,
-    }),
-    task({
-      id: 'replay-step',
-      task: 'Step through the saved phases',
-      detail: 'Press Later phase to see the next saved position.\n\nReplay does not change the live table.',
-      anchor: { kind: 'page', element: buttonNamed('Later phase') },
-      begin: () => undefined,
-      /* Earlier phase opens only after replay leaves its first checkpoint, even if the learner steps ahead immediately. */
-      done: () => buttonNamed('Earlier phase')()?.disabled === false,
-    }),
-    task({
-      id: 'live',
-      task: 'Return to the live table',
-      detail: 'Press Return to live to leave replay. The game still has the result you declared.',
-      anchor: { kind: 'page', element: buttonNamed('Return to live') },
-      begin: () => undefined,
-      done: () => buttonNamed('Return to live')() === null && buttonNamed('Continue playing')() !== null,
-    }),
-    task({
-      id: 'continue',
-      task: 'Keep playing',
-      detail:
-        "Decided the game isn't over after all? Press Continue playing in the top right to clear the result and return to Mentat Pause.",
-      anchor: { kind: 'page', element: buttonNamed('Continue playing') },
-      begin: () => undefined,
-      done: () => snapshot().stage === 'play' && !snapshot().result,
-    }),
-    task({
-      id: 'replay-closed',
-      task: 'Replay closes when play resumes',
-      detail:
-        'Replay is only available after a game ends. To inspect an earlier position during play, use Mentat recall, covered in its own chapter.\n\nPress {Enter} to finish.',
-      anchor: { kind: 'page', element: element('[aria-label="Phase navigation"]') },
-      ...pressEnter(),
-    }),
   ];
 }
 
@@ -97,9 +51,6 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
 const learned = [
   'Determine winner waits in the Mentat Pause',
   'One player declares the result, and that finishes the game',
-  'Replay shows saved public positions once the game is finished',
-  'Return to live leaves the result in place',
-  'Continue playing takes a result back and closes replay',
 ];
 
 export const endingAGame: ChapterScript = {

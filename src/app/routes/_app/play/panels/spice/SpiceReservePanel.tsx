@@ -1,9 +1,11 @@
-import { Button, Group, Text } from '@mantine/core';
+import { Group, Text } from '@mantine/core';
 import { Section } from '@ui/block/Section';
+import { SortableRow } from '@ui/control/SortableRow';
 import { Stepper } from '@ui/control/Stepper';
 import { useState } from 'react';
 
 import { SPICE_RESERVE_HELP } from '../../multiplayer/panelGuidance';
+import { SpiceTokenPreview } from '../../multiplayer/SpiceTokenPreview';
 import styles from './SpiceReservePanel.module.css';
 
 export type SpiceReservePanelProps = Readonly<{
@@ -13,7 +15,12 @@ export type SpiceReservePanelProps = Readonly<{
   hiddenHeading: boolean;
 }> &
   (
-    | Readonly<{ isFrozen?: false; enabled: boolean; onWithdraw: (amount: number) => boolean }>
+    | Readonly<{
+        isFrozen?: false;
+        enabled: boolean;
+        onStartPlacement: (amount: number) => void;
+        onWithdraw: (amount: number, point: Readonly<{ x: number; y: number }>) => boolean;
+      }>
     | Readonly<{ isFrozen: true }>
   );
 
@@ -35,10 +42,17 @@ export function SpiceReservePanel(props: SpiceReservePanelProps) {
   }
   const current = draft === null ? Math.min(amount, balance) : Number(draft);
   const valid = Number.isSafeInteger(current) && current > 0 && current <= balance;
-  const withdraw = () => {
+  const withdraw = (selected: number, point: Readonly<{ x: number; y: number }>) => {
     /* The amount floats away only when the command goes; a closed connection or a full queue sends nothing. */
-    if (!props.isFrozen && props.enabled && valid && props.onWithdraw(current)) {
-      setWithdrawn({ amount: current, key: (withdrawn?.key ?? 0) + 1 });
+    if (
+      !props.isFrozen &&
+      props.enabled &&
+      Number.isSafeInteger(selected) &&
+      selected > 0 &&
+      selected <= balance &&
+      props.onWithdraw(selected, point)
+    ) {
+      setWithdrawn({ amount: selected, key: (withdrawn?.key ?? 0) + 1 });
     }
   };
   return (
@@ -78,17 +92,39 @@ export function SpiceReservePanel(props: SpiceReservePanelProps) {
               onChange={setAmount}
               onDraftChange={setDraft}
             />
-            <Button
-              size="compact-sm"
-              aria-label="Withdraw spice"
+            <SortableRow
+              items={[{ id: 'reserve-spice', amount: current }]}
               disabled={!props.enabled || !valid}
-              onClick={withdraw}
+              onMove={() => {}}
+              onDropOutside={(item, point) => withdraw(item.amount, point)}
             >
-              Withdraw
-            </Button>
+              {(item) => (
+                <button
+                  type="button"
+                  className={styles.token}
+                  disabled={!props.enabled || !valid}
+                  aria-label={`Drag ${valid ? item.amount : 0} spice to the table`}
+                  aria-keyshortcuts="Enter Space"
+                  onKeyDown={(event) => {
+                    if ((event.key === 'Enter' || event.key === ' ') && !event.repeat && valid) {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      props.onStartPlacement(item.amount);
+                    }
+                  }}
+                >
+                  <SpiceTokenPreview amount={valid ? item.amount : 0} />
+                </button>
+              )}
+            </SortableRow>
           </Group>
         )}
       </div>
+      {!isFrozen && (
+        <Text size="xs" c="dimmed">
+          Drag the spice onto the table, or press Enter to choose a position with the arrow keys.
+        </Text>
+      )}
     </Section>
   );
 }

@@ -187,7 +187,12 @@ const tableActionSchema = z.discriminatedUnion('kind', [
 ]);
 export type TableAction = z.infer<typeof tableActionSchema>;
 const deckActionSchema = z.discriminatedUnion('kind', [
-  z.strictObject({ kind: z.literal('deck-draw'), pieceId: id, recipient: id.optional() }),
+  z.strictObject({
+    kind: z.literal('deck-draw'),
+    pieceId: id,
+    recipient: id.optional(),
+    count: z.literal([1, 4]).optional(),
+  }),
   z.strictObject({ kind: z.literal('deck-shuffle'), pieceId: id }),
 ]);
 export type DeckAction = z.infer<typeof deckActionSchema>;

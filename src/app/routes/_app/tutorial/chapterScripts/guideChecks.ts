@@ -54,23 +54,14 @@ export const viaCompass = (spot: string) => () =>
  * Holding Alt over a card or token shows it flat beside the pointer; the close-up's own mark says it is showing.
  * The task counts once the close-up has shown and closed again, so it does not tick over while the player is still reading it.
  */
-export const closeUpShown = () => ({
+export const closeUpShown = (selector = '[data-piece-close-up]') => ({
   begin: () => ({ seen: false }),
   done: (watch: { seen: boolean }) => {
-    const showing = document.querySelector('[data-piece-close-up]') !== null;
+    const showing = document.querySelector(selector) !== null;
     watch.seen ||= showing;
     return watch.seen && !showing;
   },
 });
-
-/*
- * Spice cards lying face up on their own. The table hands out cards under handles that change as they move,
- * so cards are counted by what they show rather than followed by id; a whole deck turned over is one pile, so it does not count.
- */
-export const singleSpiceFaceUp = (pieces: readonly Piece[]) =>
-  pieces.filter(
-    (piece) => piece.items.length === 1 && piece.items[0]!.faceUp && piece.items[0]!.artwork?.type === 'card-spice'
-  ).length;
 
 /*
  * The ruleset's decks are keyed by their asset, so they are found where the table lays them out:

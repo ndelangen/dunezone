@@ -81,6 +81,7 @@ function deckActions(
       key: 'draw',
       label: 'Draw a card',
       icon: 'draw',
+      shortcut: 'T',
       disabled: !available,
       onSelect: () => deckControls?.draw(piece.id),
     },

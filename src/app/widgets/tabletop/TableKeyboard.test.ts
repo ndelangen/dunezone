@@ -26,7 +26,7 @@ function table() {
     canHandleTable: true,
     state: freshTableState(),
     hoveredPieceId: null as string | null,
-    deckControls: undefined,
+    deckControls: undefined as ReturnType<Parameters<TableKeyboard['bind']>[0]['read']>['deckControls'],
     finishRotation: vi.fn(),
     flipSelected: vi.fn(),
     /* The cursor is over the table unless a test moves it off. */
@@ -45,6 +45,77 @@ function table() {
 function key(type: 'keydown' | 'keyup', init: KeyboardEventInit, target: EventTarget = window) {
   target.dispatchEvent(new KeyboardEvent(type, { bubbles: true, cancelable: true, ...init }));
 }
+
+test('T draws once from the hovered deck and 0 splits ten pieces', () => {
+  const { controls } = table();
+  const draw = vi.fn();
+  controls.deckControls = { draw, shuffle: vi.fn(), recipients: [] };
+  controls.hoveredPieceId = 'treachery-deck';
+  key('keydown', { key: 't' });
+  key('keydown', { key: 't', repeat: true });
+  expect(draw).toHaveBeenCalledExactlyOnceWith('treachery-deck');
+  key('keydown', { key: '0' });
+  vi.advanceTimersByTime(1000);
+  expect(controls.splitSelected).toHaveBeenCalledExactlyOnceWith(10, 'treachery-deck');
+});
+
+test('T does not draw from a selected deck without hovering or while typing', () => {
+  const { controls } = table();
+  const draw = vi.fn();
+  controls.deckControls = { draw, shuffle: vi.fn(), recipients: [] };
+  controls.state = { ...controls.state, selectedPieceId: 'treachery-deck' };
+  key('keydown', { key: 't' });
+  controls.hoveredPieceId = 'treachery-deck';
+  const field = document.body.appendChild(document.createElement('input'));
+  key('keydown', { key: 't' }, field);
+  key('keydown', { key: 't', ctrlKey: true });
+  expect(draw).not.toHaveBeenCalled();
+});
+
+test('T adds another card to a carry without drawing into the hand', () => {
+  const { controls } = table();
+  const draw = vi.fn();
+  controls.deckControls = { draw, shuffle: vi.fn(), recipients: [] };
+  const deck = controls.state.pieces.find((piece) => piece.id === 'treachery-deck')!;
+  controls.state = { ...controls.state, draftMove: draftForGesture(deck, 'top') };
+  controls.hoveredPieceId = deck.id;
+  key('keydown', { key: 't' });
+  key('keydown', { key: 't', repeat: true });
+  expect(controls.takeAdditionalFromTarget).toHaveBeenCalledOnce();
+  expect(draw).not.toHaveBeenCalled();
+});
+
+test.each(['locked', 'inventory', 'non-card', 'read-only'] as const)('T does not draw from a %s target', (reason) => {
+  const { controls } = table();
+  const draw = vi.fn();
+  controls.deckControls = { draw, shuffle: vi.fn(), recipients: [] };
+  controls.hoveredPieceId = 'treachery-deck';
+  controls.canHandleTable = reason !== 'read-only';
+  controls.state = {
+    ...controls.state,
+    pieces: controls.state.pieces.map((piece) =>
+      piece.id === 'treachery-deck'
+        ? {
+            ...piece,
+            locked: reason === 'locked',
+            inventory: reason === 'inventory' ? 'shared' : undefined,
+            kind: reason === 'non-card' ? 'force' : piece.kind,
+          }
+        : piece
+    ),
+  };
+  key('keydown', { key: 't' });
+  expect(draw).not.toHaveBeenCalled();
+});
+
+test('releasing 0 before the hold cancels the ten-piece split', () => {
+  const { controls } = table();
+  key('keydown', { key: '0' });
+  vi.advanceTimersByTime(200);
+  key('keyup', { key: '0' });
+  vi.advanceTimersByTime(1000);
+  expect(controls.splitSelected).not.toHaveBeenCalled();
+});
 
 test.each([true, false])('a focused slider keeps its arrow keys with the pointer over the table: %s', (hovered) => {
   const { keyboard } = table();

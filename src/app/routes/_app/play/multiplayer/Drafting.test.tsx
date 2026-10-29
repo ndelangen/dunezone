@@ -7,7 +7,7 @@ import { afterEach, expect, test, vi } from 'vite-plus/test';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import { draftingSnapshot, storyPlayer } from '../drafting.stories.fixture';
-import { DraftingHeader, DraftingOverlay, DraftingReady } from './Drafting';
+import { DraftingHeader, DraftingOverlay, DraftingPanel, DraftingReady } from './Drafting';
 import { stubMatchMedia } from './jsdom.test.fixture';
 
 stubMatchMedia();
@@ -39,6 +39,19 @@ function show(element: React.ReactElement) {
 }
 
 const client = { command: vi.fn() } as unknown as TableSession;
+
+test('search respects the ruleset filter until Show all factions is enabled', () => {
+  const snapshot = draftingSnapshot(PLAYERS, 4);
+  const unlinked = { ...snapshot.draft!.factions[0]!, name: 'Space Orks', linked: false };
+  const table = projection('seat-1', { ...snapshot, draft: { ...snapshot.draft!, factions: [unlinked] } });
+  show(<DraftingPanel client={client} table={table} />);
+  fireEvent.change(screen.getByRole('textbox', { name: 'Search factions' }), { target: { value: 'ork' } });
+  expect(screen.queryByText('Space Orks', { exact: true })).toBeNull();
+  fireEvent.click(screen.getByRole('switch', { name: 'Show all factions' }));
+  expect(screen.getByText('Space Orks', { exact: true })).toBeTruthy();
+  fireEvent.click(screen.getByRole('switch', { name: 'Show all factions' }));
+  expect(screen.queryByText('Space Orks', { exact: true })).toBeNull();
+});
 
 function withRequests(seatRequests: { id: string; requesterName: string; seat: null; own?: boolean }[]) {
   const snapshot = draftingSnapshot(PLAYERS, 4);

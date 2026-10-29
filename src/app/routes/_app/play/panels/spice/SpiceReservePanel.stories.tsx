@@ -19,7 +19,7 @@ export const Frozen = meta.story({
   render: () => <SpiceReservePanel isFrozen balance={37} hiddenHeading={false} />,
   play: async ({ canvas }) => {
     await expect(canvas.getByLabelText('Spice reserve balance')).toHaveTextContent('37');
-    await expect(canvas.queryByRole('button', { name: 'Withdraw spice' })).toBeNull();
+    await expect(canvas.queryByRole('button', { name: /^Drag .* spice to the table$/ })).toBeNull();
     await expect(canvas.queryByRole('textbox')).toBeNull();
   },
 });

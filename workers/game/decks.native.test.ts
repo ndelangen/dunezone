@@ -84,6 +84,35 @@ describe('Private deck commands through native delivery', () => {
     expect(rows).toHaveLength(1);
   });
 
+  it('deals four cards atomically without revealing them to the sender or dealing again on retry', async () => {
+    const sender = await admit('a');
+    const recipient = await admit('b');
+    const spectator = await admit('c');
+    const result = await sendCommand(sender, {
+      kind: 'deck-draw',
+      pieceId: 'treachery-deck',
+      recipient: 'atreides',
+      count: 4,
+    });
+    expect(result.reply.type).not.toBe('rejected');
+    const dealt = await syncView(recipient);
+    expect(dealt.snapshot.hand).toHaveLength(4);
+    expect(required(dealt.snapshot.hand).map((piece) => required(piece.items[0].artwork).front)).toEqual([
+      'https://cards.example/secret-3.png',
+      'https://cards.example/secret-2.png',
+      'https://cards.example/secret-1.png',
+      'https://cards.example/secret-0.png',
+    ]);
+    expect(deck(dealt)).toBeUndefined();
+    sender.send(result.message);
+    expect((await syncView(recipient)).snapshot.hand).toHaveLength(4);
+    expect((await syncView(sender)).snapshot.hand).toHaveLength(0);
+    await syncView(spectator);
+    expect(shown(sender.messages)).not.toContain('secret-');
+    expect(shown(spectator.messages)).not.toContain('secret-');
+    expect(await runtime.exec('SELECT action FROM public_action_history')).toHaveLength(1);
+  });
+
   it('retires every public card handle on shuffle while preserving internal identities across retry and restart', async () => {
     const a = await admit('a');
     await admit('b');

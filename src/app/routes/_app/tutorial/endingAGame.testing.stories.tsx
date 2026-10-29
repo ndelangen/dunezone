@@ -1,6 +1,6 @@
 import { testingPreview } from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
-import { expect, userEvent, waitFor, within } from 'storybook/test';
+import { expect, userEvent, within } from 'storybook/test';
 
 import { pageStoryMeta } from '../../storybookConfig';
 import { chapterGlobals, chapterParameters } from './chapterStory';
@@ -13,7 +13,7 @@ const meta = testingPreview.meta({
   parameters: chapterParameters,
 });
 
-/* The result, public replay and return to play all run through the chapter's real local session. */
+/* Declaring the result completes the chapter through its real local session. */
 export const PlayedThrough = meta.story({
   play: async ({ canvasElement }) => {
     const document = canvasElement.ownerDocument;
@@ -33,25 +33,10 @@ export const PlayedThrough = meta.story({
     await userEvent.click(await page.findByRole('combobox', { name: 'Winning faction' }));
     await userEvent.click(await page.findByRole('option', { name: /Atreides/ }));
     await userEvent.click(page.getByRole('button', { name: 'Declare' }));
-    await step('Look back at the game');
-    await openWindow('Replay');
-    await userEvent.click(await page.findByRole('button', { name: 'Replay from start' }));
-    await step('Step through the saved phases');
-    await userEvent.click(page.getAllByRole('button', { name: 'Later phase' })[0]!);
-    await step('Return to the live table');
-    await userEvent.click(page.getAllByRole('button', { name: 'Return to live' })[0]!);
-    await step('Keep playing');
-    await userEvent.click(await page.findByRole('button', { name: 'Continue playing' }));
-    await step('Replay closes when play resumes');
-    await expect(page.queryByRole('button', { name: 'Replay from start' })).toBeNull();
-    await waitFor(
-      async () => {
-        if (current().includes('Replay closes when play resumes')) {
-          await userEvent.keyboard('{Enter}');
-        }
-        await expect(page.getByRole('dialog')).toBeVisible();
-      },
-      { timeout: 20_000, interval: 1000 }
+    await waitForFrame(
+      () => expect(page.getByRole('dialog', { name: 'Chapter complete, congratulations!' })).toBeVisible(),
+      { timeout: 20_000 }
     );
+    await expect(page.queryByRole('button', { name: 'Keep playing' })).toBeNull();
   },
 });

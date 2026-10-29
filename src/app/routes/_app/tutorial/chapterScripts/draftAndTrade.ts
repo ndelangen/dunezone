@@ -7,13 +7,15 @@ import { element, task } from './guideChecks';
 
 /*
  * "Draft and trade": the table from the moment the last seat is taken, before anyone has drafted.
- * The learner searches the catalogue, drafts one of three familiar factions and bans the Ixians, the others draft the rest of the official six, and once everyone is ready
+ * The learner searches the catalogue, drafts Space Orks and bans the Ixians, the others draft the rest of the official six, and once everyone is ready
  * the table deals each player a faction and a station, as the recording dealt them. Then four minutes of trading:
  * the learner offers a trade, takes it back, and readies with the rest, which ends trading and starts the setup.
  */
 
 const LEARNER = TUTORIAL_RECIPE.learner;
-const DRAFT_CHOICES = ['Emperor', 'Fremen', 'House Harkonnen'] as const;
+const DRAFT = 'Space Orks';
+const allFactions = () =>
+  document.querySelector<HTMLInputElement>('[data-drafting-panel] [role="switch"]')?.checked === true;
 const SEARCH = '[data-drafting-panel] input[aria-label="Search factions"]';
 const search = () => document.querySelector<HTMLInputElement>(SEARCH);
 const searched = (text: string) => search()?.value.trim().toLowerCase() === text.toLowerCase();
@@ -23,24 +25,27 @@ const BAN = 'Ixians';
  * A button in the drafting list's row for a faction, by the button's own word. The row's name must be the faction's whole name,
  * so a search that also lists "Ixians (In Progress)" still finds the Ixians.
  */
-const draftButton = (faction: string, word: 'Draft' | 'Ban') => () => {
-  const row = [...document.querySelectorAll('[data-drafting-panel] li')].find(
-    (item) =>
-      [...item.querySelectorAll('p')].some((name) => name.textContent?.trim() === faction) &&
-      [...item.querySelectorAll('p')].some((note) => note.textContent?.trim() === 'suitable for this ruleset')
-  );
-  return (
-    [...(row?.querySelectorAll('button') ?? [])].find((button) => button.textContent?.trim().startsWith(word)) ?? null
-  );
-};
+const draftButton =
+  (faction: string, word: 'Draft' | 'Ban', linked = true) =>
+  () => {
+    const row = [...document.querySelectorAll('[data-drafting-panel] li')].find(
+      (item) =>
+        [...item.querySelectorAll('p')].some((name) => name.textContent?.trim() === faction) &&
+        (!linked ||
+          [...item.querySelectorAll('p')].some((note) => note.textContent?.trim() === 'suitable for this ruleset'))
+    );
+    return (
+      [...(row?.querySelectorAll('button') ?? [])].find((button) => button.textContent?.trim().startsWith(word)) ?? null
+    );
+  };
 
 /* The header's Ready toggle, in the draft and while trading. */
 const readyButton = () =>
   [...document.querySelectorAll('header button')].find((button) => button.textContent?.trim().startsWith('Ready')) ??
   null;
 
-const factionId = (snapshot: () => GameSnapshot, name: string) =>
-  snapshot().draft?.factions.find((faction) => faction.linked && faction.name === name)?.id;
+const factionId = (snapshot: () => GameSnapshot, name: string, linked = true) =>
+  snapshot().draft?.factions.find((faction) => (!linked || faction.linked) && faction.name === name)?.id;
 
 /* The others draft the factions the recording dealt them and declare themselves ready, as players at a real table would. */
 function othersDraft(snapshot: () => GameSnapshot, players: TablePlayers, selected: string) {
@@ -112,9 +117,7 @@ const partner = (snapshot: () => GameSnapshot) => {
   return others.includes(PARTNER) ? PARTNER : (others[0] ?? PARTNER);
 };
 
-function tasks(snapshot: () => GameSnapshot, players: TablePlayers, random: () => number = Math.random): GuideTask[] {
-  const draft = DRAFT_CHOICES[Math.floor(random() * DRAFT_CHOICES.length)]!;
-  const spokenDraft = draft.replace(/^House /, '');
+function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[] {
   return [
     task({
       id: 'search',
@@ -128,7 +131,8 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers, random: () =
     task({
       id: 'suitability',
       task: 'Find a suitable faction',
-      detail: `See "suitable for this ruleset"? That version of the faction fits the rules you're playing.\n\nA faction can appear more than once because people have made different versions. You can mix and match them, but drafting the same faction more than once gets confusing for players.\n\nLet's try ${spokenDraft}. Replace atr in the search box with ${spokenDraft}.`,
+      detail:
+        'Search starts with factions from your ruleset. The "suitable for this ruleset" label identifies those versions.\n\nA faction can appear more than once because people have made different versions. You can mix and match them, but drafting the same faction more than once gets confusing for players.\n\nWant something less conventional? Turn on Show all factions.',
       anchor: {
         kind: 'page',
         element: () =>
@@ -137,16 +141,25 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers, random: () =
           ) ?? search(),
       },
       begin: () => undefined,
-      done: () => searched(spokenDraft),
+      done: allFactions,
+    }),
+    task({
+      id: 'search-orks',
+      task: 'Find the Space Orks',
+      detail: 'Now you can search the whole catalogue. Replace atr with ork in the search box.',
+      anchor: { kind: 'page', element: element(SEARCH) },
+      begin: () => undefined,
+      done: () => allFactions() && searched('ork'),
     }),
     task({
       id: 'draft',
-      task: `Draft ${spokenDraft}`,
-      detail: `Fancy seeing ${spokenDraft} in the game? Find the version marked "suitable for this ruleset" and press Draft to add it to the pool.\n\nAnyone could be dealt this faction, including you.`,
-      anchor: { kind: 'page', element: () => draftButton(draft, 'Draft')() ?? search() },
+      task: 'Draft Space Orks',
+      detail:
+        'Space Orks on Arrakis? Why not! Press Draft to add them to the pool.\n\nAnyone could be dealt this faction, including you.',
+      anchor: { kind: 'page', element: () => draftButton(DRAFT, 'Draft', false)() ?? search() },
       begin: () => undefined,
       done: () => {
-        const id = factionId(snapshot, draft);
+        const id = factionId(snapshot, DRAFT, false);
         return Boolean(id && snapshot().draft?.picks[LEARNER]?.includes(id));
       },
     }),
@@ -167,7 +180,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers, random: () =
       detail:
         'The other players have made their picks. Press Ready in the top right.\n\nWhen everyone is ready, each player gets a random faction and seat.',
       anchor: { kind: 'page', element: readyButton },
-      begin: () => othersDraft(snapshot, players, draft),
+      begin: () => othersDraft(snapshot, players, DRAFT),
       done: () => snapshot().stage === 'swapping',
       finish: (stop: () => void) => stop(),
     }),

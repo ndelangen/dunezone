@@ -10,7 +10,7 @@ const meta = testingPreview.meta({
   parameters: { layout: 'fullscreen' },
 });
 
-/** Setting a card aside moves it to the side-table, every piece offers the same two actions, and withdrawing takes spice out of the reserve. */
+/** Setting a card aside moves it to the side-table, every piece offers the same two actions, and a spice preview can be dragged from the reserve. */
 export const HandActions = meta.story({
   beforeEach: at('Battle plan'),
   play: async ({ canvasElement }) => {
@@ -30,11 +30,12 @@ export const HandActions = meta.story({
     });
     await expect(page.findAllByRole('menuitem')).resolves.toHaveLength(2);
     await userEvent.keyboard('{Escape}');
-    /* Stepping the amount up and withdrawing takes it out of the reserve. */
+    /* An amount change updates the preview. A drop away from a table sends nothing. */
     const before = Number(page.getByLabelText('Spice reserve balance').textContent);
     await userEvent.click(page.getByRole('button', { name: 'More: Spice to withdraw' }));
-    await userEvent.click(page.getByRole('button', { name: 'Withdraw spice' }));
-    await waitFor(() => expect(page.getByLabelText('Spice reserve balance')).toHaveTextContent(String(before - 2)));
+    const spice = page.getByRole('button', { name: 'Drag 2 spice to the table' });
+    await dragTo(spice, { x: 600, y: 100 });
+    await expect(page.getByLabelText('Spice reserve balance')).toHaveTextContent(String(before));
   },
 });
 

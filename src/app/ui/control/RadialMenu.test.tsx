@@ -43,6 +43,23 @@ function deckMenu(onClose = vi.fn(), recipients = ['Atreides', 'Fremen']) {
   return screen.getByRole('menu', { name: 'Deck actions' });
 }
 
+test('hovering Deal leaves the action ring open until it is clicked', async () => {
+  vi.useFakeTimers();
+  try {
+    deckMenu();
+    const deal = screen.getByRole('menuitem', { name: 'Deal a card' });
+    const move = new MouseEvent('pointermove', { bubbles: true });
+    Object.defineProperty(move, 'movementX', { value: 1 });
+    fireEvent(deal, move);
+    await act(() => vi.advanceTimersByTime(1000));
+    expect(screen.queryByRole('menuitem', { name: 'Deal 1 to Fremen' })).toBeNull();
+    fireEvent.click(deal);
+    expect(screen.getByRole('menuitem', { name: 'Deal 1 to Fremen' })).toBeTruthy();
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
 test('stepping into Deal from the keyboard keeps focus on the ring, so arrows and Escape still work', () => {
   const onClose = vi.fn();
   const menu = deckMenu(onClose);

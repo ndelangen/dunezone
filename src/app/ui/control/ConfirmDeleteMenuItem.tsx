@@ -14,6 +14,7 @@ export interface ConfirmDeleteMenuItemProps {
   pending?: boolean;
   /** The countdown's verb, "Deleting" unless the item does something else for good, such as "Leaving". */
   holdingVerb?: string;
+  closeMenuOnClick?: boolean;
 }
 
 /* Both labels share one grid cell, so the item keeps its resting width while it counts down and a press near its edge stays on it. */
@@ -30,11 +31,13 @@ export function ConfirmDeleteMenuItem({
   disabled = false,
   pending = false,
   holdingVerb = 'Deleting',
+  closeMenuOnClick = true,
 }: ConfirmDeleteMenuItemProps) {
   const { holding, remaining, handlers } = useHoldToConfirm({ pending, blocked: disabled, onConfirm });
   return (
     <Menu.Item
       color="red"
+      closeMenuOnClick={closeMenuOnClick}
       disabled={disabled || pending}
       {...handlers}
       onPointerDown={(event: PointerEvent<HTMLButtonElement>) => {

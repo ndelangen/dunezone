@@ -48,10 +48,10 @@ function typingElsewhere(event: KeyboardEvent, search: HTMLInputElement | null) 
 /*
  * Space is the compass's everywhere on the table, even on a button left focused by a click, which keeps Enter.
  * Even a piece's radial ring, which stays open after a draw to deal again, gives Space to the compass and closes as the compass takes focus.
- * Only an open dropdown menu, a list being stepped through, a select or a dialog keep it.
+ * Open menus, lists, selects and dialogs keep it, as does a control that declares its own Space shortcut.
  */
 const KEEPS_SPACE =
-  '[role="menu"]:not([data-radial-menu]), [role="listbox"], select, dialog, [role="dialog"], [aria-modal="true"]';
+  '[role="menu"]:not([data-radial-menu]), [role="listbox"], select, dialog, [role="dialog"], [aria-modal="true"], [aria-keyshortcuts~="Space"]';
 function spaceBelongsTo(target: EventTarget | null) {
   return target instanceof Element && target.closest(KEEPS_SPACE) !== null;
 }

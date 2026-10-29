@@ -30,6 +30,8 @@ function practice() {
     landings: () => table.landings(),
     captured: () => undefined,
     capturedPieces: () => [],
+    acceptedActions: () => [],
+    pings: () => [],
   };
   mentatRecall.opening!(players);
   return { table, players, view: () => table.frame().snapshot };

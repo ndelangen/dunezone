@@ -23,3 +23,17 @@ export const ShelfActions = meta.story({
     await expect(args.inventory.draw.run).toHaveBeenCalledOnce();
   },
 });
+
+/** Requests stay at the top while the inventory shelves scroll. */
+export const RequestsStayVisible = meta.story({
+  args: { requests: <div data-test-request>Pending approval</div> },
+  play: async ({ canvasElement }) => {
+    const request = canvasElement.querySelector<HTMLElement>('[data-test-request]')!;
+    const scroll = request.closest<HTMLElement>('[class*="body_"]')!;
+    scroll.style.maxHeight = '180px';
+    const before = request.getBoundingClientRect().top;
+    scroll.scrollTop = 200;
+    await expect(scroll.scrollTop).toBeGreaterThan(0);
+    await expect(Math.abs(request.getBoundingClientRect().top - before)).toBeLessThan(2);
+  },
+});

@@ -1,9 +1,10 @@
-import { Button, Group, Stack, Text, Tooltip } from '@mantine/core';
+import { Group, Stack, Text, Tooltip } from '@mantine/core';
 import type { PublicControls } from '@shared/play/inventory';
 import type { TablePiece } from '@shared/play/model';
 import { FormattedTextSource } from '@ui/content/FormattedText';
+import { IconAction } from '@ui/control/IconAction';
 import { TooltipTarget } from '@ui/control/TooltipTarget';
-import { Dices } from 'lucide-react';
+import { Check, Dices, Plus, X } from 'lucide-react';
 import { Children, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import type { ReactNode, RefObject } from 'react';
 
@@ -119,21 +120,6 @@ export function PieceStrip({ children, label }: Readonly<{ children: ReactNode; 
   );
 }
 
-/** The random tech token draw, as whatever control a layout gives it; its tooltip says what it does or why it is off. */
-export function DrawTechToken({
-  inventory,
-  children,
-}: Readonly<{
-  inventory: SharedInventory;
-  children: (props: { disabled: boolean; onClick: () => void }) => ReactNode;
-}>) {
-  return (
-    <Tooltip label={inventory.draw.help} multiline w={260} withArrow>
-      <TooltipTarget>{children({ disabled: !inventory.draw.enabled, onClick: inventory.draw.run })}</TooltipTarget>
-    </Tooltip>
-  );
-}
-
 export const DRAW_ICON = <Dices size={16} aria-hidden />;
 
 /* What the picker says about the chosen asset: how many items it adds, why it cannot, or that it is still being checked. */
@@ -169,16 +155,20 @@ export function CataloguePicker({ client, table, inventory }: SharedInventoryPro
         onPick={({ type, slug }) => catalogue.select({ type, slug })}
       />
       <Group align="center">
-        <Button
-          disabled={!table.canHandleTable || !contents || !selection}
+        <IconAction
+          label={solo ? 'Spawn' : 'Request'}
+          intent="positive"
+          emphasis="standard"
+          icon={<Plus size={16} aria-hidden />}
+          disabledReason={
+            table.canHandleTable && contents && selection ? undefined : 'Choose an available piece first.'
+          }
           onClick={() => {
             if (selection) {
               client.command({ kind: 'spawn-request', type: selection.type, slug: selection.slug });
             }
           }}
-        >
-          {solo ? 'Spawn' : 'Request'}
-        </Button>
+        />
         {selection && <Text size="sm">{catalogueStatus(view.catalogue, requestId)}</Text>}
       </Group>
     </Stack>
@@ -197,19 +187,26 @@ function SpawnRequest({
         {request.contents.name} requested by {request.requesterName}
       </Text>
       <Group gap="xs">
-        <Button
-          disabled={!table.canHandleTable || request.requesterSeat === table.viewer.viewerSeat}
+        <IconAction
+          label="Approve"
+          intent="positive"
+          emphasis="standard"
+          icon={<Check size={16} aria-hidden />}
+          disabledReason={
+            table.canHandleTable && request.requesterSeat !== table.viewer.viewerSeat
+              ? undefined
+              : 'Another player must approve this request.'
+          }
           onClick={() => client.command({ kind: 'spawn-approve', requestId: request.id })}
-        >
-          Approve
-        </Button>
-        <Button
-          variant="default"
-          disabled={!table.canHandleTable}
+        />
+        <IconAction
+          label="Dismiss"
+          intent="neutral"
+          emphasis="quiet"
+          icon={<X size={16} aria-hidden />}
+          disabledReason={table.canHandleTable ? undefined : 'The table is unavailable.'}
           onClick={() => client.command({ kind: 'spawn-dismiss', requestId: request.id })}
-        >
-          Dismiss
-        </Button>
+        />
       </Group>
     </Group>
   );

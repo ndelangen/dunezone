@@ -25,12 +25,13 @@ export const SearchDraftBanAndReady = meta.story({
     await step('Find a suitable faction');
     await expect(page.getByText('suitable for this ruleset', { exact: true })).toBeVisible();
     await expect(current()).toContain('drafting the same faction more than once gets confusing');
+    await userEvent.click(page.getByRole('switch', { name: 'Show all factions' }));
+    await step('Find the Space Orks');
     await userEvent.clear(search);
-    await userEvent.type(search, 'Emperor');
-    await step('Draft Emperor');
-    const emperor = within(page.getByText('suitable for this ruleset', { exact: true }).closest('li')!);
-    await expect(emperor.getByText('Emperor', { exact: true })).toBeVisible();
-    await userEvent.click(emperor.getByRole('button', { name: 'Draft' }));
+    await userEvent.type(search, 'ork');
+    await step('Draft Space Orks');
+    const orks = within(page.getByText('Space Orks', { exact: true }).closest('li')!);
+    await userEvent.click(orks.getByRole('button', { name: 'Draft' }));
     await step('Ban the Ixians');
     await userEvent.clear(search);
     await userEvent.type(search, 'Ixians');

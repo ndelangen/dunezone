@@ -68,7 +68,7 @@ function predictionRows(table: TableProjection, setup: SetupState): PredictionRo
 /** The Setup window's props for this table, or null once setup is over. */
 export function setupPanelProps(
   table: TableProjection,
-  actions: Pick<SetupPanelProps, 'onGatherTraitors' | 'onLockPrediction' | 'onRevealPrediction'>
+  actions: Pick<SetupPanelProps, 'onGatherTraitors' | 'onDealTraitors' | 'onLockPrediction' | 'onRevealPrediction'>
 ): SetupPanelProps | null {
   const setup = table.snapshot.setup;
   if (!setup) {
@@ -89,15 +89,32 @@ export function setupPanelProps(
     hiddenHeading: Boolean(table.snapshot.stage),
     instructions,
     predictions: predictionRows(table, setup),
+    traitors:
+      step.kind === 'traitors'
+        ? { factions: factionOptions(table), available: traitorDeck(table)?.items.length ?? 0 }
+        : null,
     disabled: !table.canInteract,
     ...actions,
   };
+}
+
+/* Dealing begins once the tabletop traitors have been gathered into one unlocked deck. */
+function traitorDeck(table: TableProjection) {
+  const decks = table.snapshot.table.pieces.filter((piece) => !piece.inventory && piece.stackKey === 'cards:traitor');
+  return decks.length === 1 && !decks[0]!.locked ? decks[0] : undefined;
 }
 
 /** The Setup window's content at a live table. */
 export function ConnectedSetupPanel({ client, table }: Props) {
   const props = setupPanelProps(table, {
     onGatherTraitors: () => client.command({ kind: 'traitors-gather' }),
+    onDealTraitors: (recipient, count) => {
+      const current = client.getTable();
+      const deck = current && traitorDeck(current);
+      if (current?.canInteract && deck && deck.items.length >= count) {
+        client.command({ kind: 'deck-draw', pieceId: deck.id, recipient, count });
+      }
+    },
     onLockPrediction: (stepId, choice) => client.command({ kind: 'prediction-lock', stepId, choice }),
     onRevealPrediction: (stepId) => client.command({ kind: 'prediction-reveal', stepId }),
   });

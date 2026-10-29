@@ -32,7 +32,7 @@ export const findAGame: LobbyChapterScript = {
     task({
       id: 'open',
       task: 'Visit their table',
-      detail: `Found them! ${friend} is at ${FRIEND_GAME}. Open the game to join them at the table.\n\nYou'll arrive as a spectator. The Take a seat tutorial will show you how to join the players.`,
+      detail: `Found them! ${friend} is at ${FRIEND_GAME}. Open the game to join them at the table.\n\nYou will join as a spectator at first, but once you're in you can request a seat.`,
       anchor: { kind: 'page', element: element(`[data-tutorial-target="game:${FRIEND_ADDRESS}"]`) },
       begin: unlock,
       done: () => state().tableReady,

@@ -129,7 +129,7 @@ const slotTasks = (): GuideTask[] => [
     id: 'pin-chat',
     task: 'Pin the chat to the bottom right',
     detail:
-      'Use the right pin beside the chat title.\n\nEach corner holds one window, so pinning a new one there replaces the old one.',
+      'Use the right pin beside the chat title.\n\nThe bottom left and bottom right can each hold 1 window, so pinning a new one there replaces the old one.',
     anchor: { kind: 'page', element: first('[aria-label="Pin to the bottom right"]') },
     begin: nothing,
     done: () => windowAt('right', 'table-chat'),

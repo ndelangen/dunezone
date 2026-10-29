@@ -1,5 +1,6 @@
 import { Button } from '@mantine/core';
 import { testingPreview } from '@sb/preview';
+import { waitForFrame } from '@sb/storyWaits';
 import type { ReactNode } from 'react';
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 
@@ -71,31 +72,18 @@ async function endChapter(canvasElement: HTMLElement) {
   return page;
 }
 
-/* With the end closed, nothing of it is left, and the page answers again. */
-async function expectPageBack(canvasElement: HTMLElement) {
-  const document = canvasElement.ownerDocument;
-  const page = within(document.body);
-  await waitFor(() => expect(page.queryByRole('dialog')).toBeNull());
-  await expect(document.querySelector('[data-chapter-confetti]')).toBeNull();
-  const button = page.getByRole('button', { name: 'A button on the page' });
-  await expect(button.closest('[inert]')).toBeNull();
-  await userEvent.click(button);
-}
-
-/** Keep playing closes the end and hands the page back, confetti and all. */
-export const KeepPlayingByClick = meta.story({
+/** The completed guide stays readable while the table remains finished. */
+export const ReadCompletedStep = meta.story({
   play: async ({ canvasElement }) => {
     const page = await endChapter(canvasElement);
-    await userEvent.click(await page.findByRole('button', { name: 'Keep playing' }, { timeout: 10_000 }));
-    await expectPageBack(canvasElement);
-  },
-});
-
-/** Escape does the same as Keep playing. */
-export const KeepPlayingByEscape = meta.story({
-  play: async ({ canvasElement }) => {
-    await endChapter(canvasElement);
+    await expect(page.queryByRole('button', { name: 'Keep playing' })).toBeNull();
+    const completed = page.getByRole('button', { name: 'Press Enter (done)' });
+    await userEvent.click(completed);
+    await expect(completed).toHaveAttribute('aria-expanded', 'true');
+    const details = canvasElement.ownerDocument.getElementById(completed.getAttribute('aria-controls')!)!;
+    await waitForFrame(() => expect(details).toBeVisible());
     await userEvent.keyboard('{Escape}');
-    await expectPageBack(canvasElement);
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'A button on the page' }).closest('[inert]')).not.toBeNull();
   },
 });

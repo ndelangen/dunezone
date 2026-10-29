@@ -1,6 +1,6 @@
 import snapshot from './players.json';
 
-/** Public profiles captured for the tutorials and stories, in the recorded seat order. */
+/** Public profiles shared by the tutorials and stories. */
 export const TUTORIAL_PLAYERS = snapshot.profiles.map(({ username, slug, image }) => ({
   name: username,
   slug,

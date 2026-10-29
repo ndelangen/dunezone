@@ -107,6 +107,42 @@ function tableWith(deck: StoredSnapshot['table']['pieces'][number]): StoredSnaps
   return { ...fixture, table: { ...fixture.table, pieces: [deck] } };
 }
 
+test('deals four cards atomically to one faction without exposing or changing their identities', () => {
+  const deck = homebrewDeck();
+  deck.items.push({ ...deck.items[0]!, id: 'fourth' });
+  const snapshot = tableWith(deck);
+  const dealt = deckCommand(snapshot, 'atreides', {
+    kind: 'deck-draw',
+    pieceId: deck.id,
+    recipient: 'harkonnen',
+    count: 4,
+  });
+  expect(dealt.table.pieces).toEqual([]);
+  expect(dealt.factionInventories.harkonnen).toHaveLength(4);
+  expect(dealt.factionInventories.harkonnen?.flatMap((piece) => piece.items.map((item) => item.id))).toEqual(
+    [...deck.items].reverse().map((item) => item.id)
+  );
+  expect(
+    dealt.factionInventories.harkonnen?.every((piece) => piece.items.length === 1 && !piece.items[0]!.faceUp)
+  ).toBe(true);
+  expect(snapshot.table.pieces[0]?.items).toHaveLength(4);
+});
+
+test('refuses a four-card deal without taking any cards when fewer than four remain', () => {
+  const deck = homebrewDeck();
+  const snapshot = tableWith(deck);
+  expect(() =>
+    deckCommand(snapshot, 'atreides', {
+      kind: 'deck-draw',
+      pieceId: deck.id,
+      recipient: 'harkonnen',
+      count: 4,
+    })
+  ).toThrow('not enough cards');
+  expect(snapshot.table.pieces[0]?.items).toHaveLength(3);
+  expect(snapshot.factionInventories.harkonnen).toBeUndefined();
+});
+
 test('a deal from a deck whose back has no name leaves a plain deck, never a Treachery one', () => {
   const homebrew = homebrewDeck();
   let snapshot = tableWith(homebrew);

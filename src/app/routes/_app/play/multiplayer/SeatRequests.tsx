@@ -434,6 +434,7 @@ export function GameMenu({
           key={table.viewer.viewerSeat}
           label={seated ? leavingLabel(table) : 'Give up your seat'}
           holdingVerb="Leaving"
+          closeMenuOnClick={false}
           disabled={!seated || seatLocked(table)}
           onConfirm={() => client.command({ kind: 'seat-depart' })}
         />
