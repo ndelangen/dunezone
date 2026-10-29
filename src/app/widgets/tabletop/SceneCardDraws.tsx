@@ -66,20 +66,11 @@ function CurrentDraws() {
   return draws.map((draw) => <DrawFlight key={`${draw.epoch}:${draw.revision}`} draw={draw} />);
 }
 
-function DrawFlight({ draw }: { draw: ShownDraw }) {
+function useDrawArrival(draw: ShownDraw) {
   const invalidate = useThree((state) => state.invalidate);
-  const meshes = useSharedMeshes();
   const ring = useRef<Mesh>(null);
   const material = useRef<MeshBasicMaterial>(null);
   const label = useRef<HTMLSpanElement>(null);
-  const faction = useTabletopSelector(
-    (table) => table.snapshot.roster?.seats.find((seat) => seat.faction?.id === draw.recipient)?.faction?.name
-  );
-  /* Dark factions still need a visible arrival against the table's dark wood. */
-  const color = new Color(draw.color);
-  if (color.getHSL({ h: 0, s: 0, l: 0 }).l < 0.25) {
-    color.lerp(new Color(gameAssetColors.pieceAccent), 0.6);
-  }
   useEffect(() => invalidate(), [invalidate]);
   useFrame(() => {
     const elapsed = performance.now() - draw.started;
@@ -95,6 +86,24 @@ function DrawFlight({ draw }: { draw: ShownDraw }) {
       invalidate();
     }
   });
+  return { ring, material, label };
+}
+
+function arrivalColor(value: string) {
+  const color = new Color(value);
+  /* Dark factions still need a visible arrival against the table's dark wood. */
+  if (color.getHSL({ h: 0, s: 0, l: 0 }).l < 0.25) {
+    color.lerp(new Color(gameAssetColors.pieceAccent), 0.6);
+  }
+  return color;
+}
+
+function DrawFlight({ draw }: { draw: ShownDraw }) {
+  const meshes = useSharedMeshes();
+  const { ring, material, label } = useDrawArrival(draw);
+  const faction = useTabletopSelector(
+    (table) => table.snapshot.roster?.seats.find((seat) => seat.faction?.id === draw.recipient)?.faction?.name
+  );
   return (
     <group>
       <Html
@@ -120,7 +129,7 @@ function DrawFlight({ draw }: { draw: ShownDraw }) {
       >
         <meshBasicMaterial
           ref={material}
-          color={color}
+          color={arrivalColor(draw.color)}
           transparent
           opacity={0}
           depthTest={false}

@@ -461,14 +461,13 @@ export class TableSession {
     return () => this.drawListeners.delete(listener);
   };
   private receiveCardDraw(draw: CardDraw) {
-    if (
-      this.status !== 'authorized' ||
-      !this.current() ||
-      reviewRunning(this.saved?.review) ||
-      draw.epoch !== this.epoch ||
-      draw.revision !== this.saved?.revision ||
-      (this.lastDraw?.epoch === draw.epoch && draw.revision <= this.lastDraw.revision)
-    ) {
+    if (this.status !== 'authorized' || !this.current() || reviewRunning(this.saved?.review)) {
+      return;
+    }
+    if (draw.epoch !== this.epoch || draw.revision !== this.saved?.revision) {
+      return;
+    }
+    if (this.lastDraw?.epoch === draw.epoch && draw.revision <= this.lastDraw.revision) {
       return;
     }
     this.lastDraw = { epoch: draw.epoch, revision: draw.revision };

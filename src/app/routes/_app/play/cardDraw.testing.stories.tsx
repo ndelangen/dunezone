@@ -13,25 +13,28 @@ const meta = testingPreview.meta({
   beforeEach: install(() => sandboxTransport({ start: chapter('Bidding') - 1, seat: 'seat-1' })),
 });
 
+async function readyTable(canvasElement: HTMLElement) {
+  const document = canvasElement.ownerDocument;
+  await sandboxReady(within(document.body));
+  await waitFor(() => expect(document.querySelector('[data-scene-ready="true"] canvas')).not.toBeNull(), {
+    timeout: 30_000,
+  });
+  await waitForPlayCamera(document);
+  await waitFor(() =>
+    expect(
+      document
+        .querySelector('.dune-play-shell')!
+        .getAnimations()
+        .every((animation) => animation.playState === 'finished')
+    ).toBe(true)
+  );
+  return sandbox.table!;
+}
+
 /** The actual Draw a card action runs through the room, subscription and scene. More cards can be drawn after the story finishes. */
 export const DrawOne = meta.story({
   play: async ({ canvasElement, globals }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await sandboxReady(page);
-    await waitFor(
-      () => expect(canvasElement.ownerDocument.querySelector('[data-scene-ready="true"] canvas')).not.toBeNull(),
-      { timeout: 30_000 }
-    );
-    await waitForPlayCamera(canvasElement.ownerDocument);
-    await waitFor(() =>
-      expect(
-        canvasElement.ownerDocument
-          .querySelector('.dune-play-shell')!
-          .getAnimations()
-          .every((animation) => animation.playState === 'finished')
-      ).toBe(true)
-    );
-    const table = sandbox.table!;
+    const table = await readyTable(canvasElement);
     const deck = table.frame().snapshot.table.pieces.find((piece) => piece.stackKey === 'deck:treachery-deck')!;
     const before = table.frame().snapshot.hand?.length ?? 0;
     table.receive({
@@ -71,22 +74,7 @@ export const SpectatorDealFour = meta.story({
     })
   ),
   play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await sandboxReady(page);
-    await waitFor(
-      () => expect(canvasElement.ownerDocument.querySelector('[data-scene-ready="true"] canvas')).not.toBeNull(),
-      { timeout: 30_000 }
-    );
-    await waitForPlayCamera(canvasElement.ownerDocument);
-    await waitFor(() =>
-      expect(
-        canvasElement.ownerDocument
-          .querySelector('.dune-play-shell')!
-          .getAnimations()
-          .every((animation) => animation.playState === 'finished')
-      ).toBe(true)
-    );
-    const table = sandbox.table!;
+    const table = await readyTable(canvasElement);
     const deck = table.frame().snapshot.table.pieces.find((piece) => piece.stackKey === 'deck:treachery-deck')!;
     const recipient = table.room.snapshot.roster!.seats.find((seat) => seat.id === 'seat-2')!.faction!.id;
     table.receive(
@@ -116,20 +104,7 @@ export const MotionOff = DrawOne.extend({ globals: { motion: 'reduce' } });
 export const RapidDraws = meta.story({
   play: async ({ canvasElement }) => {
     const document = canvasElement.ownerDocument;
-    await sandboxReady(within(document.body));
-    await waitFor(() => expect(document.querySelector('[data-scene-ready="true"] canvas')).not.toBeNull(), {
-      timeout: 30_000,
-    });
-    await waitForPlayCamera(document);
-    await waitFor(() =>
-      expect(
-        document
-          .querySelector('.dune-play-shell')!
-          .getAnimations()
-          .every((animation) => animation.playState === 'finished')
-      ).toBe(true)
-    );
-    const table = sandbox.table!;
+    const table = await readyTable(canvasElement);
     const recipients = table.room.snapshot
       .roster!.seats.filter((seat) => ['seat-2', 'seat-3'].includes(seat.id))
       .map((seat) => seat.faction!.id);

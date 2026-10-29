@@ -1852,14 +1852,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (!this.authorized(socket)) {
       return;
     }
-    const draw =
-      message.type === 'command' && message.action.kind === 'deck-draw'
-        ? describeCardDraw(
-            this.session.roomFrame(connection.viewer!).snapshot,
-            message.action,
-            this.session.factionFor(connection.viewer!.userId)
-          )
-        : undefined;
+    const draw = this.describeDraw(connection, message);
     try {
       if (!this.session.execute(connection.viewer!, message, contents)) {
         this.sendView(socket, connection, message.commandId);
@@ -1873,11 +1866,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     this.directory.soon();
     this.ctx.waitUntil(this.scheduleAlarm().catch((error) => this.diagnostics.report('battle-alarm', error)));
     this.reconcileViewers();
-    this.broadcastCommittedView(
-      connection,
-      message,
-      draw && { ...draw, epoch: this.session.epoch, revision: this.session.currentSnapshot().revision }
-    );
+    this.broadcastCommittedView(connection, message, draw);
     /* Frames sent after a write leave the room once the write is durable, so the confirmation's arrival bounds how long they were held. */
     this.ctx.waitUntil(
       this.ctx.storage
@@ -1895,9 +1884,30 @@ export class GameRoom extends DurableObject<GameEnv> {
     return new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN, this.observeConvex);
   }
 
-  private broadcastCommittedView(connection: Connection, message: CommitMessage, draw?: CardDraw) {
+  private describeDraw(connection: Connection, message: CommitMessage) {
+    if (message.type !== 'command' || message.action.kind !== 'deck-draw') {
+      return;
+    }
+    const viewer = connection.viewer!;
+    return describeCardDraw(
+      this.session.roomFrame(viewer).snapshot,
+      message.action,
+      this.session.factionFor(viewer.userId)
+    );
+  }
+
+  private broadcastCommittedView(
+    connection: Connection,
+    message: CommitMessage,
+    draw?: ReturnType<typeof describeCardDraw>
+  ) {
     this.clearActivityTimer();
     const frameFor = this.framePass();
+    const cardDraw: CardDraw | undefined = draw && {
+      ...draw,
+      epoch: this.session.epoch,
+      revision: this.session.currentSnapshot().revision,
+    };
     for (const [peer, identity] of this.connections) {
       if (identity.viewer && this.authorized(peer)) {
         const frame = this.delivery.update(
@@ -1907,7 +1917,7 @@ export class GameRoom extends DurableObject<GameEnv> {
           identity.connectionId === connection.connectionId ? message.commandId : undefined
         );
         /* Optional envelope metadata leaves older open pages able to read the committed frame. */
-        this.send(peer, { ...frame, ...(draw && { cardDraw: draw }) });
+        this.send(peer, { ...frame, ...(cardDraw && { cardDraw }) });
       }
     }
   }

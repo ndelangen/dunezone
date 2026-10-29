@@ -30,26 +30,44 @@ export function describeCardDraw(
   if (action.kind !== 'deck-draw') {
     return;
   }
-  const recipient = action.recipient ?? actingFaction;
+  const destination = describeRecipient(snapshot, action.recipient ?? actingFaction);
+  const source = describeDeck(snapshot.table, action.pieceId);
+  if (!destination || !source) {
+    return;
+  }
+  return { ...source, ...destination, count: action.count ?? 1 };
+}
+
+function describeRecipient(
+  snapshot: Pick<GameSnapshot, 'table' | 'roster'>,
+  recipient: string | undefined
+): Pick<CardDraw, 'recipient' | 'to' | 'color'> | undefined {
   const seat = snapshot.roster?.seats.find((entry) => entry.faction?.id === recipient);
-  const deck = snapshot.table.pieces.find((piece) => piece.id === action.pieceId);
-  if (!recipient || !seat?.faction || !deck || deck.kind !== 'card' || !deck.items.length) {
+  if (!recipient || !seat?.faction) {
     return;
   }
   const token = factionTokenOf(snapshot.table.pieces, recipient);
   /* Legacy tables without faction tokens still identify the recipient's station. */
   const destination = token ?? factionTokenRingPose(tableSeatAngles(snapshot.roster!.seatCount)[seat.position]!);
-  const [x, y, z] = deck.position;
   const [tx, ty, tz] = destination.position;
-  /* All flights use the visible deck's back, even when the cards below it have different backs. */
-  const back = deck.items.at(-1)?.artwork?.back;
   return {
     recipient,
-    count: action.count ?? 1,
-    ...(back && { back }),
-    from: [x, y + stackTopHeight(deck), z],
-    orientation: deck.orientation,
     to: [tx, ty + (token ? stackTopHeight(token) : TABLE_SURFACE_Y), tz],
     color: seat.faction.color,
   };
+}
+
+/** Only the visible deck back and its pose cross into an animation. */
+function describeDeck(
+  table: GameSnapshot['table'],
+  pieceId: string
+): Pick<CardDraw, 'from' | 'orientation' | 'back'> | undefined {
+  const deck = table.pieces.find((piece) => piece.id === pieceId);
+  if (!deck || deck.kind !== 'card' || !deck.items.length) {
+    return;
+  }
+  const [x, y, z] = deck.position;
+  /* All flights use the same visible back, even when cards below it have different backs. */
+  const back = deck.items.at(-1)?.artwork?.back;
+  return { ...(back && { back }), from: [x, y + stackTopHeight(deck), z], orientation: deck.orientation };
 }

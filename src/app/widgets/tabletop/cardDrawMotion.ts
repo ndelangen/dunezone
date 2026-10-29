@@ -2,7 +2,7 @@ import type { CardDraw } from '@shared/play/cardDraw';
 
 export const DRAW_FLIGHT_MS = 950;
 export const DRAW_STAGGER_MS = 120;
-export const DRAW_PULSE_MS = 650;
+const DRAW_PULSE_MS = 650;
 
 const clamp = (value: number) => Math.max(0, Math.min(1, value));
 const smooth = (value: number) => {
