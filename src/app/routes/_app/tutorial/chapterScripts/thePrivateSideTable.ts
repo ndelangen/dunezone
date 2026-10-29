@@ -6,6 +6,7 @@ import { CARD_DEPTH, CARD_WIDTH } from '@shared/play/tableGeometry';
 import type { GuideTask } from '../TutorialGuide';
 import type { ChapterScript } from './chapterScript';
 import { element, openedWindow, task, viaCompass, windowShown } from './guideChecks';
+import { ATREIDES_BATTLE_LOSS_COUNTER, KWISATZ_HADERACH } from './kwisatzHaderach';
 
 /*
  * "The private side-table": a small table of the player's own for pieces that need a specific place.
@@ -19,60 +20,7 @@ const CARD = 'Kwisatz Haderach';
 const COUNTER = 'Atreides Battle Loss Counter';
 
 /** The tracker and its counter, as the game holds a captured card and token, owned by whichever faction the chapter seats. */
-const hand: StoredPiece[] = [
-  {
-    id: 'tutorial-kwisatz-haderach',
-    label: CARD,
-    owner: '',
-    color: '#d5ba8c',
-    accent: '#ead9bb',
-    items: [
-      {
-        id: 'tutorial-kwisatz-haderach-card',
-        faceUp: true,
-        artwork: {
-          front: '{{origin}}/published/custom-cards/ns7e41fyyzajd2w392aedttr298gmmvm/card.jpg',
-          /* The card is in no deck, so it wears the faction-card back an Atreides alliance card wears; it stays face up here. */
-          back: '{{origin}}/published/cardback-presets/alliance/cardback.jpg',
-          name: CARD,
-          type: 'card-custom',
-        },
-      },
-    ],
-    stackKey: 'card:ns7e41fyyzajd2w392aedttr298gmmvm',
-    position: [-25, 0, -25],
-    orientation: 0,
-    zoneId: null,
-    locked: false,
-    kind: 'card',
-  },
-  {
-    id: 'tutorial-battle-loss-counter',
-    label: COUNTER,
-    owner: '',
-    color: '#d5ba8c',
-    accent: '#ead9bb',
-    items: [
-      {
-        id: 'tutorial-battle-loss-counter-token',
-        faceUp: true,
-        artwork: {
-          front: '{{origin}}/published/round-tokens/ns7ccz318tqavsz7nkfv5hq4gh8gnn7h/token.jpg',
-          back: '{{origin}}/published/round-tokens/ns7ccz318tqavsz7nkfv5hq4gh8gnn7h/token.jpg',
-          name: COUNTER,
-          type: 'token-disc',
-          size: 0.5,
-        },
-      },
-    ],
-    stackKey: 'token:ns7ccz318tqavsz7nkfv5hq4gh8gnn7h',
-    position: [-25, 0, -25],
-    orientation: 0,
-    zoneId: null,
-    locked: false,
-    kind: 'force',
-  },
-];
+const hand: StoredPiece[] = [KWISATZ_HADERACH, ATREIDES_BATTLE_LOSS_COUNTER];
 
 const inHand = (name: string) => `[data-window="hand"] [aria-label="Drag ${name} from hand"]`;
 const onSideTable = (name: string) => `[data-window="hidden-zone"] [aria-label="Move ${name} on private side-table"]`;

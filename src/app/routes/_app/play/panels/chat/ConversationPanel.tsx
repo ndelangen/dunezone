@@ -195,7 +195,7 @@ function SavedMessage({
         {message.text}
       </Text>
       {message.senderFactionId === factionId && (
-        <Text size="xs" c="dimmed">
+        <Text size="xs" c="dimmed" data-saved-own-message>
           Sent
         </Text>
       )}

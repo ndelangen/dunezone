@@ -134,6 +134,7 @@ const parameters = {
             'Ending a game',
             'The private side-table',
             'Bring your own pieces',
+            'Mentat recall',
             'Moderation and disputes',
             'Chapter complete',
           ],

@@ -158,10 +158,17 @@ const CHAPTERS: readonly Omit<TutorialChapter, 'number'>[] = [
     part: 'Beyond the basics',
   },
   {
+    slug: 'mentat-recall',
+    title: 'Mentat recall',
+    goal: 'Explore frozen history together, inspect your inventory and use recall chat',
+    minutes: 6,
+    part: 'Beyond the basics',
+  },
+  {
     slug: 'moderation',
     title: 'Moderation and disputes',
-    goal: 'Review a disputed position and vote to remove an absent player',
-    minutes: 5,
+    goal: 'Check the log, vote to remove an absent player and read the audit',
+    minutes: 3,
     part: 'Beyond the basics',
   },
 ];
@@ -179,5 +186,10 @@ export const chapterAt = (slug: string): TutorialChapter | undefined =>
  * The picture on a chapter's tile: a still of the Play table standing in for the live preview each tile will animate.
  * The stills are display copies in public/tutorial, named by the chapter's slug.
  */
-export const chapterArt = (chapter: TutorialChapter) =>
-  `/tutorial/${['find-a-game', 'create-a-game'].includes(chapter.slug) ? 'find-or-create' : chapter.slug}.webp`;
+export const chapterArt = (chapter: TutorialChapter) => {
+  if (chapter.slug === 'mentat-recall') {
+    return '/tutorial/moderation.webp';
+  }
+  const slug = ['find-a-game', 'create-a-game'].includes(chapter.slug) ? 'find-or-create' : chapter.slug;
+  return `/tutorial/${slug}.webp`;
+};

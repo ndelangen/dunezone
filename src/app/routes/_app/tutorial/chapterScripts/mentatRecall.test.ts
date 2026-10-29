@@ -2,7 +2,7 @@ import type { GameSnapshot } from '@shared/play/protocol';
 import { expect, test, vi } from 'vite-plus/test';
 
 import type { TablePlayers } from './chapterScript';
-import { moderation } from './moderation';
+import { mentatRecall } from './mentatRecall';
 
 test('a replacement review must still select Storm before the others agree', () => {
   vi.useFakeTimers();
@@ -15,7 +15,7 @@ test('a replacement review must still select Storm before the others agree', () 
   const snapshot = () => ({ review, controls: { players: [] } }) as unknown as GameSnapshot;
   const act = vi.fn();
   const players = { others: () => ['other'], act } as unknown as TablePlayers;
-  const task = moderation.tasks(snapshot, players).find((task) => task.id === 'review-votes')!;
+  const task = mentatRecall.tasks(snapshot, players).find((task) => task.id === 'review-votes')!;
   const watch = task.begin(undefined as never);
   try {
     vi.advanceTimersByTime(1500);
