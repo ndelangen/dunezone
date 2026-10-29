@@ -218,6 +218,8 @@ export function KeyboardSpicePlacement({ client, table }: Readonly<{ client: Tab
       position={placement?.position ?? [0, 0.18, 0]}
       center
       zIndexRange={[40, 30]}
+      /* The measurable Html wrapper must not intercept table drops while its dialog is hidden. */
+      style={{ visibility: visible ? 'visible' : 'hidden', pointerEvents: visible ? 'auto' : 'none' }}
       /* Keep the inactive control measurable even when its anchor is behind the camera. */
       onOcclude={(behindCamera) => {
         if (behindCamera && active) {
