@@ -100,19 +100,21 @@ test('an early return can be followed by another recall, with a fresh timeline b
 test('chat advances on a newly saved submitted message, and a replacement recall needs a new submission', () => {
   const root = recallFrame();
   root.innerHTML =
-    '<div data-window="recall-chat"><div aria-label="Conversation history"><span>Sent</span></div><form></form></div>';
+    '<div data-window="recall-chat"><div aria-label="Conversation history"><span data-saved-own-message>Sent</span></div><form></form></div>';
   let view = viewWith(running());
   const step = stepAt('recall-chat', () => view);
   const watch = step.begin(undefined as never);
-  const saved = () => root.querySelector('[aria-label="Conversation history"]')!.append(document.createElement('span'));
   const submit = () => root.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true }));
   const addSent = () => {
-    saved();
-    root.querySelector('[aria-label="Conversation history"]')!.lastElementChild!.textContent = 'Sent';
+    root
+      .querySelector('[aria-label="Conversation history"]')!
+      .insertAdjacentHTML('beforeend', '<span data-saved-own-message>Sent</span>');
   };
   try {
     expect(step.done(watch, undefined as never)).toBe(false);
     submit();
+    expect(step.done(watch, undefined as never)).toBe(false);
+    root.querySelector('[aria-label="Conversation history"]')!.insertAdjacentHTML('beforeend', '<span>Sent</span>');
     expect(step.done(watch, undefined as never)).toBe(false);
     addSent();
     expect(step.done(watch, undefined as never)).toBe(true);
@@ -135,6 +137,6 @@ test('leaving the chat task removes its submit listener', () => {
   const watch = step.begin(undefined as never);
   step.finish?.(watch);
   root.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true }));
-  root.querySelector('[aria-label="Conversation history"]')!.innerHTML = '<span>Sent</span>';
+  root.querySelector('[aria-label="Conversation history"]')!.innerHTML = '<span data-saved-own-message>Sent</span>';
   expect(step.done(watch, undefined as never)).toBe(false);
 });

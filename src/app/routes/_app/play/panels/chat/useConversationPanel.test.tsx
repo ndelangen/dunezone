@@ -123,6 +123,37 @@ function message(sequence: number, author: string, senderFactionId: string, text
   } as unknown as ConversationView['pages'][string]['entries'][number];
 }
 
+test('the saved own-message marker excludes pending messages and messages from another faction', () => {
+  const client = clientWith({
+    context: { factionId: 'own' } as ConversationView['context'],
+    online: true,
+    summaries: [],
+    pages: {
+      peer: {
+        entries: [message(1, 'You', 'own', 'Sent'), message(2, 'Other', 'peer', 'Sent')],
+        more: false,
+        load: { state: 'idle' },
+      },
+    },
+    pending: [
+      {
+        request: { type: 'conversation-send', requestId: 'pending', factionId: 'own', peerId: 'peer', text: 'Sent' },
+        delivery: { state: 'unsent' },
+      },
+    ],
+  });
+  render(
+    <MantineProvider theme={appContentTheme}>
+      <ServerClockContext.Provider value={() => 0}>
+        <ConnectedConversationPanel client={client} peerId="peer" />
+      </ServerClockContext.Provider>
+    </MantineProvider>
+  );
+  const history = screen.getByRole('region', { name: 'Conversation history' });
+  expect(history.querySelectorAll('[data-saved-own-message]')).toHaveLength(1);
+  expect(history.querySelector('[data-saved-own-message]')?.textContent).toBe('Sent');
+});
+
 test('only messages from the other faction that arrive after the history loaded are announced', () => {
   const view = (entries: ReturnType<typeof message>[], state: 'idle' | 'loading' = 'idle'): ConversationView => ({
     context: { factionId: 'own' } as ConversationView['context'],

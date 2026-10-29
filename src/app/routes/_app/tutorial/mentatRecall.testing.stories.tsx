@@ -85,7 +85,7 @@ export const PlayedThrough = meta.story({
     await userEvent.keyboard('j');
     const side = await recall().findByRole('group', { name: 'Your recalled private side table' });
     await waitForFrame(async () => {
-      await expect(within(side).getByRole('img', { name: 'Kwisatz Haderach' })).toBeVisible();
+      await expect(within(side).getByRole('img', { name: /^Kwisatz Haderach/ })).toBeVisible();
       await expect(within(side).queryByRole('button', { name: /^Move / })).toBeNull();
     });
 

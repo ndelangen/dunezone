@@ -88,11 +88,9 @@ function duringRecall(snapshot: () => GameSnapshot, players: TablePlayers) {
   };
 }
 
-/* A saved own message says Sent; drafts, pending messages and another player's replies cannot finish the exercise. */
+/* Only the saved own-message badge marks delivery; message text cannot finish the exercise. */
 const sentMessages = () =>
-  [...(panel('recall-chat')?.querySelectorAll('[aria-label="Conversation history"] *') ?? [])].filter(
-    (element) => element.children.length === 0 && element.textContent === 'Sent'
-  ).length;
+  panel('recall-chat')?.querySelectorAll('[aria-label="Conversation history"] [data-saved-own-message]').length ?? 0;
 
 function openingTasks(snapshot: () => GameSnapshot): GuideTask[] {
   return [
