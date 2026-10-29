@@ -3,7 +3,7 @@ import type { Vector3Tuple } from '@shared/play/model';
 import { useLayoutEffect } from 'react';
 
 import { CameraControls, CameraRelativeFog } from './CameraControls';
-import type { CameraViewCommand } from './playView';
+import type { CameraViewCommand, ZoomReach } from './playView';
 
 /* Marks the canvas once the seated camera has replaced the preview camera, which loads in its own chunk, so a check of the table's framing can wait for it (#1987). */
 function PlayCameraMark() {
@@ -22,11 +22,12 @@ export function PlayCamera(props: {
   enabled: boolean;
   command: CameraViewCommand;
   mapFramingPoints: readonly Vector3Tuple[];
+  zoomReach?: ZoomReach;
 }) {
   return (
     <>
       <PlayCameraMark />
-      <CameraRelativeFog />
+      <CameraRelativeFog reach={props.zoomReach} />
       <CameraControls {...props} />
     </>
   );

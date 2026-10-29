@@ -220,9 +220,12 @@ export function ScenePresence({
   showNames = true,
   showLocal = false,
   trackerSlots = NO_TRACKERS,
+  extraBoards = 0,
 }: {
   readonly showNames?: boolean;
   readonly showLocal?: boolean;
+  /* The game's extra boards, whose table a ping lands on as well. */
+  readonly extraBoards?: number;
   /* The trackers the table plate grows around, so a ping lands wherever the plate is drawn. */
   readonly trackerSlots?: readonly TrackerArcSlot[];
 }) {
@@ -327,9 +330,22 @@ export function ScenePresence({
       const origin = raycaster.ray.origin.toArray() as Vector3Tuple;
       const direction = raycaster.ray.direction.toArray() as Vector3Tuple;
       const position = pointOnRayAtHeight(origin, direction, CARRIED_BASE_Y);
-      publishPointer(canInteract ? position : null, tableSurfacePointOnRay(origin, direction, plateOutline));
+      publishPointer(
+        canInteract ? position : null,
+        tableSurfacePointOnRay(origin, direction, plateOutline, extraBoards)
+      );
     };
-  }, [camera, canInteract, normalized, plateOutline, publishPointer, raycaster, renderer.domElement, showLocal]);
+  }, [
+    camera,
+    canInteract,
+    extraBoards,
+    normalized,
+    plateOutline,
+    publishPointer,
+    raycaster,
+    renderer.domElement,
+    showLocal,
+  ]);
   useEffect(() => {
     const move = (event: PointerEvent) => {
       lastScreenPoint.current = { x: event.clientX, y: event.clientY };

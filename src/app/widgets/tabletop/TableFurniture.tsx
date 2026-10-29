@@ -16,7 +16,8 @@ import type { ExtrudeGeometry } from 'three';
 import { ignoreRaycast } from './ignoreRaycast';
 import { TableLabel } from './TableLabel';
 import { useTablePalette } from './tablePalette';
-import { createRoundedRectangleShape, createTablePlateLayers } from './tablePlateGeometry';
+import { createExtraTablePlateLayers, createRoundedRectangleShape, createTablePlateLayers } from './tablePlateGeometry';
+import type { ExtraPlate } from './tablePlateGeometry';
 
 const TABLE_PLATE_EXTRUDE_OPTIONS = {
   bevelEnabled: false,
@@ -77,6 +78,74 @@ function TablePlate({ trackerSlots }: { trackerSlots: readonly TrackerArcSlot[] 
   );
 }
 
+function ExtraPlateMesh({
+  plate,
+  surfaceY,
+  thickness,
+  color,
+  metalness,
+  roughness,
+}: {
+  plate: ExtraPlate;
+  surfaceY: number;
+  thickness: number;
+  color: string;
+  metalness: number;
+  roughness: number;
+}) {
+  const args = useMemo(
+    () =>
+      [plate.shape, { ...TABLE_PLATE_EXTRUDE_OPTIONS, depth: thickness }] as ConstructorParameters<
+        typeof ExtrudeGeometry
+      >,
+    [plate.shape, thickness]
+  );
+  return (
+    <mesh
+      key={plate.shape.uuid}
+      position={[plate.offset[0], surfaceY, plate.offset[1]]}
+      raycast={ignoreRaycast}
+      receiveShadow
+      rotation={[Math.PI / 2, 0, 0]}
+    >
+      <extrudeGeometry args={args} />
+      <meshStandardMaterial color={color} metalness={metalness} roughness={roughness} />
+    </mesh>
+  );
+}
+
+/* The table round each extra board, in the main plate's colours and at its heights. */
+function ExtraTablePlates({ extraBoards }: { extraBoards: number }) {
+  const palette = useTablePalette();
+  const layers = useMemo(() => createExtraTablePlateLayers(extraBoards), [extraBoards]);
+  return (
+    <group>
+      {layers.lower.map((plate) => (
+        <ExtraPlateMesh
+          key={`lower-${plate.shape.uuid}`}
+          plate={plate}
+          surfaceY={layers.lowerSurfaceY}
+          thickness={layers.lowerThickness}
+          color={palette.base}
+          metalness={0.06}
+          roughness={0.74}
+        />
+      ))}
+      {layers.upper.map((plate) => (
+        <ExtraPlateMesh
+          key={`upper-${plate.shape.uuid}`}
+          plate={plate}
+          surfaceY={layers.upperSurfaceY}
+          thickness={layers.upperThickness}
+          color={palette.top}
+          metalness={0.02}
+          roughness={0.9}
+        />
+      ))}
+    </group>
+  );
+}
+
 function CardWell({ position }: { position: Vector3Tuple }) {
   const palette = useTablePalette();
   return (
@@ -103,10 +172,17 @@ function SideCardBay({ side }: { side: CardBaySide }) {
   );
 }
 
-export function TableFurniture({ trackerSlots }: { trackerSlots: readonly TrackerArcSlot[] }) {
+export function TableFurniture({
+  trackerSlots,
+  extraBoards = 0,
+}: {
+  trackerSlots: readonly TrackerArcSlot[];
+  extraBoards?: number;
+}) {
   return (
     <group>
       <TablePlate trackerSlots={trackerSlots} />
+      {extraBoards > 0 ? <ExtraTablePlates extraBoards={extraBoards} /> : null}
       <SideCardBay side="left" />
       <SideCardBay side="right" />
       {SHARED_ITEM_PLACEMENT_ANCHORS.map((anchor) => (

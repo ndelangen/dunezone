@@ -1,3 +1,4 @@
+import { extraTableAreas, isOnExtraTable } from './boardLayout';
 import type { TablePiece, Vector3Tuple } from './model';
 import { fromPieceFrame, POINTER_OUTLINE, isPointerToken } from './pointerToken';
 import type { PlanePoint } from './pointerToken';
@@ -6,6 +7,7 @@ import {
   CARD_FOOTPRINT_HALF_X,
   CARD_FOOTPRINT_HALF_Z,
   circleFootprintRadius,
+  nearestBy,
   planarDistance,
   TROOP_FOOTPRINT_RADIUS,
   troopScale,
@@ -325,19 +327,26 @@ function isOnTanksShelf(piece: TablePiece, position: Vector3Tuple): boolean {
 
 const JOIN_SAMPLE_COUNT = 32;
 
-function isPointOnTabletop(x: number, z: number): boolean {
+function isPointOnTabletop(x: number, z: number, extraBoards: number): boolean {
   return (
     Math.hypot(x, z) <= TABLE_PLAY_RADIUS ||
-    (x >= TANKS_PLAY_AREA.minX && x <= TANKS_PLAY_AREA.maxX && z >= TANKS_PLAY_AREA.minZ && z <= TANKS_PLAY_AREA.maxZ)
+    (x >= TANKS_PLAY_AREA.minX &&
+      x <= TANKS_PLAY_AREA.maxX &&
+      z >= TANKS_PLAY_AREA.minZ &&
+      z <= TANKS_PLAY_AREA.maxZ) ||
+    isOnExtraTable(extraTableAreas(extraBoards), x, z)
   );
 }
 
-/** A piece may straddle the join between the round table and the Tanks shelf when its whole reach lies on one or the other. */
-function isAcrossTanksJoin(piece: TablePiece, position: Vector3Tuple): boolean {
+/*
+ * A piece may straddle a join, between the round table and the Tanks shelf or onto the table round an extra board,
+ * when its whole reach lies on one part or another.
+ */
+function isAcrossTableJoin(piece: TablePiece, position: Vector3Tuple, extraBoards: number): boolean {
   const reach = footprintTableRadius(piece);
   for (let sample = 0; sample < JOIN_SAMPLE_COUNT; sample += 1) {
     const angle = (sample / JOIN_SAMPLE_COUNT) * Math.PI * 2;
-    if (!isPointOnTabletop(position[0] + Math.cos(angle) * reach, position[2] + Math.sin(angle) * reach)) {
+    if (!isPointOnTabletop(position[0] + Math.cos(angle) * reach, position[2] + Math.sin(angle) * reach, extraBoards)) {
       return false;
     }
   }
@@ -364,22 +373,43 @@ function clampToTanksShelf(piece: TablePiece, position: Vector3Tuple): Vector3Tu
   ];
 }
 
-export function clampPositionToTable(piece: TablePiece, position: Vector3Tuple): Vector3Tuple {
-  if (isSupportedPosition(piece, position)) {
-    return [...position];
-  }
-  const onTable = clampToRoundTable(piece, position);
-  const onTanks = clampToTanksShelf(piece, position);
-  const distance = (candidate: Vector3Tuple) => planarDistance(candidate, position);
-  return distance(onTanks) < distance(onTable) ? onTanks : onTable;
+/* The spot nearest `position` where the piece lies wholly on an extra board's round of table. */
+function clampToExtraRounds(piece: TablePiece, position: Vector3Tuple, extraBoards: number): Vector3Tuple[] {
+  const reach = footprintTableRadius(piece);
+  return extraTableAreas(extraBoards).flatMap((area) => {
+    if (area.kind !== 'circle') {
+      return [];
+    }
+    const dx = position[0] - area.x;
+    const dz = position[2] - area.z;
+    const distance = Math.hypot(dx, dz);
+    const limit = area.radius - reach;
+    if (distance <= limit) {
+      return [[...position] as Vector3Tuple];
+    }
+    const scale = limit / distance;
+    return [[area.x + dx * scale, position[1], area.z + dz * scale] as Vector3Tuple];
+  });
 }
 
-function isSupportedPosition(piece: TablePiece, position: Vector3Tuple): boolean {
+export function clampPositionToTable(piece: TablePiece, position: Vector3Tuple, extraBoards = 0): Vector3Tuple {
+  if (isSupportedPosition(piece, position, extraBoards)) {
+    return [...position];
+  }
+  const candidates = [
+    clampToRoundTable(piece, position),
+    clampToTanksShelf(piece, position),
+    ...clampToExtraRounds(piece, position, extraBoards),
+  ];
+  return nearestBy(candidates, (candidate) => planarDistance(candidate, position)) ?? candidates[0]!;
+}
+
+function isSupportedPosition(piece: TablePiece, position: Vector3Tuple, extraBoards: number): boolean {
   return (
     placementAnchorForPose(piece, position) !== null ||
     isOnRoundTable(piece, position) ||
     isOnTanksShelf(piece, position) ||
-    isAcrossTanksJoin(piece, position)
+    isAcrossTableJoin(piece, position, extraBoards)
   );
 }
 
@@ -402,9 +432,12 @@ export function isOverlapFreePosition(
 export function isCollisionFreePosition(
   movingPiece: TablePiece,
   position: Vector3Tuple,
-  obstacles: TablePiece[]
+  obstacles: TablePiece[],
+  extraBoards = 0
 ): boolean {
-  return isSupportedPosition(movingPiece, position) && isOverlapFreePosition(movingPiece, position, obstacles);
+  return (
+    isSupportedPosition(movingPiece, position, extraBoards) && isOverlapFreePosition(movingPiece, position, obstacles)
+  );
 }
 
 function searchAngleFor(pieceId: string): number {
@@ -421,9 +454,11 @@ export function nearestCollisionFreePosition(
   movingPiece: TablePiece,
   requestedPosition: Vector3Tuple,
   obstacles: TablePiece[],
-  fits: (position: Vector3Tuple) => boolean = () => true
+  fits: (position: Vector3Tuple) => boolean = () => true,
+  extraBoards = 0
 ): Vector3Tuple | null {
-  const free = (position: Vector3Tuple) => isCollisionFreePosition(movingPiece, position, obstacles) && fits(position);
+  const free = (position: Vector3Tuple) =>
+    isCollisionFreePosition(movingPiece, position, obstacles, extraBoards) && fits(position);
   if (free(requestedPosition)) {
     return [...requestedPosition];
   }

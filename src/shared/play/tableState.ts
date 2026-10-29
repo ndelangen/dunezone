@@ -441,13 +441,20 @@ function settleMoveAtPosition(
     }
     return { ...moveDraftTo(draft, anchoredPosition, null), orientation: placementAnchor.orientation };
   }
-  const clampedPosition = clampPositionToTable(piece, restingPositionAt(position, piece));
+  const extraBoards = state.extraBoardCount ?? 0;
+  const clampedPosition = clampPositionToTable(piece, restingPositionAt(position, piece, extraBoards), extraBoards);
   const rules = placementRules(state.pieces, piece, placementObstaclesFor(state, draft));
-  const resolvedPosition = nearestCollisionFreePosition(piece, clampedPosition, rules.obstacles, rules.fits);
+  const resolvedPosition = nearestCollisionFreePosition(
+    piece,
+    clampedPosition,
+    rules.obstacles,
+    rules.fits,
+    extraBoards
+  );
   if (!resolvedPosition) {
     return null;
   }
-  const restingPosition = restingPositionAt(resolvedPosition, piece);
+  const restingPosition = restingPositionAt(resolvedPosition, piece, extraBoards);
   return moveDraftTo(draft, restingPosition, nearestZone(restingPosition)?.id ?? null);
 }
 

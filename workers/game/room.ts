@@ -857,12 +857,13 @@ export class Room {
     if (!front) {
       throw new GameRejection('This seat has no station on the table.');
     }
-    const origin = restingPositionAt(requested ?? front, piece);
-    const supported = clampPositionToTable(piece, origin);
+    const extraBoards = table.extraBoardCount ?? 0;
+    const origin = restingPositionAt(requested ?? front, piece, extraBoards);
+    const supported = clampPositionToTable(piece, origin, extraBoards);
     if (requested && Math.hypot(supported[0] - origin[0], supported[2] - origin[2]) > 1e-6) {
       throw new GameRejection('Drop the spice on the table.');
     }
-    const position = nearestCollisionFreePosition(piece, origin, table.pieces);
+    const position = nearestCollisionFreePosition(piece, origin, table.pieces, undefined, extraBoards);
     if (!position) {
       throw new GameRejection('Make room on the table before withdrawing spice.');
     }

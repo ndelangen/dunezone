@@ -1,3 +1,4 @@
+import { extraTableAreas } from '@shared/play/boardLayout';
 import type { GameSnapshot } from '@shared/play/protocol';
 import type { TableSeatCount } from '@shared/play/tableSettings';
 import { trackerArcSlots } from '@shared/play/tableTrackers';
@@ -8,12 +9,13 @@ import { cameraPoseFor, TABLE_CAMERA_FAR, TABLE_CAMERA_FIELD_OF_VIEW, TABLE_CAME
 import { mapViewFramingPoints } from './tablePlateGeometry';
 import type { TableProgress } from './tableTrackers';
 
-/* The trackers the stage shows, and the map view and opening camera that frame the board with them. */
+/* The trackers the stage shows, and the map view and opening camera that frame the boards with them. */
 export function useTableFraming(
   stage: GameSnapshot['stage'],
   providedProgress: TableProgress | undefined,
   seatCount: TableSeatCount,
-  troopKinds?: number
+  troopKinds?: number,
+  extraBoards = 0
 ) {
   const { trackers } = boardFurnitureFor(stage);
   const tableProgress = trackers === 'none' ? undefined : providedProgress;
@@ -23,9 +25,11 @@ export function useTableFraming(
     return trackers === 'spice' ? slots.filter((slot) => slot.kind === 'spice') : slots;
   }, [phaseCount, trackers]);
   const mapFramingPoints = useMemo(
-    () => mapViewFramingPoints(trackerSlots, seatCount, troopKinds),
-    [seatCount, trackerSlots, troopKinds]
+    () => mapViewFramingPoints(trackerSlots, seatCount, troopKinds, extraBoards),
+    [extraBoards, seatCount, trackerSlots, troopKinds]
   );
+  /* A close look may slide over to the extra boards too. */
+  const zoomReach = extraTableAreas(extraBoards);
   const camera = useMemo(
     () => ({
       position: cameraPoseFor('map', 1, mapFramingPoints).position,
@@ -35,5 +39,5 @@ export function useTableFraming(
     }),
     [mapFramingPoints]
   );
-  return { tableProgress, trackerSlots, mapFramingPoints, camera };
+  return { tableProgress, trackerSlots, mapFramingPoints, zoomReach, camera };
 }

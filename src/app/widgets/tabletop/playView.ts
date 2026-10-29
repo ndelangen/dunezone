@@ -1,3 +1,4 @@
+import type { ExtraTableArea } from '@shared/play/boardLayout';
 import type { Vector3Tuple } from '@shared/play/model';
 import type { TablePhaseId } from '@shared/play/phases';
 import { BOTTOM_SHELF_POSITION, BOTTOM_SHELF_SIZE, FURNITURE_SURFACE_Y } from '@shared/play/tableFurnitureLayout';
@@ -498,29 +499,52 @@ const CAMERA_ZOOM_TARGET_RECTANGLES = [
   [-BOTTOM_SHELF_SIZE[0] / 2, BOTTOM_SHELF_SIZE[0] / 2, 0, BOTTOM_SHELF_POSITION[2] + BOTTOM_SHELF_SIZE[2] / 2],
 ] as const;
 
+/** The table a game's extra boards add (boardLayout.ts), which a close look may reach as well. */
+export type ZoomReach = readonly ExtraTableArea[];
+const NO_EXTRA_REACH: ZoomReach = [];
+
+/* How far inside one part of the reachable area a point lies, and that part's nearest point to it. */
+function rectangleDepth(x: number, z: number, [minX, maxX, minZ, maxZ]: readonly number[]): number {
+  return Math.min(x - minX!, maxX! - x, z - minZ!, maxZ! - z);
+}
+function rectangleNearest(x: number, z: number, [minX, maxX, minZ, maxZ]: readonly number[]): [number, number] {
+  return [Math.min(maxX!, Math.max(minX!, x)), Math.min(maxZ!, Math.max(minZ!, z))];
+}
+function circleNearest(x: number, z: number, cx: number, cz: number, radius: number): [number, number] {
+  const distance = Math.hypot(x - cx, z - cz);
+  return distance <= radius ? [x, z] : [cx + ((x - cx) / distance) * radius, cz + ((z - cz) / distance) * radius];
+}
+function areaBox(area: Extract<ExtraTableArea, { kind: 'rect' }>): readonly number[] {
+  return [area.minX, area.maxX, area.minZ, area.maxZ];
+}
+
 /** How far inside the reachable area a table point lies; negative outside it. */
-function zoomTargetDepth(x: number, z: number): number {
+function zoomTargetDepth(x: number, z: number, reach: ZoomReach): number {
   let depth = CAMERA_ZOOM_TARGET_RADIUS - Math.hypot(x, z);
-  for (const [minX, maxX, minZ, maxZ] of CAMERA_ZOOM_TARGET_RECTANGLES) {
-    depth = Math.max(depth, Math.min(x - minX, maxX - x, z - minZ, maxZ - z));
+  for (const rectangle of CAMERA_ZOOM_TARGET_RECTANGLES) {
+    depth = Math.max(depth, rectangleDepth(x, z, rectangle));
+  }
+  for (const area of reach) {
+    depth = Math.max(
+      depth,
+      area.kind === 'circle' ? area.radius - Math.hypot(x - area.x, z - area.z) : rectangleDepth(x, z, areaBox(area))
+    );
   }
   return depth;
 }
 
 /** The nearest point of the reachable area. */
-function nearestZoomTarget(x: number, z: number): [number, number] {
-  const distance = Math.hypot(x, z);
-  let best: [number, number] =
-    distance <= CAMERA_ZOOM_TARGET_RADIUS
-      ? [x, z]
-      : [(x / distance) * CAMERA_ZOOM_TARGET_RADIUS, (z / distance) * CAMERA_ZOOM_TARGET_RADIUS];
-  for (const [minX, maxX, minZ, maxZ] of CAMERA_ZOOM_TARGET_RECTANGLES) {
-    const candidate: [number, number] = [Math.min(maxX, Math.max(minX, x)), Math.min(maxZ, Math.max(minZ, z))];
-    if (Math.hypot(candidate[0] - x, candidate[1] - z) < Math.hypot(best[0] - x, best[1] - z)) {
-      best = candidate;
-    }
-  }
-  return best;
+function nearestZoomTarget(x: number, z: number, reach: ZoomReach): [number, number] {
+  const candidates: [number, number][] = [
+    circleNearest(x, z, 0, 0, CAMERA_ZOOM_TARGET_RADIUS),
+    ...CAMERA_ZOOM_TARGET_RECTANGLES.map((rectangle) => rectangleNearest(x, z, rectangle)),
+    ...reach.map((area) =>
+      area.kind === 'circle' ? circleNearest(x, z, area.x, area.z, area.radius) : rectangleNearest(x, z, areaBox(area))
+    ),
+  ];
+  return candidates.reduce((best, candidate) =>
+    Math.hypot(candidate[0] - x, candidate[1] - z) < Math.hypot(best[0] - x, best[1] - z) ? candidate : best
+  );
 }
 
 /** The tilt of a close look: none at the view's distance, turning toward top-down as the camera closes in. */
@@ -549,7 +573,8 @@ function cameraZoomAfterWheel(
   basePose: CameraPose,
   anchor: Vector3Tuple,
   deltaY: number,
-  deltaMode = 0
+  deltaMode = 0,
+  reach: ZoomReach = NO_EXTRA_REACH
 ): CameraZoom {
   const step = Math.exp(-wheelPixels(deltaY, deltaMode) / CAMERA_ZOOM_SCROLL_PX);
   const scale = Math.max(CAMERA_ZOOM_MINIMUM_SCALE, Math.min(1, zoom.scale * step));
@@ -568,16 +593,16 @@ function cameraZoomAfterWheel(
     const remaining = (1 - scale) / (1 - zoom.scale);
     offset = [zoom.offset[0] * remaining, zoom.offset[1] * remaining, zoom.offset[2] * remaining];
   }
-  return keepZoomOverBoard(basePose, { scale, offset });
+  return keepZoomOverBoard(basePose, { scale, offset }, reach);
 }
 
 /** A close look kept over the board: a target that would leave it slides back toward the middle. */
-function keepZoomOverBoard(basePose: CameraPose, zoom: CameraZoom): CameraZoom {
+function keepZoomOverBoard(basePose: CameraPose, zoom: CameraZoom, reach: ZoomReach): CameraZoom {
   const target = zoomedCameraPose(basePose, zoom).target;
-  if (zoomTargetDepth(target[0], target[2]) >= 0) {
+  if (zoomTargetDepth(target[0], target[2], reach) >= 0) {
     return zoom;
   }
-  const [x, z] = nearestZoomTarget(target[0], target[2]);
+  const [x, z] = nearestZoomTarget(target[0], target[2], reach);
   return {
     scale: zoom.scale,
     offset: [zoom.offset[0] + x - target[0], zoom.offset[1], zoom.offset[2] + z - target[2]],
@@ -594,7 +619,8 @@ export function cameraZoomAfterWheelAt(
   poseAt: (tilt: number) => CameraPose,
   spot: Readonly<{ ndcX: number; ndcY: number; aspectRatio: number; height: number }>,
   deltaY: number,
-  deltaMode = 0
+  deltaMode = 0,
+  reach: ZoomReach = NO_EXTRA_REACH
 ): CameraZoom {
   const pointAt = (look: CameraZoom) =>
     tablePointUnder(
@@ -606,7 +632,7 @@ export function cameraZoomAfterWheelAt(
     );
   const before = poseAt(cameraTiltForZoom(zoom));
   const anchor = pointAt(zoom) ?? zoomedCameraPose(before, zoom).target;
-  let next = cameraZoomAfterWheel(zoom, before, anchor, deltaY, deltaMode);
+  let next = cameraZoomAfterWheel(zoom, before, anchor, deltaY, deltaMode, reach);
   if (next.scale >= zoom.scale) {
     return next;
   }
@@ -615,10 +641,14 @@ export function cameraZoomAfterWheelAt(
     if (!landed) {
       break;
     }
-    next = keepZoomOverBoard(poseAt(cameraTiltForZoom(next)), {
-      scale: next.scale,
-      offset: [next.offset[0] + anchor[0] - landed[0], next.offset[1], next.offset[2] + anchor[2] - landed[2]],
-    });
+    next = keepZoomOverBoard(
+      poseAt(cameraTiltForZoom(next)),
+      {
+        scale: next.scale,
+        offset: [next.offset[0] + anchor[0] - landed[0], next.offset[1], next.offset[2] + anchor[2] - landed[2]],
+      },
+      reach
+    );
   }
   return next;
 }
@@ -678,7 +708,8 @@ export function cameraZoomAfterPanMotion(
   zoom: CameraZoom,
   basePose: CameraPose,
   velocity: readonly [number, number],
-  seconds: number
+  seconds: number,
+  reach: ZoomReach = NO_EXTRA_REACH
 ): CameraZoom {
   if (zoom.scale >= 1) {
     return zoom;
@@ -687,10 +718,10 @@ export function cameraZoomAfterPanMotion(
   let [moveX, moveZ] = [velocity[0] * step, velocity[1] * step];
   const target = zoomedCameraPose(basePose, zoom).target;
   /* The way out of the reachable area here is where its depth falls fastest. */
-  const depth = zoomTargetDepth(target[0], target[2]);
+  const depth = zoomTargetDepth(target[0], target[2], reach);
   const nudge = 0.01;
-  const fallX = depth - zoomTargetDepth(target[0] + nudge, target[2]);
-  const fallZ = depth - zoomTargetDepth(target[0], target[2] + nudge);
+  const fallX = depth - zoomTargetDepth(target[0] + nudge, target[2], reach);
+  const fallZ = depth - zoomTargetDepth(target[0], target[2] + nudge, reach);
   const fall = Math.hypot(fallX, fallZ);
   if (fall > 0) {
     const outwardX = fallX / fall;
@@ -703,10 +734,11 @@ export function cameraZoomAfterPanMotion(
       moveZ -= outwardZ * (outward - slowed);
     }
   }
-  return keepZoomOverBoard(basePose, {
-    scale: zoom.scale,
-    offset: [zoom.offset[0] + moveX, zoom.offset[1], zoom.offset[2] + moveZ],
-  });
+  return keepZoomOverBoard(
+    basePose,
+    { scale: zoom.scale, offset: [zoom.offset[0] + moveX, zoom.offset[1], zoom.offset[2] + moveZ] },
+    reach
+  );
 }
 
 /** The table point under a spot on the canvas, given in normalised device coordinates, on the plane at `height`. */
@@ -746,13 +778,20 @@ export function cameraViewTransitionProgress(elapsedMs: number): number {
   return progress * progress * (3 - 2 * progress);
 }
 
-export function cameraFogRange(position: Vector3Tuple): CameraFogRange {
+/* Fog stays this far behind the furthest extra board's edge, so a far board is never lost in it. */
+const CAMERA_FOG_EXTRA_MARGIN = 3;
+
+export function cameraFogRange(position: Vector3Tuple, reach: ZoomReach = NO_EXTRA_REACH): CameraFogRange {
   const heightAboveTable = Math.abs(position[1] - 0.1);
   const scale = Math.max(1, heightAboveTable / CAMERA_FOG_REFERENCE_HEIGHT);
-  return {
-    near: CAMERA_FOG_NEAR * scale,
-    far: CAMERA_FOG_FAR * scale,
-  };
+  let far = CAMERA_FOG_FAR * scale;
+  for (const area of reach) {
+    if (area.kind === 'circle') {
+      const distance = Math.hypot(area.x - position[0], 0.1 - position[1], area.z - position[2]);
+      far = Math.max(far, distance + area.radius + CAMERA_FOG_EXTRA_MARGIN);
+    }
+  }
+  return { near: far * (CAMERA_FOG_NEAR / CAMERA_FOG_FAR), far };
 }
 
 /** The view state for a table opened during `phase`: the camera starts on the map, and the first move waits for the next phase. */

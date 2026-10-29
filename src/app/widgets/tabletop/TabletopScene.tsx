@@ -75,7 +75,7 @@ import { MapPreviewCamera } from './MapPreviewCamera';
 import { PieceArrival } from './PieceArrival';
 import { topFaceHref } from './pieceFaceHref';
 import { pieceHasMenu } from './pieceMenu';
-import type { CameraViewCommand } from './playView';
+import type { CameraViewCommand, ZoomReach } from './playView';
 import { usePointerSession } from './PointerSessionContext';
 import { POINTER_SELECTION_RING, PointerTokenPlate } from './PointerTokenPlate';
 import { SceneCardDraws } from './SceneCardDraws';
@@ -1031,7 +1031,8 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
   const shuffleRef = useDeckShuffleAnimation(piece, carried || emptyProjection);
   const drawnPiece = useTurnedDownFaces(piece);
   const flipPivotY = stackTopHeight(piece) / 2;
-  const shadowLocalY = contactShadowHeightAt(piece.position, piece) - piece.position[1];
+  const extraBoards = useTabletopSelector((value) => value.state.extraBoardCount ?? 0);
+  const shadowLocalY = contactShadowHeightAt(piece.position, piece, extraBoards) - piece.position[1];
 
   return (
     <group
@@ -1130,6 +1131,7 @@ function SceneContents({
   tableProgress,
   trackerSlots,
   mapFramingPoints,
+  zoomReach,
   stage,
   mapVisible,
   presentation,
@@ -1149,10 +1151,13 @@ function SceneContents({
   drawBoard?: boolean;
   trackerSlots: readonly TrackerArcSlot[];
   mapFramingPoints: readonly Vector3Tuple[];
+  zoomReach?: ZoomReach;
 }) {
   const table = useTabletop();
   const palette = useTablePalette();
   const board = useTabletopSelector((value) => value.snapshot.board);
+  const extraBoards = useTabletopSelector((value) => value.state.extraBoardCount ?? 0);
+  const extraBoardCaptures = useTabletopSelector((value) => value.snapshot.extraBoards);
   const tints = useTabletopSelector((value) => value.snapshot.tints);
   const { state, renderedPieces, selectPiece } = table;
   const { controlsEnabled, onPointerSessionChange } = useSceneInteractions(onInteractionActiveChange);
@@ -1171,7 +1176,7 @@ function SceneContents({
       {presentation !== 'preview' && (
         <>
           <Suspense fallback={null}>
-            <ScenePresence showNames trackerSlots={trackerSlots} />
+            <ScenePresence showNames trackerSlots={trackerSlots} extraBoards={extraBoards} />
             <ScenePings />
           </Suspense>
           <SceneCardDraws />
@@ -1189,6 +1194,8 @@ function SceneContents({
             mapVisible={mapVisible}
             tableProgress={tableProgress}
             trackerSlots={trackerSlots}
+            extraBoards={extraBoards}
+            extraBoardCaptures={extraBoardCaptures}
           />
         )}
         <PlatePosesProvider>
@@ -1210,7 +1217,12 @@ function SceneContents({
         <MapPreviewCamera mapFramingPoints={mapFramingPoints} />
       ) : (
         <Suspense fallback={<MapPreviewCamera mapFramingPoints={mapFramingPoints} />}>
-          <PlayCamera enabled={controlsEnabled} command={cameraView} mapFramingPoints={mapFramingPoints} />
+          <PlayCamera
+            enabled={controlsEnabled}
+            command={cameraView}
+            mapFramingPoints={mapFramingPoints}
+            zoomReach={zoomReach}
+          />
         </Suspense>
       )}
       <SelectionRingWarmup />
@@ -1244,11 +1256,13 @@ export function TabletopScene({
   const openPieceMenu = useCallback((pieceId: string, x: number, y: number) => setPieceMenu({ pieceId, x, y }), []);
   /* A custom faction with four or more troop kinds spreads its reserves wider than the stock framing reaches. */
   const troopKinds = useTabletopSelector((table) => widestTroopSupply(table.state.pieces));
-  const { tableProgress, trackerSlots, mapFramingPoints, camera } = useTableFraming(
+  const extraBoards = useTabletopSelector((table) => table.state.extraBoardCount ?? 0);
+  const { tableProgress, trackerSlots, mapFramingPoints, zoomReach, camera } = useTableFraming(
     stage,
     providedProgress,
     seatCount,
-    troopKinds
+    troopKinds,
+    extraBoards
   );
   const areaRef = useRef<HTMLDivElement>(null);
   const painting = usePaintingArea(className);
@@ -1293,6 +1307,7 @@ export function TabletopScene({
             tableProgress={tableProgress}
             trackerSlots={trackerSlots}
             mapFramingPoints={mapFramingPoints}
+            zoomReach={zoomReach}
           />
         </TabletopCanvas>
       </PieceMenuContext.Provider>

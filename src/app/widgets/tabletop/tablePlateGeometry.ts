@@ -1,3 +1,5 @@
+import { extraTableAreas, isOnExtraTable } from '@shared/play/boardLayout';
+import type { ExtraTableArea } from '@shared/play/boardLayout';
 import type { Vector3Tuple } from '@shared/play/model';
 import { supplyReserveReach } from '@shared/play/setupLayout';
 import {
@@ -69,9 +71,16 @@ const TRACKER_BEACON_HANDLE_REACH = 0.5;
 export function mapViewFramingPoints(
   slots: readonly TrackerArcSlot[],
   seatCount: TableSeatCount = DEFAULT_TABLE_SEAT_COUNT,
-  troopKinds?: number
+  troopKinds?: number,
+  extraBoards = 0
 ): Vector3Tuple[] {
   const points: Vector3Tuple[] = [];
+  /* Every extra board's round of table, so the map view takes in all of a game's boards. */
+  for (const area of extraTableAreas(extraBoards)) {
+    if (area.kind === 'circle') {
+      appendCircleBoundary(points, [area.x, BOARD_RIM_SURFACE_Y, area.z], area.radius, 64);
+    }
+  }
   const reserveReach = supplyReserveReach(troopKinds);
   appendCircleBoundary(points, [0, BOARD_RIM_SURFACE_Y, 0], BOARD_RIM_RADIUS, 96);
   tableSeatAngles(seatCount).forEach((angle) => {
@@ -299,6 +308,54 @@ export function createTablePlateLayers(slots: readonly TrackerArcSlot[] = []): T
   };
 }
 
+/*
+ * The table round each extra board, and the bridges up to the top boards: shapes of their own, drawn at the main
+ * plate's heights, since the plate's outline cannot take them in. The base below reaches a little wider, as the main base does.
+ */
+const EXTRA_PLATE_BASE_SPREAD = 0.1;
+const EXTRA_PLATE_BRIDGE_RADIUS = 0.3;
+
+function extraAreaShape(area: ExtraTableArea, spread: number): Shape {
+  if (area.kind === 'circle') {
+    const shape = new Shape();
+    shape.absarc(area.x, area.z, area.radius + spread, 0, Math.PI * 2, false);
+    return shape;
+  }
+  const shape = createRoundedRectangleShape(
+    area.maxX - area.minX + spread * 2,
+    area.maxZ - area.minZ + spread * 2,
+    EXTRA_PLATE_BRIDGE_RADIUS
+  );
+  return shape;
+}
+
+/** Where each extra plate stands: its shape is drawn about the table's centre, or, for a bridge, about its own. */
+export type ExtraPlate = Readonly<{ shape: Shape; offset: readonly [x: number, z: number] }>;
+
+export function createExtraTablePlateLayers(extraBoards: number): Readonly<{
+  upper: readonly ExtraPlate[];
+  lower: readonly ExtraPlate[];
+  upperSurfaceY: number;
+  lowerSurfaceY: number;
+  upperThickness: number;
+  lowerThickness: number;
+}> {
+  const areas = extraTableAreas(extraBoards);
+  const plate = (spread: number) =>
+    areas.map((area): ExtraPlate => ({
+      shape: extraAreaShape(area, spread),
+      offset: area.kind === 'circle' ? [0, 0] : [(area.minX + area.maxX) / 2, (area.minZ + area.maxZ) / 2],
+    }));
+  return {
+    upper: plate(0),
+    lower: plate(EXTRA_PLATE_BASE_SPREAD),
+    upperSurfaceY: FURNITURE_SURFACE_Y,
+    lowerSurfaceY: FURNITURE_SURFACE_Y - TABLE_PLATE_THICKNESS + TABLE_BASE_OVERLAP,
+    upperThickness: TABLE_PLATE_THICKNESS,
+    lowerThickness: TABLE_BASE_THICKNESS,
+  };
+}
+
 /** The drawn table plate's edge as [x, z] corners: the round top, the shelves with their rounded corners, and the tracker crown. */
 type TablePlateOutline = readonly (readonly [x: number, z: number])[];
 
@@ -326,8 +383,12 @@ function tablePlateContains(outline: TablePlateOutline, [x, , z]: Vector3Tuple):
 export function tableSurfacePointOnRay(
   origin: Vector3Tuple,
   direction: Vector3Tuple,
-  outline: TablePlateOutline
+  outline: TablePlateOutline,
+  extraBoards = 0
 ): Vector3Tuple | null {
-  const point = surfacePointOnRay(origin, direction);
-  return point && tablePlateContains(outline, point) ? point : null;
+  const point = surfacePointOnRay(origin, direction, extraBoards);
+  return point &&
+    (tablePlateContains(outline, point) || isOnExtraTable(extraTableAreas(extraBoards), point[0], point[2]))
+    ? point
+    : null;
 }

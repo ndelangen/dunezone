@@ -11,6 +11,7 @@ import {
   battleFaceSchema,
 } from './battle';
 import { biddingActionSchema, biddingStateSchema } from './bidding';
+import { MAX_EXTRA_BOARDS } from './boardLayout';
 import { boardCaptureSchema, publicFactionSchema } from './capture';
 import { cardDrawSchema } from './cardDraw';
 import {
@@ -72,6 +73,8 @@ const direction = z.union([z.literal(-1), z.literal(1)]);
 export const gameSnapshotSchema = z.object({
   /* Immutable retained content, omitted only for legacy games and fixtures. */
   board: boardCaptureSchema.optional(),
+  /* The extra boards round the main board, in slot order, as immutable as `board`; the table's extraBoardCount says how many stand. */
+  extraBoards: z.array(boardCaptureSchema).max(MAX_EXTRA_BOARDS).optional(),
   revision: count,
   table: tableSchema,
   versions: z.record(z.string(), count),
