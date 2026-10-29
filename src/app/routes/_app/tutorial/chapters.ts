@@ -186,5 +186,10 @@ export const chapterAt = (slug: string): TutorialChapter | undefined =>
  * The picture on a chapter's tile: a still of the Play table standing in for the live preview each tile will animate.
  * The stills are display copies in public/tutorial, named by the chapter's slug.
  */
-export const chapterArt = (chapter: TutorialChapter) =>
-  `/tutorial/${chapter.slug === 'mentat-recall' ? 'moderation' : ['find-a-game', 'create-a-game'].includes(chapter.slug) ? 'find-or-create' : chapter.slug}.webp`;
+export const chapterArt = (chapter: TutorialChapter) => {
+  if (chapter.slug === 'mentat-recall') {
+    return '/tutorial/moderation.webp';
+  }
+  const slug = ['find-a-game', 'create-a-game'].includes(chapter.slug) ? 'find-or-create' : chapter.slug;
+  return `/tutorial/${slug}.webp`;
+};

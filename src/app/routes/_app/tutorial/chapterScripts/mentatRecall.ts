@@ -25,7 +25,7 @@ const loaded = () =>
 function answerProposals(snapshot: () => GameSnapshot, players: TablePlayers, stormOnly: boolean) {
   const timer = setInterval(() => {
     const review = snapshot().review;
-    if (!review || review.startedAt !== null) {
+    if (review?.startedAt !== null) {
       return;
     }
     if (stormOnly && review.step !== 0) {
@@ -138,7 +138,7 @@ function consentTask(snapshot: () => GameSnapshot): GuideTask {
   let continuedReviewId: string | undefined;
   const consent = pressEnter(() => {
     const review = snapshot().review;
-    if (!review || review.step !== 0) {
+    if (review?.step !== 0) {
       return false;
     }
     continuedReviewId = review.id;
