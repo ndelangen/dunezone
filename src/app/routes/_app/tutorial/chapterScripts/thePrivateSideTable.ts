@@ -6,6 +6,7 @@ import { CARD_DEPTH, CARD_WIDTH } from '@shared/play/tableGeometry';
 import type { GuideTask } from '../TutorialGuide';
 import type { ChapterScript } from './chapterScript';
 import { element, openedWindow, task, viaCompass, windowShown } from './guideChecks';
+import { KWISATZ_HADERACH } from './kwisatzHaderach';
 
 /*
  * "The private side-table": a small table of the player's own for pieces that need a specific place.
@@ -20,32 +21,7 @@ const COUNTER = 'Atreides Battle Loss Counter';
 
 /** The tracker and its counter, as the game holds a captured card and token, owned by whichever faction the chapter seats. */
 const hand: StoredPiece[] = [
-  {
-    id: 'tutorial-kwisatz-haderach',
-    label: CARD,
-    owner: '',
-    color: '#d5ba8c',
-    accent: '#ead9bb',
-    items: [
-      {
-        id: 'tutorial-kwisatz-haderach-card',
-        faceUp: true,
-        artwork: {
-          front: '{{origin}}/published/custom-cards/ns7e41fyyzajd2w392aedttr298gmmvm/card.jpg',
-          /* The card is in no deck, so it wears the faction-card back an Atreides alliance card wears; it stays face up here. */
-          back: '{{origin}}/published/cardback-presets/alliance/cardback.jpg',
-          name: CARD,
-          type: 'card-custom',
-        },
-      },
-    ],
-    stackKey: 'card:ns7e41fyyzajd2w392aedttr298gmmvm',
-    position: [-25, 0, -25],
-    orientation: 0,
-    zoneId: null,
-    locked: false,
-    kind: 'card',
-  },
+  KWISATZ_HADERACH,
   {
     id: 'tutorial-battle-loss-counter',
     label: COUNTER,

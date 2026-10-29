@@ -9,6 +9,7 @@ import { draftAndTrade } from './draftAndTrade';
 import { endingAGame } from './endingAGame';
 import { findAGame } from './findAGame';
 import { lookingAround } from './lookingAround';
+import { mentatRecall } from './mentatRecall';
 import { moderation } from './moderation';
 import { movingPieces } from './movingPieces';
 import { phasesAndTurns } from './phasesAndTurns';
@@ -41,5 +42,6 @@ export const CHAPTER_SCRIPTS: Readonly<Record<string, ChapterScript | LobbyChapt
   [alliancesAndTalking.slug]: alliancesAndTalking,
   [bringYourOwnPieces.slug]: bringYourOwnPieces,
   [endingAGame.slug]: endingAGame,
+  [mentatRecall.slug]: mentatRecall,
   [moderation.slug]: moderation,
 };

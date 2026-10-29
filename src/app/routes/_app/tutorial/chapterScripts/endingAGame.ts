@@ -5,7 +5,7 @@ import type { ChapterScript } from './chapterScript';
 import { element, pressEnter, task } from './guideChecks';
 
 /*
- * "Ending a game": the result from Determine winner to Continue playing. Mentat recall and player removal belong to Moderation and disputes.
+ * "Ending a game": the result from Determine winner to Continue playing. Mentat recall and player removal each have their own chapter.
  * The others played the turn through to the Mentat Pause before the chapter opens, as only that phase offers Determine winner.
  * One player declares the result and nobody confirms it, so the chapter declares, then continues the game as anyone may.
  */
@@ -86,7 +86,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'replay-closed',
       task: 'Replay closes when play resumes',
       detail:
-        'Replay is only available after a game ends. To inspect an earlier position during play, use Mentat recall, covered in Moderation and disputes.\n\nPress {Enter} to finish.',
+        'Replay is only available after a game ends. To inspect an earlier position during play, use Mentat recall, covered in its own chapter.\n\nPress {Enter} to finish.',
       anchor: { kind: 'page', element: element('[aria-label="Phase navigation"]') },
       ...pressEnter(),
     }),
