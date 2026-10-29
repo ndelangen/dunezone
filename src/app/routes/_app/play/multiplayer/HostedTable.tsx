@@ -693,7 +693,11 @@ export default function HostedTable({
     return (
       <TableWait status={view.error ?? 'Connecting to the hosted table...'} connection={view.status}>
         {view.status === 'denied' && (
-          <Anchor renderRoot={(props) => <Link {...props} to="/auth/login" search={signInReturnFrom(here)} />}>
+          <Anchor
+            renderRoot={(props) => (
+              <Link {...props} to="/auth/login" search={{ ...signInReturnFrom(here), reauthenticate: true }} />
+            )}
+          >
             Sign in again
           </Anchor>
         )}
