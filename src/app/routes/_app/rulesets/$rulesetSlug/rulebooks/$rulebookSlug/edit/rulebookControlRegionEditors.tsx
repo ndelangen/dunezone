@@ -70,7 +70,9 @@ export function CoverEdit({
       ) : (
         <ControlBlock
           title="Background image URL"
-          description="Paste an HTTPS image URL. Save stores a copy for this Rulebook. The image fills the Page and is cropped at the edges when its proportions differ."
+          description={
+            'Paste an HTTPS image URL. Saving stores a copy for this Rulebook.\nThe image fills the Page, cropped at the edges if its shape differs.'
+          }
           input={
             <TextInput
               aria-label="Background image URL"

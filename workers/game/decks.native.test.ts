@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
 import type { TablePiece } from '../../src/shared/play/model';
 import type { GameSnapshot } from '../../src/shared/play/protocol';
+import type { ServerMessage } from '../../src/shared/play/protocol';
 import { readSnapshot } from './native-runtime.fixture.ts';
 import { readHistoricalSnapshot } from './native-runtime.fixture.ts';
 import { required } from './native-runtime.fixture.ts';
@@ -11,13 +12,15 @@ import { admitPlayer, createPeer, createRuntime, provision, sendCommand, syncVie
 /* Every card face in the game reaches every page by design, as a sorted list that ties no face to a card; the rest of a frame must not. */
 const shown = (value: unknown) =>
   JSON.stringify(value, (key: string, entry: unknown) => (key === 'cardFaces' ? undefined : entry));
+const draws = (messages: ServerMessage[]) =>
+  messages.flatMap((message) =>
+    (message.type === 'view' || message.type === 'update') && message.cardDraw ? [message.cardDraw] : []
+  );
 
 describe('Private deck commands through native delivery', () => {
   let peer: NativePeer, runtime: NativeRuntime;
   beforeEach(async () => {
     peer = await createPeer();
-    peer.watchMode = 'allow';
-    peer.expiresAt = () => Date.now() + 600_000;
     runtime = await createRuntime(peer, 'game');
     if ((await provision(runtime)).status !== 200) {
       throw new Error('The isolated fixture did not provision.');
@@ -48,7 +51,7 @@ describe('Private deck commands through native delivery', () => {
     await runtime?.close();
     await peer?.close();
   });
-  const admit = (suffix: string) => admitPlayer(peer, runtime, suffix);
+  const admit = (suffix: string) => admitPlayer(runtime, suffix);
   const deck = (view: { snapshot: { table: GameSnapshot['table'] } }) =>
     view.snapshot.table.pieces.find((piece) => piece.id === 'treachery-deck');
 
@@ -80,10 +83,79 @@ describe('Private deck commands through native delivery', () => {
     await syncView(spectator);
     expect(shown(a.messages)).not.toContain('secret-3');
     expect(shown(spectator.messages)).not.toContain('secret-3');
+    const publicDraws = draws(a.messages);
+    expect(publicDraws).toHaveLength(1);
+    expect(publicDraws[0]).toMatchObject({ recipient: 'atreides', count: 1, back: 'https://cards.example/back.png' });
+    expect(draws(b.messages)).toEqual(publicDraws);
+    expect(draws(spectator.messages)).toEqual(publicDraws);
+    expect(JSON.stringify(publicDraws)).not.toMatch(/secret-|front|name|cardHandles/);
     await runtime.restart();
-    expect((await syncView(await admit('b'))).snapshot.hand).toHaveLength(1);
+    const reconnected = await admit('b');
+    expect((await syncView(reconnected)).snapshot.hand).toHaveLength(1);
+    expect(draws(reconnected.messages)).toEqual([]);
     const rows = await runtime.exec<{ action: string }>('SELECT action FROM public_action_history');
     expect(rows).toHaveLength(1);
+  });
+
+  it('deals four cards atomically without revealing them to the sender or dealing again on retry', async () => {
+    const sender = await admit('a');
+    const recipient = await admit('b');
+    const spectator = await admit('c');
+    const source = required(deck(await syncView(sender)));
+    const result = await sendCommand(sender, {
+      kind: 'deck-draw',
+      pieceId: 'treachery-deck',
+      recipient: 'atreides',
+      count: 4,
+    });
+    expect(result.reply.type).not.toBe('rejected');
+    const dealt = await syncView(recipient);
+    expect(dealt.snapshot.hand).toHaveLength(4);
+    expect(required(dealt.snapshot.hand).map((piece) => required(piece.items[0].artwork).front)).toEqual([
+      'https://cards.example/secret-3.png',
+      'https://cards.example/secret-2.png',
+      'https://cards.example/secret-1.png',
+      'https://cards.example/secret-0.png',
+    ]);
+    expect(deck(dealt)).toBeUndefined();
+    sender.send(result.message);
+    expect((await syncView(recipient)).snapshot.hand).toHaveLength(4);
+    expect((await syncView(sender)).snapshot.hand).toHaveLength(0);
+    await syncView(spectator);
+    expect(shown(sender.messages)).not.toContain('secret-');
+    expect(shown(spectator.messages)).not.toContain('secret-');
+    const publicDraws = draws(sender.messages);
+    expect(publicDraws).toHaveLength(1);
+    expect(publicDraws[0]).toMatchObject({
+      recipient: 'atreides',
+      count: 4,
+      from: [source.position[0], expect.any(Number), source.position[2]],
+    });
+    expect(draws(recipient.messages)).toEqual(publicDraws);
+    expect(draws(spectator.messages)).toEqual(publicDraws);
+    expect(await runtime.exec('SELECT action FROM public_action_history')).toHaveLength(1);
+  });
+
+  it('delivers an accepted draw to every viewer when its visual cue is outside the coordinate range', async () => {
+    const rows = await runtime.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1');
+    const snapshot = readSnapshot(rows[0].data);
+    required(deck({ snapshot })).position[1] = 30;
+    await runtime.exec('UPDATE current_state SET data=? WHERE id=1', [JSON.stringify(snapshot)]);
+    await runtime.restart();
+    const sender = await admit('a');
+    const recipient = await admit('b');
+    const spectator = await admit('c');
+    const result = await sendCommand(sender, {
+      kind: 'deck-draw',
+      pieceId: 'treachery-deck',
+      recipient: 'atreides',
+    });
+    expect(result.reply.type).not.toBe('rejected');
+    expect((await syncView(recipient)).snapshot.hand).toHaveLength(1);
+    for (const viewer of [sender, recipient, spectator]) {
+      expect(required(deck(await syncView(viewer))).items).toHaveLength(3);
+      expect(draws(viewer.messages)).toEqual([]);
+    }
   });
 
   it('retires every public card handle on shuffle while preserving internal identities across retry and restart', async () => {
@@ -127,6 +199,9 @@ describe('Private deck commands through native delivery', () => {
     expect((await sendCommand(spectator, { kind: 'deck-draw' as const, pieceId: 'treachery-deck' })).reply.type).toBe(
       'rejected'
     );
+    await syncView(a);
+    expect(draws(a.messages)).toEqual([]);
+    expect(draws(spectator.messages)).toEqual([]);
     await sendCommand(a, { kind: 'deck-draw' as const, pieceId: 'treachery-deck' });
     const hand = required((await syncView(a)).snapshot.hand)[0];
     const result = await sendCommand(a, { kind: 'hand-play' as const, pieceId: hand.id, position: [0, 0.4, 0] });
@@ -170,7 +245,7 @@ describe('Private deck commands through native delivery', () => {
       troops: [],
       spice: 0,
       adjustment: 0,
-      leaderId: null,
+      leaderIds: [],
       cardIds: ['old-reveal'],
       strength: 0,
       faces: [],
@@ -247,7 +322,7 @@ describe('Private deck commands through native delivery', () => {
       troops: [],
       spice: 0,
       adjustment: 0,
-      leaderId: null,
+      leaderIds: [],
       cardIds: [required(loose).id],
       strength: 0,
       faces: [],

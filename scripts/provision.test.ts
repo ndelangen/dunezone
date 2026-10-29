@@ -17,6 +17,7 @@ import {
   parseEnvFile,
   parseProvisionArgs,
   rebuildFromSnapshot,
+  provisionCloudDev,
   selfHostedEnvironment,
 } from './provision';
 import { writtenSnapshot } from './snapshot-anonymise.test.fixture';
@@ -112,6 +113,7 @@ describe('local fixture reset', () => {
  * The draft seed's batches answer as one finished batch, because the load reads their results.
  */
 const started = vi.hoisted((): string[][] => []);
+const failedCommand = vi.hoisted(() => ({ argument: '' }));
 const resetRefusal = vi.hoisted(() => ({ enabled: false }));
 vi.mock('node:child_process', async (importOriginal) => {
   const actual = await importOriginal<typeof ChildProcess>();
@@ -126,6 +128,9 @@ vi.mock('node:child_process', async (importOriginal) => {
         status: 1,
         signal: null,
       };
+    }
+    if (failedCommand.argument && args.includes(failedCommand.argument)) {
+      return { pid: 0, output: [], stdout: '', stderr: 'Refused test command', status: 1, signal: null };
     }
     const stdout = args.includes('provisioning:seedSnapshotRulebookDraftsBatch')
       ? JSON.stringify({ isDone: true, continueCursor: '', seeded: 1 })
@@ -172,6 +177,13 @@ describe('provision pipeline', () => {
       stagesExplicit: true,
       snapshotFile: null,
     });
+    expect(parseProvisionArgs(['dev', '--stage', 'migrate'])).toEqual({
+      target: 'dev',
+      stages: ['migrate'],
+      stagesExplicit: true,
+      snapshotFile: null,
+    });
+    expect(() => parseProvisionArgs(['e2e', '--stage', 'migrate'])).toThrow('Invalid stage for target e2e');
     expect(() => parseProvisionArgs(['prod'])).toThrow('Usage: provision');
     expect(() => parseProvisionArgs(['dev', '--stage', 'backend'])).toThrow('Invalid stage for target dev');
   });
@@ -347,6 +359,33 @@ describe('snapshot loads', () => {
     } finally {
       rmSync(directory, { recursive: true, force: true });
       vi.restoreAllMocks();
+    }
+  });
+});
+
+describe('cloud dev incremental sync', () => {
+  test('checks narrowing before pushing and runs outstanding migrations afterwards', () => {
+    started.length = 0;
+    provisionCloudDev(['code', 'migrate'], null, { CONVEX_DEV_DEPLOY_KEY: 'not-a-real-key' }, '/unused');
+    expect(started.map((command) => command.slice(1))).toEqual([
+      ['--no-env-file', 'run', './scripts/migration-guards.ts', 'narrow-check'],
+      ['--no-env-file', 'x', 'convex', 'dev', '--once'],
+      ['--no-env-file', 'run', './scripts/migration-guards.ts', 'dev-strict', '600000', '2000'],
+    ]);
+  });
+
+  test.each(['narrow-check', '--once', 'dev-strict'])('a failure at %s never clears or imports data', (argument) => {
+    started.length = 0;
+    failedCommand.argument = argument;
+    try {
+      expect(() =>
+        provisionCloudDev(['code', 'migrate'], null, { CONVEX_DEV_DEPLOY_KEY: 'not-a-real-key' }, '/unused')
+      ).toThrow();
+      expect(started.at(-1)).toContain(argument);
+      expect(started.flat()).not.toContain('import');
+      expect(started.flat()).not.toContain('export');
+    } finally {
+      failedCommand.argument = '';
     }
   });
 });

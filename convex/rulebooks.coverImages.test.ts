@@ -99,6 +99,82 @@ afterEach(() => {
 });
 
 describe('Rulebook cover image staging', () => {
+  test('a retained 3000-pixel cover remains readable and can be replaced through normal Save', async () => {
+    const image = {
+      width: 1560,
+      height: 3000,
+      sourceUrl:
+        'https://raw.githubusercontent.com/ndelangen/dunezone/8f932fcbbf538ecbfa66aefe4d45308cc3158f5f/content/gf9/artwork/originals/ixian-cover.png',
+      url: 'http://127.0.0.1:31656/user-images/cfce5d1a2aa33d1eab50184ba23389efb830cae621ea911096cd51507ba66242.jpg',
+    };
+    vi.stubEnv('USER_IMAGE_INGEST_BASE_URL', 'http://host.docker.internal:31660');
+    vi.stubEnv('USER_IMAGE_PUBLIC_BASE_URL', 'http://127.0.0.1:31656');
+    const { f, contents, locator, cover } = await publishedCoverFixture({
+      backgroundSource: { kind: 'url' },
+      backgroundImageUrl: image.sourceUrl,
+      backgroundImage: { ...image, height: 1600 },
+    });
+    cover.backgroundImage = image;
+    /* Reproduce data saved by an earlier encoder, independently of today's Save validator. */
+    await f.t.run(async (ctx) => {
+      await ctx.db.patch(f.created.draft._id, { contents, contents_hash: undefined, authored_hash: undefined });
+      const edition = await ctx.db
+        .query('rulebook_editions')
+        .withIndex('by_rulebook_and_edition_number', (q) =>
+          q.eq('rulebook_id', f.created.rulebook._id).eq('edition_number', 2)
+        )
+        .unique();
+      if (!edition) {
+        throw new Error('Missing published Edition');
+      }
+      const stored = await ctx.db
+        .query('rulebook_edition_contents')
+        .withIndex('by_edition_id', (q) => q.eq('edition_id', edition._id))
+        .unique();
+      if (!stored) {
+        throw new Error('Missing published Contents');
+      }
+      await ctx.db.patch(stored._id, { contents });
+      await ctx.db.patch(edition._id, { contents_hash: undefined, authored_hash: undefined });
+    });
+
+    const editor = await f.owner.query(api.rulebooks.editorPage, locator);
+    expect(editor).toMatchObject({ kind: 'editable', draft: { contents, settings: f.created.draft.settings } });
+    const saved = await f.owner.mutation(api.rulebooks.save, {
+      rulebook_id: f.created.rulebook._id,
+      expected_revision: 2,
+      contents,
+    });
+    expect(saved).toMatchObject({
+      kind: 'saved',
+      draft: { revision: 3, contents, settings: f.created.draft.settings },
+    });
+
+    const replacement = structuredClone(contents);
+    const page = replacement.pagesById.CVER!;
+    if (page.layoutId !== 'cover') {
+      throw new Error('Expected Cover');
+    }
+    page.controlValues.cover = {
+      ...cover,
+      backgroundSource: { kind: 'preset', presetId: 'sandworm' },
+    };
+    delete page.controlValues.cover.backgroundImage;
+    delete page.controlValues.cover.backgroundImageUrl;
+    await expect(
+      f.owner.mutation(api.rulebooks.save, {
+        rulebook_id: f.created.rulebook._id,
+        expected_revision: 3,
+        contents: replacement,
+      })
+    ).resolves.toMatchObject({ kind: 'saved', draft: { revision: 4, contents: replacement } });
+    const reader = await f.t.query(api.rulebooks.readerPage, locator);
+    expect(reader?.edition.contents.pagesById.CVER).toHaveProperty('controlValues.cover.backgroundImage', {
+      ...image,
+      sourceUrl: image.url,
+    });
+  });
+
   test('stored covers with historical IP source metadata remain editable and readable', async () => {
     const sourceUrl = 'https://8.8.8.8/cover.png';
     const { f, contents, locator } = await publishedCoverFixture({
@@ -261,7 +337,9 @@ describe('Rulebook cover image staging', () => {
       })
     ).toEqual(IMAGE);
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(await f.t.run(async (ctx) => await ctx.db.get(f.created.draft._id))).toEqual(f.created.draft);
+    expect(await f.t.run(async (ctx) => await ctx.db.get(f.created.draft._id))).toEqual(
+      Object.fromEntries(Object.entries(f.created.draft).filter(([key]) => key !== 'settings'))
+    );
     const edition = await f.t.run(
       async (ctx) =>
         await ctx.db
@@ -322,7 +400,9 @@ describe('Rulebook cover image staging', () => {
       );
       expect(row).toMatchObject({ consumed: true, r2_keys: [KEY] });
       expect(row?.rulebook_cover_image).toBeUndefined();
-      expect(await f.t.run(async (ctx) => await ctx.db.get(f.created.draft._id))).toEqual(f.created.draft);
+      expect(await f.t.run(async (ctx) => await ctx.db.get(f.created.draft._id))).toEqual(
+        Object.fromEntries(Object.entries(f.created.draft).filter(([key]) => key !== 'settings'))
+      );
     }
   );
 
@@ -335,6 +415,7 @@ describe('Rulebook cover image staging', () => {
       { ...RESULT, url: `https://dune.zone/user-images/${'b'.repeat(64)}.jpg` },
       { ...RESULT, thumb_url: IMAGE.url },
       { ...RESULT, width: 1601 },
+      { ...RESULT, width: 1560, height: 3000 },
     ]) {
       expect(await f.t.mutation(api.ingestTokens.consume, { token, result, r2_keys: [KEY] })).toEqual({
         ok: false,
@@ -375,6 +456,47 @@ describe('Rulebook cover image staging', () => {
     const result = { ...RESULT, url: `http://127.0.0.1:7777/user-images/${KEY}` };
     expect(await f.t.mutation(api.ingestTokens.consume, { token, result, r2_keys: [KEY] })).toEqual({ ok: true });
     expect(await f.t.query(internal.rulebookCoverImages.stagedImage, { token })).toEqual({ ...IMAGE, ...result });
+  });
+
+  test('a local Docker ingest can deliver through its configured browser proxy', async () => {
+    const f = await fixture();
+    vi.stubEnv('USER_IMAGE_INGEST_BASE_URL', 'http://host.docker.internal:7777');
+    vi.stubEnv('USER_IMAGE_PUBLIC_BASE_URL', 'http://127.0.0.1:7778');
+    const editor = await f.owner.query(api.rulebooks.editorPage, {
+      ruleset_slug: 'rulebook-test-rules',
+      rulebook_slug: f.created.rulebook.slug,
+    });
+    expect(editor?.kind === 'editable' && editor.coverImageOrigins).toEqual([
+      'https://dune.zone',
+      'http://host.docker.internal:7777',
+      'http://127.0.0.1:7778',
+    ]);
+    const anonymous = await f.t.query(api.rulebooks.editorPage, {
+      ruleset_slug: 'rulebook-test-rules',
+      rulebook_slug: f.created.rulebook.slug,
+    });
+    expect(anonymous?.kind).toBe('sign-in-required');
+    expect(anonymous).not.toHaveProperty('coverImageOrigins');
+    const { token } = await mint(f);
+    const result = { ...RESULT, url: `http://127.0.0.1:7778/user-images/${KEY}` };
+    expect(await f.t.mutation(api.ingestTokens.consume, { token, result, r2_keys: [KEY] })).toEqual({ ok: true });
+    expect(await f.t.query(internal.rulebookCoverImages.stagedImage, { token })).toEqual({ ...IMAGE, ...result });
+  });
+
+  test.each([
+    ['https://worker.test', 'http://127.0.0.1:7778'],
+    ['http://host.docker.internal:7777', 'https://elsewhere.example'],
+    ['http://host.docker.internal:7777', 'http://user:password@127.0.0.1:7778'],
+  ])('local delivery cannot widen a nonlocal or credential-bearing configuration', async (ingest, delivery) => {
+    const f = await fixture();
+    vi.stubEnv('USER_IMAGE_INGEST_BASE_URL', ingest);
+    vi.stubEnv('USER_IMAGE_PUBLIC_BASE_URL', delivery);
+    const { token } = await mint(f);
+    const result = { ...RESULT, url: `${new URL(delivery).origin}/user-images/${KEY}` };
+    expect(await f.t.mutation(api.ingestTokens.consume, { token, result, r2_keys: [KEY] })).toEqual({
+      ok: false,
+      reason: 'invalid_payload',
+    });
   });
 
   test('Save accepts a matching stored image, rejects a raw source, and leaves the previous Edition intact', async () => {

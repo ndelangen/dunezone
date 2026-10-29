@@ -1,5 +1,7 @@
 import { pieceCount } from '@shared/play/model';
+import type { TablePiece } from '@shared/play/model';
 import { tokenBoxRatio } from '@shared/play/tableGeometry';
+import { FormattedTextSource } from '@ui/content/FormattedText';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 import { createPortal } from 'react-dom';
@@ -10,6 +12,7 @@ import { topFaceHref, topItem } from './pieceFaceHref';
 import { seatedHeaderOf } from './seatedHeader';
 import { useTabletopSelector } from './TabletopContext';
 import styles from './TabletopScene.module.css';
+import { wheelPixels } from './wheelPixels';
 
 const CARD_HEIGHT_PX = 380;
 const CURSOR_GAP_PX = 28;
@@ -21,7 +24,10 @@ type Point = { x: number; y: number };
  * Whether Alt is held, and a ref to where the pointer is; a lost window or hidden page lets go of Alt.
  * Only Alt renders: the pointer is followed in a ref, so moving it costs no React render.
  */
-function useAltPointer(): Readonly<{ alt: boolean; pointer: RefObject<Point> }> {
+function useAltPointer(): Readonly<{
+  alt: boolean;
+  pointer: RefObject<Point>;
+}> {
   const [alt, setAlt] = useState(false);
   const pointer = useRef<Point>({ x: 0, y: 0 });
 
@@ -62,23 +68,36 @@ function useAltPointer(): Readonly<{ alt: boolean; pointer: RefObject<Point> }> 
   return { alt, pointer };
 }
 
-type Bounds = Readonly<{ left: number; top: number; right: number; bottom: number }>;
+type Bounds = Readonly<{
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}>;
 
 /** The close-up's box beside the pointer within the bounds, turned to the pointer's other side where the area would cut it off. */
 function placeBeside(pointer: Point, width: number, height: number, bounds: Bounds) {
   const right = pointer.x + CURSOR_GAP_PX;
   const left = right + width + EDGE_PX > bounds.right ? pointer.x - CURSOR_GAP_PX - width : right;
   const top = Math.min(pointer.y - height / 2, bounds.bottom - height - EDGE_PX);
-  return { left: Math.max(bounds.left + EDGE_PX, left), top: Math.max(bounds.top + EDGE_PX, top) };
+  return {
+    left: Math.max(bounds.left + EDGE_PX, left),
+    top: Math.max(bounds.top + EDGE_PX, top),
+  };
 }
 
 /*
- * The window below the seated header, which lies over the canvas's top: the close-up may spill over the controls panel and the dock
+ * The window below the seated header, which lies over the canvas's top: the close-up may spill over the pinned windows
  * when the table's own area is too small to hold it beside the pointer.
  */
 function closeUpBounds(area: HTMLElement | null): Bounds {
   const header = area ? seatedHeaderOf(area)?.getBoundingClientRect() : undefined;
-  return { left: 0, top: Math.max(0, header?.bottom ?? 0), right: window.innerWidth, bottom: window.innerHeight };
+  return {
+    left: 0,
+    top: Math.max(0, header?.bottom ?? 0),
+    right: window.innerWidth,
+    bottom: window.innerHeight,
+  };
 }
 
 /*
@@ -89,19 +108,55 @@ function useFollowPointer(
   box: RefObject<HTMLDivElement | null>,
   pointer: RefObject<Point>,
   area: RefObject<HTMLElement | null>,
-  size: Readonly<{ width: number; height: number }> | null
+  size: Readonly<{ width: number; height: number; content?: string }> | null
 ) {
   const width = size?.width;
   const height = size?.height;
+  const zoom = useRef(1);
   useLayoutEffect(() => {
     if (width == null || height == null) {
       return;
     }
-    const place = () => {
-      const position = placeBeside(pointer.current, width, height, closeUpBounds(area.current));
-      box.current?.style.setProperty('transform', `translate3d(${position.left}px, ${position.top}px, 0)`);
+    const place = (requested?: number) => {
+      const element = box.current;
+      if (!element) {
+        return;
+      }
+      /* Measure the whole frame, including padding, stack count and description, before scaling it. */
+      const measuredWidth = element.offsetWidth || width;
+      const measuredHeight = element.offsetHeight || height;
+      const bounds = closeUpBounds(area.current);
+      const maximum = Math.max(
+        0.001,
+        Math.min(
+          4,
+          (bounds.right - bounds.left - 2 * EDGE_PX) / measuredWidth,
+          (bounds.bottom - bounds.top - 2 * EDGE_PX) / measuredHeight
+        )
+      );
+      zoom.current = Math.min(maximum, Math.max(Math.min(0.35, maximum), requested ?? zoom.current));
+      const position = placeBeside(
+        pointer.current,
+        measuredWidth * zoom.current,
+        measuredHeight * zoom.current,
+        bounds
+      );
+      element.style.setProperty(
+        'transform',
+        `translate3d(${position.left}px, ${position.top}px, 0) scale(${zoom.current})`
+      );
     };
     place();
+    const onResize = () => place();
+    const onWheel = (event: WheelEvent) => {
+      if (!event.altKey || event.ctrlKey || event.metaKey || event.defaultPrevented) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      const delta = Math.max(-1000, Math.min(1000, wheelPixels(event.deltaY, event.deltaMode)));
+      place(zoom.current * Math.exp(delta * 0.002));
+    };
     let frame = 0;
     const onPointer = () => {
       if (!frame) {
@@ -112,49 +167,120 @@ function useFollowPointer(
       }
     };
     window.addEventListener('pointermove', onPointer);
+    window.addEventListener('resize', onResize);
+    window.addEventListener('wheel', onWheel, { capture: true, passive: false });
+    /* A description that grows after it lands, as its fonts or images load, places the box again while the pointer is still. */
+    const resize = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(onPointer);
+    if (box.current) {
+      resize?.observe(box.current);
+    }
     return () => {
       window.removeEventListener('pointermove', onPointer);
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('wheel', onWheel, { capture: true });
+      resize?.disconnect();
       cancelAnimationFrame(frame);
     };
-  }, [box, pointer, area, width, height]);
+  }, [box, pointer, area, width, height, size?.content]);
 }
+
+type CloseUpProps = Readonly<{ area: RefObject<HTMLElement | null> }>;
 
 /*
  * Holding Alt over a card or token shows its face flat and large beside the pointer, out of the table's perspective, the way it is printed.
  * It shows the face the table shows, so a face-down card shows its back.
  */
-export function PieceCloseUp({ area }: Readonly<{ area: RefObject<HTMLElement | null> }>) {
-  const { alt, pointer } = useAltPointer();
-  const box = useRef<HTMLDivElement>(null);
+export function PieceCloseUp({ area }: CloseUpProps) {
   const piece = useTabletopSelector((table) =>
     table.hoveredPieceId ? (table.renderedPieces.find((entry) => entry.id === table.hoveredPieceId) ?? null) : null
   );
-  const href = piece ? topFaceHref(piece) : undefined;
-  const top = piece ? topItem(piece) : undefined;
-  const shown = alt && piece && href && top ? piece : null;
+  return (
+    <CloseUp
+      area={area}
+      piece={piece}
+      item={piece ? topItem(piece) : undefined}
+      src={piece ? topFaceHref(piece) : undefined}
+    />
+  );
+}
+
+/*
+ * The same close-up for a piece in the hand or the hidden zone, which the owner sees from the front.
+ * A piece without a published front, drawn there as the Traitor stand-in, has none.
+ */
+export function HandPieceCloseUp({ area, piece }: CloseUpProps & Readonly<{ piece: TablePiece | null }>) {
+  const item = piece?.items[0];
+  return <CloseUp area={area} piece={piece} item={item} src={item?.artwork?.front} />;
+}
+
+type Item = TablePiece['items'][number];
+
+/* A described token's words under its face, as its author formatted them; past the box's cap they fade out rather than run off the window. */
+function CloseUpDescription({ source, width }: Readonly<{ source: string; width: number }>) {
+  const text = useRef<HTMLDivElement>(null);
+  const [clipped, setClipped] = useState(false);
+  useLayoutEffect(() => {
+    const element = text.current;
+    setClipped(element ? element.scrollHeight > element.clientHeight : false);
+  }, [source]);
+  return (
+    <div ref={text} className={styles.closeUpDescription} style={{ width }} data-clipped={clipped || undefined}>
+      <FormattedTextSource source={source} size="sm" />
+    </div>
+  );
+}
+
+/* The close-up of one item of a piece, shown while Alt is held; the piece's other items only count. */
+function CloseUp({
+  area,
+  piece,
+  item,
+  src,
+}: CloseUpProps &
+  Readonly<{
+    piece: TablePiece | null;
+    item: Item | undefined;
+    src: string | undefined;
+  }>) {
+  const { alt, pointer } = useAltPointer();
+  const box = useRef<HTMLDivElement>(null);
+  const shown = alt && piece && item && src ? piece : null;
   const isCard = shown?.kind === 'card';
-  /* A disc token stays a disc, as it lies on the table. */
-  const round = shown != null && !isCard && tokenBoxRatio(shown) == null;
+  /* A tech token says what it does under its face, as its tooltip in the inventory does. */
+  const description = shown && item?.faceUp !== false ? item?.artwork?.description : undefined;
+  /* A disc token stays a disc, as it lies on the table, unless words go under it. */
+  const round = shown != null && !isCard && !description && tokenBoxRatio(shown) == null;
   const width = isCard ? cardWidthFor(CARD_HEIGHT_PX) : TOKEN_SIZE_PX;
   const height = isCard ? CARD_HEIGHT_PX : TOKEN_SIZE_PX;
   const count = shown ? pieceCount(shown) : 0;
-  useFollowPointer(box, pointer, area, shown ? { width, height: height + (count > 1 && !round ? 40 : 16) } : null);
-  if (!shown || !href || !top) {
+  const below = count > 1 && !round ? 24 : 0;
+  useFollowPointer(box, pointer, area, shown ? { width, height: height + 16 + below, content: description } : null);
+  if (!shown || !item || !src) {
     return null;
   }
   /* On the page's body, so the table's own stacking cannot slide it under a panel it spills over. */
   return createPortal(
-    <div ref={box} className={styles.closeUp} data-round={round || undefined} aria-hidden>
+    <div
+      ref={box}
+      className={styles.closeUp}
+      data-round={round || undefined}
+      data-piece-close-up
+      data-piece-id={shown.id}
+      data-piece-item={item.id}
+      data-piece-type={item.artwork?.type}
+      aria-hidden
+    >
       {/* Only the top item, so a stack of prediction cards that share one front shows the top card's prediction. */}
       <PieceArtwork
-        piece={{ ...shown, items: [top] }}
-        src={href}
+        piece={{ ...shown, items: [item] }}
+        src={src}
         name={shown.label}
         width={width}
         height={height}
         radius="10px"
       />
       {count > 1 ? <div className={styles.closeUpCount}>×{count}</div> : null}
+      {description ? <CloseUpDescription source={description} width={width} /> : null}
     </div>,
     document.body
   );

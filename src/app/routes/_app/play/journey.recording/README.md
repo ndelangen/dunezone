@@ -23,11 +23,10 @@ longer parses, and `sandbox.stories.fixture.test.ts` when a stored state no long
 
 - Content: the six public factions of `../product.stories.fixture/factions.json`, one Treachery deck of
   Snooper cards and one Spice deck of Broken Land cards (`.storybook/static/play-fixtures/dreamrules`).
-  Only House Atreides and House Harkonnen have Traitor fronts among the story fixtures, so the other
-  factions' Traitors deal without a face. The fixture troops carry no authored battle values, so the
-  battle is fought with leaders and spice.
+  Every faction deals Traitors with their published fronts, and Bene Gesserit opens setup with
+  its prediction where it is seated.
 - People: the synthetic accounts are renamed to the public profiles the other Play stories seat
-  (Twaffle, Thialfi, Fectumbra, Erickenneth, Ridwan, Argelius) and the spectator Klyzx.
+  (Central, Krell, Jaded AF, Eichmal, Ridwan, Tautrimas) and the spectator IHasPinecone.
 - Faction assignment and shuffles are random, so each recording deals differently.
 - Stored state: the room's whole snapshot, hidden cards included, as `current_state` holds it. Only
   the sandbox reads it; the journey stories show the recorded views.

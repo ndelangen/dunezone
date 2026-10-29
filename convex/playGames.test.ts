@@ -4,7 +4,7 @@
 import { describe, expect, test } from 'vite-plus/test';
 import type { z } from 'zod';
 
-import { publishingDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
+import { publishingCustomDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
 import {
   PLAY_DISPLAY_NAME_MAX_LENGTH,
   PLAY_FIXTURE_KEY,
@@ -13,6 +13,7 @@ import {
 import type { playStageSchema } from '../src/shared/play/admission';
 import { arrakisBoardCapture } from '../src/shared/play/fixtures/board';
 import { PLAY_SEAT_LIMIT } from '../src/shared/play/seatLimit';
+import { peekSeatPass } from '../src/shared/play/seatPass';
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
@@ -49,7 +50,7 @@ async function catalogue(ctx: MutationCtx, owner: Id<'users'>) {
     ctx.db.insert('assets', {
       owner_id: owner,
       type,
-      data: type === 'deck' ? { name: slug, about: '', cardback: publishingDeckCardback } : { name: slug },
+      data: type === 'deck' ? { name: slug, about: '', cardback: publishingCustomDeckCardback } : { name: slug },
       slug,
       created_at: stamp,
       updated_at: stamp,
@@ -176,9 +177,16 @@ describe('real games are created and entered by any signed-in player, Administra
       attemptId: game.attempt_id,
       reason,
     });
-    expect(await admin.query(api.playGames.getGame, { gameId })).toEqual({ status: 'unavailable', reason });
-    expect(await member.query(api.playGames.getGame, { gameId })).toEqual({ status: 'unavailable', reason });
-    expect(await t.query(api.playGames.getGame, { gameId })).toEqual({ status: 'sign_in_required' });
+    const address = { address: gameId };
+    expect(await admin.query(api.playGameDirectory.getGameByAddress, address)).toMatchObject({
+      status: 'unavailable',
+      reason,
+    });
+    expect(await member.query(api.playGameDirectory.getGameByAddress, address)).toMatchObject({
+      status: 'unavailable',
+      reason,
+    });
+    expect(await t.query(api.playGameDirectory.getGameByAddress, address)).toEqual({ status: 'sign_in_required' });
   });
 
   test('creatable rulesets read for any signed-in player with each deck objection, and nothing signed out', async () => {
@@ -214,11 +222,11 @@ describe('real games are created and entered by any signed-in player, Administra
         });
       const shared = await faction('atreides', 'House Atreides');
       const own = await faction('ixians', 'Ixians');
-      await ctx.db.insert('ruleset_factions', { ruleset_id: rulesets.ready, faction_id: shared });
-      await ctx.db.insert('ruleset_factions', { ruleset_id: rulesets.ready, faction_id: own });
-      await ctx.db.insert('ruleset_factions', { ruleset_id: rulesets.emptySpice, faction_id: shared });
+      await ctx.db.insert('ruleset_factions', { ruleset_id: rulesets.ready, faction_id: shared, position: 0 });
+      await ctx.db.insert('ruleset_factions', { ruleset_id: rulesets.ready, faction_id: own, position: 1 });
+      await ctx.db.insert('ruleset_factions', { ruleset_id: rulesets.emptySpice, faction_id: shared, position: 0 });
       /* A deleted ruleset's leftover link does not make a faction shared. */
-      await ctx.db.insert('ruleset_factions', { ruleset_id: rulesets.deleted, faction_id: own });
+      await ctx.db.insert('ruleset_factions', { ruleset_id: rulesets.deleted, faction_id: own, position: 0 });
     });
     const listing = await member.query(api.playGames.creatable, { rulesetId: rulesets.ready });
     if (listing.access !== 'allowed') {
@@ -318,20 +326,23 @@ describe('real games are created and entered by any signed-in player, Administra
     ).toEqual({ ok: false });
     await t.run(async (ctx) => await ctx.db.patch(created.gameId, { creator_id: memberId }));
 
-    expect(await t.query(api.playGames.getGame, { gameId: created.gameId })).toEqual({ status: 'sign_in_required' });
-    expect(await member.query(api.playGames.getGame, { gameId: 'not-a-game' })).toEqual({ status: 'not_found' });
-    expect(await member.query(api.playGames.getGame, { gameId: created.gameId })).toEqual({ status: 'preparing' });
-    expect(await admin.query(api.playGames.getGame, { gameId: created.gameId })).toEqual({ status: 'preparing' });
+    const address = { address: created.gameId };
+    expect(await t.query(api.playGameDirectory.getGameByAddress, address)).toEqual({ status: 'sign_in_required' });
+    expect(await member.query(api.playGameDirectory.getGameByAddress, { address: 'not-a-game' })).toEqual({
+      status: 'not_found',
+    });
+    expect(await member.query(api.playGameDirectory.getGameByAddress, address)).toMatchObject({ status: 'preparing' });
+    expect(await admin.query(api.playGameDirectory.getGameByAddress, address)).toMatchObject({ status: 'preparing' });
     await ready(t, created.gameId);
-    expect(await admin.query(api.playGames.getGame, { gameId: created.gameId })).toEqual({
+    expect(await admin.query(api.playGameDirectory.getGameByAddress, address)).toMatchObject({
       status: 'ready',
       gameId: created.gameId,
-      name: 'Classic',
       ruleset: { slug: 'classic', name: 'Classic' },
       minimumPlayers: 4,
     });
     await t.run(async (ctx) => await ctx.db.patch(created.gameId, { state: 'expired' }));
-    expect(await admin.query(api.playGames.getGame, { gameId: created.gameId })).toEqual({ status: 'unavailable' });
+    expect(await admin.query(api.playGameDirectory.getGameByAddress, address)).not.toHaveProperty('reason');
+    expect(await admin.query(api.playGameDirectory.getGameByAddress, address)).toMatchObject({ status: 'unavailable' });
   });
 
   test('creation is budgeted per account', async () => {
@@ -380,19 +391,17 @@ describe('real games are created and entered by any signed-in player, Administra
       throw new Error('The fixture could not create its game.');
     }
     await ready(t, created.gameId);
-    const redeem = async () => {
-      const issued = await member.mutation(api.playAdmission.issueTicket, { gameId: created.gameId });
-      if (!issued.ok) {
-        throw new Error('Ticket issuance refused');
-      }
-      const game = (await t.run(async (ctx) => await ctx.db.get(created.gameId)))!;
-      return await t.mutation(api.playAdmission.redeemTicket, {
+    const game = (await t.run(async (ctx) => await ctx.db.get(created.gameId)))!;
+    expect(await member.mutation(api.playAdmission.enrolPlayer, { gameId: created.gameId })).toMatchObject({
+      ok: true,
+    });
+    const reached = async () =>
+      await t.query(api.playAdmission.seatLimitReached, {
         gameId: created.gameId,
         secret: game.secret,
-        ticket: issued.ticket,
+        userId: memberId,
       });
-    };
-    expect(await redeem()).toMatchObject({ ok: true, seatLimitReached: false });
+    expect(await reached()).toEqual({ ok: true, reached: false });
 
     /* With a 29th seat elsewhere and one in this game, creation is refused, but entering this game is not: its own seat is not counted, so leaving it there lets the player ask again. */
     await t.run(async (ctx) => {
@@ -400,9 +409,9 @@ describe('real games are created and entered by any signed-in player, Administra
       await ctx.db.patch(created.gameId, { directory: summary('play', [adminId, memberId]), directory_stage: 'play' });
     });
     expect(await member.mutation(api.playGames.createGame, request)).toEqual({ ok: false, reason: 'seat_limit' });
-    expect(await redeem()).toMatchObject({ ok: true, seatLimitReached: false });
+    expect(await reached()).toEqual({ ok: true, reached: false });
     await t.run(async (ctx) => await seatedGame(ctx, { player: memberId, creator: adminId }));
-    expect(await redeem()).toMatchObject({ ok: true, seatLimitReached: true });
+    expect(await reached()).toEqual({ ok: true, reached: true });
   });
 
   test('admission to a real game ignores the Administrator flag at every step', async () => {
@@ -412,30 +421,14 @@ describe('real games are created and entered by any signed-in player, Administra
       throw new Error('unreachable');
     }
     await ready(t, created.gameId);
-    const game = (await t.run(async (ctx) => await ctx.db.get(created.gameId)))!;
-    expect(await member.mutation(api.playAdmission.issueTicket, { gameId: created.gameId })).toMatchObject({
-      ok: true,
-    });
-    const issued = await admin.mutation(api.playAdmission.issueTicket, { gameId: created.gameId });
-    if (!issued.ok) {
-      throw new Error('Ticket issuance refused');
-    }
-    /* Losing Administrator status between issuing and redeeming changes nothing. */
+    const request = { gameId: created.gameId };
+    expect(await member.mutation(api.playAdmission.enrolPlayer, request)).toMatchObject({ ok: true });
+    expect(await admin.mutation(api.playAdmission.enrolPlayer, request)).toMatchObject({ ok: true });
+    /* Losing or gaining Administrator status while playing changes nothing. */
     await t.run(async (ctx) => await ctx.db.patch(adminId, { isAdmin: false }));
-    const credentials = { gameId: created.gameId, secret: game.secret };
-    const admission = await t.mutation(api.playAdmission.redeemTicket, { ...credentials, ticket: issued.ticket });
-    if (!admission.ok) {
-      throw new Error('Admission refused');
-    }
-    const watch = () =>
-      t.query(api.playAdmission.watchAuthorizations, {
-        ...credentials,
-        generation: 'synthetic-generation',
-        registrationIds: [admission.registrationId],
-      });
-    expect(await watch()).toMatchObject({ ok: true, entries: [{ allowed: true }] });
+    expect(await admin.mutation(api.playAdmission.renewSeatPass, request)).toMatchObject({ ok: true });
     await t.run(async (ctx) => await ctx.db.patch(adminId, { isAdmin: true }));
-    expect(await watch()).toMatchObject({ ok: true, entries: [{ allowed: true }] });
+    expect(await admin.mutation(api.playAdmission.renewSeatPass, request)).toMatchObject({ ok: true });
   });
 
   test('provisioning and admission name a player from their profile within the display-name cap', async () => {
@@ -454,11 +447,8 @@ describe('real games are created and entered by any signed-in player, Administra
       return 'game' in validation ? validation.game.creator : null;
     };
     const admitted = async () => {
-      const issued = await admin.mutation(api.playAdmission.issueTicket, { gameId: created.gameId });
-      if (!issued.ok) {
-        throw new Error('Ticket issuance refused');
-      }
-      return await t.mutation(api.playAdmission.redeemTicket, { ...credentials, ticket: issued.ticket });
+      const result = await admin.mutation(api.playAdmission.enrolPlayer, { gameId: created.gameId });
+      return result.ok ? { ok: true, ...peekSeatPass(result.pass) } : result;
     };
     const avatarUrl = 'https://dune.zone/avatar/administrator.webp';
     const capped = 'n'.repeat(PLAY_DISPLAY_NAME_MAX_LENGTH);
@@ -487,14 +477,16 @@ describe('real games are created and entered by any signed-in player, Administra
     expect(await admitted()).toMatchObject({ ok: true, displayName: 'Player', avatarUrl: null, profileSlug: null });
   });
 
-  test('the ready hosted fixture reads as not found and issues no ticket, Administrator or not', async () => {
+  test('the ready hosted fixture reads as not found and issues no pass, Administrator or not', async () => {
     const { t, admin, member } = await world();
     /* The hosted fixture's stored row: its key and no ruleset. */
     const fixture = await t.run(async (ctx) => await insertPendingGame(ctx, { fixture_key: PLAY_FIXTURE_KEY }));
     await ready(t, fixture.gameId);
     for (const player of [admin, member]) {
-      expect(await player.query(api.playGames.getGame, { gameId: fixture.gameId })).toEqual({ status: 'not_found' });
-      expect(await player.mutation(api.playAdmission.issueTicket, { gameId: fixture.gameId })).toEqual({
+      expect(await player.query(api.playGameDirectory.getGameByAddress, { address: fixture.gameId })).toEqual({
+        status: 'not_found',
+      });
+      expect(await player.mutation(api.playAdmission.enrolPlayer, { gameId: fixture.gameId })).toEqual({
         ok: false,
         reason: 'unavailable',
       });

@@ -1,4 +1,5 @@
 import { getAuthSessionId } from '@convex-dev/auth/server';
+import { paginator } from 'convex-helpers/server/pagination';
 import { paginationOptsValidator, paginationResultValidator } from 'convex/server';
 import { v } from 'convex/values';
 
@@ -20,6 +21,7 @@ import { revokeAccountSessions } from './lib/authSessionLifecycle';
 import { docValidator } from './lib/collaborativeAccessValidators';
 import { playCredential, playCredentialDigest } from './lib/playAuthorization';
 import { requireAdminUserId, requireAuthUserId } from './lib/policy';
+import schema from './schema';
 
 export const providers = publicQuery({
   args: {},
@@ -36,11 +38,16 @@ const profileSummary = v.object({
 const operationValidator = docValidator('account_merge_operations');
 
 export const adminPage = adminQuery({
-  args: { paginationOpts: paginationOptsValidator, selectedUserIds: v.array(v.id('users')) },
+  args: {
+    paginationOpts: paginationOptsValidator,
+    failedPaginationOpts: v.optional(paginationOptsValidator),
+    selectedUserIds: v.array(v.id('users')),
+  },
   returns: v.object({
     profiles: paginationResultValidator(profileSummary),
     selected: v.array(profileSummary),
     operations: v.array(operationValidator),
+    failedOperations: paginationResultValidator(operationValidator),
   }),
   handler: async (ctx, args) => {
     if (args.selectedUserIds.length > 2) {
@@ -74,6 +81,15 @@ export const adminPage = adminQuery({
         ),
       },
       operations: await ctx.db.query('account_merge_operations').order('desc').take(20),
+      failedOperations: await paginator(ctx.db, schema)
+        .query('account_merge_operations')
+        .withIndex('by_state', (q) => q.eq('state', 'failed'))
+        .order('desc')
+        .paginate({
+          ...args.failedPaginationOpts,
+          cursor: args.failedPaginationOpts?.cursor ?? null,
+          numItems: Math.max(1, Math.min(20, args.failedPaginationOpts?.numItems ?? 20)),
+        }),
     };
   },
 });
@@ -328,6 +344,16 @@ export const disconnect = mutation({
     if (accounts.length > 0) {
       await revokeAccountSessions(ctx, userId);
     }
+    return null;
+  },
+});
+
+/** Ends every session of the account, this one included, so a lost or shared device stops being signed in. */
+export const signOutEverywhere = mutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    await revokeAccountSessions(ctx, await requireAuthUserId(ctx));
     return null;
   },
 });

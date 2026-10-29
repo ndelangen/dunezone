@@ -6,8 +6,8 @@ import { applicationTest } from './application.test.fixture';
 import type { AuthProvider } from './lib/accountMethods';
 import { applicationTriggers } from './lib/applicationTriggers';
 
-export function setup() {
-  const t = applicationTest();
+export function setup(options: Parameters<typeof applicationTest>[0] = {}) {
+  const t = applicationTest(options);
   for (const name of ['statistics', 'profileDiscovery', 'profileActivity']) {
     aggregateTest.register(t, name);
   }

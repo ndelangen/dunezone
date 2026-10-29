@@ -1,0 +1,368 @@
+/* The compass over the table: a tile at the end of each arm, the search field at its centre, and the suggestions below. */
+
+.veil {
+  /* A block's place in the close: the top tile goes first, the suggestions nearest the Controls button last. */
+  --close-order: 0;
+
+  position: absolute;
+  z-index: 40;
+  inset: 0;
+  display: grid;
+  /* A window shorter than the compass scrolls it, from its top, so every tile and suggestion stays reachable. */
+  overflow: auto;
+  align-items: safe center;
+  justify-items: center;
+  padding-block: 1rem;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgb(from var(--color-shadow) r g b / 0.25),
+    rgb(from var(--color-shadow) r g b / 0.6)
+  );
+  animation: fade 120ms ease-out;
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* A dialog element shown in place, so the browser's dialog box (its margins, border, infill and colour) gives way to the grid. */
+.compass {
+  position: static;
+  display: grid;
+  /* Full size wherever the table has room (59.8rem), narrower in a smaller window, never cut off at the table's edges. */
+  width: min(59.8rem, 100% - 2rem);
+  height: auto;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  overflow: visible;
+  grid-template-columns: 7fr 7fr 10fr 7fr 7fr;
+  grid-template-areas:
+    ". . battle . ."
+    "hidden hand hub table ally"
+    ". search search search .";
+  gap: 0.7rem;
+  align-items: stretch;
+  animation: open 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes open {
+  from {
+    opacity: 0;
+    scale: 0.92;
+  }
+}
+
+.tile {
+  position: relative;
+  min-width: 0;
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  gap: 0.2rem;
+  justify-items: center;
+  min-height: 8.2rem;
+  padding: 0.9rem 0.6rem 0.7rem;
+  border: 1px solid rgb(from var(--ui-highlight) r g b / 0.22);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 50% 0%, rgb(from var(--color-brand) r g b / 0.1), transparent 70%),
+    rgb(from var(--ui-ground) r g b / 0.94);
+  color: var(--color-text);
+  box-shadow: 0 14px 30px rgb(from var(--color-shadow) r g b / 0.45);
+  cursor: pointer;
+  text-align: center;
+  transition:
+    transform 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.tile[data-spot="battle"] {
+  grid-area: battle;
+}
+
+.tile[data-spot="hidden"] {
+  grid-area: hidden;
+  scale: 0.92;
+  opacity: 0.9;
+}
+
+.tile[data-spot="hand"] {
+  grid-area: hand;
+}
+
+.tile[data-spot="table"] {
+  grid-area: table;
+}
+
+.tile[data-spot="ally"] {
+  grid-area: ally;
+  scale: 0.92;
+  opacity: 0.9;
+}
+
+.tile[data-selected] {
+  border-color: var(--sand);
+  box-shadow:
+    0 0 0 3px rgb(from var(--color-brand) r g b / 0.3),
+    0 18px 36px rgb(from var(--color-shadow) r g b / 0.55);
+  opacity: 1;
+  scale: 1.06;
+}
+
+.tile[data-disabled] {
+  color: var(--ui-edge);
+  cursor: not-allowed;
+}
+
+.tile[data-disabled] .tileIcon {
+  opacity: 0.45;
+}
+
+.tile[data-refused="0"] {
+  animation: shake 260ms;
+}
+
+.tile[data-refused="1"] {
+  animation: shake2 260ms;
+}
+
+@keyframes shake {
+  25% {
+    translate: -6px 0;
+  }
+  75% {
+    translate: 6px 0;
+  }
+}
+
+@keyframes shake2 {
+  25% {
+    translate: 6px 0;
+  }
+  75% {
+    translate: -6px 0;
+  }
+}
+
+.tileIcon {
+  display: grid;
+  place-items: center;
+  height: 2.6rem;
+  color: var(--sand);
+}
+
+.tileLabel {
+  font: 650 0.95rem var(--font-sans);
+}
+
+.tileDetail {
+  color: var(--color-muted);
+  font: 400 0.76rem/1.35 var(--font-sans);
+}
+
+.tileKeys {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.55rem;
+  color: rgb(from var(--color-brand) r g b / 0.75);
+  font: 700 0.78rem var(--font-sans);
+  letter-spacing: 0.1em;
+}
+
+.hub {
+  display: grid;
+  grid-area: hub;
+  grid-template-columns: auto 1fr;
+  gap: 0.6rem 0.55rem;
+  align-content: center;
+  align-items: center;
+  padding: 1rem;
+  border: 2px solid rgb(from var(--ui-highlight) r g b / 0.25);
+  border-radius: 18px;
+  background: radial-gradient(circle at 50% 30%, var(--ui-raised), var(--ui-ground));
+  box-shadow: 0 14px 34px rgb(from var(--color-shadow) r g b / 0.55);
+  color: var(--color-muted);
+  cursor: text;
+}
+
+.hub[data-selected] {
+  border-color: var(--sand);
+  box-shadow:
+    0 0 0 3px rgb(from var(--color-brand) r g b / 0.3),
+    0 18px 36px rgb(from var(--color-shadow) r g b / 0.55);
+}
+
+.hub input {
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--color-text);
+  font: 600 1.05rem var(--font-sans);
+}
+
+.hub input::placeholder {
+  color: var(--color-muted);
+}
+
+.tileShortcut,
+.suggestionShortcut {
+  color: var(--color-muted);
+  font-size: 0.72rem;
+  opacity: 0.7;
+}
+
+.tileShortcut {
+  position: absolute;
+  top: 0.35rem;
+  left: 0.45rem;
+}
+
+.tile[data-selected] .tileShortcut,
+.suggestion[aria-selected="true"] .suggestionShortcut {
+  opacity: 1;
+}
+
+.hubOr {
+  padding: 0 0.15rem;
+}
+
+.hub .hubHint {
+  grid-column: 1 / -1;
+  max-width: none;
+}
+
+.hubHint {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+  justify-content: center;
+  max-width: 8.5rem;
+  color: var(--color-muted);
+  font: 400 0.7rem/1.6 var(--font-sans);
+}
+
+.suggestions {
+  display: grid;
+  grid-area: search;
+  gap: 0.1rem;
+  margin: 0;
+  padding: 0.4rem;
+  border: 1px solid rgb(from var(--ui-highlight) r g b / 0.22);
+  border-radius: 16px;
+  background: rgb(from var(--ui-ground) r g b / 0.96);
+  box-shadow: 0 14px 30px rgb(from var(--color-shadow) r g b / 0.45);
+  list-style: none;
+}
+
+.suggestions[data-selected] {
+  border-color: var(--sand);
+}
+
+.suggestionsTitle {
+  grid-column: 1 / -1;
+  padding: 0.2rem 0.5rem;
+  color: var(--color-muted);
+  font: 600 0.68rem var(--font-sans);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.suggestion {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+  padding: 0.4rem 0.55rem;
+  border-radius: 8px;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.suggestion[aria-selected="true"] {
+  background: rgb(from var(--color-brand) r g b / 0.16);
+}
+
+.suggestionLabel {
+  font: 600 0.85rem var(--font-sans);
+  white-space: nowrap;
+}
+
+.suggestionHint {
+  overflow: hidden;
+  flex: 1;
+  color: var(--color-muted);
+  font: 400 0.74rem var(--font-sans);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+ * The close, played on a lifeless copy (Compass leaves it only when motion is welcome): the blocks go from the top
+ * down, one short beat apart, each shrinking a touch and sinking as it fades, so the compass reads as folding back
+ * into the Controls button at the bottom, which catches it (see the chat bar's stylesheet).
+ */
+.veil[data-closing] {
+  pointer-events: none;
+  animation: veil-lift 230ms ease-in forwards;
+}
+
+/* The copy is new to the page, so anything with an arrival of its own, such as a tile's count badge, would replay it. */
+.veil[data-closing] * {
+  animation: none;
+}
+
+.veil[data-closing] :is(.tile, .hub, .suggestions) {
+  transition: none;
+  transform-origin: 50% 100%;
+  animation: block-out 110ms cubic-bezier(0.5, 0, 0.75, 0) both;
+  animation-delay: calc(var(--close-order) * 40ms);
+}
+
+.veil[data-closing] .tile:is([data-spot="hidden"], [data-spot="ally"]) {
+  --close-order: 1;
+}
+
+.veil[data-closing] :is(.tile[data-spot="hand"], .tile[data-spot="table"], .hub) {
+  --close-order: 2;
+}
+
+.veil[data-closing] .suggestions {
+  --close-order: 3;
+}
+
+@keyframes veil-lift {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes block-out {
+  to {
+    opacity: 0;
+    scale: 0.82;
+    translate: 0 1.25rem;
+  }
+}
+
+/* With motion reduced the compass appears in place, and a refused tile stays still. */
+:global(html[data-motion="reduce"]) .veil,
+:global(html[data-motion="reduce"]) .compass,
+:global(html[data-motion="reduce"]) .tile[data-refused] {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :global(html:not([data-motion="ok"])) .veil,
+  :global(html:not([data-motion="ok"])) .compass,
+  :global(html:not([data-motion="ok"])) .tile[data-refused] {
+    animation: none;
+  }
+}

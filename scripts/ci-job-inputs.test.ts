@@ -23,8 +23,10 @@ function tracked(pattern: RegExp): string[] {
  * The application's own entry is the router, whose generated route tree names every page.
  */
 const APPLICATION = ['src/app/router.tsx', 'vite.config.ts'];
+/* The root configuration every Vitest run loads, the narrow game job's included. */
+const ROOT_CONFIGURATION = ['vite.config.ts', 'coverage-denominator.ts', 'browser-launch-tests.ts'];
 const ENTRY_POINTS: Record<ReusableJob, () => string[]> = {
-  game_release: () => tracked(/^workers\/game\/.*\.ts$/u),
+  game_release: () => [...tracked(/^workers\/game\/.*\.ts$/u), ...ROOT_CONFIGURATION],
   publisher_release: () => [
     ...tracked(/^workers\/publisher\/.*\.ts$/u),
     ...APPLICATION,
@@ -60,8 +62,8 @@ const SAMPLES: Record<ReusableJob, { reads: string[]; skips: string[] }> = {
     skips: ['src/app/ui/control/Button.tsx', '.github/workflows/deploy-main.yml', 'workers/game/README.md'],
   },
   publisher_release: {
-    reads: ['src/app/ui/control/Button.tsx', 'media/image/planet/earth.png'],
-    skips: ['src/app/ui/control/Button.stories.tsx', 'workers/game/session.ts'],
+    reads: ['src/app/ui/control/Button.tsx', 'media/image/planet/earth.png', 'workers/game/room.ts'],
+    skips: ['src/app/ui/control/Button.stories.tsx', 'workers/game/room.test.ts'],
   },
   storybook: {
     reads: ['src/app/ui/control/Button.stories.tsx', 'convex/schema.ts', 'workers/game/session.ts'],

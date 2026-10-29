@@ -8,11 +8,9 @@ import { parseArgs } from 'node:util';
 import { ConvexHttpClient } from 'convex/browser';
 import type { FunctionReturnType } from 'convex/server';
 import WebSocket from 'ws';
-import type { z } from 'zod';
 
 import { api, internal } from '../../convex/_generated/api';
 import type { Id } from '../../convex/_generated/dataModel';
-import type { playTicketResultSchema } from '../../src/shared/play/admission.ts';
 import { loadCaseSchema } from '../../src/shared/play/loadTarget.ts';
 import type workload from '../../src/shared/play/loadWorkload.json';
 import type {
@@ -569,17 +567,17 @@ async function drainMotion(movers: Peer[], boundary: string) {
     });
   }
 }
-async function issueTicket(peer: Peer, attempt: number, simultaneous: boolean) {
+async function requestPass(peer: Peer, attempt: number, simultaneous: boolean) {
   let issued;
   try {
-    issued = await peer.user.client.mutation(api.playAdmission.issueTicket, {
+    issued = await peer.user.client.mutation(api.playAdmission.enrolPlayer, {
       gameId: fixture().gameId as Id<'play_games'>,
     });
   } catch (error) {
     report.admissionAttempts.push({
       peer: peer.index,
       attempt,
-      result: 'ticket-error',
+      result: 'pass-error',
       message: failureMessage(error),
       simultaneous,
       retryAfterMs: 1000,
@@ -595,7 +593,7 @@ async function issueTicket(peer: Peer, attempt: number, simultaneous: boolean) {
   await delay(retryAfterMs);
   return null;
 }
-async function openSocket(peer: Peer, issued: Extract<z.infer<typeof playTicketResultSchema>, { ok: true }>) {
+async function openSocket(peer: Peer, pass: string) {
   /* A slow peer reaches the origin through the loopback relay; a hosted origin keeps TLS end to end through it. */
   const socketOrigin = peer.slow && link ? link.origin.replace('http:', origin.protocol) : origin.origin;
   const socket = new WebSocket(`${socketOrigin.replace('http', 'ws')}/__play/games/${fixture().gameId}/socket`, {
@@ -639,7 +637,7 @@ async function openSocket(peer: Peer, issued: Extract<z.infer<typeof playTicketR
   if (values.compression === 'off' && socket.extensions) {
     throw new Error('The compression-off connection negotiated a WebSocket extension.');
   }
-  send(peer, { type: 'admit', supportsBoard: true, ticket: issued.ticket });
+  send(peer, { type: 'admit', pass });
   await until(() => peer.view || socket.readyState !== WebSocket.OPEN, 'Admission did not settle.', 7000).catch(
     () => {}
   );
@@ -659,11 +657,11 @@ async function connect(peer: Peer, simultaneous = false) {
     if (stopping) {
       throw new Error(stopReason);
     }
-    const issued = await issueTicket(peer, attempt, simultaneous);
+    const issued = await requestPass(peer, attempt, simultaneous);
     if (!issued) {
       continue;
     }
-    const success = await openSocket(peer, issued);
+    const success = await openSocket(peer, issued.pass);
     report.admissionAttempts.push({
       peer: peer.index,
       attempt,

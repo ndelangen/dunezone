@@ -12,7 +12,6 @@ export interface RulesetLinkProps {
   image?: string | null;
   className?: string;
   style?: CSSProperties;
-  title?: string;
 }
 
 /**
@@ -24,13 +23,12 @@ export interface RulesetLinkProps {
  * A caller whose projection carries no cover gets the shared glyph instead, which is why the cover is optional rather than required.
  * The destination is hardcoded because it is the component's name.
  */
-export const RulesetLink = ({ slug, name, image = null, className, style, title }: RulesetLinkProps) => (
+export const RulesetLink = ({ slug, name, image = null, className, style }: RulesetLinkProps) => (
   <Link
     to="/rulesets/$rulesetSlug"
     params={{ rulesetSlug: slug }}
     className={clsx(styles.link, className)}
     style={style}
-    title={title}
   >
     {image ? (
       <span className={styles.media}>

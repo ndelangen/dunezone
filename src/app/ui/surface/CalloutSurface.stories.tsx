@@ -1,10 +1,10 @@
 import { Button, Group, Text } from '@mantine/core';
-import preview from '@sb/preview';
+import { testingPreview } from '@sb/preview';
 import { expect, waitFor, within } from 'storybook/test';
 
 import { CalloutSurface } from './CalloutSurface';
 
-const meta = preview.meta({ component: CalloutSurface });
+const meta = testingPreview.meta({ component: CalloutSurface });
 const calloutActions = (
   <Group justify="space-between">
     <Button variant="default">Cancel</Button>

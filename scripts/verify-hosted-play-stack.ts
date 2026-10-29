@@ -9,7 +9,9 @@ import { parseArgs } from 'node:util';
 
 import sharp from 'sharp';
 
+import { matchPublishedPath, publishedR2Key } from '../src/shared/asset-publishing/publicationTargets';
 import { loadCaseSchema } from '../src/shared/play/loadTarget';
+import { SPICE_TOKEN_HREF } from '../src/shared/play/spiceToken';
 import { nodeExecutable } from './node-executable';
 import { bundleRunner } from './play-load/bundle';
 import { prepareHostedBackend } from './play-load/hosted-backend';
@@ -300,12 +302,20 @@ function configureAuth(convex: (args: string[]) => void, origin: string) {
 
 type Publication = { key: string; href: string; face: string };
 
-/** A flat local publication face: red for a front, blue for a back, as the pixel checks expect. */
+/** Synthetic local faces: red fronts, blue backs, and a gold spice face labelled as a fixture. */
 async function render(file: string, face: string) {
-  const color = face === 'back' ? '#253e5a' : '#8F2C1C';
+  const fixture =
+    face === 'spice'
+      ? { color: '#f6d77f', ink: '#6b431d', title: 'SPICE', subtitle: 'FIXTURE' }
+      : {
+          color: face === 'back' ? '#253e5a' : '#8F2C1C',
+          ink: '#ead9bb',
+          title: 'RECOVERY',
+          subtitle: face.toUpperCase(),
+        };
   await sharp(
     Buffer.from(
-      `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600"><rect width="600" height="600" fill="${color}"/><circle cx="300" cy="300" r="265" fill="none" stroke="#ead9bb" stroke-width="16"/><text x="300" y="290" text-anchor="middle" fill="#ead9bb" font-size="54" font-family="sans-serif">RECOVERY</text><text x="300" y="370" text-anchor="middle" fill="#ead9bb" font-size="44" font-family="sans-serif">${face.toUpperCase()}</text></svg>`
+      `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600"><rect width="600" height="600" fill="${fixture.color}"/><circle cx="300" cy="300" r="265" fill="none" stroke="${fixture.ink}" stroke-width="16"/><text x="300" y="290" text-anchor="middle" fill="${fixture.ink}" font-size="54" font-family="sans-serif">${fixture.title}</text><text x="300" y="370" text-anchor="middle" fill="${fixture.ink}" font-size="44" font-family="sans-serif">${fixture.subtitle}</text></svg>`
     )
   )
     .jpeg()
@@ -491,6 +501,22 @@ try {
     env: localEnv,
     logPath: path.join(evidence, 'functions.log'),
   });
+  if (flows.includes('regular')) {
+    const { verifyColdDirectoryRead } = await import('./verify-cold-directory-read');
+    const coldDirectory = {
+      ...(await verifyColdDirectoryRead(backendUrl, backend.pid)),
+      nativeUdfLimitSeconds: LOCAL_FUNCTION_LIMIT_SECONDS,
+    };
+    writeFileSync(path.join(evidence, 'cold-directory-read.json'), JSON.stringify(coldDirectory, null, 2));
+    console.log(`Cold directory-read initialization passed: ${JSON.stringify(coldDirectory)}`);
+    const { verifyColdNameRead } = await import('./verify-cold-name-read');
+    const coldRead = {
+      ...(await verifyColdNameRead(backendUrl, backend.pid)),
+      nativeUdfLimitSeconds: LOCAL_FUNCTION_LIMIT_SECONDS,
+    };
+    writeFileSync(path.join(evidence, 'cold-name-read.json'), JSON.stringify(coldRead, null, 2));
+    console.log(`Cold name-read initialization passed: ${JSON.stringify(coldRead)}`);
+  }
   console.log(`Synthetic Auth backend ready at ${backendUrl}; same-origin publisher ${origin}.`);
   /* Wrangler's own debug log goes to its global log directory by default, outside the evidence the artifact keeps. */
   const wranglerLog = path.join(evidence, 'wrangler.log');
@@ -585,6 +611,16 @@ try {
     };
     const { rulesetId } = seeded;
     const publications = [...seeded.publications];
+    /* Physical spice uses a fixed publication address, so its synthetic face needs local R2 bytes too. */
+    const spiceToken = matchPublishedPath(SPICE_TOKEN_HREF);
+    if (!spiceToken) {
+      throw new Error('The spice token must have a publication path.');
+    }
+    publications.push({
+      key: publishedR2Key(spiceToken.assetType, spiceToken.assetId),
+      href: SPICE_TOKEN_HREF,
+      face: 'spice',
+    });
     if (flows.some((flow) => browserFlows[flow].needsCatalogue)) {
       publications.push(...(JSON.parse(convex(['run', 'playTesting:seedPublicCatalogue', '{}'])) as Publication[]));
     }

@@ -79,7 +79,7 @@ function load(address = 'game', slug?: string) {
   }
   const client = new TableSession(
     gameId,
-    new GameSubscription(gameId, async () => ({ ok: true, ticket: 'a'.repeat(64), expiresInMs: 30_000 }), {
+    new GameSubscription(gameId, async () => ({ ok: true, pass: 'pass.a' }), {
       ...runtime,
       tables,
     }),

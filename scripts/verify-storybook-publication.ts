@@ -6,6 +6,7 @@ import type { Browser, Page } from 'playwright';
 
 import { rulebookCoverPresetCatalogue } from '../src/shared/rulebooks/coverPresets';
 import { RETRYABLE_BROWSER_CHECK_STATUS, runBrowserCheck } from './storybook-publication-browser';
+import { decodeStoryImage } from './storybook-publication-images';
 
 const repositoryRoot = path.resolve(import.meta.dir, '..');
 const artifactDirectory = path.join(repositoryRoot, 'storybook-static');
@@ -114,6 +115,8 @@ async function waitForServer(process: ReturnType<typeof Bun.spawn>) {
   for (let attempt = 0; attempt < 100; attempt += 1) {
     invariant(process.exitCode === null, `Wrangler stopped before ${origin} became ready.`);
     try {
+      /* This readiness probe uses only the fixed loopback Wrangler origin declared above. */
+      /* nosemgrep: typescript.react.security.react-insecure-request.react-insecure-request */
       const response = await fetch(origin);
       if (response.ok) {
         return;
@@ -184,6 +187,8 @@ async function verifyHeaders(workerPath: string) {
   invariant(worker.status === 200, `${workerPath} returned HTTP ${worker.status}.`);
   assertWorkerCsp(worker.headers.get('Content-Security-Policy'));
   /* Rasters come from the application Worker, which marks every R2 answer with its SHA-256; a static copy carries no such header. */
+  /* The static-asset probe uses the same fixed loopback Wrangler origin. */
+  /* nosemgrep: typescript.react.security.react-insecure-request.react-insecure-request */
   const raster = await fetch(`${origin}/image/texture/054.jpg`);
   invariant(raster.status === 200, `/image/texture/054.jpg returned HTTP ${raster.status}.`);
   invariant(raster.headers.has('X-Media-SHA256'), 'The Storybook Worker answered a raster from a static copy.');
@@ -200,8 +205,8 @@ async function verifyCoverStories(page: Page) {
   });
   const background = page.locator('.rulebookCoverBackground');
   await background.waitFor();
-  await background.evaluate((element: HTMLImageElement) => element.decode());
-  await page.getByRole('img', { name: 'Dune', exact: true }).evaluate((element: HTMLImageElement) => element.decode());
+  await decodeStoryImage(background);
+  await decodeStoryImage(page.getByRole('img', { name: 'Dune', exact: true }));
   await page.goto(
     `${origin}/iframe.html?id=pages-rulesets-rulebooks-editing--cover-presets-and-footer&viewMode=story`,
     {
@@ -219,13 +224,13 @@ async function verifyCoverStories(page: Page) {
     'The Cover picker did not show every preset.'
   );
   for (const image of await page.locator('img[src*="/image/rulebook-cover/"]').all()) {
-    await image.evaluate((element: HTMLImageElement) => element.decode());
+    await decodeStoryImage(image);
   }
   await page.goto(`${origin}/iframe.html?id=rulebook-page-cover-rendered--footer&viewMode=story`, {
     waitUntil: 'networkidle',
   });
   await page.locator('.rulebookCoverFooter').waitFor();
-  await page.locator('.rulebookCoverBackground').evaluate((element: HTMLImageElement) => element.decode());
+  await decodeStoryImage(page.locator('.rulebookCoverBackground'));
   invariant(
     (await page.locator('.rulebookCoverFooterEmblem svg').count()) > 0,
     'The Cover footer did not render faction tokens.'
@@ -249,8 +254,34 @@ async function verifyPublishedFactionImages(page: Page) {
   for (const image of await images.all()) {
     const url = new URL((await image.getAttribute('src')) ?? '', origin);
     invariant(isPublishedFactionImage(url), `The faction introduction rendered an unexpected image URL: ${url}`);
-    await image.evaluate((element: HTMLImageElement) => element.decode());
+    await decodeStoryImage(image);
   }
+}
+
+/* Cross-origin images may have no Resource Timing entry, so preserve Chromium's own failure evidence. */
+function logPublishedImageNetworkFailures(page: Page) {
+  page.on('requestfailed', (request) => {
+    if (!isPublishedFactionImage(new URL(request.url()))) {
+      return;
+    }
+    console.error(
+      '[storybook-publication] Request failed:',
+      JSON.stringify({
+        url: request.url(),
+        method: request.method(),
+        resourceType: request.resourceType(),
+        failure: request.failure(),
+      })
+    );
+  });
+  page.on('response', (response) => {
+    if (response.status() >= 400 && isPublishedFactionImage(new URL(response.url()))) {
+      console.error(
+        '[storybook-publication] HTTP failure:',
+        JSON.stringify({ url: response.url(), status: response.status() })
+      );
+    }
+  });
 }
 
 async function verifyBrowser(browser: Browser, workerPath: string) {
@@ -258,6 +289,7 @@ async function verifyBrowser(browser: Browser, workerPath: string) {
   const page = await context.newPage();
   const externalRequests: string[] = [];
   const consoleErrors: string[] = [];
+  logPublishedImageNetworkFailures(page);
   page.on('request', (request) => {
     const url = new URL(request.url());
     const publishedImage =
@@ -285,7 +317,7 @@ async function verifyBrowser(browser: Browser, workerPath: string) {
   const cardImages = page.getByRole('img');
   invariant((await cardImages.count()) === 3, 'The Card gallery did not render its three published image snapshots.');
   for (const image of await cardImages.all()) {
-    await image.evaluate((element: HTMLImageElement) => element.decode());
+    await decodeStoryImage(image);
   }
   await verifyCoverStories(page);
   await verifyPublishedFactionImages(page);

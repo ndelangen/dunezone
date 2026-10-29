@@ -26,7 +26,7 @@ describe('Explicit participation on a real game', () => {
     await peer?.close();
   });
 
-  const admit = (suffix: string) => admitPlayer(peer, runtime, suffix);
+  const admit = (suffix: string) => admitPlayer(runtime, suffix);
   const events = (view: NativeView) => view.snapshot.table.events.map((event) => event.message);
   const pendingRequest = (view: NativeView) => required(view.snapshot.controls).seatRequests[0];
   const ownRequest = (view: NativeView) => required(view.snapshot.controls).seatRequests.find((request) => request.own);

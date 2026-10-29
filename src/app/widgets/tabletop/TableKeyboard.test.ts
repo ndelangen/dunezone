@@ -3,6 +3,7 @@ import { freshTableState } from '@shared/play/model';
 import { draftForGesture } from '@shared/play/tableState';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
+import { PointerSession } from './PointerSession';
 import { TableKeyboard } from './TableKeyboard';
 
 const unbinds: (() => void)[] = [];
@@ -26,7 +27,7 @@ function table() {
     canHandleTable: true,
     state: freshTableState(),
     hoveredPieceId: null as string | null,
-    deckControls: undefined,
+    deckControls: undefined as ReturnType<Parameters<TableKeyboard['bind']>[0]['read']>['deckControls'],
     finishRotation: vi.fn(),
     flipSelected: vi.fn(),
     /* The cursor is over the table unless a test moves it off. */
@@ -45,6 +46,143 @@ function table() {
 function key(type: 'keydown' | 'keyup', init: KeyboardEventInit, target: EventTarget = window) {
   target.dispatchEvent(new KeyboardEvent(type, { bubbles: true, cancelable: true, ...init }));
 }
+
+test('Escape cancels a number-key split before its hold finishes', () => {
+  const { controls } = table();
+  const pointer = new PointerSession();
+  const cancelDraft = vi.fn();
+  unbinds.push(
+    pointer.bind({
+      events: window,
+      canvas: document.createElement('canvas'),
+      read: () => ({
+        canHandleTable: true,
+        hasDraft: false,
+        piece: () => undefined,
+        point: () => null,
+        isPublicPoint: () => true,
+        beginGesture: vi.fn(),
+        updateGesture: vi.fn(),
+        finishGesture: vi.fn(),
+        cancelDraft,
+        publishPointer: vi.fn(),
+        onActiveChange: vi.fn(),
+      }),
+    })
+  );
+  key('keydown', { key: '3', code: 'Digit3' });
+  vi.advanceTimersByTime(500);
+  key('keydown', { key: 'Escape' });
+  expect(cancelDraft).toHaveBeenCalledOnce();
+  vi.advanceTimersByTime(500);
+  expect(controls.splitSelected).not.toHaveBeenCalled();
+});
+
+test('T draws once from the hovered deck and 0 splits ten pieces', () => {
+  const { controls } = table();
+  const draw = vi.fn();
+  controls.deckControls = { draw, shuffle: vi.fn(), recipients: [] };
+  controls.hoveredPieceId = 'treachery-deck';
+  key('keydown', { key: 't' });
+  key('keydown', { key: 't', repeat: true });
+  expect(draw).toHaveBeenCalledExactlyOnceWith('treachery-deck');
+  key('keydown', { key: '0' });
+  vi.advanceTimersByTime(1000);
+  expect(controls.splitSelected).toHaveBeenCalledExactlyOnceWith(10, 'treachery-deck');
+});
+
+test('T does not draw from a selected deck without hovering or while typing', () => {
+  const { controls } = table();
+  const draw = vi.fn();
+  controls.deckControls = { draw, shuffle: vi.fn(), recipients: [] };
+  controls.state = { ...controls.state, selectedPieceId: 'treachery-deck' };
+  key('keydown', { key: 't' });
+  controls.hoveredPieceId = 'treachery-deck';
+  const field = document.body.appendChild(document.createElement('input'));
+  key('keydown', { key: 't' }, field);
+  key('keydown', { key: 't', ctrlKey: true });
+  expect(draw).not.toHaveBeenCalled();
+});
+
+test('T adds another card to a carry without drawing into the hand', () => {
+  const { controls } = table();
+  const draw = vi.fn();
+  controls.deckControls = { draw, shuffle: vi.fn(), recipients: [] };
+  const deck = controls.state.pieces.find((piece) => piece.id === 'treachery-deck')!;
+  controls.state = { ...controls.state, draftMove: draftForGesture(deck, 'top') };
+  controls.hoveredPieceId = deck.id;
+  key('keydown', { key: 't' });
+  key('keydown', { key: 't', repeat: true });
+  expect(controls.takeAdditionalFromTarget).toHaveBeenCalledOnce();
+  expect(draw).not.toHaveBeenCalled();
+});
+
+test.each(['locked', 'inventory', 'non-card', 'read-only'] as const)('T does not draw from a %s target', (reason) => {
+  const { controls } = table();
+  const draw = vi.fn();
+  controls.deckControls = { draw, shuffle: vi.fn(), recipients: [] };
+  controls.hoveredPieceId = 'treachery-deck';
+  controls.canHandleTable = reason !== 'read-only';
+  controls.state = {
+    ...controls.state,
+    pieces: controls.state.pieces.map((piece) =>
+      piece.id === 'treachery-deck'
+        ? {
+            ...piece,
+            locked: reason === 'locked',
+            inventory: reason === 'inventory' ? 'shared' : undefined,
+            kind: reason === 'non-card' ? 'force' : piece.kind,
+          }
+        : piece
+    ),
+  };
+  key('keydown', { key: 't' });
+  expect(draw).not.toHaveBeenCalled();
+});
+
+test('releasing 0 before the hold cancels the ten-piece split', () => {
+  const { controls } = table();
+  key('keydown', { key: '0' });
+  vi.advanceTimersByTime(200);
+  key('keyup', { key: '0' });
+  vi.advanceTimersByTime(1000);
+  expect(controls.splitSelected).not.toHaveBeenCalled();
+});
+
+test.each([true, false])('a focused slider keeps its arrow keys with the pointer over the table: %s', (hovered) => {
+  const { keyboard } = table();
+  keyboard.setPanAvailable(true);
+  keyboard.hoverTable(hovered);
+  const slider = document.body.appendChild(document.createElement('div'));
+  slider.setAttribute('role', 'slider');
+  slider.tabIndex = 0;
+  slider.focus();
+  const changed = vi.fn((event: Event) => event.preventDefault());
+  slider.addEventListener('keydown', changed);
+  key('keydown', { key: 'ArrowRight', code: 'ArrowRight' }, slider);
+  expect(changed).toHaveBeenCalledOnce();
+  expect(keyboard.panDirection()).toEqual([0, 0]);
+});
+
+test('a focused slider leaves non-arrow shortcuts with the table under the pointer', () => {
+  const { keyboard, controls } = table();
+  keyboard.setPanAvailable(true);
+  keyboard.hoverTable(true);
+  const slider = document.body.appendChild(document.createElement('div'));
+  slider.setAttribute('role', 'slider');
+  slider.tabIndex = 0;
+  slider.focus();
+  key('keydown', { key: 'q', code: 'KeyQ' }, slider);
+  key('keyup', { key: 'q', code: 'KeyQ' }, slider);
+  expect(controls.rotateSelected).toHaveBeenCalledWith(-1, 'harkonnen-force-stack');
+  key('keydown', { key: 'w', code: 'KeyW' }, slider);
+  expect(keyboard.panDirection()).toEqual([0, -1]);
+  key('keyup', { key: 'w', code: 'KeyW' }, slider);
+  expect(keyboard.panDirection()).toEqual([0, 0]);
+  key('keydown', { key: 'Tab', code: 'Tab' }, slider);
+  key('keyup', { key: 'Tab', code: 'Tab' }, slider);
+  expect(controls.ping).toHaveBeenCalledOnce();
+});
 
 describe('over the hovered spice disc', () => {
   /* Each press as its layout reports it, held for a second, so a press that armed the draw would take from the selected stack. */
@@ -282,6 +420,145 @@ describe('a peeked card moved with the arrow keys', () => {
 
     key('keydown', { key: 'ArrowRight', code: 'ArrowRight' });
     expect(keyboard.panDirection()).not.toEqual([0, 0]);
+  });
+});
+
+describe('the cursor over the table', () => {
+  /* A tab list moves its focus on an arrow and claims the key, as the controls panel's tabs do. */
+  function focusedTabList() {
+    document.body.innerHTML = '<div role="tablist"><button role="tab" data-tab>Hand</button></div>';
+    const tab = document.querySelector<HTMLElement>('[data-tab]')!;
+    const moved = vi.fn();
+    tab.addEventListener('keydown', (event) => {
+      if (event.key.startsWith('Arrow')) {
+        moved();
+        event.preventDefault();
+      }
+    });
+    tab.focus();
+    return { tab, moved };
+  }
+
+  test('pans with the arrow keys before a focused tab list moves its focus', () => {
+    const { keyboard } = table();
+    keyboard.setPanAvailable(true);
+    keyboard.hoverTable(true);
+    const { tab, moved } = focusedTabList();
+
+    key('keydown', { key: 'ArrowRight', code: 'ArrowRight' }, tab);
+
+    expect(moved).not.toHaveBeenCalled();
+    expect(keyboard.panDirection()).toEqual([1, 0]);
+    key('keyup', { key: 'ArrowRight', code: 'ArrowRight' }, tab);
+    expect(keyboard.panDirection()).toEqual([0, 0]);
+  });
+
+  test('keeps the arrows from a focused control even without a close look to slide', () => {
+    const { keyboard } = table();
+    keyboard.hoverTable(true);
+    const { tab, moved } = focusedTabList();
+    const arrow = new KeyboardEvent('keydown', {
+      bubbles: true,
+      cancelable: true,
+      key: 'ArrowDown',
+      code: 'ArrowDown',
+    });
+
+    tab.dispatchEvent(arrow);
+
+    expect(moved).not.toHaveBeenCalled();
+    expect(arrow.defaultPrevented).toBe(true);
+    expect(keyboard.panDirection()).toEqual([0, 0]);
+  });
+
+  test('answers the piece shortcuts over a focused button', () => {
+    const { keyboard, controls } = table();
+    keyboard.hoverTable(true);
+    const { tab } = focusedTabList();
+
+    key('keydown', { key: 'f' }, tab);
+
+    expect(controls.flipSelected.mock.calls).toEqual([['harkonnen-force-stack']]);
+  });
+
+  test('leaves a focused text field its arrows and letters', () => {
+    const { keyboard, controls } = table();
+    keyboard.setPanAvailable(true);
+    keyboard.hoverTable(true);
+    const field = document.body.appendChild(document.createElement('input'));
+    const heard: string[] = [];
+    field.addEventListener('keydown', (event) => heard.push(event.key));
+    field.focus();
+    const arrow = new KeyboardEvent('keydown', {
+      bubbles: true,
+      cancelable: true,
+      key: 'ArrowLeft',
+      code: 'ArrowLeft',
+    });
+    const letter = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: 'f' });
+
+    field.dispatchEvent(arrow);
+    field.dispatchEvent(letter);
+
+    expect(heard).toEqual(['ArrowLeft', 'f']);
+    expect(arrow.defaultPrevented).toBe(false);
+    expect(letter.defaultPrevented).toBe(false);
+    expect(keyboard.panDirection()).toEqual([0, 0]);
+    expect(controls.flipSelected).not.toHaveBeenCalled();
+  });
+
+  test('leaves an open menu under the cursor its arrows', () => {
+    const { keyboard } = table();
+    keyboard.setPanAvailable(true);
+    keyboard.hoverTable(true);
+    document.body.innerHTML = '<div role="menu" tabindex="-1" data-menu></div>';
+    const menu = document.querySelector<HTMLElement>('[data-menu]')!;
+    const stepped = vi.fn();
+    menu.addEventListener('keydown', (event) => {
+      stepped();
+      event.preventDefault();
+    });
+    menu.focus();
+
+    key('keydown', { key: 'ArrowRight', code: 'ArrowRight' }, menu);
+
+    expect(stepped).toHaveBeenCalled();
+    expect(keyboard.panDirection()).toEqual([0, 0]);
+  });
+
+  test('leaves a peeked deck under the cursor its arrows, so a focused card moves', () => {
+    const { keyboard } = table();
+    keyboard.setPanAvailable(true);
+    keyboard.hoverTable(true);
+    document.body.innerHTML = '<div role="dialog"><div role="button" tabindex="0" data-card></div></div>';
+    const card = document.querySelector<HTMLElement>('[data-card]')!;
+    const moved = vi.fn();
+    card.addEventListener('keydown', (event) => {
+      moved();
+      event.preventDefault();
+    });
+    card.focus();
+    const heardAbove = vi.fn();
+    document.addEventListener('keydown', heardAbove);
+
+    key('keydown', { key: 'ArrowLeft', code: 'ArrowLeft' }, card);
+    document.removeEventListener('keydown', heardAbove);
+
+    expect(moved).toHaveBeenCalled();
+    expect(heardAbove).toHaveBeenCalled();
+  });
+
+  test('off the table, the focused tab list keeps its arrows again', () => {
+    const { keyboard } = table();
+    keyboard.setPanAvailable(true);
+    keyboard.hoverTable(true);
+    keyboard.hoverTable(false);
+    const { tab, moved } = focusedTabList();
+
+    key('keydown', { key: 'ArrowRight', code: 'ArrowRight' }, tab);
+
+    expect(moved).toHaveBeenCalled();
+    expect(keyboard.panDirection()).toEqual([0, 0]);
   });
 });
 

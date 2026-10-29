@@ -5,6 +5,7 @@ import { FormError } from '@ui/block/FormError';
 import { LoadPending } from '@ui/block/LoadPending';
 import { PageTitle } from '@ui/block/PageTitle';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
+import { helpLines } from '@ui/content/helpLines';
 import { RULESET_ABOUT_HELP, rulesetAboutCount } from '@ui/content/rulesetAboutHint';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FORMATTED_TEXT_SYNTAX_HELP, FormattedTextInput } from '@ui/control/FormattedTextInput';
@@ -136,7 +137,7 @@ function CreateRulesetForm() {
             />
             <ControlBlock
               title="About"
-              description={`${RULESET_ABOUT_HELP} ${FORMATTED_TEXT_SYNTAX_HELP}`}
+              description={helpLines(RULESET_ABOUT_HELP, FORMATTED_TEXT_SYNTAX_HELP)}
               input={
                 <FormattedTextInput
                   id="ruleset-create-about"

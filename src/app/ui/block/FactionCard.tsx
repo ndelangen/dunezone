@@ -147,7 +147,7 @@ function TokenAvatar({
 }
 
 /** The card's ruleset caption: the selected ruleset when the faction is in it, else its first. */
-export function factionRulesetLabel(faction: Pick<FactionCatalogueEntry, 'rulesets'>, selectedRulesetSlug?: string) {
+function factionRulesetLabel(faction: Pick<FactionCatalogueEntry, 'rulesets'>, selectedRulesetSlug?: string) {
   if (faction.rulesets.length === 0) {
     return null;
   }

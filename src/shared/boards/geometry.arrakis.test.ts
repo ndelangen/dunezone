@@ -46,6 +46,17 @@ describe('Editable Arrakis recreation', () => {
     expect(contourPath(next, polar.appearance![0])).toEqual(contourPath(original, polar.appearance![0]));
   });
 
+  it('keeps a renamed territory on its saved ID when the linework changes', () => {
+    const original = arrakisBoard();
+    const key = Object.keys(original.properties).find((k) => original.properties[k].id === 'carthag')!;
+    original.properties[key] = { ...original.properties[key], name: 'Carthag city' };
+    const next = movePoint(original, 'n335', [216, 84]);
+    const board = reconcile(next, original, derive(original).faces, derive(next).faces);
+    expect(Object.values(board.properties).find((p) => p.name === 'Carthag city')?.id).toBe('carthag');
+    const ids = Object.values(board.properties).map((p) => p.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
   it('preserves imported inset contours when inserting a boundary point', () => {
     const original = arrakisBoard();
     const carthag = Object.values(original.properties).find((p) => p.id === 'carthag')!;

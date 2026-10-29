@@ -377,6 +377,331 @@ const noWallClockRule: Rule = {
   },
 };
 
+const SHARED_OVERLAYS_RULE_NAME = 'shared-overlays';
+
+const ALTERNATIVE_OVERLAYS =
+  /^(?:@radix-ui\/react-(?:tooltip|popover|hover-card)|@tippyjs\/react|tippy\.js|react-tooltip)(?:\/|$)/;
+
+/** Keeps hover hints and floating panes on Mantine's shared theme. */
+const sharedOverlaysRule: Rule = {
+  meta: {
+    name: SHARED_OVERLAYS_RULE_NAME,
+    messages: {
+      sharedOverlay: 'Use Tooltip, Popover or HoverCard from @mantine/core under the app theme.',
+    },
+  },
+  create(context) {
+    return {
+      ImportDeclaration(node) {
+        if (ALTERNATIVE_OVERLAYS.test(String(node.source.value))) {
+          context.report({ node, messageId: 'sharedOverlay' });
+        }
+      },
+    };
+  },
+};
+
+const TITLE_TOOLTIP_RULE_NAME = 'no-title-tooltip';
+
+/* Libraries whose components forward an unknown `title` straight to the element they render. */
+const FORWARDING_SOURCES = new Set(['@mantine/core', '@tanstack/react-router']);
+
+/* Mantine components whose `title` is their own heading, rendered as content rather than as an attribute. */
+const MANTINE_HEADINGS = new Set([
+  'Alert',
+  'Drawer',
+  'Modal',
+  'Notification',
+  'EmptyState',
+  'Timeline.Item',
+  'Tour.Step',
+]);
+
+/* Attributes that carry a tooltip's words to a CSS `::after`, a second tooltip look beside the kit's (#2550). */
+const HAND_ROLLED_TIPS = new Set(['data-tip', 'data-tooltip']);
+
+/**
+ * Keeps the browser's own tooltip out of the app (Norbert, 2026-10-26: native tooltips look out of place).
+ * A `title` attribute on an element, or on a library component that passes it through to one, draws that tooltip;
+ * the kit's Mantine `Tooltip` is the one hover label.
+ * An `iframe` keeps its `title`, because that names the frame for assistive technology and draws no tooltip.
+ * The SVG `<title>` element is a child, not an attribute, so the rule never sees it.
+ * A hand-rolled tooltip, its words in `data-tip` or `data-tooltip` for a CSS `::after` to draw, looks unlike the kit too and is reported the same way.
+ */
+const noTitleTooltipRule: Rule = {
+  meta: {
+    name: TITLE_TOOLTIP_RULE_NAME,
+    messages: {
+      titleTooltip:
+        "A `title` attribute draws the browser's native tooltip. Use Mantine Tooltip for app hover text, or an accessible name or description for standalone metadata.",
+      handRolledTooltip:
+        'A `data-tip` or `data-tooltip` attribute feeds a hand-rolled CSS tooltip that looks unlike the kit. Wrap the element in the kit `Tooltip` instead.',
+    },
+  },
+  create(context) {
+    /* Each local name bound to a forwarding library, mapped to the name the library exports; a namespace import maps to `*`. */
+    const forwarding = new Map<string, string>();
+    const nameOf = (node: LintNode): string | undefined => {
+      if (node.type === 'JSXIdentifier') {
+        return node.name;
+      }
+      if (node.type === 'JSXMemberExpression') {
+        const object = nameOf(node.object);
+        return object === undefined ? undefined : `${object}.${node.property.name}`;
+      }
+      return undefined;
+    };
+    return {
+      ImportDeclaration(node) {
+        if (!FORWARDING_SOURCES.has(String(node.source.value))) {
+          return;
+        }
+        for (const specifier of node.specifiers) {
+          const imported =
+            specifier.type === 'ImportSpecifier' && specifier.imported.type === 'Identifier'
+              ? specifier.imported.name
+              : specifier.type === 'ImportNamespaceSpecifier'
+                ? '*'
+                : specifier.local.name;
+          forwarding.set(specifier.local.name, imported);
+        }
+      },
+      JSXAttribute(node) {
+        if (node.name.type !== 'JSXIdentifier') {
+          return;
+        }
+        if (HAND_ROLLED_TIPS.has(node.name.name)) {
+          context.report({ node, messageId: 'handRolledTooltip' });
+          return;
+        }
+        if (node.name.name !== 'title') {
+          return;
+        }
+        const element = node.parent;
+        if (element.type !== 'JSXOpeningElement') {
+          return;
+        }
+        const name = nameOf(element.name);
+        if (name === undefined || name === 'iframe') {
+          return;
+        }
+        const [local, ...members] = name.split('.');
+        const imported = forwarding.get(local);
+        /* The library's own name for the component, so an alias or a namespace import meets the heading list as the library spells it. */
+        const libraryName = imported === '*' ? members.join('.') : [imported, ...members].join('.');
+        const intrinsic = /^[a-z]/.test(name) && members.length === 0;
+        const passedThrough = imported !== undefined && !MANTINE_HEADINGS.has(libraryName);
+        if (intrinsic || passedThrough) {
+          context.report({ node, messageId: 'titleTooltip' });
+        }
+      },
+    };
+  },
+};
+
+const TOOLTIP_LENGTH_RULE_NAME = 'tooltip-length';
+
+/* The props whose words show in a tooltip: the kit Tooltip's label, the (?)'s text, and a ControlBlock's description, which its (?) shows. */
+const TOOLTIP_PROPS: Readonly<Record<string, string>> = {
+  Tooltip: 'label',
+  HelpMark: 'text',
+  ControlBlock: 'description',
+};
+const TOOLTIP_LINE_MAX = 100;
+
+/* The most renderings a value is followed through: a tooltip with many branches keeps its longest ones. */
+const TOOLTIP_RENDERINGS_MAX = 32;
+
+type TextNode = { type?: string; value?: unknown; [key: string]: unknown };
+
+/* The renderings of two parts shown one after the other: each rendering of the first followed by each of the second. */
+function followedBy(first: string[], second: string[]): string[] {
+  const joined = first.flatMap((head) => second.map((tail) => head + tail));
+  return joined.length > TOOLTIP_RENDERINGS_MAX
+    ? joined.sort((a, b) => b.length - a.length).slice(0, TOOLTIP_RENDERINGS_MAX)
+    : joined;
+}
+
+/* The module's own constants by name, so help kept in a constant beside the component is read like help written in place. */
+type Constants = ReadonlyMap<string, unknown>;
+
+/* The renderings of children shown in a row, as a fragment or an element shows its children. */
+function inRow(children: unknown, constants: Constants, depth: number): string[] {
+  return (Array.isArray(children) ? children : []).reduce<string[]>(
+    (renderings, child) => followedBy(renderings, writtenText(child, constants, depth)),
+    ['']
+  );
+}
+
+function isHelpLines(callee: unknown) {
+  const node = callee as TextNode | undefined;
+  return node?.type === 'Identifier' && node.name === 'helpLines';
+}
+
+function isLineBreak(opening: unknown) {
+  const name = (opening as { name?: TextNode } | undefined)?.name;
+  return name?.type === 'JSXIdentifier' && name.name === 'br';
+}
+
+/**
+ * The words a prop's value can show, one string per way it can render: static text in a row is joined, as the tooltip shows it, and each branch of a condition is its own rendering.
+ * A constant of the same module is followed to its value;
+ * what the rule cannot read, such as an import, a parameter or a call other than helpLines, shows as nothing, so help imported from another module is guarded by that module's own tests (as `panelGuidance.test.ts` guards Play's window help).
+ */
+function writtenText(node: unknown, constants: Constants, depth = 0): string[] {
+  if (!node || typeof node !== 'object' || depth > 8) {
+    return [''];
+  }
+  const current = node as TextNode;
+  const next = (child: unknown) => writtenText(child, constants, depth + 1);
+  switch (current.type) {
+    case 'Identifier':
+      return constants.has(String(current.name)) ? next(constants.get(String(current.name))) : [''];
+    case 'JSXText':
+      /* JSX folds its source line breaks into spaces, so its text shows as one line. */
+      return [typeof current.value === 'string' ? current.value.replace(/\s+/g, ' ') : ''];
+    case 'Literal':
+      return [typeof current.value === 'string' ? current.value : ''];
+    case 'TemplateLiteral':
+      /* Each part of the template in turn, the values between them read like any other value. */
+      return (current.quasis as { value?: { cooked?: string } }[]).reduce<string[]>(
+        (renderings, quasi, index) =>
+          followedBy(
+            index === 0 ? renderings : followedBy(renderings, next((current.expressions as unknown[])[index - 1])),
+            [quasi.value?.cooked ?? '']
+          ),
+        ['']
+      );
+    case 'JSXExpressionContainer':
+    case 'ParenthesizedExpression':
+    case 'TSAsExpression':
+      return next(current.expression);
+    case 'BinaryExpression':
+      return current.operator === '+' ? followedBy(next(current.left), next(current.right)) : [''];
+    case 'ConditionalExpression':
+      return [...next(current.consequent), ...next(current.alternate)];
+    case 'LogicalExpression':
+      return [...next(current.left), ...next(current.right)];
+    case 'ArrayExpression':
+      return inRow(current.elements, constants, depth + 1);
+    /* The kit's helpLines shows its parts one per line. */
+    case 'CallExpression':
+      return isHelpLines(current.callee)
+        ? (current.arguments as unknown[]).reduce<string[]>(
+            (renderings, part, index) =>
+              followedBy(index === 0 ? renderings : followedBy(renderings, ['\n']), next(part)),
+            ['']
+          )
+        : [''];
+    /* An element's own attributes, such as a link's address, are not words the tooltip shows; its children are. A <br /> breaks the line. */
+    case 'JSXElement':
+      return isLineBreak(current.openingElement) ? ['\n'] : inRow(current.children, constants, depth + 1);
+    case 'JSXFragment':
+      return inRow(current.children, constants, depth + 1);
+    default:
+      return [''];
+  }
+}
+
+/* Every line a prop's value can show: each rendering split at its line breaks. */
+function writtenLines(node: unknown, constants: Constants): string[] {
+  return writtenText(node, constants).flatMap((rendering) => rendering.split('\n'));
+}
+
+/**
+ * Keeps tooltips readable (Norbert, 2026-10-27: a wall of text without breaks helps nobody).
+ * Each line of words written into a tooltip stays within 100 characters;
+ * longer help is cut down, or broken into lines with `\n`, which the (?) keeps as line breaks.
+ */
+const tooltipLengthRule: Rule = {
+  meta: {
+    name: TOOLTIP_LENGTH_RULE_NAME,
+    messages: {
+      tooLong: `A tooltip line runs past ${TOOLTIP_LINE_MAX} characters. Cut what the UI already says, and break the rest into short lines with \\n (a Tooltip keeps them when it is multiline; a HelpMark always does).`,
+    },
+  },
+  create(context) {
+    const constants = new Map<string, unknown>();
+    return {
+      /* The module's top-level constants, exported or not, gathered before any attribute is read. */
+      Program(program) {
+        const declarators = program.body.flatMap((statement) => {
+          const declaration = statement.type === 'ExportNamedDeclaration' ? statement.declaration : statement;
+          return declaration?.type === 'VariableDeclaration' && declaration.kind === 'const'
+            ? declaration.declarations
+            : [];
+        });
+        for (const declarator of declarators) {
+          if (declarator.id.type === 'Identifier' && declarator.init) {
+            constants.set(declarator.id.name, declarator.init);
+          }
+        }
+      },
+      JSXAttribute(node) {
+        const element = node.parent;
+        if (
+          node.name.type !== 'JSXIdentifier' ||
+          element.type !== 'JSXOpeningElement' ||
+          element.name.type !== 'JSXIdentifier'
+        ) {
+          return;
+        }
+        if (TOOLTIP_PROPS[element.name.name] !== node.name.name) {
+          return;
+        }
+        if (
+          writtenLines(node.value, constants).some((line) => line.trim().replace(/\s+/g, ' ').length > TOOLTIP_LINE_MAX)
+        ) {
+          context.report({ node, messageId: 'tooLong' });
+        }
+      },
+    };
+  },
+};
+
+const STORY_OWNERSHIP_RULE_NAME = 'story-owns-its-states';
+
+/* Every Testing Library query that can reach a role: the tooltip is reached by any of them. */
+const ROLE_QUERY = /^(?:get|query|find)(?:All)?ByRole$/;
+
+/**
+ * A story shows only the states its own component owns (ADR-0005).
+ * A tooltip opening on hover and closing on leave is the kit's state, covered by the kit's own stories, so a story above the kit neither hovers nor reads a tooltip.
+ * The words a composed component puts in a tooltip are still its own: it asserts them where the kit publishes them, as the control's accessible name or description.
+ * The files glob in `.oxlintrc.json` keeps the kit and the stories that predate the rule out of scope.
+ */
+const storyOwnsItsStatesRule: Rule = {
+  meta: {
+    name: STORY_OWNERSHIP_RULE_NAME,
+    messages: {
+      hover:
+        "Hovering drives a kit component's own state, which its own stories cover. Assert the words through the control's accessible name or description instead (ADR-0005).",
+      tooltip:
+        "An open tooltip is the kit's state, which its own stories cover. Assert the words through the control's accessible name or description instead (ADR-0005).",
+    },
+  },
+  create(context) {
+    return {
+      CallExpression(node) {
+        const callee = node.callee;
+        if (callee.type !== 'MemberExpression' || callee.computed || callee.property.type !== 'Identifier') {
+          return;
+        }
+        const method = callee.property.name;
+        /* Any receiver: `userEvent`, the play context's own `userEvent`, or an instance from `userEvent.setup()` under another name. */
+        if (method === 'hover' || method === 'unhover') {
+          context.report({ node, messageId: 'hover' });
+          return;
+        }
+        const [role] = node.arguments;
+        if (ROLE_QUERY.test(method) && role?.type === 'Literal' && role.value === 'tooltip') {
+          context.report({ node, messageId: 'tooltip' });
+        }
+      },
+    };
+  },
+};
+
 export default {
   meta: {
     name: 'local',
@@ -386,5 +711,9 @@ export default {
     [AI_TELLS_RULE_NAME]: noAiTellsRule,
     [STORY_DESCRIPTION_RULE_NAME]: noAiTellsInStoryDescriptionsRule,
     [WALL_CLOCK_RULE_NAME]: noWallClockRule,
+    [TITLE_TOOLTIP_RULE_NAME]: noTitleTooltipRule,
+    [SHARED_OVERLAYS_RULE_NAME]: sharedOverlaysRule,
+    [TOOLTIP_LENGTH_RULE_NAME]: tooltipLengthRule,
+    [STORY_OWNERSHIP_RULE_NAME]: storyOwnsItsStatesRule,
   },
 };

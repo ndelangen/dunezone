@@ -142,9 +142,35 @@ export function withoutCanvasBackground(code: string): string {
   );
 }
 
-const FIBER_WEBGPU = /\/@react-three\/fiber\/dist\/webgpu\/index\.mjs$/u;
+const INSPECTOR_SETTINGS = `if (typeof window !== "undefined") {
+  await import('three/examples/jsm/inspector/tabs/Settings.js');
+}`;
 
-/** Applies {@link pureStaticAssignments} to fiber's and drei's WebGPU entries, and {@link withoutCanvasBackground} to fiber's. */
+/**
+ * Cuts drei's top-level `await import()` of three's Inspector Settings tab out of its WebGPU entry.
+ * In a browser that import ran on every page with the table, fetching three's whole Inspector devtool (about 170 KB, 38 KB gzipped) and holding drei's module evaluation until it arrived.
+ * Only drei's `<Inspector>` needs that tab registered, and no scene here renders it.
+ * The text is matched exactly, so an upgrade that moves it fails the build rather than quietly bringing the Inspector back.
+ */
+export function withoutInspectorSettings(code: string): string {
+  if (!code.includes(INSPECTOR_SETTINGS)) {
+    throw new Error(
+      "withoutInspectorSettings: drei no longer imports the Inspector Settings tab the way it did; check whether three's Inspector still loads with the table."
+    );
+  }
+  /* The two newlines keep the three lines it replaces, so later lines keep their numbers for the map-less transform. */
+  return code.replace(
+    INSPECTOR_SETTINGS,
+    "/* drei's Inspector Settings tab is not bundled (scripts/lib/threeRendererStack.ts). */\n\n"
+  );
+}
+
+const FIBER_WEBGPU = /\/@react-three\/fiber\/dist\/webgpu\/index\.mjs$/u;
+const DREI_WEBGPU = /\/@react-three\/drei\/webgpu\/index\.mjs$/u;
+
+/**
+ * Applies {@link pureStaticAssignments} to fiber's and drei's WebGPU entries, {@link withoutCanvasBackground} to fiber's and {@link withoutInspectorSettings} to drei's.
+ */
 export function threeRendererStackTreeShaking(): Plugin {
   return {
     name: 'dunezone:three-renderer-stack-tree-shaking',
@@ -153,7 +179,10 @@ export function threeRendererStackTreeShaking(): Plugin {
       handler(code, id) {
         /* Only text is inserted or replaced within a line, so every original line keeps its number. */
         const statics = pureStaticAssignments(code);
-        return { code: FIBER_WEBGPU.test(id) ? withoutCanvasBackground(statics) : statics, map: null };
+        if (FIBER_WEBGPU.test(id)) {
+          return { code: withoutCanvasBackground(statics), map: null };
+        }
+        return { code: DREI_WEBGPU.test(id) ? withoutInspectorSettings(statics) : statics, map: null };
       },
     },
   };

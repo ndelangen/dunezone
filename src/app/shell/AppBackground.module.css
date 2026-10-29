@@ -1,0 +1,131 @@
+.background {
+  --planet-orbit-duration: 3600s;
+  --star-orbit-duration: 7200s;
+  --background-animation-state: running;
+
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  z-index: -3;
+  pointer-events: none;
+}
+
+.starsFrame,
+.planetFrame {
+  position: absolute;
+}
+
+.starsFrame {
+  --scroll-progress: 0;
+
+  inset: 0;
+  transform: translateY(calc(var(--scroll-progress) * -6vh));
+}
+
+.stars {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 150vmax;
+  max-width: none;
+  height: 150vmax;
+  animation: stars-orbit var(--star-orbit-duration) linear infinite;
+  animation-play-state: var(--background-animation-state);
+  will-change: transform;
+}
+
+.planetFrame {
+  --planet-diameter: max(140vw, 140vh);
+
+  top: calc(100vh - var(--planet-diameter) * 0.2);
+  top: calc(100dvh - var(--planet-diameter) * 0.2);
+  left: 50%;
+  width: var(--planet-diameter);
+  aspect-ratio: 1;
+  transform: translateX(-50%);
+}
+
+.planetDisc {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--ui-umber);
+  box-shadow:
+    0 0 2px 1px rgb(from var(--ui-highlight) r g b / 0.65),
+    0 0 12px 3px rgb(from var(--ui-brass) r g b / 0.24),
+    0 0 38px 5px rgb(from var(--ui-brass) r g b / 0.12);
+}
+
+.planetDisc::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    radial-gradient(ellipse at 28% 18%, rgb(from var(--ui-highlight) r g b / 0.22), transparent 42%),
+    radial-gradient(
+      ellipse 68% 70% at 22% 28%,
+      transparent 15%,
+      rgb(from var(--ui-ground) r g b / 0.12) 40%,
+      rgb(from var(--ui-ground) r g b / 0.66) 72%,
+      rgb(from var(--ui-ground) r g b / 0.97) 100%
+    ),
+    radial-gradient(
+      circle closest-side at 50% 50%,
+      transparent 45%,
+      rgb(from var(--ui-ground) r g b / 0.08) 70%,
+      rgb(from var(--ui-ground) r g b / 0.3) 90%,
+      rgb(from var(--ui-ground) r g b / 0.6) 100%
+    );
+  box-shadow: inset 0 0 24px rgb(from var(--ui-ground) r g b / 0.4);
+}
+
+.planet {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  transform-origin: 50% 50%;
+  animation: planet-orbit var(--planet-orbit-duration) linear infinite;
+  animation-play-state: var(--background-animation-state);
+  will-change: transform;
+}
+
+.star {
+  animation: star-twinkle 10s ease-in-out infinite alternate;
+  animation-play-state: var(--background-animation-state);
+}
+
+.background[data-motion="reduce"],
+.background[data-suspended] {
+  --background-animation-state: paused;
+}
+
+@keyframes stars-orbit {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(-360deg);
+  }
+}
+
+@keyframes star-twinkle {
+  from {
+    opacity: 0.45;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes planet-orbit {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

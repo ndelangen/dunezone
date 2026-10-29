@@ -1,0 +1,141 @@
+.figure {
+  container: guide-illustration / inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  margin: 0;
+  min-width: 0;
+}
+.publishing {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-xl);
+}
+.publishStep {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  color: var(--action-export-fg);
+}
+.publishStep:not(:last-child)::after {
+  content: "↓";
+  position: absolute;
+  inset-block-end: calc(-1 * var(--space-xl));
+  inset-inline-start: 50%;
+  font-size: 1.5rem;
+  color: var(--color-muted);
+}
+@container guide-illustration (width >= 48rem) {
+  .publishing {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .publishStep:not(:last-child)::after {
+    content: "→";
+    inset-block-start: 6rem;
+    inset-block-end: auto;
+    inset-inline-start: auto;
+    inset-inline-end: calc(-1 * var(--space-xl));
+  }
+}
+.publishStep[data-kind="capture"] {
+  color: var(--action-publish-fg);
+}
+.publishStep[data-kind="image"] {
+  color: var(--action-positive-fg);
+}
+.publishDrawing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+}
+.artifact,
+.queueDrawing,
+.storageDrawing {
+  width: 100%;
+  max-width: 24rem;
+  height: auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+.artifact text,
+.queueDrawing text,
+.storageDrawing text {
+  fill: currentColor;
+  stroke: none;
+  font: 15px var(--mantine-font-family);
+}
+.captureCorners {
+  stroke: var(--action-export-fg);
+}
+.address {
+  display: flex;
+  flex-wrap: wrap;
+  font-family: var(--mantine-font-family-monospace);
+  font-size: 0.9rem;
+  color: var(--color-muted);
+  overflow-wrap: anywhere;
+}
+.address strong {
+  color: var(--action-export-fg);
+}
+.slot {
+  box-sizing: border-box;
+  --slot-ink: var(--action-export-fg);
+  width: 100%;
+  min-height: 6rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  color: var(--slot-ink);
+  border: 2px dashed var(--slot-ink);
+  background: color-mix(in srgb, var(--slot-ink) 8%, transparent);
+}
+.slot[data-slot="content"] {
+  --slot-ink: var(--action-positive-fg);
+}
+.floatingSketch {
+  width: 100%;
+  max-width: 27rem;
+  align-self: center;
+  fill: rgb(from var(--glass-overlay) r g b / var(--glass-overlay-alpha));
+  stroke: var(--color-muted);
+  stroke-width: 1.5;
+}
+.floatingSketch text {
+  stroke: none;
+  fill: var(--color-text);
+  font: 16px var(--mantine-font-family);
+}
+.floatingSketch path {
+  fill: none;
+}
+.floatingSketch .pageOutline {
+  fill: none;
+  stroke-dasharray: 4 4;
+}
+.floatingSketch .menu {
+  stroke: var(--color-brand-strong);
+}
+.floatingSketch .editor {
+  stroke: var(--action-positive-fg);
+}
+.floatingSketch[data-nested] .editor,
+.floatingSketch .picker {
+  stroke: var(--color-error);
+}
+.positive {
+  color: var(--action-positive-fg);
+}
+.negative {
+  color: var(--color-error);
+}
+.toolbar {
+  padding-block: var(--space-sm);
+  border-block: 1px dashed var(--color-brand);
+}

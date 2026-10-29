@@ -19,20 +19,20 @@ real games are an unlisted beta, shared privately, until the public-release deci
 ([#1296](https://github.com/ndelangen/dunezone/issues/1296)) no longer exist in the application,
 and their old addresses redirect to the lobby. The hosted fixture game they opened stays stored but
 admits no player ([#1323](https://github.com/ndelangen/dunezone/issues/1323)): its `/play/<gameId>`
-address answers as an unknown game does, and no ticket is issued or redeemed for it. Players enter a
+address answers as an unknown game does, and no seat pass is issued for it. Players enter a
 real game, or a synthetic test game that the load runner and the protocol verifier create on an
 isolated backend. `admitsPlayers` in `convex/lib/playAuthorization.ts` holds that rule for the game
-page, the tickets and the live authorization alike. The stored fixture's account reconciliation and
-deletion acknowledgements keep answering its Worker. The fixture game this document describes
+page and the seat passes alike. The stored fixture's deletion acknowledgements keep answering its
+Worker. The fixture game this document describes
 remains the Worker's native test fixture and the load baseline's: the first two distinct admitted users occupy its
 Harkonnen and Atreides seats, and later users are spectators. A user's other tabs share their seat
 but have independent connections and carries. The expanded load profiles run the Worker's load
 entry, `workers/game/load-entry.ts`, whose fixtures seat eighteen load players instead. The
 production Worker never imports it.
 
-`playGames.getGameByAddress` resolves either address through the existing session and admission
+`playGameDirectory.getGameByAddress` resolves either address through the existing session and admission
 checks. Tokens accepted as IDs stay in the ID namespace even after their row disappears.
-The deployed `getGame` query remains available for earlier browser bundles. Database IDs still name
+Database IDs still name
 the table session, admission request and game socket; replacing the browser address keeps that
 session mounted. The tab's existing saved-table record keeps its known slug under the ID key.
 A friendly-link reload can find that record only through the same account, sign-in session, age
@@ -40,8 +40,8 @@ and payload checks. It shows a locked table until a fresh authorized socket view
 clears it, and a conflicting live resolution discards the stored hint.
 The [routing ticket](https://github.com/ndelangen/dunezone/issues/1937) records delivery evidence.
 
-Convex stores the fixture directory record, provisioning status, server-only game secrets, ticket hashes, session
-registrations and account-deletion delivery records. It does not store table actions or seats.
+Convex stores the fixture directory record, provisioning status, server-only game secrets, the
+accounts enrolled at each game, session cutoffs and account-deletion delivery records. It does not store table actions or seats.
 The game Worker owns one SQLite Durable Object per game. Its transactions save the table with
 command receipts and phase-boundary history. Seat changes have their own durable history.
 Carries and pointers are
@@ -51,6 +51,19 @@ temporary and disappear on disconnect or cold restore.
 Its operations coordinate commands, assignment, deadlines, account deletion, conversations and
 retained content. `workers/game/index.ts` owns authorization, sockets, external requests and alarm
 installation. It asks the session for projections instead of reading or changing its stores.
+
+A room hibernates while its players think, so a paused table costs no Durable Object duration.
+The one-second sweep runs only while something can expire on its own: an admission, a carry or a
+pointer. Every message starts it again. When it stops, the room saves its used carry IDs, its
+unwritten summary interval and a quiet marker. While the room sleeps, the alarm covers the battle
+deadline, the directory retry and the next seat pass to expire. A pass whose session ended cannot
+be renewed, so its alarm wakes the room to pause that table. Keepalive pings are answered by the
+runtime without waking the room. Each admitted connection keeps its identity, pass and admission
+state in its socket attachment, so a woken room restores its players and its activity epoch
+instead of closing their sockets. The delivery baselines live in memory only, so each player's
+first frame after a wake is a full view. A socket with nothing remembered closes with 1012 and the
+page reconnects. So does every socket of a room that restarts without the quiet marker, as a
+deploy or crash mid-carry does: the carries are gone, and the reconnect's new epoch tells the page.
 
 A command and any setup cleanup it enables commit before the Room accepts the result. If saving
 fails, the snapshot, history boundary and unfinished carry stay unchanged so the same command can
@@ -134,18 +147,19 @@ A browser enters a game with a seat pass: the account's own proof of who it is a
 signed by Convex with the game's server-only secret (HMAC-SHA256) and checked by the room alone, so
 an admitted player's room never asks Convex about them again (decided with Norbert on 2026-10-17).
 
-1. The game page's query (`playGames.getGameByAddress`) carries the pass, so a reload has one
+1. The game page's query (`playGameDirectory.getGameByAddress`) carries the pass, so a reload has one
    without another round trip. A query cannot read the clock, so its pass counts from the session's
    newest refresh token. An account that has never opened the game gets `pass: null` and enrols
    once with `playAdmission.enrolPlayer`, which writes its routing row, the row deletion fan-out,
    merges and seat counting follow, in the same transaction that checks the account may play.
 2. A pass names the game, the game actor it seats, the signed-in account, the Auth session and that
    session's creation time, and ends at the earlier of the Auth expiry and one hour after signing
-   (`PLAY_SEAT_PASS_TTL_MS`). The browser keeps it in memory and sends it in its first socket
-   message in place of a ticket.
+   (`PLAY_SEAT_PASS_TTL_MS`). The browser keeps it in memory, never in a URL, and sends it in its
+   first socket message. Convex client tokens never reach the game Worker.
 3. The room checks the signature, the game, its own clock and the cutoffs Convex pushed. A forged
-   pass, or one for another game, is refused. An expired pass closes with code 4410 as an expired
-   ticket does, and the browser reconnects with a renewed one. Until the room has read the
+   pass, or one for another game, is refused and stays denied. An expired pass closes with code 4410
+   and no refusal, and the browser reconnects with a renewed one. That wait doubles from 1 second up
+   to `PLAY_ADMISSION_RETRY_MAX_MS`, and a view resets it. Until the room has read the
    account's seat count (`playAdmission.seatLimitReached`), the player counts as at the seat limit.
 4. Five minutes before a pass ends, timed on the room's clock, the page renews it with
    `playAdmission.renewSeatPass` unless the query already brought a fresher one, and hands it to the
@@ -157,109 +171,38 @@ an admitted player's room never asks Convex about them again (decided with Norbe
    at or before it. The room stores the cutoff in SQLite, keeping the higher of two, before it
    acknowledges it. The push retries until acknowledged, backing off to one minute, and stops once
    every pass it could end has expired. Account deletion keeps its own durable push; a deletion for
-   an account the room has never seen leaves a `[deleted user]` row that keeps a later pass out. Deletion also reaches
-   creators of games from before creators were enrolled, through a routing row its fan-out adds; a
-   creator deleted before seat passes, whom no deletion reached, is removed by the one account
-   reconciliation each room runs in the background on its first pass admission after it starts. A
-   game that expired before Convex confirmed it may still have a room that stored its creator, so its
+   an account the room has never seen leaves a `[deleted user]` row that keeps a later pass out. A game that expired before Convex confirmed it may still have a room that stored its creator, so its
    deletion asks that room to retire, which only an unconfirmed room or the hosted fixture accepts,
    and settles once the room answers empty.
+7. Every command and outgoing game message checks the pass's expiry and the cutoffs on the room's
+   clock; timer delays cannot extend it. A seat survives logout and disconnect. Account deletion
+   vacates it and replaces retained identity labels with `[deleted user]`. Table events name the
+   seat, never its player, so deletion leaves them as written.
 
 Accepted trade-offs: a single tab's sign-out, which revokes no other session, does not reach the
 room, so a pass copied out of that tab stays usable until it expires. A lost cutoff push is bounded
 the same way. A pass can be replayed by whoever holds it for its lifetime, as a bearer token is.
 
-### Tickets (older pages)
-
-A page that predates passes, or a deployment whose query sends no `pass`, still enters with a
-ticket. The room keeps the ticket path, its account lease and reconciliation for those connections
-only; a room whose players all hold passes never runs them.
-
-1. The signed-in browser requests a single-use opaque ticket from Convex. Convex resolves the
-   current user and Auth session itself; the browser cannot select another identity.
-2. The browser opens the same-origin game socket and sends that ticket in its first message.
-   Tickets stay in memory, never in a URL. Convex client tokens never reach the game Worker.
-3. The Worker redeems the ticket using that game's server-only secret. Admission still waits for
-   both a fresh reactive authorization result and an uncached HTTP validation lease. A ticket
-   that lapsed or was already redeemed closes the socket with code 4410 and no refusal; the
-   browser requests a new ticket and reconnects, with the same wait as a ticket it finds lapsed
-   before sending it. That wait doubles from 1 second up to `PLAY_TICKET_RETRY_MAX_MS`, and a view
-   resets it. A refused session, account or game stays denied. An admission that failed because
-   Convex did not answer the redemption or the account check (a timeout, a network failure, or a
-   redirect or server error other than a function's own failure) refuses nothing: the socket closes
-   with code 1013 and the browser reconnects with a new ticket after the same doubling wait. While
-   a failed account check waits out its backoff, the room closes a new admission that way at once
-   without asking Convex. Any other failure, such as an answer the Worker cannot read, still denies.
-4. Every command and outgoing game message checks authorization, session expiry and both the
-   session and account-reconciliation leases. Timer delays cannot extend these deadlines.
-5. Logout, expiry or a known authorization failure stops game traffic. Reconnection requires a
-   new ticket. A seat survives logout and disconnect. Account deletion vacates it and replaces
-   retained identity labels with `[deleted user]`. Table events name the seat, never its player,
-   so deletion leaves them as written.
-
 The admission and provisioning timings are shared constants in `src/shared/play/admission.ts`; the
-ticket and redeem rate limits are in `convex/lib/playRateLimits.ts`.
+seat-pass rate limits are in `convex/lib/playRateLimits.ts`.
 
 The browser never reads the player's wall clock; it reads server time in one of two ways. Every
 frame but `admission` carries the Worker's `serverNow`, and the browser keeps the largest offset
 from its monotonic clock since it last connected, so deadlines, vote ages and message times follow
-the Worker's clock. A Worker duration (the phase cooldown, the battle countdown, the admission
-ticket's `expiresInMs`) is measured on the monotonic clock from when it arrived, or from just
-before the ticket request. A tab that resumes after a deadline refreshes its controls on the next
+the Worker's clock. A Worker duration (the phase cooldown, the battle countdown) is measured on the
+monotonic clock from when it arrived. A tab that resumes after a deadline refreshes its controls on the next
 timer tick, and the Worker still checks its own deadlines when a command arrives. Carries and
 pointers expire on the Worker alone, which broadcasts each removal.
 
-The reactive query watches an explicit batch of at most 64 session registrations. New watch
-generations and observation/request ordering reject stale responses. A cached reactive result
-cannot renew the HTTP lease. Known disconnection or error suspends access; an otherwise silent
-failure cannot extend access beyond the request-start lease or Auth expiry, whichever comes first.
-Explicit denial remains denied for that registration. A cold room starts with no inherited grant.
-
-The three mechanisms have distinct roles. The reactive subscription is the prompt path: sign-out,
-session revocation and account changes arrive as pushed results within seconds. Session expiry is
-not pushed; the result carries the Auth deadline and the room checks it locally before every command
-and outgoing game message. The Convex client's own inactivity reconnect bounds a dead transport:
-after 60 seconds without any server message it closes and reconnects, which suspends every grant
-until a new generation's result arrives. The uncached lease bounds a subscription that has stalled
-over a live transport: a revocation the subscription missed is denied by the next renewal, and the
-lease is the ceiling when renewals neither succeed nor fail. A suspension while connected restarts
-the watch after a short backoff rather than waiting for the next renewal. The lease must stay longer
-than the cadence plus the request timeout
-([amendment](https://github.com/ndelangen/dunezone/issues/1014#issuecomment-5649336152) to the
-connection decision).
-
-Every new tab requires a new validation round, even when another tab shares its Auth session.
-Changing the watched registrations preserves existing tabs' grants only until their original
-deadlines, so joining does not interrupt an active carry. An expired positive reactive result
-suspends access while an uncached check distinguishes delayed refresh data from actual expiry.
-
-Account deletion has a durable Convex notification with acknowledgment after the SQLite change.
-The room also reconciles all retained accounts in bounded batches before sending game data and
-while connected. A disconnected account can therefore lose its seat without reconnecting first.
-
-A watch result does not say why it denied a registration, and a sign-out and an account deletion
-look alike to the room. So any denial withdraws the room's account lease until a reconciliation
-started after the denial has checked every retained account. Meanwhile the room sends no game data
-and applies no command. A connection whose own grant still stands is held rather than suspended: it
-is not told about the wait, the room does not clear its carry and pointer, and its messages wait and
-then meet the same check as any other. A catalogue read or spawn request whose catalogue call
-returns during the wait is held the same way and answered once the wait ends. A message whose
-connection was suspended after it arrived is dropped, even if the connection was admitted again
-since, because the page discards its unanswered requests on a pause. That includes a catalogue read
-or spawn request whose connection was suspended during its catalogue call. When the lease returns,
-each held connection is sent what changed since the last frame it received, so another player's
-sign-out leaves its table as it was. A failed reconciliation or a lapsed lease suspends held
-connections like every other. One watch result that denies several connections, such as every tab of
-a signed-out session, starts one reconciliation, and a pass that a later denial or deletion made
-stale is followed at once by the next, so an admission waiting on it is not refused for the stale
-pass.
+Account deletion has a durable Convex notification with acknowledgment after the SQLite change, so
+a disconnected account can lose its seat without reconnecting first.
 
 ## Provisioning and transport
 
 A real game is provisioned when a signed-in player creates it (`playGames.createGame`). No operator
 step follows a deployment. The directory hides pending fixtures.
 
-`createGame` refuses a session past its idle or total deadline, as `issueTicket` does
+`createGame` refuses a session past its idle or total deadline, as `enrolPlayer` does
 (`livePlaySession` in `convex/lib/playAuthorization.ts`); Play queries read no clock, so a lapsed
 session's sign-in token bounds what it can still read.
 
@@ -271,15 +214,12 @@ game with no summary yet holds its creator's seat, because the creator is seated
 (`play_games.by_creator_id`) and the games they entered (`play_game_accounts.by_user_id`), reading at
 most the newest 200 of each, so a seat in an older game can be missed. `createGame` refuses a player
 at the limit with `seat_limit` before it spends anything, and the create page shows the limit message.
-Joining is refused by the game Worker: `redeemTicket` answers `seatLimitReached` for the player,
-counted without the game being entered, and the room refuses that connection's `seat-request` with the
+Joining is refused by the game Worker: on admission the room asks `playAdmission.seatLimitReached`
+for the player, counted without the game being entered, and the room refuses that connection's `seat-request` with the
 same message. It also refuses a `seat-approve` while any admitted connection of the requester's
 reported the limit, telling the approver why. The flag is read once per admission, so a player who
 leaves a seat elsewhere reconnects to ask again, and requests pending in several games at once can
-each be approved, leaving a player a few seats over the limit. A missing flag, as an older Convex
-deployment answers, reads as not at the limit. `watchAuthorizations` does not carry the flag: counting
-for every registration in a batch of 64 would outgrow a query's reads, and the count's read set would
-rerun the watch whenever any of those games published a summary.
+each be approved, leaving a player a few seats over the limit.
 
 Creation also draws from the token bucket `playCreatePerAccount` in `convex/lib/playRateLimits.ts`
 (capacity 3, refilling at 10 an hour). It bounds how fast an account creates games, not how many it
@@ -347,8 +287,7 @@ to the game Worker at provisioning. In the same way it sets `PLAY_TEST_START_STA
 every flow but `regular`, so those flows' games are provisioned past drafting and setup: the Worker
 takes each such game to Turn 1 with the commands its players would send, seating placeholders that
 ready the draft, keep the seats they are dealt and ready every setup step beside the creator, and
-then give up their seats. The synthetic backend vouches for those placeholders when the room
-reconciles its accounts, so the game's log keeps their names, and the flow's second player joins
+then give up their seats. The game's log keeps their names, and the flow's second player joins
 through the open seat as a replacement would. The `regular` flow keeps creating its
 game at drafting and stepping through every stage, which is what it proves. The Worker refuses to
 provision a game with either test value unless its `GIT_SHA` is play-local's `local-isolated` and
@@ -432,7 +371,7 @@ malformed requests and expected game rejections produce no application diagnosti
 enabled with 100% sampling for explicit failures; changing global sampling would discard those
 failure reports too. Cloudflare's aggregate runtime metrics remain available independently.
 
-Unexpected failures in command processing, provisioning, authorization, account reconciliation,
+Unexpected failures in command processing, provisioning, admission, seat-limit reads,
 account-deletion acknowledgement and socket transport emit `game-operation-failed`. Each record
 contains the fixed operation name, opaque Durable Object ID, release commit, safe error category
 and suppressed repeat count. Exception messages, original stacks, causes, credentials, player
@@ -453,19 +392,17 @@ Worker's high-frequency socket handling. See [Cloudflare invocation logs and sam
 
 ### Local checks
 
-Run `bun run game:test` for the room contracts and native workerd tests. The native tests exercise
-the production authorization client against a controlled local Convex protocol peer, plus cold
-restore against the same SQLite storage. They cover response races, missing fresh watches,
-disconnects, lease deadlines, recovery from a failed subscription, a revocation caught by the next
-renewal, pending admission and lost provisioning confirmation. The tests pass shorter lease and
-renewal lifetimes to the watch; the production constants are not exercised. The peer does not prove
-real Convex Auth behavior.
+Run `bun run game:test` for the room contracts and native workerd tests. The native tests admit with
+seat passes signed by the fixture's game secret against a controlled local Convex HTTP peer, plus
+cold restore against the same SQLite storage. They cover forged, foreign and expired passes,
+renewal on the open socket, pushed session cutoffs and deletions, the seat-limit read, pending
+admission and lost provisioning confirmation. The peer does not prove real Convex Auth behavior.
 
 Run `bun --no-env-file scripts/verify-hosted-play-stack.ts` for the actual Convex/Auth, publisher
 binding and game Worker path. It creates a synthetic local backend with no production data or
 hosted development credentials. Its checks include independent non-admin users, anonymous and
 spectator rejection, contested mutations, transient activity, receipt replay, phase playback,
-single-use tickets, multi-tab logout, inactivity/total expiry, and account-deletion vacancy.
+forged seat passes, multi-tab logout, inactivity/total expiry, and account-deletion vacancy.
 It creates its synthetic accounts through `playTesting:provisionAccounts` before the first check,
 so every check signs in and none signs up. Retained logs contain check results and payload
 counters, not credentials.

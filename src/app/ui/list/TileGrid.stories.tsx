@@ -37,3 +37,25 @@ export const Default = meta.story({
     );
   },
 });
+
+export const Compact = meta.story({
+  render: () => (
+    <div style={{ width: 240 }}>
+      <TileGrid density="compact">
+        {[1, 2].map((number) => (
+          <OpenableTile
+            key={number}
+            caption={`Tile ${number}`}
+            renderRoot={({ children, ...props }) => (
+              <a {...props} href={`#tile-${number}`}>
+                {children}
+              </a>
+            )}
+          >
+            {art('#887849')}
+          </OpenableTile>
+        ))}
+      </TileGrid>
+    </div>
+  ),
+});

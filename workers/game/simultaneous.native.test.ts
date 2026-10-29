@@ -36,7 +36,7 @@ describe('Seats acting at the same moment (#1690)', { timeout: 30_000 }, () => {
     await runtime?.close();
     await peer?.close();
   });
-  const admit = (suffix: string) => admitPlayer(peer, runtime, suffix);
+  const admit = (suffix: string) => admitPlayer(runtime, suffix);
 
   async function twoDrafting() {
     ({ peer, runtime } = await draftingRuntime());
@@ -98,7 +98,7 @@ describe('Seats acting at the same moment (#1690)', { timeout: 30_000 }, () => {
 
   it('closes trading when both players keep their seats at once, but refuses readiness that crossed an offer', async () => {
     ({ peer, runtime } = await draftingRuntime([['emperor', 'Emperor']]));
-    const [a, b] = await dealt(peer, runtime, 2);
+    const [a, b] = await dealt(runtime, 2);
     const swap = async (
       connection: NativeConnection,
       action: SwapAction extends infer Action
@@ -186,8 +186,6 @@ describe('Seats acting at the same moment (#1690)', { timeout: 30_000 }, () => {
     let a: NativeConnection, b: NativeConnection;
     async function table(phase: number) {
       peer = await createPeer();
-      peer.watchMode = 'allow';
-      peer.expiresAt = () => Date.now() + 600_000;
       runtime = await createRuntime(peer, 'game');
       if ((await provision(runtime)).status !== 200) {
         throw new Error('The native fixture did not provision.');

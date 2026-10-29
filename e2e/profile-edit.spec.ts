@@ -16,7 +16,13 @@ test('profile editing connects settings, previews avatars, and persists appearan
     await route.fulfill({ status: 404, body: 'missing' });
   });
 
+  await page.addInitScript(() => {
+    localStorage.setItem('dunezone-color-scheme', 'light');
+    localStorage.setItem('mantine-color-scheme-value', 'light');
+  });
+  await page.emulateMedia({ colorScheme: 'light' });
   await page.goto('/profiles/' + userA.slug + '/edit');
+  await expect(page.locator('html')).toHaveAttribute('data-mantine-color-scheme', 'dark');
   const save = page.getByRole('button', { name: 'Save profile' });
   await expect(save).toBeDisabled();
   await expect(save.locator('svg')).toBeVisible();
@@ -43,7 +49,7 @@ test('profile editing connects settings, previews avatars, and persists appearan
   await expect(page.getByRole('combobox', { name: 'Default Group' })).toBeVisible();
   const defaultGroupHelp = page.getByRole('group', { name: 'Default Group' }).getByRole('img', { name: 'Help' });
   await defaultGroupHelp.hover();
-  await expect(page.getByRole('tooltip')).toContainText('New rulesets and factions use this Group');
+  await expect(page.getByRole('tooltip')).toContainText('New rulesets and factions start in this Group');
 
   await page.getByRole('tab', { name: 'Account' }).click();
   await expect(page.getByRole('link', { name: 'Delete account' })).toBeVisible();
@@ -51,9 +57,8 @@ test('profile editing connects settings, previews avatars, and persists appearan
   await page.getByRole('tab', { name: 'Appearance' }).click();
   const motionHelp = page.getByRole('group', { name: 'Ambient motion' }).getByRole('img', { name: 'Help' });
   await motionHelp.hover();
-  await expect(page.getByRole('tooltip')).toContainText('The masthead video and the turning dice');
-  await page.getByText('Dark', { exact: true }).click();
-  await expect.poll(() => page.evaluate(() => localStorage.getItem('dunezone-color-scheme'))).toBe('dark');
+  await expect(page.getByRole('tooltip')).toContainText('The masthead video, rotating planet and stars');
+  await expect(page.getByRole('radiogroup', { name: 'Color scheme' })).toHaveCount(0);
   await expect(page.locator('html')).toHaveAttribute('data-mantine-color-scheme', 'dark');
 
   await page.getByText('Off', { exact: true }).click();
@@ -64,14 +69,11 @@ test('profile editing connects settings, previews avatars, and persists appearan
 
   await page.reload();
   await page.getByRole('tab', { name: 'Appearance' }).click();
-  await expect(page.getByRole('radio', { name: 'Dark' })).toBeChecked();
+  await expect(page.locator('html')).toHaveAttribute('data-mantine-color-scheme', 'dark');
   await expect(page.getByRole('radio', { name: 'Off' })).toBeChecked();
 
   await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
-  const systemOptions = page.getByText('System', { exact: true });
-  await systemOptions.first().click();
-  await systemOptions.last().click();
-  await expect.poll(() => page.evaluate(() => localStorage.getItem('dunezone-color-scheme'))).toBeNull();
+  await page.getByRole('radio', { name: 'System', exact: true }).click();
   await expect
     .poll(async () => (await page.context().cookies()).some((cookie) => cookie.name === 'motion'))
     .toBe(false);
@@ -80,8 +82,7 @@ test('profile editing connects settings, previews avatars, and persists appearan
 
   await page.reload();
   await page.getByRole('tab', { name: 'Appearance' }).click();
-  await expect(page.getByRole('radio', { name: 'System', exact: true }).first()).toBeChecked();
-  await expect(page.getByRole('radio', { name: 'System', exact: true }).last()).toBeChecked();
+  await expect(page.getByRole('radio', { name: 'System', exact: true })).toBeChecked();
 
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.getByRole('button', { name: 'Next section' })).toBeVisible();

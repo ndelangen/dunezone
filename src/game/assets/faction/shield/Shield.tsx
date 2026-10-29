@@ -1,5 +1,4 @@
 import type { FactionRender } from '@shared/factions/schema';
-import { resolveAsset } from '@shared/media/resolveAsset';
 import { useId } from 'react';
 import type { FC } from 'react';
 import type { z } from 'zod';
@@ -97,20 +96,6 @@ export const Shield: FC<ShieldProps> = (props) => {
       <rect fill={`url(#${gradient})`} y={size.height - 55 - 150} {...size} height={70} mask={`url(#${textMask})`} />
       <g style={{ mixBlendMode: 'overlay' }}>
         <rect fill="black" y={size.height - 55 - 150} {...size} height={70} mask={`url(#${textShadeMask})`} />
-      </g>
-      <g
-        style={{
-          mixBlendMode: 'color-burn',
-          filter: 'saturate(16.2) contrast(2) grayscale(1)',
-        }}
-      >
-        <image
-          {...size}
-          mask={`url(#${textMask})`}
-          x={0}
-          xlinkHref={resolveAsset('/image/shield/shield-base.png', 'large')}
-          y={-40}
-        />
       </g>
     </svg>
   );

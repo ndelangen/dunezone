@@ -1,6 +1,7 @@
 import preview from '@sb/preview';
 import { expect, within } from 'storybook/test';
 
+import { lastSignedInWithDiscord } from './auth.stories.fixture';
 import { pageStoryMeta } from './storybookConfig';
 
 const meta = preview.meta({
@@ -31,6 +32,20 @@ export const LoginAfterUnfinishedSignIn = meta.story({
     await expect(
       page.findByRole('button', { name: 'Continue with Google' }, { timeout: 30_000 })
     ).resolves.toBeInTheDocument();
+  },
+});
+/** The last-used provider has a mark on its logo and "Last used" in its accessible name. */
+export const LoginLastUsed = meta.story({
+  args: { path: '/auth/login' },
+  parameters: { identity: null },
+  beforeEach: lastSignedInWithDiscord,
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const discord = await page.findByRole('button', { name: /^Continue with Discord/ }, { timeout: 30_000 });
+    await expect(discord).toHaveAccessibleName('Continue with Discord Last used');
+    await expect(page.getByRole('button', { name: 'Continue with Google' })).toHaveAccessibleName(
+      'Continue with Google'
+    );
   },
 });
 /** A failed sign-in lands on the error page, which names the code the provider returned. */

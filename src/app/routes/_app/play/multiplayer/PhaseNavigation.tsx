@@ -6,15 +6,21 @@ import { useId } from 'react';
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import { publicControlsOf } from './publicControls';
 
+/* What the phase asks of the table before it moves on: the public readiness and seats, through the shared gate. */
+function gateOf(table: TableProjection) {
+  const controls = publicControlsOf(table);
+  return { controls, ...phaseGate({ ...table.snapshot, ready: controls.ready, seats: controls.seats }) };
+}
+
+/** Whether Next phase is enabled: the viewer may act, the last step has cooled, and the phase's gate is open. */
+export function canStepPhase(table: TableProjection) {
+  return table.canInteract && !table.phaseCooling && gateOf(table).refusal === null;
+}
+
 /* The header's phase controls: the Ready toggle when the phase asks for readiness, then the Next phase split button. */
 export function PhaseNavigation({ client, table }: Readonly<{ client: TableSession; table: TableProjection }>) {
-  const controls = publicControlsOf(table);
   const cooling = table.phaseCooling;
-  const { needsReady, refusal } = phaseGate({
-    ...table.snapshot,
-    ready: controls.ready,
-    seats: controls.seats,
-  });
+  const { controls, needsReady, refusal } = gateOf(table);
   const ready = controls.ready.includes(table.viewer.viewerSeat);
   /* Readiness is a phase control, so it sits beside Next phase in the header rather than on a tab. */
   return (
@@ -47,7 +53,7 @@ function atFirstStepOrHeld(snapshot: TableProjection['snapshot']) {
   return setup ? setup.index === 0 : snapshot.phase === 0;
 }
 
-/* One toggle for readiness that carries the count: a filled Ready until pressed, then a quiet ticked Ready that withdraws. */
+/* Readiness carries its count and changes to a green tick when confirmed; pressing again withdraws it. */
 export function ReadyToggle({
   ready,
   count,
@@ -61,8 +67,8 @@ export function ReadyToggle({
       <Tooltip label={ready ? 'Withdraw readiness' : 'Tell the table you are ready'} withinPortal>
         <Button
           disabled={disabled}
-          color={ready ? 'green' : 'yellow'}
-          variant={ready ? 'light' : 'filled'}
+          color={ready ? 'confirm' : 'cta'}
+          variant="filled"
           aria-pressed={ready}
           aria-describedby={countId}
           leftSection={ready ? <Check size={16} aria-hidden /> : undefined}
@@ -93,12 +99,23 @@ function PhaseStepButton({
 }: Readonly<{ nextDisabled: boolean; previousDisabled: boolean; onNext: () => void; onPrevious: () => void }>) {
   return (
     <Group gap={1} wrap="nowrap">
-      <Button disabled={nextDisabled} onClick={onNext} style={{ borderStartEndRadius: 0, borderEndEndRadius: 0 }}>
+      <Button
+        color="cta"
+        disabled={nextDisabled}
+        onClick={onNext}
+        style={{ borderStartEndRadius: 0, borderEndEndRadius: 0 }}
+      >
         Next phase
       </Button>
       <Menu position="bottom-end" shadow="md" withinPortal>
         <Menu.Target>
-          <Button aria-label="More phase actions" px={8} style={{ borderStartStartRadius: 0, borderEndStartRadius: 0 }}>
+          <Button
+            aria-label="More phase actions"
+            color={nextDisabled ? 'gray' : 'cta'}
+            variant={nextDisabled ? 'default' : 'filled'}
+            px={8}
+            style={{ borderStartStartRadius: 0, borderEndStartRadius: 0 }}
+          >
             <ChevronDown size={16} aria-hidden />
           </Button>
         </Menu.Target>

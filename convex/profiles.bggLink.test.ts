@@ -5,6 +5,7 @@ import { expect, test } from 'vite-plus/test';
 
 import { api } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
+import { storedProfileAvatar } from './profiles.test.fixture';
 
 async function setup() {
   const t = applicationTest();
@@ -14,7 +15,7 @@ async function setup() {
       user_id: userId,
       username: 'ExamplePlayer',
       slug: 'exampleplayer',
-      avatar_url: 'https://example.com/avatar.png',
+      ...storedProfileAvatar,
       account_state: 'active',
       created_at: '2026-10-10T00:00:00.000Z',
       updated_at: '2026-10-10T00:00:00.000Z',
@@ -25,7 +26,7 @@ async function setup() {
   return { t, owner: t.withIdentity({ subject: `${userId}|${sessionId}` }) };
 }
 
-const profileInput = { username: 'ExamplePlayer', avatar_url: 'https://example.com/avatar.png' };
+const profileInput = { username: 'ExamplePlayer', avatar_url: storedProfileAvatar.avatar_url };
 
 test('a BGG link is normalized, public, preserved by older saves and removed by clearing it', async () => {
   const { t, owner } = await setup();
@@ -40,8 +41,6 @@ test('a BGG link is normalized, public, preserved by older saves and removed by 
   expect(olderSave.profile.bgg_profile_url).toBe('https://boardgamegeek.com/user/Example%20Player');
   await owner.mutation(api.profiles.updateCurrent, { ...profileInput, bgg_profile_url: '   ' });
   expect((await t.query(api.profiles.pageBySlug, { slug: 'exampleplayer' })).profile.bgg_profile_url).toBeUndefined();
-  /* Each save schedules the avatar rehost; letting it finish here keeps its log inside this test rather than after the worker closes. */
-  await t.finishInProgressScheduledFunctions();
 });
 
 test('profile saves reject external destinations and URLs that do not name a BGG user', async () => {

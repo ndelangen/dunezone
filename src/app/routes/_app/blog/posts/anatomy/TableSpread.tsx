@@ -1,6 +1,4 @@
-import { Anchor } from '@mantine/core';
 import { FactionRender } from '@shared/factions/schema';
-import { Link } from '@tanstack/react-router';
 import type { CSSProperties, ReactNode } from 'react';
 
 import { FactionSheetPagePreview } from '@app/print/sheet/FactionSheetPagePreview';
@@ -12,6 +10,7 @@ import { TraitorCard } from '@game/assets/faction/traitor/Traitor';
 import { TroopToken } from '@game/assets/faction/troop/Troop';
 import { card, disc, page, shield } from '@game/data/sizes';
 
+import { PostLink } from '../../postContent';
 import { Scaled, SheetFrame, ShieldCutout } from './Scaled';
 import { SMUGGLERS } from './smugglers';
 import styles from './TableSpread.module.css';
@@ -104,12 +103,9 @@ export function TableSpread() {
         ) : null}
       </div>
       <figcaption className={styles.caption}>
-        <Anchor
-          renderRoot={(props) => <Link {...props} to="/factions/$factionId" params={{ factionId: 'smugglers' }} />}
-          inherit
-        >
+        <PostLink to="/factions/$factionId" params={{ factionId: 'smugglers' }}>
           Smugglers
-        </Anchor>
+        </PostLink>
         , a homebrew faction by Argelius, with its sheet, shield, leaders, traitors, alliance card, faction token and
         troops all drawn from the one faction.
       </figcaption>

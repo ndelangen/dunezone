@@ -1,0 +1,420 @@
+.walkthrough {
+  container: faq-example / inline-size;
+  display: grid;
+  gap: var(--space-md);
+  min-width: 0;
+}
+
+/* One clock keeps typing, entrances, the click, and reordering in step, including when paused. */
+.stage {
+  --faq-cycle: 14s;
+  --faq-start: 0s;
+  overflow: clip;
+  display: grid;
+  gap: var(--space-md);
+  min-width: 0;
+  animation: loop var(--faq-cycle) linear infinite;
+  animation-delay: var(--faq-start);
+}
+
+.answers {
+  position: relative;
+  display: grid;
+  gap: var(--space-md);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.question,
+.answer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-md);
+  align-items: start;
+  min-width: 0;
+}
+
+.question > *,
+.answer > * {
+  min-width: 0;
+}
+
+.question {
+  animation: reveal var(--faq-cycle) linear infinite;
+  animation-delay: var(--faq-start);
+}
+
+.answer {
+  --faq-after-y: 0px;
+  position: relative;
+  animation: arrive-first var(--faq-cycle) cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  animation-delay: var(--faq-start);
+}
+
+.answer[data-accepted] {
+  z-index: 1;
+}
+
+.answer[data-arrival="second"] {
+  animation-name: arrive-second;
+}
+
+.answer[data-arrival="third"] {
+  animation-name: arrive-third;
+}
+
+.identity {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  overflow-wrap: anywhere;
+}
+
+.title {
+  position: relative;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.typed {
+  animation: typing var(--faq-cycle) steps(36, end) infinite;
+  animation-delay: var(--faq-start);
+}
+
+.caret {
+  position: absolute;
+  top: 0;
+  left: 100%;
+  width: 2px;
+  height: 1.2em;
+  background: currentcolor;
+  visibility: hidden;
+  animation:
+    caret var(--faq-cycle) steps(36, end) infinite,
+    blink 0.7s steps(1, end) infinite;
+  animation-delay: var(--faq-start), 0s;
+}
+
+.status {
+  display: grid;
+  align-items: center;
+}
+
+.status > * {
+  grid-area: 1 / 1;
+}
+
+.open {
+  visibility: hidden;
+  animation: open var(--faq-cycle) steps(1, end) infinite;
+  animation-delay: var(--faq-start);
+}
+
+.badge {
+  animation: settle var(--faq-cycle) ease-out infinite;
+  animation-delay: var(--faq-start);
+}
+
+.acceptedAt {
+  animation: accepted-time var(--faq-cycle) ease-out infinite;
+  animation-delay: var(--faq-start);
+}
+
+.prose {
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+}
+
+/* Controls reserve their space while fading, so the page never jumps between loops. */
+.acceptRow {
+  animation: controls var(--faq-cycle) ease-out infinite;
+  animation-delay: var(--faq-start);
+}
+
+.accept {
+  position: relative;
+}
+
+.acceptButton {
+  animation: press var(--faq-cycle) ease-in-out infinite;
+  animation-delay: var(--faq-start);
+}
+
+.pointer {
+  position: absolute;
+  inset-inline-end: var(--space-md);
+  top: 50%;
+  opacity: 0;
+  color: var(--color-text);
+  filter: drop-shadow(0 1px 2px rgb(from var(--color-shadow) r g b / 45%));
+  pointer-events: none;
+  animation: point var(--faq-cycle) cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  animation-delay: var(--faq-start);
+}
+
+@keyframes loop {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  4%,
+  94% {
+    opacity: 1;
+  }
+}
+
+@keyframes reveal {
+  0%,
+  2% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  5%,
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes typing {
+  0%,
+  6% {
+    clip-path: inset(0 100% 0 0);
+  }
+  32%,
+  100% {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes caret {
+  0%,
+  5% {
+    visibility: hidden;
+    left: 0;
+  }
+  6% {
+    visibility: visible;
+    left: 0;
+  }
+  32%,
+  35% {
+    visibility: visible;
+    left: 100%;
+  }
+  36%,
+  100% {
+    visibility: hidden;
+    left: 100%;
+  }
+}
+
+@keyframes blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes arrive-first {
+  0%,
+  38% {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  43%,
+  81% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  88%,
+  100% {
+    opacity: 1;
+    transform: translateY(var(--faq-after-y));
+  }
+}
+
+@keyframes arrive-second {
+  0%,
+  48% {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  53%,
+  81% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  88%,
+  100% {
+    opacity: 1;
+    transform: translateY(var(--faq-after-y));
+  }
+}
+
+@keyframes arrive-third {
+  0%,
+  58% {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  63%,
+  81% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  88%,
+  100% {
+    opacity: 1;
+    transform: translateY(var(--faq-after-y));
+  }
+}
+
+@keyframes point {
+  0%,
+  66% {
+    opacity: 0;
+    transform: translate(7rem, 4rem);
+  }
+  68% {
+    opacity: 1;
+    transform: translate(7rem, 4rem);
+  }
+  77% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+  79% {
+    opacity: 1;
+    transform: translate(0, 0) scale(0.8);
+  }
+  81% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+  85%,
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+
+@keyframes press {
+  0%,
+  77%,
+  81%,
+  100% {
+    transform: scale(1);
+  }
+  79% {
+    transform: scale(0.96);
+  }
+}
+
+@keyframes open {
+  0%,
+  79% {
+    visibility: visible;
+  }
+  80%,
+  100% {
+    visibility: hidden;
+  }
+}
+
+@keyframes settle {
+  0%,
+  79% {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(4px) scale(0.96);
+  }
+  80% {
+    opacity: 0;
+    visibility: visible;
+    transform: translateY(4px) scale(0.96);
+  }
+  84% {
+    opacity: 1;
+    visibility: visible;
+    transform: scale(1.04);
+  }
+  87%,
+  100% {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+  }
+}
+
+@keyframes accepted-time {
+  0%,
+  79% {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(4px);
+  }
+  80% {
+    opacity: 0;
+    visibility: visible;
+    transform: translateY(4px);
+  }
+  87%,
+  100% {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+  }
+}
+
+@keyframes controls {
+  0%,
+  79% {
+    opacity: 1;
+    visibility: visible;
+  }
+  83%,
+  100% {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+@container faq-example (width >= 48rem) {
+  .question,
+  .answer {
+    grid-template-columns: 8rem minmax(0, 1fr);
+  }
+  .author {
+    padding-block: var(--space-md);
+  }
+  .identity {
+    flex-direction: column;
+    align-items: start;
+  }
+}
+
+.stage[data-motion="reduce"],
+.stage[data-motion="reduce"] *,
+.stage[data-motion="reduce"] *::after {
+  animation: none;
+}
+
+.stage[data-motion="reduce"] .acceptRow {
+  display: none;
+}
+
+.stage[data-paused],
+.stage[data-paused] *,
+.stage[data-paused] *::after {
+  animation-play-state: paused;
+}
+
+.stage[data-motion="reduce"] .answer[data-accepted] {
+  order: -1;
+}

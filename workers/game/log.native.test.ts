@@ -22,7 +22,7 @@ describe('The retained public log', { timeout: 20_000 }, () => {
     await runtime?.close();
     await peer?.close();
   });
-  const admit = (suffix: string) => admitPlayer(peer, runtime, suffix);
+  const admit = (suffix: string) => admitPlayer(runtime, suffix);
   async function page(connection: NativeConnection, tab: LogTab, before = LATEST) {
     const start = connection.messages.length;
     connection.send({ type: 'log-history', tab, before });

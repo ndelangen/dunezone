@@ -1,6 +1,7 @@
+import { paginationOptsValidator, paginationResultValidator } from 'convex/server';
 import { ConvexError, v } from 'convex/values';
 
-import { FACTION_CATALOGUE_SORTS } from '../src/shared/factions/catalogueSearch';
+import { FACTION_CATALOGUE_QUERY_LIMIT, FACTION_CATALOGUE_SORTS } from '../src/shared/factions/catalogueSearch';
 import { factionExtraKey, storedFactionExtrasSchema } from '../src/shared/factions/extras';
 import type { FactionExtra } from '../src/shared/factions/extras';
 import type { Doc, Id } from './_generated/dataModel';
@@ -8,6 +9,8 @@ import { publicationStatusFor } from './assetPublishingStatus';
 import { liveAsset } from './assets';
 import { mutation, publicQuery, viewerQuery } from './functions';
 import { isActiveProfile } from './lib/accountLifecycle';
+import { backgroundProjection } from './lib/backgroundPresets';
+import { listCardFrontPresets } from './lib/cardFrontPresets';
 import {
   assignedGroupSummary,
   liveGroupOrNull,
@@ -15,6 +18,7 @@ import {
   requireFactionUpdate,
   requireGroupReassignment,
 } from './lib/collaborativeAccess';
+import { relatedFaqItemValidator } from './lib/collaborativeAccessValidators';
 import {
   factionDetailPageValidator,
   factionValidator,
@@ -22,9 +26,11 @@ import {
   rulesetSummaryValidator,
 } from './lib/collaborativeAccessValidators';
 import { resolveGroupAssignmentForCreation } from './lib/defaultGroupPreference';
+import { listFactionRulesets } from './lib/factionCatalogue';
 import {
   loadFactionCatalogue,
   loadFactionCataloguePage,
+  loadFactionCatalogueSearch,
   selectFactionCatalogueSpotlights,
 } from './lib/factionCatalogue';
 import { factionDataValidator } from './lib/factionData';
@@ -34,6 +40,7 @@ import {
   parseFactionInput,
   parseStoredFactionForRead,
 } from './lib/factionInput';
+import { loadRelatedFaqPage } from './lib/faqReferences';
 import { recordFormerSlug } from './lib/formerSlugs';
 import {
   buildOwnedForGroupAssignRows,
@@ -95,17 +102,6 @@ function factionDataForClient(data: unknown) {
   return parseStoredFactionForRead(data);
 }
 
-async function listFactionRulesets(ctx: QueryCtx, factionId: Id<'factions'>) {
-  const links = await ctx.db
-    .query('ruleset_factions')
-    .withIndex('by_faction', (q) => q.eq('faction_id', factionId))
-    .take(500);
-  const rulesets = await Promise.all(links.map((link) => ctx.db.get('rulesets', link.ruleset_id)));
-  return rulesets.flatMap((ruleset) =>
-    ruleset && !ruleset.is_deleted ? [{ id: ruleset._id, name: ruleset.name, slug: ruleset.slug }] : []
-  );
-}
-
 /** The faction row a page is for: live, or NOT_FOUND. */
 async function liveFactionBySlug(ctx: QueryCtx, slug: string) {
   const row = await ctx.db
@@ -129,6 +125,8 @@ async function loadFactionDetailPage(ctx: QueryCtx, row: Doc<'factions'>) {
   }
 
   return {
+    backgrounds: await backgroundProjection(ctx, row.data),
+    cardFrontPresets: await listCardFrontPresets(ctx),
     faction: {
       ...row,
       data: factionDataForClient(row.data),
@@ -148,6 +146,19 @@ export const pageBySlug = publicQuery({
   args: { slug: v.string() },
   returns: factionDetailPageValidator,
   handler: async (ctx, args) => loadFactionDetailPage(ctx, await liveFactionBySlug(ctx, args.slug)),
+});
+
+export const detailPage = publicQuery({
+  args: { slug: v.string(), paginationOpts: paginationOptsValidator },
+  returns: paginationResultValidator(
+    v.object({ detail: v.union(factionDetailPageValidator, v.null()), items: v.array(relatedFaqItemValidator) })
+  ),
+  handler: async (ctx, args) => {
+    const row = await liveFactionBySlug(ctx, args.slug);
+    const related = await loadRelatedFaqPage(ctx, { kind: 'faction', id: row._id }, args.paginationOpts);
+    const detail = args.paginationOpts.cursor === null ? await loadFactionDetailPage(ctx, row) : null;
+    return { ...related, page: [{ detail, items: related.page }] };
+  },
 });
 
 /**
@@ -204,37 +215,82 @@ export const cataloguePage = publicQuery({
 
 const catalogueSortValidator = v.union(...FACTION_CATALOGUE_SORTS.map((sort) => v.literal(sort)));
 
+const catalogueSpotlightsValidator = v.object({
+  newArrival: v.union(catalogueFactionValidator, v.null()),
+  freshlyUpdated: v.union(catalogueFactionValidator, v.null()),
+});
+
+const catalogueRulesetsValidator = v.array(rulesetSummaryValidator.extend({ factionCount: v.number() }));
+
 /**
- * One page of the Faction catalogue, the same for every viewer: the route's search parameters in, the visible cards and the counts out.
+ * The member filter as the address asked it: the slug named, and the member whose list that is, or null when no public profile answers to it.
+ * Null when no slug was asked.
+ * The slug is echoed so the route can tell this answer judged the address it holds, and not the previous page's.
+ */
+const catalogueOwnerValidator = v.union(
+  v.object({ asked: v.string(), member: v.union(v.object({ slug: v.string(), name: v.string() }), v.null()) }),
+  v.null()
+);
+
+/** A browsed page: aggregate counts, numbered pages, a chosen order. */
+const catalogueBrowseValidator = v.object({
+  cards: v.array(catalogueFactionValidator),
+  /** Factions matching the filters, across every page. */
+  total: v.number(),
+  /** Live factions in the catalogue, before any search or filter. */
+  catalogueTotal: v.number(),
+  /** False once the catalogue outgrows the entries one query reads; totals and the last pages are then short. */
+  complete: v.boolean(),
+  /** The page these cards are, which may lie past `pageCount`, with no cards. */
+  page: v.number(),
+  pageCount: v.number(),
+  pageSize: v.number(),
+  rulesets: catalogueRulesetsValidator,
+  owner: catalogueOwnerValidator,
+  spotlights: catalogueSpotlightsValidator,
+});
+
+/** A searched catalogue: the best matches first, no count and no pages, and more by asking for a larger limit. */
+const catalogueSearchValidator = v.object({
+  mode: v.literal('search'),
+  cards: v.array(catalogueFactionValidator),
+  /** Whether a larger limit would show more factions. */
+  hasMore: v.boolean(),
+  /** Whether more factions may match than one search shows, so the reader should add a word rather than load more. */
+  capped: v.boolean(),
+  /** The limit these cards answer, after clamping. */
+  limit: v.number(),
+  /** Live factions in the catalogue, before any search or filter. */
+  catalogueTotal: v.number(),
+  rulesets: catalogueRulesetsValidator,
+  owner: catalogueOwnerValidator,
+  spotlights: catalogueSpotlightsValidator,
+});
+
+/**
+ * The Faction catalogue, the same for every viewer: the route's search parameters in, the visible cards and the counts out.
+ * A search is the load-more search, best matches first up to `limit`;
+ * without one the catalogue is browsed, in pages.
  * Replaces `cataloguePage`, which stays for one release so a bundle still asking for it keeps working while this one deploys.
  */
 export const catalogue = publicQuery({
   args: {
     q: v.optional(v.string()),
     ruleset: v.optional(v.string()),
+    /** A profile slug: only that member's factions, in place of a ruleset's. */
+    owner: v.optional(v.string()),
     complexity: v.optional(v.string()),
     sort: v.optional(catalogueSortValidator),
     page: v.optional(v.number()),
+    /** How many of the best matches to return; Load more asks again with a larger one. */
+    limit: v.optional(v.number()),
   },
-  returns: v.object({
-    cards: v.array(catalogueFactionValidator),
-    /** Factions matching the search and filters, across every page. */
-    total: v.number(),
-    /** Live factions in the catalogue, before any search or filter. */
-    catalogueTotal: v.number(),
-    /** False once the catalogue outgrows the entries one query reads; totals and the last pages are then short. */
-    complete: v.boolean(),
-    /** The page these cards are, which may lie past `pageCount`, with no cards. */
-    page: v.number(),
-    pageCount: v.number(),
-    pageSize: v.number(),
-    rulesets: v.array(rulesetSummaryValidator.extend({ factionCount: v.number() })),
-    spotlights: v.object({
-      newArrival: v.union(catalogueFactionValidator, v.null()),
-      freshlyUpdated: v.union(catalogueFactionValidator, v.null()),
-    }),
-  }),
-  handler: async (ctx, args) => await loadFactionCataloguePage(ctx, args),
+  returns: v.union(catalogueBrowseValidator, catalogueSearchValidator),
+  handler: async (ctx, args) =>
+    /* Gated on the text the search runs, so a query that is blank once cut to length browses instead. */
+    args.q?.slice(0, FACTION_CATALOGUE_QUERY_LIMIT).trim()
+      ? await loadFactionCatalogueSearch(ctx, args)
+      : await loadFactionCataloguePage(ctx, args),
 });
 
 /** Factions + resolved group/owner labels and the caller's group memberships for the load picker. */

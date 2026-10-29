@@ -28,7 +28,7 @@ describe('Real-game setup progression', () => {
     await runtime?.close();
     await peer?.close();
   });
-  const admit = (suffix: string) => admitPlayer(peer, runtime, suffix);
+  const admit = (suffix: string) => admitPlayer(runtime, suffix);
   const stored = async () =>
     readSnapshot((await runtime.exec<{ data: string }>('SELECT data FROM current_state'))[0].data);
   async function enter(prediction = false) {
@@ -114,16 +114,22 @@ describe('Real-game setup progression', () => {
     owner.send(committed.message);
     await syncView(owner);
     expect(await stored()).toEqual(saved);
-    for (const connection of [foreign, observer]) {
-      const snapshot = (await syncView(connection)).snapshot;
-      expect(required(snapshot.predictions)[action.stepId]).not.toHaveProperty('choice');
-      expect(JSON.stringify(connection.messages)).not.toContain('"turn":17');
-      const step = (await runtime.exec<{ step: number }>('SELECT MAX(step) AS step FROM history'))[0].step;
+    /* A table review of the lock shows its public table to everyone, the predicting player included. */
+    const step = (await runtime.exec<{ step: number }>('SELECT MAX(step) AS step FROM history'))[0].step;
+    const review = required((await accepted(owner, { kind: 'review-propose' as const, step })).snapshot.review);
+    await accepted(foreign, { kind: 'review-ballot' as const, reviewId: review.id, choice: 'review' as const });
+    for (const connection of [owner, foreign, observer]) {
+      if (connection !== owner) {
+        const snapshot = (await syncView(connection)).snapshot;
+        expect(required(snapshot.predictions)[action.stepId]).not.toHaveProperty('choice');
+        expect(JSON.stringify(connection.messages)).not.toContain('"turn":17');
+      }
       connection.send({ type: 'history' as const, step });
       expect(required((await connection.message('history')).snapshot.predictions)[action.stepId]).not.toHaveProperty(
         'choice'
       );
     }
+    await accepted(foreign, { kind: 'review-end' as const, reviewId: review.id });
     for (const suffix of ['snapshot', 'history', 'predictions']) {
       const response = await runtime.fetch(`/__play/games/fixture-game/${suffix}`);
       expect(await response.text()).not.toContain('"turn":17');

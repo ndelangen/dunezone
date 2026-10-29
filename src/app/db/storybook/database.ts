@@ -1,10 +1,11 @@
 import { STANDARD_STORM_CARDS } from '@shared/assets/standardStormDeck';
+import { TUTORIAL_PLAYERS } from '@shared/tutorial/players';
 import type { WithoutSystemFields } from 'convex/server';
 
 import type { Doc, TableNames } from '../../../../convex/_generated/dataModel';
 import schema from '../../../../convex/schema';
 import { publishingCustomCard } from '../../../shared/assets/fixtures/publishingCustomCard';
-import { publishingDeckCardback } from '../../../shared/assets/fixtures/publishingDeckCardback';
+import { publishingCustomDeckCardback } from '../../../shared/assets/fixtures/publishingDeckCardback';
 import { publishingRectangleTokenFace } from '../../../shared/assets/fixtures/publishingRectangleTokenFace';
 import { publishingSpiceCard } from '../../../shared/assets/fixtures/publishingSpiceCard';
 import { publishingTokenFace } from '../../../shared/assets/fixtures/publishingTokenFace';
@@ -66,17 +67,17 @@ export function emptyDatabase(): StorybookDatabase {
 }
 
 function viewerRow(): StorybookRow<'users'> {
-  return { $key: VIEWER_KEY, name: 'Storybook viewer', isAdmin: true };
+  return { $key: VIEWER_KEY, name: TUTORIAL_PLAYERS[0]!.name, isAdmin: true };
 }
 
 function viewerProfileRow(): StorybookRow<'profiles'> {
   return {
     $key: 'storybook-viewer-profile',
     user_id: ref(VIEWER_KEY),
-    username: 'storybook-viewer',
-    avatar_url: null,
+    username: TUTORIAL_PLAYERS[0]!.name,
+    avatar_url: TUTORIAL_PLAYERS[0]!.avatar,
     account_state: 'active',
-    slug: 'storybook-viewer',
+    slug: TUTORIAL_PLAYERS[0]!.slug,
     created_at: STORY_TIME,
     updated_at: STORY_TIME,
   };
@@ -104,7 +105,7 @@ function baselineDatabase(): StorybookDatabase {
   });
   baseline.rulesets.push({ ...ruleset({ name: 'ClassicRules' }), $key: RULESET_KEY, group_id: ref(GROUP_KEY) });
   baseline.factions.push({ ...faction({ name: 'House Atreides' }), $key: FACTION_KEY, group_id: ref(GROUP_KEY) });
-  baseline.ruleset_factions.push({ ruleset_id: ref(RULESET_KEY), faction_id: ref(FACTION_KEY) });
+  baseline.ruleset_factions.push({ ruleset_id: ref(RULESET_KEY), faction_id: ref(FACTION_KEY), position: 0 });
 
   const treachery = asset({ type: 'card-treachery', data: publishingTreacheryCard });
   const custom = asset({ type: 'card-custom', data: publishingCustomCard });
@@ -116,7 +117,7 @@ function baselineDatabase(): StorybookDatabase {
     data: {
       name: 'House Treachery',
       about: 'The standard treachery deck for the page-story baseline.',
-      cardback: publishingDeckCardback,
+      cardback: publishingCustomDeckCardback,
     },
   });
   const disc = asset({
@@ -228,7 +229,7 @@ function baselineDatabase(): StorybookDatabase {
   return baseline;
 }
 
-function asset({ data, type }: Readonly<{ data: unknown; type: string }>): StorybookRow<'assets'> {
+export function asset({ data, type }: Readonly<{ data: unknown; type: string }>): StorybookRow<'assets'> {
   const parsed = parseAssetDataForWrite(type, data);
   return {
     $key: `asset:${type}:${slugify(parsed.name)}`,
@@ -405,6 +406,6 @@ export function db(change: DatabaseChange): DatabaseDefinition {
 }
 
 export const storybookViewer = {
-  name: 'Storybook viewer',
+  name: TUTORIAL_PLAYERS[0]!.name,
   subjectKey: VIEWER_KEY,
 } satisfies WorkerIdentity;

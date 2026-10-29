@@ -49,7 +49,7 @@ function authorize(identity = viewer) {
 async function connect() {
   const client = new TableSession(
     'game',
-    new GameSubscription('game', async () => ({ ok: true, ticket: 'a'.repeat(64), expiresInMs: 30_000 }), runtime),
+    new GameSubscription('game', async () => ({ ok: true, pass: 'pass.a' }), runtime),
     runtime
   );
   stop = client.connect();
@@ -188,6 +188,7 @@ test('offers history retry after a response is lost and ignores the late page', 
   expect(client.getSnapshot().conversations.pages.two?.load).toEqual({
     state: 'failed',
     error: 'History could not load. Try again.',
+    before: Number.MAX_SAFE_INTEGER,
   });
   client.conversations.load({ peerId: 'two' });
   socket().deliver({
@@ -200,6 +201,29 @@ test('offers history retry after a response is lost and ignores the late page', 
     more: false,
   } as ServerMessage);
   expect(client.getSnapshot().conversations.pages.two?.entries).toEqual([]);
+});
+
+test('retries the earlier conversation page after a refusal or timeout, retaining the messages already loaded', async () => {
+  const client = await connect();
+  const historyRequests = () => socket().sent.filter((entry) => entry.type === 'conversation-history');
+  client.conversations.load({ peerId: 'two' });
+  const first = historyRequests().at(-1)!;
+  socket().deliver({
+    ...first,
+    entries: [{ ...saved('latest'), sequence: 101 }],
+    more: true,
+  });
+  client.conversations.load({ peerId: 'two', before: 101 });
+  const older = historyRequests().at(-1)!;
+  socket().deliver({ type: 'rejected', requestId: older.requestId, message: 'History temporarily unavailable.' });
+  client.conversations.load({ peerId: 'two' });
+  expect(historyRequests().at(-1)).toMatchObject({ before: 101 });
+  await vi.advanceTimersByTimeAsync(15_000);
+  client.conversations.load({ peerId: 'two' });
+  const retry = historyRequests().at(-1)!;
+  expect(retry).toMatchObject({ before: 101 });
+  socket().deliver({ ...retry, entries: [{ ...saved('earlier'), sequence: 51 }], more: true });
+  expect(client.getSnapshot().conversations.pages.two?.entries.map((entry) => entry.sequence)).toEqual([51, 101]);
 });
 
 test('a snapshot that changes nothing the conversations show keeps their view, and a renamed peer replaces it', async () => {
@@ -218,4 +242,55 @@ test('a snapshot that changes nothing the conversations show keeps their view, a
   expect(client.getSnapshot().conversations).not.toBe(shown);
   expect(client.getSnapshot().conversations.context?.peers).toEqual([{ id: 'two', name: 'Renamed', color: 'blue' }]);
   expect(client.getSnapshot().conversations.pending).toBe(shown.pending);
+});
+
+test('recall chat clears messages, drafts and queued sends on close while preserving ordinary drafts', async () => {
+  const client = await connect();
+  const recall = {
+    id: 'recall-one',
+    step: 0,
+    context: 'Setup',
+    proposer: { name: 'One', seat: 'seat-1' },
+    openedAt: 1,
+    threshold: 1,
+    ballots: [{ name: 'One', seat: 'seat-1', choice: 'review' as const }],
+    startedAt: 1,
+  };
+  const deliver = (review: typeof recall | null, revision: number) =>
+    socket().deliver({
+      type: 'view',
+      viewer,
+      epoch: 'epoch',
+      snapshot: { ...snapshot, revision, review },
+      carries: [],
+      pointers: [],
+    });
+  socket().close();
+  expect(client.conversations.submit({ peerId: '@table', text: 'Queued before recall' })).toBe(true);
+  await vi.advanceTimersByTimeAsync(1000);
+  socket().open();
+  deliver(recall, 1);
+  expect(sent()).toEqual([]);
+  const peerId = '@recall:recall-one';
+  client.conversations.load({ peerId });
+  const request = socket()
+    .sent.filter((message) => message.type === 'conversation-history')
+    .at(-1)!;
+  socket().deliver({ ...request, entries: [saved('earlier')], more: false });
+  client.conversations.drafts.set(`one:${peerId}`, 'Temporary draft');
+  client.conversations.drafts.set('one:two', 'Normal draft');
+  expect(client.conversations.submit({ peerId: '@table', text: 'Not the recall chat' })).toBe(false);
+  expect(client.conversations.submit({ peerId, text: 'Temporary pending message' })).toBe(true);
+  expect(client.conversations.unconfirmed()).toHaveLength(1);
+  expect(client.conversations.unconfirmed()[0]?.text).toBe('Queued before recall');
+  expect(client.getSnapshot().conversations.pages[peerId]?.entries).toHaveLength(1);
+  deliver(null, 2);
+  expect(client.getSnapshot().conversations.pages[peerId]).toBeUndefined();
+  expect(client.getSnapshot().conversations.pending).toHaveLength(1);
+  expect(sent().at(-1)).toMatchObject({ peerId: '@table', text: 'Queued before recall' });
+  expect(client.conversations.drafts.has(`one:${peerId}`)).toBe(false);
+  expect(client.conversations.drafts.get('one:two')).toBe('Normal draft');
+  socket().deliver({ type: 'conversation-message', factionId: 'one', peerId, message: saved('late') });
+  expect(client.getSnapshot().conversations.pages[peerId]).toBeUndefined();
+  expect(client.conversations.reaches(peerId)).toBe(false);
 });

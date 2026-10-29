@@ -1,3 +1,4 @@
+import { tintDrawing } from '../boards/tintDrawing';
 import { parseFormattedText } from '../formattedText';
 import { userImageSourceUrlSchema } from '../user-images/contract';
 import type { RulebookBattleSideValue } from './battleStep';
@@ -15,6 +16,7 @@ import type {
   RulebookRenderPageV1,
   RulebookRenderPreviewDocumentV1,
 } from './renderDocument';
+import { rulebookSceneBoard } from './sceneBoard';
 import type { RulebookSettings } from './settings';
 import { resolveRulebookArtworkSource } from './sources';
 import type {
@@ -73,6 +75,22 @@ export function projectRulebookSource(
   if (artwork) {
     return artwork;
   }
+  if (reference.kind === 'board') {
+    /* A saved board resolves like any asset, and only as a board. */
+    const board = assetsById[reference.boardId];
+    return board?.type === 'board' && board.imageUrl && board.geometry
+      ? {
+          status: 'ready',
+          reference,
+          name: board.name,
+          imageUrl: board.imageUrl,
+          width: board.geometry.width,
+          height: board.geometry.height,
+          geometry: board.geometry,
+          publicationRevision: board.publicationRevision,
+        }
+      : { status: 'unavailable', reference };
+  }
   if (reference.kind === 'asset') {
     const asset = assetsById[reference.assetId];
     return asset?.imageUrl
@@ -91,8 +109,42 @@ export function projectRulebookSource(
   }
   if (reference.kind === 'faction') {
     const faction = factionsById[reference.factionId];
-    return faction?.emblemUrl
-      ? { status: 'ready', reference, name: faction.name, imageUrl: faction.emblemUrl }
+    if (reference.presentation === 'sheet') {
+      return faction?.sheet && faction.emblemUrl
+        ? {
+            status: 'ready',
+            reference,
+            name: `${faction.name} faction sheet`,
+            imageUrl: faction.emblemUrl,
+            sheet: faction.sheet,
+            width: 1000,
+            height: (1000 * 297) / 210,
+            geometry: {
+              width: 1000,
+              height: (1000 * 297) / 210,
+              parts: [
+                {
+                  key: 'revival',
+                  label: 'Free force revivals',
+                  x: 0.14,
+                  y: 165 / ((1000 * 297) / 210),
+                  width: 0.2,
+                  height: 25 / ((1000 * 297) / 210),
+                },
+              ],
+            },
+          }
+        : { status: 'unavailable', reference };
+    }
+    const imageUrl = reference.presentation === 'token' ? faction?.tokenImageUrl : faction?.emblemUrl;
+    return faction && imageUrl
+      ? {
+          status: 'ready',
+          reference,
+          name: faction.name,
+          imageUrl,
+          ...(reference.presentation === 'token' ? { width: 600, height: 600 } : {}),
+        }
       : { status: 'unavailable', reference };
   }
   if (reference.kind === 'faction-troop') {
@@ -107,24 +159,28 @@ export function projectRulebookSource(
   }
   if (reference.kind === 'faction-member') {
     const faction = factionsById[reference.factionId];
-    const member = [faction?.ruler, ...(faction?.leaders ?? [])].find(
+    const candidates =
+      reference.presentation === 'traitor' ? (faction?.traitors ?? []) : [faction?.ruler, ...(faction?.leaders ?? [])];
+    const member = candidates.find(
       (source) =>
         source &&
         source.status !== 'unselected' &&
         source.reference.kind === 'faction-member' &&
         source.reference.memberId === reference.memberId
     );
-    return member ?? { status: 'unavailable', reference };
+    return member && member.status !== 'unselected' ? { ...member, reference } : { status: 'unavailable', reference };
   }
   return { status: 'unavailable', reference };
 }
 
-/** Card guides retain their selected identity when its Asset is no longer a treachery Card. */
+/** Card sources retain their identity when the selected Asset has an unsupported type. */
 function projectRulebookCardSource(
   reference: RulebookCardSourceReference | undefined,
-  assetsById: RulebookResolvedAssetsById
+  assetsById: RulebookResolvedAssetsById,
+  includeStorm = false
 ): RulebookResolvedSource {
-  if (reference && assetsById[reference.assetId]?.type !== 'card-treachery') {
+  const type = reference ? assetsById[reference.assetId]?.type : undefined;
+  if (reference && type !== 'card-treachery' && !(includeStorm && type === 'card-storm')) {
     return { status: 'unavailable', reference };
   }
   return projectRulebookSource(reference, assetsById);
@@ -174,8 +230,31 @@ function projectBoardScene(
       return { ...troop, faction, ...projectTroopArtwork(faction, troop.troopId, troop.face) };
     }),
     highlights: value.highlights,
+    ...projectBoardMarkup(value, assetsById),
     annotations: value.annotations,
   };
+}
+
+/**
+ * A scene's tints drawn on its board, and its placed tokens that resolved to a published image.
+ * Tints draw only once the board's data is at hand;
+ * a board that does not draw leaves them out rather than failing the scene.
+ */
+function projectBoardMarkup(value: RulebookBoardSceneValue, assetsById: RulebookResolvedAssetsById) {
+  const board = rulebookSceneBoard(value.boardId, assetsById);
+  let tints;
+  if (value.tints?.length && board) {
+    try {
+      tints = value.tints.map((tint) => tintDrawing(board, tint));
+    } catch {
+      tints = undefined;
+    }
+  }
+  const tokens = value.tokens?.flatMap((token) => {
+    const asset = assetsById[token.asset_id];
+    return asset?.imageUrl ? [{ ...token, name: asset.name, type: asset.type, imageUrl: asset.imageUrl }] : [];
+  });
+  return { ...(tints ? { tints } : {}), ...(tokens?.length ? { tokens } : {}) };
 }
 
 function projectMovementGroup(
@@ -388,6 +467,8 @@ export function projectRulebookDraftRenderBlock(
       kind: block.kind,
       source: projectRulebookSource(block.source, assetsById, factionsById),
       name: block.name,
+      imageSide: block.imageSide,
+      textFlow: block.textFlow,
       size: block.size,
       text: block.text,
       quantity: block.quantity,
@@ -403,7 +484,7 @@ export function projectRulebookDraftRenderBlock(
       featuredItemId: block.featuredItemId,
       items: block.itemOrder.flatMap((id) => {
         const item = block.itemsById[id];
-        return item ? [{ ...item, source: projectRulebookCardSource(item.source, assetsById) }] : [];
+        return item ? [{ ...item, source: projectRulebookCardSource(item.source, assetsById, true) }] : [];
       }),
     };
   }

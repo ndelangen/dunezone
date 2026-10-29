@@ -15,6 +15,7 @@ import { isPublicationAssetType, PUBLICATION_ASSET_TYPES } from '../src/shared/a
 import type { Doc } from './_generated/dataModel';
 import { internalQuery } from './_generated/server';
 import { internalMutation } from './functions';
+import { capturedBoardGeometry } from './lib/boardPublicationGeometry';
 import {
   currentFactionComponentData,
   currentFactionLeaderData,
@@ -334,11 +335,13 @@ export const completeJob = internalMutation({
         return { status: 'missing' as const };
       }
     }
+    /* A saved board publishes only its image; its territories are kept from the same captured save, so a Rulebook never pairs an old image with newer geometry. */
+    const storedGeometry = job.asset_type === 'board' ? capturedBoardGeometry(job.asset_data) : geometry;
     const publishedAt = Date.now();
     if (existing[0]) {
       await ctx.db.patch(existing[0]._id, {
         cache_token: args.cacheToken,
-        component_geometry: geometry,
+        component_geometry: storedGeometry,
         component_version: job.component_version,
         published_at: publishedAt,
       });
@@ -347,7 +350,7 @@ export const completeJob = internalMutation({
         asset_type: job.asset_type,
         asset_id: job.asset_id,
         cache_token: args.cacheToken,
-        component_geometry: geometry,
+        component_geometry: storedGeometry,
         component_version: job.component_version,
         published_at: publishedAt,
       });

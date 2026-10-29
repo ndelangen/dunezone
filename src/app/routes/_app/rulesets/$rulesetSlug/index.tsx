@@ -1,17 +1,4 @@
-import {
-  Alert,
-  Avatar,
-  Badge,
-  Box,
-  Button,
-  Menu,
-  Popover,
-  Select,
-  Stack,
-  Text,
-  TextInput,
-  Tooltip,
-} from '@mantine/core';
+import { Alert, Avatar, Badge, Box, Button, Menu, Select, Stack, Text, TextInput, Tooltip } from '@mantine/core';
 import { parseFaqCatalogueSearch } from '@shared/faq/catalogueSearch';
 import { FAQ_TAG_VALUES } from '@shared/faq/tags';
 import type { FaqTag } from '@shared/faq/tags';
@@ -50,8 +37,6 @@ import {
   FileText,
   History,
   Layers3,
-  Link2,
-  Link2Off,
   MessageCircleQuestionMark,
   Pencil,
   RefreshCw,
@@ -65,16 +50,8 @@ import type { FaqItemWithDetails } from '@db/faq';
 import { useCurrentProfile } from '@db/profiles';
 import { useRetryRulebookFirstPagePreview } from '@db/rulebooks';
 import type { RulebookListEntry } from '@db/rulebooks';
-import {
-  loadRulesetDetailPage,
-  useAddRulesetFaction,
-  useDeleteRuleset,
-  useRemoveRulesetFaction,
-  useRulesetDetailPage,
-  useSetRulesetGroup,
-} from '@db/rulesets';
+import { loadRulesetDetailPage, useDeleteRuleset, useRulesetDetailPage, useSetRulesetGroup } from '@db/rulesets';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
-import { FactionPicker } from '@app/pickers/FactionPicker';
 import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { profileLink, publicDescription, publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { resolveRouteNotice } from '@app/routes/routeNotices';
@@ -154,10 +131,7 @@ function RulesetRulebooks({
                       {rulebook.edition_published_at ? (
                         <>
                           Updated{' '}
-                          <time
-                            dateTime={rulebook.edition_published_at}
-                            title={formatStableDate(rulebook.edition_published_at)}
-                          >
+                          <time dateTime={rulebook.edition_published_at}>
                             {formatStableDate(rulebook.edition_published_at)}
                           </time>
                         </>
@@ -283,115 +257,6 @@ function RulesetBoard({
         </Text>
       </Stack>
     </Section>
-  );
-}
-
-/**
- * The toolbar affordance that adds a faction to this ruleset.
- * It owns the open state and nothing else: the picker is mounted only while the popover is open, so its subscription lives exactly that long, which is the contract `AGENTS.md` sets for a Picker's container.
- * The commit is the caller's;
- * this reports the chosen faction's id and closes.
- */
-function AddFactionPopover({
-  disabled,
-  linkedSlugs,
-  rulesetName,
-  onAdd,
-}: {
-  disabled: boolean;
-  /** Every faction already in this ruleset, so the picker cannot offer a duplicate. */
-  linkedSlugs: string[];
-  rulesetName: string;
-  onAdd: (factionId: string) => void;
-}) {
-  const [opened, setOpened] = useState(false);
-
-  return (
-    <Popover
-      opened={opened}
-      onChange={setOpened}
-      position="bottom-end"
-      width={440}
-      shadow="md"
-      withArrow
-      /* A 440px pane over a 40px trigger is slid by `shift` to fit, and a side-anchored arrow goes with the pane rather than staying on the control that opened it (#715). */
-      arrowPosition="center"
-      trapFocus
-      returnFocus
-    >
-      <Popover.Target>
-        <IconAction
-          label="Add a faction"
-          emphasis="standard"
-          intent="neutral"
-          size="lg"
-          disabled={disabled}
-          onClick={() => setOpened((current) => !current)}
-          icon={<Link2 size={17} aria-hidden />}
-        />
-      </Popover.Target>
-      <Popover.Dropdown>
-        {opened ? (
-          <FactionPicker
-            excludeSlugs={linkedSlugs}
-            copy={{
-              title: 'Add a faction',
-              intro: `Choose a faction to add to ${rulesetName}. Factions already in it are not listed.`,
-              errorTitle: 'Faction could not be added',
-              emptyMessage: 'Every faction is already in this ruleset.',
-              confirmTitle: `Add this faction to ${rulesetName}?`,
-              /* No warning: nothing is overwritten, and the card's own menu takes it straight back out. */
-              confirmLabel: 'Add faction',
-              confirmIntent: 'positive',
-            }}
-            onCancel={() => setOpened(false)}
-            onPick={(picked) => {
-              onAdd(picked.id);
-              setOpened(false);
-            }}
-          />
-        ) : null}
-      </Popover.Dropdown>
-    </Popover>
-  );
-}
-
-/**
- * The menu in a faction card's action slot, on the ruleset page.
- * Mantine's `Menu` directly: the theme gives its dropdown the same pane a `Popover` gets, and `color="red"` is how a destructive choice reads, so a wrapper here would only forward props.
- * See the Mantine-component stories in `src/app/ui/control`.
- * A menu rather than a bare button because the card is a link: a menu target is unambiguously not part of the navigation, and further per-faction actions land here rather than crowding the tile.
- * No confirmation: the toolbar's picker puts the faction straight back.
- */
-function FactionCardMenu({
-  factionName,
-  rulesetName,
-  disabled,
-  onRemove,
-}: {
-  factionName: string;
-  rulesetName: string;
-  disabled: boolean;
-  onRemove: () => void;
-}) {
-  return (
-    <Menu position="bottom-end" shadow="md" withinPortal>
-      <Menu.Target>
-        <IconAction
-          label={`Actions for ${factionName}`}
-          emphasis="standard"
-          intent="neutral"
-          size="sm"
-          disabled={disabled}
-          icon={<EllipsisVertical size={15} aria-hidden />}
-        />
-      </Menu.Target>
-      <Menu.Dropdown>
-        <Menu.Item color="red" leftSection={<Link2Off size={15} aria-hidden />} onClick={onRemove}>
-          Remove from {rulesetName}
-        </Menu.Item>
-      </Menu.Dropdown>
-    </Menu>
   );
 }
 
@@ -580,8 +445,6 @@ function RulesetDetailPage() {
   const profile = useCurrentProfile();
   const deleteRuleset = useDeleteRuleset();
   const setRulesetGroup = useSetRulesetGroup();
-  const addFaction = useAddRulesetFaction();
-  const removeFaction = useRemoveRulesetFaction();
   const routeNotice = resolveRouteNotice(search.notice);
 
   useLivePageTitle(page?.ruleset.name, 'Ruleset');
@@ -602,12 +465,10 @@ function RulesetDetailPage() {
   const membershipStatus = viewerAccess.viewer.kind === 'authenticated' ? viewerAccess.viewer.membership : 'none';
   /* The counts come from the FAQ's lists, which are empty while their backfill runs; the preview is never more than there are. */
   const faqCount = Math.max(page.faqCounts.questions, page.faqPreview.length);
+  /* Likewise the faction count, from the catalogue's list for this ruleset. */
+  const factionCount = Math.max(page.factionCount, page.factionPreview.length);
   const answeredFaqCount = page.faqCounts.answered;
-  const mutationError =
-    deleteRuleset.error?.message ??
-    setRulesetGroup.error?.message ??
-    addFaction.error?.message ??
-    removeFaction.error?.message;
+  const mutationError = deleteRuleset.error?.message ?? setRulesetGroup.error?.message;
   const dismissRouteNotice = () =>
     navigate({
       to: '.',
@@ -630,8 +491,8 @@ function RulesetDetailPage() {
     {
       key: 'factions',
       icon: <Layers3 size={17} aria-hidden />,
-      value: page.factions.length,
-      label: `${page.factions.length} ${page.factions.length === 1 ? 'faction' : 'factions'}`,
+      value: factionCount,
+      label: `${factionCount} ${factionCount === 1 ? 'faction' : 'factions'}`,
     },
     {
       key: 'questions',
@@ -729,6 +590,18 @@ function RulesetDetailPage() {
                   )}
                 />
               ) : null}
+              {viewerAccess.capabilities.edit && assignedGroup ? (
+                <IconAction
+                  label="Import and export JSON"
+                  emphasis="standard"
+                  intent="neutral"
+                  size="lg"
+                  icon={<FileDown size={17} aria-hidden />}
+                  renderRoot={(props) => (
+                    <Link {...props} to="/imports" search={{ ruleset: r.slug, group: assignedGroup.slug }} />
+                  )}
+                />
+              ) : null}
               {actionVisibility.askQuestion ? (
                 <IconAction
                   label="Ask a question"
@@ -739,14 +612,6 @@ function RulesetDetailPage() {
                     <Link {...props} to="/rulesets/$rulesetSlug/faq/create" params={{ rulesetSlug: r.slug }} />
                   )}
                   icon={<MessageCircleQuestionMark size={17} aria-hidden />}
-                />
-              ) : null}
-              {viewerAccess.capabilities.edit ? (
-                <AddFactionPopover
-                  disabled={addFaction.isPending}
-                  linkedSlugs={page.factions.map((faction) => faction.slug)}
-                  rulesetName={r.name}
-                  onAdd={(factionId) => addFaction.mutate({ rulesetId: r._id, factionId })}
                 />
               ) : null}
             </Toolbar.Cluster>
@@ -843,24 +708,19 @@ function RulesetDetailPage() {
 
           <ColumnsWithRailLayout.Rail>
             <Section id="factions" icon={<Layers3 size={20} aria-hidden />} title="Factions">
-              {page.factions.length > 0 ? (
+              {factionCount > 0 ? (
                 <Stack gap="md">
-                  {page.factions.map((faction) => (
-                    <FactionCard
-                      key={faction._id}
-                      faction={faction}
-                      action={
-                        viewerAccess.capabilities.edit ? (
-                          <FactionCardMenu
-                            factionName={faction.data.name}
-                            rulesetName={r.name}
-                            disabled={removeFaction.isPending}
-                            onRemove={() => removeFaction.mutate({ rulesetId: r._id, factionId: faction._id })}
-                          />
-                        ) : null
-                      }
-                    />
+                  {page.factionPreview.map((faction) => (
+                    <FactionCard key={faction._id} faction={faction} />
                   ))}
+                  {factionCount > page.factionPreview.length ? (
+                    <Button
+                      variant="default"
+                      renderRoot={(props) => <Link {...props} to="/factions" search={{ ruleset: r.slug }} />}
+                    >
+                      All {factionCount} factions
+                    </Button>
+                  ) : null}
                 </Stack>
               ) : (
                 <Surface padding="lg">

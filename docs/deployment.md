@@ -78,8 +78,13 @@ images from their own origin.
 For a local release rehearsal:
 
 ```bash
+bun run scripts/verify-application-runtime-local.ts
 VITE_CONVEX_URL=https://exuberant-finch-263.eu-west-1.convex.cloud bun run publisher:dry-run
 ```
+
+The first command owns the disposable Docker backend, fixture and local artifact store. It builds
+the isolated release and cleans up afterward. The second command rebuilds with the production URL.
+Do not invoke `publisher:application-runtime:verify` directly without the launcher's fixture.
 
 CI uses `bun run publisher:release:dry-run` after verifying the already-built
 assets. Pull-request CI builds the same production-URL release on Linux and rejects
@@ -130,9 +135,11 @@ seven days after replacement, may still need a refresh. Stable artwork and font 
 
 `publisher:application-runtime:verify` starts the assembled Worker locally and checks complete HTML,
 hydration-entry availability, public dispatch, browser-only paths and protected capture delivery.
-Both PR CI and deployment run it. It caught truncated output from React's streaming renderer when
+Both PR CI and deployment run it through `scripts/verify-application-runtime-local.ts`, which owns an isolated Convex backend and local artifact store. Deployment runs the rehearsal before the final production build, bundle retention and exact-release checks. The rehearsal refuses to start without its loopback fixture, so it cannot silently read production. It caught truncated output from React's streaming renderer when
 the shared layout was opted into SSR before its child pages. Public page rendering and the layout
 now opt in together, with browser hydration checked against the assembled Worker.
+
+The live smoke normally makes one public Dream Rulebook request and requires published HTML with at most one metadata query. It permits up to three attempts for transient failures or edge propagation. It also follows the homepage's editorial showcase links, capped at eight distinct destinations with at most one metadata query each. It does not crawl catalogues or render social images in production. Missing-artifact and renderer-fallback coverage runs against the isolated fixture.
 
 ### Forward fixes
 
@@ -416,13 +423,15 @@ deploying. In every other case the `deploy` job runs:
    vectors (`verify:vectors`) and OBJ pieces (`generate:objs`), then log the
    output digest.
 7. Build the SPA and capture bundle once with the production Convex URL.
-8. Verify assembled assets and reject generated-source drift.
+8. Remove raster copies served from R2, then retain the previous browser bundles. Check the final
+   Static Assets file count and reject generated-source drift. The earlier local rehearsal keeps its
+   raster copies because its buckets start empty.
 9. Dry-run both Worker releases with their exact checked-in configurations.
 10. Deploy the private game Worker first. Require its exact tagged version to be active, then verify
     its bound SQLite namespace, configuration and lack of public ingress before deploying the publisher.
 11. Publish the release's raster variants before it goes live (#1888). The job mints a one-off
-    `MEDIA_PUBLISH_TOKEN`, drops the raster copies from the release (`publisher:omit-static-rasters`),
-    installs the token on the live publisher Worker, then runs `bun run media:publish --await-token`.
+    `MEDIA_PUBLISH_TOKEN`, installs it on the live publisher Worker, then runs
+    `bun run media:publish --await-token`.
     This probes authentication with invalid JSON, which cannot write a release record, and waits up to
     one minute for the new bearer to reach the Worker. A secret update succeeded before the previous
     token stopped serving requests in the #2037 reproduction; the new token became usable after 9.4
@@ -601,7 +610,7 @@ Auth, command, projection and browser tests remain separate delivery evidence.
 
 ## Anonymised snapshot
 
-`.github/workflows/anonymised-snapshot.yml` runs once a day and on manual dispatch, from `main`
+`.github/workflows/anonymised-snapshot.yml` runs once a week (Mondays) and on manual dispatch, from `main`
 only, in the `production` environment (#1559). Its one step runs `scripts/anonymised-snapshot.ts`,
 which exports production the way `dev-rebuild.yml` does, anonymises the export through
 `scripts/snapshot-anonymise.ts`, and scans the written snapshot.
@@ -614,7 +623,7 @@ repository are public.
 
 The upload step runs when `SNAPSHOT_UPLOAD` in the workflow is `"true"`, which it has been since
 Norbert approved it after a dry-run report on 30 September 2026 (#1559). It uploads the snapshot
-file alone as the `anonymised-snapshot` artifact, kept for one day, which any signed-in GitHub
+file alone as the `anonymised-snapshot` artifact, kept for eight days (Norbert, 18 October 2026: weekly runs, so local data can be up to a week old), which any signed-in GitHub
 account can download. Setting the value back to `"false"` makes every run a dry run again.
 
 Two consumers load the snapshot, and both check the file before they clear or import anything.
@@ -712,3 +721,46 @@ v2) hashes those same ingredients plus the capture code and PDF contract, with
 per-component digests so a deploy log can attribute an identity change to
 sources, toolchain, code, or contract. A toolchain change (e.g. a sharp bump)
 intentionally triggers a visually-identical recapture wave.
+
+### Browser JavaScript budgets
+
+The minified app and publisher capture builds enforce a 500,000-byte limit per emitted JavaScript
+file. `scripts/lib/browserBundleBudgets.ts` checks final minified bytes, including JavaScript emitted
+as static assets. Unknown oversized files fail the build. The plugin uses each environment's resolved
+`build.minify` setting. E2E coverage builds deliberately use `--sourcemap --minify false` for accurate
+V8 coverage mapping, so those unminified files are outside the delivery budget, even in production
+mode. Production release builds retain minification and the same enforced limits.
+
+Two Three vendor payloads have separate limits:
+
+| Payload | Measured bytes | Limit | Identity check |
+| --- | ---: | ---: | --- |
+| Three WebGPU, core and TSL | 1,105,208 | 1,120,000 | Exactly the three prebuilt vendor modules, with no application modules |
+| Draco decoder | 719,410 | 740,000 | Bytes match an installed Three decoder |
+
+The WebGPU runtime is already distributed as prebuilt modules. The Draco decoder is copied vendor
+JavaScript. Their larger budgets preserve the renderer's module resolution. The client build's `three` chunk group
+(`THREE_BUILD`, shared with the budget) holds the three WebGPU modules together, whichever chunks import them. The build reports each
+verified payload and its budget; Vite's default 500 kB advisory remains visible for the WebGPU chunk.
+A dependency upgrade that changes these identities or exceeds a budget needs another measured review.
+
+Lucide's full media catalogue and the Rulebook capture validation graph use bounded, entry-aware
+chunk groups. Shared icons stay shared, and the complete catalogue loads only with the media route's Lucide
+gallery (`LucideIcons.tsx`).
+The client build marks TypeScript under `src/shared`, `src/app/db` and `src/app/ui` side-effect free
+(`APP_MODULES_WITHOUT_SIDE_EFFECTS` in `vite.config.ts`), so schema and component modules a page never
+uses stay out of its bundle. A module there must not rely on running just because it is imported.
+Capture builds resolve static URLs against `public/` with `copyPublicDir: false`; the existing
+publisher assembly supplies those files once. Generate vectors as well as images before comparing
+asset counts or unresolved-URL warnings.
+
+The build's plugin timing report remains useful evidence. React Compiler and TanStack transforms
+account for most callback time; no filter hides those reports. Vite's development advice about the
+header's relative `public/video` imports also remains. Those imports deliberately produce matching
+hashed URLs in browser and SSR builds; changing them to `/video/` would lose immutable delivery.
+
+Wrangler also reports one ignored bare `lucide-react` import in the generated SSR router. Route
+splitting leaves that import after removing unused UI bindings. Lucide declares `sideEffects: false`,
+and Wrangler drops it while preserving the named icon imports used by server-rendered routes.
+The advisory remains visible; bundling all Lucide icons into the SSR output only to remove it
+would add unnecessary intermediate code.

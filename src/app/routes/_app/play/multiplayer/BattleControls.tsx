@@ -1,32 +1,21 @@
-import { Button, Checkbox, Group, Menu, NumberInput, Radio, Select, Stack, Text, VisuallyHidden } from '@mantine/core';
-import type { ButtonProps, NumberInputProps } from '@mantine/core';
-import { useElementSize } from '@mantine/hooks';
+import { Button, Group, Stack, Text } from '@mantine/core';
+import type { ButtonProps } from '@mantine/core';
 import { Html } from '@react-three/drei/webgpu';
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { Board } from '@shared/boards/schema';
 import { troopBattleFaces } from '@shared/factions/troopBattle';
-import { isBattleLeader } from '@shared/play/battle';
-import type {
-  BattlePlan,
-  BattlePlanInput,
-  BattleFace,
-  Disclosure,
-  DisclosedPlan,
-  PublicBattle,
-} from '@shared/play/battle';
+import type { BattlePlan, DisclosedPlan, PublicBattle } from '@shared/play/battle';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
-import { hiddenZoneView, nextHiddenZoneSpot } from '@shared/play/hiddenZone';
 import type { TablePiece, Vector3Tuple } from '@shared/play/model';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
 import { resolveRulebookBoardDefinition } from '@shared/rulebooks/boardDefinitions';
-import { Section } from '@ui/block/Section';
-import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { CalloutSurface } from '@ui/surface/CalloutSurface';
+import { DarkSchemeIsland } from '@ui/surface/DarkSchemeIsland';
 import clsx from 'clsx';
-import type { CSSProperties, ReactNode } from 'react';
-import { useEffect, useReducer, useRef, useState, useSyncExternalStore } from 'react';
+import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
+import { useEffect, useReducer, useRef, useSyncExternalStore } from 'react';
 import type { Camera } from 'three';
-import { Plane, Raycaster, Vector2, Vector3 } from 'three';
+import { Vector3 } from 'three';
 
 import { useMotionAllowed } from '@app/styles/motion';
 import { BattleWheel as BattleWheelAsset } from '@game/assets/generic/BattleWheel';
@@ -35,27 +24,28 @@ import { factionTokenFixtures } from '@game/fixtures/factionTokens';
 import type { TableSession, TableProjection } from '../../../../db/tabletop/TableSession';
 import { PointerSessionContext, usePointerSession } from '../../../../widgets/tabletop/PointerSessionContext';
 import { TABLE_PLATE_BOUNDS } from '../../../../widgets/tabletop/tablePlateGeometry';
-import { DarkSchemeIsland } from '../DarkSchemeIsland';
+import { ModeToggle } from '../panels/battlePlan/parts';
+import { planLocks, supportMatters } from '../panels/battlePlan/planView';
 import { BattleBeacon } from './BattleBeacon';
 import styles from './BattleControls.module.css';
 import { battleCapsuleY, headerInset } from './battlePlacement';
 import { PieceImage, pieceName } from './HandPiece';
-import { HandPieceMenu, handMenuAnchor } from './HiddenZone';
-import type { HandMenuAnchor } from './HiddenZone';
-import { battleHelp, handHelp } from './panelGuidance';
-import { isSpectator } from './tableFactions';
+import { KeyboardSpicePlacement } from './KeyboardSpicePlacement';
+import { SPICE_RESERVE_DROP } from './spiceReserveDrop';
+import type { SpiceReserveDrop } from './spiceReserveDrop';
+import { tableDropPosition } from './tableDropPosition';
 
 type Props = { client: TableSession; table: TableProjection };
 type Outcome = NonNullable<NonNullable<PublicBattle['sides'][number]>['choice']>;
-const OUTCOME_LABELS: Readonly<Record<Outcome, string>> = {
+export const OUTCOME_LABELS: Readonly<Record<Outcome, string>> = {
   left: 'Left side won',
   none: 'No winner',
   right: 'Right side won',
 };
-type FactionArtwork = TableProjection['snapshot']['factionArtwork'];
-type FactionNames = TableProjection['state']['factionNames'];
+export type FactionArtwork = TableProjection['snapshot']['factionArtwork'];
+export type FactionNames = TableProjection['state']['factionNames'];
 /* A real game keys factions by their Convex ids, so every battle label reads the roster's name and keeps the id only when the roster has none. */
-function rosterName(factionId: string, names: FactionNames) {
+export function rosterName(factionId: string, names: FactionNames) {
   return names[factionId] ?? factionId;
 }
 type WheelProps = {
@@ -66,14 +56,22 @@ type WheelProps = {
   client?: TableSession;
   active?: Set<string>;
 };
-function factionArtwork(factionId: string, artwork?: FactionArtwork) {
+export function factionArtwork(factionId: string, artwork?: FactionArtwork) {
   return artwork?.[factionId] ?? factionTokenFixtures[factionId === 'atreides' ? 'atreides' : 'harkonnen'];
 }
 function visiblePiece(piece: TablePiece, active?: Set<string>) {
   return !active || active.has(piece.id);
 }
-function DraggablePiece({ piece, client, style }: { piece: TablePiece; client?: TableSession; style?: CSSProperties }) {
-  const pointerSession = usePointerSession();
+/* A piece on a wheel, as a button so its name reads the same whether it can be carried or not. */
+function WheelPiece({
+  piece,
+  style,
+  onPointerDown,
+}: {
+  piece: TablePiece;
+  style?: CSSProperties;
+  onPointerDown?: (event: ReactPointerEvent<HTMLButtonElement>) => void;
+}) {
   return (
     <Button
       variant="transparent"
@@ -83,21 +81,36 @@ function DraggablePiece({ piece, client, style }: { piece: TablePiece; client?: 
       style={style}
       className={styles.piece}
       aria-label={`Drag ${pieceName(piece)} onto table`}
-      disabled={!client}
-      onPointerDown={(event) => {
-        if (event.button !== 0 || !client) {
-          return;
-        }
-        event.preventDefault();
-        pointerSession.carry(event.nativeEvent, piece.id, 'whole');
-      }}
+      disabled={!onPointerDown}
+      onPointerDown={onPointerDown}
     >
       <PieceImage piece={piece} />
     </Button>
   );
 }
+/* A wheel piece the viewer can carry onto the table; the pointer session belongs to a live table. */
+function CarriedPiece({ piece, style }: { piece: TablePiece; style?: CSSProperties }) {
+  const pointerSession = usePointerSession();
+  return (
+    <WheelPiece
+      piece={piece}
+      style={style}
+      onPointerDown={(event) => {
+        if (event.button !== 0) {
+          return;
+        }
+        event.preventDefault();
+        pointerSession.carry(event.nativeEvent, piece.id, 'whole');
+      }}
+    />
+  );
+}
+/* A wheel piece, carried onto the table at a live table; a past battle's wheel only shows it. */
+function DraggablePiece({ piece, client, style }: { piece: TablePiece; client?: TableSession; style?: CSSProperties }) {
+  return client ? <CarriedPiece piece={piece} style={style} /> : <WheelPiece piece={piece} style={style} />;
+}
 /* The plan's capable troops as the wheel shows them, each dressed in the faction's own troop artwork. */
-function wheelTroops(
+export function wheelTroops(
   plan: BattlePlan,
   factionId: string,
   background: ReturnType<typeof factionArtwork>['background'],
@@ -133,8 +146,8 @@ function wheelTroops(
     });
 }
 /** Play owns piece visibility, pointer sessions and the Motion verdict; the asset owns the wheel artwork. */
-function BattleWheel({ plan, factionId, factionName, client, active, artwork }: WheelProps) {
-  const leader = plan.pieces.find((piece) => piece.id === plan.leaderId);
+export function BattleWheel({ plan, factionId, factionName, client, active, artwork }: WheelProps) {
+  const leaders = plan.pieces.filter((piece) => plan.leaderIds.includes(piece.id) && visiblePiece(piece, active));
   const motion = useMotionAllowed();
   const retained = artwork?.[factionId];
   const { background } = factionArtwork(factionId, artwork);
@@ -154,452 +167,28 @@ function BattleWheel({ plan, factionId, factionName, client, active, artwork }: 
         .map((piece) => (
           <DraggablePiece key={piece.id} piece={piece} client={client} />
         ))}
-      leader={leader && visiblePiece(leader, active) ? <DraggablePiece piece={leader} client={client} /> : undefined}
-    />
-  );
-}
-
-function completedNumber(draft: string | number | null, props: NumberInputProps): number | null {
-  if (draft === null || draft === '') {
-    return null;
-  }
-  const bounded = Math.min(props.max ?? Infinity, Math.max(props.min ?? -Infinity, Number(draft)));
-  if (!Number.isFinite(bounded)) {
-    return null;
-  }
-  if (props.allowDecimal === false && !Number.isSafeInteger(bounded)) {
-    return null;
-  }
-  return bounded;
-}
-
-/** Keep incomplete numeric text local and commit one complete value on blur or Enter. */
-function BattleNumberInput({
-  value,
-  onChange,
-  ...props
-}: Omit<NumberInputProps, 'value' | 'onChange'> & { value: number; onChange: (value: number) => void }) {
-  const [draft, setDraft] = useState<string | number | null>(null);
-  return (
-    <NumberInput
-      {...props}
-      allowNegative={props.min === undefined || props.min < 0}
-      value={draft ?? value}
-      onChange={setDraft}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter') {
-          event.currentTarget.blur();
-        }
-      }}
-      onBlur={() => {
-        const next = completedNumber(draft, props);
-        if (next !== null && next !== value) {
-          onChange(next);
-        }
-        setDraft(null);
-      }}
-    />
-  );
-}
-
-type PlanEditor = { plan: BattlePlan; locked: boolean; update: (patch: Partial<BattlePlanInput>) => void };
-function TroopFaceFields({
-  plan,
-  face,
-  locked,
-  update,
-  single,
-  spiceLimit,
-}: PlanEditor & { face: BattleFace; single: boolean; spiceLimit: number }) {
-  const troop = plan.troops.find((troop) => troop.faceId === face.id) ?? {
-    faceId: face.id,
-    undialed: 0,
-    dialed: 0,
-  };
-  const set = (value: Partial<typeof troop>) =>
-    update({
-      troops: [...plan.troops.filter((entry) => entry.faceId !== face.id), { ...troop, ...value }],
-    });
-  const otherSpice = plan.troops.reduce((total, entry) => {
-    if (entry.faceId === face.id) {
-      return total;
-    }
-    const otherFace = plan.faces.find((candidate) => candidate.id === entry.faceId);
-    return total + entry.dialed * (otherFace?.supportCost ?? 0);
-  }, 0);
-  const dialedMax = face.supportCost
-    ? Math.max(0, Math.floor((spiceLimit - otherSpice) / face.supportCost))
-    : undefined;
-  return (
-    <div className={styles.faceFields}>
-      <BattleNumberInput
-        label={
-          plan.mode === 'max' ? (single ? 'Troops' : face.name) : single ? 'Unsupported' : `${face.name} unsupported`
-        }
-        value={plan.mode === 'max' ? troop.undialed + troop.dialed : troop.undialed}
-        min={0}
-        allowDecimal={false}
-        disabled={locked}
-        onChange={(value) => set({ undialed: Number(value), ...(plan.mode === 'max' ? { dialed: 0 } : {}) })}
-      />
-      {plan.mode === 'custom' && (
-        <BattleNumberInput
-          label={single ? 'Supported' : `${face.name} supported`}
-          value={troop.dialed}
-          min={0}
-          max={dialedMax}
-          allowDecimal={false}
-          disabled={locked}
-          onChange={(value) => set({ dialed: Number(value) })}
-        />
-      )}
-    </div>
-  );
-}
-function TroopFields(props: PlanEditor & { spiceLimit: number }) {
-  const faces = props.plan.faces.filter((face) => face.capable);
-  return faces.map((face) => <TroopFaceFields key={face.id} face={face} single={faces.length === 1} {...props} />);
-}
-
-function PlanInventory({ plan, locked, update, pieces }: PlanEditor & { pieces: TablePiece[] }) {
-  const cards = pieces.filter((piece) => piece.kind === 'card');
-  return (
-    <>
-      <Select
-        label="Leader"
-        placeholder="No leader"
-        clearable
-        disabled={locked || plan.disclosed.leader}
-        value={plan.leaderId}
-        data={pieces.filter(isBattleLeader).map((piece) => ({ value: piece.id, label: pieceName(piece) }))}
-        onChange={(leaderId) => update({ leaderId })}
-      />
-      <div className={styles.hand} role="group" aria-label="Cards from your hand">
-        {cards.map((piece) => {
-          const selected = plan.cardIds.includes(piece.id);
-          const disclosed = plan.disclosed.cardIds.includes(piece.id);
-          return (
-            <Button
-              key={piece.id}
-              className={styles.cardChoice}
-              color="selected"
-              variant={selected ? 'light' : 'transparent'}
-              h="auto"
-              p="xs"
-              styles={{ label: { display: 'grid', justifyItems: 'center', gap: 'var(--space-xs)', height: 'auto' } }}
-              aria-label={`${selected ? 'Remove' : 'Add'} ${pieceName(piece)} ${selected ? 'from' : 'to'} battle plan`}
-              aria-pressed={selected}
-              disabled={locked || disclosed}
-              onClick={() =>
-                update({
-                  cardIds: selected ? plan.cardIds.filter((id) => id !== piece.id) : [...plan.cardIds, piece.id],
-                })
-              }
-            >
-              <PieceImage piece={piece} />
-              <Text component="span" size="xs">
-                {selected ? 'In plan' : 'In hand'}
-              </Text>
-            </Button>
-          );
-        })}
-        {!cards.length && (
-          <Text size="sm" c="dimmed">
-            No cards in hand.
-          </Text>
-        )}
-      </div>
-    </>
-  );
-}
-
-/** Shows or hides parts of the player's own plan for everyone before the reveal; the table leaves who may do so to the players. */
-function EarlyReveal({
-  client,
-  battle,
-  plan,
-  pieces,
-  disabled,
-}: {
-  client: TableSession;
-  battle: PublicBattle;
-  plan: BattlePlan;
-  pieces: TablePiece[];
-  disabled: boolean;
-}) {
-  const toggle = (disclosure: Disclosure, shown: boolean) =>
-    client.command({ kind: 'battle-disclose', battleId: battle.id, disclosure, shown });
-  const cards = plan.cardIds.flatMap((id) => pieces.filter((piece) => piece.id === id));
-  return (
-    <Stack gap="xs" role="group" aria-label="Reveal early">
-      <Text size="sm" fw={600}>
-        Reveal early
-      </Text>
-      <Checkbox
-        label="Leader"
-        disabled={disabled || (!plan.leaderId && !plan.disclosed.leader)}
-        checked={plan.disclosed.leader}
-        onChange={(event) => toggle({ element: 'leader' }, event.currentTarget.checked)}
-      />
-      <Checkbox
-        label="Dial"
-        disabled={disabled}
-        checked={plan.disclosed.dial}
-        onChange={(event) => toggle({ element: 'dial' }, event.currentTarget.checked)}
-      />
-      {cards.map((piece) => (
-        <Checkbox
-          key={piece.id}
-          label={pieceName(piece)}
-          disabled={disabled}
-          checked={plan.disclosed.cardIds.includes(piece.id)}
-          onChange={(event) => toggle({ element: 'card', cardId: piece.id }, event.currentTarget.checked)}
-        />
+      leaders={leaders.map((leader) => (
+        <DraggablePiece key={leader.id} piece={leader} client={client} />
       ))}
-    </Stack>
+    />
   );
 }
 
-function PlanFields({ client, table, plan, battle }: Props & { plan: BattlePlan; battle: PublicBattle }) {
-  const bank = table.snapshot.bank!;
-  const factionId = bank.factionId;
-  const side = battle.sides.find((side) => side?.factionId === factionId)!;
-  const locked = !table.canHandleTable || side.ready || battle.stage !== 'preparing';
-  const dialLocked = locked || plan.disclosed.dial;
-  const update = (patch: Partial<BattlePlanInput>) => {
-    client.editBattlePlan(patch);
-  };
-  const pieces = [...(table.snapshot.hand ?? []), ...plan.pieces].filter(
-    (piece, index, all) => all.findIndex((candidate) => candidate.id === piece.id) === index
-  );
-  const preview = { ...plan, pieces };
-  const availableSpice = bank.balance + plan.spice;
-  return (
-    <WorkbenchLayout gap="sm">
-      <WorkbenchLayout.Workbench>
-        <WorkbenchLayout.Chapters>
-          <Stack gap="md">
-            <div className={styles.editorFields}>
-              <Radio.Group
-                className={styles.supportMode}
-                label={<VisuallyHidden>Support mode</VisuallyHidden>}
-                disabled={dialLocked}
-                value={plan.mode}
-                onChange={(mode) => update({ mode: mode as BattlePlan['mode'] })}
-              >
-                <Group gap="lg" wrap="wrap">
-                  {[
-                    { value: 'max', label: 'Max' },
-                    { value: 'custom', label: 'Custom' },
-                  ].map(({ value, label }) => (
-                    <Radio key={value} value={value} label={label} />
-                  ))}
-                </Group>
-              </Radio.Group>
-              <TroopFields plan={plan} locked={dialLocked} update={update} spiceLimit={availableSpice} />
-              {plan.mode === 'max' ? (
-                <BattleNumberInput
-                  label="Committed spice"
-                  value={plan.spice}
-                  min={0}
-                  max={availableSpice}
-                  allowDecimal={false}
-                  disabled={dialLocked}
-                  onChange={(value) => update({ spice: Number(value) })}
-                />
-              ) : null}
-              <BattleNumberInput
-                label="Adjustment"
-                value={plan.adjustment}
-                step={0.5}
-                disabled={dialLocked}
-                onChange={(value) => update({ adjustment: Number(value) })}
-              />
-            </div>
-            <PlanInventory plan={plan} locked={locked} update={update} pieces={pieces} />
-            <Text size="sm">
-              {bank.balance} in your spice reserve, {plan.spice} set aside. Troop strength excludes leader strength.
-            </Text>
-            {battle.stage !== 'revealed' && (
-              <Button
-                disabled={!table.canHandleTable}
-                variant={side.ready ? 'default' : 'filled'}
-                onClick={() => client.command({ kind: 'battle-ready', battleId: battle.id, ready: !side.ready })}
-              >
-                {side.ready ? 'Undo Ready' : 'Ready for battle'}
-              </Button>
-            )}
-            {battle.stage === 'preparing' && (
-              <EarlyReveal
-                client={client}
-                battle={battle}
-                plan={plan}
-                pieces={pieces}
-                disabled={!table.canHandleTable}
-              />
-            )}
-          </Stack>
-        </WorkbenchLayout.Chapters>
-        <WorkbenchLayout.Rail>
-          <div className={styles.preview}>
-            <BattleWheel
-              plan={preview}
-              factionId={factionId}
-              factionName={rosterName(factionId, snapshotFactionLabels(table.snapshot))}
-              artwork={table.snapshot.factionArtwork}
-            />
-          </div>
-        </WorkbenchLayout.Rail>
-      </WorkbenchLayout.Workbench>
-    </WorkbenchLayout>
-  );
-}
-
-function canTakeSelected(piece: TablePiece | undefined) {
-  return (
-    !!piece &&
-    !piece.inventory &&
-    !piece.locked &&
-    piece.items.length === 1 &&
-    (piece.kind === 'card' || isBattleLeader(piece))
-  );
-}
-export function HandControls({ client, table, hand }: Props & { hand: TablePiece[] }) {
-  const selected = table.snapshot.table.pieces.find((piece) => piece.id === table.state.selectedPieceId);
-  const [menu, setMenu] = useState<HandMenuAnchor | null>(null);
-  /* The hidden zone is a tab beside this one, as wide, so a piece moved there lands in what its narrow view shows. */
-  const { ref, width } = useElementSize<HTMLDivElement>();
-  return (
-    <Section hiddenHeading title="Your hand and leaders" description={handHelp(table)}>
-      <Stack gap="sm" ref={ref}>
-        <Button
-          variant="default"
-          disabled={!table.canHandleTable || !canTakeSelected(selected)}
-          onClick={() => selected && client.command({ kind: 'hand-take', pieceId: selected.id })}
-        >
-          Take selected piece into hand
-        </Button>
-        <Group gap="sm">
-          {hand
-            .filter((piece) => !piece.hiddenZone)
-            .map((piece) => (
-              <Button
-                variant="transparent"
-                h="auto"
-                radius={isBattleLeader(piece) ? '50%' : undefined}
-                p={0}
-                styles={{ label: { height: 'auto' } }}
-                key={piece.id}
-                className={styles.piece}
-                draggable={table.canHandleTable}
-                aria-label={`Drag ${pieceName(piece)} from hand`}
-                onDragStart={(event) => {
-                  event.dataTransfer.setData('application/dune-hand', piece.id);
-                  const target = event.currentTarget;
-                  event.dataTransfer.setDragImage(target, target.offsetWidth / 2, target.offsetHeight / 2);
-                }}
-                onContextMenu={(event) => setMenu(handMenuAnchor(event, piece.id))}
-              >
-                <PieceImage piece={piece} />
-              </Button>
-            ))}
-        </Group>
-      </Stack>
-      <HandPieceMenu anchor={menu} label="Hand actions" onClose={() => setMenu(null)}>
-        <Menu.Item
-          disabled={!table.canHandleTable}
-          onClick={() => {
-            if (menu) {
-              client.command({
-                kind: 'hand-zone',
-                pieceId: menu.pieceId,
-                at: nextHiddenZoneSpot(hand, width > 0 ? hiddenZoneView(width, Infinity).extent : undefined),
-              });
-            }
-            setMenu(null);
-          }}
-        >
-          Move to hidden zone
-        </Menu.Item>
-      </HandPieceMenu>
-    </Section>
-  );
-}
-function BattleResults({
-  results: battleResults,
-  artwork,
-  names,
-}: {
-  results: NonNullable<TableProjection['snapshot']['battleResults']>;
-  artwork?: FactionArtwork;
-  names: FactionNames;
-}) {
-  return (
-    <Section hiddenHeading title="Battle results">
-      {battleResults.length ? (
-        battleResults.map((result) => (
-          <Stack key={result.id} gap="xs">
-            <Text>
-              {result.territory}: {result.factions.map((id) => rosterName(id, names)).join(' against ')}.{' '}
-              {OUTCOME_LABELS[result.outcome]}.
-            </Text>
-            <Group pt={40}>
-              {result.plans.map((plan, side) => (
-                <BattleWheel
-                  key={side}
-                  plan={plan}
-                  factionId={result.factions[side]}
-                  factionName={rosterName(result.factions[side], names)}
-                  artwork={artwork}
-                />
-              ))}
-            </Group>
-          </Stack>
-        ))
-      ) : (
-        <Text size="sm">No agreed battle results yet.</Text>
-      )}
-    </Section>
-  );
-}
-
-/* Without a plan of its own, the panel says why: no battle, the plans are out, or the viewer cannot claim a side. */
-function battleNotice(table: TableProjection, battle: PublicBattle | null | undefined) {
-  if (!battle) {
-    return 'No battle in progress.';
+/** Max or Custom support, in the Battle plan window's title bar while the viewer has a plan. */
+export function BattleModeToggle({ client, table }: Props) {
+  const { battle, battlePlan: plan, bank } = table.snapshot;
+  if (!plan || !battle || !bank) {
+    return null;
   }
-  if (battle.stage === 'revealed') {
-    return 'Both plans are revealed on the table.';
-  }
-  if (isSpectator(table) || battle.sides.every(Boolean)) {
-    return 'Only the two sides see their plans until the reveal.';
-  }
-  return 'Claim a side on the table to prepare your private plan.';
-}
-
-export function BattleControls({ client, table }: Props) {
-  const { battle, battlePlan, hand } = table.snapshot;
+  const own = battle.sides.find((side) => side?.factionId === bank.factionId);
   return (
-    <>
-      <Section hiddenHeading title="Battle" description={battleHelp(table)}>
-        {battlePlan && battle ? (
-          <PlanFields client={client} table={table} plan={battlePlan} battle={battle} />
-        ) : (
-          <Text size="sm">{battleNotice(table, battle)}</Text>
-        )}
-      </Section>
-      {hand && <HandControls client={client} table={table} hand={hand} />}
-    </>
-  );
-}
-
-/** Agreed battle results remain readable independently of the current battle and phase. */
-export function BattleHistory({ table }: Pick<Props, 'table'>) {
-  return (
-    <BattleResults
-      results={table.snapshot.battleResults ?? []}
-      artwork={table.snapshot.factionArtwork}
-      names={snapshotFactionLabels(table.snapshot)}
+    <ModeToggle
+      mode={plan.mode}
+      disabled={
+        planLocks({ plan, stage: battle.stage, ready: own?.ready ?? false, canAct: table.canHandleTable }).dialLocked
+      }
+      free={!supportMatters(plan)}
+      onChange={(mode) => client.editBattlePlan({ mode })}
     />
   );
 }
@@ -650,19 +239,6 @@ function useBattlePlacement(battle: PublicBattle | null | undefined) {
     }
   });
   return placement;
-}
-function dropPosition(event: DragEvent, canvas: HTMLCanvasElement, camera: Camera) {
-  const bounds = canvas.getBoundingClientRect();
-  const ray = new Raycaster();
-  ray.setFromCamera(
-    new Vector2(
-      ((event.clientX - bounds.left) / bounds.width) * 2 - 1,
-      (-(event.clientY - bounds.top) / bounds.height) * 2 + 1
-    ),
-    camera
-  );
-  const point = ray.ray.intersectPlane(new Plane(new Vector3(0, 1, 0), -0.18), new Vector3());
-  return point && ([point.x, 0.18, point.z] as Vector3Tuple);
 }
 /* The plate reaches past the board to the card bays and shelves, and a hand piece may land anywhere on it. */
 function onTablePlate([x, , z]: Vector3Tuple) {
@@ -726,18 +302,30 @@ function useInventoryDrop({ client, table }: Props) {
       if (!table.canHandleTable) {
         return;
       }
-      const position = dropPosition(event, canvas, camera);
+      const position = tableDropPosition(event, canvas, camera);
       if (position) {
         void sendDrop(client, event, position).catch(() => {
           /* A failed geometry load leaves the marker available for another drop. */
         });
       }
     };
+    const withdraw = (event: Event) => {
+      const detail = (event as CustomEvent<SpiceReserveDrop>).detail;
+      if (!client.getTable()?.canHandleTable) {
+        return;
+      }
+      const position = tableDropPosition(detail, canvas, camera);
+      if (position && onTablePlate(position)) {
+        detail.commandId = client.command({ kind: 'bank-withdraw', amount: detail.amount, position });
+      }
+    };
     canvas.addEventListener('dragover', over);
     canvas.addEventListener('drop', drop);
+    canvas.addEventListener(SPICE_RESERVE_DROP, withdraw);
     return () => {
       canvas.removeEventListener('dragover', over);
       canvas.removeEventListener('drop', drop);
+      canvas.removeEventListener(SPICE_RESERVE_DROP, withdraw);
     };
   }, [camera, renderer, client, table.canHandleTable]);
 }
@@ -749,6 +337,7 @@ function OutcomeButton({ client, table, battle, own, outcome }: ActiveProps & { 
       className={outcome === 'none' ? undefined : styles.outcome}
       data-outcome={outcome}
       aria-label={OUTCOME_LABELS[outcome]}
+      color="brand"
       variant={own >= 0 && battle.sides[own]?.choice === outcome ? 'filled' : 'default'}
       disabled={!table.canHandleTable || own < 0}
       onClick={() => client.command({ kind: 'battle-outcome', battleId: battle.id, outcome })}
@@ -858,7 +447,7 @@ function EarlyRevealWheel({
   factionName: string;
   children: ReactNode;
 }) {
-  const { leader, dial, cards } = early;
+  const { leaders = [], dial, cards } = early;
   const motion = useMotionAllowed();
   return (
     <div className={styles.early}>
@@ -890,11 +479,17 @@ function EarlyRevealWheel({
             <small>Strength</small>
           </div>
         ) : null}
-        {leader ? (
-          <div className={styles.earlyLeader} aria-label={`${factionName} leader revealed early`} role="group">
+        {leaders.map((leader, index) => (
+          <div
+            key={leader.id}
+            className={styles.earlyLeader}
+            style={index ? { translate: `${-index * 10}px ${-index * 8}px`, zIndex: -index } : undefined}
+            aria-label={`${factionName} leader revealed early`}
+            role="group"
+          >
             <PieceImage piece={leader} />
           </div>
-        ) : null}
+        ))}
       </div>
     </div>
   );
@@ -934,7 +529,7 @@ function SideContents({
         ready={side.ready}
       />
     );
-    if (early && (early.leader || early.dial || early.cards.length)) {
+    if (early && (early.leaders?.length || early.dial || early.cards.length)) {
       return (
         <EarlyRevealWheel early={early} factionName={name}>
           {closed}
@@ -1023,6 +618,7 @@ export function BattleScene(props: Props) {
   useInventoryDrop(props);
   return (
     <>
+      <KeyboardSpicePlacement {...props} />
       <BattleBeacon
         table={props.table}
         battle={battle}

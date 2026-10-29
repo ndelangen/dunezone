@@ -1,0 +1,38 @@
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px dashed var(--mantine-color-default-border);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr) auto;
+  gap: var(--space-md);
+  align-items: center;
+  padding: var(--space-sm) 0;
+  border-bottom: 1px dashed var(--mantine-color-default-border);
+}
+
+.figure {
+  display: grid;
+  place-items: center;
+}
+
+.figure > * {
+  width: 2.25rem;
+}
+
+.figure[data-shape="card"] > * {
+  width: 1.75rem;
+}
+
+.what {
+  min-width: 0;
+}
+
+.count {
+  font-family: "C_Advokat_Modern", sans-serif;
+  font-size: var(--mantine-font-size-xl);
+  font-variant-numeric: tabular-nums;
+}

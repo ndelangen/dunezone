@@ -35,11 +35,7 @@ test('the countdown starts at 4:00 and trading ends at the first tick past the W
   const serverNow = 1_800_000_000_700;
   const client = new TableSession(
     'fixture-one',
-    new GameSubscription(
-      'fixture-one',
-      async () => ({ ok: true, ticket: 'a'.repeat(64), expiresInMs: 30_000 }),
-      runtime
-    ),
+    new GameSubscription('fixture-one', async () => ({ ok: true, pass: 'pass.a' }), runtime),
     runtime
   );
   const disconnect = client.connect();

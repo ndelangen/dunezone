@@ -52,7 +52,7 @@
 .patternOption {
   min-width: 0;
   padding: 0.35rem;
-  background: var(--glass-input, var(--mantine-color-white));
+  background: rgb(from var(--glass-input) r g b / var(--glass-input-alpha));
   border: 1px solid var(--panel-border, var(--mantine-color-dune-2));
   border-radius: var(--mantine-radius-sm);
   scroll-snap-align: start;

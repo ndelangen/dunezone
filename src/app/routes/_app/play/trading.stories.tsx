@@ -1,6 +1,7 @@
 import preview from '@sb/preview';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
+import { openFactionInfo, WAIT } from './controls.stories.fixture';
 import { gameMeta, install, lastCommand } from './game.stories.fixture';
 import { productTransport, swappingSnapshot } from './product.stories.fixture';
 
@@ -12,8 +13,9 @@ const meta = preview.meta({
 export const Swapping = meta.story({
   beforeEach: install(() => productTransport('seat-2', swappingSnapshot())),
   play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    const offer = await page.findByRole('button', { name: 'Offer trade to House Atreides' }, { timeout: 30_000 });
+    /* A trade is offered from the other player's Info. */
+    const page = await openFactionInfo(canvasElement, 'Central');
+    const offer = await page.findByRole('button', { name: 'Offer trade to House Atreides' }, WAIT);
     /* The deadline is four minutes past the view's serverNow, and the countdown runs on the page's monotonic clock from there. */
     await expect(page.getByLabelText('Trading time remaining')).toHaveTextContent(/^(4:00|3:[0-5]\d) left$/);
     await expect(page.getByRole('button', { name: 'Ready' })).toBeEnabled();
@@ -23,30 +25,6 @@ export const Swapping = meta.story({
         action: { kind: 'swap-offer', seat: 'seat-2', target: 'seat-1', round: 'story-round' },
       })
     );
-  },
-});
-
-export const Offers = meta.story({
-  beforeEach: install(() => {
-    const snapshot = swappingSnapshot();
-    snapshot.swapping!.offers = [
-      { id: 'offer-one', origin: 'seat-1', target: 'seat-2', order: 1 },
-      { id: 'offer-two', origin: 'seat-2', target: 'seat-5', order: 2 },
-    ];
-    snapshot.swapping!.ready = ['seat-3'];
-    snapshot.swapping!.nextOrder = 3;
-    return productTransport('seat-2', snapshot);
-  }),
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await page.findByRole('button', { name: 'Accept trade from House Atreides' }, { timeout: 30_000 });
-    await userEvent.click(page.getByRole('tab', { name: 'fectumbra' }));
-    await expect(page.getByRole('button', { name: 'Offer trade to Emperor' })).toBeDisabled();
-    await userEvent.click(page.getByRole('tab', { name: 'Ridwan' }));
-    await expect(page.getByRole('button', { name: 'Cancel offer to Fremen' })).toBeEnabled();
-    await userEvent.click(page.getByRole('tab', { name: 'Twaffle' }));
-    await userEvent.click(page.getByRole('button', { name: 'Accept trade from House Atreides' }));
-    await waitFor(() => expect(lastCommand()).toMatchObject({ action: { kind: 'swap-accept', offerId: 'offer-one' } }));
   },
 });
 

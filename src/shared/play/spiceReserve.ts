@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { tableCountSchema, tableIdSchema } from './schema';
+import { tableCountSchema, tableIdSchema, tablePositionSchema } from './schema';
 
 /** The wire carries one faction's spice reserve, only to its current player. */
 export const spiceReserveSchema = z.object({
@@ -27,7 +27,11 @@ export type SpiceTransfer = z.infer<typeof spiceTransferSchema>;
  * The `bank-` command kinds are kept because they are protocol messages and recorded command receipts.
  */
 export const spiceReserveActionSchema = z.discriminatedUnion('kind', [
-  z.strictObject({ kind: z.literal('bank-withdraw'), amount: tableCountSchema.positive() }),
+  z.strictObject({
+    kind: z.literal('bank-withdraw'),
+    amount: tableCountSchema.positive(),
+    position: tablePositionSchema.optional(),
+  }),
   z.strictObject({ kind: z.literal('bank-collect'), pieceId: tableIdSchema }),
 ]);
 export type SpiceReserveAction = z.infer<typeof spiceReserveActionSchema>;

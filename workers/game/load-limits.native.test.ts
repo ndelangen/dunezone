@@ -8,7 +8,7 @@ import type { loadRoomCeilingSchema, loadCellIdentitySchema } from '../../src/sh
 import type { NativeMessage } from './native-runtime.fixture.ts';
 import { required } from './native-runtime.fixture.ts';
 import type { NativePeer, NativeRuntime } from './native-runtime.fixture.ts';
-import { createPeer, createRuntime, eventually, openGame, provision } from './native-runtime.fixture.ts';
+import { createPeer, createRuntime, eventually, fixturePass, openGame, provision } from './native-runtime.fixture.ts';
 
 const controlStatusSchema = z
   .object({
@@ -59,8 +59,7 @@ describe('isolated load limits in native workerd', () => {
   }
   async function admit() {
     const connection = await openGame(runtime);
-    connection.send({ type: 'admit' as const, ticket: 'c'.repeat(64) });
-    peer.answer(await peer.query());
+    connection.send({ type: 'admit' as const, pass: await fixturePass('a') });
     await connection.message('view');
     return connection;
   }
@@ -139,7 +138,7 @@ describe('isolated load limits in native workerd', () => {
     await runtime.loadControl(true);
   });
 
-  it('stops at the message budget, closes authorization and removes the synthetic game data', async () => {
+  it('stops at the message budget, closes its connections and removes the synthetic game data', async () => {
     await start({ messages: 3 });
     expect((await provision(runtime)).status).toBe(200);
     const connection = await admit();
@@ -167,16 +166,17 @@ describe('isolated load limits in native workerd', () => {
     expect((await runtime.loadControl()).messages).toBe(2);
     await runtime.restart();
     const connection = await openGame(runtime);
-    connection.send({ type: 'admit' as const, ticket: 'c'.repeat(64) });
+    connection.send({ type: 'admit' as const, pass: await fixturePass('a') });
     await eventually(() => connection.closed, 'remaining reservation exhausted');
     expect((await runtime.loadControl()).stopped).toBe('messages-budget');
   });
 
   it('stops on input bytes before forwarding a message that exceeds the allowance', async () => {
-    await start({ incomingBytes: 200 });
+    /* Room for the admission, whose seat pass alone is several hundred bytes, and a few pointers past it. */
+    await start({ incomingBytes: 1500 });
     expect((await provision(runtime)).status).toBe(200);
     const connection = await admit();
-    for (let seq = 0; seq < 4; seq++) {
+    for (let seq = 0; seq < 40; seq++) {
       connection.send({ type: 'pointer' as const, seq, position: [0, 0, 0] });
     }
     await eventually(() => connection.closed, 'byte disconnect');

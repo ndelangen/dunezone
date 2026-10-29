@@ -13,6 +13,7 @@ import { BackgroundPresetControl } from '@app/widgets/background-composer/Backgr
 import { hasWorkToLose, sameBackground } from '@app/widgets/background-composer/presetChoice';
 import { assetOptionToPreviewSrc, vectorDecalAssetOptions } from '@app/widgets/faction-editor/factionFormAssetUtils';
 import { TREACHERY_STYLES as CARD_PRESETS } from '@game/assets/treachery/treacheryStyle';
+import { useResolvedCardFront } from '@game/assets/utils/BackgroundLibrary';
 
 import { CardIconAdjustments } from './CardIconAdjustments';
 
@@ -54,6 +55,7 @@ function HeadFields({
   remember: RememberHead;
   nameField: ReactNode;
 }) {
+  const family = useResolvedCardFront('card-custom', { head: { ...draft.head, source: { kind: 'family' } } });
   return (
     <Stack gap="md">
       <ControlBlock
@@ -78,6 +80,7 @@ function HeadFields({
         usedOn="this card's head"
         presets={HEAD_PRESETS}
         value={draft.head}
+        familyValue={family?.head ?? draft.head}
         declaredCustom={memory.headCustom}
         onDeclaredCustomChange={(headCustom) => remember({ headCustom })}
         modeMemory={memory.headModeMemory}
@@ -119,6 +122,9 @@ function IconFields({
   remember: RememberHead;
 }) {
   const icon = draft.icon;
+  const family = useResolvedCardFront('card-custom', {
+    icon: [{ ...draft.icon[0], source: { kind: 'family' } }, draft.icon[1]],
+  });
   return (
     <Stack gap="md">
       <ControlBlock
@@ -146,6 +152,7 @@ function IconFields({
         usedOn="this card's icon"
         presets={ICON_BACKGROUND_PRESETS}
         value={icon[0]}
+        familyValue={family?.iconBackground ?? icon[0]}
         declaredCustom={memory.iconCustom}
         onDeclaredCustomChange={(iconCustom) => remember({ iconCustom })}
         modeMemory={memory.iconModeMemory}
@@ -192,7 +199,7 @@ export function cardHeadAndSymbolChapters({
 }
 
 /** Dedicated card types edit their identity while the renderer owns their styling. */
-export function fixedCardHeadChapter(nameField: ReactNode, type: string) {
+export function fixedCardHeadChapter(nameField: ReactNode, type?: string) {
   return {
     value: 'head' as const,
     label: 'Head',
@@ -204,11 +211,13 @@ export function fixedCardHeadChapter(nameField: ReactNode, type: string) {
           description="Names the card and determines its URL. Long titles resize to fit."
           input={nameField}
         />
-        <ControlBlock
-          title="Type"
-          description="This card type is fixed."
-          input={<TextInput aria-label="Type" value={type} readOnly />}
-        />
+        {type ? (
+          <ControlBlock
+            title="Type"
+            description="This card type is fixed."
+            input={<TextInput aria-label="Type" value={type} readOnly />}
+          />
+        ) : null}
       </Stack>
     ),
   };

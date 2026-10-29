@@ -1,3 +1,4 @@
+import { Tooltip } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
 import clsx from 'clsx';
 import type { CSSProperties } from 'react';
@@ -16,10 +17,16 @@ type ProfileLinkBase = {
   style?: CSSProperties;
   /** `inverse` sets the name in pure white with a drop shadow, for a link laid over header artwork. */
   tone?: 'default' | 'inverse';
+  /** A row with its own hover treatment can keep contributor text undecorated. */
+  underline?: 'hover' | 'never';
+  /** Smaller contributor names for list bylines. */
+  density?: 'default' | 'compact';
+  /** Larger forum identity; the full name sits below the avatar in a wide discussion container. */
+  presentation?: 'citation' | 'contributor';
 };
 
 /*
- * `title` is required exactly when the name is hidden, because the mark beside it is decorative and
+ * `title` shows in a tooltip on hover. It is required exactly when the name is hidden, because the mark beside it is decorative and
  * a link whose only content is decorative has no accessible name at all. A caller cannot reach that
  * state by forgetting something; the type will not let them.
  */
@@ -43,18 +50,26 @@ export const ProfileLink = ({
   title,
   showName = true,
   tone = 'default',
+  underline = 'hover',
+  density = 'default',
+  presentation = 'citation',
 }: ProfileLinkProps) => {
   const afterAvatar = showName ? (
     <span className={clsx(styles.username, tone === 'inverse' && styles.inverse)}>{name}</span>
   ) : null;
 
-  return (
+  const link = (
     <Link
       to="/profiles/$profileSlug"
       params={{ profileSlug: slug }}
-      className={clsx(styles.link, className)}
+      className={clsx(
+        styles.link,
+        underline === 'hover' && styles.underlined,
+        density === 'compact' && styles.compact,
+        presentation === 'contributor' && styles.contributor,
+        className
+      )}
       style={style}
-      title={title}
       /* Without the name beside it, `title` is the link's only text; naming it explicitly keeps it announced everywhere. */
       aria-label={showName ? undefined : title}
     >
@@ -72,4 +87,5 @@ export const ProfileLink = ({
       {afterAvatar}
     </Link>
   );
+  return title ? <Tooltip label={title}>{link}</Tooltip> : link;
 };

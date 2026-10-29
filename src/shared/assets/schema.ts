@@ -1,13 +1,18 @@
 import { z } from 'zod';
 
-import { ALL, BACKGROUND, TEXTURE } from '../assetIds';
-import { Background, Decal } from '../factions/schema';
+import { ALL, BACKGROUND, PLANET, TEXTURE } from '../assetIds';
+import { BOARD_FRAME_SIZE, boardTints, boardTokens } from '../boards/markup';
+import { AuthoredBackground as Background, Decal, FactionInputObject } from '../factions/schema';
 import { proseFormattedTextSchema } from '../formattedText';
 import { cardbackPresetKeySchema } from './cardbackPresetKeys';
 import { PhysicalSize } from './physicalSize';
 
 const OFFSET = z.tuple([z.number(), z.number()]);
 const SCALE = z.number().min(0).max(1);
+const ICON_PLACEMENT = {
+  iconOffset: OFFSET.optional(),
+  iconScale: z.number().min(0).max(2).optional(),
+};
 
 /**
  * Off-face prose explaining rule details the face cannot or should not carry.
@@ -26,17 +31,61 @@ const SCALE = z.number().min(0).max(1);
 const About = z.string().trim();
 const FormattedAbout = z.string().trim().pipe(proseFormattedTextSchema);
 
+/** A standalone leader face has its own Asset identity and no faction membership. */
+export const LeaderTokenAsset = FactionInputObject.shape.leaders.element.omit({ memberId: true }).extend({
+  about: About,
+  background: Background,
+  logo: FactionInputObject.shape.logo,
+});
+export const LeaderTokenAssetInput = LeaderTokenAsset.extend({ about: FormattedAbout });
+
 export { Decal };
 export { PHYSICAL_SIZE_MAX, PHYSICAL_SIZE_MIN, PhysicalSize } from './physicalSize';
+
+/** The board's coordinate frame, which placed tokens share so a board switch leaves them where the author put them. */
+export const SPICE_BOARD_SIZE = BOARD_FRAME_SIZE;
+/** The Spice renderer revision that draws a linked board; until the publisher runs it, linked cards wait rather than capture the legacy map. */
+export const SPICE_BOARD_REVISION = 2;
+/** Native Discovery composition adds the textured board recipe and fixed type-token slot. */
+export const SPICE_DISCOVERY_REVISION = 4;
+/** Renderer support for the optional native component treatments. */
+export const TREACHERY_TEXT_ONLY_REVISION = 8;
+export const ROUND_TOKEN_SYMBOL_STYLE_REVISION = 3;
+export const CUSTOM_CARD_STYLED_TOKEN_REVISION = 4;
+export const STORM_CARD_STYLED_TOKEN_REVISION = 6;
+
+/** Named board treatments keep tints and placed tokens in their own colours. */
+export const SPICE_BOARD_LOOKS = ['burnt', 'sepia', 'plain', 'textured-burn'] as const;
+
+/** A board's look and how strongly it applies, 0 to 1; a card without one is burnt in fully, as the classic map is. */
+export const SpiceBoardLook = z.strictObject({
+  style: z.enum(SPICE_BOARD_LOOKS),
+  strength: z.number().min(0).max(1),
+});
+
+/** A linked board Asset with the card's tints and tokens; a card without one still draws the legacy Arrakis map. */
+export const SpiceBoardLink = z.strictObject({
+  asset_id: z.string().min(1),
+  tints: boardTints,
+  tokens: boardTokens,
+  look: SpiceBoardLook.optional(),
+  /** One token front above the amount, independent of map placement. */
+  typeToken: z.strictObject({ asset_id: z.string().min(1) }).optional(),
+});
 
 /**
  * The spice-card renderer's props.
  * No `about`, and deliberately so: `SpiceCard` draws exactly these fields, and the stored superset is `SpiceAsset` below, the same split `Treachery` and `TreacheryAsset` make.
  */
 export const Spice = z.strictObject({
+  ...ICON_PLACEMENT,
   name: z.string(),
   subName: z.string(),
-  icon: z.enum(['spice-mine', 'spice'] as const),
+  /** A classic card's icon key, or any vector a newer card picked. */
+  icon: z.union([
+    z.enum(['spice-mine', 'spice'] as const),
+    ALL.refine((image) => image.startsWith('/vector/') && image.endsWith('.svg'), { message: 'Pick a vector icon.' }),
+  ]),
   highlights: z.array(
     z.enum([
       //sand
@@ -107,15 +156,15 @@ export const Spice = z.strictObject({
     .optional(),
   text: z.string().optional(),
   amount: z.number().int().positive(),
+  board: SpiceBoardLink.optional(),
 });
 
 export const CardHead = z.strictObject({
   name: z.string(),
   subName: z.string(),
   head: Background,
-  icon: z.tuple([Background, ALL]),
-  iconOffset: z.tuple([z.number(), z.number()]).optional(),
-  iconScale: z.number().min(0).max(2).optional(),
+  icon: z.tuple([Background, z.union([ALL, PLANET])]),
+  ...ICON_PLACEMENT,
   /** Flips the icon vector from dark to light artwork. */
   iconInvert: z.boolean().optional(),
   /** Fades the icon vector; 1 (the default) is fully opaque. */
@@ -123,6 +172,7 @@ export const CardHead = z.strictObject({
 });
 
 export const Treachery = CardHead.extend({
+  bodyLayout: z.enum(['illustrated', 'text-only']).optional(),
   decals: z.array(Decal),
   text: z.string(),
 });
@@ -159,6 +209,17 @@ export const FactionSide = z.strictObject({
 export const TokenFace = FactionSide.extend({
   /** Multiplies the renderer's reference symbol size. */
   symbolScale: z.number().min(0.5).max(2),
+  symbolFill: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/)
+    .optional(),
+  symbolStroke: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/)
+    .optional(),
+  symbolStrokeWidth: z.number().min(0).max(20).optional(),
+  /** Missing keeps the established two-pass symbol shadow. */
+  symbolShadow: z.boolean().optional(),
   /** The curved label along the top edge. */
   top: z.string(),
   /**
@@ -179,16 +240,13 @@ export const TokenFace = FactionSide.extend({
  * Three modes, decided on «The stored shape of three back modes, and the migration»:
  * `custom` carries an authored face, `same` repeats the front, `reference` names another token whose authored back this one wears.
  * The target rides the data and is written at save, so the stored row is the single owner of its back;
- * the `token-back` relation rows this replaces are dropped by `assets_back_modes_v1`.
- *
- * `asset_id` is optional only until that migration completes everywhere;
- * the narrow that requires it rides a later release, the widen-migrate-narrow convention.
+ * the `token-back` relation rows this replaced were dropped by `asset_relations_token_back_drop_v1`.
  */
 function tokenBackUnion<TFace extends z.ZodType>(face: TFace) {
   return z.discriminatedUnion('mode', [
     z.strictObject({ mode: z.literal('custom'), face }),
     z.strictObject({ mode: z.literal('same') }),
-    z.strictObject({ mode: z.literal('reference'), asset_id: z.string().min(1).optional() }),
+    z.strictObject({ mode: z.literal('reference'), asset_id: z.string().min(1) }),
   ]);
 }
 
@@ -215,10 +273,6 @@ export const CardBack = z.strictObject({
   imageScale: z.number().min(0).max(2),
   background: Background,
   name: z.string(),
-  /* Accept retired label sizing in saved cards; labels now shrink automatically from their fixed size. */
-  nameScale: z.number().min(0.5).max(2).optional(),
-  /* Accept the retired font selection in saved cards; every label renders in regular Busorama. */
-  nameFont: z.enum(['C_Busorama', 'C_Busorama_Bold']).optional(),
   emblemBackground: z
     .strictObject({
       color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
@@ -237,7 +291,6 @@ export const CardBack = z.strictObject({
  *
  * A cardback may instead reference another deck's authored cardback («The stored shape of three back modes»): the tagged member names the target, and the authored member spreads `CardBack` under `mode: 'custom'`.
  * There is no `same` mode, since the cardback is a deck's only face.
- * The bare member is transitional: it keeps every pre-wrap row valid until `assets_deck_cardback_wrap_v1` has tagged them all, and the narrow that removes it rides a later release.
  */
 export const DeckAsset = z.strictObject({
   name: z.string(),
@@ -246,15 +299,11 @@ export const DeckAsset = z.strictObject({
     CardBack.extend({ mode: z.literal('custom') }),
     z.strictObject({ mode: z.literal('preset'), key: cardbackPresetKeySchema }),
     z.strictObject({ mode: z.literal('reference'), asset_id: z.string().min(1) }),
-    CardBack,
   ]),
 });
 
-/** The authored composition of a deck's cardback, bare or wrapped alike, or null when the cardback is a reference. */
+/** The authored composition of a deck's cardback, or null when the cardback is a preset link or a reference. */
 export function authoredCardback(cardback: z.infer<typeof DeckAsset>['cardback']): z.infer<typeof CardBack> | null {
-  if (!('mode' in cardback)) {
-    return cardback;
-  }
   if (cardback.mode !== 'custom') {
     return null;
   }
@@ -479,7 +528,7 @@ export const LeaderSkillAssetInput = LeaderSkillAsset.extend({
 });
 
 /** A Nexus card keeps three rules regions and a faction identity inside the standard custom-card frame. */
-const NexusEffect = proseFormattedTextSchema
+const CardEffect = proseFormattedTextSchema
   .refine((text) => text.length <= 400, {
     message: 'An effect can hold at most 400 characters',
   })
@@ -491,12 +540,28 @@ export const NexusCard = CardHead.extend({
   faction: z.string().trim(),
   factionLink: z.strictObject({ id: z.string().min(1), slug: z.string().min(1) }).optional(),
   factionSymbol: FactionSide,
-  betrayal: NexusEffect,
-  cunning: NexusEffect,
-  secretAlly: NexusEffect,
+  betrayal: CardEffect,
+  cunning: CardEffect,
+  secretAlly: CardEffect,
 });
 export const NexusCardAsset = NexusCard.extend({ about: About });
 export const NexusCardAssetInput = NexusCardAsset.extend({ about: FormattedAbout });
+
+/** A single-face homeworld has no faction link; each reserve state carries its own rules and strength. */
+const HomeworldReserve = z.strictObject({
+  text: CardEffect,
+  strength: z.number().int().min(0).max(99),
+});
+export const HomeworldCard = CardHead.extend({
+  subName: z.literal('Homeworld'),
+  icon: z.tuple([Background, PLANET]),
+  threshold: z.number().int().min(1).max(999),
+  high: HomeworldReserve,
+  low: HomeworldReserve,
+  occupied: CardEffect,
+});
+export const HomeworldCardAsset = HomeworldCard.extend({ about: About });
+export const HomeworldCardAssetInput = HomeworldCardAsset.extend({ about: FormattedAbout });
 /** A stronghold authors its name, Decals and Body inside one fixed card template. */
 export const StrongholdCard = Treachery.pick({ name: true, decals: true, text: true }).extend({
   decals: z.array(Decal).max(16),

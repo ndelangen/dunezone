@@ -144,6 +144,7 @@ export async function handlePublicDiscovery(
               '/',
               '/factions',
               '/rulesets',
+              '/faq',
               '/profiles',
               '/assets',
               ...SITEMAP_ASSET_COLLECTIONS.map((type) => `/assets/${type}`),

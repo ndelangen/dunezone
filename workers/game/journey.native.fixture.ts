@@ -16,6 +16,7 @@ import type { ServerMessage } from '../../src/shared/play/protocol';
 import type { PieceAction, GameSnapshot, ClientMessage } from '../../src/shared/play/protocol';
 import { BOARD_RADIUS } from '../../src/shared/play/tableGeometry';
 import board from '../../src/shared/rulebooks/boards/arrakis.json';
+import { TUTORIAL_PLAYERS } from '../../src/shared/tutorial/players';
 import { cardPage, deckPage, slot, spiceCardPage } from './native-catalogue.fixture.ts';
 import type { NativePeer, NativeRuntime, NativeConnection, NativeView } from './native-runtime.fixture.ts';
 import { required } from './native-runtime.fixture.ts';
@@ -45,7 +46,7 @@ const factionFixtureSchema = z.object({
   leaders: factionDefinitionSchema.shape.leaders,
 });
 type FactionFixture = z.infer<typeof factionFixtureSchema>;
-export const factionFixtures = z
+const factionFixtures = z
   .array(factionFixtureSchema)
   .parse(
     JSON.parse(
@@ -60,9 +61,7 @@ const DREAMRULES = '/published/story-dreamrules/';
 const fixture = (path: string) => path.replace('/play-fixtures/product/', PRODUCT);
 export const SUFFIXES = ['a', 'b', 'c', 'd', 'e', 'f'];
 /* The public profiles the other Play stories seat, in seat order (drafting.stories.fixture.ts). */
-export const PLAYERS = ['Twaffle', 'Thialfi', 'Fectumbra', 'Erickenneth', 'Ridwan', 'Argelius'];
-/* Only these two factions have Traitor fronts among the Storybook fixtures; the others deal without a face. */
-const TRAITOR_FRONTS = new Set(['house-atreides', 'house-harkonnen']);
+export const PLAYERS = TUTORIAL_PLAYERS.slice(0, 6).map((player) => player.name);
 /* The stages the sandbox story runs the table in; drafting and trading stay with the recorded journey. */
 const SANDBOX_STAGES = new Set(['setup', 'play']);
 
@@ -71,8 +70,12 @@ function definition({ slug, data, token, leaders }: FactionFixture): z.infer<typ
     faction: { id: slug, slug, name: data.name },
     data,
     token: fixture(token),
-    tokenBack: null,
-    cardbacks: { traitor: `${PRODUCT}traitor-back.jpg`, alliance: null },
+    tokenBack: `${PRODUCT}${slug}-token-back.jpg`,
+    cardbacks: {
+      traitor: `${PRODUCT}traitor-back.jpg`,
+      alliance: `${PRODUCT}alliance-back.jpg`,
+      prediction: `${PRODUCT}prediction-back.jpg`,
+    },
     leaders: leaders.map((leader) => ({
       memberId: leader.memberId,
       front: leader.front === null ? null : fixture(leader.front),
@@ -84,9 +87,10 @@ function definition({ slug, data, token, leaders }: FactionFixture): z.infer<typ
     })),
     traitors: data.leaders.map((leader, index) => ({
       memberId: leader.memberId,
-      front: TRAITOR_FRONTS.has(slug) ? `${PRODUCT}${slug}-traitor-${index}.jpg` : null,
+      front: `${PRODUCT}${slug}-traitor-${index}.jpg`,
     })),
-    alliance: null,
+    alliance: `${PRODUCT}${slug}-alliance.jpg`,
+    prediction: `${PRODUCT}prediction.jpg`,
   });
 }
 
@@ -105,8 +109,6 @@ function draftable({ slug, data }: FactionFixture): DraftFaction {
 
 async function journeyRuntime() {
   const peer = await createPeer();
-  peer.watchMode = 'allow';
-  peer.expiresAt = () => Date.now() + 3_600_000;
   peer.game = {
     rulesetId: 'dreamrules',
     minimumPlayers: 6,
@@ -200,15 +202,35 @@ function interned(steps: JourneyStep[]) {
 
 /** The recording as text: fixture origins for the published paths, and the story profiles for the synthetic accounts. */
 function portable(text: string) {
-  let result = text
-    .replaceAll(`${ORIGIN}${PRODUCT}`, '{{origin}}/play-fixtures/product/')
-    .replaceAll(`${ORIGIN}${DREAMRULES}`, '{{origin}}/play-fixtures/dreamrules/');
+  return renamed(
+    text
+      .replaceAll(`${ORIGIN}${PRODUCT}`, '{{origin}}/play-fixtures/product/')
+      .replaceAll(`${ORIGIN}${DREAMRULES}`, '{{origin}}/play-fixtures/dreamrules/')
+  );
+}
+
+/** A recording's text with the synthetic accounts renamed to the public profiles the Play stories seat. */
+export function renamed(text: string) {
+  let result = text;
   for (const [index, suffix] of SUFFIXES.entries()) {
     result = result
       .replaceAll(`Synthetic ${suffix.toUpperCase()}`, PLAYERS[index])
-      .replaceAll(`synthetic-${suffix}`, PLAYERS[index].toLowerCase());
+      .replaceAll(`synthetic-${suffix}`, TUTORIAL_PLAYERS[index]!.slug);
   }
-  return result.replaceAll('Synthetic WATCHER', 'Klyzx').replaceAll('synthetic-watcher', 'klyzx');
+  result = result
+    .replaceAll('Synthetic WATCHER', TUTORIAL_PLAYERS[6]!.name)
+    .replaceAll('synthetic-watcher', TUTORIAL_PLAYERS[6]!.slug);
+  return JSON.stringify(
+    JSON.parse(result, (_key, value: unknown) => {
+      if (value && typeof value === 'object' && 'seat' in value && 'avatar' in value && 'name' in value) {
+        const profile = TUTORIAL_PLAYERS.find((player) => player.name === value.name);
+        if (profile) {
+          return { ...value, ...profile };
+        }
+      }
+      return value;
+    })
+  );
 }
 
 /** One recording in progress: the runtime, the connected viewers, the clock the room reads, and the steps kept so far. */
@@ -226,6 +248,18 @@ type JourneyStep = {
   stored?: StoredSnapshot;
 };
 
+/** The factions a recording drafts, one per seat in seat order, and the one it bans; ids are what the game knows them by. */
+export type JourneyCast = Readonly<{
+  factions: readonly Readonly<{ id: string; slug: string; name: string }>[];
+  ban: Readonly<{ id: string; name: string }>;
+}>;
+
+/* The story fixtures know each faction by its slug. */
+const FIXTURE_CAST: JourneyCast = {
+  factions: factionFixtures.map(({ slug, data }) => ({ id: slug, slug, name: data.name })),
+  ban: { id: 'ixians', name: 'Ixians' },
+};
+
 export class JourneyRecorder {
   players: NativeConnection[] = [];
   spectator: NativeConnection | undefined;
@@ -236,8 +270,16 @@ export class JourneyRecorder {
 
   constructor(
     readonly peer: NativePeer,
-    readonly runtime: NativeRuntime
+    readonly runtime: NativeRuntime,
+    readonly cast: JourneyCast = FIXTURE_CAST,
+    /* The stages whose steps keep the room's stored state; the tutorial also keeps the draft's. */
+    private readonly storedStages: ReadonlySet<string> = SANDBOX_STAGES
   ) {}
+
+  /** The id the game knows a faction by, from its slug. */
+  id(slug: string) {
+    return required(this.cast.factions.find((faction) => faction.slug === slug)).id;
+  }
 
   static async open() {
     const { peer, runtime } = await journeyRuntime();
@@ -250,18 +292,18 @@ export class JourneyRecorder {
   }
 
   admit(suffix: string) {
-    return admitPlayer(this.peer, this.runtime, suffix);
+    return admitPlayer(this.runtime, suffix);
   }
 
   viewers() {
     return [...this.players, ...(this.spectator ? [this.spectator] : [])];
   }
 
-  /** Seat index of the faction the deal assigned. */
-  indexOf(slug: string) {
+  /** Seat index of the faction the deal assigned, by the id the game knows it by. */
+  indexOf(id: string) {
     return (
       Number(
-        required(required(this.roster).seats.find((entry) => required(entry.faction).id === slug)).id.slice(
+        required(required(this.roster).seats.find((entry) => required(entry.faction).id === id)).id.slice(
           'seat-'.length
         )
       ) - 1
@@ -327,7 +369,7 @@ export class JourneyRecorder {
       action,
       logSequence: latest?.sequence ?? 0,
       views: Object.fromEntries(views.map(({ type: _type, ...view }) => [view.viewer.viewerSeat, view])),
-      ...(stored.stage !== undefined && SANDBOX_STAGES.has(stored.stage) ? { stored } : {}),
+      ...(stored.stage !== undefined && this.storedStages.has(stored.stage) ? { stored } : {}),
     });
   }
 
@@ -412,11 +454,12 @@ export class JourneyRecorder {
 
   /** Splits `count` troops off the faction's reserve and carries them into the territory; returns the seat index. */
   async moveTroops(slug: string, count: number, territory: string) {
-    const index = this.indexOf(slug);
+    const id = this.id(slug);
+    const index = this.indexOf(id);
     const reserve = (await this.pieces(index)).find(
       (piece) =>
         piece.kind === 'force' &&
-        piece.stackKey?.startsWith(`troops:${slug}:`) &&
+        piece.stackKey?.startsWith(`troops:${id}:`) &&
         !piece.id.startsWith('split-') &&
         piece.items.length > count
     );

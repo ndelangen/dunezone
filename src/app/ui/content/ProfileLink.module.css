@@ -15,8 +15,8 @@
  * thing on a page, so a hover that behaved differently on a person than on a ruleset would look
  * like a bug; those two files are the whole family and the pairing is small enough to hold by hand.
  */
-.link:hover .username,
-.link:focus-visible .username {
+.link.underlined:hover .username,
+.link.underlined:focus-visible .username {
   text-decoration: underline;
 }
 
@@ -35,20 +35,42 @@
 
 /* Pure white with the same drop shadow as an inverse `Eyebrow`, so header text reads as one treatment. */
 .username.inverse {
-  color: white;
-  text-shadow: 0 2px 8px rgb(0 0 0 / 85%);
+  color: var(--color-inverse);
+  text-shadow: 0 2px 8px rgb(from var(--color-shadow) r g b / 85%);
 }
 
 .avatarPlaceholder {
   width: var(--profile-link-avatar-size);
   height: var(--profile-link-avatar-size);
   border-radius: 50%;
-  background: color-mix(in srgb, var(--panel-border, #b8ad9b) 40%, transparent);
+  background: color-mix(in srgb, var(--panel-border) 40%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: var(--profile-link-initials-size);
   font-weight: 600;
   flex-shrink: 0;
-  color: var(--color-text, #2e2927);
+  color: var(--color-text);
+}
+
+.compact .username {
+  font-size: var(--mantine-font-size-xs);
+}
+
+.contributor {
+  --profile-link-avatar-size: 56px;
+  --profile-link-initials-size: 1.1rem;
+
+  display: grid;
+  grid-template-columns: var(--profile-link-avatar-size) minmax(0, 1fr);
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+@container (width >= 48rem) {
+  .contributor {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
+  }
 }

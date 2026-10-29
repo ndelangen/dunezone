@@ -21,7 +21,7 @@ const meta = preview.meta({
   title: 'Control Block',
   component: ControlBlock,
   globals: {
-    backgrounds: { value: 'light', grid: false },
+    backgrounds: { value: 'dark', grid: false },
   },
   parameters: {
     layout: 'centered',
@@ -80,7 +80,7 @@ export const TruncatedTitle = meta.story({
     title: longTitle,
   },
   render: (args) => (
-    <Box w={280}>
+    <Box w={280} data-testid="resizable-field">
       <ControlBlock {...args} />
     </Box>
   ),
@@ -93,5 +93,24 @@ export const TruncatedTitle = meta.story({
 
     await userEvent.hover(title);
     await waitForFrame(() => expect(page.getByRole('tooltip')).toHaveTextContent(longTitle));
+
+    /* The hovered title changes width with its pane; the tooltip follows its target after resize. */
+    const field = canvas.getByTestId('resizable-field');
+    const originalWidth = field.style.width;
+    const originalMargin = field.style.marginLeft;
+    const originalLeft = title.getBoundingClientRect().left;
+    field.style.width = '180px';
+    field.style.marginLeft = '80px';
+    try {
+      await waitForFrame(async () => {
+        const target = title.getBoundingClientRect();
+        const tooltip = page.getByRole('tooltip').getBoundingClientRect();
+        await expect(target.left).not.toBe(originalLeft);
+        await expect(Math.abs(tooltip.left - target.left)).toBeLessThan(1);
+      });
+    } finally {
+      field.style.width = originalWidth;
+      field.style.marginLeft = originalMargin;
+    }
   },
 });

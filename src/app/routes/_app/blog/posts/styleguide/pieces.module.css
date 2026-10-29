@@ -1,0 +1,265 @@
+/* Every drawn piece casts the same shadow; the frame's placement and clipping belong to `CanvasScale`. */
+.frame {
+  box-shadow: 0 2px 10px rgb(from var(--color-shadow) r g b / 45%);
+}
+
+.anatomy {
+  container-type: inline-size;
+  display: grid;
+  gap: var(--space-xl);
+}
+
+.entry {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-md);
+  align-items: center;
+}
+
+@container (width >= 48rem) {
+  .entry {
+    grid-template-columns: minmax(0, 22rem) minmax(0, 1fr);
+    gap: var(--space-lg);
+  }
+
+  /* The token is smaller than a card, so its row sits in the same left column at a narrower width. */
+  .entry:last-child {
+    grid-template-columns: minmax(0, 18rem) minmax(0, 1fr);
+  }
+}
+
+/* The stage is the piece plus a gutter either side; its height follows from the aspect ratio set inline. */
+.stage {
+  position: relative;
+  width: 100%;
+  max-width: 22rem;
+  margin-inline: auto;
+  color: var(--mantine-color-text);
+}
+
+.canvas {
+  position: absolute;
+  top: 0;
+}
+
+.lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.marker {
+  position: absolute;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  border: 1.5px solid var(--mantine-color-text);
+  border-radius: 50%;
+  background: var(--mantine-color-body);
+  font-family: "C_Advokat_Modern", serif;
+  font-size: var(--mantine-font-size-sm);
+  line-height: 1;
+  transform: translate(-50%, -50%);
+}
+
+.legend {
+  display: grid;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: part;
+}
+
+.legend li {
+  display: grid;
+  grid-template-columns: 1.4rem minmax(0, 1fr);
+  column-gap: var(--space-xs);
+  padding-block-end: var(--space-xs);
+  border-block-end: 1px solid var(--mantine-color-default-border);
+  counter-increment: part;
+  font-size: var(--mantine-font-size-sm);
+  line-height: 1.4;
+}
+
+.legend li::before {
+  content: counter(part);
+  grid-row: 1 / span 3;
+  font-family: "C_Advokat_Modern", serif;
+  font-size: var(--mantine-font-size-lg);
+  line-height: 1.1;
+}
+
+.part {
+  font-family: var(--mantine-font-family-headings);
+  font-weight: 700;
+}
+
+.face {
+  color: var(--mantine-color-dimmed);
+  font-style: italic;
+}
+
+.spec {
+  grid-column: 2;
+}
+
+.gold {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.shieldMount {
+  width: min(100%, 40rem);
+  margin-inline: auto;
+}
+
+/* The gold reads only on a dark ground, so this panel is dark in both colour schemes. */
+.goldPanel {
+  display: grid;
+  grid-template-columns: 3.5rem minmax(0, 1fr);
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border-radius: var(--mantine-radius-md);
+  background: #15120f;
+  color: #e3dbb3;
+}
+
+.ramp {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  grid-row: 1 / span 2;
+  min-height: 9rem;
+  padding: var(--space-xs) 0;
+  border-radius: var(--mantine-radius-sm);
+  font-family: var(--mantine-font-family-monospace);
+  font-size: 0.65rem;
+  color: #0b0503;
+  text-align: center;
+  writing-mode: vertical-rl;
+}
+
+.goldSamples {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-xs) var(--space-lg);
+}
+
+.goldWord {
+  margin: 0;
+  font-size: clamp(2.2rem, 9cqw, 4.5rem);
+  line-height: 1.1;
+  text-transform: uppercase;
+  background: linear-gradient(to bottom, #faf8eb, #cfaf45);
+  background-clip: text;
+  color: transparent;
+  /* A drop shadow rather than a text shadow, which would paint over the gradient clipped to the letters. */
+  filter: drop-shadow(0 0 1px #000) drop-shadow(0 0 4px #000) drop-shadow(0 0 10px #000);
+}
+
+.goldNote {
+  margin: 0;
+  font-size: var(--mantine-font-size-sm);
+  line-height: 1.4;
+  color: #b8ad88;
+}
+
+.strips {
+  container-type: inline-size;
+  display: grid;
+  gap: var(--space-sm);
+}
+
+/* Thumb, name, band colours and symbol stripes read across one row per category. */
+.strip {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  grid-template-areas:
+    "thumb label"
+    "thumb band"
+    "thumb stripes";
+  gap: var(--space-xs) var(--space-sm);
+  align-items: center;
+}
+
+@container (width >= 48rem) {
+  .strip {
+    grid-template-columns: 4.5rem 6rem minmax(0, 3fr) minmax(0, 2fr);
+    grid-template-areas: "thumb label band stripes";
+  }
+}
+
+.thumb {
+  grid-area: thumb;
+}
+
+.stripLabel {
+  grid-area: label;
+  font-family: var(--mantine-font-family-headings);
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 700;
+}
+
+.band {
+  position: relative;
+  display: flex;
+  grid-area: band;
+  min-height: 3rem;
+  overflow: hidden;
+  border-radius: var(--mantine-radius-sm);
+  font-family: var(--mantine-font-family-monospace);
+  font-size: var(--mantine-font-size-xs);
+}
+
+/* What each bar is, written small in its top left corner. */
+.bandName {
+  position: absolute;
+  top: 2px;
+  left: var(--space-xs);
+  font-family: "C_Candara", sans-serif;
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+.stripes {
+  grid-area: stripes;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: var(--space-xs);
+}
+
+.swatch {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 2px;
+  min-width: 0;
+  padding: var(--space-xs);
+}
+
+.swatch b {
+  font-family: var(--mantine-font-family-headings);
+  font-size: var(--mantine-font-size-xs);
+}
+
+/* The shared inks have no card and no stripes, so the band spans the rest of the row. */
+.inks {
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  grid-template-areas: "label label" "band band";
+}
+
+@container (width >= 48rem) {
+  .inks {
+    grid-template-columns: 4.5rem 6rem minmax(0, 1fr);
+    grid-template-areas: ". label band";
+  }
+}

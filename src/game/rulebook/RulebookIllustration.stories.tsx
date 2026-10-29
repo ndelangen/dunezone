@@ -1,5 +1,8 @@
 import preview from '@sb/preview';
+import { assetPublishingFaction } from '@shared/factions/fixtures/assetPublishingFaction';
 import { projectRulebookDraftRenderBlock } from '@shared/rulebooks/projectRenderDocument';
+import { projectRulebookSource } from '@shared/rulebooks/projectRenderDocument';
+import { rulebookFactionSheetSchema } from '@shared/rulebooks/sources';
 import { expect, within } from 'storybook/test';
 
 import { RulebookBlockCanvas } from './RulebookBlockRenderer';
@@ -15,6 +18,64 @@ const meta = preview.meta({
 });
 
 export const ReferencedBoard = meta.story({ play: expectContainedReferences });
+
+export const FactionSheet = meta.story({
+  render: () => {
+    const reference = { kind: 'faction', factionId: 'atreides', presentation: 'sheet' } as const;
+    const source = projectRulebookSource(
+      reference,
+      {},
+      {
+        atreides: {
+          factionId: 'atreides',
+          name: 'Atreides',
+          color: '#4b4c0d',
+          emblemUrl: assetPublishingFaction.logo,
+          sheet: rulebookFactionSheetSchema.parse(assetPublishingFaction),
+        },
+      }
+    );
+    return (
+      <div style={{ width: 'min(52rem, 92vw)' }}>
+        <RulebookBlockCanvas
+          block={{
+            id: 'SHT1',
+            kind: 'asset-explainer',
+            source,
+            caption: '',
+            numbering: 'automatic',
+            colorMode: 'automatic',
+            items: [
+              {
+                id: 'FREE',
+                label: '1',
+                text: 'House Atreides can revive 2 forces for free each turn.',
+                target: { kind: 'named', key: 'revival', source: reference },
+              },
+            ],
+          }}
+        />
+      </div>
+    );
+  },
+  play: async ({ canvasElement }) => {
+    const sheet = canvasElement.querySelector<HTMLElement>('.rulebookFactionSheet')!;
+    const revival = sheet.querySelector<HTMLElement>('[data-faction-revival]')!;
+    await expect(revival).toHaveTextContent('2 troops free.');
+    await expect(sheet.querySelectorAll('[data-faction-sheet-page]')).toHaveLength(1);
+    const line = sheet.querySelector<SVGLineElement>('svg.rulebookFactionSheetMarks line')!;
+    const point = new DOMPoint(line.x1.baseVal.value, line.y1.baseVal.value).matrixTransform(line.getScreenCTM()!);
+    const bounds = revival.getBoundingClientRect();
+    await expect(point.x).toBeGreaterThan(bounds.left);
+    await expect(point.x).toBeLessThan(bounds.right);
+    await expect(point.y).toBeGreaterThan(bounds.top);
+    await expect(point.y).toBeLessThan(bounds.bottom);
+    await expect(parseFloat(getComputedStyle(revival).fontSize)).toBeCloseTo(
+      sheet.querySelector('[data-faction-sheet-page]')!.getBoundingClientRect().width * 0.018,
+      1
+    );
+  },
+});
 
 export const MissingSource = meta.story({
   decorators: [
@@ -46,26 +107,41 @@ export const MissingSource = meta.story({
   },
 });
 
-export const SmallToken = meta.story({
+export const FactionToken = meta.story({
+  decorators: [
+    (Story) => (
+      <div style={{ width: '32rem', height: '16rem' }}>
+        <Story />
+      </div>
+    ),
+  ],
   render: () => (
     <RulebookBlockCanvas
       block={projectRulebookDraftRenderBlock(
         {
-          id: 'TECH',
+          id: 'FACT',
           kind: 'referenced-illustration',
-          source: { kind: 'asset', assetId: 'tech' },
+          source: { kind: 'faction', factionId: 'faction', presentation: 'token' },
           size: 'small',
-          caption: 'A token keeps its outline at a smaller size.',
+          caption: 'The faction token uses the same shadow as other physical pieces.',
         },
-        techTokenAssets
+        {},
+        {
+          faction: {
+            factionId: 'faction',
+            name: 'Faction token',
+            color: '#6f4d85',
+            tokenImageUrl: techTokenAssets.tech.imageUrl,
+          },
+        }
       )}
     />
   ),
   play: async ({ canvasElement }) => {
     const image = canvasElement.querySelector('img')!;
     await image.decode();
-    const bounds = image.getBoundingClientRect();
-    await expect(bounds.width / bounds.height).toBeCloseTo(1, 2);
-    await expect(getComputedStyle(image).clipPath).toMatch(/^polygon\(/);
+    await expect(image.getBoundingClientRect().width).toBeGreaterThan(0);
+    await expect(getComputedStyle(image).clipPath).toBe('circle(50%)');
+    await expect(getComputedStyle(image.parentElement!).filter).toContain('drop-shadow(');
   },
 });

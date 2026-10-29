@@ -26,6 +26,7 @@ import { publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RulebookDocumentRenderer } from '@game/rulebook/RulebookRenderer';
 
+import { FactionHeadingHints } from './FactionHeadingHints';
 import styles from './index.module.css';
 import {
   loadReaderView,
@@ -48,6 +49,12 @@ import {
   resolvePublicAnchor,
   resolveRulebookTextLocator,
 } from './rulebookReaderLinks';
+
+declare module '@tanstack/react-router' {
+  interface HistoryState {
+    rulebookTracking?: boolean;
+  }
+}
 
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/')({
   ssr: true,
@@ -412,6 +419,27 @@ function RulebookReader({ data, published }: Readonly<{ data: ReaderData; publis
       recoveryTimer.current = undefined;
     }
   }, []);
+  const replaceTrackedAnchor = useCallback(
+    (anchor: string | undefined) => {
+      const url = new URL(window.location.href);
+      if (publicAnchorFromUrl(url.href) === anchor && !url.searchParams.has('loc')) {
+        setHashAnchor(anchor);
+        return;
+      }
+      /* Tracking changes the address without asking the router to scroll to the new hash. */
+      void navigate({
+        hash: anchor ?? '',
+        search: (previous) => ({ ...previous, loc: undefined }),
+        /* A later click on this same Page must count as navigation even though its URL is already current. */
+        state: (previous) => ({ ...previous, rulebookTracking: true }),
+        replace: true,
+        resetScroll: false,
+        hashScrollIntoView: false,
+      });
+      setHashAnchor(anchor);
+    },
+    [navigate, setHashAnchor]
+  );
 
   useEffect(() => {
     sendView({ kind: 'sync-locator', locatorParam: search.loc });
@@ -498,16 +526,7 @@ function RulebookReader({ data, published }: Readonly<{ data: ReaderData; publis
       if (!view.pinned && meaningfulScroll.current) {
         const page = pagesById[pageId];
         if (page) {
-          const url = new URL(window.location.href);
-          const anchorChanged = publicAnchorFromUrl(url.href) !== page.anchor;
-          const locatorPresent = url.searchParams.has('loc');
-          if (!anchorChanged && !locatorPresent) {
-            return;
-          }
-          url.searchParams.delete('loc');
-          url.hash = page.anchor;
-          window.history.replaceState(window.history.state, '', url);
-          setHashAnchor(page.anchor);
+          replaceTrackedAnchor(page.anchor);
         }
       }
     };
@@ -539,7 +558,7 @@ function RulebookReader({ data, published }: Readonly<{ data: ReaderData; publis
         cancelAnimationFrame(frame);
       }
     };
-  }, [cancelRecovery, pagesById, setHashAnchor, view.pinned]);
+  }, [cancelRecovery, pagesById, replaceTrackedAnchor, view.pinned]);
 
   useEffect(() => {
     cancelRecovery();
@@ -585,11 +604,7 @@ function RulebookReader({ data, published }: Readonly<{ data: ReaderData; publis
   const unpin = () => {
     sendView({ kind: 'unpin' });
     const active = view.activePageId ? pagesById[view.activePageId] : undefined;
-    const url = new URL(window.location.href);
-    url.searchParams.delete('loc');
-    url.hash = active?.anchor ?? '';
-    window.history.replaceState(window.history.state, '', url);
-    setHashAnchor(active?.anchor);
+    replaceTrackedAnchor(active?.anchor);
   };
   const createSelectionLink = async () => {
     const result = locatorFromRulebookSelection(window.getSelection());
@@ -813,10 +828,17 @@ function RulebookReader({ data, published }: Readonly<{ data: ReaderData; publis
                 </Stack>
               </nav>
             </Surface>
+            <FactionHeadingHints
+              key={published?.href ?? data.edition.edition_number}
+              root={readerRef}
+              content={published ?? renderDocument}
+            />
             <div ref={readerRef} className={styles.readerDocument} data-rulebook-reader-document>
               {published ? (
                 <div data-published-rulebook>
                   <style>{published.css}</style>
+                  {/* Only publisher-generated artifacts parsed by parsePublishedRulebook reach this sink. */}
+                  {/* nosemgrep: typescript.react.security.audit.react-dangerouslysetinnerhtml.react-dangerouslysetinnerhtml */}
                   <div dangerouslySetInnerHTML={{ __html: published.markup }} />
                 </div>
               ) : (

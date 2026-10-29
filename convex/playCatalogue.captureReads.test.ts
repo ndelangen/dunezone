@@ -5,7 +5,7 @@ import { describe, expect, test } from 'vite-plus/test';
 
 import { factionMemberPublicationId } from '../src/shared/asset-publishing/componentPublication';
 import { publishedHref } from '../src/shared/asset-publishing/publicationTargets';
-import { publishingDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
+import { publishingCustomDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
 import { publishingTreacheryCard } from '../src/shared/assets/fixtures/publishingTreacheryCard';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { toStoredHeroKey } from '../src/shared/factions/schema';
@@ -116,7 +116,7 @@ describe('the catalogue reads Play captures from', () => {
         ctx.db.insert('assets', {
           owner_id: owner,
           type: 'deck',
-          data: { name: slug, about: '', cardback: publishingDeckCardback },
+          data: { name: slug, about: '', cardback: publishingCustomDeckCardback },
           slug,
           created_at: stamp,
           updated_at: stamp,
@@ -167,7 +167,7 @@ describe('the catalogue reads Play captures from', () => {
           is_deleted,
           group_id: null,
         });
-      const deckId = await asset('deck', 'house', { name: 'House', about: '', cardback: publishingDeckCardback });
+      const deckId = await asset('deck', 'house', { name: 'House', about: '', cardback: publishingCustomDeckCardback });
       const cards = [
         { id: await asset('card-treachery', 'published', publishingTreacheryCard), count: 2 },
         { id: await asset('card-treachery', 'unpublished', publishingTreacheryCard), count: 1 },
@@ -202,5 +202,19 @@ describe('the catalogue reads Play captures from', () => {
       ['unpublished', 1, null],
     ]);
     expect(await t.query(api.playCatalogue.assetSupply, { type: 'deck', slug: 'missing' })).toBeNull();
+    /* A single card wears its holding deck's back and names that deck; a deleted holder does not count. */
+    expect(await t.query(api.playCatalogue.assetSupply, { type: 'card-treachery', slug: 'published' })).toMatchObject({
+      asset: { id: publishedId, slug: 'published' },
+      front: publishedHref('card-treachery', publishedId, 'v1'),
+      back: publishedHref('deck', deckId, 'v1'),
+      backMode: 'authored-cardback',
+      cardDeck: { id: deckId, type: 'deck', slug: 'house' },
+    });
+    await t.run(async (ctx) => ctx.db.patch('assets', deckId, { is_deleted: true }));
+    expect(await t.query(api.playCatalogue.assetSupply, { type: 'card-treachery', slug: 'published' })).toMatchObject({
+      back: null,
+      backMode: null,
+      cardDeck: null,
+    });
   });
 });

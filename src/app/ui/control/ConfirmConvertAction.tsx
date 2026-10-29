@@ -9,19 +9,21 @@ export function ConfirmConvertAction({
   pending,
   onConfirm,
   disabled,
+  target = 'custom card',
 }: {
   pending: boolean;
   onConfirm: () => void;
   disabled?: boolean;
+  target?: 'custom card' | 'spice card';
 }) {
   const { holding, remaining, submitted, handlers } = useHoldToConfirm({ pending, onConfirm, blocked: disabled });
   return (
     <IconAction
-      label="Convert to custom card"
+      label={`Convert to ${target}`}
       tooltip={
         holding
           ? `conversion in ${remaining}..`
-          : 'Hold to convert to a custom card. Keeps its decks and owner. This cannot be reversed.'
+          : `Hold to convert to a ${target}. Keeps its decks and owner. This cannot be reversed.`
       }
       tooltipOpened={holding ? true : undefined}
       emphasis="standard"

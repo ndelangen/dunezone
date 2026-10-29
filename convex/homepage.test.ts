@@ -8,17 +8,20 @@ import { api, internal } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
 import { ensureProfileForUser } from './lib/profileBootstrap';
+import { storedProfileAvatar } from './profiles.test.fixture';
 
 describe('homepage page data', () => {
   test('serves exact Statistics totals without migration readiness', async () => {
     const t = applicationTest();
     const userId = await t.run((ctx) => ctx.db.insert('users', { name: 'Homepage maker' }));
-    await t.run((rawCtx) =>
-      ensureProfileForUser(applicationTriggers.wrapDB(rawCtx), userId, {
+    await t.run(async (rawCtx) => {
+      const ctx = applicationTriggers.wrapDB(rawCtx);
+      const profile = await ensureProfileForUser(ctx, userId, {
         displayName: 'Homepage maker',
-        imageUrl: 'https://example.com/avatar.png',
-      })
-    );
+        imageUrl: null,
+      });
+      await ctx.db.patch(profile._id, storedProfileAvatar);
+    });
     const asUser = t.withIdentity({ subject: userId });
     const faction = await asUser.mutation(api.factions.create, {
       data: { ...assetPublishingFaction, name: 'Homepage faction' },
@@ -120,4 +123,29 @@ describe('homepage page data', () => {
       '2026-07-01T00:00:00.000Z',
     ]);
   });
+
+  test('spotlights the newest and the latest edited faction past the first 500', async () => {
+    const t = applicationTest();
+    await t.run(async (rawCtx) => {
+      const ctx = applicationTriggers.wrapDB(rawCtx);
+      const owner = await ctx.db.insert('users', { name: 'Faction maker' });
+      for (let index = 0; index <= 500; index += 1) {
+        const stamp = new Date(Date.UTC(2026, 0, 1) + index * 60_000).toISOString();
+        await ctx.db.insert('factions', {
+          owner_id: owner,
+          group_id: null,
+          is_deleted: false,
+          slug: `faction-${index}`,
+          data: { ...assetPublishingFaction, name: `Faction ${index}` },
+          created_at: stamp,
+          updated_at: index === 499 ? '2026-12-01T00:00:00.000Z' : stamp,
+        });
+      }
+    });
+
+    const { spotlights } = await t.query(api.homepage.get, {});
+    expect(spotlights.newArrival?.slug).toBe('faction-500');
+    expect(spotlights.freshlyUpdated?.slug).toBe('faction-499');
+    /* 501 trigger-backed faction inserts take about 10 s locally; this leaves headroom for a loaded runner. */
+  }, 120_000);
 });

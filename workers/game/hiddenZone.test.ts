@@ -21,6 +21,8 @@ const bob: Identity = {
 const FACTIONS: Record<string, string> = { [bob.userId]: 'atreides' };
 const LOOSE = 'treachery-card-loose';
 const LEADER = 'fixture-leader';
+const SECOND = 'treachery-card-second';
+const THIRD = 'treachery-card-third';
 const LATER = Date.now() + 10 * PHASE_CHANGE_COOLDOWN_MS;
 
 /* The fixture table, with its loose card given a Treachery face and a leader disc beside it, as Play/Sandbox's hands hold. */
@@ -80,6 +82,12 @@ describe('the hidden zone', () => {
     ]);
   });
 
+  test('keeps how far a piece is turned', () => {
+    const { send, hand } = roomWithHand();
+    send({ kind: 'hand-zone', pieceId: LOOSE, at: { x: 0.25, y: 0.5, turn: 6 } });
+    expect(hand().find((piece) => piece.id === LOOSE)!.hiddenZone).toEqual({ x: 0.25, y: 0.5, turn: 6 });
+  });
+
   test('moves a piece back to the plain inventory', () => {
     const { send, hand } = roomWithHand();
     send({ kind: 'hand-zone', pieceId: LOOSE, at: { x: 0.25, y: 0.5 } });
@@ -114,10 +122,94 @@ describe('the hidden zone', () => {
     send({
       kind: 'battle-plan',
       battleId,
-      plan: { mode: 'max', troops: [], spice: 0, adjustment: 0, leaderId: null, cardIds: [LOOSE] },
+      plan: { mode: 'max', troops: [], spice: 0, adjustment: 0, leaderIds: [], cardIds: [LOOSE] },
     });
     expect(room.snapshot.battleState!.plans[0]!.pieces.map((piece) => piece.id)).toEqual([LOOSE]);
     expect(JSON.stringify(room.snapshot.battleState)).not.toContain('hiddenZone');
+  });
+
+  test('keeps a hand order apart from the inventory, side-table pieces aside', () => {
+    const { room, send, hand } = roomWithHand();
+    const card = room.snapshot.factionInventories.atreides!.find((piece) => piece.id === LOOSE)!;
+    room.snapshot.table.pieces.push({ ...structuredClone(card), id: SECOND, position: [2, 0.14, 0] });
+    send({ kind: 'hand-take', pieceId: SECOND });
+    send({ kind: 'hand-zone', pieceId: LEADER, at: { x: 0.3, y: 0.4 } });
+    send({ kind: 'hand-order', pieceId: SECOND, before: LOOSE });
+    expect(room.snapshot.handOrders.atreides).toEqual([SECOND, LOOSE]);
+    expect(hand().map((piece) => piece.id)).toEqual([LOOSE, SECOND, LEADER]);
+    send({ kind: 'hand-order', pieceId: SECOND, before: null });
+    expect(room.snapshot.handOrders.atreides).toEqual([LOOSE, SECOND]);
+    expect(() =>
+      room.command(bob, { kind: 'hand-order', pieceId: LOOSE, before: LEADER }, room.snapshot.revision, LATER)
+    ).toThrow(GameRejection);
+  });
+
+  test('keeps a planned piece in the order, so it takes its old place when it comes back', () => {
+    const { room, send } = roomWithHand();
+    send({ kind: 'hand-order', pieceId: LEADER, before: LOOSE });
+    room.snapshot.phase = STANDARD_PHASES.findIndex((phase) => phase.id === 'battle');
+    send({ kind: 'battle-start', anchor: [0, 0, 0], territory: 'Arrakeen' });
+    const battleId = room.snapshot.battleState!.id;
+    send({ kind: 'battle-claim', battleId, side: 0 });
+    send({
+      kind: 'battle-plan',
+      battleId,
+      plan: { mode: 'max', troops: [], spice: 0, adjustment: 0, leaderIds: [], cardIds: [LOOSE] },
+    });
+    send({ kind: 'hand-order', pieceId: LOOSE, before: LEADER });
+    expect(room.snapshot.handOrders.atreides).toEqual([LOOSE, LEADER]);
+    /* Revealed, the plan's pieces are everyone's to take, so the order stops naming them. */
+    room.snapshot.battleState!.stage = 'revealed';
+    const projection = new RoomProjection('secret');
+    expect(projection.snapshot(room.snapshot, 'atreides').handOrder).toEqual([LEADER]);
+  });
+
+  test("reordering the hand puts the plan's cards in the same order, so the wheel shows them as the windows list them", () => {
+    const { room, send } = roomWithHand();
+    const card = room.snapshot.factionInventories.atreides!.find((piece) => piece.id === LOOSE)!;
+    room.snapshot.table.pieces.push({ ...structuredClone(card), id: SECOND, position: [2, 0.14, 0] });
+    send({ kind: 'hand-take', pieceId: SECOND });
+    room.snapshot.phase = STANDARD_PHASES.findIndex((phase) => phase.id === 'battle');
+    send({ kind: 'battle-start', anchor: [0, 0, 0], territory: 'Arrakeen' });
+    const battleId = room.snapshot.battleState!.id;
+    send({ kind: 'battle-claim', battleId, side: 0 });
+    send({
+      kind: 'battle-plan',
+      battleId,
+      plan: { mode: 'max', troops: [], spice: 0, adjustment: 0, leaderIds: [], cardIds: [LOOSE, SECOND] },
+    });
+    send({ kind: 'hand-order', pieceId: SECOND, before: LOOSE });
+    expect(room.snapshot.battleState!.plans[0]!.cardIds).toEqual([SECOND, LOOSE]);
+    /* The committed pieces follow, so the public wheel and a reveal show the same order. */
+    expect(room.snapshot.battleState!.plans[0]!.pieces.map((piece) => piece.id)).toEqual([SECOND, LOOSE]);
+    /* A table moved on since the player saw it does not turn the drag away: it names only their own pieces. */
+    room.accept(
+      room.command(bob, { kind: 'hand-order', pieceId: SECOND, before: null }, room.snapshot.revision - 1, LATER)
+    );
+    expect(room.snapshot.battleState!.plans[0]!.cardIds).toEqual([LOOSE, SECOND]);
+  });
+
+  test('reordering the hand keeps a card shown to everyone where it was shown, and orders the rest around it', () => {
+    const { room, send } = roomWithHand();
+    const card = room.snapshot.factionInventories.atreides!.find((piece) => piece.id === LOOSE)!;
+    room.snapshot.table.pieces.push({ ...structuredClone(card), id: SECOND, position: [2, 0.14, 0] });
+    room.snapshot.table.pieces.push({ ...structuredClone(card), id: THIRD, position: [3, 0.14, 0] });
+    send({ kind: 'hand-take', pieceId: SECOND });
+    send({ kind: 'hand-take', pieceId: THIRD });
+    room.snapshot.phase = STANDARD_PHASES.findIndex((phase) => phase.id === 'battle');
+    send({ kind: 'battle-start', anchor: [0, 0, 0], territory: 'Arrakeen' });
+    const battleId = room.snapshot.battleState!.id;
+    send({ kind: 'battle-claim', battleId, side: 0 });
+    send({
+      kind: 'battle-plan',
+      battleId,
+      plan: { mode: 'max', troops: [], spice: 0, adjustment: 0, leaderIds: [], cardIds: [LOOSE, SECOND, THIRD] },
+    });
+    send({ kind: 'battle-disclose', battleId, disclosure: { element: 'card', cardId: LOOSE }, shown: true });
+    send({ kind: 'hand-order', pieceId: THIRD, before: LOOSE });
+    const plan = room.snapshot.battleState!.plans[0]!;
+    expect(plan.cardIds).toEqual([LOOSE, THIRD, SECOND]);
+    expect(plan.pieces.map((piece) => piece.id)).toEqual([LOOSE, THIRD, SECOND]);
   });
 
   test('refuses a piece that is not in the hand', () => {

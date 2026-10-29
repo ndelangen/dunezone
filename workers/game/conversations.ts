@@ -1,8 +1,22 @@
-import { conversationMembers, conversationsAvailable, TABLE_CONVERSATION } from '../../src/shared/play/conversations';
+import type { BugReportBrowser } from '../../src/shared/play/bugReports';
+import {
+  conversationMembers,
+  conversationsAvailable,
+  TABLE_CONVERSATION,
+  isRecallConversation,
+  recallConversation,
+} from '../../src/shared/play/conversations';
 import type { ConversationMessage } from '../../src/shared/play/conversations';
 import { rosterFactionIds } from '../../src/shared/play/protocol';
 import type { ClientMessage, Viewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
+import {
+  censorKnownMessage,
+  censorReportConversations,
+  redactedMessage,
+  reportConversationTexts,
+} from '../../src/shared/play/reportConversations';
+import { redactReportData } from '../../src/shared/play/reportRedaction';
 import type { ActorDirectory } from './actors';
 import type { StoredSnapshot } from './state';
 
@@ -20,7 +34,7 @@ type MessageRow = {
 };
 /* The table is stored under its own id, which every faction shares; a faction pair under both ids, sorted. */
 const pairKey = ({ factionId, peerId }: Pair) =>
-  peerId === TABLE_CONVERSATION
+  peerId === TABLE_CONVERSATION || isRecallConversation(peerId)
     ? peerId
     : JSON.stringify([factionId, peerId].sort((a, b) => (a < b ? -1 : Number(a > b))));
 const present = (row: MessageRow): ConversationMessage => ({
@@ -55,7 +69,10 @@ export class Conversations {
     return conversationsAvailable(snapshot.stage) ? this.actors.factionFor(viewer.userId) : undefined;
   }
 
-  authorize(snapshot: StoredSnapshot, viewer: Viewer, pair: Pair) {
+  authorize(snapshot: StoredSnapshot, viewer: Viewer, pair: Pair, runningRecall?: string) {
+    if (isRecallConversation(pair.peerId) && pair.peerId !== (runningRecall && recallConversation(runningRecall))) {
+      throw new GameRejection('That Mentat recall has ended.');
+    }
     const own = this.faction(snapshot, viewer);
     if (!own || own !== pair.factionId || !conversationMembers(own, pair.peerId, rosterFactionIds(snapshot.roster))) {
       throw new GameRejection('This conversation is not available.');
@@ -107,8 +124,12 @@ export class Conversations {
   }
 
   /** The faction's pairs, then the table. */
-  summaries(faction: string, peers: string[]) {
-    return [...peers.filter((peer) => peer !== faction), TABLE_CONVERSATION].map((peerId) => {
+  summaries(faction: string, peers: string[], recallId?: string) {
+    return [
+      ...peers.filter((peer) => peer !== faction),
+      TABLE_CONVERSATION,
+      ...(recallId ? [recallConversation(recallId)] : []),
+    ].map((peerId) => {
       const pair = pairKey({ factionId: faction, peerId });
       const row = this.storage.sql
         .exec<{ latest: number; unread: number }>(
@@ -142,10 +163,61 @@ export class Conversations {
     );
   }
 
+  /** No recall text or read positions survive closing the recall, including retried message IDs. */
+  discardRecall(reviewId: string) {
+    const pair = recallConversation(reviewId);
+    this.storage.sql.exec('DELETE FROM conversation_messages WHERE pair=?', pair);
+    this.storage.sql.exec('DELETE FROM conversation_reads WHERE pair=?', pair);
+  }
+
   generation() {
     return this.storage.sql
       .exec<{ generation: number }>('SELECT generation FROM conversation_metadata WHERE id=1')
       .one().generation;
+  }
+
+  report() {
+    const rows = this.storage.sql
+      .exec<{
+        sequence: number;
+        pair: string;
+        request_id: string;
+        sender_faction: string;
+        saved_at: number;
+        original_length: number;
+      }>(
+        'SELECT sequence,pair,request_id,sender_faction,saved_at,length(text) AS original_length FROM conversation_messages ORDER BY sequence DESC LIMIT 10001'
+      )
+      .toArray();
+    const total = this.storage.sql
+      .exec<{ count: number }>('SELECT COUNT(*) AS count FROM conversation_messages')
+      .one().count;
+    return {
+      generation: this.generation(),
+      totalMessages: total,
+      omittedMessages: Math.max(0, total - 10_000),
+      messages: rows
+        .slice(0, 10_000)
+        .reverse()
+        .map(({ original_length, ...row }) => ({ ...row, text: redactedMessage(original_length) })),
+      reads: this.storage.sql
+        .exec<{ pair: string; faction: string; through: number }>('SELECT pair,faction,through FROM conversation_reads')
+        .toArray(),
+    };
+  }
+
+  reportBrowser(browser: BugReportBrowser) {
+    let logs = browser.logs;
+    /* Message bodies never leave the room; only their replacements enter the exported log strings. */
+    const messages = new Set(reportConversationTexts(browser.conversations));
+    for (const row of this.storage.sql.exec<{ text: string }>('SELECT DISTINCT text FROM conversation_messages')) {
+      messages.add(row.text);
+    }
+    /* Compare the complete set longest first, before any shorter match can split a message. */
+    for (const message of [...messages].sort((left, right) => right.length - left.length)) {
+      logs = logs.map((entry) => ({ ...entry, text: censorKnownMessage(entry.text, message) }));
+    }
+    return redactReportData({ ...browser, conversations: censorReportConversations(browser.conversations), logs });
   }
 
   scrub(userId: string) {

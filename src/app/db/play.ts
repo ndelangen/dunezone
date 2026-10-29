@@ -2,7 +2,7 @@ import type { playCreateGameRequestSchema } from '@shared/play/admission';
 import type { playGeneratedGameRequestSchema } from '@shared/play/gameCreation';
 import { peekSeatPass, PLAY_SEAT_PASS_RENEW_MS } from '@shared/play/seatPass';
 import { useQuery } from 'convex/react';
-import type { FunctionReturnType } from 'convex/server';
+import type { FunctionArgs, FunctionReturnType } from 'convex/server';
 import { useCallback, useState } from 'react';
 import type { z } from 'zod';
 
@@ -22,12 +22,28 @@ export type CreatableRuleset = Extract<
  * Every directory summary the game Worker publishes re-runs it, so one failed re-run keeps the last answer instead of throwing the open table, and its socket, off the page.
  */
 export function useGameAccess(address: string) {
-  return toLiveQueryResult(useHeldLiveQuery(api.playGames.getGameByAddress, { address }));
+  return toLiveQueryResult(useHeldLiveQuery(api.playGameDirectory.getGameByAddress, { address }));
 }
 
 /** The lobby's ongoing and past games, as the directory may show them to this viewer. */
 export function useLobbyGames() {
   return toLiveQueryResult(useLiveQuery(api.playDirectory.listGames, {}));
+}
+
+/** What the in-play spawn picker asks the catalogue for: a search's words, if any, and how many rows. */
+export type SpawnableAssetsArgs = FunctionArgs<typeof api.playCatalogue.spawnableAssets>;
+
+/**
+ * The decks, bundles and tokens the catalogue offers a game, the newest or a search's best matches, up to `limit`.
+ * Plain `useQuery`, not held warm: the arguments change as the player types, and each would otherwise stay subscribed.
+ */
+export function useSpawnableAssets(args: SpawnableAssetsArgs) {
+  return toLiveQueryResult(useQuery(api.playCatalogue.spawnableAssets, args));
+}
+
+/** One asset's faces and members as a game captures it; a tutorial table captures through this, since it has no game Worker. */
+export async function readAssetSupply(selection: FunctionArgs<typeof api.playCatalogue.assetSupply>) {
+  return await db.query(api.playCatalogue.assetSupply, selection, { hold: false });
 }
 
 /** What a chosen ruleset puts on the table, as the create page's manifest lists it. */
@@ -49,7 +65,7 @@ export function useCreatableRulesets(rulesetId: string) {
 }
 
 export function useGameNameAvailability(name: string) {
-  return useQuery(api.playGames.nameAvailability, { name });
+  return useQuery(api.playGameNameAvailability.nameAvailability, { name });
 }
 
 export function useCreateGame() {
@@ -71,18 +87,11 @@ export function useCreateGame() {
   return useLiveOperation(create);
 }
 
-/** Tickets stay in memory and are sent only in the first game socket message. */
-async function requestPlayTicket(gameId: string) {
-  return await db.mutation(api.playAdmission.issueTicket, { gameId });
-}
-
 /*
- * Each open game's seat pass, as its game query last delivered it: a pass, null while the account is not enrolled there yet, or
- * `legacy` from a deployment without passes. Passes live in memory only and go out only over the game socket.
+ * Each open game's seat pass, as its game query last delivered it: a pass, or null while the account is not enrolled there yet.
+ * Passes live in memory only and go out only over the game socket.
  */
-/* `legacy` is a marker no encoded pass can equal, since a pass always holds a dot. */
 type HeldPass = string | null;
-const LEGACY = 'legacy';
 type PassEntry = {
   held?: HeldPass;
   renewed?: { pass: string; at: number };
@@ -112,7 +121,7 @@ function identityOf(pass: string) {
  * A pass for another account, actor or session always replaces the held one, as after a merge or a switch of account.
  */
 function outlasts(next: HeldPass, held: HeldPass | undefined) {
-  if (typeof held !== 'string' || held === LEGACY || typeof next !== 'string' || next === LEGACY) {
+  if (held === undefined || held === null || next === null) {
     return next !== held;
   }
   if (identityOf(next) !== identityOf(held)) {
@@ -130,7 +139,7 @@ function holdPass(gameId: string, held: HeldPass) {
   for (const wake of entry.waiters.splice(0)) {
     wake();
   }
-  if (typeof held === 'string' && held !== LEGACY) {
+  if (held !== null) {
     for (const listener of entry.listeners) {
       listener(held);
     }
@@ -138,8 +147,8 @@ function holdPass(gameId: string, held: HeldPass) {
 }
 
 /** Called by the game page with each answer of its game query. */
-export function rememberSeatPass(gameId: string, pass: string | null | undefined) {
-  holdPass(gameId, pass === undefined ? LEGACY : pass);
+export function rememberSeatPass(gameId: string, pass: string | null) {
+  holdPass(gameId, pass);
 }
 
 /** Every fresh pass for the game, so an open socket hands it to the room before the one it entered with ends. */
@@ -160,27 +169,32 @@ function nearExpiry(pass: string) {
 }
 
 /**
- * What the game socket admits with: the held pass while it has time left, a fresh one from Convex when it nears its end or the account is not enrolled yet, or a single-use ticket from a deployment without passes.
+ * What the game socket admits with: the held pass while it has time left, a fresh one from Convex when it nears its end or the account is not enrolled yet.
  * A pass Convex signed in the last minute is used as it is even if this browser's clock calls it near its end, so a skewed clock never renews in a loop.
  */
 export async function requestPlayAdmission(gameId: string, { renew = false }: { renew?: boolean } = {}) {
   const entry = passEntry(gameId);
-  await untilHeld(entry);
-  const held = entry.held!;
-  if (held === LEGACY) {
-    return await requestPlayTicket(gameId);
+  let forceRenewal = renew;
+  while (true) {
+    await untilHeld(entry);
+    const held = entry.held!;
+    /* `renew` is the room saying the pass ran out, which outranks this browser's clock unless Convex only just signed it. */
+    const justRenewed = held === entry.renewed?.pass && Date.now() - entry.renewed.at < JUST_RENEWED_MS;
+    if (held !== null && (justRenewed || (!forceRenewal && !nearExpiry(held)))) {
+      return { ok: true as const, pass: held };
+    }
+    const result = await db.mutation(held === null ? api.playAdmission.enrolPlayer : api.playAdmission.renewSeatPass, {
+      gameId,
+    });
+    /* A query or another renewal replaced the credential while this request waited; only the held one may be published. */
+    if (entry.held !== held) {
+      forceRenewal = false;
+      continue;
+    }
+    if (result.ok) {
+      entry.renewed = { pass: result.pass, at: Date.now() };
+      holdPass(gameId, result.pass);
+    }
+    return result;
   }
-  /* `renew` is the room saying the pass ran out, which outranks this browser's clock unless Convex only just signed it. */
-  const justRenewed = held === entry.renewed?.pass && Date.now() - entry.renewed.at < JUST_RENEWED_MS;
-  if (held !== null && (justRenewed || (!renew && !nearExpiry(held)))) {
-    return { ok: true as const, pass: held };
-  }
-  const result = await db.mutation(held === null ? api.playAdmission.enrolPlayer : api.playAdmission.renewSeatPass, {
-    gameId,
-  });
-  if (result.ok) {
-    entry.renewed = { pass: result.pass, at: Date.now() };
-    holdPass(gameId, result.pass);
-  }
-  return result;
 }

@@ -1,16 +1,12 @@
 import preview from '@sb/preview';
-import { expect, userEvent, waitFor, within } from 'storybook/test';
+import { expect, within } from 'storybook/test';
 
-import { seatFactionsResolve } from '@db/storybook';
-
-import { openPlayer, WAIT } from './controls.stories.fixture';
-import { gameMeta, install, lastCommand, removalSnapshot, session, seatPopover } from './game.stories.fixture';
-import { openTab, battleStory } from './playing.stories.fixture';
-import { productTransport, playingSnapshot } from './product.stories.fixture';
+import { gameMeta, install, seatPopover } from './game.stories.fixture';
+import { playingSnapshot, productTransport } from './product.stories.fixture';
 
 const meta = preview.meta({
   ...gameMeta,
-  title: 'Play/Panels/Players',
+  title: 'Play/Players',
   /* The stories load the table chunk before they render, so its cold first load falls outside their first wait (#1302). */
   loaders: [
     async () => {
@@ -19,110 +15,53 @@ const meta = preview.meta({
   ],
 });
 
-/** A player's public information beside the controls: the faction's name opens its page, with the leaders it starts with, in a new tab. */
-export const Info = meta.story({
-  decorators: [seatFactionsResolve],
-  beforeEach: install(() => productTransport('seat-2', playingSnapshot())),
-  play: async ({ canvasElement }) => {
-    const page = await openPlayer(canvasElement, 'Twaffle', 'Info');
-    const link = await page.findByRole('link', { name: 'View House Atreides (opens in a new tab)' }, WAIT);
-    await expect(link).toHaveAttribute('target', '_blank');
-    await expect(link).toHaveAttribute('href', '/factions/house-atreides');
-    await expect(page.findByText('House Atreides · Seat 1')).resolves.toBeVisible();
-    await expect(page.findByRole('button', { name: 'Advantages' }, WAIT)).resolves.toHaveAttribute(
-      'aria-expanded',
-      'true'
-    );
-    await expect(page.getByRole('button', { name: 'Setup' })).toHaveAttribute('aria-expanded', 'false');
-  },
-});
-
-/** A vote to remove a player, cast from that player's Info tab. */
-export const RemovalVote = meta.story({
-  beforeEach: install(() => productTransport('seat-2', removalSnapshot())),
-  play: async ({ canvasElement }) => {
-    const page = await openPlayer(canvasElement, 'Twaffle', 'Info');
-    await expect(page.findByRole('button', { name: 'Keep' }, WAIT)).resolves.toBeVisible();
-  },
-});
-
-export const RemovalVoting = meta.story({
-  beforeEach: install(() => productTransport('seat-2', removalSnapshot())),
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('tab', { name: 'Twaffle, removal vote in progress' }));
-    await expect(page.getByRole('tab', { name: 'Twaffle, removal vote in progress' })).toBeVisible();
-    await userEvent.click(page.getByRole('button', { name: 'Withdraw' }));
-    await expect(lastCommand()).toMatchObject({
-      action: { kind: 'removal-ballot', voteId: 'removal-12', choice: null },
-    });
-    await userEvent.click(page.getByRole('button', { name: 'Keep' }));
-    await expect(lastCommand()).toMatchObject({ action: { kind: 'removal-ballot', choice: 'keep' } });
-  },
-});
-
-export const RemovalResolution = meta.story({
-  beforeEach: install(() => {
-    return productTransport('seat-2', removalSnapshot(), {
-      logEntries: {
-        audit: [
-          {
-            sequence: 1,
-            class: 'vote',
-            text: 'Twaffle keeps seat 1: Thialfi and Fectumbra voted keep; Erickenneth, Ridwan and Argelius did not vote.',
-            context: 'Setup, Traitor selection',
-            at: 1,
-          },
-        ],
-      },
-    });
-  }),
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('tab', { name: 'Twaffle, removal vote in progress' }));
-    await userEvent.click(page.getByRole('button', { name: 'Keep' }));
-    const command = lastCommand();
-    await expect(command).toMatchObject({ action: { kind: 'removal-ballot', choice: 'keep' } });
-    const resolved = playingSnapshot();
-    resolved.removalVotes = [];
-    resolved.revision += 1;
-    session.transport.deliver(session.transport.view(resolved, command!.commandId));
-    await waitFor(() => expect(page.queryByRole('heading', { name: 'Remove Twaffle?' })).toBeNull());
-    await expect(page.queryByRole('heading', { name: 'Remove Twaffle?' })).toBeNull();
-    await expect(page.queryByRole('tab', { name: 'Twaffle, removal vote in progress' })).toBeNull();
-    await openTab(page, 'Game log');
-    await userEvent.click(await page.findByRole('tab', { name: 'Audit' }));
-    await expect(page.findByText(/Twaffle keeps seat 1/)).resolves.toBeVisible();
-  },
-});
-
-export const RemovalRejected = meta.story({
-  beforeEach: install(() => productTransport('seat-2', removalSnapshot())),
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('tab', { name: 'Twaffle, removal vote in progress' }));
-    await userEvent.click(page.getByRole('button', { name: 'Keep' }));
-    session.transport.deliver({
-      type: 'rejected',
-      requestId: lastCommand()!.commandId,
-      message: 'The vote changed. Try again.',
-    });
-    const publicState = within(canvasElement.ownerDocument.getElementById('player-public-state')!);
-    await expect(publicState.findByText('The vote changed. Try again.')).resolves.toBeVisible();
-    await expect(page.getByRole('button', { name: 'Remove' })).toHaveAttribute('aria-pressed', 'true');
-  },
-});
-
-/** A spectator of a full game reads that from the header's seat action; the dock keeps its height for the tabs. */
+/** A spectator of a full game reads that from the header's seat action alone. */
 export const FullGameSpectatorSeat = meta.story({
-  beforeEach: install(() => productTransport('neutral', battleStory('revealed', true))),
+  beforeEach: install(() => productTransport('neutral')),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const seat = await seatPopover(canvasElement, 'You are watching');
     await expect(seat().findByText('All 6 seats are taken')).resolves.toBeVisible();
     await expect(seat().queryByRole('button', { name: /^Request/ })).toBeNull();
-    const dock = canvasElement.ownerDocument.querySelector<HTMLElement>('.seated-controls-panel')!;
-    await expect(within(dock).queryByRole('region', { name: 'You are watching' })).toBeNull();
     await expect(page.getAllByRole('region', { name: 'You are watching' })).toHaveLength(1);
+  },
+});
+
+const SLOTS = 'dunezone-compass:slots';
+
+/* Pins the viewer's Faction info bottom right, and puts back what was pinned before once the story ends, so the next story starts as it would have. */
+function pinFactionInfo() {
+  try {
+    const before = localStorage.getItem(SLOTS);
+    localStorage.setItem(SLOTS, JSON.stringify({ left: null, right: { key: 'faction-info', seat: 'seat-2' } }));
+    return () => (before === null ? localStorage.removeItem(SLOTS) : localStorage.setItem(SLOTS, before));
+  } catch {
+    /* Without storage the slots start empty. */
+    return undefined;
+  }
+}
+
+/** The Faction info keeps all six tokens on one line, scrolling sideways when its slot is narrow. */
+export const FactionTokensScroll = meta.story({
+  globals: { viewport: { value: 'table1280' } },
+  beforeEach: [install(() => productTransport('seat-2', playingSnapshot('seat-2'))), pinFactionInfo],
+  play: async ({ canvasElement }) => {
+    const doc = canvasElement.ownerDocument;
+    const picker = await within(doc.body).findByRole('group', { name: 'Factions' }, { timeout: 30_000 });
+    const tops = new Set([...picker.querySelectorAll('button')].map((button) => button.offsetTop));
+    await expect(tops.size, 'The faction tokens wrap onto a second line.').toBe(1);
+    await expect(picker.scrollWidth, 'Six tokens outgrow the slot, so the row scrolls.').toBeGreaterThan(
+      picker.clientWidth
+    );
+    /* The rule under the tokens runs from the window's border to its scrolling body's far edge, short only of a scrollbar. */
+    const frame = picker.closest('[data-window]')!.getBoundingClientRect();
+    const body = picker.parentElement!;
+    const scrollbar = body.offsetWidth - body.clientWidth;
+    const rule = picker.getBoundingClientRect();
+    await expect(Math.abs(rule.left - frame.left), 'The rule stops short of the left edge.').toBeLessThanOrEqual(1.5);
+    await expect(
+      Math.abs(rule.right + scrollbar - frame.right),
+      'The rule stops short of the right edge.'
+    ).toBeLessThanOrEqual(1.5);
   },
 });

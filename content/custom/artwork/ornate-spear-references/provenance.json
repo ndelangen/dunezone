@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "sourceDescription": "A user-approved AI-generated monochrome illustration developed from the supplied reference. Original authorship and publication were not independently verified.",
+  "source": "originals/starman-5-1024x768.jpg",
+  "approval": {
+    "date": "2026-10-26",
+    "scope": "The user rejected the detailed proposal, requested less detail, and approved the simplified bitmap.",
+    "evidence": "approved"
+  },
+  "assets": {
+    "/vector/decal/ornate-spear.svg": {
+      "approvedBitmap": "originals/ornate-spear-approved.png",
+      "bitmapMaster": "bitmaps/ornate-spear.png",
+      "alphaThreshold": 0.5,
+      "maskGaussianSigmaPixels": 0.65,
+      "minimumComponentAreaPixels": 8,
+      "trace": "Potrace 1.16, turdsize 8, alphamax 1.0, opttolerance 0.25, followed by SVG authoring root and provenance steps, uniform square normalization and the decal optimization profile.",
+      "paint": "Inherited from the caller. Internal details remain transparent cutouts.",
+      "details": "The approved simple shaft, collars, angular neck and open asymmetric head are preserved. Advertising text and the photographic background are omitted."
+    }
+  }
+}

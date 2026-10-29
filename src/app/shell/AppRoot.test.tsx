@@ -18,7 +18,18 @@ function chrome(children: ReactNode) {
 }
 
 vi.mock('@tanstack/react-router', () => ({
-  Link: ({ children, to, search: _search, ...rest }: { children: ReactNode; to: string; search?: unknown }) => (
+  Link: ({
+    children,
+    to,
+    search: _search,
+    activeProps: _activeProps,
+    ...rest
+  }: {
+    children: ReactNode;
+    to: string;
+    search?: unknown;
+    activeProps?: unknown;
+  }) => (
     <a href={to} {...rest}>
       {children}
     </a>
@@ -53,6 +64,7 @@ class ResizeObserverStub {
 
 describe('AppRoot page header', () => {
   beforeEach(() => {
+    vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
     vi.stubGlobal('ResizeObserver', ResizeObserverStub);
   });
 
@@ -106,7 +118,7 @@ describe('AppRoot page header', () => {
     act(() => root.unmount());
   });
 
-  it('releases the scroll progress and motion verdict it publishes on unmount', () => {
+  it('releases its motion verdict on unmount', () => {
     const container = document.createElement('div');
     const root = createRoot(container);
 
@@ -120,12 +132,10 @@ describe('AppRoot page header', () => {
       );
     });
 
-    expect(document.documentElement.style.getPropertyValue('--scroll-pct')).not.toBe('');
     expect(document.documentElement.dataset.motion).toBe('ok');
 
     act(() => root.unmount());
 
-    expect(document.documentElement.style.getPropertyValue('--scroll-pct')).toBe('');
     expect(document.documentElement.dataset.motion).toBeUndefined();
   });
 
@@ -154,6 +164,7 @@ describe('AppRoot page header', () => {
       { href: 'https://storybook.dune.zone', label: 'Component library' },
       { href: 'https://github.com/ndelangen/dunezone', label: 'Source code' },
       { href: '/glossary', label: 'Glossary' },
+      { href: '/contributing', label: 'Contributing' },
       { href: '/future-plans', label: 'Future plans' },
       { href: '/privacy', label: 'Privacy policy' },
       {

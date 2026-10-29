@@ -1,0 +1,18 @@
+{
+  "generator": "Built-in image_gen",
+  "prompt": "Use case: stylized-concept.\nAsset type: compact planet bitmap for a web app, circular CSS mask, rotating a full 360 degrees in its own plane.\nInput image 1: the app header, authoritative hand-painted style and muted umber/ochre/sand color palette. Input image 2: earlier planet, shows the illustration style we want but its upright oversized mountains and directional landscape perspective are WRONG and must not be repeated.\nCreate one complete centered circular desert planet, orthographic directly overhead orbital view, square opaque canvas 1536x1536. Disc tangent to the four canvas edges. Flat dark warm charcoal outside the disc. No alpha channel, no halo or atmosphere; the app adds these in CSS.\nThe user wants HAND DRAWN, ARTSY illustration, not a photograph. Use confident hand-painted gouache shapes, visible broad brush variation, subtly imperfect layered pigment and restrained matte paper grain, similar to the header. Depict believable planetary scale using broad irregular sand seas, continental mineral regions, branching subtle ancient erosion patterns, gently broken strata, tiny distant geological details. All geology is seen directly from above, map-like, projected onto a sphere with a little natural foreshortening at the edge. Do not paint upright mountain silhouettes, towering ranges seen from their sides, foreground hills, huge craters or a landscape horizon. No up/down direction to the terrain. It must look equally plausible rotated 90, 180, 270, and 360 degrees.\nEven diffuse illumination across the disc. No cast shadows, dark hemisphere, directional sunlight, bright crescent or fixed highlight baked into the image, since the app will apply steady spherical lighting while the bitmap rotates.\nRestrained mineral contrast. Match header hues 33-39 degrees: muted #59442A, #785D3B, #8F7752, #9B7848, #AF9364 with sparse #C6AE80 sand highlights. Avoid bright orange and red rust, blue, cyan, green. The result should feel like an artist painted a world seen from orbit, with correctly distant terrain, rather than photographing it or drawing giant mountains. No stars, moons, rings, ocean, clouds, ice caps, glow, text, logos, border, UI or watermark. Output just one opaque square planet bitmap.",
+  "asset": "src/app/shell/planet.webp",
+  "sha256": "c31046fc016b8a1c21a9169d6ed41c245669d5bc9585e1320f8a30bb7fefc67b",
+  "encoding": {
+    "width": 1024,
+    "height": 1024,
+    "bytes": 57486,
+    "alpha": false,
+    "webpQuality": 65
+  },
+  "source": {
+    "branch": "norbert/app-shell-option-b",
+    "commit": "c99bafc22",
+    "path": "13-option-b-painted-source.png"
+  }
+}

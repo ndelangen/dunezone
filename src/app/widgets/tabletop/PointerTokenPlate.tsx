@@ -2,11 +2,12 @@
 
 import type { TablePiece } from '@shared/play/model';
 import { POINTER_BODY_RADIUS, POINTER_HEIGHT, POINTER_OUTLINE, POINTER_TIP } from '@shared/play/pointerToken';
+import { playUiColors } from '@shared/uiPalette';
 import { ExtrudeGeometry, Shape, ShapeGeometry } from 'three';
 import type { Texture } from 'three';
 
 /* A thin band of brass runs round the plate's edge, under the faction's colour, so a plate reads as one piece on any territory. */
-const BRASS = '#c9a35f';
+const BRASS = playUiColors.pointerBrass;
 const RIM_HEIGHT = POINTER_HEIGHT * 0.45;
 const INSET = 0.035;
 

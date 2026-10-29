@@ -9,8 +9,10 @@ import { customCardEditing, stormCardEditing } from '../../../layeredCardEditing
 import { BoardEditPage } from './boardEdit';
 import { BundleEditPage } from './bundleEdit';
 import { DeckEditPage } from './deckEdit';
+import { HomeworldEditPage } from './homeworldEdit';
 import { LayeredEditPage } from './layeredEdit';
 import { LeaderSkillEditPage } from './leaderSkillEdit';
+import { LeaderTokenEditPage } from './leaderTokenEdit';
 import { NexusEditPage } from './nexusEdit';
 import { RectangleEditPage } from './rectangleEdit';
 import { SpiceEditPage } from './spiceEdit';
@@ -44,6 +46,8 @@ function EditAssetPage() {
       return <TreacheryEditPage slug={slug} loaderData={loaderData} />;
     case 'card-leaderability':
       return <LeaderSkillEditPage slug={slug} loaderData={loaderData} />;
+    case 'card-homeworld':
+      return <HomeworldEditPage slug={slug} loaderData={loaderData} />;
     case 'card-nexus':
       return <NexusEditPage slug={slug} loaderData={loaderData} />;
     case 'card-custom':
@@ -60,6 +64,8 @@ function EditAssetPage() {
     case 'token-plate':
       return <TokenEditPage type={type} slug={slug} loaderData={loaderData} />;
     /* The rectangle is a token by category and its own editor by face: a free composition rather than a symbol in a slot. */
+    case 'token-leader':
+      return <LeaderTokenEditPage slug={slug} loaderData={loaderData} />;
     case 'token-enhance':
       return <RectangleEditPage type={type} slug={slug} loaderData={loaderData} />;
     case 'deck':

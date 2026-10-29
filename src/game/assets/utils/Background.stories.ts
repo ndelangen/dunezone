@@ -1,6 +1,5 @@
 import preview from '@sb/preview';
 
-import { backgroundPresets } from '../../data/backgrounds';
 import { Background } from './Background';
 
 const meta = preview.meta({
@@ -14,16 +13,6 @@ export const SubtleTexture = meta.story({
     influence: 0.15,
     invert: true,
     definition: 0.2,
-  },
-});
-
-export const DominantTexture = meta.story({
-  args: {
-    image: '/image/texture/011.jpg',
-    colors: ['#D6409F', '#1DA6D8'],
-    influence: 0.9,
-    invert: false,
-    definition: 1,
   },
 });
 
@@ -69,8 +58,4 @@ export const RadialGradient = meta.story({
     invert: false,
     definition: 1,
   },
-});
-
-export const RadialToken = meta.story({
-  args: backgroundPresets.terror,
 });

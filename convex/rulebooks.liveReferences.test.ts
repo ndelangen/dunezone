@@ -9,6 +9,7 @@ import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPub
 import { createFactionMemberId, ensureFactionMemberIds } from '../src/shared/factions/memberIdentity';
 import { RULEBOOK_CATALOGUE_VERSION, rulebookContentsV1Schema } from '../src/shared/rulebooks/contents';
 import { projectRulebookRenderDocument, projectRulebookSource } from '../src/shared/rulebooks/projectRenderDocument';
+import { rulebookSourceClipPath } from '../src/shared/rulebooks/sources';
 import { api, internal } from './_generated/api';
 import { resolveRulebookReferences } from './lib/rulebookReferences';
 import { rulebookFixture } from './rulebooks.test.fixture';
@@ -127,6 +128,52 @@ async function liveReferenceFixture() {
 }
 
 describe('Rulebook component references', () => {
+  test('sheet references carry printed data only when selected and become unavailable after deletion', async () => {
+    const { t, owner, refs, contents, locator } = await liveReferenceFixture();
+    const block = contents.pagesById.RULE!.blocksById.ARTW!;
+    if (block.kind !== 'referenced-illustration') {
+      throw new Error('Expected illustration');
+    }
+    const source = { kind: 'faction', factionId: refs.factionId, presentation: 'sheet' } as const;
+    const before = await t.run((ctx) => resolveRulebookReferences(ctx, contents));
+    expect(before.factionsById[refs.factionId]?.sheet).toBeUndefined();
+    const legacy = await owner.query(api.rulebooks.editorPage, {
+      ...locator,
+      reference_faction_ids: [refs.factionId],
+    });
+    if (legacy?.kind !== 'editable') {
+      throw new Error('Expected editable rulebook');
+    }
+    expect(legacy.factionsById[refs.factionId]?.sheet).toBeUndefined();
+    const editor = await owner.query(api.rulebooks.editorPage, {
+      ...locator,
+      reference_faction_ids: [refs.factionId],
+      faction_sheet_data: true,
+    });
+    if (editor?.kind !== 'editable') {
+      throw new Error('Expected editable rulebook');
+    }
+    expect(projectRulebookSource(source, {}, editor.factionsById)).toMatchObject({
+      status: 'ready',
+      sheet: { rules: { revivalText: '2 troops free.' } },
+    });
+    block.source = source;
+    const selected = await t.run((ctx) => resolveRulebookReferences(ctx, rulebookContentsV1Schema.parse(contents)));
+    const sheet = projectRulebookSource(source, {}, selected.factionsById);
+    expect(sheet).toMatchObject({
+      status: 'ready',
+      reference: source,
+      sheet: { rules: { revivalText: '2 troops free.' } },
+    });
+    await t.run((ctx) => ctx.db.patch('factions', refs.factionId, { is_deleted: true }));
+    const removed = await t.run((ctx) => resolveRulebookReferences(ctx, contents));
+    expect(projectRulebookSource(source, {}, removed.factionsById)).toEqual({
+      status: 'unavailable',
+      reference: source,
+    });
+    expect(sheet).toMatchObject({ sheet: { rules: { revivalText: '2 troops free.' } } });
+  });
+
   test('troop references retain their face through renames and become unavailable when that face is removed', async () => {
     const { t, owner, refs, data, contents, locator } = await liveReferenceFixture();
     const troop = data.troops[0]!;
@@ -467,5 +514,67 @@ describe('Rulebook component references', () => {
       },
       { faction: { status: 'unavailable', factionId: refs.factionId }, text: 'Keep this introduction.' },
     ]);
+  });
+});
+
+test('explicit token and traitor sources use their existing publications without changing defaults', async () => {
+  const { t, refs, contents, data, memberSource } = await liveReferenceFixture();
+  const traitor = { ...memberSource, presentation: 'traitor' as const };
+  const token = { kind: 'faction' as const, factionId: refs.factionId, presentation: 'token' as const };
+  const block = contents.pagesById.RULE!.blocksById.ARTW!;
+  if (block.kind !== 'referenced-illustration') {
+    throw new Error('Expected illustration');
+  }
+  block.source = traitor;
+  const inventory = contents.pagesById.RULE!.blocksById.NVTR!;
+  if (inventory.kind !== 'illustrated-inventory') {
+    throw new Error('Expected inventory');
+  }
+  inventory.itemsById.asset!.source = token;
+  const publicationId = factionMemberPublicationId(refs.factionId, data.leaders[0]!.memberId);
+  await t.run((ctx) =>
+    ctx.db.insert('publication_assets', {
+      asset_type: 'faction-traitor',
+      asset_id: publicationId,
+      cache_token: 'traitor-one',
+      published_at: 1,
+    })
+  );
+  const resolved = await t.run((ctx) => resolveRulebookReferences(ctx, contents, { factionTokenImages: false }));
+  const projectedTraitor = projectRulebookSource(traitor, {}, resolved.factionsById);
+  expect(projectedTraitor).toMatchObject({
+    status: 'ready',
+    reference: traitor,
+    width: 900,
+    height: 1263,
+    imageUrl: publishedHref('faction-traitor', publicationId, 'traitor-one'),
+  });
+  expect(rulebookSourceClipPath(projectedTraitor)).toBeUndefined();
+  expect(projectRulebookSource(memberSource, {}, resolved.factionsById)).toMatchObject({
+    status: 'ready',
+    imageUrl: publishedHref('faction-leader', publicationId, 'one'),
+  });
+  const projectedToken = projectRulebookSource(token, {}, resolved.factionsById);
+  expect(projectedToken).toMatchObject({
+    status: 'ready',
+    imageUrl: publishedHref('faction-token', refs.factionId, 'token-one'),
+  });
+  expect(rulebookSourceClipPath(projectedToken)).toBe('circle(50%)');
+  expect(
+    projectRulebookSource({ kind: 'faction', factionId: refs.factionId }, {}, resolved.factionsById)
+  ).toMatchObject({ status: 'ready', imageUrl: data.logo });
+  await t.run(async (ctx) => {
+    const publication = await ctx.db
+      .query('publication_assets')
+      .withIndex('by_asset_type_and_asset_id', (q) =>
+        q.eq('asset_type', 'faction-traitor').eq('asset_id', publicationId)
+      )
+      .unique();
+    await ctx.db.delete('publication_assets', publication!._id);
+  });
+  const missing = await t.run((ctx) => resolveRulebookReferences(ctx, contents));
+  expect(projectRulebookSource(traitor, {}, missing.factionsById)).toEqual({
+    status: 'unavailable',
+    reference: traitor,
   });
 });

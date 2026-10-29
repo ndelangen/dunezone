@@ -1,3 +1,4 @@
+import { gameAssetColors } from '@shared/play/assetColors';
 import type { TableItem } from '@shared/play/model';
 import { createContext, useContext, useEffect, useState } from 'react';
 
@@ -17,8 +18,8 @@ const DECAL_CENTRE_Y = 470;
 const LOGO = { centreY: DECAL_CENTRE_Y - 40, size: 230 };
 const TURN = { centreY: DECAL_CENTRE_Y + 165, size: 170, font: 'C_Advokat_Modern' };
 /* Decals draw black with a light outline (`Decals.tsx`); the overlay keeps both colours and the outline width. */
-const FOREGROUND = '#e3dbb3';
-const INK = '#1c140d';
+const FOREGROUND = gameAssetColors.predictionPaper;
+const INK = gameAssetColors.predictionInk;
 const OUTLINE = 6;
 const SCALE = 0.5;
 
@@ -119,14 +120,16 @@ export function usePredictionFace(prediction: CardPrediction | undefined): HTMLC
   /* A logo that failed to load is tried again, as the published face beneath it is. */
   const [attempt, setAttempt] = useState(0);
   const key = source?.key ?? null;
+  const logo = source?.logo;
+  const turn = source?.turn;
   useEffect(() => {
-    if (!source) {
+    if (logo === undefined || turn === undefined) {
       return;
     }
     let live = true;
     let retry: ReturnType<typeof setTimeout> | undefined;
-    predictionFace(source.logo, source.turn).then(
-      (canvas) => live && setFace({ key: source.key, canvas }),
+    predictionFace(logo, turn).then(
+      (canvas) => live && setFace({ key: faceKey(logo, turn), canvas }),
       () => {
         if (live) {
           retry = setTimeout(() => setAttempt((value) => value + 1), RETRY_MS);
@@ -137,8 +140,6 @@ export function usePredictionFace(prediction: CardPrediction | undefined): HTMLC
       live = false;
       clearTimeout(retry);
     };
-    // The key names the logo and turn the source carries.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, attempt]);
+  }, [logo, turn, attempt]);
   return face?.key === key ? face.canvas : null;
 }

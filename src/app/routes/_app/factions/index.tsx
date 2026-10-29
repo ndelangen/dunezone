@@ -1,6 +1,19 @@
-import { Badge, Button, Group, InputBase, Popover, RangeSlider, Select, Stack, Text, Title } from '@mantine/core';
+import {
+  Badge,
+  Button,
+  Group,
+  InputBase,
+  Popover,
+  RangeSlider,
+  Select,
+  Stack,
+  Text,
+  Title,
+  VisuallyHidden,
+} from '@mantine/core';
 import {
   complexityRangeSearchValue,
+  FACTION_CATALOGUE_PAGE_SIZE,
   parseComplexityRange,
   parseFactionCatalogueSearch,
 } from '@shared/factions/catalogueSearch';
@@ -17,22 +30,48 @@ import { errorMessage } from '@ui/content/errorMessage';
 import { CallToAction } from '@ui/control/CallToAction';
 import { CataloguePager, catalogueCountLabel } from '@ui/control/CataloguePager';
 import { IconAction } from '@ui/control/IconAction';
+import { LoadMoreButton } from '@ui/control/LoadMoreButton';
 import { SearchRefine } from '@ui/control/SearchRefine';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { FactionList } from '@ui/list/FactionList';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowDownAZ, ChevronsDown, Filter, Plus } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useRef, useState } from 'react';
+import type { Ref } from 'react';
 
 import { loadFactionCataloguePage, useFactionCataloguePage } from '@db/factions';
-import type { FactionCataloguePageData, FactionCatalogueRuleset } from '@db/factions';
+import type {
+  FactionCatalogueArgs,
+  FactionCatalogueBrowseData,
+  FactionCatalogueMember,
+  FactionCataloguePageData,
+  FactionCatalogueRuleset,
+  FactionCatalogueSearchData,
+} from '@db/factions';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
+import { useFocusFirstNewRow, useGrowingLimit, useGrowingSearch } from '@app/routes/growingSearch';
 import { publicPageHead } from '@app/routes/publicPage';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import { factionCatalogueArgs, useFactionCatalogueSession } from './catalogue';
 import styles from './index.module.css';
+
+/** How many cards a search shows at first, and how many more each "Load more" asks for. */
+const SEARCH_STEP = FACTION_CATALOGUE_PAGE_SIZE;
+
+/** The cards' links, as the list renders them, in their order. */
+const CARD_LINK = 'a[href^="/factions/"]';
+
+/** The query's arguments at one limit: a search asks for its best matches up to it, a browsed page ignores it. */
+function catalogueQueryArgs(deps: FactionCatalogueArgs, limit: number): FactionCatalogueArgs {
+  return { ...deps, limit: deps.q ? limit : undefined };
+}
+
+/** The live catalogue for a parsed address at one limit; the growing list asks for a longer one through it. */
+function useCatalogueRows(deps: FactionCatalogueArgs, limit: number) {
+  return useFactionCataloguePage(catalogueQueryArgs(deps, limit)).data;
+}
 
 export const Route = createFileRoute('/_app/factions/')({
   ssr: true,
@@ -40,9 +79,9 @@ export const Route = createFileRoute('/_app/factions/')({
   validateSearch: parseFactionCatalogueSearch,
   loaderDeps: ({ search }) => factionCatalogueArgs(search),
   loader: async ({ deps }) => {
-    const data = await loadFactionCataloguePage(deps);
-    /* A page past the end is an address that does not exist, so it answers 404 and points at the last page. */
-    if (data.page > data.pageCount) {
+    const data = await loadFactionCataloguePage(catalogueQueryArgs(deps, SEARCH_STEP));
+    /* A browsed page past the end is an address that does not exist, so it answers 404 and points at the last page. */
+    if (!('mode' in data) && data.page > data.pageCount) {
       throw notFound({ data: { pageCount: data.pageCount } });
     }
     return data;
@@ -53,7 +92,7 @@ export const Route = createFileRoute('/_app/factions/')({
   head: ({ match }) => {
     const search = parseFactionCatalogueSearch(match.search);
     /* Only the plain listing's pages are worth a search engine's time; a search, filter or order is the same factions again. */
-    const refined = search.q != null || search.ruleset != null || search.complexity != null || search.sort != null;
+    const refined = countRefinements(search) > 0 || search.q != null || search.sort != null;
     const head = publicPageHead({
       name:
         search.page && !refined
@@ -72,13 +111,17 @@ export const Route = createFileRoute('/_app/factions/')({
 function FactionsPage() {
   const loaderData = Route.useLoaderData();
   const args = Route.useLoaderDeps();
-  const catalogue = useFactionCataloguePage(args, { initialData: loaderData });
-  const data = catalogue.data;
-  const session = useFactionCatalogueSession(data?.rulesets);
-
-  if (!data) {
-    return <FactionCataloguePending />;
-  }
+  const growing = useGrowingLimit(args, SEARCH_STEP);
+  const live = useCatalogueRows(args, growing.limit);
+  const { data, loading, loaded, grown, loadMore } = useGrowingSearch({
+    search: growing,
+    initial: loaderData,
+    live,
+    rows: (page) => page.cards.length,
+  });
+  const session = useFactionCatalogueSession(data);
+  const list = useRef<HTMLDivElement>(null);
+  useFocusFirstNewRow(list, loaded, grown, CARD_LINK);
   const hasFactions = data.catalogueTotal > 0;
 
   return (
@@ -94,44 +137,147 @@ function FactionsPage() {
             onCommitQuery={session.query.commit}
             search={session.search}
             rulesets={data.rulesets}
-            visibleCount={data.total}
-            visibleCountComplete={data.complete}
+            member={data.owner?.member ?? null}
+            matched={'mode' in data ? undefined : { count: data.total, complete: data.complete }}
             totalCount={data.catalogueTotal}
             onSearchChange={session.changeSearch}
           />
         ) : undefined}
       </PageLayout.Toolbar>
       <PageLayout.Content>
-        {hasFactions ? (
-          data.total === 0 ? (
-            <FilteredEmptyState complete={data.complete} onReset={session.reset} />
-          ) : data.cards.length === 0 ? (
-            <PastTheEnd pageCount={data.pageCount} />
-          ) : (
-            <Stack gap="lg" aria-busy={catalogue.isPending}>
-              <FactionList factions={data.cards} selectedRulesetSlug={session.search.ruleset} />
-              <CataloguePager
-                page={data.page}
-                pageCount={data.pageCount}
-                pageSize={data.pageSize}
-                total={data.total}
-                complete={data.complete}
-                noun="factions"
-                label="Faction catalogue pages"
-                pageLinkProps={(page) => ({ component: Link, to: '/factions', search: pageSearch(page) })}
-              />
-            </Stack>
-          )
-        ) : (
-          <Surface padding="xl">
-            <Title order={2}>There are no factions</Title>
-            <Text c="dimmed" mt="xs">
-              Create the first faction to begin the collection.
-            </Text>
-          </Surface>
-        )}
+        <CatalogueContent
+          data={data}
+          loading={loading}
+          loaded={loaded}
+          onLoadMore={loadMore}
+          selectedRulesetSlug={session.search.ruleset}
+          onReset={session.reset}
+          ref={list}
+        />
       </PageLayout.Content>
     </PageLayout>
+  );
+}
+
+type CatalogueContentProps = {
+  data: FactionCataloguePageData;
+  loading: boolean;
+  /** Whether the longer list asked for has arrived. */
+  loaded: boolean;
+  onLoadMore: () => void;
+  selectedRulesetSlug: string | undefined;
+  onReset: () => void;
+  ref: Ref<HTMLDivElement>;
+};
+
+/** The page's body: an empty collection, a search, or a browsed page. */
+function CatalogueContent({
+  data,
+  loading,
+  loaded,
+  onLoadMore,
+  selectedRulesetSlug,
+  onReset,
+  ref,
+}: CatalogueContentProps) {
+  if (data.catalogueTotal === 0) {
+    return (
+      <Surface padding="xl">
+        <Title order={2}>There are no factions</Title>
+        <Text c="dimmed" mt="xs">
+          Create the first faction to begin the collection.
+        </Text>
+      </Surface>
+    );
+  }
+  if ('mode' in data) {
+    return (
+      <SearchedCatalogue
+        data={data}
+        loading={loading}
+        loaded={loaded}
+        onLoadMore={onLoadMore}
+        selectedRulesetSlug={selectedRulesetSlug}
+        onReset={onReset}
+        ref={ref}
+      />
+    );
+  }
+  return <BrowsedCatalogue data={data} selectedRulesetSlug={selectedRulesetSlug} onReset={onReset} />;
+}
+
+/** One page of the browsed catalogue, with its pager. */
+function BrowsedCatalogue({
+  data,
+  selectedRulesetSlug,
+  onReset,
+}: {
+  data: FactionCatalogueBrowseData;
+  selectedRulesetSlug: string | undefined;
+  onReset: () => void;
+}) {
+  if (data.total === 0) {
+    return <FilteredEmptyState complete={data.complete} onReset={onReset} />;
+  }
+  if (data.cards.length === 0) {
+    return <PastTheEnd pageCount={data.pageCount} />;
+  }
+  return (
+    <Stack gap="lg">
+      <FactionList factions={data.cards} selectedRulesetSlug={selectedRulesetSlug} />
+      <CataloguePager
+        page={data.page}
+        pageCount={data.pageCount}
+        pageSize={data.pageSize}
+        total={data.total}
+        complete={data.complete}
+        noun="factions"
+        label="Faction catalogue pages"
+        pageLinkProps={(page) => ({ component: Link, to: '/factions', search: pageSearch(page) })}
+      />
+    </Stack>
+  );
+}
+
+/**
+ * The best matches of a search, and a "Load more" that asks for a longer list while there is one: no count and no pages.
+ * When the longer list arrives, focus moves to its first new card, so a keyboard reader carries on from where the list grew.
+ */
+function SearchedCatalogue({
+  data,
+  loading,
+  loaded,
+  onLoadMore,
+  selectedRulesetSlug,
+  onReset,
+  ref,
+}: {
+  data: FactionCatalogueSearchData;
+  loading: boolean;
+  /** Whether the longer list asked for has arrived. */
+  loaded: boolean;
+  onLoadMore: () => void;
+  selectedRulesetSlug: string | undefined;
+  onReset: () => void;
+  ref: Ref<HTMLDivElement>;
+}) {
+  if (data.cards.length === 0) {
+    return <FilteredEmptyState complete={!data.capped} onReset={onReset} />;
+  }
+  return (
+    <Stack gap="lg" aria-busy={loading} ref={ref}>
+      <FactionList factions={data.cards} selectedRulesetSlug={selectedRulesetSlug} />
+      {/* The cards say how many arrived; this says only that they did, so a reader hears the list grow without a count the page never shows. */}
+      <VisuallyHidden role="status" aria-live="polite">
+        {loaded ? 'More factions loaded' : null}
+      </VisuallyHidden>
+      {data.hasMore ? <LoadMoreButton loading={loading} onLoadMore={onLoadMore} /> : null}
+      {data.capped ? (
+        <Text c="dimmed" ta="center">
+          That's as far as this search goes. Add a word to narrow it.
+        </Text>
+      ) : null}
+    </Stack>
   );
 }
 
@@ -171,7 +317,7 @@ function CatalogueHeader({ spotlights }: { spotlights?: FactionCataloguePageData
         <Stack gap={4} align="flex-start" miw={0}>
           <PageTitle eyebrow="Explore the collection" title="Faction catalogue" />
           <Text size="sm" c="dimmed">
-            Browse the living collection of community factions.
+            Custom factions for the Dune board game, made and shared by the community.
           </Text>
         </Stack>
         <CallToAction attention renderRoot={(rootProps) => <Link {...rootProps} to="/factions/create" />}>
@@ -249,23 +395,20 @@ function CatalogueRefine({
   search,
   rulesetOptions,
   rulesets,
-  visibleCount,
-  visibleCountComplete,
+  member,
+  matched,
   totalCount,
   onSearchChange,
 }: {
   search: FactionCatalogueSearch;
   rulesetOptions: { value: string; label: string }[];
   rulesets: FactionCatalogueRuleset[];
-  visibleCount: number;
-  /** False when a search matched more than one read can hold, so `visibleCount` is a lower bound. */
-  visibleCountComplete: boolean;
+  member: FactionCatalogueMember;
+  matched: MatchedCount | undefined;
   totalCount: number;
   onSearchChange: (patch: Partial<Record<keyof FactionCatalogueSearch, unknown>>) => void;
 }) {
-  const rulesetActive = search.ruleset != null;
-  const rangeActive = search.complexity != null;
-  const activeCount = (rulesetActive ? 1 : 0) + (rangeActive ? 1 : 0);
+  const activeCount = countRefinements(search);
 
   const rulesetCount = (slug: string) =>
     slug === 'all' ? totalCount : (rulesets.find((ruleset) => ruleset.slug === slug)?.factionCount ?? 0);
@@ -280,7 +423,7 @@ function CatalogueRefine({
           variant="unstyled"
           leftSection={<Filter size={15} aria-hidden />}
           rightSection={<ChevronsDown size={15} aria-hidden opacity={0.6} />}
-          aria-label="Refine factions by ruleset and complexity"
+          aria-label={refineTriggerLabel(member)}
         >
           Refine{activeCount > 0 ? ` (${activeCount})` : ''}
         </InputBase>
@@ -288,6 +431,7 @@ function CatalogueRefine({
       <Popover.Dropdown style={{ padding: 0, border: 0, boxShadow: 'none' }}>
         <Surface padding="md">
           <Stack gap="md">
+            <OwnerFilter member={member} onClear={() => onSearchChange({ owner: undefined })} />
             <Stack gap="xs">
               <Text size="xs" fw={700} tt="uppercase" c="dimmed">
                 Ruleset
@@ -333,17 +477,18 @@ function CatalogueRefine({
             </Stack>
 
             <Group gap="xs" justify="space-between">
+              {/* A search shows no count of its matches, only the catalogue's size. */}
               <Text size="xs" c="dimmed">
-                {visibleCount === totalCount
+                {matched === undefined || matched.count === totalCount
                   ? `${totalCount} factions`
-                  : `${catalogueCountLabel(visibleCount, visibleCountComplete)} of ${totalCount} factions`}
+                  : `${catalogueCountLabel(matched.count, matched.complete)} of ${totalCount} factions`}
               </Text>
               {activeCount > 0 ? (
                 <Button
                   size="compact-xs"
                   variant="subtle"
                   color="gray"
-                  onClick={() => onSearchChange({ ruleset: undefined, complexity: undefined })}
+                  onClick={() => onSearchChange({ ruleset: undefined, owner: undefined, complexity: undefined })}
                 >
                   Clear filters
                 </Button>
@@ -356,14 +501,70 @@ function CatalogueRefine({
   );
 }
 
+/** How many factions a browsed page's filters matched; `complete` is false when the count is a floor. */
+type MatchedCount = { count: number; complete: boolean };
+
+/** How many of the filters that narrow the grid are set: the ruleset or the member, which share one list, and the complexity range. */
+function countRefinements(search: FactionCatalogueSearch) {
+  return (search.ruleset == null && search.owner == null ? 0 : 1) + (search.complexity == null ? 0 : 1);
+}
+
+/** The popover trigger's name, naming each filter it offers; the member's is among them only while the address sets it. */
+function refineTriggerLabel(member: FactionCatalogueMember) {
+  return member ? 'Refine factions by member, ruleset and complexity' : 'Refine factions by ruleset and complexity';
+}
+
+/**
+ * The member the grid is narrowed to, reached from their profile's "All N factions", or nothing when it is not.
+ * That link is the one way to set it, so here the member is only named and cleared;
+ * choosing a ruleset clears it too, since a list is one partition.
+ * The badge and the clear button sit in a group the "Member" label names, so a screen reader hears what the badge is a value of.
+ * `plainLabel` matches the drawer's field labels rather than the popover's headings.
+ */
+function OwnerFilter({
+  member,
+  onClear,
+  plainLabel = false,
+}: {
+  member: FactionCatalogueMember;
+  onClear: () => void;
+  plainLabel?: boolean;
+}) {
+  const labelId = useId();
+  if (!member) {
+    return null;
+  }
+  return (
+    <Stack gap="xs" role="group" aria-labelledby={labelId}>
+      {plainLabel ? (
+        <Text id={labelId} size="sm" fw={500}>
+          Member
+        </Text>
+      ) : (
+        <Text id={labelId} size="xs" fw={700} tt="uppercase" c="dimmed">
+          Member
+        </Text>
+      )}
+      <Group gap="xs">
+        <Badge variant="filled" color="selected">
+          By {member.name}
+        </Badge>
+        <Button size="compact-xs" variant="subtle" color="gray" onClick={onClear}>
+          Show every member's factions
+        </Button>
+      </Group>
+    </Stack>
+  );
+}
+
 function CatalogueToolbar({
   draftQuery,
   onDraftQueryChange,
   onCommitQuery,
   search,
   rulesets,
-  visibleCount,
-  visibleCountComplete,
+  member,
+  matched,
   totalCount,
   onSearchChange,
 }: {
@@ -372,9 +573,9 @@ function CatalogueToolbar({
   onCommitQuery: () => void;
   search: FactionCatalogueSearch;
   rulesets: FactionCatalogueRuleset[];
-  visibleCount: number;
-  /** False when a search matched more than one read can hold, so `visibleCount` is a lower bound. */
-  visibleCountComplete: boolean;
+  member: FactionCatalogueMember;
+  /** Absent while searching, which shows no count. */
+  matched: MatchedCount | undefined;
   totalCount: number;
   onSearchChange: (patch: Partial<Record<keyof FactionCatalogueSearch, unknown>>) => void;
 }) {
@@ -396,23 +597,26 @@ function CatalogueToolbar({
       leftSection={<Filter size={15} aria-hidden />}
     />
   );
+  /* A search is always best match, so its sort has one option and takes no change; choosing an order is for browsing. */
   const sortSelect = (label?: string, joined = false) => (
     <Select
       variant={joined ? 'unstyled' : 'default'}
       label={label}
-      value={search.sort ?? (search.q ? 'relevance' : 'name')}
-      data={[
-        ...(search.q ? [{ value: 'relevance', label: 'Best match' }] : []),
-        { value: 'name', label: 'Alphabetical (A–Z)' },
-        { value: 'created', label: 'Chronological (created)' },
-        { value: 'updated', label: 'Chronological (updated)' },
-        { value: 'complexity-asc', label: 'Complexity (low → high)' },
-        { value: 'complexity-desc', label: 'Complexity (high → low)' },
-      ]}
-      allowDeselect={false}
-      onChange={(value) =>
-        onSearchChange({ sort: value === 'relevance' || (value === 'name' && !search.q) ? undefined : value })
+      value={search.q ? 'relevance' : (search.sort ?? 'name')}
+      data={
+        search.q
+          ? [{ value: 'relevance', label: 'Best match' }]
+          : [
+              { value: 'name', label: 'Alphabetical (A–Z)' },
+              { value: 'created', label: 'Chronological (created)' },
+              { value: 'updated', label: 'Chronological (updated)' },
+              { value: 'complexity-asc', label: 'Complexity (low → high)' },
+              { value: 'complexity-desc', label: 'Complexity (high → low)' },
+            ]
       }
+      disabled={Boolean(search.q)}
+      allowDeselect={false}
+      onChange={(value) => onSearchChange({ sort: value === 'name' ? undefined : value })}
       aria-label="Sort factions"
       leftSection={<ArrowDownAZ size={15} aria-hidden />}
     />
@@ -429,7 +633,7 @@ function CatalogueToolbar({
     </Stack>
   );
 
-  const refinements = (search.ruleset == null ? 0 : 1) + (search.complexity == null ? 0 : 1);
+  const refinements = countRefinements(search);
 
   return (
     <Toolbar>
@@ -449,6 +653,7 @@ function CatalogueToolbar({
             active: refinements,
             content: (
               <>
+                <OwnerFilter member={member} onClear={() => onSearchChange({ owner: undefined })} plainLabel />
                 {rulesetSelect('Ruleset')}
                 {complexitySlider}
                 {sortSelect('Sort by')}
@@ -460,8 +665,8 @@ function CatalogueToolbar({
             search={search}
             rulesetOptions={rulesetOptions}
             rulesets={rulesets}
-            visibleCount={visibleCount}
-            visibleCountComplete={visibleCountComplete}
+            member={member}
+            matched={matched}
             totalCount={totalCount}
             onSearchChange={onSearchChange}
           />

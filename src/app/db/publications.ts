@@ -10,10 +10,9 @@ export type PublicationJobStatus = 'pending' | 'in_progress' | 'error';
 export function usePublicationJobsPage(args: {
   status?: PublicationJobStatus;
   assetType?: string;
-  page: number;
-  pageSize: number;
+  paginationOpts: { cursor: string | null; numItems: number };
 }) {
-  return useQuery(api.publicationAdmin.page, args);
+  return useQuery(api.publicationAdmin.listing, args);
 }
 
 export function useSetPublicationPickupEnabled() {

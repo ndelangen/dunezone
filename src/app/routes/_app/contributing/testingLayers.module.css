@@ -1,0 +1,30 @@
+.sketch {
+  display: block;
+  width: 100%;
+  max-width: 30rem;
+  height: auto;
+  fill: none;
+  stroke: var(--action-export-fg);
+  stroke-width: 1.6;
+}
+.sketch text {
+  fill: var(--color-text);
+  stroke: none;
+  font: 15px var(--mantine-font-family);
+}
+.sketch .failure {
+  color: var(--color-error);
+  stroke: currentColor;
+}
+.sketch .success {
+  color: var(--action-positive-fg);
+  stroke: currentColor;
+}
+.sketch .failure text,
+.sketch .success text {
+  fill: currentColor;
+}
+.sketch .outside {
+  stroke: var(--color-muted);
+  stroke-dasharray: 5 4;
+}

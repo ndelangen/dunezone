@@ -1,5 +1,6 @@
 import type { WithoutSystemFields } from 'convex/server';
 import type { GenericId } from 'convex/values';
+import { z } from 'zod';
 
 import type { components } from '../../convex/_generated/api';
 import type { Doc, Id, TableNames } from '../../convex/_generated/dataModel';
@@ -26,15 +27,15 @@ type IsOptional<Row, Field extends keyof Row> = object extends Pick<Row, Field> 
 type ReferenceRule<Value> = [ReferencedTable<Value>] extends [never]
   ? never
   :
-      | { parent: ReferencedTable<Value> }
+      | { parent: ReferencedTable<Value> | readonly ReferencedTable<Value>[] }
       | (null extends Value ? { orNull: ReferencedTable<Value> } : never)
       | ('users' extends ReferencedTable<Value> ? 'owner' : never);
 
 /**
- * Rewrites an untyped value into what the public reads of it.
+ * Rewrites a stored value into the published data the snapshot may keep.
  * It throws on a value it cannot read, and the run then stops.
  */
-type Projection = { project: (value: unknown) => unknown };
+type Projection<Value = unknown> = { project: (value: unknown) => Value };
 
 /**
  * The rule for one field of a kept row.
@@ -44,14 +45,20 @@ type Projection = { project: (value: unknown) => unknown };
  * - `owner` replaces a user reference with the placeholder owner, because no `users` row leaves production.
  * - `parent` keeps the row only when the row it points at is kept too, and drops a row that has no such reference.
  * - `orNull` sets a nullable reference to null when the row it points at is not kept.
- * - `project` writes the value as a public read shows it, for an untyped field whose public read hides part of it.
+ * - `current-edition-settings` replaces saved draft settings with the current published Edition's settings.
+ * - `project` removes source data while preserving the stored field's shape.
  *
  * The reference rules name the table the field's validator points at, so a rule aimed at the wrong table does not compile.
  */
 type FieldRule<Row, Field extends keyof Row> =
   IsAny<Row[Field]> extends true
     ? 'keep' | Projection
-    : 'keep' | (IsOptional<Row, Field> extends true ? 'drop' : never) | ReferenceRule<Row[Field]>;
+    :
+        | 'keep'
+        | Projection<Row[Field]>
+        | (IsOptional<Row, Field> extends true ? 'drop' : never)
+        | ReferenceRule<Row[Field]>
+        | (Row extends Doc<'rulebooks'> ? (Field extends 'settings' ? 'current-edition-settings' : never) : never);
 
 /** A stored row as the export has it: the schema's field names, with values not yet checked. */
 type StoredRow<Table extends TableNames> = { readonly [Field in keyof Doc<Table>]?: unknown };
@@ -96,7 +103,26 @@ const readerEditionContents: Projection = {
   project: (value) => readerContents(rulebookEditionContentsV1Schema.parse(value)),
 };
 
+const rulesetCoverSchema = z
+  .object({
+    url: z.string(),
+    thumb_url: z.string(),
+    source_url: z.string(),
+    width: z.number(),
+    height: z.number(),
+  })
+  .nullable();
+
+/** Keep the rehosted image and use it as dev's source, since the original can carry credentials. */
+const publishedRulesetCover: Projection<Doc<'rulesets'>['cover']> = {
+  project: (value) => {
+    const cover = rulesetCoverSchema.parse(value);
+    return cover === null ? null : { ...cover, source_url: cover.url };
+  },
+};
+
 export const snapshotPolicy = {
+  content_import_receipts: { drop: 'deployment-specific import receipts and author identities' },
   board_readiness: {
     fields: {
       asset_id: { parent: 'assets' },
@@ -144,8 +170,6 @@ export const snapshotPolicy = {
   play_game_slug_cursors: { drop: 'Game address allocation is private Play directory data' },
   play_games: { drop: 'Play games carry provisioning secrets and are not published content' },
   homepage_tickets: { drop: 'Homepage editing tickets' },
-  play_tickets: { drop: 'Play admission tickets' },
-  play_auth_registrations: { drop: 'Play sign-in registrations' },
   play_game_accounts: { drop: 'Play account links' },
   play_account_deletions: { drop: 'Play account deletions' },
   play_session_cutoffs: { drop: 'Play session cutoffs' },
@@ -158,6 +182,7 @@ export const snapshotPolicy = {
   faq_answers: { drop: 'excluded by the ruling on #1310' },
   rulebook_drafts: { drop: 'unpublished drafts; the load seeds each live Rulebook a draft from its current Edition' },
   publication_jobs: { drop: 'work claims that must never run outside production' },
+  publication_job_listings: { drop: 'derived publication queue metadata' },
   leader_skill_stock_sets: { drop: 'GF9 stock installation identity, which belongs only to its original deployment' },
   publication_assets: { drop: 'publication records, which must never be acted on outside production' },
   admin_settings: { drop: 'operational settings, not content' },
@@ -167,6 +192,15 @@ export const snapshotPolicy = {
   catalogue_entries: {
     drop: 'catalogue read models, which the replayed catalogue backfill rebuilds from the kept rows',
   },
+  discovery_presets: {
+    fields: { key: 'keep', label: 'keep', front: 'keep', back: 'keep', revision: 'keep', updated_at: 'keep' },
+    rows: 'all',
+  },
+  background_presets: {
+    fields: { key: 'keep', name: 'keep', value: 'keep', revision: 'keep', updated_at: 'keep' },
+    rows: 'all',
+  },
+  background_uses: { fields: { key: 'keep', subject: { parent: ['assets', 'factions'] }, kind: 'keep' }, rows: 'all' },
   card_front_presets: {
     fields: { key: 'keep', style: 'keep', revision: 'keep', updated_at: 'keep' },
     rows: 'all',
@@ -224,7 +258,7 @@ export const snapshotPolicy = {
       group_id: { orNull: 'groups' },
       is_deleted: 'keep',
       image_cover: 'keep',
-      cover: 'keep',
+      cover: publishedRulesetCover,
     },
     rows: notDeleted,
   },
@@ -233,13 +267,13 @@ export const snapshotPolicy = {
     rows: 'all',
   },
   ruleset_factions: {
-    fields: { ruleset_id: { parent: 'rulesets' }, faction_id: { parent: 'factions' } },
+    fields: { ruleset_id: { parent: 'rulesets' }, faction_id: { parent: 'factions' }, position: 'keep' },
     rows: 'all',
   },
   rulebooks: {
     fields: {
       ruleset_id: { parent: 'rulesets' },
-      settings: 'keep',
+      settings: 'current-edition-settings',
       name: 'keep',
       name_key: 'keep',
       slug: 'keep',
@@ -261,6 +295,7 @@ export const snapshotPolicy = {
       edition_number: 'keep',
       /* The snapshot projects Contents for the public reader, so a hash of the stored Contents would not match; the load's backfill rewrites it. */
       contents_hash: 'drop',
+      authored_hash: 'drop',
       created_by: 'owner',
       created_at: 'keep',
     },
@@ -284,6 +319,15 @@ export const snapshotPolicy = {
     },
     rows: (row) => row.status === 'ready',
   },
+  faq_references: {
+    fields: {
+      faq_item_id: { parent: 'faq_items' },
+      question_created_at: 'keep',
+      kind: 'keep',
+      target_id: { parent: ['factions', 'assets'] },
+    },
+    rows: 'all',
+  },
   /** Questions are public on their ruleset's FAQ, and their answers are dropped, so no answer is ever accepted. */
   faq_items: {
     fields: {
@@ -295,6 +339,7 @@ export const snapshotPolicy = {
       created_at: 'keep',
       updated_at: 'keep',
       accepted_answer_id: { orNull: 'faq_answers' },
+      accepted_at: 'drop',
     },
     rows: 'all',
   },
@@ -316,6 +361,9 @@ export const retiredTables = {
   asset_type_configs: 'retired asset publisher bookkeeping, not content',
   asset_rollouts: 'retired asset publisher bookkeeping, not content',
   asset_rollout_items: 'retired asset publisher bookkeeping, not content',
+  /* The last two left the schema with the ticket admission path; Play has no games to keep, so their rows are not content. */
+  play_tickets: 'retired Play admission tickets',
+  play_auth_registrations: 'retired Play sign-in registrations',
 } satisfies Record<string, string> & { [Table in TableNames]?: never };
 
 /**
@@ -329,6 +377,7 @@ export const installedComponents = {
   profileDiscovery: 'a derived index, which the loaders rebuild',
   profileActivity: 'derived counts per user and the ids they count, which the loaders rebuild',
   catalogueOrder: 'derived catalogue order, which the catalogue backfill rebuilds',
+  publicationQueue: 'derived publication queue order and counts',
 } satisfies { [Name in keyof typeof components]: string };
 
 /**

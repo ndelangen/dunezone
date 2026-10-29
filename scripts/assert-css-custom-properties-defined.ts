@@ -27,13 +27,30 @@ const PROVIDED_ELSEWHERE = [
   ['--canvas-width', 'CanvasScale, via setProperty'],
   ['--contain-fit-width', 'the contain-fit observer, via setProperty'],
   ['--contain-fit-height', 'the contain-fit observer, via setProperty'],
-  ['--scroll-pct', 'the parallax scroll writer, via setProperty'],
   ['--app-frame-left', 'AppHeader, via setProperty'],
   ['--pile-slot', 'the pile layout, via inline style'],
   ['--rulebook-aspect', 'RulesetRulebooks in routes/_app/rulesets/$rulesetSlug/index.tsx, via inline style'],
   ['--document-editor-', 'DocumentEditorLayout, via setProperty'],
   ['--editor-plane-width', 'the faction editor plane, via setProperty'],
   ['--brush-cursor', 'TabletopScene while the territory paintbrush is on, via inline style'],
+  ['--page-layout-fullscreen-left', 'TutorialGuide, which puts its rail beside a fullscreen page, via inline style'],
+  ['--rail-width', 'TutorialGuide, which sizes its rail, via inline style'],
+  ['--progress', 'TutorialGuide, the share of its chapter done, via inline style'],
+  ['--ahead', 'TutorialGuide, how many tasks off each rail task is, via inline style'],
+  ['--seat-row-columns', 'SeatRow in ui/content, how many seats sit side by side, via inline style'],
+  [
+    '--compass-camera-top',
+    'the compass controls (useSlotHeights), which hang the camera dial under the toolbar, via setProperty',
+  ],
+  [
+    '--compass-centre-bottom',
+    'the compass controls (useSlotHeights), which stand the centre window over the chat bar, via setProperty',
+  ],
+  [
+    '--compass-slot-bottom',
+    'the compass controls (useSlotHeights), which lift the slots above the chat bar on a narrow table, via setProperty',
+  ],
+  ['--learned-', 'ChapterComplete in routes/_app/tutorial, which numbers the lines of its list, via inline style'],
 ];
 
 const definitionsRoot = process.env.CSS_VAR_DEFINITIONS_ROOT ?? 'src';

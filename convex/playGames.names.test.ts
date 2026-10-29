@@ -3,7 +3,7 @@
 
 import { describe, expect, test, vi } from 'vite-plus/test';
 
-import { publishingDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
+import { publishingCustomDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
 import { arrakisBoardCapture } from '../src/shared/play/fixtures/board';
 import { normalizePlayGameSlug, playGameNameSchema } from '../src/shared/play/gameNames';
 import { playGameNameVocabulary } from '../src/shared/play/generatedGameNames';
@@ -55,7 +55,7 @@ async function world() {
       const deck = await ctx.db.insert('assets', {
         owner_id: userId,
         type: 'deck',
-        data: { name: slot, about: '', cardback: publishingDeckCardback },
+        data: { name: slot, about: '', cardback: publishingCustomDeckCardback },
         slug: slot,
         group_id: null,
         is_deleted: false,
@@ -86,15 +86,16 @@ async function world() {
 
 describe('permanent Play names and addresses', () => {
   test('a free preview reserves nothing and a later collision still creates a numbered link', async () => {
+    const availability = api.playGameNameAvailability.nameAvailability;
     const { t, viewer, create } = await world();
-    expect(await t.query(api.playGames.nameAvailability, { name: 'Arrakeen picnic' })).toBeNull();
-    expect(await viewer.query(api.playGames.nameAvailability, { name: 'Arrakeen picnic' })).toEqual({
+    expect(await t.query(availability, { name: 'Arrakeen picnic' })).toBeNull();
+    expect(await viewer.query(availability, { name: 'Arrakeen picnic' })).toEqual({
       base: 'arrakeen-picnic',
       duplicate: false,
     });
     expect(await t.run(async (ctx) => await ctx.db.query('play_game_slug_reservations').collect())).toEqual([]);
     await create('Arrakeen picnic');
-    expect(await viewer.query(api.playGames.nameAvailability, { name: 'Arrakeen picnic' })).toEqual({
+    expect(await viewer.query(availability, { name: 'Arrakeen picnic' })).toEqual({
       base: 'arrakeen-picnic',
       duplicate: true,
     });

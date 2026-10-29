@@ -106,6 +106,7 @@ export const COMPONENT_ASSET_TYPES = [
   'faction-leader',
   'card-treachery',
   'token-disc',
+  'token-leader',
   'token-tech',
   'token-plate',
   'token-pointer',

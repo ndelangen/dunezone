@@ -26,7 +26,7 @@ describe('The command path refuses what a connection may not do', { timeout: 60_
     await peer?.close();
   });
 
-  const admit = (suffix: string) => admitPlayer(peer, runtime, suffix);
+  const admit = (suffix: string) => admitPlayer(runtime, suffix);
   const revision = async (connection: NativeConnection) => (await syncView(connection)).snapshot.revision;
   const factionOf = (view: NativeView) =>
     required(
@@ -50,7 +50,7 @@ describe('The command path refuses what a connection may not do', { timeout: 60_
 
   /* Two players reach play through the draft, trading and setup, then an observer watches. */
   async function inPlay() {
-    const [a, b] = await dealt(peer, runtime);
+    const [a, b] = await dealt(runtime);
     for (const player of [a, b]) {
       const { snapshot, viewer } = await syncView(player);
       await accepted(player, {
@@ -87,7 +87,6 @@ describe('The command path refuses what a connection may not do', { timeout: 60_
       { kind: 'split', pieceId: required(deck).id, count: 1 },
       { kind: 'storm', direction: 1 },
       { kind: 'phase', direction: 1 },
-      { kind: 'turn', turn: 2 },
       { kind: 'spice-spawn', count: 1 },
       { kind: 'reset' },
       { kind: 'ready', ready: true },

@@ -1,11 +1,13 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
+import type { FunctionReturnType } from 'convex/server';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { ASSET_CATALOGUE_PAGE_SIZE } from '../src/shared/assets/catalogueSearch';
 import { api, internal } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
+import { storedProfileAvatar } from './profiles.test.fixture';
 
 const tokenFace = () => ({
   image: '/vector/icon/projectile.svg',
@@ -30,8 +32,6 @@ const tokenData = (name: string) => ({
   back: { mode: 'custom', face: tokenFace() },
 });
 
-const AVATAR = 'https://example.com/avatar.png';
-
 /* A profile written raw, as sign-up leaves it, so the owner has a name to be found by. */
 async function seedOwner(t: ReturnType<typeof applicationTest>, username: string) {
   return await t.run(async (ctx) => {
@@ -40,7 +40,7 @@ async function seedOwner(t: ReturnType<typeof applicationTest>, username: string
       user_id: userId,
       username,
       slug: username.toLowerCase(),
-      avatar_url: AVATAR,
+      ...storedProfileAvatar,
       account_state: 'active',
       created_at: '2026-10-10T00:00:00.000Z',
       updated_at: '2026-10-10T00:00:00.000Z',
@@ -59,6 +59,14 @@ async function createTokens(t: ReturnType<typeof applicationTest>, ownerId: stri
 }
 
 const names = (page: { entries: { name: string }[] }) => page.entries.map((entry) => entry.name);
+
+/** The searched shape, which every search answers with. */
+function searched(answer: FunctionReturnType<typeof api.assets.catalogue>) {
+  if (!('mode' in answer)) {
+    throw new Error('Expected a search, got a browsed page.');
+  }
+  return answer;
+}
 
 describe('the asset type catalogue', () => {
   beforeEach(() => {
@@ -119,14 +127,15 @@ describe('the asset type catalogue', () => {
     await createTokens(t, chani, ['Shield Snooper', 'Shield']);
     await createTokens(t, stilgar, ['Lasgun']);
 
-    const search = (q: string) => t.query(api.assets.catalogue, { type: 'token-disc', q, sort: 'name' });
+    const search = async (q: string) =>
+      searched(await t.query(api.assets.catalogue, { type: 'token-disc', q, limit: ASSET_CATALOGUE_PAGE_SIZE }));
     expect(names(await search('shield snoop'))).toEqual(['Shield Snooper']);
     expect(names(await search('stil'))).toEqual(['Lasgun']);
-    expect(await search('fremen')).toMatchObject({ entries: [], total: 0, typeTotal: 3 });
+    expect(await search('fremen')).toMatchObject({ entries: [], hasMore: false, typeTotal: 3 });
 
     await t.withIdentity({ subject: stilgar }).mutation(api.profiles.updateCurrent, {
       username: 'NaibOfTabr',
-      avatar_url: AVATAR,
+      avatar_url: storedProfileAvatar.avatar_url,
     });
     await t.finishAllScheduledFunctions(() => vi.runAllTimers());
     expect(names(await search('naibof'))).toEqual(['Lasgun']);
@@ -139,11 +148,50 @@ describe('the asset type catalogue', () => {
     const words = Array.from({ length: 18 }, (_, index) => `w${index}`);
     await createTokens(t, ownerId, [words.join(' '), 'Shield']);
 
-    const found = await t.query(api.assets.catalogue, { type: 'token-disc', q: words.join(' ') });
+    const found = await t.query(api.assets.catalogue, { type: 'token-disc', q: words.join(' '), limit: 24 });
     expect(names(found)).toEqual([words.join(' ')]);
-    expect(await t.query(api.assets.catalogue, { type: 'token-disc', q: `${words.join(' ')} missing` })).toMatchObject({
-      total: 0,
+    expect(
+      await t.query(api.assets.catalogue, { type: 'token-disc', q: `${words.join(' ')} missing`, limit: 24 })
+    ).toMatchObject({ entries: [], hasMore: false });
+  });
+
+  test('a search with a limit loads more by asking for a larger one, best matches first and only ever appending', async () => {
+    const t = applicationTest();
+    const chani = await seedOwner(t, 'Chani');
+    const stilgar = await seedOwner(t, 'Stilgar');
+    const count = ASSET_CATALOGUE_PAGE_SIZE + 2;
+    await createTokens(
+      t,
+      chani,
+      Array.from({ length: count }, (_, index) => `Shield ${index + 1}`)
+    );
+    await createTokens(t, stilgar, ['Lasgun']);
+
+    const first = searched(
+      await t.query(api.assets.catalogue, { type: 'token-disc', q: 'shield', limit: ASSET_CATALOGUE_PAGE_SIZE })
+    );
+    expect(first).toMatchObject({
+      mode: 'search',
+      hasMore: true,
+      capped: false,
+      limit: ASSET_CATALOGUE_PAGE_SIZE,
+      typeTotal: count + 1,
     });
+    expect(first.entries).toHaveLength(ASSET_CATALOGUE_PAGE_SIZE);
+    expect(first).not.toHaveProperty('total');
+    expect(first).not.toHaveProperty('page');
+
+    const more = searched(
+      await t.query(api.assets.catalogue, { type: 'token-disc', q: 'shield', limit: ASSET_CATALOGUE_PAGE_SIZE * 2 })
+    );
+    expect(more).toMatchObject({ hasMore: false, limit: ASSET_CATALOGUE_PAGE_SIZE * 2 });
+    expect(more.entries).toHaveLength(count);
+    expect(more.entries.slice(0, ASSET_CATALOGUE_PAGE_SIZE).map((entry) => entry.id)).toEqual(
+      first.entries.map((entry) => entry.id)
+    );
+    expect(names(searched(await t.query(api.assets.catalogue, { type: 'token-disc', q: 'stil', limit: 24 })))).toEqual([
+      'Lasgun',
+    ]);
   });
 
   test('drops a deleted asset from its list and its count', async () => {

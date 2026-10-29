@@ -5,7 +5,9 @@ import type { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vite-plus/test';
 
 import { publicationFaceId } from '../src/shared/asset-publishing/publicationTargets';
+import karamaReplacement from '../src/shared/assets/fixtures/karamaReplacement.json';
 import { publishingSpiceCard } from '../src/shared/assets/fixtures/publishingSpiceCard';
+import { parseFormattedText } from '../src/shared/formattedText';
 import { api } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
 import { assetPageAs } from './viewerAccess.test.fixture';
@@ -328,22 +330,16 @@ describe('token backsides', () => {
     expect((stored as { back: { asset_id?: string } }).back.asset_id).toBe(back.id);
   });
 
-  test('an ordinary save preserves the picked reference the draft cannot carry', async () => {
+  test('a reference without its target is refused', async () => {
     const t = applicationTest();
     const { ownerId } = await seedCard(t);
     const owner = t.withIdentity({ subject: ownerId });
-    const front = await owner.mutation(api.assets.create, { type: 'token-disc', data: tokenData('Axlotl') });
-    const back = await owner.mutation(api.assets.create, { type: 'token-disc', data: tokenData('Sietch') });
-    await owner.mutation(api.assets.update, { id: front.id, data: withReference('Axlotl', back.id) });
-
-    /* A tab opened before the draft-based pick shipped submits only the mode; the named tolerance keeps the target one release. */
-    await owner.mutation(api.assets.update, {
-      id: front.id,
-      data: { ...tokenData('Axlotl'), back: { mode: 'reference' } },
-    });
-
-    const page = await assetPageAs(t, { type: 'token-disc', slug: 'axlotl' });
-    expect(page?.backToken?.name).toBe('Sietch');
+    await expect(
+      owner.mutation(api.assets.create, {
+        type: 'token-disc',
+        data: { ...tokenData('Axlotl'), back: { mode: 'reference' } },
+      })
+    ).rejects.toThrow();
   });
 
   test('leaving custom mode supersedes the pending back job and schedules no new one', async () => {
@@ -374,6 +370,7 @@ const deckData = (name: string) => ({
   name,
   about: '',
   cardback: {
+    mode: 'custom' as const,
     name: 'Treachery',
     background: {
       image: '/image/texture/015.jpg',
@@ -663,7 +660,7 @@ describe('asset publication', () => {
     expect(jobs[0]?.asset_data).toEqual({
       assetId: deck.id,
       slug: 'house-treachery',
-      cardback: deckData('House Treachery').cardback,
+      cardback: (({ mode: _mode, ...composition }) => composition)(deckData('House Treachery').cardback),
     });
   });
 
@@ -687,9 +684,11 @@ describe('asset publication', () => {
   test('a token whose back is a reference publishes only its front', async () => {
     const t = applicationTest();
     const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Token owner' }));
-    const token = await t.withIdentity({ subject: ownerId }).mutation(api.assets.create, {
+    const owner = t.withIdentity({ subject: ownerId });
+    const target = await owner.mutation(api.assets.create, { type: 'token-disc', data: tokenData('Sietch') });
+    const token = await owner.mutation(api.assets.create, {
       type: 'token-disc',
-      data: { ...tokenData('Axlotl'), back: { mode: 'reference' } },
+      data: withReference('Axlotl', target.id),
     });
 
     const jobs = await t.run(
@@ -700,7 +699,7 @@ describe('asset publication', () => {
           .collect()
     );
     /* A referenced back is another token's front and publishes nothing of its own. */
-    expect(jobs.map((job) => job.asset_id)).toEqual([token.id]);
+    expect(jobs.map((job) => job.asset_id).filter((id) => id.startsWith(token.id))).toEqual([token.id]);
   });
 });
 
@@ -732,11 +731,8 @@ describe('a token page reports both of its faces', () => {
     const { ownerId, created } = await seedCard(t);
     const owner = t.withIdentity({ subject: ownerId });
 
-    await owner.mutation(api.assets.create, { type: 'token-disc', data: tokenData('Axlotl') });
-    await owner.mutation(api.assets.create, {
-      type: 'token-disc',
-      data: { ...tokenData('Sietch'), back: { mode: 'reference' } },
-    });
+    const authoredToken = await owner.mutation(api.assets.create, { type: 'token-disc', data: tokenData('Axlotl') });
+    await owner.mutation(api.assets.create, { type: 'token-disc', data: withReference('Sietch', authoredToken.id) });
 
     const authored = await assetPageAs(t, { type: 'token-disc', slug: 'axlotl' });
     expect(authored?.backPublishing).toMatchObject({ captureStatus: 'scheduled', publicationHref: null });
@@ -913,15 +909,11 @@ describe('deck cardback references', () => {
     expect(pageData?.cardback).toEqual({ mode: 'reference', asset_id: source.id });
   });
 
-  test('a wrapped custom cardback saves, presents its fields, and is referenceable', async () => {
+  test('a custom cardback saves, presents its fields, and is referenceable', async () => {
     const t = applicationTest();
     const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Deck owner' }));
     const owner = t.withIdentity({ subject: ownerId });
-    const deck = deckData('Wrapped');
-    const source = await owner.mutation(api.assets.create, {
-      type: 'deck',
-      data: { ...deck, cardback: { mode: 'custom', ...deck.cardback } },
-    });
+    const source = await owner.mutation(api.assets.create, { type: 'deck', data: deckData('Wrapped') });
 
     const stored = await t.run(async (ctx) => (await ctx.db.get('assets', source.id))?.data);
     expect((stored as { cardback: { mode?: string } }).cardback.mode).toBe('custom');
@@ -931,7 +923,7 @@ describe('deck cardback references', () => {
     const presented = entries.find((entry) => entry.id === source.id)?.data as { cardback: { name?: string } };
     expect(presented.cardback.name).toBe('Treachery');
 
-    /* A wrapped authored cardback is a valid reference target, same as a bare one. */
+    /* An authored cardback is a valid reference target. */
     await owner.mutation(api.assets.create, {
       type: 'deck',
       data: { name: 'Wearer', about: '', cardback: { mode: 'reference', asset_id: source.id } },
@@ -1002,6 +994,7 @@ describe('slug allocation', () => {
     expect(await t.query(api.assets.slugTaken, { type: 'card-treachery', slug: 'lasgun' })).toBe('live');
   });
 
+  /* Keep all 75 copies; coverage on shared CI runners exceeds the default five-second budget. */
   test('many large copies allocate without rescanning their contents, and crowded legacy suffixes remain usable', async () => {
     const t = applicationTest();
     const { ownerId } = await seedCard(t);
@@ -1029,7 +1022,7 @@ describe('slug allocation', () => {
     const crowded = await owner.mutation(api.assets.create, { type: 'card-treachery', data: cardData('Lasgun') });
     expect(crowded.slug).toMatch(/^lasgun-[a-z0-9]{12,}$/);
     expect((await assetPageAs(t, { type: 'card-treachery', slug: crowded.slug }))?.asset.name).toBe('Lasgun');
-  });
+  }, 15_000);
 
   test('reserved creation paths and legacy addresses stay usable across spelling and genuine renames', async () => {
     const t = applicationTest();
@@ -1074,4 +1067,35 @@ describe('slug allocation', () => {
     expect(copy.slug).toBe('lasgun-1');
     expect((await assetPageAs(t, { type: 'token-disc', slug: copy.slug }))?.asset.name).toBe('Lasgun');
   });
+});
+
+test('normal Treachery Save preserves text-only layout and complete formatted body in its publication', async () => {
+  const t = applicationTest();
+  await t.run((ctx) =>
+    ctx.db.insert('admin_settings', {
+      key: 'publication',
+      publication_pickup_enabled: true,
+      renderer_revisions: { 'card-treachery': 8 },
+      updated_at: 1,
+    })
+  );
+  const { ownerId, created } = await seedCard(t);
+  const data = { ...cardData('Karama'), ...karamaReplacement };
+  await t.withIdentity({ subject: ownerId }).mutation(api.assets.update, { id: created.id, data });
+  const stored = await t.run((ctx) => ctx.db.get('assets', created.id));
+  expect(stored?.type).toBe('card-treachery');
+  const { text, ...identity } = data;
+  expect(stored?.data).toMatchObject(identity);
+  expect(parseFormattedText(stored!.data.text).blocks).toEqual(parseFormattedText(text).blocks);
+  const jobs = await t.run((ctx) =>
+    ctx.db
+      .query('publication_jobs')
+      .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'card-treachery').eq('asset_id', created.id))
+      .take(10)
+  );
+  expect(
+    jobs.some(
+      (job) => job.asset_data.card?.bodyLayout === 'text-only' && job.asset_data.card?.text === stored?.data.text
+    )
+  ).toBe(true);
 });

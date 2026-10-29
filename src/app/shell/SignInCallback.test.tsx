@@ -9,13 +9,17 @@ const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
   replace: vi.fn(),
   inactive: new Error('inactive'),
+  settleStartedSignIn: vi.fn(),
 }));
 
 vi.mock('@convex-dev/auth/react', () => ({ useAuthActions: () => ({ signIn: mocks.signIn }) }));
 vi.mock('@tanstack/react-router', () => ({
   useRouter: () => ({ navigate: mocks.navigate, history: { replace: mocks.replace } }),
 }));
-vi.mock('@db/accounts', () => ({ refusedAsInactiveAccount: (error: unknown) => error === mocks.inactive }));
+vi.mock('@db/accounts', () => ({
+  refusedAsInactiveAccount: (error: unknown) => error === mocks.inactive,
+  settleStartedSignIn: mocks.settleStartedSignIn,
+}));
 
 const VERIFIER = '__convexAuthOAuthVerifier_test';
 vi.mock('@db/playTables', () => ({ storedOAuthVerifierKey: () => VERIFIER }));
@@ -29,18 +33,21 @@ async function land(href: string) {
     root.render(<SignInCallback />);
   });
   await act(async () => {});
-  root.unmount();
+  await act(async () => root.unmount());
 }
 
 beforeEach(() => {
+  vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
   vi.resetModules();
   mocks.signIn.mockReset().mockResolvedValue({ signingIn: true });
   mocks.navigate.mockReset();
   mocks.replace.mockReset();
+  mocks.settleStartedSignIn.mockReset();
   localStorage.clear();
 });
 
 afterEach(() => {
+  vi.unstubAllGlobals();
   localStorage.clear();
 });
 
@@ -51,11 +58,13 @@ describe('SignInCallback', () => {
     expect(mocks.replace).toHaveBeenCalledWith('/rulesets/arrakis?tab=faq#rules');
     expect(mocks.signIn).toHaveBeenCalledWith(undefined, { code: 'one-time' });
     expect(mocks.navigate).not.toHaveBeenCalled();
+    expect(mocks.settleStartedSignIn).toHaveBeenCalledWith(true);
   });
 
   it('sends a refused sign-in to the sign-in page with the reason and the page to return to', async () => {
     mocks.signIn.mockRejectedValue(mocks.inactive);
     await land('/factions/create?code=one-time');
+    expect(mocks.settleStartedSignIn).toHaveBeenCalledWith(false);
     expect(mocks.navigate).toHaveBeenCalledWith({
       to: '/auth/login',
       search: { redirect: '/factions/create', failed: 'inactive' },
@@ -91,6 +100,13 @@ describe('SignInCallback', () => {
   it('lets a connect page explain its own unfinished sign-in', async () => {
     localStorage.setItem(VERIFIER, 'verifier');
     await land('/profiles/owner/connect');
+    expect(mocks.navigate).not.toHaveBeenCalled();
+  });
+
+  it('does not record a connect callback as a successful login', async () => {
+    await land('/profiles/owner/connect?code=one-time');
+    expect(mocks.signIn).toHaveBeenCalledWith(undefined, { code: 'one-time' });
+    expect(mocks.settleStartedSignIn).toHaveBeenCalledWith(false);
     expect(mocks.navigate).not.toHaveBeenCalled();
   });
 });

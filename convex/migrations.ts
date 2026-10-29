@@ -22,13 +22,14 @@ import { normalizeFormattedText } from '../src/shared/formattedText';
 import { components, internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { internalQuery } from './_generated/server';
+import { CATALOGUE_MIGRATION_IDS } from './catalogueMigrations';
 import { adminQuery, internalMutation, mutation } from './functions';
+import { LEGACY_DATA_MIGRATION_IDS } from './legacyDataMigrations';
 import { accountStateOf } from './lib/accountLifecycle';
 import { hasAuthoredBack, TOKEN_ASSET_TYPES, tokenBackOf } from './lib/assetBacks';
 import { scheduleSessionExpiry } from './lib/authSessionLifecycle';
 import { syncBoardReadiness } from './lib/boardReadiness';
-import { catalogueSourceDrift, isCatalogueKindName, repairCatalogueEntry } from './lib/catalogueEntries';
-import type { CatalogueKindName } from './lib/catalogueEntries';
+import { assertCatalogueSourceExact, isCatalogueKindName, repairCatalogueEntry } from './lib/catalogueEntries';
 import { syncFactionCard } from './lib/factionCards';
 import {
   allocateNextFaqItemSlug,
@@ -64,6 +65,7 @@ import {
 } from './lib/statistics';
 import { nowIso } from './lib/utils';
 import { retireHostedFixture } from './playDeletion';
+import { PUBLICATION_MIGRATION_IDS } from './publicationMigrations';
 import schema from './schema';
 import type { MutationCtx } from './types';
 
@@ -78,6 +80,10 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   catalogue_entries_profiles_verify_v1: internal.migrations.catalogue_entries_profiles_verify_v1,
   catalogue_entries_faq_v1: internal.migrations.catalogue_entries_faq_v1,
   catalogue_entries_faq_verify_v1: internal.migrations.catalogue_entries_faq_verify_v1,
+  ...CATALOGUE_MIGRATION_IDS,
+  ...PUBLICATION_MIGRATION_IDS,
+  ...LEGACY_DATA_MIGRATION_IDS,
+  ruleset_factions_position_v1: internal.migrations.ruleset_factions_position_v1,
   catalogue_entries_prune_v1: internal.migrations.catalogue_entries_prune_v1,
   catalogue_entries_verify_v1: internal.migrations.catalogue_entries_verify_v1,
   catalogue_entries_verify_v2: internal.migrations.catalogue_entries_verify_v2,
@@ -1203,7 +1209,7 @@ export const faction_troop_ids_verify_v1 = migrations.define({
  * Renames each troop face's `fundedStrength` and `fundingCost` to `supportedStrength` and `supportCost`, without changing the faction's edit timestamp.
  * Troops paid for with spice in battle are supported, not funded.
  * A value already under the new name wins, so a replay changes nothing.
- * Not yet listed in migration-guards.json: deploy migrates before the game and publisher Workers ship, so it is listed one release after the widened read, as `faction_troop_ids_v1` was (#1482).
+ * Listed in migration-guards.json one release after the widened read, as `faction_troop_ids_v1` was (#1482).
  * Narrowing, which drops the legacy names from the live faction schema, is a later release gated on this and its verify.
  */
 export const faction_troop_support_names_v1 = migrations.define({
@@ -1239,8 +1245,8 @@ const migrationFactionLeaderKeySchema = z.looseObject({
 
 /**
  * Copies the Faction leader from the old `hero` key to `factionLeader`, without changing authored fields or the faction's edit timestamp.
- * The old key stays on the row.
- * Dropping it is the narrowing, left for a later PR together with `readFactionLeaderKey`.
+ * The old key stays on the row;
+ * `faction_hero_key_drop_v1` drops it.
  */
 export const faction_faction_leader_key_v1 = migrations.define({
   table: 'factions',
@@ -1330,40 +1336,38 @@ export const catalogue_entries_factions_v1 = migrations.define({
   },
 });
 
+function catalogueEntryMigration(mode: 'repair' | 'verify') {
+  return migrations.define({
+    table: 'catalogue_entries',
+    /* One source check reads every list it belongs to. */
+    batchSize: 10,
+    migrateOne: async (ctx, entry) => {
+      if (!isCatalogueKindName(entry.kind)) {
+        if (mode === 'verify') {
+          throw new Error(`Catalogue entry ${entry._id} has the unknown kind ${entry.kind}.`);
+        }
+        await ctx.db.delete(entry._id);
+        return;
+      }
+      /* The index selects one entry even when the source's 'all' entry is missing. */
+      const first = await ctx.db
+        .query('catalogue_entries')
+        .withIndex('by_kind_source', (q) => q.eq('kind', entry.kind).eq('source_id', entry.source_id))
+        .first();
+      if (first?._id !== entry._id) {
+        return;
+      }
+      const checkSource = mode === 'repair' ? repairCatalogueEntry : assertCatalogueSourceExact;
+      await checkSource(ctx, entry.kind, entry.source_id);
+    },
+  });
+}
+
 /** Removes entries whose source is gone or unlisted, and duplicates, which a pass over the sources cannot see. */
-export const catalogue_entries_prune_v1 = migrations.define({
-  table: 'catalogue_entries',
-  /* Each entry rereads its whole faction. */
-  batchSize: 10,
-  migrateOne: async (ctx, entry) => {
-    if (isCatalogueKindName(entry.kind)) {
-      await repairCatalogueEntry(ctx, entry.kind, entry.source_id);
-    } else {
-      await ctx.db.delete(entry._id);
-    }
-  },
-});
+export const catalogue_entries_prune_v1 = catalogueEntryMigration('repair');
 
 /** Proves every entry, and its aggregate order, equals what its canonical rows say now, so none has drifted or outlived its source. */
-export const catalogue_entries_verify_v1 = migrations.define({
-  table: 'catalogue_entries',
-  /* Each entry rereads its whole faction. */
-  batchSize: 10,
-  migrateOne: async (ctx, entry) => {
-    if (!isCatalogueKindName(entry.kind)) {
-      throw new Error(`Catalogue entry ${entry._id} has the unknown kind ${entry.kind}.`);
-    }
-    await assertCatalogueSourceExact(ctx, entry.kind, entry.source_id);
-  },
-});
-
-/** Throws unless one source's catalogue entries, and their aggregate order, are exactly what its canonical rows say. */
-async function assertCatalogueSourceExact(ctx: MutationCtx, kind: CatalogueKindName, sourceId: string) {
-  const drift = await catalogueSourceDrift(ctx, kind, sourceId);
-  if (drift.length > 0) {
-    throw new Error(`Catalogue entries for ${kind} ${sourceId} are ${drift.join(' and ')}.`);
-  }
-}
+export const catalogue_entries_verify_v1 = catalogueEntryMigration('verify');
 
 /** Proves the other direction: every live faction is in each of its lists exactly once, exactly, so an empty or partial catalogue cannot pass. */
 export const catalogue_entries_verify_v2 = migrations.define({
@@ -1428,6 +1432,17 @@ export const catalogue_entries_faq_verify_v1 = migrations.define({
   batchSize: 25,
   migrateOne: async (ctx, row) => {
     await assertCatalogueSourceExact(ctx, 'faq', row._id);
+  },
+});
+
+/** Gives every existing ruleset link a place in its ruleset's order: its creation time, which keeps the order links were made in and sorts before any later append. Rerunning it writes nothing. */
+export const ruleset_factions_position_v1 = migrations.define({
+  table: 'ruleset_factions',
+  migrateOne: async (ctx, link) => {
+    /* Every link carries a position once the schema requires it, so this only matters to a manifest replay; the cast reads past the narrowed type. */
+    if ((link as Partial<typeof link>).position === undefined) {
+      await ctx.db.patch('ruleset_factions', link._id, { position: link._creationTime });
+    }
   },
 });
 

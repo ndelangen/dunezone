@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   audit:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # Publisher inventory plus the private game audit each retain bounded per-request retries.
     timeout-minutes: 10
     steps:

@@ -7,6 +7,7 @@ import { compareCodeUnits } from '../src/shared/compareText';
 import { api, internal } from './_generated/api';
 import { CATALOGUE_STAMP, catalogueFactionData } from './factions.catalogue.test.fixture';
 import { factionTest } from './factions.test.fixture';
+import { factionOwnerPartition } from './lib/factionCatalogue';
 
 const ids = [
   'catalogue_entries_factions_v1',
@@ -47,7 +48,7 @@ async function unmaintained() {
       is_deleted: true,
       data: catalogueFactionData({ name: 'Gone' }),
     });
-    await ctx.db.insert('ruleset_factions', { ruleset_id: rulesetId, faction_id: live });
+    await ctx.db.insert('ruleset_factions', { ruleset_id: rulesetId, faction_id: live, position: 0 });
     const entry = (sourceId: string, name: string, kind = 'faction') =>
       ctx.db.insert('catalogue_entries', {
         kind,
@@ -68,7 +69,7 @@ async function unmaintained() {
     await entry(renamed, 'old name');
     await entry(deleted, 'gone');
     await entry('nothing', 'unknown', 'retired-kind');
-    return { live, renamed, rulesetId };
+    return { live, renamed, rulesetId, ownerId };
   });
   return { t, ...seeded };
 }
@@ -124,8 +125,9 @@ describe('catalogue entries backfill', () => {
 
   test('verification refuses a catalogue that has drifted from its sources', async () => {
     const { t } = await unmaintained();
+    /* Both live factions lack their member's list; the live one lacks every list. */
     await expect(t.query(internal.catalogueMaintenance.catalogueDrift, { kind: 'faction' })).resolves.toMatchObject({
-      missing: [expect.any(String)],
+      missing: [expect.any(String), expect.any(String)],
       stale: [expect.any(String)],
       duplicated: [expect.any(String)],
       orphaned: [expect.any(String)],
@@ -138,7 +140,8 @@ describe('catalogue entries backfill', () => {
   });
 
   test('rebuilds one exact entry per live faction per list, removes the rest, and replays without change', async () => {
-    const { t, live, renamed, rulesetId } = await unmaintained();
+    const { t, live, renamed, rulesetId, ownerId } = await unmaintained();
+    const owner = factionOwnerPartition(ownerId);
 
     /* The page draws its cards from `faction_cards`, which raw rows skip as well. */
     await t.mutation(internal.migrations.runRequired, { ids: [...ids, 'faction_cards_v1'] });
@@ -153,9 +156,11 @@ describe('catalogue entries backfill', () => {
       rebuilt.map((entry) => [entry.source_id, entry.partition, entry.name_key, entry.facets]).sort(byList)
     ).toEqual(
       [
-        [live, 'all', 'atreides', [rulesetId]],
-        [live, rulesetId, 'atreides', [rulesetId]],
-        [renamed, 'all', 'fremen', []],
+        [live, 'all', 'atreides', [rulesetId, owner]],
+        [live, rulesetId, 'atreides', [rulesetId, owner]],
+        [live, owner, 'atreides', [rulesetId, owner]],
+        [renamed, 'all', 'fremen', [owner]],
+        [renamed, owner, 'fremen', [owner]],
       ].sort(byList)
     );
     await expect(t.query(internal.catalogueMaintenance.catalogueDrift, { kind: 'faction' })).resolves.toMatchObject({

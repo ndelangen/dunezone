@@ -1,8 +1,10 @@
-import { Button } from '@mantine/core';
+import { useConvexAuth } from '@convex-dev/auth/react';
+import { Button, Stack } from '@mantine/core';
 import { ClientOnly, createFileRoute, Link, redirect } from '@tanstack/react-router';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageTitle } from '@ui/block/PageTitle';
 import { PageLayout } from '@ui/layout/PageLayout';
+import { Orbit } from 'lucide-react';
 import { lazy, Suspense, useContext, useEffect, useMemo, useReducer, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 
@@ -69,6 +71,20 @@ function storedGameReader(tables: GameRuntime['tables'], address: string) {
 }
 
 function GamePage() {
+  const { isAuthenticated, isLoading } = useConvexAuth();
+  /* Local sign-out fences the table before a delayed directory query can replace its last access answer. */
+  return !isLoading && !isAuthenticated ? <GameLoginGate /> : <GameAccessPage />;
+}
+
+function GameLoginGate() {
+  return (
+    <PageMessage size="compact" title="Game">
+      <LoginGate action="open a game" />
+    </PageMessage>
+  );
+}
+
+function GameAccessPage() {
   const { gameId: address } = Route.useParams();
   const navigate = Route.useNavigate();
   const runtime = useContext(GameRuntimeContext);
@@ -80,8 +96,8 @@ function GamePage() {
   const readStored = useMemo(() => storedGameReader(runtime.tables, address), [runtime, address]);
   const stored = useSyncExternalStore(noSubscription, readStored, () => null);
   const refused = data !== undefined && data.status !== 'ready' && data.status !== 'preparing';
-  /* The game's seat pass rides on the access answer and renews with it; a deployment that sends none leaves the browser on tickets. */
-  const seatPass = data?.status === 'ready' ? ('pass' in data ? (data.pass ?? null) : undefined) : null;
+  /* The game's seat pass rides on the access answer and renews with it. */
+  const seatPass = data?.status === 'ready' ? data.pass : null;
   const passGameId = data?.status === 'ready' ? data.gameId : null;
   useEffect(() => {
     if (passGameId) {
@@ -134,16 +150,12 @@ function GamePage() {
         </TableFrame>
       );
     case 'sign_in_required':
-      return (
-        <PageMessage size="compact" title="Game">
-          <LoginGate action="open a game" />
-        </PageMessage>
-      );
+      return <GameLoginGate />;
     case 'not_found':
       return (
-        <PageMessage size="compact" title="Game" back={exit}>
-          <NotAvailable title="This game is not available">There is no game you can open at this address.</NotAvailable>
-        </PageMessage>
+        <UnavailableTable title="This game is not available" exit={exit}>
+          There is no game you can open at this address.
+        </UnavailableTable>
       );
     case 'preparing':
       return (
@@ -159,15 +171,30 @@ function GamePage() {
       );
     case 'unavailable':
       return (
-        <PageMessage size="compact" title={data.name} back={exit}>
-          <NotAvailable title="This game could not be prepared">
-            {data.reason ?? 'The table was not ready in time. Create the game again from the lobby.'}
-          </NotAvailable>
-        </PageMessage>
+        <UnavailableTable title="This game could not be prepared" exit={exit}>
+          {data.reason ?? 'The table was not ready in time. Create the game again from the lobby.'}
+        </UnavailableTable>
       );
     case 'ready':
       return <TablePage game={data} exit={exit} />;
   }
+}
+
+function UnavailableTable({ title, children, exit }: Readonly<{ title: string; children: string; exit: ReactNode }>) {
+  return (
+    <TableFrame title="Game">
+      <TableWait
+        status={
+          <Stack gap="lg" align="center">
+            <Orbit size={64} strokeWidth={1} aria-hidden style={{ color: 'var(--color-muted)' }} />
+            <NotAvailable title={title}>{children}</NotAvailable>
+          </Stack>
+        }
+      >
+        {exit}
+      </TableWait>
+    </TableFrame>
+  );
 }
 
 const noSubscription = () => () => {};

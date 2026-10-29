@@ -45,7 +45,7 @@ safe `failureCategory`, `suppressed` and `since`. Convex transport failures dist
 status, timeout, abort and network failure, with request duration. Invalid parsed responses get
 an `invalid-response` category. The exact Cloudflare storage-reset message yields only its opaque
 `storageReference`; boolean `retryable`, `overloaded` and `remote` flags are retained when present.
-Unknown errors remain `exception` or `unknown`. Messages, stacks, tickets, account identities,
+Unknown errors remain `exception` or `unknown`. Messages, stacks, seat passes, account identities,
 SQL values and response bodies are never copied into these application records.
 
 A room emits at most one failure per operation per minute. Reconciliation, confirmation,
@@ -204,9 +204,9 @@ binding` step, which prints each of its 12 reads and the last reason. Then wheth
 passed (`.github/workflows/deploy-main.yml`). A 502 `Game service unavailable` means the
 binding answered with a redirect (`workers/publisher/index.ts:78-87`).
 
-What players see: a table whose socket closes before its first view, or whose ticket request fails,
+What players see: a table whose socket closes before its first view, or whose seat-pass request fails,
 reads "The table could not be reached. Reconnecting..." and keeps that line through every retry
-until a view arrives; a ticket the game turns away reads "The table is temporarily unavailable."
+until a view arrives; a pass request the game turns away reads "The table is temporarily unavailable."
 A socket that drops after the table has shown reconnects without keeping a failure line, so a
 deploy's cold restart does not read as an outage (`retryAfterFailure` in
 `src/app/routes/_app/play/multiplayer/GameSubscription.ts`).
@@ -229,10 +229,10 @@ First checks: in Workers Logs, group by `operation` and `gitSha`. A spike that s
 points at one room. Sum `suppressed` to estimate volume, remembering it is a lower bound.
 
 Operation to likely dependency, from the call sites in `workers/game/index.ts` and
-`workers/game/authorization.ts`:
+`workers/game/gameHttpClient.ts`:
 
-- `confirmation`, `directory`, `account-reconciliation`, `admission`, `authorization-watch`,
-  `authorization-renewal`, `account-deletion`: a request to Convex failed.
+- `confirmation`, `directory`, `admission`, `seat-limit`, `session-cutoff`, `account-deletion`: a
+  request to Convex failed.
 - `draft-catalogue`, `fixture-deck`: a catalogue capture failed.
 - `socket-send`, `socket-error`, `message`: socket transport or command processing.
 - `storage-sync`, `load`: the room's SQLite storage. `load` means the stored game no longer opens.
@@ -252,16 +252,20 @@ What recovers by itself:
   window, 30 s after expiry to find a confirmation committed but lost
   (`confirmProvisioning` in `workers/game/index.ts`, `docs/technical/play-hosted.md:209-214`).
 - Directory delivery retries on the room's alarm with backoff from 2 s up to 30 s, with no player
-  connected; a refusal from Convex is terminal for that summary (`deliverDirectoryLoop` in
-  `workers/game/index.ts`, `src/shared/play/directory.ts:15-16`). One alarm serves both the battle
+  connected; a refusal from Convex is terminal for that summary (`DirectoryDelivery` in
+  `workers/game/directoryDelivery.ts`, `src/shared/play/directory.ts:17-18`). One alarm serves both the battle
   deadline and the directory retry (`scheduleAlarm`).
-- A failed reconciliation retries with backoff (`reconcileAccounts` in `workers/game/index.ts`).
+- A failed seat-limit read retries with backoff, and the player counts as at the limit meanwhile.
 - A cold restore, including the one every deploy causes, closes old sockets with 1012 so browsers
-  reconnect with a new ticket (the `GameRoom` constructor in `workers/game/index.ts`). Carries and
+  reconnect with their seat pass (the `GameRoom` constructor in `workers/game/index.ts`). Carries and
   pointers are lost by design; the table, receipts and history are kept
   (`docs/technical/play-hosted.md:30-35`).
+- A load that fails with `out of memory: SQLITE_NOMEM` throws after reporting the failure, so the
+  next request constructs a new room. SQLite can remain usable after this error; retaining a closed
+  room would keep refusing connections after storage recovered. This permits another load attempt;
+  it does not repair persistent allocation failures or establish what caused them.
 
-What does not: a room whose stored game no longer loads is closed and answers only a retirement, and
+What does not: other load failures leave the room closed and answering only a retirement, and
 its alarm throws so Cloudflare retries it a few times (the `GameRoom` load path and `alarm` in
 `workers/game/index.ts`). Retirement accepts only the hosted fixture and refuses a real game
 (`retire` in `workers/game/index.ts`). There is no operator procedure for a real game in that state;
@@ -283,15 +287,14 @@ reason (`docs/technical/play-hosted.md:320-327`).
 
 ### Convex auth and authorization failures
 
-First checks: `admission`, `authorization-watch`, `authorization-renewal` and
-`account-reconciliation` records, and the Convex dashboard's function logs for `playAdmission`.
+First checks: `admission`, `seat-limit` and `session-cutoff` records, and the Convex dashboard's
+function logs for `playAdmission` and `playSessionCutoffs`.
 Confirm `PLAY_SERVICE_URL` and `SITE_URL` are `https://dune.zone` and the test flags are off
 (`docs/deployment.md:164-167`).
 
-Expected behaviour while Convex is unreachable: rooms suspend access rather than extend it. A
-connection loses access by the lease or Auth expiry, whichever comes first, and any denial
-withholds game data until a fresh reconciliation completes
-(`docs/technical/play-hosted.md:145-188`). Players see a paused table, not stale access. A Play
+Expected behaviour while Convex is unreachable: admitted players keep playing on their seat passes,
+which the room checks alone, until a pass ends; a pass that cannot be renewed pauses the table at its
+end (`docs/technical/play-hosted.md`, "Seat passes"). New players cannot get a pass. A Play
 page whose first Convex query has had no answer for 10 seconds, the lobby, the create page or a
 game link, says "Can't reach the server. Retrying..." in place of its loading line and keeps its
 way out; Convex keeps retrying, and the page fills in when it answers
@@ -323,11 +326,12 @@ resumes (`convex/playDeletion.ts:168-199`). The repository does not document the
 ### Watching a live session
 
 Each game room writes one `game-room-summary` line every ten minutes while players are connected,
-and one when the last player leaves (`workers/game/roomSummary.ts`). A line carries the opaque room
+and one when the last player leaves (`workers/game/roomSummary.ts`). A room that hibernates saves
+its unwritten interval and writes it after it wakes, so a pause neither drops nor splits a line. A
+quiet stretch with nothing to report writes none. A line carries the opaque room
 identity and release, connections, messages in and out, bytes sent, saved-command timings from
 handling to a confirmed write, late sweeps, dropped motion, and each Convex function the room called
-with its count, failures and durations. Live answers on the authorization subscription appear as
-`playAdmission:watchAuthorizations (live)`. Each browser also reports, every five minutes, how long
+with its count, failures and durations. Each browser also reports, every five minutes, how long
 its saved actions took to be confirmed and its longest main-thread stall
 (`src/app/routes/_app/play/multiplayer/tableTelemetry.ts`). The room folds the latest report from
 each connection into its next line. No account, seat, faction or game content is recorded.

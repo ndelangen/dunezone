@@ -1,4 +1,6 @@
 import { useThree } from '@react-three/fiber/webgpu';
+import { rendererColors } from '@shared/play/assetColors';
+import { withAlpha } from '@shared/uiPalette';
 import type { BufferGeometry, Texture } from 'three';
 import {
   BoxGeometry,
@@ -13,6 +15,7 @@ import {
   ShapeGeometry,
 } from 'three';
 
+import { gearFaceGeometry, gearSlabGeometry } from './gearTokenGeometry';
 import { createRoundedRectangleShape } from './tablePlateGeometry';
 
 /*
@@ -63,6 +66,11 @@ function sharedMeshes() {
           .translate(0, 0, -height / 2)
           .rotateX(-Math.PI / 2)
       ),
+    /* A tech token's gear, its face (mirrored for the underside) and its slab, from `gearTokenGeometry`. */
+    gearPlane: (radius: number, mirrored = false) =>
+      cached(`gear-plane:${radius}:${mirrored}`, () => gearFaceGeometry(radius, mirrored)),
+    gearSlab: (radius: number, height: number) =>
+      cached(`gear-slab:${radius}:${height}`, () => gearSlabGeometry(radius, height)),
     circle: (radius: number, segments: number) =>
       cached(`circle:${radius}:${segments}`, () => new CircleGeometry(radius, segments)),
     ring: (inner: number, outer: number, segments: number) =>
@@ -86,7 +94,7 @@ function sharedMeshes() {
         const context = canvas.getContext('2d')!;
         const gradient = context.createRadialGradient(64, 64, 0, 64, 64, 64);
         gradient.addColorStop(colorStop, new Color(color).getStyle());
-        gradient.addColorStop(1, 'rgba(0,0,0,0)');
+        gradient.addColorStop(1, withAlpha(rendererColors.black, 0));
         context.fillStyle = gradient;
         context.fillRect(0, 0, canvas.width, canvas.height);
         return new CanvasTexture(canvas);

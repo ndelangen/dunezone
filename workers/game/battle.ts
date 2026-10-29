@@ -6,7 +6,7 @@ import type {
   Disclosure,
   StoredBattlePlan,
 } from '../../src/shared/play/battle';
-import { isBattleLeader } from '../../src/shared/play/battle';
+import { isBattleCard, isBattleLeader } from '../../src/shared/play/battle';
 import { nextSnapshot, requireAccepted } from '../../src/shared/play/commands';
 import type { StoredPiece } from '../../src/shared/play/model';
 import { phaseAt } from '../../src/shared/play/phases';
@@ -16,8 +16,7 @@ import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { BOARD_RADIUS, restingPositionAt } from '../../src/shared/play/tableGeometry';
 import { clampPositionToTable, nearestCollisionFreePosition } from '../../src/shared/play/tablePhysics';
 import { playFromHandAtAnchor } from '../../src/shared/play/tableState';
-import { holdsPredictionCard } from './predictionCards';
-import { revised } from './state';
+import { orderablePieces, revised } from './state';
 import type { StoredSnapshot, StoredBattle } from './state';
 
 type BattleActor = { snapshot: StoredSnapshot; battle: StoredBattle; factionId: string };
@@ -134,7 +133,7 @@ function supportedPlan(input: BattlePlanInput, before: StoredBattlePlan) {
 }
 
 function selectedPlanPieces(plan: BattlePlanInput, available: StoredPiece[]) {
-  const ids = [...(plan.leaderId ? [plan.leaderId] : []), ...plan.cardIds];
+  const ids = [...plan.leaderIds, ...plan.cardIds];
   if (new Set(ids).size !== ids.length) {
     return refuse('A piece can only be committed once.');
   }
@@ -146,19 +145,16 @@ function selectedPlanPieces(plan: BattlePlanInput, available: StoredPiece[]) {
   }
   return pieces;
 }
-function validateCardSlots(pieces: StoredPiece[], plan: BattlePlanInput) {
-  if (
-    pieces.some((piece) => plan.cardIds.includes(piece.id) && (piece.kind !== 'card' || holdsPredictionCard(piece)))
-  ) {
-    return refuse('Choose cards for the card slots.');
+/* A card an older plan already holds stays allowed, so the player can take such cards out one at a time. */
+function validateCardSlots(pieces: StoredPiece[], plan: BattlePlanInput, before: StoredBattlePlan) {
+  const added = (piece: StoredPiece) => plan.cardIds.includes(piece.id) && !before.cardIds.includes(piece.id);
+  if (pieces.some((piece) => added(piece) && !isBattleCard(piece))) {
+    return refuse('Only Treachery cards go into a battle plan.');
   }
 }
 function validateLeaderSlot(pieces: StoredPiece[], plan: BattlePlanInput) {
-  if (!plan.leaderId) {
-    return;
-  }
-  const leader = pieces.find((piece) => piece.id === plan.leaderId);
-  if (!leader || !isBattleLeader(leader)) {
+  const leaders = pieces.filter((piece) => plan.leaderIds.includes(piece.id));
+  if (leaders.some((leader) => !isBattleLeader(leader))) {
     return refuse('Choose a leader token for the leader slot.');
   }
 }
@@ -175,8 +171,8 @@ const dialOf = ({ mode, troops, spice, adjustment }: BattlePlanInput) =>
 /** A part shown to everyone before the reveal stays as it was shown, so the reveal cannot contradict it. */
 function keepDisclosed(before: StoredBattlePlan, plan: BattlePlanInput) {
   const { disclosed } = before;
-  if (disclosed.leader && plan.leaderId !== before.leaderId) {
-    return refuse('Your leader is revealed. Hide it before changing it.');
+  if (disclosed.leader && plan.leaderIds.join() !== before.leaderIds.join()) {
+    return refuse('Your leaders are revealed. Hide them before changing them.');
   }
   if (disclosed.cardIds.some((id) => !plan.cardIds.includes(id))) {
     return refuse('A revealed card stays in your plan until you hide it.');
@@ -195,7 +191,7 @@ function editPlan({ snapshot, battle, side, factionId }: BattleSide, input: Batt
   keepDisclosed(before, plan);
   const available = [...(snapshot.factionInventories[factionId] ?? []), ...before.pieces];
   const pieces = selectedPlanPieces(plan, available);
-  validateCardSlots(pieces, plan);
+  validateCardSlots(pieces, plan, before);
   validateLeaderSlot(pieces, plan);
   const balance = reservedBalance({ snapshot, battle, factionId }, before, plan);
   const ids = pieces.map((piece) => piece.id);
@@ -212,7 +208,11 @@ function editPlan({ snapshot, battle, side, factionId }: BattleSide, input: Batt
 }
 
 /* Why a part cannot be shown or hidden now, or nothing when it can. */
-function disclosureRefusal({ disclosed, leaderId, cardIds }: StoredBattlePlan, disclosure: Disclosure, shown: boolean) {
+function disclosureRefusal(
+  { disclosed, leaderIds, cardIds }: StoredBattlePlan,
+  disclosure: Disclosure,
+  shown: boolean
+) {
   const showing =
     disclosure.element === 'card' ? disclosed.cardIds.includes(disclosure.cardId) : disclosed[disclosure.element];
   if (showing === shown) {
@@ -224,7 +224,7 @@ function disclosureRefusal({ disclosed, leaderId, cardIds }: StoredBattlePlan, d
   if (disclosure.element === 'card') {
     return cardIds.includes(disclosure.cardId) ? null : 'Choose a card in your plan.';
   }
-  return disclosure.element === 'leader' && !leaderId ? 'Choose a leader before revealing it.' : null;
+  return disclosure.element === 'leader' && !leaderIds.length ? 'Choose a leader before revealing it.' : null;
 }
 
 function toggled(disclosed: StoredBattlePlan['disclosed'], disclosure: Disclosure, shown: boolean) {
@@ -370,6 +370,47 @@ function arrangeHiddenZone(
   });
 }
 
+/*
+ * The faction's own order of what it holds: its plain hand and its planned pieces, stored apart from the inventory.
+ * Pieces the stored order does not name yet follow in the order they are held, and the new order names only what is held now.
+ */
+function orderHand(snapshot: StoredSnapshot, factionId: string, action: Extract<BattleAction, { kind: 'hand-order' }>) {
+  const held = orderablePieces(snapshot, factionId).map((piece) => piece.id);
+  const stored = snapshot.handOrders[factionId] ?? [];
+  const rank = (id: string) => (stored.includes(id) ? stored.indexOf(id) : stored.length + held.indexOf(id));
+  const order = held.toSorted((a, b) => rank(a) - rank(b)).filter((id) => id !== action.pieceId);
+  if (!held.includes(action.pieceId) || (action.before !== null && !order.includes(action.before))) {
+    return refuse('Choose two pieces of your hand to order.');
+  }
+  order.splice(action.before === null ? order.length : order.indexOf(action.before), 0, action.pieceId);
+  return commit(snapshot, {
+    handOrders: { ...snapshot.handOrders, [factionId]: order },
+    ...planInOrder(snapshot, factionId, order),
+  });
+}
+
+/* The faction's plan takes its leaders and cards in the hand's order too, so the wheel lays them out as every window lists them. */
+function planInOrder(snapshot: StoredSnapshot, factionId: string, order: readonly string[]) {
+  const battle = snapshot.battleState;
+  const side = battle?.sides.findIndex((candidate) => candidate?.factionId === factionId) ?? -1;
+  const plan = battle?.plans[side];
+  if (!battle || battle.stage === 'revealed' || !plan) {
+    return {};
+  }
+  /* Pieces shown to everyone stay where they were shown, as a plan edit keeps them; the others take the free places in the player's order. */
+  const sorted = (ids: readonly string[], shown: (id: string) => boolean) => {
+    const free = ids.filter((id) => !shown(id)).toSorted((a, b) => order.indexOf(a) - order.indexOf(b));
+    return ids.map((id) => (shown(id) ? id : free.shift()!));
+  };
+  const plans: typeof battle.plans = [...battle.plans];
+  const leaderIds = sorted(plan.leaderIds, () => plan.disclosed.leader);
+  const cardIds = sorted(plan.cardIds, (id) => plan.disclosed.cardIds.includes(id));
+  /* The pieces too, as an edit commits them: leaders first, then cards; the public wheel and the disclosure draw from them. */
+  const pieces = [...leaderIds, ...cardIds].map((id) => plan.pieces.find((piece) => piece.id === id)!);
+  plans[side as 0 | 1] = { ...plan, leaderIds, cardIds, pieces };
+  return { battleState: { ...battle, plans } };
+}
+
 function startBattle(snapshot: StoredSnapshot, action: Extract<BattleAction, { kind: 'battle-start' }>) {
   if (snapshot.battleState || phaseAt(snapshot.phase, snapshot.phases).id !== 'battle') {
     return refuse('Start a battle during the Battle phase when no battle is active.');
@@ -502,6 +543,8 @@ export function battleCommand(
       return playFromHand(snapshot, factionId, action);
     case 'hand-zone':
       return arrangeHiddenZone(snapshot, factionId, action);
+    case 'hand-order':
+      return orderHand(snapshot, factionId, action);
     case 'battle-start':
       return startBattle(snapshot, action);
   }

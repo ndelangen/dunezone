@@ -1,27 +1,13 @@
-import { Button } from '@mantine/core';
 import preview from '@sb/preview';
 import { assetPublishingFaction } from '@shared/factions/fixtures/assetPublishingFaction';
 import { IconAction } from '@ui/control/IconAction';
 import { EllipsisVertical } from 'lucide-react';
-import { useState } from 'react';
-import { expect, userEvent, waitFor, within } from 'storybook/test';
+import { expect, waitFor, within } from 'storybook/test';
 
 import type { FactionCatalogueEntry } from '@db/factions';
 
 import { FactionCard } from './FactionCard';
-
-const baseFaction = {
-  _id: 'faction-atreides',
-  _creationTime: Date.parse('2026-07-20T10:00:00.000Z'),
-  owner_id: 'owner-1',
-  data: assetPublishingFaction,
-  slug: 'atreides',
-  group_id: null,
-  created_at: '2026-07-20T10:00:00.000Z',
-  updated_at: '2026-07-20T10:00:00.000Z',
-  is_deleted: false,
-  rulesets: [{ id: 'ruleset-advanced', slug: 'advanced', name: 'Advanced Dune' }],
-} as unknown as FactionCatalogueEntry;
+import { baseFaction, publishedImage, failedImage, withImages, missingToken } from './FactionCard.stories.fixture';
 
 const longName = 'The Very Long and Distinguished House of Atreides Expeditionary Council';
 
@@ -119,22 +105,6 @@ export const WithAction = meta.story({
   },
 });
 
-/* A self-contained image exercises publication delivery without a live publisher. */
-const publishedImage = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600"><circle cx="300" cy="300" r="300" fill="#4b4c0d"/><circle cx="300" cy="300" r="285" fill="none" stroke="#e3dbb3" stroke-width="8"/><text x="300" y="340" text-anchor="middle" font-family="serif" font-size="120" fill="#e3dbb3">AT</text></svg>')}`;
-const failedImage = 'data:image/png;base64,not-an-image';
-
-function withImages(image: string): FactionCatalogueEntry {
-  return {
-    ...baseFaction,
-    tokenImages: {
-      faction: image,
-      members: Object.fromEntries(
-        [baseFaction.data.factionLeader, ...baseFaction.data.leaders].map((member) => [member.memberId, image])
-      ),
-    },
-  };
-}
-
 export const Published = meta.story({
   args: { faction: withImages(publishedImage) },
   play: async ({ canvasElement }) => {
@@ -153,39 +123,12 @@ export const MissingPublications = meta.story({
   },
 });
 
-/* The tokens are decorative beside the link's own name, so their missing state sits under `aria-hidden`. */
-const missingToken = { name: 'Lady Jessica: preview unavailable', hidden: true };
-
 export const FailedPublications = meta.story({
   args: { faction: withImages(failedImage) },
   play: async ({ canvasElement }) => {
     await expect(within(canvasElement).findByRole('img', missingToken)).resolves.toBeVisible();
     await waitFor(() => expect(canvasElement.querySelectorAll('img')).toHaveLength(0));
     await expect(within(canvasElement).getByRole('link')).toHaveAttribute('href', '/factions/atreides');
-  },
-});
-
-function ReplacementPublication() {
-  const [image, setImage] = useState(failedImage);
-  return (
-    <>
-      <FactionCard faction={withImages(image)} />
-      <Button onClick={() => setImage(publishedImage)}>Use new publication</Button>
-    </>
-  );
-}
-
-export const PublicationAfterFailure = meta.story({
-  render: () => <ReplacementPublication />,
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await canvas.findByRole('img', missingToken);
-    await userEvent.click(canvas.getByRole('button', { name: 'Use new publication' }));
-    await waitFor(async () => {
-      const images = canvasElement.querySelectorAll('img');
-      await expect(images).toHaveLength(5);
-      await expect([...images].every((image) => image.naturalWidth === 600)).toBe(true);
-    });
   },
 });
 

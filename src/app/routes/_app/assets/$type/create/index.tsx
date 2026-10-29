@@ -8,8 +8,10 @@ import { customCardEditing, stormCardEditing } from '../../layeredCardEditing';
 import { BoardCreatePage } from './boardCreate';
 import { BundleCreatePage } from './bundleCreate';
 import { DeckCreatePage } from './deckCreate';
+import { HomeworldCreatePage } from './homeworldCreate';
 import { LayeredCreatePage } from './layeredCreate';
 import { LeaderSkillCreatePage } from './leaderSkillCreate';
+import { LeaderTokenCreatePage } from './leaderTokenCreate';
 import { NexusCreatePage } from './nexusCreate';
 import { RectangleCreatePage } from './rectangleCreate';
 import { SpiceCreatePage } from './spiceCreate';
@@ -45,6 +47,8 @@ function CreateAssetPage() {
       return <TreacheryCreatePage />;
     case 'card-leaderability':
       return <LeaderSkillCreatePage />;
+    case 'card-homeworld':
+      return <HomeworldCreatePage />;
     case 'card-nexus':
       return <NexusCreatePage />;
     case 'card-custom':
@@ -62,6 +66,8 @@ function CreateAssetPage() {
     case 'token-plate':
       return <TokenCreatePage type={type} />;
     /* The rectangle is a token by category and its own editor by face: a free composition rather than a symbol in a slot. */
+    case 'token-leader':
+      return <LeaderTokenCreatePage />;
     case 'token-enhance':
       return <RectangleCreatePage />;
     case 'deck':

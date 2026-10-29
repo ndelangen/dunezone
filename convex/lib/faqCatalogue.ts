@@ -1,8 +1,17 @@
 import { compareCodeUnits } from '../../src/shared/compareText';
+import { FAQ_CATALOGUE_PAGE_SIZE, FAQ_CATALOGUE_QUERY_LIMIT } from '../../src/shared/faq/catalogueSearch';
 import type { FaqTag } from '../../src/shared/faq/tags';
 import type { Id } from '../_generated/dataModel';
+import type { QueryCtx } from '../types';
 import { catalogueEditedAt, catalogueNameKey, catalogueSearchText, catalogueTimestamp } from './catalogueEntryShape';
 import type { CatalogueKind } from './catalogueEntryShape';
+import {
+  catalogueSearchLimit,
+  catalogueSearchReach,
+  selectCataloguePage,
+  selectCatalogueSearch,
+} from './catalogueOrder';
+import { faqItemsOfEntries, projectFaqListItems } from './faqRulesetList';
 
 /*
  * A question has no length cap, but its entry is written once per list it is in and read by the hundred when searched,
@@ -14,6 +23,11 @@ const FAQ_NAME_KEY_LIMIT = 200;
 /** The list of one ruleset's questions. */
 export function faqRulesetPartition(rulesetId: Id<'rulesets'>) {
   return rulesetId as string;
+}
+
+/** The ruleset a question's entry belongs to: its one facet that is a ruleset's own list, as every other facet names a ruleset and something more. */
+export function faqEntryRulesetId(facets: readonly string[]) {
+  return facets.find((facet) => !facet.includes(':'));
 }
 
 /** The list of one ruleset's questions carrying one tag. */
@@ -62,3 +76,67 @@ export const faqCatalogueKind: CatalogueKind = {
     return rows.map((row) => row._id);
   },
 };
+
+/** What a ruleset's FAQ page asks for, as the route's search parameters reach `faq.rulesetFaq`. */
+export type RulesetFaqQuery = {
+  q?: string;
+  tag?: FaqTag;
+  page?: number;
+  /** How many of the best matches a search shows; "Load more" asks again with a larger one. */
+  limit?: number;
+};
+
+/** The text a FAQ search runs: the query cut to the longest search the FAQ runs, then trimmed; empty when nothing is searched. */
+export function rulesetFaqSearchText(q: string | undefined) {
+  return q?.slice(0, FAQ_CATALOGUE_QUERY_LIMIT).trim() ?? '';
+}
+
+/** The list a page reads: the ruleset's questions, or those carrying the tag picked. */
+function rulesetFaqListPartition(rulesetId: Id<'rulesets'>, tag: FaqTag | undefined) {
+  return tag ? faqTagPartition(rulesetId, tag) : faqRulesetPartition(rulesetId);
+}
+
+/**
+ * One page of a ruleset's FAQ, newest first, with the counts the pager draws.
+ * A search is `loadRulesetFaqSearch`'s, so a page ignores `q`.
+ * A page past the end answers with no rows and the real page count, so the reader can be told where the questions end.
+ */
+export async function loadRulesetFaqPage(ctx: QueryCtx, rulesetId: Id<'rulesets'>, query: RulesetFaqQuery) {
+  const page = Number.isSafeInteger(query.page) && query.page! > 1 ? query.page! : 1;
+  const selection = await selectCataloguePage(ctx, {
+    kind: 'faq',
+    partition: rulesetFaqListPartition(rulesetId, query.tag),
+    sort: 'created',
+    direction: 'desc',
+    page,
+    pageSize: FAQ_CATALOGUE_PAGE_SIZE,
+  });
+  return {
+    items: await projectFaqListItems(ctx, await faqItemsOfEntries(ctx, selection.entries)),
+    total: selection.total,
+    complete: selection.exact,
+    page,
+    pageCount: Math.max(1, Math.ceil(selection.total / FAQ_CATALOGUE_PAGE_SIZE)),
+    pageSize: FAQ_CATALOGUE_PAGE_SIZE,
+  };
+}
+
+/**
+ * The best questions matching a search in one ruleset's FAQ, with whether there are more: no count and no pages, and "Load more" asks again with a larger limit.
+ * A tag picked is the list searched, so the search stays within it.
+ */
+export async function loadRulesetFaqSearch(ctx: QueryCtx, rulesetId: Id<'rulesets'>, query: RulesetFaqQuery) {
+  const limit = catalogueSearchLimit(query.limit, FAQ_CATALOGUE_PAGE_SIZE);
+  const selection = await selectCatalogueSearch(ctx, {
+    kind: 'faq',
+    partition: rulesetFaqListPartition(rulesetId, query.tag),
+    text: rulesetFaqSearchText(query.q),
+    limit,
+  });
+  return {
+    mode: 'search' as const,
+    items: await projectFaqListItems(ctx, await faqItemsOfEntries(ctx, selection.entries)),
+    ...catalogueSearchReach(selection, limit, FAQ_CATALOGUE_PAGE_SIZE),
+    limit,
+  };
+}

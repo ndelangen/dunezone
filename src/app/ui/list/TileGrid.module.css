@@ -4,3 +4,8 @@
   gap: var(--space-lg);
   justify-content: space-evenly;
 }
+
+.grid[data-density="compact"] {
+  grid-template-columns: repeat(auto-fill, minmax(0, 6.5rem));
+  gap: var(--space-md);
+}

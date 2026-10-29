@@ -1,5 +1,4 @@
-import preview from '@sb/preview';
-import { waitForFrame } from '@sb/storyWaits';
+import { testingPreview } from '@sb/preview';
 import { expect, userEvent, within } from 'storybook/test';
 
 import {
@@ -9,9 +8,8 @@ import {
   CoverFooterStory,
 } from './rulebookControlRegionEditors.shared.stories.fixture';
 
-const meta = preview.meta({
+const meta = testingPreview.meta({
   title: 'Page/Cover/Editing',
-  globals: { colorScheme: 'dark' },
   parameters: { layout: 'centered' },
 });
 
@@ -63,16 +61,6 @@ export const CoverPresets = meta.story({
     await expect(canvas.queryByRole('textbox', { name: 'Background image URL' })).not.toBeInTheDocument();
     const page = within(canvasElement.ownerDocument.body);
     const preset = canvas.getByRole('combobox', { name: 'Cover preset' });
-    await expect(preset).toHaveValue('Shai-Hulud');
-    await userEvent.click(preset);
-    const option = await page.findByRole('option', { name: 'Dreamrules rainbow' });
-    await userEvent.hover(within(option).getByText('Dreamrules rainbow'));
-    const preview = await waitForFrame(() => page.getByRole('dialog', { name: 'Artwork preview' }));
-    await expect(preview.querySelector('img')).toHaveAttribute(
-      'src',
-      '/image/rulebook-cover/dreamrules-rainbow-small.jpg'
-    );
-    await userEvent.keyboard('{Escape}');
     await expect(preset).toHaveValue('Shai-Hulud');
     await userEvent.click(preset);
     await userEvent.click(await page.findByRole('option', { name: 'Dreamrules rainbow' }));

@@ -1,0 +1,57 @@
+/*
+ * The faction tokens along the top of the faction information: one per seat on a single line, scrolling sideways in a narrow window.
+ * They sit in the window's scrolling body and run to its edges, so the rule under them spans the whole window above the seat's details.
+ */
+
+.picker {
+  display: flex;
+  gap: 0.25rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  /* The window body's padding, taken back so the rule reaches both edges. */
+  margin: calc(-1 * var(--window-body-pad-block)) calc(-1 * var(--window-body-pad-inline)) 0;
+  padding: 0.5rem 0.6rem 0.6rem;
+  border-bottom: 1px solid var(--edge);
+}
+
+.faction {
+  display: grid;
+  justify-items: center;
+  gap: 0.2rem;
+  flex-shrink: 0;
+  width: 4.2rem;
+  padding: 0.3rem 0.2rem;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-dim);
+  cursor: pointer;
+  font: 500 0.72rem var(--font-sans);
+}
+
+.faction:hover {
+  color: var(--sand);
+}
+
+.faction[aria-pressed="true"] {
+  background: rgb(from var(--color-brand) r g b / 0.16);
+  color: var(--sand);
+}
+
+.faction:focus-visible {
+  outline: 2px solid var(--sand);
+  outline-offset: -2px;
+}
+
+.token {
+  position: relative;
+  display: grid;
+}
+
+.name {
+  overflow: hidden;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

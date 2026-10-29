@@ -48,9 +48,19 @@ test('FAQ happy path: ask, answer, accept, profile activity', async ({ page, new
 
   await test.step('asker accepts the answer through the live subscription', async () => {
     await expect(page.getByText(answerText)).toBeVisible();
-    await page.getByRole('button', { name: 'Mark as accepted answer' }).click();
-    /* Exact, so the wait reads the badge and not the tooltip of the "Unmark accepted answer" button under the pointer. */
+    await page.getByRole('button', { name: 'Accept answer' }).click();
+    /* Exact, so the wait reads the accepted status. */
     await expect(page.getByText('Accepted answer', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Accept answer', exact: true })).toHaveCount(0);
+  });
+
+  await test.step('the asker unmarks through the menu before accepting again', async () => {
+    await page.getByRole('button', { name: 'Actions for answer' }).click();
+    await page.getByRole('menuitem', { name: 'Unmark accepted answer' }).click();
+    await expect(page.getByText('Accepted answer', { exact: true })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Accept answer', exact: true }).click();
+    await expect(page.getByText('Accepted answer', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Accept answer', exact: true })).toHaveCount(0);
   });
 
   await test.step('the answer and its acceptance appear on the answerer profile', async () => {

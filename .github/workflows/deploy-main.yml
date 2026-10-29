@@ -26,6 +26,7 @@ permissions:
 concurrency:
   group: deploy-production
   cancel-in-progress: false
+  queue: max
 
 # No verify job (#286): main's ruleset only accepts a pull request merge whose required checks passed
 # on a branch up to date with main, and a dispatched run deploys a commit that reached main that way.
@@ -33,8 +34,7 @@ concurrency:
 jobs:
   # Ends the run green without deploying when production already serves a later commit, or, on the
   # run's first attempt, this commit after an earlier run of this workflow finished it green.
-  # The deploy-production group runs one run at a time and holds one more waiting: a newly queued run
-  # cancels the waiting one and takes its place, whatever commit either carries.
+  # The deploy-production group queues releases and weekly snapshots without dropping a pending refresh.
   # So a late push event (80 to 219 s late on 2026-09-28 and 2026-09-29), a second event for a merge
   # that already deployed, or "Re-run all jobs" on an older run can start after a later release is
   # live, and without this check it would put the older commit back.
@@ -51,7 +51,7 @@ jobs:
   # "Re-run failed jobs" keeps this job's first answer and deploys that run's commit whatever
   # production serves by then.
   release_gate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     # Job permissions replace the workflow's, so contents: read is restated, and actions: read lets
     # the gate list this workflow's runs for its commit.
@@ -87,7 +87,7 @@ jobs:
     # dev_rebuild needs this job, so it follows the same answer.
     if: needs.release_gate.outputs.deploy != 'false'
     environment: production
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # The contract test budgets migrations, both active-version gates, narrowing and release work.
     # It also reserves ten minutes for checkout, dependency setup and step overhead.
     timeout-minutes: 120
@@ -156,10 +156,18 @@ jobs:
         run: bun run generate:objs
       - name: Log generated output digest
         run: find public/m public/image public/web -type f | sort | xargs shasum -a 256 | shasum -a 256
+      - name: Verify public application runtime against isolated fixtures
+        run: bun run scripts/verify-application-runtime-local.ts
+
       - name: Build unified Worker release
         run: bun run publisher:assets
         env:
           VITE_CONVEX_URL: ${{ vars.VITE_CONVEX_URL }}
+
+      # The local rehearsal above needs raster copies with empty buckets. Production serves them from
+      # R2, so remove them before retention checks the final Static Assets file count.
+      - name: Omit raster copies from the release
+        run: bun run publisher:omit-static-rasters
 
       - name: Retain browser bundles from the previous application release
         run: bun run publisher:retain-assets
@@ -175,9 +183,6 @@ jobs:
 
       - name: Dry-run exact Worker release
         run: bun run publisher:release:dry-run
-
-      - name: Verify public application runtime
-        run: bun run publisher:application-runtime:verify
 
       - name: Dry-run private game Worker release
         run: bun run game:dry-run
@@ -227,10 +232,6 @@ jobs:
       # (#1888 step 7b). The live Worker takes this release's token first, then the variants and the
       # release's prepared record go up through it, and only then does the new Worker deploy, keeping the
       # same token through --secrets-file. A failure here stops the deploy with the previous release live.
-      # The checks above ran a local Worker with empty buckets, which needs the raster copies.
-      - name: Omit raster copies from the release
-        run: bun run publisher:omit-static-rasters
-
       - name: Install the variant publish token on the live Worker
         run: bun run publisher:secret:publish-token < "$RUNNER_TEMP/media-publish-token"
         env:
@@ -336,17 +337,10 @@ jobs:
           path: .cache/media-verified
           key: media-verified-${{ github.run_id }}-${{ github.run_attempt }}
 
-  # Production has already shipped when this starts: a failed dev rebuild reddens the run without
-  # ever gating the release.
-  # The rebuild measures its change range from the release production served before this run, which
-  # also covers a merge whose push event never arrived.
-  # When the gate cannot name that release, the range starts at the push's previous tip; a dispatched
-  # run has no previous tip, and an empty base rebuilds dev's data.
+  # Production has already shipped when this starts.
+  # Dev preserves its data between the weekly snapshot refreshes.
   dev_rebuild:
     needs: [release_gate, deploy]
     uses: ./.github/workflows/dev-rebuild.yml
-    with:
-      base: ${{ needs.release_gate.outputs.base || github.event.before }}
     secrets:
-      CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
       CONVEX_DEV_DEPLOY_KEY: ${{ secrets.CONVEX_DEV_DEPLOY_KEY }}

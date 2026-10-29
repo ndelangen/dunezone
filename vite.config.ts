@@ -9,6 +9,7 @@ import { configDefaults, defineConfig } from 'vite-plus';
 
 import { browserLaunchTests } from './browser-launch-tests.ts';
 import { coverageExclude, coverageInclude } from './coverage-denominator.ts';
+import { browserBundleBudgets, THREE_BUILD } from './scripts/lib/browserBundleBudgets.ts';
 import { readJsonc } from './scripts/lib/jsonc.ts';
 import { reactCompiler } from './scripts/lib/reactCompiler.ts';
 import { threeRendererStackAliases, threeRendererStackTreeShaking } from './scripts/lib/threeRendererStack.ts';
@@ -35,6 +36,35 @@ const publicAssetFileName = ({ names }: { names: readonly string[] }) => {
  * A route no test renders never loads its chunk, so its component lines would drop out of the coverage denominator.
  * The reference-file plugin writes the lazy import, so the run fails when that name is not found.
  */
+/*
+ * The tutorial runs the game Worker's table in the browser, so in the client build that table's Node crypto imports
+ * resolve to a Web Crypto slice. Nothing else is redirected: the server build and the tests keep Node's own.
+ */
+function gameTableCryptoInBrowser(): PluginOption {
+  const slice = fileURLToPath(new URL('./src/app/routes/_app/tutorial/table/nodeCrypto.ts', import.meta.url));
+  return {
+    name: 'dunezone:game-table-crypto-in-browser',
+    enforce: 'pre',
+    resolveId(source, importer) {
+      if (
+        source === 'node:crypto' &&
+        importer?.includes('/workers/game/') &&
+        this.environment.config.consumer === 'client'
+      ) {
+        return slice;
+      }
+    },
+  };
+}
+
+/*
+ * App modules whose top level only declares: schemas, data helpers and UI components.
+ * Rolldown keeps a module whose top level calls a function (such as `z.object()`) even when nothing uses its exports, so every page carried every domain's schemas through the route definitions.
+ * Marked side-effect free, an unused one drops out; once any of its exports is used it keeps its statements, including the static-property and registry assignments under `src/app/ui`.
+ * Styles keep their side effects: the pattern matches TypeScript only, and never a dependency's own `src/` folder.
+ */
+const APP_MODULES_WITHOUT_SIDE_EFFECTS = /^(?!.*\/node_modules\/).*\/src\/(?:shared|app\/db|app\/ui)\/[^?]*\.tsx?$/u;
+
 function withoutRouteSplittingInVitest(plugins: PluginOption[]): PluginOption[] {
   if (!process.env.VITEST) {
     return plugins;
@@ -80,7 +110,9 @@ const config = defineConfig({
   },
   build: {
     assetsDir: 'public', // will make your static assets appear under /public/
-    rollupOptions: { output: { assetFileNames: publicAssetFileName } },
+    rollupOptions: {
+      output: { assetFileNames: publicAssetFileName },
+    },
   },
   environments: {
     /**
@@ -91,7 +123,16 @@ const config = defineConfig({
     client: {
       build: {
         rollupOptions: {
+          treeshake: { moduleSideEffects: [{ test: APP_MODULES_WITHOUT_SIDE_EFFECTS, sideEffects: false }] },
           output: {
+            codeSplitting: {
+              groups: [
+                { name: 'lucide', test: /\/lucide-react\//u, maxSize: 500_000, entriesAware: true },
+                /* Three's three builds share one vendor chunk, the shape the bundle budget recognises, whichever renderer modules import them. */
+                { name: 'three', test: THREE_BUILD },
+                { name: 'media-index', test: /\/src\/app\/routes\/_app\/media\/media-index\.json$/u },
+              ],
+            },
             entryFileNames: ({ name }) => `public/${codecovSafeName(name)}-[hash].js`,
             chunkFileNames: ({ name }) => `public/${codecovSafeName(name)}-[hash].js`,
           },
@@ -121,6 +162,7 @@ const config = defineConfig({
   plugins: withoutRouteSplittingInVitest([
     // devtools(),
     unsyncedMediaPreview(fileURLToPath(new URL('.', import.meta.url))),
+    gameTableCryptoInBrowser(),
     tanstackStart({
       srcDirectory: './src/app',
       start: { entry: './routes/start.ts' },
@@ -149,6 +191,7 @@ const config = defineConfig({
         },
       },
     }),
+    browserBundleBudgets(),
     viteReact(),
     reactCompiler(),
     threeRendererStackTreeShaking(),

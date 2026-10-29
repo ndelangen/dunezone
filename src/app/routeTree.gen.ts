@@ -16,20 +16,29 @@ import { Route as App_iconsRouteRouteImport } from './routes/_app/[_]_icons.rout
 import { Route as App_jobsRouteRouteImport } from './routes/_app/[_]_jobs.route'
 import { Route as App_mediaRouteRouteImport } from './routes/_app/[_]_media.route'
 import { Route as AppJobsRouteRouteImport } from './routes/_app/[_]jobs.route'
+import { Route as AppAdminRouteRouteImport } from './routes/_app/admin/route'
+import { Route as AppImportsRouteRouteImport } from './routes/_app/imports.route'
 import { Route as AppMediaRouteRouteImport } from './routes/_app/media/route'
 import { Route as AppPlayRouteRouteImport } from './routes/_app/play/route'
+import { Route as AppTutorialRouteRouteImport } from './routes/_app/tutorial/route'
 import { Route as AuthOauthRouteRouteImport } from './routes/auth/oauth.route'
-import { Route as AppAdminAccountsRouteRouteImport } from './routes/_app/[_]admin/accounts.route'
-import { Route as AppAdminJobsRouteRouteImport } from './routes/_app/[_]admin/jobs.route'
+import { Route as AppAdminIndexRouteImport } from './routes/_app/admin/index'
+import { Route as AppAdminAccountsRouteRouteImport } from './routes/_app/admin/accounts.route'
+import { Route as AppAdminGameDebuggerRouteRouteImport } from './routes/_app/admin/game-debugger/route'
+import { Route as AppAdminJobsRouteRouteImport } from './routes/_app/admin/jobs.route'
 import { Route as AppAdminMigrationsRouteRouteImport } from './routes/_app/admin/migrations.route'
+import { Route as AppAdminPresetsRouteRouteImport } from './routes/_app/admin/presets.route'
 import { Route as AppAssetsIndexRouteImport } from './routes/_app/assets/index'
 import { Route as AppAssets_presetsRouteRouteImport } from './routes/_app/assets/[_]_presets.route'
 import { Route as AppAuthIndexRouteImport } from './routes/_app/auth/index'
 import { Route as AppAuthErrorRouteRouteImport } from './routes/_app/auth/error.route'
 import { Route as AppAuthLoginRouteRouteImport } from './routes/_app/auth/login.route'
 import { Route as AppBlogIndexRouteImport } from './routes/_app/blog/index'
+import { Route as AppContributingIndexRouteImport } from './routes/_app/contributing/index'
+import { Route as AppContributingIntroRouteRouteImport } from './routes/_app/contributing/$intro.route'
 import { Route as AppFactionsIndexRouteImport } from './routes/_app/factions/index'
 import { Route as AppFactionsCreateRouteRouteImport } from './routes/_app/factions/create.route'
+import { Route as AppFaqIndexRouteImport } from './routes/_app/faq/index'
 import { Route as AppFuturePlansIndexRouteImport } from './routes/_app/future-plans/index'
 import { Route as AppGlossaryIndexRouteImport } from './routes/_app/glossary/index'
 import { Route as AppGroupsCreateRouteRouteImport } from './routes/_app/groups/create.route'
@@ -41,9 +50,21 @@ import { Route as AppPrivacyIndexRouteImport } from './routes/_app/privacy/index
 import { Route as AppProfilesIndexRouteImport } from './routes/_app/profiles/index'
 import { Route as AppRulesetsIndexRouteImport } from './routes/_app/rulesets/index'
 import { Route as AppRulesetsCreateRouteRouteImport } from './routes/_app/rulesets/create.route'
+import { Route as AppTutorialIndexRouteImport } from './routes/_app/tutorial/index'
+import { Route as AppTutorialChapterRouteRouteImport } from './routes/_app/tutorial/$chapter.route'
 import { Route as PreviewSheetFactionSlugRouteRouteImport } from './routes/preview/sheet/$factionSlug.route'
+import { Route as AppAdminAccountsIndexRouteImport } from './routes/_app/[_]admin/accounts/index'
+import { Route as AppAdminJobsIndexRouteImport } from './routes/_app/[_]admin/jobs/index'
 import { Route as AppAssetsTypeIndexRouteImport } from './routes/_app/assets/$type/index'
 import { Route as AppBlogPostSlugIndexRouteImport } from './routes/_app/blog/$postSlug/index'
+import { Route as AppContributingCodeIndexRouteImport } from './routes/_app/contributing/code/index'
+import { Route as AppContributingCodeLessonRouteRouteImport } from './routes/_app/contributing/code/$lesson.route'
+import { Route as AppContributingDeploymentIndexRouteImport } from './routes/_app/contributing/deployment/index'
+import { Route as AppContributingDeploymentLessonRouteRouteImport } from './routes/_app/contributing/deployment/$lesson.route'
+import { Route as AppContributingDesignDecisionsIndexRouteImport } from './routes/_app/contributing/design-decisions/index'
+import { Route as AppContributingDesignDecisionsGroupRouteRouteImport } from './routes/_app/contributing/design-decisions/$group.route'
+import { Route as AppContributingGlossaryIndexRouteImport } from './routes/_app/contributing/glossary/index'
+import { Route as AppContributingGlossaryTopicRouteRouteImport } from './routes/_app/contributing/glossary/$topic.route'
 import { Route as AppFactionsFactionIdIndexRouteImport } from './routes/_app/factions/$factionId/index'
 import { Route as AppFactionsFactionIdEditRouteRouteImport } from './routes/_app/factions/$factionId/edit.route'
 import { Route as AppGroupsGroupSlugIndexRouteImport } from './routes/_app/groups/$groupSlug/index'
@@ -56,6 +77,7 @@ import { Route as AppProfilesProfileSlugEditRouteRouteImport } from './routes/_a
 import { Route as AppRulesetsRulesetSlugIndexRouteImport } from './routes/_app/rulesets/$rulesetSlug/index'
 import { Route as AppRulesetsRulesetSlugEditRouteRouteImport } from './routes/_app/rulesets/$rulesetSlug/edit.route'
 import { Route as AppAssetsTypeSlugIndexRouteImport } from './routes/_app/assets/$type/$slug/index'
+import { Route as AppAssetsTypeSlugConvertToSpiceRouteRouteImport } from './routes/_app/assets/$type/$slug/convert-to-spice.route'
 import { Route as AppAssetsTypeCreateIndexRouteImport } from './routes/_app/assets/$type/create/index'
 import { Route as AppRulesetsRulesetSlugFaqIndexRouteImport } from './routes/_app/rulesets/$rulesetSlug/faq/index'
 import { Route as AppRulesetsRulesetSlugFaqQuestionSlugRouteRouteImport } from './routes/_app/rulesets/$rulesetSlug/faq/$questionSlug.route'
@@ -100,6 +122,16 @@ const AppJobsRouteRoute = AppJobsRouteRouteImport.update({
   path: '/_jobs',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppAdminRouteRoute = AppAdminRouteRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppImportsRouteRoute = AppImportsRouteRouteImport.update({
+  id: '/imports',
+  path: '/imports',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppMediaRouteRoute = AppMediaRouteRouteImport.update({
   id: '/media',
   path: '/media',
@@ -110,25 +142,46 @@ const AppPlayRouteRoute = AppPlayRouteRouteImport.update({
   path: '/play',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppTutorialRouteRoute = AppTutorialRouteRouteImport.update({
+  id: '/tutorial',
+  path: '/tutorial',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AuthOauthRouteRoute = AuthOauthRouteRouteImport.update({
   id: '/auth/oauth',
   path: '/auth/oauth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppAdminAccountsRouteRoute = AppAdminAccountsRouteRouteImport.update({
-  id: '/_admin/accounts',
-  path: '/_admin/accounts',
-  getParentRoute: () => AppRouteRoute,
+const AppAdminIndexRoute = AppAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppAdminRouteRoute,
 } as any)
+const AppAdminAccountsRouteRoute = AppAdminAccountsRouteRouteImport.update({
+  id: '/accounts',
+  path: '/accounts',
+  getParentRoute: () => AppAdminRouteRoute,
+} as any)
+const AppAdminGameDebuggerRouteRoute =
+  AppAdminGameDebuggerRouteRouteImport.update({
+    id: '/game-debugger',
+    path: '/game-debugger',
+    getParentRoute: () => AppAdminRouteRoute,
+  } as any)
 const AppAdminJobsRouteRoute = AppAdminJobsRouteRouteImport.update({
-  id: '/_admin/jobs',
-  path: '/_admin/jobs',
-  getParentRoute: () => AppRouteRoute,
+  id: '/jobs',
+  path: '/jobs',
+  getParentRoute: () => AppAdminRouteRoute,
 } as any)
 const AppAdminMigrationsRouteRoute = AppAdminMigrationsRouteRouteImport.update({
-  id: '/admin/migrations',
-  path: '/admin/migrations',
-  getParentRoute: () => AppRouteRoute,
+  id: '/migrations',
+  path: '/migrations',
+  getParentRoute: () => AppAdminRouteRoute,
+} as any)
+const AppAdminPresetsRouteRoute = AppAdminPresetsRouteRouteImport.update({
+  id: '/presets',
+  path: '/presets',
+  getParentRoute: () => AppAdminRouteRoute,
 } as any)
 const AppAssetsIndexRoute = AppAssetsIndexRouteImport.update({
   id: '/assets/',
@@ -160,6 +213,17 @@ const AppBlogIndexRoute = AppBlogIndexRouteImport.update({
   path: '/blog/',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppContributingIndexRoute = AppContributingIndexRouteImport.update({
+  id: '/contributing/',
+  path: '/contributing/',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppContributingIntroRouteRoute =
+  AppContributingIntroRouteRouteImport.update({
+    id: '/contributing/$intro',
+    path: '/contributing/$intro',
+    getParentRoute: () => AppRouteRoute,
+  } as any)
 const AppFactionsIndexRoute = AppFactionsIndexRouteImport.update({
   id: '/factions/',
   path: '/factions/',
@@ -168,6 +232,11 @@ const AppFactionsIndexRoute = AppFactionsIndexRouteImport.update({
 const AppFactionsCreateRouteRoute = AppFactionsCreateRouteRouteImport.update({
   id: '/factions/create',
   path: '/factions/create',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppFaqIndexRoute = AppFaqIndexRouteImport.update({
+  id: '/faq/',
+  path: '/faq/',
   getParentRoute: () => AppRouteRoute,
 } as any)
 const AppFuturePlansIndexRoute = AppFuturePlansIndexRouteImport.update({
@@ -225,12 +294,32 @@ const AppRulesetsCreateRouteRoute = AppRulesetsCreateRouteRouteImport.update({
   path: '/rulesets/create',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppTutorialIndexRoute = AppTutorialIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppTutorialRouteRoute,
+} as any)
+const AppTutorialChapterRouteRoute = AppTutorialChapterRouteRouteImport.update({
+  id: '/$chapter',
+  path: '/$chapter',
+  getParentRoute: () => AppTutorialRouteRoute,
+} as any)
 const PreviewSheetFactionSlugRouteRoute =
   PreviewSheetFactionSlugRouteRouteImport.update({
     id: '/preview/sheet/$factionSlug',
     path: '/preview/sheet/$factionSlug',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AppAdminAccountsIndexRoute = AppAdminAccountsIndexRouteImport.update({
+  id: '/_admin/accounts/',
+  path: '/_admin/accounts/',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppAdminJobsIndexRoute = AppAdminJobsIndexRouteImport.update({
+  id: '/_admin/jobs/',
+  path: '/_admin/jobs/',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppAssetsTypeIndexRoute = AppAssetsTypeIndexRouteImport.update({
   id: '/assets/$type/',
   path: '/assets/$type/',
@@ -241,6 +330,54 @@ const AppBlogPostSlugIndexRoute = AppBlogPostSlugIndexRouteImport.update({
   path: '/blog/$postSlug/',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppContributingCodeIndexRoute =
+  AppContributingCodeIndexRouteImport.update({
+    id: '/contributing/code/',
+    path: '/contributing/code/',
+    getParentRoute: () => AppRouteRoute,
+  } as any)
+const AppContributingCodeLessonRouteRoute =
+  AppContributingCodeLessonRouteRouteImport.update({
+    id: '/contributing/code/$lesson',
+    path: '/contributing/code/$lesson',
+    getParentRoute: () => AppRouteRoute,
+  } as any)
+const AppContributingDeploymentIndexRoute =
+  AppContributingDeploymentIndexRouteImport.update({
+    id: '/contributing/deployment/',
+    path: '/contributing/deployment/',
+    getParentRoute: () => AppRouteRoute,
+  } as any)
+const AppContributingDeploymentLessonRouteRoute =
+  AppContributingDeploymentLessonRouteRouteImport.update({
+    id: '/contributing/deployment/$lesson',
+    path: '/contributing/deployment/$lesson',
+    getParentRoute: () => AppRouteRoute,
+  } as any)
+const AppContributingDesignDecisionsIndexRoute =
+  AppContributingDesignDecisionsIndexRouteImport.update({
+    id: '/contributing/design-decisions/',
+    path: '/contributing/design-decisions/',
+    getParentRoute: () => AppRouteRoute,
+  } as any)
+const AppContributingDesignDecisionsGroupRouteRoute =
+  AppContributingDesignDecisionsGroupRouteRouteImport.update({
+    id: '/contributing/design-decisions/$group',
+    path: '/contributing/design-decisions/$group',
+    getParentRoute: () => AppRouteRoute,
+  } as any)
+const AppContributingGlossaryIndexRoute =
+  AppContributingGlossaryIndexRouteImport.update({
+    id: '/contributing/glossary/',
+    path: '/contributing/glossary/',
+    getParentRoute: () => AppRouteRoute,
+  } as any)
+const AppContributingGlossaryTopicRouteRoute =
+  AppContributingGlossaryTopicRouteRouteImport.update({
+    id: '/contributing/glossary/$topic',
+    path: '/contributing/glossary/$topic',
+    getParentRoute: () => AppRouteRoute,
+  } as any)
 const AppFactionsFactionIdIndexRoute =
   AppFactionsFactionIdIndexRouteImport.update({
     id: '/factions/$factionId/',
@@ -310,6 +447,12 @@ const AppAssetsTypeSlugIndexRoute = AppAssetsTypeSlugIndexRouteImport.update({
   path: '/assets/$type/$slug/',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppAssetsTypeSlugConvertToSpiceRouteRoute =
+  AppAssetsTypeSlugConvertToSpiceRouteRouteImport.update({
+    id: '/assets/$type/$slug/convert-to-spice',
+    path: '/assets/$type/$slug/convert-to-spice',
+    getParentRoute: () => AppRouteRoute,
+  } as any)
 const AppAssetsTypeCreateIndexRoute =
   AppAssetsTypeCreateIndexRouteImport.update({
     id: '/assets/$type/create/',
@@ -372,32 +515,47 @@ export interface FileRoutesByFullPath {
   '/__jobs': typeof App_jobsRouteRoute
   '/__media': typeof App_mediaRouteRoute
   '/_jobs': typeof AppJobsRouteRoute
+  '/admin': typeof AppAdminRouteRouteWithChildren
+  '/imports': typeof AppImportsRouteRoute
   '/media': typeof AppMediaRouteRouteWithChildren
   '/play': typeof AppPlayRouteRouteWithChildren
+  '/tutorial': typeof AppTutorialRouteRouteWithChildren
   '/auth/oauth': typeof AuthOauthRouteRoute
-  '/_admin/accounts': typeof AppAdminAccountsRouteRoute
-  '/_admin/jobs': typeof AppAdminJobsRouteRoute
+  '/admin/accounts': typeof AppAdminAccountsRouteRoute
+  '/admin/game-debugger': typeof AppAdminGameDebuggerRouteRoute
+  '/admin/jobs': typeof AppAdminJobsRouteRoute
   '/admin/migrations': typeof AppAdminMigrationsRouteRoute
+  '/admin/presets': typeof AppAdminPresetsRouteRoute
   '/assets/__presets': typeof AppAssets_presetsRouteRoute
   '/auth/error': typeof AppAuthErrorRouteRoute
   '/auth/login': typeof AppAuthLoginRouteRoute
+  '/contributing/$intro': typeof AppContributingIntroRouteRoute
   '/factions/create': typeof AppFactionsCreateRouteRoute
   '/groups/create': typeof AppGroupsCreateRouteRoute
   '/media/$source': typeof AppMediaSourceRouteRouteWithChildren
   '/play/$gameId': typeof AppPlayGameIdRouteRoute
   '/play/create': typeof AppPlayCreateRouteRoute
   '/rulesets/create': typeof AppRulesetsCreateRouteRoute
+  '/tutorial/$chapter': typeof AppTutorialChapterRouteRoute
   '/preview/sheet/$factionSlug': typeof PreviewSheetFactionSlugRouteRoute
+  '/admin/': typeof AppAdminIndexRoute
   '/assets/': typeof AppAssetsIndexRoute
   '/auth/': typeof AppAuthIndexRoute
   '/blog/': typeof AppBlogIndexRoute
+  '/contributing/': typeof AppContributingIndexRoute
   '/factions/': typeof AppFactionsIndexRoute
+  '/faq/': typeof AppFaqIndexRoute
   '/future-plans/': typeof AppFuturePlansIndexRoute
   '/glossary/': typeof AppGlossaryIndexRoute
   '/play/': typeof AppPlayIndexRoute
   '/privacy/': typeof AppPrivacyIndexRoute
   '/profiles/': typeof AppProfilesIndexRoute
   '/rulesets/': typeof AppRulesetsIndexRoute
+  '/tutorial/': typeof AppTutorialIndexRoute
+  '/contributing/code/$lesson': typeof AppContributingCodeLessonRouteRoute
+  '/contributing/deployment/$lesson': typeof AppContributingDeploymentLessonRouteRoute
+  '/contributing/design-decisions/$group': typeof AppContributingDesignDecisionsGroupRouteRoute
+  '/contributing/glossary/$topic': typeof AppContributingGlossaryTopicRouteRoute
   '/factions/$factionId/edit': typeof AppFactionsFactionIdEditRouteRoute
   '/groups/$groupSlug/edit': typeof AppGroupsGroupSlugEditRouteRoute
   '/media/$source/$kind': typeof AppMediaSourceKindRouteRoute
@@ -405,12 +563,19 @@ export interface FileRoutesByFullPath {
   '/profiles/$profileSlug/delete': typeof AppProfilesProfileSlugDeleteRouteRoute
   '/profiles/$profileSlug/edit': typeof AppProfilesProfileSlugEditRouteRoute
   '/rulesets/$rulesetSlug/edit': typeof AppRulesetsRulesetSlugEditRouteRoute
+  '/_admin/accounts/': typeof AppAdminAccountsIndexRoute
+  '/_admin/jobs/': typeof AppAdminJobsIndexRoute
   '/assets/$type/': typeof AppAssetsTypeIndexRoute
   '/blog/$postSlug/': typeof AppBlogPostSlugIndexRoute
+  '/contributing/code/': typeof AppContributingCodeIndexRoute
+  '/contributing/deployment/': typeof AppContributingDeploymentIndexRoute
+  '/contributing/design-decisions/': typeof AppContributingDesignDecisionsIndexRoute
+  '/contributing/glossary/': typeof AppContributingGlossaryIndexRoute
   '/factions/$factionId/': typeof AppFactionsFactionIdIndexRoute
   '/groups/$groupSlug/': typeof AppGroupsGroupSlugIndexRoute
   '/profiles/$profileSlug/': typeof AppProfilesProfileSlugIndexRoute
   '/rulesets/$rulesetSlug/': typeof AppRulesetsRulesetSlugIndexRoute
+  '/assets/$type/$slug/convert-to-spice': typeof AppAssetsTypeSlugConvertToSpiceRouteRoute
   '/rulesets/$rulesetSlug/faq/$questionSlug': typeof AppRulesetsRulesetSlugFaqQuestionSlugRouteRoute
   '/rulesets/$rulesetSlug/faq/create': typeof AppRulesetsRulesetSlugFaqCreateRouteRoute
   '/rulesets/$rulesetSlug/rulebooks/create': typeof AppRulesetsRulesetSlugRulebooksCreateRouteRoute
@@ -428,32 +593,45 @@ export interface FileRoutesByTo {
   '/__jobs': typeof App_jobsRouteRoute
   '/__media': typeof App_mediaRouteRoute
   '/_jobs': typeof AppJobsRouteRoute
+  '/imports': typeof AppImportsRouteRoute
   '/media': typeof AppMediaRouteRouteWithChildren
   '/auth/oauth': typeof AuthOauthRouteRoute
   '/': typeof AppIndexRoute
-  '/_admin/accounts': typeof AppAdminAccountsRouteRoute
-  '/_admin/jobs': typeof AppAdminJobsRouteRoute
+  '/admin/accounts': typeof AppAdminAccountsRouteRoute
+  '/admin/game-debugger': typeof AppAdminGameDebuggerRouteRoute
+  '/admin/jobs': typeof AppAdminJobsRouteRoute
   '/admin/migrations': typeof AppAdminMigrationsRouteRoute
+  '/admin/presets': typeof AppAdminPresetsRouteRoute
   '/assets/__presets': typeof AppAssets_presetsRouteRoute
   '/auth/error': typeof AppAuthErrorRouteRoute
   '/auth/login': typeof AppAuthLoginRouteRoute
+  '/contributing/$intro': typeof AppContributingIntroRouteRoute
   '/factions/create': typeof AppFactionsCreateRouteRoute
   '/groups/create': typeof AppGroupsCreateRouteRoute
   '/media/$source': typeof AppMediaSourceRouteRouteWithChildren
   '/play/$gameId': typeof AppPlayGameIdRouteRoute
   '/play/create': typeof AppPlayCreateRouteRoute
   '/rulesets/create': typeof AppRulesetsCreateRouteRoute
+  '/tutorial/$chapter': typeof AppTutorialChapterRouteRoute
   '/preview/sheet/$factionSlug': typeof PreviewSheetFactionSlugRouteRoute
+  '/admin': typeof AppAdminIndexRoute
   '/assets': typeof AppAssetsIndexRoute
   '/auth': typeof AppAuthIndexRoute
   '/blog': typeof AppBlogIndexRoute
+  '/contributing': typeof AppContributingIndexRoute
   '/factions': typeof AppFactionsIndexRoute
+  '/faq': typeof AppFaqIndexRoute
   '/future-plans': typeof AppFuturePlansIndexRoute
   '/glossary': typeof AppGlossaryIndexRoute
   '/play': typeof AppPlayIndexRoute
   '/privacy': typeof AppPrivacyIndexRoute
   '/profiles': typeof AppProfilesIndexRoute
   '/rulesets': typeof AppRulesetsIndexRoute
+  '/tutorial': typeof AppTutorialIndexRoute
+  '/contributing/code/$lesson': typeof AppContributingCodeLessonRouteRoute
+  '/contributing/deployment/$lesson': typeof AppContributingDeploymentLessonRouteRoute
+  '/contributing/design-decisions/$group': typeof AppContributingDesignDecisionsGroupRouteRoute
+  '/contributing/glossary/$topic': typeof AppContributingGlossaryTopicRouteRoute
   '/factions/$factionId/edit': typeof AppFactionsFactionIdEditRouteRoute
   '/groups/$groupSlug/edit': typeof AppGroupsGroupSlugEditRouteRoute
   '/media/$source/$kind': typeof AppMediaSourceKindRouteRoute
@@ -461,12 +639,19 @@ export interface FileRoutesByTo {
   '/profiles/$profileSlug/delete': typeof AppProfilesProfileSlugDeleteRouteRoute
   '/profiles/$profileSlug/edit': typeof AppProfilesProfileSlugEditRouteRoute
   '/rulesets/$rulesetSlug/edit': typeof AppRulesetsRulesetSlugEditRouteRoute
+  '/_admin/accounts': typeof AppAdminAccountsIndexRoute
+  '/_admin/jobs': typeof AppAdminJobsIndexRoute
   '/assets/$type': typeof AppAssetsTypeIndexRoute
   '/blog/$postSlug': typeof AppBlogPostSlugIndexRoute
+  '/contributing/code': typeof AppContributingCodeIndexRoute
+  '/contributing/deployment': typeof AppContributingDeploymentIndexRoute
+  '/contributing/design-decisions': typeof AppContributingDesignDecisionsIndexRoute
+  '/contributing/glossary': typeof AppContributingGlossaryIndexRoute
   '/factions/$factionId': typeof AppFactionsFactionIdIndexRoute
   '/groups/$groupSlug': typeof AppGroupsGroupSlugIndexRoute
   '/profiles/$profileSlug': typeof AppProfilesProfileSlugIndexRoute
   '/rulesets/$rulesetSlug': typeof AppRulesetsRulesetSlugIndexRoute
+  '/assets/$type/$slug/convert-to-spice': typeof AppAssetsTypeSlugConvertToSpiceRouteRoute
   '/rulesets/$rulesetSlug/faq/$questionSlug': typeof AppRulesetsRulesetSlugFaqQuestionSlugRouteRoute
   '/rulesets/$rulesetSlug/faq/create': typeof AppRulesetsRulesetSlugFaqCreateRouteRoute
   '/rulesets/$rulesetSlug/rulebooks/create': typeof AppRulesetsRulesetSlugRulebooksCreateRouteRoute
@@ -486,33 +671,48 @@ export interface FileRoutesById {
   '/_app/__jobs': typeof App_jobsRouteRoute
   '/_app/__media': typeof App_mediaRouteRoute
   '/_app/_jobs': typeof AppJobsRouteRoute
+  '/_app/admin': typeof AppAdminRouteRouteWithChildren
+  '/_app/imports': typeof AppImportsRouteRoute
   '/_app/media': typeof AppMediaRouteRouteWithChildren
   '/_app/play': typeof AppPlayRouteRouteWithChildren
+  '/_app/tutorial': typeof AppTutorialRouteRouteWithChildren
   '/auth/oauth': typeof AuthOauthRouteRoute
   '/_app/': typeof AppIndexRoute
-  '/_app/_admin/accounts': typeof AppAdminAccountsRouteRoute
-  '/_app/_admin/jobs': typeof AppAdminJobsRouteRoute
+  '/_app/admin/accounts': typeof AppAdminAccountsRouteRoute
+  '/_app/admin/game-debugger': typeof AppAdminGameDebuggerRouteRoute
+  '/_app/admin/jobs': typeof AppAdminJobsRouteRoute
   '/_app/admin/migrations': typeof AppAdminMigrationsRouteRoute
+  '/_app/admin/presets': typeof AppAdminPresetsRouteRoute
   '/_app/assets/__presets': typeof AppAssets_presetsRouteRoute
   '/_app/auth/error': typeof AppAuthErrorRouteRoute
   '/_app/auth/login': typeof AppAuthLoginRouteRoute
+  '/_app/contributing/$intro': typeof AppContributingIntroRouteRoute
   '/_app/factions/create': typeof AppFactionsCreateRouteRoute
   '/_app/groups/create': typeof AppGroupsCreateRouteRoute
   '/_app/media/$source': typeof AppMediaSourceRouteRouteWithChildren
   '/_app/play/$gameId': typeof AppPlayGameIdRouteRoute
   '/_app/play/create': typeof AppPlayCreateRouteRoute
   '/_app/rulesets/create': typeof AppRulesetsCreateRouteRoute
+  '/_app/tutorial/$chapter': typeof AppTutorialChapterRouteRoute
   '/preview/sheet/$factionSlug': typeof PreviewSheetFactionSlugRouteRoute
+  '/_app/admin/': typeof AppAdminIndexRoute
   '/_app/assets/': typeof AppAssetsIndexRoute
   '/_app/auth/': typeof AppAuthIndexRoute
   '/_app/blog/': typeof AppBlogIndexRoute
+  '/_app/contributing/': typeof AppContributingIndexRoute
   '/_app/factions/': typeof AppFactionsIndexRoute
+  '/_app/faq/': typeof AppFaqIndexRoute
   '/_app/future-plans/': typeof AppFuturePlansIndexRoute
   '/_app/glossary/': typeof AppGlossaryIndexRoute
   '/_app/play/': typeof AppPlayIndexRoute
   '/_app/privacy/': typeof AppPrivacyIndexRoute
   '/_app/profiles/': typeof AppProfilesIndexRoute
   '/_app/rulesets/': typeof AppRulesetsIndexRoute
+  '/_app/tutorial/': typeof AppTutorialIndexRoute
+  '/_app/contributing/code/$lesson': typeof AppContributingCodeLessonRouteRoute
+  '/_app/contributing/deployment/$lesson': typeof AppContributingDeploymentLessonRouteRoute
+  '/_app/contributing/design-decisions/$group': typeof AppContributingDesignDecisionsGroupRouteRoute
+  '/_app/contributing/glossary/$topic': typeof AppContributingGlossaryTopicRouteRoute
   '/_app/factions/$factionId/edit': typeof AppFactionsFactionIdEditRouteRoute
   '/_app/groups/$groupSlug/edit': typeof AppGroupsGroupSlugEditRouteRoute
   '/_app/media/$source/$kind': typeof AppMediaSourceKindRouteRoute
@@ -520,12 +720,19 @@ export interface FileRoutesById {
   '/_app/profiles/$profileSlug/delete': typeof AppProfilesProfileSlugDeleteRouteRoute
   '/_app/profiles/$profileSlug/edit': typeof AppProfilesProfileSlugEditRouteRoute
   '/_app/rulesets/$rulesetSlug/edit': typeof AppRulesetsRulesetSlugEditRouteRoute
+  '/_app/_admin/accounts/': typeof AppAdminAccountsIndexRoute
+  '/_app/_admin/jobs/': typeof AppAdminJobsIndexRoute
   '/_app/assets/$type/': typeof AppAssetsTypeIndexRoute
   '/_app/blog/$postSlug/': typeof AppBlogPostSlugIndexRoute
+  '/_app/contributing/code/': typeof AppContributingCodeIndexRoute
+  '/_app/contributing/deployment/': typeof AppContributingDeploymentIndexRoute
+  '/_app/contributing/design-decisions/': typeof AppContributingDesignDecisionsIndexRoute
+  '/_app/contributing/glossary/': typeof AppContributingGlossaryIndexRoute
   '/_app/factions/$factionId/': typeof AppFactionsFactionIdIndexRoute
   '/_app/groups/$groupSlug/': typeof AppGroupsGroupSlugIndexRoute
   '/_app/profiles/$profileSlug/': typeof AppProfilesProfileSlugIndexRoute
   '/_app/rulesets/$rulesetSlug/': typeof AppRulesetsRulesetSlugIndexRoute
+  '/_app/assets/$type/$slug/convert-to-spice': typeof AppAssetsTypeSlugConvertToSpiceRouteRoute
   '/_app/rulesets/$rulesetSlug/faq/$questionSlug': typeof AppRulesetsRulesetSlugFaqQuestionSlugRouteRoute
   '/_app/rulesets/$rulesetSlug/faq/create': typeof AppRulesetsRulesetSlugFaqCreateRouteRoute
   '/_app/rulesets/$rulesetSlug/rulebooks/create': typeof AppRulesetsRulesetSlugRulebooksCreateRouteRoute
@@ -546,32 +753,47 @@ export interface FileRouteTypes {
     | '/__jobs'
     | '/__media'
     | '/_jobs'
+    | '/admin'
+    | '/imports'
     | '/media'
     | '/play'
+    | '/tutorial'
     | '/auth/oauth'
-    | '/_admin/accounts'
-    | '/_admin/jobs'
+    | '/admin/accounts'
+    | '/admin/game-debugger'
+    | '/admin/jobs'
     | '/admin/migrations'
+    | '/admin/presets'
     | '/assets/__presets'
     | '/auth/error'
     | '/auth/login'
+    | '/contributing/$intro'
     | '/factions/create'
     | '/groups/create'
     | '/media/$source'
     | '/play/$gameId'
     | '/play/create'
     | '/rulesets/create'
+    | '/tutorial/$chapter'
     | '/preview/sheet/$factionSlug'
+    | '/admin/'
     | '/assets/'
     | '/auth/'
     | '/blog/'
+    | '/contributing/'
     | '/factions/'
+    | '/faq/'
     | '/future-plans/'
     | '/glossary/'
     | '/play/'
     | '/privacy/'
     | '/profiles/'
     | '/rulesets/'
+    | '/tutorial/'
+    | '/contributing/code/$lesson'
+    | '/contributing/deployment/$lesson'
+    | '/contributing/design-decisions/$group'
+    | '/contributing/glossary/$topic'
     | '/factions/$factionId/edit'
     | '/groups/$groupSlug/edit'
     | '/media/$source/$kind'
@@ -579,12 +801,19 @@ export interface FileRouteTypes {
     | '/profiles/$profileSlug/delete'
     | '/profiles/$profileSlug/edit'
     | '/rulesets/$rulesetSlug/edit'
+    | '/_admin/accounts/'
+    | '/_admin/jobs/'
     | '/assets/$type/'
     | '/blog/$postSlug/'
+    | '/contributing/code/'
+    | '/contributing/deployment/'
+    | '/contributing/design-decisions/'
+    | '/contributing/glossary/'
     | '/factions/$factionId/'
     | '/groups/$groupSlug/'
     | '/profiles/$profileSlug/'
     | '/rulesets/$rulesetSlug/'
+    | '/assets/$type/$slug/convert-to-spice'
     | '/rulesets/$rulesetSlug/faq/$questionSlug'
     | '/rulesets/$rulesetSlug/faq/create'
     | '/rulesets/$rulesetSlug/rulebooks/create'
@@ -602,32 +831,45 @@ export interface FileRouteTypes {
     | '/__jobs'
     | '/__media'
     | '/_jobs'
+    | '/imports'
     | '/media'
     | '/auth/oauth'
     | '/'
-    | '/_admin/accounts'
-    | '/_admin/jobs'
+    | '/admin/accounts'
+    | '/admin/game-debugger'
+    | '/admin/jobs'
     | '/admin/migrations'
+    | '/admin/presets'
     | '/assets/__presets'
     | '/auth/error'
     | '/auth/login'
+    | '/contributing/$intro'
     | '/factions/create'
     | '/groups/create'
     | '/media/$source'
     | '/play/$gameId'
     | '/play/create'
     | '/rulesets/create'
+    | '/tutorial/$chapter'
     | '/preview/sheet/$factionSlug'
+    | '/admin'
     | '/assets'
     | '/auth'
     | '/blog'
+    | '/contributing'
     | '/factions'
+    | '/faq'
     | '/future-plans'
     | '/glossary'
     | '/play'
     | '/privacy'
     | '/profiles'
     | '/rulesets'
+    | '/tutorial'
+    | '/contributing/code/$lesson'
+    | '/contributing/deployment/$lesson'
+    | '/contributing/design-decisions/$group'
+    | '/contributing/glossary/$topic'
     | '/factions/$factionId/edit'
     | '/groups/$groupSlug/edit'
     | '/media/$source/$kind'
@@ -635,12 +877,19 @@ export interface FileRouteTypes {
     | '/profiles/$profileSlug/delete'
     | '/profiles/$profileSlug/edit'
     | '/rulesets/$rulesetSlug/edit'
+    | '/_admin/accounts'
+    | '/_admin/jobs'
     | '/assets/$type'
     | '/blog/$postSlug'
+    | '/contributing/code'
+    | '/contributing/deployment'
+    | '/contributing/design-decisions'
+    | '/contributing/glossary'
     | '/factions/$factionId'
     | '/groups/$groupSlug'
     | '/profiles/$profileSlug'
     | '/rulesets/$rulesetSlug'
+    | '/assets/$type/$slug/convert-to-spice'
     | '/rulesets/$rulesetSlug/faq/$questionSlug'
     | '/rulesets/$rulesetSlug/faq/create'
     | '/rulesets/$rulesetSlug/rulebooks/create'
@@ -659,33 +908,48 @@ export interface FileRouteTypes {
     | '/_app/__jobs'
     | '/_app/__media'
     | '/_app/_jobs'
+    | '/_app/admin'
+    | '/_app/imports'
     | '/_app/media'
     | '/_app/play'
+    | '/_app/tutorial'
     | '/auth/oauth'
     | '/_app/'
-    | '/_app/_admin/accounts'
-    | '/_app/_admin/jobs'
+    | '/_app/admin/accounts'
+    | '/_app/admin/game-debugger'
+    | '/_app/admin/jobs'
     | '/_app/admin/migrations'
+    | '/_app/admin/presets'
     | '/_app/assets/__presets'
     | '/_app/auth/error'
     | '/_app/auth/login'
+    | '/_app/contributing/$intro'
     | '/_app/factions/create'
     | '/_app/groups/create'
     | '/_app/media/$source'
     | '/_app/play/$gameId'
     | '/_app/play/create'
     | '/_app/rulesets/create'
+    | '/_app/tutorial/$chapter'
     | '/preview/sheet/$factionSlug'
+    | '/_app/admin/'
     | '/_app/assets/'
     | '/_app/auth/'
     | '/_app/blog/'
+    | '/_app/contributing/'
     | '/_app/factions/'
+    | '/_app/faq/'
     | '/_app/future-plans/'
     | '/_app/glossary/'
     | '/_app/play/'
     | '/_app/privacy/'
     | '/_app/profiles/'
     | '/_app/rulesets/'
+    | '/_app/tutorial/'
+    | '/_app/contributing/code/$lesson'
+    | '/_app/contributing/deployment/$lesson'
+    | '/_app/contributing/design-decisions/$group'
+    | '/_app/contributing/glossary/$topic'
     | '/_app/factions/$factionId/edit'
     | '/_app/groups/$groupSlug/edit'
     | '/_app/media/$source/$kind'
@@ -693,12 +957,19 @@ export interface FileRouteTypes {
     | '/_app/profiles/$profileSlug/delete'
     | '/_app/profiles/$profileSlug/edit'
     | '/_app/rulesets/$rulesetSlug/edit'
+    | '/_app/_admin/accounts/'
+    | '/_app/_admin/jobs/'
     | '/_app/assets/$type/'
     | '/_app/blog/$postSlug/'
+    | '/_app/contributing/code/'
+    | '/_app/contributing/deployment/'
+    | '/_app/contributing/design-decisions/'
+    | '/_app/contributing/glossary/'
     | '/_app/factions/$factionId/'
     | '/_app/groups/$groupSlug/'
     | '/_app/profiles/$profileSlug/'
     | '/_app/rulesets/$rulesetSlug/'
+    | '/_app/assets/$type/$slug/convert-to-spice'
     | '/_app/rulesets/$rulesetSlug/faq/$questionSlug'
     | '/_app/rulesets/$rulesetSlug/faq/create'
     | '/_app/rulesets/$rulesetSlug/rulebooks/create'
@@ -768,6 +1039,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppJobsRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/admin': {
+      id: '/_app/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AppAdminRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/imports': {
+      id: '/_app/imports'
+      path: '/imports'
+      fullPath: '/imports'
+      preLoaderRoute: typeof AppImportsRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/_app/media': {
       id: '/_app/media'
       path: '/media'
@@ -782,6 +1067,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPlayRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/tutorial': {
+      id: '/_app/tutorial'
+      path: '/tutorial'
+      fullPath: '/tutorial'
+      preLoaderRoute: typeof AppTutorialRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/auth/oauth': {
       id: '/auth/oauth'
       path: '/auth/oauth'
@@ -789,26 +1081,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthOauthRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_app/_admin/accounts': {
-      id: '/_app/_admin/accounts'
-      path: '/_admin/accounts'
-      fullPath: '/_admin/accounts'
-      preLoaderRoute: typeof AppAdminAccountsRouteRouteImport
-      parentRoute: typeof AppRouteRoute
+    '/_app/admin/': {
+      id: '/_app/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AppAdminIndexRouteImport
+      parentRoute: typeof AppAdminRouteRoute
     }
-    '/_app/_admin/jobs': {
-      id: '/_app/_admin/jobs'
-      path: '/_admin/jobs'
-      fullPath: '/_admin/jobs'
+    '/_app/admin/accounts': {
+      id: '/_app/admin/accounts'
+      path: '/accounts'
+      fullPath: '/admin/accounts'
+      preLoaderRoute: typeof AppAdminAccountsRouteRouteImport
+      parentRoute: typeof AppAdminRouteRoute
+    }
+    '/_app/admin/game-debugger': {
+      id: '/_app/admin/game-debugger'
+      path: '/game-debugger'
+      fullPath: '/admin/game-debugger'
+      preLoaderRoute: typeof AppAdminGameDebuggerRouteRouteImport
+      parentRoute: typeof AppAdminRouteRoute
+    }
+    '/_app/admin/jobs': {
+      id: '/_app/admin/jobs'
+      path: '/jobs'
+      fullPath: '/admin/jobs'
       preLoaderRoute: typeof AppAdminJobsRouteRouteImport
-      parentRoute: typeof AppRouteRoute
+      parentRoute: typeof AppAdminRouteRoute
     }
     '/_app/admin/migrations': {
       id: '/_app/admin/migrations'
-      path: '/admin/migrations'
+      path: '/migrations'
       fullPath: '/admin/migrations'
       preLoaderRoute: typeof AppAdminMigrationsRouteRouteImport
-      parentRoute: typeof AppRouteRoute
+      parentRoute: typeof AppAdminRouteRoute
+    }
+    '/_app/admin/presets': {
+      id: '/_app/admin/presets'
+      path: '/presets'
+      fullPath: '/admin/presets'
+      preLoaderRoute: typeof AppAdminPresetsRouteRouteImport
+      parentRoute: typeof AppAdminRouteRoute
     }
     '/_app/assets/': {
       id: '/_app/assets/'
@@ -852,6 +1165,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppBlogIndexRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/contributing/': {
+      id: '/_app/contributing/'
+      path: '/contributing'
+      fullPath: '/contributing/'
+      preLoaderRoute: typeof AppContributingIndexRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/contributing/$intro': {
+      id: '/_app/contributing/$intro'
+      path: '/contributing/$intro'
+      fullPath: '/contributing/$intro'
+      preLoaderRoute: typeof AppContributingIntroRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/_app/factions/': {
       id: '/_app/factions/'
       path: '/factions'
@@ -864,6 +1191,13 @@ declare module '@tanstack/react-router' {
       path: '/factions/create'
       fullPath: '/factions/create'
       preLoaderRoute: typeof AppFactionsCreateRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/faq/': {
+      id: '/_app/faq/'
+      path: '/faq'
+      fullPath: '/faq/'
+      preLoaderRoute: typeof AppFaqIndexRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/_app/future-plans/': {
@@ -943,12 +1277,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRulesetsCreateRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/tutorial/': {
+      id: '/_app/tutorial/'
+      path: '/'
+      fullPath: '/tutorial/'
+      preLoaderRoute: typeof AppTutorialIndexRouteImport
+      parentRoute: typeof AppTutorialRouteRoute
+    }
+    '/_app/tutorial/$chapter': {
+      id: '/_app/tutorial/$chapter'
+      path: '/$chapter'
+      fullPath: '/tutorial/$chapter'
+      preLoaderRoute: typeof AppTutorialChapterRouteRouteImport
+      parentRoute: typeof AppTutorialRouteRoute
+    }
     '/preview/sheet/$factionSlug': {
       id: '/preview/sheet/$factionSlug'
       path: '/preview/sheet/$factionSlug'
       fullPath: '/preview/sheet/$factionSlug'
       preLoaderRoute: typeof PreviewSheetFactionSlugRouteRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_app/_admin/accounts/': {
+      id: '/_app/_admin/accounts/'
+      path: '/_admin/accounts'
+      fullPath: '/_admin/accounts/'
+      preLoaderRoute: typeof AppAdminAccountsIndexRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/_admin/jobs/': {
+      id: '/_app/_admin/jobs/'
+      path: '/_admin/jobs'
+      fullPath: '/_admin/jobs/'
+      preLoaderRoute: typeof AppAdminJobsIndexRouteImport
+      parentRoute: typeof AppRouteRoute
     }
     '/_app/assets/$type/': {
       id: '/_app/assets/$type/'
@@ -962,6 +1324,62 @@ declare module '@tanstack/react-router' {
       path: '/blog/$postSlug'
       fullPath: '/blog/$postSlug/'
       preLoaderRoute: typeof AppBlogPostSlugIndexRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/contributing/code/': {
+      id: '/_app/contributing/code/'
+      path: '/contributing/code'
+      fullPath: '/contributing/code/'
+      preLoaderRoute: typeof AppContributingCodeIndexRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/contributing/code/$lesson': {
+      id: '/_app/contributing/code/$lesson'
+      path: '/contributing/code/$lesson'
+      fullPath: '/contributing/code/$lesson'
+      preLoaderRoute: typeof AppContributingCodeLessonRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/contributing/deployment/': {
+      id: '/_app/contributing/deployment/'
+      path: '/contributing/deployment'
+      fullPath: '/contributing/deployment/'
+      preLoaderRoute: typeof AppContributingDeploymentIndexRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/contributing/deployment/$lesson': {
+      id: '/_app/contributing/deployment/$lesson'
+      path: '/contributing/deployment/$lesson'
+      fullPath: '/contributing/deployment/$lesson'
+      preLoaderRoute: typeof AppContributingDeploymentLessonRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/contributing/design-decisions/': {
+      id: '/_app/contributing/design-decisions/'
+      path: '/contributing/design-decisions'
+      fullPath: '/contributing/design-decisions/'
+      preLoaderRoute: typeof AppContributingDesignDecisionsIndexRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/contributing/design-decisions/$group': {
+      id: '/_app/contributing/design-decisions/$group'
+      path: '/contributing/design-decisions/$group'
+      fullPath: '/contributing/design-decisions/$group'
+      preLoaderRoute: typeof AppContributingDesignDecisionsGroupRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/contributing/glossary/': {
+      id: '/_app/contributing/glossary/'
+      path: '/contributing/glossary'
+      fullPath: '/contributing/glossary/'
+      preLoaderRoute: typeof AppContributingGlossaryIndexRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/contributing/glossary/$topic': {
+      id: '/_app/contributing/glossary/$topic'
+      path: '/contributing/glossary/$topic'
+      fullPath: '/contributing/glossary/$topic'
+      preLoaderRoute: typeof AppContributingGlossaryTopicRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/_app/factions/$factionId/': {
@@ -1048,6 +1466,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAssetsTypeSlugIndexRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/assets/$type/$slug/convert-to-spice': {
+      id: '/_app/assets/$type/$slug/convert-to-spice'
+      path: '/assets/$type/$slug/convert-to-spice'
+      fullPath: '/assets/$type/$slug/convert-to-spice'
+      preLoaderRoute: typeof AppAssetsTypeSlugConvertToSpiceRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/_app/assets/$type/create/': {
       id: '/_app/assets/$type/create/'
       path: '/assets/$type/create'
@@ -1114,6 +1539,28 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AppAdminRouteRouteChildren {
+  AppAdminAccountsRouteRoute: typeof AppAdminAccountsRouteRoute
+  AppAdminGameDebuggerRouteRoute: typeof AppAdminGameDebuggerRouteRoute
+  AppAdminJobsRouteRoute: typeof AppAdminJobsRouteRoute
+  AppAdminMigrationsRouteRoute: typeof AppAdminMigrationsRouteRoute
+  AppAdminPresetsRouteRoute: typeof AppAdminPresetsRouteRoute
+  AppAdminIndexRoute: typeof AppAdminIndexRoute
+}
+
+const AppAdminRouteRouteChildren: AppAdminRouteRouteChildren = {
+  AppAdminAccountsRouteRoute: AppAdminAccountsRouteRoute,
+  AppAdminGameDebuggerRouteRoute: AppAdminGameDebuggerRouteRoute,
+  AppAdminJobsRouteRoute: AppAdminJobsRouteRoute,
+  AppAdminMigrationsRouteRoute: AppAdminMigrationsRouteRoute,
+  AppAdminPresetsRouteRoute: AppAdminPresetsRouteRoute,
+  AppAdminIndexRoute: AppAdminIndexRoute,
+}
+
+const AppAdminRouteRouteWithChildren = AppAdminRouteRoute._addFileChildren(
+  AppAdminRouteRouteChildren,
+)
+
 interface AppMediaSourceRouteRouteChildren {
   AppMediaSourceKindRouteRoute: typeof AppMediaSourceKindRouteRoute
 }
@@ -1153,45 +1600,72 @@ const AppPlayRouteRouteWithChildren = AppPlayRouteRoute._addFileChildren(
   AppPlayRouteRouteChildren,
 )
 
+interface AppTutorialRouteRouteChildren {
+  AppTutorialChapterRouteRoute: typeof AppTutorialChapterRouteRoute
+  AppTutorialIndexRoute: typeof AppTutorialIndexRoute
+}
+
+const AppTutorialRouteRouteChildren: AppTutorialRouteRouteChildren = {
+  AppTutorialChapterRouteRoute: AppTutorialChapterRouteRoute,
+  AppTutorialIndexRoute: AppTutorialIndexRoute,
+}
+
+const AppTutorialRouteRouteWithChildren =
+  AppTutorialRouteRoute._addFileChildren(AppTutorialRouteRouteChildren)
+
 interface AppRouteRouteChildren {
   AppSplatRouteRoute: typeof AppSplatRouteRoute
   App_iconsRouteRoute: typeof App_iconsRouteRoute
   App_jobsRouteRoute: typeof App_jobsRouteRoute
   App_mediaRouteRoute: typeof App_mediaRouteRoute
   AppJobsRouteRoute: typeof AppJobsRouteRoute
+  AppAdminRouteRoute: typeof AppAdminRouteRouteWithChildren
+  AppImportsRouteRoute: typeof AppImportsRouteRoute
   AppMediaRouteRoute: typeof AppMediaRouteRouteWithChildren
   AppPlayRouteRoute: typeof AppPlayRouteRouteWithChildren
+  AppTutorialRouteRoute: typeof AppTutorialRouteRouteWithChildren
   AppIndexRoute: typeof AppIndexRoute
-  AppAdminAccountsRouteRoute: typeof AppAdminAccountsRouteRoute
-  AppAdminJobsRouteRoute: typeof AppAdminJobsRouteRoute
-  AppAdminMigrationsRouteRoute: typeof AppAdminMigrationsRouteRoute
   AppAssets_presetsRouteRoute: typeof AppAssets_presetsRouteRoute
   AppAuthErrorRouteRoute: typeof AppAuthErrorRouteRoute
   AppAuthLoginRouteRoute: typeof AppAuthLoginRouteRoute
+  AppContributingIntroRouteRoute: typeof AppContributingIntroRouteRoute
   AppFactionsCreateRouteRoute: typeof AppFactionsCreateRouteRoute
   AppGroupsCreateRouteRoute: typeof AppGroupsCreateRouteRoute
   AppRulesetsCreateRouteRoute: typeof AppRulesetsCreateRouteRoute
   AppAssetsIndexRoute: typeof AppAssetsIndexRoute
   AppAuthIndexRoute: typeof AppAuthIndexRoute
   AppBlogIndexRoute: typeof AppBlogIndexRoute
+  AppContributingIndexRoute: typeof AppContributingIndexRoute
   AppFactionsIndexRoute: typeof AppFactionsIndexRoute
+  AppFaqIndexRoute: typeof AppFaqIndexRoute
   AppFuturePlansIndexRoute: typeof AppFuturePlansIndexRoute
   AppGlossaryIndexRoute: typeof AppGlossaryIndexRoute
   AppPrivacyIndexRoute: typeof AppPrivacyIndexRoute
   AppProfilesIndexRoute: typeof AppProfilesIndexRoute
   AppRulesetsIndexRoute: typeof AppRulesetsIndexRoute
+  AppContributingCodeLessonRouteRoute: typeof AppContributingCodeLessonRouteRoute
+  AppContributingDeploymentLessonRouteRoute: typeof AppContributingDeploymentLessonRouteRoute
+  AppContributingDesignDecisionsGroupRouteRoute: typeof AppContributingDesignDecisionsGroupRouteRoute
+  AppContributingGlossaryTopicRouteRoute: typeof AppContributingGlossaryTopicRouteRoute
   AppFactionsFactionIdEditRouteRoute: typeof AppFactionsFactionIdEditRouteRoute
   AppGroupsGroupSlugEditRouteRoute: typeof AppGroupsGroupSlugEditRouteRoute
   AppProfilesProfileSlugConnectRouteRoute: typeof AppProfilesProfileSlugConnectRouteRoute
   AppProfilesProfileSlugDeleteRouteRoute: typeof AppProfilesProfileSlugDeleteRouteRoute
   AppProfilesProfileSlugEditRouteRoute: typeof AppProfilesProfileSlugEditRouteRoute
   AppRulesetsRulesetSlugEditRouteRoute: typeof AppRulesetsRulesetSlugEditRouteRoute
+  AppAdminAccountsIndexRoute: typeof AppAdminAccountsIndexRoute
+  AppAdminJobsIndexRoute: typeof AppAdminJobsIndexRoute
   AppAssetsTypeIndexRoute: typeof AppAssetsTypeIndexRoute
   AppBlogPostSlugIndexRoute: typeof AppBlogPostSlugIndexRoute
+  AppContributingCodeIndexRoute: typeof AppContributingCodeIndexRoute
+  AppContributingDeploymentIndexRoute: typeof AppContributingDeploymentIndexRoute
+  AppContributingDesignDecisionsIndexRoute: typeof AppContributingDesignDecisionsIndexRoute
+  AppContributingGlossaryIndexRoute: typeof AppContributingGlossaryIndexRoute
   AppFactionsFactionIdIndexRoute: typeof AppFactionsFactionIdIndexRoute
   AppGroupsGroupSlugIndexRoute: typeof AppGroupsGroupSlugIndexRoute
   AppProfilesProfileSlugIndexRoute: typeof AppProfilesProfileSlugIndexRoute
   AppRulesetsRulesetSlugIndexRoute: typeof AppRulesetsRulesetSlugIndexRoute
+  AppAssetsTypeSlugConvertToSpiceRouteRoute: typeof AppAssetsTypeSlugConvertToSpiceRouteRoute
   AppRulesetsRulesetSlugFaqQuestionSlugRouteRoute: typeof AppRulesetsRulesetSlugFaqQuestionSlugRouteRoute
   AppRulesetsRulesetSlugFaqCreateRouteRoute: typeof AppRulesetsRulesetSlugFaqCreateRouteRoute
   AppRulesetsRulesetSlugRulebooksCreateRouteRoute: typeof AppRulesetsRulesetSlugRulebooksCreateRouteRoute
@@ -1210,27 +1684,37 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   App_jobsRouteRoute: App_jobsRouteRoute,
   App_mediaRouteRoute: App_mediaRouteRoute,
   AppJobsRouteRoute: AppJobsRouteRoute,
+  AppAdminRouteRoute: AppAdminRouteRouteWithChildren,
+  AppImportsRouteRoute: AppImportsRouteRoute,
   AppMediaRouteRoute: AppMediaRouteRouteWithChildren,
   AppPlayRouteRoute: AppPlayRouteRouteWithChildren,
+  AppTutorialRouteRoute: AppTutorialRouteRouteWithChildren,
   AppIndexRoute: AppIndexRoute,
-  AppAdminAccountsRouteRoute: AppAdminAccountsRouteRoute,
-  AppAdminJobsRouteRoute: AppAdminJobsRouteRoute,
-  AppAdminMigrationsRouteRoute: AppAdminMigrationsRouteRoute,
   AppAssets_presetsRouteRoute: AppAssets_presetsRouteRoute,
   AppAuthErrorRouteRoute: AppAuthErrorRouteRoute,
   AppAuthLoginRouteRoute: AppAuthLoginRouteRoute,
+  AppContributingIntroRouteRoute: AppContributingIntroRouteRoute,
   AppFactionsCreateRouteRoute: AppFactionsCreateRouteRoute,
   AppGroupsCreateRouteRoute: AppGroupsCreateRouteRoute,
   AppRulesetsCreateRouteRoute: AppRulesetsCreateRouteRoute,
   AppAssetsIndexRoute: AppAssetsIndexRoute,
   AppAuthIndexRoute: AppAuthIndexRoute,
   AppBlogIndexRoute: AppBlogIndexRoute,
+  AppContributingIndexRoute: AppContributingIndexRoute,
   AppFactionsIndexRoute: AppFactionsIndexRoute,
+  AppFaqIndexRoute: AppFaqIndexRoute,
   AppFuturePlansIndexRoute: AppFuturePlansIndexRoute,
   AppGlossaryIndexRoute: AppGlossaryIndexRoute,
   AppPrivacyIndexRoute: AppPrivacyIndexRoute,
   AppProfilesIndexRoute: AppProfilesIndexRoute,
   AppRulesetsIndexRoute: AppRulesetsIndexRoute,
+  AppContributingCodeLessonRouteRoute: AppContributingCodeLessonRouteRoute,
+  AppContributingDeploymentLessonRouteRoute:
+    AppContributingDeploymentLessonRouteRoute,
+  AppContributingDesignDecisionsGroupRouteRoute:
+    AppContributingDesignDecisionsGroupRouteRoute,
+  AppContributingGlossaryTopicRouteRoute:
+    AppContributingGlossaryTopicRouteRoute,
   AppFactionsFactionIdEditRouteRoute: AppFactionsFactionIdEditRouteRoute,
   AppGroupsGroupSlugEditRouteRoute: AppGroupsGroupSlugEditRouteRoute,
   AppProfilesProfileSlugConnectRouteRoute:
@@ -1239,12 +1723,21 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
     AppProfilesProfileSlugDeleteRouteRoute,
   AppProfilesProfileSlugEditRouteRoute: AppProfilesProfileSlugEditRouteRoute,
   AppRulesetsRulesetSlugEditRouteRoute: AppRulesetsRulesetSlugEditRouteRoute,
+  AppAdminAccountsIndexRoute: AppAdminAccountsIndexRoute,
+  AppAdminJobsIndexRoute: AppAdminJobsIndexRoute,
   AppAssetsTypeIndexRoute: AppAssetsTypeIndexRoute,
   AppBlogPostSlugIndexRoute: AppBlogPostSlugIndexRoute,
+  AppContributingCodeIndexRoute: AppContributingCodeIndexRoute,
+  AppContributingDeploymentIndexRoute: AppContributingDeploymentIndexRoute,
+  AppContributingDesignDecisionsIndexRoute:
+    AppContributingDesignDecisionsIndexRoute,
+  AppContributingGlossaryIndexRoute: AppContributingGlossaryIndexRoute,
   AppFactionsFactionIdIndexRoute: AppFactionsFactionIdIndexRoute,
   AppGroupsGroupSlugIndexRoute: AppGroupsGroupSlugIndexRoute,
   AppProfilesProfileSlugIndexRoute: AppProfilesProfileSlugIndexRoute,
   AppRulesetsRulesetSlugIndexRoute: AppRulesetsRulesetSlugIndexRoute,
+  AppAssetsTypeSlugConvertToSpiceRouteRoute:
+    AppAssetsTypeSlugConvertToSpiceRouteRoute,
   AppRulesetsRulesetSlugFaqQuestionSlugRouteRoute:
     AppRulesetsRulesetSlugFaqQuestionSlugRouteRoute,
   AppRulesetsRulesetSlugFaqCreateRouteRoute:

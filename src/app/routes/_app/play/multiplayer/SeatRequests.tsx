@@ -27,7 +27,6 @@ import {
   useTablePanSpeed,
 } from '../../../../widgets/tabletop/tablePanSpeed';
 import { TABLE_LABEL_OPTIONS, useTableLabels } from '../tableLabels';
-import { setTableLayout, useColumnsFit, useTableLayout } from '../tableLayout';
 import { publicControlsOf } from './publicControls';
 import { isSpectator } from './tableFactions';
 
@@ -176,7 +175,7 @@ function useSpectatorSeat(client: TableSession, table: TableProjection): SeatNot
 
 /**
  * A spectator's seat, behind one action in the header toolbar beside the game menu (Norbert, 2026-10-02).
- * The dock keeps its height for the table's tabs, and the header keeps its one row.
+ * The table keeps its windows for the controls, and the header keeps its one row.
  */
 export function SeatPopover({
   client,
@@ -185,7 +184,7 @@ export function SeatPopover({
 }: Readonly<{ client: TableSession; table: TableProjection; error: string | null }>) {
   const notice = useSpectatorSeat(client, table);
   /* The open state lives with the notice, so a seat that comes and goes never brings the popover back already open.
-     Playback shows a past snapshot, so its seat actions would be stale; the dock drops them then too. */
+     Playback shows a past snapshot, so its seat actions would be stale; the windows drop them then too. */
   return notice && !table.playback ? <SeatNoticePopover notice={notice} error={error} /> : null;
 }
 
@@ -269,7 +268,7 @@ export function VacantSeatRequests({
             client={client}
             table={table}
             action={{ kind: 'seat-approve', requestId: request.id }}
-            color="green"
+            color="confirm"
           >
             Approve
           </SeatButton>
@@ -295,33 +294,6 @@ export function requestedSeats(table: TableProjection): ReadonlySet<string> {
     controls.seatRequests.flatMap((request) =>
       request.seat !== null && open.includes(request.seat) ? [request.seat] : []
     )
-  );
-}
-
-/* Where this viewer's controls and players sit around the table; it stays in this browser and never reaches the game. */
-function TableLayoutItems() {
-  const layout = useTableLayout();
-  const fits = useColumnsFit();
-  return (
-    <>
-      <Menu.Label>Table layout</Menu.Label>
-      <Menu.RadioGroup value={layout} onChange={(value) => setTableLayout(value === 'columns' ? 'columns' : 'stacked')}>
-        <Menu.RadioItem value="stacked">Board on top</Menu.RadioItem>
-        <Menu.RadioItem
-          value="columns"
-          rightSection={
-            fits ? undefined : (
-              <Text size="xs" c="dimmed">
-                wider window
-              </Text>
-            )
-          }
-        >
-          Three columns
-        </Menu.RadioItem>
-      </Menu.RadioGroup>
-      <Menu.Divider />
-    </>
   );
 }
 
@@ -433,7 +405,6 @@ export function GameMenu({
       <Menu.Dropdown>
         {sharing}
         <Menu.Divider />
-        <TableLayoutItems />
         <TableLightingSlider />
         <TablePanSpeedSlider />
         <TableLabelItems />
@@ -463,6 +434,7 @@ export function GameMenu({
           key={table.viewer.viewerSeat}
           label={seated ? leavingLabel(table) : 'Give up your seat'}
           holdingVerb="Leaving"
+          closeMenuOnClick={false}
           disabled={!seated || seatLocked(table)}
           onConfirm={() => client.command({ kind: 'seat-depart' })}
         />

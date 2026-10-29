@@ -1,12 +1,12 @@
-import preview from '@sb/preview';
+import { testingPreview } from '@sb/preview';
 import { finishTransitions, waitForFrame } from '@sb/storyWaits';
 import { expect, userEvent, within } from 'storybook/test';
 
+import { addSceneItem } from './rulebookSceneInteractions.stories.fixture';
 import { SceneEditorStory } from './rulebookScenes.stories.fixture';
 
-const meta = preview.meta({
+const meta = testingPreview.meta({
   title: 'Blocks/Board scene/Editing',
-  globals: { colorScheme: 'dark' },
   parameters: { layout: 'fullscreen' },
 });
 export const MarkersAndAnnotations = meta.story({
@@ -19,8 +19,7 @@ export const MarkersAndAnnotations = meta.story({
     await userEvent.type(angle, '45');
     await userEvent.tab();
     await expect(angle).toHaveValue('45');
-    await userEvent.click(canvas.getByRole('button', { name: 'Annotations (0)' }));
-    await userEvent.click(await canvas.findByRole('button', { name: 'Add annotation' }));
+    await addSceneItem(canvasElement, 'Annotations (0)', 'Add annotation');
     await userEvent.type(canvas.getByRole('textbox', { name: 'Annotation 1 title' }), 'Shared territory');
     await userEvent.type(
       canvas.getByRole('textbox', { name: 'Annotation 1 explanation' }),
@@ -42,8 +41,7 @@ export const RoutesAndSizing = meta.story({
     const boardSize = canvas.getByRole('combobox', { name: 'Board size' });
     await expect(boardSize).toHaveValue('Automatic');
     await expect(canvasElement.querySelector('.rulebookTerritoryScene')).toHaveAttribute('data-size', 'compact');
-    await userEvent.click(canvas.getByRole('button', { name: 'Annotations (0)' }));
-    await userEvent.click(await canvas.findByRole('button', { name: 'Add annotation' }));
+    await addSceneItem(canvasElement, 'Annotations (0)', 'Add annotation');
     await expect(canvasElement.querySelector('.rulebookTerritoryScene')).toHaveAttribute('data-size', 'large');
     const board = canvasElement.querySelector<SVGElement>('.rulebookTerritoryScene')!;
     const automaticHeight = board.getBoundingClientRect().height;
@@ -58,8 +56,7 @@ export const RoutesAndSizing = meta.story({
     await userEvent.click(await portal.findByRole('option', { name: 'Automatic' }));
     await expect(canvasElement.querySelector('.rulebookTerritoryScene')).toHaveAttribute('data-size', 'large');
     await expect(board.getBoundingClientRect().height).toBeCloseTo(automaticHeight, 0);
-    await userEvent.click(canvas.getByRole('button', { name: 'Routes (0)' }));
-    await userEvent.click(await canvas.findByRole('button', { name: 'Add route' }));
+    await addSceneItem(canvasElement, 'Routes (0)', 'Add route');
     await userEvent.click(canvas.getByRole('button', { name: 'Add waypoint' }));
     /* Mantine hides a dropdown whose target is scrolled out of view, and this one sits below the sidebar's fold. */
     const blockedSegment = await canvas.findByRole('combobox', { name: 'Blocked segment' });

@@ -54,9 +54,8 @@
 .title {
   left: 95px;
   top: 73px;
-  width: 640px;
+  width: 560px;
   height: 86px;
-  overflow: hidden;
   position: absolute;
   font-family: "C_Copperplate_Gothic", sans-serif;
   font-size: 60px;
@@ -70,7 +69,6 @@
   top: 176px;
   width: 470px;
   height: 67px;
-  overflow: hidden;
   position: absolute;
   font-family: "C_Trebuchet", sans-serif;
   font-weight: bold;

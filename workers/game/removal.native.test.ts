@@ -26,7 +26,7 @@ describe('Public removal votes', { timeout: 20_000 }, () => {
     await runtime?.close();
     await peer?.close();
   });
-  const admit = (suffix: string) => admitPlayer(peer, runtime, suffix);
+  const admit = (suffix: string) => admitPlayer(runtime, suffix);
   async function players(count: number) {
     const result = [];
     for (let index = 0; index < count; index++) {

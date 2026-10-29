@@ -22,7 +22,6 @@ describe('A real game keeps the directory current', () => {
   let peer: NativePeer, runtime: NativeRuntime;
   beforeEach(async () => {
     peer = await createPeer();
-    peer.watchMode = 'allow';
     peer.game = { rulesetId: 'ruleset-one', minimumPlayers: 4, creator: CREATOR };
     const card = cardPage('card-one');
     const [treachery, spice] = [deckPage('treachery-deck', [card]), deckPage('spice-deck', [card], 5)];
@@ -67,7 +66,7 @@ describe('A real game keeps the directory current', () => {
       },
     });
 
-    const creator = await admitPlayer(peer, runtime, 'a');
+    const creator = await admitPlayer(runtime, 'a');
     creator.send({ type: 'pointer' as const, seq: 1, position: [1, 0.38, 1] });
     await new Promise((resolve) => setTimeout(resolve, 300));
     expect(summaries()).toEqual([1]);
@@ -76,7 +75,9 @@ describe('A real game keeps the directory current', () => {
     await eventually(() => summaries().length === 2, 'roster summary');
     expect(peer.summaries[1].sequence).toBe(2);
     expect(peer.summaries[1].summary.seats).toEqual([]);
-    /* Nothing is owed once acknowledged: a restart delivers nothing more. */
+    /* Nothing is owed once acknowledged: a restart delivers nothing more. The room must have read the answer first. */
+    await eventually(() => deliveries().every((request) => request.completedAt !== undefined), 'the answer sent');
+    await new Promise((resolve) => setTimeout(resolve, 200));
     await runtime.restart();
     await new Promise((resolve) => setTimeout(resolve, 500));
     expect(summaries()).toEqual([1, 2]);
@@ -158,8 +159,7 @@ describe('A real game keeps the directory current', () => {
       mentat,
     ]);
     await runtime.restart();
-    peer.expiresAt = () => Date.now() + 600_000;
-    const creator = await admitPlayer(peer, runtime, 'a');
+    const creator = await admitPlayer(runtime, 'a');
     expect((await syncView(creator)).snapshot.stage).toBe('play');
     /* The first accepted command publishes what the lobby now sees: play, at this phase. */
     const ready = await sendCommand(creator, { kind: 'ready' as const, ready: true });

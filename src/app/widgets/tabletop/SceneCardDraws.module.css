@@ -1,0 +1,13 @@
+.receipt {
+  display: block;
+  opacity: 0;
+  pointer-events: none;
+  user-select: none;
+  white-space: nowrap;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  background: rgb(from var(--glass-overlay) r g b / var(--glass-overlay-alpha));
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 700;
+}

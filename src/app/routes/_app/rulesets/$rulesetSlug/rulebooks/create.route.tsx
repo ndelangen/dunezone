@@ -1,4 +1,4 @@
-import { Alert, Box, Button, Group, Radio, Select, Stack, Text, TextInput, Tooltip } from '@mantine/core';
+import { Alert, Box, Button, Group, Radio, Select, Stack, Text, TextInput } from '@mantine/core';
 import { rulebookNameKey, rulebookNameSchema } from '@shared/rulebooks/metadata';
 import type { RulebookRenderPageV1 } from '@shared/rulebooks/renderDocument';
 import {
@@ -97,7 +97,7 @@ function creationSubmission(draft: CreationDraft, page: RulebookCreationPageData
     draft.source === 'starter'
       ? { kind: 'starter', settings: draft.starterSettings }
       : clone
-        ? { kind: 'clone', rulebookId: clone._id, design: draft.cloneDesign ?? clone.settings.design }
+        ? { kind: 'clone', rulebookId: clone._id, design: draft.cloneDesign ?? clone.draft_settings.design }
         : null;
   return { input: source ? { rulesetId: page.ruleset._id, name: name.data, source } : null, nameError: undefined };
 }
@@ -185,7 +185,7 @@ function RulebookSettingsChoices({
         {onSizeChange ? (
           <ControlBlock
             title="Size"
-            description="The Size is fixed once the Rulebook is created. Tall is A4 folded lengthwise."
+            description="Size can be changed later when every Page layout supports it. Tall is A4 folded lengthwise."
             input={
               <PreviewChoice
                 label="Rulebook Size"
@@ -209,7 +209,7 @@ function RulebookSettingsChoices({
         )}
         <ControlBlock
           title="Design"
-          description="The Design is fixed once the Rulebook is created. These examples show two facing pages."
+          description="Design can be changed later. These examples show two facing pages."
           input={
             <PreviewChoice
               label="Rulebook Design"
@@ -254,7 +254,7 @@ function CreateRulebookForm({ page }: { page: RulebookCreationPageData }) {
     draft.source === 'starter'
       ? draft.starterSettings
       : clone
-        ? { size: clone.settings.size, design: draft.cloneDesign ?? clone.settings.design }
+        ? { size: clone.draft_settings.size, design: draft.cloneDesign ?? clone.draft_settings.design }
         : undefined;
   return (
     <Stack
@@ -319,26 +319,17 @@ function CreateRulebookForm({ page }: { page: RulebookCreationPageData }) {
           data={page.rulebooks.map((book) => ({ value: book._id, label: book.name }))}
           renderOption={({ option }) => {
             const rulebook = page.rulebooks.find((book) => book._id === option.value);
-            /*
-             * At 32 px, PublishedImage's missing state has no room to print the name, so the tile names its Rulebook
-             * on hover. PublishedImage does not report a failed load to its caller, so a loaded page carries the
-             * tooltip as well. With no page, a capture on its way or failed is left out: its placeholder has a
-             * tooltip of its own.
-             */
-            const placeholderHasTooltip =
-              !rulebook?.first_page_image_url && rulebook?.first_page_capture_status != null;
             return (
               <Group gap="sm" wrap="nowrap">
-                <Tooltip label={option.label} disabled={placeholderHasTooltip}>
-                  <Box w={32} miw={32} aria-hidden>
-                    <RulebookPreview
-                      name={option.label}
-                      size={rulebook?.settings.size}
-                      imageUrl={rulebook?.first_page_image_url}
-                      status={rulebook?.first_page_capture_status}
-                    />
-                  </Box>
-                </Tooltip>
+                <Box w={32} miw={32} aria-hidden>
+                  <RulebookPreview
+                    name={option.label}
+                    size={rulebook?.settings.size}
+                    imageUrl={rulebook?.first_page_image_url}
+                    status={rulebook?.first_page_capture_status}
+                    nameOnHover
+                  />
+                </Box>
                 <Text size="sm" style={{ overflowWrap: 'anywhere' }}>
                   {option.label}
                 </Text>

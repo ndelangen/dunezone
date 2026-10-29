@@ -1,3 +1,4 @@
+import type { CardDraw } from '@shared/play/cardDraw';
 import type { ClientMessage, ServerMessage, PieceAction } from '@shared/play/protocol';
 import type { RoomView } from '@shared/play/updates';
 
@@ -19,6 +20,7 @@ export function isReadRequest(message: ClientMessage) {
 export type TableSubscriptionEvent =
   | (RoomView & { snapshotChanged: boolean; previous: RoomView | null })
   | Exclude<ServerMessage, { type: 'view' | 'update' | 'admission' }>
+  | { type: 'card-draw'; draw: CardDraw }
   | { type: 'connection'; error: string | null }
   | { type: 'resync'; completedCommandId?: string };
 

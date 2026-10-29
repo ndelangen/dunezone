@@ -11,6 +11,7 @@ import type { QueryAudience } from './functions';
  * Adding a line to this list is a reviewed decision, never a way to make a failing test pass.
  */
 const VIEWER_QUERIES: Record<string, string> = {
+  'assets:linkedBack': 'Requires a signed-in author before reading raw Load linked-back display data.',
   'accountDeletion:page': "The viewer's own account deletion state.",
   'accountDeletion:listReplacementProfiles': 'Excludes the viewer from the replacement-owner search.',
   'accounts:connection': "Resolves a connection intent against the viewer's session.",
@@ -21,9 +22,8 @@ const VIEWER_QUERIES: Record<string, string> = {
   'groups:viewerMembership': "The viewer's membership of one Group: the viewer half of a page's capabilities.",
   'playDirectory:listGames': 'Marks the games the viewer is seated in.',
   'playGames:creatable': 'Rulesets the viewer may start a game with.',
-  'playGames:getGame': "Gated on the viewer's seat.",
-  'playGames:getGameByAddress': "Gated on the viewer's seat.",
-  'playGames:nameAvailability': 'Rate-limited per viewer.',
+  'playGameDirectory:getGameByAddress': 'Only an active Play session may resolve an admitted game.',
+  'playGameNameAvailability:nameAvailability': 'Only an active Play session may check a name address.',
   'profiles:defaultGroupPreference': "The viewer's own preference.",
   'profiles:session': 'Who the viewer is: their user id, profile and admin flag.',
   'profiles:settings': "The viewer's own settings and sign-in methods.",

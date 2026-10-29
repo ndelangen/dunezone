@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "sourceDescription": "A user-approved AI-generated monochrome illustration developed from the supplied reference. Original authorship and publication were not independently verified.",
+  "source": "originals/dune-box-needle-2-scaled.jpg",
+  "approval": {
+    "date": "2026-10-26",
+    "scope": "The user requested a decal of the box and needle and approved the monochrome bitmap proposal.",
+    "evidence": "approved"
+  },
+  "assets": {
+    "/vector/decal/box-and-needle.svg": {
+      "approvedBitmap": "originals/box-and-needle-approved.png",
+      "bitmapMaster": "bitmaps/box-and-needle.png",
+      "alphaThreshold": 0.5,
+      "maskGaussianSigmaPixels": 0.65,
+      "minimumComponentAreaPixels": 8,
+      "trace": "Potrace 1.16, turdsize 8, alphamax 1.0, opttolerance 0.25, followed by SVG authoring root and provenance steps, uniform square normalization and the decal optimization profile.",
+      "paint": "Inherited from the caller. Internal details remain transparent cutouts.",
+      "details": "The box perspective, transparent cavity, broad panel details and separate needle remain together as one illustration. Advertising text and background are omitted."
+    }
+  }
+}

@@ -17,6 +17,14 @@ out through [`.semgrepignore`](../../.semgrepignore). Findings appear in
 `code-health` artifact retains the SARIF report. Fork PRs retain an artifact without trying to write
 to the repository's security dashboard.
 
+Rule-specific `nosemgrep` comments record reviewed exceptions beside the expression: fixed test
+fixtures, loopback publication probes, and the Rulebook reader's publisher-generated markup.
+The reader accepts only permanent Edition paths, rejects redirects, and checks the artifact for
+active content before insertion. Its tests cover executable URLs hidden with character references
+and browser URL whitespace handling. This parser relies on the publisher's trusted HTML and CSS;
+it is not a general sanitizer for arbitrary HTML. The publisher writes stylesheet text through
+React's style escaping, including protection against a closing `</style>` sequence.
+
 Stryker mutates `src/shared/play/loadTarget.ts` and runs its existing seam suite. This trial checks
 the guards that keep load tests away from application deployments and bound their lifetime and
 accounts. It uses a standalone Vitest configuration with relative imports and no application or
@@ -38,7 +46,10 @@ in this report, while Codecov keeps ownership of ordinary code coverage.
 
 The [Scorecard workflow](../../.github/workflows/scorecard.yml) runs weekly on Wednesday at 04:43
 UTC and when its configuration lands on `main`. It checks repository and workflow practices,
-publishes findings to GitHub code scanning, and retains a SARIF artifact. Its published results
+publishes findings to GitHub code scanning, and retains a SARIF artifact. Findings
+retain their original severities and fingerprints. A normalization step replaces Scorecard's
+invalid repository-wide location placeholder with the repository root, without inventing a source
+file or line. The artifact retains both the original and normalized SARIF. Its published results
 also appear in the [Scorecard viewer](https://scorecard.dev/viewer/?uri=github.com/ndelangen/dunezone).
 It uses the workflow token and GitHub OIDC rather than a personal access token.
 

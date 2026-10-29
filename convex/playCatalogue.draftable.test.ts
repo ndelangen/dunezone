@@ -38,9 +38,9 @@ async function seed(ctx: MutationCtx) {
   const linked = await faction('Atreides', 'atreides');
   const other = await faction('Fremen', 'fremen');
   const broken = await faction('Broken', 'broken', { broken: true });
-  await faction('Retired', 'retired', { deleted: true });
-  await ctx.db.insert('ruleset_factions', { ruleset_id: ruleset, faction_id: linked });
-  await ctx.db.insert('ruleset_factions', { ruleset_id: ruleset, faction_id: broken });
+  const retired = await faction('Retired', 'retired', { deleted: true });
+  await ctx.db.insert('ruleset_factions', { ruleset_id: ruleset, faction_id: linked, position: 0 });
+  await ctx.db.insert('ruleset_factions', { ruleset_id: ruleset, faction_id: broken, position: 1 });
   /* Fremen has only the front, and a game needs both faces of the reversible token. */
   for (const assetId of [linked, `${linked}.back`, other]) {
     await ctx.db.insert('publication_assets', {
@@ -50,10 +50,50 @@ async function seed(ctx: MutationCtx) {
       published_at: 1,
     });
   }
-  return { ruleset, linked, other };
+  return { ruleset, linked, other, retired };
 }
 
 describe('the draft reads the catalogue', () => {
+  test('returns render backgrounds for custom and preset-linked factions', async () => {
+    const t = applicationTest();
+    const { ruleset, linked, other } = await t.run(seed);
+    const custom: typeof assetPublishingFaction.background = {
+      ...assetPublishingFaction.background,
+      colors: ['#98a0a6', '#2a7982'],
+      source: { kind: 'custom' },
+    };
+    const preset: typeof assetPublishingFaction.background = {
+      ...assetPublishingFaction.background,
+      colors: ['#112233', '#445566'],
+    };
+    await t.run(async (ctx) => {
+      await ctx.db.insert('background_presets', {
+        key: 'draft-test',
+        name: 'Draft test',
+        value: preset,
+        revision: 1,
+        updated_at: 1,
+      });
+      await ctx.db.patch('factions', linked, { data: { ...assetPublishingFaction, background: custom } });
+      await ctx.db.patch('factions', other, {
+        data: {
+          ...assetPublishingFaction,
+          background: { ...assetPublishingFaction.background, source: { kind: 'preset', key: 'draft-test' } },
+        },
+      });
+    });
+
+    const { factions } = await t.query(api.playCatalogue.draftableFactions, { rulesetId: ruleset });
+    expect(factions.find((faction) => faction.id === linked)?.background).toEqual({
+      ...assetPublishingFaction.background,
+      colors: custom.colors,
+    });
+    expect(factions.find((faction) => faction.id === other)?.background).toEqual(preset);
+    expect(await t.run((ctx) => ctx.db.get('factions', linked))).toMatchObject({
+      data: { background: custom },
+    });
+  });
+
   test('lists every live faction that parses, with its ruleset link and whether both token faces are published', async () => {
     const t = applicationTest();
     const { ruleset, linked, other } = await t.run(seed);
@@ -132,9 +172,30 @@ describe('the draft reads the catalogue', () => {
     expect(factions.every((faction) => !faction.linked)).toBe(true);
   });
 
+  test('a draft with 220 KiB of linked faction text stays below a 384 KiB read budget', async () => {
+    const t = applicationTest();
+    const { ruleset, linked, other } = await t.run(seed);
+    await t.run((ctx) =>
+      ctx.db.patch('factions', linked, {
+        data: {
+          ...assetPublishingFaction,
+          rules: { ...assetPublishingFaction.rules, startText: 'x'.repeat(220 * 1024) },
+        },
+      })
+    );
+    const answer = await t.run((ctx) =>
+      ctx.runQuery(
+        api.playCatalogue.draftableFactions,
+        { rulesetId: ruleset },
+        { transactionLimits: { bytesRead: 384 * 1024 } }
+      )
+    );
+    expect(answer.factions.map((faction) => faction.id)).toEqual([linked, other]);
+  });
+
   test('a ruleset faction created after the first 500 live factions is still listed', async () => {
     const t = applicationTest();
-    const { ruleset } = await t.run(seed);
+    const { ruleset, linked, other, retired } = await t.run(seed);
     const late = await t.run(async (ctx) => {
       const owner = (await ctx.db.query('users').first())!._id;
       const stamp = { created_at: '2026-09-19T00:00:00.000Z', updated_at: '2026-09-19T00:00:00.000Z' };
@@ -156,10 +217,44 @@ describe('the draft reads the catalogue', () => {
         is_deleted: false,
         ...stamp,
       });
-      await ctx.db.insert('ruleset_factions', { ruleset_id: ruleset, faction_id: id });
+      await ctx.db.insert('ruleset_factions', { ruleset_id: ruleset, faction_id: id, position: 2 });
+      await ctx.db.insert('ruleset_factions', { ruleset_id: ruleset, faction_id: retired, position: 3 });
+      const missing = await ctx.db.insert('factions', {
+        owner_id: owner,
+        slug: 'missing',
+        data: assetPublishingFaction,
+        group_id: null,
+        is_deleted: false,
+        ...stamp,
+      });
+      await ctx.db.delete('factions', missing);
+      await ctx.db.insert('ruleset_factions', { ruleset_id: ruleset, faction_id: missing, position: 4 });
       return id;
     });
     const { factions } = await t.query(api.playCatalogue.draftableFactions, { rulesetId: ruleset });
     expect(factions.find((faction) => faction.id === late)).toMatchObject({ linked: true });
+    expect(factions[0]).toMatchObject({ id: linked, linked: true });
+    expect(factions.at(-1)).toMatchObject({ id: late, linked: true });
+    expect(factions.some((faction) => faction.id === other)).toBe(false);
+    /* The live but invalid linked faction still occupies its original slot, so the same 499 valid rows remain. */
+    expect(factions).toHaveLength(499);
+  });
+
+  test('500 live linked factions leave no slot for a newer unlinked faction', async () => {
+    const t = applicationTest();
+    const { ruleset, linked, other } = await t.run(seed);
+    await t.run(async (ctx) => {
+      const source = (await ctx.db.get('factions', linked))!;
+      const { _id: _sourceId, _creationTime: _created, ...fields } = source;
+      for (let index = 0; index < 498; index += 1) {
+        const id = await ctx.db.insert('factions', { ...fields, slug: `linked-${index}` });
+        await ctx.db.insert('ruleset_factions', { ruleset_id: ruleset, faction_id: id, position: index + 2 });
+      }
+      await ctx.db.insert('factions', { ...fields, slug: 'newer-unlinked' });
+    });
+    const { factions } = await t.query(api.playCatalogue.draftableFactions, { rulesetId: ruleset });
+    expect(factions).toHaveLength(499);
+    expect(factions.every((faction) => faction.linked)).toBe(true);
+    expect(factions.some((faction) => faction.id === other || faction.slug === 'newer-unlinked')).toBe(false);
   });
 });

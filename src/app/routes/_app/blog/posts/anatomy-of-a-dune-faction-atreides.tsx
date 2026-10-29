@@ -1,43 +1,31 @@
-import { Anchor } from '@mantine/core';
-import { Link } from '@tanstack/react-router';
 import { Section } from '@ui/block/Section';
-import type { ReactNode } from 'react';
 
-import { Lead, Paragraph } from '../postContent';
+import { Lead, Paragraph, PostLink } from '../postContent';
 import { FactionExtras } from './anatomy/FactionExtras';
 import { FactionRecipe } from './anatomy/FactionRecipe';
 import { FiveYears } from './anatomy/FiveYears';
 import { SavedCheck } from './anatomy/SavedCheck';
 import { TableSpread } from './anatomy/TableSpread';
 
-function PostLink({ slug, children }: { slug: string; children: ReactNode }) {
-  return (
-    <Anchor renderRoot={(props) => <Link {...props} to="/blog/$postSlug" params={{ postSlug: slug }} />} inherit>
-      {children}
-    </Anchor>
-  );
-}
-
-function FactionLink({ slug, children }: { slug: string; children: ReactNode }) {
-  return (
-    <Anchor renderRoot={(props) => <Link {...props} to="/factions/$factionId" params={{ factionId: slug }} />} inherit>
-      {children}
-    </Anchor>
-  );
-}
-
 export default function Post() {
   return (
     <>
       <Lead>
-        At the end of <PostLink slug="all-in-one-dune-board-game-webapp">my earlier attempts</PostLink> I promised to
-        show where the data lives now, and how it all fits together. So here is House Atreides, taken apart, and how it
-        turns into every card, token and sheet on dune.zone.
+        At the end of{' '}
+        <PostLink to="/blog/$postSlug" params={{ postSlug: 'all-in-one-dune-board-game-webapp' }}>
+          my earlier attempts
+        </PostLink>{' '}
+        I promised to show where the data lives now, and how it all fits together. So here is House Atreides, taken
+        apart, and how it turns into every card, token and sheet on dune.zone.
       </Lead>
       <Section title="The ingredients">
         <Paragraph>
-          Open <FactionLink slug="house-atreides">House Atreides</FactionLink> on dune.zone and you see a finished
-          faction. Underneath, it is a short list of things someone typed in or picked from a library.
+          Open{' '}
+          <PostLink to="/factions/$factionId" params={{ factionId: 'house-atreides' }}>
+            House Atreides
+          </PostLink>{' '}
+          on dune.zone and you see a finished faction. Underneath, it is a short list of things someone typed in or
+          picked from a library.
         </Paragraph>
         <Paragraph>
           There is the name, which also becomes the page&rsquo;s web address. There is a logo, a background texture with
@@ -77,8 +65,10 @@ export default function Post() {
       <Section title="It took five years to get this shape">
         <Paragraph>
           There were four projects along the way. Their stories are in{' '}
-          <PostLink slug="all-in-one-dune-board-game-webapp">the earlier post</PostLink>, so here is just how each one
-          stored a faction.
+          <PostLink to="/blog/$postSlug" params={{ postSlug: 'all-in-one-dune-board-game-webapp' }}>
+            the earlier post
+          </PostLink>
+          , so here is just how each one stored a faction.
         </Paragraph>
         <Paragraph>
           In 2021, dune.games stored game results, and a faction was a name on one. In 2023, dune-app had a real
@@ -110,12 +100,12 @@ export default function Post() {
           and sheet, ready for the table, for print and play, and for the rulebook.
         </Paragraph>
         <Paragraph>
-          Here is <FactionLink slug="smugglers">Smugglers</FactionLink>, a faction by Argelius, drawn the same way as
-          Atreides. If you have a faction of your own in mind,{' '}
-          <Anchor renderRoot={(props) => <Link {...props} to="/factions/create" />} inherit>
-            the faction creator
-          </Anchor>{' '}
-          is where it starts.
+          Here is{' '}
+          <PostLink to="/factions/$factionId" params={{ factionId: 'smugglers' }}>
+            Smugglers
+          </PostLink>
+          , a faction by Argelius, drawn the same way as Atreides. If you have a faction of your own in mind,{' '}
+          <PostLink to="/factions/create">the faction creator</PostLink> is where it starts.
         </Paragraph>
         <TableSpread />
       </Section>

@@ -1,0 +1,89 @@
+/* Specimen sheets are printed paper in both colour schemes, like the game's own sheets. */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  gap: var(--space-md);
+}
+
+.sheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-md);
+  border-radius: var(--mantine-radius-md);
+  background: linear-gradient(160deg, rgb(255 255 255 / 55%), rgb(255 255 255 / 0%) 40%), #f3ecd2;
+  box-shadow: 0 2px 10px rgb(from var(--color-shadow) r g b / 35%);
+  color: #0b0503;
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-xs);
+  padding-block-end: var(--space-xs);
+  border-block-end: 1px solid #0b0503;
+  font-family: "C_Candara", sans-serif;
+  font-size: var(--mantine-font-size-xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.index {
+  font-family: "C_Advokat_Modern", serif;
+  font-size: var(--mantine-font-size-md);
+  letter-spacing: 0;
+}
+
+.name {
+  font-weight: 700;
+}
+
+/* The numerals sheet closes the set across the whole row, so no column is left with a lone tile. */
+.sheet:last-child {
+  grid-column: 1 / -1;
+}
+
+.glyphs {
+  margin: 0;
+  font-size: 5.5rem;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.sample {
+  margin: 0;
+  font-size: 1.5rem;
+  line-height: 1.2;
+}
+
+/* The full character set, small and allowed to break anywhere, as a specimen sheet shows it. */
+.alphabet {
+  margin: 0;
+  padding-block: var(--space-xs);
+  border-block: 1px solid #7f7548;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  color: #3b3220;
+}
+
+.uses {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  font-family: "C_Candara", sans-serif;
+  font-size: var(--mantine-font-size-sm);
+  line-height: 1.4;
+}
+
+.uses dt {
+  margin-block-start: var(--space-xs);
+  color: #7f7548;
+  font-size: var(--mantine-font-size-xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.uses dd {
+  margin: 0;
+}

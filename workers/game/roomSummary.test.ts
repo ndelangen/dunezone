@@ -33,8 +33,8 @@ test('a summary reports what changed since the last one, with the room identity 
   }
   summary.stall(300);
   summary.stall(900);
-  summary.convexCall({ path: 'playAdmission:reconcileAccounts', durationMs: 40, ok: true });
-  summary.convexCall({ path: 'playAdmission:reconcileAccounts', durationMs: 120, ok: false });
+  summary.convexCall({ path: 'playAdmission:seatLimitReached', durationMs: 40, ok: true });
+  summary.convexCall({ path: 'playAdmission:seatLimitReached', durationMs: 120, ok: false });
   summary.client('connection-a', telemetry(90, 200));
   summary.client('connection-b', telemetry(60, 80, 120));
   summary.client('connection-b', telemetry(70, 300, 150));
@@ -62,7 +62,7 @@ test('a summary reports what changed since the last one, with the room identity 
     commands: { count: 4, p50Ms: 30, p95Ms: 400, maxMs: 400 },
     stalls: 2,
     worstStallMs: 900,
-    convex: { 'playAdmission:reconcileAccounts': { calls: 2, failures: 1, totalMs: 160, maxMs: 120 } },
+    convex: { 'playAdmission:seatLimitReached': { calls: 2, failures: 1, totalMs: 160, maxMs: 120 } },
     clients: {
       reports: 2,
       worstActionP95Ms: 90,
@@ -113,4 +113,34 @@ test('the command count and maximum cover every command, beyond the kept timings
   expect(log).toHaveBeenCalledWith(
     expect.objectContaining({ commands: { count: 3001, p50Ms: 10, p95Ms: 10, maxMs: 5000 } })
   );
+});
+
+test('an interval saved before a hibernation is written whole by the woken room, whose counters start from zero', () => {
+  const log = vi.spyOn(console, 'info').mockImplementation(() => {});
+  const asleep = new RoomSummary(() => ({ roomId: 'room-a' }), 0);
+  asleep.flush(counters({ messagesSent: 10, bytesSent: 1000 }), 2, 'interval', 0);
+  asleep.message();
+  asleep.command(25);
+  asleep.convexCall({ path: 'playDirectory:publishSummary', durationMs: 30, ok: true });
+  const saved = structuredClone(asleep.save(counters({ messagesSent: 14, bytesSent: 1400 })));
+
+  const woken = new RoomSummary(() => ({ roomId: 'room-a' }), 5000);
+  expect(woken.pending(counters())).toBe(false);
+  woken.restore(saved);
+  expect(woken.pending(counters())).toBe(true);
+  expect(woken.due(ROOM_SUMMARY_MS)).toBe(true);
+  woken.message();
+  woken.flush(counters({ messagesSent: 2, bytesSent: 300 }), 2, 'interval', ROOM_SUMMARY_MS);
+  expect(log).toHaveBeenCalledWith(
+    expect.objectContaining({
+      reason: 'interval',
+      intervalMs: ROOM_SUMMARY_MS,
+      messagesIn: 2,
+      messagesSent: 6,
+      bytesSent: 700,
+      commands: { count: 1, p50Ms: 25, p95Ms: 25, maxMs: 25 },
+      convex: { 'playDirectory:publishSummary': { calls: 1, failures: 0, totalMs: 30, maxMs: 30 } },
+    })
+  );
+  expect(woken.pending(counters({ messagesSent: 2, bytesSent: 300 }))).toBe(false);
 });

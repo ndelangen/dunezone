@@ -1,4 +1,4 @@
-import preview from '@sb/preview';
+import { testingPreview } from '@sb/preview';
 import type { LogEntry } from '@shared/play/log';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
@@ -15,38 +15,15 @@ import {
 import { openTab } from './playing.stories.fixture';
 import { productTransport, playingSnapshot } from './product.stories.fixture';
 
-const meta = preview.meta({
+const meta = testingPreview.meta({
   ...gameMeta,
-  title: 'Play/Panels/Log',
+  title: 'Play/Log',
   /* The stories load the table chunk before they render, so its cold first load falls outside their first wait (#1302). */
   loaders: [
     async () => {
       await import('./multiplayer/HostedTable');
     },
   ],
-});
-
-export const Game = meta.story({
-  beforeEach: install(() =>
-    productTransport('seat-6', revealedPredictionSnapshot(), { logEntries: { game: GAME_LOG } })
-  ),
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await openTab(page, 'Game log');
-    const log = await page.findByRole('region', { name: 'Game log' });
-    await expect(within(log).findByText('Bene Gesserit locked its prediction.')).resolves.toBeVisible();
-    await expect(
-      within(log)
-        .getAllByRole('listitem')
-        .map((item) => item.textContent)
-    ).toEqual([
-      'SpiceRidwan collected 3 spice from the table into the Fremen spice reserve.Setup, Prediction',
-      'SpiceTwaffle withdrew 4 spice from the House Atreides spice reserve to the table.Setup, Prediction',
-      'PredictionBene Gesserit revealed its prediction: House Atreides, turn 6.Setup, Prediction',
-      'PredictionBene Gesserit locked its prediction.Setup, Prediction',
-    ]);
-    await expect(within(log).queryByRole('button', { name: 'Earlier entries' })).toBeNull();
-  },
 });
 
 export const Audit = meta.story({
@@ -58,11 +35,11 @@ export const Audit = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await openTab(page, 'Game log');
-    await userEvent.click(await page.findByRole('tab', { name: 'Audit' }));
+    await openTab(page, 'Audit');
     const log = await page.findByRole('region', { name: 'Audit log' });
-    await expect(within(log).findByText(/Twaffle keeps seat 1/)).resolves.toBeVisible();
+    await expect(within(log).findByText(/Central keeps seat 1/)).resolves.toBeVisible();
     await expect(within(log).getByText('[deleted user] left seat 6 when the account was deleted.')).toBeVisible();
-    await expect(page.queryByRole('tab', { name: 'Twaffle, removal vote in progress' })).toBeNull();
+    await expect(page.queryByRole('tab', { name: 'Central, removal vote in progress' })).toBeNull();
   },
 });
 

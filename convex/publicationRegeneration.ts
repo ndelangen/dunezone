@@ -8,6 +8,7 @@ import {
   CUSTOM_CARD_ASSET_TYPE,
   LEADER_SKILL_ASSET_TYPE,
   NEXUS_CARD_ASSET_TYPE,
+  HOMEWORLD_CARD_ASSET_TYPE,
   STORM_CARD_ASSET_TYPE,
   SPICE_CARD_ASSET_TYPE,
   STRONGHOLD_CARD_ASSET_TYPE,
@@ -24,6 +25,7 @@ import {
   enqueueFactionSheetPublication,
   enqueueFactionTokenPublication,
   enqueueFactionFacePublications,
+  publicationScanBatchSize,
 } from './lib/publication';
 import { enqueueRulebookFirstPagePublication } from './lib/rulebookPublication';
 import type { MutationCtx } from './types';
@@ -66,7 +68,7 @@ async function scanAssets(ctx: MutationCtx, assetType: string, cursor: string | 
   const page = await ctx.db
     .query('assets')
     .withIndex('by_type_deleted', (q) => q.eq('type', assetType).eq('is_deleted', false))
-    .paginate({ cursor, numItems: REGENERATION_BATCH_SIZE });
+    .paginate({ cursor, numItems: publicationScanBatchSize(assetType, REGENERATION_BATCH_SIZE) });
   let enqueued = 0;
   for (const asset of page.page) {
     /*
@@ -176,6 +178,7 @@ async function scanPage(ctx: MutationCtx, assetType: string, cursor: string | nu
     case CUSTOM_CARD_ASSET_TYPE:
     case LEADER_SKILL_ASSET_TYPE:
     case NEXUS_CARD_ASSET_TYPE:
+    case HOMEWORLD_CARD_ASSET_TYPE:
     case STORM_CARD_ASSET_TYPE:
     case DECK_ASSET_TYPE:
     case 'token-disc':

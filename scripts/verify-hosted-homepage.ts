@@ -7,6 +7,7 @@ import sharp from 'sharp';
 import type { Vector3Tuple } from '../src/shared/play/model.ts';
 import { CARRIED_BASE_Y, stackPreviewPositionFor } from '../src/shared/play/tableGeometry.ts';
 import type { HostedToolkit } from './verify-hosted-play-browser.ts';
+import { quickNativeDrag } from './verify-hosted-pointer.ts';
 import { required, requireView } from './verify-hosted-types.ts';
 import type { HostedPeer, Point, Bounds, Until, TablePiece } from './verify-hosted-types.ts';
 
@@ -156,9 +157,7 @@ async function dragTroop({
   finish: Point;
 }) {
   const sentBeforeDrag = member.sent.length;
-  await member.page.mouse.down();
-  await member.page.mouse.move(finish.x, finish.y, { steps: carrySteps });
-  await member.page.mouse.up();
+  await quickNativeDrag(member.page, start, finish, carrySteps);
   try {
     await until(
       () =>
@@ -573,7 +572,7 @@ export async function verifyHomepage({
   await recordRenderer(member, '#play-preview canvas');
   await until(() => requireView(member).viewer.viewerSeat !== spectator, 'Signing in did not grant table handling.');
   assert.equal(requireView(guest).viewer.viewerSeat, spectator);
-  assert.ok(member.sent.some((message) => message.type === 'authenticate' && message.ticketLength === 64));
+  assert.ok(member.sent.some((message) => message.type === 'authenticate' && message.credentialLength === 64));
   assert.equal(await member.page.getByRole('link', { name: 'Sign in to join in.' }).count(), 0);
   await guest.page.getByRole('link', { name: 'Sign in to join in.' }).waitFor();
   for (const who of [member, guest]) {

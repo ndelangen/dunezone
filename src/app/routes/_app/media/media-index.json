@@ -5267,6 +5267,12 @@
     "subjects": ["people"],
     "sourceHash": "992bdf056b5051d7e0e9be03af64408214f67c8d5b7e9ba9af99e381780975cd"
   },
+  "/vector/troop/armoured-rifleman.svg": {
+    "description": "Armored rifleman advancing with one knee raised and the other boot kicked back.",
+    "tags": ["silhouette", "armored", "armoured", "rifleman", "rifle", "soldier", "running", "vector"],
+    "subjects": ["people", "weapons"],
+    "sourceHash": "5ca7de4dc55efd7e77950520ea2f84b5a7c91aba60ff9f993fb205b925a1309a"
+  },
   "/vector/troop/atreides.svg": {
     "description": "Soldier aiming a rifle upward.",
     "tags": ["silhouette", "rifle", "soldier", "vector"],
@@ -5603,6 +5609,12 @@
     "subjects": ["space"],
     "sourceHash": "cb91942b074559a821075d7a09ef77f7ae709606bbe7b16c228aadae752d6a9f"
   },
+  "/vector/background/starfield.svg": {
+    "description": "White stars of varied sizes scattered across a black sky.",
+    "tags": ["starfield", "stars", "space", "sky", "vector"],
+    "subjects": ["space"],
+    "sourceHash": "b83fcadd58095498b27d614e816d3102eb5e6b81b0c581730d98bbcb524d5c9d"
+  },
   "/image/leader/official/dryeuh.png": {
     "description": "Dr. Yueh. Illustrated head-and-shoulders character portrait. Forehead diamond, short beard and brown scarf.",
     "tags": ["portrait", "head", "diamond", "illustration"],
@@ -5611,7 +5623,7 @@
   },
   "/image/leader/official/duncan.png": {
     "description": "Duncan. Illustrated head-and-shoulders character portrait. Short brown hair and green uniform.",
-    "tags": ["portrait", "head", "illustration"],
+    "tags": ["portrait", "head", "illustration", "Duncan Idaho"],
     "subjects": ["people"],
     "sourceHash": "14d2d75078b3abbd7fbc5218c6b5ed3dd70320575976f61ce5c7edd73935b6c5"
   },
@@ -5659,7 +5671,7 @@
   },
   "/image/leader/official/nafud.png": {
     "description": "Nefud. Illustrated head-and-shoulders character portrait. Red scarf and raised black collar.",
-    "tags": ["portrait", "head", "illustration"],
+    "tags": ["portrait", "head", "illustration", "Iakin Nefud"],
     "subjects": ["people"],
     "sourceHash": "bc7d4970cd440d8e4bccc5902a2bc8fd9e9deebd06fac2abb9968c953a6e345d"
   },
@@ -5707,7 +5719,7 @@
   },
   "/image/leader/official/wanna.png": {
     "description": "Wanna. Illustrated head-and-shoulders character portrait.",
-    "tags": ["portrait", "head", "illustration"],
+    "tags": ["portrait", "head", "illustration", "Wanna Marcus", "Wanna Yueh"],
     "subjects": ["people"],
     "sourceHash": "a163129c0c18d62e82702e35811d90549803ecf7e564faf3e822f6e7e15caa89"
   },
@@ -5725,7 +5737,7 @@
   },
   "/image/leader/official/burseg.png": {
     "description": "Burseg. Illustrated head-and-shoulders character portrait.",
-    "tags": ["portrait", "head", "illustration"],
+    "tags": ["portrait", "head", "illustration", "Col. Kolona", "Colonel Kolona"],
     "subjects": ["people"],
     "sourceHash": "285d998eacaa3b9ce829bda4dd44f77e2438de58bbdd715fcf65946ee5529b60"
   },
@@ -10019,6 +10031,22 @@
     "subjects": ["places", "space", "creatures", "people"],
     "sourceHash": "2e338d90d3955422622b3987ae9a7c1185c5f790386ef9802ad6547d767ea1d9"
   },
+  "/image/rulebook-cover/gf9-second-edition.png": {
+    "description": "Rust-colored sandworm and rider rising from golden dunes, with two cloaked onlookers in the lower-left foreground, two ornithopters near the moons and a circular motif at the foot of the right-hand rock spire.",
+    "tags": [
+      "landscape",
+      "illustration",
+      "gf9",
+      "second edition",
+      "sandworm",
+      "rider",
+      "moons",
+      "onlookers",
+      "ornithopters"
+    ],
+    "subjects": ["creatures", "places", "space", "people", "machines"],
+    "sourceHash": "67847aad3f3a3fec5b570851c5d8203a15dcf82dd436d3aa394149057a81f800"
+  },
   "/image/rulebook-cover/kiss-planet.png": {
     "description": "Curved golden desert planet seen from orbit beneath two overlapping moons and a dark blue star field.",
     "tags": ["landscape", "illustration", "kiss", "planet", "moons", "orbit"],
@@ -10096,6 +10124,18 @@
     "tags": ["Atreides", "faction shield", "faction sheet", "traitor cards", "blog"],
     "subjects": ["symbols", "culture"],
     "sourceHash": "13f00b3582d81614dc5682b39a0961cbc4b49c3c8455ddb091e54f0f5dd86a24"
+  },
+  "/web/blog/building-a-dune-sandbox/game-table.jpg": {
+    "description": "The dune.zone game table during the spice blow, with the Dune board, troops, faction shields and the treachery deck.",
+    "tags": ["dune.zone", "game table", "spice blow", "online play", "blog"],
+    "subjects": ["places", "symbols"],
+    "sourceHash": "a341b95b962cd947a2e2564c5f3a53a06ba84d24d26f6a3ce49d907291ac4ab8"
+  },
+  "/web/blog/dune-board-game-style-guide/faction-palette.jpg": {
+    "description": "Twelve faction swatch cards on a dark blue page: each faction's token, its light and shade colours with hex codes, and its texture number.",
+    "tags": ["factions", "colours", "blog"],
+    "subjects": ["symbols"],
+    "sourceHash": "8e6aeae2ee34b48485b31cb20d2fcd9cb431c02849badc95f1e8116b826ed7c5"
   },
   "/web/blog/drawing-dune-tokens-and-cards/atreides-leaders.jpg": {
     "description": "The House Atreides leader tokens on dune.zone in a row: Lady Jessica, Thufir Hawat, a larger Paul Atreides, Gurney Halleck, Duncan Idaho and Doctor Yueh.",
@@ -10300,18 +10340,6 @@
     "tags": ["background", "illustration"],
     "subjects": ["patterns", "creatures"],
     "sourceHash": "e1f3a4e2b506f47beceb67fe9979ebe600c525f91ffad835d5fb4c02bb3455a5"
-  },
-  "/web/page-dark.jpg": {
-    "description": "Dark blue cloudy page background with pale dunes along the bottom.",
-    "tags": ["background", "illustration"],
-    "subjects": ["patterns"],
-    "sourceHash": "61f252d1947657aea7f34c2c888745c2e5b6dd27e2e739cd3c1e1ba299303e1c"
-  },
-  "/web/page.jpg": {
-    "description": "Pale parchment page background with tan dunes along the bottom.",
-    "tags": ["background", "parchment"],
-    "subjects": ["patterns"],
-    "sourceHash": "31673a60687fac505f7a71247b2a80a03168d1707a389578d2e613d821e6dbdf"
   },
   "/web/tablet1.jpg": {
     "description": "Pale ornamental tablet panel with a circular medallion and flowing tan border.",
@@ -10559,20 +10587,6 @@
     "subjects": ["people", "symbols", "creatures"],
     "sourceHash": "5b73b4701741d8f7d50e64c9028587b489577336e157d30c9fd5ecf68e0b04f0"
   },
-  "/vector/icon/arrakis-city.svg": {
-    "description": "City silhouette with an optional white outline for the Arrakis board.",
-    "tags": ["city", "towers", "vector"],
-    "subjects": ["places"],
-    "sourceHash": "dc09537d3a733de26cf2ad54d293ab3aa3ef5f682517771aba7bfc2629b96c14",
-    "label": "Arrakis city"
-  },
-  "/vector/icon/arrakis-sietch.svg": {
-    "description": "Sietch silhouette with an optional white outline for the Arrakis board.",
-    "tags": ["arch", "cave", "vector"],
-    "subjects": ["places"],
-    "sourceHash": "5ab59d9fc91fdf8d41fa074ff83b7bab1995c37abe9fec31f603ac9b3e242d0c",
-    "label": "Arrakis sietch"
-  },
   "/vector/decal/sandmaster.svg": {
     "description": "A Sandmaster points across the dunes beside a sandtrout.",
     "tags": ["sandmaster", "leader skill", "sandtrout", "desert", "GF9", "CHOAM", "Richese"],
@@ -10728,5 +10742,1258 @@
     "tags": ["desert", "storm", "multicolor"],
     "subjects": ["places"],
     "sourceHash": "ea97d5f0dc5d062a06f90f1a77e752796326dbeabe8eb1b465df3b6c0151b652"
+  },
+  "/image/leader/gf9/ur-director-malina-aru.png": {
+    "description": "A painted portrait of a dark-haired woman in a high gray collar and red shoulders, against a gold background.",
+    "tags": ["Ur-Director Malina Aru", "CHOAM", "dark hair", "gray collar"],
+    "subjects": ["people"],
+    "sourceHash": "8837fa06740d9ee0bb6a37e1651bf99dd661acc40c76f316460211a44e55ce98"
+  },
+  "/image/leader/gf9/count-ilban-richese.png": {
+    "description": "A painted portrait of a gray-haired man with a moustache and pointed white beard in a high gray collar, against a gold background.",
+    "tags": ["Count Ilban Richese", "Richese", "gray hair", "moustache", "pointed beard", "gray collar"],
+    "subjects": ["people"],
+    "sourceHash": "61b2044852c51c0715761f55170d37d26e8ca7ffd4369997f2eb936c089c597f"
+  },
+  "/image/texture/hiereg-discovery.png": {
+    "description": "A mottled grayscale surface with a dark circular line and alternating outlined trapezoids and small rectangles around it.",
+    "tags": ["Hiereg", "Discovery", "Smuggler", "mottled", "grayscale", "ring", "trapezoids"],
+    "subjects": ["patterns", "symbols"],
+    "sourceHash": "17418d80b07639ef6c52abfc087ff4777e2a0145eec81413672e9a71614f95c6"
+  },
+  "/web/rulesets/gf9-logo.png": {
+    "description": "The complete Gale Force Nine wordmark centered on a dark square.",
+    "tags": ["Gale Force Nine", "GF9", "publisher", "wordmark", "logo"],
+    "subjects": ["symbols", "culture"],
+    "sourceHash": "ca0d8a68fbf167ab4385422fd97663c281a574e21d3fccf995d0e15bba5662ae"
+  },
+  "/image/leader/gf9/duke-prad-vidal.png": {
+    "description": "A painted portrait of a dark-haired man wearing a high black collar with gold trim and a purple shoulder drape, against a gold background.",
+    "tags": ["Duke Prad Vidal", "Ecaz", "Moritani", "dark hair", "gold trim", "purple drape"],
+    "subjects": ["people"],
+    "sourceHash": "6c66b6c4d55638b03d902ee7d76cd4b0ce970a3545cc0880d9073acc544f2a0f"
+  },
+  "/vector/decal/solaris.svg": {
+    "description": "Coins with planet, star, animal and profile cutouts.",
+    "tags": ["Solaris", "coins", "currency", "money", "GF9 2.0", "second edition", "vector"],
+    "subjects": ["trade", "symbols"],
+    "sourceHash": "552e3fffa5c46114f4a4c9b55aa118077dc4d9c85ef4c16c31c8984f37e7fa94"
+  },
+  "/vector/decal/little-maker.svg": {
+    "description": "Worm curled in a pool inside an engraved basin.",
+    "tags": ["Little Maker", "worm", "pool", "water", "basin", "GF9 2.0", "second edition", "vector"],
+    "subjects": ["creatures", "water"],
+    "sourceHash": "19bc11a22a3fa827c651cf669b660c6dab2f846e3fa9a1b8775adfa845bcb2f2"
+  },
+  "/vector/decal/karama-2-0.svg": {
+    "description": "Eight-ray star with triangular gaps, two circles and a central ring.",
+    "tags": ["Karama", "GF9 2.0", "second edition", "star", "eye", "vector", "hills", "dunes", "ridgelines"],
+    "subjects": ["symbols"],
+    "sourceHash": "da0cdd22a40647febca3049bf11016709f982f5e03a902eef2961e96b5b15631"
+  },
+  "/vector/decal/little-maker-multicolor.svg": {
+    "description": "Dark worm in pale water, within an olive basin.",
+    "tags": [
+      "Little Maker",
+      "worm",
+      "pool",
+      "water",
+      "basin",
+      "olive",
+      "multicolor",
+      "GF9 2.0",
+      "second edition",
+      "vector"
+    ],
+    "subjects": ["creatures", "water"],
+    "sourceHash": "a082f9eeb55e33ef4e5ca9b3f9a69192239fe6eb7ef147d25ef69ef55c54f1d0"
+  },
+  "/vector/decal/dune-ridgelines.svg": {
+    "description": "Thin, overlapping dune ridgelines.",
+    "tags": ["hills", "dunes", "mountains", "ridgelines", "Karama", "vector"],
+    "subjects": ["places"],
+    "sourceHash": "1ce31687937ae035c888e09c700ae2061bb268cd3b539db1f8530d1792138aca"
+  },
+  "/vector/decal/solaris-multicolor.svg": {
+    "description": "Dark coins with pale engravings.",
+    "tags": ["Solaris", "coins", "cream", "multicolor"],
+    "subjects": ["trade", "symbols"],
+    "sourceHash": "c17cee2ce5ac915879979057169363c451c19611c486464681dfbc80b9b29952"
+  },
+  "/image/leader/gf9-second-edition/bashar-garon.png": {
+    "description": "Bashar Garon. Illustrated head-and-shoulders portrait. Older pale man, silver swept-back hair and pronounced sideburns, clean-shaven chin, lined face, red high-collared uniform and gold shoulder sash.",
+    "tags": ["portrait", "head", "illustration", "Bashar Garon", "Emperor", "gf9", "second edition"],
+    "subjects": ["people"],
+    "sourceHash": "6b801c6c629aa2a385740a01c88c668fde3b7fbcbaaffe985085dadd6a782fbf"
+  },
+  "/image/leader/gf9-second-edition/wensicia-corrino.png": {
+    "description": "Wensicia Corrino. Illustrated head-and-shoulders portrait. Young pale woman, short light-brown hair, red fan-shaped segmented headdress, white flared collar, pearl necklace, red high-collared dress with small diamond brooch.",
+    "tags": ["portrait", "head", "illustration", "Wensicia Corrino", "Emperor", "gf9", "second edition"],
+    "subjects": ["people"],
+    "sourceHash": "b81ed69eee1af44291d74b9cabbb0f7d98dcf46eee0b36a99fbad5d9b555f6e3"
+  },
+  "/image/leader/gf9-second-edition/loyxo.png": {
+    "description": "Loyxo. Illustrated head-and-shoulders portrait. Pale altered face, reddish long hair, grey metallic patches on forehead and cheek, patterned neck, grey circular collar with dark openings.",
+    "tags": ["portrait", "head", "illustration", "Loyxo", "Spacing Guild", "gf9", "second edition"],
+    "subjects": ["people"],
+    "sourceHash": "a6f1c873824ae0fca5b27aeff8125ad700ead7a48d2af9df807b44bfeb24b1b5"
+  },
+  "/image/leader/gf9-second-edition/crozeed.png": {
+    "description": "Crozeed. Illustrated head-and-shoulders portrait. Dark-skinned young man, short dark-brown tightly curled hair, very pale blue eyes, fine facial lines and ribbed light-grey padded collar.",
+    "tags": ["portrait", "head", "illustration", "Crozeed", "Spacing Guild", "gf9", "second edition"],
+    "subjects": ["people"],
+    "sourceHash": "9f679db13a22ad13702bb5573449151d6fb4e33f8b483834badd723e5ca24a32"
+  },
+  "/image/leader/gf9-second-edition/olar.png": {
+    "description": "Olar. Illustrated head-and-shoulders portrait. Very pale slim man with spiky light-brown hair, wide pale eyes, angular long face and broad grey high collar with black oval vents.",
+    "tags": ["portrait", "head", "illustration", "Olar", "Spacing Guild", "gf9", "second edition"],
+    "subjects": ["people"],
+    "sourceHash": "91bff6ab18172b1d52a7f885acff38d3efebdc22f52ee6cf75e2c17cb0c06143"
+  },
+  "/image/leader/gf9-second-edition/ertun.png": {
+    "description": "Ertun. Illustrated head-and-shoulders portrait. Very pale slim androgynous man with long straight black hair tucked back, pale eyes, narrow face, red neck band and broad grey high collar with black vents.",
+    "tags": ["portrait", "head", "illustration", "Ertun", "Spacing Guild", "gf9", "second edition"],
+    "subjects": ["people"],
+    "sourceHash": "e6a5bb6e1efd60287b72a45ef81919817415b1052f2397c62dd37c2623f244df"
+  },
+  "/image/leader/gf9-second-edition/starguide-serello.png": {
+    "description": "Starguide Serello. Illustrated head-and-shoulders portrait. Young medium-brown-skinned man with wavy shoulder-length black hair, dark eyes, solemn expression, grey ribbed round padded collar with orange central inset.",
+    "tags": ["portrait", "head", "illustration", "Starguide Serello", "Spacing Guild", "gf9", "second edition"],
+    "subjects": ["people"],
+    "sourceHash": "6c2da1e9d65a435678e6a402cdec878c65b30a1062ab89ed05f304b38ffe6441"
+  },
+  "/image/leader/gf9-second-edition/anirul-corrino.png": {
+    "description": "Anirul Corrino. Illustrated head-and-shoulders portrait. Pale blonde woman with short curls, broad rounded pale-blue headdress with red diamond jewels and white drops, hanging red-and-blue beaded strands, dark-blue collar and blue dress.",
+    "tags": ["portrait", "head", "illustration", "Anirul Corrino", "Bene Gesserit", "gf9", "second edition"],
+    "subjects": ["people"],
+    "sourceHash": "66fa79b3efdebcda6fb979e60c87fdcaaaeab31c5034937ab5be315bff492d27"
+  },
+  "/image/leader/custom/duke-leto.png": {
+    "description": "Duke Leto Atreides. Illustrated head-and-shoulders portrait. Man with swept-back dark hair with grey streaks, blue-grey eyes, strong eyebrows, moustache joined to a short pointed goatee, long nose and stern expression. Green Atreides uniform with gold edging and small gold collar emblems.",
+    "tags": ["portrait", "head", "illustration", "Duke Leto Atreides", "Atreides", "duke", "leto", "atreides"],
+    "subjects": ["people"],
+    "sourceHash": "97517427c6e5d76fe12988a7509c1d22174b9ff14b5563e22c2ea0187174289f"
+  },
+  "/vector/logo/dune-awakening-house-alexin.svg": {
+    "description": "A vertical wheat ear with three pairs of pointed grains and a pointed tip.",
+    "tags": ["House Alexin", "Dune Awakening", "Landsraad", "wheat", "grain", "ear"],
+    "subjects": ["plants", "symbols"],
+    "sourceHash": "5901ffefcf7ffe9dfeff472ff081268cf9643fafc1b35419273bb80d8295ee51"
+  },
+  "/vector/logo/dune-awakening-house-argosaz.svg": {
+    "description": "A triangular frame divided into three triangular sections around a central junction.",
+    "tags": ["House Argosaz", "Dune Awakening", "Landsraad", "triangle", "frame", "three sections"],
+    "subjects": ["symbols"],
+    "sourceHash": "2c97c8fec55d43517b3919a4ee6fa1423212d0d66210e42001f2247138cf0b7a"
+  },
+  "/vector/logo/dune-awakening-house-dyvetz.svg": {
+    "description": "A round opening above a central stem and two pairs of sweeping wings.",
+    "tags": ["House Dyvetz", "Dune Awakening", "Landsraad", "wings", "circle", "stem"],
+    "subjects": ["symbols"],
+    "sourceHash": "9d003acfb6ee6f579750cb9abc2c5b1833214c51d6f521476c7b1e68b2a14d95"
+  },
+  "/vector/logo/dune-awakening-house-ecaz.svg": {
+    "description": "A branching tree with angular upward branches and three spreading roots.",
+    "tags": ["House Ecaz", "Dune Awakening", "Landsraad", "tree", "branches", "roots"],
+    "subjects": ["plants", "symbols"],
+    "sourceHash": "b8b43345aad42af7ed1131aff0ff31bd9ab394bf30f77702fdd7998e7183d0fb"
+  },
+  "/vector/logo/dune-awakening-house-hagal.svg": {
+    "description": "A fan of pointed segments surrounding a circular opening at the base.",
+    "tags": ["House Hagal", "Dune Awakening", "Landsraad", "fan", "rays", "circle"],
+    "subjects": ["symbols"],
+    "sourceHash": "84282ec0fcafa66cd92dc80b967269cf948cabbbdbee96e4445114b844fca574"
+  },
+  "/vector/logo/dune-awakening-house-hurata.svg": {
+    "description": "Concentric circles above a semicircular fan of short radial spokes.",
+    "tags": ["House Hurata", "Dune Awakening", "Landsraad", "concentric circles", "spokes", "wheel"],
+    "subjects": ["symbols"],
+    "sourceHash": "e1a8ef8e64169f870a7a9b62124a58b274cd1fd6017e02c3e80216e717eb868c"
+  },
+  "/vector/logo/dune-awakening-house-imota.svg": {
+    "description": "A rounded three-part crest with an arch above two inward-curving vertical arms.",
+    "tags": ["House Imota", "Dune Awakening", "Landsraad", "arch", "three parts", "curved arms"],
+    "subjects": ["symbols"],
+    "sourceHash": "531863522746ef82df6cdf08674fb0f95e2a9ee31e63b70703ceb9d58bfc8973"
+  },
+  "/vector/logo/dune-awakening-house-kenola.svg": {
+    "description": "Five rays rise above two horizontal bars with a small downward point.",
+    "tags": ["House Kenola", "Dune Awakening", "Landsraad", "sunrise", "rays", "bars"],
+    "subjects": ["symbols"],
+    "sourceHash": "34ad0504040a232847d24c24dd93efc2096c254f4651fc180c58ed2bfb0bc5ad"
+  },
+  "/vector/logo/dune-awakening-house-lindaren.svg": {
+    "description": "An angular vertical crest with three stepped points and a long diagonal lower tip.",
+    "tags": ["House Lindaren", "Dune Awakening", "Landsraad", "angular crest", "steps", "diagonal"],
+    "subjects": ["symbols"],
+    "sourceHash": "22181d3033c839360051cbd7a1d6f46fa25bf17690464cc40391aee735e32ec9"
+  },
+  "/vector/logo/dune-awakening-house-maros.svg": {
+    "description": "A narrow animal skull beneath two long upward-curving horns.",
+    "tags": ["House Maros", "Dune Awakening", "Landsraad", "skull", "horns", "animal"],
+    "subjects": ["creatures", "symbols"],
+    "sourceHash": "2d93bb1f98c28a3ab26ccb953045c4ea3c01b77d762b40544660550095bd2f69"
+  },
+  "/vector/logo/dune-awakening-house-mikarrol.svg": {
+    "description": "A raised clenched fist above a wide flared cuff.",
+    "tags": ["House Mikarrol", "Dune Awakening", "Landsraad", "fist", "gauntlet", "cuff"],
+    "subjects": ["people", "weapons", "symbols"],
+    "sourceHash": "69e71db5a72b82ba48711f04fc6b088ba877c7ce8581692c40d29db6341dde3d"
+  },
+  "/vector/logo/dune-awakening-house-moritani.svg": {
+    "description": "An angular horse head in profile with an open notch below its muzzle.",
+    "tags": ["House Moritani", "Dune Awakening", "Landsraad", "horse", "head", "profile"],
+    "subjects": ["creatures", "symbols"],
+    "sourceHash": "ea263ee5e159c31348feafe9603512fa1799566e1930b93275705fe699fe770c"
+  },
+  "/vector/logo/dune-awakening-house-mutelli.svg": {
+    "description": "Five pointed panels arranged around a small central star.",
+    "tags": ["House Mutelli", "Dune Awakening", "Landsraad", "five panels", "star", "radial"],
+    "subjects": ["symbols"],
+    "sourceHash": "aa33ce339edb4af2197ad931ea99ba4212853605dd5d8d467e5a6eda27a325ce"
+  },
+  "/vector/logo/dune-awakening-house-novebruns.svg": {
+    "description": "Three curved sides form an open triangular crest divided by crossing diagonal lines.",
+    "tags": ["House Novebruns", "Dune Awakening", "Landsraad", "triangle", "open center", "crossing lines"],
+    "subjects": ["symbols"],
+    "sourceHash": "09cfd043f26aa769ac5acd7d80ac8fcd09eb86b6f17860a224953d46f63938c3"
+  },
+  "/vector/logo/dune-awakening-house-richese.svg": {
+    "description": "A concentric circular ring with a small cap above and a smaller ring suspended below.",
+    "tags": ["House Richese", "Dune Awakening", "Landsraad", "rings", "concentric circles", "pendant"],
+    "subjects": ["symbols"],
+    "sourceHash": "7366f32b6be1b972e1aedd05b749c73ff3046e7efef0ae3bf612a5ac13cde155"
+  },
+  "/vector/logo/dune-awakening-house-sor.svg": {
+    "description": "A teardrop-shaped spiral with several close turns and a pointed cap.",
+    "tags": ["House Sor", "Dune Awakening", "Landsraad", "spiral", "teardrop", "concentric curves"],
+    "subjects": ["symbols"],
+    "sourceHash": "b034f05c29621db15a49ae826afe80106a38033c9889a9c3927d71981ca38fff"
+  },
+  "/vector/logo/dune-awakening-house-spinnette.svg": {
+    "description": "A long double-pointed vertical blade crossed by a short bar and diagonal cut.",
+    "tags": ["House Spinnette", "Dune Awakening", "Landsraad", "blade", "bar", "diamond"],
+    "subjects": ["weapons", "symbols"],
+    "sourceHash": "d75fbb4648db5eb9a069a0b045477c5bdbd88f50f3739d11e5335f5e42f862c8"
+  },
+  "/vector/logo/dune-awakening-house-taligari.svg": {
+    "description": "A long central tapered point flanked by two pairs of shorter narrow points.",
+    "tags": ["House Taligari", "Dune Awakening", "Landsraad", "points", "five spikes", "geometric"],
+    "subjects": ["symbols"],
+    "sourceHash": "46fca468f6503bcc447019b5a1192d2e998e4e2aa9cc672b5b6fc4ab5826ec65"
+  },
+  "/vector/logo/dune-awakening-house-thorvald.svg": {
+    "description": "A broad flag-shaped crest with a curled central opening on a short pedestal.",
+    "tags": ["House Thorvald", "Dune Awakening", "Landsraad", "flag", "curl", "pedestal"],
+    "subjects": ["symbols"],
+    "sourceHash": "b64b0a70fd49607bcf6313d09a0db553f88a5c250444379d031e271922776f9e"
+  },
+  "/vector/logo/dune-awakening-house-tseida.svg": {
+    "description": "A ribbon curls into two broad horizontal bands with narrow curved lines near its edges.",
+    "tags": ["House Tseida", "Dune Awakening", "Landsraad", "ribbon", "bands", "scroll"],
+    "subjects": ["symbols"],
+    "sourceHash": "5798de862e60044e742bc2a08a62421ede757309bdef2c71f097ae539cebefa3"
+  },
+  "/vector/logo/dune-awakening-house-varota.svg": {
+    "description": "A bowed string instrument with a rounded body, diagonal strings and small tuning dots.",
+    "tags": ["House Varota", "Dune Awakening", "Landsraad", "string instrument", "strings", "music"],
+    "subjects": ["culture", "symbols"],
+    "sourceHash": "8aff50f9a605ddb90c1e11e36ec2ee3a06a8146ee508cf3e3db2cc990d9e80aa"
+  },
+  "/vector/logo/dune-awakening-house-vernius.svg": {
+    "description": "Two angular opposing hooks with short horizontal bars inside their stems.",
+    "tags": ["House Vernius", "Dune Awakening", "Landsraad", "hooks", "opposing shapes", "bars"],
+    "subjects": ["symbols"],
+    "sourceHash": "8ef6416135b93ccf58a08db1f65d9678cac55343dfdfc30323cd68959c1a60df"
+  },
+  "/vector/logo/dune-awakening-house-wallach.svg": {
+    "description": "A curved loop with a central field of fine strings and outward-facing curled ends.",
+    "tags": ["House Wallach", "Dune Awakening", "Landsraad", "loop", "strings", "curled ends"],
+    "subjects": ["culture", "symbols"],
+    "sourceHash": "118cdf055707dbc759cff70f50a45c9c7d1f4da585d739baf748fd95292eb6b9"
+  },
+  "/vector/logo/dune-awakening-house-wayku.svg": {
+    "description": "A circular orbit encloses several discs connected by straight lines.",
+    "tags": ["House Wayku", "Dune Awakening", "Landsraad", "orbit", "discs", "network", "circles"],
+    "subjects": ["space", "symbols"],
+    "sourceHash": "268e20760952e78e37d2c0623eb15e6ed6ad6e6968fdd1d01e91c7ed2b70f80d"
+  },
+  "/vector/logo/dune-awakening-house-wydras.svg": {
+    "description": "A symmetrical angular crest with two tall upper points and a broad wing-like lower shape.",
+    "tags": ["House Wydras", "Dune Awakening", "Landsraad", "angular crest", "points", "wings"],
+    "subjects": ["symbols"],
+    "sourceHash": "ff557fc691ab338443993d090b57702be1fa5546fe1ff38feeb6e218b1216038"
+  },
+  "/vector/logo/apocrypha.svg": {
+    "description": "Eye emblem with a round pupil, crossed bands and two curved trailing strokes.",
+    "tags": ["apocrypha", "eye", "pupil", "crossed bands"],
+    "subjects": ["symbols"],
+    "sourceHash": "805caa6ecbe9a81d990cd5ebe8275c514eccf3bb2e1c4c11915f2beefd7fe0d6"
+  },
+  "/vector/logo/atreides-extended.svg": {
+    "description": "Bird in profile with an upright fan-shaped wing, pointed tail and hooked legs.",
+    "tags": ["atreides", "extended", "hawk", "bird", "wing"],
+    "subjects": ["creatures", "symbols"],
+    "sourceHash": "c615289e86f113abfaf98014b16e1b5e4f5669a1fbec1ee1a92a947d87904cd5"
+  },
+  "/vector/logo/bene-gesserit-2021.svg": {
+    "description": "Symmetrical looping emblem with paired eye-shaped gaps and four curled ends.",
+    "tags": ["bene gesserit", "2021", "loops", "eyes"],
+    "subjects": ["symbols"],
+    "sourceHash": "d1c4301a8153eda491e82e8f36682bd4c3327abcb8f3eccc6ab22c9ebea20860"
+  },
+  "/vector/logo/corrino-extended.svg": {
+    "description": "Lion head in profile with an open mouth and a pointed radiating mane.",
+    "tags": ["corrino", "extended", "lion", "mane"],
+    "subjects": ["creatures", "symbols"],
+    "sourceHash": "4b73f9176cab2e02083a216fced38a402f05a0f84fa1e03b8aef65802506b33f"
+  },
+  "/vector/logo/dune-encyclopedia.svg": {
+    "description": "Open book with three page lines on each side, a bird-shaped mark above and a pointed stem below.",
+    "tags": ["dune encyclopedia", "book", "pages"],
+    "subjects": ["culture", "symbols"],
+    "sourceHash": "a7221bdc654776e4eecf651b1b28d0d076632f99d969345480afbfe6bac324e4"
+  },
+  "/vector/logo/expanded-dune.svg": {
+    "description": "Inverted triangular emblem with a central notch and two descending outer strokes.",
+    "tags": ["expanded dune", "triangle", "notch"],
+    "subjects": ["symbols"],
+    "sourceHash": "7fc11abf555a8e1a1db1ef7bf6fd4b5916992dc066122a04a6f2a323a95e853a"
+  },
+  "/vector/logo/harkonnen-dune-prophecy.svg": {
+    "description": "Two opposing curved spikes, one pointing up and one down.",
+    "tags": ["harkonnen", "dune prophecy", "spikes"],
+    "subjects": ["symbols"],
+    "sourceHash": "78429846d0ea5027ae4da3702c57ac983ba6f55435728cc18e9ff8070481b296"
+  },
+  "/vector/logo/harkonnen-extended.svg": {
+    "description": "Rearing winged creature with an angular beak, claws and a long curved tail.",
+    "tags": ["harkonnen", "extended", "winged creature", "claws", "tail"],
+    "subjects": ["creatures", "symbols"],
+    "sourceHash": "56d5caabbb1d270fa1ec50cbe372dd76ff438bf602b593fc03d9819d220ad4f8"
+  },
+  "/vector/logo/house-atreus-fan-art.svg": {
+    "description": "Two feline figures facing a central column with four dots across its capital.",
+    "tags": ["house atreus", "fan art", "felines", "column", "dots"],
+    "subjects": ["creatures", "symbols", "culture"],
+    "sourceHash": "6195d1456b9525e4e762c2338656fd3455e167fad8bf7ff2ffd313fbd8d9ec15"
+  },
+  "/vector/logo/lynch-dune.svg": {
+    "description": "Stepped tower divided by a rectangular brick grid, with a small upper window, an open doorway and three triangular roof pieces.",
+    "tags": ["Lynch's Dune", "Lynch", "tower", "pyramid", "bricks", "doorway"],
+    "subjects": ["places", "symbols"],
+    "sourceHash": "7c20c9d40911a5e4d0b425b58541810ae5018ea4b082ec0996d84101a72f99be"
+  },
+  "/vector/logo/original-dune.svg": {
+    "description": "Three pointed lobes above a toothed mouth and oval center, framed by curled side strokes and two bowed lower bands.",
+    "tags": ["original dune", "worm", "mouth", "teeth", "lobes"],
+    "subjects": ["creatures", "symbols"],
+    "sourceHash": "f4f11db26f4e0af5ed3187d1a139589ae576103f6f7c4f0187e7d38c388588f0"
+  },
+  "/vector/logo/real-world.svg": {
+    "description": "Round globe with curved meridians, horizontal latitude bands and a central vertical line.",
+    "tags": ["real world", "globe", "earth", "meridians", "latitude"],
+    "subjects": ["places", "symbols"],
+    "sourceHash": "33b4dc071e5598a210d56747d328a8c3895b811c7fcefdb14a164506264b5fac"
+  },
+  "/vector/logo/sci-fi-miniseries.svg": {
+    "description": "Twelve curved knives arranged radially around an open center, with separate short handles.",
+    "tags": ["sci fi", "miniseries", "knives", "radial", "sunburst"],
+    "subjects": ["weapons", "symbols"],
+    "sourceHash": "841b07a8b1195e24df9115690dc1f7477a575f1ebe5d8ae83157d5c2b7e9267f"
+  },
+  "/vector/logo/sunburst-buckle-matt-griffin.svg": {
+    "description": "Wide ornamental buckle with pointed ends, a rising half-sun, radiating rays, a dotted arch and a diamond clasp.",
+    "tags": ["sunburst", "buckle", "Matt Griffin", "half sun", "rays", "clasp"],
+    "subjects": ["culture", "symbols"],
+    "sourceHash": "254d78bbffbf36765eaafbcf079842c8cf051ca730a51359ab58b2d1ed65a01b"
+  },
+  "/vector/logo/villeneuve.svg": {
+    "description": "Circular sunburst with rounded inward-pointing rays and a split horizontal base.",
+    "tags": ["Villeneuve", "sunburst", "rays", "circle", "base"],
+    "subjects": ["symbols"],
+    "sourceHash": "3f34bed6d117efaf27e907eb4c44eac788a47d697f8f0d21214dcbaf6a29d03f"
+  },
+  "/vector/decal/muaddib.svg": {
+    "description": "A crouching Muad'Dib kangaroo mouse with large ears, folded hind feet and a long tail.",
+    "tags": ["muaddib", "muad dib", "kangaroo mouse", "desert mouse", "Dune", "Arrakis", "vector"],
+    "subjects": ["creatures"],
+    "sourceHash": "80216b8372a0d2864200946624a390d002d5deaa00dd12d499903c90c0e4d7f2"
+  },
+  "/vector/decal/muaddib-multicolor.svg": {
+    "description": "A crouching Muad'Dib kangaroo mouse with large ears, folded hind feet and a long tail.",
+    "tags": ["muaddib", "muad dib", "kangaroo mouse", "desert mouse", "Dune", "Arrakis", "multicolor"],
+    "subjects": ["creatures"],
+    "sourceHash": "05cef6e80b573674605d6b662cebd0cec9184efd56bdbce13d9fb7f18873f459"
+  },
+  "/vector/decal/sardaukar-knife.svg": {
+    "description": "A curved Sardaukar knife with a ring guard, crosshatched grip and notched blade tip.",
+    "tags": ["Sardaukar", "knife", "blade", "Dune", "weapon", "vector"],
+    "subjects": ["weapons"],
+    "sourceHash": "8fe38a32f3fe93697223ba57a110d4ed3efcab5707a29cd2f2a308f226ef8fe1"
+  },
+  "/vector/decal/sardaukar-sheath.svg": {
+    "description": "A curved Sardaukar knife sheath with a seam, rivets and two slots.",
+    "tags": ["Sardaukar", "knife", "blade", "Dune", "sheath", "vector"],
+    "subjects": ["weapons"],
+    "sourceHash": "21576f1a72a5b751902a2da6e6a11e1347177ac41fc6bda2d674fd5d6e1253f5"
+  },
+  "/vector/decal/water-of-life-ceremony.svg": {
+    "description": "Four robed people gather for a ceremony: a staff bearer, a woman with open arms, an attendant holding a vessel overhead, and a seated hooded figure.",
+    "tags": ["water of life", "Jessica", "ceremony", "ritual", "people", "vessel", "vector"],
+    "subjects": ["culture", "people", "water"],
+    "sourceHash": "1193af14ac4608b513cabd29e9ac4ebbc6f485e95c0b3479a54cc8df47d41b6c"
+  },
+  "/vector/decal/water-of-life-ceremony-multicolor.svg": {
+    "description": "Four robed people gather for a ceremony: a staff bearer, a woman with open arms, an attendant holding a vessel overhead, and a seated hooded figure. The central dress is muted red, with cream and black figures.",
+    "tags": ["water of life", "Jessica", "ceremony", "ritual", "people", "vessel", "multicolor"],
+    "subjects": ["culture", "people", "water"],
+    "sourceHash": "0742b6efb63ecea65f14d5c8a07afe6e2ca711afa6bd69ce5c7ef1dd61c49cec"
+  },
+  "/vector/decal/tarot-deck.svg": {
+    "description": "A stack of cards with a circular disk and radiating bands lies in an open wrap case with a clasp, looped cord and tassel.",
+    "tags": ["tarot", "deck", "cards", "case", "cord", "tassel", "divination", "vector"],
+    "subjects": ["culture", "symbols"],
+    "sourceHash": "e3b031b1dd8b34aa7edb107aa0846f516d06484402c68fccd70bb98b17f341ff"
+  },
+  "/vector/decal/ascending-soldiers.svg": {
+    "description": "Three helmeted figures with packs rise diagonally, with bent legs and a long weapon held by the lowest figure.",
+    "tags": ["soldiers", "ascending", "flying", "helmets", "packs", "Dune Part Two", "vector"],
+    "subjects": ["people", "weapons"],
+    "sourceHash": "2cf32a4fe8fa97fab5fee09e0e99f94f3c6d133ddf8dc3e8f2251441a843d033"
+  },
+  "/vector/decal/ornate-spear.svg": {
+    "description": "A long horizontal spear has a broad grip, simple collars, a stepped neck and a swept pointed head with a large curved opening.",
+    "tags": ["spear", "staff", "polearm", "blade", "stepped neck", "vector"],
+    "subjects": ["weapons"],
+    "sourceHash": "e441bf3a7ed43c22218578bbe12a7c51f2c46aada0c93970815894b5986bbfd6"
+  },
+  "/vector/decal/box-and-needle.svg": {
+    "description": "A long tapered needle sits above a thick-walled box with an open rectangular cavity, framed top and angular panel cuts.",
+    "tags": ["box", "needle", "cavity", "framed panel", "vector"],
+    "subjects": ["machines", "weapons"],
+    "sourceHash": "927135a200188481a6059a5132ccd8447f59879cd06321a97ff5e37c8e6d69f4"
+  },
+  "/vector/decal/thumper-part-two.svg": {
+    "description": "A tall cylindrical thumper has a side rail, a narrow piston, a vented lower body and a ribbed tip.",
+    "tags": ["thumper", "Dune Part Two", "piston", "cylinder", "vents", "vector"],
+    "subjects": ["machines"],
+    "sourceHash": "fcf32785d5287d3ea59a52b269690c5ebbea6c6fa6b9275203099b2248ee9a14"
+  },
+  "/vector/decal/circular-throne-room.svg": {
+    "description": "Concentric arches frame a tall throne above a broad staircase, with an open central disk and sweeping side ribs.",
+    "tags": ["throne room", "circular", "arches", "stairs", "palace", "vector"],
+    "subjects": ["places"],
+    "sourceHash": "13287a92a6f2f222b7f496831006ab4aa011d60855f0b3fd80a556bcf4fe84a3"
+  },
+  "/vector/decal/circular-throne-room-multicolor.svg": {
+    "description": "Cream concentric arches and a circular disk surround a navy throne and stair runner, with black structural cuts.",
+    "tags": ["throne room", "circular", "arches", "stairs", "palace", "navy", "cream", "multicolor", "vector"],
+    "subjects": ["places"],
+    "sourceHash": "3c38a778cb2ac0dc6291f33929b820f4038079f9de0b8ee9114a6fad224b82b4"
+  },
+  "/vector/troop/ogre-club-brute.svg": {
+    "description": "A broad pointed-ear figure stands with bent arms, a short spiked club, a simple loincloth and heavy boots.",
+    "tags": ["ogre", "brute", "club", "spiked", "pointed ears", "silhouette"],
+    "subjects": ["creatures", "weapons"],
+    "sourceHash": "760f098ffff8cf3c6d6d88b873e47fd5a864a040c69b504ef3e01e017092d61e"
+  },
+  "/vector/troop/caped-warrior.svg": {
+    "description": "An upright figure with shoulder-length hair holds both fists down while a broad cape flows to the left above tall heeled boots.",
+    "tags": ["caped", "warrior", "cape", "fists", "high collar", "boots", "silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "5e925e81e88b1e77e5444d4115a31a043bca2be51aa0a2f8fd1a403c2f146d6a"
+  },
+  "/vector/troop/sandworm-rider.svg": {
+    "description": "A rear-view figure with a wrapped head and trailing scarf stands with legs apart and holds a curved maker hook in each lowered hand.",
+    "tags": ["sandworm", "rider", "maker hooks", "back view", "scarf", "stillsuit", "silhouette"],
+    "subjects": ["people", "weapons"],
+    "sourceHash": "83a1945de68567ea67c6eece224b9afa6f16bf404f73cc6761d16df8487db4b6"
+  },
+  "/vector/troop/ogre-pirate-hammer.svg": {
+    "description": "A broad bandanna-wearing figure holds a large rectangular hammer across its body, with a loop beneath the hammer head.",
+    "tags": ["ogre", "pirate", "hammer", "bandanna", "loop", "silhouette"],
+    "subjects": ["creatures", "weapons"],
+    "sourceHash": "fe18ddfa0f152ec6a3546ebe143daeafedeb6d4524f7afc6c077d144a62bb611"
+  },
+  "/vector/troop/ogre-pirate-captain.svg": {
+    "description": "A broad figure in a feathered pirate hat and long coat raises a curved sword while a hook hangs from its other arm.",
+    "tags": ["ogre", "pirate", "captain", "sword", "saber", "hook", "feather", "silhouette"],
+    "subjects": ["creatures", "weapons"],
+    "sourceHash": "3746b03327781e64d7e6a1a8787afa7e93bc44f4f0259fd7e729023689d0dba3"
+  },
+  "/vector/troop/ogre-pirate-blades.svg": {
+    "description": "A broad bandanna-wearing figure holds a long curved sword upward and a large axe across its body.",
+    "tags": ["ogre", "pirate", "sword", "axe", "blades", "bandanna", "silhouette"],
+    "subjects": ["creatures", "weapons"],
+    "sourceHash": "f93a27aac6480fdd2c51b7d467da331b053fbf7744d1e0bae4be71fbe163d9f7"
+  },
+  "/vector/troop/ogre-pirate-gunner.svg": {
+    "description": "A broad figure in a long coat carries a large blocky gun across its front and a raised staff with a ring at its lower tip.",
+    "tags": ["ogre", "pirate", "gunner", "gun", "staff", "ring", "silhouette"],
+    "subjects": ["creatures", "weapons"],
+    "sourceHash": "c8f43d34587705e7a9764a7a917aa6b10205abd77d69cd514ce182f23e9c7415"
+  },
+  "/vector/troop/ogre-pirate-mace.svg": {
+    "description": "A broad bandanna-wearing figure with one heavy boot and one peg leg holds a short spiked mace out to the side.",
+    "tags": ["ogre", "pirate", "mace", "peg leg", "bandanna", "silhouette"],
+    "subjects": ["creatures", "weapons"],
+    "sourceHash": "abadfb81edbbd0430ed607c9485cdb650200b7ee1d1610cb5bf3accd1bfccd16"
+  },
+  "/vector/troop/ogre-polearm.svg": {
+    "description": "A muscular figure braces on bent legs, raising a long cross-tipped polearm overhead while extending its other arm forward.",
+    "tags": ["ogre", "polearm", "spear", "overhead", "crouch", "silhouette"],
+    "subjects": ["creatures", "weapons"],
+    "sourceHash": "1a41e9d971009d119310398ccd6535c637227334d55419dd9d62ee1454902abc"
+  },
+  "/vector/troop/saluting-shield-bearer.svg": {
+    "description": "A standing figure with a broad tapered shield raises one hand to its forehead in a salute, with feet planted apart.",
+    "tags": ["saluting", "shield", "bearer", "Soldier Boy", "wide stance", "silhouette"],
+    "subjects": ["people", "weapons"],
+    "sourceHash": "4e34c3cb5af11e1bfdee64432dd4c90ecabf6277f87c6484f8296b52ff3c1fa8"
+  },
+  "/vector/troop/tower-headed-robot.svg": {
+    "description": "An angular robot has a tall rectangular head with a loop behind it, spread legs, clawed feet and a different tool on each lowered arm.",
+    "tags": ["tower headed", "robot", "sensor", "claw", "building blocks", "automaton", "silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "2d9db67fdcac86d6e97c9a24769c5e85f0087afc11ae9d84431f74efded9332c"
+  },
+  "/vector/troop/camera-raygun-robot.svg": {
+    "description": "A round-bodied robot with a small circular camera head points a large ray gun upward and forward, while its other arm ends in a hanging pincer.",
+    "tags": ["camera", "webcam", "raygun", "ray gun", "robot", "pincer", "lens", "silhouette"],
+    "subjects": ["machines", "weapons"],
+    "sourceHash": "e948303ba50f9dd4477487f1ed02190f7151ea829134121a84515be24a2f5a71"
+  },
+  "/vector/troop/rear-view-battle-mech.svg": {
+    "description": "A rear-view armored robot has a broad high back, bent arms, a gun projecting to the left and two sturdy legs separated by a clear gap.",
+    "tags": ["rear view", "battle mech", "robot", "rifle", "back armor", "silhouette"],
+    "subjects": ["machines", "weapons"],
+    "sourceHash": "b9aec71b75844c5114ef057faa48abbbeecfce90d14cab17a4ff206b8bcd9bbf"
+  },
+  "/vector/troop/cannon-crawler.svg": {
+    "description": "A squat armored caterpillar-like machine carries a raised cannon above multiple clawed feet.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "4498d68fbd4d0f6c106e62de9ae24f100219e751374b37a561824ce6e68420cc"
+  },
+  "/vector/troop/fantasy-01.svg": {
+    "description": "Horned beast wielding an axe, with a swept mane, spread legs and clawed feet.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "25e79820f0ed6ffc103585a6d879fabd8bb8a6075dc4419f3e0498882c455535"
+  },
+  "/vector/troop/fantasy-02.svg": {
+    "description": "Serpentine horned creature with raised arms, side spikes and a curled lower tail.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "d2469f4ae881ff1eea0ba6cfc9f5d3e6c782afe7ec072ee7394cca21757d70b7"
+  },
+  "/vector/troop/fantasy-03.svg": {
+    "description": "Armored warrior with an overhead sword, lowered claw and flared skirt.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "de0200fb426898c6e838e4dad386a3b0667b9e5510eab77dd0f1ca116f0f07dc"
+  },
+  "/vector/troop/fantasy-04.svg": {
+    "description": "Horned warrior holding two hooked axes beneath spiked shoulder armor.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "eb57a2be696f87cb1820ca5d6bc9e9e23ec4a21edb189dabac69ebb1f303c087"
+  },
+  "/vector/troop/fantasy-05.svg": {
+    "description": "Winged demon with upward horns, a diagonal spear, bent legs and curled tail.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "d9fc6f09003b0cc540bcc1cd29d759cf96ab7379ea5923aaf876ce0df477310b"
+  },
+  "/vector/troop/fantasy-06.svg": {
+    "description": "Leaping horned creature holding hooked blades overhead, with a curled tail.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "7c54832459355eae743eb4e8c73362590058d40cd4bf74d40eded91dcd1bd982"
+  },
+  "/vector/troop/fantasy-07.svg": {
+    "description": "Crouching horned monster with bent arms, clawed feet and a curled tail.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "b535c8a17f75207943d282746ae4370131a773fc4b2c719dbe7da6bf1708eb79"
+  },
+  "/vector/troop/fantasy-08.svg": {
+    "description": "Horned warrior with a raised serrated club, ragged skirt and trailing tail.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "830c5e6fe5daddf6c809451d45e4ace8e69583b019cfee34deb7368a0c41d11d"
+  },
+  "/vector/troop/fantasy-09.svg": {
+    "description": "Running armored figure with an upright spear, shield, helmet crest and raised knee.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "ffafee82f7707d08a75f9947c9a7749bd3f1d0ee2d6e9915fb7fa838ad487f2f"
+  },
+  "/vector/troop/fantasy-10.svg": {
+    "description": "Maned beast with two raised weapons, bent knees, clawed feet and a trailing tail.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "760620ef1a791aa7403d4641afb672e605342c62f991b0a6a575c7717f6f4430"
+  },
+  "/vector/troop/fantasy-11.svg": {
+    "description": "Crowned robed sorcerer carrying a spiked mace beneath angular shoulders.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "0e219574125f3dca2ef4ec678ea0ebe1e4046bfc19c56c40f33a4dd25328e2eb"
+  },
+  "/vector/troop/fantasy-12.svg": {
+    "description": "Archer drawing a curved spiked bow, with an arrow, cape points and separated legs.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "2b229c1bbe14397c4f2939c0cd7169251e452462d87fb7a88b8e0e948501b78e"
+  },
+  "/vector/troop/fantasy-13.svg": {
+    "description": "Lean warrior with a sweeping horned helmet, shoulder armor and a downward sword.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "7a9928ead320d7f03a4ade080f126251fd6a9b71eb61d1e0c61e3051c210ba9f"
+  },
+  "/vector/troop/fantasy-14.svg": {
+    "description": "Horned armored fighter stepping forward with a battleaxe and curved shield.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "9e2a67122f387364c7d461bdde02c7a85e758ea2ce2c54f056af8669db8cf5d5"
+  },
+  "/vector/troop/fantasy-15.svg": {
+    "description": "Plumed swordsman holding an upright curved sword and a hooked side weapon.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "287f40955aced0b132a3fb2f26e82fb4455c8fa02cc0b36600d465613e80418b"
+  },
+  "/vector/troop/fantasy-16.svg": {
+    "description": "Winged serpent with spread bat wings, two clawed hands and a curled tail.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "89ba807178fad2cdd64ce642d418d8cdaf85437fb1a5084b6fe93a84eaa92319"
+  },
+  "/vector/troop/fantasy-17.svg": {
+    "description": "Round shaman with a spiked mace, raised claw and skull-shaped finials above the head.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "80b8de6a1b2522bfe63c3e5796aab7386a4472bbb17318fdac5ce2ed1fef2635"
+  },
+  "/vector/troop/fantasy-18.svg": {
+    "description": "Horned warrior holding an axe and spiked shield beneath upturned shoulder horns.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "c39d4e738abb7f916fd6cb5ef945b0fab6cdcd212b0c47483dba48cd206507de"
+  },
+  "/vector/troop/fantasy-19.svg": {
+    "description": "Armored horned warrior with a spiked club and curved blade-shaped forearm.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "434757c2d3105efd2b126b37596b4f9bd4f617feb2c85c5160b96acae8ec6ae5"
+  },
+  "/vector/troop/fantasy-20.svg": {
+    "description": "Round horned creature with raised fist, dangling feet and flowing tentacles.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "9c0da278dbb66eb5e6491623415f4c46a52d5e7758b995e5d2d6eb63e9f5d2e4"
+  },
+  "/vector/troop/fantasy-21.svg": {
+    "description": "Feather-shouldered sorcerer holding a staff with a flame-shaped finial.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "a0ef08dd3c1aa48b8c47957e0224428f38d920d5f42c564cf842a4bdaec89107"
+  },
+  "/vector/troop/fantasy-22.svg": {
+    "description": "Robed mage with curled horns, a pointing arm, diagonal staff and visible boots.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "25217cbf714a4596dd2b5a62202d13de0e41f0611495f91143d79f38f0e6947a"
+  },
+  "/vector/troop/fantasy-23.svg": {
+    "description": "Horned knight with a lowered sword, curved shield and pointed shoulder armor.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "dd9da3723e6ce33c0b5dbef5038dcc4dcbb8edab0050050c11d64981e54774cb"
+  },
+  "/vector/troop/fantasy-24.svg": {
+    "description": "Horned samurai-like warrior with outstretched arms, shoulder plates and curved sword.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "f0b5e205128d92dadae0ccc6bfd330d5322ed708d8a4a18463fdead628a9bce1"
+  },
+  "/vector/troop/fantasy-25.svg": {
+    "description": "Beast-headed warrior with pointed snout, raised claws and a curled tail.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "8438358081d3193e9a8e2c9fdc5c0797dbe56e73a52c17a9ae05a0812db546b4"
+  },
+  "/vector/troop/fantasy-26.svg": {
+    "description": "Floating serpentine beast with horizontal horns, raised claws and an S-shaped tail.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "22e927aa14306853b2253410ae1a3b628a1444fd8424850772bcecd108c3be76"
+  },
+  "/vector/troop/fantasy-27.svg": {
+    "description": "Ram-horned warrior with a diagonal waist sword and curved shoulder projections.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "653a24f286e69137e81e9432ee321c3df6addc07c2d41b152946ac42fd20c772"
+  },
+  "/vector/troop/fantasy-28.svg": {
+    "description": "Horned warrior holding a flail and upright sword beneath shaggy shoulders.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "75c388b6021cc6960430c6469819b36c367cc07c7ea0ff4331c83ac59ffc8223"
+  },
+  "/vector/troop/fantasy-29.svg": {
+    "description": "Airborne bat-winged demon with upward horns, extended arms and bent legs.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "8fc9f1b6a2b25f742a6b55dd389a76ea855e1e1dcdaa74c9fd1910050d57d9fb"
+  },
+  "/vector/troop/fantasy-30.svg": {
+    "description": "Leaping horned creature with two axes, clawed feet and a curled tail.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "a7bae548abb5184fd4064ebf4e78245db6d28e203cddb4d9a07d09cf9b921b02"
+  },
+  "/vector/troop/fantasy-31.svg": {
+    "description": "Antlered beast mage with extended arms, pointed snout, tail and net-like ornament.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "da215feb416cbb7a625259892b6b18c25dff9e7414a08c6010a4c4e06f030e8b"
+  },
+  "/vector/troop/fantasy-32.svg": {
+    "description": "Leaping warrior with an overhead serrated blade, poleaxe and curled horns.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "a0e685d400fcf4aaf802105a42727611506e2b9c80395f1e7d3ed5affed1be29"
+  },
+  "/vector/troop/fantasy-33.svg": {
+    "description": "Leaping beast warrior with a raised spear, horns, tail and swept mane.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "7bb4524ce5f7b9223a5de3c4272224f648e17cc0120943fac3b332ebd40022d9"
+  },
+  "/vector/troop/fantasy-34.svg": {
+    "description": "Caped warrior with a raised axe, spiked mace, pointed helmet and bent legs.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "2bb21fc57e7988efc674040046c8a2ce20a5611c3d4bc5c6d07521e2f869ce57"
+  },
+  "/vector/troop/fantasy-35.svg": {
+    "description": "Horned shaman with a spiked mane, diagonal staff, reaching hand and raised leg.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "ed29ce5192214678b98a8a245bf8b475ddb777460c300656058adfe82b293b0e"
+  },
+  "/vector/troop/fantasy-36.svg": {
+    "description": "Leaping archer with sweeping horns, curved bow, trailing tail and bent legs.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "3d9b826bdd1e7fb8007e2a53c8ae2b3b412760e6bbc4ce71a3ba821758a51d4e"
+  },
+  "/vector/troop/fantasy-37.svg": {
+    "description": "Running horned beast with pointed snout, hooked blade, claws and a swept mane.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "c76c620c428b9d49b2608d5c3a9614446efb41e0c141fb1af1f0553ed3726d15"
+  },
+  "/vector/troop/fantasy-38.svg": {
+    "description": "Horned knight with pointed shoulders, spiked axe, shield and hanging chain weapon.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "272c6840b6f97fb52fd52424af76841ca48da9c0d55552509490a6988c2bede8"
+  },
+  "/vector/troop/fantasy-39.svg": {
+    "description": "Leaping plumed fighter with an upright sword, raised knee and flowing sash ribbons.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "6973087b4baeda49f0513f63cfbbd2a5fa4e151b95de4ec10755baff8ff42a71"
+  },
+  "/vector/troop/fantasy-40.svg": {
+    "description": "Bat-winged serpentine creature with a curved tail and pointed fins.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "6ddd1591b7876a70865b9796dad702b32a6b36f7778f4eceb1e434d497781cef"
+  },
+  "/vector/troop/fantasy-41.svg": {
+    "description": "Ram-horned warrior holding a branching staff and extending a clawed hand.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "25ec23989892a0cbe210cb724ec4458fb0bf93b30e18e99ca0cc7a916d0635fb"
+  },
+  "/vector/troop/fantasy-42.svg": {
+    "description": "Leaping horned beast with pointed snout, curled tail and lifted knee.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "660a64aa51ad19304722248bc09e626e3a70c212121f97e71136bfef78478752"
+  },
+  "/vector/troop/fantasy-43.svg": {
+    "description": "Squat warrior with tall curved horns, spiked collar, raised club and open hand.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "edf9dc18c57e1a00ce9308693ec7d11e703cf947fa49f34fa260160183fd417a"
+  },
+  "/vector/troop/fantasy-44.svg": {
+    "description": "Squat monster with four upward horns, massive arms, thick legs and curled tail.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "f6cfcf5c3baf534354056c5d6bff24ab6703a19ead18e654417a7c2ad793e43d"
+  },
+  "/vector/troop/fantasy-45.svg": {
+    "description": "Armored shaman with a feathered helmet, animal-topped staff and raised claw.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "6c082c7915744fbd8b56d1503f71a9cfb0a50a1cb5ad9b3c4b799d508ea2d1c1"
+  },
+  "/vector/troop/fantasy-46.svg": {
+    "description": "Antlered sorcerer with pointed collar, shoulder staff and hanging ornaments.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "886739f40f8124a852a477cc17c486a8e6a646bcd8128bdfc544ba2248fd1273"
+  },
+  "/vector/troop/fantasy-47.svg": {
+    "description": "Leaping antlered figure holding an overhead polearm beneath a flaring cloak.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "53b7ee280b8e5bfab962f05c52d8337db16694f995b73d9912a97bce01cf32b2"
+  },
+  "/vector/troop/fantasy-48.svg": {
+    "description": "Antlered archer drawing a bow beside a shoulder quiver and separated boots.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "eb792c36143d6dc0f9922f8380fb26cb13a9360ceaeff1ba4aefb4bc98e6563e"
+  },
+  "/vector/troop/ferrier.svg": {
+    "description": "A long-coated soldier supports a two-railed rifle angled upward to the left.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "b377f023deb801ef592e63181cebf853be12715eb1fac907d385ef6a8fa47d43"
+  },
+  "/vector/troop/sloan.svg": {
+    "description": "A helmeted long-coated soldier holds a slotted rifle down the left side.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "4624771a6bcb45cf3d7d8f884d0458010c388dc4ac304d3c3e9e38ce8ba39fb7"
+  },
+  "/vector/troop/the-nomad.svg": {
+    "description": "A hooded soldier with a round mask aperture carries a rectangular firearm angled down to the right.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "d84af163bf9e2c4a40754eda298362e374aa3445ebf1c86cbbfb17fe4a32fc3d"
+  },
+  "/vector/troop/semoor.svg": {
+    "description": "A hatted long-coated figure raises a cigarette and rests the other hand on a twin-pronged rifle.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "1ddc65d553b3a23fc9823a5d3f0edc7ad63e29a882f98d75903ed21365de3a4f"
+  },
+  "/vector/troop/mnemo.svg": {
+    "description": "A robed armored figure with a backpack stands beneath three floating circular companions.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "5d382ef27ef7bee24afb5fcd171b7d87148263eeb7f0324305d670b3da982cfb"
+  },
+  "/vector/troop/jane-bowie.svg": {
+    "description": "A slim armored figure with swept hair carries a shoulder gun beside a upright rifle.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "3a471d7e139fee8507749d9b1c9db9e3dce25297ea931cf432db7205f5b06d68"
+  },
+  "/vector/troop/strandwolf.svg": {
+    "description": "A lean armored warrior carries a forearm shield and a curved pickaxe.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "a546ab6d444884b138fd296c8635643382271ad670c2d41b70ef604a746a612c"
+  },
+  "/vector/troop/sam-scalptaker.svg": {
+    "description": "A long-robed soldier with crossed rods behind the shoulders holds a weapon downward to the left.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "d9f5b59ae5afe5f1c63db9a597a556bc62542583a3276e2e1002c11f11627999"
+  },
+  "/vector/troop/the-moth-eater.svg": {
+    "description": "A cloaked warrior with a crown-like helmet and raised collar carries a weapon pointing down to the right.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "fd7e774c1646a41e43b3c4bc4ca6dc2aef34ca3ef23ac4f724e65a12315e051f"
+  },
+  "/vector/troop/winfield.svg": {
+    "description": "A hooded long-coated gunner supports a huge rifle with a open barrel angled up to the right.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "2e01d644a18ac0c504d710ed91afde627a0e3f19df993d797de81f1c3c889f87"
+  },
+  "/vector/troop/cochise.svg": {
+    "description": "A long-coated figure holds a case and a raised pipe beside a animal and a flying bird.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "7276ea238ba24530bbf648cfad506962bad3813695ca361d5914dbd6b2183de4"
+  },
+  "/vector/troop/ravelle.svg": {
+    "description": "A long-coated soldier in profile carries a firearm pointing down to the right.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "e3e3f23ea773a172a1632e8d2860ef87f7c79e0e62d473e0f6069f5048d7be8d"
+  },
+  "/vector/troop/sue.svg": {
+    "description": "A hulking spiked creature stands with hanging arms and two curved tusks beneath the face.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "ce298c7b1dfdf023b7273476e9dedf1580a826dd4ba72c89040e69c689cdb05a"
+  },
+  "/vector/troop/oz.svg": {
+    "description": "A stocky figure stands with lowered arms, a round head and chunky boots.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "110ecefd39af652d5e3ee9ec5a3b0db01deeb472f1c8c55f54c9edd1a0b9930b"
+  },
+  "/vector/troop/marshall-blossom.svg": {
+    "description": "A heavily armored soldier carries a pack and lowered weapon, with a cat sitting on one shoulder.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "62f666ed105e5778d9eed9d853f081d87a59ae425e3e5e2abe7635affbf7c1c6"
+  },
+  "/vector/troop/commander-howard.svg": {
+    "description": "A hovering robot has two boxy shoulder pods, hanging claw arms and a lower skirt.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "721de160c966677b899db48a54defb8d0da22a9636f578d04c066133c57c3dfc"
+  },
+  "/vector/troop/warbucket.svg": {
+    "description": "A armored robot supports an enormous cannon pointing diagonally down to the left.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "2f6366833ec1b95c0bf5c1b3e024f23a57542d8cc05d8dd80ed26ef7eae6c3e8"
+  },
+  "/vector/troop/savage-slim.svg": {
+    "description": "A stocky armored robot has two upward-curving shoulder claws, oversized hands and separated legs.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "3ad0388d5de1e20abe96a111653e982f66b9967ffc22d7309a1ebcd8be48f11f"
+  },
+  "/vector/troop/grizzly-and-son.svg": {
+    "description": "A human rider stands atop a round-bodied walking robot with mechanical limbs and a side-mounted weapon.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "a66bf86c8919998e9834017118b5bea18c8f4cbe77f6d7144d87814b766118ac"
+  },
+  "/vector/troop/asher.svg": {
+    "description": "A stocky armored soldier carries a rectangular shield and lowered equipment.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "e9a6f38d13c1aa0122b9621ff139aa539582258b5d5fd9c5bbd52bf9c0d1644b"
+  },
+  "/vector/troop/orlando.svg": {
+    "description": "An upright armored soldier supports a firearm angled up to the right across shoulder armor.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "941ad62444659f2b5fdbacfb02496c6fe6b181a37f11829de411025c3fd84018"
+  },
+  "/vector/troop/levi.svg": {
+    "description": "A huge hunched creature stands on legs with one massive arm lowered to either side.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "829d1539f2b197df8f626322eedcc1ef2f03dcb10e207375eee934a811d10785"
+  },
+  "/vector/troop/dr-singh.svg": {
+    "description": "A masked figure wears a robe and carries a hooked instrument along one lowered arm.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "2512569c7a2ab9e16880073ca9eefebfd2216ddb2db360522dae9719b3b03b04"
+  },
+  "/vector/troop/doc-bronson.svg": {
+    "description": "A round armored robot has a domed head, raised shoulder pods and sturdy separated legs.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "949e75c46b90c380305b566872cfc2557ae455ccb097b69dd1d7768df643d729"
+  },
+  "/vector/troop/professor-grey.svg": {
+    "description": "An armored standing figure has a rounded head, shoulder armor and a lowered empty gloved hand.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "1fe6fd50fa19c6aa2bc9a51b5be81ad3984f6f704b5ca8e4c0ef43cd3bb56733"
+  },
+  "/vector/troop/captain-albright.svg": {
+    "description": "A huge armored robot stands with massive lowered arms, rounded shoulders and planted boots.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "fa415bd50d10691878d8f5028f5288a6c16226daea4aa405e46e3f67392708fc"
+  },
+  "/vector/troop/bass.svg": {
+    "description": "A armored figure carries a weapon across the waist beneath a backpack.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "786b7cf35f089b2ed4ebcb6ca2a69a5b8713eec5354896d682673176c97d0369"
+  },
+  "/vector/troop/dr-monroe.svg": {
+    "description": "A slender armored figure has a round helmet, raised shoulder equipment and separated legs.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "fdaecbfff4ff44269e258cff53a713442f3f8c0d61d9fff8b665768b000bc6eb"
+  },
+  "/vector/troop/amal.svg": {
+    "description": "An armored standing soldier supports a straight gun horizontally across the shoulders.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "bdd290b9efd6dca300ebec39df632e9c617f5e08d1117c8efb7179227a506183"
+  },
+  "/vector/troop/domeno.svg": {
+    "description": "An armored figure holds a lowered firearm beside a pack and heavy boots.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "77839c1b4de65696348b8d83818eda633eb6da0163c03880467b0ad32b6fd830"
+  },
+  "/vector/troop/old-man-frame.svg": {
+    "description": "An armored figure raises a pipe beside the head and holds a flat spatula-shaped implement in the other hand.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "7e6b2e5865e301580f221c2f775d5594e90394e20caaa617278f8a650728ac43"
+  },
+  "/vector/troop/wotan.svg": {
+    "description": "A heavy horned robot has angular shoulder armor, enormous lowered arms and two planted boots.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "c42ac807aa6ab2a51fc024aafa1fcd1c32a3aadbbbe8bad662b6c5b85e14c7d0"
+  },
+  "/vector/troop/jellybean.svg": {
+    "description": "A armored figure has a round filled helmet, antennae and a shoulder-mounted weapon.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "efa4f57ed7352c8757a998d92a0547a68b2f8112d5210f5a6057fd0a00a78272"
+  },
+  "/vector/troop/zora.svg": {
+    "description": "An armored soldier supports a rifle diagonally upward with both hands above bent separated legs.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "1df5086594321bb141388ff8920a4afb839a69ca78ad5add107285b0a2040f17"
+  },
+  "/vector/troop/raton.svg": {
+    "description": "A stocky armored gunner carries a boxy waist-level weapon, a pack and a curved hip loop.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "0045d14bead939a5abaa4e390d0bdf35fc069dea1f840a46a2caa131d2981636"
+  },
+  "/vector/troop/bo.svg": {
+    "description": "A armored figure holds a rectangular case beside heavy separated legs.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "5ae55b3a10cdc66f9c8896f974573db87af81ae13961c36c6f4bfef25b867679"
+  },
+  "/vector/troop/bacon-and-eggs.svg": {
+    "description": "An armored gunner stands beside a four-legged companion with pointed ears and a raised tail.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "2392a0b128efe1e30fa05cca2787103dec46eff15fdacb71d958958e034290ed"
+  },
+  "/vector/troop/eureka.svg": {
+    "description": "A slim armored figure supports a very rifle across the shoulders above separated legs.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "fb70d21746ef10cf547d691daecdb5472279e08588e13b6a6b1a51355fce1b50"
+  },
+  "/vector/troop/gestalt.svg": {
+    "description": "An armored trooper supports a two-railed rifle angled upward, with a gap and rounded sling loop.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "d167939f76e0b8c0127636f0703b34e793af36d9e25f05528b7a460ed97e95aa"
+  },
+  "/vector/troop/zane.svg": {
+    "description": "An armored figure with a pipe carries a gun with a triangular muzzle brace.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "d9b9b9988a0e37221d0fead7cc53b583d98ef23301bc8bf40d919bb6c2e78ce3"
+  },
+  "/vector/troop/branch-haired-dryad.svg": {
+    "description": "A standing figure in a flowing dress has hair spreading into curved branches and leaves.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "b22d0e0b1db58c41009d683ce138ca8e3c3de3fbc4997e0b7241491640158407"
+  },
+  "/vector/troop/machine-01.svg": {
+    "description": "Upright robot with two raised rectangular weapons, bent mechanical legs and feet.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "2761219fc19cb56991dc8085086e4a183191f1b7caecbd8cd5dfe1bfcff90e72"
+  },
+  "/vector/troop/machine-02.svg": {
+    "description": "Low gun walker with a raised cannon, faceted hull and bent rear support leg.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "0ab3f44b928dc590a2481fe2c826f2972f441e15fd9f557e03eebd98316a1eb3"
+  },
+  "/vector/troop/machine-03.svg": {
+    "description": "Floating turret with a horizontal barrel, curved open linkage and pointed lower hull.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "bdb26f49d9c31dc92a7c9ca6cd35fb692fd917934b49750f6af28eed6fa2f234"
+  },
+  "/vector/troop/machine-04.svg": {
+    "description": "Two-tier robot with raised gun arms, an arched torso, upper turret and flared feet.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "5eb6c6d4191a36af4866c2e3fe5c423294a2e628626105bf67581c25184e2af7"
+  },
+  "/vector/troop/machine-05.svg": {
+    "description": "Walking gun platform with twin barrels, elevated turret, forward panel and articulated legs.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "da9280c4cc4d78d1bbb275f5a835568863d5665d2e6db3ee3bb4de660fd32db5"
+  },
+  "/vector/troop/machine-06.svg": {
+    "description": "Low gun walker with a left-pointing barrel, wedge hull, raised rear turret and pointed foot.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "555f786354a2921453821300208e9b0a797afc020973a2607187f9545b2ed3b6"
+  },
+  "/vector/troop/machine-08.svg": {
+    "description": "Biped with raised gun arms, an open oval torso and mechanical feet.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "7638ed7ddcb249a9b8d89f82cc2ae10b1286c3d0dc25ca4bb51be29d41c19963"
+  },
+  "/vector/troop/machine-09.svg": {
+    "description": "Gun walker with a horizontal barrel, tapered hull, curved rear fairing and split foot.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "a5481bc5efc19f6ac2b33b7fa58f3bdefa1d5076ba5b6620521a41a268cc59ac"
+  },
+  "/vector/troop/machine-12.svg": {
+    "description": "Squat robot with round side gun pods, a dome, three chest slots and chunky boots.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "93bc916c0b93ba48b5bbd2931768c15ed74d0240c747d95ed96111d7aba64615"
+  },
+  "/vector/troop/machine-13.svg": {
+    "description": "Triangular drone with three circular sensors, ribbed body and bent side claws.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "fb2d957dfebee012a920c0275ea50648872bdb1ed51a072640ad9e99ba871d89"
+  },
+  "/vector/troop/machine-14.svg": {
+    "description": "Symmetrical heavy mech with a central housing, shoulders and bent armored legs.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "1e1b787dc30f6ee09dc83fda5189f4a726979ad8d952f4aa7a6ad69c7e3f3bcf"
+  },
+  "/vector/troop/machine-15.svg": {
+    "description": "Birdlike gun walker with a left-pointing barrel, wedge back, arched support and split toes.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "86a1adf3aaabb8420d473b5fbde28eb8e18e571d09192857dd8293f28449ebd0"
+  },
+  "/vector/troop/machine-16.svg": {
+    "description": "Insectlike robot with a domed front, rectangular vented pack and pointed claw legs.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "cc3a3085dc5278ab7c5bfeb0ffd2478c9f5b926c954fa4c120425debe6e5baf4"
+  },
+  "/vector/troop/machine-17.svg": {
+    "description": "Narrow gun walker with a level barrel, wedge hull, swept rear fairing and flat foot.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "13ab62f4be2e060e7b3de90def795c1a576bc7d8ef09d1c1184a8d05275850ba"
+  },
+  "/vector/troop/machine-18.svg": {
+    "description": "Square gun walker with a narrow barrel, bent mechanical leg and split triangular foot.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "0484ca4794d2508f144ad77d4203f6fabb65c5dd6070e631e41eccc73845e31f"
+  },
+  "/vector/troop/machine-19.svg": {
+    "description": "Birdlike walker with a raised rectangular head, jointed neck, wedge torso and pointed toes.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "668de28599caae85f340417032fd9945dd31ae4d287f0631daaeedac38030a2f"
+  },
+  "/vector/troop/machine-20.svg": {
+    "description": "Birdlike walker with a ribbed box head, curved neck, angular torso and split flat foot.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "4053ecdbafdea600d3f582b753d4d75a9ba08eb9f0559110b980679bb7d91683"
+  },
+  "/vector/troop/machine-21.svg": {
+    "description": "Multi-limbed mech with a round sensor, two raised weapons, two lower cannons and feet.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "5f80eff775dc0304565caeccf610f0345d3fc0ec77cf5654819d6d7df8ab3dd1"
+  },
+  "/vector/troop/ferrier-companion.svg": {
+    "description": "A four-legged mechanical companion has an armored head, boxy pack and swept-up tail.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "9f600c88a27103f4aeeb24c601d12fc6aa599efbc72cfbadaf17072f567015e3"
+  },
+  "/vector/troop/wizard-raised-hand.svg": {
+    "description": "Robed wizard raises a hand beside a forked staff.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "6240bf3453942909e7bc78ade8ffe605a7751889518f6b64c230aba52ca4c1b7"
+  },
+  "/vector/troop/wizard-orb-keeper.svg": {
+    "description": "Wizard holds an orb beside a crescent staff.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "2bf96004a531b4b9aeaaadf96cf91a01a23d8d9d52869e0172096fcc4e9f049d"
+  },
+  "/vector/troop/wizard-flame-palm.svg": {
+    "description": "Pointed-hat wizard holds a flame and crooked staff.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "a455aa7d6fe19dd939619d6acf3cab7f996f9a6950cea873ca14e51c123ce09e"
+  },
+  "/vector/troop/wizard-overhead-spell.svg": {
+    "description": "Cloaked wizard casts overhead.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "4216cfc2359287644fa7756590234002c540e7bb15c928b3f5f32cb8cdad4c9c"
+  },
+  "/vector/troop/wizard-wand-caster.svg": {
+    "description": "Robed wizard points a wand.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "8d9a0929e4635eeb25cdbae6069e69f57920129272ac310c28728b13627069e0"
+  },
+  "/vector/troop/wizard-battle-caster.svg": {
+    "description": "Wizard casts from both hands above a sweeping cloak.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "a7073eaeb8e16d237d31d041e90580d455de6382e46b77b238f2fa88f6a66523"
+  },
+  "/vector/troop/plumed-musketeer.svg": {
+    "description": "Plumed swordsman holds a raised rapier.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "ec189999c62211e3d751cffdc1d3bb6ce3e3d4576b613508f422c5c2fc5297b8"
+  },
+  "/vector/troop/compact-round-mech.svg": {
+    "description": "Round-bodied mech has lowered arms and a straight barrel.",
+    "tags": ["silhouette"],
+    "subjects": ["machines"],
+    "sourceHash": "621b4d78a67428f9ba1d8c7cc81784e34377ed881bf6d608fc13d02cdff1429a"
+  },
+  "/vector/troop/petal-headed-stalker.svg": {
+    "description": "Petal-headed creature with long arms and broad claws.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "167cc8b423fe7c39cda3c7d36f1da4d448b8fcf479465cd907164ca141b58f3f"
+  },
+  "/vector/troop/fin-tailed-stalker.svg": {
+    "description": "Curved fin-tailed creature with swept arms.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "9646c751288e9c337f6b6f7b263f053169ac9dc9d7f2c08081dc0419d7e55b6d"
+  },
+  "/vector/troop/swept-horn-warrior.svg": {
+    "description": "Warrior with sweeping horns and a diagonal blade.",
+    "tags": ["silhouette"],
+    "subjects": ["creatures"],
+    "sourceHash": "1f4989eefaafa4309c6b4819803e56bcf5b0b27c6b3a1796ee40e34051dd323d"
+  },
+  "/vector/troop/shield-cover-team.svg": {
+    "description": "Crouching shield bearer and standing rifleman.",
+    "tags": ["silhouette"],
+    "subjects": ["people"],
+    "sourceHash": "6002ed9b423b7665a5666cc0a23702469f4f5b3330341612a243ed3c65d38eeb"
   }
 }

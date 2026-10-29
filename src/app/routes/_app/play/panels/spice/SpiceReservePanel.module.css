@@ -1,0 +1,95 @@
+/* The spice reserve, inside a compass window: the window's own ink and sand accent. */
+
+/* The balance, and the kit stepper with the amount to withdraw. */
+.spice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.balance {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.balanceNumber {
+  color: var(--ink);
+  font-family: C_Advokat_Modern, serif;
+  font-size: 40px;
+  line-height: 1;
+}
+
+.balanceNumber[data-bump] {
+  animation: bump 320ms ease-out;
+}
+
+@keyframes bump {
+  35% {
+    color: var(--sand);
+    transform: scale(1.12);
+  }
+}
+
+.balanceLabel {
+  color: var(--ink-dim);
+}
+
+.token {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: grab;
+  touch-action: none;
+}
+
+.token:active {
+  cursor: grabbing;
+}
+
+.token:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* The amount just withdrawn floats up off the balance and fades, toward the table. */
+.floatAway {
+  position: absolute;
+  top: -4px;
+  left: 100%;
+  color: var(--sand);
+  font-weight: 700;
+  pointer-events: none;
+  animation: float-away 700ms ease-out forwards;
+}
+
+@keyframes float-away {
+  to {
+    opacity: 0;
+    translate: 0 -26px;
+  }
+}
+
+/* Quiet where the visitor asked for less motion: by the site's own setting, or by the OS unless the site welcomes motion. */
+:global(html[data-motion="reduce"]) .balanceNumber[data-bump] {
+  animation: none;
+}
+
+:global(html[data-motion="reduce"]) .floatAway {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :global(html:not([data-motion="ok"])) .balanceNumber[data-bump] {
+    animation: none;
+  }
+
+  :global(html:not([data-motion="ok"])) .floatAway {
+    display: none;
+  }
+}

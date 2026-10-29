@@ -86,7 +86,7 @@ function TradingClock(props: Swapping) {
     <div className="seated-phase-status__copy">
       <span>Trading</span>
       {/* The timer is kept quiet inside the header's live region, so the countdown is not read out every second; the tooltip names nothing to assistive technology, so its status also describes the timer until the timer shows that status itself. */}
-      <Tooltip label={status} multiline maw={320} events={{ hover: true, focus: true, touch: true }}>
+      <Tooltip label={status} multiline maw={320} events={{ hover: true, focus: true, touch: false }}>
         <Text
           component="strong"
           inherit

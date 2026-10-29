@@ -29,6 +29,7 @@ import type { SeatRequest } from '@shared/play/participation';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { FormError } from '@ui/block/FormError';
 import { ProfileLink } from '@ui/content/ProfileLink';
+import { TooltipTarget } from '@ui/control/TooltipTarget';
 import clsx from 'clsx';
 import { Check } from 'lucide-react';
 import { useState } from 'react';
@@ -113,14 +114,14 @@ function FactionToken({
   size,
   banned = false,
   dim = false,
-  title,
+  label,
   onClick,
 }: Readonly<{
   faction: DraftFaction;
   size: number;
   banned?: boolean;
   dim?: boolean;
-  title: string;
+  label: string;
   onClick?: () => void;
 }>) {
   const className = clsx(styles.token, banned && styles.tokenBanned, dim && styles.tokenDim);
@@ -130,14 +131,18 @@ function FactionToken({
       <Token logo={faction.logo} background={faction.background} />
     </span>
   );
-  return onClick ? (
-    <button type="button" className={className} style={style} title={title} aria-label={title} onClick={onClick}>
-      {face}
-    </button>
-  ) : (
-    <span className={className} style={style} title={title} role="img" aria-label={title}>
-      {face}
-    </span>
+  return (
+    <Tooltip label={label}>
+      {onClick ? (
+        <button type="button" className={className} style={style} aria-label={label} onClick={onClick}>
+          {face}
+        </button>
+      ) : (
+        <span className={className} style={style} role="img" aria-label={label}>
+          {face}
+        </span>
+      )}
+    </Tooltip>
   );
 }
 
@@ -163,12 +168,14 @@ function PlayerMark({ player, size, ready = false }: Readonly<{ player: Player; 
       }
     />
   ) : (
-    <Avatar src={player.avatar} size={`${size}rem`} radius="50%" alt="" role="img" aria-label={name} title={name}>
-      {player.name.slice(0, 1)}
-    </Avatar>
+    <Tooltip label={name}>
+      <Avatar src={player.avatar} size={`${size}rem`} radius="50%" alt="" role="img" aria-label={name}>
+        {player.name.slice(0, 1)}
+      </Avatar>
+    </Tooltip>
   );
   return (
-    <Indicator color="green" size={16} label={<span aria-hidden="true">✓</span>} disabled={!ready}>
+    <Indicator color="confirm" size={16} label={<span aria-hidden="true">✓</span>} disabled={!ready}>
       {mark}
     </Indicator>
   );
@@ -204,14 +211,17 @@ function RequestRow({ client, table, request }: Props & Readonly<{ request: Seat
               <Text span size="sm" c="dimmed">
                 Waiting for approval
               </Text>
-              <CloseButton
-                size="sm"
-                radius="xl"
-                aria-label="Withdraw your seat request"
-                title="Withdraw"
-                disabled={seatLocked(table)}
-                onClick={() => client.command({ kind: 'seat-withdraw' })}
-              />
+              <Tooltip label="Withdraw">
+                <TooltipTarget>
+                  <CloseButton
+                    size="sm"
+                    radius="xl"
+                    aria-label="Withdraw your seat request"
+                    disabled={seatLocked(table)}
+                    onClick={() => client.command({ kind: 'seat-withdraw' })}
+                  />
+                </TooltipTarget>
+              </Tooltip>
             </>
           ) : (
             <>
@@ -226,7 +236,7 @@ function RequestRow({ client, table, request }: Props & Readonly<{ request: Seat
                 key={request.id}
                 size="compact-sm"
                 radius="xl"
-                color="green"
+                color="confirm"
                 leftSection={<Check size={14} aria-hidden />}
                 disabled={seatLocked(table)}
                 onClick={() => client.command({ kind: 'seat-approve', requestId: request.id })}
@@ -265,7 +275,7 @@ function PoolZone({
                 faction={faction}
                 size={2.6}
                 banned={kind === 'banned'}
-                title={`${faction.name}, ${kind} by ${names(players, zone.by(draft, id))}`}
+                label={`${faction.name}, ${kind} by ${names(players, zone.by(draft, id))}`}
               />
             </li>
           ) : null;
@@ -301,7 +311,7 @@ export function DraftingOverlay({ client, table, error = null }: Props & Readonl
         size={size}
         banned={kind === 'ban'}
         dim={kind === 'pick' && (isBanned(draft, id) || setAsideReason(draft, id) !== undefined)}
-        title={ledgerTitle(mine, kind, faction.name, owner.name)}
+        label={ledgerTitle(mine, kind, faction.name, owner.name)}
         onClick={mine && !locked(table) ? () => client.command({ kind: undo, factionId: id }) : undefined}
       />
     );
@@ -375,7 +385,7 @@ function GateStep({ gate }: Readonly<{ gate: Gate }>) {
   );
   /* A step with more to say is a button, so the keyboard reaches its tooltip as the pointer does. */
   return gate.help ? (
-    <Tooltip label={gate.help} multiline maw={320} events={{ hover: true, focus: true, touch: true }}>
+    <Tooltip label={gate.help} multiline maw={320} events={{ hover: true, focus: true, touch: false }}>
       <UnstyledButton type="button" className={className}>
         {content}
       </UnstyledButton>
@@ -468,7 +478,7 @@ export function DraftingHeader({
       <span className={styles.headerLine}>
         {alert ? (
           /* A button, like a gate step, so the keyboard reaches the reason and the way out as the pointer does. */
-          <Tooltip label={alert.help} multiline maw={340} events={{ hover: true, focus: true, touch: true }}>
+          <Tooltip label={alert.help} multiline maw={340} events={{ hover: true, focus: true, touch: false }}>
             <UnstyledButton type="button" className={styles.headerAlert}>
               <strong>
                 {alert.line}
@@ -505,7 +515,7 @@ function Attribution({
   const cited = seats.map((seat) => players.find((player) => player.seat === seat)).filter((p) => p !== undefined);
   return (
     <Group gap="xs" wrap="nowrap">
-      <Text span size="xs" c={verb === 'banned' ? 'red' : 'dimmed'}>
+      <Text span size="xs" c={verb === 'banned' ? 'var(--color-error)' : 'dimmed'}>
         {verb}
       </Text>
       {cited.map((player) => (
@@ -533,7 +543,7 @@ function FactionRow({
   const banners = bannersOf(draft, faction.id);
   return (
     <li className={clsx(styles.row, banned && styles.rowBanned)}>
-      <FactionToken faction={faction} size={2.2} banned={banned} dim={!dealable} title={faction.name} />
+      <FactionToken faction={faction} size={2.2} banned={banned} dim={!dealable} label={faction.name} />
       <div>
         <Text size="sm" fw={700}>
           {faction.name}
@@ -549,10 +559,10 @@ function FactionRow({
       <Group gap="xs" wrap="nowrap" className={styles.rowActions}>
         <Button
           size="compact-sm"
+          color="brand"
           variant={picked ? 'filled' : 'default'}
           aria-pressed={picked}
           disabled={locked(table) || ((banned || !dealable) && !picked)}
-          title={why}
           onClick={() => client.command({ kind: picked ? 'draft-unpick' : 'draft-pick', factionId: faction.id })}
         >
           {picked ? 'Drafted' : 'Draft'}
@@ -584,7 +594,7 @@ export function DraftingPanel({ client, table, error }: Props & Readonly<{ error
   const players = playersOf(table);
   const needle = query.trim().toLowerCase();
   const rows = draft.factions.filter(
-    (faction) => (showAll || faction.linked || needle.length > 0) && faction.name.toLowerCase().includes(needle)
+    (faction) => (showAll || faction.linked) && faction.name.toLowerCase().includes(needle)
   );
   return (
     <Stack gap="sm" className={styles.panel} data-drafting-panel="">
@@ -639,11 +649,7 @@ export function DraftingReady({ client, table }: Props) {
   /* A failed deal keeps everyone's readiness, so a ready player deals again rather than withdrawing. */
   if (draft.failure && ready) {
     return (
-      <Button
-        color="yellow"
-        disabled={locked(table)}
-        onClick={() => client.command({ kind: 'draft-ready', ready: true })}
-      >
+      <Button color="cta" disabled={locked(table)} onClick={() => client.command({ kind: 'draft-ready', ready: true })}>
         Deal again
       </Button>
     );

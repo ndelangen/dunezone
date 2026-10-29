@@ -1,15 +1,11 @@
+import { customCardTokenIds, customCardPublicationError } from '../../src/shared/assets/cardReferences';
+import { resolveBackgrounds } from './backgroundPresets';
+export { customCardTokenIds, customCardPublicationError } from '../../src/shared/assets/cardReferences';
 import { ConvexError } from 'convex/values';
 import type { z } from 'zod';
 
-import {
-  CustomCardAsset,
-  StormCardAsset,
-  CUSTOM_CARD_MAX_LAYERS,
-  RectangleTokenAsset,
-  TokenAsset,
-} from '../../src/shared/assets/schema';
+import { CUSTOM_CARD_MAX_LAYERS, RectangleTokenAsset, TokenAsset } from '../../src/shared/assets/schema';
 import type { CustomCardTokens, CustomCardTokenResolution } from '../../src/shared/assets/schema';
-import { compareCodeUnits } from '../../src/shared/compareText';
 import type { Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../types';
 
@@ -18,27 +14,6 @@ const MAX_RESOLVED_TOKEN_BYTES = 524_288;
 const MAX_TOKEN_READ_BYTES = 4_194_304;
 const TOKEN_SIZE_ERROR =
   'Linked token artwork is too large for one card. Remove a Token layer or simplify its original token.';
-
-/** Leaves room for the publication envelope and Convex's encoded document overhead. */
-export function customCardPublicationError(data: unknown, resolved: z.infer<typeof CustomCardTokenResolution>) {
-  return (
-    resolved.error ??
-    (new TextEncoder().encode(JSON.stringify({ card: data, tokens: resolved.tokens })).length > 786_432
-      ? 'The card and linked token artwork are too large to publish. Shorten text or remove layers.'
-      : null)
-  );
-}
-
-/** Repeated layers share one target read and one reverse reference. */
-export function customCardTokenIds(data: unknown): string[] {
-  const custom = CustomCardAsset.safeParse(data);
-  const parsed = custom.success ? custom : StormCardAsset.safeParse(data);
-  return parsed.success
-    ? [...new Set(parsed.data.layers.flatMap((layer) => (layer.kind === 'token' ? [layer.asset_id] : [])))].sort(
-        compareCodeUnits
-      )
-    : [];
-}
 
 function tokenFront(row: Doc<'assets'> | null): z.infer<typeof CustomCardTokens>[string] {
   if (!row || row.is_deleted) {
@@ -75,7 +50,7 @@ export async function resolveCustomCardTokens(
   for (const raw of new Set(ids)) {
     const id = ctx.db.normalizeId('assets', raw);
     const row = id ? await ctx.db.get('assets', id) : null;
-    tokens[raw] = tokenFront(row);
+    tokens[raw] = await resolveBackgrounds(ctx, tokenFront(row));
     readBytes += new TextEncoder().encode(JSON.stringify(row?.data ?? null)).length;
     if (readBytes > MAX_TOKEN_READ_BYTES) {
       return { tokens: {}, error: TOKEN_SIZE_ERROR };

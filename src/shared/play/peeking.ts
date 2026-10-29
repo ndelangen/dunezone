@@ -81,3 +81,10 @@ export function hasHiddenFace(
 export function peekersOf(piece: Pick<TablePiece, 'items'>): string[] {
   return [...new Set(piece.items.flatMap((item) => item.peekedBy ?? []))];
 }
+
+/** Public labels never name a token whose upper face is hidden. */
+export function publicPieceLabel(piece: Pick<TablePiece, 'kind' | 'stackKey' | 'items' | 'label'>): string {
+  return piece.kind === 'force' && !isFactionToken(piece) && piece.items.at(-1)?.faceUp === false
+    ? 'Token'
+    : piece.label;
+}

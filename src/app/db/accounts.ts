@@ -16,16 +16,22 @@ export function useSignInProviders() {
 
 export type { AuthProvider } from '../../../convex/lib/accountMethods';
 /** The admin accounts page. Choosing a profile or another page changes the arguments, so the last answer stays on screen until the next one arrives rather than the form unmounting into a loading state. */
-export function useAccountManagementPage(cursor: string | null, selectedUserIds: string[]) {
+export function useAccountManagementPage(
+  cursor: string | null,
+  selectedUserIds: string[],
+  failedCursor: string | null = null
+) {
   const page = useQuery(api.accounts.adminPage, {
     paginationOpts: { cursor, numItems: 40 },
+    failedPaginationOpts: { cursor: failedCursor, numItems: 20 },
     selectedUserIds: selectedUserIds as Id<'users'>[],
   });
   const [shown, setShown] = useState(page);
   if (page !== undefined && page !== shown) {
     setShown(page);
   }
-  return page ?? shown;
+  const result = page ?? shown;
+  return result ? { ...result, isRefreshing: page === undefined } : undefined;
 }
 export function useMergeAccounts() {
   const mutate = useMutation(api.accounts.merge);
@@ -40,6 +46,56 @@ export function useBeginAuthConnection() {
 }
 export function useDisconnectAuthMethod() {
   return useMutation(api.accounts.disconnect);
+}
+export function useSignOutEverywhere() {
+  return useMutation(api.accounts.signOutEverywhere);
+}
+
+const subscribeToNothing = () => () => {};
+
+/*
+ * Pending sign-ins stay in their starting tab so another tab's callback cannot settle them.
+ * Only a successful login saves the browser-wide hint. Signing out keeps that hint.
+ */
+const STARTED_SIGN_IN_KEY = 'dunezone-sign-in-started';
+const LAST_SIGN_IN_KEY = 'dunezone-last-sign-in';
+
+function storedProvider(key: string, pending = false): AuthProvider | null {
+  try {
+    const value = (pending ? sessionStorage : localStorage).getItem(key);
+    return value !== null && Object.hasOwn(authProviderNames, value) ? (value as AuthProvider) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Notes the provider a sign-in is leaving for; storage the browser refuses only loses the hint. */
+export function noteSignInStarted(provider: AuthProvider) {
+  try {
+    sessionStorage.setItem(STARTED_SIGN_IN_KEY, provider);
+  } catch {
+    /* The hint is a convenience, and sign-in goes ahead without it. */
+  }
+}
+
+/** Ends the noted sign-in, keeping its provider as the last one used only when it succeeded. */
+export function settleStartedSignIn(succeeded: boolean) {
+  const provider = storedProvider(STARTED_SIGN_IN_KEY, true);
+  try {
+    sessionStorage.removeItem(STARTED_SIGN_IN_KEY);
+    if (succeeded && provider) {
+      localStorage.setItem(LAST_SIGN_IN_KEY, provider);
+    }
+  } catch {
+    /* Storage that cannot be written holds no hint to update. */
+  }
+}
+
+const lastSignInMethod = () => storedProvider(LAST_SIGN_IN_KEY);
+
+/** The provider this browser last signed in with, or `null` when it has none or the page renders on the server. */
+export function useLastSignInMethod(): AuthProvider | null {
+  return useSyncExternalStore(subscribeToNothing, lastSignInMethod, () => null);
 }
 /* The tab that starts a connection holds its token; an address never carries it, so a shared or leaked link cannot confirm someone else's connection. */
 const HELD_CONNECTION_KEY = 'dunezone-account-connection';
@@ -56,8 +112,6 @@ function heldConnection(): string {
     return '';
   }
 }
-
-const subscribeToNothing = () => () => {};
 
 /** The connection this tab started, `''` when it started none, or `undefined` while the page renders on the server. */
 export function useHeldAuthConnection(): string | undefined {

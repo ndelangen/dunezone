@@ -9,7 +9,7 @@ import { ConvexHttpClient } from 'convex/browser';
 import { makeFunctionReference } from 'convex/server';
 import type { FunctionArgs, FunctionReturnType } from 'convex/server';
 import { chromium, errors } from 'playwright';
-import type { Browser, BrowserContext, Locator, Page, WebSocket as BrowserSocket } from 'playwright';
+import type { Browser, BrowserContext, Page, WebSocket as BrowserSocket } from 'playwright';
 import sharp from 'sharp';
 import { z } from 'zod';
 
@@ -359,6 +359,36 @@ async function recordRenderer(who: HostedPeer, selector = '.dune-play-shell canv
 }
 const otherBrowsers: Browser[] = [];
 const peers: HostedPeer[] = [];
+let heldSignOutDirectoryTransitions = 0;
+
+/* A local sign-out must fence the table even when its directory cannot deliver the changed access answer. */
+async function holdSignedOutDirectory(context: BrowserContext) {
+  await context.routeWebSocket(
+    (url) => url.origin === backendSocketOrigin,
+    (socket) => {
+      const server = socket.connectToServer();
+      let authenticated = false;
+      let signedOut = false;
+      socket.onMessage((message) => {
+        const frame = JSON.parse(String(message)) as { type: string; tokenType?: string };
+        if (frame.type === 'Authenticate') {
+          signedOut ||= authenticated && frame.tokenType === 'None';
+          authenticated ||= frame.tokenType === 'User';
+        }
+        server.send(message);
+      });
+      server.onMessage((message) => {
+        const frame = JSON.parse(String(message)) as { type: string };
+        if (signedOut && frame.type === 'Transition') {
+          heldSignOutDirectoryTransitions += 1;
+          return;
+        }
+        socket.send(message);
+      });
+    }
+  );
+}
+
 async function peer(label: string, context?: BrowserContext): Promise<HostedPeer> {
   if (!context) {
     let owner = browser;
@@ -378,6 +408,12 @@ async function peer(label: string, context?: BrowserContext): Promise<HostedPeer
       await context.addInitScript(observeAnimationFrameProgress);
     }
     await context.addInitScript(observeConnectionStatus);
+    if (values.flow === 'regular') {
+      await context.addInitScript(observeSignOutTiming);
+    }
+    if (values.flow === 'regular' && label === 'player-a') {
+      await holdSignedOutDirectory(context);
+    }
     await context.route(
       (url: { origin: string }) => !allowedOrigins.has(url.origin),
       async (route) => {
@@ -405,7 +441,7 @@ async function peer(label: string, context?: BrowserContext): Promise<HostedPeer
     rawMessages: [],
     sent: [],
     sockets: [],
-    /* The page's Convex sync sockets and its ticket mutations on them, by time only: a ticket is a credential and never recorded. */
+    /* The page's Convex sync sockets and its admission mutations on them, by time only: their answers are credentials and never recorded. */
     admission: { convexSockets: [], tickets: [], authErrors: 0 },
     view: () => {
       const view = state.messages.findLast((message): message is RoomView => message.type === 'view');
@@ -446,13 +482,9 @@ async function peer(label: string, context?: BrowserContext): Promise<HostedPeer
       const message = (values.flow === 'homepage' ? homepageMessageSchema : clientMessageSchema).parse(payload);
       state.sent.push(
         message.type === 'authenticate'
-          ? { type: message.type, ticketLength: message.ticket.length }
+          ? { type: message.type, credentialLength: message.ticket.length }
           : message.type === 'admit'
-            ? {
-                type: message.type,
-                ticketLength: (message.pass ?? message.ticket ?? '').length,
-                credential: message.pass === undefined ? 'ticket' : 'pass',
-              }
+            ? { type: message.type, credentialLength: message.pass.length }
             : message
       );
     });
@@ -488,7 +520,7 @@ async function peer(label: string, context?: BrowserContext): Promise<HostedPeer
   });
   return state;
 }
-/** Records when each Convex sync socket opened and closed, and when each ticket mutation went out and was answered. */
+/** Records when each Convex sync socket opened and closed, and when each admission mutation went out and was answered. */
 function observeAdmission(state: HostedPeer, socket: BrowserSocket) {
   const connection: HostedPeer['admission']['convexSockets'][number] = { openedAt: Date.now(), closedAt: null };
   state.admission.convexSockets.push(connection);
@@ -497,7 +529,7 @@ function observeAdmission(state: HostedPeer, socket: BrowserSocket) {
   });
   socket.on('framesent', (frame: { payload: { toString: () => string } }) => {
     const message = parseFrame(frame.payload);
-    if (message?.type !== 'Mutation' || !(message.udfPath ?? '').endsWith('issueTicket')) {
+    if (message?.type !== 'Mutation' || !ADMISSION_MUTATIONS.some((name) => (message.udfPath ?? '').endsWith(name))) {
       return;
     }
     /* A reconnecting Convex client sends its unanswered mutations again under the same request id. */
@@ -524,6 +556,8 @@ function observeAdmission(state: HostedPeer, socket: BrowserSocket) {
     }
   });
 }
+/* The homepage's ticket and the game's seat pass: the mutations a page asks to be let in with. */
+const ADMISSION_MUTATIONS = ['issueTicket', 'enrolPlayer', 'renewSeatPass'];
 /* Homepage refusal returns null; real-game admission reports ok and a reason. */
 function ticketOutcome(message: Extract<z.infer<typeof admissionFrameSchema>, { type: 'MutationResponse' }>) {
   if (message.success !== true) {
@@ -585,25 +619,115 @@ async function admissionTrace(who: HostedPeer) {
     statuses: statuses.map((entry: { at: number | null }) => ({ ...entry, at: since(entry.at) })),
   };
 }
+/**
+ * When a page handled another tab's sign-out, and what held its main thread, for the sign-out report (#2379).
+ * The listener is registered before any page script, so it runs before the auth package's own and records when the last token removal reached the page.
+ * Long animation frames name the script that held each one, and the newest 200 are kept.
+ */
+function observeSignOutTiming() {
+  const timing: SignOutTiming = { storageAt: null, longFrames: [] };
+  Object.assign(window, { hostedPlaySignOut: timing });
+  window.addEventListener('storage', (event) => {
+    if (event.key?.startsWith('__convexAuthJWT') && event.newValue === null) {
+      timing.storageAt = Math.round(performance.timeOrigin + performance.now());
+    }
+  });
+  try {
+    new PerformanceObserver((list) => {
+      for (const entry of list.getEntries() as (PerformanceEntry & {
+        renderStart: number;
+        styleAndLayoutStart: number;
+        scripts?: { duration: number; invoker: string; sourceURL: string; sourceFunctionName: string }[];
+      })[]) {
+        const scripts = entry.scripts ?? [];
+        const script = [...scripts].sort((first, second) => second.duration - first.duration)[0];
+        const end = entry.startTime + entry.duration;
+        /* A frame splits into its task, its rendering callbacks (animation frames, resize observers) and its style, layout and paint. */
+        const renderStart = entry.renderStart || end;
+        const styleAndLayoutStart = entry.styleAndLayoutStart || end;
+        timing.longFrames.push({
+          at: Math.round(performance.timeOrigin + entry.startTime),
+          ms: Math.round(entry.duration),
+          scriptsMs: Math.round(scripts.reduce((total, each) => total + each.duration, 0)),
+          taskMs: Math.round(renderStart - entry.startTime),
+          callbacksMs: Math.round(styleAndLayoutStart - renderStart),
+          layoutMs: Math.round(end - styleAndLayoutStart),
+          script: script
+            ? `${script.invoker} ${script.sourceFunctionName || '(anonymous)'} ${script.sourceURL.split('/').pop()} ${Math.round(script.duration)} ms`
+            : null,
+        });
+      }
+      timing.longFrames.splice(0, Math.max(0, timing.longFrames.length - 200));
+    }).observe({ type: 'long-animation-frame' });
+  } catch {}
+}
+type SignOutTiming = {
+  storageAt: number | null;
+  longFrames: {
+    at: number;
+    ms: number;
+    scriptsMs: number;
+    taskMs: number;
+    callbacksMs: number;
+    layoutMs: number;
+    script: string | null;
+  }[];
+};
 /** The regular flow's sign-out: the tabs it should close and when Sign out was clicked. */
 let signOut: { clickedAt: number; tabs: HostedPeer[] } | null = null;
 /**
  * When each signed-out tab's game sockets received the Worker's refusal and closed, in milliseconds after the Sign out click (#1592).
  * Both times are the driver's, when Playwright reported each event, and a socket that closed before the click shows a negative time.
+ * Each tab also reports when its page handled the token's removal, and its long animation frames from the click to its last socket close, which tells a late storage event from a main thread held by other work (#2379).
  */
-function signOutReport() {
+async function signOutReport() {
   assert.ok(signOut);
   const signedOut = signOut;
   const since = (time: number | null) => (time === null ? null : time - signedOut.clickedAt);
-  return {
-    clickedAtSeconds: Math.round((signOut.clickedAt - Date.parse(report.startedAt)) / 100) / 10,
-    tabs: signedOut.tabs.map((who) => ({
-      label: who.label,
-      sockets: who.sockets.map((socket: { refusedAt: number | null; closedAt: number | null }) => ({
+  const tabs = await Promise.all(
+    signedOut.tabs.map(async (who) => {
+      let timer: string | number | NodeJS.Timeout | undefined;
+      const timing = await Promise.race([
+        who.page.evaluate(() => (window as { hostedPlaySignOut?: SignOutTiming }).hostedPlaySignOut ?? null),
+        new Promise<null>((resolve) => {
+          timer = setTimeout(() => resolve(null), 5000);
+        }),
+      ])
+        .catch(() => null)
+        .finally(() => clearTimeout(timer));
+      const sockets = who.sockets.map((socket: { refusedAt: number | null; closedAt: number | null }) => ({
         refusedMs: since(socket.refusedAt),
         closedMs: since(socket.closedAt),
-      })),
-    })),
+      }));
+      /* The window ends at the tab's last socket close, or now while one is still open. */
+      const closes = who.sockets.map((socket: { closedAt: number | null }) => socket.closedAt);
+      const until = closes.every((time) => time !== null) ? Math.max(...(closes as number[])) : Date.now();
+      const frames = (timing?.longFrames ?? []).filter(
+        (frame) => frame.at + frame.ms >= signedOut.clickedAt && frame.at <= until
+      );
+      const longest = frames.reduce<(typeof frames)[number] | null>(
+        (held, frame) => (held === null || frame.ms > held.ms ? frame : held),
+        null
+      );
+      const { at: longestAt, ...longestFrame } = longest ?? { at: null };
+      return {
+        label: who.label,
+        sockets,
+        storageEventMs: timing ? since(timing.storageAt) : 'unread',
+        /* A tab whose main thread outlasted the read has no frames to count, which is not the same as none. */
+        longFrames: timing
+          ? {
+              count: frames.length,
+              totalMs: frames.reduce((total, frame) => total + frame.ms, 0),
+              longest: longest && { atMs: since(longestAt), ...longestFrame },
+            }
+          : 'unread',
+      };
+    })
+  );
+  return {
+    clickedAtSeconds: Math.round((signOut.clickedAt - Date.parse(report.startedAt)) / 100) / 10,
+    tabs,
   };
 }
 async function signIn(who: HostedPeer) {
@@ -660,8 +784,7 @@ async function admitted(who: HostedPeer) {
   );
   assert.equal(who.sent[0].type, 'admit');
   /* The page enters with its seat pass; the credential itself never reaches the report. */
-  assert.equal(who.sent[0].credential, 'pass');
-  assert.ok(who.sent[0].ticketLength > 0);
+  assert.ok(who.sent[0].credentialLength > 0);
   if (requireView(who).snapshot.stage === 'play') {
     await who.page.getByRole('group', { name: 'Table view' }).waitFor();
     await tableLoaded(who);
@@ -759,7 +882,7 @@ async function account(label: string) {
 /**
  * A spectator asks for a seat and a seated player approves it where the seat is shown.
  * Drafting: the (+) in the roster on the table, and the requester's ghost there carries Approve.
- * Later: the header's Seats popover names the open seat, and the vacant seat's Info in the player rail carries Approve.
+ * Later: the header's Seats popover names the open seat, and the vacant seat's window carries Approve.
  */
 async function seatThrough(approver: HostedPeer, who: HostedPeer) {
   const drafting = requireView(who).snapshot.stage === 'drafting';
@@ -774,7 +897,18 @@ async function seatThrough(approver: HostedPeer, who: HostedPeer) {
   await request.click();
   await until(() => requireView(who).snapshot.revision > before, 'The seat request did not commit.');
   if (!drafting) {
-    await approver.page.getByRole('tab', { name: /, a spectator asks for this seat/u }).click();
+    /* A seat without a player goes by its faction. */
+    const roster = required(requireView(approver).snapshot.roster, 'roster');
+    const seated = new Set(requireView(approver).snapshot.controls?.players.map((player) => player.seat));
+    const vacant = roster.seats.find((seat) => !seated.has(seat.id));
+    assert.ok(vacant, 'No seat is open for the request.');
+    const name = vacant.faction?.name ?? vacant.id;
+    /* The request is answered in Faction info, set on the vacant seat by its token. */
+    await openTab(approver, 'Faction info');
+    await windowOf(approver, 'Faction info')
+      .getByRole('group', { name: 'Factions' })
+      .getByRole('button', { name, exact: true })
+      .click();
   }
   await act(approver, 'Approve');
   await until(() => requireView(who).viewer.viewerSeat !== SPECTATOR, 'The approved request did not seat its player.');
@@ -957,63 +1091,75 @@ async function converged(peers: HostedPeer[]) {
     'Recipient revisions did not converge.'
   );
 }
-const TAB_GROUPS: Record<string, string> = {
-  Hand: 'Yours',
-  'Hidden zone': 'Yours',
-  Spice: 'Yours',
-  Setup: 'Game',
-  Phase: 'Game',
-  Battle: 'Game',
-  Alliances: 'Game',
-  Result: 'Game',
-  'Shared inventory': 'Table',
-  Settings: 'Table',
-  'Game log': 'History',
-  Audit: 'History',
-  Battles: 'History',
-  'Spice transfers': 'History',
-  Replay: 'History',
-};
-/** Shows the group holding a dock tab until the tab stays, outlasting a phase opening its own tab. */
-async function revealTab(who: HostedPeer, name: string, tab: Locator) {
-  /*
-   * The dock opens a phase's own tab once as the phase begins (Spice for Spice Collection, Hand for Bidding), and that
-   * can land just after this looks, moving the dock to another group. So the group is clicked again until the tab stays.
-   */
+/* The window a panel opens in: Hand and Spice share one. */
+const WINDOW_OF: Record<string, string> = { Hand: 'Hand & spice', Spice: 'Hand & spice' };
+/** The window named for a panel, by the label on its frame; the sections inside carry names of their own. */
+function windowOf(who: HostedPeer, name: string) {
+  return who.page.locator(`[data-window][aria-label="${WINDOW_OF[name] ?? name}"]`);
+}
+/**
+ * Opens one window of the controls through the compass's search unless it is open already, in the centre or pinned.
+ * A phase opening its own window as it begins can land just after this looks, which moves the centre to another window.
+ * So the search is repeated until the window asked for stays.
+ */
+async function openTab(who: HostedPeer, name: string) {
+  const label = WINDOW_OF[name] ?? name;
   const deadline = Date.now() + 30_000;
   for (;;) {
-    if ((await tab.count()) > 0) {
-      /* A moment's grace lets a phase's own tab, opened as the phase began, take the dock first. */
+    if ((await windowOf(who, name).count()) > 0) {
+      /* A moment's grace lets a phase's own window, opened as the phase began, take the centre first. */
       await delay(400);
-      if ((await tab.count()) > 0) {
-        break;
+      if ((await windowOf(who, name).count()) > 0) {
+        return;
       }
     }
     if (Date.now() > deadline) {
-      throw new Error(`${who.label} has no ${name} tab.`);
+      throw new Error(`${who.label} has no ${label} window.`);
     }
-    if (TAB_GROUPS[name]) {
-      await who.page
-        .getByRole('tablist', { name: 'Controls' })
-        .getByRole('tab', { name: TAB_GROUPS[name], exact: true })
-        .click();
+    await who.page.getByRole('button', { name: /^Controls/u }).click();
+    const compass = who.page.getByRole('dialog', { name: 'Controls compass' });
+    await compass.getByRole('textbox', { name: 'Search controls' }).fill(label);
+    const option = compass
+      .getByRole('option')
+      .filter({ has: who.page.getByText(label, { exact: true }) })
+      .first();
+    if ((await option.count()) === 0) {
+      await who.page.keyboard.press('Escape');
+      await delay(400);
+      continue;
     }
-    await tab.waitFor({ state: 'attached', timeout: 2000 }).catch(() => {});
+    await option.click();
+    await windowOf(who, name)
+      .waitFor({ timeout: 2000 })
+      .catch(() => {});
   }
 }
-/** Opens one tab of the controls panel unless it is already the current one. */
-async function openTab(who: HostedPeer, name: string) {
-  const tab = who.page.getByRole('tab', { name, exact: true });
-  await revealTab(who, name, tab);
-  /* A short window can push the lower tabs below the panel's default height. */
-  const box = await tab.boundingBox();
-  if (!box || box.y + box.height > required(who.page.viewportSize(), 'viewport').height) {
-    await who.page.getByRole('separator', { name: 'Resize controls panel' }).press('End');
+type Slot = 'left' | 'right';
+/**
+ * Pins a window into a bottom slot, opening it first when it is not open.
+ * A pinned window stays through a press on the table, which closes the centre window, and through a board gesture, which holds the Controls button.
+ */
+async function pinWindow(who: HostedPeer, name: string, side: Slot) {
+  const frame = windowOf(who, name);
+  await openTab(who, name);
+  const where = await frame.getAttribute('data-side');
+  if (where === side) {
+    return;
   }
-  await tab.waitFor();
-  if ((await tab.getAttribute('aria-selected')) !== 'true') {
-    await tab.click();
-    await who.page.locator(`[role="tab"][aria-label="${name}"][aria-selected="true"]`).waitFor();
+  if (where !== 'centre') {
+    await frame.getByRole('button', { name: 'Unpin', exact: true }).click();
+    await frame.waitFor({ state: 'hidden' });
+    await openTab(who, name);
+  }
+  await frame.getByRole('button', { name: `Pin to the bottom ${side}`, exact: true }).click();
+  await who.page.locator(`[data-window][data-side="${side}"][aria-label="${WINDOW_OF[name] ?? name}"]`).waitFor();
+}
+/** Makes a pinned slot as tall as the table allows, so a capture shows as much of its window as fits. */
+async function growSlot(who: HostedPeer, side: Slot) {
+  const edge = who.page.locator(`[data-window][data-side="${side}"]`).getByRole('button', { name: /^Resize/u });
+  await edge.focus();
+  for (let step = 0; step < 40; step++) {
+    await edge.press('ArrowUp');
   }
 }
 const shownView = (who: HostedPeer) =>
@@ -1155,6 +1301,23 @@ function treacheryDeck(who: HostedPeer) {
   );
   assert.ok(deck, 'Setup supplied no treachery deck.');
   return deck.id;
+}
+/**
+ * Picks one disc token in the Shared table inventory's catalogue the way a player does: opens the Disc tokens shelf's catalogue, searches the asset's name and clicks its row.
+ * The rows are busy until the typed word's own matches list, and a click before that lands on the rows of the search before it, which the picker ignores.
+ * A row names its type and owner beside the asset, so the row is found by the name it shows rather than by its whole label.
+ */
+async function pickCatalogueAsset(who: HostedPeer, name: string) {
+  await openTab(who, 'Shared table inventory');
+  if (await button(who, 'Add disc tokens from the catalogue').count()) {
+    await button(who, 'Add disc tokens from the catalogue').click();
+  }
+  await who.page.getByRole('searchbox', { name: 'Search the catalogue' }).fill(name);
+  await who.page
+    .locator('[role="listbox"][aria-label="Catalogue assets"][aria-busy="false"]')
+    .getByRole('option')
+    .filter({ has: who.page.getByText(name, { exact: true }) })
+    .click();
 }
 /**
  * The seeded Harkonnen troop reserve: the carry checks look for its red token on screen.
@@ -1299,9 +1462,74 @@ async function redPixels(recipient: HostedPeer, sender: HostedPeer, center: Poin
   return count;
 }
 
+/**
+ * Closes the centre window a stage or phase opens by itself over the board, so a press or pixel read there reaches the board.
+ * Escape closes it, and pinned windows stay.
+ */
+async function clearCentre(who: HostedPeer) {
+  const centre = who.page.locator('[data-window][data-side="centre"]');
+  for (let attempt = 0; attempt < 3 && (await centre.count()) > 0; attempt += 1) {
+    await who.page.mouse.move(10, 10);
+    await who.page.keyboard.press('Escape');
+    await centre
+      .first()
+      .waitFor({ state: 'detached', timeout: 2000 })
+      .catch(() => undefined);
+  }
+  if ((await centre.count()) > 0) {
+    throw new Error(`${who.label}'s centre window did not close on Escape.`);
+  }
+}
+/** What covers a page point, or null when the board's canvas is topmost there. */
+/** What covers the board at a page point, by its label, or null when the board's canvas is topmost there. */
+async function coverAt(who: HostedPeer, at: Point) {
+  return who.page.evaluate(({ x, y }) => {
+    const hit = document.elementFromPoint(x, y);
+    return hit instanceof HTMLCanvasElement
+      ? null
+      : (hit?.closest('[aria-label]')?.getAttribute('aria-label') ?? hit?.tagName ?? 'nothing');
+  }, at);
+}
+/*
+ * Uncovers the board at a page point before a drag lands there: a window the table placed in a free slot by itself stays
+ * through a press on the table, where a centre window would close, so the slot covering the point is unpinned.
+ */
+async function uncover(who: HostedPeer, at: Point) {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const side = await who.page.evaluate(({ x, y }) => {
+      const frame = document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-window]');
+      return frame?.dataset.side ?? null;
+    }, at);
+    if (side === null) {
+      return;
+    }
+    if (side === 'centre') {
+      await clearCentre(who);
+    } else {
+      const frame = who.page.locator(`[data-window][data-side="${side}"]`);
+      await frame.getByRole('button', { name: 'Unpin', exact: true }).click();
+      await frame.waitFor({ state: 'detached' });
+    }
+  }
+  await assertBoardAt(who, at, 'the drop point');
+}
+/** Fails when anything but the board's canvas is topmost at a page point, naming what covers it. */
+async function assertBoardAt(who: HostedPeer, at: Point, what: string) {
+  const cover = await coverAt(who, at);
+  assert.equal(cover, null, `${who.label}: ${what} is covered by ${cover}.`);
+}
+/** Whether the 48 px box redPixels samples around a page point lies on the page, with the board topmost at its centre. */
+async function boardShows(who: HostedPeer, at: Point) {
+  const viewport = required(who.page.viewportSize(), 'viewport');
+  const inside = at.x >= 24 && at.y >= 24 && at.x <= viewport.width - 24 && at.y <= viewport.height - 24;
+  return inside && (await coverAt(who, at)) === null;
+}
+
 async function visibleActivity(sender: HostedPeer, recipient: HostedPeer, name: string) {
   await focus(sender, 'map');
   await focus(recipient, 'map');
+  await clearCentre(sender);
+  await clearCentre(recipient);
   const savedRevision = requireView(sender).snapshot.revision;
   const first = await point(sender, [0, 0.38, 1]);
   const second = await point(sender, [1, 0.38, 1]);
@@ -1328,6 +1556,11 @@ async function visibleActivity(sender: HostedPeer, recipient: HostedPeer, name: 
     destinations.push({ senderPoint, recipientPoint, baseline: await redPixels(recipient, sender, recipientPoint) });
   }
   await capture(recipient, `${name}-before-carry`);
+  await assertBoardAt(sender, start, 'the troop stack');
+  for (const destination of destinations) {
+    await assertBoardAt(sender, destination.senderPoint, 'a carry destination');
+    await assertBoardAt(recipient, destination.recipientPoint, 'a carry destination');
+  }
   const sentBefore = sender.sent.length;
   await sender.page.mouse.move(start.x, start.y);
   await sender.page.mouse.down();
@@ -1375,7 +1608,7 @@ async function visibleActivity(sender: HostedPeer, recipient: HostedPeer, name: 
 async function capturePhaseTooltip(page: Page) {
   return page
     .evaluate(() => {
-      const tab = document.querySelector('[role="tab"][aria-label="Phase"]');
+      const tab = document.querySelector('[data-window="phase"] [role="img"][aria-label="Help"]');
       const box = tab?.getBoundingClientRect();
       const hit = box && document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
       return {
@@ -1405,15 +1638,15 @@ async function displayedPhase(who: HostedPeer, index: number, { held = false } =
   const controls = who.page;
   await openTab(who, 'Phase');
   /*
-   * A real game names the phase's section for assistive technology only, and the Phase tab's tooltip brings the
-   * phase's instructions once the pointer rests on the tab. While this player holds a board gesture the panel refuses
+   * A real game names the phase's section for assistive technology only, and the Phase window's (?) brings the
+   * phase's instructions once the pointer rests on it. While this player holds a board gesture the window refuses
    * the pointer, and hovering would move the held piece, so only the named section is checked then.
    */
   /* The phase's own section leads the panel; the Battle phase adds a battle section of the same name below it. */
   const section = controls.getByRole('region', { name: phase.label, exact: true }).first();
   await section.waitFor({ state: 'attached' });
   if (!held) {
-    await controls.getByRole('tab', { name: 'Phase', exact: true }).hover();
+    await windowOf(who, 'Phase').getByRole('img', { name: 'Help', exact: true }).hover();
     try {
       await controls.getByRole('tooltip').filter({ hasText: phase.instructions }).waitFor();
     } catch (error) {
@@ -1485,10 +1718,13 @@ async function phaseStep(sender: HostedPeer, recipient: HostedPeer, direction = 
 async function sharedPhaseFlow(a: HostedPeer, b: HostedPeer) {
   await focus(a, 'map');
   await focus(b, 'map');
-  /* Both players open the Phase tab now: the panel is inert while a board gesture is held, so a
-     later tab click during the remote-carry step would be refused. */
+  /*
+   * Both players open the Phase window now: the windows are inert while a board gesture is held, so opening one during
+   * the remote-carry step would be refused. B's is pinned, as B's press on the table to pick the piece up would close
+   * a window in the centre.
+   */
   await openTab(a, 'Phase');
-  await openTab(b, 'Phase');
+  await pinWindow(b, 'Phase', 'left');
   await displayedPhase(a, 0);
   assert.equal(await previousPhaseDisabled(a), true);
   await a.page.getByRole('heading', { name: 'Storm sector', exact: true }).waitFor();
@@ -1507,20 +1743,47 @@ async function sharedPhaseFlow(a: HostedPeer, b: HostedPeer) {
   const source = piece(b, id);
   const beforeCarry = requireView(a).snapshot.revision;
   const start = await point(b, [source.position[0], source.position[1] + 0.12, source.position[2]]);
-  const target: Vector3Tuple = [-1.5, 0.38, 1.4];
-  const targetPoint = await point(b, target);
   /* The next phase recommends a view other than the map (#1389). At the phase change the idle recipient's
      camera moves there, and the carrying player's camera waits for the drop, so the recipient samples the
-     held token in both views, each against its own empty board. */
+     held token in both views, each against its own empty board. The target is the first spot both views show. */
   const nextView = PHASE_VIEWS[phaseAt(requireView(a).snapshot.phase + 1).id as keyof typeof PHASE_VIEWS];
   assert.notEqual(nextView, 'map', 'The phase after Storm must recommend a view other than the map.');
+  await clearCentre(a);
+  await clearCentre(b);
+  /* The stack stays where this carry drops it, so every spot keeps clear of the later carries' destinations near the rim. */
+  const candidates: Vector3Tuple[] = [
+    [-1.5, 0.38, 1.4],
+    [1.4, 0.38, 0.4],
+    [0.9, 0.38, -0.6],
+    [-0.9, 0.38, -0.6],
+  ];
   await focus(a, nextView);
   await a.page.mouse.move(10, 10);
-  const nextViewPoint = await point(a, target);
+  const inNextView = [];
+  for (const candidate of candidates) {
+    const at = await point(a, candidate);
+    if (await boardShows(a, at)) {
+      inNextView.push({ candidate, at });
+    }
+  }
+  await focus(a, 'map');
+  await a.page.mouse.move(10, 10);
+  let chosen: { nextViewPoint: Point; recipientPoint: Point; targetPoint: Point } | undefined;
+  for (const { candidate, at } of inNextView) {
+    const recipientAt = await point(a, candidate);
+    const senderAt = await point(b, candidate);
+    if ((await boardShows(a, recipientAt)) && (await boardShows(b, senderAt))) {
+      chosen = { nextViewPoint: at, recipientPoint: recipientAt, targetPoint: senderAt };
+      break;
+    }
+  }
+  assert.ok(chosen, `No carry target shows on the board in both the map and the ${nextView} view.`);
+  const { nextViewPoint, recipientPoint, targetPoint } = chosen;
+  await focus(a, nextView);
+  await a.page.mouse.move(10, 10);
   const nextViewBaseline = await redPixels(a, b, nextViewPoint);
   await focus(a, 'map');
   await a.page.mouse.move(10, 10);
-  const recipientPoint = await point(a, target);
   const baseline = await redPixels(a, b, recipientPoint);
   await b.page.mouse.move(start.x, start.y);
   await b.page.mouse.down();
@@ -1783,51 +2046,46 @@ async function seededCustomContent(a: HostedPeer, b: HostedPeer) {
   );
 }
 
-/** Replays earlier stages while another player advances live play, then returns to the current table. */
-async function verifyCheckpointPlayback(a: HostedPeer, b: HostedPeer) {
-  const beforePlayback = requireView(a).snapshot.revision;
-  await openTab(b, 'Replay');
-  await b.page.getByRole('button', { name: 'Replay from start' }).click();
-  await b.page.getByText(/Playback checkpoint 0 of/).waitFor();
-  /* A real game's first checkpoints are its stages before play, stepped from the header; stepping reaches Turn 1. */
-  let checkpoint = 0;
-  while (
-    (await b.page
-      .locator('.seated-header')
-      .getByText(/^Turn 1 of/u)
-      .count()) === 0
-  ) {
-    const later = b.page.getByRole('button', { name: 'Later phase' });
-    /* The last checkpoint disables the button; a click there would wait out Playwright's timeout instead of saying why. */
-    assert.ok(await later.isEnabled(), `Playback ran out of checkpoints at ${checkpoint} before reaching play.`);
-    await later.click();
-    checkpoint += 1;
-    await b.page.getByText(new RegExp(`Playback checkpoint ${checkpoint} of`, 'u')).waitFor();
-  }
-  assert.ok(checkpoint > 0);
-  assert.equal(await b.page.getByRole('button', { name: 'Next phase', exact: true }).isDisabled(), true);
-  assert.equal(await previousPhaseDisabled(b), true);
-  await displayedPhase(b, 0);
+/**
+ * A Mentat recall both players agree to shows each of them the same checkpoint and pauses the table, then Return to the game returns both to the live table.
+ * Players may not look back alone, so a game in progress offers no Replay.
+ */
+async function verifyTableReview(a: HostedPeer, b: HostedPeer) {
+  const before = requireView(a).snapshot.revision;
   await a.page.getByRole('button', { name: 'Next phase', exact: true }).click();
-  await revision(a, beforePlayback + 1);
-  await revision(b, beforePlayback + 1);
+  await revision(a, before + 1);
+  await revision(b, before + 1);
   await displayedPhase(a, TABLE_PHASES.length);
-  await displayedPhase(b, 0);
-  await b.page.getByRole('button', { name: 'Later phase' }).click();
-  await b.page.getByText(new RegExp(`Playback checkpoint ${checkpoint + 1} of`, 'u')).waitFor();
-  await b.page.getByRole('button', { name: 'Return to live' }).click();
-  /* The live table's cooldown (#1139) can still be running; the controls refresh on its next tick. */
-  await until(
-    () => b.page.getByRole('button', { name: 'Next phase', exact: true }).isEnabled(),
-    'Next phase did not re-enable after returning to live.',
-    20_000
-  );
-  await displayedPhase(b, TABLE_PHASES.length);
+  assert.equal(await windowOf(b, 'Replay').count(), 0);
+  await openTab(b, 'Mentat recall');
+  const historyFrom = [a.rawMessages.length, b.rawMessages.length];
+  await windowOf(b, 'Mentat recall').getByRole('button', { name: 'Ask the table to recall' }).click();
+  await a.page.getByRole('group', { name: 'Mentat recall vote' }).getByRole('button', { name: 'Agree' }).click();
+  for (const [index, who] of [a, b].entries()) {
+    await who.page.getByRole('group', { name: 'Mentat recall in progress' }).waitFor();
+    await until(
+      () => who.rawMessages.slice(historyFrom[index]).some((message) => message.type === 'history'),
+      `${who.label} was not shown the reviewed checkpoint.`
+    );
+    assert.equal(await who.page.getByRole('button', { name: 'Next phase', exact: true }).count(), 0);
+  }
+  await a.page
+    .getByRole('group', { name: 'Mentat recall in progress' })
+    .getByRole('button', { name: 'Return to the game' })
+    .click();
+  for (const who of [a, b]) {
+    /* The live table's cooldown (#1139) can still be running; the controls refresh on its next tick. */
+    await until(
+      () => who.page.getByRole('button', { name: 'Next phase', exact: true }).isEnabled(),
+      `Next phase did not return for ${who.label} after the review.`,
+      20_000
+    );
+    await displayedPhase(who, TABLE_PHASES.length);
+  }
   passed(
-    'Real phase checkpoint playback steps from drafting into play, is read-only and returns to the current live table'
+    'A Mentat recall both players agree to shows each the same checkpoint with no table controls, and Return to the game returns both to the live table'
   );
-
-  return beforePlayback;
+  return requireView(a).snapshot.revision;
 }
 
 /** The regular flow, for the broad tabletop interactions the named flows leave out. */
@@ -1977,9 +2235,9 @@ async function verifyRegular() {
   await sharedPhaseFlow(a, b);
   await sharedTrackerFlow(a, b);
   /* The live table sits at Mentat Pause, whose advance is gated on readiness (#1139); readiness
-     is declared before the other player enters read-only playback, where Ready is disabled. */
+     is declared before the Mentat recall, which pauses every control. */
   await readyBeforeAdvance(a, b);
-  const beforePlayback = await verifyCheckpointPlayback(a, b);
+  const reviewed = await verifyTableReview(a, b);
 
   const connectionId = requireView(b).viewer.connectionId;
   const oldDocumentSockets = [...b.sockets];
@@ -1990,7 +2248,7 @@ async function verifyRegular() {
   await until(() => requireView(b).viewer.connectionId !== connectionId, 'Reload did not get a fresh connection.');
   await b.page.locator('[data-connection="authorized"]').waitFor();
   assert.equal(requireView(b).viewer.viewerSeat, seatB);
-  assert.equal(requireView(b).snapshot.revision, beforePlayback + 1);
+  assert.equal(requireView(b).snapshot.revision, reviewed);
   assert.equal(requireView(b).snapshot.phase, TABLE_PHASES.length);
   await displayedPhase(b, TABLE_PHASES.length);
   passed('Reload gets a fresh admitted connection while retaining seat and durable revision');
@@ -2066,11 +2324,13 @@ async function verifyRegular() {
     );
     throw new Error(`${error.message} Still open: ${open.join(', ')}.`);
   });
+  await until(() => heldSignOutDirectoryTransitions > 0, 'The sign-out check did not hold a directory transition.');
   await until(
     async () => (await a.page.locator('canvas').count()) === 0 && (await aTab.page.locator('canvas').count()) === 0,
     'Signed-out game data remained visible.'
   );
   const lastCounts = [a.messages.length, aTab.messages.length];
+  await capture(a, 'regular-signed-out-game');
   const beforeSignOutFanout = requireView(b).snapshot.revision;
   await until(
     () => b.page.getByRole('button', { name: 'Next phase', exact: true }).isEnabled(),
@@ -2088,6 +2348,7 @@ async function verifyRegular() {
     assert.equal(await tables[index].evaluate((canvas) => canvas.isConnected), true, `${who.label}'s table remounted.`);
   }
   passed('Actual UI sign-out removes both tabs and fences later game fanout; the other players keep their tables', {
+    heldDirectoryTransitions: heldSignOutDirectoryTransitions,
     logoutAndFanoutCheckMs: Date.now() - revokedAt,
     workerRefusedSignOut: [a, aTab].some((who, index) =>
       who.rawMessages
@@ -2164,13 +2425,19 @@ try {
     currentGameId: () => gameId,
     factionOf,
     treacheryDeck,
+    pickCatalogueAsset,
     button,
     previousPhaseDisabled,
     act,
     converged,
     focus,
     openTab,
+    windowOf,
+    pinWindow,
+    growSlot,
     point,
+    coverAt,
+    uncover,
     tableLoaded,
     recordRenderer,
     spiceBankShortcut,
@@ -2255,7 +2522,7 @@ try {
 } finally {
   /* Read before the browsers close, whose teardown closes every socket still open, so a failed wait still shows the socket that closed late. */
   if (signOut) {
-    report.signOut = signOutReport();
+    report.signOut = await signOutReport();
     console.log(`SIGNOUT ${JSON.stringify(report.signOut)}`);
   }
   const counts = (messages: { type: string }[]) =>
@@ -2317,13 +2584,19 @@ export type HostedToolkit = {
   depart: typeof depart;
   factionOf: typeof factionOf;
   treacheryDeck: typeof treacheryDeck;
+  pickCatalogueAsset: typeof pickCatalogueAsset;
   button: typeof button;
   previousPhaseDisabled: typeof previousPhaseDisabled;
   act: typeof act;
   converged: typeof converged;
   focus: typeof focus;
   openTab: typeof openTab;
+  windowOf: typeof windowOf;
+  pinWindow: typeof pinWindow;
+  growSlot: typeof growSlot;
   point: typeof point;
+  coverAt: typeof coverAt;
+  uncover: typeof uncover;
   tableLoaded: typeof tableLoaded;
   recordRenderer: typeof recordRenderer;
   spiceBankShortcut: typeof spiceBankShortcut;
@@ -2361,7 +2634,7 @@ type VerificationReport = {
     admission?: Awaited<ReturnType<typeof admissionTrace>>[];
     sceneStartup?: ({ label: string } & Record<string, unknown>)[];
   };
-  signOut?: ReturnType<typeof signOutReport>;
+  signOut?: Awaited<ReturnType<typeof signOutReport>>;
   transport?: {
     label: string;
     connectionCount: number;

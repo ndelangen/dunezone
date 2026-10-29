@@ -27,10 +27,10 @@ instead of downloading it. The default download verifies its checksum.
 The stack starts a disposable loopback backend with synthetic Password accounts. It deploys the
 checked-out Convex code there and starts local Workers through the existing publisher service
 binding. It imports no production snapshot, uses no hosted deployment credentials and never changes
-the shared development deployment. Admission, authorization leases, command validation, persistence
-and recipient delivery use the existing application path. The stack runs the production five minute
-lease and 90 second renewal cadence, so a load run's `watchAuthorizations` and `reconcileAccounts`
-traffic is about 0.7 calls a minute per function per connected room. Its queries and mutations may
+the shared development deployment. Admission with seat passes, command validation, persistence
+and recipient delivery use the existing application path. An admitted player's room calls Convex
+only for its seat-limit read, so a load run's Convex traffic comes from admissions, directory
+summaries and the catalogue. Its queries and mutations may
 run longer than a hosted deployment allows, as [Local checks](play-hosted.md#local-checks)
 describes, so a function that would stop at the hosted limit can finish in a local run.
 
@@ -104,7 +104,8 @@ Two readings in `roomTiming` separate the room's own causes. `durableMs` runs fr
 moment the room saw the command's storage write confirmed, both by its own clock. Frames the room
 sends after a write leave only once the write is durable, so a long `durableMs` means the answer
 was held. `stalls` lists the recent moments the room's one-second sweep ran more than 250 ms late,
-which happens when the room is busy running code. In the third 28 September run, every recipient's
+which happens when the room is busy running code. The sweep runs only while an admission, a carry
+or a pointer can expire, so a quiet room records no stalls. In the third 28 September run, every recipient's
 motion stopped for about 2 s at once while the coordinator stayed on schedule, and nothing recorded
 which of the two held it. `motionDropped` counts pointer and pose frames the room dropped because
 their sender's motion bucket was empty. Motion has its own bucket so that a busy room, whose clock
@@ -146,7 +147,7 @@ tab independently carrying and cancelling. A preflight checks command replay and
 convergence. `reconnect` interrupts one connection,
 then six, then all 44 for ten seconds each. Initial admission is paced; each reconnect group begins
 at once and retains refusals and retry timing.
-Ticket transport errors use the browser's one-second retry delay and remain in the report.
+Seat-pass request errors use the browser's one-second retry delay and remain in the report.
 Every reconnect outcome is collected before cleanup, including failures.
 
 `steady` selects the manifest's 60-second warm-up and five-minute measurement. Select one repetition
@@ -321,8 +322,7 @@ most 8 KiB and finish within three seconds, or the remaining run lifetime if sho
 cancels an unfinished upload before delegating to the game handler, so a stalled client cannot
 hold teardown open. An operation that finishes after stop receives HTTP 410.
 It keeps the earlier provisioning-retry alarm while needed, then restores its own deadline. Stop first marks
-the ledger, closes the authorization watch and sockets, and waits for outstanding reconciliation,
-admission and provisioning work. It then removes the alarm and synthetic game records. One small
+the ledger, closes the sockets, and waits for outstanding admission and provisioning work. It then removes the alarm and synthetic game records. One small
 stopped ledger remains so subsequent requests or a restart cannot reopen the run. Removing the
 isolated Worker and namespace remains the final storage cleanup; a cleanup error is surfaced and
 can be retried through `stopLoad()`.

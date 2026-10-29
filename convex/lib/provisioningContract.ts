@@ -24,6 +24,7 @@ type RebuildContract = {
  */
 export const SNAPSHOT_REBUILD_CONTRACT = {
   empty: [
+    'content_import_receipts',
     'authAccounts',
     'authSessions',
     'authRefreshTokens',
@@ -34,8 +35,6 @@ export const SNAPSHOT_REBUILD_CONTRACT = {
     'play_game_slug_reservations',
     'play_game_slug_cursors',
     'homepage_tickets',
-    'play_tickets',
-    'play_auth_registrations',
     'play_game_accounts',
     'play_account_deletions',
     'play_session_cutoffs',
@@ -48,6 +47,7 @@ export const SNAPSHOT_REBUILD_CONTRACT = {
     'faq_answers',
     'leader_skill_stock_sets',
     'publication_jobs',
+    'publication_job_listings',
     'publication_assets',
     'admin_settings',
     'counters',

@@ -34,3 +34,14 @@
   width: 570px;
   height: 570px;
 }
+
+.textOnly {
+  position: absolute;
+  top: 255px;
+  left: 95px;
+  width: 710px;
+  height: 940px;
+  font-family: "C_Candara", sans-serif;
+  font-size: 38.75px;
+  color: #0b0503;
+}

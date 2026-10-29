@@ -17,6 +17,7 @@ export type TabletopContextValue = Pick<
   | 'deleteControls'
   | 'flippingPieceIds'
   | 'gestureActivePieceId'
+  | 'handControls'
   | 'hoveredPieceId'
   | 'peek'
   | 'peekControls'
@@ -55,7 +56,13 @@ type TabletopCommands = Omit<TabletopContextValue, keyof TableProjection>;
 /** The session's commands and its pointer feed, which stay the same for the session's life, for parts that must not follow every update. */
 type TabletopActions = Pick<
   TableSession,
-  'finishPieceFlip' | 'getPointers' | 'selectPiece' | 'setHoveredPiece' | 'subscribePings' | 'subscribePointers'
+  | 'finishPieceFlip'
+  | 'getPointers'
+  | 'selectPiece'
+  | 'setHoveredPiece'
+  | 'subscribeCardDraws'
+  | 'subscribePings'
+  | 'subscribePointers'
 >;
 
 type TabletopSession = Pick<
@@ -107,6 +114,7 @@ export function TabletopSessionProvider({
         getPointers: session.getPointers,
         selectPiece: session.selectPiece,
         setHoveredPiece: session.setHoveredPiece,
+        subscribeCardDraws: session.subscribeCardDraws,
         subscribePings: session.subscribePings,
         subscribePointers: session.subscribePointers,
       },

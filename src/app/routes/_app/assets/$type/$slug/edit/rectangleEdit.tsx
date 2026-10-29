@@ -1,13 +1,15 @@
-import { Alert, Button, Group, Popover, Text } from '@mantine/core';
+import { Alert, Button, Group, Popover } from '@mantine/core';
 import { RectangleTokenAsset } from '@shared/assets/schema';
 import { useNavigate } from '@tanstack/react-router';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
+import { TruncatedText } from '@ui/content/TruncatedText';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { useReducer, useState } from 'react';
 
+import { useAuthoringAccountKey } from '@db/authoring';
 import { useAssetPage, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData, AssetPublicPage } from '@app/db/assets';
 import { AssetPicker } from '@app/pickers/AssetPicker';
@@ -27,6 +29,7 @@ import type {
   RectangleDraft,
   RectangleMemory,
 } from '@app/widgets/token-editor/RectangleTokenEditor';
+import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 
 import {
   AssetEditorMessage,
@@ -95,22 +98,20 @@ export function RectangleEditPage({
     );
   }
 
-  /* The draft's reference member models pick-pending as an explicit null, which the stored optional cannot say. */
-  const initialBack =
-    parsed.data.back.mode === 'reference'
-      ? { mode: 'reference' as const, asset_id: parsed.data.back.asset_id ?? null }
-      : parsed.data.back;
+  const initialBack = parsed.data.back;
 
   return (
-    <RectangleEditSession
-      key={data.asset.id}
-      access={{ viewerAccess: data.viewerAccess, assignableGroups: data.assignableGroups }}
-      type={type}
-      asset={data.asset}
-      backToken={data.backToken}
-      danglingBack={data.resolvedBack?.mode === 'dangling'}
-      initialDraft={{ ...parsed.data, back: initialBack }}
-    />
+    <BackgroundLibrary presets={data.backgrounds ?? []} fronts={data.cardFrontPresets}>
+      <RectangleEditSession
+        key={data.asset.id}
+        access={{ viewerAccess: data.viewerAccess, assignableGroups: data.assignableGroups }}
+        type={type}
+        asset={data.asset}
+        backToken={data.backToken}
+        danglingBack={data.resolvedBack?.mode === 'dangling'}
+        initialDraft={{ ...parsed.data, back: initialBack }}
+      />
+    </BackgroundLibrary>
   );
 }
 
@@ -172,6 +173,7 @@ function RectangleEditSession({
   danglingBack: boolean;
   initialDraft: RectangleDraft;
 }) {
+  const authoringAccountKey = useAuthoringAccountKey();
   const navigate = useNavigate();
   const groupActions = useAssetGroupActions({ asset, access });
   const updateAsset = useUpdateAsset();
@@ -248,10 +250,12 @@ function RectangleEditSession({
       {header.slot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
+          scopeKey={authoringAccountKey}
           load={tokenLoad({
             type: 'token-enhance',
             schema: LoadedRectangleDraft,
             editing: asset,
+            canRename: access.viewerAccess.capabilities.rename,
             saveState,
             header,
             dispatch,
@@ -300,14 +304,15 @@ function RectangleEditSession({
             onSettle={header.settle}
             backPicker={(disabled) => (
               <Group gap="xs" wrap="nowrap">
-                <Text size="sm" truncate style={{ minWidth: 0, flex: 1 }} title={state.memory.pickedBack?.name}>
+                <TruncatedText size="sm" flex={1}>
                   {state.memory.pickedBack ? state.memory.pickedBack.name : 'No token chosen yet'}
-                </Text>
+                </TruncatedText>
                 {/* Gated by the popover: the picker subscribes on mount, so it must not mount until asked for. */}
                 <Popover opened={pickerOpen} onChange={setPickerOpen} width={340} position="bottom-start" withinPortal>
                   <Popover.Target>
                     <Button
-                      variant="light"
+                      variant="default"
+                      color="gray"
                       size="compact-sm"
                       style={{ flexShrink: 0 }}
                       disabled={disabled}

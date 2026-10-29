@@ -1,0 +1,31 @@
+.placement {
+  position: relative;
+  inset: auto;
+  box-sizing: border-box;
+  width: 64px;
+  height: 64px;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  overflow: visible;
+}
+
+/* Reduced motion must not animate visibility before the token or its help control can take focus. */
+.overlay,
+.placement,
+.placement > button,
+.help,
+.help > * {
+  transition-property: none;
+}
+
+.help {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+}

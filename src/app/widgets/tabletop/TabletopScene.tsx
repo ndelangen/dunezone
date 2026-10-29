@@ -1,7 +1,10 @@
 /* @jsxImportSource ./three-jsx */
+
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { ThreeEvent } from '@react-three/fiber/webgpu';
+import { tokenShapeOfType } from '@shared/assets/tokenOutline';
 import { retainedArrakisBoard } from '@shared/boards/geometry';
+import { gameAssetColors, rendererColors } from '@shared/play/assetColors';
 import { isFactionToken } from '@shared/play/factionToken';
 import { gestureBlockReason, pieceCount } from '@shared/play/model';
 import type { TablePiece, TableState, Vector3Tuple } from '@shared/play/model';
@@ -45,6 +48,7 @@ import type { TableSeatCount } from '@shared/play/tableSettings';
 import type { TrackerArcSlot } from '@shared/play/tableTrackers';
 import { TRACKER_DISC_HEIGHT } from '@shared/play/tableTrackers';
 import { isTroopStack } from '@shared/play/troop';
+import { playUiColors } from '@shared/uiPalette';
 import clsx from 'clsx';
 import {
   createContext,
@@ -58,27 +62,15 @@ import {
   useMemo,
   useRef,
   useState,
-  useSyncExternalStore,
 } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import type { Ray, Texture } from 'three';
-import {
-  DoubleSide,
-  Mesh,
-  MeshBasicMaterial,
-  Plane,
-  Raycaster,
-  RingGeometry,
-  SRGBColorSpace,
-  Vector2,
-  Vector3,
-} from 'three';
+import { DoubleSide, Mesh, MeshBasicMaterial, Plane, Raycaster, RingGeometry, Vector2, Vector3 } from 'three';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
-import { loadFaceTexture, tableCardFaceKey } from './cardFaceTexture';
+import { tableCardFaceKey } from './cardFaceTexture';
 import { ignoreRaycast } from './ignoreRaycast';
-import { swallowLift, watchLongPress } from './longPress';
 import { MapPreviewCamera } from './MapPreviewCamera';
 import { PieceArrival } from './PieceArrival';
 import { topFaceHref } from './pieceFaceHref';
@@ -86,13 +78,14 @@ import { pieceHasMenu } from './pieceMenu';
 import type { CameraViewCommand } from './playView';
 import { usePointerSession } from './PointerSessionContext';
 import { POINTER_SELECTION_RING, PointerTokenPlate } from './PointerTokenPlate';
-import { sharedPublishedFaces } from './publishedFaceRetry';
+import { SceneCardDraws } from './SceneCardDraws';
 import { useSharedMeshes } from './sharedMeshes';
 import type { SharedMeshes } from './sharedMeshes';
 import { SpiceBankInteraction } from './SpiceBank';
 import { SpiceStackIcon } from './SpiceStackIcon';
 import { loadPieceBadge, loadPlayCamera, loadScenePings, loadScenePresence, loadTabletopTools } from './tableChunks';
 import { useTableFraming } from './tableFraming';
+import { useTablePalette } from './tablePalette';
 import { isPublicTablePoint } from './tablePointerPoint';
 import { TabletopBoard } from './TabletopBoard';
 import { TabletopCanvas } from './TabletopCanvas';
@@ -106,9 +99,12 @@ import { territoryAtTablePoint } from './TerritoryTints';
 import { useTurnedDownFaces } from './turnedDownFaces';
 import { useDeckShuffleAnimation } from './useDeckShuffleAnimation';
 import { usePieceFlipAnimation } from './usePieceFlipAnimation';
+import { usePublishedFace } from './usePublishedFace';
+import { useSceneInteractions } from './useSceneInteractions';
 import { PlatePosesProvider, useTablePose } from './useTablePose';
 
 type TabletopSceneProps = {
+  readOnly?: boolean;
   children?: ReactNode;
   className?: string;
   cameraView?: CameraViewCommand;
@@ -196,35 +192,27 @@ function PieceFace({ height, underside, children }: { height: number; underside:
   );
 }
 
-/* Every piece and every stack layer that shows the same published image draws one shared texture, so the image is uploaded once rather than once per face. */
-const subscribePublishedFace = sharedPublishedFaces<Texture>({
-  load: loadFaceTexture,
-  prepare: (value) => {
-    value.colorSpace = SRGBColorSpace;
-    value.anisotropy = 8;
-  },
-  release: (value) => value.dispose(),
-});
+/* The outline a token is cut to on the table: a box token's rectangle at its ratio, a tech token's gear, or round. */
+type TokenCut = { ratio: number } | 'gear' | 'round';
 
-/*
- * Holds one published image and returns it once loaded. The shared store is the only source of truth, read through
- * useSyncExternalStore, so a face never draws a texture released while it showed another image, and a retried load
- * that lands later always re-renders it.
- */
-function usePublishedFace(href: string | undefined): Texture | undefined {
-  const subscribe = useCallback(
-    (onChange: () => void) => (href ? subscribePublishedFace(href, onChange) : () => {}),
-    [href]
-  );
-  const snapshot = useCallback(() => (href ? subscribePublishedFace.peek(href) : undefined), [href]);
-  return useSyncExternalStore(subscribe, snapshot, snapshot);
+function tokenCut(piece: TablePiece): TokenCut {
+  const ratio = tokenBoxRatio(piece);
+  return ratio != null ? { ratio } : tokenShapeOfType(piece.items[0]?.artwork?.type) === 'gear' ? 'gear' : 'round';
 }
 
-/* A token's face: a box token's rectangle at its ratio, or a disc. */
-function tokenFaceGeometry(meshes: SharedMeshes, ratio: number | null | undefined) {
-  return ratio != null
-    ? meshes.plane(TROOP_FACE_RADIUS * 2, TROOP_FACE_RADIUS * 2 * ratio)
-    : meshes.circle(TROOP_FACE_RADIUS, 48);
+/*
+ * A token's face in that outline.
+ * A gear is not the same turned over: a face-down layer is the gear mirrored, as a real token turned over is, so a flip
+ * swings the outline over instead of the teeth jumping round. Whichever side of the layer it is on, the face showing the
+ * token's back lies on that mirrored gear and the face showing its front on the gear the page cuts.
+ */
+function tokenFaceGeometry(meshes: SharedMeshes, cut: TokenCut, showsFront = true) {
+  if (cut === 'gear') {
+    return meshes.gearPlane(TROOP_FACE_RADIUS, !showsFront);
+  }
+  return cut === 'round'
+    ? meshes.circle(TROOP_FACE_RADIUS, 48)
+    : meshes.plane(TROOP_FACE_RADIUS * 2, TROOP_FACE_RADIUS * 2 * cut.ratio);
 }
 
 const FaceArrivalContext = createContext(false);
@@ -257,7 +245,17 @@ function ArrivingFaceMaterial({ texture }: { texture: Texture }) {
   return <meshBasicMaterial ref={material} map={texture} transparent />;
 }
 
-function PublishedFace({ href, card, ratio }: { href: string; card: boolean; ratio?: number | null }) {
+function PublishedFace({
+  href,
+  card,
+  cut = 'round',
+  showsFront = true,
+}: {
+  href: string;
+  card: boolean;
+  cut?: TokenCut;
+  showsFront?: boolean;
+}) {
   const meshes = useSharedMeshes();
   /* Piece art skips useTexture so a missing publication image retries in place instead of suspending the table. */
   const texture = usePublishedFace(href) ?? null;
@@ -268,7 +266,9 @@ function PublishedFace({ href, card, ratio }: { href: string; card: boolean; rat
       position={[0, 0, 0.002]}
       renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
       geometry={
-        card ? meshes.roundedPlane(CARD_WIDTH, CARD_DEPTH, CARD_CORNER_RADIUS) : tokenFaceGeometry(meshes, ratio)
+        card
+          ? meshes.roundedPlane(CARD_WIDTH, CARD_DEPTH, CARD_CORNER_RADIUS)
+          : tokenFaceGeometry(meshes, cut, showsFront)
       }
     >
       {/* Printed art is drawn unlit: the warm table light washed out card, leader and token faces (#1756). The renderer still tone maps the whole frame in its output pass. The placeholder stays lit, like the piece beneath it. */}
@@ -279,7 +279,13 @@ function PublishedFace({ href, card, ratio }: { href: string; card: boolean; rat
           <meshBasicMaterial key={href} map={texture} transparent />
         )
       ) : (
-        <meshStandardMaterial key="placeholder" color="#d5ba8c" transparent roughness={0.68} metalness={0} />
+        <meshStandardMaterial
+          key="placeholder"
+          color={playUiColors.placeholder}
+          transparent
+          roughness={0.68}
+          metalness={0}
+        />
       )}
     </mesh>
   );
@@ -313,14 +319,14 @@ function SittingOutSign() {
   return (
     <group position={[0, 0, 0.003]}>
       <mesh renderOrder={PHYSICAL_OBJECT_RENDER_ORDER} geometry={meshes.ring(SITTING_OUT_INNER, SITTING_OUT_OUTER, 64)}>
-        <meshBasicMaterial color="#000000" />
+        <meshBasicMaterial color={rendererColors.black} />
       </mesh>
       <mesh
         rotation={[0, 0, Math.PI / 4]}
         renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
         geometry={meshes.plane(SITTING_OUT_INNER * 2, SITTING_OUT_STROKE)}
       >
-        <meshBasicMaterial color="#000000" />
+        <meshBasicMaterial color={rendererColors.black} />
       </mesh>
     </group>
   );
@@ -331,7 +337,7 @@ function plainTokenFaceColor(piece: TablePiece, faceUp: boolean, printed: boolea
   if (printed) {
     return piece.color;
   }
-  return faceUp ? piece.accent : '#261c18';
+  return faceUp ? piece.accent : playUiColors.faceDownInk;
 }
 
 function TokenFace({
@@ -339,22 +345,23 @@ function TokenFace({
   faceUp,
   underside = false,
   itemIndex,
+  cut,
 }: {
   piece: TablePiece;
   faceUp: boolean;
   underside?: boolean;
   itemIndex: number;
+  cut: TokenCut;
 }) {
   const meshes = useSharedMeshes();
   /* A faction token has no back of its own: face down, it shows its front under a black prohibition sign. */
   const blocked = !faceUp && isFactionToken(piece);
   const href = piece.items[itemIndex]?.artwork?.[faceUp || blocked ? 'front' : 'back'];
-  const ratio = tokenBoxRatio(piece);
   return (
     <PieceFace height={TROOP_LAYER_HEIGHT} underside={underside}>
-      {href && <PublishedFace href={href} card={false} ratio={ratio} />}
+      {href && <PublishedFace href={href} card={false} cut={cut} showsFront={faceUp} />}
       {blocked && <SittingOutSign />}
-      <mesh renderOrder={PHYSICAL_OBJECT_RENDER_ORDER} geometry={tokenFaceGeometry(meshes, ratio)}>
+      <mesh renderOrder={PHYSICAL_OBJECT_RENDER_ORDER} geometry={tokenFaceGeometry(meshes, cut, faceUp)}>
         <meshStandardMaterial color={plainTokenFaceColor(piece, faceUp, !!href)} roughness={0.5} metalness={0.08} />
       </mesh>
       {!faceUp && !piece.items[itemIndex]?.artwork ? (
@@ -378,7 +385,7 @@ function TroopStackLayers({ piece }: { piece: TablePiece }) {
   const meshes = useSharedMeshes();
   const shownLayers = visibleLayerCount(piece);
   const scale = troopScale(piece);
-  const ratio = tokenBoxRatio(piece);
+  const cut = tokenCut(piece);
   return (
     <group scale={[scale, 1, scale]}>
       {Array.from({ length: shownLayers }, (_, index) => {
@@ -391,22 +398,33 @@ function TroopStackLayers({ piece }: { piece: TablePiece }) {
             <mesh
               position={[0, TROOP_LAYER_HEIGHT / 2, 0]}
               renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
+              /* A face-down layer is turned over: a disc stands on its other end, and a gear is mirrored under its faces. */
               rotation={[0, 0, faceUp ? 0 : Math.PI]}
-              geometry={
-                ratio != null
-                  ? meshes.box(TROOP_TOP_RADIUS * 2, TROOP_LAYER_HEIGHT, TROOP_TOP_RADIUS * 2 * ratio)
-                  : meshes.cylinder(TROOP_TOP_RADIUS, TROOP_BOTTOM_RADIUS, TROOP_LAYER_HEIGHT, 48)
-              }
+              geometry={tokenLayerGeometry(meshes, cut)}
             >
               <meshStandardMaterial color={piece.color} roughness={0.56} metalness={0.1} />
             </mesh>
-            {index === shownLayers - 1 ? <TokenFace piece={piece} faceUp={faceUp} itemIndex={itemIndex} /> : null}
-            {index === 0 ? <TokenFace piece={piece} faceUp={!faceUp} underside itemIndex={itemIndex} /> : null}
+            {index === shownLayers - 1 ? (
+              <TokenFace piece={piece} faceUp={faceUp} itemIndex={itemIndex} cut={cut} />
+            ) : null}
+            {index === 0 ? (
+              <TokenFace piece={piece} faceUp={!faceUp} underside itemIndex={itemIndex} cut={cut} />
+            ) : null}
           </group>
         );
       })}
     </group>
   );
+}
+
+/* One layer of a token stack in its outline. */
+function tokenLayerGeometry(meshes: SharedMeshes, cut: TokenCut) {
+  if (cut === 'gear') {
+    return meshes.gearSlab(TROOP_TOP_RADIUS, TROOP_LAYER_HEIGHT);
+  }
+  return cut === 'round'
+    ? meshes.cylinder(TROOP_TOP_RADIUS, TROOP_BOTTOM_RADIUS, TROOP_LAYER_HEIGHT, 48)
+    : meshes.box(TROOP_TOP_RADIUS * 2, TROOP_LAYER_HEIGHT, TROOP_TOP_RADIUS * 2 * cut.ratio);
 }
 
 /* How far a hand-stacked layer may sit off the one above it, and how far it may turn. */
@@ -454,7 +472,11 @@ function CardFace({
         renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
         geometry={meshes.roundedPlane(CARD_WIDTH, CARD_DEPTH, CARD_CORNER_RADIUS)}
       >
-        <meshStandardMaterial color={faceUp ? piece.color : '#2b1a1a'} roughness={0.68} metalness={0.03} />
+        <meshStandardMaterial
+          color={faceUp ? piece.color : playUiColors.faceDownCard}
+          roughness={0.68}
+          metalness={0.03}
+        />
       </mesh>
       {covered ? null : (
         <mesh position={[0, 0, 0.001]} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER} geometry={meshes.plane(0.58, 0.82)}>
@@ -487,7 +509,7 @@ function CardStackLayers({ piece }: { piece: TablePiece }) {
               renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
               geometry={meshes.roundedSlab(CARD_WIDTH, CARD_LAYER_HEIGHT, CARD_DEPTH, CARD_CORNER_RADIUS)}
             >
-              <meshStandardMaterial color="#ead9bb" roughness={0.68} metalness={0.03} />
+              <meshStandardMaterial color={gameAssetColors.pieceAccent} roughness={0.68} metalness={0.03} />
             </mesh>
             <CardFace piece={piece} faceUp={faceUp} covered={index < shownLayers - 1} itemIndex={itemIndex} />
             <CardFace piece={piece} faceUp={!faceUp} underside covered={index > 0} itemIndex={itemIndex} />
@@ -535,7 +557,7 @@ function SpiceLayers({ piece }: { piece: TablePiece }) {
             renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
             geometry={meshes.cylinder(SPICE_TOKEN_RADIUS, SPICE_TOKEN_RADIUS, SPICE_LAYER_HEIGHT, 48)}
           >
-            <meshStandardMaterial color="#b8842f" roughness={0.8} metalness={0} />
+            <meshStandardMaterial color={gameAssetColors.spiceStack} roughness={0.8} metalness={0} />
           </mesh>
           <SpiceFace />
         </group>
@@ -569,7 +591,7 @@ function SpiceFace() {
         renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
         geometry={meshes.circle(SPICE_TOKEN_RADIUS * 0.79, 48)}
       >
-        <meshStandardMaterial color="#f6d77f" roughness={1} metalness={0} />
+        <meshStandardMaterial color={gameAssetColors.spiceFallbackFace} roughness={1} metalness={0} />
       </mesh>
       <SpiceStackIcon y={SPICE_LAYER_HEIGHT} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER} />
     </>
@@ -706,7 +728,6 @@ function useScenePointerSession(onActiveChange: (active: boolean) => void) {
  * R3F's own `pointerleave` on its wrapper clears only pointer id 0, and a Chromium mouse is id 1, so its hover would outlive the leave.
  * Its `onPointerCancel` handler forgets the given pointer and fires the real leave handlers, and the next move over an object enters it afresh.
  * The leave is heard on the canvas too, because drei's `Html` overlays sit inside the wrapper, so a move onto one leaves the canvas but not the wrapper.
- * A touch is left alone: it leaves after every tap, before the click that R3F can only deliver while it still remembers the pointer.
  */
 function useCanvasHoverReset() {
   const connected = useThree((state) => state.events.connected as EventTarget | undefined);
@@ -718,11 +739,7 @@ function useCanvasHoverReset() {
       return;
     }
     const canvas = renderer.domElement;
-    const leave = (event: PointerEvent) => {
-      if (event.pointerType !== 'touch') {
-        cancel(event);
-      }
-    };
+    const leave = (event: PointerEvent) => cancel(event);
     const cancelAll = () => {
       for (const pointerId of internal.pointerMap.keys()) {
         cancel(new PointerEvent('pointercancel', { pointerId }));
@@ -765,8 +782,8 @@ function pieceHoverCursor(canInteract: boolean, interactionBlocked: boolean, ges
   return gestureBlocked ? 'not-allowed' : 'grab';
 }
 
-/* Opens a piece's menu at a point; `touch` says a finger asked for it, which has no keyboard shortcut to offer. */
-const PieceMenuContext = createContext<((pieceId: string, x: number, y: number, touch: boolean) => void) | null>(null);
+/* Opens a piece's menu at a point. */
+const PieceMenuContext = createContext<((pieceId: string, x: number, y: number) => void) | null>(null);
 
 function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carrying }: TablePieceMeshProps) {
   const { selectPiece, setHoveredPiece } = useTabletopActions();
@@ -776,8 +793,6 @@ function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carr
   const pointerSession = usePointerSession();
   const gestureBlocked = gestureBlockReason(piece);
   const hasMenu = !carrying && pieceHasMenu(piece);
-  const stopLongPress = useRef<(() => void) | null>(null);
-  useEffect(() => () => stopLongPress.current?.(), []);
   /* Only a left press handles a piece, and none does while the table blocks it or the paintbrush is on. */
   const ignoresPress = (event: ThreeEvent<PointerEvent>) => {
     const notLeftOrBlocked = event.button !== 0 || interactionBlocked;
@@ -798,10 +813,7 @@ function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carr
     onContextMenu: (event: ThreeEvent<MouseEvent>) => {
       if (hasMenu && openPieceMenu) {
         event.stopPropagation();
-        const { clientX, clientY } = event.nativeEvent;
-        /* Android's long-press context menu is a touch pointer event. */
-        const touch = 'pointerType' in event.nativeEvent && event.nativeEvent.pointerType === 'touch';
-        openPieceMenu(piece.id, clientX, clientY, touch);
+        openPieceMenu(piece.id, event.nativeEvent.clientX, event.nativeEvent.clientY);
       }
     },
     /* While the paintbrush is on, a click on a piece paints the territory under it, and the piece is neither picked up nor selected. */
@@ -819,28 +831,6 @@ function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carr
         return;
       }
       selectPiece(piece.id);
-      /*
-       * A touch has no right-click, and iOS never turns a long press into a context menu, so a finger resting on a deck or spice opens the same menu.
-       * A finger that moves first is carrying the piece, and the menu leaves it alone.
-       */
-      stopLongPress.current?.();
-      stopLongPress.current = null;
-      if (event.pointerType === 'touch' && hasMenu && openPieceMenu) {
-        const { clientX, clientY } = event.nativeEvent;
-        stopLongPress.current = watchLongPress(window, event.nativeEvent, () => {
-          stopLongPress.current = null;
-          if (pointerSession.isDragging(piece.id)) {
-            return;
-          }
-          /* Only this finger's press stops; another finger may be carrying another piece. */
-          if (pointerSession.isPressing(piece.id)) {
-            pointerSession.cancel();
-          }
-          stopLongPress.current = swallowLift(window, { clientX, clientY });
-          /* Android also sends a context menu for the long press; opening the same menu twice changes nothing. */
-          openPieceMenu(piece.id, clientX, clientY, true);
-        });
-      }
       if (gestureBlocked) {
         return;
       }
@@ -848,24 +838,22 @@ function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carr
     },
     onPointerEnter: (event: ThreeEvent<PointerEvent>) => {
       event.stopPropagation();
-      /* A finger has no hover: its leave is never heard, so a tap's jitter would leave the piece armed for the keys after the selection moves on. */
-      if (event.pointerType === 'touch') {
-        return;
-      }
       if (!interactionBlocked) {
         hovered.current = true;
         setHoveredPiece(piece.id);
       }
-      get().renderer.domElement.style.cursor = pieceHoverCursor(
-        canHandleTable,
-        interactionBlocked,
-        Boolean(gestureBlocked)
-      );
+      if (!pointerSession.busy) {
+        get().renderer.domElement.style.cursor = pieceHoverCursor(
+          canHandleTable,
+          interactionBlocked,
+          Boolean(gestureBlocked)
+        );
+      }
     },
     onPointerLeave: () => {
       hovered.current = false;
       setHoveredPiece(null);
-      if (!pointerSession.isDragging(piece.id)) {
+      if (!pointerSession.busy) {
         get().renderer.domElement.style.cursor = 'default';
       }
     },
@@ -916,7 +904,9 @@ function PieceSelectionRing({
       geometry={selectionRingGeometry(meshes, piece)}
     >
       <meshBasicMaterial
-        color={stackTargeted ? '#f6bd55' : drafted ? '#f6c879' : '#fff0c9'}
+        color={
+          stackTargeted ? playUiColors.stackTarget : drafted ? playUiColors.draftHighlight : playUiColors.pieceLabel
+        }
         {...PIECE_SELECTION_RING_MATERIAL}
       />
     </mesh>
@@ -975,7 +965,7 @@ function PieceLock({ piece }: { piece: TablePiece }) {
       renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
       geometry={meshes.box(0.16, 0.19, 0.09)}
     >
-      <meshStandardMaterial color="#251912" roughness={0.6} metalness={0.3} />
+      <meshStandardMaterial color={playUiColors.nameplate} roughness={0.6} metalness={0.3} />
     </mesh>
   );
   return piece.kind === 'force' ? <group scale={0.5 * troopScale(piece)}>{lock}</group> : lock;
@@ -1078,7 +1068,7 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
                 side={DoubleSide}
               >
                 {/* Attached as drei attached its own: a `map` property would have Fiber mark the texture sRGB and darken the shadow. */}
-                <primitive object={meshes.contactShadow('#100906', 0.18)} attach="map" />
+                <primitive object={meshes.contactShadow(playUiColors.contactShadow, 0.18)} attach="map" />
               </meshBasicMaterial>
             </mesh>
           </group>
@@ -1119,28 +1109,17 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
   );
 });
 
-function useSceneInteractions(onInteractionActiveChange: TabletopSceneProps['onInteractionActiveChange']) {
-  const gestureActivePieceId = useTabletopSelector((table) => table.gestureActivePieceId);
-  const [pointerActive, setPointerActive] = useState(false);
-  const onPointerSessionChange = useCallback(
-    (nextActive: boolean) => {
-      setPointerActive(nextActive);
-      if (nextActive) {
-        onInteractionActiveChange?.(true);
-      }
-    },
-    [onInteractionActiveChange]
-  );
-  const sceneInteractionActive = pointerActive || gestureActivePieceId !== null;
-
-  useEffect(() => {
-    onInteractionActiveChange?.(sceneInteractionActive);
-  }, [onInteractionActiveChange, sceneInteractionActive]);
-  useEffect(() => () => onInteractionActiveChange?.(false), [onInteractionActiveChange]);
-
-  return {
-    controlsEnabled: !gestureActivePieceId && !pointerActive,
-    onPointerSessionChange,
+function boardSelection(
+  board: GameSnapshot['board'],
+  view: Parameters<typeof paintClick>[2] & Pick<TabletopSceneProps, 'readOnly'>,
+  selectPiece: TabletopContextValue['selectPiece']
+) {
+  return (event: ThreeEvent<MouseEvent>) => {
+    if (view.readOnly) {
+      return;
+    }
+    paintClick(event, board, view);
+    selectPiece(null);
   };
 }
 
@@ -1154,16 +1133,25 @@ function SceneContents({
   stage,
   mapVisible,
   presentation,
+  readOnly = false,
   drawBoard = true,
 }: Pick<
   TabletopSceneProps,
-  'cameraView' | 'onInteractionActiveChange' | 'seatCount' | 'tableProgress' | 'stage' | 'mapVisible' | 'presentation'
+  | 'cameraView'
+  | 'onInteractionActiveChange'
+  | 'seatCount'
+  | 'tableProgress'
+  | 'stage'
+  | 'mapVisible'
+  | 'presentation'
+  | 'readOnly'
 > & {
   drawBoard?: boolean;
   trackerSlots: readonly TrackerArcSlot[];
   mapFramingPoints: readonly Vector3Tuple[];
 }) {
   const table = useTabletop();
+  const palette = useTablePalette();
   const board = useTabletopSelector((value) => value.snapshot.board);
   const tints = useTabletopSelector((value) => value.snapshot.tints);
   const { state, renderedPieces, selectPiece } = table;
@@ -1176,28 +1164,26 @@ function SceneContents({
     <>
       {presentation !== 'preview' && (
         <>
-          <color attach="background" args={['#130d0a']} />
-          <fog attach="fog" args={['#130d0a', 10, 22]} />
+          <color attach="background" args={[palette.ground]} />
+          <fog attach="fog" args={[palette.ground, 10, 22]} />
         </>
       )}
       {presentation !== 'preview' && (
-        <Suspense fallback={null}>
-          <ScenePresence showNames trackerSlots={trackerSlots} />
-          <ScenePings />
-        </Suspense>
+        <>
+          <Suspense fallback={null}>
+            <ScenePresence showNames trackerSlots={trackerSlots} />
+            <ScenePings />
+          </Suspense>
+          <SceneCardDraws />
+        </>
       )}
-      <group
-        onClick={(event) => {
-          paintClick(event, board, { stage, mapVisible });
-          selectPiece(null);
-        }}
-      >
+      <group onClick={boardSelection(board, { stage, mapVisible, readOnly }, selectPiece)}>
         {drawBoard && (
           <TabletopBoard
             board={board}
             tints={tints}
             seatCount={seatCount}
-            interactive
+            interactive={!readOnly}
             stormSectorIndex={state.stormSectorIndex}
             stage={stage}
             mapVisible={mapVisible}
@@ -1242,9 +1228,11 @@ export function TabletopScene({
   onSceneReady,
   onSceneUnavailable,
   presentation = 'play',
+  readOnly = false,
   stage,
   mapVisible,
 }: TabletopSceneProps) {
+  const editing = presentation === 'play' && !readOnly;
   const { takeAdditionalFromTarget } = useTabletopCommands();
   /* The frame around the canvas follows only what it shows, so a held piece moving renders the pieces and not the canvas. */
   const hasDraft = useTabletopSelector((table) => table.state.draftMove !== null);
@@ -1253,17 +1241,7 @@ export function TabletopScene({
   );
   const [pieceMenu, setPieceMenu] = useState<PieceMenuAnchor | null>(null);
   /* One opener for the table's life: a new one on every update would render every piece again. */
-  const openPieceMenu = useCallback(
-    (pieceId: string, x: number, y: number, touch: boolean) =>
-      /* A long press may also send a context menu; the second opening keeps the finger's menu. */
-      setPieceMenu((current) => ({
-        pieceId,
-        x,
-        y,
-        touch: touch || (current?.pieceId === pieceId && current.touch),
-      })),
-    []
-  );
+  const openPieceMenu = useCallback((pieceId: string, x: number, y: number) => setPieceMenu({ pieceId, x, y }), []);
   /* A custom faction with four or more troop kinds spreads its reserves wider than the stock framing reaches. */
   const troopKinds = useTabletopSelector((table) => widestTroopSupply(table.state.pieces));
   const { tableProgress, trackerSlots, mapFramingPoints, camera } = useTableFraming(
@@ -1286,7 +1264,7 @@ export function TabletopScene({
         }
       }}
     >
-      {presentation === 'play' && (
+      {editing && (
         <Suspense fallback={null}>
           <TabletopTools
             pieceMenu={pieceMenu}
@@ -1296,7 +1274,7 @@ export function TabletopScene({
           />
         </Suspense>
       )}
-      <PieceMenuContext.Provider value={presentation === 'play' && menuAvailable ? openPieceMenu : null}>
+      <PieceMenuContext.Provider value={editing && menuAvailable ? openPieceMenu : null}>
         <TabletopCanvas
           camera={camera}
           presentation={presentation}
@@ -1305,6 +1283,7 @@ export function TabletopScene({
         >
           {children}
           <SceneContents
+            readOnly={readOnly}
             presentation={presentation}
             stage={stage}
             mapVisible={mapVisible}

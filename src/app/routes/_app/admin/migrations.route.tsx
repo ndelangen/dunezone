@@ -1,19 +1,19 @@
-import { Group, Stack } from '@mantine/core';
-import { createFileRoute } from '@tanstack/react-router';
+import { Anchor, Group, Stack, Table } from '@mantine/core';
+import { createFileRoute, Link } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
+import { Section } from '@ui/block/Section';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { RefreshCw } from 'lucide-react';
 
 import { useAdminMigrationDashboard, useSyncMigrationRuns } from '@db/migrations';
-import { useSessionViewer } from '@db/profiles';
 import { pageHead } from '@app/routes/pageTitle';
-import { AdminGate, AdminPageLoading } from '@app/widgets/page-message/AdminGate';
+import { AdminPageLoading } from '@app/widgets/page-message/AdminGate';
 
 export const Route = createFileRoute('/_app/admin/migrations')({
   head: () => pageHead('Migration activity'),
-  component: AdminMigrationsPage,
+  component: MigrationDashboard,
 });
 
 function formatDate(timestamp?: number) {
@@ -24,22 +24,6 @@ function formatDate(timestamp?: number) {
 }
 
 const migrationsHeader = <PageTitle title="Migration activity" />;
-
-function AdminMigrationsPage() {
-  const viewer = useSessionViewer();
-  return (
-    <AdminGate
-      viewer={viewer}
-      title="Migration activity"
-      action="view migration activity"
-      loading={<MigrationsLoading />}
-      deniedTitle="You cannot view migration activity"
-      deniedMessage="Your account does not have permission to view migration activity."
-    >
-      <MigrationDashboard />
-    </AdminGate>
-  );
-}
 
 function MigrationsLoading() {
   return <AdminPageLoading title="Migration activity">The migration dashboard is still loading.</AdminPageLoading>;
@@ -57,81 +41,90 @@ function MigrationDashboard() {
   return (
     <PageLayout>
       <PageLayout.Header>{migrationsHeader}</PageLayout.Header>
+      <PageLayout.Toolbar>
+        <Anchor renderRoot={(props) => <Link {...props} to="/admin" />}>All admin tools</Anchor>
+      </PageLayout.Toolbar>
       <PageLayout.Content>
         <Stack gap="sm">
-          <Surface padding="lg">
-            <Stack gap="xs">
-              <h2>Live migration status</h2>
-              <Group gap="xs" wrap="nowrap">
-                <IconAction
-                  label="Sync migration status"
-                  tooltip="Sync status snapshot to migration_runs table"
-                  emphasis="strong"
-                  intent="positive"
-                  size="lg"
-                  disabled={syncRuns.isPending}
-                  onClick={() => syncRuns.mutate({})}
-                  icon={<RefreshCw size={16} aria-hidden />}
-                />
-              </Group>
-              <table>
-                <thead>
-                  <tr>
-                    <th align="left">Migration</th>
-                    <th align="left">State</th>
-                    <th align="left">Done</th>
-                    <th align="left">Processed</th>
-                    <th align="left">Started</th>
-                    <th align="left">Ended</th>
-                    <th align="left">Error</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {dashboard.statuses.map((row) => (
-                    <tr key={row.name}>
-                      <td>{row.name}</td>
-                      <td>{row.state}</td>
-                      <td>{row.isDone ? 'yes' : 'no'}</td>
-                      <td>{row.processed}</td>
-                      <td>{formatDate(row.latestStart)}</td>
-                      <td>{formatDate(row.latestEnd)}</td>
-                      <td>{row.error ?? '-'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </Stack>
-          </Surface>
+          <Section title="Live migration status">
+            <Surface padding="lg">
+              <Stack gap="xs">
+                <Group gap="xs" wrap="nowrap">
+                  <IconAction
+                    label="Sync migration status"
+                    tooltip="Sync status snapshot to migration_runs table"
+                    emphasis="strong"
+                    intent="positive"
+                    size="lg"
+                    disabled={syncRuns.isPending}
+                    onClick={() => syncRuns.mutate({})}
+                    icon={<RefreshCw size={16} aria-hidden />}
+                  />
+                </Group>
+                <Table.ScrollContainer minWidth={800}>
+                  <Table striped>
+                    <Table.Thead>
+                      <Table.Tr>
+                        <Table.Th>Migration</Table.Th>
+                        <Table.Th>State</Table.Th>
+                        <Table.Th>Done</Table.Th>
+                        <Table.Th>Processed</Table.Th>
+                        <Table.Th>Started</Table.Th>
+                        <Table.Th>Ended</Table.Th>
+                        <Table.Th>Error</Table.Th>
+                      </Table.Tr>
+                    </Table.Thead>
+                    <Table.Tbody>
+                      {dashboard.statuses.map((row) => (
+                        <Table.Tr key={row.name}>
+                          <Table.Td>{row.name}</Table.Td>
+                          <Table.Td>{row.state}</Table.Td>
+                          <Table.Td>{row.isDone ? 'yes' : 'no'}</Table.Td>
+                          <Table.Td>{row.processed}</Table.Td>
+                          <Table.Td>{formatDate(row.latestStart)}</Table.Td>
+                          <Table.Td>{formatDate(row.latestEnd)}</Table.Td>
+                          <Table.Td>{row.error ?? '-'}</Table.Td>
+                        </Table.Tr>
+                      ))}
+                    </Table.Tbody>
+                  </Table>
+                </Table.ScrollContainer>
+              </Stack>
+            </Surface>
+          </Section>
 
-          <Surface padding="lg">
-            <Stack gap="xs">
-              <h2>Recorded snapshots</h2>
-              <table>
-                <thead>
-                  <tr>
-                    <th align="left">Migration ID</th>
-                    <th align="left">State</th>
-                    <th align="left">Done</th>
-                    <th align="left">Processed</th>
-                    <th align="left">Updated</th>
-                    <th align="left">Error</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {dashboard.snapshots.map((row) => (
-                    <tr key={row._id}>
-                      <td>{row.migration_id}</td>
-                      <td>{row.state}</td>
-                      <td>{row.is_done ? 'yes' : 'no'}</td>
-                      <td>{row.processed}</td>
-                      <td>{row.updated_at}</td>
-                      <td>{row.error ?? '-'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </Stack>
-          </Surface>
+          <Section title="Recorded snapshots">
+            <Surface padding="lg">
+              <Stack gap="xs">
+                <Table.ScrollContainer minWidth={800}>
+                  <Table striped>
+                    <Table.Thead>
+                      <Table.Tr>
+                        <Table.Th>Migration ID</Table.Th>
+                        <Table.Th>State</Table.Th>
+                        <Table.Th>Done</Table.Th>
+                        <Table.Th>Processed</Table.Th>
+                        <Table.Th>Updated</Table.Th>
+                        <Table.Th>Error</Table.Th>
+                      </Table.Tr>
+                    </Table.Thead>
+                    <Table.Tbody>
+                      {dashboard.snapshots.map((row) => (
+                        <Table.Tr key={row._id}>
+                          <Table.Td>{row.migration_id}</Table.Td>
+                          <Table.Td>{row.state}</Table.Td>
+                          <Table.Td>{row.is_done ? 'yes' : 'no'}</Table.Td>
+                          <Table.Td>{row.processed}</Table.Td>
+                          <Table.Td>{row.updated_at}</Table.Td>
+                          <Table.Td>{row.error ?? '-'}</Table.Td>
+                        </Table.Tr>
+                      ))}
+                    </Table.Tbody>
+                  </Table>
+                </Table.ScrollContainer>
+              </Stack>
+            </Surface>
+          </Section>
         </Stack>
       </PageLayout.Content>
     </PageLayout>

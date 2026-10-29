@@ -3,7 +3,7 @@ import { describe, expect, test } from 'vite-plus/test';
 import { rulebookContentsV1Schema, rulebookDraftEntitySchemas, rulebookEditionContentsV1Schema } from './contents';
 import type { RulebookContentsDraftV1 } from './contents';
 import { projectRulebookDraftRenderDocument, projectRulebookRenderDocument } from './projectRenderDocument';
-import { collectRulebookReferenceIds } from './references';
+import { assertRulebookReferences, collectRulebookReferenceIds } from './references';
 import { rulebookRenderDocumentV1Schema } from './renderDocument';
 import { DEFAULT_RULEBOOK_SETTINGS } from './settings';
 
@@ -161,4 +161,28 @@ describe('Rulebook Card guide contracts', () => {
       ['pagesById', 'PAGE', 'blocksById', 'GRUP', 'itemsById', 'maula', 'text'],
     ]);
   });
+});
+
+test('fan groups preserve Storm card identities and reject unrelated asset types', () => {
+  const contents = cardGuides();
+  const { group } = guides(contents);
+  group.variant = 'fan';
+  const assets = {
+    lasgun: { assetId: 'lasgun', name: 'Lasgun', type: 'card-treachery', imageUrl: '/lasgun.jpg' },
+    maula: { assetId: 'maula', name: 'Storm 1', type: 'card-storm', imageUrl: '/storm1.jpg' },
+    crysknife: { assetId: 'crysknife', name: 'Storm 2', type: 'card-storm', imageUrl: '/storm2.jpg' },
+  };
+  expect(() => assertRulebookReferences(contents, assets, {})).not.toThrow();
+  const document = projectRulebookRenderDocument(contents, assets, DEFAULT_RULEBOOK_SETTINGS);
+  const projected = document.pagesById.PAGE!.regions[0]!.blocks.find((block) => block.kind === 'card-group');
+  expect(projected).toMatchObject({
+    variant: 'fan',
+    items: [
+      { id: 'crysknife', source: { status: 'ready', assetType: 'card-storm' } },
+      { id: 'maula', source: { status: 'ready', assetType: 'card-storm' } },
+    ],
+  });
+  expect(() =>
+    assertRulebookReferences(contents, { ...assets, maula: { ...assets.maula, type: 'token-disc' } }, {})
+  ).toThrow('card-storm');
 });

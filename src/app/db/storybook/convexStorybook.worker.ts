@@ -141,6 +141,7 @@ async function createWorld(seed: SeedDocument[]): Promise<World> {
   world.test.registerComponent('profileActivity', aggregateSchema, aggregateModules);
   world.test.registerComponent('profileDiscovery', aggregateSchema, aggregateModules);
   world.test.registerComponent('catalogueOrder', aggregateSchema, aggregateModules);
+  world.test.registerComponent('publicationQueue', aggregateSchema, aggregateModules);
   world.test.registerComponent('migrations', migrationsSchema, migrationsModules);
   world.test.registerComponent('rateLimiter', rateLimiterSchema, rateLimiterModules);
   await insertDocuments(world, seed);
@@ -321,7 +322,7 @@ async function runExplicitFrameBaseline() {
 }
 
 async function runConvexHelperGate() {
-  const reference = makeFunctionReference<'query'>('rulesets:list');
+  const reference = makeFunctionReference<'query'>('rulesets:catalogue');
   try {
     const helperWorld = await createWorld([]);
     const handle = await helperWorld.test.run(async () => {

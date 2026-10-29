@@ -33,6 +33,7 @@ type Entry = {
   at?: number;
 };
 type Row = {
+  key: string;
   sequence: number;
   class: LogClass;
   template: string;
@@ -59,6 +60,20 @@ type VoteResult = {
   result: 'removed' | 'failed' | 'nullified';
   target: Person & { seat: string };
   ballots: Ballot[];
+  context: string;
+  at: number;
+};
+export type ReviewOutcome = 'started' | 'declined' | 'withdrawn' | 'ended';
+type ReviewBallot = { userId: string | null; name: string; choice: 'review' | 'decline' | null };
+type ReviewResult = {
+  id: string;
+  result: ReviewOutcome;
+  /* The checkpoint reviewed, as its step's context reads. */
+  checkpoint: string;
+  proposer: Person;
+  ballots: ReviewBallot[];
+  /* Who ended or withdrew it, or what did: a seat change, or the game ending. */
+  by: Person | 'seats' | 'game-ended' | null;
   context: string;
   at: number;
 };
@@ -136,24 +151,42 @@ export class PublicLog {
     this.record(voteEntry(vote));
   }
 
+  recordReview(review: ReviewResult) {
+    this.record(reviewEntry(review));
+  }
+
   page(tab: LogTab, before: number): { entries: LogEntry[]; more: boolean } {
     const classes = (Object.keys(LOG_CLASS_TABS) as LogClass[]).filter((entry) => LOG_CLASS_TABS[entry] === tab);
     const rows = this.storage.sql
       .exec<Row>(
-        `SELECT sequence, class, template, people, context, created_at FROM public_log WHERE class IN (${classes.map(() => '?').join(',')}) AND sequence<? ORDER BY sequence DESC LIMIT ?`,
+        `SELECT sequence, key, class, template, people, context, created_at FROM public_log WHERE class IN (${classes.map(() => '?').join(',')}) AND sequence<? ORDER BY sequence DESC LIMIT ?`,
         ...classes,
         before,
         LOG_PAGE_SIZE + 1
       )
       .toArray();
     return {
-      entries: rows.slice(0, LOG_PAGE_SIZE).map((row) => ({
-        sequence: row.sequence,
-        class: row.class,
-        text: render(row.template, JSON.parse(row.people) as Person[]),
-        context: row.context,
-        at: row.created_at,
-      })),
+      entries: rows.slice(0, LOG_PAGE_SIZE).map((row) => {
+        // Old deletion templates did not distinguish a hidden token's name from its public label.
+        const template =
+          row.class === 'deletion' && !row.key.startsWith('deletion:v2:')
+            ? '{0} deleted a piece from the game.'
+            : row.template;
+        const text = render(template, JSON.parse(row.people) as Person[]);
+        const issueUrl =
+          row.class === 'bug-report'
+            ? /https:\/\/github\.com\/ndelangen\/dunezone\/issues\/\d+$/u.exec(text)?.[0]
+            : undefined;
+        return {
+          sequence: row.sequence,
+          class: row.class === 'bug-report' ? ('phase' as const) : row.class,
+          ...(row.class === 'bug-report' ? { event: 'bug-report' as const } : {}),
+          text,
+          context: row.context,
+          at: row.created_at,
+          ...(issueUrl ? { issueUrl } : {}),
+        };
+      }),
       more: rows.length > LOG_PAGE_SIZE,
     };
   }
@@ -270,7 +303,7 @@ function deletionEntries(
   }
   return [
     {
-      key: `deletion:${next.revision}`,
+      key: `deletion:v2:${next.revision}`,
       class: 'deletion',
       template: `{0} deleted ${literal(deletedName(piece))} from the game.`,
       people: [{ userId: viewer.userId, name: viewer.displayName }],
@@ -319,20 +352,13 @@ function stageEntry(before: Pick<StoredSnapshot, 'stage'>, next: StoredSnapshot)
   }
 }
 
-/* Inside play, a phase or turn command that moved the tracker is a step, a return or a turn. */
+/* Inside play, a phase command that moved the tracker is a step or a return. */
 function phaseChangeOf(before: StoredSnapshot, next: StoredSnapshot, message: CommitMessage): PhaseChange | undefined {
   const movedWithinPlay = before.stage === next.stage && next.stage === 'play' && before.phase !== next.phase;
-  if (message.type !== 'command' || !movedWithinPlay) {
+  if (message.type !== 'command' || message.action.kind !== 'phase' || !movedWithinPlay) {
     return undefined;
   }
-  switch (message.action.kind) {
-    case 'phase':
-      return message.action.direction === -1 ? 'back' : 'step';
-    case 'turn':
-      return 'turn';
-    default:
-      return undefined;
-  }
+  return message.action.direction === -1 ? 'back' : 'step';
 }
 
 /*
@@ -417,7 +443,7 @@ function predictionEntries(next: StoredSnapshot, action: PieceAction, faction: F
   ];
 }
 
-/* An alliance formed or grown names all its factions, and a faction leaving names the allies it left; offers stay out of the log. */
+/* An alliance formed names both its factions, and a faction leaving names the allies it left; offers stay out of the log. */
 function allianceEntries(
   before: StoredSnapshot,
   next: StoredSnapshot,
@@ -484,7 +510,7 @@ function disclosureEntries(
   const template = card
     ? `${who} revealed a card early: ${name(card)}.`
     : plan.disclosed.leader && !was?.leader
-      ? `${who} revealed its leader early: ${name(plan.leaderId)}.`
+      ? `${who} revealed ${plan.leaderIds.length > 1 ? 'its leaders' : 'its leader'} early: ${plan.leaderIds.map(name).join(', ')}.`
       : plan.disclosed.dial && !was?.dial
         ? `${who} revealed its dial early: ${plan.strength}.`
         : null;
@@ -627,6 +653,57 @@ function voteEntry(vote: VoteResult): Entry {
       ? `The vote about {0} ended without a result when they left ${seat}.`
       : `{0} ${vote.result === 'removed' ? 'is removed from' : 'keeps'} ${seat}: ${breakdown}.`;
   return { key: `vote:${vote.id}`, class: 'vote', template, people, context: vote.context, at: vote.at };
+}
+
+function reviewEntry(review: ReviewResult): Entry {
+  const people: Person[] = [review.proposer];
+  const named = (ballots: ReviewBallot[]) =>
+    list(
+      ballots.map((ballot) => {
+        people.push(ballot);
+        return `{${people.length - 1}}`;
+      })
+    );
+  const agreed = review.ballots.filter((ballot) => ballot.choice === 'review');
+  const declined = review.ballots.filter((ballot) => ballot.choice === 'decline');
+  const uncast = review.ballots.filter((ballot) => ballot.choice === null);
+  /* Only a vote that settled names its ballots, so a withdrawn or ended review names just who ended it. */
+  const breakdown = () =>
+    [
+      agreed.length ? `${named(agreed)} agreed` : '',
+      declined.length ? `${named(declined)} declined` : '',
+      uncast.length ? `${named(uncast)} did not vote` : '',
+    ]
+      .filter(Boolean)
+      .join('; ');
+  const by = () => {
+    if (review.by === 'game-ended') {
+      return 'as the game ended';
+    }
+    if (review.by === null || review.by === 'seats') {
+      return 'by a seat change';
+    }
+    people.push(review.by);
+    return `by {${people.length - 1}}`;
+  };
+  const checkpoint = literal(review.checkpoint);
+  const templates: Record<ReviewOutcome, () => string> = {
+    started: () => `The table recalls ${checkpoint}, as {0} proposed: ${breakdown()}.`,
+    declined: () => `The table declined {0}'s recall of ${checkpoint}: ${breakdown()}.`,
+    withdrawn: () => `The recall of ${checkpoint} {0} proposed was withdrawn ${by()}.`,
+    ended: () =>
+      review.by === 'game-ended'
+        ? `The recall of ${checkpoint} ended as the game ended.`
+        : `The recall of ${checkpoint} was ended ${by()}, and play resumed.`,
+  };
+  return {
+    key: `review:${review.id}:${review.result}`,
+    class: 'vote',
+    template: templates[review.result](),
+    people,
+    context: review.context,
+    at: review.at,
+  };
 }
 
 function list(names: string[]): string {

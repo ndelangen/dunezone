@@ -57,7 +57,7 @@ describe('Authored troop battle values in a real game', { timeout: 120_000 }, ()
     await runtime?.close();
     await peer?.close();
   });
-  const admit = (suffix: string) => admitPlayer(peer, runtime, suffix);
+  const admit = (suffix: string) => admitPlayer(runtime, suffix);
   const stored = async () =>
     storedSnapshotSchema.parse(
       JSON.parse((await runtime.exec<{ data: string }>('SELECT data FROM current_state'))[0].data)
@@ -200,7 +200,7 @@ describe('Authored troop battle values in a real game', { timeout: 120_000 }, ()
       troops: [{ faceId: 'troop-0-front', undialed: troops, dialed: 0 }],
       spice,
       adjustment: 0,
-      leaderId: null,
+      leaderIds: [],
       cardIds: [],
       ...extra,
     });

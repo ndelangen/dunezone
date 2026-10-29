@@ -1,0 +1,10 @@
+/* Raised tooltips stay distinct from the windows, using the app's warm mineral palette.
+ * The portal host carries this attribute, so the same treatment follows tooltips out of the table.
+ */
+[data-scheme-dark] {
+  --tip-surface: var(--button-neutral-hover-bg);
+  --tip-title: var(--color-brand-strong);
+  --tip-ring:
+    0 0 0 1px rgb(from var(--input-border-strong) r g b / var(--input-border-strong-alpha)),
+    0 0.5rem 1.5rem rgb(from var(--play-black) r g b / 0.55);
+}

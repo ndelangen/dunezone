@@ -6,7 +6,8 @@ import { initialSnapshot } from '../../src/shared/play/commands';
 import { freshTableState } from '../../src/shared/play/model';
 import { composeTurn } from '../../src/shared/play/phases';
 import { factionSupply, piece, place } from '../../src/shared/play/setupSupply';
-import { stackPreviewPositionFor } from '../../src/shared/play/tableGeometry';
+import { stackPreviewPositionFor, tokenBoxRatio, troopScale } from '../../src/shared/play/tableGeometry';
+import { piecesCanStack } from '../../src/shared/play/tablePhysics';
 import { applyDraftToState } from '../../src/shared/play/tableState';
 import {
   RoomProjection,
@@ -141,7 +142,7 @@ test('a viewer without a faction never takes an empty battle side as its own, ev
     troops: [],
     spice: 3,
     adjustment: 0,
-    leaderId: null,
+    leaderIds: [],
     cardIds: [],
     strength: 0,
     pieces: [],
@@ -163,53 +164,6 @@ test('a viewer without a faction never takes an empty battle side as its own, ev
 
   expect(projection.snapshot(stored).battlePlan).toBeNull();
   expect(projection.snapshot(stored, 'atreides').battlePlan).toMatchObject({ spice: 3 });
-});
-
-test('a game stored before the supported rename reads its battle faces and plan faces under the new names', () => {
-  const legacyFace = {
-    id: 'troop-0-front',
-    name: 'Guard',
-    capable: true,
-    strength: 0.5,
-    fundedStrength: 1,
-    fundingCost: 0,
-  };
-  const plan = {
-    mode: 'max',
-    troops: [],
-    spice: 0,
-    adjustment: 0,
-    leaderId: null,
-    cardIds: [],
-    strength: 0,
-    pieces: [],
-    faces: [legacyFace],
-  };
-  const stored = storedSnapshotSchema.parse({
-    ...initialSnapshot(),
-    combatFaces: { atreides: [legacyFace] },
-    battleState: {
-      id: 'battle',
-      anchor: [0, 0, 0],
-      territory: 'Arrakeen',
-      stage: 'preparing',
-      sides: [{ factionId: 'atreides', ready: false, choice: null }, null],
-      deadline: null,
-      plans: [plan, null],
-    },
-  });
-  const supported = {
-    id: 'troop-0-front',
-    name: 'Guard',
-    capable: true,
-    strength: 0.5,
-    supportedStrength: 1,
-    supportCost: 0,
-  };
-
-  expect(stored.combatFaces.atreides).toEqual([supported]);
-  expect(stored.battleState!.plans[0]!.faces).toEqual([supported]);
-  expect(JSON.stringify(stored)).not.toMatch(/fundedStrength|fundingCost/);
 });
 
 test('every viewer, spectators included, sees how many Treachery cards each seated faction holds, and nothing else of a hand', () => {
@@ -260,7 +214,7 @@ test('every viewer, spectators included, sees how many Treachery cards each seat
     troops: [],
     spice: 0,
     adjustment: 0,
-    leaderId: null,
+    leaderIds: [],
     cardIds: pieces.map((piece) => piece.id),
     strength: 0,
     pieces,
@@ -287,6 +241,51 @@ test('every viewer, spectators included, sees how many Treachery cards each seat
 
   expect(projection.snapshot(battle('preparing'), 'fremen').handCounts).toEqual({ atreides: 1, fremen: 0 });
   expect(projection.snapshot(battle('revealed'), 'fremen').handCounts).toEqual({ atreides: 0, fremen: 0 });
+});
+
+test("recall shows a seat's hand faces and preserves face-down private side-table pieces", () => {
+  const card = (id: string) => ({
+    ...piece(id, 'Secret Lasgun', 'atreides', '#000', 'card', `cards:${id}`),
+    items: [
+      {
+        id: `${id}-item`,
+        faceUp: false,
+        artwork: {
+          front: 'https://table.test/lasgun.jpg',
+          back: TRAITOR_BACK,
+          name: 'Secret Lasgun',
+          backName: 'Traitor',
+          type: 'card-traitor',
+        },
+      },
+    ],
+  });
+  const stored = storedSnapshotSchema.parse({
+    ...initialSnapshot(),
+    factionInventories: {
+      atreides: [card('hand'), { ...card('side'), hiddenZone: { x: 0, y: 0, turn: 3 } }],
+      fremen: [card('other-seat')],
+    },
+    handOrders: { atreides: ['hand'] },
+    factionBanks: { atreides: 7, fremen: 20 },
+    pieceHandles: { hand: 'held-hand', side: 'held-side' },
+  });
+  const inventory = new RoomProjection('secret').frozenInventory(stored, 'atreides');
+  expect(inventory.hand).toHaveLength(2);
+  expect(inventory.bank).toEqual({ factionId: 'atreides', balance: 7 });
+  expect(inventory.handOrder).toEqual(['held-hand']);
+  expect(inventory.hand![0]).toMatchObject({
+    id: 'held-hand',
+    items: [{ faceUp: true, artwork: { name: 'Secret Lasgun' } }],
+  });
+  expect(inventory.hand![1]).toMatchObject({
+    id: 'held-side',
+    label: 'Traitor',
+    hiddenZone: { x: 0, y: 0, turn: 3 },
+    items: [{ faceUp: false, artwork: { back: TRAITOR_BACK } }],
+  });
+  expect(inventory.hand![1]!.items[0]!.artwork).not.toHaveProperty('front');
+  expect(inventory.hand![1]!.items[0]!.artwork).not.toHaveProperty('name');
 });
 
 test('every viewer is sent the same sorted card faces, and a card taken out of the game stays among them, history included', () => {
@@ -409,4 +408,62 @@ test('a list that grows by an empty entry keeps its new length', () => {
   const first = { id: 'a' };
 
   expect(withUnchangedParts([first], [first, undefined])).toEqual([first, undefined]);
+});
+
+test('token privacy preserves physical shape, stack compatibility and authorized faces', () => {
+  const source = freshTableState().pieces.find((entry) => entry.kind === 'force')!;
+  const token = {
+    ...source,
+    label: 'Secret leader',
+    stackKey: 'leader:atreides:secret-member',
+    items: [
+      {
+        id: 'opaque-item',
+        faceUp: false,
+        artwork: {
+          front: 'https://table.test/secret.png',
+          back: 'https://table.test/back.png',
+          name: 'Secret leader',
+          type: 'token-enhance',
+          size: 1,
+          description: 'Secret ability',
+        },
+      },
+    ],
+  };
+  const projection = new RoomProjection('secret');
+  const hidden = projection.piece(token);
+  const visible = projection.piece(token, true);
+  const flipped = projection.piece({ ...token, items: token.items.map((item) => ({ ...item, faceUp: true })) });
+  expect(hidden).toMatchObject({
+    id: token.id,
+    label: 'Token',
+    position: token.position,
+    orientation: token.orientation,
+  });
+  expect(hidden.items[0]).toEqual({
+    id: 'opaque-item',
+    faceUp: false,
+    artwork: {
+      back: 'https://table.test/back.png',
+      backName: undefined,
+      type: 'token-enhance',
+      size: 1,
+    },
+  });
+  expect(hidden.stackKey).toMatch(/^leader:/);
+  expect(tokenBoxRatio(hidden)).toBe(tokenBoxRatio(token));
+  expect(troopScale(hidden)).toBe(troopScale(token));
+  expect(hidden.stackKey).not.toContain('secret-member');
+  expect(visible.stackKey).toBe(hidden.stackKey);
+  expect(flipped.stackKey).toBe(hidden.stackKey);
+  expect(visible.items).toEqual(token.items);
+  expect(visible.label).toBe(token.label);
+  expect(flipped.items[0].artwork).toEqual(token.items[0].artwork);
+  // Another audience's peek cannot warm a cache that exposes the face in the public copy.
+  expect(projection.piece(token)).toBe(hidden);
+  expect(piecesCanStack(hidden, flipped)).toBe(piecesCanStack(token, { ...token, items: flipped.items }));
+  expect(projection.piece({ ...token, stackKey: null }).stackKey).toBeNull();
+  const factionToken = { ...token, stackKey: 'faction-token:atreides' };
+  expect(projection.piece(factionToken)).toBe(factionToken);
 });

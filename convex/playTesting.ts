@@ -2,7 +2,7 @@ import { v } from 'convex/values';
 
 import type { PublicationAssetType } from '../src/shared/asset-publishing/publicationTargets';
 import { publicationFaceId, publishedR2Key, publishedHref } from '../src/shared/asset-publishing/publicationTargets';
-import { publishingDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
+import { publishingCustomDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
 import { publishingSpiceCard } from '../src/shared/assets/fixtures/publishingSpiceCard';
 import { publishingTokenFace } from '../src/shared/assets/fixtures/publishingTokenFace';
 import { publishingTreacheryCard } from '../src/shared/assets/fixtures/publishingTreacheryCard';
@@ -281,7 +281,7 @@ export const seedRealGameCatalogue = internalMutation({
         ...row,
         type: 'deck',
         slug: `synthetic-${slot}-deck-${suffix}`,
-        data: { name: `Synthetic ${slot} deck`, about: '', cardback: publishingDeckCardback },
+        data: { name: `Synthetic ${slot} deck`, about: '', cardback: publishingCustomDeckCardback },
       });
       publications.push(await publish(ctx, 'deck', deckId, 'back'));
       const member = SYNTHETIC_DECK_MEMBERS[slot];
@@ -329,7 +329,7 @@ export const seedRealGameCatalogue = internalMutation({
             : {}),
         }),
       });
-      await ctx.db.insert('ruleset_factions', { ruleset_id: rulesetId, faction_id: factionId });
+      await ctx.db.insert('ruleset_factions', { ruleset_id: rulesetId, faction_id: factionId, position: Date.now() });
       publications.push(await publish(ctx, 'faction-token', factionId, 'front'));
       publications.push(await publish(ctx, 'faction-token', publicationFaceId(factionId, 'back'), 'back'));
     }

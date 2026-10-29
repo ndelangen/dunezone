@@ -5,6 +5,7 @@ import { install } from '@sinonjs/fake-timers';
 import { expect, fn, userEvent, within } from 'storybook/test';
 
 import { ConfirmDeleteMenuItem } from './ConfirmDeleteMenuItem';
+import { HOLD_SECONDS } from './useHoldToConfirm';
 
 const meta = preview.meta({
   component: ConfirmDeleteMenuItem,
@@ -57,7 +58,7 @@ export const Disabled = meta.story({
     const clock = install({ toFake: ['setInterval', 'clearInterval'], shouldClearNativeTimers: true });
     try {
       await userEvent.pointer([{ keys: '[MouseLeft>]', target: item }], { pointerEventsCheck: 0 });
-      await clock.tickAsync(5000);
+      await clock.tickAsync(HOLD_SECONDS * 1000);
       await expect(args.onConfirm).not.toHaveBeenCalled();
       await expect(page.getByText('Deleting in 5..')).not.toBeVisible();
       await expect(page.getByRole('menuitem', { name: 'Hold to delete permanently' })).toBeVisible();

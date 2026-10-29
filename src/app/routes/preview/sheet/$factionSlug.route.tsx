@@ -5,6 +5,7 @@ import { loadFaction, useFaction } from '@db/factions';
 import '@app/print/sheet/sheet-page.css';
 import { FactionSheetView } from '@app/print/sheet/FactionSheetView';
 import { AssetRenderModeProvider } from '@game/assets/assetRenderMode';
+import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 
 import { useFactionSheetPostMessage } from './useFactionSheetPostMessage';
 
@@ -27,13 +28,18 @@ function FactionSheetDbMode() {
   const { factionSlug } = Route.useParams();
   const loaderData = Route.useLoaderData();
   const factionQuery = useFaction(factionSlug, { initialData: loaderData });
-  const faction = factionQuery.data?.faction ?? loaderData?.faction;
+  const page = factionQuery.data ?? loaderData;
+  const faction = page?.faction;
 
   if (!faction) {
     return null;
   }
 
-  return <FactionSheetView faction={faction.data} />;
+  return (
+    <BackgroundLibrary presets={page?.backgrounds ?? []} fronts={page?.cardFrontPresets}>
+      <FactionSheetView faction={faction.data} />
+    </BackgroundLibrary>
+  );
 }
 
 function FactionSheetLiveMode() {

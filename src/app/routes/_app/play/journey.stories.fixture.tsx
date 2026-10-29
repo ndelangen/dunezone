@@ -1,14 +1,13 @@
+import { debuggingChanged, describeDebugging, note } from '@sb/playDebugger/preview';
 import type { LogEntry, LogTab } from '@shared/play/log';
 import type { ClientMessage, ServerMessage, Viewer } from '@shared/play/protocol';
-import type { Decorator } from '@storybook/tanstack-react';
-import { useEffect, useRef, useState } from 'react';
-import type { ReactNode } from 'react';
 import { UPDATE_STORY_ARGS } from 'storybook/internal/core-events';
 import { addons } from 'storybook/preview-api';
+import { expect, waitFor, within } from 'storybook/test';
 
 import { StorybookPage } from '../../storybook';
+import { install } from './game.stories.fixture';
 import recording from './journey.recording/journey.json';
-import styles from './journey.stories.module.css';
 import { capturedFactions } from './product.stories.fixture';
 import { storyTransport } from './storyTransport';
 
@@ -97,7 +96,7 @@ export function journeyViewers(): string[] {
 }
 
 /** A viewer's label: the seat, who holds it and the faction it plays at this step. */
-function viewerLabel(step: JourneyStep, seat: string) {
+export function viewerLabel(step: JourneyStep, seat: string) {
   const view = step.views[seat] ?? journeySteps().at(-1)!.views[seat];
   if (seat === 'neutral') {
     return `Spectator: ${view.viewer.displayName}`;
@@ -147,7 +146,7 @@ export const journey: {
 } = { step: 0, seat: 'seat-1' };
 
 /** The transport a journey story installs: the recorded view for the step, the log as it stood then, and commands on rails. */
-export function journeyTransport(step: number, seat: string) {
+function journeyTransport(step: number, seat: string) {
   journey.step = clampStep(step);
   journey.seat = seat;
   const { log } = recording as unknown as Recording;
@@ -174,171 +173,92 @@ export function journeyTransport(step: number, seat: string) {
 
 type JourneyArgs = { step?: number; seat?: string };
 
-/** The story component: the real game page, with the step and viewer as arguments the decorator reads. */
+/** The story component: the real game page, with the step and viewer as arguments the story's `beforeEach` reads. */
 export function JourneyPage({ path }: Readonly<{ path: string } & JourneyArgs>) {
   return <StorybookPage path={path} />;
 }
-/* The panel starts clear of the page's own bars and moves round the corners when it covers what is under review. */
-const CORNERS = ['topLeft', 'topRight', 'bottomRight', 'bottomLeft'] as const;
 
-/** The review panel over the page: which step this is, what happened, and the controls to move through the game. */
-function JourneyPanel({
-  step,
-  seat,
-  onStep,
-  onSeat,
-}: Readonly<{ step: number; seat: string; onStep: (step: number) => void; onSeat: (seat: string) => void }>) {
+/** Every recorded step as the Play debugger panel lists it. */
+export const timelineSteps = () =>
+  journeySteps().map((step, index) => ({
+    index,
+    code: stepCode(index),
+    title: step.title,
+    detail: step.detail,
+    actor: step.actor,
+    action: step.action?.kind ?? null,
+  }));
+
+/** How the replay looks in the Play debugger panel: the recorded steps, the viewers, and the step shown now. */
+function describeJourney() {
   const steps = journeySteps();
-  const current = steps[step]!;
-  const [open, setOpen] = useState(true);
-  const [corner, setCorner] = useState(0);
-  const place = CORNERS[corner]!;
-  const [follow, setFollow] = useState(false);
-  const go = (next: number) => {
-    const target = clampStep(next);
-    const actor = steps[target]!.actor;
-    if (follow && actor) {
-      onSeat(actor);
-    }
-    onStep(target);
-  };
-  if (!open) {
-    return (
-      <aside className={`${styles.panel} ${styles[place]}`} aria-label="Journey">
-        <button type="button" className={styles.toggle} onClick={() => setOpen(true)}>
-          {stepCode(step)} {current.title}
-        </button>
-      </aside>
-    );
+  describeDebugging({
+    title: 'Journey replay',
+    description:
+      'One real six-seat game recorded from the game Worker, replayed step by step. A command the recording took next from the viewed seat moves to the next step; any other is answered with the same step. Record it again with `bun run play:record`.',
+    timeline: () => {
+      const current = steps[journey.step]!;
+      return {
+        label: 'Step',
+        steps: timelineSteps(),
+        reachable: steps.map((_, index) => index),
+        current: journey.step,
+        viewers: journeyViewers().map((id) => ({ id, label: viewerLabel(current, id) })),
+        viewer: journey.seat,
+        stepArg: 'step',
+        viewerArg: 'seat',
+      };
+    },
+    inspect: () => {
+      const { title, detail, actor, action, logSequence } = steps[journey.step]!;
+      return { 'Recorded step': { code: stepCode(journey.step), title, detail, actor, action, logSequence } };
+    },
+  });
+}
+
+/** Delivers a step and viewer to the connected page, unless a command on rails already did, as a change of the story's arguments does. */
+export function showJourney(step: number, seat: string) {
+  if (journey.step === step && journey.seat === seat) {
+    return;
   }
-  return (
-    <aside className={`${styles.panel} ${styles[place]}`} aria-label="Journey">
-      <header className={styles.header}>
-        <strong className={styles.code}>{stepCode(step)}</strong>
-        <span className={styles.title}>{current.title}</span>
-        <span className={styles.count}>
-          {step + 1} of {steps.length}
-        </span>
-        <button
-          type="button"
-          className={styles.toggle}
-          aria-label="Move the journey panel to the next corner"
-          onClick={() => setCorner((corner + 1) % CORNERS.length)}
-        >
-          Move
-        </button>
-        <button type="button" aria-label="Hide the journey panel" onClick={() => setOpen(false)}>
-          Hide
-        </button>
-      </header>
-      <p className={styles.detail}>{current.detail}</p>
-      <div className={styles.row}>
-        <button type="button" onClick={() => go(0)} disabled={step === 0}>
-          First
-        </button>
-        <button type="button" onClick={() => go(step - 1)} disabled={step === 0}>
-          Previous
-        </button>
-        <button type="button" onClick={() => go(step + 1)} disabled={step === steps.length - 1}>
-          Next
-        </button>
-        <button type="button" onClick={() => go(steps.length - 1)} disabled={step === steps.length - 1}>
-          Last
-        </button>
-      </div>
-      <input
-        className={styles.scrub}
-        type="range"
-        min={0}
-        max={steps.length - 1}
-        value={step}
-        aria-label="Journey step"
-        aria-valuetext={`${stepCode(step)} ${current.title}`}
-        onChange={(event) => go(Number(event.currentTarget.value))}
-      />
-      <div className={styles.row}>
-        <label className={styles.seat}>
-          <span>Viewing as</span>
-          <select value={seat} onChange={(event) => onSeat(event.currentTarget.value)}>
-            {journeyViewers().map((viewer) => (
-              <option key={viewer} value={viewer}>
-                {viewerLabel(current, viewer)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className={styles.follow}>
-          <input type="checkbox" checked={follow} onChange={(event) => setFollow(event.currentTarget.checked)} />
-          Follow the acting seat
-        </label>
-      </div>
-    </aside>
-  );
+  journey.step = step;
+  journey.seat = seat;
+  note(`${stepCode(step)} as ${seat}`);
+  /* Before the page connects, its admission reads the step itself. */
+  if (journey.transport?.connected()) {
+    journey.transport.deliver(journeyFrame(step, seat));
+  }
 }
 
 /**
- * Renders the page with the journey panel beside it and keeps the two in step: a change of step or viewer, from the panel, the Controls addon or the URL, delivers that recorded frame to the connected page.
+ * A journey story's `beforeEach`.
+ * Storybook runs it again on every change of the step or seat argument without unmounting the page, so a page already connected keeps its transport and the new step is delivered over it.
+ * The Play debugger panel, the Controls addon and the address all move the story through those arguments.
  */
-export const journeyDecorator: Decorator = (Story, context) => (
-  <JourneyFrame storyId={context.id} args={context.args as JourneyArgs}>
-    <Story />
-  </JourneyFrame>
-);
-
-/* Storybook's own hooks are unavailable once an outer decorator renders this one, so the arguments move through the channel the Controls addon uses. */
-function JourneyFrame({
-  storyId,
-  args,
-  children,
-}: Readonly<{ storyId: string; args: JourneyArgs; children: ReactNode }>) {
-  const argStep = clampStep(Number(args.step ?? 1) - 1);
-  const argSeat = args.seat ?? 'seat-1';
-  /* The panel moves at once; the arguments follow, so the address names the step, and a change from Controls moves the panel. */
-  const [{ step, seat }, setShown] = useState({ step: argStep, seat: argSeat });
-  const [previousArgs, setPreviousArgs] = useState({ position: argStep, seat: argSeat });
-  if (previousArgs.position !== argStep || previousArgs.seat !== argSeat) {
-    setPreviousArgs({ position: argStep, seat: argSeat });
-    setShown({ step: argStep, seat: argSeat });
+export function journeyBeforeEach({ args, id }: { args: JourneyArgs; id: string }) {
+  const step = clampStep(Number(args.step ?? 1) - 1);
+  const seat = String(args.seat ?? 'seat-1');
+  /* A command on rails moves the step argument after it, so the address and the panel name the step the page shows. */
+  journey.onStep = (next) =>
+    addons.getChannel().emit(UPDATE_STORY_ARGS, { storyId: id, updatedArgs: { step: next + 1 } });
+  if (journey.transport?.connected()) {
+    showJourney(step, seat);
+    debuggingChanged();
+    return;
   }
-  const change = (next: { step?: number; seat?: string }) => {
-    setShown((current) => ({ ...current, ...next }));
-    addons.getChannel().emit(UPDATE_STORY_ARGS, {
-      storyId,
-      updatedArgs: {
-        ...(next.step === undefined ? {} : { step: next.step + 1 }),
-        ...(next.seat === undefined ? {} : { seat: next.seat }),
-      },
-    });
-  };
-  const shown = useRef({ step, seat });
-  useEffect(() => {
-    journey.onStep = (next) => change({ step: next });
-  });
-  useEffect(() => {
-    if (shown.current.step === step && shown.current.seat === seat) {
-      return;
-    }
-    shown.current = { step, seat };
-    /* A command on rails already delivered this step with its answer. */
-    if (journey.step === step && journey.seat === seat) {
-      return;
-    }
-    journey.step = step;
-    journey.seat = seat;
-    /* Before the page connects, its admission reads the step itself. */
-    if (journey.transport?.connected()) {
-      journey.transport.deliver(journeyFrame(step, seat));
-    }
-  }, [step, seat]);
-  return (
-    <>
-      {children}
-      <JourneyPanel
-        step={step}
-        seat={seat}
-        onStep={(next) => change({ step: next })}
-        onSeat={(next) => change({ seat: next })}
-      />
-    </>
-  );
+  return install(() => {
+    const transport = journeyTransport(step, seat);
+    describeJourney();
+    return transport;
+  })();
+}
+
+/** Waits for the replay to reach a 1-based step, then for the connected page. */
+export async function atStep(canvasElement: HTMLElement, step: number) {
+  const page = within(canvasElement.ownerDocument.body);
+  await waitFor(() => expect(journey.step).toBe(step - 1), { timeout: 30_000 });
+  await expect(
+    page.findByRole('heading', { name: 'Dreamrules', level: 1 }, { timeout: 30_000 })
+  ).resolves.toBeVisible();
+  return { page };
 }

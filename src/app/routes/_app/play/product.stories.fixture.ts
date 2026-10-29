@@ -22,7 +22,7 @@ import ruleset from './product.stories.fixture/ruleset.json';
 import { storyTransport } from './storyTransport';
 
 export { factions };
-export const SIX = ['twaffle', 'thialfi', 'fectumbra', 'erickenneth', 'ridwan', 'argelius'].map((slug, index) =>
+export const SIX = ['central', 'krell', 'jaded-af', 'eichmal', 'ridwan', 'tautrimas'].map((slug, index) =>
   storyPlayer(`seat-${index + 1}`, slug)
 );
 export const GAME_KEY = 'game:real';
@@ -30,47 +30,64 @@ const RULESET_KEY = 'ruleset:classicrules';
 const imageHref = (path: string) => new URL(path, location.origin).href;
 export const cardBack = () => imageHref('/play-fixtures/dreamrules/cardback.jpg');
 
+/* A troop face as the room shows it to every seat: its battle values stay out, as `supplyInventory` in the game Worker leaves them. */
+function troopArtwork<Face extends { capable?: boolean; combat?: unknown }>(face: Face) {
+  const { capable: _capable, combat: _battleValues, ...artwork } = face;
+  return artwork;
+}
+
 /* Replace the mechanical seed's visible content while retaining its isolated identities. */
 export function productDatabase(baseline: StorybookDatabase) {
   const viewer = SIX[1]!;
   baseline.users[0]!.name = viewer.name;
-  Object.assign(baseline.profiles[0]!, { username: viewer.name, slug: 'thialfi', avatar_url: viewer.avatar });
+  Object.assign(baseline.profiles[0]!, { username: viewer.name, slug: 'krell', avatar_url: viewer.avatar });
   Object.assign(baseline.rulesets[0]!, { name: ruleset.name, slug: ruleset.slug, about: ruleset.about });
   baseline.factions[0]!.data = factions[0]!.data;
   baseline.factions[0]!.slug = factions[0]!.slug;
 }
 
+type ProductGame = {
+  state: 'pending' | 'ready' | 'expired';
+  reason?: string;
+  minimumPlayers?: TableSeatCount;
+  name?: string;
+};
+
+/** The real game's rows over the product database: the viewer's session and the game itself, in the given state. */
+export function productGameDatabase(baseline: StorybookDatabase, game: ProductGame) {
+  const { state, reason, minimumPlayers = 6, name = ruleset.name } = game;
+  productDatabase(baseline);
+  baseline.authSessions.push({
+    $key: 'game-session',
+    userId: ref(storybookViewer.subjectKey),
+    expirationTime: 4_102_444_800_000,
+  });
+  baseline.authRefreshTokens.push({ sessionId: ref('game-session'), expirationTime: 4_102_444_800_000 });
+  baseline.play_games.push({
+    $key: GAME_KEY,
+    name,
+    slug: normalizePlayGameSlug(name),
+    state,
+    ruleset_id: ref(RULESET_KEY),
+    minimum_players: minimumPlayers,
+    creator_id: ref(storybookViewer.subjectKey),
+    secret: 'story-only-secret',
+    attempt_id: 'story-attempt',
+    provision_expires_at: 4_102_444_800_000,
+    created_at: 0,
+    ...(reason ? { provision_error: reason } : {}),
+    ...(state === 'ready' ? { confirmed_at: 0 } : {}),
+  });
+}
+
 export const parameters = (
-  state: 'pending' | 'ready' | 'expired',
+  state: ProductGame['state'],
   reason?: string,
   minimumPlayers: TableSeatCount = 6,
   name = ruleset.name
 ) => ({
   identity: { ...storybookViewer, sessionKey: 'game-session' },
-  database: db((baseline) => {
-    productDatabase(baseline);
-    baseline.authSessions.push({
-      $key: 'game-session',
-      userId: ref(storybookViewer.subjectKey),
-      expirationTime: 4_102_444_800_000,
-    });
-    baseline.authRefreshTokens.push({ sessionId: ref('game-session'), expirationTime: 4_102_444_800_000 });
-    baseline.play_games.push({
-      $key: GAME_KEY,
-      name,
-      slug: normalizePlayGameSlug(name),
-      state,
-      ruleset_id: ref(RULESET_KEY),
-      minimum_players: minimumPlayers,
-      creator_id: ref(storybookViewer.subjectKey),
-      secret: 'story-only-secret',
-      attempt_id: 'story-attempt',
-      provision_expires_at: 4_102_444_800_000,
-      created_at: 0,
-      ...(reason ? { provision_error: reason } : {}),
-      ...(state === 'ready' ? { confirmed_at: 0 } : {}),
-    });
-  }),
+  database: db((baseline) => productGameDatabase(baseline, { state, reason, minimumPlayers, name })),
 });
 
 export function swappingSnapshot(): GameSnapshot {
@@ -79,7 +96,17 @@ export function swappingSnapshot(): GameSnapshot {
     ...snapshot,
     stage: 'swapping',
     factionArtwork: Object.fromEntries(
-      factions.map(({ slug, data }) => [slug, { background: data.background, logo: data.logo, troops: data.troops }])
+      factions.map(({ slug, data }) => [
+        slug,
+        {
+          background: data.background,
+          logo: data.logo,
+          troops: data.troops.map(({ back, ...front }) => ({
+            ...troopArtwork(front),
+            ...(back ? { back: troopArtwork(back) } : {}),
+          })),
+        },
+      ])
     ),
     swapping: {
       round: 'story-round',
@@ -101,7 +128,7 @@ export function swappingSnapshot(): GameSnapshot {
   };
 }
 
-/* A faction as the Worker retains it at public assignment, less its alliance card and Extras, with the local renderer captures the README names as its faces. */
+/* A faction as the Worker retains it at public assignment, less its Extras, with the published faces the README names. */
 function capture({ slug, data, token, leaders }: (typeof factions)[number]): FactionCapture {
   const face = (name: string) => imageHref(`/play-fixtures/product/${slug}-${name}.jpg`);
   return {
@@ -109,7 +136,7 @@ function capture({ slug, data, token, leaders }: (typeof factions)[number]): Fac
     capturedAt: 0,
     definition: toStoredHeroKey(data),
     components: {
-      token: { front: imageHref(token), back: null },
+      token: { front: imageHref(token), back: face('token-back') },
       leaders: data.leaders.map((leader, index) => ({
         memberId: leader.memberId,
         name: leader.name,
@@ -123,7 +150,7 @@ function capture({ slug, data, token, leaders }: (typeof factions)[number]): Fac
         front: face(`troop-${index}`),
         back: face(`troop-${index}${troop.back ? '-back' : ''}`),
       })),
-      alliance: { front: null, back: null },
+      alliance: { front: face('alliance'), back: imageHref('/play-fixtures/product/alliance-back.jpg') },
       /* The published Traitor preset supplies the common back. */
       traitors: {
         back: imageHref('/play-fixtures/product/traitor-back.jpg'),
@@ -374,7 +401,7 @@ export function playingSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
   return snapshot;
 }
 
-/** Every story faction's captured sheet by faction id, as a real game answers the Info tab's faction reads. */
+/** Every story faction's captured sheet by faction id, as a real game answers Faction info's reads. */
 export function capturedFactions() {
   return Object.fromEntries(factions.map((faction) => [faction.slug, publicFaction(capture(faction))]));
 }

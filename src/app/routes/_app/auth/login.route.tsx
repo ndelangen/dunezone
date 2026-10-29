@@ -1,5 +1,5 @@
 import { useAuthActions } from '@convex-dev/auth/react';
-import { Button, Stack, Text, TextInput } from '@mantine/core';
+import { Button, Stack, Text, TextInput, Tooltip, VisuallyHidden } from '@mantine/core';
 import { signInReturnFrom } from '@shared/authDestination';
 import type { SignInReturn } from '@shared/authDestination';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
@@ -7,14 +7,20 @@ import { FormError } from '@ui/block/FormError';
 import { PageTitle } from '@ui/block/PageTitle';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, History } from 'lucide-react';
 import { useEffect, useReducer } from 'react';
 import type { SVGProps } from 'react';
 import { SiDiscord } from 'react-icons/si';
 
-import { authProviderNames, useSignInProviders } from '@db/accounts';
+import {
+  authProviderNames,
+  noteSignInStarted,
+  settleStartedSignIn,
+  useLastSignInMethod,
+  useSignInProviders,
+} from '@db/accounts';
 import type { AuthProvider } from '@db/accounts';
-import { storedOAuthVerifierKey } from '@db/playTables';
+import { forgetStoredPlayTables, storedOAuthVerifierKey } from '@db/playTables';
 import { useCurrentProfile } from '@db/profiles';
 import { pageHead } from '@app/routes/pageTitle';
 
@@ -25,9 +31,12 @@ import type { SignInFailure } from './signInFailure';
 export const Route = createFileRoute('/_app/auth/login')({
   head: () => pageHead('Sign in'),
   /* A link from another page names it as `redirect`, and signing in returns there; anything off-site is dropped. */
-  validateSearch: (search: Record<string, unknown>): SignInReturn & { failed?: SignInFailure } => ({
+  validateSearch: (
+    search: Record<string, unknown>
+  ): SignInReturn & { failed?: SignInFailure; reauthenticate?: true } => ({
     ...signInReturnFrom(search.redirect),
     ...(isSignInFailure(search.failed) ? { failed: search.failed } : {}),
+    ...(search.reauthenticate === true ? { reauthenticate: true } : {}),
   }),
   component: LoginPage,
 });
@@ -84,14 +93,24 @@ function SignInPanel({
   providers,
   returnTo,
   failed,
+  reauthenticate,
 }: {
   providers: ReturnType<typeof useSignInProviders>;
   returnTo: string;
   failed: SignInFailure | undefined;
+  reauthenticate: boolean;
 }) {
-  const { signIn } = useAuthActions();
+  const { signIn, signOut } = useAuthActions();
+  const navigate = useNavigate();
   const [state, dispatch] = useReducer(reduceSignIn, { busy: null, error: null, email: '', password: '' });
+  const lastUsed = useLastSignInMethod();
   const localAuthEnabled = import.meta.env.VITE_E2E_LOCAL_AUTH === 'true';
+  /* Immediate sign-in has stored the new credentials; reloading discards the old profile and cached game admission. */
+  const finishRecovery = (signingIn: boolean) => {
+    if (reauthenticate && signingIn) {
+      void navigate({ href: returnTo, replace: true, reloadDocument: true });
+    }
+  };
   /* Back from the provider without signing in: the abandoned verifier must not report a failed sign-in on the next load. */
   const settleAfterReturn = () => {
     try {
@@ -99,41 +118,54 @@ function SignInPanel({
     } catch {
       /* Storage that cannot be read holds no verifier. */
     }
+    settleStartedSignIn(false);
     dispatch({ kind: 'settled' });
   };
   const socialLogin = async (provider: AuthProvider) => {
     dispatch({ kind: 'started', provider });
+    noteSignInStarted(provider);
     try {
-      const { redirect } = await signIn(provider, { redirectTo: returnTo });
+      /* Opening a recovery URL leaves the session alone until the player chooses a sign-in method. */
+      if (reauthenticate) {
+        forgetStoredPlayTables();
+        await signOut();
+      }
+      const { redirect, signingIn } = await signIn(provider, { redirectTo: returnTo });
       /* The browser is already leaving for the provider, and a second click would replace this sign-in's verifier.
          The buttons come back only if the back button restores this page from the browser's cache. */
       if (redirect) {
         window.addEventListener('pageshow', settleAfterReturn, { once: true });
         return;
       }
+      finishRecovery(signingIn);
     } catch (error) {
       dispatch({ kind: 'failed', message: error instanceof Error ? error.message : 'Sign-in could not start.' });
     }
+    settleStartedSignIn(false);
     dispatch({ kind: 'settled' });
   };
   const localLogin = async (event: React.FormEvent) => {
     event.preventDefault();
     dispatch({ kind: 'started', provider: 'password' });
     const email = state.email.trim().toLowerCase();
+    if (!email || !state.password) {
+      dispatch({ kind: 'failed', message: 'Email and password are required.' });
+      dispatch({ kind: 'settled' });
+      return;
+    }
     try {
-      if (!email || !state.password) {
-        throw new Error('Email and password are required.');
+      if (reauthenticate) {
+        forgetStoredPlayTables();
+        await signOut();
       }
-      try {
-        await signIn('password', { flow: 'signIn', email, password: state.password });
-      } catch {
-        await signIn('password', { flow: 'signUp', email, password: state.password });
-      }
+      const result = await signIn('password', { flow: 'signIn', email, password: state.password }).catch(() =>
+        signIn('password', { flow: 'signUp', email, password: state.password })
+      );
+      finishRecovery(result.signingIn);
     } catch (error) {
       dispatch({ kind: 'failed', message: error instanceof Error ? error.message : 'Sign-in could not start.' });
-    } finally {
-      dispatch({ kind: 'settled' });
     }
+    dispatch({ kind: 'settled' });
   };
   return (
     <Stack gap="sm" className={styles.actions}>
@@ -178,7 +210,18 @@ function SignInPanel({
             size="xl"
             fullWidth
             justify="space-between"
-            leftSection={<ProviderMark provider={method.provider} />}
+            leftSection={
+              <span className={styles.providerMark}>
+                <ProviderMark provider={method.provider} />
+                {lastUsed === method.provider && (
+                  <Tooltip label="Last used" withArrow>
+                    <span className={styles.lastUsed}>
+                      <History size={10} aria-hidden />
+                    </span>
+                  </Tooltip>
+                )}
+              </span>
+            }
             rightSection={
               method.available ? <ArrowRight size={18} aria-hidden /> : <span aria-hidden>Unavailable</span>
             }
@@ -187,6 +230,7 @@ function SignInPanel({
             onClick={() => void socialLogin(method.provider)}
           >
             Continue with {authProviderNames[method.provider]}
+            {lastUsed === method.provider && <VisuallyHidden> Last used</VisuallyHidden>}
           </Button>
         ))
       ) : (
@@ -208,19 +252,19 @@ function ProviderMark({ provider }: { provider: AuthProvider }) {
 function LoginPage() {
   const profile = useCurrentProfile();
   const providers = useSignInProviders();
-  const { redirect: returnTo, failed } = Route.useSearch();
+  const { redirect: returnTo, failed, reauthenticate = false } = Route.useSearch();
   const navigate = useNavigate();
   const signedIn = Boolean(profile.data);
   /* The password form signs in without leaving the page, and a reader who is already signed in has nothing to do here either, so both go back to the page they came from. */
   useEffect(() => {
-    if (signedIn && returnTo && !failed) {
+    if (signedIn && returnTo && !failed && !reauthenticate) {
       void navigate({ href: returnTo, replace: true });
     }
-  }, [signedIn, returnTo, failed, navigate]);
+  }, [signedIn, returnTo, failed, reauthenticate, navigate]);
   return (
     <PageLayout>
       <PageLayout.Header size="immersive">
-        {profile.data ? (
+        {profile.data && !reauthenticate ? (
           <>
             <PageTitle eyebrow="Welcome back" title="You're signed in" />
             <Text className={styles.lead}>Good to see you again, {profile.data.username ?? 'Player'}.</Text>
@@ -240,9 +284,21 @@ function LoginPage() {
           </>
         ) : (
           <>
-            <PageTitle eyebrow="The spice must flow" title="Enter the deep desert" />
-            <Text className={styles.lead}>Build factions, write your own rulesets and play Dune with friends.</Text>
-            <SignInPanel providers={providers} returnTo={returnTo ?? '/'} failed={failed} />
+            <PageTitle
+              eyebrow="The spice must flow"
+              title={reauthenticate ? 'Sign in again' : 'Enter the deep desert'}
+            />
+            <Text className={styles.lead}>
+              {reauthenticate
+                ? 'Sign in to reconnect to your game.'
+                : 'Build factions, write your own rulesets and play Dune with friends.'}
+            </Text>
+            <SignInPanel
+              providers={providers}
+              returnTo={returnTo ?? '/'}
+              failed={failed}
+              reauthenticate={reauthenticate}
+            />
           </>
         )}
       </PageLayout.Header>

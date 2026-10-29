@@ -138,12 +138,12 @@ test('only the fixed storage-reset reference and boolean runtime flags survive',
   expect(log.mock.lastCall?.[0]).not.toHaveProperty('storageReference');
 });
 
-test('an admission refusal logs its reason with the room identity and nothing from the ticket', () => {
+test('an admission refusal logs its reason with the room identity and nothing from the pass', () => {
   const log = vi.spyOn(console, 'info').mockImplementation(() => {});
-  new GameDiagnostics('room-a', 'revision').refused('unreconciled');
+  new GameDiagnostics('room-a', 'revision').refused('pass');
   expect(log).toHaveBeenCalledWith({
     event: 'game-admission-refused',
-    reason: 'unreconciled',
+    reason: 'pass',
     roomId: 'room-a',
     gitSha: 'revision',
     uptimeMs: expect.any(Number),

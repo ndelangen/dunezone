@@ -13,13 +13,15 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { UserRoundMinus } from 'lucide-react';
 import { useRef } from 'react';
 
+import { useAuthoringAccountKey } from '@db/authoring';
 import { useDeleteFaction, useFaction, useFactionAccess, useSetFactionGroup, useUpdateFaction } from '@db/factions';
 import { loadFaction } from '@db/factions';
 import { useViewerAssignableGroups } from '@db/viewerAccess';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { pageHead } from '@app/routes/pageTitle';
 import { resolveRouteNotice } from '@app/routes/routeNotices';
-import { AuthoringToolbar, groupAccessStatus } from '@app/widgets/authoring/AuthoringToolbar';
+import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
+import { groupAccessStatus } from '@app/widgets/authoring/groupAccessStatus';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { FactionComplexityIndicator } from '@app/widgets/faction-editor/FactionComplexityIndicator';
 import { FactionEditor } from '@app/widgets/faction-editor/FactionEditor';
@@ -30,8 +32,10 @@ import { factionPublicationStatus } from '@app/widgets/faction-editor/factionPub
 import { useFactionAuthoring } from '@app/widgets/faction-editor/useFactionAuthoring';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 
 import { factionNameField } from '../factionNameField';
+import { rawFactionLoad } from '../rawFactionLoad';
 
 export const Route = createFileRoute('/_app/factions/$factionId/edit')({
   validateSearch: (params: Record<string, unknown>): { notice?: RouteNoticeCode } => {
@@ -65,6 +69,7 @@ function FactionEditError({ error }: ErrorComponentProps) {
 }
 
 function FactionEditPage() {
+  const authoringAccountKey = useAuthoringAccountKey();
   const { factionId } = Route.useParams();
   const search = Route.useSearch();
   const loaderData = Route.useLoaderData();
@@ -74,10 +79,7 @@ function FactionEditPage() {
   const deleteFaction = useDeleteFaction();
   const setFactionGroup = useSetFactionGroup();
 
-  const factionQuery = useFaction(factionId, {
-    initialData: loaderData,
-  });
-  const page = factionQuery.data ?? loaderData;
+  const page = useFaction(factionId, { initialData: loaderData }).data ?? loaderData;
   const { resolved: viewerResolved, viewerAccess } = useFactionAccess(page);
   const assignableGroups = useViewerAssignableGroups();
   const { faction, assetPublishing } = page;
@@ -163,114 +165,119 @@ function FactionEditPage() {
     });
 
   return (
-    <PageLayout>
-      {validationHeader.slot}
-      <PageLayout.Toolbar>
-        <AuthoringToolbar
-          load={{
-            noun: 'faction',
-            mode: 'replace',
-            disabled: updateFaction.isPending,
-            source: factionLoadSource(faction.slug),
-            onLoaded: validationHeader.releasing(authoring.actions.loadDraft),
-          }}
-          status={{
-            isDirty: authoring.editing.isDirty,
-            isNameBlank: authoring.editing.isNameBlank,
-            invalid: authoring.editing.invalid,
-            saveState: authoring.persistence.saveState,
-          }}
-          copy={{
-            saveLabel: 'Save faction',
-            nameBlankMessage: 'Add a faction name before saving; it determines the faction URL.',
-          }}
-          actions={{
-            onSave: authoring.actions.submit,
-            onReset: validationHeader.releasing(authoring.actions.reset),
-            onBack: () =>
-              navigate({
-                to: '/factions/$factionId',
-                params: { factionId },
-              }),
-          }}
-          review={{ label: 'Review faction sheet', onOpen: (trigger) => viewRef.current?.openReview(trigger) }}
-          centerIndicator={<FactionComplexityIndicator form={authoring.form} />}
-          accessActions={
-            <>
-              {canAssignGroup && !assignedGroup ? (
-                <FactionGroupPopover
-                  disabled={setFactionGroup.isPending}
-                  assignableGroups={assignableGroups}
-                  onAssignGroup={async (nextGroupId) => {
-                    await setFactionGroup.mutateAsync({
-                      id: faction._id,
-                      groupId: nextGroupId,
-                    });
-                  }}
+    <BackgroundLibrary presets={page.backgrounds ?? []} fronts={page.cardFrontPresets}>
+      <PageLayout>
+        {validationHeader.slot}
+        <PageLayout.Toolbar>
+          <AuthoringToolbar
+            scopeKey={authoringAccountKey}
+            load={{
+              noun: 'faction',
+              scopeKey: faction._id,
+              mode: 'replace',
+              disabled: updateFaction.isPending,
+              raw: rawFactionLoad(faction.data.name, viewerAccess.capabilities.rename),
+              source: factionLoadSource(faction.slug),
+              onLoaded: validationHeader.releasing(authoring.actions.loadDraft),
+            }}
+            status={{
+              isDirty: authoring.editing.isDirty,
+              isNameBlank: authoring.editing.isNameBlank,
+              invalid: authoring.editing.invalid,
+              saveState: authoring.persistence.saveState,
+            }}
+            copy={{
+              saveLabel: 'Save faction',
+              nameBlankMessage: 'Add a faction name before saving; it determines the faction URL.',
+            }}
+            actions={{
+              onSave: authoring.actions.submit,
+              onReset: validationHeader.releasing(authoring.actions.reset),
+              onBack: () =>
+                navigate({
+                  to: '/factions/$factionId',
+                  params: { factionId },
+                }),
+            }}
+            review={{ label: 'Review faction sheet', onOpen: (trigger) => viewRef.current?.openReview(trigger) }}
+            centerIndicator={<FactionComplexityIndicator form={authoring.form} />}
+            accessActions={
+              <>
+                {canAssignGroup && !assignedGroup ? (
+                  <FactionGroupPopover
+                    disabled={setFactionGroup.isPending}
+                    assignableGroups={assignableGroups}
+                    onAssignGroup={async (nextGroupId) => {
+                      await setFactionGroup.mutateAsync({
+                        id: faction._id,
+                        groupId: nextGroupId,
+                      });
+                    }}
+                  />
+                ) : null}
+                {canAssignGroup && assignedGroup ? (
+                  <IconAction
+                    label="Remove group"
+                    tooltip={`Remove group access (${assignedGroup.name})`}
+                    emphasis="standard"
+                    intent="neutral"
+                    size="lg"
+                    disabled={setFactionGroup.isPending}
+                    onClick={() => void setFactionGroup.mutateAsync({ id: faction._id, groupId: null })}
+                    icon={<UserRoundMinus size={17} aria-hidden />}
+                  />
+                ) : null}
+              </>
+            }
+            statuses={[factionPublicationStatus(assetPublishing), groupAccessStatus(assignedGroup?.name ?? null)]}
+            destructiveActions={
+              canDelete ? (
+                <ConfirmDeleteAction
+                  label="Delete faction"
+                  pending={deleteFaction.isPending}
+                  onConfirm={() =>
+                    deleteFaction.mutate({ id: faction._id }, { onSuccess: () => void navigate({ to: '/factions' }) })
+                  }
                 />
-              ) : null}
-              {canAssignGroup && assignedGroup ? (
-                <IconAction
-                  label="Remove group"
-                  tooltip={`Remove group access (${assignedGroup.name})`}
-                  emphasis="standard"
-                  intent="neutral"
-                  size="lg"
-                  disabled={setFactionGroup.isPending}
-                  onClick={() => void setFactionGroup.mutateAsync({ id: faction._id, groupId: null })}
-                  icon={<UserRoundMinus size={17} aria-hidden />}
-                />
-              ) : null}
-            </>
-          }
-          statuses={[factionPublicationStatus(assetPublishing), groupAccessStatus(assignedGroup?.name ?? null)]}
-          destructiveActions={
-            canDelete ? (
-              <ConfirmDeleteAction
-                label="Delete faction"
-                pending={deleteFaction.isPending}
-                onConfirm={() =>
-                  deleteFaction.mutate({ id: faction._id }, { onSuccess: () => void navigate({ to: '/factions' }) })
-                }
-              />
-            ) : null
-          }
-        />
-      </PageLayout.Toolbar>
-      <PageLayout.Content>
-        <Stack gap="sm">
-          {routeNotice ? (
-            <Alert
-              color={routeNotice.color}
-              title={routeNotice.title}
-              role="alert"
-              withCloseButton
-              onClose={dismissRouteNotice}
-            >
-              {routeNotice.message}
-            </Alert>
-          ) : null}
-          {deleteFaction.error ? (
-            <Alert color="red" variant="light" role="alert" title="Could not delete">
-              {deleteFaction.error.message}
-            </Alert>
-          ) : null}
-          <FactionEditor
-            nameField={nameField}
-            key={faction._id}
-            ref={viewRef}
-            form={authoring.form}
-            errors={authoring.persistence.errors}
-            isNameBlank={authoring.editing.isNameBlank}
-            warnings={authoring.editing.warnings}
-            onSettle={validationHeader.settle}
-            backgroundModeMemory={authoring.backgroundModeMemory}
-            onBackgroundModeMemoryChange={authoring.setBackgroundModeMemory}
-            retainedManualComplexity={authoring.retainedManualComplexity}
-            onRetainedManualComplexityChange={authoring.setRetainedManualComplexity}
+              ) : null
+            }
           />
-        </Stack>
-      </PageLayout.Content>
-    </PageLayout>
+        </PageLayout.Toolbar>
+        <PageLayout.Content>
+          <Stack gap="sm">
+            {routeNotice ? (
+              <Alert
+                color={routeNotice.color}
+                title={routeNotice.title}
+                role="alert"
+                withCloseButton
+                onClose={dismissRouteNotice}
+              >
+                {routeNotice.message}
+              </Alert>
+            ) : null}
+            {deleteFaction.error ? (
+              <Alert color="red" variant="light" role="alert" title="Could not delete">
+                {deleteFaction.error.message}
+              </Alert>
+            ) : null}
+            <FactionEditor
+              nameField={nameField}
+              key={faction._id}
+              ref={viewRef}
+              form={authoring.form}
+              errors={authoring.persistence.errors}
+              isNameBlank={authoring.editing.isNameBlank}
+              warnings={authoring.editing.warnings}
+              onSettle={validationHeader.settle}
+              backgroundModeMemory={authoring.backgroundModeMemory}
+              onBackgroundModeMemoryChange={authoring.setBackgroundModeMemory}
+              retainedManualComplexity={authoring.retainedManualComplexity}
+              onRetainedManualComplexityChange={authoring.setRetainedManualComplexity}
+            />
+          </Stack>
+        </PageLayout.Content>
+      </PageLayout>
+    </BackgroundLibrary>
   );
 }

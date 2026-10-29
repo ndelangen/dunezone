@@ -3,7 +3,6 @@ import { initialSnapshot } from '@shared/play/commands';
 import type { Vector3Tuple } from '@shared/play/model';
 import { afterEach, expect, test, vi } from 'vite-plus/test';
 
-import { LONG_PRESS_SLOP_PX } from './longPress';
 import { PointerSession } from './PointerSession';
 
 const stops: (() => void)[] = [];
@@ -11,10 +10,11 @@ afterEach(() => {
   for (const stop of stops.splice(0)) {
     stop();
   }
+  vi.useRealTimers();
 });
 
-function pointer(type: string, x = 10, pointerId = 1, timeStamp = 0, pointerType = 'mouse') {
-  const event = Object.assign(new MouseEvent(type, { clientX: x, clientY: 10, button: 0 }), { pointerId, pointerType });
+function pointer(type: string, x = 10, pointerId = 1, timeStamp = 0) {
+  const event = Object.assign(new MouseEvent(type, { clientX: x, clientY: 10, button: 0 }), { pointerId });
   Object.defineProperty(event, 'timeStamp', { value: timeStamp });
   return event;
 }
@@ -57,39 +57,72 @@ test('a click captures and releases its pointer without starting a carry', () =>
   expect(session.busy).toBe(false);
 });
 
-/* A finger resting on a deck drifts; within the long-press slop it is still holding for the menu, so it carries nothing. */
-test('a finger drifting within the long-press slop does not start a carry, and moving past it does', () => {
-  const { session, controls, piece } = table();
-  session.press(pointer('pointerdown', 10, 1, 0, 'touch'), piece.id);
-  window.dispatchEvent(pointer('pointermove', 10 + LONG_PRESS_SLOP_PX, 1, 100, 'touch'));
+test('holding a stack lifts it before the pointer moves', () => {
+  vi.useFakeTimers();
+  const { session, controls, canvas, piece } = table();
+  session.press(pointer('pointerdown'), piece.id);
+  vi.advanceTimersByTime(319);
   expect(controls.beginGesture).not.toHaveBeenCalled();
-  expect(session.isDragging(piece.id)).toBe(false);
-  window.dispatchEvent(pointer('pointermove', 11 + LONG_PRESS_SLOP_PX, 1, 120, 'touch'));
+  vi.advanceTimersByTime(1);
+  expect(controls.beginGesture).not.toHaveBeenCalled();
+  vi.advanceTimersToNextFrame();
+  expect(controls.beginGesture).toHaveBeenCalledExactlyOnceWith(piece.id, 'whole');
+  expect(controls.updateGesture).toHaveBeenCalledExactlyOnceWith([10, 0, 10]);
+  expect(canvas.style.cursor).toBe('grabbing');
+  expect(session.isDragging(piece.id)).toBe(true);
+});
+
+test.each(
+  ['release', 'blur', 'Escape', 'lost capture', 'unbind', 'permission loss'].flatMap((reason) =>
+    [100, 320].map((elapsed) => ({ reason, elapsed }))
+  )
+)('a pending hold cancelled by $reason after $elapsed ms never picks up a stack', ({ reason, elapsed }) => {
+  vi.useFakeTimers();
+  const { session, controls, canvas, piece, stop } = table();
+  session.press(pointer('pointerdown'), piece.id);
+  vi.advanceTimersByTime(elapsed);
+  if (reason === 'release') {
+    window.dispatchEvent(pointer('pointerup'));
+  }
+  if (reason === 'blur') {
+    window.dispatchEvent(new Event('blur'));
+  }
+  if (reason === 'Escape') {
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+  }
+  if (reason === 'lost capture') {
+    canvas.dispatchEvent(pointer('lostpointercapture'));
+  }
+  if (reason === 'unbind') {
+    stop();
+  }
+  if (reason === 'permission loss') {
+    controls.canHandleTable = false;
+    session.reconcile();
+  }
+  vi.advanceTimersByTime(1000);
+  expect(controls.beginGesture).not.toHaveBeenCalled();
+  expect(controls.finishGesture).not.toHaveBeenCalled();
+});
+
+test('moving before the hold picks up the top piece without a later whole-stack pickup', () => {
+  vi.useFakeTimers();
+  const { session, controls, piece } = table();
+  session.press(pointer('pointerdown'), piece.id);
+  vi.advanceTimersByTime(100);
+  window.dispatchEvent(pointer('pointermove', 20, 1, 100));
+  vi.advanceTimersByTime(1000);
   expect(controls.beginGesture).toHaveBeenCalledExactlyOnceWith(piece.id, 'top');
 });
 
-test('a press belongs to its own piece until it ends', () => {
-  const { session, piece } = table();
-  expect(session.isPressing(piece.id)).toBe(false);
-  session.press(pointer('pointerdown'), piece.id);
-  expect(session.isPressing(piece.id)).toBe(true);
-  expect(session.isPressing('another-piece')).toBe(false);
-  window.dispatchEvent(pointer('pointerup', 10));
-  expect(session.isPressing(piece.id)).toBe(false);
-});
-
-test.each([
-  [319, 'top'],
-  [320, 'whole'],
-] as const)('mesh pickup after %i ms keeps the existing %s selection', (elapsed, pickup) => {
+test('a quick move delivered after the hold timer cancels the pending lift frame', () => {
+  vi.useFakeTimers();
   const { session, controls, piece } = table();
   session.press(pointer('pointerdown'), piece.id);
-  window.dispatchEvent(pointer('pointermove', 14, 1, elapsed));
-  expect(controls.beginGesture).toHaveBeenCalledWith(piece.id, pickup);
-  expect(controls.updateGesture).toHaveBeenCalledWith([14, 0, 10]);
-  window.dispatchEvent(pointer('pointerup', 20, 1, elapsed + 10));
-  window.dispatchEvent(pointer('pointerup', 30, 1, elapsed + 20));
-  expect(controls.finishGesture).toHaveBeenCalledExactlyOnceWith([20, 0, 10]);
+  vi.advanceTimersByTime(320);
+  window.dispatchEvent(pointer('pointermove', 20, 1, 100));
+  vi.advanceTimersToNextFrame();
+  expect(controls.beginGesture).toHaveBeenCalledExactlyOnceWith(piece.id, 'top');
 });
 
 test('other pointers cannot cancel, replace, move or drop the active carry', () => {

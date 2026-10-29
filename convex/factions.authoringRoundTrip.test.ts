@@ -8,7 +8,7 @@ import { PLANET, TROOP_MODIFIER } from '../src/shared/assetIds';
 import { recalculateFactionComplexity } from '../src/shared/factions/complexity';
 import { ensureFactionComponentIds } from '../src/shared/factions/componentIdentity';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
-import { CanonicalFactionStoredSchema, FactionInputSchema } from '../src/shared/factions/schema';
+import { CanonicalFactionStoredObject, FactionInputSchema } from '../src/shared/factions/schema';
 import type { FactionInput } from '../src/shared/factions/schema';
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
@@ -288,7 +288,7 @@ describe('faction authoring full-field round trip', () => {
       group_id: null,
     });
     expect(createdRow.slug).toBe('complete-authoring-proof');
-    expect(CanonicalFactionStoredSchema.parse(createdRow.data)).toEqual(createdInput);
+    expect(CanonicalFactionStoredObject.parse(createdRow.data)).toEqual(createdInput);
 
     const createdJob = await t.run(
       async (ctx) =>
@@ -323,6 +323,7 @@ describe('faction authoring full-field round trip', () => {
       await ctx.db.insert('ruleset_factions', {
         ruleset_id: id,
         faction_id: createdRow._id,
+        position: 0,
       });
       return id;
     });
@@ -330,7 +331,7 @@ describe('faction authoring full-field round trip', () => {
     const canonicalCreatePage = await t.query(api.factions.pageBySlug, {
       slug: createdRow.slug,
     });
-    expect(CanonicalFactionStoredSchema.parse(canonicalCreatePage.faction.data)).toEqual(createdInput);
+    expect(CanonicalFactionStoredObject.parse(canonicalCreatePage.faction.data)).toEqual(createdInput);
     await expect(asUser.query(api.factions.listForLoadPicker, {})).resolves.toMatchObject({
       rows: [
         {
@@ -388,7 +389,7 @@ describe('faction authoring full-field round trip', () => {
     const canonicalEditPage = await t.query(api.factions.pageBySlug, {
       slug: updatedRow.slug,
     });
-    const reloaded = CanonicalFactionStoredSchema.parse(canonicalEditPage.faction.data);
+    const reloaded = CanonicalFactionStoredObject.parse(canonicalEditPage.faction.data);
     expect(reloaded).toEqual(editedInput);
     expect(JSON.stringify(reloaded.extras)).toBe(extrasBytes);
     expect(reloaded.colors).toEqual(editedInput.colors);

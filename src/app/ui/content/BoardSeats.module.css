@@ -1,0 +1,50 @@
+/* The ground and ink default to the page's; a surface with its own, such as a dark pass, sets `--board-seats-ground` and `--board-seats-accent` round it. */
+.ring {
+  display: block;
+  width: 100%;
+  max-width: 15rem;
+  height: auto;
+  margin: 0 auto;
+  overflow: visible;
+}
+
+.ground {
+  fill: var(--board-seats-ground, var(--color-ground));
+  stroke: var(--board-seats-accent, var(--color-brand));
+  stroke-opacity: 0.2;
+}
+
+.station {
+  transition: transform 0.45s cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+
+.station circle {
+  fill: var(--board-seats-ground, var(--color-ground));
+  stroke: var(--board-seats-accent, var(--color-brand));
+  stroke-width: 2;
+}
+
+.station text {
+  fill: var(--board-seats-accent, var(--color-brand));
+  font-family: "C_Advokat_Modern", sans-serif;
+  font-size: 9px;
+}
+
+.station[data-first] circle {
+  fill: var(--board-seats-accent, var(--color-brand));
+}
+
+.station[data-first] text {
+  fill: var(--board-seats-ground, var(--color-ground));
+  font-size: 7.5px;
+}
+
+html[data-motion="reduce"] .station {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-motion="ok"]) .station {
+    transition: none;
+  }
+}

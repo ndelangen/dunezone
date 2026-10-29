@@ -1,0 +1,198 @@
+.treatments,
+.library {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sheet {
+  container-type: inline-size;
+  display: grid;
+  gap: var(--space-md);
+}
+
+/* A dark backing, so the captions stay readable over the bright parts of the page background. */
+.treatments {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border-radius: var(--mantine-radius-md);
+  background: rgb(22 19 16 / 92%);
+  color: #e3dbb3;
+}
+
+.treatment {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* The tile is the card's picture window less its bevel, 742 by 420 units, with the panel and decal placed as the card places them. */
+.tile {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 742 / 420;
+  /* Rounded a little past the panel's own rounded frame, so its white corners fall outside the tile. */
+  border-radius: 4% / 7%;
+  clip-path: inset(0 round 4% / 7%);
+  box-shadow: 0 2px 8px rgb(from var(--color-shadow) r g b / 40%);
+}
+
+.treatmentName {
+  margin-block-start: var(--space-xs);
+  font-family: var(--mantine-font-family-headings);
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 700;
+}
+
+.treatmentSpec {
+  font-size: var(--mantine-font-size-xs);
+  line-height: 1.4;
+  color: #b8ad88;
+}
+
+/* The library is a sheet of parchment, the card's own, with the silhouettes in ink. */
+/* 24 silhouettes in 3, 4, 6 or 8 columns, so every row is full at every width. */
+.library {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border-radius: var(--mantine-radius-md);
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 2px 10px rgb(from var(--color-shadow) r g b / 35%);
+  color: #0b0503;
+}
+
+.ink {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-family: "C_Candara", sans-serif;
+  font-size: var(--mantine-font-size-xs);
+  text-align: center;
+}
+
+.ink svg {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+}
+
+/* The query below reads this wrapper, since a container query never reads the element it styles. */
+.stacksFrame {
+  container-type: inline-size;
+}
+
+.stacks {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-lg);
+}
+
+@container (width >= 48rem) {
+  .stacks {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.stack {
+  display: grid;
+  grid-template-columns: minmax(0, 11rem) minmax(0, 1fr);
+  gap: var(--space-sm);
+  align-items: start;
+}
+
+.cardMount {
+  position: relative;
+}
+
+.frame {
+  box-shadow: 0 2px 10px rgb(from var(--color-shadow) r g b / 45%);
+}
+
+.guides {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.layers {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  font-size: var(--mantine-font-size-sm);
+  line-height: 1.4;
+}
+
+.cardName {
+  font-family: var(--mantine-font-family-headings);
+  font-weight: 700;
+}
+
+.layerList {
+  display: grid;
+  gap: var(--space-xs);
+  margin: 0;
+  padding-inline-start: 1.2rem;
+}
+
+.layerList li {
+  display: flex;
+  flex-direction: column;
+  padding-block-end: var(--space-xs);
+  border-block-end: 1px solid var(--mantine-color-default-border);
+}
+
+.layerFile {
+  font-family: var(--mantine-font-family-monospace);
+  font-size: var(--mantine-font-size-xs);
+}
+
+.layerSpec {
+  color: var(--mantine-color-dimmed);
+}
+
+.legendNote {
+  font-size: var(--mantine-font-size-xs);
+  line-height: 1.6;
+  color: var(--mantine-color-dimmed);
+}
+
+.windowKey,
+.slotKey {
+  display: inline-block;
+  width: 1.2rem;
+  height: 0.6rem;
+  margin-inline-end: 4px;
+  vertical-align: middle;
+  border: 1.5px dashed #a89f80;
+}
+
+.slotKey {
+  border: 1.5px solid #ff4d2e;
+}
+
+@container (width >= 28rem) {
+  .library {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@container (width >= 40rem) {
+  .library {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+@container (width >= 54rem) {
+  .library {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+  }
+}

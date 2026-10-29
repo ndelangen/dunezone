@@ -1,23 +1,44 @@
 import { z } from 'zod';
 
 import { PLAY_PROFILE_SLUG_MAX_LENGTH } from './admission';
+import { CAPTURE_TYPES, SPAWN_TYPES } from './captureTypes';
 import { seatRequestSchema } from './participation';
 import { storedPieceSchema, tableCountSchema, tableIdSchema, tablePieceSchema, tableSeatSchema } from './schema';
 
-export const SPAWN_TYPES = [
-  'deck',
-  'bundle',
-  'token-disc',
-  'token-tech',
-  'token-plate',
-  'token-pointer',
-  'token-enhance',
-] as const;
 export const spawnSelectionSchema = z.object({ type: z.enum(SPAWN_TYPES), slug: z.string().min(1).max(160) });
+
+/** The key a listed asset is picked by: its type and slug, which is what the table is asked to spawn. */
+export function spawnableKey(entry: SpawnSelection): string {
+  return `${entry.type}/${entry.slug}`;
+}
+
+export const captureSelectionSchema = z.object({ type: z.enum(CAPTURE_TYPES), slug: z.string().min(1).max(160) });
+export type CaptureSelection = z.infer<typeof captureSelectionSchema>;
+
+/** How many assets the in-play spawn picker shows at first, and how many more each Load more asks for. */
+export const SPAWN_PICKER_STEP = 12;
+
+/** One catalogue asset as the spawn picker lists it: enough to name it and to request it. */
+const spawnableAssetSchema = spawnSelectionSchema.extend({
+  name: z.string(),
+  /* The owner's name, which a search matches as well as the asset's; null for an inactive account. */
+  owner: z.string().nullable(),
+});
+export type SpawnableAsset = z.infer<typeof spawnableAssetSchema>;
+
+/** The catalogue's answer to the spawn picker: the newest spawnable assets, or a search's best matches, up to the limit asked for. */
+export const spawnableAssetsSchema = z.object({
+  entries: z.array(spawnableAssetSchema),
+  /* Whether a larger limit would list more. */
+  hasMore: z.boolean(),
+  /* Whether the list stopped at its ceiling, so assets past it are reached by searching for them. */
+  capped: z.boolean(),
+});
+export type SpawnableAssets = z.infer<typeof spawnableAssetsSchema>;
 export const spawnContentsSchema = z.object({
   assetId: tableIdSchema,
   name: z.string(),
-  type: z.enum(SPAWN_TYPES),
+  type: z.enum(CAPTURE_TYPES),
   members: z.array(z.object({ assetId: tableIdSchema, count: tableCountSchema.positive() })),
   definitions: z.array(z.object({ id: tableIdSchema, type: z.string(), data: z.unknown() })),
   pieces: z.array(tablePieceSchema).min(1),

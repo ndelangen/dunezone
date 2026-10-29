@@ -17,7 +17,6 @@ import {
   NO_CAMERA_ZOOM,
   cameraFogRange,
   cameraPoseFor,
-  cameraTiltAfterWheel,
   cameraViewTransitionProgress,
   createTableViewState,
   reduceTableView,
@@ -32,6 +31,15 @@ import type { ScreenRect } from './playView';
 import { mapViewFramingPoints } from './tablePlateGeometry';
 
 describe('table views', () => {
+  test('CHOAM Charity focuses the map on entry and when the phase changes', () => {
+    expect(createTableViewState('choam-charity').activeView).toBe('map');
+    const state = reduceTableView(createTableViewState('spice-blow'), {
+      type: 'phase.changed',
+      phase: 'choam-charity',
+    });
+    expect(state.activeView).toBe('map');
+  });
+
   test('frames the complete map area while preserving its approved angle', () => {
     const pose = cameraPoseFor('map', 1, mapViewFramingPoints(trackerArcSlots(9)));
     const scale = (pose.position[1] - pose.target[1]) / 9.4;
@@ -126,7 +134,7 @@ describe('table views', () => {
   const under = (point: Vector3, rect: ScreenRect) =>
     Math.min(point.x - rect.left, rect.right - point.x, point.y - rect.bottom, rect.top - point.y) > 1e-9;
 
-  /* The table above a tall dock, as in a wide window: the phase chips at the top left, the toolbar at the top right, the dial at the bottom right. */
+  /* A short, wide table: the phase chips at the top left, the toolbar at the top right, the dial at the bottom right. */
   test('runs the board up to the canvas top beside the chips over a short, wide canvas', () => {
     const [canvasWidth, canvasHeight] = [1497, 427];
     const aspectRatio = canvasWidth / canvasHeight;
@@ -192,6 +200,23 @@ describe('table views', () => {
       expect(point.y).toBeLessThanOrEqual(MAP_VIEW_TOP_LIMIT + 1e-9);
       expect(point.y).toBeGreaterThanOrEqual(-MAP_VIEW_BOTTOM_LIMIT - 1e-9);
     });
+  });
+
+  test('the top-down view looks straight down at the board, centred, framing the whole map, whatever the tilt', () => {
+    const aspectRatio = 1600 / 1000;
+    const frame = mapViewFramingPoints(trackerArcSlots(9));
+    const pose = cameraPoseFor('top', aspectRatio, frame);
+    const height = pose.position[1] - pose.target[1];
+    expect(pose.position[0]).toBe(pose.target[0]);
+    /* Flat to the eye: the camera stands over its target within a hair of straight down. */
+    expect(Math.abs(pose.position[2] - pose.target[2])).toBeLessThan(height * 0.03);
+    expect(height).toBeGreaterThan(cameraPoseFor('map', aspectRatio, frame).position[1]);
+    projectedFrame(pose, aspectRatio).forEach((point) => {
+      expect(Math.abs(point.x)).toBeLessThanOrEqual(MAP_VIEW_HORIZONTAL_LIMIT + 1e-9);
+      expect(point.y).toBeLessThanOrEqual(MAP_VIEW_TOP_LIMIT + 1e-9);
+      expect(point.y).toBeGreaterThanOrEqual(-MAP_VIEW_BOTTOM_LIMIT - 1e-9);
+    });
+    expect(cameraPoseFor('top', aspectRatio, frame, 0.7)).toEqual(pose);
   });
 
   test('glides rather than steps as the camera turns past a cached tilt', () => {
@@ -280,16 +305,6 @@ describe('table views', () => {
     }
   });
 
-  test('steers the tilt with the wheel, in pixels, lines or pages, within its range', () => {
-    expect(cameraTiltAfterWheel(0, 100)).toBeCloseTo(1 / 6);
-    expect(cameraTiltAfterWheel(0, 3, 1)).toBeCloseTo(48 / 600);
-    expect(cameraTiltAfterWheel(0, 1, 2)).toBeCloseTo(400 / 600);
-    expect(cameraTiltAfterWheel(0.5, -100)).toBeCloseTo(1 / 3);
-    expect(cameraTiltAfterWheel(0, -100)).toBe(0);
-    expect(cameraTiltAfterWheel(0.9, 1000)).toBe(1);
-    expect(cameraTiltAfterWheel(0.4, Number.NaN)).toBe(0.4);
-  });
-
   test('moves the fog range with responsive camera framing', () => {
     const defaultRange = cameraFogRange(cameraPoseFor('map', 16 / 9).position);
     const distantPose = cameraPoseFor('map', 390 / 844, mapViewFramingPoints(trackerArcSlots(30)));
@@ -341,6 +356,36 @@ describe('table views', () => {
     state = reduceTableView(state, { type: 'phase.changed', phase: 'revival' });
     expect(state.activeView).toBe('bottom');
     expect(state.cameraRevision).toBe(1);
+  });
+
+  test('the top-down view returns to the view it was chosen from, and a phase moves on from it', () => {
+    let state = createTableViewState('storm');
+    state = reduceTableView(state, { type: 'view.selected', view: 'left' });
+    state = reduceTableView(state, { type: 'view.selected', view: 'top' });
+    expect(state.activeView).toBe('top');
+    state = reduceTableView(state, { type: 'view.selected', view: 'top' });
+    expect(state.activeView).toBe('left');
+    /* From the opening map there is no view before it, so the hub returns to the map. */
+    state = reduceTableView(createTableViewState('storm'), { type: 'view.selected', view: 'top' });
+    state = reduceTableView(state, { type: 'view.selected', view: 'top' });
+    expect(state.activeView).toBe('map');
+    /* The phase's own view takes over from the top, and the hub afterwards returns to that view. */
+    state = reduceTableView(state, { type: 'view.selected', view: 'top' });
+    state = reduceTableView(state, { type: 'phase.changed', phase: 'bidding' });
+    expect(state.activeView).toBe('left');
+    state = reduceTableView(state, { type: 'view.selected', view: 'top' });
+    state = reduceTableView(state, { type: 'view.selected', view: 'top' });
+    expect(state.activeView).toBe('left');
+  });
+
+  test('the top-down view chosen twice during an interaction keeps the view that is showing', () => {
+    let state = createTableViewState('storm');
+    state = reduceTableView(state, { type: 'view.selected', view: 'left' });
+    state = reduceTableView(state, { type: 'interaction.changed', active: true });
+    state = reduceTableView(state, { type: 'view.selected', view: 'top' });
+    state = reduceTableView(state, { type: 'view.selected', view: 'top' });
+    state = reduceTableView(state, { type: 'interaction.changed', active: false });
+    expect(state.activeView).toBe('left');
   });
 
   test('lets a player override the view of the current phase', () => {
@@ -418,18 +463,12 @@ describe('close look', () => {
   const zoomIn = (turns: number) => {
     let zoom = NO_CAMERA_ZOOM;
     for (let turn = 0; turn < turns; turn++) {
-      zoom = cameraZoomAfterWheelAt(zoom, 0, poseAt, spot, 100);
+      zoom = cameraZoomAfterWheelAt(zoom, poseAt, spot, 100);
     }
     return zoom;
   };
   const pointUnderSpot = (zoom: typeof NO_CAMERA_ZOOM) =>
-    tablePointUnder(
-      zoomedCameraPose(poseAt(cameraTiltForZoom(0, zoom)), zoom),
-      1.6,
-      spot.ndcX,
-      spot.ndcY,
-      spot.height
-    )!;
+    tablePointUnder(zoomedCameraPose(poseAt(cameraTiltForZoom(zoom)), zoom), 1.6, spot.ndcX, spot.ndcY, spot.height)!;
 
   test('the closest look of every view stays farther out than the controls allow, so its glide arrives', () => {
     for (const view of ['map', 'left', 'right', 'bottom'] as const) {
@@ -437,9 +476,9 @@ describe('close look', () => {
         const viewPoseAt = (tilt: number) => cameraPoseForCloseLook(view, aspectRatio, undefined, tilt);
         let zoom = NO_CAMERA_ZOOM;
         for (let turn = 0; turn < 40; turn++) {
-          zoom = cameraZoomAfterWheelAt(zoom, 0, viewPoseAt, { ...spot, aspectRatio }, 100);
+          zoom = cameraZoomAfterWheelAt(zoom, viewPoseAt, { ...spot, aspectRatio }, 100);
         }
-        const pose = zoomedCameraPose(viewPoseAt(cameraTiltForZoom(0, zoom)), zoom);
+        const pose = zoomedCameraPose(viewPoseAt(cameraTiltForZoom(zoom)), zoom);
         const distance = new Vector3(...pose.position).distanceTo(new Vector3(...pose.target));
         expect(distance).toBeGreaterThan(CAMERA_CLOSEST_DISTANCE * 1.5);
       }
@@ -451,7 +490,7 @@ describe('close look', () => {
     let distance = Infinity;
     for (let turns = 1; turns <= 6; turns++) {
       const zoom = zoomIn(turns);
-      const pose = zoomedCameraPose(poseAt(cameraTiltForZoom(0, zoom)), zoom);
+      const pose = zoomedCameraPose(poseAt(cameraTiltForZoom(zoom)), zoom);
       const nextDistance = new Vector3(...pose.position).distanceTo(new Vector3(...anchor));
       expect(nextDistance).toBeLessThan(distance);
       distance = nextDistance;
@@ -463,7 +502,7 @@ describe('close look', () => {
   test('scrolling back up returns to the view itself', () => {
     let zoom = zoomIn(5);
     for (let turn = 0; turn < 20; turn++) {
-      zoom = cameraZoomAfterWheelAt(zoom, 0, poseAt, spot, -100);
+      zoom = cameraZoomAfterWheelAt(zoom, poseAt, spot, -100);
     }
     expect(zoom).toBe(NO_CAMERA_ZOOM);
   });
@@ -515,7 +554,7 @@ describe('close look', () => {
 
   test('sliding out toward the edge slows to a stop instead of running past it', () => {
     let zoom = zoomIn(5);
-    const base = () => poseAt(cameraTiltForZoom(0, zoom));
+    const base = () => poseAt(cameraTiltForZoom(zoom));
     for (let frame = 0; frame < 600; frame++) {
       zoom = cameraZoomAfterPanMotion(zoom, base(), [20 * zoom.scale, 0], 1 / 60);
     }
@@ -526,7 +565,7 @@ describe('close look', () => {
   test('a close look reaches the card wells and the bottom shelf, but never the empty corners beside them', () => {
     const slide = (velocity: readonly [number, number]) => {
       let zoom = zoomIn(5);
-      const base = () => poseAt(cameraTiltForZoom(0, zoom));
+      const base = () => poseAt(cameraTiltForZoom(zoom));
       for (let frame = 0; frame < 300; frame++) {
         zoom = cameraZoomAfterPanMotion(zoom, base(), [velocity[0] * zoom.scale, velocity[1] * zoom.scale], 1 / 60);
       }

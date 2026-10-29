@@ -1,6 +1,6 @@
 import type { z } from 'zod';
 
-import { publishingDeckCardback } from '../../src/shared/assets/fixtures/publishingDeckCardback';
+import { publishingCustomDeckCardback } from '../../src/shared/assets/fixtures/publishingDeckCardback';
 import { publishingSpiceCard } from '../../src/shared/assets/fixtures/publishingSpiceCard';
 import { publishingTokenFace } from '../../src/shared/assets/fixtures/publishingTokenFace';
 import { publishingTreacheryCard } from '../../src/shared/assets/fixtures/publishingTreacheryCard';
@@ -22,6 +22,15 @@ export function cardPage(id: string) {
   });
 }
 
+/** A single card as the catalogue answers for it alone: wearing its holding deck's back and naming that deck, or naming none. */
+export function heldCardPage(card: AssetSupply, deck: AssetSupply | null) {
+  return assetSupplySchema.parse({
+    ...card,
+    ...(deck ? { back: deck.back, backMode: deck.backMode, backDeck: deck.backDeck } : {}),
+    cardDeck: deck?.asset ?? null,
+  });
+}
+
 export function spiceCardPage(id: string) {
   return assetSupplySchema.parse({
     ...blank,
@@ -35,7 +44,13 @@ export function spiceCardPage(id: string) {
 export function deckPage(id: string, cards: AssetSupply[], count = 2) {
   return assetSupplySchema.parse({
     ...blank,
-    asset: { id, type: 'deck', slug: id, name: id, data: { name: id, about: '', cardback: publishingDeckCardback } },
+    asset: {
+      id,
+      type: 'deck',
+      slug: id,
+      name: id,
+      data: { name: id, about: '', cardback: publishingCustomDeckCardback },
+    },
     members: cards.map((card) => ({ ...card, count })),
     front: null,
     back: `/published/decks/${id}/cardback.jpg`,

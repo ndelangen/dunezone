@@ -30,12 +30,14 @@ export const PUBLICATION_ASSET_TYPES = [
   'card-custom',
   'card-leaderability',
   'card-nexus',
+  'card-homeworld',
   'card-stronghold',
   'card-storm',
   'board',
   'deck',
   'cardback-preset',
   'token-disc',
+  'token-leader',
   'token-tech',
   'token-plate',
   'token-pointer',
@@ -131,6 +133,13 @@ function cardTarget(collection: string, file: string, downloadFilename: string):
 const defaultRulebookSize = getRulebookSize(DEFAULT_RULEBOOK_SETTINGS.size);
 
 export const PUBLICATION_TARGETS: Record<PublicationAssetType, PublicationTarget> = {
+  'token-leader': {
+    collection: 'leader-tokens',
+    file: 'token.jpg',
+    contentType: 'image/jpeg',
+    downloadFilename: 'leader-token.jpg',
+    capture: { output: 'image', widthPx: 600, heightPx: 600, jpegQuality: 88, maxBytes: 2_000_000 },
+  },
   'faction-token': {
     collection: 'faction-tokens',
     file: 'token.jpg',
@@ -180,6 +189,7 @@ export const PUBLICATION_TARGETS: Record<PublicationAssetType, PublicationTarget
   'card-leaderability': cardTarget('leader-skill-cards', 'card.jpg', 'leader-skill-card.jpg'),
   'card-stronghold': cardTarget('stronghold-cards', 'card.jpg', 'stronghold-card.jpg'),
   'card-custom': cardTarget('custom-cards', 'card.jpg', 'custom-card.jpg'),
+  'card-homeworld': cardTarget('homeworld-cards', 'card.jpg', 'homeworld-card.jpg'),
   'card-nexus': cardTarget('nexus-cards', 'card.jpg', 'nexus-card.jpg'),
   'card-storm': cardTarget('storm-cards', 'card.jpg', 'storm-card.jpg'),
   'card-spice': cardTarget('spice-cards', 'card.jpg', 'spice-card.jpg'),
@@ -206,7 +216,7 @@ export const PUBLICATION_TARGETS: Record<PublicationAssetType, PublicationTarget
   ...TOKEN_TARGETS,
 };
 
-/** Resolves an Edition's first-page geometry at four pixels per millimetre. */
+/** Resolves an Edition's first-page raster to whole pixels at four pixels per millimetre. */
 export function resolvePublicationCapture(
   assetType: PublicationAssetType,
   size: RulebookSize = DEFAULT_RULEBOOK_SETTINGS.size
@@ -216,7 +226,7 @@ export function resolvePublicationCapture(
     return capture;
   }
   const { widthMm, heightMm } = getRulebookSize(size);
-  return { ...capture, widthPx: widthMm * 4, heightPx: heightMm * 4 };
+  return { ...capture, widthPx: Math.round(widthMm * 4), heightPx: Math.round(heightMm * 4) };
 }
 
 /**

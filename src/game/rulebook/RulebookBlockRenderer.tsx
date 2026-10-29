@@ -9,6 +9,7 @@ import { FormattedText } from '../assets/utils/FormattedText';
 import { RulebookAssetExplainer } from './RulebookAssetExplainer';
 import { RulebookBattleComparisonBlock, RulebookBattleStep, RulebookBattlePlans } from './RulebookBattlePlan';
 import { RulebookBoardSceneBlock } from './RulebookBoardScene';
+import { RulebookFactionSheet } from './RulebookFactionSheet';
 import { RulebookPieceMovementBlock } from './RulebookPieceMovementBlock';
 import { RulebookPieceTransferBlock } from './RulebookPieceTransferBlock';
 import './RulebookRenderer.css';
@@ -42,6 +43,7 @@ const styles = {
   factionRuler: 'rulebookFactionRuler',
   cardEntry: 'rulebookCardEntry',
   cardGroup: 'rulebookCardGroup',
+  cardFan: 'rulebookCardFan',
   cardGuide: 'rulebookCardGuide',
   cardGuidance: 'rulebookCardGuidance',
   cardQuantity: 'rulebookCardQuantity',
@@ -87,7 +89,11 @@ function SourceVisual({ source }: Readonly<{ source: RulebookRenderSourceV1 }>) 
       data-source-clipped={clipPath ? true : undefined}
     >
       {source.status === 'ready' ? (
-        <img src={imageUrl} alt={source.name} width={source.width} height={source.height} style={{ clipPath }} />
+        source.sheet ? (
+          <RulebookFactionSheet sheet={source.sheet} />
+        ) : (
+          <img src={imageUrl} alt={source.name} width={source.width} height={source.height} style={{ clipPath }} />
+        )
       ) : (
         <div
           className={styles.sourceUnavailable}
@@ -181,6 +187,9 @@ function CardGuide({
   text,
   quantity,
   grouped = false,
+  showImage = true,
+  imageSide,
+  textFlow,
   name,
   size,
 }: Readonly<{
@@ -188,13 +197,21 @@ function CardGuide({
   text: string;
   quantity?: number;
   grouped?: boolean;
+  showImage?: boolean;
+  imageSide?: 'left' | 'right';
+  textFlow?: 'beside' | 'wrap';
   name?: string;
   size?: RulebookIllustrationSize;
 }>) {
   const Heading = grouped ? 'h4' : 'h3';
   return (
-    <div className={styles.cardGuide} data-illustration-size={size}>
-      <SourceVisual source={source} />
+    <div
+      className={styles.cardGuide}
+      data-illustration-size={size}
+      data-image-side={imageSide}
+      data-text-flow={textFlow}
+    >
+      {showImage ? <SourceVisual source={source} /> : null}
       <div className={styles.cardGuidance}>
         {name || (source.status === 'ready' && source.name) ? (
           <Heading>{name || (source.status === 'ready' ? source.name : '')}</Heading>
@@ -263,7 +280,8 @@ export function RulebookBlockRenderer({ block }: Readonly<{ block: RulebookRende
         className={styles.sectionHeading}
         data-rulebook-block-id={block.id}
         data-faction-id={block.faction.status === 'unselected' ? undefined : block.faction.factionId}
-        title={faction?.name}
+        data-faction-name={faction?.name}
+        aria-label={faction && block.title !== faction.name ? `${block.title}, ${faction.name}` : undefined}
         style={
           faction ? { backgroundColor: faction.color, color: isLight(faction.color) ? '#21170f' : '#fff' } : undefined
         }
@@ -394,12 +412,18 @@ export function RulebookBlockRenderer({ block }: Readonly<{ block: RulebookRende
           text={block.text}
           quantity={block.quantity}
           name={block.name}
+          imageSide={block.imageSide}
+          textFlow={block.textFlow}
           size={block.size}
         />
       </section>
     );
   }
   if (block.kind === 'card-group') {
+    const guidance =
+      block.variant === 'fan'
+        ? block.items.filter((item) => item.text.trim() || item.quantity !== undefined)
+        : block.items;
     return (
       <section
         {...blockAnchor(block)}
@@ -409,12 +433,27 @@ export function RulebookBlockRenderer({ block }: Readonly<{ block: RulebookRende
       >
         {block.title ? <h3>{block.title}</h3> : null}
         <FormattedText value={block.text} />
-        {block.items.length ? (
-          <ul>
-            {block.items.map((item) => (
-              <li
+        {block.variant === 'fan' && block.items.length ? (
+          <div className={styles.cardFan}>
+            {block.items.map((item, index) => (
+              <div
                 key={item.id}
                 data-rulebook-item-id={item.id}
+                style={{
+                  transform: `rotate(${(index - (block.items.length - 1) / 2) * Math.min(6, 30 / Math.max(1, block.items.length - 1))}deg)`,
+                }}
+              >
+                <SourceVisual source={item.source} />
+              </div>
+            ))}
+          </div>
+        ) : null}
+        {guidance.length ? (
+          <ul>
+            {guidance.map((item) => (
+              <li
+                key={item.id}
+                data-rulebook-item-id={block.variant === 'fan' ? undefined : item.id}
                 data-card-featured={
                   block.variant === 'featured-member' && block.featuredItemId === item.id ? '' : undefined
                 }
@@ -424,6 +463,7 @@ export function RulebookBlockRenderer({ block }: Readonly<{ block: RulebookRende
                   text={item.text}
                   quantity={item.quantity}
                   grouped={Boolean(block.title)}
+                  showImage={block.variant !== 'fan'}
                 />
               </li>
             ))}

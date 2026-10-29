@@ -9,7 +9,7 @@ import { IconAction } from './IconAction';
 const meta = preview.meta({
   component: IconAction,
   parameters: { layout: 'centered' },
-  globals: { backgrounds: { value: 'light', grid: false } },
+  globals: { backgrounds: { value: 'dark', grid: false } },
   args: {
     label: 'Edit group settings',
     icon: <Pencil size={17} aria-hidden />,
@@ -22,7 +22,17 @@ const meta = preview.meta({
 /** The label is the hover text and the accessible name at once. No intent stated, which leaves the theme's primary colour, as the drag handle does. */
 export const Default = meta.story({});
 
-/** While its mutation is in flight. */
+/** While its mutation is in flight: a spinner in place of the glyph, and no second press. */
+export const Loading = meta.story({
+  args: {
+    label: 'Delete group',
+    icon: <Trash2 size={17} aria-hidden />,
+    intent: 'negative',
+    loading: true,
+  },
+});
+
+/** Not available right now. */
 export const Disabled = meta.story({
   args: {
     label: 'Delete group',
@@ -50,7 +60,7 @@ export const LongerTooltip = meta.story({
 
 /**
  * Every meaning at standard emphasis, then a toggle that is on, then the two strong fills (Norbert, 2026-09-29).
- * Slate changes nothing, green creates or keeps, violet publishes, cyan hands over a file, and red loses something for good.
+ * Warm neutrals change nothing, olive creates or keeps, violet publishes, blue hands over a file, and red loses something for good.
  */
 export const Meanings = meta.story({
   render: () => (

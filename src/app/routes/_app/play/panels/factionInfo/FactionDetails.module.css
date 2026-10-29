@@ -1,0 +1,26 @@
+.leaders {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.leader {
+  position: relative;
+  flex: 0 0 auto;
+  width: 5.5rem;
+  height: 5.5rem;
+  overflow: hidden;
+  border-radius: 50%;
+  filter: drop-shadow(0 0 10px rgb(from var(--play-black) r g b / 0.5));
+}
+
+.leader > * {
+  position: absolute;
+  inset: 0;
+}
+
+.karama {
+  display: flex;
+  gap: var(--space-xs);
+  align-items: flex-start;
+}

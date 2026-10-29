@@ -24,20 +24,17 @@ export function tokenBackOf(data: unknown): { mode?: unknown; asset_id?: unknown
   return typeof back === 'object' && back !== null ? (back as { mode?: unknown; asset_id?: unknown }) : null;
 }
 
-/** A deck's stored cardback, read the same distrustful way. Authored wears `mode: 'custom'` or, transitionally, no mode key; a reference wears `mode: 'reference'`. */
+/** A deck's stored cardback, read the same distrustful way. Authored wears `mode: 'custom'`, a preset link `mode: 'preset'` and a reference `mode: 'reference'`. */
 export function deckCardbackOf(data: unknown): Record<string, unknown> | null {
   const cardback = (data as { cardback?: unknown } | null | undefined)?.cardback;
   return typeof cardback === 'object' && cardback !== null ? (cardback as Record<string, unknown>) : null;
 }
 
 /**
- * The authored composition inside a stored cardback, or null when it is a reference.
- * The one three-way judgement (bare transitional, wrapped custom, reference) every server-side reader shares.
+ * The authored composition inside a stored cardback, or null when it is a preset link or a reference.
+ * The one judgement every server-side reader shares.
  */
 export function cardbackComposition(cardback: Record<string, unknown>): Record<string, unknown> | null {
-  if (!('mode' in cardback)) {
-    return cardback;
-  }
   if (cardback.mode !== 'custom') {
     return null;
   }
@@ -68,19 +65,6 @@ export function ownPublishedFace(row: Doc<'assets'>): string | null {
     return null;
   }
   return publishedHref(row.type, row._id, row.updated_at);
-}
-
-/**
- * The target of a pre-migration `token-back` relation row.
- * Read only until `asset_relations_token_back_drop_v1` lands everywhere;
- * every transitional reader shares this one fallthrough.
- */
-export async function legacyRelationBackId(ctx: ReadCtx, assetId: Id<'assets'>): Promise<Id<'assets'> | null> {
-  const relation = await ctx.db
-    .query('asset_relations')
-    .withIndex('by_from_kind', (q) => q.eq('from_asset_id', assetId).eq('kind', 'token-back'))
-    .first();
-  return relation ? relation.to_asset_id : null;
 }
 
 /**
@@ -162,6 +146,10 @@ export async function resolveBackHref(
   row: Doc<'assets'>,
   presets: CardbackPresetMemo
 ): Promise<ResolvedBack | null> {
+  if (row.type === 'token-leader') {
+    // A standalone leader has one published face; table setup uses that same image on either side.
+    return { mode: 'same', href: await publicationHrefFor(ctx, row.type, row._id) };
+  }
   if (TOKEN_ASSET_TYPES.has(row.type)) {
     if (!isPublicationAssetType(row.type)) {
       return null;
@@ -171,21 +159,11 @@ export async function resolveBackHref(
       return { mode: 'custom', href: await publicationHrefFor(ctx, row.type, publicationFaceId(row._id, 'back')) };
     }
     if (back?.mode === 'same' || back?.mode === 'reference') {
-      /* The legacy fallthrough matches the save path's, so a pre-migration reference resolves to its target rather than reading as dangling during the deploy window. */
-      const targetId =
-        typeof back.asset_id === 'string'
-          ? (back.asset_id as Id<'assets'>)
-          : back.mode === 'reference'
-            ? await legacyRelationBackId(ctx, row._id)
-            : null;
-      const target = targetId ? await ctx.db.get('assets', targetId) : null;
-      if (
-        back.mode === 'reference' &&
-        target &&
-        !target.is_deleted &&
-        target.type === row.type &&
-        hasAuthoredBack(target)
-      ) {
+      const target =
+        back.mode === 'reference' && typeof back.asset_id === 'string'
+          ? await ctx.db.get('assets', back.asset_id as Id<'assets'>)
+          : null;
+      if (target && !target.is_deleted && target.type === row.type && hasAuthoredBack(target)) {
         return {
           mode: 'reference',
           href: await publicationHrefFor(ctx, row.type, publicationFaceId(target._id, 'back')),

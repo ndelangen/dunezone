@@ -1,22 +1,22 @@
 import { tableHandlingOpen } from '@shared/play/admission';
-import type { BattlePlan, BattlePlanInput, Disclosure } from '@shared/play/battle';
-import type { PublicFaction } from '@shared/play/capture';
+import { isBattleLeader } from '@shared/play/battle';
+import type { BattlePlanInput } from '@shared/play/battle';
+import type { CardDraw } from '@shared/play/cardDraw';
 import { foldedTurns, rotatedPiece } from '@shared/play/commands';
 import { snapshotFactionLabels, snapshotFactionTieBreaks } from '@shared/play/factionLabels';
 import type { SpawnSelection } from '@shared/play/inventory';
 import type { LogTab } from '@shared/play/log';
 import { affordancesFor, gestureBlockReason } from '@shared/play/model';
-import type { Affordance, DraftMove, TablePiece, TableState, Vector3Tuple } from '@shared/play/model';
+import type { DraftMove, TablePiece, TableState, Vector3Tuple } from '@shared/play/model';
 import { isSeatAction } from '@shared/play/participation';
 import { rearrangeable } from '@shared/play/peeking';
 import type { Peek } from '@shared/play/peeking';
-import { piecesOnPlates, pointerRiders, ridersOf } from '@shared/play/pointerRiders';
+import { piecesOnPlates } from '@shared/play/pointerRiders';
 import { carryPieceId, TABLE_PING_INTERVAL_MS, tableForViewer } from '@shared/play/protocol';
 import type {
   ClientMessage,
   GameSnapshot,
   PieceAction,
-  Viewer,
   PublicCarry,
   PublicPointer,
   ServerMessage,
@@ -24,6 +24,7 @@ import type {
   TablePing,
 } from '@shared/play/protocol';
 import { isRemovalAction } from '@shared/play/removal';
+import { isReviewAction, reviewRunning } from '@shared/play/review';
 import { CARRY_FLIPS_LIMIT, SPECTATOR_SEAT, tablePositionSchema } from '@shared/play/schema';
 import { isSwapAction } from '@shared/play/swapping';
 import {
@@ -34,108 +35,18 @@ import {
   renderedPiecesFor,
 } from '@shared/play/tableState';
 
+import { BattleQueue } from './BattleQueue';
 import { ConversationSession } from './ConversationSession';
 import type { ConversationView } from './ConversationSession';
 import type { GameRuntime } from './runtime';
 import type { StoredTable } from './storedTable';
+import { TablePages } from './TablePages';
+import { pickupRidersOf, remoteViewOf, sameForPanels, storedProjection } from './tableProjection';
+import type { ConnectionView, TableProjection } from './tableProjection';
+
+export type { ConnectionView, TableProjection } from './tableProjection';
 import { isReadRequest } from './TableSubscription';
 import type { TableSubscription, TableSubscriptionEvent } from './TableSubscription';
-
-/*
- * How soon after one read of a log tab a changed table may read it again. Changes inside the wait are read together at its end,
- * so a burst of commands costs one read at each end of it and a single command is read at once.
- */
-const LOG_REFRESH_INTERVAL_MS = 500;
-
-/* The same page with the same entries, so a read that found nothing new leaves the panel as it is. */
-function sameLogPage(previous: LogPage, next: LogPage) {
-  return (
-    previous.before === next.before &&
-    previous.more === next.more &&
-    previous.entries.length === next.entries.length &&
-    previous.entries.every((entry, index) => {
-      const other = next.entries[index]!;
-      return (
-        entry.sequence === other.sequence &&
-        entry.class === other.class &&
-        entry.text === other.text &&
-        entry.context === other.context &&
-        entry.at === other.at
-      );
-    })
-  );
-}
-
-/* Both tabs open on their newest page. */
-function latestLogPages(): Record<LogTab, number> {
-  return { game: Number.MAX_SAFE_INTEGER, audit: Number.MAX_SAFE_INTEGER };
-}
-
-/*
- * The table as others' carries leave it on this page: what they hold shown in their hands, the pieces they keep from moving, and what rides a plate one of them carries.
- * A piece another player holds part of stays put, as the room's own locks keep it, so it rides no plate.
- */
-function remoteViewOf(
-  pieces: TablePiece[],
-  carries: PublicCarry[],
-  rested: TablePiece[],
-  { own, pickupRiders }: Readonly<{ own: LocalCarry | null; pickupRiders: ReadonlyMap<string, ReadonlySet<string>> }>
-) {
-  const reservedPieceIds = new Set(carries.flatMap((carry) => carry.reservedIds));
-  const remoteCarriedIds = new Set(carries.map((carry) => carry.held.id));
-  /* A plate in anyone's hand, this page's own included, takes its riders along as it is shown. */
-  const inHand = own ? new Set([...remoteCarriedIds, own.draft.pieceId]) : remoteCarriedIds;
-  /* What this page is carrying from is held for it too, so another's plate leaves it behind as well; so is a piece set down where a carried plate lay, which never rode it. */
-  const held = new Set([
-    ...reservedPieceIds,
-    ...(own ? draftSourceIds(own.draft) : []),
-    ...lateRiders(rested, inHand, pickupRiders),
-  ]);
-  const guarded = held.size ? rested.map((piece) => (held.has(piece.id) ? { ...piece, locked: true } : piece)) : rested;
-  return {
-    renderedPieces: piecesOnPlates(projectPublicCarries(pieces, carries), guarded),
-    reservedPieceIds,
-    remoteCarriedIds,
-    plateRiders: ridersOf(guarded, inHand),
-  };
-}
-
-/* The pieces now resting on a carried plate that were not on it when it was picked up, as the room leaves them behind on its drop; a carry the room has not described yet keeps all it covers. */
-function lateRiders(
-  rested: readonly TablePiece[],
-  inHand: ReadonlySet<string>,
-  pickupRiders: ReadonlyMap<string, ReadonlySet<string>>
-): string[] {
-  /* Each plate on its own, as the room drops it: a piece under two carried plates is held if either picked it up without it. */
-  return rested
-    .filter((plate) => inHand.has(plate.id) && pickupRiders.has(plate.id))
-    .flatMap((plate) => pointerRiders(rested, plate).filter((rider) => !pickupRiders.get(plate.id)!.has(rider.id)))
-    .map((rider) => rider.id);
-}
-
-/* What rode each carried plate when it was picked up, by the plate's id, as the room says in each carry. */
-function pickupRidersOf(carries: readonly PublicCarry[]): ReadonlyMap<string, ReadonlySet<string>> {
-  return new Map(carries.flatMap((carry) => (carry.riderIds ? [[carry.held.id, new Set(carry.riderIds)]] : [])));
-}
-
-/* The stacks a carry takes from: the one it was picked up from, and any it took more from on the way. */
-function draftSourceIds(draft: DraftMove): string[] {
-  return [draft.sourcePieceId, ...draft.withdrawals.map((withdrawal) => withdrawal.sourcePieceId)];
-}
-
-function projectPublicCarries(pieces: TablePiece[], carries: PublicCarry[]): TablePiece[] {
-  let result = pieces;
-  for (const carry of carries) {
-    result = result
-      .map((piece) => {
-        const count = carry.withdrawnCounts[piece.id] ?? 0;
-        return count ? { ...piece, items: piece.items.slice(0, Math.max(0, piece.items.length - count)) } : piece;
-      })
-      .filter((piece) => piece.id !== carry.held.id);
-    result = [...result, carry.held];
-  }
-  return result;
-}
 
 function settledRequest(message: TableSubscriptionEvent): { id: string; outcome: 'completed' | 'rejected' } | null {
   switch (message.type) {
@@ -183,74 +94,12 @@ type LocalCarry = {
   /* A resync completed the drop before the tab holds its snapshot, so the draft keeps the piece where it landed until the fresh view. */
   landed?: true;
 };
-export type TableProjection = {
-  viewer: Viewer;
-  snapshot: GameSnapshot;
-  liveRevision: number;
-  playback: { step: number; lastStep: number; recordedAt?: number } | null;
-  historyPending: boolean;
-  canInteract: boolean;
-  /* Whether the viewer may handle the table's pieces: acting, at a stage whose table can change. A finished game, or one still drafting or trading, keeps its table as it is. */
-  canHandleTable: boolean;
-  /* The connection is being restored: this is the last live table, read-only, until a fresh view replaces it. */
-  reconnecting: boolean;
-  /* A seat command is on its way; the bar holds its buttons until the table answers. */
-  seatCommandPending: boolean;
-  /* How many of this viewer's own Traitor gathers the table has completed, so the camera can follow the pile they made. */
-  traitorsGathered: number;
-  phaseCooling: boolean;
-  state: TableState;
-  renderedPieces: TablePiece[];
-  selectedPiece: TablePiece | null;
-  affordances: Affordance[];
-  /* The piece menu's spice reserve and deck actions, present only while this viewer can act. */
-  spiceReserveControls?: {
-    canCollect(pieceId: string): boolean;
-    collect(pieceId: string): void;
-  };
-  deckControls?: {
-    /* Each faction a card can be dealt to, with its token artwork where the room published one. */
-    recipients: { id: string; name: string; artwork?: NonNullable<GameSnapshot['factionArtwork']>[string] }[];
-    draw(pieceId: string, recipient?: string): void;
-    shuffle(pieceId: string): void;
-  };
-  /* Taking a card, token or stack out of the game for good; present only while this viewer can act. */
-  deleteControls?: {
-    remove(pieceId: string): void;
-  };
-  /* The piece this viewer's faction holds open by peeking, faces showing; only its own frames carry one. */
-  peek: Peek | null;
-  /* Peeking at a hidden card, token or deck, and changing a deck held open; present only while this viewer's faction can act. */
-  peekControls?: {
-    peek(pieceId: string): void;
-    arrange: (pieceId: string, order: number[]) => void;
-    pull: (pieceId: string, index: number) => void;
-  };
-  /* Letting go of the peek held open; a seated viewer can, even once the game is finished and the table no longer handles. */
-  closePeek?: () => void;
-  remoteCarriedIds: ReadonlySet<string>;
-  /* Pieces riding a plate in someone's hand, this page's own included, by id, to that plate's id: they follow the plate as it is shown. */
-  plateRiders: ReadonlyMap<string, string>;
-  reservedPieceIds: ReadonlySet<string>;
-  gestureActivePieceId: string | null;
-  hoveredPieceId: string | null;
-  flippingPieceIds: ReadonlyMap<string, number>;
-  /* Only a derived table reads server time, because the view that derived it anchored the clock. */
-  serverNow: () => number;
-};
-
-export type ConnectionView = {
-  status: TableSubscription['status'];
-  conversations: ConversationView;
-  error: string | null;
-  table: TableProjection | null;
-  catalogue?: Extract<ServerMessage, { type: 'catalogue' }>;
-  spiceHistory?: Extract<ServerMessage, { type: 'spice-history' }>;
-  logHistory: Partial<Record<LogTab, LogPage>>;
-  /* Seated factions' captured starting sheets by faction id; null when the game holds no capture of one. */
-  factions: Readonly<Partial<Record<string, PublicFaction | null>>>;
-};
-export type LogPage = Extract<ServerMessage, { type: 'log-history' }>;
+/** What the hand takes from the table: one loose, unlocked card or battle leader, not something already in an inventory. */
+function takeableIntoHand(piece: TablePiece) {
+  return (
+    !piece.inventory && !piece.locked && piece.items.length === 1 && (piece.kind === 'card' || isBattleLeader(piece))
+  );
+}
 
 /* Each faction a deck can deal to, with its token art for the deal ring. */
 function dealRecipients(snapshot: GameSnapshot) {
@@ -258,7 +107,6 @@ function dealRecipients(snapshot: GameSnapshot) {
   return Object.entries(snapshotFactionLabels(snapshot)).map(([id, name]) => ({ id, name, artwork: artwork[id] }));
 }
 
-/* Whether two sets hold the same members, so a table rebuilt for a move keeps the sets a panel already read. */
 /* The same requests in the same order: conversation sends keep their request objects while they wait. */
 function sameRequests(a: readonly unknown[], b: readonly unknown[]) {
   return a.length === b.length && a.every((request, index) => request === b[index]);
@@ -277,84 +125,15 @@ function sameSave(
   return saved.viewer === table.viewer && saved.snapshot === table.snapshot && sameRequests(saved.pending, pending);
 }
 
-function sameMembers<T>(a: ReadonlySet<T> | ReadonlyMap<T, unknown>, b: ReadonlySet<T> | ReadonlyMap<T, unknown>) {
-  if (a.size !== b.size) {
-    return false;
-  }
-  for (const key of a.keys()) {
-    if (!b.has(key)) {
-      return false;
-    }
-  }
-  return true;
-}
-
-/* The controls a panel offers only while present, so only their presence counts for a panel's render. */
-const PIECE_ID_SETS = ['remoteCarriedIds', 'plateRiders', 'reservedPieceIds'] as const;
-const PANEL_CONTROLS = ['spiceReserveControls', 'deckControls', 'deleteControls', 'peekControls', 'closePeek'] as const;
-
-function samePlayback(previous: TableProjection['playback'], next: TableProjection['playback']) {
-  if (!previous || !next) {
-    return previous === next;
-  }
-  return previous.step === next.step && previous.lastStep === next.lastStep && previous.recordedAt === next.recordedAt;
-}
-
-/*
- * Whether the panels would show `next` as they show `previous`: everything they read is the same, and only where held pieces are on their way differs.
- * A carry moves many times a second, and only the scene follows it, so the panels keep the table they have until something they show changes.
- * The hovered piece is left out for the same reason: only the scene, the close-up and the keyboard read it, all from the live table.
- */
-function sameForPanels(previous: TableProjection, next: TableProjection) {
-  return (
-    previous.viewer === next.viewer &&
-    previous.snapshot === next.snapshot &&
-    previous.liveRevision === next.liveRevision &&
-    samePlayback(previous.playback, next.playback) &&
-    previous.historyPending === next.historyPending &&
-    previous.canInteract === next.canInteract &&
-    previous.canHandleTable === next.canHandleTable &&
-    previous.reconnecting === next.reconnecting &&
-    previous.seatCommandPending === next.seatCommandPending &&
-    previous.traitorsGathered === next.traitorsGathered &&
-    previous.phaseCooling === next.phaseCooling &&
-    previous.serverNow === next.serverNow &&
-    previous.state.selectedPieceId === next.state.selectedPieceId &&
-    previous.state.draftMove?.pieceId === next.state.draftMove?.pieceId &&
-    previous.gestureActivePieceId === next.gestureActivePieceId &&
-    PANEL_CONTROLS.every((key) => Boolean(previous[key]) === Boolean(next[key])) &&
-    (previous.peek === null) === (next.peek === null) &&
-    PIECE_ID_SETS.every((key) => sameMembers(previous[key], next[key])) &&
-    sameMembers(previous.flippingPieceIds, next.flippingPieceIds) &&
-    [...previous.flippingPieceIds].every(([id, revision]) => next.flippingPieceIds.get(id) === revision)
-  );
-}
-
 /* Commands a held piece does not hold back: a phase change, a removal, a seat, and letting go of a peek, which the room allows mid-carry. */
-function waitsForPlan(
-  action: PieceAction
-): action is Extract<PieceAction, { kind: 'battle-ready' | 'battle-disclose' }> {
-  return action.kind === 'battle-ready' || action.kind === 'battle-disclose';
-}
-/* The part a battle action reveals in the given battle, if it reveals one. */
-function revealIn(action: PieceAction, battleId?: string): Disclosure[] {
-  return action.kind === 'battle-disclose' && action.shown && action.battleId === battleId ? [action.disclosure] : [];
-}
-function shownWith(shown: BattlePlan['disclosed'], disclosure: Disclosure): BattlePlan['disclosed'] {
-  return disclosure.element === 'card'
-    ? { ...shown, cardIds: [...new Set([...shown.cardIds, disclosure.cardId])] }
-    : { ...shown, [disclosure.element]: true };
-}
-/* The snapshot with its battle plan replaced, the bank holding back the spice the new plan commits. */
-function withPlan(snapshot: GameSnapshot, was: BattlePlan, plan: BattlePlan): GameSnapshot {
-  const bank = snapshot.bank && {
-    ...snapshot.bank,
-    balance: snapshot.bank.balance + was.spice - plan.spice,
-  };
-  return { ...snapshot, battlePlan: plan, ...(bank ? { bank } : {}) };
-}
 function passesCarry(action: PieceAction) {
-  return action.kind === 'phase' || action.kind === 'peek-close' || isRemovalAction(action) || isSeatAction(action);
+  return (
+    action.kind === 'phase' ||
+    action.kind === 'peek-close' ||
+    isRemovalAction(action) ||
+    isSeatAction(action) ||
+    isReviewAction(action)
+  );
 }
 
 /* A deck's cards as they stand, by id; the room gives every card a new id whenever it rearranges the deck. */
@@ -399,41 +178,6 @@ function cachedBy<T>(cached: Cached<T> | undefined, keys: readonly unknown[], bu
 /* How often a live table whose saved copy is otherwise unchanged stamps that copy as live again. */
 const LIVE_RESTAMP_INTERVAL_MS = 5000;
 
-/* A table a reloaded tab kept from its last visit: read-only, with nothing in hand or in motion, until a fresh view replaces it. */
-function storedProjection({ viewer, snapshot, serverNow }: StoredTable): TableProjection {
-  const state = {
-    ...tableForViewer(snapshot, viewer.viewerSeat),
-    factionTieBreaks: snapshotFactionTieBreaks(snapshot),
-    selectedPieceId: null,
-    draftMove: null,
-  };
-  return {
-    viewer,
-    snapshot,
-    liveRevision: snapshot.revision,
-    playback: null,
-    historyPending: false,
-    canInteract: false,
-    canHandleTable: false,
-    reconnecting: true,
-    seatCommandPending: false,
-    traitorsGathered: 0,
-    phaseCooling: false,
-    state,
-    renderedPieces: piecesOnPlates(renderedPiecesFor(state), state.pieces),
-    selectedPiece: null,
-    affordances: [],
-    peek: null,
-    remoteCarriedIds: new Set(),
-    plateRiders: new Map(),
-    reservedPieceIds: new Set(),
-    gestureActivePieceId: null,
-    hoveredPieceId: null,
-    flippingPieceIds: new Map(),
-    serverNow: () => serverNow,
-  };
-}
-
 /* A position the table can hold, or null for one off it. */
 function onTable(position: Vector3Tuple | null) {
   return position && tablePositionSchema.safeParse(position).success ? position : null;
@@ -444,6 +188,8 @@ export class TableSession {
   private readonly listeners = new Set<() => void>();
   private readonly pointerListeners = new Set<() => void>();
   private readonly pingListeners = new Set<(ping: TablePing) => void>();
+  private readonly drawListeners = new Set<(draw: CardDraw) => void>();
+  private lastDraw: Pick<CardDraw, 'epoch' | 'revision'> | null = null;
   /* When this page last pinged, by its monotonic clock; -Infinity before the first. */
   private pingedAt = Number.NEGATIVE_INFINITY;
   private readonly tableListeners = new Set<() => void>();
@@ -461,8 +207,12 @@ export class TableSession {
   private pointerTimer: ReturnType<typeof setTimeout> | undefined;
   private error: string | null = null;
   private history: Extract<ServerMessage, { type: 'history' }> | null = null;
+  /* The running table review this page follows, by id; null when none holds it. */
+  private followedReview: string | null = null;
   private historyClock: (() => number) | null = null;
   private pendingHistory: number | null = null;
+  private historyRequestedAt = 0;
+  private historyRequestId: string | null = null;
   /* The live room's newest history step, which grows while a viewer sits in playback. */
   private liveHistorySteps = 0;
   private epoch = '';
@@ -494,6 +244,9 @@ export class TableSession {
   private captureInFlight: string | null = null;
   /* The order this viewer asked for the deck it holds open, shown until the room answers it. */
   private pendingArrangement: { commandId: string; pieceId: string; deck: string; order: number[] } | null = null;
+  /* The Shipment and Movement order this viewer dragged, shown until the room answers it, and the live table shown with it. */
+  private pendingMovementOrder: { commandId: string; order: string[] } | null = null;
+  private movementShown: { from: GameSnapshot; commandId: string; shown: GameSnapshot } | null = null;
   /*
    * The peek this viewer closed, hidden at once while the room confirms it.
    * The room's frame without the peek, a refused close, a dropped connection or asking to peek again each forget it,
@@ -510,7 +263,7 @@ export class TableSession {
   /* The server's own view of the last live table, which a reload of this tab shows until a fresh view arrives (#1746). */
   private kept: Omit<StoredTable, 'pending'> | null = null;
   private traitorsGathered = 0;
-  private queuedCatalogue: { requestId: string; selection?: SpawnSelection } | null = null;
+  private queuedCatalogue: { requestId: string; selection: SpawnSelection } | null = null;
   private phaseCooldownUntil = 0;
   /* What `keep` last handed the store, so an emit that changed nothing saved costs no write. */
   private lastSaved: {
@@ -521,24 +274,10 @@ export class TableSession {
     at: number;
   } | null = null;
   private battleCountdownUntil = 0;
-  private pendingBattlePlan: { commandId: string; battleId: string; patch: Partial<BattlePlanInput> } | null = null;
-  private queuedBattlePlan: { battleId: string; patch: Partial<BattlePlanInput> } | null = null;
-  /* Readiness and early reveals wait for the plan edits sent before them, so the room judges the plan the player saw. */
-  private queuedBattleActions: Extract<PieceAction, { kind: 'battle-ready' | 'battle-disclose' }>[] = [];
-  private disclosuresInFlight = new Map<string, Extract<PieceAction, { kind: 'battle-disclose' }>>();
+  private readonly battle: BattleQueue;
   private catalogueResult?: Extract<ServerMessage, { type: 'catalogue' }>;
-  private spiceHistory?: Extract<ServerMessage, { type: 'spice-history' }>;
-  private spiceHistoryBefore?: number;
-  private logHistory: Partial<Record<LogTab, LogPage>> = {};
-  /* A capture never changes once a game holds it, so each answer is kept across reconnects. */
   private retainedBoard: GameSnapshot['board'];
-  private factions: Readonly<Partial<Record<string, PublicFaction | null>>> = {};
-  /* Reads sent and not yet answered; a dropped connection or a refusal forgets them, so the panel can ask again. */
-  private factionRequests = new Set<string>();
-  private logHistoryBefore: Record<LogTab, number> = latestLogPages();
-  /* When each log tab was last read, by the monotonic clock, and the read a changed table still has waiting for it. */
-  private logReadAt: Partial<Record<LogTab, number>> = {};
-  private readonly logRefreshes: Partial<Record<LogTab, ReturnType<typeof setTimeout>>> = {};
+  private readonly pages: TablePages;
 
   constructor(
     readonly game: string,
@@ -549,6 +288,19 @@ export class TableSession {
       (message) => this.subscription.send(message),
       () => this.emit(),
       runtime.monotonicNow
+    );
+    this.battle = new BattleQueue({
+      canAct: () => this.canAct(),
+      snapshot: () => this.snapshot,
+      sendPlan: (commandId, battleId, plan, expectedRevision) =>
+        this.send({ type: 'command', commandId, expectedRevision, action: { kind: 'battle-plan', battleId, plan } }),
+      command: (action) => this.command(action),
+      hasRoom: () => this.unanswered.size < UNANSWERED_COMMANDS_LIMIT,
+    });
+    this.pages = new TablePages(
+      (message) => this.send(message),
+      runtime.monotonicNow,
+      () => this.emit()
     );
     this.restore();
     this.table = this.derive();
@@ -665,6 +417,8 @@ export class TableSession {
     return () => this.tableListeners.delete(listener);
   };
   getTable = () => this.shownTable;
+  /** The normal controls keep their own last live presentation while recall uses another controller. */
+  getLastLiveTable = () => this.lastLive?.table ?? null;
   /*
    * The other players' pointers, apart from the table: they move many times a second, and only the scene's hands follow them,
    * so an update that moves nothing else leaves the table, and everything that reads it, as it was.
@@ -701,6 +455,32 @@ export class TableSession {
     this.pingListeners.add(listener);
     return () => this.pingListeners.delete(listener);
   };
+  /** Accepted draws reach every current viewer once, independently of the pieces they remove. */
+  subscribeCardDraws = (listener: (draw: CardDraw) => void) => {
+    this.drawListeners.add(listener);
+    return () => this.drawListeners.delete(listener);
+  };
+  private canShowCardDraws() {
+    if (this.status !== 'authorized') {
+      return false;
+    }
+    return this.current() && !reviewRunning(this.saved?.review);
+  }
+  private receiveCardDraw(draw: CardDraw) {
+    if (!this.canShowCardDraws()) {
+      return;
+    }
+    if (draw.epoch !== this.epoch || draw.revision !== this.snapshot.revision) {
+      return;
+    }
+    if (this.lastDraw?.epoch === draw.epoch && draw.revision <= this.lastDraw.revision) {
+      return;
+    }
+    this.lastDraw = { epoch: draw.epoch, revision: draw.revision };
+    for (const listener of this.drawListeners) {
+      listener(draw);
+    }
+  }
   private emitPing(ping: TablePing) {
     for (const listener of this.pingListeners) {
       listener(ping);
@@ -730,7 +510,7 @@ export class TableSession {
   };
   /* This page's ping on the table surface under its cursor, while it has a cursor on the table and may act. */
   private pingHere(sound: PingSound | undefined): TablePing | null {
-    if (!this.canAct()) {
+    if (!this.canPoint()) {
       return null;
     }
     const viewer = this.viewer;
@@ -742,7 +522,7 @@ export class TableSession {
   }
   /* A ping changes nothing on the table, so it skips the update every other message makes. */
   private receivePing(ping: TablePing) {
-    if (this.status === 'authorized' && this.current()) {
+    if (this.status === 'authorized' && this.seesSharedTable()) {
       this.emitPing(ping);
     }
   }
@@ -787,7 +567,7 @@ export class TableSession {
       return null;
     }
     const table = this.liveTable();
-    if (!table.playback && !table.historyPending) {
+    if (this.current() && !reviewRunning(this.saved?.review)) {
       this.lastLive = { table };
     }
     return table;
@@ -818,6 +598,7 @@ export class TableSession {
       affordances: [],
       spiceReserveControls: undefined,
       deckControls: undefined,
+      handControls: undefined,
       deleteControls: undefined,
       peek: null,
       peekControls: undefined,
@@ -832,23 +613,30 @@ export class TableSession {
     };
   }
   private presentedSnapshot() {
-    const received = this.history?.snapshot ?? this.snapshot;
+    const received = this.history?.snapshot ?? this.movementArranged();
     /* The board is captured once per game; history and reconnect messages decode fresh copies of that same definition. */
     this.retainedBoard ??= received.board;
     const authoritative = received.board === this.retainedBoard ? received : { ...received, board: this.retainedBoard };
-    return this.withUnsettledDisclosures(this.withPendingPlan(authoritative));
+    return this.battle.shown(authoritative, this.history !== null);
+  }
+
+  /* The live table in the order this viewer last dragged, kept as one copy per frame and drag so the projection only changes with them. */
+  private movementArranged(): GameSnapshot {
+    const pending = this.pendingMovementOrder;
+    if (!pending) {
+      return this.snapshot;
+    }
+    if (this.movementShown?.from !== this.snapshot || this.movementShown.commandId !== pending.commandId) {
+      const movement = { ...(this.snapshot.movement ?? { done: [] }), order: pending.order };
+      this.movementShown = { from: this.snapshot, commandId: pending.commandId, shown: { ...this.snapshot, movement } };
+    }
+    return this.movementShown.shown;
   }
 
   private liveTable(): TableProjection {
     const viewer = this.viewer!;
     const displayed = this.presentedSnapshot();
-    const state = {
-      ...tableForViewer(displayed, viewer.viewerSeat),
-      factionTieBreaks: snapshotFactionTieBreaks(displayed),
-      /* A selection made before handling closed is not shown, so nothing offers to act on it. */
-      selectedPieceId: tableHandlingOpen(this.snapshot.stage) ? this.selectedId : null,
-      draftMove: this.carry?.draft ?? null,
-    };
+    const state = this.stateForView(displayed);
     const { carries: remote } = this.activityForView();
     const local = this.localProjection(state);
     const canInteract = this.canAct();
@@ -866,6 +654,13 @@ export class TableSession {
           }
         : null,
       historyPending: this.pendingHistory !== null,
+      ...(this.snapshot.review !== undefined && {
+        review: {
+          current: this.snapshot.review,
+          checkpoints: this.snapshot.reviewCheckpoints ?? [],
+          seat: viewer.viewerSeat === SPECTATOR_SEAT ? null : viewer.viewerSeat,
+        },
+      }),
       canInteract,
       canHandleTable,
       reconnecting: false,
@@ -876,10 +671,32 @@ export class TableSession {
       renderedPieces,
       selectedPiece: renderedPieces.find((piece) => piece.id === state.selectedPieceId) ?? null,
       affordances: affordancesFor({ ...state, pieces: renderedPieces }),
+      ...this.interactionProjection(displayed),
+      ...remoteIds,
+      reservedPieceIds,
+      gestureActivePieceId: local.gestureActivePieceId,
+      hoveredPieceId: this.hoveredId,
+      flippingPieceIds: local.flippingPieceIds,
+      serverNow: this.clockForView(),
+    };
+  }
+  private stateForView(displayed: GameSnapshot) {
+    return {
+      ...tableForViewer(displayed, this.viewer!.viewerSeat),
+      factionTieBreaks: snapshotFactionTieBreaks(displayed),
+      selectedPieceId: this.canHandle() ? this.selectedId : null,
+      draftMove: this.carry?.draft ?? null,
+    };
+  }
+  private interactionProjection(displayed: GameSnapshot) {
+    const canInteract = this.canAct();
+    const canHandleTable = this.canHandle();
+    return {
       spiceReserveControls: canHandleTable && displayed.bank ? this.spiceReserveControls : undefined,
       deckControls:
         canHandleTable && this.subscription.supportsCommand('deck-draw') ? this.deckControls(displayed) : undefined,
       deleteControls: this.deleteControls(canHandleTable),
+      handControls: this.handControls(canHandleTable),
       /* A look back in time shows no peek: what a faction saw then is not what it holds open now. */
       peek:
         this.history || displayed.peek?.piece.id === this.closedPeek?.pieceId
@@ -887,12 +704,6 @@ export class TableSession {
           : this.arrangedPeek(displayed.peek ?? null),
       peekControls: canHandleTable && displayed.bank ? this.peekControls : undefined,
       closePeek: canInteract && displayed.peek ? this.peekCloser(displayed.peek.piece.id) : undefined,
-      ...remoteIds,
-      reservedPieceIds,
-      gestureActivePieceId: local.gestureActivePieceId,
-      hoveredPieceId: this.hoveredId,
-      flippingPieceIds: local.flippingPieceIds,
-      serverNow: this.clockForView(),
     };
   }
   private clockForView() {
@@ -918,6 +729,13 @@ export class TableSession {
   private readonly removal: NonNullable<TableProjection['deleteControls']> = {
     remove: (pieceId) => this.command({ kind: 'delete', pieceId }),
   };
+  private readonly taking: NonNullable<TableProjection['handControls']> = {
+    canTake: (pieceId) => {
+      const piece = this.table?.state.pieces.find((entry) => entry.id === pieceId);
+      return piece !== undefined && takeableIntoHand(piece);
+    },
+    take: (pieceId) => this.command({ kind: 'hand-take', pieceId }),
+  };
   private dealing: Cached<NonNullable<TableProjection['deckControls']>> | undefined;
   private peekClosing: Cached<() => void> | undefined;
   /* The deal ring names the factions as the snapshot labels them and shows their art, so it is rebuilt only when those change. */
@@ -939,6 +757,9 @@ export class TableSession {
   }
   private deleteControls(canHandleTable: boolean): TableProjection['deleteControls'] {
     return canHandleTable && this.subscription.supportsCommand('delete') ? this.removal : undefined;
+  }
+  private handControls(canHandleTable: boolean): TableProjection['handControls'] {
+    return canHandleTable && this.subscription.supportsCommand('hand-take') ? this.taking : undefined;
   }
   /* Whether the peeked deck still shows the order this viewer asked for: the room has neither refused it nor sent the deck again. */
   private arrangementShown(peek: Peek | null) {
@@ -981,16 +802,19 @@ export class TableSession {
   };
   private remoteView(pieces: TablePiece[], carries: PublicCarry[], rested: TablePiece[]) {
     /* The live carries, this page's own among them, even while history is shown. */
-    return remoteViewOf(pieces, carries, rested, { own: this.carry, pickupRiders: pickupRidersOf(this.carries) });
+    return remoteViewOf(pieces, carries, rested, {
+      ownDraft: this.carry?.draft ?? null,
+      pickupRiders: pickupRidersOf(this.carries),
+    });
   }
 
   private activityForView() {
-    if (this.history) {
+    if (this.history && !reviewRunning(this.saved?.review)) {
       return { carries: [], pointers: [] };
     }
     const connectionId = this.viewer?.connectionId;
     return {
-      carries: this.carries.filter((carry) => carry.connectionId !== connectionId),
+      carries: this.history ? [] : this.carries.filter((carry) => carry.connectionId !== connectionId),
       pointers: this.pointers.filter((pointer) => pointer.connectionId !== connectionId),
     };
   }
@@ -1087,30 +911,43 @@ export class TableSession {
       error: this.error,
       table: table && previous.table && sameForPanels(previous.table, table) ? previous.table : table,
       catalogue: this.catalogueResult,
-      spiceHistory: this.spiceHistory,
-      logHistory: this.logHistory,
-      factions: this.factions,
+      spiceHistory: this.pages.spiceHistory,
+      logHistory: this.pages.logHistory,
+      factions: this.pages.factions,
     };
     const changed = (Object.keys(next) as (keyof ConnectionView)[]).some((key) => next[key] !== previous[key]);
     this.cached = changed ? next : previous;
     return changed;
   }
   private canSend(message: Exclude<ClientMessage, { type: 'admit' | 'sync' }>): boolean {
-    /* A seat command is the spectator's one way to act, so it passes without a seat; `command` holds it to a current view. */
-    const seat = message.type === 'command' && isSeatAction(message.action);
-    /* Putting a held piece back also passes while a resync pauses the table, so the Worker never keeps a piece the tab let go of. */
-    const release = message.type === 'cancel' && this.carry !== null;
-    return this.status === 'authorized' && (isReadRequest(message) || seat || release || this.canAct());
+    if (this.status !== 'authorized') {
+      return false;
+    }
+    if (isReadRequest(message)) {
+      return true;
+    }
+    if (message.type === 'pointer' || message.type === 'ping') {
+      return this.canPoint();
+    }
+    return this.canAct() || this.canSendWhilePaused(message);
+  }
+  private canSendWhilePaused(message: Exclude<ClientMessage, { type: 'admit' | 'sync' }>): boolean {
+    if (message.type === 'command') {
+      return isSeatAction(message.action) || isReviewAction(message.action);
+    }
+    /* A held piece must return even while resync or recall pauses the table. */
+    return message.type === 'cancel' && this.carry !== null;
   }
   private send(message: Exclude<ClientMessage, { type: 'admit' | 'sync' }>): boolean {
     return this.canSend(message) && this.subscription.send(message);
   }
-  private receive(message: TableSubscriptionEvent) {
+  private receive(message: Exclude<TableSubscriptionEvent, { type: 'ping' | 'card-draw' }>) {
     this.settleRequest(message);
     switch (message.type) {
       case 'connection':
         this.conversations.disconnected(this.status === 'denied');
         this.pendingArrangement = null;
+        this.pendingMovementOrder = null;
         this.closedPeek = null;
         this.noteEndedCarry({
           held: pausedWhileHeld,
@@ -1144,9 +981,43 @@ export class TableSession {
         }
     }
     this.forgetSettledPeekClose();
-    this.discardReplacedBattleCommands();
+    this.battle.discardReplaced(this.saved?.battle?.id);
     this.flushQueues();
+    this.followReview();
     this.emit();
+  }
+  /*
+   * A running table review shows its checkpoint to everyone at once, so this page asks for it without being asked,
+   * once per review, and goes back to the live table when the review ends.
+   */
+  private followReview() {
+    const review = this.status === 'authorized' && this.saved ? this.snapshot.review : null;
+    if (!reviewRunning(review)) {
+      if (this.followedReview !== null) {
+        this.followedReview = null;
+        this.history = null;
+        this.pendingHistory = null;
+        this.flushQueues();
+      }
+      return;
+    }
+    const selected = `${review.id}:${review.step}`;
+    if (this.followedReview === selected || this.carry) {
+      return;
+    }
+    this.followedReview = selected;
+    this.publishPointer(null);
+    this.pendingHistory = review.step;
+    this.historyRequestId = `history-${crypto.randomUUID()}`;
+    this.historyRequestedAt = this.runtime.monotonicNow();
+    if (!this.send({ type: 'history', step: review.step, requestId: this.historyRequestId })) {
+      this.pendingHistory = null;
+      this.followedReview = null;
+    }
+  }
+  /** Whether a running table review holds this page on its checkpoint. */
+  private reviewHolds() {
+    return this.followedReview !== null;
   }
   private settleRequest(message: TableSubscriptionEvent) {
     const settled = settledRequest(message);
@@ -1163,17 +1034,6 @@ export class TableSession {
   private forgetSettledPeekClose() {
     if (this.closedPeek && !this.saved?.peek) {
       this.closedPeek = null;
-    }
-  }
-  private discardReplacedBattleCommands() {
-    if (
-      (this.pendingBattlePlan && this.saved?.battle?.id !== this.pendingBattlePlan.battleId) ||
-      (this.queuedBattlePlan && this.saved?.battle?.id !== this.queuedBattlePlan.battleId) ||
-      this.queuedBattleActions.some((action) => this.saved?.battle?.id !== action.battleId)
-    ) {
-      this.pendingBattlePlan = null;
-      this.queuedBattlePlan = null;
-      this.queuedBattleActions = [];
     }
   }
   private settle(id: string, outcome: 'completed' | 'rejected', viewFollows: boolean) {
@@ -1196,24 +1056,21 @@ export class TableSession {
     if (this.pendingArrangement?.commandId === id) {
       this.pendingArrangement = null;
     }
+    /* Refused, the room's order shows again; done, the frame that settles it carries the order as dragged. */
+    if (this.pendingMovementOrder?.commandId === id) {
+      this.pendingMovementOrder = null;
+    }
     if (this.captureInFlight === id) {
       this.captureInFlight = null;
     }
     if (this.seatCommandInFlight === id) {
       this.seatCommandInFlight = null;
     }
-    this.disclosuresInFlight.delete(id);
+    this.battle.settle(id, outcome);
     if (this.traitorGatherInFlight === id) {
       this.traitorGatherInFlight = null;
       if (outcome === 'completed') {
         this.traitorsGathered++;
-      }
-    }
-    if (this.pendingBattlePlan?.commandId === id) {
-      this.pendingBattlePlan = null;
-      if (outcome === 'rejected') {
-        this.queuedBattlePlan = null;
-        this.queuedBattleActions = [];
       }
     }
   }
@@ -1223,8 +1080,7 @@ export class TableSession {
     }
     this.flushDrop();
     this.flushCatalogue();
-    this.flushBattlePlan();
-    this.flushBattleActions();
+    this.battle.flush();
     this.flushRotation();
   }
   /* A turn let go of while a resync paused the table goes out with the first current view. */
@@ -1234,25 +1090,20 @@ export class TableSession {
     }
   }
   private receiveAuthorizedUpdate(
-    message: Exclude<TableSubscriptionEvent, { type: 'connection' | 'resync' | 'view' }>
+    message: Exclude<TableSubscriptionEvent, { type: 'connection' | 'resync' | 'view' | 'ping' | 'card-draw' }>
   ) {
     if (this.conversations.receive(message)) {
       return;
     }
     switch (message.type) {
       case 'log-history':
-        this.receiveLogPage(message);
-        break;
       case 'spice-history':
-        this.receiveSpicePage(message);
-        break;
       case 'faction':
-        this.factionRequests.delete(message.factionId);
-        this.factions = { ...this.factions, [message.factionId]: message.faction };
+        this.pages.receive(message);
         break;
       case 'catalogue':
         if (message.requestId === this.catalogueRequestId) {
-          this.catalogueResult = { entries: this.catalogueResult?.entries, ...message };
+          this.catalogueResult = message;
         }
         break;
       case 'history':
@@ -1268,38 +1119,32 @@ export class TableSession {
         break;
     }
   }
-  /* A page arrives for the cursor it was asked with; one the panel has since moved past is dropped. */
-  private receiveLogPage(message: LogPage) {
-    const asked = message.before === this.logHistoryBefore[message.tab];
-    const shown = this.logHistory[message.tab];
-    const alreadyShown = shown !== undefined && sameLogPage(shown, message);
-    if (asked && !alreadyShown) {
-      this.logHistory = { ...this.logHistory, [message.tab]: message };
-    }
-  }
-  private receiveSpicePage(message: Extract<ServerMessage, { type: 'spice-history' }>) {
-    if (message.before === this.spiceHistoryBefore) {
-      this.spiceHistory = message;
-    }
-  }
   private receiveHistory(message: Extract<ServerMessage, { type: 'history' }>) {
     if (this.pendingHistory !== message.step) {
       return;
     }
+    if (message.requestId !== undefined && message.requestId !== this.historyRequestId) {
+      return;
+    }
     this.history = message;
+    this.error = null;
     const recordedAt = message.recordedAt ?? this.subscription.serverNow();
     this.historyClock = () => recordedAt;
     this.pendingHistory = null;
   }
   private receiveRejection(message: Extract<ServerMessage, { type: 'rejected' }>) {
+    if (message.requestId.startsWith('history-')) {
+      if (this.pendingHistory === null) {
+        return;
+      }
+      if (message.requestId !== this.historyRequestId) {
+        return;
+      }
+    }
     this.error = message.message;
-    /* A refused read carries no id; forgetting the faction reads lets the panel ask again on its next look. */
-    this.factionRequests.clear();
-    if (this.pendingHistory !== null && message.requestId === 'message') {
-      /*
-       * A history read carries no id, so the Worker refuses it as 'message'. It never gets a history reply, so the
-       * viewer stays on the checkpoint they were on and sees the reason instead of waiting.
-       */
+    this.pages.forgetFactionReads();
+    if (this.pendingHistory !== null && message.requestId === (this.historyRequestId ?? 'message')) {
+      /* A refused read keeps the previous checkpoint and exposes the reason for retry. */
       this.pendingHistory = null;
     }
     if (message.requestId === this.catalogueRequestId) {
@@ -1307,7 +1152,6 @@ export class TableSession {
       this.catalogueResult = {
         type: 'catalogue',
         requestId: message.requestId,
-        entries: this.catalogueResult?.entries,
         contents: null,
         error: message.message,
       };
@@ -1420,34 +1264,26 @@ export class TableSession {
     }
   }
   private clearDisconnectedActivity() {
-    this.factionRequests.clear();
-    this.logHistory = {};
-    this.logHistoryBefore = latestLogPages();
-    this.logReadAt = {};
-    for (const tab of Object.keys(this.logRefreshes) as LogTab[]) {
-      this.cancelLogRefresh(tab);
-    }
+    this.pages.disconnected();
     /* The Worker holds a capture for the connection, not the seat, so a seat change keeps it and a disconnect frees it. */
     this.captureInFlight = null;
     /* A catalogue read still unanswered goes again on the fresh connection, so the picker that stays on screen is not left checking. */
     const unanswered =
       this.catalogueRequestId !== undefined && this.catalogueResult?.requestId !== this.catalogueRequestId;
-    this.queuedCatalogue = unanswered
-      ? { requestId: this.catalogueRequestId!, selection: this.catalogueSelection }
-      : null;
+    this.queuedCatalogue =
+      unanswered && this.catalogueSelection
+        ? { requestId: this.catalogueRequestId!, selection: this.catalogueSelection }
+        : null;
     this.clearActivity();
   }
   private clearActivity() {
-    this.pendingBattlePlan = null;
-    this.queuedBattlePlan = null;
-    this.queuedBattleActions = [];
-    this.disclosuresInFlight.clear();
+    this.battle.clear();
     this.seatCommandInFlight = null;
     this.traitorGatherInFlight = null;
-    this.spiceHistory = undefined;
-    this.spiceHistoryBefore = undefined;
+    this.pages.closeSpiceHistory();
     this.history = null;
     this.pendingHistory = null;
+    this.followedReview = null;
     this.liveHistorySteps = 0;
     this.carry = null;
     this.carries = [];
@@ -1465,55 +1301,29 @@ export class TableSession {
     this.doneTurns.clear();
     this.flipping = new Map();
   }
-  /* Each tab keeps the page it asked for through live updates; the newest page is the default and the reset. */
-  readLogHistory = (tab: LogTab, before = this.logHistoryBefore[tab]) => {
-    this.cancelLogRefresh(tab);
-    this.logHistoryBefore = { ...this.logHistoryBefore, [tab]: before };
-    if (this.send({ type: 'log-history', tab, before })) {
-      this.logReadAt = { ...this.logReadAt, [tab]: this.runtime.monotonicNow() };
+  readLogHistory = (tab: LogTab, before?: number) => this.pages.readLog(tab, before);
+  refreshLogHistory = (tab: LogTab) => this.pages.refreshLog(tab);
+  readFaction = (factionId: string) => this.pages.readFaction(factionId);
+  readSpiceHistory = (before?: number) => this.pages.readSpice(before);
+  private expireHistoryRequest() {
+    if (this.pendingHistory === null) {
+      return;
     }
-  };
-  /**
-   * Reads a log tab's page again for a table that changed, at once unless the tab was read within the interval;
-   * then the read waits out the rest of it.
-   * The returned function drops a read still waiting.
-   */
-  refreshLogHistory = (tab: LogTab) => {
-    const wait =
-      (this.logReadAt[tab] ?? Number.NEGATIVE_INFINITY) + LOG_REFRESH_INTERVAL_MS - this.runtime.monotonicNow();
-    if (wait <= 0) {
-      this.readLogHistory(tab);
-    } else {
-      this.logRefreshes[tab] ??= setTimeout(() => this.readLogHistory(tab), wait);
+    if (this.runtime.monotonicNow() - this.historyRequestedAt < 15_000) {
+      return;
     }
-    return () => this.cancelLogRefresh(tab);
-  };
-  private cancelLogRefresh(tab: LogTab) {
-    clearTimeout(this.logRefreshes[tab]);
-    delete this.logRefreshes[tab];
-  }
-  /* Asks once for a seated faction's captured sheet; a read that was never answered can be asked again. */
-  readFaction = (factionId: string) => {
-    const known = factionId in this.factions || this.factionRequests.has(factionId);
-    if (!known && this.send({ type: 'faction', factionId })) {
-      this.factionRequests.add(factionId);
-    }
-  };
-  readSpiceHistory = (before?: number) => {
-    this.spiceHistoryBefore = before;
-    this.spiceHistory = undefined;
-    if (before !== undefined) {
-      this.send({ type: 'spice-history', before });
-    }
+    this.pendingHistory = null;
+    this.error = 'The checkpoint did not arrive. Try loading it again.';
     this.emit();
-  };
+  }
   /* Carries and pointers expire on the Worker, which broadcasts each removal; the tab keeps what the last frame held. */
   private readonly tickActivity = () => {
     this.conversations.tick();
+    this.expireHistoryRequest();
     if (this.carry && !this.carry.pendingDrop) {
       this.send({ type: 'renew', carryId: this.carry.id });
     }
-    if (this.pointer !== null && this.canAct()) {
+    if (this.pointer !== null && this.canPoint()) {
       this.send({ type: 'pointer', seq: ++this.seq, position: this.pointer });
     }
     if (this.table?.phaseCooling && !this.phaseCooling()) {
@@ -1527,9 +1337,15 @@ export class TableSession {
       this.restore();
       this.emit();
     }
-    const stop = this.subscription.subscribe((event) =>
-      event.type === 'ping' ? this.receivePing(event.ping) : this.receive(event)
-    );
+    const stop = this.subscription.subscribe((event) => {
+      if (event.type === 'ping') {
+        this.receivePing(event.ping);
+      } else if (event.type === 'card-draw') {
+        this.receiveCardDraw(event.draw);
+      } else {
+        this.receive(event);
+      }
+    });
     const stopVisibility = this.runtime.onHidden(() => {
       this.publishPointer(null);
       this.cancelDraft();
@@ -1547,14 +1363,35 @@ export class TableSession {
   private current() {
     return this.subscription.ready && this.saved !== null && this.history === null && this.pendingHistory === null;
   }
+  private seesSharedTable() {
+    const review = this.saved?.review;
+    return (
+      this.subscription.ready &&
+      this.saved !== null &&
+      (this.current() || (reviewRunning(review) && this.history?.step === review.step && this.pendingHistory === null))
+    );
+  }
+  private canPoint() {
+    return this.viewer?.viewerSeat !== SPECTATOR_SEAT && this.seesSharedTable();
+  }
+  /** Retry the shared checkpoint without changing what everyone has selected. */
+  retryRecall = () => {
+    if (!reviewRunning(this.saved?.review) || this.pendingHistory !== null) {
+      return;
+    }
+    this.followedReview = null;
+    this.error = null;
+    this.followReview();
+    this.emit();
+  };
   private canAct() {
-    return this.viewer?.viewerSeat !== SPECTATOR_SEAT && this.current();
+    return this.viewer?.viewerSeat !== SPECTATOR_SEAT && this.current() && !reviewRunning(this.saved?.review);
   }
   private canHandle() {
     return this.canAct() && tableHandlingOpen(this.snapshot.stage);
   }
   requestHistory = (step: number) => {
-    if (this.status !== 'authorized' || this.carry) {
+    if (this.status !== 'authorized' || this.carry || this.reviewHolds()) {
       return;
     }
     if (!Number.isSafeInteger(step) || step < 0) {
@@ -1562,12 +1399,17 @@ export class TableSession {
     }
     this.publishPointer(null);
     this.pendingHistory = step;
+    this.historyRequestId = null;
+    this.historyRequestedAt = this.runtime.monotonicNow();
     if (!this.send({ type: 'history', step })) {
       this.pendingHistory = null;
     }
     this.emit();
   };
   resumeLive = () => {
+    if (this.reviewHolds()) {
+      return;
+    }
     this.history = null;
     this.pendingHistory = null;
     this.flushQueues();
@@ -1710,7 +1552,7 @@ export class TableSession {
    * A newer selection waits until the capture in flight answers, and only the latest one is sent.
    * The picker keys its status on the latest request id, so a queued read shows as checking.
    */
-  catalogue = (selection?: SpawnSelection) => {
+  catalogue = (selection: SpawnSelection) => {
     const requestId = crypto.randomUUID();
     this.catalogueRequestId = requestId;
     this.catalogueSelection = selection;
@@ -1733,97 +1575,17 @@ export class TableSession {
       return;
     }
     this.error = null;
-    this.queuedBattlePlan = { battleId: this.snapshot.battle.id, patch: { ...this.queuedBattlePlan?.patch, ...patch } };
-    this.flushBattlePlan();
+    this.battle.editPlan(this.snapshot.battle.id, patch);
     this.emit();
   };
-  private flushBattlePlan() {
-    const battle = this.snapshot.battle;
-    const plan = this.snapshot.battlePlan;
-    if (!this.canAct() || this.pendingBattlePlan || !this.queuedBattlePlan || !battle || !plan) {
-      return;
-    }
-    const { strength: _strength, faces: _faces, pieces: _pieces, disclosed: _disclosed, ...input } = plan;
-    const commandId = crypto.randomUUID();
-    const patch = this.queuedBattlePlan.patch;
-    this.queuedBattlePlan = null;
-    this.pendingBattlePlan = { commandId, battleId: battle.id, patch };
-    this.send({
-      type: 'command',
-      commandId,
-      expectedRevision: this.snapshot.revision,
-      action: { kind: 'battle-plan', battleId: battle.id, plan: { ...input, ...patch } },
-    });
-  }
-  /* Plan edits still on their way, which readiness and early reveals queue behind. */
-  private planInFlight() {
-    return !!(this.pendingBattlePlan || this.queuedBattlePlan);
-  }
-  /* Readiness or a reveal queues while a plan edit is unanswered, or behind another one already queued so they keep their order. */
-  private queueBehindPlan(action: PieceAction) {
-    const waiting = !!this.pendingBattlePlan || this.queuedBattleActions.length > 0;
-    if (!waiting || !waitsForPlan(action)) {
-      return false;
-    }
-    this.queuedBattleActions.push(action);
-    return true;
-  }
-  /* Plan edits not yet answered show at once, with the bank holding the spice they commit. */
-  private withPendingPlan(authoritative: GameSnapshot): GameSnapshot {
-    const pending = this.pendingBattlePlan;
-    if (this.history || !pending) {
-      return authoritative;
-    }
-    if (!authoritative.battlePlan || authoritative.battle?.id !== pending.battleId) {
-      return authoritative;
-    }
-    const was = authoritative.battlePlan;
-    return withPlan(authoritative, was, { ...was, ...pending.patch, ...this.queuedBattlePlan?.patch });
-  }
-  /*
-   * A reveal not yet answered, queued behind plan edits or on its way, already shows as revealed, so its part locks
-   * before a later edit can overtake it and change what the room reveals. A hide shows only once the room has it,
-   * keeping the part locked meanwhile.
-   */
-  private withUnsettledDisclosures(snapshot: GameSnapshot): GameSnapshot {
-    /* Replayed history shows the plan as it stood then. */
-    if (this.history || !snapshot.battlePlan) {
-      return snapshot;
-    }
-    const unsettled = [...this.queuedBattleActions, ...this.disclosuresInFlight.values()];
-    const reveals = unsettled.flatMap((action) => revealIn(action, snapshot.battle?.id));
-    return reveals.length
-      ? {
-          ...snapshot,
-          battlePlan: {
-            ...snapshot.battlePlan,
-            disclosed: reveals.reduce((shown, reveal) => shownWith(shown, reveal), snapshot.battlePlan.disclosed),
-          },
-        }
-      : snapshot;
-  }
-  /*
-   * Queued readiness and reveals go out in order, only as many as the unanswered limit lets through; the rest wait
-   * for earlier commands to be answered, since each answer flushes the queues again.
-   */
-  private flushBattleActions() {
-    while (this.mayFlushBattleAction()) {
-      const [next, ...rest] = this.queuedBattleActions;
-      this.queuedBattleActions = [];
-      this.command(next);
-      this.queuedBattleActions = [...rest, ...this.queuedBattleActions];
-    }
-  }
-  private mayFlushBattleAction() {
-    const room = this.unanswered.size < UNANSWERED_COMMANDS_LIMIT;
-    return room && this.canAct() && !this.planInFlight() && this.queuedBattleActions.length > 0;
-  }
   /*
    * Whether this page may send the command now. Past a few unanswered commands a further one is dropped, not queued,
    * so mashing a button or key never stacks up work for the room; play by hand is answered long before it gets there.
    */
   private mayCommand(action: PieceAction) {
-    const allowed = isSeatAction(action) ? this.current() : this.canAct();
+    /* Agreeing to, withdrawing or ending a review is for a seated player whatever checkpoint shows. */
+    const live = this.subscription.ready && this.saved !== null && this.viewer?.viewerSeat !== SPECTATOR_SEAT;
+    const allowed = isReviewAction(action) ? live : isSeatAction(action) ? this.current() : this.canAct();
     return allowed && !(this.carry && !passesCarry(action)) && this.unanswered.size < UNANSWERED_COMMANDS_LIMIT;
   }
   private sendCommand(commandId: string, action: PieceAction) {
@@ -1844,7 +1606,7 @@ export class TableSession {
     if (seatCommand && this.seatCommandInFlight) {
       return;
     }
-    if (this.queueBehindPlan(action)) {
+    if (this.battle.queueBehindPlan(action)) {
       this.emit();
       return;
     }
@@ -1876,7 +1638,9 @@ export class TableSession {
       /* A second click before the first settles is refused for its stale revision, so the first gather is the one to follow; with no Traitor left on the table there is no pile to look at. */
       this.traitorGatherInFlight = commandId;
     } else if (action.kind === 'battle-disclose') {
-      this.disclosuresInFlight.set(commandId, action);
+      this.battle.disclosureSent(commandId, action);
+    } else if (action.kind === 'movement-order') {
+      this.pendingMovementOrder = { commandId, order: action.order };
     }
     this.emit();
     return this.error === null ? commandId : undefined;
@@ -2033,7 +1797,7 @@ export class TableSession {
   /** Publishes the cursor, and keeps `surface`, the table under it, for a ping to mark. */
   publishPointer = (position: Vector3Tuple | null, surface: Vector3Tuple | null = null) => {
     this.pingPoint = position ? onTable(surface) : null;
-    if (!this.canAct()) {
+    if (!this.canPoint()) {
       this.pointer = null;
       clearTimeout(this.pointerTimer);
       this.pointerTimer = undefined;

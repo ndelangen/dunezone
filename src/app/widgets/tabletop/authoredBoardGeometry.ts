@@ -1,10 +1,16 @@
 import { CENTER, RADIUS } from '@shared/boards/geometry';
 import type { Board } from '@shared/boards/schema';
 import { boardTerritories } from '@shared/boards/territories';
+import { gameAssetColors, rendererColors } from '@shared/play/assetColors';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
 import { BufferAttribute, BufferGeometry, Color, ShapeUtils, Vector2 } from 'three';
 
-const colors = { sand: '#F6D979', rock: '#A67A3E', stronghold: '#F7BA7A', polar: '#ffffff' };
+const colors = {
+  sand: gameAssetColors.mapSand,
+  rock: gameAssetColors.mapRock,
+  stronghold: gameAssetColors.mapStronghold,
+  polar: rendererColors.white,
+};
 
 /** The same sampled rings supply visible triangles and territory lookup; `polarOnly` keeps just the Polar Sink. */
 export function authoredBoardGeometry(board: Board, polarOnly = false) {

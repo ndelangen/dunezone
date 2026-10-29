@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "sourceDescription": "Two user-approved AI-generated ceremony illustrations developed from the user-supplied JessicaWaterOfLifeCentipedePress.webp painting and Dune Zone's Campfire decal. The supplied filename identifies the reference; the original artist and publication were not independently verified.",
+  "source": "originals/JessicaWaterOfLifeCentipedePress.webp",
+  "approval": {
+    "date": "2026-10-26",
+    "scope": "The user selected the detailed monochrome bitmap, requested a multicolor version with a red dress, then approved both and requested production publication.",
+    "evidence": "both approved, add them to prod please"
+  },
+  "preparation": {
+    "alphaThreshold": 0.5,
+    "maskGaussianSigmaPixels": 0.65,
+    "minimumComponentAreaPixels": 8,
+    "palette": ["#090907", "#713330", "#efe7bc"],
+    "paletteAssignment": "Nearest RGB palette entry. Cleaned alpha supplies the black silhouette; separate red and cream masks preserve the approved flat color areas.",
+    "trace": "Potrace 1.16, turdsize 8, alphamax 1.0, opttolerance 0.25. SVG authoring root and provenance steps, uniform square normalization and the decal optimization profile follow tracing."
+  },
+  "assets": {
+    "/vector/decal/water-of-life-ceremony.svg": {
+      "approvedBitmap": "originals/water-of-life-monochrome-approved.png",
+      "bitmapMaster": "bitmaps/water-of-life-monochrome.png",
+      "paint": "Inherited from the caller. Internal details remain transparent cutouts."
+    },
+    "/vector/decal/water-of-life-ceremony-multicolor.svg": {
+      "approvedBitmap": "originals/water-of-life-multicolor-approved.png",
+      "bitmapMasters": [
+        "bitmaps/water-of-life-silhouette.png",
+        "bitmaps/water-of-life-red.png",
+        "bitmaps/water-of-life-cream.png"
+      ],
+      "paint": "Three fixed colors from the existing Measured Offering palette. The central dress is muted red."
+    }
+  }
+}

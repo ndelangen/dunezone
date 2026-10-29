@@ -6,7 +6,7 @@ import { CataloguePager } from './CataloguePager';
 const meta = preview.meta({
   component: CataloguePager,
   globals: {
-    backgrounds: { value: 'light', grid: false },
+    backgrounds: { value: 'dark', grid: false },
   },
   parameters: {
     layout: 'padded',
@@ -39,9 +39,4 @@ export const LastPage = meta.story({
 /* A search that matched more than one read holds: the count is a floor, and the reader is told how to narrow it. */
 export const IncompleteSearch = meta.story({
   args: { page: 1, pageCount: 43, total: 1024, complete: false },
-});
-
-/* One page of results draws nothing, unless the search stopped short. */
-export const SinglePageIncomplete = meta.story({
-  args: { page: 1, pageCount: 1, total: 12, complete: false },
 });

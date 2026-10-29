@@ -11,69 +11,54 @@ import { jpegProfile, pngDimensions } from '../workers/publisher/image-inspectio
 
 /* Exercise the assembled Worker, including Static Assets precedence and the real TanStack entry. */
 process.chdir(path.resolve(import.meta.dirname, '../workers/publisher'));
-type RuntimeFixture = {
+const fixtureFile = process.env.APPLICATION_RUNTIME_FIXTURE;
+if (!fixtureFile) {
+  throw new Error(
+    'Runtime rehearsal requires APPLICATION_RUNTIME_FIXTURE; run scripts/verify-application-runtime-local.ts'
+  );
+}
+const fixture = JSON.parse(readFileSync(fixtureFile, 'utf8')) as {
   backendUrl: string;
   siteUrl: string;
   storageDirectory: string;
   artifactKey: string;
   html: string;
 };
-const fixture: RuntimeFixture | undefined = process.env.APPLICATION_RUNTIME_FIXTURE
-  ? JSON.parse(readFileSync(process.env.APPLICATION_RUNTIME_FIXTURE, 'utf8'))
-  : undefined;
-
-function isEmptyArtifactStoreReader(pathname: string, html: string) {
-  /* The deployed-backend rehearsal has empty local R2, so ready HTML needs a second query for renderer fallback. */
-  return (
-    !fixture &&
-    /^\/rulesets\/[^/?]+\/rulebooks\/[^/?]+(?:\?edition=\d+)?$/.test(pathname) &&
-    html.includes('data-rulebook-reader-document')
-  );
-}
 
 /* Pages with no record behind them render without a metadata query. */
 const RECORDLESS_PAGES = ['/', ...RECORDLESS_PUBLIC_PAGES, ...BLOG_POST_PAGES, ...MEDIA_PUBLIC_PAGES];
 
-function assertPublicMetadataQueries(count: number, pathname: string, html: string, historicalFallback: boolean) {
-  if (isEmptyArtifactStoreReader(pathname, html)) {
-    assert.ok([1, 2].includes(count), `${pathname} has unexpected renderer query count ${count}`);
-    return;
-  }
+function assertPublicMetadataQueries(count: number, pathname: string, historicalFallback: boolean) {
   assert.equal(count, RECORDLESS_PAGES.includes(pathname) ? 0 : historicalFallback ? 2 : 1, pathname);
 }
 
-if (fixture) {
-  for (const origin of [fixture.backendUrl, fixture.siteUrl]) {
-    assert.equal(new URL(origin).hostname, '127.0.0.1', 'Runtime fixtures only accept an isolated loopback backend');
-  }
-  const platform = await getPlatformProxy<{ ASSET_BUCKET: { put(key: string, value: string): Promise<unknown> } }>({
-    configPath: path.resolve('wrangler.jsonc'),
-    persist: { path: path.join(fixture.storageDirectory, 'v3') },
-    remoteBindings: false,
-    envFiles: [],
-  });
-  try {
-    await platform.env.ASSET_BUCKET.put(fixture.artifactKey, fixture.html);
-  } finally {
-    await platform.dispose();
-  }
+for (const origin of [fixture.backendUrl, fixture.siteUrl]) {
+  assert.equal(new URL(origin).hostname, '127.0.0.1', 'Runtime fixtures only accept an isolated loopback backend');
+}
+const platform = await getPlatformProxy<{ ASSET_BUCKET: { put(key: string, value: string): Promise<unknown> } }>({
+  configPath: path.resolve('wrangler.jsonc'),
+  persist: { path: path.join(fixture.storageDirectory, 'v3') },
+  remoteBindings: false,
+  envFiles: [],
+});
+try {
+  await platform.env.ASSET_BUCKET.put(fixture.artifactKey, fixture.html);
+} finally {
+  await platform.dispose();
 }
 const worker = await unstable_dev('index.ts', {
   config: 'wrangler.jsonc',
   local: true,
   port: 0,
-  persist: Boolean(fixture),
-  ...(fixture
-    ? {
-        persistTo: fixture.storageDirectory,
-        vars: {
-          CONVEX_CLOUD_BASE_URL: fixture.backendUrl,
-          CONVEX_EXECUTOR_BASE_URL: `${fixture.siteUrl}/asset-publishing/executor`,
-          CONVEX_RENDER_URL: `${fixture.siteUrl}/asset-publishing/render`,
-        },
-      }
-    : {}),
+  persist: true,
+  persistTo: fixture.storageDirectory,
+  vars: {
+    CONVEX_CLOUD_BASE_URL: fixture.backendUrl,
+    CONVEX_EXECUTOR_BASE_URL: `${fixture.siteUrl}/asset-publishing/executor`,
+    CONVEX_RENDER_URL: `${fixture.siteUrl}/asset-publishing/render`,
+  },
   logLevel: 'error',
+  envFiles: [],
   experimental: { disableExperimentalWarning: true, watch: false },
 });
 try {
@@ -124,6 +109,7 @@ try {
     '/assets',
     '/assets/token-disc',
     '/rulesets',
+    '/faq',
     '/profiles',
     ...RECORDLESS_PUBLIC_PAGES,
     ...BLOG_POST_PAGES,
@@ -137,7 +123,6 @@ try {
   /* Catalogues, profiles and the homepage can each link the same record; the first visit checks it, and a second would hit the cache. */
   const visited = new Set<string>();
   /* The homepage names showcase records by hand, so each must still answer at the address it links. */
-  const editorialPages = new Set<string>();
   for (const pathname of pages) {
     if (visited.has(pathname) || (pathname.startsWith('/profiles/') && groupPage && faqPage)) {
       continue;
@@ -152,7 +137,7 @@ try {
     assert.equal(response.headers.get('X-Public-Cache'), 'miss', pathname);
     /* A public page that says noindex silently drops out of search. */
     assert.equal(response.headers.get('X-Robots-Tag'), null, pathname);
-    const historicalFallback = Boolean(fixture && pathname.endsWith('/runtime-manual?edition=1'));
+    const historicalFallback = pathname.endsWith('/runtime-manual?edition=1');
     const html = await response.text();
     assert.ok(html.includes(`href="/public/${bandPoster}"`), `${pathname} does not preload the hashed poster`);
     assert.ok(html.includes(`src="/public/${bandPoster}"`), `${pathname} does not display the preloaded poster`);
@@ -160,10 +145,9 @@ try {
     assertPublicMetadataQueries(
       Number(response.headers.get('X-Public-Metadata-Queries') ?? 0),
       pathname,
-      html,
       historicalFallback
     );
-    if (fixture && pathname.endsWith('/runtime-manual')) {
+    if (pathname.endsWith('/runtime-manual')) {
       assert.match(html, /data-published-rulebook/);
       assert.match(html, /Rulebook page: Runtime Edition 2/);
     }
@@ -175,7 +159,23 @@ try {
     const hit = await worker.fetch(pathname);
     assert.equal(hit.headers.get('X-Public-Cache'), 'hit', pathname);
     assert.equal(hit.headers.get('X-Public-Metadata-Queries'), '0', pathname);
-    assert.equal(await hit.text(), html, pathname);
+    const hitHtml = await hit.text();
+    const nonce = /'nonce-([a-f0-9]+)'/.exec(response.headers.get('Content-Security-Policy') ?? '')?.[1];
+    const hitNonce = /'nonce-([a-f0-9]+)'/.exec(hit.headers.get('Content-Security-Policy') ?? '')?.[1];
+    assert.ok(nonce && hitNonce, `${pathname} needs a CSP nonce on both deliveries`);
+    assert.notEqual(nonce, hitNonce, `${pathname} must not reuse a cached CSP nonce`);
+    assert.equal(response.headers.get('X-Application-Render-Nonce'), null);
+    assert.equal(hit.headers.get('X-Application-Render-Nonce'), null);
+    assert.equal(hitHtml.replaceAll(hitNonce, 'NONCE'), html.replaceAll(nonce, 'NONCE'), pathname);
+    for (const script of html.matchAll(/<script\b([^>]*)>/gi)) {
+      if (/\btype="application\/ld\+json"/.test(script[1])) {
+        continue;
+      }
+      assert.ok(
+        script[1].includes(`nonce="${nonce}"`),
+        `${pathname} has a script without its delivery nonce: ${script[0]}`
+      );
+    }
     if (pathname === '/factions' || pathname === '/assets/token-disc' || pathname === '/rulesets') {
       const links = [...html.matchAll(/<a[^>]+href="([^"]+)"/g)].map((match) => match[1]!);
       if (pathname === '/rulesets') {
@@ -220,9 +220,7 @@ try {
         }
       }
     }
-    if (editorialPages.has(pathname)) {
-      assert.equal(response.redirected, false, `The homepage links to ${pathname}, which has moved`);
-    }
+
     assert.match(html, /<h1[\s>]/, `${pathname} has no rendered heading`);
     assert.match(html, /rel="canonical"/, `${pathname} has no canonical URL`);
     assert.match(html, /property="og:title"/, `${pathname} has no social metadata`);
@@ -235,17 +233,6 @@ try {
       );
     }
     if (pathname === '/') {
-      if (!fixture) {
-        /* A deleted showcase record fails as a 404, and a renamed one as a redirect, so the homepage never links through either. */
-        const editorial = publicLinks.filter((href) =>
-          /^\/(?:(?:factions|groups|rulesets)|assets\/[^/?]+)\/(?!create(?:\/|$))[^/?]+\/?$/.test(href)
-        );
-        assert.ok(editorial.length, 'The homepage links to no showcase records');
-        for (const href of editorial) {
-          editorialPages.add(href);
-        }
-        pages.push(...editorial);
-      }
       assert.match(html, /Dune Play is coming soon/i);
       assert.match(html, /Your rules\. Always within reach\./, 'The homepage chapters are not rendered on the server');
       assert.match(
@@ -290,7 +277,11 @@ try {
       assert.equal(png.headers.get('Content-Type'), 'image/png');
       assert.deepEqual(pngDimensions(new Uint8Array(await png.arrayBuffer())), { widthPx: 1200, heightPx: 630 });
       const imageHit = await worker.fetch(imageUrl.pathname + imageUrl.search);
-      assert.equal(imageHit.headers.get('X-Public-Cache'), 'hit');
+      assert.equal(
+        imageHit.headers.get('X-Public-Cache'),
+        'hit',
+        `${pathname}: ${JSON.stringify(Object.fromEntries(imageHit.headers))}`
+      );
       assert.equal(imageHit.headers.get('X-Public-Renders'), '0');
       assert.equal(imageHit.headers.get('X-Public-Artwork-Reads'), '0');
       await imageHit.arrayBuffer();
@@ -302,7 +293,10 @@ try {
       const asset = await worker.fetch(script);
       assert.equal(asset.status, 200, script);
       assert.match(asset.headers.get('Content-Type') ?? '', /javascript/, script);
-      await asset.body?.cancel();
+      /* Cancelling a compressed asset logs a broken pipe from workerd on Linux.
+       * Read the complete delivery so a truncated hydration entry also fails verification.
+       */
+      await asset.arrayBuffer();
     }
   }
   assert.ok(rulebookPage, 'No Ruleset has a published Rulebook link');

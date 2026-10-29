@@ -47,10 +47,11 @@ afterEach(() => {
 });
 
 describe('Seat passes', () => {
-  test('enrol an account once, then ride on the game query and renew for an hour at most', async () => {
+  test('enrol once and renew through the game directory for an hour at most', async () => {
+    const query = api.playGameDirectory.getGameByAddress;
     const subject = await fixture();
     const address = { address: subject.gameId };
-    expect(await subject.player.query(api.playGames.getGameByAddress, address)).toMatchObject({
+    expect(await subject.player.query(query, address)).toMatchObject({
       status: 'ready',
       pass: null,
     });
@@ -86,7 +87,7 @@ describe('Seat passes', () => {
         .collect()
     );
     expect(rows).toHaveLength(1);
-    const access = await subject.player.query(api.playGames.getGameByAddress, address);
+    const access = await subject.player.query(query, address);
     expect(access.status === 'ready' && peekSeatPass(access.pass ?? '')?.principalId).toBe(subject.userId);
     const renewed = await subject.player.mutation(api.playAdmission.renewSeatPass, { gameId: subject.gameId });
     expect(renewed.ok && (await verifySeatPass(subject.secret, renewed.pass))?.actorId).toBe(subject.userId);

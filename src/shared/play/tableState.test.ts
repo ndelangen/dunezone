@@ -9,6 +9,7 @@ import {
   draftForGesture,
   draftWithAdditionalTop,
   heldPieceFor,
+  flipPieceInState,
   labelForCount,
   moveStormInState,
   playFromHandAtAnchor,
@@ -70,6 +71,7 @@ describe('storm commands', () => {
       command: 'storm.move',
       message: 'Storm advanced to sector 5.',
       status: 'accepted',
+      publicCopyVersion: 1,
     });
     expect(next.nextEventNumber).toBe(3);
   });
@@ -847,4 +849,18 @@ describe('shared item slots', () => {
     expect(settleCarryAtPosition(state, gesture, occupied.position)).toBeNull();
     expect(settleCarryAtPosition(state, gesture, SHARED_ITEM_PLACEMENT_ANCHORS[6]!.position)).not.toBeNull();
   });
+});
+
+test('a rejected flip keeps a locked hidden token name out of the versioned event', () => {
+  const state = freshTableState();
+  const token = state.pieces.find((piece) => piece.kind === 'force')!;
+  const locked = {
+    ...token,
+    label: 'Secret leader',
+    locked: true,
+    items: token.items.map((item) => ({ ...item, faceUp: false })),
+  };
+  const next = flipPieceInState({ ...state, pieces: [locked] }, locked.id);
+  expect(next.events[0]).toMatchObject({ status: 'rejected', message: 'Unlock Token first.', publicCopyVersion: 1 });
+  expect(JSON.stringify(next.events)).not.toContain('Secret leader');
 });

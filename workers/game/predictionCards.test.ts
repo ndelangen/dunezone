@@ -1,7 +1,8 @@
 import { expect, test } from 'vite-plus/test';
 
+import { isBattleCard } from '../../src/shared/play/battle';
 import { hostedFixturePlan } from './fixture';
-import { dealPredictionCard, holdsPredictionCard, revealPlacedPredictions } from './predictionCards';
+import { dealPredictionCard, revealPlacedPredictions } from './predictionCards';
 import type { StoredSnapshot } from './state';
 import { RoomProjection } from './state';
 
@@ -95,10 +96,7 @@ test('a game whose prediction card front is unpublished deals no card rather tha
 
 test('a prediction card is never a battle card', () => {
   const card = dealPredictionCard(locked(), 'faction-step-1').factionInventories.atreides![0]!;
-  expect(holdsPredictionCard(card)).toBe(true);
-  expect(
-    holdsPredictionCard({ ...card, items: [{ ...card.items[0]!, artwork: { ...FACES, type: 'card-treachery' } }] })
-  ).toBe(false);
+  expect(isBattleCard(card)).toBe(false);
 });
 
 test('placing a card onto a stack lays only the unrevealed prediction face down', () => {

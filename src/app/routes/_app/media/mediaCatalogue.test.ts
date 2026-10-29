@@ -1,10 +1,19 @@
 import { describe, expect, test } from 'vite-plus/test';
 
+import metadata from './media-index.json';
 import { mediaEntries } from './mediaCatalogue';
 import { validateMediaSearch } from './mediaSearchParams';
 const first = mediaEntries[0]!;
 
 describe('media catalogue deep links', () => {
+  test('exposes every reviewed search field without byte-verification hashes', () => {
+    for (const entry of mediaEntries) {
+      const { description, tags, subjects } = metadata[entry.value as keyof typeof metadata];
+      expect(entry).toMatchObject({ description, tags, subjects });
+      expect(entry).not.toHaveProperty('sourceHash');
+    }
+  });
+
   test('keeps valid filters and a known selected asset', () => {
     expect(
       validateMediaSearch({ source: 'media', kind: first.kind, group: '  Weapons  ', q: 'sword ', item: first.value })

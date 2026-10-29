@@ -49,6 +49,9 @@ export async function verifyPublicControls({
   act,
   focus,
   openTab,
+  pinWindow,
+  growSlot,
+  pickCatalogueAsset,
   point,
   carrySteps,
   capture,
@@ -94,14 +97,7 @@ export async function verifyPublicControls({
     }
     return pixels > 3;
   }
-  async function choose(who: HostedPeer) {
-    await openTab(who, 'Shared inventory');
-    if (await button(who, 'Add from catalogue').count()) {
-      await button(who, 'Add from catalogue').click();
-    }
-    await who.page.getByRole('combobox', { name: 'Catalogue asset' }).click();
-    await who.page.getByRole('option', { name: 'Recovery token', exact: true }).click();
-  }
+  const choose = (who: HostedPeer) => pickCatalogueAsset(who, 'Recovery token');
   await verifySolePlayer();
   const { observer } = await verifyRequests();
   await verifyInventoryDrag();
@@ -138,8 +134,9 @@ export async function verifyPublicControls({
       requireView(a).snapshot.table.pieces.filter((piece) => !piece.inventory),
       original
     );
-    await button(a, 'Close catalogue').click();
-    await a.page.getByRole('separator', { name: 'Resize controls panel' }).press('End');
+    await button(a, 'Close the disc tokens catalogue').click();
+    await pinWindow(a, 'Shared table inventory', 'left');
+    await growSlot(a, 'left');
     await button(a, 'Drag Recovery token onto the table').scrollIntoViewIfNeeded();
     await capture(a, 'after-sole-player-inventory');
     passed(
@@ -163,14 +160,14 @@ export async function verifyPublicControls({
     await until(() => requests(b).length === 1 && requests(observer).length === 1, 'Pending request was not public.');
     assert.equal(inventory(a).length, 1);
     assert.equal(await button(a, 'Approve').isDisabled(), true);
-    await openTab(observer, 'Shared inventory');
-    for (const name of ['Approve', 'Dismiss', 'Add from catalogue', 'Next phase']) {
+    await openTab(observer, 'Shared table inventory');
+    for (const name of ['Approve', 'Dismiss', 'Add disc tokens from the catalogue', 'Next phase']) {
       assert.equal(await button(observer, name).isDisabled(), true);
     }
     assert.equal(await previousPhaseDisabled(observer), true);
     assert.equal(await button(observer, 'Drag Recovery token onto the table').isDisabled(), true);
-    await openTab(b, 'Shared inventory');
-    await b.page.getByRole('separator', { name: 'Resize controls panel' }).press('End');
+    await pinWindow(b, 'Shared table inventory', 'left');
+    await growSlot(b, 'left');
     await button(b, 'Approve').scrollIntoViewIfNeeded();
     await capture(b, 'after-pending-request');
     await a.page.goto(`${origin}/play`, { waitUntil: 'domcontentloaded' });
@@ -189,7 +186,7 @@ export async function verifyPublicControls({
     await act(b, 'Dismiss');
     await until(() => requests(a).length === 0, 'Dismissal was not shared.');
     assert.equal(inventory(a).length, 2);
-    await button(a, 'Close catalogue').click();
+    await button(a, 'Close the disc tokens catalogue').click();
     passed('Any seated player can dismiss a request without spawning its contents');
 
     return { observer };
@@ -197,7 +194,7 @@ export async function verifyPublicControls({
 
   async function verifyInventoryDrag() {
     await focus(a, 'map');
-    await openTab(a, 'Shared inventory');
+    await openTab(a, 'Shared table inventory');
     const token = required(inventory(a)[0], 'token');
     const thumbnail = button(a, 'Drag Recovery token onto the table').first();
     await thumbnail.scrollIntoViewIfNeeded();
@@ -283,7 +280,8 @@ export async function verifyPublicControls({
     assert.ok(required(requireView(a).snapshot.controls, 'controls').ready.includes(requireView(a).viewer.viewerSeat));
     assert.deepEqual(requireView(a).snapshot.table.pieces, saved.table.pieces);
     assert.equal(await button(observer, 'Ready').isDisabled(), true);
-    await a.page.getByRole('separator', { name: 'Resize controls panel' }).press('End');
+    await pinWindow(a, 'Phase', 'left');
+    await growSlot(a, 'left');
     await button(a, 'Withdraw readiness').scrollIntoViewIfNeeded();
     await capture(a, 'after-mentat-ready');
     await act(a, 'Withdraw readiness');

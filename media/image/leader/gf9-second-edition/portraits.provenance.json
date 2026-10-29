@@ -1,0 +1,78 @@
+{
+  "sourceFiles": [
+    {
+      "name": "1.jpg",
+      "sha256": "183d0025f301e01537f749b355b6f90aaf27143d3c823ad683ebb886072f8168"
+    },
+    {
+      "name": "Dune 2e Cards.pdf",
+      "sha256": "3f8f9357208b0af0d1e068d14e0998e82a11d12eb996bbc640c911541092ccff"
+    }
+  ],
+  "requestedBy": "Norbert",
+  "requestedOn": "2026-10-23",
+  "request": "Add only missing leader portraits from the supplied cards and match the existing portraits in quality, size and background.",
+  "preparation": "Extracted portrait reference crops from the supplied sheet and embedded PDF page images. Used built-in image generation to remove card frames, guides and print artifacts and prepare the missing portraits in the existing illustrated style. Flattened the generated alpha onto RGB 205,186,120 and resized to 640 by 640 pixels as lossless RGB PNGs.",
+  "portraits": [
+    {
+      "name": "Bashar Garon",
+      "asset": "/image/leader/gf9-second-edition/bashar-garon.png",
+      "pdfPage": 2
+    },
+    {
+      "name": "Wensicia Corrino",
+      "asset": "/image/leader/gf9-second-edition/wensicia-corrino.png",
+      "pdfPage": 2
+    },
+    {
+      "name": "Loyxo",
+      "asset": "/image/leader/gf9-second-edition/loyxo.png",
+      "pdfPage": 2
+    },
+    {
+      "name": "Crozeed",
+      "asset": "/image/leader/gf9-second-edition/crozeed.png",
+      "pdfPage": 2
+    },
+    {
+      "name": "Olar",
+      "asset": "/image/leader/gf9-second-edition/olar.png",
+      "pdfPage": 2
+    },
+    {
+      "name": "Ertun",
+      "asset": "/image/leader/gf9-second-edition/ertun.png",
+      "pdfPage": 2
+    },
+    {
+      "name": "Starguide Serello",
+      "asset": "/image/leader/gf9-second-edition/starguide-serello.png",
+      "pdfPage": 2
+    },
+    {
+      "name": "Anirul Corrino",
+      "asset": "/image/leader/gf9-second-edition/anirul-corrino.png",
+      "pdfPage": 1
+    }
+  ],
+  "reusedPortraits": [
+    {
+      "sourceName": "Col. Kolona",
+      "asset": "/image/leader/official/burseg.png"
+    },
+    {
+      "sourceName": "Duncan Idaho",
+      "asset": "/image/leader/official/duncan.png"
+    },
+    {
+      "sourceName": "Wanna Marcus",
+      "asset": "/image/leader/official/wanna.png"
+    },
+    {
+      "sourceName": "Iakin Nefud",
+      "asset": "/image/leader/official/nafud.png"
+    }
+  ],
+  "deduplication": "Wensicia Corrino appears twice in 1.jpg and is prepared once. Existing portraits are reused when the source uses the same illustration under a different name.",
+  "authoringEvidence": "The source crops, generated foregrounds, full prompts and comparison sheet remain in the authoring workspace."
+}

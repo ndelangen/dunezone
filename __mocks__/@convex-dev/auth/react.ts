@@ -12,6 +12,8 @@ export const useAuthActions = fn(() => ({
   signOut: unconfigured('signOut'),
 }));
 
+export const useConvexAuth = fn(() => ({ isAuthenticated: true, isLoading: false }));
+
 export function ConvexAuthProvider({ children }: { children: ReactNode }) {
   return children;
 }

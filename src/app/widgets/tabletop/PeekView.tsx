@@ -208,6 +208,8 @@ function useDeckCarry(row: RefObject<HTMLOListElement | null>, deck: string, mov
     }
     /* No text selection and no native image drag: the card is carried by the pointer alone. */
     event.preventDefault();
+    /* That also keeps the press from focusing the card, so it takes focus here: a click then lets the arrow keys move it. */
+    event.currentTarget.focus();
     event.currentTarget.setPointerCapture(event.pointerId);
     const centers = cardCenters(element);
     const x = rowX(element, event);
@@ -281,6 +283,7 @@ function DeckCard({ piece, stored, slot, placement, carrying, move, pull }: Deck
   return (
     <li
       className={styles.peekDeckCard}
+      data-card={item.id}
       data-held={held || undefined}
       style={shift ? { transform: `translateX(${shift}px)` } : undefined}
     >

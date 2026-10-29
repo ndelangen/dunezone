@@ -21,6 +21,7 @@ export interface NavLinkItem {
 export const PRIMARY_LINKS: readonly NavLinkItem[] = [
   { label: 'Factions', to: '/factions' },
   { label: 'Rulesets', to: '/rulesets' },
+  { label: 'FAQ', to: '/faq' },
   { label: 'Profiles', to: '/profiles' },
   { label: 'Assets', to: '/assets' },
   { label: 'Blog', to: '/blog' },
@@ -137,15 +138,7 @@ export function SiteNavigation({ links = PRIMARY_LINKS }: SiteNavigationProps) {
                   Edit profile
                 </Menu.Item>
                 {profile.isAdmin ? (
-                  <>
-                    <Menu.Item renderRoot={(props) => <Link {...props} to="/_admin/accounts" />}>Accounts</Menu.Item>
-                    <Menu.Item renderRoot={(props) => <Link {...props} to="/_admin/jobs" />}>
-                      Publication jobs
-                    </Menu.Item>
-                    <Menu.Item renderRoot={(props) => <Link {...props} to="/assets/__presets" />}>
-                      Card presets
-                    </Menu.Item>
-                  </>
+                  <Menu.Item renderRoot={(props) => <Link {...props} to="/admin" />}>Admin tools</Menu.Item>
                 ) : null}
                 <Menu.Item
                   onClick={() => {

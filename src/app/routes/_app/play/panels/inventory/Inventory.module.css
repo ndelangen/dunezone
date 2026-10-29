@@ -1,0 +1,122 @@
+/* The shared table inventory, inside a compass window: the window's own ink, edge and sand accent, as the hand's shelves use. */
+
+.requests {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--ui-ground);
+}
+
+.requests:empty {
+  display: none;
+}
+
+/* One type of piece per row: the row never wraps, it scrolls sideways. */
+.strip {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 10px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding: 4px 2px 8px;
+  scrollbar-width: thin;
+}
+
+/* An end with pieces past it fades out: the row has more to scroll to there. */
+.strip[data-more-end] {
+  mask-image: linear-gradient(to right, black calc(100% - 48px), transparent);
+}
+
+.strip[data-more-start] {
+  mask-image: linear-gradient(to left, black calc(100% - 48px), transparent);
+}
+
+.strip[data-more-start][data-more-end] {
+  mask-image: linear-gradient(to right, transparent, black 48px, black calc(100% - 48px), transparent);
+}
+
+.tile {
+  position: relative;
+  display: grid;
+  flex: none;
+  justify-items: center;
+  gap: 4px;
+}
+
+.face {
+  position: relative;
+  display: grid;
+  border: 0;
+  border-radius: 6px;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  cursor: grab;
+  touch-action: none;
+  transition:
+    transform 140ms ease-out,
+    filter 140ms ease-out;
+}
+
+.tile[data-round] .face {
+  border-radius: 50%;
+}
+
+.face:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+/* Under the pointer a piece lifts off its row, ready to be dragged onto the table. */
+.face:not(:disabled):hover {
+  transform: translateY(-3px);
+  filter: drop-shadow(0 6px 8px rgb(from var(--color-shadow) r g b / 0.55));
+}
+
+.face:focus-visible {
+  outline: 2px solid var(--sand);
+  outline-offset: 2px;
+}
+
+/* A stack's count, on its corner. */
+.badge {
+  position: absolute;
+  right: -4px;
+  bottom: -2px;
+  min-width: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--sand);
+  color: var(--ui-ground);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Each shelf after the first is divided from the one above by the window's own edge line. */
+.shelf + .shelf {
+  border-top: 1px solid var(--edge);
+  padding-top: var(--mantine-spacing-md);
+}
+
+.rowLabel {
+  color: var(--ink-dim);
+  letter-spacing: 0.06em;
+}
+
+.count {
+  color: var(--sand);
+  font-variant-numeric: tabular-nums;
+}
+
+:global(html[data-motion="reduce"]) .face {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :global(html:not([data-motion="ok"])) .face {
+    transition: none;
+  }
+}

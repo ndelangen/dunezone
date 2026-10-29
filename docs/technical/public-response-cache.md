@@ -71,7 +71,7 @@ words. Existing platform invocation logs retain their existing configuration.
 `public-cache.test.ts` checks expiry, eviction, release changes, credential equality, rejected
 responses, cache failures and burst limits through the cache seam. `social-image.runtime.test.ts`
 checks actual workerd Cache API hits, byte equality, shared artwork and zero outbound HTTP calls.
-`publisher:application-runtime:verify` runs the assembled release and checks five public page shapes:
+`bun run scripts/verify-application-runtime-local.ts` provisions a disposable backend, builds the assembled release and checks five public page shapes:
 one metadata query on a miss, none on the following hit, identical public bodies, live-client script
 availability and unchanged browser-only dispatch. It also follows detail HTML into PNG misses and hits.
 

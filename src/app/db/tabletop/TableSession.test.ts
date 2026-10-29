@@ -1,6 +1,7 @@
 import { assetPublishingFaction } from '@shared/factions/fixtures/assetPublishingFaction';
 import { emptyBattlePlan, fixtureBattleFaces } from '@shared/play/battle';
 import type { Disclosure } from '@shared/play/battle';
+import type { CardDraw } from '@shared/play/cardDraw';
 import { initialSnapshot, nextSnapshot } from '@shared/play/commands';
 import { arrakisBoardCapture } from '@shared/play/fixtures/board';
 import type { TablePiece } from '@shared/play/model';
@@ -50,8 +51,8 @@ const viewer: Viewer = {
   color: '#ed927c',
 };
 
-function ticket() {
-  return Promise.resolve({ ok: true as const, ticket: 'a'.repeat(64), expiresInMs: 30_000 });
+function admission() {
+  return Promise.resolve({ ok: true as const, pass: 'pass.a' });
 }
 
 type ViewFrame = Extract<ServerMessage, { type: 'view' }>;
@@ -114,13 +115,57 @@ function command() {
 }
 
 async function connected(identity = viewer) {
-  const client = connection('fixture-one', ticket);
+  const client = connection('fixture-one', admission);
   disconnect = client.connect();
   await vi.advanceTimersByTimeAsync(0);
   socket().open();
   authorize(initialSnapshot(), identity);
   return client;
 }
+
+test.each(['harkonnen', 'neutral'])(
+  'delivers accepted draws once to %s, without replaying during recall',
+  async (viewerSeat) => {
+    const client = await connected({ ...viewer, viewerSeat });
+    const draws = vi.fn();
+    const stop = client.subscribeCardDraws(draws);
+    const cardDraw: CardDraw = {
+      epoch: 'epoch-one',
+      revision: 1,
+      recipient: 'harkonnen',
+      count: 4,
+      from: [4, 0.2, 0],
+      to: [-3, 0.1, 2],
+      orientation: 0,
+      color: '#ed927c',
+    };
+    const snapshot = { ...initialSnapshot(), revision: 1 };
+    const frame = view({ viewer: { ...viewer, viewerSeat }, snapshot, cardDraw });
+    socket().deliver(frame);
+    socket().deliver(frame);
+    expect(draws).toHaveBeenCalledExactlyOnceWith(cardDraw);
+    socket().deliver({ ...frame, cardDraw: { ...cardDraw, epoch: 'old' } });
+    const recall = {
+      id: 'recall',
+      step: 0,
+      context: 'First',
+      proposer: { name: 'One', seat: 'seat-1' },
+      openedAt: 1,
+      threshold: 1,
+      ballots: [{ name: 'One', seat: 'seat-1', choice: 'review' as const }],
+      startedAt: 1,
+    };
+    socket().deliver({
+      ...frame,
+      snapshot: { ...snapshot, revision: 2, review: recall },
+      cardDraw: { ...cardDraw, revision: 2 },
+    });
+    expect(draws).toHaveBeenCalledTimes(1);
+    stop();
+    socket().deliver({ ...frame, snapshot: { ...snapshot, revision: 3 }, cardDraw: { ...cardDraw, revision: 3 } });
+    expect(draws).toHaveBeenCalledTimes(1);
+  }
+);
 
 describe('hosted public controls', () => {
   test('uses the server cooldown duration despite clock skew and refreshes when it expires', async () => {
@@ -398,15 +443,14 @@ describe('hosted table admission', () => {
   test('keeps game data and commands unavailable until the server authorizes the connection', async () => {
     const client = connection('fixture-one', async () => ({
       ok: true,
-      ticket: 'a'.repeat(64),
-      expiresInMs: 30_000,
+      pass: 'pass.a',
     }));
     expect(client.getSnapshot().table).toBeNull();
     disconnect = client.connect();
     await vi.advanceTimersByTimeAsync(0);
     expect(socket().gameId).toBe('fixture-one');
     socket().open();
-    expect(socket().sent).toEqual([{ type: 'admit', supportsBoard: true, ticket: 'a'.repeat(64) }]);
+    expect(socket().sent).toEqual([{ type: 'admit', pass: 'pass.a' }]);
     client.moveStormBy(1);
     client.beginGesture('harkonnen-force-stack', 'whole');
     client.publishPointer([0, 0, 0]);
@@ -474,50 +518,12 @@ describe('hosted table admission', () => {
     client.publishPointer([0, 0.38, 0]);
     await vi.advanceTimersByTimeAsync(1000);
     expect(client.getSnapshot().table?.state.viewerSeat).toBe('neutral');
-    expect(socket().sent).toEqual([{ type: 'admit', supportsBoard: true, ticket: 'a'.repeat(64) }]);
-  });
-
-  test('a clock 60 s fast still sends a ticket with 30 s left', async () => {
-    const client = connection('fixture-one', ticket);
-    vi.setSystemTime(Date.now() + 60_000);
-    disconnect = client.connect();
-    await vi.advanceTimersByTimeAsync(0);
-    socket().open();
-    expect(socket().sent).toEqual([{ type: 'admit', supportsBoard: true, ticket: 'a'.repeat(64) }]);
-  });
-
-  test('a clock 60 s slow reconnects instead of sending a ticket that expired while the socket was opening', async () => {
-    const issue = vi.fn(async () => ({ ok: true as const, ticket: 'a'.repeat(64), expiresInMs: 1000 }));
-    const client = connection('fixture-one', issue);
-    vi.setSystemTime(Date.now() - 60_000);
-    disconnect = client.connect();
-    await vi.advanceTimersByTimeAsync(0);
-    await vi.advanceTimersByTimeAsync(1001);
-    const original = socket();
-    original.open();
-    expect(original.sent).toEqual([]);
-    expect(original.readyState).toBe(3);
-    expect(client.getSnapshot().table).toBeNull();
-    await vi.advanceTimersByTimeAsync(1000);
-    expect(issue).toHaveBeenCalledTimes(2);
-    socket().open();
-    expect(socket().sent).toEqual([{ type: 'admit', supportsBoard: true, ticket: 'a'.repeat(64) }]);
-  });
-
-  test('counts the ticket lifetime from the request, not from the response', async () => {
-    const client = connection('fixture-one', async () => {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      return { ok: true as const, ticket: 'a'.repeat(64), expiresInMs: 2500 };
-    });
-    disconnect = client.connect();
-    await vi.advanceTimersByTimeAsync(2501);
-    socket().open();
-    expect(socket().sent).toEqual([]);
+    expect(socket().sent).toEqual([{ type: 'admit', pass: 'pass.a' }]);
   });
 
   test('server time runs on from the freshest frame, whatever the wall clock or a late frame says', async () => {
     const serverNow = 1_800_000_000_000;
-    const client = connection('fixture-one', ticket);
+    const client = connection('fixture-one', admission);
     disconnect = client.connect();
     await vi.advanceTimersByTimeAsync(0);
     socket().open();
@@ -537,8 +543,8 @@ describe('hosted table admission', () => {
     expect(table(client).serverNow()).toBe(serverNow + 12_000);
   });
 
-  test('retries a failed ticket request without opening an unauthorized socket', async () => {
-    const issue = vi.fn(ticket).mockRejectedValueOnce(new Error('Network unavailable.'));
+  test('retries a failed admission request without opening an unauthorized socket', async () => {
+    const issue = vi.fn(admission).mockRejectedValueOnce(new Error('Network unavailable.'));
     const client = connection('fixture-one', issue);
     disconnect = client.connect();
     await vi.advanceTimersByTimeAsync(0);
@@ -556,7 +562,7 @@ describe('hosted table admission', () => {
     { ok: false, reason: 'not_authorized' },
     { ok: false, reason: 'unavailable' },
     { ok: false, reason: 'rate_limited', retryAfterMs: 2000 },
-  ] as const)('preserves the retry policy for a refused ticket: $reason', async (response) => {
+  ] as const)('preserves the retry policy for a refused admission: $reason', async (response) => {
     const { reason } = response;
     const retryDelay = reason === 'rate_limited' ? response.retryAfterMs : 1000;
     const issue = vi.fn(async () => response);
@@ -571,24 +577,11 @@ describe('hosted table admission', () => {
     expect(Socket.instances).toHaveLength(0);
   });
 
-  test('renews a ticket already expired when the request completes', async () => {
-    const issue = vi.fn(async () => ({ ok: true as const, ticket: 'a'.repeat(64), expiresInMs: 0 }));
-    const client = connection('fixture-one', issue);
-    disconnect = client.connect();
-    await vi.advanceTimersByTimeAsync(0);
-    expect(client.getSnapshot().status).toBe('suspended');
-    expect(Socket.instances).toHaveLength(0);
-    await vi.advanceTimersByTimeAsync(1000);
-    expect(issue).toHaveBeenCalledTimes(2);
-    expect(Socket.instances).toHaveLength(0);
-  });
-
-  test('each reconnect requests a new ticket and ignores the previous socket', async () => {
+  test('each reconnect asks for admission again and ignores the previous socket', async () => {
     let issued = 0;
     const issue = vi.fn(async () => ({
       ok: true as const,
-      ticket: (++issued).toString().repeat(64),
-      expiresInMs: 30_000,
+      pass: `pass.${++issued}`,
     }));
     const client = connection('fixture-one', issue);
     disconnect = client.connect();
@@ -602,34 +595,32 @@ describe('hosted table admission', () => {
     old.deliver(view({ epoch: 'old' }));
     expectLocked(client);
     expect(issue).toHaveBeenCalledTimes(2);
-    expect(socket().sent).toEqual([
-      { type: 'admit', supportsBoard: true, ticket: '2'.repeat(64), replaces: 'connection-one' },
-    ]);
+    expect(socket().sent).toEqual([{ type: 'admit', pass: 'pass.2', replaces: 'connection-one' }]);
     authorize(initialSnapshot(), { ...viewer, connectionId: 'connection-two' });
     expect(table(client).viewer.connectionId).toBe('connection-two');
   });
 
-  test('retiring the route fences an unresolved ticket and every reconnect timer', async () => {
-    let resolveTicket: (value: Awaited<ReturnType<typeof ticket>>) => void = () => {};
+  test('retiring the route fences an unresolved admission request and every reconnect timer', async () => {
+    let resolveAdmission: (value: Awaited<ReturnType<typeof admission>>) => void = () => {};
     const client = connection(
       'fixture-one',
       () =>
         new Promise((resolve) => {
-          resolveTicket = resolve;
+          resolveAdmission = resolve;
         })
     );
     disconnect = client.connect();
     disconnect();
-    resolveTicket(await ticket());
+    resolveAdmission(await admission());
     await vi.advanceTimersByTimeAsync(30_000);
     expect(Socket.instances).toHaveLength(0);
     expect(client.getSnapshot().table).toBeNull();
   });
 
-  test('a retired ticket attempt cannot cancel the timeout of the next route connection', async () => {
-    let resolveFirst: (value: Awaited<ReturnType<typeof ticket>>) => void = () => {};
+  test('a retired admission attempt cannot cancel the timeout of the next route connection', async () => {
+    let resolveFirst: (value: Awaited<ReturnType<typeof admission>>) => void = () => {};
     const issue = vi
-      .fn<typeof ticket>(() => new Promise(() => {}))
+      .fn<typeof admission>(() => new Promise(() => {}))
       .mockImplementationOnce(
         () =>
           new Promise((resolve) => {
@@ -640,7 +631,7 @@ describe('hosted table admission', () => {
     disconnect = client.connect();
     disconnect();
     disconnect = client.connect();
-    resolveFirst(await ticket());
+    resolveFirst(await admission());
     await vi.advanceTimersByTimeAsync(0);
     expect(client.getSnapshot().status).toBe('connecting');
     await vi.advanceTimersByTimeAsync(3000);
@@ -664,7 +655,7 @@ describe('hosted table admission', () => {
   );
 
   test('closes an unanswered pending socket at the admission deadline', async () => {
-    const client = connection('fixture-one', ticket);
+    const client = connection('fixture-one', admission);
     disconnect = client.connect();
     await vi.advanceTimersByTimeAsync(0);
     socket().open();
@@ -840,6 +831,42 @@ describe('hosted table interaction', () => {
     authorize(snapshot, { ...viewer, viewerSeat: 'neutral' });
     expect(table(client).spiceReserveControls).toBeUndefined();
     expect(table(client).deckControls).toBeUndefined();
+  });
+
+  test('the hand takes one loose, unlocked card or battle leader, through the piece menu, only while the viewer can handle the table', async () => {
+    const client = await connected();
+    const snapshot = initialSnapshot();
+    const loose = snapshot.table.pieces.find((piece) => piece.id === 'treachery-card-loose')!;
+    const locked = { ...loose, id: 'locked-card', locked: true };
+    const leader = {
+      ...snapshot.table.pieces.find((piece) => piece.kind === 'force')!,
+      id: 'leader',
+      items: [
+        {
+          id: 'leader-1',
+          faceUp: true,
+          artwork: {
+            type: 'token-leader',
+            front: 'https://art.invalid/leader.jpg',
+            back: 'https://art.invalid/leader.jpg',
+          },
+        },
+      ],
+    };
+    snapshot.table.pieces.push(locked, leader);
+    snapshot.versions = { ...snapshot.versions, [locked.id]: 0, [leader.id]: 0 };
+    socket().deliver(view({ snapshot }));
+    const { handControls } = table(client);
+    expect(handControls?.canTake('treachery-card-loose')).toBe(true);
+    expect(handControls?.canTake('leader')).toBe(true);
+    expect(handControls?.canTake('treachery-deck')).toBe(false);
+    expect(handControls?.canTake('locked-card')).toBe(false);
+    expect(handControls?.canTake('no-such-piece')).toBe(false);
+    handControls?.take('treachery-card-loose');
+    expect(command().action).toEqual({ kind: 'hand-take', pieceId: 'treachery-card-loose' });
+
+    socket().deliver(view({ snapshot: { ...snapshot, stage: 'drafting' } }));
+    expect(table(client).handControls).toBeUndefined();
   });
 
   test('a rejected phase correction does not cancel the active carry', async () => {
@@ -1383,7 +1410,7 @@ test('compact update gaps pause commands until a full resync restores the table'
   const snapshot = initialSnapshot();
   socket().deliver(view({ sequence: 1, snapshot }));
   /* A view asks for nothing, so the admission is the only message before the gap. */
-  expect(socket().sent).toEqual([{ type: 'admit', supportsBoard: true, ticket: 'a'.repeat(64) }]);
+  expect(socket().sent).toEqual([{ type: 'admit', pass: 'pass.a' }]);
   deliverGap();
   expect(socket().sent.at(-1)).toEqual({ type: 'sync' });
   expect(table(client).canInteract).toBe(false);
@@ -1772,9 +1799,7 @@ describe('fresh reconnect recovery', () => {
       expect(table(client).renderedPieces.find((piece) => piece.id === source.id)?.position).toEqual(
         committed ? position : source.position
       );
-      expect(socket().sent).toEqual([
-        { type: 'admit', supportsBoard: true, ticket: 'a'.repeat(64), replaces: 'connection-one' },
-      ]);
+      expect(socket().sent).toEqual([{ type: 'admit', pass: 'pass.a', replaces: 'connection-one' }]);
       expect(client.getSnapshot().error).toBe('The connection dropped as you placed a piece. Check where it landed.');
     }
   );
@@ -1886,7 +1911,7 @@ describe('pointer moves', () => {
   });
 
   test('a connection that cannot carry pings, like the homepage table, leaves the ping key unused', async () => {
-    const subscription = new GameSubscription('fixture-one', ticket, runtime);
+    const subscription = new GameSubscription('fixture-one', admission, runtime);
     const send = subscription.send.bind(subscription);
     vi.spyOn(subscription, 'send').mockImplementation((message) => message.type !== 'ping' && send(message));
     const client = new TableSession('fixture-one', subscription, runtime);
@@ -2010,7 +2035,7 @@ describe('pointer moves', () => {
     const tables = { read: () => null, findGame: () => null, rememberAddress: vi.fn(), save: vi.fn(), clear: vi.fn() };
     const client = new TableSession(
       'fixture-one',
-      new GameSubscription('fixture-one', ticket, { ...runtime, tables }),
+      new GameSubscription('fixture-one', admission, { ...runtime, tables }),
       { ...runtime, tables }
     );
     disconnect = client.connect();
@@ -2117,6 +2142,47 @@ describe('pointer moves', () => {
     expect(table(client).state.draftMove).toBeNull();
     vi.advanceTimersByTime(16);
     expect(sceneListener).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('Shipment and Movement order', () => {
+  const shownOrder = (client: TableSession) => table(client).snapshot.movement?.order;
+
+  test('a dragged order shows until the room answers it, refused or done', async () => {
+    const client = await connected();
+    socket().deliver(view({ snapshot: initialSnapshot() }));
+    const before = table(client).snapshot;
+    client.command({ kind: 'movement-order', order: ['harkonnen', 'atreides'] });
+    const refused = command();
+    expect(shownOrder(client)).toEqual(['harkonnen', 'atreides']);
+    /* One copy per frame, so the projection holds still while the answer is out. */
+    expect(table(client).snapshot).toBe(table(client).snapshot);
+    /* A second drag before any frame shows at once too. */
+    client.command({ kind: 'movement-order', order: ['atreides', 'harkonnen'] });
+    const second = command();
+    expect(shownOrder(client)).toEqual(['atreides', 'harkonnen']);
+    socket().deliver({
+      type: 'rejected',
+      requestId: second.commandId,
+      message: 'The factions done keep their places.',
+    });
+
+    socket().deliver({
+      type: 'rejected',
+      requestId: refused.commandId,
+      message: 'The factions done keep their places.',
+    });
+    expect(table(client).snapshot.movement).toBe(before.movement);
+
+    client.command({ kind: 'movement-order', order: ['atreides', 'harkonnen'] });
+    const done = command();
+    const movement = { done: [], order: ['atreides', 'harkonnen'] };
+    socket().deliver(view({ snapshot: { ...initialSnapshot(), movement }, completedCommandId: done.commandId }));
+    expect(table(client).snapshot.movement).toEqual(movement);
+
+    /* The room's later order wins over one this page asked for long ago. */
+    socket().deliver(view({ snapshot: { ...initialSnapshot(), movement: { done: [], order: ['harkonnen'] } } }));
+    expect(shownOrder(client)).toEqual(['harkonnen']);
   });
 });
 
@@ -2587,4 +2653,80 @@ describe('a plate another player carries', () => {
       ['held-from', 'hms'],
     ]);
   });
+});
+
+test('shared seeking correlates old rejections, retries failed reads and keeps the table frozen', async () => {
+  const client = await connected();
+  const initial = initialSnapshot();
+  const recall = {
+    id: 'recall',
+    step: 0,
+    context: 'First',
+    proposer: { name: 'One', seat: viewer.viewerSeat },
+    openedAt: 1,
+    threshold: 1,
+    ballots: [{ name: 'One', seat: viewer.viewerSeat, choice: 'review' as const }],
+    startedAt: 1,
+  };
+  authorize({ ...initial, revision: 1, review: recall });
+  const requests = () => socket().sent.filter((message) => message.type === 'history');
+  const first = requests().at(-1)!;
+  expect(table(client).canInteract).toBe(false);
+  authorize({ ...initial, revision: 2, review: { ...recall, step: 1, context: 'Second' } });
+  const second = requests().at(-1)!;
+  expect(second.requestId).not.toBe(first.requestId);
+  socket().deliver({ type: 'rejected', requestId: first.requestId!, message: 'Old checkpoint is no longer shared.' });
+  expect(table(client).historyPending).toBe(true);
+  expect(client.getSnapshot().error).toBeNull();
+  socket().deliver({ type: 'history', requestId: second.requestId, step: 1, lastStep: 1, snapshot: initial });
+  expect(table(client).playback?.step).toBe(1);
+  expect(table(client).canInteract).toBe(false);
+  authorize({ ...initial, revision: 3, review: { ...recall, step: 2, context: 'Third' } });
+  const third = requests().at(-1)!;
+  socket().deliver({ type: 'rejected', requestId: third.requestId!, message: 'Could not load this checkpoint.' });
+  expect(table(client).historyPending).toBe(false);
+  expect(table(client).canInteract).toBe(false);
+  client.retryRecall();
+  const retry = requests().at(-1)!;
+  expect(retry.requestId).not.toBe(third.requestId);
+  socket().deliver({ type: 'history', requestId: retry.requestId, step: 2, lastStep: 2, snapshot: initial });
+  expect(table(client).playback?.step).toBe(2);
+  expect(client.getSnapshot().error).toBeNull();
+});
+
+test('spectators receive public pings during live play and collective recall without publishing', async () => {
+  const client = await connected();
+  const watching = { ...viewer, viewerSeat: 'neutral' };
+  const initial = initialSnapshot();
+  const pings = vi.fn();
+  client.subscribePings(pings);
+  const ping: TablePing = {
+    connectionId: 'other',
+    viewerSeat: 'seat-2',
+    displayName: 'Other',
+    color: 'blue',
+    position: [1, 0, 1],
+  };
+  authorize(initial, watching);
+  socket().deliver({ type: 'ping', ping });
+  expect(pings).toHaveBeenCalledTimes(1);
+  const recall = {
+    id: 'recall',
+    step: 0,
+    context: 'First',
+    proposer: { name: 'One', seat: 'seat-1' },
+    openedAt: 1,
+    threshold: 1,
+    ballots: [{ name: 'One', seat: 'seat-1', choice: 'review' as const }],
+    startedAt: 1,
+  };
+  authorize({ ...initial, revision: 1, review: recall }, watching);
+  const read = socket()
+    .sent.filter((message) => message.type === 'history')
+    .at(-1)!;
+  socket().deliver({ type: 'history', requestId: read.requestId, step: 0, lastStep: 0, snapshot: initial });
+  socket().deliver({ type: 'ping', ping });
+  expect(pings).toHaveBeenCalledTimes(2);
+  client.publishPointer([1, 0, 1], [1, 0, 1]);
+  expect(client.ping()).toBe(false);
 });

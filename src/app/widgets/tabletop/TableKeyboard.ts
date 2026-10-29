@@ -68,18 +68,34 @@ function hasModifier(event: KeyboardEvent) {
  */
 const FOCUSED_CONTROL = "button, a[href], [role='button'], [role='separator']";
 
+function isTextField(target: EventTarget | null) {
+  return target instanceof HTMLElement && (target.isContentEditable || target.matches('input, textarea, select'));
+}
+
+function isArrowControl(target: EventTarget | null) {
+  return isTextField(target) || (target instanceof HTMLElement && target.matches('[role="slider"]'));
+}
+
 /*
- * A focused text field keeps its keys from the table.
- * The table's shortcuts also leave any other focused control or link alone, while the spice disc answers over them.
+ * A focused text field keeps its keys from the table; a slider keeps its arrows.
+ * The table's shortcuts also leave any other focused control or link alone, while the spice disc, or the cursor over the table, answers over them.
  */
-function focusKeepsKey(target: EventTarget | null, branch: 'spiceBank' | 'table') {
-  if (!(target instanceof HTMLElement)) {
-    return false;
-  }
-  if (target.isContentEditable || target.matches('input, textarea, select')) {
+function focusKeepsKey(target: EventTarget | null, branch: 'spiceBank' | 'table', arrow = false) {
+  if (arrow ? isArrowControl(target) : isTextField(target)) {
     return true;
   }
-  return branch === 'table' && target.closest(FOCUSED_CONTROL) !== null;
+  return branch === 'table' && target instanceof HTMLElement && target.closest(FOCUSED_CONTROL) !== null;
+}
+
+/* An open menu, or a dialog over the table such as a deck held open by a peek, steps through its own items with the arrows. */
+function inOpenMenu(target: EventTarget | null) {
+  return (
+    target instanceof Element && target.closest("[role='menu'], [role='dialog'], dialog, [aria-modal='true']") !== null
+  );
+}
+
+function isArrowKey(event: KeyboardEvent) {
+  return event.key.startsWith('Arrow');
 }
 
 /**
@@ -90,6 +106,7 @@ function focusKeepsKey(target: EventTarget | null, branch: 'spiceBank' | 'table'
 export class TableKeyboard {
   private binding: Binding | null = null;
   private spiceBankHovered = false;
+  private tableHovered = false;
   private drawTimer: ReturnType<typeof setTimeout> | null = null;
   private drawDigit: number | null = null;
   private drawCode = '';
@@ -106,6 +123,7 @@ export class TableKeyboard {
   bind(binding: Binding) {
     this.release();
     this.binding = binding;
+    binding.events.addEventListener('keydown', this.arrowOverTable, { capture: true });
     binding.events.addEventListener('keydown', this.keyDown);
     binding.events.addEventListener('keyup', this.keyUp);
     binding.events.addEventListener('blur', this.cancelDraw);
@@ -160,6 +178,16 @@ export class TableKeyboard {
     this.spiceBankHovered = hovered;
   }
 
+  /** The 3D scene reports the cursor over it here, and while it is, the keys are the table's unless a text field has the focus. */
+  hoverTable(hovered: boolean) {
+    this.tableHovered = hovered;
+  }
+
+  /* Where the keys go for a focused control: the cursor over the table takes them, as the spice disc does. */
+  private focusBranch(): 'spiceBank' | 'table' {
+    return this.tableHovered ? 'spiceBank' : 'table';
+  }
+
   private release() {
     const binding = this.binding;
     if (!binding) {
@@ -173,6 +201,7 @@ export class TableKeyboard {
     binding.events.removeEventListener('blur', this.releasePing);
     binding.events.removeEventListener('blur', this.releaseRotation);
     binding.events.removeEventListener('focusin', this.focusIn);
+    binding.events.removeEventListener('keydown', this.arrowOverTable, { capture: true });
     binding.events.removeEventListener('keydown', this.keyDown);
     binding.events.removeEventListener('keyup', this.keyUp);
     binding.events.removeEventListener('blur', this.cancelDraw);
@@ -180,6 +209,10 @@ export class TableKeyboard {
   }
 
   private keyDown = (event: KeyboardEvent) => {
+    /* Escape cancels a number-key hold before it can split the stack; the pointer session cancels any existing carry. */
+    if (event.key === 'Escape') {
+      this.cancelDraw();
+    }
     /* macOS sends no keyup for a key let go while Cmd is down, so Cmd lets go of a held pan, draw or rumble rather than leave it running. */
     if (event.key === 'Meta') {
       this.releasePan();
@@ -206,16 +239,40 @@ export class TableKeyboard {
     const digit = digitOf(event);
     if (digit !== null && this.spiceBankAnswers(event, controls)) {
       pressOnce(event, () => controls.spawnSpice(digit === 0 ? 10 : digit));
-    } else if (!focusKeepsKey(event.target, 'table')) {
+    } else if (!focusKeepsKey(event.target, this.focusBranch())) {
       this.tableKey(event, controls);
     }
   };
 
-  /* A pan key held while a close look is open slides it; a focused control keeps its arrow keys, as a tab list does, while only a text field keeps the letters. */
+  /*
+   * With the cursor over the table, an arrow key is the camera's before a focused control hears it, so a tab list or menu
+   * left focused by a click never moves its focus instead; input controls keep their arrows.
+   * Without a close look there is nothing to slide, and the arrow still stays with the table.
+   * An open menu, such as a piece's radial menu opened under the cursor, keeps its arrows to step through its items,
+   * and so does a dialog over the table, such as a peeked deck whose focused card the arrows move.
+   */
+  private arrowOverTable = (event: KeyboardEvent) => {
+    if (
+      !this.tableHovered ||
+      !isArrowKey(event) ||
+      hasModifier(event) ||
+      isArrowControl(event.target) ||
+      inOpenMenu(event.target)
+    ) {
+      return;
+    }
+    event.stopPropagation();
+    event.preventDefault();
+    if (this.binding?.read()) {
+      this.panKeyDown(event);
+    }
+  };
+
+  /* A pan key held while a close look is open slides it; off the table a focused control keeps its arrow keys, as a tab list does, while only a text field keeps the letters. */
   private panKeyDown(event: KeyboardEvent) {
     const panKey = event.key.toLowerCase();
-    const panFocus = panKey.startsWith('arrow') ? 'table' : 'spiceBank';
-    if (!this.panAvailable || !(panKey in PAN_KEYS) || focusKeepsKey(event.target, panFocus)) {
+    const panFocus = isArrowKey(event) ? this.focusBranch() : 'spiceBank';
+    if (!this.panAvailable || !(panKey in PAN_KEYS) || focusKeepsKey(event.target, panFocus, isArrowKey(event))) {
       return false;
     }
     event.preventDefault();
@@ -339,6 +396,21 @@ export class TableKeyboard {
 
   private restingPieceKey(event: KeyboardEvent, pieceId: string, controls: Controls) {
     switch (event.key.toLowerCase()) {
+      case 't': {
+        const piece = controls.state.pieces.find((candidate) => candidate.id === pieceId);
+        if (
+          controls.canHandleTable &&
+          controls.hoveredPieceId === pieceId &&
+          piece?.kind === 'card' &&
+          piece.items.length > 0 &&
+          !piece.locked &&
+          !piece.inventory &&
+          controls.deckControls
+        ) {
+          pressOnce(event, () => controls.deckControls?.draw(pieceId));
+        }
+        return;
+      }
       case 'r': {
         const piece = controls.state.pieces.find((candidate) => candidate.id === pieceId);
         if (
@@ -361,7 +433,7 @@ export class TableKeyboard {
         return;
     }
     const digit = digitOf(event);
-    if (digit !== null && digit > 0) {
+    if (digit !== null) {
       event.preventDefault();
       this.startDraw(event, digit, pieceId);
     }
@@ -376,7 +448,7 @@ export class TableKeyboard {
     this.drawCode = event.code === 'Unidentified' ? '' : event.code;
     this.drawTimer = setTimeout(() => {
       this.cancelDraw();
-      this.binding?.read().splitSelected(digit, pieceId);
+      this.binding?.read().splitSelected(digit === 0 ? 10 : digit, pieceId);
     }, DRAW_HOLD_MS);
   }
 }

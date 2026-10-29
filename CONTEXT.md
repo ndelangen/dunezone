@@ -26,6 +26,9 @@ A ruleset question owned by its author, who may edit or remove it and moderate i
 **FAQ answer**:
 A response owned and editable only by its author. Its question owner may accept, unaccept, or remove it, but may not rewrite it.
 
+**FAQ reference**:
+A link from an FAQ question to a faction or an asset of any type, regardless of ruleset. The asker and anyone with write access to the question's ruleset may add or remove references, only through the FAQ. A question shows previews of its referenced content, and each faction or asset shows its related questions. References follow the existing faction relationship convention: deleted or missing content does not appear, and a soft-deleted record's link survives for recovery.
+
 **Faction catalogue**:
 The public collection of factions whose primary purpose is discovery. Ownership and creation are supporting workflows rather than the catalogue's organizing purpose.
 _Avoid_: Faction overview, faction index
@@ -283,8 +286,16 @@ _Avoid_: Custom game, user game
 The retained private messages between two factions in one Real game, available from setup. Each faction's current Player inherits the full history; former occupants and Spectators cannot read or send. A message is Sent once the game database saves it. Unread clears only when the newest messages are visible in the open Conversation tab; there are no recipient read receipts.
 
 **Game log**:
-The retained public record of a Real game, read in the controls panel by every viewer, Spectators included, during and after play. Game holds what happened on the table: phases, spice transfers, battle results and predictions. Audit holds who sat where and how removal votes ended. Every entry is one sentence with its classification and the turn, setup step or stage it happened in; each producer files its entry inside the transaction that commits the event, and a deleted account reads `[deleted user]` wherever it appears. Private cards, unrevealed plans, spice reserve balances, Conversations and territory names never enter it.
+The retained public record of a Real game, read in the controls panel by every viewer, Spectators included, during and after play. Game holds what happened on the table: phases, spice transfers, battle results and predictions. Audit holds who sat where and how removal votes and Mentat recalls ended. Every entry is one sentence with its classification and the turn, setup step or stage it happened in; each producer files its entry inside the transaction that commits the event, and a deleted account reads `[deleted user]` wherever it appears. Private cards, unrevealed plans, spice reserve balances, Conversations and territory names never enter it.
 _Avoid_: Event log, history feed, activity feed
+
+**Replay**:
+Stepping through a finished Real game's saved checkpoints, the public table only, with no action offered. Players may not keep notes, so nobody replays a game in progress, and a game continued after its result closes the Replay again.
+_Avoid_: rewind
+
+**Mentat recall**:
+A collective look at a recent checkpoint that a majority of the seated Players agree to during setup or play. Everyone, Spectators included, sees the same frozen public board. The current occupant of each seat also sees its recorded hand, private side table and spice reserve, including information left by a previous occupant. A seated Player can move the shared checkpoint or return everyone to the current game. Camera movement, pointers, pings and personal panel arrangement remain available; returning restores the normal dock layout. Recall chat belongs to that instance alone and its messages and drafts disappear when recall closes. The proposal, result and end are filed in Audit. Stored actions still use `review-*`.
+_Avoid_: Table review, review, rewind, dispute check, private replay
 
 **Spice Bank**:
 The shared, unlimited pile of spice outside any faction, drawn as the spice disc. Stored data still calls it `supply`.
@@ -311,4 +322,4 @@ _Avoid_: Extra asset, add-on
 An authored circular map saved in the Assets catalogue. Its shared linework forms territories, and each territory owns a unique name, a type, an inset treatment and ordered decals. Saved linework and properties drive both editing and published artwork. Names identify territories for targeting and do not print on the map. Loading a preset or another Board Asset copies its editable geometry into the current draft.
 
 **Board decal**:
-A bundled vector placed within a territory, with position, scale, rotation and an optional white outline. The territory clips it. The decal list sets drawing order and supports drag reordering. Showing a decal before cropping is an editor setting and is never saved.
+A bundled vector placed within a territory, with position, scale, rotation and an optional pale outline shared with placed board stickers. The territory clips it. The decal list sets drawing order and supports drag reordering. Showing a decal before cropping is an editor setting and is never saved.

@@ -5,8 +5,8 @@ import {
   createRouter,
   RouterProvider,
 } from '@tanstack/react-router';
-import type { AnyRoute } from '@tanstack/react-router';
-import { Suspense, use, useMemo } from 'react';
+import type { AnyRoute, RouterHistory } from '@tanstack/react-router';
+import { Suspense, use, useEffect, useMemo } from 'react';
 
 import { useStorybookDatabaseClient } from '@db/storybook';
 import type { SeedReference } from '@db/storybook';
@@ -69,32 +69,55 @@ function seedReference(path: string): SeedReference | null {
     : null;
 }
 
-function SeededPage({ reference }: Readonly<{ reference: SeedReference }>) {
+/**
+ * `history` is the router's history when a story walks it or reads the address it holds, as a reader's browser would.
+ * It must hold `path`, and a story makes one per run in a loader, since a story's module runs once and its history must not carry over.
+ * Without it the page runs from a fresh memory history at `path`.
+ */
+type StorybookPageProps = Readonly<{
+  path: string;
+  history?: RouterHistory;
+  onResolved?: (pathname: string) => void;
+}>;
+
+function SeededPage({
+  reference,
+  ...props
+}: Readonly<{ reference: SeedReference }> & Omit<StorybookPageProps, 'path'>) {
   const client = useStorybookDatabaseClient();
-  return <RoutedPage path={use(client.resolve(reference))} />;
+  return <RoutedPage path={use(client.resolve(reference))} {...props} />;
 }
 
-export function StorybookPage({ path }: Readonly<{ path: string }>) {
+export function StorybookPage({ path, ...props }: StorybookPageProps) {
   const reference = seedReference(path);
   return reference ? (
     <Suspense fallback={<div role="status">Resolving the page address…</div>}>
-      <SeededPage reference={reference} />
+      <SeededPage reference={reference} {...props} />
     </Suspense>
   ) : (
-    <RoutedPage path={path} />
+    <RoutedPage path={path} {...props} />
   );
 }
 
-function RoutedPage({ path }: Readonly<{ path: string }>) {
+function RoutedPage({ path, history, onResolved }: StorybookPageProps) {
   const router = useMemo(
     () =>
       createRouter({
         defaultErrorComponent: AppErrorComponent,
-        history: createMemoryHistory({ initialEntries: [path] }),
+        history: history ?? createMemoryHistory({ initialEntries: [path] }),
         routeTree: cloneApplicationRouteTree(),
       }),
-    [path]
+    [path, history]
   );
+
+  useEffect(() => {
+    const unsubscribe = router.subscribe('onResolved', ({ toLocation }) => onResolved?.(toLocation.pathname));
+    const resolved = router.state.resolvedLocation;
+    if (router.state.status === 'idle' && resolved) {
+      onResolved?.(resolved.pathname);
+    }
+    return unsubscribe;
+  }, [router, onResolved]);
 
   /* The document stylesheet belongs to the page for as long as the page is mounted, and to nothing
      after it: the root route's own import of it is stubbed under Storybook (.storybook/pageStylesheet.ts),

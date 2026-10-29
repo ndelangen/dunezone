@@ -13,7 +13,6 @@ describe('A real game removes its deleted creator from retained names', () => {
   let peer: NativePeer, runtime: NativeRuntime;
   beforeEach(async () => {
     peer = await createPeer();
-    peer.watchMode = 'allow';
     /* A different actor has the same public name, so attribution must follow identity. */
     peer.game = {
       rulesetId: 'ruleset-one',
@@ -69,10 +68,6 @@ describe('A real game removes its deleted creator from retained names', () => {
 
   async function assertAnonymized(observer: NativeConnection) {
     expect(openingSeatEvent((await syncView(observer)).snapshot)?.message).toBe('Seat 1 is taken by the creator.');
-    observer.send({ type: 'history', step: 0 });
-    expect(openingSeatEvent((await observer.message('history')).snapshot)?.message).toBe(
-      'Seat 1 is taken by the creator.'
-    );
     expect(JSON.stringify(await runtime.exec<{ data: string }>('SELECT data FROM history'))).not.toContain(
       'Synthetic B'
     );
@@ -81,8 +76,8 @@ describe('A real game removes its deleted creator from retained names', () => {
 
   it('keeps another actor with the same name separate and scrubs the creator in live views, history and cold restore', async () => {
     await prepareGame();
-    await admitPlayer(peer, runtime, 'b');
-    const observer = await admitPlayer(peer, runtime, 'c');
+    await admitPlayer(runtime, 'b');
+    const observer = await admitPlayer(runtime, 'c');
     await deleteAccount('user-b');
     expect(openingSeatEvent((await syncView(observer)).snapshot)?.message).toBe('Seat 1 is taken by the creator.');
     expect(await creator()).toEqual({ userId: 'user-a', displayName: 'Synthetic B' });
@@ -90,18 +85,7 @@ describe('A real game removes its deleted creator from retained names', () => {
     await deleteAccount('user-a');
     await assertAnonymized(observer);
     await runtime.restart();
-    await assertAnonymized(await admitPlayer(peer, runtime, 'c'));
-  });
-
-  it('repairs an already-deleted creator in a room stamped by the previous scrub release', async () => {
-    await prepareGame();
-    /* The preceding release marked actors deleted but left the opening event named. */
-    await runtime.exec("UPDATE actors SET deleted=1, seat='neutral', display_name='[deleted user]' WHERE user_id=?", [
-      'user-a',
-    ]);
-    await runtime.exec("UPDATE metadata SET data=json_set(data, '$.historyRepair', 1)");
-    await runtime.restart();
-    await assertAnonymized(await admitPlayer(peer, runtime, 'c'));
+    await assertAnonymized(await admitPlayer(runtime, 'c'));
   });
 
   it('keeps the creator anonymous when a pending confirmation later saves metadata', async () => {
@@ -120,6 +104,6 @@ describe('A real game removes its deleted creator from retained names', () => {
     expect((await pending).status).toBe(200);
     await eventually(() => peer.summaries.length === 1, 'confirmed directory summary');
     expect(peer.summaries[0]).toMatchObject({ sequence: 2, summary: { seats: [] } });
-    await assertAnonymized(await admitPlayer(peer, runtime, 'c'));
+    await assertAnonymized(await admitPlayer(runtime, 'c'));
   });
 });

@@ -57,7 +57,7 @@ function ColorDot({ color }: { color: TtsColor }) {
         flexShrink: 0,
         borderRadius: '50%',
         background: TTS_COLOR_SWATCHES[color],
-        border: color === 'White' ? '1px solid var(--mantine-color-gray-6)' : '1px solid rgba(0, 0, 0, 0.18)',
+        border: color === 'White' ? '1px solid var(--ui-edge)' : '1px solid rgb(from var(--color-shadow) r g b / 0.18)',
         boxShadow: color === 'White' ? 'inset 0 0 0 1px white' : undefined,
       }}
     />

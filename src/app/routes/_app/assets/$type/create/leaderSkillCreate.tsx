@@ -1,4 +1,4 @@
-import { cardFrontStyleFor } from '@shared/assets/cardFrontPresets';
+import { cardFrontStyleFor, newCardWithStandards } from '@shared/assets/cardFrontPresets';
 import { useReducer, useState } from 'react';
 
 import { useCardFrontPresets } from '@db/cardFrontPresets';
@@ -24,7 +24,10 @@ export function LeaderSkillCreatePage() {
   const frontPresets = useCardFrontPresets();
   const saving = useCardCreate('card-leaderability');
   const [state, dispatch] = useReducer(reduceLeaderSkill, undefined, () =>
-    openingLeaderSkillState(INITIAL_LEADER_SKILL_DRAFT, INITIAL_LEADER_SKILL_DRAFT)
+    openingLeaderSkillState(
+      newCardWithStandards('card-leaderability', INITIAL_LEADER_SKILL_DRAFT),
+      newCardWithStandards('card-leaderability', INITIAL_LEADER_SKILL_DRAFT)
+    )
   );
   const [chapter, setChapter] = useState<LeaderSkillChapter>('head');
   const [overflow, setOverflow] = useState(false);

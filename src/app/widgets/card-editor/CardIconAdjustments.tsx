@@ -16,7 +16,7 @@ export function CardIconAdjustments({
   return (
     <Stack gap="md">
       <IconTreatment value={draft} onChange={patch} />
-      <IconScaleControl value={draft} onChange={patch} />
+      <CardIconScaleControl value={draft} onChange={patch} />
       <IconOffsetControls value={draft} onChange={patch} />
     </Stack>
   );
@@ -65,20 +65,25 @@ function IconTreatment({
   );
 }
 
-function IconScaleControl({
+/** Callers own the scale; this pairs its slider with an exact numeric value. */
+export function CardIconScaleControl({
   value: draft,
   onChange: patch,
-}: {
-  value: IconAdjustments;
-  onChange: (update: Partial<IconAdjustments>) => void;
-}) {
+  label = 'Icon scale',
+  description = 'Resize the icon within its disc; 1 is the reference size.',
+}: Readonly<{
+  value: Pick<IconAdjustments, 'iconScale'>;
+  onChange: (update: Pick<IconAdjustments, 'iconScale'>) => void;
+  label?: string;
+  description?: string;
+}>) {
   return (
     <ControlBlock
-      title="Icon scale"
-      description="Resize the icon within its disc; 1 is the reference size."
+      title={label}
+      description={description}
       tool={
         <NumberInput
-          aria-label="Icon scale"
+          aria-label={label}
           w={96}
           min={0.5}
           max={2}
@@ -94,7 +99,8 @@ function IconScaleControl({
       }
       input={
         <Slider
-          aria-label="Icon scale slider"
+          aria-label={`${label} slider`}
+          thumbLabel={`${label} slider`}
           min={0.5}
           max={2}
           step={0.05}
@@ -147,34 +153,49 @@ function IconOffsetControls({
         />
       </Grid.Col>
       <Grid.Col span={{ base: 12, xs: 6 }}>
-        <ControlBlock
-          title="Vertical offset"
-          description="Move the icon up with a negative value or down with a positive value."
-          tool={
-            <NumberInput
-              aria-label="Vertical icon offset"
-              w={96}
-              step={1}
-              value={offset[1]}
-              onChange={(value) => {
-                if (typeof value === 'number') {
-                  patch({ iconOffset: [offset[0], value] });
-                }
-              }}
-            />
-          }
-          input={
-            <Slider
-              aria-label="Vertical icon offset slider"
-              min={-60}
-              max={60}
-              step={1}
-              value={offset[1]}
-              onChange={(value) => patch({ iconOffset: [offset[0], value] })}
-            />
-          }
-        />
+        <CardIconVerticalOffsetControl value={draft} onChange={patch} />
       </Grid.Col>
     </Grid>
+  );
+}
+
+/** Callers own the position; this moves the icon vertically and preserves its horizontal offset. */
+export function CardIconVerticalOffsetControl({
+  value: draft,
+  onChange: patch,
+}: Readonly<{
+  value: Pick<IconAdjustments, 'iconOffset'>;
+  onChange: (update: Pick<IconAdjustments, 'iconOffset'>) => void;
+}>) {
+  const offset = draft.iconOffset ?? [0, 0];
+  return (
+    <ControlBlock
+      title="Vertical offset"
+      description="Move the icon up with a negative value or down with a positive value."
+      tool={
+        <NumberInput
+          aria-label="Vertical icon offset"
+          w={96}
+          step={1}
+          value={offset[1]}
+          onChange={(value) => {
+            if (typeof value === 'number') {
+              patch({ iconOffset: [offset[0], value] });
+            }
+          }}
+        />
+      }
+      input={
+        <Slider
+          aria-label="Vertical icon offset slider"
+          thumbLabel="Vertical icon offset slider"
+          min={-60}
+          max={60}
+          step={1}
+          value={offset[1]}
+          onChange={(value) => patch({ iconOffset: [offset[0], value] })}
+        />
+      }
+    />
   );
 }

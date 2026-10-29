@@ -1,0 +1,32 @@
+diff --git a/dist/src/index.js b/dist/src/index.js
+index 07f6e29d75588d26bdf4fe015c07757173127b97..4ccda097e654d4d96d85d992b153efac3ac478ef 100644
+--- a/dist/src/index.js
++++ b/dist/src/index.js
+@@ -132665,7 +132665,8 @@ async function imagesLocalFetcher(request4) {
+       return runTransform(
+         sharp(source, { autoOrient: true }),
+         transforms,
+-        outputFormat
++        outputFormat,
++        resolveQuality(Number(data.get("output_quality") ?? 80))
+       );
+     } catch {
+       return badTransformsResponse;
+@@ -132725,7 +132726,7 @@ async function runInfo(transformer) {
+   }
+   return Response2.json(resp);
+ }
+-async function runTransform(transformer, transforms, outputFormat) {
++async function runTransform(transformer, transforms, outputFormat, quality) {
+   for (const transform3 of transforms) {
+     if (transform3.imageIndex !== void 0 && transform3.imageIndex !== 0) {
+       continue;
+@@ -132754,7 +132755,7 @@ async function runTransform(transformer, transforms, outputFormat) {
+         "ERROR: GIF output is not supported in local mode"
+       );
+     case "image/jpeg":
+-      transformer.jpeg();
++      transformer.jpeg({ progressive: true, quality });
+       break;
+     case "image/png":
+       transformer.png();

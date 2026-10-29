@@ -1,7 +1,20 @@
+/** @vitest-environment jsdom */
+
 import { publishingTreacheryCard } from '@shared/assets/fixtures/publishingTreacheryCard';
 import type * as TanStackRouter from '@tanstack/react-router';
-import { createMemoryHistory, createRootRoute, createRoute, createRouter } from '@tanstack/react-router';
+import {
+  createMemoryHistory,
+  createRootRoute,
+  createRoute,
+  createRouter,
+  HeadContent,
+  notFound,
+  Outlet,
+  Scripts,
+} from '@tanstack/react-router';
 import { hydrate } from '@tanstack/react-router/ssr/client';
+import { createRequestHandler, defaultRenderHandler } from '@tanstack/react-router/ssr/server';
+import { createElement } from 'react';
 import { describe, expect, it, vi } from 'vite-plus/test';
 
 import { pageHead } from '@app/routes/pageTitle';
@@ -26,8 +39,8 @@ const headOf = (module: { Route: unknown }) => (module.Route as { options: { hea
 type MatchStatus = 'success' | 'notFound';
 
 /**
- * Hydrates a root, `_app`, leaf tree with TanStack's own client `hydrate`, then reads the title the tab would show.
- * `status` is what the server dehydrated for `_app` and the leaf: a leaf loader's notFound marks both, with no leaf loader data.
+ * Renders a root, `_app`, leaf tree through TanStack's server handler, then hydrates its actual response and reads the title the tab would show.
+ * The server owns the hydration payload, including the encoded match IDs.
  */
 async function hydratedTitle(options: {
   leafPath: string;
@@ -36,36 +49,75 @@ async function hydratedTitle(options: {
   status: MatchStatus;
   loaderData?: unknown;
 }) {
-  const root = createRootRoute({ head: () => pageHead() });
-  const app = createRoute({ getParentRoute: () => root, id: '_app', head: headOf(appLayout) as never });
-  const leaf = createRoute({ getParentRoute: () => app, path: options.leafPath, head: options.head as never });
-  const router = createRouter({
-    routeTree: root.addChildren([app.addChildren([leaf])]),
-    history: createMemoryHistory({ initialEntries: [options.url] }),
-  });
-  const matches = router.matchRoutes(router.stores.location.get());
-  const dehydrated = matches.map((match, index) => ({
-    i: match.id,
-    s: index === 0 ? 'success' : options.status,
-    l: index === matches.length - 1 ? options.loaderData : undefined,
-    ssr: true,
-    u: 0,
-  }));
-  vi.stubGlobal('window', {
-    $_TSR: { router: { matches: dehydrated, lastMatchId: matches.at(-1)?.id }, buffer: [], initialized: false },
-  });
-  vi.stubGlobal('document', { querySelector: () => null });
+  const createFixtureRouter = (isServer: boolean) => {
+    const root = createRootRoute({
+      head: () => pageHead(),
+      component: () =>
+        createElement(
+          'html',
+          null,
+          createElement('head', null, createElement(HeadContent)),
+          createElement('body', null, createElement(Outlet), createElement(Scripts))
+        ),
+    });
+    const app = createRoute({
+      getParentRoute: () => root,
+      id: '_app',
+      head: headOf(appLayout) as never,
+      component: Outlet,
+      notFoundComponent: () => null,
+    });
+    const leaf = createRoute({
+      getParentRoute: () => app,
+      path: options.leafPath,
+      head: options.head as never,
+      loader: () => {
+        if (options.status === 'notFound') {
+          throw notFound();
+        }
+        return options.loaderData;
+      },
+      component: () => null,
+    });
+    return createRouter({
+      isServer,
+      routeTree: root.addChildren([app.addChildren([leaf])]),
+      history: createMemoryHistory({ initialEntries: [options.url] }),
+    });
+  };
+  const response = await createRequestHandler({
+    createRouter: () => createFixtureRouter(true),
+    request: new Request(new URL(options.url, 'http://localhost')),
+  })(defaultRenderHandler);
+  expect(response.status).toBe(options.status === 'notFound' ? 404 : 200);
+  /* Each response gets a fresh window so TanStack's bootstrap state does not carry between cases. */
+  const frame = document.createElement('iframe');
+  document.body.append(frame);
+  const browser = frame.contentWindow;
   try {
+    if (!browser) {
+      throw new Error('The hydration fixture needs an iframe window.');
+    }
+    browser.document.open();
+    browser.document.write(await response.text());
+    browser.document.close();
+    vi.stubGlobal('window', browser);
+    vi.stubGlobal('document', browser.document);
+    vi.stubGlobal('self', browser);
+    const router = createFixtureRouter(false);
     await hydrate(router);
+    /* HeadContent keeps the deepest match's title. */
+    const titles = router.stores.matches
+      .get()
+      .flatMap((match) => match.meta ?? [])
+      .flatMap((tag) => (tag && 'title' in tag && tag.title ? [tag.title] : []));
+    const title = titles.at(-1);
+    expect(title).toBe(browser.document.title);
+    return title;
   } finally {
     vi.unstubAllGlobals();
+    frame.remove();
   }
-  /* HeadContent keeps the deepest match's title. */
-  const titles = router.stores.matches
-    .get()
-    .flatMap((match) => match.meta ?? [])
-    .flatMap((tag) => (tag && 'title' in tag && tag.title ? [tag.title] : []));
-  return titles.at(-1);
 }
 
 describe('route heads during hydration of a notFound page', () => {

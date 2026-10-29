@@ -9,10 +9,12 @@ import { internalMutation, mutation, viewerQuery } from './functions';
 import { accountStateOf, authenticatedLifecycleUser, lifecycleUserId } from './lib/accountLifecycle';
 import { requireUnlockedAccount } from './lib/accountMethods';
 import { TOKEN_ASSET_TYPES } from './lib/assetBacks';
+import { revokeAccountSessions } from './lib/authSessionLifecycle';
 import { CUSTOM_CARD_TOKEN_RELATION } from './lib/customCardTokens';
 import { DIRECT_OWNERSHIP_KINDS } from './lib/directOwnership';
 import type { DirectOwnershipKind } from './lib/directOwnership';
 import { requireAdminUserId, requireAuthUserId } from './lib/policy';
+import { SPICE_CARD_BOARD_RELATION, SPICE_CARD_TOKEN_RELATION, spiceCardBoardLink } from './lib/spiceCardBoard';
 import { nowIso, slugify } from './lib/utils';
 
 const SNAPSHOT_BATCH_SIZE = 32;
@@ -387,11 +389,34 @@ async function ensureReplacementOwnerMembership(
 async function refreshTokenEmbeddings(ctx: MutationCtx, asset: Doc<'assets'>) {
   if (TOKEN_ASSET_TYPES.has(asset.type)) {
     await ctx.scheduler.runAfter(0, internal.assets.refreshEmbeddedCards, { tokenId: asset._id, cursor: null });
+    await ctx.scheduler.runAfter(0, internal.assets.refreshSpiceCards, {
+      dependencyId: asset._id,
+      kind: SPICE_CARD_TOKEN_RELATION,
+      cursor: null,
+    });
+  }
+  if (asset.type === 'board') {
+    await ctx.scheduler.runAfter(0, internal.assets.refreshSpiceCards, {
+      dependencyId: asset._id,
+      kind: SPICE_CARD_BOARD_RELATION,
+      cursor: null,
+    });
   }
 }
 
 /** A returning card missed every token change while it was deleted; one refresh republishes it with their current state. */
 async function refreshReturningCard(ctx: MutationCtx, card: Doc<'assets'>) {
+  if (card.type === 'card-spice') {
+    const boardId = ctx.db.normalizeId('assets', spiceCardBoardLink(card.data)?.asset_id ?? '');
+    if (boardId) {
+      await ctx.scheduler.runAfter(0, internal.assets.refreshSpiceCard, {
+        dependencyId: boardId,
+        kind: SPICE_CARD_BOARD_RELATION,
+        cardId: card._id,
+      });
+    }
+    return;
+  }
   if (card.type !== 'card-custom' && card.type !== 'card-storm') {
     return;
   }
@@ -772,6 +797,16 @@ export const restore = mutation({
     ) {
       throw new Error('Deleted source account not found');
     }
+    /* A deleted account's owner who signs in again gets a new account, and the login moves to it; restoring the old one would leave it unreachable. */
+    const login = await ctx.db
+      .query('authAccounts')
+      .withIndex('userIdAndProvider', (q) => q.eq('userId', source._id))
+      .first();
+    if (!login) {
+      throw new Error('This account has no sign-in method left, so nobody could sign in to it after a restore');
+    }
+    /* Sessions from before the deletion were refused only by the account state; a restore must not let them back in. */
+    await revokeAccountSessions(ctx, source._id);
     if (operation.replacement_user_id) {
       await reactivateSource(ctx, operation);
       return;

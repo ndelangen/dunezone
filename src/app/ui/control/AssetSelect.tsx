@@ -8,6 +8,7 @@ import {
   Stack,
   Text,
   TextInput,
+  Tooltip,
   useCombobox,
 } from '@mantine/core';
 import type { ComboboxProps, TextInputProps } from '@mantine/core';
@@ -19,6 +20,7 @@ import { useReducer, useRef } from 'react';
 import { matchAsset, searchTerms } from './assetSearch';
 import styles from './AssetSelect.module.css';
 import { IconAction } from './IconAction';
+import { TooltipTarget } from './TooltipTarget';
 
 interface AssetSelectOption {
   value: string;
@@ -53,6 +55,8 @@ export interface AssetSelectProps extends Omit<
   trigger?: { label: string; icon: ReactNode };
   data: readonly AssetSelectOption[];
   getPreviewSrc: (value: string) => string | null | undefined;
+  /** Live artwork can use the same picker without first publishing an image. */
+  renderPreview?: (value: string, size: number) => ReactNode;
   /** Monochrome glyphs invert in the dark scheme; full-color portraits keep their colors. */
   glyphPreviews?: boolean;
   previewSize?: number;
@@ -61,6 +65,8 @@ export interface AssetSelectProps extends Omit<
   allowDeselect?: boolean;
   clearable?: boolean;
   dropdownOpened?: boolean;
+  /** Told each time the list opens or closes, by any path: a pick, Escape, or a click outside. */
+  onDropdownChange?: (opened: boolean) => void;
   comboboxProps?: ComboboxProps;
 }
 
@@ -101,6 +107,7 @@ export function AssetSelect({
   data,
   trigger,
   getPreviewSrc,
+  renderPreview,
   glyphPreviews = false,
   previewSize = 28,
   value,
@@ -108,6 +115,7 @@ export function AssetSelect({
   allowDeselect = true,
   clearable = false,
   dropdownOpened,
+  onDropdownChange,
   onBlur,
   onClick,
   placeholder,
@@ -121,7 +129,9 @@ export function AssetSelect({
   });
   const combobox = useCombobox({
     opened: dropdownOpened,
+    onDropdownOpen: () => onDropdownChange?.(true),
     onDropdownClose: (eventSource) => {
+      onDropdownChange?.(false);
       dispatch({ type: 'close' });
       combobox.resetSelectedOption();
       if (trigger && eventSource === 'keyboard') {
@@ -132,8 +142,10 @@ export function AssetSelect({
   const viewport = useRef<HTMLDivElement>(null);
   const optionsByValue = new Map(data.map((option) => [option.value, option]));
   const isGlyph = (id: string) => optionsByValue.get(id)?.glyphPreview ?? glyphPreviews;
-  const selectedPreview = value ? getPreviewSrc(value) : null;
-  const hoveredPreview = browse.hovered ? getPreviewSrc(browse.hovered) : null;
+  const previewFor = (id: string, size: number) =>
+    artworkPreview({ value: id, size, getPreviewSrc, renderPreview, glyph: isGlyph(id) });
+  const selectedPreview = value ? previewFor(value, previewSize) : null;
+  const hoveredPreview = browse.hovered ? previewFor(browse.hovered, 144) : null;
   const groups = new Map<string, AssetSelectOption[]>();
   for (const option of data) {
     const name = option.collection ?? 'Artwork';
@@ -254,18 +266,7 @@ export function AssetSelect({
                         combobox.closeDropdown();
                         onBlur?.(event);
                       }}
-                      leftSection={
-                        selectedPreview ? (
-                          <Image
-                            src={selectedPreview}
-                            alt=""
-                            w={previewSize}
-                            h={previewSize}
-                            fit="contain"
-                            className={clsx(styles.previewImg, value && isGlyph(value) && styles.glyph)}
-                          />
-                        ) : undefined
-                      }
+                      leftSection={selectedPreview ?? undefined}
                       leftSectionPointerEvents="none"
                       rightSectionPointerEvents="all"
                       rightSectionWidth={clearable && value ? 70 : 42}
@@ -284,26 +285,29 @@ export function AssetSelect({
                             />
                           ) : null}
                           {groups.size > 1 ? (
-                            <ActionIcon
-                              aria-label={`Filter ${props['aria-label'] ?? 'artwork'} collections`}
-                              aria-pressed={Boolean(activeCollection) || choosingCollection}
-                              title={activeCollection || 'Filter by collection'}
-                              variant="subtle"
-                              color="gray"
-                              className={styles.filterButton}
-                              disabled={blocked}
-                              onMouseDown={(event) => event.preventDefault()}
-                              onClick={() => {
-                                dispatch({ type: 'mode', value: choosingCollection ? 'artwork' : 'collections' });
-                                combobox.resetSelectedOption();
-                                combobox.openDropdown();
-                                combobox.focusTarget();
-                                viewport.current?.scrollTo({ top: 0 });
-                              }}
-                            >
-                              <SlidersHorizontal size={18} aria-hidden />
-                              {activeCollection ? <span className={styles.activeDot} aria-hidden /> : null}
-                            </ActionIcon>
+                            <Tooltip label={activeCollection || 'Filter by collection'}>
+                              <TooltipTarget>
+                                <ActionIcon
+                                  aria-label={`Filter ${props['aria-label'] ?? 'artwork'} collections`}
+                                  aria-pressed={Boolean(activeCollection) || choosingCollection}
+                                  variant="subtle"
+                                  color="gray"
+                                  className={styles.filterButton}
+                                  disabled={blocked}
+                                  onMouseDown={(event) => event.preventDefault()}
+                                  onClick={() => {
+                                    dispatch({ type: 'mode', value: choosingCollection ? 'artwork' : 'collections' });
+                                    combobox.resetSelectedOption();
+                                    combobox.openDropdown();
+                                    combobox.focusTarget();
+                                    viewport.current?.scrollTo({ top: 0 });
+                                  }}
+                                >
+                                  <SlidersHorizontal size={18} aria-hidden />
+                                  {activeCollection ? <span className={styles.activeDot} aria-hidden /> : null}
+                                </ActionIcon>
+                              </TooltipTarget>
+                            </Tooltip>
                           ) : (
                             <Combobox.Chevron />
                           )}
@@ -314,16 +318,7 @@ export function AssetSelect({
                 </div>
               </Popover.Target>
               <Popover.Dropdown role="dialog" aria-label="Artwork preview" p="xs" style={{ pointerEvents: 'none' }}>
-                {hoveredPreview ? (
-                  <Image
-                    src={hoveredPreview}
-                    alt=""
-                    w={144}
-                    h={144}
-                    fit="contain"
-                    className={clsx(browse.hovered && isGlyph(browse.hovered) && styles.glyph)}
-                  />
-                ) : null}
+                {hoveredPreview}
               </Popover.Dropdown>
             </Popover>
           </div>
@@ -380,8 +375,7 @@ export function AssetSelect({
               <ArtworkOptions
                 groups={visibleGroups}
                 value={value}
-                getPreviewSrc={getPreviewSrc}
-                isGlyph={isGlyph}
+                previewFor={previewFor}
                 onHover={(next) => dispatch({ type: 'hover', value: next })}
               />
             )}
@@ -400,20 +394,18 @@ export function AssetSelect({
 function ArtworkOptions({
   groups,
   value,
-  getPreviewSrc,
-  isGlyph,
+  previewFor,
   onHover,
 }: {
   groups: { name: string; items: AssetSelectOption[] }[];
   value: string | null;
-  getPreviewSrc: AssetSelectProps['getPreviewSrc'];
-  isGlyph: (value: string) => boolean;
+  previewFor: (value: string, size: number) => ReactNode;
   onHover: (value: string | null) => void;
 }) {
   return groups.map(({ name, items }) => (
     <Combobox.Group key={name} label={name} classNames={{ group: styles.optionGroup, groupLabel: styles.groupLabel }}>
       {items.map((option) => {
-        const preview = getPreviewSrc(option.value);
+        const preview = previewFor(option.value, 72);
         return (
           <Combobox.Option
             key={option.value}
@@ -425,17 +417,7 @@ function ArtworkOptions({
             onMouseLeave={() => onHover(null)}
           >
             <Stack gap="xs" align="center" className={styles.optionContent}>
-              {preview ? (
-                <Image
-                  src={preview}
-                  alt=""
-                  w={72}
-                  h={72}
-                  loading="lazy"
-                  fit="contain"
-                  className={clsx(styles.previewImg, isGlyph(option.value) && styles.glyph)}
-                />
-              ) : null}
+              {preview}
               <Text size="xs" ta="center" lineClamp={2}>
                 {option.label}
               </Text>
@@ -445,4 +427,28 @@ function ArtworkOptions({
       })}
     </Combobox.Group>
   ));
+}
+
+function artworkPreview({
+  value,
+  size,
+  getPreviewSrc,
+  renderPreview,
+  glyph,
+}: Pick<AssetSelectProps, 'getPreviewSrc' | 'renderPreview'> & { value: string; size: number; glyph: boolean }) {
+  if (renderPreview) {
+    return renderPreview(value, size);
+  }
+  const src = getPreviewSrc(value);
+  return src ? (
+    <Image
+      src={src}
+      alt=""
+      w={size}
+      h={size}
+      loading="lazy"
+      fit="contain"
+      className={clsx(styles.previewImg, glyph && styles.glyph)}
+    />
+  ) : null;
 }

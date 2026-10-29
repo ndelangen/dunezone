@@ -80,68 +80,71 @@ describe('Rulebook editor page', () => {
     expect(await owner.query(api.rulebooks.editorPage, { ...locator, rulebook_slug: 'missing' })).toBeNull();
   });
 
-  test('resolves only live referenced Assets to their published image and observes deletion', async () => {
-    const { t, ids, owner, created, locator } = await editorFixture();
-    const assetId = await t.run(async (ctx) => {
-      const id = await ctx.db.insert('assets', {
-        type: 'token-disc',
-        slug: 'storm',
-        owner_id: ids.ownerId,
-        group_id: null,
-        is_deleted: false,
-        data: { name: 'Storm marker' },
-        created_at: '2026-08-30',
-        updated_at: '2026-08-30',
+  test.each(['token-disc', 'token-leader'])(
+    'resolves live %s Assets to their published image and observes deletion',
+    async (assetType) => {
+      const { t, ids, owner, created, locator } = await editorFixture();
+      const assetId = await t.run(async (ctx) => {
+        const id = await ctx.db.insert('assets', {
+          type: assetType,
+          slug: 'storm',
+          owner_id: ids.ownerId,
+          group_id: null,
+          is_deleted: false,
+          data: { name: 'Storm marker' },
+          created_at: '2026-08-30',
+          updated_at: '2026-08-30',
+        });
+        await ctx.db.insert('publication_assets', {
+          asset_type: assetType,
+          asset_id: id,
+          cache_token: 'ready',
+          published_at: 1,
+          component_geometry: {
+            width: 600,
+            height: 600,
+            parts: [{ key: 'symbol', x: 0.25, y: 0.25, width: 0.5, height: 0.5 }],
+          },
+        });
+        return id;
       });
-      await ctx.db.insert('publication_assets', {
-        asset_type: 'token-disc',
-        asset_id: id,
-        cache_token: 'ready',
-        published_at: 1,
-        component_geometry: {
-          width: 600,
-          height: 600,
-          parts: [{ key: 'symbol', x: 0.25, y: 0.25, width: 0.5, height: 0.5 }],
-        },
-      });
-      return id;
-    });
-    const contents = await seedRulebookStarterContents(t, created);
-    for (const page of Object.values(contents.pagesById)) {
-      for (const block of Object.values(page.blocksById)) {
-        if (block.kind === 'referenced-illustration') {
-          block.source = { kind: 'asset', assetId };
+      const contents = await seedRulebookStarterContents(t, created);
+      for (const page of Object.values(contents.pagesById)) {
+        for (const block of Object.values(page.blocksById)) {
+          if (block.kind === 'referenced-illustration') {
+            block.source = { kind: 'asset', assetId };
+          }
         }
       }
-    }
-    await owner.mutation(api.rulebooks.save, { rulebook_id: created.rulebook._id, expected_revision: 1, contents });
-    const page = await owner.query(api.rulebooks.editorPage, locator);
-    expect(page).toMatchObject({
-      kind: 'editable',
-      draft: { revision: 2 },
-      assetsById: {
-        [assetId]: {
-          name: 'Storm marker',
-          imageUrl: publishedHref('token-disc', assetId, 'ready'),
-          width: 600,
-          height: 600,
-          publicationRevision: 'ready',
-          geometry: { width: 600, height: 600, parts: [{ key: 'symbol' }] },
+      await owner.mutation(api.rulebooks.save, { rulebook_id: created.rulebook._id, expected_revision: 1, contents });
+      const page = await owner.query(api.rulebooks.editorPage, locator);
+      expect(page).toMatchObject({
+        kind: 'editable',
+        draft: { revision: 2 },
+        assetsById: {
+          [assetId]: {
+            name: 'Storm marker',
+            imageUrl: publishedHref(assetType as 'token-disc' | 'token-leader', assetId, 'ready'),
+            width: 600,
+            height: 600,
+            publicationRevision: 'ready',
+            geometry: { width: 600, height: 600, parts: [{ key: 'symbol' }] },
+          },
         },
-      },
-    });
-    if (page?.kind !== 'editable') {
-      throw new Error('Expected an editable Rulebook');
+      });
+      if (page?.kind !== 'editable') {
+        throw new Error('Expected an editable Rulebook');
+      }
+      expect(rulebookResolvedAssetsByIdSchema.parse(page.assetsById)).toEqual(page.assetsById);
+      await t.run(async (ctx) => {
+        await ctx.db.patch(assetId, { is_deleted: true });
+      });
+      const afterDeletion = await owner.query(api.rulebooks.editorPage, locator);
+      expect(afterDeletion?.kind).toBe('editable');
+      if (afterDeletion?.kind !== 'editable') {
+        throw new Error('Expected an editable Rulebook after Asset deletion');
+      }
+      expect(afterDeletion.assetsById).toEqual({});
     }
-    expect(rulebookResolvedAssetsByIdSchema.parse(page.assetsById)).toEqual(page.assetsById);
-    await t.run(async (ctx) => {
-      await ctx.db.patch(assetId, { is_deleted: true });
-    });
-    const afterDeletion = await owner.query(api.rulebooks.editorPage, locator);
-    expect(afterDeletion?.kind).toBe('editable');
-    if (afterDeletion?.kind !== 'editable') {
-      throw new Error('Expected an editable Rulebook after Asset deletion');
-    }
-    expect(afterDeletion.assetsById).toEqual({});
-  });
+  );
 });

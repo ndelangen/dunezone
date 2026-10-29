@@ -59,20 +59,37 @@ function publicationText(element: Element & { innerText?: string }) {
   return element.innerText ?? element.textContent ?? '';
 }
 
-function isExecutableAttribute(attribute: Attr) {
+function isExecutableAttribute(element: Element, attribute: Attr) {
   if (/^on/i.test(attribute.name)) {
     return true;
   }
-  if (!['href', 'src', 'xlink:href'].includes(attribute.name)) {
+  if (!['href', 'src', 'xlink:href'].includes(attribute.name.toLowerCase())) {
     return false;
   }
-  return /^\s*(javascript|vbscript):/i.test(attribute.value);
+  /* URL parsing matches browser removal of tabs/newlines and trimming of leading C0 controls.
+   * LinkeDOM has already decoded character references in the attribute value.
+   */
+  let url: URL;
+  try {
+    url = new URL(attribute.value, PUBLIC_SITE_ORIGIN);
+  } catch {
+    return true;
+  }
+  if (url.protocol === 'https:' || url.protocol === 'http:') {
+    return false;
+  }
+  /* Data images are inert only in image elements, never in links or SVG use references. */
+  return !(
+    url.protocol === 'data:' &&
+    ['img', 'image'].includes(element.tagName.toLowerCase()) &&
+    /^data:image\/(?:png|jpeg|gif|webp|avif|svg\+xml)[;,]/i.test(url.href)
+  );
 }
 
 function assertNoExecutableAttributes(body: Element) {
   for (const element of [body, ...body.querySelectorAll('*')]) {
     for (const attribute of element.attributes) {
-      if (isExecutableAttribute(attribute)) {
+      if (isExecutableAttribute(element, attribute)) {
         throw new Error('Published Rulebook HTML contains executable content');
       }
     }
@@ -147,6 +164,70 @@ function publishedSectionMarkup(document: Document, root: Element) {
   return section.outerHTML;
 }
 
+/* The publisher embeds troop artwork and placed images in SVG foreignObject elements. */
+const ARTWORK_ELEMENTS = new Set([
+  'div',
+  'span',
+  'img',
+  'svg',
+  'g',
+  'defs',
+  'pattern',
+  'image',
+  'mask',
+  'rect',
+  'use',
+  'circle',
+  'path',
+  'polygon',
+  'polyline',
+  'line',
+  'ellipse',
+  'text',
+  'tspan',
+  'clippath',
+  'lineargradient',
+  'radialgradient',
+  'stop',
+  'title',
+  'desc',
+]);
+
+function assertInertEmbeddedArtwork(body: Element) {
+  for (const artwork of body.querySelectorAll('foreignObject')) {
+    const children = [...artwork.children];
+    const root = children[0];
+    const knownRoot =
+      root?.tagName.toLowerCase() === 'img' ||
+      (root?.tagName.toLowerCase() === 'div' && root.classList.contains('rulebookTerritoryTroop'));
+    if (
+      children.length !== 1 ||
+      !knownRoot ||
+      [...artwork.querySelectorAll('*')].some((element) => !ARTWORK_ELEMENTS.has(element.tagName.toLowerCase()))
+    ) {
+      throw new Error('Published Rulebook HTML contains unsupported embedded artwork');
+    }
+  }
+}
+
+/* Older publications named faction headings with native hover text. Keep those words accessible in the reader. */
+function replaceNativeTitles(root: Element) {
+  for (const element of root.querySelectorAll('[title]')) {
+    const title = element.getAttribute('title');
+    if (title && element.matches('h2[data-faction-id]')) {
+      const name = element.getAttribute('aria-label') || element.textContent?.trim();
+      element.setAttribute('aria-label', [...new Set([name, title].filter(Boolean))].join(', '));
+      element.setAttribute('data-faction-name', title);
+    } else if (title) {
+      element.setAttribute(
+        'aria-description',
+        [element.getAttribute('aria-description'), title].filter(Boolean).join('. ')
+      );
+    }
+    element.removeAttribute('title');
+  }
+}
+
 /** Reads only publisher-generated markup, retaining its frozen styles and stable reading targets. */
 export function parsePublishedRulebook(html: string, href: string): PublishedRulebook {
   const { document } = parseHTML(html);
@@ -158,7 +239,12 @@ export function parsePublishedRulebook(html: string, href: string): PublishedRul
   if (!root || !css) {
     throw new Error('Published Rulebook HTML is unavailable');
   }
+  if (document.body.querySelector('animate, animateMotion, animateTransform, set, meta, link')) {
+    throw new Error('Published Rulebook HTML contains executable content');
+  }
   assertNoExecutableAttributes(document.body);
+  assertInertEmbeddedArtwork(document.body);
+  replaceNativeTitles(root);
   return {
     href,
     markup: publishedSectionMarkup(document, root),

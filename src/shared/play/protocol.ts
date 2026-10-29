@@ -12,6 +12,7 @@ import {
 } from './battle';
 import { biddingActionSchema, biddingStateSchema } from './bidding';
 import { boardCaptureSchema, publicFactionSchema } from './capture';
+import { cardDrawSchema } from './cardDraw';
 import {
   conversationMessageSchema,
   conversationPeerSchema,
@@ -23,12 +24,14 @@ import { publicControlsSchema, publicActionSchema, spawnSelectionSchema, spawnCo
 import { lastTurnActionSchema, lastTurnSchema } from './lastTurn';
 import { logEntrySchema, logTabSchema } from './log';
 import type { TableState } from './model';
+import { movementActionSchema, movementTurnsSchema } from './movement';
 import { seatActionSchema } from './participation';
 import { peekActionSchema, peekSchema } from './peeking';
 import { TABLE_PHASES } from './phases';
 import type { TablePhaseId } from './phases';
 import { removalActionSchema, removalVoteSchema } from './removal';
 import { gameEndingSchema, gameResultSchema, resultActionSchema } from './result';
+import { reviewActionSchema, reviewCheckpointSchema, tableReviewSchema } from './review';
 import {
   carryFlipsSchema as carryFlips,
   draftMoveSchema as draftSchema,
@@ -88,6 +91,10 @@ export const gameSnapshotSchema = z.object({
   setup: setupStateSchema.optional(),
   predictions: predictionsSchema.optional(),
   removalVotes: z.array(removalVoteSchema).optional(),
+  /* The table review being voted on or showing now; absent outside setup and play. */
+  review: tableReviewSchema.nullable().optional(),
+  /* The recent checkpoints a review can show, newest last; absent outside setup and play. */
+  reviewCheckpoints: z.array(reviewCheckpointSchema).optional(),
   /* Who is determining the winner during Mentat Pause, then the declared result once finished. */
   ending: gameEndingSchema.nullable().optional(),
   result: gameResultSchema.nullable().optional(),
@@ -100,11 +107,15 @@ export const gameSnapshotSchema = z.object({
   alliances: allianceStateSchema.optional(),
   /* The turn the table agreed the game ends after; absent means the standard ten. */
   lastTurn: lastTurnSchema.optional(),
+  /* The factions that have finished this Shipment and Movement; absent outside that phase. */
+  movement: movementTurnsSchema.optional(),
   /* Tints the table laid over territories, for everyone to see; absent until a faction makes one. */
   tints: territoryTintsSchema.optional(),
   battle: publicBattleSchema.nullable().optional(),
   battlePlan: battlePlanSchema.nullable().optional(),
   hand: z.array(pieceSchema).optional(),
+  /* The viewer's own order of its hand and planned pieces, by piece id; pieces it does not name follow in the hand's order. */
+  handOrder: z.array(z.string()).optional(),
   /* How many Treachery cards each seated faction holds, by faction id: public, as the rules make the count of a hand public. */
   handCounts: z.record(z.string(), count).optional(),
   /* The piece the viewer's faction is peeking at, faces showing; no other viewer's frame carries it. */
@@ -170,13 +181,19 @@ const tableActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('delete'), pieceId: id }),
   z.strictObject({ kind: z.literal('storm'), direction }),
   z.strictObject({ kind: z.literal('phase'), direction: direction.optional() }),
-  z.strictObject({ kind: z.literal('turn'), turn: count.min(1) }),
   z.strictObject({ kind: z.literal('spice-spawn'), count: z.number().int().min(1).max(10) }),
+  /* Takes one tech token at random out of the shared table inventory and sets it down on the table shelf. */
+  z.strictObject({ kind: z.literal('tech-token-draw') }),
   z.strictObject({ kind: z.literal('reset') }),
 ]);
 export type TableAction = z.infer<typeof tableActionSchema>;
 const deckActionSchema = z.discriminatedUnion('kind', [
-  z.strictObject({ kind: z.literal('deck-draw'), pieceId: id, recipient: id.optional() }),
+  z.strictObject({
+    kind: z.literal('deck-draw'),
+    pieceId: id,
+    recipient: id.optional(),
+    count: z.literal([1, 4]).optional(),
+  }),
   z.strictObject({ kind: z.literal('deck-shuffle'), pieceId: id }),
 ]);
 export type DeckAction = z.infer<typeof deckActionSchema>;
@@ -185,11 +202,13 @@ const pieceActionSchema = z.discriminatedUnion('kind', [
   ...biddingActionSchema.options,
   ...allianceActionSchema.options,
   lastTurnActionSchema,
+  movementActionSchema,
   ...territoryTintActionSchema.options,
   ...spiceReserveActionSchema.options,
   ...publicActionSchema.options,
   ...seatActionSchema.options,
   ...removalActionSchema.options,
+  ...reviewActionSchema.options,
   ...resultActionSchema.options,
   ...draftActionSchema.options,
   ...swapActionSchema.options,
@@ -221,20 +240,13 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
     peerId: conversationPeerSchema,
     through: count,
   }),
-  z
-    .strictObject({
-      type: z.literal('admit'),
-      supportsBoard: z.literal(true).optional(),
-      /* A page proves who it is with exactly one of these: a seat pass, or the single-use ticket of browsers from before passes. */
-      ticket: z
-        .string()
-        .regex(/^[a-f0-9]{64}$/)
-        .optional(),
-      pass: seatPassSchema.optional(),
-      /* The connection this page held before it reconnected, which the Worker retires once this one is admitted. */
-      replaces: id.optional(),
-    })
-    .refine((message) => (message.ticket === undefined) !== (message.pass === undefined)),
+  z.strictObject({
+    type: z.literal('admit'),
+    /* A page proves who it is with its seat pass for this game. */
+    pass: seatPassSchema,
+    /* The connection this page held before it reconnected, which the Worker retires once this one is admitted. */
+    replaces: id.optional(),
+  }),
   /* A fresher pass for an admitted connection, so it never has to reconnect when the one it entered with ends. */
   z.strictObject({ type: z.literal('pass'), pass: seatPassSchema }),
   z.strictObject({
@@ -267,8 +279,8 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('cancel'), carryId: id }),
   z.strictObject({ type: z.literal('renew'), carryId: id }),
   z.strictObject({ type: z.literal('command'), commandId: id, action: pieceActionSchema, expectedRevision: count }),
-  z.strictObject({ type: z.literal('catalogue'), requestId: id, selection: spawnSelectionSchema.optional() }),
-  z.strictObject({ type: z.literal('history'), step: count }),
+  z.strictObject({ type: z.literal('catalogue'), requestId: id, selection: spawnSelectionSchema }),
+  z.strictObject({ type: z.literal('history'), step: count, requestId: id.optional() }),
   z.strictObject({ type: z.literal('spice-history'), before: count }),
   z.strictObject({ type: z.literal('log-history'), tab: logTabSchema, before: count }),
   /* A seated faction's starting sheet as the game captured it; nothing when the game holds no capture of it. */
@@ -363,17 +375,17 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('catalogue'),
     requestId: id,
-    entries: z.array(spawnSelectionSchema.extend({ name: z.string() })).optional(),
     contents: spawnContentsSchema.nullable().optional(),
     error: z.string().optional(),
   }),
-  /* `pass-expired` reaches only a page that entered with a seat pass: it holds the table until the page sends a fresh one. */
-  z.object({ type: z.literal('admission'), status: z.enum(['suspended', 'denied', 'refresh', 'pass-expired']) }),
+  /* `pass-expired` holds the table until the page sends a fresh seat pass. */
+  z.object({ type: z.literal('admission'), status: z.enum(['suspended', 'denied', 'pass-expired']) }),
   /* `held` is the carried piece as the carrier now sees it, sent after a flip so a face turned up in hand shows at once. */
   z.object({ type: z.literal('carry'), carryId: id, draft: draftSchema, held: pieceSchema.optional() }),
   z.object({ type: z.literal('ping'), ping: pingSchema }),
   z.object({
     type: z.literal('view'),
+    cardDraw: cardDrawSchema.optional(),
     phaseCooldownMs: count.optional(),
     battleCountdownMs: count.optional(),
     /* The room's newest history step, so playback offers the steps saved while a viewer looks back. */
@@ -388,6 +400,7 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
   }),
   z.object({
     type: z.literal('update'),
+    cardDraw: cardDrawSchema.optional(),
     phaseCooldownMs: count.optional(),
     battleCountdownMs: count.optional(),
     historySteps: count.optional(),
@@ -401,6 +414,7 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('rejected'), requestId: id, message: z.string() }),
   z.object({
     type: z.literal('history'),
+    requestId: id.optional(),
     step: count,
     lastStep: count,
     recordedAt: count.optional(),
@@ -429,15 +443,10 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
 ]);
 export type ServerMessage = z.infer<typeof serverMessageSchema>;
 /**
- * The code the Worker closes a socket with when its ticket lapsed or was already redeemed before admission.
- * Unlike a refusal it is not final: the browser requests a new ticket and reconnects.
+ * The code the Worker closes a socket with when the seat pass it was admitted with had already expired.
+ * Unlike a refusal it is not final: the browser renews its pass and reconnects.
  */
-export const TICKET_EXPIRED_CLOSE_CODE = 4410;
-/**
- * The standard "try again later" code the Worker closes a socket with when Convex could not be reached during admission.
- * Nothing was refused: the browser requests a new ticket and reconnects, with the same doubling wait as an expired ticket.
- */
-export const ADMISSION_UNAVAILABLE_CLOSE_CODE = 1013;
+export const PASS_EXPIRED_CLOSE_CODE = 4410;
 /** The code the Worker closes a socket with when admission was refused; final, so the browser does not reconnect. */
 export const ADMISSION_REFUSED_CLOSE_CODE = 4401;
 /** The code the Worker closes a socket with when it sent too many messages; the browser waits longer before reconnecting. */

@@ -221,6 +221,7 @@ function emptyOutlineShape(
   /* Every ratio below is read from `assetFaceAspect`, the same function the face itself holds its height from: an outline and the pile that replaces it are the same shape or the row jumps when the first asset of a type lands. The literal here was once 110/68, close to the enhance token's ratio but not equal, and drifting apart was only a matter of time. */
   switch (type) {
     case 'token-disc':
+    case 'token-leader':
     case 'token-tech':
     case 'token-pointer':
       return { width: TOKEN_PILE_FACE, height: TOKEN_PILE_FACE * assetFaceAspect(type), borderRadius: '50%' };

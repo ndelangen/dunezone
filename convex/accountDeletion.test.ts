@@ -35,7 +35,8 @@ async function seedAccount(
       updated_at: now,
     });
     const sessionId = await ctx.db.insert('authSessions', { userId, expirationTime: Date.now() + 86_400_000 });
-    return { userId, profileId, subject: `${userId}|${sessionId}` };
+    await ctx.db.insert('authAccounts', { userId, provider: 'discord', providerAccountId: slug });
+    return { userId, profileId, sessionId, subject: `${userId}|${sessionId}` };
   });
 }
 
@@ -86,7 +87,11 @@ async function seedOwnedRows(t: ReturnType<typeof setup>, ownerId: Id<'users'>, 
       is_deleted: false,
       image_cover: null,
     });
-    const linkId = await ctx.db.insert('ruleset_factions', { ruleset_id: rulesetId, faction_id: factionId });
+    const linkId = await ctx.db.insert('ruleset_factions', {
+      ruleset_id: rulesetId,
+      faction_id: factionId,
+      position: 0,
+    });
     const questionId = await ctx.db.insert('faq_items', {
       ruleset_id: rulesetId,
       slug: '1',
@@ -246,10 +251,17 @@ describe('account deletion', () => {
       expect((await ctx.db.get('factions', rows.deletedFactionId))?.is_deleted).toBe(true);
       expect((await ctx.db.get('assets', rows.assetId))?.is_deleted).toBe(false);
       expect((await ctx.db.get('assets', rows.deletedAssetId))?.is_deleted).toBe(true);
+      /* A session from before the deletion does not come back with the account. */
+      expect(await ctx.db.get('authSessions', source.sessionId)).toBeNull();
     });
 
     /* A later deletion is undone only by its own operation, never by replaying the earlier one. */
-    const { operationId: secondId } = await asSource.mutation(api.accountDeletion.confirm, { replacementUserId: null });
+    const freshSession = await t.run((ctx) =>
+      ctx.db.insert('authSessions', { userId: source.userId, expirationTime: Date.now() + 86_400_000 })
+    );
+    const { operationId: secondId } = await t
+      .withIdentity({ subject: `${source.userId}|${freshSession}` })
+      .mutation(api.accountDeletion.confirm, { replacementUserId: null });
     await t.finishAllScheduledFunctions(() => vi.runAllTimers());
     await expect(
       t.withIdentity({ subject: admin.subject }).mutation(api.accountDeletion.restore, { operationId })
@@ -259,6 +271,31 @@ describe('account deletion', () => {
     await t.run(async (ctx) => {
       expect((await ctx.db.get('users', source.userId))?.account_state).toBe('active');
       expect((await ctx.db.get('groups', rows.groupId))?.is_deleted).toBe(false);
+    });
+  });
+
+  test('refuses to restore an account whose login has moved to a new account', async () => {
+    const t = setup();
+    const source = await seedAccount(t, 'gone-source');
+    const admin = await seedAccount(t, 'gone-admin', { admin: true });
+    const asSource = t.withIdentity({ subject: source.subject });
+    await asSource.query(api.accountDeletion.page, { profileSlug: 'gone-source' });
+    const { operationId } = await asSource.mutation(api.accountDeletion.confirm, { replacementUserId: null });
+    await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+    /* Signing in again with the same login starts a new account and moves the login onto it. */
+    await t.run(async (ctx) => {
+      const newUser = await ctx.db.insert('users', {});
+      const login = await ctx.db
+        .query('authAccounts')
+        .withIndex('userIdAndProvider', (q) => q.eq('userId', source.userId))
+        .unique();
+      await ctx.db.patch(login!._id, { userId: newUser });
+    });
+    await expect(
+      t.withIdentity({ subject: admin.subject }).mutation(api.accountDeletion.restore, { operationId })
+    ).rejects.toThrow('no sign-in method left');
+    await t.run(async (ctx) => {
+      expect((await ctx.db.get('users', source.userId))?.account_state).toBe('deleted');
     });
   });
 

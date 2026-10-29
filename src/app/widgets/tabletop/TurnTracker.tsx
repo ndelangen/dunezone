@@ -1,4 +1,6 @@
 /* @jsxImportSource ./three-jsx */
+
+import { playUiColors } from '@shared/uiPalette';
 import { useEffect, useMemo, useState } from 'react';
 
 import { ignoreRaycast } from './ignoreRaycast';
@@ -22,12 +24,14 @@ function useTurnNumbers(layout: ReturnType<typeof turnTrackerLayout>) {
       mounted = false;
     };
   }, []);
-  const { firstTurn, sectors } = layout;
+  const { firstTurn, sectorCount } = layout;
+  const sectors = useMemo(
+    () => turnTrackerLayout({ radius: 1, turn: firstTurn, lastTurn: sectorCount }).sectors,
+    [firstTurn, sectorCount]
+  );
   const texture = useMemo(
     () => (fontReady ? createTurnNumbersTexture(sectors, NUMBER_RADIUS, PHASE_INK_COLOR) : null),
-    // The sectors are rebuilt with every turn; their printed numbers change only with the block.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [fontReady, firstTurn, sectors.length]
+    [fontReady, sectors]
   );
   useEffect(() => () => texture?.dispose(), [texture]);
   return texture;
@@ -53,7 +57,7 @@ export function TurnTracker({ radius, turn, lastTurn }: Readonly<{ radius: numbe
       {/* Replace each mesh with its geometry so WebGPU cannot reuse disposed vertex buffers. */}
       <mesh key={wedge.uuid} raycast={ignoreRaycast}>
         <primitive object={wedge} attach="geometry" />
-        <meshStandardMaterial color="#d8bd74" roughness={1} metalness={0} fog={false} />
+        <meshStandardMaterial color={playUiColors.turnTrackerEdge} roughness={1} metalness={0} fog={false} />
       </mesh>
       <mesh key={frame.uuid} raycast={ignoreRaycast}>
         <primitive object={frame} attach="geometry" />
