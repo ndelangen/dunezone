@@ -1,8 +1,8 @@
 /*
  * A game's boards (Norbert, 2026-10-29): one main board in the middle of the table and up to six extra boards, each
  * about two thirds its size. The extras stand on one arc round the main board, spread evenly over its upper half:
- * one extra sits on top, two sit left and right, and more share the arc between them. The table flows out to them in
- * one smooth piece, with curved joins between the main table, the extras and their neighbours.
+ * one extra sits on top, two sit left and right, and more share the arc between them. The table keeps close to each
+ * board and reaches it from the main table through a neck, with small curved fillets where they meet.
  */
 
 export const MAX_EXTRA_BOARDS = 6;
@@ -17,8 +17,10 @@ const MAIN_BOARD_RIM_RADIUS = 4.23;
 export const EXTRA_BOARD_TABLE_RADIUS = MAIN_BOARD_RIM_RADIUS * EXTRA_BOARD_SCALE + EXTRA_TABLE_MARGIN;
 /* The joins start from a round just inside the main table's edge, so they flow out of it rather than meeting it. */
 const MAIN_JOIN_RADIUS = 5.3;
-/* How far apart two rounds may be and still flow together; larger makes wider, softer joins. */
-const JOIN_SOFTNESS = 6.5;
+/* Each extra board's round meets the main table through a neck this wide either side of the line between their centres. */
+const NECK_HALF_WIDTH = 1.4;
+/* How soft the joins are: the fillet where a neck meets a round, or where two rounds nearly touch. Small keeps the edge close to the boards. */
+const JOIN_SOFTNESS = 1.5;
 /* The outline is kept as the table's reach in this many directions round the middle. */
 const OUTLINE_SAMPLES = 720;
 const OUTLINE_SEARCH_LIMIT = 16;
@@ -76,11 +78,18 @@ function smoothUnion(a: number, b: number, softness: number): number {
   return Math.min(a, b) - (blend * blend * softness) / 4;
 }
 
+/* How far a point lies from the line from the table's middle to a round's centre. */
+function neckDistance(round: ExtraBoardRound, x: number, z: number): number {
+  const along = Math.max(0, Math.min(1, (x * round.x + z * round.z) / (round.x * round.x + round.z * round.z)));
+  return Math.hypot(x - round.x * along, z - round.z * along);
+}
+
 /* How far outside the table the extras add a point lies; zero or less is on it. */
 function extraTableDistance(rounds: readonly ExtraBoardRound[], x: number, z: number): number {
   let distance = Math.hypot(x, z) - MAIN_JOIN_RADIUS;
   for (const round of rounds) {
     distance = smoothUnion(distance, Math.hypot(x - round.x, z - round.z) - round.radius, JOIN_SOFTNESS);
+    distance = smoothUnion(distance, neckDistance(round, x, z) - NECK_HALF_WIDTH, JOIN_SOFTNESS);
   }
   return distance;
 }
