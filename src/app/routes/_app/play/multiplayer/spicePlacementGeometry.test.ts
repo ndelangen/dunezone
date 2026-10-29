@@ -4,8 +4,7 @@ import { clampPositionToTable } from '@shared/play/tablePhysics';
 import { PerspectiveCamera, Vector3 } from 'three';
 import { expect, test, vi } from 'vite-plus/test';
 
-import { visibleSpicePosition } from './spicePlacementGeometry';
-import { tableDropPosition } from './tableDropPosition';
+import { moveSpicePosition, visibleSpicePosition } from './spicePlacementGeometry';
 
 const bounds = new DOMRect(30, 50, 1000, 700);
 const footprint = createSpiceStack(0, 1);
@@ -40,14 +39,7 @@ test.each([
   const projected = new Vector3(...position).project(camera);
   expect(Math.abs(projected.x)).toBeLessThan(0.8);
   expect(Math.abs(projected.y)).toBeLessThan(0.8);
-  const next = tableDropPosition(
-    {
-      clientX: bounds.left + ((projected.x + 1) * bounds.width) / 2 + 20,
-      clientY: bounds.top + ((1 - projected.y) * bounds.height) / 2,
-    },
-    canvas,
-    camera
-  )!;
+  const next = moveSpicePosition(canvas, camera, position, [20, 0])!;
   expect(clampPositionToTable(footprint, next)).toEqual(next);
   expect(next).not.toEqual(position);
 });
@@ -65,4 +57,18 @@ test('an unsupported viewport center falls back to a visible supported part of t
 test('a camera showing no table offers no invisible placement', () => {
   const { canvas, camera } = scene([30, 8, 1], [30, 0.18, 0]);
   expect(visibleSpicePosition(canvas, camera)).toBeNull();
+});
+
+test('screen nudges preserve their distance and refuse destinations beyond the viewport', () => {
+  const { canvas, camera } = scene([3, 8, 1], [3, 0.18, 0]);
+  const position = visibleSpicePosition(canvas, camera)!;
+  const before = new Vector3(...position).project(camera);
+  for (const pixels of [4, 20]) {
+    const moved = moveSpicePosition(canvas, camera, position, [pixels, 0])!;
+    const after = new Vector3(...moved).project(camera);
+    expect(((after.x - before.x) * bounds.width) / 2).toBeCloseTo(pixels);
+    expect(after.y).toBeCloseTo(before.y);
+  }
+  expect(moveSpicePosition(canvas, camera, position, [bounds.width, 0])).toBeNull();
+  expect(moveSpicePosition(canvas, camera, position, [0, -bounds.height])).toBeNull();
 });

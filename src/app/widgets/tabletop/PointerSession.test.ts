@@ -64,43 +64,46 @@ test('holding a stack lifts it before the pointer moves', () => {
   vi.advanceTimersByTime(319);
   expect(controls.beginGesture).not.toHaveBeenCalled();
   vi.advanceTimersByTime(1);
+  expect(controls.beginGesture).not.toHaveBeenCalled();
+  vi.advanceTimersToNextFrame();
   expect(controls.beginGesture).toHaveBeenCalledExactlyOnceWith(piece.id, 'whole');
   expect(controls.updateGesture).toHaveBeenCalledExactlyOnceWith([10, 0, 10]);
   expect(canvas.style.cursor).toBe('grabbing');
   expect(session.isDragging(piece.id)).toBe(true);
 });
 
-test.each(['release', 'blur', 'Escape', 'lost capture', 'unbind', 'permission loss'])(
-  'a pending hold cancelled by %s never picks up a stack',
-  (reason) => {
-    vi.useFakeTimers();
-    const { session, controls, canvas, piece, stop } = table();
-    session.press(pointer('pointerdown'), piece.id);
-    vi.advanceTimersByTime(100);
-    if (reason === 'release') {
-      window.dispatchEvent(pointer('pointerup'));
-    }
-    if (reason === 'blur') {
-      window.dispatchEvent(new Event('blur'));
-    }
-    if (reason === 'Escape') {
-      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
-    }
-    if (reason === 'lost capture') {
-      canvas.dispatchEvent(pointer('lostpointercapture'));
-    }
-    if (reason === 'unbind') {
-      stop();
-    }
-    if (reason === 'permission loss') {
-      controls.canHandleTable = false;
-      session.reconcile();
-    }
-    vi.advanceTimersByTime(1000);
-    expect(controls.beginGesture).not.toHaveBeenCalled();
-    expect(controls.finishGesture).not.toHaveBeenCalled();
+test.each(
+  ['release', 'blur', 'Escape', 'lost capture', 'unbind', 'permission loss'].flatMap((reason) =>
+    [100, 320].map((elapsed) => ({ reason, elapsed }))
+  )
+)('a pending hold cancelled by $reason after $elapsed ms never picks up a stack', ({ reason, elapsed }) => {
+  vi.useFakeTimers();
+  const { session, controls, canvas, piece, stop } = table();
+  session.press(pointer('pointerdown'), piece.id);
+  vi.advanceTimersByTime(elapsed);
+  if (reason === 'release') {
+    window.dispatchEvent(pointer('pointerup'));
   }
-);
+  if (reason === 'blur') {
+    window.dispatchEvent(new Event('blur'));
+  }
+  if (reason === 'Escape') {
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+  }
+  if (reason === 'lost capture') {
+    canvas.dispatchEvent(pointer('lostpointercapture'));
+  }
+  if (reason === 'unbind') {
+    stop();
+  }
+  if (reason === 'permission loss') {
+    controls.canHandleTable = false;
+    session.reconcile();
+  }
+  vi.advanceTimersByTime(1000);
+  expect(controls.beginGesture).not.toHaveBeenCalled();
+  expect(controls.finishGesture).not.toHaveBeenCalled();
+});
 
 test('moving before the hold picks up the top piece without a later whole-stack pickup', () => {
   vi.useFakeTimers();
@@ -109,6 +112,16 @@ test('moving before the hold picks up the top piece without a later whole-stack 
   vi.advanceTimersByTime(100);
   window.dispatchEvent(pointer('pointermove', 20, 1, 100));
   vi.advanceTimersByTime(1000);
+  expect(controls.beginGesture).toHaveBeenCalledExactlyOnceWith(piece.id, 'top');
+});
+
+test('a quick move delivered after the hold timer cancels the pending lift frame', () => {
+  vi.useFakeTimers();
+  const { session, controls, piece } = table();
+  session.press(pointer('pointerdown'), piece.id);
+  vi.advanceTimersByTime(320);
+  window.dispatchEvent(pointer('pointermove', 20, 1, 100));
+  vi.advanceTimersToNextFrame();
   expect(controls.beginGesture).toHaveBeenCalledExactlyOnceWith(piece.id, 'top');
 });
 

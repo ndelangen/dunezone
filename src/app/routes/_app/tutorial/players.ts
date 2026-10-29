@@ -54,10 +54,8 @@ export function seatTutorialPlayers(
   const cast = seats.map((seat) => (seat === ownSeat ? { name: 'You', slug: null, avatar: null } : people[next++]!));
   const recordedPlayers = setup.checkpoints['turn-1-storm'].players;
   const substitutions = new Map(recordedPlayers.map((person) => [person.name, cast[seats.indexOf(person.seat)]!.name]));
-  const names = new RegExp(
-    `\\b(${recordedPlayers.map((person) => person.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\b`,
-    'g'
-  );
+  const playerNames = recordedPlayers.map((person) => person.name.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`));
+  const names = new RegExp(String.raw`\b(${playerNames.join('|')})\b`, 'g');
   const relabel = (text: string) => text.replace(names, (name) => substitutions.get(name)!);
   const checkpoints = Object.fromEntries(
     Object.entries(setup.checkpoints).map(([key, point]) => [

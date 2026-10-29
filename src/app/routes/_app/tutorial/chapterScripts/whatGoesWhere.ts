@@ -12,7 +12,6 @@ import type { ChapterScript, TablePlayers } from './chapterScript';
 import { at, element, nextPhaseButton, onBoard, pressEnter, tableDeck, task } from './guideChecks';
 import type { Piece } from './guideChecks';
 import type * as BoardChecks from './whatGoesWhereBoard';
-import type { SpiceBlow } from './whatGoesWhereBoard';
 
 /*
  * "What goes where": turn 1 played through Shipment and Movement, one phase at a time, so each phase shows where on the table it happens.
@@ -25,6 +24,14 @@ import type { SpiceBlow } from './whatGoesWhereBoard';
 const phaseIndex = (snapshot: () => GameSnapshot) => snapshot().phase ?? 0;
 const indexOf = (snapshot: () => GameSnapshot, id: string) =>
   (snapshot().phases ?? STANDARD_PHASES).findIndex((entry) => entry.id === id);
+
+const containsItems = (piece: Piece, itemIds: readonly string[]) => {
+  const held = new Set(piece.items.map((item) => item.id));
+  return itemIds.every((id) => held.has(id));
+};
+
+const leftAnotherTerritory = (itemIds: readonly string[], origins: ReadonlyMap<string, string>, destination: string) =>
+  itemIds.every((id) => origins.has(id) && origins.get(id) !== destination);
 
 /* One press of Next phase, into the named phase; a press too many still counts, so the chapter never waits on a phase it passed. */
 const onTo = (snapshot: () => GameSnapshot, id: string, phase: string, detail: string, where?: GuideTask['anchor']) =>
@@ -43,11 +50,18 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
   void import('./whatGoesWhereBoard').then((loaded) => {
     board = loaded;
   });
-  let blow: SpiceBlow | undefined;
+  let blow: BoardChecks.SpiceBlow | undefined;
   const pieces = () => snapshot().table.pieces.filter((piece) => !piece.inventory);
   const mine = () => snapshot().bank?.factionId;
   const deck = (side: 'left' | 'right') => tableDeck(snapshot, side);
   const myTroops = () => pieces().filter((piece) => piece.stackKey?.startsWith(`troops:${mine()}:`));
+  const landedTerritory = (itemIds: readonly string[]) => {
+    if (itemIds.length === 0) {
+      return undefined;
+    }
+    const stack = myTroops().find((piece) => containsItems(piece, itemIds));
+    return stack && board?.territory(snapshot(), stack);
+  };
   const factionName = () => snapshot().roster?.seats.find((seat) => seat.faction?.id === mine())?.faction?.name;
   const movementToken = () => {
     const name = factionName();
@@ -242,16 +256,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
         players
           .landings()
           .slice(start.landings)
-          .some(
-            (landing) =>
-              landing.itemIds.length > 0 &&
-              landing.itemIds.every((id) => start.reserves.has(id)) &&
-              myTroops().some(
-                (piece) =>
-                  board?.territory(snapshot(), piece) &&
-                  landing.itemIds.every((id) => piece.items.some((item) => item.id === id))
-              )
-          ),
+          .some((landing) => landedTerritory(landing.itemIds) && landing.itemIds.every((id) => start.reserves.has(id))),
     }),
     task({
       id: 'move',
@@ -272,22 +277,10 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
         players
           .landings()
           .slice(start.landings)
-          .some(
-            (landing) =>
-              landing.itemIds.length > 0 &&
-              myTroops().some((piece) => {
-                const destination = board?.territory(snapshot(), piece);
-                return (
-                  destination &&
-                  landing.itemIds.every(
-                    (id) =>
-                      start.territories.has(id) &&
-                      start.territories.get(id) !== destination &&
-                      piece.items.some((item) => item.id === id)
-                  )
-                );
-              })
-          ),
+          .some((landing) => {
+            const destination = landedTerritory(landing.itemIds);
+            return destination && leftAnotherTerritory(landing.itemIds, start.territories, destination);
+          }),
     }),
     task({
       id: 'movement-done',

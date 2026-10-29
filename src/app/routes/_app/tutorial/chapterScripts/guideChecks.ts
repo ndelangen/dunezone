@@ -64,15 +64,6 @@ export const closeUpShown = (selector = '[data-piece-close-up]') => ({
 });
 
 /*
- * Spice cards lying face up on their own. The table hands out cards under handles that change as they move,
- * so cards are counted by what they show rather than followed by id; a whole deck turned over is one pile, so it does not count.
- */
-export const singleSpiceFaceUp = (pieces: readonly Piece[]) =>
-  pieces.filter(
-    (piece) => piece.items.length === 1 && piece.items[0]!.faceUp && piece.items[0]!.artwork?.type === 'card-spice'
-  ).length;
-
-/*
  * The ruleset's decks are keyed by their asset, so they are found where the table lays them out:
  * Treachery on the left of the table and Spice on the right, with the off-table stores left out.
  */

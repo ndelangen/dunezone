@@ -533,6 +533,6 @@ export const DrawRandomTechToken = meta.story({
       await expect(troopScale(token)).toBe(troopScale({ kind: 'force', stackKey: 'leader:any' }));
     }
     /* A page story cannot wait on a tooltip opening, so it checks only that the button is off. */
-    await waitFor(() => expect(button).toBeDisabled());
+    await waitFor(() => expect(button).toHaveAttribute('aria-disabled', 'true'));
   },
 });

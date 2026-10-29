@@ -7,10 +7,11 @@ import { api } from '../convex/_generated/api';
 import { assetSupplySchema, factionDefinitionSchema, rulesetSupplySchema } from '../src/shared/play/capture';
 import { playDraftableFactionsSchema } from '../src/shared/play/drafting';
 import { TUTORIAL_RECIPE } from '../src/shared/tutorial/recipe';
+import { tutorialSpiceBlows } from './lib/tutorialSpiceBlows';
 
 /*
  * Copies the tutorial's content from the public catalogue: the answers the game Worker reads when it creates the tutorial game.
- * Only public queries, the same ones a signed-out visitor's game reads; nothing is written anywhere but `catalogue.json`.
+ * Only public queries, the same ones a signed-out visitor's game reads. Writes the catalogue and its small spice-blow lookup beside it.
  * Usage: TUTORIAL_CONVEX_URL=<the site's Convex URL> bun run tutorial:pull
  */
 
@@ -77,6 +78,10 @@ await writeFile(
     null,
     2
   )}\n`
+);
+await writeFile(
+  path.join(path.dirname(OUTPUT), 'spiceBlows.json'),
+  `${JSON.stringify(tutorialSpiceBlows(assets['deck/dreamrules-spice-deck']), null, 2)}\n`
 );
 console.log(
   `Wrote ${path.relative(process.cwd(), OUTPUT)}: ${Object.keys(assets).length} slotted assets, ${Object.keys(factions).length} factions.`

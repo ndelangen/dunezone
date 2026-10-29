@@ -9,7 +9,10 @@ import { stormOrder } from '@shared/play/stormSector';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
 import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
+import { tutorialSpiceBlows } from '../../../../../../scripts/lib/tutorialSpiceBlows';
+import catalogue from '../setup/catalogue.json';
 import setup from '../setup/setup.json';
+import spiceBlows from '../setup/spiceBlows.json';
 import { startAt } from '../setup/tutorialSetup';
 import type { TutorialSetup } from '../setup/tutorialSetup';
 import { LocalTable } from '../table/localTable';
@@ -65,6 +68,17 @@ const check = (id: string) => {
   return { done: () => task.done(baseline, { camera: null }), finish: () => task.finish?.(baseline) };
 };
 
+const spiceDeck = () =>
+  snapshot().table.pieces.find((piece) => piece.position[0] > 0 && piece.stackKey?.startsWith('deck:'))!;
+const singleSpiceCard = () =>
+  snapshot().table.pieces.find(
+    (piece) => piece.kind === 'card' && piece.items.length === 1 && piece.items[0]?.artwork?.backName === 'Spice'
+  )!;
+const spiceStack = (count?: number) =>
+  snapshot().table.pieces.find(
+    (piece) => piece.stackKey === 'spice' && (count === undefined || piece.items.length === count)
+  )!;
+
 beforeEach(async () => {
   table = new LocalTable(startAt(setup as unknown as TutorialSetup, 'turn-1-storm', 'https://dune.zone'));
   const players: TablePlayers = {
@@ -81,6 +95,10 @@ beforeEach(async () => {
   await vi.dynamicImportSettled();
 });
 afterEach(() => table.dispose());
+
+test('the shipped spice lookup contains exactly the recorded cards and their printed values', () => {
+  expect(spiceBlows).toEqual(tutorialSpiceBlows(catalogue.assetSupply['deck/dreamrules-spice-deck']));
+});
 
 test('only an accepted random storm placement completes the storm task', () => {
   const task = check('storm');
@@ -118,32 +136,21 @@ test('deleting the last Harkonnen stack does not stand in for moving it to the T
 
 test('the revealed card requires the indicated bank spice in its territory', () => {
   const flip = check('spice');
-  const deck = snapshot().table.pieces.find((piece) => piece.position[0] > 0 && piece.stackKey?.startsWith('deck:'))!;
-  drop(deck, [6.72, 0.132, 0], 'top');
-  const single = snapshot().table.pieces.find(
-    (piece) => piece.kind === 'card' && piece.items.length === 1 && piece.items[0]?.artwork?.backName === 'Spice'
-  )!;
-  act({ kind: 'flip', pieceId: single.id });
+  expect(spiceBlow(spiceDeck())).toBeUndefined();
+  drop(spiceDeck(), [6.72, 0.132, 0], 'top');
+  expect(spiceBlow(singleSpiceCard())).toBeUndefined();
+  act({ kind: 'flip', pieceId: singleSpiceCard().id });
   expect(flip.done()).toBe(true);
-  const blow = spiceBlow(
-    snapshot().table.pieces.find(
-      (piece) => piece.items.length === 1 && piece.items[0]?.faceUp && piece.items[0]?.artwork?.type === 'card-spice'
-    )!
-  )!;
+  const blow = spiceBlow(singleSpiceCard())!;
   expect(blow).toBeDefined();
   const place = check('place-spice');
   act({ kind: 'spice-spawn', count: blow.amount - 1 });
-  const spice = () => snapshot().table.pieces.find((piece) => piece.stackKey === 'spice')!;
-  drop(spice(), point(blow.territory));
+  drop(spiceStack(), point(blow.territory));
   expect(place.done()).toBe(false);
   act({ kind: 'spice-spawn', count: 1 });
-  const extra = snapshot().table.pieces.find((piece) => piece.stackKey === 'spice' && piece.items.length === 1)!;
-  drop(extra, point('Cielago South'));
+  drop(spiceStack(1), point('Cielago South'));
   expect(place.done()).toBe(false);
-  drop(
-    snapshot().table.pieces.find((piece) => piece.stackKey === 'spice' && piece.items.length === 1)!,
-    point(blow.territory)
-  );
+  drop(spiceStack(1), point(blow.territory));
   expect(place.done()).toBe(true);
 });
 

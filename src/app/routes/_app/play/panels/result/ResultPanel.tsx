@@ -195,15 +195,21 @@ export function ResultPanel(props: ResultPanelProps) {
   if (!state) {
     return null;
   }
+  let result: ReactNode;
+  switch (state.kind) {
+    case 'declaring':
+      result = <DeclareBar {...props} state={state} />;
+      break;
+    case 'determining':
+      result = <DeterminingBar {...props} name={state.name} />;
+      break;
+    case 'finished':
+      result = <FinishedBar {...props} state={state} />;
+      break;
+  }
   return (
     <Stack gap="sm">
-      {state.kind === 'declaring' ? (
-        <DeclareBar {...props} state={state} />
-      ) : state.kind === 'determining' ? (
-        <DeterminingBar {...props} name={state.name} />
-      ) : (
-        <FinishedBar {...props} state={state} />
-      )}
+      {result}
       {props.revealedPrediction && <Text size="sm">{props.revealedPrediction}</Text>}
     </Stack>
   );

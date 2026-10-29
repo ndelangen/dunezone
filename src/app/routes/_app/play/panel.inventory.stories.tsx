@@ -76,7 +76,7 @@ export const Requests = meta.story({
         },
       })
     );
-    await waitFor(() => expect(page.getByRole('button', { name: 'Approve' })).toBeDisabled());
+    await waitFor(() => expect(page.getByRole('button', { name: 'Approve' })).toHaveAttribute('aria-disabled', 'true'));
     await expect(page.getByRole('button', { name: 'Dismiss' })).toBeEnabled();
   },
 });
@@ -260,6 +260,6 @@ export const Catalogue = meta.story({
       ])
     );
     await expect(page.getByText('Checking published definitions and images...')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Request' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Request' })).toHaveAttribute('aria-disabled', 'true');
   },
 });

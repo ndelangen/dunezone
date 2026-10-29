@@ -191,6 +191,12 @@ function Prediction({
 export function SetupPanel(props: SetupPanelProps) {
   const { step, hiddenHeading, instructions, predictions, traitors, disabled, onGatherTraitors, onDealTraitors } =
     props;
+  const dealDisabledReason = (count: number) => {
+    if (disabled) {
+      return 'The table is unavailable.';
+    }
+    return (traitors?.available ?? 0) < count ? 'Combine enough traitor cards first.' : undefined;
+  };
   return (
     <Stack gap="md">
       {step.kind !== 'prediction' && (
@@ -217,13 +223,7 @@ export function SetupPanel(props: SetupPanelProps) {
                               <span aria-hidden>{count}</span>
                             </>
                           }
-                          disabledReason={
-                            disabled
-                              ? 'The table is unavailable.'
-                              : traitors.available < count
-                                ? 'Combine enough traitor cards first.'
-                                : undefined
-                          }
+                          disabledReason={dealDisabledReason(count)}
                           onClick={() => onDealTraitors(faction.value, count)}
                         />
                       ))}

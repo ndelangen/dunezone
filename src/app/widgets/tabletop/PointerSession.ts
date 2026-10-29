@@ -36,6 +36,7 @@ export class PointerSession {
   private binding: Binding | null = null;
   private active: ActivePress | null = null;
   private holdTimer: ReturnType<typeof setTimeout> | null = null;
+  private holdFrame: number | null = null;
 
   get busy() {
     return this.active !== null;
@@ -61,20 +62,25 @@ export class PointerSession {
     }
     this.holdTimer = setTimeout(() => {
       this.holdTimer = null;
-      const controls = this.binding?.read();
-      if (
-        !controls?.canHandleTable ||
-        !controls.piece(pieceId) ||
-        !controls.isPublicPoint(input.clientX, input.clientY)
-      ) {
-        this.cancel();
-        return;
-      }
-      const point = this.point(input);
-      if (point) {
-        this.beginDrag('whole');
-        controls.updateGesture(point);
-      }
+      /* A busy frame can delay a quick pointer move past this timer. Let queued native input run before
+       * lifting: its own timestamp still decides whether the player moved before the hold threshold. */
+      this.holdFrame = requestAnimationFrame(() => {
+        this.holdFrame = null;
+        const controls = this.binding?.read();
+        if (
+          !controls?.canHandleTable ||
+          !controls.piece(pieceId) ||
+          !controls.isPublicPoint(input.clientX, input.clientY)
+        ) {
+          this.cancel();
+          return;
+        }
+        const point = this.point(input);
+        if (point) {
+          this.beginDrag('whole');
+          controls.updateGesture(point);
+        }
+      });
     }, STACK_HOLD_MS);
     return true;
   }
@@ -200,6 +206,10 @@ export class PointerSession {
     if (this.holdTimer !== null) {
       clearTimeout(this.holdTimer);
       this.holdTimer = null;
+    }
+    if (this.holdFrame !== null) {
+      cancelAnimationFrame(this.holdFrame);
+      this.holdFrame = null;
     }
   }
 

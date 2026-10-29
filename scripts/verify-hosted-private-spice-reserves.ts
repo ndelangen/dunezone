@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 
 import { isSpicePiece } from '../src/shared/play/spice.ts';
 import { spiceBankSlot } from '../src/shared/play/spiceBank.ts';
-import { stackTopHeight } from '../src/shared/play/tableGeometry.ts';
+import { planarDistance, stackTopHeight } from '../src/shared/play/tableGeometry.ts';
 import { TRACKER_DISC_TOP_Y } from '../src/shared/play/tableTrackers.ts';
 import type { HostedToolkit } from './verify-hosted-play-browser.ts';
 import { required, requireView } from './verify-hosted-types.ts';
@@ -24,6 +24,7 @@ export async function verifyPrivateSpiceReserves(toolkit: HostedToolkit) {
     growSlot,
     uncover,
     point,
+    coverAt,
     spiceBankShortcut,
     carrySteps,
     capture,
@@ -48,6 +49,10 @@ export async function verifyPrivateSpiceReserves(toolkit: HostedToolkit) {
   });
   assert.equal(Object.hasOwn(requireView(observer).snapshot, 'bank'), false);
   const spices = (who: HostedPeer) => requireView(who).snapshot.table.pieces.filter(isSpicePiece);
+  const reserveBalance = (who: HostedPeer) => required(requireView(who).snapshot.bank, 'bank').balance;
+  const withdrawals = (who: HostedPeer) =>
+    who.sent.filter((message) => message.type === 'command' && message.action.kind === 'bank-withdraw');
+  const dropPosition: [number, number, number] = [0, 0.18, -1];
   async function act(who: HostedPeer, name: string) {
     await openTab(who, 'Spice');
     await toolkit.act(who, name);
@@ -74,10 +79,65 @@ export async function verifyPrivateSpiceReserves(toolkit: HostedToolkit) {
     await until(() => requireView(who).snapshot.revision > revision, 'Stack collection did not commit.');
     await converged([a, b, observer]);
   }
-  async function withdraw(who: HostedPeer, amount: number) {
+  async function startWithdrawal(who: HostedPeer, amount: number) {
     await openTab(who, 'Spice');
     await who.page.getByRole('textbox', { name: 'Spice to withdraw' }).fill(String(amount));
-    await act(who, 'Withdraw spice');
+    const token = button(who, `Drag ${amount} spice to the table`);
+    await token.scrollIntoViewIfNeeded();
+    const box = required(await token.boundingBox(), 'spice preview bounds');
+    const start = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    await who.page.mouse.move(start.x, start.y);
+    await who.page.mouse.down();
+    await who.page.mouse.move(start.x + 12, start.y);
+    await who.page.locator('[data-carried="true"]').waitFor();
+  }
+  async function withdraw(who: HostedPeer, amount: number) {
+    await focus(who, 'map');
+    const balance = reserveBalance(who);
+    const existing = new Set(spices(who).map((piece) => piece.id));
+    const sentBefore = withdrawals(who).length;
+    await startWithdrawal(who, amount);
+    const target = await point(who, dropPosition);
+    assert.equal(await coverAt(who, target), null, 'The spice drop point must show the board.');
+    await who.page.mouse.move(target.x, target.y, { steps: 25 });
+    await who.page.mouse.up();
+    await until(() => reserveBalance(who) === balance - amount, 'The spice drop did not debit the reserve.');
+    await converged([a, b, observer]);
+    assert.equal(withdrawals(who).length, sentBefore + 1);
+    const command = withdrawals(who).at(-1);
+    assert.ok(command?.type === 'command' && command.action.kind === 'bank-withdraw');
+    assert.equal(command.action.amount, amount);
+    assert.ok(planarDistance(required(command.action.position, 'chosen spice position'), dropPosition) < 0.05);
+    const placed = spices(who).filter((piece) => !existing.has(piece.id));
+    assert.equal(placed.length, 1);
+    assert.equal(placed[0].items.length, amount);
+    assert.ok(planarDistance(placed[0].position, dropPosition) < 0.05, 'Spice must land where the player dropped it.');
+  }
+  async function verifyCancelledWithdrawals() {
+    const before = { balance: reserveBalance(a), pieces: structuredClone(spices(a)), sent: withdrawals(a).length };
+    const amount = a.page.getByRole('textbox', { name: 'Spice to withdraw' });
+    await amount.fill('1');
+    await button(a, 'Drag 1 spice to the table').click();
+    assert.equal(withdrawals(a).length, before.sent, 'Clicking the preview must not place spice.');
+
+    await startWithdrawal(a, 1);
+    const target = await point(a, dropPosition);
+    assert.equal(await coverAt(a, target), null);
+    await a.page.mouse.move(target.x, target.y, { steps: 25 });
+    await a.page.keyboard.press('Escape');
+    await a.page.mouse.up();
+    await a.page.locator('[data-carried="true"]').waitFor({ state: 'detached' });
+    assert.equal(withdrawals(a).length, before.sent, 'Escape must cancel the withdrawal.');
+
+    await startWithdrawal(a, 1);
+    const box = required(await amount.boundingBox(), 'withdrawal amount bounds');
+    await a.page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 25 });
+    await a.page.mouse.up();
+    await a.page.locator('[data-carried="true"]').waitFor({ state: 'detached' });
+    assert.equal(withdrawals(a).length, before.sent, 'Dropping on the panel must not withdraw spice.');
+    assert.equal(reserveBalance(a), before.balance);
+    assert.deepEqual(spices(a), before.pieces);
+    passed('A click, an Escape-cancelled drag and a drop onto the panel leave the spice reserve and table unchanged');
   }
   const slot = spiceBankSlot();
   await verifyTransfers();
@@ -93,8 +153,9 @@ export async function verifyPrivateSpiceReserves(toolkit: HostedToolkit) {
     await openTab(observer, 'Spice transfers');
     /* No more than the spice reserve holds can be withdrawn. */
     await a.page.getByRole('textbox', { name: 'Spice to withdraw' }).fill(String(startingSpice + 1));
-    assert.equal(await button(a, 'Withdraw spice').isDisabled(), true);
+    assert.equal(await button(a, 'Drag 0 spice to the table').isDisabled(), true);
     assert.equal(await observer.page.getByRole('region', { name: 'Spice reserve' }).count(), 0);
+    await verifyCancelledWithdrawals();
     await spiceBankShortcut(a, '7');
     await until(() => spices(a).length === 1, 'The Spice Bank did not create spice.');
     await collect(a, spices(a)[0]);

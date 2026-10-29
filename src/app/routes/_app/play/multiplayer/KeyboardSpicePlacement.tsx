@@ -2,8 +2,6 @@ import { Button, Text } from '@mantine/core';
 import { Html } from '@react-three/drei/webgpu';
 import { useThree } from '@react-three/fiber/webgpu';
 import type { Vector3Tuple } from '@shared/play/model';
-import { createSpiceStack } from '@shared/play/spiceBank';
-import { clampPositionToTable } from '@shared/play/tablePhysics';
 import { DarkSchemeIsland } from '@ui/surface/DarkSchemeIsland';
 import { Surface } from '@ui/surface/Surface';
 import { useCallback, useEffect, useId, useReducer, useRef } from 'react';
@@ -13,20 +11,44 @@ import { Vector3 } from 'three';
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import { usePointerSession } from '../../../../widgets/tabletop/PointerSessionContext';
 import styles from './KeyboardSpicePlacement.module.css';
-import { visibleSpicePosition } from './spicePlacementGeometry';
+import { moveSpicePosition, visibleSpicePosition } from './spicePlacementGeometry';
 import { SPICE_RESERVE_PICKUP } from './spiceReserveDrop';
 import { SpiceTokenPreview } from './SpiceTokenPreview';
-import { tableDropPosition } from './tableDropPosition';
 
 type Placement = { amount: number; factionId: string; position: Vector3Tuple };
 type Change = { kind: 'pick-up'; placement: Placement } | { kind: 'move'; position: Vector3Tuple } | { kind: 'cancel' };
-const footprint = createSpiceStack(0, 1);
 const DIRECTIONS: Readonly<Record<string, readonly [number, number]>> = {
   ArrowUp: [0, -1],
   ArrowDown: [0, 1],
   ArrowLeft: [-1, 0],
   ArrowRight: [1, 0],
 };
+const PLACEMENT_KEYS = new Set([...Object.keys(DIRECTIONS), 'Escape', 'Enter', ' ']);
+type SpiceReserve = NonNullable<TableProjection['snapshot']['bank']>;
+
+function amountFitsReserve(amount: number, bank: SpiceReserve): boolean {
+  if (!Number.isSafeInteger(amount)) {
+    return false;
+  }
+  return amount >= 1 && amount <= bank.balance;
+}
+
+/* Pickup and confirmation read the current seat's permission and balance, never an earlier projection. */
+function withdrawableReserve(table: TableProjection | null | undefined, amount: number): SpiceReserve | undefined {
+  if (!table?.canHandleTable) {
+    return;
+  }
+  const bank = table.snapshot.bank;
+  if (!bank) {
+    return;
+  }
+  return amountFitsReserve(amount, bank) ? bank : undefined;
+}
+
+function canPlaceSpice(table: TableProjection | null | undefined, placement: Placement): boolean {
+  return withdrawableReserve(table, placement.amount)?.factionId === placement.factionId;
+}
+
 function changePlacement(before: Placement | null, change: Change): Placement | null {
   if (change.kind === 'pick-up') {
     return change.placement;
@@ -55,16 +77,8 @@ export function KeyboardSpicePlacement({ client, table }: Readonly<{ client: Tab
     const canvas = renderer.domElement;
     const pickUp = (event: Event) => {
       const { amount } = (event as CustomEvent<{ amount: number }>).detail;
-      const current = client.getTable();
-      const bank = current?.snapshot.bank;
-      if (
-        !current?.canHandleTable ||
-        !bank ||
-        pointerSession.busy ||
-        !Number.isSafeInteger(amount) ||
-        amount < 1 ||
-        amount > bank.balance
-      ) {
+      const bank = withdrawableReserve(client.getTable(), amount);
+      if (!bank || pointerSession.busy) {
         return;
       }
       const position = visibleSpicePosition(canvas, camera);
@@ -82,8 +96,7 @@ export function KeyboardSpicePlacement({ client, table }: Readonly<{ client: Tab
       return;
     }
     invalidate();
-    const bank = table.snapshot.bank;
-    if (!table.canHandleTable || bank?.factionId !== placement.factionId || bank.balance < placement.amount) {
+    if (!canPlaceSpice(table, placement)) {
       cancel();
     }
   }, [placement, table, invalidate, cancel]);
@@ -100,32 +113,14 @@ export function KeyboardSpicePlacement({ client, table }: Readonly<{ client: Tab
   }
 
   const move = (dx: number, dy: number, fine: boolean) => {
-    const bounds = renderer.domElement.getBoundingClientRect();
-    const projected = new Vector3(...placement.position).project(camera);
-    const clientX = bounds.left + ((projected.x + 1) * bounds.width) / 2 + dx * (fine ? 4 : 20);
-    const clientY = bounds.top + ((1 - projected.y) * bounds.height) / 2 + dy * (fine ? 4 : 20);
-    if (
-      clientX < bounds.left + 32 ||
-      clientX > bounds.right - 32 ||
-      clientY < bounds.top + 32 ||
-      clientY > bounds.bottom - 32
-    ) {
-      return;
+    const step = fine ? 4 : 20;
+    const position = moveSpicePosition(renderer.domElement, camera, placement.position, [dx * step, dy * step]);
+    if (position) {
+      change({ kind: 'move', position });
     }
-    const position = tableDropPosition({ clientX, clientY }, renderer.domElement, camera);
-    if (!position) {
-      return;
-    }
-    const supported = clampPositionToTable(footprint, position);
-    if (Math.hypot(supported[0] - position[0], supported[2] - position[2]) > 1e-6) {
-      return;
-    }
-    change({ kind: 'move', position });
   };
   const confirm = () => {
-    const current = client.getTable();
-    const bank = current?.snapshot.bank;
-    if (current?.canHandleTable && bank?.factionId === placement.factionId && bank.balance >= placement.amount) {
+    if (canPlaceSpice(client.getTable(), placement)) {
       client.command({ kind: 'bank-withdraw', amount: placement.amount, position: placement.position });
     }
     finish();
@@ -135,17 +130,18 @@ export function KeyboardSpicePlacement({ client, table }: Readonly<{ client: Tab
       event.stopPropagation();
       return;
     }
+    if (!PLACEMENT_KEYS.has(event.key)) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
     const direction = DIRECTIONS[event.key];
-    if (direction || event.key === 'Escape' || event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      event.stopPropagation();
-      if (direction) {
-        move(direction[0], direction[1], event.shiftKey);
-      } else if (event.key === 'Escape') {
-        finish();
-      } else if (!event.repeat) {
-        confirm();
-      }
+    if (direction) {
+      move(direction[0], direction[1], event.shiftKey);
+    } else if (event.key === 'Escape') {
+      finish();
+    } else if (!event.repeat) {
+      confirm();
     }
   };
   const canvasBounds = renderer.domElement.getBoundingClientRect();

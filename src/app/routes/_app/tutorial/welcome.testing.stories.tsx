@@ -91,7 +91,7 @@ export const SpeakingMode = meta.story({
     await expect(badge.getBoundingClientRect().width).toBeLessThan(30);
     await userEvent.keyboard('{Enter}');
     await waitForFrame(() => expect(spoken).toHaveBeenCalledTimes(3));
-    await expect(spoken.mock.calls.at(-1)![0].text).toMatch(/^Those faction tokens around the board/);
+    await expect(spoken.mock.calls.at(-1)![0].text).toMatch(/^These faction tokens around the board/);
     await userEvent.click(rail.getByRole('button', { name: 'Turn speaking mode off' }));
     await userEvent.click(rail.getByRole('button', { name: 'Reset' }));
     await waitForFrame(() =>
