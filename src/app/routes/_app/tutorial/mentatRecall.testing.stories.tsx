@@ -18,6 +18,8 @@ export const PlayedThrough = meta.story({
   play: async ({ canvasElement }) => {
     const document = canvasElement.ownerDocument;
     const page = within(document.body);
+    await page.findByRole('banner', { name: 'Chapter 20: Mentat recall' }, { timeout: 60_000 });
+    await expect(document.querySelector('[data-recall-controls="true"]')).toBeNull();
     const current = () => document.querySelector('[data-state="current"]')?.textContent ?? '';
     const step = (title: string) => waitForFrame(() => expect(current()).toContain(title), { timeout: 60_000 });
     const enterAt = async (title: string) => {
@@ -39,7 +41,6 @@ export const PlayedThrough = meta.story({
     };
     const recall = () => within(document.querySelector<HTMLElement>('[data-recall-controls="true"]')!);
 
-    await page.findByRole('banner', { name: 'Chapter 20: Mentat recall' }, { timeout: 60_000 });
     await enterAt('Look back together');
     await step('Keep your live hand open');
     await userEvent.keyboard('h');

@@ -13,6 +13,7 @@ const hand: StoredPiece[] = [{ ...KWISATZ_HADERACH, hiddenZone: { x: 0.5, y: 0.5
 /* Normal windows stay mounted during recall; only this controller shows the historical contents. */
 const RECALL = '[data-recall-controls="true"]';
 const panel = (key: string) => document.querySelector(`${RECALL} [data-window="${key}"]`);
+const historySlider = () => panel('recall-history')?.querySelector('[role="slider"]');
 const recallElement = (selector: string) => () => document.querySelector(`${RECALL} ${selector}`);
 const returnButton = () => document.querySelector('[data-recall-return]');
 const loaded = () =>
@@ -24,7 +25,10 @@ const loaded = () =>
 function answerProposals(snapshot: () => GameSnapshot, players: TablePlayers, stormOnly: boolean) {
   const timer = setInterval(() => {
     const review = snapshot().review;
-    if (!review || review.startedAt !== null || (stormOnly && review.step !== 0)) {
+    if (!review || review.startedAt !== null) {
+      return;
+    }
+    if (stormOnly && review.step !== 0) {
       return;
     }
     const seat = players
@@ -37,6 +41,20 @@ function answerProposals(snapshot: () => GameSnapshot, players: TablePlayers, st
   return () => clearInterval(timer);
 }
 
+/* While recall is closed, the arrow leads back to its restored request window or Controls. */
+function recallAnchor(snapshot: () => GameSnapshot, anchor: GuideTask['anchor']): GuideTask['anchor'] {
+  if (anchor.kind !== 'page') {
+    return anchor;
+  }
+  return {
+    kind: 'page',
+    element: () =>
+      reviewRunning(snapshot().review)
+        ? anchor.element()
+        : (document.querySelector('[data-window="review"]') ?? document.querySelector('[data-compass-launcher]')),
+  };
+}
+
 /* A replacement recall starts fresh baselines, and every task releases its timers and listeners on Reset or exit. */
 function duringRecall(snapshot: () => GameSnapshot, players: TablePlayers) {
   return <Baseline>(definition: GuideTask<Baseline>): GuideTask => {
@@ -44,17 +62,7 @@ function duringRecall(snapshot: () => GameSnapshot, players: TablePlayers) {
     return task({
       ...definition,
       detail: `${definition.detail}\n\nIf recall closes early, ask for Storm again in the Mentat recall window. If it is closed, open it through Controls. The practice players will agree.`,
-      anchor:
-        anchor.kind === 'page'
-          ? {
-              kind: 'page',
-              element: () =>
-                reviewRunning(snapshot().review)
-                  ? anchor.element()
-                  : (document.querySelector('[data-window="review"]') ??
-                    document.querySelector('[data-compass-launcher]')),
-            }
-          : anchor,
+      anchor: recallAnchor(snapshot, anchor),
       begin: (view) => ({
         id: snapshot().review?.id,
         baseline: definition.begin(view),
@@ -86,17 +94,7 @@ const sentMessages = () =>
     (element) => element.children.length === 0 && element.textContent === 'Sent'
   ).length;
 
-function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[] {
-  let continuedReviewId: string | undefined;
-  const consent = pressEnter(() => {
-    const review = snapshot().review;
-    if (!review || review.step !== 0) {
-      return false;
-    }
-    continuedReviewId = review.id;
-    return true;
-  });
-  const recalling = duringRecall(snapshot, players);
+function openingTasks(snapshot: () => GameSnapshot): GuideTask[] {
   return [
     task({
       id: 'purpose',
@@ -133,27 +131,48 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       begin: () => undefined,
       done: () => snapshot().review?.step === 0,
     }),
-    task({
-      id: 'review-majority',
-      task: 'Agree to recall',
-      detail:
-        'More than half the seated players must agree before recall starts. Your request counts as your agreement; the other players can agree or decline.\n\nYou can withdraw your request while the vote is open. Ask for Storm again if you do.\n\nPress {Enter} to let the practice players respond.',
-      anchor: { kind: 'page', element: element('[aria-label="Mentat recall vote"]') },
-      ...consent,
-      done: (watch) =>
-        snapshot().review?.step === 0 && snapshot().review?.id === continuedReviewId && consent.done(watch),
-    }),
-    task({
-      id: 'review-votes',
-      task: 'Wait for the table',
-      detail:
-        'The others are agreeing now. Once a majority agrees, play pauses for everyone and the table opens the same saved checkpoint.',
-      waitingForPlayers: true,
-      anchor: { kind: 'page', element: element('[aria-label="Mentat recall vote"]') },
-      begin: () => answerProposals(snapshot, players, true),
-      done: () => snapshot().review?.step === 0 && reviewRunning(snapshot().review),
-      finish: (stop) => stop(),
-    }),
+  ];
+}
+
+function consentTask(snapshot: () => GameSnapshot): GuideTask {
+  let continuedReviewId: string | undefined;
+  const consent = pressEnter(() => {
+    const review = snapshot().review;
+    if (!review || review.step !== 0) {
+      return false;
+    }
+    continuedReviewId = review.id;
+    return true;
+  });
+  return task({
+    id: 'review-majority',
+    task: 'Agree to recall',
+    detail:
+      'More than half the seated players must agree before recall starts. Your request counts as your agreement; the other players can agree or decline.\n\nYou can withdraw your request while the vote is open. Ask for Storm again if you do.\n\nPress {Enter} to let the practice players respond.',
+    anchor: { kind: 'page', element: element('[aria-label="Mentat recall vote"]') },
+    ...consent,
+    done: (watch) =>
+      snapshot().review?.step === 0 && snapshot().review?.id === continuedReviewId && consent.done(watch),
+  });
+}
+
+function ballotTask(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask {
+  return task({
+    id: 'review-votes',
+    task: 'Wait for the table',
+    detail:
+      'The others are agreeing now. Once a majority agrees, play pauses for everyone and the table opens the same saved checkpoint.',
+    waitingForPlayers: true,
+    anchor: { kind: 'page', element: element('[aria-label="Mentat recall vote"]') },
+    begin: () => answerProposals(snapshot, players, true),
+    done: () => snapshot().review?.step === 0 && reviewRunning(snapshot().review),
+    finish: (stop) => stop(),
+  });
+}
+
+function inspectionTasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[] {
+  const recalling = duringRecall(snapshot, players);
+  return [
     recalling({
       id: 'frozen-table',
       task: 'Look around the frozen table',
@@ -181,6 +200,12 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       begin: () => undefined,
       done: () => Boolean(panel('hidden-zone')?.querySelector('figure')),
     }),
+  ];
+}
+
+function historyTasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[] {
+  const recalling = duringRecall(snapshot, players);
+  return [
     recalling({
       id: 'shared-history',
       task: 'Slide through time',
@@ -188,13 +213,10 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
         'Press {Space}, {↑}, then {Space} to open Shared history. Drag the slider to another checkpoint. The arrows move one checkpoint at a time; turn numbers mark the start of each turn.\n\nAny seated player can change this selection. Everyone follows the same checkpoint, including their own recorded inventory. Your camera and panel positions stay personal.',
       anchor: {
         kind: 'page',
-        element: () =>
-          panel('recall-history')?.querySelector('[role="slider"]') ??
-          document.querySelector(`${RECALL} [data-compass-launcher]`),
+        element: () => historySlider() ?? document.querySelector(`${RECALL} [data-compass-launcher]`),
       },
       begin: () => snapshot().review?.step,
-      done: (step) =>
-        snapshot().review?.step !== step && Boolean(panel('recall-history')?.querySelector('[role="slider"]')),
+      done: (step) => snapshot().review?.step !== step && Boolean(historySlider()),
     }),
     recalling({
       id: 'earlier-checkpoint',
@@ -203,8 +225,14 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
         "Press Earlier checkpoint to return to Storm. The arrows move one saved checkpoint at a time.\n\nThe board and every seat's recorded inventory follow the shared selection. Changing checkpoints still makes no changes to the live game.",
       anchor: { kind: 'page', element: recallElement('[aria-label="Earlier checkpoint"]') },
       begin: () => undefined,
-      done: () => snapshot().review?.step === 0 && Boolean(panel('recall-history')?.querySelector('[role="slider"]')),
+      done: () => snapshot().review?.step === 0 && Boolean(historySlider()),
     }),
+  ];
+}
+
+function conversationTasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[] {
+  const recalling = duringRecall(snapshot, players);
+  return [
     recalling({
       id: 'recall-chat',
       task: 'Send a recall message',
@@ -233,6 +261,11 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       done: (watch) => watch.submitted && sentMessages() > watch.saved,
       finish: (watch) => watch.stop.abort(),
     }),
+  ];
+}
+
+function returnTasks(snapshot: () => GameSnapshot): GuideTask[] {
+  return [
     task({
       id: 'return',
       task: 'Return to the game',
@@ -243,6 +276,18 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       done: () =>
         !snapshot().review && phaseOf(snapshot).id === 'spice-blow' && document.querySelector(RECALL) === null,
     }),
+  ];
+}
+
+function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[] {
+  return [
+    ...openingTasks(snapshot),
+    consentTask(snapshot),
+    ballotTask(snapshot, players),
+    ...inspectionTasks(snapshot, players),
+    ...historyTasks(snapshot, players),
+    ...conversationTasks(snapshot, players),
+    ...returnTasks(snapshot),
   ];
 }
 

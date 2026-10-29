@@ -42,6 +42,9 @@ test('a replacement review must still select Storm before the others agree', () 
   }
 });
 
+const recordedTracker = (table: LocalTable, step: number) =>
+  table.history(step).snapshot.hand?.find((piece) => piece.label === 'Kwisatz Haderach')?.hiddenZone;
+
 test('the chapter records its private tracker before Storm and returns to the unchanged live phase', () => {
   const table = new LocalTable(
     startAt(setup as unknown as TutorialSetup, mentatRecall.checkpoint, 'https://dune.zone', mentatRecall)
@@ -71,9 +74,9 @@ test('the chapter records its private tracker before Storm and returns to the un
     }
     const past = table.history(0).snapshot;
     expect(past.phase).not.toBe(live);
-    expect(past.hand?.find((piece) => piece.label === 'Kwisatz Haderach')?.hiddenZone).toEqual({ x: 0.5, y: 0.5 });
+    expect(recordedTracker(table, 0)).toEqual({ x: 0.5, y: 0.5 });
     players.act(table.seat, { kind: 'review-seek', reviewId: view().review!.id, step: 1 });
-    expect(table.history(1).snapshot.hand?.find((piece) => piece.label === 'Kwisatz Haderach')?.hiddenZone).toEqual({
+    expect(recordedTracker(table, 1)).toEqual({
       x: 0.5,
       y: 0.5,
     });
