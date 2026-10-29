@@ -1,18 +1,31 @@
 .placement {
   position: relative;
+  inset: auto;
+  box-sizing: border-box;
   width: 64px;
   height: 64px;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  overflow: visible;
 }
 
-.instructions {
+/* Reduced motion must not animate visibility before the token or its help control can take focus. */
+.overlay,
+.placement,
+.placement > button,
+.help,
+.help > * {
+  transition-property: none;
+}
+
+.help {
   position: absolute;
-  bottom: calc(100% + var(--space-xs));
-  left: 50%;
-  translate: -50% 0;
-  pointer-events: none;
-}
-
-.instructions[data-below] {
-  top: calc(100% + var(--space-xs));
-  bottom: auto;
+  top: 0;
+  right: 0;
+  display: flex;
 }

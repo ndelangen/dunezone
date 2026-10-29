@@ -1,22 +1,28 @@
-import { gameAssetColors } from '@shared/play/assetColors';
+import { Badge, Box } from '@mantine/core';
+import { SPICE_TOKEN_HREF } from '@shared/play/spiceToken';
+import { PublishedImage } from '@ui/content/PublishedImage';
 
 /** The reserve's selected amount, shown both before pickup and at its proposed table position. */
 export function SpiceTokenPreview({ amount }: Readonly<{ amount: number }>) {
   return (
-    <svg width="64" height="64" viewBox="0 0 64 64" aria-hidden>
-      <circle cx="32" cy="33" r="28" fill={gameAssetColors.spiceStack} />
-      <circle
-        cx="32"
-        cy="29"
-        r="26"
-        fill={gameAssetColors.spiceFallbackFace}
-        stroke={gameAssetColors.spiceIcon}
-        strokeWidth="2"
-      />
-      <image href="/vector/icon/spice.svg" x="20" y="6" width="24" height="24" />
-      <text x="32" y="48" textAnchor="middle" fill={gameAssetColors.spiceIcon} fontSize="22" fontWeight="700">
+    <Box pos="relative" w={64} h={64} aria-hidden>
+      <PublishedImage src={SPICE_TOKEN_HREF} name="Spice" aspect={1} radius="50%" />
+      <Badge
+        pos="absolute"
+        bottom={0}
+        right={0}
+        miw={26}
+        maw={64}
+        h="auto"
+        mih={26}
+        px={4}
+        size="lg"
+        variant="filled"
+        ff="C_Advokat_Modern, serif"
+        styles={{ label: { whiteSpace: 'normal', overflowWrap: 'anywhere', lineHeight: 1.2 } }}
+      >
         {amount}
-      </text>
-    </svg>
+      </Badge>
+    </Box>
   );
 }

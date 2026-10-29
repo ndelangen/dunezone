@@ -1,8 +1,9 @@
 import { Group, Text } from '@mantine/core';
 import { Section } from '@ui/block/Section';
+import { HelpMark } from '@ui/content/HelpMark';
 import { SortableRow } from '@ui/control/SortableRow';
 import { Stepper } from '@ui/control/Stepper';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 
 import { SPICE_RESERVE_HELP } from '../../multiplayer/panelGuidance';
 import { SpiceTokenPreview } from '../../multiplayer/SpiceTokenPreview';
@@ -31,6 +32,7 @@ export type SpiceReservePanelProps = Readonly<{
 export function SpiceReservePanel(props: SpiceReservePanelProps) {
   const { balance, hiddenHeading } = props;
   const isFrozen = props.isFrozen === true;
+  const helpId = useId();
   const [amount, setAmount] = useState(1);
   /* What is being typed, judged before it commits, so an amount past the balance cannot be withdrawn. */
   const [draft, setDraft] = useState<string | null>(null);
@@ -56,11 +58,7 @@ export function SpiceReservePanel(props: SpiceReservePanelProps) {
     }
   };
   return (
-    <Section
-      hiddenHeading={hiddenHeading}
-      title="Spice reserve"
-      description={isFrozen ? undefined : SPICE_RESERVE_HELP}
-    >
+    <Section hiddenHeading={hiddenHeading} title="Spice reserve">
       <div className={styles.spice} data-frozen-balance={isFrozen || undefined}>
         <div className={styles.balance}>
           {/* The two keys share one parent, so each names what it counts: the first withdrawal and the first bump are both 1. */}
@@ -80,6 +78,7 @@ export function SpiceReservePanel(props: SpiceReservePanelProps) {
           <Text component="span" size="xs" className={styles.balanceLabel}>
             spice
           </Text>
+          {!isFrozen && <HelpMark id={helpId} text={SPICE_RESERVE_HELP} />}
         </div>
         {!props.isFrozen && (
           <Group gap={6} wrap="nowrap">
@@ -104,6 +103,7 @@ export function SpiceReservePanel(props: SpiceReservePanelProps) {
                   className={styles.token}
                   disabled={!props.enabled || !valid}
                   aria-label={`Drag ${valid ? item.amount : 0} spice to the table`}
+                  aria-describedby={helpId}
                   aria-keyshortcuts="Enter Space"
                   onKeyDown={(event) => {
                     if ((event.key === 'Enter' || event.key === ' ') && !event.repeat && valid) {
@@ -120,11 +120,6 @@ export function SpiceReservePanel(props: SpiceReservePanelProps) {
           </Group>
         )}
       </div>
-      {!isFrozen && (
-        <Text size="xs" c="dimmed">
-          Drag the spice onto the table, or press Enter to choose a position with the arrow keys.
-        </Text>
-      )}
     </Section>
   );
 }
