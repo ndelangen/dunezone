@@ -1,3 +1,4 @@
+import { isBattleLeader } from '@shared/play/battle';
 import { HIDDEN_ZONE_DEPTH, HIDDEN_ZONE_WIDTH } from '@shared/play/hiddenZone';
 import type { StoredPiece, TablePiece } from '@shared/play/model';
 import { phaseAt } from '@shared/play/phases';
@@ -116,4 +117,3 @@ export function openRecallHistory(players: TablePlayers) {
   storm(context, 3);
   act(context, { kind: 'phase' });
 }
-import { isBattleLeader } from '@shared/play/battle';

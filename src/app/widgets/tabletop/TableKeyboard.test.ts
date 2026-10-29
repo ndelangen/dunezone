@@ -61,6 +61,26 @@ test.each([true, false])('a focused slider keeps its arrow keys with the pointer
   expect(keyboard.panDirection()).toEqual([0, 0]);
 });
 
+test('a focused slider leaves non-arrow shortcuts with the table under the pointer', () => {
+  const { keyboard, controls } = table();
+  keyboard.setPanAvailable(true);
+  keyboard.hoverTable(true);
+  const slider = document.body.appendChild(document.createElement('div'));
+  slider.setAttribute('role', 'slider');
+  slider.tabIndex = 0;
+  slider.focus();
+  key('keydown', { key: 'q', code: 'KeyQ' }, slider);
+  key('keyup', { key: 'q', code: 'KeyQ' }, slider);
+  expect(controls.rotateSelected).toHaveBeenCalledWith(-1, 'harkonnen-force-stack');
+  key('keydown', { key: 'w', code: 'KeyW' }, slider);
+  expect(keyboard.panDirection()).toEqual([0, -1]);
+  key('keyup', { key: 'w', code: 'KeyW' }, slider);
+  expect(keyboard.panDirection()).toEqual([0, 0]);
+  key('keydown', { key: 'Tab', code: 'Tab' }, slider);
+  key('keyup', { key: 'Tab', code: 'Tab' }, slider);
+  expect(controls.ping).toHaveBeenCalledOnce();
+});
+
 describe('over the hovered spice disc', () => {
   /* Each press as its layout reports it, held for a second, so a press that armed the draw would take from the selected stack. */
   test.each([

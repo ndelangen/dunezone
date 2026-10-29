@@ -11,6 +11,7 @@ const RECALL = '[data-recall-controls="true"]';
 const panel = (key: string) => document.querySelector(`${RECALL} [data-window="${key}"]`);
 const historySlider = () => panel('recall-history')?.querySelector('[role="slider"]');
 const newestStep = (snapshot: () => GameSnapshot) => snapshot().reviewCheckpoints!.at(-1)!.step;
+const selectedStep = (snapshot: () => GameSnapshot) => snapshot().review?.step;
 const recallElement = (selector: string) => () => document.querySelector(`${RECALL} ${selector}`);
 const returnButton = () => document.querySelector('[data-recall-return]');
 const loaded = () =>
@@ -128,7 +129,7 @@ function openingTasks(snapshot: () => GameSnapshot): GuideTask[] {
           document.querySelector('[data-window="review"]') ?? document.querySelector('[data-compass-launcher]'),
       },
       begin: () => undefined,
-      done: () => snapshot().review?.step === 0,
+      done: () => selectedStep(snapshot) === 0,
     }),
   ];
 }
@@ -150,8 +151,7 @@ function consentTask(snapshot: () => GameSnapshot): GuideTask {
       'More than half the seated players must agree before recall starts. Your request counts as your agreement; the other players can agree or decline.\n\nYou can withdraw your request while the vote is open. Ask for Storm again if you do.\n\nPress {Enter} to let the practice players respond.',
     anchor: { kind: 'page', element: element('[aria-label="Mentat recall vote"]') },
     ...consent,
-    done: (watch) =>
-      snapshot().review?.step === 0 && snapshot().review?.id === continuedReviewId && consent.done(watch),
+    done: (watch) => selectedStep(snapshot) === 0 && snapshot().review?.id === continuedReviewId && consent.done(watch),
   });
 }
 
@@ -164,7 +164,7 @@ function ballotTask(snapshot: () => GameSnapshot, players: TablePlayers): GuideT
     waitingForPlayers: true,
     anchor: { kind: 'page', element: element('[aria-label="Mentat recall vote"]') },
     begin: () => answerProposals(snapshot, players, true),
-    done: () => snapshot().review?.step === 0 && reviewRunning(snapshot().review),
+    done: () => selectedStep(snapshot) === 0 && reviewRunning(snapshot().review),
     finish: (stop) => stop(),
   });
 }
@@ -215,12 +215,12 @@ function sharedHistoryTask(snapshot: () => GameSnapshot, players: TablePlayers):
       kind: 'page',
       element: () => historySlider() ?? document.querySelector(`${RECALL} [data-compass-launcher]`),
     },
-    begin: () => ({ step: snapshot().review?.step, moved: false }),
+    begin: () => ({ step: selectedStep(snapshot), moved: false }),
     done: (watch) => {
-      watch.moved ||= snapshot().review?.step !== watch.step;
+      watch.moved ||= selectedStep(snapshot) !== watch.step;
       return (
         watch.moved &&
-        snapshot().review?.step === newestStep(snapshot) &&
+        selectedStep(snapshot) === newestStep(snapshot) &&
         panel('recall-history')?.getAttribute('data-side') === 'right'
       );
     },
@@ -240,7 +240,7 @@ function laterHandTask(snapshot: () => GameSnapshot, players: TablePlayers): Gui
     anchor: { kind: 'page', element: recallElement('[data-own-token]') },
     begin: () => undefined,
     done: () =>
-      snapshot().review?.step === newestStep(snapshot) &&
+      selectedStep(snapshot) === newestStep(snapshot) &&
       panel('hand')?.querySelector('[aria-label="Spice reserve balance"]')?.textContent === '6',
   });
 }
@@ -258,7 +258,7 @@ function laterCounterTask(snapshot: () => GameSnapshot, players: TablePlayers): 
     anchor: { kind: 'page', element: recallElement('[data-compass-launcher]') },
     begin: () => undefined,
     done: () =>
-      snapshot().review?.step === newestStep(snapshot) &&
+      selectedStep(snapshot) === newestStep(snapshot) &&
       Boolean(
         panel('hidden-zone')?.querySelector(
           'img[alt="Atreides Battle Loss Counter"], [aria-label^="Atreides Battle Loss Counter"]'
@@ -284,7 +284,7 @@ function earlierCheckpointTask(snapshot: () => GameSnapshot, players: TablePlaye
         document.querySelector(`${RECALL} [data-compass-launcher]`),
     },
     begin: () => undefined,
-    done: () => snapshot().review?.step === newestStep(snapshot) - 1 && Boolean(historySlider()),
+    done: () => selectedStep(snapshot) === newestStep(snapshot) - 1 && Boolean(historySlider()),
   });
 }
 

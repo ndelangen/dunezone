@@ -68,19 +68,20 @@ function hasModifier(event: KeyboardEvent) {
  */
 const FOCUSED_CONTROL = "button, a[href], [role='button'], [role='separator']";
 
-function isInputControl(target: EventTarget | null) {
-  return (
-    target instanceof HTMLElement &&
-    (target.isContentEditable || target.matches('input, textarea, select, [role="slider"]'))
-  );
+function isTextField(target: EventTarget | null) {
+  return target instanceof HTMLElement && (target.isContentEditable || target.matches('input, textarea, select'));
+}
+
+function isArrowControl(target: EventTarget | null) {
+  return isTextField(target) || (target instanceof HTMLElement && target.matches('[role="slider"]'));
 }
 
 /*
- * A focused input, including an ARIA slider, keeps its keys from the table.
+ * A focused text field keeps its keys from the table; a slider keeps its arrows.
  * The table's shortcuts also leave any other focused control or link alone, while the spice disc, or the cursor over the table, answers over them.
  */
-function focusKeepsKey(target: EventTarget | null, branch: 'spiceBank' | 'table') {
-  if (isInputControl(target)) {
+function focusKeepsKey(target: EventTarget | null, branch: 'spiceBank' | 'table', arrow = false) {
+  if (arrow ? isArrowControl(target) : isTextField(target)) {
     return true;
   }
   return branch === 'table' && target instanceof HTMLElement && target.closest(FOCUSED_CONTROL) !== null;
@@ -251,7 +252,7 @@ export class TableKeyboard {
       !this.tableHovered ||
       !isArrowKey(event) ||
       hasModifier(event) ||
-      isInputControl(event.target) ||
+      isArrowControl(event.target) ||
       inOpenMenu(event.target)
     ) {
       return;
@@ -267,7 +268,7 @@ export class TableKeyboard {
   private panKeyDown(event: KeyboardEvent) {
     const panKey = event.key.toLowerCase();
     const panFocus = isArrowKey(event) ? this.focusBranch() : 'spiceBank';
-    if (!this.panAvailable || !(panKey in PAN_KEYS) || focusKeepsKey(event.target, panFocus)) {
+    if (!this.panAvailable || !(panKey in PAN_KEYS) || focusKeepsKey(event.target, panFocus, isArrowKey(event))) {
       return false;
     }
     event.preventDefault();
