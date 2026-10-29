@@ -1,6 +1,7 @@
 import { assetPublishingFaction } from '@shared/factions/fixtures/assetPublishingFaction';
 import { emptyBattlePlan, fixtureBattleFaces } from '@shared/play/battle';
 import type { Disclosure } from '@shared/play/battle';
+import type { CardDraw } from '@shared/play/cardDraw';
 import { initialSnapshot, nextSnapshot } from '@shared/play/commands';
 import { arrakisBoardCapture } from '@shared/play/fixtures/board';
 import type { TablePiece } from '@shared/play/model';
@@ -121,6 +122,50 @@ async function connected(identity = viewer) {
   authorize(initialSnapshot(), identity);
   return client;
 }
+
+test.each(['harkonnen', 'neutral'])(
+  'delivers accepted draws once to %s, without replaying during recall',
+  async (viewerSeat) => {
+    const client = await connected({ ...viewer, viewerSeat });
+    const draws = vi.fn();
+    const stop = client.subscribeCardDraws(draws);
+    const cardDraw: CardDraw = {
+      epoch: 'epoch-one',
+      revision: 1,
+      recipient: 'harkonnen',
+      count: 4,
+      from: [4, 0.2, 0],
+      to: [-3, 0.1, 2],
+      orientation: 0,
+      color: '#ed927c',
+    };
+    const snapshot = { ...initialSnapshot(), revision: 1 };
+    const frame = view({ viewer: { ...viewer, viewerSeat }, snapshot, cardDraw });
+    socket().deliver(frame);
+    socket().deliver(frame);
+    expect(draws).toHaveBeenCalledExactlyOnceWith(cardDraw);
+    socket().deliver({ ...frame, cardDraw: { ...cardDraw, epoch: 'old' } });
+    const recall = {
+      id: 'recall',
+      step: 0,
+      context: 'First',
+      proposer: { name: 'One', seat: 'seat-1' },
+      openedAt: 1,
+      threshold: 1,
+      ballots: [{ name: 'One', seat: 'seat-1', choice: 'review' as const }],
+      startedAt: 1,
+    };
+    socket().deliver({
+      ...frame,
+      snapshot: { ...snapshot, revision: 2, review: recall },
+      cardDraw: { ...cardDraw, revision: 2 },
+    });
+    expect(draws).toHaveBeenCalledTimes(1);
+    stop();
+    socket().deliver({ ...frame, snapshot: { ...snapshot, revision: 3 }, cardDraw: { ...cardDraw, revision: 3 } });
+    expect(draws).toHaveBeenCalledTimes(1);
+  }
+);
 
 describe('hosted public controls', () => {
   test('uses the server cooldown duration despite clock skew and refreshes when it expires', async () => {

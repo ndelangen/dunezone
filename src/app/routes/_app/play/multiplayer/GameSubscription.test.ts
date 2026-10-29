@@ -1,4 +1,5 @@
 import { PLAY_ADMISSION_RETRY_MAX_MS, PLAY_PENDING_TIMEOUT_MS, PLAY_REQUEST_TIMEOUT_MS } from '@shared/play/admission';
+import type { CardDraw } from '@shared/play/cardDraw';
 import { initialSnapshot } from '@shared/play/commands';
 import { KEEPALIVE_INTERVAL_MS, KEEPALIVE_PONG, PASS_EXPIRED_CLOSE_CODE } from '@shared/play/protocol';
 import { testSeatPass as seatPass } from '@shared/play/seatPass.test.fixture';
@@ -40,6 +41,67 @@ async function subscribed(gameId = 'game') {
   socket.deliver(view);
   return { subscription, listener, socket, view };
 }
+
+const draw: CardDraw = {
+  epoch: 'epoch',
+  revision: 1,
+  recipient: 'harkonnen',
+  count: 1,
+  back: 'https://cards.example/back.png',
+  color: '#ed927c',
+  from: [4, 0.2, 0],
+  to: [-3, 0.1, 2],
+  orientation: 0,
+};
+
+test.each(['view', 'update'] as const)(
+  'publishes a %s draw after its frame, without retaining or repeating it',
+  async (kind) => {
+    const { subscription, socket, listener, view } = await subscribed();
+    const next = { ...view, sequence: 2, snapshot: { ...view.snapshot, revision: 1 } };
+    socket.deliver(
+      kind === 'view'
+        ? { ...next, cardDraw: draw }
+        : {
+            type: 'update',
+            epoch: view.epoch,
+            baseSequence: 1,
+            sequence: 2,
+            ...frameChange(view, next),
+            cardDraw: draw,
+          }
+    );
+    expect(listener.mock.calls.slice(-2).map(([event]) => event.type)).toEqual(['view', 'card-draw']);
+    expect(listener.mock.lastCall?.[0]).toEqual({ type: 'card-draw', draw });
+    expect(subscription.getSnapshot()).not.toHaveProperty('cardDraw');
+    const later = { ...next, sequence: 3, snapshot: { ...next.snapshot, revision: 2 } };
+    socket.deliver({ type: 'update', epoch: view.epoch, baseSequence: 2, sequence: 3, ...frameChange(next, later) });
+    expect(subscription.getSnapshot()).not.toHaveProperty('cardDraw');
+    expect(listener.mock.calls.filter(([event]) => event.type === 'card-draw')).toHaveLength(1);
+  }
+);
+
+test('does not animate admission, resynchronization, stale revisions or a changed room epoch', async () => {
+  const { socket, listener, view } = await subscribed();
+  socket.deliver({ ...view, cardDraw: draw });
+  socket.deliver({
+    type: 'update',
+    epoch: view.epoch,
+    baseSequence: 7,
+    sequence: 8,
+    ...frameChange(view, view),
+    cardDraw: draw,
+  });
+  const next = { ...view, sequence: 9, snapshot: { ...view.snapshot, revision: 1 }, cardDraw: draw };
+  socket.deliver(next);
+  socket.deliver({ ...next, epoch: 'new-epoch', cardDraw: { ...draw, epoch: 'new-epoch' } });
+  socket.close(1006);
+  await vi.advanceTimersByTimeAsync(1000);
+  const reconnected = Socket.instances.at(-1)!;
+  reconnected.open();
+  reconnected.deliver(next);
+  expect(listener.mock.calls.filter(([event]) => event.type === 'card-draw')).toEqual([]);
+});
 
 test('assembles patches before notifying the caller and asks once for a full view after a gap', async () => {
   const { subscription, socket, listener, view } = await subscribed();

@@ -1,6 +1,7 @@
 import { tableHandlingOpen } from '@shared/play/admission';
 import { isBattleLeader } from '@shared/play/battle';
 import type { BattlePlanInput } from '@shared/play/battle';
+import type { CardDraw } from '@shared/play/cardDraw';
 import { foldedTurns, rotatedPiece } from '@shared/play/commands';
 import { snapshotFactionLabels, snapshotFactionTieBreaks } from '@shared/play/factionLabels';
 import type { SpawnSelection } from '@shared/play/inventory';
@@ -187,6 +188,8 @@ export class TableSession {
   private readonly listeners = new Set<() => void>();
   private readonly pointerListeners = new Set<() => void>();
   private readonly pingListeners = new Set<(ping: TablePing) => void>();
+  private readonly drawListeners = new Set<(draw: CardDraw) => void>();
+  private lastDraw: Pick<CardDraw, 'epoch' | 'revision'> | null = null;
   /* When this page last pinged, by its monotonic clock; -Infinity before the first. */
   private pingedAt = Number.NEGATIVE_INFINITY;
   private readonly tableListeners = new Set<() => void>();
@@ -452,6 +455,32 @@ export class TableSession {
     this.pingListeners.add(listener);
     return () => this.pingListeners.delete(listener);
   };
+  /** Accepted draws reach every current viewer once, independently of the pieces they remove. */
+  subscribeCardDraws = (listener: (draw: CardDraw) => void) => {
+    this.drawListeners.add(listener);
+    return () => this.drawListeners.delete(listener);
+  };
+  private canShowCardDraws() {
+    if (this.status !== 'authorized') {
+      return false;
+    }
+    return this.current() && !reviewRunning(this.saved?.review);
+  }
+  private receiveCardDraw(draw: CardDraw) {
+    if (!this.canShowCardDraws()) {
+      return;
+    }
+    if (draw.epoch !== this.epoch || draw.revision !== this.snapshot.revision) {
+      return;
+    }
+    if (this.lastDraw?.epoch === draw.epoch && draw.revision <= this.lastDraw.revision) {
+      return;
+    }
+    this.lastDraw = { epoch: draw.epoch, revision: draw.revision };
+    for (const listener of this.drawListeners) {
+      listener(draw);
+    }
+  }
   private emitPing(ping: TablePing) {
     for (const listener of this.pingListeners) {
       listener(ping);
@@ -912,7 +941,7 @@ export class TableSession {
   private send(message: Exclude<ClientMessage, { type: 'admit' | 'sync' }>): boolean {
     return this.canSend(message) && this.subscription.send(message);
   }
-  private receive(message: TableSubscriptionEvent) {
+  private receive(message: Exclude<TableSubscriptionEvent, { type: 'ping' | 'card-draw' }>) {
     this.settleRequest(message);
     switch (message.type) {
       case 'connection':
@@ -1061,7 +1090,7 @@ export class TableSession {
     }
   }
   private receiveAuthorizedUpdate(
-    message: Exclude<TableSubscriptionEvent, { type: 'connection' | 'resync' | 'view' }>
+    message: Exclude<TableSubscriptionEvent, { type: 'connection' | 'resync' | 'view' | 'ping' | 'card-draw' }>
   ) {
     if (this.conversations.receive(message)) {
       return;
@@ -1308,9 +1337,15 @@ export class TableSession {
       this.restore();
       this.emit();
     }
-    const stop = this.subscription.subscribe((event) =>
-      event.type === 'ping' ? this.receivePing(event.ping) : this.receive(event)
-    );
+    const stop = this.subscription.subscribe((event) => {
+      if (event.type === 'ping') {
+        this.receivePing(event.ping);
+      } else if (event.type === 'card-draw') {
+        this.receiveCardDraw(event.draw);
+      } else {
+        this.receive(event);
+      }
+    });
     const stopVisibility = this.runtime.onHidden(() => {
       this.publishPointer(null);
       this.cancelDraft();
