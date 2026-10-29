@@ -9,7 +9,7 @@ import type { TableProjection } from '../../../../db/tabletop/TableSession';
  * The window's (?) gives the one-line description and the full help under it, and the compass's search shows the description as a hint;
  * the section the window holds keeps the same help for assistive technology, so both read from here.
  * Help is a few short lines, one thought each, joined by line breaks the tooltip keeps (Norbert, 2026-10-27: a wall of text helps nobody).
- * Keys stay out of it: the compass's key caps and the tutorial teach them.
+ * Controls with a keyboard placement mode include its keys in their help.
  */
 
 type Guidance = Readonly<{ description: string; help?: string }>;
@@ -86,6 +86,8 @@ export const SHARED_INVENTORY_GUIDANCE: Guidance = {
 };
 
 export const SPICE_RESERVE_HELP = helpLines(
+  'Choose an amount and drag the spice token onto the table.',
+  'For keyboard placement, focus the token and press Enter. Arrow keys move it; Enter places it; Escape cancels.',
   'Right-click a spice stack on the table to take it.',
   'Drop a stack on the Spice Bank disc to return it.'
 );

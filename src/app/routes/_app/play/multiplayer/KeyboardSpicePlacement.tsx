@@ -1,22 +1,25 @@
-import { Button, Text } from '@mantine/core';
+import { Button } from '@mantine/core';
 import { Html } from '@react-three/drei/webgpu';
 import { useThree } from '@react-three/fiber/webgpu';
 import type { Vector3Tuple } from '@shared/play/model';
+import { HelpMark } from '@ui/content/HelpMark';
 import { DarkSchemeIsland } from '@ui/surface/DarkSchemeIsland';
-import { Surface } from '@ui/surface/Surface';
 import { useCallback, useEffect, useId, useReducer, useRef } from 'react';
 import type { KeyboardEvent } from 'react';
-import { Vector3 } from 'three';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import { usePointerSession } from '../../../../widgets/tabletop/PointerSessionContext';
 import styles from './KeyboardSpicePlacement.module.css';
-import { moveSpicePosition, visibleSpicePosition } from './spicePlacementGeometry';
+import { moveSpicePosition, spicePreviewIsClear, visibleSpicePosition } from './spicePlacementGeometry';
+import type { SpicePreviewSize } from './spicePlacementGeometry';
 import { SPICE_RESERVE_PICKUP } from './spiceReserveDrop';
 import { SpiceTokenPreview } from './SpiceTokenPreview';
 
-type Placement = { amount: number; factionId: string; position: Vector3Tuple };
-type Change = { kind: 'pick-up'; placement: Placement } | { kind: 'move'; position: Vector3Tuple } | { kind: 'cancel' };
+type Placement = { amount: number; factionId: string; position: Vector3Tuple; size: SpicePreviewSize };
+type Change =
+  | { kind: 'pick-up'; placement: Placement }
+  | { kind: 'move'; position: Vector3Tuple; size: SpicePreviewSize }
+  | { kind: 'cancel' };
 const DIRECTIONS: Readonly<Record<string, readonly [number, number]>> = {
   ArrowUp: [0, -1],
   ArrowDown: [0, 1],
@@ -56,7 +59,19 @@ function changePlacement(before: Placement | null, change: Change): Placement | 
   if (change.kind === 'cancel') {
     return null;
   }
-  return before && { ...before, position: change.position };
+  return before && { ...before, position: change.position, size: change.size };
+}
+
+/* The inactive preview stays measurable so pickup checks the same compact control the player will see. */
+function measurePreview(token: HTMLDialogElement | null): SpicePreviewSize | null {
+  if (!token) {
+    return null;
+  }
+  const bounds = token.getBoundingClientRect();
+  if (bounds.width <= 0 || bounds.height <= 0) {
+    return null;
+  }
+  return { width: bounds.width, height: bounds.height };
 }
 
 /** A keyboard pickup is only a preview; confirming its visible location sends the withdrawal. */
@@ -65,6 +80,7 @@ export function KeyboardSpicePlacement({ client, table }: Readonly<{ client: Tab
   const pointerSession = usePointerSession();
   const [placement, change] = useReducer(changePlacement, null);
   const source = useRef<HTMLElement | null>(null);
+  const token = useRef<HTMLDialogElement | null>(null);
   const instructionId = useId();
   const cancel = useCallback(() => change({ kind: 'cancel' }), []);
   const finish = useCallback(() => {
@@ -81,12 +97,16 @@ export function KeyboardSpicePlacement({ client, table }: Readonly<{ client: Tab
       if (!bank || pointerSession.busy) {
         return;
       }
-      const position = visibleSpicePosition(canvas, camera);
+      const size = measurePreview(token.current);
+      if (!size) {
+        return;
+      }
+      const position = visibleSpicePosition(canvas, camera, size);
       if (!position) {
         return;
       }
       source.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-      change({ kind: 'pick-up', placement: { amount, factionId: bank.factionId, position } });
+      change({ kind: 'pick-up', placement: { amount, factionId: bank.factionId, position, size } });
     };
     canvas.addEventListener(SPICE_RESERVE_PICKUP, pickUp);
     return () => canvas.removeEventListener(SPICE_RESERVE_PICKUP, pickUp);
@@ -101,26 +121,75 @@ export function KeyboardSpicePlacement({ client, table }: Readonly<{ client: Tab
     }
   }, [placement, table, invalidate, cancel]);
   const active = placement !== null;
+  const visible = Boolean(
+    placement && spicePreviewIsClear(renderer.domElement, camera, placement.position, placement.size)
+  );
+  useEffect(() => {
+    if (!placement) {
+      return;
+    }
+    const validate = () => {
+      const size = measurePreview(token.current);
+      if (!size) {
+        finish();
+        return;
+      }
+      if (!spicePreviewIsClear(renderer.domElement, camera, placement.position, size)) {
+        finish();
+        return;
+      }
+      const sameSize = size.width === placement.size.width && size.height === placement.size.height;
+      if (!sameSize) {
+        finish();
+      }
+    };
+    const observer = new ResizeObserver(validate);
+    observer.observe(renderer.domElement);
+    if (token.current) {
+      observer.observe(token.current);
+    }
+    for (const panel of document.querySelectorAll('[data-private-hand], [data-hides-cursor]')) {
+      observer.observe(panel);
+    }
+    return () => observer.disconnect();
+  }, [placement, table, renderer, camera, finish]);
   useEffect(() => {
     if (!active) {
       return;
     }
     window.addEventListener('blur', cancel);
-    return () => window.removeEventListener('blur', cancel);
-  }, [active, cancel]);
-  if (!placement) {
-    return null;
-  }
-
+    window.addEventListener('resize', finish);
+    return () => {
+      window.removeEventListener('blur', cancel);
+      window.removeEventListener('resize', finish);
+    };
+  }, [active, cancel, finish]);
+  const focusPreview = useCallback(
+    (node: HTMLButtonElement | null) => {
+      if (visible) {
+        node?.focus({ preventScroll: true });
+      }
+    },
+    [visible]
+  );
   const move = (dx: number, dy: number, fine: boolean) => {
+    const size = measurePreview(token.current);
+    if (!placement || !size) {
+      return;
+    }
     const step = fine ? 4 : 20;
-    const position = moveSpicePosition(renderer.domElement, camera, placement.position, [dx * step, dy * step]);
+    const position = moveSpicePosition(renderer.domElement, camera, placement.position, [dx * step, dy * step], size);
     if (position) {
-      change({ kind: 'move', position });
+      change({ kind: 'move', position, size });
     }
   };
   const confirm = () => {
-    if (canPlaceSpice(client.getTable(), placement)) {
+    const size = measurePreview(token.current);
+    if (!placement || !size) {
+      return;
+    }
+    const clear = spicePreviewIsClear(renderer.domElement, camera, placement.position, size);
+    if (clear && canPlaceSpice(client.getTable(), placement)) {
       client.command({ kind: 'bank-withdraw', amount: placement.amount, position: placement.position });
     }
     finish();
@@ -140,49 +209,58 @@ export function KeyboardSpicePlacement({ client, table }: Readonly<{ client: Tab
       move(direction[0], direction[1], event.shiftKey);
     } else if (event.key === 'Escape') {
       finish();
-    } else if (!event.repeat) {
+    } else if (!event.repeat && event.target instanceof HTMLButtonElement) {
       confirm();
     }
   };
-  const canvasBounds = renderer.domElement.getBoundingClientRect();
-  const screen = new Vector3(...placement.position).project(camera);
-  const screenX = ((screen.x + 1) * canvasBounds.width) / 2;
-  const screenY = ((1 - screen.y) * canvasBounds.height) / 2;
-  const hintWidth = Math.min(240, canvasBounds.width - 16);
-  const hintCenter = Math.min(canvasBounds.width - hintWidth / 2 - 8, Math.max(hintWidth / 2 + 8, screenX));
   return (
-    <Html position={placement.position} center zIndexRange={[40, 30]}>
+    <Html
+      position={placement?.position ?? [0, 0.18, 0]}
+      center
+      zIndexRange={[40, 30]}
+      /* Keep the inactive control measurable even when its anchor is behind the camera. */
+      onOcclude={(behindCamera) => {
+        if (behindCamera && active) {
+          finish();
+        }
+      }}
+    >
       <DarkSchemeIsland>
-        <div className={styles.placement} role="dialog" aria-label="Place spice on the table">
+        <dialog
+          ref={token}
+          className={styles.placement}
+          open
+          data-takes-escape
+          aria-label="Place spice on the table"
+          aria-hidden={!visible || undefined}
+          inert={!visible}
+          style={{ visibility: visible ? 'visible' : 'hidden' }}
+          onKeyDownCapture={keyDown}
+          onBlurCapture={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget)) {
+              cancel();
+            }
+          }}
+        >
           <Button
-            ref={(node) => {
-              node?.focus({ preventScroll: true });
-            }}
+            ref={focusPreview}
             variant="transparent"
             p={0}
             w={64}
             h={64}
-            aria-label={`Place ${placement.amount} spice here`}
+            aria-label={`Place ${placement?.amount ?? 0} spice here`}
             aria-describedby={instructionId}
-            onKeyDown={keyDown}
             onClick={confirm}
-            onBlur={cancel}
           >
-            <SpiceTokenPreview amount={placement.amount} />
+            <SpiceTokenPreview amount={placement?.amount ?? 0} />
           </Button>
-          <div
-            className={styles.instructions}
-            id={instructionId}
-            data-below={screenY < 128 || undefined}
-            style={{ left: 32 + hintCenter - screenX, width: hintWidth }}
-          >
-            <Surface padding="sm" tone="ground">
-              <Text size="xs">
-                Arrow keys move the spice. Hold Shift for smaller steps. Enter places it; Escape cancels.
-              </Text>
-            </Surface>
+          <div className={styles.help}>
+            <HelpMark
+              id={instructionId}
+              text="Arrow keys move the spice. Hold Shift for smaller steps. Enter places it; Escape cancels."
+            />
           </div>
-        </div>
+        </dialog>
       </DarkSchemeIsland>
     </Html>
   );
