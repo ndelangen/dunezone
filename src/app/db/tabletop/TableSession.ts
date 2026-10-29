@@ -460,8 +460,14 @@ export class TableSession {
     this.drawListeners.add(listener);
     return () => this.drawListeners.delete(listener);
   };
+  private canShowCardDraws() {
+    if (this.status !== 'authorized') {
+      return false;
+    }
+    return this.current() && !reviewRunning(this.saved?.review);
+  }
   private receiveCardDraw(draw: CardDraw) {
-    if (this.status !== 'authorized' || !this.current() || reviewRunning(this.saved?.review)) {
+    if (!this.canShowCardDraws()) {
       return;
     }
     if (draw.epoch !== this.epoch || draw.revision !== this.saved?.revision) {

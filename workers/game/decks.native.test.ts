@@ -136,6 +136,28 @@ describe('Private deck commands through native delivery', () => {
     expect(await runtime.exec('SELECT action FROM public_action_history')).toHaveLength(1);
   });
 
+  it('delivers an accepted draw to every viewer when its visual cue is outside the coordinate range', async () => {
+    const rows = await runtime.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1');
+    const snapshot = readSnapshot(rows[0].data);
+    required(deck({ snapshot })).position[1] = 30;
+    await runtime.exec('UPDATE current_state SET data=? WHERE id=1', [JSON.stringify(snapshot)]);
+    await runtime.restart();
+    const sender = await admit('a');
+    const recipient = await admit('b');
+    const spectator = await admit('c');
+    const result = await sendCommand(sender, {
+      kind: 'deck-draw',
+      pieceId: 'treachery-deck',
+      recipient: 'atreides',
+    });
+    expect(result.reply.type).not.toBe('rejected');
+    expect((await syncView(recipient)).snapshot.hand).toHaveLength(1);
+    for (const viewer of [sender, recipient, spectator]) {
+      expect(required(deck(await syncView(viewer))).items).toHaveLength(3);
+      expect(draws(viewer.messages)).toEqual([]);
+    }
+  });
+
   it('retires every public card handle on shuffle while preserving internal identities across retry and restart', async () => {
     const a = await admit('a');
     await admit('b');

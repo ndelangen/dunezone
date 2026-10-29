@@ -4,6 +4,7 @@ import { cardDrawSchema, describeCardDraw } from './cardDraw';
 import { initialSnapshot } from './commands';
 import { factionTokenStackKey } from './factionToken';
 import type { GameSnapshot, PieceAction } from './protocol';
+import { stackTopHeight } from './tableGeometry';
 
 function fixture(): GameSnapshot {
   const snapshot = initialSnapshot();
@@ -64,6 +65,23 @@ describe('public card draw descriptions', () => {
         'someone-else'
       )
     ).toMatchObject({ recipient: 'atreides', count: 4, back: 'https://cards.test/back.png' });
+  });
+
+  test.each(['treachery-deck', 'token'])('omits a cue when %s has no valid animation endpoint', (pieceId) => {
+    const snapshot = fixture();
+    snapshot.table.pieces.find((piece) => piece.id === pieceId)!.position[1] = 30;
+    expect(describeCardDraw(snapshot, { kind: 'deck-draw', pieceId: 'treachery-deck' }, 'atreides')).toBeUndefined();
+  });
+
+  test('keeps endpoints at the legal upper boundary', () => {
+    const snapshot = fixture();
+    for (const piece of snapshot.table.pieces.filter((entry) => ['treachery-deck', 'token'].includes(entry.id))) {
+      piece.position[1] = 30 - stackTopHeight(piece);
+    }
+    const draw = describeCardDraw(snapshot, { kind: 'deck-draw', pieceId: 'treachery-deck' }, 'atreides')!;
+    expect(draw.from[1]).toBe(30);
+    expect(draw.to[1]).toBe(30);
+    expect(cardDrawSchema.safeParse({ ...draw, epoch: 'room', revision: 2 }).success).toBe(true);
   });
 
   test.each<PieceAction>([

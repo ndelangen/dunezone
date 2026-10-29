@@ -20,6 +20,7 @@ export const cardDrawSchema = z.strictObject({
 });
 
 export type CardDraw = z.infer<typeof cardDrawSchema>;
+const cardDrawDescriptionSchema = cardDrawSchema.omit({ epoch: true, revision: true });
 
 /** Capture the public source before a draw can remove its last card. Callers publish only after acceptance. */
 export function describeCardDraw(
@@ -35,7 +36,9 @@ export function describeCardDraw(
   if (!destination || !source) {
     return;
   }
-  return { ...source, ...destination, count: action.count ?? 1 };
+  /* A visual cue must never make an accepted state update unreadable. */
+  const result = cardDrawDescriptionSchema.safeParse({ ...source, ...destination, count: action.count ?? 1 });
+  return result.success ? result.data : undefined;
 }
 
 function describeRecipient(
