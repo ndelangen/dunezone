@@ -9,7 +9,7 @@ import type * as TanStackRouter from '@tanstack/react-router';
 import { appContentTheme } from '@ui/theme';
 import type { ComponentType, ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { expect, test, vi } from 'vite-plus/test';
+import { beforeAll, expect, test, vi } from 'vite-plus/test';
 
 import { BLOG_POST_BODIES } from './postBodies';
 import { BLOG_POSTS } from './posts';
@@ -64,6 +64,11 @@ async function renderBody(slug: BlogPostSlug): Promise<HTMLElement> {
   );
   return new DOMParser().parseFromString(markup, 'text/html').body;
 }
+
+/* Loading a post's chunk the first time takes longer than one test's timeout for posts that embed the renderers, so every chunk loads once up front. */
+beforeAll(async () => {
+  await Promise.all(Object.values(BLOG_POST_BODIES).map((load) => load()));
+}, 60_000);
 
 /* Every post closes on a picture, so nothing a reader reads comes after its last figure. */
 test.each(BLOG_POSTS.map(({ slug }) => slug))('the post %s ends with a picture', async (slug) => {

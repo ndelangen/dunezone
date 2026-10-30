@@ -7,11 +7,11 @@ import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useSta
 import type { CSSProperties, ReactNode } from 'react';
 
 import type { Faction } from '@db/factions';
+import { FactionSheetPagePreview, factionDraftForRenderer } from '@app/print/sheet/FactionSheetPagePreview';
 import { hasSheetPage2 } from '@game/assets/faction/sheet/Sheet';
 import { Shield } from '@game/assets/faction/shield/Shield';
 import { shield as shieldSize } from '@game/data/sizes';
 
-import { FactionSheetPagePreview, factionDraftForRenderer } from './FactionSheetPagePreview';
 import styles from './FactionSheetReview.module.css';
 
 /** The narrowest stage the review opens on, the 9rem editor strip beside the sheet spread's 36rem; below it the stylesheet hides the panel. */

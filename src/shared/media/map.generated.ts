@@ -958,6 +958,7 @@ export const MEDIA_MAP: Readonly<Record<string, MediaMapEntry>> = {
   '/image/texture/082.jpg': ['4e47f3e5fc4284ed21ac', '#080808'],
   '/image/texture/hiereg-discovery.png': ['17418d80b07639ef6c52', '#c8c8c8'],
   '/web/blog/building-a-dune-sandbox/game-table.jpg': ['a341b95b962cd947a2e2', '#080808'],
+  '/web/blog/anatomy-of-a-dune-faction-atreides/atreides-table-spread.jpg': ['13f00b3582d81614dc56', '#281818'],
   '/web/blog/drawing-dune-tokens-and-cards/atreides-leaders.jpg': ['ebb942756691887e5cc0', '#181808'],
   '/web/blog/drawing-dune-tokens-and-cards/exploded-layers.jpg': ['847bcdfd830a4aaa41f6', '#d8c8a8'],
   '/web/blog/drawing-dune-tokens-and-cards/thufir-token-photo.jpg': ['f8cb0f3093fa2b95b324', '#e8c888'],

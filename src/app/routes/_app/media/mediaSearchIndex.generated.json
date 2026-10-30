@@ -8374,6 +8374,11 @@
     "tags": ["background", "illustration"],
     "subjects": ["patterns"]
   },
+  "/web/blog/anatomy-of-a-dune-faction-atreides/atreides-table-spread.jpg": {
+    "description": "House Atreides laid out on a table as dune.zone draws it: the shield, both faction sheet pages, five traitor cards, the alliance card, leader tokens, the faction token and troops.",
+    "tags": ["Atreides", "faction shield", "faction sheet", "traitor cards", "blog"],
+    "subjects": ["symbols", "culture"]
+  },
   "/web/blog/building-a-dune-sandbox/game-table.jpg": {
     "description": "The dune.zone game table during the spice blow, with the Dune board, troops, faction shields and the treachery deck.",
     "tags": ["dune.zone", "game table", "spice blow", "online play", "blog"],
