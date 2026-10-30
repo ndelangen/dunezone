@@ -45,7 +45,11 @@ function orbit(container: HTMLElement, layer: 'planet' | 'stars') {
   if (!svg) {
     throw new Error(`Missing ${layer} layer`);
   }
-  return Number(svg.style.transform.match(/rotate\(([-.\d]+)deg\)/)?.[1]);
+  const angle = Number(svg.style.transform.match(/rotate\(([-.\d]+)deg\)/)?.[1]);
+  if (!Number.isFinite(angle)) {
+    throw new Error(`Missing rotation on ${layer} layer: ${svg.style.transform}`);
+  }
+  return angle;
 }
 
 describe('orbital background', () => {
