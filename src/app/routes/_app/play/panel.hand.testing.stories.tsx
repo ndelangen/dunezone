@@ -250,6 +250,14 @@ export const SpicePlacementHelpKeepsPlacement = meta.story({
     await openTab(page, 'Spice');
     finishTransitions(page.getByRole('group', { name: 'Hand & spice' }));
     await waitForPlayCamera(canvasElement.ownerDocument);
+    /* Pickup needs the hidden preview dimensions, which arrive after the camera mounts. */
+    await waitForFrame(async () => {
+      const preview = canvasElement.ownerDocument.querySelector('dialog[aria-label="Place spice on the table"]');
+      await expect(preview).not.toBeNull();
+      const bounds = preview!.getBoundingClientRect();
+      await expect(bounds.width).toBeGreaterThan(0);
+      await expect(bounds.height).toBeGreaterThan(0);
+    });
     const source = page.getByRole('button', { name: 'Drag 1 spice to the table' });
     source.focus();
     await expect(source).toHaveFocus();
