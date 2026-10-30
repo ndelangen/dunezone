@@ -78,7 +78,6 @@ function AbilityFields({
         input={
           <FormattedTextInput
             aria-label="General ability"
-            autosize
             minRows={4}
             value={draft.generalText}
             onChange={(generalText) => patch({ generalText })}
@@ -91,7 +90,6 @@ function AbilityFields({
         input={
           <FormattedTextInput
             aria-label="Battle ability"
-            autosize
             minRows={4}
             value={draft.battleText}
             onChange={(battleText) => patch({ battleText })}

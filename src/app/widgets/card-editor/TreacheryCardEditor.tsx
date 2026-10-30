@@ -71,13 +71,7 @@ function BodyField({ draft, patch }: { draft: TreacheryDraft; patch: Patch }) {
       title="Body"
       description="Line breaks become paragraphs on the card."
       input={
-        <FormattedTextInput
-          aria-label="Body"
-          autosize
-          minRows={4}
-          value={draft.text}
-          onChange={(text) => patch({ text })}
-        />
+        <FormattedTextInput aria-label="Body" minRows={4} value={draft.text} onChange={(text) => patch({ text })} />
       }
     />
   );

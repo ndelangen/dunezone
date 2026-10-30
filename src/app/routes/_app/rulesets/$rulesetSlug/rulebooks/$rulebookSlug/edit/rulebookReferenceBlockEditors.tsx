@@ -224,7 +224,6 @@ export function ReferenceTableEdit({ value, onChange }: RulebookBlockEditorProps
                           key={columnId}
                           aria-label={cellLabel}
                           label={column.label || `Column ${index + 1}`}
-                          autosize
                           minRows={1}
                           value={value.rowsById[rowId]!.cellsByColumnId[columnId] ?? ''}
                           onChange={(text) => setCell(rowId, columnId, text)}
@@ -244,7 +243,6 @@ export function ReferenceTableEdit({ value, onChange }: RulebookBlockEditorProps
         input={
           <FormattedTextInput
             aria-label="Note"
-            autosize
             minRows={2}
             value={value.note}
             onChange={(note) => onChange({ ...value, note })}

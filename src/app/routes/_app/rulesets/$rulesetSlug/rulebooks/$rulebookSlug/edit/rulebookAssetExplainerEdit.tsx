@@ -366,7 +366,6 @@ export function AssetExplainerEdit({
                   input={
                     <FormattedTextInput
                       aria-label="Explanation"
-                      autosize
                       minRows={3}
                       value={item.text}
                       onChange={(text) => updateItem({ text })}

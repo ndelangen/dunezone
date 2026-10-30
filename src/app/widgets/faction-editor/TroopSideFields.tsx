@@ -291,7 +291,6 @@ export function TroopSideFields({
                 <FormattedTextInput
                   id={`${idBase}-desc`}
                   aria-label={title}
-                  autosize
                   minRows={2}
                   value={field.state.value ?? ''}
                   onBlur={field.handleBlur}

@@ -1,4 +1,4 @@
-import { Checkbox, Radio, Switch, Tabs, createTheme, defaultVariantColorsResolver } from '@mantine/core';
+import { Checkbox, Radio, Switch, Tabs, Textarea, createTheme, defaultVariantColorsResolver } from '@mantine/core';
 import type { MantineColorSchemeManager } from '@mantine/core';
 import { playUiColors, themeRamps, withAlpha } from '@shared/uiPalette';
 
@@ -180,6 +180,8 @@ export const appContentTheme = createTheme({
     MultiSelect: { classNames: { option: styles.selectedOption } },
     Autocomplete: { classNames: { option: styles.selectedOption } },
     TagsInput: { classNames: { option: styles.selectedOption } },
+    /* Every multiline field grows with its text, so nobody has to scroll inside one or drag it taller. */
+    Textarea: Textarea.extend({ defaultProps: { autosize: true } }),
     Chip: { defaultProps: { color: 'selected' } },
     NavLink: { defaultProps: { color: 'selected' } },
     Checkbox: Checkbox.extend({

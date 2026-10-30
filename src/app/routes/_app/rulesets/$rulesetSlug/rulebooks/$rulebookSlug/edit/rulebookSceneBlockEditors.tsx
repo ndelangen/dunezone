@@ -790,7 +790,6 @@ function BoardSceneFields({ value, references, onChange }: BoardSceneFieldsProps
         />
         <Textarea
           label="Caption"
-          autosize
           minRows={2}
           value={value.caption}
           onChange={(event) => onChange({ ...value, caption: event.currentTarget.value })}
@@ -966,7 +965,6 @@ export function PieceMovementEdit({
       </Group>
       <Textarea
         label="Explanation"
-        autosize
         value={value.caption}
         onChange={(event) => onChange({ ...value, caption: event.currentTarget.value })}
       />

@@ -54,7 +54,6 @@ function AdvantageCard({ form, index }: { form: FactionFormApi; index: number })
                   <FormattedTextInput
                     id={`adv-${index}-text`}
                     aria-label="Advantage rule"
-                    autosize
                     minRows={3}
                     value={field.state.value}
                     aria-describedby={textIsBlank ? warningId : undefined}
@@ -82,7 +81,6 @@ function AdvantageCard({ form, index }: { form: FactionFormApi; index: number })
               <FormattedTextInput
                 id={`adv-${index}-karama`}
                 aria-label="Karama interaction (optional)"
-                autosize
                 minRows={2}
                 value={field.state.value ?? ''}
                 onBlur={field.handleBlur}

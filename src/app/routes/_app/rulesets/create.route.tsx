@@ -146,7 +146,6 @@ function CreateRulesetForm() {
                   description={rulesetAboutCount(about)}
                   error={aboutError}
                   required
-                  autosize
                   minRows={4}
                   value={about}
                   onChange={(next) => dispatch({ kind: 'patch', update: { about: next } })}

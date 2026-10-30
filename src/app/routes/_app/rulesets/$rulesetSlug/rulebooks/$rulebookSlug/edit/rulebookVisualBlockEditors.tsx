@@ -178,7 +178,6 @@ export function IllustratedInventoryEdit({
         input={
           <FormattedTextInput
             aria-label="Introduction"
-            autosize
             minRows={2}
             value={value.introduction}
             onChange={(introduction) => onChange({ ...value, introduction })}
@@ -304,7 +303,6 @@ export function IllustratedInventoryEdit({
             input={
               <FormattedTextInput
                 aria-label="Explanation"
-                autosize
                 minRows={3}
                 value={item.text}
                 onChange={(text) => updateItem({ text })}
@@ -382,7 +380,6 @@ export function FactionIntroductionEdit({
         input={
           <FormattedTextInput
             aria-label="Introduction"
-            autosize
             minRows={5}
             value={value.text}
             onChange={(text) => onChange({ ...value, text })}

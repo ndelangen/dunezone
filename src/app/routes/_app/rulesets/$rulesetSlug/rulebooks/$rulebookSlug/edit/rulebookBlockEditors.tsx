@@ -108,7 +108,6 @@ function TextBlockEdit({ value, onChange, references }: RulebookBlockEditorProps
         input={
           <FormattedTextInput
             aria-label="Content"
-            autosize
             minRows={5}
             value={value.text}
             onChange={(text) => onChange({ ...value, text })}
@@ -175,7 +174,6 @@ function CalloutEdit({ value, onChange }: RulebookBlockEditorProps<'callout'>) {
         input={
           <FormattedTextInput
             aria-label="Content"
-            autosize
             minRows={5}
             value={value.text}
             onChange={(text) => onChange({ ...value, text })}
@@ -219,7 +217,6 @@ function QuestionAnswerEdit({ value, onChange }: RulebookBlockEditorProps<'quest
         input={
           <FormattedTextInput
             aria-label="Question"
-            autosize
             minRows={3}
             value={value.question}
             onChange={(question) => onChange({ ...value, question })}
@@ -232,7 +229,6 @@ function QuestionAnswerEdit({ value, onChange }: RulebookBlockEditorProps<'quest
         input={
           <FormattedTextInput
             aria-label="Answer"
-            autosize
             minRows={5}
             value={value.answer}
             onChange={(answer) => onChange({ ...value, answer })}
@@ -341,7 +337,6 @@ function ListBlockEdit({ value, onChange }: RulebookBlockEditorProps<'list'>) {
                           input={
                             <FormattedTextInput
                               aria-label={label}
-                              autosize
                               minRows={2}
                               value={item.text}
                               onChange={(text) =>
