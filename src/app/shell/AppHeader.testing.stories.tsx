@@ -66,3 +66,32 @@ export const VideoResumesAfterScrolling = meta.story({
     }
   },
 });
+
+export const VideoLoadsOnApproach = meta.story({
+  globals: { viewport: { value: 'appDesktop' }, motion: 'on' },
+  render: (args) => (
+    <>
+      <div style={{ height: '150vh' }} />
+      <AppHeader {...args} />
+    </>
+  ),
+  play: async ({ canvasElement }) => {
+    const view = canvasElement.ownerDocument.defaultView!;
+    const band = canvasElement.querySelector<HTMLElement>('[data-app-band]')!;
+    try {
+      view.scrollTo({ top: 0, behavior: 'instant' });
+      await waitFor(() => expect(band.getBoundingClientRect().top).toBeGreaterThan(view.innerHeight + 200));
+      /* Give both visibility observers a frame before checking that the video has not mounted. */
+      await new Promise((resolve) => view.requestAnimationFrame(() => view.requestAnimationFrame(resolve)));
+      await expect(band.querySelector('video')).toBeNull();
+      band.scrollIntoView({ behavior: 'instant' });
+      await waitFor(() => expect(band.querySelector('video')).not.toBeNull());
+      const video = band.querySelector('video')!;
+      view.scrollTo({ top: 0, behavior: 'instant' });
+      await waitFor(() => expect(video.paused).toBe(true));
+      await expect(band.querySelector('video')).toBe(video);
+    } finally {
+      view.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  },
+});

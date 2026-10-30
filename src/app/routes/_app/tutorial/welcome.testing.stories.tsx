@@ -12,9 +12,11 @@ import { chapterParameters } from './chapterStory';
 import setup from './setup/setup.json';
 import { startAt } from './setup/tutorialSetup';
 import type { TutorialSetup } from './setup/tutorialSetup';
+import { sceneTableLens } from './tableLens';
 
 const spoken = fn<(utterance: SpeechSynthesisUtterance) => void>();
 const preference = 'dunezone-tutorial:speaking-mode';
+let welcomeReadiness: { report: () => string; stop: () => void } | undefined;
 
 const meta = testingPreview.meta({
   ...pageStoryMeta,
@@ -105,6 +107,62 @@ export const SpeakingMode = meta.story({
 /** A token click, the gear menu and Copy game link each complete their own step. */
 export const PlayedThrough = meta.story({
   parameters: chapterParameters,
+  beforeEach: () => {
+    /* Observe the real readiness checks before mounting; #2627 needs to distinguish missing cameras from motion. */
+    const startedAt = performance.now();
+    const camera = sceneTableLens.camera;
+    const settling = sceneTableLens.settling;
+    const counts = { cameraReads: 0, missingCamera: 0, settlingRuns: 0, settlingSamples: 0, settledSamples: 0 };
+    const samples: { atMs: number; cameraId: string; position: number[]; settled: boolean }[] = [];
+    let observing = true;
+    const cameraSpy = spyOn(sceneTableLens, 'camera').mockImplementation(() => {
+      const result = camera();
+      if (observing) {
+        counts.cameraReads++;
+        counts.missingCamera += Number(result === null);
+      }
+      return result;
+    });
+    const settlingSpy = spyOn(sceneTableLens, 'settling').mockImplementation(() => {
+      const check = settling();
+      if (observing) {
+        counts.settlingRuns++;
+      }
+      return (camera) => {
+        const settled = check(camera);
+        if (observing) {
+          counts.settlingSamples++;
+          counts.settledSamples += Number(settled);
+          samples.push({
+            atMs: Math.round(performance.now() - startedAt),
+            cameraId: camera.uuid,
+            position: camera.position.toArray(),
+            settled,
+          });
+          if (samples.length > 8) {
+            samples.shift();
+          }
+        }
+        return settled;
+      };
+    });
+    const stop = () => {
+      if (!observing) {
+        return;
+      }
+      observing = false;
+      cameraSpy.mockRestore();
+      settlingSpy.mockRestore();
+    };
+    welcomeReadiness = {
+      stop,
+      report: () => JSON.stringify({ elapsedMs: Math.round(performance.now() - startedAt), ...counts, samples }),
+    };
+    return () => {
+      stop();
+      welcomeReadiness = undefined;
+    };
+  },
   play: async ({ canvasElement }) => {
     const document = canvasElement.ownerDocument;
     const page = within(document.body);
@@ -145,7 +203,14 @@ export const PlayedThrough = meta.story({
     const token = stored.table.pieces.filter(isFactionToken).sort((a, b) => b.position[2] - a.position[2])[0]!;
     const tokenPoint = [token.position[0], token.position[1] + stackTopHeight(token), token.position[2]] as const;
     await waitForPlayCamera(document);
-    await step('Welcome to the table');
+    try {
+      await step('Welcome to the table');
+    } catch (error) {
+      console.error('Welcome table readiness:', welcomeReadiness?.report());
+      throw error;
+    } finally {
+      welcomeReadiness?.stop();
+    }
     await userEvent.keyboard('{Enter}');
     await step('Meet Arrakis');
     await clickAt(tokenPoint);

@@ -65,6 +65,15 @@
   min-width: 0;
 }
 
+/* A vertical stack avoids sizing every grid row when a contained Page becomes visible. */
+@media screen {
+  .readerDocument [data-rulebook-document] {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+}
+
 /*
  * The next two offsets, 80px and 112px, are where an anchored Page and an anchored Block come to rest
  * below the top of the window.

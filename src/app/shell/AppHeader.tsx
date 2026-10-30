@@ -32,7 +32,7 @@ export interface AppHeaderProps {
  *
  * The artwork itself is a three-layer stack: an inlined blurred frame that costs no request, the sharp poster photograph over it, and the looping video fading in on top once it actually plays.
  * The video only mounts client-side after `prefers-reduced-motion` says motion is welcome, so reduced-motion visitors get the poster and never download the loop.
- * It also waits for the band to take up space before loading the loop.
+ * It also waits for the band to approach the viewport before loading the loop.
  * Once playing, the same video stays mounted and pauses outside the viewport or in a hidden tab, retaining its frame and buffer.
  * The `motion` cookie, `AppFooter`'s switch, overrides that OS hint for this site alone, live in both directions.
  */
@@ -42,7 +42,7 @@ export function AppHeader({ children }: AppHeaderProps) {
   const [videoReady, setVideoReady] = useState(false);
   const motionOk = useMotionAllowed();
   const bandShown = useShown(bandRef);
-  const mountVideo = motionOk && (bandShown || videoReady);
+  const mountVideo = useVideoRequested(bandRef, motionOk, bandShown);
   const frameRef = useRef<HTMLDivElement>(null);
   const mediaRef = useRef<HTMLDivElement>(null);
   useFrameLeft(frameRef);
@@ -124,6 +124,36 @@ export function AppHeader({ children }: AppHeaderProps) {
       {children}
     </div>
   );
+}
+
+/* Keep a requested video mounted even when it leaves before its first playing event. */
+function useVideoRequested(ref: RefObject<HTMLElement | null>, motionOk: boolean, shown: boolean) {
+  const [requested, setRequested] = useState(false);
+  if (!motionOk && requested) {
+    setRequested(false);
+  } else if (motionOk && shown && !requested && typeof IntersectionObserver === 'undefined') {
+    setRequested(true);
+  }
+  useEffect(() => {
+    const element = ref.current;
+    if (!motionOk || !shown || requested || !element) {
+      return;
+    }
+    if (typeof IntersectionObserver === 'undefined') {
+      return;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setRequested(true);
+        }
+      },
+      { rootMargin: '200px' }
+    );
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [motionOk, ref, requested, shown]);
+  return motionOk && requested;
 }
 
 /* Publishes the frame's distance from the window's left edge as `--app-frame-left`, for the immersive band to bleed back to the edge. */

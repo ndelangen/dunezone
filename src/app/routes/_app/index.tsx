@@ -703,6 +703,7 @@ function LiveBoardPreview({
             identity={member ? identity : null}
             className={styles.liveBoard}
             sceneClassName={styles.liveScene}
+            viewportRef={region}
             onUnavailable={unavailable}
             onHandlingChange={onHandlingChange}
           />
