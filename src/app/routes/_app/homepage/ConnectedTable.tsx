@@ -10,10 +10,11 @@ import {
   useEffect,
   useLayoutEffect,
   useReducer,
+  useRef,
   useState,
   useSyncExternalStore,
 } from 'react';
-import type { ReactNode } from 'react';
+import type { ReactNode, RefObject } from 'react';
 
 import { requestHomepageTicket } from '@db/homepage';
 import type { GameRuntime } from '@db/tabletop/runtime';
@@ -24,6 +25,7 @@ import { TabletopBoard } from '@app/widgets/tabletop/TabletopBoard';
 import { TabletopCanvas } from '@app/widgets/tabletop/TabletopCanvas';
 
 import { HomepageSubscription } from './HomepageSubscription';
+import { PreviewCameraCrop, usePreviewViewport } from './previewViewport';
 
 const runtime: GameRuntime = {
   openSocket() {
@@ -62,15 +64,19 @@ export default function ConnectedTable({
   identity,
   className,
   sceneClassName,
+  viewportRef,
   onUnavailable,
   onHandlingChange,
 }: {
   identity: string | null;
   className: string;
   sceneClassName: string;
+  viewportRef: RefObject<HTMLElement | null>;
   onUnavailable: () => void;
   onHandlingChange: (handling: boolean) => void;
 }): ReactNode {
+  const frameRef = useRef<HTMLDivElement>(null);
+  const viewport = usePreviewViewport(frameRef, viewportRef);
   const [subscription] = useState(() => new HomepageSubscription(runtime, null));
   const [session] = useState(() => new TableSession('homepage', subscription, runtime));
   useLayoutEffect(() => {
@@ -115,6 +121,7 @@ export default function ConnectedTable({
   useEffect(() => session.connect(), [session]);
   return (
     <div
+      ref={frameRef}
       className={className}
       data-live-ready={arrival.painted ? 'true' : undefined}
       data-table-connected={arrival.interactive ? 'true' : undefined}
@@ -126,35 +133,41 @@ export default function ConnectedTable({
         }
       }}
     >
-      <div className={sceneClassName}>
-        <TabletopCanvas
-          camera={camera}
-          presentation="preview"
-          onSceneReady={painted}
-          onSceneUnavailable={onUnavailable}
+      {viewport && (
+        <div
+          className={sceneClassName}
+          style={{ left: viewport.x, top: viewport.y, width: viewport.width, height: viewport.height }}
         >
-          <MapPreviewCamera mapFramingPoints={mapFramingPoints} />
-          <TabletopBoard
-            board={snapshot?.board}
-            stage={stage}
-            mapVisible={mapVisible}
-            seatCount={seatCount}
-            tableProgress={tableProgress}
-            trackerSlots={trackerSlots}
-            stormSectorIndex={stormSectorIndex}
-            onClick={arrival.interactive ? () => session.selectPiece(null) : undefined}
-          />
-          {arrival.painted && snapshot && (
-            <Suspense fallback={null}>
-              <LiveControls
-                session={session}
-                onReady={interactive}
-                scene={{ stage, mapVisible, seatCount, tableProgress, trackerSlots, mapFramingPoints }}
-              />
-            </Suspense>
-          )}
-        </TabletopCanvas>
-      </div>
+          <TabletopCanvas
+            camera={{ ...camera, manual: true }}
+            presentation="preview"
+            onSceneReady={painted}
+            onSceneUnavailable={onUnavailable}
+          >
+            <PreviewCameraCrop viewport={viewport} />
+            <MapPreviewCamera mapFramingPoints={mapFramingPoints} />
+            <TabletopBoard
+              board={snapshot?.board}
+              stage={stage}
+              mapVisible={mapVisible}
+              seatCount={seatCount}
+              tableProgress={tableProgress}
+              trackerSlots={trackerSlots}
+              stormSectorIndex={stormSectorIndex}
+              onClick={arrival.interactive ? () => session.selectPiece(null) : undefined}
+            />
+            {arrival.painted && snapshot && (
+              <Suspense fallback={null}>
+                <LiveControls
+                  session={session}
+                  onReady={interactive}
+                  scene={{ stage, mapVisible, seatCount, tableProgress, trackerSlots, mapFramingPoints }}
+                />
+              </Suspense>
+            )}
+          </TabletopCanvas>
+        </div>
+      )}
     </div>
   );
 }

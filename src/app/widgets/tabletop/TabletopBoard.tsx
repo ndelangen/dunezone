@@ -2,7 +2,6 @@
 
 import { useTexture } from '@react-three/drei/webgpu';
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
-import { retainedArrakisBoard } from '@shared/boards/geometry';
 import { rendererColors } from '@shared/play/assetColors';
 import type { Vector3Tuple } from '@shared/play/model';
 import type { GameSnapshot } from '@shared/play/protocol';
@@ -52,9 +51,9 @@ import { TableFurniture } from './TableFurniture';
 import { useTablePalette } from './tablePalette';
 import { activePhaseIndex, trackerDiscColor } from './tableTrackers';
 import type { TableProgress } from './tableTrackers';
-import { TerritoryTints } from './TerritoryTints';
 import { TurnTracker } from './TurnTracker';
 const SpiceBank = lazy(() => loadSpiceBank().then((module) => ({ default: module.SpiceBank })));
+const TerritoryTints = lazy(() => import('./TerritoryTints').then((module) => ({ default: module.TerritoryTints })));
 useTexture.preload(stormMarkerUrl);
 
 /* Under the map's own shapes, the colour of its outer ring, and how far above the disc the shapes lie. */
@@ -457,7 +456,11 @@ function BoardMap({
       */}
       <group position={[0, BOARD_SURFACE_Y + BOARD_MAP_LIFT, 0]}>
         <BoardPaint board={board} />
-        {tints?.length ? <TerritoryTints board={board?.definition ?? retainedArrakisBoard()} tints={tints} /> : null}
+        {tints?.length ? (
+          <Suspense fallback={<ArtworkPending />}>
+            <TerritoryTints board={board?.definition} tints={tints} />
+          </Suspense>
+        ) : null}
       </group>
     </group>
   );

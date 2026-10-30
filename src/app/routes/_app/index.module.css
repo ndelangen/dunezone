@@ -289,7 +289,6 @@
 }
 .liveScene {
   position: absolute;
-  inset: 0;
 }
 .liveBoard[data-live-ready="true"] {
   opacity: 1;
