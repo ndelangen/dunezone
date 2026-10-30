@@ -103,7 +103,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'ping',
       task: 'Point something out',
       detail:
-        "Want everyone to look at the same place? Hover over a territory and press {Tab} twice. They'll see a ripple in your colour and hear a ping.",
+        "Want everyone to look at the same place? Hover over a territory and press {Tab} to send a ping. They'll see a ripple in your colour and hear it too.\n\nSend two pings to practise. Each press sends one.",
       anchor: { kind: 'table', point: () => [0, 0, 0] },
       ...pingedTwice(players.pings),
     }),

@@ -25,7 +25,17 @@ export const SearchDraftBanAndReady = meta.story({
     await step('Find a suitable faction');
     await expect(page.getByText('suitable for this ruleset', { exact: true })).toBeVisible();
     await expect(current()).toContain('drafting the same faction more than once gets confusing');
-    await userEvent.click(page.getByRole('switch', { name: 'Show all factions' }));
+    const allFactions = page.getByRole('switch', { name: 'Show all factions' });
+    await waitForFrame(async () => {
+      const control = allFactions.closest('label')!.querySelector('.mantine-Switch-track')!.getBoundingClientRect();
+      const arrow = document.querySelector('path[data-target]:not([data-target=""])');
+      const [x, y] = (arrow?.getAttribute('data-target') ?? '').split(' ').map(Number);
+      await expect(x).toBeGreaterThanOrEqual(control.left);
+      await expect(x).toBeLessThanOrEqual(control.right);
+      await expect(y).toBeGreaterThanOrEqual(control.top);
+      await expect(y).toBeLessThanOrEqual(control.bottom);
+    });
+    await userEvent.click(allFactions);
     await step('Find the Space Orks');
     await userEvent.clear(search);
     await userEvent.type(search, 'ork');

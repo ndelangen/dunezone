@@ -85,8 +85,6 @@ html:has(.container [data-page-layout-height="fullscreen"]) {
 }
 
 .container:has([data-page-layout-height="fullscreen"]) > [data-app-background] {
-  --background-animation-state: paused;
-
   visibility: hidden;
 }
 

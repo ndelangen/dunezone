@@ -124,9 +124,10 @@ export const FullscreenExitRestoresDocument = meta.story({
     await playFullscreenHeight({ canvasElement });
     const background = canvasElement.querySelector<HTMLElement>('[data-app-background]')!;
     await waitFor(() => expect(background).toHaveAttribute('data-suspended'));
-    await expect(
-      background.getAnimations({ subtree: true }).every((animation) => animation.playState === 'paused')
-    ).toBe(true);
+    const planet = background.querySelector<SVGSVGElement>('[data-background-planet] svg')!;
+    const suspendedPose = planet.style.transform;
+    await new Promise((resolve) => window.setTimeout(resolve, 350));
+    await expect(planet.style.transform).toBe(suspendedPose);
     const { root, view, navigation, content, footer } = fullscreenElements(canvasElement);
     await userEvent.click(within(canvasElement).getByRole('button', { name: 'Exit fullscreen' }));
 
@@ -138,9 +139,7 @@ export const FullscreenExitRestoresDocument = meta.story({
       await expect(content.getBoundingClientRect().width).toBeLessThan(view.innerWidth);
       await expect(view.getComputedStyle(background).visibility).toBe('visible');
       await expect(background).not.toHaveAttribute('data-suspended');
-      await expect(
-        background.getAnimations({ subtree: true }).every((animation) => animation.playState === 'running')
-      ).toBe(true);
+      await expect(planet.style.transform).not.toBe(suspendedPose);
       await expect(view.getComputedStyle(root).scrollbarGutter).toBe('stable both-edges');
     });
 
