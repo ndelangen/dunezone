@@ -327,7 +327,6 @@ function TextsFields({ face, patch }: { face: RectangleFaceDraft; patch: FacePat
             input={
               <Textarea
                 aria-label={`Content for text ${index + 1}`}
-                autosize
                 minRows={1}
                 value={text.content}
                 onChange={(event) => setText(index, { content: event.currentTarget.value })}

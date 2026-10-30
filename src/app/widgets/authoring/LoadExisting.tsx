@@ -370,8 +370,6 @@ function RawLoadInput<Draft>({
         label="Writable JSON"
         description="Paste one complete data value. Load changes this draft; Save remains separate."
         minRows={12}
-        maxRows={20}
-        autosize
         value={state.text}
         onChange={(event) => {
           generation.current += 1;

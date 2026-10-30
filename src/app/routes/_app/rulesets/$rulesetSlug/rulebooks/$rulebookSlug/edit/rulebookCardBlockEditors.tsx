@@ -110,7 +110,6 @@ function CardGuidanceFields({
         input={
           <FormattedTextInput
             aria-label="Guidance"
-            autosize
             minRows={3}
             value={text}
             onChange={(next) => onChange({ text: next })}
@@ -224,7 +223,6 @@ export function CardGroupEdit({
         input={
           <FormattedTextInput
             aria-label="Shared guidance"
-            autosize
             minRows={3}
             value={value.text}
             onChange={(text) => onChange({ ...value, text })}

@@ -254,7 +254,6 @@ function Composer({
           }
         }}
         maxLength={2000}
-        autosize
         minRows={2}
         maxRows={5}
         rightSection={<ComposerSubmit disabled={!draft.trim()} />}

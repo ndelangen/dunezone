@@ -91,7 +91,6 @@ export function FactionFormSectionAlliance({
                         <FormattedTextInput
                           id="rules-alliance"
                           aria-label="Alliance advantage"
-                          autosize
                           minRows={4}
                           value={field.state.value}
                           aria-describedby={blank ? 'rules-alliance-warning' : undefined}

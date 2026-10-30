@@ -19,6 +19,12 @@ window.matchMedia = vi.fn().mockImplementation((query: string) => ({
   dispatchEvent: vi.fn(),
 }));
 
+/* jsdom has no font loading, which the theme's autosize listens to. */
+Object.defineProperty(document, 'fonts', {
+  configurable: true,
+  value: { addEventListener: vi.fn(), removeEventListener: vi.fn() },
+});
+
 afterEach(cleanup);
 
 function renderInput(value: string, onChange = vi.fn(), error?: string, profile?: 'prose' | 'marks-only') {

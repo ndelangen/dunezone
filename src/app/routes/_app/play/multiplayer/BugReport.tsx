@@ -209,7 +209,6 @@ function ReportForm({ draft, dispatch, send, check }: ReportFormProps) {
             required
             maxLength={8000}
             minRows={5}
-            autosize
             description="Describe what happened, what you expected, and how to reproduce it."
             value={draft.description}
             disabled={submitted}

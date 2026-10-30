@@ -134,7 +134,6 @@ export function CoverEdit({
             aria-label="Supporting text"
             value={value.supportingText}
             onChange={(event) => onChange({ ...value, supportingText: event.currentTarget.value })}
-            autosize
             minRows={3}
           />
         }
@@ -173,7 +172,6 @@ export function CoverFooterEdit({
               <Textarea
                 aria-label="Footer title"
                 value={value.title}
-                autosize
                 minRows={2}
                 onChange={(event) => onChange({ ...value, title: event.currentTarget.value })}
               />

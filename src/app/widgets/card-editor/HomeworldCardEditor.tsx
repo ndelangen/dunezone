@@ -144,7 +144,6 @@ export function HomeworldCardEditor({
                             input={
                               <FormattedTextInput
                                 aria-label={label}
-                                autosize
                                 minRows={3}
                                 value={draft[key].text}
                                 onChange={(text) => patch({ [key]: { ...draft[key], text } })}
@@ -180,7 +179,6 @@ export function HomeworldCardEditor({
                       input={
                         <FormattedTextInput
                           aria-label="Occupied"
-                          autosize
                           minRows={3}
                           value={draft.occupied}
                           onChange={(occupied) => patch({ occupied })}

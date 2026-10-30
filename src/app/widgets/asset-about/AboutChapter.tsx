@@ -29,7 +29,7 @@ export function aboutChapter(
           description="Rule details that do not belong on the artwork. Shown on this asset's page, never on the face."
           input={
             <Stack gap="xs">
-              <FormattedTextInput aria-label="About" autosize minRows={4} value={about} onChange={onChange} />
+              <FormattedTextInput aria-label="About" minRows={4} value={about} onChange={onChange} />
               <Text size="xs" c="dimmed">
                 Optional. Use *bold*, -italics-, _underline_, paragraphs, or dash lists.
               </Text>

@@ -37,7 +37,6 @@ function SetupFields({ form }: { form: FactionFormApi }) {
                       <FormattedTextInput
                         id="rules-start"
                         aria-label="Starting instructions"
-                        autosize
                         minRows={4}
                         profile="marks-only"
                         value={field.state.value}
@@ -66,7 +65,6 @@ function SetupFields({ form }: { form: FactionFormApi }) {
                       <FormattedTextInput
                         id="rules-revival"
                         aria-label="Revival instructions"
-                        autosize
                         minRows={3}
                         profile="marks-only"
                         value={field.state.value}
@@ -161,7 +159,6 @@ function FateFields({ form }: { form: FactionFormApi }) {
                     <FormattedTextInput
                       id="rules-fate-text"
                       label="Rule text"
-                      autosize
                       minRows={3}
                       value={field.state.value}
                       aria-describedby={isBlank(field.state.value) ? warningId : undefined}

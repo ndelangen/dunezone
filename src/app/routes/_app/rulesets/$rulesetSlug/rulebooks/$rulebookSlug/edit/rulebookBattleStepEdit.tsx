@@ -547,7 +547,6 @@ export function BattleStepEdit({
       <Textarea
         label="Explanation"
         aria-label={`${labelPrefix}Explanation`}
-        autosize
         minRows={2}
         value={value.caption}
         onChange={(event) => onChange({ ...value, caption: event.currentTarget.value })}
@@ -631,7 +630,6 @@ function BattleDialogueFields({
               <Textarea
                 label="Speech"
                 aria-label={`${labelPrefix}Dialogue ${index + 1} speech`}
-                autosize
                 minRows={2}
                 value={line.text}
                 onChange={(event) =>

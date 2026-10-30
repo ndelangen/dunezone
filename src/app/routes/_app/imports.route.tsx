@@ -218,8 +218,6 @@ function ImportExportPage() {
                   <Textarea
                     label="Package JSON"
                     minRows={8}
-                    maxRows={18}
-                    autosize
                     value={state.json}
                     disabled={disabled}
                     onChange={(event) => dispatch({ kind: 'edit', patch: { json: event.currentTarget.value } })}

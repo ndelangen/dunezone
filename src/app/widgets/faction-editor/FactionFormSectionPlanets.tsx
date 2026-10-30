@@ -80,7 +80,6 @@ function PlanetFields({ form, index, onFocus }: { form: FactionFormApi; index: n
                 <FormattedTextInput
                   id={`planet-${index}-description`}
                   label="Description"
-                  autosize
                   minRows={2}
                   value={field.state.value ?? ''}
                   onFocus={onFocus}

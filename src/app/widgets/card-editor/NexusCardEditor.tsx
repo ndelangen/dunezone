@@ -172,7 +172,6 @@ export function NexusCardEditor({
                         input={
                           <FormattedTextInput
                             aria-label={label}
-                            autosize
                             minRows={3}
                             value={draft[key]}
                             onChange={(text) => patch({ [key]: text })}

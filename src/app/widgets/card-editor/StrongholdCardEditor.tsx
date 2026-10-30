@@ -162,13 +162,7 @@ function StrongholdBody({
         title="Body"
         description="The advantage gained by controlling this stronghold. Keep it short enough to fit the proof."
         input={
-          <FormattedTextInput
-            aria-label="Body"
-            autosize
-            minRows={4}
-            value={draft.text}
-            onChange={(text) => patch({ text })}
-          />
+          <FormattedTextInput aria-label="Body" minRows={4} value={draft.text} onChange={(text) => patch({ text })} />
         }
       />
     </Stack>

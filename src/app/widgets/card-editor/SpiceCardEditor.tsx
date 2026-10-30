@@ -233,7 +233,6 @@ function BodyFields({ draft, patch }: { draft: SpiceDraft; patch: Patch }) {
         input={
           <FormattedTextInput
             aria-label="Body"
-            autosize
             minRows={3}
             value={spiceDraftText(draft)}
             onChange={(text) => patch({ text })}

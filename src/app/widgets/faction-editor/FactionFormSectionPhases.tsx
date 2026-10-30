@@ -216,7 +216,6 @@ function PhaseCard({ form, index }: { form: FactionFormApi; index: number }) {
                   id={`phase-${index}-instructions`}
                   label="Instructions"
                   description="What players do during this phase. Optional."
-                  autosize
                   minRows={3}
                   value={field.state.value ?? ''}
                   error={problems.instructions}
