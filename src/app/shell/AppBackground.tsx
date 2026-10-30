@@ -4,6 +4,21 @@ import styles from './AppBackground.module.css';
 import planet from './planet.webp?url';
 
 const HOUR = 3_600_000;
+/* The hour-long orbit advances less than half a CSS pixel per tick on a 1440px-wide screen. */
+const TICK_MS = 250;
+const SCROLL_SETTLE_MS = 150;
+
+/* Sample the former CSS ease-in-out curve, including each star's delay and alternating direction. */
+function twinkle(elapsed: number, duration: number, delay: number) {
+  const cycle = ((elapsed / 1000 - delay) % (2 * duration)) / duration;
+  const progress = cycle > 1 ? 2 - cycle : cycle;
+  let t = progress;
+  /* Invert the x coordinate of cubic-bezier(0.42, 0, 0.58, 1), then evaluate its y coordinate. */
+  for (let i = 0; i < 5; i++) {
+    t -= (1.26 * t - 0.78 * t * t + 0.52 * t * t * t - progress) / (1.26 - 1.56 * t + 1.56 * t * t);
+  }
+  return 0.45 + 0.55 * (3 * t * t - 2 * t * t * t);
+}
 
 function updateParallax(frame: HTMLElement | null) {
   const scroller = document.scrollingElement ?? document.documentElement;
@@ -36,47 +51,93 @@ export function AppBackground({ motion }: { motion: boolean }) {
   const starsFrame = useRef<HTMLDivElement>(null);
   const starsLayer = useRef<SVGSVGElement>(null);
   const planetLayer = useRef<SVGSVGElement>(null);
+  const starLayers = useRef(new Map<number, SVGCircleElement>());
 
   useEffect(() => {
+    const element = background.current;
+    const frame = starsFrame.current;
+    if (!element || !frame) {
+      return;
+    }
+    let timer: number | undefined;
+    let scrollTimer: number | undefined;
+    let pending: number | null = null;
+    let suspended: boolean | undefined;
+    let scrolling = false;
     const synchronize = () => {
+      if (suspended || scrolling) {
+        return;
+      }
       const now = new Date();
       const localTime =
         now.getHours() * HOUR + now.getMinutes() * 60_000 + now.getSeconds() * 1000 + now.getMilliseconds();
-      for (const [layer, duration] of [
-        [planetLayer.current, HOUR],
-        [starsLayer.current, 2 * HOUR],
-      ] as const) {
-        for (const animation of layer?.getAnimations?.() ?? []) {
-          animation.currentTime = localTime % duration;
-        }
+      if (planetLayer.current) {
+        planetLayer.current.style.transform = `rotate(${((localTime % HOUR) / HOUR) * 360}deg)`;
+      }
+      if (starsLayer.current) {
+        starsLayer.current.style.transform = `translate(-50%, -50%) rotate(${((localTime % (2 * HOUR)) / (2 * HOUR)) * -360}deg)`;
+      }
+      const elapsed = performance.now();
+      for (const [id, element] of starLayers.current) {
+        const star = stars[id]!;
+        element.style.opacity = String(twinkle(elapsed, star.duration, star.delay));
       }
     };
     synchronize();
     if (!motion) {
+      frame.style.removeProperty('--scroll-progress');
       return;
     }
-    const element = background.current;
-    if (!element) {
-      return;
-    }
-    let timer: number | undefined;
-    let suspended: boolean | undefined;
+    const cancelPending = () => {
+      window.clearTimeout(scrollTimer);
+      scrolling = false;
+      if (pending !== null) {
+        cancelAnimationFrame(pending);
+        pending = null;
+      }
+    };
+    const update = () => {
+      pending = null;
+      if (!suspended && !scrolling) {
+        updateParallax(frame);
+      }
+    };
+    const schedule = () => {
+      if (!suspended && !scrolling && pending === null) {
+        pending = requestAnimationFrame(update);
+      }
+    };
+    /* Let scrolling reuse the last background frame; catch up once input has settled. */
+    const onScroll = () => {
+      if (suspended) {
+        return;
+      }
+      cancelPending();
+      scrolling = true;
+      scrollTimer = window.setTimeout(() => {
+        scrolling = false;
+        synchronize();
+        update();
+      }, SCROLL_SETTLE_MS);
+    };
     const refresh = () => {
       const next = document.visibilityState === 'hidden' || getComputedStyle(element).visibility === 'hidden';
       if (next === suspended) {
-        if (!next) {
+        if (!next && !scrolling) {
           synchronize();
-          updateParallax(starsFrame.current);
+          updateParallax(frame);
         }
         return;
       }
       suspended = next;
       window.clearInterval(timer);
+      cancelPending();
       element.toggleAttribute('data-suspended', next);
       if (!next) {
         synchronize();
-        updateParallax(starsFrame.current);
-        timer = window.setInterval(synchronize, 60_000);
+        updateParallax(frame);
+        /* Continuous CSS animations kept Firefox redrawing this oversized scene even between visible changes. */
+        timer = window.setInterval(synchronize, TICK_MS);
       }
     };
     refresh();
@@ -105,52 +166,20 @@ export function AppBackground({ motion }: { motion: boolean }) {
         attributeFilter: ['data-page-layout-height'],
       });
     }
+    const resizeObserver = new ResizeObserver(schedule);
+    resizeObserver.observe(document.body);
     document.addEventListener('visibilitychange', refresh);
-    return () => {
-      window.clearInterval(timer);
-      observer.disconnect();
-      document.removeEventListener('visibilitychange', refresh);
-      element.removeAttribute('data-suspended');
-    };
-  }, [motion]);
-
-  useEffect(() => {
-    const frame = starsFrame.current;
-    if (!frame) {
-      return;
-    }
-    if (!motion) {
-      frame.style.removeProperty('--scroll-progress');
-      return;
-    }
-    let pending: number | null = null;
-    const update = () => {
-      pending = null;
-      if (background.current?.hasAttribute('data-suspended')) {
-        return;
-      }
-      updateParallax(frame);
-    };
-    const schedule = () => {
-      if (background.current?.hasAttribute('data-suspended')) {
-        return;
-      }
-      if (pending === null) {
-        pending = requestAnimationFrame(update);
-      }
-    };
-    update();
-    const observer = new ResizeObserver(schedule);
-    observer.observe(document.body);
-    window.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', schedule);
     return () => {
-      if (pending !== null) {
-        cancelAnimationFrame(pending);
-      }
+      window.clearInterval(timer);
+      cancelPending();
       observer.disconnect();
-      window.removeEventListener('scroll', schedule);
+      resizeObserver.disconnect();
+      document.removeEventListener('visibilitychange', refresh);
+      window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', schedule);
+      element.removeAttribute('data-suspended');
     };
   }, [motion]);
 
@@ -175,16 +204,21 @@ export function AppBackground({ motion }: { motion: boolean }) {
             {stars.map((star) => (
               <circle
                 key={star.id}
-                className={star.id % 15 === 0 ? styles.star : undefined}
+                ref={
+                  star.id % 15 === 0
+                    ? (element) => {
+                        if (element) {
+                          starLayers.current.set(star.id, element);
+                        } else {
+                          starLayers.current.delete(star.id);
+                        }
+                      }
+                    : undefined
+                }
                 cx={star.x}
                 cy={star.y}
                 r={star.radius}
                 fillOpacity={star.opacity}
-                style={
-                  star.id % 15 === 0
-                    ? { animationDuration: `${star.duration}s`, animationDelay: `${star.delay}s` }
-                    : undefined
-                }
               />
             ))}
           </g>

@@ -5,26 +5,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 
 import { AppBackground } from './AppBackground';
 
-const originalAnimations = Object.getOwnPropertyDescriptor(Element.prototype, 'getAnimations');
-let animations: WeakMap<Element, { currentTime: number }[]>;
 let frames: Map<number, FrameRequestCallback>;
 let nextFrame: number;
 
 beforeEach(() => {
   vi.useFakeTimers();
   vi.setSystemTime(new Date(2026, 9, 22, 15, 15, 30));
-  animations = new WeakMap();
   frames = new Map();
   nextFrame = 0;
-  Object.defineProperty(Element.prototype, 'getAnimations', {
-    configurable: true,
-    value(this: Element) {
-      if (!animations.has(this)) {
-        animations.set(this, [{ currentTime: 0 }]);
-      }
-      return animations.get(this);
-    },
-  });
   vi.stubGlobal(
     'ResizeObserver',
     class {
@@ -47,22 +35,21 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
-  if (originalAnimations) {
-    Object.defineProperty(Element.prototype, 'getAnimations', originalAnimations);
-  } else {
-    Reflect.deleteProperty(Element.prototype, 'getAnimations');
-  }
   vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
-function orbitTime(container: HTMLElement, layer: 'planet' | 'stars') {
-  const svg = container.querySelector(`[data-background-${layer}] svg`);
+function orbit(container: HTMLElement, layer: 'planet' | 'stars') {
+  const svg = container.querySelector<SVGSVGElement>(`[data-background-${layer}] svg`);
   if (!svg) {
     throw new Error(`Missing ${layer} layer`);
   }
-  return animations.get(svg)?.[0].currentTime;
+  const angle = Number(svg.style.transform.match(/rotate\(([-.\d]+)deg\)/)?.[1]);
+  if (!Number.isFinite(angle)) {
+    throw new Error(`Missing rotation on ${layer} layer: ${svg.style.transform}`);
+  }
+  return angle;
 }
 
 describe('orbital background', () => {
@@ -78,16 +65,60 @@ describe('orbital background', () => {
 
   it('aligns both periods to the local clock, including after tab suspension', async () => {
     const { container } = render(<AppBackground motion />);
-    expect(orbitTime(container, 'planet')).toBe(930_000);
-    expect(orbitTime(container, 'stars')).toBe(4_530_000);
+    expect(orbit(container, 'planet')).toBeCloseTo(93);
+    expect(orbit(container, 'stars')).toBeCloseTo(-226.5);
 
     vi.setSystemTime(new Date(2026, 9, 22, 16, 0, 0));
     vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
     act(() => {
       document.dispatchEvent(new Event('visibilitychange'));
     });
-    expect(orbitTime(container, 'planet')).toBe(0);
-    expect(orbitTime(container, 'stars')).toBe(0);
+    expect(orbit(container, 'planet')).toBe(0);
+    expect(orbit(container, 'stars')).toBe(0);
+  });
+
+  it('updates the orbits and twinkles only on the shared slow clock', () => {
+    const { container } = render(<AppBackground motion />);
+    const pose = () => [...container.querySelectorAll('svg, circle')].map((element) => element.getAttribute('style'));
+    const before = pose();
+    const planetBefore = orbit(container, 'planet');
+    const star = container.querySelector('circle')!;
+    const opacityBefore = star.style.opacity;
+    act(() => {
+      vi.advanceTimersByTime(249);
+    });
+    expect(pose()).toEqual(before);
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(orbit(container, 'planet')).not.toBe(planetBefore);
+    expect(orbit(container, 'stars')).not.toBeCloseTo(-226.5);
+    expect(pose()).not.toEqual(before);
+    expect(star.style.opacity).not.toBe(opacityBefore);
+    const afterTick = pose();
+    act(() => {
+      vi.advanceTimersByTime(249);
+    });
+    expect(pose()).toEqual(afterTick);
+    expect(vi.getTimerCount()).toBe(1);
+  });
+
+  it('alternates the twinkle and returns to the same opacity after a complete period', () => {
+    /* The first seeded star has an 11.59s duration and a -7.7s delay. */
+    const elapsed = vi.spyOn(performance, 'now').mockReturnValue(3890);
+    const { container } = render(<AppBackground motion />);
+    const star = container.querySelector('circle')!;
+    expect(Number(star.style.opacity)).toBeCloseTo(1);
+    elapsed.mockReturnValue(15_480);
+    act(() => {
+      vi.advanceTimersByTime(250);
+    });
+    expect(Number(star.style.opacity)).toBeCloseTo(0.45);
+    elapsed.mockReturnValue(27_070);
+    act(() => {
+      vi.advanceTimersByTime(250);
+    });
+    expect(Number(star.style.opacity)).toBeCloseTo(1);
   });
 
   it('updates only star parallax and releases pending work on unmount', async () => {
@@ -99,21 +130,46 @@ describe('orbital background', () => {
       window.dispatchEvent(new Event('scroll'));
     });
     act(() => {
-      for (const [id, callback] of frames) {
-        frames.delete(id);
-        callback(0);
-      }
+      vi.advanceTimersByTime(150);
     });
     expect(stars?.style.getPropertyValue('--scroll-progress')).toBe('0.5');
     expect(planet?.getAttribute('style')).toBeNull();
 
     act(() => {
-      window.dispatchEvent(new Event('scroll'));
+      window.dispatchEvent(new Event('resize'));
     });
     expect(frames.size).toBe(1);
     unmount();
     expect(frames.size).toBe(0);
     expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('holds the whole background still until the last scroll event has settled', () => {
+    const { container } = render(<AppBackground motion />);
+    const stars = container.querySelector<HTMLElement>('[data-background-stars]')!;
+    const star = container.querySelector('circle')!;
+    const before = { orbit: orbit(container, 'planet'), opacity: star.style.opacity };
+    act(() => {
+      document.documentElement.scrollTop = 400;
+      window.dispatchEvent(new Event('scroll'));
+      vi.advanceTimersByTime(100);
+      document.documentElement.scrollTop = 500;
+      window.dispatchEvent(new Event('scroll'));
+      vi.advanceTimersByTime(100);
+      document.documentElement.scrollTop = 600;
+      window.dispatchEvent(new Event('scroll'));
+      vi.advanceTimersByTime(149);
+    });
+    expect(orbit(container, 'planet')).toBe(before.orbit);
+    expect(star.style.opacity).toBe(before.opacity);
+    expect(stars.style.getPropertyValue('--scroll-progress')).toBe('0');
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(stars.style.getPropertyValue('--scroll-progress')).toBe('0.6');
+    expect(orbit(container, 'planet')).not.toBe(before.orbit);
+    expect(star.style.opacity).not.toBe(before.opacity);
+    expect(vi.getTimerCount()).toBe(1);
   });
 
   it('suspends clock and scroll work in a hidden tab and restores the current clock pose', () => {
@@ -123,7 +179,7 @@ describe('orbital background', () => {
     act(() => {
       window.dispatchEvent(new Event('scroll'));
     });
-    expect(frames.size).toBe(1);
+    expect(vi.getTimerCount()).toBe(2);
     visibility.mockReturnValue('hidden');
     act(() => {
       document.dispatchEvent(new Event('visibilitychange'));
@@ -151,8 +207,8 @@ describe('orbital background', () => {
       document.dispatchEvent(new Event('visibilitychange'));
     });
     expect(container.querySelector('[data-app-background]')?.hasAttribute('data-suspended')).toBe(false);
-    expect(orbitTime(container, 'planet')).toBe(0);
-    expect(orbitTime(container, 'stars')).toBe(0);
+    expect(orbit(container, 'planet')).toBe(0);
+    expect(orbit(container, 'stars')).toBe(0);
     expect(
       container.querySelector<HTMLElement>('[data-background-stars]')?.style.getPropertyValue('--scroll-progress')
     ).toBe('0.5');
@@ -166,11 +222,11 @@ describe('orbital background', () => {
     expect(
       container.querySelector<HTMLElement>('[data-background-stars]')?.style.getPropertyValue('--scroll-progress')
     ).toBe('');
-    const angle = orbitTime(container, 'planet');
+    const angle = orbit(container, 'planet');
     act(() => {
       vi.advanceTimersByTime(120_000);
     });
-    expect(orbitTime(container, 'planet')).toBe(angle);
+    expect(orbit(container, 'planet')).toBe(angle);
     expect(vi.getTimerCount()).toBe(0);
   });
 });

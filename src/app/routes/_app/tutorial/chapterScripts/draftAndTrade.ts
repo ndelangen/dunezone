@@ -14,8 +14,8 @@ import { element, task } from './guideChecks';
 
 const LEARNER = TUTORIAL_RECIPE.learner;
 const DRAFT = 'Space Orks';
-const allFactions = () =>
-  document.querySelector<HTMLInputElement>('[data-drafting-panel] [role="switch"]')?.checked === true;
+const allFactionsSwitch = () => document.querySelector<HTMLInputElement>('[data-drafting-panel] [role="switch"]');
+const allFactions = () => allFactionsSwitch()?.checked === true;
 const SEARCH = '[data-drafting-panel] input[aria-label="Search factions"]';
 const search = () => document.querySelector<HTMLInputElement>(SEARCH);
 const searched = (text: string) => search()?.value.trim().toLowerCase() === text.toLowerCase();
@@ -135,10 +135,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
         'Search starts with factions from your ruleset. The "suitable for this ruleset" label identifies those versions.\n\nA faction can appear more than once because people have made different versions. You can mix and match them, but drafting the same faction more than once gets confusing for players.\n\nWant something less conventional? Turn on Show all factions.',
       anchor: {
         kind: 'page',
-        element: () =>
-          [...document.querySelectorAll('[data-drafting-panel] p')].find(
-            (node) => node.textContent?.trim() === 'suitable for this ruleset'
-          ) ?? search(),
+        element: () => allFactionsSwitch()?.labels?.[0]?.querySelector('.mantine-Switch-track') ?? null,
       },
       begin: () => undefined,
       done: allFactions,
