@@ -1,7 +1,7 @@
 /*
- * The stream of frames as a row of tickets arriving at a browser on the right, and under it a bar chart of the measured sizes.
- * A ticket still to come keeps its place but is invisible, so the row never reflows; on a phone the tickets wrap into more rows.
- * The bars grow from nothing once the figure is on screen; until scripts run, they stand at full width.
+ * The room on the left, the browser on the right and a wire between them that the packets fly along, one per step; on a phone the wire runs top to bottom.
+ * A packet in flight runs a keyframe from one end to the other within a step; the lost one gets halfway, breaks and stays there crossed out, so the still picture shows the loss too.
+ * Under it, a bar chart of the measured sizes: the bars grow from nothing once the figure is on screen and stand at full width until scripts run.
  */
 .root {
   --ink: #f0e8da;
@@ -11,6 +11,7 @@
   --gap: #ffa8a8;
   --full: #c7ad7d;
   --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --step: 1100ms;
 
   display: flex;
   flex-direction: column;
@@ -19,110 +20,34 @@
 }
 
 .stream {
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
+  display: grid;
+  grid-template-columns: 9rem minmax(0, 1fr) 12rem;
+  gap: var(--space-sm);
+  align-items: stretch;
 }
 
-.frames {
-  display: flex;
-  flex: 1 1 auto;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-/* A ticket: kind above, range large, a note under. */
-.frame {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-  box-sizing: border-box;
-  width: 5.6rem;
-  min-height: 3.6rem;
-  padding: 0.4rem 0.5rem;
-  border: 1px solid rgb(213 186 140 / 60%);
-  border-radius: 4px;
-  background: #211d18;
-  color: var(--ink);
-  font-family: var(--mono);
-  transition:
-    opacity 300ms ease,
-    transform 300ms ease;
-}
-
-.hidden {
-  opacity: 0;
-  transform: translateX(-0.5rem);
-}
-
-.frameKind {
-  color: var(--muted);
-  font-size: 0.55rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.frameRange {
-  font-size: 0.95rem;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.frameNote {
-  font-size: 0.55rem;
-  line-height: 1.3;
-  opacity: 0.85;
-}
-
-.gap {
-  border-color: var(--gap);
-  border-style: dashed;
-  color: var(--gap);
-}
-
-.gap .frameKind {
-  color: var(--gap);
-}
-
-/* The sync runs the other way, so its ticket leans back toward the browser. */
-.sync {
-  border-color: var(--spice);
-  background: transparent;
-  color: var(--sand);
-}
-
-.full {
-  width: 7rem;
-  border-width: 2px;
-  border-color: var(--full);
-  background: #352e25;
-  box-shadow: 0 6px 14px rgb(0 0 0 / 45%);
-}
-
-.full .frameRange {
-  font-size: 1.2rem;
-}
-
-.browser {
+.box {
   position: relative;
   display: flex;
-  flex: 0 0 auto;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.2rem;
+  gap: 0.25rem;
   box-sizing: border-box;
-  width: 6.5rem;
-  height: 4.6rem;
-  padding-block-start: 0.8rem;
+  min-width: 0;
+  padding: 0.7rem 0.8rem;
   border: 1.5px solid var(--sand);
   border-radius: 6px;
   background: #211d18;
   color: var(--ink);
   font-family: var(--mono);
+}
+
+.room {
+  justify-content: center;
+  border-color: var(--spice);
+}
+
+.browser {
+  padding-block-start: 1.3rem;
 }
 
 .browserBar {
@@ -131,11 +56,11 @@
   right: 0;
   left: 0;
   height: 0.7rem;
-  border-radius: 5px 5px 0 0;
+  border-radius: 4px 4px 0 0;
   background: #352e25;
 }
 
-.browserLabel {
+.boxLabel {
   color: var(--muted);
   font-size: 0.55rem;
   letter-spacing: 0.12em;
@@ -146,6 +71,231 @@
   font-size: 1rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+}
+
+.boxNote {
+  color: var(--muted);
+  font-size: 0.6rem;
+  line-height: 1.3;
+}
+
+.holding {
+  color: var(--gap);
+}
+
+/* The browser's list of what it has: the gap in red, the full view set off. */
+.log {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-height: 7.2rem;
+  margin: 0.2rem 0;
+  padding: 0;
+  font-size: 0.65rem;
+  list-style: none;
+}
+
+.logEntry {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.4rem;
+  padding-inline-start: 0.6rem;
+  border-inline-start: 2px solid rgb(213 186 140 / 40%);
+  color: var(--sand);
+}
+
+.logNote {
+  color: var(--muted);
+}
+
+.logGap {
+  border-color: var(--gap);
+  color: var(--gap);
+}
+
+.logGap .logNote {
+  color: var(--gap);
+}
+
+.logFull {
+  border-color: var(--full);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* The wire: a line down the middle of its cell, with the packets placed on it by `left` (or `top` on a phone). */
+.wire {
+  position: relative;
+  min-height: 6.5rem;
+}
+
+.line {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  border-top: 2px dashed rgb(213 186 140 / 45%);
+}
+
+.packet {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+  width: 5.4rem;
+  padding: 0.3rem 0.4rem;
+  border: 1px solid var(--sand);
+  border-radius: 4px;
+  background: #211d18;
+  color: var(--ink);
+  font-family: var(--mono);
+  box-shadow: 0 4px 10px rgb(0 0 0 / 50%);
+  transform: translate(-50%, -50%);
+}
+
+.packetKind {
+  color: var(--muted);
+  font-size: 0.5rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.packetLabel {
+  font-size: 0.9rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.syncPacket {
+  border-color: var(--spice);
+  background: #352e25;
+  color: var(--sand);
+}
+
+.fullPacket {
+  width: 6.6rem;
+  padding-block: 0.5rem;
+  border-width: 2px;
+  border-color: var(--full);
+  background: #352e25;
+}
+
+.fullPacket .packetLabel {
+  font-size: 1rem;
+}
+
+.lostLabel {
+  display: none;
+  margin-block-start: 0.15rem;
+  color: var(--gap);
+  font-size: 0.5rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.flying {
+  animation: fly-x var(--step) cubic-bezier(0.3, 0, 0.7, 1) 1 both;
+}
+
+.backward.flying {
+  animation-name: fly-x-back;
+}
+
+/* The lost packet gets halfway, judders and breaks; the rest state keeps it there, crossed out, until the loop starts over. */
+.flyingLost {
+  animation: lose-x var(--step) ease-out 1 both;
+}
+
+.lostRest,
+.flyingLost {
+  border-style: dashed;
+  border-color: var(--gap);
+}
+
+.lostRest {
+  top: 50%;
+  left: 50%;
+  opacity: 0.6;
+  transform: translate(-50%, -50%) rotate(-8deg);
+}
+
+.lostRest .lostLabel,
+.flyingLost .lostLabel {
+  display: block;
+}
+
+.lostRest::after,
+.flyingLost::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      45deg,
+      transparent calc(50% - 1px),
+      var(--gap) calc(50% - 1px) calc(50% + 1px),
+      transparent calc(50% + 1px)
+    ),
+    linear-gradient(
+      -45deg,
+      transparent calc(50% - 1px),
+      var(--gap) calc(50% - 1px) calc(50% + 1px),
+      transparent calc(50% + 1px)
+    );
+  opacity: 0.8;
+}
+
+@keyframes fly-x {
+  from {
+    left: 0;
+  }
+
+  to {
+    left: 100%;
+  }
+}
+
+@keyframes fly-x-back {
+  from {
+    left: 100%;
+  }
+
+  to {
+    left: 0;
+  }
+}
+
+@keyframes lose-x {
+  0% {
+    left: 0;
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+
+  50% {
+    left: 50%;
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+
+  60% {
+    transform: translate(-50%, -50%) rotate(6deg) scale(1.04);
+  }
+
+  70% {
+    transform: translate(-50%, -40%) rotate(-10deg);
+  }
+
+  100% {
+    left: 50%;
+    opacity: 0.6;
+    transform: translate(-50%, -50%) rotate(-8deg);
+  }
 }
 
 /* The chart: a label column and a bar column; the bar's width is its share of the full view. */
@@ -234,11 +384,11 @@
 }
 
 .barUnknown {
+  box-sizing: border-box;
   width: 2rem;
   height: 1.1rem;
   border: 1.5px dashed var(--sand);
   border-radius: 0 3px 3px 0;
-  box-sizing: border-box;
 }
 
 .value {
@@ -248,23 +398,55 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* On a phone the wire runs downward: the room above, the browser below, and the packets travel by `top`. */
 @container blog-article (width < 36rem) {
   .stream {
-    flex-direction: column;
-    align-items: stretch;
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  .browser {
-    order: -1;
-    align-self: flex-end;
+  .room {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.8rem;
+    align-items: baseline;
   }
 
-  .frame {
-    width: 4.5rem;
+  .wire {
+    min-height: 9rem;
   }
 
-  .full {
-    width: 5.5rem;
+  .line {
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    right: auto;
+    border-top: 0;
+    border-left: 2px dashed rgb(213 186 140 / 45%);
+  }
+
+  .packet {
+    top: 0;
+    left: 50%;
+  }
+
+  .lostRest {
+    top: 50%;
+  }
+
+  .flying {
+    animation-name: fly-y;
+  }
+
+  .backward.flying {
+    animation-name: fly-y-back;
+  }
+
+  .flyingLost {
+    animation-name: lose-y;
+  }
+
+  .log {
+    min-height: 0;
   }
 
   .chart {
@@ -278,8 +460,60 @@
   }
 }
 
+@keyframes fly-y {
+  from {
+    top: 0;
+  }
+
+  to {
+    top: 100%;
+  }
+}
+
+@keyframes fly-y-back {
+  from {
+    top: 100%;
+  }
+
+  to {
+    top: 0;
+  }
+}
+
+@keyframes lose-y {
+  0% {
+    top: 0;
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+
+  50% {
+    top: 50%;
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+
+  60% {
+    transform: translate(-50%, -50%) rotate(6deg) scale(1.04);
+  }
+
+  70% {
+    transform: translate(-40%, -50%) rotate(-10deg);
+  }
+
+  100% {
+    top: 50%;
+    opacity: 0.6;
+    transform: translate(-50%, -50%) rotate(-8deg);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .frame,
+  .flying,
+  .flyingLost {
+    animation: none;
+  }
+
   .bar {
     transition: none;
   }
