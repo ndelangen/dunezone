@@ -14,7 +14,7 @@ import { BidderToolbar } from './BidderToolbar';
 import { DraftingHeader, DraftingReady } from './Drafting';
 import { ContinuePlaying, resultTitle } from './GameResult';
 import { MovementTurns } from './MovementTurns';
-import { canStepPhase, PhaseNavigation } from './PhaseNavigation';
+import { canStepPhase, PhaseNavigation, PhaseReadiness } from './PhaseNavigation';
 import { StagePlayback } from './SeatRequests';
 import { SwappingReady, SwappingStatus } from './Swapping';
 import { offersActions, stageInPlay } from './tableFactions';
@@ -56,7 +56,7 @@ export function stageToolbar({
   }
   /*
    * In play the header steps phases beside the bidder; setup steps its phases alone. An open review vote waits beside them.
-   * An observer takes no phase action, so the phase controls are not shown to them at all, not even greyed.
+   * An observer takes no phase action, so the phase controls are not shown to them at all, not even greyed; they read how many are ready.
    */
   if (inPlay || settingUp(table)) {
     return (
@@ -65,7 +65,7 @@ export function stageToolbar({
         {inPlay && (
           <BidderToolbar client={client} table={table} faded={bidderFaded} onFadedChange={onBidderFadedChange} />
         )}
-        {offersActions(table) && <PhaseNavigation client={client} table={table} />}
+        {offersActions(table) ? <PhaseNavigation client={client} table={table} /> : <PhaseReadiness table={table} />}
       </>
     );
   }

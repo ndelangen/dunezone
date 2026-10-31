@@ -69,10 +69,11 @@
 
 .face[data-observed] {
   cursor: default;
+  touch-action: auto;
 }
 
-/* Under the pointer a piece lifts off its row, ready to be dragged onto the table. */
-.face:not(:disabled):hover {
+/* Under the pointer a piece lifts off its row, ready to be dragged onto the table; an observer's pieces stay put. */
+.face:not(:disabled, [data-observed]):hover {
   transform: translateY(-3px);
   filter: drop-shadow(0 6px 8px rgb(from var(--color-shadow) r g b / 0.55));
 }

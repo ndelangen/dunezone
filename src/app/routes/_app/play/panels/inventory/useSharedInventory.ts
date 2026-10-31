@@ -51,13 +51,11 @@ export function useSharedInventory({ client, table }: SharedInventoryProps) {
     .filter((piece) => !table.reservedPieceIds.has(piece.id))
     .reduce((count, piece) => count + piece.items.length, 0);
   const canHandle = table.canHandleTable;
-  /* An observer only looks: the shelves show no draw, gather or add, not even greyed. */
-  const acts = offersActions(table);
   const rows = inventoryRows(pieces);
   return {
     rows,
-    /** Whether the viewer only looks: an observer, or anyone watching a past table. */
-    observing: !acts,
+    /** Whether the viewer only looks, as an observer or anyone watching a past table: the shelves then offer no draw, gather or add, not even greyed. */
+    observing: !offersActions(table),
     /** Whether this piece can be dragged out now: nobody else is carrying it and the viewer may handle the table. */
     movable: (piece: TablePiece) => canHandle && !table.reservedPieceIds.has(piece.id),
     /** Picks the piece up under the pointer; Shift takes only its top item. */
@@ -68,21 +66,18 @@ export function useSharedInventory({ client, table }: SharedInventoryProps) {
       event.preventDefault();
       pointerSession.carry(event.nativeEvent, piece.id, event.shiftKey ? 'top' : 'whole');
     },
-    draw: acts
-      ? {
-          left: techLeft,
-          enabled: canHandle && techLeft > 0,
-          help: drawHelp(techLeft),
-          run: () => client.command({ kind: 'tech-token-draw' }),
-        }
-      : null,
+    draw: {
+      left: techLeft,
+      enabled: canHandle && techLeft > 0,
+      help: drawHelp(techLeft),
+      run: () => client.command({ kind: 'tech-token-draw' }),
+    },
     /* Setup gathers the Traitor cards left on the table; the catalogue opens once play starts. */
-    gather:
-      acts && table.snapshot.setup
-        ? { enabled: canHandle, run: () => client.command({ kind: 'traitors-gather' }) }
-        : null,
+    gather: table.snapshot.setup
+      ? { enabled: canHandle, run: () => client.command({ kind: 'traitors-gather' }) }
+      : null,
     catalogue:
-      !acts || table.snapshot.stage === 'setup'
+      table.snapshot.stage === 'setup'
         ? null
         : {
             enabled: canHandle,

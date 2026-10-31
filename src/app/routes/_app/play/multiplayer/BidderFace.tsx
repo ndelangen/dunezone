@@ -182,6 +182,11 @@ export function OpenRound({
   const turnName = factionName(table, turn);
   const label = turnLabel(mine, bid, turnName);
   const showClock = bidding.timed && (!table.playback || table.playback.recordedAt !== undefined);
+  const face = bid ? (
+    <HighBid bid={bid} table={table} />
+  ) : (
+    <span className={styles.prompt}>{mine ? 'Bid' : 'No bid'}</span>
+  );
   return (
     <Stack gap={2} align="center" className={styles.face}>
       <div className={showClock ? styles.clockWrap : undefined}>
@@ -197,20 +202,23 @@ export function OpenRound({
               }
             }}
           >
-            <UnstyledButton
-              className={styles.disc}
-              data-bidder-turn={turn ?? undefined}
-              data-mine={mine || undefined}
-              aria-label={label}
-              disabled={!mine}
-              onClick={() => client.command({ kind: 'bid-raise', round })}
-            >
-              {bid ? (
-                <HighBid bid={bid} table={table} />
-              ) : (
-                <span className={styles.prompt}>{mine ? 'Bid' : 'No bid'}</span>
-              )}
-            </UnstyledButton>
+            {/* An observer is shown the bid as it stands, not a disc to press. */}
+            {offersActions(table) ? (
+              <UnstyledButton
+                className={styles.disc}
+                data-bidder-turn={turn ?? undefined}
+                data-mine={mine || undefined}
+                aria-label={label}
+                disabled={!mine}
+                onClick={() => client.command({ kind: 'bid-raise', round })}
+              >
+                {face}
+              </UnstyledButton>
+            ) : (
+              <div className={styles.disc} data-bidder-turn={turn ?? undefined} role="img" aria-label={label}>
+                {face}
+              </div>
+            )}
           </TooltipTarget>
         </Tooltip>
       </div>

@@ -82,18 +82,27 @@ export const Shared = meta.story({
 
 /** An observer reads the phase but takes no phase action, so the header shows no phase controls, not even greyed. */
 export const Observer = meta.story({
-  beforeEach: install(() => productTransport('neutral', { ...initialSnapshot(), phase: 5 })),
+  beforeEach: install(() =>
+    productTransport('neutral', {
+      ...initialSnapshot(),
+      phase: 8,
+      controls: {
+        ...initialSnapshot().controls!,
+        seats: SIX.map((player) => player.seat),
+        ready: ['seat-1', 'seat-3', 'seat-4', 'seat-5', 'seat-6'],
+      },
+    })
+  ),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await waitFor(() => expect(page.getByRole('button', { name: /^Controls/ })).toBeVisible(), { timeout: 30_000 });
+    await waitFor(() => expect(page.getByRole('button', { name: /^Controls/ })).toBeVisible(), WAIT);
     await openTab(page, 'Phase');
-    await waitFor(
-      async () => {
-        await expect(page.getByRole('region', { name: TABLE_PHASES[5].label })).toBeVisible();
-        await expectHeaderPhase(canvasElement, 5);
-      },
-      { timeout: 30_000 }
-    );
+    await waitFor(async () => {
+      await expect(page.getByRole('region', { name: TABLE_PHASES[8].label })).toBeVisible();
+      await expectHeaderPhase(canvasElement, 8);
+    }, WAIT);
+    /* An observer reads how many are ready, and is offered no phase action, not even greyed. */
+    await expect(page.getByText('5 of 6 ready', { exact: true })).toBeVisible();
     await expect(page.queryByRole('group', { name: 'Phase navigation' })).toBeNull();
     for (const name of ['Next phase', 'More phase actions', 'Ready']) {
       await expect(page.queryByRole('button', { name })).toBeNull();

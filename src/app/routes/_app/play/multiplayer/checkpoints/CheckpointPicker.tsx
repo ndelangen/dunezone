@@ -24,6 +24,8 @@ export function CheckpointPicker({ checkpoints, value, onChange }: CheckpointPic
   const thumbId = useId();
   /* Where a drag holds the thumb: the slider names the checkpoint under it, and the choice is made once when it is let go, so a drag across a recall moves the table once rather than at every checkpoint it passes. */
   const [dragged, setDragged] = useState<number | null>(null);
+  /* The checkpoint a release asked for, held on the thumb until the table's value moves off the one it was asked from. */
+  const [asked, setAsked] = useState<Readonly<{ index: number; from: number }> | null>(null);
   /*
    * The slider applies a pointer's move on the next animation frame, so a quick press and release can end before the move lands and
    * report the thumb where it was. The choice is made a frame after the release, from the last position the slider moved to.
@@ -36,7 +38,8 @@ export function CheckpointPicker({ checkpoints, value, onChange }: CheckpointPic
     0,
     checkpoints.findIndex((checkpoint) => checkpoint.step === value)
   );
-  const index = dragged === null ? chosen : Math.min(checkpoints.length - 1, dragged);
+  const held = dragged ?? (asked && asked.from === value ? asked.index : null);
+  const index = held === null ? chosen : Math.min(checkpoints.length - 1, held);
   const current = checkpoints[index];
   if (!current) {
     return <Text size="sm">No checkpoint has been saved yet.</Text>;
@@ -68,7 +71,9 @@ export function CheckpointPicker({ checkpoints, value, onChange }: CheckpointPic
                 const settled = latest.current ?? next;
                 latest.current = null;
                 setDragged(null);
-                if (settled !== chosen) {
+                /* Compared by step, so a release on the first checkpoint still asks for it when the table's value is no longer offered. */
+                if (checkpoints[settled]?.step !== value) {
+                  setAsked({ index: settled, from: value });
                   choose(settled);
                 }
               });

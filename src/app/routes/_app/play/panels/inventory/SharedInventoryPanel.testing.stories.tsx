@@ -20,7 +20,7 @@ export const ShelfActions = meta.story({
       expect.objectContaining({ key: 'token-tech', spawnType: 'token-tech' })
     );
     await userEvent.click(canvas.getByRole('button', { name: 'Draw random tech token' }));
-    await expect(args.inventory.draw?.run).toHaveBeenCalledOnce();
+    await expect(args.inventory.draw.run).toHaveBeenCalledOnce();
   },
 });
 
@@ -40,7 +40,7 @@ export const RequestsStayVisible = meta.story({
 
 /** An observer only looks: the shelves and their pieces show, with no add, draw or drag handle, not even greyed. */
 export const ObserverSeesNoActions = meta.story({
-  args: { inventory: { ...inventoryArgs().inventory, observing: true, draw: null, catalogue: null } },
+  args: { inventory: { ...inventoryArgs().inventory, observing: true } },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const shelf = canvas.getByRole('region', { name: 'Tech tokens' });
