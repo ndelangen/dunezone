@@ -141,3 +141,24 @@ export const StepsBackAfterAnAskLands = meta.story({
     await expect(picker.getByRole('button', { name: 'Earlier checkpoint' })).toBeEnabled();
   },
 });
+
+/** Choosing back the table's own checkpoint while an earlier choice is still on its way asks for it again, so the last choice stands. */
+export const ReturnBeforeTheTableAnswers = meta.story({
+  args: { checkpoints: offeredCheckpoints(), value: offeredCheckpoints().at(-1)!.step, onChange: fn() },
+  play: async ({ args, canvasElement }) => {
+    const slider = within(canvasElement).getByRole('slider', { name: 'Checkpoint' });
+    const track = slider.closest<HTMLElement>('.mantine-Slider-trackContainer')!;
+    const box = track.getBoundingClientRect();
+    const click = (clientX: number) => {
+      const at = { bubbles: true, clientX, clientY: box.top + box.height / 2 };
+      track.dispatchEvent(new MouseEvent('mousedown', { ...at, button: 0 }));
+      track.dispatchEvent(new MouseEvent('mouseup', at));
+    };
+    click(box.left + 2);
+    await waitForFrame(() => expect(args.onChange).toHaveBeenCalledTimes(1));
+    click(box.right - 2);
+    await waitForFrame(() => expect(args.onChange).toHaveBeenCalledTimes(2));
+    await expect(args.onChange).toHaveBeenLastCalledWith(args.value);
+    await expect(slider).toHaveAttribute('aria-valuenow', String(args.checkpoints.length - 1));
+  },
+});
