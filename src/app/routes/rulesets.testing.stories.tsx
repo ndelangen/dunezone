@@ -142,6 +142,16 @@ export const EditShowsOnlyTheLatestSaveFailure = meta.story({
   },
 });
 
+/** A ruleset that has not chosen its Battle dialing reads as Advanced, how battles counted before rulesets chose. */
+export const EditBattleDialingDefault = meta.story({
+  args: { path: '/rulesets/classicrules/edit' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const advanced = await page.findByRole('radio', { name: /^Advanced/ }, { timeout: 30_000 });
+    await expect(advanced).toBeChecked();
+  },
+});
+
 /** A ruleset's Battle dialing saves with the rest of the form and stays chosen after the save. */
 export const EditSavesBattleDialing = meta.story({
   args: { path: '/rulesets/classicrules/edit' },
