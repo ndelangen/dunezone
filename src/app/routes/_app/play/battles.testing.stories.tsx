@@ -148,14 +148,14 @@ function earlyRevealSnapshot() {
 }
 
 export const CalloutBelowNorthernTerritory = meta.story({
-  beforeEach: battleSetup('preparing', 'neutral', (snapshot) => {
+  beforeEach: battleSetup('preparing', 'seat-2', (snapshot) => {
     snapshot.battle!.anchor = [3.6, 0.18, -3.05];
   }),
   play: async ({ canvasElement }) => expectBattleCalloutPlacement(canvasElement, [3.6, 0.18, -3.05], 'below'),
 });
 
 export const CalloutAboveSouthernTerritory = meta.story({
-  beforeEach: battleSetup('preparing', 'neutral', (snapshot) => {
+  beforeEach: battleSetup('preparing', 'seat-2', (snapshot) => {
     snapshot.battle!.anchor = [3.6, 0.18, 3.05];
   }),
   play: async ({ canvasElement }) => expectBattleCalloutPlacement(canvasElement, [3.6, 0.18, 3.05], 'above'),
