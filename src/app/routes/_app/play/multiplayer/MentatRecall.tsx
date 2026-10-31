@@ -86,7 +86,7 @@ export function mentatRecall(client: TableSession, table: TableProjection): Comp
               <CheckpointPicker
                 checkpoints={review.checkpoints}
                 value={current.step}
-                onChange={(step) => client.command({ kind: 'review-seek', reviewId: current.id, step }) !== undefined}
+                onChange={(step) => client.command({ kind: 'review-seek', reviewId: current.id, step })}
               />
             ) : (
               <Text size="sm">{current.context}. A seated player can change the shared checkpoint.</Text>

@@ -86,12 +86,10 @@ export const DragChoosesOnRelease = meta.story({
     track.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: box.left + 2, clientY: y }));
     await waitForFrame(() => expect(args.onChange).toHaveBeenCalledTimes(1));
     await expect(args.onChange).toHaveBeenCalledWith(args.checkpoints[0]!.step);
-    /* The table has not moved yet, and the thumb waits where it was let go rather than snapping back. */
-    await expect(slider).toHaveAttribute('aria-valuenow', '0');
   },
 });
 
-/** A click let go before the slider's next frame still chooses the checkpoint it was made on, and the slider shows that one. */
+/** A click let go before the slider's next frame still chooses the checkpoint it was made on. */
 export const QuickClickChoosesWhereItLands = meta.story({
   args: { checkpoints: offeredCheckpoints(), value: offeredCheckpoints().at(-1)!.step, onChange: fn() },
   play: async ({ args, canvasElement }) => {
@@ -105,8 +103,6 @@ export const QuickClickChoosesWhereItLands = meta.story({
     track.dispatchEvent(new MouseEvent('mouseup', at));
     await waitForFrame(() => expect(args.onChange).toHaveBeenCalledTimes(1));
     await expect(args.onChange).toHaveBeenCalledWith(args.checkpoints[0]!.step);
-    /* The table has not moved yet, and the thumb waits where it was let go rather than snapping back. */
-    await expect(slider).toHaveAttribute('aria-valuenow', '0');
   },
 });
 
@@ -124,128 +120,14 @@ export const FirstCheckpointFromOneNoLongerOffered = meta.story({
   },
 });
 
-/** Once the table has moved to a checkpoint asked for from the timeline, stepping back to where it was shows that checkpoint, not the old ask. */
-export const StepsBackAfterAnAskLands = meta.story({
-  render: () => <SelectionHarness checkpoints={offeredCheckpoints().slice(-2)} />,
-  play: async ({ canvasElement }) => {
-    const picker = within(canvasElement);
-    const slider = picker.getByRole('slider', { name: 'Checkpoint' });
-    const track = slider.closest<HTMLElement>('.mantine-Slider-trackContainer')!;
-    const box = track.getBoundingClientRect();
-    const at = { bubbles: true, clientX: box.left + 2, clientY: box.top + box.height / 2 };
-    track.dispatchEvent(new MouseEvent('mousedown', { ...at, button: 0 }));
-    track.dispatchEvent(new MouseEvent('mouseup', at));
-    await waitForFrame(() => expect(picker.getByRole('button', { name: 'Earlier checkpoint' })).toBeDisabled());
-    await userEvent.click(picker.getByRole('button', { name: 'Later checkpoint' }));
-    await expect(slider).toHaveAttribute('aria-valuenow', '1');
-    await expect(picker.getByRole('button', { name: 'Earlier checkpoint' })).toBeEnabled();
-  },
-});
-
-/** A choice the table could not be sent, as while it resyncs, leaves the thumb on the table's checkpoint and can be made again. */
-export const UnsentChoiceCanBeMadeAgain = meta.story({
-  args: { checkpoints: offeredCheckpoints(), value: offeredCheckpoints().at(-1)!.step, onChange: fn(() => false) },
+/** Every choice asks the table, so a choice that did not move it can be made again. */
+export const EachChoiceAsksTheTable = meta.story({
+  args: { checkpoints: offeredCheckpoints(), value: offeredCheckpoints().at(-1)!.step, onChange: fn() },
   play: async ({ args, canvasElement }) => {
-    const slider = within(canvasElement).getByRole('slider', { name: 'Checkpoint' });
-    const track = slider.closest<HTMLElement>('.mantine-Slider-trackContainer')!;
-    const box = track.getBoundingClientRect();
-    const click = () => {
-      const at = { bubbles: true, clientX: box.left + 2, clientY: box.top + box.height / 2 };
-      track.dispatchEvent(new MouseEvent('mousedown', { ...at, button: 0 }));
-      track.dispatchEvent(new MouseEvent('mouseup', at));
-    };
-    click();
-    await waitForFrame(() => expect(args.onChange).toHaveBeenCalledTimes(1));
-    await waitForFrame(() => expect(slider).toHaveAttribute('aria-valuenow', String(args.checkpoints.length - 1)));
-    click();
-    await waitForFrame(() => expect(args.onChange).toHaveBeenCalledTimes(2));
-    await expect(args.onChange).toHaveBeenLastCalledWith(args.checkpoints[0]!.step);
-  },
-});
-
-/* A table that answers seeks only when told to, in the order they were sent. */
-function SlowTable() {
-  const checkpoints = offeredCheckpoints().slice(-3);
-  const [value, setValue] = useState(checkpoints.at(-1)!.step);
-  const [asked, setAsked] = useState<readonly number[]>([]);
-  return (
-    <>
-      <CheckpointPicker
-        checkpoints={checkpoints}
-        value={value}
-        onChange={(step) => {
-          setAsked((list) => [...list, step]);
-          return true;
-        }}
-      />
-      <output aria-label="Asked">{asked.join(',')}</output>
-      <button type="button" onClick={() => setValue(asked[0]!)}>
-        Answer
-      </button>
-      <button type="button" onClick={() => setAsked((list) => list.slice(1))}>
-        Next
-      </button>
-    </>
-  );
-}
-
-/** Two choices made before the table answers: the second waits for the first's answer, so the table ends on the last choice. */
-export const ChoicesWaitForTheTablesAnswer = meta.story({
-  render: () => <SlowTable />,
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement);
-    const steps = offeredCheckpoints()
-      .slice(-3)
-      .map((checkpoint) => String(checkpoint.step));
-    const slider = page.getByRole('slider', { name: 'Checkpoint' });
-    const track = slider.closest<HTMLElement>('.mantine-Slider-trackContainer')!;
-    const box = track.getBoundingClientRect();
-    const click = (clientX: number) => {
-      const at = { bubbles: true, clientX, clientY: box.top + box.height / 2 };
-      track.dispatchEvent(new MouseEvent('mousedown', { ...at, button: 0 }));
-      track.dispatchEvent(new MouseEvent('mouseup', at));
-    };
-    const asked = page.getByRole('status', { name: 'Asked' });
-    click(box.left + box.width / 2);
-    await waitForFrame(() => expect(asked).toHaveTextContent(steps[1]!));
-    click(box.left + 2);
-    await waitForFrame(() => expect(slider).toHaveAttribute('aria-valuenow', '0'));
-    await expect(asked).toHaveTextContent(new RegExp(`^${steps[1]}$`));
-    /* The table answers the first choice; only then is the second sent, and the thumb stays on it throughout. */
-    await userEvent.click(page.getByRole('button', { name: 'Answer' }));
-    await userEvent.click(page.getByRole('button', { name: 'Next' }));
-    await waitForFrame(() => expect(asked).toHaveTextContent(new RegExp(`^${steps[0]}$`)));
-    await expect(slider).toHaveAttribute('aria-valuenow', '0');
-    await userEvent.click(page.getByRole('button', { name: 'Answer' }));
-    await expect(slider).toHaveAttribute('aria-valuenow', '0');
-  },
-});
-
-/** Choosing back the table's own checkpoint before it answers an earlier choice is sent once that answer lands, so the last choice stands. */
-export const ReturnBeforeTheTableAnswers = meta.story({
-  render: () => <SlowTable />,
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement);
-    const steps = offeredCheckpoints()
-      .slice(-3)
-      .map((checkpoint) => String(checkpoint.step));
-    const slider = page.getByRole('slider', { name: 'Checkpoint' });
-    const track = slider.closest<HTMLElement>('.mantine-Slider-trackContainer')!;
-    const box = track.getBoundingClientRect();
-    const click = (clientX: number) => {
-      const at = { bubbles: true, clientX, clientY: box.top + box.height / 2 };
-      track.dispatchEvent(new MouseEvent('mousedown', { ...at, button: 0 }));
-      track.dispatchEvent(new MouseEvent('mouseup', at));
-    };
-    const asked = page.getByRole('status', { name: 'Asked' });
-    click(box.left + 2);
-    await waitForFrame(() => expect(asked).toHaveTextContent(steps[0]!));
-    click(box.right - 2);
-    await waitForFrame(() => expect(slider).toHaveAttribute('aria-valuenow', '2'));
-    await userEvent.click(page.getByRole('button', { name: 'Answer' }));
-    await userEvent.click(page.getByRole('button', { name: 'Next' }));
-    await waitForFrame(() => expect(asked).toHaveTextContent(new RegExp(`^${steps[2]}$`)));
-    await userEvent.click(page.getByRole('button', { name: 'Answer' }));
-    await expect(slider).toHaveAttribute('aria-valuenow', '2');
+    const earlier = within(canvasElement).getByRole('button', { name: 'Earlier checkpoint' });
+    await userEvent.click(earlier);
+    await userEvent.click(earlier);
+    await expect(args.onChange).toHaveBeenCalledTimes(2);
+    await expect(args.onChange).toHaveBeenLastCalledWith(args.checkpoints.at(-2)!.step);
   },
 });

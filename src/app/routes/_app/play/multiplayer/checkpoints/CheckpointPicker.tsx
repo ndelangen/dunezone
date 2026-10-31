@@ -1,14 +1,13 @@
 import { Group, Slider, Stack, Text, Tooltip } from '@mantine/core';
 import { IconAction } from '@ui/control/IconAction';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useEffect, useEffectEvent, useId, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 
 import { useAssetResolver } from '@game/assets/assetRenderMode';
 
 import styles from './CheckpointPicker.module.css';
 import { checkpointTitle, checkpointTurns } from './checkpointTurns';
 import type { CheckpointPickerProps } from './checkpointTurns';
-import { createSeekStore, shownStep } from './seekQueue';
 
 /** A phase's symbol on a sand disc, as the turn tracker draws it; a setup step without one shows its initial. */
 function PhaseDisc({ symbol, label, size }: Readonly<{ symbol: string | null; label: string; size: number }>) {
@@ -25,9 +24,6 @@ export function CheckpointPicker({ checkpoints, value, onChange }: CheckpointPic
   const thumbId = useId();
   /* Where a drag holds the thumb: the slider names the checkpoint under it, and the choice is made once when it is let go, so a drag across a recall moves the table once rather than at every checkpoint it passes. */
   const [dragged, setDragged] = useState<number | null>(null);
-  /* One seek at a time, so the table's answers arrive in the order the choices were made. */
-  const [seeks] = useState(createSeekStore);
-  const seek = useSyncExternalStore(seeks.subscribe, seeks.get, seeks.get);
   /*
    * The slider applies a pointer's move on the next animation frame, so a quick press and release can end before the move lands and
    * report the thumb where it was. The choice is made a frame after the release, from the last position the slider moved to.
@@ -36,13 +32,10 @@ export function CheckpointPicker({ checkpoints, value, onChange }: CheckpointPic
   const release = useRef(0);
   useEffect(() => () => cancelAnimationFrame(release.current), []);
   const turns = checkpointTurns(checkpoints);
-  const land = useEffectEvent((now: number) => seeks.land(now, onChange));
-  useEffect(() => land(value), [value]);
-  const shown = shownStep(seek, value);
-  /* Compared by step, so the first checkpoint is still a choice when the shown step is no longer offered. */
+  /* Compared by step, so the first checkpoint is still a choice when the table's step is no longer offered. */
   const chosen = Math.max(
     0,
-    checkpoints.findIndex((checkpoint) => checkpoint.step === shown)
+    checkpoints.findIndex((checkpoint) => checkpoint.step === value)
   );
   const index = dragged === null ? chosen : Math.min(checkpoints.length - 1, dragged);
   const current = checkpoints[index];
@@ -52,7 +45,9 @@ export function CheckpointPicker({ checkpoints, value, onChange }: CheckpointPic
   const title = checkpointTitle(turns, current.step) ?? current.context;
   const choose = (next: number) => {
     const step = checkpoints[Math.min(checkpoints.length - 1, Math.max(0, next))]!.step;
-    seeks.choose(step, value, onChange);
+    if (step !== value) {
+      onChange(step);
+    }
   };
   /* The retained window can start mid-turn, so only a boundary between two offered checkpoints proves a turn's start. */
   const marks = checkpoints.flatMap((checkpoint, position) =>

@@ -81,6 +81,5 @@ export function checkpointTitle(turns: readonly CheckpointTurn[], step: number):
 export type CheckpointPickerProps = Readonly<{
   checkpoints: readonly ReviewCheckpoint[];
   value: number;
-  /** Asks for a step; false when the ask could not be sent, so the picker keeps showing the value. */
-  onChange: (step: number) => boolean | void;
+  onChange: (step: number) => void;
 }>;
