@@ -38,6 +38,10 @@ export function CheckpointPicker({ checkpoints, value, onChange }: CheckpointPic
     0,
     checkpoints.findIndex((checkpoint) => checkpoint.step === value)
   );
+  /* Once the table's value moves, whether to the asked checkpoint or elsewhere, the ask is done and is forgotten. */
+  if (asked && asked.from !== value) {
+    setAsked(null);
+  }
   const held = dragged ?? (asked && asked.from === value ? asked.index : null);
   const index = held === null ? chosen : Math.min(checkpoints.length - 1, held);
   const current = checkpoints[index];

@@ -1,7 +1,8 @@
 import { Box } from '@mantine/core';
 import { testingPreview } from '@sb/preview';
+import { waitForFrame } from '@sb/storyWaits';
 import { useState } from 'react';
-import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
+import { expect, fn, userEvent, within } from 'storybook/test';
 
 import { CheckpointPicker } from './CheckpointPicker';
 import { longGameCheckpoints, offeredCheckpoints } from './checkpointPicker.stories.fixture';
@@ -45,8 +46,9 @@ export const SingleCheckpoint = meta.story({
   },
 });
 
-function SelectionHarness() {
-  const checkpoints = offeredCheckpoints();
+function SelectionHarness({
+  checkpoints = offeredCheckpoints(),
+}: Readonly<{ checkpoints?: ReturnType<typeof offeredCheckpoints> }>) {
   const [value, setValue] = useState(checkpoints.at(-1)!.step);
   return <CheckpointPicker checkpoints={checkpoints} value={value} onChange={setValue} />;
 }
@@ -78,11 +80,11 @@ export const DragChoosesOnRelease = meta.story({
       { target: track, coords: { clientX: box.left + 2, clientY: y } },
     ]);
     /* The slider follows the pointer on the next animation frame. */
-    await waitFor(() => expect(slider).toHaveAttribute('aria-valuenow', '0'));
+    await waitForFrame(() => expect(slider).toHaveAttribute('aria-valuenow', '0'));
     await expect(args.onChange).not.toHaveBeenCalled();
     /* A separate pointer call starts with no button held, so the release is sent as the browser would send it. */
     track.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: box.left + 2, clientY: y }));
-    await waitFor(() => expect(args.onChange).toHaveBeenCalledTimes(1));
+    await waitForFrame(() => expect(args.onChange).toHaveBeenCalledTimes(1));
     await expect(args.onChange).toHaveBeenCalledWith(args.checkpoints[0]!.step);
     /* The table has not moved yet, and the thumb waits where it was let go rather than snapping back. */
     await expect(slider).toHaveAttribute('aria-valuenow', '0');
@@ -101,7 +103,7 @@ export const QuickClickChoosesWhereItLands = meta.story({
     /* Press and release in one task, so the release arrives before the slider has moved. */
     track.dispatchEvent(new MouseEvent('mousedown', { ...at, button: 0 }));
     track.dispatchEvent(new MouseEvent('mouseup', at));
-    await waitFor(() => expect(args.onChange).toHaveBeenCalledTimes(1));
+    await waitForFrame(() => expect(args.onChange).toHaveBeenCalledTimes(1));
     await expect(args.onChange).toHaveBeenCalledWith(args.checkpoints[0]!.step);
     /* The table has not moved yet, and the thumb waits where it was let go rather than snapping back. */
     await expect(slider).toHaveAttribute('aria-valuenow', '0');
@@ -118,6 +120,24 @@ export const FirstCheckpointFromOneNoLongerOffered = meta.story({
     const at = { bubbles: true, clientX: box.left + 2, clientY: box.top + box.height / 2 };
     track.dispatchEvent(new MouseEvent('mousedown', { ...at, button: 0 }));
     track.dispatchEvent(new MouseEvent('mouseup', at));
-    await waitFor(() => expect(args.onChange).toHaveBeenCalledWith(args.checkpoints[0]!.step));
+    await waitForFrame(() => expect(args.onChange).toHaveBeenCalledWith(args.checkpoints[0]!.step));
+  },
+});
+
+/** Once the table has moved to a checkpoint asked for from the timeline, stepping back to where it was shows that checkpoint, not the old ask. */
+export const StepsBackAfterAnAskLands = meta.story({
+  render: () => <SelectionHarness checkpoints={offeredCheckpoints().slice(-2)} />,
+  play: async ({ canvasElement }) => {
+    const picker = within(canvasElement);
+    const slider = picker.getByRole('slider', { name: 'Checkpoint' });
+    const track = slider.closest<HTMLElement>('.mantine-Slider-trackContainer')!;
+    const box = track.getBoundingClientRect();
+    const at = { bubbles: true, clientX: box.left + 2, clientY: box.top + box.height / 2 };
+    track.dispatchEvent(new MouseEvent('mousedown', { ...at, button: 0 }));
+    track.dispatchEvent(new MouseEvent('mouseup', at));
+    await waitForFrame(() => expect(picker.getByRole('button', { name: 'Earlier checkpoint' })).toBeDisabled());
+    await userEvent.click(picker.getByRole('button', { name: 'Later checkpoint' }));
+    await expect(slider).toHaveAttribute('aria-valuenow', '1');
+    await expect(picker.getByRole('button', { name: 'Earlier checkpoint' })).toBeEnabled();
   },
 });
