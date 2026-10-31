@@ -65,16 +65,16 @@ describe('orbital background', () => {
 
   it('aligns both periods to the local clock, including after tab suspension', async () => {
     const { container } = render(<AppBackground motion />);
-    expect(orbit(container, 'planet')).toBeCloseTo(93);
-    expect(orbit(container, 'stars')).toBeCloseTo(-226.5);
+    expect(orbit(container, 'planet') % 360).toBeCloseTo(93);
+    expect(orbit(container, 'stars') % 360).toBeCloseTo(-226.5);
 
     vi.setSystemTime(new Date(2026, 9, 22, 16, 0, 0));
     vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
     act(() => {
       document.dispatchEvent(new Event('visibilitychange'));
     });
-    expect(orbit(container, 'planet')).toBe(0);
-    expect(orbit(container, 'stars')).toBe(0);
+    expect(orbit(container, 'planet') % 360).toBeCloseTo(0);
+    expect(orbit(container, 'stars') % 360).toBeCloseTo(0);
   });
 
   it('updates the orbits and twinkles only on the shared slow clock', () => {
@@ -92,7 +92,7 @@ describe('orbital background', () => {
       vi.advanceTimersByTime(1);
     });
     expect(orbit(container, 'planet')).not.toBe(planetBefore);
-    expect(orbit(container, 'stars')).not.toBeCloseTo(-226.5);
+    expect(orbit(container, 'stars') % 360).not.toBeCloseTo(-226.5);
     expect(pose()).not.toEqual(before);
     expect(star.style.opacity).not.toBe(opacityBefore);
     const afterTick = pose();
@@ -172,6 +172,40 @@ describe('orbital background', () => {
     expect(vi.getTimerCount()).toBe(1);
   });
 
+  it('eases into the settled pose after scrolling and returns to plain ticks afterwards', () => {
+    const elapsed = vi.spyOn(performance, 'now').mockReturnValue(1000);
+    const { container } = render(<AppBackground motion />);
+    const background = container.querySelector('[data-app-background]')!;
+    expect(background.hasAttribute('data-gliding')).toBe(false);
+    act(() => {
+      document.documentElement.scrollTop = 500;
+      window.dispatchEvent(new Event('scroll'));
+      vi.advanceTimersByTime(150);
+    });
+    expect(background.hasAttribute('data-gliding')).toBe(true);
+    elapsed.mockReturnValue(1600);
+    act(() => {
+      vi.advanceTimersByTime(250);
+    });
+    expect(background.hasAttribute('data-gliding')).toBe(true);
+    elapsed.mockReturnValue(1900);
+    act(() => {
+      vi.advanceTimersByTime(250);
+    });
+    expect(background.hasAttribute('data-gliding')).toBe(false);
+  });
+
+  it('keeps counting turns across the hour so a glide never spins backwards', () => {
+    vi.setSystemTime(new Date(2026, 9, 22, 15, 59, 59, 900));
+    const { container } = render(<AppBackground motion />);
+    const before = orbit(container, 'planet');
+    act(() => {
+      vi.advanceTimersByTime(250);
+    });
+    expect(orbit(container, 'planet')).toBeGreaterThan(before);
+    expect(orbit(container, 'planet') - before).toBeLessThan(1);
+  });
+
   it('suspends clock and scroll work in a hidden tab and restores the current clock pose', () => {
     const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
     const { container } = render(<AppBackground motion />);
@@ -207,8 +241,8 @@ describe('orbital background', () => {
       document.dispatchEvent(new Event('visibilitychange'));
     });
     expect(container.querySelector('[data-app-background]')?.hasAttribute('data-suspended')).toBe(false);
-    expect(orbit(container, 'planet')).toBe(0);
-    expect(orbit(container, 'stars')).toBe(0);
+    expect(orbit(container, 'planet') % 360).toBeCloseTo(0);
+    expect(orbit(container, 'stars') % 360).toBeCloseTo(0);
     expect(
       container.querySelector<HTMLElement>('[data-background-stars]')?.style.getPropertyValue('--scroll-progress')
     ).toBe('0.5');

@@ -7,6 +7,8 @@ const HOUR = 3_600_000;
 /* The hour-long orbit advances less than half a CSS pixel per tick on a 1440px-wide screen. */
 const TICK_MS = 250;
 const SCROLL_SETTLE_MS = 150;
+/* Matches the transition in AppBackground.module.css that eases the background back after scrolling. */
+const GLIDE_MS = 700;
 
 /* Sample the former CSS ease-in-out curve, including each star's delay and alternating direction. */
 function twinkle(elapsed: number, duration: number, delay: number) {
@@ -64,6 +66,8 @@ export function AppBackground({ motion }: { motion: boolean }) {
     let pending: number | null = null;
     let suspended: boolean | undefined;
     let scrolling = false;
+    let glideUntil = 0;
+    let lastTime = 0;
     const synchronize = () => {
       if (suspended || scrolling) {
         return;
@@ -71,11 +75,17 @@ export function AppBackground({ motion }: { motion: boolean }) {
       const now = new Date();
       const localTime =
         now.getHours() * HOUR + now.getMinutes() * 60_000 + now.getSeconds() * 1000 + now.getMilliseconds();
+      /* Angles count whole turns since midnight so a glide never spins back a full turn; the midnight wrap skips it. */
+      if (glideUntil && (performance.now() >= glideUntil || localTime < lastTime)) {
+        glideUntil = 0;
+        element.removeAttribute('data-gliding');
+      }
+      lastTime = localTime;
       if (planetLayer.current) {
-        planetLayer.current.style.transform = `rotate(${((localTime % HOUR) / HOUR) * 360}deg)`;
+        planetLayer.current.style.transform = `rotate(${(localTime / HOUR) * 360}deg)`;
       }
       if (starsLayer.current) {
-        starsLayer.current.style.transform = `translate(-50%, -50%) rotate(${((localTime % (2 * HOUR)) / (2 * HOUR)) * -360}deg)`;
+        starsLayer.current.style.transform = `translate(-50%, -50%) rotate(${(localTime / (2 * HOUR)) * -360}deg)`;
       }
       const elapsed = performance.now();
       for (const [id, element] of starLayers.current) {
@@ -107,7 +117,7 @@ export function AppBackground({ motion }: { motion: boolean }) {
         pending = requestAnimationFrame(update);
       }
     };
-    /* Let scrolling reuse the last background frame; catch up once input has settled. */
+    /* Let scrolling reuse the last background frame; ease back into place once input has settled. */
     const onScroll = () => {
       if (suspended) {
         return;
@@ -116,6 +126,8 @@ export function AppBackground({ motion }: { motion: boolean }) {
       scrolling = true;
       scrollTimer = window.setTimeout(() => {
         scrolling = false;
+        glideUntil = performance.now() + GLIDE_MS;
+        element.setAttribute('data-gliding', '');
         synchronize();
         update();
       }, SCROLL_SETTLE_MS);
@@ -132,6 +144,8 @@ export function AppBackground({ motion }: { motion: boolean }) {
       suspended = next;
       window.clearInterval(timer);
       cancelPending();
+      glideUntil = 0;
+      element.removeAttribute('data-gliding');
       element.toggleAttribute('data-suspended', next);
       if (!next) {
         synchronize();
@@ -180,6 +194,7 @@ export function AppBackground({ motion }: { motion: boolean }) {
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', schedule);
       element.removeAttribute('data-suspended');
+      element.removeAttribute('data-gliding');
     };
   }, [motion]);
 
