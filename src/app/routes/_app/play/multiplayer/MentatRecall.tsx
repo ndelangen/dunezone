@@ -49,6 +49,7 @@ export function mentatRecall(client: TableSession, table: TableProjection): Comp
     id: current.id,
     context: current.context,
     loading,
+    seated: Boolean(review.seat),
     chat: review.seat
       ? {
           unread:

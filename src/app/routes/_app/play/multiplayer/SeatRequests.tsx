@@ -28,7 +28,7 @@ import {
 } from '../../../../widgets/tabletop/tablePanSpeed';
 import { TABLE_LABEL_OPTIONS, useTableLabels } from '../tableLabels';
 import { publicControlsOf } from './publicControls';
-import { isSpectator } from './tableFactions';
+import { isSpectator, offersActions } from './tableFactions';
 
 /*
  * Participation without a bar between the board and the controls (Norbert, 2026-10-11): a spectator asks from the
@@ -408,7 +408,7 @@ export function GameMenu({
         <TableLightingSlider />
         <TablePanSpeedSlider />
         <TableLabelItems />
-        {table.snapshot.stage === 'play' && (
+        {table.snapshot.stage === 'play' && offersActions(table) && (
           <Menu.CheckboxItem
             checked={table.snapshot.bidding?.timed ?? idleBidding().timed}
             disabled={!table.canInteract || !table.snapshot.bank}
@@ -428,16 +428,18 @@ export function GameMenu({
           Back to the lobby
         </Menu.Item>
         {onClearConfetti && <Menu.Item onClick={onClearConfetti}>Clear confetti</Menu.Item>}
-        {/* Leaving is for good, so it is held rather than asked twice; a spectator has no seat to give up. */}
+        {/* Leaving is for good, so it is held rather than asked twice; a spectator has no seat to give up, so none is offered. */}
         {/* Keyed by the seat, so a hold started on one seat never departs the seat a trade moved the viewer to. */}
-        <ConfirmDeleteMenuItem
-          key={table.viewer.viewerSeat}
-          label={seated ? leavingLabel(table) : 'Give up your seat'}
-          holdingVerb="Leaving"
-          closeMenuOnClick={false}
-          disabled={!seated || seatLocked(table)}
-          onConfirm={() => client.command({ kind: 'seat-depart' })}
-        />
+        {!isSpectator(table) && (
+          <ConfirmDeleteMenuItem
+            key={table.viewer.viewerSeat}
+            label={seated ? leavingLabel(table) : 'Give up your seat'}
+            holdingVerb="Leaving"
+            closeMenuOnClick={false}
+            disabled={!seated || seatLocked(table)}
+            onConfirm={() => client.command({ kind: 'seat-depart' })}
+          />
+        )}
       </Menu.Dropdown>
     </Menu>
   );

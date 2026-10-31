@@ -69,7 +69,8 @@ export function useCompass({ open, onOpen, inert, windows, table, onView, onShow
       shortcuts,
       view: onView,
       close,
-      frozen: Boolean(table?.recall),
+      /* Only a seated player is told which of their actions recall holds; an observer has none to hold. */
+      frozen: Boolean(table?.recall?.seated),
     }),
     query
   );

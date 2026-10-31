@@ -4,6 +4,7 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 import { STORYBOOK_NOW } from '@db/storybook';
 
 import { biddingSetup, clockSetup, openBiddingSettings, storyClock } from './bidding.stories.fixture';
+import { WAIT } from './controls.stories.fixture';
 import { gameMeta, lastCommand } from './game.stories.fixture';
 
 const meta = testingPreview.meta({
@@ -127,5 +128,39 @@ export const Untimed = meta.story({
     } finally {
       clock.resume();
     }
+  },
+});
+
+/** An observer watches the bidder: it says a round has yet to start and offers no start or reset, not even greyed. */
+export const ObserverBeforeTheFirstRound = meta.story({
+  beforeEach: biddingSetup(null, 'neutral'),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByText('Waiting for a round to start', {}, WAIT)).resolves.toBeVisible();
+    await expect(page.queryByRole('group', { name: 'Start new bidding starting at' })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Reset bidder' })).toBeNull();
+    await expect(page.getByRole('button', { name: 'Fade bidder' })).toBeVisible();
+  },
+});
+
+/** An observer sees the bid as it stands and whose turn it is, as a disc rather than a button to press. */
+export const ObserverDuringARound = meta.story({
+  beforeEach: biddingSetup(
+    {
+      stage: 'open',
+      round: 1,
+      opener: 'house-atreides',
+      turn: 'fremen',
+      bid: { factionId: 'house-harkonnen', amount: 4 },
+      deadline: STORYBOOK_NOW + 12_000,
+    },
+    'neutral'
+  ),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const disc = await page.findByRole('img', { name: 'Waiting for Fremen' }, WAIT);
+    await expect(disc).toBeVisible();
+    await expect(disc).toHaveTextContent('4');
+    await expect(page.queryByRole('button', { name: /^Waiting for/ })).toBeNull();
   },
 });

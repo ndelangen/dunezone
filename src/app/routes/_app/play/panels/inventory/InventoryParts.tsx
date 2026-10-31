@@ -14,6 +14,7 @@ import type { TableSession } from '../../../../../db/tabletop/TableSession';
 import { PieceArtwork } from '../../../../../widgets/tabletop/PieceArtwork';
 import { pieceName } from '../../multiplayer/HandPiece';
 import { publicControlsOf } from '../../multiplayer/publicControls';
+import { offersActions } from '../../multiplayer/tableFactions';
 import styles from './Inventory.module.css';
 import type { SharedInventory, SharedInventoryProps } from './useSharedInventory';
 
@@ -48,20 +49,32 @@ export function InventoryPiece({
   const card = piece.kind === 'card';
   const src = piece.items.at(-1)?.artwork?.[card ? 'back' : 'front'] ?? null;
   const height = card ? Math.round((size * 4) / 3) : size;
+  const face = (
+    <>
+      <PieceArtwork piece={piece} src={src} name={inventoryName(piece)} width={size} height={height} />
+      {piece.items.length > 1 && <span className={styles.badge}>{piece.items.length}</span>}
+    </>
+  );
   return (
     <div className={styles.tile} role="listitem" data-round={!card || undefined}>
       <Tooltip label={<PieceTooltipLabel piece={piece} />} multiline w={260} withArrow openDelay={250}>
         <TooltipTarget>
-          <button
-            type="button"
-            className={styles.face}
-            disabled={!inventory.movable(piece)}
-            aria-label={`Drag ${piece.label} onto the table`}
-            onPointerDown={(event) => inventory.carry(event, piece)}
-          >
-            <PieceArtwork piece={piece} src={src} name={inventoryName(piece)} width={size} height={height} />
-            {piece.items.length > 1 && <span className={styles.badge}>{piece.items.length}</span>}
-          </button>
+          {inventory.observing ? (
+            /* An observer only looks, so the piece is shown as it is rather than as a greyed-out drag handle. */
+            <span className={styles.face} data-observed role="group" aria-label={inventoryName(piece)}>
+              {face}
+            </span>
+          ) : (
+            <button
+              type="button"
+              className={styles.face}
+              disabled={!inventory.movable(piece)}
+              aria-label={`Drag ${piece.label} onto the table`}
+              onPointerDown={(event) => inventory.carry(event, piece)}
+            >
+              {face}
+            </button>
+          )}
         </TooltipTarget>
       </Tooltip>
     </div>
@@ -186,28 +199,31 @@ function SpawnRequest({
       <Text>
         {request.contents.name} requested by {request.requesterName}
       </Text>
-      <Group gap="xs">
-        <IconAction
-          label="Approve"
-          intent="positive"
-          emphasis="standard"
-          icon={<Check size={16} aria-hidden />}
-          disabledReason={
-            table.canHandleTable && request.requesterSeat !== table.viewer.viewerSeat
-              ? undefined
-              : 'Another player must approve this request.'
-          }
-          onClick={() => client.command({ kind: 'spawn-approve', requestId: request.id })}
-        />
-        <IconAction
-          label="Dismiss"
-          intent="neutral"
-          emphasis="quiet"
-          icon={<X size={16} aria-hidden />}
-          disabledReason={table.canHandleTable ? undefined : 'The table is unavailable.'}
-          onClick={() => client.command({ kind: 'spawn-dismiss', requestId: request.id })}
-        />
-      </Group>
+      {/* Approving and dismissing are a seated player's; an observer sees the request with no buttons, not even greyed. */}
+      {offersActions(table) && (
+        <Group gap="xs">
+          <IconAction
+            label="Approve"
+            intent="positive"
+            emphasis="standard"
+            icon={<Check size={16} aria-hidden />}
+            disabledReason={
+              table.canHandleTable && request.requesterSeat !== table.viewer.viewerSeat
+                ? undefined
+                : 'Another player must approve this request.'
+            }
+            onClick={() => client.command({ kind: 'spawn-approve', requestId: request.id })}
+          />
+          <IconAction
+            label="Dismiss"
+            intent="neutral"
+            emphasis="quiet"
+            icon={<X size={16} aria-hidden />}
+            disabledReason={table.canHandleTable ? undefined : 'The table is unavailable.'}
+            onClick={() => client.command({ kind: 'spawn-dismiss', requestId: request.id })}
+          />
+        </Group>
+      )}
     </Group>
   );
 }

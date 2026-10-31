@@ -104,6 +104,7 @@ export const BattleRevealed = meta.story({
     const { page } = await atStep(canvasElement, chapter('Battle revealed'));
     await openControl(page, 'Battle plan');
     await waitFor(() => expect(page.getAllByLabelText(/ plan, troop strength/).length).toBeGreaterThanOrEqual(2));
-    await expect(page.getByRole('button', { name: 'Left side won' })).toBeVisible();
+    /* The journey watches this battle as an observer, who calls no winner. */
+    await expect(page.queryByRole('button', { name: 'Left side won' })).toBeNull();
   },
 });

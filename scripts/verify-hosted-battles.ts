@@ -253,14 +253,17 @@ export async function verifyBattles(toolkit: HostedToolkit) {
     required(requireView(a).snapshot.battle, 'battle').sides.map((side) => required(side, 'battle side').choice),
     ['left', 'right']
   );
-  assert.equal(await button(observer, 'No winner').isDisabled(), true);
+  /* An observer calls no winner, so none of the outcome buttons is offered to them, not even greyed. */
+  for (const name of ['No winner', 'Left side won', 'Right side won', 'Resolve battle']) {
+    assert.equal(await button(observer, name).count(), 0, `The observer was offered ${name}.`);
+  }
   await capture(a, 'after-battle-opposing-outcomes');
   await act(b, 'Left side won');
   await until(() => !requireView(a).snapshot.battle, 'Matching choices did not resolve.');
   await capture(a, 'after-battle-resolved');
   assert.equal(required(requireView(a).snapshot.battleResults, 'battleResults')[0].outcome, 'left');
   passed(
-    'Distinct signed-in players place the marker, claim sides, privately plan, withdraw Ready, reconnect during countdown and agree a public outcome; observer controls remain disabled'
+    'Distinct signed-in players place the marker, claim sides, privately plan, withdraw Ready, reconnect during countdown and agree a public outcome; an observer is offered none of the controls'
   );
   inspectPrivateCollections([b, observer]);
   await verifyReverseBattle({ a, b, openTab, drag, button, until, act, passed });

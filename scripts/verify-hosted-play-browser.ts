@@ -2286,9 +2286,15 @@ async function verifyRegular() {
   const observer = await account('observer');
   await enter(observer);
   assert.equal(requireView(observer).viewer.viewerSeat, SPECTATOR);
-  assert.equal(await observer.page.getByRole('button', { name: 'Next phase', exact: true }).isDisabled(), true);
-  assert.equal(await previousPhaseDisabled(observer), true);
   await displayedPhase(observer, TABLE_PHASES.length);
+  /* An observer is offered no phase control, not even greyed. */
+  for (const name of ['Next phase', 'More phase actions']) {
+    assert.equal(
+      await observer.page.getByRole('button', { name, exact: true }).count(),
+      0,
+      `The observer was offered ${name}.`
+    );
+  }
   const observerSent = observer.sent.length;
   await observer.page.mouse.move(500, 500);
   await observer.page.keyboard.press('f');

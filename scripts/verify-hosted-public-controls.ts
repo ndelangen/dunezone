@@ -45,7 +45,6 @@ export async function verifyPublicControls({
   spectator,
   enter,
   button,
-  previousPhaseDisabled,
   act,
   focus,
   openTab,
@@ -161,11 +160,19 @@ export async function verifyPublicControls({
     assert.equal(inventory(a).length, 1);
     assert.equal(await button(a, 'Approve').isDisabled(), true);
     await openTab(observer, 'Shared table inventory');
-    for (const name of ['Approve', 'Dismiss', 'Add disc tokens from the catalogue', 'Next phase']) {
-      assert.equal(await button(observer, name).isDisabled(), true);
+    /* An observer only looks: the request and the shelf show, with no action offered, not even greyed. */
+    await observer.page.getByRole('region', { name: 'Disc tokens' }).waitFor();
+    await observer.page.getByText(/ requested by /).waitFor();
+    for (const name of [
+      'Approve',
+      'Dismiss',
+      'Add disc tokens from the catalogue',
+      'Next phase',
+      'More phase actions',
+      'Drag Recovery token onto the table',
+    ]) {
+      assert.equal(await button(observer, name).count(), 0, `The observer was offered ${name}.`);
     }
-    assert.equal(await previousPhaseDisabled(observer), true);
-    assert.equal(await button(observer, 'Drag Recovery token onto the table').isDisabled(), true);
     await pinWindow(b, 'Shared table inventory', 'left');
     await growSlot(b, 'left');
     await button(b, 'Approve').scrollIntoViewIfNeeded();
@@ -237,7 +244,8 @@ export async function verifyPublicControls({
   }
 
   async function verifyReadiness() {
-    const viewers: HostedPeer[] = [a, b, observer];
+    /* An observer is shown no phase controls, so only the seated players' pages record the cooldown. */
+    const viewers: HostedPeer[] = [a, b];
     for (const who of viewers) {
       await who.page.evaluate(recordPhaseCooldowns);
     }
@@ -279,7 +287,7 @@ export async function verifyPublicControls({
     assert.equal(requireView(a).snapshot.phase, 8);
     assert.ok(required(requireView(a).snapshot.controls, 'controls').ready.includes(requireView(a).viewer.viewerSeat));
     assert.deepEqual(requireView(a).snapshot.table.pieces, saved.table.pieces);
-    assert.equal(await button(observer, 'Ready').isDisabled(), true);
+    assert.equal(await observer.page.getByRole('button', { name: /^Ready|Withdraw readiness/ }).count(), 0);
     await pinWindow(a, 'Phase', 'left');
     await growSlot(a, 'left');
     await button(a, 'Withdraw readiness').scrollIntoViewIfNeeded();
@@ -300,7 +308,7 @@ export async function verifyPublicControls({
       'Ready and withdrawal are separate from Next; readiness survives Mentat reconnect, last-ready enables explicit advance, and revisiting clears readiness without undoing pieces'
     );
     passed(
-      `The ${PHASE_CHANGE_COOLDOWN_MS / 1000}-second phase cooldown disables Next phase for every viewer; observers cannot Ready, request, approve, dismiss or drag inventory`
+      `The ${PHASE_CHANGE_COOLDOWN_MS / 1000}-second phase cooldown disables Next phase for every seated player; observers are offered no Ready, request, approval, dismissal or inventory drag`
     );
   }
 }

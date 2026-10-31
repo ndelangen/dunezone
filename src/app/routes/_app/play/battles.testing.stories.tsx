@@ -6,7 +6,14 @@ import { resolveRulebookBoardDefinition } from '@shared/rulebooks/boardDefinitio
 import { expect, userEvent, within, waitFor } from 'storybook/test';
 
 import { dragBattleMarker } from './battles.marker.stories.fixture';
-import { battleSetup, readiness, convexIds, withConvexIds, revealedPieces } from './battles.stories.fixture';
+import {
+  battleSetup,
+  readiness,
+  convexIds,
+  withConvexIds,
+  revealedPieces,
+  observedRevealedPieces,
+} from './battles.stories.fixture';
 import { expectNoControl, openPanel, unpinWindow, WAIT, windowNamed } from './controls.stories.fixture';
 import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
 import { battleStory, expectBattleCalloutPlacement, openTab, settled } from './playing.stories.fixture';
@@ -141,14 +148,14 @@ function earlyRevealSnapshot() {
 }
 
 export const CalloutBelowNorthernTerritory = meta.story({
-  beforeEach: battleSetup('preparing', 'neutral', (snapshot) => {
+  beforeEach: battleSetup('preparing', 'seat-2', (snapshot) => {
     snapshot.battle!.anchor = [3.6, 0.18, -3.05];
   }),
   play: async ({ canvasElement }) => expectBattleCalloutPlacement(canvasElement, [3.6, 0.18, -3.05], 'below'),
 });
 
 export const CalloutAboveSouthernTerritory = meta.story({
-  beforeEach: battleSetup('preparing', 'neutral', (snapshot) => {
+  beforeEach: battleSetup('preparing', 'seat-2', (snapshot) => {
     snapshot.battle!.anchor = [3.6, 0.18, 3.05];
   }),
   play: async ({ canvasElement }) => expectBattleCalloutPlacement(canvasElement, [3.6, 0.18, 3.05], 'above'),
@@ -283,7 +290,8 @@ export const Readiness = meta.story({
     await expect(readyRing).toBeVisible();
     await expect(getComputedStyle(readyRing).stroke).not.toBe(getComputedStyle(preparingRing).stroke);
     await expect(getComputedStyle(readyRing).animationName).toBe('none');
-    await expect(page.getByRole('button', { name: 'Cancel battle' })).toBeDisabled();
+    /* The fixture watches as an observer, who is shown no Cancel battle, not even greyed. */
+    await expect(page.queryByRole('button', { name: 'Cancel battle' })).toBeNull();
   },
 });
 
@@ -524,10 +532,29 @@ export const Observer = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await openTab(page, 'Battle plan');
-    await settled(() => expect(page.getByRole('button', { name: 'No winner' })).toBeDisabled());
-    await expect(page.getByText('Both plans are revealed on the table.')).toBeVisible();
+    await settled(() => expect(page.getByText('Both plans are revealed on the table.')).toBeVisible());
+    /* An observer calls no winner and ends no battle, so the callout shows no buttons for it, not even greyed. */
+    for (const name of ['No winner', 'Left side won', 'Right side won', 'Resolve battle']) {
+      await expect(page.queryByRole('button', { name })).toBeNull();
+    }
     await expect(page.queryByRole('textbox', { name: 'Spice' })).toBeNull();
     await expect(page.queryByRole('region', { name: 'Your hand and leaders' })).toBeNull();
+  },
+});
+
+/** Before a side is claimed, an observer sees the empty side named open, with no Claim or Cancel battle to press, not even greyed. */
+export const ObserverBeforeTheClaim = meta.story({
+  beforeEach: install(() => {
+    const snapshot = battleStory('preparing', true);
+    snapshot.battle!.sides[1] = null;
+    return productTransport('neutral', snapshot);
+  }),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await settled(() => expect(page.getByText('Open side')).toBeVisible());
+    for (const name of ['Claim right side', 'Claim left side', 'Cancel battle']) {
+      await expect(page.queryByRole('button', { name })).toBeNull();
+    }
   },
 });
 
@@ -614,6 +641,22 @@ export const ReadinessInRealGame = meta.story({
       expect(page.getByRole('img', { name: 'House Harkonnen, left side, aggressor, Preparing' })).toBeVisible()
     );
     await expect(page.getByRole('img', { name: 'House Atreides, right side, Ready' })).toBeVisible();
+  },
+});
+
+/** An observer sees a revealed card on the wheel as the card itself, with no drag button, not even greyed. */
+export const ObserverSeesRevealedPieces = meta.story({
+  beforeEach: observedRevealedPieces,
+  play: async ({ canvasElement }) => {
+    await waitFor(
+      async () => {
+        const callout = canvasElement.ownerDocument.querySelector<HTMLElement>('[data-battle-stage="revealed"]');
+        await expect(callout).not.toBeNull();
+        await expect(within(callout!).getByRole('img', { name: 'Snooper' })).toBeVisible();
+        await expect(within(callout!).queryByRole('button', { name: /^Drag / })).toBeNull();
+      },
+      { timeout: 30_000 }
+    );
   },
 });
 
