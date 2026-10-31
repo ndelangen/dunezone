@@ -512,6 +512,7 @@ export const removeFaction = mutation({
  */
 const assetSlotValidator = v.union(
   v.literal('board'),
+  v.literal('secondBoard'),
   v.literal('treachery'),
   v.literal('spice'),
   v.literal('custom'),

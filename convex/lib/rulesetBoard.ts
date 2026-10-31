@@ -15,10 +15,27 @@ export async function rulesetBoard(
     .query('ruleset_asset_slots')
     .withIndex('by_ruleset_slot', (q) => q.eq('ruleset_id', rulesetId).eq('slot', 'board'))
     .first();
-  if (slot && cache.has(slot.asset_id)) {
-    return cache.get(slot.asset_id)!;
+  return slot ? await boardCapture(ctx, slot.asset_id, cache) : null;
+}
+
+/** The second board a game on the two-board table captures; none when the slot is empty or its board is unusable. */
+export async function rulesetSecondBoard(
+  ctx: QueryCtx,
+  rulesetId: Id<'rulesets'>,
+  cache: BoardReadCache = new Map()
+): Promise<BoardCapture | null> {
+  const slot = await ctx.db
+    .query('ruleset_asset_slots')
+    .withIndex('by_ruleset_slot', (q) => q.eq('ruleset_id', rulesetId).eq('slot', 'secondBoard'))
+    .first();
+  return slot ? await boardCapture(ctx, slot.asset_id, cache) : null;
+}
+
+async function boardCapture(ctx: QueryCtx, assetId: Id<'assets'>, cache: BoardReadCache): Promise<BoardCapture | null> {
+  if (cache.has(assetId)) {
+    return cache.get(assetId)!;
   }
-  const asset = slot ? await ctx.db.get('assets', slot.asset_id) : null;
+  const asset = await ctx.db.get('assets', assetId);
   if (!asset || asset.is_deleted || asset.type !== 'board') {
     return null;
   }
@@ -29,7 +46,7 @@ export async function rulesetBoard(
   } catch {
     /* Invalid legacy data cannot become a new game's board. */
   }
-  cache.set(asset._id, result);
+  cache.set(assetId, result);
   return result;
 }
 

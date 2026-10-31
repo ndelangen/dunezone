@@ -1,3 +1,5 @@
+import { boardPlacements } from './boardLayout';
+import type { BoardPlacement, TableLayout } from './boardLayout';
 import { isFactionToken } from './factionToken';
 import type { TablePiece, Vector3Tuple } from './model';
 import { POINTER_BODY_RADIUS, POINTER_HEIGHT, isPointerToken, pointerCovers, pointerDistanceTo } from './pointerToken';
@@ -90,15 +92,24 @@ export function nearestBy<T>(candidates: Iterable<T>, distanceOf: (candidate: T)
   return nearest?.candidate ?? null;
 }
 
-export function surfaceHeightAt(position: Vector3Tuple): number {
-  const radius = Math.hypot(position[0], position[2]);
-  if (radius <= BOARD_RADIUS) {
+/* What a point this far from a board's centre stands on: that board, its rim, or the table beyond it. */
+function surfaceHeightOver(board: BoardPlacement, distance: number): number {
+  if (distance <= BOARD_RADIUS * board.scale) {
     return BOARD_SURFACE_Y;
   }
-  if (radius <= BOARD_RIM_RADIUS) {
+  if (distance <= BOARD_RIM_RADIUS * board.scale) {
     return BOARD_RIM_SURFACE_Y;
   }
   return TABLE_SURFACE_Y;
+}
+
+/** How high the table's surface is at a point: on a board, on a board's rim, or on the table. `layout` says which boards the table holds. */
+export function surfaceHeightAt(position: Vector3Tuple, layout: TableLayout = 'one-board'): number {
+  let height = TABLE_SURFACE_Y;
+  for (const board of boardPlacements(layout)) {
+    height = Math.max(height, surfaceHeightOver(board, Math.hypot(position[0] - board.x, position[2] - board.z)));
+  }
+  return height;
 }
 
 /** The radius of a round piece's footprint: a spice stack, a marker, or a troop, leader disc or faction token. */
@@ -112,6 +123,7 @@ export function circleFootprintRadius(piece: PieceFootprint): number {
   return piece.kind === 'marker' ? MARKER_FOOTPRINT_RADIUS : TROOP_FOOTPRINT_RADIUS * troopScale(piece);
 }
 
+/** How close the piece's footprint comes to the point at the frame's origin, with `position` taken from there. */
 function minimumFootprintRadius(position: Vector3Tuple, piece: PieceFootprint): number {
   /* A pointer's point reaches well past its round end, so its whole outline decides what it rests on. */
   if (isPointerToken(piece)) {
@@ -138,12 +150,26 @@ export function pieceFootprintContains(offset: Vector3Tuple, piece: PieceFootpri
   return minimumFootprintRadius(offset, piece) === 0;
 }
 
-export function supportHeightAt(position: Vector3Tuple, piece: PieceFootprint): number {
-  return surfaceHeightAt([minimumFootprintRadius(position, piece), 0, 0]);
+/** The highest surface any part of the piece's footprint reaches: a board under its edge holds it up. */
+export function supportHeightAt(
+  position: Vector3Tuple,
+  piece: PieceFootprint,
+  layout: TableLayout = 'one-board'
+): number {
+  let height = TABLE_SURFACE_Y;
+  for (const board of boardPlacements(layout)) {
+    const offset: Vector3Tuple = [position[0] - board.x, position[1], position[2] - board.z];
+    height = Math.max(height, surfaceHeightOver(board, minimumFootprintRadius(offset, piece)));
+  }
+  return height;
 }
 
-export function restingPositionAt(position: Vector3Tuple, piece: PieceFootprint): Vector3Tuple {
-  return [position[0], supportHeightAt(position, piece), position[2]];
+export function restingPositionAt(
+  position: Vector3Tuple,
+  piece: PieceFootprint,
+  layout: TableLayout = 'one-board'
+): Vector3Tuple {
+  return [position[0], supportHeightAt(position, piece, layout), position[2]];
 }
 
 /* A troop stack shows one layer per item while it is short, then grows more slowly, so its height still tells a big stack from a bigger one. */
@@ -230,15 +256,23 @@ export function contactShadowOpacity(carried: boolean, piece?: TablePiece): numb
   return carried ? 0.14 : 0.3;
 }
 
-export function contactShadowHeightAt(position: Vector3Tuple, piece: PieceFootprint): number {
-  return supportHeightAt(position, piece) + CONTACT_SHADOW_EPSILON;
+export function contactShadowHeightAt(
+  position: Vector3Tuple,
+  piece: PieceFootprint,
+  layout: TableLayout = 'one-board'
+): number {
+  return supportHeightAt(position, piece, layout) + CONTACT_SHADOW_EPSILON;
 }
 
 /** Where a ray from the camera first meets the board, its rim or the table; pieces standing there are left out. */
-export function surfacePointOnRay(origin: Vector3Tuple, direction: Vector3Tuple): Vector3Tuple | null {
+export function surfacePointOnRay(
+  origin: Vector3Tuple,
+  direction: Vector3Tuple,
+  layout: TableLayout = 'one-board'
+): Vector3Tuple | null {
   for (const height of [BOARD_SURFACE_Y, BOARD_RIM_SURFACE_Y, TABLE_SURFACE_Y]) {
     const point = pointOnRayAtHeight(origin, direction, height);
-    if (point && surfaceHeightAt(point) === height) {
+    if (point && surfaceHeightAt(point, layout) === height) {
       return point;
     }
   }

@@ -39,11 +39,11 @@ export async function readRulesetAssetSlots(
   const entries = [];
   for (const row of rows) {
     /* A board row is the whole board definition, hundreds of kilobytes; a caller that resolves the board its own way skips it. */
-    if (skipBoard && row.slot === 'board') {
+    const boardSlot = row.slot === 'board' || row.slot === 'secondBoard';
+    if (skipBoard && boardSlot) {
       continue;
     }
-    const asset =
-      row.slot === 'board' ? await readBoardListing(ctx, row.asset_id) : await ctx.db.get('assets', row.asset_id);
+    const asset = boardSlot ? await readBoardListing(ctx, row.asset_id) : await ctx.db.get('assets', row.asset_id);
     if (asset && !asset.is_deleted) {
       entries.push({
         slot: row.slot,

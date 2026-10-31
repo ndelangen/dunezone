@@ -3,6 +3,8 @@
 import { useTexture } from '@react-three/drei/webgpu';
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
 import { rendererColors } from '@shared/play/assetColors';
+import { SECOND_BOARD_PLACEMENT } from '@shared/play/boardLayout';
+import type { BoardPlacement, TableLayout } from '@shared/play/boardLayout';
 import type { Vector3Tuple } from '@shared/play/model';
 import type { GameSnapshot } from '@shared/play/protocol';
 import {
@@ -31,7 +33,7 @@ import type { TrackerArcSlot } from '@shared/play/tableTrackers';
 import { playUiColors } from '@shared/uiPalette';
 import { lazy, Suspense, useMemo, useRef, useLayoutEffect, useEffect } from 'react';
 import type { ExtrudeGeometry, Group } from 'three';
-import { BufferGeometry, CircleGeometry, EdgesGeometry, Float32BufferAttribute, SRGBColorSpace } from 'three';
+import { BufferGeometry, CircleGeometry, EdgesGeometry, Float32BufferAttribute, Shape, SRGBColorSpace } from 'three';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
@@ -466,6 +468,56 @@ function BoardMap({
   );
 }
 
+/* The second board's rim: a plain round, without the main rim's player stations. */
+function SecondBoardRim() {
+  const palette = useTablePalette();
+  const shape = useMemo(() => {
+    const round = new Shape();
+    round.absarc(0, 0, BOARD_RIM_RADIUS, 0, Math.PI * 2, false);
+    return round;
+  }, []);
+  const geometryArgs = useMemo(
+    () => [shape, BOARD_RIM_EXTRUDE_OPTIONS] as ConstructorParameters<typeof ExtrudeGeometry>,
+    [shape]
+  );
+  return (
+    <mesh
+      key={shape.uuid}
+      receiveShadow
+      position={[0, BOARD_RIM_SURFACE_Y, 0]}
+      raycast={ignoreRaycast}
+      rotation={[Math.PI / 2, 0, 0]}
+    >
+      <extrudeGeometry args={geometryArgs} />
+      <meshStandardMaterial color={palette.boardRim} roughness={BOARD_RIM_ROUGHNESS} metalness={BOARD_RIM_METALNESS} />
+    </mesh>
+  );
+}
+
+/*
+ * The second board beside the main board: its own rim, shadow and map.
+ * The storm, the territory tints and the player stations stay on the main board.
+ */
+function SecondBoard({
+  placement,
+  board,
+  stage,
+  mapVisible,
+}: {
+  placement: BoardPlacement;
+  board: GameSnapshot['board'];
+  stage: GameSnapshot['stage'];
+  mapVisible?: boolean;
+}) {
+  return (
+    <group position={[placement.x, 0, placement.z]} scale={[placement.scale, 1, placement.scale]}>
+      <SecondBoardRim />
+      <BoardRimShadow />
+      {(stage !== 'setup' || mapVisible) && <BoardMap animate={stage === 'setup'} board={board} />}
+    </group>
+  );
+}
+
 export function TabletopBoard({
   board,
   tints,
@@ -477,8 +529,13 @@ export function TabletopBoard({
   trackerSlots,
   interactive = false,
   onClick,
+  layout = 'one-board',
+  secondBoard,
 }: {
   board?: GameSnapshot['board'];
+  /** Which table the game is played on, and what its second board shows; a second board without a capture shows Arrakis. */
+  layout?: TableLayout;
+  secondBoard?: GameSnapshot['secondBoard'];
   tints?: GameSnapshot['tints'];
   seatCount: TableSeatCount;
   stormSectorIndex?: number;
@@ -492,7 +549,10 @@ export function TabletopBoard({
   const meshes = useSharedMeshes();
   return (
     <group onClick={onClick}>
-      <TableFurniture trackerSlots={trackerSlots} />
+      <TableFurniture trackerSlots={trackerSlots} layout={layout} />
+      {layout === 'two-boards' ? (
+        <SecondBoard placement={SECOND_BOARD_PLACEMENT} board={secondBoard} stage={stage} mapVisible={mapVisible} />
+      ) : null}
       <BoardRim seatCount={seatCount} />
       <BoardRimShadow />
       {/* The storm's texture must suspend inside its boundary so it cannot hide an already-painted board. */}

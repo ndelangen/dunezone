@@ -1,4 +1,5 @@
 import { capturedBattleFaces } from '../../src/shared/play/battle';
+import { tableLayoutOf } from '../../src/shared/play/boardLayout';
 import type { FactionCapture, RulesetCapture, SlotCapture } from '../../src/shared/play/capture';
 import { accepted, nextSnapshot } from '../../src/shared/play/commands';
 import type { StoredPiece, Vector3Tuple } from '../../src/shared/play/model';
@@ -95,9 +96,10 @@ function suppliedSnapshot(
     table.pieces.push(...token, ...reserves, ...traitors);
     supplyInventory(next, capture, hand);
   }
+  const layout = tableLayoutOf(next.table.tableLayout);
   table.pieces.push(
-    ...slotPieces(ruleset.decks.treachery, 'shared', cardBaySlotPositions('left')[0]!),
-    ...slotPieces(ruleset.decks.spice, 'shared', cardBaySlotPositions('right')[0]!),
+    ...slotPieces(ruleset.decks.treachery, 'shared', cardBaySlotPositions('left', layout)[0]!),
+    ...slotPieces(ruleset.decks.spice, 'shared', cardBaySlotPositions('right', layout)[0]!),
     ...[...ruleset.decks.custom, ruleset.bundles.techToken, ...ruleset.bundles.custom].flatMap((slot) =>
       slotPieces(slot, 'shared')
     )

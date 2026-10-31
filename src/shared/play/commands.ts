@@ -1,3 +1,5 @@
+import { tableLayoutOf } from './boardLayout';
+import type { TableLayout } from './boardLayout';
 import { isFactionToken } from './factionToken';
 import { freshTableState, gestureBlockReason, nearestZone, pieceCount } from './model';
 import type { TablePiece, TableState, Vector3Tuple } from './model';
@@ -10,7 +12,7 @@ import type { DurableTable, GameSnapshot, TableAction } from './protocol';
 import { GameRejection } from './rejection';
 import { isSpicePiece } from './spice';
 import { createSpiceStack } from './spiceBank';
-import { SHARED_ITEM_PLACEMENT_ANCHORS } from './tableFurnitureLayout';
+import { sharedItemAnchors } from './tableFurnitureLayout';
 import { planarDistance, restingPositionAt, stackPreviewPositionFor } from './tableGeometry';
 import { isCollisionFreePosition, nearestCollisionFreePosition } from './tablePhysics';
 import {
@@ -197,7 +199,7 @@ function withSpawnedSpice(state: TableState, piece: TablePiece, existing: TableP
 }
 
 export function spawnSpiceInState(state: TableState, count: number, actorName = 'A player'): TableState {
-  const piece = createSpiceStack(state.nextEventNumber, count);
+  const piece = createSpiceStack(state.nextEventNumber, count, tableLayoutOf(state.tableLayout));
   const existing = spiceAt(state, piece);
   if (existing?.locked) {
     throw new GameRejection('The spice at the Spice Bank is locked or being moved.');
@@ -228,14 +230,20 @@ function randomIndex(count: number): number {
 }
 
 /** The free spot nearest `near`; without one, the first free shared item spot on the shelf, else the free spot nearest it. */
-function techTokenPosition(piece: TablePiece, obstacles: TablePiece[], near?: Vector3Tuple): Vector3Tuple | null {
+function techTokenPosition(
+  piece: TablePiece,
+  obstacles: TablePiece[],
+  near?: Vector3Tuple,
+  layout: TableLayout = 'one-board'
+): Vector3Tuple | null {
   if (near) {
-    return nearestCollisionFreePosition(piece, restingPositionAt(near, piece), obstacles);
+    return nearestCollisionFreePosition(piece, restingPositionAt(near, piece, layout), obstacles, undefined, layout);
   }
-  const free = SHARED_ITEM_PLACEMENT_ANCHORS.map((anchor) => restingPositionAt(anchor.position, piece)).find(
-    (position) => isCollisionFreePosition(piece, position, obstacles)
-  );
-  return free ?? nearestCollisionFreePosition(piece, SHARED_ITEM_PLACEMENT_ANCHORS[0]!.position, obstacles);
+  const anchors = sharedItemAnchors(layout);
+  const free = anchors
+    .map((anchor) => restingPositionAt(anchor.position, piece, layout))
+    .find((position) => isCollisionFreePosition(piece, position, obstacles, layout));
+  return free ?? nearestCollisionFreePosition(piece, anchors[0]!.position, obstacles, undefined, layout);
 }
 
 /**
@@ -266,11 +274,11 @@ export function drawTechTokenInState(
   const pieces = state.pieces.flatMap((candidate) =>
     candidate !== source ? [candidate] : rest.length ? [{ ...source, items: rest }] : []
   );
-  const position = techTokenPosition(drawn, pieces, near);
+  const position = techTokenPosition(drawn, pieces, near, tableLayoutOf(state.tableLayout));
   if (!position) {
     throw new GameRejection('Make room on the table before drawing a tech token.');
   }
-  drawn.position = restingPositionAt(position, drawn);
+  drawn.position = restingPositionAt(position, drawn, tableLayoutOf(state.tableLayout));
   drawn.zoneId = nearestZone(position)?.id ?? null;
   return accepted(
     { ...state, pieces: [...pieces, drawn], selectedPieceId: drawn.id },
@@ -309,14 +317,14 @@ export function rotatedPiece(state: TableState, piece: TablePiece, turns: number
   const rotated = {
     ...piece,
     orientation,
-    position: restingPositionAt(piece.position, { ...piece, orientation }),
+    position: restingPositionAt(piece.position, { ...piece, orientation }, tableLayoutOf(state.tableLayout)),
   };
   const rules = placementRules(
     state.pieces,
     piece,
     state.pieces.filter((candidate) => candidate.id !== piece.id)
   );
-  return isCollisionFreePosition(rotated, rotated.position, rules.obstacles) &&
+  return isCollisionFreePosition(rotated, rotated.position, rules.obstacles, tableLayoutOf(state.tableLayout)) &&
     rules.fits(rotated.position, orientation)
     ? rotated
     : null;
@@ -388,11 +396,17 @@ function splitPlacement(state: TableState, piece: TablePiece, count: number) {
     position: [piece.position[0] + offsetX, piece.position[1], piece.position[2] + offsetZ],
   };
   const pieces = remainingPieces(state, piece, remaining);
-  const position = nearestCollisionFreePosition(split, split.position, pieces);
+  const position = nearestCollisionFreePosition(
+    split,
+    split.position,
+    pieces,
+    undefined,
+    tableLayoutOf(state.tableLayout)
+  );
   if (!position) {
     throw new GameRejection(`There is no clear space beside ${publicPieceLabel(piece)}.`);
   }
-  split.position = restingPositionAt(position, split);
+  split.position = restingPositionAt(position, split, tableLayoutOf(state.tableLayout));
   split.zoneId = nearestZone(position)?.id ?? null;
   return [...pieces, split];
 }

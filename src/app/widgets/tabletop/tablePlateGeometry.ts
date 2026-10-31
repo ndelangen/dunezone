@@ -1,3 +1,5 @@
+import { isOnTwoBoardTable, SECOND_BOARD_PLACEMENT, twoBoardTableOutline } from '@shared/play/boardLayout';
+import type { TableLayout } from '@shared/play/boardLayout';
 import type { Vector3Tuple } from '@shared/play/model';
 import { supplyReserveReach } from '@shared/play/setupLayout';
 import {
@@ -69,9 +71,15 @@ const TRACKER_BEACON_HANDLE_REACH = 0.5;
 export function mapViewFramingPoints(
   slots: readonly TrackerArcSlot[],
   seatCount: TableSeatCount = DEFAULT_TABLE_SEAT_COUNT,
-  troopKinds?: number
+  troopKinds?: number,
+  layout: TableLayout = 'one-board'
 ): Vector3Tuple[] {
   const points: Vector3Tuple[] = [];
+  /* The second board's rim, so the map view takes in both of a two-board game's boards. */
+  if (layout === 'two-boards') {
+    const { x, z } = SECOND_BOARD_PLACEMENT;
+    appendCircleBoundary(points, [x, BOARD_RIM_SURFACE_Y, z], BOARD_RIM_RADIUS, 96);
+  }
   const reserveReach = supplyReserveReach(troopKinds);
   appendCircleBoundary(points, [0, BOARD_RIM_SURFACE_Y, 0], BOARD_RIM_RADIUS, 96);
   tableSeatAngles(seatCount).forEach((angle) => {
@@ -299,6 +307,36 @@ export function createTablePlateLayers(slots: readonly TrackerArcSlot[] = []): T
   };
 }
 
+/*
+ * The two-board table: one piece drawn from its traced outline at the main plate's heights. The base below reaches a
+ *little wider, as the main base does.
+ */
+const TWO_BOARD_PLATE_BASE_SPREAD = 0.1;
+
+function twoBoardPlateShape(spread: number): Shape {
+  const shape = new Shape();
+  twoBoardTableOutline(spread).forEach(([x, z], index) => (index === 0 ? shape.moveTo(x, z) : shape.lineTo(x, z)));
+  shape.closePath();
+  return shape;
+}
+
+export function createTwoBoardTablePlateLayers(): TablePlateLayers {
+  return {
+    upper: {
+      shape: twoBoardPlateShape(0),
+      outlineScale: 1,
+      surfaceY: FURNITURE_SURFACE_Y,
+      thickness: TABLE_PLATE_THICKNESS,
+    },
+    lower: {
+      shape: twoBoardPlateShape(TWO_BOARD_PLATE_BASE_SPREAD),
+      outlineScale: 1,
+      surfaceY: FURNITURE_SURFACE_Y - TABLE_PLATE_THICKNESS + TABLE_BASE_OVERLAP,
+      thickness: TABLE_BASE_THICKNESS,
+    },
+  };
+}
+
 /** The drawn table plate's edge as [x, z] corners: the round top, the shelves with their rounded corners, and the tracker crown. */
 type TablePlateOutline = readonly (readonly [x: number, z: number])[];
 
@@ -326,8 +364,13 @@ function tablePlateContains(outline: TablePlateOutline, [x, , z]: Vector3Tuple):
 export function tableSurfacePointOnRay(
   origin: Vector3Tuple,
   direction: Vector3Tuple,
-  outline: TablePlateOutline
+  outline: TablePlateOutline,
+  layout: TableLayout = 'one-board'
 ): Vector3Tuple | null {
-  const point = surfacePointOnRay(origin, direction);
-  return point && tablePlateContains(outline, point) ? point : null;
+  const point = surfacePointOnRay(origin, direction, layout);
+  if (!point) {
+    return null;
+  }
+  const onTable = layout === 'two-boards' ? isOnTwoBoardTable(point[0], point[2]) : tablePlateContains(outline, point);
+  return onTable ? point : null;
 }

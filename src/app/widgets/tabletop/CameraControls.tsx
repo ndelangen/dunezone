@@ -21,7 +21,7 @@ import {
   NO_CAMERA_ZOOM,
   zoomedCameraPose,
 } from './playView';
-import type { CameraPanMotion, CameraPose, CameraViewCommand, CameraZoom, ScreenRect } from './playView';
+import type { CameraPanMotion, CameraPose, CameraViewCommand, CameraZoom, ScreenRect, ZoomReach } from './playView';
 import { usePointerSession } from './PointerSessionContext';
 import { seatedHeaderOf, tableOverlayRects, tableOverlaysOf } from './seatedHeader';
 import { TableKeyboardContext } from './TableKeyboardContext';
@@ -41,12 +41,12 @@ type CameraTransition = {
   toTarget: Vector3;
 };
 
-export function CameraRelativeFog() {
+export function CameraRelativeFog({ reach }: { reach?: ZoomReach }) {
   useFrame(({ camera, scene }) => {
     if (!(scene.fog instanceof Fog)) {
       return;
     }
-    const range = cameraFogRange([camera.position.x, camera.position.y, camera.position.z]);
+    const range = cameraFogRange([camera.position.x, camera.position.y, camera.position.z], reach);
     scene.fog.near = range.near;
     scene.fog.far = range.far;
   });
@@ -70,9 +70,13 @@ function cameraDestinationFor(
   mapFramingPoints: readonly Vector3Tuple[],
   mapObstacles: readonly ScreenRect[],
   tilt: number,
-  zoom: CameraZoom
+  zoom: CameraZoom,
+  layout: ZoomReach
 ): CameraDestination {
-  const pose = zoomedCameraPose(cameraPoseFor(command.view, aspectRatio, mapFramingPoints, tilt, mapObstacles), zoom);
+  const pose = zoomedCameraPose(
+    cameraPoseFor(command.view, aspectRatio, mapFramingPoints, tilt, mapObstacles, layout),
+    zoom
+  );
   return {
     commandKey: `${command.view}:${command.revision}`,
     signature: [
@@ -220,7 +224,12 @@ type PoseAt = { current: ((tilt: number) => CameraPose) | null };
  * While a close look is open, the pan keys slide it, during a carry too.
  * `poseAt` is the view's pose at a tilt.
  */
-function useCloseLook(enabled: boolean, viewKey: string, poseAt: PoseAt): WheelView {
+function useCloseLook(enabled: boolean, viewKey: string, poseAt: PoseAt, reach: ZoomReach): WheelView {
+  /* The handlers read the reach as it is now, without listening again when a game's table arrives. */
+  const reachNow = useRef(reach);
+  useEffect(() => {
+    reachNow.current = reach;
+  }, [reach]);
   const [view, setView] = useState<WheelView>({ zoom: NO_CAMERA_ZOOM, zoomRevision: 0 });
   /* Only the board itself listens, so a scrollable panel or label over the table keeps its own wheel. */
   const surface = useThree((state) => state.renderer.domElement);
@@ -250,7 +259,7 @@ function useCloseLook(enabled: boolean, viewKey: string, poseAt: PoseAt): WheelV
         if (!at) {
           return current;
         }
-        const zoom = cameraZoomAfterWheelAt(current.zoom, at, spot, event.deltaY, event.deltaMode);
+        const zoom = cameraZoomAfterWheelAt(current.zoom, at, spot, event.deltaY, event.deltaMode, reachNow.current);
         return { ...current, zoom, zoomRevision: current.zoomRevision + 1 };
       });
     };
@@ -311,7 +320,7 @@ function useCloseLook(enabled: boolean, viewKey: string, poseAt: PoseAt): WheelV
       const cached = panBase.current;
       const base = cached?.at === at && cached.tilt === tilt ? cached.pose : at(tilt);
       panBase.current = { at, tilt, pose: base };
-      const zoom = cameraZoomAfterPanMotion(current.zoom, base, motion.velocity, delta);
+      const zoom = cameraZoomAfterPanMotion(current.zoom, base, motion.velocity, delta, reachNow.current);
       /* Held against the board's edge, the look stays put and nothing re-renders. */
       const moved = zoom.offset.some((value, index) => value !== current.zoom.offset[index]);
       return moved ? { ...current, zoom } : current;
@@ -394,9 +403,18 @@ type SeatedCameraProps = {
   command: CameraViewCommand;
   enabled: boolean;
   mapFramingPoints: readonly Vector3Tuple[];
+  /* The table a close look may roam: the two-board table reaches further than the standard one. */
+  zoomReach?: ZoomReach;
 };
 
-function useSeatedCameraTransition({ command, enabled, mapFramingPoints }: SeatedCameraProps) {
+const NO_ZOOM_REACH: ZoomReach = 'one-board';
+
+function useSeatedCameraTransition({
+  command,
+  enabled,
+  mapFramingPoints,
+  zoomReach = NO_ZOOM_REACH,
+}: SeatedCameraProps) {
   const controlsRef = useRef<SeatedOrbitControls>(null);
   const playback = useRef<CameraPlayback>({
     appliedCommand: null,
@@ -407,7 +425,7 @@ function useSeatedCameraTransition({ command, enabled, mapFramingPoints }: Seate
   const { camera, invalidate, renderer, size } = useThree();
   const poseAt = useRef<((tilt: number) => CameraPose) | null>(null);
   const pointerSession = usePointerSession();
-  const { zoom, zoomRevision } = useCloseLook(enabled, `${command.view}:${command.revision}`, poseAt);
+  const { zoom, zoomRevision } = useCloseLook(enabled, `${command.view}:${command.revision}`, poseAt, zoomReach);
   const tilt = cameraTiltForZoom(zoom);
   const aspectRatio = size.width / Math.max(1, size.height);
   const glidingRevision = useRef(zoomRevision);
@@ -432,8 +450,9 @@ function useSeatedCameraTransition({ command, enabled, mapFramingPoints }: Seate
 
   /* The view's pose at a tilt changes only with the view and the canvas, so a close look's frames reuse it. */
   useLayoutEffect(() => {
-    poseAt.current = (atTilt) => cameraPoseFor(command.view, aspectRatio, mapFramingPoints, atTilt, overlays);
-  }, [aspectRatio, command.view, mapFramingPoints, overlays]);
+    poseAt.current = (atTilt) =>
+      cameraPoseFor(command.view, aspectRatio, mapFramingPoints, atTilt, overlays, zoomReach);
+  }, [aspectRatio, command.view, mapFramingPoints, overlays, zoomReach]);
 
   useLayoutEffect(() => {
     const controls = controlsRef.current;
@@ -443,7 +462,8 @@ function useSeatedCameraTransition({ command, enabled, mapFramingPoints }: Seate
       mapFramingPoints,
       overlays,
       tilt,
-      zoom
+      zoom,
+      zoomReach
     );
     /* A wheel turn glides, and so does a pan that starts while a glide is still on its way, instead of jumping the rest of it. */
     const glide = glidingRevision.current !== zoomRevision || playback.current.glide !== null;
@@ -476,6 +496,7 @@ function useSeatedCameraTransition({ command, enabled, mapFramingPoints }: Seate
     pointerSession,
     tilt,
     zoom,
+    zoomReach,
     zoomRevision,
   ]);
 

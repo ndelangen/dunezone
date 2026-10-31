@@ -1,3 +1,12 @@
+import {
+  nearestOnTwoBoardTable,
+  SECOND_BOARD_PLACEMENT,
+  TAB_BOTTOM_Z,
+  TWO_BOARD_TABS,
+  twoBoardTableDistance,
+  twoBoardTableOutline,
+} from '@shared/play/boardLayout';
+import type { TableLayout } from '@shared/play/boardLayout';
 import type { Vector3Tuple } from '@shared/play/model';
 import type { TablePhaseId } from '@shared/play/phases';
 import { BOTTOM_SHELF_POSITION, BOTTOM_SHELF_SIZE, FURNITURE_SURFACE_Y } from '@shared/play/tableFurnitureLayout';
@@ -121,6 +130,19 @@ const BOTTOM_VIEW_FRAMING_POINTS: readonly Vector3Tuple[] = [-1, 1].flatMap((x) 
     FURNITURE_SURFACE_Y,
     BOTTOM_SHELF_POSITION[2] + (z * BOTTOM_SHELF_SIZE[2]) / 2,
   ])
+);
+
+/*
+ * On the two-board table the bottom view takes in all four tabs below the boards, and the left view looks at the second
+ * board, where the standard table's left card bay was.
+ */
+const TWO_BOARD_TAB_SPAN = [TWO_BOARD_TABS.inventory[0], TWO_BOARD_TABS.spice[1]] as const;
+const TWO_BOARD_VIEW_TARGETS = {
+  bottom: [(TWO_BOARD_TAB_SPAN[0] + TWO_BOARD_TAB_SPAN[1]) / 2, 0.1, TAB_BOTTOM_Z - 3.9],
+  left: [SECOND_BOARD_PLACEMENT.x, 0.1, 0],
+} as const satisfies Record<'bottom' | 'left', Vector3Tuple>;
+const TWO_BOARD_BOTTOM_VIEW_FRAMING_POINTS: readonly Vector3Tuple[] = TWO_BOARD_TAB_SPAN.flatMap((x) =>
+  [TAB_BOTTOM_Z - 5.6, TAB_BOTTOM_Z].map((z): Vector3Tuple => [x, FURNITURE_SURFACE_Y, z])
 );
 
 /* The camera's direction from its target and its screen axes at a tilt: 0 is the approved angle, 1 is near top-down. */
@@ -275,6 +297,21 @@ function verticalImbalance(
   return topLimit - highest - (lowest + MAP_VIEW_BOTTOM_LIMIT);
 }
 
+/* A frame that reaches this much further to one side than the other, as the two-board table's does, is centred across. */
+const MAP_VIEW_LOPSIDED_FRAME = 0.5;
+
+/* Where across the table the map view looks: the middle of a lopsided frame, otherwise straight down the table's middle. */
+function frameMiddleAcross(framingPoints: readonly Vector3Tuple[]): number {
+  let min = Infinity;
+  let max = -Infinity;
+  for (const [x] of framingPoints) {
+    min = Math.min(min, x);
+    max = Math.max(max, x);
+  }
+  const middle = (min + max) / 2;
+  return Math.abs(middle) > MAP_VIEW_LOPSIDED_FRAME ? middle : TABLE_VIEW_TARGETS.map[0];
+}
+
 /*
  * Where along the table's depth the map view looks: where the frame sits midway between the canvas's top and bottom.
  * Where the frame fills the canvas's height that is also where the camera comes closest, and where the width or the closest
@@ -289,7 +326,8 @@ function centredMapTarget(
   obstacles: readonly ScreenRect[]
 ): Vector3Tuple {
   const approved = TABLE_VIEW_TARGETS.map;
-  const targetAt = (depth: number): Vector3Tuple => [approved[0], approved[1], depth];
+  const across = frameMiddleAcross(framingPoints);
+  const targetAt = (depth: number): Vector3Tuple => [across, approved[1], depth];
   const imbalanceAt = (depth: number) =>
     verticalImbalance(
       framingPoints,
@@ -320,7 +358,14 @@ function centredMapTarget(
 }
 
 /* Where a side or bottom view looks; a narrow canvas moves a side view further out, so its card well stays in frame. */
-function fixedViewTarget(view: Exclude<TableView, 'map' | 'top'>, aspectRatio: number): Vector3Tuple {
+function fixedViewTarget(
+  view: Exclude<TableView, 'map' | 'top'>,
+  aspectRatio: number,
+  layout: TableLayout = 'one-board'
+): Vector3Tuple {
+  if (layout === 'two-boards' && view !== 'right') {
+    return [...TWO_BOARD_VIEW_TARGETS[view]];
+  }
   const baseTarget = TABLE_VIEW_TARGETS[view];
   if (view === 'bottom') {
     return [...baseTarget];
@@ -413,7 +458,8 @@ export function cameraPoseFor(
   aspectRatio = 1,
   mapFramingPoints: readonly Vector3Tuple[] = DEFAULT_MAP_VIEW_FRAMING_POINTS,
   tilt = 0,
-  mapObstacles: readonly ScreenRect[] = NO_SCREEN_RECTS
+  mapObstacles: readonly ScreenRect[] = NO_SCREEN_RECTS,
+  layout: TableLayout = 'one-board'
 ): CameraPose {
   const basis = view === 'top' ? TOP_VIEW_BASIS : cameraBasisFor(tilt);
   const safeAspectRatio = Number.isFinite(aspectRatio) && aspectRatio > 0 ? aspectRatio : 1;
@@ -429,7 +475,7 @@ export function cameraPoseFor(
         )
       : view === 'map'
         ? cachedMapTarget(safeAspectRatio, mapFramingPoints, clampCameraTilt(tilt), mapObstacles)
-        : fixedViewTarget(view, safeAspectRatio);
+        : fixedViewTarget(view, safeAspectRatio, layout);
   const cameraScale = framesMap
     ? cameraScaleForFraming(
         safeAspectRatio,
@@ -443,7 +489,7 @@ export function cameraPoseFor(
     : view === 'bottom'
       ? cameraScaleForFraming(
           safeAspectRatio,
-          BOTTOM_VIEW_FRAMING_POINTS,
+          layout === 'two-boards' ? TWO_BOARD_BOTTOM_VIEW_FRAMING_POINTS : BOTTOM_VIEW_FRAMING_POINTS,
           MAP_VIEW_TOP_LIMIT,
           basis,
           target,
@@ -498,8 +544,15 @@ const CAMERA_ZOOM_TARGET_RECTANGLES = [
   [-BOTTOM_SHELF_SIZE[0] / 2, BOTTOM_SHELF_SIZE[0] / 2, 0, BOTTOM_SHELF_POSITION[2] + BOTTOM_SHELF_SIZE[2] / 2],
 ] as const;
 
+/** Which table a close look roams (boardLayout.ts): on the two-board table it may centre anywhere over the table. */
+export type ZoomReach = TableLayout;
+const NO_EXTRA_REACH: ZoomReach = 'one-board';
+
 /** How far inside the reachable area a table point lies; negative outside it. */
-function zoomTargetDepth(x: number, z: number): number {
+function zoomTargetDepth(x: number, z: number, reach: ZoomReach): number {
+  if (reach === 'two-boards') {
+    return -twoBoardTableDistance(x, z);
+  }
   let depth = CAMERA_ZOOM_TARGET_RADIUS - Math.hypot(x, z);
   for (const [minX, maxX, minZ, maxZ] of CAMERA_ZOOM_TARGET_RECTANGLES) {
     depth = Math.max(depth, Math.min(x - minX, maxX - x, z - minZ, maxZ - z));
@@ -508,19 +561,23 @@ function zoomTargetDepth(x: number, z: number): number {
 }
 
 /** The nearest point of the reachable area. */
-function nearestZoomTarget(x: number, z: number): [number, number] {
+function nearestZoomTarget(x: number, z: number, reach: ZoomReach): [number, number] {
+  if (reach === 'two-boards') {
+    return nearestOnTwoBoardTable(x, z);
+  }
   const distance = Math.hypot(x, z);
-  let best: [number, number] =
+  const candidates: [number, number][] = [
     distance <= CAMERA_ZOOM_TARGET_RADIUS
       ? [x, z]
-      : [(x / distance) * CAMERA_ZOOM_TARGET_RADIUS, (z / distance) * CAMERA_ZOOM_TARGET_RADIUS];
-  for (const [minX, maxX, minZ, maxZ] of CAMERA_ZOOM_TARGET_RECTANGLES) {
-    const candidate: [number, number] = [Math.min(maxX, Math.max(minX, x)), Math.min(maxZ, Math.max(minZ, z))];
-    if (Math.hypot(candidate[0] - x, candidate[1] - z) < Math.hypot(best[0] - x, best[1] - z)) {
-      best = candidate;
-    }
-  }
-  return best;
+      : [(x / distance) * CAMERA_ZOOM_TARGET_RADIUS, (z / distance) * CAMERA_ZOOM_TARGET_RADIUS],
+    ...CAMERA_ZOOM_TARGET_RECTANGLES.map(([minX, maxX, minZ, maxZ]): [number, number] => [
+      Math.min(maxX, Math.max(minX, x)),
+      Math.min(maxZ, Math.max(minZ, z)),
+    ]),
+  ];
+  return candidates.reduce((best, candidate) =>
+    Math.hypot(candidate[0] - x, candidate[1] - z) < Math.hypot(best[0] - x, best[1] - z) ? candidate : best
+  );
 }
 
 /** The tilt of a close look: none at the view's distance, turning toward top-down as the camera closes in. */
@@ -549,7 +606,8 @@ function cameraZoomAfterWheel(
   basePose: CameraPose,
   anchor: Vector3Tuple,
   deltaY: number,
-  deltaMode = 0
+  deltaMode = 0,
+  reach: ZoomReach = NO_EXTRA_REACH
 ): CameraZoom {
   const step = Math.exp(-wheelPixels(deltaY, deltaMode) / CAMERA_ZOOM_SCROLL_PX);
   const scale = Math.max(CAMERA_ZOOM_MINIMUM_SCALE, Math.min(1, zoom.scale * step));
@@ -568,16 +626,16 @@ function cameraZoomAfterWheel(
     const remaining = (1 - scale) / (1 - zoom.scale);
     offset = [zoom.offset[0] * remaining, zoom.offset[1] * remaining, zoom.offset[2] * remaining];
   }
-  return keepZoomOverBoard(basePose, { scale, offset });
+  return keepZoomOverBoard(basePose, { scale, offset }, reach);
 }
 
 /** A close look kept over the board: a target that would leave it slides back toward the middle. */
-function keepZoomOverBoard(basePose: CameraPose, zoom: CameraZoom): CameraZoom {
+function keepZoomOverBoard(basePose: CameraPose, zoom: CameraZoom, reach: ZoomReach): CameraZoom {
   const target = zoomedCameraPose(basePose, zoom).target;
-  if (zoomTargetDepth(target[0], target[2]) >= 0) {
+  if (zoomTargetDepth(target[0], target[2], reach) >= 0) {
     return zoom;
   }
-  const [x, z] = nearestZoomTarget(target[0], target[2]);
+  const [x, z] = nearestZoomTarget(target[0], target[2], reach);
   return {
     scale: zoom.scale,
     offset: [zoom.offset[0] + x - target[0], zoom.offset[1], zoom.offset[2] + z - target[2]],
@@ -594,7 +652,8 @@ export function cameraZoomAfterWheelAt(
   poseAt: (tilt: number) => CameraPose,
   spot: Readonly<{ ndcX: number; ndcY: number; aspectRatio: number; height: number }>,
   deltaY: number,
-  deltaMode = 0
+  deltaMode = 0,
+  reach: ZoomReach = NO_EXTRA_REACH
 ): CameraZoom {
   const pointAt = (look: CameraZoom) =>
     tablePointUnder(
@@ -606,7 +665,7 @@ export function cameraZoomAfterWheelAt(
     );
   const before = poseAt(cameraTiltForZoom(zoom));
   const anchor = pointAt(zoom) ?? zoomedCameraPose(before, zoom).target;
-  let next = cameraZoomAfterWheel(zoom, before, anchor, deltaY, deltaMode);
+  let next = cameraZoomAfterWheel(zoom, before, anchor, deltaY, deltaMode, reach);
   if (next.scale >= zoom.scale) {
     return next;
   }
@@ -615,10 +674,14 @@ export function cameraZoomAfterWheelAt(
     if (!landed) {
       break;
     }
-    next = keepZoomOverBoard(poseAt(cameraTiltForZoom(next)), {
-      scale: next.scale,
-      offset: [next.offset[0] + anchor[0] - landed[0], next.offset[1], next.offset[2] + anchor[2] - landed[2]],
-    });
+    next = keepZoomOverBoard(
+      poseAt(cameraTiltForZoom(next)),
+      {
+        scale: next.scale,
+        offset: [next.offset[0] + anchor[0] - landed[0], next.offset[1], next.offset[2] + anchor[2] - landed[2]],
+      },
+      reach
+    );
   }
   return next;
 }
@@ -678,7 +741,8 @@ export function cameraZoomAfterPanMotion(
   zoom: CameraZoom,
   basePose: CameraPose,
   velocity: readonly [number, number],
-  seconds: number
+  seconds: number,
+  reach: ZoomReach = NO_EXTRA_REACH
 ): CameraZoom {
   if (zoom.scale >= 1) {
     return zoom;
@@ -687,10 +751,10 @@ export function cameraZoomAfterPanMotion(
   let [moveX, moveZ] = [velocity[0] * step, velocity[1] * step];
   const target = zoomedCameraPose(basePose, zoom).target;
   /* The way out of the reachable area here is where its depth falls fastest. */
-  const depth = zoomTargetDepth(target[0], target[2]);
+  const depth = zoomTargetDepth(target[0], target[2], reach);
   const nudge = 0.01;
-  const fallX = depth - zoomTargetDepth(target[0] + nudge, target[2]);
-  const fallZ = depth - zoomTargetDepth(target[0], target[2] + nudge);
+  const fallX = depth - zoomTargetDepth(target[0] + nudge, target[2], reach);
+  const fallZ = depth - zoomTargetDepth(target[0], target[2] + nudge, reach);
   const fall = Math.hypot(fallX, fallZ);
   if (fall > 0) {
     const outwardX = fallX / fall;
@@ -703,10 +767,11 @@ export function cameraZoomAfterPanMotion(
       moveZ -= outwardZ * (outward - slowed);
     }
   }
-  return keepZoomOverBoard(basePose, {
-    scale: zoom.scale,
-    offset: [zoom.offset[0] + moveX, zoom.offset[1], zoom.offset[2] + moveZ],
-  });
+  return keepZoomOverBoard(
+    basePose,
+    { scale: zoom.scale, offset: [zoom.offset[0] + moveX, zoom.offset[1], zoom.offset[2] + moveZ] },
+    reach
+  );
 }
 
 /** The table point under a spot on the canvas, given in normalised device coordinates, on the plane at `height`. */
@@ -746,13 +811,20 @@ export function cameraViewTransitionProgress(elapsedMs: number): number {
   return progress * progress * (3 - 2 * progress);
 }
 
-export function cameraFogRange(position: Vector3Tuple): CameraFogRange {
+/* On the two-board table fog stays this far behind the table's furthest edge, so the far board is never lost in it. */
+const CAMERA_FOG_EXTRA_MARGIN = 3;
+const CAMERA_FOG_OUTLINE_STRIDE = 24;
+
+export function cameraFogRange(position: Vector3Tuple, reach: ZoomReach = NO_EXTRA_REACH): CameraFogRange {
   const heightAboveTable = Math.abs(position[1] - 0.1);
   const scale = Math.max(1, heightAboveTable / CAMERA_FOG_REFERENCE_HEIGHT);
-  return {
-    near: CAMERA_FOG_NEAR * scale,
-    far: CAMERA_FOG_FAR * scale,
-  };
+  let far = CAMERA_FOG_FAR * scale;
+  const outline = reach === 'two-boards' ? twoBoardTableOutline() : [];
+  for (let index = 0; index < outline.length; index += CAMERA_FOG_OUTLINE_STRIDE) {
+    const [x, z] = outline[index]!;
+    far = Math.max(far, Math.hypot(x - position[0], 0.1 - position[1], z - position[2]) + CAMERA_FOG_EXTRA_MARGIN);
+  }
+  return { near: far * (CAMERA_FOG_NEAR / CAMERA_FOG_FAR), far };
 }
 
 /** The view state for a table opened during `phase`: the camera starts on the map, and the first move waits for the next phase. */

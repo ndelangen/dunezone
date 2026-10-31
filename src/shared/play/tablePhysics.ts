@@ -1,3 +1,5 @@
+import { isOnTwoBoardTable, nearestOnTwoBoardTable } from './boardLayout';
+import type { TableLayout } from './boardLayout';
 import type { TablePiece, Vector3Tuple } from './model';
 import { fromPieceFrame, POINTER_OUTLINE, isPointerToken } from './pointerToken';
 import type { PlanePoint } from './pointerToken';
@@ -6,6 +8,7 @@ import {
   CARD_FOOTPRINT_HALF_X,
   CARD_FOOTPRINT_HALF_Z,
   circleFootprintRadius,
+  nearestBy,
   planarDistance,
   TROOP_FOOTPRINT_RADIUS,
   troopScale,
@@ -332,7 +335,7 @@ function isPointOnTabletop(x: number, z: number): boolean {
   );
 }
 
-/** A piece may straddle the join between the round table and the Tanks shelf when its whole reach lies on one or the other. */
+/* A piece may straddle the join between the round table and the Tanks shelf when its whole reach lies on one or the other. */
 function isAcrossTanksJoin(piece: TablePiece, position: Vector3Tuple): boolean {
   const reach = footprintTableRadius(piece);
   for (let sample = 0; sample < JOIN_SAMPLE_COUNT; sample += 1) {
@@ -364,23 +367,31 @@ function clampToTanksShelf(piece: TablePiece, position: Vector3Tuple): Vector3Tu
   ];
 }
 
-export function clampPositionToTable(piece: TablePiece, position: Vector3Tuple): Vector3Tuple {
-  if (isSupportedPosition(piece, position)) {
+export function clampPositionToTable(
+  piece: TablePiece,
+  position: Vector3Tuple,
+  layout: TableLayout = 'one-board'
+): Vector3Tuple {
+  if (isSupportedPosition(piece, position, layout)) {
     return [...position];
   }
-  const onTable = clampToRoundTable(piece, position);
-  const onTanks = clampToTanksShelf(piece, position);
-  const distance = (candidate: Vector3Tuple) => planarDistance(candidate, position);
-  return distance(onTanks) < distance(onTable) ? onTanks : onTable;
+  /* The two-board table is one piece: a piece off it comes back to the nearest spot it lies wholly on. */
+  if (layout === 'two-boards') {
+    const [x, z] = nearestOnTwoBoardTable(position[0], position[2], footprintTableRadius(piece));
+    return [x, position[1], z];
+  }
+  const candidates = [clampToRoundTable(piece, position), clampToTanksShelf(piece, position)];
+  return nearestBy(candidates, (candidate) => planarDistance(candidate, position)) ?? candidates[0]!;
 }
 
-function isSupportedPosition(piece: TablePiece, position: Vector3Tuple): boolean {
-  return (
-    placementAnchorForPose(piece, position) !== null ||
-    isOnRoundTable(piece, position) ||
-    isOnTanksShelf(piece, position) ||
-    isAcrossTanksJoin(piece, position)
-  );
+function isSupportedPosition(piece: TablePiece, position: Vector3Tuple, layout: TableLayout): boolean {
+  if (placementAnchorForPose(piece, position, layout) !== null) {
+    return true;
+  }
+  if (layout === 'two-boards') {
+    return isOnTwoBoardTable(position[0], position[2], footprintTableRadius(piece));
+  }
+  return isOnRoundTable(piece, position) || isOnTanksShelf(piece, position) || isAcrossTanksJoin(piece, position);
 }
 
 export function isOverlapFreePosition(
@@ -402,9 +413,10 @@ export function isOverlapFreePosition(
 export function isCollisionFreePosition(
   movingPiece: TablePiece,
   position: Vector3Tuple,
-  obstacles: TablePiece[]
+  obstacles: TablePiece[],
+  layout: TableLayout = 'one-board'
 ): boolean {
-  return isSupportedPosition(movingPiece, position) && isOverlapFreePosition(movingPiece, position, obstacles);
+  return isSupportedPosition(movingPiece, position, layout) && isOverlapFreePosition(movingPiece, position, obstacles);
 }
 
 function searchAngleFor(pieceId: string): number {
@@ -421,9 +433,11 @@ export function nearestCollisionFreePosition(
   movingPiece: TablePiece,
   requestedPosition: Vector3Tuple,
   obstacles: TablePiece[],
-  fits: (position: Vector3Tuple) => boolean = () => true
+  fits: (position: Vector3Tuple) => boolean = () => true,
+  layout: TableLayout = 'one-board'
 ): Vector3Tuple | null {
-  const free = (position: Vector3Tuple) => isCollisionFreePosition(movingPiece, position, obstacles) && fits(position);
+  const free = (position: Vector3Tuple) =>
+    isCollisionFreePosition(movingPiece, position, obstacles, layout) && fits(position);
   if (free(requestedPosition)) {
     return [...requestedPosition];
   }

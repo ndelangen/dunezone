@@ -579,6 +579,7 @@ export default defineSchema({
     asset_id: v.id('assets'),
     slot: v.union(
       v.literal('board'),
+      v.literal('secondBoard'),
       v.literal('treachery'),
       v.literal('spice'),
       v.literal('custom'),

@@ -1,11 +1,12 @@
 /* @jsxImportSource ./three-jsx */
 
+import type { TableLayout } from '@shared/play/boardLayout';
 import type { Vector3Tuple } from '@shared/play/model';
 import {
   cardBaySlotPositions,
-  SHARED_ITEM_PLACEMENT_ANCHORS,
+  sharedItemAnchors,
   TABLE_TANKS_LABEL,
-  TABLE_TANKS_LABEL_POSITION,
+  tanksLabelPosition,
 } from '@shared/play/tableFurnitureLayout';
 import type { CardBaySide } from '@shared/play/tableFurnitureLayout';
 import { CARD_DEPTH, CARD_WIDTH } from '@shared/play/tableGeometry';
@@ -16,7 +17,11 @@ import type { ExtrudeGeometry } from 'three';
 import { ignoreRaycast } from './ignoreRaycast';
 import { TableLabel } from './TableLabel';
 import { useTablePalette } from './tablePalette';
-import { createRoundedRectangleShape, createTablePlateLayers } from './tablePlateGeometry';
+import {
+  createRoundedRectangleShape,
+  createTablePlateLayers,
+  createTwoBoardTablePlateLayers,
+} from './tablePlateGeometry';
 
 const TABLE_PLATE_EXTRUDE_OPTIONS = {
   bevelEnabled: false,
@@ -32,9 +37,12 @@ const SLOT_RIM_SHAPE = createRoundedRectangleShape(
 );
 const SLOT_WELL_SHAPE = createRoundedRectangleShape(CARD_WIDTH, CARD_DEPTH, 0.08);
 
-function TablePlate({ trackerSlots }: { trackerSlots: readonly TrackerArcSlot[] }) {
+function TablePlate({ trackerSlots, layout }: { trackerSlots: readonly TrackerArcSlot[]; layout: TableLayout }) {
   const palette = useTablePalette();
-  const layers = useMemo(() => createTablePlateLayers(trackerSlots), [trackerSlots]);
+  const layers = useMemo(
+    () => (layout === 'two-boards' ? createTwoBoardTablePlateLayers() : createTablePlateLayers(trackerSlots)),
+    [layout, trackerSlots]
+  );
   const geometryArgs = useMemo(
     () => ({
       upper: [
@@ -93,26 +101,32 @@ function CardWell({ position }: { position: Vector3Tuple }) {
   );
 }
 
-function SideCardBay({ side }: { side: CardBaySide }) {
+function SideCardBay({ side, layout }: { side: CardBaySide; layout: TableLayout }) {
   return (
     <group>
-      {cardBaySlotPositions(side).map((position, index) => (
+      {cardBaySlotPositions(side, layout).map((position, index) => (
         <CardWell key={`${side}-${index}`} position={position} />
       ))}
     </group>
   );
 }
 
-export function TableFurniture({ trackerSlots }: { trackerSlots: readonly TrackerArcSlot[] }) {
+export function TableFurniture({
+  trackerSlots,
+  layout = 'one-board',
+}: {
+  trackerSlots: readonly TrackerArcSlot[];
+  layout?: TableLayout;
+}) {
   return (
     <group>
-      <TablePlate trackerSlots={trackerSlots} />
-      <SideCardBay side="left" />
-      <SideCardBay side="right" />
-      {SHARED_ITEM_PLACEMENT_ANCHORS.map((anchor) => (
+      <TablePlate trackerSlots={trackerSlots} layout={layout} />
+      <SideCardBay side="left" layout={layout} />
+      <SideCardBay side="right" layout={layout} />
+      {sharedItemAnchors(layout).map((anchor) => (
         <CardWell key={anchor.id} position={anchor.position} />
       ))}
-      <TableLabel position={TABLE_TANKS_LABEL_POSITION}>{TABLE_TANKS_LABEL}</TableLabel>
+      <TableLabel position={tanksLabelPosition(layout)}>{TABLE_TANKS_LABEL}</TableLabel>
     </group>
   );
 }

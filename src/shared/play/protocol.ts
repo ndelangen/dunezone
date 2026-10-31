@@ -72,6 +72,8 @@ const direction = z.union([z.literal(-1), z.literal(1)]);
 export const gameSnapshotSchema = z.object({
   /* Immutable retained content, omitted only for legacy games and fixtures. */
   board: boardCaptureSchema.optional(),
+  /* The second board on a two-board table, as immutable as `board`. */
+  secondBoard: boardCaptureSchema.optional(),
   revision: count,
   table: tableSchema,
   versions: z.record(z.string(), count),

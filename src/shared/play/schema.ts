@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { PhysicalSize } from '../assets/physicalSize';
+import { TABLE_LAYOUTS } from './boardLayout';
 import { TABLE_SEAT_COUNTS, TABLE_SECTOR_COUNT } from './tableSettings';
 
 export const tableIdSchema = z.string().regex(/^[a-zA-Z0-9_-]{1,160}$/);
@@ -189,6 +190,8 @@ const tableEventSchema = z.object({
 
 export const durableTableSchema = z.object({
   stormSectorIndex: tableCountSchema,
+  /* Which table the game is played on (boardLayout.ts); absent on the standard one-board table. */
+  tableLayout: z.enum(TABLE_LAYOUTS).optional(),
   pieces: z.array(tablePieceSchema),
   events: z.array(tableEventSchema),
   nextEventNumber: tableCountSchema,
