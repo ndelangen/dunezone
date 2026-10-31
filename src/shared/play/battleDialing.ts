@@ -8,7 +8,7 @@ import type { BattleFace, BattlePlanInput } from './battle';
  */
 
 /** GF9 2.0 spice strength: spending the spice adds the bonus, once the dialed troop strength reaches that spice. */
-export const SPICE_STRENGTH_TIERS = [
+const SPICE_STRENGTH_TIERS = [
   { spice: 2, bonus: 1 },
   { spice: 4, bonus: 2 },
   { spice: 8, bonus: 3 },

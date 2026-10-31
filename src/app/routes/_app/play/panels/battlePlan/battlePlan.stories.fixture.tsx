@@ -112,7 +112,7 @@ const SEATS: Partial<Record<Scenario, readonly [string, string]>> = {
 };
 
 /** The ruleset dialing each scenario's game counts with; the rest count as Advanced. */
-export const SCENARIO_DIALING: Partial<Record<Scenario, BattleDialing>> = {
+const SCENARIO_DIALING: Partial<Record<Scenario, BattleDialing>> = {
   basic: 'basic',
   gf92: 'gf92',
   'gf92-fremen': 'gf92',

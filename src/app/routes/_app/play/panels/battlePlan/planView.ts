@@ -148,7 +148,7 @@ export function setTotal(plan: BattlePlan, faceId: string, total: number): Parti
 }
 
 /** The dialed troop strength under a full-strength mechanism, before spice strength and the adjustment. */
-export const flatDial = (plan: BattlePlan) => flatStrength(plan.troops, plan.faces);
+const flatDial = (plan: BattlePlan) => flatStrength(plan.troops, plan.faces);
 
 /** The spice strength a GF9 2.0 plan adds; nothing under any other mechanism. */
 export function spiceBonus(plan: BattlePlan) {
