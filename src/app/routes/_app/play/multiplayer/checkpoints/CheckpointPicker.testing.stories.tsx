@@ -1,7 +1,7 @@
 import { Box } from '@mantine/core';
 import { testingPreview } from '@sb/preview';
 import { useState } from 'react';
-import { expect, fn, userEvent, within } from 'storybook/test';
+import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 
 import { CheckpointPicker } from './CheckpointPicker';
 import { longGameCheckpoints, offeredCheckpoints } from './checkpointPicker.stories.fixture';
@@ -69,7 +69,7 @@ export const DragChoosesOnRelease = meta.story({
   play: async ({ args, canvasElement }) => {
     const picker = within(canvasElement);
     const slider = picker.getByRole('slider', { name: 'Checkpoint' });
-    const track = slider.closest<HTMLElement>('.mantine-Slider-root')!;
+    const track = slider.closest<HTMLElement>('.mantine-Slider-trackContainer')!;
     const box = track.getBoundingClientRect();
     const y = box.top + box.height / 2;
     await userEvent.pointer([
@@ -77,10 +77,12 @@ export const DragChoosesOnRelease = meta.story({
       { target: track, coords: { clientX: box.left + box.width / 2, clientY: y } },
       { target: track, coords: { clientX: box.left + 2, clientY: y } },
     ]);
-    await expect(slider).toHaveAttribute('aria-valuenow', '0');
+    /* The slider follows the pointer on the next animation frame. */
+    await waitFor(() => expect(slider).toHaveAttribute('aria-valuenow', '0'));
     await expect(args.onChange).not.toHaveBeenCalled();
-    await userEvent.pointer({ keys: '[/MouseLeft]', target: track, coords: { clientX: box.left + 2, clientY: y } });
-    await expect(args.onChange).toHaveBeenCalledTimes(1);
+    /* A separate pointer call starts with no button held, so the release is sent as the browser would send it. */
+    track.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: box.left + 2, clientY: y }));
+    await waitFor(() => expect(args.onChange).toHaveBeenCalledTimes(1));
     await expect(args.onChange).toHaveBeenCalledWith(args.checkpoints[0]!.step);
   },
 });
