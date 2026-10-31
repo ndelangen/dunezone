@@ -15,6 +15,7 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
+import { PlayReadiness } from '@ui/block/PlayReadiness';
 import { Section } from '@ui/block/Section';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { FactionLink } from '@ui/content/FactionLink';
@@ -33,6 +34,7 @@ import { Surface } from '@ui/surface';
 import { ArrowDown, ArrowUp, Layers3, Link2, Link2Off, Pencil, X } from 'lucide-react';
 import { useReducer, useState } from 'react';
 
+import { usePlayReadiness } from '@db/play';
 import { useReorderRulebooks, useSoftDeleteRulebook } from '@db/rulebooks';
 import type { RulebookMetadata } from '@db/rulebooks';
 import {
@@ -293,6 +295,9 @@ function RulesetEditor({
           <Surface padding="lg">
             <RulesetAssetSlots rulesetId={initial.id} slots={assetSlots} />
           </Surface>
+          <Surface padding="lg">
+            <RulesetPlayReadiness ruleset={initial} slots={assetSlots} />
+          </Surface>
         </Stack>
       </PageLayout.Content>
     </PageLayout>
@@ -393,6 +398,27 @@ function RulesetEditPage() {
 }
 
 type SlottedAsset = { id: string; type: string; slug: string; name: string };
+
+/* A readiness check reads every linked faction; a ruleset with more than this is checked on its first ones. */
+const READINESS_FACTION_LIMIT = 100;
+
+/**
+ * Whether a game can start with this ruleset, by the game's own captures, so the content left to fix is named here rather than when a game is created.
+ * It checks again whenever a slot or a linked faction changes on this page.
+ */
+function RulesetPlayReadiness({
+  ruleset,
+  slots,
+}: {
+  ruleset: RulesetEntry;
+  slots: { slot: string; asset: SlottedAsset }[];
+}) {
+  const linked = useOrderedRulesetFactions(ruleset._id, READINESS_FACTION_LIMIT);
+  const factions = linked?.factions.map((faction) => ({ id: faction._id as string, name: faction.name }));
+  const revision = slots.map((entry) => `${entry.slot}:${entry.asset.id}`).join('|');
+  const { check, recheck } = usePlayReadiness({ id: ruleset._id, name: ruleset.name }, factions, revision);
+  return <PlayReadiness check={check} onRecheck={recheck} />;
+}
 
 /* The Factions list's first load and each "Load more": a ruleset seldom has more, and dragging only reorders what is loaded. */
 const FACTION_LIST_STEP = 50;

@@ -120,6 +120,7 @@ export function CreateGamePass({
   onCreate,
   rulesetLink,
   disabledReason,
+  rulesetChecked = true,
 }: Readonly<{
   rulesets: readonly PassRuleset[];
   preview: CreatableRulesetPreview | null;
@@ -136,6 +137,8 @@ export function CreateGamePass({
   failure: string | null;
   onCreate: (request: CreateGameRequest) => void;
   rulesetLink: (slug: string) => (rootProps: object) => ReactNode;
+  /** False while the chosen ruleset's decks and bundles are still being checked the way the table will capture them. */
+  rulesetChecked?: boolean;
 }>) {
   const chosen = rulesets.find((ruleset) => ruleset.id === draft.rulesetId);
   const request = playCreateGameRequestSchema.safeParse({
@@ -151,6 +154,7 @@ export function CreateGamePass({
     request.success &&
     chosen !== undefined &&
     objection === null &&
+    rulesetChecked &&
     !pending &&
     !departing;
   const submit = () => {
@@ -190,6 +194,7 @@ export function CreateGamePass({
                 <NameField draft={draft} dispatch={dispatch} error={nameError} disabled={pending} />
                 <RulesetField
                   rulesets={rulesets}
+                  checked={rulesetChecked}
                   value={draft.rulesetId}
                   onChange={(rulesetId) => dispatch({ kind: 'patch', update: { rulesetId } })}
                   disabled={pending}
@@ -317,10 +322,17 @@ function PassFacts({
 /* A searchable dropdown, since a catalogue of forty rulesets would push the rest of the pass off the screen as a list. */
 function RulesetField({
   rulesets,
+  checked,
   value,
   onChange,
   disabled,
-}: Readonly<{ rulesets: readonly PassRuleset[]; value: string; onChange: (id: string) => void; disabled: boolean }>) {
+}: Readonly<{
+  rulesets: readonly PassRuleset[];
+  checked: boolean;
+  value: string;
+  onChange: (id: string) => void;
+  disabled: boolean;
+}>) {
   const chosen = rulesets.find((ruleset) => ruleset.id === value);
   const objections = new Map<string, string | null>(rulesets.map((ruleset) => [ruleset.id, ruleset.objection]));
   return (
@@ -354,7 +366,10 @@ function RulesetField({
       description={
         chosen ? (
           <Text component="span" size="xs" c={chosen.objection ? 'red' : 'dimmed'}>
-            {chosen.objection ?? 'The board and decks are linked. The table checks every card when it prepares.'}
+            {chosen.objection ??
+              (checked
+                ? 'Every deck and bundle is ready for the table.'
+                : 'Checking every deck and bundle the way the table takes them…')}
           </Text>
         ) : undefined
       }

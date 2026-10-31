@@ -5,7 +5,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { useEffect, useReducer, useRef, useState } from 'react';
 import type { Dispatch } from 'react';
 
-import { useCreatableRulesets, useCreateGame } from '@db/play';
+import { useCreatableRulesets, useCreateGame, usePlayReadiness } from '@db/play';
 import { pageHead } from '@app/routes/pageTitle';
 import {
   CreateGamePass,
@@ -13,7 +13,7 @@ import {
   createGameDraftReducer,
   initialCreateGameDraft,
 } from '@app/widgets/create-game/CreateGamePass';
-import type { CreateGameDraftEvent, CreateGameRequest } from '@app/widgets/create-game/CreateGamePass';
+import type { CreateGameDraftEvent, CreateGameRequest, PassRuleset } from '@app/widgets/create-game/CreateGamePass';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
@@ -112,6 +112,33 @@ function useDeparture(createGame: CreateGame, dispatch: Dispatch<CreateGameDraft
   return { departing, stalled, depart };
 }
 
+const NO_FACTIONS: [] = [];
+
+/**
+ * The rulesets with the chosen one judged as the game will judge it at creation, so a ruleset whose decks or bundles the table cannot take is refused here rather than after Create game.
+ * The listing's own objection stands first;
+ * the capture's first ruleset problem fills in for it.
+ */
+function useCheckedRulesets(rulesets: readonly PassRuleset[], rulesetId: string) {
+  const chosen = rulesets.find((ruleset) => ruleset.id === rulesetId);
+  const checkable = chosen?.selectable && chosen.objection === null ? chosen : undefined;
+  const { check } = usePlayReadiness(checkable ? { id: checkable.id, name: checkable.name } : null, NO_FACTIONS, '');
+  if (!checkable) {
+    return { rulesets, rulesetChecked: true };
+  }
+  /* A verdict still naming the ruleset chosen before is as good as none yet. */
+  const verdict = check.status === 'checked' && check.entries[0]?.id === checkable.id ? check.entries[0] : null;
+  const problem = verdict?.problems[0];
+  const objection = problem ? `${problem.subject}: ${problem.reason}` : null;
+  return {
+    rulesets: objection
+      ? rulesets.map((ruleset) => (ruleset.id === checkable.id ? { ...ruleset, objection } : ruleset))
+      : rulesets,
+    /* A check that could not finish does not hold the pass: the table still checks when it prepares. */
+    rulesetChecked: verdict !== null || check.status === 'failed',
+  };
+}
+
 /* The ruleset page, which the pass opens in a new tab. */
 const rulesetLink = (slug: string) => (rootProps: object) => (
   <Link {...rootProps} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: slug }} />
@@ -124,11 +151,12 @@ function CreateGameForm({
 }: Readonly<
   Omit<
     Parameters<typeof CreateGamePass>[0],
-    'pending' | 'departing' | 'notice' | 'failure' | 'onCreate' | 'rulesetLink'
+    'pending' | 'departing' | 'notice' | 'failure' | 'onCreate' | 'rulesetLink' | 'rulesetChecked'
   >
 >) {
   const createGame = useCreateGame();
   const { departing, stalled, depart } = useDeparture(createGame, dispatch);
+  const { rulesets, rulesetChecked } = useCheckedRulesets(pass.rulesets, pass.draft.rulesetId);
   return (
     <PageLayout>
       <PageLayout.Header size="compact">
@@ -137,6 +165,8 @@ function CreateGameForm({
       <PageLayout.Content>
         <CreateGamePass
           {...pass}
+          rulesets={rulesets}
+          rulesetChecked={rulesetChecked}
           dispatch={dispatch}
           pending={createGame.isPending}
           /* A stalled request lifts the fade, so the page can say why. */

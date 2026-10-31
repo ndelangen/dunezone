@@ -1,9 +1,11 @@
 import type { playCreateGameRequestSchema } from '@shared/play/admission';
+import { CatalogueCapture, playReadiness } from '@shared/play/catalogueCapture';
+import type { PlayReadinessEntry } from '@shared/play/catalogueCapture';
 import type { playGeneratedGameRequestSchema } from '@shared/play/gameCreation';
 import { peekSeatPass, PLAY_SEAT_PASS_RENEW_MS } from '@shared/play/seatPass';
 import { useQuery } from 'convex/react';
 import type { FunctionArgs, FunctionReturnType } from 'convex/server';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { z } from 'zod';
 
 import { db } from '@db/core';
@@ -44,6 +46,71 @@ export function useSpawnableAssets(args: SpawnableAssetsArgs) {
 /** One asset's faces and members as a game captures it; a tutorial table captures through this, since it has no game Worker. */
 export async function readAssetSupply(selection: FunctionArgs<typeof api.playCatalogue.assetSupply>) {
   return await db.query(api.playCatalogue.assetSupply, selection, { hold: false });
+}
+
+/** The Play readiness check as a page holds it: running, the game's verdict per ruleset and faction, or why the check itself failed. */
+export type PlayReadinessCheck =
+  | { status: 'checking' }
+  | { status: 'checked'; entries: PlayReadinessEntry[] }
+  | { status: 'failed'; reason: string };
+
+/* The game Worker's captures, over the browser's own client: the same public reads, so the same verdict. */
+function browserCatalogue() {
+  return new CatalogueCapture(
+    {
+      rulesetSupply: async (rulesetId) =>
+        await db.query(api.playCatalogue.rulesetSupply, { rulesetId }, { hold: false }),
+      factionDefinition: async (factionId) =>
+        await db.query(api.playCatalogue.factionDefinition, { factionId }, { hold: false }),
+      assetSupply: readAssetSupply,
+    },
+    window.location.origin
+  );
+}
+
+/**
+ * Whether a real game could start with this ruleset and deal these factions, judged by the game's own capture code.
+ * It is a one-off read rather than a live query: it runs again when `revision` changes, as the page's slots or factions do, and on `recheck`, for an edit made on another page.
+ * Factions still `undefined` are loading, and the check waits for them.
+ */
+export function usePlayReadiness(
+  ruleset: { id: string; name: string } | null,
+  factions: readonly { id: string; name: string }[] | undefined,
+  revision: string
+) {
+  const [round, setRound] = useState(0);
+  /* One string for the whole request, so a new array holding the same factions asks nothing new. */
+  const request =
+    ruleset && factions
+      ? JSON.stringify({
+          ruleset: { id: ruleset.id, name: ruleset.name },
+          factions: factions.map(({ id, name }) => ({ id, name })),
+          revision,
+          round,
+        })
+      : null;
+  const [answered, setAnswered] = useState<{ request: string; check: PlayReadinessCheck } | null>(null);
+  useEffect(() => {
+    if (request === null) {
+      return;
+    }
+    let current = true;
+    const asked: { ruleset: { id: string; name: string }; factions: { id: string; name: string }[] } =
+      JSON.parse(request);
+    const answer = (check: PlayReadinessCheck) => current && setAnswered({ request, check });
+    playReadiness(browserCatalogue(), asked.ruleset, asked.factions).then(
+      (entries) => answer({ status: 'checked', entries }),
+      (error: unknown) =>
+        answer({ status: 'failed', reason: error instanceof Error ? error.message : 'The check could not finish.' })
+    );
+    return () => {
+      current = false;
+    };
+  }, [request]);
+  /* An answer to an earlier request is no answer to this one. */
+  const check: PlayReadinessCheck =
+    answered !== null && answered.request === request ? answered.check : { status: 'checking' };
+  return { check, recheck: useCallback(() => setRound((value) => value + 1), []) };
 }
 
 /** What a chosen ruleset puts on the table, as the create page's manifest lists it. */
