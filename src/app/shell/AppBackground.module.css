@@ -83,12 +83,3 @@
   max-width: none;
   transform-origin: 50% 50%;
 }
-
-/* After scrolling settles, ease the held background to its current pose instead of jumping there. */
-.background[data-gliding] :is(.starsFrame, .stars, .planet) {
-  transition: transform 700ms cubic-bezier(0.25, 0.1, 0.25, 1);
-}
-
-.background[data-gliding] circle {
-  transition: opacity 700ms ease;
-}

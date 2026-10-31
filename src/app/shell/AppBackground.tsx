@@ -7,8 +7,10 @@ const HOUR = 3_600_000;
 /* The hour-long orbit advances less than half a CSS pixel per tick on a 1440px-wide screen. */
 const TICK_MS = 250;
 const SCROLL_SETTLE_MS = 150;
-/* Matches the transition in AppBackground.module.css that eases the background back after scrolling. */
-const GLIDE_MS = 700;
+/* Ease the held background back to its current pose after scrolling instead of jumping there. */
+const GLIDE: KeyframeAnimationOptions = { duration: 700, easing: 'cubic-bezier(0.25, 0.1, 0.25, 1)' };
+/* Holds longer than this are a clock jump, not a scroll, so the orbits take their new pose directly. */
+const MAX_ORBIT_GLIDE_MS = 10 * 60_000;
 
 /* Sample the former CSS ease-in-out curve, including each star's delay and alternating direction. */
 function twinkle(elapsed: number, duration: number, delay: number) {
@@ -66,21 +68,24 @@ export function AppBackground({ motion }: { motion: boolean }) {
     let pending: number | null = null;
     let suspended: boolean | undefined;
     let scrolling = false;
-    let glideUntil = 0;
+    let glides: Animation[] = [];
     let lastTime = 0;
+    const gliding = () => glides.some((glide) => glide.playState === 'running');
+    const stopGlides = () => {
+      for (const glide of glides) {
+        glide.cancel();
+      }
+      glides = [];
+    };
     const synchronize = () => {
-      if (suspended || scrolling) {
+      if (suspended || scrolling || gliding()) {
         return;
       }
       const now = new Date();
       const localTime =
         now.getHours() * HOUR + now.getMinutes() * 60_000 + now.getSeconds() * 1000 + now.getMilliseconds();
-      /* Angles count whole turns since midnight so a glide never spins back a full turn; the midnight wrap skips it. */
-      if (glideUntil && (performance.now() >= glideUntil || localTime < lastTime)) {
-        glideUntil = 0;
-        element.removeAttribute('data-gliding');
-      }
       lastTime = localTime;
+      /* Angles count whole turns since midnight, so the pose before and after a glide is never a full turn apart. */
       if (planetLayer.current) {
         planetLayer.current.style.transform = `rotate(${(localTime / HOUR) * 360}deg)`;
       }
@@ -126,10 +131,22 @@ export function AppBackground({ motion }: { motion: boolean }) {
       scrolling = true;
       scrollTimer = window.setTimeout(() => {
         scrolling = false;
-        glideUntil = performance.now() + GLIDE_MS;
-        element.setAttribute('data-gliding', '');
+        /* Read the on-screen pose, including a glide still running from the previous settle, before replacing it. */
+        const orbits = [starsLayer.current, planetLayer.current].filter((layer) => layer !== null);
+        const before = [frame, ...orbits].map((layer) => getComputedStyle(layer).transform);
+        const heldSince = lastTime;
+        stopGlides();
         synchronize();
         update();
+        /* A clock jump (midnight, sleep, a changed time zone) would turn the orbits a long way, so only the parallax glides then. */
+        const elapsed = lastTime - heldSince;
+        const layers = elapsed >= 0 && elapsed <= MAX_ORBIT_GLIDE_MS ? [frame, ...orbits] : [frame];
+        glides = layers.flatMap((layer, index) => {
+          const after = getComputedStyle(layer).transform;
+          return before[index] === after || !layer.animate
+            ? []
+            : [layer.animate([{ transform: before[index] }, { transform: after }], GLIDE)];
+        });
       }, SCROLL_SETTLE_MS);
     };
     const refresh = () => {
@@ -144,8 +161,7 @@ export function AppBackground({ motion }: { motion: boolean }) {
       suspended = next;
       window.clearInterval(timer);
       cancelPending();
-      glideUntil = 0;
-      element.removeAttribute('data-gliding');
+      stopGlides();
       element.toggleAttribute('data-suspended', next);
       if (!next) {
         synchronize();
@@ -193,8 +209,8 @@ export function AppBackground({ motion }: { motion: boolean }) {
       document.removeEventListener('visibilitychange', refresh);
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', schedule);
+      stopGlides();
       element.removeAttribute('data-suspended');
-      element.removeAttribute('data-gliding');
     };
   }, [motion]);
 

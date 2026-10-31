@@ -40,6 +40,18 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+/* Keep scrolling for the given time, then let the last scroll settle. */
+function scrollFor(ms: number) {
+  act(() => {
+    for (let held = 0; held < ms; held += 100) {
+      window.dispatchEvent(new Event('scroll'));
+      vi.advanceTimersByTime(100);
+    }
+    window.dispatchEvent(new Event('scroll'));
+    vi.advanceTimersByTime(149);
+  });
+}
+
 function orbit(container: HTMLElement, layer: 'planet' | 'stars') {
   const svg = container.querySelector<SVGSVGElement>(`[data-background-${layer}] svg`);
   if (!svg) {
@@ -172,27 +184,86 @@ describe('orbital background', () => {
     expect(vi.getTimerCount()).toBe(1);
   });
 
-  it('eases into the settled pose after scrolling and returns to plain ticks afterwards', () => {
-    const elapsed = vi.spyOn(performance, 'now').mockReturnValue(1000);
-    const { container } = render(<AppBackground motion />);
-    const background = container.querySelector('[data-app-background]')!;
-    expect(background.hasAttribute('data-gliding')).toBe(false);
-    act(() => {
-      document.documentElement.scrollTop = 500;
-      window.dispatchEvent(new Event('scroll'));
-      vi.advanceTimersByTime(150);
-    });
-    expect(background.hasAttribute('data-gliding')).toBe(true);
-    elapsed.mockReturnValue(1600);
-    act(() => {
-      vi.advanceTimersByTime(250);
-    });
-    expect(background.hasAttribute('data-gliding')).toBe(true);
-    elapsed.mockReturnValue(1900);
-    act(() => {
-      vi.advanceTimersByTime(250);
-    });
-    expect(background.hasAttribute('data-gliding')).toBe(false);
+  it('glides the orbits from their held pose to the settled one and holds the clock until the glide ends', () => {
+    const glides: { layer: Element; keyframes: Keyframe[]; playState: string; cancel: () => void }[] = [];
+    vi.stubGlobal('getComputedStyle', (layer: HTMLElement) => ({ transform: layer.style.transform }));
+    Element.prototype.animate = function (this: Element, keyframes: Keyframe[]) {
+      const glide = {
+        layer: this,
+        keyframes,
+        playState: 'running',
+        cancel() {
+          glide.playState = 'idle';
+        },
+      };
+      glides.push(glide);
+      return glide as unknown as Animation;
+    } as Element['animate'];
+    try {
+      const { container } = render(<AppBackground motion />);
+      const planet = container.querySelector<SVGSVGElement>('[data-background-planet] svg')!;
+      const held = planet.style.transform;
+      scrollFor(2000);
+      expect(planet.style.transform).toBe(held);
+      act(() => {
+        vi.advanceTimersByTime(150);
+      });
+      const settled = planet.style.transform;
+      expect(settled).not.toBe(held);
+      expect(glides.map((glide) => glide.layer)).toContain(planet);
+      expect(glides.find((glide) => glide.layer === planet)?.keyframes).toEqual([
+        { transform: held },
+        { transform: settled },
+      ]);
+      act(() => {
+        vi.advanceTimersByTime(500);
+      });
+      expect(planet.style.transform).toBe(settled);
+      for (const glide of glides) {
+        glide.playState = 'finished';
+      }
+      act(() => {
+        vi.advanceTimersByTime(250);
+      });
+      expect(planet.style.transform).not.toBe(settled);
+
+      /* A second settle starts from the running glide's pose and cancels it. */
+      const count = glides.length;
+      scrollFor(1000);
+      act(() => {
+        vi.advanceTimersByTime(1);
+      });
+      expect(glides.length).toBeGreaterThan(count);
+      const second = glides.slice(count);
+      scrollFor(300);
+      act(() => {
+        vi.advanceTimersByTime(1);
+      });
+      expect(second.every((glide) => glide.playState === 'idle')).toBe(true);
+    } finally {
+      delete (Element.prototype as Partial<Element>).animate;
+    }
+  });
+
+  it('takes the new orbit pose directly after a clock jump instead of gliding a long way', () => {
+    const glides: Element[] = [];
+    vi.stubGlobal('getComputedStyle', (layer: HTMLElement) => ({ transform: layer.style.transform }));
+    Element.prototype.animate = function (this: Element) {
+      glides.push(this);
+      return { playState: 'running', cancel() {} } as unknown as Animation;
+    } as Element['animate'];
+    try {
+      vi.setSystemTime(new Date(2026, 9, 22, 23, 59, 59));
+      const { container } = render(<AppBackground motion />);
+      scrollFor(2000);
+      act(() => {
+        vi.advanceTimersByTime(1);
+      });
+      expect(glides).toHaveLength(0);
+      expect(orbit(container, 'planet')).toBeLessThan(1);
+    } finally {
+      delete (Element.prototype as Partial<Element>).animate;
+    }
   });
 
   it('keeps counting turns across the hour so a glide never spins backwards', () => {
