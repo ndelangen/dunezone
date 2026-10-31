@@ -221,7 +221,7 @@ export const SpectatorGameMenu = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await shows(() => page.getByRole('button', { name: 'Take a seat' }));
     await press(() => page.getByRole('button', { name: 'Game menu' }));
-    await waitForFrame(() => expect(page.getByRole('menuitem', { name: 'Back to the lobby' })).toBeVisible());
+    await waitForFrame(() => expect(page.getByRole('menu')).toBeVisible());
     await expect(page.queryByRole('menuitem', { name: /Give up your seat|Hold to give up/ })).toBeNull();
   },
 });

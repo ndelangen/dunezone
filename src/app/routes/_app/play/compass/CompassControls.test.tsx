@@ -153,3 +153,25 @@ test('the normal chat remains mounted across recall and returns with its own sta
   expect(screen.getByText('Ordinary chat')).toBe(original);
   expect(mounts).toBe(1);
 });
+
+test('recall lists the actions it holds for a seated player, and none for an observer, who has none to hold', () => {
+  const recall: CompassTable['recall'] = { id: 'one', context: 'Storm', loading: false, panels: [] };
+  const controls = (players: CompassTable['players']) => (
+    <MantineProvider>
+      <CompassTableContext value={{ ...table, players, recall }}>
+        <CompassControls scene={null} header={null} camera={null} inert={false} panels={[]} onView={() => undefined} />
+      </CompassTableContext>
+    </MantineProvider>
+  );
+  const search = () => {
+    fireEvent.click(screen.getByRole('button', { name: /Controls/ }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search controls' }), { target: { value: 'Next phase' } });
+  };
+  const { unmount } = render(controls(table.players));
+  search();
+  expect(screen.getByRole('option', { name: /Next phase/ })).toBeTruthy();
+  unmount();
+  render(controls([]));
+  search();
+  expect(screen.queryByRole('option', { name: /Next phase/ })).toBeNull();
+});

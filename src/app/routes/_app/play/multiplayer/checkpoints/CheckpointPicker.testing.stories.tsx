@@ -1,7 +1,7 @@
 import { Box } from '@mantine/core';
 import { testingPreview } from '@sb/preview';
 import { useState } from 'react';
-import { expect, userEvent, within } from 'storybook/test';
+import { expect, fn, userEvent, within } from 'storybook/test';
 
 import { CheckpointPicker } from './CheckpointPicker';
 import { longGameCheckpoints, offeredCheckpoints } from './checkpointPicker.stories.fixture';
@@ -60,5 +60,27 @@ export const SpokenSelection = meta.story({
     await expect(slider).toHaveAttribute('aria-valuetext', 'Turn 11, Battle · after battle 1');
     await userEvent.click(picker.getByRole('button', { name: 'Earlier checkpoint' }));
     await expect(slider).toHaveAttribute('aria-valuetext', 'Turn 11, Battle · start');
+  },
+});
+
+/** A drag names each checkpoint it passes but chooses only the one it is let go on, so a recall moves the table once. */
+export const DragChoosesOnRelease = meta.story({
+  args: { checkpoints: offeredCheckpoints(), value: offeredCheckpoints().at(-1)!.step, onChange: fn() },
+  play: async ({ args, canvasElement }) => {
+    const picker = within(canvasElement);
+    const slider = picker.getByRole('slider', { name: 'Checkpoint' });
+    const track = slider.closest<HTMLElement>('.mantine-Slider-root')!;
+    const box = track.getBoundingClientRect();
+    const y = box.top + box.height / 2;
+    await userEvent.pointer([
+      { keys: '[MouseLeft>]', target: track, coords: { clientX: box.right - 2, clientY: y } },
+      { target: track, coords: { clientX: box.left + box.width / 2, clientY: y } },
+      { target: track, coords: { clientX: box.left + 2, clientY: y } },
+    ]);
+    await expect(slider).toHaveAttribute('aria-valuenow', '0');
+    await expect(args.onChange).not.toHaveBeenCalled();
+    await userEvent.pointer({ keys: '[/MouseLeft]', target: track, coords: { clientX: box.left + 2, clientY: y } });
+    await expect(args.onChange).toHaveBeenCalledTimes(1);
+    await expect(args.onChange).toHaveBeenCalledWith(args.checkpoints[0]!.step);
   },
 });
