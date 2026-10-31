@@ -1,0 +1,123 @@
+/*
+ * A line down the middle of the figure with the dates on the left and the words on the right; each mark is a spice-coloured ring on the line, the latest one filled.
+ * Entries arrive one after another once the figure is on screen; until scripts run, every entry shows.
+ */
+.root {
+  --ink: #f0e8da;
+  --muted: #bfb09a;
+  --sand: #d5ba8c;
+  --spice: #b8842f;
+  --line: rgb(213 186 140 / 40%);
+  --when: 8.5rem;
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  align-self: center;
+  box-sizing: border-box;
+  width: min(40rem, 100%);
+  margin: 0;
+  padding: var(--space-sm) 0;
+  list-style: none;
+}
+
+.root::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--when) + var(--space-md) + 0.4rem);
+  border-left: 1px solid var(--line);
+}
+
+.entry {
+  --row: 0;
+
+  display: grid;
+  grid-template-columns: var(--when) 0.85rem minmax(0, 1fr);
+  gap: var(--space-md);
+  align-items: start;
+  transition:
+    opacity 500ms ease calc(var(--row) * 220ms),
+    transform 500ms cubic-bezier(0.2, 0.8, 0.2, 1) calc(var(--row) * 220ms);
+}
+
+.waiting .entry {
+  opacity: 0;
+  transform: translateY(0.5rem);
+}
+
+.when {
+  color: var(--sand);
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  line-height: 1.5rem;
+  text-align: end;
+  text-transform: uppercase;
+}
+
+.mark {
+  box-sizing: border-box;
+  width: 0.85rem;
+  height: 0.85rem;
+  margin-block-start: 0.35rem;
+  border: 2px solid var(--spice);
+  border-radius: 50%;
+  background: var(--color-ground, #171511);
+}
+
+.latest .mark {
+  background: var(--spice);
+  box-shadow: 0 0 0 4px rgb(184 132 47 / 25%);
+}
+
+.text {
+  color: var(--ink);
+  font-size: var(--mantine-font-size-sm);
+  line-height: 1.5rem;
+}
+
+.latest .text {
+  color: var(--sand);
+}
+
+@container blog-article (width < 36rem) {
+  .root {
+    --when: 0;
+
+    padding-inline-start: 0.25rem;
+  }
+
+  .root::before {
+    left: 0.65rem;
+  }
+
+  .entry {
+    grid-template-columns: 0.85rem minmax(0, 1fr);
+    grid-template-areas:
+      "mark when"
+      ". text";
+    gap: 0.1rem var(--space-sm);
+  }
+
+  .when {
+    grid-area: when;
+    text-align: start;
+  }
+
+  .mark {
+    grid-area: mark;
+  }
+
+  .text {
+    grid-area: text;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .entry {
+    transition: none;
+  }
+}

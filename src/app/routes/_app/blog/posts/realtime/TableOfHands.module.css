@@ -1,0 +1,243 @@
+/*
+ * The closing board on dark felt, 16:9 on a wide page and cropped to its middle on a phone, where the picture is taller than it is wide.
+ * Each hand drifts along its own loop of translations, with a slower sway on top, so the four never move in step; under reduced motion every hand rests at its loop's start.
+ */
+.scene {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  height: auto;
+  overflow: hidden;
+  border-radius: var(--mantine-radius-md);
+  box-shadow: 0 12px 30px rgb(0 0 0 / 45%);
+}
+
+.rim {
+  fill: #2a2219;
+  stroke: #887252;
+  stroke-width: 2;
+}
+
+.rock {
+  fill: #a67a3e;
+  fill-opacity: 0.55;
+}
+
+.sand {
+  fill: #f6d979;
+  fill-opacity: 0.35;
+}
+
+.stronghold {
+  fill: #f7ba7a;
+  fill-opacity: 0.8;
+  stroke: #6b431d;
+  stroke-width: 0.8;
+}
+
+.sector {
+  stroke: #6b431d;
+  stroke-width: 0.8;
+  opacity: 0.35;
+}
+
+.storm {
+  fill: #c92a2a;
+  fill-opacity: 0.22;
+  stroke: #ffa8a8;
+  stroke-width: 0.8;
+  stroke-opacity: 0.5;
+}
+
+.sink {
+  fill: #c9a86a;
+}
+
+.sinkRing {
+  fill: none;
+  stroke: #6b431d;
+  stroke-width: 1.2;
+  opacity: 0.6;
+}
+
+.troops circle {
+  stroke: rgb(0 0 0 / 45%);
+  stroke-width: 1.5;
+}
+
+.stack rect {
+  fill: #211d18;
+  stroke: #b8842f;
+  stroke-width: 1;
+}
+
+.stackWord,
+.peek,
+.initial,
+.name {
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  text-anchor: middle;
+}
+
+.stackWord {
+  fill: #d5ba8c;
+  font-size: 5.5px;
+  letter-spacing: 0.14em;
+}
+
+.stack .peekPill {
+  fill: #8fae3a;
+  stroke: none;
+}
+
+.peek {
+  fill: #171511;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.initial {
+  fill: #f0e8da;
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.pill {
+  fill: rgb(33 29 24 / 85%);
+}
+
+.name {
+  fill: #f0e8da;
+  font-size: 9.5px;
+  text-anchor: start;
+}
+
+.carried {
+  stroke: rgb(0 0 0 / 45%);
+  stroke-width: 1.5;
+  filter: drop-shadow(0 6px 4px rgb(0 0 0 / 50%));
+}
+
+.sway {
+  animation: sway 5s ease-in-out infinite alternate;
+}
+
+/* The loops: four closed paths of translations around and across the board, at different lengths. */
+.driftAtreides,
+.driftHarkonnen,
+.driftFremen,
+.driftEmperor {
+  filter: drop-shadow(0 3px 3px rgb(0 0 0 / 50%));
+  animation: 22s ease-in-out infinite;
+}
+
+.driftAtreides {
+  animation-name: drift-atreides;
+  animation-duration: 26s;
+}
+
+.driftHarkonnen {
+  animation-name: drift-harkonnen;
+  animation-duration: 21s;
+}
+
+.driftFremen {
+  animation-name: drift-fremen;
+  animation-duration: 29s;
+}
+
+.driftEmperor {
+  animation-name: drift-emperor;
+  animation-duration: 24s;
+}
+
+@keyframes sway {
+  from {
+    transform: translate(0, 0) rotate(-3deg);
+  }
+
+  to {
+    transform: translate(4px, 3px) rotate(4deg);
+  }
+}
+
+@keyframes drift-atreides {
+  0%,
+  100% {
+    transform: translate(230px, 215px);
+  }
+
+  30% {
+    transform: translate(300px, 120px);
+  }
+
+  55% {
+    transform: translate(360px, 230px);
+  }
+
+  80% {
+    transform: translate(250px, 265px);
+  }
+}
+
+@keyframes drift-harkonnen {
+  0%,
+  100% {
+    transform: translate(395px, 95px);
+  }
+
+  35% {
+    transform: translate(450px, 160px);
+  }
+
+  65% {
+    transform: translate(380px, 60px);
+  }
+}
+
+@keyframes drift-fremen {
+  0%,
+  100% {
+    transform: translate(460px, 240px);
+  }
+
+  25% {
+    transform: translate(410px, 290px);
+  }
+
+  60% {
+    transform: translate(500px, 190px);
+  }
+}
+
+@keyframes drift-emperor {
+  0%,
+  100% {
+    transform: translate(150px, 110px);
+  }
+
+  40% {
+    transform: translate(210px, 80px);
+  }
+
+  70% {
+    transform: translate(130px, 190px);
+  }
+}
+
+@container blog-article (width < 36rem) {
+  .scene {
+    aspect-ratio: 4 / 3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sway,
+  .driftAtreides,
+  .driftHarkonnen,
+  .driftFremen,
+  .driftEmperor {
+    animation-play-state: paused;
+  }
+}

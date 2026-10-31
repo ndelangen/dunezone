@@ -10,6 +10,7 @@
  * this list repeats their slugs so the sitemap can name them without loading the app, and a test keeps the two equal.
  */
 export const BLOG_POST_SLUGS = [
+  'playing-dune-online-in-real-time',
   'anatomy-of-a-dune-faction-atreides',
   'building-a-dune-sandbox',
   'dune-board-game-style-guide',

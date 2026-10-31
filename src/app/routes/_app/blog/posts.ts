@@ -31,6 +31,19 @@ export type BlogPostMeta = {
  * A folder beside it, like `posts/anatomy/`, holds that post's own figures and follows the same naming rule.
  */
 export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
+  'playing-dune-online-in-real-time': {
+    slug: 'playing-dune-online-in-real-time',
+    title: 'Playing Dune online in real time: how hands, moving pieces and secret cards work',
+    date: '2026-10-31',
+    author: 'Central419',
+    summary:
+      "What happens between your mouse and everyone else's screen on the dune.zone game table: the hands you see moving, a piece in flight, how every table stays in step, and how your cards stay yours.",
+    cover: {
+      key: '/web/blog/building-a-dune-sandbox/game-table.jpg',
+      alt: 'The dune.zone game table during the spice blow: the Dune board with troops, faction shields and the treachery deck',
+      aspect: 1019 / 2048,
+    },
+  },
   'anatomy-of-a-dune-faction-atreides': {
     slug: 'anatomy-of-a-dune-faction-atreides',
     title: 'Anatomy of a Dune faction: how House Atreides becomes every card, token and sheet',

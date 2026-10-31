@@ -1,0 +1,286 @@
+/*
+ * The stream of frames as a row of tickets arriving at a browser on the right, and under it a bar chart of the measured sizes.
+ * A ticket still to come keeps its place but is invisible, so the row never reflows; on a phone the tickets wrap into more rows.
+ * The bars grow from nothing once the figure is on screen; until scripts run, they stand at full width.
+ */
+.root {
+  --ink: #f0e8da;
+  --muted: #bfb09a;
+  --sand: #d5ba8c;
+  --spice: #b8842f;
+  --gap: #ffa8a8;
+  --full: #c7ad7d;
+  --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  width: 100%;
+}
+
+.stream {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.frames {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A ticket: kind above, range large, a note under. */
+.frame {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  box-sizing: border-box;
+  width: 5.6rem;
+  min-height: 3.6rem;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid rgb(213 186 140 / 60%);
+  border-radius: 4px;
+  background: #211d18;
+  color: var(--ink);
+  font-family: var(--mono);
+  transition:
+    opacity 300ms ease,
+    transform 300ms ease;
+}
+
+.hidden {
+  opacity: 0;
+  transform: translateX(-0.5rem);
+}
+
+.frameKind {
+  color: var(--muted);
+  font-size: 0.55rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.frameRange {
+  font-size: 0.95rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.frameNote {
+  font-size: 0.55rem;
+  line-height: 1.3;
+  opacity: 0.85;
+}
+
+.gap {
+  border-color: var(--gap);
+  border-style: dashed;
+  color: var(--gap);
+}
+
+.gap .frameKind {
+  color: var(--gap);
+}
+
+/* The sync runs the other way, so its ticket leans back toward the browser. */
+.sync {
+  border-color: var(--spice);
+  background: transparent;
+  color: var(--sand);
+}
+
+.full {
+  width: 7rem;
+  border-width: 2px;
+  border-color: var(--full);
+  background: #352e25;
+  box-shadow: 0 6px 14px rgb(0 0 0 / 45%);
+}
+
+.full .frameRange {
+  font-size: 1.2rem;
+}
+
+.browser {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  box-sizing: border-box;
+  width: 6.5rem;
+  height: 4.6rem;
+  padding-block-start: 0.8rem;
+  border: 1.5px solid var(--sand);
+  border-radius: 6px;
+  background: #211d18;
+  color: var(--ink);
+  font-family: var(--mono);
+}
+
+.browserBar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 0.7rem;
+  border-radius: 5px 5px 0 0;
+  background: #352e25;
+}
+
+.browserLabel {
+  color: var(--muted);
+  font-size: 0.55rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.revision {
+  font-size: 1rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The chart: a label column and a bar column; the bar's width is its share of the full view. */
+.chart {
+  display: grid;
+  grid-template-columns: 14rem minmax(0, 1fr);
+  gap: 0.6rem var(--space-md);
+  margin: 0;
+}
+
+.barRow {
+  --row: 0;
+
+  display: contents;
+}
+
+.barLabel {
+  align-self: center;
+  color: var(--ink);
+  font-size: var(--mantine-font-size-sm);
+  line-height: 1.3;
+}
+
+.barCell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+  margin: 0;
+}
+
+.bar {
+  --share: 1;
+
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+  box-sizing: border-box;
+  width: calc(var(--share) * 100%);
+  min-width: 3px;
+  height: 1.1rem;
+  overflow: hidden;
+  border-radius: 0 3px 3px 0;
+  background: var(--sand);
+  transition: width 900ms cubic-bezier(0.2, 0.8, 0.2, 1) calc(var(--row) * 150ms);
+}
+
+.waiting .bar {
+  width: 0;
+}
+
+/* The share of a bar that carried nothing new, hatched. */
+.waste {
+  --share: 0;
+
+  display: flex;
+  align-items: center;
+  width: calc(var(--share) * 100%);
+  height: 100%;
+  padding-inline-start: 0.4rem;
+  background: repeating-linear-gradient(135deg, rgb(23 21 17 / 45%) 0 3px, transparent 3px 7px);
+  box-shadow: inset 2px 0 0 #211d18;
+}
+
+.wasteLabel {
+  overflow: hidden;
+  color: #211d18;
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* The size after a trim, as a brighter bar inside the old one. */
+.trim {
+  --share: 1;
+
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: calc(var(--share) * 100%);
+  background: var(--ink);
+}
+
+.barUnknown {
+  width: 2rem;
+  height: 1.1rem;
+  border: 1.5px dashed var(--sand);
+  border-radius: 0 3px 3px 0;
+  box-sizing: border-box;
+}
+
+.value {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+}
+
+@container blog-article (width < 36rem) {
+  .stream {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .browser {
+    order: -1;
+    align-self: flex-end;
+  }
+
+  .frame {
+    width: 4.5rem;
+  }
+
+  .full {
+    width: 5.5rem;
+  }
+
+  .chart {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.9rem;
+  }
+
+  .barLabel {
+    margin-block-end: -0.6rem;
+    font-size: var(--mantine-font-size-xs);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .frame,
+  .bar {
+    transition: none;
+  }
+}

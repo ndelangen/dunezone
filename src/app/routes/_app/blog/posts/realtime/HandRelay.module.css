@@ -1,0 +1,199 @@
+/*
+ * Two screens side by side, each a dark pane with a round sand table, and the hands placed on them by the frame loop through `left` and `top`.
+ * The left table alone takes the pointer, so a phone still scrolls past the right one and the text.
+ */
+.root {
+  --ink: #f0e8da;
+  --muted: #bfb09a;
+  --sand: #d5ba8c;
+  --spice: #b8842f;
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  width: 100%;
+}
+
+.panes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-md);
+}
+
+.pane {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.paneTitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--space-xs);
+  margin: 0;
+  color: var(--ink);
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.sub {
+  color: var(--muted);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+
+.surface {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border: 1px solid rgb(136 114 82 / 60%);
+  border-radius: var(--mantine-radius-md);
+  background: radial-gradient(ellipse at 50% 40%, #352e25, #1b1813 75%);
+  box-shadow: inset 0 0 40px rgb(0 0 0 / 50%);
+}
+
+.touchable {
+  cursor: none;
+  touch-action: none;
+}
+
+.table {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.felt {
+  fill: #53412e;
+}
+
+.sand {
+  fill: var(--sand);
+  fill-opacity: 0.85;
+}
+
+.sector {
+  stroke: var(--spice);
+  stroke-width: 0.8;
+  opacity: 0.45;
+}
+
+.ring {
+  fill: none;
+  stroke: var(--spice);
+  stroke-width: 0.8;
+  opacity: 0.5;
+}
+
+.sink {
+  fill: #c9a86a;
+  stroke: var(--spice);
+  stroke-width: 1;
+}
+
+/* Hands and dots sit at percentages of the surface; until the loop runs, both hands rest in the middle. */
+.hand {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+}
+
+.dots {
+  position: absolute;
+  inset: 0;
+}
+
+.dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  border: 1.5px solid #211d18;
+  border-radius: 50%;
+  background: var(--ink);
+  opacity: 0;
+  transform: translate(-50%, -50%);
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs) var(--space-md);
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.7rem 0.3rem 0.4rem;
+  border: 1px solid rgb(136 114 82 / 70%);
+  border-radius: 999px;
+  color: var(--ink);
+  font-size: var(--mantine-font-size-sm);
+}
+
+.toggle:hover {
+  background: rgb(136 114 82 / 20%);
+}
+
+.switch {
+  position: relative;
+  width: 1.9rem;
+  height: 1.1rem;
+  border-radius: 999px;
+  background: #4c4236;
+  transition: background 150ms ease;
+}
+
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: calc(1.1rem - 4px);
+  height: calc(1.1rem - 4px);
+  border-radius: 50%;
+  background: var(--ink);
+  transition: transform 150ms ease;
+}
+
+.toggleOn .switch {
+  background: var(--spice);
+}
+
+.toggleOn .switch::after {
+  transform: translateX(0.8rem);
+}
+
+.note {
+  color: var(--muted);
+  font-size: var(--mantine-font-size-xs);
+}
+
+@container blog-article (width < 36rem) {
+  .panes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .surface {
+    aspect-ratio: 3 / 2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .switch,
+  .switch::after {
+    transition: none;
+  }
+}

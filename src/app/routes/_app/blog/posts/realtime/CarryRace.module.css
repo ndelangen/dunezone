@@ -1,0 +1,330 @@
+/*
+ * A sequence diagram in three lanes under a strip of Harkonnen's table: arrows carry the message names, the room's own notes sit in the middle lane.
+ * Rows appear one at a time once the figure is on screen; a row still to come is hidden but keeps its height, so the figure never changes size.
+ */
+.root {
+  --ink: #f0e8da;
+  --muted: #bfb09a;
+  --sand: #d5ba8c;
+  --spice: #b8842f;
+  --refuse: #ffa8a8;
+  --line: rgb(213 186 140 / 35%);
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  align-self: center;
+  box-sizing: border-box;
+  width: min(40rem, 100%);
+  padding-block: var(--space-sm);
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+
+/* Harkonnen's screen: a strip of the sand with the troop on it, moving to `--at` of the width. */
+.strip {
+  position: relative;
+  height: 4rem;
+  margin-block-end: var(--space-sm);
+  overflow: hidden;
+  border: 1px solid rgb(136 114 82 / 60%);
+  border-radius: var(--mantine-radius-md);
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 calc(100% / 9 - 1px),
+      rgb(107 67 29 / 25%) calc(100% / 9 - 1px) calc(100% / 9)
+    ),
+    radial-gradient(ellipse at 50% 120%, #e2c795, #cfae78 60%, #b9955c);
+}
+
+.stripTitle {
+  position: absolute;
+  top: 0.35rem;
+  left: 0.6rem;
+  color: #4a3718;
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.troop,
+.shadow,
+.carrier,
+.reacher {
+  --at: 0;
+
+  position: absolute;
+  left: calc(var(--at) * (100% - 3rem) + 1.5rem);
+  transition:
+    left 500ms cubic-bezier(0.3, 0.7, 0.3, 1),
+    transform 300ms ease,
+    opacity 300ms ease,
+    box-shadow 300ms ease;
+}
+
+.troop {
+  --seat: #8fae3a;
+
+  top: 1.6rem;
+  width: 1.6rem;
+  height: 1.6rem;
+  border: 2px solid rgb(0 0 0 / 40%);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, color-mix(in srgb, var(--seat) 70%, white), var(--seat) 60%);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 50%);
+}
+
+.lifted {
+  transform: translateY(-0.7rem) scale(1.12);
+  box-shadow: 0 8px 10px rgb(0 0 0 / 55%);
+}
+
+.shadow {
+  top: 1.9rem;
+  width: 1.6rem;
+  height: 1.2rem;
+  border-radius: 50%;
+  background: rgb(0 0 0 / 35%);
+  filter: blur(2px);
+}
+
+.carrier,
+.reacher {
+  top: 0.6rem;
+  width: 0;
+  height: 0;
+  opacity: 0;
+}
+
+.carrier {
+  transform: translate(0.45rem, 0.15rem);
+}
+
+.carrierShown {
+  opacity: 1;
+}
+
+.reacher {
+  top: 2.4rem;
+  transform: translate(2.6rem, 0.8rem);
+}
+
+.reacherShown {
+  opacity: 1;
+  transform: translate(1.7rem, 0);
+}
+
+.lanes,
+.row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.lane {
+  --seat: #d5ba8c;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  color: var(--seat);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.lane::before {
+  content: "";
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--seat);
+}
+
+/* The lane lines run down the middle of each column, behind the rows. */
+.rows {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  padding: var(--space-sm) 0 0;
+  list-style: none;
+  background:
+    linear-gradient(var(--line), var(--line)) calc(100% / 6) 0 / 1px 100% no-repeat,
+    linear-gradient(var(--line), var(--line)) 50% 0 / 1px 100% no-repeat,
+    linear-gradient(var(--line), var(--line)) calc(100% * 5 / 6) 0 / 1px 100% no-repeat;
+}
+
+.row {
+  align-items: center;
+  min-height: 1.8rem;
+}
+
+/* Two messages in one step share the row, side by side in their own lanes. */
+.row > * {
+  grid-row: 1;
+  transition:
+    opacity 350ms ease,
+    transform 350ms ease;
+}
+
+.pending {
+  opacity: 0;
+  transform: translateY(0.3rem);
+}
+
+/* An arrow spans from the middle of its first lane to the middle of its last; the padding keeps it between the lane lines. */
+.arrow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.8rem;
+  margin-inline: calc(100% / 4);
+  color: var(--ink);
+  font-size: 0.72rem;
+}
+
+.arrow::before {
+  content: "";
+  position: absolute;
+  top: calc(50% + 0.5rem);
+  right: 0;
+  left: 0;
+  border-top: 1.5px solid var(--sand);
+}
+
+.arrow::after {
+  content: "";
+  position: absolute;
+  top: calc(50% + 0.5rem - 4px);
+  right: -1px;
+  border: 4.5px solid transparent;
+  border-right: 0;
+  border-left: 7px solid var(--sand);
+}
+
+.leftward::after {
+  right: auto;
+  left: -1px;
+  border-right: 7px solid var(--sand);
+  border-left: 0;
+}
+
+.arrowText {
+  position: relative;
+  padding: 0 0.3rem;
+  background: var(--color-ground, #171511);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.command .arrowText {
+  font-weight: 700;
+}
+
+.refused {
+  color: var(--refuse);
+}
+
+.refused::before {
+  border-top-color: var(--refuse);
+  border-top-style: dashed;
+}
+
+.refused::after {
+  border-left-color: var(--refuse);
+}
+
+.refused .arrowText {
+  white-space: normal;
+}
+
+.note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  justify-self: center;
+  padding: 0.15rem 0.5rem;
+  border: 1px dashed var(--spice);
+  border-radius: 999px;
+  background: #211d18;
+  color: var(--sand);
+  font-size: 0.68rem;
+  text-align: center;
+}
+
+.saved {
+  border-style: solid;
+  color: var(--ink);
+}
+
+.cylinder {
+  width: 0.8rem;
+  height: 0.9rem;
+  fill: none;
+  stroke: var(--spice);
+  stroke-width: 1.4;
+}
+
+.replay {
+  align-self: center;
+  margin-block-start: var(--space-xs);
+  padding: 0.3rem 0.9rem;
+  border: 1px solid rgb(136 114 82 / 70%);
+  border-radius: 999px;
+  color: var(--ink);
+  font-size: var(--mantine-font-size-sm);
+  transition: opacity 300ms ease;
+}
+
+.replay:hover {
+  background: rgb(136 114 82 / 20%);
+}
+
+.replayHidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+@container blog-article (width < 36rem) {
+  .root {
+    font-size: 0.9rem;
+  }
+
+  .lane {
+    font-size: 0.55rem;
+  }
+
+  .laneSuffix {
+    display: none;
+  }
+
+  .arrow {
+    font-size: 0.62rem;
+  }
+
+  .note {
+    font-size: 0.6rem;
+  }
+
+  .refused .arrowText {
+    font-size: 0.56rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .troop,
+  .shadow,
+  .carrier,
+  .reacher,
+  .row,
+  .replay {
+    transition: none;
+  }
+}
