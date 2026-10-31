@@ -6,11 +6,6 @@ import planet from './planet.webp?url';
 const HOUR = 3_600_000;
 /* The hour-long orbit advances less than half a CSS pixel per tick on a 1440px-wide screen. */
 const TICK_MS = 250;
-const SCROLL_SETTLE_MS = 150;
-/* Ease the held background back to its current pose after scrolling instead of jumping there. */
-const GLIDE: KeyframeAnimationOptions = { duration: 700, easing: 'cubic-bezier(0.25, 0.1, 0.25, 1)' };
-/* Holds longer than this are a clock jump, not a scroll, so the orbits take their new pose directly. */
-const MAX_ORBIT_GLIDE_MS = 10 * 60_000;
 
 /* Sample the former CSS ease-in-out curve, including each star's delay and alternating direction. */
 function twinkle(elapsed: number, duration: number, delay: number) {
@@ -22,13 +17,6 @@ function twinkle(elapsed: number, duration: number, delay: number) {
     t -= (1.26 * t - 0.78 * t * t + 0.52 * t * t * t - progress) / (1.26 - 1.56 * t + 1.56 * t * t);
   }
   return 0.45 + 0.55 * (3 * t * t - 2 * t * t * t);
-}
-
-function updateParallax(frame: HTMLElement | null) {
-  const scroller = document.scrollingElement ?? document.documentElement;
-  const available = scroller.scrollHeight - scroller.clientHeight;
-  const progress = available > 0 ? Math.min(1, Math.max(0, scroller.scrollTop / available)) : 0;
-  frame?.style.setProperty('--scroll-progress', String(progress));
 }
 
 const stars = (() => {
@@ -52,45 +40,29 @@ const stars = (() => {
 export function AppBackground({ motion }: { motion: boolean }) {
   const gradientId = useId();
   const background = useRef<HTMLDivElement>(null);
-  const starsFrame = useRef<HTMLDivElement>(null);
   const starsLayer = useRef<SVGSVGElement>(null);
   const planetLayer = useRef<SVGSVGElement>(null);
   const starLayers = useRef(new Map<number, SVGCircleElement>());
 
   useEffect(() => {
     const element = background.current;
-    const frame = starsFrame.current;
-    if (!element || !frame) {
+    if (!element) {
       return;
     }
     let timer: number | undefined;
-    let scrollTimer: number | undefined;
-    let pending: number | null = null;
     let suspended: boolean | undefined;
-    let scrolling = false;
-    let glides: Animation[] = [];
-    let lastTime = 0;
-    const gliding = () => glides.some((glide) => glide.playState === 'running');
-    const stopGlides = () => {
-      for (const glide of glides) {
-        glide.cancel();
-      }
-      glides = [];
-    };
     const synchronize = () => {
-      if (suspended || scrolling || gliding()) {
+      if (suspended) {
         return;
       }
       const now = new Date();
       const localTime =
         now.getHours() * HOUR + now.getMinutes() * 60_000 + now.getSeconds() * 1000 + now.getMilliseconds();
-      lastTime = localTime;
-      /* Angles count whole turns since midnight, so the pose before and after a glide is never a full turn apart. */
       if (planetLayer.current) {
-        planetLayer.current.style.transform = `rotate(${(localTime / HOUR) * 360}deg)`;
+        planetLayer.current.style.transform = `rotate(${((localTime % HOUR) / HOUR) * 360}deg)`;
       }
       if (starsLayer.current) {
-        starsLayer.current.style.transform = `translate(-50%, -50%) rotate(${(localTime / (2 * HOUR)) * -360}deg)`;
+        starsLayer.current.style.transform = `translate(-50%, -50%) rotate(${((localTime % (2 * HOUR)) / (2 * HOUR)) * -360}deg)`;
       }
       const elapsed = performance.now();
       for (const [id, element] of starLayers.current) {
@@ -100,73 +72,22 @@ export function AppBackground({ motion }: { motion: boolean }) {
     };
     synchronize();
     if (!motion) {
-      frame.style.removeProperty('--scroll-progress');
       return;
     }
-    const cancelPending = () => {
-      window.clearTimeout(scrollTimer);
-      scrolling = false;
-      if (pending !== null) {
-        cancelAnimationFrame(pending);
-        pending = null;
-      }
-    };
-    const update = () => {
-      pending = null;
-      if (!suspended && !scrolling) {
-        updateParallax(frame);
-      }
-    };
-    const schedule = () => {
-      if (!suspended && !scrolling && pending === null) {
-        pending = requestAnimationFrame(update);
-      }
-    };
-    /* Let scrolling reuse the last background frame; ease back into place once input has settled. */
-    const onScroll = () => {
-      if (suspended) {
-        return;
-      }
-      cancelPending();
-      scrolling = true;
-      scrollTimer = window.setTimeout(() => {
-        scrolling = false;
-        /* Read the on-screen pose, including a glide still running from the previous settle, before replacing it. */
-        const orbits = [starsLayer.current, planetLayer.current].filter((layer) => layer !== null);
-        const before = [frame, ...orbits].map((layer) => getComputedStyle(layer).transform);
-        const heldSince = lastTime;
-        stopGlides();
-        synchronize();
-        update();
-        /* A clock jump (midnight, sleep, a changed time zone) would turn the orbits a long way, so only the parallax glides then. */
-        const elapsed = lastTime - heldSince;
-        const layers = elapsed >= 0 && elapsed <= MAX_ORBIT_GLIDE_MS ? [frame, ...orbits] : [frame];
-        glides = layers.flatMap((layer, index) => {
-          const after = getComputedStyle(layer).transform;
-          return before[index] === after || !layer.animate
-            ? []
-            : [layer.animate([{ transform: before[index] }, { transform: after }], GLIDE)];
-        });
-      }, SCROLL_SETTLE_MS);
-    };
     const refresh = () => {
       const next = document.visibilityState === 'hidden' || getComputedStyle(element).visibility === 'hidden';
       if (next === suspended) {
-        if (!next && !scrolling) {
+        if (!next) {
           synchronize();
-          updateParallax(frame);
         }
         return;
       }
       suspended = next;
       window.clearInterval(timer);
-      cancelPending();
-      stopGlides();
       element.toggleAttribute('data-suspended', next);
       if (!next) {
         synchronize();
-        updateParallax(frame);
-        /* Continuous CSS animations kept Firefox redrawing this oversized scene even between visible changes. */
+        /* Continuous CSS animations kept Firefox redrawing this oversized scene even between visible changes; the orbits and twinkles step on a slow clock instead, scrolling included, so they never have to catch up. */
         timer = window.setInterval(synchronize, TICK_MS);
       }
     };
@@ -196,20 +117,11 @@ export function AppBackground({ motion }: { motion: boolean }) {
         attributeFilter: ['data-page-layout-height'],
       });
     }
-    const resizeObserver = new ResizeObserver(schedule);
-    resizeObserver.observe(document.body);
     document.addEventListener('visibilitychange', refresh);
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', schedule);
     return () => {
       window.clearInterval(timer);
-      cancelPending();
       observer.disconnect();
-      resizeObserver.disconnect();
       document.removeEventListener('visibilitychange', refresh);
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', schedule);
-      stopGlides();
       element.removeAttribute('data-suspended');
     };
   }, [motion]);
@@ -222,7 +134,7 @@ export function AppBackground({ motion }: { motion: boolean }) {
       data-motion={motion ? 'ok' : 'reduce'}
       aria-hidden
     >
-      <div ref={starsFrame} className={styles.starsFrame} data-background-stars>
+      <div className={styles.starsFrame} data-background-stars>
         <svg ref={starsLayer} className={styles.stars} viewBox="0 0 1600 1600">
           <defs>
             <radialGradient id={gradientId}>

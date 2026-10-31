@@ -93,20 +93,16 @@ async function playBackgroundPan({ canvasElement }: { canvasElement: HTMLElement
   if (!view || !stars || !planet) {
     throw new Error('The scroll story requires the orbital background.');
   }
-  const readProgress = () => Number.parseFloat(stars.style.getPropertyValue('--scroll-progress'));
   view.scrollTo({ top: 0 });
-  await waitFor(async () => {
-    await expect(view.scrollY).toBe(0);
-    await expect(readProgress()).toBe(0);
-  });
+  await waitFor(() => expect(view.scrollY).toBe(0));
   const planetTop = planet.getBoundingClientRect().top;
   const starTop = stars.getBoundingClientRect().top;
   await expect((view.innerHeight - planetTop) / planet.getBoundingClientRect().height).toBeCloseTo(0.2, 3);
   view.scrollTo({ top: root.scrollHeight, behavior: 'instant' });
   await waitFor(async () => {
     await expect(view.scrollY).toBeGreaterThan(0);
-    await expect(readProgress()).toBeGreaterThanOrEqual(0.995);
-    await expect(stars.getBoundingClientRect().top).toBeLessThan(starTop);
+    /* The scroll timeline moves the stars up by their full 6vh range at the end of the page. */
+    await expect(starTop - stars.getBoundingClientRect().top).toBeCloseTo(view.innerHeight * 0.06, 0);
     await expect(planet.getBoundingClientRect().top).toBe(planetTop);
   });
 }

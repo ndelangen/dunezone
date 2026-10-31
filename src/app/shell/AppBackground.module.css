@@ -12,10 +12,24 @@
 }
 
 .starsFrame {
-  --scroll-progress: 0;
-
   inset: 0;
-  transform: translateY(calc(var(--scroll-progress) * -6vh));
+}
+
+/* Parallax runs only where the compositor can drive it from the scroll position; elsewhere the starfield stays put rather than costing script work on every scroll frame. */
+@supports (animation-timeline: scroll()) {
+  .background[data-motion="ok"] .starsFrame {
+    animation: stars-parallax linear both;
+    animation-timeline: scroll(root);
+  }
+}
+
+@keyframes stars-parallax {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-6vh);
+  }
 }
 
 .stars {
@@ -26,6 +40,8 @@
   max-width: none;
   height: 150vmax;
   transform: translate(-50%, -50%);
+  /* Keep the drawn starfield and planet as layers the clock only turns, so each tick moves pixels instead of redrawing them. */
+  will-change: transform;
 }
 
 .planetFrame {
@@ -82,4 +98,5 @@
   height: 100%;
   max-width: none;
   transform-origin: 50% 50%;
+  will-change: transform;
 }
