@@ -157,7 +157,10 @@ export const MissingBoard = meta.story({
         userId: ref(storybookViewer.subjectKey),
         expirationTime: 4_102_444_800_000,
       });
-      baseline.authRefreshTokens.push({ sessionId: ref('create-session'), expirationTime: 4_102_444_800_000 });
+      baseline.authRefreshTokens.push({
+        sessionId: ref('create-session'),
+        expirationTime: 4_102_444_800_000,
+      });
     }),
   },
   play: async ({ canvasElement }) => {
