@@ -229,28 +229,38 @@ export function troopLimitOf(
     .filter((face) => face.id !== faceId && troop !== undefined && props.troopOf?.[face.id] === troop)
     .reduce((total, face) => total + totalOf(props.plan, face.id), 0);
   const owned = Math.max(0, limit - fielded);
-  return props.plan.dialing === 'kiss' ? Math.min(owned, kissLimit(props.plan, faceId, props.balance)) : owned;
+  return props.plan.dialing === 'kiss' ? kissLimit(props.plan, faceId, owned, props.balance) : owned;
 }
 
 /**
- * The most troops of one face a KISS dial takes: the dial stops at 20, and every troop past the free ones costs its dial cost, which the viewer has to hold.
+ * The most of the owned troops of one face a KISS dial takes: the dial stops at 20 strength, and every troop past the free ones costs its dial cost, which the viewer has to hold.
+ * A troop that adds no strength never reaches the cap, so only ownership and spice bound it.
  * Without a known balance only the cap applies.
  */
-function kissLimit(plan: BattlePlan, faceId: string, balance?: number) {
+function kissLimit(plan: BattlePlan, faceId: string, owned: number, balance?: number) {
   const face = plan.faces.find((candidate) => candidate.id === faceId);
   const others = plan.troops.filter((troop) => troop.faceId !== faceId);
   const room = KISS_DIAL_CAP - flatStrength(others, plan.faces);
-  const byCap = face && face.supportedStrength > 0 ? Math.floor(room / face.supportedStrength) : DEFAULT_TROOP_LIMIT;
+  const byCap = face && face.supportedStrength > 0 ? Math.floor(room / face.supportedStrength) : owned;
+  const bound = Math.max(0, Math.min(owned, byCap));
   if (balance === undefined) {
-    return Math.max(0, byCap);
+    return bound;
   }
-  /* Each troop of this face costs its own dial cost once the free places are used, so count up while the viewer can pay. */
+  /* The cost only grows with each troop added, so search for the most the viewer can pay rather than stepping troop by troop. */
   const available = availableSpice(plan, balance);
-  let count = 0;
-  while (count < byCap && kissSpice([...others, { faceId, undialed: count + 1, dialed: 0 }], plan.faces) <= available) {
-    count += 1;
+  const affordable = (count: number) =>
+    kissSpice([...others, { faceId, undialed: count, dialed: 0 }], plan.faces) <= available;
+  let low = 0;
+  let high = bound;
+  while (low < high) {
+    const middle = Math.ceil((low + high) / 2);
+    if (affordable(middle)) {
+      low = middle;
+    } else {
+      high = middle - 1;
+    }
   }
-  return count;
+  return low;
 }
 
 /** The ids in the order given, then any the order does not name. */
