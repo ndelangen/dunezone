@@ -30,20 +30,7 @@ import {
   horizontalListSortingStrategy,
   arrayMove,
 } from '@dnd-kit/sortable';
-import {
-  Alert,
-  Badge,
-  Box,
-  Button,
-  Group,
-  Menu,
-  NativeSelect,
-  Popover,
-  Select,
-  Stack,
-  Text,
-  TextInput,
-} from '@mantine/core';
+import { Alert, Badge, Box, Button, Group, Menu, Radio, Popover, Select, Stack, Text, TextInput } from '@mantine/core';
 import {
   canonicalRulebookCoverControlValues,
   createRulebookLocalId,
@@ -3044,35 +3031,47 @@ function RulebookSettingsPopover({
 function RulebookSettingsEditor({ settings, layoutIds, onChange }: RulebookSettingsEditorProps) {
   return (
     <Stack gap="md">
-      <NativeSelect
+      <Radio.Group
         label="Book size"
         value={settings.size}
-        data={rulebookSizeCatalogue.map(({ id, label, widthMm, heightMm }) => {
-          const supported = layoutIds.every((layoutId) => isRulebookLayoutSupported(layoutId, id));
-          return {
-            value: id,
-            label: `${label} (${widthMm} × ${heightMm} mm)${supported ? '' : ' (Page layouts do not fit)'}`,
-            disabled: !supported,
-          };
-        })}
-        onChange={(event) => {
-          const parsed = rulebookSettingsSchema.safeParse({ ...settings, size: event.currentTarget.value });
+        onChange={(size) => {
+          const parsed = rulebookSettingsSchema.safeParse({ ...settings, size });
           if (parsed.success) {
             onChange(parsed.data);
           }
         }}
-      />
-      <NativeSelect
+      >
+        <Stack gap="xs" pt="xs">
+          {rulebookSizeCatalogue.map(({ id, label, widthMm, heightMm }) => {
+            const supported = layoutIds.every((layoutId) => isRulebookLayoutSupported(layoutId, id));
+            return (
+              <Radio
+                key={id}
+                value={id}
+                label={`${label} (${widthMm} × ${heightMm} mm)`}
+                description={supported ? undefined : 'Page layouts do not fit'}
+                disabled={!supported}
+              />
+            );
+          })}
+        </Stack>
+      </Radio.Group>
+      <Radio.Group
         label="Book design"
         value={settings.design}
-        data={rulebookDesignCatalogue.map(({ id, label }) => ({ value: id, label }))}
-        onChange={(event) => {
-          const parsed = rulebookSettingsSchema.safeParse({ ...settings, design: event.currentTarget.value });
+        onChange={(design) => {
+          const parsed = rulebookSettingsSchema.safeParse({ ...settings, design });
           if (parsed.success) {
             onChange(parsed.data);
           }
         }}
-      />
+      >
+        <Stack gap="xs" pt="xs">
+          {rulebookDesignCatalogue.map(({ id, label }) => (
+            <Radio key={id} value={id} label={label} />
+          ))}
+        </Stack>
+      </Radio.Group>
     </Stack>
   );
 }

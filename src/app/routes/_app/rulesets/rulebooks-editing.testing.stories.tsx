@@ -355,9 +355,9 @@ export const AuthoredBookSettings = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('button', { name: 'Book settings' }, { timeout: 30_000 }));
-    const size = await page.findByRole('combobox', { name: 'Book size' });
-    await userEvent.selectOptions(size, 'gf9-core');
-    await userEvent.selectOptions(page.getByRole('combobox', { name: 'Book design' }), 'restrained');
+    const size = await page.findByRole('radiogroup', { name: 'Book size' });
+    await userEvent.click(within(size).getByRole('radio', { name: /^GF9 core/ }));
+    await userEvent.click(page.getByRole('radio', { name: 'Restrained expansion' }));
     const preview = page.getByRole('article', { name: 'Rulebook page: Introduction' });
     await expect(preview).toHaveAttribute('data-rulebook-size', 'gf9-core');
     await userEvent.keyboard('{Escape}');
@@ -366,7 +366,7 @@ export const AuthoredBookSettings = meta.story({
       await expect(page.getByRole('button', { name: 'Book settings' })).toHaveFocus();
     });
     await userEvent.click(page.getByRole('button', { name: 'Book settings' }));
-    await page.findByRole('combobox', { name: 'Book size' });
+    await page.findByRole('radiogroup', { name: 'Book size' });
     const title = page.getByRole('textbox', { name: 'Title' });
     await userEvent.click(title);
     await waitFor(async () => {
@@ -511,16 +511,16 @@ export const BookSizeRespectsPageLayouts = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('button', { name: 'Book settings' }, { timeout: 30_000 }));
-    const size = await page.findByRole('combobox', { name: 'Book size' });
-    const tall = page.getByRole('option', { name: /Tall .*Page layouts do not fit/ });
-    const expansion = page.getByRole('option', { name: /GF9 expansion .*Page layouts do not fit/ });
+    const size = await page.findByRole('radiogroup', { name: 'Book size' });
+    const tall = page.getByRole('radio', { name: /^Tall/ });
+    const expansion = page.getByRole('radio', { name: /^GF9 expansion/ });
     await expect(tall).toBeDisabled();
     await expect(expansion).toBeDisabled();
-    await userEvent.selectOptions(size, expansion as HTMLOptionElement);
-    await expect(size).toHaveValue('a4');
+    await userEvent.click(expansion);
+    await expect(within(size).getByRole('radio', { name: /^A4/ })).toBeChecked();
     await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
-    await userEvent.selectOptions(size, 'gf9-core');
-    await expect(size).toHaveValue('gf9-core');
+    await userEvent.click(within(size).getByRole('radio', { name: /^GF9 core/ }));
+    await expect(within(size).getByRole('radio', { name: /^GF9 core/ })).toBeChecked();
     await expect(page.getByRole('button', { name: 'Save' })).toBeEnabled();
   },
 });
@@ -575,15 +575,15 @@ export const BookSettingsFromOverflow = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const more = await page.findByRole('button', { name: 'More actions' }, { timeout: 30_000 });
-    await expect(page.queryByRole('combobox', { name: 'Book size' })).not.toBeInTheDocument();
+    await expect(page.queryByRole('radiogroup', { name: 'Book size' })).not.toBeInTheDocument();
     await userEvent.click(more);
     await userEvent.click(await page.findByRole('button', { name: 'Book settings' }));
     const settings = await page.findByRole('dialog', { name: 'Book settings' });
-    await expect(within(settings).getByRole('combobox', { name: 'Book size' })).toHaveValue('a4');
+    await expect(within(settings).getByRole('radio', { name: /^A4/ })).toBeChecked();
     await waitFor(async () => {
       await expect(page.queryByRole('group', { name: 'More actions' })).not.toBeInTheDocument();
     });
-    await userEvent.selectOptions(within(settings).getByRole('combobox', { name: 'Book size' }), 'gf9-core');
+    await userEvent.click(within(settings).getByRole('radio', { name: /^GF9 core/ }));
     await expect(page.getByRole('article', { name: 'Rulebook page: Introduction' })).toHaveAttribute(
       'data-rulebook-size',
       'gf9-core'
