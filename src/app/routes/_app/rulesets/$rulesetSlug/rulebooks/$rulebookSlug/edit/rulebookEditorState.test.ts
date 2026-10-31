@@ -27,6 +27,75 @@ function ready(value: RulebookEditorResult | { readonly result: RulebookEditorRe
 }
 
 describe('Rulebook editor state manager', () => {
+  it('shares unchanged Pages while isolating published drafts from caller edits', () => {
+    const manager = createRulebookEditorStateManager(createCleanSavedRevision());
+    const before = ready(manager);
+    const page = structuredClone(before.draft.pagesById.RULE!);
+    page.title = 'Edited title';
+    const after = ready(
+      manager.dispatch({
+        kind: 'replace-draft',
+        draft: { ...before.draft, pagesById: { ...before.draft.pagesById, RULE: page } },
+      })
+    );
+    expect(after.draft.pagesById.REFS).toBe(before.draft.pagesById.REFS);
+    expect(after.draft.pagesById.RULE).not.toBe(before.draft.pagesById.RULE);
+    expect(after.latest).toBe(before.latest);
+    expect(after.settings).toBe(before.settings);
+    expect(after.saveRequest?.contents).toBe(after.saveCandidate);
+    page.title = 'Changed outside the manager';
+    expect(after.draft.pagesById.RULE?.title).toBe('Edited title');
+    expect(before.draft.pagesById.RULE?.title).not.toBe('Edited title');
+    expect(() => {
+      after.draft.pagesById.RULE!.title = 'Changed through the result';
+    }).toThrow();
+    expect(() => {
+      after.draft.pageOrder.reverse();
+    }).toThrow();
+    expect(ready(manager.dispatch({ kind: 'begin-save' })).saveRequest?.contents.pagesById.RULE?.title).toBe(
+      'Edited title'
+    );
+  });
+
+  it('rolls back settings and draft identity when a replacement is rejected', () => {
+    const manager = createRulebookEditorStateManager(createCleanSavedRevision());
+    const before = ready(manager);
+    const draft = structuredClone(before.draft);
+    draft.pagesById.RULE!.layoutId = 'cover';
+    const rejected = ready(
+      manager.dispatch({
+        kind: 'replace-draft',
+        draft,
+        settings: { ...before.settings, size: 'gf9-expansion' },
+      })
+    );
+    expect(rejected.operationError).toBeTruthy();
+    expect(rejected.draft).toBe(before.draft);
+    expect(rejected.settings).toBe(before.settings);
+    expect(rejected.latest).toBe(before.latest);
+    const accepted = ready(
+      manager.dispatch(
+        replaceDraft(rejected, (next) => {
+          next.pagesById.RULE!.title = 'Still editable';
+        })
+      )
+    );
+    expect(accepted.operationError).toBeUndefined();
+    expect(accepted.saveRequest?.contents.pagesById.RULE?.title).toBe('Still editable');
+  });
+
+  it('records a Page reorder even when all Page objects are unchanged', () => {
+    const manager = createRulebookEditorStateManager(createCleanSavedRevision());
+    const before = ready(manager);
+    const order = [before.draft.pageOrder.at(-1)!, ...before.draft.pageOrder.slice(0, -1)];
+    const after = ready(manager.dispatch({ kind: 'replace-draft', draft: { ...before.draft, pageOrder: order } }));
+    expect(after.rebasedPatch.placements.length).toBeGreaterThan(0);
+    expect(after.saveRequest?.contents.pageOrder).toEqual(order);
+    for (const id of order) {
+      expect(after.draft.pagesById[id]).toBe(before.draft.pagesById[id]);
+    }
+  });
+
   it('saves paired slots, standalone plans and continued numbering through editor intents', () => {
     const manager = createRulebookEditorStateManager(createCleanSavedRevision());
     const draft = structuredClone(ready(manager).draft);
