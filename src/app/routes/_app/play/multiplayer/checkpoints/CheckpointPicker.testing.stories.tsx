@@ -46,9 +46,8 @@ export const SingleCheckpoint = meta.story({
   },
 });
 
-function SelectionHarness({
-  checkpoints = offeredCheckpoints(),
-}: Readonly<{ checkpoints?: ReturnType<typeof offeredCheckpoints> }>) {
+function SelectionHarness() {
+  const checkpoints = offeredCheckpoints();
   const [value, setValue] = useState(checkpoints.at(-1)!.step);
   return <CheckpointPicker checkpoints={checkpoints} value={value} onChange={setValue} />;
 }
@@ -89,24 +88,6 @@ export const DragChoosesOnRelease = meta.story({
   },
 });
 
-/** A click let go before the slider's next frame still chooses the checkpoint it was made on. */
-export const QuickClickChoosesWhereItLands = meta.story({
-  args: { checkpoints: offeredCheckpoints(), value: offeredCheckpoints().at(-1)!.step, onChange: fn() },
-  play: async ({ args, canvasElement }) => {
-    const picker = within(canvasElement);
-    const slider = picker.getByRole('slider', { name: 'Checkpoint' });
-    const track = slider.closest<HTMLElement>('.mantine-Slider-trackContainer')!;
-    const box = track.getBoundingClientRect();
-    const at = { bubbles: true, clientX: box.left + 2, clientY: box.top + box.height / 2 };
-    /* Press and release in one task, as a browser sends them, so the release arrives before the slider has moved. */
-    track.dispatchEvent(new PointerEvent('pointerdown', { ...at, button: 0 }));
-    track.dispatchEvent(new MouseEvent('mousedown', { ...at, button: 0 }));
-    track.dispatchEvent(new MouseEvent('mouseup', at));
-    await waitForFrame(() => expect(args.onChange).toHaveBeenCalledTimes(1));
-    await expect(args.onChange).toHaveBeenCalledWith(args.checkpoints[0]!.step);
-  },
-});
-
 /** When the table sits on a step no longer offered, a click on the first checkpoint still asks for it. */
 export const FirstCheckpointFromOneNoLongerOffered = meta.story({
   args: { checkpoints: offeredCheckpoints(), value: offeredCheckpoints()[0]!.step - 1, onChange: fn() },
@@ -115,138 +96,8 @@ export const FirstCheckpointFromOneNoLongerOffered = meta.story({
     const track = slider.closest<HTMLElement>('.mantine-Slider-trackContainer')!;
     const box = track.getBoundingClientRect();
     const at = { bubbles: true, clientX: box.left + 2, clientY: box.top + box.height / 2 };
-    track.dispatchEvent(new PointerEvent('pointerdown', { ...at, button: 0 }));
     track.dispatchEvent(new MouseEvent('mousedown', { ...at, button: 0 }));
     track.dispatchEvent(new MouseEvent('mouseup', at));
     await waitForFrame(() => expect(args.onChange).toHaveBeenCalledWith(args.checkpoints[0]!.step));
-  },
-});
-
-/** Every choice asks the table, so a choice that did not move it can be made again. */
-export const EachChoiceAsksTheTable = meta.story({
-  args: { checkpoints: offeredCheckpoints(), value: offeredCheckpoints().at(-1)!.step, onChange: fn() },
-  play: async ({ args, canvasElement }) => {
-    const earlier = within(canvasElement).getByRole('button', { name: 'Earlier checkpoint' });
-    await userEvent.click(earlier);
-    await userEvent.click(earlier);
-    await expect(args.onChange).toHaveBeenCalledTimes(2);
-    await expect(args.onChange).toHaveBeenLastCalledWith(args.checkpoints.at(-2)!.step);
-  },
-});
-
-/** Letting go on the checkpoint the table shows still asks for it, so a return made before an earlier ask is answered lands last. */
-export const ReturnToTheShownCheckpointAsksAgain = meta.story({
-  args: { checkpoints: offeredCheckpoints(), value: offeredCheckpoints().at(-1)!.step, onChange: fn() },
-  play: async ({ args, canvasElement }) => {
-    const slider = within(canvasElement).getByRole('slider', { name: 'Checkpoint' });
-    const track = slider.closest<HTMLElement>('.mantine-Slider-trackContainer')!;
-    const box = track.getBoundingClientRect();
-    const at = { bubbles: true, clientX: box.right - 2, clientY: box.top + box.height / 2 };
-    track.dispatchEvent(new PointerEvent('pointerdown', { ...at, button: 0 }));
-    track.dispatchEvent(new MouseEvent('mousedown', { ...at, button: 0 }));
-    track.dispatchEvent(new MouseEvent('mouseup', at));
-    await waitForFrame(() => expect(args.onChange).toHaveBeenCalledWith(args.value));
-  },
-});
-
-/** A key step chooses its checkpoint at once, so a click on Ask straight after it asks for the checkpoint the key chose. */
-export const KeyStepChoosesAtOnce = meta.story({
-  args: { checkpoints: offeredCheckpoints(), value: offeredCheckpoints().at(-1)!.step, onChange: fn() },
-  play: async ({ args, canvasElement }) => {
-    const slider = within(canvasElement).getByRole('slider', { name: 'Checkpoint' });
-    slider.focus();
-    /* Sent and checked in one task, so no animation frame can run in between. */
-    slider.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true, cancelable: true }));
-    await expect(args.onChange).toHaveBeenCalledWith(args.checkpoints[0]!.step);
-  },
-});
-
-/** An arrow choice made before a quick click's move has landed wins, and the late move does not bring the clicked checkpoint back. */
-export const ArrowAfterQuickClickHolds = meta.story({
-  render: () => <SelectionHarness />,
-  play: async ({ canvasElement }) => {
-    const picker = within(canvasElement);
-    const slider = picker.getByRole('slider', { name: 'Checkpoint' });
-    const earlier = picker.getByRole('button', { name: 'Earlier checkpoint' });
-    const track = slider.closest<HTMLElement>('.mantine-Slider-trackContainer')!;
-    const box = track.getBoundingClientRect();
-    const at = { bubbles: true, clientX: box.left + 2, clientY: box.top + box.height / 2 };
-    const last = offeredCheckpoints().length - 1;
-    /* The click and the arrow land in one task, before the slider's queued move. */
-    track.dispatchEvent(new PointerEvent('pointerdown', { ...at, button: 0 }));
-    track.dispatchEvent(new MouseEvent('mousedown', { ...at, button: 0 }));
-    track.dispatchEvent(new MouseEvent('mouseup', at));
-    earlier.click();
-    await waitForFrame(() => expect(slider).toHaveAttribute('aria-valuenow', String(last - 1)));
-    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    await expect(slider).toHaveAttribute('aria-valuenow', String(last - 1));
-  },
-});
-
-/** A table that moves on its own when the story asks, as another player's seek would move it. */
-function MovingTable({ onChange }: Readonly<{ onChange: (step: number) => void }>) {
-  const checkpoints = offeredCheckpoints();
-  const [value, setValue] = useState(checkpoints.at(-1)!.step);
-  return (
-    <>
-      <CheckpointPicker
-        checkpoints={checkpoints}
-        value={value}
-        onChange={(step) => {
-          onChange(step);
-          setValue(step);
-        }}
-      />
-      <output
-        aria-label="Table moves"
-        ref={(node) => {
-          node?.addEventListener('table-moves', () => setValue(checkpoints.at(-2)!.step));
-        }}
-      />
-    </>
-  );
-}
-
-/** When the table moves during a drag, letting go afterwards does not ask for where the drag had been. */
-export const TableMoveEndsADrag = meta.story({
-  args: { checkpoints: offeredCheckpoints(), value: offeredCheckpoints().at(-1)!.step, onChange: fn() },
-  render: (args) => <MovingTable onChange={args.onChange} />,
-  play: async ({ args, canvasElement }) => {
-    const picker = within(canvasElement);
-    const slider = picker.getByRole('slider', { name: 'Checkpoint' });
-    const track = slider.closest<HTMLElement>('.mantine-Slider-trackContainer')!;
-    const box = track.getBoundingClientRect();
-    const y = box.top + box.height / 2;
-    await userEvent.pointer([
-      { keys: '[MouseLeft>]', target: track, coords: { clientX: box.right - 2, clientY: y } },
-      { target: track, coords: { clientX: box.left + 2, clientY: y } },
-    ]);
-    await waitForFrame(() => expect(slider).toHaveAttribute('aria-valuenow', '0'));
-    picker.getByRole('status', { name: 'Table moves' }).dispatchEvent(new Event('table-moves'));
-    const moved = String(offeredCheckpoints().length - 2);
-    await waitForFrame(() => expect(slider).toHaveAttribute('aria-valuenow', moved));
-    track.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: box.left + 2, clientY: y }));
-    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    await expect(args.onChange).not.toHaveBeenCalledWith(args.checkpoints[0]!.step);
-    await expect(slider).toHaveAttribute('aria-valuenow', moved);
-  },
-});
-
-/** A key step made before a quick click's release has landed wins, and the late release does not ask for the clicked checkpoint after it. */
-export const KeyAfterQuickClickHolds = meta.story({
-  args: { checkpoints: offeredCheckpoints(), value: offeredCheckpoints().at(-1)!.step, onChange: fn() },
-  play: async ({ args, canvasElement }) => {
-    const slider = within(canvasElement).getByRole('slider', { name: 'Checkpoint' });
-    const track = slider.closest<HTMLElement>('.mantine-Slider-trackContainer')!;
-    const box = track.getBoundingClientRect();
-    const at = { bubbles: true, clientX: box.left + 2, clientY: box.top + box.height / 2 };
-    /* The click and the key land in one task, before the slider's queued move and the release's frame. */
-    track.dispatchEvent(new PointerEvent('pointerdown', { ...at, button: 0 }));
-    track.dispatchEvent(new MouseEvent('mousedown', { ...at, button: 0 }));
-    track.dispatchEvent(new MouseEvent('mouseup', at));
-    slider.focus();
-    slider.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true, cancelable: true }));
-    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    await expect(args.onChange).toHaveBeenCalledTimes(1);
   },
 });

@@ -1,8 +1,7 @@
 import { Group, Slider, Stack, Text, Tooltip } from '@mantine/core';
 import { IconAction } from '@ui/control/IconAction';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useEffect, useId, useRef, useState } from 'react';
-import type { RefObject } from 'react';
+import { useId, useState } from 'react';
 
 import { useAssetResolver } from '@game/assets/assetRenderMode';
 
@@ -20,42 +19,17 @@ function PhaseDisc({ symbol, label, size }: Readonly<{ symbol: string | null; la
   );
 }
 
-/** Ends the slider's gesture: a release waiting for its frame is dropped, and so is anything the slider still has queued from it. */
-function endGesture(release: RefObject<number>, latest: RefObject<number | null>, gesture: RefObject<number>) {
-  cancelAnimationFrame(release.current);
-  latest.current = null;
-  gesture.current += 1;
-}
-
 /** The checkpoint a table review asks for: one slider across every checkpoint, marked at each turn, with arrows for one step at a time. */
 export function CheckpointPicker({ checkpoints, value, onChange }: CheckpointPickerProps) {
   const thumbId = useId();
   /* Where a drag holds the thumb: the slider names the checkpoint under it, and the choice is made once when it is let go, so a drag across a recall moves the table once rather than at every checkpoint it passes. */
   const [dragged, setDragged] = useState<number | null>(null);
-  /*
-   * The slider applies a pointer's move on the next animation frame, so a quick press and release can end before the move lands and
-   * report the thumb where it was. The choice is made a frame after the release, from the last position the slider moved to.
-   */
-  const latest = useRef<number | null>(null);
-  const release = useRef(0);
-  /* A key step has already moved the slider when it ends, so it is chosen at once rather than a frame later, where a quick click on Ask could overtake it. */
-  const keyed = useRef(false);
-  /*
-   * Each press or key on the slider starts a gesture; every choice, and every new value from the table, ends it.
-   * A pointer move or release the slider still has queued from an ended gesture is dropped, so it cannot bring back an older choice.
-   */
-  const gesture = useRef(0);
-  const live = useRef(0);
   /* A new value from the table ends any preview, so the thumb shows where the table now is. */
   const [shown, setShown] = useState(value);
   if (shown !== value) {
     setShown(value);
     setDragged(null);
   }
-  useEffect(() => {
-    endGesture(release, latest, gesture);
-  }, [value]);
-  useEffect(() => () => cancelAnimationFrame(release.current), []);
   const turns = checkpointTurns(checkpoints);
   /* Compared by step, so the first checkpoint is still a choice when the table's step is no longer offered. */
   const chosen = Math.max(
@@ -68,14 +42,7 @@ export function CheckpointPicker({ checkpoints, value, onChange }: CheckpointPic
     return <Text size="sm">No checkpoint has been saved yet.</Text>;
   }
   const title = checkpointTitle(turns, current.step) ?? current.context;
-  const choose = (next: number) => {
-    /* A choice ends the gesture, so a release waiting for its frame, or a move the slider has queued, cannot land after it. */
-    endGesture(release, latest, gesture);
-    setDragged(null);
-    const step = checkpoints[Math.min(checkpoints.length - 1, Math.max(0, next))]!.step;
-    /* Sent even for the shown checkpoint: an earlier ask may still be on its way, and this one must land after it. */
-    onChange(step);
-  };
+  const choose = (next: number) => onChange(checkpoints[Math.min(checkpoints.length - 1, Math.max(0, next))]!.step);
   /* The retained window can start mid-turn, so only a boundary between two offered checkpoints proves a turn's start. */
   const marks = checkpoints.flatMap((checkpoint, position) =>
     checkpoint.turn !== null && position > 0 && checkpoint.turn !== checkpoints[position - 1]!.turn
@@ -86,51 +53,23 @@ export function CheckpointPicker({ checkpoints, value, onChange }: CheckpointPic
     <Stack gap="md">
       {checkpoints.length > 1 && (
         <>
-          {/* The slider handles its keys on its own root, so a key is noted here, around it, before the slider acts on it. */}
-          <div
-            onKeyDownCapture={() => {
-              keyed.current = true;
-              live.current = ++gesture.current;
+          <Slider
+            min={0}
+            max={checkpoints.length - 1}
+            step={1}
+            value={index}
+            onChange={setDragged}
+            onChangeEnd={(next) => {
+              setDragged(null);
+              choose(next);
             }}
-            onPointerDownCapture={() => {
-              keyed.current = false;
-              live.current = ++gesture.current;
-            }}
-          >
-            <Slider
-              min={0}
-              max={checkpoints.length - 1}
-              step={1}
-              value={index}
-              onChange={(next) => {
-                if (live.current !== gesture.current) {
-                  return;
-                }
-                latest.current = next;
-                setDragged(next);
-              }}
-              onChangeEnd={(next) => {
-                if (live.current !== gesture.current) {
-                  return;
-                }
-                if (keyed.current) {
-                  keyed.current = false;
-                  choose(next);
-                  return;
-                }
-                cancelAnimationFrame(release.current);
-                release.current = requestAnimationFrame(() => {
-                  choose(latest.current ?? next);
-                });
-              }}
-              marks={marks}
-              label={null}
-              thumbProps={{ id: thumbId }}
-              thumbLabel="Checkpoint"
-              thumbValueText={title}
-              mb="md"
-            />
-          </div>
+            marks={marks}
+            label={null}
+            thumbProps={{ id: thumbId }}
+            thumbLabel="Checkpoint"
+            thumbValueText={title}
+            mb="md"
+          />
           <Tooltip target={`[id="${thumbId}"]`} label={title} withinPortal />
         </>
       )}
