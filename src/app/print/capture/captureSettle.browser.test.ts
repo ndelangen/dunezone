@@ -33,8 +33,12 @@ afterAll(async () => {
 });
 
 async function startCapture(page: Page, html: string) {
-  await page.setContent(html, { waitUntil: 'domcontentloaded' });
-  await page.addScriptTag({ content: bundle });
+  /* The tracker has to be running before anything paints, exactly as the capture entry starts it before rendering. */
+  await page.addInitScript({
+    content: `${bundle};globalThis.captureAssets = captureAssets;captureAssets.trackArtworkPaint();`,
+  });
+  await page.route('https://capture.invalid/page', (route) => route.fulfill({ contentType: 'text/html', body: html }));
+  await page.goto('https://capture.invalid/page', { waitUntil: 'domcontentloaded' });
   await page.evaluate(() => {
     const runtime = window as typeof window & {
       captureAssets: typeof captureAssets;
@@ -176,3 +180,33 @@ test.each([
     await page.close();
   }
 });
+
+test('capture refuses CSS artwork that its element never painted, even when a later fetch decodes', async () => {
+  const page = await browser.newPage({ viewport: { width: 200, height: 200 } });
+  let requests = 0;
+  await page.route('https://capture.invalid/frame.svg', async (route) => {
+    requests += 1;
+    await route.fulfill(
+      requests === 1
+        ? { contentType: 'image/svg+xml', body: 'not an image' }
+        : {
+            contentType: 'image/svg+xml',
+            body: '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="200" height="200" fill="red"/></svg>',
+          }
+    );
+  });
+  try {
+    await startCapture(
+      page,
+      '<body style="margin:0"><div style="width:200px;height:200px;background-image:url(https://capture.invalid/frame.svg)"></div></body>'
+    );
+    await page.waitForFunction(() => document.body.dataset.capture !== 'loading');
+    expect({ state: await page.locator('body').getAttribute('data-capture'), requests }).toEqual({
+      state: 'error',
+      requests: 2,
+    });
+    expect(await page.locator('body').getAttribute('data-error')).toContain('never painted');
+  } finally {
+    await page.close();
+  }
+}, 15_000);
