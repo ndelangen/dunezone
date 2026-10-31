@@ -98,7 +98,11 @@ function useDeparture(createGame: CreateGame, dispatch: Dispatch<CreateGameDraft
         if (result.ok) {
           const remaining = Math.max(0, DEPARTURE_MS - (performance.now() - departedAt.current));
           opening.current = setTimeout(
-            () => void navigate({ to: '/play/$gameId', params: { gameId: result.slug ?? result.gameId } }),
+            () =>
+              void navigate({
+                to: '/play/$gameId',
+                params: { gameId: result.slug ?? result.gameId },
+              }),
             remaining
           );
         } else {
@@ -119,16 +123,15 @@ const NO_FACTIONS: [] = [];
  * The listing's own objection stands first;
  * the capture's first ruleset problem fills in for it.
  */
-function useCheckedRulesets(rulesets: readonly PassRuleset[], rulesetId: string, revision: string) {
+function useCheckedRulesets(rulesets: readonly PassRuleset[], rulesetId: string) {
   const chosen = rulesets.find((ruleset) => ruleset.id === rulesetId);
   const checkable = chosen?.selectable && chosen.objection === null ? chosen : undefined;
-  const { check } = usePlayReadiness(
+  const { check, recheck } = usePlayReadiness(
     checkable ? { id: checkable.id, name: checkable.name } : null,
-    NO_FACTIONS,
-    revision
+    NO_FACTIONS
   );
   if (!checkable) {
-    return { rulesets, rulesetCheck: 'ready' as const };
+    return { rulesets, rulesetCheck: 'ready' as const, recheck: undefined };
   }
   /* A verdict still naming the ruleset chosen before is as good as none yet. */
   const verdict = check.status === 'checked' && check.entries[0]?.id === checkable.id ? check.entries[0] : null;
@@ -144,6 +147,7 @@ function useCheckedRulesets(rulesets: readonly PassRuleset[], rulesetId: string,
       : check.status === 'failed'
         ? ('unknown' as const)
         : ('checking' as const),
+    recheck,
   };
 }
 
@@ -159,17 +163,13 @@ function CreateGameForm({
 }: Readonly<
   Omit<
     Parameters<typeof CreateGamePass>[0],
-    'pending' | 'departing' | 'notice' | 'failure' | 'onCreate' | 'rulesetLink' | 'rulesetCheck'
+    'pending' | 'departing' | 'notice' | 'failure' | 'onCreate' | 'rulesetLink' | 'rulesetCheck' | 'onRecheck'
   >
 >) {
   const createGame = useCreateGame();
   const { departing, stalled, depart } = useDeparture(createGame, dispatch);
-  /* The live manifest changes as the ruleset's decks and bundles do, so a fix made in another tab is checked again. */
-  const { rulesets, rulesetCheck } = useCheckedRulesets(
-    pass.rulesets,
-    pass.draft.rulesetId,
-    JSON.stringify(pass.preview?.packed ?? null)
-  );
+  /* The check watches what it read, so a fix made in another tab is checked again without asking. */
+  const { rulesets, rulesetCheck, recheck } = useCheckedRulesets(pass.rulesets, pass.draft.rulesetId);
   return (
     <PageLayout>
       <PageLayout.Header size="compact">
@@ -180,6 +180,7 @@ function CreateGameForm({
           {...pass}
           rulesets={rulesets}
           rulesetCheck={rulesetCheck}
+          onRecheck={recheck}
           dispatch={dispatch}
           pending={createGame.isPending}
           /* A stalled request lifts the fade, so the page can say why. */

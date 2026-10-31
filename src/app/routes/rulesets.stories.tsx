@@ -4,7 +4,7 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 import { db } from '@db/storybook';
 
 import { expectFieldValue } from './pagePlay';
-import { seedLinkedFactions, seedQuestions } from './rulesets.stories.fixture';
+import { readyForPlay, seedLinkedFactions, seedQuestions } from './rulesets.stories.fixture';
 import { pageStoryMeta } from './storybookConfig';
 
 const meta = preview.meta({
@@ -67,7 +67,9 @@ export const FaqPagesAndSearch = meta.story({
 /** The ruleset's page shows its first three factions in its own order and links to the rest in the catalogue. */
 export const DetailFactionRail = meta.story({
   args: { path: '/rulesets/classicrules' },
-  parameters: { database: db((baseline) => seedLinkedFactions(baseline, ['Choam', 'Duncan', 'Ecaz', 'Fremen'])) },
+  parameters: {
+    database: db((baseline) => seedLinkedFactions(baseline, ['Choam', 'Duncan', 'Ecaz', 'Fremen'])),
+  },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const factions = within(await page.findByRole('region', { name: 'Factions' }, { timeout: 30_000 }));
@@ -107,5 +109,22 @@ export const EditPlayReadiness = meta.story({
     await expect(
       page.getByText('A game cannot start with this ruleset yet. Fix the ruleset problems below.')
     ).toBeVisible();
+  },
+});
+
+/** A ruleset the table can take still names each faction the draft sets aside, and what to fix on it. */
+export const EditPlayReadinessFactionSetAside = meta.story({
+  args: { path: '/rulesets/classicrules/edit' },
+  parameters: { database: db(readyForPlay) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(
+      page.findByText(
+        'A game can start. The draft sets aside the faction below until it is fixed.',
+        {},
+        { timeout: 30_000 }
+      )
+    ).resolves.toBeVisible();
+    await expect(page.getByText('Leader Duncan Idaho: This leader has no published face.')).toBeVisible();
   },
 });

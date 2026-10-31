@@ -37,7 +37,10 @@ export const RulesetTheTableCannotTake = meta.story({
         data: {
           name: 'Homeworld Reserves',
           about: 'Nothing in it yet.',
-          band: { background: publishingRectangleTokenFace.background, label: 'RESERVES' },
+          band: {
+            background: publishingRectangleTokenFace.background,
+            label: 'RESERVES',
+          },
         },
       });
       baseline.assets.push(reserves);
@@ -57,5 +60,6 @@ export const RulesetTheTableCannotTake = meta.story({
     );
     await expect(named.find((element) => !element.closest('[role="listbox"]'))).toBeVisible();
     await expect(page.getByRole('button', { name: 'Create game' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Check again' })).toBeVisible();
   },
 });

@@ -1,4 +1,4 @@
-import { Box, Button, Divider, Group, Select, Slider, Stack, Switch, Text } from '@mantine/core';
+import { Anchor, Box, Button, Divider, Group, Select, Slider, Stack, Switch, Text } from '@mantine/core';
 import { playCreateGameRequestSchema } from '@shared/play/admission';
 import { playGameNameSchema } from '@shared/play/gameNames';
 import { generatePlayGameName } from '@shared/play/generatedGameNames';
@@ -38,7 +38,10 @@ import { RulesetManifest } from './RulesetManifest';
 
 const MINIMUM = TABLE_SEAT_COUNTS[0];
 const MAXIMUM = TABLE_SEAT_COUNTS[TABLE_SEAT_COUNTS.length - 1]!;
-const MARKS = [2, 6, 10, 14, 18].map((value) => ({ value, label: String(value) }));
+const MARKS = [2, 6, 10, 14, 18].map((value) => ({
+  value,
+  label: String(value),
+}));
 
 /** The create page's title, which the page puts in its header above the pass. */
 export function CreateGamePassTitle() {
@@ -56,7 +59,10 @@ export type CreateGameDraft = {
   refusal: string | null;
 };
 export type CreateGameDraftEvent =
-  | { kind: 'patch'; update: Partial<Omit<CreateGameDraft, 'generatedName' | 'refusal'>> }
+  | {
+      kind: 'patch';
+      update: Partial<Omit<CreateGameDraft, 'generatedName' | 'refusal'>>;
+    }
   | { kind: 'reroll' }
   | { kind: 'refused'; reason: string };
 
@@ -130,6 +136,7 @@ export function CreateGamePass({
   rulesetLink,
   disabledReason,
   rulesetCheck = 'ready',
+  onRecheck,
 }: Readonly<{
   rulesets: readonly PassRuleset[];
   preview: CreatableRulesetPreview | null;
@@ -150,6 +157,8 @@ export function CreateGamePass({
    * Where the check of the chosen ruleset's decks and bundles stands, made the way the table will capture them: still running, passed, or unable to finish, in which case the table checks them when it prepares.
    */
   rulesetCheck?: RulesetCheck;
+  /** Runs the check of the chosen ruleset again; absent when there is nothing to check here, such as a ruleset the server already refuses. */
+  onRecheck?: (() => void) | undefined;
 }>) {
   const chosen = rulesets.find((ruleset) => ruleset.id === draft.rulesetId);
   const request = playCreateGameRequestSchema.safeParse({
@@ -206,6 +215,7 @@ export function CreateGamePass({
                 <RulesetField
                   rulesets={rulesets}
                   check={rulesetCheck}
+                  onRecheck={onRecheck}
                   value={draft.rulesetId}
                   onChange={(rulesetId) => dispatch({ kind: 'patch', update: { rulesetId } })}
                   disabled={pending}
@@ -257,7 +267,12 @@ function readiness({
   objection,
   nameReady,
   summary,
-}: Readonly<{ chosen: PassRuleset | undefined; objection: string | null; nameReady: boolean; summary: string }>) {
+}: Readonly<{
+  chosen: PassRuleset | undefined;
+  objection: string | null;
+  nameReady: boolean;
+  summary: string;
+}>) {
   if (!chosen) {
     return 'Choose a ruleset to board.';
   }
@@ -298,7 +313,12 @@ function NameField({
         <Switch
           label="Set a custom name"
           checked={draft.custom}
-          onChange={(event) => dispatch({ kind: 'patch', update: { custom: event.currentTarget.checked } })}
+          onChange={(event) =>
+            dispatch({
+              kind: 'patch',
+              update: { custom: event.currentTarget.checked },
+            })
+          }
           disabled={disabled}
         />
       </Group>
@@ -334,17 +354,21 @@ function PassFacts({
 function RulesetField({
   rulesets,
   check,
+  onRecheck,
   value,
   onChange,
   disabled,
 }: Readonly<{
   rulesets: readonly PassRuleset[];
   check: RulesetCheck;
+  onRecheck: (() => void) | undefined;
   value: string;
   onChange: (id: string) => void;
   disabled: boolean;
 }>) {
   const chosen = rulesets.find((ruleset) => ruleset.id === value);
+  /* A refusal or a check that could not finish can be asked again, for a fix the page has not seen yet. */
+  const recheckable = onRecheck && chosen && check !== 'checking' && (chosen.objection !== null || check === 'unknown');
   const objections = new Map<string, string | null>(rulesets.map((ruleset) => [ruleset.id, ruleset.objection]));
   return (
     <Select
@@ -378,6 +402,14 @@ function RulesetField({
         chosen ? (
           <Text component="span" size="xs" c={chosen.objection ? 'red' : 'dimmed'}>
             {chosen.objection ?? RULESET_CHECK_LINES[check]}
+            {recheckable ? (
+              <>
+                {' '}
+                <Anchor component="button" type="button" size="xs" onClick={onRecheck} disabled={disabled}>
+                  Check again
+                </Anchor>
+              </>
+            ) : null}
           </Text>
         ) : undefined
       }
@@ -390,7 +422,11 @@ function SeatsField({
   value,
   onChange,
   disabled,
-}: Readonly<{ value: number; onChange: (value: number) => void; disabled: boolean }>) {
+}: Readonly<{
+  value: number;
+  onChange: (value: number) => void;
+  disabled: boolean;
+}>) {
   return (
     <Stack gap="md">
       <CountHeading label="Seats at the table" value={value} />
@@ -425,14 +461,21 @@ function SeatsField({
   );
 }
 
-const TURN_MARKS = [1, 5, 10, 15, 20].map((value) => ({ value, label: String(value) }));
+const TURN_MARKS = [1, 5, 10, 15, 20].map((value) => ({
+  value,
+  label: String(value),
+}));
 
 /* The game's length, which the Phase tab can still change once the game plays. */
 function LastTurnField({
   value,
   onChange,
   disabled,
-}: Readonly<{ value: number; onChange: (value: number) => void; disabled: boolean }>) {
+}: Readonly<{
+  value: number;
+  onChange: (value: number) => void;
+  disabled: boolean;
+}>) {
   return (
     <Stack gap="md">
       <Divider variant="dashed" />

@@ -20,7 +20,10 @@ export const signedIn = {
       userId: ref(storybookViewer.subjectKey),
       expirationTime: 4_102_444_800_000,
     });
-    baseline.authRefreshTokens.push({ sessionId: ref('create-session'), expirationTime: 4_102_444_800_000 });
+    baseline.authRefreshTokens.push({
+      sessionId: ref('create-session'),
+      expirationTime: 4_102_444_800_000,
+    });
   }),
 };
 
@@ -28,7 +31,7 @@ export const signedIn = {
  * Every asset published, front and back, as the catalogue of a ruleset that is ready for Play has it.
  * The create page checks the chosen ruleset the way the table captures it, and refuses one whose faces are unpublished.
  */
-function publishEverything(baseline: StorybookDatabase) {
+export function publishEverything(baseline: StorybookDatabase) {
   for (const row of baseline.assets) {
     if (!row.$key || !isPublicationAssetType(row.type)) {
       continue;
@@ -53,14 +56,20 @@ export function creatableDatabase(baseline: StorybookDatabase) {
     userId: ref(storybookViewer.subjectKey),
     expirationTime: 4_102_444_800_000,
   });
-  baseline.authRefreshTokens.push({ sessionId: ref('create-session'), expirationTime: 4_102_444_800_000 });
+  baseline.authRefreshTokens.push({
+    sessionId: ref('create-session'),
+    expirationTime: 4_102_444_800_000,
+  });
   const treachery = baseline.ruleset_asset_slots.find((slot) => slot.slot === 'treachery')!;
   baseline.ruleset_asset_slots.push({ ...treachery, slot: 'spice' });
   baseline.play_game_slug_reservations.push({ slug: 'arrakeen-picnic' });
   publishEverything(baseline);
   /* A manifest worth reading: all six base factions, four of them shared with a second ruleset and two made for this one. */
   const [chosen] = baseline.rulesets;
-  const classic = { ...ruleset({ name: 'Classic Dune' }), group_id: chosen!.group_id };
+  const classic = {
+    ...ruleset({ name: 'Classic Dune' }),
+    group_id: chosen!.group_id,
+  };
   baseline.rulesets.push(classic);
   const [atreides] = baseline.factions;
   baseline.ruleset_factions.push({
@@ -70,7 +79,12 @@ export function creatableDatabase(baseline: StorybookDatabase) {
   });
   for (const entry of factions.slice(1)) {
     const key = `faction:${entry.slug}`;
-    baseline.factions.push({ ...atreides!, $key: key, slug: entry.slug, data: entry.data });
+    baseline.factions.push({
+      ...atreides!,
+      $key: key,
+      slug: entry.slug,
+      data: entry.data,
+    });
     baseline.ruleset_factions.push({
       ruleset_id: ref(chosen!.$key!),
       faction_id: ref(key),

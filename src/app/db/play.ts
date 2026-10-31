@@ -3,9 +3,12 @@ import { CatalogueCapture, playReadiness } from '@shared/play/catalogueCapture';
 import type { PlayReadinessEntry } from '@shared/play/catalogueCapture';
 import type { playGeneratedGameRequestSchema } from '@shared/play/gameCreation';
 import { peekSeatPass, PLAY_SEAT_PASS_RENEW_MS } from '@shared/play/seatPass';
-import { useQuery } from 'convex/react';
-import type { FunctionArgs, FunctionReturnType } from 'convex/server';
-import { useCallback, useEffect, useState } from 'react';
+import { useQueries, useQuery } from 'convex/react';
+import { getFunctionName } from 'convex/server';
+import type { FunctionArgs, FunctionReference, FunctionReturnType } from 'convex/server';
+import { convexToJson } from 'convex/values';
+import type { Value } from 'convex/values';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { z } from 'zod';
 
 import { db } from '@db/core';
@@ -45,7 +48,9 @@ export function useSpawnableAssets(args: SpawnableAssetsArgs) {
 
 /** One asset's faces and members as a game captures it; a tutorial table captures through this, since it has no game Worker. */
 export async function readAssetSupply(selection: FunctionArgs<typeof api.playCatalogue.assetSupply>) {
-  return await db.query(api.playCatalogue.assetSupply, selection, { hold: false });
+  return await db.query(api.playCatalogue.assetSupply, selection, {
+    hold: false,
+  });
 }
 
 /** The Play readiness check as a page holds it: running, the game's verdict per ruleset and faction, or why the check itself failed. */
@@ -55,28 +60,51 @@ export type PlayReadinessCheck =
   | { status: 'failed'; reason: string };
 
 /* The game Worker's captures, over the browser's own client: the same public reads, so the same verdict. */
-function browserCatalogue() {
+/* One read the capture made, kept so the page can watch the same query for a change. */
+type CatalogueRead = {
+  query: FunctionReference<'query'>;
+  args: Record<string, Value>;
+  answer: string;
+};
+
+/* The capture over the browser's client, recording each read and its answer under a key of its query and arguments. */
+function browserCatalogue(reads: Record<string, CatalogueRead>) {
+  const read = async <Query extends FunctionReference<'query'>>(query: Query, args: FunctionArgs<Query>) => {
+    const answer = await db.query(query, args, { hold: false });
+    reads[JSON.stringify([getFunctionName(query), convexToJson(args)])] = {
+      query,
+      args,
+      answer: JSON.stringify(convexToJson(answer as never)),
+    };
+    return answer;
+  };
   return new CatalogueCapture(
     {
-      rulesetSupply: async (rulesetId) =>
-        await db.query(api.playCatalogue.rulesetSupply, { rulesetId }, { hold: false }),
-      factionDefinition: async (factionId) =>
-        await db.query(api.playCatalogue.factionDefinition, { factionId }, { hold: false }),
-      assetSupply: readAssetSupply,
+      rulesetSupply: async (rulesetId) => await read(api.playCatalogue.rulesetSupply, { rulesetId }),
+      factionDefinition: async (factionId) => await read(api.playCatalogue.factionDefinition, { factionId }),
+      assetSupply: async (selection) => await read(api.playCatalogue.assetSupply, selection),
     },
     window.location.origin
   );
 }
 
+/* Whether any watched read now answers differently from what the capture saw: a member face published, a slot filled, a faction fixed. */
+function changedSince(reads: Record<string, CatalogueRead>, live: Record<string, unknown>) {
+  return Object.entries(reads).some(([key, read]) => {
+    const now = live[key];
+    return now !== undefined && !(now instanceof Error) && JSON.stringify(convexToJson(now as never)) !== read.answer;
+  });
+}
+
 /**
  * Whether a real game could start with this ruleset and deal these factions, judged by the game's own capture code.
- * It is a one-off read rather than a live query: it runs again when `revision` changes, as the page's slots or factions do, and on `recheck`, for an edit made on another page.
+ * The capture runs once, then the page watches every query it read: when one answers differently, it runs again, so a fix made anywhere is seen.
+ * `recheck` runs it again on demand.
  * Factions still `undefined` are loading, and the check waits for them.
  */
 export function usePlayReadiness(
   ruleset: { id: string; name: string } | null,
-  factions: readonly { id: string; name: string }[] | undefined,
-  revision: string
+  factions: readonly { id: string; name: string }[] | undefined
 ) {
   const [round, setRound] = useState(0);
   /* One string for the whole request, so a new array holding the same factions asks nothing new. */
@@ -85,32 +113,55 @@ export function usePlayReadiness(
       ? JSON.stringify({
           ruleset: { id: ruleset.id, name: ruleset.name },
           factions: factions.map(({ id, name }) => ({ id, name })),
-          revision,
           round,
         })
       : null;
-  const [answered, setAnswered] = useState<{ request: string; check: PlayReadinessCheck } | null>(null);
+  const [answered, setAnswered] = useState<{
+    request: string;
+    check: PlayReadinessCheck;
+    reads: Record<string, CatalogueRead>;
+  } | null>(null);
   useEffect(() => {
     if (request === null) {
       return;
     }
     let current = true;
-    const asked: { ruleset: { id: string; name: string }; factions: { id: string; name: string }[] } =
-      JSON.parse(request);
-    const answer = (check: PlayReadinessCheck) => current && setAnswered({ request, check });
-    playReadiness(browserCatalogue(), asked.ruleset, asked.factions).then(
+    const asked: {
+      ruleset: { id: string; name: string };
+      factions: { id: string; name: string }[];
+    } = JSON.parse(request);
+    const reads: Record<string, CatalogueRead> = {};
+    const answer = (check: PlayReadinessCheck) => current && setAnswered({ request, check, reads });
+    playReadiness(browserCatalogue(reads), asked.ruleset, asked.factions).then(
       (entries) => answer({ status: 'checked', entries }),
       (error: unknown) =>
-        answer({ status: 'failed', reason: error instanceof Error ? error.message : 'The check could not finish.' })
+        answer({
+          status: 'failed',
+          reason: error instanceof Error ? error.message : 'The check could not finish.',
+        })
     );
     return () => {
       current = false;
     };
   }, [request]);
+  const fresh = answered !== null && answered.request === request ? answered : null;
+  /* Convex tracks the request object's identity, so the watched map changes only with a new answer. */
+  const watched = useMemo(
+    () =>
+      Object.fromEntries(Object.entries(fresh?.reads ?? {}).map(([key, { query, args }]) => [key, { query, args }])),
+    [fresh]
+  );
+  const live = useQueries(watched);
+  /* A plain value rather than an updater, so a render that runs twice still asks for one more round only. */
+  if (fresh && changedSince(fresh.reads, live)) {
+    setRound(round + 1);
+  }
   /* An answer to an earlier request is no answer to this one. */
-  const check: PlayReadinessCheck =
-    answered !== null && answered.request === request ? answered.check : { status: 'checking' };
-  return { check, recheck: useCallback(() => setRound((value) => value + 1), []) };
+  const check: PlayReadinessCheck = fresh ? fresh.check : { status: 'checking' };
+  return {
+    check,
+    recheck: useCallback(() => setRound((value) => value + 1), []),
+  };
 }
 
 /** What a chosen ruleset puts on the table, as the create page's manifest lists it. */
