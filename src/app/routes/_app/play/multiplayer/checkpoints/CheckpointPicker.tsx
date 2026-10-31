@@ -2,6 +2,7 @@ import { Group, Slider, Stack, Text, Tooltip } from '@mantine/core';
 import { IconAction } from '@ui/control/IconAction';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
+import type { RefObject } from 'react';
 
 import { useAssetResolver } from '@game/assets/assetRenderMode';
 
@@ -19,6 +20,13 @@ function PhaseDisc({ symbol, label, size }: Readonly<{ symbol: string | null; la
   );
 }
 
+/** Ends the slider's gesture: a release waiting for its frame is dropped, and so is anything the slider still has queued from it. */
+function endGesture(release: RefObject<number>, latest: RefObject<number | null>, gesture: RefObject<number>) {
+  cancelAnimationFrame(release.current);
+  latest.current = null;
+  gesture.current += 1;
+}
+
 /** The checkpoint a table review asks for: one slider across every checkpoint, marked at each turn, with arrows for one step at a time. */
 export function CheckpointPicker({ checkpoints, value, onChange }: CheckpointPickerProps) {
   const thumbId = useId();
@@ -33,8 +41,8 @@ export function CheckpointPicker({ checkpoints, value, onChange }: CheckpointPic
   /* A key step has already moved the slider when it ends, so it is chosen at once rather than a frame later, where a quick click on Ask could overtake it. */
   const keyed = useRef(false);
   /*
-   * Each press or key on the slider starts a gesture, and an arrow choice ends it.
-   * A pointer move or release the slider still has queued from an ended gesture is dropped, so it cannot bring back a choice the arrow replaced.
+   * Each press or key on the slider starts a gesture; every choice, and every new value from the table, ends it.
+   * A pointer move or release the slider still has queued from an ended gesture is dropped, so it cannot bring back an older choice.
    */
   const gesture = useRef(0);
   const live = useRef(0);
@@ -44,6 +52,9 @@ export function CheckpointPicker({ checkpoints, value, onChange }: CheckpointPic
     setShown(value);
     setDragged(null);
   }
+  useEffect(() => {
+    endGesture(release, latest, gesture);
+  }, [value]);
   useEffect(() => () => cancelAnimationFrame(release.current), []);
   const turns = checkpointTurns(checkpoints);
   /* Compared by step, so the first checkpoint is still a choice when the table's step is no longer offered. */
@@ -58,17 +69,12 @@ export function CheckpointPicker({ checkpoints, value, onChange }: CheckpointPic
   }
   const title = checkpointTitle(turns, current.step) ?? current.context;
   const choose = (next: number) => {
-    /* A choice made while a release waits for its frame replaces that release, so the older choice cannot land after it. */
-    cancelAnimationFrame(release.current);
-    latest.current = null;
+    /* A choice ends the gesture, so a release waiting for its frame, or a move the slider has queued, cannot land after it. */
+    endGesture(release, latest, gesture);
     setDragged(null);
     const step = checkpoints[Math.min(checkpoints.length - 1, Math.max(0, next))]!.step;
     /* Sent even for the shown checkpoint: an earlier ask may still be on its way, and this one must land after it. */
     onChange(step);
-  };
-  const chooseByArrow = (next: number) => {
-    gesture.current += 1;
-    choose(next);
   };
   /* The retained window can start mid-turn, so only a boundary between two offered checkpoints proves a turn's start. */
   const marks = checkpoints.flatMap((checkpoint, position) =>
@@ -134,7 +140,7 @@ export function CheckpointPicker({ checkpoints, value, onChange }: CheckpointPic
           emphasis="quiet"
           icon={<ChevronLeft size={18} aria-hidden />}
           disabled={index === 0}
-          onClick={() => chooseByArrow(index - 1)}
+          onClick={() => choose(index - 1)}
         />
         <PhaseDisc symbol={current.symbol} label={current.label} size={28} />
         <Text size="sm" style={{ flex: 1 }}>
@@ -145,7 +151,7 @@ export function CheckpointPicker({ checkpoints, value, onChange }: CheckpointPic
           emphasis="quiet"
           icon={<ChevronRight size={18} aria-hidden />}
           disabled={index === checkpoints.length - 1}
-          onClick={() => chooseByArrow(index + 1)}
+          onClick={() => choose(index + 1)}
         />
       </Group>
     </Stack>
