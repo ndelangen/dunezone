@@ -123,12 +123,13 @@ const NO_FACTIONS: [] = [];
  * The listing's own objection stands first;
  * the capture's first ruleset problem fills in for it.
  */
-function useCheckedRulesets(rulesets: readonly PassRuleset[], rulesetId: string) {
+function useCheckedRulesets(rulesets: readonly PassRuleset[], rulesetId: string, revision: string) {
   const chosen = rulesets.find((ruleset) => ruleset.id === rulesetId);
   const checkable = chosen?.selectable && chosen.objection === null ? chosen : undefined;
   const { check, recheck } = usePlayReadiness(
     checkable ? { id: checkable.id, name: checkable.name } : null,
-    NO_FACTIONS
+    NO_FACTIONS,
+    revision
   );
   if (!checkable) {
     return { rulesets, rulesetCheck: 'ready' as const, recheck: undefined };
@@ -168,8 +169,15 @@ function CreateGameForm({
 >) {
   const createGame = useCreateGame();
   const { departing, stalled, depart } = useDeparture(createGame, dispatch);
-  /* The check watches what it read, so a fix made in another tab is checked again without asking. */
-  const { rulesets, rulesetCheck, recheck } = useCheckedRulesets(pass.rulesets, pass.draft.rulesetId);
+  /*
+   * The live manifest changes as the ruleset's slots do; a fix to a deck's members, made in another tab, is checked again when this one regains focus,
+   * and Check again asks at any time.
+   */
+  const { rulesets, rulesetCheck, recheck } = useCheckedRulesets(
+    pass.rulesets,
+    pass.draft.rulesetId,
+    JSON.stringify(pass.preview?.packed ?? null)
+  );
   return (
     <PageLayout>
       <PageLayout.Header size="compact">

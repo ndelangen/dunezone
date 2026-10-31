@@ -367,8 +367,8 @@ function RulesetField({
   disabled: boolean;
 }>) {
   const chosen = rulesets.find((ruleset) => ruleset.id === value);
-  /* A refusal or a check that could not finish can be asked again, for a fix the page has not seen yet. */
-  const recheckable = onRecheck && chosen && check !== 'checking' && (chosen.objection !== null || check === 'unknown');
+  /* Any finished check can be asked again, for a fix the page has not seen yet. */
+  const recheckable = onRecheck && chosen && check !== 'checking';
   const objections = new Map<string, string | null>(rulesets.map((ruleset) => [ruleset.id, ruleset.objection]));
   return (
     <Select

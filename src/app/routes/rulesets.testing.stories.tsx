@@ -407,7 +407,7 @@ export const AssetRelatedFaqLoadMore = meta.story({
   },
 });
 
-/** The check watches what it read: removing the treachery deck stops a game at once, with no Check again. */
+/** A slot change on the page checks again: removing the treachery deck stops a game at once. */
 export const EditPlayReadinessFollowsTheSlots = meta.story({
   args: { path: '/rulesets/classicrules/edit' },
   parameters: { database: db(readyForPlay) },

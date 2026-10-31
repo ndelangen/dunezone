@@ -347,7 +347,7 @@ function RulesetEditor({
             <RulesetAssetSlots rulesetId={initial.id} slots={assetSlots} />
           </Surface>
           <Surface padding="lg">
-            <RulesetPlayReadiness ruleset={initial} />
+            <RulesetPlayReadiness ruleset={initial} slots={assetSlots} />
           </Surface>
         </Stack>
       </PageLayout.Content>
@@ -457,15 +457,19 @@ const READINESS_FACTION_LIMIT = 100;
 
 /**
  * Whether a game can start with this ruleset, by the game's own captures, so the content left to fix is named here rather than when a game is created.
- * It checks again whenever anything it read changes, here or on another page.
+ * It checks again whenever a slot or a linked faction changes on this page, when the window regains focus, and on Check again.
  */
-function RulesetPlayReadiness({ ruleset }: { ruleset: RulesetEntry }) {
+function RulesetPlayReadiness({
+  ruleset,
+  slots,
+}: {
+  ruleset: RulesetEntry;
+  slots: { slot: string; asset: SlottedAsset }[];
+}) {
   const linked = useOrderedRulesetFactions(ruleset._id, READINESS_FACTION_LIMIT);
-  const factions = linked?.factions.map((faction) => ({
-    id: faction._id as string,
-    name: faction.name,
-  }));
-  const { check, recheck } = usePlayReadiness({ id: ruleset._id, name: ruleset.name }, factions);
+  const factions = linked?.factions.map((faction) => ({ id: faction._id as string, name: faction.name }));
+  const revision = slots.map((entry) => `${entry.slot}:${entry.asset.id}`).join('|');
+  const { check, recheck } = usePlayReadiness({ id: ruleset._id, name: ruleset.name }, factions, revision);
   return (
     <PlayReadinessReport
       check={check}
