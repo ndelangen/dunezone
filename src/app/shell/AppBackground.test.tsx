@@ -13,7 +13,6 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
@@ -30,7 +29,7 @@ function orbit(container: HTMLElement, layer: 'planet' | 'stars') {
 }
 
 describe('orbital background', () => {
-  it('aligns both periods to the local clock, including after tab suspension', async () => {
+  it('aligns both periods to the local clock, including after tab suspension', () => {
     const { container } = render(<AppBackground motion />);
     expect(orbit(container, 'planet')).toBeCloseTo(93);
     expect(orbit(container, 'stars')).toBeCloseTo(-226.5);
@@ -133,7 +132,7 @@ describe('orbital background', () => {
     expect(vi.getTimerCount()).toBe(1);
   });
 
-  it('freezes the current clock pose and marks reduced motion, which also turns off the CSS parallax', async () => {
+  it('freezes the current clock pose when motion is disabled', () => {
     const { container, rerender } = render(<AppBackground motion />);
     rerender(<AppBackground motion={false} />);
     expect(container.querySelector('[data-app-background]')?.getAttribute('data-motion')).toBe('reduce');

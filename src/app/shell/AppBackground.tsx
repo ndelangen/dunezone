@@ -87,7 +87,7 @@ export function AppBackground({ motion }: { motion: boolean }) {
       element.toggleAttribute('data-suspended', next);
       if (!next) {
         synchronize();
-        /* Continuous CSS animations kept Firefox redrawing this oversized scene even between visible changes; the orbits and twinkles step on a slow clock instead, scrolling included, so they never have to catch up. */
+        /* The orbits and twinkles step on a slow clock, scrolling included, so they never have to catch up; continuous CSS animations cost more CPU in Firefox for motion too slow to see between steps. */
         timer = window.setInterval(synchronize, TICK_MS);
       }
     };

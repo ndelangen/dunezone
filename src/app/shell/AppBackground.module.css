@@ -15,11 +15,23 @@
   inset: 0;
 }
 
-/* Parallax runs only where the compositor can drive it from the scroll position; elsewhere the starfield stays put rather than costing script work on every scroll frame. */
+/* Parallax runs only where the compositor can drive it from the scroll position; elsewhere the starfield stays put rather than costing script work on every scroll frame.
+ * It reads the OS hint and the html motion attribute instead of waiting for hydration, so a page restored mid-scroll does not snap.
+ * Keep `animation-timeline` as a separate longhand after the shorthand: Lightning CSS without browser targets folds it into an `animation` shorthand that browsers reject. */
 @supports (animation-timeline: scroll()) {
-  .background[data-motion="ok"] .starsFrame {
+  .starsFrame {
     animation: stars-parallax linear both;
     animation-timeline: scroll(root);
+  }
+
+  html[data-motion="reduce"] .starsFrame {
+    animation: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html:not([data-motion="ok"]) .starsFrame {
+      animation: none;
+    }
   }
 }
 
@@ -40,7 +52,7 @@
   max-width: none;
   height: 150vmax;
   transform: translate(-50%, -50%);
-  /* Keep the drawn starfield and planet as layers the clock only turns, so each tick moves pixels instead of redrawing them. */
+  /* Keep the drawn starfield and planet as their own layers, so an orbit tick turns them without redrawing the scene; only the few twinkling stars repaint. */
   will-change: transform;
 }
 
