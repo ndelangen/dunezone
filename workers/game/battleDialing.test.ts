@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vite-plus/test';
 
 import type { BattleFace } from '../../src/shared/play/battle';
+import { kissSpice } from '../../src/shared/play/battleDialing';
 import { initialSnapshot } from '../../src/shared/play/commands';
 import { PHASE_CHANGE_COOLDOWN_MS, STANDARD_PHASES } from '../../src/shared/play/phases';
 import { GameRejection } from '../../src/shared/play/rejection';
@@ -135,6 +136,17 @@ describe('battle dialing mechanisms', () => {
     const { dial, plan } = battleRoom('kiss', [ORDINARY, FREMEN]);
     dial({ ordinary: 3, fedaykin: 4 });
     expect(plan()).toMatchObject({ strength: 7, spice: 1 });
+  });
+
+  test('KISS counts the spice of a huge declaration per face, without a step per troop', () => {
+    const many = 2 ** 32;
+    expect(kissSpice([{ faceId: 'ordinary', undialed: many, dialed: 0 }], [ORDINARY])).toBe(many - 2);
+  });
+
+  test('KISS takes a huge declaration of troops that add nothing without stalling the room', () => {
+    const { dial, plan } = battleRoom('kiss', [face('blank', { strength: 0, supportedStrength: 0, supportCost: 0 })]);
+    dial({ blank: 2 ** 32 });
+    expect(plan()).toMatchObject({ strength: 0, spice: 0 });
   });
 
   test('GF9 2.0 spice strength is free only when every dialed troop costs nothing to dial', () => {

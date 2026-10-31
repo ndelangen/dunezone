@@ -67,8 +67,16 @@ export function spiceStrength(dial: number, spice: number, free: boolean) {
  * The free ones are the dearest, so a troop that costs nothing never uses up a free place.
  */
 export function kissSpice(troops: Troops, faces: readonly BattleFace[]) {
-  const costs = troops
-    .flatMap((troop) => Array.from({ length: troop.undialed + troop.dialed }, () => troopCost(troop.faceId, faces)))
-    .sort((a, b) => b - a);
-  return costs.slice(KISS_FREE_TROOPS).reduce((total, cost) => total + cost, 0);
+  /* Per face rather than per troop, dearest first, so a declaration of any size costs one pass over its faces. */
+  const byCost = troops
+    .map((troop) => ({ count: troop.undialed + troop.dialed, cost: troopCost(troop.faceId, faces) }))
+    .sort((a, b) => b.cost - a.cost);
+  let freePlaces = KISS_FREE_TROOPS;
+  let spice = 0;
+  for (const { count, cost } of byCost) {
+    const free = Math.min(freePlaces, count);
+    freePlaces -= free;
+    spice += (count - free) * cost;
+  }
+  return spice;
 }
