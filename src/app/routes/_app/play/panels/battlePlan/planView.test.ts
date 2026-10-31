@@ -117,7 +117,10 @@ test("a troop's two faces share its count, so the back fields only what the fron
 });
 
 test('a KISS dial of troops that add no strength is bounded by the troops owned, not by a token count', () => {
-  const plan = { ...emptyBattlePlan([face({ supportCost: 0, strength: 0, supportedStrength: 0 })], 'kiss'), pieces: [] };
+  const plan = {
+    ...emptyBattlePlan([face({ supportCost: 0, strength: 0, supportedStrength: 0 })], 'kiss'),
+    pieces: [],
+  };
   expect(troopLimitOf({ plan, troopLimit: { [plan.faces[0]!.id]: 30 }, balance: 0 }, plan.faces[0]!.id)).toBe(30);
 });
 
