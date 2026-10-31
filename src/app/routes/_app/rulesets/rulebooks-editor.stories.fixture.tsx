@@ -1,11 +1,9 @@
 import { compareCodeUnits } from '@shared/compareText';
-import { rulebookContentsV1Schema, rulebookLocalIdAlphabet } from '@shared/rulebooks/contents';
-import { rulebookSettingsSchema } from '@shared/rulebooks/settings';
+import { rulebookLocalIdAlphabet } from '@shared/rulebooks/contents';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import type { StorybookDatabase } from '@db/storybook';
 
-import rulebooksPackage from '../../../../../content/gf9/rulebooks-package.json';
 import { withRulebooks } from './rulebooks.stories.fixture';
 
 export function withUnpublishedRulebook(baseline: StorybookDatabase) {
@@ -157,13 +155,4 @@ export async function checkTitleMeasurements(canvasElement: HTMLElement, expecte
   } finally {
     measured.restore();
   }
-}
-
-export function withCoreRulebook(baseline: StorybookDatabase) {
-  withRulebooks(baseline);
-  const source = rulebooksPackage.items.find((item) => item.key === 'core-rules')!.data;
-  baseline.rulebooks[0]!.name = source.name;
-  baseline.rulebooks[0]!.settings = rulebookSettingsSchema.parse(source.settings);
-  baseline.rulebook_drafts[0]!.contents = rulebookContentsV1Schema.parse(source.contents);
-  return baseline;
 }
