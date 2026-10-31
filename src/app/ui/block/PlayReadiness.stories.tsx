@@ -150,6 +150,22 @@ export const Ready = meta.story({
   },
 });
 
+/** A ruleset linking more factions than the page checks says how far the check went, rather than vouching for them all. */
+export const SomeFactionsUnchecked = meta.story({
+  args: {
+    checkedFactionLimit: 100,
+    check: checked({
+      status: 'checked',
+      entries: [{ kind: 'ruleset', id: 'gf9', name: 'GF9', problems: [] }, ...ready(GF9_FACTIONS)],
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByRole('status')).toHaveTextContent(
+      'Only the first 100 linked factions were checked'
+    );
+  },
+});
+
 /** The catalogue is still being read. */
 export const Checking = meta.story({ args: { check: checked({ status: 'checking' }) } });
 

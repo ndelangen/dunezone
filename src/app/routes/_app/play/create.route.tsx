@@ -119,12 +119,16 @@ const NO_FACTIONS: [] = [];
  * The listing's own objection stands first;
  * the capture's first ruleset problem fills in for it.
  */
-function useCheckedRulesets(rulesets: readonly PassRuleset[], rulesetId: string) {
+function useCheckedRulesets(rulesets: readonly PassRuleset[], rulesetId: string, revision: string) {
   const chosen = rulesets.find((ruleset) => ruleset.id === rulesetId);
   const checkable = chosen?.selectable && chosen.objection === null ? chosen : undefined;
-  const { check } = usePlayReadiness(checkable ? { id: checkable.id, name: checkable.name } : null, NO_FACTIONS, '');
+  const { check } = usePlayReadiness(
+    checkable ? { id: checkable.id, name: checkable.name } : null,
+    NO_FACTIONS,
+    revision
+  );
   if (!checkable) {
-    return { rulesets, rulesetChecked: true };
+    return { rulesets, rulesetCheck: 'ready' as const };
   }
   /* A verdict still naming the ruleset chosen before is as good as none yet. */
   const verdict = check.status === 'checked' && check.entries[0]?.id === checkable.id ? check.entries[0] : null;
@@ -134,8 +138,12 @@ function useCheckedRulesets(rulesets: readonly PassRuleset[], rulesetId: string)
     rulesets: objection
       ? rulesets.map((ruleset) => (ruleset.id === checkable.id ? { ...ruleset, objection } : ruleset))
       : rulesets,
-    /* A check that could not finish does not hold the pass: the table still checks when it prepares. */
-    rulesetChecked: verdict !== null || check.status === 'failed',
+    /* A check that could not finish does not hold the pass, and says so: the table still checks when it prepares. */
+    rulesetCheck: verdict
+      ? ('ready' as const)
+      : check.status === 'failed'
+        ? ('unknown' as const)
+        : ('checking' as const),
   };
 }
 
@@ -151,12 +159,17 @@ function CreateGameForm({
 }: Readonly<
   Omit<
     Parameters<typeof CreateGamePass>[0],
-    'pending' | 'departing' | 'notice' | 'failure' | 'onCreate' | 'rulesetLink' | 'rulesetChecked'
+    'pending' | 'departing' | 'notice' | 'failure' | 'onCreate' | 'rulesetLink' | 'rulesetCheck'
   >
 >) {
   const createGame = useCreateGame();
   const { departing, stalled, depart } = useDeparture(createGame, dispatch);
-  const { rulesets, rulesetChecked } = useCheckedRulesets(pass.rulesets, pass.draft.rulesetId);
+  /* The live manifest changes as the ruleset's decks and bundles do, so a fix made in another tab is checked again. */
+  const { rulesets, rulesetCheck } = useCheckedRulesets(
+    pass.rulesets,
+    pass.draft.rulesetId,
+    JSON.stringify(pass.preview?.packed ?? null)
+  );
   return (
     <PageLayout>
       <PageLayout.Header size="compact">
@@ -166,7 +179,7 @@ function CreateGameForm({
         <CreateGamePass
           {...pass}
           rulesets={rulesets}
-          rulesetChecked={rulesetChecked}
+          rulesetCheck={rulesetCheck}
           dispatch={dispatch}
           pending={createGame.isPending}
           /* A stalled request lifts the fade, so the page can say why. */

@@ -417,7 +417,13 @@ function RulesetPlayReadiness({
   const factions = linked?.factions.map((faction) => ({ id: faction._id as string, name: faction.name }));
   const revision = slots.map((entry) => `${entry.slot}:${entry.asset.id}`).join('|');
   const { check, recheck } = usePlayReadiness({ id: ruleset._id, name: ruleset.name }, factions, revision);
-  return <PlayReadiness check={check} onRecheck={recheck} />;
+  return (
+    <PlayReadiness
+      check={check}
+      onRecheck={recheck}
+      checkedFactionLimit={linked?.hasMore ? READINESS_FACTION_LIMIT : undefined}
+    />
+  );
 }
 
 /* The Factions list's first load and each "Load more": a ruleset seldom has more, and dragging only reorders what is loaded. */

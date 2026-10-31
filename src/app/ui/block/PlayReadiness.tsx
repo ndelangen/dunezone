@@ -9,6 +9,8 @@ export interface PlayReadinessProps {
   check: PlayReadinessCheck;
   /** Reads the catalogue again, for a fix made on another page. */
   onRecheck: () => void;
+  /** How many linked factions were checked, when the ruleset links more than that; absent when every one was. */
+  checkedFactionLimit?: number;
 }
 
 /* One problem as a line: what it is about, then what is wrong with it. */
@@ -22,7 +24,7 @@ function problemLine({ subject, reason }: { subject: string; reason: string }) {
  * Callers hand it the check;
  * it owns saying what blocks a game, and naming the ready factions in one line rather than a row each.
  */
-export function PlayReadiness({ check, onRecheck }: PlayReadinessProps) {
+export function PlayReadiness({ check, onRecheck, checkedFactionLimit }: PlayReadinessProps) {
   const entries = check.status === 'checked' ? check.entries : [];
   const blocked = entries.filter((entry) => entry.problems.length > 0);
   const ready = entries.filter((entry) => entry.kind === 'faction' && entry.problems.length === 0);
@@ -36,7 +38,7 @@ export function PlayReadiness({ check, onRecheck }: PlayReadinessProps) {
             Ready for Play
           </Title>
           <Text size="sm" c="dimmed" role="status">
-            {summary(check, rulesetBlocked, blocked.length)}
+            {summary(check, rulesetBlocked, blocked.length, checkedFactionLimit)}
           </Text>
         </Stack>
         <Button variant="light" size="compact-sm" onClick={onRecheck} loading={check.status === 'checking'}>
@@ -74,7 +76,14 @@ export function PlayReadiness({ check, onRecheck }: PlayReadinessProps) {
   );
 }
 
-function summary(check: PlayReadinessCheck, rulesetBlocked: boolean, blocked: number) {
+function summary(check: PlayReadinessCheck, rulesetBlocked: boolean, blocked: number, limit: number | undefined) {
+  const verdict = judgement(check, rulesetBlocked, blocked, limit !== undefined);
+  return check.status === 'checked' && limit !== undefined
+    ? `${verdict} Only the first ${limit} linked factions were checked; the draft checks the rest when it deals them.`
+    : verdict;
+}
+
+function judgement(check: PlayReadinessCheck, rulesetBlocked: boolean, blocked: number, truncated: boolean) {
   switch (check.status) {
     case 'checking':
       return 'Checking the ruleset and its factions the way a new game does…';
@@ -87,6 +96,8 @@ function summary(check: PlayReadinessCheck, rulesetBlocked: boolean, blocked: nu
       if (blocked) {
         return `A game can start. The draft sets aside ${blocked === 1 ? 'the faction' : `the ${blocked} factions`} below until they are fixed.`;
       }
-      return 'A game can start with this ruleset and deal every faction.';
+      return truncated
+        ? 'A game can start with this ruleset and deal every faction checked.'
+        : 'A game can start with this ruleset and deal every faction.';
   }
 }
