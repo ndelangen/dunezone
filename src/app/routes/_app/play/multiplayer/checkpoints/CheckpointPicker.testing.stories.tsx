@@ -131,3 +131,17 @@ export const EachChoiceAsksTheTable = meta.story({
     await expect(args.onChange).toHaveBeenLastCalledWith(args.checkpoints.at(-2)!.step);
   },
 });
+
+/** Letting go on the checkpoint the table shows still asks for it, so a return made before an earlier ask is answered lands last. */
+export const ReturnToTheShownCheckpointAsksAgain = meta.story({
+  args: { checkpoints: offeredCheckpoints(), value: offeredCheckpoints().at(-1)!.step, onChange: fn() },
+  play: async ({ args, canvasElement }) => {
+    const slider = within(canvasElement).getByRole('slider', { name: 'Checkpoint' });
+    const track = slider.closest<HTMLElement>('.mantine-Slider-trackContainer')!;
+    const box = track.getBoundingClientRect();
+    const at = { bubbles: true, clientX: box.right - 2, clientY: box.top + box.height / 2 };
+    track.dispatchEvent(new MouseEvent('mousedown', { ...at, button: 0 }));
+    track.dispatchEvent(new MouseEvent('mouseup', at));
+    await waitForFrame(() => expect(args.onChange).toHaveBeenCalledWith(args.value));
+  },
+});

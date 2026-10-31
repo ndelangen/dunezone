@@ -45,9 +45,8 @@ export function CheckpointPicker({ checkpoints, value, onChange }: CheckpointPic
   const title = checkpointTitle(turns, current.step) ?? current.context;
   const choose = (next: number) => {
     const step = checkpoints[Math.min(checkpoints.length - 1, Math.max(0, next))]!.step;
-    if (step !== value) {
-      onChange(step);
-    }
+    /* Sent even for the shown checkpoint: an earlier ask may still be on its way, and this one must land after it. */
+    onChange(step);
   };
   /* The retained window can start mid-turn, so only a boundary between two offered checkpoints proves a turn's start. */
   const marks = checkpoints.flatMap((checkpoint, position) =>
