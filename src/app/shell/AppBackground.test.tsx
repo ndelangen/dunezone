@@ -5,38 +5,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 
 import { AppBackground } from './AppBackground';
 
-let frames: Map<number, FrameRequestCallback>;
-let nextFrame: number;
-
 beforeEach(() => {
   vi.useFakeTimers();
   vi.setSystemTime(new Date(2026, 9, 22, 15, 15, 30));
-  frames = new Map();
-  nextFrame = 0;
-  vi.stubGlobal(
-    'ResizeObserver',
-    class {
-      observe() {}
-      disconnect() {}
-    }
-  );
-  vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
-    frames.set(++nextFrame, callback);
-    return nextFrame;
-  });
-  vi.stubGlobal('cancelAnimationFrame', (id: number) => frames.delete(id));
-  vi.stubGlobal('innerHeight', 600);
-  vi.stubGlobal('scrollY', 0);
-  vi.spyOn(document.documentElement, 'scrollHeight', 'get').mockReturnValue(1600);
-  vi.spyOn(document.documentElement, 'clientHeight', 'get').mockReturnValue(600);
-  document.documentElement.scrollTop = 0;
-  vi.spyOn(document.body, 'scrollHeight', 'get').mockReturnValue(1600);
 });
 
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
@@ -53,17 +29,7 @@ function orbit(container: HTMLElement, layer: 'planet' | 'stars') {
 }
 
 describe('orbital background', () => {
-  it('reaches the end of parallax using the document scroller even when body content extends farther', () => {
-    vi.spyOn(document.body, 'scrollHeight', 'get').mockReturnValue(1800);
-    document.documentElement.scrollTop = 1000;
-    vi.stubGlobal('scrollY', 1000);
-    const { container } = render(<AppBackground motion />);
-    expect(
-      container.querySelector<HTMLElement>('[data-background-stars]')?.style.getPropertyValue('--scroll-progress')
-    ).toBe('1');
-  });
-
-  it('aligns both periods to the local clock, including after tab suspension', async () => {
+  it('aligns both periods to the local clock, including after tab suspension', () => {
     const { container } = render(<AppBackground motion />);
     expect(orbit(container, 'planet')).toBeCloseTo(93);
     expect(orbit(container, 'stars')).toBeCloseTo(-226.5);
@@ -121,87 +87,41 @@ describe('orbital background', () => {
     expect(Number(star.style.opacity)).toBeCloseTo(1);
   });
 
-  it('updates only star parallax and releases pending work on unmount', async () => {
-    const { container, unmount } = render(<AppBackground motion />);
-    const stars = container.querySelector<HTMLElement>('[data-background-stars]');
-    const planet = container.querySelector<HTMLElement>('[data-background-planet]');
-    document.documentElement.scrollTop = 500;
-    act(() => {
-      window.dispatchEvent(new Event('scroll'));
-    });
-    act(() => {
-      vi.advanceTimersByTime(150);
-    });
-    expect(stars?.style.getPropertyValue('--scroll-progress')).toBe('0.5');
-    expect(planet?.getAttribute('style')).toBeNull();
-
-    act(() => {
-      window.dispatchEvent(new Event('resize'));
-    });
-    expect(frames.size).toBe(1);
+  it('releases its clock on unmount', () => {
+    const { unmount } = render(<AppBackground motion />);
+    expect(vi.getTimerCount()).toBe(1);
     unmount();
-    expect(frames.size).toBe(0);
     expect(vi.getTimerCount()).toBe(0);
   });
 
-  it('holds the whole background still until the last scroll event has settled', () => {
+  it('keeps the orbits and twinkles stepping while scrolling, with no scroll work of its own', () => {
+    const addListener = vi.spyOn(window, 'addEventListener');
     const { container } = render(<AppBackground motion />);
-    const stars = container.querySelector<HTMLElement>('[data-background-stars]')!;
     const star = container.querySelector('circle')!;
     const before = { orbit: orbit(container, 'planet'), opacity: star.style.opacity };
     act(() => {
-      document.documentElement.scrollTop = 400;
-      window.dispatchEvent(new Event('scroll'));
-      vi.advanceTimersByTime(100);
-      document.documentElement.scrollTop = 500;
-      window.dispatchEvent(new Event('scroll'));
-      vi.advanceTimersByTime(100);
-      document.documentElement.scrollTop = 600;
-      window.dispatchEvent(new Event('scroll'));
-      vi.advanceTimersByTime(149);
+      for (let step = 0; step < 5; step++) {
+        document.documentElement.scrollTop = 100 * step;
+        window.dispatchEvent(new Event('scroll'));
+        vi.advanceTimersByTime(50);
+      }
     });
-    expect(orbit(container, 'planet')).toBe(before.orbit);
-    expect(star.style.opacity).toBe(before.opacity);
-    expect(stars.style.getPropertyValue('--scroll-progress')).toBe('0');
-    act(() => {
-      vi.advanceTimersByTime(1);
-    });
-    expect(stars.style.getPropertyValue('--scroll-progress')).toBe('0.6');
     expect(orbit(container, 'planet')).not.toBe(before.orbit);
     expect(star.style.opacity).not.toBe(before.opacity);
-    expect(vi.getTimerCount()).toBe(1);
+    expect(addListener.mock.calls.map(([type]) => type)).not.toContain('scroll');
   });
 
-  it('suspends clock and scroll work in a hidden tab and restores the current clock pose', () => {
+  it('suspends the clock in a hidden tab and restores the current clock pose', () => {
     const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
     const { container } = render(<AppBackground motion />);
-    document.documentElement.scrollTop = 250;
-    act(() => {
-      window.dispatchEvent(new Event('scroll'));
-    });
-    expect(vi.getTimerCount()).toBe(2);
     visibility.mockReturnValue('hidden');
     act(() => {
       document.dispatchEvent(new Event('visibilitychange'));
     });
     expect(container.querySelector('[data-app-background]')?.hasAttribute('data-suspended')).toBe(true);
     expect(vi.getTimerCount()).toBe(0);
-    act(() => {
-      for (const [id, callback] of frames) {
-        frames.delete(id);
-        callback(0);
-      }
-    });
-    expect(
-      container.querySelector<HTMLElement>('[data-background-stars]')?.style.getPropertyValue('--scroll-progress')
-    ).toBe('0');
-    act(() => {
-      window.dispatchEvent(new Event('scroll'));
-    });
-    expect(frames.size).toBe(0);
 
     vi.setSystemTime(new Date(2026, 9, 22, 16, 0, 0));
-    document.documentElement.scrollTop = 500;
     visibility.mockReturnValue('visible');
     act(() => {
       document.dispatchEvent(new Event('visibilitychange'));
@@ -209,19 +129,13 @@ describe('orbital background', () => {
     expect(container.querySelector('[data-app-background]')?.hasAttribute('data-suspended')).toBe(false);
     expect(orbit(container, 'planet')).toBe(0);
     expect(orbit(container, 'stars')).toBe(0);
-    expect(
-      container.querySelector<HTMLElement>('[data-background-stars]')?.style.getPropertyValue('--scroll-progress')
-    ).toBe('0.5');
     expect(vi.getTimerCount()).toBe(1);
   });
 
-  it('freezes the current clock pose and removes parallax when motion is disabled', async () => {
+  it('freezes the current clock pose when motion is disabled', () => {
     const { container, rerender } = render(<AppBackground motion />);
     rerender(<AppBackground motion={false} />);
     expect(container.querySelector('[data-app-background]')?.getAttribute('data-motion')).toBe('reduce');
-    expect(
-      container.querySelector<HTMLElement>('[data-background-stars]')?.style.getPropertyValue('--scroll-progress')
-    ).toBe('');
     const angle = orbit(container, 'planet');
     act(() => {
       vi.advanceTimersByTime(120_000);
