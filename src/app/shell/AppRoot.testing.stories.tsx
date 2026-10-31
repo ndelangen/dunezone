@@ -158,7 +158,8 @@ export const ScrollingBackground = meta.story({
   parameters: {
     docs: {
       description: {
-        story: 'Where scroll-driven animations are supported, the stars move in parallax while the shaded planet remains anchored with its upper 20% visible.',
+        story:
+          'Where scroll-driven animations are supported, the stars move in parallax while the shaded planet remains anchored with its upper 20% visible.',
       },
     },
   },
