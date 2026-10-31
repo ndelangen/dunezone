@@ -13,7 +13,7 @@ import { TroopToken } from '@game/assets/faction/troop/Troop';
 import compassStyles from '../../compass/CompassControls.module.css';
 import { PieceImage, pieceName } from '../../multiplayer/HandPiece';
 import styles from './parts.module.css';
-import { FREE_SUPPORT_HELP, MODE_HELP, formatStrength, isShown, spiceMatters } from './planView';
+import { FREE_SUPPORT_HELP, MODE_HELP, formatStrength, isShown, spiceBonus, spiceMatters } from './planView';
 import type { BattlePlanViewProps, Opponent, WheelArt } from './planView';
 
 /**
@@ -525,6 +525,7 @@ export function StrengthSum({
       ? strengths.reduce((total, value) => total + value, 0)
       : undefined;
   const total = plan.strength + (leader ?? 0);
+  const bonus = spiceBonus(plan);
   return (
     <div className={styles.sum} aria-live="polite">
       <span className={styles.sumTop}>
@@ -535,7 +536,7 @@ export function StrengthSum({
       </span>
       <span className={styles.sumParts}>
         <span>
-          troops {formatStrength(plan.strength - plan.adjustment)}
+          troops {formatStrength(plan.strength - plan.adjustment - bonus)}
           {plan.adjustment ? ` ${plan.adjustment > 0 ? '+' : '−'} ${formatStrength(Math.abs(plan.adjustment))}` : ''}
         </span>
         {leader !== undefined ? (
@@ -543,6 +544,7 @@ export function StrengthSum({
             {plan.leaderIds.length > 1 ? 'leaders' : 'leader'} {leader}
           </span>
         ) : null}
+        {bonus ? <span>spice strength +{bonus}</span> : null}
         {spiceMatters(plan) ? <span>{plan.spice} spice</span> : null}
       </span>
     </div>

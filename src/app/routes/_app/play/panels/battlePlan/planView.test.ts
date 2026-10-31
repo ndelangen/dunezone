@@ -115,3 +115,28 @@ test("a troop's two faces share its count, so the back fields only what the fron
   expect(troopLimitOf(props, 'troop-0-front')).toBe(20);
   expect(troopLimitOf(props, 'troop-1-front')).toBe(4);
 });
+
+test('a KISS dial of troops that add no strength is bounded by the troops owned, not by a token count', () => {
+  const plan = {
+    ...emptyBattlePlan([face({ supportCost: 0, strength: 0, supportedStrength: 0 })], 'kiss'),
+    pieces: [],
+  };
+  expect(troopLimitOf({ plan, troopLimit: { [plan.faces[0]!.id]: 30 }, balance: 0 }, plan.faces[0]!.id)).toBe(30);
+});
+
+test('a KISS dial of tiny-strength troops stops at the troops owned without stepping to the strength cap', () => {
+  const tiny = face({ supportCost: 0, strength: 0.000001, supportedStrength: 0.000001 });
+  const plan = { ...emptyBattlePlan([tiny], 'kiss'), pieces: [] };
+  const started = performance.now();
+  expect(troopLimitOf({ plan, troopLimit: { [tiny.id]: 20 }, balance: 0 }, tiny.id)).toBe(20);
+  expect(performance.now() - started).toBeLessThan(100);
+});
+
+test('a KISS dial takes as many paying troops as the spice covers beyond the 2 free ones, and the strength cap still applies', () => {
+  const ordinary = face({ supportCost: 1, strength: 0.5, supportedStrength: 1 });
+  const plan = { ...emptyBattlePlan([ordinary], 'kiss'), pieces: [] };
+  expect(troopLimitOf({ plan, troopLimit: { [ordinary.id]: 20 }, balance: 3 }, ordinary.id)).toBe(5);
+  const elite = face({ supportCost: 0, strength: 2, supportedStrength: 2 });
+  const capped = { ...emptyBattlePlan([elite], 'kiss'), pieces: [] };
+  expect(troopLimitOf({ plan: capped, troopLimit: { [elite.id]: 20 }, balance: 0 }, elite.id)).toBe(10);
+});

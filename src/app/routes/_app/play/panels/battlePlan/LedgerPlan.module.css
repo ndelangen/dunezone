@@ -101,3 +101,30 @@
   color: var(--ink-dim);
   opacity: 0.5;
 }
+
+/* The spice strength a GF9 2.0 spend buys, beside the spice row, in the spice's own colour. */
+.bonus {
+  color: var(--ui-brass);
+  font-weight: 600;
+}
+
+/* A dial row the player does not set spans the grid: its name where the tokens sit, what it comes to beside it. */
+.fixedRow {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: baseline;
+  gap: 0.55rem;
+  min-height: 30px;
+  align-content: center;
+  flex-wrap: wrap;
+}
+
+.fixedLabel {
+  color: var(--ui-brass);
+  font: 600 0.72rem var(--font-sans);
+}
+
+.fixedValue {
+  color: var(--ink-dim);
+  font-size: 0.75rem;
+}

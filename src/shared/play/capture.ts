@@ -10,6 +10,7 @@ import {
   HistoricalFactionPublicationObject,
 } from '../factions/schema';
 import { RULESET_ASSET_SLOT_ORDER } from '../rulesets/assetSlots';
+import { battleDialingSchema, DEFAULT_BATTLE_DIALING } from '../rulesets/battleDialing';
 import { storedSpawnContentsSchema } from './inventory';
 import { tableCountSchema } from './schema';
 
@@ -37,6 +38,8 @@ export type BoardCapture = z.infer<typeof boardCaptureSchema>;
 export const rulesetSupplySchema = z.object({
   ruleset: sourceSchema,
   board: boardCaptureSchema.nullish(),
+  /* The ruleset's battle dialing mechanism; absent from a Convex one deploy behind, and for a ruleset that never chose. */
+  battleDialing: battleDialingSchema.nullish(),
   slots: z.array(z.object({ slot: z.enum(RULESET_ASSET_SLOT_ORDER), asset: slotAssetSchema })),
 });
 export type RulesetSupply = z.infer<typeof rulesetSupplySchema>;
@@ -147,6 +150,8 @@ export const rulesetCaptureSchema = z.object({
   /* Absent only in games retained before ruleset boards. */
   board: boardCaptureSchema.optional(),
   capturedAt: tableCountSchema,
+  /* Games captured before rulesets chose a mechanism count battles as Advanced, as they always did. */
+  battleDialing: battleDialingSchema.default(DEFAULT_BATTLE_DIALING),
   decks: z.object({
     treachery: slotCaptureSchema.nullable(),
     spice: slotCaptureSchema.nullable(),

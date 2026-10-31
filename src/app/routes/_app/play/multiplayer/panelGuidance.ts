@@ -1,5 +1,6 @@
 import { phaseAt } from '@shared/play/phases';
 import type { setupStep } from '@shared/play/setup';
+import { BATTLE_DIALING_OPTIONS } from '@shared/rulesets/battleDialing';
 import { helpLines } from '@ui/content/helpLines';
 
 import type { TableProjection } from '../../../../db/tabletop/TableSession';
@@ -45,8 +46,13 @@ export const HIDDEN_ZONE_GUIDANCE: Guidance = {
 };
 
 export function battleHelp(table: TableProjection) {
-  const { battle } = table.snapshot;
-  return battle ? `Battle at ${battle.territory}` : 'Drag the battle marker onto a territory to begin.';
+  const { battle, battlePlan } = table.snapshot;
+  if (!battle) {
+    return 'Drag the battle marker onto a territory to begin.';
+  }
+  /* A side's plan says how this ruleset counts the dial, so the player reads the rule beside the controls it shapes. */
+  const dialing = battlePlan ? BATTLE_DIALING_OPTIONS[battlePlan.dialing] : undefined;
+  return helpLines(`Battle at ${battle.territory}`, dialing && `${dialing.label} dialing.\n${dialing.description}`);
 }
 
 /** The Battle plan window's line; its help says where the battle is, which only the table knows. */

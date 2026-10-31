@@ -79,6 +79,7 @@ export class CatalogueCapture {
     return rulesetCaptureSchema.parse({
       ruleset: supply.ruleset,
       board: supply.board,
+      battleDialing: supply.battleDialing ?? undefined,
       capturedAt: now,
       decks: {
         treachery: single(await this.captureSlots('treachery', supply, problems)),

@@ -5,6 +5,7 @@ import { useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { Board } from '@shared/boards/schema';
 import { troopBattleFaces } from '@shared/factions/troopBattle';
 import type { BattlePlan, DisclosedPlan, PublicBattle } from '@shared/play/battle';
+import { dialsFlat } from '@shared/play/battleDialing';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import type { TablePiece, Vector3Tuple } from '@shared/play/model';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
@@ -166,7 +167,8 @@ export function BattleWheel({ plan, factionId, factionName, client, active, artw
       label={`${factionName} plan, troop strength ${plan.strength}, ${plan.spice} spice`}
       background={background}
       strength={plan.strength}
-      spice={plan.spice}
+      spice={plan.dialing === 'basic' ? undefined : plan.spice}
+      support={!dialsFlat(plan.dialing)}
       adjustment={plan.adjustment}
       troops={wheelTroops(plan, factionId, background, retained)}
       cards={plan.pieces
@@ -185,6 +187,10 @@ export function BattleWheel({ plan, factionId, factionName, client, active, artw
 export function BattleModeToggle({ client, table }: Props) {
   const { battle, battlePlan: plan, bank } = table.snapshot;
   if (!plan || !battle || !bank) {
+    return null;
+  }
+  /* Only Advanced spice dialing supports troops one by one; every other mechanism has no support to choose. */
+  if (dialsFlat(plan.dialing)) {
     return null;
   }
   const own = battle.sides.find((side) => side?.factionId === bank.factionId);

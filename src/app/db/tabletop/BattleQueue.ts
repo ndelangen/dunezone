@@ -120,7 +120,14 @@ export class BattleQueue {
     if (!this.table.canAct() || this.pendingPlan || !this.queuedPlan || !battle || !plan) {
       return;
     }
-    const { strength: _strength, faces: _faces, pieces: _pieces, disclosed: _disclosed, ...input } = plan;
+    const {
+      strength: _strength,
+      faces: _faces,
+      dialing: _dialing,
+      pieces: _pieces,
+      disclosed: _disclosed,
+      ...input
+    } = plan;
     const commandId = crypto.randomUUID();
     const patch = this.queuedPlan.patch;
     this.queuedPlan = null;
