@@ -12,10 +12,36 @@
 }
 
 .starsFrame {
-  --scroll-progress: 0;
-
   inset: 0;
-  transform: translateY(calc(var(--scroll-progress) * -6vh));
+}
+
+/* Parallax runs only where the compositor can drive it from the scroll position; elsewhere the starfield stays put rather than costing script work on every scroll frame.
+ * It reads the OS hint and the html motion attribute instead of waiting for hydration, so a page restored mid-scroll does not snap.
+ * Keep `animation-timeline` as a separate longhand after the shorthand: Lightning CSS without browser targets folds it into an `animation` shorthand that browsers reject. */
+@supports (animation-timeline: scroll()) {
+  .starsFrame {
+    animation: stars-parallax linear both;
+    animation-timeline: scroll(root);
+  }
+
+  html[data-motion="reduce"] .starsFrame {
+    animation: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html:not([data-motion="ok"]) .starsFrame {
+      animation: none;
+    }
+  }
+}
+
+@keyframes stars-parallax {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-6vh);
+  }
 }
 
 .stars {
