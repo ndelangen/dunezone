@@ -279,7 +279,7 @@ export const DeletePagesAndBlocks = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const removeBlock = await page.findByRole('button', { name: 'Delete Block' }, { timeout: 30_000 });
-    await expect(page.getByRole('button', { name: 'Delete Page' }).closest('nav')).not.toBeNull();
+    await expect(page.getByRole('button', { name: 'Delete Page' }).closest('nav')).toBeNull();
     await expect(removeBlock.closest('nav')).toBeNull();
     await expect(removeBlock.closest('[aria-label="Introduction editor"]')).not.toBeNull();
     await completeHold(removeBlock);
@@ -290,16 +290,16 @@ export const DeletePagesAndBlocks = meta.story({
     for (let count = 2; count > 0; count -= 1) {
       const removePage = page.getByRole('button', { name: 'Delete Page' });
       const addBlock = page.getByRole('button', { name: 'Add Block' });
-      await expect(removePage.closest('nav')).toBe(addBlock.closest('nav'));
+      await expect(addBlock.closest('nav')).not.toBeNull();
       await expect(removePage.getBoundingClientRect().bottom).toBeLessThanOrEqual(addBlock.getBoundingClientRect().top);
       await completeHold(removePage);
       await waitFor(async () => {
         if (count === 1) {
           await expect(page.getByText('This Rulebook has no Pages.')).toBeVisible();
         } else {
-          await expect(within(page.getByRole('navigation', { name: 'Pages' })).getAllByRole('link')).toHaveLength(
-            count - 1
-          );
+          await expect(
+            within(page.getByRole('region', { name: 'Pages' })).getAllByRole('button', { name: /^Page \d+:/ })
+          ).toHaveLength(count - 1);
         }
       });
     }

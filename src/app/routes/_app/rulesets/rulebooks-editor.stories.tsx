@@ -7,7 +7,7 @@ import { db } from '@db/storybook';
 import { parseClientBoundary } from '@app/db/core/clientBoundary';
 
 import { Route as RulebookEditorRoute } from './$rulesetSlug/rulebooks/$rulebookSlug/edit/route';
-import { withUnpublishedRulebook } from './rulebooks-editor.stories.fixture';
+import { withUnpublishedRulebook, withCoreRulebook } from './rulebooks-editor.stories.fixture';
 import { rulebooksMeta } from './rulebooks.stories.fixture';
 
 const meta = preview.meta({
@@ -54,4 +54,14 @@ export const StaleEditor = meta.story({
     await expect(page.getByRole('button', { name: 'Refresh' })).toBeVisible();
     await expect(page.queryByText(/unrecognized_keys/)).not.toBeInTheDocument();
   },
+});
+
+export const LongBook = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#7H6M/details' },
+  parameters: { database: db(withCoreRulebook) },
+});
+
+export const SelectedBlock = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#7H6M/GPYX' },
+  parameters: { database: db(withCoreRulebook) },
 });

@@ -37,6 +37,105 @@
   outline-offset: 0.35cqw;
 }
 
+.pageTitle {
+  flex: 1;
+  min-width: 8rem;
+}
+.selectionPreview,
+.previewDocument {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.selectionMarker {
+  box-sizing: border-box;
+  position: absolute;
+  z-index: 2;
+  border: 2px solid var(--color-progress);
+  border-radius: var(--radius-sm);
+  pointer-events: none;
+}
+@media print {
+  .selectionMarker {
+    display: none;
+  }
+}
+.filmstrip {
+  display: flex;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-lg);
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    var(--color-shadow) var(--space-lg),
+    var(--color-shadow) calc(100% - var(--space-lg)),
+    transparent
+  );
+  overscroll-behavior-inline: contain;
+  scrollbar-width: thin;
+}
+.filmItem {
+  position: relative;
+  width: 8rem;
+  flex-shrink: 0;
+}
+.filmButton {
+  cursor: grab;
+  touch-action: manipulation;
+  width: 100%;
+  height: auto;
+  padding: var(--space-xs);
+}
+.filmButton > span,
+.filmButton > span > span {
+  width: 100%;
+}
+.filmContent {
+  display: grid;
+  gap: var(--space-sm);
+  width: 100%;
+}
+.thumbnail {
+  position: relative;
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  pointer-events: none;
+}
+.thumbnailDocument,
+.thumbnailDocument > * {
+  width: 100%;
+  height: 100%;
+}
+.filmNumber {
+  position: absolute;
+  inset-inline-start: 50%;
+  inset-block-start: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  color: var(--color-paper);
+  font:
+    400 2rem / 1 "C_Advokat_Modern",
+    serif;
+  -webkit-text-stroke: 3px var(--color-ink);
+  paint-order: stroke fill;
+  text-shadow: 0 2px 4px var(--color-shadow);
+}
+.filmCaption {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-align: left;
+  white-space: normal;
+  min-height: 2.5rem;
+  font-size: 0.7rem;
+  line-height: 1.25;
+}
+
 .nestedTabs {
   --nested-tabs-level-width: 3.15rem;
   --nested-tabs-item-size: 2.35rem;
