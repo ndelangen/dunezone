@@ -158,7 +158,9 @@ export const ObserverDuringARound = meta.story({
   ),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByRole('img', { name: /^Waiting for/ }, WAIT)).resolves.toBeVisible();
+    const disc = await page.findByRole('img', { name: 'Waiting for Fremen' }, WAIT);
+    await expect(disc).toBeVisible();
+    await expect(disc).toHaveTextContent('4');
     await expect(page.queryByRole('button', { name: /^Waiting for/ })).toBeNull();
   },
 });
