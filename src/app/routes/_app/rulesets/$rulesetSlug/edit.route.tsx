@@ -6,9 +6,16 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Anchor, Button, Group, Popover, Stack, Text, TextInput, Title } from '@mantine/core';
+import { Anchor, Button, Group, Popover, Radio, Stack, Text, TextInput, Title } from '@mantine/core';
 import { RULESET_ASSET_SLOT_ORDER, RULESET_ASSET_SLOTS } from '@shared/rulesets/assetSlots';
 import type { RulesetAssetSlot } from '@shared/rulesets/assetSlots';
+import {
+  BATTLE_DIALING,
+  BATTLE_DIALING_OPTIONS,
+  battleDialingOf,
+  battleDialingSchema,
+} from '@shared/rulesets/battleDialing';
+import type { BattleDialing } from '@shared/rulesets/battleDialing';
 import { rulesetAboutSchema, rulesetNameSchema } from '@shared/rulesets/validation';
 import { userImageSourceUrlSchema } from '@shared/user-images/contract';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
@@ -82,15 +89,20 @@ function RulesetEditor({
   const initialCoverInput = initial.cover?.source_url ?? initial.image_cover ?? '';
   /* One draft, one reducer (the state rule): a patch arm for typing and a reset arm that returns to the saved row.
      A rename remounts the page via `key`, which is the only replace it knows. */
-  const baseline = { name: initial.name, about: initial.about, coverUrl: initialCoverInput };
+  const baseline = {
+    name: initial.name,
+    about: initial.about,
+    coverUrl: initialCoverInput,
+    battleDialing: battleDialingOf(initial.battle_dialing),
+  };
   const [draft, dispatch] = useReducer(
     (
-      state: { name: string; about: string; coverUrl: string },
+      state: { name: string; about: string; coverUrl: string; battleDialing: BattleDialing },
       event: { kind: 'patch'; update: Partial<typeof state> } | { kind: 'reset' }
     ) => (event.kind === 'reset' ? baseline : { ...state, ...event.update }),
     baseline
   );
-  const { name, about, coverUrl } = draft;
+  const { name, about, coverUrl, battleDialing } = draft;
   /* The rehost workflow as one value rather than a pending flag beside an error string. */
   const [rehostState, setRehostState] = useState<'idle' | 'pending' | { failed: string }>('idle');
 
@@ -129,7 +141,11 @@ function RulesetEditor({
     onFocusWarning: (warning) => document.getElementById(warning.focusId)?.focus(),
   });
 
-  const isDirty = name !== baseline.name || about !== baseline.about || coverUrl !== baseline.coverUrl;
+  const isDirty =
+    name !== baseline.name ||
+    about !== baseline.about ||
+    coverUrl !== baseline.coverUrl ||
+    battleDialing !== baseline.battleDialing;
   const saveState: AuthoringSaveState =
     updateRuleset.isPending || rehostState === 'pending'
       ? 'saving'
@@ -171,6 +187,7 @@ function RulesetEditor({
         input: { name: nameCheck.data, about: aboutCheck.data },
         /* Clearing travels through the legacy channel; a rehosted cover is already committed, so absent means untouched. */
         imageCover,
+        battleDialing,
       });
       if (previousSlug !== entry.slug) {
         void navigate({
@@ -275,6 +292,34 @@ function RulesetEditor({
                     placeholder="https://…"
                     autoComplete="off"
                   />
+                }
+              />
+
+              <ControlBlock
+                title="Battle dialing"
+                description={
+                  "How battle wheels count troops and spice in this ruleset's games.\nA game keeps the choice it started with."
+                }
+                input={
+                  <Radio.Group
+                    aria-label="Battle dialing"
+                    name="battle-dialing"
+                    value={battleDialing}
+                    onChange={(value) =>
+                      dispatch({ kind: 'patch', update: { battleDialing: battleDialingSchema.parse(value) } })
+                    }
+                  >
+                    <Stack gap="sm">
+                      {BATTLE_DIALING.map((option) => (
+                        <Radio
+                          key={option}
+                          value={option}
+                          label={BATTLE_DIALING_OPTIONS[option].label}
+                          description={BATTLE_DIALING_OPTIONS[option].description}
+                        />
+                      ))}
+                    </Stack>
+                  </Radio.Group>
                 }
               />
 

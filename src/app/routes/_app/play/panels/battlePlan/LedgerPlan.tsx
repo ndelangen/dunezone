@@ -1,5 +1,6 @@
 import { Tooltip, UnstyledButton } from '@mantine/core';
 import type { BattleFace } from '@shared/play/battle';
+import { dialsFlat, KISS_FREE_TROOPS } from '@shared/play/battleDialing';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { SortableRow } from '@ui/control/SortableRow';
 import { TooltipTarget } from '@ui/control/TooltipTarget';
@@ -19,7 +20,10 @@ import {
   planPieces,
   setTotal,
   snapSpice,
+  snapSpiceStrength,
+  spiceBonus,
   spiceMatters,
+  spiceStrengthOptions,
   supportableSpice,
   supportedMax,
   toggleCard,
@@ -130,6 +134,9 @@ function DialRows(props: BattlePlanViewProps & { disabled: boolean }) {
   const faces = capableFaces(plan);
   /* A faction with one troop type has just its troops to name. */
   const named = (face: BattleFace) => (faces.length === 1 ? 'Troops' : face.name);
+  if (dialsFlat(plan.dialing)) {
+    return <FlatDialRows {...props} named={named} />;
+  }
   if (plan.mode === 'custom') {
     return faces.map((face) => {
       const own = troopsOf(plan, face.id);
@@ -201,5 +208,71 @@ function DialRows(props: BattlePlanViewProps & { disabled: boolean }) {
         />
       ) : null}
     </>
+  );
+}
+
+/**
+ * The dial's rows under Basic, GF9 2.0 and KISS, where every troop fights at full strength: one count per troop type, then what spice does.
+ * GF9 2.0: the spice spent on spice strength, which snaps to 0, 2, 4 or 8.
+ * KISS: the spice the dial costs, which follows the troops.
+ * A faction that never pays sees what its edge gives instead.
+ */
+function FlatDialRows(props: BattlePlanViewProps & { disabled: boolean; named: (face: BattleFace) => string }) {
+  const { plan, balance, onEdit, disabled, named } = props;
+  const free = !spiceMatters(plan);
+  const bonus = spiceBonus(plan);
+  return (
+    <>
+      {capableFaces(plan).map((face) => (
+        <DialRow
+          key={face.id}
+          label={<TroopLabel face={face} wheelArt={props.wheelArt} />}
+          name={named(face)}
+          value={totalOf(plan, face.id)}
+          max={troopLimitOf(props, face.id)}
+          disabled={disabled}
+          onChange={(total) => onEdit(setTotal(plan, face.id, total))}
+        />
+      ))}
+      {plan.dialing === 'gf92' && !free ? (
+        <DialRow
+          label={<TopicIcon topic="spice" size={18} className={styles.spiceIcon} />}
+          sub={<span className={styles.bonus}>{bonus ? `+${bonus}` : 'none'}</span>}
+          name="Spice for spice strength"
+          value={plan.spice}
+          max={spiceStrengthOptions(plan, balance).at(-1) ?? 0}
+          disabled={disabled}
+          onChange={(wanted) => {
+            const spice = snapSpiceStrength(plan, balance, wanted);
+            if (spice !== plan.spice) {
+              onEdit({ spice });
+            }
+          }}
+          spice
+        />
+      ) : null}
+      {plan.dialing === 'gf92' && free ? (
+        <FixedRow
+          label="Battle edge"
+          value={bonus ? `+${bonus} spice strength, free` : 'spice strength from a dial of 2'}
+        />
+      ) : null}
+      {plan.dialing === 'kiss' ? (
+        <FixedRow
+          label={free ? 'Free dialing' : 'Spice'}
+          value={free ? 'any number of troops' : `${plan.spice} owed, first ${KISS_FREE_TROOPS} troops free`}
+        />
+      ) : null}
+    </>
+  );
+}
+
+/** A row of the dial the player does not set: what the mechanism works out from the troops. */
+function FixedRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className={styles.fixedRow}>
+      <span className={styles.fixedLabel}>{label}</span>
+      <span className={styles.fixedValue}>{value}</span>
+    </div>
   );
 }

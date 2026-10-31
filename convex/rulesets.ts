@@ -1,6 +1,9 @@
+import { zodToConvex } from 'convex-helpers/server/zod4';
 import { v } from 'convex/values';
 
 import { RULESET_ASSET_SLOTS } from '../src/shared/rulesets/assetSlots';
+import { battleDialingSchema } from '../src/shared/rulesets/battleDialing';
+import type { BattleDialing } from '../src/shared/rulesets/battleDialing';
 import {
   RULESET_CATALOGUE_PAGE_SIZE,
   RULESET_CATALOGUE_QUERY_LIMIT,
@@ -58,12 +61,19 @@ async function getRulesetById(ctx: QueryCtx | MutationCtx, id: Id<'rulesets'>) {
  * An explicit `image_cover` also clears the stored `cover`: this legacy channel is how a pre-rehost bundle expresses a cover intent, and `rulesetCovers.rehost` is the only writer that sets `cover`.
  * The shape is inferred rather than restated, so adding a field here cannot drift from the type that describes it.
  */
-function rulesetUpdatePatch(fields: { name: string; slug: string; about: string; image_cover?: string | null }) {
+function rulesetUpdatePatch(fields: {
+  name: string;
+  slug: string;
+  about: string;
+  image_cover?: string | null;
+  battle_dialing?: BattleDialing;
+}) {
   return {
     name: fields.name,
     slug: fields.slug,
     about: fields.about,
     updated_at: nowIso(),
+    ...(fields.battle_dialing === undefined ? {} : { battle_dialing: fields.battle_dialing }),
     ...(fields.image_cover === undefined ? {} : { image_cover: fields.image_cover, cover: null }),
   };
 }
@@ -335,6 +345,8 @@ export const update = mutation({
     name: v.string(),
     about: v.string(),
     image_cover: v.optional(v.union(v.string(), v.null())),
+    /* Absent leaves the stored mechanism alone, so a bundle from before the choice existed never resets it. */
+    battle_dialing: v.optional(zodToConvex(battleDialingSchema)),
   },
   handler: async (ctx, args) => {
     const input = parseRulesetInput(args);
@@ -367,6 +379,7 @@ export const update = mutation({
         slug,
         about: input.about,
         image_cover: imageCoverIntent,
+        battle_dialing: args.battle_dialing,
       })
     );
     const updated = await ctx.db.get(ruleset._id);

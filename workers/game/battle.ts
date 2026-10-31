@@ -7,6 +7,16 @@ import type {
   StoredBattlePlan,
 } from '../../src/shared/play/battle';
 import { isBattleCard, isBattleLeader } from '../../src/shared/play/battle';
+import {
+  dialsFlat,
+  dialsFree,
+  flatStrength,
+  KISS_DIAL_CAP,
+  kissSpice,
+  spiceStrength,
+  spiceStrengthChoices,
+  troopCount,
+} from '../../src/shared/play/battleDialing';
 import { nextSnapshot, requireAccepted } from '../../src/shared/play/commands';
 import type { StoredPiece } from '../../src/shared/play/model';
 import { phaseAt } from '../../src/shared/play/phases';
@@ -115,12 +125,16 @@ function declaredStrength(troops: BattlePlanInput['troops'], faces: Map<string, 
 
 function supportedPlan(input: BattlePlanInput, before: StoredBattlePlan) {
   const faces = new Map(before.faces.filter((face) => face.capable).map((face) => [face.id, face]));
-  const troops = input.mode !== before.mode ? [] : input.troops.map((troop) => ({ ...troop }));
+  const flat = dialsFlat(before.dialing);
+  const troops = !flat && input.mode !== before.mode ? [] : input.troops.map((troop) => ({ ...troop }));
   if (
     new Set(troops.map((troop) => troop.faceId)).size !== troops.length ||
     troops.some((troop) => !faces.has(troop.faceId))
   ) {
     return refuse('Choose each eligible troop face once.');
+  }
+  if (flat) {
+    return flatPlan(input, before, troops);
   }
   let spice = input.mode !== before.mode ? 0 : input.spice;
   if (input.mode === 'custom') {
@@ -129,7 +143,47 @@ function supportedPlan(input: BattlePlanInput, before: StoredBattlePlan) {
     spice = supportMaxTroops(troops, faces, spice, before);
   }
   const strength = declaredStrength(troops, faces, input.adjustment);
-  return { ...input, troops, spice, strength, faces: before.faces };
+  return { ...input, troops, spice, strength, faces: before.faces, dialing: before.dialing };
+}
+
+/**
+ * A plan under Basic, GF9 2.0 or KISS: every troop fights at full strength, so there is one count per face and nothing to support.
+ * GF9 2.0 takes the spice the player spends on spice strength;
+ * KISS works out the spice the dial costs.
+ */
+function flatPlan(input: BattlePlanInput, before: StoredBattlePlan, declared: BattlePlanInput['troops']) {
+  const troops = declared.map(({ faceId, undialed, dialed }) => ({
+    faceId,
+    undialed: sum(undialed, dialed),
+    dialed: 0,
+  }));
+  const free = dialsFree(before.faces);
+  const dial = flatStrength(troops, before.faces);
+  let spice = 0;
+  let bonus = 0;
+  if (before.dialing === 'gf92') {
+    const choices = spiceStrengthChoices(dial, free);
+    spice = input.spice;
+    if (!choices.includes(spice)) {
+      /* A smaller dial takes the spice strength down with it, as far as the dial still reaches. */
+      const troopEdit = JSON.stringify(troops) !== JSON.stringify(before.troops) && spice === before.spice;
+      if (!troopEdit) {
+        return refuse('Spice strength costs 2, 4 or 8 spice, and the dial must reach as much.');
+      }
+      spice = choices.findLast((choice) => choice <= spice) ?? 0;
+    }
+    bonus = spiceStrength(dial, spice, free);
+  } else if (before.dialing === 'kiss') {
+    if (dial > KISS_DIAL_CAP) {
+      return refuse(`The dial stops at ${KISS_DIAL_CAP}.`);
+    }
+    spice = kissSpice(troopCount(troops), free);
+  }
+  const strength = dial + bonus + input.adjustment;
+  if (!Number.isFinite(strength)) {
+    return refuse('The declared strength is too large.');
+  }
+  return { ...input, mode: 'max' as const, troops, spice, strength, faces: before.faces, dialing: before.dialing };
 }
 
 function selectedPlanPieces(plan: BattlePlanInput, available: StoredPiece[]) {
@@ -439,7 +493,7 @@ function claimSide({ snapshot, battle, factionId }: BattleActor, side: 0 | 1) {
     return refuse('Choose an empty side for a faction that is not already in this battle.');
   }
   battle.sides[side] = { factionId, ready: false, choice: null };
-  battle.plans[side] = emptyBattlePlan(snapshot.combatFaces[factionId] ?? []);
+  battle.plans[side] = emptyBattlePlan(snapshot.combatFaces[factionId] ?? [], snapshot.battleDialing);
   return commit(snapshot, { battleState: battle });
 }
 

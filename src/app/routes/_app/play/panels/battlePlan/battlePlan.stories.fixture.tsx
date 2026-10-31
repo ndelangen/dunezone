@@ -1,8 +1,18 @@
 import { Tooltip } from '@mantine/core';
 import { emptyBattlePlan, isBattleLeader } from '@shared/play/battle';
 import type { BattleFace, BattlePlan, BattlePlanInput, Disclosure } from '@shared/play/battle';
+import {
+  dialsFlat,
+  dialsFree,
+  flatStrength,
+  kissSpice,
+  spiceStrength,
+  spiceStrengthChoices,
+  troopCount,
+} from '@shared/play/battleDialing';
 import type { TablePiece } from '@shared/play/model';
 import { item } from '@shared/play/setupSupply';
+import type { BattleDialing } from '@shared/rulesets/battleDialing';
 import { DarkSchemeIsland, darkSchemeIslandAttributes } from '@ui/surface/DarkSchemeIsland';
 import { PinOff } from 'lucide-react';
 import type { CSSProperties, ReactNode } from 'react';
@@ -77,14 +87,51 @@ function treacheryCards(): TablePiece[] {
   }));
 }
 
-export type Scenario = 'fresh' | 'planned' | 'emperor' | 'fremen' | 'leaders' | 'ready' | 'countdown';
+export type Scenario =
+  | 'fresh'
+  | 'planned'
+  | 'emperor'
+  | 'fremen'
+  | 'leaders'
+  | 'ready'
+  | 'countdown'
+  | 'basic'
+  | 'gf92'
+  | 'gf92-fremen'
+  | 'kiss';
 
 /* The viewer's seat and faction per scenario, in the playing fixture's seat order. */
-const SEATS = {
+const SEATS: Partial<Record<Scenario, readonly [string, string]>> = {
   emperor: ['seat-3', 'emperor'],
   fremen: ['seat-5', 'fremen'],
   leaders: ['seat-5', 'fremen'],
-} as const;
+  basic: ['seat-3', 'emperor'],
+  gf92: ['seat-3', 'emperor'],
+  'gf92-fremen': ['seat-5', 'fremen'],
+  kiss: ['seat-3', 'emperor'],
+};
+
+/** The ruleset dialing each scenario's game counts with; the rest count as Advanced. */
+export const SCENARIO_DIALING: Partial<Record<Scenario, BattleDialing>> = {
+  basic: 'basic',
+  gf92: 'gf92',
+  'gf92-fremen': 'gf92',
+  kiss: 'kiss',
+};
+
+/**
+ * The troops each full-strength scenario dials, by troop index, and the spice it spends.
+ * Basic: three ordinary troops and a Sardaukar.
+ * GF9 2.0: a dial of 6 with 4 spice for +2.
+ * The Fremen's dial of 9 earns +3 free.
+ * KISS: five troops, three of them paid.
+ */
+const FLAT_DIALS: Partial<Record<Scenario, { counts: number[]; spice: number }>> = {
+  basic: { counts: [3, 1], spice: 0 },
+  gf92: { counts: [4, 1], spice: 4 },
+  'gf92-fremen': { counts: [5, 2], spice: 0 },
+  kiss: { counts: [3, 2], spice: 0 },
+};
 
 type Harness = Omit<BattlePlanViewProps, 'onEdit' | 'onReorder' | 'onReady' | 'onDisclose'>;
 
@@ -93,14 +140,14 @@ export function scenario(name: Scenario): Harness {
   const emperor = name === 'emperor';
   const severalLeaders = name === 'leaders';
   const fremen = name === 'fremen' || severalLeaders;
-  const [seat, slug] = name === 'emperor' || fremen ? SEATS[name as keyof typeof SEATS] : ['seat-2', 'house-harkonnen'];
+  const [seat, slug] = SEATS[name] ?? ['seat-2', 'house-harkonnen'];
   const faction = factionBySlug(slug);
   /* The viewer's own hand from the playing fixture: leaders, alliance card and kept Traitors, and four Treachery cards drawn since. */
   const own = playingSnapshot(seat).hand!;
   const hand = [...own, ...treacheryCards()];
   const leaders = own.filter(isBattleLeader);
   const faces = facesOf(faction);
-  const plan: BattlePlan = { ...emptyBattlePlan(faces), pieces: [] };
+  const plan: BattlePlan = { ...emptyBattlePlan(faces, SCENARIO_DIALING[name]), pieces: [] };
   const leaderStrength = Object.fromEntries(
     leaders.map((leader) => [
       leader.id,
@@ -135,6 +182,15 @@ export function scenario(name: Scenario): Harness {
   };
   if (name === 'fresh') {
     return { ...harness, opponent: { ...harness.opponent!, ready: false } };
+  }
+  const flat = FLAT_DIALS[name];
+  if (flat) {
+    return simulate(harness, {
+      leaderIds: [leaders[0]!.id],
+      cardIds: ['treachery-crysknife'],
+      troops: flat.counts.map((count, index) => ({ faceId: faces[index]!.id, undialed: count, dialed: 0 })),
+      spice: flat.spice,
+    });
   }
   const committed = simulate(harness, {
     /* The Fremen story with several leaders puts its two strongest in the plan. */
@@ -180,6 +236,44 @@ function simulate(state: Harness, patch: Partial<BattlePlanInput>): Harness {
   const before = state.plan;
   const input = { ...before, ...patch };
   const available = state.balance + before.spice;
+  const counted = dialsFlat(before.dialing)
+    ? flatDial(before, input, available)
+    : supportedDial(before, input, available);
+  const pool = planPieces(before, state.hand);
+  const ids = [...input.leaderIds, ...input.cardIds];
+  const plan: BattlePlan = {
+    ...input,
+    ...counted,
+    pieces: ids.map((id) => pool.find((entry) => entry.id === id)!),
+  };
+  return {
+    ...state,
+    plan,
+    balance: available - counted.spice,
+    hand: pool,
+  };
+}
+
+/** Basic, GF9 2.0 and KISS as the Worker counts them: every troop at full strength, then what spice buys or costs. */
+function flatDial(before: BattlePlan, input: BattlePlan, available: number) {
+  const troops = input.troops
+    .map(({ faceId, undialed, dialed }) => ({ faceId, undialed: undialed + dialed, dialed: 0 }))
+    .filter((troop) => troop.undialed > 0);
+  const free = dialsFree(before.faces);
+  const dial = flatStrength(troops, before.faces);
+  let spice = 0;
+  if (before.dialing === 'gf92') {
+    const choices = spiceStrengthChoices(dial, free).filter((choice) => choice <= available);
+    spice = choices.findLast((choice) => choice <= input.spice) ?? 0;
+  } else if (before.dialing === 'kiss') {
+    spice = kissSpice(troopCount(troops), free);
+  }
+  const bonus = before.dialing === 'gf92' ? spiceStrength(dial, spice, free) : 0;
+  return { mode: 'max' as const, troops, spice, strength: dial + bonus + input.adjustment };
+}
+
+/** Advanced spice dialing as the Worker counts it. */
+function supportedDial(before: BattlePlan, input: BattlePlan, available: number) {
   const faces = new Map(before.faces.filter((face) => face.capable).map((face) => [face.id, face]));
   let troops = input.mode !== before.mode ? [] : input.troops.map((troop) => ({ ...troop }));
   let spice = input.mode !== before.mode ? 0 : input.spice;
@@ -203,21 +297,7 @@ function simulate(state: Harness, patch: Partial<BattlePlanInput>): Harness {
     const face = faces.get(troop.faceId)!;
     return total + troop.undialed * face.strength + troop.dialed * face.supportedStrength;
   }, input.adjustment);
-  const pool = planPieces(before, state.hand);
-  const ids = [...input.leaderIds, ...input.cardIds];
-  const plan: BattlePlan = {
-    ...input,
-    troops,
-    spice,
-    strength,
-    pieces: ids.map((id) => pool.find((entry) => entry.id === id)!),
-  };
-  return {
-    ...state,
-    plan,
-    balance: available - spice,
-    hand: pool,
-  };
+  return { mode: input.mode, troops, spice, strength };
 }
 
 const gain = (face: BattleFace) => (face.supportedStrength - face.strength) / Math.max(face.supportCost, 0.0001);
@@ -256,12 +336,15 @@ export function PlanHarness({ initial, size }: { initial: Harness; size: SlotSiz
     <SlotFrame
       size={size}
       actions={
-        <ModeToggle
-          mode={state.plan.mode}
-          disabled={planLocks(state).dialLocked}
-          free={!supportMatters(state.plan)}
-          onChange={(mode) => setState((before) => simulate(before, { mode }))}
-        />
+        /* Only Advanced supports troops one by one, so only its window has the Custom toggle. */
+        dialsFlat(state.plan.dialing) ? null : (
+          <ModeToggle
+            mode={state.plan.mode}
+            disabled={planLocks(state).dialLocked}
+            free={!supportMatters(state.plan)}
+            onChange={(mode) => setState((before) => simulate(before, { mode }))}
+          />
+        )
       }
     >
       <LedgerPlan

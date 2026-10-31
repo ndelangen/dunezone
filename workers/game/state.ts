@@ -27,6 +27,7 @@ import {
   tableIdSchema,
 } from '../../src/shared/play/schema';
 import { predictionSchema, predictionChoiceSchema } from '../../src/shared/play/setup';
+import { battleDialingSchema, DEFAULT_BATTLE_DIALING } from '../../src/shared/rulesets/battleDialing';
 
 /** The board layout a stored game's positions are laid out for; see boardLayout.ts. */
 export const BOARD_LAYOUT = 4;
@@ -92,6 +93,8 @@ export const storedSnapshotSchema = gameSnapshotSchema
     /* Spice reserves and battle faces are seeded per faction when a game fixes its seating, never by the schema. */
     /* Persisted key in Durable Object storage, kept as `combatFaces`; the glossary says battle. */
     combatFaces: z.record(tableIdSchema, z.array(battleFaceSchema)).default({}),
+    /* How the game's ruleset counts battle dials, fixed when setup is supplied; older games read as Advanced. */
+    battleDialing: battleDialingSchema.default(DEFAULT_BATTLE_DIALING),
     battleResults: z.array(storedBattleResultSchema).default([]),
     /* Each faction's spice reserve (see CONTEXT.md); the `factionBanks` key is kept for stored game state. */
     factionBanks: z.record(tableIdSchema, tableCountSchema).default({}),
