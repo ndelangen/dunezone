@@ -1,7 +1,7 @@
 import { Group, Slider, Stack, Text, Tooltip } from '@mantine/core';
 import { IconAction } from '@ui/control/IconAction';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useId, useState } from 'react';
+import { useId } from 'react';
 
 import { useAssetResolver } from '@game/assets/assetRenderMode';
 
@@ -22,21 +22,11 @@ function PhaseDisc({ symbol, label, size }: Readonly<{ symbol: string | null; la
 /** The checkpoint a table review asks for: one slider across every checkpoint, marked at each turn, with arrows for one step at a time. */
 export function CheckpointPicker({ checkpoints, value, onChange }: CheckpointPickerProps) {
   const thumbId = useId();
-  /* Where a drag holds the thumb: the slider names the checkpoint under it, and the choice is made once when it is let go, so a drag across a recall moves the table once rather than at every checkpoint it passes. */
-  const [dragged, setDragged] = useState<number | null>(null);
-  /* A new value from the table ends any preview, so the thumb shows where the table now is. */
-  const [shown, setShown] = useState(value);
-  if (shown !== value) {
-    setShown(value);
-    setDragged(null);
-  }
   const turns = checkpointTurns(checkpoints);
-  /* Compared by step, so the first checkpoint is still a choice when the table's step is no longer offered. */
-  const chosen = Math.max(
+  const index = Math.max(
     0,
     checkpoints.findIndex((checkpoint) => checkpoint.step === value)
   );
-  const index = dragged === null ? chosen : Math.min(checkpoints.length - 1, dragged);
   const current = checkpoints[index];
   if (!current) {
     return <Text size="sm">No checkpoint has been saved yet.</Text>;
@@ -58,11 +48,7 @@ export function CheckpointPicker({ checkpoints, value, onChange }: CheckpointPic
             max={checkpoints.length - 1}
             step={1}
             value={index}
-            onChange={setDragged}
-            onChangeEnd={(next) => {
-              setDragged(null);
-              choose(next);
-            }}
+            onChange={choose}
             marks={marks}
             label={null}
             thumbProps={{ id: thumbId }}
