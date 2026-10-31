@@ -1,6 +1,6 @@
 import { Tooltip, UnstyledButton } from '@mantine/core';
 import type { BattleFace } from '@shared/play/battle';
-import { dialsFlat, KISS_FREE_TROOPS } from '@shared/play/battleDialing';
+import { dialsFlat, dialsFree, KISS_FREE_TROOPS } from '@shared/play/battleDialing';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { SortableRow } from '@ui/control/SortableRow';
 import { TooltipTarget } from '@ui/control/TooltipTarget';
@@ -215,11 +215,12 @@ function DialRows(props: BattlePlanViewProps & { disabled: boolean }) {
  * The dial's rows under Basic, GF9 2.0 and KISS, where every troop fights at full strength: one count per troop type, then what spice does.
  * GF9 2.0: the spice spent on spice strength, which snaps to 0, 2, 4 or 8.
  * KISS: the spice the dial costs, which follows the troops.
- * A faction that never pays sees what its edge gives instead.
+ * Troops that cost nothing to dial (Fremen, say) take GF9 2.0 spice strength for free, and a dial of only such troops shows that instead.
  */
 function FlatDialRows(props: BattlePlanViewProps & { disabled: boolean; named: (face: BattleFace) => string }) {
   const { plan, balance, onEdit, disabled, named } = props;
   const free = !spiceMatters(plan);
+  const freeStrength = free || dialsFree(plan.troops, plan.faces);
   const bonus = spiceBonus(plan);
   return (
     <>
@@ -234,7 +235,7 @@ function FlatDialRows(props: BattlePlanViewProps & { disabled: boolean; named: (
           onChange={(total) => onEdit(setTotal(plan, face.id, total))}
         />
       ))}
-      {plan.dialing === 'gf92' && !free ? (
+      {plan.dialing === 'gf92' && !freeStrength ? (
         <DialRow
           label={<TopicIcon topic="spice" size={18} className={styles.spiceIcon} />}
           sub={<span className={styles.bonus}>{bonus ? `+${bonus}` : 'none'}</span>}
@@ -251,10 +252,10 @@ function FlatDialRows(props: BattlePlanViewProps & { disabled: boolean; named: (
           spice
         />
       ) : null}
-      {plan.dialing === 'gf92' && free ? (
+      {plan.dialing === 'gf92' && freeStrength ? (
         <FixedRow
-          label="Battle edge"
-          value={bonus ? `+${bonus} spice strength, free` : 'spice strength from a dial of 2'}
+          label="Spice strength"
+          value={bonus ? `+${bonus}, free for troops that cost nothing` : 'free from a dial of 2'}
         />
       ) : null}
       {plan.dialing === 'kiss' ? (

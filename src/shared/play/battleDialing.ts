@@ -26,18 +26,18 @@ export function dialsFlat(dialing: BattleDialing) {
   return dialing !== 'advanced';
 }
 
-/**
- * Whether the faction's troops never pay spice to fight: every face that fights costs nothing to support (Fremen).
- * Under GF9 2.0 that is the Battle Edge, free spice strength;
- * under KISS, free dialing of any number of troops.
- */
-export function dialsFree(faces: readonly BattleFace[]) {
-  const capable = faces.filter((face) => face.capable);
-  return capable.length > 0 && capable.every((face) => face.supportCost === 0);
+/** What one troop of this face costs to dial: its support cost, which is 0 for a troop that fights for free (Fremen Fedaykin and troops, say). */
+function troopCost(faceId: string, faces: readonly BattleFace[]) {
+  return faces.find((face) => face.id === faceId)?.supportCost ?? 0;
 }
 
-export function troopCount(troops: Troops) {
-  return troops.reduce((total, troop) => total + troop.undialed + troop.dialed, 0);
+/**
+ * Whether the dialed troops never pay spice to fight: there are some, and every one has a dial cost of 0.
+ * Under GF9 2.0 that dial takes its spice strength for free.
+ */
+export function dialsFree(troops: Troops, faces: readonly BattleFace[]) {
+  const dialed = troops.filter((troop) => troop.undialed + troop.dialed > 0);
+  return dialed.length > 0 && dialed.every((troop) => troopCost(troop.faceId, faces) === 0);
 }
 
 /** The dialed strength with every troop at full strength: its supported strength, which needs no spice here. */
@@ -48,12 +48,12 @@ export function flatStrength(troops: Troops, faces: readonly BattleFace[]) {
   }, 0);
 }
 
-/** The spice amounts GF9 2.0 lets a plan spend on spice strength at this dial, none first. A free faction spends none. */
+/** The spice amounts GF9 2.0 lets a plan spend on spice strength at this dial, none first. A dial of troops that cost nothing spends none. */
 export function spiceStrengthChoices(dial: number, free: boolean): number[] {
   return free ? [0] : [0, ...SPICE_STRENGTH_TIERS.filter((tier) => dial >= tier.spice).map((tier) => tier.spice)];
 }
 
-/** The spice strength a GF9 2.0 plan adds: the tier its spice buys, or for a free faction the highest its dial reaches. */
+/** The spice strength a GF9 2.0 plan adds: the tier its spice buys, or for a dial of troops that cost nothing the highest it reaches. */
 export function spiceStrength(dial: number, spice: number, free: boolean) {
   const reached = SPICE_STRENGTH_TIERS.filter((tier) => dial >= tier.spice);
   if (free) {
@@ -62,7 +62,13 @@ export function spiceStrength(dial: number, spice: number, free: boolean) {
   return reached.find((tier) => tier.spice === spice)?.bonus ?? 0;
 }
 
-/** The spice a KISS dial costs: one for each troop past the free ones, none for a free faction. */
-export function kissSpice(troops: number, free: boolean) {
-  return free ? 0 : Math.max(0, troops - KISS_FREE_TROOPS);
+/**
+ * The spice a KISS dial costs: each troop its own dial cost, except the first 2 troops, which are free.
+ * The free ones are the dearest, so a troop that costs nothing never uses up a free place.
+ */
+export function kissSpice(troops: Troops, faces: readonly BattleFace[]) {
+  const costs = troops
+    .flatMap((troop) => Array.from({ length: troop.undialed + troop.dialed }, () => troopCost(troop.faceId, faces)))
+    .sort((a, b) => b - a);
+  return costs.slice(KISS_FREE_TROOPS).reduce((total, cost) => total + cost, 0);
 }

@@ -8,7 +8,6 @@ import {
   kissSpice,
   spiceStrength,
   spiceStrengthChoices,
-  troopCount,
 } from '@shared/play/battleDialing';
 import type { TablePiece } from '@shared/play/model';
 import { item } from '@shared/play/setupSupply';
@@ -44,7 +43,7 @@ const FACE_VALUES: Readonly<Record<string, readonly Pick<BattleFace, 'strength' 
   ],
 };
 
-/* Factions whose advantage dials troops at full strength with no spice. */
+/* Factions whose troops cost nothing to dial: each face's support cost is 0. */
 const FREE_SUPPORT = new Set(['fremen']);
 
 function facesOf(faction: Faction): BattleFace[] {
@@ -97,7 +96,7 @@ export type Scenario =
   | 'countdown'
   | 'basic'
   | 'gf92'
-  | 'gf92-fremen'
+  | 'gf92-free'
   | 'kiss';
 
 /* The viewer's seat and faction per scenario, in the playing fixture's seat order. */
@@ -107,7 +106,7 @@ const SEATS: Partial<Record<Scenario, readonly [string, string]>> = {
   leaders: ['seat-5', 'fremen'],
   basic: ['seat-3', 'emperor'],
   gf92: ['seat-3', 'emperor'],
-  'gf92-fremen': ['seat-5', 'fremen'],
+  'gf92-free': ['seat-5', 'fremen'],
   kiss: ['seat-3', 'emperor'],
 };
 
@@ -115,7 +114,7 @@ const SEATS: Partial<Record<Scenario, readonly [string, string]>> = {
 const SCENARIO_DIALING: Partial<Record<Scenario, BattleDialing>> = {
   basic: 'basic',
   gf92: 'gf92',
-  'gf92-fremen': 'gf92',
+  'gf92-free': 'gf92',
   kiss: 'kiss',
 };
 
@@ -123,13 +122,13 @@ const SCENARIO_DIALING: Partial<Record<Scenario, BattleDialing>> = {
  * The troops each full-strength scenario dials, by troop index, and the spice it spends.
  * Basic: three ordinary troops and a Sardaukar.
  * GF9 2.0: a dial of 6 with 4 spice for +2.
- * The Fremen's dial of 9 earns +3 free.
+ * The Fremen troops cost nothing to dial, so their dial of 9 earns +3 free.
  * KISS: five troops, three of them paid.
  */
 const FLAT_DIALS: Partial<Record<Scenario, { counts: number[]; spice: number }>> = {
   basic: { counts: [3, 1], spice: 0 },
   gf92: { counts: [4, 1], spice: 4 },
-  'gf92-fremen': { counts: [5, 2], spice: 0 },
+  'gf92-free': { counts: [5, 2], spice: 0 },
   kiss: { counts: [3, 2], spice: 0 },
 };
 
@@ -259,14 +258,14 @@ function flatDial(before: BattlePlan, input: BattlePlan, available: number) {
   const troops = input.troops
     .map(({ faceId, undialed, dialed }) => ({ faceId, undialed: undialed + dialed, dialed: 0 }))
     .filter((troop) => troop.undialed > 0);
-  const free = dialsFree(before.faces);
+  const free = dialsFree(troops, before.faces);
   const dial = flatStrength(troops, before.faces);
   let spice = 0;
   if (before.dialing === 'gf92') {
     const choices = spiceStrengthChoices(dial, free).filter((choice) => choice <= available);
     spice = choices.findLast((choice) => choice <= input.spice) ?? 0;
   } else if (before.dialing === 'kiss') {
-    spice = kissSpice(troopCount(troops), free);
+    spice = kissSpice(troops, before.faces);
   }
   const bonus = before.dialing === 'gf92' ? spiceStrength(dial, spice, free) : 0;
   return { mode: 'max' as const, troops, spice, strength: dial + bonus + input.adjustment };

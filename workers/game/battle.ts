@@ -15,7 +15,6 @@ import {
   kissSpice,
   spiceStrength,
   spiceStrengthChoices,
-  troopCount,
 } from '../../src/shared/play/battleDialing';
 import { nextSnapshot, requireAccepted } from '../../src/shared/play/commands';
 import type { StoredPiece } from '../../src/shared/play/model';
@@ -157,7 +156,7 @@ function flatPlan(input: BattlePlanInput, before: StoredBattlePlan, declared: Ba
     undialed: sum(undialed, dialed),
     dialed: 0,
   }));
-  const free = dialsFree(before.faces);
+  const free = dialsFree(troops, before.faces);
   const dial = flatStrength(troops, before.faces);
   let spice = 0;
   let bonus = 0;
@@ -177,7 +176,7 @@ function flatPlan(input: BattlePlanInput, before: StoredBattlePlan, declared: Ba
     if (dial > KISS_DIAL_CAP) {
       return refuse(`The dial stops at ${KISS_DIAL_CAP}.`);
     }
-    spice = kissSpice(troopCount(troops), free);
+    spice = kissSpice(troops, before.faces);
   }
   const strength = dial + bonus + input.adjustment;
   if (!Number.isFinite(strength)) {

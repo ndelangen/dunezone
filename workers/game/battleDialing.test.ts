@@ -105,7 +105,7 @@ describe('battle dialing mechanisms', () => {
     expect(plan()).toMatchObject({ strength: 3 + 1, spice: 2 });
   });
 
-  test('GF9 2.0 gives a faction that never pays its spice strength for free', () => {
+  test('GF9 2.0 gives a dial of troops that cost nothing its spice strength for free', () => {
     const { dial, plan } = battleRoom('gf92', [FREMEN]);
     dial({ fedaykin: 8 });
     expect(plan()).toMatchObject({ strength: 8 + 3, spice: 0 });
@@ -125,9 +125,23 @@ describe('battle dialing mechanisms', () => {
     expect(() => battleRoom('kiss', [ORDINARY], 1).dial({ ordinary: 4 })).toThrow(GameRejection);
   });
 
-  test('KISS lets a faction that never pays dial any number of troops for free', () => {
+  test('KISS lets troops that cost nothing to dial fight in any number for free', () => {
     const { dial, plan } = battleRoom('kiss', [FREMEN], 0);
     dial({ fedaykin: 10 });
     expect(plan()).toMatchObject({ strength: 10, spice: 0 });
+  });
+
+  test('KISS charges each troop its own dial cost, with the 2 free places going to troops that cost spice', () => {
+    const { dial, plan } = battleRoom('kiss', [ORDINARY, FREMEN]);
+    dial({ ordinary: 3, fedaykin: 4 });
+    expect(plan()).toMatchObject({ strength: 7, spice: 1 });
+  });
+
+  test('GF9 2.0 spice strength is free only when every dialed troop costs nothing to dial', () => {
+    const { dial, plan } = battleRoom('gf92', [ORDINARY, FREMEN]);
+    dial({ fedaykin: 4 });
+    expect(plan()).toMatchObject({ strength: 4 + 2, spice: 0 });
+    dial({ ordinary: 1, fedaykin: 4 }, { spice: 4 });
+    expect(plan()).toMatchObject({ strength: 5 + 2, spice: 4 });
   });
 });

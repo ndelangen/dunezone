@@ -26,8 +26,8 @@ export const BasicDialing = meta.story({ parameters: inPlanWindow, args: planArg
 /** A GF9 2.0 ruleset: troops at full strength, and 4 spice buys +2 spice strength once the dial reaches 4. */
 export const Gf92Dialing = meta.story({ parameters: inPlanWindow, args: planArgs('gf92') });
 
-/** The Fremen under GF9 2.0: their Battle Edge gives spice strength for free, so there is no spice to choose. */
-export const Gf92FremenDialing = meta.story({ parameters: inPlanWindow, args: planArgs('gf92-fremen') });
+/** GF9 2.0 with troops that cost nothing to dial (the Fremen's): spice strength comes free, so there is no spice to choose. */
+export const Gf92FreeTroopsDialing = meta.story({ parameters: inPlanWindow, args: planArgs('gf92-free') });
 
 /** A KISS ruleset: the first 2 troops dial free, each further troop owes 1 spice, which follows the troops. */
 export const KissDialing = meta.story({ parameters: inPlanWindow, args: planArgs('kiss') });

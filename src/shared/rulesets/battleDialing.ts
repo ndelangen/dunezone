@@ -14,7 +14,7 @@ import { z } from 'zod';
  * Troops fight at full strength and the first 2 troops dialed are free;
  * each further troop costs 1 spice.
  * The dial never passes 20.
- * Factions whose troops need no spice to fight (Fremen) dial for free under every mechanism that charges spice.
+ * A troop whose dial cost is 0 (Fremen troops, say) dials for free under every mechanism that charges spice.
  * A ruleset that has not chosen reads as `advanced`, how every game counted battles before rulesets chose.
  */
 export const BATTLE_DIALING = ['advanced', 'basic', 'gf92', 'kiss'] as const;

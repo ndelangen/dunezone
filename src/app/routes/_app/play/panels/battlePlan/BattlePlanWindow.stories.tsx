@@ -28,7 +28,7 @@ const meta = preview.meta({
         'countdown',
         'basic',
         'gf92',
-        'gf92-fremen',
+        'gf92-free',
         'kiss',
       ],
     },
