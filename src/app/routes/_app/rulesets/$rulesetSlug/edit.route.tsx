@@ -81,6 +81,7 @@ function RulesetEditor({
   const navigate = useNavigate();
   const updateRuleset = useUpdateRuleset();
   const rehostCover = useRehostRulesetCover();
+  const linked = useLinkedFactions(initial._id);
   /* The form shows the URL the author pasted, not the delivery URL the rehost produced from it. */
   const initialCoverInput = initial.cover?.source_url ?? initial.image_cover ?? '';
   /* One draft, one reducer (the state rule): a patch arm for typing and a reset arm that returns to the saved row.
@@ -341,14 +342,12 @@ function RulesetEditor({
             rulesetId={initial._id}
             canDelete={canDelete}
           />
-          <RulesetFactions rulesetId={initial._id} rulesetName={initial.name} />
+          <RulesetFactions rulesetId={initial._id} rulesetName={initial.name} linked={linked} />
           {/* A sibling pane rather than a nested one: surfaces do not nest, and slots are a different subject from the ruleset's own fields. */}
           <Surface padding="lg">
             <RulesetAssetSlots rulesetId={initial.id} slots={assetSlots} />
           </Surface>
-          <Surface padding="lg">
-            <RulesetPlayReadiness ruleset={initial} slots={assetSlots} />
-          </Surface>
+          <RulesetPlayReadiness ruleset={initial} slots={assetSlots} linked={linked.ordered} />
         </Stack>
       </PageLayout.Content>
     </PageLayout>
@@ -452,21 +451,19 @@ function RulesetEditPage() {
 
 type SlottedAsset = { id: string; type: string; slug: string; name: string };
 
-/* A readiness check reads every linked faction; a ruleset with more than this is checked on its first ones. */
-const READINESS_FACTION_LIMIT = 100;
-
 /**
  * Whether a game can start with this ruleset, by the game's own captures, so the content left to fix is named here rather than when a game is created.
- * It checks again whenever a slot or a linked faction changes on this page, when the window regains focus, and on Check again.
+ * It checks the factions the Factions list has loaded, and checks again whenever a slot or a linked faction changes on this page, when the window regains focus, and on Check again.
  */
 function RulesetPlayReadiness({
   ruleset,
   slots,
+  linked,
 }: {
   ruleset: RulesetEntry;
   slots: { slot: string; asset: SlottedAsset }[];
+  linked: LinkedFactions['ordered'];
 }) {
-  const linked = useOrderedRulesetFactions(ruleset._id, READINESS_FACTION_LIMIT);
   const factions = linked?.factions.map((faction) => ({ id: faction._id as string, name: faction.name }));
   const revision = slots.map((entry) => `${entry.slot}:${entry.asset.id}`).join('|');
   const { check, recheck } = usePlayReadiness({ id: ruleset._id, name: ruleset.name }, factions, revision);
@@ -474,7 +471,7 @@ function RulesetPlayReadiness({
     <PlayReadinessReport
       check={check}
       onRecheck={recheck}
-      checkedFactionLimit={linked?.hasMore ? READINESS_FACTION_LIMIT : undefined}
+      checkedFactionLimit={linked?.hasMore ? linked.factions.length : undefined}
     />
   );
 }
@@ -501,48 +498,50 @@ function PlayReadinessReport({
   const rulesetBlocked = blocked.some((entry) => entry.kind === 'ruleset');
 
   return (
-    <Stack gap="md" aria-busy={check.status === 'checking'}>
-      <Group justify="space-between" align="flex-start" wrap="nowrap">
-        <Stack gap={2}>
-          <Title order={2} size="h4">
-            Ready for Play
-          </Title>
-          <Text size="sm" c="dimmed" role="status">
-            {summary(check, rulesetBlocked, blocked.length, checkedFactionLimit)}
-          </Text>
-        </Stack>
+    <Section
+      id="play-readiness"
+      title="Ready for Play"
+      action={
         <Button variant="light" size="compact-sm" onClick={onRecheck} loading={check.status === 'checking'}>
           Check again
         </Button>
-      </Group>
-      {blocked.length ? (
-        <Bullets>
-          {blocked.map((entry) => (
-            <Bullets.Item
-              key={`${entry.kind}:${entry.id}`}
-              icon={<CircleAlert size={18} />}
-              title={entry.kind === 'ruleset' ? `Ruleset ${entry.name}` : entry.name}
-              detail={
-                <Stack component="span" gap={2}>
-                  {entry.problems.map((problem, index) => (
-                    <span key={index}>{problemLine(problem)}</span>
-                  ))}
-                </Stack>
-              }
-            />
-          ))}
-        </Bullets>
-      ) : null}
-      {ready.length ? (
-        <Bullets>
-          <Bullets.Item
-            icon={<CircleCheck size={18} />}
-            title={ready.length === 1 ? '1 faction ready' : `${ready.length} factions ready`}
-            detail={ready.map((entry) => entry.name).join(', ')}
-          />
-        </Bullets>
-      ) : null}
-    </Stack>
+      }
+    >
+      <Surface padding="lg">
+        <Stack gap="md" aria-busy={check.status === 'checking'}>
+          <Text size="sm" c="dimmed" role="status">
+            {summary(check, rulesetBlocked, blocked.length, checkedFactionLimit)}
+          </Text>
+          {blocked.length ? (
+            <Bullets>
+              {blocked.map((entry) => (
+                <Bullets.Item
+                  key={`${entry.kind}:${entry.id}`}
+                  icon={<CircleAlert size={18} />}
+                  title={entry.kind === 'ruleset' ? `Ruleset ${entry.name}` : entry.name}
+                  detail={
+                    <Stack component="span" gap={2}>
+                      {entry.problems.map((problem, index) => (
+                        <span key={index}>{problemLine(problem)}</span>
+                      ))}
+                    </Stack>
+                  }
+                />
+              ))}
+            </Bullets>
+          ) : null}
+          {ready.length ? (
+            <Bullets>
+              <Bullets.Item
+                icon={<CircleCheck size={18} />}
+                title={ready.length === 1 ? '1 faction ready' : `${ready.length} factions ready`}
+                detail={ready.map((entry) => entry.name).join(', ')}
+              />
+            </Bullets>
+          ) : null}
+        </Stack>
+      </Surface>
+    </Section>
   );
 }
 
@@ -596,15 +595,34 @@ function factionAnnouncements(factions: { _id: string; name: string }[]): Announ
   };
 }
 
-function RulesetFactions({ rulesetId, rulesetName }: { rulesetId: RulesetEntry['_id']; rulesetName: string }) {
+/*
+ * The ruleset's linked factions as the page reads them once, for the Factions list and the readiness check alike, so the editor holds one subscription for them.
+ * The last answer stays while Load more asks for a longer list, so the list and the button keep their place and focus.
+ */
+function useLinkedFactions(rulesetId: RulesetEntry['_id']) {
   const [limit, setLimit] = useState(FACTION_LIST_STEP);
   const answered = useOrderedRulesetFactions(rulesetId, limit);
-  /* The last answer stays on screen while Load more asks for a longer list, so the list and the button keep their place and focus. */
   const [lastAnswered, setLastAnswered] = useState(answered);
   if (answered !== undefined && answered !== lastAnswered) {
     setLastAnswered(answered);
   }
-  const ordered = answered ?? lastAnswered;
+  return {
+    ordered: answered ?? lastAnswered,
+    loadMore: () => setLimit((current) => (answered === undefined ? current : current + FACTION_LIST_STEP)),
+  };
+}
+
+type LinkedFactions = ReturnType<typeof useLinkedFactions>;
+
+function RulesetFactions({
+  rulesetId,
+  rulesetName,
+  linked: { ordered, loadMore },
+}: {
+  rulesetId: RulesetEntry['_id'];
+  rulesetName: string;
+  linked: LinkedFactions;
+}) {
   const addFaction = useAddRulesetFaction();
   const removeFaction = useRemoveRulesetFaction();
   const reorder = useReorderRulesetFactions();
@@ -706,10 +724,7 @@ function RulesetFactions({ rulesetId, rulesetName }: { rulesetId: RulesetEntry['
             </DndContext>
           ) : null}
           {ordered?.hasMore ? (
-            <Button
-              variant="default"
-              onClick={() => setLimit((current) => (answered === undefined ? current : current + FACTION_LIST_STEP))}
-            >
+            <Button variant="default" onClick={loadMore}>
               Load more
             </Button>
           ) : null}
