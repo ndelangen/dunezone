@@ -44,6 +44,10 @@ export function CheckpointPicker({ checkpoints, value, onChange }: CheckpointPic
   }
   const title = checkpointTitle(turns, current.step) ?? current.context;
   const choose = (next: number) => {
+    /* A choice made while a release waits for its frame replaces that release, so the older choice cannot land after it. */
+    cancelAnimationFrame(release.current);
+    latest.current = null;
+    setDragged(null);
     const step = checkpoints[Math.min(checkpoints.length - 1, Math.max(0, next))]!.step;
     /* Sent even for the shown checkpoint: an earlier ask may still be on its way, and this one must land after it. */
     onChange(step);
@@ -70,10 +74,7 @@ export function CheckpointPicker({ checkpoints, value, onChange }: CheckpointPic
             onChangeEnd={(next) => {
               cancelAnimationFrame(release.current);
               release.current = requestAnimationFrame(() => {
-                const settled = latest.current ?? next;
-                latest.current = null;
-                setDragged(null);
-                choose(settled);
+                choose(latest.current ?? next);
               });
             }}
             marks={marks}

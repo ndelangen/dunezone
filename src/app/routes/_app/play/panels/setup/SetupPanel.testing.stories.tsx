@@ -40,6 +40,7 @@ export const DealsTraitors = meta.story({
 export const ObserverSeesNoActions = meta.story({
   args: { observing: true },
   play: async ({ canvas }) => {
+    await expect(canvas.getByRole('heading', { name: 'Traitor selection' })).toBeInTheDocument();
     await expect(canvas.queryByRole('button', { name: 'Gather tabletop traitors' })).toBeNull();
     await expect(canvas.queryByRole('button', { name: /^Deal / })).toBeNull();
   },
