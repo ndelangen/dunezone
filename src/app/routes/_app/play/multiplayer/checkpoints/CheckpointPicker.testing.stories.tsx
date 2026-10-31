@@ -86,3 +86,20 @@ export const DragChoosesOnRelease = meta.story({
     await expect(args.onChange).toHaveBeenCalledWith(args.checkpoints[0]!.step);
   },
 });
+
+/** A click let go before the slider's next frame still chooses the checkpoint it was made on, and the slider shows that one. */
+export const QuickClickChoosesWhereItLands = meta.story({
+  args: { checkpoints: offeredCheckpoints(), value: offeredCheckpoints().at(-1)!.step, onChange: fn() },
+  play: async ({ args, canvasElement }) => {
+    const picker = within(canvasElement);
+    const slider = picker.getByRole('slider', { name: 'Checkpoint' });
+    const track = slider.closest<HTMLElement>('.mantine-Slider-trackContainer')!;
+    const box = track.getBoundingClientRect();
+    const at = { bubbles: true, clientX: box.left + 2, clientY: box.top + box.height / 2 };
+    /* Press and release in one task, so the release arrives before the slider has moved. */
+    track.dispatchEvent(new MouseEvent('mousedown', { ...at, button: 0 }));
+    track.dispatchEvent(new MouseEvent('mouseup', at));
+    await waitFor(() => expect(args.onChange).toHaveBeenCalledTimes(1));
+    await expect(args.onChange).toHaveBeenCalledWith(args.checkpoints[0]!.step);
+  },
+});

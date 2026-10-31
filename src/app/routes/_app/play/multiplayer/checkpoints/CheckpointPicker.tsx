@@ -1,7 +1,7 @@
 import { Group, Slider, Stack, Text, Tooltip } from '@mantine/core';
 import { IconAction } from '@ui/control/IconAction';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 
 import { useAssetResolver } from '@game/assets/assetRenderMode';
 
@@ -24,6 +24,13 @@ export function CheckpointPicker({ checkpoints, value, onChange }: CheckpointPic
   const thumbId = useId();
   /* Where a drag holds the thumb: the slider names the checkpoint under it, and the choice is made once when it is let go, so a drag across a recall moves the table once rather than at every checkpoint it passes. */
   const [dragged, setDragged] = useState<number | null>(null);
+  /*
+   * The slider applies a pointer's move on the next animation frame, so a quick press and release can end before the move lands and
+   * report the thumb where it was. The choice is made a frame after the release, from the last position the slider moved to.
+   */
+  const latest = useRef<number | null>(null);
+  const release = useRef(0);
+  useEffect(() => () => cancelAnimationFrame(release.current), []);
   const turns = checkpointTurns(checkpoints);
   const chosen = Math.max(
     0,
@@ -51,12 +58,20 @@ export function CheckpointPicker({ checkpoints, value, onChange }: CheckpointPic
             max={checkpoints.length - 1}
             step={1}
             value={index}
-            onChange={setDragged}
+            onChange={(next) => {
+              latest.current = next;
+              setDragged(next);
+            }}
             onChangeEnd={(next) => {
-              setDragged(null);
-              if (next !== chosen) {
-                choose(next);
-              }
+              cancelAnimationFrame(release.current);
+              release.current = requestAnimationFrame(() => {
+                const settled = latest.current ?? next;
+                latest.current = null;
+                setDragged(null);
+                if (settled !== chosen) {
+                  choose(settled);
+                }
+              });
             }}
             marks={marks}
             label={null}
