@@ -52,8 +52,6 @@
   max-width: none;
   height: 150vmax;
   transform: translate(-50%, -50%);
-  /* Keep the drawn starfield and planet as their own layers, so an orbit tick turns them without redrawing the scene; only the few twinkling stars repaint. */
-  will-change: transform;
 }
 
 .planetFrame {
@@ -110,5 +108,4 @@
   height: 100%;
   max-width: none;
   transform-origin: 50% 50%;
-  will-change: transform;
 }
