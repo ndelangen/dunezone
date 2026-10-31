@@ -370,6 +370,21 @@ function reduceThumbnailSnapshot(_state: ThumbnailSnapshot, event: ThumbnailSnap
   return event;
 }
 
+function useThumbnailSnapshot(current: ThumbnailSnapshot): ThumbnailSnapshot {
+  const [snapshot, capture] = useReducer(reduceThumbnailSnapshot, current);
+  /* Navigation commits thumbnail content; explicit reset and import also retire the previous snapshot. */
+  if (snapshot.pageId !== current.pageId || snapshot.generation !== current.generation) {
+    capture(current);
+  }
+  return snapshot;
+}
+
+function projectWorkspacePage(page: RulebookPageDraft | undefined, dragState: WorkspaceDragState) {
+  return page && dragState.kind === 'block' && dragState.pageId === page.id
+    ? projectBlockPlacement(page, dragState.blockId, dragState.candidate)
+    : page;
+}
+
 const pageLayoutLabels = Object.fromEntries(
   rulebookLayoutCatalogue.map((layout) => [layout.id, layout.label])
 ) as Record<RulebookPageLayoutId, string>;
@@ -1509,30 +1524,9 @@ const RulebookThumbnail = memo(
     deepEqual(previous.factionsById, next.factionsById)
 );
 
-function RulebookFilmstrip({
-  draft,
-  thumbnailDraft,
-  settings,
-  assetsById,
-  factionsById,
-  activePageId,
-  action,
-  onPick,
-  onReorder,
-}: FilmstripProps) {
+function useFilmstripViewport(pageOrderKey: string, activePageId: string) {
   const [view, send] = useReducer(reduceFilmstrip, { visible: new Set<string>() });
   const rootRef = useRef<HTMLDivElement>(null);
-  const pageOrderKey = draft.pageOrder.join(',');
-  const targets = useMemo(
-    () => rulebookReferenceTargets(thumbnailDraft, assetsById, factionsById),
-    [thumbnailDraft, assetsById, factionsById]
-  );
-  const size = getRulebookSize(settings.size);
-  const sensors = useSensors(
-    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  );
   useLayoutEffect(() => {
     const root = rootRef.current;
     if (!root) {
@@ -1566,6 +1560,31 @@ function RulebookFilmstrip({
       top: 0,
     });
   }, [activePageId, pageOrderKey]);
+  return { rootRef, visible: view.visible };
+}
+
+function RulebookFilmstrip({
+  draft,
+  thumbnailDraft,
+  settings,
+  assetsById,
+  factionsById,
+  activePageId,
+  action,
+  onPick,
+  onReorder,
+}: FilmstripProps) {
+  const { rootRef, visible } = useFilmstripViewport(draft.pageOrder.join(','), activePageId);
+  const targets = useMemo(
+    () => rulebookReferenceTargets(thumbnailDraft, assetsById, factionsById),
+    [thumbnailDraft, assetsById, factionsById]
+  );
+  const size = getRulebookSize(settings.size);
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
   return (
     <section aria-label="Pages">
       <DndContext
@@ -1611,7 +1630,7 @@ function RulebookFilmstrip({
                             inert
                             style={{ aspectRatio: `${size.widthMm} / ${size.heightMm}` }}
                           >
-                            {view.visible.has(id) ? (
+                            {visible.has(id) ? (
                               <RulebookThumbnail
                                 page={previewPage}
                                 draft={previewDraft}
@@ -1742,7 +1761,7 @@ function RulebookWorkspace({
       },
     })
   );
-  const [thumbnailSnapshot, captureThumbnails] = useReducer(reduceThumbnailSnapshot, {
+  const thumbnailSnapshot = useThumbnailSnapshot({
     pageId: active?.pageId,
     generation: thumbnailGeneration,
     draft: result.draft,
@@ -1750,23 +1769,9 @@ function RulebookWorkspace({
     assetsById,
     factionsById,
   });
-  /* Navigation commits thumbnail content; explicit reset and import also retire the previous snapshot. */
-  if (thumbnailSnapshot.pageId !== active?.pageId || thumbnailSnapshot.generation !== thumbnailGeneration) {
-    captureThumbnails({
-      pageId: active?.pageId,
-      generation: thumbnailGeneration,
-      draft: result.draft,
-      settings,
-      assetsById,
-      factionsById,
-    });
-  }
   const clippingMeasurementEnabled = dragState.kind !== 'block';
   const activePage = active ? result.draft.pagesById[active.pageId] : undefined;
-  const projectedActivePage =
-    activePage && dragState.kind === 'block' && dragState.pageId === activePage.id
-      ? projectBlockPlacement(activePage, dragState.blockId, dragState.candidate)
-      : activePage;
+  const projectedActivePage = projectWorkspacePage(activePage, dragState);
   const referenceTargets = useMemo(
     () => rulebookReferenceTargets(result.draft, assetsById, factionsById),
     [result.draft, assetsById, factionsById]
@@ -2956,6 +2961,12 @@ function RulebookSettingsAction({
   );
 }
 
+function bookSettingsReturnTarget(toolbar: HTMLDivElement | null, trigger: HTMLButtonElement) {
+  return trigger.closest('[role="group"][aria-label="More actions"]')
+    ? (toolbar?.querySelector<HTMLButtonElement>('[aria-label="More actions"]') ?? trigger)
+    : trigger;
+}
+
 function RulebookSettingsPopover({
   children,
   ...editor
@@ -3001,9 +3012,7 @@ function RulebookSettingsPopover({
               opened={opened}
               dropdownId={dropdownId}
               onToggle={(trigger) => {
-                returnTarget.current = trigger.closest('[role="group"][aria-label="More actions"]')
-                  ? (toolbarRef.current?.querySelector<HTMLButtonElement>('[aria-label="More actions"]') ?? trigger)
-                  : trigger;
+                returnTarget.current = bookSettingsReturnTarget(toolbarRef.current, trigger);
                 setOpened((current) => !current);
               }}
             />
