@@ -71,7 +71,7 @@ function WheelPiece({
 }: {
   piece: TablePiece;
   style?: CSSProperties;
-  onPointerDown?: (event: ReactPointerEvent<HTMLButtonElement>) => void;
+  onPointerDown: (event: ReactPointerEvent<HTMLButtonElement>) => void;
 }) {
   return (
     <Button
@@ -82,7 +82,6 @@ function WheelPiece({
       style={style}
       className={styles.piece}
       aria-label={`Drag ${pieceName(piece)} onto table`}
-      disabled={!onPointerDown}
       onPointerDown={onPointerDown}
     >
       <PieceImage piece={piece} />
@@ -107,8 +106,15 @@ function CarriedPiece({ piece, style }: { piece: TablePiece; style?: CSSProperti
   );
 }
 /* A wheel piece, carried onto the table at a live table; a past battle's wheel only shows it. */
+/* A viewer who cannot handle the table, such as an observer, sees the revealed piece itself, not a drag button greyed out. */
 function DraggablePiece({ piece, client, style }: { piece: TablePiece; client?: TableSession; style?: CSSProperties }) {
-  return client ? <CarriedPiece piece={piece} style={style} /> : <WheelPiece piece={piece} style={style} />;
+  return client ? (
+    <CarriedPiece piece={piece} style={style} />
+  ) : (
+    <div className={styles.face} style={style}>
+      <PieceImage piece={piece} />
+    </div>
+  );
 }
 /* The plan's capable troops as the wheel shows them, each dressed in the faction's own troop artwork. */
 export function wheelTroops(

@@ -6,7 +6,14 @@ import { resolveRulebookBoardDefinition } from '@shared/rulebooks/boardDefinitio
 import { expect, userEvent, within, waitFor } from 'storybook/test';
 
 import { dragBattleMarker } from './battles.marker.stories.fixture';
-import { battleSetup, readiness, convexIds, withConvexIds, revealedPieces } from './battles.stories.fixture';
+import {
+  battleSetup,
+  readiness,
+  convexIds,
+  withConvexIds,
+  revealedPieces,
+  observedRevealedPieces,
+} from './battles.stories.fixture';
 import { expectNoControl, openPanel, unpinWindow, WAIT, windowNamed } from './controls.stories.fixture';
 import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
 import { battleStory, expectBattleCalloutPlacement, openTab, settled } from './playing.stories.fixture';
@@ -283,7 +290,8 @@ export const Readiness = meta.story({
     await expect(readyRing).toBeVisible();
     await expect(getComputedStyle(readyRing).stroke).not.toBe(getComputedStyle(preparingRing).stroke);
     await expect(getComputedStyle(readyRing).animationName).toBe('none');
-    await expect(page.getByRole('button', { name: 'Cancel battle' })).toBeDisabled();
+    /* The fixture watches as an observer, who is shown no Cancel battle, not even greyed. */
+    await expect(page.queryByRole('button', { name: 'Cancel battle' })).toBeNull();
   },
 });
 
@@ -633,6 +641,22 @@ export const ReadinessInRealGame = meta.story({
       expect(page.getByRole('img', { name: 'House Harkonnen, left side, aggressor, Preparing' })).toBeVisible()
     );
     await expect(page.getByRole('img', { name: 'House Atreides, right side, Ready' })).toBeVisible();
+  },
+});
+
+/** An observer sees a revealed card on the wheel as the card itself, with no drag button, not even greyed. */
+export const ObserverSeesRevealedPieces = meta.story({
+  beforeEach: observedRevealedPieces,
+  play: async ({ canvasElement }) => {
+    await waitFor(
+      async () => {
+        const callout = canvasElement.ownerDocument.querySelector<HTMLElement>('[data-battle-stage="revealed"]');
+        await expect(callout).not.toBeNull();
+        await expect(within(callout!).getByRole('img', { name: 'Snooper' })).toBeVisible();
+        await expect(within(callout!).queryByRole('button', { name: /^Drag / })).toBeNull();
+      },
+      { timeout: 30_000 }
+    );
   },
 });
 
