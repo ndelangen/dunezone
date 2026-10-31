@@ -25,7 +25,7 @@ export function CheckpointPicker({ checkpoints, value, onChange }: CheckpointPic
   /* Where a drag holds the thumb: the slider names the checkpoint under it, and the choice is made once when it is let go, so a drag across a recall moves the table once rather than at every checkpoint it passes. */
   const [dragged, setDragged] = useState<number | null>(null);
   /*
-   * The step the picker last asked the table for. Every choice overwrites it and is sent, unless it is already the one the picker shows;
+   * The step the picker last asked the table for. Every choice that differs from the one the picker shows is sent, and overwrites it once sent;
    * it is shown until the table's value next changes, which answers it, whether with that step or another seat's choice.
    */
   const [target, setTarget] = useState<Readonly<{ step: number; from: number }> | null>(null);
@@ -54,9 +54,9 @@ export function CheckpointPicker({ checkpoints, value, onChange }: CheckpointPic
   const title = checkpointTitle(turns, current.step) ?? current.context;
   const choose = (next: number) => {
     const step = checkpoints[Math.min(checkpoints.length - 1, Math.max(0, next))]!.step;
-    if (step !== shown) {
+    /* A choice the table could not be sent, such as while it resyncs, is not shown as asked for. */
+    if (step !== shown && onChange(step) !== false) {
       setTarget({ step, from: value });
-      onChange(step);
     }
   };
   /* The retained window can start mid-turn, so only a boundary between two offered checkpoints proves a turn's start. */
