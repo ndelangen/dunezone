@@ -30,6 +30,8 @@ export function CheckpointPicker({ checkpoints, value, onChange }: CheckpointPic
    */
   const latest = useRef<number | null>(null);
   const release = useRef(0);
+  /* A key step has already moved the slider when it ends, so it is chosen at once rather than a frame later, where a quick click on Ask could overtake it. */
+  const keyed = useRef(false);
   useEffect(() => () => cancelAnimationFrame(release.current), []);
   const turns = checkpointTurns(checkpoints);
   /* Compared by step, so the first checkpoint is still a choice when the table's step is no longer offered. */
@@ -62,28 +64,43 @@ export function CheckpointPicker({ checkpoints, value, onChange }: CheckpointPic
     <Stack gap="md">
       {checkpoints.length > 1 && (
         <>
-          <Slider
-            min={0}
-            max={checkpoints.length - 1}
-            step={1}
-            value={index}
-            onChange={(next) => {
-              latest.current = next;
-              setDragged(next);
+          {/* The slider handles its keys on its own root, so a key is noted here, around it, before the slider acts on it. */}
+          <div
+            onKeyDownCapture={() => {
+              keyed.current = true;
             }}
-            onChangeEnd={(next) => {
-              cancelAnimationFrame(release.current);
-              release.current = requestAnimationFrame(() => {
-                choose(latest.current ?? next);
-              });
+            onPointerDownCapture={() => {
+              keyed.current = false;
             }}
-            marks={marks}
-            label={null}
-            thumbProps={{ id: thumbId }}
-            thumbLabel="Checkpoint"
-            thumbValueText={title}
-            mb="md"
-          />
+          >
+            <Slider
+              min={0}
+              max={checkpoints.length - 1}
+              step={1}
+              value={index}
+              onChange={(next) => {
+                latest.current = next;
+                setDragged(next);
+              }}
+              onChangeEnd={(next) => {
+                if (keyed.current) {
+                  keyed.current = false;
+                  choose(next);
+                  return;
+                }
+                cancelAnimationFrame(release.current);
+                release.current = requestAnimationFrame(() => {
+                  choose(latest.current ?? next);
+                });
+              }}
+              marks={marks}
+              label={null}
+              thumbProps={{ id: thumbId }}
+              thumbLabel="Checkpoint"
+              thumbValueText={title}
+              mb="md"
+            />
+          </div>
           <Tooltip target={`[id="${thumbId}"]`} label={title} withinPortal />
         </>
       )}

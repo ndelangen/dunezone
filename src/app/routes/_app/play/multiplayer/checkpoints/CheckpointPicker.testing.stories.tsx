@@ -145,3 +145,15 @@ export const ReturnToTheShownCheckpointAsksAgain = meta.story({
     await waitForFrame(() => expect(args.onChange).toHaveBeenCalledWith(args.value));
   },
 });
+
+/** A key step chooses its checkpoint at once, so a click on Ask straight after it asks for the checkpoint the key chose. */
+export const KeyStepChoosesAtOnce = meta.story({
+  args: { checkpoints: offeredCheckpoints(), value: offeredCheckpoints().at(-1)!.step, onChange: fn() },
+  play: async ({ args, canvasElement }) => {
+    const slider = within(canvasElement).getByRole('slider', { name: 'Checkpoint' });
+    slider.focus();
+    /* Sent and checked in one task, so no animation frame can run in between. */
+    slider.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true, cancelable: true }));
+    await expect(args.onChange).toHaveBeenCalledWith(args.checkpoints[0]!.step);
+  },
+});
