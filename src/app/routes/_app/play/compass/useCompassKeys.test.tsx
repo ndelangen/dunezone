@@ -141,6 +141,24 @@ test('On a compass Space only tapped open, W, A, S and D go to the search, so a 
   }
 });
 
+test('Space let go while the window is in the background ends the hold, so the open compass then reads as tapped open', () => {
+  page();
+  const { result, onConfirm } = compass();
+  press('keydown', SPACE);
+  press('keydown', { key: 'ArrowRight' });
+  /* The keyup goes to whatever window has focus now, never to this one. */
+  act(() => {
+    window.dispatchEvent(new Event('blur'));
+  });
+  expect(result.current.open).toBe(true);
+  expect(onConfirm).not.toHaveBeenCalled();
+  /* Back in the window, a letter goes to the search rather than steering, and a tapped Space confirms. */
+  expect(press('keydown', { key: 's' }).defaultPrevented).toBe(false);
+  expect(result.current.spot).toBe('table');
+  press('keydown', SPACE);
+  expect(onConfirm).toHaveBeenCalledTimes(1);
+});
+
 test('Enter confirms and Escape closes', () => {
   page();
   const { result, onConfirm } = compass();

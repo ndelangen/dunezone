@@ -8,6 +8,7 @@ import { Token as FactionToken } from '@game/assets/faction/token/Token';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import styles from './Bidder.module.css';
+import { offersActions } from './tableFactions';
 
 type Props = { client: TableSession; table: TableProjection };
 type FaceProps = Props & { bidding: BiddingState };
@@ -90,7 +91,16 @@ export function RoundResult({
           {outcome}
         </Text>
       )}
-      <StartAt client={client} table={table} order={order} eligible={eligible} />
+      {/* Starting a round is a seated player's; an observer is shown no buttons for it, not even greyed. */}
+      {offersActions(table) ? (
+        <StartAt client={client} table={table} order={order} eligible={eligible} />
+      ) : (
+        bidding.stage === 'idle' && (
+          <Text size="xs" fw={700} className={styles.timer}>
+            Waiting for a round to start
+          </Text>
+        )
+      )}
     </Stack>
   );
 }

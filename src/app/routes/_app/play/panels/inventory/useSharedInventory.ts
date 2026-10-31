@@ -7,6 +7,7 @@ import type { ReactNode, PointerEvent as ReactPointerEvent } from 'react';
 
 import type { TableProjection, TableSession } from '../../../../../db/tabletop/TableSession';
 import { usePointerSession } from '../../../../../widgets/tabletop/PointerSessionContext';
+import { offersActions } from '../../multiplayer/tableFactions';
 import { inventoryRows } from './inventoryRows';
 import type { InventoryRow } from './inventoryRows';
 
@@ -50,9 +51,13 @@ export function useSharedInventory({ client, table }: SharedInventoryProps) {
     .filter((piece) => !table.reservedPieceIds.has(piece.id))
     .reduce((count, piece) => count + piece.items.length, 0);
   const canHandle = table.canHandleTable;
+  /* An observer only looks: the shelves show no draw, gather or add, not even greyed. */
+  const acts = offersActions(table);
   const rows = inventoryRows(pieces);
   return {
     rows,
+    /** Whether the viewer only looks: an observer, or anyone watching a past table. */
+    observing: !acts,
     /** Whether this piece can be dragged out now: nobody else is carrying it and the viewer may handle the table. */
     movable: (piece: TablePiece) => canHandle && !table.reservedPieceIds.has(piece.id),
     /** Picks the piece up under the pointer; Shift takes only its top item. */
@@ -63,18 +68,21 @@ export function useSharedInventory({ client, table }: SharedInventoryProps) {
       event.preventDefault();
       pointerSession.carry(event.nativeEvent, piece.id, event.shiftKey ? 'top' : 'whole');
     },
-    draw: {
-      left: techLeft,
-      enabled: canHandle && techLeft > 0,
-      help: drawHelp(techLeft),
-      run: () => client.command({ kind: 'tech-token-draw' }),
-    },
-    /* Setup gathers the Traitor cards left on the table; the catalogue opens once play starts. */
-    gather: table.snapshot.setup
-      ? { enabled: canHandle, run: () => client.command({ kind: 'traitors-gather' }) }
+    draw: acts
+      ? {
+          left: techLeft,
+          enabled: canHandle && techLeft > 0,
+          help: drawHelp(techLeft),
+          run: () => client.command({ kind: 'tech-token-draw' }),
+        }
       : null,
+    /* Setup gathers the Traitor cards left on the table; the catalogue opens once play starts. */
+    gather:
+      acts && table.snapshot.setup
+        ? { enabled: canHandle, run: () => client.command({ kind: 'traitors-gather' }) }
+        : null,
     catalogue:
-      table.snapshot.stage === 'setup'
+      !acts || table.snapshot.stage === 'setup'
         ? null
         : {
             enabled: canHandle,

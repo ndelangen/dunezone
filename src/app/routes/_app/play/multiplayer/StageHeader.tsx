@@ -17,7 +17,7 @@ import { MovementTurns } from './MovementTurns';
 import { canStepPhase, PhaseNavigation } from './PhaseNavigation';
 import { StagePlayback } from './SeatRequests';
 import { SwappingReady, SwappingStatus } from './Swapping';
-import { stageInPlay } from './tableFactions';
+import { offersActions, stageInPlay } from './tableFactions';
 import { TableReviewBar } from './TableReview';
 
 export type GameIdentity = Readonly<{
@@ -54,7 +54,10 @@ export function stageToolbar({
   if (table.playback) {
     return <StagePlayback client={client} table={table} error={error} />;
   }
-  /* In play the header steps phases beside the bidder; setup steps its phases alone. An open review vote waits beside them. */
+  /*
+   * In play the header steps phases beside the bidder; setup steps its phases alone. An open review vote waits beside them.
+   * An observer takes no phase action, so the phase controls are not shown to them at all, not even greyed.
+   */
   if (inPlay || settingUp(table)) {
     return (
       <>
@@ -62,7 +65,7 @@ export function stageToolbar({
         {inPlay && (
           <BidderToolbar client={client} table={table} faded={bidderFaded} onFadedChange={onBidderFadedChange} />
         )}
-        <PhaseNavigation client={client} table={table} />
+        {offersActions(table) && <PhaseNavigation client={client} table={table} />}
       </>
     );
   }

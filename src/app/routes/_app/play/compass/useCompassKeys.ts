@@ -251,11 +251,17 @@ export function useCompassKeys(keys: CompassKeys) {
   useEffect(() => {
     const down = (event: KeyboardEvent) => keydown(event);
     const up = (event: KeyboardEvent) => keyup(event);
+    /* Space let go while the window is in the background never sends its keyup here, so leaving the window ends the hold; the compass stays open as a tap left it. */
+    const leave = () => {
+      hold.current = { down: false, steered: false };
+    };
     window.addEventListener('keydown', down, true);
     window.addEventListener('keyup', up, true);
+    window.addEventListener('blur', leave);
     return () => {
       window.removeEventListener('keydown', down, true);
       window.removeEventListener('keyup', up, true);
+      window.removeEventListener('blur', leave);
     };
   }, []);
 }

@@ -80,20 +80,24 @@ export const Shared = meta.story({
   },
 });
 
+/** An observer reads the phase but takes no phase action, so the header shows no phase controls, not even greyed. */
 export const Observer = meta.story({
   beforeEach: install(() => productTransport('neutral', { ...initialSnapshot(), phase: 5 })),
   play: async ({ canvasElement }) => {
-    const { page, controls, waitForPhase, expectPrevious } = phaseControls(canvasElement);
-    await waitForPhase(() => expect(page.getByRole('button', { name: /^Controls/ })).toBeVisible());
+    const page = within(canvasElement.ownerDocument.body);
+    await waitFor(() => expect(page.getByRole('button', { name: /^Controls/ })).toBeVisible(), { timeout: 30_000 });
     await openTab(page, 'Phase');
-    await waitForPhase(async () => {
-      await expect(controls().getByRole('button', { name: 'Next phase' })).toBeDisabled();
-      await expect(page.getByRole('region', { name: TABLE_PHASES[5].label })).toBeVisible();
-      await expectHeaderPhase(canvasElement, 5);
-    });
-    await expectPrevious(false);
-    await userEvent.click(controls().getByRole('button', { name: 'Next phase' }));
-    await expect(session.transport.messages.some((message) => message.type === 'command')).toBe(false);
+    await waitFor(
+      async () => {
+        await expect(page.getByRole('region', { name: TABLE_PHASES[5].label })).toBeVisible();
+        await expectHeaderPhase(canvasElement, 5);
+      },
+      { timeout: 30_000 }
+    );
+    await expect(page.queryByRole('group', { name: 'Phase navigation' })).toBeNull();
+    for (const name of ['Next phase', 'More phase actions', 'Ready']) {
+      await expect(page.queryByRole('button', { name })).toBeNull();
+    }
   },
 });
 

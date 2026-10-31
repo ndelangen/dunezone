@@ -34,6 +34,7 @@ import { KeyboardSpicePlacement } from './KeyboardSpicePlacement';
 import { SPICE_RESERVE_DROP } from './spiceReserveDrop';
 import type { SpiceReserveDrop } from './spiceReserveDrop';
 import { tableDropPosition } from './tableDropPosition';
+import { offersActions } from './tableFactions';
 
 type Props = { client: TableSession; table: TableProjection };
 type Outcome = NonNullable<NonNullable<PublicBattle['sides'][number]>['choice']>;
@@ -369,8 +370,12 @@ function CancelBattleButton({
     </Button>
   );
 }
+/* Ending a battle or calling its winner is a seated player's; an observer is shown none of it, not even greyed. */
 function BattleActions(props: ActiveProps) {
   const { battle } = props;
+  if (!offersActions(props.table)) {
+    return null;
+  }
   if (battle.stage === 'preparing') {
     return <CancelBattleButton {...props} size="xs" className={styles.cancel} variant="default" fullWidth />;
   }
@@ -401,6 +406,9 @@ function waitingOn({ battle, table, own }: ActiveProps) {
 }
 function BattleCentre(props: ActiveProps) {
   if (props.battle.stage === 'revealed') {
+    if (!offersActions(props.table)) {
+      return null;
+    }
     /* Anyone seated can end a revealed battle; it settles with the winner a side called, unless the sides called different winners. */
     const waiting = waitingOn(props);
     return (
@@ -537,6 +545,16 @@ function SideContents({
       );
     }
     return closed;
+  }
+  /* An observer cannot claim a side, so the empty side says only that it is open. */
+  if (!offersActions(table)) {
+    return (
+      <Group justify="center" align="center" className={styles.claim}>
+        <Text size="xs" c="dimmed">
+          Open side
+        </Text>
+      </Group>
+    );
   }
   return (
     <Button

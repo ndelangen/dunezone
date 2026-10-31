@@ -17,3 +17,8 @@ const meta = preview.meta({
 
 /** A Treachery deck, faction tokens and the seven Dreamrules tech tokens; the other shelves are empty. */
 export const Shelves = meta.story({});
+
+/** What an observer sees: the same shelves and pieces, with no add, draw or drag handle. */
+export const Observer = meta.story({
+  args: { inventory: { ...inventoryArgs().inventory, observing: true, draw: null, catalogue: null } },
+});

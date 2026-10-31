@@ -46,7 +46,7 @@ function AddToShelf({ inventory, row }: Readonly<{ inventory: SharedInventory; r
  * The tech token shelf also draws one of its tokens at random.
  */
 export function SharedInventoryPanel({ inventory, picker, requests }: SharedInventoryViewProps) {
-  const { catalogue, gather } = inventory;
+  const { catalogue, gather, draw } = inventory;
   return (
     <Section hiddenHeading title="Shared table inventory" description={SHARED_INVENTORY_HELP}>
       <Stack gap="md">
@@ -68,16 +68,16 @@ export function SharedInventoryPanel({ inventory, picker, requests }: SharedInve
                 {row.label} {row.count > 0 && <span className={styles.count}>{row.count}</span>}
               </Text>
               <Group gap="xs" wrap="nowrap">
-                {row.spawnType === 'token-tech' && (
+                {row.spawnType === 'token-tech' && draw && (
                   <IconAction
                     label="Draw random tech token"
-                    tooltip={inventory.draw.help}
+                    tooltip={draw.help}
                     intent="neutral"
                     emphasis="quiet"
                     size="sm"
                     icon={DRAW_ICON}
-                    disabledReason={inventory.draw.enabled ? undefined : inventory.draw.help}
-                    onClick={inventory.draw.run}
+                    disabledReason={draw.enabled ? undefined : draw.help}
+                    onClick={draw.run}
                   />
                 )}
                 <AddToShelf inventory={inventory} row={row} />

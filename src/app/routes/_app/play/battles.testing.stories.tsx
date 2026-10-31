@@ -524,10 +524,29 @@ export const Observer = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await openTab(page, 'Battle plan');
-    await settled(() => expect(page.getByRole('button', { name: 'No winner' })).toBeDisabled());
-    await expect(page.getByText('Both plans are revealed on the table.')).toBeVisible();
+    await settled(() => expect(page.getByText('Both plans are revealed on the table.')).toBeVisible());
+    /* An observer calls no winner and ends no battle, so the callout shows no buttons for it, not even greyed. */
+    for (const name of ['No winner', 'Left side won', 'Right side won', 'Resolve battle']) {
+      await expect(page.queryByRole('button', { name })).toBeNull();
+    }
     await expect(page.queryByRole('textbox', { name: 'Spice' })).toBeNull();
     await expect(page.queryByRole('region', { name: 'Your hand and leaders' })).toBeNull();
+  },
+});
+
+/** Before a side is claimed, an observer sees the empty side named open, with no Claim or Cancel battle to press, not even greyed. */
+export const ObserverBeforeTheClaim = meta.story({
+  beforeEach: install(() => {
+    const snapshot = battleStory('preparing', true);
+    snapshot.battle!.sides[1] = null;
+    return productTransport('neutral', snapshot);
+  }),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await settled(() => expect(page.getByText('Open side')).toBeVisible());
+    for (const name of ['Claim right side', 'Claim left side', 'Cancel battle']) {
+      await expect(page.queryByRole('button', { name })).toBeNull();
+    }
   },
 });
 

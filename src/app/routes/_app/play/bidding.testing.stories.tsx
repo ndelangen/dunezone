@@ -129,3 +129,15 @@ export const Untimed = meta.story({
     }
   },
 });
+
+/** An observer watches the bidder: it says a round has yet to start and offers no start or reset, not even greyed. */
+export const ObserverBeforeTheFirstRound = meta.story({
+  beforeEach: biddingSetup(null, 'neutral'),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByText('Waiting for a round to start', {}, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.queryByRole('group', { name: 'Start new bidding starting at' })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Reset bidder' })).toBeNull();
+    await expect(page.getByRole('button', { name: 'Fade bidder' })).toBeVisible();
+  },
+});

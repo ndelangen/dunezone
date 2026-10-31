@@ -67,6 +67,10 @@
   opacity: 0.45;
 }
 
+.face[data-observed] {
+  cursor: default;
+}
+
 /* Under the pointer a piece lifts off its row, ready to be dragged onto the table. */
 .face:not(:disabled):hover {
   transform: translateY(-3px);
