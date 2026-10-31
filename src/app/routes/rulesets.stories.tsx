@@ -87,6 +87,16 @@ export const Edit = meta.story({
   args: { path: '/rulesets/classicrules/edit' },
   play: ({ canvasElement }) => expectFieldValue(canvasElement, 'Name', 'ClassicRules'),
 });
+/** The edit page's Battle dialing choice: how battle wheels count troops and spice in the ruleset's games, Advanced until chosen. */
+export const EditBattleDialing = meta.story({
+  args: { path: '/rulesets/classicrules/edit' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const advanced = await page.findByRole('radio', { name: /^Advanced/ }, { timeout: 30_000 });
+    advanced.scrollIntoView({ block: 'center' });
+    await expect(advanced).toBeChecked();
+  },
+});
 export const AskQuestion = meta.story({
   args: { path: '/rulesets/classicrules/faq/create' },
   play: async ({ canvasElement }) => {

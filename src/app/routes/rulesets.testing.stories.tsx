@@ -136,6 +136,25 @@ export const EditShowsOnlyTheLatestSaveFailure = meta.story({
   },
 });
 
+/** A ruleset's Battle dialing saves with the rest of the form and stays chosen after the save. */
+export const EditSavesBattleDialing = meta.story({
+  args: { path: '/rulesets/classicrules/edit' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const kiss = await page.findByRole('radio', { name: /^KISS/ }, { timeout: 30_000 });
+    await userEvent.click(kiss);
+    await expect(kiss).toBeChecked();
+    await userEvent.click(page.getByRole('button', { name: 'Save ruleset' }));
+    await waitFor(
+      () => expect(page.getByRole('button', { name: 'Save ruleset' })).toHaveAccessibleDescription('Saved'),
+      {
+        timeout: 30_000,
+      }
+    );
+    await expect(page.getByRole('radio', { name: /^KISS/ })).toBeChecked();
+  },
+});
+
 /** References save without submitting the question draft, and the saved tile opens its own page. */
 export const QuestionReferences = meta.story({
   args: { path: '/rulesets/classicrules/faq/when-does-the-storm-move' },
