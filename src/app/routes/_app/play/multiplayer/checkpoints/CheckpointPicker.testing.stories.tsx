@@ -157,3 +157,25 @@ export const KeyStepChoosesAtOnce = meta.story({
     await expect(args.onChange).toHaveBeenCalledWith(args.checkpoints[0]!.step);
   },
 });
+
+/** An arrow choice made before a quick click's move has landed wins, and the late move does not bring the clicked checkpoint back. */
+export const ArrowAfterQuickClickHolds = meta.story({
+  render: () => <SelectionHarness />,
+  play: async ({ canvasElement }) => {
+    const picker = within(canvasElement);
+    const slider = picker.getByRole('slider', { name: 'Checkpoint' });
+    const earlier = picker.getByRole('button', { name: 'Earlier checkpoint' });
+    const track = slider.closest<HTMLElement>('.mantine-Slider-trackContainer')!;
+    const box = track.getBoundingClientRect();
+    const at = { bubbles: true, clientX: box.left + 2, clientY: box.top + box.height / 2 };
+    const last = offeredCheckpoints().length - 1;
+    /* The click and the arrow land in one task, before the slider's queued move. */
+    track.dispatchEvent(new PointerEvent('pointerdown', { ...at, button: 0 }));
+    track.dispatchEvent(new MouseEvent('mousedown', { ...at, button: 0 }));
+    track.dispatchEvent(new MouseEvent('mouseup', at));
+    earlier.click();
+    await waitForFrame(() => expect(slider).toHaveAttribute('aria-valuenow', String(last - 1)));
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    await expect(slider).toHaveAttribute('aria-valuenow', String(last - 1));
+  },
+});

@@ -32,6 +32,18 @@ export function CheckpointPicker({ checkpoints, value, onChange }: CheckpointPic
   const release = useRef(0);
   /* A key step has already moved the slider when it ends, so it is chosen at once rather than a frame later, where a quick click on Ask could overtake it. */
   const keyed = useRef(false);
+  /*
+   * Each press or key on the slider starts a gesture, and an arrow choice ends it.
+   * A pointer move or release the slider still has queued from an ended gesture is dropped, so it cannot bring back a choice the arrow replaced.
+   */
+  const gesture = useRef(0);
+  const live = useRef(0);
+  /* A new value from the table ends any preview, so the thumb shows where the table now is. */
+  const [shown, setShown] = useState(value);
+  if (shown !== value) {
+    setShown(value);
+    setDragged(null);
+  }
   useEffect(() => () => cancelAnimationFrame(release.current), []);
   const turns = checkpointTurns(checkpoints);
   /* Compared by step, so the first checkpoint is still a choice when the table's step is no longer offered. */
@@ -54,6 +66,10 @@ export function CheckpointPicker({ checkpoints, value, onChange }: CheckpointPic
     /* Sent even for the shown checkpoint: an earlier ask may still be on its way, and this one must land after it. */
     onChange(step);
   };
+  const chooseByArrow = (next: number) => {
+    gesture.current += 1;
+    choose(next);
+  };
   /* The retained window can start mid-turn, so only a boundary between two offered checkpoints proves a turn's start. */
   const marks = checkpoints.flatMap((checkpoint, position) =>
     checkpoint.turn !== null && position > 0 && checkpoint.turn !== checkpoints[position - 1]!.turn
@@ -68,9 +84,11 @@ export function CheckpointPicker({ checkpoints, value, onChange }: CheckpointPic
           <div
             onKeyDownCapture={() => {
               keyed.current = true;
+              live.current = ++gesture.current;
             }}
             onPointerDownCapture={() => {
               keyed.current = false;
+              live.current = ++gesture.current;
             }}
           >
             <Slider
@@ -79,10 +97,16 @@ export function CheckpointPicker({ checkpoints, value, onChange }: CheckpointPic
               step={1}
               value={index}
               onChange={(next) => {
+                if (live.current !== gesture.current) {
+                  return;
+                }
                 latest.current = next;
                 setDragged(next);
               }}
               onChangeEnd={(next) => {
+                if (live.current !== gesture.current) {
+                  return;
+                }
                 if (keyed.current) {
                   keyed.current = false;
                   choose(next);
@@ -110,7 +134,7 @@ export function CheckpointPicker({ checkpoints, value, onChange }: CheckpointPic
           emphasis="quiet"
           icon={<ChevronLeft size={18} aria-hidden />}
           disabled={index === 0}
-          onClick={() => choose(index - 1)}
+          onClick={() => chooseByArrow(index - 1)}
         />
         <PhaseDisc symbol={current.symbol} label={current.label} size={28} />
         <Text size="sm" style={{ flex: 1 }}>
@@ -121,7 +145,7 @@ export function CheckpointPicker({ checkpoints, value, onChange }: CheckpointPic
           emphasis="quiet"
           icon={<ChevronRight size={18} aria-hidden />}
           disabled={index === checkpoints.length - 1}
-          onClick={() => choose(index + 1)}
+          onClick={() => chooseByArrow(index + 1)}
         />
       </Group>
     </Stack>
