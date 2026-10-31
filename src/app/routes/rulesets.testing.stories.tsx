@@ -7,7 +7,7 @@ import { db, ruleset, ref } from '@db/storybook';
 import type { StorybookDatabase } from '@db/storybook';
 
 import { expectToolbarOnOneLine } from './authoringToolbarPlay';
-import { seedLinkedFactions, seedQuestions } from './rulesets.stories.fixture';
+import { readyForPlay, seedLinkedFactions, seedQuestions } from './rulesets.stories.fixture';
 import { pageStoryMeta } from './storybookConfig';
 
 const meta = testingPreview.meta({
@@ -87,7 +87,9 @@ export const Question = meta.story({
     await userEvent.click(await page.findByRole('button', { name: 'Actions for question' }, { timeout: 30_000 }));
     await waitFor(() => expect(page.getByRole('menuitem', { name: 'Hold to delete question' })).toBeVisible());
     await userEvent.click(page.getByRole('menuitem', { name: 'Edit question' }));
-    const question = await page.findByRole('textbox', { name: 'Edit question' });
+    const question = await page.findByRole('textbox', {
+      name: 'Edit question',
+    });
     await userEvent.clear(question);
     await userEvent.type(question, 'When does the storm move in round two?');
     await userEvent.click(page.getByRole('checkbox', { name: 'Strategy' }));
@@ -95,7 +97,11 @@ export const Question = meta.story({
     await expect(question).toHaveValue('When does the storm move in round two?');
     await userEvent.click(page.getByRole('button', { name: 'Save question' }));
     await waitFor(() =>
-      expect(page.getByRole('heading', { name: 'When does the storm move in round two?' })).toBeVisible()
+      expect(
+        page.getByRole('heading', {
+          name: 'When does the storm move in round two?',
+        })
+      ).toBeVisible()
     );
     await expect(page.queryByRole('textbox', { name: 'Edit question' })).toBeNull();
   },
@@ -162,7 +168,9 @@ export const QuestionReferences = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('button', { name: 'Actions for question' }, { timeout: 30_000 }));
     await userEvent.click(await page.findByRole('menuitem', { name: 'Edit question' }));
-    const question = await page.findByRole('textbox', { name: 'Edit question' });
+    const question = await page.findByRole('textbox', {
+      name: 'Edit question',
+    });
     await userEvent.clear(question);
     await userEvent.type(question, 'An unsaved question draft?');
     await userEvent.click(await page.findByRole('button', { name: 'Add references' }));
@@ -177,7 +185,13 @@ export const QuestionReferences = meta.story({
       '/factions/house-atreides'
     );
     await userEvent.click(remove);
-    await waitFor(() => expect(page.queryByRole('button', { name: 'Remove reference to House Atreides' })).toBeNull());
+    await waitFor(() =>
+      expect(
+        page.queryByRole('button', {
+          name: 'Remove reference to House Atreides',
+        })
+      ).toBeNull()
+    );
     await expect(question).toHaveValue('An unsaved question draft?');
   },
 });
@@ -187,19 +201,25 @@ export const EditToolbarAt360 = meta.story({
   args: { path: '/rulesets/classicrules/edit' },
   globals: { viewport: { value: 'appMobileNarrow' } },
   play: async ({ canvasElement }) =>
-    await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
+    await expectToolbarOnOneLine(canvasElement, {
+      statusDescribes: ['No unsaved changes'],
+    }),
 });
 export const EditToolbarAt768 = meta.story({
   args: { path: '/rulesets/classicrules/edit' },
   globals: { viewport: { value: 'appTablet' } },
   play: async ({ canvasElement }) =>
-    await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
+    await expectToolbarOnOneLine(canvasElement, {
+      statusDescribes: ['No unsaved changes'],
+    }),
 });
 export const EditToolbarAt1100 = meta.story({
   args: { path: '/rulesets/classicrules/edit' },
   globals: { viewport: { value: 'appLaptop' } },
   play: async ({ canvasElement }) =>
-    await expectToolbarOnOneLine(canvasElement, { statusDescribes: ['No unsaved changes'] }),
+    await expectToolbarOnOneLine(canvasElement, {
+      statusDescribes: ['No unsaved changes'],
+    }),
 });
 
 /** Numbered rulesets beside ClassicRules, so the catalogue has more than one page holds. */
@@ -247,7 +267,9 @@ export const DirectoryPagesAndSearch = meta.story({
 export const DirectorySearched = meta.story({
   args: { path: '/rulesets?q=ruleset&page=2&sort=newest' },
   /* One past the first step: the smallest search that has more to load. */
-  parameters: { database: db((baseline) => seedRulesets(baseline, RULESET_CATALOGUE_PAGE_SIZE + 1)) },
+  parameters: {
+    database: db((baseline) => seedRulesets(baseline, RULESET_CATALOGUE_PAGE_SIZE + 1)),
+  },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     /* Found on the body, not within a `main` found earlier: the pending frame has a `main` of its own, which the loaded page replaces. */
@@ -301,7 +323,9 @@ export const DetailWithoutBoard = meta.story({
 export const FaqSearched = meta.story({
   args: { path: '/rulesets/classicrules/faq?q=question&page=2' },
   /* One past the first step: the smallest search that has more to load. */
-  parameters: { database: db((baseline) => seedQuestions(baseline, FAQ_CATALOGUE_PAGE_SIZE + 1)) },
+  parameters: {
+    database: db((baseline) => seedQuestions(baseline, FAQ_CATALOGUE_PAGE_SIZE + 1)),
+  },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     /* Found on the body, not within a `main` found earlier: the pending frame has a `main` of its own, which the loaded page replaces. */
@@ -399,5 +423,22 @@ export const AssetRelatedFaqLoadMore = meta.story({
     await userEvent.click(loadMore);
     await waitFor(() => expect(list.getAllByRole('link', { name: /^Open question:/ })).toHaveLength(14));
     await expect(list.queryByRole('button', { name: 'Load more' })).toBeNull();
+  },
+});
+
+/** A slot change on the page checks again: removing the treachery deck stops a game at once. */
+export const EditPlayReadinessFollowsTheSlots = meta.story({
+  args: { path: '/rulesets/classicrules/edit' },
+  parameters: { database: db(readyForPlay) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByText(/^A game can start\./, {}, { timeout: 30_000 })).resolves.toBeVisible();
+    await userEvent.click(page.getByRole('button', { name: /^Remove .+ from Treachery deck$/ }));
+    await expect(
+      page.findByText('Treachery deck: A ruleset needs a non-empty treachery deck.', {}, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    await expect(
+      page.getByText('A game cannot start with this ruleset yet. Fix the ruleset problems below.')
+    ).toBeVisible();
   },
 });

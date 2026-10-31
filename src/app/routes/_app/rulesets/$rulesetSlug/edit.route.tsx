@@ -36,10 +36,13 @@ import { IconAction } from '@ui/control/IconAction';
 import { SortableItem } from '@ui/control/SortableItem';
 import { SortableReorderHandle } from '@ui/control/SortableReorderHandle';
 import { PageLayout } from '@ui/layout/PageLayout';
+import { Bullets } from '@ui/list/Bullets';
 import { Surface } from '@ui/surface';
-import { ArrowDown, ArrowUp, Layers3, Link2, Link2Off, Pencil, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, CircleAlert, CircleCheck, Layers3, Link2, Link2Off, Pencil, X } from 'lucide-react';
 import { useReducer, useState } from 'react';
 
+import { usePlayReadiness } from '@db/play';
+import type { PlayReadinessCheck } from '@db/play';
 import { useReorderRulebooks, useSoftDeleteRulebook } from '@db/rulebooks';
 import type { RulebookMetadata } from '@db/rulebooks';
 import {
@@ -85,6 +88,7 @@ function RulesetEditor({
   const navigate = useNavigate();
   const updateRuleset = useUpdateRuleset();
   const rehostCover = useRehostRulesetCover();
+  const linked = useLinkedFactions(initial._id);
   /* The form shows the URL the author pasted, not the delivery URL the rehost produced from it. */
   const initialCoverInput = initial.cover?.source_url ?? initial.image_cover ?? '';
   /* One draft, one reducer (the state rule): a patch arm for typing and a reset arm that returns to the saved row.
@@ -129,12 +133,42 @@ function RulesetEditor({
       : undefined;
   const rehostFailure = typeof rehostState === 'object' ? rehostState.failed : null;
   const warnings = [
-    ...(nameError ? [{ source: 'Name', complaint: nameError, focusId: 'ruleset-settings-name' }] : []),
-    ...(aboutError ? [{ source: 'About', complaint: aboutError, focusId: 'ruleset-settings-about' }] : []),
-    ...(coverFormatError
-      ? [{ source: 'Cover image', complaint: coverFormatError, focusId: 'ruleset-settings-cover' }]
+    ...(nameError
+      ? [
+          {
+            source: 'Name',
+            complaint: nameError,
+            focusId: 'ruleset-settings-name',
+          },
+        ]
       : []),
-    ...(rehostFailure ? [{ source: 'Cover image', complaint: rehostFailure, focusId: 'ruleset-settings-cover' }] : []),
+    ...(aboutError
+      ? [
+          {
+            source: 'About',
+            complaint: aboutError,
+            focusId: 'ruleset-settings-about',
+          },
+        ]
+      : []),
+    ...(coverFormatError
+      ? [
+          {
+            source: 'Cover image',
+            complaint: coverFormatError,
+            focusId: 'ruleset-settings-cover',
+          },
+        ]
+      : []),
+    ...(rehostFailure
+      ? [
+          {
+            source: 'Cover image',
+            complaint: rehostFailure,
+            focusId: 'ruleset-settings-cover',
+          },
+        ]
+      : []),
   ];
   const validationHeader = useEditPageHeader({
     warnings,
@@ -176,7 +210,9 @@ function RulesetEditor({
         await rehostCover({ id: initial._id, sourceUrl: coverCheck.data });
         setRehostState('idle');
       } catch (error) {
-        setRehostState({ failed: error instanceof Error ? error.message : 'The cover could not be stored' });
+        setRehostState({
+          failed: error instanceof Error ? error.message : 'The cover could not be stored',
+        });
         return;
       }
     }
@@ -221,7 +257,11 @@ function RulesetEditor({
           updateRuleset.reset();
         }),
         /* Back returns to the ruleset itself, the page Edit came from, so no second "View ruleset" action is needed. */
-        onBack: () => navigate({ to: '/rulesets/$rulesetSlug', params: { rulesetSlug: initial.slug } }),
+        onBack: () =>
+          navigate({
+            to: '/rulesets/$rulesetSlug',
+            params: { rulesetSlug: initial.slug },
+          }),
       }}
       statuses={[failureStatus(saveFailure)]}
     />
@@ -252,7 +292,12 @@ function RulesetEditor({
                     required
                     error={nameError}
                     value={name}
-                    onChange={(event) => dispatch({ kind: 'patch', update: { name: event.currentTarget.value } })}
+                    onChange={(event) =>
+                      dispatch({
+                        kind: 'patch',
+                        update: { name: event.currentTarget.value },
+                      })
+                    }
                     disabled={!canRename}
                   />
                 }
@@ -288,7 +333,12 @@ function RulesetEditor({
                     type="url"
                     error={coverFormatError ?? rehostFailure ?? undefined}
                     value={coverUrl}
-                    onChange={(event) => dispatch({ kind: 'patch', update: { coverUrl: event.currentTarget.value } })}
+                    onChange={(event) =>
+                      dispatch({
+                        kind: 'patch',
+                        update: { coverUrl: event.currentTarget.value },
+                      })
+                    }
                     placeholder="https://…"
                     autoComplete="off"
                   />
@@ -333,11 +383,12 @@ function RulesetEditor({
             rulesetId={initial._id}
             canDelete={canDelete}
           />
-          <RulesetFactions rulesetId={initial._id} rulesetName={initial.name} />
+          <RulesetFactions rulesetId={initial._id} rulesetName={initial.name} linked={linked} />
           {/* A sibling pane rather than a nested one: surfaces do not nest, and slots are a different subject from the ruleset's own fields. */}
           <Surface padding="lg">
             <RulesetAssetSlots rulesetId={initial.id} slots={assetSlots} />
           </Surface>
+          <RulesetPlayReadiness ruleset={initial} slots={assetSlots} linked={linked.ordered} />
         </Stack>
       </PageLayout.Content>
     </PageLayout>
@@ -368,7 +419,9 @@ function RulesetEditPage() {
   const { rulesetSlug } = Route.useParams();
   const loaderData = Route.useLoaderData();
   const detailSeed = !loaderData.notFound && loaderData.detailPage ? loaderData.detailPage : undefined;
-  const pageQuery = useRulesetDetailPage(rulesetSlug, { initialData: detailSeed });
+  const pageQuery = useRulesetDetailPage(rulesetSlug, {
+    initialData: detailSeed,
+  });
   const page = pageQuery.data;
 
   /* One condition, because the loader's verdict and a missing row are the same page to the reader.
@@ -439,6 +492,126 @@ function RulesetEditPage() {
 
 type SlottedAsset = { id: string; type: string; slug: string; name: string };
 
+/**
+ * Whether a game can start with this ruleset, by the game's own captures, so the content left to fix is named here rather than when a game is created.
+ * It checks the factions the Factions list has loaded, and checks again whenever a slot or a linked faction changes on this page, when the window regains focus, and on Check again.
+ */
+function RulesetPlayReadiness({
+  ruleset,
+  slots,
+  linked,
+}: {
+  ruleset: RulesetEntry;
+  slots: { slot: string; asset: SlottedAsset }[];
+  linked: LinkedFactions['ordered'];
+}) {
+  const factions = linked?.factions.map((faction) => ({ id: faction._id as string, name: faction.name }));
+  const revision = slots.map((entry) => `${entry.slot}:${entry.asset.id}`).join('|');
+  const { check, recheck } = usePlayReadiness({ id: ruleset._id, name: ruleset.name }, factions, revision);
+  return (
+    <PlayReadinessReport
+      check={check}
+      onRecheck={recheck}
+      checkedFactionLimit={linked?.hasMore ? linked.factions.length : undefined}
+    />
+  );
+}
+
+/* One problem as a line: what it is about, then what is wrong with it. */
+function problemLine({ subject, reason }: { subject: string; reason: string }) {
+  return `${subject[0]?.toUpperCase() ?? ''}${subject.slice(1)}: ${reason}`;
+}
+
+/* What stops the ruleset and what sets each faction aside in the draft, with the ready factions named in one line rather than a row each. */
+function PlayReadinessReport({
+  check,
+  onRecheck,
+  checkedFactionLimit,
+}: {
+  check: PlayReadinessCheck;
+  onRecheck: () => void;
+  /* How many linked factions were checked, when the ruleset links more than that. */
+  checkedFactionLimit: number | undefined;
+}) {
+  const entries = check.status === 'checked' ? check.entries : [];
+  const blocked = entries.filter((entry) => entry.problems.length > 0);
+  const ready = entries.filter((entry) => entry.kind === 'faction' && entry.problems.length === 0);
+  const rulesetBlocked = blocked.some((entry) => entry.kind === 'ruleset');
+
+  return (
+    <Section
+      id="play-readiness"
+      title="Ready for Play"
+      action={
+        <Button variant="light" size="compact-sm" onClick={onRecheck} loading={check.status === 'checking'}>
+          Check again
+        </Button>
+      }
+    >
+      <Surface padding="lg">
+        <Stack gap="md" aria-busy={check.status === 'checking'}>
+          <Text size="sm" c="dimmed" role="status">
+            {summary(check, rulesetBlocked, blocked.length, checkedFactionLimit)}
+          </Text>
+          {blocked.length ? (
+            <Bullets>
+              {blocked.map((entry) => (
+                <Bullets.Item
+                  key={`${entry.kind}:${entry.id}`}
+                  icon={<CircleAlert size={18} />}
+                  title={entry.kind === 'ruleset' ? `Ruleset ${entry.name}` : entry.name}
+                  detail={
+                    <Stack component="span" gap={2}>
+                      {entry.problems.map((problem, index) => (
+                        <span key={index}>{problemLine(problem)}</span>
+                      ))}
+                    </Stack>
+                  }
+                />
+              ))}
+            </Bullets>
+          ) : null}
+          {ready.length ? (
+            <Bullets>
+              <Bullets.Item
+                icon={<CircleCheck size={18} />}
+                title={ready.length === 1 ? '1 faction ready' : `${ready.length} factions ready`}
+                detail={ready.map((entry) => entry.name).join(', ')}
+              />
+            </Bullets>
+          ) : null}
+        </Stack>
+      </Surface>
+    </Section>
+  );
+}
+
+function summary(check: PlayReadinessCheck, rulesetBlocked: boolean, blocked: number, limit: number | undefined) {
+  const verdict = judgement(check, rulesetBlocked, blocked, limit !== undefined);
+  return check.status === 'checked' && limit !== undefined
+    ? `${verdict} Only the first ${limit} linked factions were checked; the draft checks the rest when it deals them.`
+    : verdict;
+}
+
+function judgement(check: PlayReadinessCheck, rulesetBlocked: boolean, blocked: number, truncated: boolean) {
+  switch (check.status) {
+    case 'checking':
+      return 'Checking the ruleset and its factions the way a new game does…';
+    case 'failed':
+      return `The check could not finish: ${check.reason}`;
+    case 'checked':
+      if (rulesetBlocked) {
+        return 'A game cannot start with this ruleset yet. Fix the ruleset problems below.';
+      }
+      if (blocked) {
+        return `A game can start. The draft sets aside ${blocked === 1 ? 'the faction below until it is' : `the ${blocked} factions below until they are`} fixed.`;
+      }
+      return truncated
+        ? 'A game can start with this ruleset and deal every faction checked.'
+        : 'A game can start with this ruleset and deal every faction.';
+  }
+}
+
 /* The Factions list's first load and each "Load more": a ruleset seldom has more, and dragging only reorders what is loaded. */
 const FACTION_LIST_STEP = 50;
 
@@ -463,23 +636,47 @@ function factionAnnouncements(factions: { _id: string; name: string }[]): Announ
   };
 }
 
-function RulesetFactions({ rulesetId, rulesetName }: { rulesetId: RulesetEntry['_id']; rulesetName: string }) {
+/*
+ * The ruleset's linked factions as the page reads them once, for the Factions list and the readiness check alike, so the editor holds one subscription for them.
+ * The last answer stays while Load more asks for a longer list, so the list and the button keep their place and focus.
+ */
+function useLinkedFactions(rulesetId: RulesetEntry['_id']) {
   const [limit, setLimit] = useState(FACTION_LIST_STEP);
   const answered = useOrderedRulesetFactions(rulesetId, limit);
-  /* The last answer stays on screen while Load more asks for a longer list, so the list and the button keep their place and focus. */
   const [lastAnswered, setLastAnswered] = useState(answered);
   if (answered !== undefined && answered !== lastAnswered) {
     setLastAnswered(answered);
   }
-  const ordered = answered ?? lastAnswered;
+  return {
+    ordered: answered ?? lastAnswered,
+    loadMore: () => setLimit((current) => (answered === undefined ? current : current + FACTION_LIST_STEP)),
+  };
+}
+
+type LinkedFactions = ReturnType<typeof useLinkedFactions>;
+
+function RulesetFactions({
+  rulesetId,
+  rulesetName,
+  linked: { ordered, loadMore },
+}: {
+  rulesetId: RulesetEntry['_id'];
+  rulesetName: string;
+  linked: LinkedFactions;
+}) {
   const addFaction = useAddRulesetFaction();
   const removeFaction = useRemoveRulesetFaction();
   const reorder = useReorderRulesetFactions();
   /* The order a drag asked for, shown until the query answers with a new list; keyed by that list so a fresh answer replaces it. */
-  const [draftOrder, setDraftOrder] = useState<{ basis: unknown; ids: string[] } | null>(null);
+  const [draftOrder, setDraftOrder] = useState<{
+    basis: unknown;
+    ids: string[];
+  } | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
   );
   const saved = ordered?.factions ?? [];
   const byId = new Map(saved.map((faction) => [faction._id as string, faction]));
@@ -499,7 +696,9 @@ function RulesetFactions({ rulesetId, rulesetName }: { rulesetId: RulesetEntry['
     /* A refused save drops its own draft, so the list shows the saved order again; a later drag's draft stays. */
     reorder.mutate(
       { rulesetId, factionIds: ids },
-      { onError: () => setDraftOrder((current) => (current?.ids === ids ? null : current)) }
+      {
+        onError: () => setDraftOrder((current) => (current?.ids === ids ? null : current)),
+      }
     );
   };
 
@@ -549,7 +748,12 @@ function RulesetFactions({ rulesetId, rulesetName }: { rulesetId: RulesetEntry['
                             emphasis="quiet"
                             size="sm"
                             disabled={pending}
-                            onClick={() => removeFaction.mutate({ rulesetId, factionId: faction._id })}
+                            onClick={() =>
+                              removeFaction.mutate({
+                                rulesetId,
+                                factionId: faction._id,
+                              })
+                            }
                             icon={<Link2Off size={16} aria-hidden />}
                           />
                         </Group>
@@ -561,10 +765,7 @@ function RulesetFactions({ rulesetId, rulesetName }: { rulesetId: RulesetEntry['
             </DndContext>
           ) : null}
           {ordered?.hasMore ? (
-            <Button
-              variant="default"
-              onClick={() => setLimit((current) => (answered === undefined ? current : current + FACTION_LIST_STEP))}
-            >
+            <Button variant="default" onClick={loadMore}>
               Load more
             </Button>
           ) : null}
