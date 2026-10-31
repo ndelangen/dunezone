@@ -30,7 +30,20 @@ import {
   horizontalListSortingStrategy,
   arrayMove,
 } from '@dnd-kit/sortable';
-import { Alert, Badge, Box, Button, Group, Menu, Select, Stack, Text, TextInput } from '@mantine/core';
+import {
+  Alert,
+  Badge,
+  Box,
+  Button,
+  Group,
+  Menu,
+  NativeSelect,
+  Popover,
+  Select,
+  Stack,
+  Text,
+  TextInput,
+} from '@mantine/core';
 import {
   canonicalRulebookCoverControlValues,
   createRulebookLocalId,
@@ -95,7 +108,7 @@ import { DocumentEditorLayout } from '@ui/layout/DocumentEditorLayout';
 import type { DocumentEditorFit } from '@ui/layout/DocumentEditorLayout';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { NestedTabs, Surface } from '@ui/surface';
-import { Toolbar } from '@ui/surface/Toolbar';
+import { Toolbar, useDismissToolbarOverflow } from '@ui/surface/Toolbar';
 import {
   ArrowLeft,
   BookMarked,
@@ -111,15 +124,14 @@ import {
   MoveHorizontal,
   MoveVertical,
   SlidersHorizontal,
-  ChevronLeft,
-  ChevronRight,
-  Search,
+  Settings,
   TextCursorInput,
 } from 'lucide-react';
 import {
   memo,
   useCallback,
   useEffect,
+  useId,
   useLayoutEffect,
   useMemo,
   useReducer,
@@ -1454,6 +1466,7 @@ type FilmstripProps = {
   assetsById: RulebookResolvedAssetsById;
   factionsById: RulebookResolvedFactionsById;
   activePageId: string;
+  action: ReactNode;
   onPick: (id: string) => void;
   onReorder: (order: string[], movedId: string) => void;
 };
@@ -1516,6 +1529,7 @@ function RulebookFilmstrip({
   assetsById,
   factionsById,
   activePageId,
+  action,
   onPick,
   onReorder,
 }: FilmstripProps) {
@@ -1636,6 +1650,7 @@ function RulebookFilmstrip({
                 </SortableItem>
               );
             })}
+            <Group wrap="nowrap">{action}</Group>
           </div>
         </SortableContext>
       </DndContext>
@@ -2173,10 +2188,6 @@ function RulebookWorkspace({
     scrollTrack.scrollBy({ left: event.key === 'ArrowLeft' ? -48 : 48 });
   };
 
-  const pageIndex = result.draft.pageOrder.indexOf(page.id);
-  const orderedBlocks = orderedRegions.flatMap((region) =>
-    region.kind === 'block' ? (blockOrders(page)[region.key] ?? []).flatMap((id) => page.blocksById[id] ?? []) : []
-  );
   return (
     <Box
       role="region"
@@ -2186,47 +2197,6 @@ function RulebookWorkspace({
       onKeyDown={onWorkspaceKeyDown}
     >
       <Stack gap="md">
-        <Surface padding="sm">
-          <Group gap="md" wrap="wrap">
-            <Group gap="xs">
-              <IconAction
-                label="Previous page"
-                icon={<ChevronLeft />}
-                disabled={pageIndex === 0}
-                onClick={() => goToEditorHash(editorHash(result.draft.pageOrder[pageIndex - 1]!, 'details'))}
-              />
-              <Text size="sm" fw={700}>
-                {pageIndex + 1} / {result.draft.pageOrder.length}
-              </Text>
-              <IconAction
-                label="Next page"
-                icon={<ChevronRight />}
-                disabled={pageIndex === result.draft.pageOrder.length - 1}
-                onClick={() => goToEditorHash(editorHash(result.draft.pageOrder[pageIndex + 1]!, 'details'))}
-              />
-            </Group>
-            <div className={styles.pageTitle}>
-              <Text fw={700}>{page.title}</Text>
-              <Text size="xs" c="dimmed">
-                {layout.label} · {orderedBlocks.length} blocks
-              </Text>
-            </div>
-            <Select
-              aria-label="Jump to page"
-              placeholder="Jump to page..."
-              searchable
-              leftSection={<Search size={16} />}
-              value={null}
-              onChange={(id) => id && goToEditorHash(editorHash(id, 'details'))}
-              data={result.draft.pageOrder.map((id, index) => ({
-                value: id,
-                label: `${index + 1}. ${result.draft.pagesById[id]!.title}`,
-              }))}
-            />
-            <AddMenu label="Add Page" values={pageChoices(settings)} icon={pageChoiceIcon} onPick={addPage} />
-            <ConfirmDeleteAction key={page.id} label="Delete Page" size="sm" pending={false} onConfirm={deletePage} />
-          </Group>
-        </Surface>
         <RulebookFilmstrip
           draft={result.draft}
           thumbnailDraft={thumbnailSnapshot.draft}
@@ -2234,6 +2204,7 @@ function RulebookWorkspace({
           assetsById={thumbnailSnapshot.assetsById}
           factionsById={thumbnailSnapshot.factionsById}
           activePageId={page.id}
+          action={<AddMenu label="Add Page" values={pageChoices(settings)} icon={pageChoiceIcon} onPick={addPage} />}
           onPick={(id) => goToEditorHash(editorHash(id, 'details'))}
           onReorder={reorderPages}
         />
@@ -2323,6 +2294,13 @@ function RulebookWorkspace({
                     );
                   })}
                   <NestedTabs.Tools>
+                    <ConfirmDeleteAction
+                      key={page.id}
+                      label="Delete Page"
+                      size="sm"
+                      pending={false}
+                      onConfirm={deletePage}
+                    />
                     <AddMenu
                       label="Add Block"
                       values={availableBlockKinds}
@@ -2956,74 +2934,146 @@ function rulebookClippingWarnings(draft: RulebookContentsDraftV1, clippingReport
   });
 }
 
-function RulebookSettingsEditor({
-  settings,
-  layoutIds,
-  conflict,
-  onChange,
-  onResolve,
-}: {
+type RulebookSettingsEditorProps = {
   settings: RulebookSettings;
   layoutIds: readonly RulebookPageLayoutId[];
-  conflict: boolean;
   onChange: (settings: RulebookSettings) => void;
-  onResolve: (choice: 'local' | 'saved') => void;
+};
+
+function RulebookSettingsAction({
+  opened,
+  dropdownId,
+  onToggle,
+}: {
+  opened: boolean;
+  dropdownId: string;
+  onToggle: (trigger: HTMLButtonElement) => void;
 }) {
+  const dismissOverflow = useDismissToolbarOverflow();
   return (
-    <>
-      <Group align="start" grow>
-        <ControlBlock
-          title="Book size"
-          input={
-            <Select
-              aria-label="Book size"
-              value={settings.size}
-              data={rulebookSizeCatalogue.map(({ id, label, widthMm, heightMm }) => {
-                const supported = layoutIds.every((layoutId) => isRulebookLayoutSupported(layoutId, id));
-                return {
-                  value: id,
-                  label: `${label} (${widthMm} × ${heightMm} mm)${supported ? '' : ' (Page layouts do not fit)'}`,
-                  disabled: !supported,
-                };
-              })}
-              onChange={(size) => {
-                const parsed = rulebookSettingsSchema.safeParse({ ...settings, size });
-                if (parsed.success) {
-                  onChange(parsed.data);
-                }
+    <IconAction
+      label="Book settings"
+      emphasis="standard"
+      intent="neutral"
+      size="lg"
+      icon={<Settings size={17} aria-hidden />}
+      pressed={opened}
+      aria-haspopup="dialog"
+      aria-expanded={opened}
+      aria-controls={dropdownId}
+      onClick={(event) => {
+        onToggle(event.currentTarget);
+        dismissOverflow?.();
+      }}
+    />
+  );
+}
+
+function RulebookSettingsPopover({
+  children,
+  ...editor
+}: RulebookSettingsEditorProps & { children: (action: ReactNode) => ReactNode }) {
+  const [opened, setOpened] = useState(false);
+  const dropdownId = useId();
+  const toolbarRef = useRef<HTMLDivElement>(null);
+  const returnTarget = useRef<HTMLButtonElement | null>(null);
+  const restoreFocus = () => {
+    requestAnimationFrame(() => {
+      const target = returnTarget.current;
+      (target?.isConnected
+        ? target
+        : toolbarRef.current?.querySelector<HTMLButtonElement>('[aria-label="More actions"]')
+      )?.focus();
+    });
+  };
+  return (
+    <Popover
+      opened={opened}
+      onChange={setOpened}
+      position="bottom-end"
+      width={320}
+      styles={{ dropdown: { maxWidth: 'calc(100vw - 16px)' } }}
+      shadow="md"
+      withRoles={false}
+      trapFocus
+      returnFocus={false}
+      closeOnEscape={false}
+    >
+      <Popover.Target>
+        <div
+          ref={toolbarRef}
+          onClickCapture={(event) => {
+            const button = event.target instanceof Element ? event.target.closest('button') : null;
+            if (button && button.getAttribute('aria-label') !== 'Book settings') {
+              setOpened(false);
+            }
+          }}
+        >
+          {children(
+            <RulebookSettingsAction
+              opened={opened}
+              dropdownId={dropdownId}
+              onToggle={(trigger) => {
+                returnTarget.current = trigger.closest('[role="group"][aria-label="More actions"]')
+                  ? (toolbarRef.current?.querySelector<HTMLButtonElement>('[aria-label="More actions"]') ?? trigger)
+                  : trigger;
+                setOpened((current) => !current);
               }}
             />
+          )}
+        </div>
+      </Popover.Target>
+      <Popover.Dropdown
+        id={dropdownId}
+        role="dialog"
+        aria-label="Book settings"
+        onKeyDownCapture={(event) => {
+          if (event.key === 'Escape') {
+            event.stopPropagation();
+            setOpened(false);
+            restoreFocus();
           }
-        />
-        <ControlBlock
-          title="Book design"
-          input={
-            <Select
-              aria-label="Book design"
-              value={settings.design}
-              data={rulebookDesignCatalogue.map(({ id, label }) => ({ value: id, label }))}
-              onChange={(design) => {
-                const parsed = rulebookSettingsSchema.safeParse({ ...settings, design });
-                if (parsed.success) {
-                  onChange(parsed.data);
-                }
-              }}
-            />
+        }}
+      >
+        <RulebookSettingsEditor {...editor} />
+      </Popover.Dropdown>
+    </Popover>
+  );
+}
+
+function RulebookSettingsEditor({ settings, layoutIds, onChange }: RulebookSettingsEditorProps) {
+  return (
+    <Stack gap="md">
+      <NativeSelect
+        label="Book size"
+        value={settings.size}
+        data={rulebookSizeCatalogue.map(({ id, label, widthMm, heightMm }) => {
+          const supported = layoutIds.every((layoutId) => isRulebookLayoutSupported(layoutId, id));
+          return {
+            value: id,
+            label: `${label} (${widthMm} × ${heightMm} mm)${supported ? '' : ' (Page layouts do not fit)'}`,
+            disabled: !supported,
+          };
+        })}
+        onChange={(event) => {
+          const parsed = rulebookSettingsSchema.safeParse({ ...settings, size: event.currentTarget.value });
+          if (parsed.success) {
+            onChange(parsed.data);
           }
-        />
-      </Group>
-      {conflict ? (
-        <Alert color="red" title="Book settings changed in another editor">
-          <Stack gap="sm">
-            <Text>Choose which size and design to save. Your Contents changes stay in the draft.</Text>
-            <Group>
-              <Button onClick={() => onResolve('local')}>Keep my settings</Button>
-              <Button onClick={() => onResolve('saved')}>Use saved settings</Button>
-            </Group>
-          </Stack>
-        </Alert>
-      ) : null}
-    </>
+        }}
+      />
+      <NativeSelect
+        label="Book design"
+        value={settings.design}
+        data={rulebookDesignCatalogue.map(({ id, label }) => ({ value: id, label }))}
+        onChange={(event) => {
+          const parsed = rulebookSettingsSchema.safeParse({ ...settings, design: event.currentTarget.value });
+          if (parsed.success) {
+            onChange(parsed.data);
+          }
+        }}
+      />
+    </Stack>
   );
 }
 
@@ -3258,91 +3308,100 @@ function RulebookEditorSession({
           }
         >
           {(loadAction) => (
-            <Toolbar>
-              <Toolbar.Left label="Navigation">
-                <IconAction
-                  label="Back to ruleset"
-                  emphasis="standard"
-                  intent="neutral"
-                  size="lg"
-                  icon={<ArrowLeft size={17} aria-hidden />}
-                  renderRoot={(props) => <Link {...props} to="/rulesets/$rulesetSlug" params={{ rulesetSlug }} />}
-                />
-              </Toolbar.Left>
-              <Toolbar.Right label="Editing actions">
-                <Toolbar.Cluster kind="about">
-                  <StatusInfo label="Rulebook status" statuses={statuses} />
-                </Toolbar.Cluster>
-                <Toolbar.Cluster kind="content">
-                  {loadAction}
-                  <IconAction
-                    label="Reset unsaved edits"
-                    intent="negative"
-                    emphasis="standard"
-                    size="lg"
-                    disabled={!hasLocalChanges || result.isSaving || needsReview}
-                    icon={<Undo2 size={17} aria-hidden />}
-                    onClick={() => dispatch({ kind: 'discard-draft' })}
-                  />
-                  {data.canRename ? (
+            <RulebookSettingsPopover
+              settings={result.settings}
+              layoutIds={result.draft.pageOrder.map((id) => result.draft.pagesById[id]!.layoutId)}
+              onChange={(settings) => dispatch({ kind: 'replace-settings', settings })}
+            >
+              {(settingsAction) => (
+                <Toolbar>
+                  <Toolbar.Left label="Navigation">
                     <IconAction
-                      label="Rename Rulebook"
-                      tooltip={`Rename ${data.rulebook.name}`}
-                      intent="neutral"
+                      label="Back to ruleset"
                       emphasis="standard"
+                      intent="neutral"
                       size="lg"
-                      disabledReason={
-                        hasLocalChanges || needsReview || result.isSaving
-                          ? 'Save your changes before renaming this Rulebook.'
-                          : undefined
-                      }
-                      icon={<TextCursorInput size={17} aria-hidden />}
-                      onClick={() => sendView({ kind: 'rename', open: !view.renaming })}
+                      icon={<ArrowLeft size={17} aria-hidden />}
+                      renderRoot={(props) => <Link {...props} to="/rulesets/$rulesetSlug" params={{ rulesetSlug }} />}
                     />
-                  ) : null}
-                  <IconAction
-                    label={`Fit ${fit === 'height' ? 'width' : 'height'}`}
-                    intent="neutral"
-                    emphasis="standard"
-                    size="lg"
-                    icon={
-                      fit === 'height' ? (
-                        <MoveHorizontal size={17} aria-hidden />
-                      ) : (
-                        <MoveVertical size={17} aria-hidden />
-                      )
-                    }
-                    onClick={() => sendView({ kind: 'fit' })}
-                  />
-                </Toolbar.Cluster>
-                <Toolbar.Cluster kind="commit">
-                  {/* Held like a deletion, because an Edition is as permanent, and violet, because it is not a second Save (Norbert, 2026-09-29). */}
-                  <ConfirmPublishAction
-                    label={`Publish Edition ${nextEditionNumber}`}
-                    pending={publishMutation.isPending}
-                    disabledReason={publishBlocker}
-                    onConfirm={() => void publish()}
-                  />
-                  {/* Save last, as on every editor. Its name and glyph carry the draft's state, since there are no words beside it. */}
-                  <SaveAction
-                    label={saveLabel}
-                    state={
-                      result.isSaving
-                        ? 'saving'
-                        : hasLocalChanges || needsReview
-                          ? 'dirty'
-                          : view.notice === 'saved'
-                            ? 'saved'
-                            : 'clean'
-                    }
-                    lines={saveLines}
-                    disabled={!needsReview && !result.canSave}
-                    icon={needsReview ? <GitCompareArrows size={17} aria-hidden /> : undefined}
-                    onSave={() => (needsReview ? sendView({ kind: 'review', open: true }) : void save())}
-                  />
-                </Toolbar.Cluster>
-              </Toolbar.Right>
-            </Toolbar>
+                  </Toolbar.Left>
+                  <Toolbar.Right label="Editing actions">
+                    <Toolbar.Cluster kind="about">
+                      <StatusInfo label="Rulebook status" statuses={statuses} />
+                    </Toolbar.Cluster>
+                    <Toolbar.Cluster kind="content">
+                      {settingsAction}
+                      {loadAction}
+                      <IconAction
+                        label="Reset unsaved edits"
+                        intent="negative"
+                        emphasis="standard"
+                        size="lg"
+                        disabled={!hasLocalChanges || result.isSaving || needsReview}
+                        icon={<Undo2 size={17} aria-hidden />}
+                        onClick={() => dispatch({ kind: 'discard-draft' })}
+                      />
+                      {data.canRename ? (
+                        <IconAction
+                          label="Rename Rulebook"
+                          tooltip={`Rename ${data.rulebook.name}`}
+                          intent="neutral"
+                          emphasis="standard"
+                          size="lg"
+                          disabledReason={
+                            hasLocalChanges || needsReview || result.isSaving
+                              ? 'Save your changes before renaming this Rulebook.'
+                              : undefined
+                          }
+                          icon={<TextCursorInput size={17} aria-hidden />}
+                          onClick={() => sendView({ kind: 'rename', open: !view.renaming })}
+                        />
+                      ) : null}
+                      <IconAction
+                        label={`Fit ${fit === 'height' ? 'width' : 'height'}`}
+                        intent="neutral"
+                        emphasis="standard"
+                        size="lg"
+                        icon={
+                          fit === 'height' ? (
+                            <MoveHorizontal size={17} aria-hidden />
+                          ) : (
+                            <MoveVertical size={17} aria-hidden />
+                          )
+                        }
+                        onClick={() => sendView({ kind: 'fit' })}
+                      />
+                    </Toolbar.Cluster>
+                    <Toolbar.Cluster kind="commit">
+                      {/* Held like a deletion, because an Edition is as permanent, and violet, because it is not a second Save (Norbert, 2026-09-29). */}
+                      <ConfirmPublishAction
+                        label={`Publish Edition ${nextEditionNumber}`}
+                        pending={publishMutation.isPending}
+                        disabledReason={publishBlocker}
+                        onConfirm={() => void publish()}
+                      />
+                      {/* Save last, as on every editor. Its name and glyph carry the draft's state, since there are no words beside it. */}
+                      <SaveAction
+                        label={saveLabel}
+                        state={
+                          result.isSaving
+                            ? 'saving'
+                            : hasLocalChanges || needsReview
+                              ? 'dirty'
+                              : view.notice === 'saved'
+                                ? 'saved'
+                                : 'clean'
+                        }
+                        lines={saveLines}
+                        disabled={!needsReview && !result.canSave}
+                        icon={needsReview ? <GitCompareArrows size={17} aria-hidden /> : undefined}
+                        onSave={() => (needsReview ? sendView({ kind: 'review', open: true }) : void save())}
+                      />
+                    </Toolbar.Cluster>
+                  </Toolbar.Right>
+                </Toolbar>
+              )}
+            </RulebookSettingsPopover>
           )}
         </LoadExisting>
       </PageLayout.Toolbar>
@@ -3357,13 +3416,21 @@ function RulebookEditorSession({
               />
             </Surface>
           ) : null}
-          <RulebookSettingsEditor
-            settings={result.settings}
-            layoutIds={result.draft.pageOrder.map((id) => result.draft.pagesById[id]!.layoutId)}
-            conflict={result.settingsConflict}
-            onChange={(settings) => dispatch({ kind: 'replace-settings', settings })}
-            onResolve={(choice) => dispatch({ kind: 'resolve-settings', choice })}
-          />
+          {result.settingsConflict ? (
+            <Alert color="red" title="Book settings changed in another editor">
+              <Stack gap="sm">
+                <Text>Choose which size and design to save. Your Contents changes stay in the draft.</Text>
+                <Group>
+                  <Button onClick={() => dispatch({ kind: 'resolve-settings', choice: 'local' })}>
+                    Keep my settings
+                  </Button>
+                  <Button onClick={() => dispatch({ kind: 'resolve-settings', choice: 'saved' })}>
+                    Use saved settings
+                  </Button>
+                </Group>
+              </Stack>
+            </Alert>
+          ) : null}
           {result.operationError ? <Alert color="red">{result.operationError}</Alert> : null}
           {publishMutation.error ? (
             <Alert color="red" role="alert" title="Edition could not be published">

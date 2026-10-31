@@ -37,10 +37,6 @@
   outline-offset: 0.35cqw;
 }
 
-.pageTitle {
-  flex: 1;
-  min-width: 8rem;
-}
 .selectionPreview,
 .previewDocument {
   position: relative;
