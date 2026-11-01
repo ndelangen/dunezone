@@ -50,6 +50,7 @@
 
 .surface {
   position: relative;
+  container-type: size;
   aspect-ratio: 4 / 3;
   overflow: hidden;
   border: 1px solid rgb(136 114 82 / 60%);
@@ -98,13 +99,15 @@
   stroke-width: 1;
 }
 
-/* Hands and dots sit at percentages of the surface; until the loop runs, both hands rest in the middle. */
+/* Hands and dots are placed by `translate` in the pane's own container units, which the compositor applies without a layout; until the loop runs, both hands rest in the middle. */
 .hand {
   position: absolute;
-  top: 50%;
-  left: 50%;
+  top: 0;
+  left: 0;
   width: 0;
   height: 0;
+  translate: 50cqw 50cqh;
+  will-change: translate;
 }
 
 .dots {
@@ -114,15 +117,17 @@
 
 .dot {
   position: absolute;
-  top: 50%;
-  left: 50%;
+  top: 0;
+  left: 0;
   width: 8px;
   height: 8px;
   border: 1.5px solid #211d18;
   border-radius: 50%;
   background: var(--ink);
   opacity: 0;
+  translate: 50cqw 50cqh;
   transform: translate(-50%, -50%);
+  will-change: translate, opacity;
 }
 
 .controls {

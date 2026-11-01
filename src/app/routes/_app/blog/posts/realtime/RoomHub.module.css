@@ -18,12 +18,31 @@
   padding-block: var(--space-sm);
 }
 
+/* The drawing's box, sized by its aspect ratio so the pulses over it can be placed in its own units: `--u` is one unit of the 480 wide viewBox. */
+.stage {
+  --u: calc(100cqw / 480);
+
+  position: relative;
+  width: 100%;
+  container-type: size;
+}
+
 .scene {
   display: block;
   width: 100%;
-  height: auto;
+  height: 100%;
   overflow: visible;
   filter: drop-shadow(0 0 2px rgb(0 0 0 / 85%));
+}
+
+.pulses {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.contents {
+  display: contents;
 }
 
 .link {
@@ -139,39 +158,58 @@
   stroke-linejoin: round;
 }
 
-/* A pulse glides along its line between `--x0 --y0` and `--x1 --y1`, set per pulse by the component. */
+/* A pulse glides along its line between `--x0 --y0` and `--x1 --y1`, set per pulse by the component; only `translate` and opacity change while it runs. */
 .up,
-.out {
+.out,
+.saveRing,
+.flash {
   --x0: 0;
   --y0: 0;
   --x1: 0;
   --y1: 0;
 
-  fill: var(--seat, var(--ink));
+  position: absolute;
+  top: 0;
+  left: 0;
   opacity: 0;
+  translate: calc(var(--x0) * var(--u)) calc(var(--y0) * var(--u));
   animation: glide var(--cycle) cubic-bezier(0.4, 0, 0.6, 1) 1 forwards;
 }
 
+.up,
 .out {
-  fill: var(--ink);
+  width: calc(10 * var(--u));
+  height: calc(10 * var(--u));
+  margin: calc(-5 * var(--u));
+  border-radius: 50%;
+  background: var(--seat, var(--ink));
+  box-shadow: 0 0 2px rgb(0 0 0 / 85%);
+  will-change: translate, opacity;
+}
+
+.out {
+  width: calc(8 * var(--u));
+  height: calc(8 * var(--u));
+  margin: calc(-4 * var(--u));
+  background: var(--ink);
   animation-name: glide-out;
 }
 
 @keyframes glide {
   0% {
     opacity: 1;
-    transform: translate(calc(var(--x0) * 1px), calc(var(--y0) * 1px));
+    translate: calc(var(--x0) * var(--u)) calc(var(--y0) * var(--u));
   }
 
   22% {
     opacity: 1;
-    transform: translate(calc(var(--x1) * 1px), calc(var(--y1) * 1px));
+    translate: calc(var(--x1) * var(--u)) calc(var(--y1) * var(--u));
   }
 
   24%,
   100% {
     opacity: 0;
-    transform: translate(calc(var(--x1) * 1px), calc(var(--y1) * 1px));
+    translate: calc(var(--x1) * var(--u)) calc(var(--y1) * var(--u));
   }
 }
 
@@ -179,7 +217,7 @@
   0%,
   38% {
     opacity: 0;
-    transform: translate(calc(var(--x0) * 1px), calc(var(--y0) * 1px));
+    translate: calc(var(--x0) * var(--u)) calc(var(--y0) * var(--u));
   }
 
   40% {
@@ -188,32 +226,33 @@
 
   62% {
     opacity: 1;
-    transform: translate(calc(var(--x1) * 1px), calc(var(--y1) * 1px));
+    translate: calc(var(--x1) * var(--u)) calc(var(--y1) * var(--u));
   }
 
   64%,
   100% {
     opacity: 0;
-    transform: translate(calc(var(--x1) * 1px), calc(var(--y1) * 1px));
+    translate: calc(var(--x1) * var(--u)) calc(var(--y1) * var(--u));
   }
 }
 
 /* The database blinks as the room saves, between the pulse in and the pulses out. */
 .saveRing {
-  fill: none;
-  stroke: var(--spice);
-  stroke-width: 2;
-  opacity: 0;
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: save var(--cycle) ease-out 1 forwards;
+  box-sizing: border-box;
+  width: calc(44 * var(--u));
+  height: calc(44 * var(--u));
+  margin: calc(-22 * var(--u));
+  border: 2px solid var(--spice);
+  border-radius: 50%;
+  animation-name: save;
+  animation-timing-function: ease-out;
 }
 
 @keyframes save {
   0%,
   22% {
     opacity: 0;
-    transform: scale(0.6);
+    scale: 0.6;
   }
 
   26% {
@@ -223,16 +262,19 @@
   38%,
   100% {
     opacity: 0;
-    transform: scale(1.1);
+    scale: 1.1;
   }
 }
 
 .flash {
   --seat: #bfb09a;
 
-  fill: var(--seat);
-  opacity: 0;
-  animation: flash var(--cycle) ease-out 1 forwards;
+  width: calc(112 * var(--u));
+  height: calc(70 * var(--u));
+  border-radius: calc(6 * var(--u));
+  background: var(--seat);
+  animation-name: flash;
+  animation-timing-function: ease-out;
 }
 
 @keyframes flash {
@@ -280,63 +322,21 @@
   font-size: 0.65rem;
 }
 
-/* While the loop runs, each step lights up for its share of the round. */
+/* While the loop runs, the step whose moment it is stands out; the switch is a class change from a timer, so nothing animates on the text itself. */
 .legendPlaying .step {
+  color: var(--ink);
   opacity: 0.45;
-  animation: var(--cycle) steps(1) 1 forwards;
 }
 
-.legendPlaying .step:nth-child(1) {
-  animation-name: step-one;
-}
-
-.legendPlaying .step:nth-child(2) {
-  animation-name: step-two;
-}
-
-.legendPlaying .step:nth-child(3) {
-  animation-name: step-three;
-}
-
-@keyframes step-one {
-  0% {
-    opacity: 1;
-    color: var(--ink);
-  }
-
-  22% {
-    opacity: 0.45;
-  }
-}
-
-@keyframes step-two {
-  22% {
-    opacity: 1;
-    color: var(--ink);
-  }
-
-  40% {
-    opacity: 0.45;
-  }
-}
-
-@keyframes step-three {
-  40% {
-    opacity: 1;
-    color: var(--ink);
-  }
-
-  80% {
-    opacity: 0.45;
-  }
+.legendPlaying .lit {
+  opacity: 1;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .up,
   .out,
   .saveRing,
-  .flash,
-  .legendPlaying .step {
+  .flash {
     animation: none;
   }
 }

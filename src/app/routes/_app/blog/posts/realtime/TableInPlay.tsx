@@ -1,6 +1,7 @@
 import { resolveAsset } from '@shared/media/resolveAsset';
 import { PublishedImage } from '@ui/content/PublishedImage';
-import { useEffect, useRef } from 'react';
+import clsx from 'clsx';
+import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 
 import { useReducedMotion } from './motion';
@@ -13,6 +14,7 @@ import { useSeen } from './useSeen';
  * The capture is a still, so the hands are drawn on top: five pointers in player colours that wander between the pieces, pause as if thinking, and now and then dart to a deck.
  * Every hand's pretend pointer is sampled twenty times a second and the drawn hand glides after it with the table's own smoothing, so they move the way hands on the real table do.
  * Positions are percentages of the picture, so the hands stay on their pieces at any width; until scripts run, and under reduced motion, each rests at its starting spot.
+ * A frame only changes each hand's `translate`, which the compositor applies without a layout, and the loop runs only while the figure is in view.
  */
 
 const IMAGE_KEY = '/web/blog/playing-dune-online-in-real-time/table-in-play.jpg';
@@ -136,8 +138,8 @@ function PlayerHand({ player, handRef }: { player: Player; handRef: (element: HT
       className={styles.hand}
       style={
         {
-          left: `${player.start.x}%`,
-          top: `${player.start.y}%`,
+          '--x': player.start.x,
+          '--y': player.start.y,
           '--seat': player.color,
           '--ink': player.dark ? '#f0e8da' : '#171511',
         } as CSSProperties
@@ -159,10 +161,45 @@ function PlayerHand({ player, handRef }: { player: Player; handRef: (element: HT
 
 export function TableInPlay() {
   const rootRef = useRef<HTMLDivElement>(null);
+  const pictureRef = useRef<HTMLDivElement>(null);
   const hands = useRef<(HTMLSpanElement | null)[]>([]);
-  const { armed, seen } = useSeen(rootRef);
+  const { armed, seen, active } = useSeen(rootRef);
   const reduced = useReducedMotion();
-  const playing = armed && seen && !reduced;
+  const playing = armed && seen && !reduced && active;
+  const [pictureReady, setPictureReady] = useState(false);
+
+  /* The picture's img arrives when `PublishedImage` decides to fetch it, so the layer watches for it and for its load; a picture that fails still lets the hands show over the sand. */
+  useEffect(() => {
+    const picture = pictureRef.current;
+    if (!picture) {
+      return;
+    }
+    let watched: HTMLImageElement | null = null;
+    const ready = () => setPictureReady(true);
+    const check = () => {
+      const image = picture.querySelector('img');
+      if (!image || image === watched) {
+        return;
+      }
+      watched?.removeEventListener('load', ready);
+      watched?.removeEventListener('error', ready);
+      watched = image;
+      if (image.complete && image.naturalWidth > 0) {
+        ready();
+        return;
+      }
+      image.addEventListener('load', ready);
+      image.addEventListener('error', ready);
+    };
+    const observer = new MutationObserver(check);
+    observer.observe(picture, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
+    check();
+    return () => {
+      observer.disconnect();
+      watched?.removeEventListener('load', ready);
+      watched?.removeEventListener('error', ready);
+    };
+  }, []);
 
   useEffect(() => {
     if (!playing) {
@@ -195,8 +232,7 @@ export function TableInPlay() {
         current.y += (target.y - current.y) * amount;
         const element = hands.current[index];
         if (element) {
-          element.style.left = `${current.x}%`;
-          element.style.top = `${current.y}%`;
+          element.style.translate = `${current.x}cqw ${current.y}cqh`;
         }
       });
       frame = requestAnimationFrame(step);
@@ -214,14 +250,14 @@ export function TableInPlay() {
       role="img"
       aria-label={`${ALT}. Five other players' hands move over it.`}
     >
-      <div className={styles.picture}>
+      <div ref={pictureRef} className={styles.picture}>
         <PublishedImage src={src} name={ALT} aspect={ASPECT} radius="var(--mantine-radius-md)" raised />
         {/* `PublishedImage` draws its image only once the browser runs, so readers and crawlers without scripts get it here. */}
         <noscript>
           <img src={src} alt={ALT} className={styles.fallback} />
         </noscript>
       </div>
-      <div className={styles.hands} aria-hidden="true">
+      <div className={clsx(styles.hands, !pictureReady && armed && styles.handsWaiting)} aria-hidden="true">
         {PLAYERS.map((player, index) => (
           <PlayerHand
             key={player.name}

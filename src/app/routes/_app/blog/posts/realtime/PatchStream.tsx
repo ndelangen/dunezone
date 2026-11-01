@@ -174,13 +174,16 @@ export function PatchStream() {
                 <span className={styles.barUnknown} />
               ) : (
                 <span className={styles.bar} style={{ '--share': bar.bytes / FULL_VIEW } as CSSProperties}>
+                  <span className={styles.fill}>
+                    {bar.trimmed ? (
+                      <span className={styles.trim} style={{ '--share': bar.trimmed / bar.bytes } as CSSProperties} />
+                    ) : null}
+                  </span>
                   {bar.waste ? (
                     <span className={styles.waste} style={{ '--share': bar.waste.share } as CSSProperties}>
+                      <span className={styles.wasteFill} />
                       <span className={styles.wasteLabel}>{bar.waste.label}</span>
                     </span>
-                  ) : null}
-                  {bar.trimmed ? (
-                    <span className={styles.trim} style={{ '--share': bar.trimmed / bar.bytes } as CSSProperties} />
                   ) : null}
                 </span>
               )}

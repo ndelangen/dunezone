@@ -30,17 +30,31 @@
 .hands {
   position: absolute;
   inset: 0;
+  container-type: size;
   pointer-events: none;
+  transition: opacity 500ms ease;
+}
+
+/* The hands wait for the picture, so they never float over an empty box. */
+.handsWaiting {
+  opacity: 0;
 }
 
 /* A hand's tip is the element's origin; the glyph hangs down and right of it, the tag beside the palm. */
+/* Its place is `--x` and `--y` in percent of the picture, applied as a translate in the layer's container units, so a frame moves it without a layout. */
 .hand {
   --seat: #bfb09a;
   --unit: clamp(18px, 1.96cqw, 44px);
+  --x: 50;
+  --y: 50;
 
   position: absolute;
+  top: 0;
+  left: 0;
   width: 0;
   height: 0;
+  translate: calc(var(--x) * 1cqw) calc(var(--y) * 1cqh);
+  will-change: translate;
 }
 
 .glyph {

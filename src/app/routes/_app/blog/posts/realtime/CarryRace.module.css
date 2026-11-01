@@ -24,6 +24,7 @@
 /* Harkonnen's screen: a strip of the sand with the troop on it, moving to `--at` of the width. */
 .strip {
   position: relative;
+  container-type: size;
   height: 4rem;
   margin-block-end: var(--space-sm);
   overflow: hidden;
@@ -55,9 +56,11 @@
   --at: 0;
 
   position: absolute;
-  left: calc(var(--at) * (100% - 3rem) + 1.5rem);
+  left: 0;
+  /* The place along the strip is a translate, so the move is the compositor's and never a layout. */
+  translate: calc(var(--at) * (100cqw - 3rem) + 1.5rem) 0;
   transition:
-    left 500ms cubic-bezier(0.3, 0.7, 0.3, 1),
+    translate 500ms cubic-bezier(0.3, 0.7, 0.3, 1),
     transform 300ms ease,
     opacity 300ms ease,
     box-shadow 300ms ease;

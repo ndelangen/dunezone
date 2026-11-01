@@ -35,6 +35,13 @@ const SENDERS = BROWSERS.filter((browser) => browser.seat !== 'spectator');
 
 /** One round of the loop, in milliseconds; the stylesheet's `--cycle` matches it. */
 const CYCLE_MS = 4200;
+/** When in a round each legend step lights, as a share of the cycle, and -1 for the quiet tail. */
+const PHASES: [number, number][] = [
+  [0, 0],
+  [0.22, 1],
+  [0.4, 2],
+  [0.8, -1],
+];
 
 function centre(browser: Browser) {
   return { x: browser.x + BROWSER.width / 2, y: browser.y + BROWSER.height / 2 };
@@ -83,18 +90,29 @@ function Screen({ browser }: { browser: Browser }) {
 
 export function RoomHub() {
   const rootRef = useRef<HTMLDivElement>(null);
-  const { armed, seen } = useSeen(rootRef);
+  const { armed, seen, active } = useSeen(rootRef);
   const reduced = useReducedMotion();
   const playing = armed && seen && !reduced;
   const [round, setRound] = useState(0);
 
+  /* The rounds only keep coming while the figure is in view; a round already running finishes on its own. */
   useEffect(() => {
-    if (!playing) {
+    if (!playing || !active) {
       return;
     }
     const timer = setInterval(() => setRound((count) => count + 1), CYCLE_MS);
     return () => clearInterval(timer);
-  }, [playing]);
+  }, [playing, active]);
+
+  /* Which legend step is lit, set from timers rather than a CSS animation, since an animated colour or opacity on text made the page lay out each frame. */
+  const [phase, setPhase] = useState(-1);
+  useEffect(() => {
+    if (!playing) {
+      return;
+    }
+    const timers = PHASES.map(([at, next]) => setTimeout(() => setPhase(next), at * CYCLE_MS));
+    return () => timers.forEach((timer) => clearTimeout(timer));
+  }, [playing, round]);
 
   const sender = SENDERS[round % SENDERS.length]!;
   const from = centre(sender);
@@ -106,59 +124,58 @@ export function RoomHub() {
       role="img"
       aria-label="One room per game, with four browsers connected to it"
     >
-      <svg
-        className={styles.scene}
-        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-        style={{ '--cycle': `${CYCLE_MS}ms` } as CSSProperties}
+      <div
+        className={styles.stage}
+        style={{ '--cycle': `${CYCLE_MS}ms`, aspectRatio: `${WIDTH} / ${HEIGHT}` } as CSSProperties}
       >
-        {/* Every browser's connection, drawn before the boxes so they cover the ends. */}
-        {BROWSERS.map((browser) => {
-          const point = centre(browser);
-          return (
-            <line
-              key={browser.seat}
-              x1={point.x}
-              y1={point.y}
-              x2={CENTRE.x}
-              y2={CENTRE.y}
-              className={clsx(styles.link, playing && browser.seat === sender.seat && styles.activeLink)}
-            />
-          );
-        })}
+        <svg className={styles.scene} viewBox={`0 0 ${WIDTH} ${HEIGHT}`}>
+          {/* Every browser's connection, drawn before the boxes so they cover the ends. */}
+          {BROWSERS.map((browser) => {
+            const point = centre(browser);
+            return (
+              <line
+                key={browser.seat}
+                x1={point.x}
+                y1={point.y}
+                x2={CENTRE.x}
+                y2={CENTRE.y}
+                className={clsx(styles.link, playing && browser.seat === sender.seat && styles.activeLink)}
+              />
+            );
+          })}
 
-        {/* The site's database, off the hot path. */}
-        <line x1={CENTRE.x} y1={ROOM.y + ROOM.height} x2={CENTRE.x} y2={HEIGHT - 40} className={styles.faint} />
-        <g transform={`translate(${CENTRE.x} ${HEIGHT - 40})`} className={styles.convex}>
-          <rect x="-54" y="0" width="108" height="34" rx="4" />
-          <text x="0" y="14" className={styles.label}>
-            Convex
-          </text>
-          <text x="0" y="27" className={styles.tiny}>
-            who may enter
-          </text>
-        </g>
+          {/* The site's database, off the hot path. */}
+          <line x1={CENTRE.x} y1={ROOM.y + ROOM.height} x2={CENTRE.x} y2={HEIGHT - 40} className={styles.faint} />
+          <g transform={`translate(${CENTRE.x} ${HEIGHT - 40})`} className={styles.convex}>
+            <rect x="-54" y="0" width="108" height="34" rx="4" />
+            <text x="0" y="14" className={styles.label}>
+              Convex
+            </text>
+            <text x="0" y="27" className={styles.tiny}>
+              who may enter
+            </text>
+          </g>
 
-        {/* The room. */}
-        <g className={styles.room}>
-          <rect x={ROOM.x} y={ROOM.y} width={ROOM.width} height={ROOM.height} rx="8" />
-          <text x={CENTRE.x} y={ROOM.y + 22} className={styles.title}>
-            Room
-          </text>
-          <text x={CENTRE.x} y={ROOM.y + 36} className={styles.tiny}>
-            one per game
-          </text>
-          <Database x={CENTRE.x} y={ROOM.y + 72} />
-        </g>
+          {/* The room. */}
+          <g className={styles.room}>
+            <rect x={ROOM.x} y={ROOM.y} width={ROOM.width} height={ROOM.height} rx="8" />
+            <text x={CENTRE.x} y={ROOM.y + 22} className={styles.title}>
+              Room
+            </text>
+            <text x={CENTRE.x} y={ROOM.y + 36} className={styles.tiny}>
+              one per game
+            </text>
+            <Database x={CENTRE.x} y={ROOM.y + 72} />
+          </g>
 
-        {BROWSERS.map((browser) => (
-          <Screen key={browser.seat} browser={browser} />
-        ))}
-
-        {/* The pulses of one round; the key restarts their animations each round. */}
+          {BROWSERS.map((browser) => (
+            <Screen key={browser.seat} browser={browser} />
+          ))}
+        </svg>
+        {/* The pulses of one round, as plain elements over the drawing so their motion is a composited translate and never a layout of the SVG; the key restarts them each round. */}
         {playing ? (
-          <g key={round}>
-            <circle
-              r="5"
+          <div key={round} className={styles.pulses} aria-hidden="true">
+            <span
               className={styles.up}
               style={
                 {
@@ -170,42 +187,34 @@ export function RoomHub() {
                 } as CSSProperties
               }
             />
-            <circle cx={CENTRE.x} cy={ROOM.y + 72} r="22" className={styles.saveRing} />
+            <span className={styles.saveRing} style={{ '--x0': CENTRE.x, '--y0': ROOM.y + 72 } as CSSProperties} />
             {BROWSERS.map((browser) => {
               const to = centre(browser);
               return (
-                <g key={browser.seat}>
-                  <circle
-                    r="4"
+                <span key={browser.seat} className={styles.contents}>
+                  <span
                     className={styles.out}
                     style={{ '--x0': CENTRE.x, '--y0': CENTRE.y, '--x1': to.x, '--y1': to.y } as CSSProperties}
                   />
                   {/* The screen lights for a moment as the update lands. */}
-                  <rect
-                    x={browser.x}
-                    y={browser.y}
-                    width={BROWSER.width}
-                    height={BROWSER.height}
-                    rx="6"
+                  <span
                     className={styles.flash}
-                    style={{ '--seat': SEATS[browser.seat].color } as CSSProperties}
+                    style={
+                      { '--x0': browser.x, '--y0': browser.y, '--seat': SEATS[browser.seat].color } as CSSProperties
+                    }
                   />
-                </g>
+                </span>
               );
             })}
-          </g>
+          </div>
         ) : null}
-      </svg>
-      <ol className={clsx(styles.legend, playing && styles.legendPlaying)} key={playing ? round : 'still'}>
-        <li className={styles.step}>
-          <span className={styles.number}>1</span> a move goes in
-        </li>
-        <li className={styles.step}>
-          <span className={styles.number}>2</span> the room saves it
-        </li>
-        <li className={styles.step}>
-          <span className={styles.number}>3</span> every screen gets the update
-        </li>
+      </div>
+      <ol className={clsx(styles.legend, playing && styles.legendPlaying)}>
+        {['a move goes in', 'the room saves it', 'every screen gets the update'].map((text, index) => (
+          <li key={text} className={clsx(styles.step, playing && phase === index && styles.lit)}>
+            <span className={styles.number}>{index + 1}</span> {text}
+          </li>
+        ))}
       </ol>
     </div>
   );

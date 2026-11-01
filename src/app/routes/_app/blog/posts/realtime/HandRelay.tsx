@@ -13,6 +13,7 @@ import { useSeen } from './useSeen';
  * The numbers are the table's own: a position leaves at most every 50 ms, the room gathers 50 ms of motion before it sends, and the receiving browser glides its copy of the hand with `1 - exp(-24 * dt)` of the remaining distance each frame.
  * The wire between the two is pretended here, with 30 to 60 ms each way, so the right side runs 60 to 120 ms behind the left plus the room's batch.
  * Until the reader moves over the table, and whenever they stop for a while, a wander path moves the hand so the demo shows itself.
+ * Hands and dots are placed with `translate` in container units of their pane, so a frame changes nothing but a composited transform; the loop sleeps while the figure is out of view and whenever nothing is left to move.
  */
 
 const SAMPLE_MS = 50;
@@ -35,6 +36,11 @@ function wander(time: number): Point {
     x: 0.5 + 0.3 * Math.sin(time / 1900) + 0.06 * Math.sin(time / 530),
     y: 0.5 + 0.28 * Math.sin(time / 1300 + 1.2) + 0.05 * Math.cos(time / 470),
   };
+}
+
+/** Puts an element at a share of its pane, as a translate the compositor applies without a layout. */
+function place(element: HTMLElement, point: Point) {
+  element.style.translate = `${point.x * 100}cqw ${point.y * 100}cqh`;
 }
 
 /** A stylised round table: sand, a faint ring of sectors and the sink in the middle. */
@@ -66,27 +72,33 @@ export function HandRelay() {
   const localHandRef = useRef<HTMLSpanElement>(null);
   const remoteHandRef = useRef<HTMLSpanElement>(null);
   const dotsRef = useRef<HTMLDivElement>(null);
-  const { armed, seen } = useSeen(rootRef);
+  const { armed, seen, active } = useSeen(rootRef);
   const reduced = useReducedMotion();
   const [smoothing, setSmoothing] = useState(true);
 
   /* What the frame loop reads without re-rendering: the pointer, the setting and whether to wander. */
   const pointer = useRef<{ point: Point; at: number } | null>(null);
   const settings = useRef({ smoothing: true, wander: true });
+  /* Wakes the loop after it has settled, which a pointer move does. */
+  const wake = useRef<() => void>(() => {});
   useEffect(() => {
     settings.current = { smoothing, wander: !reduced };
+    wake.current();
   }, [smoothing, reduced]);
+
+  const running = armed && seen && active;
 
   useEffect(() => {
     const localHand = localHandRef.current;
     const remoteHand = remoteHandRef.current;
     const dotLayer = dotsRef.current;
-    if (!armed || !seen || !localHand || !remoteHand || !dotLayer) {
+    if (!running || !localHand || !remoteHand || !dotLayer) {
       return;
     }
     const dots = Array.from(dotLayer.children) as HTMLElement[];
     const dotAges: number[] = dots.map(() => Number.NEGATIVE_INFINITY);
     let nextDot = 0;
+    let lastDotAt = Number.NEGATIVE_INFINITY;
 
     let local: Point = { x: 0.5, y: 0.5 };
     let lastSent: Point | null = null;
@@ -96,19 +108,17 @@ export function HandRelay() {
     let shown: Point = local;
     let lastFrame = performance.now();
 
-    const place = (element: HTMLElement, point: Point) => {
-      element.style.left = `${point.x * 100}%`;
-      element.style.top = `${point.y * 100}%`;
-    };
-
     let frame = 0;
+    let awake = false;
+
     const step = (now: number) => {
       const dt = Math.min(0.1, (now - lastFrame) / 1000);
       lastFrame = now;
 
       /* The hand under the reader's pointer, or the wander path once they have left it alone for a while. */
       const held = pointer.current;
-      if (held && now - held.at < IDLE_MS) {
+      const holding = Boolean(held && now - held.at < IDLE_MS);
+      if (held && holding) {
         local = held.point;
       } else if (settings.current.wander) {
         local = wander(now);
@@ -129,6 +139,7 @@ export function HandRelay() {
         const dot = dots[nextDot]!;
         place(dot, target);
         dotAges[nextDot] = now;
+        lastDotAt = now;
         nextDot = (nextDot + 1) % dots.length;
       }
 
@@ -145,11 +156,36 @@ export function HandRelay() {
         dots[index]!.style.opacity = age < DOT_LIFE_MS ? String(1 - age / DOT_LIFE_MS) : '0';
       }
 
+      /* Nothing left to move: no pointer, no wander, nothing in the air, the hand home and the dots gone. The loop sleeps until woken. */
+      const settled =
+        !holding &&
+        !settings.current.wander &&
+        inFlight.length === 0 &&
+        Math.hypot(target.x - shown.x, target.y - shown.y) < 0.0005 &&
+        now - lastDotAt > DOT_LIFE_MS;
+      if (settled) {
+        awake = false;
+        return;
+      }
       frame = requestAnimationFrame(step);
     };
-    frame = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(frame);
-  }, [armed, seen]);
+
+    const start = () => {
+      if (awake) {
+        return;
+      }
+      awake = true;
+      lastFrame = performance.now();
+      frame = requestAnimationFrame(step);
+    };
+    wake.current = start;
+    start();
+    return () => {
+      wake.current = () => {};
+      awake = false;
+      cancelAnimationFrame(frame);
+    };
+  }, [running]);
 
   const onPointer = (event: PointerEvent<HTMLDivElement>) => {
     const box = event.currentTarget.getBoundingClientRect();
@@ -160,6 +196,7 @@ export function HandRelay() {
       },
       at: performance.now(),
     };
+    wake.current();
   };
 
   return (

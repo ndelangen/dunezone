@@ -126,6 +126,7 @@
 /* The wire: a line down the middle of its cell, with the packets placed on it by `left` (or `top` on a phone). */
 .wire {
   position: relative;
+  container-type: size;
   min-height: 6.5rem;
 }
 
@@ -139,8 +140,10 @@
 
 .packet {
   position: absolute;
-  top: 50%;
+  top: 0;
   left: 0;
+  /* Its place on the wire is `translate` in the wire's container units; the flights animate only that and opacity. */
+  translate: 0 50cqh;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -199,6 +202,7 @@
 }
 
 .flying {
+  will-change: translate;
   animation: fly-x var(--step) cubic-bezier(0.3, 0, 0.7, 1) 1 both;
 }
 
@@ -208,6 +212,7 @@
 
 /* The lost packet gets halfway, judders and breaks; the rest state keeps it there, crossed out, until the loop starts over. */
 .flyingLost {
+  will-change: translate, transform, opacity;
   animation: lose-x var(--step) ease-out 1 both;
 }
 
@@ -218,8 +223,7 @@
 }
 
 .lostRest {
-  top: 50%;
-  left: 50%;
+  translate: 50cqw 50cqh;
   opacity: 0.6;
   transform: translate(-50%, -50%) rotate(-8deg);
 }
@@ -252,33 +256,33 @@
 
 @keyframes fly-x {
   from {
-    left: 0;
+    translate: 0 50cqh;
   }
 
   to {
-    left: 100%;
+    translate: 100cqw 50cqh;
   }
 }
 
 @keyframes fly-x-back {
   from {
-    left: 100%;
+    translate: 100cqw 50cqh;
   }
 
   to {
-    left: 0;
+    translate: 0 50cqh;
   }
 }
 
 @keyframes lose-x {
   0% {
-    left: 0;
+    translate: 0 50cqh;
     opacity: 1;
     transform: translate(-50%, -50%);
   }
 
   50% {
-    left: 50%;
+    translate: 50cqw 50cqh;
     opacity: 1;
     transform: translate(-50%, -50%);
   }
@@ -292,7 +296,7 @@
   }
 
   100% {
-    left: 50%;
+    translate: 50cqw 50cqh;
     opacity: 0.6;
     transform: translate(-50%, -50%) rotate(-8deg);
   }
@@ -331,36 +335,55 @@
   --share: 1;
 
   position: relative;
-  display: flex;
-  justify-content: flex-end;
+  display: block;
   box-sizing: border-box;
   width: calc(var(--share) * 100%);
   min-width: 3px;
   height: 1.1rem;
   overflow: hidden;
   border-radius: 0 3px 3px 0;
-  background: var(--sand);
-  transition: width 900ms cubic-bezier(0.2, 0.8, 0.2, 1) calc(var(--row) * 150ms);
 }
 
-.waiting .bar {
-  width: 0;
+/* The paint of a bar grows by a scale from its left end, so the growth is composited and the label over it is never stretched. */
+.fill,
+.wasteFill {
+  position: absolute;
+  inset: 0;
+  transform-origin: left center;
+  transition: transform 900ms cubic-bezier(0.2, 0.8, 0.2, 1) calc(var(--row) * 150ms);
+}
+
+.fill {
+  background: var(--sand);
+}
+
+.waiting .fill,
+.waiting .wasteFill {
+  transform: scaleX(0);
 }
 
 /* The share of a bar that carried nothing new, hatched. */
 .waste {
   --share: 0;
 
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
   display: flex;
   align-items: center;
   width: calc(var(--share) * 100%);
-  height: 100%;
   padding-inline-start: 0.4rem;
+}
+
+.wasteFill {
   background: repeating-linear-gradient(135deg, rgb(23 21 17 / 45%) 0 3px, transparent 3px 7px);
   box-shadow: inset 2px 0 0 #211d18;
 }
 
 .wasteLabel {
+  position: relative;
+  transition: opacity 400ms ease calc(var(--row) * 150ms + 600ms);
   overflow: hidden;
   color: #211d18;
   font-family: var(--mono);
@@ -425,12 +448,11 @@
   }
 
   .packet {
-    top: 0;
-    left: 50%;
+    translate: 50cqw 0;
   }
 
   .lostRest {
-    top: 50%;
+    translate: 50cqw 50cqh;
   }
 
   .flying {
@@ -462,33 +484,33 @@
 
 @keyframes fly-y {
   from {
-    top: 0;
+    translate: 50cqw 0;
   }
 
   to {
-    top: 100%;
+    translate: 50cqw 100cqh;
   }
 }
 
 @keyframes fly-y-back {
   from {
-    top: 100%;
+    translate: 50cqw 100cqh;
   }
 
   to {
-    top: 0;
+    translate: 50cqw 0;
   }
 }
 
 @keyframes lose-y {
   0% {
-    top: 0;
+    translate: 50cqw 0;
     opacity: 1;
     transform: translate(-50%, -50%);
   }
 
   50% {
-    top: 50%;
+    translate: 50cqw 50cqh;
     opacity: 1;
     transform: translate(-50%, -50%);
   }
@@ -502,10 +524,14 @@
   }
 
   100% {
-    top: 50%;
+    translate: 50cqw 50cqh;
     opacity: 0.6;
     transform: translate(-50%, -50%) rotate(-8deg);
   }
+}
+
+.waiting .wasteLabel {
+  opacity: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -514,7 +540,9 @@
     animation: none;
   }
 
-  .bar {
+  .fill,
+  .wasteFill,
+  .wasteLabel {
     transition: none;
   }
 }
