@@ -54,10 +54,12 @@ const PLAYING_ROOTS = new Set(['play', 'tutorial', 'auth', 'profiles', 'admin'])
 /* Roots that are Creating content all the way down: the guides, the artwork library and the importer. */
 const CREATING_ROOTS = new Set(['create', 'media', 'imports']);
 
-/** Whether a path opens an editor: it ends in `create`, other than asking an FAQ question, or passes through an `edit` segment. */
+/* Segments that open an editor or an authoring action, wherever in the path they appear. */
+const EDITOR_SEGMENTS = new Set(['create', 'edit', 'editions', 'convert-to-spice']);
+
+/** Whether a path opens an editor; asking an FAQ question is a reader's act, so `faq/create` is not one. */
 function isEditor(segments: readonly string[]): boolean {
-  const createsSomething = segments.at(-1) === 'create' && segments.at(-2) !== 'faq';
-  return createsSomething || segments.includes('edit');
+  return segments.some((segment, index) => EDITOR_SEGMENTS.has(segment) && segments[index - 1] !== 'faq');
 }
 
 /**

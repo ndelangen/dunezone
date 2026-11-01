@@ -10,6 +10,8 @@ import { ArrowRight, Lightbulb } from 'lucide-react';
 import type { ComponentProps, ReactNode } from 'react';
 
 import { publicPageHead } from '@app/routes/publicPage';
+import { factionAuthoringChapters } from '@app/widgets/faction-editor/factionAuthoringContract';
+import type { FactionAuthoringChapterId } from '@app/widgets/faction-editor/factionAuthoringContract';
 import { AllianceCard } from '@game/assets/faction/alliance/Alliance';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { TroopToken } from '@game/assets/faction/troop/Troop';
@@ -36,11 +38,15 @@ type Step = {
   id: string;
   topic: TopicIconTopic;
   title: string;
-  /** The editor tab this step happens on, named as the editor names it. */
-  tab?: string;
+  /** The faction creator tab this step happens on; its label comes from the creator itself, so a renamed tab renames the step. */
+  chapter?: FactionAuthoringChapterId;
   body: ReactNode;
   tip?: ReactNode;
 };
+
+function chapterLabel(chapter: FactionAuthoringChapterId): string {
+  return factionAuthoringChapters.find((candidate) => candidate.id === chapter)!.label;
+}
 
 const STEPS: readonly Step[] = [
   {
@@ -72,7 +78,7 @@ const STEPS: readonly Step[] = [
   {
     id: 'identity',
     topic: 'identity',
-    tab: 'Identity & Appearance',
+    chapter: 'identity',
     title: 'Name it and give it a look',
     body: (
       <>
@@ -104,7 +110,7 @@ const STEPS: readonly Step[] = [
   {
     id: 'faction-leader',
     topic: 'factionLeader',
-    tab: 'Faction leader',
+    chapter: 'factionLeader',
     title: 'Choose a faction leader',
     body: (
       <Text>
@@ -116,7 +122,7 @@ const STEPS: readonly Step[] = [
   {
     id: 'leaders',
     topic: 'leaders',
-    tab: 'Leaders',
+    chapter: 'leaders',
     title: 'Add supporting leaders',
     body: (
       <>
@@ -132,7 +138,7 @@ const STEPS: readonly Step[] = [
   {
     id: 'planets',
     topic: 'planets',
-    tab: 'Planets',
+    chapter: 'worlds',
     title: 'Add planets, if your faction has a home',
     body: (
       <Text>
@@ -145,7 +151,7 @@ const STEPS: readonly Step[] = [
   {
     id: 'troops',
     topic: 'troops',
-    tab: 'Troops',
+    chapter: 'forces',
     title: 'Define your troops',
     body: (
       <>
@@ -164,7 +170,7 @@ const STEPS: readonly Step[] = [
   {
     id: 'alliance',
     topic: 'alliance',
-    tab: 'Alliance',
+    chapter: 'alliance',
     title: 'Write the alliance advantage',
     body: (
       <Text>
@@ -176,7 +182,7 @@ const STEPS: readonly Step[] = [
   {
     id: 'rules',
     topic: 'rules',
-    tab: 'Rules',
+    chapter: 'rules',
     title: 'Write the setup and special rules',
     body: (
       <>
@@ -203,7 +209,7 @@ const STEPS: readonly Step[] = [
   {
     id: 'advantages',
     topic: 'advantages',
-    tab: 'Advantages',
+    chapter: 'advantages',
     title: 'List the faction advantages',
     body: (
       <Text>
@@ -216,7 +222,7 @@ const STEPS: readonly Step[] = [
   {
     id: 'phases',
     topic: 'turn',
-    tab: 'Phases',
+    chapter: 'phases',
     title: 'Add your own phases, if you need them',
     body: (
       <Text>
@@ -229,7 +235,7 @@ const STEPS: readonly Step[] = [
   {
     id: 'extras',
     topic: 'contents',
-    tab: 'Extras',
+    chapter: 'extras',
     title: 'Bring your own cards and tokens',
     body: (
       <Text>
@@ -242,7 +248,7 @@ const STEPS: readonly Step[] = [
   {
     id: 'complexity',
     topic: 'complexityIntermediate',
-    tab: 'Complexity',
+    chapter: 'complexity',
     title: 'Check the complexity rating',
     body: (
       <Text>
@@ -400,7 +406,7 @@ function FactionTutorialPage() {
               <Section
                 key={step.id}
                 id={step.id}
-                eyebrow={step.tab ? `Step ${index + 1} · ${step.tab} tab` : `Step ${index + 1}`}
+                eyebrow={step.chapter ? `Step ${index + 1} · ${chapterLabel(step.chapter)} tab` : `Step ${index + 1}`}
                 title={step.title}
                 icon={<TopicIcon topic={step.topic} size={20} />}
               >
