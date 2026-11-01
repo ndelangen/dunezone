@@ -38,7 +38,7 @@ export const RefusalStaysWithItsLeader = meta.story({
     await userEvent.type(field, 'x');
     await expect(field).toHaveValue('5x');
     /* Switched without the field losing focus, so only the leader changes. */
-    fireEvent.click(canvas.getByRole('button', { name: 'Other leader' }));
+    await fireEvent.click(canvas.getByRole('button', { name: 'Other leader' }));
     await expect(field).toHaveFocus();
     await expect(field).toHaveValue('5');
     await expect(field).not.toHaveAccessibleDescription('Use a whole number or one character.');
