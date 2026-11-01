@@ -22,7 +22,7 @@ export interface NavSegment {
 
 /* The link sets are content, not structure: the row renders whatever list it is given, at any
    count and any label length, so editing these arrays is the whole job of changing the navigation. */
-export const PLAY_LINKS: readonly NavLinkItem[] = [
+const PLAY_LINKS: readonly NavLinkItem[] = [
   { label: 'Factions', to: '/factions' },
   { label: 'Rulesets', to: '/rulesets' },
   { label: 'FAQ', to: '/faq' },
@@ -31,7 +31,7 @@ export const PLAY_LINKS: readonly NavLinkItem[] = [
   { label: 'Blog', to: '/blog' },
 ];
 
-export const CREATE_LINKS: readonly NavLinkItem[] = [
+const CREATE_LINKS: readonly NavLinkItem[] = [
   { label: 'Start here', to: '/create', exact: true },
   { label: 'Faction tutorial', to: '/create/faction' },
   { label: 'Faction creator', to: '/factions/create' },
@@ -51,23 +51,24 @@ export const NAV_SEGMENTS: readonly NavSegment[] = [
 /* Roots whose own `create` and `edit` pages belong to playing: starting a game, the Play tutorial, signing in, editing your own profile. */
 const PLAYING_ROOTS = new Set(['play', 'tutorial', 'auth', 'profiles', 'admin']);
 
+/* Roots that are Creating content all the way down: the guides, the artwork library and the importer. */
+const CREATING_ROOTS = new Set(['create', 'media', 'imports']);
+
+/** Whether a path opens an editor: it ends in `create`, other than asking an FAQ question, or passes through an `edit` segment. */
+function isEditor(segments: readonly string[]): boolean {
+  const createsSomething = segments.at(-1) === 'create' && segments.at(-2) !== 'faq';
+  return createsSomething || segments.includes('edit');
+}
+
 /**
  * Which half of the site a path belongs to.
- * The guides and the media library are Creating content, and so is every editor: a path whose last segment is `create`, or that passes through an `edit` segment.
- * Asking an FAQ question is a reader's act, so its `create` page stays with Playing Dune.
+ * The guides and the media library are Creating content, and so is every editor outside the playing roots.
  */
 export function navSegmentFor(pathname: string): NavSegmentId {
   const segments = pathname.split('/').filter(Boolean);
-  const [root] = segments;
-  if (root === undefined || PLAYING_ROOTS.has(root)) {
+  const root = segments[0] ?? '';
+  if (PLAYING_ROOTS.has(root)) {
     return 'play';
   }
-  if (root === 'create' || root === 'media' || root === 'imports') {
-    return 'create';
-  }
-  const last = segments.at(-1);
-  if (last === 'create' && segments.at(-2) !== 'faq') {
-    return 'create';
-  }
-  return segments.includes('edit') ? 'create' : 'play';
+  return CREATING_ROOTS.has(root) || isEditor(segments) ? 'create' : 'play';
 }
