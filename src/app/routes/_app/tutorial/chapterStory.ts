@@ -15,7 +15,10 @@ export const chapterGlobals = { motion: 'on' } as const;
  * picture. The story test runner still plays them through.
  * A testing meta that sets these replaces the page meta's parameters whole, so they carry the page's layout too.
  */
-export const chapterParameters = pageStoryMeta.parameters;
+export const chapterParameters = {
+  ...pageStoryMeta.parameters,
+  layout: 'fullscreen',
+} as const;
 
 /** The chapter's rail opens on its first task, with no Next button, and grows its arrow once the table has drawn. */
 export const playChapter =
