@@ -5,10 +5,16 @@ export type LeaderStrength = number | string | undefined;
 
 const REJECTED = 'Use a whole number or one character.';
 
-/** Blank omits the strength, digits make a number, and any other single character is kept as printed. */
+/**
+ * Blank omits the strength, digits make a number, and any other single character is kept as printed.
+ * A lone minus is the start of a negative number, so it is not taken as the character.
+ */
 export function parseLeaderStrength(raw: string): { value: LeaderStrength } | null {
   if (!raw) {
     return { value: undefined };
+  }
+  if (raw === '-') {
+    return null;
   }
   if (/^-?\d+$/u.test(raw)) {
     return { value: Number.parseInt(raw, 10) };
@@ -37,10 +43,14 @@ export function LeaderStrengthInput({
   const accepted = value === undefined || value === null ? '' : String(value);
   /*
    * The refused text belongs to the leader and the value it was typed over, and lives only while the field has focus.
-   * Once the field edits another leader, or the value changes, it is moot.
+   * Once the field edits another leader, or the value changes, it is discarded, so switching back cannot bring it back.
    */
   const [refused, setRefused] = useState<{ text: string; over: string; subject?: string | number } | null>(null);
-  const shown = refused?.over === accepted && refused.subject === subject ? refused.text : null;
+  const current = refused !== null && refused.over === accepted && refused.subject === subject;
+  if (refused !== null && !current) {
+    setRefused(null);
+  }
+  const shown = current ? refused.text : null;
   return (
     <TextInput
       id={id}
@@ -48,7 +58,7 @@ export function LeaderStrengthInput({
       inputMode="text"
       autoComplete="off"
       value={shown ?? accepted}
-      error={shown === null ? undefined : REJECTED}
+      error={shown === null || shown === '-' ? undefined : REJECTED}
       onBlur={() => {
         setRefused(null);
         onBlur?.();

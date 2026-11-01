@@ -23,7 +23,6 @@ const meta = testingPreview.meta({
 
 /** The chapter as a player meets it: do what the rail says, where its arrow shows, and it moves on by itself. */
 export const Chapter = meta.story({
-  parameters: { ...chapterParameters, database: hmsPublished },
   play: playChapter('Chapter 19: Bring your own pieces', 'Open the shared inventory'),
 });
 

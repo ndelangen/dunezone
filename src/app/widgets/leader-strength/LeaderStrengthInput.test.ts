@@ -12,5 +12,7 @@ describe('parseLeaderStrength', () => {
   it('refuses anything else', () => {
     expect(parseLeaderStrength('10x')).toBeNull();
     expect(parseLeaderStrength('ab')).toBeNull();
+    /* The start of a negative number waits for its digits. */
+    expect(parseLeaderStrength('-')).toBeNull();
   });
 });
