@@ -274,3 +274,23 @@ test('capture settles artwork added while it waits for artwork to paint', async 
     await page.close();
   }
 });
+
+test('capture does not wait for a background layer sized to nothing', async () => {
+  const page = await browser.newPage({ viewport: { width: 200, height: 200 } });
+  await page.route('https://capture.invalid/art.svg', (route) =>
+    route.fulfill({
+      contentType: 'image/svg+xml',
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="200" height="200" fill="red"/></svg>',
+    })
+  );
+  try {
+    await startCapture(
+      page,
+      '<body style="margin:0"><div style="width:200px;height:200px;background:url(https://capture.invalid/art.svg) 0 0 / 0 0 no-repeat"></div></body>'
+    );
+    await page.waitForFunction(() => document.body.dataset.capture !== 'loading', undefined, { timeout: 3000 });
+    expect(await page.locator('body').getAttribute('data-capture')).toBe('ready');
+  } finally {
+    await page.close();
+  }
+});

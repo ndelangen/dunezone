@@ -264,15 +264,52 @@ export function trackArtworkPaint(): void {
   }).observe(document, { childList: true, subtree: true });
 }
 
+/** Splits a computed list value at its top-level commas, leaving commas inside functions and strings alone. */
+function cssLayers(value: string): string[] {
+  const layers: string[] = [];
+  let depth = 0;
+  let quoted = false;
+  let start = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    const character = value[index];
+    if (character === '\\') {
+      index += 1;
+    } else if (character === '"') {
+      quoted = !quoted;
+    } else if (!quoted && character === '(') {
+      depth += 1;
+    } else if (!quoted && character === ')') {
+      depth -= 1;
+    } else if (!quoted && depth === 0 && character === ',') {
+      layers.push(value.slice(start, index).trim());
+      start = index + 1;
+    }
+  }
+  layers.push(value.slice(start).trim());
+  return layers;
+}
+
+/** A layer sized to zero in either direction has no area to paint, so Element Timing never reports it. */
+function hasZeroSize(size: string | undefined): boolean {
+  return Boolean(size?.split(/\s+/u).some((dimension) => /^0(?:\.0+)?(?:px|%)?$/u.test(dimension)));
+}
+
 function backgroundImageUrls(element: Element): string[] {
-  const value = getComputedStyle(element).getPropertyValue('background-image');
-  /* An image-set paints one of its candidates, so no single URL in it is owed a paint. */
-  if (!value.includes('url(') || value.includes('image-set(')) {
+  const style = getComputedStyle(element);
+  const value = style.getPropertyValue('background-image');
+  if (!value.includes('url(')) {
     return [];
   }
-  return Array.from(value.matchAll(/url\("((?:\\.|[^"\\])*)"\)/gu), (match) => unescapeCssUrl(match[1])).filter(
-    (href) => !href.startsWith('#')
-  );
+  const sizes = cssLayers(style.getPropertyValue('background-size'));
+  return cssLayers(value).flatMap((layer, index) => {
+    const match = /^url\("((?:\\.|[^"\\])*)"\)$/u.exec(layer);
+    /* An image-set paints one of its candidates, so no single URL in it is owed a paint. */
+    if (!match || hasZeroSize(sizes[index % sizes.length])) {
+      return [];
+    }
+    const href = unescapeCssUrl(match[1]);
+    return href.startsWith('#') ? [] : [href];
+  });
 }
 
 /** Element Timing only reports what painted inside the viewport, on an element that is not hidden. */
