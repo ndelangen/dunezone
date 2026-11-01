@@ -65,7 +65,8 @@ function editable(target: Element) {
     return target.isContentEditable;
   }
   /* A DOM without isContentEditable, such as jsdom, reads the attribute instead. */
-  return target.closest('[contenteditable]:not([contenteditable="false" i])') !== null;
+  const region = target.closest('[contenteditable]');
+  return region !== null && region.getAttribute('contenteditable')?.toLowerCase() !== 'false';
 }
 function keptElsewhere(target: EventTarget | null) {
   const element = target instanceof Element && target !== document.body && target !== document.documentElement;

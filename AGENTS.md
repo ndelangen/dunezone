@@ -554,7 +554,7 @@ landed while the previous run was still going, one per review bot as each one re
   already failed and nothing else is still pending.
 - Before merging, answer every review comment where it was made: each inline thread, each finding
   in a review body (nitpicks and outside-diff items included) and each top-level finding, from
-  every reviewer. Say "Fixed in <sha>" or why it does not apply. A bot marking a thread addressed
+  every reviewer. Say `Fixed in <sha>` or why it does not apply. A bot marking a thread addressed
   or resolved is not an answer. An audit of 200 merged pull requests in November 2026 found about
   260 findings with no reply, about 60 of them never fixed.
 
