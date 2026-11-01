@@ -22,19 +22,25 @@ export function parseLeaderStrength(raw: string): { value: LeaderStrength } | nu
  */
 export function LeaderStrengthInput({
   id,
+  subject,
   value,
   onChange,
   onBlur,
 }: Readonly<{
   id?: string;
+  /** Which leader the field edits, when one field is reused for several. */
+  subject?: string | number;
   value: LeaderStrength | null;
   onChange: (value: LeaderStrength) => void;
   onBlur?: () => void;
 }>) {
   const accepted = value === undefined || value === null ? '' : String(value);
-  /* The refused text belongs to the value it was typed over; once that value changes, it is moot. */
-  const [refused, setRefused] = useState<{ text: string; over: string } | null>(null);
-  const shown = refused?.over === accepted ? refused.text : null;
+  /*
+   * The refused text belongs to the leader and the value it was typed over, and lives only while the field has focus.
+   * Once the field edits another leader, or the value changes, it is moot.
+   */
+  const [refused, setRefused] = useState<{ text: string; over: string; subject?: string | number } | null>(null);
+  const shown = refused?.over === accepted && refused.subject === subject ? refused.text : null;
   return (
     <TextInput
       id={id}
@@ -43,7 +49,10 @@ export function LeaderStrengthInput({
       autoComplete="off"
       value={shown ?? accepted}
       error={shown === null ? undefined : REJECTED}
-      onBlur={onBlur}
+      onBlur={() => {
+        setRefused(null);
+        onBlur?.();
+      }}
       onChange={(event) => {
         const raw = event.currentTarget.value;
         const parsed = parseLeaderStrength(raw);
@@ -51,7 +60,7 @@ export function LeaderStrengthInput({
           setRefused(null);
           onChange(parsed.value);
         } else {
-          setRefused({ text: raw, over: accepted });
+          setRefused({ text: raw, over: accepted, subject });
         }
       }}
     />

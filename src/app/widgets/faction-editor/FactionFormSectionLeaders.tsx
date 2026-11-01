@@ -85,6 +85,7 @@ function SupportingLeaderCard({
                       input={
                         <LeaderStrengthInput
                           id={`leader-${index}-str`}
+                          subject={index}
                           value={field.state.value}
                           onBlur={field.handleBlur}
                           onChange={field.handleChange}
