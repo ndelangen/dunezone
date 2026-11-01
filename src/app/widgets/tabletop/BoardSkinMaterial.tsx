@@ -1,12 +1,10 @@
 /* @jsxImportSource ./three-jsx */
-import { useFrame, useThree } from '@react-three/fiber/webgpu';
+import { useThree } from '@react-three/fiber/webgpu';
 import { createContext, use, useEffect, useMemo } from 'react';
 import type { Texture } from 'three';
 
-import { useMotionAllowed } from '@app/styles/motion';
-
 import { useBoardSkin } from './boardSkinPreference';
-import { boardSkinAnimates, createBoardSkinMaterial } from './boardSkins';
+import { createBoardSkinMaterial } from './boardSkins';
 import type { BoardSkin } from './boardSkins';
 
 /** A skin that wins over the viewer's own choice, for stories and previews that show one look. */
@@ -18,7 +16,7 @@ export function useActiveBoardSkin(): BoardSkin {
   return use(BoardSkinOverride) ?? preferred;
 }
 
-/** The board paint's material in the active skin; an animated skin keeps the table redrawing only while motion is allowed. */
+/** The board paint's material in the active skin; skins are still, so the table keeps drawing only on demand. */
 export function BoardSkinMaterial({
   map = null,
   vertexColors,
@@ -29,9 +27,8 @@ export function BoardSkinMaterial({
   polygonOffset?: boolean;
 }) {
   const skin = useActiveBoardSkin();
-  const motion = useMotionAllowed();
   const invalidate = useThree((state) => state.invalidate);
-  const { material, advance } = useMemo(
+  const material = useMemo(
     () => createBoardSkinMaterial(skin, { vertexColors, polygonOffset, map }),
     [skin, vertexColors, polygonOffset, map]
   );
@@ -39,12 +36,5 @@ export function BoardSkinMaterial({
     invalidate();
     return () => material.dispose();
   }, [material, invalidate]);
-  const animated = motion && boardSkinAnimates(skin);
-  useFrame((_, delta) => {
-    if (animated) {
-      advance(delta);
-      invalidate();
-    }
-  });
   return <primitive object={material} attach="material" />;
 }

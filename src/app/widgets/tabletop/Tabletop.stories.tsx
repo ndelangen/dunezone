@@ -142,31 +142,25 @@ export const CurvesAndIsland = meta.story({ args: { presentation: 'play', board:
 
 /*
  * Board skins: each viewer's own look for the territory types (sand, rock, strongholds, the Polar Sink).
- * A skin only scales the brightness of the colours the map already has, so it adds no colour, and dark ink keeps its contrast.
+ * A skin shades the colours the map already has and raises a lit relief; it adds no hue, and dark ink keeps its contrast.
  */
 /** The board as it draws today, for comparison. */
 export const SkinPlain = meta.story({
   parameters: { chromatic: { disableSnapshot: true } },
   args: { presentation: 'play', board: arrakisBoardCapture, skin: 'plain' },
 });
-/** Fine noise per type: sand grain, mottled rock, smooth stronghold stone, soft ice. */
-export const SkinGrain = meta.story({
+/** Aged paper: warped mottling, dark veins, grit and stains, darkening toward the rim. */
+export const SkinParchment = meta.story({
   parameters: { chromatic: { disableSnapshot: true } },
-  args: { presentation: 'play', board: arrakisBoardCapture, skin: 'grain' },
+  args: { presentation: 'play', board: arrakisBoardCapture, skin: 'parchment' },
 });
-/** Wind ripples in the sand, strata and cracks in the rock, cut blocks in the strongholds. */
-export const SkinWindswept = meta.story({
+/** Hammered, bubbly sand and rock spattered with dark grit, like a painted map. */
+export const SkinMarbled = meta.story({
   parameters: { chromatic: { disableSnapshot: true } },
-  args: { presentation: 'play', board: arrakisBoardCapture, skin: 'windswept' },
+  args: { presentation: 'play', board: arrakisBoardCapture, skin: 'marbled' },
 });
-/** The wind-swept patterns as raised relief that the table's lights pick out, with lighter colour changes. */
-export const SkinRelief = meta.story({
+/** Deep desert relief the table's lights model: dunes, ridged mountains, city blocks in the strongholds, cracked ice. */
+export const SkinDunes = meta.story({
   parameters: { chromatic: { disableSnapshot: true } },
-  args: { presentation: 'play', board: arrakisBoardCapture, skin: 'relief' },
-});
-/** The wind-swept sand slowly drifting; it stays still when Reduce motion is on. */
-export const SkinDriftingSand = meta.story({
-  globals: { motion: 'on' },
-  parameters: { chromatic: { disableSnapshot: true } },
-  args: { presentation: 'play', board: arrakisBoardCapture, skin: 'drifting' },
+  args: { presentation: 'play', board: arrakisBoardCapture, skin: 'dunes' },
 });

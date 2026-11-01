@@ -2,19 +2,26 @@ import { gameAssetColors, rendererColors } from '@shared/play/assetColors';
 import { Color } from 'three';
 import type { Texture } from 'three';
 import {
+  abs,
   distance,
   dot,
   float,
+  floor,
+  fract,
+  length,
   luminance,
   materialColor,
+  max,
+  min,
+  mix,
+  mx_cell_noise_float,
   mx_fractal_noise_float,
   mx_worley_noise_vec2,
   normalize,
   positionLocal,
   sin,
-  smoothstep,
   transformNormalToView,
-  uniform,
+  smoothstep,
   vec2,
   vec3,
   vertexColor,
@@ -24,25 +31,19 @@ import { MeshStandardNodeMaterial } from 'three/webgpu';
 
 /*
  * Board skins: a viewer's own look for the map's territory types, drawn by the board's material alone.
- * A skin only scales the brightness of the colour each territory already has, so it adds no colour of its own,
- * and it fades out over dark ink (borders, decals) so everything the map says stays as legible as it was.
+ * A skin shades the colour each territory already has, lighter or darker, and raises a relief the table's lights pick out;
+ * it adds no hue of its own, and dark ink (borders, decals) stays flat and keeps its contrast.
  */
 
-export const BOARD_SKINS = ['plain', 'grain', 'windswept', 'relief', 'drifting'] as const;
+export const BOARD_SKINS = ['plain', 'parchment', 'marbled', 'dunes'] as const;
 export type BoardSkin = (typeof BOARD_SKINS)[number];
 
 export const BOARD_SKIN_LABELS: Record<BoardSkin, string> = {
   plain: 'Plain',
-  grain: 'Grain',
-  windswept: 'Wind-swept',
-  relief: 'Relief',
-  drifting: 'Drifting sand',
+  parchment: 'Parchment',
+  marbled: 'Marbled',
+  dunes: 'Dunes',
 };
-
-/** Skins that change every frame; they draw only while motion is allowed and keep the table redrawing. */
-export function boardSkinAnimates(skin: BoardSkin): boolean {
-  return skin === 'drifting';
-}
 
 type F = Node<'float'>;
 type V2 = Node<'vec2'>;
@@ -61,76 +62,100 @@ function typeWeight(color: Color): F {
 }
 
 /* Patterns over the board plane, in board units (the board's radius is about 4). */
-const fbm = (p: V2, octaves: number) => mx_fractal_noise_float(p, octaves, 2, 0.5) as F;
+const fbm = (p: V2, octaves: number): F => mx_fractal_noise_float(p, octaves, 2, 0.5);
+const warp = (p: V2, scale: number, amount: number): V2 =>
+  p.add(vec2(fbm(p.mul(scale), 3), fbm(p.mul(scale).add(vec2(5.2, 1.3)), 3)).mul(amount));
+/** Distance to the nearest cell edge of a Worley pattern: 0 on the edge. */
+const cellEdge = (p: V2, jitter: number): F => {
+  const cells = mx_worley_noise_vec2(p, jitter);
+  return cells.y.sub(cells.x);
+};
 
-function ripples(p: V2, phase: F): F {
-  /* Sand ripples run across a slow wind, bent by a broad warp so no two dunes line up. */
-  const warp = fbm(p.mul(0.9), 3).mul(5);
-  const across = dot(p, vec2(0.83, 0.56)).mul(34).add(warp).add(phase);
-  /* Sharp crests, long lee slopes. */
-  return smoothstep(-0.2, 1, sin(across)) as F;
+/** A skin's look at one point: brightness (1 is the board's own colour) and a height in board units. */
+type Surface = Readonly<{ shade: F; height: F }>;
+type Layer = Readonly<{ sand: Surface; rock: Surface; stronghold: Surface; polar: Surface }>;
+
+const flat = (shade: F): Surface => ({ shade, height: float(0) });
+
+/** Aged paper: warped mottling, dark marble veins and grit, with the board darkening toward its rim. */
+function parchment(p: V2): Layer {
+  const mottle = fbm(warp(p, 0.8, 0.9).mul(2.2), 5);
+  const veins = float(1).sub(smoothstep(0, 0.08, abs(fbm(warp(p, 1.1, 0.5).mul(1.6), 4))));
+  const grit = fbm(p.mul(55), 2);
+  const stain = smoothstep(0.1, 0.7, fbm(p.mul(0.9).add(vec2(9, 3)), 3));
+  const paper = (strength: number) =>
+    float(1)
+      .add(mottle.mul(0.5 * strength))
+      .sub(veins.mul(0.22 * strength))
+      .add(grit.mul(0.08))
+      .sub(stain.mul(0.25 * strength));
+  return {
+    sand: { shade: paper(1), height: mottle.mul(0.004) },
+    rock: { shade: paper(1.3).mul(0.92), height: mottle.mul(0.006) },
+    stronghold: { shade: paper(0.9), height: float(0) },
+    polar: flat(float(1).add(mottle.mul(0.08))),
+  };
 }
 
-function strata(p: V2): F {
-  const bend = fbm(p.mul(1.4), 2).mul(3);
-  return sin(dot(p, vec2(-0.4, 0.92)).mul(22).add(bend))
+/** Hammered, bubbly sand and rock spattered with dark grit, like a painted map. */
+function marbled(p: V2): Layer {
+  /* Puffy blobs: each Worley cell domes up from its edges, with a finer crinkle over them. */
+  const cells = mx_worley_noise_vec2(warp(p, 1.5, 0.2).mul(11), 1);
+  const bubbles = float(1)
+    .sub(smoothstep(0, 0.8, cells.x))
+    .pow(0.7);
+  const fine = float(1).sub(smoothstep(0, 0.9, mx_worley_noise_vec2(p.mul(31).add(vec2(3.1, 7.7)), 1).x));
+  const sandHeight = bubbles.mul(0.8).add(fine.mul(0.2));
+  const spatter = smoothstep(0, 0.45, fbm(p.mul(26), 3)).mul(smoothstep(-0.3, 0.4, fbm(p.mul(2.4), 3)));
+  const blotch = fbm(warp(p, 1.2, 0.4).mul(3), 4);
+  return {
+    sand: { shade: float(0.84).add(sandHeight.mul(0.28)), height: sandHeight.mul(0.012) },
+    rock: {
+      shade: float(1).add(blotch.mul(0.22)).sub(spatter.mul(0.6)),
+      height: blotch.mul(0.006).sub(spatter.mul(0.003)),
+    },
+    stronghold: flat(float(1).add(blotch.mul(0.08))),
+    polar: { shade: float(0.96).add(bubbles.mul(0.06)), height: bubbles.mul(0.002) },
+  };
+}
+
+/** Deep desert relief: wind-cut dunes, ridged mountains, a city's blocks in each stronghold and cracked ice at the pole. */
+function dunes(p: V2): Layer {
+  const bent = warp(p, 0.7, 0.7);
+  const across = dot(bent, vec2(0.83, 0.56));
+  /* Long dunes with sharp crests, and small ripples running over them. */
+  const dune = float(1)
+    .sub(abs(sin(across.mul(7))))
+    .pow(1.5);
+  const ripple = sin(dot(warp(p, 2.5, 0.12), vec2(0.6, 0.8)).mul(70))
     .mul(0.5)
-    .add(0.5) as F;
+    .add(0.5);
+  const sandHeight = dune.mul(0.045).add(ripple.mul(0.003));
+
+  const ridged = float(1).sub(abs(fbm(warp(p, 1.3, 0.3).mul(3.2), 4)));
+  const mountains = ridged.mul(ridged).mul(ridged);
+  const scree = fbm(p.mul(40), 2);
+
+  /* A city: a grid turned off the board's axes, each block its own height, with streets between. */
+  const grid = vec2(dot(p, vec2(0.94, 0.34)), dot(p, vec2(-0.34, 0.94))).mul(30);
+  const street = min(min(fract(grid.x), fract(grid.y)), float(1).sub(max(fract(grid.x), fract(grid.y))));
+  const block = mx_cell_noise_float(floor(grid));
+  const built = smoothstep(0.04, 0.12, street);
+  const cityHeight = built.mul(block.mul(0.5).add(0.5)).mul(0.008);
+
+  const ice = smoothstep(0, 0.08, cellEdge(warp(p, 2, 0.1).mul(9), 1));
+  return {
+    sand: { shade: float(0.8).add(dune.mul(0.3)).add(ripple.mul(0.06)), height: sandHeight },
+    rock: { shade: float(0.62).add(mountains.mul(0.55)).add(scree.mul(0.06)), height: mountains.mul(0.06) },
+    stronghold: { shade: float(0.72).add(built.mul(block.mul(0.3).add(0.2))), height: cityHeight },
+    polar: { shade: float(0.8).add(ice.mul(0.2)), height: ice.mul(0.004) },
+  };
 }
 
-function cracks(p: V2): F {
-  const cells = mx_worley_noise_vec2(p.mul(5), 0.9) as V2;
-  /* Close to a cell edge, the two nearest feature points are almost equally far. */
-  return float(1).sub(smoothstep(0, 0.07, cells.y.sub(cells.x))) as F;
-}
+const LAYERS: Record<Exclude<BoardSkin, 'plain'>, (p: V2) => Layer> = { parchment, marbled, dunes };
 
-function blocks(p: V2): F {
-  const cells = mx_worley_noise_vec2(p.mul(9), 0.35) as V2;
-  return float(1).sub(smoothstep(0, 0.05, cells.y.sub(cells.x))) as F;
-}
-
-type Shading = Readonly<{ sand: F; rock: F; stronghold: F; polar: F }>;
-
-/** The brightness each type gets at this point, 1 being the board's own colour. */
-function shadingFor(skin: Exclude<BoardSkin, 'plain'>, p: V2, phase: F): Shading {
-  switch (skin) {
-    case 'grain':
-      return {
-        sand: float(1)
-          .add(fbm(p.mul(16), 3).mul(0.07))
-          .add(fbm(p.mul(70), 2).mul(0.04)),
-        rock: float(1).add(fbm(p.mul(4), 4).mul(0.18)).add(fbm(p.mul(40), 2).mul(0.06)),
-        stronghold: float(1).add(fbm(p.mul(11), 3).mul(0.08)),
-        polar: float(1).add(fbm(p.mul(3), 3).mul(0.04)),
-      };
-    case 'windswept':
-    case 'drifting':
-    case 'relief': {
-      const strength = skin === 'relief' ? 0.4 : 1;
-      return {
-        sand: float(1)
-          .sub(ripples(p, phase).mul(0.1 * strength))
-          .add(fbm(p.mul(60), 2).mul(0.03)),
-        rock: float(1)
-          .sub(strata(p).mul(0.08 * strength))
-          .sub(cracks(p).mul(0.16 * strength))
-          .add(fbm(p.mul(5), 3).mul(0.06)),
-        stronghold: float(1)
-          .sub(blocks(p).mul(0.12 * strength))
-          .add(fbm(p.mul(12), 2).mul(0.03)),
-        polar: float(1).add(fbm(p.mul(2.2).add(vec2(phase.mul(0.02), 0)), 3).mul(0.06)),
-      };
-    }
-  }
-}
-
-/** A height field for the relief skin: dunes and strata stand up, cracks and mortar sink. */
-function heightAt(p: V2, weights: Readonly<{ sand: F; rock: F; stronghold: F }>): F {
-  const sand = ripples(p, float(0)).mul(weights.sand);
-  const rock = strata(p).mul(0.6).sub(cracks(p).mul(0.35)).mul(weights.rock);
-  const stronghold = blocks(p).negate().mul(weights.stronghold);
-  return sand.add(rock).add(stronghold) as F;
-}
+/** How dark the board grows toward its rim, per skin (0 leaves the rim as bright as the middle). */
+const RIM_SHADE: Record<Exclude<BoardSkin, 'plain'>, number> = { parchment: 0.4, marbled: 0.15, dunes: 0.2 };
 
 export type BoardSkinMaterialOptions = Readonly<{
   /** True for the legacy map, whose shapes carry colour and alpha per vertex. */
@@ -152,44 +177,43 @@ export function createBoardSkinMaterial(skin: BoardSkin, options: BoardSkinMater
     polygonOffsetUnits: options.polygonOffset ? -1 : 0,
     map: options.map,
   });
-  /* Seconds of sand drift; the table advances it only while motion is allowed. */
-  const drift = uniform(0);
-  const advance = (seconds: number) => {
-    drift.value += seconds;
-  };
   if (skin === 'plain') {
-    return { material, advance };
+    return material;
   }
   const p = positionLocal.xz;
-  const weights = {
-    sand: typeWeight(TYPE_COLORS.sand),
-    rock: typeWeight(TYPE_COLORS.rock),
-    stronghold: typeWeight(TYPE_COLORS.stronghold),
-    polar: typeWeight(TYPE_COLORS.polar),
-  };
-  const shading = shadingFor(skin, p, drift.mul(0.35));
-  const scale = float(1)
-    .add(shading.sand.sub(1).mul(weights.sand))
-    .add(shading.rock.sub(1).mul(weights.rock))
-    .add(shading.stronghold.sub(1).mul(weights.stronghold))
-    .add(shading.polar.sub(1).mul(weights.polar));
-  /* The territory paint is opaque, so the skin keeps the colour (map or vertex colours) and leaves alpha to the vertex colours. */
-  const base = materialColor.rgb;
-  /* Dark ink (borders, numerals, decals) keeps its contrast: the skin fades out below mid brightness. */
-  const keep = smoothstep(0.03, 0.1, luminance(base));
-  const lit = float(1).add(scale.sub(1).mul(keep));
-  material.colorNode = base.mul(lit);
-
-  if (skin === 'relief') {
-    /* Finite differences over the plane tilt the normal, so the table's own lights pick out the relief. */
-    const step = 0.004;
-    const h = heightAt(p, weights);
-    const hx = heightAt(p.add(vec2(step, 0)), weights);
-    const hz = heightAt(p.add(vec2(0, step)), weights);
-    const slope = 0.012 / step;
-    const tilt = keep.mul(slope);
-    const normal = normalize(vec3(hx.sub(h).mul(tilt).negate(), 1, hz.sub(h).mul(tilt).negate()));
-    material.normalNode = transformNormalToView(normal);
+  const layer = LAYERS[skin](p);
+  const types = [
+    [typeWeight(TYPE_COLORS.sand), layer.sand],
+    [typeWeight(TYPE_COLORS.rock), layer.rock],
+    [typeWeight(TYPE_COLORS.stronghold), layer.stronghold],
+    [typeWeight(TYPE_COLORS.polar), layer.polar],
+  ] as const;
+  let shade: F = float(1);
+  let height: F = float(0);
+  for (const [weight, surface] of types) {
+    shade = shade.add(surface.shade.sub(1).mul(weight));
+    height = height.add(surface.height.mul(weight));
   }
-  return { material, advance };
+  /* The board's own colour: its artwork, or the territory colours while the artwork loads. */
+  const base = materialColor.rgb;
+  /* Dark ink (borders, numerals, decals) stays flat and keeps its contrast. */
+  const keep = smoothstep(0.03, 0.1, luminance(base));
+  const rim = mix(float(1), float(1 - RIM_SHADE[skin]), smoothstep(2.2, 4, length(p)));
+  material.colorNode = base.mul(float(1).add(shade.sub(1).mul(keep))).mul(rim);
+
+  /* Finite differences over the plane tilt the normal, so the table's own lights model the relief. */
+  const step = 0.006;
+  const heightAt = (offset: V2) => {
+    const shifted = LAYERS[skin](p.add(offset));
+    let total: F = float(0);
+    types.forEach(([weight], index) => {
+      total = total.add([shifted.sand, shifted.rock, shifted.stronghold, shifted.polar][index].height.mul(weight));
+    });
+    return total;
+  };
+  const tilt = keep.div(step);
+  const dx = heightAt(vec2(step, 0)).sub(height).mul(tilt);
+  const dz = heightAt(vec2(0, step)).sub(height).mul(tilt);
+  material.normalNode = transformNormalToView(normalize(vec3(dx.negate(), 1, dz.negate())));
+  return material;
 }
