@@ -68,63 +68,6 @@
   width: auto;
 }
 
-/* The segment switch: two places, one marked. A pill track rather than a row of links, so it reads
-   as "which half of the site", a level above the links beside it. */
-.segments {
-  display: flex;
-  flex: none;
-  align-items: center;
-  gap: 2px;
-  padding: 2px;
-  border-radius: 999px;
-  border: 1px solid rgb(from var(--color-inverse) r g b / 0.35);
-  background: rgb(from var(--ui-ground) r g b / 0.35);
-}
-
-.root a.segment {
-  display: block;
-  border-bottom: none;
-  border-radius: 999px;
-  padding: 0.2rem 0.75rem;
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  opacity: 0.75;
-  transition:
-    opacity 0.15s ease-out,
-    background-color 0.15s ease-out,
-    color 0.15s ease-out;
-}
-
-.root a.segment:hover {
-  opacity: 1;
-}
-
-.root a.segment[data-current] {
-  opacity: 1;
-  background: var(--color-inverse);
-  color: var(--ui-ground);
-}
-
-.segmentShort {
-  display: none;
-}
-
-/* Phones keep both segments in view; only their names get shorter. */
-@media (width < 48rem) {
-  .segmentLong {
-    display: none;
-  }
-
-  .segmentShort {
-    display: inline;
-  }
-
-  .root a.segment {
-    padding: 0.2rem 0.6rem;
-  }
-}
-
 /* Baseline, not center: the row's items are text, and baseline alignment keeps their labels
    level automatically, whatever borders, padding, or glyph metrics their boxes pick up. */
 .linkGroup {

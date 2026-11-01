@@ -2,10 +2,41 @@
  * Public pages with no record behind them: served by the Worker, rendered on the server, listed in the landing sitemap.
  * Imports nothing, so the Node-run release verification can load it directly.
  */
-export const RECORDLESS_PUBLIC_PAGES = ['/glossary', '/contributing', '/future-plans', '/privacy', '/blog', '/create'];
+export const RECORDLESS_PUBLIC_PAGES = ['/glossary', '/contributing', '/future-plans', '/privacy', '/blog'];
 
-/** The guides under Creating content, each its own page below `/create` and in the landing sitemap. */
-export const CREATE_GUIDE_PAGES = ['/create/faction'];
+/**
+ * The tutorial catalogues and every tutorial that is built: public, server-rendered and in the landing sitemap.
+ * Play chapters live below `/tutorial`, creator tutorials below `/create`;
+ * tests hold this list to the routes and chapter scripts.
+ */
+export const TUTORIAL_PAGES = [
+  '/tutorial',
+  '/create',
+  '/create/faction',
+  ...[
+    'welcome',
+    'create-a-game',
+    'find-a-game',
+    'take-a-seat',
+    'draft-and-trade',
+    'looking-around',
+    'moving-pieces',
+    'windows',
+    'your-hand-and-spice',
+    'decks-and-dealing',
+    'what-goes-where',
+    'setup',
+    'phases-and-turns',
+    'alliances-and-talking',
+    'bidding',
+    'battle',
+    'ending-a-game',
+    'the-private-side-table',
+    'bring-your-own-pieces',
+    'mentat-recall',
+    'moderation',
+  ].map((chapter) => `/tutorial/${chapter}`),
+];
 
 /** Introductory topics in the guide's Start here tab group. */
 export const CONTRIBUTING_INTRO_PAGES = [
@@ -69,7 +100,7 @@ export const CONTRIBUTING_SUBPAGES = [
  * Record-less pages the page header links to, so the footer leaves them out;
  * every other one needs a footer link.
  */
-export const HEADER_PUBLIC_PAGES = ['/blog', '/create'];
+export const HEADER_PUBLIC_PAGES = ['/blog'];
 
 /**
  * The media library's game galleries, by path slug.

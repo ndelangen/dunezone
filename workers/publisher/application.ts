@@ -36,6 +36,13 @@ function isPublicPage(pathname: string): boolean {
   if (root === 'profiles') {
     return segments.length === 1 || segments.length === 2;
   }
+  /* The tutorials: both catalogues and every page below them; the Play chapters' tile stills beside them stay static assets. */
+  if (root === 'create') {
+    return true;
+  }
+  if (root === 'tutorial') {
+    return segments.length === 1 || (segments.length === 2 && !type!.includes('.'));
+  }
   /* The global FAQ: one page, whose search and page number ride in the query string. */
   if (root === 'faq') {
     return segments.length === 1;

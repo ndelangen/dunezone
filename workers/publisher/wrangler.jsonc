@@ -76,6 +76,8 @@
       "/blog/*",
       "/create",
       "/create/*",
+      "/tutorial",
+      "/tutorial/*",
       "/media",
       "/media/*"
     ]

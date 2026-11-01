@@ -29,7 +29,7 @@ export const Route = createFileRoute('/_app/create/faction')({
       description:
         'A step-by-step tutorial for making your own homebrew Dune faction: name, logo, leaders, troops, alliance, rules and advantages, then a printable faction sheet to share.',
       social: { kind: 'Tutorial', shape: 'portrait' },
-      trail: [{ name: 'Create custom content', pathname: '/create' }],
+      trail: [{ name: 'Learn to create', pathname: '/create' }],
     }),
   component: FactionTutorialPage,
 });
@@ -427,7 +427,7 @@ function FactionTutorialPage() {
                     Create your faction
                   </Button>
                   <Button variant="subtle" renderRoot={(props) => <Link {...props} to="/create" />}>
-                    More things to make
+                    More creator tutorials
                   </Button>
                 </Group>
               </Stack>

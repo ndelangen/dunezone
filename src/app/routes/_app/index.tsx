@@ -9,7 +9,7 @@ import { PublishedImage } from '@ui/content/PublishedImage';
 import { CanvasScale } from '@ui/layout/CanvasScale';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
-import { ArrowRight, Hand } from 'lucide-react';
+import { Hand } from 'lucide-react';
 import {
   lazy,
   Suspense,
@@ -101,8 +101,8 @@ function IndexPage() {
             <Button color="cta" variant="artwork" component="a" href="#play-preview">
               Take a sneak peek
             </Button>
-            <Button variant="subtle" component="a" href="#make">
-              Make something today <ArrowRight size={16} aria-hidden />
+            <Button variant="default" renderRoot={(props) => <Link {...props} to="/tutorial" />}>
+              Tutorials
             </Button>
           </Group>
         </Stack>
