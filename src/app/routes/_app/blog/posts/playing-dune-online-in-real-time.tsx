@@ -229,8 +229,9 @@ function ClosingSection() {
   return (
     <Section title="Pull up a chair">
       <Paragraph>
-        Thanks for the question that started this post. If there&rsquo;s something else you&rsquo;d like me to write
-        about, let me know.
+        This post stayed at the level of what you see at the table. Underneath there is a lot more: how a saved game is
+        stored, how the history lets you look back at any phase, and how the code is split between the room and your
+        browser. Maybe that&rsquo;s a deeper dive for a future post.
       </Paragraph>
       <WideFigure caption="Hands around the table.">
         <TableOfHands />
