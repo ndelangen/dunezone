@@ -14,7 +14,12 @@ import { useId, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
-import { setBoardSkin, useBoardSkin } from '../../../../widgets/tabletop/boardSkinPreference';
+import {
+  setBoardSkin,
+  setPlanetShading,
+  useBoardSkin,
+  usePlanetShading,
+} from '../../../../widgets/tabletop/boardSkinPreference';
 import { BOARD_SKIN_LABELS, BOARD_SKINS } from '../../../../widgets/tabletop/boardSkins';
 import type { BoardSkin } from '../../../../widgets/tabletop/boardSkins';
 import {
@@ -371,6 +376,16 @@ function BoardSkinSelect() {
   );
 }
 
+/* Shades this viewer's board like a lit planet, bright in the middle and dark at the rim; it stays in this browser. */
+function PlanetShadingItem() {
+  const planet = usePlanetShading();
+  return (
+    <Menu.CheckboxItem checked={planet} closeMenuOnClick={false} onChange={() => setPlanetShading(!planet)}>
+      Planet shading
+    </Menu.CheckboxItem>
+  );
+}
+
 /* Pins the stack counts or piece names on; holding the key shows them for a moment. */
 function TableLabelItems() {
   const labels = useTableLabels();
@@ -429,6 +444,7 @@ export function GameMenu({
         <TableLightingSlider />
         <TablePanSpeedSlider />
         <BoardSkinSelect />
+        <PlanetShadingItem />
         <TableLabelItems />
         {table.snapshot.stage === 'play' && offersActions(table) && (
           <Menu.CheckboxItem

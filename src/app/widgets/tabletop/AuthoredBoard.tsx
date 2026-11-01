@@ -25,9 +25,15 @@ function reducer(state: State, event: Event): State {
   }
 }
 
-function BoardPaintMaterial({ texture }: { texture: Texture | null }) {
+function BoardPaintMaterial({ board, texture }: { board: Board; texture: Texture | null }) {
   return (
-    <BoardSkinMaterial key={texture ? 'artwork' : 'territories'} map={texture} vertexColors={!texture} polygonOffset />
+    <BoardSkinMaterial
+      key={texture ? 'artwork' : 'territories'}
+      board={board}
+      map={texture}
+      vertexColors={!texture}
+      polygonOffset
+    />
   );
 }
 
@@ -72,10 +78,10 @@ export default function AuthoredBoard({ board }: { board: Board }) {
     <>
       {/* The disc owns depth; its paint draws before the storm and stays above the disc at distant camera angles. */}
       <mesh geometry={geometry} receiveShadow renderOrder={-3} raycast={() => {}}>
-        <BoardPaintMaterial texture={state.texture} />
+        <BoardPaintMaterial board={board} texture={state.texture} />
       </mesh>
       <mesh geometry={polarSink} receiveShadow renderOrder={POLAR_SINK_RENDER_ORDER} raycast={() => {}}>
-        <BoardPaintMaterial texture={state.texture} />
+        <BoardPaintMaterial board={board} texture={state.texture} />
       </mesh>
       {state.error && (
         <Html center>

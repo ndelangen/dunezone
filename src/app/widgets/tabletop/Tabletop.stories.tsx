@@ -25,10 +25,12 @@ function PreparedTable({
   presentation,
   board,
   skin,
+  planet = false,
 }: {
   presentation: 'play' | 'preview';
   board?: BoardCapture;
   skin?: BoardSkin;
+  planet?: boolean;
 }) {
   const [session] = useState(() => {
     const view: RoomView = {
@@ -77,7 +79,7 @@ function PreparedTable({
     return null;
   }
   return (
-    <BoardSkinOverride value={skin ?? null}>
+    <BoardSkinOverride value={skin ? { skin, planet } : null}>
       <PointerSessionContext value={pointer}>
         <TableKeyboardContext value={keyboard}>
           <TabletopSessionProvider session={session}>
@@ -144,23 +146,43 @@ export const CurvesAndIsland = meta.story({ args: { presentation: 'play', board:
  * Board skins: each viewer's own look for the territory types (sand, rock, strongholds, the Polar Sink).
  * A skin shades the colours the map already has and raises a lit relief; it adds no hue, and dark ink keeps its contrast.
  */
-/** The board as it draws today, for comparison. */
-export const SkinPlain = meta.story({
+/** The board as it draws today. */
+export const SkinNone = meta.story({
   parameters: { chromatic: { disableSnapshot: true } },
-  args: { presentation: 'play', board: arrakisBoardCapture, skin: 'plain' },
+  args: { presentation: 'play', board: arrakisBoardCapture, skin: 'none' },
 });
-/** Aged paper: warped mottling, dark veins, grit and stains, darkening toward the rim. */
-export const SkinParchment = meta.story({
+/** The board as it draws today with planet shading. */
+export const SkinNonePlanet = meta.story({
   parameters: { chromatic: { disableSnapshot: true } },
-  args: { presentation: 'play', board: arrakisBoardCapture, skin: 'parchment' },
+  args: { presentation: 'play', board: arrakisBoardCapture, skin: 'none', planet: true },
 });
-/** Hammered, bubbly sand and rock spattered with dark grit, like a painted map. */
-export const SkinMarbled = meta.story({
+/** GF9's printed board: stone-grained parchment, each territory darkening toward its borders. */
+export const SkinGf9 = meta.story({
   parameters: { chromatic: { disableSnapshot: true } },
-  args: { presentation: 'play', board: arrakisBoardCapture, skin: 'marbled' },
+  args: { presentation: 'play', board: arrakisBoardCapture, skin: 'gf9' },
 });
-/** Deep desert relief the table's lights model: dunes, ridged mountains, city blocks in the strongholds, cracked ice. */
-export const SkinDunes = meta.story({
+/** GF9's printed board with planet shading. */
+export const SkinGf9Planet = meta.story({
   parameters: { chromatic: { disableSnapshot: true } },
-  args: { presentation: 'play', board: arrakisBoardCapture, skin: 'dunes' },
+  args: { presentation: 'play', board: arrakisBoardCapture, skin: 'gf9', planet: true },
+});
+/** A painted relief map: dunes settling against the rock, lit cliffs onto rock plateaus, walled cities, sunken cracked ice. */
+export const SkinFancy = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
+  args: { presentation: 'play', board: arrakisBoardCapture, skin: 'fancy' },
+});
+/** A painted relief map with planet shading. */
+export const SkinFancyPlanet = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
+  args: { presentation: 'play', board: arrakisBoardCapture, skin: 'fancy', planet: true },
+});
+/** treachery.online's map: lit turbulence, pillowy sand and craggy rock. */
+export const SkinTreachery = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
+  args: { presentation: 'play', board: arrakisBoardCapture, skin: 'treachery' },
+});
+/** treachery.online's map with planet shading. */
+export const SkinTreacheryPlanet = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
+  args: { presentation: 'play', board: arrakisBoardCapture, skin: 'treachery', planet: true },
 });
