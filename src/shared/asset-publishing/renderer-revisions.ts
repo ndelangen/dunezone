@@ -50,7 +50,8 @@ export const CHECKED_IN_RENDERER_REVISIONS = {
   /* Revision 4 captures the shared Leader Skill front preset. */
   [LEADER_SKILL_ASSET_TYPE]: CARD_FRONT_PUBLICATION_REVISIONS[LEADER_SKILL_ASSET_TYPE] + 1,
   /* Revision 3 aligns Homeworld effects and gives the removed type line's space to the rules. */
-  [HOMEWORLD_CARD_ASSET_TYPE]: CARD_FRONT_PUBLICATION_REVISIONS[HOMEWORLD_CARD_ASSET_TYPE] + 2,
+  /* Revision 4 recaptures cards taken before capture waited for each element to paint its own artwork, which published Arrakis without its frame. */
+  [HOMEWORLD_CARD_ASSET_TYPE]: CARD_FRONT_PUBLICATION_REVISIONS[HOMEWORLD_CARD_ASSET_TYPE] + 3,
   /* Revision 4 captures the shared Nexus front preset while retaining its faction symbol. */
   [NEXUS_CARD_ASSET_TYPE]: CARD_FRONT_PUBLICATION_REVISIONS[NEXUS_CARD_ASSET_TYPE] + 1,
   /* Revision 4 captures the shared Stronghold front preset and restores icon texture contrast. */

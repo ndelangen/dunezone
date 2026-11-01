@@ -233,6 +233,15 @@ function markForPaintTiming(root: Element): void {
  * An element whose own fetch of the same URL failed silently, such as a response that did not decode, keeps painting nothing, and a capture taken then publishes a card without its frame.
  * Call it before the subject renders: Element Timing reports an image only if its element was marked when the image first painted.
  */
+function recordPaint(entry: ElementPaintEntry): void {
+  if (!entry.element || !entry.url) {
+    return;
+  }
+  const painted = paintedArtwork.get(entry.element) ?? new Set<string>();
+  painted.add(paintKey(entry.url));
+  paintedArtwork.set(entry.element, painted);
+}
+
 export function trackArtworkPaint(): void {
   if (paintTracking) {
     return;
@@ -240,23 +249,16 @@ export function trackArtworkPaint(): void {
   paintTracking = true;
   new PerformanceObserver((list) => {
     for (const entry of list.getEntries() as ElementPaintEntry[]) {
-      if (!entry.element || !entry.url) {
-        continue;
-      }
-      const painted = paintedArtwork.get(entry.element) ?? new Set<string>();
-      painted.add(paintKey(entry.url));
-      paintedArtwork.set(entry.element, painted);
+      recordPaint(entry);
     }
   }).observe({ type: 'element', buffered: true });
   if (document.documentElement) {
     markForPaintTiming(document.documentElement);
   }
   new MutationObserver((records) => {
-    for (const record of records) {
-      for (const node of record.addedNodes) {
-        if (node instanceof Element) {
-          markForPaintTiming(node);
-        }
+    for (const node of records.flatMap((record) => Array.from(record.addedNodes))) {
+      if (node instanceof Element) {
+        markForPaintTiming(node);
       }
     }
   }).observe(document, { childList: true, subtree: true });
@@ -289,14 +291,10 @@ function unpaintedArtwork(): string[] {
   const missing = new Set<string>();
   for (const element of document.querySelectorAll('body *')) {
     const hrefs = backgroundImageUrls(element);
-    if (!hrefs.length || !paintsOnScreen(element)) {
-      continue;
-    }
+    const owed = hrefs.length && paintsOnScreen(element) ? hrefs : [];
     const painted = paintedArtwork.get(element);
-    for (const href of hrefs) {
-      if (!painted?.has(paintKey(href))) {
-        missing.add(href);
-      }
+    for (const href of owed.filter((candidate) => !painted?.has(paintKey(candidate)))) {
+      missing.add(href);
     }
   }
   return [...missing];
@@ -346,11 +344,17 @@ export async function settleCaptureAssets(signal: AbortSignal): Promise<void> {
     await afterPaint();
     signal.throwIfAborted();
     const painted = captureResources();
-    if (painted.signature === resources.signature) {
-      await settleArtworkPaint(signal);
+    if (painted.signature !== resources.signature) {
+      resources = painted;
+      continue;
+    }
+    /* The paint wait yields for frames, so artwork added meanwhile goes back through settlement. */
+    await settleArtworkPaint(signal);
+    const afterArtwork = captureResources();
+    if (afterArtwork.signature === resources.signature) {
       return;
     }
-    resources = painted;
+    resources = afterArtwork;
   }
 }
 
