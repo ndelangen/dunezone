@@ -81,7 +81,7 @@ function PreparedTable({
       <PointerSessionContext value={pointer}>
         <TableKeyboardContext value={keyboard}>
           <TabletopSessionProvider session={session}>
-            <div style={{ height: 700, display: 'grid' }}>
+            <div style={{ height: skin ? '100vh' : 700, display: 'grid' }}>
               <TabletopScene presentation={presentation} stage="play" tableProgress={tableProgressFor(0)} />
             </div>
           </TabletopSessionProvider>
