@@ -4,9 +4,9 @@ import { fileURLToPath } from 'node:url';
 import { TUTORIAL_PAGES } from '@shared/recordlessPublicPages';
 import { expect, test } from 'vite-plus/test';
 
+import { CREATOR_TUTORIALS } from '../create/creatorTutorials';
 import { TUTORIAL_CHAPTERS } from './chapters';
 import { CHAPTER_SCRIPTS } from './chapterScripts/scripts';
-import { CREATOR_TUTORIALS } from './creatorTutorials';
 
 /*
  * The Worker serves the tutorial routes, but the sitemap lists only TUTORIAL_PAGES.

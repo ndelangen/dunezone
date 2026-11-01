@@ -1,10 +1,8 @@
 import { Button, Stack, Text, VisuallyHidden } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
 import type { LinkProps } from '@tanstack/react-router';
-import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { StatusBadge } from '@ui/content/StatusBadge';
-import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import clsx from 'clsx';
@@ -92,51 +90,38 @@ function CatalogueTileView({ tile, eager }: Readonly<{ tile: CatalogueTile; eage
   );
 }
 
-export function TutorialCatalogue({
-  track,
-  title,
-  subtitle,
-  intro,
-  rows,
-}: Readonly<{ track: CatalogueTrack; title: string; subtitle: string; intro: string; rows: readonly CatalogueRow[] }>) {
+/* The page toolbar's two buttons, each the route of its catalogue (Norbert, 2026-11-01). */
+export function TutorialTracks({ track }: Readonly<{ track: CatalogueTrack }>) {
   return (
-    <PageLayout>
-      <PageLayout.Header size="hero">
-        <Stack gap="md" miw={0} align="center" ta="center">
-          <PageTitle title={title} subtitle={subtitle} />
-          <Text size="lg" fw={500} maw="36rem">
-            {intro}
-          </Text>
-        </Stack>
-      </PageLayout.Header>
-      <PageLayout.Toolbar>
-        <Toolbar>
-          <Toolbar.Left label="Tutorials">
-            {TRACKS.map((option) => (
-              <Button
-                key={option.id}
-                variant={option.id === track ? 'filled' : 'default'}
-                renderRoot={(props) => <Link {...props} to={option.to} />}
-              >
-                {option.label}
-              </Button>
+    <Toolbar>
+      <Toolbar.Left label="Tutorials">
+        {TRACKS.map((option) => (
+          <Button
+            key={option.id}
+            variant={option.id === track ? 'filled' : 'default'}
+            renderRoot={(props) => <Link {...props} to={option.to} />}
+          >
+            {option.label}
+          </Button>
+        ))}
+      </Toolbar.Left>
+    </Toolbar>
+  );
+}
+
+/* The tiles, one row per part; the first row's pictures load at once. */
+export function TutorialRows({ rows }: Readonly<{ rows: readonly CatalogueRow[] }>) {
+  return (
+    <Stack gap="xl">
+      {rows.map((row, index) => (
+        <Section key={row.part} title={row.part}>
+          <ol className={styles.row} aria-label={row.part} start={row.tiles[0]!.number}>
+            {row.tiles.map((tile) => (
+              <CatalogueTileView key={tile.slug} tile={tile} eager={index === 0} />
             ))}
-          </Toolbar.Left>
-        </Toolbar>
-      </PageLayout.Toolbar>
-      <PageLayout.Content>
-        <Stack gap="xl">
-          {rows.map((row, index) => (
-            <Section key={row.part} title={row.part}>
-              <ol className={styles.row} aria-label={row.part} start={row.tiles[0]!.number}>
-                {row.tiles.map((tile) => (
-                  <CatalogueTileView key={tile.slug} tile={tile} eager={index === 0} />
-                ))}
-              </ol>
-            </Section>
-          ))}
-        </Stack>
-      </PageLayout.Content>
-    </PageLayout>
+          </ol>
+        </Section>
+      ))}
+    </Stack>
   );
 }

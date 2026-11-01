@@ -2,9 +2,9 @@ import preview from '@sb/preview';
 import { expect, within } from 'storybook/test';
 
 import { pageStoryMeta } from '../../storybookConfig';
+import { CREATOR_PARTS, CREATOR_TUTORIALS } from '../create/creatorTutorials';
 import { TUTORIAL_CHAPTERS, TUTORIAL_PARTS } from './chapters';
 import { CHAPTER_SCRIPTS } from './chapterScripts/scripts';
-import { CREATOR_PARTS, CREATOR_TUTORIALS } from './creatorTutorials';
 
 const meta = preview.meta({
   ...pageStoryMeta,
