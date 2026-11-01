@@ -1,19 +1,21 @@
 import { gameAssetColors, rendererColors } from '@shared/play/assetColors';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
-import { Color, DoubleSide, NoBlending } from 'three';
+import { Color, NoBlending } from 'three';
 import type { Texture } from 'three';
 import {
   abs,
+  cos,
+  floor,
+  fract,
+  mix,
+  mx_cell_noise_float,
+  step,
   distance,
   dot,
   float,
-  floor,
-  fract,
   luminance,
   materialColor,
-  max,
   min,
-  mx_cell_noise_float,
   mx_fractal_noise_float,
   mx_worley_noise_vec2,
   normalize,
@@ -130,14 +132,42 @@ function fancy({ p, typeEdge, territoryEdge }: Site): Layer {
     .mul(smoothstep(0.05, 0.5, typeEdge));
   const rockHeight = plateau.mul(0.06).add(mountains.mul(0.06));
 
-  /* A stronghold: a wall just inside its border around blocks of the city. */
-  const wall = smoothstep(0.015, 0.035, territoryEdge).mul(float(1).sub(smoothstep(0.06, 0.09, territoryEdge)));
-  const inside = smoothstep(0.09, 0.12, territoryEdge);
-  const grid = vec2(dot(p, vec2(0.94, 0.34)), dot(p, vec2(-0.34, 0.94))).mul(36);
-  const street = min(min(fract(grid.x), fract(grid.y)), float(1).sub(max(fract(grid.x), fract(grid.y))));
-  const block = mx_cell_noise_float(floor(grid));
-  const built = smoothstep(0.05, 0.14, street).mul(inside);
-  const cityHeight = wall.mul(0.016).add(built.mul(block.mul(0.6).add(0.4)).mul(0.009));
+  /*
+   * A stronghold is a walled old town: its painted band stands as the wall, and inside it lie rectangular blocks
+   * of every size, each grid cell split once across and once along at random, packed along crooked lanes.
+   * Each quarter of the town turns its streets its own way and a few winding avenues cut through, so it never reads as a grid.
+   */
+  const bevel = smoothstep(0, 0.06, territoryEdge);
+  const wall = smoothstep(0.04, 0.08, territoryEdge).mul(float(1).sub(smoothstep(0.27, 0.33, territoryEdge)));
+  const inside = smoothstep(0.27, 0.32, territoryEdge);
+  const quarter = mx_cell_noise_float(floor(p.mul(2.5)))
+    .mul(1.4)
+    .sub(0.7);
+  const town = warp(p, 3, 0.03);
+  const streets = vec2(
+    town.x.mul(cos(quarter)).sub(town.y.mul(sin(quarter))),
+    town.x.mul(sin(quarter)).add(town.y.mul(cos(quarter)))
+  ).mul(10);
+  const lot = floor(streets);
+  const within = fract(streets);
+  const splitX = mx_cell_noise_float(lot).mul(0.4).add(0.3);
+  const east = step(splitX, within.x);
+  const splitY = mx_cell_noise_float(lot.add(vec2(east.mul(17), 3)))
+    .mul(0.4)
+    .add(0.3);
+  const north = step(splitY, within.y);
+  const fromLane = min(
+    min(within.x.sub(splitX.mul(east)), mix(splitX, float(1), east).sub(within.x)),
+    min(within.y.sub(splitY.mul(north)), mix(splitY, float(1), north).sub(within.y))
+  );
+  const plot = mx_cell_noise_float(lot.add(vec2(east.mul(17), north.mul(29).add(5))));
+  const avenue = float(1).sub(smoothstep(0.012, 0.03, abs(fbm(p.mul(1.6).add(vec2(2, 5)), 2))));
+  /* Most plots are built up, some higher than others; a few stay open squares. */
+  const square = step(0.88, plot);
+  const blocks = smoothstep(0.05, 0.09, fromLane).mul(float(1).sub(avenue)).mul(inside);
+  const roof = smoothstep(0.14, 0.18, fromLane).mul(float(1).sub(square)).mul(blocks);
+  const city = blocks.mul(0.004).add(roof.mul(plot.mul(0.012).add(0.004)));
+  const cityHeight = bevel.mul(0.012).add(wall.mul(0.01)).add(city);
 
   /* The Polar Sink lies a little lower than its shore, its ice broken into plates. */
   const ice = smoothstep(0, 0.07, cellEdge(warp(p, 2, 0.1).mul(10), 1));
@@ -155,9 +185,15 @@ function fancy({ p, typeEdge, territoryEdge }: Site): Layer {
       height: rockHeight,
     },
     stronghold: {
-      shade: float(0.78)
-        .add(wall.mul(0.25))
-        .add(built.mul(block.mul(0.25))),
+      shade: float(0.62)
+        .add(bevel.mul(0.12))
+        .add(wall.mul(0.18))
+        .add(
+          blocks
+            .mul(0.1)
+            .add(roof.mul(plot.mul(0.2).add(0.06)))
+            .sub(inside.mul(0.12))
+        ),
       height: cityHeight,
     },
     polar: { shade: float(0.84).add(ice.mul(0.16)), height: ice.mul(0.003).sub(sunk.mul(0.012)) },
@@ -199,8 +235,6 @@ export function createBoardBakeMaterial(skin: Exclude<BoardSkin, 'none'>, option
     map: options.map,
     depthTest: false,
     depthWrite: false,
-    /* The bake's camera mirrors the board on some backends (bakeBoardSkin), which turns its triangles around. */
-    side: DoubleSide,
   });
   material.toneMapped = false;
   material.blending = NoBlending;
@@ -288,7 +322,7 @@ export function createBoardPaintMaterial(options: BoardPaintOptions) {
     color = color.mul(float(0.25).add(facing.pow(0.9).mul(0.85)));
   }
   if (options.baked) {
-    const baked = texture(options.baked, vec2(p.x.div(BOARD_RADIUS * 2).add(0.5), p.y.div(BOARD_RADIUS * -2).add(0.5)));
+    const baked = texture(options.baked, vec2(p.x.div(BOARD_RADIUS * 2).add(0.5), p.y.div(BOARD_RADIUS * 2).add(0.5)));
     color = color.mul(baked.r.mul(SHADE_RANGE));
     const nx = baked.g.mul(2).sub(1);
     const nz = baked.b.mul(2).sub(1);
