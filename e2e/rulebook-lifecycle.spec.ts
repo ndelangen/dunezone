@@ -86,7 +86,7 @@ async function copySavedRulebookAndMoveFirst(page: Page, rulesetPath: string) {
   await page.getByRole('option', { name: 'Starter', exact: true }).click();
   await page.getByRole('button', { name: 'Create Rulebook', exact: true }).click();
   await expect(page).toHaveURL(/\/rulebooks\/member-copy\/edit/);
-  await page.getByRole('link', { name: 'Saved source title', exact: true }).click();
+  await page.getByRole('button', { name: /^Page \d+: Saved source title$/ }).click();
   await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Saved source title');
   await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
   await expect(page.getByRole('button', { name: /^(Save|Saved|Review differences)$/ })).toHaveAccessibleDescription(
@@ -210,7 +210,7 @@ async function chooseGuideCard(page: Page, name: string, kind: 'entry' | 'group'
 
 async function authorCardGuides(page: Page, cardNames: string[]) {
   const structure = page.getByRole('complementary', { name: 'Rulebook structure' });
-  await structure.getByRole('button', { name: 'Add Page', exact: true }).click();
+  await page.getByRole('button', { name: 'Add Page', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Single column', exact: true }).click();
   await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Treachery cards');
   await structure.getByRole('button', { name: 'Add Block', exact: true }).click();
@@ -241,7 +241,7 @@ async function authorCardGuides(page: Page, cardNames: string[]) {
 
 async function authorReferenceMatter(page: Page) {
   const structure = page.getByRole('complementary', { name: 'Rulebook structure' });
-  await structure.getByRole('button', { name: 'Add Page', exact: true }).click();
+  await page.getByRole('button', { name: 'Add Page', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Single column', exact: true }).click();
   await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Quick reference');
   await structure.getByRole('button', { name: 'Add Block', exact: true }).click();
@@ -274,7 +274,7 @@ async function authorReferenceMatter(page: Page) {
 
 async function authorAssetExplainer(page: Page) {
   const structure = page.getByRole('complementary', { name: 'Rulebook structure' });
-  await structure.getByRole('button', { name: 'Add Page', exact: true }).click();
+  await page.getByRole('button', { name: 'Add Page', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Single column', exact: true }).click();
   await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Strongholds');
   await structure.getByRole('button', { name: 'Add Block', exact: true }).click();
@@ -352,7 +352,7 @@ test('a final-catalogue Rulebook saves fixed Pages and publishes written rules, 
   await page.getByRole('textbox', { name: 'Item 1', exact: true }).fill('Move the selected group together.');
   await expect(initialPage.locator('ol')).toContainText('Choose your troops');
 
-  await structure.getByRole('button', { name: 'Add Page', exact: true }).click();
+  await page.getByRole('button', { name: 'Add Page', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Narrow left / wide right', exact: true }).click();
   await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Battle sequence');
   const pageAnchor = await page.getByRole('textbox', { name: 'Anchor', exact: true }).inputValue();

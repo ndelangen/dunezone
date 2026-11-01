@@ -335,3 +335,129 @@ export const ThirtyPageEditor = meta.story({
   parameters: { database: db(withThirtyPages) },
   play: async ({ canvasElement }) => checkTitleMeasurements(canvasElement, ['CHAP']),
 });
+
+export const DeferredThumbnails = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#REFS/TEXT' },
+  parameters: { database: db(withThirtyPages) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const content = await page.findByRole('textbox', { name: 'Content' }, { timeout: 30_000 });
+    const strip = canvasElement.querySelector<HTMLElement>('[data-rulebook-filmstrip]')!;
+    const thumbnail = canvasElement.querySelector<HTMLElement>('[data-rulebook-thumbnail="REFS"]')!;
+    strip.scrollIntoView({ block: 'center' });
+    await waitFor(() => expect(thumbnail.querySelector('[data-rulebook-thumbnail-preview]')).not.toBeNull());
+    const original = thumbnail.textContent;
+    await userEvent.type(content, ' A changed marker rule.');
+    await waitFor(() =>
+      expect(canvasElement.querySelector('[data-rulebook-large-preview]')).toHaveTextContent('A changed marker rule.')
+    );
+    strip.scrollIntoView({ block: 'center' });
+    await waitFor(() => expect(thumbnail.querySelector('[data-rulebook-thumbnail-preview]')).not.toBeNull());
+    await expect(thumbnail.textContent).toBe(original);
+    const view = canvasElement.ownerDocument.defaultView!;
+    view.location.hash = '#REFS/details';
+    await page.findByRole('textbox', { name: 'Title' });
+    await expect(thumbnail.textContent).toBe(original);
+    strip.scrollLeft = strip.scrollWidth;
+    await waitFor(() => expect(thumbnail.querySelector('[data-rulebook-thumbnail-preview]')).toBeNull());
+    strip.scrollLeft = 0;
+    await waitFor(() => expect(thumbnail.querySelector('[data-rulebook-thumbnail-preview]')).not.toBeNull());
+    await expect(thumbnail.textContent).toBe(original);
+    await userEvent.click(page.getByRole('button', { name: 'Page 2: Movement' }));
+    await waitFor(() => expect(thumbnail).toHaveTextContent('A changed marker rule.'));
+    await userEvent.click(page.getByRole('button', { name: 'Page 3: Markers and tokens' }));
+    await waitFor(() =>
+      expect(canvasElement.querySelector('[data-rulebook-large-preview]')).toHaveTextContent('A changed marker rule.')
+    );
+    await userEvent.click(page.getByRole('button', { name: 'Reset unsaved edits' }));
+    strip.scrollIntoView({ block: 'center' });
+    await waitFor(() => expect(thumbnail.textContent).toBe(original));
+    await expect(canvasElement.querySelector('[data-rulebook-large-preview]')).not.toHaveTextContent(
+      'A changed marker rule.'
+    );
+  },
+});
+
+export const ViewportThumbnails = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/details' },
+  parameters: { database: db(withThirtyPages) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await page.findByRole('textbox', { name: 'Title' }, { timeout: 30_000 });
+    const strip = canvasElement.querySelector<HTMLElement>('[data-rulebook-filmstrip]')!;
+    const view = canvasElement.ownerDocument.defaultView!;
+    strip.scrollIntoView({ block: 'center' });
+    const checkVisibleOnly = async () =>
+      waitFor(async () => {
+        const viewport = strip.getBoundingClientRect();
+        const shells = [...strip.querySelectorAll<HTMLElement>('[data-rulebook-thumbnail]')];
+        let visibleCount = 0;
+        for (const shell of shells) {
+          const bounds = shell.getBoundingClientRect();
+          const visible =
+            bounds.right > Math.max(viewport.left, 0) &&
+            bounds.left < Math.min(viewport.right, view.innerWidth) &&
+            bounds.bottom > Math.max(viewport.top, 0) &&
+            bounds.top < Math.min(viewport.bottom, view.innerHeight);
+          await expect(Boolean(shell.querySelector('[data-rulebook-thumbnail-preview]'))).toBe(visible);
+          if (visible) {
+            visibleCount += 1;
+          }
+        }
+        await expect(visibleCount).toBeGreaterThan(0);
+        await expect(visibleCount).toBeLessThan(shells.length);
+      });
+    await checkVisibleOnly();
+    strip.scrollLeft = strip.scrollWidth;
+    await checkVisibleOnly();
+    await expect(strip.querySelector('[data-rulebook-thumbnail="RULE"] [data-rulebook-thumbnail-preview]')).toBeNull();
+    view.scrollTo(0, canvasElement.ownerDocument.body.scrollHeight);
+    await waitFor(() => expect(strip.querySelectorAll('[data-rulebook-thumbnail-preview]')).toHaveLength(0));
+  },
+});
+
+export const ReorderPagesWithKeyboard = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/details' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const handle = await page.findByRole('button', { name: 'Page 2: Movement' }, { timeout: 30_000 });
+    handle.focus();
+    await userEvent.keyboard('[Space][ArrowRight][Space]');
+    await waitFor(
+      async () =>
+        await expect(page.getByRole('button', { name: 'Page 3: Movement' })).toHaveAttribute('aria-current', 'page')
+    );
+    await expect(canvasElement.ownerDocument.defaultView?.location.hash).toBe('#RULE/details');
+    await userEvent.click(page.getByRole('button', { name: 'Save' }));
+    await expect(page.findByRole('button', { name: 'Saved' }, { timeout: 30_000 })).resolves.toBeDisabled();
+  },
+});
+
+export const SelectedBlockMarker = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#REFS/TEXT' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const content = await page.findByRole('textbox', { name: 'Content' }, { timeout: 30_000 });
+    const marker = canvasElement.querySelector<HTMLElement>('[data-rulebook-editing-block="TEXT"]')!;
+    const block = canvasElement.querySelector<HTMLElement>(
+      '[data-rulebook-large-preview] [data-rulebook-block-id="TEXT"]'
+    )!;
+    const checkBounds = async () =>
+      waitFor(async () => {
+        const a = marker.getBoundingClientRect();
+        const b = block.getBoundingClientRect();
+        await expect(marker.hidden).toBe(false);
+        await expect(Math.abs(a.left - b.left + 4)).toBeLessThan(1);
+        await expect(Math.abs(a.top - b.top + 4)).toBeLessThan(1);
+        await expect(Math.abs(a.width - b.width - 8)).toBeLessThan(1);
+        await expect(Math.abs(a.height - b.height - 8)).toBeLessThan(1);
+      });
+    await checkBounds();
+    await userEvent.type(content, ' A longer marker note. '.repeat(5));
+    await checkBounds();
+    const view = canvasElement.ownerDocument.defaultView!;
+    view.location.hash = '#REFS/details';
+    await page.findByRole('textbox', { name: 'Title' });
+    await expect(marker.hidden).toBe(true);
+  },
+});

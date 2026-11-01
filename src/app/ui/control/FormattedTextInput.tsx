@@ -1,5 +1,6 @@
 import { Button, Group, Stack, Textarea } from '@mantine/core';
 import type { TextareaProps } from '@mantine/core';
+import { useDebouncedValue } from '@mantine/hooks';
 import { parseFormattedText } from '@shared/formattedText';
 import type { FormattedTextParseResult, FormattedTextProfile } from '@shared/formattedText';
 import { distinctTermHints, fixTermWording } from '@shared/glossary/hints';
@@ -142,7 +143,9 @@ export function FormattedTextInput({
     };
     onChange(nextValue);
   };
-  const hints = useMemo(() => (termHints ? distinctTermHints(value) : []), [termHints, value]);
+  const [settledText] = useDebouncedValue(termHints ? value : '', 200);
+  const settledHints = useMemo(() => (termHints ? distinctTermHints(settledText) : []), [termHints, settledText]);
+  const hints = settledText === value ? settledHints : [];
   const hintsId = useId();
   /* The draft from before the last fix, offered back only while the field still holds exactly what the fix wrote. */
   const [lastFix, setLastFix] = useState<{ before: string; after: string } | null>(null);

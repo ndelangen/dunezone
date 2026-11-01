@@ -290,16 +290,16 @@ export const DeletePagesAndBlocks = meta.story({
     for (let count = 2; count > 0; count -= 1) {
       const removePage = page.getByRole('button', { name: 'Delete Page' });
       const addBlock = page.getByRole('button', { name: 'Add Block' });
-      await expect(removePage.closest('nav')).toBe(addBlock.closest('nav'));
+      await expect(addBlock.closest('nav')).not.toBeNull();
       await expect(removePage.getBoundingClientRect().bottom).toBeLessThanOrEqual(addBlock.getBoundingClientRect().top);
       await completeHold(removePage);
       await waitFor(async () => {
         if (count === 1) {
           await expect(page.getByText('This Rulebook has no Pages.')).toBeVisible();
         } else {
-          await expect(within(page.getByRole('navigation', { name: 'Pages' })).getAllByRole('link')).toHaveLength(
-            count - 1
-          );
+          await expect(
+            within(page.getByRole('region', { name: 'Pages' })).getAllByRole('button', { name: /^Page \d+:/ })
+          ).toHaveLength(count - 1);
         }
       });
     }
@@ -354,11 +354,25 @@ export const AuthoredBookSettings = meta.story({
   parameters: { database: db(withFinalRulebooks) },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    const size = await page.findByRole('combobox', { name: 'Book size' }, { timeout: 30_000 });
-    await userEvent.click(size);
-    await userEvent.click(page.getByRole('option', { name: 'GF9 core (254 × 254 mm)' }));
+    await userEvent.click(await page.findByRole('button', { name: 'Book settings' }, { timeout: 30_000 }));
+    const size = await page.findByRole('radiogroup', { name: 'Book size' });
+    await userEvent.click(within(size).getByRole('radio', { name: /^GF9 core/ }));
+    await userEvent.click(page.getByRole('radio', { name: 'Restrained expansion' }));
     const preview = page.getByRole('article', { name: 'Rulebook page: Introduction' });
     await expect(preview).toHaveAttribute('data-rulebook-size', 'gf9-core');
+    await userEvent.keyboard('{Escape}');
+    await waitFor(async () => {
+      await expect(page.queryByRole('dialog', { name: 'Book settings' })).not.toBeInTheDocument();
+      await expect(page.getByRole('button', { name: 'Book settings' })).toHaveFocus();
+    });
+    await userEvent.click(page.getByRole('button', { name: 'Book settings' }));
+    await page.findByRole('radiogroup', { name: 'Book size' });
+    const title = page.getByRole('textbox', { name: 'Title' });
+    await userEvent.click(title);
+    await waitFor(async () => {
+      await expect(page.queryByRole('dialog', { name: 'Book settings' })).not.toBeInTheDocument();
+      await expect(title).toHaveFocus();
+    });
     await expect(page.getByRole('button', { name: 'Save' })).toBeEnabled();
     await userEvent.click(page.getByRole('button', { name: 'Save' }));
     await expect(page.findByRole('button', { name: 'Saved' }, { timeout: 30_000 })).resolves.toBeDisabled();
@@ -366,7 +380,7 @@ export const AuthoredBookSettings = meta.story({
     if (saved?.kind !== 'editable') {
       throw new Error('Expected editable saved book');
     }
-    await expect(saved.draft.settings).toEqual({ size: 'gf9-core', design: 'illustrated' });
+    await expect(saved.draft.settings).toEqual({ size: 'gf9-core', design: 'restrained' });
     await expect(saved.draft.revision).toBe(2);
     await expect(saved.rulebook.settings.size).toBe('gf9-core');
   },
@@ -496,17 +510,17 @@ export const BookSizeRespectsPageLayouts = meta.story({
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    const size = await page.findByRole('combobox', { name: 'Book size' }, { timeout: 30_000 });
-    await userEvent.click(size);
-    const tall = page.getByRole('option', { name: /Tall .*Page layouts do not fit/ });
-    const expansion = page.getByRole('option', { name: /GF9 expansion .*Page layouts do not fit/ });
-    await expect(tall).toHaveAttribute('aria-disabled', 'true');
-    await expect(expansion).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.click(await page.findByRole('button', { name: 'Book settings' }, { timeout: 30_000 }));
+    const size = await page.findByRole('radiogroup', { name: 'Book size' });
+    const tall = page.getByRole('radio', { name: /^Tall/ });
+    const expansion = page.getByRole('radio', { name: /^GF9 expansion/ });
+    await expect(tall).toBeDisabled();
+    await expect(expansion).toBeDisabled();
     await userEvent.click(expansion);
-    await expect(size).toHaveValue('A4 (210 × 297 mm)');
+    await expect(within(size).getByRole('radio', { name: /^A4/ })).toBeChecked();
     await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
-    await userEvent.click(page.getByRole('option', { name: 'GF9 core (254 × 254 mm)' }));
-    await expect(size).toHaveValue('GF9 core (254 × 254 mm)');
+    await userEvent.click(within(size).getByRole('radio', { name: /^GF9 core/ }));
+    await expect(within(size).getByRole('radio', { name: /^GF9 core/ })).toBeChecked();
     await expect(page.getByRole('button', { name: 'Save' })).toBeEnabled();
   },
 });
@@ -550,6 +564,34 @@ export const FactionTokenSourceEditor = meta.story({
     const saved = await loadRulebookEditor({ rulesetSlug: 'classicrules', rulebookSlug: 'book-0' });
     await expect(saved?.kind === 'editable' && saved.draft.contents.pagesById.RULE?.blocksById.ARTW).toMatchObject({
       source: { kind: 'faction', presentation: 'token' },
+    });
+  },
+});
+
+export const BookSettingsFromOverflow = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/details' },
+  parameters: { database: db(withFinalRulebooks) },
+  globals: { viewport: { value: 'appMobile' } },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const more = await page.findByRole('button', { name: 'More actions' }, { timeout: 30_000 });
+    await expect(page.queryByRole('radiogroup', { name: 'Book size' })).not.toBeInTheDocument();
+    await userEvent.click(more);
+    await userEvent.click(await page.findByRole('button', { name: 'Book settings' }));
+    const settings = await page.findByRole('dialog', { name: 'Book settings' });
+    await expect(within(settings).getByRole('radio', { name: /^A4/ })).toBeChecked();
+    await waitFor(async () => {
+      await expect(page.queryByRole('group', { name: 'More actions' })).not.toBeInTheDocument();
+    });
+    await userEvent.click(within(settings).getByRole('radio', { name: /^GF9 core/ }));
+    await expect(page.getByRole('article', { name: 'Rulebook page: Introduction' })).toHaveAttribute(
+      'data-rulebook-size',
+      'gf9-core'
+    );
+    await userEvent.keyboard('{Escape}');
+    await waitFor(async () => {
+      await expect(page.queryByRole('dialog', { name: 'Book settings' })).not.toBeInTheDocument();
+      await expect(more).toHaveFocus();
     });
   },
 });

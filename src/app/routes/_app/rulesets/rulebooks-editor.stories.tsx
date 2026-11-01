@@ -1,13 +1,13 @@
 import preview from '@sb/preview';
 import { rulebookContentsV1Schema } from '@shared/rulebooks/contents';
 import { createRulebookStarterContents } from '@shared/rulebooks/fixtures';
-import { expect, within } from 'storybook/test';
+import { expect, waitFor, within } from 'storybook/test';
 
 import { db } from '@db/storybook';
 import { parseClientBoundary } from '@app/db/core/clientBoundary';
 
 import { Route as RulebookEditorRoute } from './$rulesetSlug/rulebooks/$rulebookSlug/edit/route';
-import { withUnpublishedRulebook } from './rulebooks-editor.stories.fixture';
+import { withUnpublishedRulebook, withThirtyPages } from './rulebooks-editor.stories.fixture';
 import { rulebooksMeta } from './rulebooks.stories.fixture';
 
 const meta = preview.meta({
@@ -53,5 +53,38 @@ export const StaleEditor = meta.story({
     await expect(await page.findByRole('heading', { name: 'This page changed' }, { timeout: 30_000 })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Refresh' })).toBeVisible();
     await expect(page.queryByText(/unrecognized_keys/)).not.toBeInTheDocument();
+  },
+});
+
+export const LongBook = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/details' },
+  parameters: { database: db(withThirtyPages) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('textbox', { name: 'Title' }, { timeout: 30_000 })).resolves.toHaveValue('Movement');
+    await expect(page.getByRole('button', { name: 'Page 2: Movement' })).toHaveAttribute('aria-current', 'page');
+    await waitFor(() =>
+      expect(
+        canvasElement.querySelector('[data-rulebook-thumbnail="RULE"] [data-rulebook-thumbnail-preview]')
+      ).not.toBeNull()
+    );
+  },
+});
+
+export const SelectedBlock = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/MVVE' },
+  parameters: { database: db(withThirtyPages) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('textbox', { name: 'Content' }, { timeout: 30_000 })).resolves.toHaveValue(
+      'Choose a troop, choose an adjacent destination, then resolve the move.'
+    );
+    await expect(page.getByRole('button', { name: 'Page 2: Movement' })).toHaveAttribute('aria-current', 'page');
+    await waitFor(async () => {
+      await expect(
+        canvasElement.querySelector('[data-rulebook-thumbnail="RULE"] [data-rulebook-thumbnail-preview]')
+      ).not.toBeNull();
+      await expect(canvasElement.querySelector('[data-rulebook-editing-block="MVVE"]')).not.toHaveAttribute('hidden');
+    });
   },
 });
