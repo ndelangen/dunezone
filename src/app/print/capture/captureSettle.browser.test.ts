@@ -32,9 +32,14 @@ afterAll(async () => {
   await browser?.close();
 });
 
-async function startCapture(page: Page, html: string) {
-  await page.setContent(html, { waitUntil: 'domcontentloaded' });
-  await page.addScriptTag({ content: bundle });
+async function startCapture(page: Page, html: string, beforeSettle?: () => Promise<void>) {
+  /* The tracker has to be running before anything paints, exactly as the capture entry starts it before rendering. */
+  await page.addInitScript({
+    content: `${bundle};globalThis.captureAssets = captureAssets;captureAssets.trackArtworkPaint();`,
+  });
+  await page.route('https://capture.invalid/page', (route) => route.fulfill({ contentType: 'text/html', body: html }));
+  await page.goto('https://capture.invalid/page', { waitUntil: 'domcontentloaded' });
+  await beforeSettle?.();
   await page.evaluate(() => {
     const runtime = window as typeof window & {
       captureAssets: typeof captureAssets;
@@ -172,6 +177,119 @@ test.each([
     await startCapture(page, html);
     await page.waitForFunction(() => document.body.dataset.capture !== 'loading');
     expect(await page.locator('body').getAttribute('data-capture')).toBe('error');
+  } finally {
+    await page.close();
+  }
+});
+
+test('capture refuses CSS artwork that its element never painted, even when a later fetch decodes', async () => {
+  const page = await browser.newPage({ viewport: { width: 200, height: 200 } });
+  let requests = 0;
+  await page.route('https://capture.invalid/frame.svg', async (route) => {
+    requests += 1;
+    await route.fulfill(
+      requests === 1
+        ? { contentType: 'image/svg+xml', body: 'not an image' }
+        : {
+            contentType: 'image/svg+xml',
+            body: '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="200" height="200" fill="red"/></svg>',
+          }
+    );
+  });
+  try {
+    /* Settlement starts only after the element's own fetch has failed, so its refetch is a separate request. */
+    await startCapture(
+      page,
+      '<body style="margin:0"><div style="width:200px;height:200px;background-image:url(https://capture.invalid/frame.svg)"></div></body>',
+      async () => {
+        await page.waitForFunction(() =>
+          performance.getEntriesByType('resource').some((entry) => entry.name.endsWith('/frame.svg'))
+        );
+        await afterPaint(page);
+      }
+    );
+    await page.waitForFunction(() => document.body.dataset.capture !== 'loading');
+    expect({ state: await page.locator('body').getAttribute('data-capture'), requests }).toEqual({
+      state: 'error',
+      requests: 2,
+    });
+    expect(await page.locator('body').getAttribute('data-error')).toContain('never painted');
+  } finally {
+    await page.close();
+  }
+}, 15_000);
+
+test('capture settles artwork added while it waits for artwork to paint', async () => {
+  const page = await browser.newPage({ viewport: { width: 200, height: 200 } });
+  const late = deferred();
+  const secondFrameRequest = deferred();
+  let frameRequests = 0;
+  const svg = (fill: string) =>
+    `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="200" height="200" fill="${fill}"/></svg>`;
+  /* The element's own fetch does not decode, the settlement refetch does, so readiness waits for a paint that never comes. */
+  await page.route('https://capture.invalid/frame.svg', async (route) => {
+    frameRequests += 1;
+    if (frameRequests === 2) {
+      secondFrameRequest.resolve();
+    }
+    await route.fulfill({ contentType: 'image/svg+xml', body: frameRequests === 1 ? 'not an image' : svg('red') });
+  });
+  await page.route('https://capture.invalid/replacement.svg', (route) =>
+    route.fulfill({ contentType: 'image/svg+xml', body: svg('green') })
+  );
+  await page.route('https://capture.invalid/late-image.svg', async (route) => {
+    await late.promise;
+    await route.fulfill({ contentType: 'image/svg+xml', body: svg('blue') });
+  });
+  try {
+    await startCapture(
+      page,
+      '<body style="margin:0"><div id="frame" style="width:200px;height:200px;background-image:url(https://capture.invalid/frame.svg)"></div></body>',
+      async () => {
+        await page.waitForFunction(() =>
+          performance.getEntriesByType('resource').some((entry) => entry.name.endsWith('/frame.svg'))
+        );
+        await afterPaint(page);
+      }
+    );
+    await secondFrameRequest.promise;
+    await afterPaint(page);
+    /* Inside the paint wait: new artwork paints the frame, and an image arrives that settlement has not seen. */
+    await page.evaluate(() => {
+      document.querySelector<HTMLElement>('#frame')!.style.backgroundImage =
+        'url(https://capture.invalid/replacement.svg)';
+      const image = document.createElement('img');
+      image.src = 'https://capture.invalid/late-image.svg';
+      document.body.append(image);
+    });
+    for (let frame = 0; frame < 10; frame += 1) {
+      await afterPaint(page);
+    }
+    expect(await page.locator('body').getAttribute('data-capture')).toBe('loading');
+    late.resolve();
+    await page.waitForFunction(() => document.body.dataset.capture !== 'loading');
+    expect(await page.locator('body').getAttribute('data-capture')).toBe('ready');
+  } finally {
+    late.resolve();
+    await page.close();
+  }
+});
+
+test('capture does not wait for a background layer sized to nothing', async () => {
+  const page = await browser.newPage({ viewport: { width: 200, height: 200 } });
+  await page.route('https://capture.invalid/art.svg', (route) =>
+    route.fulfill({
+      contentType: 'image/svg+xml',
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="200" height="200" fill="red"/></svg>',
+    })
+  );
+  try {
+    await startCapture(
+      page,
+      '<body style="margin:0"><div style="width:200px;height:200px;background:url(https://capture.invalid/art.svg) 0 0 / 0 0 no-repeat"></div></body>'
+    );
+    await page.waitForFunction(() => document.body.dataset.capture !== 'loading', undefined, { timeout: 3000 });
+    expect(await page.locator('body').getAttribute('data-capture')).toBe('ready');
   } finally {
     await page.close();
   }

@@ -7,6 +7,25 @@ import { redactPublisherResource } from '@shared/asset-publishing/publisher-diag
 
 export const ASSET_SETTLE_TIMEOUT_MS = 15_000;
 
+/**
+ * How long a decoded CSS image may take to reach the screen on its own element.
+ * Decoding is already proven by then, so this only bounds raster and presentation;
+ * a missing paint past it refuses the capture.
+ */
+export const ARTWORK_PAINT_TIMEOUT_MS = 5000;
+
+/** Element Timing only reports images on elements that carry this attribute when the image first paints. */
+const PAINT_TIMING_ATTRIBUTE = 'elementtiming';
+const PAINT_TIMING_IDENTIFIER = 'capture-artwork';
+/** Element Timing truncates `data:` URLs to this many characters. */
+const PAINT_TIMING_DATA_URL_LENGTH = 100;
+
+/** The Element Timing entry fields this file reads; TypeScript's DOM library does not declare the interface. */
+type ElementPaintEntry = PerformanceEntry & { element: Element | null; url: string };
+
+const paintedArtwork = new WeakMap<Element, Set<string>>();
+let paintTracking = false;
+
 function imageLabel(image: HTMLImageElement): string {
   const source = image.currentSrc || image.src;
   return source ? redactPublisherResource(source, document.baseURI) : image.alt || '<unknown image>';
@@ -171,13 +190,13 @@ function cssImageUrls(style: CSSStyleDeclaration): string[] {
   const matches = CSS_IMAGE_PROPERTIES.flatMap((property) =>
     Array.from(style.getPropertyValue(property).matchAll(/url\("((?:\\.|[^"\\])*)"\)/gu))
   );
-  return matches
-    .map((match) =>
-      match[1].replace(/\\([0-9a-f]{1,6})\s?|\\(.)/giu, (_escape, hex: string | undefined, character: string) =>
-        hex ? String.fromCodePoint(Number.parseInt(hex, 16) || 0xff_fd) : character
-      )
-    )
-    .filter((href) => !href.startsWith('#'));
+  return matches.map((match) => unescapeCssUrl(match[1])).filter((href) => !href.startsWith('#'));
+}
+
+function unescapeCssUrl(value: string): string {
+  return value.replace(/\\([0-9a-f]{1,6})\s?|\\(.)/giu, (_escape, hex: string | undefined, character: string) =>
+    hex ? String.fromCodePoint(Number.parseInt(hex, 16) || 0xff_fd) : character
+  );
 }
 
 function captureResources() {
@@ -191,6 +210,157 @@ function captureResources() {
       [...cssImages],
     ]),
   };
+}
+
+function paintKey(href: string): string {
+  const absolute = new URL(href, document.baseURI).href;
+  return absolute.startsWith('data:') ? absolute.slice(0, PAINT_TIMING_DATA_URL_LENGTH) : absolute;
+}
+
+function markForPaintTiming(root: Element): void {
+  if (!root.hasAttribute(PAINT_TIMING_ATTRIBUTE)) {
+    root.setAttribute(PAINT_TIMING_ATTRIBUTE, PAINT_TIMING_IDENTIFIER);
+  }
+  for (const element of root.querySelectorAll(`:not([${PAINT_TIMING_ATTRIBUTE}])`)) {
+    element.setAttribute(PAINT_TIMING_ATTRIBUTE, PAINT_TIMING_IDENTIFIER);
+  }
+}
+
+/**
+ * Records which images each element actually painted, so readiness can prove CSS artwork reached the screen on the element that shows it.
+ *
+ * Decoding a URL in a separate image only proves that URL decodes now.
+ * An element whose own fetch of the same URL failed silently, such as a response that did not decode, keeps painting nothing, and a capture taken then publishes a card without its frame.
+ * Call it before the subject renders: Element Timing reports an image only if its element was marked when the image first painted.
+ */
+function recordPaint(entry: ElementPaintEntry): void {
+  if (!entry.element || !entry.url) {
+    return;
+  }
+  const painted = paintedArtwork.get(entry.element) ?? new Set<string>();
+  painted.add(paintKey(entry.url));
+  paintedArtwork.set(entry.element, painted);
+}
+
+export function trackArtworkPaint(): void {
+  if (paintTracking) {
+    return;
+  }
+  paintTracking = true;
+  new PerformanceObserver((list) => {
+    for (const entry of list.getEntries() as ElementPaintEntry[]) {
+      recordPaint(entry);
+    }
+  }).observe({ type: 'element', buffered: true });
+  if (document.documentElement) {
+    markForPaintTiming(document.documentElement);
+  }
+  new MutationObserver((records) => {
+    for (const node of records.flatMap((record) => Array.from(record.addedNodes))) {
+      if (node instanceof Element) {
+        markForPaintTiming(node);
+      }
+    }
+  }).observe(document, { childList: true, subtree: true });
+}
+
+/** Splits a computed list value at its top-level commas, leaving commas inside functions and strings alone. */
+function cssLayers(value: string): string[] {
+  const layers: string[] = [];
+  let depth = 0;
+  let quoted = false;
+  let start = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    const character = value[index];
+    if (character === '\\') {
+      index += 1;
+    } else if (character === '"') {
+      quoted = !quoted;
+    } else if (!quoted && character === '(') {
+      depth += 1;
+    } else if (!quoted && character === ')') {
+      depth -= 1;
+    } else if (!quoted && depth === 0 && character === ',') {
+      layers.push(value.slice(start, index).trim());
+      start = index + 1;
+    }
+  }
+  layers.push(value.slice(start).trim());
+  return layers;
+}
+
+/** A layer sized to zero in either direction has no area to paint, so Element Timing never reports it. */
+function hasZeroSize(size: string | undefined): boolean {
+  return Boolean(size?.split(/\s+/u).some((dimension) => /^0(?:\.0+)?(?:px|%)?$/u.test(dimension)));
+}
+
+function backgroundImageUrls(element: Element): string[] {
+  const style = getComputedStyle(element);
+  const value = style.getPropertyValue('background-image');
+  if (!value.includes('url(')) {
+    return [];
+  }
+  const sizes = cssLayers(style.getPropertyValue('background-size'));
+  return cssLayers(value).flatMap((layer, index) => {
+    const match = /^url\("((?:\\.|[^"\\])*)"\)$/u.exec(layer);
+    /* An image-set paints one of its candidates, so no single URL in it is owed a paint. */
+    if (!match || hasZeroSize(sizes[index % sizes.length])) {
+      return [];
+    }
+    const href = unescapeCssUrl(match[1]);
+    return href.startsWith('#') ? [] : [href];
+  });
+}
+
+/** Element Timing only reports what painted inside the viewport, on an element that is not hidden. */
+function paintsOnScreen(element: Element): boolean {
+  if (!element.checkVisibility({ opacityProperty: true, visibilityProperty: true })) {
+    return false;
+  }
+  const rect = element.getBoundingClientRect();
+  const width = Math.min(rect.right, window.innerWidth) - Math.max(rect.left, 0);
+  const height = Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0);
+  return width > 0 && height > 0;
+}
+
+/** Background artwork on visible elements whose own paint Element Timing has not reported yet. */
+function unpaintedArtwork(): string[] {
+  const missing = new Set<string>();
+  for (const element of document.querySelectorAll('body *')) {
+    const hrefs = backgroundImageUrls(element);
+    const owed = hrefs.length && paintsOnScreen(element) ? hrefs : [];
+    const painted = paintedArtwork.get(element);
+    for (const href of owed.filter((candidate) => !painted?.has(paintKey(candidate)))) {
+      missing.add(href);
+    }
+  }
+  return [...missing];
+}
+
+/**
+ * Waits until every visible element has painted its own background artwork, as Element Timing reports it.
+ * The root and body are left out because their backgrounds paint on the canvas, which Element Timing does not attribute to them.
+ */
+export async function settleArtworkPaint(signal: AbortSignal, timeoutMs = ARTWORK_PAINT_TIMEOUT_MS): Promise<void> {
+  if (!paintTracking) {
+    throw new Error('Artwork paint tracking must start before the capture subject renders');
+  }
+  const deadline = performance.now() + timeoutMs;
+  while (true) {
+    signal.throwIfAborted();
+    const missing = unpaintedArtwork();
+    if (!missing.length) {
+      return;
+    }
+    if (performance.now() >= deadline) {
+      throw new Error(
+        `CSS artwork never painted on its element: ${missing
+          .map((href) => redactPublisherResource(href, document.baseURI))
+          .join(', ')}`
+      );
+    }
+    await afterPaint();
+  }
 }
 
 /** Load callbacks can add artwork; only a painted document with no new resources is ready. */
@@ -211,10 +381,17 @@ export async function settleCaptureAssets(signal: AbortSignal): Promise<void> {
     await afterPaint();
     signal.throwIfAborted();
     const painted = captureResources();
-    if (painted.signature === resources.signature) {
+    if (painted.signature !== resources.signature) {
+      resources = painted;
+      continue;
+    }
+    /* The paint wait yields for frames, so artwork added meanwhile goes back through settlement. */
+    await settleArtworkPaint(signal);
+    const afterArtwork = captureResources();
+    if (afterArtwork.signature === resources.signature) {
       return;
     }
-    resources = painted;
+    resources = afterArtwork;
   }
 }
 

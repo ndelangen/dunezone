@@ -131,7 +131,10 @@ those scans or captures to finish.
 Capture readiness waits for fonts, HTML images, SVG resources, and CSS artwork,
 including generated content and masks. It rechecks resources after painting so
 artwork added during loading also settles. A failed decode or an expired capture
-deadline refuses publication.
+deadline refuses publication. Decoding a URL is not proof that the element using
+it painted it, so readiness also waits for Element Timing to report each visible
+element's own background artwork, and refuses a capture whose artwork never
+painted.
 
 The scheduled handler emits one bounded `asset_publisher_cron` JSON event per
 invocation. Completed events report job and Browser-session counts; failures contain
