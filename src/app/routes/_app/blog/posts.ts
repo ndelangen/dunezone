@@ -39,9 +39,9 @@ export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
     summary:
       "What happens between your mouse and everyone else's screen on the dune.zone game table: the hands you see moving, a piece in flight, how every table stays in step, and how your cards stay yours.",
     cover: {
-      key: '/web/blog/building-a-dune-sandbox/game-table.jpg',
-      alt: 'The dune.zone game table during the spice blow: the Dune board with troops, faction shields and the treachery deck',
-      aspect: 1019 / 2048,
+      key: '/web/blog/playing-dune-online-in-real-time/table-in-play.jpg',
+      alt: 'A six-player game on the dune.zone game table in Shipment and Movement: troops in the strongholds, spice on the board and the treachery decks',
+      aspect: 1110 / 2048,
     },
   },
   'anatomy-of-a-dune-faction-atreides': {

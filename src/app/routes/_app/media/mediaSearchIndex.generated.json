@@ -8384,6 +8384,11 @@
     "tags": ["dune.zone", "game table", "spice blow", "online play", "blog"],
     "subjects": ["places", "symbols"]
   },
+  "/web/blog/playing-dune-online-in-real-time/table-in-play.jpg": {
+    "description": "A six-player game on the dune.zone game table in Shipment and Movement, with troops in the strongholds, spice on the board and the treachery decks.",
+    "tags": ["dune.zone", "game table", "online play", "blog"],
+    "subjects": ["places", "symbols"]
+  },
   "/web/blog/dune-board-game-style-guide/faction-palette.jpg": {
     "description": "Twelve faction swatch cards on a dark blue page: each faction's token, its light and shade colours with hex codes, and its texture number.",
     "tags": ["factions", "colours", "blog"],

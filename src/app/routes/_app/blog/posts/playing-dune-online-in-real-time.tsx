@@ -2,16 +2,13 @@ import { Anchor } from '@mantine/core';
 import { Section } from '@ui/block/Section';
 
 import { Figure, Lead, Paragraph, PostLink, WideFigure } from '../postContent';
-import { BLOG_POST_META } from '../posts';
 import { CarryRace } from './realtime/CarryRace';
 import { HandRelay } from './realtime/HandRelay';
 import { PatchStream } from './realtime/PatchStream';
 import { RoomHub } from './realtime/RoomHub';
 import { SeatLens } from './realtime/SeatLens';
-import { TableOfHands } from './realtime/TableOfHands';
+import { TableInPlay } from './realtime/TableInPlay';
 import { Timeline } from './realtime/Timeline';
-
-const meta = BLOG_POST_META['playing-dune-online-in-real-time'];
 
 export default function Post() {
   return (
@@ -22,9 +19,9 @@ export default function Post() {
       </Lead>
       <Paragraph>Here is what happens in between.</Paragraph>
       <Figure
-        imageKey={meta.cover.key}
-        alt={meta.cover.alt}
-        aspect={meta.cover.aspect}
+        imageKey="/web/blog/building-a-dune-sandbox/game-table.jpg"
+        alt="The dune.zone game table during the spice blow: the Dune board with troops, faction shields and the treachery deck"
+        aspect={1019 / 2048}
         caption="The dune.zone game table. Everything on it moves in real time."
       />
       <RoomSection />
@@ -233,8 +230,8 @@ function ClosingSection() {
         stored, how the history lets you look back at any phase, and how the code is split between the room and your
         browser. Maybe that&rsquo;s a deeper dive for a future post.
       </Paragraph>
-      <WideFigure caption="Hands around the table.">
-        <TableOfHands />
+      <WideFigure caption="A game in Shipment and Movement, with the other players' hands on the table.">
+        <TableInPlay />
       </WideFigure>
     </Section>
   );
