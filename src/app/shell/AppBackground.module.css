@@ -1,6 +1,13 @@
+/*
+ * Tall as the largest the window gets, not as it is now: a phone browser's toolbar slides away as the page scrolls, and the page runs on under the
+ * translucent bar before it does. Sized to the bar's own edge, the planet stopped there and the bar showed the bare page behind it.
+ */
 .background {
   position: fixed;
   inset: 0;
+  bottom: auto;
+  height: 100vh;
+  height: 100lvh;
   overflow: hidden;
   z-index: -3;
   pointer-events: none;
@@ -57,8 +64,9 @@
 .planetFrame {
   --planet-diameter: max(140vw, 140vh);
 
+  /* Measured against the same largest window, so the planet holds still while the toolbar comes and goes. */
   top: calc(100vh - var(--planet-diameter) * 0.2);
-  top: calc(100dvh - var(--planet-diameter) * 0.2);
+  top: calc(100lvh - var(--planet-diameter) * 0.2);
   left: 50%;
   width: var(--planet-diameter);
   aspect-ratio: 1;
