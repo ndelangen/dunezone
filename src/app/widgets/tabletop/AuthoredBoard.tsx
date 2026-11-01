@@ -10,6 +10,7 @@ import type { Texture } from 'three';
 import { authoredBoardGeometry } from './authoredBoardGeometry';
 import { authoredBoardTexture } from './authoredBoardTexture';
 import { POLAR_SINK_RENDER_ORDER } from './boardRenderOrder';
+import { BoardSkinMaterial } from './BoardSkinMaterial';
 
 type State = { texture: Texture | null; error: boolean; attempt: number };
 type Event = { type: 'ready'; texture: Texture } | { type: 'failed' } | { type: 'retry' };
@@ -26,18 +27,7 @@ function reducer(state: State, event: Event): State {
 
 function BoardPaintMaterial({ texture }: { texture: Texture | null }) {
   return (
-    <meshStandardMaterial
-      key={texture ? 'artwork' : 'territories'}
-      map={texture}
-      vertexColors={!texture}
-      transparent
-      depthWrite={false}
-      polygonOffset
-      polygonOffsetFactor={-1}
-      polygonOffsetUnits={-1}
-      roughness={0.88}
-      metalness={0}
-    />
+    <BoardSkinMaterial key={texture ? 'artwork' : 'territories'} map={texture} vertexColors={!texture} polygonOffset />
   );
 }
 

@@ -11,6 +11,8 @@ import type { MockInstance } from 'storybook/test';
 
 import { TableSession } from '@db/tabletop/TableSession';
 
+import { BoardSkinOverride } from './BoardSkinMaterial';
+import type { BoardSkin } from './boardSkins';
 import { curvedBoard } from './curvedBoard.fixture';
 import { PointerSession } from './PointerSession';
 import { PointerSessionContext } from './PointerSessionContext';
@@ -19,7 +21,15 @@ import { TableKeyboardContext } from './TableKeyboardContext';
 import { TabletopSessionProvider } from './TabletopContext';
 import { TabletopScene } from './TabletopScene';
 
-function PreparedTable({ presentation, board }: { presentation: 'play' | 'preview'; board?: BoardCapture }) {
+function PreparedTable({
+  presentation,
+  board,
+  skin,
+}: {
+  presentation: 'play' | 'preview';
+  board?: BoardCapture;
+  skin?: BoardSkin;
+}) {
   const [session] = useState(() => {
     const view: RoomView = {
       type: 'view',
@@ -67,15 +77,17 @@ function PreparedTable({ presentation, board }: { presentation: 'play' | 'previe
     return null;
   }
   return (
-    <PointerSessionContext value={pointer}>
-      <TableKeyboardContext value={keyboard}>
-        <TabletopSessionProvider session={session}>
-          <div style={{ height: 700, display: 'grid' }}>
-            <TabletopScene presentation={presentation} stage="play" tableProgress={tableProgressFor(0)} />
-          </div>
-        </TabletopSessionProvider>
-      </TableKeyboardContext>
-    </PointerSessionContext>
+    <BoardSkinOverride value={skin ?? null}>
+      <PointerSessionContext value={pointer}>
+        <TableKeyboardContext value={keyboard}>
+          <TabletopSessionProvider session={session}>
+            <div style={{ height: 700, display: 'grid' }}>
+              <TabletopScene presentation={presentation} stage="play" tableProgress={tableProgressFor(0)} />
+            </div>
+          </TabletopSessionProvider>
+        </TableKeyboardContext>
+      </PointerSessionContext>
+    </BoardSkinOverride>
   );
 }
 
@@ -127,3 +139,34 @@ export const AuthoredArrakis = meta.story({
 });
 
 export const CurvesAndIsland = meta.story({ args: { presentation: 'play', board: curvedBoard() } });
+
+/*
+ * Board skins: each viewer's own look for the territory types (sand, rock, strongholds, the Polar Sink).
+ * A skin only scales the brightness of the colours the map already has, so it adds no colour, and dark ink keeps its contrast.
+ */
+/** The board as it draws today, for comparison. */
+export const SkinPlain = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
+  args: { presentation: 'play', board: arrakisBoardCapture, skin: 'plain' },
+});
+/** Fine noise per type: sand grain, mottled rock, smooth stronghold stone, soft ice. */
+export const SkinGrain = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
+  args: { presentation: 'play', board: arrakisBoardCapture, skin: 'grain' },
+});
+/** Wind ripples in the sand, strata and cracks in the rock, cut blocks in the strongholds. */
+export const SkinWindswept = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
+  args: { presentation: 'play', board: arrakisBoardCapture, skin: 'windswept' },
+});
+/** The wind-swept patterns as raised relief that the table's lights pick out, with lighter colour changes. */
+export const SkinRelief = meta.story({
+  parameters: { chromatic: { disableSnapshot: true } },
+  args: { presentation: 'play', board: arrakisBoardCapture, skin: 'relief' },
+});
+/** The wind-swept sand slowly drifting; it stays still when Reduce motion is on. */
+export const SkinDriftingSand = meta.story({
+  globals: { motion: 'on' },
+  parameters: { chromatic: { disableSnapshot: true } },
+  args: { presentation: 'play', board: arrakisBoardCapture, skin: 'drifting' },
+});

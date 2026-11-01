@@ -42,6 +42,7 @@ import { boardFurnitureFor } from './boardFurniture';
 import { boardMapGeometry } from './boardMapGeometry';
 import { POLAR_SINK_RENDER_ORDER, STORM_OUTLINE_RENDER_ORDER, STORM_SECTOR_RENDER_ORDER } from './boardRenderOrder';
 import { BOARD_RIM_DEPTH, BOARD_RIM_METALNESS, BOARD_RIM_ROUGHNESS, createBoardRimShape } from './boardRimGeometry';
+import { BoardSkinMaterial } from './BoardSkinMaterial';
 import { ignoreRaycast } from './ignoreRaycast';
 import { PhaseSymbol } from './PhaseSymbol';
 import { useSharedMeshes } from './sharedMeshes';
@@ -401,10 +402,10 @@ function LegacyBoardPaint() {
   return (
     <>
       <mesh receiveShadow geometry={geometry} renderOrder={BOARD_MAP_RENDER_ORDER} raycast={ignoreRaycast}>
-        <meshStandardMaterial vertexColors transparent depthWrite={false} roughness={0.88} metalness={0} />
+        <BoardSkinMaterial vertexColors />
       </mesh>
       <mesh receiveShadow geometry={polarSink} renderOrder={POLAR_SINK_RENDER_ORDER} raycast={ignoreRaycast}>
-        <meshStandardMaterial vertexColors transparent depthWrite={false} roughness={0.88} metalness={0} />
+        <BoardSkinMaterial vertexColors />
       </mesh>
     </>
   );

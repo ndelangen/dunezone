@@ -14,6 +14,9 @@ import { useId, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
+import { setBoardSkin, useBoardSkin } from '../../../../widgets/tabletop/boardSkinPreference';
+import { BOARD_SKIN_LABELS, BOARD_SKINS } from '../../../../widgets/tabletop/boardSkins';
+import type { BoardSkin } from '../../../../widgets/tabletop/boardSkins';
 import {
   setTableLighting,
   TABLE_LIGHTING_MAX,
@@ -350,6 +353,24 @@ function TablePanSpeedSlider() {
   );
 }
 
+/* How this viewer's board draws its territory types; it stays in this browser and never reaches the game. */
+function BoardSkinSelect() {
+  const skin = useBoardSkin();
+  return (
+    <Stack gap={4} px="sm" py="xs" miw={200}>
+      <Select
+        label="Board skin"
+        size="sm"
+        data={BOARD_SKINS.map((value) => ({ value, label: BOARD_SKIN_LABELS[value] }))}
+        value={skin}
+        onChange={(value) => value && setBoardSkin(value as BoardSkin)}
+        allowDeselect={false}
+        comboboxProps={{ withinPortal: false }}
+      />
+    </Stack>
+  );
+}
+
 /* Pins the stack counts or piece names on; holding the key shows them for a moment. */
 function TableLabelItems() {
   const labels = useTableLabels();
@@ -407,6 +428,7 @@ export function GameMenu({
         <Menu.Divider />
         <TableLightingSlider />
         <TablePanSpeedSlider />
+        <BoardSkinSelect />
         <TableLabelItems />
         {table.snapshot.stage === 'play' && offersActions(table) && (
           <Menu.CheckboxItem
