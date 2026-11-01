@@ -57,19 +57,19 @@ type Bar = {
 };
 
 const BARS: readonly Bar[] = [
-  { label: 'First full view of a test table', bytes: FULL_VIEW, value: '24,664 B' },
+  { label: 'First full view of a test table', bytes: FULL_VIEW, value: '24 KB' },
   {
     label: 'Dropping a stack of 100 cards, before',
     bytes: 21_680,
     waste: { share: 0.95, label: 'unchanged card data' },
-    value: '21,680 B',
+    value: '21 KB',
   },
   {
     label: 'Dropping a stack of 100 cards, now',
     bytes: null,
     value: 'only the piece id, position, rotation, zone and flip count',
   },
-  { label: 'One cursor move', bytes: 495, trimmed: 365, value: '495 B, then 365 B without its unchanged snapshot' },
+  { label: 'One cursor move', bytes: 495, trimmed: 365, value: '0.5 KB, then 0.4 KB without its unchanged snapshot' },
 ];
 
 /** How many packets have left the room by this step; the one with that index is in the air. */

@@ -17,13 +17,12 @@ export default function Post() {
   return (
     <>
       <Lead>
-        I asked someone what they&rsquo;d like me to write about next. Their answer: how does the game table on
-        dune.zone do real time?
+        Most of what makes the dune.zone game table feel live is invisible when it works. You see another player&rsquo;s
+        hand drift across the board. You see them lift a troop and set it down in Arrakeen. Your cards stay yours, and
+        theirs stay theirs.
       </Lead>
       <Paragraph>
-        It&rsquo;s a good question, because most of it is invisible when it works. You see another player&rsquo;s hand
-        drift across the board. You see them lift a troop and set it down in Arrakeen. Your cards stay yours, and theirs
-        stay theirs. This post opens up what happens in between, with a few small demos you can play with along the way.
+        This post opens up what happens in between, with a few small demos you can play with along the way.
       </Paragraph>
       <Figure
         imageKey={meta.cover.key}
@@ -137,7 +136,7 @@ function StepSection() {
         <PatchStream />
       </WideFigure>
       <Paragraph>
-        I measured this in September. A cursor move cost about 500 bytes, and a quarter of that turned out to be
+        I measured this in September. A cursor move cost about half a kilobyte, and a quarter of that turned out to be
         leftovers that never changed, so they went. Dropping a big stack of a hundred cards used to send every card in
         the stack again. Now a saved move sends only which piece moved, where to and which way it faces.
       </Paragraph>
