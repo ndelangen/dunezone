@@ -1,5 +1,5 @@
 import { Anchor, Button, Code, Group, List, Stack, Text } from '@mantine/core';
-import { ClientOnly, createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { TopicIcon } from '@ui/content/TopicIcon';
@@ -143,8 +143,7 @@ const STEPS: readonly Step[] = [
     body: (
       <Text>
         This tab is optional. A planet has a name, an illustration from the planet library and a short description, and
-        it is listed on the faction&rsquo;s page. Add planets before troops if a troop comes from one: troops can point
-        at a planet.
+        it is listed on the faction&rsquo;s page.
       </Text>
     ),
   },
@@ -199,8 +198,9 @@ const STEPS: readonly Step[] = [
     ),
     tip: (
       <>
-        Rule text understands a little formatting: <Code>*bold*</Code>, <Code>-italic-</Code>, <Code>_underline_</Code>,
-        and a line starting with <Code>- </Code> for a list. Words the{' '}
+        Rule text understands a little formatting: <Code>*bold*</Code>, <Code>-italic-</Code> and{' '}
+        <Code>_underline_</Code>. The special rule, advantages and alliance text also take a line starting with{' '}
+        <Code>- </Code> for a list; setup and revival stay one paragraph each. Words the{' '}
         <Anchor renderRoot={(props) => <Link {...props} to="/glossary" />}>glossary</Anchor> prefers are hinted as you
         type, so your rules read like the rest of the game.
       </>
@@ -308,7 +308,6 @@ const SAMPLE_BACKGROUND: ComponentProps<typeof LeaderToken>['background'] = {
 /**
  * Three pieces the creator draws from one faction: a leader token, a troop token and the alliance card.
  * They are drawn by the game's own renderers, so the picture cannot drift from what the creator makes.
- * They render in the browser only, after the text, because they are an illustration and the words carry the tutorial.
  */
 function WhatYouMake() {
   return (
@@ -317,39 +316,33 @@ function WhatYouMake() {
       aria-label="A leader token, a troop token and an alliance card from one sample faction"
     >
       <div className={styles.disc}>
-        <ClientOnly>
-          <LeaderToken
-            background={SAMPLE_BACKGROUND}
-            image="/image/leader/alien/eeriva.png"
-            logo="/vector/generic/axes.svg"
-            name="Warden Ishara"
-            strength="5"
-          />
-        </ClientOnly>
+        <LeaderToken
+          background={SAMPLE_BACKGROUND}
+          image="/image/leader/alien/eeriva.png"
+          logo="/vector/generic/axes.svg"
+          name="Warden Ishara"
+          strength="5"
+        />
       </div>
       <div className={styles.disc}>
-        <ClientOnly>
-          <TroopToken
-            background={SAMPLE_BACKGROUND}
-            image="/vector/troop/desert-pathfinder.svg"
-            star={undefined}
-            hue={undefined}
-            striped={false}
-          />
-        </ClientOnly>
+        <TroopToken
+          background={SAMPLE_BACKGROUND}
+          image="/vector/troop/desert-pathfinder.svg"
+          star={undefined}
+          hue={undefined}
+          striped={false}
+        />
       </div>
       <div className={styles.card}>
         <CanvasScale canvasWidth={cardSize.width} canvasHeight={cardSize.height} rounded>
-          <ClientOnly>
-            <AllianceCard
-              background={SAMPLE_BACKGROUND}
-              logo="/vector/generic/axes.svg"
-              title="Sand Wardens"
-              troop="/vector/troop/desert-pathfinder.svg"
-              decals={[]}
-              text={'Your ally may move one extra territory.\n\nYou may give your ally spice at any time.'}
-            />
-          </ClientOnly>
+          <AllianceCard
+            background={SAMPLE_BACKGROUND}
+            logo="/vector/generic/axes.svg"
+            title="Sand Wardens"
+            troop="/vector/troop/desert-pathfinder.svg"
+            decals={[]}
+            text={'Your ally may move one extra territory.\n\nYou may give your ally spice at any time.'}
+          />
         </CanvasScale>
       </div>
       <figcaption className={styles.caption}>

@@ -1,7 +1,7 @@
 import { useAuthActions } from '@convex-dev/auth/react';
 import { Menu } from '@mantine/core';
 import { signInReturnFrom } from '@shared/authDestination';
-import { Link, useLocation } from '@tanstack/react-router';
+import { Link, useLocation, useMatches } from '@tanstack/react-router';
 import type { RefObject } from 'react';
 import { useLayoutEffect, useRef, useState } from 'react';
 
@@ -40,7 +40,8 @@ export function SiteNavigation({ links: linksOverride }: SiteNavigationProps) {
   const profile = useCurrentProfile();
   const { signOut } = useAuthActions();
   const here = useLocation({ select: (location) => location.href });
-  const segmentId = useLocation({ select: (location) => navSegmentFor(location.pathname) });
+  /* The matched route's template, not the address: a record whose slug happens to read `edit` must not turn its page into an editor. */
+  const segmentId = useMatches({ select: (matches) => navSegmentFor(matches.at(-1)?.fullPath ?? '/') });
   const segment = NAV_SEGMENTS.find((candidate) => candidate.id === segmentId)!;
   const links = linksOverride ?? segment.links;
   const groupRef = useRef<HTMLDivElement>(null);
@@ -68,14 +69,10 @@ export function SiteNavigation({ links: linksOverride }: SiteNavigationProps) {
               className={styles.segment}
               data-current={current || undefined}
               aria-current={current ? 'true' : undefined}
-              aria-label={candidate.label}
             >
-              <span className={styles.segmentLong} aria-hidden>
-                {candidate.label}
-              </span>
-              <span className={styles.segmentShort} aria-hidden>
-                {candidate.shortLabel}
-              </span>
+              {/* Only one name is displayed at a time, and the hidden one is hidden from assistive technology too, so the accessible name is always the visible one. */}
+              <span className={styles.segmentLong}>{candidate.label}</span>
+              <span className={styles.segmentShort}>{candidate.shortLabel}</span>
             </Link>
           );
         })}

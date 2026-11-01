@@ -86,49 +86,55 @@ const CREATIONS: readonly Creation[] = [
   },
 ];
 
-type Resource = { icon: ReactNode; title: ReactNode; detail: string };
+/* Each row is one link, so the whole row is the target, as on the Future plans index. */
+type Resource = { icon: ReactNode; title: string; detail: string; link: (content: ReactNode) => ReactNode };
 
 const RESOURCES: readonly Resource[] = [
   {
     icon: <Images size={18} />,
-    title: <Anchor renderRoot={(props) => <Link {...props} to="/media" />}>Media library</Anchor>,
+    title: 'Media library',
     detail: 'Every portrait, troop, symbol, emblem and planet you can pick from in the editors.',
+    link: (content) => <Anchor renderRoot={(props) => <Link {...props} to="/media" />}>{content}</Anchor>,
   },
   {
     icon: <Palette size={18} />,
-    title: (
+    title: 'The Dune board game style guide',
+    detail: 'The fonts, colours and textures of the GF9 edition, so your faction looks at home on the table.',
+    link: (content) => (
       <Anchor
         renderRoot={(props) => (
           <Link {...props} to="/blog/$postSlug" params={{ postSlug: 'dune-board-game-style-guide' }} />
         )}
       >
-        The Dune board game style guide
+        {content}
       </Anchor>
     ),
-    detail: 'The fonts, colours and textures of the GF9 edition, so your faction looks at home on the table.',
   },
   {
     icon: <Shapes size={18} />,
-    title: (
+    title: 'Anatomy of a Dune faction',
+    detail: 'House Atreides taken apart: the ingredients of a faction and every piece drawn from them.',
+    link: (content) => (
       <Anchor
         renderRoot={(props) => (
           <Link {...props} to="/blog/$postSlug" params={{ postSlug: 'anatomy-of-a-dune-faction-atreides' }} />
         )}
       >
-        Anatomy of a Dune faction
+        {content}
       </Anchor>
     ),
-    detail: 'House Atreides taken apart: the ingredients of a faction and every piece drawn from them.',
   },
   {
     icon: <BookA size={18} />,
-    title: <Anchor renderRoot={(props) => <Link {...props} to="/glossary" />}>Glossary</Anchor>,
+    title: 'Glossary',
     detail: 'The words the rulebook uses, so your rules text reads like the rest of the game.',
+    link: (content) => <Anchor renderRoot={(props) => <Link {...props} to="/glossary" />}>{content}</Anchor>,
   },
   {
     icon: <MessagesSquare size={18} />,
-    title: <Anchor href="https://discord.com/invite/dune-tabletop-624609341886169117">Dune Discord server</Anchor>,
+    title: 'Dune Discord server',
     detail: 'Where homebrew factions get playtested, argued over and improved.',
+    link: (content) => <Anchor href="https://discord.com/invite/dune-tabletop-624609341886169117">{content}</Anchor>,
   },
 ];
 
@@ -202,6 +208,7 @@ function CreatePage() {
                   icon={resource.icon}
                   title={resource.title}
                   detail={resource.detail}
+                  renderLink={resource.link}
                 />
               ))}
             </Bullets>

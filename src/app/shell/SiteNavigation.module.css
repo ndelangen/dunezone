@@ -111,7 +111,7 @@
 }
 
 /* Phones keep both segments in view; only their names get shorter. */
-@media (width < 40rem) {
+@media (width < 48rem) {
   .segmentLong {
     display: none;
   }

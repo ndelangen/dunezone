@@ -16,6 +16,8 @@ describe('navSegmentFor', () => {
     '/tutorial/welcome',
     '/profiles/central/edit',
     '/auth/login',
+    '/factions/$factionId',
+    '/rulesets/$rulesetSlug/rulebooks/$rulebookSlug',
   ])('puts %s under Playing Dune', (pathname) => {
     expect(navSegmentFor(pathname)).toBe('play');
   });

@@ -41,7 +41,11 @@ export const Create = meta.story({
       'href',
       '/create/faction'
     );
-    await expect(page.findByRole('link', { name: 'Creating content', current: true })).resolves.toBeVisible();
+    /* The switch names the segment in full on wide screens and as Create on narrow ones. */
+    await expect(page.findByRole('link', { name: /^Creat(ing content|e)$/, current: 'page' })).resolves.toHaveAttribute(
+      'href',
+      '/create'
+    );
   },
 });
 

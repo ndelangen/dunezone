@@ -63,11 +63,12 @@ function isEditor(segments: readonly string[]): boolean {
 }
 
 /**
- * Which half of the site a path belongs to.
+ * Which half of the site a route belongs to, given its template such as `/factions/$factionId/edit`.
+ * Parameters (`$…`) never match a keyword, so a record slugged `edit` stays on its reader page.
  * The guides and the media library are Creating content, and so is every editor outside the playing roots.
  */
-export function navSegmentFor(pathname: string): NavSegmentId {
-  const segments = pathname.split('/').filter(Boolean);
+export function navSegmentFor(routePath: string): NavSegmentId {
+  const segments = routePath.split('/').filter(Boolean);
   const root = segments[0] ?? '';
   if (PLAYING_ROOTS.has(root)) {
     return 'play';

@@ -38,6 +38,7 @@ vi.mock('@tanstack/react-router', () => ({
   ),
   useLocation: ({ select }: { select: (location: { href: string; pathname: string }) => unknown }) =>
     select({ href: '/', pathname: '/' }),
+  useMatches: ({ select }: { select: (matches: { fullPath: string }[]) => unknown }) => select([{ fullPath: '/' }]),
 }));
 
 vi.mock('@db/profiles', () => ({
@@ -188,7 +189,10 @@ describe('AppRoot page header', () => {
     expect(footerHrefs).toEqual(
       expect.arrayContaining(RECORDLESS_PUBLIC_PAGES.filter((page) => !HEADER_PUBLIC_PAGES.includes(page)))
     );
-    /* The header row collapses links into its More menu by measured width, so the contract is read from its link set. */
+    /*
+     * The header row collapses links into its More menu by measured width, so the contract is read from its link sets.
+     * Each page shows one segment's row; the other row is one step away through the switch, which links to that segment's landing page.
+     */
     const headerHrefs = NAV_SEGMENTS.flatMap((segment) => [segment.to, ...segment.links.map((link) => link.to)]);
     for (const page of HEADER_PUBLIC_PAGES) {
       expect(footerHrefs).not.toContain(page);
