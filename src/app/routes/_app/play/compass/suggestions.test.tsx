@@ -190,13 +190,13 @@ test('"atreides" finds the Atreides faction information ahead of the chat with i
   ]);
   found[0]!.run();
   expect(opened).toEqual(['faction-info@seat-2']);
-  /* The viewer's own faction is found too, and "faction info" lists every seat's. */
+  /* The viewer's own faction is found too, and "faction info" finds the window itself and every seat's. */
   expect(rankSuggestions(all, 'harkonnen')[0]).toMatchObject({
     label: 'Harkonnen',
     hint: 'Faction info · You',
   });
   expect(rankSuggestions(all, 'faction info').map((entry) => entry.label)).toEqual(
-    expect.arrayContaining(['Harkonnen', 'Atreides', 'Fremen'])
+    expect.arrayContaining(['Faction info', 'Harkonnen', 'Atreides', 'Fremen'])
   );
   /* With nothing typed, the factions wait to be looked up. */
   const suggested = rankSuggestions(all, '').map((entry) => entry.label);

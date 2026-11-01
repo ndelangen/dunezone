@@ -201,9 +201,12 @@ function windowCandidate(entry: TableWindow, actions: SuggestionActions): Candid
   };
 }
 
-/* The faction information once for each seat, found by its faction or player name: "Atreides" opens it on the Atreides. */
+/*
+ * The faction information by its own name, as every window is found, and once more for each player, found by their faction or
+ * name: "Atreides" opens it on the Atreides.
+ */
 function factionCandidates(entry: TableWindow, actions: SuggestionActions): Candidate[] {
-  return actions.players.map((player) => ({
+  const seats = actions.players.map((player): Candidate => ({
     key: `${entry.key}:${player.seat}`,
     label: player.factionName ?? player.name,
     hint: `${entry.label} · ${player.own ? 'You' : player.name}`,
@@ -213,6 +216,7 @@ function factionCandidates(entry: TableWindow, actions: SuggestionActions): Cand
     /* With nothing typed, the windows and commands lead; a faction is looked up by name. */
     weight: -1,
   }));
+  return [windowCandidate(entry, actions), ...seats];
 }
 
 /** Every window and command the search can reach. */
