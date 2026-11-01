@@ -54,3 +54,11 @@
     font-size: 3rem;
   }
 }
+
+/* On a phone a post's name takes three lines or so rather than six. */
+@container (width < 30rem) {
+  .entry h2 {
+    font-size: 1.75rem;
+    line-height: 1.1;
+  }
+}

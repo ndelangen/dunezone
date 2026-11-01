@@ -65,8 +65,11 @@
     height: calc(100% - 51px);
   }
 
+  /* Sits below the navigation strip and sizes the row (see the AppHeader stylesheet), so a long title grows the band instead of overlapping the strip. */
   .layout[data-page-layout-header-size="compact"] .headerContent {
-    height: 220px;
+    height: auto;
+    min-height: calc(220px - var(--app-navigation-height, 51px));
+    margin-top: var(--app-navigation-height, 51px);
   }
 }
 
