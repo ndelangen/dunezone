@@ -15,6 +15,7 @@ import {
   float,
   luminance,
   materialColor,
+  max,
   min,
   mx_fractal_noise_float,
   mx_worley_noise_vec2,
@@ -123,14 +124,21 @@ function fancy({ p, typeEdge, territoryEdge }: Site): Layer {
   const scree = smoothstep(0.25, 0.7, fbm(p.mul(48), 3)).mul(float(1).sub(smoothstep(0, 0.3, typeEdge)));
   const sandHeight = dune.mul(0.04).add(ripple.mul(0.003)).mul(open).add(scree.mul(0.004));
 
-  /* Rock rises in a cliff from its border onto a plateau of ridged mountains. */
-  const plateau = smoothstep(0, 0.08, typeEdge);
-  const ridged = float(1).sub(abs(fbm(warp(p, 1.3, 0.3).mul(3.4), 4)));
-  const mountains = ridged
-    .mul(ridged)
-    .mul(ridged)
-    .mul(smoothstep(0.05, 0.5, typeEdge));
-  const rockHeight = plateau.mul(0.06).add(mountains.mul(0.06));
+  /*
+   * Rock steps up from the sand in a low cliff onto a rough plateau. Ranges of sharp ridges wander along just inside
+   * its edges, their crests throwing spurs and gullies down both flanks; the widest plateaus carry a range inland too.
+   */
+  const cliff = smoothstep(0, 0.06, typeEdge);
+  const spineAt = fbm(p.mul(1.2), 2).mul(0.15).add(0.28);
+  const range = max(
+    float(1).sub(smoothstep(0, 0.45, abs(typeEdge.sub(spineAt)))),
+    smoothstep(0.5, 0.9, typeEdge).mul(smoothstep(-0.2, 0.3, fbm(p.mul(0.9).add(vec2(7, 1)), 2)))
+  ).mul(smoothstep(0.02, 0.1, typeEdge));
+  const crest = float(1).sub(abs(fbm(warp(p, 1.5, 0.2).mul(3.2), 5)));
+  const spurs = float(1).sub(abs(fbm(warp(p, 4, 0.05).mul(9), 3)));
+  const peaks = range.pow(1.3).mul(crest.pow(2.5).mul(0.75).add(spurs.pow(3).mul(0.25)));
+  const rough = fbm(p.mul(30), 2);
+  const rockHeight = cliff.mul(0.025).add(peaks.mul(0.14)).add(rough.mul(0.002));
 
   /*
    * A stronghold is a walled old town: its painted band stands as the wall, and inside it lie rectangular blocks
@@ -147,7 +155,7 @@ function fancy({ p, typeEdge, territoryEdge }: Site): Layer {
   const streets = vec2(
     town.x.mul(cos(quarter)).sub(town.y.mul(sin(quarter))),
     town.x.mul(sin(quarter)).add(town.y.mul(cos(quarter)))
-  ).mul(10);
+  ).mul(9);
   const lot = floor(streets);
   const within = fract(streets);
   const splitX = mx_cell_noise_float(lot).mul(0.4).add(0.3);
@@ -156,17 +164,35 @@ function fancy({ p, typeEdge, territoryEdge }: Site): Layer {
     .mul(0.4)
     .add(0.3);
   const north = step(splitY, within.y);
-  const fromLane = min(
-    min(within.x.sub(splitX.mul(east)), mix(splitX, float(1), east).sub(within.x)),
-    min(within.y.sub(splitY.mul(north)), mix(splitY, float(1), north).sub(within.y))
-  );
+  const left = splitX.mul(east);
+  const right = mix(splitX, float(1), east);
+  const bottom = splitY.mul(north);
+  const top = mix(splitY, float(1), north);
+  const fromLane = min(min(within.x.sub(left), right.sub(within.x)), min(within.y.sub(bottom), top.sub(within.y)));
   const plot = mx_cell_noise_float(lot.add(vec2(east.mul(17), north.mul(29).add(5))));
   const avenue = float(1).sub(smoothstep(0.012, 0.03, abs(fbm(p.mul(1.6).add(vec2(2, 5)), 2))));
-  /* Most plots are built up, some higher than others; a few stay open squares. */
-  const square = step(0.88, plot);
-  const blocks = smoothstep(0.05, 0.09, fromLane).mul(float(1).sub(avenue)).mul(inside);
-  const roof = smoothstep(0.14, 0.18, fromLane).mul(float(1).sub(square)).mul(blocks);
-  const city = blocks.mul(0.004).add(roof.mul(plot.mul(0.012).add(0.004)));
+  /*
+   * Desert houses: flat-roofed boxes of mud brick with a low parapet, a courtyard sunk into the larger ones,
+   * the odd domed tower, and here and there an open square. Steep walls let the table's light cast their shadows.
+   */
+  const ground = float(1).sub(avenue).mul(inside);
+  const house = smoothstep(0.08, 0.1, fromLane).mul(step(0.08, plot)).mul(ground);
+  const storeys = plot.mul(0.016).add(0.008);
+  const parapet = smoothstep(0.1, 0.11, fromLane).sub(smoothstep(0.13, 0.14, fromLane));
+  const courtyard = step(0.55, plot)
+    .mul(step(plot, 0.75))
+    .mul(smoothstep(0.2, 0.22, fromLane));
+  const centre = vec2(left.add(right).mul(0.5), bottom.add(top).mul(0.5));
+  const reach = min(right.sub(left), top.sub(bottom)).mul(0.4);
+  const fromCentre = distance(within, centre).div(reach);
+  const dome = step(0.92, plot).mul(
+    float(1)
+      .sub(min(fromCentre.mul(fromCentre), float(1)))
+      .sqrt()
+  );
+  const city = house
+    .mul(storeys.add(parapet.mul(0.003)).sub(courtyard.mul(storeys).mul(0.8)))
+    .add(dome.mul(0.02).mul(ground));
   const cityHeight = bevel.mul(0.012).add(wall.mul(0.01)).add(city);
 
   /* The Polar Sink lies a little lower than its shore, its ice broken into plates. */
@@ -178,22 +204,14 @@ function fancy({ p, typeEdge, territoryEdge }: Site): Layer {
       height: sandHeight,
     },
     rock: {
-      shade: float(0.68)
-        .add(mountains.mul(0.5))
-        .add(fbm(p.mul(40), 2).mul(0.06))
-        .sub(float(1).sub(plateau).mul(0.12)),
+      shade: float(0.66).add(peaks.mul(0.35)).add(rough.mul(0.05)).sub(float(1).sub(cliff).mul(0.15)),
       height: rockHeight,
     },
     stronghold: {
       shade: float(0.62)
         .add(bevel.mul(0.12))
         .add(wall.mul(0.18))
-        .add(
-          blocks
-            .mul(0.1)
-            .add(roof.mul(plot.mul(0.2).add(0.06)))
-            .sub(inside.mul(0.12))
-        ),
+        .add(house.mul(plot.mul(0.16).add(0.1)).sub(courtyard.mul(house).mul(0.1)).sub(inside.mul(0.14))),
       height: cityHeight,
     },
     polar: { shade: float(0.84).add(ice.mul(0.16)), height: ice.mul(0.003).sub(sunk.mul(0.012)) },
@@ -277,7 +295,15 @@ export function createBoardBakeMaterial(skin: Exclude<BoardSkin, 'none'>, option
   const dx = heightAt(vec2(step, 0)).sub(height).mul(tilt);
   const dz = heightAt(vec2(0, step)).sub(height).mul(tilt);
   const normal = normalize(vec3(dx.negate(), 1, dz.negate()));
-  material.colorNode = vec4(shade.div(SHADE_RANGE), normal.x.mul(0.5).add(0.5), normal.z.mul(0.5).add(0.5), 1);
+  /* Shadows the table's key light (high to the left and toward the viewer) casts from ridges, walls and houses. */
+  const toLight = vec2(-0.62, 0.78);
+  const shadow = smoothstep(0.003, 0.015, heightAt(toLight.mul(0.02)).sub(height)).mul(keep);
+  material.colorNode = vec4(
+    shade.mul(float(1).sub(shadow.mul(0.4))).div(SHADE_RANGE),
+    normal.x.mul(0.5).add(0.5),
+    normal.z.mul(0.5).add(0.5),
+    1
+  );
   return material;
 }
 
