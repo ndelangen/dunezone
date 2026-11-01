@@ -12,6 +12,10 @@ import type { BoardBakeOptions, BoardSkin } from './boardSkins';
  */
 const SIZE = 2048;
 
+function isWebGPU(renderer: WebGPURenderer): boolean {
+  return (renderer.backend as { isWebGPUBackend?: boolean }).isWebGPUBackend === true;
+}
+
 export type BakedSkin = Readonly<{ texture: Texture; dispose: () => void }>;
 
 /**
@@ -29,7 +33,12 @@ export function bakeBoardSkin(
   mesh.frustumCulled = false;
   const scene = new Scene();
   scene.add(mesh);
-  const camera = new OrthographicCamera(-BOARD_RADIUS, BOARD_RADIUS, BOARD_RADIUS, -BOARD_RADIUS, -10, 10);
+  /*
+   * The WebGPU and WebGL backends land this bake mirrored top to bottom relative to each other when it is sampled.
+   * Mirroring the camera on WebGPU keeps one sampling rule, below, for both.
+   */
+  const top = isWebGPU(renderer) ? -BOARD_RADIUS : BOARD_RADIUS;
+  const camera = new OrthographicCamera(-BOARD_RADIUS, BOARD_RADIUS, top, -top, -10, 10);
   camera.position.set(0, 5, 0);
   camera.up.set(0, 0, -1);
   camera.lookAt(0, 0, 0);

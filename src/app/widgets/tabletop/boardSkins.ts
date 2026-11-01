@@ -1,6 +1,6 @@
 import { gameAssetColors, rendererColors } from '@shared/play/assetColors';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
-import { Color, NoBlending } from 'three';
+import { Color, DoubleSide, NoBlending } from 'three';
 import type { Texture } from 'three';
 import {
   abs,
@@ -195,7 +195,13 @@ export type BoardBakeOptions = Readonly<{
  * The bake draws the board's own geometry from straight above, so each pixel holds its spot on the board.
  */
 export function createBoardBakeMaterial(skin: Exclude<BoardSkin, 'none'>, options: BoardBakeOptions) {
-  const material = new MeshBasicNodeMaterial({ map: options.map, depthTest: false, depthWrite: false });
+  const material = new MeshBasicNodeMaterial({
+    map: options.map,
+    depthTest: false,
+    depthWrite: false,
+    /* The bake's camera mirrors the board on some backends (bakeBoardSkin), which turns its triangles around. */
+    side: DoubleSide,
+  });
   material.toneMapped = false;
   material.blending = NoBlending;
   const p = positionLocal.xz;
