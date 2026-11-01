@@ -77,11 +77,14 @@ export const TraitorsDealt = meta.story({
     /* The deal is random, so the four come from the recorded view. */
     const traitors = journeyFrame(chapter('Traitors dealt') - 1, 'seat-1')
       .snapshot.hand!.filter((piece) => piece.stackKey === 'cards:traitor')
-      .map((piece) => piece.items[0]?.artwork?.name ?? piece.label);
+      .map((piece) => ({ id: piece.id, name: piece.items[0]?.artwork?.name ?? piece.label }));
     await expect(traitors).toHaveLength(4);
-    /* A traitor can name one of the faction's own leaders, whose disc then shares the name. */
+    /* A traitor can name one of the faction's own leaders, whose disc then shares the name, so each card is found by its own piece. */
     for (const traitor of traitors) {
-      await expect(hand.getAllByRole('button', { name: `Drag ${traitor} from hand` }).length).toBeGreaterThan(0);
+      const cards = hand
+        .getAllByRole('button', { name: `Drag ${traitor.name} from hand` })
+        .filter((button) => button.dataset.pieceId === traitor.id);
+      await expect(cards).toHaveLength(1);
     }
   },
 });

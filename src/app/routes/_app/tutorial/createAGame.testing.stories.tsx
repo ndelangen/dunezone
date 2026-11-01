@@ -3,7 +3,7 @@ import { waitForFrame } from '@sb/storyWaits';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { pageStoryMeta } from '../../storybookConfig';
-import { chapterGlobals, chapterParameters } from './chapterStory';
+import { chapterGlobals, chapterParameters, playChapter } from './chapterStory';
 
 const meta = testingPreview.meta({
   ...pageStoryMeta,
@@ -11,6 +11,11 @@ const meta = testingPreview.meta({
   args: { path: '/tutorial/create-a-game' },
   globals: chapterGlobals,
   parameters: chapterParameters,
+});
+
+/** The chapter as a player meets it: do what the rail says, where its arrow shows, and it moves on by itself. */
+export const Chapter = meta.story({
+  play: playChapter('Chapter 2: Create your own game', 'Choose a ruleset'),
 });
 
 export const CreateAndOpen = meta.story({

@@ -552,6 +552,11 @@ landed while the previous run was still going, one per review bot as each one re
 - After a push, wait until `ci_draft` (on a draft) or `ci_ok` has reported and the review bots have commented on that commit,
   then fix everything they found in local commits and push once. Push sooner only when a job has
   already failed and nothing else is still pending.
+- Before merging, answer every review comment where it was made: each inline thread, each finding
+  in a review body (nitpicks and outside-diff items included) and each top-level finding, from
+  every reviewer. Say "Fixed in <sha>" or why it does not apply. A bot marking a thread addressed
+  or resolved is not an answer. An audit of 200 merged pull requests in November 2026 found about
+  260 findings with no reply, about 60 of them never fixed.
 
 **Developer-facing prose has no AI tells**, and two gates hold that: em dashes, curly quotes, filler
 words, hedging openers, emoji and decorative divider bands. `local/no-ai-tells` in

@@ -9,6 +9,7 @@ import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { useLayoutEffect, useRef, useState } from 'react';
 
 import type { Faction } from '@db/factions';
+import { LeaderStrengthInput } from '@app/widgets/leader-strength/LeaderStrengthInput';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 
 import { FactionCollectionShelf } from './FactionCollectionShelf';
@@ -82,27 +83,11 @@ function SupportingLeaderCard({
                       title="Strength"
                       description="A whole number or one character. Leave blank to omit."
                       input={
-                        <TextInput
+                        <LeaderStrengthInput
                           id={`leader-${index}-str`}
-                          aria-label="Strength"
-                          inputMode="text"
-                          autoComplete="off"
-                          value={
-                            field.state.value === undefined || field.state.value === null
-                              ? ''
-                              : String(field.state.value)
-                          }
+                          value={field.state.value}
                           onBlur={field.handleBlur}
-                          onChange={(event) => {
-                            const raw = event.currentTarget.value;
-                            if (raw === '') {
-                              field.handleChange(undefined);
-                            } else if (/^-?\d+$/u.test(raw)) {
-                              field.handleChange(Number.parseInt(raw, 10));
-                            } else if (raw.length === 1) {
-                              field.handleChange(raw);
-                            }
-                          }}
+                          onChange={field.handleChange}
                         />
                       }
                     />

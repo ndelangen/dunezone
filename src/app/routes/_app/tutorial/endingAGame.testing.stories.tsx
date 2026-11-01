@@ -3,7 +3,12 @@ import { waitForFrame } from '@sb/storyWaits';
 import { expect, userEvent, within } from 'storybook/test';
 
 import { pageStoryMeta } from '../../storybookConfig';
-import { chapterGlobals, chapterParameters } from './chapterStory';
+import { chapterGlobals, chapterParameters, playChapter } from './chapterStory';
+
+/*
+ * "Ending a game", as its page serves it: the table from the tutorial's recorded setup, running in the page,
+ * with the rail beside it giving one task at a time. Its art comes from the recorded tutorial setup.
+ */
 
 const meta = testingPreview.meta({
   ...pageStoryMeta,
@@ -11,6 +16,11 @@ const meta = testingPreview.meta({
   args: { path: '/tutorial/ending-a-game' },
   globals: chapterGlobals,
   parameters: chapterParameters,
+});
+
+/** The chapter as a player meets it: do what the rail says, where its arrow shows, and it moves on by itself. */
+export const Chapter = meta.story({
+  play: playChapter('Chapter 17: Ending a game', 'Determine the winner'),
 });
 
 /* Declaring the result completes the chapter through its real local session. */

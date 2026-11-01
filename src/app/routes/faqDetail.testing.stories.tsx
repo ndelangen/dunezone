@@ -83,6 +83,8 @@ export const ReferenceSelectionBeyondPage = meta.story({
       picker.findByRole('option', { name: 'Arrakis Official, already selected' }, { timeout: 30_000 })
     ).resolves.toHaveAttribute('aria-disabled', 'true');
     await userEvent.selectOptions(picker.getByRole('combobox', { name: 'Reference type' }), 'card-treachery');
+    /* Switching the type keeps the search, so the new type is searched for the same words. */
+    await expect(picker.getByRole('searchbox', { name: 'Search treachery cards' })).toHaveValue('Arrakis');
     await userEvent.clear(picker.getByRole('searchbox', { name: 'Search treachery cards' }));
     await userEvent.type(await picker.findByRole('searchbox', { name: 'Search treachery cards' }), 'Lasgun');
     await userEvent.click(await picker.findByRole('option', { name: 'Lasgun' }));

@@ -1,4 +1,4 @@
-import preview from '@sb/preview';
+import { testingPreview } from '@sb/preview';
 
 import { pageStoryMeta } from '../../storybookConfig';
 import { chapterGlobals, chapterParameters, playChapter } from './chapterStory';
@@ -11,7 +11,7 @@ import { chapterGlobals, chapterParameters, playChapter } from './chapterStory';
  * other stories rely on the same preset paths answering as missing.
  */
 
-const meta = preview.meta({
+const meta = testingPreview.meta({
   ...pageStoryMeta,
   title: 'Tutorial/What goes where',
   args: { path: '/tutorial/what-goes-where' },

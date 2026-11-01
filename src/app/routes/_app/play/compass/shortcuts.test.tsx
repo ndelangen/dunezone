@@ -77,6 +77,19 @@ test('a letter typed in a field, in a dialog, beside the table, with a modifier,
   expect(onShortcut).not.toHaveBeenCalled();
 });
 
+test('a letter typed in an editable region does nothing, however the region says it is editable', () => {
+  const { button } = page();
+  const onShortcut = vi.fn((_shortcut: Shortcut) => true);
+  renderHook(() => useShortcutKeys(true, onShortcut));
+  for (const value of ['true', '', 'plaintext-only']) {
+    const region = document.createElement('div');
+    region.setAttribute('contenteditable', value);
+    button.parentElement!.append(region);
+    press('h', region);
+  }
+  expect(onShortcut).not.toHaveBeenCalled();
+});
+
 test('with the compass open the letters are its search’s', () => {
   page();
   const onShortcut = vi.fn((_shortcut: Shortcut) => true);

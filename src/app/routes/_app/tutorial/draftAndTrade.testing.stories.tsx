@@ -3,7 +3,12 @@ import { waitForFrame } from '@sb/storyWaits';
 import { expect, userEvent, within } from 'storybook/test';
 
 import { pageStoryMeta } from '../../storybookConfig';
-import { chapterGlobals, chapterParameters } from './chapterStory';
+import { chapterGlobals, chapterParameters, playChapter } from './chapterStory';
+
+/*
+ * "Draft and trade", as its page serves it: the draft before anyone has picked, then the deal and trading,
+ * with the rail beside the table giving one task at a time. Its art comes from the recorded tutorial setup.
+ */
 
 const meta = testingPreview.meta({
   ...pageStoryMeta,
@@ -11,6 +16,11 @@ const meta = testingPreview.meta({
   args: { path: '/tutorial/draft-and-trade' },
   globals: chapterGlobals,
   parameters: chapterParameters,
+});
+
+/** The chapter as a player meets it: do what the rail says, where its arrow shows, and it moves on by itself. */
+export const Chapter = meta.story({
+  play: playChapter('Chapter 5: Draft and trade', 'Find a faction'),
 });
 
 export const SearchDraftBanAndReady = meta.story({
