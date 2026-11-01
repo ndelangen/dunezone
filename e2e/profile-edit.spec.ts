@@ -49,7 +49,9 @@ test('profile editing connects settings, previews avatars, and persists appearan
   await expect(page.getByRole('combobox', { name: 'Default Group' })).toBeVisible();
   const defaultGroupHelp = page.getByRole('group', { name: 'Default Group' }).getByRole('img', { name: 'Help' });
   await defaultGroupHelp.hover();
-  await expect(page.getByRole('tooltip')).toContainText('New rulesets and factions start in this Group');
+  await expect(page.getByRole('tooltip')).toHaveText(
+    'New rulesets and factions start in this Group.\nYou can change an item’s Group after its first save.'
+  );
 
   await page.getByRole('tab', { name: 'Account' }).click();
   await expect(page.getByRole('link', { name: 'Delete account' })).toBeVisible();

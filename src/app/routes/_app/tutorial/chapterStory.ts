@@ -10,12 +10,14 @@ import { pageStoryMeta } from '../../storybookConfig';
 export const chapterGlobals = { motion: 'on' } as const;
 
 /*
- * Not captured: under Chromatic's software GL the table takes longer to settle than its 15 s capture limit,
- * and a 3D table drawn that way is no stable picture. The story test runner still plays it through.
+ * Chapter stories live in testing files, so Chromatic never captures them (ADR-0004): under its software GL
+ * the table takes longer to settle than its 15 s capture limit, and a 3D table drawn that way is no stable
+ * picture. The story test runner still plays them through.
+ * A testing meta that sets these replaces the page meta's parameters whole, so they carry the page's layout too.
  */
 export const chapterParameters = {
-  database: pageStoryMeta.parameters.database,
-  chromatic: { disableSnapshot: true },
+  ...pageStoryMeta.parameters,
+  layout: 'fullscreen',
 } as const;
 
 /** The chapter's rail opens on its first task, with no Next button, and grows its arrow once the table has drawn. */

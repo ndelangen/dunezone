@@ -112,6 +112,10 @@ export default defineMain({
       titlePrefix: 'Widgets/Blog Byline',
     },
     {
+      directory: '../src/app/widgets/leader-strength',
+      titlePrefix: 'Widgets/Leader Strength',
+    },
+    {
       directory: '../src/app/ui/block',
       titlePrefix: 'Blocks',
     },

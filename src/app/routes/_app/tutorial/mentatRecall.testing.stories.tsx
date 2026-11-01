@@ -3,7 +3,7 @@ import { waitForFrame } from '@sb/storyWaits';
 import { expect, userEvent, within } from 'storybook/test';
 
 import { pageStoryMeta } from '../../storybookConfig';
-import { chapterGlobals, chapterParameters } from './chapterStory';
+import { chapterGlobals, chapterParameters, playChapter } from './chapterStory';
 
 const meta = testingPreview.meta({
   ...pageStoryMeta,
@@ -11,6 +11,10 @@ const meta = testingPreview.meta({
   args: { path: '/tutorial/mentat-recall' },
   globals: chapterGlobals,
   parameters: chapterParameters,
+});
+
+export const Chapter = meta.story({
+  play: playChapter('Chapter 20: Mentat recall', 'Look back together'),
 });
 
 function chapterDriver(canvasElement: HTMLElement) {

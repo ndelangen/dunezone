@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vite-plus/test';
 
 import { initialSnapshot } from '../../src/shared/play/commands';
+import { MOVEMENT_PHASE_ID } from '../../src/shared/play/movement';
 import { PHASE_CHANGE_COOLDOWN_MS, TABLE_PHASES } from '../../src/shared/play/phases';
 import type { GameSnapshot } from '../../src/shared/play/protocol';
 import type { SetupState } from '../../src/shared/play/setup';
@@ -197,6 +198,7 @@ const PREDICTION_SETUP: SetupState = {
 };
 const BATTLE_PHASE = TABLE_PHASES.findIndex((phase) => phase.id === 'battle');
 const MENTAT_PAUSE = TABLE_PHASES.findIndex((phase) => phase.id === 'mentat-pause');
+const MOVEMENT_PHASE = TABLE_PHASES.findIndex((phase) => phase.id === MOVEMENT_PHASE_ID);
 
 type Staged = {
   /** The room the command needs, set before the deck is peeked. */
@@ -234,6 +236,21 @@ const STAGED: Partial<Record<Kind, Staged>> = {
     stage: { stage: 'setup', setup: PREDICTION_SETUP },
     accepted: [true, true, false, false],
     effect: (room) => expect(room.snapshot.privatePredictions.step?.revealedAt).toBe(LATER),
+  },
+  'movement-done': {
+    stage: { phase: MOVEMENT_PHASE },
+    accepted: [true, false],
+    effect: (room) => expect(room.snapshot.movement?.done).toEqual(['atreides']),
+  },
+  'movement-undo': {
+    stage: { phase: MOVEMENT_PHASE },
+    accepted: [true, true, true, true],
+    effect: (room) => expect(room.snapshot.movement?.done).toEqual([]),
+  },
+  'movement-order': {
+    stage: { phase: MOVEMENT_PHASE },
+    accepted: [true, true],
+    effect: (room) => expect(room.snapshot.movement?.order).toEqual(['harkonnen', 'atreides']),
   },
   ready: {
     stage: { phase: MENTAT_PAUSE },
