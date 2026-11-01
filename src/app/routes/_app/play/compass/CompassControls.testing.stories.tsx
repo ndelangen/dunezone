@@ -1,5 +1,5 @@
 import { testingPreview } from '@sb/preview';
-import { expect, waitFor, within } from 'storybook/test';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { gameMeta, install } from '../game.stories.fixture';
 import { productTransport } from '../product.stories.fixture';
@@ -73,6 +73,24 @@ export const ChatBarWrapsOnNarrowTables = meta.story({
         const bounds = button.getBoundingClientRect();
         await expect(bounds.width).toBeCloseTo(bounds.height, 0);
       }
+    });
+  },
+});
+
+/** A faction's name typed while Space is still held from opening the compass keeps every letter, and Enter opens its Faction info. */
+export const SearchOpensFactionInfo = meta.story({
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await chatBar(canvasElement);
+    await userEvent.keyboard('[Space>]atreides[/Space]');
+    await expect(page.getByRole('textbox', { name: 'Search controls' })).toHaveValue('atreides');
+    const first = page.getAllByRole('option')[0]!;
+    await expect(first).toHaveTextContent(/Atreides/);
+    await expect(first).toHaveTextContent(/Faction info/);
+    await userEvent.keyboard('{Enter}');
+    await waitFor(async () => {
+      const header = canvasElement.ownerDocument.querySelector('[data-faction-info-seat]');
+      await expect(header).toHaveTextContent(/Atreides/);
     });
   },
 });

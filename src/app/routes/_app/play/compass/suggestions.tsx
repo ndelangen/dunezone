@@ -2,9 +2,11 @@ import { TopicIcon } from '@ui/content/TopicIcon';
 import type { ReactNode } from 'react';
 
 import type { TableView } from '../../../../widgets/tabletop/playView';
+import type { CompassPlayer } from './compassTable';
 import { PlayerToken } from './PlayerToken';
 import { SHORTCUTS } from './shortcuts';
 import type { Command, TableCommand } from './shortcuts';
+import { FACTION_INFO } from './windows';
 import type { TableWindow } from './windows';
 
 /** One line under the search field: a window to open or a command to run. */
@@ -91,8 +93,10 @@ export function rankSuggestions(all: readonly Candidate[], query: string): Sugge
 
 export type SuggestionActions = Readonly<{
   frozen?: boolean;
-  /** Opens a window. */
-  open: (key: string) => void;
+  /** Opens a window; the faction information on the seat asked for. */
+  open: (key: string, seat?: string) => void;
+  /** Everyone at the table, the viewer too, whose faction information the search finds by faction or player name. */
+  players: readonly CompassPlayer[];
   /** Steps the table to the next phase; null while the table refuses it, as the header's button is then disabled. */
   nextPhase: (() => void) | null | undefined;
   /** Moves the camera, as the dial does. */
@@ -183,6 +187,34 @@ function nextPhaseCandidate(nextPhase: SuggestionActions['nextPhase'], close: ()
   ];
 }
 
+/* A window as the search lists it: its name, its hint, and the letter an arm of the compass opens it with. */
+function windowCandidate(entry: TableWindow, actions: SuggestionActions): Candidate {
+  return {
+    key: entry.key,
+    label: entry.label,
+    hint: hintOf(entry),
+    icon: entry.player ? <PlayerToken player={entry.player} size={20} /> : <TopicIcon topic={entry.topic} size={18} />,
+    run: () => actions.open(entry.key),
+    shortcut: actions.shortcuts[entry.key],
+    text: `${entry.label} ${entry.player?.factionName ?? ''} ${entry.group}`,
+    weight: weightOf(entry),
+  };
+}
+
+/* The faction information once for each seat, found by its faction or player name: "Atreides" opens it on the Atreides. */
+function factionCandidates(entry: TableWindow, actions: SuggestionActions): Candidate[] {
+  return actions.players.map((player) => ({
+    key: `${entry.key}:${player.seat}`,
+    label: player.factionName ?? player.name,
+    hint: `${entry.label} · ${player.own ? 'You' : player.name}`,
+    icon: <PlayerToken player={player} size={20} />,
+    run: () => actions.open(entry.key, player.seat),
+    text: `${player.factionName ?? ''} ${entry.label} ${player.name}`,
+    /* With nothing typed, the windows and commands lead; a faction is looked up by name. */
+    weight: -1,
+  }));
+}
+
 /** Every window and command the search can reach. */
 export function candidatesOf(windows: readonly TableWindow[], actions: SuggestionActions): Candidate[] {
   const frozen: Candidate[] = actions.frozen
@@ -208,20 +240,9 @@ export function candidatesOf(windows: readonly TableWindow[], actions: Suggestio
     : [];
   return [
     ...frozen,
-    ...windows.map((entry): Candidate => ({
-      key: entry.key,
-      label: entry.label,
-      hint: hintOf(entry),
-      icon: entry.player ? (
-        <PlayerToken player={entry.player} size={20} />
-      ) : (
-        <TopicIcon topic={entry.topic} size={18} />
-      ),
-      run: () => actions.open(entry.key),
-      shortcut: actions.shortcuts[entry.key],
-      text: `${entry.label} ${entry.player?.factionName ?? ''} ${entry.group}`,
-      weight: weightOf(entry),
-    })),
+    ...windows.flatMap((entry): Candidate[] =>
+      entry.key === FACTION_INFO ? factionCandidates(entry, actions) : [windowCandidate(entry, actions)]
+    ),
     ...nextPhaseCandidate(actions.nextPhase, actions.close),
     ...commandCandidates(actions),
     ...(Object.keys(CAMERA_VIEWS) as TableView[]).map((view): Candidate => ({
