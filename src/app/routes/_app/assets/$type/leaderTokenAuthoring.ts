@@ -19,7 +19,11 @@ type Event =
   | { kind: 'saved'; data: LeaderTokenDraft };
 
 function openingLeaderTokenState(data: LeaderTokenDraft, baseline: LeaderTokenDraft): State {
-  return { data, baseline, memory: { declaredCustom: false, backgroundMode: emptyBackgroundModeMemory() } };
+  return {
+    data,
+    baseline,
+    memory: { declaredCustom: false, backgroundMode: emptyBackgroundModeMemory(), refusedStrength: null },
+  };
 }
 
 export function reduceLeaderTokenDraft(state: State, event: Event): State {

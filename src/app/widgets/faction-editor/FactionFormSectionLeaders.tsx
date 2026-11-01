@@ -21,6 +21,14 @@ const CONVENTIONAL_SUPPORTING_LEADER_COUNT = 5;
 
 const leaderImageOptions = stockAssetOptions(LEADERS.options);
 
+/** Strength text a leader's field could not take, owned by the authoring session so replacing the draft clears it. */
+export type StrengthRefusal = { leader: number; text: string } | null;
+
+export type StrengthRefusalProps = {
+  strengthRefusal: StrengthRefusal;
+  onStrengthRefusalChange: (refusal: StrengthRefusal) => void;
+};
+
 export function canAddSupportingLeader(count: number): boolean {
   return count >= 0 && count < SUPPORTING_LEADER_LIMIT;
 }
@@ -29,11 +37,13 @@ function SupportingLeaderCard({
   form,
   index,
   showPreview,
+  strengthRefusal,
+  onStrengthRefusalChange,
 }: {
   form: FactionFormApi;
   index: number;
   showPreview: boolean;
-}) {
+} & StrengthRefusalProps) {
   const leader = form.state.values.leaders[index];
   if (!leader) {
     return null;
@@ -85,8 +95,11 @@ function SupportingLeaderCard({
                       input={
                         <LeaderStrengthInput
                           id={`leader-${index}-str`}
-                          subject={index}
                           value={field.state.value}
+                          refused={strengthRefusal?.leader === index ? strengthRefusal.text : null}
+                          onRefusedChange={(text) =>
+                            onStrengthRefusalChange(text === null ? null : { leader: index, text })
+                          }
                           onBlur={field.handleBlur}
                           onChange={field.handleChange}
                         />
@@ -163,15 +176,24 @@ export function FactionFormSectionLeaders({
   showPreview = true,
   selectedIndex,
   onSelectedIndexChange,
+  strengthRefusal,
+  onStrengthRefusalChange,
 }: {
   form: FactionFormApi;
   showPreview?: boolean;
   selectedIndex?: number;
   onSelectedIndexChange?: (index: number) => void;
-}) {
+} & StrengthRefusalProps) {
   const [internalSelectedIndex, setInternalSelectedIndex] = useState(0);
   const currentSelectedIndex = selectedIndex ?? internalSelectedIndex;
-  const selectIndex = onSelectedIndexChange ?? setInternalSelectedIndex;
+  const setSelectedIndex = onSelectedIndexChange ?? setInternalSelectedIndex;
+  /* Moving to another leader drops text the last one refused, so coming back shows its saved strength. */
+  const selectIndex = (index: number) => {
+    if (strengthRefusal !== null) {
+      onStrengthRefusalChange(null);
+    }
+    setSelectedIndex(index);
+  };
   const pendingLeaderFocus = useRef<string | null>(null);
 
   useLayoutEffect(() => {
@@ -254,7 +276,13 @@ export function FactionFormSectionLeaders({
                     }))}
                     onMove={(from, to) => field.handleChange(arrayMove(field.state.value, from, to))}
                   />
-                  <SupportingLeaderCard form={form} index={safeSelectedIndex} showPreview={showPreview} />
+                  <SupportingLeaderCard
+                    form={form}
+                    index={safeSelectedIndex}
+                    showPreview={showPreview}
+                    strengthRefusal={strengthRefusal}
+                    onStrengthRefusalChange={onStrengthRefusalChange}
+                  />
                 </>
               ) : null}
             </Stack>

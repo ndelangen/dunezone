@@ -1,5 +1,4 @@
 import { TextInput } from '@mantine/core';
-import { useState } from 'react';
 
 export type LeaderStrength = number | string | undefined;
 
@@ -22,70 +21,56 @@ export function parseLeaderStrength(raw: string): { value: LeaderStrength } | nu
   return raw.length === 1 ? { value: raw } : null;
 }
 
-type Subject = string | number | undefined;
-
-/*
- * The refused text belongs to the leader and the value it was typed over, and lives only while the field has focus.
- * Once the field edits another leader, or the value changes, it is discarded, so switching back cannot bring it back.
- */
-function useRefusal(accepted: string, subject: Subject) {
-  const [refused, setRefused] = useState<{ text: string; over: string; subject: Subject } | null>(null);
-  const current = refused !== null && refused.over === accepted && refused.subject === subject;
-  if (refused !== null && !current) {
-    setRefused(null);
-  }
-  return {
-    shown: current ? refused.text : null,
-    refuse: (text: string) => setRefused({ text, over: accepted, subject }),
-    clear: () => setRefused(null),
-  };
-}
-
 const strengthText = (value: LeaderStrength | null) => (value === undefined || value === null ? '' : String(value));
 
 /**
  * A leader's printed strength.
  * Text the field cannot take stays visible with the reason, instead of the keystroke vanishing, and the strength keeps its last good value until the text is fixed.
+ * The refused text is part of the caller's draft session, so replacing the draft clears it (AGENTS.md, "Derive, don't mirror").
  */
 export function LeaderStrengthInput({
   id,
-  subject,
   value,
+  refused,
   onChange,
+  onRefusedChange,
   onBlur,
 }: Readonly<{
   id?: string;
-  /** Which leader the field edits, when one field is reused for several. */
-  subject?: string | number;
   value: LeaderStrength | null;
+  /** Text the field could not take, held by the caller until it is fixed or the field loses focus. */
+  refused: string | null;
   onChange: (value: LeaderStrength) => void;
+  onRefusedChange: (refused: string | null) => void;
   onBlur?: () => void;
 }>) {
-  const accepted = strengthText(value);
-  const refusal = useRefusal(accepted, subject);
   /* A lone minus is a negative number on its way, not a mistake to warn about. */
-  const warn = refusal.shown !== null && refusal.shown !== '-';
+  const warn = refused !== null && refused !== '-';
   return (
     <TextInput
       id={id}
       aria-label="Strength"
       inputMode="text"
       autoComplete="off"
-      value={refusal.shown ?? accepted}
+      value={refused ?? strengthText(value)}
       error={warn ? REJECTED : undefined}
       onBlur={() => {
-        refusal.clear();
+        if (refused !== null) {
+          onRefusedChange(null);
+        }
         onBlur?.();
       }}
       onChange={(event) => {
         const raw = event.currentTarget.value;
         const parsed = parseLeaderStrength(raw);
-        if (parsed) {
-          refusal.clear();
-          onChange(parsed.value);
-        } else {
-          refusal.refuse(raw);
+        if (!parsed) {
+          onRefusedChange(raw);
+          return;
         }
+        if (refused !== null) {
+          onRefusedChange(null);
+        }
+        onChange(parsed.value);
       }}
     />
   );

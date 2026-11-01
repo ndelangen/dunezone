@@ -21,7 +21,12 @@ import { backgroundPresets } from '@game/data/backgrounds';
 
 export type LeaderTokenDraft = z.infer<typeof LeaderTokenAsset>;
 export type LeaderTokenChapter = 'identity' | 'artwork' | 'background' | 'about';
-export type LeaderTokenMemory = { declaredCustom: boolean; backgroundMode: BackgroundModeMemory };
+export type LeaderTokenMemory = {
+  declaredCustom: boolean;
+  backgroundMode: BackgroundModeMemory;
+  /** Strength text the field could not take; a replaced draft starts without it. */
+  refusedStrength: string | null;
+};
 const portraits = stockAssetOptions(LEADERS.options);
 const emblems = stockAssetOptions(LOGO.options);
 const backgrounds = [
@@ -76,7 +81,12 @@ export function LeaderTokenEditor({
                       title="Strength"
                       description="A whole number or one character. Leave blank to omit."
                       input={
-                        <LeaderStrengthInput value={draft.strength} onChange={(strength) => patch({ strength })} />
+                        <LeaderStrengthInput
+                          value={draft.strength}
+                          refused={memory.refusedStrength}
+                          onRefusedChange={(refusedStrength) => remember({ refusedStrength })}
+                          onChange={(strength) => patch({ strength })}
+                        />
                       }
                     />
                   </Stack>

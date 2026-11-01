@@ -85,3 +85,16 @@ export const BlurShowsTheKeptStrength = meta.story({
     await expect(field).toHaveValue('5');
   },
 });
+
+/** Replacing the draft, as a save or a reset does, drops refused text even when the strength itself is unchanged. */
+export const ReplacingTheDraftDropsTheRefusal = meta.story({
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const field = canvas.getByRole('textbox', { name: 'Strength' });
+    await userEvent.type(field, 'x');
+    await expect(field).toHaveValue('5x');
+    await fireEvent.click(canvas.getByRole('button', { name: 'Replace draft' }));
+    await expect(field).toHaveValue('5');
+    await expect(field).not.toHaveAccessibleDescription('Use a whole number or one character.');
+  },
+});
