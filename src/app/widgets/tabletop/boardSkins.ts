@@ -1,6 +1,6 @@
 import { gameAssetColors, rendererColors } from '@shared/play/assetColors';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
-import { Color } from 'three';
+import { Color, NoBlending } from 'three';
 import type { Texture } from 'three';
 import {
   abs,
@@ -24,10 +24,11 @@ import {
   texture,
   vec2,
   vec3,
+  vec4,
   vertexColor,
 } from 'three/tsl';
 import type { Node } from 'three/webgpu';
-import { MeshStandardNodeMaterial } from 'three/webgpu';
+import { MeshBasicNodeMaterial, MeshStandardNodeMaterial } from 'three/webgpu';
 
 /*
  * Board skins: a viewer's own look for the map's territory types, drawn by the board's material alone.
@@ -179,48 +180,29 @@ function treachery({ p, typeEdge }: Site): Layer {
 
 const LAYERS: Record<Exclude<BoardSkin, 'none'>, (site: Site) => Layer> = { gf9, fancy, treachery };
 
-export type BoardSkinMaterialOptions = Readonly<{
-  /** True for the legacy map, whose shapes carry colour and alpha per vertex. */
-  vertexColors: boolean;
-  polygonOffset: boolean;
+/** How the bake writes what it computed: shading over two (so 1 is mid-grey), and the tilted normal's x and z around a half. */
+const SHADE_RANGE = 2;
+
+export type BoardBakeOptions = Readonly<{
+  /** The board artwork, so the bake can leave dark ink alone; null where the paint is the vertex colours. */
   map: Texture | null;
   /** The board's edge field (boardEdgeField), or null where the board has no definition to draw it from. */
   edges: Texture | null;
-  /** Shade the board like a lit planet: bright in the middle, darkening toward the rim. */
-  planet: boolean;
 }>;
 
-/** The board paint's material for one skin; `none` without planet shading is exactly the board's own look. */
-export function createBoardSkinMaterial(skin: BoardSkin, options: BoardSkinMaterialOptions) {
-  const material = new MeshStandardNodeMaterial({
-    transparent: true,
-    depthWrite: false,
-    roughness: 0.88,
-    metalness: 0,
-    vertexColors: options.vertexColors,
-    polygonOffset: options.polygonOffset,
-    polygonOffsetFactor: options.polygonOffset ? -1 : 0,
-    polygonOffsetUnits: options.polygonOffset ? -1 : 0,
-    map: options.map,
-  });
-  if (skin === 'none' && !options.planet) {
-    return material;
-  }
+/**
+ * The skin's patterns, drawn once over the board plane into a texture (see bakeBoardSkin).
+ * The bake draws the board's own geometry from straight above, so each pixel holds its spot on the board.
+ */
+export function createBoardBakeMaterial(skin: Exclude<BoardSkin, 'none'>, options: BoardBakeOptions) {
+  const material = new MeshBasicNodeMaterial({ map: options.map, depthTest: false, depthWrite: false });
+  material.toneMapped = false;
+  material.blending = NoBlending;
   const p = positionLocal.xz;
-  /* The board's own colour: its artwork, or the territory colours while the artwork loads. */
-  const base = materialColor.rgb;
+
+  const base = options.map ? materialColor.rgb : vertexColor(0).rgb;
   /* Dark ink (borders, numerals, decals) stays flat and keeps its contrast. */
   const keep = smoothstep(0.03, 0.1, luminance(base));
-  /* Planet shading: the board's disc lit like a sphere, its limb darkening toward the rim. */
-  const facing = float(1)
-    .sub(min(dot(p, p).div(BOARD_RADIUS * BOARD_RADIUS), float(1)))
-    .sqrt();
-  const limb = options.planet ? float(0.25).add(facing.pow(0.9).mul(0.85)) : float(1);
-  if (skin === 'none') {
-    material.colorNode = base.mul(limb);
-    return material;
-  }
-
   const edges = options.edges;
   const siteAt = (offset: V2 | null): Site => {
     const at = offset ? p.add(offset) : p;
@@ -241,9 +223,12 @@ export function createBoardSkinMaterial(skin: BoardSkin, options: BoardSkinMater
     return total;
   };
   const layer = LAYERS[skin](siteAt(null));
-  const shade = combine(layer, (surface) => surface.shade, 1);
+  const shade = float(1).add(
+    combine(layer, (surface) => surface.shade, 1)
+      .sub(1)
+      .mul(keep)
+  );
   const height = combine(layer, (surface) => surface.height, 0);
-  material.colorNode = base.mul(float(1).add(shade.sub(1).mul(keep))).mul(limb);
 
   /* Finite differences over the plane tilt the normal, so the table's own lights model the relief. */
   const step = 0.006;
@@ -251,6 +236,59 @@ export function createBoardSkinMaterial(skin: BoardSkin, options: BoardSkinMater
   const tilt = keep.div(step);
   const dx = heightAt(vec2(step, 0)).sub(height).mul(tilt);
   const dz = heightAt(vec2(0, step)).sub(height).mul(tilt);
-  material.normalNode = transformNormalToView(normalize(vec3(dx.negate(), 1, dz.negate())));
+  const normal = normalize(vec3(dx.negate(), 1, dz.negate()));
+  material.colorNode = vec4(shade.div(SHADE_RANGE), normal.x.mul(0.5).add(0.5), normal.z.mul(0.5).add(0.5), 1);
+  return material;
+}
+
+export type BoardPaintOptions = Readonly<{
+  /** True for the legacy map, whose shapes carry colour and alpha per vertex. */
+  vertexColors: boolean;
+  polygonOffset: boolean;
+  map: Texture | null;
+  /** The skin baked for this board (bakeBoardSkin), or null to draw the board's own look while it bakes. */
+  baked: Texture | null;
+  /** Shade the board like a lit planet: bright in the middle, darkening toward the rim. */
+  planet: boolean;
+}>;
+
+/**
+ * The board paint's material: the board's own look, its baked skin and planet shading.
+ * Every frame it reads the baked texture once;
+ * the patterns themselves ran once, in the bake.
+ */
+export function createBoardPaintMaterial(options: BoardPaintOptions) {
+  const material = new MeshStandardNodeMaterial({
+    transparent: true,
+    depthWrite: false,
+    roughness: 0.88,
+    metalness: 0,
+    vertexColors: options.vertexColors,
+    polygonOffset: options.polygonOffset,
+    polygonOffsetFactor: options.polygonOffset ? -1 : 0,
+    polygonOffsetUnits: options.polygonOffset ? -1 : 0,
+    map: options.map,
+  });
+  if (!options.baked && !options.planet) {
+    return material;
+  }
+  const p = positionLocal.xz;
+  let color = materialColor.rgb;
+  if (options.planet) {
+    /* The board's disc lit like a sphere, its limb darkening toward the rim. */
+    const facing = float(1)
+      .sub(min(dot(p, p).div(BOARD_RADIUS * BOARD_RADIUS), float(1)))
+      .sqrt();
+    color = color.mul(float(0.25).add(facing.pow(0.9).mul(0.85)));
+  }
+  if (options.baked) {
+    const baked = texture(options.baked, vec2(p.x.div(BOARD_RADIUS * 2).add(0.5), p.y.div(BOARD_RADIUS * -2).add(0.5)));
+    color = color.mul(baked.r.mul(SHADE_RANGE));
+    const nx = baked.g.mul(2).sub(1);
+    const nz = baked.b.mul(2).sub(1);
+    const ny = float(1).sub(nx.mul(nx)).sub(nz.mul(nz)).max(0).sqrt();
+    material.normalNode = transformNormalToView(normalize(vec3(nx, ny, nz)));
+  }
+  material.colorNode = color;
   return material;
 }

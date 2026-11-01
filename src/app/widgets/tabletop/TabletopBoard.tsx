@@ -42,7 +42,6 @@ import { boardFurnitureFor } from './boardFurniture';
 import { boardMapGeometry } from './boardMapGeometry';
 import { POLAR_SINK_RENDER_ORDER, STORM_OUTLINE_RENDER_ORDER, STORM_SECTOR_RENDER_ORDER } from './boardRenderOrder';
 import { BOARD_RIM_DEPTH, BOARD_RIM_METALNESS, BOARD_RIM_ROUGHNESS, createBoardRimShape } from './boardRimGeometry';
-import { BoardSkinMaterial } from './BoardSkinMaterial';
 import { ignoreRaycast } from './ignoreRaycast';
 import { PhaseSymbol } from './PhaseSymbol';
 import { useSharedMeshes } from './sharedMeshes';
@@ -53,6 +52,7 @@ import { useTablePalette } from './tablePalette';
 import { activePhaseIndex, trackerDiscColor } from './tableTrackers';
 import type { TableProgress } from './tableTrackers';
 import { TurnTracker } from './TurnTracker';
+import { useBoardSkinMaterial } from './useBoardSkinMaterial';
 const SpiceBank = lazy(() => loadSpiceBank().then((module) => ({ default: module.SpiceBank })));
 const TerritoryTints = lazy(() => import('./TerritoryTints').then((module) => ({ default: module.TerritoryTints })));
 useTexture.preload(stormMarkerUrl);
@@ -399,14 +399,24 @@ function LegacyBoardPaint() {
     },
     [geometry, polarSink]
   );
+  const paint = useBoardSkinMaterial({ geometry, vertexColors: true });
+  const polarPaint = useBoardSkinMaterial({ geometry: polarSink, vertexColors: true });
   return (
     <>
-      <mesh receiveShadow geometry={geometry} renderOrder={BOARD_MAP_RENDER_ORDER} raycast={ignoreRaycast}>
-        <BoardSkinMaterial vertexColors />
-      </mesh>
-      <mesh receiveShadow geometry={polarSink} renderOrder={POLAR_SINK_RENDER_ORDER} raycast={ignoreRaycast}>
-        <BoardSkinMaterial vertexColors />
-      </mesh>
+      <mesh
+        receiveShadow
+        geometry={geometry}
+        material={paint}
+        renderOrder={BOARD_MAP_RENDER_ORDER}
+        raycast={ignoreRaycast}
+      />
+      <mesh
+        receiveShadow
+        geometry={polarSink}
+        material={polarPaint}
+        renderOrder={POLAR_SINK_RENDER_ORDER}
+        raycast={ignoreRaycast}
+      />
     </>
   );
 }

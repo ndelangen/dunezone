@@ -11,7 +11,6 @@ import type { MockInstance } from 'storybook/test';
 
 import { TableSession } from '@db/tabletop/TableSession';
 
-import { BoardSkinOverride } from './BoardSkinMaterial';
 import type { BoardSkin } from './boardSkins';
 import { curvedBoard } from './curvedBoard.fixture';
 import { PointerSession } from './PointerSession';
@@ -20,6 +19,7 @@ import { TableKeyboard } from './TableKeyboard';
 import { TableKeyboardContext } from './TableKeyboardContext';
 import { TabletopSessionProvider } from './TabletopContext';
 import { TabletopScene } from './TabletopScene';
+import { BoardSkinOverride } from './useBoardSkinMaterial';
 
 function PreparedTable({
   presentation,
