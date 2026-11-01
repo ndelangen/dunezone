@@ -1,0 +1,8 @@
+.tutorial {
+  max-width: 42rem;
+}
+
+/* The links sit on the card's lower edge whatever the length of the text above them. */
+.creation {
+  height: 100%;
+}

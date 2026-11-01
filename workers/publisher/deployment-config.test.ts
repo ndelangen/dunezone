@@ -181,6 +181,8 @@ describe('scheduled production deployment shape', () => {
       '/privacy/*',
       '/blog',
       '/blog/*',
+      '/create',
+      '/create/*',
       '/media',
       '/media/*',
     ]);

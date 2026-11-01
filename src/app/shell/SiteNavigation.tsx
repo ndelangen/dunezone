@@ -1,31 +1,16 @@
 import { useAuthActions } from '@convex-dev/auth/react';
 import { Menu } from '@mantine/core';
 import { signInReturnFrom } from '@shared/authDestination';
-import type { LinkProps } from '@tanstack/react-router';
-import { Link, useLocation } from '@tanstack/react-router';
+import { Link, useLocation, useMatches } from '@tanstack/react-router';
 import type { RefObject } from 'react';
 import { useLayoutEffect, useRef, useState } from 'react';
 
 import { forgetStoredPlayTables } from '@db/playTables';
 import { profileAvatarUrl, useCurrentProfile } from '@db/profiles';
 
+import { NAV_SEGMENTS, navSegmentFor } from './navigationSegments';
+import type { NavLinkItem } from './navigationSegments';
 import styles from './SiteNavigation.module.css';
-
-export interface NavLinkItem {
-  label: string;
-  to: LinkProps['to'];
-}
-
-/* The link set is content, not structure: the system renders whatever list it is given, at any
-   count and any label length, so editing this array is the whole job of changing the navigation. */
-export const PRIMARY_LINKS: readonly NavLinkItem[] = [
-  { label: 'Factions', to: '/factions' },
-  { label: 'Rulesets', to: '/rulesets' },
-  { label: 'FAQ', to: '/faq' },
-  { label: 'Profiles', to: '/profiles' },
-  { label: 'Assets', to: '/assets' },
-  { label: 'Blog', to: '/blog' },
-];
 
 /* Room reserved for the More control before deciding which links fit. It cannot be measured
    (the control only exists once something overflows), so this over-reserves slightly, which also
@@ -33,12 +18,16 @@ export const PRIMARY_LINKS: readonly NavLinkItem[] = [
 const MORE_RESERVE_PX = 90;
 
 export interface SiteNavigationProps {
-  /** The destinations to offer. Defaults to the product's primary set. */
+  /** The destinations to offer. Defaults to the link set of the segment the current page belongs to. */
   links?: readonly NavLinkItem[];
 }
 
 /**
  * Product navigation, including its profile-aware account slot.
+ *
+ * The site has two segments, Playing Dune and Creating content.
+ * A switch beside the logo names both and marks the one the current page belongs to;
+ * the link row offers that segment's destinations.
  *
  * The row is priority-plus: links that fit stay visible, the rest collapse behind a More control, re-measured through a
  * `ResizeObserver` against a hidden copy of the full list, so the row is correct for any link count, any label length, at any width, without a breakpoint.
@@ -47,10 +36,14 @@ export interface SiteNavigationProps {
  * Both menus (More, and the signed-in account menu) render through a portal: the band that hosts this nav is
  * `overflow: hidden` for its rounded corners, so anything positioned inside it clips at the band's lower edge, which at compact band heights swallows the panel entirely.
  */
-export function SiteNavigation({ links = PRIMARY_LINKS }: SiteNavigationProps) {
+export function SiteNavigation({ links: linksOverride }: SiteNavigationProps) {
   const profile = useCurrentProfile();
   const { signOut } = useAuthActions();
   const here = useLocation({ select: (location) => location.href });
+  /* The matched route's template, not the address: a record whose slug happens to read `edit` must not turn its page into an editor. */
+  const segmentId = useMatches({ select: (matches) => navSegmentFor(matches.at(-1)?.fullPath ?? '/') });
+  const segment = NAV_SEGMENTS.find((candidate) => candidate.id === segmentId)!;
+  const links = linksOverride ?? segment.links;
   const groupRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
   const visibleCount = useVisibleLinkCount(groupRef, measureRef, links);
@@ -65,6 +58,25 @@ export function SiteNavigation({ links = PRIMARY_LINKS }: SiteNavigationProps) {
       <Link to="/" className={styles.logo} aria-label="Dune home">
         <img className={styles.logoImage} src="/web/logo.svg" alt="" />
       </Link>
+      {/* Links, not tabs: each segment is a place with its own address, and the current one is marked the way a page link is. */}
+      <div className={styles.segments} aria-label="Site sections" role="group">
+        {NAV_SEGMENTS.map((candidate) => {
+          const current = candidate.id === segment.id;
+          return (
+            <Link
+              key={candidate.id}
+              to={candidate.to}
+              className={styles.segment}
+              data-current={current || undefined}
+              aria-current={current ? 'true' : undefined}
+            >
+              {/* Only one name is displayed at a time, and the hidden one is hidden from assistive technology too, so the accessible name is always the visible one. */}
+              <span className={styles.segmentLong}>{candidate.label}</span>
+              <span className={styles.segmentShort}>{candidate.shortLabel}</span>
+            </Link>
+          );
+        })}
+      </div>
       <div className={styles.linkGroup} ref={groupRef}>
         <div className={styles.linkRow}>
           <div className={styles.measureRow} ref={measureRef} aria-hidden>
@@ -73,7 +85,12 @@ export function SiteNavigation({ links = PRIMARY_LINKS }: SiteNavigationProps) {
             ))}
           </div>
           {links.slice(0, visibleCount).map((item) => (
-            <Link key={item.label} to={item.to} activeProps={{ className: styles.activeLink }}>
+            <Link
+              key={item.label}
+              to={item.to}
+              activeOptions={{ exact: item.exact ?? false }}
+              activeProps={{ className: styles.activeLink }}
+            >
               {item.label}
             </Link>
           ))}
@@ -94,7 +111,12 @@ export function SiteNavigation({ links = PRIMARY_LINKS }: SiteNavigationProps) {
                 <Menu.Item
                   key={item.label}
                   renderRoot={(rootProps) => (
-                    <Link {...rootProps} to={item.to} activeProps={{ className: styles.activeLink }} />
+                    <Link
+                      {...rootProps}
+                      to={item.to}
+                      activeOptions={{ exact: item.exact ?? false }}
+                      activeProps={{ className: styles.activeLink }}
+                    />
                   )}
                 >
                   {item.label}

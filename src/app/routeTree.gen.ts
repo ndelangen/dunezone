@@ -36,6 +36,8 @@ import { Route as AppAuthLoginRouteRouteImport } from './routes/_app/auth/login.
 import { Route as AppBlogIndexRouteImport } from './routes/_app/blog/index'
 import { Route as AppContributingIndexRouteImport } from './routes/_app/contributing/index'
 import { Route as AppContributingIntroRouteRouteImport } from './routes/_app/contributing/$intro.route'
+import { Route as AppCreateIndexRouteImport } from './routes/_app/create/index'
+import { Route as AppCreateFactionRouteRouteImport } from './routes/_app/create/faction.route'
 import { Route as AppFactionsIndexRouteImport } from './routes/_app/factions/index'
 import { Route as AppFactionsCreateRouteRouteImport } from './routes/_app/factions/create.route'
 import { Route as AppFaqIndexRouteImport } from './routes/_app/faq/index'
@@ -224,6 +226,16 @@ const AppContributingIntroRouteRoute =
     path: '/contributing/$intro',
     getParentRoute: () => AppRouteRoute,
   } as any)
+const AppCreateIndexRoute = AppCreateIndexRouteImport.update({
+  id: '/create/',
+  path: '/create/',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppCreateFactionRouteRoute = AppCreateFactionRouteRouteImport.update({
+  id: '/create/faction',
+  path: '/create/faction',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppFactionsIndexRoute = AppFactionsIndexRouteImport.update({
   id: '/factions/',
   path: '/factions/',
@@ -530,6 +542,7 @@ export interface FileRoutesByFullPath {
   '/auth/error': typeof AppAuthErrorRouteRoute
   '/auth/login': typeof AppAuthLoginRouteRoute
   '/contributing/$intro': typeof AppContributingIntroRouteRoute
+  '/create/faction': typeof AppCreateFactionRouteRoute
   '/factions/create': typeof AppFactionsCreateRouteRoute
   '/groups/create': typeof AppGroupsCreateRouteRoute
   '/media/$source': typeof AppMediaSourceRouteRouteWithChildren
@@ -543,6 +556,7 @@ export interface FileRoutesByFullPath {
   '/auth/': typeof AppAuthIndexRoute
   '/blog/': typeof AppBlogIndexRoute
   '/contributing/': typeof AppContributingIndexRoute
+  '/create/': typeof AppCreateIndexRoute
   '/factions/': typeof AppFactionsIndexRoute
   '/faq/': typeof AppFaqIndexRoute
   '/future-plans/': typeof AppFuturePlansIndexRoute
@@ -606,6 +620,7 @@ export interface FileRoutesByTo {
   '/auth/error': typeof AppAuthErrorRouteRoute
   '/auth/login': typeof AppAuthLoginRouteRoute
   '/contributing/$intro': typeof AppContributingIntroRouteRoute
+  '/create/faction': typeof AppCreateFactionRouteRoute
   '/factions/create': typeof AppFactionsCreateRouteRoute
   '/groups/create': typeof AppGroupsCreateRouteRoute
   '/media/$source': typeof AppMediaSourceRouteRouteWithChildren
@@ -619,6 +634,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AppAuthIndexRoute
   '/blog': typeof AppBlogIndexRoute
   '/contributing': typeof AppContributingIndexRoute
+  '/create': typeof AppCreateIndexRoute
   '/factions': typeof AppFactionsIndexRoute
   '/faq': typeof AppFaqIndexRoute
   '/future-plans': typeof AppFuturePlansIndexRoute
@@ -687,6 +703,7 @@ export interface FileRoutesById {
   '/_app/auth/error': typeof AppAuthErrorRouteRoute
   '/_app/auth/login': typeof AppAuthLoginRouteRoute
   '/_app/contributing/$intro': typeof AppContributingIntroRouteRoute
+  '/_app/create/faction': typeof AppCreateFactionRouteRoute
   '/_app/factions/create': typeof AppFactionsCreateRouteRoute
   '/_app/groups/create': typeof AppGroupsCreateRouteRoute
   '/_app/media/$source': typeof AppMediaSourceRouteRouteWithChildren
@@ -700,6 +717,7 @@ export interface FileRoutesById {
   '/_app/auth/': typeof AppAuthIndexRoute
   '/_app/blog/': typeof AppBlogIndexRoute
   '/_app/contributing/': typeof AppContributingIndexRoute
+  '/_app/create/': typeof AppCreateIndexRoute
   '/_app/factions/': typeof AppFactionsIndexRoute
   '/_app/faq/': typeof AppFaqIndexRoute
   '/_app/future-plans/': typeof AppFuturePlansIndexRoute
@@ -768,6 +786,7 @@ export interface FileRouteTypes {
     | '/auth/error'
     | '/auth/login'
     | '/contributing/$intro'
+    | '/create/faction'
     | '/factions/create'
     | '/groups/create'
     | '/media/$source'
@@ -781,6 +800,7 @@ export interface FileRouteTypes {
     | '/auth/'
     | '/blog/'
     | '/contributing/'
+    | '/create/'
     | '/factions/'
     | '/faq/'
     | '/future-plans/'
@@ -844,6 +864,7 @@ export interface FileRouteTypes {
     | '/auth/error'
     | '/auth/login'
     | '/contributing/$intro'
+    | '/create/faction'
     | '/factions/create'
     | '/groups/create'
     | '/media/$source'
@@ -857,6 +878,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/blog'
     | '/contributing'
+    | '/create'
     | '/factions'
     | '/faq'
     | '/future-plans'
@@ -924,6 +946,7 @@ export interface FileRouteTypes {
     | '/_app/auth/error'
     | '/_app/auth/login'
     | '/_app/contributing/$intro'
+    | '/_app/create/faction'
     | '/_app/factions/create'
     | '/_app/groups/create'
     | '/_app/media/$source'
@@ -937,6 +960,7 @@ export interface FileRouteTypes {
     | '/_app/auth/'
     | '/_app/blog/'
     | '/_app/contributing/'
+    | '/_app/create/'
     | '/_app/factions/'
     | '/_app/faq/'
     | '/_app/future-plans/'
@@ -1177,6 +1201,20 @@ declare module '@tanstack/react-router' {
       path: '/contributing/$intro'
       fullPath: '/contributing/$intro'
       preLoaderRoute: typeof AppContributingIntroRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/create/': {
+      id: '/_app/create/'
+      path: '/create'
+      fullPath: '/create/'
+      preLoaderRoute: typeof AppCreateIndexRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/create/faction': {
+      id: '/_app/create/faction'
+      path: '/create/faction'
+      fullPath: '/create/faction'
+      preLoaderRoute: typeof AppCreateFactionRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/_app/factions/': {
@@ -1629,6 +1667,7 @@ interface AppRouteRouteChildren {
   AppAuthErrorRouteRoute: typeof AppAuthErrorRouteRoute
   AppAuthLoginRouteRoute: typeof AppAuthLoginRouteRoute
   AppContributingIntroRouteRoute: typeof AppContributingIntroRouteRoute
+  AppCreateFactionRouteRoute: typeof AppCreateFactionRouteRoute
   AppFactionsCreateRouteRoute: typeof AppFactionsCreateRouteRoute
   AppGroupsCreateRouteRoute: typeof AppGroupsCreateRouteRoute
   AppRulesetsCreateRouteRoute: typeof AppRulesetsCreateRouteRoute
@@ -1636,6 +1675,7 @@ interface AppRouteRouteChildren {
   AppAuthIndexRoute: typeof AppAuthIndexRoute
   AppBlogIndexRoute: typeof AppBlogIndexRoute
   AppContributingIndexRoute: typeof AppContributingIndexRoute
+  AppCreateIndexRoute: typeof AppCreateIndexRoute
   AppFactionsIndexRoute: typeof AppFactionsIndexRoute
   AppFaqIndexRoute: typeof AppFaqIndexRoute
   AppFuturePlansIndexRoute: typeof AppFuturePlansIndexRoute
@@ -1694,6 +1734,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppAuthErrorRouteRoute: AppAuthErrorRouteRoute,
   AppAuthLoginRouteRoute: AppAuthLoginRouteRoute,
   AppContributingIntroRouteRoute: AppContributingIntroRouteRoute,
+  AppCreateFactionRouteRoute: AppCreateFactionRouteRoute,
   AppFactionsCreateRouteRoute: AppFactionsCreateRouteRoute,
   AppGroupsCreateRouteRoute: AppGroupsCreateRouteRoute,
   AppRulesetsCreateRouteRoute: AppRulesetsCreateRouteRoute,
@@ -1701,6 +1742,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppAuthIndexRoute: AppAuthIndexRoute,
   AppBlogIndexRoute: AppBlogIndexRoute,
   AppContributingIndexRoute: AppContributingIndexRoute,
+  AppCreateIndexRoute: AppCreateIndexRoute,
   AppFactionsIndexRoute: AppFactionsIndexRoute,
   AppFaqIndexRoute: AppFaqIndexRoute,
   AppFuturePlansIndexRoute: AppFuturePlansIndexRoute,
