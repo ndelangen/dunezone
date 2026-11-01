@@ -10,7 +10,7 @@ import { createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 import { AppRoot } from './AppRoot';
-import { PRIMARY_LINKS } from './SiteNavigation';
+import { NAV_SEGMENTS } from './navigationSegments';
 
 /* The chrome renders inside `ApplicationChrome`'s Mantine provider; mirror that here. */
 function chrome(children: ReactNode) {
@@ -23,18 +23,21 @@ vi.mock('@tanstack/react-router', () => ({
     to,
     search: _search,
     activeProps: _activeProps,
+    activeOptions: _activeOptions,
     ...rest
   }: {
     children: ReactNode;
     to: string;
     search?: unknown;
     activeProps?: unknown;
+    activeOptions?: unknown;
   }) => (
     <a href={to} {...rest}>
       {children}
     </a>
   ),
-  useLocation: ({ select }: { select: (location: { href: string }) => unknown }) => select({ href: '/' }),
+  useLocation: ({ select }: { select: (location: { href: string; pathname: string }) => unknown }) =>
+    select({ href: '/', pathname: '/' }),
 }));
 
 vi.mock('@db/profiles', () => ({
@@ -186,7 +189,7 @@ describe('AppRoot page header', () => {
       expect.arrayContaining(RECORDLESS_PUBLIC_PAGES.filter((page) => !HEADER_PUBLIC_PAGES.includes(page)))
     );
     /* The header row collapses links into its More menu by measured width, so the contract is read from its link set. */
-    const headerHrefs = PRIMARY_LINKS.map((link) => link.to);
+    const headerHrefs = NAV_SEGMENTS.flatMap((segment) => [segment.to, ...segment.links.map((link) => link.to)]);
     for (const page of HEADER_PUBLIC_PAGES) {
       expect(footerHrefs).not.toContain(page);
       expect(headerHrefs).toContain(page);

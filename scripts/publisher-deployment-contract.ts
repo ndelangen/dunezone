@@ -254,6 +254,8 @@ export function validatePublisherDeployContract(config: JsonObject, environment:
         '/privacy/*',
         '/blog',
         '/blog/*',
+        '/create',
+        '/create/*',
         '/media',
         '/media/*',
       ],

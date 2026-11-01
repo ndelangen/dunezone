@@ -74,6 +74,8 @@
       "/privacy/*",
       "/blog",
       "/blog/*",
+      "/create",
+      "/create/*",
       "/media",
       "/media/*"
     ]

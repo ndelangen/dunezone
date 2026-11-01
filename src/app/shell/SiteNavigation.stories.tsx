@@ -2,8 +2,8 @@ import preview from '@sb/preview';
 import { finishTransitions, waitForFrame } from '@sb/storyWaits';
 import { expect, waitFor, within } from 'storybook/test';
 
+import type { NavLinkItem } from './navigationSegments';
 import { SiteNavigation } from './SiteNavigation';
-import type { NavLinkItem } from './SiteNavigation';
 
 /* A deliberately oversized set: the system's contract is any count, any length, so the overflow
    stories feed it more than any width can hold. Labels are fake; only their widths matter. */

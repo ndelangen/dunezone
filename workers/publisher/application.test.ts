@@ -33,6 +33,8 @@ describe('anonymous application dispatch', () => {
     '/faq',
     '/blog',
     '/blog/why-dune',
+    '/create',
+    '/create/faction',
     '/media',
     '/media/game/leaders',
     '/media/missing',
