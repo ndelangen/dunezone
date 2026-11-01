@@ -7,6 +7,7 @@ import { StatusBadge } from '@ui/content/StatusBadge';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
+import clsx from 'clsx';
 import { Clock } from 'lucide-react';
 import { useId } from 'react';
 
@@ -59,8 +60,7 @@ function CatalogueTileView({ tile, eager }: Readonly<{ tile: CatalogueTile; eage
       <Surface
         as="article"
         padding="none"
-        className={styles.tile}
-        data-built={tile.link ? true : undefined}
+        className={clsx(styles.tile, tile.link && styles.built)}
         aria-labelledby={titleId}
       >
         <div className={styles.art}>
