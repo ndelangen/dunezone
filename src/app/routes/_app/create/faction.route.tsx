@@ -426,7 +426,7 @@ function FactionTutorialPage() {
                   >
                     Create your faction
                   </Button>
-                  <Button variant="subtle" renderRoot={(props) => <Link {...props} to="/create" />}>
+                  <Button variant="default" renderRoot={(props) => <Link {...props} to="/create" />}>
                     More creator tutorials
                   </Button>
                 </Group>
