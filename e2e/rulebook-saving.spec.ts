@@ -16,18 +16,21 @@ test.afterEach(async ({ context }) => {
 test('settings-only changes save and publish as a new Edition', async ({ page }, testInfo) => {
   const fixture = await seedRulebookEditor();
   await page.goto(`${fixture.path}#RULE/details`);
-  const bookSize = page.getByRole('combobox', { name: 'Book size' });
-  await bookSize.click();
-  await page.getByRole('option', { name: 'GF9 core (254 × 254 mm)' }).click();
+  await page.getByRole('button', { name: 'Book settings', exact: true }).click();
+  const bookSize = page.getByRole('radio', { name: 'GF9 core (254 × 254 mm)' });
+  await bookSize.check();
   await expect(page.getByRole('article', { name: 'Rulebook page: Movement' })).toHaveAttribute(
     'data-rulebook-size',
     'gf9-core'
   );
   await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeEnabled();
+  await bookSize.press('Escape');
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Saved', exact: true })).toBeDisabled();
   await page.reload();
-  await expect(page.getByRole('combobox', { name: 'Book size' })).toHaveValue('GF9 core (254 × 254 mm)');
+  await page.getByRole('button', { name: 'Book settings', exact: true }).click();
+  await expect(bookSize).toBeChecked();
+  await bookSize.press('Escape');
   await holdToPublish(page.getByRole('button', { name: 'Publish Edition 2' }));
   await expect(page.getByText('The new Edition is now current.')).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath('settings-published.png') });

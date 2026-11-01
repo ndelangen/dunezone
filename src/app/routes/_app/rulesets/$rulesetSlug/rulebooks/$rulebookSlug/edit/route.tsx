@@ -6,6 +6,8 @@ import {
   KeyboardSensor,
   MeasuringStrategy,
   PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useDndContext,
   useDroppable,
   useSensor,
@@ -25,8 +27,10 @@ import {
   sortableKeyboardCoordinates,
   useSortable,
   verticalListSortingStrategy,
+  horizontalListSortingStrategy,
+  arrayMove,
 } from '@dnd-kit/sortable';
-import { Alert, Badge, Box, Button, Group, Menu, Select, Stack, Text, TextInput } from '@mantine/core';
+import { Alert, Badge, Box, Button, Group, Menu, Radio, Popover, Select, Stack, Text, TextInput } from '@mantine/core';
 import {
   canonicalRulebookCoverControlValues,
   createRulebookLocalId,
@@ -83,6 +87,7 @@ import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { AddAction } from '@ui/control/ListLengthActions';
 import { SaveAction } from '@ui/control/SaveAction';
+import { SortableItem } from '@ui/control/SortableItem';
 import { StatusInfo } from '@ui/control/StatusInfo';
 import type { StatusInfoItem } from '@ui/control/StatusInfo';
 import { AsymmetricSplitLayout } from '@ui/layout/AsymmetricSplitLayout';
@@ -90,7 +95,7 @@ import { DocumentEditorLayout } from '@ui/layout/DocumentEditorLayout';
 import type { DocumentEditorFit } from '@ui/layout/DocumentEditorLayout';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { NestedTabs, Surface } from '@ui/surface';
-import { Toolbar } from '@ui/surface/Toolbar';
+import { Toolbar, useDismissToolbarOverflow } from '@ui/surface/Toolbar';
 import {
   ArrowLeft,
   BookMarked,
@@ -106,12 +111,14 @@ import {
   MoveHorizontal,
   MoveVertical,
   SlidersHorizontal,
+  Settings,
   TextCursorInput,
 } from 'lucide-react';
 import {
   memo,
   useCallback,
   useEffect,
+  useId,
   useLayoutEffect,
   useMemo,
   useReducer,
@@ -203,7 +210,6 @@ type ActiveEditorPath =
       hash: string;
     }>;
 type RailDragData =
-  | Readonly<{ kind: 'page'; pageId: string }>
   | Readonly<{
       kind: 'block';
       pageId: string;
@@ -224,18 +230,15 @@ type RailDragData =
       regionKey: RulebookBlockRegionKey;
       side: 'before' | 'after';
     }>;
-type ActiveRailDrag =
-  | Readonly<{ kind: 'page'; pageId: string; width: number | null; height: number | null }>
-  | Readonly<{
-      kind: 'block';
-      blockId: string;
-      originRegionKey: RulebookBlockRegionKey;
-      width: number | null;
-      height: number | null;
-    }>;
+type ActiveRailDrag = Readonly<{
+  kind: 'block';
+  blockId: string;
+  originRegionKey: RulebookBlockRegionKey;
+  width: number | null;
+  height: number | null;
+}>;
 type WorkspaceDragState =
   | Readonly<{ kind: 'idle' }>
-  | Readonly<{ kind: 'rail-page'; pageId: string; width: number | null; height: number | null }>
   | Readonly<{
       kind: 'block';
       source: 'rail' | 'details';
@@ -256,7 +259,6 @@ type WorkspaceDragState =
       disableRailSortingTransforms: boolean;
     }>;
 type WorkspaceDragEvent =
-  | Readonly<{ kind: 'start-page'; pageId: string; width: number | null; height: number | null }>
   | Readonly<{
       kind: 'start-block';
       source: 'rail' | 'details';
@@ -284,8 +286,6 @@ const idleWorkspaceDragState: WorkspaceDragState = { kind: 'idle' };
 
 function reduceWorkspaceDragState(state: WorkspaceDragState, event: WorkspaceDragEvent): WorkspaceDragState {
   switch (event.kind) {
-    case 'start-page':
-      return { kind: 'rail-page', pageId: event.pageId, width: event.width, height: event.height };
     case 'start-block':
       return {
         kind: 'block',
@@ -338,9 +338,6 @@ function reduceWorkspaceDragState(state: WorkspaceDragState, event: WorkspaceDra
 }
 
 function activeRailDrag(state: WorkspaceDragState): ActiveRailDrag | null {
-  if (state.kind === 'rail-page') {
-    return { kind: 'page', pageId: state.pageId, width: state.width, height: state.height };
-  }
   if (state.kind === 'settling-rail-block' || (state.kind === 'block' && state.source === 'rail')) {
     return {
       kind: 'block',
@@ -361,6 +358,33 @@ function openingRailDragMemory(lastValidPlacement: BlockPlacement | null = null)
   return { lastValidPlacement, lastHandledPointerY: null, crossedRegion: false };
 }
 
+type ThumbnailSnapshot = {
+  pageId: string | undefined;
+  generation: number;
+  draft: RulebookContentsDraftV1;
+  settings: RulebookSettings;
+  assetsById: RulebookResolvedAssetsById;
+  factionsById: RulebookResolvedFactionsById;
+};
+function reduceThumbnailSnapshot(_state: ThumbnailSnapshot, event: ThumbnailSnapshot): ThumbnailSnapshot {
+  return event;
+}
+
+function useThumbnailSnapshot(current: ThumbnailSnapshot): ThumbnailSnapshot {
+  const [snapshot, capture] = useReducer(reduceThumbnailSnapshot, current);
+  /* Navigation commits thumbnail content; explicit reset and import also retire the previous snapshot. */
+  if (snapshot.pageId !== current.pageId || snapshot.generation !== current.generation) {
+    capture(current);
+  }
+  return snapshot;
+}
+
+function projectWorkspacePage(page: RulebookPageDraft | undefined, dragState: WorkspaceDragState) {
+  return page && dragState.kind === 'block' && dragState.pageId === page.id
+    ? projectBlockPlacement(page, dragState.blockId, dragState.candidate)
+    : page;
+}
+
 const pageLayoutLabels = Object.fromEntries(
   rulebookLayoutCatalogue.map((layout) => [layout.id, layout.label])
 ) as Record<RulebookPageLayoutId, string>;
@@ -373,10 +397,7 @@ const restrictDragToVerticalAxis: Modifier = ({ transform }) => ({
 const railCollision: CollisionDetection = (args) => {
   const activeData = railDragData(args.active);
   if (activeData?.kind !== 'block') {
-    const pageContainers = args.droppableContainers.filter(
-      (container) => (container.data.current as RailDragData | undefined)?.kind === 'page'
-    );
-    return closestCenter({ ...args, droppableContainers: pageContainers });
+    return [];
   }
 
   const regionContainers = args.droppableContainers.filter(
@@ -721,7 +742,7 @@ function targetPlacementFromRailOver(
     return null;
   }
   const data = railDragData(over);
-  if (!data || data.kind === 'page' || data.pageId !== page.id) {
+  if (!data || data.pageId !== page.id) {
     return null;
   }
   if (data.kind === 'region') {
@@ -994,41 +1015,6 @@ function useEditorHash() {
 
 function railDragData(value: { data: { current?: unknown } } | null): RailDragData | null {
   return (value?.data.current as RailDragData | undefined) ?? null;
-}
-
-interface RailPageRootProps extends ComponentPropsWithoutRef<'a'> {
-  dragId: string;
-  pageId: string;
-}
-
-function RailPageRoot({ dragId, pageId, style, children, ...rootProps }: RailPageRootProps) {
-  const data: RailDragData = { kind: 'page', pageId };
-  const { active } = useDndContext();
-  const activeData = railDragData(active);
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: dragId,
-    data,
-    disabled: activeData !== null && activeData.kind !== 'page',
-  });
-  const { role: _role, tabIndex: _tabIndex, 'aria-pressed': _pressed, ...dragAttributes } = attributes;
-  return (
-    <a
-      {...rootProps}
-      {...dragAttributes}
-      {...listeners}
-      ref={setNodeRef}
-      style={{
-        ...style,
-        transform: transform ? `translate3d(0, ${transform.y}px, 0)` : undefined,
-        transition,
-      }}
-      draggable={false}
-      data-rail-dragging={isDragging || undefined}
-      data-rail-drag-placeholder={isDragging || undefined}
-    >
-      {children}
-    </a>
-  );
 }
 
 interface RailBlockRootProps extends ComponentPropsWithoutRef<'a'> {
@@ -1475,6 +1461,265 @@ function controlRegionPanel(
   return <Alert color="red">This Control region has no matching editor.</Alert>;
 }
 
+type FilmstripProps = {
+  draft: RulebookContentsDraftV1;
+  thumbnailDraft: RulebookContentsDraftV1;
+  settings: RulebookSettings;
+  assetsById: RulebookResolvedAssetsById;
+  factionsById: RulebookResolvedFactionsById;
+  activePageId: string;
+  action: ReactNode;
+  onPick: (id: string) => void;
+  onReorder: (order: string[], movedId: string) => void;
+};
+type FilmstripState = { visible: ReadonlySet<string> };
+type FilmstripEvent = { kind: 'visibility'; entries: { id: string; visible: boolean }[] };
+function reduceFilmstrip(state: FilmstripState, event: FilmstripEvent): FilmstripState {
+  const visible = new Set(state.visible);
+  for (const entry of event.entries) {
+    if (entry.visible) {
+      visible.add(entry.id);
+    } else {
+      visible.delete(entry.id);
+    }
+  }
+  return visible.size === state.visible.size && [...visible].every((id) => state.visible.has(id))
+    ? state
+    : { ...state, visible };
+}
+
+type ThumbnailProps = Pick<FilmstripProps, 'settings' | 'assetsById' | 'factionsById'> & {
+  draft: RulebookContentsDraftV1;
+  page: RulebookPageDraft;
+  pageNumber: number;
+  references: ReturnType<typeof projectRulebookTextReferences>;
+};
+const RulebookThumbnail = memo(
+  function RulebookThumbnail({ draft, page, pageNumber, settings, assetsById, factionsById }: ThumbnailProps) {
+    const rootRef = useRef<HTMLDivElement>(null);
+    const projected = useMemo(
+      () => projectRulebookDraftRenderPage(page, assetsById, factionsById, draft),
+      [page, assetsById, factionsById, draft]
+    );
+    useLayoutEffect(() => {
+      /* HTML anchors belong to the large page; SVG definitions must remain usable inside each thumbnail. */
+      rootRef.current?.querySelectorAll('[id]').forEach((element) => {
+        if (element.namespaceURI === 'http://www.w3.org/1999/xhtml') {
+          element.removeAttribute('id');
+        }
+      });
+    }, [projected]);
+    return (
+      <div ref={rootRef} className={styles.thumbnailDocument} data-rulebook-thumbnail-preview>
+        <RulebookPageRenderer page={projected} pageNumber={pageNumber} settings={settings} />
+      </div>
+    );
+  },
+  (previous, next) =>
+    previous.pageNumber === next.pageNumber &&
+    deepEqual(previous.page, next.page) &&
+    deepEqual(previous.references, next.references) &&
+    deepEqual(previous.settings, next.settings) &&
+    deepEqual(previous.assetsById, next.assetsById) &&
+    deepEqual(previous.factionsById, next.factionsById)
+);
+
+function useFilmstripViewport(pageOrderKey: string, activePageId: string) {
+  const [view, send] = useReducer(reduceFilmstrip, { visible: new Set<string>() });
+  const rootRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    if (!root) {
+      return;
+    }
+    /* The browser viewport also excludes a strip that has scrolled vertically out of view. */
+    const observer = new IntersectionObserver(
+      (entries) =>
+        send({
+          kind: 'visibility',
+          entries: entries.map((entry) => ({
+            id: (entry.target as HTMLElement).dataset.rulebookThumbnail!,
+            visible: entry.isIntersecting && entry.intersectionRatio > 0,
+          })),
+        }),
+      { threshold: [0, 0.0001] }
+    );
+    root.querySelectorAll('[data-rulebook-thumbnail]').forEach((element) => observer.observe(element));
+    return () => observer.disconnect();
+  }, [pageOrderKey]);
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    const selected = root?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!root || !selected) {
+      return;
+    }
+    const item = selected.getBoundingClientRect();
+    const viewport = root.getBoundingClientRect();
+    root.scrollTo({
+      left: root.scrollLeft + item.left - viewport.left - (root.clientWidth - item.width) / 2,
+      top: 0,
+    });
+  }, [activePageId, pageOrderKey]);
+  return { rootRef, visible: view.visible };
+}
+
+function RulebookFilmstrip({
+  draft,
+  thumbnailDraft,
+  settings,
+  assetsById,
+  factionsById,
+  activePageId,
+  action,
+  onPick,
+  onReorder,
+}: FilmstripProps) {
+  const { rootRef, visible } = useFilmstripViewport(draft.pageOrder.join(','), activePageId);
+  const targets = useMemo(
+    () => rulebookReferenceTargets(thumbnailDraft, assetsById, factionsById),
+    [thumbnailDraft, assetsById, factionsById]
+  );
+  const size = getRulebookSize(settings.size);
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+  return (
+    <section aria-label="Pages">
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={({ active, over }) => {
+          if (!over || active.id === over.id) {
+            return;
+          }
+          const from = draft.pageOrder.indexOf(String(active.id));
+          const to = draft.pageOrder.indexOf(String(over.id));
+          if (from >= 0 && to >= 0) {
+            onReorder(arrayMove(draft.pageOrder, from, to), String(active.id));
+          }
+        }}
+      >
+        <SortableContext items={draft.pageOrder} strategy={horizontalListSortingStrategy}>
+          <div ref={rootRef} className={styles.filmstrip} data-rulebook-filmstrip>
+            {draft.pageOrder.map((id, index) => {
+              const page = draft.pagesById[id]!;
+              const previewDraft = thumbnailDraft.pagesById[id] ? thumbnailDraft : draft;
+              const previewPage = previewDraft.pagesById[id]!;
+              return (
+                <SortableItem key={id} id={id} className={styles.filmItem}>
+                  {(handle) => (
+                    <>
+                      <Button
+                        ref={handle.setActivatorNodeRef}
+                        {...handle.attributes}
+                        {...handle.listeners}
+                        className={styles.filmButton}
+                        variant={id === activePageId ? 'filled' : 'subtle'}
+                        color="selected"
+                        aria-label={`Page ${index + 1}: ${page.title}`}
+                        aria-current={id === activePageId ? 'page' : undefined}
+                        onClick={() => onPick(id)}
+                      >
+                        <span className={styles.filmContent}>
+                          <span
+                            className={styles.thumbnail}
+                            data-rulebook-thumbnail={id}
+                            aria-hidden
+                            inert
+                            style={{ aspectRatio: `${size.widthMm} / ${size.heightMm}` }}
+                          >
+                            {visible.has(id) ? (
+                              <RulebookThumbnail
+                                page={previewPage}
+                                draft={previewDraft}
+                                pageNumber={index + 1}
+                                settings={settings}
+                                assetsById={assetsById}
+                                factionsById={factionsById}
+                                references={pageReferenceTargets(
+                                  previewPage,
+                                  previewDraft === thumbnailDraft
+                                    ? targets
+                                    : rulebookReferenceTargets(draft, assetsById, factionsById)
+                                )}
+                              />
+                            ) : null}
+                            <span className={styles.filmNumber}>{index + 1}</span>
+                          </span>
+                          <span className={styles.filmCaption}>{page.title}</span>
+                        </span>
+                      </Button>
+                    </>
+                  )}
+                </SortableItem>
+              );
+            })}
+            <Group wrap="nowrap">{action}</Group>
+          </div>
+        </SortableContext>
+      </DndContext>
+    </section>
+  );
+}
+
+function RulebookSelectionPreview({ children, activeBlockId }: { children: ReactNode; activeBlockId?: string }) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const markerRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    const marker = markerRef.current;
+    if (!root || !marker) {
+      return;
+    }
+    const page = root.querySelector<HTMLElement>('[data-rulebook-page]');
+    const target = activeBlockId
+      ? [...(page?.querySelectorAll<HTMLElement>('[data-rulebook-block-id]') ?? [])].find(
+          (block) => block.dataset.rulebookBlockId === activeBlockId
+        )
+      : undefined;
+    const measure = () => {
+      marker.hidden = !target;
+      if (!target) {
+        return;
+      }
+      const outer = root.getBoundingClientRect();
+      const bounds = target.getBoundingClientRect();
+      Object.assign(marker.style, {
+        left: `${bounds.left - outer.left - 4}px`,
+        top: `${bounds.top - outer.top - 4}px`,
+        width: `${bounds.width + 8}px`,
+        height: `${bounds.height + 8}px`,
+      });
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(root);
+    if (page) {
+      observer.observe(page);
+    }
+    page?.querySelectorAll<HTMLElement>('[data-rulebook-block-id]').forEach((block) => observer.observe(block));
+    document.fonts.addEventListener('loadingdone', measure);
+    return () => {
+      observer.disconnect();
+      document.fonts.removeEventListener('loadingdone', measure);
+    };
+  }, [activeBlockId, children]);
+  return (
+    <div ref={rootRef} className={styles.selectionPreview}>
+      <div className={styles.previewDocument}>{children}</div>
+      <div
+        ref={markerRef}
+        className={styles.selectionMarker}
+        hidden
+        data-rulebook-editing-block={activeBlockId}
+        aria-hidden
+      />
+    </div>
+  );
+}
+
 function RulebookWorkspace({
   result,
   settings,
@@ -1484,6 +1729,7 @@ function RulebookWorkspace({
   factionsById,
   onClippingChange,
   onSettle,
+  thumbnailGeneration,
 }: Readonly<{
   result: ReadyResult;
   settings: RulebookSettings;
@@ -1493,6 +1739,7 @@ function RulebookWorkspace({
   factionsById: RulebookResolvedFactionsById;
   onClippingChange: (report: RulebookClippingReport) => void;
   onSettle: () => void;
+  thumbnailGeneration: number;
 }>) {
   const hash = useEditorHash();
   const size = getRulebookSize(settings.size);
@@ -1514,12 +1761,17 @@ function RulebookWorkspace({
       },
     })
   );
+  const thumbnailSnapshot = useThumbnailSnapshot({
+    pageId: active?.pageId,
+    generation: thumbnailGeneration,
+    draft: result.draft,
+    settings,
+    assetsById,
+    factionsById,
+  });
   const clippingMeasurementEnabled = dragState.kind !== 'block';
   const activePage = active ? result.draft.pagesById[active.pageId] : undefined;
-  const projectedActivePage =
-    activePage && dragState.kind === 'block' && dragState.pageId === activePage.id
-      ? projectBlockPlacement(activePage, dragState.blockId, dragState.candidate)
-      : activePage;
+  const projectedActivePage = projectWorkspacePage(activePage, dragState);
   const referenceTargets = useMemo(
     () => rulebookReferenceTargets(result.draft, assetsById, factionsById),
     [result.draft, assetsById, factionsById]
@@ -1659,15 +1911,6 @@ function RulebookWorkspace({
     if (!data || data.kind === 'region' || data.kind === 'slot') {
       return;
     }
-    if (data.kind === 'page') {
-      sendDrag({
-        kind: 'start-page',
-        pageId: data.pageId,
-        width: dragActive.rect.current.initial?.width ?? null,
-        height: dragActive.rect.current.initial?.height ?? null,
-      });
-      return;
-    }
     const placement = findBlockPlacement(page, data.blockId);
     if (!placement) {
       return;
@@ -1693,9 +1936,6 @@ function RulebookWorkspace({
     const activeData = railDragData(dragActive);
     const overData = railDragData(over);
     if (!activeData || !overData) {
-      return;
-    }
-    if (activeData.kind === 'page') {
       return;
     }
     if (activeData.kind !== 'block') {
@@ -1748,29 +1988,6 @@ function RulebookWorkspace({
     window.requestAnimationFrame(finishRailDrag);
   };
 
-  const requestRailPagePlacement = (pageId: string, over: DragEndEvent['over']) => {
-    const overData = railDragData(over);
-    if (overData?.kind !== 'page') {
-      return;
-    }
-    const from = result.draft.pageOrder.indexOf(pageId);
-    const to = result.draft.pageOrder.indexOf(overData.pageId);
-    if (from === -1 || to === -1 || from === to) {
-      return;
-    }
-    const nextOrder = [...result.draft.pageOrder];
-    nextOrder.splice(from, 1);
-    nextOrder.splice(to, 0, pageId);
-    dispatch({
-      kind: 'place',
-      target: { kind: 'page', pageId },
-      destination: {
-        container: { kind: 'page-order' },
-        ...destinationForOrder(nextOrder, to),
-      },
-    });
-  };
-
   const requestRailBlockPlacement = (
     blockId: string,
     activeRect: VerticalRect | null,
@@ -1805,9 +2022,6 @@ function RulebookWorkspace({
   const handleRailDragEnd = ({ active: dragActive, collisions, over }: DragEndEvent) => {
     flushRailDragPosition();
     const activeData = railDragData(dragActive);
-    if (activeData?.kind === 'page') {
-      requestRailPagePlacement(activeData.pageId, over);
-    }
     if (activeData?.kind === 'block') {
       requestRailBlockPlacement(
         activeData.blockId,
@@ -1823,8 +2037,15 @@ function RulebookWorkspace({
     finishRailDragAfterClick();
   };
 
-  const draggedRailPage = railDrag?.kind === 'page' ? result.draft.pagesById[railDrag.pageId] : undefined;
   const draggedRailBlock = railDrag?.kind === 'block' ? page.blocksById[railDrag.blockId] : undefined;
+
+  const reorderPages = (order: string[], pageId: string) => {
+    dispatch({
+      kind: 'place',
+      target: { kind: 'page', pageId },
+      destination: { container: { kind: 'page-order' }, ...destinationForOrder(order, order.indexOf(pageId)) },
+    });
+  };
 
   const iconArrangement = pageIconArrangement(page, result.draft.pageOrder.indexOf(page.id) + 1);
   const detailsRegions: RulebookPageDetailsBlockRegion[] = orderedRegions.flatMap((region) => {
@@ -1967,199 +2188,181 @@ function RulebookWorkspace({
       onBlurCapture={onSettle}
       onKeyDown={onWorkspaceKeyDown}
     >
-      <DocumentEditorLayout ratio={size.widthMm / size.heightMm} fit={fit}>
-        <DocumentEditorLayout.Sidebar>
-          <DndContext
-            sensors={sensors}
-            modifiers={[restrictDragToVerticalAxis]}
-            measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
-            collisionDetection={railCollision}
-            onDragStart={handleRailDragStart}
-            onDragMove={scheduleRailDragPosition}
-            onDragOver={scheduleRailDragPosition}
-            onDragEnd={handleRailDragEnd}
-            onDragCancel={handleRailDragCancel}
-          >
-            <NestedTabs activePath={active.path} ariaLabel="Rulebook structure" className={styles.nestedTabs}>
-              <NestedTabs.Level label="Pages">
-                <SortableContext
-                  items={result.draft.pageOrder.map((pageId) => `rail:page:${pageId}`)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  {result.draft.pageOrder.map((pageId, index) => {
-                    const candidate = result.draft.pagesById[pageId];
-                    return candidate ? (
-                      <NestedTabs.Item
-                        as={RailPageRoot}
-                        path={[pageId]}
-                        label={candidate.title}
-                        icon={rulebookLayoutIcon(candidate.layoutId, pageIconArrangement(candidate, index + 1))}
-                        href={railDrag ? undefined : editorHash(pageId, 'details')}
-                        target="_self"
-                        dragId={`rail:page:${pageId}`}
-                        pageId={pageId}
-                        key={pageId}
-                      />
-                    ) : null;
-                  })}
-                </SortableContext>
-                <NestedTabs.Tools>
-                  <AddMenu label="Add Page" values={pageChoices(settings)} icon={pageChoiceIcon} onPick={addPage} />
-                </NestedTabs.Tools>
-              </NestedTabs.Level>
-              <NestedTabs.Level label={page.title}>
-                <NestedTabs.Item
-                  as="a"
-                  path={[page.id, 'details']}
-                  label="Page details"
-                  icon={<SlidersHorizontal />}
-                  href={editorHash(page.id, 'details')}
-                  target="_self"
-                />
-                {orderedRegions.map((region) => {
-                  if (page.layoutId === 'cover' && region.key === 'cover') {
-                    return null;
-                  }
-                  if (region.kind === 'control') {
+      <Stack gap="md">
+        <RulebookFilmstrip
+          draft={result.draft}
+          thumbnailDraft={thumbnailSnapshot.draft}
+          settings={thumbnailSnapshot.settings}
+          assetsById={thumbnailSnapshot.assetsById}
+          factionsById={thumbnailSnapshot.factionsById}
+          activePageId={page.id}
+          action={<AddMenu label="Add Page" values={pageChoices(settings)} icon={pageChoiceIcon} onPick={addPage} />}
+          onPick={(id) => goToEditorHash(editorHash(id, 'details'))}
+          onReorder={reorderPages}
+        />
+        <DocumentEditorLayout ratio={size.widthMm / size.heightMm} fit={fit}>
+          <DocumentEditorLayout.Sidebar>
+            <DndContext
+              sensors={sensors}
+              modifiers={[restrictDragToVerticalAxis]}
+              measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
+              collisionDetection={railCollision}
+              onDragStart={handleRailDragStart}
+              onDragMove={scheduleRailDragPosition}
+              onDragOver={scheduleRailDragPosition}
+              onDragEnd={handleRailDragEnd}
+              onDragCancel={handleRailDragCancel}
+            >
+              <NestedTabs activePath={active.path} ariaLabel="Rulebook structure" className={styles.nestedTabs}>
+                <NestedTabs.Level label={page.title}>
+                  <NestedTabs.Item
+                    as="a"
+                    path={[page.id, 'details']}
+                    label="Page details"
+                    icon={<SlidersHorizontal />}
+                    href={editorHash(page.id, 'details')}
+                    target="_self"
+                  />
+                  {orderedRegions.map((region) => {
+                    if (page.layoutId === 'cover' && region.key === 'cover') {
+                      return null;
+                    }
+                    if (region.kind === 'control') {
+                      return (
+                        <NestedTabs.Item
+                          as="a"
+                          path={[page.id, region.key]}
+                          label={region.label}
+                          icon={rulebookRegionIcon(region.key, iconArrangement)}
+                          href={editorHash(page.id, region.key)}
+                          target="_self"
+                          key={region.key}
+                        />
+                      );
+                    }
+                    const ids = blockOrders(projectedPage)[region.key] ?? [];
+                    let eligibility: 'compatible' | 'incompatible' | undefined;
+                    if (railDrag?.kind === 'block') {
+                      eligibility = blockDropStatus(projectedPage, railDrag.blockId, region.key).allowed
+                        ? 'compatible'
+                        : 'incompatible';
+                    }
+                    const dropEnabled = eligibility !== 'incompatible';
                     return (
-                      <NestedTabs.Item
-                        as="a"
-                        path={[page.id, region.key]}
+                      <NestedTabs.Group
+                        as={RailRegionRoot}
                         label={region.label}
                         icon={rulebookRegionIcon(region.key, iconArrangement)}
-                        href={editorHash(page.id, region.key)}
-                        target="_self"
+                        pageId={page.id}
+                        regionKey={region.key}
+                        sortableIds={ids.map((blockId) => `rail:block:${blockId}`)}
+                        dropEnabled={dropEnabled}
+                        className={styles.railGroup}
+                        data-drop-eligibility={eligibility}
                         key={region.key}
-                      />
+                      >
+                        {ids.map((blockId) => {
+                          const block = projectedPage.blocksById[blockId];
+                          return block ? (
+                            <NestedTabs.Item
+                              as={RailBlockRoot}
+                              path={[page.id, blockId]}
+                              label={rulebookBlockLabel(block)}
+                              icon={rulebookBlockIcon(block.kind)}
+                              href={railDrag ? undefined : editorHash(page.id, blockId)}
+                              target="_self"
+                              dragId={`rail:block:${blockId}`}
+                              pageId={page.id}
+                              blockId={blockId}
+                              regionKey={region.key}
+                              dragOriginRegionKey={railDrag?.kind === 'block' ? railDrag.originRegionKey : null}
+                              dropEnabled={dropEnabled}
+                              disableSortingTransform={railSortingTransformsDisabled(dragState)}
+                              key={blockId}
+                            />
+                          ) : null;
+                        })}
+                      </NestedTabs.Group>
                     );
-                  }
-                  const ids = blockOrders(projectedPage)[region.key] ?? [];
-                  let eligibility: 'compatible' | 'incompatible' | undefined;
-                  if (railDrag?.kind === 'block') {
-                    eligibility = blockDropStatus(projectedPage, railDrag.blockId, region.key).allowed
-                      ? 'compatible'
-                      : 'incompatible';
-                  }
-                  const dropEnabled = eligibility !== 'incompatible';
-                  return (
-                    <NestedTabs.Group
-                      as={RailRegionRoot}
-                      label={region.label}
-                      icon={rulebookRegionIcon(region.key, iconArrangement)}
-                      pageId={page.id}
-                      regionKey={region.key}
-                      sortableIds={ids.map((blockId) => `rail:block:${blockId}`)}
-                      dropEnabled={dropEnabled}
-                      className={styles.railGroup}
-                      data-drop-eligibility={eligibility}
-                      key={region.key}
-                    >
-                      {ids.map((blockId) => {
-                        const block = projectedPage.blocksById[blockId];
-                        return block ? (
-                          <NestedTabs.Item
-                            as={RailBlockRoot}
-                            path={[page.id, blockId]}
-                            label={rulebookBlockLabel(block)}
-                            icon={rulebookBlockIcon(block.kind)}
-                            href={railDrag ? undefined : editorHash(page.id, blockId)}
-                            target="_self"
-                            dragId={`rail:block:${blockId}`}
-                            pageId={page.id}
-                            blockId={blockId}
-                            regionKey={region.key}
-                            dragOriginRegionKey={railDrag?.kind === 'block' ? railDrag.originRegionKey : null}
-                            dropEnabled={dropEnabled}
-                            disableSortingTransform={railSortingTransformsDisabled(dragState)}
-                            key={blockId}
-                          />
-                        ) : null;
-                      })}
-                    </NestedTabs.Group>
-                  );
-                })}
-                <NestedTabs.Tools>
-                  <ConfirmDeleteAction
-                    key={page.id}
-                    label="Delete Page"
-                    size="sm"
-                    pending={false}
-                    onConfirm={deletePage}
+                  })}
+                  <NestedTabs.Tools>
+                    <ConfirmDeleteAction
+                      key={page.id}
+                      label="Delete Page"
+                      size="sm"
+                      pending={false}
+                      onConfirm={deletePage}
+                    />
+                    <AddMenu
+                      label="Add Block"
+                      values={availableBlockKinds}
+                      icon={rulebookBlockIcon}
+                      onPick={(kind) => {
+                        const region = firstAvailableRegion();
+                        if (region?.kind === 'block') {
+                          addBlock(region.key, kind);
+                        }
+                      }}
+                    />
+                  </NestedTabs.Tools>
+                </NestedTabs.Level>
+                <NestedTabs.ContentPanel aria-label={`${page.title} editor`}>
+                  <RulebookClippedBlockPanel clippedKind={activeClippedBlock?.kind}>{panel}</RulebookClippedBlockPanel>
+                </NestedTabs.ContentPanel>
+              </NestedTabs>
+              {railDrag && draggedRailBlock ? (
+                <DragOverlay
+                  modifiers={[restrictDragToVerticalAxis]}
+                  dropAnimation={null}
+                  style={{ pointerEvents: 'none' }}
+                >
+                  <RailDragPreview
+                    icon={rulebookBlockIcon(draggedRailBlock.kind)}
+                    width={railDrag.width}
+                    height={railDrag.height}
                   />
-                  <AddMenu
-                    label="Add Block"
-                    values={availableBlockKinds}
-                    icon={rulebookBlockIcon}
-                    onPick={(kind) => {
-                      const region = firstAvailableRegion();
-                      if (region?.kind === 'block') {
-                        addBlock(region.key, kind);
-                      }
-                    }}
-                  />
-                </NestedTabs.Tools>
-              </NestedTabs.Level>
-              <NestedTabs.ContentPanel aria-label={`${page.title} editor`}>
-                <RulebookClippedBlockPanel clippedKind={activeClippedBlock?.kind}>{panel}</RulebookClippedBlockPanel>
-              </NestedTabs.ContentPanel>
-            </NestedTabs>
-            {railDrag && (draggedRailBlock || draggedRailPage) ? (
-              <DragOverlay
-                modifiers={[restrictDragToVerticalAxis]}
-                dropAnimation={null}
-                style={{ pointerEvents: 'none' }}
-              >
-                <RailDragPreview
-                  icon={
-                    draggedRailPage
-                      ? rulebookLayoutIcon(
-                          draggedRailPage.layoutId,
-                          pageIconArrangement(draggedRailPage, result.draft.pageOrder.indexOf(draggedRailPage.id) + 1)
-                        )
-                      : rulebookBlockIcon(draggedRailBlock!.kind)
-                  }
-                  width={railDrag.width}
-                  height={railDrag.height}
-                />
-              </DragOverlay>
-            ) : null}
-          </DndContext>
-        </DocumentEditorLayout.Sidebar>
-        <DocumentEditorLayout.Preview>
-          <div className={styles.previewPage}>
-            <div ref={previewRef} className={styles.previewVisible}>
-              {previewPage ? (
-                <RulebookBoardMarkupEditing.Provider value={markupEditing}>
-                  <RulebookPageRenderer
-                    page={previewPage}
-                    settings={settings}
-                    pageNumber={result.draft.pageOrder.indexOf(page.id) + 1}
-                  />
-                </RulebookBoardMarkupEditing.Provider>
+                </DragOverlay>
               ) : null}
+            </DndContext>
+          </DocumentEditorLayout.Sidebar>
+          <DocumentEditorLayout.Preview>
+            <div className={styles.previewPage}>
+              <RulebookSelectionPreview activeBlockId={active.kind === 'block' ? active.blockId : undefined}>
+                <div ref={previewRef} className={styles.previewVisible} data-rulebook-large-preview>
+                  {previewPage ? (
+                    <RulebookBoardMarkupEditing.Provider value={markupEditing}>
+                      <RulebookPageRenderer
+                        page={previewPage}
+                        settings={settings}
+                        pageNumber={result.draft.pageOrder.indexOf(page.id) + 1}
+                      />
+                    </RulebookBoardMarkupEditing.Provider>
+                  ) : null}
+                </div>
+              </RulebookSelectionPreview>
+              <div className={styles.clippingMeasurements} data-rulebook-measurements aria-hidden>
+                {result.draft.pageOrder.map((measurementPageId, index) => {
+                  const measurementPage = result.draft.pagesById[measurementPageId];
+                  return measurementPage ? (
+                    <ClippingMeasurementPage
+                      contents={result.draft}
+                      referenceTargets={pageReferenceTargets(measurementPage, referenceTargets)}
+                      page={measurementPage}
+                      settings={settings}
+                      pageNumber={index + 1}
+                      assetsById={assetsById}
+                      factionsById={factionsById}
+                      enabled={clippingMeasurementEnabled}
+                      onMeasure={receiveMeasurement}
+                      key={measurementPageId}
+                    />
+                  ) : null;
+                })}
+              </div>
             </div>
-            <div className={styles.clippingMeasurements} aria-hidden>
-              {result.draft.pageOrder.map((measurementPageId, index) => {
-                const measurementPage = result.draft.pagesById[measurementPageId];
-                return measurementPage ? (
-                  <ClippingMeasurementPage
-                    contents={result.draft}
-                    referenceTargets={pageReferenceTargets(measurementPage, referenceTargets)}
-                    page={measurementPage}
-                    settings={settings}
-                    pageNumber={index + 1}
-                    assetsById={assetsById}
-                    factionsById={factionsById}
-                    enabled={clippingMeasurementEnabled}
-                    onMeasure={receiveMeasurement}
-                    key={measurementPageId}
-                  />
-                ) : null;
-              })}
-            </div>
-          </div>
-        </DocumentEditorLayout.Preview>
-      </DocumentEditorLayout>
+          </DocumentEditorLayout.Preview>
+        </DocumentEditorLayout>
+      </Stack>
     </Box>
   );
 }
@@ -2618,6 +2821,7 @@ function RulebookRename({
 
 type EditablePageData = Extract<RulebookEditorPageData, { kind: 'editable' }>;
 type EditorView = {
+  thumbnailGeneration: number;
   result: RulebookEditorResult;
   fit: DocumentEditorFit;
   reviewing: boolean;
@@ -2625,7 +2829,7 @@ type EditorView = {
   notice: 'saved' | 'stale' | 'published' | 'unchanged' | null;
 };
 type EditorViewAction =
-  | { kind: 'result'; result: RulebookEditorResult; notice?: EditorView['notice'] }
+  | { kind: 'result'; result: RulebookEditorResult; notice?: EditorView['notice']; refreshThumbnails?: boolean }
   | { kind: 'fit' }
   | { kind: 'review'; open: boolean }
   | { kind: 'rename'; open: boolean };
@@ -2648,6 +2852,7 @@ function editorViewReducer(view: EditorView, action: EditorViewAction): EditorVi
       return {
         ...view,
         result: action.result,
+        thumbnailGeneration: view.thumbnailGeneration + Number(action.refreshThumbnails === true),
         notice: action.notice ?? null,
         renaming: view.renaming && isCleanSettledDraft(action.result),
       };
@@ -2721,74 +2926,162 @@ function rulebookClippingWarnings(draft: RulebookContentsDraftV1, clippingReport
   });
 }
 
-function RulebookSettingsEditor({
-  settings,
-  layoutIds,
-  conflict,
-  onChange,
-  onResolve,
-}: {
+type RulebookSettingsEditorProps = {
   settings: RulebookSettings;
   layoutIds: readonly RulebookPageLayoutId[];
-  conflict: boolean;
   onChange: (settings: RulebookSettings) => void;
-  onResolve: (choice: 'local' | 'saved') => void;
+};
+
+function RulebookSettingsAction({
+  opened,
+  dropdownId,
+  onToggle,
+}: {
+  opened: boolean;
+  dropdownId: string;
+  onToggle: (trigger: HTMLButtonElement) => void;
 }) {
+  const dismissOverflow = useDismissToolbarOverflow();
   return (
-    <>
-      <Group align="start" grow>
-        <ControlBlock
-          title="Book size"
-          input={
-            <Select
-              aria-label="Book size"
-              value={settings.size}
-              data={rulebookSizeCatalogue.map(({ id, label, widthMm, heightMm }) => {
-                const supported = layoutIds.every((layoutId) => isRulebookLayoutSupported(layoutId, id));
-                return {
-                  value: id,
-                  label: `${label} (${widthMm} × ${heightMm} mm)${supported ? '' : ' (Page layouts do not fit)'}`,
-                  disabled: !supported,
-                };
-              })}
-              onChange={(size) => {
-                const parsed = rulebookSettingsSchema.safeParse({ ...settings, size });
-                if (parsed.success) {
-                  onChange(parsed.data);
-                }
+    <IconAction
+      label="Book settings"
+      emphasis="standard"
+      intent="neutral"
+      size="lg"
+      icon={<Settings size={17} aria-hidden />}
+      pressed={opened}
+      aria-haspopup="dialog"
+      aria-expanded={opened}
+      aria-controls={dropdownId}
+      onClick={(event) => {
+        onToggle(event.currentTarget);
+        dismissOverflow?.();
+      }}
+    />
+  );
+}
+
+function bookSettingsReturnTarget(toolbar: HTMLDivElement | null, trigger: HTMLButtonElement) {
+  return trigger.closest('[role="group"][aria-label="More actions"]')
+    ? (toolbar?.querySelector<HTMLButtonElement>('[aria-label="More actions"]') ?? trigger)
+    : trigger;
+}
+
+function RulebookSettingsPopover({
+  children,
+  ...editor
+}: RulebookSettingsEditorProps & { children: (action: ReactNode) => ReactNode }) {
+  const [opened, setOpened] = useState(false);
+  const dropdownId = useId();
+  const toolbarRef = useRef<HTMLDivElement>(null);
+  const returnTarget = useRef<HTMLButtonElement | null>(null);
+  const restoreFocus = () => {
+    requestAnimationFrame(() => {
+      const target = returnTarget.current;
+      (target?.isConnected
+        ? target
+        : toolbarRef.current?.querySelector<HTMLButtonElement>('[aria-label="More actions"]')
+      )?.focus();
+    });
+  };
+  return (
+    <Popover
+      opened={opened}
+      onChange={setOpened}
+      position="bottom-end"
+      width={320}
+      styles={{ dropdown: { maxWidth: 'calc(100vw - 16px)' } }}
+      shadow="md"
+      withRoles={false}
+      trapFocus
+      returnFocus={false}
+      closeOnEscape={false}
+    >
+      <Popover.Target>
+        <div
+          ref={toolbarRef}
+          onClickCapture={(event) => {
+            const button = event.target instanceof Element ? event.target.closest('button') : null;
+            if (button && button.getAttribute('aria-label') !== 'Book settings') {
+              setOpened(false);
+            }
+          }}
+        >
+          {children(
+            <RulebookSettingsAction
+              opened={opened}
+              dropdownId={dropdownId}
+              onToggle={(trigger) => {
+                returnTarget.current = bookSettingsReturnTarget(toolbarRef.current, trigger);
+                setOpened((current) => !current);
               }}
             />
+          )}
+        </div>
+      </Popover.Target>
+      <Popover.Dropdown
+        id={dropdownId}
+        role="dialog"
+        aria-label="Book settings"
+        onKeyDownCapture={(event) => {
+          if (event.key === 'Escape') {
+            event.stopPropagation();
+            setOpened(false);
+            restoreFocus();
           }
-        />
-        <ControlBlock
-          title="Book design"
-          input={
-            <Select
-              aria-label="Book design"
-              value={settings.design}
-              data={rulebookDesignCatalogue.map(({ id, label }) => ({ value: id, label }))}
-              onChange={(design) => {
-                const parsed = rulebookSettingsSchema.safeParse({ ...settings, design });
-                if (parsed.success) {
-                  onChange(parsed.data);
-                }
-              }}
-            />
+        }}
+      >
+        <RulebookSettingsEditor {...editor} />
+      </Popover.Dropdown>
+    </Popover>
+  );
+}
+
+function RulebookSettingsEditor({ settings, layoutIds, onChange }: RulebookSettingsEditorProps) {
+  return (
+    <Stack gap="md">
+      <Radio.Group
+        label="Book size"
+        value={settings.size}
+        onChange={(size) => {
+          const parsed = rulebookSettingsSchema.safeParse({ ...settings, size });
+          if (parsed.success) {
+            onChange(parsed.data);
           }
-        />
-      </Group>
-      {conflict ? (
-        <Alert color="red" title="Book settings changed in another editor">
-          <Stack gap="sm">
-            <Text>Choose which size and design to save. Your Contents changes stay in the draft.</Text>
-            <Group>
-              <Button onClick={() => onResolve('local')}>Keep my settings</Button>
-              <Button onClick={() => onResolve('saved')}>Use saved settings</Button>
-            </Group>
-          </Stack>
-        </Alert>
-      ) : null}
-    </>
+        }}
+      >
+        <Stack gap="xs" pt="xs">
+          {rulebookSizeCatalogue.map(({ id, label, widthMm, heightMm }) => {
+            const supported = layoutIds.every((layoutId) => isRulebookLayoutSupported(layoutId, id));
+            return (
+              <Radio
+                key={id}
+                value={id}
+                label={`${label} (${widthMm} × ${heightMm} mm)`}
+                description={supported ? undefined : 'Page layouts do not fit'}
+                disabled={!supported}
+              />
+            );
+          })}
+        </Stack>
+      </Radio.Group>
+      <Radio.Group
+        label="Book design"
+        value={settings.design}
+        onChange={(design) => {
+          const parsed = rulebookSettingsSchema.safeParse({ ...settings, design });
+          if (parsed.success) {
+            onChange(parsed.data);
+          }
+        }}
+      >
+        <Stack gap="xs" pt="xs">
+          {rulebookDesignCatalogue.map(({ id, label }) => (
+            <Radio key={id} value={id} label={label} />
+          ))}
+        </Stack>
+      </Radio.Group>
+    </Stack>
   );
 }
 
@@ -2810,7 +3103,8 @@ function RulebookEditorSession({
   );
   const [view, sendView] = useReducer(editorViewReducer, {
     result: manager.result,
-    fit: 'height',
+    thumbnailGeneration: 0,
+    fit: 'width',
     reviewing: false,
     renaming: false,
     notice: null,
@@ -2836,7 +3130,7 @@ function RulebookEditorSession({
   });
   const dispatch: RulebookEditorStateManager['dispatch'] = (action) => {
     const next = manager.dispatch(action);
-    sendView({ kind: 'result', result: next });
+    sendView({ kind: 'result', result: next, refreshThumbnails: action.kind === 'discard-draft' });
     return next;
   };
 
@@ -3013,94 +3307,109 @@ function RulebookEditorSession({
               return { name: data.rulebook.name, draft };
             },
           }}
-          onLoaded={(draft) => dispatch({ kind: 'replace-draft', draft: draft.contents, settings: draft.settings })}
+          onLoaded={(draft) =>
+            sendView({
+              kind: 'result',
+              refreshThumbnails: true,
+              result: manager.dispatch({ kind: 'replace-draft', draft: draft.contents, settings: draft.settings }),
+            })
+          }
         >
           {(loadAction) => (
-            <Toolbar>
-              <Toolbar.Left label="Navigation">
-                <IconAction
-                  label="Back to ruleset"
-                  emphasis="standard"
-                  intent="neutral"
-                  size="lg"
-                  icon={<ArrowLeft size={17} aria-hidden />}
-                  renderRoot={(props) => <Link {...props} to="/rulesets/$rulesetSlug" params={{ rulesetSlug }} />}
-                />
-              </Toolbar.Left>
-              <Toolbar.Right label="Editing actions">
-                <Toolbar.Cluster kind="about">
-                  <StatusInfo label="Rulebook status" statuses={statuses} />
-                </Toolbar.Cluster>
-                <Toolbar.Cluster kind="content">
-                  {loadAction}
-                  <IconAction
-                    label="Reset unsaved edits"
-                    intent="negative"
-                    emphasis="standard"
-                    size="lg"
-                    disabled={!hasLocalChanges || result.isSaving || needsReview}
-                    icon={<Undo2 size={17} aria-hidden />}
-                    onClick={() => dispatch({ kind: 'discard-draft' })}
-                  />
-                  {data.canRename ? (
+            <RulebookSettingsPopover
+              settings={result.settings}
+              layoutIds={result.draft.pageOrder.map((id) => result.draft.pagesById[id]!.layoutId)}
+              onChange={(settings) => dispatch({ kind: 'replace-settings', settings })}
+            >
+              {(settingsAction) => (
+                <Toolbar>
+                  <Toolbar.Left label="Navigation">
                     <IconAction
-                      label="Rename Rulebook"
-                      tooltip={`Rename ${data.rulebook.name}`}
-                      intent="neutral"
+                      label="Back to ruleset"
                       emphasis="standard"
+                      intent="neutral"
                       size="lg"
-                      disabledReason={
-                        hasLocalChanges || needsReview || result.isSaving
-                          ? 'Save your changes before renaming this Rulebook.'
-                          : undefined
-                      }
-                      icon={<TextCursorInput size={17} aria-hidden />}
-                      onClick={() => sendView({ kind: 'rename', open: !view.renaming })}
+                      icon={<ArrowLeft size={17} aria-hidden />}
+                      renderRoot={(props) => <Link {...props} to="/rulesets/$rulesetSlug" params={{ rulesetSlug }} />}
                     />
-                  ) : null}
-                  <IconAction
-                    label={`Fit ${fit === 'height' ? 'width' : 'height'}`}
-                    intent="neutral"
-                    emphasis="standard"
-                    size="lg"
-                    icon={
-                      fit === 'height' ? (
-                        <MoveHorizontal size={17} aria-hidden />
-                      ) : (
-                        <MoveVertical size={17} aria-hidden />
-                      )
-                    }
-                    onClick={() => sendView({ kind: 'fit' })}
-                  />
-                </Toolbar.Cluster>
-                <Toolbar.Cluster kind="commit">
-                  {/* Held like a deletion, because an Edition is as permanent, and violet, because it is not a second Save (Norbert, 2026-09-29). */}
-                  <ConfirmPublishAction
-                    label={`Publish Edition ${nextEditionNumber}`}
-                    pending={publishMutation.isPending}
-                    disabledReason={publishBlocker}
-                    onConfirm={() => void publish()}
-                  />
-                  {/* Save last, as on every editor. Its name and glyph carry the draft's state, since there are no words beside it. */}
-                  <SaveAction
-                    label={saveLabel}
-                    state={
-                      result.isSaving
-                        ? 'saving'
-                        : hasLocalChanges || needsReview
-                          ? 'dirty'
-                          : view.notice === 'saved'
-                            ? 'saved'
-                            : 'clean'
-                    }
-                    lines={saveLines}
-                    disabled={!needsReview && !result.canSave}
-                    icon={needsReview ? <GitCompareArrows size={17} aria-hidden /> : undefined}
-                    onSave={() => (needsReview ? sendView({ kind: 'review', open: true }) : void save())}
-                  />
-                </Toolbar.Cluster>
-              </Toolbar.Right>
-            </Toolbar>
+                  </Toolbar.Left>
+                  <Toolbar.Right label="Editing actions">
+                    <Toolbar.Cluster kind="about">
+                      <StatusInfo label="Rulebook status" statuses={statuses} />
+                    </Toolbar.Cluster>
+                    <Toolbar.Cluster kind="content">
+                      {settingsAction}
+                      {loadAction}
+                      <IconAction
+                        label="Reset unsaved edits"
+                        intent="negative"
+                        emphasis="standard"
+                        size="lg"
+                        disabled={!hasLocalChanges || result.isSaving || needsReview}
+                        icon={<Undo2 size={17} aria-hidden />}
+                        onClick={() => dispatch({ kind: 'discard-draft' })}
+                      />
+                      {data.canRename ? (
+                        <IconAction
+                          label="Rename Rulebook"
+                          tooltip={`Rename ${data.rulebook.name}`}
+                          intent="neutral"
+                          emphasis="standard"
+                          size="lg"
+                          disabledReason={
+                            hasLocalChanges || needsReview || result.isSaving
+                              ? 'Save your changes before renaming this Rulebook.'
+                              : undefined
+                          }
+                          icon={<TextCursorInput size={17} aria-hidden />}
+                          onClick={() => sendView({ kind: 'rename', open: !view.renaming })}
+                        />
+                      ) : null}
+                      <IconAction
+                        label={`Fit ${fit === 'height' ? 'width' : 'height'}`}
+                        intent="neutral"
+                        emphasis="standard"
+                        size="lg"
+                        icon={
+                          fit === 'height' ? (
+                            <MoveHorizontal size={17} aria-hidden />
+                          ) : (
+                            <MoveVertical size={17} aria-hidden />
+                          )
+                        }
+                        onClick={() => sendView({ kind: 'fit' })}
+                      />
+                    </Toolbar.Cluster>
+                    <Toolbar.Cluster kind="commit">
+                      {/* Held like a deletion, because an Edition is as permanent, and violet, because it is not a second Save (Norbert, 2026-09-29). */}
+                      <ConfirmPublishAction
+                        label={`Publish Edition ${nextEditionNumber}`}
+                        pending={publishMutation.isPending}
+                        disabledReason={publishBlocker}
+                        onConfirm={() => void publish()}
+                      />
+                      {/* Save last, as on every editor. Its name and glyph carry the draft's state, since there are no words beside it. */}
+                      <SaveAction
+                        label={saveLabel}
+                        state={
+                          result.isSaving
+                            ? 'saving'
+                            : hasLocalChanges || needsReview
+                              ? 'dirty'
+                              : view.notice === 'saved'
+                                ? 'saved'
+                                : 'clean'
+                        }
+                        lines={saveLines}
+                        disabled={!needsReview && !result.canSave}
+                        icon={needsReview ? <GitCompareArrows size={17} aria-hidden /> : undefined}
+                        onSave={() => (needsReview ? sendView({ kind: 'review', open: true }) : void save())}
+                      />
+                    </Toolbar.Cluster>
+                  </Toolbar.Right>
+                </Toolbar>
+              )}
+            </RulebookSettingsPopover>
           )}
         </LoadExisting>
       </PageLayout.Toolbar>
@@ -3115,13 +3424,21 @@ function RulebookEditorSession({
               />
             </Surface>
           ) : null}
-          <RulebookSettingsEditor
-            settings={result.settings}
-            layoutIds={result.draft.pageOrder.map((id) => result.draft.pagesById[id]!.layoutId)}
-            conflict={result.settingsConflict}
-            onChange={(settings) => dispatch({ kind: 'replace-settings', settings })}
-            onResolve={(choice) => dispatch({ kind: 'resolve-settings', choice })}
-          />
+          {result.settingsConflict ? (
+            <Alert color="red" title="Book settings changed in another editor">
+              <Stack gap="sm">
+                <Text>Choose which size and design to save. Your Contents changes stay in the draft.</Text>
+                <Group>
+                  <Button onClick={() => dispatch({ kind: 'resolve-settings', choice: 'local' })}>
+                    Keep my settings
+                  </Button>
+                  <Button onClick={() => dispatch({ kind: 'resolve-settings', choice: 'saved' })}>
+                    Use saved settings
+                  </Button>
+                </Group>
+              </Stack>
+            </Alert>
+          ) : null}
           {result.operationError ? <Alert color="red">{result.operationError}</Alert> : null}
           {publishMutation.error ? (
             <Alert color="red" role="alert" title="Edition could not be published">
@@ -3163,6 +3480,7 @@ function RulebookEditorSession({
               factionsById={data.factionsById}
               onClippingChange={receiveClippingReport}
               onSettle={header.settle}
+              thumbnailGeneration={view.thumbnailGeneration}
             />
           </section>
         </Stack>

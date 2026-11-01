@@ -671,7 +671,7 @@ function pageLayoutMemory(contents: RulebookContentsDraftV1): ReadyState['knownP
 }
 
 function rememberPageLayouts(state: ReadyState, contents: RulebookContentsDraftV1): void {
-  Object.assign(state.knownPageLayouts, pageLayoutMemory(contents));
+  state.knownPageLayouts = { ...state.knownPageLayouts, ...pageLayoutMemory(contents) };
 }
 
 function immutableLayoutError(
@@ -737,6 +737,20 @@ type Reconciliation = {
 };
 
 const clone = <Value>(value: Value): Value => structuredClone(value);
+
+const publishedObjects = new WeakSet<object>();
+
+/* Published values cannot be mutated by callers, and an unchanged subtree only needs freezing once. */
+function publish<Value>(value: Value): Value {
+  if (value !== null && typeof value === 'object' && !publishedObjects.has(value)) {
+    for (const child of Object.values(value)) {
+      publish(child);
+    }
+    Object.freeze(value);
+    publishedObjects.add(value);
+  }
+  return value;
+}
 
 /*
  * A keystroke changes one string, and every other string in the draft is normalised again on the same dispatch.
@@ -2172,6 +2186,17 @@ function placementDiff(
   target: RulebookContentsDraftV1,
   excluded: ReadonlySet<string>
 ): RulebookPlaceIntent[] {
+  const containers = allContainers(source);
+  if (
+    containers.length === allContainers(target).length &&
+    containers.every((container) => {
+      const before = getOrder(source, container)!;
+      const after = getOrder(target, container);
+      return after && before.length === after.length && before.every((id, index) => id === after[index]);
+    })
+  ) {
+    return [];
+  }
   const placements: RulebookPlaceIntent[] = [];
   const commonRefs = allEntityRefs(target).filter(
     (ref) => entityExists(source, ref) && !excluded.has(entityRefKey(ref))
@@ -2180,7 +2205,7 @@ function placementDiff(
   const targetPlacements = placementIndex(target);
   const retainedByContainer = new Map<string, Set<string>>();
 
-  for (const container of allContainers(source)) {
+  for (const container of containers) {
     const sourceOrder = (getOrder(source, container) ?? []).filter((id) => {
       const ref = targetForContainer(container, id);
       const targetPlacement = targetPlacements.get(entityRefKey(ref));
@@ -2188,7 +2213,10 @@ function placementDiff(
     });
     const sourceIds = new Set(sourceOrder);
     const targetOrder = (getOrder(target, container) ?? []).filter((id) => sourceIds.has(id));
-    retainedByContainer.set(containerKey(container), new Set(longestCommonSubsequence(sourceOrder, targetOrder)));
+    const retained = sourceOrder.every((id, index) => id === targetOrder[index])
+      ? sourceOrder
+      : longestCommonSubsequence(sourceOrder, targetOrder);
+    retainedByContainer.set(containerKey(container), new Set(retained));
   }
 
   for (const ref of commonRefs) {
@@ -2253,9 +2281,20 @@ function diffContents(
     }));
   deletes.push(...reviewedDeletions.map((deletion) => clone(deletion)));
 
-  const sourceFields = new Map(fieldRecords(source).map((record) => [fieldKey(record), record]));
+  const changedPageIds = new Set(
+    Object.keys(target.pagesById).filter((id) => {
+      const before = source.pagesById[id];
+      const after = target.pagesById[id]!;
+      return !before || (before !== after && pageFingerprint(before) !== pageFingerprint(after));
+    })
+  );
+  const changedPages = (contents: RulebookContentsDraftV1): RulebookContentsDraftV1 => ({
+    ...contents,
+    pagesById: Object.fromEntries(Object.entries(contents.pagesById).filter(([id]) => changedPageIds.has(id))),
+  });
+  const sourceFields = new Map(fieldRecords(changedPages(source)).map((record) => [fieldKey(record), record]));
   const sets: RulebookSetIntent[] = [];
-  for (const record of fieldRecords(target)) {
+  for (const record of fieldRecords(changedPages(target))) {
     if (!sourceKeys.has(entityRefKey(record.target)) || restoredKeys.has(entityRefKey(record.target))) {
       continue;
     }
@@ -2392,7 +2431,7 @@ function textDiagnostics(
 }
 
 /*
- * A Page object is never mutated after it is validated, and `keepUnchangedPages` hands an unchanged Page back as the same object.
+ * A Page object is never mutated after it is validated, and `copyChangedPages` hands an unchanged Page back as the same object.
  * So a keystroke proves the Page it touched and reads the proof of every other.
  */
 const pageValidations = new WeakMap<RulebookPageDraft, PageValidation>();
@@ -3421,32 +3460,32 @@ function readyResult(state: ReadyState, reconciliation: Reconciliation = reconci
     !sameSettings(state.latest.settings, state.settingsBaseline) &&
     !sameSettings(state.settings, state.latest.settings);
   const canSave = Boolean(saveCandidate && hasChanges && !settingsConflict && !state.isSaving);
-  return {
+  return publish({
     status: 'ready',
-    settings: clone(state.settings),
+    settings: state.settings,
     settingsConflict,
     hasLocalChanges: hasChanges,
-    draft: clone(state.draft),
-    comparisonDraft: clone(reconciliation.comparisonDraft),
-    latest: clone(state.latest),
-    diagnostics: clone(validation.diagnostics),
-    saveCandidate: saveCandidate === undefined ? undefined : clone(saveCandidate),
-    incompatibilities: clone(reconciliation.incompatibilities),
-    resolutionLedger: clone(reconciliation.validLedger),
-    rebasedPatch: clone(state.patch),
+    draft: state.draft,
+    comparisonDraft: reconciliation.comparisonDraft,
+    latest: state.latest,
+    diagnostics: validation.diagnostics,
+    saveCandidate,
+    incompatibilities: reconciliation.incompatibilities,
+    resolutionLedger: reconciliation.validLedger,
+    rebasedPatch: state.patch,
     canSave,
     isSaving: state.isSaving,
     saveRequest: state.saveInFlight
       ? {
           expectedRevision: state.saveInFlight.revision,
-          contents: clone(state.saveInFlight.contents),
-          settings: clone(state.saveInFlight.settings),
+          contents: state.saveInFlight.contents,
+          settings: state.saveInFlight.settings,
         }
       : canSave && saveCandidate
-        ? { expectedRevision: state.latest.revision, contents: clone(saveCandidate), settings: clone(state.settings) }
+        ? { expectedRevision: state.latest.revision, contents: saveCandidate, settings: state.settings }
         : undefined,
     operationError: state.operationError,
-  };
+  });
 }
 
 const pageFingerprints = new WeakMap<RulebookPageDraft, string>();
@@ -3462,17 +3501,21 @@ function pageFingerprint(page: RulebookPageDraft): string {
 }
 
 /*
- * A replaced draft arrives as fresh objects, one keystroke's change among Pages that read as before.
- * A Page that reads as the one the state holds keeps the state's object, so what was proven of that object still applies.
+ * Field edits reuse published Pages; imports may supply fresh objects for the same content.
+ * Both retain the state's unchanged Pages, while changed inputs are copied before the manager owns them.
  */
-function keepUnchangedPages(previous: RulebookContentsDraftV1, next: RulebookContentsDraftV1): RulebookContentsDraftV1 {
+function copyChangedPages(previous: RulebookContentsDraftV1, next: RulebookContentsDraftV1): RulebookContentsDraftV1 {
+  const copied = clone({ ...next, pagesById: {} }) as RulebookContentsDraftV1;
   for (const [pageId, page] of Object.entries(next.pagesById)) {
     const known = previous.pagesById[pageId];
-    if (known && pageFingerprint(known) === pageFingerprint(page)) {
-      next.pagesById[pageId] = known;
+    if (known === page) {
+      copied.pagesById[pageId] = known;
+      continue;
     }
+    const owned = clone(page);
+    copied.pagesById[pageId] = known && pageFingerprint(known) === pageFingerprint(owned) ? known : owned;
   }
-  return next;
+  return copied;
 }
 
 /*
@@ -3663,8 +3706,7 @@ function dispatchReady(
       throw new Error(layoutIssue);
     }
   }
-  const nextDraft =
-    action.kind === 'replace-draft' ? keepUnchangedPages(state.draft, clone(action.draft)) : clone(state.draft);
+  const nextDraft = action.kind === 'replace-draft' ? copyChangedPages(state.draft, action.draft) : clone(state.draft);
   if (action.kind === 'create') {
     const target = addEntityData(nextDraft, action.entity);
     const failures = applyPlacementBatch(nextDraft, [{ target, destination: action.placement }]);
@@ -3718,20 +3760,6 @@ function unsupportedManager(unsupported: { received: unknown; message: string })
   };
 }
 
-function restoreReadyState(target: ReadyState, source: ReadyState): void {
-  target.settings = clone(source.settings);
-  target.settingsBaseline = clone(source.settingsBaseline);
-  target.baseline = clone(source.baseline);
-  target.latest = clone(source.latest);
-  target.draft = clone(source.draft);
-  target.patch = clone(source.patch);
-  target.ledger = clone(source.ledger);
-  target.knownPageLayouts = clone(source.knownPageLayouts);
-  target.isSaving = source.isSaving;
-  target.saveInFlight = clone(source.saveInFlight);
-  target.operationError = source.operationError;
-}
-
 function operationErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'The Rulebook edit could not be applied.';
 }
@@ -3756,11 +3784,9 @@ function failedReadyResult(state: ReadyState): RulebookEditorReadyResult {
 }
 
 function safeReadyResult(state: ReadyState): RulebookEditorReadyResult {
-  const before = clone(state);
   try {
     return readyResult(state);
   } catch (error) {
-    restoreReadyState(state, before);
     state.operationError = operationErrorMessage(error);
     return failedReadyResult(state);
   }
@@ -3792,7 +3818,7 @@ export function createRulebookEditorStateManager(saved: SavedRulebookRevision): 
 
   const settings = rulebookSettingsSchema.parse(saved.settings ?? DEFAULT_RULEBOOK_SETTINGS);
   const baseline = { revision: saved.revision, contents: contents.data, settings };
-  const core: ReadyState = {
+  let core: ReadyState = {
     settings: clone(settings),
     settingsBaseline: clone(settings),
     baseline,
@@ -3844,14 +3870,16 @@ export function createRulebookEditorStateManager(saved: SavedRulebookRevision): 
           ),
         };
       }
-      const before = clone(core);
+      /* State operations replace top-level values and mutate only working copies, so failure can discard the candidate. */
+      const candidate = { ...core };
       try {
-        const reconciliation = dispatchReady(core, action, authoritativeRevision);
-        cachedResult = readyResult(core, reconciliation);
+        const reconciliation = dispatchReady(candidate, action, authoritativeRevision);
+        const result = readyResult(candidate, reconciliation);
+        core = candidate;
+        cachedResult = result;
         return cachedResult;
       } catch (error) {
-        restoreReadyState(core, before);
-        core.operationError = operationErrorMessage(error);
+        core = { ...core, operationError: operationErrorMessage(error) };
         cachedResult = safeReadyResult(core);
         return cachedResult;
       }
