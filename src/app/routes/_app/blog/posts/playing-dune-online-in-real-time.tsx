@@ -18,12 +18,9 @@ export default function Post() {
     <>
       <Lead>
         Most of what makes the dune.zone game table feel live is invisible when it works. You see another player&rsquo;s
-        hand drift across the board. You see them lift a troop and set it down in Arrakeen. Your cards stay yours, and
-        theirs stay theirs.
+        hand drift across the board. You see them lift a troop and set it down in Arrakeen. Your cards stay yours.
       </Lead>
-      <Paragraph>
-        This post opens up what happens in between, with a few small demos you can play with along the way.
-      </Paragraph>
+      <Paragraph>Here is what happens in between.</Paragraph>
       <Figure
         imageKey={meta.cover.key}
         alt={meta.cover.alt}
@@ -67,9 +64,8 @@ function HandsSection() {
   return (
     <Section title="The hands you see moving">
       <Paragraph>
-        The first thing people notice is the hands. Every player&rsquo;s pointer shows up on the table as a hand in
-        their colour, with their picture below it. It&rsquo;s a small thing, but it makes the table feel shared. You can
-        see someone hovering over the Treachery deck, or pointing at the territory they&rsquo;re about to ship into.
+        Every player&rsquo;s pointer shows up on the table as a hand in their colour, with their picture below it. You
+        can see someone hovering over the Treachery deck, or pointing at the territory they&rsquo;re about to ship into.
       </Paragraph>
       <Paragraph>
         Your browser sends where your pointer is on the table, at most twenty times a second. The room gathers what
@@ -93,12 +89,12 @@ function CarrySection() {
   return (
     <Section title="Picking up a piece">
       <Paragraph>
-        Moving a piece is where it gets more interesting, because two people can reach for the same troop at the same
-        moment. On a real table your hands would bump. Online, the room has to decide.
+        Two people can reach for the same troop at the same moment. On a real table your hands would bump. Online, the
+        room has to decide.
       </Paragraph>
       <Paragraph>
         When you press on a piece, your browser asks the room to start a carry. The room reserves that piece for you. If
-        someone else grabs it a moment later, they get a polite &ldquo;Another player is carrying that piece.&rdquo;
+        someone else grabs it a moment later, they get the message &ldquo;Another player is carrying that piece.&rdquo;
         While you carry it, your browser sends its position just like your pointer, and everyone sees the piece travel
         in your hand. Nothing is saved yet. Only when you let go does your browser send a drop. The room checks it,
         saves the new position, and then tells everyone where the piece landed.
@@ -107,10 +103,9 @@ function CarrySection() {
         <CarryRace />
       </WideFigure>
       <Paragraph>
-        A few details make this feel like a real table. Drag a stack straight away and you take the top piece; hold it
-        for a third of a second and you lift the whole stack. You can turn a card over while it&rsquo;s in your hand,
-        and everyone sees it flip. And if your connection drops while you&rsquo;re holding something, the piece goes
-        back to where it was last saved. A move only counts once the room has it.
+        Drag a stack straight away and you take the top piece; hold it for a third of a second and you lift the whole
+        stack. You can turn a card over while it&rsquo;s in your hand, and everyone sees it flip. If your connection
+        drops while you&rsquo;re holding something, the piece goes back to where it was last saved.
       </Paragraph>
     </Section>
   );
@@ -162,8 +157,8 @@ function SecretsSection() {
         <SeatLens />
       </WideFigure>
       <Paragraph>
-        Hiding the face isn&rsquo;t quite enough on its own. If a card kept the same name on the wire, you could follow
-        it: that&rsquo;s the card Harkonnen drew, and now it&rsquo;s on top of the discard pile. So every card gets a
+        Hiding the face isn&rsquo;t enough on its own. If a card kept the same name on the wire, you could follow it:
+        that&rsquo;s the card Harkonnen drew, and now it&rsquo;s on top of the discard pile. So every card gets a
         scrambled name for each game, and shuffling a deck gives all of its cards new ones. Peeking works the same way.
         When you look at the top card of a deck, only you get its face, and everyone else sees that you peeked. Battle
         plans stay in the room until the reveal, and a card you put in a plan keeps counting in your hand until then, so
@@ -179,7 +174,7 @@ function HistorySection() {
       <Paragraph>
         The game table started life as its own project, Dune Play, next to dune.zone. Early plans kept the table in the
         same database as the rest of the site. Dune Play&rsquo;s design then settled on one Durable Object per game, and
-        that choice is still the backbone today.
+        that is still how it works today.
       </Paragraph>
       <Paragraph>
         In September the table moved into dune.zone, and from there it grew one piece at a time: first a shared table,
@@ -207,11 +202,11 @@ function OtherTablesSection() {
       </Paragraph>
       <Paragraph>
         In Tabletop Simulator, the host&rsquo;s computer runs the table, physics and all, and everyone else follows
-        along. Cards in your hand zone are hidden from the other seats. It&rsquo;s wonderfully flexible: anything you
-        can put on a table, you can play with.
+        along. Cards in your hand zone are hidden from the other seats. Anything you can put on a table, you can play
+        with.
       </Paragraph>
       <Paragraph>
-        Treachery.Online takes a clever route of its own. As its{' '}
+        In Treachery.Online, as its{' '}
         <Anchor href="https://github.com/ronaldossendrijver/treachery.online">README</Anchor> describes, every browser
         runs the whole game, rules included. When you act, the server checks your move against its own copy of the game
         and passes it on to everyone, and every copy plays it out the same way. Because the rules run everywhere, the
@@ -234,9 +229,8 @@ function ClosingSection() {
   return (
     <Section title="Pull up a chair">
       <Paragraph>
-        That&rsquo;s the whole trip: a hand that glides, a piece that is yours while you hold it, small numbered updates
-        and a separate copy of the table for every seat. Thanks for the question that started this post. If
-        there&rsquo;s something else you&rsquo;d like me to write about, let me know.
+        Thanks for the question that started this post. If there&rsquo;s something else you&rsquo;d like me to write
+        about, let me know.
       </Paragraph>
       <WideFigure caption="Hands around the table.">
         <TableOfHands />
