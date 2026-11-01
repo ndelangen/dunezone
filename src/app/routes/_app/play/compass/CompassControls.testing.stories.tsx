@@ -83,10 +83,13 @@ export const SearchOpensFactionInfo = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await chatBar(canvasElement);
     await userEvent.keyboard('[Space>]atreides[/Space]');
-    await expect(page.getByRole('textbox', { name: 'Search controls' })).toHaveValue('atreides');
-    const first = page.getAllByRole('option')[0]!;
-    await expect(first).toHaveTextContent(/Atreides/);
-    await expect(first).toHaveTextContent(/Faction info/);
+    /* The search answers on a render after the keys, so its line is awaited before Enter picks it. */
+    await waitFor(async () => {
+      await expect(page.getByRole('textbox', { name: 'Search controls' })).toHaveValue('atreides');
+      const first = page.getAllByRole('option')[0];
+      await expect(first).toHaveTextContent(/Atreides/);
+      await expect(first).toHaveTextContent(/Faction info/);
+    });
     await userEvent.keyboard('{Enter}');
     await waitFor(async () => {
       const header = canvasElement.ownerDocument.querySelector('[data-faction-info-seat]');
