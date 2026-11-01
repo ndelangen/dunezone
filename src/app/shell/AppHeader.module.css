@@ -110,11 +110,11 @@
   /*
    * A compact band on a narrow screen grows with the header it carries, so a page whose title runs to several lines
    * (a blog post's does) never climbs over the navigation strip above it or spills onto the page below.
-   * The band has no content height of its own (it is a size container), so the row takes the header's and the band stretches to it.
+   * The band has no content height of its own (it is a size container), so the row takes the header's, which keeps the 220px floor, and the band fills the row.
+   * A percentage, not `auto` with a minimum: when a minimum decides a size container's height, Chromium resolves `cqh` to zero and the artwork no longer covers the band.
    */
   .frame:has([data-page-layout-header-size="compact"]) .band {
-    height: auto;
-    min-height: 220px;
+    height: 100%;
   }
 }
 

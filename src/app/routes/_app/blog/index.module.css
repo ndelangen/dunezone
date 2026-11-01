@@ -55,7 +55,7 @@
   }
 }
 
-/* On a phone a post's name takes three lines or so rather than six. */
+/* On a phone a post's name takes fewer lines, at a size the band's own title steps down to. */
 @container (width < 30rem) {
   .entry h2 {
     font-size: 1.75rem;
