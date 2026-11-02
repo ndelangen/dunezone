@@ -3,6 +3,9 @@ import { describe, expect, test, vi } from 'vite-plus/test';
 
 import { db, enterSandbox } from './index';
 
+/* `@db/core` builds its client as it loads, from the deployment address, which a unit test has none of. */
+vi.hoisted(() => vi.stubEnv('VITE_CONVEX_URL', 'https://unit-test.convex.cloud'));
+
 const page = makeFunctionReference<'query', { slug: string }>('factions:pageBySlug');
 const save = makeFunctionReference<'mutation', { slug: string }>('factions:save');
 
