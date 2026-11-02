@@ -79,8 +79,11 @@ export function SandboxApp({
 }>) {
   const outer = useRouter();
   const [running, setRunning] = useState<Running | null>(null);
+  /* One sandbox per mount, from the props it mounted with: the page keys this component to start another. */
+  const [start] = useState(() => ({ database, identity, path, onReady }));
 
   useEffect(() => {
+    const { database, identity, path, onReady } = start;
     let cancelled = false;
     let leave = () => undefined as void;
     let backend: ConvexStorybookWorkerClient | null = null;
@@ -136,9 +139,7 @@ export function SandboxApp({
       void client?.close();
       backend?.terminate();
     };
-    /* One sandbox per mount: the page keys this component to start another. */
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [start, outer]);
 
   if (!running) {
     return loading;
