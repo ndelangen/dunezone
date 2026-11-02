@@ -18,7 +18,7 @@ const meta = preview.meta({
 
 /*
  * Mid-play, with seats 4 and 5 allied: seat 1 holds two tech tokens, the viewer one and seat 4 one.
- * Each faction holding any gets a row in a block of its own under the alliances: its token, then its gears.
+ * Each faction holding any gets a pill, its token then its gears, in a row of their own under the alliances.
  * Hover a gear for its name and what it does; hold Alt over it to see it larger.
  */
 export const HeldUnderTheAlliances = meta.story({
