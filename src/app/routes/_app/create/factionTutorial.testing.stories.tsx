@@ -36,9 +36,14 @@ export const WalkThrough = meta.story({
     const current = () => document.querySelector('[data-state="current"]')?.textContent ?? '';
     const next = (title: string) => waitForFrame(() => expect(current()).toContain(title), { timeout: 20_000 });
     const tab = (name: string) => userEvent.click(page.getByRole('tab', { name: new RegExp(`^${name}`) }));
-    /* A text task moves on once the learner pauses, with the cursor still in the box. */
+    /*
+     * A text task moves on once the learner pauses or leaves the box; the walk leaves it, so it does not wait out every
+     * pause. The pauses themselves are covered by factionTutorialTasks.test.ts.
+     */
     const write = async (name: string, text: string) => {
-      await retype((await page.findAllByRole('textbox', { name }))[0]!, text);
+      const box = (await page.findAllByRole('textbox', { name }))[0]!;
+      await retype(box, text);
+      box.blur();
     };
     /* A picker counts once it closes on the option searched for; opening it and searching is not a pick. */
     const pick = async (selector: string, option: string, stillOpen?: () => unknown) => {
