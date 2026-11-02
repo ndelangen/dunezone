@@ -55,11 +55,11 @@
   content: "";
 }
 
-.tile[data-built]:hover {
+.tile.built:hover {
   outline: 2px solid var(--color-brand);
 }
 
-.tile[data-built]:has(.open:focus-visible) {
+.tile.built:has(.open:focus-visible) {
   outline: 2px solid var(--color-brand);
   outline-offset: 2px;
 }

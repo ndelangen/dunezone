@@ -1,13 +1,13 @@
 import { useEffect, useEffectEvent, useRef } from 'react';
 import type { Dispatch, RefObject, SetStateAction } from 'react';
 
-import { ARROWS, MOVES, WASD } from './compassSpots';
+import { ARROWS, MOVES } from './compassSpots';
 import type { Arrow, Spot } from './compassSpots';
 
 /*
  * The compass's keys. Space opens it; a tap leaves it open to steer with the arrows and confirm with Space or Enter,
- * a hold with the arrows opens what they point at when Space is let go. W, A, S and D are arrows too until something is
- * typed. Escape closes it, and anything else typed goes to the search. The table hears none of them.
+ * a hold with the arrows opens what they point at when Space is let go. Escape closes it, and any letter typed goes to
+ * the search. The table hears none of them.
  */
 
 export type CompassKeys = Readonly<{
@@ -160,18 +160,6 @@ function stepsSuggestions(keys: CompassKeys, arrow: Arrow) {
   return keys.spot === 'search' && (arrow === 'up' || arrow === 'down');
 }
 
-/*
- * The arrow a key steers with: an arrow key, or a bare W, A, S or D while Space is still held from opening the compass
- * and nothing is typed. A tapped-open compass gives the letters to the search, so "Shared" keeps its S.
- */
-function arrowOf(event: KeyboardEvent, query: string, holding: boolean): Arrow | undefined {
-  const arrow = ARROWS[event.key];
-  if (arrow || !holding || query !== '' || event.metaKey || event.ctrlKey || event.altKey) {
-    return arrow;
-  }
-  return WASD[event.key.toLowerCase()];
-}
-
 /* Safari may end composition before Enter arrives, keeping only its composing key code. */
 function composing(event: KeyboardEvent) {
   return event.isComposing || event.keyCode === 229;
@@ -230,7 +218,7 @@ export function useCompassKeys(keys: CompassKeys) {
       return;
     }
     event.stopPropagation();
-    const arrow = arrowOf(event, keys.query, hold.current.down);
+    const arrow = ARROWS[event.key];
     if (arrow) {
       steer(event, arrow);
     } else {

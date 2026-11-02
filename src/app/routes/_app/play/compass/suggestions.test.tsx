@@ -45,6 +45,7 @@ type Bidding = { raise: () => void; lower: (() => void) | null; pass: () => void
 
 const actions = (token: Token, close = () => {}, bidding: Bidding = null) => ({
   open: () => {},
+  players: [],
   nextPhase: null,
   token,
   commands: commandsOf({ token, bidding }),
@@ -153,4 +154,67 @@ test('Next phase is offered only while the table takes it', () => {
     candidatesOf([], { ...actions(null), nextPhase }).some((entry) => entry.key === 'cmd:next');
   expect(next(null)).toBe(false);
   expect(next(() => {})).toBe(true);
+});
+
+test('the search switches this viewer’s board skin and planet shading, ranked below everything else until typed for', () => {
+  const all = candidatesOf([], actions(null));
+  expect(rankSuggestions(all, 'fancy').map((entry) => entry.label)).toContain('Board skin: Fancy');
+  expect(rankSuggestions(all, 'skin').map((entry) => entry.label)).toEqual(
+    expect.arrayContaining(['Board skin: Fancy', 'Planet shading: on', 'Planet shading: off'])
+  );
+  expect(rankSuggestions(all, 'planet').map((entry) => entry.label)).toEqual([
+    'Planet shading: on',
+    'Planet shading: off',
+  ]);
+  /* They sit below every window and command, so they surface only once typed for. */
+  expect(all.filter((entry) => entry.key.startsWith('look:')).every((entry) => entry.weight < 0)).toBe(true);
+  expect(rankSuggestions(all, 'treachery')[0]?.label).toBe('Board skin: Treachery Online');
+});
+
+const player = (seat: string, name: string, factionName: string | null, own = false) => ({
+  seat,
+  name,
+  factionName,
+  token: null,
+  unread: 0,
+  own,
+  canConverse: !own,
+  attention: false,
+  ally: false,
+});
+
+test('"atreides" finds the Atreides faction information ahead of the chat with its player, and opens it on their seat', () => {
+  const players = [
+    player('seat-1', 'Dana', 'Harkonnen', true),
+    player('seat-2', 'Paul', 'Atreides'),
+    player('seat-3', 'Ada', 'Fremen'),
+  ];
+  const window = (key: string, label: string, extra = {}) =>
+    ({ key, label, group: 'Players', topic: 'factions', content: null, layout: 'stack', ...extra }) as const;
+  const windows = [window('player:seat-2', 'Paul', { player: players[1] }), window('faction-info', 'Faction info')];
+  const opened: string[] = [];
+  const all = candidatesOf(windows, {
+    ...actions(null),
+    players,
+    open: (key, seat) => opened.push(`${key}@${seat}`),
+  });
+  const found = rankSuggestions(all, 'atreides');
+  expect(found.map((entry) => `${entry.label} · ${entry.hint}`)).toEqual([
+    'Atreides · Faction info · Paul',
+    'Paul · Atreides',
+  ]);
+  found[0]!.run();
+  expect(opened).toEqual(['faction-info@seat-2']);
+  /* The viewer's own faction is found too, and "faction info" finds the window itself and every seat's. */
+  expect(rankSuggestions(all, 'harkonnen')[0]).toMatchObject({
+    label: 'Harkonnen',
+    hint: 'Faction info · You',
+  });
+  expect(rankSuggestions(all, 'faction info').map((entry) => entry.label)).toEqual(
+    expect.arrayContaining(['Faction info', 'Harkonnen', 'Atreides', 'Fremen'])
+  );
+  /* With nothing typed, the factions wait to be looked up. */
+  const suggested = rankSuggestions(all, '').map((entry) => entry.label);
+  expect(suggested).toContain('Paul');
+  expect(suggested).not.toContain('Atreides');
 });

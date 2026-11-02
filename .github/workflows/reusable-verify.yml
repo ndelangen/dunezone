@@ -219,12 +219,11 @@ jobs:
     if: ${{ !inputs.hosted_only && !inputs.draft }}
     strategy:
       fail-fast: false
-      # Shards balanced by measured file time, because the story suite ran 564 to 779 s on one
+      # Five shards balanced by measured file time, because the story suite ran 564 to 779 s on one
       # runner and the seven slowest Play page files were 58% of it (#1588). The tutorial chapters
-      # draw full 3D tables; the GPU process's software WebGL then held every other tab in the same
-      # browser without a frame for 15 to 50 s, which failed page stories that wait for a frame, so
-      # they run in their own shard. .storybook/shards.json owns the
-      # rules and scripts/storybook-shard.ts resolves a shard's files; its test refuses a story file
+      # have a shard of their own: their 3D tables kept the shared GPU process's software WebGL so busy
+      # that the other page tabs drew no frame for 15 to 50 s, failing stories that wait for one.
+      # .storybook/shards.json owns the rules and scripts/storybook-shard.ts resolves a shard's files; its test refuses a story file
       # no shard owns. Each shard uploads its own coverage and results under the storybook flag,
       # which Codecov merges.
       matrix:
