@@ -32,23 +32,6 @@ export const FuturePlans = meta.story({
   play: titled(/^A map of what Dune Zone could become$/),
 });
 
-/** The landing page of Creating content: the faction tutorial first, then everything a creator can make. */
-export const Create = meta.story({
-  args: { path: '/create' },
-  play: async ({ canvasElement }) => {
-    const page = await findTitledPage(canvasElement, /^Make your own Dune$/);
-    await expect(page.findByRole('link', { name: 'Read the faction tutorial' })).resolves.toHaveAttribute(
-      'href',
-      '/create/faction'
-    );
-    /* The switch names the segment in full on wide screens and as Create on narrow ones. */
-    await expect(page.findByRole('link', { name: /^Creat(ing content|e)$/, current: 'page' })).resolves.toHaveAttribute(
-      'href',
-      '/create'
-    );
-  },
-});
-
 /** The faction tutorial: a contents list, then one section per creator tab, each anchored for the contents. */
 export const FactionTutorial = meta.story({
   args: { path: '/create/faction' },

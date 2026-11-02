@@ -10,7 +10,7 @@ import { createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 import { AppRoot } from './AppRoot';
-import { NAV_SEGMENTS } from './navigationSegments';
+import { PRIMARY_LINKS } from './SiteNavigation';
 
 /* The chrome renders inside `ApplicationChrome`'s Mantine provider; mirror that here. */
 function chrome(children: ReactNode) {
@@ -23,22 +23,18 @@ vi.mock('@tanstack/react-router', () => ({
     to,
     search: _search,
     activeProps: _activeProps,
-    activeOptions: _activeOptions,
     ...rest
   }: {
     children: ReactNode;
     to: string;
     search?: unknown;
     activeProps?: unknown;
-    activeOptions?: unknown;
   }) => (
     <a href={to} {...rest}>
       {children}
     </a>
   ),
-  useLocation: ({ select }: { select: (location: { href: string; pathname: string }) => unknown }) =>
-    select({ href: '/', pathname: '/' }),
-  useMatches: ({ select }: { select: (matches: { fullPath: string }[]) => unknown }) => select([{ fullPath: '/' }]),
+  useLocation: ({ select }: { select: (location: { href: string }) => unknown }) => select({ href: '/' }),
 }));
 
 vi.mock('@db/profiles', () => ({
@@ -189,11 +185,8 @@ describe('AppRoot page header', () => {
     expect(footerHrefs).toEqual(
       expect.arrayContaining(RECORDLESS_PUBLIC_PAGES.filter((page) => !HEADER_PUBLIC_PAGES.includes(page)))
     );
-    /*
-     * The header row collapses links into its More menu by measured width, so the contract is read from its link sets.
-     * Each page shows one segment's row; the other row is one step away through the switch, which links to that segment's landing page.
-     */
-    const headerHrefs = NAV_SEGMENTS.flatMap((segment) => [segment.to, ...segment.links.map((link) => link.to)]);
+    /* The header row collapses links into its More menu by measured width, so the contract is read from its link set. */
+    const headerHrefs = PRIMARY_LINKS.map((link) => link.to);
     for (const page of HEADER_PUBLIC_PAGES) {
       expect(footerHrefs).not.toContain(page);
       expect(headerHrefs).toContain(page);
