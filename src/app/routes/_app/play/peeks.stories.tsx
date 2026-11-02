@@ -29,7 +29,7 @@ export const OnePeeker = meta.story({
 
 /**
  * Many factions can peek at the same cards: four looked through the Treachery deck, two at the loose card, and all six at the Traitor deck.
- * Their tokens overlap in a row from the bottom right corner towards the left, the first to peek in the corner.
+ * Their tokens lie side by side from the bottom right corner towards the left, the first to peek in the corner.
  */
 export const ManyPeekers = meta.story({
   beforeEach: install(() => productTransport('seat-2', manyPeekersSnapshot())),
