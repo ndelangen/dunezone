@@ -7,8 +7,9 @@ import { StatusBadge } from '@ui/content/StatusBadge';
 import type { ReactNode } from 'react';
 
 import { FactionDetails } from './FactionDetails';
-import { FactionInfoHeader } from './FactionInfoHeader';
+import { FactionInfoAlliance, FactionInfoHeader } from './FactionInfoHeader';
 import type { FactionInfoHeaderModel } from './FactionInfoHeader';
+import { FactionInfoToolbar } from './FactionInfoToolbar';
 
 export type BallotChoice = 'remove' | 'keep';
 
@@ -32,8 +33,8 @@ export type FactionInfoPanelProps = Readonly<{
   /** Requests for the seat, while it is open. */
   requests: ReactNode;
   header: FactionInfoHeaderModel;
-  /** The seat's trade, while seats are traded. */
-  swapping: ReactNode;
+  /** The seat's trade action, while seats are traded. */
+  trade: ReactNode;
   /** What the faction starts the game with, once its sheet is read. */
   details: PublicFaction | undefined;
   /** Casts the viewer's ballot, or withdraws it with null. */
@@ -105,25 +106,24 @@ function OpenVote({
   );
 }
 
-/** A seat's faction information, with any vote against its player and any request for the seat. */
-export function FactionInfoPanel({
-  error,
-  vote,
-  requests,
-  header,
-  swapping,
-  details,
-  onBallot,
-}: FactionInfoPanelProps) {
+/** A seat's faction information, with any vote against its player and any request for the seat: the header, the toolbar of the seat's actions under it, then the content. */
+export function FactionInfoPanel({ error, vote, requests, header, trade, details, onBallot }: FactionInfoPanelProps) {
   return (
     <>
       {error && <FormError title="From the table">{error}</FormError>}
       {vote && <OpenVote vote={vote} onBallot={onBallot} />}
       {requests}
       <Section hiddenHeading title={header.name}>
-        <Stack gap="md">
+        {/* The seat it shows, for a guide that points at one player's header or toolbar. */}
+        <Stack gap="md" data-faction-info-seat={header.seatId}>
           <FactionInfoHeader model={header} />
-          {swapping}
+          <FactionInfoToolbar
+            page={header.page}
+            removal={header.removal}
+            alliance={header.alliance?.action}
+            trade={trade}
+          />
+          {header.alliance && <FactionInfoAlliance alliance={header.alliance} />}
           {details && <FactionDetails faction={details} />}
         </Stack>
       </Section>

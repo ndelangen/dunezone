@@ -1,6 +1,4 @@
 import { Group, Stack, Text } from '@mantine/core';
-import { IconAction } from '@ui/control/IconAction';
-import { ExternalLink, UserX } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import type { SeatAlliance } from './seatAlliance';
@@ -12,7 +10,7 @@ export type FactionInfoHeaderModel = Readonly<{
   /** The player, or the faction's name for a vacant seat. */
   name: string;
   faction: string | null;
-  /** The seat's id, such as `seat-2`, which a guide finds the header by. */
+  /** The seat's id, such as `seat-2`, which a guide finds the seat's window by. */
   seatId: string;
   /** The seat as the header names it, such as Seat 2. */
   seat: string;
@@ -29,59 +27,31 @@ function subtitle({ name, faction, seat }: FactionInfoHeaderModel) {
 }
 
 /**
- * The top of a seat's Faction info: the token and name as a header, with the faction page and a removal vote as quiet icons beside it.
- * The alliance, the action players reach for most, has its own row below.
+ * The top row of a seat's Faction info: the token, and the name over the faction and seat.
+ * Every action on the seat sits in the toolbar below it, never in this row.
  */
 export function FactionInfoHeader({ model }: Readonly<{ model: FactionInfoHeaderModel }>) {
-  const { page, removal, alliance } = model;
   return (
-    /* The seat it shows, for a guide that points at one player's header. */
-    <Stack gap="sm" data-faction-info-seat={model.seatId}>
-      <Group gap="xs" justify="space-between" wrap="nowrap">
-        <Group gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
-          {model.token}
-          <Stack gap={0} style={{ minWidth: 0 }}>
-            <Text fw={700} truncate>
-              {model.own ? `${model.name} (you)` : model.name}
-            </Text>
-            <Text size="sm" c="dimmed" truncate>
-              {subtitle(model)}
-            </Text>
-          </Stack>
-        </Group>
-        <Group gap={6} wrap="nowrap">
-          {page && (
-            <IconAction
-              label={`Open the ${page.name} page in a new tab`}
-              intent="neutral"
-              emphasis="quiet"
-              icon={<ExternalLink size={16} />}
-              href={page.href}
-              target="_blank"
-              rel="noreferrer"
-            />
-          )}
-          {removal && (
-            <IconAction
-              label="Start removal vote"
-              intent="neutral"
-              emphasis="quiet"
-              icon={<UserX size={16} />}
-              disabledReason={removal.disabledReason}
-              onClick={removal.start}
-            />
-          )}
-        </Group>
-      </Group>
-      {alliance && (
-        <Group gap="sm" justify="space-between" wrap="nowrap">
-          <Group gap="xs" wrap="nowrap" style={{ minWidth: 0 }}>
-            {alliance.mark}
-            <Text size="sm">{alliance.status}</Text>
-          </Group>
-          {alliance.action}
-        </Group>
-      )}
-    </Stack>
+    <Group gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
+      {model.token}
+      <Stack gap={0} style={{ minWidth: 0 }}>
+        <Text fw={700} truncate>
+          {model.own ? `${model.name} (you)` : model.name}
+        </Text>
+        <Text size="sm" c="dimmed" truncate>
+          {subtitle(model)}
+        </Text>
+      </Stack>
+    </Group>
+  );
+}
+
+/** How the seat's faction stands in alliances: its allies' tokens, or the alliance mark, and a line saying so. */
+export function FactionInfoAlliance({ alliance }: Readonly<{ alliance: SeatAlliance }>) {
+  return (
+    <Group gap="xs" wrap="nowrap" style={{ minWidth: 0 }}>
+      {alliance.mark}
+      <Text size="sm">{alliance.status}</Text>
+    </Group>
   );
 }

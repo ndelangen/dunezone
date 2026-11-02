@@ -25,9 +25,9 @@ export const Offers = meta.story({
     const page = await openFactionInfo(canvasElement, 'Central');
     await page.findByRole('button', { name: 'Accept trade from House Atreides' }, { timeout: 30_000 });
     await openFactionInfo(canvasElement, 'Jaded AF');
-    await expect(page.getByRole('button', { name: 'Offer trade to Emperor' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Offer trade to Emperor' })).toHaveAttribute('aria-disabled', 'true');
     await openFactionInfo(canvasElement, 'Ridwan');
-    await expect(page.getByRole('button', { name: 'Cancel offer to Fremen' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Cancel offer to Fremen' })).not.toHaveAttribute('aria-disabled');
     await openFactionInfo(canvasElement, 'Central');
     await userEvent.click(page.getByRole('button', { name: 'Accept trade from House Atreides' }));
     await waitFor(() => expect(lastCommand()).toMatchObject({ action: { kind: 'swap-accept', offerId: 'offer-one' } }));
