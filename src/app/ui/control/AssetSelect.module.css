@@ -40,11 +40,13 @@ html[data-mantine-color-scheme="dark"] .glyph {
   width: 100%;
 }
 
-/* The filter sits inside the input's right edge like the chevron it replaces, with the same inset on every side. */
+/* A square slot matching the field's inner height (inside its 1px border), so the centred tile keeps the same inset from the top, bottom and right edges. */
 .filterSlot {
   display: flex;
+  flex: none;
   align-items: center;
   justify-content: center;
-  width: 100%;
+  width: calc(var(--input-height) - 2px);
   height: 100%;
+  margin-inline-start: auto;
 }

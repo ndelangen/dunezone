@@ -256,7 +256,7 @@ export function AssetSelect({
                       leftSection={selectedPreview ?? undefined}
                       leftSectionPointerEvents="none"
                       rightSectionPointerEvents="all"
-                      rightSectionWidth={clearable && value ? 70 : 42}
+                      rightSectionWidth={clearable && value ? 64 : 36}
                       rightSection={
                         <Group gap={0} wrap="nowrap" h="100%" w="100%">
                           {clearable && value && !blocked ? (
