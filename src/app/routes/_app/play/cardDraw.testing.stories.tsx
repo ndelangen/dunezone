@@ -31,12 +31,30 @@ async function readyTable(canvasElement: HTMLElement) {
   return sandbox.table!;
 }
 
+/**
+ * Records every draw receipt that reaches the DOM.
+ * A receipt lives for the draw's wall-clock duration (about 1.6 s), and a runner that stalls for seconds can add and remove it between two polls of a wait, so the story checks that it was shown rather than catching it on screen.
+ */
+function watchDrawReceipts(document: Document) {
+  const shown = new Set<string>();
+  const record = () => {
+    for (const receipt of document.querySelectorAll('[data-card-draw]')) {
+      shown.add(receipt.getAttribute('data-card-draw') ?? '');
+    }
+  };
+  const observer = new MutationObserver(record);
+  observer.observe(document.body, { childList: true, subtree: true });
+  record();
+  return { shown, stop: () => observer.disconnect() };
+}
+
 /** The actual Draw a card action runs through the room, subscription and scene. More cards can be drawn after the story finishes. */
 export const DrawOne = meta.story({
   play: async ({ canvasElement, globals }) => {
     const table = await readyTable(canvasElement);
     const deck = table.frame().snapshot.table.pieces.find((piece) => piece.stackKey === 'deck:treachery-deck')!;
     const before = table.frame().snapshot.hand?.length ?? 0;
+    const receipts = watchDrawReceipts(canvasElement.ownerDocument);
     table.receive({
       type: 'command',
       commandId: 'draw-one',
@@ -45,13 +63,16 @@ export const DrawOne = meta.story({
     });
     await waitFor(() => expect(table.frame().snapshot.hand).toHaveLength(before + 1));
     await expect(table.refusal).toBeUndefined();
-    if (globals.motion === 'reduce') {
-      await expect(canvasElement.ownerDocument.querySelector('[data-card-draw]')).toBeNull();
-    } else {
-      await waitFor(() => expect(canvasElement.ownerDocument.querySelector('[data-card-draw]')).not.toBeNull());
-      await waitFor(() => expect(canvasElement.ownerDocument.querySelector('[data-card-draw]')).toBeNull(), {
-        timeout: 5000,
-      });
+    try {
+      if (globals.motion === 'reduce') {
+        await expect(canvasElement.ownerDocument.querySelector('[data-card-draw]')).toBeNull();
+        await expect(receipts.shown.size).toBe(0);
+      } else {
+        await waitFor(() => expect(receipts.shown.size).toBe(1));
+        await waitFor(() => expect(canvasElement.ownerDocument.querySelector('[data-card-draw]')).toBeNull());
+      }
+    } finally {
+      receipts.stop();
     }
   },
 });
