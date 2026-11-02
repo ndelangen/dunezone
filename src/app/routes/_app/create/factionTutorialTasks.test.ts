@@ -32,18 +32,38 @@ describe('the faction tutorial', () => {
 describe('the faction tutorial reading the page', () => {
   const view = { camera: null };
 
-  test('a name typed before the task first looks still counts once the learner leaves the box', () => {
-    document.body.innerHTML = '<input id="faction-name" value="New faction" />';
+  test('a name counts once it has two letters and the learner has left the box; Enter in an empty box does not', () => {
+    document.body.innerHTML = '<input id="faction-name" value="" />';
     const name = FACTION_TUTORIAL_TASKS({ pathname: () => '' }).find((task) => task.id === 'name')!;
     const watch = name.begin(view);
     const box = document.querySelector<HTMLInputElement>('#faction-name')!;
+    const enter = () => box.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     box.focus();
-    box.value = 'New faction';
-    box.dispatchEvent(new Event('input', { bubbles: true }));
-    box.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    enter();
+    expect(name.done(watch, view)).toBe(false);
+    box.focus();
+    box.value = ' S ';
+    enter();
+    expect(name.done(watch, view)).toBe(false);
+    box.focus();
+    box.value = 'Sand Wardens';
+    expect(name.done(watch, view)).toBe(false);
+    enter();
     expect(document.activeElement).not.toBe(box);
     expect(name.done(watch, view)).toBe(true);
     name.finish?.(watch);
+  });
+
+  test('a rule needs three words', () => {
+    document.body.innerHTML = '<textarea id="rules-alliance"></textarea>';
+    const alliance = FACTION_TUTORIAL_TASKS({ pathname: () => '' }).find((task) => task.id === 'alliance')!;
+    const watch = alliance.begin(view);
+    const box = document.querySelector<HTMLTextAreaElement>('#rules-alliance')!;
+    box.value = 'ok';
+    expect(alliance.done(watch, view)).toBe(false);
+    box.value = 'Your ally moves further.';
+    expect(alliance.done(watch, view)).toBe(true);
+    alliance.finish?.(watch);
   });
 
   test('a logo picked before the task first looks still counts', () => {

@@ -17,12 +17,16 @@ type Field = Readonly<{ selector: string; tab?: string }>;
 
 const find = (field: Field) => document.querySelector(field.selector);
 
-/** The creator's tab that holds the field, which a task points at until the field is on screen. */
+/** The creator's tab that holds the field, which a task points at until the field is on screen. Its words start with the label: a count of the section's warnings may follow. */
 const tabOf = (field: Field): Element | null =>
-  [...document.querySelectorAll(`${TABS} [role="tab"]`)].find((tab) => tab.textContent?.trim() === field.tab) ?? null;
+  (field.tab &&
+    [...document.querySelectorAll(`${TABS} [role="tab"]`)].find((tab) =>
+      tab.textContent?.trim().startsWith(field.tab!)
+    )) ||
+  null;
 
 /** The field when its tab is open, otherwise the tab that opens it. */
-const fieldOrTab = (field: Field) => () => find(field) ?? (field.tab ? tabOf(field) : null);
+const fieldOrTab = (field: Field) => () => find(field) ?? tabOf(field);
 
 const valueOf = (element: Element | null): string | null =>
   element === null
@@ -37,15 +41,22 @@ const pageButton = (name: string) => (): Element | null =>
     (button) => button.getAttribute('aria-label') === name || button.textContent?.trim() === name
   ) ?? null;
 
-type Typed = { was: string | null; last: string | null; edited: boolean; release: () => void };
-
 /*
- * A text task is done once the text differs from what it was when the learner first saw the box, and they have left it,
+ * The creator opens blank in the tutorial, so a text task asks for real writing rather than any change:
+ * a name has two letters or more, and a rule has three words or more. Pressing Enter in an empty box, or typing a
+ * space, does not count. The task is done once the text is enough and the learner has left the box,
  * so the chapter does not move on while they are still typing. Leaving includes opening another tab, which takes the box away,
- * so the task remembers the last text it saw.
- * In a one-line box Enter leaves it too, as it does in Create your own game.
- * Typing in the box counts as changing it even before the task has read it once, so a learner who types at once is not missed.
+ * so the task remembers the last text it saw. In a one-line box Enter leaves it too, as it does in Create your own game.
  */
+type Enough = (text: string) => boolean;
+
+/** A name: two letters or more. */
+const aName: Enough = (text) => (text.match(/\p{L}/gu) ?? []).length >= 2;
+/** A rule: three words or more. */
+const aSentence: Enough = (text) => (text.match(/\p{L}+/gu) ?? []).length >= 3;
+
+type Typed = { last: string; release: () => void };
+
 /* The one-line box of `field` that Enter was pressed in, if it was. */
 function enteredIn(field: Field, event: KeyboardEvent): HTMLInputElement | null {
   if (event.key !== 'Enter') {
@@ -55,8 +66,8 @@ function enteredIn(field: Field, event: KeyboardEvent): HTMLInputElement | null 
   return target instanceof HTMLInputElement && target.matches(field.selector) ? target : null;
 }
 
-/* Watches the box of `field`: typing in it marks it edited, and Enter in a one-line box leaves it. Returns what stops watching. */
-function watchBox(field: Field, watch: Typed): () => void {
+/* Enter in the one-line box of `field` leaves it; returns what stops listening. */
+function enterLeaves(field: Field): () => void {
   const leave = (event: KeyboardEvent) => {
     const box = enteredIn(field, event);
     if (box) {
@@ -64,43 +75,19 @@ function watchBox(field: Field, watch: Typed): () => void {
       box.blur();
     }
   };
-  const edit = (event: Event) => {
-    if (event.target instanceof Element && event.target.matches(field.selector)) {
-      watch.edited = true;
-    }
-  };
   document.addEventListener('keydown', leave, true);
-  document.addEventListener('input', edit, true);
-  return () => {
-    document.removeEventListener('keydown', leave, true);
-    document.removeEventListener('input', edit, true);
-  };
-}
-
-/* Remembers the text the box first showed and the last it showed, so a box another tab took away still counts. */
-function readBox(watch: Typed, box: Element | null) {
-  const value = valueOf(box);
-  if (value !== null) {
-    watch.was ??= value;
-    watch.last = value;
-  }
+  return () => document.removeEventListener('keydown', leave, true);
 }
 
 const left = (box: Element | null) => box === null || document.activeElement !== box;
 
-const typed = (field: Field) => ({
+const typed = (field: Field, enough: Enough) => ({
   anchor: { kind: 'page' as const, element: fieldOrTab(field) },
-  begin: (): Typed => {
-    const watch: Typed = { was: null, last: null, edited: false, release: () => undefined };
-    readBox(watch, find(field));
-    watch.release = watchBox(field, watch);
-    return watch;
-  },
+  begin: (): Typed => ({ last: valueOf(find(field)) ?? '', release: enterLeaves(field) }),
   done: (watch: Typed) => {
     const box = find(field);
-    readBox(watch, box);
-    const now = watch.last?.trim() ?? '';
-    return now.length > 0 && (watch.edited || now !== watch.was?.trim()) && left(box);
+    watch.last = valueOf(box) ?? watch.last;
+    return enough(watch.last) && left(box);
   },
   finish: (watch: Typed) => watch.release(),
 });
@@ -138,7 +125,7 @@ const identityTasks = (): GuideTask[] => [
     detail:
       "Let's make a faction of your own! This is a practice copy of Dune Zone that lives only in your browser, so try whatever you like.\n\nType a name for your faction and press {Enter}.",
     introducesSpeakingMode: true,
-    ...typed({ selector: '#faction-name' }),
+    ...typed({ selector: '#faction-name' }, aName),
   }),
   task({
     id: 'logo',
@@ -163,51 +150,44 @@ const rosterTasks = (): GuideTask[] => [
     task: 'Name your faction leader',
     detail:
       "Every faction has a leader who doesn't fight, shown on the faction token.\n\nOpen Faction leader, type their name and press {Enter}.",
-    ...typed({ selector: '#faction-leader-name', tab: 'Faction leader' }),
+    ...typed({ selector: '#faction-leader-name', tab: 'Faction leader' }, aName),
   }),
   task({
     id: 'add-leader',
     task: 'Add a supporting leader',
     detail:
-      'Supporting leaders are the ones who go into battle. Most factions have five.\n\nOpen Leaders and add one with the plus.',
+      'Supporting leaders are the ones who go into battle. Most factions have five; start with one.\n\nOpen Leaders and add one with the plus.',
     anchor: { kind: 'page', element: fieldOrTab(ADD_LEADER) },
-    begin: () => ({ was: null as number | null }),
-    done: (watch: { was: number | null }) => {
-      if (!find(ADD_LEADER)) {
-        return false;
-      }
-      const count = document.querySelectorAll(LEADERS).length;
-      watch.was ??= count;
-      return count > watch.was;
-    },
+    /* The creator opens with no supporting leaders, so any leader on the list is one the learner added. */
+    begin: () => undefined,
+    done: () => document.querySelectorAll(LEADERS).length > 0,
   }),
   task({
     id: 'name-leader',
     task: 'Name your new leader',
-    detail:
-      'Your new leader has a strength already, one more than the leader before. Give them a name and press {Enter}.',
-    ...typed({ selector: 'input[id^="leader-"][id$="-name"]', tab: 'Leaders' }),
+    detail: 'The number beside your new leader is their strength in battle. Give them a name and press {Enter}.',
+    ...typed({ selector: 'input[id^="leader-"][id$="-name"]', tab: 'Leaders' }, aName),
   }),
   task({
     id: 'troops',
     task: 'Name your troops',
     detail:
       'Troops are the tokens you move round the board. The token on the right shows them with your logo and background.\n\nOpen Troops, name them and press {Enter}.',
-    ...typed({ selector: '#troop-0-name', tab: 'Troops' }),
+    ...typed({ selector: '#troop-0-name', tab: 'Troops' }, aName),
   }),
   task({
     id: 'alliance',
     task: 'Write your alliance advantage',
     detail:
-      'When another player allies with you, they get your alliance card. It says what you do for them.\n\nOpen Alliance, write what your ally gets, then click outside the box.',
-    ...typed({ selector: '#rules-alliance', tab: 'Alliance' }),
+      'When another player allies with you, they get your alliance card. It says what you do for them.\n\nOpen Alliance, write a sentence on what your ally gets, then click outside the box.',
+    ...typed({ selector: '#rules-alliance', tab: 'Alliance' }, aSentence),
   }),
   task({
     id: 'start',
     task: 'Say how you start',
     detail:
-      'Your faction sheet tells everyone where your troops start the game.\n\nOpen Rules, write your starting instructions, then click outside the box.',
-    ...typed({ selector: '#rules-start', tab: 'Rules' }),
+      'Your faction sheet tells everyone where your troops start the game.\n\nOpen Rules, write a sentence on where your troops start, then click outside the box.',
+    ...typed({ selector: '#rules-start', tab: 'Rules' }, aSentence),
   }),
 ];
 

@@ -4,9 +4,12 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 
+import { NewFactionDraft } from '@app/widgets/faction-editor/newFactionDraft';
+
 import { SandboxApp } from '../../../db/sandbox/SandboxApp';
 import type { SandboxControls } from '../../../db/sandbox/SandboxApp';
 import { TutorialGuide } from '../tutorial/TutorialGuide';
+import { blankFaction } from './blankFaction';
 import { FACTION_TUTORIAL_LEARNED, FACTION_TUTORIAL_TASKS } from './factionTutorialTasks';
 import { PRACTICE_VIEWER, practiceDatabase } from './practiceDatabase';
 
@@ -58,14 +61,16 @@ export default function FactionChapter({
       onReset={() => setRun((current) => current + 1)}
       chaptersLink={chaptersLink}
     >
-      <SandboxApp
-        key={run}
-        database={practiceDatabase}
-        identity={PRACTICE_VIEWER}
-        path="/factions/create"
-        onReady={chapter.ready}
-        loading={loading}
-      />
+      <NewFactionDraft value={blankFaction}>
+        <SandboxApp
+          key={run}
+          database={practiceDatabase}
+          identity={PRACTICE_VIEWER}
+          path="/factions/create"
+          onReady={chapter.ready}
+          loading={loading}
+        />
+      </NewFactionDraft>
     </TutorialGuide>
   );
 }

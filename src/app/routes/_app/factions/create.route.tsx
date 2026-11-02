@@ -3,7 +3,7 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { LoadPending } from '@ui/block/LoadPending';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { useRef } from 'react';
+import { useContext, useRef } from 'react';
 
 import { useAuthoringAccountKey } from '@db/authoring';
 import { useAuthoringPresets } from '@db/backgroundPresets';
@@ -12,12 +12,12 @@ import { useCurrentProfile } from '@db/profiles';
 import { pageHead } from '@app/routes/pageTitle';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
-import { defaultFaction } from '@app/widgets/faction-editor/defaultFaction';
 import { FactionComplexityIndicator } from '@app/widgets/faction-editor/FactionComplexityIndicator';
 import { FactionEditor } from '@app/widgets/faction-editor/FactionEditor';
 import type { FactionAuthoringViewHandle } from '@app/widgets/faction-editor/FactionEditor';
 import { factionLoadSource } from '@app/widgets/faction-editor/factionLoadSource';
 import { factionPublicationStatus } from '@app/widgets/faction-editor/factionPublicationStatus';
+import { NewFactionDraft } from '@app/widgets/faction-editor/newFactionDraft';
 import { useFactionAuthoring } from '@app/widgets/faction-editor/useFactionAuthoring';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
@@ -39,10 +39,11 @@ function CreateFactionPage() {
   const navigate = useNavigate();
   const createFaction = useCreateFaction();
   const viewRef = useRef<FactionAuthoringViewHandle | null>(null);
+  const startingDraft = useContext(NewFactionDraft);
   const routeNoticeRef = useRef<RouteNoticeCode | null>(null);
   const authoring = useFactionAuthoring({
     sessionKey: 'create',
-    initialData: defaultFaction,
+    initialData: startingDraft,
     persistence: {
       save: async (draft) => {
         const entry = await createFaction.mutateAsync({ input: draft });

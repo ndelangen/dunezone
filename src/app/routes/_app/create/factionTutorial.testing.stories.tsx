@@ -38,7 +38,7 @@ export const WalkThrough = meta.story({
     const practice = () => within(document.querySelector<HTMLElement>('[data-tutorial-pages]')!);
     const current = () => document.querySelector('[data-state="current"]')?.textContent ?? '';
     const next = (title: string) => waitForFrame(() => expect(current()).toContain(title), { timeout: 20_000 });
-    const tab = (name: string) => userEvent.click(page.getByRole('tab', { name }));
+    const tab = (name: string) => userEvent.click(page.getByRole('tab', { name: new RegExp(`^${name}`) }));
     await page.findByRole('banner', { name: RAIL }, { timeout: 60_000 });
     await retype(await page.findByRole('textbox', { name: 'Faction name' }, { timeout: 60_000 }), 'Sand Wardens');
     await userEvent.keyboard('{Enter}');
@@ -125,8 +125,6 @@ export const OpenAtStep = meta.story({
     await userEvent.click(page.getByRole('button', { name: /^Reset$/ }));
     const banner = page.getByRole('banner', { name: RAIL });
     await waitForFrame(() => expect(banner.textContent).toContain('1 of 12'), { timeout: 20_000 });
-    await expect(await page.findByRole('textbox', { name: 'Faction name' }, { timeout: 60_000 })).toHaveValue(
-      'New faction'
-    );
+    await expect(await page.findByRole('textbox', { name: 'Faction name' }, { timeout: 60_000 })).toHaveValue('');
   },
 });
