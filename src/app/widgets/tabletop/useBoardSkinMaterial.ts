@@ -80,6 +80,7 @@ export async function prepareLook(
       material.dispose();
       return null;
     }
+    /* From here the caller owns the look, and frees it should its own abort land before it is shown. */
     return { material, lease };
   } catch (error) {
     letGo();
@@ -88,6 +89,12 @@ export async function prepareLook(
     signal.removeEventListener('abort', letGo);
   }
 }
+
+/** Frees a look's material and lets go of its bake (shared bakes stay while held). */
+const drop = (look: Shown) => {
+  look.material.dispose();
+  look.lease?.release();
+};
 
 /** Holds the look on the board: a newer one replaces it and frees it, and the last one is freed on unmount. */
 function useShownLook(initial: () => Shown, invalidate: () => void) {
@@ -100,19 +107,12 @@ function useShownLook(initial: () => Shown, invalidate: () => void) {
     const previous = current.current;
     current.current = shown;
     if (previous !== shown) {
-      previous.material.dispose();
-      previous.lease?.release();
+      drop(previous);
     }
     invalidate();
   }, [shown, invalidate]);
 
-  useEffect(
-    () => () => {
-      current.current.material.dispose();
-      current.current.lease?.release();
-    },
-    []
-  );
+  useEffect(() => () => drop(current.current), []);
 
   return [shown, setShown] as const;
 }
@@ -173,7 +173,7 @@ export function useBoardSkinMaterial({
       polygonOffset,
     };
     prepareLook({ renderer, scene, camera }, { skin, planet }, paint, controller.signal).then(
-      (next) => next && setShown(next),
+      (next) => next && (controller.signal.aborted ? drop(next) : setShown(next)),
       (error: unknown) => {
         if (!controller.signal.aborted) {
           /* The board keeps its current look; say why the new one never came. */
