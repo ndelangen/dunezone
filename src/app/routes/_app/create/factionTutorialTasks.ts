@@ -113,15 +113,19 @@ const committed = (field: Field): string | null => {
 
 type Choice = { was: string | null; picked: boolean; release: () => void };
 
-/* Notes a pick from an artwork list, by click or by Enter on the highlighted option; returns what stops listening. */
-function listenForPick(watch: Choice): () => void {
+/*
+ * Notes a pick from this field's own artwork list, by click or by Enter on the highlighted option; returns what stops
+ * listening. Every artwork picker's list looks alike, so a pick counts only while this field's picker is the open one.
+ */
+function listenForPick(field: Field, watch: Choice): () => void {
+  const mine = () => find(field)?.getAttribute('aria-expanded') === 'true';
   const click = (event: MouseEvent) => {
-    if (event.target instanceof Element && event.target.closest(`${ARTWORK_LIST} [role="option"]`)) {
+    if (mine() && event.target instanceof Element && event.target.closest(`${ARTWORK_LIST} [role="option"]`)) {
       watch.picked = true;
     }
   };
   const key = (event: KeyboardEvent) => {
-    if (event.key === 'Enter' && document.querySelector(`${ARTWORK_LIST} [data-combobox-selected]`)) {
+    if (event.key === 'Enter' && mine() && document.querySelector(`${ARTWORK_LIST} [data-combobox-selected]`)) {
       watch.picked = true;
     }
   };
@@ -142,7 +146,7 @@ const chosen = (field: Field) => ({
   anchor: { kind: 'page' as const, element: fieldOrTab(field) },
   begin: (): Choice => {
     const watch: Choice = { was: committed(field), picked: false, release: () => undefined };
-    watch.release = listenForPick(watch);
+    watch.release = listenForPick(field, watch);
     return watch;
   },
   done: (watch: Choice) => {
@@ -406,7 +410,15 @@ const finishingTasks = (page: FactionChapterPage): GuideTask[] => [
       look();
       return watch;
     },
-    done: (watch: { seen: boolean; stop: () => void }) => watch.seen && document.querySelector(REVIEW_OPEN) === null,
+    /*
+     * The sheet opens only on a page at least 45rem wide, and below that its button hides; there the step passes,
+     * so a narrow window never leaves the learner stuck before Save.
+     */
+    done: (watch: { seen: boolean; stop: () => void }) => {
+      const button = pageButton('Review faction sheet')();
+      const unavailable = button !== null && !shown(button);
+      return (watch.seen || unavailable) && document.querySelector(REVIEW_OPEN) === null;
+    },
     finish: (watch: { stop: () => void }) => watch.stop(),
   }),
   task({

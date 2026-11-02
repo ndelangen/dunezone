@@ -73,19 +73,28 @@ type Start = Readonly<{
 type Backend = { current: ConvexStorybookWorkerClient };
 
 /*
- * Opens a started backend as the practice copy: `db` reads it, the site's own router preloads nothing, and the practice
- * router opens on `path`. Returns the copy and what closes it again.
+ * Points `db` at the sandbox and makes the site's own router preload nothing; returns what undoes both.
+ * The site's own router preloads a page when a link is hovered, without a load event, so while the sandbox is open
+ * it preloads nothing: its loaders would read the sandbox and cache practice rows for the real page.
+ */
+function enter(client: SandboxConvexClient, outer: AnyRouter): () => void {
+  /* Under Storybook `@db/core` is automocked and entering answers nothing: the story's own database serves the pages then. */
+  const exit = enterSandbox(client.asConvexClient()) as (() => void) | undefined;
+  const restorePreload = holdPreloads(outer);
+  return () => {
+    exit?.();
+    restorePreload();
+  };
+}
+
+/*
+ * Opens a started backend as the practice copy: it enters the sandbox, then the practice router opens on `path`.
+ * Returns the copy and what leaves the sandbox again.
  */
 function open(start: Start, backend: Backend, outer: AnyRouter) {
   const client = new SandboxConvexClient(backend.current, start.identity);
   /* Entered before the practice router exists, so its first loaders already read the sandbox. */
-  /* Under Storybook `@db/core` is automocked and entering answers nothing: the story's own database serves the pages then. */
-  const exit = enterSandbox(client.asConvexClient()) as (() => void) | undefined;
-  /*
-   * The site's own router preloads a page when a link is hovered, without a load event, so while the sandbox is open
-   * it preloads nothing: its loaders would read the sandbox and cache practice rows for the real page.
-   */
-  const restorePreload = holdPreloads(outer);
+  const leave = enter(client, outer);
   const router = createRouter({
     defaultErrorComponent: AppErrorComponent,
     history: createMemoryHistory({ initialEntries: [start.path] }),
@@ -102,35 +111,47 @@ function open(start: Start, backend: Backend, outer: AnyRouter) {
       await router.navigate({ to: next as never, replace: true });
     },
   };
-  const leave = () => {
-    exit?.();
-    restorePreload();
-  };
   return { running: { client, router, storage: signedInStorage() }, controls, leave };
 }
 
 /*
- * Starts a practice copy for one mount and returns what ends it. It never opens once the site's own router has started
- * loading another page, and that router leaving this page closes it, so no real page's loaders read the sandbox.
- * A copy that cannot start shows the page's error, not the loading screen forever.
+ * Starts a practice copy for one mount and returns what ends it. While the site's own router loads another page the
+ * sandbox is left, so no real page's loaders read it; if that navigation is cancelled and the site settles back on
+ * this page, the sandbox is entered again. A copy that cannot start shows the page's error, not the loading screen forever.
  */
 function startSandbox(start: Start, outer: AnyRouter, show: (update: () => Running) => void): () => void {
+  const home = outer.state.location.pathname;
   let ended = false;
-  let leave = () => undefined as void;
+  let away = false;
   let backend: Backend | null = null;
-  let client: SandboxConvexClient | null = null;
+  let running: Running | null = null;
+  let leave: (() => void) | null = null;
+  const depart = () => {
+    leave?.();
+    leave = null;
+  };
+  const arrive = () => {
+    if (ended || away || !backend || leave) {
+      return;
+    }
+    if (running) {
+      leave = enter(running.client, outer);
+      return;
+    }
+    const opened = open(start, backend, outer);
+    running = opened.running;
+    leave = opened.leave;
+    show(() => opened.running);
+    start.onReady?.(opened.controls);
+  };
   seededBackend(start.database).then(
     (started) => {
-      backend = { current: started };
       if (ended) {
         started.terminate();
         return;
       }
-      const opened = open(start, backend, outer);
-      client = opened.running.client;
-      leave = opened.leave;
-      show(() => opened.running);
-      start.onReady?.(opened.controls);
+      backend = { current: started };
+      arrive();
     },
     (error: unknown) => {
       if (!ended) {
@@ -140,19 +161,24 @@ function startSandbox(start: Start, outer: AnyRouter, show: (update: () => Runni
       }
     }
   );
-  const end = () => {
-    ended = true;
-    leave();
-  };
-  const unsubscribe = outer.subscribe('onBeforeLoad', ({ pathChanged }) => {
+  const unsubscribeAway = outer.subscribe('onBeforeLoad', ({ pathChanged }) => {
     if (pathChanged) {
-      end();
+      away = true;
+      depart();
+    }
+  });
+  const unsubscribeBack = outer.subscribe('onResolved', ({ toLocation }) => {
+    if (away && toLocation.pathname === home) {
+      away = false;
+      arrive();
     }
   });
   return () => {
-    end();
-    unsubscribe();
-    void client?.close();
+    ended = true;
+    depart();
+    unsubscribeAway();
+    unsubscribeBack();
+    void running?.client.close();
     backend?.current.terminate();
   };
 }

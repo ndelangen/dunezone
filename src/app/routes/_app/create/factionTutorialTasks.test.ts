@@ -151,7 +151,7 @@ test('a box on a tab not yet open is compared with what it shows once open, so i
 
 test('a pick from a picker that was already open as the task began counts once it closes', () => {
   document.body.innerHTML =
-    '<input id="faction-leader-image" value="" /><div role="listbox" aria-label="Artwork"><div role="option">Jessica</div></div>';
+    '<input id="faction-leader-image" value="" aria-expanded="true" /><div role="listbox" aria-label="Artwork"><div role="option">Jessica</div></div>';
   const portrait = FACTION_TUTORIAL_TASKS({ pathname: () => '' }).find(
     (task) => task.id === 'faction-leader-portrait'
   )!;
@@ -162,4 +162,30 @@ test('a pick from a picker that was already open as the task began counts once i
   document.querySelector<HTMLInputElement>('#faction-leader-image')!.value = 'Jessica';
   expect(portrait.done(watch, view)).toBe(true);
   portrait.finish?.(watch);
+});
+
+test('the sheet review passes once looked at, or at once where a narrow page hides its button', () => {
+  document.body.innerHTML = '<div data-tutorial-pages><button aria-label="Review faction sheet">eye</button></div>';
+  const button = document.querySelector('button')!;
+  let width = 100;
+  button.getBoundingClientRect = () => ({ width }) as DOMRect;
+  const review = FACTION_TUTORIAL_TASKS({ pathname: () => '' }).find((task) => task.id === 'review')!;
+  const view = { camera: null };
+  const watch = review.begin(view);
+  expect(review.done(watch, view)).toBe(false);
+  width = 0;
+  expect(review.done(watch, view)).toBe(true);
+  review.finish?.(watch);
+});
+
+test("a pick from another picker is not this picker's pick", () => {
+  document.body.innerHTML =
+    '<input id="faction-logo" value="Antler Tower" aria-expanded="false" /><input id="faction-background" aria-expanded="true" /><div role="listbox" aria-label="Artwork"><div role="option">Nexus</div></div>';
+  const logo = FACTION_TUTORIAL_TASKS({ pathname: () => '' }).find((task) => task.id === 'logo')!;
+  const view = { camera: null };
+  const watch = logo.begin(view);
+  document.querySelector<HTMLElement>('[role="option"]')!.click();
+  document.querySelector('[role="listbox"]')!.remove();
+  expect(logo.done(watch, view)).toBe(false);
+  logo.finish?.(watch);
 });
