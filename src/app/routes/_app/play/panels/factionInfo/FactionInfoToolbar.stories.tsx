@@ -6,14 +6,21 @@ import { playingSnapshot, swappingSnapshot } from '../../product.stories.fixture
 import { alliedSnapshot, incomingSnapshot } from '../alliances/AlliancesPanel.stories.fixture';
 import { panelMeta } from '../PanelWindow.stories.fixture';
 import { PANEL_WINDOWS } from '../panelWindows';
-import { factionInfoArgs } from './FactionInfoPanel.stories.fixture';
+import { factionInfoArgs, removalSnapshot } from './FactionInfoPanel.stories.fixture';
 import { FactionInfoToolbar } from './FactionInfoToolbar';
 import type { FactionInfoToolbarProps } from './FactionInfoToolbar';
 
 /* The toolbar's props as the Faction info hands them for one seat, seen from the viewer's seat. */
 function toolbarArgs(...args: Parameters<typeof factionInfoArgs>): FactionInfoToolbarProps {
-  const { header, trade } = factionInfoArgs(...args);
-  return { page: header.page, removal: header.removal, alliance: header.alliance?.action, trade };
+  const { header, trade, vote, onBallot } = factionInfoArgs(...args);
+  return {
+    page: header.page,
+    removal: header.removal,
+    allies: header.alliance?.allies,
+    alliance: header.alliance?.action,
+    trade,
+    ballot: vote && 'choice' in vote.ballot ? { choice: vote.ballot.choice, cast: onBallot } : null,
+  };
 }
 
 /* Seats being traded, with the trade state the story is about. */
@@ -60,11 +67,31 @@ export const AllianceOffered = meta.story({
   },
 });
 
-/** The viewer's ally: the red Break alliance. */
+/** The viewer's ally: the viewer's token as its ally, then the red Break alliance. */
 export const Ally = meta.story({
   args: toolbarArgs(alliedSnapshot(), 'seat-4'),
   play: async ({ canvas }) => {
+    await expect(canvas.getByRole('img', { name: 'House Harkonnen' })).toBeVisible();
     await expect(canvas.getByRole('button', { name: 'Break alliance' })).toBeVisible();
+  },
+});
+
+/** A vote to remove the player is open and the viewer voted Remove: Remove stays pressed beside Keep and Withdraw. */
+export const BallotCast = meta.story({
+  args: toolbarArgs(removalSnapshot()),
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole('button', { name: 'Remove' })).toHaveAttribute('aria-pressed', 'true');
+    await expect(canvas.queryByRole('button', { name: 'Start removal vote' })).toBeNull();
+  },
+});
+
+/** The viewer has not voted yet, so there is nothing to withdraw. */
+export const BallotUncast = meta.story({
+  args: {
+    ballot: { choice: null, cast: () => {} },
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole('button', { name: 'Withdraw' })).toHaveAttribute('aria-disabled', 'true');
   },
 });
 

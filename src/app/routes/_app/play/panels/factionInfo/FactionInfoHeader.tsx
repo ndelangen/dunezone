@@ -45,13 +45,3 @@ export function FactionInfoHeader({ model }: Readonly<{ model: FactionInfoHeader
     </Group>
   );
 }
-
-/** How the seat's faction stands in alliances: its allies' tokens, or the alliance mark, and a line saying so. */
-export function FactionInfoAlliance({ alliance }: Readonly<{ alliance: SeatAlliance }>) {
-  return (
-    <Group gap="xs" wrap="nowrap" style={{ minWidth: 0 }}>
-      {alliance.mark}
-      <Text size="sm">{alliance.status}</Text>
-    </Group>
-  );
-}
