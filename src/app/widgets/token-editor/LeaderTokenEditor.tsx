@@ -1,4 +1,4 @@
-import { Stack, TextInput } from '@mantine/core';
+import { Stack } from '@mantine/core';
 import { LEADERS, LOGO } from '@shared/assetIds';
 import type { LeaderTokenAsset } from '@shared/assets/schema';
 import { resolveAsset } from '@shared/media/resolveAsset';
@@ -15,12 +15,18 @@ import { aboutChapter } from '@app/widgets/asset-about/AboutChapter';
 import { TokenFrame } from '@app/widgets/asset-face/AssetFace';
 import type { BackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
 import { BackgroundPresetControl } from '@app/widgets/background-composer/BackgroundPresetControl';
+import { LeaderStrengthInput } from '@app/widgets/leader-strength/LeaderStrengthInput';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { backgroundPresets } from '@game/data/backgrounds';
 
 export type LeaderTokenDraft = z.infer<typeof LeaderTokenAsset>;
 export type LeaderTokenChapter = 'identity' | 'artwork' | 'background' | 'about';
-export type LeaderTokenMemory = { declaredCustom: boolean; backgroundMode: BackgroundModeMemory };
+export type LeaderTokenMemory = {
+  declaredCustom: boolean;
+  backgroundMode: BackgroundModeMemory;
+  /** Strength text the field could not take; a replaced draft starts without it. */
+  refusedStrength: string | null;
+};
 const portraits = stockAssetOptions(LEADERS.options);
 const emblems = stockAssetOptions(LOGO.options);
 const backgrounds = [
@@ -75,19 +81,11 @@ export function LeaderTokenEditor({
                       title="Strength"
                       description="A whole number or one character. Leave blank to omit."
                       input={
-                        <TextInput
-                          aria-label="Strength"
-                          value={draft.strength === undefined ? '' : String(draft.strength)}
-                          onChange={(event) => {
-                            const value = event.currentTarget.value;
-                            if (!value) {
-                              patch({ strength: undefined });
-                            } else if (/^-?\d+$/u.test(value)) {
-                              patch({ strength: Number.parseInt(value, 10) });
-                            } else if (value.length === 1) {
-                              patch({ strength: value });
-                            }
-                          }}
+                        <LeaderStrengthInput
+                          value={draft.strength}
+                          refused={memory.refusedStrength}
+                          onRefusedChange={(refusedStrength) => remember({ refusedStrength })}
+                          onChange={(strength) => patch({ strength })}
                         />
                       }
                     />

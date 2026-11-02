@@ -31,6 +31,8 @@ export function FactionEditorFixture({ faction, errors }: { faction: Faction; er
         onBackgroundModeMemoryChange={authoring.setBackgroundModeMemory}
         retainedManualComplexity={authoring.retainedManualComplexity}
         onRetainedManualComplexityChange={authoring.setRetainedManualComplexity}
+        strengthRefusal={authoring.strengthRefusal}
+        onStrengthRefusalChange={authoring.setStrengthRefusal}
       />
     </Box>
   );

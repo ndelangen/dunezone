@@ -436,6 +436,21 @@ export const AssetRelatedFaqLoadMore = meta.story({
   },
 });
 
+/** The edit page says whether a game can start with the ruleset, by the table's own captures, and names what is left to fix. */
+export const EditPlayReadiness = meta.story({
+  args: { path: '/rulesets/classicrules/edit' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('heading', { name: 'Ready for Play' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(
+      page.findByText('Spice deck: A ruleset needs a non-empty spice deck.', {}, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    await expect(
+      page.getByText('A game cannot start with this ruleset yet. Fix the ruleset problems below.')
+    ).toBeVisible();
+  },
+});
+
 /** A slot change on the page checks again: removing the treachery deck stops a game at once. */
 export const EditPlayReadinessFollowsTheSlots = meta.story({
   args: { path: '/rulesets/classicrules/edit' },

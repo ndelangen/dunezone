@@ -139,6 +139,8 @@ function CreateFactionPage() {
             onBackgroundModeMemoryChange={authoring.setBackgroundModeMemory}
             retainedManualComplexity={authoring.retainedManualComplexity}
             onRetainedManualComplexityChange={authoring.setRetainedManualComplexity}
+            strengthRefusal={authoring.strengthRefusal}
+            onStrengthRefusalChange={authoring.setStrengthRefusal}
           />
         </PageLayout.Content>
       </PageLayout>

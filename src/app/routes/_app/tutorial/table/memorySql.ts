@@ -348,6 +348,37 @@ export class MemorySql {
 
   /** The storage object the Worker's classes take, answering only `sql` and its synchronous transactions. */
   storage(): DurableObjectStorage {
-    return { sql: this, transactionSync: <T>(closure: () => T) => closure() } as unknown as DurableObjectStorage;
+    return {
+      sql: this,
+      transactionSync: <T>(closure: () => T) => this.transaction(closure),
+    } as unknown as DurableObjectStorage;
+  }
+
+  /* A transaction that throws leaves every table as it found it, as SQLite rolls one back. */
+  private transaction<T>(closure: () => T): T {
+    const tables: unknown[][] = [
+      this.actors,
+      this.seats,
+      this.seatRequests,
+      this.removalVotes,
+      this.reviews,
+      this.history,
+      this.clocks,
+      this.places,
+      this.log,
+      this.seatHistory,
+    ];
+    const saved = structuredClone({ tables, logOffset: this.logOffset, historySeats: [...this.historySeats] });
+    try {
+      return closure();
+    } catch (error) {
+      tables.forEach((rows, index) => rows.splice(0, rows.length, ...saved.tables[index]!));
+      this.logOffset = saved.logOffset;
+      this.historySeats.clear();
+      for (const seat of saved.historySeats) {
+        this.historySeats.add(seat);
+      }
+      throw error;
+    }
   }
 }

@@ -62,6 +62,32 @@ describe('playReadiness', () => {
     });
   });
 
+  it('lists the problems in the order the ruleset editor shows the slots', async () => {
+    const slot = (name: string, type: 'deck' | 'bundle', key: string) => ({
+      slot: key,
+      asset: { id: name, slug: name, name, type },
+    });
+    const [ruleset] = await playReadiness(
+      catalogue({
+        rulesets: {
+          gf9: {
+            ruleset: { id: 'gf9', slug: 'gf9', name: 'GF9' },
+            board: arrakisBoardCapture,
+            slots: [slot('Extra cards', 'deck', 'custom'), slot('Gears', 'bundle', 'techToken')],
+          },
+        },
+      }),
+      { id: 'gf9', name: 'GF9' },
+      []
+    );
+    expect(ruleset?.problems.map((problem) => problem.subject)).toEqual([
+      'Treachery deck',
+      'Spice deck',
+      'Tech token bundle: Gears',
+      'Custom decks: Extra cards',
+    ]);
+  });
+
   it('turns a refused ruleset or faction into its one problem, so the rest is still judged', async () => {
     const report = await playReadiness(
       catalogue({ rulesets: { kiss: { ruleset: kiss, board: null, slots: [] } } }),

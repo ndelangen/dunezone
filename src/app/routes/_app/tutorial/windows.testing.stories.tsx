@@ -1,4 +1,4 @@
-import preview from '@sb/preview';
+import { testingPreview } from '@sb/preview';
 
 import { pageStoryMeta } from '../../storybookConfig';
 import { chapterGlobals, chapterParameters, playChapter } from './chapterStory';
@@ -8,7 +8,7 @@ import { chapterGlobals, chapterParameters, playChapter } from './chapterStory';
  * with the rail beside the table giving one task at a time. Its art comes from the recorded tutorial setup.
  */
 
-const meta = preview.meta({
+const meta = testingPreview.meta({
   ...pageStoryMeta,
   title: 'Tutorial/Windows',
   args: { path: '/tutorial/windows' },
