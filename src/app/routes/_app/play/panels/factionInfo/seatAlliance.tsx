@@ -35,6 +35,7 @@ export function seatAlliance(
     action: relation && (
       <AllianceRowAction
         relation={relation}
+        size="toolbar"
         disabled={!table.canInteract}
         onAction={(kind) => onAction(factionId, kind)}
       />

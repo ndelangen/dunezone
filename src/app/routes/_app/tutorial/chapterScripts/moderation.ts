@@ -20,7 +20,7 @@ const BALLOTS = [
 /* How long each player takes to vote, so the learner sees each ballot land. */
 const BALLOT_INTERVAL_MS = 1500;
 
-/* The quiet icon beside a player's name in their faction information; another player's window does not count. */
+/* The red icon in the toolbar under a player's name in their faction information; another player's window does not count. */
 const startButton = (seat: string | undefined) =>
   seat === undefined
     ? null
@@ -63,7 +63,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'start',
       task: 'Start a removal vote',
       detail:
-        'Press Start removal vote beside their name.\n\nThe other players will see the vote, and your Remove vote is counted automatically.',
+        'Press Start removal vote, the red icon under their name.\n\nThe other players will see the vote, and your Remove vote is counted automatically.',
       anchor: { kind: 'page', element: () => startButton(quietSeat()) },
       begin: () => undefined,
       done: () => vote() !== undefined,

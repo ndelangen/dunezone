@@ -1,7 +1,9 @@
-import { Button, Group, Text, Tooltip, VisuallyHidden } from '@mantine/core';
+import { Text, Tooltip, VisuallyHidden } from '@mantine/core';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import type { SwapAction, SwappingState } from '@shared/play/swapping';
+import { IconAction } from '@ui/control/IconAction';
+import { Armchair, ArrowLeftRight, Hourglass } from 'lucide-react';
 import { useId } from 'react';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
@@ -17,6 +19,8 @@ type Trading = Readonly<{
   seat: string;
   closed: boolean;
   disabled: boolean;
+  /* A seat command the viewer sent is still on its way, which also holds trades back. */
+  pending: boolean;
   send: (action: SwapAction) => unknown;
 }>;
 
@@ -31,19 +35,36 @@ function swappingState(table: TableProjection) {
   return table.snapshot.stage === 'swapping' ? table.snapshot.swapping : undefined;
 }
 
-/* Called only from the children that mount during swapping, so the clock ticks only while trading can run. */
-function useTrading({ client, table, state }: Swapping) {
-  const now = useServerNow();
-  const remaining = Math.max(0, Math.ceil((state.deadline - now) / 1000));
-  const closed = state.closed || remaining === 0;
-  const trading: Trading = {
+/* Seconds left in the round at the table's time in milliseconds. */
+function secondsLeft(state: SwappingState, now: number) {
+  return Math.max(0, Math.ceil((state.deadline - now) / 1000));
+}
+
+/* What the viewer can trade at the table's time in milliseconds. */
+function tradingAt(
+  table: TableProjection,
+  state: SwappingState,
+  now: number,
+  send: (action: SwapAction) => unknown
+): Trading {
+  const closed = state.closed || secondsLeft(state, now) === 0;
+  return {
     state,
     seat: table.viewer.viewerSeat,
     closed,
     disabled: !table.canInteract || table.seatCommandPending || closed,
-    send: (action) => client.command(action),
+    pending: table.seatCommandPending,
+    send,
   };
-  return { trading, remaining };
+}
+
+/* Called only from the children that mount during swapping, so the clock ticks only while trading can run. */
+function useTrading({ client, table, state }: Swapping) {
+  const now = useServerNow();
+  return {
+    trading: tradingAt(table, state, now, (action) => client.command(action)),
+    remaining: secondsLeft(state, now),
+  };
 }
 
 /** The header's Ready toggle while trading: the same toggle as in play, counting the players ready to start. */
@@ -111,56 +132,79 @@ function TradingClock(props: Swapping) {
   );
 }
 
+/** The seat's trade as one icon for the Faction info toolbar: offer, accept, withdraw, or move to an open seat. */
 export function SwappingSeat({ client, table, seat }: Props & { seat: string }) {
+  const now = useServerNow();
+  return seatTrade(table, seat, now, (action) => client.command(action));
+}
+
+/**
+ * The trade action that fits the seat as the viewer stands with it, at the table's time in milliseconds, or null outside trading.
+ * The viewer's own seat, an observer and a closed round get none.
+ */
+export function seatTrade(table: TableProjection, seat: string, now: number, send: (action: SwapAction) => unknown) {
   const state = swappingState(table);
   const entry = table.snapshot.roster?.seats.find((candidate) => candidate.id === seat);
-  return state && entry ? <Seat client={client} table={table} state={state} seat={seat} entry={entry} /> : null;
+  if (!state || !entry) {
+    return null;
+  }
+  const trading = tradingAt(table, state, now, send);
+  const player = table.snapshot.controls?.players.find((candidate) => candidate.seat === entry.id);
+  const label = (entry.faction && snapshotFactionLabels(table.snapshot)[entry.faction.id]) ?? entry.id;
+  return <SeatAction trading={trading} entry={entry} player={player} label={label} />;
 }
 
-function Seat({ seat, entry, ...props }: Swapping & Readonly<{ seat: string; entry: RosterSeat }>) {
-  const { trading } = useTrading(props);
-  const player = props.table.snapshot.controls?.players.find((candidate) => candidate.seat === seat);
-  return (
-    <Group gap="sm">
-      <Text size="sm" c="dimmed">
-        {!player ? 'Open seat' : trading.state.ready.includes(seat) ? 'Ready' : 'Not ready'}
-      </Text>
-      <SeatAction
-        trading={trading}
-        entry={entry}
-        player={player}
-        label={(entry.faction && snapshotFactionLabels(props.table.snapshot)[entry.faction.id]) ?? entry.id}
-      />
-    </Group>
-  );
-}
+const ICON = 17;
 
-function tradeChoice(state: SwappingState, seat: string, entry: RosterSeat, player: Player | undefined) {
+function tradeChoice(state: SwappingState, seat: string, entry: RosterSeat, player: Player | undefined, label: string) {
   const expected = { round: state.round, seat };
   const incoming = state.offers.find((offer) => offer.target === seat && offer.origin === entry.id);
   if (incoming) {
     return {
-      label: 'Accept trade',
-      prefix: 'Accept trade from',
+      label: `Accept trade from ${label}`,
+      tooltip: 'Accept their trade offer. You swap factions and seats.',
       action: { kind: 'swap-accept', ...expected, offerId: incoming.id } as const,
-      variant: 'filled',
-    };
+      icon: <ArrowLeftRight size={ICON} />,
+      intent: 'positive',
+    } as const;
   }
   const outgoing = state.offers.find((offer) => offer.origin === seat && offer.target === entry.id);
   if (outgoing) {
     return {
-      label: 'Cancel offer',
-      prefix: 'Cancel offer to',
+      label: `Cancel offer to ${label}`,
+      tooltip: 'Offering a trade. Click to withdraw the offer.',
       action: { kind: 'swap-cancel', ...expected, offerId: outgoing.id } as const,
-      variant: 'default',
-    };
+      icon: <Hourglass size={ICON} />,
+      pressed: true,
+    } as const;
   }
-  return {
-    label: player ? 'Offer trade' : 'Move here',
-    prefix: player ? 'Offer trade to' : 'Move to',
-    action: { kind: 'swap-offer', ...expected, target: entry.id } as const,
-    variant: 'default',
-  };
+  return player
+    ? ({
+        label: `Offer trade to ${label}`,
+        tooltip: 'Offer them a trade. You swap factions and seats once they accept.',
+        action: { kind: 'swap-offer', ...expected, target: entry.id } as const,
+        icon: <ArrowLeftRight size={ICON} />,
+      } as const)
+    : ({
+        label: `Move to ${label}`,
+        tooltip: 'Move to this open seat and take its faction.',
+        action: { kind: 'swap-offer', ...expected, target: entry.id } as const,
+        icon: <Armchair size={ICON} />,
+      } as const);
+}
+
+/* Why the trade cannot be sent right now, or undefined while it can. */
+function blockedReason(trading: Trading, ready: Readonly<{ own: boolean; theirs: boolean }>) {
+  if (trading.pending) {
+    return 'Waiting for the table to answer your last trade or seat request.';
+  }
+  if (trading.disabled) {
+    return 'Trades wait while the table reconnects.';
+  }
+  if (ready.own) {
+    return 'You are ready. Unready in the header to trade.';
+  }
+  return ready.theirs ? 'They are ready, so they take no trades.' : undefined;
 }
 
 function SeatAction({
@@ -169,28 +213,23 @@ function SeatAction({
   player,
   label,
 }: Readonly<{ trading: Trading; entry: RosterSeat; player: Player | undefined; label: string }>) {
-  const { state, seat, closed, disabled, send } = trading;
-  if (seat === entry.id) {
-    return (
-      <Text size="sm" c="dimmed">
-        Your seat
-      </Text>
-    );
-  }
-  if (seat === SPECTATOR_SEAT || closed) {
+  const { state, seat, closed, send } = trading;
+  if (seat === entry.id || seat === SPECTATOR_SEAT || closed) {
     return null;
   }
-  const choice = tradeChoice(state, seat, entry, player);
-  const ready = state.ready.includes(seat) || state.ready.includes(entry.id);
+  const choice = tradeChoice(state, seat, entry, player, label);
+  const blocked = blockedReason(trading, { own: state.ready.includes(seat), theirs: state.ready.includes(entry.id) });
   return (
-    <Button
-      size="xs"
-      variant={choice.variant}
-      disabled={disabled || ready}
-      aria-label={`${choice.prefix} ${label}`}
+    <IconAction
+      size="lg"
+      emphasis="standard"
+      intent={'intent' in choice ? choice.intent : 'neutral'}
+      pressed={'pressed' in choice ? choice.pressed : undefined}
+      label={choice.label}
+      tooltip={choice.tooltip}
+      icon={choice.icon}
+      disabledReason={blocked}
       onClick={() => send(choice.action)}
-    >
-      {choice.label}
-    </Button>
+    />
   );
 }

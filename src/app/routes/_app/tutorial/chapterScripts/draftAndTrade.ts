@@ -185,7 +185,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'offer',
       task: 'Offer a trade',
       get detail() {
-        return `You got ${dealt(snapshot)}! You have four minutes to agree on a trade, which swaps both factions and seats.\n\nWant to try? Click the ${partner(snapshot)} token below the table, then press Offer trade. They can choose whether to accept.`;
+        return `You got ${dealt(snapshot)}! You have four minutes to agree on a trade, which swaps both factions and seats.\n\nWant to try? Click the ${partner(snapshot)} token below the table, then press the Offer trade icon (two arrows) in its toolbar. They can choose whether to accept.`;
       },
       anchor: {
         kind: 'page',
@@ -200,7 +200,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'cancel',
       task: 'Cancel your offer',
       get detail() {
-        return `Changed your mind? Press Cancel offer in the same window to keep ${dealt(snapshot)}.`;
+        return `Changed your mind? Press the hourglass, Cancel offer, in the same window to keep ${dealt(snapshot)}.`;
       },
       anchor: { kind: 'page', element: element('button[aria-label^="Cancel offer to"]') },
       begin: () => undefined,

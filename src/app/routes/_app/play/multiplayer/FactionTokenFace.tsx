@@ -54,7 +54,7 @@ export function FactionTokenFace({
       ref={ref}
       src={token.src}
       size={size}
-      radius="xl"
+      radius="50%"
       alt=""
       style={{ border: `1px solid ${token.color ?? playUiColors.annotationGold}`, ...style }}
     >
