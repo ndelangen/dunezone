@@ -161,3 +161,17 @@ export const ObserverSeesTechTokens = meta.story({
     await expect(canvas.queryByRole('button')).toBeNull();
   },
 });
+
+/** The busiest the row gets in a pinned slot: three tech tokens and an open removal ballot. The actions wrap under the holdings rather than run out of the window. */
+export const CrowdedInASlot = meta.story({
+  args: toolbarArgs(withTechTokens(removalSnapshot(), { 'seat-1': ['heighliners', 'spice-production', 'customs'] })),
+  play: async ({ canvas, canvasElement }) => {
+    const toolbar = canvas.getByRole('toolbar', { name: 'Seat actions' });
+    const right = toolbar.getBoundingClientRect().right;
+    for (const element of canvasElement.querySelectorAll(
+      '[role="toolbar"] button, [role="toolbar"] [role="listitem"]'
+    )) {
+      await expect(element.getBoundingClientRect().right).toBeLessThanOrEqual(right + 0.5);
+    }
+  },
+});

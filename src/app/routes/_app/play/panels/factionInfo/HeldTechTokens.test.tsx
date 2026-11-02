@@ -56,3 +56,12 @@ test('a face-down token is named only as a tech token', () => {
   mounted(true, { back: HEIGHLINERS.back });
   expect(screen.getByRole('listitem', { name: 'Face-down tech token' })).toBeTruthy();
 });
+
+test('Alt over a face-down token shows its back larger, and nothing of its face', () => {
+  mounted(true, { back: HEIGHLINERS.back });
+  fireEvent.pointerEnter(screen.getByRole('listitem', { name: 'Face-down tech token' }));
+  fireEvent.keyDown(window, { key: 'Alt', altKey: true });
+  const closeUp = document.querySelector('[data-piece-close-up]');
+  expect(closeUp?.innerHTML).toContain(HEIGHLINERS.back);
+  expect(closeUp?.innerHTML).not.toContain(HEIGHLINERS.front);
+});

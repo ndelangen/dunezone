@@ -3,7 +3,7 @@ import type { TablePiece } from '@shared/play/model';
 import { useContext, useRef } from 'react';
 
 import { PieceArtwork } from '../../../../../widgets/tabletop/PieceArtwork';
-import { HandPieceCloseUp } from '../../../../../widgets/tabletop/PieceCloseUp';
+import { PieceFaceCloseUp } from '../../../../../widgets/tabletop/PieceCloseUp';
 import { CompassActiveContext } from '../../compass/controlsActive';
 import { useHandCloseUp } from '../../multiplayer/HandPiece';
 import { PieceTooltipLabel } from '../inventory/PieceTooltipLabel';
@@ -11,6 +11,12 @@ import styles from './HeldTechTokens.module.css';
 
 /** The allies' token size beside them in the toolbar, so a held tech token reads at the same weight. */
 const HELD_TECH_TOKEN_SIZE = 28;
+
+/* The face a held token shows everyone: its front while face up, its back once turned over. */
+function shownFace(piece: TablePiece) {
+  const item = piece.items[0];
+  return item?.faceUp ? item.artwork?.front : item?.artwork?.back;
+}
 
 /**
  * The tech tokens a faction holds, side by side as their gears, for everyone to see who holds which.
@@ -27,6 +33,7 @@ export function HeldTechTokens({
     <div ref={area} className={styles.tokens} role="list" aria-label="Tech tokens held">
       {tokens.map((piece) => {
         const item = piece.items[0];
+        const src = shownFace(piece);
         const name = item?.artwork?.name ?? piece.label;
         return (
           <Tooltip
@@ -38,18 +45,18 @@ export function HeldTechTokens({
             openDelay={250}
           >
             <span role="listitem" aria-label={name} className={styles.token} {...closeUp.hover(piece)}>
-              <PieceArtwork
-                piece={piece}
-                src={(item?.faceUp ? item.artwork?.front : item?.artwork?.back) ?? null}
-                name={name}
-                width={size}
-                height={size}
-              />
+              <PieceArtwork piece={piece} src={src ?? null} name={name} width={size} height={size} />
             </span>
           </Tooltip>
         );
       })}
-      {active && <HandPieceCloseUp area={area} piece={closeUp.piece} />}
+      {active && (
+        <PieceFaceCloseUp
+          area={area}
+          piece={closeUp.piece}
+          src={closeUp.piece ? shownFace(closeUp.piece) : undefined}
+        />
+      )}
     </div>
   );
 }

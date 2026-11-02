@@ -114,17 +114,25 @@ export function FactionInfoToolbar({
           />
         )}
       </div>
-      <div className={styles.edge}>
-        {techTokens}
-        {techTokens && allies && <span className={styles.gap} aria-hidden />}
-        {allies}
-        {alliance}
-        {trade}
-        {vote && (
-          <>
-            <span className={styles.gap} aria-hidden />
-            {vote}
-          </>
+      <div className={styles.seat}>
+        {(techTokens || allies) && (
+          <div className={styles.edge}>
+            {techTokens}
+            {techTokens && allies && <span className={styles.gap} aria-hidden />}
+            {allies}
+          </div>
+        )}
+        {(alliance || trade || vote) && (
+          <div className={styles.edge}>
+            {alliance}
+            {trade}
+            {vote && (
+              <>
+                <span className={styles.gap} aria-hidden />
+                {vote}
+              </>
+            )}
+          </div>
         )}
       </div>
     </div>
