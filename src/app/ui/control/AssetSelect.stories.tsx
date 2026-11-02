@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import { LEADERS } from '@shared/assetIds';
 import { resolveAsset } from '@shared/media/resolveAsset';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { expect, screen, within } from 'storybook/test';
@@ -64,5 +65,19 @@ export const MixedArtworkInDark = meta.story({
   play: async () => {
     const colorPreview = screen.getByRole('option', { name: 'Artillery Strike Multicolor' }).querySelector('img');
     await expect(colorPreview).toHaveStyle({ filter: 'none' });
+  },
+});
+
+/** Leader portraits read as the round tokens they become, in the field and in the grid. */
+export const DiscPreviews = meta.story({
+  args: {
+    'aria-label': 'Leader portrait',
+    w: 680,
+    maw: 'calc(100vw - 2rem)',
+    data: stockAssetOptions(LEADERS.options.slice(0, 14)),
+    getPreviewSrc: (value) => resolveAsset(value, 'small'),
+    value: LEADERS.options[0],
+    previewShape: 'disc',
+    dropdownOpened: true,
   },
 });
