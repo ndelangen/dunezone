@@ -47,6 +47,8 @@ export interface AssetSelectProps extends Omit<
   /** Monochrome glyphs invert in the dark scheme; full-color portraits keep their colors. */
   glyphPreviews?: boolean;
   previewSize?: number;
+  /** Leader portraits read as the round discs they become on the table; other artwork keeps its own outline. */
+  previewShape?: 'square' | 'disc';
   value: string | null;
   onChange?: (value: string | null, option: AssetSelectOption) => void;
   allowDeselect?: boolean;
@@ -97,6 +99,7 @@ export function AssetSelect({
   renderPreview,
   glyphPreviews = false,
   previewSize = 28,
+  previewShape = 'square',
   value,
   onChange,
   allowDeselect = true,
@@ -130,7 +133,14 @@ export function AssetSelect({
   const optionsByValue = new Map(data.map((option) => [option.value, option]));
   const isGlyph = (id: string) => optionsByValue.get(id)?.glyphPreview ?? glyphPreviews;
   const previewFor = (id: string, size: number) =>
-    artworkPreview({ value: id, size, getPreviewSrc, renderPreview, glyph: isGlyph(id) });
+    artworkPreview({
+      value: id,
+      size,
+      getPreviewSrc,
+      renderPreview,
+      glyph: isGlyph(id),
+      disc: previewShape === 'disc',
+    });
   const selectedPreview = value ? previewFor(value, previewSize) : null;
   const hoveredPreview = browse.hovered ? previewFor(browse.hovered, 144) : null;
   const groups = new Map<string, AssetSelectOption[]>();
@@ -423,7 +433,13 @@ function artworkPreview({
   getPreviewSrc,
   renderPreview,
   glyph,
-}: Pick<AssetSelectProps, 'getPreviewSrc' | 'renderPreview'> & { value: string; size: number; glyph: boolean }) {
+  disc,
+}: Pick<AssetSelectProps, 'getPreviewSrc' | 'renderPreview'> & {
+  value: string;
+  size: number;
+  glyph: boolean;
+  disc: boolean;
+}) {
   if (renderPreview) {
     return renderPreview(value, size);
   }
@@ -435,8 +451,8 @@ function artworkPreview({
       w={size}
       h={size}
       loading="lazy"
-      fit="contain"
-      className={clsx(styles.previewImg, glyph && styles.glyph)}
+      fit={disc ? 'cover' : 'contain'}
+      className={clsx(disc ? styles.disc : styles.previewImg, glyph && styles.glyph)}
     />
   ) : null;
 }

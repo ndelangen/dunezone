@@ -16,9 +16,15 @@ html[data-mantine-color-scheme="dark"] .glyph {
   opacity: 0.9;
 }
 
+.disc {
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+
 .optionGroup {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 6rem), 1fr));
+  /* Cells only just wider than the 72px previews, so a wide field shows more artwork per row instead of more gutter. */
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 5rem), 1fr));
   gap: var(--mantine-spacing-xs);
 }
 
@@ -28,6 +34,7 @@ html[data-mantine-color-scheme="dark"] .glyph {
 
 .option {
   min-width: 0;
+  padding: 4px;
   justify-content: center;
   border: 1px solid transparent;
 }
