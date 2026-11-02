@@ -7,6 +7,12 @@ import viteReact from '@vitejs/plugin-react';
 import type { PluginOption, UserConfig } from 'vite-plus';
 import { configDefaults, defineConfig } from 'vite-plus';
 
+import {
+  convexWorkerAliases,
+  convexWorkerBuildPlugins,
+  convexWorkerOptimizeDeps,
+  convexWorkerServePlugins,
+} from './.storybook/worker-async-transform.ts';
 import { browserLaunchTests } from './browser-launch-tests.ts';
 import { coverageExclude, coverageInclude } from './coverage-denominator.ts';
 import { browserBundleBudgets, THREE_BUILD } from './scripts/lib/browserBundleBudgets.ts';
@@ -36,6 +42,32 @@ const publicAssetFileName = ({ names }: { names: readonly string[] }) => {
  * A route no test renders never loads its chunk, so its component lines would drop out of the coverage denominator.
  * The reference-file plugin writes the lazy import, so the run fails when that name is not found.
  */
+/*
+ * A creator tutorial runs the site's own Convex functions over an in-memory database in a Web Worker, as page stories do (src/app/db/sandbox).
+ * That worker's code reads Node's AsyncLocalStorage, which resolves to the Zone.js slice in the browser only:
+ * the server build keeps Node's own, which TanStack Start needs.
+ */
+function sandboxAsyncHooksInBrowser(): PluginOption {
+  const slice = convexWorkerAliases['node:async_hooks'];
+  return {
+    name: 'dunezone:sandbox-async-hooks-in-browser',
+    enforce: 'pre',
+    resolveId(source) {
+      if (source === 'node:async_hooks' && this.environment.config.consumer === 'client') {
+        return slice;
+      }
+    },
+  };
+}
+
+/* The same worker lowers every async function it can run, in development; the worker build lowers them below. */
+function sandboxWorkerAsyncInDevelopment(): PluginOption {
+  return convexWorkerServePlugins().map((plugin) => ({
+    ...plugin,
+    applyToEnvironment: (environment: { config: { consumer: string } }) => environment.config.consumer === 'client',
+  }));
+}
+
 /*
  * The tutorial runs the game Worker's table in the browser, so in the client build that table's Node crypto imports
  * resolve to a Web Crypto slice. Nothing else is redirected: the server build and the tests keep Node's own.
@@ -141,8 +173,18 @@ const config = defineConfig({
     },
   },
   publicDir: 'public',
+  /* The sandbox worker's bundle, lowered and checked for native async, with no storage URL of a real deployment. */
+  worker: {
+    format: 'es',
+    plugins: () => [...convexWorkerBuildPlugins(), sandboxAsyncHooksInBrowser()],
+  },
   /* The dev server's prebundled fiber and drei run the same code as the build. */
-  optimizeDeps: { rolldownOptions: { plugins: [threeRendererStackTreeShaking()] } },
+  optimizeDeps: {
+    /* The sandbox worker's packages stay on the transform path that lowers their async functions. */
+    exclude: convexWorkerOptimizeDeps.exclude,
+    include: convexWorkerOptimizeDeps.include,
+    rolldownOptions: { plugins: [threeRendererStackTreeShaking()] },
+  },
   resolve: {
     tsconfigPaths: true,
     alias: [
@@ -163,6 +205,8 @@ const config = defineConfig({
     // devtools(),
     unsyncedMediaPreview(fileURLToPath(new URL('.', import.meta.url))),
     gameTableCryptoInBrowser(),
+    sandboxAsyncHooksInBrowser(),
+    sandboxWorkerAsyncInDevelopment(),
     tanstackStart({
       srcDirectory: './src/app',
       start: { entry: './routes/start.ts' },

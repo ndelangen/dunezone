@@ -48,6 +48,9 @@ const HOSTED_PLAY_CLOSURE: readonly string[] = [
   'scripts/lib/reactCompiler.ts',
   'scripts/lib/threeRendererStack.ts',
   'scripts/lib/unsyncedMediaPreview.ts',
+  /* The creator tutorials' practice copy: its worker's async lowering and Zone.js AsyncLocalStorage (ADR-0006). */
+  '.storybook/worker-async-transform.ts',
+  '.storybook/async-hooks.ts',
   'scripts/generate.ts',
   'scripts/generate-*',
   'scripts/lib/media-fetch.ts',
