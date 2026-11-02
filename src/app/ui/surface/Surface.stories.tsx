@@ -22,6 +22,11 @@ export const Borderless = meta.story({
   args: { withBorder: false },
 });
 
+/** Glass without the live blur, for a page of many panes: the grid shows through sharp instead of frosted. */
+export const Unblurred = meta.story({
+  args: { blur: false },
+});
+
 /** The play table's opaque ground: no artwork shows through, for a pane that is a step into the table, such as a ticket's stub. */
 export const Ground = meta.story({
   args: { tone: 'ground' },

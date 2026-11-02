@@ -44,6 +44,7 @@ const TRACKS: readonly { id: CatalogueTrack; label: string; to: LinkProps['to'] 
  * A tile: its picture first, then its number beside its title and goal (the prototype Norbert picked, layout A).
  * A tile not yet built keeps its picture in colour and says so in a chip where its minutes are, and opens nothing.
  * A built tile's title is a link that covers the whole tile, so the tile opens the tutorial and reads as one link.
+ * Tiles skip the glass blur: twenty-odd live blurs over the fixed starfield made the page stutter while scrolling (Norbert's report, 2026-11-02).
  */
 function CatalogueTileView({ tile, eager }: Readonly<{ tile: CatalogueTile; eager: boolean }>) {
   const titleId = useId();
@@ -58,6 +59,7 @@ function CatalogueTileView({ tile, eager }: Readonly<{ tile: CatalogueTile; eage
       <Surface
         as="article"
         padding="none"
+        blur={false}
         className={clsx(styles.tile, tile.link && styles.built)}
         aria-labelledby={titleId}
       >

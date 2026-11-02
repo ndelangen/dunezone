@@ -45,6 +45,11 @@ export interface SurfaceProps {
    * `ground` is the play table's opaque ground, for a pane that is a step into the table, such as a ticket's stub.
    */
   tone?: 'glass' | 'ground';
+  /**
+   * `false` keeps the translucent glass but drops the live blur behind it.
+   * For a page of many panes, such as a catalogue grid: each blurred pane is redrawn on every scroll frame as it slides over the fixed background, and twenty of them made scrolling and the band video stutter.
+   */
+  blur?: boolean;
   /** Semantic element. The pane is often a `section` or `article`, not a bare box. */
   as?: 'div' | 'section' | 'article' | 'aside';
   /**
@@ -85,6 +90,7 @@ export function Surface({
   padding = 'none',
   withBorder = true,
   tone = 'glass',
+  blur = true,
   as: Element = 'div',
   interactive = false,
   renderRoot,
@@ -106,6 +112,7 @@ export function Surface({
     styles.surface,
     !withBorder && styles.borderless,
     tone === 'ground' && styles.ground,
+    !blur && styles.unblurred,
     padding !== 'none' && styles[padding],
     interactive && styles.interactive,
     className

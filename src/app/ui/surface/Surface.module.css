@@ -20,6 +20,11 @@
   backdrop-filter: none;
 }
 
+/* Glass without the live blur, for pages with many panes (see the `blur` prop). */
+.unblurred {
+  backdrop-filter: none;
+}
+
 .sm {
   padding: var(--space-sm);
 }
