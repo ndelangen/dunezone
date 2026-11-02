@@ -5,7 +5,8 @@ import { Check } from 'lucide-react';
 import { useEffect, useId, useRef } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 
-import { useMotionAllowed } from '../../../styles/motion';
+import { useMotionAllowed } from '@app/styles/motion';
+
 import styles from './ChapterComplete.module.css';
 import { ChapterConfetti } from './ChapterConfetti';
 

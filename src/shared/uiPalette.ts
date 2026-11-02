@@ -298,6 +298,9 @@ export const cssRecipes = {
 } as const;
 
 /* Play furniture, interaction feedback, overlays and UI fallbacks. */
+/** The foil confetti's colours, shared by the table's celebration and the tutorial's chapter complete. */
+export const FOIL_COLORS = [coreColors.brass, coreColors.highlight, coreColors.text] as const;
+
 export const playUiColors = {
   black: coreColors.black,
   white: coreColors.white,

@@ -1,7 +1,8 @@
 import preview from '@sb/preview';
 import type { ReactNode } from 'react';
 
-import { ChapterComplete } from './ChapterComplete';
+import { ChapterComplete } from '@app/widgets/tutorial-guide/ChapterComplete';
+
 import { whatGoesWhere } from './chapterScripts/whatGoesWhere';
 
 /* A plain link stands in for the router's in a story. */

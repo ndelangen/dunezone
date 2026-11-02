@@ -6,13 +6,14 @@ import { stackTopHeight, TABLE_SURFACE_Y } from '@shared/play/tableGeometry';
 import { expect, fn, spyOn, userEvent, within } from 'storybook/test';
 import { Vector3 } from 'three';
 
+import { sceneTableLens } from '@app/widgets/tutorial-guide/tableLens';
+
 import { pageStoryMeta } from '../../storybookConfig';
 import { waitForPlayCamera } from '../play/mapView.stories.fixture';
 import { chapterGlobals, chapterParameters } from './chapterStory';
 import setup from './setup/setup.json';
 import { startAt } from './setup/tutorialSetup';
 import type { TutorialSetup } from './setup/tutorialSetup';
-import { sceneTableLens } from './tableLens';
 
 const spoken = fn<(utterance: SpeechSynthesisUtterance) => void>();
 const preference = 'dunezone-tutorial:speaking-mode';

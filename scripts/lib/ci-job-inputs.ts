@@ -33,6 +33,9 @@ export const EVERY_JOB: readonly string[] = [
   'scripts/lib/reactCompiler.ts',
   'scripts/lib/threeRendererStack.ts',
   'scripts/lib/unsyncedMediaPreview.ts',
+  /* The creator tutorials' practice copy: its worker's async lowering and Zone.js AsyncLocalStorage (ADR-0006). */
+  '.storybook/worker-async-transform.ts',
+  '.storybook/async-hooks.ts',
   'scripts/ci-job-key.ts',
   'scripts/lib/ci-job-inputs.ts',
   'scripts/lib/hosted-play-closure.ts',

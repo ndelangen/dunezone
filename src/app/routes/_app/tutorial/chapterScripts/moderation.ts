@@ -1,8 +1,9 @@
 import type { GameSnapshot } from '@shared/play/protocol';
 import { removalThreshold } from '@shared/play/removal';
 
+import type { GuideTask } from '@app/widgets/tutorial-guide/TutorialGuide';
+
 import { FACTION_INFO } from '../../play/compass/windows';
-import type { GuideTask } from '../TutorialGuide';
 import type { ChapterScript, TablePlayers } from './chapterScript';
 import { element, pressEnter, task } from './guideChecks';
 

@@ -20,8 +20,28 @@ class HoldingConvexClient extends ConvexReactClient {
 const convexUrl = import.meta.env.VITE_CONVEX_URL!;
 export const convex: ConvexReactClient = new HoldingConvexClient(convexUrl);
 
+/*
+ * A sandbox, such as a creator tutorial's in-memory database, answers in place of the deployment while it is open,
+ * so the loaders of the pages it shows read and write its rows, never the deployment's.
+ */
+type SandboxBackend = Pick<ConvexReactClient, 'query' | 'mutation' | 'action'>;
+let sandbox: SandboxBackend | null = null;
+
+/** Sends `db` to `backend` until the returned function is called. */
+export function enterSandbox(backend: SandboxBackend): () => void {
+  sandbox = backend;
+  return () => {
+    if (sandbox === backend) {
+      sandbox = null;
+    }
+  };
+}
+
 /** Server reads never share the browser's authenticated client or open a WebSocket. */
-function convexBackendForDb(): ConvexReactClient | ConvexHttpClient {
+function convexBackendForDb(): SandboxBackend | ConvexHttpClient {
+  if (sandbox) {
+    return sandbox;
+  }
   if (!import.meta.env.SSR) {
     return convex;
   }
@@ -43,6 +63,9 @@ export const db = {
     args: FunctionArgs<Query>,
     options?: { hold?: boolean }
   ): Promise<FunctionReturnType<Query>> => {
+    if (sandbox) {
+      return await sandbox.query(fn, args as never);
+    }
     if (import.meta.env.SSR) {
       const { getResponseHeader, setResponseHeader } = await import('@tanstack/react-start/server');
       const queries = Number(getResponseHeader('X-Public-Metadata-Queries') ?? 0);
