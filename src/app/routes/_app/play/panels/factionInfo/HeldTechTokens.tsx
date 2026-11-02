@@ -10,7 +10,7 @@ import { PieceTooltipLabel } from '../inventory/PieceTooltipLabel';
 import styles from './HeldTechTokens.module.css';
 
 /** The allies' token size beside them in the toolbar, so a held tech token reads at the same weight. */
-export const HELD_TECH_TOKEN_SIZE = 28;
+const HELD_TECH_TOKEN_SIZE = 28;
 
 /**
  * The tech tokens a faction holds, side by side as their gears, for everyone to see who holds which.
