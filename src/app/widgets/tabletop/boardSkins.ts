@@ -108,11 +108,10 @@ function gf9({ p, territoryEdge }: Site): Layer {
   };
 }
 
-/** A painted relief map: dunes that settle against the rock, rock plateaus behind lit cliffs, walled cities and a sunken sheet of cracked ice. */
-function fancy({ p, typeEdge, territoryEdge }: Site): Layer {
+/* Long dunes with sharp crests and small ripples, settling flat where the sand meets another terrain. */
+function fancySand({ p, typeEdge }: Site): Surface {
   const bent = warp(p, 0.7, 0.7);
   const across = dot(bent, vec2(0.83, 0.56));
-  /* Long dunes with sharp crests and small ripples over them; both settle flat where the sand meets another terrain. */
   const dune = float(1)
     .sub(abs(sin(across.mul(9))))
     .pow(1.5);
@@ -123,31 +122,41 @@ function fancy({ p, typeEdge, territoryEdge }: Site): Layer {
   /* Scree: stones shed from the cliffs lie on the sand at their foot. */
   const scree = smoothstep(0.25, 0.7, fbm(p.mul(48), 3)).mul(float(1).sub(smoothstep(0, 0.3, typeEdge)));
   const sandHeight = dune.mul(0.04).add(ripple.mul(0.003)).mul(open).add(scree.mul(0.004));
+  return {
+    shade: float(0.82).add(dune.mul(0.26).mul(open)).add(ripple.mul(0.05)).sub(scree.mul(0.25)),
+    height: sandHeight,
+  };
+}
 
-  /*
-   * Rock steps up from the sand in a low cliff onto a rough plateau. Ranges of sharp ridges wander along just inside
-   * its edges, their crests throwing spurs and gullies down both flanks; the widest plateaus carry a range inland too.
-   */
+/*
+ * Rock steps up from the sand in a low cliff onto a rough plateau. Ranges of sharp ridges wander along just inside
+ * its edges, their crests throwing spurs and gullies down both flanks; the widest plateaus carry a range inland too.
+ */
+function fancyRock({ p, typeEdge }: Site): Surface {
   const cliff = smoothstep(0, 0.06, typeEdge);
   const spineAt = fbm(p.mul(1.2), 2).mul(0.15).add(0.28);
   const range = max(
     float(1).sub(smoothstep(0, 0.45, abs(typeEdge.sub(spineAt)))),
     smoothstep(0.5, 0.9, typeEdge).mul(smoothstep(-0.2, 0.3, fbm(p.mul(0.9).add(vec2(7, 1)), 2)))
   ).mul(smoothstep(0.02, 0.1, typeEdge));
-  const crest = float(1).sub(abs(fbm(warp(p, 1.5, 0.2).mul(3.2), 5)));
-  const spurs = float(1).sub(abs(fbm(warp(p, 4, 0.05).mul(9), 3)));
+  /* Fractal noise can pass 1, so the ridges are clamped before the powers below (a negative base is NaN). */
+  const crest = float(1)
+    .sub(abs(fbm(warp(p, 1.5, 0.2).mul(3.2), 5)))
+    .max(0);
+  const spurs = float(1)
+    .sub(abs(fbm(warp(p, 4, 0.05).mul(9), 3)))
+    .max(0);
   const peaks = range.pow(1.3).mul(crest.pow(2.5).mul(0.75).add(spurs.pow(3).mul(0.25)));
   const rough = fbm(p.mul(30), 2);
   const rockHeight = cliff.mul(0.025).add(peaks.mul(0.14)).add(rough.mul(0.002));
+  return {
+    shade: float(0.66).add(peaks.mul(0.35)).add(rough.mul(0.05)).sub(float(1).sub(cliff).mul(0.15)),
+    height: rockHeight,
+  };
+}
 
-  /*
-   * A stronghold is a walled old town: its painted band stands as the wall, and inside it lie rectangular blocks
-   * of every size, each grid cell split once across and once along at random, packed along crooked lanes.
-   * Each quarter of the town turns its streets its own way and a few winding avenues cut through, so it never reads as a grid.
-   */
-  const bevel = smoothstep(0, 0.06, territoryEdge);
-  const wall = smoothstep(0.04, 0.08, territoryEdge).mul(float(1).sub(smoothstep(0.27, 0.33, territoryEdge)));
-  const inside = smoothstep(0.27, 0.32, territoryEdge);
+/** The town's lots: each cell of a grid turned per quarter, split once across and once along at random. */
+function townLots(p: V2) {
   const quarter = mx_cell_noise_float(floor(p.mul(2.5)))
     .mul(1.4)
     .sub(0.7);
@@ -168,8 +177,27 @@ function fancy({ p, typeEdge, territoryEdge }: Site): Layer {
   const right = mix(splitX, float(1), east);
   const bottom = splitY.mul(north);
   const top = mix(splitY, float(1), north);
-  const fromLane = min(min(within.x.sub(left), right.sub(within.x)), min(within.y.sub(bottom), top.sub(within.y)));
-  const plot = mx_cell_noise_float(lot.add(vec2(east.mul(17), north.mul(29).add(5))));
+  return {
+    within,
+    /* How far into its lot a point lies from the nearest lane, in cells. */
+    fromLane: min(min(within.x.sub(left), right.sub(within.x)), min(within.y.sub(bottom), top.sub(within.y))),
+    /* A random number per lot. */
+    plot: mx_cell_noise_float(lot.add(vec2(east.mul(17), north.mul(29).add(5)))),
+    centre: vec2(left.add(right).mul(0.5), bottom.add(top).mul(0.5)),
+    reach: min(right.sub(left), top.sub(bottom)).mul(0.4),
+  };
+}
+
+/*
+ * A stronghold is a walled old town: its painted band stands as the wall, and inside it lie rectangular blocks
+ * of every size, each grid cell split once across and once along at random, packed along crooked lanes.
+ * Each quarter of the town turns its streets its own way and a few winding avenues cut through, so it never reads as a grid.
+ */
+function fancyCity({ p, territoryEdge }: Site): Surface {
+  const bevel = smoothstep(0, 0.06, territoryEdge);
+  const wall = smoothstep(0.04, 0.08, territoryEdge).mul(float(1).sub(smoothstep(0.27, 0.33, territoryEdge)));
+  const inside = smoothstep(0.27, 0.32, territoryEdge);
+  const { within, fromLane, plot, centre, reach } = townLots(p);
   const avenue = float(1).sub(smoothstep(0.012, 0.03, abs(fbm(p.mul(1.6).add(vec2(2, 5)), 2))));
   /*
    * Desert houses: flat-roofed boxes of mud brick with a low parapet, a courtyard sunk into the larger ones,
@@ -182,8 +210,6 @@ function fancy({ p, typeEdge, territoryEdge }: Site): Layer {
   const courtyard = step(0.55, plot)
     .mul(step(plot, 0.75))
     .mul(smoothstep(0.2, 0.22, fromLane));
-  const centre = vec2(left.add(right).mul(0.5), bottom.add(top).mul(0.5));
-  const reach = min(right.sub(left), top.sub(bottom)).mul(0.4);
   const fromCentre = distance(within, centre).div(reach);
   const dome = step(0.92, plot).mul(
     float(1)
@@ -194,28 +220,25 @@ function fancy({ p, typeEdge, territoryEdge }: Site): Layer {
     .mul(storeys.add(parapet.mul(0.003)).sub(courtyard.mul(storeys).mul(0.8)))
     .add(dome.mul(0.02).mul(ground));
   const cityHeight = bevel.mul(0.012).add(wall.mul(0.01)).add(city);
+  return {
+    shade: float(0.62)
+      .add(bevel.mul(0.12))
+      .add(wall.mul(0.18))
+      .add(house.mul(plot.mul(0.16).add(0.1)).sub(courtyard.mul(house).mul(0.1)).sub(inside.mul(0.14))),
+    height: cityHeight,
+  };
+}
 
-  /* The Polar Sink lies a little lower than its shore, its ice broken into plates. */
+/* The Polar Sink lies a little lower than its shore, its ice broken into plates. */
+function fancyIce({ p, territoryEdge }: Site): Surface {
   const ice = smoothstep(0, 0.07, cellEdge(warp(p, 2, 0.1).mul(10), 1));
   const sunk = smoothstep(0, 0.3, territoryEdge);
-  return {
-    sand: {
-      shade: float(0.82).add(dune.mul(0.26).mul(open)).add(ripple.mul(0.05)).sub(scree.mul(0.25)),
-      height: sandHeight,
-    },
-    rock: {
-      shade: float(0.66).add(peaks.mul(0.35)).add(rough.mul(0.05)).sub(float(1).sub(cliff).mul(0.15)),
-      height: rockHeight,
-    },
-    stronghold: {
-      shade: float(0.62)
-        .add(bevel.mul(0.12))
-        .add(wall.mul(0.18))
-        .add(house.mul(plot.mul(0.16).add(0.1)).sub(courtyard.mul(house).mul(0.1)).sub(inside.mul(0.14))),
-      height: cityHeight,
-    },
-    polar: { shade: float(0.84).add(ice.mul(0.16)), height: ice.mul(0.003).sub(sunk.mul(0.012)) },
-  };
+  return { shade: float(0.84).add(ice.mul(0.16)), height: ice.mul(0.003).sub(sunk.mul(0.012)) };
+}
+
+/** A painted relief map: dunes that settle against the rock, rock plateaus behind ridged cliffs, desert towns and a sunken sheet of cracked ice. */
+function fancy(site: Site): Layer {
+  return { sand: fancySand(site), rock: fancyRock(site), stronghold: fancyCity(site), polar: fancyIce(site) };
 }
 
 /** The map treachery.online draws: SVG turbulence lit by a distant light, pillowy lumps over the sand and broad crags over the rock. */

@@ -71,6 +71,8 @@ export default function AuthoredBoard({ board }: { board: Board }) {
   });
   const polarPaint = useBoardSkinMaterial({
     geometry: polarSink,
+    /* The disc's geometry covers the Polar Sink too, so both paints read one bake. */
+    bakeGeometry: geometry,
     board,
     map: state.texture,
     vertexColors: !state.texture,

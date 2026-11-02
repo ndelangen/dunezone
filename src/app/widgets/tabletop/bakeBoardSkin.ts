@@ -1,8 +1,10 @@
+import type { Board } from '@shared/boards/schema';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
-import type { BufferGeometry, Camera, Material, Texture } from 'three';
+import type { BufferGeometry, Camera, Texture } from 'three';
 import { Color, LinearFilter, Mesh, OrthographicCamera, RenderTarget, Scene } from 'three';
 import type { WebGPURenderer } from 'three/webgpu';
 
+import { boardEdgeField } from './boardEdgeField';
 import { createBoardBakeMaterial } from './boardSkins';
 import type { BoardBakeOptions, BoardSkin } from './boardSkins';
 
@@ -15,7 +17,7 @@ import type { BoardBakeOptions, BoardSkin } from './boardSkins';
 const SIZE = 2048;
 const TILES = 8;
 
-export type BakedSkin = Readonly<{ texture: Texture; dispose: () => void }>;
+type BakedSkin = Readonly<{ texture: Texture; dispose: () => void }>;
 
 /** Resolves on the next animation frame, or rejects once the bake is no longer wanted. */
 function nextFrame(signal: AbortSignal): Promise<void> {
@@ -55,13 +57,20 @@ function drawInto(renderer: WebGPURenderer, target: RenderTarget, draw: () => vo
  * Bakes one skin over one board geometry, seen straight down with the board's far side (-z) at the top.
  * The texture is read at u = x / (2 × board radius) + 0.5 and v = 0.5 + z / (2 × board radius): three reads a render target top row first on every backend.
  */
-export async function bakeBoardSkin(
-  renderer: WebGPURenderer,
-  geometry: BufferGeometry,
-  skin: Exclude<BoardSkin, 'none'>,
-  options: BoardBakeOptions,
-  signal: AbortSignal
-): Promise<BakedSkin> {
+async function bakeBoardSkin({
+  renderer,
+  geometry,
+  skin,
+  options,
+  signal,
+}: Readonly<{
+  renderer: WebGPURenderer;
+  geometry: BufferGeometry;
+  skin: Exclude<BoardSkin, 'none'>;
+  options: BoardBakeOptions;
+  /** Aborts the bake between frames, when a newer look or an unmount has taken over. */
+  signal: AbortSignal;
+}>): Promise<BakedSkin> {
   const material = createBoardBakeMaterial(skin, options);
   const mesh = new Mesh(geometry, material);
   mesh.frustumCulled = false;
@@ -113,11 +122,78 @@ export async function bakeBoardSkin(
 /** Compiles a material for the table's scene and camera off the frame, so its first draw does not stall the table. */
 export async function warmMaterial(
   renderer: WebGPURenderer,
-  geometry: BufferGeometry,
-  material: Material,
-  scene: Scene,
-  camera: Camera
+  mesh: Mesh,
+  table: Readonly<{ scene: Scene; camera: Camera }>
 ): Promise<void> {
-  const mesh = new Mesh(geometry, material);
-  await renderer.compileAsync(mesh, camera, scene);
+  await renderer.compileAsync(mesh, table.camera, table.scene);
+}
+
+/** What a bake is drawn from: two meshes asking for the same source share one bake. */
+export type BakeSource = Readonly<{
+  skin: Exclude<BoardSkin, 'none'>;
+  geometry: BufferGeometry;
+  board: Board | null;
+  map: Texture | null;
+}>;
+
+/** A hold on a shared bake: the bake lives until its last holder lets go. */
+export type BakeLease = Readonly<{ baked: Promise<BakedSkin>; release: () => void }>;
+
+type SharedBake = {
+  renderer: WebGPURenderer;
+  source: BakeSource;
+  baked: Promise<BakedSkin>;
+  holders: number;
+  stop: AbortController;
+};
+
+const sharedBakes: SharedBake[] = [];
+
+const sameSource = (a: BakeSource, b: BakeSource) =>
+  a.skin === b.skin && a.geometry === b.geometry && a.board === b.board && a.map === b.map;
+
+/* Waits a frame first, so the CPU edge field (drawn once per board) stays apart from the click that chose the skin. */
+async function bakeAfterAFrame(renderer: WebGPURenderer, source: BakeSource, signal: AbortSignal): Promise<BakedSkin> {
+  await nextFrame(signal);
+  const edges = source.board ? boardEdgeField(source.board) : null;
+  return bakeBoardSkin({
+    renderer,
+    geometry: source.geometry,
+    skin: source.skin,
+    options: { map: source.map, edges },
+    signal,
+  });
+}
+
+/** Holds the bake for a source, starting it unless another holder already has; release it once no longer drawn. */
+export function leaseBake(renderer: WebGPURenderer, source: BakeSource): BakeLease {
+  let shared = sharedBakes.find((entry) => entry.renderer === renderer && sameSource(entry.source, source));
+  if (!shared) {
+    const stop = new AbortController();
+    shared = { renderer, source, baked: bakeAfterAFrame(renderer, source, stop.signal), holders: 0, stop };
+    sharedBakes.push(shared);
+  }
+  const held = shared;
+  held.holders++;
+  let released = false;
+  return {
+    baked: held.baked,
+    release: () => {
+      if (released) {
+        return;
+      }
+      released = true;
+      held.holders--;
+      if (held.holders === 0) {
+        sharedBakes.splice(sharedBakes.indexOf(held), 1);
+        held.stop.abort();
+        held.baked.then(
+          (baked) => baked.dispose(),
+          () => {
+            /* Stopped before it finished; the bake freed its own target. */
+          }
+        );
+      }
+    },
+  };
 }

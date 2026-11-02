@@ -359,20 +359,20 @@ function TablePanSpeedSlider() {
 }
 
 /* How this viewer's board draws its territory types; it stays in this browser and never reaches the game. */
-function BoardSkinSelect() {
+function BoardSkinItems() {
   const skin = useBoardSkin();
   return (
-    <Stack gap={4} px="sm" py="xs" miw={200}>
-      <Select
-        label="Board skin"
-        size="sm"
-        data={BOARD_SKINS.map((value) => ({ value, label: BOARD_SKIN_LABELS[value] }))}
-        value={skin}
-        onChange={(value) => value && setBoardSkin(value as BoardSkin)}
-        allowDeselect={false}
-        comboboxProps={{ withinPortal: false }}
-      />
-    </Stack>
+    <>
+      <Menu.Divider />
+      <Menu.Label>Board skin</Menu.Label>
+      <Menu.RadioGroup value={skin} onChange={(value) => setBoardSkin(value as BoardSkin)}>
+        {BOARD_SKINS.map((value) => (
+          <Menu.RadioItem key={value} value={value}>
+            {BOARD_SKIN_LABELS[value]}
+          </Menu.RadioItem>
+        ))}
+      </Menu.RadioGroup>
+    </>
   );
 }
 
@@ -443,7 +443,7 @@ export function GameMenu({
         <Menu.Divider />
         <TableLightingSlider />
         <TablePanSpeedSlider />
-        <BoardSkinSelect />
+        <BoardSkinItems />
         <PlanetShadingItem />
         <TableLabelItems />
         {table.snapshot.stage === 'play' && offersActions(table) && (
