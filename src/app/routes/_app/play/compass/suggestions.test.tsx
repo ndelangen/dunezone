@@ -158,6 +158,9 @@ test('Next phase is offered only while the table takes it', () => {
 test('the search switches this viewer’s board skin and planet shading, ranked below everything else until typed for', () => {
   const all = candidatesOf([], actions(null));
   expect(rankSuggestions(all, 'fancy').map((entry) => entry.label)).toContain('Board skin: Fancy');
+  expect(rankSuggestions(all, 'skin').map((entry) => entry.label)).toEqual(
+    expect.arrayContaining(['Board skin: Fancy', 'Planet shading: on', 'Planet shading: off'])
+  );
   expect(rankSuggestions(all, 'planet').map((entry) => entry.label)).toEqual([
     'Planet shading: on',
     'Planet shading: off',

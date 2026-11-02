@@ -209,7 +209,7 @@ function lookCandidates(close: () => void): Candidate[] {
       close();
       setPlanetShading(on);
     },
-    text: `planet shading shade ${on ? 'on' : 'off'}`,
+    text: `planet shading shade board skin ${on ? 'on' : 'off'}`,
     weight: -1,
   }));
   return [...skins, ...shading];
