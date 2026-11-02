@@ -71,7 +71,11 @@ type Key = Partial<Pick<KeyboardEvent, 'key' | 'code' | 'repeat' | 'metaKey' | '
 
 /* A key as the browser sends it: to the target, up through the document, where the hook hears it on the window. */
 function press(type: 'keydown' | 'keyup', key: Key, target: EventTarget = document.body) {
-  const event = new KeyboardEvent(type, { bubbles: true, cancelable: true, ...key });
+  const event = new KeyboardEvent(type, {
+    bubbles: true,
+    cancelable: true,
+    ...key,
+  });
   act(() => {
     target.dispatchEvent(event);
   });
@@ -112,25 +116,22 @@ test('Space held while the arrows steer opens what they point at when it is let 
   expect(onConfirm).toHaveBeenCalledTimes(1);
 });
 
-test('W, A, S and D steer as the arrows do while Space is held and nothing is typed, then they spell', () => {
-  page();
-  const { result } = compass();
+test('Letters typed while Space is still held go to the search, so a search for "Atreides" keeps its A, S and D', () => {
+  const { input } = page();
+  const { result, onConfirm } = compass();
   press('keydown', SPACE);
-  press('keydown', { key: 'a' });
-  expect(result.current.spot).toBe('hand');
-  press('keydown', { key: 'A' });
-  expect(result.current.spot).toBe('hidden');
-  press('keydown', { key: 'd' });
-  press('keydown', { key: 'w' });
-  expect(result.current.spot).toBe('battle');
-  press('keydown', { key: 's' });
-  expect(result.current.spot).toBe('hub');
-  act(() => result.current.setQuery('spi'));
-  expect(press('keydown', { key: 'd' }).defaultPrevented).toBe(false);
-  expect(result.current.spot).toBe('hub');
+  for (const key of ['a', 't', 'r', 'e', 'i', 'd', 'e', 's', 'w', 'A']) {
+    expect(press('keydown', { key }).defaultPrevented).toBe(false);
+    expect(result.current.spot).toBe('hub');
+  }
+  expect(document.activeElement).toBe(input);
+  /* Nothing was steered, so letting Space go leaves the compass open on the search. */
+  press('keyup', SPACE);
+  expect(result.current.open).toBe(true);
+  expect(onConfirm).not.toHaveBeenCalled();
 });
 
-test('On a compass Space only tapped open, W, A, S and D go to the search, so a search for "Shared" keeps its S', () => {
+test('On a compass Space only tapped open, every letter goes to the search, so a search for "Shared" keeps its S', () => {
   page();
   const { result } = compass();
   press('keydown', SPACE);
