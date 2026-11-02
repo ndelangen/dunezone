@@ -3,7 +3,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
-import { viewerPreference } from './viewerPreference';
+import { viewerChoice, viewerPreference } from './viewerPreference';
 
 const KEY = 'dunezone-test-preference';
 const bounds = { min: 0.5, max: 2, fallback: 1 };
@@ -35,5 +35,23 @@ describe('viewer preference', () => {
     localStorage.setItem(KEY, '2');
     window.dispatchEvent(new StorageEvent('storage', { key: KEY }));
     expect(preference.read()).toBe(2);
+  });
+});
+
+describe('viewer choice', () => {
+  beforeEach(() => localStorage.clear());
+
+  it('keeps a text choice through its codec and falls back on anything unknown', () => {
+    const codec = {
+      parse: (stored: string | null) => stored === 'on',
+      serialize: (on: boolean) => (on ? 'on' : 'off'),
+      fallback: false,
+    };
+    localStorage.setItem('dunezone-test-choice', 'garbage');
+    const choice = viewerChoice('dunezone-test-choice', codec);
+    expect(choice.read()).toBe(false);
+    choice.set(true);
+    expect(localStorage.getItem('dunezone-test-choice')).toBe('on');
+    expect(viewerChoice('dunezone-test-choice', codec).read()).toBe(true);
   });
 });
