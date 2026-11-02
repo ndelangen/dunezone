@@ -2,6 +2,7 @@ import { api } from '../../convex/_generated/api';
 import { CatalogueCapture } from '../../src/shared/play/catalogueCapture';
 import type { DraftFaction } from '../../src/shared/play/drafting';
 import { playDraftableFactionsSchema } from '../../src/shared/play/drafting';
+import { readRenamedEmblems } from '../../src/shared/renamedEmblem';
 import { gameHttpClient } from './gameHttpClient';
 import type { ConvexObserver } from './gameHttpClient';
 
@@ -16,8 +17,9 @@ export class GameCatalogue extends CatalogueCapture {
     super(
       {
         rulesetSupply: async (rulesetId) => await client().query(api.playCatalogue.rulesetSupply, { rulesetId }),
+        /* A Convex one release ahead answers under the emblem rename's names (see `readRenamedEmblems`). */
         factionDefinition: async (factionId) =>
-          await client().query(api.playCatalogue.factionDefinition, { factionId }),
+          readRenamedEmblems(await client().query(api.playCatalogue.factionDefinition, { factionId })),
         assetSupply: async (selection) => await client().query(api.playCatalogue.assetSupply, selection),
       },
       applicationOrigin
@@ -29,6 +31,6 @@ export class GameCatalogue extends CatalogueCapture {
     const raw: unknown = await gameHttpClient(this.convexUrl, this.observe).query(api.playCatalogue.draftableFactions, {
       rulesetId,
     });
-    return playDraftableFactionsSchema.parse(raw).factions;
+    return playDraftableFactionsSchema.parse(readRenamedEmblems(raw)).factions;
   }
 }
