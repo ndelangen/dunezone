@@ -714,10 +714,12 @@ export function GameTable({
           </div>
           {phaseTurns}
         </div>
-        <div className="seated-chip seated-chip--game" data-hides-cursor>
+        <div className="seated-chip seated-chip--bare" data-hides-cursor>
           {alliances}
         </div>
-        {techTokens}
+        <div className="seated-chip seated-chip--bare" data-hides-cursor>
+          {techTokens}
+        </div>
       </div>
 
       <div className="seated-connection" data-hides-cursor>

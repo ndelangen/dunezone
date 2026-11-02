@@ -38,7 +38,7 @@ export function AllianceStrip({ table }: Readonly<{ table: TableProjection }>) {
       style={{ flex: '0 1 auto', minWidth: 0, overflowX: 'auto', overflowY: 'hidden', scrollbarWidth: 'thin' }}
     >
       {groups.map(({ members: group }) => {
-        const label = `${factionList(names, group)} are allied`;
+        const label = `${factionList(names, group)} are in an alliance`;
         return (
           <Tooltip key={group.join(':')} label={label} withinPortal>
             <Group gap={0} wrap="nowrap" role="img" aria-label={label} style={allianceStripPill}>

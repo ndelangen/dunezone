@@ -27,14 +27,7 @@ export function TechTokenStrip({ table }: Readonly<{ table: TableProjection }>) 
       wrap="nowrap"
       role="group"
       aria-label="Tech tokens"
-      data-hides-cursor
-      style={{
-        maxWidth: '100%',
-        overflowX: 'auto',
-        overflowY: 'hidden',
-        scrollbarWidth: 'thin',
-        pointerEvents: 'auto',
-      }}
+      style={{ flex: '0 1 auto', minWidth: 0, overflowX: 'auto', overflowY: 'hidden', scrollbarWidth: 'thin' }}
     >
       {factions.map((factionId) => {
         const token = factionToken(table, factionId, names);
