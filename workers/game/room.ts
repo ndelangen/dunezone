@@ -76,7 +76,7 @@ import { concealCards, deckCommand } from './decks';
 import { dealFixtureDeck } from './fixture';
 import { lastTurnCommand } from './lastTurn';
 import { isMovementAction, movementAfterTable, movementCommand } from './movement';
-import { closeLostPeeks, forgetPeekers, peekCommand } from './peeks';
+import { closeLostPeeks, closePeeksForNewPhase, peekCommand } from './peeks';
 import { setupCommand, gatherTraitors } from './setup-progress';
 import { storedSnapshotSchema } from './state';
 import type { StoredSnapshot } from './state';
@@ -685,12 +685,12 @@ export class Room {
 
   command(identity: Identity, action: RoomAction, expectedRevision: number, now = Date.now()): StoredSnapshot {
     const next = this.applyCommand(identity, action, expectedRevision, now);
-    /* A new phase forgets who peeked at what, and closes every peek; setup holds the phase still, so each setup step and the start of play count too. */
+    /* A new phase closes every peek, while the table keeps who peeked at what; setup holds the phase still, so each setup step and the start of play count too. */
     const moved =
       next.phase !== this.snapshot.phase ||
       next.stage !== this.snapshot.stage ||
       next.setup?.index !== this.snapshot.setup?.index;
-    return moved ? forgetPeekers(next) : next;
+    return moved ? closePeeksForNewPhase(next) : next;
   }
 
   private applyCommand(identity: Identity, action: RoomAction, expectedRevision: number, now: number): StoredSnapshot {

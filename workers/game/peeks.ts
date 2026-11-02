@@ -234,18 +234,13 @@ function withoutPeekers(piece: StoredPiece): StoredPiece {
     : piece;
 }
 
-/** Every card and token, on the table and in hand, forgets who peeked at it, and every peek closes with it; a piece that changes takes the snapshot's revision. */
-export function forgetPeekers(snapshot: StoredSnapshot): StoredSnapshot {
-  const versions = { ...snapshot.versions };
-  const pieces = snapshot.table.pieces.map((piece) => {
-    const forgotten = withoutPeekers(piece);
-    if (forgotten !== piece) {
-      versions[piece.id] = snapshot.revision;
-    }
-    return forgotten;
-  });
+/**
+ * A new phase closes every peek, and every hand forgets who peeked at its cards.
+ * The table keeps its marks: a faction's token stays on a card or deck it peeked at until that card is drawn or the deck shuffled.
+ */
+export function closePeeksForNewPhase(snapshot: StoredSnapshot): StoredSnapshot {
   const factionInventories = Object.fromEntries(
     Object.entries(snapshot.factionInventories).map(([id, hand]) => [id, hand.map(withoutPeekers)])
   );
-  return { ...snapshot, table: { ...snapshot.table, pieces }, versions, factionInventories, peeks: {} };
+  return { ...snapshot, factionInventories, peeks: {} };
 }

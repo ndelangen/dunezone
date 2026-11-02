@@ -72,6 +72,8 @@ import { useMotionAllowed } from '@app/styles/motion';
 import { tableCardFaceKey } from './cardFaceTexture';
 import { ignoreRaycast } from './ignoreRaycast';
 import { MapPreviewCamera } from './MapPreviewCamera';
+import { peekMarkerList } from './peekMarkers';
+import { PeekMarkers } from './PeekMarkerTokens';
 import { PieceArrival } from './PieceArrival';
 import { topFaceHref } from './pieceFaceHref';
 import { pieceHasMenu } from './pieceMenu';
@@ -619,6 +621,8 @@ export type PieceSceneState = {
   owner: string | undefined;
   /* Who peeked at the piece, as its tag says it under the name. */
   peeked: string | undefined;
+  /* The peekers' tokens a card or deck carries in its corner, as the table shows them. */
+  peekMarkers: readonly TablePiece[];
 };
 
 type TablePieceMeshProps = { piece: TablePiece; showLabels?: boolean; arrivalDelay?: number } & PieceSceneState;
@@ -654,6 +658,7 @@ function pieceSceneState(
     carrying: Boolean(state.draftMove),
     owner: pieceOwnerName(piece, state),
     peeked: peekedLine(piece, state),
+    peekMarkers: peekMarkerList(piece, state.pieces),
   };
 }
 
@@ -1013,6 +1018,7 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
     stackTargeted,
     owner,
     peeked,
+    peekMarkers,
   } = props;
   const { finishPieceFlip } = useTabletopActions();
   const pointerEvents = usePiecePointerEvents(props);
@@ -1092,6 +1098,7 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
               </group>
             </group>
             <PieceLock piece={piece} />
+            <PeekMarkers piece={piece} tokens={peekMarkers} Token={TroopStackLayers} />
             {props.showLabels !== false && (
               <Suspense fallback={null}>
                 <PieceBadge
