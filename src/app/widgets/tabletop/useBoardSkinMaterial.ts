@@ -1,22 +1,15 @@
-import { useThree } from "@react-three/fiber/webgpu";
-import type { Board } from "@shared/boards/schema";
-import {
-  createContext,
-  use,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
-import { Mesh } from "three";
-import type { BufferGeometry, Camera, Material, Scene, Texture } from "three";
-import type { WebGPURenderer } from "three/webgpu";
+import { useThree } from '@react-three/fiber/webgpu';
+import type { Board } from '@shared/boards/schema';
+import { createContext, use, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Mesh } from 'three';
+import type { BufferGeometry, Camera, Material, Scene, Texture } from 'three';
+import type { WebGPURenderer } from 'three/webgpu';
 
-import { leaseBake, warmMaterial } from "./bakeBoardSkin";
-import type { BakeLease } from "./bakeBoardSkin";
-import { useBoardSkin, usePlanetShading } from "./boardSkinPreference";
-import { createBoardPaintMaterial } from "./boardSkins";
-import type { BoardSkin } from "./boardSkins";
+import { leaseBake, warmMaterial } from './bakeBoardSkin';
+import type { BakeLease } from './bakeBoardSkin';
+import { useBoardSkin, usePlanetShading } from './boardSkinPreference';
+import { createBoardPaintMaterial } from './boardSkins';
+import type { BoardSkin } from './boardSkins';
 
 /** A look that wins over the viewer's own choice, for stories and previews that show one look. */
 export const BoardSkinOverride = createContext<{
@@ -49,46 +42,42 @@ type Table = Readonly<{
   camera: Camera;
 }>;
 
+/** Leases the bake a look reads, or none for the plain paint. */
+const leaseFor = (renderer: WebGPURenderer, skin: BoardSkin, paint: PaintOptions): BakeLease | null =>
+  skin === 'none'
+    ? null
+    : leaseBake(renderer, { skin, geometry: paint.bakeGeometry, board: paint.board, map: paint.map });
+
+/** The paint material over a bake (or none), compiled for the table off the frame. */
+async function warmPaint(table: Table, paint: PaintOptions, baked: Texture | null, planet: boolean): Promise<Material> {
+  const { geometry, map, vertexColors, polygonOffset } = paint;
+  const material = createBoardPaintMaterial({ vertexColors, polygonOffset, map, baked, planet });
+  const mesh = new Mesh(geometry, material);
+  /* The board meshes receive shadows, and three keys its compiled variants on that. */
+  mesh.receiveShadow = true;
+  await warmMaterial(table.renderer, mesh, table).catch(() => {
+    /* Compiling ahead is only a head start; the first draw compiles whatever is left. */
+  });
+  return material;
+}
+
 /** Bakes the look and compiles its material off the frame; null when a newer look took over first. */
 async function prepareLook(
   table: Table,
   look: Readonly<{ skin: BoardSkin; planet: boolean }>,
   paint: PaintOptions,
-  signal: AbortSignal,
+  signal: AbortSignal
 ): Promise<Shown | null> {
-  const { renderer, scene, camera } = table;
-  const { geometry, bakeGeometry, board, map, vertexColors, polygonOffset } =
-    paint;
-  const lease =
-    look.skin === "none"
-      ? null
-      : leaseBake(renderer, {
-          skin: look.skin,
-          geometry: bakeGeometry,
-          board,
-          map,
-        });
+  const lease = leaseFor(table.renderer, look.skin, paint);
   try {
-    const baked = lease ? await lease.baked : null;
-    const material = createBoardPaintMaterial({
-      vertexColors,
-      polygonOffset,
-      map,
-      baked: baked?.texture ?? null,
-      planet: look.planet,
-    });
-    const mesh = new Mesh(geometry, material);
-    /* The board meshes receive shadows, and three keys its compiled variants on that. */
-    mesh.receiveShadow = true;
-    await warmMaterial(renderer, mesh, { scene, camera }).catch(() => {
-      /* Compiling ahead is only a head start; the first draw compiles whatever is left. */
-    });
-    if (signal.aborted) {
-      material.dispose();
-      lease?.release();
-      return null;
+    const baked = lease ? (await lease.baked).texture : null;
+    const material = await warmPaint(table, paint, baked, look.planet);
+    if (!signal.aborted) {
+      return { material, lease };
     }
-    return { material, lease };
+    material.dispose();
+    lease?.release();
+    return null;
   } catch (error) {
     lease?.release();
     throw error;
@@ -117,11 +106,23 @@ function useShownLook(initial: () => Shown, invalidate: () => void) {
       current.current.material.dispose();
       current.current.lease?.release();
     },
-    [],
+    []
   );
 
   return [shown, setShown] as const;
 }
+
+type BoardSkinMaterialProps = Readonly<{
+  /** The mesh's own geometry. */
+  geometry: BufferGeometry;
+  /** The geometry the skin is baked over: the mesh's own, or a larger one covering it, so meshes can share one bake. */
+  bakeGeometry?: BufferGeometry;
+  /** The board definition the patterns follow; the legacy map has none, so its patterns ignore borders. */
+  board?: Board | null;
+  map?: Texture | null;
+  vertexColors: boolean;
+  polygonOffset?: boolean;
+}>;
 
 /**
  * The board paint's material in the active look.
@@ -136,21 +137,9 @@ export function useBoardSkinMaterial({
   map = null,
   vertexColors,
   polygonOffset = false,
-}: {
-  /** The mesh's own geometry. */
-  geometry: BufferGeometry;
-  /** The geometry the skin is baked over: the mesh's own, or a larger one covering it, so meshes can share one bake. */
-  bakeGeometry?: BufferGeometry;
-  /** The board definition the patterns follow; the legacy map has none, so its patterns ignore borders. */
-  board?: Board | null;
-  map?: Texture | null;
-  vertexColors: boolean;
-  polygonOffset?: boolean;
-}) {
+}: BoardSkinMaterialProps) {
   const { skin, planet } = useActiveBoardLook();
-  const renderer = useThree(
-    (state) => state.renderer,
-  ) as unknown as WebGPURenderer;
+  const renderer = useThree((state) => state.renderer) as unknown as WebGPURenderer;
   const scene = useThree((state) => state.scene);
   const camera = useThree((state) => state.camera);
   const invalidate = useThree((state) => state.invalidate);
@@ -165,7 +154,7 @@ export function useBoardSkinMaterial({
       }),
       lease: null,
     }),
-    invalidate,
+    invalidate
   );
 
   useEffect(() => {
@@ -178,19 +167,14 @@ export function useBoardSkinMaterial({
       vertexColors,
       polygonOffset,
     };
-    prepareLook(
-      { renderer, scene, camera },
-      { skin, planet },
-      paint,
-      controller.signal,
-    ).then(
+    prepareLook({ renderer, scene, camera }, { skin, planet }, paint, controller.signal).then(
       (next) => next && setShown(next),
       (error: unknown) => {
         if (!controller.signal.aborted) {
           /* The board keeps its current look; say why the new one never came. */
-          console.error("The board skin could not be prepared", error);
+          console.error('The board skin could not be prepared', error);
         }
-      },
+      }
     );
     return () => controller.abort();
   }, [
