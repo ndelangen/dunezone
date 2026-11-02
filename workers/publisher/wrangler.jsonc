@@ -8,7 +8,7 @@
   "workers_dev": true,
   "preview_urls": false,
   "routes": [{ "pattern": "dune.zone", "custom_domain": true }],
-  "upload_source_maps": true,
+  "upload_source_maps": false,
   "alias": {
     "rulebook-html-renderer-runtime": "./runtime-generated/rulebook-html-renderer.mjs",
     "application-ssr-runtime": "../../dist/server/server.js"
