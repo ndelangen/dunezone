@@ -147,6 +147,7 @@ function ArtworkFields({
             aria-label="Leader portrait"
             allowDeselect={false}
             data={portraits}
+            previewShape="disc"
             getPreviewSrc={(image) => resolveAsset(image, 'small')}
             value={draft.image}
             onChange={(image) => {

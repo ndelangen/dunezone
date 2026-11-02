@@ -16,9 +16,15 @@ html[data-mantine-color-scheme="dark"] .glyph {
   opacity: 0.9;
 }
 
+.disc {
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+
 .optionGroup {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 6rem), 1fr));
+  /* The smallest cell that holds a 72px preview inside the option's 3px padding and 1px border, so a wide field shows more artwork per row instead of more gutter. */
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 5rem), 1fr));
   gap: var(--mantine-spacing-xs);
 }
 
@@ -28,6 +34,7 @@ html[data-mantine-color-scheme="dark"] .glyph {
 
 .option {
   min-width: 0;
+  padding: 3px;
   justify-content: center;
   border: 1px solid transparent;
 }
@@ -40,19 +47,13 @@ html[data-mantine-color-scheme="dark"] .glyph {
   width: 100%;
 }
 
-.filterButton {
-  width: 100%;
+/* A square slot as tall as the field inside its border, so the centred tile keeps the same inset from the top, bottom and right edges. */
+.filterSlot {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
   height: 100%;
-  border-radius: 0;
-  border-left: 1px solid var(--mantine-color-default-border);
-}
-
-.activeDot {
-  position: absolute;
-  top: 0.3rem;
-  right: 0.3rem;
-  width: 0.3rem;
-  height: 0.3rem;
-  border-radius: 50%;
-  background: var(--mantine-color-selected-filled);
+  aspect-ratio: 1;
+  margin-inline-start: auto;
 }

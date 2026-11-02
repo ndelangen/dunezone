@@ -119,6 +119,7 @@ function SupportingLeaderCard({
                           aria-label="Leader portrait"
                           allowDeselect={false}
                           data={leaderImageOptions}
+                          previewShape="disc"
                           getPreviewSrc={assetOptionToPreviewSrc}
                           value={field.state.value}
                           onChange={(value) => {
