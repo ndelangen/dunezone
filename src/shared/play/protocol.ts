@@ -49,6 +49,7 @@ import { seatPassSchema } from './seatPass';
 import { setupActionSchema, setupStateSchema, predictionsSchema } from './setup';
 import { spiceReserveActionSchema, spiceReserveSchema, spiceTransferSchema } from './spiceReserve';
 import { swapActionSchema, swappingStateSchema } from './swapping';
+import { heldTechTokenSchema } from './techToken';
 import { territoryTintActionSchema, territoryTintsSchema } from './territoryTints';
 
 const factionArtworkSchema = z.record(
@@ -118,6 +119,8 @@ export const gameSnapshotSchema = z.object({
   handOrder: z.array(z.string()).optional(),
   /* How many Treachery cards each seated faction holds, by faction id: public, as the rules make the count of a hand public. */
   handCounts: z.record(z.string(), count).optional(),
+  /* The tech tokens each seated faction holds, by faction id: public, so everyone sees who holds which. A faction holding none is left out. */
+  techTokens: z.record(z.string(), z.array(heldTechTokenSchema)).optional(),
   /* The piece the viewer's faction is peeking at, faces showing; no other viewer's frame carries it. */
   peek: peekSchema.nullable().optional(),
   factionArtwork: factionArtworkSchema.optional(),

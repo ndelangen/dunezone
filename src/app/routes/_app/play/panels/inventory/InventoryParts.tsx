@@ -1,7 +1,6 @@
 import { Group, Stack, Text, Tooltip } from '@mantine/core';
 import type { PublicControls } from '@shared/play/inventory';
 import type { TablePiece } from '@shared/play/model';
-import { FormattedTextSource } from '@ui/content/FormattedText';
 import { IconAction } from '@ui/control/IconAction';
 import { TooltipTarget } from '@ui/control/TooltipTarget';
 import { Check, Dices, Plus, X } from 'lucide-react';
@@ -12,30 +11,11 @@ import { SpawnAssetPicker } from '@app/pickers/SpawnAssetPicker';
 
 import type { TableSession } from '../../../../../db/tabletop/TableSession';
 import { PieceArtwork } from '../../../../../widgets/tabletop/PieceArtwork';
-import { pieceName } from '../../multiplayer/HandPiece';
 import { publicControlsOf } from '../../multiplayer/publicControls';
 import { offersActions } from '../../multiplayer/tableFactions';
 import styles from './Inventory.module.css';
+import { inventoryName, PieceTooltipLabel } from './PieceTooltipLabel';
 import type { SharedInventory, SharedInventoryProps } from './useSharedInventory';
-
-/** What a piece is called where the inventory names it: a token by its own name, a card stack by its label, which never names a hidden face. */
-function inventoryName(piece: TablePiece): string {
-  return piece.kind === 'card' ? piece.label : pieceName(piece);
-}
-
-/** A piece's tooltip: its name and count, and for a tech token what it does, as its author described it on the asset; both read the top item, the one its face shows. */
-function PieceTooltipLabel({ piece }: Readonly<{ piece: TablePiece }>) {
-  const description = piece.items.at(-1)?.artwork?.description;
-  return (
-    <Stack gap={4}>
-      <Text size="sm" fw={700}>
-        {inventoryName(piece)}
-        {piece.items.length > 1 ? ` × ${piece.items.length}` : ''}
-      </Text>
-      {description && <FormattedTextSource source={description} size="sm" />}
-    </Stack>
-  );
-}
 
 /**
  * One piece of the inventory at the size a layout asks for: drag it onto the table, Shift-drag to take only its top item.

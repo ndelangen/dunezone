@@ -177,6 +177,14 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
   pointer-events: auto;
 }
 
+/* The alliances and the held tech tokens are pills of their own, so their chips draw no surface around them. */
+:where(.dune-play-shell) .seated-chip--bare {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  backdrop-filter: none;
+}
+
 /* A chip with nothing in it (no game name, no alliances) takes no room. */
 :where(.dune-play-shell) .seated-chip:empty {
   display: none;

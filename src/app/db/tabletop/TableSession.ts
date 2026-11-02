@@ -1,5 +1,4 @@
 import { tableHandlingOpen } from '@shared/play/admission';
-import { isBattleLeader } from '@shared/play/battle';
 import type { BattlePlanInput } from '@shared/play/battle';
 import type { CardDraw } from '@shared/play/cardDraw';
 import { foldedTurns, rotatedPiece } from '@shared/play/commands';
@@ -34,6 +33,7 @@ import {
   projectCarryAtPosition,
   renderedPiecesFor,
 } from '@shared/play/tableState';
+import { takeableIntoHand } from '@shared/play/techToken';
 
 import { BattleQueue } from './BattleQueue';
 import { ConversationSession } from './ConversationSession';
@@ -94,13 +94,6 @@ type LocalCarry = {
   /* A resync completed the drop before the tab holds its snapshot, so the draft keeps the piece where it landed until the fresh view. */
   landed?: true;
 };
-/** What the hand takes from the table: one loose, unlocked card or battle leader, not something already in an inventory. */
-function takeableIntoHand(piece: TablePiece) {
-  return (
-    !piece.inventory && !piece.locked && piece.items.length === 1 && (piece.kind === 'card' || isBattleLeader(piece))
-  );
-}
-
 /* Each faction a deck can deal to, with its token art for the deal ring. */
 function dealRecipients(snapshot: GameSnapshot) {
   const artwork = snapshot.factionArtwork ?? {};

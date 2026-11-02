@@ -160,7 +160,7 @@ function InteractiveHand({ actions }: Readonly<{ actions: HandActions }>) {
         ))}
         {!actions.groups.length && (
           <Text size="sm" c="dimmed">
-            Your hand is empty. Right-click a card or leader on the table and choose Take into hand.
+            Your hand is empty. Right-click a card, leader or tech token on the table and choose Take into hand.
           </Text>
         )}
       </div>

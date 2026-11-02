@@ -60,7 +60,7 @@ export const FinishedReadOnly = meta.story({
   }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(await page.findByRole('img', { name: /are allied/ }, { timeout: 30_000 })).toBeVisible();
+    await expect(await page.findByRole('img', { name: /are in an alliance/ }, { timeout: 30_000 })).toBeVisible();
     await openPanel(canvasElement, 'Alliances');
     await expect(await page.findByText('Offers you an alliance')).toBeVisible();
     await expect(

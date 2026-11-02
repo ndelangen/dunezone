@@ -25,6 +25,7 @@ import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { BOARD_RADIUS, restingPositionAt } from '../../src/shared/play/tableGeometry';
 import { clampPositionToTable, nearestCollisionFreePosition } from '../../src/shared/play/tablePhysics';
 import { playFromHandAtAnchor } from '../../src/shared/play/tableState';
+import { isTechToken, takeableIntoHand } from '../../src/shared/play/techToken';
 import { orderablePieces, revised } from './state';
 import type { StoredSnapshot, StoredBattle } from './state';
 
@@ -327,19 +328,6 @@ function cancelBattle(snapshot: StoredSnapshot, battle: StoredBattle) {
   return commit(snapshot, { battleState: null, factionBanks, factionInventories });
 }
 
-function canTakeIntoHand(piece: StoredPiece | undefined): piece is StoredPiece {
-  if (!piece) {
-    return false;
-  }
-  if (piece.inventory || piece.locked) {
-    return false;
-  }
-  if (piece.items.length !== 1) {
-    return false;
-  }
-  return piece.kind === 'card' || isBattleLeader(piece);
-}
-
 function takeIntoHand(
   snapshot: StoredSnapshot,
   factionId: string,
@@ -348,12 +336,19 @@ function takeIntoHand(
   const { pieceId } = action;
   const inventory = snapshot.factionInventories[factionId] ?? [];
   const piece = snapshot.table.pieces.find((piece) => piece.id === pieceId);
-  if (!canTakeIntoHand(piece)) {
-    return refuse('Choose one unlocked card or leader on the table.');
+  if (!piece || !takeableIntoHand(piece)) {
+    return refuse('Choose one unlocked card, leader or tech token on the table.');
   }
   const { battleOverlay: _overlay, ...taken } = piece;
-  /* A hand forgets who peeked at its cards, so a card later played face down out of it cannot be told apart by its marks. */
-  const stored = { ...taken, items: taken.items.map(({ peekedBy: _peekedBy, ...item }) => item) };
+  /*
+   * A hand forgets who peeked at its cards, so a card later played face down out of it cannot be told apart by its marks.
+   * A tech token is public, so it goes into the hand face up even if it lay turned over, and everyone keeps seeing which one is held.
+   */
+  const techToken = isTechToken(piece);
+  const stored = {
+    ...taken,
+    items: taken.items.map(({ peekedBy: _peekedBy, ...item }) => (techToken ? { ...item, faceUp: true } : item)),
+  };
   return commit(
     snapshot,
     {
@@ -380,7 +375,9 @@ function playFromHand(
 ) {
   const { inventory, piece } = handPiece(snapshot, factionId, action.pieceId);
   const { hiddenZone: _spot, ...leaving } = piece;
-  const faceDown = { ...leaving, inventory: undefined, items: piece.items.map((item) => ({ ...item, faceUp: false })) };
+  /* A card or leader leaves the hand face down; a tech token is public, so it lands as it lay in the hand. */
+  const items = isTechToken(piece) ? piece.items : piece.items.map((item) => ({ ...item, faceUp: false }));
+  const leavingHand = { ...leaving, inventory: undefined, items };
   const factionInventories = {
     ...snapshot.factionInventories,
     [factionId]: inventory.filter((piece) => piece.id !== action.pieceId),
@@ -388,7 +385,7 @@ function playFromHand(
   const table = tableForViewer(snapshot, SPECTATOR_SEAT);
   const anchored = playFromHandAtAnchor(
     table,
-    { ...faceDown, position: restingPositionAt(action.position, piece) },
+    { ...leavingHand, position: restingPositionAt(action.position, piece) },
     action.position
   );
   if (anchored) {
@@ -402,7 +399,7 @@ function playFromHand(
   if (!position) {
     return refuse('There is no clear space for that object.');
   }
-  const played = { ...faceDown, position: restingPositionAt(position, piece) };
+  const played = { ...leavingHand, position: restingPositionAt(position, piece) };
   return commit(snapshot, { factionInventories }, [...snapshot.table.pieces, played]);
 }
 
