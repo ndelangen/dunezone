@@ -28,7 +28,8 @@ A creator tutorial shows a **practice copy** of the site (`src/app/db/sandbox/Sa
 - The copy's router is a copy of the application route tree with a memory history and without the
   document shell or the site's header and footer. Its links move round the copy and leave the address
   bar alone.
-- While the copy is open, `db` in `@db/core` sends route loaders to it (`enterSandbox`). It leaves
+- While the copy is open, `db` in `@db/core` sends route loaders to it (`enterSandbox`), and the site's own
+  router preloads nothing on hover, since a preload would read the copy. It leaves
   when the copy unmounts and as soon as the site's own router starts loading another page, so no real
   page reads the copy.
 - Reset starts a fresh copy. Whatever the learner made dies with the tab and has no address to share.

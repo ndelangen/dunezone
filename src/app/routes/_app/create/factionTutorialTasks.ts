@@ -12,12 +12,17 @@ export type FactionChapterPage = Readonly<{ pathname: () => string }>;
 
 const TABS = '[role="tablist"][aria-label="Faction editor sections"]';
 
-/** The creator's tab with this label, which a task points at until its field is on screen. */
-export const editorTab = (label: string) => (): Element | null =>
-  [...document.querySelectorAll(`${TABS} [role="tab"]`)].find((tab) => tab.textContent?.trim() === label) ?? null;
+/** A field of the creator, and the tab it sits on when it is not on the first. */
+type Field = Readonly<{ selector: string; tab?: string }>;
+
+const find = (field: Field) => document.querySelector(field.selector);
+
+/** The creator's tab that holds the field, which a task points at until the field is on screen. */
+const tabOf = (field: Field): Element | null =>
+  [...document.querySelectorAll(`${TABS} [role="tab"]`)].find((tab) => tab.textContent?.trim() === field.tab) ?? null;
 
 /** The field when its tab is open, otherwise the tab that opens it. */
-const fieldOr = (selector: string, tab: string) => () => document.querySelector(selector) ?? editorTab(tab)();
+const fieldOrTab = (field: Field) => () => find(field) ?? (field.tab ? tabOf(field) : null);
 
 const valueOf = (element: Element | null): string | null =>
   element === null
@@ -27,60 +32,91 @@ const valueOf = (element: Element | null): string | null =>
       : (element.textContent ?? '');
 
 /** A button of the page whose words or label are exactly `name`. */
-export const pageButton = (name: string) => (): Element | null =>
+const pageButton = (name: string) => (): Element | null =>
   [...document.querySelectorAll('[data-tutorial-pages] button, [data-tutorial-pages] a')].find(
     (button) => button.getAttribute('aria-label') === name || button.textContent?.trim() === name
   ) ?? null;
 
-type Typed = { was: string | null; last: string | null; release: () => void };
+type Typed = { was: string | null; last: string | null; edited: boolean; release: () => void };
 
 /*
  * A text task is done once the text differs from what it was when the learner first saw the box, and they have left it,
  * so the chapter does not move on while they are still typing. Leaving includes opening another tab, which takes the box away,
  * so the task remembers the last text it saw.
  * In a one-line box Enter leaves it too, as it does in Create your own game.
+ * Typing in the box counts as changing it even before the task has read it once, so a learner who types at once is not missed.
  */
-/* Enter in a one-line box matching `selector` leaves it; returns what stops listening. */
-function enterLeaves(selector: string): () => void {
+/* The one-line box of `field` that Enter was pressed in, if it was. */
+function enteredIn(field: Field, event: KeyboardEvent): HTMLInputElement | null {
+  if (event.key !== 'Enter') {
+    return null;
+  }
+  const target = event.target;
+  return target instanceof HTMLInputElement && target.matches(field.selector) ? target : null;
+}
+
+/* Watches the box of `field`: typing in it marks it edited, and Enter in a one-line box leaves it. Returns what stops watching. */
+function watchBox(field: Field, watch: Typed): () => void {
   const leave = (event: KeyboardEvent) => {
-    const target = event.target;
-    if (event.key !== 'Enter' || !(target instanceof HTMLInputElement) || !target.matches(selector)) {
-      return;
+    const box = enteredIn(field, event);
+    if (box) {
+      event.preventDefault();
+      box.blur();
     }
-    event.preventDefault();
-    target.blur();
+  };
+  const edit = (event: Event) => {
+    if (event.target instanceof Element && event.target.matches(field.selector)) {
+      watch.edited = true;
+    }
   };
   document.addEventListener('keydown', leave, true);
-  return () => document.removeEventListener('keydown', leave, true);
+  document.addEventListener('input', edit, true);
+  return () => {
+    document.removeEventListener('keydown', leave, true);
+    document.removeEventListener('input', edit, true);
+  };
 }
 
 /* Remembers the text the box first showed and the last it showed, so a box another tab took away still counts. */
-function readBox(watch: Typed, field: Element | null) {
-  const value = valueOf(field);
+function readBox(watch: Typed, box: Element | null) {
+  const value = valueOf(box);
   if (value !== null) {
     watch.was ??= value;
     watch.last = value;
   }
 }
 
-const left = (field: Element | null) => field === null || document.activeElement !== field;
+const left = (box: Element | null) => box === null || document.activeElement !== box;
 
-const typed = (selector: string) => ({
-  begin: (): Typed => ({ was: null, last: null, release: enterLeaves(selector) }),
+const typed = (field: Field) => ({
+  anchor: { kind: 'page' as const, element: fieldOrTab(field) },
+  begin: (): Typed => {
+    const watch: Typed = { was: null, last: null, edited: false, release: () => undefined };
+    readBox(watch, find(field));
+    watch.release = watchBox(field, watch);
+    return watch;
+  },
   done: (watch: Typed) => {
-    const field = document.querySelector(selector);
-    readBox(watch, field);
+    const box = find(field);
+    readBox(watch, box);
     const now = watch.last?.trim() ?? '';
-    return now.length > 0 && now !== watch.was?.trim() && left(field);
+    return now.length > 0 && (watch.edited || now !== watch.was?.trim()) && left(box);
   },
   finish: (watch: Typed) => watch.release(),
 });
 
-/** A choice is done once it differs from what it showed when the learner first saw it. */
-const chosen = (selector: string) => ({
-  begin: () => ({ was: null as string | null }),
+/* What a picker has chosen, or null while it is open: an open picker shows the learner's search in its box instead. */
+const committed = (field: Field): string | null => {
+  const picker = find(field);
+  return picker?.getAttribute('aria-expanded') === 'true' ? null : valueOf(picker);
+};
+
+/** A choice is done once it differs from what it showed as the task began, or when the learner first saw it, and the picker is closed. */
+const chosen = (field: Field) => ({
+  anchor: { kind: 'page' as const, element: fieldOrTab(field) },
+  begin: () => ({ was: committed(field) }),
   done: (watch: { was: string | null }) => {
-    const value = valueOf(document.querySelector(selector));
+    const value = committed(field);
     if (value === null) {
       return false;
     }
@@ -89,6 +125,7 @@ const chosen = (selector: string) => ({
   },
 });
 
+const ADD_LEADER: Field = { selector: 'button[aria-label="Add supporting leader"]', tab: 'Leaders' };
 const LEADERS = '[role="list"][aria-label="Ordered supporting leaders"] > [role="listitem"]';
 const EDIT_PAGE = /^\/factions\/[^/]+\/edit\/?$/;
 const FACTION_PAGE = /^\/factions\/(?!create\/?$)[^/]+\/?$/;
@@ -101,24 +138,21 @@ const identityTasks = (): GuideTask[] => [
     detail:
       "Let's make a faction of your own! This is a practice copy of Dune Zone that lives only in your browser, so try whatever you like.\n\nType a name for your faction and press {Enter}.",
     introducesSpeakingMode: true,
-    anchor: { kind: 'page', element: () => document.querySelector('#faction-name') },
-    ...typed('#faction-name'),
+    ...typed({ selector: '#faction-name' }),
   }),
   task({
     id: 'logo',
     task: 'Pick a logo',
     detail:
       'The logo goes on every piece of your faction: its tokens, its cards and its sheet.\n\nOpen the list and pick one you like.',
-    anchor: { kind: 'page', element: () => document.querySelector('#faction-logo') },
-    ...chosen('#faction-logo'),
+    ...chosen({ selector: '#faction-logo' }),
   }),
   task({
     id: 'background',
     task: 'Pick a background',
     detail:
       'The background is the pattern behind your tokens and cards. The preview on the right shows it as you choose.\n\nPick a background preset.',
-    anchor: { kind: 'page', element: () => document.querySelector('[aria-label="Background preset"]') },
-    ...chosen('[aria-label="Background preset"]'),
+    ...chosen({ selector: '[aria-label="Background preset"]' }),
   }),
 ];
 
@@ -129,18 +163,17 @@ const rosterTasks = (): GuideTask[] => [
     task: 'Name your faction leader',
     detail:
       "Every faction has a leader who doesn't fight, shown on the faction token.\n\nOpen Faction leader, type their name and press {Enter}.",
-    anchor: { kind: 'page', element: fieldOr('#faction-leader-name', 'Faction leader') },
-    ...typed('#faction-leader-name'),
+    ...typed({ selector: '#faction-leader-name', tab: 'Faction leader' }),
   }),
   task({
     id: 'add-leader',
     task: 'Add a supporting leader',
     detail:
       'Supporting leaders are the ones who go into battle. Most factions have five.\n\nOpen Leaders and add one with the plus.',
-    anchor: { kind: 'page', element: fieldOr('button[aria-label="Add supporting leader"]', 'Leaders') },
+    anchor: { kind: 'page', element: fieldOrTab(ADD_LEADER) },
     begin: () => ({ was: null as number | null }),
     done: (watch: { was: number | null }) => {
-      if (!document.querySelector('button[aria-label="Add supporting leader"]')) {
+      if (!find(ADD_LEADER)) {
         return false;
       }
       const count = document.querySelectorAll(LEADERS).length;
@@ -153,32 +186,28 @@ const rosterTasks = (): GuideTask[] => [
     task: 'Name your new leader',
     detail:
       'Your new leader has a strength already, one more than the leader before. Give them a name and press {Enter}.',
-    anchor: { kind: 'page', element: fieldOr('input[id^="leader-"][id$="-name"]', 'Leaders') },
-    ...typed('input[id^="leader-"][id$="-name"]'),
+    ...typed({ selector: 'input[id^="leader-"][id$="-name"]', tab: 'Leaders' }),
   }),
   task({
     id: 'troops',
     task: 'Name your troops',
     detail:
       'Troops are the tokens you move round the board. The token on the right shows them with your logo and background.\n\nOpen Troops, name them and press {Enter}.',
-    anchor: { kind: 'page', element: fieldOr('#troop-0-name', 'Troops') },
-    ...typed('#troop-0-name'),
+    ...typed({ selector: '#troop-0-name', tab: 'Troops' }),
   }),
   task({
     id: 'alliance',
     task: 'Write your alliance advantage',
     detail:
       'When another player allies with you, they get your alliance card. It says what you do for them.\n\nOpen Alliance, write what your ally gets, then click outside the box.',
-    anchor: { kind: 'page', element: fieldOr('#rules-alliance', 'Alliance') },
-    ...typed('#rules-alliance'),
+    ...typed({ selector: '#rules-alliance', tab: 'Alliance' }),
   }),
   task({
     id: 'start',
     task: 'Say how you start',
     detail:
       'Your faction sheet tells everyone where your troops start the game.\n\nOpen Rules, write your starting instructions, then click outside the box.',
-    anchor: { kind: 'page', element: fieldOr('#rules-start', 'Rules') },
-    ...typed('#rules-start'),
+    ...typed({ selector: '#rules-start', tab: 'Rules' }),
   }),
 ];
 

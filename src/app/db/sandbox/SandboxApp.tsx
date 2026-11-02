@@ -41,6 +41,19 @@ function signedInStorage() {
   };
 }
 
+/* Makes the router's preloads do nothing; returns what lets them run again, once. Links read their preload setting as they render, so it is the router's preload itself that waits. */
+function holdPreloads(router: AnyRouter): () => void {
+  const preloadRoute = router.preloadRoute;
+  router.preloadRoute = async () => undefined;
+  let held = true;
+  return () => {
+    if (held) {
+      held = false;
+      router.preloadRoute = preloadRoute;
+    }
+  };
+}
+
 async function seededBackend(database: DatabaseDefinition) {
   const backend = new ConvexStorybookWorkerClient();
   await backend.reset(database.create());
@@ -82,7 +95,15 @@ export function SandboxApp({
       /* Entered before the practice router exists, so its first loaders already read the sandbox. */
       /* Under Storybook `@db/core` is automocked and entering answers nothing: the story's own database serves the pages then. */
       const exit = enterSandbox(client.asConvexClient()) as (() => void) | undefined;
-      leave = () => exit?.();
+      /*
+       * The site's own router preloads a page when a link is hovered, without a load event, so while the sandbox is open
+       * it preloads nothing: its loaders would read the sandbox and cache practice rows for the real page.
+       */
+      const restorePreload = holdPreloads(outer);
+      leave = () => {
+        exit?.();
+        restorePreload();
+      };
       const router = createRouter({
         defaultErrorComponent: AppErrorComponent,
         history: createMemoryHistory({ initialEntries: [path] }),

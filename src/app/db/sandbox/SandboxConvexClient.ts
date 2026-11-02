@@ -25,7 +25,7 @@ type Entry = {
 };
 
 /** Never a real address: Convex Auth's unauthenticated calls go to it, and must fail rather than reach a deployment. */
-export const SANDBOX_ADDRESS = 'https://sandbox.invalid';
+const SANDBOX_ADDRESS = 'https://sandbox.invalid';
 
 export class SandboxConvexClient {
   private readonly entries = new Map<string, Entry>();

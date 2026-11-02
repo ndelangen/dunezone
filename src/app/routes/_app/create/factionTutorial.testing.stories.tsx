@@ -1,19 +1,24 @@
 import { testingPreview } from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
-import { expect, userEvent, within } from 'storybook/test';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { pageStoryMeta } from '../../storybookConfig';
 import { chapterGlobals, chapterParameters, playChapter } from '../tutorial/chapterStory';
+import { practiceDatabase } from './practiceDatabase';
 
 const meta = testingPreview.meta({
   ...pageStoryMeta,
   title: 'Create/Create a faction',
   args: { path: '/create/faction' },
   globals: chapterGlobals,
-  parameters: chapterParameters,
+  /* Under Storybook the story's database serves the practice copy, so it starts from the practice copy's rows. */
+  parameters: { ...chapterParameters, database: practiceDatabase },
 });
 
 const RAIL = 'Chapter 1: Create a faction';
+
+/* The background picker's own choices, beside the shared presets. */
+const USE_CHOICES = new Set(['Family standard', "Each card's faction", 'Custom']);
 
 const retype = async (field: HTMLElement, text: string) => {
   await userEvent.clear(field);
@@ -44,8 +49,23 @@ export const WalkThrough = meta.story({
     await next('Pick a background');
 
     await userEvent.click(document.querySelector<HTMLElement>('[aria-label="Background preset"]')!);
-    const presets = await page.findAllByRole('option');
-    await userEvent.click(presets.find((option) => option.getAttribute('aria-selected') !== 'true')!);
+    /* The shared presets load as the picker opens; until then it offers only its own choices, which change nothing here. */
+    const preset = await waitFor(
+      () => {
+        const shared = page
+          .getAllByRole('option')
+          .find(
+            (option) =>
+              !USE_CHOICES.has(option.textContent?.trim() ?? '') && option.getAttribute('aria-selected') !== 'true'
+          );
+        if (!shared) {
+          throw new Error('The shared background presets have not loaded yet');
+        }
+        return shared;
+      },
+      { timeout: 20_000 }
+    );
+    await userEvent.click(preset);
     await next('Name your faction leader');
 
     await tab('Faction leader');
