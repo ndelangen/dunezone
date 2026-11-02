@@ -13,7 +13,7 @@ import type { BoardBakeOptions, BoardSkin } from './boardSkins';
  * one tile per frame, while the table keeps its old look.
  */
 const SIZE = 2048;
-const TILES = 4;
+const TILES = 8;
 
 export type BakedSkin = Readonly<{ texture: Texture; dispose: () => void }>;
 
