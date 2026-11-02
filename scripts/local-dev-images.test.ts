@@ -12,7 +12,7 @@ const wranglerRequire = createRequire(import.meta.resolve('wrangler/package.json
 const { Miniflare, convertV4MiniflareOptions } = wranglerRequire('miniflare') as typeof MiniflareModule;
 
 test('the Wrangler-resolved Images encoder preserves fit, progressive JPEG and requested quality', async () => {
-  expect(wranglerRequire('miniflare/package.json').version).toBe('5.20261019.2-beta');
+  expect(wranglerRequire('miniflare/package.json').version).toBe('5.20261023.3-beta');
   const runtime = new Miniflare(
     convertV4MiniflareOptions({
       modules: true,
