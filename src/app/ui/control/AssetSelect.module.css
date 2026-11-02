@@ -23,7 +23,7 @@ html[data-mantine-color-scheme="dark"] .glyph {
 
 .optionGroup {
   display: grid;
-  /* Cells only just wider than the 72px previews, so a wide field shows more artwork per row instead of more gutter. */
+  /* The smallest cell that holds a 72px preview inside the option's 3px padding and 1px border, so a wide field shows more artwork per row instead of more gutter. */
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 5rem), 1fr));
   gap: var(--mantine-spacing-xs);
 }
@@ -34,7 +34,7 @@ html[data-mantine-color-scheme="dark"] .glyph {
 
 .option {
   min-width: 0;
-  padding: 4px;
+  padding: 3px;
   justify-content: center;
   border: 1px solid transparent;
 }

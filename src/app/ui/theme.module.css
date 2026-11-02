@@ -36,7 +36,7 @@ input:checked:not(:disabled, [data-disabled]) + .selectedSwitch {
   gap: 2px;
   height: 100%;
   max-width: none;
-  padding: 4px 4px 4px 0;
+  padding: 2px 2px 2px 0;
 }
 
 .numberControl {
@@ -49,6 +49,11 @@ input:checked:not(:disabled, [data-disabled]) + .selectedSwitch {
   background-color: transparent;
 }
 
+/* Unlayered rules beat Mantine's layered ones, so the error tint the base colour would hide is restated here. */
+[data-error] .numberControl {
+  color: var(--mantine-color-error);
+}
+
 @media (hover: hover) {
   .numberControl:hover:not(:disabled) {
     background-color: var(--action-neutral-hover-bg);
@@ -59,8 +64,4 @@ input:checked:not(:disabled, [data-disabled]) + .selectedSwitch {
   .numberControl:active:not(:disabled) {
     background-color: var(--action-neutral-hover-bg);
   }
-}
-
-.numberControl:disabled {
-  background-color: transparent;
 }

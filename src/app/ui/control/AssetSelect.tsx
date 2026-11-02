@@ -33,6 +33,7 @@ export interface AssetSelectProps extends Omit<
   | 'leftSection'
   | 'rightSection'
   | 'success'
+  | 'size'
   | 'successProps'
   | 'value'
   | 'withAsterisk'
@@ -296,7 +297,7 @@ export function AssetSelect({
                                 emphasis="standard"
                                 size="md"
                                 pressed={Boolean(activeCollection) || choosingCollection}
-                                disabled={blocked}
+                                disabledReason={blocked ? activeCollection || 'Filter by collection' : undefined}
                                 onClick={() => {
                                   dispatch({ type: 'mode', value: choosingCollection ? 'artwork' : 'collections' });
                                   combobox.resetSelectedOption();
