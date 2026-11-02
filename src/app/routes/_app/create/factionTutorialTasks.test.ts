@@ -2,6 +2,7 @@
 
 import { describe, expect, test, vi } from 'vite-plus/test';
 
+import { draftAfter } from './blankFaction';
 import { SAVE_TASK } from './factionTutorialSteps';
 import { FACTION_TUTORIAL_TASKS } from './factionTutorialTasks';
 
@@ -126,4 +127,13 @@ test('opening a tab is a task of its own, done once that tab is selected', () =>
   expect(open.done(undefined, view)).toBe(false);
   document.querySelectorAll('[role="tab"]')[1]!.setAttribute('aria-selected', 'true');
   expect(open.done(undefined, view)).toBe(true);
+});
+
+test('a later step opens on a faction with what its task needs: a name, a leader and an advantage', () => {
+  const ids = FACTION_TUTORIAL_TASKS({ pathname: () => '' }).map((task) => task.id);
+  const before = (id: string) => ids.slice(0, ids.indexOf(id));
+  expect(draftAfter([]).leaders).toEqual([]);
+  expect(draftAfter(before('name-leader')).leaders).toHaveLength(1);
+  expect(draftAfter(before('advantage-title')).rules.advantages).toHaveLength(1);
+  expect(draftAfter(before('save')).name).not.toBe('');
 });

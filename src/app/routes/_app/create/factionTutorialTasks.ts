@@ -17,7 +17,7 @@ type Field = Readonly<{ selector: string; tab?: string }>;
 
 const find = (field: Field) => document.querySelector(field.selector);
 
-/** The creator's tab that holds the field, which a task points at until the field is on screen. Its words start with the label: a count of the section's warnings may follow. */
+/** The creator's tab that holds the field. Its words start with the label: a count of the section's warnings may follow. */
 const tabOf = (field: Field): Element | null =>
   (field.tab &&
     [...document.querySelectorAll(`${TABS} [role="tab"]`)].find((tab) =>
@@ -25,8 +25,19 @@ const tabOf = (field: Field): Element | null =>
     )) ||
   null;
 
+/* In a narrow editor the tabs give way to a section picker, which is where the learner changes section then. */
+const SECTION_PICKER = '[data-connected-tabs-mobile-picker] [aria-label="Faction editor sections"]';
+
+const shown = (element: Element | null) => element !== null && element.getBoundingClientRect().width > 0;
+
+/** What the learner uses to open the field's tab: the tab itself, or the section picker while the tabs are hidden. */
+const tabControl = (field: Field): Element | null => {
+  const tab = tabOf(field);
+  return tab && !shown(tab) ? (document.querySelector(SECTION_PICKER) ?? tab) : tab;
+};
+
 /** The field when its tab is open, otherwise the tab that opens it. */
-const fieldOrTab = (field: Field) => () => find(field) ?? tabOf(field);
+const fieldOrTab = (field: Field) => () => find(field) ?? tabControl(field);
 
 const valueOf = (element: Element | null): string | null => {
   if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
@@ -110,7 +121,7 @@ const chosen = (field: Field) => ({
 const opened = (tab: string) => {
   const field: Field = { selector: ':not(*)', tab };
   return {
-    anchor: { kind: 'page' as const, element: () => tabOf(field) },
+    anchor: { kind: 'page' as const, element: () => tabControl(field) },
     begin: () => undefined,
     done: () => tabOf(field)?.getAttribute('aria-selected') === 'true',
   };

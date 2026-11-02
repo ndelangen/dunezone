@@ -9,7 +9,7 @@ import { NewFactionDraft } from '@app/widgets/faction-editor/newFactionDraft';
 import { SandboxApp } from '../../../db/sandbox/SandboxApp';
 import type { SandboxControls } from '../../../db/sandbox/SandboxApp';
 import { TutorialGuide } from '../tutorial/TutorialGuide';
-import { blankFaction } from './blankFaction';
+import { blankFaction, draftAfter } from './blankFaction';
 import { FACTION_TUTORIAL_LEARNED, FACTION_TUTORIAL_TASKS } from './factionTutorialTasks';
 import { PRACTICE_VIEWER, practiceDatabase } from './practiceDatabase';
 
@@ -42,6 +42,8 @@ export default function FactionChapter({
     };
   });
   const [run, setRun] = useState(0);
+  /* `?step` opens on what the earlier tasks would have made; Reset starts the chapter afresh from a blank faction. */
+  const [deepLinkDraft] = useState(() => draftAfter(chapter.tasks.slice(0, firstTask).map((task) => task.id)));
   const loading = (
     <PageLayout>
       <PageLayout.Header size="compact">
@@ -64,7 +66,7 @@ export default function FactionChapter({
       onReset={() => setRun((current) => current + 1)}
       chaptersLink={chaptersLink}
     >
-      <NewFactionDraft value={blankFaction}>
+      <NewFactionDraft value={run === 0 ? deepLinkDraft : blankFaction}>
         <SandboxApp
           key={run}
           database={practiceDatabase}
