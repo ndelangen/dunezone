@@ -62,25 +62,30 @@ async function warmPaint(table: Table, paint: PaintOptions, baked: Texture | nul
 }
 
 /** Bakes the look and compiles its material off the frame; null when a newer look took over first. */
-async function prepareLook(
+export async function prepareLook(
   table: Table,
   look: Readonly<{ skin: BoardSkin; planet: boolean }>,
   paint: PaintOptions,
   signal: AbortSignal
 ): Promise<Shown | null> {
   const lease = leaseFor(table.renderer, look.skin, paint);
+  /* Letting go at once stops a bake nobody else holds, rather than finishing it for a look already replaced. */
+  const letGo = () => lease?.release();
+  signal.addEventListener('abort', letGo, { once: true });
   try {
     const baked = lease ? (await lease.baked).texture : null;
+    signal.throwIfAborted();
     const material = await warmPaint(table, paint, baked, look.planet);
-    if (!signal.aborted) {
-      return { material, lease };
+    if (signal.aborted) {
+      material.dispose();
+      return null;
     }
-    material.dispose();
-    lease?.release();
-    return null;
+    return { material, lease };
   } catch (error) {
-    lease?.release();
+    letGo();
     throw error;
+  } finally {
+    signal.removeEventListener('abort', letGo);
   }
 }
 
