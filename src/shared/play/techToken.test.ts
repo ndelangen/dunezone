@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vite-plus/test';
 
 import { applyPieceAction, drawTechTokenInState } from './commands';
 import { freshTableState } from './model';
-import type { TablePiece, TableState } from './model';
+import type { StoredPiece, TablePiece, TableState } from './model';
 import { SHARED_ITEM_PLACEMENT_ANCHORS } from './tableFurnitureLayout';
 import { troopScale } from './tableGeometry';
 import { isCollisionFreePosition } from './tablePhysics';
@@ -131,10 +131,10 @@ describe('drawing a tech token', () => {
 });
 
 describe('held tech tokens', () => {
-  const held = (faceUp: boolean) => ({
-    ...techTokens('held', ['Heighliners'], { inventory: undefined }),
-    items: [{ ...techTokens('held', ['Heighliners']).items[0]!, faceUp }],
-  });
+  const held = (faceUp: boolean) => {
+    const piece = techTokens('held', ['Heighliners'], { inventory: undefined });
+    return { ...piece, items: piece.items.map((item) => ({ ...item, faceUp })) } as StoredPiece;
+  };
 
   test('lists each faction holding any by its face and name, and leaves out a faction holding none', () => {
     expect(heldTechTokens({ atreides: [held(true)], fremen: [] }, ['atreides', 'fremen'])).toEqual({
