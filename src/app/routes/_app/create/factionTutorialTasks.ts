@@ -257,8 +257,7 @@ const ruleTasks = (): GuideTask[] => [
   task({
     id: 'alliance',
     task: 'Write your alliance advantage',
-    detail:
-      'Write a sentence on what your ally gets, such as: Your ally may move one extra territory.',
+    detail: 'Write a sentence on what your ally gets, such as: Your ally may move one extra territory.',
     ...typed({ selector: '#rules-alliance', tab: 'Alliance' }),
   }),
   task({
@@ -292,7 +291,7 @@ const ruleTasks = (): GuideTask[] => [
     id: 'karama',
     task: 'Write your Karama power',
     detail:
-      'A Karama card lets a faction break one of the rules, once. Say what yours does.\n\nWrite a sentence, such as: Look at one opponent\'s battle plan before you make yours.',
+      "A Karama card lets a faction break one of the rules, once. Say what yours does.\n\nWrite a sentence, such as: Look at one opponent's battle plan before you make yours.",
     ...typed({ selector: '#rules-fate-text', tab: 'Rules' }),
   }),
 ];
@@ -320,8 +319,7 @@ const advantageTasks = (): GuideTask[] => [
   task({
     id: 'advantage-rule',
     task: 'Write the advantage',
-    detail:
-      'Say what your faction may do, such as: Your troops may move two territories through the desert.',
+    detail: 'Say what your faction may do, such as: Your troops may move two territories through the desert.',
     ...typed({ selector: '#adv-0-text', tab: 'Advantages' }),
   }),
 ];
@@ -332,7 +330,8 @@ const finishingTasks = (page: FactionChapterPage): GuideTask[] => [
     id: 'review',
     task: 'Look over your faction sheet',
     detail:
-      'Everything you filled in comes together on the faction sheet. Planets, Phases and Extras are there for factions that need them; yours is ready without.\n\nPress the eye, Review faction sheet, have a look, then close it.',    anchor: {
+      'Everything you filled in comes together on the faction sheet. Planets, Phases and Extras are there for factions that need them; yours is ready without.\n\nPress the eye, Review faction sheet, have a look, then close it.',
+    anchor: {
       kind: 'page',
       element: () =>
         document.querySelector('[aria-label="Close faction sheet review"]') ?? pageButton('Review faction sheet')(),
