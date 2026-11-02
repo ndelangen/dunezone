@@ -177,6 +177,14 @@ const config = defineConfig({
   worker: {
     format: 'es',
     plugins: () => [...convexWorkerBuildPlugins(), sandboxAsyncHooksInBrowser()],
+    /* The same file names as the client's chunks, which the Worker's asset manifest holds to one pattern. */
+    rolldownOptions: {
+      output: {
+        entryFileNames: ({ name }) => `public/${codecovSafeName(name)}-[hash].js`,
+        chunkFileNames: ({ name }) => `public/${codecovSafeName(name)}-[hash].js`,
+        assetFileNames: publicAssetFileName,
+      },
+    },
   },
   /* The dev server's prebundled fiber and drei run the same code as the build. */
   optimizeDeps: {
