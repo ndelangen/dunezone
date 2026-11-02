@@ -142,6 +142,7 @@ export class SandboxConvexClient {
       } else {
         /* Nobody watches it now, so a later watcher asks afresh rather than reading what may be stale. */
         entry.loaded = false;
+        entry.error = null;
         entry.fetch = 0;
       }
     }

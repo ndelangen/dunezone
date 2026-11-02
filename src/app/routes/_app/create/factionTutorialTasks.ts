@@ -1,5 +1,6 @@
-import { task } from '../tutorial/chapterScripts/guideChecks';
-import type { GuideTask } from '../tutorial/TutorialGuide';
+import { stageFitsReview } from '@app/widgets/faction-editor/FactionSheetReview';
+import { task } from '@app/widgets/tutorial-guide/guideTask';
+import type { GuideTask } from '@app/widgets/tutorial-guide/TutorialGuide';
 
 /*
  * The faction tutorial at /create/faction: the real faction creator, on a practice copy of the site whose database lives in the browser,
@@ -186,6 +187,7 @@ const added = (button: Field, rows: string) => ({
 const ADD_LEADER: Field = { selector: 'button[aria-label="Add supporting leader"]', tab: 'Leaders' };
 const ADD_ADVANTAGE: Field = { selector: 'button[aria-label="Add faction advantage"]', tab: 'Advantages' };
 const REVIEW_OPEN = '[data-review-open]';
+const REVIEW_STAGE = '[data-tutorial-pages] [data-faction-sheet-review]';
 const LEADERS = '[role="list"][aria-label="Ordered supporting leaders"] > [role="listitem"]';
 const ADVANTAGES = '[role="list"][aria-label="Ordered faction advantages"] > [role="listitem"]';
 const EDIT_PAGE = /^\/factions\/[^/]+\/edit\/?$/;
@@ -414,12 +416,12 @@ const finishingTasks = (page: FactionChapterPage): GuideTask[] => [
       return watch;
     },
     /*
-     * The sheet opens only on a page at least 45rem wide, and below that its button hides; there the step passes,
-     * so a narrow window never leaves the learner stuck before Save.
+     * The sheet opens only on a stage wide enough for it; on a narrower page its button hides or folds into More actions
+     * and opening refuses, so there the step passes and a narrow window never leaves the learner stuck before Save.
      */
     done: (watch: { seen: boolean; stop: () => void }) => {
-      const button = pageButton('Review faction sheet')();
-      const unavailable = button !== null && !shown(button);
+      const stage = document.querySelector<HTMLElement>(REVIEW_STAGE);
+      const unavailable = stage !== null && !stageFitsReview(stage);
       return (watch.seen || unavailable) && document.querySelector(REVIEW_OPEN) === null;
     },
     finish: (watch: { stop: () => void }) => watch.stop(),

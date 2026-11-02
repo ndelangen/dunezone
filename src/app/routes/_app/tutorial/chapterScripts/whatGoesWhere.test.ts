@@ -9,6 +9,8 @@ import { stormOrder } from '@shared/play/stormSector';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
 import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
+import type { GuideTask } from '@app/widgets/tutorial-guide/TutorialGuide';
+
 import { tutorialSpiceBlows } from '../../../../../../scripts/lib/tutorialSpiceBlows';
 import catalogue from '../setup/catalogue.json';
 import setup from '../setup/setup.json';
@@ -16,7 +18,6 @@ import spiceBlows from '../setup/spiceBlows.json';
 import { startAt } from '../setup/tutorialSetup';
 import type { TutorialSetup } from '../setup/tutorialSetup';
 import { LocalTable } from '../table/localTable';
-import type { GuideTask } from '../TutorialGuide';
 import type { TablePlayers } from './chapterScript';
 import { whatGoesWhere } from './whatGoesWhere';
 import { spiceBlow } from './whatGoesWhereBoard';

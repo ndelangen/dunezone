@@ -5,9 +5,9 @@ import type { TutorialCheckpoint } from '@shared/tutorial/recipe';
 
 import type { CreateGameDraft, CreateGameRequest } from '@app/widgets/create-game/CreateGamePass';
 import type { LobbyView } from '@app/widgets/play-lobby/PlayLobby';
+import type { GuideTask } from '@app/widgets/tutorial-guide/TutorialGuide';
 
 import type { AcceptedTutorialAction, Landing } from '../table/localTable';
-import type { GuideTask } from '../TutorialGuide';
 
 /** The other players at a chapter's table, whom a task can have act, as their own seat sends a command. */
 export type TablePlayers = Readonly<{

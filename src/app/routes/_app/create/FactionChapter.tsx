@@ -5,10 +5,10 @@ import { useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { NewFactionDraft } from '@app/widgets/faction-editor/newFactionDraft';
+import { TutorialGuide } from '@app/widgets/tutorial-guide/TutorialGuide';
 
 import { SandboxApp } from '../../../db/sandbox/SandboxApp';
 import type { SandboxControls } from '../../../db/sandbox/SandboxApp';
-import { TutorialGuide } from '../tutorial/TutorialGuide';
 import { blankFaction, draftAfter } from './blankFaction';
 import { FACTION_TUTORIAL_LEARNED, FACTION_TUTORIAL_TASKS } from './factionTutorialTasks';
 import { PRACTICE_VIEWER, practiceDatabase } from './practiceDatabase';

@@ -6,7 +6,8 @@ import { trackerArcSlots } from '@shared/play/tableTrackers';
 import { TUTORIAL_RECIPE } from '@shared/tutorial/recipe';
 import type { Vector3Tuple } from 'three';
 
-import type { GuideTask, GuideView } from '../TutorialGuide';
+import type { GuideTask, GuideView } from '@app/widgets/tutorial-guide/TutorialGuide';
+
 import type { ChapterScript } from './chapterScript';
 import {
   closeGameMenu,

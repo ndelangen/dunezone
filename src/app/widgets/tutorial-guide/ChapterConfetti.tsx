@@ -1,7 +1,8 @@
+import { FOIL_COLORS } from '@shared/uiPalette';
 import { useEffect, useRef } from 'react';
 
-import { useMotionAllowed } from '../../../styles/motion';
-import { FOIL_COLORS } from '../play/confettiSimulation';
+import { useMotionAllowed } from '@app/styles/motion';
+
 import styles from './ChapterConfetti.module.css';
 
 /*

@@ -2,6 +2,7 @@ import { lazy, Suspense, useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 
 import { createGameDraftReducer } from '@app/widgets/create-game/CreateGamePass';
+import { TutorialGuide } from '@app/widgets/tutorial-guide/TutorialGuide';
 
 import { TableWait } from '../play/TableWait';
 import type { TutorialChapter } from './chapters';
@@ -12,7 +13,6 @@ import { seatTutorialPlayers, useTutorialPlayers } from './players';
 import type { TutorialViewer } from './players';
 import setup from './setup/setup.json';
 import type { TutorialSetup } from './setup/tutorialSetup';
-import { TutorialGuide } from './TutorialGuide';
 
 const LobbyTable = lazy(() => import('./lobby/LobbyTable'));
 

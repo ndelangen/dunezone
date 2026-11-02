@@ -164,16 +164,16 @@ test('a pick from a picker that was already open as the task began counts once i
   portrait.finish?.(watch);
 });
 
-test('the sheet review passes once looked at, or at once where a narrow page hides its button', () => {
-  document.body.innerHTML = '<div data-tutorial-pages><button aria-label="Review faction sheet">eye</button></div>';
-  const button = document.querySelector('button')!;
-  let width = 100;
-  button.getBoundingClientRect = () => ({ width }) as DOMRect;
+test('the sheet review passes once looked at, or at once where the page is too narrow for the sheet to open', () => {
+  document.body.innerHTML = '<div data-tutorial-pages><section data-faction-sheet-review></section></div>';
+  const stage = document.querySelector('section')!;
+  let width = 1000;
+  Object.defineProperty(stage, 'clientWidth', { get: () => width });
   const review = FACTION_TUTORIAL_TASKS({ pathname: () => '' }).find((task) => task.id === 'review')!;
   const view = { camera: null };
   const watch = review.begin(view);
   expect(review.done(watch, view)).toBe(false);
-  width = 0;
+  width = 300;
   expect(review.done(watch, view)).toBe(true);
   review.finish?.(watch);
 });

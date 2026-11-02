@@ -1,6 +1,6 @@
 import { BOARD_RIM_SURFACE_Y, surfaceHeightAt, TABLE_VISIBLE_RADIUS } from '@shared/play/tableGeometry';
 import { PLAYER_RING_RADIUS } from '@shared/play/tableSettings';
-import { coreColors } from '@shared/uiPalette';
+import { FOIL_COLORS } from '@shared/uiPalette';
 
 /*
  * The Foil cannons celebration (#1038): thin circular foil discs stream from the winning players' slots for sixteen seconds, tumble, bounce, and settle into piles on the board and the pieces.
@@ -33,8 +33,6 @@ const MAX_EMIT_STEP = 0.25;
 const GRID_CELL = 0.06;
 const GRID_HALF = TABLE_VISIBLE_RADIUS + GRID_CELL;
 const GRID_SIZE = Math.ceil((GRID_HALF * 2) / GRID_CELL);
-
-export const FOIL_COLORS = [coreColors.brass, coreColors.highlight, coreColors.text] as const;
 
 const FREE = 0;
 const AIRBORNE = 1;

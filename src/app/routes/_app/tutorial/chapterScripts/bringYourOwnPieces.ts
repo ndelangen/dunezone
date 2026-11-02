@@ -2,7 +2,8 @@ import { spawnableKey } from '@shared/play/inventory';
 import type { SpawnSelection } from '@shared/play/inventory';
 import type { GameSnapshot } from '@shared/play/protocol';
 
-import type { GuideTask } from '../TutorialGuide';
+import type { GuideTask } from '@app/widgets/tutorial-guide/TutorialGuide';
+
 import type { ChapterScript, TablePlayers } from './chapterScript';
 import { element, openedWindow, task, windowShown } from './guideChecks';
 

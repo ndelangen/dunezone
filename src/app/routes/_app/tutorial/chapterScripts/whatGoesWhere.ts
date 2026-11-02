@@ -7,7 +7,8 @@ import { stormOrder } from '@shared/play/stormSector';
 import { TABLE_TANKS_LABEL_POSITION } from '@shared/play/tableFurnitureLayout';
 import { TANKS_PLAY_AREA } from '@shared/play/tablePhysics';
 
-import type { GuideTask } from '../TutorialGuide';
+import type { GuideTask } from '@app/widgets/tutorial-guide/TutorialGuide';
+
 import type { ChapterScript, TablePlayers } from './chapterScript';
 import { at, element, nextPhaseButton, onBoard, pressEnter, tableDeck, task } from './guideChecks';
 import type { Piece } from './guideChecks';

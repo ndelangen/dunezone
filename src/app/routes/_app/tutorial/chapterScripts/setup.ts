@@ -1,6 +1,7 @@
 import type { GameSnapshot } from '@shared/play/protocol';
 
-import type { GuideTask } from '../TutorialGuide';
+import type { GuideTask } from '@app/widgets/tutorial-guide/TutorialGuide';
+
 import type { ChapterScript, TablePlayers } from './chapterScript';
 import { at, buttonIn, closePieceMenu, closeUpShown, nextPhaseButton, onBoard, task, viaCompass } from './guideChecks';
 
