@@ -229,13 +229,13 @@ export const publicFactionSchema = HistoricalFactionPublicationObject.pick({
   leaders: true,
   rules: true,
   background: true,
-  emblem: true,
+  logo: true,
 });
 export type PublicFaction = z.infer<typeof publicFactionSchema>;
 
 export function publicFaction(capture: FactionCapture): PublicFaction {
-  const { leaders, rules, background, emblem } = capture.definition;
-  return { leaders, rules, background, emblem };
+  const { leaders, rules, background, logo } = capture.definition;
+  return { leaders, rules, background, logo };
 }
 
 /** A capture's phase declarations, in the author's list order; one a later schema would refuse is left out rather than failing the game. */

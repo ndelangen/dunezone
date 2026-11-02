@@ -95,7 +95,7 @@ function FactionSidebarOverview({ data }: { data: FactionData }) {
   return (
     <Section icon={<TopicIcon topic="factionLeader" size={20} />} title="Faction leader">
       <div className={styles.loreFactionLeaderToken}>
-        <LeaderToken {...data.factionLeader} strength={undefined} background={data.background} emblem={data.emblem} />
+        <LeaderToken {...data.factionLeader} strength={undefined} background={data.background} logo={data.logo} />
       </div>
     </Section>
   );
@@ -276,17 +276,17 @@ function FactionTroop({ troop, background }: { troop: Troop; background: Faction
 function FactionLeader({
   leader,
   background,
-  emblem,
+  logo,
 }: {
   leader: FactionData['leaders'][number];
   background: FactionData['background'];
-  emblem: FactionData['emblem'];
+  logo: FactionData['logo'];
 }) {
   const label = `${leader.name}, strength ${leader.strength ?? 'not specified'}`;
   return (
     <Tooltip label={label}>
       <article className={styles.leaderTile} aria-label={label}>
-        <LeaderToken {...leader} background={background} emblem={emblem} />
+        <LeaderToken {...leader} background={background} logo={logo} />
       </article>
     </Tooltip>
   );
@@ -501,7 +501,7 @@ function FactionDetailContent({
           title={data.name}
           media={
             <div className={styles.factionSymbol} role="img" aria-label={`${data.name} symbol`}>
-              <FactionToken emblem={data.emblem} background={data.background} />
+              <FactionToken logo={data.logo} background={data.background} />
             </div>
           }
           breadcrumb={<PageIdentity.Breadcrumb to="/factions">Factions</PageIdentity.Breadcrumb>}
@@ -609,7 +609,7 @@ function FactionDetailContent({
                         key={`${leader.name}-${leader.image}-${index}`}
                         leader={leader}
                         background={data.background}
-                        emblem={data.emblem}
+                        logo={data.logo}
                       />
                     ))}
                   </div>

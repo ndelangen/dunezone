@@ -257,7 +257,7 @@ export const orderedFactions = publicQuery({
         slug: v.string(),
         name: v.string(),
         /** Enough to draw the faction's token beside its name. */
-        emblem: catalogueFactionDataValidator.fields.emblem,
+        logo: catalogueFactionDataValidator.fields.logo,
         background: catalogueFactionDataValidator.fields.background,
       })
     ),

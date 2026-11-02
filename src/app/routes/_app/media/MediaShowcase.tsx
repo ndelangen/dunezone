@@ -147,7 +147,7 @@ export function MediaShowcase({
                 name={leader.label}
                 image={LEADERS.parse(leader.value)}
                 background={backgroundPresets.atreides}
-                emblem="/vector/emblem/atreides.svg"
+                logo="/vector/logo/atreides.svg"
                 strength=""
               />
             </div>

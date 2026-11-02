@@ -10,7 +10,7 @@ const meta = preview.meta({ component: NexusCard, globals: { viewport: { value: 
 
 export const Atreides = meta.story({
   play: async ({ canvasElement }) => {
-    const emblems = canvasElement.querySelectorAll<HTMLImageElement>('img[src="/vector/emblem/atreides.svg"]');
+    const emblems = canvasElement.querySelectorAll<HTMLImageElement>('img[src="/vector/logo/atreides.svg"]');
     await expect(new Set(Array.from(emblems, (emblem) => emblem.parentElement)).size).toBe(1);
     await expect(emblems[0]).toBeVisible();
     await expect(getComputedStyle(emblems[0]!).mixBlendMode).toBe('overlay');

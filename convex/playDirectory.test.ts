@@ -205,7 +205,7 @@ describe('the directory keeps the newest published summary and lists it to every
               faction: {
                 name: 'Atreides',
                 color: '#2f7d32',
-                token: { emblem: assetPublishingFaction.emblem, background: assetPublishingFaction.background },
+                token: { logo: assetPublishingFaction.logo, background: assetPublishingFaction.background },
                 won: false,
               },
             },

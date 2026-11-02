@@ -134,14 +134,14 @@ const traitorSnapshot = envelope('faction-traitor', {
   name: traitorLeader.name,
   strength: traitorLeader.strength,
   image: traitorLeader.image,
-  emblem: assetPublishingFaction.emblem,
+  logo: assetPublishingFaction.logo,
   background: assetPublishingFaction.background,
   owner: assetPublishingFaction.name,
 });
 const allianceSnapshot = envelope('faction-alliance', {
   title: assetPublishingFaction.name,
   text: assetPublishingFaction.rules.alliance.text,
-  emblem: assetPublishingFaction.emblem,
+  logo: assetPublishingFaction.logo,
   background: assetPublishingFaction.background,
   troop: assetPublishingFaction.troops[0]!.image,
   decals: assetPublishingFaction.decals,
@@ -252,7 +252,7 @@ async function checkCorruptSvgImage(browser: Browser): Promise<void> {
 async function checkCorruptExternalUse(browser: Browser): Promise<void> {
   const page = await newPublisherPage(browser);
   try {
-    await page.route('**/vector/emblem/atreides.svg', async (route) => {
+    await page.route('**/vector/logo/atreides.svg', async (route) => {
       await route.fulfill({ status: 200, contentType: 'image/svg+xml', body: 'not an svg' });
     });
     const result = await openCapture(page);
@@ -918,7 +918,7 @@ try {
   }
   for (const [kind, icon] of [
     ['main', '/vector/icon/hand.svg'],
-    ['cache', '/vector/emblem/richese.svg'],
+    ['cache', '/vector/logo/richese.svg'],
   ]) {
     const proof = await checkPublisherImageCapture(
       browser,

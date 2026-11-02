@@ -57,7 +57,7 @@ describe('AssetExplainer annotation projection', () => {
       status: 'ready',
       reference: { ...emblem, presentation: 'sheet' },
       name: 'Atreides sheet',
-      imageUrl: '/vector/emblem/atreides.svg',
+      imageUrl: '/vector/logo/atreides.svg',
     };
     example.items = [
       { id: 'OLD', label: '1', text: 'Emblem label', target: { kind: 'position', x: 0.5, y: 0.5, source: emblem } },

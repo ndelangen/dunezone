@@ -13270,7 +13270,7 @@
         "color": "#313b3a",
         "id": "k171dpxhhgjn9x3qmnhtywn33s848xq7",
         "linked": false,
-        "emblem": "/vector/emblem/oath-chain.svg",
+        "logo": "/vector/logo/oath-chain.svg",
         "name": "Test Faction",
         "published": true,
         "slug": "test-faction"
@@ -13286,7 +13286,7 @@
         "color": "#757575",
         "id": "k178k1ymctpthqhjr0nkn18pd5856rc7",
         "linked": false,
-        "emblem": "/vector/emblem/richese.svg",
+        "logo": "/vector/logo/richese.svg",
         "name": "Richese (Herring Edition) (Unfinished)",
         "published": true,
         "slug": "richese-herring-edition-unfinished"
@@ -13302,7 +13302,7 @@
         "color": "#7a2827",
         "id": "k171ewc58zq9jfyqhwqmgy1nb585b21b",
         "linked": false,
-        "emblem": "/vector/emblem/emperor.svg",
+        "logo": "/vector/logo/emperor.svg",
         "name": "Emperor (CHOAM)",
         "published": true,
         "slug": "emperor-choam"
@@ -13318,7 +13318,7 @@
         "color": "#52a32b",
         "id": "k17948j9ty95csxfnn92nrf58985d3zk",
         "linked": false,
-        "emblem": "/vector/generic/axes.svg",
+        "logo": "/vector/generic/axes.svg",
         "name": "Space Orks",
         "published": true,
         "slug": "space-orks"
@@ -13334,7 +13334,7 @@
         "color": "#444444",
         "id": "k171189n75fm50tx64a61b9spn85cv3k",
         "linked": false,
-        "emblem": "/vector/emblem/ixian.svg",
+        "logo": "/vector/logo/ixian.svg",
         "name": "Ixians (In Progress)",
         "published": true,
         "slug": "ixians-in-progress"
@@ -13350,7 +13350,7 @@
         "color": "#000000",
         "id": "k176fcr7w22q4zxa6h6778gred863p79",
         "linked": false,
-        "emblem": "/vector/emblem/closed-helm.svg",
+        "logo": "/vector/logo/closed-helm.svg",
         "name": "Mindwardens",
         "published": true,
         "slug": "mindwardens"
@@ -13375,7 +13375,7 @@
         "color": "#816b3b",
         "id": "k173h7mgxxrqr1jjqttrqe2nm1865qam",
         "linked": false,
-        "emblem": "/vector/generic/8472.svg",
+        "logo": "/vector/generic/8472.svg",
         "name": "Hivers",
         "published": true,
         "slug": "hivers"
@@ -13391,7 +13391,7 @@
         "color": "#32a9c7",
         "id": "k1771vkwhewqt3tff69rywmk1187ak79",
         "linked": false,
-        "emblem": "/vector/generic/alliance.svg",
+        "logo": "/vector/generic/alliance.svg",
         "name": "OCM",
         "published": true,
         "slug": "ocm"
@@ -13407,7 +13407,7 @@
         "color": "#f4641d",
         "id": "k170kfytj1te2bk2j9ej5t79x989bbht",
         "linked": false,
-        "emblem": "/vector/generic/smugglers.svg",
+        "logo": "/vector/generic/smugglers.svg",
         "name": "Smugglers",
         "published": true,
         "slug": "smugglers"
@@ -13423,7 +13423,7 @@
         "color": "#410c7a",
         "id": "k172q46gsjea7xkftjvpg9w8ah8a1hxy",
         "linked": true,
-        "emblem": "/vector/emblem/bene-tleilaxu.svg",
+        "logo": "/vector/logo/bene-tleilaxu.svg",
         "name": "Bene Tleilax",
         "published": true,
         "slug": "bene-tleilax"
@@ -13439,7 +13439,7 @@
         "color": "#e4942e",
         "id": "k176nq542xz747341fc42341e18a0t45",
         "linked": true,
-        "emblem": "/vector/emblem/fremen.svg",
+        "logo": "/vector/logo/fremen.svg",
         "name": "Fremen",
         "published": true,
         "slug": "fremen"
@@ -13455,7 +13455,7 @@
         "color": "#c1ab69",
         "id": "k175em553h4wfwgqhhmey5774x8a0q1k",
         "linked": true,
-        "emblem": "/vector/emblem/ixian.svg",
+        "logo": "/vector/logo/ixian.svg",
         "name": "Ixians",
         "published": true,
         "slug": "ixians"
@@ -13471,7 +13471,7 @@
         "color": "#dc5317",
         "id": "k175bxsjh069ksf64a189360f58a0eck",
         "linked": true,
-        "emblem": "/vector/emblem/guild.svg",
+        "logo": "/vector/logo/guild.svg",
         "name": "Spacing Guild",
         "published": true,
         "slug": "spacing-guild"
@@ -13487,7 +13487,7 @@
         "color": "#4a4c08",
         "id": "k17ag3gr1h60n7mmh88kj56avs8a1j7x",
         "linked": true,
-        "emblem": "/vector/emblem/atreides.svg",
+        "logo": "/vector/logo/atreides.svg",
         "name": "House Atreides",
         "published": true,
         "slug": "house-atreides"
@@ -13503,7 +13503,7 @@
         "color": "#151315",
         "id": "k174k8mvjqapvgccxtbp9qwh5h8a01b4",
         "linked": true,
-        "emblem": "/vector/emblem/harkonnen.svg",
+        "logo": "/vector/logo/harkonnen.svg",
         "name": "House Harkonnen",
         "published": true,
         "slug": "house-harkonnen"
@@ -13519,7 +13519,7 @@
         "color": "#be1010",
         "id": "k17dhptwywynwmpvx18965b97h8a0abp",
         "linked": true,
-        "emblem": "/vector/emblem/emperor.svg",
+        "logo": "/vector/logo/emperor.svg",
         "name": "Emperor",
         "published": true,
         "slug": "emperor"
@@ -13535,7 +13535,7 @@
         "color": "#253b82",
         "id": "k17fybprvb614pr3r0bpy410q58a086q",
         "linked": true,
-        "emblem": "/vector/emblem/bene-gesserit.svg",
+        "logo": "/vector/logo/bene-gesserit.svg",
         "name": "Bene Gesserit",
         "published": true,
         "slug": "bene-gesserit"
@@ -13551,7 +13551,7 @@
         "color": "#949494",
         "id": "k172k7x1ha1fkc3bkdj6kspf8h8a1g6d",
         "linked": false,
-        "emblem": "/vector/emblem/richese.svg",
+        "logo": "/vector/logo/richese.svg",
         "name": "House Richese",
         "published": true,
         "slug": "house-richese"
@@ -13567,7 +13567,7 @@
         "color": "#5f0000",
         "id": "k171h2c7zgyhfxwqe6e282jd8n8a5avw",
         "linked": false,
-        "emblem": "/vector/generic/guildeyes.svg",
+        "logo": "/vector/generic/guildeyes.svg",
         "name": "CHOAM",
         "published": true,
         "slug": "choam"
@@ -13583,7 +13583,7 @@
         "color": "#663b01",
         "id": "k1772qbd8ywsz7sa6temc48r2s8a7n7w",
         "linked": true,
-        "emblem": "/vector/emblem/iduali.svg",
+        "logo": "/vector/logo/iduali.svg",
         "name": "Iduali",
         "published": true,
         "slug": "iduali"
@@ -13610,7 +13610,7 @@
         "color": "#cd49c0",
         "id": "k170fwyhn83s285hj6ycwnmc7d8a7vzn",
         "linked": true,
-        "emblem": "/vector/emblem/ecaz.svg",
+        "logo": "/vector/logo/ecaz.svg",
         "name": "Ecaz (Ecaz/Moritani)",
         "published": true,
         "slug": "ecaz-ecaz-moritani"
@@ -13636,7 +13636,7 @@
         "color": "#56cee3",
         "id": "k170k7stxyswe4c2n4jy6maxw58a7xy7",
         "linked": true,
-        "emblem": "/vector/emblem/moritani.svg",
+        "logo": "/vector/logo/moritani.svg",
         "name": "Moritani (Ecaz/Moritani)",
         "published": true,
         "slug": "moritani-ecaz-moritani"
@@ -13652,7 +13652,7 @@
         "color": "#808080",
         "id": "k17cm0y721xyd3dn220pxs2ry98aakvc",
         "linked": false,
-        "emblem": "/vector/generic/detector.svg",
+        "logo": "/vector/generic/detector.svg",
         "name": "Thinking Machines",
         "published": true,
         "slug": "thinking-machines"
@@ -13668,7 +13668,7 @@
         "color": "#ff08b2",
         "id": "k17ehv7kfznyw5f26xxjx6etfn8b1k26",
         "linked": false,
-        "emblem": "/vector/generic/flauqre.svg",
+        "logo": "/vector/generic/flauqre.svg",
         "name": "Corrino",
         "published": true,
         "slug": "corrino"
@@ -13694,7 +13694,7 @@
         "color": "#443333",
         "id": "k17ceq3srs9m2zz0qzkw6w84qd8b1n44",
         "linked": false,
-        "emblem": "/vector/generic/orbsword.svg",
+        "logo": "/vector/generic/orbsword.svg",
         "name": "Nobirds",
         "published": true,
         "slug": "nobirds"
@@ -13710,7 +13710,7 @@
         "color": "#004020",
         "id": "k17csn8c7tfkj7d0f7ev02ckns8b5e2r",
         "linked": false,
-        "emblem": "/vector/generic/tech.svg",
+        "logo": "/vector/generic/tech.svg",
         "name": "Ordos",
         "published": true,
         "slug": "ordos"
@@ -13735,7 +13735,7 @@
         "color": "#913414",
         "id": "k17cna0gvp9pz0txwqzwec1a258bwjvf",
         "linked": false,
-        "emblem": "/vector/generic/matres.svg",
+        "logo": "/vector/generic/matres.svg",
         "name": "Honored Matres",
         "published": true,
         "slug": "honored-matres"
@@ -13751,7 +13751,7 @@
         "color": "#6e6464",
         "id": "k17a4s2jf2qz1sn2gvsc3g6gas8c63ts",
         "linked": false,
-        "emblem": "/vector/generic/council.svg",
+        "logo": "/vector/generic/council.svg",
         "name": "Landsraad Council",
         "published": true,
         "slug": "landsraad-council"
@@ -13767,7 +13767,7 @@
         "color": "#965209",
         "id": "k17cs7b2k2fskahh737h40m1cs8c6we1",
         "linked": false,
-        "emblem": "/vector/emblem/ginaz.svg",
+        "logo": "/vector/logo/ginaz.svg",
         "name": "Ginaz Swordmasters",
         "published": true,
         "slug": "ginaz-swordmasters"
@@ -13783,7 +13783,7 @@
         "color": "#37c71a",
         "id": "k179hp5p0e9h5c9yg3xpmkgavh8c7kz1",
         "linked": false,
-        "emblem": "/vector/generic/bluks.svg",
+        "logo": "/vector/generic/bluks.svg",
         "name": "Suk Medics",
         "published": true,
         "slug": "suk-medics"
@@ -13799,7 +13799,7 @@
         "color": "#cccc56",
         "id": "k178y5n9dpqr1na1xzv9cpt7vx8c7xe7",
         "linked": false,
-        "emblem": "/vector/generic/smugglers.svg",
+        "logo": "/vector/generic/smugglers.svg",
         "name": "Spice Smugglers",
         "published": true,
         "slug": "spice-smugglers"
@@ -13815,7 +13815,7 @@
         "color": "#c5ff17",
         "id": "k1734y2cmkk46g02z22b90v4zs8cp6yn",
         "linked": false,
-        "emblem": "/vector/generic/mortal.svg",
+        "logo": "/vector/generic/mortal.svg",
         "name": "Shrek",
         "published": true,
         "slug": "shrek"
@@ -13831,7 +13831,7 @@
         "color": "#5f0000",
         "id": "k177dt6jakwtfgq6t7yb6wywg18cw7tm",
         "linked": false,
-        "emblem": "/vector/generic/guildeyes.svg",
+        "logo": "/vector/generic/guildeyes.svg",
         "name": "Combine Honnete Ober Advancer Mercantiles (Unfinished)",
         "published": true,
         "slug": "combine-honnete-ober-advancer-mercantiles-unfinished"
@@ -13847,7 +13847,7 @@
         "color": "#009080",
         "id": "k171eymmyn70d4wga8jex1eh758e576z",
         "linked": false,
-        "emblem": "/vector/emblem/ginaz.svg",
+        "logo": "/vector/logo/ginaz.svg",
         "name": "Ginaz",
         "published": true,
         "slug": "ginaz"
@@ -13873,7 +13873,7 @@
         "color": "#56cee3",
         "id": "k174g527412y593m8egc8y64ad8eamvg",
         "linked": false,
-        "emblem": "/vector/emblem/moritani.svg",
+        "logo": "/vector/logo/moritani.svg",
         "name": "Moritani (Herring Edition)",
         "published": true,
         "slug": "moritani-herring-edition"
@@ -13889,7 +13889,7 @@
         "color": "#444444",
         "id": "k173gw8s2nv5eas8d0az39g5658eeqnc",
         "linked": false,
-        "emblem": "/vector/emblem/ixian.svg",
+        "logo": "/vector/logo/ixian.svg",
         "name": "Thaydean-Ixians",
         "published": true,
         "slug": "thaydean-ixians"
@@ -13905,7 +13905,7 @@
         "color": "#21b19b",
         "id": "k172ctk6mrn1737apwefk4dyvd8fewhr",
         "linked": false,
-        "emblem": "/vector/generic/ice.svg",
+        "logo": "/vector/generic/ice.svg",
         "name": "Cryo-Sleepers",
         "published": true,
         "slug": "cryo-sleepers"
@@ -13921,7 +13921,7 @@
         "color": "#050101",
         "id": "k179h86dn39bh2m1jh82x1smjh8fhmem",
         "linked": false,
-        "emblem": "/vector/emblem/foldspace-knot.svg",
+        "logo": "/vector/logo/foldspace-knot.svg",
         "name": "Discord Legends",
         "published": true,
         "slug": "discord-legends"
@@ -13937,7 +13937,7 @@
         "color": "#4723a1",
         "id": "k17dwc0dpbf4qm4aytbk9fz6v18fvgba",
         "linked": false,
-        "emblem": "/vector/generic/pyramid.svg",
+        "logo": "/vector/generic/pyramid.svg",
         "name": "NeRV",
         "published": true,
         "slug": "nerv"
@@ -13953,7 +13953,7 @@
         "color": "#0e548d",
         "id": "k17fm70tvzmwy9gkpwqvcb8rs18g9s2x",
         "linked": false,
-        "emblem": "/vector/generic/asterisk.svg",
+        "logo": "/vector/generic/asterisk.svg",
         "name": "Clone Legions",
         "published": true,
         "slug": "clone-legions"
@@ -13969,7 +13969,7 @@
         "color": "#4b5e12",
         "id": "k17b2bkrmqc8je5c89exjfj9218gd3dk",
         "linked": false,
-        "emblem": "/vector/emblem/atreides.svg",
+        "logo": "/vector/logo/atreides.svg",
         "name": "House Atreides (KISS)",
         "published": true,
         "slug": "house-atreides-kiss"
@@ -13985,7 +13985,7 @@
         "color": "#1c1b1b",
         "id": "k179g3k4pmbnprb3dz3hzwc01x8gc1t8",
         "linked": false,
-        "emblem": "/vector/emblem/harkonnen.svg",
+        "logo": "/vector/logo/harkonnen.svg",
         "name": "House Harkonnen (KISS)",
         "published": true,
         "slug": "house-harkonnen-kiss"
@@ -14001,7 +14001,7 @@
         "color": "#57356e",
         "id": "k17bye19hgc7jrpneptqmaqfq58gc9zc",
         "linked": false,
-        "emblem": "/vector/emblem/bene-tleilaxu.svg",
+        "logo": "/vector/logo/bene-tleilaxu.svg",
         "name": "Bene Tleilax (KISS)",
         "published": true,
         "slug": "bene-tleilax-kiss"
@@ -14017,7 +14017,7 @@
         "color": "#f7bf00",
         "id": "k17em1xf2fvrc298wfyxdn7bnx8gdggm",
         "linked": false,
-        "emblem": "/vector/emblem/fremen.svg",
+        "logo": "/vector/logo/fremen.svg",
         "name": "Fremen",
         "published": true,
         "slug": "fremen-1"
@@ -14033,7 +14033,7 @@
         "color": "#b50000",
         "id": "k170x31qvcjyy2qge877ezns0x8gcb5v",
         "linked": false,
-        "emblem": "/vector/emblem/emperor.svg",
+        "logo": "/vector/logo/emperor.svg",
         "name": "Emperor",
         "published": true,
         "slug": "emperor-1"
@@ -14049,7 +14049,7 @@
         "color": "#db6816",
         "id": "k17a9ejn69zp0g2hzbxx51dpzs8gf4te",
         "linked": false,
-        "emblem": "/vector/emblem/guild.svg",
+        "logo": "/vector/logo/guild.svg",
         "name": "Spacing Guild",
         "published": true,
         "slug": "spacing-guild-1"
@@ -14065,7 +14065,7 @@
         "color": "#4a4c08",
         "id": "k177h1yvxp36dxsxjfmgqx4jw58gm5jk",
         "linked": false,
-        "emblem": "/vector/emblem/atreides.svg",
+        "logo": "/vector/logo/atreides.svg",
         "name": "Atreides",
         "published": true,
         "slug": "atreides"
@@ -14081,7 +14081,7 @@
         "color": "#151315",
         "id": "k1758sk6c1qky3yknx56hstk8x8gmcxm",
         "linked": false,
-        "emblem": "/vector/emblem/harkonnen.svg",
+        "logo": "/vector/logo/harkonnen.svg",
         "name": "Harkonnen",
         "published": true,
         "slug": "harkonnen"
@@ -14097,7 +14097,7 @@
         "color": "#be1010",
         "id": "k174q1wrg9y646pdvbdr9r1sxx8gmct2",
         "linked": false,
-        "emblem": "/vector/emblem/emperor.svg",
+        "logo": "/vector/logo/emperor.svg",
         "name": "Emperor",
         "published": true,
         "slug": "emperor-2"
@@ -14113,7 +14113,7 @@
         "color": "#dc5317",
         "id": "k1782pjyezpza51gk5fj8rr47s8gnp0w",
         "linked": false,
-        "emblem": "/vector/emblem/guild.svg",
+        "logo": "/vector/logo/guild.svg",
         "name": "Spacing Guild",
         "published": true,
         "slug": "spacing-guild-2"
@@ -14129,7 +14129,7 @@
         "color": "#e4942e",
         "id": "k170rt7fn11fxdtbe3vx2bg0xx8gnrx1",
         "linked": false,
-        "emblem": "/vector/emblem/fremen.svg",
+        "logo": "/vector/logo/fremen.svg",
         "name": "Fremen",
         "published": true,
         "slug": "fremen-2"
@@ -14145,7 +14145,7 @@
         "color": "#253b82",
         "id": "k172tkm3r2r4sc96q7wnb3axvx8gn8g1",
         "linked": false,
-        "emblem": "/vector/emblem/bene-gesserit.svg",
+        "logo": "/vector/logo/bene-gesserit.svg",
         "name": "Bene Gesserit",
         "published": true,
         "slug": "bene-gesserit-1"
@@ -14161,7 +14161,7 @@
         "color": "#A8A172",
         "id": "k178rj7eevbaab0dnnb9474t3h8gn526",
         "linked": false,
-        "emblem": "/vector/emblem/ixian.svg",
+        "logo": "/vector/logo/ixian.svg",
         "name": "Ixians",
         "published": true,
         "slug": "ixians-1"
@@ -14177,7 +14177,7 @@
         "color": "#6A1B8E",
         "id": "k171j14cgdjbev5xyghs0ejc918gm9he",
         "linked": false,
-        "emblem": "/vector/emblem/bene-tleilaxu.svg",
+        "logo": "/vector/logo/bene-tleilaxu.svg",
         "name": "Tleilaxu",
         "published": true,
         "slug": "tleilaxu"
@@ -14193,7 +14193,7 @@
         "color": "#B7B6A9",
         "id": "k172w8tgrgjy7hehp17p9hr9xs8gms95",
         "linked": false,
-        "emblem": "/vector/emblem/richese.svg",
+        "logo": "/vector/logo/richese.svg",
         "name": "Richese",
         "published": true,
         "slug": "richese"
@@ -14226,7 +14226,7 @@
         "color": "#B11B20",
         "id": "k171sa4cvaa4qnn1n1x6rsedf58gnyp0",
         "linked": false,
-        "emblem": "/vector/emblem/choam.svg",
+        "logo": "/vector/logo/choam.svg",
         "name": "CHOAM",
         "published": true,
         "slug": "choam-1"
@@ -14242,7 +14242,7 @@
         "color": "#8B3C8C",
         "id": "k172hdb8cgry21wrdwxvavqc0h8gmp1k",
         "linked": false,
-        "emblem": "/vector/emblem/ecaz.svg",
+        "logo": "/vector/logo/ecaz.svg",
         "name": "Ecaz",
         "published": true,
         "slug": "ecaz"
@@ -14258,7 +14258,7 @@
         "color": "#3C8798",
         "id": "k179ta04t9nz6hjjrgtcq1pmx58gnp4y",
         "linked": false,
-        "emblem": "/vector/emblem/moritani.svg",
+        "logo": "/vector/logo/moritani.svg",
         "name": "Moritani",
         "published": true,
         "slug": "moritani"
@@ -14274,7 +14274,7 @@
         "color": "#444444",
         "id": "k17evzrze296vrzmv048qzr16n8gpcvz",
         "linked": false,
-        "emblem": "/vector/emblem/antler-tower.svg",
+        "logo": "/vector/logo/antler-tower.svg",
         "name": "Village Hidden in the Leaf",
         "published": true,
         "slug": "village-hidden-in-the-leaf"
@@ -14290,7 +14290,7 @@
         "color": "#4a4c08",
         "id": "k178pt05y4abwvwxeg247snr758gv794",
         "linked": false,
-        "emblem": "/vector/emblem/atreides.svg",
+        "logo": "/vector/logo/atreides.svg",
         "name": "Atreides",
         "published": true,
         "slug": "atreides-1"
@@ -14306,7 +14306,7 @@
         "color": "#253b82",
         "id": "k1755fjba9y9b2hkfph4ztdy3s8gvwm8",
         "linked": false,
-        "emblem": "/vector/emblem/bene-gesserit.svg",
+        "logo": "/vector/logo/bene-gesserit.svg",
         "name": "Bene Gesserit",
         "published": true,
         "slug": "bene-gesserit-2"
@@ -14322,7 +14322,7 @@
         "color": "#be1010",
         "id": "k17awq8h6dd3ge61y8peg14z2h8gvpzy",
         "linked": false,
-        "emblem": "/vector/emblem/emperor.svg",
+        "logo": "/vector/logo/emperor.svg",
         "name": "Emperor",
         "published": true,
         "slug": "emperor-3"
@@ -14338,7 +14338,7 @@
         "color": "#e4942e",
         "id": "k170ex3wwnd6ygv289qw1ypvdd8gtfv7",
         "linked": false,
-        "emblem": "/vector/emblem/fremen.svg",
+        "logo": "/vector/logo/fremen.svg",
         "name": "Fremen",
         "published": true,
         "slug": "fremen-3"
@@ -14354,7 +14354,7 @@
         "color": "#151315",
         "id": "k17fvtpc5h6hfxvcwdgayvqfz58gtch1",
         "linked": false,
-        "emblem": "/vector/emblem/harkonnen.svg",
+        "logo": "/vector/logo/harkonnen.svg",
         "name": "Harkonnen",
         "published": true,
         "slug": "harkonnen-1"
@@ -14370,7 +14370,7 @@
         "color": "#dc5317",
         "id": "k1716zfezm7w1ppfzp8gwzk63d8gvmhy",
         "linked": false,
-        "emblem": "/vector/emblem/guild.svg",
+        "logo": "/vector/logo/guild.svg",
         "name": "Spacing Guild",
         "published": true,
         "slug": "spacing-guild-3"
@@ -14447,7 +14447,7 @@
             "strength": 5
           }
         ],
-        "emblem": "/vector/emblem/bene-gesserit.svg",
+        "logo": "/vector/logo/bene-gesserit.svg",
         "name": "Bene Gesserit",
         "planet": [],
         "rules": {
@@ -14637,7 +14637,7 @@
             "strength": 1
           }
         ],
-        "emblem": "/vector/emblem/atreides.svg",
+        "logo": "/vector/logo/atreides.svg",
         "name": "House Atreides",
         "planet": [],
         "rules": {
@@ -14812,7 +14812,7 @@
             "strength": 1
           }
         ],
-        "emblem": "/vector/emblem/harkonnen.svg",
+        "logo": "/vector/logo/harkonnen.svg",
         "name": "House Harkonnen",
         "planet": [],
         "rules": {
@@ -14981,7 +14981,7 @@
             "strength": 2
           }
         ],
-        "emblem": "/vector/emblem/emperor.svg",
+        "logo": "/vector/logo/emperor.svg",
         "name": "Emperor",
         "planet": [],
         "rules": {
@@ -15176,7 +15176,7 @@
             "strength": 1
           }
         ],
-        "emblem": "/vector/emblem/guild.svg",
+        "logo": "/vector/logo/guild.svg",
         "name": "Spacing Guild",
         "planet": [
           {
@@ -15359,7 +15359,7 @@
             "strength": 2
           }
         ],
-        "emblem": "/vector/emblem/fremen.svg",
+        "logo": "/vector/logo/fremen.svg",
         "name": "Fremen",
         "planet": [],
         "rules": {

@@ -99,7 +99,7 @@ function draftable({ slug, data }: FactionFixture): DraftFaction {
     id: slug,
     slug,
     name: data.name,
-    emblem: data.emblem,
+    logo: data.logo,
     background: data.background,
     color: data.themeColor,
     linked: true,
@@ -146,7 +146,7 @@ async function journeyRuntime() {
       id: 'ixians',
       slug: 'ixians',
       name: 'Ixians',
-      emblem: '/vector/emblem/ixian.svg',
+      logo: '/vector/logo/ixian.svg',
       background: {
         image: '/image/texture/022.jpg',
         colors: ['#b29b54', '#d1be82'],

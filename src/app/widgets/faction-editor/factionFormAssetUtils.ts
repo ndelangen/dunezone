@@ -1,4 +1,4 @@
-import { DECAL, GENERIC, ICON, EMBLEM, TROOP, TROOP_MODIFIER } from '@shared/assetIds';
+import { DECAL, GENERIC, ICON, LOGO, TROOP, TROOP_MODIFIER } from '@shared/assetIds';
 import { resolveAsset } from '@shared/media/resolveAsset';
 
 const PREVIEWABLE_EXT = /\.(svg|png|jpg|jpeg)$/i;
@@ -68,11 +68,11 @@ function createPathOptionLabeler(options: readonly string[]): (raw: string) => s
   return (raw) => formatPathDisplay(raw, commonPrefix);
 }
 
-export const emblemOptions = [...EMBLEM.options, ...GENERIC.options] as readonly string[];
+export const logoOptions = [...LOGO.options, ...GENERIC.options] as readonly string[];
 
 /** Decal `id` is `ALL` in schema; picker focuses on paths used on alliance cards. */
 export const decalAssetOptions = [
-  ...new Set([...DECAL.options, ...ICON.options, ...EMBLEM.options, ...GENERIC.options, ...TROOP.options]),
+  ...new Set([...DECAL.options, ...ICON.options, ...LOGO.options, ...GENERIC.options, ...TROOP.options]),
 ].sort((a, b) => Number(!a.endsWith('.svg')) - Number(!b.endsWith('.svg')) || a.localeCompare(b)) as readonly string[];
 
 /** Token symbols use SVG fragments; keep raster card illustrations out of their choices. */

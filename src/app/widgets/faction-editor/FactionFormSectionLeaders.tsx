@@ -143,10 +143,10 @@ function SupportingLeaderCard({
               selector={(state) => ({
                 background: state.values.background,
                 leader: state.values.leaders[index],
-                emblem: state.values.emblem,
+                logo: state.values.logo,
               })}
             >
-              {({ background, leader: currentLeader, emblem }) =>
+              {({ background, leader: currentLeader, logo }) =>
                 currentLeader ? (
                   <Stack align="center" gap="sm">
                     <Text size="xs" fw={700} tt="uppercase" c="dimmed" ta="center">
@@ -156,7 +156,7 @@ function SupportingLeaderCard({
                       <LeaderToken
                         background={background}
                         image={currentLeader.image}
-                        emblem={emblem}
+                        logo={logo}
                         name={currentLeader.name}
                         strength={currentLeader.strength}
                       />

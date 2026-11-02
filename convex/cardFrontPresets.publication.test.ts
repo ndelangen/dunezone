@@ -75,7 +75,7 @@ async function linkedNexusCard({ t, authorId }: Awaited<ReturnType<typeof fixtur
       data: {
         ...assetPublishingFaction,
         name: nexus.faction,
-        emblem: nexus.factionSymbol.image,
+        logo: nexus.factionSymbol.image,
         background: nexus.factionSymbol.background,
       },
       slug: 'atreides',

@@ -86,7 +86,7 @@ describe('report import', () => {
 
   it('refuses foreign artwork and active markup before the renderer sees it', () => {
     expect(canRenderReport({ front: 'https://dune.zone/published/cards/card/front.jpg?v=2' })).toBe(true);
-    expect(canRenderReport({ emblem: '/vector/emblem/atreides.svg', image: '/image/texture/001.jpg' })).toBe(true);
+    expect(canRenderReport({ logo: '/vector/logo/atreides.svg', image: '/image/texture/001.jpg' })).toBe(true);
     for (const face of [
       'https://example.com/track.png',
       'ht\ttps://example.com/track.png',
@@ -116,7 +116,7 @@ describe('report import', () => {
       { peek: { piece: { items: [{ artwork: { front: address } }] } } },
       { phases: [{ symbol: address }] },
       { setup: { steps: [{ symbol: address }] } },
-      { factionArtwork: { faction: { emblem: address } } },
+      { factionArtwork: { faction: { logo: address } } },
       { factionArtwork: { faction: { background: { image: address } } } },
       { factionArtwork: { faction: { troops: [{ star: address }] } } },
       { combatFaces: { faction: [{ image: address }] } },

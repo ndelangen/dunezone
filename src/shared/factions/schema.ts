@@ -1,9 +1,8 @@
 import { z } from 'zod';
 
-import { ALL, BACKGROUND, GENERIC, LEADERS, EMBLEM, PLANET, TEXTURE, TROOP, TROOP_MODIFIER } from '../assetIds';
+import { ALL, BACKGROUND, GENERIC, LEADERS, LOGO, PLANET, TEXTURE, TROOP, TROOP_MODIFIER } from '../assetIds';
 import { backgroundSourceSchema } from '../backgrounds/source';
 import { marksOnlyFormattedTextSchema, proseFormattedTextSchema } from '../formattedText';
-import { legacyEmblemKeyed, readLegacyEmblemKey } from '../legacyEmblem';
 import { slugify } from '../slugify';
 import { extraPhasesSchema } from './extraPhases';
 import { factionExtrasSchema, storedFactionExtrasSchema } from './extras';
@@ -60,14 +59,6 @@ export function readFactionLeaderKey(input: unknown): unknown {
   return rest.factionLeader === undefined ? { ...rest, factionLeader: hero } : rest;
 }
 
-/**
- * `readFactionLeaderKey` plus the old `logo` key read as `emblem`, for the decoders that may meet data stored before either rename.
- * The emblem rename's fallback stays for the same three kinds of input (see src/shared/legacyEmblem.ts).
- */
-export function readLegacyFactionKeys(input: unknown): unknown {
-  return readLegacyEmblemKey(readFactionLeaderKey(input));
-}
-
 /** A faction under the `hero` literal in place of `factionLeader`. */
 export type HeroKeyed<T extends { factionLeader: unknown }> = Omit<T, 'factionLeader'> & { hero: T['factionLeader'] };
 
@@ -81,8 +72,7 @@ export function toStoredHeroKey<T extends { factionLeader: unknown }>({ factionL
 }
 
 /** `toStoredHeroKey` as a preprocess, for a decoder that may meet either key. */
-function writeStoredHeroKey(stored: unknown): unknown {
-  const input = readLegacyEmblemKey(stored);
+function writeStoredHeroKey(input: unknown): unknown {
   if (!isRecord(input) || !('factionLeader' in input)) {
     return input;
   }
@@ -237,7 +227,7 @@ export const FactionNameSchema = NonblankFactionNameSchema.refine(
 
 const factionBaseShape = {
   name: NonblankFactionNameSchema,
-  emblem: EMBLEM.or(GENERIC),
+  logo: LOGO.or(GENERIC),
   background: AuthoredBackground,
   themeColor: HEXCOLOR,
 
@@ -358,7 +348,7 @@ export const SUPPORTING_LEADER_LIMIT = 10;
  * A save also reads the old `hero` key, since raw JSON and imported packages come from outside the app (see `readFactionLeaderKey`).
  */
 export const FactionWriteSchema = z
-  .preprocess(readLegacyFactionKeys, FactionInputObject.extend({ name: FactionNameSchema }))
+  .preprocess(readFactionLeaderKey, FactionInputObject.extend({ name: FactionNameSchema }))
   .superRefine(refineUniqueComponentIds)
   .refine((faction) => faction.leaders.length <= SUPPORTING_LEADER_LIMIT, {
     message: `A faction can have at most ${SUPPORTING_LEADER_LIMIT} supporting leaders.`,
@@ -389,7 +379,7 @@ export const HistoricalFactionPublicationObject = z.strictObject({
  * The glossary term is "Faction leader", and `readFactionLeaderKey` explains the fallback.
  */
 export const HistoricalFactionPublicationSchema = z.preprocess(
-  readLegacyFactionKeys,
+  readFactionLeaderKey,
   HistoricalFactionPublicationObject
 );
 
@@ -413,12 +403,6 @@ export const HeroKeyedCanonicalFactionObject = CanonicalFactionStoredObject.omit
   hero: CanonicalFactionLeader,
 });
 
-/**
- * A stored faction row's `data` as the live code reads it.
- * Also reads the old `logo` key, for rows `emblem_rename_v1` has not reached yet (see src/shared/legacyEmblem.ts).
- */
-export const StoredFactionSchema = legacyEmblemKeyed(CanonicalFactionStoredObject);
-
 /** Complete canonical data also requires unique member identities across the roster. */
 export const IdentifiedFactionStoredSchema = CanonicalFactionStoredObject.superRefine(refineUniqueComponentIds);
 
@@ -437,7 +421,7 @@ export const CanonicalFactionClientSchema = canonicalFactionClientObject;
  */
 const catalogueFactionMask = {
   name: true,
-  emblem: true,
+  logo: true,
   background: true,
   factionLeader: true,
   leaders: true,
@@ -465,7 +449,7 @@ export const FactionRender = {
   alliance: FactionInputSchema.transform((input) => ({
     title: input.name,
     text: input.rules.alliance.text,
-    emblem: input.emblem,
+    logo: input.logo,
     background: input.background,
     troop: input.troops[0]?.image,
     decals: input.decals,
@@ -474,13 +458,13 @@ export const FactionRender = {
     input.leaders.map((leader) => ({
       ...leader,
       background: input.background,
-      emblem: input.emblem,
+      logo: input.logo,
     }))
   ),
   traitors: FactionInputSchema.transform((input) =>
     input.leaders.map((leader) => ({
       ...leader,
-      emblem: input.emblem,
+      logo: input.logo,
       background: input.background,
       owner: input.name,
     }))
@@ -498,19 +482,19 @@ export const FactionRender = {
     name: input.name,
     leader: input.factionLeader,
     background: input.background,
-    emblem: input.emblem,
+    logo: input.logo,
   })),
   sheet: HistoricalFactionPublicationSchema.transform((input) => ({
     name: input.name,
     themeColor: input.themeColor,
-    emblem: input.emblem,
+    logo: input.logo,
     background: input.background,
     leaders: input.leaders,
     troops: input.troops,
     rules: input.rules,
   })),
   token: FactionInputSchema.transform((input) => ({
-    emblem: input.emblem,
+    logo: input.logo,
     background: input.background,
   })),
 };

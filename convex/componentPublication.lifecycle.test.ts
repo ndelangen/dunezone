@@ -103,7 +103,7 @@ describe('Leader component publication lifecycle', () => {
       status: 'found',
       revision: tokenB,
     });
-    expect(await save({ ...renamed, emblem: '/vector/emblem/fremen.svg' }, renamed)).toBe(renamed.leaders.length + 1);
+    expect(await save({ ...renamed, logo: '/vector/logo/fremen.svg' }, renamed)).toBe(renamed.leaders.length + 1);
   });
 
   test('late capture cannot replace a newer component revision', async () => {

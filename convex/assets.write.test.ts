@@ -718,7 +718,7 @@ const rectangleData = (name: string) => ({
     background: rectangleBackground,
     ring: false,
     decals: [
-      { id: '/vector/emblem/atreides.svg', muted: false, outline: true, scale: 0.9, offset: [-55, -18], opacity: 1 },
+      { id: '/vector/logo/atreides.svg', muted: false, outline: true, scale: 0.9, offset: [-55, -18], opacity: 1 },
     ],
     texts: [{ content: 'KWISATZ\nHADERACH', offset: [-58, 34], size: 15, font: 'C_Copperplate_Gothic', opacity: 1 }],
   },

@@ -7,7 +7,7 @@ import { useSharedMeshes } from '../sharedMeshes';
 import type { CardPrediction } from './predictionFace';
 import { usePredictionFace } from './predictionFace';
 
-/* A prediction card's chosen emblem and turn, drawn over its published base (#1753). */
+/* A prediction card's chosen logo and turn, drawn over its published base (#1753). */
 export function PredictionOverlay({ prediction }: { prediction: CardPrediction }) {
   const meshes = useSharedMeshes();
   const face = usePredictionFace(prediction);

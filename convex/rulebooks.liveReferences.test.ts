@@ -562,7 +562,7 @@ test('explicit token and traitor sources use their existing publications without
   expect(rulebookSourceClipPath(projectedToken)).toBe('circle(50%)');
   expect(
     projectRulebookSource({ kind: 'faction', factionId: refs.factionId }, {}, resolved.factionsById)
-  ).toMatchObject({ status: 'ready', imageUrl: data.emblem });
+  ).toMatchObject({ status: 'ready', imageUrl: data.logo });
   await t.run(async (ctx) => {
     const publication = await ctx.db
       .query('publication_assets')

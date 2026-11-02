@@ -529,7 +529,7 @@ function FrontPreview({ preset }: Readonly<{ preset: FamilyPreset }>): ReactNode
           image="/image/leader/official/duncan.png"
           strength="2"
           owner="Atreides"
-          emblem="/vector/emblem/atreides.svg"
+          logo="/vector/logo/atreides.svg"
           background={backgroundPresets.atreides}
         />
       );
@@ -539,7 +539,7 @@ function FrontPreview({ preset }: Readonly<{ preset: FamilyPreset }>): ReactNode
           frontStyle={style}
           title="Atreides"
           text="Atreides may use Battle Prescience in their ally's battles."
-          emblem="/vector/emblem/atreides.svg"
+          logo="/vector/logo/atreides.svg"
           troop="/vector/troop/atreides.svg"
           decals={[]}
           background={backgroundPresets.atreides}

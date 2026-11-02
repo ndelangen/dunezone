@@ -195,11 +195,11 @@ describe('immutable annotated illustration delivery', () => {
     if (block.kind !== 'asset-explainer') {
       throw new Error('Expected explainer');
     }
-    block.source = { kind: 'stock', artworkId: '/vector/emblem/atreides.svg' };
+    block.source = { kind: 'stock', artworkId: '/vector/logo/atreides.svg' };
     block.itemsById.first!.target = { kind: 'position', x: 0.25, y: 0.75, source: block.source };
     await publish(stock);
     expect(await stock.t.query(internal.rulebookAnnotatedIllustration.resolveDelivery, stock.identity)).toMatchObject({
-      source: { status: 'stock', artworkId: '/vector/emblem/atreides.svg' },
+      source: { status: 'stock', artworkId: '/vector/logo/atreides.svg' },
     });
     const deck = await fixture();
     await deck.t.run(async (ctx) => {

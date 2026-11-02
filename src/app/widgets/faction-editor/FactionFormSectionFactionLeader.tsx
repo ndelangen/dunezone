@@ -85,10 +85,10 @@ export function FactionFormSectionFactionLeader({
               selector={(state) => ({
                 background: state.values.background,
                 factionLeader: state.values.factionLeader,
-                emblem: state.values.emblem,
+                logo: state.values.logo,
               })}
             >
-              {({ background, factionLeader, emblem }) => (
+              {({ background, factionLeader, logo }) => (
                 <Stack align="center" gap="sm">
                   <Text size="xs" fw={700} tt="uppercase" c="dimmed" ta="center">
                     Used on: Faction shield
@@ -97,7 +97,7 @@ export function FactionFormSectionFactionLeader({
                     <LeaderToken
                       background={background}
                       image={factionLeader.image}
-                      emblem={emblem}
+                      logo={logo}
                       name={factionLeader.name}
                       strength={undefined}
                     />

@@ -128,7 +128,7 @@ function FactionToken({
   const style = { '--token-size': `${size}rem` } as CSSProperties;
   const face = (
     <span className={styles.tokenFace} aria-hidden="true">
-      <Token emblem={faction.emblem} background={faction.background} />
+      <Token logo={faction.logo} background={faction.background} />
     </span>
   );
   return (

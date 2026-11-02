@@ -20,7 +20,7 @@
         "name": "Prince Rhombur Vernius",
         "image": "/image/leader/official/rhombor.jpg"
       },
-      "emblem": "/vector/emblem/ixian.svg",
+      "logo": "/vector/logo/ixian.svg",
       "themeColor": "#A8A172",
       "leaders": [
         {
@@ -151,7 +151,7 @@
         "name": "Masters Council",
         "image": "/image/leader/official/masters.jpg"
       },
-      "emblem": "/vector/emblem/bene-tleilaxu.svg",
+      "logo": "/vector/logo/bene-tleilaxu.svg",
       "themeColor": "#6A1B8E",
       "leaders": [
         {
@@ -272,7 +272,7 @@
         "name": "Count Ilban Richese",
         "artworkStatus": "needs-existing-catalogue-match"
       },
-      "emblem": "/vector/emblem/richese.svg",
+      "logo": "/vector/logo/richese.svg",
       "themeColor": "#B7B6A9",
       "leaders": [
         {
@@ -391,7 +391,7 @@
         "name": "Ur-Director Malina Aru",
         "artworkStatus": "needs-existing-catalogue-match"
       },
-      "emblem": "/vector/emblem/choam.svg",
+      "logo": "/vector/logo/choam.svg",
       "themeColor": "#B11B20",
       "leaders": [
         {
@@ -518,7 +518,7 @@
         "name": "Archduke Armand Ecaz",
         "image": "/image/leader/ilya/ecaz.jpg"
       },
-      "emblem": "/vector/emblem/ecaz.svg",
+      "logo": "/vector/logo/ecaz.svg",
       "themeColor": "#8B3C8C",
       "leaders": [
         {
@@ -641,7 +641,7 @@
         "name": "Viscount Hundro Moritani",
         "image": "/image/leader/ilya/hundro.jpg"
       },
-      "emblem": "/vector/emblem/moritani.svg",
+      "logo": "/vector/logo/moritani.svg",
       "themeColor": "#3C8798",
       "leaders": [
         {

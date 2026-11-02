@@ -33,7 +33,7 @@ export const publishingCustomCard: z.infer<typeof CustomCardAsset> = {
     {
       kind: 'decal',
       layerId: '20000000-2000-4000-8000-200000000002',
-      id: '/vector/emblem/atreides.svg',
+      id: '/vector/logo/atreides.svg',
       offset: [0, 280],
       scale: 0.5,
       muted: false,

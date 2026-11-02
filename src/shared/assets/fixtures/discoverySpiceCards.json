@@ -2,7 +2,7 @@
   {
     "name": "Sihaya Ridge",
     "subName": "Spice Blow - Discovery",
-    "icon": "/vector/emblem/fremen.svg",
+    "icon": "/vector/logo/fremen.svg",
     "iconScale": 1,
     "amount": 6,
     "highlights": [],
@@ -54,7 +54,7 @@
   {
     "name": "Rock Outcroppings",
     "subName": "Spice Blow - Discovery",
-    "icon": "/vector/emblem/fremen.svg",
+    "icon": "/vector/logo/fremen.svg",
     "iconScale": 1,
     "amount": 6,
     "highlights": [],
@@ -106,7 +106,7 @@
   {
     "name": "Hagga Basin",
     "subName": "Spice Blow - Discovery",
-    "icon": "/vector/emblem/fremen.svg",
+    "icon": "/vector/logo/fremen.svg",
     "iconScale": 1,
     "amount": 6,
     "highlights": [],
@@ -158,7 +158,7 @@
   {
     "name": "Funeral Plain",
     "subName": "Spice Blow - Discovery",
-    "icon": "/vector/emblem/guild.svg",
+    "icon": "/vector/logo/guild.svg",
     "iconScale": 1,
     "amount": 6,
     "highlights": [],
@@ -210,7 +210,7 @@
   {
     "name": "Wind Pass North",
     "subName": "Spice Blow - Discovery",
-    "icon": "/vector/emblem/guild.svg",
+    "icon": "/vector/logo/guild.svg",
     "iconScale": 1,
     "amount": 6,
     "highlights": [],
@@ -262,7 +262,7 @@
   {
     "name": "Old Gap",
     "subName": "Spice Blow - Discovery",
-    "icon": "/vector/emblem/guild.svg",
+    "icon": "/vector/logo/guild.svg",
     "iconScale": 1,
     "amount": 6,
     "highlights": [],

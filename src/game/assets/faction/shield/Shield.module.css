@@ -2,7 +2,7 @@
   position: relative;
 }
 
-.emblem {
+.logo {
   position: absolute;
   top: calc(670px / 2);
   width: calc(520px / 2);

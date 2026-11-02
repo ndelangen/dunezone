@@ -508,7 +508,7 @@ function GroupAllianceCard() {
         {visible && (
           <AllianceCard
             background={backgroundPresets.atreides}
-            emblem="/vector/generic/alliance.svg"
+            logo="/vector/generic/alliance.svg"
             title="Your Group"
             troop="/vector/troop/banner-marshal.svg"
             decals={[]}
@@ -549,7 +549,7 @@ function OrkLeaders() {
             {visible && (
               <LeaderToken
                 {...leader}
-                emblem="/vector/generic/axes.svg"
+                logo="/vector/generic/axes.svg"
                 background={{
                   colors: ['#52a32b', '#52a32b'],
                   definition: 0.5,

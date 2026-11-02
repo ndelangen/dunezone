@@ -44,7 +44,7 @@ function AllianceCardPreview({ form }: { form: FactionFormApi }) {
       selector={(state) => ({
         background: state.values.background,
         decals: state.values.decals,
-        emblem: state.values.emblem,
+        logo: state.values.logo,
         text: state.values.rules.alliance.text,
         title: state.values.name,
         troop: state.values.troops[0]?.image,

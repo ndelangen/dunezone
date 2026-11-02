@@ -407,7 +407,7 @@ function RulesetAssignPicker({ disabled, currentGroupId, currentGroupName, onAss
 
 /**
  * Dune-specific crest for the Factions section.
- * These faction emblem files ship without root width/height (see `Token`'s `StrokedUse` pattern).
+ * These faction logo files ship without root width/height (see `Token`'s `StrokedUse` pattern).
  * Reference the `#root` fragment via `<use>` inside an own viewBox rather than a plain `<img src>`, which renders as a broken 0x0 image.
  */
 function FremenIcon({ size = 18 }: { size?: number }) {
@@ -420,7 +420,7 @@ function FremenIcon({ size = 18 }: { size?: number }) {
       focusable="false"
       style={{ display: 'block', flex: '0 0 auto' }}
     >
-      <use href="/vector/emblem/fremen.svg#root" width={100} height={100} fill="currentColor" />
+      <use href="/vector/logo/fremen.svg#root" width={100} height={100} fill="currentColor" />
     </svg>
   );
 }
@@ -589,7 +589,7 @@ function FactionList({ factions }: { factions: FactionEntry[] }) {
           key={faction._id}
           slug={faction.slug}
           name={faction.data.name}
-          emblem={faction.data.emblem}
+          logo={faction.data.logo}
           background={faction.data.background}
         />
       ))}

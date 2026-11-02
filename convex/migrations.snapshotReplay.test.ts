@@ -55,9 +55,6 @@ const retunedDecal = {
 
 afterEach(() => vi.useRealTimers());
 
-/* `runSerially` schedules at least one step per migration, so the manifest's length outgrew convex-test's default of 100. */
-const REPLAY_ITERATIONS = 1000;
-
 describe('a snapshot load', () => {
   test('replays every required migration over rows production already migrated, changing none and rebuilding the aggregates', async () => {
     vi.useFakeTimers();
@@ -96,7 +93,7 @@ describe('a snapshot load', () => {
     const loaded = await rows();
 
     await t.mutation(internal.migrations.runRequired, { ids: required });
-    await t.finishAllScheduledFunctions(vi.runAllTimers, REPLAY_ITERATIONS);
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
 
     await expect(t.query(internal.migrations.assertReadyForNarrow, { required })).resolves.toMatchObject({ ok: true });
     expect(await rows()).toEqual(loaded);
@@ -209,7 +206,7 @@ describe('a snapshot load', () => {
        */
       vi.useFakeTimers();
       await t.mutation(internal.migrations.runRequired, { ids: required });
-      await t.finishAllScheduledFunctions(vi.runAllTimers, REPLAY_ITERATIONS);
+      await t.finishAllScheduledFunctions(vi.runAllTimers);
       const hashes = await t.run(async (ctx) => ({
         drafts: (await ctx.db.query('rulebook_drafts').collect()).map((row) => row.contents_hash),
         editions: (await ctx.db.query('rulebook_editions').collect()).map((row) => row.contents_hash),

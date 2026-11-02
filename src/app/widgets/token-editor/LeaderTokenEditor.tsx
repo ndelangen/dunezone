@@ -1,5 +1,5 @@
 import { Stack } from '@mantine/core';
-import { LEADERS, EMBLEM } from '@shared/assetIds';
+import { LEADERS, LOGO } from '@shared/assetIds';
 import type { LeaderTokenAsset } from '@shared/assets/schema';
 import { resolveAsset } from '@shared/media/resolveAsset';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
@@ -28,7 +28,7 @@ export type LeaderTokenMemory = {
   refusedStrength: string | null;
 };
 const portraits = stockAssetOptions(LEADERS.options);
-const emblems = stockAssetOptions(EMBLEM.options);
+const emblems = stockAssetOptions(LOGO.options);
 const backgrounds = [
   { key: 'ecaz', label: 'Ecaz', background: backgroundPresets.ecaz },
   { key: 'moritani', label: 'Moritani', background: backgroundPresets.moritani },
@@ -167,11 +167,11 @@ function ArtworkFields({
             allowDeselect={false}
             data={emblems}
             getPreviewSrc={(image) => image}
-            value={draft.emblem}
-            onChange={(emblem) => {
-              const value = EMBLEM.safeParse(emblem);
+            value={draft.logo}
+            onChange={(logo) => {
+              const value = LOGO.safeParse(logo);
               if (value.success) {
-                patch({ emblem: value.data });
+                patch({ logo: value.data });
               }
             }}
           />

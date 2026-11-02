@@ -20,7 +20,7 @@ export function FactionCatalogueSpotlight({
 }) {
   return (
     <Spotlight
-      media={<FactionToken emblem={faction.data.emblem} background={faction.data.background} />}
+      media={<FactionToken logo={faction.data.logo} background={faction.data.background} />}
       eyebrow={label}
       title={faction.data.name}
       meta={meta}

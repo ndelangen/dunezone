@@ -1,4 +1,4 @@
-import { LEADERS, EMBLEM, TROOP } from '@shared/assetIds';
+import { LEADERS, LOGO, TROOP } from '@shared/assetIds';
 import { recalculateFactionComplexity } from '@shared/factions/complexity';
 import { FactionInputSchema } from '@shared/factions/schema';
 
@@ -6,7 +6,7 @@ import type { Faction } from '@db/factions';
 
 const defaultFactionInput = {
   name: 'New faction',
-  emblem: EMBLEM.options[0],
+  logo: LOGO.options[0],
   colors: ['Green', 'Teal'],
   background: {
     image: '/image/texture/021.jpg',

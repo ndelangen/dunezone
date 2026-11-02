@@ -38,7 +38,7 @@ const THUFIR: ComponentProps<typeof LeaderToken> = {
     influence: 1,
   },
   image: '/image/leader/official/thufir.png',
-  emblem: '/vector/emblem/atreides.svg',
+  logo: '/vector/logo/atreides.svg',
   name: 'Thufir Hawat',
   strength: '5',
 };
@@ -180,7 +180,7 @@ const ANATOMY: readonly Annotated[] = [
       },
       {
         part: 'Emblem',
-        spec: 'The faction emblem in cream, 41 units, sitting on the lower edge of the ring',
+        spec: 'The faction logo in cream, 41 units, sitting on the lower edge of the ring',
         at: [133, 240],
         pin: [-20, 240],
       },
@@ -277,7 +277,7 @@ export function GoldLettering() {
           <Shield
             background={backgroundPresets.atreides}
             leader={{ name: 'Paul Atreides', image: '/image/leader/official/paul.jpg' }}
-            emblem="/vector/emblem/atreides.svg"
+            logo="/vector/logo/atreides.svg"
             name="Atreides"
           />
         </CanvasScale>

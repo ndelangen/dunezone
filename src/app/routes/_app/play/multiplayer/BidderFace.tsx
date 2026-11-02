@@ -18,7 +18,7 @@ function HighBid({ bid, table }: { bid: NonNullable<BiddingState['bid']>; table:
   const artwork = table.snapshot.factionArtwork?.[bid.factionId];
   return (
     <>
-      {artwork && <FactionToken emblem={artwork.emblem} background={artwork.background} />}
+      {artwork && <FactionToken logo={artwork.logo} background={artwork.background} />}
       <span className={styles.amount}>{bid.amount}</span>
     </>
   );
@@ -58,11 +58,7 @@ function StartAt({
                   disabled={!table.canInteract || !table.snapshot.bank || sittingOut}
                   onClick={() => client.command({ kind: 'bid-start', factionId })}
                 >
-                  {artwork ? (
-                    <FactionToken emblem={artwork.emblem} background={artwork.background} />
-                  ) : (
-                    name.slice(0, 2)
-                  )}
+                  {artwork ? <FactionToken logo={artwork.logo} background={artwork.background} /> : name.slice(0, 2)}
                 </UnstyledButton>
               </TooltipTarget>
             </Tooltip>

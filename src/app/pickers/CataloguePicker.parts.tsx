@@ -17,7 +17,7 @@ function catalogueChoiceCopy(choice: CatalogueChoice) {
 function CataloguePickerPreview({ choice }: { choice: CatalogueChoice }) {
   return choice.kind === 'faction' ? (
     <Box w={32} h={32}>
-      <Token emblem={choice.faction.data.emblem} background={choice.faction.data.background} />
+      <Token logo={choice.faction.data.logo} background={choice.faction.data.background} />
     </Box>
   ) : (
     <AssetFace

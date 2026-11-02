@@ -34,9 +34,9 @@ export const options = [
 
 /* A fixed handful across two collections: the story shows the grouped picker, not the emblem catalogue, so new artwork leaves its snapshot alone. */
 export const emblems = [
-  '/vector/emblem/atreides.svg',
-  '/vector/emblem/bene-gesserit.svg',
-  '/vector/emblem/choam.svg',
-  '/vector/emblem/glass-owl.svg',
-  '/vector/emblem/spice-fox.svg',
+  '/vector/logo/atreides.svg',
+  '/vector/logo/bene-gesserit.svg',
+  '/vector/logo/choam.svg',
+  '/vector/logo/glass-owl.svg',
+  '/vector/logo/spice-fox.svg',
 ];

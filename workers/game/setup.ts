@@ -128,7 +128,7 @@ function supplyInventory(next: StoredSnapshot, capture: FactionCapture, hand: St
     ...next.factionArtwork,
     [id]: {
       background: capture.definition.background,
-      emblem: capture.definition.emblem,
+      logo: capture.definition.logo,
       troops: capture.definition.troops.map(({ back, ...front }) => ({
         ...troopArtwork(front),
         ...(back ? { back: troopArtwork(back) } : {}),

@@ -33,7 +33,7 @@ export const factions = capturedFactions.map((entry) => ({
 type CatalogueSnapshotEntry = {
   slug: string;
   name: string;
-  emblem: ComponentProps<typeof Token>['emblem'];
+  logo: ComponentProps<typeof Token>['logo'];
   background: z.infer<typeof Background>;
   themeColor: string;
   rulesets: string[];
@@ -44,7 +44,7 @@ const OTHER_FACTIONS: readonly CatalogueSnapshotEntry[] = [
   {
     slug: 'ixians',
     name: 'Ixians',
-    emblem: '/vector/emblem/ixian.svg',
+    logo: '/vector/logo/ixian.svg',
     background: {
       image: '/image/texture/022.jpg',
       colors: ['#b29b54', '#d1be82'],
@@ -59,7 +59,7 @@ const OTHER_FACTIONS: readonly CatalogueSnapshotEntry[] = [
   {
     slug: 'bene-tleilax',
     name: 'Bene Tleilax',
-    emblem: '/vector/emblem/bene-tleilaxu.svg',
+    logo: '/vector/logo/bene-tleilaxu.svg',
     background: {
       image: '/image/texture/073.jpg',
       colors: ['#3c0a78', '#741890'],
@@ -74,7 +74,7 @@ const OTHER_FACTIONS: readonly CatalogueSnapshotEntry[] = [
   {
     slug: 'iduali',
     name: 'Iduali',
-    emblem: '/vector/emblem/iduali.svg',
+    logo: '/vector/logo/iduali.svg',
     background: {
       image: '/image/texture/082.jpg',
       colors: ['#663b01', '#3e2400'],
@@ -89,7 +89,7 @@ const OTHER_FACTIONS: readonly CatalogueSnapshotEntry[] = [
   {
     slug: 'ecaz-ecaz-moritani',
     name: 'Ecaz (Ecaz/Moritani)',
-    emblem: '/vector/emblem/ecaz.svg',
+    logo: '/vector/logo/ecaz.svg',
     background: {
       image: '/image/texture/021.jpg',
       colors: [
@@ -115,7 +115,7 @@ const OTHER_FACTIONS: readonly CatalogueSnapshotEntry[] = [
   {
     slug: 'moritani-ecaz-moritani',
     name: 'Moritani (Ecaz/Moritani)',
-    emblem: '/vector/emblem/moritani.svg',
+    logo: '/vector/logo/moritani.svg',
     background: {
       image: '/image/texture/030.jpg',
       colors: [
@@ -140,7 +140,7 @@ const OTHER_FACTIONS: readonly CatalogueSnapshotEntry[] = [
   {
     slug: 'richese',
     name: 'Richese',
-    emblem: '/vector/emblem/richese.svg',
+    logo: '/vector/logo/richese.svg',
     background: {
       image: '/image/texture/021.jpg',
       colors: ['#e8e8e8', '#5e5e5e'],
@@ -155,7 +155,7 @@ const OTHER_FACTIONS: readonly CatalogueSnapshotEntry[] = [
   {
     slug: 'ginaz',
     name: 'Ginaz',
-    emblem: '/vector/emblem/ginaz.svg',
+    logo: '/vector/logo/ginaz.svg',
     background: {
       image: '/image/texture/022.jpg',
       colors: ['#009080', '#004D40'],
@@ -170,7 +170,7 @@ const OTHER_FACTIONS: readonly CatalogueSnapshotEntry[] = [
   {
     slug: 'landsraad-council',
     name: 'Landsraad Council',
-    emblem: '/vector/generic/council.svg',
+    logo: '/vector/generic/council.svg',
     background: {
       image: '/image/texture/001.jpg',
       colors: ['#444444', '#222222'],
@@ -185,7 +185,7 @@ const OTHER_FACTIONS: readonly CatalogueSnapshotEntry[] = [
   {
     slug: 'choam',
     name: 'CHOAM',
-    emblem: '/vector/generic/guildeyes.svg',
+    logo: '/vector/generic/guildeyes.svg',
     background: {
       image: '/image/texture/021.jpg',
       colors: ['#5f0000', '#5f0000'],
@@ -200,7 +200,7 @@ const OTHER_FACTIONS: readonly CatalogueSnapshotEntry[] = [
   {
     slug: 'honored-matres',
     name: 'Honored Matres',
-    emblem: '/vector/generic/matres.svg',
+    logo: '/vector/generic/matres.svg',
     background: {
       image: '/image/texture/021.jpg',
       colors: [
@@ -224,7 +224,7 @@ const OTHER_FACTIONS: readonly CatalogueSnapshotEntry[] = [
   {
     slug: 'ordos',
     name: 'Ordos',
-    emblem: '/vector/generic/tech.svg',
+    logo: '/vector/generic/tech.svg',
     background: {
       image: '/image/texture/021.jpg',
       colors: ['#004020', '#222222'],
@@ -239,7 +239,7 @@ const OTHER_FACTIONS: readonly CatalogueSnapshotEntry[] = [
   {
     slug: 'thinking-machines',
     name: 'Thinking Machines',
-    emblem: '/vector/generic/detector.svg',
+    logo: '/vector/generic/detector.svg',
     background: {
       image: '/image/texture/021.jpg',
       colors: ['#808080', '#222222'],
@@ -254,7 +254,7 @@ const OTHER_FACTIONS: readonly CatalogueSnapshotEntry[] = [
   {
     slug: 'corrino',
     name: 'Corrino',
-    emblem: '/vector/generic/flauqre.svg',
+    logo: '/vector/generic/flauqre.svg',
     background: {
       image: '/image/texture/021.jpg',
       colors: ['#ff08b2', '#ff08b2'],
@@ -278,7 +278,7 @@ const DRAFT_FACTIONS: DraftFaction[] = [
     id: slug,
     slug,
     name: data.name,
-    emblem: data.emblem,
+    logo: data.logo,
     background: data.background,
     color: data.themeColor,
     linked: true,
@@ -288,7 +288,7 @@ const DRAFT_FACTIONS: DraftFaction[] = [
     id: entry.slug,
     slug: entry.slug,
     name: entry.name,
-    emblem: entry.emblem,
+    logo: entry.logo,
     background: entry.background,
     color: entry.themeColor,
     linked: entry.rulesets.includes('dreamrules'),

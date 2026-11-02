@@ -6,12 +6,12 @@ import type { ReactNode } from 'react';
 
 import type { Faction } from '@db/factions';
 
-import { assetOptionToPreviewSrc, emblemOptions } from './factionFormAssetUtils';
+import { assetOptionToPreviewSrc, logoOptions } from './factionFormAssetUtils';
 import styles from './FactionFormSectionIdentity.module.css';
 import type { FactionFormApi } from './factionFormTypes';
 import { TtsColorsEditor } from './TtsColorsEditor';
 
-const emblemSelectOptions = stockAssetOptions(emblemOptions);
+const logoSelectOptions = stockAssetOptions(logoOptions);
 
 /** The route supplies owner-only renaming; the section binds the control to its form. */
 export type FactionIdentityNameField = (props: {
@@ -80,23 +80,23 @@ export function FactionFormSectionIdentity({
           )}
         </form.Field>
 
-        <form.Field name="emblem">
+        <form.Field name="logo">
           {(field) => (
             <ControlBlock
-              title="Faction emblem"
+              title="Faction logo"
               description="Used on faction tokens and faction-branded game artifacts."
               input={
                 <AssetSelect
-                  id="faction-emblem"
-                  aria-label="Faction emblem"
+                  id="faction-logo"
+                  aria-label="Faction logo"
                   allowDeselect={false}
-                  data={emblemSelectOptions}
+                  data={logoSelectOptions}
                   getPreviewSrc={assetOptionToPreviewSrc}
                   glyphPreviews
                   value={field.state.value}
                   onChange={(value) => {
                     if (value) {
-                      field.handleChange(value as Faction['emblem']);
+                      field.handleChange(value as Faction['logo']);
                     }
                   }}
                 />

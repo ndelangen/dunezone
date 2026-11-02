@@ -1,6 +1,6 @@
 import { zodToConvex } from 'convex-helpers/server/zod4';
 
-import { StoredFactionSchema } from '../src/shared/factions/schema';
+import { CanonicalFactionStoredObject } from '../src/shared/factions/schema';
 import {
   playDirectorySummarySchema,
   playLobbySchema,
@@ -60,9 +60,9 @@ async function factionToken(ctx: QueryCtx, factionId: string) {
   if (!row || row.is_deleted) {
     return null;
   }
-  const parsed = StoredFactionSchema.safeParse(row.data);
+  const parsed = CanonicalFactionStoredObject.safeParse(row.data);
   return parsed.success
-    ? { emblem: parsed.data.emblem, background: await resolveBackgrounds(ctx, parsed.data.background) }
+    ? { logo: parsed.data.logo, background: await resolveBackgrounds(ctx, parsed.data.background) }
     : null;
 }
 

@@ -10,7 +10,7 @@ const spotlightValidator = v.object({
   slug: v.string(),
   created_at: v.string(),
   updated_at: v.string(),
-  data: factionDataValidator.pick('name', 'emblem', 'background'),
+  data: factionDataValidator.pick('name', 'logo', 'background'),
 });
 
 const metricCountsValidator = v.object({

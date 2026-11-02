@@ -7,7 +7,7 @@ import {
 } from '../../src/shared/asset-publishing/publicationTargets';
 import { parseBoardData } from '../../src/shared/assets/validation';
 import { BoardAsset } from '../../src/shared/boards/schema';
-import { StoredFactionSchema, TroopArtwork } from '../../src/shared/factions/schema';
+import { CanonicalFactionStoredObject, TroopArtwork } from '../../src/shared/factions/schema';
 import type { RulebookEditionContentsV1 } from '../../src/shared/rulebooks/contents';
 import type {
   RulebookResolvedAssetsById,
@@ -133,7 +133,7 @@ export async function resolveRulebookReferences(
         if (!faction || faction.is_deleted) {
           return null;
         }
-        const parsed = StoredFactionSchema.safeParse(faction.data);
+        const parsed = CanonicalFactionStoredObject.safeParse(faction.data);
         if (!parsed.success) {
           return null;
         }
@@ -210,11 +210,11 @@ export async function resolveRulebookReferences(
             factionId,
             name: parsed.data.name,
             color,
-            emblemUrl: parsed.data.emblem,
+            emblemUrl: parsed.data.logo,
             ...(tokenPublication && (requested.factionTokenImages !== false || tokenFactionIds.includes(factionId))
               ? { tokenImageUrl: publishedHref('faction-token', factionId, tokenPublication.cache_token) }
               : {}),
-            token: { emblem: parsed.data.emblem, background: parsed.data.background },
+            token: { logo: parsed.data.logo, background: parsed.data.background },
             ...(sheetFactionIds.includes(factionId) ||
             (requested.factionSheetData && requested.factionIds?.includes(factionId))
               ? { sheet: await resolveBackgrounds(ctx, rulebookFactionSheetSchema.parse(parsed.data)) }

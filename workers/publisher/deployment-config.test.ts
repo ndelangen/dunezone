@@ -157,7 +157,6 @@ describe('scheduled production deployment shape', () => {
       '/image/*',
       '/web',
       '/web/*',
-      '/vector/logo/*',
       '/__play',
       '/__play/*',
       '/sitemap*',

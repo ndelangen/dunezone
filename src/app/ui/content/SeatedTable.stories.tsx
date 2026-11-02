@@ -58,7 +58,7 @@ export const FactionToken = meta.story({
     seats: [
       seat('Krell', '#4b4c0d', {
         label: 'Krell, Atreides',
-        token: <Token emblem={assetPublishingFaction.emblem} background={assetPublishingFaction.background} />,
+        token: <Token logo={assetPublishingFaction.logo} background={assetPublishingFaction.background} />,
       }),
       null,
     ],

@@ -32,7 +32,7 @@ export function parseFactionMemberPublicationId(value: string) {
 export const factionLeaderAssetDataSchema = factionMemberPublicationIdentitySchema.extend({
   leader: FactionInputObject.shape.leaders.element.omit({ memberId: true }),
   background: FactionInputObject.shape.background,
-  emblem: FactionInputObject.shape.emblem,
+  logo: FactionInputObject.shape.logo,
 });
 
 export type FactionLeaderAssetData = z.infer<typeof factionLeaderAssetDataSchema>;
@@ -58,7 +58,7 @@ export function factionLeaderAssetData(
     memberId,
     leader,
     background: faction.data.background,
-    emblem: faction.data.emblem,
+    logo: faction.data.logo,
   });
 }
 

@@ -30,7 +30,7 @@ export const FactionSheet = meta.story({
           factionId: 'atreides',
           name: 'Atreides',
           color: '#4b4c0d',
-          emblemUrl: assetPublishingFaction.emblem,
+          emblemUrl: assetPublishingFaction.logo,
           sheet: rulebookFactionSheetSchema.parse(assetPublishingFaction),
         },
       }

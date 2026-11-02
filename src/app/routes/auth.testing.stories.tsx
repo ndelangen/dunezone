@@ -56,7 +56,7 @@ export const BandGrowsAndShrinks = meta.story({
   },
 });
 
-/** On a phone the mark stays on the emblem without clipping the label. */
+/** On a phone the mark stays on the logo without clipping the label. */
 export const LoginLastUsedMobile = meta.story({
   args: { path: '/auth/login' },
   parameters: { identity: null },

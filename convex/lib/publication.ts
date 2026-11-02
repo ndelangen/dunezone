@@ -54,7 +54,6 @@ import {
 import type { TokenFace, CustomCardTokens } from '../../src/shared/assets/schema';
 import { BoardAsset } from '../../src/shared/boards/schema';
 import { HistoricalFactionPublicationSchema } from '../../src/shared/factions/schema';
-import { readLegacyEmblemKey } from '../../src/shared/legacyEmblem';
 import type { Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
 import { resolveBackgrounds } from './backgroundPresets';
@@ -202,7 +201,7 @@ export async function enqueuePublicationJob(
 export const FACTION_TOKEN_BACK_REVISION = 2;
 
 /**
- * Both faces of the reversible faction token read only the emblem and background, so one comparison decides both.
+ * Both faces of the reversible faction token read only the logo and background, so one comparison decides both.
  * The `.back` face waits for the revision that can draw it: deploy moves Convex before the Workers, and activation, which runs after them, is also the backfill.
  */
 export async function enqueueFactionTokenPublication(
@@ -374,7 +373,7 @@ export async function enqueueAssetPublication(
       if (await holdsForRenderer(ctx, asset.type, asset._id, 1)) {
         return null;
       }
-      const { about: _about, ...leader } = LeaderTokenAsset.parse(readLegacyEmblemKey(asset.data));
+      const { about: _about, ...leader } = LeaderTokenAsset.parse(asset.data);
       return await enqueuePublicationJob(ctx, {
         assetType: asset.type,
         assetId: asset._id,

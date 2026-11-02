@@ -15,7 +15,7 @@ const iconLocation = { x: 150 - iconSize.width / 2, y: 220 };
 
 type LeaderTokenProps = z.infer<typeof FactionRender.leaders>[0];
 
-export const LeaderToken: FC<LeaderTokenProps> = ({ background, image, emblem, name, strength }) => {
+export const LeaderToken: FC<LeaderTokenProps> = ({ background, image, logo, name, strength }) => {
   const resolvedImage = useAsset(image);
   const cid = useId();
   const prefix = useMemo(() => `${cid}_`, [cid]);
@@ -32,7 +32,7 @@ export const LeaderToken: FC<LeaderTokenProps> = ({ background, image, emblem, n
           <rect width="300" height="300" fill="black" />
           <circle cx="150" cy="131" fill="white" r="115" />
           <StrokedUse
-            xlinkHref={`${emblem}#root`}
+            xlinkHref={`${logo}#root`}
             {...iconLocation}
             {...iconSize}
             fill="black"
@@ -101,7 +101,7 @@ export const LeaderToken: FC<LeaderTokenProps> = ({ background, image, emblem, n
       </text>
 
       <g {...{ [COMPONENT_GEOMETRY_PROTOCOL.partAttribute]: 'faction-emblem' }}>
-        <StrokedUse xlinkHref={`${emblem}#root`} {...iconLocation} {...iconSize} fill={tint0} />
+        <StrokedUse xlinkHref={`${logo}#root`} {...iconLocation} {...iconSize} fill={tint0} />
       </g>
     </svg>
   );

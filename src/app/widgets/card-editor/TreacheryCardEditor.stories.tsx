@@ -36,7 +36,7 @@ export const Category = meta.story({
   },
 });
 
-export const ExistingEmblemSymbol = meta.story({
+export const ExistingLogoSymbol = meta.story({
   args: { chapter: 'icon' as const, draft: { ...INITIAL_TREACHERY_DRAFT, ...treacheryCardFixtures.richeseKarama } },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);

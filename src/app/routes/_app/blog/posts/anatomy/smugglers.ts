@@ -9,7 +9,7 @@ import type { FactionInput } from '@shared/factions/schema';
 export const SMUGGLERS: FactionInput = FactionInputSchema.parse(
   recalculateFactionComplexity({
     name: 'Smugglers',
-    emblem: '/vector/generic/smugglers.svg',
+    logo: '/vector/generic/smugglers.svg',
     colors: ['Orange', 'Brown'],
     themeColor: '#f4641d',
     background: {

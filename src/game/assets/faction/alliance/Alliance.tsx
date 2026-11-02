@@ -21,7 +21,7 @@ const foreGroundColor = '#e3dbb3';
 export const AllianceCard: FC<z.infer<typeof FactionRender.alliance> & { frontStyle?: CardFrontStyle }> = ({
   background,
   frontStyle: suppliedFrontStyle,
-  emblem,
+  logo,
   title,
   decals,
   text,
@@ -86,13 +86,13 @@ export const AllianceCard: FC<z.infer<typeof FactionRender.alliance> & { frontSt
       <CardTitle className={styles.title} text={title} />
       <CardTitle className={styles.subtitle} text="Alliance" baseSize={40} />
       <div className={unique.ring} />
-      <svg className={unique.emblem} viewBox="0 0 300 300">
+      <svg className={unique.logo} viewBox="0 0 300 300">
         <StrokedUse
           width="280"
           height="280"
           x="10"
           y="10"
-          xlinkHref={`${emblem}#root`}
+          xlinkHref={`${logo}#root`}
           fill={foreGroundColor}
           stroke="black"
           strokeWidth="7%"

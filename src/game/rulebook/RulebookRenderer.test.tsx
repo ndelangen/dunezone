@@ -79,7 +79,7 @@ describe('Rulebook renderer', () => {
       factionId: 'atreides',
       name: 'Atreides',
       color: '#3e6337',
-      emblemUrl: '/vector/emblem/atreides.svg',
+      emblemUrl: '/vector/logo/atreides.svg',
       tokenImageUrl: '/published/faction-tokens/atreides/token.jpg?v=one',
       leaders: [member(firstId, 'Duncan'), member(secondId, 'Gurney')],
     };
@@ -94,7 +94,7 @@ describe('Rulebook renderer', () => {
     expect(container.querySelector('img[alt="Atreides faction token"]')?.getAttribute('src')).toBe(
       faction.tokenImageUrl
     );
-    expect(container.querySelector('img[src="/vector/emblem/atreides.svg"]')).toBeNull();
+    expect(container.querySelector('img[src="/vector/logo/atreides.svg"]')).toBeNull();
     rerender(
       <RulebookBlockCanvas
         block={{
@@ -117,7 +117,7 @@ describe('Rulebook renderer', () => {
     expect(container.textContent).toContain('Keep your plans flexible.');
     rerender(<RulebookBlockCanvas block={{ ...block, faction: { ...faction, tokenImageUrl: undefined } }} />);
     expect(container.querySelector('[aria-label="Faction token unavailable"]')).not.toBeNull();
-    expect(container.querySelector('img[src="/vector/emblem/atreides.svg"]')).toBeNull();
+    expect(container.querySelector('img[src="/vector/logo/atreides.svg"]')).toBeNull();
     rerender(<RulebookBlockCanvas block={{ ...block, faction: { status: 'unavailable', factionId: 'atreides' } }} />);
     expect(container.textContent).toContain('Faction unavailable');
     expect(container.textContent).toContain('Keep your plans flexible.');
@@ -172,7 +172,7 @@ describe('Rulebook renderer', () => {
     expect(pages[1]?.querySelector('[aria-label="Page 2"]')?.textContent).toBe('2');
   });
 
-  it('renders a cover background and emblem with independent heading and subtitle visibility', () => {
+  it('renders a cover background and logo with independent heading and subtitle visibility', () => {
     const page = createImageCoverPage();
     const { container, rerender } = render(<RulebookPageRenderer page={page} />);
     expect(container.querySelector('.rulebookCoverBackground')?.getAttribute('src')).toBe('/page/cover-a.svg');
@@ -225,7 +225,7 @@ describe('Rulebook renderer', () => {
     }
   });
 
-  it('renders the optional footer independently of the Page title, subtitle, and emblem', () => {
+  it('renders the optional footer independently of the Page title, subtitle, and logo', () => {
     const page = createImageCoverPage();
     const { container, rerender } = render(<RulebookPageRenderer page={page} />);
     expect(container.querySelector('footer')).toBeNull();
@@ -253,7 +253,7 @@ describe('Rulebook renderer', () => {
     const page = createImageCoverPage({ footer: createCoverFooter() });
     const { container, rerender } = render(<RulebookPageRenderer page={page} />);
     expect(container.querySelector('[aria-label="CHOAM"] use')?.getAttribute('xlink:href')).toBe(
-      '/vector/emblem/choam.svg#root'
+      '/vector/logo/choam.svg#root'
     );
     page.controlValues.cover.footer = createCoverFooter({
       leftFaction: {
@@ -261,13 +261,13 @@ describe('Rulebook renderer', () => {
         factionId: 'choam',
         name: 'CHOAM updated',
         color: '#777',
-        token: { ...factionTokenFixtures.choam, emblem: '/vector/emblem/atreides.svg' },
+        token: { ...factionTokenFixtures.choam, logo: '/vector/logo/atreides.svg' },
       },
       rightFaction: { status: 'unavailable', factionId: 'richese' },
     });
     rerender(<RulebookPageRenderer page={page} />);
     expect(container.querySelector('[aria-label="CHOAM updated"] use')?.getAttribute('xlink:href')).toBe(
-      '/vector/emblem/atreides.svg#root'
+      '/vector/logo/atreides.svg#root'
     );
     expect(container.querySelector('[aria-label="Faction unavailable"]')?.getAttribute('data-faction-id')).toBe(
       'richese'

@@ -46,6 +46,6 @@ export const publishingTreacheryCard: z.infer<typeof TreacheryAsset> = {
     },
     '/vector/icon/projectile.svg',
   ],
-  decals: [{ id: '/vector/emblem/atreides.svg', muted: false, outline: true, scale: 0.4, offset: [0, 380] }],
+  decals: [{ id: '/vector/logo/atreides.svg', muted: false, outline: true, scale: 0.4, offset: [0, 380] }],
   text: 'Play as a **weapon** during battle. Kills the opposing leader, and destroys any Shield played against it.',
 };

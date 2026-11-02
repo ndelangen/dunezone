@@ -7,7 +7,7 @@ import { HOUSE_ATREIDES as FACTION } from './houseAtreides';
 import { useSeen } from './useSeen';
 
 /*
- * The figure for how the faction's shape changed: one ledger row per project, each with a small plan of what a faction was and a tally of how many copies of the emblem there are to keep in step.
+ * The figure for how the faction's shape changed: one ledger row per project, each with a small plan of what a faction was and a tally of how many copies of the logo there are to keep in step.
  * It is a ledger rather than another diagram with lines, so it reads differently from the main figure.
  * The asset outlines are the same seven pieces the main figure draws, in the same order.
  */
@@ -22,7 +22,7 @@ type Era = {
   project: string;
   plan: 'names' | 'apart' | 'pictures' | 'one';
   note: string;
-  emblems: number | null;
+  logos: number | null;
   tally: string;
 };
 
@@ -33,7 +33,7 @@ const ERAS: readonly Era[] = [
     project: 'dune.games',
     plan: 'names',
     note: 'A faction is a name on a game result.',
-    emblems: null,
+    logos: null,
     tally: 'just a name',
   },
   {
@@ -41,50 +41,40 @@ const ERAS: readonly Era[] = [
     project: 'dune-app',
     plan: 'apart',
     note: 'A faction exists, but every card and token keeps its own copy of it.',
-    emblems: PIECES.length,
-    tally: 'copies of the emblem',
+    logos: PIECES.length,
+    tally: 'copies of the logo',
   },
   {
     year: '2024',
     project: 'dune-assets',
     plan: 'pictures',
-    note: 'The pictures come first, each with its own emblem, colours and background.',
-    emblems: PIECES.length,
-    tally: 'copies of the emblem',
+    note: 'The pictures come first, each with its own logo, colours and background.',
+    logos: PIECES.length,
+    tally: 'copies of the logo',
   },
   {
     year: '2026',
     project: 'dune.zone',
     plan: 'one',
     note: 'One faction, and every piece is drawn from it.',
-    emblems: 1,
-    tally: 'copy of the emblem',
+    logos: 1,
+    tally: 'copy of the logo',
   },
 ];
 
 /** The 2021 dashboard knew factions only as names in a fixed list. */
 const NAMES = ['ATREIDES', 'HARKONNEN', 'FREMEN', 'EMPEROR', 'GUILD', 'BG'] as const;
 
-function Emblem({ className }: { className?: string }) {
-  const mask = `url(${FACTION.emblem})`;
-  return <span className={clsx(styles.emblem, className)} style={{ maskImage: mask, WebkitMaskImage: mask }} />;
+function Logo({ className }: { className?: string }) {
+  const mask = `url(${FACTION.logo})`;
+  return <span className={clsx(styles.logo, className)} style={{ maskImage: mask, WebkitMaskImage: mask }} />;
 }
 
-/** One asset outline; `emblem` puts a copy of the emblem in it, `filled` paints it as a finished picture. */
-function Piece({
-  shape,
-  emblem,
-  filled,
-  ghost,
-}: {
-  shape: Shape;
-  emblem?: boolean;
-  filled?: boolean;
-  ghost?: boolean;
-}) {
+/** One asset outline; `logo` puts a copy of the logo in it, `filled` paints it as a finished picture. */
+function Piece({ shape, logo, filled, ghost }: { shape: Shape; logo?: boolean; filled?: boolean; ghost?: boolean }) {
   return (
     <span className={clsx(styles.piece, styles[shape], filled && styles.filled, ghost && styles.ghost)}>
-      {emblem ? <Emblem className={ghost ? styles.ghostEmblem : undefined} /> : null}
+      {logo ? <Logo className={ghost ? styles.ghostLogo : undefined} /> : null}
     </span>
   );
 }
@@ -111,7 +101,7 @@ function Plan({ plan }: { plan: Era['plan'] }) {
           </span>
           <span className={styles.pieces}>
             {PIECES.map((shape, index) => (
-              <Piece key={index} shape={shape} emblem />
+              <Piece key={index} shape={shape} logo />
             ))}
           </span>
         </span>
@@ -121,7 +111,7 @@ function Plan({ plan }: { plan: Era['plan'] }) {
         <span className={styles.plan}>
           <span className={styles.pieces}>
             {PIECES.map((shape, index) => (
-              <Piece key={index} shape={shape} emblem filled />
+              <Piece key={index} shape={shape} logo filled />
             ))}
           </span>
         </span>
@@ -130,10 +120,10 @@ function Plan({ plan }: { plan: Era['plan'] }) {
       return (
         <span className={styles.plan}>
           <span className={clsx(styles.record, styles.holds)}>
-            <Emblem />
+            <Logo />
             <span className={styles.pieces}>
               {PIECES.map((shape, index) => (
-                <Piece key={index} shape={shape} emblem ghost />
+                <Piece key={index} shape={shape} logo ghost />
               ))}
             </span>
           </span>
@@ -166,7 +156,7 @@ export function FiveYears() {
               <span className={styles.note}>{era.note}</span>
             </span>
             <span className={styles.tally}>
-              <span className={styles.count}>{era.emblems ?? '–'}</span>
+              <span className={styles.count}>{era.logos ?? '–'}</span>
               <span className={styles.tallyLabel}>{era.tally}</span>
             </span>
           </li>

@@ -262,7 +262,7 @@ describe('annotated Rulebook illustration delivery', () => {
 
   test('positioned stock and faction artwork preserve intrinsic size and revalidate delivered bytes', async () => {
     const f = fixture();
-    const stock = { kind: 'stock' as const, artworkId: '/vector/emblem/atreides.svg' };
+    const stock = { kind: 'stock' as const, artworkId: '/vector/logo/atreides.svg' };
     const make = (
       reference: typeof stock | { kind: 'faction'; factionId: string }
     ): Extract<RulebookAnnotatedIllustrationResolution, { status: 'found' }> => ({

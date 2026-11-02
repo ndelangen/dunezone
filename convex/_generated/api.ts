@@ -24,7 +24,6 @@ import type * as componentPublication from "../componentPublication.js";
 import type * as contentImports from "../contentImports.js";
 import type * as crons from "../crons.js";
 import type * as e2e from "../e2e.js";
-import type * as emblemMigrations from "../emblemMigrations.js";
 import type * as factions from "../factions.js";
 import type * as faq from "../faq.js";
 import type * as faqReferences from "../faqReferences.js";
@@ -199,7 +198,6 @@ const fullApi: ApiFromModules<{
   contentImports: typeof contentImports;
   crons: typeof crons;
   e2e: typeof e2e;
-  emblemMigrations: typeof emblemMigrations;
   factions: typeof factions;
   faq: typeof faq;
   faqReferences: typeof faqReferences;

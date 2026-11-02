@@ -21,7 +21,7 @@ Arrival animations run once as each chapter enters view. The Play scene waits un
 
 ## Social preview
 
-`media/web/homepage-social-play.jpg` is the approved 1200 by 630 social composition. It combines the header's desert artwork, the development board, two demonstration Rulebook pages and the Nela, Koraun and Varda Nereth portraits. The homepage's fonts and emblem supply the words and identity.
+`media/web/homepage-social-play.jpg` is the approved 1200 by 630 social composition. It combines the header's desert artwork, the development board, two demonstration Rulebook pages and the Nela, Koraun and Varda Nereth portraits. The homepage's fonts and logo supply the words and identity.
 
 The existing image pipeline produces `/web/homepage-social-play-large.jpg` at its native dimensions. The route supplies canonical, Open Graph and Twitter metadata, including the image description, JPEG type and dimensions. The exact `/` path uses anonymous server rendering, so crawlers receive those tags, the headings, the chapter copy and its links without running JavaScript. The artwork, the board and anything that depends on the signed-in viewer still start in the browser, so the server and the first browser render agree. It uses the existing release-scoped HTML cache and makes no metadata query. Other routes keep their existing delivery behavior.
 

@@ -109,7 +109,7 @@ describe('Cover image editor state', () => {
     expect(cleared.canSave).toBe(false);
   });
 
-  it.each(['title', 'subtitle', 'emblem', 'replacement', 'clear'] as const)(
+  it.each(['title', 'subtitle', 'logo', 'replacement', 'clear'] as const)(
     'preserves a %s edit while Save stores the image and the subscription arrives first',
     (change) => {
       const { manager, request, saved, acknowledge } = beginCoverImageSave();
@@ -120,7 +120,7 @@ describe('Cover image editor state', () => {
         if (change === 'subtitle') {
           page.controlValues.cover.subtitle = 'A later subtitle';
         }
-        if (change === 'emblem') {
+        if (change === 'logo') {
           page.controlValues.cover.showDuneLogo = false;
         }
         if (change === 'replacement') {

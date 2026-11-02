@@ -96,7 +96,7 @@ function deckActions(
         label: `Deal 1 to ${faction.name}`,
         name: faction.name,
         face: faction.artwork ? (
-          <FactionToken emblem={faction.artwork.emblem} background={faction.artwork.background} />
+          <FactionToken logo={faction.artwork.logo} background={faction.artwork.background} />
         ) : (
           faction.name.slice(0, 2)
         ),

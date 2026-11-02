@@ -107,7 +107,7 @@
           "localSize": [1.35, 0.77]
         },
         "lionGlyph": {
-          "source": "/vector/emblem/emperor.svg",
+          "source": "/vector/logo/emperor.svg",
           "localSize": [1.14, 1.43]
         },
         "starGlyph": {
@@ -148,7 +148,7 @@
             "sha256": "d5724ede6ddae571cb1ef9e813216cc60639d9042beba02455a193ad9451df98"
           },
           {
-            "file": "media/vector/emblem/emperor.svg",
+            "file": "media/vector/logo/emperor.svg",
             "sha256": "01a0ae082d0b5aedf14a35db08021f8c9e30642faf8d8b932a2aff649b00f30b"
           }
         ],

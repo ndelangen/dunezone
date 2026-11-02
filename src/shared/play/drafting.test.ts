@@ -8,7 +8,7 @@ const faction = (id: string, linked: boolean, published = true): DraftFaction =>
   id,
   slug: id,
   name: id.toUpperCase(),
-  emblem: assetPublishingFaction.emblem,
+  logo: assetPublishingFaction.logo,
   background: assetPublishingFaction.background,
   color: assetPublishingFaction.themeColor,
   linked,

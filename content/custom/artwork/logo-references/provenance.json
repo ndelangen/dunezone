@@ -7,7 +7,7 @@
     "scope": "The user approved the nine cropped, recolorable SVGs shown together in the preview grid: \"I like these\"."
   },
   "assets": {
-    "/vector/emblem/apocrypha.svg": {
+    "/vector/logo/apocrypha.svg": {
       "source": "originals/Apocrypha_Icon.webp",
       "bitmapMaster": "bitmaps/apocrypha-4x.png",
       "sourceCrop": {
@@ -19,7 +19,7 @@
       "letteringCutoffY": 600,
       "blurSigmaSourcePixels": 1.2
     },
-    "/vector/emblem/atreides-extended.svg": {
+    "/vector/logo/atreides-extended.svg": {
       "source": "originals/Atreides_Extended.webp",
       "bitmapMaster": "bitmaps/atreides-extended-4x.png",
       "sourceCrop": {
@@ -30,7 +30,7 @@
       },
       "blurSigmaSourcePixels": 0.55
     },
-    "/vector/emblem/bene-gesserit-2021.svg": {
+    "/vector/logo/bene-gesserit-2021.svg": {
       "source": "originals/Bene_Gesserit_2021.webp",
       "bitmapMaster": "bitmaps/bene-gesserit-2021-4x.png",
       "sourceCrop": {
@@ -41,7 +41,7 @@
       },
       "blurSigmaSourcePixels": 1.2
     },
-    "/vector/emblem/corrino-extended.svg": {
+    "/vector/logo/corrino-extended.svg": {
       "source": "originals/Corrino_Extended.webp",
       "bitmapMaster": "bitmaps/corrino-extended-4x.png",
       "sourceCrop": {
@@ -52,7 +52,7 @@
       },
       "blurSigmaSourcePixels": 0.55
     },
-    "/vector/emblem/dune-encyclopedia.svg": {
+    "/vector/logo/dune-encyclopedia.svg": {
       "source": "originals/Dune_Encyclopedia_Icon.webp",
       "bitmapMaster": "bitmaps/dune-encyclopedia-4x.png",
       "sourceCrop": {
@@ -64,7 +64,7 @@
       "letteringCutoffY": 565,
       "blurSigmaSourcePixels": 0.55
     },
-    "/vector/emblem/expanded-dune.svg": {
+    "/vector/logo/expanded-dune.svg": {
       "source": "originals/Expanded_Dune_Icon.webp",
       "bitmapMaster": "bitmaps/expanded-dune-4x.png",
       "sourceCrop": {
@@ -76,7 +76,7 @@
       "letteringCutoffY": 680,
       "blurSigmaSourcePixels": 1.2
     },
-    "/vector/emblem/harkonnen-dune-prophecy.svg": {
+    "/vector/logo/harkonnen-dune-prophecy.svg": {
       "source": "originals/Harkonnen_Dune_Prophecy.webp",
       "bitmapMaster": "bitmaps/harkonnen-dune-prophecy-4x.png",
       "sourceCrop": {
@@ -87,7 +87,7 @@
       },
       "blurSigmaSourcePixels": 0
     },
-    "/vector/emblem/harkonnen-extended.svg": {
+    "/vector/logo/harkonnen-extended.svg": {
       "source": "originals/Harkonnen_Extended.webp",
       "bitmapMaster": "bitmaps/harkonnen-extended-4x.png",
       "sourceCrop": {
@@ -98,7 +98,7 @@
       },
       "blurSigmaSourcePixels": 1.2
     },
-    "/vector/emblem/house-atreus-fan-art.svg": {
+    "/vector/logo/house-atreus-fan-art.svg": {
       "source": "originals/House_Atreus_insignia_%28fan_art%29.webp",
       "bitmapMaster": "bitmaps/house-atreus-fan-art-4x.png",
       "sourceCrop": {

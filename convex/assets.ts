@@ -590,8 +590,8 @@ async function withNexusFaction(ctx: MutationCtx, type: string, input: unknown, 
     ...card,
     factionLink: { id: row._id, slug: row.slug },
     faction: faction.name,
-    factionSymbol: { image: faction.emblem, background: faction.background },
-    icon: [faction.background, faction.emblem],
+    factionSymbol: { image: faction.logo, background: faction.background },
+    icon: [faction.background, faction.logo],
   };
 }
 

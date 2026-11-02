@@ -29,7 +29,7 @@ export const Default = meta.story({
       influence: 0,
     },
     image: '/image/leader/official/tessia.png',
-    emblem: '/vector/emblem/moritani.svg',
+    logo: '/vector/logo/moritani.svg',
     name: 'Vando Terboli',
     strength: '1',
   },

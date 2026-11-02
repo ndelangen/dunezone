@@ -68,7 +68,7 @@ function Leaders({ faction }: Faction) {
         return (
           <Tooltip key={`${leader.name}-${index}`} label={label}>
             <div className={styles.leader} role="img" aria-label={label}>
-              <LeaderToken {...leader} background={faction.background} emblem={faction.emblem} />
+              <LeaderToken {...leader} background={faction.background} logo={faction.logo} />
             </div>
           </Tooltip>
         );

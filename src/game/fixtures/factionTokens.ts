@@ -9,31 +9,31 @@ const token = (data: FactionTokenData) => data;
 
 /** Authored token inputs shared by stories and rulebook compositions. */
 export const factionTokenFixtures = {
-  atreides: token({ background: backgroundPresets.atreides, emblem: '/vector/emblem/atreides.svg' }),
+  atreides: token({ background: backgroundPresets.atreides, logo: '/vector/logo/atreides.svg' }),
   beneGesserit: token({
     background: backgroundPresets.beneGesserit,
-    emblem: '/vector/emblem/bene-gesserit.svg',
+    logo: '/vector/logo/bene-gesserit.svg',
   }),
   beneTleilaxu: token({
     background: backgroundPresets.beneTleilaxu,
-    emblem: '/vector/emblem/bene-tleilaxu.svg',
+    logo: '/vector/logo/bene-tleilaxu.svg',
   }),
-  choam: token({ background: backgroundPresets.choam, emblem: '/vector/emblem/choam.svg' }),
-  ecaz: token({ background: backgroundPresets.ecaz, emblem: '/vector/emblem/ecaz.svg' }),
-  emperor: token({ background: backgroundPresets.emperor, emblem: '/vector/emblem/emperor.svg' }),
-  fremen: token({ background: backgroundPresets.fremen, emblem: '/vector/emblem/fremen.svg' }),
-  ginaz: token({ background: backgroundPresets.ginaz, emblem: '/vector/emblem/ginaz.svg' }),
-  guild: token({ background: backgroundPresets.guild, emblem: '/vector/emblem/guild.svg' }),
+  choam: token({ background: backgroundPresets.choam, logo: '/vector/logo/choam.svg' }),
+  ecaz: token({ background: backgroundPresets.ecaz, logo: '/vector/logo/ecaz.svg' }),
+  emperor: token({ background: backgroundPresets.emperor, logo: '/vector/logo/emperor.svg' }),
+  fremen: token({ background: backgroundPresets.fremen, logo: '/vector/logo/fremen.svg' }),
+  ginaz: token({ background: backgroundPresets.ginaz, logo: '/vector/logo/ginaz.svg' }),
+  guild: token({ background: backgroundPresets.guild, logo: '/vector/logo/guild.svg' }),
   harkonnen: token({
     background: backgroundPresets.harkonnen,
-    emblem: '/vector/emblem/harkonnen.svg',
+    logo: '/vector/logo/harkonnen.svg',
   }),
-  iduali: token({ background: backgroundPresets.iduali, emblem: '/vector/emblem/iduali.svg' }),
-  ixian: token({ background: backgroundPresets.ixian, emblem: '/vector/emblem/ixian.svg' }),
+  iduali: token({ background: backgroundPresets.iduali, logo: '/vector/logo/iduali.svg' }),
+  ixian: token({ background: backgroundPresets.ixian, logo: '/vector/logo/ixian.svg' }),
   landsraad: token({
     background: backgroundPresets.landsraad,
-    emblem: '/vector/generic/landsraad.svg',
+    logo: '/vector/generic/landsraad.svg',
   }),
-  moritani: token({ background: backgroundPresets.moritani, emblem: '/vector/emblem/moritani.svg' }),
-  richese: token({ background: backgroundPresets.richese, emblem: '/vector/emblem/richese.svg' }),
+  moritani: token({ background: backgroundPresets.moritani, logo: '/vector/logo/moritani.svg' }),
+  richese: token({ background: backgroundPresets.richese, logo: '/vector/logo/richese.svg' }),
 } satisfies Record<string, FactionTokenData>;

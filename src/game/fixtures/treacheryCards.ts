@@ -344,7 +344,7 @@ export const treacheryCardFixtures = {
   }),
   richeseKarama: card({
     head: backgroundPresets.storm,
-    icon: [backgroundPresets.stripedSpecial, '/vector/emblem/richese.svg'],
+    icon: [backgroundPresets.stripedSpecial, '/vector/logo/richese.svg'],
     iconOffset: [0, -5],
     name: 'Richese Karama',
     decals: [

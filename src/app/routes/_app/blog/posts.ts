@@ -37,7 +37,7 @@ export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
     date: '2026-10-30',
     author: 'Central419',
     summary:
-      'House Atreides, taken apart: the emblem, colours, leaders and rules it is made of, and how dune.zone draws every card, token and sheet from that one faction.',
+      'House Atreides, taken apart: the logo, colours, leaders and rules it is made of, and how dune.zone draws every card, token and sheet from that one faction.',
     cover: {
       key: '/web/blog/anatomy-of-a-dune-faction-atreides/atreides-table-spread.jpg',
       alt: 'House Atreides laid out on a table: its shield, both faction sheet pages, five traitor cards, the alliance card, leader tokens, faction token and troops',

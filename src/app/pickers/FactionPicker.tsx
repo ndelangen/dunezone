@@ -213,7 +213,7 @@ export function FactionPicker(props: FactionPickerProps) {
                     <FactionLoadOptionRow
                       name={row.data.name}
                       slug={row.slug}
-                      emblem={row.data.emblem}
+                      logo={row.data.logo}
                       background={row.data.background}
                       ownerLabel={factionLoadOwnerLabel(row)}
                       groupLabel={row.groupLabel}
@@ -239,7 +239,7 @@ export function FactionPicker(props: FactionPickerProps) {
             <FactionLoadOptionRow
               name={selectedRow.data.name}
               slug={selectedRow.slug}
-              emblem={selectedRow.data.emblem}
+              logo={selectedRow.data.logo}
               background={selectedRow.data.background}
               ownerLabel={factionLoadOwnerLabel(selectedRow)}
               groupLabel={selectedRow.groupLabel}

@@ -89,7 +89,7 @@ function representativeFullFieldFaction(): FactionInput {
     ],
     decals: [
       {
-        id: assetPublishingFaction.emblem,
+        id: assetPublishingFaction.logo,
         muted: false,
         outline: true,
         scale: 0.73,

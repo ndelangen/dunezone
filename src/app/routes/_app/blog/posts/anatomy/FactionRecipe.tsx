@@ -27,7 +27,7 @@ type InputId =
   | 'theme'
   | 'rules'
   | 'alliance'
-  | 'emblem'
+  | 'logo'
   | 'troop'
   | 'texture'
   | 'leaders'
@@ -35,20 +35,20 @@ type InputId =
 
 /** Which ingredients each asset reads, as `FactionRender` in `@shared/factions/schema` picks them. */
 const USES: Record<OutputId, readonly InputId[]> = {
-  sheet: ['name', 'theme', 'emblem', 'texture', 'colours', 'leaders', 'troop', 'rules', 'alliance'],
-  leaderTokens: ['leaders', 'texture', 'colours', 'emblem'],
-  traitors: ['leaders', 'emblem', 'texture', 'colours', 'name'],
+  sheet: ['name', 'theme', 'logo', 'texture', 'colours', 'leaders', 'troop', 'rules', 'alliance'],
+  leaderTokens: ['leaders', 'texture', 'colours', 'logo'],
+  traitors: ['leaders', 'logo', 'texture', 'colours', 'name'],
   troopToken: ['troop', 'texture', 'colours'],
-  token: ['emblem', 'texture', 'colours'],
-  alliance: ['name', 'alliance', 'emblem', 'texture', 'colours', 'troop'],
-  shield: ['name', 'factionLeader', 'texture', 'colours', 'emblem'],
+  token: ['logo', 'texture', 'colours'],
+  alliance: ['name', 'alliance', 'logo', 'texture', 'colours', 'troop'],
+  shield: ['name', 'factionLeader', 'texture', 'colours', 'logo'],
 };
 
 /** The ingredients by kind: typed in, the colouring, picked from the vector library, or picked from the image library. */
 const GROUPS: readonly { title: string; inputs: readonly InputId[] }[] = [
   { title: 'Typed in', inputs: ['name', 'rules', 'alliance'] },
   { title: 'Colouring', inputs: ['colours', 'theme', 'texture'] },
-  { title: 'Vectors', inputs: ['emblem', 'troop'] },
+  { title: 'Vectors', inputs: ['logo', 'troop'] },
   { title: 'Images', inputs: ['leaders', 'factionLeader'] },
 ];
 
@@ -117,7 +117,7 @@ const INPUTS: Record<InputId, { label: string; zoom?: number; art: () => ReactNo
     label: 'Alliance',
     art: () => <span className={styles.text}>{FACTION.rules.alliance.text}</span>,
   },
-  emblem: { label: 'Emblem', zoom: 2.5, art: () => <Glyph src={FACTION.emblem} /> },
+  logo: { label: 'Logo', zoom: 2.5, art: () => <Glyph src={FACTION.logo} /> },
   troop: { label: 'Troop', zoom: 2.1, art: () => <Glyph src={FACTION.troops[0]?.image ?? ''} /> },
   texture: {
     label: 'Texture',

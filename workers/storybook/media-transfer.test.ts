@@ -29,7 +29,7 @@ function interruptedResponse() {
 afterEach(() => vi.restoreAllMocks());
 
 test.each(['GET', 'HEAD'])(
-  'a %s connection loss records the failed attempt before recovering the emblem',
+  'a %s connection loss records the failed attempt before recovering the logo',
   async (method) => {
     const warning = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     const upstream = vi
@@ -60,7 +60,7 @@ test.each(['GET', 'HEAD'])(
   }
 );
 
-test('two connection losses retain both attempts and still refuse the emblem request', async () => {
+test('two connection losses retain both attempts and still refuse the logo request', async () => {
   const warning = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
   const failure = new Error('Network connection lost.');
   const upstream = vi.spyOn(globalThis, 'fetch').mockRejectedValue(failure);

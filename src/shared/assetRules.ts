@@ -115,7 +115,7 @@ export const FORMAT_EXTENSION: Record<AssetFormat, string> = {
  * A file added here is spared by the generator and expected by the verifier in the same edit.
  */
 export const COMMITTED_WEB_FILES = [
-  /* The site emblem, committed since the web tree existed. */
+  /* The site logo, committed since the web tree existed. */
   'logo.svg',
   /* The dangling deck-back fallback the resolver serves («What does each back mode publish», amended by «How a dangling back reference presents»). */
   'no-deck-back.svg',

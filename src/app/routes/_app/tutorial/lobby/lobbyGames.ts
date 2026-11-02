@@ -36,7 +36,7 @@ export function sampleLobby(setup: TutorialSetup): LobbyGames {
       ? {
           name: faction.name,
           color: faction.color,
-          token: { emblem: token.emblem, background: token.background },
+          token: { logo: token.logo, background: token.background },
           won: false,
         }
       : null;

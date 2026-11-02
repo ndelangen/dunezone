@@ -569,7 +569,7 @@
             "kind": "preset"
           }
         },
-        "image": "/vector/emblem/bene-gesserit.svg",
+        "image": "/vector/logo/bene-gesserit.svg",
         "imageOffset": [0, 10],
         "imageScale": 1.08,
         "name": "Prediction"
@@ -788,7 +788,7 @@
         },
         "bottomFirst": "",
         "bottomSecond": "",
-        "image": "/vector/emblem/fremen.svg",
+        "image": "/vector/logo/fremen.svg",
         "ring": false,
         "symbolFill": "#ffffffc4",
         "symbolScale": 1.85,
@@ -856,7 +856,7 @@
         },
         "bottomFirst": "",
         "bottomSecond": "",
-        "image": "/vector/emblem/guild.svg",
+        "image": "/vector/logo/guild.svg",
         "ring": false,
         "symbolFill": "#ffffffff",
         "symbolScale": 2,

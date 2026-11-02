@@ -12,7 +12,7 @@ import type { CardBack } from '../schema';
  */
 export const publishingDeckCardback: z.infer<typeof CardBack> = {
   name: 'Treachery',
-  image: '/vector/emblem/atreides.svg',
+  image: '/vector/logo/atreides.svg',
   imageOffset: [0, 0],
   imageScale: 0.55,
   background: {

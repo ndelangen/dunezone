@@ -18,7 +18,7 @@ export function createCoverFooter(options: Partial<CoverFooter> = {}): CoverFoot
       factionId: 'choam',
       name: 'CHOAM',
       color: '#e6bc65',
-      emblemUrl: '/vector/emblem/choam.svg',
+      emblemUrl: '/vector/logo/choam.svg',
       token: factionTokenFixtures.choam,
     },
     rightFaction: {
@@ -26,7 +26,7 @@ export function createCoverFooter(options: Partial<CoverFooter> = {}): CoverFoot
       factionId: 'richese',
       name: 'Richese',
       color: '#7ec3de',
-      emblemUrl: '/vector/emblem/richese.svg',
+      emblemUrl: '/vector/logo/richese.svg',
       token: factionTokenFixtures.richese,
     },
     ...options,

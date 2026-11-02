@@ -21,8 +21,8 @@ export const allianceStripPill = {
 } as const;
 
 /**
- * Every alliance at the table as its factions' tokens side by side, beside the emblem in the top bar, so it shows in every view.
- * The strip keeps to the space beside the emblem and scrolls sideways when the alliances outgrow it, so the top bar never grows and the phase stays clear.
+ * Every alliance at the table as its factions' tokens side by side, beside the logo in the top bar, so it shows in every view.
+ * The strip keeps to the space beside the logo and scrolls sideways when the alliances outgrow it, so the top bar never grows and the phase stays clear.
  */
 export function AllianceStrip({ table }: Readonly<{ table: TableProjection }>) {
   const groups = table.snapshot.alliances?.groups ?? [];

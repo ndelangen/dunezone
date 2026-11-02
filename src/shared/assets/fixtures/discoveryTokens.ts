@@ -24,12 +24,12 @@ export const discoveryTokenFronts = {
   'gf9-hiereg-discovery-marker': {
     type: 'token-disc' as const,
     name: 'Hiereg',
-    face: hidden('/vector/emblem/fremen.svg', ['#d9b14d', '#61451e']),
+    face: hidden('/vector/logo/fremen.svg', ['#d9b14d', '#61451e']),
   },
   'gf9-smuggler-discovery-marker': {
     type: 'token-disc' as const,
     name: 'Smuggler',
-    face: hidden('/vector/emblem/guild.svg', ['#6d7978', '#26373b']),
+    face: hidden('/vector/logo/guild.svg', ['#6d7978', '#26373b']),
   },
   'gf9-spice-location-marker': {
     type: 'token-disc' as const,
