@@ -102,6 +102,7 @@ import { usePieceFlipAnimation } from './usePieceFlipAnimation';
 import { usePublishedFace } from './usePublishedFace';
 import { useSceneInteractions } from './useSceneInteractions';
 import { PlatePosesProvider, useTablePose } from './useTablePose';
+import { useTableSurfacePointFromClient } from './useTableSurfacePoint';
 
 type TabletopSceneProps = {
   readOnly?: boolean;
@@ -699,11 +700,13 @@ function useScenePointerSession(onActiveChange: (active: boolean) => void) {
     useTabletop();
   const { renderer } = useThree();
   const point = useTablePointFromClient();
+  const surfacePoint = useTableSurfacePointFromClient();
   const controls = {
     canHandleTable,
     hasDraft: Boolean(state.draftMove),
     piece: (id: string) => state.pieces.find((piece) => piece.id === id),
     point,
+    surfacePoint,
     isPublicPoint: (x: number, y: number) => isPublicTablePoint(renderer.domElement, x, y),
     beginGesture,
     updateGesture,

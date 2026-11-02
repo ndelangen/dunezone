@@ -47,7 +47,7 @@ import {
 } from './schema';
 import { seatPassSchema } from './seatPass';
 import { setupActionSchema, setupStateSchema, predictionsSchema } from './setup';
-import { spiceReserveActionSchema, spiceReserveSchema, spiceTransferSchema } from './spiceReserve';
+import { spiceGiftSchema, spiceReserveActionSchema, spiceReserveSchema, spiceTransferSchema } from './spiceReserve';
 import { swapActionSchema, swappingStateSchema } from './swapping';
 import { heldTechTokenSchema } from './techToken';
 import { territoryTintActionSchema, territoryTintsSchema } from './territoryTints';
@@ -278,6 +278,8 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
     position,
     orientation,
     flips: carryFlips.optional(),
+    /* Spice let go over another faction's token goes to that faction, as the placer chose: a bribe or a payment. */
+    give: spiceGiftSchema.optional(),
   }),
   z.strictObject({ type: z.literal('cancel'), carryId: id }),
   z.strictObject({ type: z.literal('renew'), carryId: id }),

@@ -8,13 +8,23 @@ export const spiceReserveSchema = z.object({
   balance: tableCountSchema,
 });
 
+/*
+ * Spice set down on another faction's token is either a payment, straight into that faction's spice reserve,
+ * or a bribe, kept in a public pile by that faction until its player collects it.
+ */
+const SPICE_GIFTS = ['bribe', 'payment'] as const;
+export type SpiceGift = (typeof SPICE_GIFTS)[number];
+/* What the placer chose for spice let go over a token, and the faction it was offered to, so a token moved in between refuses it. */
+export const spiceGiftSchema = z.strictObject({ as: z.enum(SPICE_GIFTS), factionId: tableIdSchema });
+export type SpiceGiftChoice = z.infer<typeof spiceGiftSchema>;
+
 export const spiceTransferSchema = z.object({
   revision: tableCountSchema,
   /*
    * The glossary term for the shared pile is "Spice Bank" (see CONTEXT.md).
    * The `supply` kind, and `supply` as a source, are kept because transfer records are stored data.
    */
-  kind: z.enum(['withdrawal', 'collection', 'supply', 'disposal']),
+  kind: z.enum(['withdrawal', 'collection', 'supply', 'disposal', ...SPICE_GIFTS]),
   actor: z.string(),
   amount: tableCountSchema.positive(),
   source: z.string(),

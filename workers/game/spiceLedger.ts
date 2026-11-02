@@ -15,7 +15,9 @@ export class SpiceLedger {
     next: GameSnapshot,
     message: CommitMessage,
     viewer: Viewer,
-    factionId?: string
+    factionId?: string,
+    /* How much spice the carry being dropped held, for a gift. */
+    held = 0
   ): SpiceTransfer | undefined {
     const record = { revision: next.revision, actor: viewer.displayName };
     if (message.type === 'command') {
@@ -31,6 +33,11 @@ export class SpiceLedger {
         /* `supply` names the Spice Bank (see CONTEXT.md); the literal is kept for stored transfer records. */
         return { ...record, kind: 'supply', amount: action.count, source: 'supply', destination: 'table' };
       }
+    }
+    /* A payment lands in the receiving faction's spice reserve; a bribe on its bribe pile, still on the table. */
+    if (message.type === 'drop' && message.give) {
+      const { as, factionId: destination } = message.give;
+      return held > 0 ? { ...record, kind: as, amount: held, source: 'table', destination } : undefined;
     }
     const total = (snapshot: GameSnapshot) =>
       snapshot.table.pieces.filter(isSpicePiece).reduce((sum, piece) => sum + piece.items.length, 0);

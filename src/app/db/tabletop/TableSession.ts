@@ -1,5 +1,6 @@
 import { tableHandlingOpen } from '@shared/play/admission';
 import type { BattlePlanInput } from '@shared/play/battle';
+import { factionTokenUnder } from '@shared/play/bribes';
 import type { CardDraw } from '@shared/play/cardDraw';
 import { foldedTurns, rotatedPiece } from '@shared/play/commands';
 import { snapshotFactionLabels, snapshotFactionTieBreaks } from '@shared/play/factionLabels';
@@ -25,6 +26,8 @@ import type {
 import { isRemovalAction } from '@shared/play/removal';
 import { isReviewAction, reviewRunning } from '@shared/play/review';
 import { CARRY_FLIPS_LIMIT, SPECTATOR_SEAT, tablePositionSchema } from '@shared/play/schema';
+import { isSpicePiece } from '@shared/play/spice';
+import type { SpiceGift, SpiceGiftChoice } from '@shared/play/spiceReserve';
 import { isSwapAction } from '@shared/play/swapping';
 import {
   draftForGesture,
@@ -81,6 +84,9 @@ const UNANSWERED_COMMANDS_LIMIT = 4;
 /* A turn of a piece at rest in 15° steps, clockwise positive; `released` once the key is up but the turn is still to go out. */
 type Turn = { pieceId: string; turns: number; released?: boolean };
 
+/* Where the pointer let go, and the table point it was over. */
+type GiftPointer = { x: number; y: number; under?: Vector3Tuple | null };
+
 type LocalCarry = {
   id: string;
   sourceId: string;
@@ -93,6 +99,10 @@ type LocalCarry = {
   revealed?: TablePiece;
   /* A resync completed the drop before the tab holds its snapshot, so the draft keeps the piece where it landed until the fresh view. */
   landed?: true;
+  /* Spice let go over another faction's token waits in hand, over it, while the placer picks a bribe or a payment; `x` and `y` are where the pointer let go. */
+  offer?: { factionId: string; position: Vector3Tuple; x: number; y: number };
+  /* What the placer picked for that spice, sent with the drop. */
+  give?: SpiceGiftChoice;
 };
 /* Each faction a deck can deal to, with its token art for the deal ring. */
 function dealRecipients(snapshot: GameSnapshot) {
@@ -590,6 +600,7 @@ export class TableSession {
       selectedPiece: null,
       affordances: [],
       spiceReserveControls: undefined,
+      spiceGift: undefined,
       deckControls: undefined,
       handControls: undefined,
       deleteControls: undefined,
@@ -665,12 +676,28 @@ export class TableSession {
       selectedPiece: renderedPieces.find((piece) => piece.id === state.selectedPieceId) ?? null,
       affordances: affordancesFor({ ...state, pieces: renderedPieces }),
       ...this.interactionProjection(displayed),
+      spiceGift: this.spiceGiftView(displayed, state),
       ...remoteIds,
       reservedPieceIds,
       gestureActivePieceId: local.gestureActivePieceId,
       hoveredPieceId: this.hoveredId,
       flippingPieceIds: local.flippingPieceIds,
       serverNow: this.clockForView(),
+    };
+  }
+  private spiceGiftView(displayed: GameSnapshot, state: TableState): TableProjection['spiceGift'] {
+    const offer = this.carry?.offer;
+    if (!offer || this.history) {
+      return undefined;
+    }
+    const held = this.carry && heldPieceFor(state, this.carry.draft);
+    return {
+      factionId: offer.factionId,
+      name: snapshotFactionLabels(displayed)[offer.factionId] ?? 'a faction',
+      artwork: displayed.factionArtwork?.[offer.factionId],
+      amount: held?.items.length ?? 0,
+      x: offer.x,
+      y: offer.y,
     };
   }
   private stateForView(displayed: GameSnapshot) {
@@ -1473,28 +1500,92 @@ export class TableSession {
       orientation: this.carry.draft.orientation,
     });
   };
+  /* A carry still following the pointer: not yet let go, nor waiting over a token for a bribe or a payment. */
+  private carryInHand(): LocalCarry | null {
+    return this.carry && !this.carry.pendingDrop && !this.carry.offer ? this.carry : null;
+  }
   updateGesture = (position: Vector3Tuple) => {
-    if (!this.carry || this.carry.pendingDrop) {
+    const carry = this.carryInHand();
+    if (!carry) {
       return;
     }
-    const draft = projectCarryAtPosition(this.requireTable().state, this.carry.draft, position);
+    const draft = projectCarryAtPosition(this.requireTable().state, carry.draft, position);
     if (!draft) {
       return;
     }
-    this.carry = { ...this.carry, draft };
+    this.carry = { ...carry, draft };
     if (!this.poseTimer) {
       this.poseTimer = setTimeout(this.flushPose, 50);
     }
     /* A mouse can report several moves a frame, and the scene only draws the last of them. */
     this.emit(true);
   };
-  finishGesture = (position: Vector3Tuple) => {
-    if (!this.carry || this.carry.pendingDrop) {
+  /**
+   * Lets go of the held piece at `position`.
+   * `pointer` is where the pointer let go, and `under` the table point it was over.
+   * Spice let go over another faction's token waits there for the placer to say what it is.
+   */
+  finishGesture = (position: Vector3Tuple, pointer?: GiftPointer) => {
+    if (!this.carryInHand()) {
       return;
     }
     this.updateGesture(position);
     this.flushPose();
-    this.carry = { ...this.carry, pendingDrop: crypto.randomUUID(), dropUnsent: true };
+    /* The held piece rides above the table, so what it is over is judged where the pointer meets the tokens, not where the piece hangs. */
+    if (this.offerGift(pointer)) {
+      return;
+    }
+    this.carry = { ...this.carry!, pendingDrop: crypto.randomUUID(), dropUnsent: true };
+    this.flushDrop();
+    this.emit();
+  };
+  /* Keeps spice let go over another faction's token waiting there, for the placer to say what it is; false when it is not such a drop. */
+  private offerGift(pointer?: GiftPointer) {
+    const offer = this.giftOffer(pointer);
+    if (!offer) {
+      return false;
+    }
+    this.carry = { ...this.carry!, offer };
+    this.emit();
+    return true;
+  }
+  private giftOffer(pointer?: GiftPointer): LocalCarry['offer'] {
+    const under = pointer?.under;
+    if (!pointer || !under) {
+      return undefined;
+    }
+    const factionId = this.giftRecipient(under);
+    return factionId ? { factionId, position: [...under], x: pointer.x, y: pointer.y } : undefined;
+  }
+  /* The faction whose token spice let go over `position` would go to: another seated faction's, while this viewer holds a spice reserve. */
+  private giftRecipient(position: Vector3Tuple) {
+    const giver = this.snapshot.bank?.factionId;
+    if (!giver || !this.carryingSpice()) {
+      return undefined;
+    }
+    const factionId = factionTokenUnder(this.table!.state.pieces, position);
+    const another = factionId !== undefined && factionId !== giver;
+    return another && Object.hasOwn(snapshotFactionLabels(this.snapshot), factionId) ? factionId : undefined;
+  }
+  /* Whether this page holds spice in hand at a table it can handle. */
+  private carryingSpice() {
+    const table = this.table?.state;
+    return Boolean(table && this.carry && this.canHandle() && isSpicePiece(heldPieceFor(table, this.carry.draft)));
+  }
+  /** Gives the spice waiting over a faction's token to that faction, as a bribe or a payment. */
+  giveSpice = (as: SpiceGift) => {
+    const carry = this.carry;
+    if (!carry?.offer || carry.pendingDrop) {
+      return;
+    }
+    const { offer: _offer, ...rest } = carry;
+    this.carry = {
+      ...rest,
+      draft: { ...rest.draft, position: carry.offer.position },
+      give: { as, factionId: carry.offer.factionId },
+      pendingDrop: crypto.randomUUID(),
+      dropUnsent: true,
+    };
     this.flushDrop();
     this.emit();
   };
@@ -1510,6 +1601,7 @@ export class TableSession {
       position: carry.draft.position,
       orientation: carry.draft.orientation,
       ...flipsOf(carry.draft),
+      ...(carry.give ? { give: carry.give } : {}),
     });
     if (sent) {
       const { dropUnsent: _unsent, ...rest } = carry;
