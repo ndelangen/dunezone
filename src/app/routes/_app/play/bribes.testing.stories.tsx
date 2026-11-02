@@ -28,27 +28,23 @@ async function giftRing(canvasElement: HTMLElement) {
   return { page, ring };
 }
 
-/** Picking Bribe lets the spice go over the token as a bribe, the one drop the carry sends. */
-export const BribeSendsTheDrop = meta.story({
+/* Picking an item of the ring lets the spice go over the token as that gift, the one drop the carry sends, and closes the ring. */
+const picks = (item: RegExp, give: 'bribe' | 'payment') => ({
   beforeEach: install(() => productTransport('seat-2', looseSpiceSnapshot())),
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement }: { canvasElement: HTMLElement }) => {
     const { page, ring } = await giftRing(canvasElement);
     await expect(drops()).toEqual([]);
-    await userEvent.click(within(ring).getByRole('menuitem', { name: /^Bribe / }));
-    await waitFor(() => expect(drops()).toEqual([expect.objectContaining({ give: 'bribe' })]));
+    await userEvent.click(within(ring).getByRole('menuitem', { name: item }));
+    await waitFor(() => expect(drops()).toEqual([expect.objectContaining({ give })]));
     await waitFor(() => expect(page.queryByRole('menu')).toBeNull());
   },
 });
 
+/** Picking Bribe lets the spice go over the token as a bribe. */
+export const BribeSendsTheDrop = meta.story(picks(/^Bribe /, 'bribe'));
+
 /** Picking Payment lets the spice go over the token as a payment. */
-export const PaymentSendsTheDrop = meta.story({
-  beforeEach: install(() => productTransport('seat-2', looseSpiceSnapshot())),
-  play: async ({ canvasElement }) => {
-    const { ring } = await giftRing(canvasElement);
-    await userEvent.click(within(ring).getByRole('menuitem', { name: /^Pay / }));
-    await waitFor(() => expect(drops()).toEqual([expect.objectContaining({ give: 'payment' })]));
-  },
-});
+export const PaymentSendsTheDrop = meta.story(picks(/^Pay /, 'payment'));
 
 /** Escape closes the ring and puts the spice back where it came from: the carry is cancelled and nothing is dropped. */
 export const EscapePutsTheSpiceBack = meta.story({
