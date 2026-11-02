@@ -30,4 +30,28 @@ describe('data from the emblem rename', () => {
     expect(readRenamedEmblems(null)).toBeNull();
     expect(readRenamedEmblems(7)).toBe(7);
   });
+
+  test('passes bytes, dates and other class instances through untouched', () => {
+    const bytes = new ArrayBuffer(4);
+    const when = new Date(0);
+    const blob = new Blob(['x']);
+    const read = readRenamedEmblems({ bytes, when, blob, list: [new Uint8Array(2)] }) as Record<string, unknown>;
+    expect(read.bytes).toBe(bytes);
+    expect(read.when).toBe(when);
+    expect(read.blob).toBe(blob);
+    expect((read.list as unknown[])[0]).toBeInstanceOf(Uint8Array);
+  });
+
+  test('returns data that needs no rename as the same reference', () => {
+    const current = {
+      name: 'Atreides',
+      logo: '/vector/logo/atreides.svg',
+      decals: [{ id: '/vector/generic/axes.svg' }],
+    };
+    expect(readRenamedEmblems(current)).toBe(current);
+    const mixed = { same: current, next: { emblem: '/vector/emblem/a.svg' } };
+    const read = readRenamedEmblems(mixed) as typeof mixed;
+    expect(read).not.toBe(mixed);
+    expect(read.same).toBe(current);
+  });
 });
