@@ -1,5 +1,6 @@
 import { Button } from '@mantine/core';
-import { ClientOnly, createFileRoute, Link, redirect } from '@tanstack/react-router';
+import { TUTORIAL_PAGES } from '@shared/recordlessPublicPages';
+import { ClientOnly, createFileRoute, Link, notFound, redirect } from '@tanstack/react-router';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageTitle } from '@ui/block/PageTitle';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -8,6 +9,7 @@ import type { ReactNode } from 'react';
 
 import { useCurrentProfile } from '@db/profiles';
 import { pageHead } from '@app/routes/pageTitle';
+import { publicPageHead } from '@app/routes/publicPage';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import { TableWait } from '../play/TableWait';
@@ -21,14 +23,36 @@ const ChapterPlay = lazy(() => import('./TutorialTable'));
 /* A lobby chapter shows the lobby and create pages with sample games instead, so it loads no table. */
 const LobbyPlay = lazy(() => import('./LobbyChapter'));
 
-/* A chapter's page: its table and its rail, for a chapter that is built. Unlisted like the landing page. */
+/*
+ * A chapter's page: its table and its rail, for a chapter that is built.
+ * Public and indexed (Norbert, 2026-11-01): the server renders the chapter's frame with its title, and the table arrives in the browser.
+ */
 export const Route = createFileRoute('/_app/tutorial/$chapter')({
+  ssr: true,
   beforeLoad: ({ params }) => {
     if (params.chapter === 'find-or-create') {
       throw redirect({ to: '/tutorial/$chapter', params: { chapter: 'find-a-game' }, search: {} });
     }
+    /* An unknown chapter is the router's 404, as an unknown blog post is, not a cacheable public page. */
+    if (!chapterAt(params.chapter)) {
+      throw notFound();
+    }
   },
-  head: ({ params }) => pageHead(chapterAt(params.chapter)?.title ?? 'Learn to play', { noindex: true }),
+  head: ({ params }) => {
+    const chapter = chapterAt(params.chapter);
+    /* TUTORIAL_PAGES is held to CHAPTER_SCRIPTS by a test; the head reads it so the eager route tree does not pull every chapter script. */
+    if (!chapter || !TUTORIAL_PAGES.includes(`/tutorial/${chapter.slug}`)) {
+      return pageHead(chapter?.title ?? 'Learn to play', { noindex: true });
+    }
+    return publicPageHead({
+      name: chapter.title,
+      kind: 'Dune Zone Play tutorial',
+      pathname: `/tutorial/${chapter.slug}`,
+      description: `${chapter.goal}. An interactive ${chapter.minutes}-minute chapter of the Dune Zone Play tutorial, at a table you can play with.`,
+      social: { kind: 'Tutorial', shape: 'portrait' },
+      trail: [{ name: 'Learn to play', pathname: '/tutorial' }],
+    });
+  },
   /* `?step=4` opens a chapter at its fourth task, so a later task can be tried without playing the ones before it. */
   validateSearch: (params: Record<string, unknown>): { step?: number } => {
     const step = Number(params['step']);

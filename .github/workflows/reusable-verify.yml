@@ -219,13 +219,14 @@ jobs:
     if: ${{ !inputs.hosted_only && !inputs.draft }}
     strategy:
       fail-fast: false
-      # Four shards balanced by measured file time, because the story suite ran 564 to 779 s on one
-      # runner and the seven slowest Play page files were 58% of it (#1588). .storybook/shards.json owns the
-      # rules and scripts/storybook-shard.ts resolves a shard's files; its test refuses a story file
+      # Five shards balanced by measured file time, because the story suite ran 564 to 779 s on one
+      # runner and the seven slowest Play page files were 58% of it (#1588). The tutorial chapters
+      # have a shard of their own since their table stories joined the pages shard and slowed it.
+      # .storybook/shards.json owns the rules and scripts/storybook-shard.ts resolves a shard's files; its test refuses a story file
       # no shard owns. Each shard uploads its own coverage and results under the storybook flag,
       # which Codecov merges.
       matrix:
-        shard: [play-table, play-flows, components, pages]
+        shard: [play-table, play-flows, components, tutorial, pages]
     permissions:
       contents: read
       # The story shard prior-pass step lists and downloads the records of earlier passes.
