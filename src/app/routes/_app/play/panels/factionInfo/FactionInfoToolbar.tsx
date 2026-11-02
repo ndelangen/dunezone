@@ -7,7 +7,7 @@ import type { BallotChoice } from './FactionInfoPanel';
 import styles from './FactionInfoToolbar.module.css';
 
 /** The viewer's ballot on the open vote against the seat's player, when the viewer may cast one. */
-export type ToolbarBallot = Readonly<{
+type ToolbarBallot = Readonly<{
   choice: BallotChoice | null;
   /** Casts the viewer's ballot, or withdraws it with null. */
   cast: (choice: BallotChoice | null) => void;
