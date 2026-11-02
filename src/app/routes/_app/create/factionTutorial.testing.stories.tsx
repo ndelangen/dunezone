@@ -1,6 +1,6 @@
 import { testingPreview } from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
-import { expect, userEvent, waitFor, within } from 'storybook/test';
+import { expect, userEvent, within } from 'storybook/test';
 
 import { pageStoryMeta } from '../../storybookConfig';
 import { chapterGlobals, chapterParameters, playChapter } from '../tutorial/chapterStory';
@@ -16,9 +16,6 @@ const meta = testingPreview.meta({
 });
 
 const RAIL = 'Chapter 1: Create a faction';
-
-/* The background picker's own choices, beside the shared presets. */
-const USE_CHOICES = new Set(['Family standard', "Each card's faction", 'Custom']);
 
 const retype = async (field: HTMLElement, text: string) => {
   await userEvent.clear(field);
@@ -45,27 +42,14 @@ export const WalkThrough = meta.story({
     await next('Pick a logo');
 
     await userEvent.click(document.querySelector<HTMLElement>('#faction-logo')!);
-    await userEvent.click((await page.findAllByRole('option'))[5]!);
+    await userEvent.keyboard('Ixian');
+    /* Opening the picker and searching is not a pick. */
+    await expect(current()).toContain('Pick a logo');
+    await userEvent.click(await page.findByRole('option', { name: 'Ixian' }));
     await next('Pick a background');
 
     await userEvent.click(document.querySelector<HTMLElement>('[aria-label="Background preset"]')!);
-    /* The shared presets load as the picker opens; until then it offers only its own choices, which change nothing here. */
-    const preset = await waitFor(
-      () => {
-        const shared = page
-          .getAllByRole('option')
-          .find(
-            (option) =>
-              !USE_CHOICES.has(option.textContent?.trim() ?? '') && option.getAttribute('aria-selected') !== 'true'
-          );
-        if (!shared) {
-          throw new Error('The shared background presets have not loaded yet');
-        }
-        return shared;
-      },
-      { timeout: 20_000 }
-    );
-    await userEvent.click(preset);
+    await userEvent.click(await page.findByRole('option', { name: 'Nexus' }, { timeout: 20_000 }));
     await next('Name your faction leader');
 
     await tab('Faction leader');
@@ -106,7 +90,7 @@ export const WalkThrough = meta.story({
     await userEvent.click(practice().getByRole('button', { name: 'Save faction' }));
     await next("Visit your faction's page");
 
-    await userEvent.click(practice().getByRole('button', { name: 'Back' }));
+    await userEvent.click(await practice().findByRole('button', { name: 'Back' }, { timeout: 30_000 }));
     await page.findByRole('heading', { name: /Chapter complete/ }, { timeout: 30_000 });
     await expect(await page.findByRole('heading', { name: 'Sand Wardens' })).toBeVisible();
   },

@@ -28,14 +28,17 @@ export default function FactionChapter({
   firstTask?: number;
   chaptersLink: (props: object) => ReactNode;
 }>) {
-  /* The tasks read where the practice copy is through whichever copy is running now; a Reset starts another. */
+  /*
+   * The tasks read where the practice copy is through whichever copy is running now; a Reset starts another.
+   * They read the page it has finished opening, so the rail moves on only once the learner sees that page.
+   */
   const [chapter] = useState(() => {
     let controls: SandboxControls | null = null;
     return {
       ready: (next: SandboxControls) => {
         controls = next;
       },
-      tasks: FACTION_TUTORIAL_TASKS({ pathname: () => controls?.router.state.location.pathname ?? '' }),
+      tasks: FACTION_TUTORIAL_TASKS({ pathname: () => controls?.router.state.resolvedLocation?.pathname ?? '' }),
     };
   });
   const [run, setRun] = useState(0);

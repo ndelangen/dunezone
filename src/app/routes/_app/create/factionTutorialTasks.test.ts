@@ -75,16 +75,23 @@ describe('the faction tutorial reading the page', () => {
   });
 });
 
-test('opening a picker, which shows the search in its box, is not a pick', () => {
-  document.body.innerHTML = '<input id="faction-logo" value="Atreides" aria-expanded="false" />';
+test('opening a picker, which shows the search in its box, is not a pick, nor is closing it unchanged', () => {
+  document.body.innerHTML = '<input id="faction-logo" value="Antler Tower" />';
   const logo = FACTION_TUTORIAL_TASKS({ pathname: () => '' }).find((task) => task.id === 'logo')!;
   const view = { camera: null };
   const watch = logo.begin(view);
   const picker = document.querySelector<HTMLInputElement>('#faction-logo')!;
-  picker.setAttribute('aria-expanded', 'true');
+  const list = document.createElement('div');
+  list.setAttribute('role', 'listbox');
+  list.setAttribute('aria-label', 'Artwork');
+  document.body.append(list);
   picker.value = '';
   expect(logo.done(watch, view)).toBe(false);
-  picker.setAttribute('aria-expanded', 'false');
-  picker.value = 'Atreides';
+  picker.value = 'Ixian';
   expect(logo.done(watch, view)).toBe(false);
+  list.remove();
+  picker.value = 'Antler Tower';
+  expect(logo.done(watch, view)).toBe(false);
+  picker.value = 'Ixian';
+  expect(logo.done(watch, view)).toBe(true);
 });

@@ -92,13 +92,25 @@ const typed = (field: Field, enough: Enough) => ({
   finish: (watch: Typed) => watch.release(),
 });
 
-/* What a picker has chosen, or null while it is open: an open picker shows the learner's search in its box instead. */
+/* An artwork picker's open list: the logo and background pickers show one only while open. */
+const OPEN_PICKER = '[role="listbox"][aria-label="Artwork"], [role="listbox"][aria-label="Artwork collections"]';
+
+/*
+ * What a picker has chosen, or null while it is open: an open picker shows the learner's search in its box instead,
+ * and an empty box is a search just started, not a choice.
+ */
 const committed = (field: Field): string | null => {
-  const picker = find(field);
-  return picker?.getAttribute('aria-expanded') === 'true' ? null : valueOf(picker);
+  if (document.querySelector(OPEN_PICKER)) {
+    return null;
+  }
+  const value = valueOf(find(field))?.trim();
+  return value ? value : null;
 };
 
-/** A choice is done once it differs from what it showed as the task began, or when the learner first saw it, and the picker is closed. */
+/**
+ * A choice is done once the picker is closed again on something other than what it showed as the task began.
+ * Opening the picker, or closing it without a pick, leaves the task as it was.
+ */
 const chosen = (field: Field) => ({
   anchor: { kind: 'page' as const, element: fieldOrTab(field) },
   begin: () => ({ was: committed(field) }),
@@ -113,6 +125,7 @@ const chosen = (field: Field) => ({
 });
 
 const ADD_LEADER: Field = { selector: 'button[aria-label="Add supporting leader"]', tab: 'Leaders' };
+const REVIEW_OPEN = '[data-review-open]';
 const LEADERS = '[role="list"][aria-label="Ordered supporting leaders"] > [role="listitem"]';
 const EDIT_PAGE = /^\/factions\/[^/]+\/edit\/?$/;
 const FACTION_PAGE = /^\/factions\/(?!create\/?$)[^/]+\/?$/;
@@ -123,7 +136,7 @@ const identityTasks = (): GuideTask[] => [
     id: 'name',
     task: 'Name your faction',
     detail:
-      "Let's make a faction of your own! This is a practice copy of Dune Zone that lives only in your browser, so try whatever you like.\n\nType a name for your faction and press {Enter}.",
+      "Let's make a faction of your own! This is a practice copy of Dune Zone that lives only in your browser, so try whatever you like.\n\nType a name for your faction, such as Sand Wardens, and press {Enter}.",
     introducesSpeakingMode: true,
     ...typed({ selector: '#faction-name' }, aName),
   }),
@@ -131,14 +144,14 @@ const identityTasks = (): GuideTask[] => [
     id: 'logo',
     task: 'Pick a logo',
     detail:
-      'The logo goes on every piece of your faction: its tokens, its cards and its sheet.\n\nOpen the list and pick one you like.',
+      'The logo goes on every piece of your faction: its tokens, its cards and its sheet.\n\nOpen the list and search for one. Try typing Ixian and picking it, or choose any logo you like.',
     ...chosen({ selector: '#faction-logo' }),
   }),
   task({
     id: 'background',
     task: 'Pick a background',
     detail:
-      'The background is the pattern behind your tokens and cards. The preview on the right shows it as you choose.\n\nPick a background preset.',
+      'The background is the pattern behind your tokens and cards. The preview on the right shows it as you choose.\n\nOpen Background preset and pick Nexus, or any other preset you like.',
     ...chosen({ selector: '[aria-label="Background preset"]' }),
   }),
 ];
@@ -149,7 +162,7 @@ const rosterTasks = (): GuideTask[] => [
     id: 'faction-leader',
     task: 'Name your faction leader',
     detail:
-      "Every faction has a leader who doesn't fight, shown on the faction token.\n\nOpen Faction leader, type their name and press {Enter}.",
+      "Every faction has a leader who doesn't fight, shown on the faction token.\n\nOpen Faction leader, type their name, such as Wardeness Ilesa, and press {Enter}.",
     ...typed({ selector: '#faction-leader-name', tab: 'Faction leader' }, aName),
   }),
   task({
@@ -165,28 +178,29 @@ const rosterTasks = (): GuideTask[] => [
   task({
     id: 'name-leader',
     task: 'Name your new leader',
-    detail: 'The number beside your new leader is their strength in battle. Give them a name and press {Enter}.',
+    detail:
+      'The number beside your new leader is their strength in battle. Give them a name, such as Captain Oruk, and press {Enter}.',
     ...typed({ selector: 'input[id^="leader-"][id$="-name"]', tab: 'Leaders' }, aName),
   }),
   task({
     id: 'troops',
     task: 'Name your troops',
     detail:
-      'Troops are the tokens you move round the board. The token on the right shows them with your logo and background.\n\nOpen Troops, name them and press {Enter}.',
+      'Troops are the tokens you move round the board. The token on the right shows them with your logo and background.\n\nOpen Troops, name them, such as Wardens, and press {Enter}.',
     ...typed({ selector: '#troop-0-name', tab: 'Troops' }, aName),
   }),
   task({
     id: 'alliance',
     task: 'Write your alliance advantage',
     detail:
-      'When another player allies with you, they get your alliance card. It says what you do for them.\n\nOpen Alliance, write a sentence on what your ally gets, then click outside the box.',
+      'When another player allies with you, they get your alliance card. It says what you do for them.\n\nOpen Alliance and write a sentence on what your ally gets, such as: Your ally may move one extra territory. Then click outside the box.',
     ...typed({ selector: '#rules-alliance', tab: 'Alliance' }, aSentence),
   }),
   task({
     id: 'start',
     task: 'Say how you start',
     detail:
-      'Your faction sheet tells everyone where your troops start the game.\n\nOpen Rules, write a sentence on where your troops start, then click outside the box.',
+      'Your faction sheet tells everyone where your troops start the game.\n\nOpen Rules and write a sentence on where your troops start, such as: 10 troops in Sietch Tabr. Then click outside the box.',
     ...typed({ selector: '#rules-start', tab: 'Rules' }, aSentence),
   }),
 ];
@@ -203,14 +217,25 @@ const finishingTasks = (page: FactionChapterPage): GuideTask[] => [
       element: () =>
         document.querySelector('[aria-label="Close faction sheet review"]') ?? pageButton('Review faction sheet')(),
     },
-    begin: () => ({ seen: false }),
-    done: (watch: { seen: boolean }) => {
-      if (document.querySelector('[data-review-open]')) {
-        watch.seen = true;
-        return false;
-      }
-      return watch.seen;
+    /* The sheet is watched as the page changes, not only once a frame, so a quick look still counts. */
+    begin: () => {
+      const watch = { seen: false, stop: () => undefined as void };
+      const look = () => {
+        watch.seen ||= document.querySelector(REVIEW_OPEN) !== null;
+      };
+      const observer = new MutationObserver(look);
+      observer.observe(document.body, {
+        subtree: true,
+        childList: true,
+        attributes: true,
+        attributeFilter: ['data-review-open'],
+      });
+      watch.stop = () => observer.disconnect();
+      look();
+      return watch;
     },
+    done: (watch: { seen: boolean; stop: () => void }) => watch.seen && document.querySelector(REVIEW_OPEN) === null,
+    finish: (watch: { stop: () => void }) => watch.stop(),
   }),
   task({
     id: 'save',
