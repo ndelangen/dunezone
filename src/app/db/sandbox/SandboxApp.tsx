@@ -124,7 +124,11 @@ export function SandboxApp({
       });
     });
     /* The site's own router leaving this page must not run its next page's loaders against the sandbox. */
-    const unsubscribe = outer.subscribe('onBeforeLoad', () => leave());
+    const unsubscribe = outer.subscribe('onBeforeLoad', ({ pathChanged }) => {
+      if (pathChanged) {
+        leave();
+      }
+    });
     return () => {
       cancelled = true;
       unsubscribe();
