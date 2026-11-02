@@ -47,13 +47,13 @@ html[data-mantine-color-scheme="dark"] .glyph {
   width: 100%;
 }
 
-/* A square slot matching the field's inner height (inside its 1px border), so the centred tile keeps the same inset from the top, bottom and right edges. */
+/* A square slot as tall as the field inside its border, so the centred tile keeps the same inset from the top, bottom and right edges. */
 .filterSlot {
   display: flex;
   flex: none;
   align-items: center;
   justify-content: center;
-  width: calc(var(--input-height) - 2px);
   height: 100%;
+  aspect-ratio: 1;
   margin-inline-start: auto;
 }
