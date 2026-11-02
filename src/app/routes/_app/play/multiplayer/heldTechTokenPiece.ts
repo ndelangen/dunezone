@@ -1,5 +1,6 @@
 import type { TablePiece } from '@shared/play/model';
 import type { HeldTechToken } from '@shared/play/techToken';
+import { playUiColors } from '@shared/uiPalette';
 
 /* The name a face-down token goes by, which says what it is and nothing of its face. */
 const FACE_DOWN = 'Face-down tech token';
@@ -16,8 +17,8 @@ export function heldTechTokenPiece(token: HeldTechToken, factionId: string, inde
     id,
     label: token.name ?? FACE_DOWN,
     owner: factionId,
-    color: '#000000',
-    accent: '#000000',
+    color: playUiColors.annotationGold,
+    accent: playUiColors.annotationGold,
     items: [
       {
         id: `${id}-item`,
