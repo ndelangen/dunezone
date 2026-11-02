@@ -1,6 +1,7 @@
 import { Stack } from '@mantine/core';
 import preview from '@sb/preview';
 import { Link } from '@tanstack/react-router';
+import type { CSSProperties } from 'react';
 
 import { Surface } from './Surface';
 import { SurfaceFiller } from './SurfaceFiller.stories.fixture';
@@ -22,9 +23,15 @@ export const Borderless = meta.story({
   args: { withBorder: false },
 });
 
-/** Glass without the live blur, for a page of many panes: the grid shows through sharp instead of frosted. */
+/** Inside a region that sets `--surface-backdrop: none`, as a catalogue grid does: the glass stays, the grid shows through sharp instead of frosted. */
 export const Unblurred = meta.story({
-  args: { blur: false },
+  decorators: [
+    (Story) => (
+      <div style={{ '--surface-backdrop': 'none' } as CSSProperties}>
+        <Story />
+      </div>
+    ),
+  ],
 });
 
 /** The play table's opaque ground: no artwork shows through, for a pane that is a step into the table, such as a ticket's stub. */
