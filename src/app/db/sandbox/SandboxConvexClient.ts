@@ -99,6 +99,7 @@ export class SandboxConvexClient {
     queueMicrotask(() => onChange?.(true));
   }
 
+  /* Nothing to clear: the worker is told who is asking with each call, and signing out ends the practice copy. */
   clearAuth() {}
 
   connectionState() {
@@ -118,6 +119,7 @@ export class SandboxConvexClient {
     return () => undefined;
   }
 
+  /* The worker answers in the same tab, so there is nothing to warm ahead of a query. */
   prewarmQuery() {}
 
   /** Points the client at a freshly seeded database, as Reset does, and asks every watched query again. */

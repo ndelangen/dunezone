@@ -85,12 +85,14 @@ export function SandboxApp({
   useEffect(() => {
     const { database, identity, path, onReady } = start;
     let cancelled = false;
+    /* Set once the site's own router starts loading another page: a sandbox still starting then never opens. */
+    let departed = false;
     let leave = () => undefined as void;
     let backend: ConvexStorybookWorkerClient | null = null;
     let client: SandboxConvexClient | null = null;
-    void seededBackend(database).then((started) => {
+    const starting = seededBackend(database).then((started) => {
       backend = started;
-      if (cancelled) {
+      if (cancelled || departed) {
         started.terminate();
         return;
       }
@@ -126,9 +128,18 @@ export function SandboxApp({
         },
       });
     });
+    /* A practice copy that cannot start shows the page's error, not the loading screen forever. */
+    starting.catch((error: unknown) => {
+      if (!cancelled) {
+        setRunning(() => {
+          throw error;
+        });
+      }
+    });
     /* The site's own router leaving this page must not run its next page's loaders against the sandbox. */
     const unsubscribe = outer.subscribe('onBeforeLoad', ({ pathChanged }) => {
       if (pathChanged) {
+        departed = true;
         leave();
       }
     });

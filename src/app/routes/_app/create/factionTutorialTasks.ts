@@ -28,12 +28,12 @@ const tabOf = (field: Field): Element | null =>
 /** The field when its tab is open, otherwise the tab that opens it. */
 const fieldOrTab = (field: Field) => () => find(field) ?? tabOf(field);
 
-const valueOf = (element: Element | null): string | null =>
-  element === null
-    ? null
-    : element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement
-      ? element.value
-      : (element.textContent ?? '');
+const valueOf = (element: Element | null): string | null => {
+  if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
+    return element.value;
+  }
+  return element === null ? null : (element.textContent ?? '');
+};
 
 /** A button of the page whose words or label are exactly `name`. */
 const pageButton = (name: string) => (): Element | null =>
