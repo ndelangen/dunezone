@@ -428,7 +428,8 @@ export function GameMenu({
   /* The fixture has no lifecycle, so a seat there is not one to give up; the table would refuse the departure. */
   const seated = !isSpectator(table) && table.snapshot.stage !== undefined && table.snapshot.stage !== 'discarded';
   return (
-    <Menu position="bottom-end" shadow="md" withinPortal>
+    /* Sized to the room below the button and scrolled past it, so short windows still reach the lobby and seat actions. */
+    <Menu position="bottom-end" shadow="md" withinPortal middlewares={{ size: { padding: 8 } }}>
       <Menu.Target>
         <IconAction
           label="Game menu"
@@ -438,7 +439,7 @@ export function GameMenu({
           icon={<Settings size={20} aria-hidden />}
         />
       </Menu.Target>
-      <Menu.Dropdown>
+      <Menu.Dropdown style={{ overflowY: 'auto' }}>
         {sharing}
         <Menu.Divider />
         <TableLightingSlider />
