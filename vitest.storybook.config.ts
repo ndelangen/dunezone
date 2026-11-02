@@ -114,6 +114,12 @@ export default defineConfig({
     name: 'storybook',
     attachmentsDir: './test-results/storybook-attachments',
     /*
+     * Storybook's Vitest plugin turns the API's file writes off unless the config allows them, and then every
+     * failure screenshot fails with "File writing is disabled because the server is exposed to the internet",
+     * so the failure evidence artifact never held one. The API server listens on localhost.
+     */
+    api: { allowWrite: true },
+    /*
      * Every story file used to run in a fresh iframe, and the suite paid for that twice.
      * The preview annotations, Mantine styles and the Convex mock were imported again for every file, which Vitest's summary counted as 140 s of setup and 83 s of import across 126 files on the 4-vCPU runner.
      * The iframe itself was torn down and recreated between files, which no summary line reports.
