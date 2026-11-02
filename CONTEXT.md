@@ -305,6 +305,10 @@ _Avoid_: spice supply, the supply, bank
 One faction's own spice balance. Stored data and the protocol still call it `bank`, `factionBanks`, `bank-withdraw` and `bank-collect`.
 _Avoid_: bank, faction bank, banked spice
 
+**Bribe pile**:
+A public spice stack kept by one faction's seat, holding the spice other factions bribed it with until its player collects it. Spice carried onto another faction's token asks the placer whether it is a bribe, set on that faction's bribe pile, or a payment, straight into its spice reserve.
+_Avoid_: bribe stack, bribe bank
+
 **Directory**:
 Convex's record that a Play game exists and what the lobby may show of it: its stage, its seated players with any public faction, its progress, its last activity and its declared result. The game database owns gameplay; the directory holds only this summary, published by the game with a sequence so a late delivery never overwrites a newer one.
 _Avoid_: Game list database, index

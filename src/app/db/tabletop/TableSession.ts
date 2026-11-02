@@ -1,5 +1,6 @@
 import { tableHandlingOpen } from '@shared/play/admission';
 import type { BattlePlanInput } from '@shared/play/battle';
+import { factionTokenUnder } from '@shared/play/bribes';
 import type { CardDraw } from '@shared/play/cardDraw';
 import { foldedTurns, rotatedPiece } from '@shared/play/commands';
 import { snapshotFactionLabels, snapshotFactionTieBreaks } from '@shared/play/factionLabels';
@@ -25,6 +26,8 @@ import type {
 import { isRemovalAction } from '@shared/play/removal';
 import { isReviewAction, reviewRunning } from '@shared/play/review';
 import { CARRY_FLIPS_LIMIT, SPECTATOR_SEAT, tablePositionSchema } from '@shared/play/schema';
+import { isSpicePiece } from '@shared/play/spice';
+import type { SpiceGift } from '@shared/play/spiceReserve';
 import { isSwapAction } from '@shared/play/swapping';
 import {
   draftForGesture,
@@ -93,6 +96,10 @@ type LocalCarry = {
   revealed?: TablePiece;
   /* A resync completed the drop before the tab holds its snapshot, so the draft keeps the piece where it landed until the fresh view. */
   landed?: true;
+  /* Spice let go over another faction's token waits in hand, over it, while the placer picks a bribe or a payment; `x` and `y` are where the pointer let go. */
+  offer?: { factionId: string; position: Vector3Tuple; x: number; y: number };
+  /* What the placer picked for that spice, sent with the drop. */
+  give?: SpiceGift;
 };
 /* Each faction a deck can deal to, with its token art for the deal ring. */
 function dealRecipients(snapshot: GameSnapshot) {
@@ -590,6 +597,7 @@ export class TableSession {
       selectedPiece: null,
       affordances: [],
       spiceReserveControls: undefined,
+      spiceGift: undefined,
       deckControls: undefined,
       handControls: undefined,
       deleteControls: undefined,
@@ -665,12 +673,28 @@ export class TableSession {
       selectedPiece: renderedPieces.find((piece) => piece.id === state.selectedPieceId) ?? null,
       affordances: affordancesFor({ ...state, pieces: renderedPieces }),
       ...this.interactionProjection(displayed),
+      spiceGift: this.spiceGiftView(displayed, state),
       ...remoteIds,
       reservedPieceIds,
       gestureActivePieceId: local.gestureActivePieceId,
       hoveredPieceId: this.hoveredId,
       flippingPieceIds: local.flippingPieceIds,
       serverNow: this.clockForView(),
+    };
+  }
+  private spiceGiftView(displayed: GameSnapshot, state: TableState): TableProjection['spiceGift'] {
+    const offer = this.carry?.offer;
+    if (!offer || this.history) {
+      return undefined;
+    }
+    const held = this.carry && heldPieceFor(state, this.carry.draft);
+    return {
+      factionId: offer.factionId,
+      name: snapshotFactionLabels(displayed)[offer.factionId] ?? 'a faction',
+      artwork: displayed.factionArtwork?.[offer.factionId],
+      amount: held?.items.length ?? 0,
+      x: offer.x,
+      y: offer.y,
     };
   }
   private stateForView(displayed: GameSnapshot) {
@@ -1474,7 +1498,7 @@ export class TableSession {
     });
   };
   updateGesture = (position: Vector3Tuple) => {
-    if (!this.carry || this.carry.pendingDrop) {
+    if (!this.carry || this.carry.pendingDrop || this.carry.offer) {
       return;
     }
     const draft = projectCarryAtPosition(this.requireTable().state, this.carry.draft, position);
@@ -1488,13 +1512,58 @@ export class TableSession {
     /* A mouse can report several moves a frame, and the scene only draws the last of them. */
     this.emit(true);
   };
-  finishGesture = (position: Vector3Tuple) => {
-    if (!this.carry || this.carry.pendingDrop) {
+  /**
+   * Lets go of the held piece at `position`.
+   * `pointer` is where the pointer let go, and `under` the table point it was over.
+   * Spice let go over another faction's token waits there for the placer to say what it is.
+   */
+  finishGesture = (position: Vector3Tuple, pointer?: { x: number; y: number; under?: Vector3Tuple | null }) => {
+    if (!this.carry || this.carry.pendingDrop || this.carry.offer) {
       return;
     }
     this.updateGesture(position);
     this.flushPose();
+    /* The held piece rides above the table, so what it is over is judged where the pointer meets the tokens, not where the piece hangs. */
+    const under = pointer?.under;
+    const factionId = pointer && under && this.giftRecipient(under);
+    if (factionId) {
+      this.carry = { ...this.carry, offer: { factionId, position: [...under], x: pointer.x, y: pointer.y } };
+      this.emit();
+      return;
+    }
     this.carry = { ...this.carry, pendingDrop: crypto.randomUUID(), dropUnsent: true };
+    this.flushDrop();
+    this.emit();
+  };
+  /* The faction whose token spice let go over `position` would go to: another seated faction's, while this viewer holds a spice reserve. */
+  private giftRecipient(position: Vector3Tuple) {
+    const giver = this.snapshot.bank?.factionId;
+    const table = this.table?.state;
+    if (!giver || !table || !this.carry || !this.canHandle()) {
+      return undefined;
+    }
+    if (!isSpicePiece(heldPieceFor(table, this.carry.draft))) {
+      return undefined;
+    }
+    const factionId = factionTokenUnder(table.pieces, position);
+    return factionId && factionId !== giver && Object.hasOwn(snapshotFactionLabels(this.snapshot), factionId)
+      ? factionId
+      : undefined;
+  }
+  /** Gives the spice waiting over a faction's token to that faction, as a bribe or a payment. */
+  giveSpice = (as: SpiceGift) => {
+    const carry = this.carry;
+    if (!carry?.offer || carry.pendingDrop) {
+      return;
+    }
+    const { offer: _offer, ...rest } = carry;
+    this.carry = {
+      ...rest,
+      draft: { ...rest.draft, position: carry.offer.position },
+      give: as,
+      pendingDrop: crypto.randomUUID(),
+      dropUnsent: true,
+    };
     this.flushDrop();
     this.emit();
   };
@@ -1510,6 +1579,7 @@ export class TableSession {
       position: carry.draft.position,
       orientation: carry.draft.orientation,
       ...flipsOf(carry.draft),
+      ...(carry.give ? { give: carry.give } : {}),
     });
     if (sent) {
       const { dropUnsent: _unsent, ...rest } = carry;

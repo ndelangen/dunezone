@@ -11,7 +11,7 @@ import { useMotionAllowed } from '@app/styles/motion';
 import styles from './RadialMenu.module.css';
 import { HOLD_SECONDS, useHoldToConfirm } from './useHoldToConfirm';
 
-type RadialIcon = 'peek' | 'draw' | 'deal' | 'shuffle' | 'reserve' | 'hand' | 'delete' | 'back';
+type RadialIcon = 'peek' | 'draw' | 'deal' | 'shuffle' | 'reserve' | 'pay' | 'bribe' | 'hand' | 'delete' | 'back';
 
 export type RadialAction = Readonly<{
   key: string;
@@ -63,6 +63,22 @@ const ICONS: Record<RadialIcon, ReactNode> = {
     <>
       <ellipse cx="12" cy="6" rx="7" ry="3" />
       <path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6" />
+    </>
+  ),
+  /* Spice going down into a spice reserve. */
+  pay: (
+    <>
+      <ellipse cx="12" cy="15" rx="7" ry="3" />
+      <path d="M5 15v3c0 1.7 3.1 3 7 3s7-1.3 7-3v-3M12 3v8M8.5 7.5 12 11l3.5-3.5" />
+    </>
+  ),
+  /* Spice set aside in a pile of its own, beside another. */
+  bribe: (
+    <>
+      <ellipse cx="8" cy="15" rx="5" ry="2" />
+      <path d="M3 15v3c0 1.1 2.2 2 5 2s5-.9 5-2v-3" />
+      <ellipse cx="16" cy="8" rx="5" ry="2" />
+      <path d="M11 8v3c0 1.1 2.2 2 5 2s5-.9 5-2V8" />
     </>
   ),
   deal: (

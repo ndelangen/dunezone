@@ -6,6 +6,7 @@ import { isBattleAction } from '../../src/shared/play/battle';
 import type { BattleAction } from '../../src/shared/play/battle';
 import { isBiddingAction } from '../../src/shared/play/bidding';
 import type { BiddingAction } from '../../src/shared/play/bidding';
+import { bribePilePosition, factionTokenUnder } from '../../src/shared/play/bribes';
 import {
   accepted,
   applyPieceAction,
@@ -51,7 +52,7 @@ import { rosterSeat, SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { isSetupAction, phaseGate } from '../../src/shared/play/setup';
 import { isSpicePiece } from '../../src/shared/play/spice';
 import { createSpiceStack } from '../../src/shared/play/spiceBank';
-import type { SpiceReserveAction } from '../../src/shared/play/spiceReserve';
+import type { SpiceGift, SpiceReserveAction } from '../../src/shared/play/spiceReserve';
 import type { SwapAction } from '../../src/shared/play/swapping';
 import { restingPositionAt } from '../../src/shared/play/tableGeometry';
 import { clampPositionToTable, nearestCollisionFreePosition } from '../../src/shared/play/tablePhysics';
@@ -62,6 +63,7 @@ import {
   draftWithAdditionalTop,
   heldPieceFor,
   canFlipInHand,
+  giveSpiceDraft,
   projectCarryAtPosition,
   settleCarryAtPosition,
 } from '../../src/shared/play/tableState';
@@ -166,7 +168,7 @@ const REVISION_TOLERANT_ACTIONS = new Set<string>([
  * A drop without a count keeps the carry's, as an older page sends none.
  */
 /** Where a carried piece is set down, and how many times it was turned over in hand. */
-type CarryLanding = { position: Vector3Tuple; orientation: number; flips?: number };
+type CarryLanding = { position: Vector3Tuple; orientation: number; flips?: number; give?: SpiceGift };
 
 function carryFlips(draft: DraftMove, flips: number | undefined) {
   const current = draft.flips ?? 0;
@@ -530,6 +532,9 @@ export class Room {
     const turns = canFlipInHand(heldPieceFor(guarded, carry.draft), this.unrevealedPrediction);
     const flips = turns ? carryFlips(carry.draft, landing.flips) : 0;
     const draft = { ...carry.draft, orientation: landing.orientation, flips };
+    if (landing.give) {
+      return this.dropAsGift(identity, guarded, draft, { ...landing, give: landing.give }, late);
+    }
     const settled = settleCarryAtPosition(guarded, draft, landing.position);
     if (!settled) {
       throw new GameRejection('There is no clear space for that object.');
@@ -544,6 +549,42 @@ export class Room {
     const next = nextSnapshot(this.snapshot, this.restoreReservationLocks(raw, table, late));
     /* A faction token flipped in hand turns its faction out of the bidding, the same as the flip command. */
     return { ...next, ...biddingAfterTable(this.snapshot, next, Date.now()) };
+  }
+
+  /** Spice let go over another faction's token goes to that faction: into its spice reserve as a payment, or onto its bribe pile. */
+  private dropAsGift(
+    identity: Identity,
+    guarded: TableState,
+    draft: DraftMove,
+    landing: CarryLanding & { give: SpiceGift },
+    late: ReadonlySet<string>
+  ): StoredSnapshot {
+    const giver = this.requireFaction(identity);
+    const target = factionTokenUnder(guarded.pieces, landing.position);
+    if (!target || target === giver || !Object.hasOwn(this.snapshot.factionBanks, target)) {
+      throw new GameRejection("Let go of the spice over another faction's token to give it.");
+    }
+    const held = heldPieceFor(guarded, draft);
+    const amount = held?.items.length ?? 0;
+    const balance = this.snapshot.factionBanks[target]!;
+    if (landing.give === 'payment' && !Number.isSafeInteger(balance + amount)) {
+      throw new GameRejection('This payment exceeds the spice reserve capacity.');
+    }
+    const roster = this.snapshot.roster;
+    const factionName = roster?.seats.find((seat) => seat.faction?.id === target)?.faction?.name ?? 'a faction';
+    const pile = landing.give === 'bribe' ? bribePilePosition(guarded.pieces, roster, target) : undefined;
+    const given = giveSpiceDraft(
+      guarded,
+      draft,
+      { as: landing.give, factionName, pile },
+      seatSubject(identity.viewerSeat)
+    );
+    const table = requireAccepted(guarded, given);
+    const raw = tableForViewer(this.snapshot, identity.viewerSeat);
+    const next = nextSnapshot(this.snapshot, this.restoreReservationLocks(raw, table, late));
+    return landing.give === 'payment'
+      ? { ...next, factionBanks: { ...this.snapshot.factionBanks, [target]: balance + amount } }
+      : next;
   }
 
   /* Phase, battle and catalogue controls belong to play; setup opens only physical handling. */

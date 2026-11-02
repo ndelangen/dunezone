@@ -12,6 +12,7 @@ import { publicPieceLabel } from './peeking';
 import { placementRules, withRidersCarried } from './pointerRiders';
 import { isSpicePiece } from './spice';
 import { isSpiceBankPosition } from './spiceBank';
+import type { SpiceGift } from './spiceReserve';
 import { moveStormCounterclockwise } from './stormSector';
 import { placementAnchorAtPosition } from './tableFurnitureLayout';
 import type { PlacementAnchor } from './tableFurnitureLayout';
@@ -827,6 +828,63 @@ function returnSpiceDraftToSpiceBank(current: TableState, draft: DraftMove, acto
     { ...current, pieces: piecesWithoutHeld(current, draft, piece), selectedPieceId: null, draftMove: null },
     'spice.return',
     `${actorName} returned ${pieceCount(piece)} spice to the Spice Bank.`
+  );
+}
+
+/** What a carry of spice let go over another faction's token becomes, as the placer chose. */
+export type SpiceGiftLanding = Readonly<{
+  as: SpiceGift;
+  /* The receiving faction's name, for the event. */
+  factionName: string;
+  /* Where that faction's bribe pile stands; a bribe needs it. */
+  pile?: Vector3Tuple;
+}>;
+
+/* The newest event, accepted, said again as a gift; a rejection keeps its own words. */
+function relabelLatest(state: TableState, command: string, message: string): TableState {
+  const [latest, ...rest] = state.events;
+  return latest?.status === 'accepted' ? { ...state, events: [{ ...latest, command, message }, ...rest] } : state;
+}
+
+/**
+ * Spice carried onto another faction's token and given to it.
+ * A payment takes the spice off the table, for the caller to add to that faction's spice reserve;
+ * a bribe sets it down on that faction's bribe pile, joining the spice already there.
+ */
+export function giveSpiceDraft(
+  current: TableState,
+  draft: DraftMove,
+  gift: SpiceGiftLanding,
+  actorName = 'A player'
+): TableState {
+  const application = validateDraftApplication(current, draft);
+  if ('rejected' in application) {
+    return application.rejected;
+  }
+  const { piece, rejectedBase } = application;
+  const sources = [draft.sourcePieceId, ...draft.withdrawals.map((withdrawal) => withdrawal.sourcePieceId)];
+  if (
+    !isSpicePiece(piece) ||
+    sources.some((id) => !isSpicePiece(current.pieces.find((candidate) => candidate.id === id)))
+  ) {
+    return rejection(rejectedBase, 'spice.give', 'Only carried spice can be given to a faction.');
+  }
+  const amount = `${pieceCount(piece)} spice`;
+  if (gift.as === 'payment') {
+    return accepted(
+      { ...current, pieces: piecesWithoutHeld(current, draft, piece), selectedPieceId: null, draftMove: null },
+      'spice.pay',
+      `${actorName} paid ${amount} to ${gift.factionName}.`
+    );
+  }
+  const settled = gift.pile && settleCarryAtPosition(current, draft, gift.pile);
+  if (!settled) {
+    return rejection(rejectedBase, 'spice.bribe', `There is no clear space by ${gift.factionName} for the bribe.`);
+  }
+  return relabelLatest(
+    applyDraftToState(current, settled, actorName),
+    'spice.bribe',
+    `${actorName} bribed ${gift.factionName} with ${amount}.`
   );
 }
 

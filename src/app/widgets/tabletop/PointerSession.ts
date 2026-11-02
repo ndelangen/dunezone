@@ -13,6 +13,8 @@ type Controls = Pick<
   hasDraft: boolean;
   piece(id: string): TablePiece | undefined;
   point(piece: TablePiece, x: number, y: number): Vector3Tuple | null;
+  /** The point on the tops of the tokens resting on the table that the pointer is over. */
+  surfacePoint?(x: number, y: number): Vector3Tuple | null;
   isPublicPoint(x: number, y: number): boolean;
   onActiveChange(active: boolean): void;
 };
@@ -274,7 +276,11 @@ export class PointerSession {
       return;
     }
     if (point) {
-      controls.finishGesture(point);
+      controls.finishGesture(point, {
+        x: event.clientX,
+        y: event.clientY,
+        under: controls.surfacePoint?.(event.clientX, event.clientY),
+      });
     } else {
       controls.cancelDraft();
       controls.publishPointer(null);

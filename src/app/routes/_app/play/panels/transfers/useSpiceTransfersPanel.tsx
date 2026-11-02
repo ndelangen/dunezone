@@ -29,12 +29,18 @@ const SPICE_TRANSFER_VERBS: Readonly<Record<SpiceTransfer['kind'], string>> = {
   collection: 'collected',
   supply: 'took',
   disposal: 'returned',
+  payment: 'paid',
+  bribe: 'bribed',
 };
 
 function spiceTransferText(labels: Readonly<Partial<Record<string, string>>>, transfer: SpiceTransfer): string {
   const moved = `${transfer.actor} ${SPICE_TRANSFER_VERBS[transfer.kind]} ${transfer.amount} spice`;
   if (transfer.kind === 'disposal') {
     return `${moved} to the Spice Bank.`;
+  }
+  if (transfer.kind === 'bribe') {
+    const name = labels[transfer.destination ?? ''] ?? 'a faction that has left the game';
+    return `${transfer.actor} bribed ${name} with ${transfer.amount} spice, onto its bribe pile.`;
   }
   return `${moved} from ${spicePlace(labels, transfer.source)} to ${spicePlace(labels, transfer.destination ?? 'table')}.`;
 }
