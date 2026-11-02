@@ -153,11 +153,6 @@ function SearchHub({ spot, query, input, steering, onSpot, onQuery, onCursor }: 
         <Kbd>→</Kbd>
         <Kbd>↑</Kbd>
         <Kbd>↓</Kbd>
-        <span className={styles.hubOr}>or</span>
-        <Kbd>W</Kbd>
-        <Kbd>A</Kbd>
-        <Kbd>S</Kbd>
-        <Kbd>D</Kbd>
       </span>
     </label>
   );

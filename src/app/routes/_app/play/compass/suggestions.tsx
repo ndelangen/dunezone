@@ -4,9 +4,11 @@ import type { ReactNode } from 'react';
 import { setBoardSkin, setPlanetShading } from '../../../../widgets/tabletop/boardSkinPreference';
 import { BOARD_SKIN_LABELS, BOARD_SKINS } from '../../../../widgets/tabletop/boardSkins';
 import type { TableView } from '../../../../widgets/tabletop/playView';
+import type { CompassPlayer } from './compassTable';
 import { PlayerToken } from './PlayerToken';
 import { SHORTCUTS } from './shortcuts';
 import type { Command, TableCommand } from './shortcuts';
+import { FACTION_INFO } from './windows';
 import type { TableWindow } from './windows';
 
 /** One line under the search field: a window to open or a command to run. */
@@ -93,8 +95,10 @@ export function rankSuggestions(all: readonly Candidate[], query: string): Sugge
 
 export type SuggestionActions = Readonly<{
   frozen?: boolean;
-  /** Opens a window. */
-  open: (key: string) => void;
+  /** Opens a window; the faction information on the seat asked for. */
+  open: (key: string, seat?: string) => void;
+  /** Everyone at the table, the viewer too, whose faction information the search finds by faction or player name. */
+  players: readonly CompassPlayer[];
   /** Steps the table to the next phase; null while the table refuses it, as the header's button is then disabled. */
   nextPhase: (() => void) | null | undefined;
   /** Moves the camera, as the dial does. */
@@ -215,6 +219,38 @@ function lookCandidates(close: () => void): Candidate[] {
   return [...skins, ...shading];
 }
 
+/* A window as the search lists it: its name, its hint, and the letter an arm of the compass opens it with. */
+function windowCandidate(entry: TableWindow, actions: SuggestionActions): Candidate {
+  return {
+    key: entry.key,
+    label: entry.label,
+    hint: hintOf(entry),
+    icon: entry.player ? <PlayerToken player={entry.player} size={20} /> : <TopicIcon topic={entry.topic} size={18} />,
+    run: () => actions.open(entry.key),
+    shortcut: actions.shortcuts[entry.key],
+    text: `${entry.label} ${entry.player?.factionName ?? ''} ${entry.group}`,
+    weight: weightOf(entry),
+  };
+}
+
+/*
+ * The faction information by its own name, as every window is found, and once more for each player, found by their faction or
+ * name: "Atreides" opens it on the Atreides.
+ */
+function factionCandidates(entry: TableWindow, actions: SuggestionActions): Candidate[] {
+  const seats = actions.players.map((player): Candidate => ({
+    key: `${entry.key}:${player.seat}`,
+    label: player.factionName ?? player.name,
+    hint: `${entry.label} · ${player.own ? 'You' : player.name}`,
+    icon: <PlayerToken player={player} size={20} />,
+    run: () => actions.open(entry.key, player.seat),
+    text: `${player.factionName ?? ''} ${entry.label} ${player.name}`,
+    /* With nothing typed, the windows and commands lead; a faction is looked up by name. */
+    weight: -1,
+  }));
+  return [windowCandidate(entry, actions), ...seats];
+}
+
 /** Every window and command the search can reach. */
 export function candidatesOf(windows: readonly TableWindow[], actions: SuggestionActions): Candidate[] {
   const frozen: Candidate[] = actions.frozen
@@ -240,20 +276,9 @@ export function candidatesOf(windows: readonly TableWindow[], actions: Suggestio
     : [];
   return [
     ...frozen,
-    ...windows.map((entry): Candidate => ({
-      key: entry.key,
-      label: entry.label,
-      hint: hintOf(entry),
-      icon: entry.player ? (
-        <PlayerToken player={entry.player} size={20} />
-      ) : (
-        <TopicIcon topic={entry.topic} size={18} />
-      ),
-      run: () => actions.open(entry.key),
-      shortcut: actions.shortcuts[entry.key],
-      text: `${entry.label} ${entry.player?.factionName ?? ''} ${entry.group}`,
-      weight: weightOf(entry),
-    })),
+    ...windows.flatMap((entry): Candidate[] =>
+      entry.key === FACTION_INFO ? factionCandidates(entry, actions) : [windowCandidate(entry, actions)]
+    ),
     ...nextPhaseCandidate(actions.nextPhase, actions.close),
     ...commandCandidates(actions),
     ...(Object.keys(CAMERA_VIEWS) as TableView[]).map((view): Candidate => ({

@@ -224,9 +224,18 @@ test('Pages sort horizontally in the filmstrip without changing the active URL',
   await source.focus();
   await page.keyboard.press('Space');
   await expect(source).toHaveAttribute('aria-pressed', 'true');
-  /* The keyboard sensor installs its document listener after activation. */
-  await page.waitForTimeout(100);
-  await page.keyboard.press('ArrowRight');
+  /*
+   * The keyboard sensor installs its document listener a moment after activation, which a slow runner can outlast.
+   * ArrowRight is pressed again only while the lifted Page has not moved, so a press that landed is never repeated.
+   */
+  const lifted = (await source.boundingBox())!.x;
+  const movedRight = async () => ((await source.boundingBox())?.x ?? lifted) > lifted + 10;
+  await expect(async () => {
+    if (!(await movedRight())) {
+      await page.keyboard.press('ArrowRight');
+    }
+    await expect.poll(movedRight, { timeout: 500 }).toBe(true);
+  }).toPass({ timeout: 10_000 });
   await page.keyboard.press('Space');
   await expect.poll(pageOrder).toEqual(['Welcome to Arrakis', 'Movement', 'Markers and tokens']);
   expect(page.url()).toBe(originalUrl);

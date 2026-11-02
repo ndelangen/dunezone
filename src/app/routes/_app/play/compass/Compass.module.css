@@ -230,10 +230,6 @@
   opacity: 1;
 }
 
-.hubOr {
-  padding: 0 0.15rem;
-}
-
 .hub .hubHint {
   grid-column: 1 / -1;
   max-width: none;

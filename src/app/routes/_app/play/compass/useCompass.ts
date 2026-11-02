@@ -63,6 +63,7 @@ export function useCompass({ open, onOpen, inert, windows, table, onView, onShow
   const suggestions = rankSuggestions(
     candidatesOf(windows, {
       open: show,
+      players: table?.players ?? [],
       nextPhase: table?.nextPhase,
       token: table?.token,
       commands,
