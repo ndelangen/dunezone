@@ -61,7 +61,7 @@ describe('media search index', () => {
 
   test('matches all words in either order, normalizes punctuation and spelling variants', () => {
     expect(paths('crossed knives')).toEqual(paths('knives crossed'));
-    expect(paths('crossed knives')).toContain('/vector/logo/fremen.svg');
+    expect(paths('crossed knives')).toContain('/vector/emblem/fremen.svg');
     expect(paths('crossed knife')).toEqual(paths('crossed knives'));
     expect(paths('syringe')).toContain('/vector/decal/suringe.svg');
     expect(paths('BÉNE-GESSERIT')).toEqual(paths('bene gesserit'));

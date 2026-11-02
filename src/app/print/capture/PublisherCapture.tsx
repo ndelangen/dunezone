@@ -180,7 +180,7 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
         <LeaderToken
           {...snapshot.payload.leader}
           background={snapshot.payload.background}
-          logo={snapshot.payload.logo}
+          emblem={snapshot.payload.emblem}
         />
       );
     case 'token-leader':

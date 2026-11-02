@@ -24,7 +24,7 @@ export const Default = meta.story({
       name: 'Atreides',
       image: '/image/leader/official/paul.jpg',
     },
-    logo: '/vector/logo/atreides.svg',
+    emblem: '/vector/emblem/atreides.svg',
     name: 'Atreides',
   },
 });

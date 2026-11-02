@@ -35,7 +35,7 @@ const FormattedAbout = z.string().trim().pipe(proseFormattedTextSchema);
 export const LeaderTokenAsset = FactionInputObject.shape.leaders.element.omit({ memberId: true }).extend({
   about: About,
   background: Background,
-  logo: FactionInputObject.shape.logo,
+  emblem: FactionInputObject.shape.emblem,
 });
 export const LeaderTokenAssetInput = LeaderTokenAsset.extend({ about: FormattedAbout });
 

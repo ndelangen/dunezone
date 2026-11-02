@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { isPublicationAssetType, resolvePublicationCapture } from '../asset-publishing/publicationTargets';
 import { compareCodeUnits } from '../compareText';
 import { CanonicalFactionStoredObject, TroopArtwork } from '../factions/schema';
+import { legacyEmblemKeyed } from '../legacyEmblem';
 import type { RulebookBattleSideValue } from './battleStep';
 import { resolveRulebookBoardDefinition } from './boardDefinitions';
 import { getRulebookCoverFooter } from './contents';
@@ -17,7 +18,7 @@ export const rulebookResolvedFactionSchema = z.strictObject({
   color: z.string(),
   emblemUrl: z.string().optional(),
   tokenImageUrl: z.string().optional(),
-  token: CanonicalFactionStoredObject.pick({ logo: true, background: true }).optional(),
+  token: legacyEmblemKeyed(CanonicalFactionStoredObject.pick({ emblem: true, background: true })).optional(),
   troops: z.array(TroopArtwork).optional(),
   troopSources: z.array(rulebookResolvedSourceSchema).optional(),
   ruler: rulebookResolvedSourceSchema.optional(),

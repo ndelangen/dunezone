@@ -38,7 +38,7 @@ export function FactionCard({
    */
   action?: ReactNode;
 }) {
-  const { name, logo, background, factionLeader, leaders } = faction.data;
+  const { name, emblem, background, factionLeader, leaders } = faction.data;
   const rulesetLabel = factionRulesetLabel(faction, selectedRulesetSlug);
   const firstColor = background.colors[0];
   const tokenColor = typeof firstColor === 'string' ? firstColor : firstColor.stops[0][0];
@@ -56,11 +56,11 @@ export function FactionCard({
           <div className={styles.shade} />
           <div className={styles.factionToken} aria-hidden>
             {livePreview ? (
-              <FactionToken logo={logo} background={background} />
+              <FactionToken emblem={emblem} background={background} />
             ) : (
               <TokenAvatar src={faction.tokenImages?.faction} name={name} color={tokenColor}>
                 <svg viewBox="0 0 100 100" className={styles.tokenEmblem}>
-                  <use href={`${logo}#root`} x="15" y="15" width="70" height="70" fill="currentColor" />
+                  <use href={`${emblem}#root`} x="15" y="15" width="70" height="70" fill="currentColor" />
                 </svg>
               </TokenAvatar>
             )}
@@ -68,7 +68,7 @@ export function FactionCard({
           <div className={styles.cast} aria-hidden>
             <div className={styles.factionLeader}>
               {livePreview ? (
-                <LeaderToken {...factionLeader} strength={undefined} background={background} logo={logo} />
+                <LeaderToken {...factionLeader} strength={undefined} background={background} emblem={emblem} />
               ) : (
                 <TokenAvatar
                   src={faction.tokenImages?.members[factionLeader.memberId]}
@@ -81,7 +81,7 @@ export function FactionCard({
               {leaders.slice(0, 3).map((leader, index) => (
                 <span key={`${leader.name}-${leader.image}-${index}`}>
                   {livePreview ? (
-                    <LeaderToken {...leader} background={background} logo={logo} />
+                    <LeaderToken {...leader} background={background} emblem={emblem} />
                   ) : (
                     <TokenAvatar
                       src={faction.tokenImages?.members[leader.memberId]}

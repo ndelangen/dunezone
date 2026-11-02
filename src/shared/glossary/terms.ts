@@ -640,6 +640,24 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     ],
   },
   {
+    id: 'emblem',
+    term: 'Emblem',
+    topic: 'factions',
+    explanation:
+      'The symbol that stands for a faction, such as the Atreides hawk. It is printed on the faction’s token, leader discs, shield, sheet and cards, so every piece of a faction can be told apart at a glance.',
+    reason:
+      'Dune Zone’s word for a faction’s symbol, used by its faction editor, media library and every printed piece. Logo is kept for wordmarks such as the Dune title on a rulebook cover.',
+    source: 'house',
+    avoid: [
+      {
+        word: 'logo',
+        forms: ['logos'],
+        exceptions: [/dune\s+logos?/i],
+        fixes: { logo: 'emblem', logos: 'emblems' },
+      },
+    ],
+  },
+  {
     id: 'advantage',
     term: 'Advantage',
     topic: 'factions',

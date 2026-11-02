@@ -44,13 +44,13 @@ export type CatalogueFaction = Infer<typeof catalogueFactionValidator>;
  * `faction_cards` stores this output, so a change to it, or to what the stored data must be to parse, bumps `FACTION_CARD_PROJECTION` below and ships a migration that rewrites the cards.
  */
 export function toCatalogueFaction(row: Doc<'factions'>, rulesets: FactionRulesetSummary[]): CatalogueFaction {
-  const { name, logo, background, factionLeader, leaders, complexity } = parseStoredFactionForRead(row.data);
+  const { name, emblem, background, factionLeader, leaders, complexity } = parseStoredFactionForRead(row.data);
   return {
     _id: row._id,
     slug: row.slug,
     created_at: row.created_at,
     updated_at: row.updated_at,
-    data: { name, logo, background, factionLeader, leaders, complexity },
+    data: { name, emblem, background, factionLeader, leaders, complexity },
     rulesets,
   };
 }
@@ -170,7 +170,7 @@ export async function loadFactionCatalogueSpotlightPreviews(ctx: QueryCtx) {
       updated_at: faction.updated_at,
       data: {
         name: faction.data.name,
-        logo: faction.data.logo,
+        emblem: faction.data.emblem,
         background: faction.data.background,
       },
     };

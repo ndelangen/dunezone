@@ -32,7 +32,7 @@ export function draftable(id: string, name: string, { linked = true, published =
     id,
     slug: id,
     name,
-    logo: assetPublishingFaction.logo,
+    emblem: assetPublishingFaction.emblem,
     background: assetPublishingFaction.background,
     color: assetPublishingFaction.themeColor,
     linked,

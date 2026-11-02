@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { GENERIC, ICON, LOGO } from '../assetIds';
+import { GENERIC, ICON, EMBLEM } from '../assetIds';
 import { normalizeFormattedText, parseFormattedText } from '../formattedText';
 import type { NormalizedFormattedText } from '../formattedText';
 import { userImageSourceUrlSchema } from '../user-images/contract';
@@ -17,7 +17,7 @@ import type { RulebookSize } from './settings';
 import { rulebookCardSourceReferenceSchema, rulebookSourceReferenceSchema } from './sources';
 
 export const rulebookListIconSchema = z.union([ICON, GENERIC]);
-export const rulebookHeadingIconSchema = z.union([ICON, GENERIC, LOGO]);
+export const rulebookHeadingIconSchema = z.union([ICON, GENERIC, EMBLEM]);
 export const rulebookIllustrationSizeSchema = z.enum(['small', 'medium', 'large']);
 export type RulebookIllustrationSize = z.infer<typeof rulebookIllustrationSizeSchema>;
 export const rulebookTextReferencesSchema = z.array(

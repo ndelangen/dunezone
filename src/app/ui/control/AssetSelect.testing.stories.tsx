@@ -104,7 +104,7 @@ export const FactionEmblems = meta.story({
     maw: 'calc(100vw - 2rem)',
     data: stockAssetOptions(emblems),
     getPreviewSrc: (value) => resolveAsset(value, 'small'),
-    value: '/vector/logo/atreides.svg',
+    value: '/vector/emblem/atreides.svg',
   },
   play: async ({ canvasElement, userEvent }) => {
     await userEvent.click(within(canvasElement).getByRole('combobox', { name: 'Faction emblem' }));

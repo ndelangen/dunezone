@@ -16,7 +16,7 @@ const base = (await Bun.file(path.join(directory, 'base-factions.json')).json())
 type Draft = {
   key: string;
   name: string;
-  logo: FactionInput['logo'];
+  emblem: FactionInput['emblem'];
   themeColor: string;
   factionLeader: { name: string; image?: FactionInput['factionLeader']['image'] };
   leaders: (FactionInput['leaders'][number] & { applicability?: string })[];
@@ -99,7 +99,7 @@ for (const draft of expansion) {
   }
   const input = {
     name: draft.name,
-    logo: draft.logo,
+    emblem: draft.emblem,
     background: {
       image: '/image/texture/082.jpg',
       colors: [draft.themeColor, '#252527'],

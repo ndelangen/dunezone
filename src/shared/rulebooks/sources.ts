@@ -1,11 +1,12 @@
 import { z } from 'zod';
 
 import { componentGeometrySchema } from '../asset-publishing/componentGeometry';
-import { BACKGROUND, DECAL, GENERIC, ICON, LEADERS, LOGO, PLANET, TEXTURE, TROOP, TROOP_MODIFIER } from '../assetIds';
+import { BACKGROUND, DECAL, GENERIC, ICON, LEADERS, EMBLEM, PLANET, TEXTURE, TROOP, TROOP_MODIFIER } from '../assetIds';
 import { GEAR_CLIP, POINTER_CLIP } from '../assets/tokenOutline';
 import { FactionMemberIdSchema } from '../factions/memberIdentity';
 import { CanonicalFactionStoredObject } from '../factions/schema';
 import { FactionTroopIdSchema } from '../factions/troopIdentity';
+import { legacyEmblemKeyed, readLegacyEmblemPath } from '../legacyEmblem';
 import { RULEBOOK_BOARD_DEFINITIONS } from './boardDefinitions';
 
 export const rulebookCardSourceReferenceSchema = z.strictObject({
@@ -17,7 +18,8 @@ export type RulebookCardSourceReference = z.infer<typeof rulebookCardSourceRefer
 /** Source identity stays separate from the captions and explanations an author writes. */
 export const rulebookSourceReferenceSchema = z.discriminatedUnion('kind', [
   rulebookCardSourceReferenceSchema,
-  z.strictObject({ kind: z.literal('stock'), artworkId: z.string().min(1) }),
+  /* A stock emblem placed before the rename still names its `/vector/logo/` path (see src/shared/legacyEmblem.ts). */
+  z.strictObject({ kind: z.literal('stock'), artworkId: z.preprocess(readLegacyEmblemPath, z.string().min(1)) }),
   z.strictObject({ kind: z.literal('board'), boardId: z.string().min(1) }),
   z.strictObject({
     kind: z.literal('faction'),
@@ -40,15 +42,17 @@ export const rulebookSourceReferenceSchema = z.discriminatedUnion('kind', [
 export type RulebookSourceReference = z.infer<typeof rulebookSourceReferenceSchema>;
 
 /** A sheet illustration freezes only the data its existing renderer consumes. */
-export const rulebookFactionSheetSchema = CanonicalFactionStoredObject.pick({
-  name: true,
-  themeColor: true,
-  logo: true,
-  background: true,
-  leaders: true,
-  troops: true,
-  rules: true,
-}).strip();
+export const rulebookFactionSheetSchema = legacyEmblemKeyed(
+  CanonicalFactionStoredObject.pick({
+    name: true,
+    themeColor: true,
+    emblem: true,
+    background: true,
+    leaders: true,
+    troops: true,
+    rules: true,
+  }).strip()
+);
 export type RulebookFactionSheet = z.infer<typeof rulebookFactionSheetSchema>;
 
 /** Resolution preserves missing identities, including stock artwork that leaves the maintained catalogue. */
@@ -90,7 +94,7 @@ export const RULEBOOK_STOCK_ARTWORK = [
     ...GENERIC.options,
     ...ICON.options,
     ...LEADERS.options,
-    ...LOGO.options,
+    ...EMBLEM.options,
     ...PLANET.options,
     ...TEXTURE.options,
     ...TROOP.options,

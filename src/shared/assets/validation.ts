@@ -1,5 +1,6 @@
 import { derive } from '../boards/geometry';
 import { BoardAsset } from '../boards/schema';
+import { readLegacyEmblemKey } from '../legacyEmblem';
 import {
   BundleAssetInput,
   CustomCardAssetInput,
@@ -54,7 +55,8 @@ export function parseBoardData(data: unknown) {
 export function parseAssetDataForWrite(type: string, data: unknown): { data: unknown; name: string } {
   switch (type) {
     case 'token-leader': {
-      const parsed = LeaderTokenAssetInput.parse(data);
+      /* A package or tab from before the emblem rename may still send `logo` (see src/shared/legacyEmblem.ts). */
+      const parsed = LeaderTokenAssetInput.parse(readLegacyEmblemKey(data));
       return { data: parsed, name: parsed.name };
     }
     case 'board': {

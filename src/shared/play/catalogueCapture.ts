@@ -1,7 +1,7 @@
 import type { z } from 'zod';
 
 import { phaseDeclarationSchema } from '../factions/extraPhases';
-import { IdentifiedFactionStoredSchema, readFactionLeaderKey, toStoredHeroKey } from '../factions/schema';
+import { IdentifiedFactionStoredSchema, readLegacyFactionKeys, toStoredHeroKey } from '../factions/schema';
 import { lacksBattleValues, troopBattleFaces } from '../factions/troopBattle';
 import type { RulesetAssetSlot } from '../rulesets/assetSlots';
 import { RULESET_ASSET_SLOTS } from '../rulesets/assetSlots';
@@ -220,7 +220,7 @@ export class CatalogueCapture {
     }
     const { declarations, data } = splitPhaseDeclarations(source.data);
     /* The glossary term is "Faction leader"; the catalogue answer keeps the `hero` literal. */
-    const parsed = IdentifiedFactionStoredSchema.safeParse(readFactionLeaderKey(data));
+    const parsed = IdentifiedFactionStoredSchema.safeParse(readLegacyFactionKeys(data));
     if (!parsed.success) {
       throw new GameRejection('This faction has an incomplete definition.');
     }

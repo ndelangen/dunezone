@@ -6,7 +6,7 @@ export const EMPTY_LEADER_TOKEN: z.infer<typeof LeaderTokenAsset> = {
   name: '',
   about: '',
   image: '/image/leader/ilya/cheap-hero.png',
-  logo: '/vector/logo/ecaz.svg',
+  emblem: '/vector/emblem/ecaz.svg',
   background: {
     image: '/image/texture/044.jpg',
     colors: ['#7F3D81', '#581858'],
@@ -22,7 +22,7 @@ export const DUKE_PRAD_VIDAL_TOKEN: z.infer<typeof LeaderTokenAsset> = {
   about: '',
   strength: 6,
   image: '/image/leader/gf9/duke-prad-vidal.png',
-  logo: '/vector/logo/ecaz.svg',
+  emblem: '/vector/emblem/ecaz.svg',
   background: {
     image: '/image/texture/044.jpg',
     colors: [

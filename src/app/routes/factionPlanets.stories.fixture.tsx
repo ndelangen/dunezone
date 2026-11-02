@@ -63,7 +63,7 @@ export const spaceOrks = {
       strength: 6,
     },
   ],
-  logo: '/vector/generic/axes.svg',
+  emblem: '/vector/generic/axes.svg',
   name: 'Space Orks',
   planet: [
     {

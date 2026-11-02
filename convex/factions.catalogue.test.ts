@@ -118,9 +118,9 @@ describe('faction catalogue page', () => {
     expect(Object.keys(row?.data ?? {}).sort()).toEqual([
       'background',
       'complexity',
+      'emblem',
       'factionLeader',
       'leaders',
-      'logo',
       'name',
     ]);
     /* The stored fixture really does carry the dropped fields, or the assertions above pass for the wrong reason. */

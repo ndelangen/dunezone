@@ -36,8 +36,8 @@ describe('game transport reconstruction', () => {
   it('delivers retained faction artwork at setup and preserves it through later piece updates', () => {
     const before = base();
     const after = structuredClone(before);
-    const { background, logo, troops } = assetPublishingFaction;
-    after.snapshot.factionArtwork = { captured: { background, logo, troops } };
+    const { background, emblem, troops } = assetPublishingFaction;
+    after.snapshot.factionArtwork = { captured: { background, emblem, troops } };
     after.snapshot.stage = 'setup';
     after.snapshot.revision++;
     const message = serverMessageSchema.parse(encode(before, after));

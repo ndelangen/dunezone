@@ -1,7 +1,7 @@
 [
   {
     "name": "GF9 Atreides",
-    "logo": "/vector/logo/atreides.svg",
+    "emblem": "/vector/emblem/atreides.svg",
     "background": {
       "image": "/image/texture/082.jpg",
       "colors": ["#393d05", "#5c5d10"],
@@ -107,7 +107,7 @@
   },
   {
     "name": "GF9 Harkonnen",
-    "logo": "/vector/logo/harkonnen.svg",
+    "emblem": "/vector/emblem/harkonnen.svg",
     "background": {
       "image": "/image/texture/026.jpg",
       "colors": ["#0a080b", "#363636"],
@@ -213,7 +213,7 @@
   },
   {
     "name": "GF9 Emperor",
-    "logo": "/vector/logo/emperor.svg",
+    "emblem": "/vector/emblem/emperor.svg",
     "background": {
       "image": "/image/texture/055.jpg",
       "colors": ["#8C0402", "#db1918"],
@@ -323,7 +323,7 @@
   },
   {
     "name": "GF9 Spacing Guild",
-    "logo": "/vector/logo/guild.svg",
+    "emblem": "/vector/emblem/guild.svg",
     "background": {
       "image": "/image/texture/006.jpg",
       "colors": ["#bd3108", "#e05719"],
@@ -435,7 +435,7 @@
   },
   {
     "name": "GF9 Fremen",
-    "logo": "/vector/logo/fremen.svg",
+    "emblem": "/vector/emblem/fremen.svg",
     "background": {
       "image": "/image/texture/019.jpg",
       "colors": ["#fcb843", "#d2781d"],
@@ -570,7 +570,7 @@
   },
   {
     "name": "GF9 Bene Gesserit",
-    "logo": "/vector/logo/bene-gesserit.svg",
+    "emblem": "/vector/emblem/bene-gesserit.svg",
     "background": {
       "image": "/image/texture/019.jpg",
       "colors": ["#132b74", "#34478b"],

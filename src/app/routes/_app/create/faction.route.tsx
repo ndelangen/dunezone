@@ -27,7 +27,7 @@ export const Route = createFileRoute('/_app/create/faction')({
       kind: 'Tutorial',
       pathname: '/create/faction',
       description:
-        'A step-by-step tutorial for making your own homebrew Dune faction: name, logo, leaders, troops, alliance, rules and advantages, then a printable faction sheet to share.',
+        'A step-by-step tutorial for making your own homebrew Dune faction: name, emblem, leaders, troops, alliance, rules and advantages, then a printable faction sheet to share.',
       social: { kind: 'Tutorial', shape: 'portrait' },
       trail: [{ name: 'Learn to create', pathname: '/create' }],
     }),
@@ -87,9 +87,9 @@ const STEPS: readonly Step[] = [
           before you share a link. Names may repeat; each faction still gets an address of its own.
         </Text>
         <Text>
-          Pick a <strong>logo</strong> from the symbol library. It goes on the faction token, the leader tokens and the
-          shield. Then choose a <strong>background</strong>: a texture with two colours laid over it, which every token
-          and card is painted on. The <strong>faction sheet theme</strong> colour is for headings on the sheet.
+          Pick a <strong>emblem</strong> from the symbol library. It goes on the faction token, the leader tokens and
+          the shield. Then choose a <strong>background</strong>: a texture with two colours laid over it, which every
+          token and card is painted on. The <strong>faction sheet theme</strong> colour is for headings on the sheet.
         </Text>
       </>
     ),
@@ -174,7 +174,7 @@ const STEPS: readonly Step[] = [
     body: (
       <Text>
         This is the help your faction gives its allies. The text is printed on the alliance card, next to your troop and
-        logo. Decals are optional small symbols for the card&rsquo;s corners.
+        emblem. Decals are optional small symbols for the card&rsquo;s corners.
       </Text>
     ),
   },
@@ -319,7 +319,7 @@ function WhatYouMake() {
         <LeaderToken
           background={SAMPLE_BACKGROUND}
           image="/image/leader/alien/eeriva.png"
-          logo="/vector/generic/axes.svg"
+          emblem="/vector/generic/axes.svg"
           name="Warden Ishara"
           strength="5"
         />
@@ -337,7 +337,7 @@ function WhatYouMake() {
         <CanvasScale canvasWidth={cardSize.width} canvasHeight={cardSize.height} rounded>
           <AllianceCard
             background={SAMPLE_BACKGROUND}
-            logo="/vector/generic/axes.svg"
+            emblem="/vector/generic/axes.svg"
             title="Sand Wardens"
             troop="/vector/troop/desert-pathfinder.svg"
             decals={[]}
@@ -386,7 +386,7 @@ function FactionTutorialPage() {
                 <Text>
                   A faction on Dune Zone is one form. From it, the site draws everything you need at the table: the
                   faction sheet, the shield, a token and a traitor card for every leader, the troop tokens, the faction
-                  token and the alliance card. Change the logo once and every piece follows.
+                  token and the alliance card. Change the emblem once and every piece follows.
                 </Text>
                 <WhatYouMake />
                 <Text>

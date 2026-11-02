@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { HistoricalFactionPublicationObject, TroopArtwork } from '../factions/schema';
+import { legacyEmblemKeyed } from '../legacyEmblem';
 import { playStageSchema } from './admission';
 import { allianceActionSchema, allianceStateSchema } from './alliances';
 import {
@@ -54,7 +55,12 @@ import { territoryTintActionSchema, territoryTintsSchema } from './territoryTint
 
 const factionArtworkSchema = z.record(
   z.string(),
-  HistoricalFactionPublicationObject.pick({ background: true, logo: true }).extend({ troops: z.array(TroopArtwork) })
+  /* A snapshot from before the emblem rename names it `logo` (see src/shared/legacyEmblem.ts). */
+  legacyEmblemKeyed(
+    HistoricalFactionPublicationObject.pick({ background: true, emblem: true }).extend({
+      troops: z.array(TroopArtwork),
+    })
+  )
 );
 
 const phaseEntrySchema = z.object({

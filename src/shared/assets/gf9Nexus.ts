@@ -135,7 +135,7 @@ const effects = [
 
 export const GF9_NEXUS_CARDS: readonly z.infer<typeof NexusCardAsset>[] = effects.map(
   ({ faction, symbol, colors, ...rules }) => {
-    const image = `/vector/logo/${symbol}.svg` as z.infer<typeof NexusCardAsset>['factionSymbol']['image'];
+    const image = `/vector/emblem/${symbol}.svg` as z.infer<typeof NexusCardAsset>['factionSymbol']['image'];
     const background: z.infer<typeof NexusCardAsset>['head'] = {
       ...NEXUS_HEAD,
       colors:

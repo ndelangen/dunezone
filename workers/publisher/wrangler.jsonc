@@ -50,6 +50,7 @@
       "/image/*",
       "/web",
       "/web/*",
+      "/vector/logo/*",
       "/__play",
       "/__play/*",
       "/sitemap*",
