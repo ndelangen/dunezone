@@ -72,7 +72,8 @@ import { useMotionAllowed } from '@app/styles/motion';
 import { tableCardFaceKey } from './cardFaceTexture';
 import { ignoreRaycast } from './ignoreRaycast';
 import { MapPreviewCamera } from './MapPreviewCamera';
-import { PEEK_MARKER_SCALE, peekMarkerSlots, peekMarkerTokens } from './peekMarkers';
+import { peekMarkerList } from './peekMarkers';
+import { PeekMarkers } from './PeekMarkerTokens';
 import { PieceArrival } from './PieceArrival';
 import { topFaceHref } from './pieceFaceHref';
 import { pieceHasMenu } from './pieceMenu';
@@ -661,14 +662,6 @@ function pieceSceneState(
   };
 }
 
-const NO_PEEK_MARKERS: readonly TablePiece[] = [];
-
-/* A piece nobody peeked at shares one empty list, so its mesh does not draw again whenever the table changes. */
-function peekMarkerList(piece: TablePiece, pieces: readonly TablePiece[]) {
-  const tokens = peekMarkerTokens(piece, pieces);
-  return tokens.length ? tokens : NO_PEEK_MARKERS;
-}
-
 /* "Fremen peeked at this", naming every faction that peeked at a card or token of the piece. */
 function peekedLine(piece: TablePiece, state: Pick<TableState, 'factionNames'>) {
   const names = peekersOf(piece).map((id) => state.factionNames[id] ?? id);
@@ -969,19 +962,6 @@ export function TabletopPieceLayers({ piece }: { readonly piece: TablePiece }) {
   return piece.kind === 'card' ? <CardStackLayers piece={piece} /> : <TroopStackLayers piece={piece} />;
 }
 
-/* Each peeker's token, small, in the bottom right corner of the card or deck it peeked at. */
-function PeekMarkers({ piece, tokens }: { piece: TablePiece; tokens: readonly TablePiece[] }) {
-  if (!tokens.length) {
-    return null;
-  }
-  const slots = peekMarkerSlots(piece, tokens.length);
-  return tokens.map((token, index) => (
-    <group key={token.id} position={slots[index]} scale={PEEK_MARKER_SCALE}>
-      <TroopStackLayers piece={token} />
-    </group>
-  ));
-}
-
 function PieceLock({ piece }: { piece: TablePiece }) {
   const meshes = useSharedMeshes();
   if (!piece.locked) {
@@ -1118,7 +1098,7 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
               </group>
             </group>
             <PieceLock piece={piece} />
-            <PeekMarkers piece={piece} tokens={peekMarkers} />
+            <PeekMarkers piece={piece} tokens={peekMarkers} Token={TroopStackLayers} />
             {props.showLabels !== false && (
               <Suspense fallback={null}>
                 <PieceBadge

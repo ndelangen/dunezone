@@ -52,3 +52,11 @@ export function peekMarkerSlots(piece: TablePiece, count: number): Vector3Tuple[
     bottom - Math.floor(index / PEEK_MARKERS_PER_ROW) * STEP,
   ]);
 }
+
+const NO_PEEK_MARKERS: readonly TablePiece[] = [];
+
+/** The tokens to lay on a piece, where a piece nobody peeked at shares one empty list, so its mesh does not draw again whenever the table changes. */
+export function peekMarkerList(piece: TablePiece, pieces: readonly TablePiece[]): readonly TablePiece[] {
+  const tokens = peekMarkerTokens(piece, pieces);
+  return tokens.length ? tokens : NO_PEEK_MARKERS;
+}

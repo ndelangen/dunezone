@@ -58,22 +58,25 @@ test('nothing is marked where nothing is hidden, nobody peeked, or the faction h
   ).toEqual([]);
 });
 
-test('markers start in the bottom right corner and lie side by side towards the left, apart and on the card', () => {
-  for (const count of [1, 2, 6, 10]) {
+const onCard = ([x, , z]: readonly number[]) =>
+  Math.abs(x!) <= CARD_WIDTH / 2 - PEEK_MARKER_RADIUS && Math.abs(z!) <= CARD_DEPTH / 2 - PEEK_MARKER_RADIUS;
+
+/* Every pair of markers, by how far apart their centres lie across the card. */
+const distances = (slots: readonly (readonly number[])[]) =>
+  slots.flatMap((a, index) => slots.slice(index + 1).map((b) => Math.hypot(a[0]! - b[0]!, a[2]! - b[2]!)));
+
+test.each([1, 2, 6, 10, 18])(
+  '%i markers start in the bottom right corner and lie side by side towards the left, apart and on the card',
+  (count) => {
     const slots = peekMarkerSlots(deck([]), count);
     expect(slots).toHaveLength(count);
     expect(slots[0]![0]).toBeGreaterThan(0);
     expect(slots[0]![2]).toBeGreaterThan(0);
-    for (const [x, , z] of slots) {
-      expect(Math.abs(x)).toBeLessThanOrEqual(CARD_WIDTH / 2 - PEEK_MARKER_RADIUS);
-      expect(Math.abs(z)).toBeLessThanOrEqual(CARD_DEPTH / 2 - PEEK_MARKER_RADIUS);
-    }
-    for (let index = 0; index < count; index++) {
-      for (let other = index + 1; other < count; other++) {
-        const [a, b] = [slots[index]!, slots[other]!];
-        expect(Math.hypot(a[0] - b[0], a[2] - b[2])).toBeGreaterThan(PEEK_MARKER_RADIUS * 2);
-      }
-    }
+    expect(slots.every(onCard)).toBe(true);
+    expect(distances(slots).every((distance) => distance > PEEK_MARKER_RADIUS * 2)).toBe(true);
   }
+);
+
+test('six markers fit along one row', () => {
   expect(PEEK_MARKERS_PER_ROW).toBeGreaterThanOrEqual(6);
 });
