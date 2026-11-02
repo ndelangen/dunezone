@@ -1,18 +1,28 @@
-import { useThree } from '@react-three/fiber/webgpu';
-import type { Board } from '@shared/boards/schema';
-import { createContext, use, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Mesh } from 'three';
-import type { BufferGeometry, Material, Texture } from 'three';
-import type { WebGPURenderer } from 'three/webgpu';
+import { useThree } from "@react-three/fiber/webgpu";
+import type { Board } from "@shared/boards/schema";
+import {
+  createContext,
+  use,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+import { Mesh } from "three";
+import type { BufferGeometry, Camera, Material, Scene, Texture } from "three";
+import type { WebGPURenderer } from "three/webgpu";
 
-import { leaseBake, warmMaterial } from './bakeBoardSkin';
-import type { BakeLease } from './bakeBoardSkin';
-import { useBoardSkin, usePlanetShading } from './boardSkinPreference';
-import { createBoardPaintMaterial } from './boardSkins';
-import type { BoardSkin } from './boardSkins';
+import { leaseBake, warmMaterial } from "./bakeBoardSkin";
+import type { BakeLease } from "./bakeBoardSkin";
+import { useBoardSkin, usePlanetShading } from "./boardSkinPreference";
+import { createBoardPaintMaterial } from "./boardSkins";
+import type { BoardSkin } from "./boardSkins";
 
 /** A look that wins over the viewer's own choice, for stories and previews that show one look. */
-export const BoardSkinOverride = createContext<{ skin: BoardSkin; planet: boolean } | null>(null);
+export const BoardSkinOverride = createContext<{
+  skin: BoardSkin;
+  planet: boolean;
+} | null>(null);
 
 /** The skin and planet shading the board paint draws with here. */
 function useActiveBoardLook(): { skin: BoardSkin; planet: boolean } {
@@ -23,6 +33,95 @@ function useActiveBoardLook(): { skin: BoardSkin; planet: boolean } {
 
 /** The material on the board now, and its hold on the bake it reads. */
 type Shown = Readonly<{ material: Material; lease: BakeLease | null }>;
+
+type PaintOptions = Readonly<{
+  geometry: BufferGeometry;
+  bakeGeometry: BufferGeometry;
+  board: Board | null;
+  map: Texture | null;
+  vertexColors: boolean;
+  polygonOffset: boolean;
+}>;
+
+type Table = Readonly<{
+  renderer: WebGPURenderer;
+  scene: Scene;
+  camera: Camera;
+}>;
+
+/** Bakes the look and compiles its material off the frame; null when a newer look took over first. */
+async function prepareLook(
+  table: Table,
+  look: Readonly<{ skin: BoardSkin; planet: boolean }>,
+  paint: PaintOptions,
+  signal: AbortSignal,
+): Promise<Shown | null> {
+  const { renderer, scene, camera } = table;
+  const { geometry, bakeGeometry, board, map, vertexColors, polygonOffset } =
+    paint;
+  const lease =
+    look.skin === "none"
+      ? null
+      : leaseBake(renderer, {
+          skin: look.skin,
+          geometry: bakeGeometry,
+          board,
+          map,
+        });
+  try {
+    const baked = lease ? await lease.baked : null;
+    const material = createBoardPaintMaterial({
+      vertexColors,
+      polygonOffset,
+      map,
+      baked: baked?.texture ?? null,
+      planet: look.planet,
+    });
+    const mesh = new Mesh(geometry, material);
+    /* The board meshes receive shadows, and three keys its compiled variants on that. */
+    mesh.receiveShadow = true;
+    await warmMaterial(renderer, mesh, { scene, camera }).catch(() => {
+      /* Compiling ahead is only a head start; the first draw compiles whatever is left. */
+    });
+    if (signal.aborted) {
+      material.dispose();
+      lease?.release();
+      return null;
+    }
+    return { material, lease };
+  } catch (error) {
+    lease?.release();
+    throw error;
+  }
+}
+
+/** Holds the look on the board: a newer one replaces it and frees it, and the last one is freed on unmount. */
+function useShownLook(initial: () => Shown, invalidate: () => void) {
+  const [shown, setShown] = useState<Shown>(initial);
+  /* The look on the board, for the unmount to release. */
+  const current = useRef(shown);
+
+  /* Once a new look is on the board, the old material goes and lets go of its bake (shared bakes stay while held). */
+  useLayoutEffect(() => {
+    const previous = current.current;
+    current.current = shown;
+    if (previous !== shown) {
+      previous.material.dispose();
+      previous.lease?.release();
+    }
+    invalidate();
+  }, [shown, invalidate]);
+
+  useEffect(
+    () => () => {
+      current.current.material.dispose();
+      current.current.lease?.release();
+    },
+    [],
+  );
+
+  return [shown, setShown] as const;
+}
 
 /**
  * The board paint's material in the active look.
@@ -49,69 +148,65 @@ export function useBoardSkinMaterial({
   polygonOffset?: boolean;
 }) {
   const { skin, planet } = useActiveBoardLook();
-  const renderer = useThree((state) => state.renderer) as unknown as WebGPURenderer;
+  const renderer = useThree(
+    (state) => state.renderer,
+  ) as unknown as WebGPURenderer;
   const scene = useThree((state) => state.scene);
   const camera = useThree((state) => state.camera);
   const invalidate = useThree((state) => state.invalidate);
-  const [shown, setShown] = useState<Shown>(() => ({
-    material: createBoardPaintMaterial({ vertexColors, polygonOffset, map, baked: null, planet }),
-    lease: null,
-  }));
-  /* The look on the board, for the unmount to release. */
-  const current = useRef(shown);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    const lease = skin === 'none' ? null : leaseBake(renderer, { skin, geometry: bakeGeometry, board, map });
-    void (async () => {
-      const baked = lease ? await lease.baked : null;
-      const material = createBoardPaintMaterial({
+  const [shown, setShown] = useShownLook(
+    () => ({
+      material: createBoardPaintMaterial({
         vertexColors,
         polygonOffset,
         map,
-        baked: baked?.texture ?? null,
+        baked: null,
         planet,
-      });
-      const mesh = new Mesh(geometry, material);
-      /* The board meshes receive shadows, and three keys its compiled variants on that. */
-      mesh.receiveShadow = true;
-      await warmMaterial(renderer, mesh, { scene, camera }).catch(() => {
-        /* Compiling ahead is only a head start; the first draw compiles whatever is left. */
-      });
-      if (controller.signal.aborted) {
-        material.dispose();
-        lease?.release();
-        return;
-      }
-      setShown({ material, lease });
-    })().catch((error: unknown) => {
-      lease?.release();
-      if (!controller.signal.aborted) {
-        /* The board keeps its current look; say why the new one never came. */
-        console.error('The board skin could not be prepared', error);
-      }
-    });
-    return () => controller.abort();
-  }, [renderer, scene, camera, geometry, bakeGeometry, board, map, skin, planet, vertexColors, polygonOffset]);
-
-  /* Once a new look is on the board, the old material goes and lets go of its bake (shared bakes stay while held). */
-  useLayoutEffect(() => {
-    const previous = current.current;
-    current.current = shown;
-    if (previous !== shown) {
-      previous.material.dispose();
-      previous.lease?.release();
-    }
-    invalidate();
-  }, [shown, invalidate]);
-
-  useEffect(
-    () => () => {
-      current.current.material.dispose();
-      current.current.lease?.release();
-    },
-    []
+      }),
+      lease: null,
+    }),
+    invalidate,
   );
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const paint = {
+      geometry,
+      bakeGeometry,
+      board,
+      map,
+      vertexColors,
+      polygonOffset,
+    };
+    prepareLook(
+      { renderer, scene, camera },
+      { skin, planet },
+      paint,
+      controller.signal,
+    ).then(
+      (next) => next && setShown(next),
+      (error: unknown) => {
+        if (!controller.signal.aborted) {
+          /* The board keeps its current look; say why the new one never came. */
+          console.error("The board skin could not be prepared", error);
+        }
+      },
+    );
+    return () => controller.abort();
+  }, [
+    renderer,
+    scene,
+    camera,
+    geometry,
+    bakeGeometry,
+    board,
+    map,
+    skin,
+    planet,
+    vertexColors,
+    polygonOffset,
+    setShown,
+  ]);
 
   return shown.material;
 }
