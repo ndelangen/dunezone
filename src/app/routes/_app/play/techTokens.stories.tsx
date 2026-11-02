@@ -18,10 +18,10 @@ const meta = preview.meta({
 
 /*
  * Mid-play, with seats 4 and 5 allied: seat 1 holds two tech tokens, the viewer one and seat 4 one.
- * Each faction holding any gets a pill beside the alliances in the top bar: its token, then its gears.
+ * Each faction holding any gets a row in a block of its own under the alliances: its token, then its gears.
  * Hover a gear for its name and what it does; hold Alt over it to see it larger.
  */
-export const HeldBesideTheAlliances = meta.story({
+export const HeldUnderTheAlliances = meta.story({
   beforeEach: install(() =>
     productTransport(
       VIEWER,
@@ -36,11 +36,11 @@ export const HeldBesideTheAlliances = meta.story({
     const doc = canvasElement.ownerDocument;
     const strip = await within(doc.body).findByRole('group', { name: 'Tech tokens' }, { timeout: 30_000 });
     await expect(within(strip).getAllByRole('listitem')).toHaveLength(4);
-    const phase = doc.querySelector('.seated-phase-status')!;
+    const alliances = within(doc.body).getByLabelText('Alliances');
     const toolbar = doc.querySelector('.seated-toolbar')!;
     await waitFor(async () => {
       const [box, tools] = [strip.getBoundingClientRect(), toolbar.getBoundingClientRect()];
-      await expect(box.top).toBeGreaterThanOrEqual(phase.getBoundingClientRect().bottom);
+      await expect(box.top).toBeGreaterThanOrEqual(alliances.getBoundingClientRect().bottom);
       await expect(box.right <= tools.left || box.top >= tools.bottom, 'The tech tokens run under the toolbar.').toBe(
         true
       );

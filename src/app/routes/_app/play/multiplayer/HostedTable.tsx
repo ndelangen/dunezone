@@ -611,12 +611,8 @@ function ConnectedTable({
               stage={stage}
               mapVisible={setupMapVisible(table.snapshot.setup)}
               connectionStatus={<ConnectionStatus table={table} />}
-              alliances={
-                <>
-                  <AllianceStrip table={table} />
-                  <TechTokenStrip table={table} />
-                </>
-              }
+              alliances={<AllianceStrip table={table} />}
+              techTokens={<TechTokenStrip table={table} />}
               toolbarControl={stageToolbar({ client, table, error, bidderFaded, onBidderFadedChange: setBidderFaded })}
               /* The gathered Traitor pile lies under the Tleilaxu Tanks, below the Map view's frame on a wide screen (#1635). */
               requestedView={table.traitorsGathered ? { view: 'bottom', revision: table.traitorsGathered } : undefined}

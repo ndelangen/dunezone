@@ -101,6 +101,8 @@ type GameTableProps = {
   connectionStatus?: ReactNode;
   /** Who is allied with whom, under the game's name beside the phase. */
   alliances?: ReactNode;
+  /** Who holds which tech tokens, a block of its own under the alliances. */
+  techTokens?: ReactNode;
   showStormControls: boolean;
   seatCount: TableSeatCount;
   tableProgress: TableProgress;
@@ -642,6 +644,7 @@ export function GameTable({
   toolbarControl,
   connectionStatus,
   alliances,
+  techTokens,
   showStormControls,
   seatCount,
   tableProgress,
@@ -714,6 +717,7 @@ export function GameTable({
         <div className="seated-chip seated-chip--game" data-hides-cursor>
           {alliances}
         </div>
+        {techTokens}
       </div>
 
       <div className="seated-connection" data-hides-cursor>
