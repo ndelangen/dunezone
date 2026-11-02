@@ -1,4 +1,4 @@
-import { Button, Group, Stack, Text } from '@mantine/core';
+import { Group, Stack, Text } from '@mantine/core';
 import type { PublicFaction } from '@shared/play/capture';
 import type { RemovalVote } from '@shared/play/removal';
 import { FormError } from '@ui/block/FormError';
@@ -7,7 +7,7 @@ import { StatusBadge } from '@ui/content/StatusBadge';
 import type { ReactNode } from 'react';
 
 import { FactionDetails } from './FactionDetails';
-import { FactionInfoAlliance, FactionInfoHeader } from './FactionInfoHeader';
+import { FactionInfoHeader } from './FactionInfoHeader';
 import type { FactionInfoHeaderModel } from './FactionInfoHeader';
 import { FactionInfoToolbar } from './FactionInfoToolbar';
 
@@ -63,10 +63,8 @@ function Ballots({ ballots }: Readonly<{ ballots: RemovalVote['ballots'] }>) {
   );
 }
 
-function OpenVote({
-  vote,
-  onBallot,
-}: Readonly<{ vote: RemovalVoteView; onBallot: FactionInfoPanelProps['onBallot'] }>) {
+/* The open vote's state: how far it is from a decision, how long it has been open, each ballot, and why the viewer cannot vote when they cannot. The viewer's own ballot is cast from the toolbar. */
+function OpenVote({ vote }: Readonly<{ vote: RemovalVoteView }>) {
   const { ballot, elapsed } = vote;
   return (
     <Section hiddenHeading title={`Remove ${vote.target}?`}>
@@ -76,27 +74,7 @@ function OpenVote({
           {elapsed < 1 ? 'Just opened.' : `Open ${Math.floor(elapsed / 60)}m ${elapsed % 60}s.`}
         </Text>
         <Ballots ballots={vote.ballots} />
-        {'choice' in ballot ? (
-          <Group gap="sm">
-            <Button
-              aria-pressed={ballot.choice === 'remove'}
-              variant={ballot.choice === 'remove' ? 'filled' : 'light'}
-              onClick={() => onBallot('remove')}
-            >
-              Remove
-            </Button>
-            <Button
-              aria-pressed={ballot.choice === 'keep'}
-              variant={ballot.choice === 'keep' ? 'filled' : 'light'}
-              onClick={() => onBallot('keep')}
-            >
-              Keep
-            </Button>
-            <Button variant="subtle" disabled={ballot.choice === null} onClick={() => onBallot(null)}>
-              Withdraw
-            </Button>
-          </Group>
-        ) : (
+        {'reason' in ballot && (
           <Text size="sm" c="dimmed">
             {ballot.reason}
           </Text>
@@ -106,13 +84,15 @@ function OpenVote({
   );
 }
 
-/** A seat's faction information, with any vote against its player and any request for the seat: the header, the toolbar of the seat's actions under it, then the content. */
+/**
+ * A seat's faction information: the header, the toolbar with every action on the seat under it, then the content.
+ * The content leads with any vote against the seat's player and any request for the seat, then what the faction starts with.
+ */
 export function FactionInfoPanel({ error, vote, requests, header, trade, details, onBallot }: FactionInfoPanelProps) {
+  const ballot = vote && 'choice' in vote.ballot ? { choice: vote.ballot.choice, cast: onBallot } : null;
   return (
     <>
       {error && <FormError title="From the table">{error}</FormError>}
-      {vote && <OpenVote vote={vote} onBallot={onBallot} />}
-      {requests}
       <Section hiddenHeading title={header.name}>
         {/* The seat it shows, for a guide that points at one player's header or toolbar. */}
         <Stack gap="md" data-faction-info-seat={header.seatId}>
@@ -120,10 +100,13 @@ export function FactionInfoPanel({ error, vote, requests, header, trade, details
           <FactionInfoToolbar
             page={header.page}
             removal={header.removal}
+            allies={header.alliance?.allies}
             alliance={header.alliance?.action}
             trade={trade}
+            ballot={ballot}
           />
-          {header.alliance && <FactionInfoAlliance alliance={header.alliance} />}
+          {vote && <OpenVote vote={vote} />}
+          {requests}
           {details && <FactionDetails faction={details} />}
         </Stack>
       </Section>
