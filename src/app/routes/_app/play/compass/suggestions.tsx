@@ -1,6 +1,8 @@
 import { TopicIcon } from '@ui/content/TopicIcon';
 import type { ReactNode } from 'react';
 
+import { setBoardSkin, setPlanetShading } from '../../../../widgets/tabletop/boardSkinPreference';
+import { BOARD_SKIN_LABELS, BOARD_SKINS } from '../../../../widgets/tabletop/boardSkins';
 import type { TableView } from '../../../../widgets/tabletop/playView';
 import { PlayerToken } from './PlayerToken';
 import { SHORTCUTS } from './shortcuts';
@@ -183,6 +185,36 @@ function nextPhaseCandidate(nextPhase: SuggestionActions['nextPhase'], close: ()
   ];
 }
 
+/* This viewer's board look, as in the game menu: each skin, and planet shading on or off. Found by name, never suggested unasked. */
+function lookCandidates(close: () => void): Candidate[] {
+  const icon = <TopicIcon topic="board" size={18} />;
+  const skins = BOARD_SKINS.map((skin): Candidate => ({
+    key: `look:skin:${skin}`,
+    label: `Board skin: ${BOARD_SKIN_LABELS[skin]}`,
+    hint: 'Only you see it',
+    icon,
+    run: () => {
+      close();
+      setBoardSkin(skin);
+    },
+    text: `board skin texture ${BOARD_SKIN_LABELS[skin]}`,
+    weight: -1,
+  }));
+  const shading = ([true, false] as const).map((on): Candidate => ({
+    key: `look:planet:${on ? 'on' : 'off'}`,
+    label: `Planet shading: ${on ? 'on' : 'off'}`,
+    hint: 'Only you see it',
+    icon,
+    run: () => {
+      close();
+      setPlanetShading(on);
+    },
+    text: `planet shading shade ${on ? 'on' : 'off'}`,
+    weight: -1,
+  }));
+  return [...skins, ...shading];
+}
+
 /** Every window and command the search can reach. */
 export function candidatesOf(windows: readonly TableWindow[], actions: SuggestionActions): Candidate[] {
   const frozen: Candidate[] = actions.frozen
@@ -238,5 +270,6 @@ export function candidatesOf(windows: readonly TableWindow[], actions: Suggestio
       text: `camera ${view} view ${CAMERA_VIEWS[view]}`,
       weight: 0,
     })),
+    ...lookCandidates(actions.close),
   ];
 }
