@@ -1,4 +1,5 @@
 import { testingPreview } from '@sb/preview';
+import { waitForFrame } from '@sb/storyWaits';
 import { boardTerritoryList } from '@shared/boards/tintDrawing';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
@@ -16,7 +17,8 @@ export const PaintOnThePreview = meta.story({
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole('button', { name: 'Tints (2)' }));
-    await userEvent.click(await canvas.findByRole('button', { name: 'Paint Spice blows' }));
+    /* The accordion's Collapse reveals its panel from an animation-frame callback, so a page that draws no frames needs them delivered. */
+    await userEvent.click(await waitForFrame(() => canvas.getByRole('button', { name: 'Paint Spice blows' })));
     await waitFor(() => expect(canvasElement.querySelector('.rulebookBoardEditSurface[data-brush]')).not.toBeNull());
     const surface = canvasElement.querySelector<SVGRectElement>('.rulebookBoardEditSurface[data-brush]')!;
     const before = canvasElement.querySelectorAll('[data-tint="tint-spice"] path').length;

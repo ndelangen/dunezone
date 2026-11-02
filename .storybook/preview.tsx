@@ -17,6 +17,7 @@ import * as sizes from '../src/game/data/sizes';
 import { TUTORIAL_PLAYERS } from '../src/shared/tutorial/players';
 import { coreColors } from '../src/shared/uiPalette';
 import { emulateReducedMotion } from './browserMotion';
+import { keepNestedEventsInOneActScope } from './eventAct';
 import { settleStoryViewport } from './storyViewport';
 import { resetFrameLag } from './storyWaits';
 
@@ -327,6 +328,8 @@ const preview = definePreview({
   },
   /* Stories use the app's warm dark UI. Chromatic and the Vitest story shards run with reduced motion,
      so a capture or a play never lands on a moving frame; a story that shows motion pins `motion: 'on'`. */
+  /* Runs after the React renderer's own beforeAll has installed its act() wrappers. */
+  beforeAll: keepNestedEventsInOneActScope,
   beforeEach: async ({ globals }) => {
     await settleStoryViewport();
     resetFrameLag();

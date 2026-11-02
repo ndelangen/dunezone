@@ -67,29 +67,38 @@ async function dragToVerticalRatio(source: Locator, target: Locator, page: Page,
   }
 }
 
+type Box = NonNullable<Awaited<ReturnType<Locator['boundingBox']>>>;
+
+/*
+ * A drag that ends near the viewport edge starts dnd-kit's auto-scroll, which
+ * keeps moving the page after the target was measured. Aim again until the
+ * target holds still under the pointer, so the pointer lands where the test
+ * meant it to.
+ */
+async function aimPointerAt(target: Locator, page: Page, point: (box: Box) => number) {
+  await expect(async () => {
+    await target.scrollIntoViewIfNeeded();
+    const box = await target.boundingBox();
+    if (!box) {
+      throw new Error('A drag target has no rendered bounds.');
+    }
+    await page.mouse.move(box.x + box.width / 2, point(box), { steps: 12 });
+    await page.evaluate(
+      () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))
+    );
+    expect(await target.boundingBox()).toEqual(box);
+  }).toPass({ timeout: 10_000 });
+}
+
 async function movePointerToVerticalRatio(target: Locator, page: Page, targetRatio: number) {
-  await target.scrollIntoViewIfNeeded();
-  const targetBox = await target.boundingBox();
-  if (!targetBox) {
-    throw new Error('A drag target has no rendered bounds.');
-  }
-  await page.mouse.move(targetBox.x + targetBox.width / 2, targetBox.y + targetBox.height * targetRatio, {
-    steps: 12,
-  });
+  await aimPointerAt(target, page, (box) => box.y + box.height * targetRatio);
 }
 
 async function movePointerToVerticalEdge(target: Locator, page: Page, edge: 'start' | 'end') {
-  await target.scrollIntoViewIfNeeded();
-  const targetBox = await target.boundingBox();
-  if (!targetBox) {
-    throw new Error('A drag target has no rendered bounds.');
-  }
-  const inset = Math.min(2, targetBox.height / 4);
-  await page.mouse.move(
-    targetBox.x + targetBox.width / 2,
-    edge === 'start' ? targetBox.y + inset : targetBox.y + targetBox.height - inset,
-    { steps: 12 }
-  );
+  await aimPointerAt(target, page, (box) => {
+    const inset = Math.min(2, box.height / 4);
+    return edge === 'start' ? box.y + inset : box.y + box.height - inset;
+  });
 }
 
 function rulebookStructure(page: Page) {
