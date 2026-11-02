@@ -14,6 +14,8 @@ export const blankFaction: Faction = {
   rules: {
     ...defaultFaction.rules,
     startText: '',
+    revivalText: '',
     alliance: { ...defaultFaction.rules.alliance, text: '' },
+    fate: { ...defaultFaction.rules.fate, text: '' },
   },
 };

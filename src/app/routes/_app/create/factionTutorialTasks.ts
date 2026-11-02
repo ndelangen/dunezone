@@ -43,10 +43,11 @@ const pageButton = (name: string) => (): Element | null =>
 
 /*
  * The creator opens blank in the tutorial, so a text task asks for real writing rather than any change:
- * a name has two letters or more, and a rule has three words or more. Pressing Enter in an empty box, or typing a
- * space, does not count. The task is done once the text is enough and the learner has left the box,
- * so the chapter does not move on while they are still typing. Leaving includes opening another tab, which takes the box away,
- * so the task remembers the last text it saw. In a one-line box Enter leaves it too, as it does in Create your own game.
+ * a name has two letters or more, a rule has three words or more, and a number is a new number. Pressing Enter in an
+ * empty box, or typing a space, does not count, nor does leaving a box as it was. The task is done once the text is
+ * enough and the learner has left the box, so the chapter does not move on while they are still typing.
+ * In the tutorial Enter leaves a box, so every text task ends with {Enter} (Shift+Enter still starts a new line in a rule).
+ * The task remembers the last text it saw, as leaving includes opening another tab, which takes the box away.
  */
 type Enough = (text: string) => boolean;
 
@@ -54,19 +55,24 @@ type Enough = (text: string) => boolean;
 const aName: Enough = (text) => (text.match(/\p{L}/gu) ?? []).length >= 2;
 /** A rule: three words or more. */
 const aSentence: Enough = (text) => (text.match(/\p{L}+/gu) ?? []).length >= 3;
+/** A number, or a leader's one-character strength. */
+const aNumber: Enough = (text) => text.trim().length > 0;
 
-type Typed = { last: string; release: () => void };
+type Typed = { first: string; last: string; release: () => void };
 
-/* The one-line box of `field` that Enter was pressed in, if it was. */
-function enteredIn(field: Field, event: KeyboardEvent): HTMLInputElement | null {
-  if (event.key !== 'Enter') {
+type TextBox = HTMLInputElement | HTMLTextAreaElement;
+
+/* The box of `field` that Enter, without Shift, was pressed in, if it was. */
+function enteredIn(field: Field, event: KeyboardEvent): TextBox | null {
+  if (event.key !== 'Enter' || event.shiftKey) {
     return null;
   }
   const target = event.target;
-  return target instanceof HTMLInputElement && target.matches(field.selector) ? target : null;
+  const box = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement ? target : null;
+  return box?.matches(field.selector) ? box : null;
 }
 
-/* Enter in the one-line box of `field` leaves it; returns what stops listening. */
+/* Enter in the box of `field` leaves it; returns what stops listening. */
 function enterLeaves(field: Field): () => void {
   const leave = (event: KeyboardEvent) => {
     const box = enteredIn(field, event);
@@ -83,16 +89,19 @@ const left = (box: Element | null) => box === null || document.activeElement !==
 
 const typed = (field: Field, enough: Enough) => ({
   anchor: { kind: 'page' as const, element: fieldOrTab(field) },
-  begin: (): Typed => ({ last: valueOf(find(field)) ?? '', release: enterLeaves(field) }),
+  begin: (): Typed => {
+    const first = valueOf(find(field)) ?? '';
+    return { first, last: first, release: enterLeaves(field) };
+  },
   done: (watch: Typed) => {
     const box = find(field);
     watch.last = valueOf(box) ?? watch.last;
-    return enough(watch.last) && left(box);
+    return enough(watch.last) && watch.last.trim() !== watch.first.trim() && left(box);
   },
   finish: (watch: Typed) => watch.release(),
 });
 
-/* An artwork picker's open list: the logo and background pickers show one only while open. */
+/* An artwork picker's open list: the creator's artwork pickers show one only while open. */
 const OPEN_PICKER = '[role="listbox"][aria-label="Artwork"], [role="listbox"][aria-label="Artwork collections"]';
 
 /*
@@ -124,9 +133,28 @@ const chosen = (field: Field) => ({
   },
 });
 
+/* Opening one of the creator's tabs is a task of its own, so the learner sees where each part of a faction lives. */
+const opened = (tab: string) => {
+  const field: Field = { selector: ':not(*)', tab };
+  return {
+    anchor: { kind: 'page' as const, element: () => tabOf(field) },
+    begin: () => undefined,
+    done: () => tabOf(field)?.getAttribute('aria-selected') === 'true',
+  };
+};
+
+/* Pressing an add button counts once the list has a row: the tutorial's faction starts with none. */
+const added = (button: Field, rows: string) => ({
+  anchor: { kind: 'page' as const, element: fieldOrTab(button) },
+  begin: () => undefined,
+  done: () => document.querySelectorAll(rows).length > 0,
+});
+
 const ADD_LEADER: Field = { selector: 'button[aria-label="Add supporting leader"]', tab: 'Leaders' };
+const ADD_ADVANTAGE: Field = { selector: 'button[aria-label="Add faction advantage"]', tab: 'Advantages' };
 const REVIEW_OPEN = '[data-review-open]';
 const LEADERS = '[role="list"][aria-label="Ordered supporting leaders"] > [role="listitem"]';
+const ADVANTAGES = '[role="list"][aria-label="Ordered faction advantages"] > [role="listitem"]';
 const EDIT_PAGE = /^\/factions\/[^/]+\/edit\/?$/;
 const FACTION_PAGE = /^\/factions\/(?!create\/?$)[^/]+\/?$/;
 
@@ -156,52 +184,172 @@ const identityTasks = (): GuideTask[] => [
   }),
 ];
 
-/* The faction's people and its rules, each on a tab of its own. */
-const rosterTasks = (): GuideTask[] => [
+/* The faction leader, who leads the faction but never fights. */
+const factionLeaderTasks = (): GuideTask[] => [
+  task({
+    id: 'open-faction-leader',
+    task: 'Open Faction leader',
+    detail: 'The tabs along the top hold each part of your faction. Open Faction leader.',
+    ...opened('Faction leader'),
+  }),
   task({
     id: 'faction-leader',
     task: 'Name your faction leader',
     detail:
-      "Every faction has a leader who doesn't fight, shown on the faction token.\n\nOpen Faction leader, type their name, such as Wardeness Ilesa, and press {Enter}.",
+      "Every faction has a leader who doesn't fight. They're shown on your faction sheet.\n\nType their name, such as Wardeness Ilesa, and press {Enter}.",
     ...typed({ selector: '#faction-leader-name', tab: 'Faction leader' }, aName),
+  }),
+  task({
+    id: 'faction-leader-portrait',
+    task: 'Pick their portrait',
+    detail:
+      'Give your faction leader a face. Open Faction leader portrait and search for Jessica, or pick anyone you like.',
+    ...chosen({ selector: '#faction-leader-image', tab: 'Faction leader' }),
+  }),
+];
+
+/* A supporting leader, who goes into battle. */
+const leaderTasks = (): GuideTask[] => [
+  task({
+    id: 'open-leaders',
+    task: 'Open Leaders',
+    detail: 'Supporting leaders are the ones who go into battle. Open Leaders.',
+    ...opened('Leaders'),
   }),
   task({
     id: 'add-leader',
     task: 'Add a supporting leader',
-    detail:
-      'Supporting leaders are the ones who go into battle. Most factions have five; start with one.\n\nOpen Leaders and add one with the plus.',
-    anchor: { kind: 'page', element: fieldOrTab(ADD_LEADER) },
-    /* The creator opens with no supporting leaders, so any leader on the list is one the learner added. */
-    begin: () => undefined,
-    done: () => document.querySelectorAll(LEADERS).length > 0,
+    detail: 'Most factions have five supporting leaders. Start with one: add them with the plus.',
+    ...added(ADD_LEADER, LEADERS),
   }),
   task({
     id: 'name-leader',
     task: 'Name your new leader',
+    detail: 'Give your new leader a name, such as Captain Oruk, and press {Enter}.',
+    ...typed({ selector: '#leader-0-name', tab: 'Leaders' }, aName),
+  }),
+  task({
+    id: 'leader-strength',
+    task: 'Set their strength',
     detail:
-      'The number beside your new leader is their strength in battle. Give them a name, such as Captain Oruk, and press {Enter}.',
-    ...typed({ selector: 'input[id^="leader-"][id$="-name"]', tab: 'Leaders' }, aName),
+      "A leader's strength is added to the troops they lead in battle. Most leaders are between 1 and 6.\n\nType a strength, such as 5, and press {Enter}.",
+    ...typed({ selector: '#leader-0-str', tab: 'Leaders' }, aNumber),
+  }),
+  task({
+    id: 'leader-portrait',
+    task: 'Pick their portrait',
+    detail: 'Open Leader portrait and search for Duncan, or pick anyone you like.',
+    ...chosen({ selector: '#leader-0-img', tab: 'Leaders' }),
+  }),
+];
+
+/* The troops the faction moves round the board. */
+const troopTasks = (): GuideTask[] => [
+  task({
+    id: 'open-troops',
+    task: 'Open Troops',
+    detail: 'Troops are the tokens you move round the board. Open Troops.',
+    ...opened('Troops'),
   }),
   task({
     id: 'troops',
     task: 'Name your troops',
-    detail:
-      'Troops are the tokens you move round the board. The token on the right shows them with your logo and background.\n\nOpen Troops, name them, such as Wardens, and press {Enter}.',
+    detail: 'Name your troops, such as Wardens, and press {Enter}.',
     ...typed({ selector: '#troop-0-name', tab: 'Troops' }, aName),
+  }),
+  task({
+    id: 'troop-symbol',
+    task: 'Pick their symbol',
+    detail:
+      'The symbol is printed on every troop token. The token on the right shows it with your background.\n\nOpen Troop symbol and pick Fremen, or any symbol you like.',
+    ...chosen({ selector: '#troop-0-img', tab: 'Troops' }),
+  }),
+  task({
+    id: 'troop-supply',
+    task: 'Say how many there are',
+    detail:
+      'Physical supply is how many of these tokens come in the box. Most factions have 20.\n\nType a number, such as 15, and press {Enter}.',
+    ...typed({ selector: '#troop-0-count', tab: 'Troops' }, aNumber),
+  }),
+];
+
+/* The alliance card, and the faction's rules for setup, revival and Karama. */
+const ruleTasks = (): GuideTask[] => [
+  task({
+    id: 'open-alliance',
+    task: 'Open Alliance',
+    detail: 'When another player allies with you, they get your alliance card. Open Alliance.',
+    ...opened('Alliance'),
   }),
   task({
     id: 'alliance',
     task: 'Write your alliance advantage',
     detail:
-      'When another player allies with you, they get your alliance card. It says what you do for them.\n\nOpen Alliance and write a sentence on what your ally gets, such as: Your ally may move one extra territory. Then click outside the box.',
+      'Write a sentence on what your ally gets, such as: Your ally may move one extra territory. Then press {Enter}.',
     ...typed({ selector: '#rules-alliance', tab: 'Alliance' }, aSentence),
   }),
   task({
+    id: 'open-rules',
+    task: 'Open Rules',
+    detail: 'Rules holds how your faction sets up, how it gets its troops back, and its Karama power. Open Rules.',
+    ...opened('Rules'),
+  }),
+  task({
     id: 'start',
-    task: 'Say how you start',
+    task: 'Say how your troops start',
     detail:
-      'Your faction sheet tells everyone where your troops start the game.\n\nOpen Rules and write a sentence on where your troops start, such as: 10 troops in Sietch Tabr. Then click outside the box.',
+      'Starting instructions say where your troops are when the game begins. Starting spice and revival have boxes of their own, so leave them out here.\n\nWrite a sentence, such as: 10 troops in Sietch Tabr, the rest in reserve. Then press {Enter}.',
     ...typed({ selector: '#rules-start', tab: 'Rules' }, aSentence),
+  }),
+  task({
+    id: 'spice',
+    task: 'Set your starting spice',
+    detail:
+      'Starting spice is how much spice you begin with. The sheet prints it for you.\n\nType an amount, such as 12, and press {Enter}.',
+    ...typed({ selector: '#rules-spice', tab: 'Rules' }, aNumber),
+  }),
+  task({
+    id: 'revival',
+    task: 'Say how your troops revive',
+    detail:
+      'Revival instructions say how many troops come back from the Tleilaxu Tanks each turn for free.\n\nWrite a sentence, such as: 2 troops revive for free each turn. Then press {Enter}.',
+    ...typed({ selector: '#rules-revival', tab: 'Rules' }, aSentence),
+  }),
+  task({
+    id: 'karama',
+    task: 'Write your Karama power',
+    detail:
+      'A Karama card lets a faction break one of the rules, once. Say what yours does.\n\nWrite a sentence, such as: Look at one opponent\'s battle plan before you make yours. Then press {Enter}.',
+    ...typed({ selector: '#rules-fate-text', tab: 'Rules' }, aSentence),
+  }),
+];
+
+/* An advantage: what the faction does that no other faction does. */
+const advantageTasks = (): GuideTask[] => [
+  task({
+    id: 'open-advantages',
+    task: 'Open Advantages',
+    detail: 'Advantages are what makes your faction play differently from the rest. Open Advantages.',
+    ...opened('Advantages'),
+  }),
+  task({
+    id: 'add-advantage',
+    task: 'Add an advantage',
+    detail: 'Add your first advantage with the plus.',
+    ...added(ADD_ADVANTAGE, ADVANTAGES),
+  }),
+  task({
+    id: 'advantage-title',
+    task: 'Give it a title',
+    detail: 'A title names the advantage on your faction sheet. Type one, such as Desert Patrol, and press {Enter}.',
+    ...typed({ selector: '#adv-0-title', tab: 'Advantages' }, aName),
+  }),
+  task({
+    id: 'advantage-rule',
+    task: 'Write the advantage',
+    detail:
+      'Say what your faction may do, such as: Your troops may move two territories through the desert. Then press {Enter}.',
+    ...typed({ selector: '#adv-0-text', tab: 'Advantages' }, aSentence),
   }),
 ];
 
@@ -211,8 +359,7 @@ const finishingTasks = (page: FactionChapterPage): GuideTask[] => [
     id: 'review',
     task: 'Look over your faction sheet',
     detail:
-      'Everything you filled in comes together on the faction sheet.\n\nPress the eye, Review faction sheet, have a look, then close it.',
-    anchor: {
+      'Everything you filled in comes together on the faction sheet. Planets, Phases and Extras are there for factions that need them; yours is ready without.\n\nPress the eye, Review faction sheet, have a look, then close it.',    anchor: {
       kind: 'page',
       element: () =>
         document.querySelector('[aria-label="Close faction sheet review"]') ?? pageButton('Review faction sheet')(),
@@ -259,14 +406,19 @@ const finishingTasks = (page: FactionChapterPage): GuideTask[] => [
 
 export const FACTION_TUTORIAL_TASKS = (page: FactionChapterPage): GuideTask[] => [
   ...identityTasks(),
-  ...rosterTasks(),
+  ...factionLeaderTasks(),
+  ...leaderTasks(),
+  ...troopTasks(),
+  ...ruleTasks(),
+  ...advantageTasks(),
   ...finishingTasks(page),
 ];
 
 /** What the learner can do once the chapter is done, listed on its end screen. */
 export const FACTION_TUTORIAL_LEARNED = [
   'Name a faction and dress it with a logo and background',
-  'Name the faction leader and add supporting leaders',
-  'Name the troops and write the alliance advantage',
-  'Review the faction sheet, save it and find its page',
+  'Give the faction leader and a supporting leader names and portraits',
+  'Name the troops, pick their symbol and say how many there are',
+  'Write the alliance card, setup, spice, revival and Karama rules',
+  'Add an advantage, review the faction sheet, save it and find its page',
 ];

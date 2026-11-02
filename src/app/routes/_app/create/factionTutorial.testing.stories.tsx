@@ -36,51 +36,81 @@ export const WalkThrough = meta.story({
     const current = () => document.querySelector('[data-state="current"]')?.textContent ?? '';
     const next = (title: string) => waitForFrame(() => expect(current()).toContain(title), { timeout: 20_000 });
     const tab = (name: string) => userEvent.click(page.getByRole('tab', { name: new RegExp(`^${name}`) }));
+    /* Every text task ends with Enter, which leaves the box. */
+    const write = async (name: string, text: string) => {
+      const box = (await page.findAllByRole('textbox', { name }))[0]!;
+      await retype(box, text);
+      await userEvent.keyboard('{Enter}');
+    };
+    /* A picker counts once it closes on the option searched for; opening it and searching is not a pick. */
+    const pick = async (selector: string, option: string, stillOpen?: () => unknown) => {
+      await userEvent.click(document.querySelector<HTMLElement>(selector)!);
+      await userEvent.keyboard(option);
+      await stillOpen?.();
+      await userEvent.click((await page.findAllByRole('option', { name: option }, { timeout: 20_000 }))[0]!);
+    };
     await page.findByRole('banner', { name: RAIL }, { timeout: 60_000 });
-    await retype(await page.findByRole('textbox', { name: 'Faction name' }, { timeout: 60_000 }), 'Sand Wardens');
-    await userEvent.keyboard('{Enter}');
+    await page.findByRole('textbox', { name: 'Faction name' }, { timeout: 60_000 });
+    await write('Faction name', 'Sand Wardens');
     await next('Pick a logo');
 
-    await userEvent.click(document.querySelector<HTMLElement>('#faction-logo')!);
-    await userEvent.keyboard('Ixian');
-    /* Opening the picker and searching is not a pick. */
-    await expect(current()).toContain('Pick a logo');
-    await userEvent.click(await page.findByRole('option', { name: 'Ixian' }));
+    await pick('#faction-logo', 'Ixian', () => expect(current()).toContain('Pick a logo'));
     await next('Pick a background');
 
     await userEvent.click(document.querySelector<HTMLElement>('[aria-label="Background preset"]')!);
     await userEvent.click(await page.findByRole('option', { name: 'Nexus' }, { timeout: 20_000 }));
-    await next('Name your faction leader');
+    await next('Open Faction leader');
 
     await tab('Faction leader');
-    await retype(await page.findByRole('textbox', { name: 'Faction leader name' }), 'Wardeness Ilesa');
-    await userEvent.keyboard('{Enter}');
-    await next('Add a supporting leader');
+    await next('Name your faction leader');
+    await write('Faction leader name', 'Wardeness Ilesa');
+    await next('Pick their portrait');
+    await pick('#faction-leader-image', 'Jessica');
+    await next('Open Leaders');
 
     await tab('Leaders');
+    await next('Add a supporting leader');
     await userEvent.click(await page.findByRole('button', { name: 'Add supporting leader' }));
     await next('Name your new leader');
-
-    await retype(await page.findByRole('textbox', { name: 'Leader name' }), 'Captain Oruk');
-    await userEvent.keyboard('{Enter}');
-    await next('Name your troops');
+    await write('Leader name', 'Captain Oruk');
+    await next('Set their strength');
+    await write('Strength', '5');
+    await next('Pick their portrait');
+    await pick('#leader-0-img', 'Duncan');
+    await next('Open Troops');
 
     await tab('Troops');
-    await retype((await page.findAllByRole('textbox', { name: 'Troop name' }))[0]!, 'Wardens');
-    await userEvent.keyboard('{Enter}');
-    await next('Write your alliance advantage');
+    await next('Name your troops');
+    await write('Troop name', 'Wardens');
+    await next('Pick their symbol');
+    await pick('#troop-0-img', 'Fremen');
+    await next('Say how many there are');
+    await write('Physical supply', '15');
+    await next('Open Alliance');
 
     await tab('Alliance');
-    await retype(
-      await page.findByRole('textbox', { name: 'Alliance advantage' }),
-      'Your ally may move one more territory.'
-    );
-    await userEvent.tab();
-    await next('Say how you start');
+    await next('Write your alliance advantage');
+    await write('Alliance advantage', 'Your ally may move one more territory.');
+    await next('Open Rules');
 
     await tab('Rules');
-    await retype(await page.findByRole('textbox', { name: 'Starting instructions' }), '10 troops in Sietch Tabr.');
-    await userEvent.tab();
+    await next('Say how your troops start');
+    await write('Starting instructions', '10 troops in Sietch Tabr.');
+    await next('Set your starting spice');
+    await write('Starting spice', '12');
+    await next('Say how your troops revive');
+    await write('Revival instructions', '2 troops revive for free.');
+    await next('Write your Karama power');
+    await write('Rule text', "Look at one opponent's battle plan.");
+    await next('Open Advantages');
+
+    await tab('Advantages');
+    await next('Add an advantage');
+    await userEvent.click(await page.findByRole('button', { name: 'Add faction advantage' }));
+    await next('Give it a title');
+    await write('Title (optional)', 'Desert Patrol');
+    await next('Write the advantage');
+    await write('Advantage rule', 'Your troops move two territories.');
     await next('Look over your faction sheet');
 
     await userEvent.click(practice().getByRole('button', { name: 'Review faction sheet' }));
@@ -104,11 +134,11 @@ export const OpenAtStep = meta.story({
     const page = within(document.body);
     const current = () => document.querySelector('[data-state="current"]')?.textContent ?? '';
     await page.findByRole('banner', { name: RAIL }, { timeout: 60_000 });
-    await waitForFrame(() => expect(current()).toContain('Name your faction leader'), { timeout: 60_000 });
+    await waitForFrame(() => expect(current()).toContain('Open Faction leader'), { timeout: 60_000 });
     await retype(await page.findByRole('textbox', { name: 'Faction name' }, { timeout: 60_000 }), 'Sand Wardens');
     await userEvent.click(page.getByRole('button', { name: /^Reset$/ }));
     const banner = page.getByRole('banner', { name: RAIL });
-    await waitForFrame(() => expect(banner.textContent).toContain('1 of 12'), { timeout: 20_000 });
+    await waitForFrame(() => expect(banner.textContent).toContain('1 of 29'), { timeout: 20_000 });
     await expect(await page.findByRole('textbox', { name: 'Faction name' }, { timeout: 60_000 })).toHaveValue('');
   },
 });

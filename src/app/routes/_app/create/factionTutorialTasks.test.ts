@@ -95,3 +95,36 @@ test('opening a picker, which shows the search in its box, is not a pick, nor is
   picker.value = 'Ixian';
   expect(logo.done(watch, view)).toBe(true);
 });
+
+test('opening a tab is a task of its own, done once that tab is selected', () => {
+  document.body.innerHTML =
+    '<div role="tablist" aria-label="Faction editor sections"><button role="tab" aria-selected="true">Identity</button><button role="tab" aria-selected="false">Leaders 1</button></div>';
+  const open = FACTION_TUTORIAL_TASKS({ pathname: () => '' }).find((task) => task.id === 'open-leaders')!;
+  const view = { camera: null };
+  expect(open.done(undefined, view)).toBe(false);
+  document.querySelectorAll('[role="tab"]')[1]!.setAttribute('aria-selected', 'true');
+  expect(open.done(undefined, view)).toBe(true);
+});
+
+test('Enter leaves a rule box and finishes it, while Shift+Enter stays; an unchanged number does not count', () => {
+  document.body.innerHTML = '<textarea id="rules-revival"></textarea><input id="rules-spice" value="10" />';
+  const tasks = FACTION_TUTORIAL_TASKS({ pathname: () => '' });
+  const view = { camera: null };
+  const revival = tasks.find((task) => task.id === 'revival')!;
+  const watch = revival.begin(view);
+  const box = document.querySelector<HTMLTextAreaElement>('#rules-revival')!;
+  box.focus();
+  box.value = 'Two troops revive free.';
+  box.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', shiftKey: true, bubbles: true }));
+  expect(revival.done(watch, view)).toBe(false);
+  box.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+  expect(revival.done(watch, view)).toBe(true);
+  revival.finish?.(watch);
+
+  const spice = tasks.find((task) => task.id === 'spice')!;
+  const spiceWatch = spice.begin(view);
+  expect(spice.done(spiceWatch, view)).toBe(false);
+  document.querySelector<HTMLInputElement>('#rules-spice')!.value = '12';
+  expect(spice.done(spiceWatch, view)).toBe(true);
+  spice.finish?.(spiceWatch);
+});
