@@ -11,6 +11,7 @@ import {
   pieceFootprintContains,
   stackTopHeight,
 } from '@shared/play/tableGeometry';
+import { FOIL_COLORS } from '@shared/uiPalette';
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import {
   Color,
@@ -27,7 +28,7 @@ import {
 
 import { ignoreRaycast } from '../../../widgets/tabletop/ignoreRaycast';
 import { useTabletop } from '../../../widgets/tabletop/TabletopContext';
-import { ConfettiField, DISC_RADIUS, DISC_THICKNESS, FOIL_COLORS } from './confettiSimulation';
+import { ConfettiField, DISC_RADIUS, DISC_THICKNESS } from './confettiSimulation';
 import type { ConfettiSupport } from './confettiSimulation';
 
 /** One stream to fire: its identity, the table angles of the slots it fires from, and how far into it the viewer arrives. */

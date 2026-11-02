@@ -1,16 +1,4 @@
-import {
-  ActionIcon,
-  Combobox,
-  Group,
-  Image,
-  Popover,
-  ScrollArea,
-  Stack,
-  Text,
-  TextInput,
-  Tooltip,
-  useCombobox,
-} from '@mantine/core';
+import { Combobox, Group, Image, Popover, ScrollArea, Stack, Text, TextInput, useCombobox } from '@mantine/core';
 import type { ComboboxProps, TextInputProps } from '@mantine/core';
 import clsx from 'clsx';
 import { SlidersHorizontal } from 'lucide-react';
@@ -20,7 +8,6 @@ import { useReducer, useRef } from 'react';
 import { matchAsset, searchTerms } from './assetSearch';
 import styles from './AssetSelect.module.css';
 import { IconAction } from './IconAction';
-import { TooltipTarget } from './TooltipTarget';
 
 interface AssetSelectOption {
   value: string;
@@ -46,6 +33,7 @@ export interface AssetSelectProps extends Omit<
   | 'leftSection'
   | 'rightSection'
   | 'success'
+  | 'size'
   | 'successProps'
   | 'value'
   | 'withAsterisk'
@@ -60,6 +48,8 @@ export interface AssetSelectProps extends Omit<
   /** Monochrome glyphs invert in the dark scheme; full-color portraits keep their colors. */
   glyphPreviews?: boolean;
   previewSize?: number;
+  /** Leader portraits read as the round discs they become on the table; other artwork keeps its own outline. */
+  previewShape?: 'square' | 'disc';
   value: string | null;
   onChange?: (value: string | null, option: AssetSelectOption) => void;
   allowDeselect?: boolean;
@@ -110,6 +100,7 @@ export function AssetSelect({
   renderPreview,
   glyphPreviews = false,
   previewSize = 28,
+  previewShape = 'square',
   value,
   onChange,
   allowDeselect = true,
@@ -143,7 +134,14 @@ export function AssetSelect({
   const optionsByValue = new Map(data.map((option) => [option.value, option]));
   const isGlyph = (id: string) => optionsByValue.get(id)?.glyphPreview ?? glyphPreviews;
   const previewFor = (id: string, size: number) =>
-    artworkPreview({ value: id, size, getPreviewSrc, renderPreview, glyph: isGlyph(id) });
+    artworkPreview({
+      value: id,
+      size,
+      getPreviewSrc,
+      renderPreview,
+      glyph: isGlyph(id),
+      disc: previewShape === 'disc',
+    });
   const selectedPreview = value ? previewFor(value, previewSize) : null;
   const hoveredPreview = browse.hovered ? previewFor(browse.hovered, 144) : null;
   const groups = new Map<string, AssetSelectOption[]>();
@@ -269,7 +267,7 @@ export function AssetSelect({
                       leftSection={selectedPreview ?? undefined}
                       leftSectionPointerEvents="none"
                       rightSectionPointerEvents="all"
-                      rightSectionWidth={clearable && value ? 70 : 42}
+                      rightSectionWidth={clearable && value ? 64 : 36}
                       rightSection={
                         <Group gap={0} wrap="nowrap" h="100%" w="100%">
                           {clearable && value && !blocked ? (
@@ -285,29 +283,30 @@ export function AssetSelect({
                             />
                           ) : null}
                           {groups.size > 1 ? (
-                            <Tooltip label={activeCollection || 'Filter by collection'}>
-                              <TooltipTarget>
-                                <ActionIcon
-                                  aria-label={`Filter ${props['aria-label'] ?? 'artwork'} collections`}
-                                  aria-pressed={Boolean(activeCollection) || choosingCollection}
-                                  variant="subtle"
-                                  color="gray"
-                                  className={styles.filterButton}
-                                  disabled={blocked}
-                                  onMouseDown={(event) => event.preventDefault()}
-                                  onClick={() => {
-                                    dispatch({ type: 'mode', value: choosingCollection ? 'artwork' : 'collections' });
-                                    combobox.resetSelectedOption();
-                                    combobox.openDropdown();
-                                    combobox.focusTarget();
-                                    viewport.current?.scrollTo({ top: 0 });
-                                  }}
-                                >
-                                  <SlidersHorizontal size={18} aria-hidden />
-                                  {activeCollection ? <span className={styles.activeDot} aria-hidden /> : null}
-                                </ActionIcon>
-                              </TooltipTarget>
-                            </Tooltip>
+                            /* Keeps focus in the input, so opening the collection list never blurs and closes the dropdown. */
+                            <span
+                              role="presentation"
+                              className={styles.filterSlot}
+                              onMouseDown={(event) => event.preventDefault()}
+                            >
+                              <IconAction
+                                label={`Filter ${props['aria-label'] ?? 'artwork'} collections`}
+                                tooltip={activeCollection || 'Filter by collection'}
+                                icon={<SlidersHorizontal size={17} aria-hidden />}
+                                intent="neutral"
+                                emphasis="standard"
+                                size="md"
+                                pressed={Boolean(activeCollection) || choosingCollection}
+                                disabledReason={blocked ? activeCollection || 'Filter by collection' : undefined}
+                                onClick={() => {
+                                  dispatch({ type: 'mode', value: choosingCollection ? 'artwork' : 'collections' });
+                                  combobox.resetSelectedOption();
+                                  combobox.openDropdown();
+                                  combobox.focusTarget();
+                                  viewport.current?.scrollTo({ top: 0 });
+                                }}
+                              />
+                            </span>
                           ) : (
                             <Combobox.Chevron />
                           )}
@@ -435,7 +434,13 @@ function artworkPreview({
   getPreviewSrc,
   renderPreview,
   glyph,
-}: Pick<AssetSelectProps, 'getPreviewSrc' | 'renderPreview'> & { value: string; size: number; glyph: boolean }) {
+  disc,
+}: Pick<AssetSelectProps, 'getPreviewSrc' | 'renderPreview'> & {
+  value: string;
+  size: number;
+  glyph: boolean;
+  disc: boolean;
+}) {
   if (renderPreview) {
     return renderPreview(value, size);
   }
@@ -447,8 +452,8 @@ function artworkPreview({
       w={size}
       h={size}
       loading="lazy"
-      fit="contain"
-      className={clsx(styles.previewImg, glyph && styles.glyph)}
+      fit={disc ? 'cover' : 'contain'}
+      className={clsx(disc ? styles.disc : styles.previewImg, glyph && styles.glyph)}
     />
   ) : null;
 }

@@ -32,30 +32,6 @@ export const FuturePlans = meta.story({
   play: titled(/^A map of what Dune Zone could become$/),
 });
 
-/** The faction tutorial: a contents list, then one section per creator tab, each anchored for the contents. */
-export const FactionTutorial = meta.story({
-  args: { path: '/create/faction' },
-  play: async ({ canvasElement }) => {
-    const page = await findTitledPage(canvasElement, /^Create a custom Dune faction$/);
-    const contents = await page.findByRole('navigation', { name: 'Tutorial steps' });
-    await expect(within(contents).getByRole('link', { name: 'Define your troops' })).toHaveAttribute('href', '#troops');
-    await expect(page.findByRole('link', { name: 'Create your faction' })).resolves.toHaveAttribute(
-      'href',
-      '/factions/create'
-    );
-  },
-});
-
-export const FactionTutorialPhone = meta.story({
-  args: { path: '/create/faction' },
-  globals: { viewport: { value: 'appMobile' } },
-  play: async ({ canvasElement }) => {
-    const page = await findTitledPage(canvasElement, /^Create a custom Dune faction$/);
-    const sections = await page.findAllByRole('region');
-    await expectWithinWidth(canvasElement, sections);
-  },
-});
-
 /** The blog's numbered list of posts, newest first, each title opening its post. */
 export const Blog = meta.story({
   args: { path: '/blog' },

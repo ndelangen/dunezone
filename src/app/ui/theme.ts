@@ -180,6 +180,7 @@ export const appContentTheme = createTheme({
     MultiSelect: { classNames: { option: styles.selectedOption } },
     Autocomplete: { classNames: { option: styles.selectedOption } },
     TagsInput: { classNames: { option: styles.selectedOption } },
+    NumberInput: { classNames: { controls: styles.numberControls, control: styles.numberControl } },
     /* Every multiline field grows with its text, so nobody has to scroll inside one or drag it taller. */
     Textarea: Textarea.extend({ defaultProps: { autosize: true } }),
     Chip: { defaultProps: { color: 'selected' } },

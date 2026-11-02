@@ -31,6 +31,7 @@ const meta = testingPreview.meta({
 export const LeaderPortraitSearch = meta.story({
   args: {
     'aria-label': 'Leader portrait',
+    previewShape: 'disc',
     w: 680,
     maw: 'calc(100vw - 2rem)',
     data: stockAssetOptions(LEADERS.options),

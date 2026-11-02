@@ -18,7 +18,7 @@ import styles from './FactionSheetReview.module.css';
 const REVIEW_MIN_STAGE_REM = 45;
 
 /** Reads the stage the way the stylesheet's container query does, in the root font size its `rem` resolves against. */
-function stageFitsReview(stage: HTMLElement | null): boolean {
+export function stageFitsReview(stage: HTMLElement | null): boolean {
   if (!stage) {
     return false;
   }

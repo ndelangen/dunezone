@@ -1,6 +1,9 @@
 import { useContext, useState } from 'react';
 import type { ReactNode } from 'react';
 
+import { sceneTableLens } from '@app/widgets/tutorial-guide/tableLens';
+import { TutorialGuide } from '@app/widgets/tutorial-guide/TutorialGuide';
+
 import type { TutorialChapter } from './chapters';
 import type { ChapterScript } from './chapterScripts/chapterScript';
 import { seatTutorialPlayers, TutorialPlayersContext, useTutorialPlayers } from './players';
@@ -9,8 +12,6 @@ import { PracticeTable, useTutorialTable } from './practiceTable';
 import setup from './setup/setup.json';
 import { startAt } from './setup/tutorialSetup';
 import type { TutorialSetup } from './setup/tutorialSetup';
-import { sceneTableLens } from './tableLens';
-import { TutorialGuide } from './TutorialGuide';
 
 /**
  * A built chapter as a player meets it: the rail with one task at a time beside the live table, and the table itself.

@@ -2,8 +2,9 @@ import { alliesOf } from '@shared/play/alliances';
 import { factionTokenOf } from '@shared/play/factionToken';
 import type { GameSnapshot } from '@shared/play/protocol';
 
+import type { GuideTask } from '@app/widgets/tutorial-guide/TutorialGuide';
+
 import { FACTION_INFO } from '../../play/compass/windows';
-import type { GuideTask } from '../TutorialGuide';
 import type { ChapterScript, TablePlayers } from './chapterScript';
 import { at, buttonIn, element, openedWindow, pressEnter, task, viaCompass, windowShown } from './guideChecks';
 

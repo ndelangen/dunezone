@@ -6,7 +6,8 @@ import { appContentTheme } from '@ui/theme';
 import { act } from 'react';
 import { afterEach, expect, test, vi } from 'vite-plus/test';
 
-import { stubMatchMedia } from '../play/multiplayer/jsdom.test.fixture';
+import { stubMatchMedia } from '@app/routes/_app/play/multiplayer/jsdom.test.fixture';
+
 import { ReadAloud } from './ReadAloud';
 
 stubMatchMedia();

@@ -1,4 +1,5 @@
-import type { GuideTask } from '../TutorialGuide';
+import type { GuideTask } from '@app/widgets/tutorial-guide/TutorialGuide';
+
 import type { ChapterScript } from './chapterScript';
 import { element as first, openedWindow, task, viaCompass, windowShown } from './guideChecks';
 
