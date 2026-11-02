@@ -61,24 +61,34 @@ const pageButton = (name: string) => (): Element | null =>
 const ONE_LINE_PAUSE = 2000;
 const TEXT_PAUSE = 4000;
 
-type Typed = { first: string; last: string; changedAt: number; area: boolean };
+/* `first` is null until the box is on screen: a box on a tab not yet open has no starting text to compare with. */
+type Typed = { first: string | null; last: string; changedAt: number; area: boolean };
+
+/* Records what the box shows now, restarting the pause when it changed. */
+function track(watch: Typed, box: Element | null): string {
+  const text = valueOf(box);
+  if (text === null) {
+    return watch.last;
+  }
+  watch.first ??= text;
+  if (text !== watch.last) {
+    watch.last = text;
+    watch.changedAt = Date.now();
+  }
+  watch.area ||= box instanceof HTMLTextAreaElement;
+  return text;
+}
 
 const typed = (field: Field) => ({
   anchor: { kind: 'page' as const, element: fieldOrTab(field) },
   begin: (): Typed => {
-    const box = find(field);
-    const first = valueOf(box) ?? '';
-    return { first, last: first, changedAt: Date.now(), area: box instanceof HTMLTextAreaElement };
+    const first = valueOf(find(field));
+    return { first, last: first ?? '', changedAt: Date.now(), area: false };
   },
   done: (watch: Typed) => {
     const box = find(field);
-    const text = valueOf(box) ?? watch.last;
-    if (text !== watch.last) {
-      watch.last = text;
-      watch.changedAt = Date.now();
-      watch.area ||= box instanceof HTMLTextAreaElement;
-    }
-    const changed = text.trim().length > 0 && text.trim() !== watch.first.trim();
+    const text = track(watch, box).trim();
+    const changed = text.length > 0 && watch.first !== null && text !== watch.first.trim();
     const paused = Date.now() - watch.changedAt >= (watch.area ? TEXT_PAUSE : ONE_LINE_PAUSE);
     const left = box === null || document.activeElement !== box;
     return changed && (paused || left);
@@ -86,7 +96,8 @@ const typed = (field: Field) => ({
 });
 
 /* An artwork picker's open list: the creator's artwork pickers show one only while open. */
-const OPEN_PICKER = '[role="listbox"][aria-label="Artwork"], [role="listbox"][aria-label="Artwork collections"]';
+const ARTWORK_LIST = '[role="listbox"][aria-label="Artwork"]';
+const OPEN_PICKER = `${ARTWORK_LIST}, [role="listbox"][aria-label="Artwork collections"]`;
 
 /*
  * What a picker has chosen, or null while it is open: an open picker shows the learner's search in its box instead,
@@ -100,21 +111,52 @@ const committed = (field: Field): string | null => {
   return value ? value : null;
 };
 
-/**
- * A choice is done once the picker is closed again on something other than what it showed as the task began.
- * Opening the picker, or closing it without a pick, leaves the task as it was.
+type Choice = { was: string | null; picked: boolean; release: () => void };
+
+/* Notes a pick from an artwork list, by click or by Enter on the highlighted option; returns what stops listening. */
+function listenForPick(watch: Choice): () => void {
+  const click = (event: MouseEvent) => {
+    if (event.target instanceof Element && event.target.closest(`${ARTWORK_LIST} [role="option"]`)) {
+      watch.picked = true;
+    }
+  };
+  const key = (event: KeyboardEvent) => {
+    if (event.key === 'Enter' && document.querySelector(`${ARTWORK_LIST} [data-combobox-selected]`)) {
+      watch.picked = true;
+    }
+  };
+  document.addEventListener('click', click, true);
+  document.addEventListener('keydown', key, true);
+  return () => {
+    document.removeEventListener('click', click, true);
+    document.removeEventListener('keydown', key, true);
+  };
+}
+
+/*
+ * A choice is done once the picker is closed again on a pick: an option the learner chose, or something other than what
+ * it showed as the task began. Opening the picker, or closing it without a pick, leaves the task as it was, even when
+ * the picker was already open as the task began.
  */
 const chosen = (field: Field) => ({
   anchor: { kind: 'page' as const, element: fieldOrTab(field) },
-  begin: () => ({ was: committed(field) }),
-  done: (watch: { was: string | null }) => {
+  begin: (): Choice => {
+    const watch: Choice = { was: committed(field), picked: false, release: () => undefined };
+    watch.release = listenForPick(watch);
+    return watch;
+  },
+  done: (watch: Choice) => {
     const value = committed(field);
     if (value === null) {
       return false;
     }
+    if (watch.picked) {
+      return true;
+    }
     watch.was ??= value;
     return value !== watch.was;
   },
+  finish: (watch: Choice) => watch.release(),
 });
 
 /* Opening one of the creator's tabs is a task of its own, so the learner sees where each part of a faction lives. */

@@ -137,3 +137,29 @@ test('a later step opens on a faction with what its task needs: a name, a leader
   expect(draftAfter(before('advantage-title')).rules.advantages).toHaveLength(1);
   expect(draftAfter(before('save')).name).not.toBe('');
 });
+
+test('a box on a tab not yet open is compared with what it shows once open, so its default never counts', () => {
+  document.body.innerHTML = '';
+  const spice = FACTION_TUTORIAL_TASKS({ pathname: () => '' }).find((task) => task.id === 'spice')!;
+  const view = { camera: null };
+  const watch = spice.begin(view);
+  document.body.innerHTML = '<input id="rules-spice" value="10" />';
+  expect(spice.done(watch, view)).toBe(false);
+  document.querySelector<HTMLInputElement>('#rules-spice')!.value = '12';
+  expect(spice.done(watch, view)).toBe(true);
+});
+
+test('a pick from a picker that was already open as the task began counts once it closes', () => {
+  document.body.innerHTML =
+    '<input id="faction-leader-image" value="" /><div role="listbox" aria-label="Artwork"><div role="option">Jessica</div></div>';
+  const portrait = FACTION_TUTORIAL_TASKS({ pathname: () => '' }).find(
+    (task) => task.id === 'faction-leader-portrait'
+  )!;
+  const view = { camera: null };
+  const watch = portrait.begin(view);
+  document.querySelector<HTMLElement>('[role="option"]')!.click();
+  document.querySelector('[role="listbox"]')!.remove();
+  document.querySelector<HTMLInputElement>('#faction-leader-image')!.value = 'Jessica';
+  expect(portrait.done(watch, view)).toBe(true);
+  portrait.finish?.(watch);
+});
