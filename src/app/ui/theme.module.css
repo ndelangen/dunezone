@@ -30,3 +30,37 @@ input:checked:not(:disabled, [data-disabled]) + .selectedSwitch {
 .tooltip[data-multiline] {
   white-space: pre-line;
 }
+
+/* The steppers sit inside the field's edge as two small rounded tiles, like every other in-field action, rather than a bordered column jammed against the frame. */
+.numberControls {
+  gap: 2px;
+  height: 100%;
+  max-width: none;
+  padding: 4px 4px 4px 0;
+}
+
+.numberControl {
+  flex: 1 1 0;
+  height: auto;
+  min-height: 0;
+  border: 0;
+  border-radius: var(--mantine-radius-sm);
+  color: var(--action-neutral-fg);
+  background-color: transparent;
+}
+
+@media (hover: hover) {
+  .numberControl:hover:not(:disabled) {
+    background-color: var(--action-neutral-hover-bg);
+  }
+}
+
+@media (hover: none) {
+  .numberControl:active:not(:disabled) {
+    background-color: var(--action-neutral-hover-bg);
+  }
+}
+
+.numberControl:disabled {
+  background-color: transparent;
+}
