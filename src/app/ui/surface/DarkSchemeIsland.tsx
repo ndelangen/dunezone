@@ -65,8 +65,12 @@ const islandVariables =
  * nothing on the play route reads them.
  */
 export function DarkSchemeIsland({ children }: { children: ReactNode }) {
-  const [tooltipHost] = useState(createTooltipHost);
+  /* The server has no document; a tooltip only opens in the browser, so the host is made there. */
+  const [tooltipHost] = useState(() => (typeof document === 'undefined' ? undefined : createTooltipHost()));
   useLayoutEffect(() => {
+    if (!tooltipHost) {
+      return;
+    }
     document.body.append(tooltipHost);
     return () => tooltipHost.remove();
   }, [tooltipHost]);

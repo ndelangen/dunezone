@@ -10,6 +10,7 @@ import styles from './FactionEditor.module.css';
 import { FactionFormFields } from './FactionFormFields';
 import type { FactionFormFieldsHandle } from './FactionFormFields';
 import type { FactionIdentityNameField } from './FactionFormSectionIdentity';
+import type { StrengthRefusal } from './FactionFormSectionLeaders';
 import type { FactionFormApi } from './factionFormTypes';
 import { FactionSheetReview } from './FactionSheetReview';
 import type { FactionSheetReviewHandle } from './FactionSheetReview';
@@ -29,6 +30,9 @@ export interface FactionEditorProps {
   /** The switched-off manual complexity rating, from `useFactionAuthoring`, which clears it on a replace. */
   retainedManualComplexity: number | null;
   onRetainedManualComplexityChange: (rating: number) => void;
+  /** Strength text a leader's field refused, from `useFactionAuthoring`, which clears it on a replace. */
+  strengthRefusal: StrengthRefusal;
+  onStrengthRefusalChange: (refusal: StrengthRefusal) => void;
 }
 
 export interface FactionAuthoringViewHandle {
@@ -50,6 +54,8 @@ export const FactionEditor = forwardRef<FactionAuthoringViewHandle, FactionEdito
       onBackgroundModeMemoryChange,
       retainedManualComplexity,
       onRetainedManualComplexityChange,
+      strengthRefusal,
+      onStrengthRefusalChange,
     },
     ref
   ) => {
@@ -93,6 +99,8 @@ export const FactionEditor = forwardRef<FactionAuthoringViewHandle, FactionEdito
                   onBackgroundModeMemoryChange={onBackgroundModeMemoryChange}
                   retainedManualComplexity={retainedManualComplexity}
                   onRetainedManualComplexityChange={onRetainedManualComplexityChange}
+                  strengthRefusal={strengthRefusal}
+                  onStrengthRefusalChange={onStrengthRefusalChange}
                   nameError={
                     isNameBlank
                       ? 'A faction name is required before saving because it determines the faction URL.'

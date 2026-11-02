@@ -17,3 +17,19 @@ test('a player who leaves is recorded leaving the seat they held, not the specta
   expect(sql.seatHistory).toEqual([{ user_id: 'ada', seat: 'seat-2', event: 'vacated' }]);
   expect(sql.actors[0]!.seat).toBe(SPECTATOR_SEAT);
 });
+
+test('a transaction that throws leaves every table as it found it, as SQLite rolls one back', () => {
+  const sql = new MemorySql(
+    [{ user_id: 'ada', seat: 'seat-2', display_name: 'Ada', deleted: 0, avatar_url: null, profile_slug: null }],
+    [{ seat: 'seat-2', position: 0, faction_id: null, faction_name: null, faction_color: null }]
+  );
+  const storage = sql.storage();
+  expect(() =>
+    storage.transactionSync(() => {
+      new ActorDirectory(storage, UNLOGGED).vacate('ada', { cause: 'departure' });
+      throw new Error('The rest of the command failed.');
+    })
+  ).toThrow('The rest of the command failed.');
+  expect(sql.seatHistory).toEqual([]);
+  expect(sql.actors[0]!.seat).toBe('seat-2');
+});

@@ -75,21 +75,19 @@ export class CatalogueCapture {
       throw new GameRejection('This ruleset has no usable board.');
     }
     const problems: CaptureProblem[] = [];
-    const single = (captures: SlotCapture[]) => captures[0] ?? null;
+    // Captured in presentation order, so the readiness problems list in the order the editor shows the slots.
+    const treachery = await this.captureSlots('treachery', supply, problems);
+    const spice = await this.captureSlots('spice', supply, problems);
+    const techToken = await this.captureSlots('techToken', supply, problems);
+    const customDecks = await this.captureSlots('custom', supply, problems);
+    const customTokens = await this.captureSlots('customTokens', supply, problems);
     return rulesetCaptureSchema.parse({
       ruleset: supply.ruleset,
       board: supply.board,
       battleDialing: supply.battleDialing ?? undefined,
       capturedAt: now,
-      decks: {
-        treachery: single(await this.captureSlots('treachery', supply, problems)),
-        spice: single(await this.captureSlots('spice', supply, problems)),
-        custom: await this.captureSlots('custom', supply, problems),
-      },
-      bundles: {
-        techToken: single(await this.captureSlots('techToken', supply, problems)),
-        custom: await this.captureSlots('customTokens', supply, problems),
-      },
+      decks: { treachery: treachery[0] ?? null, spice: spice[0] ?? null, custom: customDecks },
+      bundles: { techToken: techToken[0] ?? null, custom: customTokens },
       readiness: readiness(problems),
     });
   }

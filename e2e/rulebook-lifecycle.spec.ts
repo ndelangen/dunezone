@@ -145,7 +145,12 @@ test('members create clean Rulebooks and owners manage the saved Ruleset list', 
   await moreActions.click();
   await page.getByRole('button', { name: 'Rename Rulebook', exact: true }).click();
   await page.getByRole('textbox', { name: 'Rulebook name' }).fill('Battle reference');
-  await expect(page.getByText(/Old links stop working/)).toBeVisible();
+  await expect(
+    page.getByText(
+      `Renaming this Rulebook changes its address (${rulesetPath}/rulebooks/member-copy). Old links stop working.`,
+      { exact: true }
+    )
+  ).toBeVisible();
   const renameForm = page.getByRole('form', { name: 'Rename Rulebook' });
   await renameForm.getByRole('button', { name: 'Rename Rulebook', exact: true }).click();
   await expect(page).toHaveURL(/\/rulebooks\/battle-reference\/edit/);

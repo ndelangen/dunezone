@@ -11,7 +11,7 @@ test('a completed save retains edits made after the submitted payload', () => {
     {
       data: submitted,
       baseline: DUKE_PRAD_VIDAL_TOKEN,
-      memory: { declaredCustom: false, backgroundMode: emptyBackgroundModeMemory() },
+      memory: { declaredCustom: false, backgroundMode: emptyBackgroundModeMemory(), refusedStrength: null },
     },
     { kind: 'patch', update: { strength: '8' } }
   );
@@ -20,4 +20,18 @@ test('a completed save retains edits made after the submitted payload', () => {
   expect(saved.data.strength).toBe('8');
   expect(saved.data).not.toEqual(saved.baseline);
   expect(saved.memory).toBe(current.memory);
+});
+
+test('replacing the draft drops strength text the field refused', () => {
+  const refused = reduceLeaderTokenDraft(
+    {
+      data: DUKE_PRAD_VIDAL_TOKEN,
+      baseline: DUKE_PRAD_VIDAL_TOKEN,
+      memory: { declaredCustom: false, backgroundMode: emptyBackgroundModeMemory(), refusedStrength: null },
+    },
+    { kind: 'remember', update: { refusedStrength: '5x' } }
+  );
+  expect(refused.memory.refusedStrength).toBe('5x');
+  const replaced = reduceLeaderTokenDraft(refused, { kind: 'replace', data: DUKE_PRAD_VIDAL_TOKEN });
+  expect(replaced.memory.refusedStrength).toBeNull();
 });

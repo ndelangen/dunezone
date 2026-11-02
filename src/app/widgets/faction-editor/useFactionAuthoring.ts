@@ -9,6 +9,7 @@ import { emptyBackgroundModeMemory } from '@app/widgets/background-composer/Back
 
 import { factionAuthoringWarnings, invalidPhaseRowCount } from './factionAuthoringContract';
 import { createFactionAuthoringSession } from './factionAuthoringSession';
+import type { StrengthRefusal } from './FactionFormSectionLeaders';
 
 export type FactionAuthoringPersistence = {
   save: (draft: Faction) => Promise<FactionEntry>;
@@ -57,6 +58,7 @@ export function useFactionAuthoring({
    * is what #608 grades breaks-rule (#894).
    */
   const [retainedManualComplexity, setRetainedManualComplexity] = useState<number | null>(null);
+  const [strengthRefusal, setStrengthRefusal] = useState<StrengthRefusal>(null);
 
   const latestRef = useRef({ persistence, onSaved });
   useLayoutEffect(() => {
@@ -103,6 +105,7 @@ export function useFactionAuthoring({
           }
           setBackgroundModeMemory(emptyBackgroundModeMemory());
           setRetainedManualComplexity(null);
+          setStrengthRefusal(null);
           form.reset(values, options);
         },
         markLoadedDraftDirty: () => form.setFieldMeta('name', (meta) => ({ ...meta, isDirty: true, isTouched: true })),
@@ -157,6 +160,8 @@ export function useFactionAuthoring({
     setBackgroundModeMemory,
     retainedManualComplexity,
     setRetainedManualComplexity,
+    strengthRefusal,
+    setStrengthRefusal,
     persistence: {
       saveState,
       errors,

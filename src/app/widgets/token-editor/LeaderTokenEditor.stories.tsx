@@ -24,7 +24,10 @@ function Editor() {
           return { ...current, memory: { ...current.memory, ...event.update } };
       }
     },
-    { draft: DUKE_PRAD_VIDAL_TOKEN, memory: { declaredCustom: false, backgroundMode: emptyBackgroundModeMemory() } }
+    {
+      draft: DUKE_PRAD_VIDAL_TOKEN,
+      memory: { declaredCustom: false, backgroundMode: emptyBackgroundModeMemory(), refusedStrength: null },
+    }
   );
   const [chapter, setChapter] = useState<LeaderTokenChapter>('identity');
   return (

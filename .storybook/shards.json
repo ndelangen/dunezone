@@ -24,5 +24,6 @@
     "src/app/widgets/",
     "src/game/"
   ],
+  "tutorial": ["src/app/routes/_app/tutorial/"],
   "pages": ["src/"]
 }

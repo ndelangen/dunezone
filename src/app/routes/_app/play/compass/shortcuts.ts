@@ -58,10 +58,22 @@ export function commandsOf(table: Table): Readonly<Record<Command, TableCommand 
 
 /* A key typed into a text field, a menu, a list or a dialog is theirs; so is one pressed on a control beside the table. */
 const KEEPS_LETTERS =
-  'input, textarea, select, [contenteditable="true"], [role="menu"], [role="listbox"], dialog, [role="dialog"], [aria-modal="true"]';
+  'input, textarea, select, [role="menu"], [role="listbox"], dialog, [role="dialog"], [aria-modal="true"]';
+/* An editable region counts however it says so: an empty contenteditable, plaintext-only, or inherited from an ancestor. */
+function editable(target: Element) {
+  if (target instanceof HTMLElement && typeof target.isContentEditable === 'boolean') {
+    return target.isContentEditable;
+  }
+  /* A DOM without isContentEditable, such as jsdom, reads the attribute instead. */
+  const region = target.closest('[contenteditable]');
+  return region !== null && region.getAttribute('contenteditable')?.toLowerCase() !== 'false';
+}
 function keptElsewhere(target: EventTarget | null) {
   const element = target instanceof Element && target !== document.body && target !== document.documentElement;
-  return element && (target.closest(KEEPS_LETTERS) !== null || target.closest('[data-compass-controls]') === null);
+  return (
+    element &&
+    (editable(target) || target.closest(KEEPS_LETTERS) !== null || target.closest('[data-compass-controls]') === null)
+  );
 }
 
 /* A bare first press of a shortcut's letter that nothing before it answered. */
