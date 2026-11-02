@@ -12,7 +12,7 @@ export const spiceReserveSchema = z.object({
  * Spice set down on another faction's token is either a payment, straight into that faction's spice reserve,
  * or a bribe, kept in a public pile by that faction until its player collects it.
  */
-export const SPICE_GIFTS = ['bribe', 'payment'] as const;
+const SPICE_GIFTS = ['bribe', 'payment'] as const;
 export type SpiceGift = (typeof SPICE_GIFTS)[number];
 /* What the placer chose for spice let go over a token, and the faction it was offered to, so a token moved in between refuses it. */
 export const spiceGiftSchema = z.strictObject({ as: z.enum(SPICE_GIFTS), factionId: tableIdSchema });
