@@ -40,29 +40,38 @@ type Typed = { was: string | null; last: string | null; release: () => void };
  * so the task remembers the last text it saw.
  * In a one-line box Enter leaves it too, as it does in Create your own game.
  */
+/* Enter in a one-line box matching `selector` leaves it; returns what stops listening. */
+function enterLeaves(selector: string): () => void {
+  const leave = (event: KeyboardEvent) => {
+    const target = event.target;
+    if (event.key !== 'Enter' || !(target instanceof HTMLInputElement) || !target.matches(selector)) {
+      return;
+    }
+    event.preventDefault();
+    target.blur();
+  };
+  document.addEventListener('keydown', leave, true);
+  return () => document.removeEventListener('keydown', leave, true);
+}
+
+/* Remembers the text the box first showed and the last it showed, so a box another tab took away still counts. */
+function readBox(watch: Typed, field: Element | null) {
+  const value = valueOf(field);
+  if (value !== null) {
+    watch.was ??= value;
+    watch.last = value;
+  }
+}
+
+const left = (field: Element | null) => field === null || document.activeElement !== field;
+
 const typed = (selector: string) => ({
-  begin: (): Typed => {
-    const watch: Typed = { was: null, last: null, release: () => undefined };
-    const leave = (event: KeyboardEvent) => {
-      const target = event.target as Element | null;
-      if (event.key === 'Enter' && target instanceof HTMLInputElement && target.matches(selector)) {
-        event.preventDefault();
-        target.blur();
-      }
-    };
-    document.addEventListener('keydown', leave, true);
-    watch.release = () => document.removeEventListener('keydown', leave, true);
-    return watch;
-  },
+  begin: (): Typed => ({ was: null, last: null, release: enterLeaves(selector) }),
   done: (watch: Typed) => {
     const field = document.querySelector(selector);
-    const value = valueOf(field);
-    if (value !== null) {
-      watch.was ??= value;
-      watch.last = value;
-    }
+    readBox(watch, field);
     const now = watch.last?.trim() ?? '';
-    return now.length > 0 && now !== watch.was?.trim() && (field === null || document.activeElement !== field);
+    return now.length > 0 && now !== watch.was?.trim() && left(field);
   },
   finish: (watch: Typed) => watch.release(),
 });
@@ -84,7 +93,8 @@ const LEADERS = '[role="list"][aria-label="Ordered supporting leaders"] > [role=
 const EDIT_PAGE = /^\/factions\/[^/]+\/edit\/?$/;
 const FACTION_PAGE = /^\/factions\/(?!create\/?$)[^/]+\/?$/;
 
-export const FACTION_TUTORIAL_TASKS = (page: FactionChapterPage): GuideTask[] => [
+/* Naming the faction and dressing it, on the creator's first tab. */
+const identityTasks = (): GuideTask[] => [
   task({
     id: 'name',
     task: 'Name your faction',
@@ -110,6 +120,10 @@ export const FACTION_TUTORIAL_TASKS = (page: FactionChapterPage): GuideTask[] =>
     anchor: { kind: 'page', element: () => document.querySelector('[aria-label="Background preset"]') },
     ...chosen('[aria-label="Background preset"]'),
   }),
+];
+
+/* The faction's people and its rules, each on a tab of its own. */
+const rosterTasks = (): GuideTask[] => [
   task({
     id: 'faction-leader',
     task: 'Name your faction leader',
@@ -166,6 +180,10 @@ export const FACTION_TUTORIAL_TASKS = (page: FactionChapterPage): GuideTask[] =>
     anchor: { kind: 'page', element: fieldOr('#rules-start', 'Rules') },
     ...typed('#rules-start'),
   }),
+];
+
+/* The sheet, Save, and the page Save gives the faction. */
+const finishingTasks = (page: FactionChapterPage): GuideTask[] => [
   task({
     id: 'review',
     task: 'Look over your faction sheet',
@@ -203,6 +221,12 @@ export const FACTION_TUTORIAL_TASKS = (page: FactionChapterPage): GuideTask[] =>
     begin: () => undefined,
     done: () => FACTION_PAGE.test(page.pathname()),
   }),
+];
+
+export const FACTION_TUTORIAL_TASKS = (page: FactionChapterPage): GuideTask[] => [
+  ...identityTasks(),
+  ...rosterTasks(),
+  ...finishingTasks(page),
 ];
 
 /** What the learner can do once the chapter is done, listed on its end screen. */
