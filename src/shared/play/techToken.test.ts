@@ -6,7 +6,7 @@ import type { TablePiece, TableState } from './model';
 import { SHARED_ITEM_PLACEMENT_ANCHORS } from './tableFurnitureLayout';
 import { troopScale } from './tableGeometry';
 import { isCollisionFreePosition } from './tablePhysics';
-import { drawableTechTokens } from './techToken';
+import { drawableTechTokens, heldTechTokens, takeableIntoHand } from './techToken';
 
 function techTokens(id: string, names: string[], extra: Partial<TablePiece> = {}): TablePiece {
   return {
@@ -127,5 +127,36 @@ describe('drawing a tech token', () => {
 
   test('draws tech tokens as wide as a leader disc', () => {
     expect(troopScale(techTokens('customs', ['Customs']))).toBe(troopScale({ kind: 'force', stackKey: 'leader:paul' }));
+  });
+});
+
+describe('held tech tokens', () => {
+  const held = (faceUp: boolean) => ({
+    ...techTokens('held', ['Heighliners'], { inventory: undefined }),
+    items: [{ ...techTokens('held', ['Heighliners']).items[0]!, faceUp }],
+  });
+
+  test('lists each faction holding any by its face and name, and leaves out a faction holding none', () => {
+    expect(heldTechTokens({ atreides: [held(true)], fremen: [] }, ['atreides', 'fremen'])).toEqual({
+      atreides: [
+        {
+          back: 'https://example.test/Heighliners.jpg',
+          front: 'https://example.test/Heighliners.jpg',
+          name: 'Heighliners',
+        },
+      ],
+    });
+  });
+
+  test('shows a face-down token by its back only', () => {
+    expect(heldTechTokens({ atreides: [held(false)] }, ['atreides'])).toEqual({
+      atreides: [{ back: 'https://example.test/Heighliners.jpg' }],
+    });
+  });
+
+  test('a loose tech token can be taken into a hand, one in the inventory or locked cannot', () => {
+    expect(takeableIntoHand(techTokens('loose', ['Customs'], { inventory: undefined }))).toBe(true);
+    expect(takeableIntoHand(techTokens('shelf', ['Customs']))).toBe(false);
+    expect(takeableIntoHand(techTokens('locked', ['Customs'], { inventory: undefined, locked: true }))).toBe(false);
   });
 });

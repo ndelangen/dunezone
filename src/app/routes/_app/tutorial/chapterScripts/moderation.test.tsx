@@ -90,6 +90,7 @@ test('the first step waits for the Harkonnen player’s information, not another
               seat: seatId.replace('seat-', 'Seat '),
               own: false,
               alliance: null,
+              techTokens: null,
               page: null,
               removal: { start: vi.fn() },
             }}

@@ -14,7 +14,7 @@
 }
 
 /* A row with nothing in it takes no room, as for an observer at a game whose faction has no page. */
-.toolbar:not(:has(button, a, [role="img"])) {
+.toolbar:not(:has(button, a, [role="img"], [role="listitem"])) {
   display: none;
 }
 
