@@ -1,5 +1,4 @@
 import { bribePilePosition } from '@shared/play/bribes';
-import type { BribePilePlacement } from '@shared/play/bribes';
 import { factionTokenOf } from '@shared/play/factionToken';
 import type { TablePiece, Vector3Tuple } from '@shared/play/model';
 import type { GameSnapshot } from '@shared/play/protocol';
@@ -31,10 +30,10 @@ function withPiece(snapshot: GameSnapshot, piece: TablePiece): GameSnapshot {
   };
 }
 
-/** The mid-play table with a bribe pile by every faction, each where `placement` puts it. */
-export function bribePilesSnapshot(placement: BribePilePlacement, snapshot = playingSnapshot()): GameSnapshot {
+/** The mid-play table with a bribe pile behind every faction's troops. */
+export function bribePilesSnapshot(snapshot = playingSnapshot()): GameSnapshot {
   return rosterFactionIds(snapshot.roster).reduce((next, factionId, index) => {
-    const pile = bribePilePosition(next.table.pieces, next.roster, factionId, placement)!;
+    const pile = bribePilePosition(next.table.pieces, next.roster, factionId)!;
     return withPiece(next, spiceAt(next, 9100 + index, BRIBED[index % BRIBED.length]!, pile));
   }, snapshot);
 }

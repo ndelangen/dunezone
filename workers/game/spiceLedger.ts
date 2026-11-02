@@ -1,4 +1,3 @@
-import { factionTokenUnder } from '../../src/shared/play/bribes';
 import type { CommitMessage, GameSnapshot, Viewer } from '../../src/shared/play/protocol';
 import { isSpicePiece } from '../../src/shared/play/spice';
 import type { SpiceTransfer } from '../../src/shared/play/spiceReserve';
@@ -37,10 +36,8 @@ export class SpiceLedger {
     }
     /* A payment lands in the receiving faction's spice reserve; a bribe on its bribe pile, still on the table. */
     if (message.type === 'drop' && message.give) {
-      const destination = factionTokenUnder(before.table.pieces, message.position);
-      return destination && held > 0
-        ? { ...record, kind: message.give, amount: held, source: 'table', destination }
-        : undefined;
+      const { as, factionId: destination } = message.give;
+      return held > 0 ? { ...record, kind: as, amount: held, source: 'table', destination } : undefined;
     }
     const total = (snapshot: GameSnapshot) =>
       snapshot.table.pieces.filter(isSpicePiece).reduce((sum, piece) => sum + piece.items.length, 0);

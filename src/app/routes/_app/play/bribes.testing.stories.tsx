@@ -35,7 +35,9 @@ const picks = (item: RegExp, give: 'bribe' | 'payment') => ({
     const { page, ring } = await giftRing(canvasElement);
     await expect(drops()).toEqual([]);
     await userEvent.click(within(ring).getByRole('menuitem', { name: item }));
-    await waitFor(() => expect(drops()).toEqual([expect.objectContaining({ give })]));
+    await waitFor(() =>
+      expect(drops()).toEqual([expect.objectContaining({ give: { as: give, factionId: 'emperor' } })])
+    );
     await waitFor(() => expect(page.queryByRole('menu')).toBeNull());
   },
 });

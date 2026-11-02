@@ -27,7 +27,7 @@ import { isRemovalAction } from '@shared/play/removal';
 import { isReviewAction, reviewRunning } from '@shared/play/review';
 import { CARRY_FLIPS_LIMIT, SPECTATOR_SEAT, tablePositionSchema } from '@shared/play/schema';
 import { isSpicePiece } from '@shared/play/spice';
-import type { SpiceGift } from '@shared/play/spiceReserve';
+import type { SpiceGift, SpiceGiftChoice } from '@shared/play/spiceReserve';
 import { isSwapAction } from '@shared/play/swapping';
 import {
   draftForGesture,
@@ -99,7 +99,7 @@ type LocalCarry = {
   /* Spice let go over another faction's token waits in hand, over it, while the placer picks a bribe or a payment; `x` and `y` are where the pointer let go. */
   offer?: { factionId: string; position: Vector3Tuple; x: number; y: number };
   /* What the placer picked for that spice, sent with the drop. */
-  give?: SpiceGift;
+  give?: SpiceGiftChoice;
 };
 /* Each faction a deck can deal to, with its token art for the deal ring. */
 function dealRecipients(snapshot: GameSnapshot) {
@@ -1572,7 +1572,7 @@ export class TableSession {
     this.carry = {
       ...rest,
       draft: { ...rest.draft, position: carry.offer.position },
-      give: as,
+      give: { as, factionId: carry.offer.factionId },
       pendingDrop: crypto.randomUUID(),
       dropUnsent: true,
     };

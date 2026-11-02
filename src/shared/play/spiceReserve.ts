@@ -14,6 +14,9 @@ export const spiceReserveSchema = z.object({
  */
 export const SPICE_GIFTS = ['bribe', 'payment'] as const;
 export type SpiceGift = (typeof SPICE_GIFTS)[number];
+/* What the placer chose for spice let go over a token, and the faction it was offered to, so a token moved in between refuses it. */
+export const spiceGiftSchema = z.strictObject({ as: z.enum(SPICE_GIFTS), factionId: tableIdSchema });
+export type SpiceGiftChoice = z.infer<typeof spiceGiftSchema>;
 
 export const spiceTransferSchema = z.object({
   revision: tableCountSchema,
