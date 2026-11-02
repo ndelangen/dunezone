@@ -69,6 +69,16 @@ describe('a tech token in hand', () => {
     expect(JSON.stringify(projection.snapshot(room.snapshot, 'harkonnen').techTokens)).not.toContain(TECH);
   });
 
+  test('goes into the hand face up even when it lay turned over, as it is public', () => {
+    const { room, send } = roomWithTechToken();
+    room.snapshot.table.pieces.find((piece) => piece.id === TECH)!.items[0]!.faceUp = false;
+    send({ kind: 'hand-take', pieceId: TECH });
+    expect(room.snapshot.factionInventories.atreides?.[0]?.items[0]?.faceUp).toBe(true);
+    expect(new RoomProjection('secret').snapshot(room.snapshot, 'harkonnen').techTokens?.atreides?.[0]?.name).toBe(
+      'Heighliners'
+    );
+  });
+
   test('still counts as held on the private side-table', () => {
     const { room, send } = roomWithTechToken();
     send({ kind: 'hand-take', pieceId: TECH });

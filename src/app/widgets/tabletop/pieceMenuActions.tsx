@@ -116,7 +116,7 @@ function deckActions(
   ];
 }
 
-/* Taking a loose card or a battle leader into the hand; it closes the ring, since the piece leaves the table. */
+/* Taking a loose card, battle leader or tech token into the hand; it closes the ring, since the piece leaves the table. */
 function handAction(
   piece: TablePiece,
   handControls: NonNullable<MenuControls['handControls']>,

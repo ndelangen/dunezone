@@ -1,6 +1,6 @@
 import type { TableProjection } from '../../../../../db/tabletop/TableSession';
 import { seatFaction } from '../../multiplayer/tableFactions';
-import { heldTechTokenPiece } from './heldTechTokenPiece';
+import { heldTechTokenPieces } from './heldTechTokenPiece';
 import { HeldTechTokens } from './HeldTechTokens';
 
 /** The tech tokens the seat's faction holds, at the allies' size in the Faction info toolbar, or null while it holds none. */
@@ -10,5 +10,5 @@ export function seatTechTokens(table: TableProjection, seat: string) {
   if (!factionId || !held.length) {
     return null;
   }
-  return <HeldTechTokens tokens={held.map((token, index) => heldTechTokenPiece(token, factionId, index))} />;
+  return <HeldTechTokens tokens={heldTechTokenPieces(held, factionId)} />;
 }

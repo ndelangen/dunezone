@@ -2,7 +2,7 @@ import type { GameSnapshot } from '@shared/play/protocol';
 import { heldTechTokens } from '@shared/play/techToken';
 
 import { dreamrulesTechTokenPieces } from '../inventory/techTokens.stories.fixture';
-import { heldTechTokenPiece } from './heldTechTokenPiece';
+import { heldTechTokenPieces as piecesOf } from './heldTechTokenPiece';
 
 /* The Dreamrules tech tokens a story hands out, by slug. */
 function tokens(...slugs: string[]) {
@@ -38,5 +38,5 @@ export function heldTechTokenPieces(slugs: readonly string[], { faceDown = [] as
     },
     ['house']
   );
-  return (held.house ?? []).map((token, index) => heldTechTokenPiece(token, 'house', index));
+  return piecesOf(held.house ?? [], 'house');
 }

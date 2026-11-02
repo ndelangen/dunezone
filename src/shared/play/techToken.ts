@@ -18,9 +18,8 @@ export function drawableTechTokens<Piece extends TablePiece>(pieces: readonly Pi
 }
 
 /** What a hand takes from the table: one loose, unlocked card, battle leader or tech token, not something already in an inventory. */
-export function takeableIntoHand(piece: StoredPiece | TablePiece | undefined): boolean {
+export function takeableIntoHand(piece: StoredPiece | TablePiece): boolean {
   return (
-    piece !== undefined &&
     !piece.inventory &&
     !piece.locked &&
     piece.items.length === 1 &&

@@ -7,9 +7,10 @@ const FACE_DOWN = 'Face-down tech token';
 /**
  * A held tech token as a piece the panel's artwork, tooltip and Alt close-up read, named by where it is held rather than by any piece on the table.
  * A face-down one shows its back.
+ * Its id is its face and its place among held tokens showing the same face, so a hover or tooltip stays on it when another token leaves the hand.
  */
 export function heldTechTokenPiece(token: HeldTechToken, factionId: string, index: number): TablePiece {
-  const id = `${factionId}-held-tech-${index}`;
+  const id = `${factionId}-held-tech-${token.front ?? token.back}-${index}`;
   const faceUp = token.front !== undefined;
   return {
     id,
@@ -38,4 +39,15 @@ export function heldTechTokenPiece(token: HeldTechToken, factionId: string, inde
     locked: false,
     kind: 'force',
   };
+}
+
+/** A faction's held tech tokens as pieces, each counted only among those showing the same face, so its id does not move when another is played. */
+export function heldTechTokenPieces(tokens: readonly HeldTechToken[], factionId: string): TablePiece[] {
+  const seen = new Map<string, number>();
+  return tokens.map((token) => {
+    const face = token.front ?? token.back;
+    const index = seen.get(face) ?? 0;
+    seen.set(face, index + 1);
+    return heldTechTokenPiece(token, factionId, index);
+  });
 }

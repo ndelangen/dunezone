@@ -37,7 +37,7 @@ function PieceMenu({ pieceMenu, onClose }: Readonly<{ pieceMenu: PieceMenuAnchor
     { deckControls, spiceReserveControls, peekControls, deleteControls, handControls },
     { reserved: menuPieceReserved, onClose }
   );
-  /* A leader offers only Take into hand, which a viewer who cannot act does not get; then there is no ring to show. */
+  /* A leader or a tech token may offer only Take into hand, which a viewer who cannot act does not get; then there is no ring to show. */
   if (actions.length === 0) {
     return null;
   }

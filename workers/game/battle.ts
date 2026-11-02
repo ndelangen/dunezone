@@ -340,8 +340,15 @@ function takeIntoHand(
     return refuse('Choose one unlocked card, leader or tech token on the table.');
   }
   const { battleOverlay: _overlay, ...taken } = piece;
-  /* A hand forgets who peeked at its cards, so a card later played face down out of it cannot be told apart by its marks. */
-  const stored = { ...taken, items: taken.items.map(({ peekedBy: _peekedBy, ...item }) => item) };
+  /*
+   * A hand forgets who peeked at its cards, so a card later played face down out of it cannot be told apart by its marks.
+   * A tech token is public, so it goes into the hand face up even if it lay turned over, and everyone keeps seeing which one is held.
+   */
+  const techToken = isTechToken(piece);
+  const stored = {
+    ...taken,
+    items: taken.items.map(({ peekedBy: _peekedBy, ...item }) => (techToken ? { ...item, faceUp: true } : item)),
+  };
   return commit(
     snapshot,
     {

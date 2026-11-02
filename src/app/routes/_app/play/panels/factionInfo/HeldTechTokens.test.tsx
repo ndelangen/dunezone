@@ -7,7 +7,7 @@ import { afterEach, expect, test } from 'vite-plus/test';
 
 import { CompassActiveContext } from '../../compass/controlsActive';
 import { stubMatchMedia } from '../../multiplayer/jsdom.test.fixture';
-import { heldTechTokenPiece } from './heldTechTokenPiece';
+import { heldTechTokenPiece, heldTechTokenPieces } from './heldTechTokenPiece';
 import { HeldTechTokens } from './HeldTechTokens';
 
 stubMatchMedia();
@@ -64,4 +64,11 @@ test('Alt over a face-down token shows its back larger, and nothing of its face'
   const closeUp = document.querySelector('[data-piece-close-up]');
   expect(closeUp?.innerHTML).toContain(HEIGHLINERS.back);
   expect(closeUp?.innerHTML).not.toContain(HEIGHLINERS.front);
+});
+
+test('a held token keeps its id when another one leaves the hand', () => {
+  const customs = { back: HEIGHLINERS.back, front: 'https://dune.zone/customs.jpg', name: 'Customs' };
+  const before = heldTechTokenPieces([HEIGHLINERS, customs], 'atreides');
+  const after = heldTechTokenPieces([customs], 'atreides');
+  expect(after[0]!.id).toBe(before[1]!.id);
 });
