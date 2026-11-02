@@ -119,14 +119,17 @@ type Choice = { was: string | null; picked: boolean; release: () => void };
  */
 function listenForPick(field: Field, watch: Choice): () => void {
   const mine = () => find(field)?.getAttribute('aria-expanded') === 'true';
+  const onOption = (target: EventTarget | null) =>
+    target instanceof Element && target.closest(`${ARTWORK_LIST} [role="option"]`) !== null;
+  const highlighted = () => document.querySelector(`${ARTWORK_LIST} [data-combobox-selected]`) !== null;
   const click = (event: MouseEvent) => {
-    if (mine() && event.target instanceof Element && event.target.closest(`${ARTWORK_LIST} [role="option"]`)) {
+    if (mine() && onOption(event.target)) {
       watch.picked = true;
     }
   };
   const key = (event: KeyboardEvent) => {
-    if (event.key === 'Enter' && mine() && document.querySelector(`${ARTWORK_LIST} [data-combobox-selected]`)) {
-      watch.picked = true;
+    if (event.key === 'Enter' && mine()) {
+      watch.picked ||= highlighted();
     }
   };
   document.addEventListener('click', click, true);

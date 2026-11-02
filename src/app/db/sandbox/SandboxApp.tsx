@@ -131,7 +131,11 @@ function startSandbox(start: Start, outer: AnyRouter, show: (update: () => Runni
     leave = null;
   };
   const arrive = () => {
-    if (ended || away || !backend || leave) {
+    const paused = ended || away;
+    if (paused || !backend) {
+      return;
+    }
+    if (leave) {
       return;
     }
     if (running) {
