@@ -42,63 +42,36 @@ const pageButton = (name: string) => (): Element | null =>
   ) ?? null;
 
 /*
- * The creator opens blank in the tutorial, so a text task asks for real writing rather than any change:
- * a name has two letters or more, a rule has three words or more, and a number is a new number. Pressing Enter in an
- * empty box, or typing a space, does not count, nor does leaving a box as it was. The task is done once the text is
- * enough and the learner has left the box, so the chapter does not move on while they are still typing.
- * In the tutorial Enter leaves a box, so every text task ends with {Enter} (Shift+Enter still starts a new line in a rule).
- * The task remembers the last text it saw, as leaving includes opening another tab, which takes the box away.
+ * A text task counts any change the learner makes, once they pause (Norbert, 2026-11-02): two seconds after the last
+ * keystroke in a one-line box, four in a text box, where they may still be thinking, or as soon as they leave it.
+ * Leaving the box as it was, or emptying it, does not count. The task remembers the last text it saw, as opening
+ * another tab takes the box away.
  */
-type Enough = (text: string) => boolean;
+const ONE_LINE_PAUSE = 2000;
+const TEXT_PAUSE = 4000;
 
-/** A name: two letters or more. */
-const aName: Enough = (text) => (text.match(/\p{L}/gu) ?? []).length >= 2;
-/** A rule: three words or more. */
-const aSentence: Enough = (text) => (text.match(/\p{L}+/gu) ?? []).length >= 3;
-/** A number, or a leader's one-character strength. */
-const aNumber: Enough = (text) => text.trim().length > 0;
+type Typed = { first: string; last: string; changedAt: number; area: boolean };
 
-type Typed = { first: string; last: string; release: () => void };
-
-type TextBox = HTMLInputElement | HTMLTextAreaElement;
-
-/* The box of `field` that Enter, without Shift, was pressed in, if it was. */
-function enteredIn(field: Field, event: KeyboardEvent): TextBox | null {
-  if (event.key !== 'Enter' || event.shiftKey) {
-    return null;
-  }
-  const target = event.target;
-  const box = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement ? target : null;
-  return box?.matches(field.selector) ? box : null;
-}
-
-/* Enter in the box of `field` leaves it; returns what stops listening. */
-function enterLeaves(field: Field): () => void {
-  const leave = (event: KeyboardEvent) => {
-    const box = enteredIn(field, event);
-    if (box) {
-      event.preventDefault();
-      box.blur();
-    }
-  };
-  document.addEventListener('keydown', leave, true);
-  return () => document.removeEventListener('keydown', leave, true);
-}
-
-const left = (box: Element | null) => box === null || document.activeElement !== box;
-
-const typed = (field: Field, enough: Enough) => ({
+const typed = (field: Field) => ({
   anchor: { kind: 'page' as const, element: fieldOrTab(field) },
   begin: (): Typed => {
-    const first = valueOf(find(field)) ?? '';
-    return { first, last: first, release: enterLeaves(field) };
+    const box = find(field);
+    const first = valueOf(box) ?? '';
+    return { first, last: first, changedAt: Date.now(), area: box instanceof HTMLTextAreaElement };
   },
   done: (watch: Typed) => {
     const box = find(field);
-    watch.last = valueOf(box) ?? watch.last;
-    return enough(watch.last) && watch.last.trim() !== watch.first.trim() && left(box);
+    const text = valueOf(box) ?? watch.last;
+    if (text !== watch.last) {
+      watch.last = text;
+      watch.changedAt = Date.now();
+      watch.area ||= box instanceof HTMLTextAreaElement;
+    }
+    const changed = text.trim().length > 0 && text.trim() !== watch.first.trim();
+    const paused = Date.now() - watch.changedAt >= (watch.area ? TEXT_PAUSE : ONE_LINE_PAUSE);
+    const left = box === null || document.activeElement !== box;
+    return changed && (paused || left);
   },
-  finish: (watch: Typed) => watch.release(),
 });
 
 /* An artwork picker's open list: the creator's artwork pickers show one only while open. */
@@ -164,9 +137,9 @@ const identityTasks = (): GuideTask[] => [
     id: 'name',
     task: 'Name your faction',
     detail:
-      "Let's make a faction of your own! This is a practice copy of Dune Zone that lives only in your browser, so try whatever you like.\n\nType a name for your faction, such as Sand Wardens, and press {Enter}.",
+      "Let's make a faction of your own! This is a practice copy of Dune Zone that lives only in your browser, so try whatever you like.\n\nType a name for your faction, such as Sand Wardens.",
     introducesSpeakingMode: true,
-    ...typed({ selector: '#faction-name' }, aName),
+    ...typed({ selector: '#faction-name' }),
   }),
   task({
     id: 'logo',
@@ -196,8 +169,8 @@ const factionLeaderTasks = (): GuideTask[] => [
     id: 'faction-leader',
     task: 'Name your faction leader',
     detail:
-      "Every faction has a leader who doesn't fight. They're shown on your faction sheet.\n\nType their name, such as Wardeness Ilesa, and press {Enter}.",
-    ...typed({ selector: '#faction-leader-name', tab: 'Faction leader' }, aName),
+      "Every faction has a leader who doesn't fight. They're shown on your faction sheet.\n\nType their name, such as Wardeness Ilesa.",
+    ...typed({ selector: '#faction-leader-name', tab: 'Faction leader' }),
   }),
   task({
     id: 'faction-leader-portrait',
@@ -225,15 +198,15 @@ const leaderTasks = (): GuideTask[] => [
   task({
     id: 'name-leader',
     task: 'Name your new leader',
-    detail: 'Give your new leader a name, such as Captain Oruk, and press {Enter}.',
-    ...typed({ selector: '#leader-0-name', tab: 'Leaders' }, aName),
+    detail: 'Give your new leader a name, such as Captain Oruk.',
+    ...typed({ selector: '#leader-0-name', tab: 'Leaders' }),
   }),
   task({
     id: 'leader-strength',
     task: 'Set their strength',
     detail:
-      "A leader's strength is added to the troops they lead in battle. Most leaders are between 1 and 6.\n\nType a strength, such as 5, and press {Enter}.",
-    ...typed({ selector: '#leader-0-str', tab: 'Leaders' }, aNumber),
+      "A leader's strength is added to the troops they lead in battle. Most leaders are between 1 and 6.\n\nType a strength, such as 5.",
+    ...typed({ selector: '#leader-0-str', tab: 'Leaders' }),
   }),
   task({
     id: 'leader-portrait',
@@ -254,8 +227,8 @@ const troopTasks = (): GuideTask[] => [
   task({
     id: 'troops',
     task: 'Name your troops',
-    detail: 'Name your troops, such as Wardens, and press {Enter}.',
-    ...typed({ selector: '#troop-0-name', tab: 'Troops' }, aName),
+    detail: 'Name your troops, such as Wardens.',
+    ...typed({ selector: '#troop-0-name', tab: 'Troops' }),
   }),
   task({
     id: 'troop-symbol',
@@ -268,8 +241,8 @@ const troopTasks = (): GuideTask[] => [
     id: 'troop-supply',
     task: 'Say how many there are',
     detail:
-      'Physical supply is how many of these tokens come in the box. Most factions have 20.\n\nType a number, such as 15, and press {Enter}.',
-    ...typed({ selector: '#troop-0-count', tab: 'Troops' }, aNumber),
+      'Physical supply is how many of these tokens come in the box. Most factions have 20.\n\nType a number, such as 15.',
+    ...typed({ selector: '#troop-0-count', tab: 'Troops' }),
   }),
 ];
 
@@ -285,8 +258,8 @@ const ruleTasks = (): GuideTask[] => [
     id: 'alliance',
     task: 'Write your alliance advantage',
     detail:
-      'Write a sentence on what your ally gets, such as: Your ally may move one extra territory. Then press {Enter}.',
-    ...typed({ selector: '#rules-alliance', tab: 'Alliance' }, aSentence),
+      'Write a sentence on what your ally gets, such as: Your ally may move one extra territory.',
+    ...typed({ selector: '#rules-alliance', tab: 'Alliance' }),
   }),
   task({
     id: 'open-rules',
@@ -298,29 +271,29 @@ const ruleTasks = (): GuideTask[] => [
     id: 'start',
     task: 'Say how your troops start',
     detail:
-      'Starting instructions say where your troops are when the game begins. Starting spice and revival have boxes of their own, so leave them out here.\n\nWrite a sentence, such as: 10 troops in Sietch Tabr, the rest in reserve. Then press {Enter}.',
-    ...typed({ selector: '#rules-start', tab: 'Rules' }, aSentence),
+      'Starting instructions say where your troops are when the game begins. Starting spice and revival have boxes of their own, so leave them out here.\n\nWrite a sentence, such as: 10 troops in Sietch Tabr, the rest in reserve.',
+    ...typed({ selector: '#rules-start', tab: 'Rules' }),
   }),
   task({
     id: 'spice',
     task: 'Set your starting spice',
     detail:
-      'Starting spice is how much spice you begin with. The sheet prints it for you.\n\nType an amount, such as 12, and press {Enter}.',
-    ...typed({ selector: '#rules-spice', tab: 'Rules' }, aNumber),
+      'Starting spice is how much spice you begin with. The sheet prints it for you.\n\nType an amount, such as 12.',
+    ...typed({ selector: '#rules-spice', tab: 'Rules' }),
   }),
   task({
     id: 'revival',
     task: 'Say how your troops revive',
     detail:
-      'Revival instructions say how many troops come back from the Tleilaxu Tanks each turn for free.\n\nWrite a sentence, such as: 2 troops revive for free each turn. Then press {Enter}.',
-    ...typed({ selector: '#rules-revival', tab: 'Rules' }, aSentence),
+      'Revival instructions say how many troops come back from the Tleilaxu Tanks each turn for free.\n\nWrite a sentence, such as: 2 troops revive for free each turn.',
+    ...typed({ selector: '#rules-revival', tab: 'Rules' }),
   }),
   task({
     id: 'karama',
     task: 'Write your Karama power',
     detail:
-      'A Karama card lets a faction break one of the rules, once. Say what yours does.\n\nWrite a sentence, such as: Look at one opponent\'s battle plan before you make yours. Then press {Enter}.',
-    ...typed({ selector: '#rules-fate-text', tab: 'Rules' }, aSentence),
+      'A Karama card lets a faction break one of the rules, once. Say what yours does.\n\nWrite a sentence, such as: Look at one opponent\'s battle plan before you make yours.',
+    ...typed({ selector: '#rules-fate-text', tab: 'Rules' }),
   }),
 ];
 
@@ -341,15 +314,15 @@ const advantageTasks = (): GuideTask[] => [
   task({
     id: 'advantage-title',
     task: 'Give it a title',
-    detail: 'A title names the advantage on your faction sheet. Type one, such as Desert Patrol, and press {Enter}.',
-    ...typed({ selector: '#adv-0-title', tab: 'Advantages' }, aName),
+    detail: 'A title names the advantage on your faction sheet. Type one, such as Desert Patrol.',
+    ...typed({ selector: '#adv-0-title', tab: 'Advantages' }),
   }),
   task({
     id: 'advantage-rule',
     task: 'Write the advantage',
     detail:
-      'Say what your faction may do, such as: Your troops may move two territories through the desert. Then press {Enter}.',
-    ...typed({ selector: '#adv-0-text', tab: 'Advantages' }, aSentence),
+      'Say what your faction may do, such as: Your troops may move two territories through the desert.',
+    ...typed({ selector: '#adv-0-text', tab: 'Advantages' }),
   }),
 ];
 

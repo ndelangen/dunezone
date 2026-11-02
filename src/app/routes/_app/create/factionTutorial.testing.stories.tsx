@@ -36,11 +36,9 @@ export const WalkThrough = meta.story({
     const current = () => document.querySelector('[data-state="current"]')?.textContent ?? '';
     const next = (title: string) => waitForFrame(() => expect(current()).toContain(title), { timeout: 20_000 });
     const tab = (name: string) => userEvent.click(page.getByRole('tab', { name: new RegExp(`^${name}`) }));
-    /* Every text task ends with Enter, which leaves the box. */
+    /* A text task moves on once the learner pauses, with the cursor still in the box. */
     const write = async (name: string, text: string) => {
-      const box = (await page.findAllByRole('textbox', { name }))[0]!;
-      await retype(box, text);
-      await userEvent.keyboard('{Enter}');
+      await retype((await page.findAllByRole('textbox', { name }))[0]!, text);
     };
     /* A picker counts once it closes on the option searched for; opening it and searching is not a pick. */
     const pick = async (selector: string, option: string, stillOpen?: () => unknown) => {

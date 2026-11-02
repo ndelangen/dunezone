@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 
-import { describe, expect, test } from 'vite-plus/test';
+import { describe, expect, test, vi } from 'vite-plus/test';
 
 import { SAVE_TASK } from './factionTutorialSteps';
 import { FACTION_TUTORIAL_TASKS } from './factionTutorialTasks';
@@ -32,38 +32,60 @@ describe('the faction tutorial', () => {
 describe('the faction tutorial reading the page', () => {
   const view = { camera: null };
 
-  test('a name counts once it has two letters and the learner has left the box; Enter in an empty box does not', () => {
-    document.body.innerHTML = '<input id="faction-name" value="" />';
+  test('a name counts two seconds after the last change, or once the learner leaves the box', () => {
+    vi.useFakeTimers();
+    document.body.innerHTML = '<input id="faction-name" value="" /><button>elsewhere</button>';
     const name = FACTION_TUTORIAL_TASKS({ pathname: () => '' }).find((task) => task.id === 'name')!;
     const watch = name.begin(view);
     const box = document.querySelector<HTMLInputElement>('#faction-name')!;
-    const enter = () => box.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     box.focus();
-    enter();
+    vi.advanceTimersByTime(5000);
     expect(name.done(watch, view)).toBe(false);
-    box.focus();
-    box.value = ' S ';
-    enter();
+    box.value = 'S';
     expect(name.done(watch, view)).toBe(false);
-    box.focus();
-    box.value = 'Sand Wardens';
+    vi.advanceTimersByTime(1500);
+    box.value = 'Sand';
     expect(name.done(watch, view)).toBe(false);
-    enter();
-    expect(document.activeElement).not.toBe(box);
+    vi.advanceTimersByTime(1500);
+    expect(name.done(watch, view)).toBe(false);
+    vi.advanceTimersByTime(500);
     expect(name.done(watch, view)).toBe(true);
-    name.finish?.(watch);
+
+    const again = name.begin(view);
+    box.value = 'Sand Wardens';
+    expect(name.done(again, view)).toBe(false);
+    document.querySelector('button')!.focus();
+    expect(name.done(again, view)).toBe(true);
+    vi.useRealTimers();
   });
 
-  test('a rule needs three words', () => {
-    document.body.innerHTML = '<textarea id="rules-alliance"></textarea>';
-    const alliance = FACTION_TUTORIAL_TASKS({ pathname: () => '' }).find((task) => task.id === 'alliance')!;
-    const watch = alliance.begin(view);
-    const box = document.querySelector<HTMLTextAreaElement>('#rules-alliance')!;
-    box.value = 'ok';
-    expect(alliance.done(watch, view)).toBe(false);
-    box.value = 'Your ally moves further.';
-    expect(alliance.done(watch, view)).toBe(true);
-    alliance.finish?.(watch);
+  test('a rule counts four seconds after the last change, and emptying a box never counts', () => {
+    vi.useFakeTimers();
+    document.body.innerHTML = '<textarea id="rules-revival"></textarea><input id="rules-spice" value="10" />';
+    const tasks = FACTION_TUTORIAL_TASKS({ pathname: () => '' });
+    const revival = tasks.find((task) => task.id === 'revival')!;
+    const watch = revival.begin(view);
+    const box = document.querySelector<HTMLTextAreaElement>('#rules-revival')!;
+    box.focus();
+    box.value = 'Two troops';
+    expect(revival.done(watch, view)).toBe(false);
+    vi.advanceTimersByTime(3000);
+    expect(revival.done(watch, view)).toBe(false);
+    box.value = '   ';
+    vi.advanceTimersByTime(5000);
+    expect(revival.done(watch, view)).toBe(false);
+    box.value = 'Two troops revive free.';
+    expect(revival.done(watch, view)).toBe(false);
+    vi.advanceTimersByTime(4000);
+    expect(revival.done(watch, view)).toBe(true);
+
+    const spice = tasks.find((task) => task.id === 'spice')!;
+    const spiceWatch = spice.begin(view);
+    vi.advanceTimersByTime(5000);
+    expect(spice.done(spiceWatch, view)).toBe(false);
+    document.querySelector<HTMLInputElement>('#rules-spice')!.value = '12';
+    expect(spice.done(spiceWatch, view)).toBe(true);
+    vi.useRealTimers();
   });
 
   test('a logo picked before the task first looks still counts', () => {
@@ -104,27 +126,4 @@ test('opening a tab is a task of its own, done once that tab is selected', () =>
   expect(open.done(undefined, view)).toBe(false);
   document.querySelectorAll('[role="tab"]')[1]!.setAttribute('aria-selected', 'true');
   expect(open.done(undefined, view)).toBe(true);
-});
-
-test('Enter leaves a rule box and finishes it, while Shift+Enter stays; an unchanged number does not count', () => {
-  document.body.innerHTML = '<textarea id="rules-revival"></textarea><input id="rules-spice" value="10" />';
-  const tasks = FACTION_TUTORIAL_TASKS({ pathname: () => '' });
-  const view = { camera: null };
-  const revival = tasks.find((task) => task.id === 'revival')!;
-  const watch = revival.begin(view);
-  const box = document.querySelector<HTMLTextAreaElement>('#rules-revival')!;
-  box.focus();
-  box.value = 'Two troops revive free.';
-  box.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', shiftKey: true, bubbles: true }));
-  expect(revival.done(watch, view)).toBe(false);
-  box.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-  expect(revival.done(watch, view)).toBe(true);
-  revival.finish?.(watch);
-
-  const spice = tasks.find((task) => task.id === 'spice')!;
-  const spiceWatch = spice.begin(view);
-  expect(spice.done(spiceWatch, view)).toBe(false);
-  document.querySelector<HTMLInputElement>('#rules-spice')!.value = '12';
-  expect(spice.done(spiceWatch, view)).toBe(true);
-  spice.finish?.(spiceWatch);
 });
