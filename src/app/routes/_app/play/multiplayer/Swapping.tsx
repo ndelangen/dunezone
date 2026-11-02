@@ -19,6 +19,8 @@ type Trading = Readonly<{
   seat: string;
   closed: boolean;
   disabled: boolean;
+  /* A seat command the viewer sent is still on its way, which also holds trades back. */
+  pending: boolean;
   send: (action: SwapAction) => unknown;
 }>;
 
@@ -51,6 +53,7 @@ function tradingAt(
     seat: table.viewer.viewerSeat,
     closed,
     disabled: !table.canInteract || table.seatCommandPending || closed,
+    pending: table.seatCommandPending,
     send,
   };
 }
@@ -192,6 +195,9 @@ function tradeChoice(state: SwappingState, seat: string, entry: RosterSeat, play
 
 /* Why the trade cannot be sent right now, or undefined while it can. */
 function blockedReason(trading: Trading, ready: Readonly<{ own: boolean; theirs: boolean }>) {
+  if (trading.pending) {
+    return 'Waiting for the table to answer your last trade or seat request.';
+  }
   if (trading.disabled) {
     return 'Trades wait while the table reconnects.';
   }
