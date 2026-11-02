@@ -80,6 +80,8 @@ export default defineConfig({
       '@react-three/drei/webgpu',
       '@react-three/fiber/webgpu',
       'three',
+      /* The board skins' planet shading imports TSL; found mid-run it reloaded a started story. */
+      'three/tsl',
     ],
     /* The prebundled table runs the same fiber and drei code as the build. */
     rolldownOptions: { plugins: [threeRendererStackTreeShaking()] },
