@@ -14,7 +14,7 @@
 }
 
 /* A row with nothing in it takes no room, as for an observer at a game whose faction has no page. */
-.toolbar:not(:has(button, a, [role="img"], [role="listitem"])) {
+.toolbar:not(:has(button, a, [role="img"])) {
   display: none;
 }
 
@@ -22,20 +22,6 @@
   display: flex;
   align-items: center;
   gap: var(--space-xs);
-}
-
-/*
- * The seat's side: what its faction holds, then what the viewer can do about it, kept as two runs.
- * In a narrow window the actions wrap under the holdings, both against the right edge, rather than run out of the window.
- */
-.seat {
-  display: flex;
-  flex: 1 1 auto;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: var(--space-xs);
-  min-width: 0;
 }
 
 /* Before the removal vote: no line, only the gap twice over, as the webapp's toolbar spaces its runs. */

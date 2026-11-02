@@ -5,10 +5,10 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
 import { afterEach, expect, test } from 'vite-plus/test';
 
-import { CompassActiveContext } from '../../compass/controlsActive';
-import { stubMatchMedia } from '../../multiplayer/jsdom.test.fixture';
+import { CompassActiveContext } from '../compass/controlsActive';
 import { heldTechTokenPiece, heldTechTokenPieces } from './heldTechTokenPiece';
 import { HeldTechTokens } from './HeldTechTokens';
+import { stubMatchMedia } from './jsdom.test.fixture';
 
 stubMatchMedia();
 afterEach(cleanup);

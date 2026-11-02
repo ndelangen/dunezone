@@ -1,18 +1,25 @@
 import preview from '@sb/preview';
+import { DarkSchemeIsland } from '@ui/surface/DarkSchemeIsland';
 import { expect } from 'storybook/test';
 
-import { panelMeta } from '../PanelWindow.stories.fixture';
-import { PANEL_WINDOWS } from '../panelWindows';
 import { HeldTechTokens } from './HeldTechTokens';
 import { heldTechTokenPieces } from './HeldTechTokens.stories.fixture';
 
 /*
- * The tech tokens one faction holds, as its Faction info toolbar shows them beside its allies: Dreamrules gears at the allies' size.
- * Each story shows one way a holding reads; the toolbar and panel stories show it in place.
+ * The tech tokens one faction holds, as the top bar shows them beside the alliances: Dreamrules gears at the faction tokens' size.
+ * Each story shows one way a holding reads; Play/Tech tokens shows them in place.
  */
 const meta = preview.meta({
-  ...panelMeta(PANEL_WINDOWS.factionInfo),
-  title: 'Play/Panels/Faction info/Held tech tokens',
+  title: 'Play/Tech tokens/Held tech tokens',
+  decorators: [
+    (Story) => (
+      <DarkSchemeIsland>
+        <div style={{ padding: 16 }}>
+          <Story />
+        </div>
+      </DarkSchemeIsland>
+    ),
+  ],
   component: HeldTechTokens,
   args: { tokens: heldTechTokenPieces(['heighliners', 'spice-production', 'customs']) },
 });

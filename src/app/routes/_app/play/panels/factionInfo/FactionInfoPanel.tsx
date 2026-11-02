@@ -100,7 +100,6 @@ export function FactionInfoPanel({ error, vote, requests, header, trade, details
           <FactionInfoToolbar
             page={header.page}
             removal={header.removal}
-            techTokens={header.techTokens}
             allies={header.alliance?.allies}
             alliance={header.alliance?.action}
             trade={trade}

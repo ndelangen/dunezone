@@ -16,8 +16,6 @@ export type FactionInfoHeaderModel = Readonly<{
   seat: string;
   own: boolean;
   alliance: SeatAlliance | null;
-  /** The tech tokens the seat's faction holds, which everyone sees, while it holds any. */
-  techTokens: ReactNode;
   page: Readonly<{ href: string; name: string }> | null;
   /** Starting a removal vote against the player, with why it cannot start yet. */
   removal: Readonly<{ start: () => void; disabledReason?: string }> | null;

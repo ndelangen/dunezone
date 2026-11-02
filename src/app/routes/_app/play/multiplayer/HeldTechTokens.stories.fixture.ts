@@ -1,7 +1,7 @@
 import type { GameSnapshot } from '@shared/play/protocol';
 import { heldTechTokens } from '@shared/play/techToken';
 
-import { dreamrulesTechTokenPieces } from '../inventory/techTokens.stories.fixture';
+import { dreamrulesTechTokenPieces } from '../panels/inventory/techTokens.stories.fixture';
 import { heldTechTokenPieces as piecesOf } from './heldTechTokenPiece';
 
 /* The Dreamrules tech tokens a story hands out, by slug. */

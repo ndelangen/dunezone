@@ -2,15 +2,15 @@ import { Tooltip } from '@mantine/core';
 import type { TablePiece } from '@shared/play/model';
 import { useContext, useRef } from 'react';
 
-import { PieceArtwork } from '../../../../../widgets/tabletop/PieceArtwork';
-import { PieceFaceCloseUp } from '../../../../../widgets/tabletop/PieceCloseUp';
-import { CompassActiveContext } from '../../compass/controlsActive';
-import { useHandCloseUp } from '../../multiplayer/HandPiece';
-import { PieceTooltipLabel } from '../inventory/PieceTooltipLabel';
+import { PieceArtwork } from '../../../../widgets/tabletop/PieceArtwork';
+import { PieceFaceCloseUp } from '../../../../widgets/tabletop/PieceCloseUp';
+import { CompassActiveContext } from '../compass/controlsActive';
+import { PieceTooltipLabel } from '../panels/inventory/PieceTooltipLabel';
+import { useHandCloseUp } from './HandPiece';
 import styles from './HeldTechTokens.module.css';
 
-/** The allies' token size beside them in the toolbar, so a held tech token reads at the same weight. */
-const HELD_TECH_TOKEN_SIZE = 28;
+/** The faction tokens' size in the alliance strip beside them, so a held tech token reads at the same weight. */
+const HELD_TECH_TOKEN_SIZE = 26;
 
 /* The face a held token shows everyone: its front while face up, its back once turned over. */
 function shownFace(piece: TablePiece) {

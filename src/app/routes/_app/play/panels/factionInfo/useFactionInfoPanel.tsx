@@ -22,7 +22,6 @@ import type { FactionInfoHeaderModel } from './FactionInfoHeader';
 import { FactionInfoPanel } from './FactionInfoPanel';
 import type { BallotChoice, FactionInfoPanelProps, RemovalVoteView } from './FactionInfoPanel';
 import { seatAlliance } from './seatAlliance';
-import { seatTechTokens } from './seatTechTokens';
 
 /* Another seated player, under no vote yet, can be put to one by a seated viewer. */
 function removable(table: TableProjection, seat: string, hasVote: boolean) {
@@ -82,7 +81,6 @@ function headerModel(
     seat: player.seat.replace('seat-', 'Seat '),
     own: player.seat === table.viewer.viewerSeat,
     alliance: seatAlliance(table, player.seat, sources.onAlliance),
-    techTokens: seatTechTokens(table, player.seat),
     page:
       sources.slug && faction ? { href: `/factions/${encodeURIComponent(sources.slug)}`, name: faction.name } : null,
     removal: removable(table, player.seat, sources.hasVote)

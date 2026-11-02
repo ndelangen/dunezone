@@ -9,7 +9,6 @@ import {
   removalSnapshot,
   vacantSnapshot,
 } from './FactionInfoPanel.stories.fixture';
-import { withTechTokens } from './HeldTechTokens.stories.fixture';
 
 /*
  * The Faction info window on its own, for one seat of a six-seat game mid-play, as seat 2 sees it:
@@ -79,13 +78,5 @@ export const WhileTrading = meta.story({
   play: async ({ canvas }) => {
     await expect(canvas.getByRole('toolbar', { name: 'Seat actions' })).toBeVisible();
     await expect(canvas.queryByText(/^(Not ready|Ready)$/)).toBeNull();
-  },
-});
-
-/** Central holds two tech tokens, which sit in the toolbar where the allies do, for everyone to see. */
-export const HoldingTechTokens = meta.story({
-  args: factionInfoArgs(withTechTokens(playingSnapshot())),
-  play: async ({ canvas }) => {
-    await expect(canvas.getByRole('listitem', { name: 'Heighliners' })).toBeVisible();
   },
 });

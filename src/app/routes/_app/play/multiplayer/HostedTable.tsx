@@ -68,6 +68,7 @@ import type { GameIdentity } from './StageHeader';
 import { SwapScene } from './SwapScene';
 import { isSpectator, offersActions, stageInPlay, viewerFaction } from './tableFactions';
 import { TableReviewPanel } from './TableReview';
+import { TechTokenStrip } from './TechTokenStrip';
 import { ServerClockContext } from './useServerNow';
 import { initialWindowFocus, nextWindowFocus } from './windowFocus';
 import '../dune-play.css';
@@ -610,7 +611,12 @@ function ConnectedTable({
               stage={stage}
               mapVisible={setupMapVisible(table.snapshot.setup)}
               connectionStatus={<ConnectionStatus table={table} />}
-              alliances={<AllianceStrip table={table} />}
+              alliances={
+                <>
+                  <AllianceStrip table={table} />
+                  <TechTokenStrip table={table} />
+                </>
+              }
               toolbarControl={stageToolbar({ client, table, error, bidderFaded, onBidderFadedChange: setBidderFaded })}
               /* The gathered Traitor pile lies under the Tleilaxu Tanks, below the Map view's frame on a wide screen (#1635). */
               requestedView={table.traitorsGathered ? { view: 'bottom', revision: table.traitorsGathered } : undefined}

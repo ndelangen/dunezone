@@ -9,7 +9,6 @@ import { PANEL_WINDOWS } from '../panelWindows';
 import { factionInfoArgs, removalSnapshot } from './FactionInfoPanel.stories.fixture';
 import { FactionInfoToolbar } from './FactionInfoToolbar';
 import type { FactionInfoToolbarProps } from './FactionInfoToolbar';
-import { withTechTokens } from './HeldTechTokens.stories.fixture';
 
 /* The toolbar's props as the Faction info hands them for one seat, seen from the viewer's seat. */
 function toolbarArgs(...args: Parameters<typeof factionInfoArgs>): FactionInfoToolbarProps {
@@ -17,7 +16,6 @@ function toolbarArgs(...args: Parameters<typeof factionInfoArgs>): FactionInfoTo
   return {
     page: header.page,
     removal: header.removal,
-    techTokens: header.techTokens,
     allies: header.alliance?.allies,
     alliance: header.alliance?.action,
     trade,
@@ -141,37 +139,5 @@ export const Observer = meta.story({
   play: async ({ canvas }) => {
     await expect(canvas.getAllByRole('link')).toHaveLength(1);
     await expect(canvas.queryByRole('button')).toBeNull();
-  },
-});
-
-/** The viewer's ally holds two tech tokens: their gears lead the right, then the ally's token and Break alliance. */
-export const TechTokensBesideAllies = meta.story({
-  args: toolbarArgs(withTechTokens(alliedSnapshot(), { 'seat-4': ['heighliners', 'tleilaxu-tanks'] }), 'seat-4'),
-  play: async ({ canvas }) => {
-    await expect(canvas.getByRole('list', { name: 'Tech tokens held' })).toBeVisible();
-    await expect(canvas.getByRole('img', { name: 'House Harkonnen' })).toBeVisible();
-  },
-});
-
-/** An observer sees who holds which tech token too, with still no action. */
-export const ObserverSeesTechTokens = meta.story({
-  args: toolbarArgs(withTechTokens(playingSnapshot()), 'seat-1', SPECTATOR_SEAT),
-  play: async ({ canvas }) => {
-    await expect(canvas.getAllByRole('listitem')).toHaveLength(2);
-    await expect(canvas.queryByRole('button')).toBeNull();
-  },
-});
-
-/** The busiest the row gets in a pinned slot: three tech tokens and an open removal ballot. The actions wrap under the holdings rather than run out of the window. */
-export const CrowdedInASlot = meta.story({
-  args: toolbarArgs(withTechTokens(removalSnapshot(), { 'seat-1': ['heighliners', 'spice-production', 'customs'] })),
-  play: async ({ canvas, canvasElement }) => {
-    const toolbar = canvas.getByRole('toolbar', { name: 'Seat actions' });
-    const right = toolbar.getBoundingClientRect().right;
-    for (const element of canvasElement.querySelectorAll(
-      '[role="toolbar"] button, [role="toolbar"] [role="listitem"]'
-    )) {
-      await expect(element.getBoundingClientRect().right).toBeLessThanOrEqual(right + 0.5);
-    }
   },
 });
