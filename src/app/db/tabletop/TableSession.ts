@@ -84,6 +84,9 @@ const UNANSWERED_COMMANDS_LIMIT = 4;
 /* A turn of a piece at rest in 15° steps, clockwise positive; `released` once the key is up but the turn is still to go out. */
 type Turn = { pieceId: string; turns: number; released?: boolean };
 
+/* Where the pointer let go, and the table point it was over. */
+type GiftPointer = { x: number; y: number; under?: Vector3Tuple | null };
+
 type LocalCarry = {
   id: string;
   sourceId: string;
@@ -1522,7 +1525,7 @@ export class TableSession {
    * `pointer` is where the pointer let go, and `under` the table point it was over.
    * Spice let go over another faction's token waits there for the placer to say what it is.
    */
-  finishGesture = (position: Vector3Tuple, pointer?: { x: number; y: number; under?: Vector3Tuple | null }) => {
+  finishGesture = (position: Vector3Tuple, pointer?: GiftPointer) => {
     if (!this.carryInHand()) {
       return;
     }
@@ -1537,15 +1540,22 @@ export class TableSession {
     this.emit();
   };
   /* Keeps spice let go over another faction's token waiting there, for the placer to say what it is; false when it is not such a drop. */
-  private offerGift(pointer?: { x: number; y: number; under?: Vector3Tuple | null }) {
-    const under = pointer?.under;
-    const factionId = under ? this.giftRecipient(under) : undefined;
-    if (!pointer || !under || !factionId) {
+  private offerGift(pointer?: GiftPointer) {
+    const offer = this.giftOffer(pointer);
+    if (!offer) {
       return false;
     }
-    this.carry = { ...this.carry!, offer: { factionId, position: [...under], x: pointer.x, y: pointer.y } };
+    this.carry = { ...this.carry!, offer };
     this.emit();
     return true;
+  }
+  private giftOffer(pointer?: GiftPointer): LocalCarry['offer'] {
+    const under = pointer?.under;
+    if (!pointer || !under) {
+      return undefined;
+    }
+    const factionId = this.giftRecipient(under);
+    return factionId ? { factionId, position: [...under], x: pointer.x, y: pointer.y } : undefined;
   }
   /* The faction whose token spice let go over `position` would go to: another seated faction's, while this viewer holds a spice reserve. */
   private giftRecipient(position: Vector3Tuple) {
