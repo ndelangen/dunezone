@@ -16,6 +16,13 @@ function toolbarArgs(...args: Parameters<typeof factionInfoArgs>): FactionInfoTo
   return { page: header.page, removal: header.removal, alliance: header.alliance?.action, trade };
 }
 
+/* Seats being traded, with the trade state the story is about. */
+function trading(change: (swapping: NonNullable<ReturnType<typeof swappingSnapshot>['swapping']>) => void) {
+  const snapshot = swappingSnapshot();
+  change(snapshot.swapping!);
+  return toolbarArgs(snapshot);
+}
+
 /*
  * The row of icon actions under a seat's Faction info header, as seat 2 sees it, in the Faction info window.
  * Each story shows one action's state; the panel's stories show the window around it.
@@ -71,13 +78,9 @@ export const Trade = meta.story({
 
 /** Their seat offers the viewer a trade: the green Accept trade. */
 export const TradeOffered = meta.story({
-  args: toolbarArgs(
-    (() => {
-      const snapshot = swappingSnapshot();
-      snapshot.swapping!.offers = [{ id: 'offer-one', origin: 'seat-1', target: 'seat-2', order: 1 }];
-      return snapshot;
-    })()
-  ),
+  args: trading((swapping) => {
+    swapping.offers = [{ id: 'offer-one', origin: 'seat-1', target: 'seat-2', order: 1 }];
+  }),
   play: async ({ canvas }) => {
     await expect(canvas.getByRole('button', { name: /^Accept trade from/ })).toBeVisible();
   },
@@ -85,13 +88,9 @@ export const TradeOffered = meta.story({
 
 /** The viewer's offer waits: the pressed hourglass takes it back. */
 export const TradeOffering = meta.story({
-  args: toolbarArgs(
-    (() => {
-      const snapshot = swappingSnapshot();
-      snapshot.swapping!.offers = [{ id: 'offer-one', origin: 'seat-2', target: 'seat-1', order: 1 }];
-      return snapshot;
-    })()
-  ),
+  args: trading((swapping) => {
+    swapping.offers = [{ id: 'offer-one', origin: 'seat-2', target: 'seat-1', order: 1 }];
+  }),
   play: async ({ canvas }) => {
     await expect(canvas.getByRole('button', { name: /^Cancel offer to/ })).toHaveAttribute('aria-pressed', 'true');
   },
@@ -99,13 +98,9 @@ export const TradeOffering = meta.story({
 
 /** Their player is ready, so they take no trades, and the action says so on hover. */
 export const TradeWhileTheyAreReady = meta.story({
-  args: toolbarArgs(
-    (() => {
-      const snapshot = swappingSnapshot();
-      snapshot.swapping!.ready = ['seat-1'];
-      return snapshot;
-    })()
-  ),
+  args: trading((swapping) => {
+    swapping.ready = ['seat-1'];
+  }),
   play: async ({ canvas }) => {
     await expect(canvas.getByRole('button', { name: /^Offer trade to/ })).toHaveAttribute('aria-disabled', 'true');
   },
