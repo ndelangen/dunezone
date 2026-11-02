@@ -62,6 +62,101 @@ async function seededBackend(database: DatabaseDefinition) {
 
 type Running = { client: SandboxConvexClient; router: AnyRouter; storage: ReturnType<typeof signedInStorage> };
 
+type Start = Readonly<{
+  database: DatabaseDefinition;
+  identity: WorkerIdentity;
+  path: string;
+  onReady?: (controls: SandboxControls) => void;
+}>;
+
+/* The sandbox's backend for now: Reset swaps it for a freshly seeded one. */
+type Backend = { current: ConvexStorybookWorkerClient };
+
+/*
+ * Opens a started backend as the practice copy: `db` reads it, the site's own router preloads nothing, and the practice
+ * router opens on `path`. Returns the copy and what closes it again.
+ */
+function open(start: Start, backend: Backend, outer: AnyRouter) {
+  const client = new SandboxConvexClient(backend.current, start.identity);
+  /* Entered before the practice router exists, so its first loaders already read the sandbox. */
+  /* Under Storybook `@db/core` is automocked and entering answers nothing: the story's own database serves the pages then. */
+  const exit = enterSandbox(client.asConvexClient()) as (() => void) | undefined;
+  /*
+   * The site's own router preloads a page when a link is hovered, without a load event, so while the sandbox is open
+   * it preloads nothing: its loaders would read the sandbox and cache practice rows for the real page.
+   */
+  const restorePreload = holdPreloads(outer);
+  const router = createRouter({
+    defaultErrorComponent: AppErrorComponent,
+    history: createMemoryHistory({ initialEntries: [start.path] }),
+    routeTree: cloneApplicationRouteTree({ withoutShell: true, withoutChrome: true }),
+  });
+  const controls: SandboxControls = {
+    router,
+    reset: async (next) => {
+      const fresh = await seededBackend(start.database);
+      const old = backend.current;
+      backend.current = fresh;
+      client.replaceBackend(fresh);
+      old.terminate();
+      await router.navigate({ to: next as never, replace: true });
+    },
+  };
+  const leave = () => {
+    exit?.();
+    restorePreload();
+  };
+  return { running: { client, router, storage: signedInStorage() }, controls, leave };
+}
+
+/*
+ * Starts a practice copy for one mount and returns what ends it. It never opens once the site's own router has started
+ * loading another page, and that router leaving this page closes it, so no real page's loaders read the sandbox.
+ * A copy that cannot start shows the page's error, not the loading screen forever.
+ */
+function startSandbox(start: Start, outer: AnyRouter, show: (update: () => Running) => void): () => void {
+  let ended = false;
+  let leave = () => undefined as void;
+  let backend: Backend | null = null;
+  let client: SandboxConvexClient | null = null;
+  seededBackend(start.database).then(
+    (started) => {
+      backend = { current: started };
+      if (ended) {
+        started.terminate();
+        return;
+      }
+      const opened = open(start, backend, outer);
+      client = opened.running.client;
+      leave = opened.leave;
+      show(() => opened.running);
+      start.onReady?.(opened.controls);
+    },
+    (error: unknown) => {
+      if (!ended) {
+        show(() => {
+          throw error;
+        });
+      }
+    }
+  );
+  const end = () => {
+    ended = true;
+    leave();
+  };
+  const unsubscribe = outer.subscribe('onBeforeLoad', ({ pathChanged }) => {
+    if (pathChanged) {
+      end();
+    }
+  });
+  return () => {
+    end();
+    unsubscribe();
+    void client?.close();
+    backend?.current.terminate();
+  };
+}
+
 export function SandboxApp({
   database,
   identity,
@@ -80,77 +175,9 @@ export function SandboxApp({
   const outer = useRouter();
   const [running, setRunning] = useState<Running | null>(null);
   /* One sandbox per mount, from the props it mounted with: the page keys this component to start another. */
-  const [start] = useState(() => ({ database, identity, path, onReady }));
+  const [start] = useState<Start>(() => ({ database, identity, path, onReady }));
 
-  useEffect(() => {
-    const { database, identity, path, onReady } = start;
-    let cancelled = false;
-    /* Set once the site's own router starts loading another page: a sandbox still starting then never opens. */
-    let departed = false;
-    let leave = () => undefined as void;
-    let backend: ConvexStorybookWorkerClient | null = null;
-    let client: SandboxConvexClient | null = null;
-    const starting = seededBackend(database).then((started) => {
-      backend = started;
-      if (cancelled || departed) {
-        started.terminate();
-        return;
-      }
-      client = new SandboxConvexClient(started, identity);
-      /* Entered before the practice router exists, so its first loaders already read the sandbox. */
-      /* Under Storybook `@db/core` is automocked and entering answers nothing: the story's own database serves the pages then. */
-      const exit = enterSandbox(client.asConvexClient()) as (() => void) | undefined;
-      /*
-       * The site's own router preloads a page when a link is hovered, without a load event, so while the sandbox is open
-       * it preloads nothing: its loaders would read the sandbox and cache practice rows for the real page.
-       */
-      const restorePreload = holdPreloads(outer);
-      leave = () => {
-        exit?.();
-        restorePreload();
-      };
-      const router = createRouter({
-        defaultErrorComponent: AppErrorComponent,
-        history: createMemoryHistory({ initialEntries: [path] }),
-        routeTree: cloneApplicationRouteTree({ withoutShell: true, withoutChrome: true }),
-      });
-      const sandbox = client;
-      setRunning({ client: sandbox, router, storage: signedInStorage() });
-      onReady?.({
-        router,
-        reset: async (next) => {
-          const fresh = await seededBackend(database);
-          const old = backend;
-          backend = fresh;
-          sandbox.replaceBackend(fresh);
-          old?.terminate();
-          await router.navigate({ to: next as never, replace: true });
-        },
-      });
-    });
-    /* A practice copy that cannot start shows the page's error, not the loading screen forever. */
-    starting.catch((error: unknown) => {
-      if (!cancelled) {
-        setRunning(() => {
-          throw error;
-        });
-      }
-    });
-    /* The site's own router leaving this page must not run its next page's loaders against the sandbox. */
-    const unsubscribe = outer.subscribe('onBeforeLoad', ({ pathChanged }) => {
-      if (pathChanged) {
-        departed = true;
-        leave();
-      }
-    });
-    return () => {
-      cancelled = true;
-      unsubscribe();
-      leave();
-      void client?.close();
-      backend?.terminate();
-    };
-  }, [start, outer]);
+  useEffect(() => startSandbox(start, outer, setRunning), [start, outer]);
 
   if (!running) {
     return loading;
