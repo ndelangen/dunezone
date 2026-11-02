@@ -65,7 +65,8 @@ reported, not that players are being served.
 
 ### Tracing and the initial baseline
 
-Source maps and Cloudflare Issues remain enabled. URL query strings are redacted from logs and
+The game Worker's source maps and Cloudflare Issues remain enabled (the publisher does not upload
+source maps; see `docs/deployment.md`). URL query strings are redacted from logs and
 traces. Automatic tracing stays disabled because Cloudflare includes
 `cloudflare.durable_object.query.bindings` in SQL spans, and GameRoom writes private state and
 room secrets as SQL parameters. The current Wrangler schema provides URL-query redaction but no

@@ -88,6 +88,16 @@ describe('publisher CI deployment contract', () => {
     expect(() => validatePublisherDeployContract(readPublisherConfig(), ciEnvironment())).not.toThrow();
   });
 
+  test.each([true, undefined])('refuses a source map upload setting of %p', (value) => {
+    const config = structuredClone(readPublisherConfig());
+    if (value === undefined) {
+      delete config.upload_source_maps;
+    } else {
+      config.upload_source_maps = value;
+    }
+    expect(() => validatePublisherDeployContract(config, ciEnvironment())).toThrow(/Source map upload must stay off/);
+  });
+
   test.each([
     { binding: 'GAME_SERVICE', service: 'dunezone-game-test' },
     { binding: 'GAME_SERVICE', service: 'dunezone-game', environment: 'preview' },
