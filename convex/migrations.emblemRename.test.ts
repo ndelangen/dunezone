@@ -5,6 +5,8 @@ import migrationsTest from '@convex-dev/migrations/test';
 import { describe, expect, test } from 'vite-plus/test';
 
 import { INITIAL_CARDBACK_PRESETS } from '../src/shared/assets/cardbackPresets';
+import { publishingTokenFace } from '../src/shared/assets/fixtures/publishingTokenFace';
+import { DISCOVERY_FAMILIES } from '../src/shared/backgrounds/families';
 import { RULEBOOK_CATALOGUE_VERSION } from '../src/shared/rulebooks/contents';
 import { api, internal } from './_generated/api';
 import { EMBLEM_MIGRATION_IDS } from './emblemMigrations';
@@ -96,21 +98,40 @@ describe('Emblem rename migration', () => {
     expect(JSON.stringify(cards)).not.toContain('logo');
   });
 
-  test('after the narrow, the schema refuses a preset that names the old path', async () => {
+  test('after the narrow, both preset tables refuse an artwork path under /vector/logo/', async () => {
     const t = factionTest();
-    const legacyBack = { ...INITIAL_CARDBACK_PRESETS[0]!.cardback, image: '/vector/logo/fremen.svg' };
-    await expect(
+    const cardback = INITIAL_CARDBACK_PRESETS[0]!.cardback;
+    const legacyBack = { ...cardback, image: '/vector/logo/fremen.svg' };
+    const legacyFace = { ...publishingTokenFace, image: '/vector/logo/fremen.svg' };
+    const insertCardback = (value: unknown) =>
       t.run(
         async (ctx) =>
           await ctx.db.insert('cardback_presets', {
             key: INITIAL_CARDBACK_PRESETS[0]!.key,
             /* The typed schema already refuses this path; the cast checks the runtime validator too. */
-            cardback: legacyBack as never,
+            cardback: value as never,
             revision: 1,
             updated_at: 0,
           })
-      )
-    ).rejects.toThrow();
+      );
+    const insertDiscovery = (front: unknown, back: unknown) =>
+      t.run(
+        async (ctx) =>
+          await ctx.db.insert('discovery_presets', {
+            key: DISCOVERY_FAMILIES[0].key,
+            label: DISCOVERY_FAMILIES[0].label,
+            front: front as never,
+            back: back as never,
+            revision: 1,
+            updated_at: 0,
+          })
+      );
+
+    await expect(insertCardback(cardback)).resolves.toBeDefined();
+    await expect(insertCardback(legacyBack)).rejects.toThrow('/vector/logo/fremen.svg');
+    await expect(insertDiscovery(publishingTokenFace, publishingTokenFace)).resolves.toBeDefined();
+    await expect(insertDiscovery(legacyFace, publishingTokenFace)).rejects.toThrow('/vector/logo/fremen.svg');
+    await expect(insertDiscovery(publishingTokenFace, legacyFace)).rejects.toThrow('/vector/logo/fremen.svg');
   });
 
   test('verification refuses a row that still names a logo', async () => {

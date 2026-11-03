@@ -243,7 +243,10 @@ The readers above, for copies outside Convex, and the `/vector/logo/*` route sta
 widened to `v.any()` for the artwork fields in the rename release, because a strict validator
 refuses the deploy while rows still name `/vector/logo/`. They were narrowed back in the next
 release, after both verify migrations succeeded in production, behind the
-`emblem_rename_presets_narrow` guard entry.
+`emblem_rename_presets_narrow` guard entry. A snapshot cut before the rename (the weekly one before
+9 November 2026) can hold preset rows the narrowed validators refuse, because `--data=snapshot`
+imports before the deploy that would migrate them; load `--data=fixture` or a newer
+`--snapshot-file` instead.
 
 The deploy runs every widen id in alphabetical order (`deploySet` in
 `scripts/migration-guards.ts`); `requires` on a widen entry does not order anything. Name a
