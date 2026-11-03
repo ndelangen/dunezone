@@ -330,7 +330,7 @@ function TableLightingSlider() {
 }
 
 /*
- * How fast this viewer's pan keys slide a close look; it stays in this browser and never reaches the game.
+ * How fast this viewer's pan keys slide the view; it stays in this browser and never reaches the game.
  * The slider runs on a log scale, so halving and doubling the speed are the same distance either side of the table's own.
  */
 function TablePanSpeedSlider() {

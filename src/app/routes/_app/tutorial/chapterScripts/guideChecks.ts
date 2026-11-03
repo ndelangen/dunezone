@@ -1,5 +1,5 @@
 import { STANDARD_PHASES, tableProgressFor } from '@shared/play/phases';
-import type { GameSnapshot } from '@shared/play/protocol';
+import type { GameSnapshot, PieceAction } from '@shared/play/protocol';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
 import type { Vector3Tuple } from 'three';
 
@@ -8,6 +8,7 @@ import { task } from '@app/widgets/tutorial-guide/guideTask';
 import type { GuideView } from '@app/widgets/tutorial-guide/TutorialGuide';
 
 import type { Landing } from '../table/localTable';
+import type { TablePlayers } from './chapterScript';
 
 /* What the chapters check on the table and the page, shared so each chapter reads only as its tasks. */
 
@@ -23,6 +24,13 @@ export const buttonIn = (windowKey: string, text: string) => (): HTMLButtonEleme
   ) ?? null;
 
 export { task };
+
+/** Whether the learner committed a command matching `matches` since the first `seen` of their accepted commands. */
+export const sentSince = (players: TablePlayers, seen: number, matches: (action: PieceAction) => boolean) =>
+  players
+    .acceptedActions()
+    .slice(seen)
+    .some(({ action }) => matches(action));
 
 /** Whether a compass window shows, in the centre or pinned in a slot. */
 export const windowShown = (key: string) => () => document.querySelector(`[data-window="${key}"]`) !== null;
@@ -125,7 +133,7 @@ export const scrolled = (direction: 'in' | 'out') => ({
       }
       watch.from = furthest(watch.from ?? cameraDistance(view), cameraDistance(view));
       /* Counted in pixels as the camera counts it, whether the browser reports the turn in pixels, lines or pages. */
-      const pixels = wheelPixels(event.deltaY, event.deltaMode) * (direction === 'in' ? 1 : -1);
+      const pixels = wheelPixels(event.deltaY, event.deltaMode) * (direction === 'in' ? -1 : 1);
       if (pixels > 0) {
         watch.scrolled += pixels;
       }

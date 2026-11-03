@@ -342,21 +342,21 @@ export const WheelTakesACloseLook = meta.story({
       return placement;
     };
 
-    await expect(turnWheel(300, true)).toBe(false);
-    await expect(turnWheel(300)).toBe(true);
+    await expect(turnWheel(-300, true)).toBe(false);
+    await expect(turnWheel(-300)).toBe(true);
     await waitForFrame(() => expect(deckPlacement()).not.toBe(approved));
     const closer = deckPlacement();
-    turnWheel(300);
+    turnWheel(-300);
     await waitForFrame(() => expect(deckPlacement()).not.toBe(closer));
 
     /* Backing out ends at the view's own pose, and holds there however far the wheel turns. */
     for (let turn = 0; turn < 4; turn++) {
-      turnWheel(-600);
+      turnWheel(600);
     }
     try {
       /* The glide needs frames to finish even when the runner draws them late (#1900). */
       await waitForFrame(() => expectPlacementNear(recordReturn(), approved));
-      turnWheel(-600);
+      turnWheel(600);
       await new Promise((resolve) => setTimeout(resolve, 100));
       await expectPlacementNear(recordReturn(), approved);
     } catch (error) {
