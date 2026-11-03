@@ -180,6 +180,15 @@
   transform: translateY(0.3rem);
 }
 
+/* While the figure waits for the reader it sits at its first step without a transition, so the prerendered picture does not visibly wipe. */
+.still .row > *,
+.still .troop,
+.still .shadow,
+.still .carrier,
+.still .reacher {
+  transition: none;
+}
+
 /* An arrow spans from the middle of its first lane to the middle of its last; the padding keeps it between the lane lines. */
 .arrow {
   position: relative;

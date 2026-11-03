@@ -1,6 +1,6 @@
 /*
- * Two screens side by side, each a dark pane with a round sand table, and the hands placed on them by the frame loop through `left` and `top`.
- * The left table alone takes the pointer, so a phone still scrolls past the right one and the text.
+ * Two screens side by side, each a dark pane with a round sand table, and the hands placed on them by the frame loop through `translate`.
+ * The left table alone takes the pointer, and only sideways: a finger dragged up or down still scrolls the page.
  */
 .root {
   --ink: #f0e8da;
@@ -60,8 +60,12 @@
 }
 
 .touchable {
+  touch-action: pan-y;
+}
+
+/* The pointer itself is hidden only while the loop runs, since then a hand is following it. */
+.running {
   cursor: none;
-  touch-action: none;
 }
 
 .table {
@@ -179,6 +183,10 @@
 
 .toggleOn .switch::after {
   transform: translateX(0.8rem);
+}
+
+.state {
+  color: var(--muted);
 }
 
 .note {

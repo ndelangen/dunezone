@@ -111,6 +111,8 @@ export function PatchStream() {
     (packet) => !packet.lost
   );
   const last = landed.at(-1);
+  /* The log lists every packet the browser will ever hold, the ones still to come kept invisible, so the box never changes height during the loop. */
+  const held = new Set(landed);
   const revision = last?.revision ?? 41;
   const roomRevision = sentBy(step) === 0 ? 41 : ROOM_AT[sentBy(step) - 1]!;
   /* From the gap until the full view, the browser holds its commands. */
@@ -145,13 +147,14 @@ export function PatchStream() {
           <span className={styles.boxLabel}>your browser</span>
           <span className={styles.revision}>at {revision}</span>
           <ol className={styles.log}>
-            {landed.map((packet) => (
+            {PACKETS.filter((packet) => !packet.lost).map((packet) => (
               <li
                 key={packet.label}
                 className={clsx(
                   styles.logEntry,
                   packet.note?.startsWith('gap') && styles.logGap,
-                  packet.kind === 'full' && styles.logFull
+                  packet.kind === 'full' && styles.logFull,
+                  !held.has(packet) && styles.logPending
                 )}
               >
                 <span>{packet.kind === 'sync' ? 'sent sync' : packet.label}</span>
@@ -159,8 +162,12 @@ export function PatchStream() {
               </li>
             ))}
           </ol>
-          <span className={clsx(styles.boxNote, holding && styles.holding)}>
-            {holding ? 'waiting for a full view' : 'applies each patch to the last'}
+          {/* Both notes are laid out in the same place, the other invisible, so the box keeps one height whichever is showing. */}
+          <span className={styles.boxNotes}>
+            <span className={clsx(styles.boxNote, holding && styles.noteHidden)}>applies each patch to the last</span>
+            <span className={clsx(styles.boxNote, styles.holding, !holding && styles.noteHidden)}>
+              waiting for a full view
+            </span>
           </span>
         </div>
       </div>

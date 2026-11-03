@@ -68,15 +68,15 @@ function HandsSection() {
         Your browser sends where your pointer is on the table, at most twenty times a second. The room gathers what
         arrives for a twentieth of a second and then sends one bundle to everybody. That keeps the traffic low, but it
         also means a hand arrives in little jumps. So each browser doesn&rsquo;t put the hand straight where the last
-        message said. It glides it there, closing most of the gap in about a fifth of a second. Try it below, and turn
-        the smoothing off to see what actually comes in over the wire.
+        message said. It glides it there, closing most of the gap within a tenth of a second. Try it below, and turn the
+        smoothing off to see what actually comes in over the wire.
       </Paragraph>
       <WideFigure caption="Move over the left table. The dots on the right are the positions the other player receives; the hand glides between them.">
         <HandRelay />
       </WideFigure>
       <Paragraph>
-        When someone goes quiet for three seconds, their hand fades away. Spectators can watch every hand, but they
-        don&rsquo;t send one of their own.
+        When someone moves off the table, their hand goes away, and if their browser stops reporting for three seconds,
+        the room removes it. Spectators can watch every hand, but they don&rsquo;t send one of their own.
       </Paragraph>
     </Section>
   );

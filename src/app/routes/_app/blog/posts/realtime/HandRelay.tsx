@@ -13,12 +13,14 @@ import { useSeen } from './useSeen';
  * The numbers are the table's own: a position leaves at most every 50 ms, the room gathers 50 ms of motion before it sends, and the receiving browser glides its copy of the hand with `1 - exp(-24 * dt)` of the remaining distance each frame.
  * The wire between the two is pretended here, with 30 to 60 ms each way, so the right side runs 60 to 120 ms behind the left plus the room's batch.
  * Until the reader moves over the table, and whenever they stop for a while, a wander path moves the hand so the demo shows itself.
- * Hands and dots are placed with `translate` in container units of their pane, so a frame changes nothing but a composited transform; the loop sleeps while the figure is out of view and whenever nothing is left to move.
+ * Hands and dots are placed with `translate` in container units of their pane, so a frame changes nothing but a composited transform; the loop sleeps while the figure is out of view and whenever nothing is left to move, and both hands keep their places while it does.
  */
 
 const SAMPLE_MS = 50;
 const BATCH_MS = 50;
 const SMOOTHING_RATE = 24;
+/** How quickly the hand drifts back to the wander path once the reader has left it alone. */
+const RETURN_RATE = 5;
 const DOT_LIFE_MS = 900;
 const DOT_POOL = 24;
 /** How long after the last pointer movement the wander path takes over again. */
@@ -81,6 +83,12 @@ export function HandRelay() {
   const settings = useRef({ smoothing: true, wander: true });
   /* Wakes the loop after it has settled, which a pointer move does. */
   const wake = useRef<() => void>(() => {});
+  /* Where the hands are, kept between runs of the loop so a pause leaves them where they were. */
+  const positions = useRef<{ local: Point; target: Point; shown: Point }>({
+    local: { x: 0.5, y: 0.5 },
+    target: { x: 0.5, y: 0.5 },
+    shown: { x: 0.5, y: 0.5 },
+  });
   useEffect(() => {
     settings.current = { smoothing, wander: !reduced };
     wake.current();
@@ -100,28 +108,28 @@ export function HandRelay() {
     let nextDot = 0;
     let lastDotAt = Number.NEGATIVE_INFINITY;
 
-    let local: Point = { x: 0.5, y: 0.5 };
+    let { local, target, shown } = positions.current;
     let lastSent: Point | null = null;
     let lastSampleAt = 0;
     const inFlight: { point: Point; arrives: number }[] = [];
-    let target: Point = local;
-    let shown: Point = local;
     let lastFrame = performance.now();
 
     let frame = 0;
     let awake = false;
 
     const step = (now: number) => {
-      const dt = Math.min(0.1, (now - lastFrame) / 1000);
+      const dt = Math.max(0, Math.min(0.1, (now - lastFrame) / 1000));
       lastFrame = now;
 
-      /* The hand under the reader's pointer, or the wander path once they have left it alone for a while. */
+      /* The hand under the reader's pointer, or the wander path once they have left it alone for a while, which it drifts back to rather than jumping. */
       const held = pointer.current;
       const holding = Boolean(held && now - held.at < IDLE_MS);
       if (held && holding) {
         local = held.point;
       } else if (settings.current.wander) {
-        local = wander(now);
+        const path = wander(now);
+        const pull = 1 - Math.exp(-RETURN_RATE * dt);
+        local = { x: local.x + (path.x - local.x) * pull, y: local.y + (path.y - local.y) * pull };
       }
       place(localHand, local);
 
@@ -150,6 +158,7 @@ export function HandRelay() {
         shown = target;
       }
       place(remoteHand, shown);
+      positions.current = { local, target, shown };
 
       for (let index = 0; index < dots.length; index += 1) {
         const age = now - dotAges[index]!;
@@ -206,7 +215,11 @@ export function HandRelay() {
           <h3 className={styles.paneTitle}>
             Your screen <span className={styles.sub}>move over the table</span>
           </h3>
-          <div className={clsx(styles.surface, styles.touchable)} onPointerMove={onPointer} onPointerDown={onPointer}>
+          <div
+            className={clsx(styles.surface, styles.touchable, running && styles.running)}
+            onPointerMove={onPointer}
+            onPointerDown={onPointer}
+          >
             <TableArt />
             <span ref={localHandRef} className={styles.hand}>
               <Hand seat="atreides" label="You" />
@@ -237,7 +250,10 @@ export function HandRelay() {
           onClick={() => setSmoothing((value) => !value)}
         >
           <span className={styles.switch} aria-hidden="true" />
-          Smoothing {smoothing ? 'on' : 'off'}
+          Smoothing{' '}
+          <span className={styles.state} aria-hidden="true">
+            {smoothing ? 'on' : 'off'}
+          </span>
         </UnstyledButton>
         <span className={styles.note}>
           Each dot is one position as it arrives: 20 a second at most, sent on in 50 ms batches.

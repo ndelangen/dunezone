@@ -14,7 +14,7 @@ import { useSeen } from './useSeen';
  * The capture is a still, so the hands are drawn on top: five pointers in player colours that wander between the pieces, pause as if thinking, and now and then dart to a deck.
  * Every hand's pretend pointer is sampled twenty times a second and the drawn hand glides after it with the table's own smoothing, so they move the way hands on the real table do.
  * Positions are percentages of the picture, so the hands stay on their pieces at any width; until scripts run, and under reduced motion, each rests at its starting spot.
- * A frame only changes each hand's `translate`, which the compositor applies without a layout, and the loop runs only while the figure is in view.
+ * A frame only changes each hand's `translate`, which the compositor applies without a layout, and the loop runs only while the figure is in view; the hands keep their places while it rests, so nobody jumps when the reader comes back.
  */
 
 const IMAGE_KEY = '/web/blog/playing-dune-online-in-real-time/table-in-play.jpg';
@@ -167,8 +167,10 @@ export function TableInPlay() {
   const reduced = useReducedMotion();
   const playing = armed && seen && !reduced && active;
   const [pictureReady, setPictureReady] = useState(false);
+  /* The pretend players and where their hands are drawn, kept between runs of the loop. */
+  const players = useRef<{ wanderers: Wanderer[]; targets: Point[]; shown: Point[] } | null>(null);
 
-  /* The picture's img arrives when `PublishedImage` decides to fetch it, so the layer watches for it and for its load; a picture that fails still lets the hands show over the sand. */
+  /* The picture's img arrives when `PublishedImage` decides to fetch it, so the layer watches for it and for its load; a picture that fails, or is reported missing, still lets the hands show over the sand. */
   useEffect(() => {
     const picture = pictureRef.current;
     if (!picture) {
@@ -177,6 +179,10 @@ export function TableInPlay() {
     let watched: HTMLImageElement | null = null;
     const ready = () => setPictureReady(true);
     const check = () => {
+      if (picture.querySelector('[data-phase="missing"]')) {
+        ready();
+        return;
+      }
       const image = picture.querySelector('img');
       if (!image || image === watched) {
         return;
@@ -192,7 +198,12 @@ export function TableInPlay() {
       image.addEventListener('error', ready);
     };
     const observer = new MutationObserver(check);
-    observer.observe(picture, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
+    observer.observe(picture, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['src', 'data-phase'],
+    });
     check();
     return () => {
       observer.disconnect();
@@ -205,16 +216,19 @@ export function TableInPlay() {
     if (!playing) {
       return;
     }
-    const wanderers = PLAYERS.map((player) => new Wanderer(player.start, player.speed));
-    /* What each browser would receive: the pointer sampled every 50 ms, and the drawn hand gliding after it. */
-    const targets = wanderers.map((wanderer) => wanderer.position());
-    const shown = targets.map((point) => ({ ...point }));
+    if (!players.current) {
+      const wanderers = PLAYERS.map((player) => new Wanderer(player.start, player.speed));
+      /* What each browser would receive: the pointer sampled every 50 ms, and the drawn hand gliding after it. */
+      const targets = wanderers.map((wanderer) => wanderer.position());
+      players.current = { wanderers, targets, shown: targets.map((point) => ({ ...point })) };
+    }
+    const { wanderers, targets, shown } = players.current;
     let lastSample = 0;
     let lastFrame = performance.now();
     let frame = 0;
 
     const step = (now: number) => {
-      const dt = Math.min(0.1, (now - lastFrame) / 1000);
+      const dt = Math.max(0, Math.min(0.1, (now - lastFrame) / 1000));
       lastFrame = now;
       const sample = now - lastSample >= SAMPLE_MS;
       if (sample) {

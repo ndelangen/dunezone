@@ -1,6 +1,6 @@
 /*
  * The capture of the table with a layer of hands over it, both in one box with the picture's proportions.
- * The hands are placed by `left` and `top` in percentages of the picture, and sized from the figure's width with container units, so they shrink with the picture but never below legibility.
+ * The hands are placed by `translate` in percentages of the picture, and sized from the figure's width with container units, so they shrink with the picture but never below legibility.
  * Before the picture has arrived the box is a dark sand, so the hands always have something to move over.
  */
 .root {

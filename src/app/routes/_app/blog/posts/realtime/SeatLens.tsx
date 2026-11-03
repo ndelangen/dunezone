@@ -1,6 +1,6 @@
 import { UnstyledButton } from '@mantine/core';
 import clsx from 'clsx';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 
 import { SEATS } from './palette';
@@ -133,11 +133,15 @@ export function SeatLens() {
   const [seat, setSeat] = useState<Seat>('atreides');
   const [seed, setSeed] = useState(7994);
   const [shuffling, setShuffling] = useState(false);
+  /* The timer that ends the shuffle's flicker, so a second click restarts it and leaving the page clears it. */
+  const settle = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => clearTimeout(settle.current ?? undefined), []);
 
   const shuffle = () => {
     setSeed((value) => (Math.imul(value, 1_103_515_245) + 12_345) >>> 0);
     setShuffling(true);
-    setTimeout(() => setShuffling(false), 700);
+    clearTimeout(settle.current ?? undefined);
+    settle.current = setTimeout(() => setShuffling(false), 700);
   };
 
   return (

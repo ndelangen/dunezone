@@ -31,7 +31,7 @@ const ENTRIES: readonly Entry[] = [
     text: 'Public Treachery counts; flip a piece while carrying it; a private hidden zone beside your hand; reveal part of a battle plan early.',
   },
   {
-    when: '17 Oct',
+    when: '18 Oct',
     text: 'Signed seat passes let the room admit players without asking the site’s database every 90 seconds.',
   },
   { when: '26 Oct', text: 'A quiet room hibernates while its players think.' },

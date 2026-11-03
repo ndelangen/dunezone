@@ -105,7 +105,7 @@ function Cylinder() {
 
 export function CarryRace() {
   const rootRef = useRef<HTMLDivElement>(null);
-  const { step, finished, replay, playing } = useSteps(rootRef, STEPS.length, { interval: STEP_MS });
+  const { step, finished, replay, playing, armed, seen } = useSteps(rootRef, STEPS.length, { interval: STEP_MS });
   const troop = STEPS[Math.max(0, step - 1)]!.troop;
   const carried = step > 0 && troop.lifted;
   /* Harkonnen's hand reaches in while its own begin is on the way and the refusal comes back. */
@@ -114,7 +114,7 @@ export function CarryRace() {
   return (
     <div
       ref={rootRef}
-      className={styles.root}
+      className={clsx(styles.root, armed && !seen && styles.still)}
       role="group"
       aria-label="Two players reach for one troop; the room gives it to the first"
     >
@@ -171,8 +171,12 @@ export function CarryRace() {
       {playing ? (
         <UnstyledButton
           className={clsx(styles.replay, !finished && styles.replayHidden)}
-          onClick={replay}
-          disabled={!finished}
+          onClick={() => {
+            if (finished) {
+              replay();
+            }
+          }}
+          aria-disabled={!finished}
         >
           Replay
         </UnstyledButton>

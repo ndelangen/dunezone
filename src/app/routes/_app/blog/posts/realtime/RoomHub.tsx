@@ -95,13 +95,22 @@ export function RoomHub() {
   const playing = armed && seen && !reduced;
   const [round, setRound] = useState(0);
 
-  /* The rounds only keep coming while the figure is in view; a round already running finishes on its own. */
+  /* The rounds only keep coming while the figure is in view; a round already running finishes on its own, and a reader who comes back gets a fresh one at once. */
+  const paused = useRef(false);
   useEffect(() => {
     if (!playing || !active) {
       return;
     }
-    const timer = setInterval(() => setRound((count) => count + 1), CYCLE_MS);
-    return () => clearInterval(timer);
+    let timer: ReturnType<typeof setTimeout>;
+    const tick = () => {
+      setRound((count) => count + 1);
+      timer = setTimeout(tick, CYCLE_MS);
+    };
+    timer = setTimeout(tick, paused.current ? 0 : CYCLE_MS);
+    return () => {
+      clearTimeout(timer);
+      paused.current = true;
+    };
   }, [playing, active]);
 
   /* Which legend step is lit, set from timers rather than a CSS animation, since an animated colour or opacity on text made the page lay out each frame. */
@@ -118,15 +127,12 @@ export function RoomHub() {
   const from = centre(sender);
 
   return (
-    <div
-      ref={rootRef}
-      className={styles.root}
-      role="img"
-      aria-label="One room per game, with four browsers connected to it"
-    >
+    <div ref={rootRef} className={styles.root}>
       <div
         className={styles.stage}
         style={{ '--cycle': `${CYCLE_MS}ms`, aspectRatio: `${WIDTH} / ${HEIGHT}` } as CSSProperties}
+        role="img"
+        aria-label="One room per game, with four browsers connected to it"
       >
         <svg className={styles.scene} viewBox={`0 0 ${WIDTH} ${HEIGHT}`}>
           {/* Every browser's connection, drawn before the boxes so they cover the ends. */}

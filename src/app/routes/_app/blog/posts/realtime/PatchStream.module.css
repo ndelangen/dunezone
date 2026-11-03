@@ -83,12 +83,23 @@
   color: var(--gap);
 }
 
-/* The browser's list of what it has: the gap in red, the full view set off. */
+.boxNotes {
+  display: grid;
+}
+
+.boxNotes > * {
+  grid-area: 1 / 1;
+}
+
+.noteHidden {
+  visibility: hidden;
+}
+
+/* The browser's list of what it has: the gap in red, the full view set off, and the entries still to come present but invisible so the list keeps its height. */
 .log {
   display: flex;
   flex-direction: column;
   gap: 0.1rem;
-  min-height: 7.2rem;
   margin: 0.2rem 0;
   padding: 0;
   font-size: 0.65rem;
@@ -108,6 +119,10 @@
   color: var(--muted);
 }
 
+.logPending {
+  visibility: hidden;
+}
+
 .logGap {
   border-color: var(--gap);
   color: var(--gap);
@@ -123,7 +138,7 @@
   font-weight: 700;
 }
 
-/* The wire: a line down the middle of its cell, with the packets placed on it by `left` (or `top` on a phone). */
+/* The wire: a line down the middle of its cell, with the packets moved along it by `translate` in the wire's own units. */
 .wire {
   position: relative;
   container-type: size;
@@ -360,6 +375,7 @@
 .waiting .fill,
 .waiting .wasteFill {
   transform: scaleX(0);
+  transition: none;
 }
 
 /* The share of a bar that carried nothing new, hatched. */
@@ -421,7 +437,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* On a phone the wire runs downward: the room above, the browser below, and the packets travel by `top`. */
+/* On a phone the wire runs downward: the room above, the browser below, and the packets travel along its height. */
 @container blog-article (width < 36rem) {
   .stream {
     grid-template-columns: minmax(0, 1fr);
@@ -465,10 +481,6 @@
 
   .flyingLost {
     animation-name: lose-y;
-  }
-
-  .log {
-    min-height: 0;
   }
 
   .chart {
@@ -532,6 +544,7 @@
 
 .waiting .wasteLabel {
   opacity: 0;
+  transition: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
