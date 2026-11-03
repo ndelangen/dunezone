@@ -6975,7 +6975,7 @@
     "description": "Ecaz. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "credit": "found-online",
+    "credit": "gf9-ilya-portrait",
     "sourceHash": "43fe6593d8e86598bef1d9433f48d59e55021771c2205f6c06c4dba713454806"
   },
   "/image/leader/official/ilesa-ecaz.png": {
@@ -7045,7 +7045,7 @@
     "description": "Hundro. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "credit": "found-online",
+    "credit": "gf9-ilya-portrait",
     "sourceHash": "d92dedffb253073ec3dd1e42ddf642996ba25540543bd9afd46067bde835554b"
   },
   "/image/leader/brainfood/keshas.png": {
@@ -7066,7 +7066,7 @@
     "description": "Lupino. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "credit": "gf9-portrait",
+    "credit": "gf9-ilya-portrait",
     "sourceHash": "673b09045203675067f491f53ba17ba3078224df4b75494183023764cc989437"
   },
   "/image/leader/official/lupino-ord.png": {
@@ -7136,7 +7136,7 @@
     "description": "Cheap Hero. Illustrated head-and-shoulders character portrait. Running armored figure with a flowing cloak.",
     "tags": ["portrait", "armored", "head", "figure", "illustration"],
     "subjects": ["people", "weapons"],
-    "credit": "found-online",
+    "credit": "gf9-ilya-portrait",
     "sourceHash": "8abc9b012b3de13f5c63c425bf3bede968c71ca8baacc94f714e7cf1737cee37"
   },
   "/image/leader/brainfood/drisq.png": {
@@ -7241,35 +7241,35 @@
     "description": "Javid. Illustrated head-and-shoulders character portrait. Goggles and white hair.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "credit": "gf9-portrait",
+    "credit": "gf9-ilya-portrait",
     "sourceHash": "892e53b65779aaac7071acca2d7d936ab5005426208182e22747a3e4df78b8bd"
   },
   "/image/leader/ilya/korba.png": {
     "description": "Korba. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "credit": "gf9-portrait",
+    "credit": "gf9-ilya-portrait",
     "sourceHash": "1f50d4cbefa405a7375fb9b3bc106c62424d8385ff4a53b91b6e7c3feb629765"
   },
   "/image/leader/ilya/ratrunner.png": {
     "description": "Ratrunner. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "credit": "gf9-portrait",
+    "credit": "gf9-ilya-portrait",
     "sourceHash": "1139e7dc918a5b9369ec03201305fed5a5a3ef22d265d3047a578a6837644cb6"
   },
   "/image/leader/ilya/sabiha.png": {
     "description": "Sabiha. Illustrated head-and-shoulders character portrait.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "credit": "gf9-portrait",
+    "credit": "gf9-ilya-portrait",
     "sourceHash": "785a2a557cafadad626daf69415410b4035a79e9b1e6f800e70b5c562e5e304c"
   },
   "/image/leader/ilya/smuggler.png": {
     "description": "Smuggler. Illustrated head-and-shoulders character portrait. Helmet with goggles.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "credit": "gf9-portrait",
+    "credit": "gf9-ilya-portrait",
     "sourceHash": "3cd0efb47f451f8f668e6a6370fb85795312895902595c88e4e2176754d1c3d8"
   },
   "/image/leader/brainfood/administrator.png": {
@@ -7304,70 +7304,70 @@
     "description": "Baltern. Green helmet and armor.",
     "tags": ["portrait", "armor", "illustration"],
     "subjects": ["people", "weapons"],
-    "credit": "gf9-portrait",
+    "credit": "gf9-ilya-portrait",
     "sourceHash": "15fcba569c55932a3fc39a61926b9cb64ff424f4a9f519889df6704640b15049"
   },
   "/image/leader/ilya/batern.png": {
     "description": "Batern. Green helmet and armor.",
     "tags": ["portrait", "armor", "illustration"],
     "subjects": ["people", "weapons"],
-    "credit": "gf9-portrait",
+    "credit": "gf9-ilya-portrait",
     "sourceHash": "1908fc2a92ee0d55123a5f516cfb5cb9bc235d170cfbdd73e8935f3022b23735"
   },
   "/image/leader/ilya/bronso.png": {
     "description": "Bronso. Green helmet and armor.",
     "tags": ["portrait", "armor", "illustration"],
     "subjects": ["people", "weapons"],
-    "credit": "gf9-portrait",
+    "credit": "gf9-ilya-portrait",
     "sourceHash": "2035684acc60b01d686dd9d8986ee350dc35f3073083786db01a3e7945b3bad2"
   },
   "/image/leader/ilya/levenbrech.png": {
     "description": "Levenbrech. Green helmet and armor.",
     "tags": ["portrait", "armor", "illustration"],
     "subjects": ["people", "weapons"],
-    "credit": "gf9-portrait",
+    "credit": "gf9-ilya-portrait",
     "sourceHash": "1cc15251360f2d3d25be32411d8b57ec2101bd0474aa552905e7593d6946345d"
   },
   "/image/leader/ilya/commisioner.png": {
     "description": "Commisioner. Purple uniform with gold details.",
     "tags": ["portrait", "illustration"],
     "subjects": ["people"],
-    "credit": "found-online",
+    "credit": "gf9-ilya-portrait",
     "sourceHash": "e99fa85943cdb58b21ae1aea8b0061432d8561f78b5dcdfeb19ec5cb7bf3b2f2"
   },
   "/image/leader/ilya/earl.png": {
     "description": "Earl. Purple uniform with gold details.",
     "tags": ["portrait", "illustration"],
     "subjects": ["people"],
-    "credit": "found-online",
+    "credit": "gf9-ilya-portrait",
     "sourceHash": "c31debb63715299028769e3db99e45ccfbfc5e01359e8d0ba00e0f20701b90b2"
   },
   "/image/leader/ilya/moat.png": {
     "description": "Moat. Purple uniform with gold details.",
     "tags": ["portrait", "illustration"],
     "subjects": ["people"],
-    "credit": "gf9-portrait",
+    "credit": "gf9-ilya-portrait",
     "sourceHash": "0a8c77629a88bd3380eb357d4e749d25426f5e202d2e552664e3b80dcfa798e5"
   },
   "/image/leader/ilya/representative.png": {
     "description": "Representative. Purple uniform with gold details.",
     "tags": ["portrait", "illustration"],
     "subjects": ["people"],
-    "credit": "gf9-portrait",
+    "credit": "gf9-ilya-portrait",
     "sourceHash": "5a8040152d39c111336fcd888d81960311eea777dc482e0f107bc090b3e6f385"
   },
   "/image/leader/ilya/inquisitor.png": {
     "description": "Inquisitor. Illustrated head-and-shoulders character portrait. Bald head with mechanical implants.",
     "tags": ["portrait", "head", "mechanical", "illustration"],
     "subjects": ["people", "machines"],
-    "credit": "found-online",
+    "credit": "gf9-ilya-portrait",
     "sourceHash": "c341267734e3b429730938e2751f49d9674ec1520b4b72c8dabb1a4b6383616e"
   },
   "/image/leader/ilya/namri.jpg": {
     "description": "Namri. Illustrated head-and-shoulders character portrait. Dark swept hair and ornate high collar.",
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"],
-    "credit": "gf9-portrait",
+    "credit": "gf9-ilya-portrait",
     "sourceHash": "ac3d511288cc50771d8c4fff89d75c7eacee892f8b2ef70e95ec927ebc68d4bf"
   },
   "/image/leader/hivers/hiver-amber-pendant.png": {

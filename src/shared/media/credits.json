@@ -223,5 +223,11 @@
   },
   "ai-legacy": {
     "method": "ai"
+  },
+  "gf9-ilya-portrait": {
+    "method": "restored",
+    "artist": "Ilya Baranovsky",
+    "source": "Dune (Gale Force Nine)",
+    "by": "Central419"
   }
 }

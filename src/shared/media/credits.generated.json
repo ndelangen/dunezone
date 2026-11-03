@@ -636,21 +636,6 @@
     "duke-leto-portrait": { "/image/leader/custom/": ["duke-leto.png"] },
     "gf9-portrait": {
       "/image/leader/custom/": ["lieto.png", "thurn.png"],
-      "/image/leader/ilya/": [
-        "baltern.png",
-        "batern.png",
-        "bronso.png",
-        "javid.png",
-        "korba.png",
-        "levenbrech.png",
-        "lupino.png",
-        "moat.png",
-        "namri.jpg",
-        "ratrunner.png",
-        "representative.png",
-        "sabiha.png",
-        "smuggler.png"
-      ],
       "/image/leader/official/": ["jammo.png", "smuggler2.png"]
     },
     "gf9-second-edition-portrait": {
@@ -678,15 +663,324 @@
         "hiver-horned-mask.png"
       ]
     },
-    "found-online": {
+    "gf9-ilya-portrait": {
       "/image/leader/ilya/": [
+        "baltern.png",
+        "batern.png",
+        "bronso.png",
         "cheap-hero.png",
         "commisioner.png",
         "earl.png",
         "ecaz.jpg",
         "hundro.jpg",
-        "inquisitor.png"
+        "inquisitor.png",
+        "javid.png",
+        "korba.png",
+        "levenbrech.png",
+        "lupino.png",
+        "moat.png",
+        "namri.jpg",
+        "ratrunner.png",
+        "representative.png",
+        "sabiha.png",
+        "smuggler.png"
+      ]
+    },
+    "nod-portrait": {
+      "/image/leader/nod/": [
+        "ajay.png",
+        "anton-slavik.png",
+        "cabal.png",
+        "kane.png",
+        "kilian-qatar.png",
+        "oxanna-kristos.png",
+        "seth.png"
+      ]
+    },
+    "gf9-dune-portrait": {
+      "/image/leader/official/": [
+        "alia.png",
+        "aramsham.png",
+        "baron.jpg",
+        "bashar.png",
+        "beast.png",
+        "bewt.png",
+        "burseg.png",
+        "caid.png",
+        "chani.png",
+        "dryeuh.png",
+        "duncan.png",
+        "edric.jpg",
+        "esmar.png",
+        "feyd.png",
+        "guildrep.png",
+        "gurney.png",
+        "hasimir.png",
+        "irulan.png",
+        "jamis.png",
+        "jessica.png",
+        "lady-fenring.png",
+        "liet.jpg",
+        "mapes.png",
+        "mohiam.jpg",
+        "nafud.png",
+        "otheym.png",
+        "paul.jpg",
+        "piter.png",
+        "ramallo.png",
+        "shadam.jpg",
+        "soo-soo-sook.png",
+        "staban.png",
+        "stilgar.png",
+        "thufir.png",
+        "uman.png",
+        "wanna.png"
+      ]
+    },
+    "gf9-choam-richese-portrait": {
+      "/image/leader/official/": [
+        "auditor.png",
+        "duke-verdun.png",
+        "ein-calimar.png",
+        "flinto-kinnis.png",
+        "frankos-aru.png",
+        "haloa-rund.png",
+        "lady-helena.png",
+        "lady-yalma.png",
+        "rajiv-londine.png",
+        "talis-balt.png",
+        "viscount-tull.png"
+      ]
+    },
+    "gf9-ecaz-moritani-portrait": {
+      "/image/leader/official/": [
+        "bindikk-narvi.png",
+        "grieu-kronos.png",
+        "hiih-resser.png",
+        "ilesa-ecaz.png",
+        "lupino-ord.png",
+        "sanya-ecaz.png",
+        "trin-kronos.png",
+        "vando-terboli.png",
+        "whitemore-bludd.png",
+        "whitmore.jpg"
+      ]
+    },
+    "gf9-ixians-tleilaxu-portrait": {
+      "/image/leader/official/": [
+        "blin.png",
+        "cammar.png",
+        "ctair.png",
+        "dominic.png",
+        "hidar.png",
+        "kailea.png",
+        "masters.jpg",
+        "rhombor.jpg",
+        "tessia.png",
+        "wykk.png",
+        "zaaf.png",
+        "zoal.png"
+      ]
+    },
+    "red-alert-portrait": {
+      "/image/leader/red-alert-1/": [
+        "carville.png",
+        "chitzkoi.png",
+        "einstein.png",
+        "gradenko.png",
+        "kane.png",
+        "kukov.png",
+        "nadia.png",
+        "stalin.png",
+        "stavros.png",
+        "tanya.png",
+        "topolov.png",
+        "volkov.png",
+        "von-esling.png"
       ],
+      "/image/leader/red-alert-2/": [
+        "boris.png",
+        "carville.png",
+        "dugan.png",
+        "einstein.png",
+        "eva.png",
+        "romanov.png",
+        "tanya.png",
+        "vladimir.png",
+        "yuri.png",
+        "zofia.png"
+      ],
+      "/image/leader/red-alert-3/": [
+        "ackerman.png",
+        "anatoly-cherdenko.png",
+        "bingham.png",
+        "brenda.png",
+        "dasha.png",
+        "eva.png",
+        "giles.png",
+        "hill.png",
+        "izumi.png",
+        "kelly.png",
+        "kenji.png",
+        "krukov.png",
+        "lissette.png",
+        "lydia.png",
+        "moskvin.png",
+        "naomi.png",
+        "natasha.png",
+        "oleg.png",
+        "shimada.png",
+        "shinzo.png",
+        "suki.png",
+        "takara.png",
+        "tanya.png",
+        "tatsu.png",
+        "thornley.png",
+        "vera.png",
+        "warren.png",
+        "yoshiro.png",
+        "yuriko.png",
+        "zelinsky.png",
+        "zhana.png"
+      ]
+    },
+    "gf9-planet": {
+      "/image/planet/": [
+        "01.png",
+        "02.png",
+        "03.png",
+        "04.png",
+        "05.png",
+        "06.png",
+        "07.png",
+        "08.png",
+        "09.png",
+        "10.png",
+        "11.png",
+        "12.png",
+        "13.png"
+      ]
+    },
+    "ai-planet": {
+      "/image/planet/cloud-kingdoms/": [
+        "blue-procession.png",
+        "mauve-lantern.png",
+        "pearl-gyre.png",
+        "saffron-eye.png",
+        "the-long-storm.png"
+      ],
+      "/image/planet/desert-dominions/": [
+        "glass-dunes.png",
+        "pilgrims-wake.png",
+        "salt-crown.png",
+        "the-last-well.png",
+        "wandering-sea.png"
+      ],
+      "/image/planet/engineered-legacies/": [
+        "brass-reliquary.png",
+        "meridian-foundry.png",
+        "reservoir-nine.png",
+        "sleeping-engine.png",
+        "verdant-girdle.png"
+      ],
+      "/image/planet/familiar-worlds/": ["earth.png"],
+      "/image/planet/furnace-worlds/": [
+        "ash-monsoon.png",
+        "cinder-orchard.png",
+        "copper-caldera.png",
+        "ember-isthmus.png",
+        "sulphur-veil.png"
+      ],
+      "/image/planet/living-frontiers/": [
+        "coral-dominion.png",
+        "rootwater.png",
+        "spore-atlas.png",
+        "verdigris-bloom.png",
+        "violet-canopy.png"
+      ],
+      "/image/planet/non-spheres/": [
+        "halo-of-kes.png",
+        "ironheart-ocean.png",
+        "saffron-sun.png",
+        "the-folded-world.png",
+        "the-iron-conclave.png",
+        "the-linked-reach.png",
+        "the-quiet-maw.png",
+        "the-swift-meridian.png",
+        "veyr-ark.png"
+      ],
+      "/image/planet/ocean-principalities/": [
+        "drowned-crown.png",
+        "reef-labyrinth.png",
+        "sable-tide.png",
+        "storm-anchorage.png",
+        "twin-basins.png"
+      ],
+      "/image/planet/strange-horizons/": [
+        "black-mirror.png",
+        "hollow-shoals.png",
+        "pilgrim-scar.png",
+        "shattered-halo.png",
+        "twilight-covenant.png"
+      ],
+      "/image/planet/winter-realms/": [
+        "blue-fault.png",
+        "frost-basin.png",
+        "night-glacier.png",
+        "opal-winter.png",
+        "thawline.png"
+      ]
+    },
+    "familiar-world": {
+      "/image/planet/familiar-worlds/": [
+        "alderaan.png",
+        "argus.png",
+        "citadel.png",
+        "coruscant.png",
+        "death-star.png",
+        "discworld.png",
+        "ego.png",
+        "knowhere.png",
+        "mustafar.png",
+        "omega.png",
+        "pandora.png",
+        "polyphemus.png",
+        "rannoch.png",
+        "vulcan.png",
+        "zeta-halo.png"
+      ]
+    },
+    "sol-world": {
+      "/image/planet/familiar-worlds/": [
+        "callisto.png",
+        "charon.png",
+        "enceladus.png",
+        "europa.png",
+        "ganymede.png",
+        "iapetus.png",
+        "io.png",
+        "jupiter.png",
+        "luna.png",
+        "mars.png",
+        "mercury.png",
+        "mimas.png",
+        "neptune.png",
+        "phobos.png",
+        "pluto.png",
+        "saturn.png",
+        "titan.png",
+        "triton.png",
+        "uranus.png",
+        "venus.png"
+      ]
+    },
+    "dreamrules-cover": { "/image/rulebook-cover/": ["dreamrules-rainbow.png"] },
+    "gf9-second-edition-cover": { "/image/rulebook-cover/": ["gf9-second-edition.png"] },
+    "kiss-cover": { "/image/rulebook-cover/": ["kiss-planet.png"] },
+    "dune-part-two-cover": { "/image/rulebook-cover/": ["military-assembly.png", "sandworm-riding.png"] },
+    "gf9-cover": { "/image/rulebook-cover/": ["sandworm.png", "stone-circle.png", "worm-cavern.png"] },
+    "dune-2021-cover": { "/image/rulebook-cover/": ["warm-sand-desert.png"] },
+    "found-online": {
       "/image/texture/": [
         "001.jpg",
         "002.jpg",
@@ -1052,300 +1346,6 @@
         "sword-bearer.svg"
       ]
     },
-    "nod-portrait": {
-      "/image/leader/nod/": [
-        "ajay.png",
-        "anton-slavik.png",
-        "cabal.png",
-        "kane.png",
-        "kilian-qatar.png",
-        "oxanna-kristos.png",
-        "seth.png"
-      ]
-    },
-    "gf9-dune-portrait": {
-      "/image/leader/official/": [
-        "alia.png",
-        "aramsham.png",
-        "baron.jpg",
-        "bashar.png",
-        "beast.png",
-        "bewt.png",
-        "burseg.png",
-        "caid.png",
-        "chani.png",
-        "dryeuh.png",
-        "duncan.png",
-        "edric.jpg",
-        "esmar.png",
-        "feyd.png",
-        "guildrep.png",
-        "gurney.png",
-        "hasimir.png",
-        "irulan.png",
-        "jamis.png",
-        "jessica.png",
-        "lady-fenring.png",
-        "liet.jpg",
-        "mapes.png",
-        "mohiam.jpg",
-        "nafud.png",
-        "otheym.png",
-        "paul.jpg",
-        "piter.png",
-        "ramallo.png",
-        "shadam.jpg",
-        "soo-soo-sook.png",
-        "staban.png",
-        "stilgar.png",
-        "thufir.png",
-        "uman.png",
-        "wanna.png"
-      ]
-    },
-    "gf9-choam-richese-portrait": {
-      "/image/leader/official/": [
-        "auditor.png",
-        "duke-verdun.png",
-        "ein-calimar.png",
-        "flinto-kinnis.png",
-        "frankos-aru.png",
-        "haloa-rund.png",
-        "lady-helena.png",
-        "lady-yalma.png",
-        "rajiv-londine.png",
-        "talis-balt.png",
-        "viscount-tull.png"
-      ]
-    },
-    "gf9-ecaz-moritani-portrait": {
-      "/image/leader/official/": [
-        "bindikk-narvi.png",
-        "grieu-kronos.png",
-        "hiih-resser.png",
-        "ilesa-ecaz.png",
-        "lupino-ord.png",
-        "sanya-ecaz.png",
-        "trin-kronos.png",
-        "vando-terboli.png",
-        "whitemore-bludd.png",
-        "whitmore.jpg"
-      ]
-    },
-    "gf9-ixians-tleilaxu-portrait": {
-      "/image/leader/official/": [
-        "blin.png",
-        "cammar.png",
-        "ctair.png",
-        "dominic.png",
-        "hidar.png",
-        "kailea.png",
-        "masters.jpg",
-        "rhombor.jpg",
-        "tessia.png",
-        "wykk.png",
-        "zaaf.png",
-        "zoal.png"
-      ]
-    },
-    "red-alert-portrait": {
-      "/image/leader/red-alert-1/": [
-        "carville.png",
-        "chitzkoi.png",
-        "einstein.png",
-        "gradenko.png",
-        "kane.png",
-        "kukov.png",
-        "nadia.png",
-        "stalin.png",
-        "stavros.png",
-        "tanya.png",
-        "topolov.png",
-        "volkov.png",
-        "von-esling.png"
-      ],
-      "/image/leader/red-alert-2/": [
-        "boris.png",
-        "carville.png",
-        "dugan.png",
-        "einstein.png",
-        "eva.png",
-        "romanov.png",
-        "tanya.png",
-        "vladimir.png",
-        "yuri.png",
-        "zofia.png"
-      ],
-      "/image/leader/red-alert-3/": [
-        "ackerman.png",
-        "anatoly-cherdenko.png",
-        "bingham.png",
-        "brenda.png",
-        "dasha.png",
-        "eva.png",
-        "giles.png",
-        "hill.png",
-        "izumi.png",
-        "kelly.png",
-        "kenji.png",
-        "krukov.png",
-        "lissette.png",
-        "lydia.png",
-        "moskvin.png",
-        "naomi.png",
-        "natasha.png",
-        "oleg.png",
-        "shimada.png",
-        "shinzo.png",
-        "suki.png",
-        "takara.png",
-        "tanya.png",
-        "tatsu.png",
-        "thornley.png",
-        "vera.png",
-        "warren.png",
-        "yoshiro.png",
-        "yuriko.png",
-        "zelinsky.png",
-        "zhana.png"
-      ]
-    },
-    "gf9-planet": {
-      "/image/planet/": [
-        "01.png",
-        "02.png",
-        "03.png",
-        "04.png",
-        "05.png",
-        "06.png",
-        "07.png",
-        "08.png",
-        "09.png",
-        "10.png",
-        "11.png",
-        "12.png",
-        "13.png"
-      ]
-    },
-    "ai-planet": {
-      "/image/planet/cloud-kingdoms/": [
-        "blue-procession.png",
-        "mauve-lantern.png",
-        "pearl-gyre.png",
-        "saffron-eye.png",
-        "the-long-storm.png"
-      ],
-      "/image/planet/desert-dominions/": [
-        "glass-dunes.png",
-        "pilgrims-wake.png",
-        "salt-crown.png",
-        "the-last-well.png",
-        "wandering-sea.png"
-      ],
-      "/image/planet/engineered-legacies/": [
-        "brass-reliquary.png",
-        "meridian-foundry.png",
-        "reservoir-nine.png",
-        "sleeping-engine.png",
-        "verdant-girdle.png"
-      ],
-      "/image/planet/familiar-worlds/": ["earth.png"],
-      "/image/planet/furnace-worlds/": [
-        "ash-monsoon.png",
-        "cinder-orchard.png",
-        "copper-caldera.png",
-        "ember-isthmus.png",
-        "sulphur-veil.png"
-      ],
-      "/image/planet/living-frontiers/": [
-        "coral-dominion.png",
-        "rootwater.png",
-        "spore-atlas.png",
-        "verdigris-bloom.png",
-        "violet-canopy.png"
-      ],
-      "/image/planet/non-spheres/": [
-        "halo-of-kes.png",
-        "ironheart-ocean.png",
-        "saffron-sun.png",
-        "the-folded-world.png",
-        "the-iron-conclave.png",
-        "the-linked-reach.png",
-        "the-quiet-maw.png",
-        "the-swift-meridian.png",
-        "veyr-ark.png"
-      ],
-      "/image/planet/ocean-principalities/": [
-        "drowned-crown.png",
-        "reef-labyrinth.png",
-        "sable-tide.png",
-        "storm-anchorage.png",
-        "twin-basins.png"
-      ],
-      "/image/planet/strange-horizons/": [
-        "black-mirror.png",
-        "hollow-shoals.png",
-        "pilgrim-scar.png",
-        "shattered-halo.png",
-        "twilight-covenant.png"
-      ],
-      "/image/planet/winter-realms/": [
-        "blue-fault.png",
-        "frost-basin.png",
-        "night-glacier.png",
-        "opal-winter.png",
-        "thawline.png"
-      ]
-    },
-    "familiar-world": {
-      "/image/planet/familiar-worlds/": [
-        "alderaan.png",
-        "argus.png",
-        "citadel.png",
-        "coruscant.png",
-        "death-star.png",
-        "discworld.png",
-        "ego.png",
-        "knowhere.png",
-        "mustafar.png",
-        "omega.png",
-        "pandora.png",
-        "polyphemus.png",
-        "rannoch.png",
-        "vulcan.png",
-        "zeta-halo.png"
-      ]
-    },
-    "sol-world": {
-      "/image/planet/familiar-worlds/": [
-        "callisto.png",
-        "charon.png",
-        "enceladus.png",
-        "europa.png",
-        "ganymede.png",
-        "iapetus.png",
-        "io.png",
-        "jupiter.png",
-        "luna.png",
-        "mars.png",
-        "mercury.png",
-        "mimas.png",
-        "neptune.png",
-        "phobos.png",
-        "pluto.png",
-        "saturn.png",
-        "titan.png",
-        "triton.png",
-        "uranus.png",
-        "venus.png"
-      ]
-    },
-    "dreamrules-cover": { "/image/rulebook-cover/": ["dreamrules-rainbow.png"] },
-    "gf9-second-edition-cover": { "/image/rulebook-cover/": ["gf9-second-edition.png"] },
-    "kiss-cover": { "/image/rulebook-cover/": ["kiss-planet.png"] },
-    "dune-part-two-cover": { "/image/rulebook-cover/": ["military-assembly.png", "sandworm-riding.png"] },
-    "gf9-cover": { "/image/rulebook-cover/": ["sandworm.png", "stone-circle.png", "worm-cavern.png"] },
-    "dune-2021-cover": { "/image/rulebook-cover/": ["warm-sand-desert.png"] },
     "gf9-discovery-texture": { "/image/texture/": ["hiereg-discovery.png"] },
     "gf9-board-trace": { "/vector/background/": ["map.svg"] },
     "gf9-component-trace": {
