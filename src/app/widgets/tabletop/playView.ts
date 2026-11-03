@@ -4,7 +4,7 @@ import { BOTTOM_SHELF_POSITION, BOTTOM_SHELF_SIZE, FURNITURE_SURFACE_Y } from '@
 import { PerspectiveCamera, Vector3 } from 'three';
 
 import { mapViewFramingPoints } from './tablePlateGeometry';
-import { wheelPixels } from './wheelPixels';
+import { wheelPixels, wheelZoomFactor } from './wheelPixels';
 
 /** The views around the camera dial's ring: the board at its approved angle, the two bays and the bottom shelf. */
 export const TABLE_VIEW_OPTIONS = [
@@ -551,7 +551,8 @@ function cameraZoomAfterWheel(
   deltaY: number,
   deltaMode = 0
 ): CameraZoom {
-  const step = Math.exp(-wheelPixels(deltaY, deltaMode) / CAMERA_ZOOM_SCROLL_PX);
+  /* The scale is the camera's distance, so it shrinks as the wheel zooms in. */
+  const step = 1 / wheelZoomFactor(wheelPixels(deltaY, deltaMode), CAMERA_ZOOM_SCROLL_PX);
   const scale = Math.max(CAMERA_ZOOM_MINIMUM_SCALE, Math.min(1, zoom.scale * step));
   if (scale >= 1) {
     return NO_CAMERA_ZOOM;
@@ -680,9 +681,6 @@ export function cameraZoomAfterPanMotion(
   velocity: readonly [number, number],
   seconds: number
 ): CameraZoom {
-  if (zoom.scale >= 1) {
-    return zoom;
-  }
   const step = Math.min(Math.max(seconds, 0), 0.1);
   let [moveX, moveZ] = [velocity[0] * step, velocity[1] * step];
   const target = zoomedCameraPose(basePose, zoom).target;

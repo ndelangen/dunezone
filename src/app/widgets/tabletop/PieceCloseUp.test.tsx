@@ -47,9 +47,9 @@ test('Alt scrolling resizes the preview without passing the scroll to the table'
   const tableWheel = vi.fn();
   document.body.addEventListener('wheel', tableWheel);
   const before = scale();
-  expect(scroll(80).defaultPrevented).toBe(true);
+  expect(scroll(-80).defaultPrevented).toBe(true);
   expect(scale()).toBeGreaterThan(before);
-  scroll(-160);
+  scroll(160);
   expect(scale()).toBeLessThan(before);
   expect(tableWheel).not.toHaveBeenCalled();
   document.body.removeEventListener('wheel', tableWheel);
@@ -57,7 +57,7 @@ test('Alt scrolling resizes the preview without passing the scroll to the table'
 
 test('the whole preview including its description stays inside the viewport after zoom and resize', () => {
   const { box, scale } = preview();
-  scroll(100_000);
+  scroll(-100_000);
   expect(600 * scale()).toBeLessThanOrEqual(768 - 24);
   vi.stubGlobal('innerWidth', 240);
   vi.stubGlobal('innerHeight', 320);
