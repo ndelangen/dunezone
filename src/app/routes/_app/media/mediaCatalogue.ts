@@ -25,6 +25,8 @@ export interface MediaEntry {
   subjects: readonly string[];
   glyphPreview: boolean;
   kind: MediaKind;
+  /** Who made the artwork and how this copy was made. */
+  credit?: string;
 }
 
 const indexedPaths = (prefix: string) => Object.keys(metadata).filter((path) => path.startsWith(prefix));

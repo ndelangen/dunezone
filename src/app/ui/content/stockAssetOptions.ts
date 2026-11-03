@@ -1,3 +1,4 @@
+import { mediaCreditText } from '@shared/media/credits';
 import stockAssetCollections from '@shared/stockAssetCollections.json';
 import { canonicalVectorArtwork } from '@shared/vectorRules';
 
@@ -72,6 +73,7 @@ export function stockAssetOptions(values: readonly string[]) {
         label: assetNames[value] ?? words(name),
         collection: group,
         keywords: `${group} ${collection?.keywords ?? ''} ${value}`,
+        credit: mediaCreditText(value),
       };
     })
     .sort((a, b) => {

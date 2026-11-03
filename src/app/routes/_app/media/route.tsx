@@ -265,7 +265,12 @@ function MediaPreview({ entry, large = false }: Readonly<{ entry: MediaEntry; la
 }
 
 function mediaDetails(entry: MediaEntry) {
-  return helpLines(entry.description, `Keywords: ${entry.tags.join(', ')}.`, `File: ${entry.value}`);
+  return helpLines(
+    entry.description,
+    entry.credit && `Credit: ${entry.credit}`,
+    `Keywords: ${entry.tags.join(', ')}.`,
+    `File: ${entry.value}`
+  );
 }
 
 function FocusedMedia({ focused, onClose }: Readonly<{ focused: MediaEntry; onClose: () => void }>) {
@@ -287,6 +292,11 @@ function FocusedMedia({ focused, onClose }: Readonly<{ focused: MediaEntry; onCl
     >
       <Stack align="center" gap="sm">
         <MediaPreview entry={focused} large />
+        {focused.credit && (
+          <Text size="sm" c="dimmed" ta="center" maw={480}>
+            {focused.credit}
+          </Text>
+        )}
         <Anchor href={resolveAsset(focused.value, 'large')} target="_blank" rel="noreferrer">
           Open image file
         </Anchor>

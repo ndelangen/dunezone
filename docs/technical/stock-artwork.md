@@ -128,6 +128,22 @@ When adding or changing artwork:
 5. Run `bunx vitest run src/app/routes/_app/media`, then check real searches and the focused preview.
    Run the Media page stories and the required release verification before updating the PR.
 
+### Art credits
+
+Every record in `media-index.json` names a `credit`, an id defined in `src/shared/media/credits.json`,
+and may add a `creditDetail` sentence, such as the reference a single AI planet was based on. A
+definition records the method (`official`, `restored`, `recreated`, `traced`, `ai-restored`,
+`ai-adapted`, `ai`, `blog`, `online` or `unknown`), the original artist, the source work, the style
+AI artwork was asked to match, and who prepared the copy. `creditText` in
+`src/shared/media/credits.ts` turns this into one sentence. The focused `/media` preview, its
+details tooltip and the artwork pickers' hover preview show it.
+
+`bun run generate` writes `src/shared/media/credits.generated.json`, which groups paths by credit
+and folder so the pickers can show credits without loading the search index. The media credit test
+rejects records without a defined credit, unused definitions and a stale generated index. When you
+add artwork, give it the credit its provenance record supports; use `online` when it was found
+online and its source is still unknown.
+
 ### GF9 artwork provenance
 
 `content/gf9/artwork/provenance.json` keeps source references, preparation notes and approval

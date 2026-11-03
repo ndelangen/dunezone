@@ -9,6 +9,8 @@ import { Box2 } from 'three';
 import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader.js';
 
 import rasterLock from '../media/raster.lock.json';
+import { compareCodeUnits } from '../src/shared/compareText';
+import creditDefinitions from '../src/shared/media/credits.json';
 import stockAssetCollections from '../src/shared/stockAssetCollections.json';
 import { normalizeSvg } from '../src/shared/vectorNormalize';
 import { VECTOR_ARTWORK_ALIASES } from '../src/shared/vectorRules';
@@ -141,7 +143,7 @@ await Bun.write(join(import.meta.dirname, '..', 'src/shared/assetIds.ts'), forma
 const mediaDirectory = join(import.meta.dirname, '..', 'src/app/routes/_app/media');
 const mediaIndex = JSON.parse(readFileSync(join(mediaDirectory, 'media-index.json'), 'utf8')) as Record<
   string,
-  { description: string; tags: string[]; subjects: string[]; sourceHash: string }
+  { description: string; tags: string[]; subjects: string[]; credit: string; creditDetail?: string; sourceHash: string }
 >;
 const searchIndex = Object.fromEntries(
   Object.entries(mediaIndex).map(([key, { description, tags, subjects }]) => [key, { description, tags, subjects }])
@@ -153,6 +155,31 @@ if (searchIndexOutput.errors.length > 0) {
   );
 }
 await Bun.write(join(mediaDirectory, 'mediaSearchIndex.generated.json'), searchIndexOutput.code);
+
+/* Pickers credit stock artwork without loading the search index, so paths are grouped by credit and folder. */
+const creditFiles: Record<string, Record<string, string[]>> = {};
+const creditDetails: Record<string, string> = {};
+for (const [key, { credit, creditDetail }] of Object.entries(mediaIndex).sort(([a], [b]) => compareCodeUnits(a, b))) {
+  if (!Object.hasOwn(creditDefinitions, credit)) {
+    throw new Error(`${key} names credit "${credit}", which src/shared/media/credits.json does not define`);
+  }
+  const folder = key.slice(0, key.lastIndexOf('/') + 1);
+  ((creditFiles[credit] ??= {})[folder] ??= []).push(key.slice(folder.length));
+  if (creditDetail) {
+    creditDetails[key] = creditDetail;
+  }
+}
+const creditIndexOutput = await format(
+  'credits.generated.json',
+  JSON.stringify({ files: creditFiles, details: creditDetails }),
+  formatOptions
+);
+if (creditIndexOutput.errors.length > 0) {
+  throw new Error(
+    `Media credit index did not format: ${creditIndexOutput.errors.map((error) => error.message).join('; ')}`
+  );
+}
+await Bun.write(join(import.meta.dirname, '..', 'src/shared/media/credits.generated.json'), creditIndexOutput.code);
 
 /* Geometry retains the artwork's shape and centre without depending on a platform's raster encoder. */
 const vectorCrops: Record<string, readonly [number, number, number, number]> = {};
