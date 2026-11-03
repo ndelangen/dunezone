@@ -153,3 +153,68 @@ test('a learner who presses pass twice and sits out still gets a round back at t
   game.act({ kind: 'bid-raise', round: again });
   expect(step.done()).toBe(true);
 });
+
+test('the hand-on step does not count a pass sent before it began', () => {
+  const round = openAtLearner();
+  game.act({ kind: 'bid-raise', round });
+  game.act({ kind: 'bid-pass', round });
+  const step = game.step('hand-on');
+  expect(step.done()).toBe(false);
+});
+
+test('another faction winning the card does not finish the win step; the round opens again at the learner', () => {
+  const round = openAtLearner();
+  const step = game.step('win');
+  game.act({ kind: 'bid-pass', round });
+  /* The learner passed with no bid, so whoever bids next takes it; the practice players only pass, so make one bid. */
+  const bidder = game.snapshot().bidding!.turn!;
+  const seat = game.players.others().find((other) => game.players.viewOf(other).bank?.factionId === bidder)!;
+  game.players.act(seat, { kind: 'bid-raise', round });
+  vi.advanceTimersByTime(20_000);
+  /* The others pass round to the learner, who passes too, and the bidder's faction wins. */
+  expect(game.snapshot().bidding).toMatchObject({ stage: 'open', round, turn: mine() });
+  game.act({ kind: 'bid-pass', round });
+  expect(game.snapshot().bidding).toMatchObject({ stage: 'won', bid: { factionId: bidder } });
+  expect(step.done()).toBe(false);
+  vi.advanceTimersByTime(5000);
+  expect(game.snapshot().bidding).toMatchObject({ stage: 'open', turn: mine(), bid: null });
+});
+
+test('a round the learner won before the win step began does not finish it', () => {
+  const round = openAtLearner();
+  game.act({ kind: 'bid-raise', round });
+  game.act({ kind: 'bid-raise', round });
+  game.act({ kind: 'bid-raise', round });
+  game.act({ kind: 'bid-pass', round });
+  const hand = game.step('hand-on');
+  vi.advanceTimersByTime(5000);
+  expect(game.snapshot().bidding).toMatchObject({ stage: 'won', bid: { factionId: mine() } });
+  hand.finish();
+  const step = game.step('win');
+  expect(step.done()).toBe(false);
+  vi.advanceTimersByTime(5000);
+  expect(game.snapshot().bidding).toMatchObject({ stage: 'open', turn: mine(), bid: null });
+});
+
+test('a token turned face down mid-round is turned back up even when the learner goes on to win', () => {
+  const round = openAtLearner();
+  game.step('hand-on');
+  game.act({ kind: 'bid-raise', round });
+  game.act({ kind: 'bid-raise', round });
+  game.act({ kind: 'bid-raise', round });
+  game.act({ kind: 'bid-pass', round });
+  game.act({ kind: 'flip', pieceId: factionTokenOf(game.snapshot().table.pieces, mine())!.id });
+  vi.advanceTimersByTime(20_000);
+  expect(factionTokenOf(game.snapshot().table.pieces, mine())!.items[0]!.faceUp).toBe(true);
+});
+
+test('an O pressed while the raise step shows its tick counts for the lower step', () => {
+  const round = openAtLearner();
+  const raise = game.step('raise');
+  game.act({ kind: 'bid-raise', round });
+  game.act({ kind: 'bid-raise', round });
+  expect(raise.done()).toBe(true);
+  game.act({ kind: 'bid-lower', round });
+  raise.finish();
+  expect(game.step('lower').done()).toBe(true);
+});
