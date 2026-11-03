@@ -14,7 +14,7 @@ export const creditMethods = [
   'online',
   'unknown',
 ] as const;
-export type CreditMethod = (typeof creditMethods)[number];
+type CreditMethod = (typeof creditMethods)[number];
 
 export interface MediaCredit {
   method: CreditMethod;
@@ -53,35 +53,34 @@ function withStyle(text: string, style?: string) {
   return style ? `${text}, in the style of ${style}` : text;
 }
 
+function origin(credit: MediaCredit) {
+  return credit.artist ? `${artistPhrase(credit)} for ${credit.source}` : `artwork from ${credit.source}`;
+}
+
+function suffix(condition: unknown, text: string) {
+  return condition ? text : '';
+}
+
+/* Each method words its credit; the artist, the preparer and the style are optional parts. */
+const phrases: Record<CreditMethod, (credit: MediaCredit) => string> = {
+  official: origin,
+  restored: (credit) => `${origin(credit)}, cleaned up by ${credit.by}`,
+  recreated: (credit) =>
+    `recreated by ${credit.by} from ${credit.source}${suffix(credit.artist, `. ${artistPhrase(credit)}`)}`,
+  traced: (credit) =>
+    `traced${suffix(credit.by, ` by ${credit.by}`)} from ${credit.source}${suffix(credit.artist, `, ${artistPhrase(credit, false)}`)}`,
+  'ai-restored': (credit) => `${origin(credit)}, restored with AI image tools`,
+  'ai-adapted': (credit) => withStyle(`made with AI image tools, based on ${credit.source}`, credit.style),
+  ai: (credit) => withStyle('made with AI image tools for Dune Zone', credit.style),
+  blog: () => 'a picture from the Dune Zone blog',
+  online: () => 'found online. The original source is still being traced',
+  unknown: (credit) => `artist not yet recorded${suffix(credit.source, `. From ${credit.source}`)}`,
+};
+
 /** One readable line that says who made the artwork and how this copy was made. */
 export function creditText(credit: MediaCredit, detail?: string): string {
-  const { method, artist, source, style, by } = credit;
-  const origin = artist ? `${artistPhrase(credit)} for ${source}` : `artwork from ${source}`;
-  const text = (() => {
-    switch (method) {
-      case 'official':
-        return origin;
-      case 'restored':
-        return `${origin}, cleaned up by ${by}`;
-      case 'recreated':
-        return `recreated by ${by} from ${source}${artist ? `. ${artistPhrase(credit)}` : ''}`;
-      case 'traced':
-        return `traced${by ? ` by ${by}` : ''} from ${source}${artist ? `, ${artistPhrase(credit, false)}` : ''}`;
-      case 'ai-restored':
-        return `${origin}, restored with AI image tools`;
-      case 'ai-adapted':
-        return withStyle(`made with AI image tools, based on ${source}`, style);
-      case 'ai':
-        return withStyle('made with AI image tools for Dune Zone', style);
-      case 'blog':
-        return 'a picture from the Dune Zone blog';
-      case 'online':
-        return 'found online. The original source is still being traced';
-      case 'unknown':
-        return source ? `artist not yet recorded. From ${source}` : 'artist not yet recorded';
-    }
-  })();
-  return detail ? `${sentence(text)} ${detail}` : sentence(text);
+  const text = sentence(phrases[credit.method](credit));
+  return detail ? `${text} ${detail}` : text;
 }
 
 /* The generated index groups paths by credit and folder, which keeps it small enough for the pickers. */
