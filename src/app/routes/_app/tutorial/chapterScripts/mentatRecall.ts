@@ -19,11 +19,6 @@ const loaded = () =>
   document.querySelector(RECALL) !== null &&
   document.querySelector(`${RECALL} [aria-label="Loading recalled inventory"], ${RECALL} [role="alert"]`) === null &&
   panel('recall-history')?.querySelector('[role="status"]') == null;
-const FIRST_RECALL_RECOVERY =
-  'If recall closes early, ask for Storm again in the Mentat recall window. If it is closed, open it through Controls. The practice players will agree.';
-const LATER_RECALL_RECOVERY =
-  'If recall closes early, open Mentat recall through Controls if needed. Move its slider all the way right and ask for Turn 3, Spice Blow. The practice players will agree. Shared history opens with the new recall; pin it to the bottom right, then continue this exercise. If you closed it, reopen it with {Space}, {↑}, {Space}.';
-
 /* The practice players answer through their seats, including a new proposal after an early return. */
 function answerProposals(snapshot: () => GameSnapshot, players: TablePlayers, stormOnly: boolean) {
   const timer = setInterval(() => {
@@ -59,12 +54,11 @@ function recallAnchor(snapshot: () => GameSnapshot, anchor: GuideTask['anchor'])
 }
 
 /* A replacement recall starts fresh baselines, and every task releases its timers and listeners on Reset or exit. */
-function duringRecall(snapshot: () => GameSnapshot, players: TablePlayers, recovery = FIRST_RECALL_RECOVERY) {
+function duringRecall(snapshot: () => GameSnapshot, players: TablePlayers) {
   return <Baseline>(definition: GuideTask<Baseline>): GuideTask => {
     const anchor = definition.anchor;
     return task({
       ...definition,
-      detail: `${definition.detail}\n\n${recovery}`,
       anchor: recallAnchor(snapshot, anchor),
       begin: (view) => ({
         id: snapshot().review?.id,
@@ -123,7 +117,7 @@ function openingTasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'review-propose',
       task: 'Ask to recall Storm',
       detail:
-        'Press {Space}, type Mentat recall and confirm with {Enter}.\n\nMove the checkpoint slider all the way left to Turn 1, Storm, then press Ask the table to recall. You can focus the slider and press {Home} to reach the first checkpoint. If you pick the wrong checkpoint, withdraw the request and try again.',
+        'Press {Space}, type Mentat recall and confirm with {Enter}.\n\nMove the checkpoint slider all the way left to Turn 1, Storm, then press Ask the table to recall.',
       anchor: {
         kind: 'page',
         element: () =>
@@ -149,7 +143,7 @@ function consentTask(snapshot: () => GameSnapshot): GuideTask {
     id: 'review-majority',
     task: 'Agree to recall',
     detail:
-      'More than half the seated players must agree before recall starts. Your request counts as your agreement; the other players can agree or decline.\n\nYou can withdraw your request while the vote is open. Ask for Storm again if you do.\n\nPress {Enter} to let the practice players respond.',
+      'More than half the seated players must agree before recall starts. Your request counts as your agreement; the other players can agree or decline.\n\nPress {Enter} to let the practice players respond.',
     anchor: { kind: 'page', element: element('[aria-label="Mentat recall vote"]') },
     ...consent,
     done: (watch) => selectedStep(snapshot) === 0 && snapshot().review?.id === continuedReviewId && consent.done(watch),
@@ -195,7 +189,7 @@ function inspectionTasks(snapshot: () => GameSnapshot, players: TablePlayers): G
       id: 'recalled-side-table',
       task: 'Inspect your private side table',
       detail:
-        'Press {J}, or open Controls and go left twice, to see your recalled private side table.\n\nThe Kwisatz Haderach counter was on space 1 at Turn 1, Storm. Its recorded position is frozen too. You can inspect your own items, but cannot move, edit or peek at them.\n\nRemember that counter position; you will compare it with a later checkpoint.',
+        'Press {J} to see your recalled private side table.\n\nThe Kwisatz Haderach counter was on space 1 at Turn 1, Storm. Its recorded position is frozen too. You can inspect your own items, but cannot move, edit or peek at them.\n\nRemember that counter position; you will compare it with a later checkpoint.',
       anchor: { kind: 'page', element: recallElement('[data-compass-launcher]') },
       begin: () => undefined,
       done: () => Boolean(panel('hidden-zone')?.querySelector('figure')),
@@ -231,8 +225,7 @@ function sharedHistoryTask(snapshot: () => GameSnapshot, players: TablePlayers):
 function laterHandTask(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask {
   return duringRecall(
     snapshot,
-    players,
-    LATER_RECALL_RECOVERY
+    players
   )({
     id: 'later-hand',
     task: 'Compare your later hand',
@@ -249,8 +242,7 @@ function laterHandTask(snapshot: () => GameSnapshot, players: TablePlayers): Gui
 function laterCounterTask(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask {
   return duringRecall(
     snapshot,
-    players,
-    LATER_RECALL_RECOVERY
+    players
   )({
     id: 'later-counter',
     task: 'Compare the private tracker',
@@ -271,8 +263,7 @@ function laterCounterTask(snapshot: () => GameSnapshot, players: TablePlayers): 
 function earlierCheckpointTask(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask {
   return duringRecall(
     snapshot,
-    players,
-    LATER_RECALL_RECOVERY
+    players
   )({
     id: 'earlier-checkpoint',
     task: 'Step back one checkpoint',
