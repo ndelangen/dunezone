@@ -10,7 +10,7 @@ import {
   stackTopHeight,
   TROOP_FOOTPRINT_RADIUS,
 } from './tableGeometry';
-import { TABLE_PLAY_RADIUS } from './tablePhysics';
+import { distanceToSegment, TABLE_PLAY_RADIUS } from './tablePhysics';
 import { tableSeatAngles } from './tableSettings';
 
 const FACTION_TOKEN_RADIUS = TROOP_FOOTPRINT_RADIUS * FACTION_TOKEN_SCALE;
@@ -36,31 +36,32 @@ export function factionOfToken(token: TablePiece | undefined) {
   return token?.stackKey?.slice('faction-token:'.length);
 }
 
-/** The planar distance from `centre` to the segment from `a` to `b`, all read on the table's x and z. */
-function planarDistanceToSegment(centre: Readonly<Vector3Tuple>, a: Vector3Tuple, b: Vector3Tuple) {
-  const [dx, dz] = [b[0] - a[0], b[2] - a[2]];
-  const length = dx * dx + dz * dz;
-  const share = length === 0 ? 0 : ((centre[0] - a[0]) * dx + (centre[2] - a[2]) * dz) / length;
-  const t = Math.min(1, Math.max(0, share));
-  return Math.hypot(a[0] + dx * t - centre[0], a[2] + dz * t - centre[2]);
+/* Where a ray meets `height`, or its origin when the origin stands past that height along the ray, so a segment of it never starts behind the camera. */
+function rayPointAt({ origin, direction }: PointerRay, height: number): Vector3Tuple | null {
+  return pointOnRayAtHeight(origin, direction, height) ?? (Math.abs(direction[1]) < Number.EPSILON ? null : origin);
 }
 
 /**
  * The faction token a ray from the camera passes through, face or side, the nearest one when it passes through two.
  * A carried piece rides on the pointer's ray, so this is the token the held piece is seen over, from any camera angle.
  */
-export function factionTokenOnRay(pieces: readonly TablePiece[], { origin, direction }: PointerRay) {
+export function factionTokenOnRay(pieces: readonly TablePiece[], ray: PointerRay) {
   let nearest: { token: TablePiece; distance: number } | undefined;
   for (const token of pieces) {
     if (!isFactionToken(token)) {
       continue;
     }
-    const top = pointOnRayAtHeight(origin, direction, token.position[1] + stackTopHeight(token));
-    const bottom = pointOnRayAtHeight(origin, direction, token.position[1]);
-    if (!top || !bottom || planarDistanceToSegment(token.position, top, bottom) > FACTION_TOKEN_RADIUS) {
+    const top = rayPointAt(ray, token.position[1] + stackTopHeight(token));
+    const bottom = rayPointAt(ray, token.position[1]);
+    const centre = [token.position[0], token.position[2]] as const;
+    if (
+      !top ||
+      !bottom ||
+      distanceToSegment([...centre], [top[0], top[2]], [bottom[0], bottom[2]]) > FACTION_TOKEN_RADIUS
+    ) {
       continue;
     }
-    const distance = Math.hypot(top[0] - origin[0], top[1] - origin[1], top[2] - origin[2]);
+    const distance = Math.hypot(top[0] - ray.origin[0], top[1] - ray.origin[1], top[2] - ray.origin[2]);
     if (!nearest || distance < nearest.distance) {
       nearest = { token, distance };
     }

@@ -59,13 +59,12 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
-  useMemo,
   useRef,
   useState,
 } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import type { Ray, Texture } from 'three';
-import { DoubleSide, Mesh, MeshBasicMaterial, Plane, Raycaster, RingGeometry, Vector2, Vector3 } from 'three';
+import { DoubleSide, Mesh, MeshBasicMaterial, Plane, RingGeometry, Vector3 } from 'three';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
@@ -673,30 +672,18 @@ function peekedLine(piece: TablePiece, state: Pick<TableState, 'factionNames'>) 
 }
 
 function useTablePointFromClient() {
-  const { camera, renderer } = useThree();
-  const normalizedPointer = useMemo(() => new Vector2(), []);
-  const raycaster = useMemo(() => new Raycaster(), []);
-  const pointFromClient = useCallback(
+  const { renderer } = useThree();
+  const pointerRay = useTablePointerRay();
+  return useCallback(
     (piece: TablePiece, clientX: number, clientY: number): Vector3Tuple | null => {
       if (!isPublicTablePoint(renderer.domElement, clientX, clientY)) {
         return null;
       }
-      const bounds = renderer.domElement.getBoundingClientRect();
-      normalizedPointer.set(
-        ((clientX - bounds.left) / bounds.width) * 2 - 1,
-        -((clientY - bounds.top) / bounds.height) * 2 + 1
-      );
-      raycaster.setFromCamera(normalizedPointer, camera);
-      return pointOnPieceDragRay(
-        piece,
-        [raycaster.ray.origin.x, raycaster.ray.origin.y, raycaster.ray.origin.z],
-        [raycaster.ray.direction.x, raycaster.ray.direction.y, raycaster.ray.direction.z]
-      );
+      const { origin, direction } = pointerRay(clientX, clientY);
+      return pointOnPieceDragRay(piece, origin, direction);
     },
-    [camera, normalizedPointer, raycaster, renderer.domElement]
+    [pointerRay, renderer.domElement]
   );
-
-  return pointFromClient;
 }
 
 function useScenePointerSession(onActiveChange: (active: boolean) => void) {

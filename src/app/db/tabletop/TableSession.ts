@@ -86,7 +86,7 @@ const UNANSWERED_COMMANDS_LIMIT = 4;
 type Turn = { pieceId: string; turns: number; released?: boolean };
 
 /* Where the pointer let go, and its ray from the camera into the table. */
-type GiftPointer = { x: number; y: number; ray?: PointerRay | null };
+type GiftPointer = { x: number; y: number; ray?: PointerRay };
 
 type LocalCarry = {
   id: string;
@@ -1531,47 +1531,52 @@ export class TableSession {
       return;
     }
     this.updateGesture(position);
+    const offer = pointer && this.giftOffer(position, pointer);
+    if (offer) {
+      /* The spice waits where the room will take the gift from, and every viewer sees it there. */
+      this.updateGesture(offer.position);
+    }
     this.flushPose();
-    if (this.offerGift(position, pointer)) {
+    if (offer) {
+      this.carry = { ...this.carry!, offer };
+      this.emit();
       return;
     }
     this.carry = { ...this.carry!, pendingDrop: crypto.randomUUID(), dropUnsent: true };
     this.flushDrop();
     this.emit();
   };
-  /* Keeps spice let go over another faction's token waiting there, for the placer to say what it is; false when it is not such a drop. */
-  private offerGift(position: Vector3Tuple, pointer?: GiftPointer) {
-    const offer = pointer && this.giftOffer(position, pointer);
-    if (!offer) {
-      return false;
-    }
-    this.carry = { ...this.carry!, offer };
-    this.emit();
-    return true;
-  }
   /*
-   * The whole token counts: the spice is over it when it would land on it, or when it is seen over it.
+   * Spice let go over another faction's token waits there for the placer to say what it is; undefined when it is not such a drop.
+   * The whole token counts: the spice is over it when it is seen over it, or when it would land on it.
    * The held piece rides on the pointer's ray above the table, so from a low camera it is seen over a token well before it would land on it;
-   * seen over a token, it waits over that token's middle, so the room finds it there too.
+   * what it is seen over wins, and seen over a token it does not land on, it waits over that token's middle, where the room finds it too.
    */
   private giftOffer(position: Vector3Tuple, pointer: GiftPointer): LocalCarry['offer'] {
-    const pieces = this.table?.state.pieces ?? [];
-    const landing = factionTokenPieceUnder(pieces, position);
-    const seen = landing ?? (pointer.ray ? factionTokenOnRay(pieces, pointer.ray) : undefined);
-    const factionId = this.giftRecipient(factionOfToken(seen));
-    if (!seen || !factionId) {
+    const recipients = this.giftRecipients();
+    if (recipients.size === 0) {
       return undefined;
     }
-    const over: Vector3Tuple = landing ? [...position] : [seen.position[0], position[1], seen.position[2]];
-    return { factionId, position: over, x: pointer.x, y: pointer.y };
+    const pieces = this.requireTable().state.pieces;
+    const landing = factionTokenPieceUnder(pieces, position);
+    const token = [pointer.ray && factionTokenOnRay(pieces, pointer.ray), landing].find((candidate) =>
+      recipients.has(factionOfToken(candidate) ?? '')
+    );
+    if (!token) {
+      return undefined;
+    }
+    const over: Vector3Tuple = token === landing ? [...position] : [token.position[0], position[1], token.position[2]];
+    return { factionId: factionOfToken(token)!, position: over, x: pointer.x, y: pointer.y };
   }
-  /* Who spice let go over the token of `factionId` would go to: another seated faction, while this viewer holds a spice reserve. */
-  private giftRecipient(factionId: string | undefined) {
+  /* The factions spice in hand can go to: every other seated faction, while this viewer holds a spice reserve. */
+  private giftRecipients() {
     const giver = this.snapshot.bank?.factionId;
     if (!giver || !this.carryingSpice()) {
-      return undefined;
+      return new Set<string>();
     }
-    return Object.keys(snapshotFactionLabels(this.snapshot)).find((seated) => seated !== giver && seated === factionId);
+    const seated = new Set(Object.keys(snapshotFactionLabels(this.snapshot)));
+    seated.delete(giver);
+    return seated;
   }
   /* Whether this page holds spice in hand at a table it can handle. */
   private carryingSpice() {

@@ -14,8 +14,8 @@ type Controls = Pick<
   hasDraft: boolean;
   piece(id: string): TablePiece | undefined;
   point(piece: TablePiece, x: number, y: number): Vector3Tuple | null;
-  /** The ray from the camera through the pointer, for the faction token a held piece is let go over. */
-  pointerRay?(x: number, y: number): PointerRay | null;
+  /** The ray from the camera through the pointer, for the faction token a held piece is let go over; a surface with no gifts leaves it out. */
+  pointerRay?(x: number, y: number): PointerRay;
   isPublicPoint(x: number, y: number): boolean;
   onActiveChange(active: boolean): void;
 };
