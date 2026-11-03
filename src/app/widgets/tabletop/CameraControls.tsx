@@ -217,7 +217,7 @@ type PoseAt = { current: ((tilt: number) => CameraPose) | null };
 /*
  * A close look at the board, steered by the wheel while the camera is free: scrolling down moves in toward the point under the pointer,
  * turning toward top-down as it goes, and scrolling up backs out to the view's own distance and angle.
- * While a close look is open, the pan keys slide it, during a carry too.
+ * The pan keys slide the look at every distance, the view's own too, and during a carry.
  * `poseAt` is the view's pose at a tilt.
  */
 function useCloseLook(enabled: boolean, viewKey: string, poseAt: PoseAt): WheelView {
@@ -258,8 +258,6 @@ function useCloseLook(enabled: boolean, viewKey: string, poseAt: PoseAt): WheelV
     return () => surface.removeEventListener('wheel', onWheel);
   }, [enabled, poseAt, surface]);
 
-  const zoomedIn = view.zoom.scale < 1;
-
   /* The cursor over the scene gives the table the keys, ahead of a control the last click left focused. */
   useEffect(() => {
     if (!keyboard) {
@@ -276,29 +274,32 @@ function useCloseLook(enabled: boolean, viewKey: string, poseAt: PoseAt): WheelV
     };
   }, [keyboard, surface]);
 
-  /* The pan keys answer only while a close look is open; otherwise their letters stay free. */
+  /* The pan keys answer at every distance, so a look backed all the way out slides too (#2666). */
   useEffect(() => {
     if (!keyboard) {
       return;
     }
-    keyboard.setPanAvailable(zoomedIn);
+    keyboard.setPanAvailable(true);
     const stopListening = keyboard.onPanChange(invalidate);
     return () => {
       stopListening();
       keyboard.setPanAvailable(false);
     };
-  }, [invalidate, keyboard, zoomedIn]);
+  }, [invalidate, keyboard]);
 
   /* The pan keys' momentum, kept outside React; only the slid look goes through state. */
   const panMotion = useRef<CameraPanMotion>(CAMERA_PAN_AT_REST);
   /* A pan leaves the tilt and closeness alone, so the view's pose under it is worked out once per pan, not once per frame. */
   const panBase = useRef<{ at: (tilt: number) => CameraPose; tilt: number; pose: CameraPose } | null>(null);
+  /* A new view starts still, so no leftover speed carries into it. */
+  useEffect(() => {
+    panMotion.current = CAMERA_PAN_AT_REST;
+  }, [viewKey]);
   useFrame((_, delta) => {
-    const direction = (zoomedIn && keyboard?.panDirection()) || NO_PAN_DIRECTION;
+    const direction = keyboard?.panDirection() ?? NO_PAN_DIRECTION;
     const motion = cameraPanMotionAfter(panMotion.current, view.zoom, direction, delta, readTablePanSpeed());
-    /* Without a close look nothing slides, so no leftover speed carries into the next one. */
-    panMotion.current = zoomedIn ? motion : CAMERA_PAN_AT_REST;
-    if (motion === CAMERA_PAN_AT_REST || !zoomedIn) {
+    panMotion.current = motion;
+    if (motion === CAMERA_PAN_AT_REST) {
       panBase.current = null;
       return;
     }

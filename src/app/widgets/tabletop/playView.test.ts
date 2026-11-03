@@ -562,6 +562,35 @@ describe('close look', () => {
     expect(target[0]).toBeLessThanOrEqual(6.9 + 1e-6);
   });
 
+  test('the pan keys slide every view at its own distance too, starting from where it stands (#2666)', () => {
+    for (const view of ['map', 'top', 'left', 'right', 'bottom'] as const) {
+      for (const aspectRatio of [1, 1.6, 2.4]) {
+        const viewPoseAt = (tilt: number) => cameraPoseForCloseLook(view, aspectRatio, undefined, tilt);
+        const base = viewPoseAt(cameraTiltForZoom(NO_CAMERA_ZOOM));
+        const start = zoomedCameraPose(base, NO_CAMERA_ZOOM).target;
+        const firstFrame = cameraZoomAfterPanMotion(NO_CAMERA_ZOOM, base, [0.001, 0], 1 / 60);
+        const nudged = zoomedCameraPose(base, firstFrame).target;
+        expect(Math.hypot(nudged[0] - start[0], nudged[2] - start[2])).toBeLessThan(0.01);
+        let zoom = NO_CAMERA_ZOOM;
+        for (let frame = 0; frame < 30; frame++) {
+          zoom = cameraZoomAfterPanMotion(zoom, base, [0, -16], 1 / 60);
+        }
+        expect(zoom.scale).toBe(1);
+        expect(zoomedCameraPose(base, zoom).target[2]).toBeLessThan(start[2] - 0.5);
+      }
+    }
+  });
+
+  test("scrolling up at the view's own distance brings a slid look back to the view", () => {
+    const base = poseAt(0);
+    let zoom = NO_CAMERA_ZOOM;
+    for (let frame = 0; frame < 30; frame++) {
+      zoom = cameraZoomAfterPanMotion(zoom, base, [16, 0], 1 / 60);
+    }
+    expect(zoom).not.toBe(NO_CAMERA_ZOOM);
+    expect(cameraZoomAfterWheelAt(zoom, poseAt, spot, -100)).toBe(NO_CAMERA_ZOOM);
+  });
+
   test('a close look reaches the card wells and the bottom shelf, but never the empty corners beside them', () => {
     const slide = (velocity: readonly [number, number]) => {
       let zoom = zoomIn(5);

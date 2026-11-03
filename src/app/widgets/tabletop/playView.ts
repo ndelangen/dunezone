@@ -680,9 +680,6 @@ export function cameraZoomAfterPanMotion(
   velocity: readonly [number, number],
   seconds: number
 ): CameraZoom {
-  if (zoom.scale >= 1) {
-    return zoom;
-  }
   const step = Math.min(Math.max(seconds, 0), 0.1);
   let [moveX, moveZ] = [velocity[0] * step, velocity[1] * step];
   const target = zoomedCameraPose(basePose, zoom).target;
