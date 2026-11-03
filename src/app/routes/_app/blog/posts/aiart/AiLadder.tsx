@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 
 import styles from './AiLadder.module.css';
+import { Emblem } from './Emblem';
 import { Portrait } from './Portrait';
 
 type Step = {
@@ -36,7 +37,7 @@ const STEPS: readonly Step[] = [
   },
   {
     label: 'New subjects',
-    note: "Roxsy-Variant's sketch, brought into the GF9 look",
+    note: "A designer's sketch, brought into the GF9 look",
     art: (
       <Portrait
         imageKey="/image/leader/hivers/hiver-amber-pendant.png"
@@ -48,16 +49,10 @@ const STEPS: readonly Step[] = [
     label: 'New marks',
     note: 'An emblem designed here, traced to vectors',
     art: (
-      <span className={styles.mark}>
-        <svg
-          className={styles.emblem}
-          viewBox="0 0 100 100"
-          role="img"
-          aria-label="The Spice Fox emblem: a sitting fox with large ears and a curled tail, drawn as a flat vector shape"
-        >
-          <use href="/vector/logo/spice-fox.svg#root" x={20} y={20} width={60} height={60} fill="currentColor" />
-        </svg>
-      </span>
+      <Emblem
+        vectorKey="/vector/emblem/spice-fox.svg"
+        alt="The Spice Fox emblem: a sitting fox with large ears and a curled tail, drawn as a flat vector shape"
+      />
     ),
   },
 ];

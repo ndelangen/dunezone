@@ -61,27 +61,6 @@
   margin-block-end: var(--space-xs);
 }
 
-/* The emblem's disc: no picture behind a vector, so a faint fill and a ring stand in for the portrait's edge. */
-.mark {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  box-sizing: border-box;
-  width: var(--disc);
-  height: var(--disc);
-  border: 1px solid var(--mantine-color-default-border);
-  border-radius: 50%;
-  background: rgb(from var(--color-text) r g b / 6%);
-  color: var(--mantine-color-text);
-  box-shadow: 0 2px 8px rgb(from var(--color-shadow) r g b / 25%);
-}
-
-.emblem {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
 .label {
   font-family: var(--mantine-font-family-headings);
   font-size: var(--mantine-font-size-sm);

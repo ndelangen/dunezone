@@ -3,6 +3,7 @@ import { Section } from '@ui/block/Section';
 
 import { BulletList, Figure, Lead, Paragraph, PostLink, WideFigure } from '../postContent';
 import { AiLadder } from './aiart/AiLadder';
+import { CreditSample } from './aiart/CreditSample';
 import { HiversRow } from './aiart/HiversRow';
 
 const THALER =
@@ -208,6 +209,9 @@ function ChangesSection() {
         the <PostLink to="/media">media gallery</PostLink>. I&rsquo;m just one person, so if you see any mistakes,
         please let me know and I&rsquo;ll correct it as soon as possible.
       </Paragraph>
+      <WideFigure caption="The credit line every image on Dune Zone now carries, as the media gallery shows it.">
+        <CreditSample />
+      </WideFigure>
       <Paragraph>These are the rules I will keep to:</Paragraph>
       <BulletList>
         <li>Credit the original artists.</li>
