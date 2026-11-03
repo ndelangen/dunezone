@@ -4,7 +4,7 @@ import type { GameSnapshot } from '@shared/play/protocol';
 import type { GuideTask } from '@app/widgets/tutorial-guide/TutorialGuide';
 
 import type { ChapterScript, TablePlayers } from './chapterScript';
-import { at, element, tableDeck, task } from './guideChecks';
+import { at, element, sentSince, tableDeck, task } from './guideChecks';
 
 /*
  * "Bidding": one round on the bidder, the teardrop over the board, from its start to a card won.
@@ -20,6 +20,8 @@ const THINK_MS = 900;
 const OUTBID_BELOW = 3;
 /* Bidding is the turn's fourth phase: Storm, Spice Blow and CHOAM Charity come first. */
 const PHASES_TO_BIDDING = 3;
+/* Ticks a finished or reset round stays on the bidder before the others open a new one at the learner. */
+const RESTART_AFTER = 1;
 
 const DISC = '[data-bidder-turn]';
 
@@ -28,15 +30,38 @@ const seatOf = (players: TablePlayers, factionId: string) =>
   players.others().find((seat) => players.viewOf(seat).bank?.factionId === factionId);
 
 /*
- * The other players' bidding while the task runs: whoever the bidder reaches while the learner leads with a small bid outbids them,
+ * The other players while the learner bids: whoever the bidder reaches while the learner leads with a small bid outbids them,
  * and everyone else passes, so the learner sees a raise come back and then wins the card with a higher one.
+ * They answer whatever the learner does, a hand-on before the step asks for it too, and a round that ends or is reset before
+ * the step is done starts again at the learner after a pause, so the step never waits on players who have nothing left to do.
  */
-function othersBid(snapshot: () => GameSnapshot, players: TablePlayers) {
+function practiceBidding(snapshot: () => GameSnapshot, players: TablePlayers, stepDone: () => boolean) {
   let acted = '';
+  let ended = 0;
   const timer = setInterval(() => {
-    const bidding = snapshot().bidding;
-    const mine = snapshot().bank?.factionId;
-    if (bidding?.stage !== 'open' || !bidding.turn || bidding.turn === mine) {
+    const { bidding, bank, table } = snapshot();
+    const mine = bank?.factionId;
+    const opener = players.others()[0];
+    if (!bidding || !mine || !opener) {
+      return;
+    }
+    /* A P pressed while the bidder pointed elsewhere turned the learner's token face down; sitting out comes later in the chapter. */
+    const token = factionTokenOf(table.pieces, mine);
+    if (token && !(token.items[0]?.faceUp ?? true)) {
+      players.act(opener, { kind: 'flip', pieceId: token.id });
+      return;
+    }
+    if (bidding.stage !== 'open') {
+      /* One beat to show how the round went, then a fresh round at the learner. */
+      ended = stepDone() ? 0 : ended + 1;
+      if (ended > RESTART_AFTER) {
+        ended = 0;
+        players.act(opener, { kind: 'bid-start', factionId: mine });
+      }
+      return;
+    }
+    ended = 0;
+    if (!bidding.turn || bidding.turn === mine) {
       return;
     }
     /* One move per turn of the bidder: a raise keeps the bidder on the raiser, who then hands it on. */
@@ -64,6 +89,25 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
   const myToken = () => factionTokenOf(snapshot().table.pieces, mine());
   const tokenUp = () => myToken()?.items[0]?.faceUp ?? true;
   const disc = { kind: 'page' as const, element: element(DISC) };
+  /*
+   * How many learner commands there were when each step first ticked. The next step only starts after the tick's pause,
+   * so it counts from this mark rather than from its own start, and an O or P pressed as soon as the tick shows still counts.
+   */
+  const ticks = new Map<string, number>();
+  const tick = (id: string, done: boolean) => {
+    if (done && !ticks.has(id)) {
+      ticks.set(id, players.acceptedActions().length);
+    }
+    return done;
+  };
+  const since = (previous: string) => ticks.get(previous) ?? players.acceptedActions().length;
+  const sent = (seen: number, kind: 'bid-lower' | 'bid-pass') =>
+    sentSince(players, seen, (action) => action.kind === kind);
+  /* The learner won a round that was still open when this step began, or opened after: never one that had ended before it. */
+  const won = (ended: number | null) => {
+    const round = bidding();
+    return round?.stage === 'won' && round.round !== ended && round.bid?.factionId === mine();
+  };
   return [
     task({
       id: 'start',
@@ -94,8 +138,12 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       task: 'Bid 2 spice',
       detail: 'Press {I} or click the centre of the disc to raise your bid by one spice. Do it twice to bid 2.',
       anchor: disc,
-      begin: () => undefined,
-      done: () => myBid() >= 2,
+      begin: () => {
+        ticks.delete('raise');
+        return practiceBidding(snapshot, players, () => myBid() >= 2);
+      },
+      done: () => tick('raise', myBid() >= 2),
+      finish: (stop) => stop(),
     }),
     task({
       id: 'lower',
@@ -103,18 +151,25 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       detail:
         'Changed your mind? Press {O} to lower your bid by one.\n\nYou can only undo increases you made on this bidding turn.',
       anchor: disc,
-      /* A raise of 2 or more came first, so a bid of 1 now can only be a raise taken back. */
-      begin: () => undefined,
-      done: () => myBid() === 1,
+      begin: () => {
+        ticks.delete('lower');
+        const seen = since('raise');
+        return { seen, stop: practiceBidding(snapshot, players, () => sent(seen, 'bid-lower')) };
+      },
+      done: ({ seen }) => tick('lower', sent(seen, 'bid-lower')),
+      finish: ({ stop }) => stop(),
     }),
     task({
       id: 'hand-on',
       task: 'Pass to the next bidder',
       detail: 'Press {P} or right-click the disc to finish your bidding turn. The next faction can now respond.',
       anchor: disc,
-      begin: () => ({ stop: othersBid(snapshot, players) }),
-      done: () => bidding()?.turn !== mine(),
-      finish: (watch: { stop: () => void }) => watch.stop(),
+      begin: () => {
+        const seen = since('lower');
+        return { seen, stop: practiceBidding(snapshot, players, () => sent(seen, 'bid-pass')) };
+      },
+      done: ({ seen }) => sent(seen, 'bid-pass'),
+      finish: ({ stop }) => stop(),
     }),
     task({
       id: 'win',
@@ -122,10 +177,17 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       detail:
         "You're back in the bidding! When the bidder points at your faction, press {I} to raise, then {P} to pass to the next bidder.\n\nYou win when everyone else passes.",
       anchor: disc,
-      begin: () => ({ stop: othersBid(snapshot, players) }),
-      /* A slip that hands the bidder on unraised lets another faction win; the round still ends, so the chapter goes on. */
-      done: () => bidding()?.stage === 'won',
-      finish: (watch: { stop: () => void }) => watch.stop(),
+      /*
+       * Only a round the learner wins counts: one another faction won, or one the learner had already won before this step,
+       * opens again at the learner after a beat, so the card the next step takes is always theirs.
+       */
+      begin: () => {
+        const round = bidding();
+        const ended = round && round.stage !== 'open' ? round.round : null;
+        return { ended, stop: practiceBidding(snapshot, players, () => won(ended)) };
+      },
+      done: ({ ended }) => won(ended),
+      finish: ({ stop }) => stop(),
     }),
     task({
       id: 'take-card',
@@ -135,15 +197,12 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       anchor: { kind: 'table', point: () => at(tableDeck(snapshot, 'left')) },
       begin: () => ({ seen: players.acceptedActions().length, deck: tableDeck(snapshot, 'left')?.id }),
       done: ({ seen, deck }) =>
-        players
-          .acceptedActions()
-          .slice(seen)
-          .some(
-            ({ action }) =>
-              action.kind === 'deck-draw' &&
-              action.pieceId === deck &&
-              (!action.recipient || action.recipient === mine())
-          ),
+        sentSince(
+          players,
+          seen,
+          (action) =>
+            action.kind === 'deck-draw' && action.pieceId === deck && (!action.recipient || action.recipient === mine())
+        ),
     }),
     task({
       id: 'sit-out',
