@@ -1,16 +1,23 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
+import aggregateTest from '@convex-dev/aggregate/test';
 import migrationsTest from '@convex-dev/migrations/test';
+import { convexTest } from 'convex-test';
+import { defineSchema, defineTable } from 'convex/server';
+import { v } from 'convex/values';
 import { describe, expect, test } from 'vite-plus/test';
 
 import { INITIAL_CARDBACK_PRESETS } from '../src/shared/assets/cardbackPresets';
+import { publishingTokenFace } from '../src/shared/assets/fixtures/publishingTokenFace';
+import { DISCOVERY_FAMILIES } from '../src/shared/backgrounds/families';
 import { RULEBOOK_CATALOGUE_VERSION } from '../src/shared/rulebooks/contents';
 import { api, internal } from './_generated/api';
 import { EMBLEM_MIGRATION_IDS } from './emblemMigrations';
 import { insertStoredFactions, factionTest, storedFactionData } from './factions.test.fixture';
 import { rulebookDraftContentsHash, rulebookEditionContentsHash } from './lib/rulebookEditionContents';
 import { rulebookFixture } from './rulebooks.test.fixture';
+import schema from './schema';
 
 const background = { gradient: { type: 'linear', angle: 0, stops: [] } };
 
@@ -96,23 +103,95 @@ describe('Emblem rename migration', () => {
     expect(JSON.stringify(cards)).not.toContain('logo');
   });
 
-  test('a preset stored under the old path is accepted by the schema and renamed', async () => {
+  test('after the narrow, both preset tables refuse an artwork path under /vector/logo/', async () => {
     const t = factionTest();
+    const cardback = INITIAL_CARDBACK_PRESETS[0]!.cardback;
+    const legacyBack = { ...cardback, image: '/vector/logo/fremen.svg' };
+    const legacyFace = { ...publishingTokenFace, image: '/vector/logo/fremen.svg' };
+    const insertCardback = (value: unknown) =>
+      t.run(
+        async (ctx) =>
+          await ctx.db.insert('cardback_presets', {
+            key: INITIAL_CARDBACK_PRESETS[0]!.key,
+            /* The typed schema already refuses this path; the cast checks the runtime validator too. */
+            cardback: value as never,
+            revision: 1,
+            updated_at: 0,
+          })
+      );
+    const insertDiscovery = (front: unknown, back: unknown) =>
+      t.run(
+        async (ctx) =>
+          await ctx.db.insert('discovery_presets', {
+            key: DISCOVERY_FAMILIES[0].key,
+            label: DISCOVERY_FAMILIES[0].label,
+            front: front as never,
+            back: back as never,
+            revision: 1,
+            updated_at: 0,
+          })
+      );
+
+    await expect(insertCardback(cardback)).resolves.toBeDefined();
+    await expect(insertCardback(legacyBack)).rejects.toThrow('/vector/logo/fremen.svg');
+    await expect(insertDiscovery(publishingTokenFace, publishingTokenFace)).resolves.toBeDefined();
+    await expect(insertDiscovery(legacyFace, publishingTokenFace)).rejects.toThrow('/vector/logo/fremen.svg');
+    await expect(insertDiscovery(publishingTokenFace, legacyFace)).rejects.toThrow('/vector/logo/fremen.svg');
+  });
+
+  test('the preset migrations rename rows that the widened release still allowed', async () => {
+    /* Production ran the migrations under the widened validators, so this test does too; the narrowed schema can no longer hold such a row. */
+    const t = convexTest({
+      schema: defineSchema({
+        ...schema.tables,
+        discovery_presets: defineTable({
+          ...schema.tables.discovery_presets.validator.fields,
+          front: v.any(),
+          back: v.any(),
+        }).index('by_key', ['key']),
+        cardback_presets: defineTable({ ...schema.tables.cardback_presets.validator.fields, cardback: v.any() }).index(
+          'by_key',
+          ['key']
+        ),
+      }),
+      modules: import.meta.glob('./**/*.ts'),
+    });
     migrationsTest.register(t);
-    const legacyBack = { ...INITIAL_CARDBACK_PRESETS[0]!.cardback, image: '/vector/logo/fremen.svg' };
-    const presetId = await t.run(
-      async (ctx) =>
-        await ctx.db.insert('cardback_presets', {
-          key: INITIAL_CARDBACK_PRESETS[0]!.key,
-          cardback: legacyBack,
-          revision: 1,
-          updated_at: 0,
-        })
-    );
+    for (const name of [
+      'statistics',
+      'profileDiscovery',
+      'profileActivity',
+      'catalogueOrder',
+      'publicationQueue',
+    ] as const) {
+      aggregateTest.register(t, name);
+    }
+    const legacyFace = { ...publishingTokenFace, image: '/vector/logo/fremen.svg' };
+    const [cardbackId, discoveryId] = await t.run(async (ctx) => [
+      await ctx.db.insert('cardback_presets', {
+        key: INITIAL_CARDBACK_PRESETS[0]!.key,
+        cardback: { ...INITIAL_CARDBACK_PRESETS[0]!.cardback, image: '/vector/logo/fremen.svg' },
+        revision: 1,
+        updated_at: 0,
+      }),
+      await ctx.db.insert('discovery_presets', {
+        key: DISCOVERY_FAMILIES[0].key,
+        label: DISCOVERY_FAMILIES[0].label,
+        front: legacyFace,
+        back: legacyFace,
+        revision: 1,
+        updated_at: 0,
+      }),
+    ]);
 
     await t.mutation(internal.emblemMigrations.emblem_rename_cardback_presets_v1, {});
-    const preset = await t.run(async (ctx) => await ctx.db.get('cardback_presets', presetId));
-    expect(preset!.cardback.image).toBe('/vector/emblem/fremen.svg');
+    await t.mutation(internal.emblemMigrations.emblem_rename_discovery_presets_v1, {});
+
+    const cardback = await t.run(async (ctx) => await ctx.db.get(cardbackId!));
+    const discovery = await t.run(async (ctx) => await ctx.db.get(discoveryId!));
+    expect(cardback!.cardback.image).toBe('/vector/emblem/fremen.svg');
+    expect(discovery!.front.image).toBe('/vector/emblem/fremen.svg');
+    expect(discovery!.back.image).toBe('/vector/emblem/fremen.svg');
   });
 
   test('verification refuses a row that still names a logo', async () => {
