@@ -45,41 +45,43 @@ function artistPhrase({ artist, artistRole }: MediaCredit, start = true) {
   return `${start ? role.charAt(0).toUpperCase() + role.slice(1) : role} by ${artist}`;
 }
 
-function sentence(text: string) {
-  return `${text.charAt(0).toUpperCase()}${text.slice(1)}.`;
-}
-
-function withStyle(text: string, style?: string) {
-  return style ? `${text}, in the style of ${style}` : text;
+function styleSuffix({ style }: MediaCredit) {
+  return style ? `, in the style of ${style}` : '';
 }
 
 function origin(credit: MediaCredit) {
   return credit.artist ? `${artistPhrase(credit)} for ${credit.source}` : `artwork from ${credit.source}`;
 }
 
-function suffix(condition: unknown, text: string) {
-  return condition ? text : '';
+function recreated(credit: MediaCredit) {
+  const artist = credit.artist ? `. ${artistPhrase(credit)}` : '';
+  return `recreated by ${credit.by} from ${credit.source}${artist}`;
+}
+
+function traced(credit: MediaCredit) {
+  const by = credit.by ? ` by ${credit.by}` : '';
+  const artist = credit.artist ? `, ${artistPhrase(credit, false)}` : '';
+  return `traced${by} from ${credit.source}${artist}`;
 }
 
 /* Each method words its credit; the artist, the preparer and the style are optional parts. */
 const phrases: Record<CreditMethod, (credit: MediaCredit) => string> = {
   official: origin,
   restored: (credit) => `${origin(credit)}, cleaned up by ${credit.by}`,
-  recreated: (credit) =>
-    `recreated by ${credit.by} from ${credit.source}${suffix(credit.artist, `. ${artistPhrase(credit)}`)}`,
-  traced: (credit) =>
-    `traced${suffix(credit.by, ` by ${credit.by}`)} from ${credit.source}${suffix(credit.artist, `, ${artistPhrase(credit, false)}`)}`,
+  recreated,
+  traced,
   'ai-restored': (credit) => `${origin(credit)}, restored with AI image tools`,
-  'ai-adapted': (credit) => withStyle(`made with AI image tools, based on ${credit.source}`, credit.style),
-  ai: (credit) => withStyle('made with AI image tools for Dune Zone', credit.style),
+  'ai-adapted': (credit) => `made with AI image tools, based on ${credit.source}${styleSuffix(credit)}`,
+  ai: (credit) => `made with AI image tools for Dune Zone${styleSuffix(credit)}`,
   blog: () => 'a picture from the Dune Zone blog',
   online: () => 'found online. The original source is still being traced',
-  unknown: (credit) => `artist not yet recorded${suffix(credit.source, `. From ${credit.source}`)}`,
+  unknown: (credit) => `artist not yet recorded${credit.source ? `. From ${credit.source}` : ''}`,
 };
 
 /** One readable line that says who made the artwork and how this copy was made. */
 export function creditText(credit: MediaCredit, detail?: string): string {
-  const text = sentence(phrases[credit.method](credit));
+  const phrase = phrases[credit.method](credit);
+  const text = `${phrase.charAt(0).toUpperCase()}${phrase.slice(1)}.`;
   return detail ? `${text} ${detail}` : text;
 }
 
