@@ -27,6 +27,8 @@ import {
   tableIdSchema,
 } from '../../src/shared/play/schema';
 import { predictionSchema, predictionChoiceSchema } from '../../src/shared/play/setup';
+import { heldTechTokens } from '../../src/shared/play/techToken';
+import { battleDialingSchema, DEFAULT_BATTLE_DIALING } from '../../src/shared/rulesets/battleDialing';
 
 /** The board layout a stored game's positions are laid out for; see boardLayout.ts. */
 export const BOARD_LAYOUT = 4;
@@ -92,6 +94,8 @@ export const storedSnapshotSchema = gameSnapshotSchema
     /* Spice reserves and battle faces are seeded per faction when a game fixes its seating, never by the schema. */
     /* Persisted key in Durable Object storage, kept as `combatFaces`; the glossary says battle. */
     combatFaces: z.record(tableIdSchema, z.array(battleFaceSchema)).default({}),
+    /* How the game's ruleset counts battle dials, fixed when setup is supplied; older games read as Advanced. */
+    battleDialing: battleDialingSchema.default(DEFAULT_BATTLE_DIALING),
     battleResults: z.array(storedBattleResultSchema).default([]),
     /* Each faction's spice reserve (see CONTEXT.md); the `factionBanks` key is kept for stored game state. */
     factionBanks: z.record(tableIdSchema, tableCountSchema).default({}),
@@ -553,6 +557,7 @@ export class RoomProjection {
       parts = withUnchangedParts<SharedProjection>(this.lastShared, {
         battle: snapshot.battleState ? this.battle(snapshot, snapshot.battleState) : null,
         handCounts: roster ? treacheryHandCounts(heldCards(snapshot), rosterFactionIds(roster)) : undefined,
+        techTokens: roster ? heldTechTokens(snapshot.factionInventories, rosterFactionIds(roster)) : undefined,
         battleResults: snapshot.battleResults.map((result) => ({
           ...result,
           plans: [this.plan(snapshot, result.plans[0], result.id)!, this.plan(snapshot, result.plans[1], result.id)!],
@@ -598,6 +603,7 @@ export class RoomProjection {
         : {}),
       ...(factionId ? handOrderFor(snapshot, factionId) : {}),
       ...(shared.handCounts ? { handCounts: shared.handCounts } : {}),
+      ...(shared.techTokens ? { techTokens: shared.techTokens } : {}),
       ...(factionId ? { peek: this.peek(snapshot, factionId) } : {}),
       ...(snapshot.setup ? { setup: snapshot.setup } : {}),
       ...(snapshot.setup ? { predictions: predictionsFor(snapshot, factionId) } : {}),
@@ -715,7 +721,7 @@ type BattleState = NonNullable<StoredSnapshot['battleState']>;
 type BattlePlan = BattleState['plans'][number];
 type SharedProjection = Pick<
   GameSnapshot,
-  'battle' | 'handCounts' | 'battleResults' | 'table' | 'versions' | 'controls'
+  'battle' | 'handCounts' | 'techTokens' | 'battleResults' | 'table' | 'versions' | 'controls'
 >;
 
 /** Each prediction in full for its own faction or once revealed; everyone else sees it without its choice. */

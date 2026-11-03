@@ -8,6 +8,7 @@ import { Token as FactionToken } from '@game/assets/faction/token/Token';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import styles from './Bidder.module.css';
+import { offersActions } from './tableFactions';
 
 type Props = { client: TableSession; table: TableProjection };
 type FaceProps = Props & { bidding: BiddingState };
@@ -90,7 +91,16 @@ export function RoundResult({
           {outcome}
         </Text>
       )}
-      <StartAt client={client} table={table} order={order} eligible={eligible} />
+      {/* Starting a round is a seated player's; an observer is shown no buttons for it, not even greyed. */}
+      {offersActions(table) ? (
+        <StartAt client={client} table={table} order={order} eligible={eligible} />
+      ) : (
+        bidding.stage === 'idle' && (
+          <Text size="xs" fw={700} className={styles.timer}>
+            Waiting for a round to start
+          </Text>
+        )
+      )}
     </Stack>
   );
 }
@@ -172,6 +182,11 @@ export function OpenRound({
   const turnName = factionName(table, turn);
   const label = turnLabel(mine, bid, turnName);
   const showClock = bidding.timed && (!table.playback || table.playback.recordedAt !== undefined);
+  const face = bid ? (
+    <HighBid bid={bid} table={table} />
+  ) : (
+    <span className={styles.prompt}>{mine ? 'Bid' : 'No bid'}</span>
+  );
   return (
     <Stack gap={2} align="center" className={styles.face}>
       <div className={showClock ? styles.clockWrap : undefined}>
@@ -187,20 +202,23 @@ export function OpenRound({
               }
             }}
           >
-            <UnstyledButton
-              className={styles.disc}
-              data-bidder-turn={turn ?? undefined}
-              data-mine={mine || undefined}
-              aria-label={label}
-              disabled={!mine}
-              onClick={() => client.command({ kind: 'bid-raise', round })}
-            >
-              {bid ? (
-                <HighBid bid={bid} table={table} />
-              ) : (
-                <span className={styles.prompt}>{mine ? 'Bid' : 'No bid'}</span>
-              )}
-            </UnstyledButton>
+            {/* An observer is shown the bid as it stands, not a disc to press. */}
+            {offersActions(table) ? (
+              <UnstyledButton
+                className={styles.disc}
+                data-bidder-turn={turn ?? undefined}
+                data-mine={mine || undefined}
+                aria-label={label}
+                disabled={!mine}
+                onClick={() => client.command({ kind: 'bid-raise', round })}
+              >
+                {face}
+              </UnstyledButton>
+            ) : (
+              <div className={styles.disc} data-bidder-turn={turn ?? undefined} role="img" aria-label={label}>
+                {face}
+              </div>
+            )}
           </TooltipTarget>
         </Tooltip>
       </div>

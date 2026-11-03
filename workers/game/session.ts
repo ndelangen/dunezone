@@ -925,7 +925,8 @@ export class GameSession {
       next,
       message,
       viewer,
-      this.actors.factionFor(viewer.userId)
+      this.actors.factionFor(viewer.userId),
+      message.type === 'drop' ? (room.heldFor(message.carryId)?.items.length ?? 0) : 0
     );
     if (transfer) {
       next.spiceTransfers = [transfer, ...(room.snapshot.spiceTransfers ?? [])].slice(0, 20);

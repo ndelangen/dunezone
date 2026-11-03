@@ -259,6 +259,7 @@ export const snapshotPolicy = {
       is_deleted: 'keep',
       image_cover: 'keep',
       cover: publishedRulesetCover,
+      battle_dialing: 'keep',
     },
     rows: notDeleted,
   },

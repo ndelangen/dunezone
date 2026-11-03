@@ -1,6 +1,13 @@
+/*
+ * Tall as the largest the window gets, not as it is now: a phone browser's toolbar slides away as the page scrolls, and the page runs on under the
+ * translucent bar before it does. Sized to the bar's own edge, the planet stopped there and the bar showed the bare page behind it.
+ */
 .background {
   position: fixed;
   inset: 0;
+  bottom: auto;
+  height: 100vh;
+  height: 100lvh;
   overflow: hidden;
   z-index: -3;
   pointer-events: none;
@@ -12,10 +19,36 @@
 }
 
 .starsFrame {
-  --scroll-progress: 0;
-
   inset: 0;
-  transform: translateY(calc(var(--scroll-progress) * -6vh));
+}
+
+/* Parallax runs only where the compositor can drive it from the scroll position; elsewhere the starfield stays put rather than costing script work on every scroll frame.
+ * It reads the OS hint and the html motion attribute instead of waiting for hydration, so a page restored mid-scroll does not snap.
+ * Keep `animation-timeline` as a separate longhand after the shorthand: Lightning CSS without browser targets folds it into an `animation` shorthand that browsers reject. */
+@supports (animation-timeline: scroll()) {
+  .starsFrame {
+    animation: stars-parallax linear both;
+    animation-timeline: scroll(root);
+  }
+
+  html[data-motion="reduce"] .starsFrame {
+    animation: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html:not([data-motion="ok"]) .starsFrame {
+      animation: none;
+    }
+  }
+}
+
+@keyframes stars-parallax {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-6vh);
+  }
 }
 
 .stars {
@@ -31,8 +64,9 @@
 .planetFrame {
   --planet-diameter: max(140vw, 140vh);
 
+  /* Measured against the same largest window, so the planet holds still while the toolbar comes and goes. */
   top: calc(100vh - var(--planet-diameter) * 0.2);
-  top: calc(100dvh - var(--planet-diameter) * 0.2);
+  top: calc(100lvh - var(--planet-diameter) * 0.2);
   left: 50%;
   width: var(--planet-diameter);
   aspect-ratio: 1;

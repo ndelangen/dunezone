@@ -11,12 +11,16 @@ import '@fontsource/caladea/latin-400-italic.css';
 import '@fontsource/caladea/latin-700.css';
 import '@fontsource/caladea/latin-700-italic.css';
 import './capture-page.css';
+import { trackArtworkPaint } from './captureSettle';
 import { PublisherCapture } from './PublisherCapture';
 
 if (new URLSearchParams(location.search).has(CAPTURE_PROTOCOL.query.rulebookPdfBatch)) {
   const { createRulebookPdfOptimizer } = await import('./pdf/optimizer');
   globalThis.rulebookPdfOptimizer = createRulebookPdfOptimizer();
 }
+
+/* Before the subject renders, so every image it paints is reported against its element. */
+trackArtworkPaint();
 
 const root = document.querySelector('#root');
 if (!root) {

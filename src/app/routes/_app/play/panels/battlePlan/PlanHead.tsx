@@ -1,4 +1,5 @@
 import { Tooltip, UnstyledButton } from '@mantine/core';
+import { dialsFlat } from '@shared/play/battleDialing';
 import type { TablePiece } from '@shared/play/model';
 
 import { useMotionAllowed } from '@app/styles/motion';
@@ -59,7 +60,8 @@ export function PlanHead({ view }: { view: BattlePlanViewProps }) {
             label={`Your plan: troop strength ${plan.strength}, ${plan.spice} spice`}
             background={wheelArt.background}
             strength={plan.strength}
-            spice={plan.spice}
+            spice={plan.dialing === 'basic' ? undefined : plan.spice}
+            support={!dialsFlat(plan.dialing)}
             adjustment={plan.adjustment}
             troops={capableFaces(plan).flatMap((face) => {
               const troop = plan.troops.find((entry) => entry.faceId === face.id);

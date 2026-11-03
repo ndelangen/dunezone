@@ -91,8 +91,9 @@
   touch-action: none;
 }
 
-.piece:disabled {
-  opacity: 1;
+/* A revealed piece shown to a viewer who cannot carry it. */
+.face {
+  display: inline-block;
 }
 
 .centre {

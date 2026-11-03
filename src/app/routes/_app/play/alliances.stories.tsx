@@ -88,8 +88,8 @@ export const ManyAlliancesFitTheHeader = meta.story({
   }),
   play: async ({ canvasElement }) => {
     const doc = canvasElement.ownerDocument;
-    await within(doc.body).findAllByRole('img', { name: /are allied/ }, { timeout: 30_000 });
-    const strip = doc.querySelector('.seated-chip--game [aria-label="Alliances"]')!;
+    await within(doc.body).findAllByRole('img', { name: /are in an alliance/ }, { timeout: 30_000 });
+    const strip = doc.querySelector('[aria-label="Alliances"]')!;
     const phase = doc.querySelector('.seated-phase-status')!;
     const toolbar = doc.querySelector('.seated-toolbar')!;
     await waitFor(async () => {

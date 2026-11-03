@@ -15,6 +15,14 @@ import type { ReactNode } from 'react';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import {
+  setBoardSkin,
+  setPlanetShading,
+  useBoardSkin,
+  usePlanetShading,
+} from '../../../../widgets/tabletop/boardSkinPreference';
+import { BOARD_SKIN_LABELS, BOARD_SKINS } from '../../../../widgets/tabletop/boardSkins';
+import type { BoardSkin } from '../../../../widgets/tabletop/boardSkins';
+import {
   setTableLighting,
   TABLE_LIGHTING_MAX,
   TABLE_LIGHTING_MIN,
@@ -28,7 +36,7 @@ import {
 } from '../../../../widgets/tabletop/tablePanSpeed';
 import { TABLE_LABEL_OPTIONS, useTableLabels } from '../tableLabels';
 import { publicControlsOf } from './publicControls';
-import { isSpectator } from './tableFactions';
+import { isSpectator, offersActions } from './tableFactions';
 
 /*
  * Participation without a bar between the board and the controls (Norbert, 2026-10-11): a spectator asks from the
@@ -350,6 +358,34 @@ function TablePanSpeedSlider() {
   );
 }
 
+/* How this viewer's board draws its territory types; it stays in this browser and never reaches the game. */
+function BoardSkinItems() {
+  const skin = useBoardSkin();
+  return (
+    <>
+      <Menu.Divider />
+      <Menu.Label>Board skin</Menu.Label>
+      <Menu.RadioGroup value={skin} onChange={(value) => setBoardSkin(value as BoardSkin)}>
+        {BOARD_SKINS.map((value) => (
+          <Menu.RadioItem key={value} value={value}>
+            {BOARD_SKIN_LABELS[value]}
+          </Menu.RadioItem>
+        ))}
+      </Menu.RadioGroup>
+    </>
+  );
+}
+
+/* Shades this viewer's board like a lit planet, bright in the middle and dark at the rim; it stays in this browser. */
+function PlanetShadingItem() {
+  const planet = usePlanetShading();
+  return (
+    <Menu.CheckboxItem checked={planet} closeMenuOnClick={false} onChange={() => setPlanetShading(!planet)}>
+      Planet shading
+    </Menu.CheckboxItem>
+  );
+}
+
 /* Pins the stack counts or piece names on; holding the key shows them for a moment. */
 function TableLabelItems() {
   const labels = useTableLabels();
@@ -392,7 +428,8 @@ export function GameMenu({
   /* The fixture has no lifecycle, so a seat there is not one to give up; the table would refuse the departure. */
   const seated = !isSpectator(table) && table.snapshot.stage !== undefined && table.snapshot.stage !== 'discarded';
   return (
-    <Menu position="bottom-end" shadow="md" withinPortal>
+    /* Sized to the room below the button and scrolled past it, so short windows still reach the lobby and seat actions. */
+    <Menu position="bottom-end" shadow="md" withinPortal middlewares={{ size: { padding: 8 } }}>
       <Menu.Target>
         <IconAction
           label="Game menu"
@@ -402,13 +439,15 @@ export function GameMenu({
           icon={<Settings size={20} aria-hidden />}
         />
       </Menu.Target>
-      <Menu.Dropdown>
+      <Menu.Dropdown style={{ overflowY: 'auto' }}>
         {sharing}
         <Menu.Divider />
         <TableLightingSlider />
         <TablePanSpeedSlider />
+        <BoardSkinItems />
+        <PlanetShadingItem />
         <TableLabelItems />
-        {table.snapshot.stage === 'play' && (
+        {table.snapshot.stage === 'play' && offersActions(table) && (
           <Menu.CheckboxItem
             checked={table.snapshot.bidding?.timed ?? idleBidding().timed}
             disabled={!table.canInteract || !table.snapshot.bank}
@@ -428,16 +467,18 @@ export function GameMenu({
           Back to the lobby
         </Menu.Item>
         {onClearConfetti && <Menu.Item onClick={onClearConfetti}>Clear confetti</Menu.Item>}
-        {/* Leaving is for good, so it is held rather than asked twice; a spectator has no seat to give up. */}
+        {/* Leaving is for good, so it is held rather than asked twice; a spectator has no seat to give up, so none is offered. */}
         {/* Keyed by the seat, so a hold started on one seat never departs the seat a trade moved the viewer to. */}
-        <ConfirmDeleteMenuItem
-          key={table.viewer.viewerSeat}
-          label={seated ? leavingLabel(table) : 'Give up your seat'}
-          holdingVerb="Leaving"
-          closeMenuOnClick={false}
-          disabled={!seated || seatLocked(table)}
-          onConfirm={() => client.command({ kind: 'seat-depart' })}
-        />
+        {!isSpectator(table) && (
+          <ConfirmDeleteMenuItem
+            key={table.viewer.viewerSeat}
+            label={seated ? leavingLabel(table) : 'Give up your seat'}
+            holdingVerb="Leaving"
+            closeMenuOnClick={false}
+            disabled={!seated || seatLocked(table)}
+            onConfirm={() => client.command({ kind: 'seat-depart' })}
+          />
+        )}
       </Menu.Dropdown>
     </Menu>
   );

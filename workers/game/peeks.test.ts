@@ -5,7 +5,7 @@ import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
 import { piece, place } from '../../src/shared/play/setupSupply';
 import { deckCommand } from './decks';
 import { hostedFixturePlan } from './fixture';
-import { closeLostPeeks, forgetPeekers, peekCommand } from './peeks';
+import { closeLostPeeks, closePeeksForNewPhase, peekCommand } from './peeks';
 import { Room } from './room';
 import { initialSetup } from './setup-progress';
 import { RoomProjection } from './state';
@@ -100,12 +100,28 @@ test('a battle plan cannot be peeked at, and a face-up card has nothing to peek 
   expect(() => peekCommand(faceUp, 'atreides', { kind: 'peek', pieceId: 'deck' })).toThrow('Nothing about');
 });
 
-test('a new phase forgets who peeked, closes every peek, and changes the pieces it clears', () => {
+test('a new phase closes every peek and empties the hands of marks, while the table keeps who peeked', () => {
   const peeked = peekCommand(table(2), 'atreides', { kind: 'peek', pieceId: 'deck' });
-  const forgotten = forgetPeekers({ ...peeked, revision: peeked.revision + 1 });
-  expect(forgotten.table.pieces[0]?.items.some((item) => item.peekedBy)).toBe(false);
-  expect(forgotten.versions.deck).toBe(peeked.revision + 1);
-  expect(forgotten.peeks).toEqual({});
+  const [deck] = peeked.table.pieces;
+  const held = { ...peeked, factionInventories: { harkonnen: [{ ...deck!, id: 'held', owner: 'harkonnen' }] } };
+  const closed = closePeeksForNewPhase(held);
+  expect(closed.table.pieces[0]?.items.every((item) => item.peekedBy?.includes('atreides'))).toBe(true);
+  expect(closed.factionInventories.harkonnen?.[0]?.items.some((item) => item.peekedBy)).toBe(false);
+  expect(closed.peeks).toEqual({});
+});
+
+test('a shuffle forgets who peeked at the deck', () => {
+  const peeked = peekCommand(table(3), 'atreides', { kind: 'peek', pieceId: 'deck' });
+  const shuffled = deckCommand(peeked, 'harkonnen', { kind: 'deck-shuffle', pieceId: 'deck' });
+  expect(shuffled.table.pieces[0]?.items.some((item) => item.peekedBy)).toBe(false);
+});
+
+test('a draw takes the mark with the card, and the rest of the deck keeps it', () => {
+  const peeked = peekCommand(table(3), 'atreides', { kind: 'peek', pieceId: 'deck' });
+  const dealt = deckCommand(peeked, 'harkonnen', { kind: 'deck-draw', pieceId: 'deck', recipient: 'harkonnen' });
+  const deck = dealt.table.pieces.find((candidate) => candidate.id === 'deck');
+  expect(deck?.items).toHaveLength(2);
+  expect(deck?.items.every((item) => item.peekedBy?.includes('atreides'))).toBe(true);
 });
 
 test('a locked deck can be looked through but not rearranged or pulled from', () => {
@@ -195,7 +211,7 @@ test("a faction's token turned face down has nothing to peek at: both its sides 
   expect(hasHiddenFace({ ...token, stackKey: 'troops:atreides' })).toBe(true);
 });
 
-test('a setup step forgets who peeked, though setup holds the phase still', () => {
+test('a setup step closes every peek, though setup holds the phase still, and the table keeps who peeked', () => {
   const peeked = peekCommand(
     {
       ...table(2),
@@ -225,6 +241,6 @@ test('a setup step forgets who peeked, though setup holds the phase still', () =
   }
   const next = room.command(players[0]!, { kind: 'phase' }, room.snapshot.revision, later);
   expect(next.setup?.index).not.toBe(peeked.setup?.index);
-  expect(next.table.pieces[0]?.items.some((item) => item.peekedBy)).toBe(false);
+  expect(next.table.pieces[0]?.items.every((item) => item.peekedBy?.includes('atreides'))).toBe(true);
   expect(next.peeks).toEqual({});
 });

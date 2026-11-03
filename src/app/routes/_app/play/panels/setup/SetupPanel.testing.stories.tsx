@@ -36,6 +36,16 @@ export const DealsTraitors = meta.story({
   },
 });
 
+/** An observer reads the Traitors step with no gather or deal buttons, not even greyed. */
+export const ObserverSeesNoActions = meta.story({
+  args: { observing: true },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole('heading', { name: 'Traitor selection' })).toBeInTheDocument();
+    await expect(canvas.queryByRole('button', { name: 'Gather tabletop traitors' })).toBeNull();
+    await expect(canvas.queryByRole('button', { name: /^Deal / })).toBeNull();
+  },
+});
+
 /** Picking a winner unlocks Lock prediction, which locks the winner and the turn. */
 export const LocksAPrediction = meta.story({
   args: setupArgs(predicting(), 'seat-6'),

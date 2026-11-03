@@ -23,14 +23,19 @@ const piece = (
   kind,
 });
 
-test('Treachery cards come first, then leaders, then each other card back by name, then tokens', () => {
+test('Treachery cards come first, then leaders, then tech tokens, then each other card back by name, then tokens', () => {
   const leader = {
     ...piece('jessica', 'force'),
     items: [
       { id: 'jessica-item', faceUp: true, artwork: { back: 'https://dune.zone/disc.png', type: 'token-leader' } },
     ],
   };
+  const tech = {
+    ...piece('customs', 'force'),
+    items: [{ id: 'customs-item', faceUp: true, artwork: { back: 'https://dune.zone/tech.png', type: 'token-tech' } }],
+  };
   const groups = handGroups([
+    tech,
     piece('snooper', 'card', 'Treachery'),
     piece('marker', 'marker'),
     piece('bewt', 'card', 'Traitor'),
@@ -40,6 +45,7 @@ test('Treachery cards come first, then leaders, then each other card back by nam
   expect(groups.map((group) => [group.label, group.pieces.map((entry) => entry.id)])).toEqual([
     ['Treachery', ['snooper', 'shield']],
     ['Leaders', ['jessica']],
+    ['Tech tokens', ['customs']],
     ['Traitor', ['bewt']],
     ['Tokens', ['marker']],
   ]);

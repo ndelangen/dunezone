@@ -71,7 +71,7 @@ function headerModel(
     token: faction ? (
       <FactionTokenFace token={factionToken(table, faction.id, names, standInToken(table, player))} size={44} />
     ) : (
-      <Avatar src={standInToken(table, player)} size={44} radius="xl" alt="">
+      <Avatar src={standInToken(table, player)} size={44} radius="50%" alt="">
         {player.name.slice(0, 1)}
       </Avatar>
     ),
@@ -101,7 +101,7 @@ export type FactionInfoSources = Readonly<{
   slug: string | null | undefined;
   now: number;
   requests: ReactNode;
-  swapping: ReactNode;
+  trade: ReactNode;
   onBallot: (voteId: string, choice: BallotChoice | null) => void;
   onStartRemoval: (seat: string) => void;
   onAlliance: (factionId: string, kind: AllianceCommandKind) => void;
@@ -123,7 +123,7 @@ export function factionInfoProps(
     vote: vote ? voteView(table, vote, sources.now) : null,
     requests: sources.requests,
     header: headerModel(table, player, { ...sources, hasVote: Boolean(vote) }),
-    swapping: sources.swapping,
+    trade: sources.trade,
     details: sources.details,
     onBallot: (choice) => vote && sources.onBallot(vote.id, choice),
   };
@@ -156,7 +156,7 @@ export function ConnectedFactionInfoPanel({
     slug,
     now,
     requests: <VacantSeatRequests client={client} table={table} seat={seat} />,
-    swapping: <SwappingSeat client={client} table={table} seat={seat} />,
+    trade: <SwappingSeat client={client} table={table} seat={seat} />,
     onBallot: (voteId, choice) => client.command({ kind: 'removal-ballot', voteId, choice }),
     onStartRemoval: (target) => client.command({ kind: 'removal-start', seat: target }),
     onAlliance: (factionId, kind) => sendAllianceAction(client, table, factionId, kind),

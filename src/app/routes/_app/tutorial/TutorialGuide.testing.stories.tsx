@@ -4,8 +4,9 @@ import { waitForFrame } from '@sb/storyWaits';
 import type { ReactNode } from 'react';
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 
+import { TutorialGuide } from '@app/widgets/tutorial-guide/TutorialGuide';
+
 import { element, pressEnter, task } from './chapterScripts/guideChecks';
-import { TutorialGuide } from './TutorialGuide';
 
 /* A plain link stands in for the router's in a story. */
 const link =

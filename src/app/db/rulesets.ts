@@ -1,6 +1,7 @@
 import { assetSubjectFacts } from '@shared/access/collaborativeAccess';
 import type { AssetViewerAccess } from '@shared/access/collaborativeAccess';
 import type { RulesetAssetSlot } from '@shared/rulesets/assetSlots';
+import type { BattleDialing } from '@shared/rulesets/battleDialing';
 import { rulesetCoverThumbUrl } from '@shared/rulesets/cover';
 import { rulesetInputSchema } from '@shared/rulesets/validation';
 import type { RulesetInput } from '@shared/rulesets/validation';
@@ -276,7 +277,7 @@ export function useCreateRuleset() {
 /** Saves a ruleset's name, about and cover. Omitting `image_cover` leaves the stored cover alone; passing `null` clears it. */
 export function useUpdateRuleset() {
   const mutation = useLiveMutation<
-    { id: string; name: string; about: string; image_cover?: string | null },
+    { id: string; name: string; about: string; image_cover?: string | null; battle_dialing?: BattleDialing },
     RulesetRow
   >(api.rulesets.update);
   return {
@@ -303,12 +304,23 @@ export function useUpdateRuleset() {
           onError: (error) => options?.onError?.(error),
         }
       ),
-    mutateAsync: async ({ input, id, imageCover }: { input: Ruleset; id: string; imageCover?: string | null }) => {
+    mutateAsync: async ({
+      input,
+      id,
+      imageCover,
+      battleDialing,
+    }: {
+      input: Ruleset;
+      id: string;
+      imageCover?: string | null;
+      battleDialing?: BattleDialing;
+    }) => {
       const validated = rulesetInputSchema.parse(input);
       const entry = await mutation.mutateAsync({
         id,
         ...validated,
         image_cover: imageCover,
+        ...(battleDialing === undefined ? {} : { battle_dialing: battleDialing }),
       });
       return toRulesetEntry(entry);
     },

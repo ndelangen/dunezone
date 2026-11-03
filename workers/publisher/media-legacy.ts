@@ -79,13 +79,33 @@ async function staticFile(request: Request, env: LegacyMediaEnv): Promise<Respon
   return response;
 }
 
-/** Answers `/image` and `/web`, or returns null for any other path. */
+const RENAMED_EMBLEM_PREFIX = '/vector/emblem/';
+
+/**
+ * Answers a stock emblem at the path the next release moves it to, `/vector/emblem/`, with the file this release serves at `/vector/logo/`.
+ * Data written by that release's Convex reaches pages of this release before its Worker deploys (see src/shared/renamedEmblem.ts).
+ * An SVG `<use>` does not follow a redirect, so it is a 200.
+ */
+async function renamedEmblem(request: Request, env: LegacyMediaEnv, url: URL): Promise<Response> {
+  if (request.method !== 'GET' && request.method !== 'HEAD') {
+    return jsonError(METHOD_NOT_ALLOWED);
+  }
+  const current = new URL(url);
+  current.pathname = `/vector/logo/${url.pathname.slice(RENAMED_EMBLEM_PREFIX.length)}`;
+  return await staticFile(new Request(current, request), env);
+}
+
+/** Answers `/image`, `/web` and `/vector/emblem/`, or returns null for any other path. */
 export async function handleLegacyMediaRequest(
   request: Request,
   env: LegacyMediaEnv,
   serving: MediaServing = {}
 ): Promise<Response | null> {
-  const { pathname } = new URL(request.url);
+  const url = new URL(request.url);
+  const { pathname } = url;
+  if (pathname.startsWith(RENAMED_EMBLEM_PREFIX)) {
+    return await renamedEmblem(request, env, url);
+  }
   if (!LEGACY_NAMESPACES.some((namespace) => inNamespace(pathname, namespace))) {
     return null;
   }

@@ -578,7 +578,11 @@ function spiceEntry(transfer: SpiceTransfer, actor: Person, faction: FactionName
         ? `{0} collected ${amount} from the table into the ${faction(transfer.destination ?? '', people)} spice reserve.`
         : transfer.kind === 'supply'
           ? `{0} took ${amount} from the Spice Bank to the table.`
-          : `{0} returned ${amount} to the Spice Bank.`;
+          : transfer.kind === 'payment'
+            ? `{0} paid ${amount} from the table into the ${faction(transfer.destination ?? '', people)} spice reserve.`
+            : transfer.kind === 'bribe'
+              ? `{0} bribed ${faction(transfer.destination ?? '', people)} with ${amount}, onto its bribe pile.`
+              : `{0} returned ${amount} to the Spice Bank.`;
   return { key: `spice:${transfer.revision}`, class: 'spice', template, people, context };
 }
 

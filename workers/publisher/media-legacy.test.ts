@@ -182,6 +182,17 @@ describe('legacy media URLs', () => {
     expect((await answer('/web/missing.png', environment)).status).toBe(404);
   });
 
+  test('answer a stock emblem at the path the next release moves it to with the current file, never a redirect', async () => {
+    const environment = env([], { '/vector/logo/atreides.svg': 'image/svg+xml' });
+
+    const response = await answer('/vector/emblem/atreides.svg', environment);
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Type')).toBe('image/svg+xml');
+    expect(environment.ASSETS.requested).toEqual(['/vector/logo/atreides.svg']);
+    expect((await answer('/vector/emblem/missing.svg', environment)).status).toBe(404);
+    expect((await answer('/vector/emblem/atreides.svg', environment, { method: 'POST' })).status).toBe(405);
+  });
+
   test('refuse writes and leave other paths alone', async () => {
     expect((await answer(TIER_URL, env(), { method: 'PUT' })).status).toBe(405);
     expect(await handleLegacyMediaRequest(new Request(`${ORIGIN}/imagery`), env())).toBeNull();

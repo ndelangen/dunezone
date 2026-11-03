@@ -7,6 +7,7 @@ import type { ReactNode, PointerEvent as ReactPointerEvent } from 'react';
 
 import type { TableProjection, TableSession } from '../../../../../db/tabletop/TableSession';
 import { usePointerSession } from '../../../../../widgets/tabletop/PointerSessionContext';
+import { offersActions } from '../../multiplayer/tableFactions';
 import { inventoryRows } from './inventoryRows';
 import type { InventoryRow } from './inventoryRows';
 
@@ -53,6 +54,8 @@ export function useSharedInventory({ client, table }: SharedInventoryProps) {
   const rows = inventoryRows(pieces);
   return {
     rows,
+    /** Whether the viewer only looks, as an observer or anyone watching a past table: the shelves then offer no draw, gather or add, not even greyed. */
+    observing: !offersActions(table),
     /** Whether this piece can be dragged out now: nobody else is carrying it and the viewer may handle the table. */
     movable: (piece: TablePiece) => canHandle && !table.reservedPieceIds.has(piece.id),
     /** Picks the piece up under the pointer; Shift takes only its top item. */

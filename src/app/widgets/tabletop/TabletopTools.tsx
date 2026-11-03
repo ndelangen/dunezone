@@ -7,7 +7,7 @@ import { PeekView } from './PeekView';
 import { PieceCloseUp } from './PieceCloseUp';
 import { pieceHasMenu } from './pieceMenu';
 import { pieceMenuActions } from './pieceMenuActions';
-import { useTabletopReader, useTabletopSelector } from './TabletopContext';
+import { useTabletopCommands, useTabletopReader, useTabletopSelector } from './TabletopContext';
 
 export type PieceMenuAnchor = { pieceId: string; x: number; y: number };
 
@@ -37,7 +37,7 @@ function PieceMenu({ pieceMenu, onClose }: Readonly<{ pieceMenu: PieceMenuAnchor
     { deckControls, spiceReserveControls, peekControls, deleteControls, handControls },
     { reserved: menuPieceReserved, onClose }
   );
-  /* A leader offers only Take into hand, which a viewer who cannot act does not get; then there is no ring to show. */
+  /* A leader or a tech token may offer only Take into hand, which a viewer who cannot act does not get; then there is no ring to show. */
   if (actions.length === 0) {
     return null;
   }
@@ -50,6 +50,43 @@ function PieceMenu({ pieceMenu, onClose }: Readonly<{ pieceMenu: PieceMenuAnchor
       y={pieceMenu.y}
       actions={actions}
       onClose={onClose}
+    />
+  );
+}
+
+/*
+ * Spice let go over another faction's token waits over it in hand, and this ring asks what it is: a bribe, set on that
+ * faction's bribe pile, or a payment straight into its spice reserve. Closing the ring puts the spice back where it came from.
+ */
+function SpiceGiftMenu() {
+  const gift = useTabletopSelector((table) => table.spiceGift);
+  const { giveSpice, cancelDraft } = useTabletopCommands();
+  if (!gift) {
+    return null;
+  }
+  const amount = `${gift.amount} spice`;
+  return (
+    <RadialMenu
+      key={`${gift.factionId}:${gift.x}:${gift.y}`}
+      name={`Give ${amount} to ${gift.name}`}
+      hub={`${amount} to ${gift.name}`}
+      x={gift.x}
+      y={gift.y}
+      actions={[
+        {
+          key: 'bribe',
+          label: `Bribe ${gift.name}: onto its bribe pile`,
+          icon: 'bribe',
+          onSelect: () => giveSpice('bribe'),
+        },
+        {
+          key: 'payment',
+          label: `Pay ${gift.name}: into its spice reserve`,
+          icon: 'pay',
+          onSelect: () => giveSpice('payment'),
+        },
+      ]}
+      onClose={cancelDraft}
     />
   );
 }
@@ -87,6 +124,7 @@ export function TabletopTools({
         Selected piece actions
       </Button>
       <PieceMenu pieceMenu={pieceMenu} onClose={() => onMenuChange(null)} />
+      <SpiceGiftMenu />
       <PeekView />
       <PieceCloseUp area={area} />
     </>

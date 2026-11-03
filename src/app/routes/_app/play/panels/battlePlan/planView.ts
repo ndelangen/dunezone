@@ -1,5 +1,14 @@
 import { isBattleCard, isBattleLeader } from '@shared/play/battle';
 import type { BattleFace, BattlePlan, BattlePlanInput, Disclosure, PublicBattle } from '@shared/play/battle';
+import {
+  dialsFlat,
+  dialsFree,
+  flatStrength,
+  KISS_DIAL_CAP,
+  kissSpice,
+  spiceStrength,
+  spiceStrengthChoices,
+} from '@shared/play/battleDialing';
 import type { TablePiece } from '@shared/play/model';
 import type { ComponentProps } from 'react';
 
@@ -78,8 +87,19 @@ export const cardsOf = (pieces: readonly TablePiece[], chosen: readonly string[]
 
 export const capableFaces = (plan: BattlePlan) => plan.faces.filter((face) => face.capable);
 
-/** Whether spice changes anything for this faction: some troop fights stronger with spice and has to pay for it. Fremen dial theirs for free. */
+/**
+ * Whether spice changes anything for this faction under its ruleset's dialing.
+ * Advanced: some troop fights stronger with spice and has to pay for it.
+ * Basic: never.
+ * GF9 2.0 and KISS: when some troop costs spice to dial, spice buys spice strength or pays for the dial.
+ */
 export function spiceMatters(plan: BattlePlan) {
+  if (plan.dialing === 'basic') {
+    return false;
+  }
+  if (dialsFlat(plan.dialing)) {
+    return capableFaces(plan).some((face) => face.supportCost > 0);
+  }
   return capableFaces(plan).some((face) => face.supportCost > 0 && face.supportedStrength > face.strength);
 }
 
@@ -88,6 +108,9 @@ export function spiceMatters(plan: BattlePlan) {
  * A plan already in Custom keeps its controls, so it never loses its supported troops to the simpler editor.
  */
 export function supportMatters(plan: BattlePlan) {
+  if (dialsFlat(plan.dialing)) {
+    return false;
+  }
   return plan.mode === 'custom' || capableFaces(plan).some((face) => face.supportedStrength !== face.strength);
 }
 
@@ -109,7 +132,39 @@ export function totalOf(plan: BattlePlan, faceId: string) {
 }
 
 export function setTotal(plan: BattlePlan, faceId: string, total: number): Partial<BattlePlanInput> {
-  return { troops: withTroops(plan, faceId, { undialed: Math.max(0, total), dialed: 0 }) };
+  const troops = withTroops(plan, faceId, { undialed: Math.max(0, total), dialed: 0 });
+  if (plan.dialing === 'kiss') {
+    /* KISS spice follows the troops, so the window shows what the dial costs before the room answers. */
+    return { troops, spice: kissSpice(troops, plan.faces) };
+  }
+  if (plan.dialing === 'gf92') {
+    /* Spice strength the smaller dial no longer reaches comes down with it, as the room would take it down. */
+    const choices = spiceStrengthChoices(flatStrength(troops, plan.faces), dialsFree(troops, plan.faces));
+    return { troops, spice: choices.findLast((choice) => choice <= plan.spice) ?? 0 };
+  }
+  return { troops };
+}
+
+/** The dialed troop strength under a full-strength mechanism, before spice strength and the adjustment. */
+const flatDial = (plan: BattlePlan) => flatStrength(plan.troops, plan.faces);
+
+/** The spice strength a GF9 2.0 plan adds; nothing under any other mechanism. */
+export function spiceBonus(plan: BattlePlan) {
+  return plan.dialing === 'gf92' ? spiceStrength(flatDial(plan), plan.spice, dialsFree(plan.troops, plan.faces)) : 0;
+}
+
+/** The GF9 2.0 spice amounts this plan can spend now: the dial reaches them and the viewer holds them. */
+export function spiceStrengthOptions(plan: BattlePlan, balance: number) {
+  return spiceStrengthChoices(flatDial(plan), dialsFree(plan.troops, plan.faces)).filter(
+    (choice) => choice <= availableSpice(plan, balance)
+  );
+}
+
+/** A GF9 2.0 spice amount moved to one the plan can spend: onward in the direction it moved, or the most it can. */
+export function snapSpiceStrength(plan: BattlePlan, balance: number, wanted: number) {
+  const options = spiceStrengthOptions(plan, balance);
+  const onward = wanted > plan.spice ? options.find((choice) => choice >= wanted) : undefined;
+  return onward ?? options.findLast((choice) => choice <= wanted) ?? 0;
 }
 
 /** Everything the plan could spend: the reserve and what the plan already holds. */
@@ -164,13 +219,48 @@ export function supportedMax(plan: BattlePlan, face: BattleFace, balance: number
 }
 
 /** The most troops a face can field: its troop's count, less what the troop's other face already fields. */
-export function troopLimitOf(props: Pick<BattlePlanViewProps, 'plan' | 'troopLimit' | 'troopOf'>, faceId: string) {
+export function troopLimitOf(
+  props: Pick<BattlePlanViewProps, 'plan' | 'troopLimit' | 'troopOf'> & { balance?: number },
+  faceId: string
+) {
   const limit = props.troopLimit?.[faceId] ?? DEFAULT_TROOP_LIMIT;
   const troop = props.troopOf?.[faceId];
   const fielded = capableFaces(props.plan)
     .filter((face) => face.id !== faceId && troop !== undefined && props.troopOf?.[face.id] === troop)
     .reduce((total, face) => total + totalOf(props.plan, face.id), 0);
-  return Math.max(0, limit - fielded);
+  const owned = Math.max(0, limit - fielded);
+  return props.plan.dialing === 'kiss' ? kissLimit(props.plan, faceId, owned, props.balance) : owned;
+}
+
+/**
+ * The most of the owned troops of one face a KISS dial takes: the dial stops at 20 strength, and every troop past the free ones costs its dial cost, which the viewer has to hold.
+ * A troop that adds no strength never reaches the cap, so only ownership and spice bound it.
+ * Without a known balance only the cap applies.
+ */
+function kissLimit(plan: BattlePlan, faceId: string, owned: number, balance?: number) {
+  const face = plan.faces.find((candidate) => candidate.id === faceId);
+  const others = plan.troops.filter((troop) => troop.faceId !== faceId);
+  const room = KISS_DIAL_CAP - flatStrength(others, plan.faces);
+  const byCap = face && face.supportedStrength > 0 ? Math.floor(room / face.supportedStrength) : owned;
+  const bound = Math.max(0, Math.min(owned, byCap));
+  if (balance === undefined) {
+    return bound;
+  }
+  /* The cost only grows with each troop added, so search for the most the viewer can pay rather than stepping troop by troop. */
+  const available = availableSpice(plan, balance);
+  const affordable = (count: number) =>
+    kissSpice([...others, { faceId, undialed: count, dialed: 0 }], plan.faces) <= available;
+  let low = 0;
+  let high = bound;
+  while (low < high) {
+    const middle = Math.ceil((low + high) / 2);
+    if (affordable(middle)) {
+      low = middle;
+    } else {
+      high = middle - 1;
+    }
+  }
+  return low;
 }
 
 /** The ids in the order given, then any the order does not name. */

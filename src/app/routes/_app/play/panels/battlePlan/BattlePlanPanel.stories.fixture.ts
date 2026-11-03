@@ -1,3 +1,5 @@
+import { BATTLE_DIALING_OPTIONS } from '@shared/rulesets/battleDialing';
+import { helpLines } from '@ui/content/helpLines';
 import { fn } from 'storybook/test';
 
 import { panelMeta } from '../PanelWindow.stories.fixture';
@@ -15,10 +17,11 @@ export function planArgs(name: Scenario = 'fresh'): BattlePlanPanelProps {
   const view = scenario(name);
   /* Ready is the one change in its story, so nothing is shown to the table yet. */
   const plan = name === 'ready' ? { ...view.plan, disclosed: { ...view.plan.disclosed, cardIds: [] } } : view.plan;
+  const dialing = BATTLE_DIALING_OPTIONS[plan.dialing];
   return {
     plan: { ...view, plan, onEdit: fn(), onReorder: fn(), onReady: fn(), onDisclose: fn() },
     notice: '',
-    help: 'Battle at Arrakeen',
+    help: helpLines('Battle at Arrakeen', `${dialing.label} dialing.\n${dialing.description}`),
   };
 }
 

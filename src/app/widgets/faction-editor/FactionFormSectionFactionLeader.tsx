@@ -63,6 +63,7 @@ export function FactionFormSectionFactionLeader({
                       aria-label="Faction leader portrait"
                       allowDeselect={false}
                       data={leaderImageOptions}
+                      previewShape="disc"
                       getPreviewSrc={assetOptionToPreviewSrc}
                       value={field.state.value}
                       onChange={(value) => {

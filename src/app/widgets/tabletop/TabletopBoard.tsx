@@ -52,6 +52,7 @@ import { useTablePalette } from './tablePalette';
 import { activePhaseIndex, trackerDiscColor } from './tableTrackers';
 import type { TableProgress } from './tableTrackers';
 import { TurnTracker } from './TurnTracker';
+import { useBoardSkinMaterial } from './useBoardSkinMaterial';
 const SpiceBank = lazy(() => loadSpiceBank().then((module) => ({ default: module.SpiceBank })));
 const TerritoryTints = lazy(() => import('./TerritoryTints').then((module) => ({ default: module.TerritoryTints })));
 useTexture.preload(stormMarkerUrl);
@@ -398,14 +399,24 @@ function LegacyBoardPaint() {
     },
     [geometry, polarSink]
   );
+  const paint = useBoardSkinMaterial({ geometry, vertexColors: true });
+  const polarPaint = useBoardSkinMaterial({ geometry: polarSink, vertexColors: true });
   return (
     <>
-      <mesh receiveShadow geometry={geometry} renderOrder={BOARD_MAP_RENDER_ORDER} raycast={ignoreRaycast}>
-        <meshStandardMaterial vertexColors transparent depthWrite={false} roughness={0.88} metalness={0} />
-      </mesh>
-      <mesh receiveShadow geometry={polarSink} renderOrder={POLAR_SINK_RENDER_ORDER} raycast={ignoreRaycast}>
-        <meshStandardMaterial vertexColors transparent depthWrite={false} roughness={0.88} metalness={0} />
-      </mesh>
+      <mesh
+        receiveShadow
+        geometry={geometry}
+        material={paint}
+        renderOrder={BOARD_MAP_RENDER_ORDER}
+        raycast={ignoreRaycast}
+      />
+      <mesh
+        receiveShadow
+        geometry={polarSink}
+        material={polarPaint}
+        renderOrder={POLAR_SINK_RENDER_ORDER}
+        raycast={ignoreRaycast}
+      />
     </>
   );
 }

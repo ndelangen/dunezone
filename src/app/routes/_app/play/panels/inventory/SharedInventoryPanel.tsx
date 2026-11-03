@@ -12,7 +12,7 @@ import type { SharedInventory, SharedInventoryViewProps } from './useSharedInven
 /* A shelf's own +, which opens the catalogue on that shelf's type alone; it is off during setup, when nothing can be added. */
 function AddToShelf({ inventory, row }: Readonly<{ inventory: SharedInventory; row: InventoryRow }>) {
   const catalogue = inventory.catalogue;
-  if (!catalogue || !row.spawnType) {
+  if (!catalogue || !row.spawnType || inventory.observing) {
     return null;
   }
   const open = catalogue.shelf === row.key;
@@ -44,14 +44,15 @@ function AddToShelf({ inventory, row }: Readonly<{ inventory: SharedInventory; r
  * The Bundles shelf only adds, since a bundle's tokens land on their own shelves.
  * Its + says so.
  * The tech token shelf also draws one of its tokens at random.
+ * An observer sees the shelves and their pieces only.
  */
 export function SharedInventoryPanel({ inventory, picker, requests }: SharedInventoryViewProps) {
-  const { catalogue, gather } = inventory;
+  const { catalogue, gather, draw, observing } = inventory;
   return (
     <Section hiddenHeading title="Shared table inventory" description={SHARED_INVENTORY_HELP}>
       <Stack gap="md">
         {requests && <div className={styles.requests}>{requests}</div>}
-        {gather && (
+        {gather && !observing && (
           <IconAction
             label="Gather tabletop traitors"
             intent="neutral"
@@ -68,22 +69,22 @@ export function SharedInventoryPanel({ inventory, picker, requests }: SharedInve
                 {row.label} {row.count > 0 && <span className={styles.count}>{row.count}</span>}
               </Text>
               <Group gap="xs" wrap="nowrap">
-                {row.spawnType === 'token-tech' && (
+                {row.spawnType === 'token-tech' && !observing && (
                   <IconAction
                     label="Draw random tech token"
-                    tooltip={inventory.draw.help}
+                    tooltip={draw.help}
                     intent="neutral"
                     emphasis="quiet"
                     size="sm"
                     icon={DRAW_ICON}
-                    disabledReason={inventory.draw.enabled ? undefined : inventory.draw.help}
-                    onClick={inventory.draw.run}
+                    disabledReason={draw.enabled ? undefined : draw.help}
+                    onClick={draw.run}
                   />
                 )}
                 <AddToShelf inventory={inventory} row={row} />
               </Group>
             </Group>
-            {catalogue?.shelf === row.key && picker}
+            {catalogue?.shelf === row.key && !observing && picker}
             {row.pieces.length > 0 && (
               <PieceStrip label={row.label}>
                 {row.pieces.map((piece) => (

@@ -3,7 +3,8 @@ import type { StoredPiece } from '@shared/play/model';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { CARD_DEPTH, CARD_WIDTH } from '@shared/play/tableGeometry';
 
-import type { GuideTask } from '../TutorialGuide';
+import type { GuideTask } from '@app/widgets/tutorial-guide/TutorialGuide';
+
 import type { ChapterScript } from './chapterScript';
 import { element, openedWindow, task, viaCompass, windowShown } from './guideChecks';
 import { ATREIDES_BATTLE_LOSS_COUNTER, KWISATZ_HADERACH } from './kwisatzHaderach';

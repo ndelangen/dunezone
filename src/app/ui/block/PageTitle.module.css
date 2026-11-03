@@ -47,6 +47,18 @@
 }
 
 /*
+ * A compact band on a narrow frame has little room, and a page name there can be a sentence long (a blog post's is).
+ * The name steps down with the frame's width, so it takes a few lines instead of filling the screen.
+ * It is `:where` for the same reason as the hero size above.
+ */
+@container (width < 48rem) {
+  :global([data-page-layout-header-size="compact"]) :where(.title) {
+    font-size: clamp(1.375rem, 5.5vw, 2.125rem);
+    line-height: 1.15;
+  }
+}
+
+/*
  * An immersive header lays the name over the dark left of a window-filling band, left aligned and very large.
  * It keeps the band's own heading face, so the name reads as the same masthead title grown up rather than a new voice.
  */

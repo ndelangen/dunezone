@@ -214,15 +214,14 @@ export const ObserverAfterAFailedDeal = meta.story({
   },
 });
 
-/** A spectator's game menu has nothing to give up. */
+/** A spectator's game menu has nothing to give up, so it offers no seat to leave, not even greyed. */
 export const SpectatorGameMenu = meta.story({
   beforeEach: install(() => productTransport('neutral', drafting())),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await shows(() => page.getByRole('button', { name: 'Take a seat' }));
     await press(() => page.getByRole('button', { name: 'Game menu' }));
-    await waitForFrame(() =>
-      expect(page.getByRole('menuitem', { name: 'Give up your seat' })).toHaveAttribute('data-disabled')
-    );
+    await waitForFrame(() => expect(page.getByRole('menu')).toBeVisible());
+    await expect(page.queryByRole('menuitem', { name: /Give up your seat|Hold to give up/ })).toBeNull();
   },
 });

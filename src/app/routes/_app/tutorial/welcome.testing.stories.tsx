@@ -6,17 +6,23 @@ import { stackTopHeight, TABLE_SURFACE_Y } from '@shared/play/tableGeometry';
 import { expect, fn, spyOn, userEvent, within } from 'storybook/test';
 import { Vector3 } from 'three';
 
+import { sceneTableLens } from '@app/widgets/tutorial-guide/tableLens';
+
 import { pageStoryMeta } from '../../storybookConfig';
 import { waitForPlayCamera } from '../play/mapView.stories.fixture';
-import { chapterParameters } from './chapterStory';
+import { chapterGlobals, chapterParameters } from './chapterStory';
 import setup from './setup/setup.json';
 import { startAt } from './setup/tutorialSetup';
 import type { TutorialSetup } from './setup/tutorialSetup';
-import { sceneTableLens } from './tableLens';
 
 const spoken = fn<(utterance: SpeechSynthesisUtterance) => void>();
 const preference = 'dunezone-tutorial:speaking-mode';
 let welcomeReadiness: { report: () => string; stop: () => void } | undefined;
+
+/*
+ * "Welcome", as its page serves it: the table from the tutorial's recorded setup, running in the page,
+ * with the rail beside it giving one task at a time. Its art comes from the recorded tutorial setup.
+ */
 
 const meta = testingPreview.meta({
   ...pageStoryMeta,
@@ -44,6 +50,17 @@ const meta = testingPreview.meta({
         Reflect.deleteProperty(window, 'speechSynthesis');
       }
     };
+  },
+});
+
+/** The chapter as a player meets it: do what the rail says, where its arrow shows, and it moves on by itself. */
+export const Chapter = meta.story({
+  parameters: chapterParameters,
+  globals: chapterGlobals,
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const rail = await page.findByRole('banner', { name: 'Chapter 1: Welcome' }, { timeout: 60_000 });
+    await expect(await within(rail).findByText('Welcome to the table', {}, { timeout: 60_000 })).toBeVisible();
   },
 });
 

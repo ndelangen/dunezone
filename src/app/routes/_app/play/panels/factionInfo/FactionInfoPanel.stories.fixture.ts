@@ -5,6 +5,7 @@ import { fn } from 'storybook/test';
 import { STORYBOOK_NOW } from '@db/storybook';
 
 import { removalSnapshot } from '../../game.stories.fixture';
+import { seatTrade } from '../../multiplayer/Swapping';
 import { capturedFactions, factions, playingSnapshot } from '../../product.stories.fixture';
 import { panelMeta, tableOf } from '../PanelWindow.stories.fixture';
 import { PANEL_WINDOWS } from '../panelWindows';
@@ -13,7 +14,7 @@ import type { FactionInfoPanelProps } from './FactionInfoPanel';
 import { factionInfoProps } from './useFactionInfoPanel';
 
 /** Where the window's actions go: the table's commands, which the panel's props and header model call with what they name. */
-export const actions = { onBallot: fn(), onStartRemoval: fn(), onAlliance: fn() };
+export const actions = { onBallot: fn(), onStartRemoval: fn(), onAlliance: fn(), onTrade: fn() };
 
 /**
  * The panel's props as the table hands them for one seat of this snapshot, seen from the viewer's seat, with spied actions.
@@ -26,13 +27,14 @@ export function factionInfoArgs(
   { captured = true } = {}
 ): FactionInfoPanelProps {
   const factionId = snapshot.roster!.seats.find((entry) => entry.id === seat)?.faction?.id;
-  return factionInfoProps(tableOf(snapshot, viewer), seat, {
+  const table = tableOf(snapshot, viewer);
+  return factionInfoProps(table, seat, {
     error: null,
     details: captured && factionId ? capturedFactions()[factionId] : undefined,
     slug: factions.find((entry) => entry.slug === factionId)?.slug,
     now: STORYBOOK_NOW,
     requests: null,
-    swapping: null,
+    trade: seatTrade(table, seat, STORYBOOK_NOW, actions.onTrade),
     ...actions,
   })!;
 }

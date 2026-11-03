@@ -1,6 +1,7 @@
 import { Box, Stack } from '@mantine/core';
 import { DECAL, LEADERS } from '@shared/assetIds';
 import { useForm } from '@tanstack/react-form';
+import { useState } from 'react';
 
 import type { Faction } from '@db/factions';
 
@@ -8,8 +9,10 @@ import { defaultFaction } from './defaultFaction';
 import { FactionFormSectionAlliance } from './FactionFormSectionAlliance';
 import { FactionFormSectionFactionLeader } from './FactionFormSectionFactionLeader';
 import { FactionFormSectionLeaders } from './FactionFormSectionLeaders';
+import type { StrengthRefusal } from './FactionFormSectionLeaders';
 
 export function LeadersAllianceFixture({ faction }: { faction: Faction }) {
+  const [strengthRefusal, setStrengthRefusal] = useState<StrengthRefusal>(null);
   const form = useForm<
     Faction,
     undefined,
@@ -31,7 +34,11 @@ export function LeadersAllianceFixture({ faction }: { faction: Faction }) {
     <Box w="min(78rem, calc(100vw - 2rem))" p="md">
       <Stack gap="xl">
         <FactionFormSectionFactionLeader form={form} />
-        <FactionFormSectionLeaders form={form} />
+        <FactionFormSectionLeaders
+          form={form}
+          strengthRefusal={strengthRefusal}
+          onStrengthRefusalChange={setStrengthRefusal}
+        />
         <FactionFormSectionAlliance form={form} />
       </Stack>
     </Box>

@@ -1,7 +1,8 @@
 import { isBattleLeader } from '@shared/play/battle';
 import type { TablePiece } from '@shared/play/model';
+import { isTechToken } from '@shared/play/techToken';
 
-/** How a hand sorts its pieces for reading: Treachery cards, then leaders, then each other card back by the word printed on it, then everything else. */
+/** How a hand sorts its pieces for reading: Treachery cards, then leaders, then tech tokens, then each other card back by the word printed on it, then everything else. */
 export type HandGroup = Readonly<{ key: string; label: string; pieces: TablePiece[] }>;
 
 export function handGroups(pieces: readonly TablePiece[]): HandGroup[] {
@@ -14,6 +15,8 @@ export function handGroups(pieces: readonly TablePiece[]): HandGroup[] {
   for (const piece of pieces) {
     if (isBattleLeader(piece)) {
       add('leaders', 'Leaders', piece);
+    } else if (isTechToken(piece)) {
+      add('tech', 'Tech tokens', piece);
     } else if (piece.kind === 'card') {
       const back = piece.items[0]?.artwork?.backName ?? 'Cards';
       add(`card:${back}`, back, piece);
@@ -21,8 +24,8 @@ export function handGroups(pieces: readonly TablePiece[]): HandGroup[] {
       add('other', 'Tokens', piece);
     }
   }
-  const RANK: Record<string, number> = { 'card:Treachery': 0, leaders: 1, other: 3 };
-  const order = (key: string) => RANK[key] ?? 2;
+  const RANK: Record<string, number> = { 'card:Treachery': 0, leaders: 1, tech: 2, other: 4 };
+  const order = (key: string) => RANK[key] ?? 3;
   return [...groups.entries()]
     .sort(([a], [b]) => order(a) - order(b) || a.localeCompare(b))
     .map(([key, group]) => ({ key, ...group }));

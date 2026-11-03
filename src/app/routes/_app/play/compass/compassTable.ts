@@ -25,6 +25,8 @@ export type CompassTable = Readonly<{
     id: string;
     context: string;
     loading: boolean;
+    /** Whether the viewer holds a seat, so recall holds their actions; an observer has none to hold. */
+    seated: boolean;
     panels: readonly TablePanel[];
     chat?: Readonly<{ unread: number }>;
   }>;

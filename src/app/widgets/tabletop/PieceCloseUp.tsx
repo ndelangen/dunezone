@@ -213,6 +213,15 @@ export function HandPieceCloseUp({ area, piece }: CloseUpProps & Readonly<{ piec
   return <CloseUp area={area} piece={piece} item={item} src={item?.artwork?.front} />;
 }
 
+/** The same close-up for a piece shown by a face its caller picks, such as a held tech token turned face down, which shows its back. */
+export function PieceFaceCloseUp({
+  area,
+  piece,
+  src,
+}: CloseUpProps & Readonly<{ piece: TablePiece | null; src: string | undefined }>) {
+  return <CloseUp area={area} piece={piece} item={piece?.items[0]} src={src} />;
+}
+
 type Item = TablePiece['items'][number];
 
 /* A described token's words under its face, as its author formatted them; past the box's cap they fade out rather than run off the window. */

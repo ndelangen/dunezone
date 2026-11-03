@@ -8,6 +8,7 @@ import { isSeatAction } from '@shared/play/participation';
 import { clientMessageSchema, KEEPALIVE_PING, KEEPALIVE_PONG, rosterFactionIds } from '@shared/play/protocol';
 import type { ClientMessage, GameSnapshot, ServerMessage, Viewer } from '@shared/play/protocol';
 import { isSwapAction } from '@shared/play/swapping';
+import { heldTechTokens } from '@shared/play/techToken';
 
 import { STORYBOOK_NOW } from '@db/storybook';
 
@@ -36,6 +37,16 @@ function storyHandCounts(view: GameSnapshot, viewerSeat: Viewer['viewerSeat']): 
       id === own || !othersHold ? ownCounts[id]! : OTHER_HAND_COUNTS[index % OTHER_HAND_COUNTS.length]!,
     ])
   );
+}
+
+/* The public counts of what each faction holds, as the Worker sends them, for a story view that sets none: the viewer's own tech tokens come from its hand. */
+function withStoryHoldings(view: GameSnapshot, viewerSeat: Viewer['viewerSeat']): GameSnapshot {
+  const own = view.roster!.seats.find((seat) => seat.id === viewerSeat)?.faction?.id;
+  return {
+    ...view,
+    handCounts: view.handCounts ?? storyHandCounts(view, viewerSeat),
+    techTokens: view.techTokens ?? (own ? heldTechTokens({ [own]: (view.hand ?? []) as StoredPiece[] }, [own]) : {}),
+  };
 }
 
 /*
@@ -88,7 +99,7 @@ export function storyTransport(
       type: 'view',
       viewer,
       epoch: 'story-epoch',
-      snapshot: next.handCounts || !next.roster ? next : { ...next, handCounts: storyHandCounts(next, viewerSeat) },
+      snapshot: next.roster ? withStoryHoldings(next, viewerSeat) : next,
       carries: [],
       pointers: [],
       completedCommandId,

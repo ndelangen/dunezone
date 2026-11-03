@@ -117,6 +117,11 @@ will add the agreed five-minute cache. Its key must include the active Worker ve
 `X-Application-Release` and health's `application.release`. This separates HTML containing different
 client chunk URLs, including two uploads of the same Git commit. The Worker bundles production React.
 
+The publisher does not upload source maps. Its maps exceed Cloudflare's 60 MiB total per Worker
+version, so the upload fails the deploy (code 10021). The bundle is not minified, so Workers Logs
+stack traces keep function names, but frames show bundle file and line numbers rather than
+`src/app/...` sources. The deployment contract refuses a config that turns the upload back on.
+
 ### Browser files across deployments
 
 A new HTML cache key cannot repair a document already open in a browser. Before deploying, the

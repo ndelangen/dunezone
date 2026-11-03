@@ -32,6 +32,7 @@ import { FactionFormSectionFactionLeader } from './FactionFormSectionFactionLead
 import { FactionFormSectionIdentity } from './FactionFormSectionIdentity';
 import type { FactionIdentityNameField } from './FactionFormSectionIdentity';
 import { FactionFormSectionLeaders } from './FactionFormSectionLeaders';
+import type { StrengthRefusalProps } from './FactionFormSectionLeaders';
 import { FactionFormSectionPhases, phaseRowLabel } from './FactionFormSectionPhases';
 import { FactionFormSectionPlanets } from './FactionFormSectionPlanets';
 import { FactionFormSectionRules } from './FactionFormSectionRules';
@@ -456,7 +457,7 @@ export const FactionFormFields = forwardRef<
     /** The switched-off manual rating, owned by the authoring session so a Reset discards it too. */
     retainedManualComplexity: number | null;
     onRetainedManualComplexityChange: (rating: number) => void;
-  }
+  } & StrengthRefusalProps
 >(function FactionFormFields(
   {
     form,
@@ -468,6 +469,8 @@ export const FactionFormFields = forwardRef<
     onBackgroundModeMemoryChange,
     retainedManualComplexity,
     onRetainedManualComplexityChange,
+    strengthRefusal,
+    onStrengthRefusalChange,
   },
   ref
 ) {
@@ -512,6 +515,8 @@ export const FactionFormFields = forwardRef<
           showPreview={false}
           selectedIndex={selectedItem.leader}
           onSelectedIndexChange={(leader) => setSelectedItem((current) => ({ ...current, leader }))}
+          strengthRefusal={strengthRefusal}
+          onStrengthRefusalChange={onStrengthRefusalChange}
         />
       ) : null}
       {chapter === 'alliance' ? <FactionFormSectionAlliance form={form} showPreview={false} /> : null}

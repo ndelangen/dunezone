@@ -8,7 +8,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
 import { FACTION_INFO } from '../../play/compass/windows';
 import { stubMatchMedia } from '../../play/multiplayer/jsdom.test.fixture';
-import { FactionInfoHeader } from '../../play/panels/factionInfo/FactionInfoHeader';
+import { FactionInfoPanel } from '../../play/panels/factionInfo/FactionInfoPanel';
 import type { TablePlayers } from './chapterScript';
 import { moderation } from './moderation';
 
@@ -70,13 +70,19 @@ test('the first step waits for the Harkonnen player’s information, not another
   const steps = moderation.tasks(() => view, players);
   const open = steps.find((step) => step.id === 'open')!;
   const start = steps.find((step) => step.id === 'start')!;
-  /* The header the table renders, named as it names a seat, so the guide reads what a player sees rather than markup of its own. */
+  /* The window body the table renders, named as it names a seat, so the guide reads what a player sees rather than markup of its own. */
   const info = (seatId: string, faction: string) =>
     render(
       <MantineProvider theme={appContentTheme} forceColorScheme="light">
         <div data-window={FACTION_INFO}>
-          <FactionInfoHeader
-            model={{
+          <FactionInfoPanel
+            error={null}
+            vote={null}
+            requests={null}
+            trade={null}
+            details={undefined}
+            onBallot={vi.fn()}
+            header={{
               token: null,
               name: 'Thialfi',
               faction,

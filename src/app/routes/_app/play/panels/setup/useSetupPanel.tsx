@@ -4,7 +4,7 @@ import type { TopicIconTopic } from '@ui/content/TopicIcon';
 
 import type { TableProjection, TableSession } from '../../../../../db/tabletop/TableSession';
 import { setupGuidance, setupHelp } from '../../multiplayer/panelGuidance';
-import { factionName, factionOptions, viewerFaction } from '../../multiplayer/tableFactions';
+import { factionName, factionOptions, offersActions, viewerFaction } from '../../multiplayer/tableFactions';
 import { predictionCardInHand } from '../../prediction/predictionCardInHand';
 import type { PanelWindow } from '../panelWindows';
 import { SetupPanel } from './SetupPanel';
@@ -94,6 +94,7 @@ export function setupPanelProps(
         ? { factions: factionOptions(table), available: traitorDeck(table)?.items.length ?? 0 }
         : null,
     disabled: !table.canInteract,
+    observing: !offersActions(table),
     ...actions,
   };
 }

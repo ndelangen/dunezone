@@ -63,13 +63,15 @@ export function useCompass({ open, onOpen, inert, windows, table, onView, onShow
   const suggestions = rankSuggestions(
     candidatesOf(windows, {
       open: show,
+      players: table?.players ?? [],
       nextPhase: table?.nextPhase,
       token: table?.token,
       commands,
       shortcuts,
       view: onView,
       close,
-      frozen: Boolean(table?.recall),
+      /* Only a seated player is told which of their actions recall holds; an observer has none to hold. */
+      frozen: Boolean(table?.recall?.seated),
     }),
     query
   );

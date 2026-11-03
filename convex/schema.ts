@@ -14,6 +14,7 @@ import { playDirectorySummarySchema } from '../src/shared/play/directory';
 import { lastTurnSchema } from '../src/shared/play/lastTurn';
 import { tableSeatCountSchema } from '../src/shared/play/schema';
 import { rulebookCoverImageSchema } from '../src/shared/rulebooks/coverImage';
+import { battleDialingSchema } from '../src/shared/rulesets/battleDialing';
 import { authProviderValidator } from './lib/accountMethods';
 import { directOwnershipKindValidator } from './lib/directOwnership';
 import { faqReferenceTargets } from './lib/faqReferenceTarget';
@@ -428,6 +429,8 @@ export default defineSchema({
      * `rulesetCovers.backfillLegacyCovers` converts them.
      */
     cover: v.optional(v.union(rulesetCoverValidator, v.null())),
+    /** How battle wheels count troops and spice in this ruleset's games; absent reads as Advanced (see battleDialing.ts). */
+    battle_dialing: v.optional(zodToConvex(battleDialingSchema)),
   })
     .index('by_name', ['name'])
     .index('by_slug', ['slug'])

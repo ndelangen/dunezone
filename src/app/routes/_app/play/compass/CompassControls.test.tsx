@@ -107,6 +107,7 @@ test('recall retains the self token without adding live faction or player window
             id: 'one',
             context: 'Storm',
             loading: false,
+            seated: true,
             chat: { unread: 0 },
             panels: [
               { key: 'hand', label: 'Your recalled hand', topic: 'hand', content: <p>Frozen hand</p> },
@@ -147,9 +148,37 @@ test('the normal chat remains mounted across recall and returns with its own sta
   const { rerender } = render(renderControls());
   fireEvent.click(screen.getByRole('button', { name: 'Table chat' }));
   const original = screen.getByText('Ordinary chat');
-  rerender(renderControls({ id: 'one', context: 'Storm', loading: false, panels: [] }));
+  rerender(renderControls({ id: 'one', context: 'Storm', loading: false, seated: true, panels: [] }));
   expect(screen.getByText('Ordinary chat')).toBe(original);
   rerender(renderControls());
   expect(screen.getByText('Ordinary chat')).toBe(original);
   expect(mounts).toBe(1);
+});
+
+test('recall lists the actions it holds for a seated player, and none for an observer, who has none to hold', () => {
+  const recall = (seated: boolean): CompassTable['recall'] => ({
+    id: 'one',
+    context: 'Storm',
+    loading: false,
+    seated,
+    panels: [],
+  });
+  const controls = (seated: boolean) => (
+    <MantineProvider>
+      <CompassTableContext value={{ ...table, recall: recall(seated) }}>
+        <CompassControls scene={null} header={null} camera={null} inert={false} panels={[]} onView={() => undefined} />
+      </CompassTableContext>
+    </MantineProvider>
+  );
+  const search = () => {
+    fireEvent.click(screen.getByRole('button', { name: /Controls/ }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search controls' }), { target: { value: 'Next phase' } });
+  };
+  const { unmount } = render(controls(true));
+  search();
+  expect(screen.getByRole('option', { name: /Next phase/ })).toBeTruthy();
+  unmount();
+  render(controls(false));
+  search();
+  expect(screen.queryByRole('option', { name: /Next phase/ })).toBeNull();
 });

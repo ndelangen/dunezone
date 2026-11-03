@@ -1,7 +1,8 @@
 import type { GameSnapshot } from '@shared/play/protocol';
 import { TUTORIAL_RECIPE } from '@shared/tutorial/recipe';
 
-import type { GuideTask } from '../TutorialGuide';
+import type { GuideTask } from '@app/widgets/tutorial-guide/TutorialGuide';
+
 import type { ChapterScript, TablePlayers } from './chapterScript';
 import { element, task } from './guideChecks';
 
@@ -185,7 +186,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'offer',
       task: 'Offer a trade',
       get detail() {
-        return `You got ${dealt(snapshot)}! You have four minutes to agree on a trade, which swaps both factions and seats.\n\nWant to try? Click the ${partner(snapshot)} token below the table, then press Offer trade. They can choose whether to accept.`;
+        return `You got ${dealt(snapshot)}! You have four minutes to agree on a trade, which swaps both factions and seats.\n\nWant to try? Click the ${partner(snapshot)} token below the table, then press the Offer trade icon (two arrows) in its toolbar. They can choose whether to accept.`;
       },
       anchor: {
         kind: 'page',
@@ -200,7 +201,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'cancel',
       task: 'Cancel your offer',
       get detail() {
-        return `Changed your mind? Press Cancel offer in the same window to keep ${dealt(snapshot)}.`;
+        return `Changed your mind? Press the hourglass, Cancel offer, in the same window to keep ${dealt(snapshot)}.`;
       },
       anchor: { kind: 'page', element: element('button[aria-label^="Cancel offer to"]') },
       begin: () => undefined,

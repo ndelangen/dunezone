@@ -11,6 +11,15 @@ export function showsAlliances(stage: string | undefined) {
   return stage === 'play' || stage === 'finished';
 }
 
+/** The gold pill each alliance, and each faction's held tech tokens, stand in at the top bar. */
+export const allianceStripPill = {
+  flexShrink: 0,
+  padding: '2px 6px',
+  borderRadius: 999,
+  background: withAlpha(playUiColors.annotationGold, 0.14),
+  border: `1px solid ${withAlpha(playUiColors.annotationGold, 0.55)}`,
+} as const;
+
 /**
  * Every alliance at the table as its factions' tokens side by side, beside the logo in the top bar, so it shows in every view.
  * The strip keeps to the space beside the logo and scrolls sideways when the alliances outgrow it, so the top bar never grows and the phase stays clear.
@@ -29,22 +38,10 @@ export function AllianceStrip({ table }: Readonly<{ table: TableProjection }>) {
       style={{ flex: '0 1 auto', minWidth: 0, overflowX: 'auto', overflowY: 'hidden', scrollbarWidth: 'thin' }}
     >
       {groups.map(({ members: group }) => {
-        const label = `${factionList(names, group)} are allied`;
+        const label = `${factionList(names, group)} are in an alliance`;
         return (
           <Tooltip key={group.join(':')} label={label} withinPortal>
-            <Group
-              gap={0}
-              wrap="nowrap"
-              role="img"
-              aria-label={label}
-              style={{
-                flexShrink: 0,
-                padding: '2px 6px',
-                borderRadius: 999,
-                background: withAlpha(playUiColors.annotationGold, 0.14),
-                border: `1px solid ${withAlpha(playUiColors.annotationGold, 0.55)}`,
-              }}
-            >
+            <Group gap={0} wrap="nowrap" role="img" aria-label={label} style={allianceStripPill}>
               {group.map((factionId, index) => (
                 <FactionTokenFace
                   key={factionId}

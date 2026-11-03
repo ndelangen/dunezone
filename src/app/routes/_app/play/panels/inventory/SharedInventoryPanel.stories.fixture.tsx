@@ -60,6 +60,7 @@ export function inventoryArgs(): SharedInventoryViewProps {
   return {
     inventory: {
       rows: inventoryRows(pieces),
+      observing: false,
       movable: () => true,
       carry: fn(),
       draw: { left: 7, enabled: true, help: drawHelp(7), run: fn() },

@@ -1,0 +1,11 @@
+/* A faction's held tech tokens in a row, touching as the allies' tokens beside them do not overlap: a gear's teeth would hide its neighbour's. */
+.tokens {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.token {
+  display: inline-flex;
+}

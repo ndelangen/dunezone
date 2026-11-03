@@ -37,3 +37,16 @@ export const RequestsStayVisible = meta.story({
     await expect(Math.abs(request.getBoundingClientRect().top - before)).toBeLessThan(2);
   },
 });
+
+/** An observer only looks: the shelves and their pieces show, with no add, draw or drag handle, not even greyed. */
+export const ObserverSeesNoActions = meta.story({
+  args: { inventory: { ...inventoryArgs().inventory, observing: true } },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const shelf = canvas.getByRole('region', { name: 'Tech tokens' });
+    await expect(shelf).toBeVisible();
+    await expect(within(shelf).getAllByRole('group').length).toBeGreaterThan(0);
+    await expect(within(shelf).queryAllByRole('button')).toHaveLength(0);
+    await expect(canvas.queryByRole('button', { name: /from the catalogue|Draw random|onto the table/ })).toBeNull();
+  },
+});

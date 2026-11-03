@@ -10,6 +10,7 @@ import type { Texture } from 'three';
 import { authoredBoardGeometry } from './authoredBoardGeometry';
 import { authoredBoardTexture } from './authoredBoardTexture';
 import { POLAR_SINK_RENDER_ORDER } from './boardRenderOrder';
+import { useBoardSkinMaterial } from './useBoardSkinMaterial';
 
 type State = { texture: Texture | null; error: boolean; attempt: number };
 type Event = { type: 'ready'; texture: Texture } | { type: 'failed' } | { type: 'retry' };
@@ -22,23 +23,6 @@ function reducer(state: State, event: Event): State {
     case 'retry':
       return { texture: null, error: false, attempt: state.attempt + 1 };
   }
-}
-
-function BoardPaintMaterial({ texture }: { texture: Texture | null }) {
-  return (
-    <meshStandardMaterial
-      key={texture ? 'artwork' : 'territories'}
-      map={texture}
-      vertexColors={!texture}
-      transparent
-      depthWrite={false}
-      polygonOffset
-      polygonOffsetFactor={-1}
-      polygonOffsetUnits={-1}
-      roughness={0.88}
-      metalness={0}
-    />
-  );
 }
 
 /** Mounted once for a retained definition; geometry and decoded artwork share its lifetime. */
@@ -78,15 +62,33 @@ export default function AuthoredBoard({ board }: { board: Board }) {
       texture?.dispose();
     };
   }, [board, state.attempt, invalidate]);
+  const paint = useBoardSkinMaterial({
+    geometry,
+    board,
+    map: state.texture,
+    vertexColors: !state.texture,
+    polygonOffset: true,
+  });
+  const polarPaint = useBoardSkinMaterial({
+    geometry: polarSink,
+    /* The disc's geometry covers the Polar Sink too, so both paints read one bake. */
+    bakeGeometry: geometry,
+    board,
+    map: state.texture,
+    vertexColors: !state.texture,
+    polygonOffset: true,
+  });
   return (
     <>
       {/* The disc owns depth; its paint draws before the storm and stays above the disc at distant camera angles. */}
-      <mesh geometry={geometry} receiveShadow renderOrder={-3} raycast={() => {}}>
-        <BoardPaintMaterial texture={state.texture} />
-      </mesh>
-      <mesh geometry={polarSink} receiveShadow renderOrder={POLAR_SINK_RENDER_ORDER} raycast={() => {}}>
-        <BoardPaintMaterial texture={state.texture} />
-      </mesh>
+      <mesh geometry={geometry} material={paint} receiveShadow renderOrder={-3} raycast={() => {}} />
+      <mesh
+        geometry={polarSink}
+        material={polarPaint}
+        receiveShadow
+        renderOrder={POLAR_SINK_RENDER_ORDER}
+        raycast={() => {}}
+      />
       {state.error && (
         <Html center>
           <MantineProvider

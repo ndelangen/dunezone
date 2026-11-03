@@ -62,7 +62,7 @@ export const FlipFactionIntroduction = meta.story({
     const toggle = await page.findByRole('switch', { name: 'Flip layout' }, { timeout: 30_000 });
     await expect(toggle).not.toBeChecked();
     await userEvent.click(toggle);
-    const block = canvasElement.querySelector('.rulebookFactionIntroduction');
+    const block = canvasElement.querySelector('[data-rulebook-large-preview] .rulebookFactionIntroduction');
     await waitFor(() => expect(block).toHaveAttribute('data-flipped', 'true'));
     await userEvent.click(page.getByRole('button', { name: 'Save' }));
     await expect(page.findByRole('button', { name: 'Saved' }, { timeout: 30_000 })).resolves.toBeDisabled();

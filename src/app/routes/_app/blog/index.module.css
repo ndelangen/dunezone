@@ -54,3 +54,11 @@
     font-size: 3rem;
   }
 }
+
+/* On a phone a post's name takes fewer lines, at a size the band's own title steps down to. */
+@container (width < 30rem) {
+  .entry h2 {
+    font-size: 1.75rem;
+    line-height: 1.1;
+  }
+}

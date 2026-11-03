@@ -1,6 +1,8 @@
 import { faction, ref } from '@db/storybook';
 import type { StorybookDatabase } from '@db/storybook';
 
+import { publishEverything } from './_app/play/create.route.stories.fixture';
+
 /** More factions on ClassicRules, linked after the baseline's House Atreides, so they follow it in the ruleset's order. */
 export function seedLinkedFactions(baseline: StorybookDatabase, names: string[]) {
   for (const name of names) {
@@ -29,4 +31,12 @@ export function seedQuestions(baseline: StorybookDatabase, count: number) {
       accepted_answer_id: null,
     });
   }
+}
+
+/* ClassicRules as a game can take it: its treachery deck slotted as the spice deck too, and every face published. */
+export function readyForPlay(baseline: StorybookDatabase) {
+  const treachery = baseline.ruleset_asset_slots.find((slot) => slot.slot === 'treachery')!;
+  baseline.ruleset_asset_slots.push({ ...treachery, slot: 'spice' });
+  publishEverything(baseline);
+  return baseline;
 }

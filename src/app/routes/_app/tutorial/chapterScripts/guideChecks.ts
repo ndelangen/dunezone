@@ -4,9 +4,10 @@ import { BOARD_RADIUS } from '@shared/play/tableGeometry';
 import type { Vector3Tuple } from 'three';
 
 import { wheelPixels } from '@app/widgets/tabletop/wheelPixels';
+import { task } from '@app/widgets/tutorial-guide/guideTask';
+import type { GuideView } from '@app/widgets/tutorial-guide/TutorialGuide';
 
 import type { Landing } from '../table/localTable';
-import type { GuideTask, GuideView } from '../TutorialGuide';
 
 /* What the chapters check on the table and the page, shared so each chapter reads only as its tasks. */
 
@@ -21,8 +22,7 @@ export const buttonIn = (windowKey: string, text: string) => (): HTMLButtonEleme
     (button) => (button.textContent?.trim() || button.getAttribute('aria-label')) === text
   ) ?? null;
 
-/* Each task keeps its own kind of baseline; the guide only hands it back. */
-export const task = <Baseline>(definition: GuideTask<Baseline>) => definition as unknown as GuideTask;
+export { task };
 
 /** Whether a compass window shows, in the centre or pinned in a slot. */
 export const windowShown = (key: string) => () => document.querySelector(`[data-window="${key}"]`) !== null;

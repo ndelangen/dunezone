@@ -2,6 +2,8 @@ import { z } from 'zod';
 
 import type { AuthoredFace, AuthoredTroop } from '../factions/troopBattle';
 import { troopBattleFaces } from '../factions/troopBattle';
+import { battleDialingSchema, DEFAULT_BATTLE_DIALING } from '../rulesets/battleDialing';
+import type { BattleDialing } from '../rulesets/battleDialing';
 import { actionKindGuard } from './actionKinds';
 import { isFactionToken } from './factionToken';
 import {
@@ -58,6 +60,8 @@ const battlePlanShape = battlePlanInputSchema.extend({
   strength: z.number(),
   pieces: z.array(tablePieceSchema),
   faces: z.array(battleFaceSchema),
+  /* How the game's ruleset counts the dial; plans from before rulesets chose read as Advanced, as they were counted. */
+  dialing: battleDialingSchema.default(DEFAULT_BATTLE_DIALING),
   disclosed: disclosedSchema.default({ leader: false, dial: false, cardIds: [] }),
 });
 /* Read through withLeaderList too, so a table a browser cached before the change still decodes. */
@@ -178,7 +182,10 @@ export function capturedBattleFaces(troops: readonly AuthoredTroop<CapturedFace>
   );
 }
 
-export function emptyBattlePlan(faces: BattleFace[]): StoredBattlePlan {
+export function emptyBattlePlan(
+  faces: BattleFace[],
+  dialing: BattleDialing = DEFAULT_BATTLE_DIALING
+): StoredBattlePlan {
   return {
     mode: 'max',
     troops: [],
@@ -189,6 +196,7 @@ export function emptyBattlePlan(faces: BattleFace[]): StoredBattlePlan {
     strength: 0,
     pieces: [],
     faces,
+    dialing,
     disclosed: { leader: false, dial: false, cardIds: [] },
   };
 }

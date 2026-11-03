@@ -69,6 +69,15 @@ export type TableProjection = {
     arrange: (pieceId: string, order: number[]) => void;
     pull: (pieceId: string, index: number) => void;
   };
+  /* Spice this viewer let go over another faction's token, waiting in hand for a bribe or a payment; `x` and `y` are where the pointer let go. */
+  spiceGift?: {
+    factionId: string;
+    name: string;
+    artwork?: NonNullable<GameSnapshot['factionArtwork']>[string];
+    amount: number;
+    x: number;
+    y: number;
+  };
   /* Letting go of the peek held open; a seated viewer can, even once the game is finished and the table no longer handles. */
   closePeek?: () => void;
   remoteCarriedIds: ReadonlySet<string>;

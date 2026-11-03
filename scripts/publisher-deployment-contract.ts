@@ -189,6 +189,10 @@ export function validatePublisherDeployContract(config: JsonObject, environment:
   invariant(config.main === './index.ts', 'Worker entrypoint changed unexpectedly');
   invariant(config.workers_dev === true, 'workers.dev must remain enabled');
   invariant(config.preview_urls === false, 'preview URLs must remain disabled');
+  invariant(
+    config.upload_source_maps === false,
+    "Source map upload must stay off: the bundle's maps exceed Cloudflare's 60 MiB total per Worker version"
+  );
   exactJson(config.define, { 'process.env.NODE_ENV': '"production"' }, 'application runtime mode');
   exactJson(
     config.routes,
@@ -230,6 +234,7 @@ export function validatePublisherDeployContract(config: JsonObject, environment:
         '/image/*',
         '/web',
         '/web/*',
+        '/vector/emblem/*',
         '/__play',
         '/__play/*',
         '/sitemap*',
@@ -254,6 +259,10 @@ export function validatePublisherDeployContract(config: JsonObject, environment:
         '/privacy/*',
         '/blog',
         '/blog/*',
+        '/create',
+        '/create/*',
+        '/tutorial',
+        '/tutorial/*',
         '/media',
         '/media/*',
       ],

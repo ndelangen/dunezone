@@ -16,3 +16,10 @@ const meta = preview.meta({
 });
 
 export const Default = meta.story({});
+
+/** The steppers take the error tint with the field. */
+export const WithError = meta.story({
+  args: {
+    error: 'Use a positive whole number.',
+  },
+});

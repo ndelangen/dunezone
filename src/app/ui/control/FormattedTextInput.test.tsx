@@ -1,7 +1,8 @@
 /** @vitest-environment jsdom */
 
 import { MantineProvider } from '@mantine/core';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import * as glossaryHints from '@shared/glossary/hints';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
 import { useState } from 'react';
 import { afterEach, expect, it, vi } from 'vite-plus/test';
@@ -25,7 +26,11 @@ Object.defineProperty(document, 'fonts', {
   value: { addEventListener: vi.fn(), removeEventListener: vi.fn() },
 });
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+  vi.restoreAllMocks();
+});
 
 function renderInput(value: string, onChange = vi.fn(), error?: string, profile?: 'prose' | 'marks-only') {
   render(
@@ -171,7 +176,34 @@ it('shows no wording suggestions when the caller turns them off', () => {
   expect(screen.queryByRole('note', { name: 'Wording suggestions' })).toBeNull();
 });
 
-it('fixes the wording on request and can put the draft back', () => {
+it('updates text immediately and scans only the latest wording after typing pauses', async () => {
+  vi.useFakeTimers();
+  const scan = vi.spyOn(glossaryHints, 'distinctTermHints');
+  render(
+    <MantineProvider>
+      <EditableInput initialValue="Ship three forces." />
+    </MantineProvider>
+  );
+  const field = screen.getByRole('textbox', { name: 'Text' }) as HTMLTextAreaElement;
+  expect(scan).toHaveBeenCalledTimes(1);
+  fireEvent.change(field, { target: { value: 'Ship three forces now.' } });
+  await act(() => vi.advanceTimersByTime(150));
+  fireEvent.change(field, { target: { value: 'Ship four forces now.' } });
+  expect(field.value).toBe('Ship four forces now.');
+  expect(screen.queryByRole('note', { name: 'Wording suggestions' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Fix wording' })).toBeNull();
+  await act(() => vi.advanceTimersByTime(199));
+  expect(scan).toHaveBeenCalledTimes(1);
+  await act(() => vi.advanceTimersByTime(1));
+  expect(scan).toHaveBeenCalledTimes(2);
+  expect(scan).toHaveBeenLastCalledWith('Ship four forces now.');
+  expect(screen.getByRole('note', { name: 'Wording suggestions' })).toBeTruthy();
+  expect(field.getAttribute('aria-describedby')?.split(' ')).toContain(
+    screen.getByRole('note', { name: 'Wording suggestions' }).id
+  );
+});
+
+it('fixes the wording on request and can put the draft back', async () => {
   render(
     <MantineProvider theme={appContentTheme} forceColorScheme="light">
       <EditableInput initialValue="Forces deploy for combat." />
@@ -181,7 +213,9 @@ it('fixes the wording on request and can put the draft back', () => {
 
   fireEvent.click(screen.getByRole('button', { name: 'Fix wording' }));
   expect(field.value).toBe('Troops deploy for battle.');
-  expect(screen.getByRole('note', { name: 'Wording suggestions' }).textContent).toContain('rather than “deploy”');
+  await waitFor(() =>
+    expect(screen.getByRole('note', { name: 'Wording suggestions' }).textContent).toContain('rather than “deploy”')
+  );
   expect(screen.queryByRole('button', { name: 'Fix wording' })).toBeNull();
 
   fireEvent.click(screen.getByRole('button', { name: 'Undo' }));

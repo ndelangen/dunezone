@@ -10,8 +10,11 @@ type Revealed = {
   state: 'revealed';
   background: ComponentProps<typeof BackgroundRenderer>['background'];
   strength: number;
-  spice: number;
+  /** The spice on the wheel; left out where the ruleset's dialing has no spice in battle, and the spice slot stays empty. */
+  spice?: number;
   adjustment: number;
+  /** False where every troop fights at full strength, so the wheel does not count supported troops. Defaults to true. */
+  support?: boolean;
   troops: readonly {
     id: string;
     name: string;
@@ -102,6 +105,7 @@ function RevealedWheel({
   cards = [],
   leaders = [],
   wordmark = true,
+  support = true,
 }: Revealed) {
   return (
     <>
@@ -146,17 +150,21 @@ function RevealedWheel({
                 <TroopToken {...troop.artwork} />
               </div>
               <span>{troop.undialed + troop.dialed}</span>
-              <small>
-                {troop.dialed}/{troop.undialed + troop.dialed} supported
-              </small>
+              {support ? (
+                <small>
+                  {troop.dialed}/{troop.undialed + troop.dialed} supported
+                </small>
+              ) : null}
             </div>
           ))}
         </div>
         <div className={styles.leaderReadout}>
-          <div className={styles.spice}>
-            <span className={styles.spiceIcon} aria-hidden />
-            <span className={styles.spiceValue}>{spice}</span>
-          </div>
+          {spice === undefined ? null : (
+            <div className={styles.spice}>
+              <span className={styles.spiceIcon} aria-hidden />
+              <span className={styles.spiceValue}>{spice}</span>
+            </div>
+          )}
           <div
             className={styles.leader}
             style={{ translate: `${-Math.max(0, leaders.length - 1) * (LEADER_STEP / 3)}px 0` }}

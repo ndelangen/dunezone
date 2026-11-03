@@ -7,6 +7,15 @@ import type {
   StoredBattlePlan,
 } from '../../src/shared/play/battle';
 import { isBattleCard, isBattleLeader } from '../../src/shared/play/battle';
+import {
+  dialsFlat,
+  dialsFree,
+  flatStrength,
+  KISS_DIAL_CAP,
+  kissSpice,
+  spiceStrength,
+  spiceStrengthChoices,
+} from '../../src/shared/play/battleDialing';
 import { nextSnapshot, requireAccepted } from '../../src/shared/play/commands';
 import type { StoredPiece } from '../../src/shared/play/model';
 import { phaseAt } from '../../src/shared/play/phases';
@@ -16,6 +25,7 @@ import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { BOARD_RADIUS, restingPositionAt } from '../../src/shared/play/tableGeometry';
 import { clampPositionToTable, nearestCollisionFreePosition } from '../../src/shared/play/tablePhysics';
 import { playFromHandAtAnchor } from '../../src/shared/play/tableState';
+import { isTechToken, takeableIntoHand } from '../../src/shared/play/techToken';
 import { orderablePieces, revised } from './state';
 import type { StoredSnapshot, StoredBattle } from './state';
 
@@ -115,12 +125,16 @@ function declaredStrength(troops: BattlePlanInput['troops'], faces: Map<string, 
 
 function supportedPlan(input: BattlePlanInput, before: StoredBattlePlan) {
   const faces = new Map(before.faces.filter((face) => face.capable).map((face) => [face.id, face]));
-  const troops = input.mode !== before.mode ? [] : input.troops.map((troop) => ({ ...troop }));
+  const flat = dialsFlat(before.dialing);
+  const troops = !flat && input.mode !== before.mode ? [] : input.troops.map((troop) => ({ ...troop }));
   if (
     new Set(troops.map((troop) => troop.faceId)).size !== troops.length ||
     troops.some((troop) => !faces.has(troop.faceId))
   ) {
     return refuse('Choose each eligible troop face once.');
+  }
+  if (flat) {
+    return flatPlan(input, before, troops);
   }
   let spice = input.mode !== before.mode ? 0 : input.spice;
   if (input.mode === 'custom') {
@@ -129,7 +143,47 @@ function supportedPlan(input: BattlePlanInput, before: StoredBattlePlan) {
     spice = supportMaxTroops(troops, faces, spice, before);
   }
   const strength = declaredStrength(troops, faces, input.adjustment);
-  return { ...input, troops, spice, strength, faces: before.faces };
+  return { ...input, troops, spice, strength, faces: before.faces, dialing: before.dialing };
+}
+
+/**
+ * A plan under Basic, GF9 2.0 or KISS: every troop fights at full strength, so there is one count per face and nothing to support.
+ * GF9 2.0 takes the spice the player spends on spice strength;
+ * KISS works out the spice the dial costs.
+ */
+function flatPlan(input: BattlePlanInput, before: StoredBattlePlan, declared: BattlePlanInput['troops']) {
+  const troops = declared.map(({ faceId, undialed, dialed }) => ({
+    faceId,
+    undialed: sum(undialed, dialed),
+    dialed: 0,
+  }));
+  const free = dialsFree(troops, before.faces);
+  const dial = flatStrength(troops, before.faces);
+  let spice = 0;
+  let bonus = 0;
+  if (before.dialing === 'gf92') {
+    const choices = spiceStrengthChoices(dial, free);
+    spice = input.spice;
+    if (!choices.includes(spice)) {
+      /* A smaller dial takes the spice strength down with it, as far as the dial still reaches. */
+      const troopEdit = JSON.stringify(troops) !== JSON.stringify(before.troops) && spice === before.spice;
+      if (!troopEdit) {
+        return refuse('Spice strength costs 2, 4 or 8 spice, and the dial must reach as much.');
+      }
+      spice = choices.findLast((choice) => choice <= spice) ?? 0;
+    }
+    bonus = spiceStrength(dial, spice, free);
+  } else if (before.dialing === 'kiss') {
+    if (dial > KISS_DIAL_CAP) {
+      return refuse(`The dial stops at ${KISS_DIAL_CAP}.`);
+    }
+    spice = kissSpice(troops, before.faces);
+  }
+  const strength = dial + bonus + input.adjustment;
+  if (!Number.isFinite(strength)) {
+    return refuse('The declared strength is too large.');
+  }
+  return { ...input, mode: 'max' as const, troops, spice, strength, faces: before.faces, dialing: before.dialing };
 }
 
 function selectedPlanPieces(plan: BattlePlanInput, available: StoredPiece[]) {
@@ -274,19 +328,6 @@ function cancelBattle(snapshot: StoredSnapshot, battle: StoredBattle) {
   return commit(snapshot, { battleState: null, factionBanks, factionInventories });
 }
 
-function canTakeIntoHand(piece: StoredPiece | undefined): piece is StoredPiece {
-  if (!piece) {
-    return false;
-  }
-  if (piece.inventory || piece.locked) {
-    return false;
-  }
-  if (piece.items.length !== 1) {
-    return false;
-  }
-  return piece.kind === 'card' || isBattleLeader(piece);
-}
-
 function takeIntoHand(
   snapshot: StoredSnapshot,
   factionId: string,
@@ -295,12 +336,19 @@ function takeIntoHand(
   const { pieceId } = action;
   const inventory = snapshot.factionInventories[factionId] ?? [];
   const piece = snapshot.table.pieces.find((piece) => piece.id === pieceId);
-  if (!canTakeIntoHand(piece)) {
-    return refuse('Choose one unlocked card or leader on the table.');
+  if (!piece || !takeableIntoHand(piece)) {
+    return refuse('Choose one unlocked card, leader or tech token on the table.');
   }
   const { battleOverlay: _overlay, ...taken } = piece;
-  /* A hand forgets who peeked at its cards, so a card later played face down out of it cannot be told apart by its marks. */
-  const stored = { ...taken, items: taken.items.map(({ peekedBy: _peekedBy, ...item }) => item) };
+  /*
+   * A hand forgets who peeked at its cards, so a card later played face down out of it cannot be told apart by its marks.
+   * A tech token is public, so it goes into the hand face up even if it lay turned over, and everyone keeps seeing which one is held.
+   */
+  const techToken = isTechToken(piece);
+  const stored = {
+    ...taken,
+    items: taken.items.map(({ peekedBy: _peekedBy, ...item }) => (techToken ? { ...item, faceUp: true } : item)),
+  };
   return commit(
     snapshot,
     {
@@ -327,7 +375,9 @@ function playFromHand(
 ) {
   const { inventory, piece } = handPiece(snapshot, factionId, action.pieceId);
   const { hiddenZone: _spot, ...leaving } = piece;
-  const faceDown = { ...leaving, inventory: undefined, items: piece.items.map((item) => ({ ...item, faceUp: false })) };
+  /* A card or leader leaves the hand face down; a tech token is public, so it lands as it lay in the hand. */
+  const items = isTechToken(piece) ? piece.items : piece.items.map((item) => ({ ...item, faceUp: false }));
+  const leavingHand = { ...leaving, inventory: undefined, items };
   const factionInventories = {
     ...snapshot.factionInventories,
     [factionId]: inventory.filter((piece) => piece.id !== action.pieceId),
@@ -335,7 +385,7 @@ function playFromHand(
   const table = tableForViewer(snapshot, SPECTATOR_SEAT);
   const anchored = playFromHandAtAnchor(
     table,
-    { ...faceDown, position: restingPositionAt(action.position, piece) },
+    { ...leavingHand, position: restingPositionAt(action.position, piece) },
     action.position
   );
   if (anchored) {
@@ -349,7 +399,7 @@ function playFromHand(
   if (!position) {
     return refuse('There is no clear space for that object.');
   }
-  const played = { ...faceDown, position: restingPositionAt(position, piece) };
+  const played = { ...leavingHand, position: restingPositionAt(position, piece) };
   return commit(snapshot, { factionInventories }, [...snapshot.table.pieces, played]);
 }
 
@@ -439,7 +489,7 @@ function claimSide({ snapshot, battle, factionId }: BattleActor, side: 0 | 1) {
     return refuse('Choose an empty side for a faction that is not already in this battle.');
   }
   battle.sides[side] = { factionId, ready: false, choice: null };
-  battle.plans[side] = emptyBattlePlan(snapshot.combatFaces[factionId] ?? []);
+  battle.plans[side] = emptyBattlePlan(snapshot.combatFaces[factionId] ?? [], snapshot.battleDialing);
   return commit(snapshot, { battleState: battle });
 }
 

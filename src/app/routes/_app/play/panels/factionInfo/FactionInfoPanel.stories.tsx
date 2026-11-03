@@ -1,7 +1,7 @@
 import preview from '@sb/preview';
 import { expect } from 'storybook/test';
 
-import { playingSnapshot } from '../../product.stories.fixture';
+import { playingSnapshot, swappingSnapshot } from '../../product.stories.fixture';
 import {
   factionInfoArgs,
   factionInfoPanelMeta,
@@ -69,5 +69,14 @@ export const Observer = meta.story({
   args: observerArgs(),
   play: async ({ canvas }) => {
     await expect(canvas.queryByRole('button', { name: /^(Offer alliance|Start removal vote)$/ })).toBeNull();
+  },
+});
+
+/** While seats are traded: the trade sits in the toolbar with the other actions, and the window says nothing about who is ready. */
+export const WhileTrading = meta.story({
+  args: factionInfoArgs(swappingSnapshot(), 'seat-1', 'seat-2', { captured: false }),
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole('toolbar', { name: 'Seat actions' })).toBeVisible();
+    await expect(canvas.queryByText(/^(Not ready|Ready)$/)).toBeNull();
   },
 });

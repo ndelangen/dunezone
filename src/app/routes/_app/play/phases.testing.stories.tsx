@@ -80,20 +80,33 @@ export const Shared = meta.story({
   },
 });
 
+/** An observer reads the phase but takes no phase action, so the header shows no phase controls, not even greyed. */
 export const Observer = meta.story({
-  beforeEach: install(() => productTransport('neutral', { ...initialSnapshot(), phase: 5 })),
+  beforeEach: install(() =>
+    productTransport('neutral', {
+      ...initialSnapshot(),
+      phase: 8,
+      controls: {
+        ...initialSnapshot().controls!,
+        seats: SIX.map((player) => player.seat),
+        ready: ['seat-1', 'seat-3', 'seat-4', 'seat-5', 'seat-6'],
+      },
+    })
+  ),
   play: async ({ canvasElement }) => {
-    const { page, controls, waitForPhase, expectPrevious } = phaseControls(canvasElement);
-    await waitForPhase(() => expect(page.getByRole('button', { name: /^Controls/ })).toBeVisible());
+    const page = within(canvasElement.ownerDocument.body);
+    await waitFor(() => expect(page.getByRole('button', { name: /^Controls/ })).toBeVisible(), WAIT);
     await openTab(page, 'Phase');
-    await waitForPhase(async () => {
-      await expect(controls().getByRole('button', { name: 'Next phase' })).toBeDisabled();
-      await expect(page.getByRole('region', { name: TABLE_PHASES[5].label })).toBeVisible();
-      await expectHeaderPhase(canvasElement, 5);
-    });
-    await expectPrevious(false);
-    await userEvent.click(controls().getByRole('button', { name: 'Next phase' }));
-    await expect(session.transport.messages.some((message) => message.type === 'command')).toBe(false);
+    await waitFor(async () => {
+      await expect(page.getByRole('region', { name: TABLE_PHASES[8].label })).toBeVisible();
+      await expectHeaderPhase(canvasElement, 8);
+    }, WAIT);
+    /* An observer reads how many are ready, and is offered no phase action, not even greyed. */
+    await expect(page.getByText('5 of 6 ready', { exact: true })).toBeVisible();
+    await expect(page.queryByRole('group', { name: 'Phase navigation' })).toBeNull();
+    for (const name of ['Next phase', 'More phase actions', 'Ready']) {
+      await expect(page.queryByRole('button', { name })).toBeNull();
+    }
   },
 });
 

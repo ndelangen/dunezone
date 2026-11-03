@@ -69,7 +69,9 @@ function recordMeasuredPages(view: Window & typeof globalThis) {
 
 /* Every Page is measured in its own hidden copy, and the open Page is drawn once more as the visible preview. */
 export function renderedPageCount(canvasElement: HTMLElement) {
-  return canvasElement.ownerDocument.querySelectorAll('[data-rulebook-page-id]').length;
+  return canvasElement.ownerDocument.querySelectorAll(
+    '[data-rulebook-large-preview] [data-rulebook-page-id], [data-rulebook-measurements] [data-rulebook-page-id]'
+  ).length;
 }
 
 export type EditorArrival = {

@@ -1,7 +1,8 @@
 import type { GameSnapshot } from '@shared/play/protocol';
 import type { Vector3 } from 'three';
 
-import type { GuideTask, GuideView } from '../TutorialGuide';
+import type { GuideTask, GuideView } from '@app/widgets/tutorial-guide/TutorialGuide';
+
 import type { ChapterScript, TablePlayers } from './chapterScript';
 import { at, closeUpShown, dialTask, scrolled, tableDeck, task } from './guideChecks';
 

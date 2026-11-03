@@ -107,6 +107,7 @@ function suppliedSnapshot(
     {
       ...nextSnapshot(next, accepted(table, 'setup-supply', message)),
       stage: 'setup',
+      battleDialing: ruleset.battleDialing,
       setup: initialSetup(
         factions.map(({ capture }) => capture),
         next.roster,

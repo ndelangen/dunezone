@@ -2,7 +2,8 @@ import { isBattleLeader } from '@shared/play/battle';
 import type { StoredPiece } from '@shared/play/model';
 import type { GameSnapshot } from '@shared/play/protocol';
 
-import type { GuideTask } from '../TutorialGuide';
+import type { GuideTask } from '@app/widgets/tutorial-guide/TutorialGuide';
+
 import type { ChapterScript, TablePlayers } from './chapterScript';
 import { at, element, onBoard, task } from './guideChecks';
 

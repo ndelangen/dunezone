@@ -12,9 +12,28 @@ function gateOf(table: TableProjection) {
   return { controls, ...phaseGate({ ...table.snapshot, ready: controls.ready, seats: controls.seats }) };
 }
 
+/* How many of the seated players are ready, of how many. */
+function readyCount(controls: ReturnType<typeof publicControlsOf>) {
+  return { count: controls.ready.filter((seat) => controls.seats.includes(seat)).length, of: controls.seats.length };
+}
+
 /** Whether Next phase is enabled: the viewer may act, the last step has cooled, and the phase's gate is open. */
 export function canStepPhase(table: TableProjection) {
   return table.canInteract && !table.phaseCooling && gateOf(table).refusal === null;
+}
+
+/** What an observer sees of the phase controls: how many are ready when the phase asks for it, as words rather than a button. */
+export function PhaseReadiness({ table }: Readonly<{ table: TableProjection }>) {
+  const { controls, needsReady } = gateOf(table);
+  if (!needsReady) {
+    return null;
+  }
+  const { count, of } = readyCount(controls);
+  return (
+    <Text size="xs" fw={700} c="dimmed" role="status">
+      {count} of {of} ready
+    </Text>
+  );
 }
 
 /* The header's phase controls: the Ready toggle when the phase asks for readiness, then the Next phase split button. */
@@ -28,8 +47,7 @@ export function PhaseNavigation({ client, table }: Readonly<{ client: TableSessi
       {needsReady && (
         <ReadyToggle
           ready={ready}
-          count={controls.ready.filter((seat) => controls.seats.includes(seat)).length}
-          of={controls.seats.length}
+          {...readyCount(controls)}
           disabled={!table.canInteract}
           onToggle={() => client.command({ kind: 'ready', ready: !ready })}
         />

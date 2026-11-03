@@ -27,6 +27,7 @@ export type TabletopContextValue = Pick<
   | 'renderedPieces'
   | 'reservedPieceIds'
   | 'selectedPiece'
+  | 'spiceGift'
   | 'state'
 > &
   Pick<
@@ -37,6 +38,7 @@ export type TabletopContextValue = Pick<
     | 'finishPieceFlip'
     | 'finishRotation'
     | 'flipSelected'
+    | 'giveSpice'
     | 'moveStormBy'
     | 'ping'
     | 'publishPointer'
@@ -96,6 +98,7 @@ export function TabletopSessionProvider({
         finishPieceFlip: session.finishPieceFlip,
         finishRotation: session.finishRotation,
         flipSelected: session.flipSelected,
+        giveSpice: session.giveSpice,
         moveStormBy: session.moveStormBy,
         ping: session.ping,
         publishPointer: session.publishPointer,

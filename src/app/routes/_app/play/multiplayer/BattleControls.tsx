@@ -5,6 +5,7 @@ import { useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { Board } from '@shared/boards/schema';
 import { troopBattleFaces } from '@shared/factions/troopBattle';
 import type { BattlePlan, DisclosedPlan, PublicBattle } from '@shared/play/battle';
+import { dialsFlat } from '@shared/play/battleDialing';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import type { TablePiece, Vector3Tuple } from '@shared/play/model';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
@@ -34,6 +35,7 @@ import { KeyboardSpicePlacement } from './KeyboardSpicePlacement';
 import { SPICE_RESERVE_DROP } from './spiceReserveDrop';
 import type { SpiceReserveDrop } from './spiceReserveDrop';
 import { tableDropPosition } from './tableDropPosition';
+import { offersActions } from './tableFactions';
 
 type Props = { client: TableSession; table: TableProjection };
 type Outcome = NonNullable<NonNullable<PublicBattle['sides'][number]>['choice']>;
@@ -70,7 +72,7 @@ function WheelPiece({
 }: {
   piece: TablePiece;
   style?: CSSProperties;
-  onPointerDown?: (event: ReactPointerEvent<HTMLButtonElement>) => void;
+  onPointerDown: (event: ReactPointerEvent<HTMLButtonElement>) => void;
 }) {
   return (
     <Button
@@ -81,7 +83,6 @@ function WheelPiece({
       style={style}
       className={styles.piece}
       aria-label={`Drag ${pieceName(piece)} onto table`}
-      disabled={!onPointerDown}
       onPointerDown={onPointerDown}
     >
       <PieceImage piece={piece} />
@@ -106,8 +107,15 @@ function CarriedPiece({ piece, style }: { piece: TablePiece; style?: CSSProperti
   );
 }
 /* A wheel piece, carried onto the table at a live table; a past battle's wheel only shows it. */
+/* A viewer who cannot handle the table, such as an observer, sees the revealed piece itself, not a drag button greyed out. */
 function DraggablePiece({ piece, client, style }: { piece: TablePiece; client?: TableSession; style?: CSSProperties }) {
-  return client ? <CarriedPiece piece={piece} style={style} /> : <WheelPiece piece={piece} style={style} />;
+  return client ? (
+    <CarriedPiece piece={piece} style={style} />
+  ) : (
+    <div className={styles.face} style={style}>
+      <PieceImage piece={piece} />
+    </div>
+  );
 }
 /* The plan's capable troops as the wheel shows them, each dressed in the faction's own troop artwork. */
 export function wheelTroops(
@@ -159,7 +167,8 @@ export function BattleWheel({ plan, factionId, factionName, client, active, artw
       label={`${factionName} plan, troop strength ${plan.strength}, ${plan.spice} spice`}
       background={background}
       strength={plan.strength}
-      spice={plan.spice}
+      spice={plan.dialing === 'basic' ? undefined : plan.spice}
+      support={!dialsFlat(plan.dialing)}
       adjustment={plan.adjustment}
       troops={wheelTroops(plan, factionId, background, retained)}
       cards={plan.pieces
@@ -178,6 +187,10 @@ export function BattleWheel({ plan, factionId, factionName, client, active, artw
 export function BattleModeToggle({ client, table }: Props) {
   const { battle, battlePlan: plan, bank } = table.snapshot;
   if (!plan || !battle || !bank) {
+    return null;
+  }
+  /* Only Advanced spice dialing supports troops one by one; every other mechanism has no support to choose. */
+  if (dialsFlat(plan.dialing)) {
     return null;
   }
   const own = battle.sides.find((side) => side?.factionId === bank.factionId);
@@ -369,8 +382,12 @@ function CancelBattleButton({
     </Button>
   );
 }
+/* Ending a battle or calling its winner is a seated player's; an observer is shown none of it, not even greyed. */
 function BattleActions(props: ActiveProps) {
   const { battle } = props;
+  if (!offersActions(props.table)) {
+    return null;
+  }
   if (battle.stage === 'preparing') {
     return <CancelBattleButton {...props} size="xs" className={styles.cancel} variant="default" fullWidth />;
   }
@@ -401,6 +418,9 @@ function waitingOn({ battle, table, own }: ActiveProps) {
 }
 function BattleCentre(props: ActiveProps) {
   if (props.battle.stage === 'revealed') {
+    if (!offersActions(props.table)) {
+      return null;
+    }
     /* Anyone seated can end a revealed battle; it settles with the winner a side called, unless the sides called different winners. */
     const waiting = waitingOn(props);
     return (
@@ -537,6 +557,16 @@ function SideContents({
       );
     }
     return closed;
+  }
+  /* An observer cannot claim a side, so the empty side says only that it is open. */
+  if (!offersActions(table)) {
+    return (
+      <Group justify="center" align="center" className={styles.claim}>
+        <Text size="xs" c="dimmed">
+          Open side
+        </Text>
+      </Group>
+    );
   }
   return (
     <Button

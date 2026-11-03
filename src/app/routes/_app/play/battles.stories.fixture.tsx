@@ -32,12 +32,17 @@ export function withConvexIds(snapshot: GameSnapshot): GameSnapshot {
   );
 }
 
-export const revealedPieces = install(() => {
-  const snapshot = battleStory('revealed');
-  const battle = snapshot.battle!;
-  const card = snapshot.table.pieces.find((piece) => piece.id === 'treachery-card-loose')!;
-  card.battleOverlay = battle.id;
-  battle.revealed![0].pieces = [card];
-  battle.revealed![0].cardIds = [card.id];
-  return productTransport('seat-2', snapshot);
-});
+function revealedPiecesFor(seat: 'seat-2' | 'neutral') {
+  return install(() => {
+    const snapshot = battleStory('revealed');
+    const battle = snapshot.battle!;
+    const card = snapshot.table.pieces.find((piece) => piece.id === 'treachery-card-loose')!;
+    card.battleOverlay = battle.id;
+    battle.revealed![0].pieces = [card];
+    battle.revealed![0].cardIds = [card.id];
+    return productTransport(seat, snapshot);
+  });
+}
+export const revealedPieces = revealedPiecesFor('seat-2');
+/* The same revealed card, watched by an observer. */
+export const observedRevealedPieces = revealedPiecesFor('neutral');

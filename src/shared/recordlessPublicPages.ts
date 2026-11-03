@@ -4,6 +4,40 @@
  */
 export const RECORDLESS_PUBLIC_PAGES = ['/glossary', '/contributing', '/future-plans', '/privacy', '/blog'];
 
+/**
+ * The tutorial catalogues and every tutorial that is built: public, server-rendered and in the landing sitemap.
+ * Play chapters live below `/tutorial`, creator tutorials below `/create`;
+ * tests hold this list to the routes and chapter scripts.
+ */
+export const TUTORIAL_PAGES = [
+  '/tutorial',
+  '/create',
+  '/create/faction',
+  ...[
+    'welcome',
+    'create-a-game',
+    'find-a-game',
+    'take-a-seat',
+    'draft-and-trade',
+    'looking-around',
+    'moving-pieces',
+    'windows',
+    'your-hand-and-spice',
+    'decks-and-dealing',
+    'what-goes-where',
+    'setup',
+    'phases-and-turns',
+    'alliances-and-talking',
+    'bidding',
+    'battle',
+    'ending-a-game',
+    'the-private-side-table',
+    'bring-your-own-pieces',
+    'mentat-recall',
+    'moderation',
+  ].map((chapter) => `/tutorial/${chapter}`),
+];
+
 /** Introductory topics in the guide's Start here tab group. */
 export const CONTRIBUTING_INTRO_PAGES = [
   { slug: 'stack', title: 'Technology stack' },

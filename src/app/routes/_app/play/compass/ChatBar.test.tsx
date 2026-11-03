@@ -78,6 +78,7 @@ test('recall puts the own hand left of Controls and only the recall chat to its 
     id: 'one',
     context: 'Storm',
     loading: false,
+    seated: true,
     panels: [],
     chat: { unread: 2 },
   });
@@ -94,7 +95,13 @@ test('recall puts the own hand left of Controls and only the recall chat to its 
 });
 
 test('an observing recall has no private hand or chat control', () => {
-  renderBar([player('seat-2', false)], false, { id: 'one', context: 'Storm', loading: false, panels: [] });
+  renderBar([player('seat-2', false)], false, {
+    id: 'one',
+    context: 'Storm',
+    loading: false,
+    seated: true,
+    panels: [],
+  });
   expect(screen.getAllByRole('button')).toHaveLength(1);
   expect(screen.getByRole('button', { name: /Controls/ })).toBeTruthy();
 });

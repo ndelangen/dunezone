@@ -53,6 +53,8 @@ export type SetupPanelProps = Readonly<{
   traitors: Readonly<{ factions: readonly FactionOption[]; available: number }> | null;
   /** The actions are greyed out while the table is not taking moves. */
   disabled: boolean;
+  /** An observer only reads the step: its gather and deal actions are not shown, not even greyed. */
+  observing: boolean;
   onGatherTraitors: () => void;
   onDealTraitors: (factionId: string, count: 1 | 4) => void;
   onLockPrediction: (stepId: string, choice: { factionId: string; turn: number }) => void;
@@ -189,8 +191,17 @@ function Prediction({
 
 /** The Setup window: the current setup step's instructions and action, then every prediction at the table. */
 export function SetupPanel(props: SetupPanelProps) {
-  const { step, hiddenHeading, instructions, predictions, traitors, disabled, onGatherTraitors, onDealTraitors } =
-    props;
+  const {
+    step,
+    hiddenHeading,
+    instructions,
+    predictions,
+    traitors,
+    disabled,
+    observing,
+    onGatherTraitors,
+    onDealTraitors,
+  } = props;
   const dealDisabledReason = (count: number) => {
     if (disabled) {
       return 'The table is unavailable.';
@@ -202,7 +213,7 @@ export function SetupPanel(props: SetupPanelProps) {
       {step.kind !== 'prediction' && (
         <Section hiddenHeading={hiddenHeading} title={step.title} description={step.help}>
           <Stack gap="sm">
-            {step.kind === 'traitors' && (
+            {step.kind === 'traitors' && !observing && (
               <>
                 <Button variant="default" disabled={disabled} onClick={onGatherTraitors}>
                   Gather tabletop traitors

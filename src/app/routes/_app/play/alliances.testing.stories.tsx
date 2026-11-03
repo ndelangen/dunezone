@@ -35,7 +35,13 @@ export const AlliedPlayerInfo = meta.story({
   play: async ({ canvasElement }) => {
     const ally = alliancesSnapshot().controls!.players.find((player) => player.seat === 'seat-4')!;
     const page = await openFactionInfo(canvasElement, ally.name);
-    await waitFor(() => expect(page.getByText(/^Allied with/)).toBeVisible());
+    const partner = alliancesSnapshot().roster!.seats.find((seat) => seat.id === 'seat-5')!.faction!.name;
+    /* The faction's ally stands in the window's toolbar as its token, named after it. */
+    await waitFor(() =>
+      expect(
+        within(page.getByRole('toolbar', { name: 'Seat actions' })).getByRole('img', { name: partner })
+      ).toBeVisible()
+    );
   },
 });
 
@@ -54,7 +60,7 @@ export const FinishedReadOnly = meta.story({
   }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(await page.findByRole('img', { name: /are allied/ }, { timeout: 30_000 })).toBeVisible();
+    await expect(await page.findByRole('img', { name: /are in an alliance/ }, { timeout: 30_000 })).toBeVisible();
     await openPanel(canvasElement, 'Alliances');
     await expect(await page.findByText('Offers you an alliance')).toBeVisible();
     await expect(

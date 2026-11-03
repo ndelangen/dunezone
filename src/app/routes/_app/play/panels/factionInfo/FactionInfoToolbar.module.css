@@ -1,0 +1,31 @@
+/*
+ * One row of icon actions between the header and the content: the way out to the faction page on the left, what the viewer can do about the seat on the right.
+ * It runs to the window's edges, taking back the body's padding, so its rules above and below span the whole window.
+ */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs);
+  min-width: 0;
+  margin-inline: calc(-1 * var(--window-body-pad-inline, 0px));
+  padding: var(--space-xs) var(--window-body-pad-inline, 0px);
+  border-block: 1px solid var(--edge);
+}
+
+/* A row with nothing in it takes no room, as for an observer at a game whose faction has no page. */
+.toolbar:not(:has(button, a, [role="img"])) {
+  display: none;
+}
+
+.edge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+/* Before the removal vote: no line, only the gap twice over, as the webapp's toolbar spaces its runs. */
+.gap {
+  flex: 0 0 auto;
+  width: var(--space-xs);
+}
