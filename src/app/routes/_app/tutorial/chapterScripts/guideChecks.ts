@@ -125,7 +125,7 @@ export const scrolled = (direction: 'in' | 'out') => ({
       }
       watch.from = furthest(watch.from ?? cameraDistance(view), cameraDistance(view));
       /* Counted in pixels as the camera counts it, whether the browser reports the turn in pixels, lines or pages. */
-      const pixels = wheelPixels(event.deltaY, event.deltaMode) * (direction === 'in' ? 1 : -1);
+      const pixels = wheelPixels(event.deltaY, event.deltaMode) * (direction === 'in' ? -1 : 1);
       if (pixels > 0) {
         watch.scrolled += pixels;
       }

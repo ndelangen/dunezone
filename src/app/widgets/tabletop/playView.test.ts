@@ -463,7 +463,7 @@ describe('close look', () => {
   const zoomIn = (turns: number) => {
     let zoom = NO_CAMERA_ZOOM;
     for (let turn = 0; turn < turns; turn++) {
-      zoom = cameraZoomAfterWheelAt(zoom, poseAt, spot, 100);
+      zoom = cameraZoomAfterWheelAt(zoom, poseAt, spot, -100);
     }
     return zoom;
   };
@@ -476,7 +476,7 @@ describe('close look', () => {
         const viewPoseAt = (tilt: number) => cameraPoseForCloseLook(view, aspectRatio, undefined, tilt);
         let zoom = NO_CAMERA_ZOOM;
         for (let turn = 0; turn < 40; turn++) {
-          zoom = cameraZoomAfterWheelAt(zoom, viewPoseAt, { ...spot, aspectRatio }, 100);
+          zoom = cameraZoomAfterWheelAt(zoom, viewPoseAt, { ...spot, aspectRatio }, -100);
         }
         const pose = zoomedCameraPose(viewPoseAt(cameraTiltForZoom(zoom)), zoom);
         const distance = new Vector3(...pose.position).distanceTo(new Vector3(...pose.target));
@@ -485,7 +485,7 @@ describe('close look', () => {
     }
   });
 
-  test('scrolling down only ever brings the board closer, keeping the point under the pointer', () => {
+  test('scrolling up only ever brings the board closer, keeping the point under the pointer', () => {
     const anchor = pointUnderSpot(NO_CAMERA_ZOOM);
     let distance = Infinity;
     for (let turns = 1; turns <= 6; turns++) {
@@ -499,10 +499,10 @@ describe('close look', () => {
     }
   });
 
-  test('scrolling back up returns to the view itself', () => {
+  test('scrolling back down returns to the view itself', () => {
     let zoom = zoomIn(5);
     for (let turn = 0; turn < 20; turn++) {
-      zoom = cameraZoomAfterWheelAt(zoom, poseAt, spot, -100);
+      zoom = cameraZoomAfterWheelAt(zoom, poseAt, spot, 100);
     }
     expect(zoom).toBe(NO_CAMERA_ZOOM);
   });
@@ -581,14 +581,14 @@ describe('close look', () => {
     }
   });
 
-  test("scrolling up at the view's own distance brings a slid look back to the view", () => {
+  test("scrolling down at the view's own distance brings a slid look back to the view", () => {
     const base = poseAt(0);
     let zoom = NO_CAMERA_ZOOM;
     for (let frame = 0; frame < 30; frame++) {
       zoom = cameraZoomAfterPanMotion(zoom, base, [16, 0], 1 / 60);
     }
     expect(zoom).not.toBe(NO_CAMERA_ZOOM);
-    expect(cameraZoomAfterWheelAt(zoom, poseAt, spot, -100)).toBe(NO_CAMERA_ZOOM);
+    expect(cameraZoomAfterWheelAt(zoom, poseAt, spot, 100)).toBe(NO_CAMERA_ZOOM);
   });
 
   test('a close look reaches the card wells and the bottom shelf, but never the empty corners beside them', () => {

@@ -155,7 +155,7 @@ function useFollowPointer(
       event.preventDefault();
       event.stopPropagation();
       const delta = Math.max(-1000, Math.min(1000, wheelPixels(event.deltaY, event.deltaMode)));
-      place(zoom.current * Math.exp(delta * 0.002));
+      place(zoom.current * Math.exp(-delta * 0.002));
     };
     let frame = 0;
     const onPointer = () => {

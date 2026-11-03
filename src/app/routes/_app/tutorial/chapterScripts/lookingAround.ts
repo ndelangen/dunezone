@@ -55,7 +55,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     task({
       id: 'zoom-in',
       task: 'Look closer at Arrakis',
-      detail: "Let's take a closer look! Scroll down over the board to move toward the spot under your pointer.",
+      detail: "Let's take a closer look! Scroll up over the board to move toward the spot under your pointer.",
       anchor: { kind: 'table', point: () => [0, 0, 0] },
       ...scrolled('in'),
     }),
@@ -69,7 +69,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     task({
       id: 'zoom-out',
       task: 'Step back',
-      detail: 'Scroll up over the board to move the camera back out.',
+      detail: 'Scroll down over the board to move the camera back out.',
       anchor: { kind: 'table', point: () => [0, 0, 0] },
       ...scrolled('out'),
     }),

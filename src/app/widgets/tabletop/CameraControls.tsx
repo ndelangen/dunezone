@@ -215,8 +215,8 @@ const NO_PAN_DIRECTION: readonly [number, number] = [0, 0];
 type PoseAt = { current: ((tilt: number) => CameraPose) | null };
 
 /*
- * A close look at the board, steered by the wheel while the camera is free: scrolling down moves in toward the point under the pointer,
- * turning toward top-down as it goes, and scrolling up backs out to the view's own distance and angle.
+ * A close look at the board, steered by the wheel while the camera is free: scrolling up moves in toward the point under the pointer,
+ * turning toward top-down as it goes, and scrolling down backs out to the view's own distance and angle.
  * The pan keys slide the look at every distance, the view's own too, and during a carry.
  * `poseAt` is the view's pose at a tilt.
  */

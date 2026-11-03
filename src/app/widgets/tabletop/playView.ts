@@ -486,7 +486,7 @@ const CAMERA_PAN_SPEED_UP_S = 0.05;
 const CAMERA_PAN_SLOW_DOWN_S = 0.22;
 /* Within this distance of the edge a close look may reach, sliding further out slows to a stop. */
 const CAMERA_PAN_EDGE_MARGIN = 1.2;
-/* Scroll distance, in pixels, that brings the camera e times closer. */
+/* Scroll distance, in pixels, that brings the camera e times closer; scrolling up moves in, as on a map (Norbert, 2026-11-03). */
 const CAMERA_ZOOM_SCROLL_PX = 420;
 /*
  * Where a close look may centre, so it never drifts off the table: the round table, the band across it that holds the side card wells,
@@ -551,7 +551,7 @@ function cameraZoomAfterWheel(
   deltaY: number,
   deltaMode = 0
 ): CameraZoom {
-  const step = Math.exp(-wheelPixels(deltaY, deltaMode) / CAMERA_ZOOM_SCROLL_PX);
+  const step = Math.exp(wheelPixels(deltaY, deltaMode) / CAMERA_ZOOM_SCROLL_PX);
   const scale = Math.max(CAMERA_ZOOM_MINIMUM_SCALE, Math.min(1, zoom.scale * step));
   if (scale >= 1) {
     return NO_CAMERA_ZOOM;
