@@ -234,6 +234,7 @@ export function validatePublisherDeployContract(config: JsonObject, environment:
         '/image/*',
         '/web',
         '/web/*',
+        '/vector/emblem/*',
         '/__play',
         '/__play/*',
         '/sitemap*',
