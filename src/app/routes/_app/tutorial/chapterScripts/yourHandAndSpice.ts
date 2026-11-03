@@ -56,6 +56,8 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
   };
   const faceUp = (piece: Piece) => piece.items.every((item) => item.faceUp);
   const ids = (list: Piece[]) => new Set(list.map((piece) => piece.id));
+  /* The cards already played when Play a card began, so Reveal your card can tell them from the one it asked for. */
+  const playedBefore = { ids: new Set<string>() };
   /* The card the arrow points at: the latest one still face down, or failing that the latest played. */
   const playedCard = () => {
     const all = played();
@@ -112,7 +114,10 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
         'Drag one of your Treachery cards from your hand onto a clear spot on the table, away from the decks and other cards.\n\nAnything you drag from your hand to the table lands face down, including cards. You choose when to reveal it.',
       anchor: { kind: 'page', element: element(HAND_CARD) },
       /* Only a card that lands during this task counts, so one dropped on a deck or set on the side-table does not. */
-      begin: () => ({ hand: cards().length, played: ids(played()) }),
+      begin: () => {
+        playedBefore.ids = ids(played());
+        return { hand: cards().length, played: playedBefore.ids };
+      },
       done: (start) => cards().length < start.hand && played().some((piece) => !start.played.has(piece.id)),
     }),
     task({
@@ -120,9 +125,19 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       task: 'Reveal your card',
       detail: 'To show everyone your card, hover over it and press {F} to turn it face up.',
       anchor: { kind: 'table', point: () => at(playedCard()) },
-      /* A card already face up when the task began does not count; one that came back under a new handle does. */
-      begin: () => ids(played().filter(faceUp)),
-      done: (start) => played().some((piece) => faceUp(piece) && !start.has(piece.id)),
+      /*
+       * A card revealed before Play a card began does not count until it is seen face down and turned up again;
+       * the card just played counts even if it was revealed in the pause after Play, and so does one back under a new handle.
+       */
+      begin: () => ({ earlier: ids(played().filter((piece) => playedBefore.ids.has(piece.id) && faceUp(piece))) }),
+      done: (start) =>
+        played().some((piece) => {
+          if (!faceUp(piece)) {
+            start.earlier.delete(piece.id);
+            return false;
+          }
+          return !start.earlier.has(piece.id);
+        }),
     }),
     task({
       id: 'withdraw',

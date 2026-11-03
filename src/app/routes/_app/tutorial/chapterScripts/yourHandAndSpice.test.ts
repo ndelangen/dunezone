@@ -133,3 +133,31 @@ test('with no Treachery deck on the left, nothing counts as a played card', () =
   snapshot.table.pieces.push({ ...card('token'), stackKey: undefined } as unknown as Piece);
   expect(play.done(start as never, view)).toBe(false);
 });
+
+test('a card revealed in the pause after Play counts, and an earlier one counts once turned down and up again', () => {
+  const { snapshot, task } = exercise();
+  snapshot.hand = [card('private-a'), card('private-b'), card('private-c')];
+  snapshot.hand.pop();
+  const early = card('public-early');
+  early.items[0]!.faceUp = true;
+  snapshot.table.pieces.push(early);
+  const play = task('play');
+  const start = play.begin(view);
+  snapshot.hand.pop();
+  const later = card('public-later');
+  snapshot.table.pieces.push(later);
+  expect(play.done(start as never, view)).toBe(true);
+  /* Revealed before the Reveal task begins. */
+  later.items[0]!.faceUp = true;
+  const reveal = task('reveal');
+  let revealStart = reveal.begin(view);
+  expect(reveal.done(revealStart as never, view)).toBe(true);
+  /* Only the earlier card left: it counts once seen face down and turned up again. */
+  snapshot.table.pieces = snapshot.table.pieces.filter((piece) => piece !== later);
+  revealStart = reveal.begin(view);
+  expect(reveal.done(revealStart as never, view)).toBe(false);
+  early.items[0]!.faceUp = false;
+  expect(reveal.done(revealStart as never, view)).toBe(false);
+  early.items[0]!.faceUp = true;
+  expect(reveal.done(revealStart as never, view)).toBe(true);
+});
