@@ -5212,6 +5212,7 @@
     "tags": ["angular", "diamond", "vector"],
     "subjects": ["symbols"],
     "credit": "found-online",
+    "creditDetail": "Likely from a Tabletop Simulator community faction mod.",
     "sourceHash": "bc9eed192c6c17222925a8fe61e1b5619d2c99bba2939c898d5ba58a08c94134"
   },
   "/vector/logo/hagal.svg": {
@@ -5219,6 +5220,7 @@
     "tags": ["flower", "vector"],
     "subjects": ["plants"],
     "credit": "found-online",
+    "creditDetail": "Likely from a Tabletop Simulator community faction mod.",
     "sourceHash": "e37084172f2323cb0d15f0fd3bbd8eb0fd2bb2ea6e785b2247d86f0977e0dbe6"
   },
   "/vector/logo/iduali.svg": {
@@ -5226,6 +5228,7 @@
     "tags": ["scorpion", "angular", "vector"],
     "subjects": ["creatures", "symbols"],
     "credit": "found-online",
+    "creditDetail": "Likely from a Tabletop Simulator community faction mod.",
     "sourceHash": "6552805a446cbac78eca1ca90e43bedc0dbba23e2cecf7c198e0aa8963f07312"
   },
   "/vector/logo/cinder-phoenix.svg": {
