@@ -13015,6 +13015,7 @@
     "tags": ["muaddib", "muad dib", "kangaroo mouse", "desert mouse", "Dune", "Arrakis", "vector"],
     "subjects": ["creatures"],
     "credit": "ai-decal-from-reference",
+    "creditDetail": "Reference: a kangaroo mouse still from Dune: Part Two (Legendary Pictures, 2024).",
     "sourceHash": "80216b8372a0d2864200946624a390d002d5deaa00dd12d499903c90c0e4d7f2"
   },
   "/vector/decal/muaddib-multicolor.svg": {
@@ -13022,6 +13023,7 @@
     "tags": ["muaddib", "muad dib", "kangaroo mouse", "desert mouse", "Dune", "Arrakis", "multicolor"],
     "subjects": ["creatures"],
     "credit": "ai-decal-from-reference",
+    "creditDetail": "Reference: a kangaroo mouse still from Dune: Part Two (Legendary Pictures, 2024).",
     "sourceHash": "05cef6e80b573674605d6b662cebd0cec9184efd56bdbce13d9fb7f18873f459"
   },
   "/vector/decal/sardaukar-knife.svg": {
@@ -13029,6 +13031,7 @@
     "tags": ["Sardaukar", "knife", "blade", "Dune", "weapon", "vector"],
     "subjects": ["weapons"],
     "credit": "ai-decal-from-reference",
+    "creditDetail": "Reference: a Sardaukar knife and sheath image on the Dune Wiki (Fandom).",
     "sourceHash": "8fe38a32f3fe93697223ba57a110d4ed3efcab5707a29cd2f2a308f226ef8fe1"
   },
   "/vector/decal/sardaukar-sheath.svg": {
@@ -13036,6 +13039,7 @@
     "tags": ["Sardaukar", "knife", "blade", "Dune", "sheath", "vector"],
     "subjects": ["weapons"],
     "credit": "ai-decal-from-reference",
+    "creditDetail": "Reference: a Sardaukar knife and sheath image on the Dune Wiki (Fandom).",
     "sourceHash": "21576f1a72a5b751902a2da6e6a11e1347177ac41fc6bda2d674fd5d6e1253f5"
   },
   "/vector/decal/water-of-life-ceremony.svg": {
@@ -13067,6 +13071,7 @@
     "tags": ["soldiers", "ascending", "flying", "helmets", "packs", "Dune Part Two", "vector"],
     "subjects": ["people", "weapons"],
     "credit": "ai-decal-from-reference",
+    "creditDetail": "Reference: a still from Dune: Part Two (Legendary Pictures, 2024).",
     "sourceHash": "2cf32a4fe8fa97fab5fee09e0e99f94f3c6d133ddf8dc3e8f2251441a843d033"
   },
   "/vector/decal/ornate-spear.svg": {
@@ -13074,6 +13079,7 @@
     "tags": ["spear", "staff", "polearm", "blade", "stepped neck", "vector"],
     "subjects": ["weapons"],
     "credit": "ai-decal-from-reference",
+    "creditDetail": "Reference: a prop by 3D Printed Props.",
     "sourceHash": "e441bf3a7ed43c22218578bbe12a7c51f2c46aada0c93970815894b5986bbfd6"
   },
   "/vector/decal/box-and-needle.svg": {
@@ -13081,6 +13087,7 @@
     "tags": ["box", "needle", "cavity", "framed panel", "vector"],
     "subjects": ["machines", "weapons"],
     "credit": "ai-decal-from-reference",
+    "creditDetail": "Reference: a box and needle prop by 3D Printed Props.",
     "sourceHash": "927135a200188481a6059a5132ccd8447f59879cd06321a97ff5e37c8e6d69f4"
   },
   "/vector/decal/thumper-part-two.svg": {
@@ -13088,6 +13095,7 @@
     "tags": ["thumper", "Dune Part Two", "piston", "cylinder", "vents", "vector"],
     "subjects": ["machines"],
     "credit": "ai-decal-from-reference",
+    "creditDetail": "Reference: a still from Dune: Part Two (Legendary Pictures, 2024).",
     "sourceHash": "fcf32785d5287d3ea59a52b269690c5ebbea6c6fa6b9275203099b2248ee9a14"
   },
   "/vector/decal/circular-throne-room.svg": {
@@ -13095,6 +13103,7 @@
     "tags": ["throne room", "circular", "arches", "stairs", "palace", "vector"],
     "subjects": ["places"],
     "credit": "ai-decal-from-reference",
+    "creditDetail": "Reference: a photo published by Secret Los Angeles.",
     "sourceHash": "13287a92a6f2f222b7f496831006ab4aa011d60855f0b3fd80a556bcf4fe84a3"
   },
   "/vector/decal/circular-throne-room-multicolor.svg": {
@@ -13102,6 +13111,7 @@
     "tags": ["throne room", "circular", "arches", "stairs", "palace", "navy", "cream", "multicolor", "vector"],
     "subjects": ["places"],
     "credit": "ai-decal-from-reference",
+    "creditDetail": "Reference: a photo published by Secret Los Angeles.",
     "sourceHash": "3c38a778cb2ac0dc6291f33929b820f4038079f9de0b8ee9114a6fad224b82b4"
   },
   "/vector/troop/ogre-club-brute.svg": {
@@ -13109,6 +13119,7 @@
     "tags": ["ogre", "brute", "club", "spiked", "pointed ears", "silhouette"],
     "subjects": ["creatures", "weapons"],
     "credit": "ai-troop",
+    "creditDetail": "Reference: a miniature on MyMiniFactory.",
     "sourceHash": "760f098ffff8cf3c6d6d88b873e47fd5a864a040c69b504ef3e01e017092d61e"
   },
   "/vector/troop/caped-warrior.svg": {
@@ -13116,6 +13127,7 @@
     "tags": ["caped", "warrior", "cape", "fists", "high collar", "boots", "silhouette"],
     "subjects": ["people"],
     "credit": "ai-troop",
+    "creditDetail": "Reference: a drawing of a character from The Boys, on Sketchok.",
     "sourceHash": "5e925e81e88b1e77e5444d4115a31a043bca2be51aa0a2f8fd1a403c2f146d6a"
   },
   "/vector/troop/sandworm-rider.svg": {
@@ -13123,6 +13135,7 @@
     "tags": ["sandworm", "rider", "maker hooks", "back view", "scarf", "stillsuit", "silhouette"],
     "subjects": ["people", "weapons"],
     "credit": "ai-troop",
+    "creditDetail": "Reference: a still from Dune: Part Two (Legendary Pictures, 2024).",
     "sourceHash": "83a1945de68567ea67c6eece224b9afa6f16bf404f73cc6761d16df8487db4b6"
   },
   "/vector/troop/ogre-pirate-hammer.svg": {
@@ -13130,6 +13143,7 @@
     "tags": ["ogre", "pirate", "hammer", "bandanna", "loop", "silhouette"],
     "subjects": ["creatures", "weapons"],
     "credit": "ai-troop",
+    "creditDetail": "Reference: an ogre pirate miniature by Wargame Exclusive.",
     "sourceHash": "fe18ddfa0f152ec6a3546ebe143daeafedeb6d4524f7afc6c077d144a62bb611"
   },
   "/vector/troop/ogre-pirate-captain.svg": {
@@ -13137,6 +13151,7 @@
     "tags": ["ogre", "pirate", "captain", "sword", "saber", "hook", "feather", "silhouette"],
     "subjects": ["creatures", "weapons"],
     "credit": "ai-troop",
+    "creditDetail": "Reference: an ogre pirate miniature by Wargame Exclusive.",
     "sourceHash": "3746b03327781e64d7e6a1a8787afa7e93bc44f4f0259fd7e729023689d0dba3"
   },
   "/vector/troop/ogre-pirate-blades.svg": {
@@ -13144,6 +13159,7 @@
     "tags": ["ogre", "pirate", "sword", "axe", "blades", "bandanna", "silhouette"],
     "subjects": ["creatures", "weapons"],
     "credit": "ai-troop",
+    "creditDetail": "Reference: an ogre pirate miniature by Wargame Exclusive.",
     "sourceHash": "f93a27aac6480fdd2c51b7d467da331b053fbf7744d1e0bae4be71fbe163d9f7"
   },
   "/vector/troop/ogre-pirate-gunner.svg": {
@@ -13151,6 +13167,7 @@
     "tags": ["ogre", "pirate", "gunner", "gun", "staff", "ring", "silhouette"],
     "subjects": ["creatures", "weapons"],
     "credit": "ai-troop",
+    "creditDetail": "Reference: an ogre pirate miniature by Wargame Exclusive.",
     "sourceHash": "c8f43d34587705e7a9764a7a917aa6b10205abd77d69cd514ce182f23e9c7415"
   },
   "/vector/troop/ogre-pirate-mace.svg": {
@@ -13158,6 +13175,7 @@
     "tags": ["ogre", "pirate", "mace", "peg leg", "bandanna", "silhouette"],
     "subjects": ["creatures", "weapons"],
     "credit": "ai-troop",
+    "creditDetail": "Reference: an ogre pirate miniature by Wargame Exclusive.",
     "sourceHash": "abadfb81edbbd0430ed607c9485cdb650200b7ee1d1610cb5bf3accd1bfccd16"
   },
   "/vector/troop/ogre-polearm.svg": {
@@ -13165,6 +13183,7 @@
     "tags": ["ogre", "polearm", "spear", "overhead", "crouch", "silhouette"],
     "subjects": ["creatures", "weapons"],
     "credit": "ai-troop",
+    "creditDetail": "Reference: a clipart image from clipart-library.com.",
     "sourceHash": "1a41e9d971009d119310398ccd6535c637227334d55419dd9d62ee1454902abc"
   },
   "/vector/troop/saluting-shield-bearer.svg": {
@@ -13172,6 +13191,7 @@
     "tags": ["saluting", "shield", "bearer", "Soldier Boy", "wide stance", "silhouette"],
     "subjects": ["people", "weapons"],
     "credit": "ai-troop",
+    "creditDetail": "Reference: a Soldier Boy (The Boys) wallpaper from wallpapers.com.",
     "sourceHash": "4e34c3cb5af11e1bfdee64432dd4c90ecabf6277f87c6484f8296b52ff3c1fa8"
   },
   "/vector/troop/tower-headed-robot.svg": {
@@ -13179,6 +13199,7 @@
     "tags": ["tower headed", "robot", "sensor", "claw", "building blocks", "automaton", "silhouette"],
     "subjects": ["machines"],
     "credit": "ai-troop",
+    "creditDetail": "Reference: a product photo of a building-block robot toy.",
     "sourceHash": "2d9db67fdcac86d6e97c9a24769c5e85f0087afc11ae9d84431f74efded9332c"
   },
   "/vector/troop/camera-raygun-robot.svg": {
@@ -13186,6 +13207,7 @@
     "tags": ["camera", "webcam", "raygun", "ray gun", "robot", "pincer", "lens", "silhouette"],
     "subjects": ["machines", "weapons"],
     "credit": "ai-troop",
+    "creditDetail": "Reference: a stock photo from Alamy.",
     "sourceHash": "e948303ba50f9dd4477487f1ed02190f7151ea829134121a84515be24a2f5a71"
   },
   "/vector/troop/rear-view-battle-mech.svg": {
@@ -13193,6 +13215,7 @@
     "tags": ["rear view", "battle mech", "robot", "rifle", "back armor", "silhouette"],
     "subjects": ["machines", "weapons"],
     "credit": "ai-troop",
+    "creditDetail": "Reference: a miniature on MyMiniFactory.",
     "sourceHash": "b9aec71b75844c5114ef057faa48abbbeecfce90d14cab17a4ff206b8bcd9bbf"
   },
   "/vector/troop/cannon-crawler.svg": {
