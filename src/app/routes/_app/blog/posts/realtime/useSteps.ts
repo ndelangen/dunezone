@@ -29,6 +29,39 @@ function shownSteps({
   return seen ? step : 0;
 }
 
+type StepTimer = {
+  from: number;
+  total: number;
+  interval: number;
+  loop: boolean;
+  pause: number;
+  show: (step: number) => void;
+};
+
+/** Climbs from `from` to `total`, one step per interval; a loop holds the last step for `pause` intervals and starts over. Returns the cancel. */
+function runSteps({ from, total, interval, loop, pause, show }: StepTimer) {
+  let current = from;
+  let timer: ReturnType<typeof setTimeout>;
+  const next = () => {
+    if (current < total) {
+      current += 1;
+      return current === total && loop ? interval * pause : interval;
+    }
+    current = 0;
+    return interval;
+  };
+  const tick = () => {
+    if (current >= total && !loop) {
+      return;
+    }
+    const wait = next();
+    show(current);
+    timer = setTimeout(tick, wait);
+  };
+  timer = setTimeout(tick, interval);
+  return () => clearTimeout(timer);
+}
+
 export function useSteps(
   rootRef: RefObject<HTMLElement | null>,
   total: number,
@@ -48,26 +81,17 @@ export function useSteps(
     if (!ticking) {
       return;
     }
-    let current = loop ? position.current : 0;
-    let timer: ReturnType<typeof setTimeout>;
-    const show = (next: number) => {
-      current = next;
-      position.current = next;
-      setStep(next);
-    };
-    const tick = () => {
-      if (current < total) {
-        show(current + 1);
-        timer = setTimeout(tick, current === total && loop ? interval * pause : interval);
-        return;
-      }
-      if (loop) {
-        show(0);
-        timer = setTimeout(tick, interval);
-      }
-    };
-    timer = setTimeout(tick, interval);
-    return () => clearTimeout(timer);
+    return runSteps({
+      from: loop ? position.current : 0,
+      total,
+      interval,
+      loop,
+      pause,
+      show: (next) => {
+        position.current = next;
+        setStep(next);
+      },
+    });
     /* `run` is a replay counter: bumping it restarts the timer from the first step. */
   }, [ticking, total, interval, loop, pause, run]);
 

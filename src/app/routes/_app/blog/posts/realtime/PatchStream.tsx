@@ -116,7 +116,7 @@ function packetClasses(packet: Packet, state: 'flying' | 'lost') {
   );
 }
 
-function PacketCard({ packet, state }: { packet: Packet; state: 'waiting' | 'flying' | 'landed' | 'lost' }) {
+function PacketCard({ packet, state }: { packet: Packet; state: PacketState }) {
   if (state === 'landed' || state === 'waiting') {
     return null;
   }
@@ -129,6 +129,96 @@ function PacketCard({ packet, state }: { packet: Packet; state: 'waiting' | 'fly
   );
 }
 
+type PacketState = 'waiting' | 'flying' | 'landed' | 'lost';
+
+/** Where one packet stands at this step: still to leave, in the air, arrived, or lost on the way. */
+function packetState(index: number, flying: number | null, sent: number, packet: Packet): PacketState {
+  if (index === flying) {
+    return 'flying';
+  }
+  if (index >= sent) {
+    return 'waiting';
+  }
+  return packet.lost ? 'lost' : 'landed';
+}
+
+const isGap = (packet: Packet) => Boolean(packet.note?.startsWith('gap'));
+
+/** What the figure shows at one step: the packet in the air, what the browser holds and where each end stands. */
+function streamAt(step: number) {
+  const sent = sentBy(step);
+  const flying = step >= 1 && step <= PACKETS.length ? step - 1 : null;
+  const arrived = flying === null ? sent : sent - 1;
+  /* What the browser holds: every packet that has finished its flight, the lost one excepted. */
+  const landed = PACKETS.slice(0, Math.max(0, arrived)).filter((packet) => !packet.lost);
+  return {
+    sent,
+    flying,
+    held: new Set(landed),
+    revision: landed.at(-1)?.revision ?? 41,
+    roomRevision: sent === 0 ? 41 : ROOM_AT[sent - 1]!,
+    /* From the gap until the full view, the browser holds its commands. */
+    holding: landed.some(isGap) && !landed.some((packet) => packet.kind === 'full'),
+  };
+}
+
+/** The browser's log: every packet it will ever hold, the ones still to come kept invisible, so the box never changes height during the loop. */
+function BrowserLog({ held }: { held: ReadonlySet<Packet> }) {
+  return (
+    <ol className={styles.log}>
+      {PACKETS.filter((packet) => !packet.lost).map((packet) => (
+        <li
+          key={packet.label}
+          className={clsx(
+            styles.logEntry,
+            isGap(packet) && styles.logGap,
+            packet.kind === 'full' && styles.logFull,
+            !held.has(packet) && styles.logPending
+          )}
+        >
+          <span>{packet.kind === 'sync' ? 'sent sync' : packet.label}</span>
+          {packet.note ? <span className={styles.logNote}>{packet.note}</span> : null}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function BarShape({ bar, bytes }: { bar: Bar; bytes: number }) {
+  return (
+    <span className={styles.bar} style={{ '--share': bytes / FULL_VIEW } as CSSProperties}>
+      <span className={styles.fill}>
+        {bar.trimmed ? (
+          <span className={styles.trim} style={{ '--share': bar.trimmed / bytes } as CSSProperties} />
+        ) : null}
+      </span>
+      {bar.waste ? (
+        <span className={styles.waste} style={{ '--share': bar.waste.share } as CSSProperties}>
+          <span className={styles.wasteFill} />
+          <span className={styles.wasteLabel}>{bar.waste.label}</span>
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
+/** The sizes measured in September, each as a share of the first full view. */
+function SizeChart() {
+  return (
+    <dl className={styles.chart}>
+      {BARS.map((bar, index) => (
+        <div key={bar.label} className={styles.barRow} style={{ '--row': index } as CSSProperties}>
+          <dt className={styles.barLabel}>{bar.label}</dt>
+          <dd className={styles.barCell}>
+            {bar.bytes === null ? <span className={styles.barUnknown} /> : <BarShape bar={bar} bytes={bar.bytes} />}
+            <span className={styles.value}>{bar.value}</span>
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
 export function PatchStream() {
   const rootRef = useRef<HTMLDivElement>(null);
   const { step, armed, seen } = useSteps(rootRef, TOTAL, {
@@ -136,19 +226,7 @@ export function PatchStream() {
     loop: true,
     pause: 4,
   });
-  const flying = step >= 1 && step <= PACKETS.length ? step - 1 : null;
-  /* What the browser holds: every packet that has finished its flight, the lost one excepted. */
-  const landed = PACKETS.slice(0, Math.max(0, sentBy(step) - (flying === null ? 0 : 1))).filter(
-    (packet) => !packet.lost
-  );
-  const last = landed.at(-1);
-  /* The log lists every packet the browser will ever hold, the ones still to come kept invisible, so the box never changes height during the loop. */
-  const held = new Set(landed);
-  const revision = last?.revision ?? 41;
-  const roomRevision = sentBy(step) === 0 ? 41 : ROOM_AT[sentBy(step) - 1]!;
-  /* From the gap until the full view, the browser holds its commands. */
-  const holding =
-    landed.some((packet) => packet.note?.startsWith('gap')) && !landed.some((packet) => packet.kind === 'full');
+  const { sent, flying, held, revision, roomRevision, holding } = streamAt(step);
 
   return (
     <div
@@ -166,33 +244,16 @@ export function PatchStream() {
 
         <div className={styles.wire} aria-hidden="true">
           <span className={styles.line} />
-          {PACKETS.map((packet, index) => {
-            const state =
-              index === flying ? 'flying' : index < sentBy(step) ? (packet.lost ? 'lost' : 'landed') : 'waiting';
-            return <PacketCard key={packet.label} packet={packet} state={state} />;
-          })}
+          {PACKETS.map((packet, index) => (
+            <PacketCard key={packet.label} packet={packet} state={packetState(index, flying, sent, packet)} />
+          ))}
         </div>
 
         <div className={clsx(styles.box, styles.browser)}>
           <span className={styles.browserBar} />
           <span className={styles.boxLabel}>your browser</span>
           <span className={styles.revision}>at {revision}</span>
-          <ol className={styles.log}>
-            {PACKETS.filter((packet) => !packet.lost).map((packet) => (
-              <li
-                key={packet.label}
-                className={clsx(
-                  styles.logEntry,
-                  packet.note?.startsWith('gap') && styles.logGap,
-                  packet.kind === 'full' && styles.logFull,
-                  !held.has(packet) && styles.logPending
-                )}
-              >
-                <span>{packet.kind === 'sync' ? 'sent sync' : packet.label}</span>
-                {packet.note ? <span className={styles.logNote}>{packet.note}</span> : null}
-              </li>
-            ))}
-          </ol>
+          <BrowserLog held={held} />
           {/* Both notes are laid out in the same place, the other invisible, so the box keeps one height whichever is showing. */}
           <span className={styles.boxNotes}>
             <span className={clsx(styles.boxNote, holding && styles.noteHidden)}>applies each patch to the last</span>
@@ -203,40 +264,7 @@ export function PatchStream() {
         </div>
       </div>
 
-      <dl className={styles.chart}>
-        {BARS.map((bar, index) => (
-          <div key={bar.label} className={styles.barRow} style={{ '--row': index } as CSSProperties}>
-            <dt className={styles.barLabel}>{bar.label}</dt>
-            <dd className={styles.barCell}>
-              {bar.bytes === null ? (
-                <span className={styles.barUnknown} />
-              ) : (
-                <span className={styles.bar} style={{ '--share': bar.bytes / FULL_VIEW } as CSSProperties}>
-                  <span className={styles.fill}>
-                    {bar.trimmed ? (
-                      <span
-                        className={styles.trim}
-                        style={
-                          {
-                            '--share': bar.trimmed / bar.bytes,
-                          } as CSSProperties
-                        }
-                      />
-                    ) : null}
-                  </span>
-                  {bar.waste ? (
-                    <span className={styles.waste} style={{ '--share': bar.waste.share } as CSSProperties}>
-                      <span className={styles.wasteFill} />
-                      <span className={styles.wasteLabel}>{bar.waste.label}</span>
-                    </span>
-                  ) : null}
-                </span>
-              )}
-              <span className={styles.value}>{bar.value}</span>
-            </dd>
-          </div>
-        ))}
-      </dl>
+      <SizeChart />
     </div>
   );
 }
