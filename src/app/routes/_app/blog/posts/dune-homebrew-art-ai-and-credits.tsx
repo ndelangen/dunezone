@@ -5,7 +5,8 @@ import { BulletList, Figure, Lead, Paragraph, PostLink, WideFigure } from '../po
 import { AiLadder } from './aiart/AiLadder';
 import { HiversRow } from './aiart/HiversRow';
 
-const THALER = 'https://ipwatchdog.com/2025/03/24/d-c-circuit-upholds-human-authorship-requirement-thaler-v-perlmutter/';
+const THALER =
+  'https://ipwatchdog.com/2025/03/24/d-c-circuit-upholds-human-authorship-requirement-thaler-v-perlmutter/';
 
 export default function Post() {
   return (
@@ -107,8 +108,9 @@ function WhatSection() {
         edition announcement, matched to the other Atreides leaders. It&rsquo;s still based on GF9&rsquo;s picture.
       </Paragraph>
       <Paragraph>
-        <strong>New subjects.</strong> The Hivers are a homebrew faction of insect-like aliens. Their designer drew
-        them, and together we brought those drawings into the GF9 look. The designs are theirs, and so is the copyright.
+        <strong>New subjects.</strong> The Hivers are a homebrew faction of insect-like aliens by Roxsy-Variant, who
+        drew them. Together we brought those drawings into the GF9 look. The designs are Roxsy-Variant&rsquo;s, and so
+        is the copyright.
       </Paragraph>
       <Paragraph>
         <strong>New marks.</strong> Emblems and decals for homebrew factions, designed here and traced into clean vector
@@ -154,8 +156,8 @@ function TrainingSection() {
         out if that was legal. I think that if the law says artists should be paid for it, they should be.
       </Paragraph>
       <Paragraph>
-        I&rsquo;ll await their judgement, but until then I will use the tool as it makes what I need. If you&rsquo;re
-        an artist and you see an image on Dune Zone that you recognize as your work, please get in touch. If you ask,
+        I&rsquo;ll await their judgement, but until then I will use the tool as it makes what I need. If you&rsquo;re an
+        artist and you see an image on Dune Zone that you recognize as your work, please get in touch. If you ask,
         I&rsquo;ll remove it or credit you properly (your choice).
       </Paragraph>
       <Paragraph>
@@ -170,11 +172,13 @@ function TrainingSection() {
 function CreditSection() {
   return (
     <Section title="So, whose work do we credit?">
-      <Paragraph>Someone asked me exactly this on a forum, and it&rsquo;s a fair question. Here&rsquo;s the answer:</Paragraph>
+      <Paragraph>
+        Someone asked me exactly this on a forum, and it&rsquo;s a fair question. Here&rsquo;s the answer:
+      </Paragraph>
       <BulletList>
         <li>
-          <strong>GF9&rsquo;s art</strong>, including restorations of it: Ilya Baranovsky, Solveig Reda and Lochen
-          Reda, published by Gale Force Nine.
+          <strong>GF9&rsquo;s art</strong>, including restorations of it: Ilya Baranovsky, Solveig Reda and Lochen Reda,
+          published by Gale Force Nine.
         </li>
         <li>
           <strong>New portraits in that style:</strong> AI-assisted, in Ilya&rsquo;s style, plus whoever came up with
@@ -220,8 +224,8 @@ function ArtistsSection() {
   return (
     <Section title="Artists, you're invited">
       <Paragraph>
-        The Hivers show how I&rsquo;d like this to work. The original artist made them, together we made them fit the
-        Dune look, and the artist still holds the copyright.
+        The Hivers show how I&rsquo;d like this to work. Roxsy-Variant made them, together we made them fit the Dune
+        look, and Roxsy-Variant still holds the copyright.
       </Paragraph>
       <Paragraph>
         If you draw, that&rsquo;s an open invitation. I&rsquo;ll add your artwork to Dune Zone with your name on it. If
@@ -231,7 +235,7 @@ function ArtistsSection() {
         One last thing. Whatever you think of AI, the person using it to build something is still a person. I&rsquo;d
         ask that we treat each other with kindness, even when we don&rsquo;t agree.
       </Paragraph>
-      <WideFigure caption="The Hivers: a homebrew faction drawn by its designer and brought into the GF9 look.">
+      <WideFigure caption="The Hivers, designed and drawn by Roxsy-Variant, brought into the GF9 look.">
         <HiversRow />
       </WideFigure>
     </Section>

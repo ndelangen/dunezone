@@ -36,7 +36,7 @@ const STEPS: readonly Step[] = [
   },
   {
     label: 'New subjects',
-    note: "A designer's sketch, brought into the GF9 look",
+    note: "Roxsy-Variant's sketch, brought into the GF9 look",
     art: (
       <Portrait
         imageKey="/image/leader/hivers/hiver-amber-pendant.png"
