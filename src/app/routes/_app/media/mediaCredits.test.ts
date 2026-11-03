@@ -5,6 +5,7 @@ import {
   isCreditId,
   mediaCreditText,
 } from '@shared/media/credits';
+import creditIndex from '@shared/media/credits.generated.json';
 import { describe, expect, test } from 'vite-plus/test';
 
 import mediaIndex from './media-index.json';
@@ -24,6 +25,33 @@ describe('media credits', () => {
   test('the picker index matches the reviewed media index', () => {
     for (const [path, { credit, creditDetail }] of Object.entries(records)) {
       expect(mediaCreditText(path), path).toBe(creditText(credits[credit]!, creditDetail));
+    }
+  });
+
+  test('the picker index holds no files that left the media index', () => {
+    const indexed = Object.entries(creditIndex.files).flatMap(([, folders]) =>
+      Object.entries(folders).flatMap(([folder, names]) => names.map((name) => `${folder}${name}`))
+    );
+    expect(indexed.filter((path) => !Object.hasOwn(records, path))).toEqual([]);
+    expect(Object.keys(creditIndex.details).filter((path) => !Object.hasOwn(records, path))).toEqual([]);
+  });
+
+  test('credits use only the known fields and roles', () => {
+    const fields = new Set(['method', 'artist', 'artistRole', 'source', 'style', 'by']);
+    for (const [id, credit] of Object.entries(credits)) {
+      expect(
+        Object.keys(credit).filter((field) => !fields.has(field)),
+        id
+      ).toEqual([]);
+      expect([undefined, 'art', 'design'], id).toContain(credit.artistRole);
+    }
+  });
+
+  test('every credit detail is a complete sentence', () => {
+    for (const [path, { creditDetail }] of Object.entries(records)) {
+      if (creditDetail) {
+        expect(creditDetail, path).toMatch(/^[A-Z].*\.$/);
+      }
     }
   });
 

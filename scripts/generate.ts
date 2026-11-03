@@ -9,6 +9,8 @@ import { Box2 } from 'three';
 import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader.js';
 
 import rasterLock from '../media/raster.lock.json';
+import { compareCodeUnits } from '../src/shared/compareText';
+import creditDefinitions from '../src/shared/media/credits.json';
 import stockAssetCollections from '../src/shared/stockAssetCollections.json';
 import { normalizeSvg } from '../src/shared/vectorNormalize';
 import { VECTOR_ARTWORK_ALIASES } from '../src/shared/vectorRules';
@@ -157,7 +159,10 @@ await Bun.write(join(mediaDirectory, 'mediaSearchIndex.generated.json'), searchI
 /* Pickers credit stock artwork without loading the search index, so paths are grouped by credit and folder. */
 const creditFiles: Record<string, Record<string, string[]>> = {};
 const creditDetails: Record<string, string> = {};
-for (const [key, { credit, creditDetail }] of Object.entries(mediaIndex).sort(([a], [b]) => a.localeCompare(b))) {
+for (const [key, { credit, creditDetail }] of Object.entries(mediaIndex).sort(([a], [b]) => compareCodeUnits(a, b))) {
+  if (!Object.hasOwn(creditDefinitions, credit)) {
+    throw new Error(`${key} names credit "${credit}", which src/shared/media/credits.json does not define`);
+  }
   const folder = key.slice(0, key.lastIndexOf('/') + 1);
   ((creditFiles[credit] ??= {})[folder] ??= []).push(key.slice(folder.length));
   if (creditDetail) {

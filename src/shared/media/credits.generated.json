@@ -1950,8 +1950,8 @@
         "city.svg",
         "collection_disc.svg",
         "collection_standalone.svg",
-        "combat_disc.svg",
         "combat.svg",
+        "combat_disc.svg",
         "diamond.svg",
         "disc.svg",
         "down.svg",
@@ -1976,8 +1976,8 @@
         "ornithopter.svg",
         "poison.svg",
         "projectile.svg",
-        "revival_standalone.svg",
         "revival.svg",
+        "revival_standalone.svg",
         "seitch.svg",
         "shai-hulud.svg",
         "shield.svg",
@@ -2011,29 +2011,6 @@
         "faction-complexity-2.svg",
         "faction-complexity-3.svg",
         "faction-complexity-4.svg"
-      ]
-    },
-    "gf9-troop": {
-      "/vector/troop_modifier/": ["star-left-red.svg", "star-left.svg", "star-right-red.svg", "star-right.svg"],
-      "/vector/troop/": [
-        "atreides.svg",
-        "bene-gesserit.svg",
-        "bene-tleilaxu.svg",
-        "choam.svg",
-        "cymecs.svg",
-        "ecaz.svg",
-        "emperor.svg",
-        "fat.svg",
-        "fremen.svg",
-        "guild.svg",
-        "harkonnen.svg",
-        "iduali.svg",
-        "ixian.svg",
-        "landsraad.svg",
-        "moritani.svg",
-        "pewpew.svg",
-        "richese.svg",
-        "smuggler.svg"
       ]
     },
     "ai-troop": {
@@ -2200,6 +2177,29 @@
         "zane.svg",
         "zora.svg"
       ]
+    },
+    "gf9-troop": {
+      "/vector/troop/": [
+        "atreides.svg",
+        "bene-gesserit.svg",
+        "bene-tleilaxu.svg",
+        "choam.svg",
+        "cymecs.svg",
+        "ecaz.svg",
+        "emperor.svg",
+        "fat.svg",
+        "fremen.svg",
+        "guild.svg",
+        "harkonnen.svg",
+        "iduali.svg",
+        "ixian.svg",
+        "landsraad.svg",
+        "moritani.svg",
+        "pewpew.svg",
+        "richese.svg",
+        "smuggler.svg"
+      ],
+      "/vector/troop_modifier/": ["star-left-red.svg", "star-left.svg", "star-right-red.svg", "star-right.svg"]
     },
     "blog-picture": {
       "/web/blog/anatomy-of-a-dune-faction-atreides/": ["atreides-table-spread.jpg"],

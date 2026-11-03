@@ -34,10 +34,9 @@ export type CreditId = keyof typeof credits;
 
 /** The JSON is checked against this shape by the credits test. */
 export const creditDefinitions = credits as Record<string, MediaCredit>;
-const definitions = creditDefinitions;
 
 export function isCreditId(id: string): id is CreditId {
-  return Object.hasOwn(definitions, id);
+  return Object.hasOwn(creditDefinitions, id);
 }
 
 function artistPhrase({ artist, artistRole }: MediaCredit, start = true) {
@@ -99,5 +98,5 @@ const details: Record<string, string> = creditIndex.details;
 /** The credit line for a stock file, or undefined when the path is not stock artwork. */
 export function mediaCreditText(path: string): string | undefined {
   const id = creditByPath.get(path);
-  return id ? creditText(definitions[id]!, details[path]) : undefined;
+  return id ? creditText(creditDefinitions[id]!, details[path]) : undefined;
 }
