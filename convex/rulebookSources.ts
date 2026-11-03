@@ -3,7 +3,7 @@ import { v } from 'convex/values';
 
 import { factionMemberPublicationId } from '../src/shared/asset-publishing/componentPublication';
 import { publishedHref } from '../src/shared/asset-publishing/publicationTargets';
-import { CanonicalFactionStoredObject } from '../src/shared/factions/schema';
+import { StoredFactionSchema } from '../src/shared/factions/schema';
 import { rulebookResolvedSourceSchema } from '../src/shared/rulebooks/sources';
 import { publicQuery } from './functions';
 import { resolveRulebookTroopSource, rulebookTroopReferences } from './lib/rulebookTroopSources';
@@ -25,7 +25,7 @@ export const factionMembers = publicQuery({
     if (!faction || faction.is_deleted) {
       return null;
     }
-    const parsed = CanonicalFactionStoredObject.safeParse(faction.data);
+    const parsed = StoredFactionSchema.safeParse(faction.data);
     if (!parsed.success) {
       return null;
     }
@@ -73,7 +73,7 @@ export const factionTroops = publicQuery({
     if (!faction || faction.is_deleted) {
       return null;
     }
-    const parsed = CanonicalFactionStoredObject.safeParse(faction.data);
+    const parsed = StoredFactionSchema.safeParse(faction.data);
     if (!parsed.success) {
       return null;
     }

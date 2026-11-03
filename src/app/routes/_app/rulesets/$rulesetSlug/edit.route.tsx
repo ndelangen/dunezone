@@ -738,7 +738,7 @@ function RulesetFactions({
                           <FactionLink
                             slug={faction.slug}
                             name={faction.name}
-                            logo={faction.logo}
+                            emblem={faction.emblem}
                             background={faction.background}
                             style={{ flex: 1, minWidth: 0 }}
                           />

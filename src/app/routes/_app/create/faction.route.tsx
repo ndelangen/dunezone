@@ -27,7 +27,7 @@ export const Route = createFileRoute('/_app/create/faction')({
       kind: 'Tutorial',
       pathname: '/create/faction',
       description:
-        'An interactive tutorial for making your own homebrew Dune faction in the Dune Zone faction creator: name, logo, background, leaders, troops, alliance and rules, then its faction sheet. Nothing is saved, so try anything.',
+        'An interactive tutorial for making your own homebrew Dune faction in the Dune Zone faction creator: name, emblem, background, leaders, troops, alliance and rules, then its faction sheet. Nothing is saved, so try anything.',
       social: { kind: 'Tutorial', shape: 'portrait' },
       trail: [{ name: 'Learn to create', pathname: '/create' }],
     }),

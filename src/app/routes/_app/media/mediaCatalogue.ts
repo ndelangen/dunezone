@@ -4,7 +4,7 @@ import {
   GENERIC,
   ICON,
   LEADERS,
-  LOGO,
+  EMBLEM,
   PLANET,
   TEXTURE,
   TROOP,
@@ -25,6 +25,8 @@ export interface MediaEntry {
   subjects: readonly string[];
   glyphPreview: boolean;
   kind: MediaKind;
+  /** Who made the artwork and how this copy was made. */
+  credit?: string;
 }
 
 const indexedPaths = (prefix: string) => Object.keys(metadata).filter((path) => path.startsWith(prefix));
@@ -32,7 +34,7 @@ const indexedPaths = (prefix: string) => Object.keys(metadata).filter((path) => 
 const assetsByKind: Record<MediaKind, readonly string[]> = {
   decal: DECAL.options,
   generic: GENERIC.options,
-  logo: LOGO.options,
+  emblem: EMBLEM.options,
   icon: ICON.options,
   troop: TROOP.options,
   troop_modifier: TROOP_MODIFIER.options,

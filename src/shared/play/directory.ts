@@ -91,7 +91,7 @@ export const playLobbyEntrySchema = z.object({
         .object({
           name: z.string(),
           color: z.string(),
-          token: z.object({ logo: CanonicalFactionStoredObject.shape.logo, background: Background }).nullable(),
+          token: z.object({ emblem: CanonicalFactionStoredObject.shape.emblem, background: Background }).nullable(),
           /* One of the declared result's winners. */
           won: z.boolean(),
         })

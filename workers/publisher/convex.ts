@@ -4,7 +4,6 @@ import type { ComponentDeliveryResolution } from '../../src/shared/asset-publish
 import { parseTakeWorkResponse } from '../../src/shared/asset-publishing/publication';
 import type { TakeWorkResult } from '../../src/shared/asset-publishing/publication';
 import { publisherErrorMessage, publisherFailureFields } from '../../src/shared/asset-publishing/publisher-diagnostics';
-import { readRenamedEmblems } from '../../src/shared/renamedEmblem';
 import { resolveRulebookAnnotatedIllustrationResponseSchema } from '../../src/shared/rulebooks/annotatedIllustration';
 import type {
   RulebookAnnotatedIllustrationIdentity,
@@ -188,14 +187,11 @@ export class ConvexPublisherClient {
     deadlineAt?: number,
     maximumResponseBytes?: number
   ): Promise<unknown> {
-    /* Answers read under this release's names, ahead of the emblem rename (see `readRenamedEmblems`). */
-    return readRenamedEmblems(
-      await postJson(`${this.options.executorBaseUrl}/${operation}`, this.options.executorToken, body, {
-        deadlineAt,
-        fetcher: this.options.fetcher,
-        maximumResponseBytes,
-        now: this.options.now,
-      })
-    );
+    return await postJson(`${this.options.executorBaseUrl}/${operation}`, this.options.executorToken, body, {
+      deadlineAt,
+      fetcher: this.options.fetcher,
+      maximumResponseBytes,
+      now: this.options.now,
+    });
   }
 }

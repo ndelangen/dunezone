@@ -42,7 +42,7 @@ describe('resolveAsset', () => {
   });
 
   test('passes vectors and unknown keys through unchanged', () => {
-    expect(resolveAsset('/vector/logo/atreides.svg', 'large')).toBe('/vector/logo/atreides.svg');
+    expect(resolveAsset('/vector/emblem/atreides.svg', 'large')).toBe('/vector/emblem/atreides.svg');
     expect(resolveAsset('/web/logo.svg', 'large')).toBe('/web/logo.svg');
     expect(resolveAsset('/somewhere/else.txt', 'large')).toBe('/somewhere/else.txt');
   });

@@ -79,7 +79,7 @@ This table distinguishes reading from runtime testing. It covers the direct reso
 
 ## Artwork and stock provenance
 
-Faction rules were authored from GF9 sources. Existing Dune Zone illustration IDs were reused from checked-in faction fixtures; those fixtures supplied artwork references, not Dreamrules mechanics. The assembler uses existing logos, textures and illustrations. `portrait-provenance.json` records the anonymous existing leader illustration used to represent Count Ilban Richese and Ur-Director Malina Aru; these are not official portraits of those characters.
+Faction rules were authored from GF9 sources. Existing Dune Zone illustration IDs were reused from checked-in faction fixtures; those fixtures supplied artwork references, not Dreamrules mechanics. The assembler uses existing emblems, textures and illustrations. `portrait-provenance.json` records the anonymous existing leader illustration used to represent Count Ilban Richese and Ur-Director Malina Aru; these are not official portraits of those characters.
 
 `assets-source-manifest.json` records source locations and SHA-256 fingerprints for the curated assets. `asset-review.json` records the independent 235-item content review, printed Homeworld face comparisons, corrected copy, inventory checks and data-hash checks. Generated faction outputs supply force tokens, leaders, traitors, Alliance Cards and shields; explicit Prediction Cards and the shared Duke Vidal token fill the component gaps documented there.
 

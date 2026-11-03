@@ -1,3 +1,4 @@
+import { mediaCreditText } from '@shared/media/credits';
 import stockAssetCollections from '@shared/stockAssetCollections.json';
 import { canonicalVectorArtwork } from '@shared/vectorRules';
 
@@ -22,7 +23,7 @@ const assetNames: Record<string, string> = {
 };
 
 const vectorCategories: Record<string, string> = {
-  logo: 'Emblems',
+  emblem: 'Emblems',
   generic: 'General symbols',
   decal: 'Decals',
   icon: 'Game icons',
@@ -72,6 +73,7 @@ export function stockAssetOptions(values: readonly string[]) {
         label: assetNames[value] ?? words(name),
         collection: group,
         keywords: `${group} ${collection?.keywords ?? ''} ${value}`,
+        credit: mediaCreditText(value),
       };
     })
     .sort((a, b) => {

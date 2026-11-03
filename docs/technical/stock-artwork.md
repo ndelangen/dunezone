@@ -13,8 +13,8 @@ uncurated vectors by their purpose and subject.
 
 ## Adding portraits or emblems
 
-1. Put the source artwork in `media/image/leader/<source>/` or `media/vector/logo/`.
-2. Add its complete `/image/leader/...` or `/vector/logo/...` key to one collection in
+1. Put the source artwork in `media/image/leader/<source>/` or `media/vector/emblem/`.
+2. Add its complete `/image/leader/...` or `/vector/emblem/...` key to one collection in
    `stockAssetCollections.json`. Reuse the collection for matching artwork; create one for a new set.
 3. Give a new set a descriptive label and useful search keywords. A source name and a matching set
    answer different questions, so faction sets collect related portraits across source folders. Visual sets use labels such as
@@ -105,7 +105,7 @@ The initial descriptions were AI-assisted and checked against contact sheets. Po
 are conservative and often describe the shared appearance of a set. They do not assert character
 biographies, canon, species identities or rules that the image cannot establish. Monochrome partners
 share visible subject descriptions where appropriate, with corrections for omitted scene details.
-The existing empty CHOAM logo is explicitly described as a placeholder.
+The existing empty CHOAM emblem is explicitly described as a placeholder.
 
 Search runs locally without a model call or external service. Every query word must match; word
 order, accents, common singular/plural forms and a small synonym vocabulary are normalized. Exact
@@ -127,6 +127,22 @@ When adding or changing artwork:
    changed artwork. The index coverage test rejects missing files, removed files and stale hashes.
 5. Run `bunx vitest run src/app/routes/_app/media`, then check real searches and the focused preview.
    Run the Media page stories and the required release verification before updating the PR.
+
+### Art credits
+
+Every record in `media-index.json` names a `credit`, an id defined in `src/shared/media/credits.json`,
+and may add a `creditDetail` sentence, such as the reference a single AI planet was based on. A
+definition records the method (`official`, `restored`, `recreated`, `traced`, `ai-restored`,
+`ai-adapted`, `ai`, `blog`, `online` or `unknown`), the original artist, the source work, the style
+AI artwork was asked to match, and who prepared the copy. `creditText` in
+`src/shared/media/credits.ts` turns this into one sentence. The focused `/media` preview, its
+details tooltip and the artwork pickers' hover preview show it.
+
+`bun run generate` writes `src/shared/media/credits.generated.json`, which groups paths by credit
+and folder so the pickers can show credits without loading the search index. The media credit test
+rejects records without a defined credit, unused definitions and a stale generated index. When you
+add artwork, give it the credit its provenance record supports; use `online` when it was found
+online and its source is still unknown.
 
 ### GF9 artwork provenance
 

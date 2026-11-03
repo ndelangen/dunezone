@@ -15,7 +15,7 @@ import unique from './Traitor.module.css';
 
 export const TraitorCard: FC<z.infer<typeof FactionRender.traitors>[0] & { frontStyle?: CardFrontStyle }> = ({
   image,
-  logo,
+  emblem,
   name,
   strength,
   background,
@@ -43,8 +43,8 @@ export const TraitorCard: FC<z.infer<typeof FactionRender.traitors>[0] & { front
       <CardTitle className={styles.subtitle} text={`Traitor - ${owner}`} baseSize={40} />
       <div className={unique.face} style={{ backgroundImage: `url('${image}')` }} />
       <div className={unique.strength}>{strength}</div>
-      <div className={unique.logo}>
-        <Token logo={logo} background={background} />
+      <div className={unique.emblem}>
+        <Token emblem={emblem} background={background} />
       </div>
 
       <CardText

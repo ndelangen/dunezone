@@ -10,7 +10,7 @@ import {
   publishedHref,
 } from '../src/shared/asset-publishing/publicationTargets';
 import { holdsDeckMembership } from '../src/shared/assets/types';
-import { CanonicalFactionStoredObject, toStoredHeroKey } from '../src/shared/factions/schema';
+import { StoredFactionSchema, toStoredHeroKey } from '../src/shared/factions/schema';
 import { assetSupplySchema, factionDefinitionWireSchema, rulesetSupplySchema } from '../src/shared/play/capture';
 import { isSpawnType, SPAWN_TYPES } from '../src/shared/play/captureTypes';
 import type { SpawnType } from '../src/shared/play/captureTypes';
@@ -103,7 +103,7 @@ export const factionDefinition = publicQuery({
     if (!row || row.is_deleted) {
       return null;
     }
-    const parsed = CanonicalFactionStoredObject.safeParse(row.data);
+    const parsed = StoredFactionSchema.safeParse(row.data);
     const leaders = [];
     for (const leader of parsed.success ? parsed.data.leaders : []) {
       leaders.push({
@@ -212,7 +212,7 @@ export const draftableFactions = publicQuery({
     const rows = await draftCandidates(ctx, linked);
     const factions = [];
     for (const row of rows) {
-      const parsed = CanonicalFactionStoredObject.safeParse(row.data);
+      const parsed = StoredFactionSchema.safeParse(row.data);
       if (!parsed.success) {
         continue;
       }
@@ -220,7 +220,7 @@ export const draftableFactions = publicQuery({
         id: row._id,
         slug: row.slug,
         name: parsed.data.name,
-        logo: parsed.data.logo,
+        emblem: parsed.data.emblem,
         background: parsed.data.background,
         color: parsed.data.themeColor,
         linked: linked.has(row._id),

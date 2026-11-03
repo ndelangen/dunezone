@@ -109,7 +109,7 @@ describe('a ruleset’s faction order', () => {
       factions: [
         expect.objectContaining({
           name: 'Atreides',
-          logo: assetPublishingFaction.logo,
+          emblem: assetPublishingFaction.emblem,
           background: assetPublishingFaction.background,
         }),
         expect.objectContaining({ name: 'Bene Gesserit' }),

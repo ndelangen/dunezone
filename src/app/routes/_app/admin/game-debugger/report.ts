@@ -93,7 +93,7 @@ export function comparableSnapshots(report: Report) {
 }
 
 /* Artwork addresses and SVG paths in the parsed snapshot, including nested pieces, board decals and faction art. */
-const ARTWORK_FIELDS = new Set(['artwork', 'front', 'back', 'image', 'logo', 'star', 'symbol', 'cardFaces']);
+const ARTWORK_FIELDS = new Set(['artwork', 'front', 'back', 'image', 'emblem', 'star', 'symbol', 'cardFaces']);
 
 /** An imported file may not make the table load artwork from an arbitrary host or execute SVG markup. */
 export function canRenderReport(value: unknown, field = ''): boolean {

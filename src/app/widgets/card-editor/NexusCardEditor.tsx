@@ -1,5 +1,5 @@
 import { Button, Stack, TextInput } from '@mantine/core';
-import { GENERIC, LOGO } from '@shared/assetIds';
+import { GENERIC, EMBLEM } from '@shared/assetIds';
 import type { CardFrontStyle } from '@shared/assets/cardFrontPresets';
 import type { NexusCardAsset } from '@shared/assets/schema';
 import { FactionLink } from '@ui/content/FactionLink';
@@ -34,9 +34,9 @@ export const INITIAL_NEXUS_DRAFT: NexusDraft = {
   about: '',
   subName: 'Nexus',
   faction: '',
-  factionSymbol: { image: '/vector/logo/atreides.svg', background: backgroundPresets.atreides },
+  factionSymbol: { image: '/vector/emblem/atreides.svg', background: backgroundPresets.atreides },
   head: backgroundPresets.nexus,
-  icon: [backgroundPresets.atreides, '/vector/logo/atreides.svg'],
+  icon: [backgroundPresets.atreides, '/vector/emblem/atreides.svg'],
   betrayal: '',
   cunning: '',
   secretAlly: '',
@@ -67,7 +67,7 @@ function FactionFields({
   patch,
 }: Readonly<{ draft: NexusDraft; patch: (update: Partial<NexusDraft>) => void }>) {
   const [choosing, setChoosing] = useState(false);
-  const factionLogo = LOGO.or(GENERIC).safeParse(draft.factionSymbol.image);
+  const factionEmblem = EMBLEM.or(GENERIC).safeParse(draft.factionSymbol.image);
   return (
     <Stack gap="md">
       <ControlBlock
@@ -75,11 +75,11 @@ function FactionFields({
         description="The linked faction supplies the name, symbol and colours."
         input={<TextInput aria-label="Faction" value={draft.faction} readOnly placeholder="Choose a faction" />}
       />
-      {draft.factionLink && factionLogo.success ? (
+      {draft.factionLink && factionEmblem.success ? (
         <FactionLink
           slug={draft.factionLink.slug}
           name={draft.faction}
-          logo={factionLogo.data}
+          emblem={factionEmblem.data}
           background={draft.factionSymbol.background}
         />
       ) : null}
@@ -102,8 +102,8 @@ function FactionFields({
             patch({
               factionLink: { id, slug },
               faction: data.name,
-              factionSymbol: { image: data.logo, background: data.background },
-              icon: [data.background, data.logo],
+              factionSymbol: { image: data.emblem, background: data.background },
+              icon: [data.background, data.emblem],
             });
             setChoosing(false);
           }}

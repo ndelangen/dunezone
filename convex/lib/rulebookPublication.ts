@@ -1,5 +1,6 @@
 import { RULEBOOK_FIRST_PAGE_ASSET_TYPE } from '../../src/shared/asset-publishing/publication';
 import { publishedHref } from '../../src/shared/asset-publishing/publicationTargets';
+import { renameLegacyEmblems } from '../../src/shared/legacyEmblem';
 import { rulebookEditionContentsV1Schema } from '../../src/shared/rulebooks/contents';
 import type { RulebookEditionContentsV1 } from '../../src/shared/rulebooks/contents';
 import { projectRulebookRenderDocument } from '../../src/shared/rulebooks/projectRenderDocument';
@@ -18,7 +19,8 @@ import { resolveRulebookReferences } from './rulebookReferences';
 type RulebookPublicationReadCtx = Pick<QueryCtx, 'db'> | Pick<MutationCtx, 'db'>;
 type EditionIdentity = Pick<Doc<'rulebook_editions'>, '_id' | 'rulebook_id' | 'edition_number' | 'settings'>;
 async function resolvedAssetsForEdition(ctx: RulebookPublicationReadCtx, contents: unknown) {
-  const parsed = rulebookEditionContentsV1Schema.safeParse(contents);
+  /* An Edition the emblem rename has not reached yet names its old paths (see src/shared/legacyEmblem.ts). */
+  const parsed = rulebookEditionContentsV1Schema.safeParse(renameLegacyEmblems(contents));
   if (!parsed.success) {
     return null;
   }

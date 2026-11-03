@@ -3,9 +3,9 @@ import { Section } from '@ui/block/Section';
 
 import { Lead, Paragraph, PostLink, WideFigure } from '../postContent';
 import { DecalSheet, DecalStack } from './styleguide/DecalSheet';
+import { EmblemSheet } from './styleguide/EmblemSheet';
 import { FactionPalette } from './styleguide/FactionPalette';
 import { FrameParts, PortraitWall, TextureLibrary } from './styleguide/library';
-import { LogoSheet } from './styleguide/LogoSheet';
 import { CardAnatomy, CardColours, GoldLettering } from './styleguide/pieces';
 import { PortraitSpec, ReleaseStyles } from './styleguide/portraits';
 import { TypeSpecimen } from './styleguide/TypeSpecimen';
@@ -110,7 +110,7 @@ function EmblemsSection() {
         colours.
       </Paragraph>
       <WideFigure caption="Eleven faction emblems in cream on their own colours, and each one as the token wears it, on a dark ground and in ink on parchment.">
-        <LogoSheet />
+        <EmblemSheet />
       </WideFigure>
       <Paragraph>
         The pictures on the treachery cards follow the same idea. Each one is a black silhouette on the gold panel of

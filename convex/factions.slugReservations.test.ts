@@ -132,7 +132,7 @@ describe('faction slug reservations', () => {
     await asUser.mutation(api.factions.update, { id: first._id, data: { ...first.data, name: 'House Corrino' } });
     const saved = await asUser.mutation(api.factions.update, {
       id: second._id,
-      data: { ...second.data, logo: first.data.logo },
+      data: { ...second.data, emblem: first.data.emblem },
     });
     expect(saved.slug).toBe(second.slug);
     const spelling = await asUser.mutation(api.factions.update, {

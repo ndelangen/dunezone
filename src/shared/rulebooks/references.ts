@@ -17,7 +17,7 @@ export const rulebookResolvedFactionSchema = z.strictObject({
   color: z.string(),
   emblemUrl: z.string().optional(),
   tokenImageUrl: z.string().optional(),
-  token: CanonicalFactionStoredObject.pick({ logo: true, background: true }).optional(),
+  token: CanonicalFactionStoredObject.pick({ emblem: true, background: true }).optional(),
   troops: z.array(TroopArtwork).optional(),
   troopSources: z.array(rulebookResolvedSourceSchema).optional(),
   ruler: rulebookResolvedSourceSchema.optional(),

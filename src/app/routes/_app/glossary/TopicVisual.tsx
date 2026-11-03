@@ -181,7 +181,7 @@ function PiecesVisual() {
           <LeaderToken
             background={atreides.background}
             image="/image/leader/official/thufir.png"
-            logo="/vector/logo/atreides.svg"
+            emblem="/vector/emblem/atreides.svg"
             name="Thufir Hawat"
             strength="5"
           />
@@ -250,7 +250,7 @@ function DuncanIdaho() {
     <LeaderToken
       background={atreides.background}
       image="/image/leader/official/duncan.png"
-      logo="/vector/logo/atreides.svg"
+      emblem="/vector/emblem/atreides.svg"
       name="Duncan Idaho"
       strength="2"
     />
@@ -417,7 +417,7 @@ function CardsVisual() {
             <TraitorCard
               background={atreides.background}
               image="/image/leader/official/gurney.png"
-              logo="/vector/logo/atreides.svg"
+              emblem="/vector/emblem/atreides.svg"
               name="Gurney Halleck"
               strength="4"
               owner="Atreides"
