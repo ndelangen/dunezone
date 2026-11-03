@@ -34,7 +34,7 @@ export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
   'playing-dune-online-in-real-time': {
     slug: 'playing-dune-online-in-real-time',
     title: 'Playing Dune online in real time: how hands, moving pieces and secret cards work',
-    date: '2026-10-31',
+    date: '2026-11-03',
     author: 'Central419',
     summary:
       "What happens between your mouse and everyone else's screen on the dune.zone game table: the hands you see moving, a piece in flight, how every table stays in step, and how your cards stay yours.",
