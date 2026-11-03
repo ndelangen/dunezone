@@ -48,13 +48,19 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
    */
   const tableAtStart = () => new Set(pieces().map((piece) => piece.id));
   const before = { ids: tableAtStart() };
-  const played = () =>
-    pieces().filter(
-      (piece) => !piece.inventory && !before.ids.has(piece.id) && piece.stackKey === treacheryDeck()?.stackKey
-    );
+  const played = () => {
+    const key = treacheryDeck()?.stackKey;
+    return key === undefined
+      ? []
+      : pieces().filter((piece) => !piece.inventory && !before.ids.has(piece.id) && piece.stackKey === key);
+  };
   const faceUp = (piece: Piece) => piece.items.every((item) => item.faceUp);
+  const ids = (list: Piece[]) => new Set(list.map((piece) => piece.id));
   /* The card the arrow points at: the latest one still face down, or failing that the latest played. */
-  const playedCard = () => played().findLast((piece) => !faceUp(piece)) ?? played().at(-1);
+  const playedCard = () => {
+    const all = played();
+    return all.findLast((piece) => !faceUp(piece)) ?? all.at(-1);
+  };
   return [
     task({
       id: 'draw',
@@ -105,16 +111,18 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       detail:
         'Drag one of your Treachery cards from your hand onto a clear spot on the table, away from the decks and other cards.\n\nAnything you drag from your hand to the table lands face down, including cards. You choose when to reveal it.',
       anchor: { kind: 'page', element: element(HAND_CARD) },
-      begin: () => cards().length,
-      done: (start) => cards().length < start && played().length > 0,
+      /* Only a card that lands during this task counts, so one dropped on a deck or set on the side-table does not. */
+      begin: () => ({ hand: cards().length, played: ids(played()) }),
+      done: (start) => cards().length < start.hand && played().some((piece) => !start.played.has(piece.id)),
     }),
     task({
       id: 'reveal',
       task: 'Reveal your card',
       detail: 'To show everyone your card, hover over it and press {F} to turn it face up.',
       anchor: { kind: 'table', point: () => at(playedCard()) },
-      begin: () => undefined,
-      done: () => played().some(faceUp),
+      /* A card already face up when the task began does not count; one that came back under a new handle does. */
+      begin: () => ids(played().filter(faceUp)),
+      done: (start) => played().some((piece) => faceUp(piece) && !start.has(piece.id)),
     }),
     task({
       id: 'withdraw',

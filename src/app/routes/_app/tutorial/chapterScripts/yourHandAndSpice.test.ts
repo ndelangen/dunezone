@@ -95,22 +95,41 @@ test('revealing follows a card that went back through the hand and came out unde
   expect(reveal.done(revealStart as never, view)).toBe(true);
 });
 
-test('a card played before its task counts, and turning the decks over does not', () => {
+test('only cards played and revealed during their own tasks count, and turning the decks over does not', () => {
   const { snapshot, task } = exercise();
-  snapshot.hand = [card('private-a'), card('private-b')];
+  snapshot.hand = [card('private-a'), card('private-b'), card('private-c')];
+  /* Played and revealed before its task: neither task may tick off from it. */
   snapshot.hand.pop();
   const early = card('public-early');
+  early.items[0]!.faceUp = true;
   snapshot.table.pieces.push(early);
   const play = task('play');
   const start = play.begin(view);
+  /* Set on the side-table, or dropped on a deck: the hand shrinks, but no card lands. */
   snapshot.hand.pop();
+  expect(play.done(start as never, view)).toBe(false);
+  snapshot.hand.pop();
+  const later = card('public-later');
+  snapshot.table.pieces.push(later);
   expect(play.done(start as never, view)).toBe(true);
   const reveal = task('reveal');
   const revealStart = reveal.begin(view);
-  for (const deck of snapshot.table.pieces.filter((piece) => piece !== early)) {
+  expect(reveal.done(revealStart as never, view)).toBe(false);
+  for (const deck of snapshot.table.pieces.filter((piece) => piece !== early && piece !== later)) {
     deck.items[0]!.faceUp = true;
   }
   expect(reveal.done(revealStart as never, view)).toBe(false);
-  early.items[0]!.faceUp = true;
+  later.items[0]!.faceUp = true;
   expect(reveal.done(revealStart as never, view)).toBe(true);
+});
+
+test('with no Treachery deck on the left, nothing counts as a played card', () => {
+  const { snapshot, task } = exercise();
+  snapshot.table.pieces[0] = { ...snapshot.table.pieces[0]!, position: [1, 0, 1] } as Piece;
+  snapshot.hand = [card('private-a')];
+  const play = task('play');
+  const start = play.begin(view);
+  snapshot.hand.pop();
+  snapshot.table.pieces.push({ ...card('token'), stackKey: undefined } as unknown as Piece);
+  expect(play.done(start as never, view)).toBe(false);
 });
