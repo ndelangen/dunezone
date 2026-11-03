@@ -114,6 +114,21 @@ export const AnsweringAProposal = meta.story({
   },
 });
 
+/* The header's Mentat recall link opens the closed Mentat recall window, where the vote can be read in full. */
+export const HeaderLinkOpensTheRecallWindow = meta.story({
+  beforeEach: install(() =>
+    reviewTransport('seat-2', reviewOf(reviewableSnapshot(), bidding, 'seat-1'), { agreeAfterMs: null })
+  ),
+  play: async ({ canvasElement }) => {
+    const document = canvasElement.ownerDocument;
+    const page = within(document.body);
+    const vote = await page.findByRole('group', { name: 'Mentat recall vote' }, { timeout: 30_000 });
+    await expect(document.querySelector('[data-window="review"]')).toBeNull();
+    await userEvent.click(within(vote).getByRole('button', { name: 'Mentat recall' }));
+    await waitFor(() => expect(document.querySelector('[data-window="review"]')).not.toBeNull());
+  },
+});
+
 /* An observer sees the review with the table and has nothing to answer or end. */
 export const ObserverWatchesAReview = meta.story({
   beforeEach: install(() =>
