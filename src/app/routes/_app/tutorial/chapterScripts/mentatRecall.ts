@@ -210,15 +210,10 @@ function sharedHistoryTask(snapshot: () => GameSnapshot, players: TablePlayers):
       kind: 'page',
       element: () => historySlider() ?? document.querySelector(`${RECALL} [data-compass-launcher]`),
     },
-    begin: () => ({ step: selectedStep(snapshot), moved: false }),
-    done: (watch) => {
-      watch.moved ||= selectedStep(snapshot) !== watch.step;
-      return (
-        watch.moved &&
-        selectedStep(snapshot) === newestStep(snapshot) &&
-        panel('recall-history')?.getAttribute('data-side') === 'right'
-      );
-    },
+    /* Reaching the newest checkpoint with history pinned right finishes it, even when the slider already sat there as the task began. */
+    begin: () => undefined,
+    done: () =>
+      selectedStep(snapshot) === newestStep(snapshot) && panel('recall-history')?.getAttribute('data-side') === 'right',
   });
 }
 

@@ -71,7 +71,7 @@ test('the retained live hand and a loading recalled inventory cannot complete th
   }
 });
 
-test('an early return can be followed by another recall, with a fresh timeline baseline and no leftover ballot timer', () => {
+test('an early return can be followed by another recall that finishes at the newest checkpoint, with no leftover ballot timer', () => {
   const root = recallFrame();
   root.innerHTML = '<div data-window="recall-history" data-side="right"><div role="slider"></div></div>';
   let view = viewWith(running());
@@ -87,8 +87,6 @@ test('an early return can be followed by another recall, with a fresh timeline b
     reviewId: 'replacement',
     choice: 'review',
   });
-  view = viewWith(running('replacement', 23));
-  expect(step.done(watch, undefined as never)).toBe(false);
   view = viewWith(running('replacement', 0));
   expect(step.done(watch, undefined as never)).toBe(false);
   view = viewWith(running('replacement', 23));
