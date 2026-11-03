@@ -20,7 +20,7 @@ const meta = preview.meta({
 export const Default = meta.story({
   args: {
     name: 'Atreides',
-    logo: '/vector/logo/atreides.svg',
+    emblem: '/vector/emblem/atreides.svg',
     themeColor: '#730a8e',
     background: {
       image: '/image/texture/021.jpg',

@@ -72,7 +72,7 @@ const renderTitleCard: Record<TitlePath, (value: TitleInput) => ReactNode> = {
       owner={owner}
       image="/image/leader/official/tessia.png"
       strength="1"
-      logo="/vector/logo/moritani.svg"
+      emblem="/vector/emblem/moritani.svg"
       background={publishingTreacheryCard.head}
     />
   ),
@@ -80,7 +80,7 @@ const renderTitleCard: Record<TitlePath, (value: TitleInput) => ReactNode> = {
     <AllianceCard
       title={name}
       background={publishingTreacheryCard.head}
-      logo="/vector/logo/atreides.svg"
+      emblem="/vector/emblem/atreides.svg"
       troop="/vector/troop/atreides.svg"
       decals={[]}
       text="The ally retains its own faction name."

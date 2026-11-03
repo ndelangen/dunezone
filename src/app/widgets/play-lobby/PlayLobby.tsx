@@ -129,7 +129,7 @@ function tableSeat(player: Player): TableSeat {
     image: player.avatarUrl ?? null,
     initial: player.displayName.trim().charAt(0).toUpperCase(),
     token: player.faction?.token ? (
-      <FactionToken logo={player.faction.token.logo} background={player.faction.token.background} />
+      <FactionToken emblem={player.faction.token.emblem} background={player.faction.token.background} />
     ) : null,
     crowned: won,
     highlighted: player.viewer,

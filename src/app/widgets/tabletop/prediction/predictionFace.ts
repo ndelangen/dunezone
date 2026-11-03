@@ -5,17 +5,17 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { card } from '@game/data/sizes';
 
 /**
- * A prediction card's front is the shared base with the chosen faction's logo and the predicted turn drawn where a Treachery card's decals sit (#1753).
+ * A prediction card's front is the shared base with the chosen faction's emblem and the predicted turn drawn where a Treachery card's decals sit (#1753).
  * The choice reaches a client only with the front, so every client draws it locally rather than reading a published image of it.
  */
 export type CardPrediction = NonNullable<NonNullable<TableItem['artwork']>['prediction']>;
 
-/** Each faction's logo by faction id, provided by the hosted table from the snapshot's public faction artwork. */
-export const PredictionLogosContext = createContext<Readonly<Record<string, string>>>({});
+/** Each faction's emblem by faction id, provided by the hosted table from the snapshot's public faction artwork. */
+export const PredictionEmblemsContext = createContext<Readonly<Record<string, string>>>({});
 
 /* The decal slot of a Treachery card, in card pixels: a 439px square centred horizontally, its centre 470px from the top (`Decals.tsx`). */
 const DECAL_CENTRE_Y = 470;
-const LOGO = { centreY: DECAL_CENTRE_Y - 40, size: 230 };
+const EMBLEM = { centreY: DECAL_CENTRE_Y - 40, size: 230 };
 const TURN = { centreY: DECAL_CENTRE_Y + 165, size: 170, font: 'C_Advokat_Modern' };
 /* Decals draw black with a light outline (`Decals.tsx`); the overlay keeps both colours and the outline width. */
 const FOREGROUND = gameAssetColors.predictionPaper;
@@ -27,9 +27,9 @@ const RETRY_MS = 5000;
 
 const faces = new Map<string, Promise<HTMLCanvasElement>>();
 
-/** One overlay per logo and turn; the cache and the hook both name faces by this key. */
-function faceKey(logo: string, turn: number) {
-  return `${logo}|${turn}`;
+/** One overlay per emblem and turn; the cache and the hook both name faces by this key. */
+function faceKey(emblem: string, turn: number) {
+  return `${emblem}|${turn}`;
 }
 
 function loadImage(src: string): Promise<HTMLImageElement> {
@@ -37,21 +37,21 @@ function loadImage(src: string): Promise<HTMLImageElement> {
     const image = new Image();
     image.decoding = 'async';
     image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error(`The logo ${src} did not load.`));
+    image.onerror = () => reject(new Error(`The emblem ${src} did not load.`));
     image.src = src;
   });
 }
 
-/** The logo fitted inside a square box, keeping its proportions. */
+/** The emblem fitted inside a square box, keeping its proportions. */
 function fitted(image: HTMLImageElement, box: number) {
   const ratio = Math.min(box / (image.naturalWidth || box), box / (image.naturalHeight || box));
   return { width: (image.naturalWidth || box) * ratio, height: (image.naturalHeight || box) * ratio };
 }
 
-function drawLogo(context: CanvasRenderingContext2D, image: HTMLImageElement) {
-  const { width, height } = fitted(image, LOGO.size);
+function drawEmblem(context: CanvasRenderingContext2D, image: HTMLImageElement) {
+  const { width, height } = fitted(image, EMBLEM.size);
   const x = card.width / 2 - width / 2;
-  const y = LOGO.centreY - height / 2;
+  const y = EMBLEM.centreY - height / 2;
   const silhouette = document.createElement('canvas');
   silhouette.width = Math.ceil(width);
   silhouette.height = Math.ceil(height);
@@ -80,9 +80,9 @@ function drawTurn(context: CanvasRenderingContext2D, turn: number) {
   context.fillText(String(turn), card.width / 2, TURN.centreY);
 }
 
-async function drawFace(logo: string, turn: number): Promise<HTMLCanvasElement> {
+async function drawFace(emblem: string, turn: number): Promise<HTMLCanvasElement> {
   const [image] = await Promise.all([
-    loadImage(logo),
+    loadImage(emblem),
     document.fonts?.load(`${TURN.size}px "${TURN.font}"`, String(turn)).catch(() => undefined),
   ]);
   const canvas = document.createElement('canvas');
@@ -90,46 +90,46 @@ async function drawFace(logo: string, turn: number): Promise<HTMLCanvasElement> 
   canvas.height = Math.round(card.height * SCALE);
   const context = canvas.getContext('2d')!;
   context.scale(SCALE, SCALE);
-  drawLogo(context, image);
+  drawEmblem(context, image);
   drawTurn(context, turn);
   return canvas;
 }
 
-/** The overlay for one choice, drawn once per logo and turn and shared by every face that shows it. */
-function predictionFace(logo: string, turn: number): Promise<HTMLCanvasElement> {
-  const key = faceKey(logo, turn);
+/** The overlay for one choice, drawn once per emblem and turn and shared by every face that shows it. */
+function predictionFace(emblem: string, turn: number): Promise<HTMLCanvasElement> {
+  const key = faceKey(emblem, turn);
   let face = faces.get(key);
   if (!face) {
-    face = drawFace(logo, turn);
+    face = drawFace(emblem, turn);
     faces.set(key, face);
     face.catch(() => faces.delete(key));
   }
   return face;
 }
 
-/** The logo and turn a prediction draws, or null when it has none to draw. */
-function faceSource(prediction: CardPrediction | undefined, logos: Readonly<Record<string, string>>) {
-  const logo = prediction && logos[prediction.factionId];
-  return logo ? { logo, turn: prediction.turn, key: faceKey(logo, prediction.turn) } : null;
+/** The emblem and turn a prediction draws, or null when it has none to draw. */
+function faceSource(prediction: CardPrediction | undefined, emblems: Readonly<Record<string, string>>) {
+  const emblem = prediction && emblems[prediction.factionId];
+  return emblem ? { emblem, turn: prediction.turn, key: faceKey(emblem, prediction.turn) } : null;
 }
 
-/** The overlay canvas for a prediction, or null while it draws, when there is none, or when the faction has no logo. */
+/** The overlay canvas for a prediction, or null while it draws, when there is none, or when the faction has no emblem. */
 export function usePredictionFace(prediction: CardPrediction | undefined): HTMLCanvasElement | null {
-  const source = faceSource(prediction, useContext(PredictionLogosContext));
+  const source = faceSource(prediction, useContext(PredictionEmblemsContext));
   const [face, setFace] = useState<{ key: string; canvas: HTMLCanvasElement } | null>(null);
-  /* A logo that failed to load is tried again, as the published face beneath it is. */
+  /* An emblem that failed to load is tried again, as the published face beneath it is. */
   const [attempt, setAttempt] = useState(0);
   const key = source?.key ?? null;
-  const logo = source?.logo;
+  const emblem = source?.emblem;
   const turn = source?.turn;
   useEffect(() => {
-    if (logo === undefined || turn === undefined) {
+    if (emblem === undefined || turn === undefined) {
       return;
     }
     let live = true;
     let retry: ReturnType<typeof setTimeout> | undefined;
-    predictionFace(logo, turn).then(
-      (canvas) => live && setFace({ key: faceKey(logo, turn), canvas }),
+    predictionFace(emblem, turn).then(
+      (canvas) => live && setFace({ key: faceKey(emblem, turn), canvas }),
       () => {
         if (live) {
           retry = setTimeout(() => setAttempt((value) => value + 1), RETRY_MS);
@@ -140,6 +140,6 @@ export function usePredictionFace(prediction: CardPrediction | undefined): HTMLC
       live = false;
       clearTimeout(retry);
     };
-  }, [logo, turn, attempt]);
+  }, [emblem, turn, attempt]);
   return face?.key === key ? face.canvas : null;
 }

@@ -19,14 +19,14 @@ Storybook shows UI code. Content and media are only there because a capability c
 without data, and the production media gallery is where the content itself is shown.
 
 - **A visual story shows a UI capability, and Chromatic captures it once.** Every component is
-  captured at least once, covering each capability it has: an image, an SVG logo, wrapped text, an
+  captured at least once, covering each capability it has: an image, an SVG emblem, wrapped text, an
   empty state, a narrow width. A second story that renders the same capability with different data
   is a duplicate. It is deleted, or it moves to a testing story when its play checks something.
 - **A testing story drives behaviour, and CI runs it.** It clicks, types, waits on a server or
   repeats a screen already captured elsewhere. Its file builds its meta from `testingPreview`, which
   turns Chromatic snapshots off, and its play still runs in the Vitest story shards on every pull
   request. Moving a story to a testing file never loses a check.
-- **Stories use fixed fixture data, not live catalogues.** A story that lists `LOGO.options` or the
+- **Stories use fixed fixture data, not live catalogues.** A story that lists `EMBLEM.options` or the
   stock collections changes whenever art is added. It picks a fixed handful instead.
 - **Captures and plays run with reduced motion.** Chromatic and the Vitest story shards both set
   `prefers-reduced-motion: reduce`, so a capture never lands on a moving frame. A story that checks an

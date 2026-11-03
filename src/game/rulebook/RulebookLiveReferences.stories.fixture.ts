@@ -53,7 +53,7 @@ export function liveReferenceBlocks(): LiveReferenceBlock[] {
         factionId: 'atreides',
         name: 'Atreides',
         color: '#3e6337',
-        emblemUrl: '/vector/logo/atreides.svg',
+        emblemUrl: '/vector/emblem/atreides.svg',
         ruler: {
           status: 'unavailable',
           reference: {

@@ -52,7 +52,7 @@ test('exported battle plans embed wheel symbols and load hidden card backs from 
         factionId: 'atreides',
         name: 'Atreides',
         color: '#123456',
-        token: { logo: assetPublishingFaction.logo, background: assetPublishingFaction.background },
+        token: { emblem: assetPublishingFaction.emblem, background: assetPublishingFaction.background },
       },
     }
   );

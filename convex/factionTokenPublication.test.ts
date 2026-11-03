@@ -45,7 +45,7 @@ describe('Faction token publication', () => {
     const snapshot = await t.query(internal.publicationJobs.readJobForRender, { jobId: job.jobId });
     expect(snapshot).toMatchObject({
       assetType: 'faction-token',
-      payload: { logo: data.logo, background: data.background },
+      payload: { emblem: data.emblem, background: data.background },
     });
     await t.mutation(internal.publicationJobs.completeJob, { jobId: job.jobId, cacheToken: 'token-one' });
     const renamed = { ...faction.data, name: 'Renamed' };
@@ -55,7 +55,10 @@ describe('Faction token publication', () => {
         (item) => item.assetType === 'faction-token'
       )
     ).toEqual([]);
-    await owner.mutation(api.factions.update, { id: factionId, data: { ...renamed, logo: '/vector/logo/fremen.svg' } });
+    await owner.mutation(api.factions.update, {
+      id: factionId,
+      data: { ...renamed, emblem: '/vector/emblem/fremen.svg' },
+    });
     expect(
       (await t.mutation(internal.publicationJobs.takeWork, {})).items.filter(
         (item) => item.assetType === 'faction-token'
@@ -89,7 +92,7 @@ describe('Faction token publication', () => {
     const back = tokenJobs.find((job) => job.assetId === `${factionId}.back`)!;
     expect(await t.query(internal.publicationJobs.readJobForRender, { jobId: back.jobId })).toMatchObject({
       assetType: 'faction-token',
-      payload: { logo: data.logo, background: data.background, blocked: true },
+      payload: { emblem: data.emblem, background: data.background, blocked: true },
     });
     for (const job of tokenJobs) {
       await t.mutation(internal.publicationJobs.completeJob, { jobId: job.jobId, cacheToken: 'token-one' });
@@ -102,7 +105,10 @@ describe('Faction token publication', () => {
         (item) => item.assetType === 'faction-token'
       )
     ).toEqual([]);
-    await owner.mutation(api.factions.update, { id: factionId, data: { ...renamed, logo: '/vector/logo/fremen.svg' } });
+    await owner.mutation(api.factions.update, {
+      id: factionId,
+      data: { ...renamed, emblem: '/vector/emblem/fremen.svg' },
+    });
     expect(
       (await t.mutation(internal.publicationJobs.takeWork, {})).items
         .filter((item) => item.assetType === 'faction-token')

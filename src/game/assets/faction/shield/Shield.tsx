@@ -102,14 +102,14 @@ export const Shield: FC<ShieldProps> = (props) => {
 
   return (
     <div className={styles.shield} style={{ ...size }}>
-      <div className={[styles.logo, styles.left].join(' ')}>
-        <Token background={props.background} logo={props.logo} />
+      <div className={[styles.emblem, styles.left].join(' ')}>
+        <Token background={props.background} emblem={props.emblem} />
       </div>
-      <div className={[styles.logo, styles.right].join(' ')}>
-        <Token background={props.background} logo={props.logo} />
+      <div className={[styles.emblem, styles.right].join(' ')}>
+        <Token background={props.background} emblem={props.emblem} />
       </div>
       <div className={styles.leader}>
-        <LeaderToken {...props.leader} background={props.background} logo={props.logo} />
+        <LeaderToken {...props.leader} background={props.background} emblem={props.emblem} />
       </div>
       <div className={styles.overlay} />
       {svgContent}

@@ -8,7 +8,7 @@ type GallerySlug = (typeof mediaKinds)[number]['slug'];
 const galleryLeads: Record<GallerySlug, string> = {
   decals: 'Decal artwork of weapons, creatures, machines and symbols',
   symbols: 'General symbols and shapes',
-  emblems: 'Faction emblems and logos',
+  emblems: 'Faction emblems and emblems',
   icons: 'Game icons for actions, phases and resources',
   troops: 'Troop token artwork for every faction',
   leaders: 'Leader portraits from the official game and from custom factions',

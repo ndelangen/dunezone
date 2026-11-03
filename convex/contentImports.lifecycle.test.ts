@@ -246,7 +246,7 @@ describe('Content import', () => {
         ...factionItem,
         data: {
           ...assetPublishingFaction,
-          logo: '/vector/logo/fremen.svg',
+          emblem: '/vector/emblem/fremen.svg',
           background: { ...assetPublishingFaction.background, influence: 0.3 },
         },
       },
@@ -268,7 +268,7 @@ describe('Content import', () => {
     expect(results[1]!.status).toBe('updated');
     const card = await t.run((ctx) => ctx.db.get('assets', results[1]!.id as Id<'assets'>));
     expect(card).toMatchObject({
-      data: { factionSymbol: { image: '/vector/logo/fremen.svg', background: { influence: 0.3 } } },
+      data: { factionSymbol: { image: '/vector/emblem/fremen.svg', background: { influence: 0.3 } } },
     });
   });
 

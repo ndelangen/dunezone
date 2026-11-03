@@ -52,7 +52,7 @@
           "strength": 1.0
         }
       ],
-      "logo": "/vector/logo/atreides.svg",
+      "emblem": "/vector/emblem/atreides.svg",
       "name": "House Atreides",
       "planet": [],
       "rules": {
@@ -192,7 +192,7 @@
           "strength": 1.0
         }
       ],
-      "logo": "/vector/logo/harkonnen.svg",
+      "emblem": "/vector/emblem/harkonnen.svg",
       "name": "House Harkonnen",
       "planet": [],
       "rules": {
@@ -326,7 +326,7 @@
           "strength": 2.0
         }
       ],
-      "logo": "/vector/logo/emperor.svg",
+      "emblem": "/vector/emblem/emperor.svg",
       "name": "Emperor",
       "planet": [],
       "rules": {
@@ -485,7 +485,7 @@
           "strength": 1.0
         }
       ],
-      "logo": "/vector/logo/guild.svg",
+      "emblem": "/vector/emblem/guild.svg",
       "name": "Spacing Guild",
       "planet": [
         {
@@ -633,7 +633,7 @@
           "strength": 2.0
         }
       ],
-      "logo": "/vector/logo/fremen.svg",
+      "emblem": "/vector/emblem/fremen.svg",
       "name": "Fremen",
       "planet": [],
       "rules": {
@@ -833,7 +833,7 @@
           "strength": 5.0
         }
       ],
-      "logo": "/vector/logo/bene-gesserit.svg",
+      "emblem": "/vector/emblem/bene-gesserit.svg",
       "name": "Bene Gesserit",
       "planet": [],
       "rules": {

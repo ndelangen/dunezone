@@ -11,7 +11,7 @@ import type { FactionInput } from '@shared/factions/schema';
 export const HOUSE_ATREIDES: FactionInput = FactionInputSchema.parse(
   recalculateFactionComplexity({
     name: 'House Atreides',
-    logo: '/vector/logo/atreides.svg',
+    emblem: '/vector/emblem/atreides.svg',
     colors: ['Green', 'Teal'],
     background: {
       image: '/image/texture/082.jpg',

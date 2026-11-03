@@ -100,7 +100,7 @@ export function swappingSnapshot(): GameSnapshot {
         slug,
         {
           background: data.background,
-          logo: data.logo,
+          emblem: data.emblem,
           troops: data.troops.map(({ back, ...front }) => ({
             ...troopArtwork(front),
             ...(back ? { back: troopArtwork(back) } : {}),

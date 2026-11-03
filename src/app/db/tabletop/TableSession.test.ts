@@ -1506,16 +1506,16 @@ describe('private spice reserves and public transfers', () => {
 
 test("asks once for a seated faction's captured sheet and keeps each answer", async () => {
   const client = await connected({ ...viewer, viewerSeat: 'neutral' });
-  const { leaders, rules, background, logo } = assetPublishingFaction;
+  const { leaders, rules, background, emblem } = assetPublishingFaction;
   client.readFaction('atreides');
   client.readFaction('atreides');
   expect(socket().sent.filter((message) => message.type === 'faction')).toEqual([
     { type: 'faction', factionId: 'atreides' },
   ]);
-  socket().deliver({ type: 'faction', factionId: 'atreides', faction: { leaders, rules, background, logo } });
+  socket().deliver({ type: 'faction', factionId: 'atreides', faction: { leaders, rules, background, emblem } });
   socket().deliver({ type: 'faction', factionId: 'fixture', faction: null });
   expect(client.getSnapshot().factions).toEqual({
-    atreides: { leaders, rules, background, logo },
+    atreides: { leaders, rules, background, emblem },
     fixture: null,
   });
 });

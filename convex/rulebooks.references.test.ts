@@ -227,7 +227,7 @@ describe('Rulebook live faction and Cover references', () => {
       return await ctx.db.insert('factions', {
         ...fields,
         slug: 'right-footer-faction',
-        data: { ...assetPublishingFaction, name: 'Right faction', logo: '/vector/logo/fremen.svg' },
+        data: { ...assetPublishingFaction, name: 'Right faction', emblem: '/vector/emblem/fremen.svg' },
       });
     });
     cover.controlValues.cover.footer = {
@@ -253,16 +253,16 @@ describe('Rulebook live faction and Cover references', () => {
     const changedBackground = { ...assetPublishingFaction.background, influence: 0.3 };
     await t.run((ctx) =>
       ctx.db.patch('factions', references.factionId, {
-        data: { ...assetPublishingFaction, logo: '/vector/logo/ixian.svg', background: changedBackground },
+        data: { ...assetPublishingFaction, emblem: '/vector/emblem/ixian.svg', background: changedBackground },
       })
     );
     const liveLeft = {
-      emblemUrl: '/vector/logo/ixian.svg',
-      token: { logo: '/vector/logo/ixian.svg', background: changedBackground },
+      emblemUrl: '/vector/emblem/ixian.svg',
+      token: { emblem: '/vector/emblem/ixian.svg', background: changedBackground },
     };
     const liveRight = {
-      emblemUrl: '/vector/logo/fremen.svg',
-      token: { logo: '/vector/logo/fremen.svg', background: assetPublishingFaction.background },
+      emblemUrl: '/vector/emblem/fremen.svg',
+      token: { emblem: '/vector/emblem/fremen.svg', background: assetPublishingFaction.background },
     };
     const reader = await t.query(api.rulebooks.readerPage, locator);
     expect(reader?.factionsById).toMatchObject({
@@ -296,7 +296,7 @@ describe('Rulebook live faction and Cover references', () => {
             footer: {
               leftFaction: {
                 status: 'ready',
-                token: { logo: assetPublishingFaction.logo, background: assetPublishingFaction.background },
+                token: { emblem: assetPublishingFaction.emblem, background: assetPublishingFaction.background },
               },
               rightFaction: { status: 'ready', ...liveRight },
             },

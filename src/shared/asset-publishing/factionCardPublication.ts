@@ -19,7 +19,7 @@ export const factionTraitorAssetDataSchema = z.strictObject({
   name: faction.leaders.element.shape.name,
   strength: faction.leaders.element.shape.strength,
   image: faction.leaders.element.shape.image,
-  logo: faction.logo,
+  emblem: faction.emblem,
   background: faction.background,
   owner: faction.name,
   frontStyle: cardFrontStyleSchema.optional(),
@@ -30,7 +30,7 @@ export type FactionTraitorAssetData = z.infer<typeof factionTraitorAssetDataSche
 export const factionAllianceAssetDataSchema = z.strictObject({
   title: faction.name,
   text: faction.rules.shape.alliance.shape.text,
-  logo: faction.logo,
+  emblem: faction.emblem,
   background: faction.background,
   troop: faction.troops.element.shape.image,
   decals: faction.decals,
@@ -44,14 +44,14 @@ export function factionTraitorPublications(factionId: string, data: unknown): Ma
   if (!parsed.success) {
     return new Map();
   }
-  const { name: owner, logo, background, leaders } = parsed.data;
+  const { name: owner, emblem, background, leaders } = parsed.data;
   return new Map(
     leaders.flatMap(({ memberId, name, strength, image }) =>
       memberId
         ? [
             [
               factionMemberPublicationId(factionId, memberId),
-              factionTraitorAssetDataSchema.parse({ name, strength, image, logo, background, owner }),
+              factionTraitorAssetDataSchema.parse({ name, strength, image, emblem, background, owner }),
             ],
           ]
         : []
@@ -65,14 +65,14 @@ export function factionAllianceAssetData(data: unknown): FactionAllianceAssetDat
   if (!parsed.success) {
     return null;
   }
-  const { name, rules, logo, background, troops, decals } = parsed.data;
+  const { name, rules, emblem, background, troops, decals } = parsed.data;
   if (!troops[0]) {
     return null;
   }
   return factionAllianceAssetDataSchema.parse({
     title: name,
     text: rules.alliance.text,
-    logo,
+    emblem,
     background,
     troop: troops[0].image,
     decals,

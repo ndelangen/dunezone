@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { componentGeometrySchema } from '../asset-publishing/componentGeometry';
-import { BACKGROUND, DECAL, GENERIC, ICON, LEADERS, LOGO, PLANET, TEXTURE, TROOP, TROOP_MODIFIER } from '../assetIds';
+import { BACKGROUND, DECAL, GENERIC, ICON, LEADERS, EMBLEM, PLANET, TEXTURE, TROOP, TROOP_MODIFIER } from '../assetIds';
 import { GEAR_CLIP, POINTER_CLIP } from '../assets/tokenOutline';
 import { FactionMemberIdSchema } from '../factions/memberIdentity';
 import { CanonicalFactionStoredObject } from '../factions/schema';
@@ -43,7 +43,7 @@ export type RulebookSourceReference = z.infer<typeof rulebookSourceReferenceSche
 export const rulebookFactionSheetSchema = CanonicalFactionStoredObject.pick({
   name: true,
   themeColor: true,
-  logo: true,
+  emblem: true,
   background: true,
   leaders: true,
   troops: true,
@@ -90,7 +90,7 @@ export const RULEBOOK_STOCK_ARTWORK = [
     ...GENERIC.options,
     ...ICON.options,
     ...LEADERS.options,
-    ...LOGO.options,
+    ...EMBLEM.options,
     ...PLANET.options,
     ...TEXTURE.options,
     ...TROOP.options,

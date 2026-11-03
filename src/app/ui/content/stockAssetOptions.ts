@@ -22,7 +22,7 @@ const assetNames: Record<string, string> = {
 };
 
 const vectorCategories: Record<string, string> = {
-  logo: 'Emblems',
+  emblem: 'Emblems',
   generic: 'General symbols',
   decal: 'Decals',
   icon: 'Game icons',
