@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vite-plus/test';
 
-import { readRenamedEmblems } from './renamedEmblem';
+import { readingRenamedEmblems, readRenamedEmblems } from './renamedEmblem';
 
 describe('data from the emblem rename', () => {
   test('reads under the current names at any depth, and leaves everything else alone', () => {
@@ -53,5 +53,25 @@ describe('data from the emblem rename', () => {
     const read = readRenamedEmblems(mixed) as typeof mixed;
     expect(read).not.toBe(mixed);
     expect(read.same).toBe(current);
+  });
+
+  test('gives the same rewritten copy for the same answer, so a watched query stays stable', () => {
+    const answer = { emblem: '/vector/emblem/a.svg' };
+    expect(readRenamedEmblems(answer)).toBe(readRenamedEmblems(answer));
+  });
+
+  test('a wrapped client answers under the current names and keeps its other methods', async () => {
+    const client = {
+      prefix: 'kept',
+      async query(id: string) {
+        return { id, emblem: '/vector/emblem/a.svg' };
+      },
+      describe() {
+        return this.prefix;
+      },
+    };
+    const wrapped = readingRenamedEmblems(client, ['query']);
+    await expect(wrapped.query('one')).resolves.toEqual({ id: 'one', logo: '/vector/logo/a.svg' });
+    expect(wrapped.describe()).toBe('kept');
   });
 });

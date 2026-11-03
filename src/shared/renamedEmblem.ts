@@ -2,7 +2,8 @@
  * A faction's logo is being renamed to its emblem (the glossary term), in two releases.
  * The next release stores it under an `emblem` key and moves the stock artwork from `/vector/logo/` to `/vector/emblem/`.
  * Its Convex functions go live 15 to 40 minutes before its browser bundle and Workers do (see AGENTS.md on expand/contract),
- * so this release teaches the readers that lag behind to take the new names: the client boundary, the game Worker's catalogue reads and the capture page.
+ * so this release teaches the readers that lag behind to take the new names where each runtime receives Convex answers:
+ * the browser's Convex client, the HTTP clients the server render and the game Worker use, the publisher Worker's executor calls and the capture page.
  * The next release removes this module.
  */
 
@@ -20,6 +21,16 @@ function isPlainRecord(input: unknown): input is Record<string, unknown> {
 
 function readRenamedPath(input: string): string {
   return input.startsWith(RENAMED_PREFIX) ? CURRENT_PREFIX + input.slice(RENAMED_PREFIX.length) : input;
+}
+
+/* Convex hands a watched query the same answer object until it changes, so a rewritten copy is kept per answer and a component sees a stable value. */
+const rewritten = new WeakMap<object, unknown>();
+
+function remembered<Value extends object>(input: Value, read: (input: Value) => unknown): unknown {
+  if (!rewritten.has(input)) {
+    rewritten.set(input, read(input));
+  }
+  return rewritten.get(input);
 }
 
 function readRenamedList(input: readonly unknown[]): readonly unknown[] {
@@ -47,10 +58,28 @@ function readRenamedRecord(input: Record<string, unknown>): Record<string, unkno
  */
 export function readRenamedEmblems(input: unknown): unknown {
   if (Array.isArray(input)) {
-    return readRenamedList(input);
+    return remembered(input, readRenamedList);
   }
   if (isPlainRecord(input)) {
-    return readRenamedRecord(input);
+    return remembered(input, readRenamedRecord);
   }
   return typeof input === 'string' ? readRenamedPath(input) : input;
+}
+
+type Method = (...args: never[]) => unknown;
+
+/**
+ * Has a Convex client answer under this release's names: each named method keeps its signature and has its result read through `readRenamedEmblems`.
+ * Wrapped on the instance rather than overridden, because the client's methods are generic over the function they call.
+ */
+export function readingRenamedEmblems<Client extends object>(
+  client: Client,
+  asyncMethods: readonly (keyof Client & string)[]
+): Client {
+  const methods = client as unknown as Record<string, Method>;
+  for (const name of asyncMethods) {
+    const original = methods[name]!.bind(client);
+    methods[name] = async (...args: never[]) => readRenamedEmblems(await original(...args));
+  }
+  return client;
 }

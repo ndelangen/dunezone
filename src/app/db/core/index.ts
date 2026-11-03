@@ -1,3 +1,4 @@
+import { readingRenamedEmblems, readRenamedEmblems } from '@shared/renamedEmblem';
 import { ConvexHttpClient } from 'convex/browser';
 import { ConvexReactClient } from 'convex/react';
 import type { FunctionArgs, FunctionReference, FunctionReturnType } from 'convex/server';
@@ -18,16 +19,33 @@ class HoldingConvexClient extends ConvexReactClient {
 }
 
 const convexUrl = import.meta.env.VITE_CONVEX_URL!;
-export const convex: ConvexReactClient = new HoldingConvexClient(convexUrl);
+/*
+ * Every hook and one-shot read answers under this release's names, ahead of the emblem rename (see `readRenamedEmblems`).
+ * Hooks read through `watchQuery`, whose current answer is rewritten on each read and kept stable per answer.
+ */
+function readingRenamedWatches(client: ConvexReactClient): ConvexReactClient {
+  const watchQuery = client.watchQuery.bind(client);
+  const watch = watchQuery as unknown as (...args: never[]) => ReturnType<typeof watchQuery>;
+  client.watchQuery = ((...args: never[]) => {
+    const watched = watch(...args);
+    return { ...watched, localQueryResult: () => readRenamedEmblems(watched.localQueryResult()) };
+  }) as unknown as typeof client.watchQuery;
+  return readingRenamedEmblems(client, ['query', 'mutation', 'action']);
+}
+
+export const convex: ConvexReactClient = readingRenamedWatches(new HoldingConvexClient(convexUrl));
 
 /** Server reads never share the browser's authenticated client or open a WebSocket. */
 function convexBackendForDb(): ConvexReactClient | ConvexHttpClient {
   if (!import.meta.env.SSR) {
     return convex;
   }
-  return new ConvexHttpClient(convexUrl, {
-    logger: false,
-  });
+  return readingRenamedEmblems(new ConvexHttpClient(convexUrl, { logger: false }), [
+    'query',
+    'consistentQuery',
+    'mutation',
+    'action',
+  ]);
 }
 
 export const db = {

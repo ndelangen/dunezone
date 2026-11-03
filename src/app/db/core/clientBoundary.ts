@@ -1,4 +1,3 @@
-import { readRenamedEmblems } from '@shared/renamedEmblem';
 import type { z } from 'zod';
 
 /**
@@ -31,16 +30,13 @@ export function isStaleClientData(error: unknown): boolean {
   return error instanceof StaleClientDataError || (error instanceof Error && error.message.includes(MISSING_FUNCTION));
 }
 
-/**
- * Validate data entering the client runtime against this bundle's schema.
- * Data from the next release's emblem rename reads under this release's names first (see `readRenamedEmblems`).
- */
+/** Validate data entering the client runtime against this bundle's schema. */
 export function parseClientBoundary<Schema extends z.ZodType>(
   schema: Schema,
   value: unknown,
   context: string
 ): z.output<Schema> {
-  const result = schema.safeParse(readRenamedEmblems(value));
+  const result = schema.safeParse(value);
   if (!result.success) {
     throw new StaleClientDataError(context, { cause: result.error });
   }
