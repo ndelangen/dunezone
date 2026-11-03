@@ -241,8 +241,9 @@ rewrote (`StoredFactionSchema` on Convex reads, Edition Contents) can go back to
 The readers above, for copies outside Convex, and the `/vector/logo/*` route stay. The
 `discovery_presets` and `cardback_presets` validators, which list every stock artwork path, are
 widened to `v.any()` for the artwork fields in the rename release, because a strict validator
-refuses the deploy while rows still name `/vector/logo/`; narrow them back with a guard entry
-that requires their two verify migrations.
+refuses the deploy while rows still name `/vector/logo/`. They were narrowed back in the next
+release, after both verify migrations succeeded in production, behind the
+`emblem_rename_presets_narrow` guard entry.
 
 The deploy runs every widen id in alphabetical order (`deploySet` in
 `scripts/migration-guards.ts`); `requires` on a widen entry does not order anything. Name a

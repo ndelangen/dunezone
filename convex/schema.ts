@@ -6,6 +6,7 @@ import { v } from 'convex/values';
 import { componentGeometrySchema } from '../src/shared/asset-publishing/componentGeometry';
 import { cardbackPresetKeySchema } from '../src/shared/assets/cardbackPresetKeys';
 import { cardFrontPresetKeySchema, authoredCardFrontStyleSchema } from '../src/shared/assets/cardFrontPresets';
+import { CardBack } from '../src/shared/assets/schema';
 import { discoveryPresetSchema } from '../src/shared/backgrounds/families';
 import { backgroundPresetSchema } from '../src/shared/backgrounds/schema';
 import { playProvisionFailureReasonSchema, playStageSchema } from '../src/shared/play/admission';
@@ -50,17 +51,10 @@ export default defineSchema({
     ...authTables.authSessions.validator.fields,
     expiry_job_id: v.optional(v.id('_scheduled_functions')),
   }).index('userId', ['userId']),
-  /*
-   * Widened while the emblem rename's migrations run: rows written before it name stock emblems under `/vector/logo/`,
-   * which the derived artwork literals no longer list, so a strict validator would refuse the deploy that renames them.
-   * Narrowed back to the derived validators once `emblem_rename_discovery_presets_verify_v1` and `emblem_rename_cardback_presets_verify_v1` have succeeded.
-   */
-  discovery_presets: defineTable({
-    ...zodToConvex(discoveryPresetSchema).fields,
-    front: v.any(),
-    back: v.any(),
-    updated_at: v.number(),
-  }).index('by_key', ['key']),
+  discovery_presets: defineTable({ ...zodToConvex(discoveryPresetSchema).fields, updated_at: v.number() }).index(
+    'by_key',
+    ['key']
+  ),
   background_presets: defineTable({
     ...zodToConvex(backgroundPresetSchema).fields,
     updated_at: v.number(),
@@ -80,8 +74,7 @@ export default defineSchema({
   }).index('by_key', ['key']),
   cardback_presets: defineTable({
     key: zodToConvex(cardbackPresetKeySchema),
-    /* Widened for the emblem rename, like `discovery_presets` above. */
-    cardback: v.any(),
+    cardback: zodToConvex(CardBack),
     revision: v.number(),
     updated_at: v.number(),
   }).index('by_key', ['key']),

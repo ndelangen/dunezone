@@ -96,23 +96,21 @@ describe('Emblem rename migration', () => {
     expect(JSON.stringify(cards)).not.toContain('logo');
   });
 
-  test('a preset stored under the old path is accepted by the schema and renamed', async () => {
+  test('after the narrow, the schema refuses a preset that names the old path', async () => {
     const t = factionTest();
-    migrationsTest.register(t);
     const legacyBack = { ...INITIAL_CARDBACK_PRESETS[0]!.cardback, image: '/vector/logo/fremen.svg' };
-    const presetId = await t.run(
-      async (ctx) =>
-        await ctx.db.insert('cardback_presets', {
-          key: INITIAL_CARDBACK_PRESETS[0]!.key,
-          cardback: legacyBack,
-          revision: 1,
-          updated_at: 0,
-        })
-    );
-
-    await t.mutation(internal.emblemMigrations.emblem_rename_cardback_presets_v1, {});
-    const preset = await t.run(async (ctx) => await ctx.db.get('cardback_presets', presetId));
-    expect(preset!.cardback.image).toBe('/vector/emblem/fremen.svg');
+    await expect(
+      t.run(
+        async (ctx) =>
+          await ctx.db.insert('cardback_presets', {
+            key: INITIAL_CARDBACK_PRESETS[0]!.key,
+            /* The typed schema already refuses this path; the cast checks the runtime validator too. */
+            cardback: legacyBack as never,
+            revision: 1,
+            updated_at: 0,
+          })
+      )
+    ).rejects.toThrow();
   });
 
   test('verification refuses a row that still names a logo', async () => {

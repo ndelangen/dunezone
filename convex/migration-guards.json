@@ -647,6 +647,16 @@
       "requires": ["emblem_rename_cardback_presets_v1"]
     },
     {
+      "id": "emblem_rename_presets_narrow",
+      "phase": "narrow",
+      "requires": [
+        "emblem_rename_discovery_presets_v1",
+        "emblem_rename_discovery_presets_verify_v1",
+        "emblem_rename_cardback_presets_v1",
+        "emblem_rename_cardback_presets_verify_v1"
+      ]
+    },
+    {
       "id": "emblem_rename_rulebook_drafts_verify_v1",
       "phase": "widen",
       "requires": ["emblem_rename_rulebook_drafts_v1"]
