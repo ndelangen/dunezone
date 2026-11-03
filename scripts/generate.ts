@@ -11,6 +11,7 @@ import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader.js';
 import rasterLock from '../media/raster.lock.json';
 import { compareCodeUnits } from '../src/shared/compareText';
 import creditDefinitions from '../src/shared/media/credits.json';
+import { isRetiredStockAsset } from '../src/shared/retiredStockAssets';
 import stockAssetCollections from '../src/shared/stockAssetCollections.json';
 import { normalizeSvg } from '../src/shared/vectorNormalize';
 import { VECTOR_ARTWORK_ALIASES } from '../src/shared/vectorRules';
@@ -146,7 +147,9 @@ const mediaIndex = JSON.parse(readFileSync(join(mediaDirectory, 'media-index.jso
   { description: string; tags: string[]; subjects: string[]; credit: string; creditDetail?: string; sourceHash: string }
 >;
 const searchIndex = Object.fromEntries(
-  Object.entries(mediaIndex).map(([key, { description, tags, subjects }]) => [key, { description, tags, subjects }])
+  Object.entries(mediaIndex)
+    .filter(([key]) => !isRetiredStockAsset(key))
+    .map(([key, { description, tags, subjects }]) => [key, { description, tags, subjects }])
 );
 const searchIndexOutput = await format('mediaSearchIndex.generated.json', JSON.stringify(searchIndex), formatOptions);
 if (searchIndexOutput.errors.length > 0) {
