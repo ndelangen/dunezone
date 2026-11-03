@@ -3,6 +3,7 @@ import type { GameSnapshot } from '@shared/play/protocol';
 import type { GuideTask } from '@app/widgets/tutorial-guide/TutorialGuide';
 
 import type { ChapterScript } from './chapterScript';
+import type { Piece } from './guideChecks';
 import {
   at,
   closePieceMenu,
@@ -39,9 +40,21 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
   const treacheryDeck = () => tableDeck(snapshot, 'left');
   const cards = () => treacheryCards(snapshot());
   const reserve = () => snapshot().bank?.balance ?? 0;
-  /* Playing a private card gives it a new public handle. Flipping keeps that handle. */
-  const played = { id: null as string | null };
-  const playedCard = () => pieces().find((piece) => piece.id === played.id);
+  /*
+   * Playing a private card gives it a new public handle, and it gets another each time it goes back through the hand,
+   * as when "Play in front of me" plays it again. So the chapter follows every Treachery card that reached the table from
+   * the hand, not one handle: the pieces on the table when the chapter began are the ones that never did.
+   * The first task takes that count again, as Reset puts the table back.
+   */
+  const tableAtStart = () => new Set(pieces().map((piece) => piece.id));
+  const before = { ids: tableAtStart() };
+  const played = () =>
+    pieces().filter(
+      (piece) => !piece.inventory && !before.ids.has(piece.id) && piece.stackKey === treacheryDeck()?.stackKey
+    );
+  const faceUp = (piece: Piece) => piece.items.every((item) => item.faceUp);
+  /* The card the arrow points at: the latest one still face down, or failing that the latest played. */
+  const playedCard = () => played().findLast((piece) => !faceUp(piece)) ?? played().at(-1);
   return [
     task({
       id: 'draw',
@@ -49,7 +62,10 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       detail:
         "Let's give you a hand to practice with. Hover over the Treachery deck on the left and press {T} four times. Each card goes straight into your hand.\n\nYou can also right-click the deck and choose Draw a card.",
       anchor: { kind: 'table', point: () => at(treacheryDeck()) },
-      begin: () => cards().length,
+      begin: () => {
+        before.ids = tableAtStart();
+        return cards().length;
+      },
       done: (start) => cards().length >= start + 4,
       finish: closePieceMenu,
     }),
@@ -89,17 +105,8 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       detail:
         'Drag one of your Treachery cards from your hand onto a clear spot on the table, away from the decks and other cards.\n\nAnything you drag from your hand to the table lands face down, including cards. You choose when to reveal it.',
       anchor: { kind: 'page', element: element(HAND_CARD) },
-      begin: () => ({ hand: cards().length, table: new Set(pieces().map((piece) => piece.id)) }),
-      done: (start) => {
-        if (cards().length >= start.hand) {
-          return false;
-        }
-        played.id =
-          pieces().find(
-            (piece) => !piece.inventory && !start.table.has(piece.id) && piece.stackKey === treacheryDeck()?.stackKey
-          )?.id ?? null;
-        return played.id !== null;
-      },
+      begin: () => cards().length,
+      done: (start) => cards().length < start && played().length > 0,
     }),
     task({
       id: 'reveal',
@@ -107,7 +114,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       detail: 'To show everyone your card, hover over it and press {F} to turn it face up.',
       anchor: { kind: 'table', point: () => at(playedCard()) },
       begin: () => undefined,
-      done: () => playedCard()?.items.every((item) => item.faceUp) === true,
+      done: () => played().some(faceUp),
     }),
     task({
       id: 'withdraw',

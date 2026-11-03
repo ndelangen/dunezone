@@ -71,3 +71,46 @@ test('playing follows the new public card through its face-down drop and reveal'
   publicCard.items[0]!.faceUp = true;
   expect(reveal.done(revealStart as never, view)).toBe(true);
 });
+
+test('revealing follows a card that went back through the hand and came out under a new handle', () => {
+  const { snapshot, task } = exercise();
+  snapshot.hand = [card('private-a'), card('private-b')];
+  const play = task('play');
+  const start = play.begin(view);
+  snapshot.hand.pop();
+  const first = card('public-b');
+  snapshot.table.pieces.push(first);
+  expect(play.done(start as never, view)).toBe(true);
+  const reveal = task('reveal');
+  const revealStart = reveal.begin(view);
+  /* Taken back into the hand, then played in front of the player again: the room gives it a new handle. */
+  snapshot.table.pieces = snapshot.table.pieces.filter((piece) => piece !== first);
+  const again = { ...card('public-b-again'), position: [2, 0, 2] } as Piece;
+  snapshot.table.pieces.push(again);
+  expect(reveal.done(revealStart as never, view)).toBe(false);
+  if (reveal.anchor.kind === 'table') {
+    expect(reveal.anchor.point()).toEqual(again.position);
+  }
+  again.items[0]!.faceUp = true;
+  expect(reveal.done(revealStart as never, view)).toBe(true);
+});
+
+test('a card played before its task counts, and turning the decks over does not', () => {
+  const { snapshot, task } = exercise();
+  snapshot.hand = [card('private-a'), card('private-b')];
+  snapshot.hand.pop();
+  const early = card('public-early');
+  snapshot.table.pieces.push(early);
+  const play = task('play');
+  const start = play.begin(view);
+  snapshot.hand.pop();
+  expect(play.done(start as never, view)).toBe(true);
+  const reveal = task('reveal');
+  const revealStart = reveal.begin(view);
+  for (const deck of snapshot.table.pieces.filter((piece) => piece !== early)) {
+    deck.items[0]!.faceUp = true;
+  }
+  expect(reveal.done(revealStart as never, view)).toBe(false);
+  early.items[0]!.faceUp = true;
+  expect(reveal.done(revealStart as never, view)).toBe(true);
+});
