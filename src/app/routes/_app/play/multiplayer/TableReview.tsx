@@ -1,4 +1,4 @@
-import { Button, Group, Stack, Text } from '@mantine/core';
+import { Anchor, Button, Group, Stack, Text } from '@mantine/core';
 import { reviewRunning } from '@shared/play/review';
 import type { TableReview } from '@shared/play/review';
 import { FormError } from '@ui/block/FormError';
@@ -100,10 +100,11 @@ function agreedCount(current: TableReview) {
 }
 
 /**
- * The header while a review is asked for or runs: who asked to look back at what, and what the viewer can answer.
+ * The header while a review is asked for or runs: who asked to look back at what, and what the viewer can answer;
+ * Mentat recall links to its window, where the proposer withdraws.
  * A running review replaces the stage's controls, since the table takes no move until play resumes.
  */
-export function TableReviewBar({ client, table }: Props) {
+export function TableReviewBar({ client, table, onOpenRecall }: Props & Readonly<{ onOpenRecall?: () => void }>) {
   const review = table.review;
   const current = review?.current;
   if (!review || !current) {
@@ -116,13 +117,21 @@ export function TableReviewBar({ client, table }: Props) {
       </Group>
     );
   }
+  const own = current.proposer.seat === review.seat;
+  const recall = onOpenRecall ? (
+    <Anchor component="button" type="button" inherit onClick={onOpenRecall}>
+      Mentat recall
+    </Anchor>
+  ) : (
+    'Mentat recall'
+  );
   return (
-    <Group gap="xs" justify="flex-end" wrap="nowrap" role="group" aria-label="Mentat recall vote">
+    <Group gap="xs" justify="flex-end" align="center" wrap="nowrap" role="group" aria-label="Mentat recall vote">
       <Text size="sm" role="status">
-        {current.proposer.name} asks to recall <strong>{current.context}</strong> ({agreedCount(current)} of{' '}
-        {current.threshold} agreed)
+        {own ? 'You ask' : `${current.proposer.name} asks`} to {recall} <strong>{current.context}</strong> (
+        {agreedCount(current)} of {current.threshold} agreed)
       </Text>
-      <ProposalActions client={client} review={review} current={current} />
+      {!own && <ProposalActions client={client} review={review} current={current} />}
     </Group>
   );
 }

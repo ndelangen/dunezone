@@ -34,12 +34,15 @@ export function stageToolbar({
   error,
   bidderFaded,
   onBidderFadedChange,
+  onOpenRecall,
 }: Readonly<{
   client: TableSession;
   table: TableProjection;
   error: string | null;
   bidderFaded: boolean;
   onBidderFadedChange: (faded: boolean) => void;
+  /** Opens the Mentat recall window, as the header's open recall vote links to it. */
+  onOpenRecall?: () => void;
 }>) {
   const stage = table.snapshot.stage;
   const inPlay = stageInPlay(stage);
@@ -61,7 +64,7 @@ export function stageToolbar({
   if (inPlay || settingUp(table)) {
     return (
       <>
-        <TableReviewBar client={client} table={table} />
+        <TableReviewBar client={client} table={table} onOpenRecall={onOpenRecall} />
         {inPlay && (
           <BidderToolbar client={client} table={table} faded={bidderFaded} onFadedChange={onBidderFadedChange} />
         )}
