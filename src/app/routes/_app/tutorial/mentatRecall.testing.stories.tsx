@@ -84,9 +84,11 @@ async function enterRecall({ enterAt, step, open, firstCheckpoint, page }: Chapt
   await firstCheckpoint();
   await userEvent.click(page.getByRole('button', { name: 'Ask the table to recall' }));
   await step('Agree to recall');
+  /* The header links Mentat recall to its window, where the proposer withdraws. */
   await userEvent.click(
-    within(page.getByRole('group', { name: 'Mentat recall vote' })).getByRole('button', { name: 'Withdraw' })
+    within(page.getByRole('group', { name: 'Mentat recall vote' })).getByRole('button', { name: 'Mentat recall' })
   );
+  await userEvent.click(await page.findByRole('button', { name: 'Withdraw' }));
   await page.findByRole('button', { name: 'Ask the table to recall' });
   await userEvent.keyboard('{Enter}');
   await step('Agree to recall');

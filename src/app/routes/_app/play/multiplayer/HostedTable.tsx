@@ -24,6 +24,7 @@ import { usePreloadedCardFaces } from '../../../../widgets/tabletop/cardFacePrel
 import { PredictionEmblemsContext } from '../../../../widgets/tabletop/prediction/predictionFace';
 import { TabletopSessionProvider } from '../../../../widgets/tabletop/TabletopContext';
 import { BrowserDiagnostics } from '../browserDiagnostics';
+import { CompassEpochContext } from '../compass/compassEpoch';
 import type { CompassTable } from '../compass/compassTable';
 import { CompassTableContext } from '../compass/compassTable';
 import { FoilConfetti } from '../FoilConfetti';
@@ -191,6 +192,25 @@ function useWindowFocus(table: TableProjection, progress: ReturnType<typeof game
     setState(next);
   }
   return next.focus;
+}
+
+type WindowFocus = ReturnType<typeof useWindowFocus>;
+
+/*
+ * A window the header asks for, such as Mentat recall from its vote, opens in the centre like the compass opens it.
+ * The table's next event focus, or a fresh start of the controls, takes over again.
+ */
+function useAskedWindow(focus: WindowFocus) {
+  /* The tutorial's Reset starts the controls afresh, so a window asked for before it must not open itself on the next run. */
+  const epoch = useContext(CompassEpochContext);
+  const [asked, setAsked] = useState<{ key: string; token: string; placement: 'centre' } | null>(null);
+  const [followed, setFollowed] = useState({ token: focus?.token, epoch });
+  if (focus?.token !== followed.token || epoch !== followed.epoch) {
+    setFollowed({ token: focus?.token, epoch });
+    setAsked(null);
+  }
+  const open = (key: string) => setAsked({ key, token: `asked:${crypto.randomUUID()}`, placement: 'centre' });
+  return [asked ?? focus, open] as const;
 }
 
 /*
@@ -584,7 +604,7 @@ function ConnectedTable({
 }>) {
   const bugReport = useBugReport({ gameId, client, table, connection, diagnostics });
   const progress = gameProgress(table.snapshot);
-  const focus = useWindowFocus(table, progress);
+  const [focus, openWindow] = useAskedWindow(useWindowFocus(table, progress));
   const celebration = useResultCelebration(table);
   const declare = useDeclareChoice(table);
   /* Each player fades the bidder for themselves, so the choice stays in this browser tab. */
@@ -613,7 +633,14 @@ function ConnectedTable({
               connectionStatus={<ConnectionStatus table={table} />}
               alliances={<AllianceStrip table={table} />}
               techTokens={<TechTokenStrip table={table} />}
-              toolbarControl={stageToolbar({ client, table, error, bidderFaded, onBidderFadedChange: setBidderFaded })}
+              toolbarControl={stageToolbar({
+                client,
+                table,
+                error,
+                bidderFaded,
+                onBidderFadedChange: setBidderFaded,
+                onOpenRecall: () => openWindow('review'),
+              })}
               /* The gathered Traitor pile lies under the Tleilaxu Tanks, below the Map view's frame on a wide screen (#1635). */
               requestedView={table.traitorsGathered ? { view: 'bottom', revision: table.traitorsGathered } : undefined}
               showStormControls={offersActions(table) && stageInPlay(stage) && progress.activePhaseId === 'storm'}

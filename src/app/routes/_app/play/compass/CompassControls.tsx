@@ -142,7 +142,9 @@ function Controls({
     },
     active
   );
-  useFocusedWindow(focus, windows, focus?.placement === 'centre' ? opened.show : opened.reveal, active);
+  /* A centre focus opens a closed window in the centre and brings one already open forward, never closing it. */
+  const centre = (key: string) => (opened.isOpen(key) ? opened.reveal(key) : opened.show(key));
+  useFocusedWindow(focus, windows, focus?.placement === 'centre' ? centre : opened.reveal, active);
   const compass = useCompass({
     open: open && active,
     onOpen: setOpen,
