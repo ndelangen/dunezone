@@ -24,6 +24,10 @@ const convexUrl = import.meta.env.VITE_CONVEX_URL!;
  * Hooks read through `watchQuery`, whose current answer is rewritten on each read and kept stable per answer.
  */
 function readingRenamedWatches(client: ConvexReactClient): ConvexReactClient {
+  /* Storybook stands a client in that has no live queries. */
+  if (typeof client.watchQuery !== 'function') {
+    return readingRenamedEmblems(client, ['query', 'mutation', 'action']);
+  }
   const watchQuery = client.watchQuery.bind(client);
   const watch = watchQuery as unknown as (...args: never[]) => ReturnType<typeof watchQuery>;
   client.watchQuery = ((...args: never[]) => {

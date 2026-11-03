@@ -78,7 +78,12 @@ export function readingRenamedEmblems<Client extends object>(
 ): Client {
   const methods = client as unknown as Record<string, Method>;
   for (const name of asyncMethods) {
-    const original = methods[name]!.bind(client);
+    /* A stand-in client, such as Storybook's, may leave a method out. */
+    const method = methods[name];
+    if (typeof method !== 'function') {
+      continue;
+    }
+    const original = method.bind(client);
     methods[name] = async (...args: never[]) => readRenamedEmblems(await original(...args));
   }
   return client;
