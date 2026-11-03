@@ -19,7 +19,7 @@ const leaderToken = (name: string, image: ComponentProps<typeof LeaderToken>['im
     <LeaderToken
       background={artwork.background}
       image={image}
-      logo="/vector/logo/atreides.svg"
+      emblem="/vector/emblem/atreides.svg"
       name={name}
       strength={strength}
     />

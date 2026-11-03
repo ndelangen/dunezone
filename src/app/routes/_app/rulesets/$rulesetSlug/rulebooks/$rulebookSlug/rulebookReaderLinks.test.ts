@@ -25,7 +25,7 @@ import {
 } from './rulebookReaderLinks';
 import type { RulebookTextLocator } from './rulebookReaderLinks';
 
-type RulebookContentsDraft = z.input<typeof rulebookContentsV1Schema>;
+type RulebookContentsDraft = z.input<typeof rulebookContentsV1Schema.out>;
 
 function resolveFinalPageSelection(page: RulebookContentsDraft['pagesById'][string], exact: string, pageNumber = 1) {
   const cover = {

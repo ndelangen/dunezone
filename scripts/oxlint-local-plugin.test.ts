@@ -274,7 +274,7 @@ export const probe = [
   <Timeline.Item title="Turn 2" />,
   <Card title="Members" />,
   <iframe title="Video" src="about:blank" />,
-  <svg><title>Logo</title></svg>,
+  <svg><title>Emblem</title></svg>,
 ];
 `
     );

@@ -12,7 +12,7 @@ it('exposes one visible semantic target per rendered Leader part', () => {
     name: 'Duncan Idaho',
     strength: '2',
     image: '/image/leader/official/duncan.png',
-    logo: '/vector/logo/atreides.svg',
+    emblem: '/vector/emblem/atreides.svg',
     background: {
       image: '/image/texture/021.jpg',
       colors: ['#3e6337', '#132810'],

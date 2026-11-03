@@ -197,7 +197,7 @@ function ArtifactProof({
               <LeaderToken
                 background={faction.background}
                 image={faction.factionLeader.image}
-                logo={faction.logo}
+                emblem={faction.emblem}
                 name={faction.factionLeader.name}
                 strength={undefined}
               />
@@ -211,7 +211,7 @@ function ArtifactProof({
                 <LeaderToken
                   background={faction.background}
                   image={selectedLeader.image}
-                  logo={faction.logo}
+                  emblem={faction.emblem}
                   name={selectedLeader.name}
                   strength={selectedLeader.strength}
                 />
@@ -224,7 +224,7 @@ function ArtifactProof({
                         <LeaderToken
                           background={faction.background}
                           image={leader.image}
-                          logo={faction.logo}
+                          emblem={faction.emblem}
                           name={leader.name}
                           strength={leader.strength}
                         />
@@ -248,7 +248,7 @@ function ArtifactProof({
               <AllianceCard
                 background={faction.background}
                 decals={faction.decals}
-                logo={faction.logo}
+                emblem={faction.emblem}
                 text={faction.rules.alliance.text}
                 title={faction.name}
                 troop={selectedTroop.image}
@@ -413,7 +413,7 @@ function ArtifactProof({
             {activeChapter === 'identity' ? (
               <>
                 <Box className={styles.tokenProof} data-faction-token-proof>
-                  <Token background={faction.background} logo={faction.logo} />
+                  <Token background={faction.background} emblem={faction.emblem} />
                 </Box>
                 <Box className={styles.identityProof}>
                   {artifact}

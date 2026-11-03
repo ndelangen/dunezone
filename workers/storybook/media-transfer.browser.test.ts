@@ -9,16 +9,16 @@ import { afterAll, afterEach, beforeAll, expect, test, vi } from 'vite-plus/test
 import worker from './index';
 
 const imagePath = '/image/rulebook-cover/stone-circle-small.jpg';
-const logoPath = '/web/logo.svg';
+const emblemPath = '/web/logo.svg';
 const server = createServer((request, response) => {
-  if (request.url === '/' || request.url === '/logo') {
+  if (request.url === '/' || request.url === '/emblem') {
     response.writeHead(200, { 'Content-Type': 'text/html' });
     response.end(
-      `<!doctype html><img alt="${request.url === '/logo' ? 'Logo' : 'Cover'}" src="${request.url === '/logo' ? logoPath : imagePath}">`
+      `<!doctype html><img alt="${request.url === '/emblem' ? 'Emblem' : 'Cover'}" src="${request.url === '/emblem' ? emblemPath : imagePath}">`
     );
     return;
   }
-  if (request.url !== imagePath && request.url !== logoPath) {
+  if (request.url !== imagePath && request.url !== emblemPath) {
     response.writeHead(404);
     response.end();
     return;
@@ -136,7 +136,7 @@ test('a complete response containing corrupt image bytes still fails decoding wi
   }
 });
 
-test('the logo loads without a browser error after one upstream connection loss', async () => {
+test('the emblem loads without a browser error after one upstream connection loss', async () => {
   const upstream = vi
     .spyOn(globalThis, 'fetch')
     .mockRejectedValueOnce(new Error('Network connection lost.'))
@@ -154,21 +154,21 @@ test('the logo loads without a browser error after one upstream connection loss'
     }
   });
   page.on('request', (request) => {
-    if (new URL(request.url()).pathname === logoPath) {
+    if (new URL(request.url()).pathname === emblemPath) {
       requests.push(request.url());
     }
   });
   try {
-    await page.goto(`${origin}/logo`);
+    await page.goto(`${origin}/emblem`);
     expect(errors).toEqual([]);
-    const image = page.getByRole('img', { name: 'Logo' });
+    const image = page.getByRole('img', { name: 'Emblem' });
     await image.evaluate((element: HTMLImageElement) => element.decode());
     expect(await image.evaluate((element: HTMLImageElement) => [element.naturalWidth, element.naturalHeight])).toEqual([
       24, 16,
     ]);
     expect(upstream).toHaveBeenCalledTimes(2);
-    expect(upstream).toHaveBeenNthCalledWith(2, `https://dune.zone${logoPath}`, { method: 'GET' });
-    expect(requests).toEqual([`${origin}${logoPath}`]);
+    expect(upstream).toHaveBeenNthCalledWith(2, `https://dune.zone${emblemPath}`, { method: 'GET' });
+    expect(requests).toEqual([`${origin}${emblemPath}`]);
   } finally {
     await page.close();
   }

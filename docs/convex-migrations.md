@@ -170,7 +170,8 @@ bun run migrations:static-check
 
 - Migrations live in [`convex/migrations.ts`](../convex/migrations.ts) and, since it reached its size limit,
   in [`convex/catalogueMigrations.ts`](../convex/catalogueMigrations.ts) for newer catalogue backfills and
-  [`convex/legacyDataMigrations.ts`](../convex/legacyDataMigrations.ts) for the 27 Oct 2026 legacy-row rewrites.
+  [`convex/legacyDataMigrations.ts`](../convex/legacyDataMigrations.ts) for the 27 Oct 2026 legacy-row rewrites, and
+  [`convex/emblemMigrations.ts`](../convex/emblemMigrations.ts) for the November 2026 emblem rename.
   All share the one migrations component and `MIGRATION_IDS`, which spreads each module's own ID map, so the
   guard script runs them alike. The `migrations:run` runner only prefixes `migrations:`, so name a migration in
   another module in full by hand, e.g. `{"fn":"catalogueMigrations:catalogue_entries_rulesets_v1"}`.
@@ -206,3 +207,47 @@ a preset link. Reverting to a reader that only understands custom and reference 
 unsafe. Stop further edits or publication pickup while repairing the release, keep the last
 usable publications, and deploy the fix forward. No production data repair or automatic
 conversion of linked decks into custom compositions is part of this release.
+
+## Renaming a key every runtime reads (the emblem rename)
+
+Production deploys Convex and runs its migrations 15 to 40 minutes before the game Worker and the
+app and publisher Worker. A rename of a key or path that Convex answers with therefore reaches
+Workers and open tabs one release behind, whose decoders are strict. The emblem rename
+(`logo` to `emblem`, `/vector/logo/` to `/vector/emblem/`, November 2026) shipped in two releases:
+
+1. **Reader first** (PR #2653). Every Convex client seam (the browser and server clients in
+   `src/app/db/core`, the game Worker's HTTP client, the publisher's executor client and the
+   capture page) read answers under the next names back to the current ones, and the publisher
+   Worker served `/vector/emblem/*` from `/vector/logo/`. No data changed.
+2. **Rename and migrate.** Code, UI and artwork move to the new names; `emblemMigrations.ts`
+   rewrites every stored row, `faction_cards_v2` rebuilds the cards under
+   `FACTION_CARD_PROJECTION` 2, and the verify migrations fail the deploy while any row still holds
+   an old name. The reader from step 1 is removed in the same release.
+
+What stays after the rename, because some copies can never be rewritten (game captures in Durable
+Object storage, published rulebook HTML, content packages exported before it):
+
+- `renameLegacyEmblems` at the stored roots that can meet such a copy (`legacyEmblemKeyed` in
+  `src/shared/legacyEmblem.ts`): faction writes and publication payloads, game captures, snapshots
+  and drafts, draft rulebook Contents and asset writes (raw JSON and content packages). The artwork
+  enums take the new names only. Never wrap a schema a Convex validator is derived from: the
+  derived validator becomes `v.any()`.
+- The publisher Worker's `/vector/logo/*` route, which answers with the renamed file and never
+  redirects (an SVG `<use>` does not follow one). It is permanent.
+
+Narrowing later: once every verify migration has succeeded in production, the migration bodies
+may become no-ops with their ids kept (snapshot replay), and the readers over rows the migration
+rewrote (`StoredFactionSchema` on Convex reads, Edition Contents) can go back to the exact schemas.
+The readers above, for copies outside Convex, and the `/vector/logo/*` route stay. The
+`discovery_presets` and `cardback_presets` validators, which list every stock artwork path, are
+widened to `v.any()` for the artwork fields in the rename release, because a strict validator
+refuses the deploy while rows still name `/vector/logo/`. They were narrowed back in the next
+release, after both verify migrations succeeded in production, behind the
+`emblem_rename_presets_narrow` guard entry. A snapshot cut before the rename (the weekly one before
+9 November 2026) can hold preset rows the narrowed validators refuse, because `--data=snapshot`
+imports before the deploy that would migrate them; load `--data=fixture` or a newer
+`--snapshot-file` instead.
+
+The deploy runs every widen id in alphabetical order (`deploySet` in
+`scripts/migration-guards.ts`); `requires` on a widen entry does not order anything. Name a
+verify migration so it sorts after the migrations it checks.

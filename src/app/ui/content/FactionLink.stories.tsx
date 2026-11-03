@@ -9,7 +9,7 @@ const meta = preview.meta({
   args: {
     slug: 'house-atreides',
     name: 'House Atreides',
-    logo: assetPublishingFaction.logo,
+    emblem: assetPublishingFaction.emblem,
     background: assetPublishingFaction.background,
   },
 });

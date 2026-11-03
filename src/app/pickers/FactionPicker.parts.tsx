@@ -18,7 +18,7 @@ export function factionLoadOwnerLabel(row: Pick<FactionLoadPickerRow, 'ownerUser
 export type FactionLoadOptionRowProps = {
   name: string;
   slug: string;
-  logo: FactionData['logo'];
+  emblem: FactionData['emblem'];
   background: FactionData['background'];
   ownerLabel: string;
   groupLabel: string;
@@ -28,7 +28,7 @@ export type FactionLoadOptionRowProps = {
 export function FactionLoadOptionRow({
   name,
   slug,
-  logo,
+  emblem,
   background,
   ownerLabel,
   groupLabel,
@@ -38,7 +38,7 @@ export function FactionLoadOptionRow({
     <Group gap="sm" wrap="nowrap" align="center">
       <Box aria-hidden w={30} h={30} miw={30} style={{ display: 'grid', placeItems: 'center' }}>
         <Box w="100%" h="100%">
-          <FactionToken logo={logo} background={background} />
+          <FactionToken emblem={emblem} background={background} />
         </Box>
       </Box>
       <Stack gap="xs" miw={0}>

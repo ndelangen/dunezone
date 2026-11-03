@@ -1,0 +1,342 @@
+/*
+ * The room and its browsers as a line drawing in sand ink, with the pulses of one round running along the connections.
+ * Every pulse is one keyframe run per round, timed as a share of `--cycle`, which the component sets to the same length as its timer.
+ */
+.root {
+  --ink: #f0e8da;
+  --muted: #bfb09a;
+  --sand: #d5ba8c;
+  --spice: #b8842f;
+  --cycle: 4200ms;
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  align-self: center;
+  box-sizing: border-box;
+  width: min(36rem, 100%);
+  padding-block: var(--space-sm);
+}
+
+/* The drawing's box, sized by its aspect ratio so the pulses over it can be placed in its own units: `--u` is one unit of the 480 wide viewBox. */
+.stage {
+  --u: calc(100cqw / 480);
+
+  position: relative;
+  width: 100%;
+  container-type: size;
+}
+
+.scene {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 0 2px rgb(0 0 0 / 85%));
+}
+
+.pulses {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.contents {
+  display: contents;
+}
+
+.link {
+  stroke: var(--sand);
+  stroke-width: 1.2;
+  opacity: 0.45;
+  transition: opacity 400ms ease;
+}
+
+.activeLink {
+  opacity: 0.9;
+}
+
+.faint {
+  stroke: var(--muted);
+  stroke-width: 1;
+  stroke-dasharray: 2 4;
+  opacity: 0.5;
+}
+
+.convex rect {
+  fill: rgb(33 29 24 / 80%);
+  stroke: var(--muted);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.convex .label,
+.convex .tiny {
+  fill: var(--muted);
+}
+
+.room rect {
+  fill: #211d18;
+  stroke: var(--spice);
+  stroke-width: 1.6;
+}
+
+.database {
+  fill: none;
+  stroke: var(--sand);
+  stroke-width: 1.3;
+  stroke-linecap: round;
+}
+
+.thin {
+  stroke-width: 0.7;
+  opacity: 0.7;
+}
+
+.title,
+.label,
+.tiny {
+  fill: var(--ink);
+  stroke: none;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  text-anchor: middle;
+}
+
+.title {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.label {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+
+.tiny {
+  font-size: 8.5px;
+  letter-spacing: 0.1em;
+  opacity: 0.8;
+}
+
+.screen {
+  --seat: #bfb09a;
+}
+
+.frame {
+  fill: #211d18;
+  stroke: var(--sand);
+  stroke-width: 1.2;
+}
+
+.bar {
+  fill: #352e25;
+}
+
+.dot {
+  fill: var(--seat);
+}
+
+.table {
+  fill: #53412e;
+  stroke: var(--sand);
+  stroke-width: 0.8;
+}
+
+.seatDot {
+  fill: var(--seat);
+}
+
+.screen .label {
+  font-size: 10px;
+  font-weight: 700;
+  fill: var(--seat);
+  paint-order: stroke;
+  stroke: #211d18;
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
+/* A pulse glides along its line between `--x0 --y0` and `--x1 --y1`, set per pulse by the component; only `translate` and opacity change while it runs. */
+.up,
+.out,
+.saveRing,
+.flash {
+  --x0: 0;
+  --y0: 0;
+  --x1: 0;
+  --y1: 0;
+
+  position: absolute;
+  top: 0;
+  left: 0;
+  opacity: 0;
+  translate: calc(var(--x0) * var(--u)) calc(var(--y0) * var(--u));
+  animation: glide var(--cycle) cubic-bezier(0.4, 0, 0.6, 1) 1 forwards;
+}
+
+.up,
+.out {
+  width: calc(10 * var(--u));
+  height: calc(10 * var(--u));
+  margin: calc(-5 * var(--u));
+  border-radius: 50%;
+  background: var(--seat, var(--ink));
+  box-shadow: 0 0 2px rgb(0 0 0 / 85%);
+  will-change: translate, opacity;
+}
+
+.out {
+  width: calc(8 * var(--u));
+  height: calc(8 * var(--u));
+  margin: calc(-4 * var(--u));
+  background: var(--ink);
+  animation-name: glide-out;
+}
+
+@keyframes glide {
+  0% {
+    opacity: 1;
+    translate: calc(var(--x0) * var(--u)) calc(var(--y0) * var(--u));
+  }
+
+  22% {
+    opacity: 1;
+    translate: calc(var(--x1) * var(--u)) calc(var(--y1) * var(--u));
+  }
+
+  24%,
+  100% {
+    opacity: 0;
+    translate: calc(var(--x1) * var(--u)) calc(var(--y1) * var(--u));
+  }
+}
+
+@keyframes glide-out {
+  0%,
+  38% {
+    opacity: 0;
+    translate: calc(var(--x0) * var(--u)) calc(var(--y0) * var(--u));
+  }
+
+  40% {
+    opacity: 1;
+  }
+
+  62% {
+    opacity: 1;
+    translate: calc(var(--x1) * var(--u)) calc(var(--y1) * var(--u));
+  }
+
+  64%,
+  100% {
+    opacity: 0;
+    translate: calc(var(--x1) * var(--u)) calc(var(--y1) * var(--u));
+  }
+}
+
+/* The database blinks as the room saves, between the pulse in and the pulses out. */
+.saveRing {
+  box-sizing: border-box;
+  width: calc(44 * var(--u));
+  height: calc(44 * var(--u));
+  margin: calc(-22 * var(--u));
+  border: 2px solid var(--spice);
+  border-radius: 50%;
+  animation-name: save;
+  animation-timing-function: ease-out;
+}
+
+@keyframes save {
+  0%,
+  22% {
+    opacity: 0;
+    scale: 0.6;
+  }
+
+  26% {
+    opacity: 1;
+  }
+
+  38%,
+  100% {
+    opacity: 0;
+    scale: 1.1;
+  }
+}
+
+.flash {
+  --seat: #bfb09a;
+
+  width: calc(112 * var(--u));
+  height: calc(70 * var(--u));
+  border-radius: calc(6 * var(--u));
+  background: var(--seat);
+  animation-name: flash;
+  animation-timing-function: ease-out;
+}
+
+@keyframes flash {
+  0%,
+  60% {
+    opacity: 0;
+  }
+
+  64% {
+    opacity: 0.22;
+  }
+
+  80%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-xs) var(--space-md);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--muted);
+  font-size: var(--mantine-font-size-xs);
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.number {
+  display: grid;
+  place-items: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 0.65rem;
+}
+
+/* While the loop runs, the step whose moment it is stands out; the switch is a class change from a timer, so nothing animates on the text itself. */
+.legendPlaying .step {
+  color: var(--ink);
+  opacity: 0.45;
+}
+
+.legendPlaying .lit {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .up,
+  .out,
+  .saveRing,
+  .flash {
+    animation: none;
+  }
+}

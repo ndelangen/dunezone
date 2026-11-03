@@ -31,13 +31,26 @@ export type BlogPostMeta = {
  * A folder beside it, like `posts/anatomy/`, holds that post's own figures and follows the same naming rule.
  */
 export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
+  'playing-dune-online-in-real-time': {
+    slug: 'playing-dune-online-in-real-time',
+    title: 'Playing Dune online in real time: how hands, moving pieces and secret cards work',
+    date: '2026-11-03',
+    author: 'Central419',
+    summary:
+      "What happens between your mouse and everyone else's screen on the dune.zone game table: the hands you see moving, a piece in flight, how every table stays in step, and how your cards stay yours.",
+    cover: {
+      key: '/web/blog/playing-dune-online-in-real-time/table-in-play.jpg',
+      alt: 'A six-player game on the dune.zone game table in Shipment and Movement: troops in the strongholds, spice on the board and the treachery decks',
+      aspect: 1110 / 2048,
+    },
+  },
   'anatomy-of-a-dune-faction-atreides': {
     slug: 'anatomy-of-a-dune-faction-atreides',
     title: 'Anatomy of a Dune faction: how House Atreides becomes every card, token and sheet',
     date: '2026-10-30',
     author: 'Central419',
     summary:
-      'House Atreides, taken apart: the logo, colours, leaders and rules it is made of, and how dune.zone draws every card, token and sheet from that one faction.',
+      'House Atreides, taken apart: the emblem, colours, leaders and rules it is made of, and how dune.zone draws every card, token and sheet from that one faction.',
     cover: {
       key: '/web/blog/anatomy-of-a-dune-faction-atreides/atreides-table-spread.jpg',
       alt: 'House Atreides laid out on a table: its shield, both faction sheet pages, five traitor cards, the alliance card, leader tokens, faction token and troops',

@@ -1084,6 +1084,7 @@
         "wire.svg",
         "zenobia.svg"
       ],
+      "/vector/emblem/": ["ginaz.svg", "hagal.svg", "iduali.svg"],
       "/vector/generic/": [
         "6star.svg",
         "8472.svg",
@@ -1335,7 +1336,6 @@
         "x.svg",
         "zap.svg"
       ],
-      "/vector/logo/": ["ginaz.svg", "hagal.svg", "iduali.svg"],
       "/vector/troop/": [
         "blaster.svg",
         "coat.svg",
@@ -1804,81 +1804,8 @@
         "stronghold-tuek.svg"
       ]
     },
-    "gf9-icon": {
-      "/vector/icon/": [
-        "alliance.svg",
-        "ambassador.svg",
-        "balance.svg",
-        "bidding_disc.svg",
-        "bidding_standalone.svg",
-        "city.svg",
-        "collection_disc.svg",
-        "collection_standalone.svg",
-        "combat_disc.svg",
-        "combat.svg",
-        "diamond.svg",
-        "disc.svg",
-        "down.svg",
-        "drup.svg",
-        "engineering.svg",
-        "eye.svg",
-        "fate.svg",
-        "flip.svg",
-        "hand-alt.svg",
-        "hand.svg",
-        "heighliners.svg",
-        "herb.svg",
-        "hms.svg",
-        "karama.svg",
-        "key.svg",
-        "keyhole.svg",
-        "kwisatz.svg",
-        "landscape.svg",
-        "lightning.svg",
-        "mentat.svg",
-        "nexus.svg",
-        "ornithopter.svg",
-        "poison.svg",
-        "projectile.svg",
-        "revival_standalone.svg",
-        "revival.svg",
-        "seitch.svg",
-        "shai-hulud.svg",
-        "shield.svg",
-        "shipment_disc.svg",
-        "snake.svg",
-        "snooper.svg",
-        "snowman.svg",
-        "spice-alt.svg",
-        "spice-blow_disc.svg",
-        "spice-blow_standalone.svg",
-        "spice-mine.svg",
-        "spice.svg",
-        "storm_disc.svg",
-        "storrm_standalone.svg",
-        "stronghold-multicolor.svg",
-        "stronghold.svg",
-        "tools.svg",
-        "traitor.svg",
-        "treachery.svg",
-        "turn.svg",
-        "up.svg",
-        "water.svg",
-        "waves.svg",
-        "worthless.svg",
-        "wreath.svg"
-      ]
-    },
-    "dune-zone-icon": {
-      "/vector/icon/": [
-        "faction-complexity-1.svg",
-        "faction-complexity-2.svg",
-        "faction-complexity-3.svg",
-        "faction-complexity-4.svg"
-      ]
-    },
     "ai-emblem": {
-      "/vector/logo/": [
+      "/vector/emblem/": [
         "antler-tower.svg",
         "blade-bridge.svg",
         "broken-spear.svg",
@@ -1950,7 +1877,7 @@
       ]
     },
     "dune-logo-trace": {
-      "/vector/logo/": [
+      "/vector/emblem/": [
         "apocrypha.svg",
         "atreides-extended.svg",
         "bene-gesserit-2021.svg",
@@ -1969,7 +1896,7 @@
       ]
     },
     "gf9-emblem": {
-      "/vector/logo/": [
+      "/vector/emblem/": [
         "atreides.svg",
         "bene-gesserit.svg",
         "bene-tleilaxu.svg",
@@ -1985,7 +1912,7 @@
       ]
     },
     "dune-awakening-emblem": {
-      "/vector/logo/": [
+      "/vector/emblem/": [
         "dune-awakening-house-alexin.svg",
         "dune-awakening-house-argosaz.svg",
         "dune-awakening-house-dyvetz.svg",
@@ -2011,6 +1938,79 @@
         "dune-awakening-house-wallach.svg",
         "dune-awakening-house-wayku.svg",
         "dune-awakening-house-wydras.svg"
+      ]
+    },
+    "gf9-icon": {
+      "/vector/icon/": [
+        "alliance.svg",
+        "ambassador.svg",
+        "balance.svg",
+        "bidding_disc.svg",
+        "bidding_standalone.svg",
+        "city.svg",
+        "collection_disc.svg",
+        "collection_standalone.svg",
+        "combat_disc.svg",
+        "combat.svg",
+        "diamond.svg",
+        "disc.svg",
+        "down.svg",
+        "drup.svg",
+        "engineering.svg",
+        "eye.svg",
+        "fate.svg",
+        "flip.svg",
+        "hand-alt.svg",
+        "hand.svg",
+        "heighliners.svg",
+        "herb.svg",
+        "hms.svg",
+        "karama.svg",
+        "key.svg",
+        "keyhole.svg",
+        "kwisatz.svg",
+        "landscape.svg",
+        "lightning.svg",
+        "mentat.svg",
+        "nexus.svg",
+        "ornithopter.svg",
+        "poison.svg",
+        "projectile.svg",
+        "revival_standalone.svg",
+        "revival.svg",
+        "seitch.svg",
+        "shai-hulud.svg",
+        "shield.svg",
+        "shipment_disc.svg",
+        "snake.svg",
+        "snooper.svg",
+        "snowman.svg",
+        "spice-alt.svg",
+        "spice-blow_disc.svg",
+        "spice-blow_standalone.svg",
+        "spice-mine.svg",
+        "spice.svg",
+        "storm_disc.svg",
+        "storrm_standalone.svg",
+        "stronghold-multicolor.svg",
+        "stronghold.svg",
+        "tools.svg",
+        "traitor.svg",
+        "treachery.svg",
+        "turn.svg",
+        "up.svg",
+        "water.svg",
+        "waves.svg",
+        "worthless.svg",
+        "wreath.svg"
+      ]
+    },
+    "dune-zone-icon": {
+      "/vector/icon/": [
+        "faction-complexity-1.svg",
+        "faction-complexity-2.svg",
+        "faction-complexity-3.svg",
+        "faction-complexity-4.svg"
       ]
     },
     "gf9-troop": {
@@ -2211,6 +2211,7 @@
         "token-details.jpg"
       ],
       "/web/blog/dune-board-game-style-guide/": ["faction-palette.jpg"],
+      "/web/blog/playing-dune-online-in-real-time/": ["table-in-play.jpg"],
       "/web/blog/running-from-databases/": [
         "dune-app-creator.jpg",
         "dune-app-leader-card.jpg",
@@ -2290,10 +2291,10 @@
     "/vector/decal/tarot-deck.svg": "Reference: a Dune tarot drawing by Hilary Clarcq.",
     "/vector/decal/water-of-life-ceremony-multicolor.svg": "Reference: a Water of Life painting from a Centipede Press edition of Dune.",
     "/vector/decal/water-of-life-ceremony.svg": "Reference: a Water of Life painting from a Centipede Press edition of Dune.",
-    "/vector/logo/ginaz.svg": "Likely from a Tabletop Simulator community faction mod.",
-    "/vector/logo/hagal.svg": "Likely from a Tabletop Simulator community faction mod.",
-    "/vector/logo/house-atreus-fan-art.svg": "Based on fan art.",
-    "/vector/logo/iduali.svg": "Likely from a Tabletop Simulator community faction mod.",
-    "/vector/logo/sunburst-buckle-matt-griffin.svg": "Original design by Matt Griffin."
+    "/vector/emblem/ginaz.svg": "Likely from a Tabletop Simulator community faction mod.",
+    "/vector/emblem/hagal.svg": "Likely from a Tabletop Simulator community faction mod.",
+    "/vector/emblem/house-atreus-fan-art.svg": "Based on fan art.",
+    "/vector/emblem/iduali.svg": "Likely from a Tabletop Simulator community faction mod.",
+    "/vector/emblem/sunburst-buckle-matt-griffin.svg": "Original design by Matt Griffin."
   }
 }

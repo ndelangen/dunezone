@@ -21,7 +21,7 @@ export const Default = meta.story({
       definition: 0,
       influence: 0,
     },
-    logo: '/vector/logo/moritani.svg',
+    emblem: '/vector/emblem/moritani.svg',
   },
 });
 

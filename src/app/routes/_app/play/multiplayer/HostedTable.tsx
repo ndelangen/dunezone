@@ -21,7 +21,7 @@ import { GameSubscription } from '@app/routes/_app/play/multiplayer/GameSubscrip
 import { TableSession } from '../../../../db/tabletop/TableSession';
 import type { TableProjection } from '../../../../db/tabletop/TableSession';
 import { usePreloadedCardFaces } from '../../../../widgets/tabletop/cardFacePreload';
-import { PredictionLogosContext } from '../../../../widgets/tabletop/prediction/predictionFace';
+import { PredictionEmblemsContext } from '../../../../widgets/tabletop/prediction/predictionFace';
 import { TabletopSessionProvider } from '../../../../widgets/tabletop/TabletopContext';
 import { BrowserDiagnostics } from '../browserDiagnostics';
 import type { CompassTable } from '../compass/compassTable';
@@ -592,12 +592,12 @@ function ConnectedTable({
   const { readOnly, normal, compassTable } = useHostedControls(client, table, error);
   const stage = table.snapshot.stage;
   const factionArtwork = table.snapshot.factionArtwork;
-  const predictionLogos = useMemo(
-    () => Object.fromEntries(Object.entries(factionArtwork ?? {}).map(([id, artwork]) => [id, artwork.logo])),
+  const predictionEmblems = useMemo(
+    () => Object.fromEntries(Object.entries(factionArtwork ?? {}).map(([id, artwork]) => [id, artwork.emblem])),
     [factionArtwork]
   );
   return (
-    <PredictionLogosContext value={predictionLogos}>
+    <PredictionEmblemsContext value={predictionEmblems}>
       <TabletopSessionProvider session={client}>
         {/* A boxless wrapper carries the connection state the browser verification waits on, whichever browser tab is open. */}
         <div data-connection={connection} data-revision={table.liveRevision} style={{ display: 'contents' }}>
@@ -656,7 +656,7 @@ function ConnectedTable({
           </CompassTableContext>
         </div>
       </TabletopSessionProvider>
-    </PredictionLogosContext>
+    </PredictionEmblemsContext>
   );
 }
 

@@ -26,9 +26,9 @@ const galleries = [
     ],
   },
   {
-    kind: 'logo',
+    kind: 'emblem',
     title: 'Emblems',
-    samples: ['/vector/logo/atreides.svg', '/vector/logo/ecaz.svg', '/vector/logo/ixian.svg'],
+    samples: ['/vector/emblem/atreides.svg', '/vector/emblem/ecaz.svg', '/vector/emblem/ixian.svg'],
   },
   {
     kind: 'troop',

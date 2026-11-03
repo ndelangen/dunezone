@@ -7,6 +7,7 @@
  * An answer from R2 is kept in the edge cache for its hour, keyed by the URL and the variant it resolved to, so a deploy that re-points the URL is served at once.
  * Static files already come from the edge.
  */
+import { readLegacyEmblemPath, LEGACY_EMBLEM_PREFIX } from '../../src/shared/legacyEmblem';
 import { legacyVariant } from '../../src/shared/media/legacyVariant';
 import { CONTENT_TYPES, mediaVariantKey } from './media';
 import {
@@ -79,23 +80,20 @@ async function staticFile(request: Request, env: LegacyMediaEnv): Promise<Respon
   return response;
 }
 
-const RENAMED_EMBLEM_PREFIX = '/vector/emblem/';
-
 /**
- * Answers a stock emblem at the path the next release moves it to, `/vector/emblem/`, with the file this release serves at `/vector/logo/`.
- * Data written by that release's Convex reaches pages of this release before its Worker deploys (see src/shared/renamedEmblem.ts).
- * An SVG `<use>` does not follow a redirect, so it is a 200.
+ * Answers a stock emblem at its pre-rename `/vector/logo/` path with the file at its `/vector/emblem/` one.
+ * Published rulebook HTML and games already in storage name the old path, and an SVG `<use>` does not follow a redirect, so it is a 200 rather than a 301.
  */
 async function renamedEmblem(request: Request, env: LegacyMediaEnv, url: URL): Promise<Response> {
   if (request.method !== 'GET' && request.method !== 'HEAD') {
     return jsonError(METHOD_NOT_ALLOWED);
   }
-  const current = new URL(url);
-  current.pathname = `/vector/logo/${url.pathname.slice(RENAMED_EMBLEM_PREFIX.length)}`;
-  return await staticFile(new Request(current, request), env);
+  const renamed = new URL(url);
+  renamed.pathname = readLegacyEmblemPath(url.pathname) as string;
+  return await staticFile(new Request(renamed, request), env);
 }
 
-/** Answers `/image`, `/web` and `/vector/emblem/`, or returns null for any other path. */
+/** Answers `/image`, `/web` and the old `/vector/logo/`, or returns null for any other path. */
 export async function handleLegacyMediaRequest(
   request: Request,
   env: LegacyMediaEnv,
@@ -103,7 +101,7 @@ export async function handleLegacyMediaRequest(
 ): Promise<Response | null> {
   const url = new URL(request.url);
   const { pathname } = url;
-  if (pathname.startsWith(RENAMED_EMBLEM_PREFIX)) {
+  if (pathname.startsWith(LEGACY_EMBLEM_PREFIX)) {
     return await renamedEmblem(request, env, url);
   }
   if (!LEGACY_NAMESPACES.some((namespace) => inNamespace(pathname, namespace))) {

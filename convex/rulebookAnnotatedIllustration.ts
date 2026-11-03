@@ -6,7 +6,8 @@ import {
   factionMemberPublicationId,
   parseFactionMemberPublicationId,
 } from '../src/shared/asset-publishing/componentPublication';
-import { CanonicalFactionStoredObject } from '../src/shared/factions/schema';
+import { StoredFactionSchema } from '../src/shared/factions/schema';
+import { renameLegacyEmblems } from '../src/shared/legacyEmblem';
 import {
   resolveRulebookAnnotatedIllustrationResponseSchema,
   rulebookAnnotatedIllustrationIdentitySchema,
@@ -39,9 +40,9 @@ async function resolveSource(ctx: QueryCtx, reference: RulebookSourceReference |
   if (reference.kind === 'faction') {
     const id = ctx.db.normalizeId('factions', reference.factionId);
     const faction = id ? await ctx.db.get('factions', id) : null;
-    const parsed = faction && !faction.is_deleted ? CanonicalFactionStoredObject.safeParse(faction.data) : null;
-    return parsed?.success && RULEBOOK_STOCK_ARTWORK.some((id) => id === parsed.data.logo)
-      ? { status: 'stock', reference, artworkId: parsed.data.logo, name: parsed.data.name }
+    const parsed = faction && !faction.is_deleted ? StoredFactionSchema.safeParse(faction.data) : null;
+    return parsed?.success && RULEBOOK_STOCK_ARTWORK.some((id) => id === parsed.data.emblem)
+      ? { status: 'stock', reference, artworkId: parsed.data.emblem, name: parsed.data.name }
       : { status: 'unavailable' };
   }
   if (reference.kind === 'board') {
@@ -131,7 +132,10 @@ export const resolveDelivery = internalQuery({
     if (!edition) {
       return { ok: true, status: 'missing' };
     }
-    const parsed = rulebookEditionContentsV1Schema.safeParse(await contentsForRulebookEdition(ctx, edition));
+    /* An Edition the emblem rename has not reached yet names its old paths (see src/shared/legacyEmblem.ts). */
+    const parsed = rulebookEditionContentsV1Schema.safeParse(
+      renameLegacyEmblems(await contentsForRulebookEdition(ctx, edition))
+    );
     const page =
       parsed.success && parsed.data.pageOrder.includes(args.pageId) ? parsed.data.pagesById[args.pageId] : null;
     const block = page?.blocksById[args.blockId];

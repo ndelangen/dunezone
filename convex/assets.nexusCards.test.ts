@@ -24,7 +24,7 @@ async function linkedCard(
       data: {
         ...assetPublishingFaction,
         name: card.faction,
-        logo: card.factionSymbol.image,
+        emblem: card.factionSymbol.image,
         background: card.factionSymbol.background,
       },
       slug,

@@ -20,7 +20,7 @@ export const Default = meta.story({
       definition: 0,
       influence: 0,
     },
-    logo: '/vector/logo/atreides.svg',
+    emblem: '/vector/emblem/atreides.svg',
     title: 'Atreides',
     decals: [
       {

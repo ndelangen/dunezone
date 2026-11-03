@@ -17,7 +17,7 @@ const factions: RulebookResolvedFactionsById = {
     factionId: 'left',
     name: 'Atreides',
     color: '#123456',
-    token: { logo: assetPublishingFaction.logo, background: assetPublishingFaction.background },
+    token: { emblem: assetPublishingFaction.emblem, background: assetPublishingFaction.background },
     troops: [{ troopId, image: '/vector/troop/atreides.svg', name: 'Forces', description: '', count: 20 }],
     leaders: [
       {
