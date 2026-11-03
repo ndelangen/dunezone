@@ -18,6 +18,27 @@ function isPlainRecord(input: unknown): input is Record<string, unknown> {
   return prototype === Object.prototype || prototype === null;
 }
 
+function readRenamedPath(input: string): string {
+  return input.startsWith(RENAMED_PREFIX) ? CURRENT_PREFIX + input.slice(RENAMED_PREFIX.length) : input;
+}
+
+function readRenamedList(input: readonly unknown[]): readonly unknown[] {
+  const read = input.map(readRenamedEmblems);
+  return read.some((value, index) => value !== input[index]) ? read : input;
+}
+
+function readRenamedRecord(input: Record<string, unknown>): Record<string, unknown> {
+  const hasCurrent = 'logo' in input;
+  const entries = Object.entries(input).flatMap(([key, value]): [string, unknown][] => {
+    if (key !== 'emblem') {
+      return [[key, readRenamedEmblems(value)]];
+    }
+    return hasCurrent ? [] : [['logo', readRenamedEmblems(value)]];
+  });
+  const unchanged = !('emblem' in input) && entries.every(([key, value]) => value === input[key]);
+  return unchanged ? input : Object.fromEntries(entries);
+}
+
 /**
  * A value from a newer release as this release reads it, at any depth: `emblem` keys become `logo`, `/vector/emblem/` paths become `/vector/logo/`.
  * A value that already has `logo` keeps it and loses the new key.
@@ -26,26 +47,10 @@ function isPlainRecord(input: unknown): input is Record<string, unknown> {
  */
 export function readRenamedEmblems(input: unknown): unknown {
   if (Array.isArray(input)) {
-    const read = input.map(readRenamedEmblems);
-    return read.some((value, index) => value !== input[index]) ? read : input;
+    return readRenamedList(input);
   }
   if (isPlainRecord(input)) {
-    let changed = false;
-    const entries: [string, unknown][] = [];
-    for (const [key, value] of Object.entries(input)) {
-      if (key === 'emblem') {
-        changed = true;
-        if ('logo' in input) {
-          continue;
-        }
-      }
-      const read = readRenamedEmblems(value);
-      changed ||= read !== value;
-      entries.push([key === 'emblem' ? 'logo' : key, read]);
-    }
-    return changed ? Object.fromEntries(entries) : input;
+    return readRenamedRecord(input);
   }
-  return typeof input === 'string' && input.startsWith(RENAMED_PREFIX)
-    ? CURRENT_PREFIX + input.slice(RENAMED_PREFIX.length)
-    : input;
+  return typeof input === 'string' ? readRenamedPath(input) : input;
 }
