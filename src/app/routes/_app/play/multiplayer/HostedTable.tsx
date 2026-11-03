@@ -24,6 +24,7 @@ import { usePreloadedCardFaces } from '../../../../widgets/tabletop/cardFacePrel
 import { PredictionEmblemsContext } from '../../../../widgets/tabletop/prediction/predictionFace';
 import { TabletopSessionProvider } from '../../../../widgets/tabletop/TabletopContext';
 import { BrowserDiagnostics } from '../browserDiagnostics';
+import { CompassEpochContext } from '../compass/compassEpoch';
 import type { CompassTable } from '../compass/compassTable';
 import { CompassTableContext } from '../compass/compassTable';
 import { FoilConfetti } from '../FoilConfetti';
@@ -197,13 +198,15 @@ type WindowFocus = ReturnType<typeof useWindowFocus>;
 
 /*
  * A window the header asks for, such as Mentat recall from its vote, opens in the centre like the compass opens it.
- * The table's next event focus takes over again once its token changes.
+ * The table's next event focus, or a fresh start of the controls, takes over again.
  */
 function useAskedWindow(focus: WindowFocus) {
+  /* The tutorial's Reset starts the controls afresh, so a window asked for before it must not open itself on the next run. */
+  const epoch = useContext(CompassEpochContext);
   const [asked, setAsked] = useState<{ key: string; token: string; placement: 'centre' } | null>(null);
-  const [followed, setFollowed] = useState(focus?.token);
-  if (focus?.token !== followed) {
-    setFollowed(focus?.token);
+  const [followed, setFollowed] = useState({ token: focus?.token, epoch });
+  if (focus?.token !== followed.token || epoch !== followed.epoch) {
+    setFollowed({ token: focus?.token, epoch });
     setAsked(null);
   }
   const open = (key: string) => setAsked({ key, token: `asked:${crypto.randomUUID()}`, placement: 'centre' });

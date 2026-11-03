@@ -205,7 +205,7 @@ function sharedHistoryTask(snapshot: () => GameSnapshot, players: TablePlayers):
     id: 'shared-history',
     task: 'Slide through time',
     detail:
-      'Press {Space}, {↑}, then {Space} to open Shared history. Pin it to the bottom right so you can inspect inventory beside it.\n\nScrub through the checkpoints, then move all the way right to Turn 3, Spice Blow. Turn numbers mark each turn; there are also checkpoints after factions finish Shipment and Movement.\n\nEveryone follows the same checkpoint, including their recorded inventory. Any seated player can change it. Cameras and panel positions stay personal.',
+      'Press {Space}, {↑}, then {Space} to open Shared history. Pin it to the bottom right so you can inspect inventory beside it.\n\nMove the slider all the way right to Turn 3, Spice Blow. Turn numbers mark each turn; there are also checkpoints after factions finish Shipment and Movement.\n\nEveryone follows the same checkpoint, including their recorded inventory. Any seated player can change it. Cameras and panel positions stay personal.',
     anchor: {
       kind: 'page',
       element: () => historySlider() ?? document.querySelector(`${RECALL} [data-compass-launcher]`),

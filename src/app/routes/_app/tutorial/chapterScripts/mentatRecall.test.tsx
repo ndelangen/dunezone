@@ -158,3 +158,16 @@ test.each([
     step.finish?.(watch);
   }
 });
+
+test('history already at the newest checkpoint and pinned right finishes the step at once', () => {
+  const root = recallFrame();
+  root.innerHTML = '<div data-window="recall-history" data-side="right"><div role="slider"></div></div>';
+  const view = viewWith(running('recall-1', 23));
+  const step = stepAt('shared-history', () => view);
+  const watch = step.begin(undefined as never);
+  try {
+    expect(step.done(watch, undefined as never)).toBe(true);
+  } finally {
+    step.finish?.(watch);
+  }
+});
