@@ -65,12 +65,6 @@
     "method": "unknown",
     "source": "Brainfood's community factions"
   },
-  "ilya-portrait": {
-    "method": "unknown"
-  },
-  "legacy-portrait": {
-    "method": "unknown"
-  },
   "gf9-planet": {
     "method": "official",
     "source": "Dune (Gale Force Nine)"
@@ -112,18 +106,12 @@
     "source": "a still from Dune (Legendary Pictures, 2021)",
     "style": "the other rulebook covers"
   },
-  "preset-cover": {
-    "method": "unknown"
-  },
   "gf9-card-layer": {
     "method": "recreated",
     "artist": "Casey Davies and Victor Pesch",
     "artistRole": "design",
     "source": "the card and shield design of Dune (Gale Force Nine, 2019)",
     "by": "Central419"
-  },
-  "legacy-texture": {
-    "method": "unknown"
   },
   "gf9-discovery-texture": {
     "method": "ai-restored",
@@ -150,9 +138,6 @@
     "method": "traced",
     "source": "the Leader Skill cards of Dune (Gale Force Nine)"
   },
-  "legacy-decal": {
-    "method": "unknown"
-  },
   "ai-decal": {
     "method": "ai",
     "style": "the GF9 Dune card art"
@@ -167,9 +152,6 @@
     "artistRole": "design",
     "source": "Dune (Gale Force Nine, 2019)",
     "by": "Central419"
-  },
-  "legacy-emblem": {
-    "method": "unknown"
   },
   "ai-emblem": {
     "method": "ai",
@@ -194,15 +176,6 @@
     "method": "ai",
     "style": "the GF9 Dune icons"
   },
-  "legacy-symbol": {
-    "method": "unknown"
-  },
-  "legacy-troop": {
-    "method": "unknown"
-  },
-  "drawn-troop": {
-    "method": "unknown"
-  },
   "ai-troop": {
     "method": "ai",
     "style": "the first Dune Zone troop silhouettes"
@@ -226,7 +199,29 @@
     "method": "official",
     "source": "Gale Force Nine"
   },
-  "legacy-web-art": {
-    "method": "unknown"
+  "gf9-portrait": {
+    "method": "restored",
+    "source": "Dune (Gale Force Nine)",
+    "by": "Central419"
+  },
+  "gf9-cover": {
+    "method": "official",
+    "source": "Dune (Gale Force Nine)"
+  },
+  "gf9-decal": {
+    "method": "traced",
+    "source": "the card art of Dune (Gale Force Nine)",
+    "by": "Central419"
+  },
+  "gf9-troop": {
+    "method": "traced",
+    "source": "Dune (Gale Force Nine)",
+    "by": "Central419"
+  },
+  "found-online": {
+    "method": "online"
+  },
+  "ai-legacy": {
+    "method": "ai"
   }
 }

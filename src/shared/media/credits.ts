@@ -11,6 +11,7 @@ export const creditMethods = [
   'ai-adapted',
   'ai',
   'blog',
+  'online',
   'unknown',
 ] as const;
 export type CreditMethod = (typeof creditMethods)[number];
@@ -74,6 +75,8 @@ export function creditText(credit: MediaCredit, detail?: string): string {
         return withStyle('made with AI image tools for Dune Zone', style);
       case 'blog':
         return 'a picture from the Dune Zone blog';
+      case 'online':
+        return 'found online. The original source is still being traced';
       case 'unknown':
         return source ? `artist not yet recorded. From ${source}` : 'artist not yet recorded';
     }
