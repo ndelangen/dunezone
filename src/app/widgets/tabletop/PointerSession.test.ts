@@ -30,7 +30,10 @@ function table() {
     hasDraft: false,
     piece: vi.fn(() => piece),
     point: vi.fn((_piece, x: number, y: number): Vector3Tuple | null => (x < 0 ? null : [x, 0, y])),
-    surfacePoint: vi.fn((x: number, y: number): Vector3Tuple | null => [x, 0.2, y]),
+    pointerRay: vi.fn((x: number, y: number) => ({
+      origin: [x, 10, y] as Vector3Tuple,
+      direction: [0, -1, 0] as Vector3Tuple,
+    })),
     isPublicPoint: (x: number) => x >= 0,
     beginGesture: vi.fn(() => {
       controls.hasDraft = true;
@@ -137,7 +140,11 @@ test('other pointers cannot cancel, replace, move or drop the active carry', () 
   expect(controls.beginGesture).not.toHaveBeenCalled();
   expect(controls.cancelDraft).not.toHaveBeenCalled();
   window.dispatchEvent(pointer('pointerup', 25));
-  expect(controls.finishGesture).toHaveBeenCalledExactlyOnceWith([25, 0, 10], { x: 25, y: 10, under: [25, 0.2, 10] });
+  expect(controls.finishGesture).toHaveBeenCalledExactlyOnceWith([25, 0, 10], {
+    x: 25,
+    y: 10,
+    ray: { origin: [25, 10, 10], direction: [0, -1, 0] },
+  });
 });
 
 test.each(['Escape', 'blur', 'pointercancel', 'lostpointercapture'])(
@@ -182,7 +189,11 @@ test('panel pickup is immediate and can travel from outside the canvas before dr
   expect(controls.cancelDraft).not.toHaveBeenCalled();
   window.dispatchEvent(pointer('pointermove', 20));
   window.dispatchEvent(pointer('pointerup', 25));
-  expect(controls.finishGesture).toHaveBeenCalledExactlyOnceWith([25, 0, 10], { x: 25, y: 10, under: [25, 0.2, 10] });
+  expect(controls.finishGesture).toHaveBeenCalledExactlyOnceWith([25, 0, 10], {
+    x: 25,
+    y: 10,
+    ray: { origin: [25, 10, 10], direction: [0, -1, 0] },
+  });
 });
 
 test('a panel drop outside the public table cancels without saving', () => {
@@ -223,7 +234,11 @@ test('a scene render before the new draft arrives does not retire a pending drag
   controls.hasDraft = true;
   session.reconcile();
   window.dispatchEvent(pointer('pointerup', 25));
-  expect(controls.finishGesture).toHaveBeenCalledExactlyOnceWith([25, 0, 10], { x: 25, y: 10, under: [25, 0.2, 10] });
+  expect(controls.finishGesture).toHaveBeenCalledExactlyOnceWith([25, 0, 10], {
+    x: 25,
+    y: 10,
+    ray: { origin: [25, 10, 10], direction: [0, -1, 0] },
+  });
 });
 
 test('Escape also cancels a keyboard draft and stops handling keys when the scene unbinds', () => {
@@ -246,7 +261,11 @@ test('scene replacement retires the old session, and its late cleanup cannot sto
   window.dispatchEvent(pointer('pointerup', 25, 1));
   expect(session.busy).toBe(true);
   window.dispatchEvent(pointer('pointerup', 30, 2));
-  expect(controls.finishGesture).toHaveBeenCalledExactlyOnceWith([30, 0, 10], { x: 30, y: 10, under: [30, 0.2, 10] });
+  expect(controls.finishGesture).toHaveBeenCalledExactlyOnceWith([30, 0, 10], {
+    x: 30,
+    y: 10,
+    ray: { origin: [30, 10, 10], direction: [0, -1, 0] },
+  });
 });
 
 test('failed capture leaves no active listeners or carry', () => {
