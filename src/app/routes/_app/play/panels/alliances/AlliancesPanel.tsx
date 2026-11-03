@@ -1,11 +1,13 @@
+import { t } from '@lingui/core/macro';
 import { Group, Stack, Text } from '@mantine/core';
 import { Section } from '@ui/block/Section';
+import { helpLines } from '@ui/content/helpLines';
 
 import { FactionTokenFace, FactionTokenGroup } from '../../multiplayer/FactionTokenFace';
 import type { FactionToken } from '../../multiplayer/FactionTokenFace';
-import { ALLIANCES_HELP } from '../../multiplayer/panelGuidance';
 import { AllianceRowAction } from './AllianceRowAction';
-import type { AllianceCommandKind, Relation } from './alliances';
+import { allianceStatusWords } from './alliances';
+import type { AllianceCommandKind, AllianceStatus, Relation } from './alliances';
 
 /** One faction at the table: its token, its player, its allies and how it stands with the viewer. */
 export type AllianceRow = Readonly<{
@@ -13,7 +15,7 @@ export type AllianceRow = Readonly<{
   /** The seat's player, or null for an open seat. */
   player: string | null;
   allies: readonly FactionToken[];
-  status: string;
+  status: AllianceStatus;
   /** How the viewer stands with this faction, or null for an observer, who sees no actions at all. */
   relation: Relation | null;
 }>;
@@ -31,7 +33,14 @@ export type AlliancesPanelProps = Readonly<{
  */
 export function AlliancesPanel({ rows, disabled, onAction }: AlliancesPanelProps) {
   return (
-    <Section hiddenHeading title="Alliances" description={ALLIANCES_HELP}>
+    <Section
+      hiddenHeading
+      title={t`Alliances`}
+      description={helpLines(
+        t`The table shows you as allies until one of you breaks it.`,
+        t`Your ruleset decides when alliances may form and how large they grow.`
+      )}
+    >
       <Stack gap="xs">
         {rows.map((row) => (
           <Group key={row.token.id} gap="sm" wrap="nowrap" align="flex-start">
@@ -40,13 +49,13 @@ export function AlliancesPanel({ rows, disabled, onAction }: AlliancesPanelProps
             <Stack gap={2} style={{ flex: 1, minWidth: 0 }}>
               <Text size="sm" fw={700} truncate>
                 {row.token.name}
-                {row.player ? ` · ${row.player}` : ' · Open seat'}
+                {` · ${row.player ?? t`Open seat`}`}
               </Text>
               <Group justify="space-between" gap="sm" wrap="nowrap">
                 <Group gap={6} wrap="nowrap" style={{ minWidth: 0 }}>
                   {row.allies.length > 0 && <FactionTokenGroup tokens={row.allies} size={18} />}
                   <Text size="xs" c="dimmed" truncate>
-                    {row.status}
+                    {allianceStatusWords(row.status)}
                   </Text>
                 </Group>
                 {row.relation && (

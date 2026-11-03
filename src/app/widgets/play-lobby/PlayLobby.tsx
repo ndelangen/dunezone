@@ -1,3 +1,4 @@
+import { msg, plural, t } from '@lingui/core/macro';
 import { Avatar, Button, Group, Select, Stack, Text, Tooltip } from '@mantine/core';
 import type { playLobbyEntrySchema } from '@shared/play/directory';
 import { phaseAt, STANDARD_PHASES, tableProgressFor } from '@shared/play/phases';
@@ -18,6 +19,7 @@ import { ArrowRight, Clock, GraduationCap, ListFilter, Plus, Trophy } from 'luci
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
+import { dateWords, i18n, list, PHASES } from '@app/i18n/lingui';
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
 
 /*
@@ -45,13 +47,19 @@ export type LobbyView = 'ongoing' | 'yours' | 'finished';
 /** The games the lobby lists, under way and past. */
 export type LobbyGames = Readonly<{ ongoing: LobbyEntry[]; past: LobbyEntry[] }>;
 
-const STAGE_WORDS: Record<LobbyEntry['stage'], string> = {
-  drafting: 'Drafting',
-  swapping: 'Swapping',
-  setup: 'Setup',
-  play: 'In play',
-  finished: 'Finished',
-  discarded: 'Discarded',
+const STAGE = {
+  drafting: msg`Drafting`,
+  swapping: msg`Swapping`,
+  setup: msg`Setup`,
+  play: msg`In play`,
+  finished: msg`Finished`,
+  discarded: msg`Discarded`,
+};
+
+const EMPTY = {
+  ongoing: msg`No game is under way.`,
+  yours: msg`You hold no seat in a game under way.`,
+  finished: msg`No game has finished yet.`,
 };
 
 /* The turn tracker's ten sectors: the table's arc fills towards the last of them. */
@@ -65,26 +73,37 @@ function resultWords(result: LobbyEntry['result']): string | null {
     case undefined:
       return null;
     case 'none':
-      return 'No winner';
+      return t`No winner`;
     case 'faction':
-      return `${result.factions.join(', ')} won`;
+      return t`${list(result.factions)} won`;
     case 'alliance':
-      return `${result.factions.join(' and ')} won together`;
+      return t`${list(result.factions)} won together`;
   }
+}
+
+/* A standard phase by its id in the viewer's language; a faction's own phase keeps the name its author gave it. */
+function phaseWords(phase: number): string {
+  const entry = phaseAt(phase);
+  return entry.kind === 'standard' && entry.id in PHASES
+    ? i18n._(PHASES[entry.id as keyof typeof PHASES])
+    : entry.label;
 }
 
 /** Where a game stands, in words: the phase in play, the result once finished, the stage and its free seats before. */
 function whereWords(entry: LobbyEntry): string {
   if (entry.stage === 'play' && entry.phase !== null) {
-    return `Turn ${turnOf(entry)} · ${phaseAt(entry.phase).label}`;
+    return t`Turn ${turnOf(entry) ?? 0} · ${phaseWords(entry.phase)}`;
   }
   if (entry.stage === 'finished') {
-    return resultWords(entry.result) ?? STAGE_WORDS.finished;
+    return resultWords(entry.result) ?? i18n._(STAGE.finished);
   }
   const open = entry.seatCount - entry.seatsFilled;
   return open > 0
-    ? `${STAGE_WORDS[entry.stage]}, ${open} ${open === 1 ? 'seat' : 'seats'} open`
-    : STAGE_WORDS[entry.stage];
+    ? plural(open, {
+        one: `${i18n._(STAGE[entry.stage])}, # seat open`,
+        other: `${i18n._(STAGE[entry.stage])}, # seats open`,
+      })
+    : i18n._(STAGE[entry.stage]);
 }
 
 function gamesFor(view: LobbyView, ongoing: LobbyEntry[], past: LobbyEntry[]): LobbyEntry[] {
@@ -114,9 +133,9 @@ function matches(entry: LobbyEntry, query: string): boolean {
  * Seats sit on the outer circle; a disc grows to the gap between neighbours and never past a comfortable size.
  */
 function seatWords(player: Player, won: boolean): string {
-  const who = player.viewer ? `${player.displayName} (you)` : player.displayName;
-  const faction = player.faction ? player.faction.name : 'no faction yet';
-  return `${who}, ${faction}${won ? ', a winner' : ''}`;
+  const who = player.viewer ? t`${player.displayName} (you)` : player.displayName;
+  const faction = player.faction ? player.faction.name : t`no faction yet`;
+  return won ? t`${who}, ${faction}, a winner` : t`${who}, ${faction}`;
 }
 
 /* A dealt seat shows its faction token; hover reveals the player's portrait. */
@@ -144,7 +163,7 @@ function TableRing({ entry }: Readonly<{ entry: LobbyEntry }>) {
       : null;
   return (
     <SeatedTable
-      label={`Seats at ${entry.name}, ${entry.seatsFilled} of ${entry.seatCount} taken`}
+      label={t`Seats at ${entry.name}, ${entry.seatsFilled} of ${entry.seatCount} taken`}
       seats={Array.from({ length: seats }, (_, index) => {
         const player = entry.players[index];
         return player ? tableSeat(player) : null;
@@ -160,12 +179,12 @@ function TableRing({ entry }: Readonly<{ entry: LobbyEntry }>) {
 function ringCentre(entry: LobbyEntry): TableCentre {
   const turn = turnOf(entry);
   if (entry.stage === 'finished') {
-    return entry.result?.kind === 'none' ? { word: STAGE_WORDS.finished } : { glyph: <Trophy aria-hidden /> };
+    return entry.result?.kind === 'none' ? { word: i18n._(STAGE.finished) } : { glyph: <Trophy aria-hidden /> };
   }
   if (turn !== null) {
-    return { above: 'Turn', number: turn, below: turn <= TURNS ? `of ${TURNS}` : undefined };
+    return { above: t`Turn`, number: turn, below: turn <= TURNS ? t`of ${TURNS}` : undefined };
   }
-  return { word: STAGE_WORDS[entry.stage], below: `${entry.seatsFilled} of ${entry.seatCount}` };
+  return { word: i18n._(STAGE[entry.stage]), below: t`${entry.seatsFilled} of ${entry.seatCount}` };
 }
 
 /** A game still under way with a seat nobody holds. */
@@ -175,10 +194,10 @@ function hasFreeSeat(entry: LobbyEntry): boolean {
 
 function cardBadge(entry: LobbyEntry): ReactNode {
   if (entry.viewerSeated) {
-    return <StatusBadge tone="brand">{entry.stage === 'finished' ? 'You played' : 'Your seat'}</StatusBadge>;
+    return <StatusBadge tone="brand">{entry.stage === 'finished' ? t`You played` : t`Your seat`}</StatusBadge>;
   }
   if (hasFreeSeat(entry)) {
-    return <StatusBadge tone="positive">Seats open</StatusBadge>;
+    return <StatusBadge tone="positive">{t`Seats open`}</StatusBadge>;
   }
   return null;
 }
@@ -193,7 +212,7 @@ function gameCard(entry: LobbyEntry, gameLink: PlayLobbyLinks['gameLink']) {
         <Group gap="xs" wrap="nowrap">
           <Clock size={12} color="var(--mantine-color-dimmed)" aria-hidden />
           <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>
-            {formatRelativeDate(new Date(entry.lastActivityAt).toISOString())}
+            {formatRelativeDate(new Date(entry.lastActivityAt).toISOString(), dateWords())}
           </Text>
         </Group>
         {cardBadge(entry)}
@@ -204,17 +223,17 @@ function gameCard(entry: LobbyEntry, gameLink: PlayLobbyLinks['gameLink']) {
       <>
         {entry.rulesetName ? (
           <Text size="xs" c="dimmed">
-            Ruleset: {entry.rulesetName}
+            {t`Ruleset: ${entry.rulesetName}`}
           </Text>
         ) : null}
         <Text size="sm" fw={600} lh={1.35}>
           {whereWords(entry)}
         </Text>
         <Text size="xs" c="dimmed">
-          {entry.seatsFilled} of {entry.seatCount} seated
+          {t`${entry.seatsFilled} of ${entry.seatCount} seated`}
         </Text>
         <Group justify="space-between" gap="xs" wrap="nowrap" pt="sm">
-          <Avatar.Group spacing={10} aria-label={`Players at ${entry.name}`}>
+          <Avatar.Group spacing={10} aria-label={t`Players at ${entry.name}`}>
             {entry.players.slice(0, 6).map((player) => (
               <Tooltip key={player.displayName} label={player.displayName} withArrow>
                 <Avatar
@@ -246,21 +265,15 @@ function gameCard(entry: LobbyEntry, gameLink: PlayLobbyLinks['gameLink']) {
             color="slate"
             variant={entry.viewerSeated ? 'filled' : 'light'}
             rightSection={<ArrowRight size={15} aria-hidden />}
-            aria-label={`Open ${entry.name}`}
+            aria-label={t`Open ${entry.name}`}
           >
-            Open
+            {t`Open`}
           </Button>
         </Group>
       </>
     ),
   };
 }
-
-const EMPTY_WORDS: Record<LobbyView, string> = {
-  ongoing: 'No game is under way.',
-  yours: 'You hold no seat in a game under way.',
-  finished: 'No game has finished yet.',
-};
 
 function EmptyView({ title, children }: Readonly<{ title: string; children: string }>) {
   return (
@@ -295,13 +308,13 @@ function LobbyToolbar({
       label={label}
       value={view}
       data={[
-        { value: 'ongoing', label: `Ongoing (${counts.ongoing})` },
-        { value: 'yours', label: `Yours (${counts.yours})` },
-        { value: 'finished', label: `Finished (${counts.finished})` },
+        { value: 'ongoing', label: t`Ongoing (${counts.ongoing})` },
+        { value: 'yours', label: t`Yours (${counts.yours})` },
+        { value: 'finished', label: t`Finished (${counts.finished})` },
       ]}
       allowDeselect={false}
       onChange={(value) => onViewChange((value as LobbyView | null) ?? 'ongoing')}
-      aria-label="Show games"
+      aria-label={t`Show games`}
       leftSection={<ListFilter size={15} aria-hidden />}
     />
   );
@@ -309,22 +322,22 @@ function LobbyToolbar({
     <Toolbar>
       <Toolbar.Center>
         <SearchRefine
-          label="Lobby filters"
+          label={t`Lobby filters`}
           search={{
             value: query,
             onChange: onQueryChange,
             onCommit: () => {},
-            label: 'Search games',
-            placeholder: 'Search games or players…',
+            label: t`Search games`,
+            placeholder: t`Search games or players…`,
           }}
-          refine={{ label: 'Choose games', active: view === 'ongoing' ? 0 : 1, content: viewSelect('Show') }}
+          refine={{ label: t`Choose games`, active: view === 'ongoing' ? 0 : 1, content: viewSelect(t`Show`) }}
         >
           {viewSelect(undefined, true)}
         </SearchRefine>
       </Toolbar.Center>
-      <Toolbar.Right label="Lobby actions">
+      <Toolbar.Right label={t`Lobby actions`}>
         <IconAction
-          label="Create a game"
+          label={t`Create a game`}
           emphasis="strong"
           intent="positive"
           size="lg"
@@ -360,9 +373,9 @@ export function PlayLobbyHeader({
 }: Readonly<Pick<PlayLobbyLinks, 'createLink' | 'createDisabledReason' | 'tutorialLink'>>) {
   return (
     <Stack gap="md" miw={0} align="center" ta="center">
-      <PageTitle title="Play Dune!" subtitle="Welcome to the lobby" />
+      <PageTitle title={t`Play Dune!`} subtitle={t`Welcome to the lobby`} />
       <Text size="lg" fw={500} maw="36rem">
-        Take a seat, choose your faction, and fight for Arrakis.
+        {t`Take a seat, choose your faction, and fight for Arrakis.`}
       </Text>
       <Group gap="sm" justify="center">
         <Button
@@ -371,10 +384,10 @@ export function PlayLobbyHeader({
           leftSection={<GraduationCap size={17} aria-hidden />}
           renderRoot={tutorialLink}
         >
-          Learn to play
+          {t`Learn to play`}
         </Button>
         <CallToAction direction="start" size="lg" renderRoot={createLink} disabledReason={createDisabledReason}>
-          Create a game
+          {t`Create a game`}
         </CallToAction>
       </Group>
     </Stack>
@@ -440,15 +453,15 @@ function LobbyContent({
     return <Surface padding="xl">{waiting}</Surface>;
   }
   if (ready.ongoing.length + ready.past.length === 0) {
-    return <EmptyView title="No games yet">Create a game to set the first table.</EmptyView>;
+    return <EmptyView title={t`No games yet`}>{t`Create a game to set the first table.`}</EmptyView>;
   }
   const games = gamesFor(view, ready.ongoing, ready.past).filter((entry) => matches(entry, query));
   if (games.length === 0) {
     return query.trim() ? (
-      <EmptyView title="No game matches">{`Nothing here matches “${query.trim()}”.`}</EmptyView>
+      <EmptyView title={t`No game matches`}>{t`Nothing here matches “${query.trim()}”.`}</EmptyView>
     ) : (
-      <EmptyView title="Nothing here">{EMPTY_WORDS[view]}</EmptyView>
+      <EmptyView title={t`Nothing here`}>{i18n._(EMPTY[view])}</EmptyView>
     );
   }
-  return <CardGrid aria-label="Games" items={games.map((entry) => gameCard(entry, gameLink))} />;
+  return <CardGrid aria-label={t`Games`} items={games.map((entry) => gameCard(entry, gameLink))} />;
 }

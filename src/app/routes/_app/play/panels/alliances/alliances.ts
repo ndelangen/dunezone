@@ -1,5 +1,8 @@
+import { t } from '@lingui/core/macro';
 import { alliesOf } from '@shared/play/alliances';
 import type { AllianceAction, AllianceState } from '@shared/play/alliances';
+
+import { list } from '@app/i18n/lingui';
 
 /**
  * How the viewer's faction stands with one faction at the table.
@@ -59,22 +62,42 @@ export function allianceAction(
   return offer ? { kind, factionId, offer: offer.id } : null;
 }
 
-/** What a faction's row says about its alliance, from the viewer's side where an offer is between them. */
+/** Where a faction stands on alliances, from the viewer's side where an offer is between them: facts, which the window words in the viewer's language. */
+export type AllianceStatus =
+  | Readonly<{ kind: 'offers-you' | 'offering' | 'your-ally' | 'none' }>
+  | Readonly<{ kind: 'allied'; allies: readonly string[] }>;
+
 export function allianceStatus(
   alliances: AllianceState | undefined,
   factionId: string,
   own: string | undefined,
   names: Readonly<Record<string, string>>
-) {
+): AllianceStatus {
   if (hasOffer(alliances, factionId, own)) {
-    return 'Offers you an alliance';
+    return { kind: 'offers-you' };
   }
   if (hasOffer(alliances, own, factionId)) {
-    return 'Offering…';
+    return { kind: 'offering' };
   }
   const allies = alliesOf(alliances, factionId);
   if (own && allies.includes(own)) {
-    return 'Your ally';
+    return { kind: 'your-ally' };
   }
-  return allies.length ? `Allied with ${factionList(names, allies)}` : 'No alliance';
+  return allies.length ? { kind: 'allied', allies: allies.map((id) => names[id] ?? id) } : { kind: 'none' };
+}
+
+/** A row's status in the viewer's words. */
+export function allianceStatusWords(status: AllianceStatus): string {
+  switch (status.kind) {
+    case 'offers-you':
+      return t`Offers you an alliance`;
+    case 'offering':
+      return t`Offering…`;
+    case 'your-ally':
+      return t`Your ally`;
+    case 'allied':
+      return t`Allied with ${list(status.allies)}`;
+    case 'none':
+      return t`No alliance`;
+  }
 }

@@ -1,3 +1,4 @@
+import { t } from '@lingui/core/macro';
 import { Anchor, Stack, Text } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -58,18 +59,18 @@ function LobbyWait({ status }: Readonly<{ status: 'sign_in_required' | undefined
   const unreachable = useServerUnreachable(status === undefined);
   switch (status) {
     case 'sign_in_required':
-      return <Text c="dimmed">Ongoing and past games appear here once you sign in.</Text>;
+      return <Text c="dimmed">{t`Ongoing and past games appear here once you sign in.`}</Text>;
     case undefined:
       break;
   }
   if (!unreachable) {
-    return <Text c="dimmed">Loading games.</Text>;
+    return <Text c="dimmed">{t`Loading games.`}</Text>;
   }
   return (
     <Stack gap="xs" role="status">
       <Text c="dimmed">{SERVER_UNREACHABLE}</Text>
       <Anchor component={Link} to="/">
-        Go back home
+        {t`Go back home`}
       </Anchor>
     </Stack>
   );

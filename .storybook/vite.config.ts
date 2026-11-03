@@ -1,3 +1,4 @@
+import { lingui } from '@lingui/vite-plugin';
 import viteReact from '@vitejs/plugin-react';
 import { defineConfig } from 'vite-plus';
 import type { Plugin } from 'vite-plus';
@@ -93,6 +94,7 @@ export default defineConfig({
     storyBoardFace(),
     ...convexWorkerServePlugins(),
     pageStylesheetStaysWithItsStory(),
+    lingui({ macroTransform: true }),
     viteReact(),
     reactCompiler(),
     threeRendererStackTreeShaking(),

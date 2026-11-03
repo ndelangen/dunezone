@@ -1,0 +1,379 @@
+msgid ""
+msgstr ""
+"POT-Creation-Date: 2026-11-03 00:05+0000\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: @lingui/cli\n"
+"Language: en\n"
+
+#. placeholder {0}: player.displayName
+#: src/app/widgets/play-lobby/PlayLobby.tsx:131
+msgid "{0} (you)"
+msgstr "{0} (you)"
+
+#. placeholder {0}: entry.seatsFilled
+#. placeholder {1}: entry.seatCount
+#: src/app/widgets/play-lobby/PlayLobby.tsx:182
+msgid "{0} of {1}"
+msgstr "{0} of {1}"
+
+#. placeholder {0}: entry.seatsFilled
+#. placeholder {1}: entry.seatCount
+#: src/app/widgets/play-lobby/PlayLobby.tsx:228
+msgid "{0} of {1} seated"
+msgstr "{0} of {1} seated"
+
+#. placeholder {0}: list(result.factions)
+#: src/app/widgets/play-lobby/PlayLobby.tsx:78
+msgid "{0} won"
+msgstr "{0} won"
+
+#. placeholder {0}: list(result.factions)
+#: src/app/widgets/play-lobby/PlayLobby.tsx:80
+msgid "{0} won together"
+msgstr "{0} won together"
+
+#: src/app/i18n/lingui.ts:53
+msgid "{days} days ago"
+msgstr "{days} days ago"
+
+#: src/app/i18n/lingui.ts:51
+msgid "{hours} hours ago"
+msgstr "{hours} hours ago"
+
+#: src/app/i18n/lingui.ts:50
+msgid "{minutes} min ago"
+msgstr "{minutes} min ago"
+
+#. placeholder {0}: i18n._(STAGE[entry.stage])
+#. placeholder {1}: i18n._(STAGE[entry.stage])
+#: src/app/widgets/play-lobby/PlayLobby.tsx:101
+msgid "{open, plural, one {{0}, # seat open} other {{1}, # seats open}}"
+msgstr "{open, plural, one {{0}, # seat open} other {{1}, # seats open}}"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:133
+msgid "{who}, {faction}"
+msgstr "{who}, {faction}"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:133
+msgid "{who}, {faction}, a winner"
+msgstr "{who}, {faction}, a winner"
+
+#: src/app/i18n/lingui.ts:51
+msgid "1 hour ago"
+msgstr "1 hour ago"
+
+#: src/app/routes/_app/play/panels/alliances/AllianceRowAction.tsx:62
+msgid "Accept alliance"
+msgstr "Accept alliance"
+
+#: src/app/routes/_app/play/panels/alliances/AllianceRowAction.tsx:63
+msgid "Accept their alliance offer."
+msgstr "Accept their alliance offer."
+
+#: src/app/routes/_app/play/panels/alliances/AlliancesPanel.tsx:37
+msgid "Alliances"
+msgstr "Alliances"
+
+#: src/app/routes/_app/play/panels/alliances/AllianceRowAction.tsx:99
+msgid "Alliances wait while the table reconnects or you step through the replay."
+msgstr "Alliances wait while the table reconnects or you step through the replay."
+
+#. placeholder {0}: list(status.allies)
+#: src/app/routes/_app/play/panels/alliances/alliances.ts:99
+msgid "Allied with {0}"
+msgstr "Allied with {0}"
+
+#: src/app/i18n/lingui.ts:41
+msgid "Battle"
+msgstr "Battle"
+
+#: src/app/i18n/lingui.ts:38
+msgid "Bidding"
+msgstr "Bidding"
+
+#: src/app/routes/_app/play/panels/alliances/AllianceRowAction.tsx:49
+msgid "Break alliance"
+msgstr "Break alliance"
+
+#: src/app/i18n/lingui.ts:37
+msgid "CHOAM Charity"
+msgstr "CHOAM Charity"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:328
+msgid "Choose games"
+msgstr "Choose games"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:335
+#: src/app/widgets/play-lobby/PlayLobby.tsx:385
+msgid "Create a game"
+msgstr "Create a game"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:451
+msgid "Create a game to set the first table."
+msgstr "Create a game to set the first table."
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:56
+msgid "Discarded"
+msgstr "Discarded"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:51
+msgid "Drafting"
+msgstr "Drafting"
+
+#: src/app/routes/_app/play/panels/alliances/AllianceRowAction.tsx:50
+msgid "End your alliance with them."
+msgstr "End your alliance with them."
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:55
+msgid "Finished"
+msgstr "Finished"
+
+#. placeholder {0}: counts.finished
+#: src/app/widgets/play-lobby/PlayLobby.tsx:308
+msgid "Finished ({0})"
+msgstr "Finished ({0})"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:461
+msgid "Games"
+msgstr "Games"
+
+#: src/app/routes/_app/play/index.tsx:73
+msgid "Go back home"
+msgstr "Go back home"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:54
+msgid "In play"
+msgstr "In play"
+
+#: src/app/i18n/lingui.ts:49
+msgid "Just now"
+msgstr "Just now"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:382
+msgid "Learn to play"
+msgstr "Learn to play"
+
+#: src/app/routes/_app/play/index.tsx:67
+msgid "Loading games."
+msgstr "Loading games."
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:333
+msgid "Lobby actions"
+msgstr "Lobby actions"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:320
+msgid "Lobby filters"
+msgstr "Lobby filters"
+
+#: src/app/i18n/lingui.ts:43
+msgid "Mentat Pause"
+msgstr "Mentat Pause"
+
+#: src/app/routes/_app/play/panels/alliances/alliances.ts:101
+msgid "No alliance"
+msgstr "No alliance"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:132
+msgid "no faction yet"
+msgstr "no faction yet"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:62
+msgid "No game has finished yet."
+msgstr "No game has finished yet."
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:60
+msgid "No game is under way."
+msgstr "No game is under way."
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:456
+msgid "No game matches"
+msgstr "No game matches"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:451
+msgid "No games yet"
+msgstr "No games yet"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:76
+msgid "No winner"
+msgstr "No winner"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:458
+msgid "Nothing here"
+msgstr "Nothing here"
+
+#. placeholder {0}: query.trim()
+#: src/app/widgets/play-lobby/PlayLobby.tsx:456
+msgid "Nothing here matches “{0}”."
+msgstr "Nothing here matches “{0}”."
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:180
+msgid "of {TURNS}"
+msgstr "of {TURNS}"
+
+#: src/app/routes/_app/play/panels/alliances/AllianceRowAction.tsx:76
+msgid "Offer alliance"
+msgstr "Offer alliance"
+
+#: src/app/routes/_app/play/panels/alliances/AllianceRowAction.tsx:77
+msgid "Offer them an alliance. It forms once they accept."
+msgstr "Offer them an alliance. It forms once they accept."
+
+#: src/app/routes/_app/play/panels/alliances/AllianceRowAction.tsx:34
+msgid "Offering an alliance. Click to withdraw the offer."
+msgstr "Offering an alliance. Click to withdraw the offer."
+
+#: src/app/routes/_app/play/panels/alliances/alliances.ts:95
+msgid "Offering…"
+msgstr "Offering…"
+
+#: src/app/routes/_app/play/panels/alliances/alliances.ts:93
+msgid "Offers you an alliance"
+msgstr "Offers you an alliance"
+
+#. placeholder {0}: counts.ongoing
+#: src/app/widgets/play-lobby/PlayLobby.tsx:306
+msgid "Ongoing ({0})"
+msgstr "Ongoing ({0})"
+
+#: src/app/routes/_app/play/index.tsx:62
+msgid "Ongoing and past games appear here once you sign in."
+msgstr "Ongoing and past games appear here once you sign in."
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:265
+msgid "Open"
+msgstr "Open"
+
+#. placeholder {0}: entry.name
+#: src/app/widgets/play-lobby/PlayLobby.tsx:263
+msgid "Open {0}"
+msgstr "Open {0}"
+
+#: src/app/routes/_app/play/panels/alliances/AlliancesPanel.tsx:46
+msgid "Open seat"
+msgstr "Open seat"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:371
+msgid "Play Dune!"
+msgstr "Play Dune!"
+
+#. placeholder {0}: entry.name
+#: src/app/widgets/play-lobby/PlayLobby.tsx:231
+msgid "Players at {0}"
+msgstr "Players at {0}"
+
+#: src/app/i18n/lingui.ts:39
+msgid "Revival"
+msgstr "Revival"
+
+#. placeholder {0}: entry.rulesetName
+#: src/app/widgets/play-lobby/PlayLobby.tsx:221
+msgid "Ruleset: {0}"
+msgstr "Ruleset: {0}"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:325
+msgid "Search games"
+msgstr "Search games"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:326
+msgid "Search games or players…"
+msgstr "Search games or players…"
+
+#. placeholder {0}: entry.name
+#. placeholder {1}: entry.seatsFilled
+#. placeholder {2}: entry.seatCount
+#: src/app/widgets/play-lobby/PlayLobby.tsx:161
+msgid "Seats at {0}, {1} of {2} taken"
+msgstr "Seats at {0}, {1} of {2} taken"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:195
+msgid "Seats open"
+msgstr "Seats open"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:53
+msgid "Setup"
+msgstr "Setup"
+
+#: src/app/i18n/lingui.ts:40
+msgid "Shipment and Movement"
+msgstr "Shipment and Movement"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:328
+msgid "Show"
+msgstr "Show"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:312
+msgid "Show games"
+msgstr "Show games"
+
+#: src/app/i18n/lingui.ts:36
+msgid "Spice Blow"
+msgstr "Spice Blow"
+
+#: src/app/i18n/lingui.ts:42
+msgid "Spice Collection"
+msgstr "Spice Collection"
+
+#: src/app/i18n/lingui.ts:35
+msgid "Storm"
+msgstr "Storm"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:52
+msgid "Swapping"
+msgstr "Swapping"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:373
+msgid "Take a seat, choose your faction, and fight for Arrakis."
+msgstr "Take a seat, choose your faction, and fight for Arrakis."
+
+#: src/app/routes/_app/play/panels/alliances/AlliancesPanel.tsx:37
+msgid "The table shows you as allies until one of you breaks it."
+msgstr "The table shows you as allies until one of you breaks it."
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:180
+msgid "Turn"
+msgstr "Turn"
+
+#. placeholder {0}: turnOf(entry) ?? 0
+#. placeholder {1}: phaseWords(entry.phase)
+#: src/app/widgets/play-lobby/PlayLobby.tsx:95
+msgid "Turn {0} · {1}"
+msgstr "Turn {0} · {1}"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:371
+msgid "Welcome to the lobby"
+msgstr "Welcome to the lobby"
+
+#: src/app/routes/_app/play/panels/alliances/AllianceRowAction.tsx:33
+msgid "Withdraw alliance offer"
+msgstr "Withdraw alliance offer"
+
+#: src/app/i18n/lingui.ts:52
+msgid "Yesterday"
+msgstr "Yesterday"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:61
+msgid "You hold no seat in a game under way."
+msgstr "You hold no seat in a game under way."
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:192
+msgid "You played"
+msgstr "You played"
+
+#: src/app/routes/_app/play/panels/alliances/alliances.ts:97
+msgid "Your ally"
+msgstr "Your ally"
+
+#: src/app/routes/_app/play/panels/alliances/AlliancesPanel.tsx:37
+msgid "Your ruleset decides when alliances may form and how large they grow."
+msgstr "Your ruleset decides when alliances may form and how large they grow."
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:192
+msgid "Your seat"
+msgstr "Your seat"
+
+#. placeholder {0}: counts.yours
+#: src/app/widgets/play-lobby/PlayLobby.tsx:307
+msgid "Yours ({0})"
+msgstr "Yours ({0})"

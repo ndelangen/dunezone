@@ -1,0 +1,379 @@
+msgid ""
+msgstr ""
+"POT-Creation-Date: 2026-11-03 00:05+0000\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: @lingui/cli\n"
+"Language: nl\n"
+
+#. placeholder {0}: player.displayName
+#: src/app/widgets/play-lobby/PlayLobby.tsx:131
+msgid "{0} (you)"
+msgstr "{0} (jij)"
+
+#. placeholder {0}: entry.seatsFilled
+#. placeholder {1}: entry.seatCount
+#: src/app/widgets/play-lobby/PlayLobby.tsx:182
+msgid "{0} of {1}"
+msgstr "{0} van {1}"
+
+#. placeholder {0}: entry.seatsFilled
+#. placeholder {1}: entry.seatCount
+#: src/app/widgets/play-lobby/PlayLobby.tsx:228
+msgid "{0} of {1} seated"
+msgstr "{0} van {1} aan tafel"
+
+#. placeholder {0}: list(result.factions)
+#: src/app/widgets/play-lobby/PlayLobby.tsx:78
+msgid "{0} won"
+msgstr "{0} heeft gewonnen"
+
+#. placeholder {0}: list(result.factions)
+#: src/app/widgets/play-lobby/PlayLobby.tsx:80
+msgid "{0} won together"
+msgstr "{0} hebben samen gewonnen"
+
+#: src/app/i18n/lingui.ts:53
+msgid "{days} days ago"
+msgstr "{days} dagen geleden"
+
+#: src/app/i18n/lingui.ts:51
+msgid "{hours} hours ago"
+msgstr "{hours} uur geleden"
+
+#: src/app/i18n/lingui.ts:50
+msgid "{minutes} min ago"
+msgstr "{minutes} min geleden"
+
+#. placeholder {0}: i18n._(STAGE[entry.stage])
+#. placeholder {1}: i18n._(STAGE[entry.stage])
+#: src/app/widgets/play-lobby/PlayLobby.tsx:101
+msgid "{open, plural, one {{0}, # seat open} other {{1}, # seats open}}"
+msgstr "{open, plural, one {{0}, # plaats vrij} other {{1}, # plaatsen vrij}}"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:133
+msgid "{who}, {faction}"
+msgstr "{who}, {faction}"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:133
+msgid "{who}, {faction}, a winner"
+msgstr "{who}, {faction}, winnaar"
+
+#: src/app/i18n/lingui.ts:51
+msgid "1 hour ago"
+msgstr "1 uur geleden"
+
+#: src/app/routes/_app/play/panels/alliances/AllianceRowAction.tsx:62
+msgid "Accept alliance"
+msgstr "Alliantie aannemen"
+
+#: src/app/routes/_app/play/panels/alliances/AllianceRowAction.tsx:63
+msgid "Accept their alliance offer."
+msgstr "Neem hun alliantieaanbod aan."
+
+#: src/app/routes/_app/play/panels/alliances/AlliancesPanel.tsx:37
+msgid "Alliances"
+msgstr "Allianties"
+
+#: src/app/routes/_app/play/panels/alliances/AllianceRowAction.tsx:99
+msgid "Alliances wait while the table reconnects or you step through the replay."
+msgstr "Allianties wachten terwijl de tafel opnieuw verbindt of je door de herhaling bladert."
+
+#. placeholder {0}: list(status.allies)
+#: src/app/routes/_app/play/panels/alliances/alliances.ts:99
+msgid "Allied with {0}"
+msgstr "Verbonden met {0}"
+
+#: src/app/i18n/lingui.ts:41
+msgid "Battle"
+msgstr "Gevecht"
+
+#: src/app/i18n/lingui.ts:38
+msgid "Bidding"
+msgstr "Bieden"
+
+#: src/app/routes/_app/play/panels/alliances/AllianceRowAction.tsx:49
+msgid "Break alliance"
+msgstr "Alliantie verbreken"
+
+#: src/app/i18n/lingui.ts:37
+msgid "CHOAM Charity"
+msgstr "CHOAM-liefdadigheid"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:328
+msgid "Choose games"
+msgstr "Spellen kiezen"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:335
+#: src/app/widgets/play-lobby/PlayLobby.tsx:385
+msgid "Create a game"
+msgstr "Spel aanmaken"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:451
+msgid "Create a game to set the first table."
+msgstr "Maak een spel aan om de eerste tafel te dekken."
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:56
+msgid "Discarded"
+msgstr "Verworpen"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:51
+msgid "Drafting"
+msgstr "Draften"
+
+#: src/app/routes/_app/play/panels/alliances/AllianceRowAction.tsx:50
+msgid "End your alliance with them."
+msgstr "Beëindig je alliantie met hen."
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:55
+msgid "Finished"
+msgstr "Afgelopen"
+
+#. placeholder {0}: counts.finished
+#: src/app/widgets/play-lobby/PlayLobby.tsx:308
+msgid "Finished ({0})"
+msgstr "Afgelopen ({0})"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:461
+msgid "Games"
+msgstr "Spellen"
+
+#: src/app/routes/_app/play/index.tsx:73
+msgid "Go back home"
+msgstr "Terug naar de startpagina"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:54
+msgid "In play"
+msgstr "Bezig"
+
+#: src/app/i18n/lingui.ts:49
+msgid "Just now"
+msgstr "Zojuist"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:382
+msgid "Learn to play"
+msgstr "Leer spelen"
+
+#: src/app/routes/_app/play/index.tsx:67
+msgid "Loading games."
+msgstr "Spellen laden."
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:333
+msgid "Lobby actions"
+msgstr "Lobbyacties"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:320
+msgid "Lobby filters"
+msgstr "Lobbyfilters"
+
+#: src/app/i18n/lingui.ts:43
+msgid "Mentat Pause"
+msgstr "Mentatpauze"
+
+#: src/app/routes/_app/play/panels/alliances/alliances.ts:101
+msgid "No alliance"
+msgstr "Geen alliantie"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:132
+msgid "no faction yet"
+msgstr "nog geen factie"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:62
+msgid "No game has finished yet."
+msgstr "Er is nog geen spel afgelopen."
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:60
+msgid "No game is under way."
+msgstr "Er loopt geen spel."
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:456
+msgid "No game matches"
+msgstr "Geen spel gevonden"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:451
+msgid "No games yet"
+msgstr "Nog geen spellen"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:76
+msgid "No winner"
+msgstr "Geen winnaar"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:458
+msgid "Nothing here"
+msgstr "Niets hier"
+
+#. placeholder {0}: query.trim()
+#: src/app/widgets/play-lobby/PlayLobby.tsx:456
+msgid "Nothing here matches “{0}”."
+msgstr "Niets hier past bij “{0}”."
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:180
+msgid "of {TURNS}"
+msgstr "van {TURNS}"
+
+#: src/app/routes/_app/play/panels/alliances/AllianceRowAction.tsx:76
+msgid "Offer alliance"
+msgstr "Alliantie aanbieden"
+
+#: src/app/routes/_app/play/panels/alliances/AllianceRowAction.tsx:77
+msgid "Offer them an alliance. It forms once they accept."
+msgstr "Bied hun een alliantie aan. Die ontstaat zodra ze aannemen."
+
+#: src/app/routes/_app/play/panels/alliances/AllianceRowAction.tsx:34
+msgid "Offering an alliance. Click to withdraw the offer."
+msgstr "Je biedt een alliantie aan. Klik om het aanbod in te trekken."
+
+#: src/app/routes/_app/play/panels/alliances/alliances.ts:95
+msgid "Offering…"
+msgstr "Aanbod loopt…"
+
+#: src/app/routes/_app/play/panels/alliances/alliances.ts:93
+msgid "Offers you an alliance"
+msgstr "Biedt je een alliantie aan"
+
+#. placeholder {0}: counts.ongoing
+#: src/app/widgets/play-lobby/PlayLobby.tsx:306
+msgid "Ongoing ({0})"
+msgstr "Lopend ({0})"
+
+#: src/app/routes/_app/play/index.tsx:62
+msgid "Ongoing and past games appear here once you sign in."
+msgstr "Lopende en afgelopen spellen verschijnen hier zodra je inlogt."
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:265
+msgid "Open"
+msgstr "Openen"
+
+#. placeholder {0}: entry.name
+#: src/app/widgets/play-lobby/PlayLobby.tsx:263
+msgid "Open {0}"
+msgstr "{0} openen"
+
+#: src/app/routes/_app/play/panels/alliances/AlliancesPanel.tsx:46
+msgid "Open seat"
+msgstr "Vrije plaats"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:371
+msgid "Play Dune!"
+msgstr "Speel Dune!"
+
+#. placeholder {0}: entry.name
+#: src/app/widgets/play-lobby/PlayLobby.tsx:231
+msgid "Players at {0}"
+msgstr "Spelers aan {0}"
+
+#: src/app/i18n/lingui.ts:39
+msgid "Revival"
+msgstr "Herleving"
+
+#. placeholder {0}: entry.rulesetName
+#: src/app/widgets/play-lobby/PlayLobby.tsx:221
+msgid "Ruleset: {0}"
+msgstr "Regelset: {0}"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:325
+msgid "Search games"
+msgstr "Spellen zoeken"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:326
+msgid "Search games or players…"
+msgstr "Zoek spellen of spelers…"
+
+#. placeholder {0}: entry.name
+#. placeholder {1}: entry.seatsFilled
+#. placeholder {2}: entry.seatCount
+#: src/app/widgets/play-lobby/PlayLobby.tsx:161
+msgid "Seats at {0}, {1} of {2} taken"
+msgstr "Plaatsen aan {0}, {1} van {2} bezet"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:195
+msgid "Seats open"
+msgstr "Plaatsen vrij"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:53
+msgid "Setup"
+msgstr "Opzet"
+
+#: src/app/i18n/lingui.ts:40
+msgid "Shipment and Movement"
+msgstr "Verschepen en verplaatsen"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:328
+msgid "Show"
+msgstr "Tonen"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:312
+msgid "Show games"
+msgstr "Spellen tonen"
+
+#: src/app/i18n/lingui.ts:36
+msgid "Spice Blow"
+msgstr "Spice Blow"
+
+#: src/app/i18n/lingui.ts:42
+msgid "Spice Collection"
+msgstr "Spice verzamelen"
+
+#: src/app/i18n/lingui.ts:35
+msgid "Storm"
+msgstr "Storm"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:52
+msgid "Swapping"
+msgstr "Ruilen"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:373
+msgid "Take a seat, choose your faction, and fight for Arrakis."
+msgstr "Neem plaats, kies je factie en strijd om Arrakis."
+
+#: src/app/routes/_app/play/panels/alliances/AlliancesPanel.tsx:37
+msgid "The table shows you as allies until one of you breaks it."
+msgstr "De tafel toont jullie als bondgenoten tot een van jullie het verbreekt."
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:180
+msgid "Turn"
+msgstr "Ronde"
+
+#. placeholder {0}: turnOf(entry) ?? 0
+#. placeholder {1}: phaseWords(entry.phase)
+#: src/app/widgets/play-lobby/PlayLobby.tsx:95
+msgid "Turn {0} · {1}"
+msgstr "Ronde {0} · {1}"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:371
+msgid "Welcome to the lobby"
+msgstr "Welkom in de lobby"
+
+#: src/app/routes/_app/play/panels/alliances/AllianceRowAction.tsx:33
+msgid "Withdraw alliance offer"
+msgstr "Alliantieaanbod intrekken"
+
+#: src/app/i18n/lingui.ts:52
+msgid "Yesterday"
+msgstr "Gisteren"
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:61
+msgid "You hold no seat in a game under way."
+msgstr "Je hebt geen plaats in een lopend spel."
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:192
+msgid "You played"
+msgstr "Je speelde mee"
+
+#: src/app/routes/_app/play/panels/alliances/alliances.ts:97
+msgid "Your ally"
+msgstr "Je bondgenoot"
+
+#: src/app/routes/_app/play/panels/alliances/AlliancesPanel.tsx:37
+msgid "Your ruleset decides when alliances may form and how large they grow."
+msgstr "Je regelset bepaalt wanneer allianties mogen ontstaan en hoe groot ze worden."
+
+#: src/app/widgets/play-lobby/PlayLobby.tsx:192
+msgid "Your seat"
+msgstr "Jouw plaats"
+
+#. placeholder {0}: counts.yours
+#: src/app/widgets/play-lobby/PlayLobby.tsx:307
+msgid "Yours ({0})"
+msgstr "Van jou ({0})"

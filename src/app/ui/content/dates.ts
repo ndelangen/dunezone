@@ -4,8 +4,25 @@
  * routes reuse the same two functions so a timestamp reads the same wherever it appears.
  */
 
+/** The words a relative date is written in; English unless the caller passes its language's (i18n spike). */
+export type RelativeDateWords = Readonly<{
+  justNow: string;
+  minutesAgo: (minutes: number) => string;
+  hoursAgo: (hours: number) => string;
+  yesterday: string;
+  daysAgo: (days: number) => string;
+}>;
+
+const ENGLISH: RelativeDateWords = {
+  justNow: 'Just now',
+  minutesAgo: (minutes) => `${minutes} min ago`,
+  hoursAgo: (hours) => (hours === 1 ? '1 hour ago' : `${hours} hours ago`),
+  yesterday: 'Yesterday',
+  daysAgo: (days) => `${days} days ago`,
+};
+
 /** Short relative or calendar label for ISO timestamps (FAQ lists, profiles). */
-export function formatRelativeDate(iso: string): string {
+export function formatRelativeDate(iso: string, words: RelativeDateWords = ENGLISH): string {
   const date = new Date(iso);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
@@ -15,15 +32,15 @@ export function formatRelativeDate(iso: string): string {
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     if (diffHours === 0) {
       const diffMins = Math.floor(diffMs / (1000 * 60));
-      return diffMins <= 1 ? 'Just now' : `${diffMins} min ago`;
+      return diffMins <= 1 ? words.justNow : words.minutesAgo(diffMins);
     }
-    return diffHours === 1 ? '1 hour ago' : `${diffHours} hours ago`;
+    return words.hoursAgo(diffHours);
   }
   if (diffDays === 1) {
-    return 'Yesterday';
+    return words.yesterday;
   }
   if (diffDays < 7) {
-    return `${diffDays} days ago`;
+    return words.daysAgo(diffDays);
   }
   return date.toLocaleDateString(undefined, {
     month: 'short',

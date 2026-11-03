@@ -1,3 +1,4 @@
+import { t } from '@lingui/core/macro';
 import { IconAction } from '@ui/control/IconAction';
 import { Handshake, Hourglass, MessageCircleQuestion, Unlink } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -29,8 +30,8 @@ function Offering({ blocked, send, size }: ActionProps) {
   return (
     <IconAction
       size={TILE[size]}
-      label="Withdraw alliance offer"
-      tooltip="Offering an alliance. Click to withdraw the offer."
+      label={t`Withdraw alliance offer`}
+      tooltip={t`Offering an alliance. Click to withdraw the offer.`}
       icon={<Hourglass size={ICON[size]} className={motion ? styles.pending : undefined} />}
       emphasis="standard"
       pressed
@@ -45,8 +46,8 @@ const ACTIONS: Readonly<Record<Relation, (props: ActionProps) => ReactNode>> = {
   ally: ({ blocked, send, size }) => (
     <IconAction
       size={TILE[size]}
-      label="Break alliance"
-      tooltip="End your alliance with them."
+      label={t`Break alliance`}
+      tooltip={t`End your alliance with them.`}
       icon={<Unlink size={ICON[size]} />}
       intent="negative"
       emphasis="standard"
@@ -58,8 +59,8 @@ const ACTIONS: Readonly<Record<Relation, (props: ActionProps) => ReactNode>> = {
   incoming: ({ blocked, send, size }) => (
     <IconAction
       size={TILE[size]}
-      label="Accept alliance"
-      tooltip="Accept their alliance offer."
+      label={t`Accept alliance`}
+      tooltip={t`Accept their alliance offer.`}
       icon={<MessageCircleQuestion size={QUESTION[size]} strokeWidth={2.5} />}
       intent="positive"
       emphasis="standard"
@@ -72,8 +73,8 @@ const ACTIONS: Readonly<Record<Relation, (props: ActionProps) => ReactNode>> = {
   none: ({ blocked, send, size }) => (
     <IconAction
       size={TILE[size]}
-      label="Offer alliance"
-      tooltip="Offer them an alliance. It forms once they accept."
+      label={t`Offer alliance`}
+      tooltip={t`Offer them an alliance. It forms once they accept.`}
       icon={<Handshake size={ICON[size]} />}
       emphasis="standard"
       disabledReason={blocked}
@@ -95,6 +96,6 @@ export function AllianceRowAction({
   size?: ActionSize;
 }>) {
   const Action = ACTIONS[relation];
-  const blocked = disabled ? 'Alliances wait while the table reconnects or you step through the replay.' : undefined;
+  const blocked = disabled ? t`Alliances wait while the table reconnects or you step through the replay.` : undefined;
   return <Action blocked={blocked} send={onAction} size={size} />;
 }

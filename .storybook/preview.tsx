@@ -1,3 +1,4 @@
+import { I18nProvider } from '@lingui/react';
 import { MantineProvider } from '@mantine/core';
 import addonDocs from '@storybook/addon-docs';
 import { definePreview } from '@storybook/tanstack-react';
@@ -5,12 +6,13 @@ import { sb } from 'storybook/test';
 
 import { loadStorybookDatabase, StorybookDatabaseProvider, storybookViewer } from '../src/app/db/storybook';
 import type { DatabaseDefinition, WorkerIdentity } from '../src/app/db/storybook';
-import { TutorialPlayersContext } from '../src/app/routes/_app/tutorial/players';
+import { activate, i18n } from '../src/app/i18n/lingui';
 import '../src/app/styles/mantine.generated.css';
 import '../src/app/styles/fonts.css';
 import '@fontsource/caladea/latin-700.css';
 import '../src/app/styles/tokens.css';
 import '../src/app/styles/mantine-shell-compatibility.css';
+import { TutorialPlayersContext } from '../src/app/routes/_app/tutorial/players';
 import { setMotionOverride } from '../src/app/styles/motion';
 import { appColorSchemeManager, appContentTheme } from '../src/app/ui/theme';
 import * as sizes from '../src/game/data/sizes';
@@ -312,6 +314,18 @@ const preview = definePreview({
   addons: [addonDocs()],
   loaders: [loadStorybookDatabase],
   globalTypes: {
+    locale: {
+      description: 'Interface language (i18n spike)',
+      toolbar: {
+        title: 'Language',
+        icon: 'globe',
+        items: [
+          { value: 'en', title: 'English' },
+          { value: 'nl', title: 'Nederlands' },
+        ],
+        dynamicTitle: true,
+      },
+    },
     motion: {
       description: "Ambient motion: the chrome's band video and orbital background",
       toolbar: {
@@ -333,6 +347,7 @@ const preview = definePreview({
   beforeEach: async ({ globals }) => {
     await settleStoryViewport();
     resetFrameLag();
+    activate(globals.locale === 'nl' ? 'nl' : 'en');
     await emulateReducedMotion(globals.motion !== 'on');
     setMotionOverride(globals.motion === 'on' ? 'on' : globals.motion === 'reduce' ? 'off' : null);
     /* The app marks <html> with the verdict for its stylesheets, so a story pinned to motion gets the same mark; AppRoot sets its own. */
@@ -345,10 +360,12 @@ const preview = definePreview({
   },
   parameters,
   decorators: [
-    (Story) => (
-      <TutorialPlayersContext value={TUTORIAL_PLAYERS}>
-        <Story />
-      </TutorialPlayersContext>
+    (Story, { globals }) => (
+      <I18nProvider i18n={i18n} key={String(globals.locale)}>
+        <TutorialPlayersContext value={TUTORIAL_PLAYERS}>
+          <Story />
+        </TutorialPlayersContext>
+      </I18nProvider>
     ),
     (Story, { globals, title }) => {
       const { viewport } = globals;
@@ -409,6 +426,7 @@ const preview = definePreview({
   ],
   initialGlobals: {
     motion: 'auto',
+    locale: 'en',
     backgrounds: {
       value: 'dark',
       grid: true,
