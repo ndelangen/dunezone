@@ -10131,6 +10131,12 @@
     "subjects": ["places", "symbols"],
     "sourceHash": "a341b95b962cd947a2e2564c5f3a53a06ba84d24d26f6a3ce49d907291ac4ab8"
   },
+  "/web/blog/playing-dune-online-in-real-time/table-in-play.jpg": {
+    "description": "A six-player game on the dune.zone game table in Shipment and Movement, with troops in the strongholds, spice on the board and the treachery decks.",
+    "tags": ["dune.zone", "game table", "online play", "blog"],
+    "subjects": ["places", "symbols"],
+    "sourceHash": "92d963f04706e2abeceebbf90431df485fe35194af1a5a344f1d0d67dd02b44d"
+  },
   "/web/blog/dune-board-game-style-guide/faction-palette.jpg": {
     "description": "Twelve faction swatch cards on a dark blue page: each faction's token, its light and shade colours with hex codes, and its texture number.",
     "tags": ["factions", "colours", "blog"],

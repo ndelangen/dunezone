@@ -7838,6 +7838,15 @@
     "isOpaque": true,
     "color": "#081828"
   },
+  "/web/blog/playing-dune-online-in-real-time/table-in-play.jpg": {
+    "sha256": "92d963f04706e2abeceebbf90431df485fe35194af1a5a344f1d0d67dd02b44d",
+    "bytes": 398704,
+    "width": 2048,
+    "height": 1110,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#080808"
+  },
   "/web/blog/running-from-databases/dune-app-creator.jpg": {
     "sha256": "647e14f574719d3e29fcc293ecd4b889ab00028f7aac5c06b817c7614b0bd030",
     "bytes": 531791,

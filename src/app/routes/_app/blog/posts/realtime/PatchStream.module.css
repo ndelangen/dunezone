@@ -1,0 +1,567 @@
+/*
+ * The room on the left, the browser on the right and a wire between them that the packets fly along, one per step; on a phone the wire runs top to bottom.
+ * A packet in flight runs a keyframe from one end to the other within a step; the lost one gets halfway, breaks and stays there crossed out, so the still picture shows the loss too.
+ * Under it, a bar chart of the measured sizes: the bars grow from nothing once the figure is on screen and stand at full width until scripts run.
+ */
+.root {
+  --ink: #f0e8da;
+  --muted: #bfb09a;
+  --sand: #d5ba8c;
+  --spice: #b8842f;
+  --gap: #ffa8a8;
+  --full: #c7ad7d;
+  --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --step: 1100ms;
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  width: 100%;
+}
+
+.stream {
+  display: grid;
+  grid-template-columns: 9rem minmax(0, 1fr) 12rem;
+  gap: var(--space-sm);
+  align-items: stretch;
+}
+
+.box {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  box-sizing: border-box;
+  min-width: 0;
+  padding: 0.7rem 0.8rem;
+  border: 1.5px solid var(--sand);
+  border-radius: 6px;
+  background: #211d18;
+  color: var(--ink);
+  font-family: var(--mono);
+}
+
+.room {
+  justify-content: center;
+  border-color: var(--spice);
+}
+
+.browser {
+  padding-block-start: 1.3rem;
+}
+
+.browserBar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 0.7rem;
+  border-radius: 4px 4px 0 0;
+  background: #352e25;
+}
+
+.boxLabel {
+  color: var(--muted);
+  font-size: 0.55rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.revision {
+  font-size: 1rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.boxNote {
+  color: var(--muted);
+  font-size: 0.6rem;
+  line-height: 1.3;
+}
+
+.holding {
+  color: var(--gap);
+}
+
+.boxNotes {
+  display: grid;
+}
+
+.boxNotes > * {
+  grid-area: 1 / 1;
+}
+
+.noteHidden {
+  visibility: hidden;
+}
+
+/* The browser's list of what it has: the gap in red, the full view set off, and the entries still to come present but invisible so the list keeps its height. */
+.log {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  margin: 0.2rem 0;
+  padding: 0;
+  font-size: 0.65rem;
+  list-style: none;
+}
+
+.logEntry {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.4rem;
+  padding-inline-start: 0.6rem;
+  border-inline-start: 2px solid rgb(213 186 140 / 40%);
+  color: var(--sand);
+}
+
+.logNote {
+  color: var(--muted);
+}
+
+.logPending {
+  visibility: hidden;
+}
+
+.logGap {
+  border-color: var(--gap);
+  color: var(--gap);
+}
+
+.logGap .logNote {
+  color: var(--gap);
+}
+
+.logFull {
+  border-color: var(--full);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* The wire: a line down the middle of its cell, with the packets moved along it by `translate` in the wire's own units. */
+.wire {
+  position: relative;
+  container-type: size;
+  min-height: 6.5rem;
+}
+
+.line {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  border-top: 2px dashed rgb(213 186 140 / 45%);
+}
+
+.packet {
+  position: absolute;
+  top: 0;
+  left: 0;
+  /* Its place on the wire is `translate` in the wire's container units; the flights animate only that and opacity. */
+  translate: 0 50cqh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+  width: 5.4rem;
+  padding: 0.3rem 0.4rem;
+  border: 1px solid var(--sand);
+  border-radius: 4px;
+  background: #211d18;
+  color: var(--ink);
+  font-family: var(--mono);
+  box-shadow: 0 4px 10px rgb(0 0 0 / 50%);
+  transform: translate(-50%, -50%);
+}
+
+.packetKind {
+  color: var(--muted);
+  font-size: 0.5rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.packetLabel {
+  font-size: 0.9rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.syncPacket {
+  border-color: var(--spice);
+  background: #352e25;
+  color: var(--sand);
+}
+
+.fullPacket {
+  width: 6.6rem;
+  padding-block: 0.5rem;
+  border-width: 2px;
+  border-color: var(--full);
+  background: #352e25;
+}
+
+.fullPacket .packetLabel {
+  font-size: 1rem;
+}
+
+.lostLabel {
+  display: none;
+  margin-block-start: 0.15rem;
+  color: var(--gap);
+  font-size: 0.5rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.flying {
+  will-change: translate;
+  animation: fly-x var(--step) cubic-bezier(0.3, 0, 0.7, 1) 1 both;
+}
+
+.backward.flying {
+  animation-name: fly-x-back;
+}
+
+/* The lost packet gets halfway, judders and breaks; the rest state keeps it there, crossed out, until the loop starts over. */
+.flyingLost {
+  will-change: translate, transform, opacity;
+  animation: lose-x var(--step) ease-out 1 both;
+}
+
+.lostRest,
+.flyingLost {
+  border-style: dashed;
+  border-color: var(--gap);
+}
+
+.lostRest {
+  translate: 50cqw 50cqh;
+  opacity: 0.6;
+  transform: translate(-50%, -50%) rotate(-8deg);
+}
+
+.lostRest .lostLabel,
+.flyingLost .lostLabel {
+  display: block;
+}
+
+.lostRest::after,
+.flyingLost::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      45deg,
+      transparent calc(50% - 1px),
+      var(--gap) calc(50% - 1px) calc(50% + 1px),
+      transparent calc(50% + 1px)
+    ),
+    linear-gradient(
+      -45deg,
+      transparent calc(50% - 1px),
+      var(--gap) calc(50% - 1px) calc(50% + 1px),
+      transparent calc(50% + 1px)
+    );
+  opacity: 0.8;
+}
+
+@keyframes fly-x {
+  from {
+    translate: 0 50cqh;
+  }
+
+  to {
+    translate: 100cqw 50cqh;
+  }
+}
+
+@keyframes fly-x-back {
+  from {
+    translate: 100cqw 50cqh;
+  }
+
+  to {
+    translate: 0 50cqh;
+  }
+}
+
+@keyframes lose-x {
+  0% {
+    translate: 0 50cqh;
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+
+  50% {
+    translate: 50cqw 50cqh;
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+
+  60% {
+    transform: translate(-50%, -50%) rotate(6deg) scale(1.04);
+  }
+
+  70% {
+    transform: translate(-50%, -40%) rotate(-10deg);
+  }
+
+  100% {
+    translate: 50cqw 50cqh;
+    opacity: 0.6;
+    transform: translate(-50%, -50%) rotate(-8deg);
+  }
+}
+
+/* The chart: a label column and a bar column; the bar's width is its share of the full view. */
+.chart {
+  display: grid;
+  grid-template-columns: 14rem minmax(0, 1fr);
+  gap: 0.6rem var(--space-md);
+  margin: 0;
+}
+
+.barRow {
+  --row: 0;
+
+  display: contents;
+}
+
+.barLabel {
+  align-self: center;
+  color: var(--ink);
+  font-size: var(--mantine-font-size-sm);
+  line-height: 1.3;
+}
+
+.barCell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+  margin: 0;
+}
+
+.bar {
+  --share: 1;
+
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+  width: calc(var(--share) * 100%);
+  min-width: 3px;
+  height: 1.1rem;
+  overflow: hidden;
+  border-radius: 0 3px 3px 0;
+}
+
+/* The paint of a bar grows by a scale from its left end, so the growth is composited and the label over it is never stretched. */
+.fill,
+.wasteFill {
+  position: absolute;
+  inset: 0;
+  transform-origin: left center;
+  transition: transform 900ms cubic-bezier(0.2, 0.8, 0.2, 1) calc(var(--row) * 150ms);
+}
+
+.fill {
+  background: var(--sand);
+}
+
+.waiting .fill,
+.waiting .wasteFill {
+  transform: scaleX(0);
+  transition: none;
+}
+
+/* The share of a bar that carried nothing new, hatched. */
+.waste {
+  --share: 0;
+
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  width: calc(var(--share) * 100%);
+  padding-inline-start: 0.4rem;
+}
+
+.wasteFill {
+  background: repeating-linear-gradient(135deg, rgb(23 21 17 / 45%) 0 3px, transparent 3px 7px);
+  box-shadow: inset 2px 0 0 #211d18;
+}
+
+.wasteLabel {
+  position: relative;
+  transition: opacity 400ms ease calc(var(--row) * 150ms + 600ms);
+  overflow: hidden;
+  color: #211d18;
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* The size after a trim, as a brighter bar inside the old one. */
+.trim {
+  --share: 1;
+
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: calc(var(--share) * 100%);
+  background: var(--ink);
+}
+
+.barUnknown {
+  box-sizing: border-box;
+  width: 2rem;
+  height: 1.1rem;
+  border: 1.5px dashed var(--sand);
+  border-radius: 0 3px 3px 0;
+}
+
+.value {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* On a phone the wire runs downward: the room above, the browser below, and the packets travel along its height. */
+@container blog-article (width < 36rem) {
+  .stream {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .room {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.8rem;
+    align-items: baseline;
+  }
+
+  .wire {
+    min-height: 9rem;
+  }
+
+  .line {
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    right: auto;
+    border-top: 0;
+    border-left: 2px dashed rgb(213 186 140 / 45%);
+  }
+
+  .packet {
+    translate: 50cqw 0;
+  }
+
+  .lostRest {
+    translate: 50cqw 50cqh;
+  }
+
+  .flying {
+    animation-name: fly-y;
+  }
+
+  .backward.flying {
+    animation-name: fly-y-back;
+  }
+
+  .flyingLost {
+    animation-name: lose-y;
+  }
+
+  .chart {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.9rem;
+  }
+
+  .barLabel {
+    margin-block-end: -0.6rem;
+    font-size: var(--mantine-font-size-xs);
+  }
+}
+
+@keyframes fly-y {
+  from {
+    translate: 50cqw 0;
+  }
+
+  to {
+    translate: 50cqw 100cqh;
+  }
+}
+
+@keyframes fly-y-back {
+  from {
+    translate: 50cqw 100cqh;
+  }
+
+  to {
+    translate: 50cqw 0;
+  }
+}
+
+@keyframes lose-y {
+  0% {
+    translate: 50cqw 0;
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+
+  50% {
+    translate: 50cqw 50cqh;
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+
+  60% {
+    transform: translate(-50%, -50%) rotate(6deg) scale(1.04);
+  }
+
+  70% {
+    transform: translate(-40%, -50%) rotate(-10deg);
+  }
+
+  100% {
+    translate: 50cqw 50cqh;
+    opacity: 0.6;
+    transform: translate(-50%, -50%) rotate(-8deg);
+  }
+}
+
+.waiting .wasteLabel {
+  opacity: 0;
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flying,
+  .flyingLost {
+    animation: none;
+  }
+
+  .fill,
+  .wasteFill,
+  .wasteLabel {
+    transition: none;
+  }
+}
+
+/* Out of view or in a hidden tab the step timer stops, so the packet in the air waits with it. */
+.paused *,
+.paused *::after {
+  animation-play-state: paused;
+}
