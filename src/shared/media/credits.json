@@ -62,8 +62,9 @@
     "style": "the GF9 Dune leader portraits"
   },
   "brainfood-portrait": {
-    "method": "unknown",
-    "source": "Brainfood's community factions"
+    "method": "official",
+    "artist": "Brainfood",
+    "source": "his community Dune factions"
   },
   "gf9-planet": {
     "method": "official",
