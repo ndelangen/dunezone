@@ -3,7 +3,7 @@ import { expect } from 'storybook/test';
 
 import { AUDIT_LOG, GAME_LOG } from '../../game.stories.fixture';
 import { PANEL_WINDOWS } from '../panelWindows';
-import { BUG_REPORT_ENTRY, logPage, logPanelMeta } from './LogPanel.stories.fixture';
+import { BATTLE_SPICE_ENTRIES, BUG_REPORT_ENTRY, logPage, logPanelMeta } from './LogPanel.stories.fixture';
 
 /*
  * The Game log and Audit windows on their own: one tab of the table's public log, newest first,
@@ -37,6 +37,9 @@ export const BugReport = meta.story({
     );
   },
 });
+
+/** Battles in the log: the spice each side spent once the plans are revealed, and a cancelled battle's refund without amounts. */
+export const BattleSpice = meta.story({ args: { page: logPage(BATTLE_SPICE_ENTRIES) } });
 
 /** The audit log: seats taken and left, and a removal vote. */
 export const Audit = meta.story({

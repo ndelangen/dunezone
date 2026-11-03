@@ -130,6 +130,41 @@ describe('the public log', () => {
     ]);
   });
 
+  it('names the spice each side spent once a battle resolves, and a refund without amounts when one is cancelled', () => {
+    const log = new PublicLog(memoryStorage(), () => 'Turn 1');
+    log.enabled = true;
+    const plan = (spice: number) => ({ spice });
+    log.recordCommit({
+      holders: [],
+      before: snapshot(1),
+      next: snapshot(2, {
+        battleResults: [
+          { id: 'b1', revision: 2, outcome: 'left', factions: ['house', 'fremen'], plans: [plan(9), plan(0)] },
+        ],
+      } as never),
+      message: { type: 'command', action: { kind: 'battle-outcome' } } as never,
+      viewer: viewer as never,
+    });
+    const preparing = {
+      id: 'b2',
+      stage: 'preparing',
+      sides: [{ factionId: 'house' }, { factionId: 'fremen' }],
+      plans: [plan(9), plan(3)],
+    };
+    log.recordCommit({
+      holders: [],
+      before: snapshot(2, { battleState: preparing } as never),
+      next: snapshot(3, { battleState: null } as never),
+      message: { type: 'command', action: { kind: 'battle-cancel', battleId: 'b2' } } as never,
+      viewer: viewer as never,
+    });
+    const texts = log.page('game', Number.MAX_SAFE_INTEGER).entries.map((entry) => entry.text);
+    expect(texts).toEqual([
+      'The battle between House {0} and Fremen {1} was cancelled before the reveal; any spice in its plans went back to the spice reserves.',
+      'House {0} defeated Fremen {1}. Spice spent from the reserves: House {0} 9.',
+    ]);
+  });
+
   it('records an alliance forming and breaking, and nothing for an offer', () => {
     const log = new PublicLog(memoryStorage(), () => 'Turn 1');
     log.enabled = true;

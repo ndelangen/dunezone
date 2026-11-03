@@ -23,6 +23,24 @@ export const BUG_REPORT_ENTRY: LogEntry = {
   issueUrl: 'https://github.com/ndelangen/dunezone/issues/1',
 };
 
+/* A battle resolved with the spice each side spent, and a later one cancelled before its reveal, as the game log records them. */
+export const BATTLE_SPICE_ENTRIES: LogEntry[] = [
+  {
+    sequence: 8,
+    class: 'battle',
+    text: 'The battle between Fremen and House Harkonnen was cancelled before the reveal; any spice in its plans went back to the spice reserves.',
+    context: 'Turn 2, Battle',
+    at: 1200,
+  },
+  {
+    sequence: 7,
+    class: 'battle',
+    text: 'House Atreides defeated House Harkonnen. Spice spent from the reserves: House Atreides 9, House Harkonnen 2.',
+    context: 'Turn 2, Battle',
+    at: 1100,
+  },
+];
+
 export const logPanelMeta = {
   ...panelMeta(PANEL_WINDOWS.gameLog),
   component: LogPanel,

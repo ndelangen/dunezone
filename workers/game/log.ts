@@ -280,6 +280,7 @@ function commitEntries({
     ...allianceEntries(before, next, message, viewer, faction, context),
     ...(transfer ? [spiceEntry(transfer, { userId: viewer.userId, name: viewer.displayName }, faction, context)] : []),
     ...(result && result.revision === next.revision ? [battleEntry(result, faction, context)] : []),
+    ...(message.type === 'command' ? cancelledBattleEntries(before, next, message.action, faction, context) : []),
     ...deletionEntries(before, next, message, viewer, context),
   ];
 }
@@ -590,13 +591,49 @@ function spiceEntry(transfer: SpiceTransfer, actor: Person, faction: FactionName
 function battleEntry(result: BattleResult, faction: FactionNamer, context: string): Entry {
   const [left, right] = result.factions;
   const people: Person[] = [];
-  const template =
+  const outcome =
     result.outcome === 'none'
       ? `The battle between ${faction(left, people)} and ${faction(right, people)} ended with no winner.`
       : result.outcome === 'left'
         ? `${faction(left, people)} defeated ${faction(right, people)}.`
         : `${faction(right, people)} defeated ${faction(left, people)}.`;
+  const template = `${outcome}${battleSpiceSpent(result, faction, people)}`;
   return { key: `battle:${result.id}`, class: 'battle', template, people, context };
+}
+
+/* The spice each side's plan took from its spice reserve, public once the plans are revealed; nothing when neither dialled any. */
+function battleSpiceSpent(result: BattleResult, faction: FactionNamer, people: Person[]) {
+  const spent = result.factions.flatMap((factionId, side) => {
+    const amount = result.plans?.[side]?.spice ?? 0;
+    return amount > 0 ? [`${faction(factionId, people)} ${amount}`] : [];
+  });
+  return spent.length ? ` Spice spent from the reserves: ${spent.join(', ')}.` : '';
+}
+
+/*
+ * A battle called off before its reveal hands each plan's spice back to its spice reserve.
+ * The log says so without the amounts, which the plans kept hidden.
+ */
+function cancelledBattleEntries(
+  before: StoredSnapshot,
+  next: StoredSnapshot,
+  action: Extract<CommitMessage, { type: 'command' }>['action'],
+  faction: FactionNamer,
+  context: string
+): Entry[] {
+  const battle = before.battleState;
+  if (action.kind !== 'battle-cancel' || battle?.stage !== 'preparing' || next.battleState) {
+    return [];
+  }
+  const sides = battle.sides.flatMap((side) => (side ? [side.factionId] : []));
+  if (!sides.length) {
+    return [];
+  }
+  const people: Person[] = [];
+  const names = sides.map((factionId) => faction(factionId, people));
+  const between = names.length === 2 ? `between ${names[0]} and ${names[1]}` : `of ${names[0]}`;
+  const template = `The battle ${between} was cancelled before the reveal; any spice in its plans went back to the spice reserves.`;
+  return [{ key: `battle-cancel:${battle.id}`, class: 'battle', template, people, context }];
 }
 
 function seatEntry(change: SeatChange): Entry {
