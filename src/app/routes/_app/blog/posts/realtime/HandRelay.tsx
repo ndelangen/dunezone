@@ -33,7 +33,7 @@ function latency() {
 }
 
 /** Where the hand wanders on its own: a slow loop that never leaves the table. */
-function wander(time: number): Point {
+function wander({ now: time }: Pick<Tick, 'now'>): Point {
   return {
     x: 0.5 + 0.3 * Math.sin(time / 1900) + 0.06 * Math.sin(time / 530),
     y: 0.5 + 0.28 * Math.sin(time / 1300 + 1.2) + 0.05 * Math.cos(time / 470),
@@ -45,23 +45,25 @@ function place(element: HTMLElement, point: Point) {
   element.style.translate = `${point.x * 100}cqw ${point.y * 100}cqh`;
 }
 
-/** Moves a share of the way from one point towards another. */
-function ease(from: Point, to: Point, amount: number): Point {
+/** Glides from one point towards another, closing `1 - exp(-rate * dt)` of the distance. */
+function ease(from: Point, to: Point, { rate, dt }: { rate: number; dt: number }): Point {
+  const amount = 1 - Math.exp(-rate * dt);
   return {
     x: from.x + (to.x - from.x) * amount,
     y: from.y + (to.y - from.y) * amount,
   };
 }
 
-/** When a position sent now reaches the other player: the wire to the room, the room's next 50 ms batch, and the wire back out. */
-function arrivalTime(now: number) {
-  const atRoom = now + latency();
-  return Math.ceil(atRoom / BATCH_MS) * BATCH_MS + latency();
-}
-
 type Positions = { local: Point; target: Point; shown: Point };
 type Elements = { localHand: HTMLElement; remoteHand: HTMLElement; dots: HTMLElement[] };
-type Input = { held: Point | null; wander: boolean; smoothing: boolean };
+/** One frame: when it is, how long since the last, and what the reader is doing. */
+type Tick = {
+  now: number;
+  dt: number;
+  held: Point | null;
+  wander: boolean;
+  smoothing: boolean;
+};
 
 /**
  * One run of the demo: the reader's hand, the positions on the wire, and the copy the other player draws.
@@ -74,6 +76,7 @@ class Relay {
   private readonly inFlight: { point: Point; arrives: number }[] = [];
   private readonly dotAges: number[];
   private nextDot = 0;
+  private tick: Tick = { now: 0, dt: 0, held: null, wander: false, smoothing: true };
   private lastDotAt = Number.NEGATIVE_INFINITY;
 
   private readonly elements: Elements;
@@ -85,14 +88,15 @@ class Relay {
   }
 
   /** Moves everything on by one frame; false once nothing is left to move. */
-  frame(now: number, dt: number, input: Input): boolean {
-    this.moveLocal(now, dt, input);
-    this.send(now);
-    this.receive(now);
-    this.drawRemote(dt, input.smoothing);
-    this.fadeDots(now);
-    const moving = Boolean(input.held) || input.wander || this.inFlight.length > 0;
-    return moving || !this.settled(now);
+  frame(tick: Tick): boolean {
+    this.tick = tick;
+    this.moveLocal();
+    this.send();
+    this.receive();
+    this.drawRemote();
+    this.fadeDots();
+    const moving = Boolean(tick.held) || tick.wander || this.inFlight.length > 0;
+    return moving || !this.settled();
   }
 
   get current(): Positions {
@@ -100,20 +104,22 @@ class Relay {
   }
 
   /** The hand under the reader's pointer, or the wander path once they have left it alone for a while, which it drifts back to rather than jumping. */
-  private moveLocal(now: number, dt: number, { held, wander: wandering }: Input) {
+  private moveLocal() {
+    const { dt, held, wander: wandering } = this.tick;
     const { local } = this.positions;
     let next = local;
     if (held) {
       next = held;
     } else if (wandering) {
-      next = ease(local, wander(now), 1 - Math.exp(-RETURN_RATE * dt));
+      next = ease(local, wander(this.tick), { rate: RETURN_RATE, dt });
     }
     this.positions = { ...this.positions, local: next };
     place(this.elements.localHand, next);
   }
 
   /** A position leaves at most every 50 ms, and only when the hand moved. */
-  private send(now: number) {
+  private send() {
+    const { now } = this.tick;
     const { local } = this.positions;
     const moved = !this.lastSent || this.lastSent.x !== local.x || this.lastSent.y !== local.y;
     if (now - this.lastSampleAt < SAMPLE_MS || !moved) {
@@ -121,11 +127,14 @@ class Relay {
     }
     this.lastSampleAt = now;
     this.lastSent = local;
-    this.inFlight.push({ point: local, arrives: arrivalTime(now) });
+    /* The wire to the room, the room's next 50 ms batch, and the wire back out. */
+    const atRoom = now + latency();
+    this.inFlight.push({ point: local, arrives: Math.ceil(atRoom / BATCH_MS) * BATCH_MS + latency() });
   }
 
   /** Every position that has arrived becomes the target, and leaves a dot where it landed. */
-  private receive(now: number) {
+  private receive() {
+    const { now } = this.tick;
     const { dots } = this.elements;
     while (this.inFlight.length > 0 && this.inFlight[0]!.arrives <= now) {
       const target = this.inFlight.shift()!.point;
@@ -137,15 +146,17 @@ class Relay {
     }
   }
 
-  private drawRemote(dt: number, smoothing: boolean) {
+  private drawRemote() {
+    const { dt, smoothing } = this.tick;
     const { target, shown } = this.positions;
-    const next = smoothing ? ease(shown, target, 1 - Math.exp(-SMOOTHING_RATE * dt)) : target;
+    const next = smoothing ? ease(shown, target, { rate: SMOOTHING_RATE, dt }) : target;
     this.positions = { ...this.positions, shown: next };
     place(this.elements.remoteHand, next);
   }
 
   /** Fades each dot out over its life. */
-  private fadeDots(now: number) {
+  private fadeDots() {
+    const { now } = this.tick;
     this.elements.dots.forEach((dot, index) => {
       const age = now - this.dotAges[index]!;
       dot.style.opacity = age < DOT_LIFE_MS ? String(1 - age / DOT_LIFE_MS) : '0';
@@ -153,7 +164,8 @@ class Relay {
   }
 
   /** The shown hand has caught up with the last position it received, and the dots have gone. */
-  private settled(now: number) {
+  private settled() {
+    const { now } = this.tick;
     const { target, shown } = this.positions;
     return Math.hypot(target.x - shown.x, target.y - shown.y) < 0.0005 && now - this.lastDotAt > DOT_LIFE_MS;
   }
@@ -227,11 +239,12 @@ export function HandRelay() {
       const dt = Math.max(0, Math.min(0.1, (now - lastFrame) / 1000));
       lastFrame = now;
       const held = pointer.current;
-      const input = {
+      const more = relay.frame({
+        now,
+        dt,
         held: held && now - held.at < IDLE_MS ? held.point : null,
         ...settings.current,
-      };
-      const more = relay.frame(now, dt, input);
+      });
       positions.current = relay.current;
       /* Nothing left to move: no pointer, no wander, nothing in the air, the hand home and the dots gone. The loop sleeps until woken. */
       if (!more) {

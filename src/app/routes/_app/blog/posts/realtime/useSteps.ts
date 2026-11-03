@@ -62,21 +62,22 @@ function runSteps({ from, total, interval, loop, pause, show }: StepTimer) {
   return () => clearTimeout(timer);
 }
 
-export function useSteps(
-  rootRef: RefObject<HTMLElement | null>,
-  total: number,
-  { interval, loop = false, pause = 4 }: { interval: number; loop?: boolean; pause?: number }
-) {
-  const { armed, seen, active } = useSeen(rootRef);
-  const reduced = useReducedMotion();
-  const [step, setStep] = useState(0);
-  const [run, setRun] = useState(0);
-  /* Where the timer stands, kept outside the render so a loop resumes from the step it stopped at. */
-  const position = useRef(0);
-
-  const playing = armed && seen && !reduced;
-  const ticking = playing && (active || !loop);
-
+/** Runs the step timer while `ticking`; a loop resumes from the step it stopped at, a one-shot story starts from the first. */
+function useStepTimer({
+  ticking,
+  run,
+  total,
+  interval,
+  loop,
+  pause,
+  position,
+  setStep,
+}: Omit<StepTimer, 'from' | 'show'> & {
+  ticking: boolean;
+  run: number;
+  position: RefObject<number>;
+  setStep: (step: number) => void;
+}) {
   useEffect(() => {
     if (!ticking) {
       return;
@@ -93,7 +94,25 @@ export function useSteps(
       },
     });
     /* `run` is a replay counter: bumping it restarts the timer from the first step. */
-  }, [ticking, total, interval, loop, pause, run]);
+  }, [ticking, total, interval, loop, pause, run, position, setStep]);
+}
+
+export function useSteps(
+  rootRef: RefObject<HTMLElement | null>,
+  total: number,
+  { interval, loop = false, pause = 4 }: { interval: number; loop?: boolean; pause?: number }
+) {
+  const { armed, seen, active } = useSeen(rootRef);
+  const reduced = useReducedMotion();
+  const [step, setStep] = useState(0);
+  const [run, setRun] = useState(0);
+  /* Where the timer stands, kept outside the render so a loop resumes from the step it stopped at. */
+  const position = useRef(0);
+
+  const playing = armed && seen && !reduced;
+  const ticking = playing && (active || !loop);
+
+  useStepTimer({ ticking, run, total, interval, loop, pause, position, setStep });
 
   return {
     step: shownSteps({ animated: armed && !reduced, seen, step, total }),
