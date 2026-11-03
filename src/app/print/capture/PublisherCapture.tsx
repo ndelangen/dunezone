@@ -8,7 +8,6 @@ import { assertRequiredPublisherFonts } from '@shared/asset-publishing/publisher
 import type { PublisherCaptureSnapshot } from '@shared/asset-publishing/publisher-snapshot';
 import { publisherCaptureSnapshotSchema } from '@shared/asset-publishing/publisher-snapshot';
 import { tokenShapeOfType } from '@shared/assets/tokenOutline';
-import { readRenamedEmblems } from '@shared/renamedEmblem';
 import type { RulebookSize } from '@shared/rulebooks/settings';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
@@ -181,7 +180,7 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
         <LeaderToken
           {...snapshot.payload.leader}
           background={snapshot.payload.background}
-          logo={snapshot.payload.logo}
+          emblem={snapshot.payload.emblem}
         />
       );
     case 'token-leader':
@@ -262,8 +261,7 @@ export function PublisherCapture() {
         if (!response.ok) {
           throw new Error(`Publication job snapshot returned HTTP ${response.status}`);
         }
-        /* A Convex one release ahead serves payloads under the emblem rename's names (see `readRenamedEmblems`). */
-        const parsed = publisherCaptureSnapshotSchema.parse(readRenamedEmblems(await response.json()));
+        const parsed = publisherCaptureSnapshotSchema.parse(await response.json());
         setSnapshot(parsed);
         setDetail(`Rendering Publication job snapshot ${parsed.payloadHash}`);
       } catch (error) {

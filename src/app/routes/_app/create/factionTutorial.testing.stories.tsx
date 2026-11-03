@@ -55,9 +55,9 @@ export const WalkThrough = meta.story({
     await page.findByRole('banner', { name: RAIL }, { timeout: 60_000 });
     await page.findByRole('textbox', { name: 'Faction name' }, { timeout: 60_000 });
     await write('Faction name', 'Sand Wardens');
-    await next('Pick a logo');
+    await next('Pick an emblem');
 
-    await pick('#faction-logo', 'Ixian', () => expect(current()).toContain('Pick a logo'));
+    await pick('#faction-emblem', 'Ixian', () => expect(current()).toContain('Pick an emblem'));
     await next('Pick a background');
 
     await userEvent.click(document.querySelector<HTMLElement>('[aria-label="Background preset"]')!);

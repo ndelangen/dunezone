@@ -28,9 +28,9 @@ export default function Post() {
           picked from a library.
         </Paragraph>
         <Paragraph>
-          There is the name, which also becomes the page&rsquo;s web address. There is a logo, a background texture with
-          two colours laid over it, and a theme colour. Paul is the faction leader, and five more leaders each bring a
-          portrait and a strength. The troops have their own icon and a count of twenty.
+          There is the name, which also becomes the page&rsquo;s web address. There is an emblem, a background texture
+          with two colours laid over it, and a theme colour. Paul is the faction leader, and five more leaders each
+          bring a portrait and a strength. The troops have their own icon and a count of twenty.
         </Paragraph>
         <Paragraph>
           Then there are the rules: ten troops in Arrakeen and ten in reserve at the start, two free revivals, ten
@@ -41,7 +41,7 @@ export default function Post() {
         <Paragraph>
           None of the pieces you see on the site are stored as pictures. The faction sheet, the leader tokens, the
           traitor cards, the troop token, the faction token, the alliance card and the shield are all drawn from those
-          ingredients, right in your browser. Change the logo once and every piece follows.
+          ingredients, right in your browser. Change the emblem once and every piece follows.
         </Paragraph>
         <Paragraph>
           When a printable PDF or an image file is needed, a cloud worker opens the same pages in a browser of its own
@@ -73,7 +73,7 @@ export default function Post() {
         <Paragraph>
           In 2021, dune.games stored game results, and a faction was a name on one. In 2023, dune-app had a real
           faction, but every card and token kept its own copy of the data. In 2024, dune-assets turned it around: the
-          pictures came first, and each one carried its own logo, colours and background, so changing a logo meant
+          pictures came first, and each one carried its own emblem, colours and background, so changing an emblem meant
           changing it in every picture. Today there is one faction, and every piece is drawn from it.
         </Paragraph>
         <FiveYears />

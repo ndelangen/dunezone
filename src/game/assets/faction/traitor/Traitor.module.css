@@ -23,7 +23,7 @@
   border: 7px solid #7f7548;
 }
 
-.logo {
+.emblem {
   position: absolute;
   top: 510px;
   left: 105px;
@@ -31,7 +31,7 @@
   height: 140px;
 }
 
-.logo::after {
+.emblem::after {
   content: "";
   position: absolute;
   top: -17px;
@@ -42,7 +42,7 @@
   border: 7px solid #7f7548;
 }
 
-.logo > * {
+.emblem > * {
   width: 100% !important;
   height: 100% !important;
   overflow: hidden;

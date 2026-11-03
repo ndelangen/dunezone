@@ -110,7 +110,7 @@ describe('the draft reads the catalogue', () => {
     expect(atreides).toMatchObject({
       slug: 'atreides',
       name: 'Atreides',
-      logo: assetPublishingFaction.logo,
+      emblem: assetPublishingFaction.emblem,
       background: assetPublishingFaction.background,
       color: assetPublishingFaction.themeColor,
     });

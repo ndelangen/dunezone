@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { Background, CanonicalFactionStoredObject } from '../factions/schema';
+import { legacyEmblemKeyed } from '../legacyEmblem';
 import { actionKindGuard } from './actionKinds';
 import { tableCountSchema, tableIdentitySchema, tableSeatSchema } from './schema';
 
@@ -16,11 +17,12 @@ import { tableCountSchema, tableIdentitySchema, tableSeatSchema } from './schema
 export const PLAY_DRAFT_CATALOGUE_TTL_MS = 30_000;
 
 /** One faction as the draft knows it: enough to draw its real token, and whether it may be dealt. */
-const draftFactionSchema = z.object({
+/* A draft in Durable Object storage from before the emblem rename names it `logo` (see src/shared/legacyEmblem.ts). */
+const draftFactionObject = z.object({
   id: tableIdentitySchema,
   slug: z.string().max(160),
   name: z.string().max(160),
-  logo: CanonicalFactionStoredObject.shape.logo,
+  emblem: CanonicalFactionStoredObject.shape.emblem,
   background: Background,
   color: z.string().regex(/^#[0-9a-f]{6}$/i),
   /* Linked to the game's ruleset: shown first, and the source of random filling. */
@@ -28,6 +30,7 @@ const draftFactionSchema = z.object({
   /* Its token is published: only these can be drafted; the capture at assignment judges the rest. */
   published: z.boolean(),
 });
+const draftFactionSchema = legacyEmblemKeyed(draftFactionObject);
 export type DraftFaction = z.infer<typeof draftFactionSchema>;
 
 /** The catalogue's answer to a drafting game: every live faction with its link to the game's ruleset. */

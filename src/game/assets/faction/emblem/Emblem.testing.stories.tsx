@@ -12,112 +12,112 @@ const tokenBackground = {
   influence: 0,
 } satisfies ComponentProps<typeof Token>['background'];
 
-type Logo = ComponentProps<typeof Token>['logo'];
+type Emblem = ComponentProps<typeof Token>['emblem'];
 
 const emblems = {
   SiroccoRaptor: {
     name: 'Sirocco raptor',
-    logo: '/vector/logo/sirocco-raptor.svg',
+    emblem: '/vector/emblem/sirocco-raptor.svg',
     detail: 'A watchful House with a swept wing and diamond tail.',
   },
   DuneJackal: {
     name: 'Dune jackal',
-    logo: '/vector/logo/dune-jackal.svg',
+    emblem: '/vector/emblem/dune-jackal.svg',
     detail: 'A desert dynasty marked by a lean jackal profile.',
   },
   CrownedIbex: {
     name: 'Crowned ibex',
-    logo: '/vector/logo/crowned-ibex.svg',
+    emblem: '/vector/emblem/crowned-ibex.svg',
     detail: 'Cliff-world nobility beneath a crown of horns.',
   },
   ObsidianMantis: {
     name: 'Obsidian mantis',
-    logo: '/vector/logo/obsidian-mantis.svg',
+    emblem: '/vector/emblem/obsidian-mantis.svg',
     detail: 'A disciplined order of silent hunters.',
   },
   CoilViper: {
     name: 'Coil viper',
-    logo: '/vector/logo/coil-viper.svg',
+    emblem: '/vector/emblem/coil-viper.svg',
     detail: 'A courtly serpent for patient conspirators.',
   },
   CinderPhoenix: {
     name: 'Cinder phoenix',
-    logo: '/vector/logo/cinder-phoenix.svg',
+    emblem: '/vector/emblem/cinder-phoenix.svg',
     detail: 'A House built around fire and renewal.',
   },
   WormCrown: {
     name: 'Worm crown',
-    logo: '/vector/logo/worm-crown.svg',
+    emblem: '/vector/emblem/worm-crown.svg',
     detail: "A desert brotherhood beneath the worm's crown.",
   },
   SietchWell: {
     name: 'Sietch well',
-    logo: '/vector/logo/sietch-well.svg',
+    emblem: '/vector/emblem/sietch-well.svg',
     detail: 'A water-keeping community and its sheltered well.',
   },
   ThornBloom: {
     name: 'Thorn bloom',
-    logo: '/vector/logo/thorn-bloom.svg',
+    emblem: '/vector/emblem/thorn-bloom.svg',
     detail: 'An aristocratic desert flower with a thorned stem.',
   },
   TwinMoons: {
     name: 'Twin moons',
-    logo: '/vector/logo/twin-moons.svg',
+    emblem: '/vector/emblem/twin-moons.svg',
     detail: "A navigator's moons above the dunes.",
   },
   PilgrimLantern: {
     name: 'Pilgrim lantern',
-    logo: '/vector/logo/pilgrim-lantern.svg',
+    emblem: '/vector/emblem/pilgrim-lantern.svg',
     detail: 'A pilgrim order carrying a guarded flame.',
   },
   CrescentBlade: {
     name: 'Crescent blade',
-    logo: '/vector/logo/crescent-blade.svg',
+    emblem: '/vector/emblem/crescent-blade.svg',
     detail: 'A dueling House with an interlocking blade crest.',
   },
   FoldspaceKnot: {
     name: 'Foldspace knot',
-    logo: '/vector/logo/foldspace-knot.svg',
+    emblem: '/vector/emblem/foldspace-knot.svg',
     detail: 'A navigator collective bound by a threefold knot.',
   },
   PrismEngine: {
     name: 'Prism engine',
-    logo: '/vector/logo/prism-engine.svg',
+    emblem: '/vector/emblem/prism-engine.svg',
     detail: 'A technological House with a faceted machine seal.',
   },
   OracleEye: {
     name: 'Oracle eye',
-    logo: '/vector/logo/oracle-eye.svg',
+    emblem: '/vector/emblem/oracle-eye.svg',
     detail: 'A veiled order with a watchful diamond eye.',
   },
   MerchantSeal: {
     name: 'Merchant seal',
-    logo: '/vector/logo/merchant-seal.svg',
+    emblem: '/vector/emblem/merchant-seal.svg',
     detail: 'A trading House balanced around a central standard.',
   },
   StormCompass: {
     name: 'Storm compass',
-    logo: '/vector/logo/storm-compass.svg',
+    emblem: '/vector/emblem/storm-compass.svg',
     detail: 'Storm guides following a fourfold wind mark.',
   },
   SaltScarab: {
     name: 'Salt scarab',
-    logo: '/vector/logo/salt-scarab.svg',
+    emblem: '/vector/emblem/salt-scarab.svg',
     detail: 'A desert lineage bearing a crescent-horned scarab.',
   },
-} as const satisfies Record<string, { name: string; logo: Logo; detail: string }>;
+} as const satisfies Record<string, { name: string; emblem: Emblem; detail: string }>;
 
 const meta = testingPreview.meta({
-  title: 'Logo',
+  title: 'Emblem',
   component: Token,
   args: { background: tokenBackground },
   globals: { viewport: { value: 'disc' } },
 });
 
-function Emblem({ logo, size }: { logo: Logo; size: number }) {
+function Emblem({ emblem, size }: { emblem: Emblem; size: number }) {
   return (
     <svg viewBox="0 0 100 100" width={size} height={size} fill="currentColor" aria-hidden="true">
-      <use href={`${logo}#root`} width="100" height="100" />
+      <use href={`${emblem}#root`} width="100" height="100" />
     </svg>
   );
 }
@@ -131,10 +131,12 @@ export const NewEmblems = meta.story({
     const entries = Object.values(emblems);
     await expect(within(canvasElement).getAllByRole('article')).toHaveLength(entries.length);
     const broken = await Promise.all(
-      entries.map(async ({ logo }) => {
-        const response = await fetch(logo);
+      entries.map(async ({ emblem }) => {
+        const response = await fetch(emblem);
         const source = await response.text();
-        return response.ok && source.includes('id="root"') ? null : `${logo} ${response.status} ${source.slice(0, 80)}`;
+        return response.ok && source.includes('id="root"')
+          ? null
+          : `${emblem} ${response.status} ${source.slice(0, 80)}`;
       })
     );
     await expect(broken.filter(Boolean)).toEqual([]);
@@ -162,12 +164,16 @@ export const NewEmblems = meta.story({
           gap: 20,
         }}
       >
-        {Object.values(emblems).map(({ name, logo, detail }) => (
-          <article key={logo} aria-label={name} style={{ background: '#faf5e9', borderRadius: 12, overflow: 'hidden' }}>
+        {Object.values(emblems).map(({ name, emblem, detail }) => (
+          <article
+            key={emblem}
+            aria-label={name}
+            style={{ background: '#faf5e9', borderRadius: 12, overflow: 'hidden' }}
+          >
             <div
               style={{ background: '#101d2d', color: '#eee7d7', height: 220, display: 'grid', placeItems: 'center' }}
             >
-              <Emblem logo={logo} size={164} />
+              <Emblem emblem={emblem} size={164} />
             </div>
             <div style={{ padding: 20 }}>
               <h2 style={{ fontFamily: 'Caladea, serif', margin: '0 0 8px', fontSize: 24 }}>{name}</h2>
@@ -177,17 +183,17 @@ export const NewEmblems = meta.story({
                   aria-label={`${name} faction token`}
                   style={{ width: 64, height: 64, flexShrink: 0, overflow: 'hidden', borderRadius: '50%' }}
                 >
-                  <Token background={tokenBackground} logo={logo} />
+                  <Token background={tokenBackground} emblem={emblem} />
                 </div>
                 <div aria-label={`${name} at 32 pixels`}>
-                  <Emblem logo={logo} size={32} />
+                  <Emblem emblem={emblem} size={32} />
                 </div>
                 <div aria-label={`${name} at 48 pixels`}>
-                  <Emblem logo={logo} size={48} />
+                  <Emblem emblem={emblem} size={48} />
                 </div>
               </div>
               <a
-                href={logo}
+                href={emblem}
                 download
                 style={{ display: 'inline-block', color: '#344e54', marginTop: 18, fontSize: 13 }}
               >

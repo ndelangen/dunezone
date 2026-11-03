@@ -9,7 +9,7 @@ import { mediaSubjects } from './mediaSubjects';
 export const indexedMediaKinds = [
   { value: 'decal', slug: 'decals', label: 'Decals' },
   { value: 'generic', slug: 'symbols', label: 'General symbols' },
-  { value: 'logo', slug: 'emblems', label: 'Emblems' },
+  { value: 'emblem', slug: 'emblems', label: 'Emblems' },
   { value: 'icon', slug: 'icons', label: 'Game icons' },
   { value: 'troop', slug: 'troops', label: 'Troops' },
   { value: 'troop_modifier', slug: 'troop-modifiers', label: 'Troop modifiers' },

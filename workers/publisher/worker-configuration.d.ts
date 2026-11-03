@@ -14831,9 +14831,9 @@ type StreamPublicDetails = {
      */
     channel_link: string | null;
     /**
-     * The public logo URL.
+     * The public emblem URL.
      */
-    logo: string | null;
+    emblem: string | null;
 };
 type StreamDirectUpload = {
     /**

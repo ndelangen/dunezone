@@ -89,34 +89,34 @@ describe('the faction tutorial reading the page', () => {
     vi.useRealTimers();
   });
 
-  test('a logo picked before the task first looks still counts', () => {
-    document.body.innerHTML = '<input id="faction-logo" value="Atreides" />';
-    const logo = FACTION_TUTORIAL_TASKS({ pathname: () => '' }).find((task) => task.id === 'logo')!;
-    const watch = logo.begin(view);
-    document.querySelector<HTMLInputElement>('#faction-logo')!.value = 'Harkonnen';
-    expect(logo.done(watch, view)).toBe(true);
+  test('an emblem picked before the task first looks still counts', () => {
+    document.body.innerHTML = '<input id="faction-emblem" value="Atreides" />';
+    const emblem = FACTION_TUTORIAL_TASKS({ pathname: () => '' }).find((task) => task.id === 'emblem')!;
+    const watch = emblem.begin(view);
+    document.querySelector<HTMLInputElement>('#faction-emblem')!.value = 'Harkonnen';
+    expect(emblem.done(watch, view)).toBe(true);
   });
 });
 
 test('opening a picker, which shows the search in its box, is not a pick, nor is closing it unchanged', () => {
-  document.body.innerHTML = '<input id="faction-logo" value="Antler Tower" />';
-  const logo = FACTION_TUTORIAL_TASKS({ pathname: () => '' }).find((task) => task.id === 'logo')!;
+  document.body.innerHTML = '<input id="faction-emblem" value="Antler Tower" />';
+  const emblem = FACTION_TUTORIAL_TASKS({ pathname: () => '' }).find((task) => task.id === 'emblem')!;
   const view = { camera: null };
-  const watch = logo.begin(view);
-  const picker = document.querySelector<HTMLInputElement>('#faction-logo')!;
+  const watch = emblem.begin(view);
+  const picker = document.querySelector<HTMLInputElement>('#faction-emblem')!;
   const list = document.createElement('div');
   list.setAttribute('role', 'listbox');
   list.setAttribute('aria-label', 'Artwork');
   document.body.append(list);
   picker.value = '';
-  expect(logo.done(watch, view)).toBe(false);
+  expect(emblem.done(watch, view)).toBe(false);
   picker.value = 'Ixian';
-  expect(logo.done(watch, view)).toBe(false);
+  expect(emblem.done(watch, view)).toBe(false);
   list.remove();
   picker.value = 'Antler Tower';
-  expect(logo.done(watch, view)).toBe(false);
+  expect(emblem.done(watch, view)).toBe(false);
   picker.value = 'Ixian';
-  expect(logo.done(watch, view)).toBe(true);
+  expect(emblem.done(watch, view)).toBe(true);
 });
 
 test('opening a tab is a task of its own, done once that tab is selected', () => {
@@ -180,12 +180,12 @@ test('the sheet review passes once looked at, or at once where the page is too n
 
 test("a pick from another picker is not this picker's pick", () => {
   document.body.innerHTML =
-    '<input id="faction-logo" value="Antler Tower" aria-expanded="false" /><input id="faction-background" aria-expanded="true" /><div role="listbox" aria-label="Artwork"><div role="option">Nexus</div></div>';
-  const logo = FACTION_TUTORIAL_TASKS({ pathname: () => '' }).find((task) => task.id === 'logo')!;
+    '<input id="faction-emblem" value="Antler Tower" aria-expanded="false" /><input id="faction-background" aria-expanded="true" /><div role="listbox" aria-label="Artwork"><div role="option">Nexus</div></div>';
+  const emblem = FACTION_TUTORIAL_TASKS({ pathname: () => '' }).find((task) => task.id === 'emblem')!;
   const view = { camera: null };
-  const watch = logo.begin(view);
+  const watch = emblem.begin(view);
   document.querySelector<HTMLElement>('[role="option"]')!.click();
   document.querySelector('[role="listbox"]')!.remove();
-  expect(logo.done(watch, view)).toBe(false);
-  logo.finish?.(watch);
+  expect(emblem.done(watch, view)).toBe(false);
+  emblem.finish?.(watch);
 });

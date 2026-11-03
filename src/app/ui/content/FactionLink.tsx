@@ -12,7 +12,7 @@ export interface FactionLinkProps {
   slug: string;
   name: string;
   /** The faction's own mark, the same pair its detail page renders. */
-  logo: FactionTokenProps['logo'];
+  emblem: FactionTokenProps['emblem'];
   background: FactionTokenProps['background'];
   className?: string;
   style?: CSSProperties;
@@ -26,10 +26,10 @@ export interface FactionLinkProps {
  * this owns how a faction is cited inline anywhere in the app, so every mention looks and navigates identically.
  * The destination is hardcoded because it is the component's name.
  */
-export const FactionLink = ({ slug, name, logo, background, className, style }: FactionLinkProps) => (
+export const FactionLink = ({ slug, name, emblem, background, className, style }: FactionLinkProps) => (
   <Link to="/factions/$factionId" params={{ factionId: slug }} className={clsx(styles.link, className)} style={style}>
     <span className={styles.media} aria-hidden>
-      <FactionToken logo={logo} background={background} />
+      <FactionToken emblem={emblem} background={background} />
     </span>
     <span className={styles.name}>{name}</span>
   </Link>

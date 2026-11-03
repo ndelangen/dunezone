@@ -154,7 +154,7 @@ describe('Rulebook PDF composition', () => {
       footerPage({ ...footer, leftFaction: { status: 'unavailable', factionId: 'gone' } }),
       footerPage({
         ...footer,
-        rightFaction: { status: 'ready', factionId: 'logo-less', name: 'House without an emblem', color: '#112233' },
+        rightFaction: { status: 'ready', factionId: 'emblem-less', name: 'House without an emblem', color: '#112233' },
       }),
     ]) {
       const visibleDocument = { ...document, pagesById: { [cover.id]: visibleCover } };
@@ -175,7 +175,7 @@ describe('Rulebook PDF composition', () => {
           factionId: 'token-only',
           name: 'Token without fallback text',
           color: '#112233',
-          token: { logo: assetPublishingFaction.logo, background: assetPublishingFaction.background },
+          token: { emblem: assetPublishingFaction.emblem, background: assetPublishingFaction.background },
         },
       },
     ]) {

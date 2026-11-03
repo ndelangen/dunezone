@@ -46,7 +46,7 @@ export const VECTOR_CATEGORY_RULES = {
   decal: { paint: 'baked-when-multicolor', fragmentApi: false, obj: false },
   generic: { paint: 'inherit', fragmentApi: false, obj: false },
   icon: { paint: 'baked-when-multicolor', fragmentApi: false, obj: false },
-  logo: { paint: 'inherit', fragmentApi: false, obj: true },
+  emblem: { paint: 'inherit', fragmentApi: false, obj: true },
   troop: { paint: 'inherit', fragmentApi: false, obj: true },
   // Fragment API: consumers paint #outline and #star separately (the old two-tone look).
   troop_modifier: { paint: 'inherit', fragmentApi: true, obj: true },

@@ -23,6 +23,7 @@ import {
   HistoricalFactionPublicationObject,
   heroKeyedDecoder,
 } from '../factions/schema';
+import { renameLegacyEmblems } from '../legacyEmblem';
 import { rulebookRenderPageV1Schema } from '../rulebooks/renderDocument';
 import { DEFAULT_RULEBOOK_SETTINGS, rulebookSettingsSchema } from '../rulebooks/settings';
 import { componentGeometrySchema } from './componentGeometry';
@@ -35,7 +36,7 @@ import { PUBLICATION_ASSET_TYPES } from './publicationTargets';
 export const FACTION_SHEET_ASSET_TYPE = 'faction_sheet' as const;
 /** The token's `.back` face draws the same artwork with the blocked symbol, so its payload is the front's plus that flag. */
 export const factionTokenAssetDataSchema = HistoricalFactionPublicationObject.pick({
-  logo: true,
+  emblem: true,
   background: true,
 }).extend({
   blocked: z.literal(true).optional(),
@@ -242,7 +243,8 @@ const PUBLICATION_ASSET_DATA_SCHEMAS = {
  * Typed `unknown` on purpose: the caller has the asset type at runtime but the union has no useful common member, so the capture page re-parses on receipt to get its own narrow type.
  */
 export function parsePublicationAssetData(assetType: PublicationAssetType, data: unknown): unknown {
-  return PUBLICATION_ASSET_DATA_SCHEMAS[assetType].parse(data);
+  /* A job stored before the emblem rename still names `logo`; it reads as the payload it stands for (see src/shared/legacyEmblem.ts). */
+  return PUBLICATION_ASSET_DATA_SCHEMAS[assetType].parse(renameLegacyEmblems(data));
 }
 
 const publicationJobRequestSchema = z.strictObject({

@@ -415,9 +415,9 @@ describe('faction catalogue query', () => {
     expect(Object.keys(card?.data ?? {}).sort(compareCodeUnits)).toEqual([
       'background',
       'complexity',
+      'emblem',
       'factionLeader',
       'leaders',
-      'logo',
       'name',
     ]);
   });

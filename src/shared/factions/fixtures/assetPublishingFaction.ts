@@ -4,7 +4,7 @@ import type { FactionInput } from '../schema';
 
 const assetPublishingFactionInput = {
   name: 'Atreides',
-  logo: '/vector/logo/atreides.svg',
+  emblem: '/vector/emblem/atreides.svg',
   colors: ['Green', 'Blue'],
   background: {
     image: '/image/texture/021.jpg',

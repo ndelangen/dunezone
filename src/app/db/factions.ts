@@ -70,7 +70,7 @@ export type FactionCatalogueEntry = Omit<FactionCatalogueRow, 'data'> & {
 
 export type FactionCatalogueSpotlightData = {
   slug: FactionCatalogueEntry['slug'];
-  data: Pick<FactionCatalogueEntry['data'], 'name' | 'logo' | 'background'>;
+  data: Pick<FactionCatalogueEntry['data'], 'name' | 'emblem' | 'background'>;
 };
 
 /** Derived from the query's own return type, so the client never claims a field the server stopped sending. */

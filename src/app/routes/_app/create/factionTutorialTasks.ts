@@ -204,11 +204,11 @@ const identityTasks = (): GuideTask[] => [
     ...typed({ selector: '#faction-name' }),
   }),
   task({
-    id: 'logo',
-    task: 'Pick a logo',
+    id: 'emblem',
+    task: 'Pick an emblem',
     detail:
-      'The logo goes on every piece of your faction: its tokens, its cards and its sheet.\n\nOpen the list and search for one. Try typing Ixian and picking it, or choose any logo you like.',
-    ...chosen({ selector: '#faction-logo' }),
+      'The emblem goes on every piece of your faction: its tokens, its cards and its sheet.\n\nOpen the list and search for one. Try typing Ixian and picking it, or choose any emblem you like.',
+    ...chosen({ selector: '#faction-emblem' }),
   }),
   task({
     id: 'background',
@@ -458,7 +458,7 @@ export const FACTION_TUTORIAL_TASKS = (page: FactionChapterPage): GuideTask[] =>
 
 /** What the learner can do once the chapter is done, listed on its end screen. */
 export const FACTION_TUTORIAL_LEARNED = [
-  'Name a faction and dress it with a logo and background',
+  'Name a faction and dress it with an emblem and background',
   'Give the faction leader and a supporting leader names and portraits',
   'Name the troops, pick their symbol and say how many there are',
   'Write the alliance card, setup, spice, revival and Karama rules',

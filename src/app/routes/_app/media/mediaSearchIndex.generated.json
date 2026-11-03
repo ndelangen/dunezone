@@ -3627,417 +3627,417 @@
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/logo/atreides.svg": {
+  "/vector/emblem/atreides.svg": {
     "description": "Stylized hawk with spread wings.",
     "tags": ["hawk", "wings", "vector"],
     "subjects": ["creatures", "transport"]
   },
-  "/vector/logo/bene-gesserit.svg": {
+  "/vector/emblem/bene-gesserit.svg": {
     "description": "Teardrop inside concentric circles.",
     "tags": ["teardrop", "vector"],
     "subjects": ["water"]
   },
-  "/vector/logo/bene-tleilaxu.svg": {
+  "/vector/emblem/bene-tleilaxu.svg": {
     "description": "Masked face surrounded by pointed sun rays.",
     "tags": ["face", "sun", "vector"],
     "subjects": ["people", "space"]
   },
-  "/vector/logo/choam.svg": {
+  "/vector/emblem/choam.svg": {
     "description": "Empty placeholder for the CHOAM emblem; this file has no visible artwork.",
     "tags": ["placeholder", "empty", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/logo/ecaz.svg": {
+  "/vector/emblem/ecaz.svg": {
     "description": "Ornamental branching tree topped by a flame.",
     "tags": ["tree", "vector"],
     "subjects": ["plants"]
   },
-  "/vector/logo/emperor.svg": {
+  "/vector/emblem/emperor.svg": {
     "description": "Roaring lion head in profile.",
     "tags": ["head", "lion", "vector"],
     "subjects": ["creatures", "people"]
   },
-  "/vector/logo/fremen.svg": {
+  "/vector/emblem/fremen.svg": {
     "description": "Crossed curved knives.",
     "tags": ["knives", "vector", "knife", "blade", "weapon"],
     "subjects": ["weapons"]
   },
-  "/vector/logo/guild.svg": {
+  "/vector/emblem/guild.svg": {
     "description": "Three linked circular rings.",
     "tags": ["rings", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/logo/harkonnen.svg": {
+  "/vector/emblem/harkonnen.svg": {
     "description": "Rampant griffin with wings, claws and a curled tail.",
     "tags": ["griffin", "wings", "vector"],
     "subjects": ["creatures", "transport"]
   },
-  "/vector/logo/ixian.svg": {
+  "/vector/emblem/ixian.svg": {
     "description": "Two intertwined curved bands with circular ends.",
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/logo/moritani.svg": {
+  "/vector/emblem/moritani.svg": {
     "description": "Horse head in profile.",
     "tags": ["head", "horse", "vector"],
     "subjects": ["creatures", "people"]
   },
-  "/vector/logo/richese.svg": {
+  "/vector/emblem/richese.svg": {
     "description": "Oil lamp with a curling handle and flame.",
     "tags": ["lamp", "vector"],
     "subjects": ["culture"]
   },
-  "/vector/logo/ginaz.svg": {
+  "/vector/emblem/ginaz.svg": {
     "description": "Crossed swords inside angular diamond ornaments.",
     "tags": ["angular", "diamond", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/logo/hagal.svg": {
+  "/vector/emblem/hagal.svg": {
     "description": "Radial flower with rounded petals and a faceted center.",
     "tags": ["flower", "vector"],
     "subjects": ["plants"]
   },
-  "/vector/logo/iduali.svg": {
+  "/vector/emblem/iduali.svg": {
     "description": "Angular scorpion with raised tail and pincers.",
     "tags": ["scorpion", "angular", "vector"],
     "subjects": ["creatures", "symbols"]
   },
-  "/vector/logo/cinder-phoenix.svg": {
+  "/vector/emblem/cinder-phoenix.svg": {
     "description": "Phoenix bird with spread wings and a flame-shaped tail.",
     "tags": ["phoenix", "bird", "wings", "vector"],
     "subjects": ["creatures", "transport"]
   },
-  "/vector/logo/coil-viper.svg": {
+  "/vector/emblem/coil-viper.svg": {
     "description": "Coiled snake with a diamond inside its loop.",
     "tags": ["snake", "diamond", "loop", "vector"],
     "subjects": ["creatures", "symbols"]
   },
-  "/vector/logo/crowned-ibex.svg": {
+  "/vector/emblem/crowned-ibex.svg": {
     "description": "Front-facing horned ibex head.",
     "tags": ["head", "ibex", "vector"],
     "subjects": ["creatures", "people"]
   },
-  "/vector/logo/desert-hare.svg": {
+  "/vector/emblem/desert-hare.svg": {
     "description": "Leaping hare with long ears.",
     "tags": ["hare", "vector"],
     "subjects": ["creatures"]
   },
-  "/vector/logo/dune-crab.svg": {
+  "/vector/emblem/dune-crab.svg": {
     "description": "Crab with two large raised claws.",
     "tags": ["crab", "vector"],
     "subjects": ["creatures"]
   },
-  "/vector/logo/dune-jackal.svg": {
+  "/vector/emblem/dune-jackal.svg": {
     "description": "Jackal head with long pointed ears.",
     "tags": ["head", "jackal", "vector"],
     "subjects": ["creatures", "people"]
   },
-  "/vector/logo/glass-owl.svg": {
+  "/vector/emblem/glass-owl.svg": {
     "description": "Front-facing owl with large eyes.",
     "tags": ["eyes", "owl", "vector"],
     "subjects": ["creatures", "people"]
   },
-  "/vector/logo/hooded-raven.svg": {
+  "/vector/emblem/hooded-raven.svg": {
     "description": "Raven head inside an angular hood.",
     "tags": ["head", "raven", "angular", "vector"],
     "subjects": ["creatures", "people", "symbols"]
   },
-  "/vector/logo/horned-bat.svg": {
+  "/vector/emblem/horned-bat.svg": {
     "description": "Horned bat with spread wings.",
     "tags": ["bat", "wings", "vector"],
     "subjects": ["creatures", "transport"]
   },
-  "/vector/logo/iron-tortoise.svg": {
+  "/vector/emblem/iron-tortoise.svg": {
     "description": "Tortoise with a segmented shell.",
     "tags": ["tortoise", "vector"],
     "subjects": ["creatures"]
   },
-  "/vector/logo/moon-moth.svg": {
+  "/vector/emblem/moon-moth.svg": {
     "description": "Moth with crescent marks on its wings.",
     "tags": ["moth", "wings", "vector"],
     "subjects": ["creatures", "transport"]
   },
-  "/vector/logo/obsidian-mantis.svg": {
+  "/vector/emblem/obsidian-mantis.svg": {
     "description": "Praying mantis with folded front legs.",
     "tags": ["mantis", "vector"],
     "subjects": ["creatures"]
   },
-  "/vector/logo/reed-crane.svg": {
+  "/vector/emblem/reed-crane.svg": {
     "description": "Long-legged crane standing on one leg.",
     "tags": ["crane", "vector"],
     "subjects": ["creatures"]
   },
-  "/vector/logo/sabre-cat.svg": {
+  "/vector/emblem/sabre-cat.svg": {
     "description": "Snarling saber-toothed cat head.",
     "tags": ["head", "cat", "vector", "blade", "weapon"],
     "subjects": ["weapons", "creatures", "people"]
   },
-  "/vector/logo/sail-fin.svg": {
+  "/vector/emblem/sail-fin.svg": {
     "description": "Leaping billfish with a large sail fin.",
     "tags": ["sail", "vector"],
     "subjects": ["transport"]
   },
-  "/vector/logo/salt-scarab.svg": {
+  "/vector/emblem/salt-scarab.svg": {
     "description": "Scarab beetle with a crescent above its head.",
     "tags": ["head", "scarab", "beetle", "vector"],
     "subjects": ["creatures", "people"]
   },
-  "/vector/logo/sand-ray.svg": {
+  "/vector/emblem/sand-ray.svg": {
     "description": "Ray with broad pointed wings.",
     "tags": ["wings", "vector"],
     "subjects": ["transport"]
   },
-  "/vector/logo/sirocco-raptor.svg": {
+  "/vector/emblem/sirocco-raptor.svg": {
     "description": "Perched raptor with angular wings.",
     "tags": ["raptor", "wings", "angular", "vector"],
     "subjects": ["creatures", "transport", "symbols"]
   },
-  "/vector/logo/spice-fox.svg": {
+  "/vector/emblem/spice-fox.svg": {
     "description": "Sitting fox with large ears and a curled tail.",
     "tags": ["fox", "vector"],
     "subjects": ["creatures"]
   },
-  "/vector/logo/stone-bison.svg": {
+  "/vector/emblem/stone-bison.svg": {
     "description": "Front-facing bison head with curved horns.",
     "tags": ["head", "bison", "vector"],
     "subjects": ["creatures", "people"]
   },
-  "/vector/logo/sun-cobra.svg": {
+  "/vector/emblem/sun-cobra.svg": {
     "description": "Coiled cobra with an expanded hood.",
     "tags": ["cobra", "vector"],
     "subjects": ["creatures"]
   },
-  "/vector/logo/thorn-frog.svg": {
+  "/vector/emblem/thorn-frog.svg": {
     "description": "Frog seen from above with spread toes.",
     "tags": ["frog", "vector"],
     "subjects": ["creatures"]
   },
-  "/vector/logo/antler-tower.svg": {
+  "/vector/emblem/antler-tower.svg": {
     "description": "Castle tower between two antlers.",
     "tags": ["castle", "tower", "vector"],
     "subjects": ["places"]
   },
-  "/vector/logo/blade-bridge.svg": {
+  "/vector/emblem/blade-bridge.svg": {
     "description": "Arched bridge flanked by two curved swords.",
     "tags": ["bridge", "vector", "blade", "weapon"],
     "subjects": ["weapons", "places"]
   },
-  "/vector/logo/broken-spear.svg": {
+  "/vector/emblem/broken-spear.svg": {
     "description": "Broken spear with two ribbon-like fragments.",
     "tags": ["spear", "vector"],
     "subjects": ["weapons"]
   },
-  "/vector/logo/closed-helm.svg": {
+  "/vector/emblem/closed-helm.svg": {
     "description": "Closed helmet with a tall crest.",
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/logo/crescent-blade.svg": {
+  "/vector/emblem/crescent-blade.svg": {
     "description": "Pointed blade inside a crescent.",
     "tags": ["blade", "vector", "weapon"],
     "subjects": ["weapons"]
   },
-  "/vector/logo/crown-anvil.svg": {
+  "/vector/emblem/crown-anvil.svg": {
     "description": "Crown above a blacksmith anvil.",
     "tags": ["crown", "vector"],
     "subjects": ["culture"]
   },
-  "/vector/logo/falcon-gauntlet.svg": {
+  "/vector/emblem/falcon-gauntlet.svg": {
     "description": "Falcon perched on an armored gauntlet.",
     "tags": ["armored", "vector"],
     "subjects": ["weapons"]
   },
-  "/vector/logo/mountain-throne.svg": {
+  "/vector/emblem/mountain-throne.svg": {
     "description": "Throne in front of pointed mountains.",
     "tags": ["mountains", "throne", "vector"],
     "subjects": ["places", "culture"]
   },
-  "/vector/logo/sentinel-key.svg": {
+  "/vector/emblem/sentinel-key.svg": {
     "description": "Key with a tower-shaped bow.",
     "tags": ["tower", "vector"],
     "subjects": ["places"]
   },
-  "/vector/logo/sun-bastion.svg": {
+  "/vector/emblem/sun-bastion.svg": {
     "description": "Fortress towers beneath a rising sun.",
     "tags": ["fortress", "towers", "sun", "vector"],
     "subjects": ["places", "space"]
   },
-  "/vector/logo/triple-axe.svg": {
+  "/vector/emblem/triple-axe.svg": {
     "description": "Three axes arranged around a hexagon.",
     "tags": ["hexagon", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/logo/caravan-arch.svg": {
+  "/vector/emblem/caravan-arch.svg": {
     "description": "Arched doorway with two hanging banners.",
     "tags": ["doorway", "vector"],
     "subjects": ["places"]
   },
-  "/vector/logo/dew-cistern.svg": {
+  "/vector/emblem/dew-cistern.svg": {
     "description": "Handled water jug with a droplet.",
     "tags": ["water", "droplet", "jug", "vector"],
     "subjects": ["water", "trade"]
   },
-  "/vector/logo/root-reservoir.svg": {
+  "/vector/emblem/root-reservoir.svg": {
     "description": "Water droplet surrounded by branching roots.",
     "tags": ["roots", "water", "droplet", "vector"],
     "subjects": ["plants", "water"]
   },
-  "/vector/logo/salt-crystal.svg": {
+  "/vector/emblem/salt-crystal.svg": {
     "description": "Cluster of pointed crystals.",
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/logo/sand-hourglass.svg": {
+  "/vector/emblem/sand-hourglass.svg": {
     "description": "Hourglass containing sand.",
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/logo/sietch-well.svg": {
+  "/vector/emblem/sietch-well.svg": {
     "description": "Droplet enclosed by a pointed arch.",
     "tags": ["droplet", "arch", "vector"],
     "subjects": ["water", "places"]
   },
-  "/vector/logo/spice-chalice.svg": {
+  "/vector/emblem/spice-chalice.svg": {
     "description": "Crystal resting in a chalice.",
     "tags": ["chalice", "vector"],
     "subjects": ["culture"]
   },
-  "/vector/logo/storm-compass.svg": {
+  "/vector/emblem/storm-compass.svg": {
     "description": "Four curved blades forming a compass spiral.",
     "tags": ["spiral", "vector", "blade", "weapon"],
     "subjects": ["weapons"]
   },
-  "/vector/logo/sun-shutter.svg": {
+  "/vector/emblem/sun-shutter.svg": {
     "description": "Sun rising above three wavy bands.",
     "tags": ["sun", "vector"],
     "subjects": ["space"]
   },
-  "/vector/logo/thorn-bloom.svg": {
+  "/vector/emblem/thorn-bloom.svg": {
     "description": "Five-petaled flower on a thorny stem.",
     "tags": ["flower", "vector"],
     "subjects": ["plants"]
   },
-  "/vector/logo/thorn-cactus.svg": {
+  "/vector/emblem/thorn-cactus.svg": {
     "description": "Three-armed cactus with thorns.",
     "tags": ["cactus", "vector"],
     "subjects": ["plants"]
   },
-  "/vector/logo/twin-moons.svg": {
+  "/vector/emblem/twin-moons.svg": {
     "description": "Two moons above curving desert dunes.",
     "tags": ["desert", "dunes", "moons", "vector"],
     "subjects": ["places", "space"]
   },
-  "/vector/logo/water-clasp.svg": {
+  "/vector/emblem/water-clasp.svg": {
     "description": "Two mirrored hands enclosing a droplet.",
     "tags": ["hands", "droplet", "vector"],
     "subjects": ["people", "water"]
   },
-  "/vector/logo/worm-crown.svg": {
+  "/vector/emblem/worm-crown.svg": {
     "description": "Open sandworm mouth beneath a pointed crown.",
     "tags": ["sandworm", "crown", "vector"],
     "subjects": ["creatures", "culture"]
   },
-  "/vector/logo/worm-hook.svg": {
+  "/vector/emblem/worm-hook.svg": {
     "description": "Crossed curved hooks beneath a barbed spear.",
     "tags": ["spear", "vector"],
     "subjects": ["weapons"]
   },
-  "/vector/logo/carryall-wing.svg": {
+  "/vector/emblem/carryall-wing.svg": {
     "description": "Four angular wings surrounding a diamond.",
     "tags": ["wings", "angular", "diamond", "vector"],
     "subjects": ["transport", "symbols"]
   },
-  "/vector/logo/cog-sun.svg": {
+  "/vector/emblem/cog-sun.svg": {
     "description": "Gear surrounding a four-point star.",
     "tags": ["gear", "star", "vector"],
     "subjects": ["machines", "space"]
   },
-  "/vector/logo/foldspace-knot.svg": {
+  "/vector/emblem/foldspace-knot.svg": {
     "description": "Three interlocking angular bands forming a triangular knot.",
     "tags": ["angular", "knot", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/logo/gyroscope-seal.svg": {
+  "/vector/emblem/gyroscope-seal.svg": {
     "description": "Diamond surrounded by gyroscope rings.",
     "tags": ["diamond", "rings", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/logo/heighliner-gate.svg": {
+  "/vector/emblem/heighliner-gate.svg": {
     "description": "Oval gateway with segmented sides.",
     "tags": ["gateway", "vector"],
     "subjects": ["places"]
   },
-  "/vector/logo/mirror-array.svg": {
+  "/vector/emblem/mirror-array.svg": {
     "description": "Three faceted mirrors above a hexagon.",
     "tags": ["hexagon", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/logo/null-vault.svg": {
+  "/vector/emblem/null-vault.svg": {
     "description": "Circle divided by a vertical bar inside a diamond.",
     "tags": ["circle", "diamond", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/logo/orbital-spindle.svg": {
+  "/vector/emblem/orbital-spindle.svg": {
     "description": "Pointed spindle inside orbiting rings.",
     "tags": ["orbiting", "rings", "vector"],
     "subjects": ["space", "symbols"]
   },
-  "/vector/logo/prism-engine.svg": {
+  "/vector/emblem/prism-engine.svg": {
     "description": "Three geometric blocks around a diamond.",
     "tags": ["geometric", "diamond", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/logo/signal-fork.svg": {
+  "/vector/emblem/signal-fork.svg": {
     "description": "Three-pronged tuning fork.",
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/logo/spice-refinery.svg": {
+  "/vector/emblem/spice-refinery.svg": {
     "description": "Industrial refinery with towers and connecting pipes.",
     "tags": ["refinery", "towers", "vector"],
     "subjects": ["machines", "places"]
   },
-  "/vector/logo/eclipse-lotus.svg": {
+  "/vector/emblem/eclipse-lotus.svg": {
     "description": "Lotus flower beneath a crescent moon.",
     "tags": ["flower", "moon", "vector"],
     "subjects": ["plants", "space"]
   },
-  "/vector/logo/memory-tree.svg": {
+  "/vector/emblem/memory-tree.svg": {
     "description": "Branching tree with angular leaves.",
     "tags": ["tree", "leaves", "angular", "vector"],
     "subjects": ["plants", "symbols"]
   },
-  "/vector/logo/merchant-seal.svg": {
+  "/vector/emblem/merchant-seal.svg": {
     "description": "Balanced weighing scales.",
     "tags": ["scales", "vector"],
     "subjects": ["trade"]
   },
-  "/vector/logo/oath-chain.svg": {
+  "/vector/emblem/oath-chain.svg": {
     "description": "Interlocking angular chain links.",
     "tags": ["angular", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/logo/oracle-eye.svg": {
+  "/vector/emblem/oracle-eye.svg": {
     "description": "Eye inside a pointed leaf shape.",
     "tags": ["eye", "leaf", "vector"],
     "subjects": ["people", "plants"]
   },
-  "/vector/logo/pilgrim-lantern.svg": {
+  "/vector/emblem/pilgrim-lantern.svg": {
     "description": "Hanging lantern with a flame.",
     "tags": ["lantern", "vector"],
     "subjects": ["culture"]
   },
-  "/vector/logo/twin-flame.svg": {
+  "/vector/emblem/twin-flame.svg": {
     "description": "Two curling flames above a pedestal.",
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/logo/veiled-mask.svg": {
+  "/vector/emblem/veiled-mask.svg": {
     "description": "Masked face inside a long hood.",
     "tags": ["face", "vector"],
     "subjects": ["people"]
   },
-  "/vector/logo/whisper-hand.svg": {
+  "/vector/emblem/whisper-hand.svg": {
     "description": "Raised hand containing a crescent and a diamond at the wrist.",
     "tags": ["hand", "diamond", "vector"],
     "subjects": ["people", "symbols"]
@@ -9005,202 +9005,202 @@
     "tags": ["portrait", "head", "illustration", "Duke Leto Atreides", "Atreides", "duke", "leto", "atreides"],
     "subjects": ["people"]
   },
-  "/vector/logo/dune-awakening-house-alexin.svg": {
+  "/vector/emblem/dune-awakening-house-alexin.svg": {
     "description": "A vertical wheat ear with three pairs of pointed grains and a pointed tip.",
     "tags": ["House Alexin", "Dune Awakening", "Landsraad", "wheat", "grain", "ear"],
     "subjects": ["plants", "symbols"]
   },
-  "/vector/logo/dune-awakening-house-argosaz.svg": {
+  "/vector/emblem/dune-awakening-house-argosaz.svg": {
     "description": "A triangular frame divided into three triangular sections around a central junction.",
     "tags": ["House Argosaz", "Dune Awakening", "Landsraad", "triangle", "frame", "three sections"],
     "subjects": ["symbols"]
   },
-  "/vector/logo/dune-awakening-house-dyvetz.svg": {
+  "/vector/emblem/dune-awakening-house-dyvetz.svg": {
     "description": "A round opening above a central stem and two pairs of sweeping wings.",
     "tags": ["House Dyvetz", "Dune Awakening", "Landsraad", "wings", "circle", "stem"],
     "subjects": ["symbols"]
   },
-  "/vector/logo/dune-awakening-house-ecaz.svg": {
+  "/vector/emblem/dune-awakening-house-ecaz.svg": {
     "description": "A branching tree with angular upward branches and three spreading roots.",
     "tags": ["House Ecaz", "Dune Awakening", "Landsraad", "tree", "branches", "roots"],
     "subjects": ["plants", "symbols"]
   },
-  "/vector/logo/dune-awakening-house-hagal.svg": {
+  "/vector/emblem/dune-awakening-house-hagal.svg": {
     "description": "A fan of pointed segments surrounding a circular opening at the base.",
     "tags": ["House Hagal", "Dune Awakening", "Landsraad", "fan", "rays", "circle"],
     "subjects": ["symbols"]
   },
-  "/vector/logo/dune-awakening-house-hurata.svg": {
+  "/vector/emblem/dune-awakening-house-hurata.svg": {
     "description": "Concentric circles above a semicircular fan of short radial spokes.",
     "tags": ["House Hurata", "Dune Awakening", "Landsraad", "concentric circles", "spokes", "wheel"],
     "subjects": ["symbols"]
   },
-  "/vector/logo/dune-awakening-house-imota.svg": {
+  "/vector/emblem/dune-awakening-house-imota.svg": {
     "description": "A rounded three-part crest with an arch above two inward-curving vertical arms.",
     "tags": ["House Imota", "Dune Awakening", "Landsraad", "arch", "three parts", "curved arms"],
     "subjects": ["symbols"]
   },
-  "/vector/logo/dune-awakening-house-kenola.svg": {
+  "/vector/emblem/dune-awakening-house-kenola.svg": {
     "description": "Five rays rise above two horizontal bars with a small downward point.",
     "tags": ["House Kenola", "Dune Awakening", "Landsraad", "sunrise", "rays", "bars"],
     "subjects": ["symbols"]
   },
-  "/vector/logo/dune-awakening-house-lindaren.svg": {
+  "/vector/emblem/dune-awakening-house-lindaren.svg": {
     "description": "An angular vertical crest with three stepped points and a long diagonal lower tip.",
     "tags": ["House Lindaren", "Dune Awakening", "Landsraad", "angular crest", "steps", "diagonal"],
     "subjects": ["symbols"]
   },
-  "/vector/logo/dune-awakening-house-maros.svg": {
+  "/vector/emblem/dune-awakening-house-maros.svg": {
     "description": "A narrow animal skull beneath two long upward-curving horns.",
     "tags": ["House Maros", "Dune Awakening", "Landsraad", "skull", "horns", "animal"],
     "subjects": ["creatures", "symbols"]
   },
-  "/vector/logo/dune-awakening-house-mikarrol.svg": {
+  "/vector/emblem/dune-awakening-house-mikarrol.svg": {
     "description": "A raised clenched fist above a wide flared cuff.",
     "tags": ["House Mikarrol", "Dune Awakening", "Landsraad", "fist", "gauntlet", "cuff"],
     "subjects": ["people", "weapons", "symbols"]
   },
-  "/vector/logo/dune-awakening-house-moritani.svg": {
+  "/vector/emblem/dune-awakening-house-moritani.svg": {
     "description": "An angular horse head in profile with an open notch below its muzzle.",
     "tags": ["House Moritani", "Dune Awakening", "Landsraad", "horse", "head", "profile"],
     "subjects": ["creatures", "symbols"]
   },
-  "/vector/logo/dune-awakening-house-mutelli.svg": {
+  "/vector/emblem/dune-awakening-house-mutelli.svg": {
     "description": "Five pointed panels arranged around a small central star.",
     "tags": ["House Mutelli", "Dune Awakening", "Landsraad", "five panels", "star", "radial"],
     "subjects": ["symbols"]
   },
-  "/vector/logo/dune-awakening-house-novebruns.svg": {
+  "/vector/emblem/dune-awakening-house-novebruns.svg": {
     "description": "Three curved sides form an open triangular crest divided by crossing diagonal lines.",
     "tags": ["House Novebruns", "Dune Awakening", "Landsraad", "triangle", "open center", "crossing lines"],
     "subjects": ["symbols"]
   },
-  "/vector/logo/dune-awakening-house-richese.svg": {
+  "/vector/emblem/dune-awakening-house-richese.svg": {
     "description": "A concentric circular ring with a small cap above and a smaller ring suspended below.",
     "tags": ["House Richese", "Dune Awakening", "Landsraad", "rings", "concentric circles", "pendant"],
     "subjects": ["symbols"]
   },
-  "/vector/logo/dune-awakening-house-sor.svg": {
+  "/vector/emblem/dune-awakening-house-sor.svg": {
     "description": "A teardrop-shaped spiral with several close turns and a pointed cap.",
     "tags": ["House Sor", "Dune Awakening", "Landsraad", "spiral", "teardrop", "concentric curves"],
     "subjects": ["symbols"]
   },
-  "/vector/logo/dune-awakening-house-spinnette.svg": {
+  "/vector/emblem/dune-awakening-house-spinnette.svg": {
     "description": "A long double-pointed vertical blade crossed by a short bar and diagonal cut.",
     "tags": ["House Spinnette", "Dune Awakening", "Landsraad", "blade", "bar", "diamond"],
     "subjects": ["weapons", "symbols"]
   },
-  "/vector/logo/dune-awakening-house-taligari.svg": {
+  "/vector/emblem/dune-awakening-house-taligari.svg": {
     "description": "A long central tapered point flanked by two pairs of shorter narrow points.",
     "tags": ["House Taligari", "Dune Awakening", "Landsraad", "points", "five spikes", "geometric"],
     "subjects": ["symbols"]
   },
-  "/vector/logo/dune-awakening-house-thorvald.svg": {
+  "/vector/emblem/dune-awakening-house-thorvald.svg": {
     "description": "A broad flag-shaped crest with a curled central opening on a short pedestal.",
     "tags": ["House Thorvald", "Dune Awakening", "Landsraad", "flag", "curl", "pedestal"],
     "subjects": ["symbols"]
   },
-  "/vector/logo/dune-awakening-house-tseida.svg": {
+  "/vector/emblem/dune-awakening-house-tseida.svg": {
     "description": "A ribbon curls into two broad horizontal bands with narrow curved lines near its edges.",
     "tags": ["House Tseida", "Dune Awakening", "Landsraad", "ribbon", "bands", "scroll"],
     "subjects": ["symbols"]
   },
-  "/vector/logo/dune-awakening-house-varota.svg": {
+  "/vector/emblem/dune-awakening-house-varota.svg": {
     "description": "A bowed string instrument with a rounded body, diagonal strings and small tuning dots.",
     "tags": ["House Varota", "Dune Awakening", "Landsraad", "string instrument", "strings", "music"],
     "subjects": ["culture", "symbols"]
   },
-  "/vector/logo/dune-awakening-house-vernius.svg": {
+  "/vector/emblem/dune-awakening-house-vernius.svg": {
     "description": "Two angular opposing hooks with short horizontal bars inside their stems.",
     "tags": ["House Vernius", "Dune Awakening", "Landsraad", "hooks", "opposing shapes", "bars"],
     "subjects": ["symbols"]
   },
-  "/vector/logo/dune-awakening-house-wallach.svg": {
+  "/vector/emblem/dune-awakening-house-wallach.svg": {
     "description": "A curved loop with a central field of fine strings and outward-facing curled ends.",
     "tags": ["House Wallach", "Dune Awakening", "Landsraad", "loop", "strings", "curled ends"],
     "subjects": ["culture", "symbols"]
   },
-  "/vector/logo/dune-awakening-house-wayku.svg": {
+  "/vector/emblem/dune-awakening-house-wayku.svg": {
     "description": "A circular orbit encloses several discs connected by straight lines.",
     "tags": ["House Wayku", "Dune Awakening", "Landsraad", "orbit", "discs", "network", "circles"],
     "subjects": ["space", "symbols"]
   },
-  "/vector/logo/dune-awakening-house-wydras.svg": {
+  "/vector/emblem/dune-awakening-house-wydras.svg": {
     "description": "A symmetrical angular crest with two tall upper points and a broad wing-like lower shape.",
     "tags": ["House Wydras", "Dune Awakening", "Landsraad", "angular crest", "points", "wings"],
     "subjects": ["symbols"]
   },
-  "/vector/logo/apocrypha.svg": {
+  "/vector/emblem/apocrypha.svg": {
     "description": "Eye emblem with a round pupil, crossed bands and two curved trailing strokes.",
     "tags": ["apocrypha", "eye", "pupil", "crossed bands"],
     "subjects": ["symbols"]
   },
-  "/vector/logo/atreides-extended.svg": {
+  "/vector/emblem/atreides-extended.svg": {
     "description": "Bird in profile with an upright fan-shaped wing, pointed tail and hooked legs.",
     "tags": ["atreides", "extended", "hawk", "bird", "wing"],
     "subjects": ["creatures", "symbols"]
   },
-  "/vector/logo/bene-gesserit-2021.svg": {
+  "/vector/emblem/bene-gesserit-2021.svg": {
     "description": "Symmetrical looping emblem with paired eye-shaped gaps and four curled ends.",
     "tags": ["bene gesserit", "2021", "loops", "eyes"],
     "subjects": ["symbols"]
   },
-  "/vector/logo/corrino-extended.svg": {
+  "/vector/emblem/corrino-extended.svg": {
     "description": "Lion head in profile with an open mouth and a pointed radiating mane.",
     "tags": ["corrino", "extended", "lion", "mane"],
     "subjects": ["creatures", "symbols"]
   },
-  "/vector/logo/dune-encyclopedia.svg": {
+  "/vector/emblem/dune-encyclopedia.svg": {
     "description": "Open book with three page lines on each side, a bird-shaped mark above and a pointed stem below.",
     "tags": ["dune encyclopedia", "book", "pages"],
     "subjects": ["culture", "symbols"]
   },
-  "/vector/logo/expanded-dune.svg": {
+  "/vector/emblem/expanded-dune.svg": {
     "description": "Inverted triangular emblem with a central notch and two descending outer strokes.",
     "tags": ["expanded dune", "triangle", "notch"],
     "subjects": ["symbols"]
   },
-  "/vector/logo/harkonnen-dune-prophecy.svg": {
+  "/vector/emblem/harkonnen-dune-prophecy.svg": {
     "description": "Two opposing curved spikes, one pointing up and one down.",
     "tags": ["harkonnen", "dune prophecy", "spikes"],
     "subjects": ["symbols"]
   },
-  "/vector/logo/harkonnen-extended.svg": {
+  "/vector/emblem/harkonnen-extended.svg": {
     "description": "Rearing winged creature with an angular beak, claws and a long curved tail.",
     "tags": ["harkonnen", "extended", "winged creature", "claws", "tail"],
     "subjects": ["creatures", "symbols"]
   },
-  "/vector/logo/house-atreus-fan-art.svg": {
+  "/vector/emblem/house-atreus-fan-art.svg": {
     "description": "Two feline figures facing a central column with four dots across its capital.",
     "tags": ["house atreus", "fan art", "felines", "column", "dots"],
     "subjects": ["creatures", "symbols", "culture"]
   },
-  "/vector/logo/lynch-dune.svg": {
+  "/vector/emblem/lynch-dune.svg": {
     "description": "Stepped tower divided by a rectangular brick grid, with a small upper window, an open doorway and three triangular roof pieces.",
     "tags": ["Lynch's Dune", "Lynch", "tower", "pyramid", "bricks", "doorway"],
     "subjects": ["places", "symbols"]
   },
-  "/vector/logo/original-dune.svg": {
+  "/vector/emblem/original-dune.svg": {
     "description": "Three pointed lobes above a toothed mouth and oval center, framed by curled side strokes and two bowed lower bands.",
     "tags": ["original dune", "worm", "mouth", "teeth", "lobes"],
     "subjects": ["creatures", "symbols"]
   },
-  "/vector/logo/real-world.svg": {
+  "/vector/emblem/real-world.svg": {
     "description": "Round globe with curved meridians, horizontal latitude bands and a central vertical line.",
     "tags": ["real world", "globe", "earth", "meridians", "latitude"],
     "subjects": ["places", "symbols"]
   },
-  "/vector/logo/sci-fi-miniseries.svg": {
+  "/vector/emblem/sci-fi-miniseries.svg": {
     "description": "Twelve curved knives arranged radially around an open center, with separate short handles.",
     "tags": ["sci fi", "miniseries", "knives", "radial", "sunburst"],
     "subjects": ["weapons", "symbols"]
   },
-  "/vector/logo/sunburst-buckle-matt-griffin.svg": {
+  "/vector/emblem/sunburst-buckle-matt-griffin.svg": {
     "description": "Wide ornamental buckle with pointed ends, a rising half-sun, radiating rays, a dotted arch and a diamond clasp.",
     "tags": ["sunburst", "buckle", "Matt Griffin", "half sun", "rays", "clasp"],
     "subjects": ["culture", "symbols"]
   },
-  "/vector/logo/villeneuve.svg": {
+  "/vector/emblem/villeneuve.svg": {
     "description": "Circular sunburst with rounded inward-pointing rays and a split horizontal base.",
     "tags": ["Villeneuve", "sunburst", "rays", "circle", "base"],
     "subjects": ["symbols"]

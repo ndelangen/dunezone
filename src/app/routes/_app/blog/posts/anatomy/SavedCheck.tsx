@@ -15,7 +15,11 @@ import { useSeen } from './useSeen';
 
 const LINES: readonly { field: string; value: string; rule: string }[] = [
   { field: 'name', value: FACTION.name, rule: 'has a letter or number, for its web address' },
-  { field: 'logo', value: FACTION.logo.split('/').at(-1) ?? FACTION.logo, rule: 'is one of the library’s logos' },
+  {
+    field: 'emblem',
+    value: FACTION.emblem.split('/').at(-1) ?? FACTION.emblem,
+    rule: 'is one of the library’s emblems',
+  },
   { field: 'theme colour', value: FACTION.themeColor, rule: 'is a hex colour' },
   { field: 'table colours', value: FACTION.colors.join(', '), rule: 'are Tabletop Simulator player colours' },
   {

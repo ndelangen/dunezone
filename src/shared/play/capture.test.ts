@@ -42,6 +42,6 @@ describe('a faction sheet any viewer may read', () => {
     expect(publicFactionSchema.parse(sheet)).toEqual(sheet);
     expect(sheet.rules.startText).toBe('Start as captured.');
     expect(sheet.leaders).toEqual(assetPublishingFaction.leaders);
-    expect(Object.keys(sheet).sort()).toEqual(['background', 'leaders', 'logo', 'rules']);
+    expect(Object.keys(sheet).sort()).toEqual(['background', 'emblem', 'leaders', 'rules']);
   });
 });

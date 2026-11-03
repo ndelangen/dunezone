@@ -4,7 +4,7 @@ import {
   GENERIC,
   ICON,
   LEADERS,
-  LOGO,
+  EMBLEM,
   PLANET,
   TEXTURE,
   TROOP,
@@ -32,7 +32,7 @@ const indexedPaths = (prefix: string) => Object.keys(metadata).filter((path) => 
 const assetsByKind: Record<MediaKind, readonly string[]> = {
   decal: DECAL.options,
   generic: GENERIC.options,
-  logo: LOGO.options,
+  emblem: EMBLEM.options,
   icon: ICON.options,
   troop: TROOP.options,
   troop_modifier: TROOP_MODIFIER.options,

@@ -23,6 +23,7 @@ import { components, internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { internalQuery } from './_generated/server';
 import { CATALOGUE_MIGRATION_IDS } from './catalogueMigrations';
+import { EMBLEM_MIGRATION_IDS } from './emblemMigrations';
 import { adminQuery, internalMutation, mutation } from './functions';
 import { LEGACY_DATA_MIGRATION_IDS } from './legacyDataMigrations';
 import { accountStateOf } from './lib/accountLifecycle';
@@ -83,6 +84,7 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   ...CATALOGUE_MIGRATION_IDS,
   ...PUBLICATION_MIGRATION_IDS,
   ...LEGACY_DATA_MIGRATION_IDS,
+  ...EMBLEM_MIGRATION_IDS,
   ruleset_factions_position_v1: internal.migrations.ruleset_factions_position_v1,
   catalogue_entries_prune_v1: internal.migrations.catalogue_entries_prune_v1,
   catalogue_entries_verify_v1: internal.migrations.catalogue_entries_verify_v1,

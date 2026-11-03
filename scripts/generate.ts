@@ -67,14 +67,14 @@ const background = await getFiles('/vector/background', 'media');
 const generic = await getFiles('/vector/generic', 'media');
 const decal = [...(await getFiles('/vector/decal', 'media')), ...rastersIn('/image/decal')];
 const icon = await getFiles('/vector/icon', 'media');
-const logo = await getFiles('/vector/logo', 'media');
+const emblem = await getFiles('/vector/emblem', 'media');
 const troop = await getFiles('/vector/troop', 'media');
 const troop_modifier = await getFiles('/vector/troop_modifier', 'media');
 
 const enums = {
   background,
   generic,
-  logo,
+  emblem,
   decal,
   icon: [...icon, ...Object.keys(VECTOR_ARTWORK_ALIASES).map((path) => path.slice(1))],
   leaders,
@@ -99,7 +99,7 @@ for (const collection of stockAssetCollections) {
     classifiedAssets.add(asset);
   }
 }
-for (const asset of [...leaders, ...logo, ...planet, ...decal]) {
+for (const asset of [...leaders, ...emblem, ...planet, ...decal]) {
   if (!classifiedAssets.has(`/${asset}`)) {
     throw new Error(`Add /${asset} to a browsing collection in src/shared/stockAssetCollections.json`);
   }
@@ -120,7 +120,7 @@ export const ${name.toUpperCase()} = z.enum([
   .join('\n')}
 
 export const ALL = z.union([
-  ${['GENERIC', 'LOGO', 'DECAL', 'ICON', 'TROOP'].join(',\n  ')}
+  ${['GENERIC', 'EMBLEM', 'DECAL', 'ICON', 'TROOP'].join(',\n  ')}
 ]);
 `;
 
@@ -157,7 +157,7 @@ await Bun.write(join(mediaDirectory, 'mediaSearchIndex.generated.json'), searchI
 /* Geometry retains the artwork's shape and centre without depending on a platform's raster encoder. */
 const vectorCrops: Record<string, readonly [number, number, number, number]> = {};
 const loader = new SVGLoader();
-for (const key of [...generic, ...logo, ...decal, ...icon, ...troop]
+for (const key of [...generic, ...emblem, ...decal, ...icon, ...troop]
   .filter((key) => key.endsWith('.svg'))
   .sort((a, b) => (a < b ? -1 : Number(a > b)))) {
   const source = readFileSync(join(import.meta.dirname, '..', 'media', key), 'utf8');
@@ -187,7 +187,7 @@ for (const key of [...generic, ...logo, ...decal, ...icon, ...troop]
     bounds.union(pathBounds);
   }
   if (bounds.isEmpty()) {
-    /* Empty catalogue placeholders, such as the CHOAM logo, retain the full square. */
+    /* Empty catalogue placeholders, such as the CHOAM emblem, retain the full square. */
     vectorCrops[`/${key}`] = [50, 50, 100, 100];
     continue;
   }

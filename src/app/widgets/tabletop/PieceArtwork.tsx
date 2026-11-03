@@ -44,7 +44,7 @@ export function PieceArtwork({ piece, src, name, width, height, radius }: Props)
   );
 }
 
-/* A prediction card's front shows its chosen logo and turn over the published base (#1753); its back shows nothing more. */
+/* A prediction card's front shows its chosen emblem and turn over the published base (#1753); its back shows nothing more. */
 function PredictionOverlay({ piece, src }: Pick<Props, 'piece' | 'src'>) {
   const artwork = piece.items.find((item) => item.artwork?.front === src)?.artwork;
   const face = usePredictionFace(src ? artwork?.prediction : undefined);
