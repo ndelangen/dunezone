@@ -29,8 +29,20 @@ const PACKETS: readonly Packet[] = [
   { label: '41 → 42', kind: 'patch', from: 'room', revision: 42 },
   { label: '42 → 43', kind: 'patch', from: 'room', revision: 43 },
   { label: '43 → 44', kind: 'patch', from: 'room', lost: true, revision: 43 },
-  { label: '44 → 45', kind: 'patch', from: 'room', note: 'gap: 44 never came', revision: 43 },
-  { label: 'sync', kind: 'sync', from: 'browser', note: 'commands wait', revision: 43 },
+  {
+    label: '44 → 45',
+    kind: 'patch',
+    from: 'room',
+    note: 'gap: 44 never came',
+    revision: 43,
+  },
+  {
+    label: 'sync',
+    kind: 'sync',
+    from: 'browser',
+    note: 'commands wait',
+    revision: 43,
+  },
   { label: 'full view 45', kind: 'full', from: 'room', revision: 45 },
   { label: '45 → 46', kind: 'patch', from: 'room', revision: 46 },
   { label: '46 → 47', kind: 'patch', from: 'room', revision: 47 },
@@ -57,7 +69,11 @@ type Bar = {
 };
 
 const BARS: readonly Bar[] = [
-  { label: 'First full view of a test table', bytes: FULL_VIEW, value: '24 KB' },
+  {
+    label: 'First full view of a test table',
+    bytes: FULL_VIEW,
+    value: '24 KB',
+  },
   {
     label: 'Dropping a stack of 100 cards, before',
     bytes: 21_680,
@@ -69,7 +85,12 @@ const BARS: readonly Bar[] = [
     bytes: null,
     value: 'only the piece id, position, rotation, zone and flip count',
   },
-  { label: 'One cursor move', bytes: 495, trimmed: 365, value: '0.5 KB, then 0.4 KB without its unchanged snapshot' },
+  {
+    label: 'One cursor move',
+    bytes: 495,
+    trimmed: 365,
+    value: '0.5 KB, then 0.4 KB without its unchanged snapshot',
+  },
 ];
 
 /** How many packets have left the room by this step; the one with that index is in the air. */
@@ -77,25 +98,31 @@ function sentBy(step: number) {
   return Math.min(step, PACKETS.length);
 }
 
+const KIND_LABEL: Record<Packet['kind'], string> = {
+  patch: 'update',
+  full: 'the whole table',
+  sync: 'browser asks',
+};
+
+/** The classes for a packet on the wire: its kind, its direction and how it flies. */
+function packetClasses(packet: Packet, state: 'flying' | 'lost') {
+  const flight = packet.lost ? styles.flyingLost : styles.flying;
+  return clsx(
+    styles.packet,
+    packet.kind === 'sync' && styles.syncPacket,
+    packet.kind === 'full' && styles.fullPacket,
+    packet.from === 'browser' && styles.backward,
+    state === 'flying' ? flight : styles.lostRest
+  );
+}
+
 function PacketCard({ packet, state }: { packet: Packet; state: 'waiting' | 'flying' | 'landed' | 'lost' }) {
   if (state === 'landed' || state === 'waiting') {
     return null;
   }
   return (
-    <span
-      className={clsx(
-        styles.packet,
-        packet.kind === 'sync' && styles.syncPacket,
-        packet.kind === 'full' && styles.fullPacket,
-        packet.from === 'browser' && styles.backward,
-        state === 'flying' && (packet.lost ? styles.flyingLost : styles.flying),
-        state === 'lost' && styles.lostRest
-      )}
-      aria-hidden="true"
-    >
-      <span className={styles.packetKind}>
-        {packet.kind === 'patch' ? 'update' : packet.kind === 'full' ? 'the whole table' : 'browser asks'}
-      </span>
+    <span className={packetClasses(packet, state)} aria-hidden="true">
+      <span className={styles.packetKind}>{KIND_LABEL[packet.kind]}</span>
       <span className={styles.packetLabel}>{packet.label}</span>
       {packet.lost ? <span className={styles.lostLabel}>lost on the way</span> : null}
     </span>
@@ -104,7 +131,11 @@ function PacketCard({ packet, state }: { packet: Packet; state: 'waiting' | 'fly
 
 export function PatchStream() {
   const rootRef = useRef<HTMLDivElement>(null);
-  const { step, armed, seen } = useSteps(rootRef, TOTAL, { interval: STEP_MS, loop: true, pause: 4 });
+  const { step, armed, seen } = useSteps(rootRef, TOTAL, {
+    interval: STEP_MS,
+    loop: true,
+    pause: 4,
+  });
   const flying = step >= 1 && step <= PACKETS.length ? step - 1 : null;
   /* What the browser holds: every packet that has finished its flight, the lost one excepted. */
   const landed = PACKETS.slice(0, Math.max(0, sentBy(step) - (flying === null ? 0 : 1))).filter(
@@ -183,7 +214,14 @@ export function PatchStream() {
                 <span className={styles.bar} style={{ '--share': bar.bytes / FULL_VIEW } as CSSProperties}>
                   <span className={styles.fill}>
                     {bar.trimmed ? (
-                      <span className={styles.trim} style={{ '--share': bar.trimmed / bar.bytes } as CSSProperties} />
+                      <span
+                        className={styles.trim}
+                        style={
+                          {
+                            '--share': bar.trimmed / bar.bytes,
+                          } as CSSProperties
+                        }
+                      />
                     ) : null}
                   </span>
                   {bar.waste ? (

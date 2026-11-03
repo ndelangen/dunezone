@@ -45,6 +45,52 @@ function place(element: HTMLElement, point: Point) {
   element.style.translate = `${point.x * 100}cqw ${point.y * 100}cqh`;
 }
 
+/** Moves a share of the way from one point towards another. */
+function ease(from: Point, to: Point, amount: number): Point {
+  return {
+    x: from.x + (to.x - from.x) * amount,
+    y: from.y + (to.y - from.y) * amount,
+  };
+}
+
+/** The hand under the reader's pointer, or the wander path once they have left it alone for a while, which it drifts back to rather than jumping. */
+function nextLocal(held: Point | null, local: Point, wandering: boolean, now: number, dt: number): Point {
+  if (held) {
+    return held;
+  }
+  if (!wandering) {
+    return local;
+  }
+  return ease(local, wander(now), 1 - Math.exp(-RETURN_RATE * dt));
+}
+
+/** A position leaves at most every 50 ms, and only when the hand moved. */
+function dueForSample(now: number, lastSampleAt: number, lastSent: Point | null, local: Point) {
+  if (now - lastSampleAt < SAMPLE_MS) {
+    return false;
+  }
+  return !lastSent || lastSent.x !== local.x || lastSent.y !== local.y;
+}
+
+/** When a position sent now reaches the other player: the wire to the room, the room's next 50 ms batch, and the wire back out. */
+function arrivalTime(now: number) {
+  const atRoom = now + latency();
+  return Math.ceil(atRoom / BATCH_MS) * BATCH_MS + latency();
+}
+
+/** Fades each dot out over its life. */
+function fadeDots(dots: HTMLElement[], dotAges: number[], now: number) {
+  dots.forEach((dot, index) => {
+    const age = now - dotAges[index]!;
+    dot.style.opacity = age < DOT_LIFE_MS ? String(1 - age / DOT_LIFE_MS) : '0';
+  });
+}
+
+/** Whether the shown hand has caught up with the last position it received. */
+function isHome(target: Point, shown: Point) {
+  return Math.hypot(target.x - shown.x, target.y - shown.y) < 0.0005;
+}
+
 /** A stylised round table: sand, a faint ring of sectors and the sink in the middle. */
 function TableArt() {
   const sectors = Array.from({ length: 18 }, (_, index) => (index * 360) / 18);
@@ -121,57 +167,33 @@ export function HandRelay() {
       const dt = Math.max(0, Math.min(0.1, (now - lastFrame) / 1000));
       lastFrame = now;
 
-      /* The hand under the reader's pointer, or the wander path once they have left it alone for a while, which it drifts back to rather than jumping. */
       const held = pointer.current;
       const holding = Boolean(held && now - held.at < IDLE_MS);
-      if (held && holding) {
-        local = held.point;
-      } else if (settings.current.wander) {
-        const path = wander(now);
-        const pull = 1 - Math.exp(-RETURN_RATE * dt);
-        local = { x: local.x + (path.x - local.x) * pull, y: local.y + (path.y - local.y) * pull };
-      }
+      local = nextLocal(holding ? held!.point : null, local, settings.current.wander, now, dt);
       place(localHand, local);
 
-      /* A position leaves at most every 50 ms, and only when the hand moved; the room's batch sends it on at the next 50 ms boundary. */
-      if (now - lastSampleAt >= SAMPLE_MS && (!lastSent || lastSent.x !== local.x || lastSent.y !== local.y)) {
+      if (dueForSample(now, lastSampleAt, lastSent, local)) {
         lastSampleAt = now;
         lastSent = local;
-        const atRoom = now + latency();
-        const batchSent = Math.ceil(atRoom / BATCH_MS) * BATCH_MS;
-        inFlight.push({ point: local, arrives: batchSent + latency() });
+        inFlight.push({ point: local, arrives: arrivalTime(now) });
       }
 
       while (inFlight.length > 0 && inFlight[0]!.arrives <= now) {
         target = inFlight.shift()!.point;
-        const dot = dots[nextDot]!;
-        place(dot, target);
+        place(dots[nextDot]!, target);
         dotAges[nextDot] = now;
         lastDotAt = now;
         nextDot = (nextDot + 1) % dots.length;
       }
 
-      if (settings.current.smoothing) {
-        const amount = 1 - Math.exp(-SMOOTHING_RATE * dt);
-        shown = { x: shown.x + (target.x - shown.x) * amount, y: shown.y + (target.y - shown.y) * amount };
-      } else {
-        shown = target;
-      }
+      shown = settings.current.smoothing ? ease(shown, target, 1 - Math.exp(-SMOOTHING_RATE * dt)) : target;
       place(remoteHand, shown);
       positions.current = { local, target, shown };
-
-      for (let index = 0; index < dots.length; index += 1) {
-        const age = now - dotAges[index]!;
-        dots[index]!.style.opacity = age < DOT_LIFE_MS ? String(1 - age / DOT_LIFE_MS) : '0';
-      }
+      fadeDots(dots, dotAges, now);
 
       /* Nothing left to move: no pointer, no wander, nothing in the air, the hand home and the dots gone. The loop sleeps until woken. */
-      const settled =
-        !holding &&
-        !settings.current.wander &&
-        inFlight.length === 0 &&
-        Math.hypot(target.x - shown.x, target.y - shown.y) < 0.0005 &&
-        now - lastDotAt > DOT_LIFE_MS;
+      const moving = holding || settings.current.wander || inFlight.length > 0;
+      const settled = !moving && isHome(target, shown) && now - lastDotAt > DOT_LIFE_MS;
       if (settled) {
         awake = false;
         return;

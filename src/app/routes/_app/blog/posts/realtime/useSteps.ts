@@ -11,6 +11,24 @@ import { useSeen } from './useSeen';
  * A loop only runs while the figure is in view and the tab is visible, so nothing cycles unwatched, and takes up where it stopped when the reader comes back; a one-shot story plays on once it has started.
  * Once scripts run but before the reader arrives, the figure waits at its first step, so the story starts from the beginning when they get there.
  */
+/** How many steps are shown: everything when the figure cannot or should not move, the first step while it waits for the reader. */
+function shownSteps({
+  animated,
+  seen,
+  step,
+  total,
+}: {
+  animated: boolean;
+  seen: boolean;
+  step: number;
+  total: number;
+}) {
+  if (!animated) {
+    return total;
+  }
+  return seen ? step : 0;
+}
+
 export function useSteps(
   rootRef: RefObject<HTMLElement | null>,
   total: number,
@@ -32,16 +50,19 @@ export function useSteps(
     }
     let current = loop ? position.current : 0;
     let timer: ReturnType<typeof setTimeout>;
+    const show = (next: number) => {
+      current = next;
+      position.current = next;
+      setStep(next);
+    };
     const tick = () => {
       if (current < total) {
-        current += 1;
-        position.current = current;
-        setStep(current);
+        show(current + 1);
         timer = setTimeout(tick, current === total && loop ? interval * pause : interval);
-      } else if (loop) {
-        current = 0;
-        position.current = 0;
-        setStep(0);
+        return;
+      }
+      if (loop) {
+        show(0);
         timer = setTimeout(tick, interval);
       }
     };
@@ -51,8 +72,7 @@ export function useSteps(
   }, [ticking, total, interval, loop, pause, run]);
 
   return {
-    /* How many steps are shown: everything when the figure cannot or should not move, the first step while it waits for the reader. */
-    step: armed && !reduced ? (seen ? step : 0) : total,
+    step: shownSteps({ animated: armed && !reduced, seen, step, total }),
     finished: !playing || step >= total,
     replay: () => {
       position.current = 0;

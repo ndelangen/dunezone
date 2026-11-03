@@ -31,26 +31,34 @@ function scrambled(name: string, seed: number): string {
   return `card-${(hash >>> 0).toString(16).padStart(8, '0').slice(0, 4)}…`;
 }
 
-function Face({ name, tag, id, index = 0 }: { name: string; tag?: string; id?: string; index?: number }) {
+/** One card's place in a row: the card itself and the name it travels under, if it has one. */
+function Slot({ index, id, children }: { index: number; id?: string; children: ReactNode }) {
   return (
     <span className={styles.slot} style={{ '--i': index } as CSSProperties}>
+      {children}
+      <span className={styles.id}>{id}</span>
+    </span>
+  );
+}
+
+function Face({ name, tag, id, index = 0 }: { name: string; tag?: string; id?: string; index?: number }) {
+  return (
+    <Slot index={index} id={id}>
       <span className={clsx(styles.card, styles.face)}>
         <span className={styles.cardName}>{name}</span>
         {tag ? <span className={styles.tag}>{tag}</span> : null}
       </span>
-      {id ? <span className={styles.id}>{id}</span> : <span className={styles.id} />}
-    </span>
+    </Slot>
   );
 }
 
 function Back({ word = 'Treachery', id, index = 0 }: { word?: string; id?: string; index?: number }) {
   return (
-    <span className={styles.slot} style={{ '--i': index } as CSSProperties}>
+    <Slot index={index} id={id}>
       <span className={clsx(styles.card, styles.back)}>
         <span className={styles.backWord}>{word}</span>
       </span>
-      {id ? <span className={styles.id}>{id}</span> : <span className={styles.id} />}
-    </span>
+    </Slot>
   );
 }
 

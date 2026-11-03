@@ -8,10 +8,9 @@ import type { SeatId } from './palette';
 /*
  * A player's hand as the table shows it: the pointer hand in the seat's colour, the avatar circle under it and the name.
  * The hand's tip is the element's origin, so a figure places it with `translate` like any pointer.
- * The figures that draw their whole scene in one SVG use `HandGlyph` for the hand alone.
  */
 
-export function HandGlyph({ color, scale = 1 }: { color: string; scale?: number }) {
+function HandGlyph({ color, scale = 1 }: { color: string; scale?: number }) {
   return (
     <g transform={`scale(${scale})`}>
       <path d={HAND_PATH} fill={color} stroke={GROUND} strokeWidth="1.4" strokeLinejoin="round" />

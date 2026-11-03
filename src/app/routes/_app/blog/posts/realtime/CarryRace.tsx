@@ -18,18 +18,42 @@ type Lane = 0 | 1 | 2;
 
 type Step = {
   /* Arrows in this step, each from one lane to another; a note is the room talking to itself. */
-  messages: readonly { from: Lane; to: Lane; text: string; kind?: 'command' | 'refused' | 'note' | 'saved' }[];
+  messages: readonly {
+    from: Lane;
+    to: Lane;
+    text: string;
+    kind?: 'command' | 'refused' | 'note' | 'saved';
+  }[];
   /* Where Harkonnen sees the troop after this step, as a share of the strip's width, and whether it is in the air. */
   troop: { at: number; lifted: boolean };
 };
 
 const STEPS: readonly Step[] = [
-  { messages: [{ from: 0, to: 1, text: 'begin: troop', kind: 'command' }], troop: { at: 0.12, lifted: false } },
-  { messages: [{ from: 1, to: 1, text: 'reserved for Atreides', kind: 'note' }], troop: { at: 0.12, lifted: false } },
-  { messages: [{ from: 1, to: 2, text: 'carrying' }], troop: { at: 0.12, lifted: true } },
-  { messages: [{ from: 2, to: 1, text: 'begin: same troop', kind: 'command' }], troop: { at: 0.12, lifted: true } },
   {
-    messages: [{ from: 1, to: 2, text: 'Another player is carrying that piece.', kind: 'refused' }],
+    messages: [{ from: 0, to: 1, text: 'begin: troop', kind: 'command' }],
+    troop: { at: 0.12, lifted: false },
+  },
+  {
+    messages: [{ from: 1, to: 1, text: 'reserved for Atreides', kind: 'note' }],
+    troop: { at: 0.12, lifted: false },
+  },
+  {
+    messages: [{ from: 1, to: 2, text: 'carrying' }],
+    troop: { at: 0.12, lifted: true },
+  },
+  {
+    messages: [{ from: 2, to: 1, text: 'begin: same troop', kind: 'command' }],
+    troop: { at: 0.12, lifted: true },
+  },
+  {
+    messages: [
+      {
+        from: 1,
+        to: 2,
+        text: 'Another player is carrying that piece.',
+        kind: 'refused',
+      },
+    ],
     troop: { at: 0.12, lifted: true },
   },
   {
@@ -53,8 +77,14 @@ const STEPS: readonly Step[] = [
     ],
     troop: { at: 0.78, lifted: true },
   },
-  { messages: [{ from: 0, to: 1, text: 'drop', kind: 'command' }], troop: { at: 0.78, lifted: true } },
-  { messages: [{ from: 1, to: 1, text: 'checked and saved', kind: 'saved' }], troop: { at: 0.78, lifted: true } },
+  {
+    messages: [{ from: 0, to: 1, text: 'drop', kind: 'command' }],
+    troop: { at: 0.78, lifted: true },
+  },
+  {
+    messages: [{ from: 1, to: 1, text: 'checked and saved', kind: 'saved' }],
+    troop: { at: 0.78, lifted: true },
+  },
   {
     messages: [
       { from: 1, to: 0, text: 'update' },
@@ -69,7 +99,9 @@ const STEP_MS = 700;
 function Message({ from, to, text, kind }: Step['messages'][number]) {
   const start = Math.min(from, to);
   const end = Math.max(from, to);
-  const style = { gridColumn: from === to ? `${from + 1}` : `${start + 1} / ${end + 2}` } as CSSProperties;
+  const style = {
+    gridColumn: from === to ? `${from + 1}` : `${start + 1} / ${end + 2}`,
+  } as CSSProperties;
   if (from === to) {
     return (
       <span className={clsx(styles.note, kind === 'saved' && styles.saved)} style={style}>
@@ -103,13 +135,64 @@ function Cylinder() {
   );
 }
 
-export function CarryRace() {
-  const rootRef = useRef<HTMLDivElement>(null);
-  const { step, finished, replay, playing, armed, seen } = useSteps(rootRef, STEPS.length, { interval: STEP_MS });
+/** Harkonnen's screen: the troop on its way in the Atreides hand, and Harkonnen's own hand reaching for it. */
+function Strip({ step }: { step: number }) {
   const troop = STEPS[Math.max(0, step - 1)]!.troop;
   const carried = step > 0 && troop.lifted;
   /* Harkonnen's hand reaches in while its own begin is on the way and the refusal comes back. */
   const reaching = step === 4 || step === 5;
+  return (
+    <div className={styles.strip} aria-hidden="true">
+      <span className={styles.stripTitle}>Harkonnen&rsquo;s screen</span>
+      <span className={styles.shadow} style={{ '--at': troop.at } as CSSProperties} />
+      <span
+        className={clsx(styles.troop, carried && styles.lifted)}
+        style={{ '--at': troop.at, '--seat': SEATS.atreides.color } as CSSProperties}
+      />
+      <span
+        className={clsx(styles.carrier, carried && styles.carrierShown)}
+        style={{ '--at': troop.at } as CSSProperties}
+      >
+        <Hand seat="atreides" bare />
+      </span>
+      <span className={clsx(styles.reacher, reaching && styles.reacherShown)} style={{ '--at': 0.12 } as CSSProperties}>
+        <Hand seat="harkonnen" bare />
+      </span>
+    </div>
+  );
+}
+
+function LaneTitle({ lane }: { lane: 'atreides' | 'room' | 'harkonnen' }) {
+  if (lane === 'room') {
+    return <span className={styles.lane}>Room</span>;
+  }
+  return (
+    <span className={styles.lane} style={{ '--seat': SEATS[lane].color } as CSSProperties}>
+      {SEATS[lane].name}
+      <span className={styles.laneSuffix}> browser</span>
+    </span>
+  );
+}
+
+function Replay({ finished, replay }: { finished: boolean; replay: () => void }) {
+  return (
+    <UnstyledButton
+      className={clsx(styles.replay, !finished && styles.replayHidden)}
+      onClick={() => {
+        if (finished) {
+          replay();
+        }
+      }}
+      aria-disabled={!finished}
+    >
+      Replay
+    </UnstyledButton>
+  );
+}
+
+export function CarryRace() {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const { step, finished, replay, playing, armed, seen } = useSteps(rootRef, STEPS.length, { interval: STEP_MS });
 
   return (
     <div
@@ -118,43 +201,11 @@ export function CarryRace() {
       role="group"
       aria-label="Two players reach for one troop; the room gives it to the first"
     >
-      <div className={styles.strip} aria-hidden="true">
-        <span className={styles.stripTitle}>Harkonnen&rsquo;s screen</span>
-        <span className={styles.shadow} style={{ '--at': troop.at } as CSSProperties} />
-        <span
-          className={clsx(styles.troop, carried && styles.lifted)}
-          style={{ '--at': troop.at, '--seat': SEATS.atreides.color } as CSSProperties}
-        />
-        <span
-          className={clsx(styles.carrier, carried && styles.carrierShown)}
-          style={{ '--at': troop.at } as CSSProperties}
-        >
-          <Hand seat="atreides" bare />
-        </span>
-        <span
-          className={clsx(styles.reacher, reaching && styles.reacherShown)}
-          style={{ '--at': 0.12 } as CSSProperties}
-        >
-          <Hand seat="harkonnen" bare />
-        </span>
-      </div>
+      <Strip step={step} />
 
       <div className={styles.lanes}>
         {(['atreides', 'room', 'harkonnen'] as const).map((lane) => (
-          <span
-            key={lane}
-            className={styles.lane}
-            style={lane === 'room' ? undefined : ({ '--seat': SEATS[lane].color } as CSSProperties)}
-          >
-            {lane === 'room' ? (
-              'Room'
-            ) : (
-              <>
-                {SEATS[lane].name}
-                <span className={styles.laneSuffix}> browser</span>
-              </>
-            )}
-          </span>
+          <LaneTitle key={lane} lane={lane} />
         ))}
       </div>
 
@@ -168,19 +219,7 @@ export function CarryRace() {
         ))}
       </ol>
 
-      {playing ? (
-        <UnstyledButton
-          className={clsx(styles.replay, !finished && styles.replayHidden)}
-          onClick={() => {
-            if (finished) {
-              replay();
-            }
-          }}
-          aria-disabled={!finished}
-        >
-          Replay
-        </UnstyledButton>
-      ) : null}
+      {playing ? <Replay finished={finished} replay={replay} /> : null}
     </div>
   );
 }
