@@ -120,7 +120,7 @@ function StepSection() {
       </Paragraph>
       <Paragraph>
         Going the other way, the room doesn&rsquo;t send the whole table every time. When you first join, you get a full
-        view. After that, each update only describes what changed since the last one your browser received. Those
+        view. After that, each update only describes what changed since the last one the room sent your browser. Those
         updates are numbered too. If one ever goes missing, your browser notices the gap, asks for a fresh full view,
         and holds your next move until it arrives.
       </Paragraph>

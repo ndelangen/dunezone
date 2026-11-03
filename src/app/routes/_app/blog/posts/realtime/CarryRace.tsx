@@ -184,6 +184,7 @@ function Replay({ finished, replay }: { finished: boolean; replay: () => void })
         }
       }}
       aria-disabled={!finished}
+      tabIndex={finished ? undefined : -1}
     >
       Replay
     </UnstyledButton>

@@ -62,7 +62,7 @@ function runSteps({ from, total, interval, loop, pause, show }: StepTimer) {
   return () => clearTimeout(timer);
 }
 
-/** Runs the step timer while `ticking`; a loop resumes from the step it stopped at, a one-shot story starts from the first. */
+/** Runs the step timer while `ticking`, picking up from the step it stopped at. */
 function useStepTimer({
   ticking,
   run,
@@ -83,7 +83,7 @@ function useStepTimer({
       return;
     }
     return runSteps({
-      from: loop ? position.current : 0,
+      from: position.current,
       total,
       interval,
       loop,
@@ -106,7 +106,7 @@ export function useSteps(
   const reduced = useReducedMotion();
   const [step, setStep] = useState(0);
   const [run, setRun] = useState(0);
-  /* Where the timer stands, kept outside the render so a loop resumes from the step it stopped at. */
+  /* Where the timer stands, kept outside the render so the timer resumes from the step it stopped at. */
   const position = useRef(0);
 
   const playing = armed && seen && !reduced;
@@ -125,5 +125,6 @@ export function useSteps(
     playing,
     armed,
     seen,
+    active,
   };
 }

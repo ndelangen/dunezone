@@ -129,7 +129,7 @@ function SeatView({ seat, seed, shuffling }: { seat: Seat; seed: number; shuffli
           <Count count={HARKONNEN_HAND.length} />
         )}
       </Row>
-      <Deck seed={seed} faceUp={seat === 'atreides'} shuffling={shuffling} />
+      <Deck key={seed} seed={seed} faceUp={seat === 'atreides'} shuffling={shuffling} />
       <Row title="Harkonnen battle plan">
         {seat === 'harkonnen' ? <Face name={planned} /> : <Back word="until the reveal" />}
       </Row>
@@ -172,7 +172,7 @@ export function SeatLens() {
             />
           ))}
         </Row>
-        <Deck seed={seed} faceUp shuffling={shuffling} />
+        <Deck key={seed} seed={seed} faceUp shuffling={shuffling} />
         <Row title="Harkonnen battle plan">
           <Face name={PLANNED} id={scrambled(PLANNED, 7)} />
         </Row>

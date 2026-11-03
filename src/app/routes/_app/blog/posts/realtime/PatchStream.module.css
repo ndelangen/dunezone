@@ -559,3 +559,9 @@
     transition: none;
   }
 }
+
+/* Out of view or in a hidden tab the step timer stops, so the packet in the air waits with it. */
+.paused *,
+.paused *::after {
+  animation-play-state: paused;
+}

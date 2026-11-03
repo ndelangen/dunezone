@@ -7,7 +7,7 @@ import { useSteps } from './useSteps';
 
 /*
  * The figure for how a browser is kept in step: the room sends its changes as numbered patches along a wire, and one of them is lost on the way.
- * Each patch is built on the last frame the browser received (`baseSequence` to `sequence`), so when 44 → 45 arrives after 43 → 44 was lost the browser cannot apply it.
+ * Each patch is built on the last frame the room sent that browser (`baseSequence` to `sequence`), so when 44 → 45 arrives after 43 → 44 was lost the browser cannot apply it.
  * It asks the room for a full view, holds its commands until that arrives, and then the patches carry on.
  * Under it, the sizes measured on a test table in September 2026, as raw JSON bytes.
  */
@@ -221,7 +221,7 @@ function SizeChart() {
 
 export function PatchStream() {
   const rootRef = useRef<HTMLDivElement>(null);
-  const { step, armed, seen } = useSteps(rootRef, TOTAL, {
+  const { step, armed, seen, active } = useSteps(rootRef, TOTAL, {
     interval: STEP_MS,
     loop: true,
     pause: 4,
@@ -231,7 +231,7 @@ export function PatchStream() {
   return (
     <div
       ref={rootRef}
-      className={clsx(styles.root, armed && !seen && styles.waiting)}
+      className={clsx(styles.root, armed && !seen && styles.waiting, !active && styles.paused)}
       role="group"
       aria-label="Patches travelling from the room to one browser, one lost on the way, and how big each kind is"
     >

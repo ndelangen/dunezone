@@ -28,6 +28,9 @@ const IDLE_MS = 2500;
 
 type Point = { x: number; y: number };
 
+/** How far the hand and its badge reach right of and below the pointer tip, in pixels, so a hand at the edge of the table stays in view. */
+const HAND_REACH: Point = { x: 64, y: 64 };
+
 function latency() {
   return 30 + Math.random() * 30;
 }
@@ -275,8 +278,8 @@ export function HandRelay() {
     const box = event.currentTarget.getBoundingClientRect();
     pointer.current = {
       point: {
-        x: Math.min(1, Math.max(0, (event.clientX - box.left) / box.width)),
-        y: Math.min(1, Math.max(0, (event.clientY - box.top) / box.height)),
+        x: Math.min(1 - HAND_REACH.x / box.width, Math.max(0, (event.clientX - box.left) / box.width)),
+        y: Math.min(1 - HAND_REACH.y / box.height, Math.max(0, (event.clientY - box.top) / box.height)),
       },
       at: performance.now(),
     };
