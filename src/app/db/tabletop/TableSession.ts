@@ -1568,12 +1568,10 @@ export class TableSession {
   /* Who spice let go over the token of `factionId` would go to: another seated faction, while this viewer holds a spice reserve. */
   private giftRecipient(factionId: string | undefined) {
     const giver = this.snapshot.bank?.factionId;
-    if (!giver || !factionId || !this.carryingSpice()) {
+    if (!giver || !this.carryingSpice()) {
       return undefined;
     }
-    return factionId !== giver && Object.hasOwn(snapshotFactionLabels(this.snapshot), factionId)
-      ? factionId
-      : undefined;
+    return Object.keys(snapshotFactionLabels(this.snapshot)).find((seated) => seated !== giver && seated === factionId);
   }
   /* Whether this page holds spice in hand at a table it can handle. */
   private carryingSpice() {
