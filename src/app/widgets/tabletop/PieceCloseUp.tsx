@@ -12,9 +12,11 @@ import { topFaceHref, topItem } from './pieceFaceHref';
 import { seatedHeaderOf } from './seatedHeader';
 import { useTabletopSelector } from './TabletopContext';
 import styles from './TabletopScene.module.css';
-import { wheelPixels } from './wheelPixels';
+import { wheelPixels, wheelZoomFactor } from './wheelPixels';
 
 const CARD_HEIGHT_PX = 380;
+/* Scroll distance, in pixels, that grows the close-up e times. */
+const CLOSE_UP_ZOOM_SCROLL_PX = 500;
 const CURSOR_GAP_PX = 28;
 const EDGE_PX = 12;
 
@@ -155,7 +157,7 @@ function useFollowPointer(
       event.preventDefault();
       event.stopPropagation();
       const delta = Math.max(-1000, Math.min(1000, wheelPixels(event.deltaY, event.deltaMode)));
-      place(zoom.current * Math.exp(-delta * 0.002));
+      place(zoom.current * wheelZoomFactor(delta, CLOSE_UP_ZOOM_SCROLL_PX));
     };
     let frame = 0;
     const onPointer = () => {

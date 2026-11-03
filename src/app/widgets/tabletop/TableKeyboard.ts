@@ -138,7 +138,7 @@ export class TableKeyboard {
     };
   }
 
-  /** The camera reports here whether it is there to slide, which is when the pan keys answer. */
+  /** The camera reports here whether it is mounted to slide, which is when the pan keys answer; a table shown without one leaves them free. */
   setPanAvailable(available: boolean) {
     this.panAvailable = available;
     if (!available) {
@@ -148,6 +148,9 @@ export class TableKeyboard {
 
   /** The direction the held pan keys point, on the table: x to the right, z toward the viewer. */
   panDirection(): [number, number] {
+    if (this.panHeld.size === 0) {
+      return [0, 0];
+    }
     let x = 0;
     let z = 0;
     for (const key of new Set(this.panHeld.values())) {
@@ -268,11 +271,17 @@ export class TableKeyboard {
     }
   };
 
-  /* A pan key held slides the camera's look; off the table a focused control keeps its arrow keys, as a tab list does, while only a text field keeps the letters. */
+  /*
+   * A pan key held slides the camera's look. Off the table a focused control keeps its keys, as a tab list keeps its arrows
+   * and a button its letters; with the cursor over the table only a text field (and a slider, its arrows) keeps them.
+   */
   private panKeyDown(event: KeyboardEvent) {
     const panKey = event.key.toLowerCase();
-    const panFocus = isArrowKey(event) ? this.focusBranch() : 'spiceBank';
-    if (!this.panAvailable || !(panKey in PAN_KEYS) || focusKeepsKey(event.target, panFocus, isArrowKey(event))) {
+    if (
+      !this.panAvailable ||
+      !(panKey in PAN_KEYS) ||
+      focusKeepsKey(event.target, this.focusBranch(), isArrowKey(event))
+    ) {
       return false;
     }
     event.preventDefault();

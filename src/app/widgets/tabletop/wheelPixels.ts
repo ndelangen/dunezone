@@ -10,3 +10,12 @@ export function wheelPixels(deltaY: number, deltaMode: number): number {
   const pixels = deltaY * (deltaMode === 1 ? WHEEL_LINE_PX : deltaMode === 2 ? WHEEL_PAGE_PX : 1);
   return Number.isFinite(pixels) ? pixels : 0;
 }
+
+/*
+ * How much a wheel turn of `pixels` zooms in, as a factor: scrolling up (negative pixels) zooms in and scrolling down zooms out,
+ * the same way over the table, a close-up and the private side-table (Norbert, 2026-11-03).
+ * `pixelsPerE` is the scroll distance that zooms e times.
+ */
+export function wheelZoomFactor(pixels: number, pixelsPerE: number): number {
+  return Math.exp(-pixels / pixelsPerE);
+}

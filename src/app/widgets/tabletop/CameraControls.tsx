@@ -291,9 +291,10 @@ function useCloseLook(enabled: boolean, viewKey: string, poseAt: PoseAt): WheelV
   const panMotion = useRef<CameraPanMotion>(CAMERA_PAN_AT_REST);
   /* A pan leaves the tilt and closeness alone, so the view's pose under it is worked out once per pan, not once per frame. */
   const panBase = useRef<{ at: (tilt: number) => CameraPose; tilt: number; pose: CameraPose } | null>(null);
-  /* A new view starts still, so no leftover speed carries into it. */
-  useEffect(() => {
+  /* A new view starts still, so no leftover speed carries into it; laid out before the next frame can slide it. */
+  useLayoutEffect(() => {
     panMotion.current = CAMERA_PAN_AT_REST;
+    panBase.current = null;
   }, [viewKey]);
   useFrame((_, delta) => {
     const direction = keyboard?.panDirection() ?? NO_PAN_DIRECTION;

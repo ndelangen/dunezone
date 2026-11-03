@@ -563,9 +563,22 @@ describe('close look', () => {
   });
 
   test('the pan keys slide every view at its own distance too, starting from where it stands (#2666)', () => {
+    /* The game's chips over the canvas: the phase header top left, the toolbar top right and the dial under it. */
+    const chips: ScreenRect[] = [
+      { left: -1, right: -0.77, top: 1, bottom: 0.7 },
+      { left: 0.69, right: 1, top: 1, bottom: 0.84 },
+      { left: 0.84, right: 1, top: 0.2, bottom: -0.1 },
+    ];
+    const frame = mapViewFramingPoints(trackerArcSlots(9));
     for (const view of ['map', 'top', 'left', 'right', 'bottom'] as const) {
-      for (const aspectRatio of [1, 1.6, 2.4]) {
-        const viewPoseAt = (tilt: number) => cameraPoseForCloseLook(view, aspectRatio, undefined, tilt);
+      for (const [aspectRatio, obstacles] of [
+        [1, []],
+        [1.6, []],
+        [2.4, []],
+        [1.6, chips],
+        [2.4, chips],
+      ] as const) {
+        const viewPoseAt = (tilt: number) => cameraPoseForCloseLook(view, aspectRatio, frame, tilt, obstacles);
         const base = viewPoseAt(cameraTiltForZoom(NO_CAMERA_ZOOM));
         const start = zoomedCameraPose(base, NO_CAMERA_ZOOM).target;
         const firstFrame = cameraZoomAfterPanMotion(NO_CAMERA_ZOOM, base, [0.001, 0], 1 / 60);
