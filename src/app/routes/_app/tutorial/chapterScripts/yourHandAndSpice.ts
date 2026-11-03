@@ -3,6 +3,7 @@ import type { GameSnapshot } from '@shared/play/protocol';
 import type { GuideTask } from '@app/widgets/tutorial-guide/TutorialGuide';
 
 import type { ChapterScript } from './chapterScript';
+import type { Piece } from './guideChecks';
 import {
   at,
   closePieceMenu,
@@ -39,9 +40,29 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
   const treacheryDeck = () => tableDeck(snapshot, 'left');
   const cards = () => treacheryCards(snapshot());
   const reserve = () => snapshot().bank?.balance ?? 0;
-  /* Playing a private card gives it a new public handle. Flipping keeps that handle. */
-  const played = { id: null as string | null };
-  const playedCard = () => pieces().find((piece) => piece.id === played.id);
+  /*
+   * Playing a private card gives it a new public handle, and it gets another each time it goes back through the hand,
+   * as when "Play in front of me" plays it again. So the chapter follows every Treachery card that reached the table from
+   * the hand, not one handle: the pieces on the table when the chapter began are the ones that never did.
+   * The first task takes that count again, as Reset puts the table back.
+   */
+  const tableAtStart = () => new Set(pieces().map((piece) => piece.id));
+  const before = { ids: tableAtStart() };
+  const played = () => {
+    const key = treacheryDeck()?.stackKey;
+    return key === undefined
+      ? []
+      : pieces().filter((piece) => !piece.inventory && !before.ids.has(piece.id) && piece.stackKey === key);
+  };
+  const faceUp = (piece: Piece) => piece.items.every((item) => item.faceUp);
+  const ids = (list: Piece[]) => new Set(list.map((piece) => piece.id));
+  /* The cards already played when Play a card began, so Reveal your card can tell them from the one it asked for. */
+  const playedBefore = { ids: new Set<string>() };
+  /* The card the arrow points at: the latest one still face down, or failing that the latest played. */
+  const playedCard = () => {
+    const all = played();
+    return all.findLast((piece) => !faceUp(piece)) ?? all.at(-1);
+  };
   return [
     task({
       id: 'draw',
@@ -49,7 +70,10 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       detail:
         "Let's give you a hand to practice with. Hover over the Treachery deck on the left and press {T} four times. Each card goes straight into your hand.\n\nYou can also right-click the deck and choose Draw a card.",
       anchor: { kind: 'table', point: () => at(treacheryDeck()) },
-      begin: () => cards().length,
+      begin: () => {
+        before.ids = tableAtStart();
+        return cards().length;
+      },
       done: (start) => cards().length >= start + 4,
       finish: closePieceMenu,
     }),
@@ -89,25 +113,31 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       detail:
         'Drag one of your Treachery cards from your hand onto a clear spot on the table, away from the decks and other cards.\n\nAnything you drag from your hand to the table lands face down, including cards. You choose when to reveal it.',
       anchor: { kind: 'page', element: element(HAND_CARD) },
-      begin: () => ({ hand: cards().length, table: new Set(pieces().map((piece) => piece.id)) }),
-      done: (start) => {
-        if (cards().length >= start.hand) {
-          return false;
-        }
-        played.id =
-          pieces().find(
-            (piece) => !piece.inventory && !start.table.has(piece.id) && piece.stackKey === treacheryDeck()?.stackKey
-          )?.id ?? null;
-        return played.id !== null;
+      /* Only a card that lands during this task counts, so one dropped on a deck or set on the side-table does not. */
+      begin: () => {
+        playedBefore.ids = ids(played());
+        return { hand: cards().length, played: playedBefore.ids };
       },
+      done: (start) => cards().length < start.hand && played().some((piece) => !start.played.has(piece.id)),
     }),
     task({
       id: 'reveal',
       task: 'Reveal your card',
       detail: 'To show everyone your card, hover over it and press {F} to turn it face up.',
       anchor: { kind: 'table', point: () => at(playedCard()) },
-      begin: () => undefined,
-      done: () => playedCard()?.items.every((item) => item.faceUp) === true,
+      /*
+       * A card revealed before Play a card began does not count until it is seen face down and turned up again;
+       * the card just played counts even if it was revealed in the pause after Play, and so does one back under a new handle.
+       */
+      begin: () => ({ earlier: ids(played().filter((piece) => playedBefore.ids.has(piece.id) && faceUp(piece))) }),
+      done: (start) =>
+        played().some((piece) => {
+          if (!faceUp(piece)) {
+            start.earlier.delete(piece.id);
+            return false;
+          }
+          return !start.earlier.has(piece.id);
+        }),
     }),
     task({
       id: 'withdraw',
