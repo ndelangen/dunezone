@@ -31,6 +31,19 @@ export type BlogPostMeta = {
  * A folder beside it, like `posts/anatomy/`, holds that post's own figures and follows the same naming rule.
  */
 export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
+  'dune-homebrew-art-ai-and-credits': {
+    slug: 'dune-homebrew-art-ai-and-credits',
+    title: 'Making Dune homebrew look like it belongs: fan art, AI and credits',
+    date: '2026-11-04',
+    author: 'Central419',
+    summary:
+      "The art in the 2019 Dune box began as a fan's free print-and-play. Here's how Dune Zone builds on that, where AI comes in, and who gets the credit.",
+    cover: {
+      key: '/web/blog/why-dune/avalon-hill-set.jpg',
+      alt: 'An early Print and Play edition of Dune laid out on a table: board, shields, leader discs, battle wheels and cards',
+      aspect: 562 / 798,
+    },
+  },
   'playing-dune-online-in-real-time': {
     slug: 'playing-dune-online-in-real-time',
     title: 'Playing Dune online in real time: how hands, moving pieces and secret cards work',
