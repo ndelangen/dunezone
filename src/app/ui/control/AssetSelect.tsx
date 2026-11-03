@@ -426,6 +426,7 @@ function ArtworkOptions({
             disabled={option.disabled}
             active={option.value === value}
             className={styles.option}
+            aria-description={option.credit}
             onMouseEnter={() => onHover(option.value)}
             onMouseLeave={() => onHover(null)}
           >
