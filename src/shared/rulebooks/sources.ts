@@ -6,7 +6,6 @@ import { GEAR_CLIP, POINTER_CLIP } from '../assets/tokenOutline';
 import { FactionMemberIdSchema } from '../factions/memberIdentity';
 import { CanonicalFactionStoredObject } from '../factions/schema';
 import { FactionTroopIdSchema } from '../factions/troopIdentity';
-import { legacyEmblemKeyed } from '../legacyEmblem';
 import { RULEBOOK_BOARD_DEFINITIONS } from './boardDefinitions';
 
 export const rulebookCardSourceReferenceSchema = z.strictObject({
@@ -41,17 +40,15 @@ export const rulebookSourceReferenceSchema = z.discriminatedUnion('kind', [
 export type RulebookSourceReference = z.infer<typeof rulebookSourceReferenceSchema>;
 
 /** A sheet illustration freezes only the data its existing renderer consumes. */
-export const rulebookFactionSheetSchema = legacyEmblemKeyed(
-  CanonicalFactionStoredObject.pick({
-    name: true,
-    themeColor: true,
-    emblem: true,
-    background: true,
-    leaders: true,
-    troops: true,
-    rules: true,
-  }).strip()
-);
+export const rulebookFactionSheetSchema = CanonicalFactionStoredObject.pick({
+  name: true,
+  themeColor: true,
+  emblem: true,
+  background: true,
+  leaders: true,
+  troops: true,
+  rules: true,
+}).strip();
 export type RulebookFactionSheet = z.infer<typeof rulebookFactionSheetSchema>;
 
 /** Resolution preserves missing identities, including stock artwork that leaves the maintained catalogue. */

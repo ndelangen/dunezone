@@ -33,10 +33,10 @@ function renamedFields(row: Record<string, unknown>): Record<string, unknown> {
 }
 
 /** Rewrites one table's rows; any user field may hold an emblem, so every one is read. */
-function renameIn<Table extends TableNames>(table: Table) {
+function renameIn<Table extends TableNames>(table: Table, batchSize = 25) {
   return migrations.define({
     table,
-    batchSize: 25,
+    batchSize,
     migrateOne: async (_ctx, row) => {
       const fields = renamedFields(row as Record<string, unknown>);
       return Object.keys(fields).length > 0 ? (fields as Partial<Doc<Table>>) : undefined;
@@ -45,10 +45,10 @@ function renameIn<Table extends TableNames>(table: Table) {
 }
 
 /** Fails on the first row of a table that still holds an old name, naming it, so the deploy cannot report the rename done early. */
-function verifyIn<Table extends TableNames>(table: Table) {
+function verifyIn<Table extends TableNames>(table: Table, batchSize = 50) {
   return migrations.define({
     table,
-    batchSize: 50,
+    batchSize,
     migrateOne: async (_ctx, row) => {
       if (Object.keys(renamedFields(row as Record<string, unknown>)).length > 0) {
         throw new Error(`${table} ${row._id} still names a logo.`);
@@ -60,7 +60,8 @@ function verifyIn<Table extends TableNames>(table: Table) {
 /* The tables that store authored artwork: factions, assets, presets and queued captures. */
 export const emblem_rename_factions_v1 = renameIn('factions');
 export const emblem_rename_assets_v1 = renameIn('assets');
-export const emblem_rename_publication_jobs_v1 = renameIn('publication_jobs');
+/* A rulebook render job's payload can approach the document limit, so the batch is as small as the table's earlier migrations. */
+export const emblem_rename_publication_jobs_v1 = renameIn('publication_jobs', 4);
 export const emblem_rename_background_presets_v1 = renameIn('background_presets');
 export const emblem_rename_discovery_presets_v1 = renameIn('discovery_presets');
 export const emblem_rename_card_front_presets_v1 = renameIn('card_front_presets');
@@ -114,15 +115,14 @@ export const emblem_rename_rulebook_edition_contents_v1 = migrations.define({
 });
 
 export const emblem_rename_factions_verify_v1 = verifyIn('factions');
-export const emblem_rename_faction_cards_verify_v1 = verifyIn('faction_cards');
 export const emblem_rename_assets_verify_v1 = verifyIn('assets');
-export const emblem_rename_publication_jobs_verify_v1 = verifyIn('publication_jobs');
+export const emblem_rename_publication_jobs_verify_v1 = verifyIn('publication_jobs', 4);
 export const emblem_rename_background_presets_verify_v1 = verifyIn('background_presets');
 export const emblem_rename_discovery_presets_verify_v1 = verifyIn('discovery_presets');
 export const emblem_rename_card_front_presets_verify_v1 = verifyIn('card_front_presets');
 export const emblem_rename_cardback_presets_verify_v1 = verifyIn('cardback_presets');
-export const emblem_rename_rulebook_drafts_verify_v1 = verifyIn('rulebook_drafts');
-export const emblem_rename_rulebook_edition_contents_verify_v1 = verifyIn('rulebook_edition_contents');
+export const emblem_rename_rulebook_drafts_verify_v1 = verifyIn('rulebook_drafts', 2);
+export const emblem_rename_rulebook_edition_contents_verify_v1 = verifyIn('rulebook_edition_contents', 2);
 
 /**
  * This module's migrations under their ids, spread into `MIGRATION_IDS` so the deploy and the guard script run them like any other.
@@ -140,7 +140,6 @@ export const EMBLEM_MIGRATION_IDS: Record<string, FunctionReference<'mutation', 
   emblem_rename_rulebook_drafts_v1: internal.emblemMigrations.emblem_rename_rulebook_drafts_v1,
   emblem_rename_rulebook_edition_contents_v1: internal.emblemMigrations.emblem_rename_rulebook_edition_contents_v1,
   emblem_rename_factions_verify_v1: internal.emblemMigrations.emblem_rename_factions_verify_v1,
-  emblem_rename_faction_cards_verify_v1: internal.emblemMigrations.emblem_rename_faction_cards_verify_v1,
   emblem_rename_assets_verify_v1: internal.emblemMigrations.emblem_rename_assets_verify_v1,
   emblem_rename_publication_jobs_verify_v1: internal.emblemMigrations.emblem_rename_publication_jobs_verify_v1,
   emblem_rename_background_presets_verify_v1: internal.emblemMigrations.emblem_rename_background_presets_verify_v1,

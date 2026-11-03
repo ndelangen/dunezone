@@ -4,8 +4,10 @@
 import migrationsTest from '@convex-dev/migrations/test';
 import { describe, expect, test } from 'vite-plus/test';
 
+import { INITIAL_CARDBACK_PRESETS } from '../src/shared/assets/cardbackPresets';
 import { RULEBOOK_CATALOGUE_VERSION } from '../src/shared/rulebooks/contents';
 import { api, internal } from './_generated/api';
+import { EMBLEM_MIGRATION_IDS } from './emblemMigrations';
 import { insertStoredFactions, factionTest, storedFactionData } from './factions.test.fixture';
 import { rulebookDraftContentsHash, rulebookEditionContentsHash } from './lib/rulebookEditionContents';
 import { rulebookFixture } from './rulebooks.test.fixture';
@@ -57,6 +59,60 @@ describe('Emblem rename migration', () => {
         required: ['emblem_rename_factions_v1', 'emblem_rename_factions_verify_v1'],
       })
     ).resolves.toMatchObject({ ok: true });
+  });
+
+  test('runs clean in the deploy order, past a card written under the old projection', async () => {
+    const t = factionTest();
+    migrationsTest.register(t);
+    const [factionId] = await insertStoredFactions(t, [
+      { slug: 'legacy', data: { logo: '/vector/logo/atreides.svg', background } },
+    ]);
+    /* A card as the previous release wrote it: projection 1, naming the logo. */
+    await t.run(async (ctx) => {
+      const faction = (await ctx.db.get('factions', factionId!))!;
+      await ctx.db.insert('faction_cards', {
+        faction_id: faction._id,
+        owner_id: faction.owner_id,
+        group_id: null,
+        slug: faction.slug,
+        created_at: faction.created_at,
+        updated_at: faction.updated_at,
+        is_deleted: false,
+        faction_creation_time: faction._creationTime,
+        projection: 1,
+        data: { name: 'legacy', logo: '/vector/logo/atreides.svg', background },
+      });
+    });
+
+    /* The deploy runs every widen id in alphabetical order (`deploySet` in scripts/migration-guards.ts). */
+    const ids = Object.keys(EMBLEM_MIGRATION_IDS).sort();
+    await t.mutation(internal.migrations.runRequired, { ids });
+    await t.finishAllScheduledFunctions(() => undefined);
+    await expect(t.query(internal.migrations.assertReadyForNarrow, { required: ids })).resolves.toMatchObject({
+      ok: true,
+    });
+    const cards = await t.run((ctx) => ctx.db.query('faction_cards').collect());
+    expect(cards.map((card) => card.projection)).toEqual([2]);
+    expect(JSON.stringify(cards)).not.toContain('logo');
+  });
+
+  test('a preset stored under the old path is accepted by the schema and renamed', async () => {
+    const t = factionTest();
+    migrationsTest.register(t);
+    const legacyBack = { ...INITIAL_CARDBACK_PRESETS[0]!.cardback, image: '/vector/logo/fremen.svg' };
+    const presetId = await t.run(
+      async (ctx) =>
+        await ctx.db.insert('cardback_presets', {
+          key: INITIAL_CARDBACK_PRESETS[0]!.key,
+          cardback: legacyBack,
+          revision: 1,
+          updated_at: 0,
+        })
+    );
+
+    await t.mutation(internal.emblemMigrations.emblem_rename_cardback_presets_v1, {});
+    const preset = await t.run(async (ctx) => await ctx.db.get('cardback_presets', presetId));
+    expect(preset!.cardback.image).toBe('/vector/emblem/fremen.svg');
   });
 
   test('verification refuses a row that still names a logo', async () => {

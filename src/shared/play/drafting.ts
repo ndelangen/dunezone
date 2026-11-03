@@ -17,8 +17,7 @@ import { tableCountSchema, tableIdentitySchema, tableSeatSchema } from './schema
 export const PLAY_DRAFT_CATALOGUE_TTL_MS = 30_000;
 
 /** One faction as the draft knows it: enough to draw its real token, and whether it may be dealt. */
-/* A draft in Durable Object storage from before the emblem rename names it `logo` (see src/shared/legacyEmblem.ts). */
-const draftFactionObject = z.object({
+const draftFactionSchema = z.object({
   id: tableIdentitySchema,
   slug: z.string().max(160),
   name: z.string().max(160),
@@ -30,7 +29,6 @@ const draftFactionObject = z.object({
   /* Its token is published: only these can be drafted; the capture at assignment judges the rest. */
   published: z.boolean(),
 });
-const draftFactionSchema = legacyEmblemKeyed(draftFactionObject);
 export type DraftFaction = z.infer<typeof draftFactionSchema>;
 
 /** The catalogue's answer to a drafting game: every live faction with its link to the game's ruleset. */
@@ -41,7 +39,8 @@ const seatLists = z.record(tableSeatSchema, z.array(tableIdentitySchema));
 export const draftStateSchema = z.object({
   /* The start gate the game was created with: the roster must reach it before seats are dealt. */
   minimum: z.number().int().min(2).max(18),
-  factions: z.array(draftFactionSchema),
+  /* A draft in Durable Object storage from before the emblem rename names it `logo` (see src/shared/legacyEmblem.ts). */
+  factions: legacyEmblemKeyed(z.array(draftFactionSchema)),
   /* When the factions above were read; a stale copy is refreshed on the next draft command. */
   catalogueAt: tableCountSchema,
   picks: seatLists,

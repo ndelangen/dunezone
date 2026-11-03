@@ -228,12 +228,22 @@ What stays after the rename, because some copies can never be rewritten (game ca
 Object storage, published rulebook HTML, content packages exported before it):
 
 - `renameLegacyEmblems` at the stored roots that can meet such a copy (`legacyEmblemKeyed` in
-  `src/shared/legacyEmblem.ts`): the faction decoders, game captures and drafts, rulebook Contents,
-  sheets and references, publication payloads and leader-token assets. The artwork enums take the
-  new names only.
+  `src/shared/legacyEmblem.ts`): faction writes and publication payloads, game captures, snapshots
+  and drafts, draft rulebook Contents and asset writes (raw JSON and content packages). The artwork
+  enums take the new names only. Never wrap a schema a Convex validator is derived from: the
+  derived validator becomes `v.any()`.
 - The publisher Worker's `/vector/logo/*` route, which answers with the renamed file and never
   redirects (an SVG `<use>` does not follow one). It is permanent.
 
 Narrowing later: once every verify migration has succeeded in production, the migration bodies
-may become no-ops with their ids kept (snapshot replay). The stored-root readers and the
-`/vector/logo/*` route stay.
+may become no-ops with their ids kept (snapshot replay), and the readers over rows the migration
+rewrote (`StoredFactionSchema` on Convex reads, Edition Contents) can go back to the exact schemas.
+The readers above, for copies outside Convex, and the `/vector/logo/*` route stay. The
+`discovery_presets` and `cardback_presets` validators, which list every stock artwork path, are
+widened to `v.any()` for the artwork fields in the rename release, because a strict validator
+refuses the deploy while rows still name `/vector/logo/`; narrow them back with a guard entry
+that requires their two verify migrations.
+
+The deploy runs every widen id in alphabetical order (`deploySet` in
+`scripts/migration-guards.ts`); `requires` on a widen entry does not order anything. Name a
+verify migration so it sorts after the migrations it checks.

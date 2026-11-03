@@ -39,18 +39,29 @@ export function legacyEmblemKeyed<T extends z.ZodType>(schema: T) {
   return z.preprocess(renameLegacyEmblems, schema);
 }
 
+/*
+ * Wrapping a schema that a Convex validator is derived from turns that validator into `v.any()` (convex-helpers has no preprocess branch),
+ * so only stored roots are wrapped, never a wire answer.
+ */
+
 /**
  * Every old name in a stored JSON value as its new one, at any depth: `logo` keys become `emblem`, `/vector/logo/` paths become `/vector/emblem/`.
  * It is the migration's rewrite.
  * Nothing else in stored data is called `logo`: the Dune wordmark on a rulebook cover is `showDuneLogo`.
+ * The walk goes by key name alone, so a future record keyed by typed text must never let a user name a key `logo`.
  */
 export function renameLegacyEmblems(input: unknown): unknown {
+  /* Almost every value read after the migration holds no old name, so the check, which allocates nothing, spares the copy. */
+  return hasLegacyEmblems(input) ? renamed(input) : input;
+}
+
+function renamed(input: unknown): unknown {
   if (Array.isArray(input)) {
-    return input.map(renameLegacyEmblems);
+    return input.map(renamed);
   }
   if (isRecord(input)) {
-    const renamed = readLegacyEmblemKey(input) as Record<string, unknown>;
-    return Object.fromEntries(Object.entries(renamed).map(([key, value]) => [key, renameLegacyEmblems(value)]));
+    const record = readLegacyEmblemKey(input) as Record<string, unknown>;
+    return Object.fromEntries(Object.entries(record).map(([key, value]) => [key, renamed(value)]));
   }
   return readLegacyEmblemPath(input);
 }

@@ -52,11 +52,12 @@ export function parseBoardData(data: unknown) {
 /**
  * Validates writable Asset data against the renderer-owned shape shared by the browser and server.
  */
-export function parseAssetDataForWrite(type: string, data: unknown): { data: unknown; name: string } {
+export function parseAssetDataForWrite(type: string, input: unknown): { data: unknown; name: string } {
+  /* A package or tab from before the emblem rename may still send its old names (see src/shared/legacyEmblem.ts). */
+  const data = renameLegacyEmblems(input);
   switch (type) {
     case 'token-leader': {
-      /* A package or tab from before the emblem rename may still send `logo` (see src/shared/legacyEmblem.ts). */
-      const parsed = LeaderTokenAssetInput.parse(renameLegacyEmblems(data));
+      const parsed = LeaderTokenAssetInput.parse(data);
       return { data: parsed, name: parsed.name };
     }
     case 'board': {

@@ -569,7 +569,7 @@
     {
       "id": "faction_cards_v2",
       "phase": "widen",
-      "requires": ["emblem_rename_factions_v1"]
+      "requires": []
     },
     {
       "id": "emblem_rename_assets_v1",
@@ -615,11 +615,6 @@
       "id": "emblem_rename_factions_verify_v1",
       "phase": "widen",
       "requires": ["emblem_rename_factions_v1"]
-    },
-    {
-      "id": "emblem_rename_faction_cards_verify_v1",
-      "phase": "widen",
-      "requires": ["faction_cards_v2"]
     },
     {
       "id": "emblem_rename_assets_verify_v1",
