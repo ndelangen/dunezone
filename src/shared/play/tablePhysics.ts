@@ -174,8 +174,7 @@ function outlineOverlapsOutline(a: readonly Vector2[], b: readonly Vector2[]): b
   });
 }
 
-/** The distance from `point` to the segment from `start` to `end`, on the table's x and z. */
-export function distanceToSegment(point: Vector2, start: Vector2, end: Vector2): number {
+function distanceToSegment(point: Vector2, start: Vector2, end: Vector2): number {
   const segment = subtract(end, start);
   const length = dot(segment, segment);
   const along = length === 0 ? 0 : Math.max(0, Math.min(1, dot(subtract(point, start), segment) / length));

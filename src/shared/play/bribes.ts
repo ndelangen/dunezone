@@ -10,7 +10,9 @@ import {
   stackTopHeight,
   TROOP_FOOTPRINT_RADIUS,
 } from './tableGeometry';
-import { distanceToSegment, TABLE_PLAY_RADIUS } from './tablePhysics';
+import { TABLE_PLAY_RADIUS } from './tablePhysics';
+
+type Vector2 = readonly [x: number, z: number];
 import { tableSeatAngles } from './tableSettings';
 
 const FACTION_TOKEN_RADIUS = TROOP_FOOTPRINT_RADIUS * FACTION_TOKEN_SCALE;
@@ -41,8 +43,29 @@ function rayPointAt({ origin, direction }: PointerRay, height: number): Vector3T
   return pointOnRayAtHeight(origin, direction, height) ?? (Math.abs(direction[1]) < Number.EPSILON ? null : origin);
 }
 
+/*
+ * How far along the table-plane segment from `start` to `end` (0 to 1) it first comes within `radius` of `centre`, or undefined when it never does.
+ * The segment is a ray's path through a token's height, so this is where the ray enters the token, through its face or its side.
+ */
+function entryAlong(centre: Vector2, start: Vector2, end: Vector2, radius: number) {
+  const offset = [start[0] - centre[0], start[1] - centre[1]];
+  const step = [end[0] - start[0], end[1] - start[1]];
+  const outside = offset[0] ** 2 + offset[1] ** 2 - radius ** 2;
+  if (outside <= 0) {
+    return 0;
+  }
+  const a = step[0] ** 2 + step[1] ** 2;
+  const b = 2 * (offset[0] * step[0] + offset[1] * step[1]);
+  const discriminant = b * b - 4 * a * outside;
+  if (a === 0 || discriminant < 0) {
+    return undefined;
+  }
+  const share = (-b - Math.sqrt(discriminant)) / (2 * a);
+  return share >= 0 && share <= 1 ? share : undefined;
+}
+
 /**
- * The faction token a ray from the camera passes through, face or side, the nearest one when it passes through two.
+ * The faction token a ray from the camera passes through, face or side, the one it enters first when it passes through two.
  * A carried piece rides on the pointer's ray, so this is the token the held piece is seen over, from any camera angle.
  */
 export function factionTokenOnRay(pieces: readonly TablePiece[], ray: PointerRay) {
@@ -53,15 +76,20 @@ export function factionTokenOnRay(pieces: readonly TablePiece[], ray: PointerRay
     }
     const top = rayPointAt(ray, token.position[1] + stackTopHeight(token));
     const bottom = rayPointAt(ray, token.position[1]);
-    const centre = [token.position[0], token.position[2]] as const;
-    if (
-      !top ||
-      !bottom ||
-      distanceToSegment([...centre], [top[0], top[2]], [bottom[0], bottom[2]]) > FACTION_TOKEN_RADIUS
-    ) {
+    const share =
+      top && bottom
+        ? entryAlong(
+            [token.position[0], token.position[2]],
+            [top[0], top[2]],
+            [bottom[0], bottom[2]],
+            FACTION_TOKEN_RADIUS
+          )
+        : undefined;
+    if (share === undefined) {
       continue;
     }
-    const distance = Math.hypot(top[0] - ray.origin[0], top[1] - ray.origin[1], top[2] - ray.origin[2]);
+    const entry = top!.map((value, axis) => value + (bottom![axis]! - value) * share);
+    const distance = Math.hypot(entry[0]! - ray.origin[0], entry[1]! - ray.origin[1], entry[2]! - ray.origin[2]);
     if (!nearest || distance < nearest.distance) {
       nearest = { token, distance };
     }

@@ -66,3 +66,20 @@ describe('the faction token spice is let go over', () => {
     expect(factionTokenPieceUnder(pieces, [0, 0.62, -4.39 + FACE_RADIUS * 1.3])).toBeUndefined();
   });
 });
+
+describe('two tokens at the same height in line with the camera', () => {
+  /* Both stand on the board; the nearer one covers the point the ray passes through, whichever order the table lists them in. */
+  const farther = token('atreides', [0, 0.132, -4.39]);
+  const nearer = token('harkonnen', [0, 0.132, -3.44]);
+  const ray = {
+    origin: [0, 4.6, 9.4] as Vector3Tuple,
+    direction: [0, 0.177 - 4.6, -3.85 - 9.4] as Vector3Tuple,
+  };
+
+  test.each([
+    ['listed first', [nearer, farther]],
+    ['listed last', [farther, nearer]],
+  ])('the token the ray enters first counts, %s', (_, pieces) => {
+    expect(factionOfToken(factionTokenOnRay(pieces, ray))).toBe('harkonnen');
+  });
+});
