@@ -16,6 +16,8 @@ interface AssetSelectOption {
   collection?: string;
   keywords?: string;
   glyphPreview?: boolean;
+  /** Who made the artwork, shown under the hover preview. */
+  credit?: string;
 }
 
 export interface AssetSelectProps extends Omit<
@@ -143,7 +145,19 @@ export function AssetSelect({
       disc: previewShape === 'disc',
     });
   const selectedPreview = value ? previewFor(value, previewSize) : null;
-  const hoveredPreview = browse.hovered ? previewFor(browse.hovered, 144) : null;
+  const hoveredCredit = browse.hovered ? optionsByValue.get(browse.hovered)?.credit : undefined;
+  const hoveredArtwork = browse.hovered ? previewFor(browse.hovered, 144) : null;
+  const hoveredPreview =
+    hoveredArtwork && hoveredCredit ? (
+      <Stack gap={4} align="center" className={styles.hoverPreview}>
+        {hoveredArtwork}
+        <Text size="xs" c="dimmed" ta="center">
+          {hoveredCredit}
+        </Text>
+      </Stack>
+    ) : (
+      hoveredArtwork
+    );
   const groups = new Map<string, AssetSelectOption[]>();
   for (const option of data) {
     const name = option.collection ?? 'Artwork';

@@ -1,0 +1,232 @@
+{
+  "gf9-dune-portrait": {
+    "method": "restored",
+    "artist": "Ilya Baranovsky",
+    "source": "Dune (Gale Force Nine, 2019)",
+    "by": "Central419"
+  },
+  "gf9-ixians-tleilaxu-portrait": {
+    "method": "restored",
+    "artist": "Ilya Baranovsky",
+    "source": "Dune: Ixians & Tleilaxu (Gale Force Nine, 2020)",
+    "by": "Central419"
+  },
+  "gf9-choam-richese-portrait": {
+    "method": "restored",
+    "artist": "Solveig Reda",
+    "source": "Dune: CHOAM & Richese (Gale Force Nine, 2021)",
+    "by": "Central419"
+  },
+  "gf9-ecaz-moritani-portrait": {
+    "method": "restored",
+    "artist": "Solveig Reda and Lochen Reda",
+    "source": "Dune: Ecaz & Moritani (Gale Force Nine, 2022)",
+    "by": "Central419"
+  },
+  "gf9-choam-richese-ai-restored": {
+    "method": "ai-restored",
+    "artist": "Solveig Reda",
+    "source": "Dune: CHOAM & Richese (Gale Force Nine, 2021)"
+  },
+  "gf9-ecaz-moritani-ai-portrait": {
+    "method": "ai-adapted",
+    "source": "the Duke Prad Vidal art in Dune: Ecaz & Moritani (Gale Force Nine, 2022)",
+    "style": "the Ecaz leader portraits by Solveig Reda and Lochen Reda"
+  },
+  "gf9-second-edition-portrait": {
+    "method": "ai-restored",
+    "source": "the leader cards of Dune, second edition (Gale Force Nine)"
+  },
+  "duke-leto-portrait": {
+    "method": "ai-adapted",
+    "source": "a Duke Leto render from Gale Force Nine's new-edition announcement",
+    "style": "Ilya Baranovsky's Atreides portraits"
+  },
+  "ai-portrait": {
+    "method": "ai",
+    "style": "the GF9 Dune leader portraits"
+  },
+  "hivers-portrait": {
+    "method": "ai-adapted",
+    "source": "drawings by the author of the Hivers faction",
+    "style": "the GF9 Dune leader portraits"
+  },
+  "red-alert-portrait": {
+    "method": "ai-adapted",
+    "source": "Command & Conquer: Red Alert character art (Westwood Studios and EA)",
+    "style": "the GF9 Dune leader portraits"
+  },
+  "nod-portrait": {
+    "method": "ai-adapted",
+    "source": "Command & Conquer Brotherhood of Nod character art (Westwood Studios and EA)",
+    "style": "the GF9 Dune leader portraits"
+  },
+  "brainfood-portrait": {
+    "method": "unknown",
+    "source": "Brainfood's community factions"
+  },
+  "ilya-portrait": {
+    "method": "unknown"
+  },
+  "legacy-portrait": {
+    "method": "unknown"
+  },
+  "gf9-planet": {
+    "method": "official",
+    "source": "Dune (Gale Force Nine)"
+  },
+  "ai-planet": {
+    "method": "ai",
+    "style": "the GF9 Dune planets"
+  },
+  "familiar-world": {
+    "method": "ai-adapted",
+    "source": "a well-known science fiction world",
+    "style": "the GF9 Dune planets"
+  },
+  "sol-world": {
+    "method": "ai-adapted",
+    "source": "NASA mission imagery",
+    "style": "the GF9 Dune planets"
+  },
+  "gf9-second-edition-cover": {
+    "method": "ai-adapted",
+    "source": "the cover of Dune, second edition (Gale Force Nine)"
+  },
+  "kiss-cover": {
+    "method": "ai-adapted",
+    "source": "the cover of the KISS rules",
+    "style": "the other rulebook covers"
+  },
+  "dreamrules-cover": {
+    "method": "ai-adapted",
+    "source": "the Dreamrules cover art"
+  },
+  "dune-part-two-cover": {
+    "method": "ai-adapted",
+    "source": "a still from Dune: Part Two (Legendary Pictures, 2024)",
+    "style": "the other rulebook covers"
+  },
+  "dune-2021-cover": {
+    "method": "ai-adapted",
+    "source": "a still from Dune (Legendary Pictures, 2021)",
+    "style": "the other rulebook covers"
+  },
+  "preset-cover": {
+    "method": "unknown"
+  },
+  "gf9-card-layer": {
+    "method": "recreated",
+    "artist": "Casey Davies and Victor Pesch",
+    "artistRole": "design",
+    "source": "the card and shield design of Dune (Gale Force Nine, 2019)",
+    "by": "Central419"
+  },
+  "legacy-texture": {
+    "method": "unknown"
+  },
+  "gf9-discovery-texture": {
+    "method": "ai-restored",
+    "source": "a discovery token from Dune (Gale Force Nine)"
+  },
+  "gf9-stronghold-art": {
+    "method": "official",
+    "artist": "Solveig Reda",
+    "source": "the Stronghold cards in Dune: CHOAM & Richese (Gale Force Nine, 2021)"
+  },
+  "ai-stronghold-decal": {
+    "method": "ai",
+    "style": "the Stronghold cards in Dune: CHOAM & Richese"
+  },
+  "gf9-second-edition-trace": {
+    "method": "traced",
+    "source": "Dune, second edition (Gale Force Nine)"
+  },
+  "gf9-component-trace": {
+    "method": "traced",
+    "source": "Dune (Gale Force Nine, 2019)"
+  },
+  "gf9-leader-skill-trace": {
+    "method": "traced",
+    "source": "the Leader Skill cards of Dune (Gale Force Nine)"
+  },
+  "legacy-decal": {
+    "method": "unknown"
+  },
+  "ai-decal": {
+    "method": "ai",
+    "style": "the GF9 Dune card art"
+  },
+  "ai-decal-from-reference": {
+    "method": "ai-adapted",
+    "source": "a reference image chosen by Central419"
+  },
+  "gf9-emblem": {
+    "method": "traced",
+    "artist": "Casey Davies and Victor Pesch",
+    "artistRole": "design",
+    "source": "Dune (Gale Force Nine, 2019)",
+    "by": "Central419"
+  },
+  "legacy-emblem": {
+    "method": "unknown"
+  },
+  "ai-emblem": {
+    "method": "ai",
+    "style": "the GF9 Dune faction emblems"
+  },
+  "dune-awakening-emblem": {
+    "method": "traced",
+    "source": "the Landsraad house emblems in Dune: Awakening (Funcom)"
+  },
+  "dune-logo-trace": {
+    "method": "traced",
+    "source": "a Dune book, film or series logo"
+  },
+  "gf9-icon": {
+    "method": "traced",
+    "artist": "Casey Davies and Victor Pesch",
+    "artistRole": "design",
+    "source": "Dune (Gale Force Nine, 2019)",
+    "by": "Central419"
+  },
+  "dune-zone-icon": {
+    "method": "ai",
+    "style": "the GF9 Dune icons"
+  },
+  "legacy-symbol": {
+    "method": "unknown"
+  },
+  "legacy-troop": {
+    "method": "unknown"
+  },
+  "drawn-troop": {
+    "method": "unknown"
+  },
+  "ai-troop": {
+    "method": "ai",
+    "style": "the first Dune Zone troop silhouettes"
+  },
+  "gf9-board-trace": {
+    "method": "traced",
+    "source": "the board of Dune (Gale Force Nine, 2019)",
+    "by": "Central419"
+  },
+  "dune-zone-pattern": {
+    "method": "ai"
+  },
+  "blog-picture": {
+    "method": "blog"
+  },
+  "mcdm-thumbnail": {
+    "method": "official",
+    "source": "the MCDM Plays Dune video (MCDM)"
+  },
+  "gf9-logo": {
+    "method": "official",
+    "source": "Gale Force Nine"
+  },
+  "legacy-web-art": {
+    "method": "unknown"
+  }
+}
