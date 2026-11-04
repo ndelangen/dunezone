@@ -80,22 +80,7 @@ describe('Arrakis board migration', () => {
         },
       };
       const linkedId = await insertCard(f, 'linked', linked);
-      /* An editor's paint spells the strongholds as their territories; that still draws the old group highlight. */
-      const strongholds = Object.values(arrakisBoard().properties)
-        .filter((property) => property.type === 'stronghold')
-        .map((property) => propertyId(property));
-      const painted = {
-        ...publishingSpiceCard,
-        highlights: ['strongholds'],
-        board: {
-          asset_id: boardId,
-          tints: [{ id: 'blow', name: 'Blow', color: '#9e5f00', territories: strongholds }],
-          tokens: [],
-        },
-      };
-      const paintedId = await insertCard(f, 'painted', painted);
       await f.t.mutation(internal.arrakisMigrations.arrakis_spice_cards_v1, { reset: true });
-      expect(await cardData(f, paintedId)).toEqual({ ...painted, highlights: [] });
       expect(
         await f.t.mutation(internal.arrakisMigrations.arrakis_spice_cards_verify_v1, { reset: true })
       ).toMatchObject({ Status: expect.not.stringContaining('failed') });
@@ -136,6 +121,32 @@ describe('Arrakis board migration', () => {
 
       await f.t.mutation(internal.arrakisMigrations.arrakis_spice_cards_v1, { reset: true });
       expect(await Promise.all([classicId, linkedId, deletedId].map((id) => cardData(f, id)))).toEqual(migrated);
+    },
+    BUDGET_MS
+  );
+
+  test(
+    'counts a type highlight as drawn when a tint lists its territories instead',
+    async () => {
+      const f = await rulebookFixture();
+      migrationsTest.register(f.t);
+      const boardId = await saveArrakis(f);
+      /* An editor's paint spells the strongholds as their territories; that still draws the old group highlight. */
+      const strongholds = Object.values(arrakisBoard().properties)
+        .filter((property) => property.type === 'stronghold')
+        .map((property) => propertyId(property));
+      const painted = {
+        ...publishingSpiceCard,
+        highlights: ['strongholds'],
+        board: {
+          asset_id: boardId,
+          tints: [{ id: 'blow', name: 'Blow', color: '#9e5f00', territories: strongholds }],
+          tokens: [],
+        },
+      };
+      const paintedId = await insertCard(f, 'painted', painted);
+      await f.t.mutation(internal.arrakisMigrations.arrakis_spice_cards_v1, {});
+      expect(await cardData(f, paintedId)).toEqual({ ...painted, highlights: [] });
     },
     BUDGET_MS
   );
