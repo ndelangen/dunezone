@@ -4,6 +4,7 @@ import type { TablePiece } from '@shared/play/model';
 import { TABLE_PHASES } from '@shared/play/phases';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { stackTopHeight } from '@shared/play/tableGeometry';
+import { piecesNudgedAround, territoryLanding } from '@shared/play/territoryPlacement';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { STORYBOOK_NOW } from '@db/storybook';
@@ -146,8 +147,12 @@ export function battleStory(stage: 'preparing' | 'countdown' | 'revealed', obser
   const snapshot = initialSnapshot();
   const defenders = snapshot.table.pieces.find((piece) => piece.id === 'starting-0-arrakeen')!;
   const attackers = snapshot.table.pieces.find((piece) => piece.id === 'starting-1-carthag')!;
-  attackers.position = [defenders.position[0] + 0.4, defenders.position[1], defenders.position[2]];
+  /* The attackers join the defenders in Arrakeen as a drop there would land them: both inside the city, side by side. */
+  const others = snapshot.table.pieces.filter((piece) => piece.id !== attackers.id);
+  const landing = territoryLanding({}, attackers, defenders.position, others)!;
+  attackers.position = landing;
   attackers.zoneId = 'arrakeen';
+  snapshot.table.pieces = piecesNudgedAround({}, snapshot.table.pieces, attackers);
   return {
     ...snapshot,
     phase: 6,
