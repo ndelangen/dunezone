@@ -21,13 +21,7 @@ import {
 } from '@shared/play/tableGeometry';
 import { trackerArcSlots } from '@shared/play/tableTrackers';
 import type { TrackerArcSlot } from '@shared/play/tableTrackers';
-import {
-  BOTTOM_SHELF_BOUNDS,
-  BOTTOM_SHELF_EDGE,
-  isInTanks,
-  isOnBottomShelf,
-  SHARED_COLUMN_HALF_WIDTH,
-} from '@shared/play/tanksShelf';
+import { BOTTOM_SHELF_EDGE, isInTanks, isOnBottomShelf, SHARED_COLUMN_HALF_WIDTH } from '@shared/play/tanksShelf';
 import { ExtrudeGeometry, Mesh, MeshBasicMaterial, Raycaster, Vector3 } from 'three';
 import { acceleratedRaycast, MeshBVH } from 'three-mesh-bvh';
 import { describe, expect, test } from 'vite-plus/test';
@@ -289,18 +283,12 @@ describe('table furniture', () => {
   )('frames the complete bottom shelf at aspect $aspectRatio and tilt $tilt', ({ aspectRatio, tilt }) => {
     const camera = tableCamera(cameraPoseFor('bottom', aspectRatio, undefined, tilt), aspectRatio);
 
-    for (const xDirection of [-1, 1]) {
-      for (const zDirection of [-1, 1]) {
-        const projected = new Vector3(
-          xDirection < 0 ? BOTTOM_SHELF_BOUNDS.minX : BOTTOM_SHELF_BOUNDS.maxX,
-          FURNITURE_SURFACE_Y,
-          zDirection < 0 ? BOTTOM_SHELF_BOUNDS.minZ : BOTTOM_SHELF_BOUNDS.maxZ
-        ).project(camera);
-        expect(Math.abs(projected.x)).toBeLessThanOrEqual(0.92 + 1e-9);
-        expect(Math.abs(projected.y)).toBeLessThanOrEqual(0.92 + 1e-9);
-        expect(projected.z).toBeGreaterThanOrEqual(-1);
-        expect(projected.z).toBeLessThanOrEqual(1);
-      }
+    for (const [x, z] of BOTTOM_SHELF_EDGE.points) {
+      const projected = new Vector3(x, FURNITURE_SURFACE_Y, z).project(camera);
+      expect(Math.abs(projected.x)).toBeLessThanOrEqual(0.92 + 1e-9);
+      expect(Math.abs(projected.y)).toBeLessThanOrEqual(0.92 + 1e-9);
+      expect(projected.z).toBeGreaterThanOrEqual(-1);
+      expect(projected.z).toBeLessThanOrEqual(1);
     }
   });
 
