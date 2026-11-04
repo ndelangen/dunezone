@@ -20,20 +20,25 @@ export const chapterParameters = {
   layout: 'fullscreen',
 } as const;
 
+/*
+ * A wait on the rail while the table is drawing. Every frame the wait delivers renders the table, and on the runner's software GL
+ * that render takes longer than the 50 ms the shared wait leaves between frames, so the table's own frames, which its camera settles on
+ * before the first task shows, hardly get a turn: the Mentat recall story spent 24 of its 47 s that way. A frame a second leaves the
+ * table drawing at its own pace, and still runs the rail's tick on a page that draws no frames at all.
+ */
+export const waitForRail = <T>(check: () => T | Promise<T>) => waitForFrame(check, { timeout: 60_000, interval: 1000 });
+
 /** The chapter's rail opens on its first task, with no Next button, and grows its arrow once the table has drawn. */
 export const playChapter =
   (rail: string, firstTask: string) =>
   async ({ canvasElement }: { canvasElement: HTMLElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const banner = await page.findByRole('banner', { name: rail }, { timeout: 60_000 });
-    await waitForFrame(() => expect(within(banner).getByText(firstTask)).toBeVisible(), { timeout: 60_000 });
+    await waitForRail(() => expect(within(banner).getByText(firstTask)).toBeVisible());
     await expect(within(banner).queryByRole('button', { name: 'Next' })).toBeNull();
     /* The arrow is a curve-cornered wedge in the rail's outline. */
-    await waitForFrame(
-      async () => {
-        const outline = canvasElement.ownerDocument.querySelector('[data-tutorial-pointer]')!;
-        await expect(outline.getAttribute('d') ?? '').toContain('Q');
-      },
-      { timeout: 60_000 }
-    );
+    await waitForRail(async () => {
+      const outline = canvasElement.ownerDocument.querySelector('[data-tutorial-pointer]')!;
+      await expect(outline.getAttribute('d') ?? '').toContain('Q');
+    });
   };
