@@ -9,6 +9,7 @@ import { fitsInside, innermostPoint, tableTerritories } from '@shared/play/terri
 import { expect, within } from 'storybook/test';
 
 import type { StoredSnapshot } from '../../../../../workers/game/state';
+import { dragBattleMarker } from './battles.marker.stories.fixture';
 import { openControl } from './controls.stories.fixture';
 import { gameMeta, install } from './game.stories.fixture';
 import { chapter, journeyViewers, JourneyPage } from './journey.stories.fixture';
@@ -298,5 +299,21 @@ export const TroopsMakeRoom = meta.story({
         await expect(other === candidate || !piecesOverlapAt(candidate, candidate.position, other)).toBe(true);
       }
     }
+  },
+});
+
+/**
+ * In the Battle phase, seat 2 carries the battle marker into Arrakeen and lets go: the game starts the battle there and names it Arrakeen.
+ * The city stays lit in the marker's gold while the battle lasts.
+ * By hand: drag the marker from the tracker across the board, and the territory under it lights up as it moves.
+ */
+export const BattleMarkerLightsTerritory = meta.story({
+  args: { step: chapter('Battle'), seat: 'seat-2' },
+  play: async ({ canvasElement }) => {
+    await sandboxReady(within(canvasElement.ownerDocument.body));
+    const { x, z } = arrakeen();
+    await dragBattleMarker(canvasElement.ownerDocument, [x, 0.18, z], async () => {
+      await expect(shown().battle).toMatchObject({ territory: 'Arrakeen', territoryId: 'arrakeen' });
+    });
   },
 });

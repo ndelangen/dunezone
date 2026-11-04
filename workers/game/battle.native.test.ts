@@ -82,9 +82,11 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
   async function start() {
     const started = await accepted(a, {
       kind: 'battle-start' as const,
-      anchor: [0.95, 0.18, -3.05],
+      anchor: [1.32, 0.18, -2.94],
     });
     const battleId = required(started.snapshot.battle).id;
+    /* The game names the battle for the territory under the marker, and every page learns which territory to light. */
+    expect(started.snapshot.battle).toMatchObject({ territory: 'Arrakeen', territoryId: 'arrakeen' });
     await accepted(a, { kind: 'battle-claim' as const, battleId, side: 0 });
     await accepted(b, { kind: 'battle-claim' as const, battleId, side: 1 });
     return battleId;
