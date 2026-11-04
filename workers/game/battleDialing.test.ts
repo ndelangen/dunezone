@@ -46,7 +46,7 @@ function battleRoom(dialing: BattleDialing, faces: BattleFace[] = [ORDINARY, ELI
   room.snapshot.factionBanks = { atreides: spice };
   room.snapshot.phase = STANDARD_PHASES.findIndex((phase) => phase.id === 'battle');
   const send = (action: RoomAction) => room.accept(room.command(bob, action, room.snapshot.revision, LATER));
-  send({ kind: 'battle-start', anchor: [0, 0, 0], territory: 'Arrakeen' });
+  send({ kind: 'battle-start', anchor: [0, 0, 0] });
   const battleId = room.snapshot.battleState!.id;
   send({ kind: 'battle-claim', battleId, side: 0 });
   const dial = (troops: Record<string, number>, extra: object = {}) =>

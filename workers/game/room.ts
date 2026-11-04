@@ -1,5 +1,6 @@
 import { randomInt } from 'node:crypto';
 
+import type { Board } from '../../src/shared/boards/schema';
 import { tableHandlingOpen } from '../../src/shared/play/admission';
 import { isAllianceAction } from '../../src/shared/play/alliances';
 import { isBattleAction } from '../../src/shared/play/battle';
@@ -66,9 +67,12 @@ import {
   giveSpiceDraft,
   returnTroopsDraftToReserves,
   projectCarryAtPosition,
+  noRoomMessage,
   settleCarryAtPosition,
 } from '../../src/shared/play/tableState';
 import type { TroopReserveLanding } from '../../src/shared/play/tableState';
+import { territoryAtTable, territoryLanding, withNudges } from '../../src/shared/play/territoryPlacement';
+import type { TerritoryNudge } from '../../src/shared/play/territoryPlacement';
 import { isTerritoryTintAction } from '../../src/shared/play/territoryTints';
 import type { TerritoryTintAction } from '../../src/shared/play/territoryTints';
 import { troopFactionOf, troopReserveKeys, troopReserveSpots } from '../../src/shared/play/troopReserves';
@@ -244,7 +248,9 @@ export class Room {
     private readonly factionFor: (userId: string) => string | undefined = () => undefined,
     /** The catalogue deck the fixture deals on reset; a room adopts one after the fact when its catalogue answers late. */
     public fixtureDeck?: StoredSpawnContents,
-    private readonly phaseCooldownMs = PHASE_CHANGE_COOLDOWN_MS
+    private readonly phaseCooldownMs = PHASE_CHANGE_COOLDOWN_MS,
+    /** The board the game captured with its ruleset; a game without one plays on the rulebook Arrakis. */
+    private readonly board: () => Board | undefined = () => undefined
   ) {
     this.snapshot = storedSnapshotSchema.parse(snapshot);
     this.settledRevision = this.snapshot.revision;
@@ -316,8 +322,15 @@ export class Room {
 
   // Reserved sources remain physical obstacles until their owner's drop is accepted.
   // They cannot become somebody else's merge target while being carried.
+  /** The table as a seat sees it, on the board the game captured, whose territories stacks keep inside. */
+  private viewerTable(viewerSeat: Identity['viewerSeat']): TableState {
+    const table = tableForViewer(this.snapshot, viewerSeat);
+    const board = this.board();
+    return board ? { ...table, board } : table;
+  }
+
   private table(identity: Identity, ownCarryId?: string): TableState {
-    const state = tableForViewer(this.snapshot, identity.viewerSeat);
+    const state = this.viewerTable(identity.viewerSeat);
     return {
       ...state,
       pieces: state.pieces.map((piece) => {
@@ -433,7 +446,7 @@ export class Room {
     this.assertCarryCapacity(identity);
     this.assertCarryHistory(identity, input);
     this.available(sourceId);
-    const state = tableForViewer(this.snapshot, identity.viewerSeat);
+    const state = this.viewerTable(identity.viewerSeat);
     const source = this.pickupSource(state, input);
     const draft = draftForGesture(source, pickup);
     if (!draft) {
@@ -555,17 +568,17 @@ export class Room {
       const home = { ...draft, flips: 0 };
       const returned = returnTroopsDraftToReserves(guarded, home, reserves, seatSubject(identity.viewerSeat));
       const table = requireAccepted(guarded, returned);
-      const raw = tableForViewer(this.snapshot, identity.viewerSeat);
+      const raw = this.viewerTable(identity.viewerSeat);
       return nextSnapshot(this.snapshot, this.restoreReservationLocks(raw, table, late));
     }
     const settled = settleCarryAtPosition(guarded, draft, landing.position);
     if (!settled) {
-      throw new GameRejection('There is no clear space for that object.');
+      throw new GameRejection(noRoomMessage(guarded, draft, landing.position));
     }
     if (settled.targetPieceId) {
       this.available(settled.targetPieceId, id);
     }
-    const raw = tableForViewer(this.snapshot, identity.viewerSeat);
+    const raw = this.viewerTable(identity.viewerSeat);
     // Applied to the guarded table, so a plate leaves behind what another player is carrying off it;
     // the temporary reservation locks are then put back as stored, never persisted.
     const table = requireAccepted(guarded, applyDraftToState(guarded, settled, seatSubject(identity.viewerSeat)));
@@ -600,7 +613,7 @@ export class Room {
     const pile = as === 'bribe' ? bribePilePosition(guarded.pieces, this.snapshot.roster, target) : undefined;
     const gift = { as, factionName, pile };
     const table = requireAccepted(guarded, giveSpiceDraft(guarded, draft, gift, seatSubject(identity.viewerSeat)));
-    const raw = tableForViewer(this.snapshot, identity.viewerSeat);
+    const raw = this.viewerTable(identity.viewerSeat);
     return { ...nextSnapshot(this.snapshot, this.restoreReservationLocks(raw, table, late)), factionBanks: banks };
   }
 
@@ -782,7 +795,10 @@ export class Room {
 
   private battleCommand(identity: Identity, action: BattleAction, now: number): StoredSnapshot {
     const factionId = this.requireFaction(identity);
-    const next = battleCommand(this.snapshot, factionId, action, now);
+    const next = battleCommand(this.snapshot, factionId, action, now, {
+      board: this.board(),
+      reserved: new Set(this.reservations.keys()),
+    });
     /* Settling a revealed battle, by outcome or cancel, moves its overlay pieces even mid-carry; refusing it would let a carry hold the battle open. */
     if (this.snapshot.battleState?.stage !== 'revealed' || next.battleState) {
       this.assertReservationsUnchanged(this.snapshot.table as TableState, next.table as TableState);
@@ -803,7 +819,7 @@ export class Room {
   /** A plain table command: the piece move or phase change itself, kept clear of every other player's carry. */
   private tableCommand(identity: Identity, action: TableAction, now: number): StoredSnapshot {
     this.assertPhaseChange(action, now);
-    const raw = tableForViewer(this.snapshot, identity.viewerSeat);
+    const raw = this.viewerTable(identity.viewerSeat);
     const guarded = this.table(identity);
     const guardedNext = this.nextTable(guarded, action, identity);
     // Any command touching a reserved donor or target must be rejected, even
@@ -875,12 +891,14 @@ export class Room {
       throw new GameRejection("Only the faction's current player can use its spice reserve.");
     }
     const balance = this.snapshot.factionBanks[factionId];
-    const table = tableForViewer(this.snapshot, identity.viewerSeat);
+    const table = this.viewerTable(identity.viewerSeat);
+    /* A withdrawal packs into its territory around what other players carry, as a drop does; their temporary locks are then put back as stored. */
     const change =
       action.kind === 'bank-withdraw'
-        ? this.withdrawSpice(table, balance, action.amount, identity.viewerSeat, action.position)
+        ? this.withdrawSpice(this.table(identity), balance, action.amount, identity.viewerSeat, action.position)
         : this.collectSpice(table, balance, action.pieceId);
-    const next = nextSnapshot(this.snapshot, accepted(change.table, action.kind, `${factionId} ${change.message}`));
+    const settled = action.kind === 'bank-withdraw' ? this.restoreReservationLocks(table, change.table) : change.table;
+    const next = nextSnapshot(this.snapshot, accepted(settled, action.kind, `${factionId} ${change.message}`));
     return { ...next, factionBanks: { ...this.snapshot.factionBanks, [factionId]: change.balance } };
   }
 
@@ -894,10 +912,10 @@ export class Room {
     if (amount > balance) {
       throw new GameRejection('There is not enough spice in the spice reserve for that withdrawal.');
     }
-    const piece = this.spiceReserveStack(table, amount, seat, position);
+    const { piece, nudges } = this.spiceReserveStack(table, amount, seat, position);
     return {
       balance: balance - amount,
-      table: { ...table, pieces: [...table.pieces, piece] },
+      table: { ...table, pieces: [...withNudges(table.pieces, nudges), piece] },
       message: `withdrew ${amount} spice onto the table.`,
     };
   }
@@ -935,7 +953,7 @@ export class Room {
     amount: number,
     seat: Identity['viewerSeat'],
     requested?: Vector3Tuple
-  ): TablePiece {
+  ): { piece: TablePiece; nudges?: TerritoryNudge[] } {
     const piece = createSpiceStack(table.nextEventNumber, 1);
     piece.items = Array.from({ length: amount }, (_, index) => ({ id: `${piece.id}-${index + 1}`, faceUp: true }));
     const front = this.stationFront(seat);
@@ -947,11 +965,19 @@ export class Room {
     if (requested && Math.hypot(supported[0] - origin[0], supported[2] - origin[2]) > 1e-6) {
       throw new GameRejection('Drop the spice on the table.');
     }
+    /* Spice set down in a territory keeps inside it, as a carried stack does, and the stacks there make room. */
+    const landing = territoryLanding(table, piece, origin, table.pieces);
+    if (landing === null) {
+      throw new GameRejection(`${territoryAtTable(table, origin)!.name} has no room for that.`);
+    }
+    if (landing) {
+      return { piece: { ...piece, position: landing.position }, nudges: landing.nudges };
+    }
     const position = nearestCollisionFreePosition(piece, origin, table.pieces);
     if (!position) {
       throw new GameRejection('Make room on the table before withdrawing spice.');
     }
-    return { ...piece, position };
+    return { piece: { ...piece, position } };
   }
 
   private assertPhaseChange(action: PieceAction, now: number) {
@@ -994,7 +1020,7 @@ export class Room {
     if (!controls.seats.includes(identity.viewerSeat)) {
       throw new GameRejection('Only a current seated player can use this control.');
     }
-    const table = { ...tableForViewer(this.snapshot, identity.viewerSeat), pieces: [...this.snapshot.table.pieces] };
+    const table = { ...this.viewerTable(identity.viewerSeat), pieces: [...this.snapshot.table.pieces] };
     let message: string;
     switch (action.kind) {
       case 'ready':
@@ -1288,7 +1314,7 @@ export class Room {
   }
 
   private publicCarry(carry: Carry): PublicCarry[] {
-    const held = heldPieceFor(tableForViewer(this.snapshot, carry.viewerSeat), carry.draft);
+    const held = heldPieceFor(this.viewerTable(carry.viewerSeat), carry.draft);
     if (!held) {
       return [];
     }

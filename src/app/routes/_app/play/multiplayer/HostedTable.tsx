@@ -508,7 +508,12 @@ function controlPanels(
 }
 
 /* The pieces the stage stands on the board: the trade and setup scenes before play, then the battle, bidder, hands and coins. */
-function stageScene({ client, table, bidderFaded }: TableControlProps & Readonly<{ bidderFaded: boolean }>) {
+function stageScene({
+  client,
+  table,
+  bidderFaded,
+  onMarkerTerritory,
+}: TableControlProps & Readonly<{ bidderFaded: boolean; onMarkerTerritory: (territoryId: string | null) => void }>) {
   if (reviewRunning(table.review?.current)) {
     return null;
   }
@@ -517,13 +522,13 @@ function stageScene({ client, table, bidderFaded }: TableControlProps & Readonly
     return (
       <>
         <SwapScene snapshot={table.snapshot} />
-        {stage === 'setup' && <BattleScene client={client} table={table} />}
+        {stage === 'setup' && <BattleScene client={client} table={table} onMarkerTerritory={onMarkerTerritory} />}
       </>
     );
   }
   return (
     <>
-      <BattleScene client={client} table={table} />
+      <BattleScene client={client} table={table} onMarkerTerritory={onMarkerTerritory} />
       {stage !== 'finished' && <BidderScene client={client} table={table} faded={bidderFaded} />}
       {stageInPlay(stage) && <HandCountsScene table={table} />}
       <AllianceCoinsScene table={table} />
@@ -645,6 +650,8 @@ function ConnectedTable({
   const declare = useDeclareChoice(table);
   /* Each player fades the bidder for themselves, so the choice stays in this browser tab. */
   const [bidderFaded, setBidderFaded] = useState(false);
+  /* The territory under the battle marker while it is carried, which the board lights. */
+  const [markerTerritory, setMarkerTerritory] = useState<string | null>(null);
   const { readOnly, normal, compassTable } = useHostedControls(client, table, error);
   const stage = table.snapshot.stage;
   const factionArtwork = table.snapshot.factionArtwork;
@@ -680,9 +687,10 @@ function ConnectedTable({
               /* The gathered Traitor pile lies under the Tleilaxu Tanks, below the Map view's frame on a wide screen (#1635). */
               requestedView={table.traitorsGathered ? { view: 'bottom', revision: table.traitorsGathered } : undefined}
               showStormControls={offersActions(table) && stageInPlay(stage) && progress.activePhaseId === 'storm'}
+              highlightTerritory={markerTerritory}
               sceneContent={
                 <>
-                  {stageScene({ client, table, bidderFaded })}
+                  {stageScene({ client, table, bidderFaded, onMarkerTerritory: setMarkerTerritory })}
                   {celebration.mounted && <FoilConfetti launch={celebration.launch} />}
                 </>
               }

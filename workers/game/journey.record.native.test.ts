@@ -85,7 +85,6 @@ async function battle(journey: JourneyRecorder) {
   const started = await journey.command(invader, {
     kind: 'battle-start',
     anchor: territoryPosition('arrakeen'),
-    territory: 'Arrakeen',
   });
   const battleId = required(started.snapshot.battle).id;
   await journey.record('Battle started', `${journey.who(invader)} opens a battle in Arrakeen.`, `seat-${invader + 1}`, {

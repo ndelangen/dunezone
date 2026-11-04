@@ -4,6 +4,7 @@ import type { TablePiece } from '@shared/play/model';
 import { TABLE_PHASES } from '@shared/play/phases';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { stackTopHeight } from '@shared/play/tableGeometry';
+import { territoryLanding, withNudges } from '@shared/play/territoryPlacement';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { STORYBOOK_NOW } from '@db/storybook';
@@ -146,16 +147,23 @@ export function battleStory(stage: 'preparing' | 'countdown' | 'revealed', obser
   const snapshot = initialSnapshot();
   const defenders = snapshot.table.pieces.find((piece) => piece.id === 'starting-0-arrakeen')!;
   const attackers = snapshot.table.pieces.find((piece) => piece.id === 'starting-1-carthag')!;
-  attackers.position = [defenders.position[0] + 0.4, defenders.position[1], defenders.position[2]];
+  /* The attackers join the defenders in Arrakeen as a drop there would land them: both inside the city, side by side. */
+  const others = snapshot.table.pieces.filter((piece) => piece.id !== attackers.id);
+  const beside: typeof defenders.position = [defenders.position[0] + 0.3, defenders.position[1], defenders.position[2]];
+  const landing = territoryLanding({}, attackers, beside, others)!;
+  attackers.position = landing.position;
   attackers.zoneId = 'arrakeen';
+  snapshot.table.pieces = withNudges(snapshot.table.pieces, landing.nudges);
   return {
     ...snapshot,
     phase: 6,
     ...(observer ? {} : { bank: { factionId: 'house-harkonnen', balance: 10 }, battlePlan: plans[0] }),
     battle: {
       id: 'story-battle',
-      anchor: [0.95, 0.18, -3.05],
+      /* The middle of Arrakeen on the rulebook board. */
+      anchor: [1.32, 0.18, -2.94],
       territory: 'Arrakeen',
+      territoryId: 'arrakeen',
       stage,
       sides: [
         { factionId: 'house-harkonnen', ready: stage !== 'preparing', choice: stage === 'revealed' ? 'left' : null },

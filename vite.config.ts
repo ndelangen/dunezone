@@ -1,4 +1,3 @@
-// import { devtools } from '@tanstack/devtools-vite';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 
@@ -210,7 +209,6 @@ const config = defineConfig({
     ],
   },
   plugins: withoutRouteSplittingInVitest([
-    // devtools(),
     unsyncedMediaPreview(fileURLToPath(new URL('.', import.meta.url))),
     gameTableCryptoInBrowser(),
     sandboxAsyncHooksInBrowser(),

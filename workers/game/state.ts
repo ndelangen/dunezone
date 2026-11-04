@@ -639,6 +639,7 @@ export class RoomProjection {
       id: battle.id,
       anchor: battle.anchor,
       territory: battle.territory,
+      ...(battle.territoryId ? { territoryId: battle.territoryId } : {}),
       stage: battle.stage,
       sides: battle.sides,
       deadline: battle.deadline,

@@ -188,7 +188,6 @@ describe('Authored troop battle values in a real game', { timeout: 120_000 }, ()
     const started = await accepted(harkonnen, {
       kind: 'battle-start',
       anchor: [0.95, 0.18, -3.05],
-      territory: 'Arrakeen',
     });
     const battleId = required(started.snapshot.battle).id;
     await accepted(harkonnen, { kind: 'battle-claim', battleId, side: 0 });

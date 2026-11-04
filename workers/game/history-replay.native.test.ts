@@ -82,7 +82,7 @@ describe('Replay history through the native game boundary', { timeout: 30_000 },
   }
 
   async function battle(held: Map<number, StoredSnapshot>) {
-    const started = await accepted(a, { kind: 'battle-start', anchor: [0.95, 0.18, -3.05], territory: 'Arrakeen' });
+    const started = await accepted(a, { kind: 'battle-start', anchor: [0.95, 0.18, -3.05] });
     const battleId = required(started.snapshot.battle).id;
     await accepted(a, { kind: 'battle-claim', battleId, side: 0 });
     await accepted(b, { kind: 'battle-claim', battleId, side: 1 });

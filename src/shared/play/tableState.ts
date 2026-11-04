@@ -33,6 +33,13 @@ import {
   piecesCanStack,
   piecesTouchForStack,
 } from './tablePhysics';
+import {
+  keepsInsideTerritory,
+  packsInTerritory,
+  territoryAtTable,
+  territoryLanding,
+  withNudges,
+} from './territoryPlacement';
 import { isTroopStack } from './troop';
 import type { TroopReserveSpot } from './troopReserves';
 
@@ -353,8 +360,13 @@ function placementObstaclesFor(state: TableState, draft: DraftMove): TablePiece[
 }
 
 /** The draft as a plain move to a position, landing in a zone or none, onto no stack. */
+/* A draft before it is settled: the nudges of an earlier settlement no longer hold once it moves. */
+function unsettled({ nudges: _settled, ...draft }: DraftMove): DraftMove {
+  return draft;
+}
+
 function moveDraftTo(draft: DraftMove, position: Vector3Tuple, targetZoneId: string | null): DraftMove {
-  return { ...draft, operation: 'move', position, targetZoneId, targetPieceId: null };
+  return { ...unsettled(draft), operation: 'move', position, targetZoneId, targetPieceId: null };
 }
 
 export function projectCarryAtPosition(state: TableState, draft: DraftMove, position: Vector3Tuple): DraftMove | null {
@@ -373,7 +385,7 @@ export function projectCarryAtPosition(state: TableState, draft: DraftMove, posi
   const targetPiece = anchoredStackTarget(state, draft, piece, position, placementAnchor);
   if (targetPiece) {
     return {
-      ...draft,
+      ...unsettled(draft),
       operation: 'merge',
       position: [...position],
       targetZoneId: targetPiece.zoneId,
@@ -452,14 +464,43 @@ function settleMoveAtPosition(
     }
     return { ...moveDraftTo(draft, anchoredPosition, null), orientation: placementAnchor.orientation };
   }
+  const landing = territoryLanding(
+    state,
+    piece,
+    restingPositionAt(position, piece),
+    placementObstaclesFor(state, draft)
+  );
+  if (landing !== undefined) {
+    return (
+      landing && {
+        ...moveDraftTo(draft, landing.position, nearestZone(landing.position)?.id ?? null),
+        nudges: landing.nudges,
+      }
+    );
+  }
   const clampedPosition = clampPositionToTable(piece, restingPositionAt(position, piece));
   const rules = placementRules(state.pieces, piece, placementObstaclesFor(state, draft));
-  const resolvedPosition = nearestCollisionFreePosition(piece, clampedPosition, rules.obstacles, rules.fits);
+  const inside = keepsInsideTerritory(state, piece, state.pieces);
+  const resolvedPosition = nearestCollisionFreePosition(
+    piece,
+    clampedPosition,
+    rules.obstacles,
+    (candidate) => rules.fits(candidate) && inside(candidate)
+  );
   if (!resolvedPosition) {
     return null;
   }
   const restingPosition = restingAmongLeaders(piece, restingPositionAt(resolvedPosition, piece), rules.obstacles);
   return moveDraftTo(draft, restingPosition, nearestZone(restingPosition)?.id ?? null);
+}
+
+/** Why a carry let go at `position` found no place to rest: the territory it was let go over is full, or the table has no clear space. */
+export function noRoomMessage(state: TableState, draft: DraftMove, position: Vector3Tuple): string {
+  const piece = heldPieceFor(state, draft);
+  const territory = piece && territoryAtTable(state, position);
+  return piece && territory && packsInTerritory(piece)
+    ? `${territory.name} has no room for that.`
+    : 'There is no clear space for that object.';
 }
 
 export function settleCarryAtPosition(state: TableState, draft: DraftMove, position: Vector3Tuple): DraftMove | null {
@@ -489,19 +530,25 @@ export function settleCarryAtPosition(state: TableState, draft: DraftMove, posit
 }
 
 /**
- * A piece played from a hand onto a placement anchor settles the way a carry released there would.
- * It takes the anchor's pose, or joins the compatible stack already resting in it with the played items on top.
- * A drop that misses every anchor returns null so the caller keeps its own placement.
+ * A piece played from a hand onto a placement anchor or into a territory settles the way a carry released there would.
+ * On an anchor it takes the anchor's pose, or joins the compatible stack already resting in it with the played items on top;
+ * in a territory it packs in with the stacks already there, which shift over to make room.
+ * A drop that misses every anchor and territory returns null so the caller keeps its own placement.
  */
-export function playFromHandAtAnchor(state: TableState, piece: TablePiece, position: Vector3Tuple): TableState | null {
-  if (!placementAnchorAtPosition(piece, position)) {
+export function playFromHandSettled(state: TableState, piece: TablePiece, position: Vector3Tuple): TableState | null {
+  const inTerritory = packsInTerritory(piece) && territoryAtTable(state, position);
+  if (!placementAnchorAtPosition(piece, position) && !inTerritory) {
     return null;
   }
   const table = { ...state, pieces: [...state.pieces, piece] };
   const draft = draftForGesture(piece, 'whole');
   const settled = draft && settleCarryAtPosition(table, draft, position);
   if (!settled) {
-    return rejection(state, 'piece.move', 'There is no clear space for that object.');
+    return rejection(
+      state,
+      'piece.move',
+      draft ? noRoomMessage(table, draft, position) : 'There is no clear space for that object.'
+    );
   }
   return applyDraftToState(table, settled);
 }
@@ -635,6 +682,10 @@ function rejectDraft(rejectedBase: TableState, command: string, message: string)
 
 function settleDraftApplication(application: DraftApplication): DraftResolution {
   const { current, draft, piece, rejectedBase } = application;
+  /* A draft already settled into a territory carries its layout; packing the territory again could only disagree with it. */
+  if (draft.nudges) {
+    return application;
+  }
   const settled = settleMoveAtPosition(current, draft, piece, draft.position);
   if (!settled) {
     return rejectDraft(rejectedBase, 'piece.move', 'There is no clear space for that object.');
@@ -798,7 +849,8 @@ function applyFactionTokenMove(application: DraftApplication, movedPiece: TableP
 
 function applyMove(application: DraftApplication): TableState {
   const { current, draft, piece } = application;
-  const destination = zoneById(draft.targetZoneId)?.label ?? 'a free table position';
+  const destination =
+    territoryAtTable(current, draft.position)?.name ?? zoneById(draft.targetZoneId)?.label ?? 'a free table position';
   const movedPiece: TablePiece = {
     ...piece,
     position: [...draft.position],
@@ -811,7 +863,7 @@ function applyMove(application: DraftApplication): TableState {
   return accepted(
     {
       ...current,
-      pieces: piecesAfterMove(current, draft, movedPiece),
+      pieces: withNudges(piecesAfterMove(current, draft, movedPiece), draft.nudges),
       selectedPieceId: movedPiece.id,
       draftMove: null,
     },

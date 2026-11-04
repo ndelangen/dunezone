@@ -1,5 +1,3 @@
-// import { TanStackDevtools } from '@tanstack/react-devtools';
-
 import { ConvexAuthProvider } from '@convex-dev/auth/react';
 import { createRootRoute, HeadContent, Scripts, useMatches } from '@tanstack/react-router';
 
@@ -17,8 +15,6 @@ import '@fontsource/lato/latin-italic.css';
 import '../styles/fonts.css';
 import '../styles/page.css';
 import '../styles/tokens.css';
-
-// import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools';
 
 export const Route = createRootRoute({
   ssr: true,
@@ -87,19 +83,6 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <ConvexAuthProvider client={convex} shouldHandleCode={false}>
           <SignInCallback />
           {children}
-          {/* <TanStackDevtools
-            config={{
-              position: 'bottom-right',
-            }}
-            plugins={
-              [
-                // {
-                //   name: 'Tanstack Router',
-                //   render: <TanStackRouterDevtoolsPanel />,
-                // },
-              ]
-            }
-          /> */}
           <Scripts />
         </ConvexAuthProvider>
       </body>

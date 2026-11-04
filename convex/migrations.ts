@@ -1450,15 +1450,11 @@ export const ruleset_factions_position_v1 = migrations.define({
   },
 });
 
-/** Existing boards gain the listing fields new asset writes already carry; rerunning it writes nothing. */
+/** Gave existing boards the listing fields; `board_readiness_v1` writes the same full row on replay, so this body is a no-op and the id stays for `board_readiness_listing_narrow`. */
 export const board_readiness_listing_v1 = migrations.define({
   table: 'assets',
-  batchSize: 10,
-  migrateOne: async (ctx, asset) => {
-    if (asset.type === 'board') {
-      await syncBoardReadiness(ctx, asset._id, asset);
-    }
-  },
+  batchSize: 100,
+  migrateOne: async () => {},
 });
 
 /** Existing factions receive the card new faction writes already keep; rerunning it writes nothing. */

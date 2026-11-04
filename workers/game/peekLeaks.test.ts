@@ -58,7 +58,7 @@ const battleId = (room: Room) => room.snapshot.battleState?.id ?? 'battle';
  */
 const STEPS: Record<Kind, (room: Room) => Step[]> = {
   /* The marker goes on the board: the deck lies off it, where a battle cannot start. */
-  'battle-start': () => [[bob, { kind: 'battle-start', anchor: [0, 0, 0], territory: 'Arrakeen' }]],
+  'battle-start': () => [[bob, { kind: 'battle-start', anchor: [0, 0, 0] }]],
   'battle-claim': (room) => [[bob, { kind: 'battle-claim', battleId: battleId(room), side: 0 }]],
   'battle-plan': (room) => [
     [
@@ -220,7 +220,7 @@ const STAGED: Partial<Record<Kind, Staged>> = {
   'battle-start': {
     stage: { phase: BATTLE_PHASE },
     accepted: [true, false],
-    effect: (room) => expect(room.snapshot.battleState?.territory).toBe('Arrakeen'),
+    effect: (room) => expect(room.snapshot.battleState?.territory).toBe('Polar sink'),
   },
   'bid-seconds': {
     accepted: [true, true],

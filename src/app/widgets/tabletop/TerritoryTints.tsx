@@ -1,6 +1,6 @@
 /* @jsxImportSource ./three-jsx */
 
-import { CENTER, RADIUS, retainedArrakisBoard } from '@shared/boards/geometry';
+import { CENTER, contains, RADIUS, retainedArrakisBoard } from '@shared/boards/geometry';
 import type { Board, Point } from '@shared/boards/schema';
 import { propertyId } from '@shared/boards/schema';
 import { placeStickers, TABLE_STICKER_LARGEST } from '@shared/boards/stickerPlacement';
@@ -104,6 +104,29 @@ function doubleLineGeometries(segments: readonly Segment[], raisedEdges: Readonl
   return { rest: positionsGeometry(bands.rest), raised: positionsGeometry(bands.raised) };
 }
 
+/* A rim tint's line, in table units: how far out from the border it starts, and how wide it is. */
+const RIM_GAP = 0.004;
+const RIM_WIDTH = 0.032;
+
+/**
+ * One thick band along each line, on the side away from the territories it surrounds.
+ * The stretches along `raisedEdges` come apart, as a double line's do.
+ * Which side is outside is tested on each line's first stretch, since the outline's direction is not fixed.
+ */
+function rimGeometries(segments: readonly Segment[], raisedEdges: ReadonlySet<string>, rings: readonly Point[][]) {
+  const bands: Bands = { rest: [], raised: [] };
+  for (const { points, closed } of outlinePaths(segments)) {
+    const raised = points.map((point, i) => raisedEdges.has(edgeKey([point, points[(i + 1) % points.length]])));
+    /* A probe a hair off the first side tells inside from outside, however narrow the territory. */
+    const probe = offsetPath({ points, closed }, 1e-3);
+    const middle: Point = [(probe[0]![0] + probe[1]![0]) / 2, (probe[0]![1] + probe[1]![1]) / 2];
+    const outward = contains([...rings], middle) ? -1 : 1;
+    const path = { points: points.map(boardPointToTable), closed };
+    bandAlong(bands, path, raised, outward * RIM_GAP, outward * (RIM_GAP + RIM_WIDTH));
+  }
+  return { rest: positionsGeometry(bands.rest), raised: positionsGeometry(bands.raised) };
+}
+
 type Face = { id: string; center: Point; rings: Point[][]; polar: boolean };
 
 /* The Polar Sink's own border, edge by edge, so an outline's stretches along it draw above the sink's paint. */
@@ -118,18 +141,23 @@ function polarEdges(faces: readonly Face[]) {
 /** An outline-only tint: one double line round its territories taken together, the borders between them and the board's rim left out. */
 function TintOutline({ tint, faces }: Readonly<{ tint: TerritoryTint; faces: readonly Face[] }>) {
   const key = tint.territories.join(' ');
+  const rim = tint.rim === true;
   const geometries = useMemo(() => {
     const ids = new Set(key.split(' '));
     const tinted = faces.filter((face) => ids.has(face.id));
-    const { rest, raised } = doubleLineGeometries(
-      offRim(outerSegments(tinted.map((face) => face.rings)), CENTER, RADIUS),
-      polarEdges(tinted)
-    );
+    const segments = offRim(outerSegments(tinted.map((face) => face.rings)), CENTER, RADIUS);
+    const { rest, raised } = rim
+      ? rimGeometries(
+          segments,
+          polarEdges(tinted),
+          tinted.flatMap((face) => face.rings)
+        )
+      : doubleLineGeometries(segments, polarEdges(tinted));
     return [
       { geometry: rest, order: TINT_ORDER.line },
       { geometry: raised, order: POLAR_TINT_ORDER.line },
     ];
-  }, [faces, key]);
+  }, [faces, key, rim]);
   useEffect(
     () => () => {
       for (const { geometry } of geometries) {
