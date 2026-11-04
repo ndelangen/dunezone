@@ -256,7 +256,9 @@ export const PlaybackKeepsLivePhaseSeparate = meta.story({
     });
 
     await openTab(page, 'Phase');
-    session.transport.deliver(session.transport.view({ ...initialSnapshot(), phase: 6, revision: 100 }));
+    /* The live table an observer receives holds no seat's hand or reserve. */
+    const { hand: _hand, handOrder: _order, bank: _bank, ...live } = initialSnapshot();
+    session.transport.deliver(session.transport.view({ ...live, phase: 6, revision: 100 }));
     await expect(page.getByRole('region', { name: TABLE_PHASES[0].label })).toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Return to live' }));
     await waitFor(() => expectHeaderPhase(canvasElement, 6), { timeout: 30_000 });
