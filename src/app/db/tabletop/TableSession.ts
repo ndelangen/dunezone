@@ -1143,9 +1143,9 @@ export class TableSession {
     this.unanswered.delete(id);
     if (this.spiceBlowInFlight === id) {
       this.spiceBlowInFlight = null;
-      /* After this answer's frame is applied, so the next card finds its spot among the spice just placed. */
-      queueMicrotask(() => this.nextSpiceBlow());
     }
+    /* Any answer frees room under the unanswered limit; after its frame is applied, so the next card finds its spot among the spice just placed. */
+    this.resumeSpiceBlow();
     if (viewFollows && this.sentTurns.has(id)) {
       this.doneTurns.add(id);
     } else {
@@ -1384,6 +1384,8 @@ export class TableSession {
   }
   private clearActivity() {
     this.battle.clear();
+    this.spiceBlowQueue = [];
+    this.spiceBlowInFlight = null;
     this.seatCommandInFlight = null;
     this.traitorGatherInFlight = null;
     this.pages.closeSpiceHistory();

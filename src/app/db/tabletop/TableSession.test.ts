@@ -2514,12 +2514,9 @@ describe('unanswered commands', () => {
 });
 
 describe('the Spice blow command', () => {
-  test('places every face-up spice card one after another, so none is dropped past the unanswered limit', async () => {
-    const client = await connected();
-    const snapshot = initialSnapshot();
-    const loose = snapshot.table.pieces.find((piece) => piece.id === 'treachery-card-loose')!;
-    const territories = ['broken_land', 'arsunt', 'hagga_basin', 'red_chasm', 'funeral_plain'];
-    const cards: TablePiece[] = territories.map((territory, index) => ({
+  const spiceCard = (territory: string, index: number): TablePiece => {
+    const loose = initialSnapshot().table.pieces.find((piece) => piece.id === 'treachery-card-loose')!;
+    return {
       ...loose,
       id: `spice-card-${index}`,
       inventory: undefined,
@@ -2536,23 +2533,46 @@ describe('the Spice blow command', () => {
           },
         },
       ],
-    }));
-    socket().deliver(
-      view({
-        snapshot: {
-          ...snapshot,
-          stage: 'play',
-          table: { ...snapshot.table, pieces: [...snapshot.table.pieces, ...cards] },
-        },
-      })
+    };
+  };
+  /* A game in play with one face-up spice card for each territory. */
+  const playedWith = (territories: readonly string[]): GameSnapshot => {
+    const snapshot = initialSnapshot();
+    return {
+      ...snapshot,
+      stage: 'play',
+      table: { ...snapshot.table, pieces: [...snapshot.table.pieces, ...territories.map(spiceCard)] },
+    };
+  };
+  const blows = () =>
+    socket().sent.flatMap((message) =>
+      message.type === 'command' && message.action.kind === 'spice-blow' ? [message] : []
     );
-    const blows = () =>
-      socket().sent.flatMap((message) =>
-        message.type === 'command' && message.action.kind === 'spice-blow' ? [message] : []
-      );
+  const rejectOthers = () => {
+    for (const message of socket().sent.slice()) {
+      if (message.type === 'command' && message.action.kind !== 'spice-blow') {
+        socket().deliver({ type: 'rejected', requestId: message.commandId, message: 'The table changed.' });
+      }
+    }
+  };
+  /* Four storm moves fill the unanswered limit, so Spice blow holds its first card back. */
+  const heldBack = async () => {
+    const client = await connected();
+    socket().deliver(view({ snapshot: playedWith(['broken_land', 'arsunt']) }));
+    for (let press = 0; press < 4; press++) {
+      client.moveStormBy(1);
+    }
+    table(client).spiceBlowControls!.placeAll();
+    expect(blows()).toHaveLength(0);
+  };
+
+  test('places every face-up spice card one after another, so none is dropped past the unanswered limit', async () => {
+    const client = await connected();
+    const territories = ['broken_land', 'arsunt', 'hagga_basin', 'red_chasm', 'funeral_plain'];
+    socket().deliver(view({ snapshot: playedWith(territories) }));
     table(client).spiceBlowControls!.placeAll();
     expect(blows()).toHaveLength(1);
-    for (let answered = 1; answered < cards.length; answered++) {
+    for (let answered = 1; answered < territories.length; answered++) {
       socket().deliver({ type: 'rejected', requestId: blows().at(-1)!.commandId, message: 'The table changed.' });
       await vi.advanceTimersByTimeAsync(0);
       expect(blows()).toHaveLength(answered + 1);
@@ -2560,52 +2580,21 @@ describe('the Spice blow command', () => {
     expect(blows().map(({ action }) => ('territory' in action ? action.territory : null))).toEqual(territories);
   });
 
-  test('a card the table cannot take yet waits for the next view rather than being dropped', async () => {
-    const client = await connected();
-    const snapshot = initialSnapshot();
-    const loose = snapshot.table.pieces.find((piece) => piece.id === 'treachery-card-loose')!;
-    const card = (index: number, territory: string): TablePiece => ({
-      ...loose,
-      id: `spice-card-${index}`,
-      inventory: undefined,
-      battleOverlay: undefined,
-      position: [5, 0.005, index],
-      items: [
-        {
-          id: `spice-card-${index}-item`,
-          faceUp: true,
-          artwork: {
-            back: 'https://dune.zone/spice.jpg',
-            type: 'card-spice',
-            spiceBlow: { amount: 2, territories: [territory] },
-          },
-        },
-      ],
-    });
-    const played = {
-      ...snapshot,
-      stage: 'play' as const,
-      table: { ...snapshot.table, pieces: [...snapshot.table.pieces, card(0, 'broken_land'), card(1, 'arsunt')] },
-    };
-    socket().deliver(view({ snapshot: played }));
-    const blows = () =>
-      socket().sent.flatMap((message) =>
-        message.type === 'command' && message.action.kind === 'spice-blow' ? [message] : []
-      );
-    /* Four storm moves fill the unanswered limit, so the first card cannot go out yet. */
-    for (let press = 0; press < 4; press++) {
-      client.moveStormBy(1);
-    }
-    table(client).spiceBlowControls!.placeAll();
-    expect(blows()).toHaveLength(0);
-    for (const message of socket().sent.slice()) {
-      if (message.type === 'command' && message.action.kind !== 'spice-blow') {
-        socket().deliver({ type: 'rejected', requestId: message.commandId, message: 'The table changed.' });
-      }
-    }
-    socket().deliver(view({ snapshot: { ...played, revision: played.revision + 1 } }));
+  test('a card held back by the unanswered limit goes out once any other command is answered', async () => {
+    await heldBack();
+    rejectOthers();
     await vi.advanceTimersByTimeAsync(0);
     expect(blows()).toHaveLength(1);
+  });
+
+  test('a seat change drops the cards still waiting, so none goes out under the new seat', async () => {
+    await heldBack();
+    socket().deliver(
+      view({ viewer: { ...viewer, viewerSeat: 'atreides' }, snapshot: playedWith(['broken_land', 'arsunt']) })
+    );
+    rejectOthers();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(blows()).toHaveLength(0);
   });
 });
 
