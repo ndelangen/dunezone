@@ -96,12 +96,12 @@ function spiceBlowAction(
 function deckActions(
   piece: TablePiece,
   deckControls: MenuControls['deckControls'],
-  first: RadialAction
+  first: readonly RadialAction[]
 ): RadialAction[] {
   const count = piece.items.length;
   const available = !!deckControls && !piece.locked && !piece.inventory && count > 0;
   return [
-    first,
+    ...first,
     {
       key: 'draw',
       label: 'Draw a card',
@@ -186,7 +186,9 @@ function ownActions(piece: TablePiece, controls: MenuControls, onClose: () => vo
   const peek = peekAction(piece, controls.peekControls, onClose);
   if (piece.kind === 'card') {
     const blow = controls.spiceBlowControls && spiceBlowAction(piece, controls.spiceBlowControls, onClose);
-    return deckActions(piece, controls.deckControls, blow ?? peek);
+    /* A spice card topping a pile keeps the pile's peek beside its placing; a lone card has nothing hidden to peek at. */
+    const first = blow ? (piece.items.length > 1 ? [blow, peek] : [blow]) : [peek];
+    return deckActions(piece, controls.deckControls, first);
   }
   return peekableToken(piece) ? [peek] : [];
 }

@@ -12,6 +12,35 @@ import { revealedSpiceBlow } from './spiceBlowPlacement';
 import { restingPositionAt } from './tableGeometry';
 import { nearestCollisionFreePosition } from './tablePhysics';
 
+type TablePoint = readonly [number, number];
+type Landmarks = Readonly<{ name: string; sticker: readonly TablePoint[]; centre: TablePoint }>;
+
+/* Each board's territories, where the table lights their spice sticker and their middle, worked out once: the sticker search samples the whole territory. */
+const landmarksByBoard = new WeakMap<Board, Map<string, Landmarks | null>>();
+
+function landmarks(board: Board, territory: string): Landmarks | null {
+  let byTerritory = landmarksByBoard.get(board);
+  if (!byTerritory) {
+    byTerritory = new Map();
+    landmarksByBoard.set(board, byTerritory);
+  }
+  if (!byTerritory.has(territory)) {
+    const found = boardTerritory(board, territory);
+    const rings = found?.rings.map((ring) => ring.map(boardPointToTable));
+    byTerritory.set(
+      territory,
+      found && rings
+        ? {
+            name: found.name,
+            sticker: placeStickers(rings, 1, TABLE_STICKER_LARGEST).at,
+            centre: boardPointToTable(found.centre),
+          }
+        : null
+    );
+  }
+  return byTerritory.get(territory) ?? null;
+}
+
 /* The stack the card's spice would make, for finding room for it. */
 function spiceFootprint(amount: number): TablePiece {
   const stack = createSpiceStack(0, 1);
@@ -25,61 +54,84 @@ function spiceFootprint(amount: number): TablePiece {
  * The spots to try in a territory: first the spice sticker the table lights it with, so the spice covers the marker that asked for it;
  * then where the card's own map put its tokens, when it was drawn on this board; then the territory's middle.
  */
-function startingPoints(board: Board, boardId: string | undefined, blow: SpiceBlow, territory: string) {
-  const found = boardTerritory(board, territory);
-  if (!found) {
-    return null;
-  }
+function startingPoints(
+  board: Board,
+  boardId: string | undefined,
+  blow: SpiceBlow,
+  territory: string,
+  marks: Landmarks
+) {
   const own = blow.boardId && blow.boardId === boardId ? (blow.spots ?? []) : [];
-  const sticker = placeStickers(
-    found.rings.map((ring) => ring.map(boardPointToTable)),
-    1,
-    TABLE_STICKER_LARGEST
-  ).at;
-  const points = [...sticker, ...own.map(boardPointToTable), boardPointToTable(found.centre)].filter(
+  return [...marks.sticker, ...own.map(boardPointToTable), marks.centre].filter(
     ([x, z]) => tableTerritoryAt(board, x, z)?.id === territory
   );
-  return { name: found.name, points };
+}
+
+/* Spice already lying in the territory, which takes the card's spice onto its pile so a blown territory keeps one stack; a held or carried pile is not one. */
+function pileIn(board: Board, pieces: readonly TablePiece[], territory: string) {
+  return pieces.find(
+    (candidate) =>
+      isSpicePiece(candidate) &&
+      !candidate.locked &&
+      tableTerritoryAt(board, candidate.position[0], candidate.position[2])?.id === territory
+  );
+}
+
+/* The free spot nearest one of the starting points that keeps the whole stack's centre inside the territory. */
+function freeSpotIn(
+  board: Board,
+  pieces: readonly TablePiece[],
+  footprint: TablePiece,
+  territory: string,
+  points: readonly TablePoint[]
+): Vector3Tuple | null {
+  const inside = ([px, , pz]: Vector3Tuple) => tableTerritoryAt(board, px, pz)?.id === territory;
+  for (const [x, z] of points) {
+    const position = nearestCollisionFreePosition(
+      footprint,
+      restingPositionAt([x, 0, z], footprint),
+      [...pieces],
+      inside
+    );
+    if (position) {
+      return position;
+    }
+  }
+  return null;
 }
 
 /**
- * Where a revealed spice card on top of this piece would set its spice down: the first territory it names that this board has, onto spice already lying there, or else at a free spot that stays inside that territory.
+ * Where a revealed spice card on top of this piece would set its spice down, and how much: the first territory it names that this board has, onto spice already lying there, or else at a free spot that stays inside that territory.
  * Null when the piece shows no spice card, or no territory it names has room.
  */
 export function spiceBlowSpot(
   snapshot: Pick<GameSnapshot, 'board'>,
   pieces: readonly TablePiece[],
   piece: TablePiece
-): SpiceBlowPlacement | null {
-  const revealed = revealedSpiceBlow(piece);
-  if (!revealed) {
+): (SpiceBlowPlacement & { amount: number }) | null {
+  const blow = revealedSpiceBlow(piece)?.blow;
+  if (!blow) {
     return null;
   }
-  const { blow } = revealed;
   const board = snapshot.board?.definition ?? retainedArrakisBoard();
   const footprint = spiceFootprint(blow.amount);
   for (const territory of blow.territories) {
-    const start = startingPoints(board, snapshot.board?.asset.id, blow, territory);
-    /* Spice already in the territory takes the card's spice onto its pile, so a blown territory keeps one stack. */
-    const lying = pieces.find(
-      (candidate) =>
-        isSpicePiece(candidate) &&
-        !candidate.locked &&
-        tableTerritoryAt(board, candidate.position[0], candidate.position[2])?.id === territory
-    );
-    if (start && lying) {
-      return { pieceId: piece.id, territory, name: start.name, position: [...lying.position] };
+    const marks = landmarks(board, territory);
+    if (!marks) {
+      continue;
     }
-    for (const [x, z] of start?.points ?? []) {
-      const position = nearestCollisionFreePosition(
+    const lying = pileIn(board, pieces, territory);
+    const position =
+      lying?.position ??
+      freeSpotIn(
+        board,
+        pieces,
         footprint,
-        restingPositionAt([x, 0, z], footprint),
-        [...pieces],
-        ([px, , pz]: Vector3Tuple) => tableTerritoryAt(board, px, pz)?.id === territory
+        territory,
+        startingPoints(board, snapshot.board?.asset.id, blow, territory, marks)
       );
-      if (position) {
-        return { pieceId: piece.id, territory, name: start!.name, position };
-      }
+    if (position) {
+      return { pieceId: piece.id, territory, name: marks.name, position: [...position], amount: blow.amount };
     }
   }
   return null;

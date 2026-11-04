@@ -27,7 +27,7 @@ import { isRemovalAction } from '@shared/play/removal';
 import { isReviewAction, reviewRunning } from '@shared/play/review';
 import { CARRY_FLIPS_LIMIT, SPECTATOR_SEAT, tablePositionSchema } from '@shared/play/schema';
 import { isSpicePiece } from '@shared/play/spice';
-import { revealedSpiceBlow, revealedSpiceBlows } from '@shared/play/spiceBlowPlacement';
+import { revealedSpiceBlows } from '@shared/play/spiceBlowPlacement';
 import { spiceBlowSpot } from '@shared/play/spiceBlowSpot';
 import type { SpiceGift, SpiceGiftChoice } from '@shared/play/spiceReserve';
 import { isSwapAction } from '@shared/play/swapping';
@@ -718,10 +718,7 @@ export class TableSession {
     const canHandleTable = this.canHandle();
     return {
       spiceReserveControls: canHandleTable && displayed.bank ? this.spiceReserveControls : undefined,
-      spiceBlowControls:
-        canHandleTable && displayed.stage === 'play' && this.subscription.supportsCommand('spice-blow')
-          ? this.spiceBlowControls
-          : undefined,
+      spiceBlowControls: this.spiceBlowControlsFor(canHandleTable, displayed),
       deckControls:
         canHandleTable && this.subscription.supportsCommand('deck-draw') ? this.deckControls(displayed) : undefined,
       deleteControls: this.deleteControls(canHandleTable),
@@ -767,15 +764,22 @@ export class TableSession {
       }
     },
   };
+  /* Placing spice from a spice card is for whoever handles the table, once play has begun. */
+  private spiceBlowControlsFor(canHandleTable: boolean, displayed: GameSnapshot) {
+    const open = canHandleTable && displayed.stage === 'play' && this.subscription.supportsCommand('spice-blow');
+    return open ? this.spiceBlowControls : undefined;
+  }
   private spiceBlowPlacement(pieceId: string) {
     const table = this.table;
     const piece = table?.state.pieces.find((entry) => entry.id === pieceId);
     if (!table || !piece || table.reservedPieceIds.has(pieceId)) {
       return null;
     }
-    const spot = spiceBlowSpot(table.snapshot, table.state.pieces, piece);
-    const amount = revealedSpiceBlow(piece)?.blow.amount;
-    return spot && amount ? { ...spot, amount } : null;
+    /* A pile someone is carrying is no pile to add to, so it counts as held in place. */
+    const pieces = table.state.pieces.map((entry) =>
+      table.reservedPieceIds.has(entry.id) ? { ...entry, locked: true } : entry
+    );
+    return spiceBlowSpot(table.snapshot, pieces, piece);
   }
   private readonly peekControls: NonNullable<TableProjection['peekControls']> = {
     peek: (pieceId) => {

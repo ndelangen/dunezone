@@ -5,7 +5,7 @@ import { isSpicePiece } from './spice';
 import { createSpiceStack } from './spiceBank';
 import type { SpiceBlow } from './spiceBlow';
 import { BOARD_RADIUS, planarDistance, restingPositionAt } from './tableGeometry';
-import { nearestCollisionFreePosition } from './tablePhysics';
+import { isCollisionFreePosition } from './tablePhysics';
 import { accepted } from './tableState';
 
 export type SpiceBlowPlacement = Readonly<{
@@ -45,7 +45,7 @@ function spiceAtSpot(state: TableState, position: Vector3Tuple) {
 }
 
 /*
- * The card's spice, added to the spice the page found in the territory, or set down as one stack where the page found room in it.
+ * The card's spice, added to the spice the page found in the territory, or set down as one stack exactly where the page found room in it.
  * A card may place its spice as often as the table asks, since a ruleset can blow the same card more than once.
  * The table holds no territory shapes, so the page names the spot and the territory; the card decides how much and which territories it may be.
  */
@@ -79,10 +79,10 @@ export function placeSpiceBlowInState(
     return accepted({ ...state, pieces, selectedPieceId: existing.id }, 'spice.blow', message);
   }
   const spice: TablePiece = { ...createSpiceStack(state.nextEventNumber, 1), items };
-  const requested = restingPositionAt([placement.position[0], 0, placement.position[2]], spice);
-  const position = nearestCollisionFreePosition(spice, requested, state.pieces);
-  if (!position) {
-    throw new GameRejection(`Make room in ${placement.name} for the spice.`);
+  const position = restingPositionAt([placement.position[0], 0, placement.position[2]], spice);
+  /* The table cannot tell where the territory ends, so it never moves the spice off the page's spot: a spot taken since is refused, and placing again finds a new one. */
+  if (!isCollisionFreePosition(spice, position, state.pieces)) {
+    throw new GameRejection(`Something moved onto the spot in ${placement.name}; place the spice again.`);
   }
   const placed = { ...spice, position, zoneId: nearestZone(position)?.id ?? null };
   return accepted({ ...state, pieces: [...state.pieces, placed], selectedPieceId: placed.id }, 'spice.blow', message);

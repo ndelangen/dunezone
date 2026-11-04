@@ -330,7 +330,7 @@ export const playUiColors = {
   pingEdgeChip: coreColors.ground,
   pingEdgeRim: coreColors.text,
   spiceHover: coreColors.highlight,
-  /* The territory a revealed spice card names, lit during Spice Blow until its spice is placed. */
+  /* The territory a face-up spice card names, lit for as long as the card lies face up on top of its pile. */
   spiceBlowTerritory: coreColors.cautionFill,
   boardDivider: coreColors.ground,
   stationGround: coreColors.highlight,

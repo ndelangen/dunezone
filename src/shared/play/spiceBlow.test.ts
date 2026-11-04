@@ -69,6 +69,22 @@ describe('spice blow capture', () => {
     expect(brokenLand).toEqual({ amount: 8, territories: ['broken_land'] });
   });
 
+  test('a linked board that marks no territory falls back to the highlights, and a token off the frame is left out', () => {
+    const blow = spiceBlowOf('card-spice', {
+      highlights: ['arsunt'],
+      amount: 6,
+      board: {
+        asset_id: 'arrakis-board',
+        tints: [{ territories: ['arsunt'], outline: true }],
+        tokens: [
+          { x: 489.2, y: 300 },
+          { x: 150, y: 370 },
+        ],
+      },
+    });
+    expect(blow).toEqual({ amount: 6, territories: ['arsunt'], spots: [[150, 370]], boardId: 'arrakis-board' });
+  });
+
   test('a card that names no territory, as Shai-Hulud, places nothing', () => {
     expect(spiceBlowOf('card-spice', { highlights: [], amount: 1 })).toBeUndefined();
     expect(spiceBlowOf('card-treachery', { highlights: ['broken-land'], amount: 8 })).toBeUndefined();
@@ -138,6 +154,34 @@ describe('placing a revealed spice card', () => {
         1
       )
     ).toThrow(GameRejection);
+  });
+
+  test('a spot taken since the page chose it is refused, never moved past the territory', () => {
+    const state = tableWithCard();
+    const spot = spiceBlowSpot({}, state.pieces, state.pieces.at(-1)!)!;
+    const blocker = state.pieces.find((piece) => piece.kind === 'force' && !piece.inventory && !piece.locked)!;
+    const taken: TableState = {
+      ...state,
+      pieces: state.pieces.map((piece) =>
+        piece === blocker ? { ...piece, position: [spot.position[0], piece.position[1], spot.position[2]] } : piece
+      ),
+    };
+    expect(() => applyPieceAction(taken, { kind: 'spice-blow', ...spot }, 1, 'Alice', STANDARD_PHASES)).toThrow(
+      /place the spice again/
+    );
+  });
+
+  test('a pile someone is carrying is no pile to join', () => {
+    const state = place(tableWithCard());
+    const carried = state.pieces.map((piece) => (isSpicePiece(piece) ? { ...piece, locked: true } : piece));
+    const spot = spiceBlowSpot(
+      {},
+      carried,
+      carried.find((piece) => piece.id === 'blow-card')!
+    )!;
+    const pile = carried.find(isSpicePiece)!;
+    expect(spot.position).not.toEqual(pile.position);
+    expect(tableTerritoryAt(retainedArrakisBoard(), spot.position[0], spot.position[2])?.id).toBe('broken_land');
   });
 
   test('a face-down card or another territory is refused', () => {
