@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'vite-plus/test';
 
 import { retainedArrakisBoard } from '../boards/geometry';
-import { boardTerritory, tableTerritoryAt } from '../boards/tableTerritories';
+import { placeStickers, TABLE_STICKER_LARGEST } from '../boards/stickerPlacement';
+import { boardPointToTable, boardTerritory, tableTerritoryAt } from '../boards/tableTerritories';
 import { applyPieceAction } from './commands';
 import { freshTableState } from './model';
 import type { TableItem, TablePiece, TableState } from './model';
@@ -97,6 +98,15 @@ describe('placing a revealed spice card', () => {
     expect(spot.name).toBe(boardTerritory(retainedArrakisBoard(), 'broken_land')!.name);
     expect(tableTerritoryAt(retainedArrakisBoard(), spot.position[0], spot.position[2])?.id).toBe('broken_land');
     expect(revealedSpiceBlows(state.pieces)).toEqual([{ pieceId: 'blow-card', blow: brokenLand }]);
+    /* The spice lands on the spice sticker the table lights Broken Land with. */
+    const { rings } = boardTerritory(retainedArrakisBoard(), 'broken_land')!;
+    const [sticker] = placeStickers(
+      rings.map((ring) => ring.map(boardPointToTable)),
+      1,
+      TABLE_STICKER_LARGEST
+    ).at;
+    expect(spot.position[0]).toBeCloseTo(sticker![0], 2);
+    expect(spot.position[2]).toBeCloseTo(sticker![1], 2);
 
     const next = place(state);
     const added = next.pieces.filter(isSpicePiece);

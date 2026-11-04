@@ -3,7 +3,7 @@
 import { CENTER, RADIUS, retainedArrakisBoard } from '@shared/boards/geometry';
 import type { Board, Point } from '@shared/boards/schema';
 import { propertyId } from '@shared/boards/schema';
-import { placeStickers } from '@shared/boards/stickerPlacement';
+import { placeStickers, TABLE_STICKER_LARGEST } from '@shared/boards/stickerPlacement';
 import { boardPointToTable } from '@shared/boards/tableTerritories';
 import { boardTerritories } from '@shared/boards/territories';
 import type { OutlinePath } from '@shared/boards/tintOutline';
@@ -147,8 +147,7 @@ function TintOutline({ tint, faces }: Readonly<{ tint: TerritoryTint; faces: rea
   ));
 }
 
-/* The largest a sticker gets, in table units, and the smallest it shrinks to in a cramped territory. */
-const STICKER_LARGEST = 0.3;
+/* The smallest a sticker shrinks to in a cramped territory. */
 const STICKER_SMALLEST = 0.14;
 /* The board's glyph colours: near-black ink inside a pale outline. */
 const STICKER_INK = playUiColors.annotationInk;
@@ -198,7 +197,7 @@ function stickerPlacement(rings: Point[][], count: number) {
     placement = placeStickers(
       rings.map((ring) => ring.map(boardPointToTable)),
       count,
-      STICKER_LARGEST
+      TABLE_STICKER_LARGEST
     );
     byCount.set(count, placement);
   }

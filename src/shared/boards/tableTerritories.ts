@@ -25,8 +25,8 @@ export function tableTerritoryAt(board: Board, x: number, z: number) {
   return property && { id: propertyId(property), name: property.name };
 }
 
-/** A territory's name and a point well inside it, in board drawing units; undefined when the board has no such territory. */
+/** A territory's name, a point well inside it and its outline, in board drawing units; undefined when the board has no such territory. */
 export function boardTerritory(board: Board, territoryId: string) {
   const face = boardTerritories(board).find((entry) => propertyId(board.properties[entry.key]) === territoryId);
-  return face && { id: territoryId, name: board.properties[face.key].name, centre: face.center };
+  return face && { id: territoryId, name: board.properties[face.key].name, centre: face.center, rings: face.rings };
 }

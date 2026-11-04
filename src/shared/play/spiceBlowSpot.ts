@@ -1,5 +1,6 @@
 import { retainedArrakisBoard } from '../boards/geometry';
 import type { Board } from '../boards/schema';
+import { placeStickers, TABLE_STICKER_LARGEST } from '../boards/stickerPlacement';
 import { boardPointToTable, boardTerritory, tableTerritoryAt } from '../boards/tableTerritories';
 import type { TablePiece, Vector3Tuple } from './model';
 import type { GameSnapshot } from './protocol';
@@ -20,14 +21,22 @@ function spiceFootprint(amount: number): TablePiece {
   };
 }
 
-/* The spots to try in a territory: where the card's own map put its tokens, when it was drawn on this board, then the territory's middle. */
+/*
+ * The spots to try in a territory: first the spice sticker the table lights it with, so the spice covers the marker that asked for it;
+ * then where the card's own map put its tokens, when it was drawn on this board; then the territory's middle.
+ */
 function startingPoints(board: Board, boardId: string | undefined, blow: SpiceBlow, territory: string) {
   const found = boardTerritory(board, territory);
   if (!found) {
     return null;
   }
   const own = blow.boardId && blow.boardId === boardId ? (blow.spots ?? []) : [];
-  const points = [...own.map(boardPointToTable), boardPointToTable(found.centre)].filter(
+  const sticker = placeStickers(
+    found.rings.map((ring) => ring.map(boardPointToTable)),
+    1,
+    TABLE_STICKER_LARGEST
+  ).at;
+  const points = [...sticker, ...own.map(boardPointToTable), boardPointToTable(found.centre)].filter(
     ([x, z]) => tableTerritoryAt(board, x, z)?.id === territory
   );
   return { name: found.name, points };
