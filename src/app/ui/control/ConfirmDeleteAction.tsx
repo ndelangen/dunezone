@@ -28,6 +28,8 @@ export interface ConfirmDeleteActionProps {
   disabled?: boolean;
   /** The trigger's size: `lg` for toolbars, smaller where the hold sits in a dense row among same-sized neighbours, or a length that matches neighbours that are not kit buttons, as in a window's title bar. */
   size?: 'sm' | 'md' | 'lg' | `${number}rem`;
+  /** Where the trigger sits among buttons the kit does not draw, the class that matches their corners. */
+  className?: string;
 }
 
 /** What the countdown announces per verb: "deletion in 4..", "removal in 4..", "sign-out in 4..". */
@@ -50,6 +52,7 @@ export function ConfirmDeleteAction({
   icon,
   disabled = false,
   size = 'lg',
+  className,
 }: ConfirmDeleteActionProps) {
   const { holding, remaining, submitted, handlers } = useHoldToConfirm({ pending, onConfirm });
   return (
@@ -60,6 +63,7 @@ export function ConfirmDeleteAction({
       emphasis="standard"
       intent="negative"
       size={size}
+      className={className}
       disabled={disabled}
       loading={pending || submitted}
       {...handlers}
