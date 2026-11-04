@@ -86,7 +86,7 @@ export const VisualSearch = meta.story({
   args: { path: '/media/game/decals?q=crossed+knives' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByRole('article', { name: 'Knifes' })).resolves.toBeVisible();
+    await expect(page.findByRole('article', { name: 'Knives' })).resolves.toBeVisible();
     await expect(page.queryByRole('article', { name: 'Fremen' })).toBeNull();
     await expect(page.queryByRole('button', { name: 'Organize collections' })).toBeNull();
     await expect(page.queryByRole('link', { name: 'Link to this view' })).toBeNull();
