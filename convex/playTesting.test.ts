@@ -87,6 +87,23 @@ describe('isolated Play test controls', () => {
     expect(new Set(seeded.slugs).size).toBe(2);
   });
 
+  test('seeds the named GF9 base factions in place of the synthetic pair, each draftable with its real leaders', async () => {
+    const { t } = await fixture();
+    const { rulesetId } = await t.mutation(internal.playTesting.seedRealGameCatalogue, {
+      gf9Factions: ['fremen', 'emperor'],
+    });
+    const { factions: draftable } = await t.query(api.playCatalogue.draftableFactions, { rulesetId });
+    expect(draftable.map((faction) => faction.name).sort()).toEqual(['GF9 Emperor', 'GF9 Fremen']);
+    for (const faction of draftable) {
+      expect(faction).toMatchObject({ linked: true, published: true });
+      const definition = await t.query(api.playCatalogue.factionDefinition, { factionId: faction.id });
+      expect(definition?.data?.leaders.length).toBeGreaterThan(0);
+    }
+    await expect(t.mutation(internal.playTesting.seedRealGameCatalogue, { gf9Factions: ['ixians'] })).rejects.toThrow(
+      'No GF9 base faction called ixians'
+    );
+  });
+
   test('fills each required deck with complete, published cards of its own type', async () => {
     const { t } = await fixture();
     const { rulesetId, publications } = await t.mutation(internal.playTesting.seedRealGameCatalogue, {});

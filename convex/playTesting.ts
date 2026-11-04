@@ -1,5 +1,6 @@
 import { v } from 'convex/values';
 
+import gf9BaseFactions from '../content/gf9/base-factions.json';
 import type { PublicationAssetType } from '../src/shared/asset-publishing/publicationTargets';
 import { publicationFaceId, publishedR2Key, publishedHref } from '../src/shared/asset-publishing/publicationTargets';
 import { publishingCustomDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
@@ -7,6 +8,7 @@ import { publishingSpiceCard } from '../src/shared/assets/fixtures/publishingSpi
 import { publishingTokenFace } from '../src/shared/assets/fixtures/publishingTokenFace';
 import { publishingTreacheryCard } from '../src/shared/assets/fixtures/publishingTreacheryCard';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
+import { IdentifiedFactionStoredSchema } from '../src/shared/factions/schema';
 import { ensureFactionTroopIds } from '../src/shared/factions/troopIdentity';
 import { PLAY_FIXTURE_KEY } from '../src/shared/play/admission';
 import { arrakisBoardCapture } from '../src/shared/play/fixtures/board';
@@ -251,10 +253,26 @@ const SYNTHETIC_FACTIONS = [
  * The Harkonnen also supply an Extra and declare a prediction and an instruction phase, so real games carry custom content.
  * Returns the publications whose local bytes the runner installs.
  */
+/**
+ * The published GF9 base factions by short name (`fremen`, `emperor`, ...), without their extras, for a local game against a bot.
+ * Their leaders, troops and rules text are the real ones;
+ * the ruleset's decks stay synthetic.
+ */
+function gf9Faction(shortName: string) {
+  const wanted = shortName.trim().toLowerCase();
+  const source = gf9BaseFactions.find((faction) => faction.name.toLowerCase().replace(/^gf9 /u, '') === wanted);
+  if (!source) {
+    throw new Error(`No GF9 base faction called ${shortName}.`);
+  }
+  const data = IdentifiedFactionStoredSchema.parse({ ...source, extras: [], extraPhases: [] });
+  return { slug: `gf9-${wanted.replace(/[^a-z0-9]+/gu, '-')}`, data };
+}
+
 export const seedRealGameCatalogue = internalMutation({
-  args: {},
+  /* `gf9Factions` swaps the two synthetic factions for these GF9 base factions, for `verify-hosted-play-stack --serve`. */
+  args: { gf9Factions: v.optional(v.array(v.string())) },
   returns: v.object({ rulesetId: v.id('rulesets'), publications: v.array(publicationValidator) }),
-  handler: async (ctx) => {
+  handler: async (ctx, { gf9Factions }) => {
     requireSyntheticBackend();
     const owner = await catalogueOwner(ctx);
     const stamp = new Date().toISOString();
@@ -311,7 +329,13 @@ export const seedRealGameCatalogue = internalMutation({
       data: { name: SYNTHETIC_EXTRA_NAME, about: '', front: publishingTokenFace, back: { mode: 'same' } },
     });
     publications.push(await publish(ctx, 'token-disc', extraId, 'front'));
-    for (const faction of SYNTHETIC_FACTIONS) {
+    for (const { slug, data } of (gf9Factions ?? []).map(gf9Faction)) {
+      const factionId = await ctx.db.insert('factions', { ...row, slug: `${slug}-${suffix}`, data });
+      await ctx.db.insert('ruleset_factions', { ruleset_id: rulesetId, faction_id: factionId, position: Date.now() });
+      publications.push(await publish(ctx, 'faction-token', factionId, 'front'));
+      publications.push(await publish(ctx, 'faction-token', publicationFaceId(factionId, 'back'), 'back'));
+    }
+    for (const faction of gf9Factions?.length ? [] : SYNTHETIC_FACTIONS) {
       const factionId = await ctx.db.insert('factions', {
         ...row,
         slug: `${faction.slug}-${suffix}`,

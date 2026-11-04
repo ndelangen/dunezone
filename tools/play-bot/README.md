@@ -27,10 +27,12 @@ The transcript and the bot's notes land in `tools/play-bot/out/`.
 
 ## Play against it in the browser
 
-1. `bun run play:bot:stack` boots the isolated local Play stack (the one the hosted browser flows use), seeds the test
-   ruleset, makes games start at Turn 1, and creates two accounts. It prints where to sign in and the password.
+1. `bun run play:bot:stack -- --factions fremen,emperor` boots the isolated local Play stack (the one the hosted browser flows use), seeds the test
+   ruleset with those GF9 base factions (real leaders, troops and rules text; synthetic decks), makes games start at Turn 1,
+   and creates two accounts. It prints where to sign in and the password. The game deals factions at random: if you get
+   the one you meant for the bot, create another game.
 2. Sign in as `player@example.invalid` and create a 2-player game on the seeded ruleset.
-3. `bun run play:bot -- --game <your game page URL> --brain claude` (or `--brain codex`). Approve the bot's seat request.
+3. `bun run play:bot -- --game <your game page URL> --brain claude --want fremen` (or `--brain codex`). Approve the bot's seat request.
 4. Pick up the bot's faction token when you want it to act, or talk to it. Tell it "that's not legal" and why, and it takes
    the move back.
 

@@ -45,6 +45,8 @@ const { values } = parseArgs({
     'skip-generate': { type: 'boolean', default: false },
     /* Boots the stack for a person to play on (and a bot to join, see tools/play-bot) and keeps it up until Ctrl-C; runs no verifier. */
     serve: { type: 'boolean', default: false },
+    /* With --serve: GF9 base factions for the seeded ruleset in place of the synthetic pair, such as `fremen,emperor`. */
+    factions: { type: 'string' },
   },
 });
 const loadProfile = runnerProfiles.find((candidate) => candidate === values['load-profile']);
@@ -387,12 +389,12 @@ async function serveForPlay({
   adminKey,
 }: {
   convex: (args: string[]) => string;
-  seedCatalogue: (withPublicCatalogue: boolean) => Promise<string>;
+  seedCatalogue: (withPublicCatalogue: boolean, gf9Factions?: string[]) => Promise<string>;
   origin: string;
   backendUrl: string;
   adminKey: string;
 }) {
-  const rulesetId = await seedCatalogue(true);
+  const rulesetId = await seedCatalogue(true, values.factions?.split(',').filter(Boolean));
   convex(['env', 'set', 'PLAY_TEST_PHASE_COOLDOWN_MS', '0']);
   convex(['env', 'set', 'PLAY_TEST_START_STAGE', 'play']);
   const { ConvexHttpClient } = await import('convex/browser');
@@ -660,8 +662,10 @@ try {
     }
   }
   /* Seeds the real-game ruleset with local bytes for its faces, and the Recovery token's catalogue when asked; returns the ruleset. */
-  const seedCatalogue = async (withPublicCatalogue: boolean) => {
-    const seeded = JSON.parse(convex(['run', 'playTesting:seedRealGameCatalogue', '{}'])) as {
+  const seedCatalogue = async (withPublicCatalogue: boolean, gf9Factions?: string[]) => {
+    const seeded = JSON.parse(
+      convex(['run', 'playTesting:seedRealGameCatalogue', JSON.stringify(gf9Factions ? { gf9Factions } : {})])
+    ) as {
       rulesetId: string;
       publications: Publication[];
     };

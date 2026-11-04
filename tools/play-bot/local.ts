@@ -9,6 +9,7 @@
  *   --style "<text>"       its personality and strength, in a sentence or two
  *   --listen all|mentions  wake on every table message (default) or only when named
  *   --seat <seat-id>       a particular open seat
+ *   --want <faction>       warn when the deal gave the bot a different faction
  *   --stack <file>         the stack file the launcher wrote (default tools/play-bot/out/stack.json)
  * Its transcript and private notes go to tools/play-bot/out/.
  */
@@ -33,6 +34,8 @@ const { values } = parseArgs({
     style: { type: 'string' },
     listen: { type: 'string', default: 'all' },
     seat: { type: 'string' },
+    /* The faction you meant the bot to play; the game deals at random, so it warns when the deal went the other way. */
+    want: { type: 'string' },
     stack: { type: 'string', default: path.join(import.meta.dirname, 'out/stack.json') },
   },
 });
@@ -139,7 +142,11 @@ const seated = setInterval(() => {
   }
   if (bot.view.factionId) {
     clearInterval(seated);
-    bot.log(`Seated as ${bot.view.factionName(bot.view.factionId)}. Pick up its faction token or talk to it.`);
+    const dealt = bot.view.factionName(bot.view.factionId);
+    bot.log(`Seated as ${dealt}. Pick up its faction token or talk to it.`);
+    if (values.want && !dealt.toLowerCase().includes(values.want.toLowerCase())) {
+      bot.log(`Note: the deal gave the bot ${dealt}, not ${values.want}. Create a new game to deal again.`);
+    }
     return;
   }
   const requested = view.snapshot.controls?.seatRequests.some((entry) => entry.own);
