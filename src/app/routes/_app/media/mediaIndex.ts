@@ -43,7 +43,11 @@ const galleries = [
   {
     kind: 'generic',
     title: 'Symbols',
-    samples: ['/vector/generic/stormworld.svg', '/vector/generic/8point.svg', '/vector/generic/arrowbox.svg'],
+    samples: [
+      '/vector/generic/stormworld.svg',
+      '/vector/generic/eight-pointed-burst.svg',
+      '/vector/generic/sith-empire-hexagon.svg',
+    ],
   },
   {
     kind: 'icon',

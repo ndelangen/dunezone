@@ -10,7 +10,7 @@ const SKILLS = [
       'Once per phase, if another player makes a payment to any player other than you of at least 5 spice, you may force two of the spice to go to the Spice Bank.',
     battleText:
       'Your opponent subtracts 1 from their Battle total for each Stronghold they occupy (not counting those occupied by advisors).',
-    decal: '/vector/decal/beaurocrat-multicolor.svg',
+    decal: '/vector/decal/bureaucrat-multicolor.svg',
   },
   {
     name: 'Diplomat',

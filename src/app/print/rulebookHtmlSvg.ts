@@ -1,4 +1,5 @@
 import spiceMask from '../../../media/vector/icon/spice.svg?raw';
+import { canonicalVectorArtwork } from '../../shared/vectorRules';
 
 const tokenSymbols = import.meta.glob<string>(
   [
@@ -28,7 +29,7 @@ export function rulebookHtmlSvg(markup: string, canonicalHref: string): string {
       (_, attribute, href, fragment) => {
         const id = `rulebook-token-${href.replace(/[^a-z0-9]/gi, '-')}`;
         if (!symbols.has(id)) {
-          const svg = tokenSymbols[`../../../media${href}`];
+          const svg = tokenSymbols[`../../../media${canonicalVectorArtwork(href)}`];
           if (svg === undefined) {
             throw new Error('The selected game token symbol is not bundled.');
           }
