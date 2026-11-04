@@ -187,7 +187,8 @@ function CreditSection() {
           <strong>Community sets:</strong> the people who made them, by name.
         </li>
         <li>
-          <strong>Emblems and decals made here:</strong> Dune Zone.
+          <strong>Emblems and decals made here:</strong> Dune Zone. For the ones I generated, I&rsquo;d release them
+          into the public domain if no artist claims them as theirs.
         </li>
       </BulletList>
     </Section>
