@@ -27,10 +27,10 @@ uncurated vectors by their purpose and subject.
 5. Browse the real picker in Storybook. Check the whole set together, narrow to it, and select an
    image. Run the AssetSelect and Leaders and Alliance stories, then the required release checks.
 
-Existing asset paths are saved in faction and asset documents. Organize them through this catalogue;
-keep those paths stable. SVG repairs can replace artwork at its existing path without touching
+Existing asset paths are saved in faction and asset documents. Organize them through this catalogue.
+A path can only move through a rename, described under [Renaming vector artwork](#renaming-vector-artwork). SVG repairs can replace artwork at its existing path without touching
 collection membership. New sources not yet assigned a set remain discoverable through fallback
-categories at runtime; generation requires curated collections for portraits, emblems, planets and decals before delivery.
+categories at runtime; generation requires curated collections for portraits, emblems, planets, decals, general symbols and troops before delivery.
 
 ## Decal subjects
 
@@ -51,8 +51,7 @@ filename remain searchable for related uses. The collections do not prescribe ca
 - A visible building, hand or diagram takes precedence over an abstract card-effect name. For example,
   `choam-share.svg` depicts a building and `extortion.svg` depicts a dagger.
 - Fluids and containers collects vessels, chemical preparations and water-storage objects. Standalone plants and portable collection mechanisms stay in their own subject groups.
-- Alternate drawings and colour variants of the same named illustration stay together. Existing
-  paths and spellings stay unchanged because saved documents refer to them.
+- Alternate drawings and colour variants of the same named illustration stay together.
 
 Add each new decal to one collection before running `bun run generate`. Monochrome SVGs inherit
 the caller's colour; artwork with a fixed palette uses the `-multicolor.svg` suffix. Generate the
@@ -154,6 +153,25 @@ valid identifier in its category, `bun run generate:vectors` writes its file as 
 original, and the library and pickers show only the original. A raster that shares its original's
 bytes, such as `/image/texture/058.jpg`, keeps its lock entry and is listed in
 `src/shared/media/retiredArtwork.ts` instead.
+
+### Renaming vector artwork
+
+A rename uses the same mechanism as retiring a duplicate. Move the source to its new path, move its
+`media-index.json` key and collection entry, and map the old path to the new one in
+`VECTOR_ARTWORK_ALIASES`. The old path stays valid, so saved factions, boards and rulebooks need no
+data migration, and `bun run generate:vectors` keeps publishing a copy at the old URL. An alias must
+point at a real source, so when a target is renamed, repoint the aliases that named it.
+
+Troops, icons, emblems and portraits keep their paths: icons and troops are named by game data and
+generated pieces, and raster originals are locked by key. Their display names live in
+`src/shared/stockAssetNames.json`, which overrides the label a file name would produce.
+
+### General symbols and troops
+
+A general symbol with a known fictional universe belongs to that universe's collection, such as
+`General symbols / Star Trek`. A universe with one or two files goes in
+`General symbols / Other science fiction`. Other symbols are grouped by what they depict. A credit's
+`creditDetail` decides the universe. Troops are grouped by subject, with Dune faction troops together.
 
 ### GF9 artwork provenance
 

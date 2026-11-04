@@ -1,3 +1,4 @@
+import stockAssetNames from '@shared/stockAssetNames.json';
 import { describe, expect, test } from 'vite-plus/test';
 
 import metadata from './media-index.json';
@@ -12,6 +13,10 @@ describe('media catalogue deep links', () => {
       expect(entry).toMatchObject({ description, tags, subjects });
       expect(entry).not.toHaveProperty('sourceHash');
     }
+  });
+
+  test('names only artwork the library holds', () => {
+    expect(Object.keys(stockAssetNames).filter((path) => !Object.hasOwn(metadata, path))).toEqual([]);
   });
 
   test('keeps valid filters and a known selected asset', () => {

@@ -46,11 +46,11 @@ export const SaveAndReopen = meta.story({
     await waitFor(() => expect(handle).toHaveAttribute('aria-pressed', 'true'));
     await userEvent.keyboard('[ArrowUp]');
     await userEvent.keyboard('[Space]');
-    await waitFor(() => expect(page.getByText('Decal 1 · Seitch')).toBeVisible());
+    await waitFor(() => expect(page.getByText('Decal 1 · Sietch')).toBeVisible());
     await userEvent.click(page.getByRole('button', { name: /^Undo$/ }));
     await expect(page.getByText('Decal 1 · City')).toBeVisible();
     await userEvent.click(page.getByRole('button', { name: /^Redo$/ }));
-    await expect(page.getByText('Decal 1 · Seitch')).toBeVisible();
+    await expect(page.getByText('Decal 1 · Sietch')).toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Show decal before cropping' }));
     await userEvent.click(page.getByRole('button', { name: 'Save board' }));
     await expect(page.findByRole('button', { name: 'Delete board' })).resolves.toBeVisible();

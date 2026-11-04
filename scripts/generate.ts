@@ -81,7 +81,7 @@ const retiredIn = (category: string) =>
 
 const enums = {
   background,
-  generic,
+  generic: [...generic, ...retiredIn('generic')],
   emblem,
   decal: [...decal, ...retiredIn('decal')],
   icon: [...icon, ...retiredIn('icon')],
@@ -107,7 +107,7 @@ for (const collection of stockAssetCollections) {
     classifiedAssets.add(asset);
   }
 }
-for (const asset of [...leaders, ...emblem, ...planet, ...decal]) {
+for (const asset of [...leaders, ...emblem, ...planet, ...decal, ...generic, ...troop]) {
   if (!classifiedAssets.has(`/${asset}`)) {
     throw new Error(`Add /${asset} to a browsing collection in src/shared/stockAssetCollections.json`);
   }
@@ -235,9 +235,6 @@ for (const key of [...generic, ...emblem, ...decal, ...icon, ...troop]
     Number((right - left).toFixed(2)),
     Number((bottom - top).toFixed(2)),
   ];
-}
-for (const [alias, target] of Object.entries(VECTOR_ARTWORK_ALIASES)) {
-  vectorCrops[alias] = vectorCrops[target];
 }
 const crops = await format(
   'vectorCrops.generated.ts',
