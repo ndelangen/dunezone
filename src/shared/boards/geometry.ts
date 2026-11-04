@@ -78,10 +78,7 @@ export function movePoint(board: Board, node: string, input: Point): Board {
       const a = edge.a === node ? point : board.nodes[edge.a];
       const b = edge.b === node ? point : board.nodes[edge.b];
       const delta = positive(edge.arc![4] === 1 ? angle(b) - angle(a) : angle(a) - angle(b));
-      return {
-        ...edge,
-        arc: [RADIUS, RADIUS, 0, delta > Math.PI ? 1 : 0, edge.arc![4]],
-      };
+      return { ...edge, arc: [RADIUS, RADIUS, 0, delta > Math.PI ? 1 : 0, edge.arc![4]] };
     });
   }
   return { ...board, nodes: { ...board.nodes, [node]: point }, edges };
@@ -158,13 +155,7 @@ function sampleLinework(board: Board) {
       throw new Error('Boundary curves must stay inside the board circle');
     }
     for (let i = 0; i < count; i++) {
-      samples.push({
-        a: points[i],
-        b: points[i + 1],
-        edge,
-        t0: i / count,
-        t1: (i + 1) / count,
-      });
+      samples.push({ a: points[i], b: points[i + 1], edge, t0: i / count, t1: (i + 1) / count });
     }
     return factory.createLineString(points.map((p) => new Coordinate(p[0], p[1])));
   });
@@ -280,10 +271,7 @@ function recoverFace(board: Board, polygon: Polygon, samples: Sample[], cells: M
     polygon,
     boundaries: recovered.map((ring) => ring.intervals.map(({ edge, t0, t1 }) => ({ edge: edge.id, t0, t1 }))),
   };
-  return {
-    face,
-    failures: recovered.reduce((count, ring) => count + ring.failures, 0),
-  };
+  return { face, failures: recovered.reduce((count, ring) => count + ring.failures, 0) };
 }
 
 const geometryClock = () => (typeof performance === 'undefined' ? Date.now() : performance.now());
@@ -418,11 +406,7 @@ export function snapPoint(
     .map(([node, p]) => ({ node, p, d: distance(p, point) }))
     .sort((a, b) => a.d - b.d)[0];
   if (nearby && nearby.d < (enabled ? radius : 0.5)) {
-    return {
-      point: nearby.p,
-      node: nearby.node,
-      feedback: 'Snapped to boundary point',
-    };
+    return { point: nearby.p, node: nearby.node, feedback: 'Snapped to boundary point' };
   }
   if (!enabled) {
     return { point, feedback: 'Free point' };
@@ -441,11 +425,7 @@ export function snapPoint(
     return { point: boundary.point, feedback: 'Snapped to shared boundary' };
   }
   const sector = sectorLines
-    .map(([a, b]) => ({
-      a: a as Point,
-      b: b as Point,
-      ...project(point, a as Point, b as Point),
-    }))
+    .map(([a, b]) => ({ a: a as Point, b: b as Point, ...project(point, a as Point, b as Point) }))
     .sort((a, b) => a.distance - b.distance)[0];
   let next = point,
     feedback = 'Free point';
@@ -468,26 +448,12 @@ const sectorLines: [Point, Point][] = arrakis.sectorLines.map(([a, b]) => {
   const outer = distance(a as Point, CENTER) > distance(b as Point, CENTER) ? (a as Point) : (b as Point);
   return [CENTER, lerp(CENTER, outer, RADIUS / distance(CENTER, outer))];
 });
-/** How the 18 storm sector lines are drawn over the map: the board editor's guide, and the table's lines. */
-export type SectorLineStyle = {
-  stroke: string;
-  width: number;
-  dash?: string;
-  opacity?: number;
-};
-export function sectorLinesMarkup({ stroke, width, dash, opacity }: SectorLineStyle): string {
-  return sectorLines
-    .map(
-      ([a, b]) =>
-        `<path d="M${a.join(' ')}L${b.join(' ')}" fill="none" stroke="${stroke}" stroke-width="${width}"${dash ? ` stroke-dasharray="${dash}"` : ''}${opacity === undefined ? '' : ` opacity="${opacity}"`}/>`
-    )
-    .join('');
-}
-export const referenceSectors = sectorLinesMarkup({
-  stroke: '#705327',
-  width: 1.1,
-  dash: '5 2',
-});
+export const referenceSectors = sectorLines
+  .map(
+    ([a, b]) =>
+      `<path d="M${a.join(' ')}L${b.join(' ')}" fill="none" stroke="#705327" stroke-width="1.1" stroke-dasharray="5 2"/>`
+  )
+  .join('');
 
 function splitEdge(board: Board, edge: Edge, t: number, node: string, point: Point): [Edge, Edge] {
   const first: Edge = { ...edge, id: `${edge.id}:a`, b: node },
@@ -549,12 +515,7 @@ export function connectPoint(
 ): { board: Board; node: string; point: Point; feedback: string } {
   const snapped = snapPoint(board, boundPoint(input), snapping, radius);
   if (snapped.node && !targetEdge) {
-    return {
-      board,
-      node: snapped.node,
-      point: snapped.point,
-      feedback: snapped.feedback,
-    };
+    return { board, node: snapped.node, point: snapped.point, feedback: snapped.feedback };
   }
   const closest = nearestBoundary(
     targetEdge ? { ...board, edges: board.edges.filter((e) => e.id === targetEdge) } : board,
@@ -604,12 +565,7 @@ export function removePoint(board: Board, node: string): Board {
     const a = first.a === node ? first.b : first.a,
       b = second.a === node ? second.b : second.a;
     if (a !== b) {
-      const joining: Edge = {
-        id: `joined-${crypto.randomUUID()}`,
-        a,
-        b,
-        kind: 'line',
-      };
+      const joining: Edge = { id: `joined-${crypto.randomUUID()}`, a, b, kind: 'line' };
       if (attached.every((e) => e.id.startsWith('rim') && e.kind === 'arc')) {
         const sweep = first.b === node ? first.arc![4] : 1 - first.arc![4];
         const angle = Math.abs(arcParameters(board, first).delta) + Math.abs(arcParameters(board, second).delta);
@@ -638,20 +594,11 @@ export function blankBoard(): Board {
       ['s', 'w'],
       ['w', 'n'],
       ['n', 'e'],
-    ].map(([a, b], i) => ({
-      id: `rim-${i}`,
-      a,
-      b,
-      kind: 'arc',
-      arc: [RADIUS, RADIUS, 0, 0, 1],
-    })),
+    ].map(([a, b], i) => ({ id: `rim-${i}`, a, b, kind: 'arc', arc: [RADIUS, RADIUS, 0, 0, 1] })),
     properties: {},
   };
   const faces = derive(board).faces;
-  return {
-    ...board,
-    properties: Object.fromEntries(faces.map((f) => [f.key, defaults('Territory 1')])),
-  };
+  return { ...board, properties: Object.fromEntries(faces.map((f) => [f.key, defaults('Territory 1')])) };
 }
 
 /** Removing an interior connection preserves its endpoints; the circular boundary remains connected. */

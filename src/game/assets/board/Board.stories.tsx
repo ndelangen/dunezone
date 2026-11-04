@@ -20,6 +20,6 @@ export const Arrakis = meta.story({
   play: async ({ canvasElement }) => {
     const artwork = within(canvasElement).getByLabelText('Board artwork');
     await expect(artwork.querySelectorAll('[data-clipped-territory]')).toHaveLength(42);
-    await expect(artwork.querySelector('[data-editor-guide]')).toBeNull();
+    await expect(artwork.querySelector('[data-sector-lines]')).toBeNull();
   },
 });

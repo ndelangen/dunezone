@@ -1,21 +1,11 @@
-import { derive, defaults, contourPath, edgePath, referenceSectors, sectorLinesMarkup } from '@shared/boards/geometry';
-import type { Board, Decal, Face, SectorLineStyle } from '@shared/boards/geometry';
+import { derive, defaults, contourPath, edgePath, referenceSectors } from '@shared/boards/geometry';
+import type { Board, Decal, Face } from '@shared/boards/geometry';
 import { useId } from 'react';
 
 import { BOARD_ARTWORK } from './artwork';
 import { BOARD_GLYPH_INK, GlyphOutlineFilter } from './glyphOutline';
-const baseColors = {
-  sand: '#F6D979',
-  rock: '#A67A3E',
-  stronghold: '#F7BA7A',
-  polar: '#fff',
-};
-const decorationColors = {
-  sand: '#A67A3E',
-  rock: '#67371C',
-  stronghold: '#67371C',
-  polar: '#888',
-};
+const baseColors = { sand: '#F6D979', rock: '#A67A3E', stronghold: '#F7BA7A', polar: '#fff' };
+const decorationColors = { sand: '#A67A3E', rock: '#67371C', stronghold: '#67371C', polar: '#888' };
 export function DecalArtwork({ decal, svg }: { decal: Decal; svg?: string }) {
   const outlineId = useId().replaceAll(':', '');
   const viewBox = svg?.match(/viewBox="([^"]+)"/)?.[1] || '0 0 100 100';
@@ -62,20 +52,16 @@ export function BoardArtwork({
   board,
   faces,
   artwork,
-  sectorGuide = false,
-  sectors,
+  sectorLines = false,
 }: {
   board: Board;
   faces: Face[];
   artwork: Record<string, string>;
-  sectorGuide?: boolean;
-  /** The storm sector lines drawn on the table's map, over the territories and under the Polar Sink. */
-  sectors?: SectorLineStyle;
+  /** The storm's 18 sector lines, over the territories and under the Polar Sink: the editor's guide and the table's map (#2670). */
+  sectorLines?: boolean;
 }) {
-  const guide = sectorGuide ? (
-    <g data-editor-guide pointerEvents="none" opacity="0.45" dangerouslySetInnerHTML={{ __html: referenceSectors }} />
-  ) : sectors ? (
-    <g data-sector-lines pointerEvents="none" dangerouslySetInnerHTML={{ __html: sectorLinesMarkup(sectors) }} />
+  const guide = sectorLines ? (
+    <g data-sector-lines pointerEvents="none" opacity="0.45" dangerouslySetInnerHTML={{ __html: referenceSectors }} />
   ) : null;
   const polarFirst = faces
     .filter((face) => board.properties[face.key]?.type === 'polar')
@@ -104,10 +90,7 @@ export function BoardArtwork({
         )
         .map(({ face, i }) => {
           const p = board.properties[face.key] || defaults('');
-          const contours = p.appearance?.map((contour) => ({
-            contour,
-            path: contourPath(board, contour),
-          }));
+          const contours = p.appearance?.map((contour) => ({ contour, path: contourPath(board, contour) }));
           const customAppearance = !!contours?.length && contours.every((value) => value.path !== null);
           return (
             <g key={face.key}>

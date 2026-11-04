@@ -15,8 +15,6 @@ import type { BoardSkin } from './boardSkins';
 import { curvedBoard } from './curvedBoard.fixture';
 import { PointerSession } from './PointerSession';
 import { PointerSessionContext } from './PointerSessionContext';
-import type { SectorLineVariant } from './sectorLines';
-import { SectorLineVariantOverride } from './sectorLines';
 import { TableKeyboard } from './TableKeyboard';
 import { TableKeyboardContext } from './TableKeyboardContext';
 import { TabletopSessionProvider } from './TabletopContext';
@@ -28,26 +26,18 @@ function PreparedTable({
   board,
   skin,
   planet = false,
-  sectors = 'guide',
 }: {
   presentation: 'play' | 'preview';
   board?: BoardCapture;
   skin?: BoardSkin;
   planet?: boolean;
-  sectors?: SectorLineVariant;
 }) {
   const [session] = useState(() => {
     const view: RoomView = {
       type: 'view',
       epoch: 'story',
       sequence: 1,
-      viewer: {
-        connectionId: 'story',
-        userId: 'story',
-        viewerSeat: SPECTATOR_SEAT,
-        displayName: '',
-        color: '#d7b65c',
-      },
+      viewer: { connectionId: 'story', userId: 'story', viewerSeat: SPECTATOR_SEAT, displayName: '', color: '#d7b65c' },
       snapshot: { ...homepageSnapshot(location.origin), board },
       carries: [],
       pointers: [],
@@ -89,26 +79,21 @@ function PreparedTable({
     return null;
   }
   return (
-    <SectorLineVariantOverride value={sectors}>
-      <BoardSkinOverride value={skin ? { skin, planet } : null}>
-        <PointerSessionContext value={pointer}>
-          <TableKeyboardContext value={keyboard}>
-            <TabletopSessionProvider session={session}>
-              <div style={{ height: skin ? '100vh' : 700, display: 'grid' }}>
-                <TabletopScene presentation={presentation} stage="play" tableProgress={tableProgressFor(0)} />
-              </div>
-            </TabletopSessionProvider>
-          </TableKeyboardContext>
-        </PointerSessionContext>
-      </BoardSkinOverride>
-    </SectorLineVariantOverride>
+    <BoardSkinOverride value={skin ? { skin, planet } : null}>
+      <PointerSessionContext value={pointer}>
+        <TableKeyboardContext value={keyboard}>
+          <TabletopSessionProvider session={session}>
+            <div style={{ height: skin ? '100vh' : 700, display: 'grid' }}>
+              <TabletopScene presentation={presentation} stage="play" tableProgress={tableProgressFor(0)} />
+            </div>
+          </TabletopSessionProvider>
+        </TableKeyboardContext>
+      </PointerSessionContext>
+    </BoardSkinOverride>
   );
 }
 
-const meta = preview.meta({
-  component: PreparedTable,
-  parameters: { layout: 'fullscreen' },
-});
+const meta = preview.meta({ component: PreparedTable, parameters: { layout: 'fullscreen' } });
 export const Play = meta.story({ args: { presentation: 'play' } });
 /** The homepage's preview draws the table without the play tools, so a visitor has nothing to select. */
 export const Homepage = meta.story({
@@ -155,9 +140,7 @@ export const AuthoredArrakis = meta.story({
   },
 });
 
-export const CurvesAndIsland = meta.story({
-  args: { presentation: 'play', board: curvedBoard() },
-});
+export const CurvesAndIsland = meta.story({ args: { presentation: 'play', board: curvedBoard() } });
 
 /*
  * Board skins: each viewer's own look for the territory types (sand, rock, strongholds, the Polar Sink).
@@ -171,12 +154,7 @@ export const SkinNone = meta.story({
 /** The board as it draws today with planet shading. */
 export const SkinNonePlanet = meta.story({
   parameters: { chromatic: { disableSnapshot: true } },
-  args: {
-    presentation: 'play',
-    board: arrakisBoardCapture,
-    skin: 'none',
-    planet: true,
-  },
+  args: { presentation: 'play', board: arrakisBoardCapture, skin: 'none', planet: true },
 });
 /** GF9's printed board: stone-grained parchment, each territory darkening toward its borders. */
 export const SkinGf9 = meta.story({
@@ -186,12 +164,7 @@ export const SkinGf9 = meta.story({
 /** GF9's printed board with planet shading. */
 export const SkinGf9Planet = meta.story({
   parameters: { chromatic: { disableSnapshot: true } },
-  args: {
-    presentation: 'play',
-    board: arrakisBoardCapture,
-    skin: 'gf9',
-    planet: true,
-  },
+  args: { presentation: 'play', board: arrakisBoardCapture, skin: 'gf9', planet: true },
 });
 /** A painted relief map: dunes settling against the rock, lit cliffs onto rock plateaus, walled cities, sunken cracked ice. */
 export const SkinFancy = meta.story({
@@ -201,12 +174,7 @@ export const SkinFancy = meta.story({
 /** A painted relief map with planet shading. */
 export const SkinFancyPlanet = meta.story({
   parameters: { chromatic: { disableSnapshot: true } },
-  args: {
-    presentation: 'play',
-    board: arrakisBoardCapture,
-    skin: 'fancy',
-    planet: true,
-  },
+  args: { presentation: 'play', board: arrakisBoardCapture, skin: 'fancy', planet: true },
 });
 /** treachery.online's map: lit turbulence, pillowy sand and craggy rock. */
 export const SkinTreachery = meta.story({
@@ -216,55 +184,5 @@ export const SkinTreachery = meta.story({
 /** treachery.online's map with planet shading. */
 export const SkinTreacheryPlanet = meta.story({
   parameters: { chromatic: { disableSnapshot: true } },
-  args: {
-    presentation: 'play',
-    board: arrakisBoardCapture,
-    skin: 'treachery',
-    planet: true,
-  },
-});
-
-/*
- * Storm sector lines (#2670): four looks for the lines that split the map into the storm's 18 sectors.
- * The one picked stays as the table's look; the others go.
- */
-/** A: the board editor's guide, warm brown dashes. */
-export const SectorLinesGuide = meta.story({
-  parameters: { chromatic: { disableSnapshot: true } },
-  args: {
-    presentation: 'play',
-    board: arrakisBoardCapture,
-    skin: 'none',
-    sectors: 'guide',
-  },
-});
-/** B: fine black dashes, like the printed board. */
-export const SectorLinesInk = meta.story({
-  parameters: { chromatic: { disableSnapshot: true } },
-  args: {
-    presentation: 'play',
-    board: arrakisBoardCapture,
-    skin: 'none',
-    sectors: 'ink',
-  },
-});
-/** C: a fine solid line in the rock's dark brown. */
-export const SectorLinesSolid = meta.story({
-  parameters: { chromatic: { disableSnapshot: true } },
-  args: {
-    presentation: 'play',
-    board: arrakisBoardCapture,
-    skin: 'none',
-    sectors: 'solid',
-  },
-});
-/** D: heavier, longer black dashes. */
-export const SectorLinesBold = meta.story({
-  parameters: { chromatic: { disableSnapshot: true } },
-  args: {
-    presentation: 'play',
-    board: arrakisBoardCapture,
-    skin: 'none',
-    sectors: 'bold',
-  },
+  args: { presentation: 'play', board: arrakisBoardCapture, skin: 'treachery', planet: true },
 });
