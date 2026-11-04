@@ -83,7 +83,8 @@ export function boardComponentGeometry(board: Board, widthPx: number, heightPx: 
       return { face, key: boardPartKey(property), name: property.name, type: property.type };
     })
     .filter(({ key }) => /^[a-z][a-z0-9-]*$/.test(key) && key.length <= 80);
-  const polarRings = territories.filter(({ type }) => type === 'polar').flatMap(({ face }) => face.rings);
+  /* Every polar territory masks the sector lines, including one whose ID no part key can spell. */
+  const polarRings = faces.filter((face) => board.properties[face.key]?.type === 'polar').flatMap((face) => face.rings);
   /* First, so a board with more parts than the limit drops a territory rather than the sectors; a territory the board itself names Sectors takes the key over. */
   const sectors = sectorsPart(polarRings);
   const parts = new Map<string, ReturnType<typeof part>>(sectors ? [['sectors', sectors]] : []);

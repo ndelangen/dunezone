@@ -78,3 +78,14 @@ test('a board whose polar territory covers every sector line leaves the sectors 
   expect(parsed.success).toBe(true);
   expect(parsed.data?.parts.map(({ key }) => key)).toEqual(['territory-1', 'polar']);
 });
+
+test('a polar territory whose ID no part key can spell still masks the sector lines', () => {
+  const blank = blankBoard();
+  const board = {
+    ...blank,
+    properties: Object.fromEntries(
+      Object.entries(blank.properties).map(([key, property]) => [key, { ...property, id: '1', type: 'polar' as const }])
+    ),
+  };
+  expect(boardComponentGeometry(board, 1948, 1948).parts.find(({ key }) => key === 'sectors')).toBeUndefined();
+});
