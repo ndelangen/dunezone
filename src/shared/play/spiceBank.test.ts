@@ -74,11 +74,21 @@ describe('shared Spice Bank', () => {
 
   test('uses compact layered token geometry without changing other markers', () => {
     const piece = createSpiceStack(2, 10);
-    expect(visibleLayerCount(piece)).toBe(4);
-    expect(stackTopHeight(piece)).toBeCloseTo(SPICE_LAYER_HEIGHT + 3 * SPICE_LAYER_PITCH);
-    expect(contactShadowScale(piece, false)[0]).toBeCloseTo(0.39);
+    expect(visibleLayerCount(piece)).toBe(10);
+    expect(stackTopHeight(piece)).toBeCloseTo(SPICE_LAYER_HEIGHT + 9 * SPICE_LAYER_PITCH);
+    expect(contactShadowScale(piece, false)[0]).toBeCloseTo(0.285);
     expect(visibleLayerCount({ ...piece, stackKey: null })).toBe(1);
     expect(contactShadowScale('marker', false)[0]).toBe(1);
+  });
+
+  test('grows like a troop stack: a layer per token up to eight, then ever less per token', () => {
+    const stack = createSpiceStack(2, 1);
+    const layers = (count: number) =>
+      visibleLayerCount({
+        ...stack,
+        items: Array.from({ length: count }, (_, index) => ({ id: `s-${index}`, faceUp: true })),
+      });
+    expect([1, 4, 8, 9, 12, 20, 30, 60].map(layers)).toEqual([1, 4, 8, 9, 10, 12, 14, 17]);
   });
 
   test('keeps a spice shadow below its token just beyond the board rim', () => {

@@ -4,6 +4,7 @@ import { useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { ThreeEvent } from '@react-three/fiber/webgpu';
 import { tokenShapeOfType } from '@shared/assets/tokenOutline';
 import { retainedArrakisBoard } from '@shared/boards/geometry';
+import { tableTerritoryAt } from '@shared/boards/tableTerritories';
 import { gameAssetColors, rendererColors } from '@shared/play/assetColors';
 import { isFactionToken } from '@shared/play/factionToken';
 import { gestureBlockReason, pieceCount } from '@shared/play/model';
@@ -83,6 +84,7 @@ import { SceneCardDraws } from './SceneCardDraws';
 import { useSharedMeshes } from './sharedMeshes';
 import type { SharedMeshes } from './sharedMeshes';
 import { SpiceBankInteraction } from './SpiceBank';
+import { useBoardTints } from './spiceBlowTints';
 import { SpiceStackIcon } from './SpiceStackIcon';
 import { loadPieceBadge, loadPlayCamera, loadScenePings, loadScenePresence, loadTabletopTools } from './tableChunks';
 import { useTableFraming } from './tableFraming';
@@ -96,7 +98,6 @@ import styles from './TabletopScene.module.css';
 import type { PieceMenuAnchor } from './TabletopTools';
 import type { TableProgress } from './tableTrackers';
 import { BRUSH_CURSOR, territoryBrush, useTerritoryBrush } from './territoryBrush';
-import { territoryAtTablePoint } from './TerritoryTints';
 import { useTurnedDownFaces } from './turnedDownFaces';
 import { useDeckShuffleAnimation } from './useDeckShuffleAnimation';
 import { usePieceFlipAnimation } from './usePieceFlipAnimation';
@@ -143,7 +144,7 @@ function paintTerritory(
   /* Setup keeps the map off the table until it is shown, and nothing can be painted on a map that is not there. */
   const mapShown = stage !== 'setup' || !!mapVisible;
   const point = brush && mapShown && ray.intersectPlane(BOARD_PLANE, new Vector3());
-  const territory = point && territoryAtTablePoint(board?.definition ?? retainedArrakisBoard(), point.x, point.z);
+  const territory = point && tableTerritoryAt(board?.definition ?? retainedArrakisBoard(), point.x, point.z);
   if (brush && territory) {
     brush.paint(territory);
   }
@@ -1150,7 +1151,7 @@ function SceneContents({
   const table = useTabletop();
   const palette = useTablePalette();
   const board = useTabletopSelector((value) => value.snapshot.board);
-  const tints = useTabletopSelector((value) => value.snapshot.tints);
+  const tints = useBoardTints();
   const { state, renderedPieces, selectPiece } = table;
   const { controlsEnabled, onPointerSessionChange } = useSceneInteractions(onInteractionActiveChange);
   useScenePointerSession(onPointerSessionChange);
