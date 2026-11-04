@@ -73,7 +73,15 @@ function CardTintLayers({ drawings, idPrefix }: Readonly<{ drawings: readonly Ti
       <defs>
         <GlyphOutlineFilter id={stickerFilter} recolor />
         {drawings.map((drawing, index) => (
-          <filter key={drawing.id} id={`${idPrefix}-highlight-${index}`} x="-5%" y="-5%" width="110%" height="110%">
+          <filter
+            key={drawing.id}
+            id={`${idPrefix}-highlight-${index}`}
+            filterUnits="userSpaceOnUse"
+            x="0"
+            y="0"
+            width={SPICE_BOARD_SIZE}
+            height={SPICE_BOARD_SIZE}
+          >
             <feColorMatrix
               in="SourceAlpha"
               type="matrix"
