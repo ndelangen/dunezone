@@ -1,9 +1,10 @@
 import preview from '@sb/preview';
 import { isPointerToken, POINTER_TOKEN_TYPE } from '@shared/play/pointerToken';
+import { BOTTOM_SHELF_POSITION, SIDE_SHELF_CENTER_X } from '@shared/play/tableFurnitureLayout';
 import { restingPositionAt, troopScale } from '@shared/play/tableGeometry';
 import { nearestCollisionFreePosition } from '@shared/play/tablePhysics';
 import { drawableTechTokens, isTechToken } from '@shared/play/techToken';
-import { expect, within } from 'storybook/test';
+import { expect, waitFor, within } from 'storybook/test';
 
 import type { StoredSnapshot } from '../../../../../workers/game/state';
 import { openControl } from './controls.stories.fixture';
@@ -207,5 +208,65 @@ export const TechTokens = meta.story({
     const [customs] = tokens.filter((candidate) => !candidate.inventory);
     await expect(troopScale(customs!)).toBe(troopScale({ kind: 'force', stackKey: 'leader:any' }));
     await expect(page.getByRole('button', { name: 'Draw random tech token' })).toBeEnabled();
+  },
+});
+
+/* Where the other seats ping in turn while Seat 1 looks at the left bay, as bidding frames it: the map, the right bay, the tanks and the far rim. */
+const OUT_OF_VIEW_PINGS: readonly [number, number, number][] = [
+  [0, 0.38, 0],
+  [SIDE_SHELF_CENTER_X, 0.38, 0],
+  [0, 0.38, BOTTOM_SHELF_POSITION[2]],
+  [1.5, 0.38, -7],
+];
+const PING_EVERY_MS = 1600;
+
+/**
+ * Bidding frames the left bay, and the other seats keep pinging elsewhere: on the map, the right bay, the tanks and the far rim.
+ * Each ping out of view shows on the edge of the table, pulsing in the pinger's colour with an arrow towards where it landed, for three seconds (#2672).
+ * By hand: turn the camera dial to another view, or pan with the arrow keys, and the markers follow;
+ * once a ping is in view only its ripple shows.
+ */
+export const PingsOutOfView = meta.story({
+  args: { step: chapter('Bidding'), seat: 'seat-1' },
+  beforeEach: ({ args }: { args: { step?: number; seat?: string } }) => {
+    const cleanup = install(() =>
+      sandboxTransport({ start: Number(args.step ?? 1) - 1, seat: String(args.seat ?? 'seat-1') })
+    )();
+    let turn = 0;
+    const timer = setInterval(() => {
+      const transport = sandbox.transport;
+      const view = sandbox.table?.frame().snapshot;
+      if (!transport?.connected() || !view) {
+        return;
+      }
+      const others = (view.roster?.seats ?? []).filter((seat) => seat.id !== sandbox.table!.seat && seat.faction);
+      const seat = others[turn % Math.max(others.length, 1)];
+      if (!seat) {
+        return;
+      }
+      transport.deliver({
+        type: 'ping',
+        ping: {
+          connectionId: `ping-${seat.id}`,
+          viewerSeat: seat.id,
+          displayName: view.controls?.players.find((player) => player.seat === seat.id)?.name ?? seat.id,
+          color: seat.faction!.color,
+          position: OUT_OF_VIEW_PINGS[turn % OUT_OF_VIEW_PINGS.length]!,
+        },
+      });
+      turn += 1;
+    }, PING_EVERY_MS);
+    return () => {
+      clearInterval(timer);
+      cleanup();
+    };
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await sandboxReady(page);
+    await waitFor(
+      () => expect(canvasElement.ownerDocument.querySelector('[data-ping-edge][data-shown]')).not.toBeNull(),
+      { timeout: 10_000 }
+    );
   },
 });
