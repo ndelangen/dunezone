@@ -119,6 +119,19 @@ function settleOwed(client: TableSession, asker: Asker, summaries: ConversationS
   }
 }
 
+/* Notes the live turn; a turn after one this browser saw clears every chat while it is on, and owes the clears until the room confirms them. */
+function startTurn(client: TableSession, asker: Asker | undefined, turn: number | undefined, enabled: boolean) {
+  if (turn === undefined || !asker) {
+    return;
+  }
+  /* The turn is noted even while it is off, so turning it on never clears for turns already played. */
+  const started = enterTurn(seenTurn(client.game), turn);
+  if (started && enabled) {
+    const owed = owedClears(asker);
+    writeOwed(owed, { ...readOwed(owed), ...client.conversations.clearAllChats() });
+  }
+}
+
 /**
  * Clears every chat once a new turn begins, while the viewer has turned it on.
  * The turn is remembered whether or not it is on, so turning it on never clears for turns already played.
@@ -130,17 +143,7 @@ export function useAutoClearChatsAtNewTurn(client: TableSession, table: TablePro
   const turn = ready ? liveTurn(table) : undefined;
   const summaries = ready ? conversations.summaries : undefined;
   const { context } = conversations;
-  useEffect(() => {
-    const asker = askerOf(client.game, context);
-    if (turn === undefined || !asker) {
-      return;
-    }
-    const started = enterTurn(seenTurn(client.game), turn);
-    if (started && enabled) {
-      const owed = owedClears(asker);
-      writeOwed(owed, { ...readOwed(owed), ...client.conversations.clearAllChats() });
-    }
-  }, [client, context, enabled, turn]);
+  useEffect(() => startTurn(client, askerOf(client.game, context), turn, enabled), [client, context, enabled, turn]);
   useEffect(() => {
     const asker = askerOf(client.game, context);
     if (summaries && asker) {
