@@ -6,7 +6,7 @@
  */
 const BUNDLE_ASSET_PREFIX = '/public/';
 
-export const IMMUTABLE_BUNDLE_CACHE_CONTROL = 'public, max-age=31536000, immutable';
+const IMMUTABLE_BUNDLE_CACHE_CONTROL = 'public, max-age=31536000, immutable';
 
 export async function handleBundleAssetRequest(
   request: Request,

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vite-plus/test';
 
-import { handleBundleAssetRequest, IMMUTABLE_BUNDLE_CACHE_CONTROL } from './bundle-assets';
+import { handleBundleAssetRequest } from './bundle-assets';
 
 const ORIGIN = 'https://dune.zone';
 
@@ -35,7 +35,7 @@ describe('hashed bundle files', () => {
     const response = await get('/public/useLocation-BSsE2IVh.js', fetcher);
     expect(response?.status).toBe(200);
     expect(response?.headers.get('Content-Type')).toBe('text/javascript');
-    expect(response?.headers.get('Cache-Control')).toBe(IMMUTABLE_BUNDLE_CACHE_CONTROL);
+    expect(response?.headers.get('Cache-Control')).toBe('public, max-age=31536000, immutable');
     expect(await response?.text()).toBe('export {}');
   });
 

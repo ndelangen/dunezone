@@ -264,7 +264,8 @@ jobs:
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         # An optional upload may not cost a passing job its result: a stalled CLI download once ran out the
         # job's whole budget after every story passed (#2596). fail_ci_if_error is already false.
-        timeout-minutes: 3
+        # An upload takes 3 to 5 s, so one minute per step keeps a job's two uploads inside its own budget.
+        timeout-minutes: 1
         continue-on-error: true
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -276,7 +277,7 @@ jobs:
         # Reused passes restore coverage only, so upload test results only when this run wrote them.
         if: ${{ !cancelled() && hashFiles('test-results/vitest-storybook.junit.xml') != '' }}
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
-        timeout-minutes: 3
+        timeout-minutes: 1
         continue-on-error: true
         with:
           report_type: test_results
@@ -430,7 +431,7 @@ jobs:
       - name: Upload coverage to Codecov
         if: ${{ !inputs.draft }}
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
-        timeout-minutes: 3
+        timeout-minutes: 1
         continue-on-error: true
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -442,7 +443,7 @@ jobs:
         # Failure reports still upload; setup failures may produce no report.
         if: ${{ !cancelled() && hashFiles('test-results/vitest-unit.junit.xml') != '' }}
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
-        timeout-minutes: 3
+        timeout-minutes: 1
         continue-on-error: true
         with:
           report_type: test_results
@@ -582,7 +583,7 @@ jobs:
         run: bun run publisher:test --coverage.enabled=true '--coverage.include=workers/**/*.ts' '--coverage.include=src/shared/**/*.ts' '--coverage.include=src/shared/**/*.tsx' --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-publisher.junit.xml
       - name: Upload publisher coverage to Codecov
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
-        timeout-minutes: 3
+        timeout-minutes: 1
         continue-on-error: true
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -593,7 +594,7 @@ jobs:
       - name: Upload publisher test results to Codecov
         if: ${{ !cancelled() && hashFiles('test-results/vitest-publisher.junit.xml') != '' }}
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
-        timeout-minutes: 3
+        timeout-minutes: 1
         continue-on-error: true
         with:
           report_type: test_results
@@ -657,7 +658,7 @@ jobs:
         run: bun run game:test --coverage.enabled=true '--coverage.include=workers/game/**/*.ts' '--coverage.include=src/shared/**/*.ts' '--coverage.include=src/shared/**/*.tsx' --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-game.junit.xml
       - name: Upload game coverage to Codecov
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
-        timeout-minutes: 3
+        timeout-minutes: 1
         continue-on-error: true
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -668,7 +669,7 @@ jobs:
       - name: Upload game test results to Codecov
         if: ${{ !cancelled() && hashFiles('test-results/vitest-game.junit.xml') != '' }}
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
-        timeout-minutes: 3
+        timeout-minutes: 1
         continue-on-error: true
         with:
           report_type: test_results
@@ -724,7 +725,7 @@ jobs:
         # Failure reports still upload; setup failures may produce no report.
         if: ${{ !cancelled() && hashFiles('test-results/vitest-browser-launch.junit.xml') != '' }}
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
-        timeout-minutes: 3
+        timeout-minutes: 1
         continue-on-error: true
         with:
           report_type: test_results
@@ -874,7 +875,7 @@ jobs:
       - name: Upload e2e test results to Codecov
         if: ${{ !cancelled() && hashFiles('test-results/playwright.junit.xml') != '' }}
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
-        timeout-minutes: 3
+        timeout-minutes: 1
         continue-on-error: true
         with:
           report_type: test_results
@@ -885,7 +886,7 @@ jobs:
           fail_ci_if_error: false
       - name: Upload e2e coverage to Codecov
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
-        timeout-minutes: 3
+        timeout-minutes: 1
         continue-on-error: true
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
