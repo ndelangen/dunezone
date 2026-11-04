@@ -77,4 +77,13 @@ describe('pingEdgePlacement', () => {
     const placement = pingEdgePlacement([3, 0, -5], [2, 0], SIZE, NO_CHROME, CLEARANCE, [dial])!;
     expect(placement.y).toBeCloseTo(SIZE.height / 2);
   });
+
+  it('marks a ping under the camera dial, which hides its ripple', () => {
+    const dial = { left: 680, top: 20, right: 780, bottom: 120 };
+    /* At (760, 60) on the canvas: inside it, but under the dial. */
+    const placement = pingEdgePlacement([3, 2, -5], [0.9, 0.8], SIZE, NO_CHROME, CLEARANCE, [dial])!;
+    expect(placement).not.toBeNull();
+    expect(placement.x <= dial.left - CLEARANCE || placement.y >= dial.bottom + CLEARANCE).toBe(true);
+    expect(pingEdgePlacement([3, 2, -5], [0.5, 0.8], SIZE, NO_CHROME, CLEARANCE, [dial])).toBeNull();
+  });
 });

@@ -10,7 +10,7 @@ import { pingEdgePlacement } from './pingEdgeMarker';
 import type { PingEdgeInsets, PixelRect } from './pingEdgeMarker';
 import { playPingSound } from './pingSound';
 import styles from './ScenePings.module.css';
-import { tableChromeInsets, tableCornerRects } from './seatedHeader';
+import { tableChromeInsets, tableCornerRects, watchTableChrome } from './seatedHeader';
 import { useTabletopActions } from './TabletopContext';
 
 /* A table full of players pinging at once shows the newest this many: six seats at the fastest ping rate, for as long as a ping lasts. */
@@ -93,19 +93,25 @@ function PingRipple({ ping }: { ping: ShownPing }) {
     if (!container) {
       return;
     }
-    /* The chrome as it stands when the ping lands: it moves with the layout, not with the camera. */
-    const marker = edgeMarker(
-      ping.color,
-      tableChromeInsets(renderer.domElement),
-      tableCornerRects(renderer.domElement)
-    );
+    const canvas = renderer.domElement;
+    const marker = edgeMarker(ping.color);
+    /* The chrome moves with the layout, not with the camera: measured when the ping lands and again whenever the canvas or the chrome resizes. */
+    const measure = () => {
+      marker.chrome = tableChromeInsets(canvas);
+      marker.corners = tableCornerRects(canvas);
+      marker.shown = '';
+      invalidate();
+    };
+    measure();
+    const stopWatching = watchTableChrome(canvas, measure);
     container.appendChild(marker.element);
     edge.current = marker;
     return () => {
+      stopWatching();
       edge.current = null;
       marker.element.remove();
     };
-  }, [eventTarget, ping.color, renderer.domElement]);
+  }, [eventTarget, invalidate, ping.color, renderer.domElement]);
   useFrame(() => {
     const now = performance.now();
     if (started.current === null) {
@@ -158,7 +164,7 @@ type EdgeMarker = {
   shown: string;
 };
 
-function edgeMarker(color: string, chrome: PingEdgeInsets, corners: readonly PixelRect[]): EdgeMarker {
+function edgeMarker(color: string): EdgeMarker {
   const marker = document.createElement('div');
   marker.className = styles.edgeMarker;
   marker.dataset.pingEdge = '';
@@ -175,7 +181,7 @@ function edgeMarker(color: string, chrome: PingEdgeInsets, corners: readonly Pix
   const heading = part(styles.heading);
   part(styles.arrow, heading);
   part(styles.dot, part(styles.chip));
-  return { element: marker, heading, chrome, corners, shown: '' };
+  return { element: marker, heading, chrome: { top: 0, right: 0, bottom: 0, left: 0 }, corners: [], shown: '' };
 }
 
 /* On the edge towards the ping while the view leaves it out; hidden while it shows, where the ripple marks it. */

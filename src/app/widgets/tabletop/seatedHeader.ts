@@ -81,3 +81,21 @@ export function tableCornerRects(canvas: Element) {
       : [];
   });
 }
+
+/**
+ * Calls `onChange` whenever the canvas or the chrome over it resizes, such as a window resize or a header that wraps, so what was measured from them can be measured again.
+ * Returns what stops watching.
+ */
+export function watchTableChrome(canvas: Element, onChange: () => void): () => void {
+  if (typeof ResizeObserver === 'undefined') {
+    return () => {};
+  }
+  const shell = canvas.closest('.dune-play-shell');
+  const chrome = shell ? [...shell.querySelectorAll('.seated-header, .seated-camera, [data-compass-bar]')] : [];
+  /* An observer also reports each element once as it starts watching, which measures again harmlessly. */
+  const observer = new ResizeObserver(() => onChange());
+  for (const element of [canvas, ...chrome]) {
+    observer.observe(element);
+  }
+  return () => observer.disconnect();
+}

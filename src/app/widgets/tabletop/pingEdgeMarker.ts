@@ -12,7 +12,7 @@ export type PingEdgeInsets = Readonly<{ top: number; right: number; bottom: numb
 /**
  * Where the edge marker of a ping out of view sits, on the line from the centre towards the ping.
  * `view` is the ping in camera space (the camera looks down negative z) and `ndc` its projection.
- * `chrome` is what the page draws over the canvas edges: a ping under it is out of view too.
+ * `chrome` is what the page draws over the canvas edges, and `avoid` what it draws over a corner, such as the camera dial: a ping under either is out of view too.
  * The marker stays `clearance` pixels inside the chrome, so its arrow clears it;
  * a ping the view shows needs no marker.
  * A ping behind the camera projects through the centre to the wrong side, so its direction comes from camera space instead.
@@ -31,7 +31,13 @@ export function pingEdgePlacement(
   if (inFront) {
     const x = halfWidth + ndc[0] * halfWidth;
     const y = halfHeight - ndc[1] * halfHeight;
-    if (x >= chrome.left && x <= size.width - chrome.right && y >= chrome.top && y <= size.height - chrome.bottom) {
+    const shown = {
+      left: chrome.left,
+      top: chrome.top,
+      right: size.width - chrome.right,
+      bottom: size.height - chrome.bottom,
+    };
+    if (insideOrOn([x, y], shown) && !avoid.some((rect) => insideOrOn([x, y], rect))) {
       return null;
     }
   }
