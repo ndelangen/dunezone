@@ -1,8 +1,8 @@
 /* A ping out of view: a chip with a dot in the pinger's colour on the canvas edge, pulsing, with an arrow towards where it landed. */
 .edgeMarker {
   --ping-color: currentColor;
-  --ping-chip: black;
-  --ping-rim: white;
+  --ping-chip: var(--play-ping-edge-chip);
+  --ping-rim: var(--play-ping-edge-rim);
   position: absolute;
   top: 0;
   left: 0;

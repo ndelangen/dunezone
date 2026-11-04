@@ -1,7 +1,6 @@
 /* @jsxImportSource ./three-jsx */
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { TablePing } from '@shared/play/protocol';
-import { playUiColors } from '@shared/uiPalette';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Vector3 } from 'three';
 import type { Camera, Mesh, MeshBasicMaterial } from 'three';
@@ -151,8 +150,6 @@ function edgeMarker(color: string): EdgeMarker {
   marker.dataset.pingEdge = '';
   marker.setAttribute('aria-hidden', 'true');
   marker.style.setProperty('--ping-color', color);
-  marker.style.setProperty('--ping-chip', playUiColors.pingEdgeChip);
-  marker.style.setProperty('--ping-rim', playUiColors.pingEdgeRim);
   marker.style.setProperty('--ping-edge-ms', `${EDGE_MS}ms`);
   const part = (className: string | undefined, parent: HTMLElement = marker) => {
     const element = document.createElement('div');
