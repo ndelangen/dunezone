@@ -3,7 +3,7 @@ import { describe, expect, test } from 'vite-plus/test';
 import { factionTokenRingPose, factionTokenStackKey } from '../../src/shared/play/factionToken';
 import type { TablePiece, Vector3Tuple } from '../../src/shared/play/model';
 import { factionSupplyLayout } from '../../src/shared/play/setupLayout';
-import { planarDistance, restingPositionAt } from '../../src/shared/play/tableGeometry';
+import { BOARD_RIM_RADIUS, planarDistance, restingPositionAt } from '../../src/shared/play/tableGeometry';
 import { isOverlapFreePosition } from '../../src/shared/play/tablePhysics';
 import { tableSeatAngles } from '../../src/shared/play/tableSettings';
 import { hostedFixturePlan } from './fixture';
@@ -257,6 +257,37 @@ describe('reserves kept clear of what stays put', () => {
     expect(planarDistance(locked.position, spots[0]!)).toBeCloseTo(0);
     expect(returned.items).toHaveLength(3);
     expect(isOverlapFreePosition(returned, returned.position, [locked])).toBe(true);
+  });
+});
+
+describe('reserve spots crowded by other pieces', () => {
+  test('a returned reserve never lands where the next return would miss it', () => {
+    const spots = factionSupplyLayout(angles[0]!, KINDS.length).reserves;
+    /* Locked Atreides piles crowd the table round the Harkonnen reserve spots, leaving no room near them. */
+    const grid = Array.from({ length: 13 }, (_, step) => (step - 6) * 0.3);
+    const blockers = grid
+      .flatMap((x) => grid.map((dz) => [spots[0]![0] + x + 0.2, 0, spots[0]![2] + dz] as Vector3Tuple))
+      .filter((at) => Math.hypot(at[0], at[2]) <= 5.4 && spots.some((spot) => planarDistance(at, spot) <= 1.4))
+      .map((at, index) => ({
+        ...troops({ id: `blocker-${index}`, stackKey: 'troops:atreides:blocker', count: 1, at }),
+        locked: true,
+      }));
+    const { table } = room(blockers);
+    let refused: unknown;
+    try {
+      dropOn(table, 'regular-board', token(table, 'harkonnen'));
+    } catch (error) {
+      refused = error;
+    }
+    const harkonnen = table.snapshot.table.pieces.filter((candidate) => candidate.stackKey === KINDS[0]);
+    const reachable = (position: Vector3Tuple) =>
+      Math.hypot(position[0], position[2]) > BOARD_RIM_RADIUS &&
+      spots.some((spot) => planarDistance(position, spot) <= 1);
+    if (refused) {
+      expect(piece(table, 'regular-board')!.items).toHaveLength(3);
+    } else {
+      expect(harkonnen.filter((pile) => !reachable(pile.position))).toEqual([]);
+    }
   });
 });
 
