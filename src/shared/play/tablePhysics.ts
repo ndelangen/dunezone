@@ -1,5 +1,5 @@
 import type { TablePiece, Vector3Tuple } from './model';
-import { fromPieceFrame, POINTER_OUTLINE, isPointerToken } from './pointerToken';
+import { fromPieceFrame, POINTER_OUTLINE, isPointerToken, pointerCovers } from './pointerToken';
 import type { PlanePoint } from './pointerToken';
 import { placementAnchorForPose } from './tableFurnitureLayout';
 import {
@@ -407,12 +407,15 @@ export function isOverlapFreePosition(
   /* Pieces stand on an HMS plate rather than beside it, so a plate is in the way only of another plate. */
   const plateMoving = isPointerToken(movingPiece);
   const leaderMoving = isLeaderPiece(movingPiece);
+  const plates = obstacles.filter((obstacle) => isPointerToken(obstacle) && !obstacle.inventory);
+  /* A plate lifts its riders to one height, so leaders on a plate keep their whole footprint apart even in the Tanks. */
+  const inPile = (point: Vector3Tuple) => isInTanks(point) && !plates.some((plate) => pointerCovers(plate, point));
   return obstacles.every(
     (obstacle) =>
       !!obstacle.inventory ||
       obstacle.items.length === 0 ||
       (isPointerToken(obstacle) && !plateMoving) ||
-      (leaderMoving && isLeaderPiece(obstacle) && isInTanks(position) && isInTanks(obstacle.position)
+      (leaderMoving && isLeaderPiece(obstacle) && inPile(position) && inPile(obstacle.position)
         ? planarDistance(position, obstacle.position) >= LEADER_SPACING
         : !piecesOverlapAt(movingPiece, position, obstacle))
   );

@@ -3,6 +3,7 @@ import { describe, expect, test } from 'vite-plus/test';
 import { rotatedPiece } from './commands';
 import { freshTableState } from './model';
 import type { TableState, Vector3Tuple } from './model';
+import { POINTER_TOKEN_TYPE } from './pointerToken';
 import { CARD_BAY_PLACEMENT_ANCHORS, SHARED_ITEM_PLACEMENT_ANCHORS } from './tableFurnitureLayout';
 import {
   clampPositionToTable,
@@ -125,6 +126,27 @@ describe('leader discs in a pile', () => {
     const moving = leaderAt('rabban', [0, 0.005, 0]);
 
     expect(isOverlapFreePosition(moving, [0.6, 0.005, 0], [resting])).toBe(false);
+  });
+
+  test('keep their whole footprint apart on an HMS plate in the Tanks', () => {
+    const resting = leaderAt('feyd', [-0.3, 0.005, 7.5]);
+    const moving = leaderAt('rabban', [0, 0.005, 0]);
+    const hms = {
+      ...cardWellFixtures().troop,
+      id: 'hms',
+      stackKey: 'token:hms',
+      position: [0, 0.005, 7.5] as Vector3Tuple,
+      items: [
+        {
+          id: 'hms-item',
+          faceUp: true,
+          artwork: { front: 'hms.jpg', back: 'hms.jpg', name: 'HMS', type: POINTER_TOKEN_TYPE },
+        },
+      ],
+    };
+
+    expect(isOverlapFreePosition(moving, [0.3, 0.005, 7.5], [resting])).toBe(true);
+    expect(isOverlapFreePosition(moving, [0.3, 0.005, 7.5], [resting, hms])).toBe(false);
   });
 
   test('keeps its full footprint from other pieces', () => {
