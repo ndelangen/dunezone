@@ -2513,6 +2513,54 @@ describe('unanswered commands', () => {
   });
 });
 
+describe('the Spice blow command', () => {
+  test('places every face-up spice card one after another, so none is dropped past the unanswered limit', async () => {
+    const client = await connected();
+    const snapshot = initialSnapshot();
+    const loose = snapshot.table.pieces.find((piece) => piece.id === 'treachery-card-loose')!;
+    const territories = ['broken_land', 'arsunt', 'hagga_basin', 'red_chasm', 'funeral_plain'];
+    const cards: TablePiece[] = territories.map((territory, index) => ({
+      ...loose,
+      id: `spice-card-${index}`,
+      inventory: undefined,
+      battleOverlay: undefined,
+      position: [5, 0.005, -2 + index],
+      items: [
+        {
+          id: `spice-card-${index}-item`,
+          faceUp: true,
+          artwork: {
+            back: 'https://dune.zone/spice.jpg',
+            type: 'card-spice',
+            spiceBlow: { amount: 2, territories: [territory] },
+          },
+        },
+      ],
+    }));
+    socket().deliver(
+      view({
+        snapshot: {
+          ...snapshot,
+          stage: 'play',
+          table: { ...snapshot.table, pieces: [...snapshot.table.pieces, ...cards] },
+        },
+      })
+    );
+    const blows = () =>
+      socket().sent.flatMap((message) =>
+        message.type === 'command' && message.action.kind === 'spice-blow' ? [message] : []
+      );
+    table(client).spiceBlowControls!.placeAll();
+    expect(blows()).toHaveLength(1);
+    for (let answered = 1; answered < cards.length; answered++) {
+      socket().deliver({ type: 'rejected', requestId: blows().at(-1)!.commandId, message: 'The table changed.' });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(blows()).toHaveLength(answered + 1);
+    }
+    expect(blows().map(({ action }) => ('territory' in action ? action.territory : null))).toEqual(territories);
+  });
+});
+
 describe('a plate another player carries', () => {
   const plateItem = {
     id: 'hms-item',

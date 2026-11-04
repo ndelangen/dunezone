@@ -15,7 +15,7 @@ export function boardPointToTable([x, y]: Readonly<Point>): [number, number] {
 }
 
 /** A table point, as x and z, in board drawing units. */
-export function tablePointToBoard(x: number, z: number): Point {
+function tablePointToBoard(x: number, z: number): Point {
   return [CENTER[0] + (x * RADIUS) / BOARD_RADIUS, CENTER[1] + (z * RADIUS) / BOARD_RADIUS];
 }
 

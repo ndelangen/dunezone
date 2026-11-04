@@ -4,7 +4,7 @@ import { legacyHighlightTint } from '../boards/spiceHighlights';
 import { tintTerritorySchema } from '../boards/tints';
 
 /* Far more than one card's spice; bounds what one placement spawns. */
-export const SPICE_BLOW_MAX = 30;
+const SPICE_BLOW_MAX = 30;
 /* A card names one territory, or a few the spice may go to; its spice goes to the first with room. More is a map, not a blow. */
 const MAX_BLOW_TERRITORIES = 8;
 const MAX_BLOW_SPOTS = 16;
@@ -62,6 +62,16 @@ function highlightTerritories(card: LegacyCard): string[] {
   );
 }
 
+function linkOf(card: LegacyCard): LinkedBoard | undefined {
+  return card.board && typeof card.board === 'object' ? (card.board as LinkedBoard) : undefined;
+}
+
+/* The board a card's map was drawn on, when its ID is one the table can keep. */
+function boardIdOf(link: LinkedBoard | undefined): { boardId?: string } {
+  const id = link?.asset_id;
+  return typeof id === 'string' && id.length <= MAX_BOARD_ID ? { boardId: id } : {};
+}
+
 /**
  * What a spice card's revealed face asks the table to do, read from the card as the catalogue stored it.
  * A card that names no territory, such as Shai-Hulud, has none.
@@ -71,7 +81,7 @@ export function spiceBlowOf(type: string, data: unknown): SpiceBlow | undefined 
     return undefined;
   }
   const card = data as LegacyCard;
-  const link = card.board && typeof card.board === 'object' ? (card.board as LinkedBoard) : undefined;
+  const link = linkOf(card);
   const linked = link ? linkedTerritories(link) : [];
   /* A linked board that marks no territory falls back to the highlights the card still carries. */
   const territories = linked.length ? linked : highlightTerritories(card);
@@ -80,9 +90,7 @@ export function spiceBlowOf(type: string, data: unknown): SpiceBlow | undefined 
     amount: card.amount,
     territories: [...new Set(territories)].slice(0, MAX_BLOW_TERRITORIES),
     ...(spots.length ? { spots: spots.slice(0, MAX_BLOW_SPOTS) } : {}),
-    ...(link && typeof link.asset_id === 'string' && link.asset_id.length <= MAX_BOARD_ID
-      ? { boardId: link.asset_id }
-      : {}),
+    ...boardIdOf(link),
   });
   return parsed.success ? parsed.data : undefined;
 }

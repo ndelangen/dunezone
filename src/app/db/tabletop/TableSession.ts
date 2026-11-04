@@ -751,19 +751,47 @@ export class TableSession {
       return placement && { amount: placement.amount, name: placement.name };
     },
     place: (pieceId) => {
-      const placement = this.spiceBlowPlacement(pieceId);
-      if (placement) {
-        const { amount: _amount, ...action } = placement;
-        this.command({ kind: 'spice-blow', ...action, position: [...action.position] });
-      }
+      this.placeSpiceBlow(pieceId);
     },
     placeAll: () => {
-      /* Every revealed spice card on the table, the top card of each pile only, places its spice once. */
-      for (const { pieceId } of revealedSpiceBlows(this.table?.state.pieces ?? [])) {
-        this.spiceBlowControls.place(pieceId);
+      /* Every revealed spice card on the table, the top card of each pile only, places its spice once, one after another. */
+      if (this.spiceBlowInFlight && !this.unanswered.has(this.spiceBlowInFlight)) {
+        this.spiceBlowInFlight = null;
       }
+      this.spiceBlowQueue = revealedSpiceBlows(this.table?.state.pieces ?? []).map(({ pieceId }) => pieceId);
+      this.nextSpiceBlow();
     },
   };
+  /*
+   * The Spice blow command's cards still to place. Each goes out once the one before is answered, against the table as it is then,
+   * so no card is dropped by the limit on unanswered commands and each finds its spot among the spice placed before it.
+   */
+  private spiceBlowQueue: string[] = [];
+  private spiceBlowInFlight: string | null = null;
+  private nextSpiceBlow() {
+    while (!this.spiceBlowInFlight && this.spiceBlowQueue.length) {
+      const pieceId = this.spiceBlowQueue.shift()!;
+      if (!this.spiceBlowPlacement(pieceId)) {
+        continue;
+      }
+      const sent = this.placeSpiceBlow(pieceId);
+      if (!sent) {
+        /* The table cannot take it now; the rest wait for the next Spice blow. */
+        this.spiceBlowQueue = [];
+        return;
+      }
+      this.spiceBlowInFlight = sent;
+    }
+  }
+  /** Sends one card's spice to the spot found for it now, and returns the command's id when it went out. */
+  private placeSpiceBlow(pieceId: string): string | undefined {
+    const placement = this.spiceBlowPlacement(pieceId);
+    if (!placement) {
+      return undefined;
+    }
+    const { amount: _amount, ...action } = placement;
+    return this.command({ kind: 'spice-blow', ...action, position: [...action.position] });
+  }
   /* Placing spice from a spice card is for whoever handles the table, once play has begun. */
   private spiceBlowControlsFor(canHandleTable: boolean, displayed: GameSnapshot) {
     const open = canHandleTable && displayed.stage === 'play' && this.subscription.supportsCommand('spice-blow');
@@ -771,8 +799,11 @@ export class TableSession {
   }
   private spiceBlowPlacement(pieceId: string) {
     const table = this.table;
-    const piece = table?.state.pieces.find((entry) => entry.id === pieceId);
-    if (!table || !piece || table.reservedPieceIds.has(pieceId)) {
+    if (!table || table.reservedPieceIds.has(pieceId)) {
+      return null;
+    }
+    const piece = table.state.pieces.find((entry) => entry.id === pieceId);
+    if (!piece) {
       return null;
     }
     /* A pile someone is carrying is no pile to add to, so it counts as held in place. */
@@ -1110,6 +1141,11 @@ export class TableSession {
     }
     this.pendingFlips.delete(id);
     this.unanswered.delete(id);
+    if (this.spiceBlowInFlight === id) {
+      this.spiceBlowInFlight = null;
+      /* After this answer's frame is applied, so the next card finds its spot among the spice just placed. */
+      queueMicrotask(() => this.nextSpiceBlow());
+    }
     if (viewFollows && this.sentTurns.has(id)) {
       this.doneTurns.add(id);
     } else {

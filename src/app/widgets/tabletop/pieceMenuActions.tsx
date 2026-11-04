@@ -187,7 +187,8 @@ function ownActions(piece: TablePiece, controls: MenuControls, onClose: () => vo
   if (piece.kind === 'card') {
     const blow = controls.spiceBlowControls && spiceBlowAction(piece, controls.spiceBlowControls, onClose);
     /* A spice card topping a pile keeps the pile's peek beside its placing; a lone card has nothing hidden to peek at. */
-    const first = blow ? (piece.items.length > 1 ? [blow, peek] : [blow]) : [peek];
+    const pile = piece.items.length > 1;
+    const first = blow ? [blow, ...(pile ? [peek] : [])] : [peek];
     return deckActions(piece, controls.deckControls, first);
   }
   return peekableToken(piece) ? [peek] : [];

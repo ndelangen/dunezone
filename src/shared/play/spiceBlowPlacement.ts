@@ -20,10 +20,19 @@ export type SpiceBlowPlacement = Readonly<{
 export function revealedSpiceBlow(
   piece: Pick<TablePiece, 'kind' | 'items' | 'inventory' | 'battleOverlay'> | null | undefined
 ): { item: TableItem; blow: SpiceBlow } | null {
-  const item = piece?.kind === 'card' && !piece.inventory && !piece.battleOverlay ? piece.items.at(-1) : undefined;
-  const artwork = item?.faceUp ? item.artwork : undefined;
-  const blow = artwork && 'spiceBlow' in artwork ? artwork.spiceBlow : undefined;
+  const item = topTableCard(piece);
+  const blow = item?.faceUp ? blowOf(item) : undefined;
   return item && blow ? { item, blow } : null;
+}
+
+/* The top card of a pile lying on the table, not one in an inventory or a battle plan. */
+function topTableCard(piece: Pick<TablePiece, 'kind' | 'items' | 'inventory' | 'battleOverlay'> | null | undefined) {
+  const onTable = piece?.kind === 'card' && !piece.inventory && !piece.battleOverlay;
+  return onTable ? piece.items.at(-1) : undefined;
+}
+
+function blowOf(item: TableItem): SpiceBlow | undefined {
+  return item.artwork && 'spiceBlow' in item.artwork ? item.artwork.spiceBlow : undefined;
 }
 
 /**
@@ -44,6 +53,21 @@ function spiceAtSpot(state: TableState, position: Vector3Tuple) {
   );
 }
 
+/* The blow on the card, when it may place its spice where the page asks. */
+function placeableBlow(piece: TablePiece, placement: SpiceBlowPlacement): SpiceBlow {
+  const blow = revealedSpiceBlow(piece)?.blow;
+  if (!blow) {
+    throw new GameRejection('Reveal a spice card on the table to place its spice.');
+  }
+  if (!blow.territories.includes(placement.territory)) {
+    throw new GameRejection('This spice card places its spice in another territory.');
+  }
+  if (planarDistance(placement.position, [0, 0, 0]) > BOARD_RADIUS) {
+    throw new GameRejection('Spice from a spice card lands on the board.');
+  }
+  return blow;
+}
+
 /*
  * The card's spice, added to the spice the page found in the territory, or set down as one stack exactly where the page found room in it.
  * A card may place its spice as often as the table asks, since a ruleset can blow the same card more than once.
@@ -55,17 +79,7 @@ export function placeSpiceBlowInState(
   placement: SpiceBlowPlacement,
   actorName = 'A player'
 ): TableState {
-  const revealed = revealedSpiceBlow(piece);
-  if (!revealed) {
-    throw new GameRejection('Reveal a spice card on the table to place its spice.');
-  }
-  const { blow } = revealed;
-  if (!blow.territories.includes(placement.territory)) {
-    throw new GameRejection('This spice card places its spice in another territory.');
-  }
-  if (planarDistance(placement.position, [0, 0, 0]) > BOARD_RADIUS) {
-    throw new GameRejection('Spice from a spice card lands on the board.');
-  }
+  const blow = placeableBlow(piece, placement);
   const items = Array.from({ length: blow.amount }, (_, index) => ({
     id: `spice-${state.nextEventNumber}-${index + 1}`,
     faceUp: true,
