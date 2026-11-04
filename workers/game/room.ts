@@ -82,7 +82,7 @@ import { allianceCommand } from './alliances';
 import { battleCommand } from './battle';
 import { biddingAfterTable, biddingCommand } from './bidding';
 import { concealCards, deckCommand } from './decks';
-import { restoreCommand, withDeletedPiece } from './deletions';
+import { restoreCommand, withDeletions } from './deletions';
 import { dealFixtureDeck } from './fixture';
 import { lastTurnCommand } from './lastTurn';
 import { isMovementAction, movementAfterTable, movementCommand } from './movement';
@@ -733,7 +733,7 @@ export class Room {
   private seatedCommand(identity: Identity, action: AllianceAction | RestoreAction, now: number): StoredSnapshot {
     const factionId = this.requireFaction(identity);
     return action.kind === 'restore'
-      ? restoreCommand(this.snapshot, action, seatSubject(identity.viewerSeat))
+      ? restoreCommand(this.snapshot, action, seatSubject(identity.viewerSeat), this.board())
       : allianceCommand(this.snapshot, factionId, action, now);
   }
 
@@ -747,7 +747,7 @@ export class Room {
 
   command(identity: Identity, action: RoomAction, expectedRevision: number, now = Date.now()): StoredSnapshot {
     const applied = this.applyCommand(identity, action, expectedRevision, now);
-    const next = action.kind === 'delete' ? withDeletedPiece(this.snapshot, applied, action.pieceId) : applied;
+    const next = withDeletions(this.snapshot, applied, action);
     /* A new phase closes every peek, while the table keeps who peeked at what; setup holds the phase still, so each setup step and the start of play count too. */
     const moved =
       next.phase !== this.snapshot.phase ||

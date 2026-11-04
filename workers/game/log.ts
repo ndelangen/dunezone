@@ -17,6 +17,9 @@ import { deletionId } from './deletions';
 import { internalPieceId } from './state';
 import type { StoredSnapshot } from './state';
 
+/* A deletion row is keyed by its deletion, so the row can offer Restore while the game keeps the piece. */
+const DELETION_KEY = 'deletion:v2:';
+
 /** The one name retained history shows for a deleted account. */
 export const DELETED_USER = '[deleted user]';
 
@@ -214,7 +217,7 @@ export class PublicLog {
       entries: rows.slice(0, LOG_PAGE_SIZE).map((row) => {
         // Old deletion templates did not distinguish a hidden token's name from its public label.
         const template =
-          row.class === 'deletion' && !row.key.startsWith('deletion:v2:')
+          row.class === 'deletion' && !row.key.startsWith(DELETION_KEY)
             ? '{0} deleted a piece from the game.'
             : row.template;
         const text = render(template, JSON.parse(row.people) as Person[]);
@@ -331,9 +334,6 @@ function commitEntries({
     ...restoreEntries(before, next, message, viewer, context),
   ];
 }
-
-/* A deletion row is keyed by its deletion, so the row can offer Restore while the game keeps the piece. */
-const DELETION_KEY = 'deletion:v2:';
 
 /* A restored piece comes back face down, so its row names it as the table now shows it. */
 function restoreEntries(

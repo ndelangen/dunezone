@@ -1,12 +1,24 @@
+import type { Board } from '../../src/shared/boards/schema';
 import { accepted, deletedName, nextSnapshot } from '../../src/shared/play/commands';
-import { isFlippablePiece } from '../../src/shared/play/model';
-import type { StoredPiece, TablePiece } from '../../src/shared/play/model';
+import { isFlippablePiece, nearestZone } from '../../src/shared/play/model';
+import type { StoredPiece, TablePiece, TableState, Vector3Tuple } from '../../src/shared/play/model';
 import { tableForViewer } from '../../src/shared/play/protocol';
 import type { RestoreAction } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { restingPositionAt } from '../../src/shared/play/tableGeometry';
-import { nearestCollisionFreePosition } from '../../src/shared/play/tablePhysics';
+import {
+  clampPositionToTable,
+  nearestCollisionFreePosition,
+  restingAmongLeaders,
+} from '../../src/shared/play/tablePhysics';
+import {
+  keepsInsideTerritory,
+  territoryAtTable,
+  territoryLanding,
+  withNudges,
+} from '../../src/shared/play/territoryPlacement';
+import type { TerritoryNudge } from '../../src/shared/play/territoryPlacement';
 import { DELETED_PIECES_LIMIT } from './state';
 import type { StoredSnapshot } from './state';
 
@@ -18,15 +30,30 @@ export function deletionId(revision: number): string {
   return String(revision);
 }
 
-/** The snapshot after a delete command, keeping the piece it took off the table whole so the table can bring it back. */
-export function withDeletedPiece(before: StoredSnapshot, next: StoredSnapshot, pieceId: string): StoredSnapshot {
+/**
+ * The snapshot after a command, with what the game keeps for restoring brought up to date: a delete keeps the piece it took off the table, and a fixture reset, which rebuilds the table, lets everything kept go.
+ */
+export function withDeletions(
+  before: StoredSnapshot,
+  next: StoredSnapshot,
+  action: { kind: string; pieceId?: string }
+) {
+  if (action.kind === 'reset') {
+    return next.deletedPieces.length ? { ...next, deletedPieces: [] } : next;
+  }
+  return action.kind === 'delete' && action.pieceId ? withDeletedPiece(before, next, action.pieceId) : next;
+}
+
+/* The snapshot after a delete command, keeping the piece it took off the table whole so the table can bring it back. */
+function withDeletedPiece(before: StoredSnapshot, next: StoredSnapshot, pieceId: string): StoredSnapshot {
   const piece = before.table.pieces.find((candidate) => candidate.id === pieceId);
   if (!piece || next.table.pieces.some((candidate) => candidate.id === pieceId)) {
     return next;
   }
+  /* Oldest first, so a deletion appends one entry and leaves every other where it was for the history's patch. */
   return {
     ...next,
-    deletedPieces: [{ id: deletionId(next.revision), piece }, ...next.deletedPieces].slice(0, DELETED_PIECES_LIMIT),
+    deletedPieces: [...next.deletedPieces, { id: deletionId(next.revision), piece }].slice(-DELETED_PIECES_LIMIT),
   };
 }
 
@@ -34,21 +61,28 @@ export function withDeletedPiece(before: StoredSnapshot, next: StoredSnapshot, p
  * Any seated player brings a deleted piece back where it lay, or at the nearest free spot, always face down.
  * Face down, a restored card shows nobody a face they could not see before, whatever it showed when it was deleted.
  * A peek held on the piece before it was deleted does not open it again.
+ * `board` is the board the game captured, whose territories a restored stack keeps inside, as a dropped one does.
  */
-export function restoreCommand(snapshot: StoredSnapshot, action: RestoreAction, actorName: string): StoredSnapshot {
+export function restoreCommand(
+  snapshot: StoredSnapshot,
+  action: RestoreAction,
+  actorName: string,
+  board?: Board
+): StoredSnapshot {
   const deletion = snapshot.deletedPieces.find((entry) => entry.id === action.deletionId);
   if (!deletion) {
     throw new GameRejection('That piece can no longer be restored.');
   }
-  const table = tableForViewer(snapshot, SPECTATOR_SEAT);
+  const viewed = tableForViewer(snapshot, SPECTATOR_SEAT);
+  const table = board ? { ...viewed, board } : viewed;
   if (table.pieces.some((piece) => piece.id === deletion.piece.id)) {
     throw new GameRejection('That piece is already on the table.');
   }
-  const restored = placed(faceDown(deletion.piece), table.pieces);
+  const { piece: restored, nudges = [] } = placed(faceDown(deletion.piece), table);
   const next = nextSnapshot(
     snapshot,
     accepted(
-      { ...table, pieces: [...table.pieces, restored] },
+      { ...table, pieces: [...withNudges(table.pieces, nudges), restored] },
       'piece.restore',
       `${actorName} restored ${deletedName(restored)} to the table, face down.`
     )
@@ -60,14 +94,36 @@ export function restoreCommand(snapshot: StoredSnapshot, action: RestoreAction, 
   };
 }
 
-/* The piece where it lay, or at the nearest free spot; the search keeps the height it started from, so a piece moved off its old spot rests on whatever lies under its new one. */
-function placed(piece: StoredPiece, pieces: TablePiece[]): StoredPiece {
-  const free = nearestCollisionFreePosition(piece, piece.position, pieces);
+/*
+ * The piece where it lay, or as near as there is room: inside the territory it lay in, making room there as a dropped stack does, and on the table.
+ * A piece that moves rests on whatever lies under its new spot and joins the zone it now lies in.
+ */
+function placed(piece: StoredPiece, table: TableState): { piece: StoredPiece; nudges?: TerritoryNudge[] } {
+  const origin = clampPositionToTable(piece, piece.position);
+  const landing = territoryLanding(table, piece, origin, table.pieces);
+  if (landing === null) {
+    throw new GameRejection(`${territoryAtTable(table, origin)!.name} has no room to restore ${deletedName(piece)}.`);
+  }
+  if (landing) {
+    return { piece: at(piece, landing.position, withNudges(table.pieces, landing.nudges)), nudges: landing.nudges };
+  }
+  const free = nearestCollisionFreePosition(
+    piece,
+    origin,
+    table.pieces,
+    keepsInsideTerritory(table, piece, table.pieces)
+  );
   if (!free) {
     throw new GameRejection(`There is no room on the table to restore ${deletedName(piece)}.`);
   }
   const moved = free[0] !== piece.position[0] || free[2] !== piece.position[2];
-  return { ...piece, position: moved ? restingPositionAt(free, piece) : free };
+  return { piece: at(piece, moved ? restingPositionAt(free, piece) : piece.position, table.pieces) };
+}
+
+/* The piece at a spot, raised onto any leader disc it overlaps there, as a dropped leader is, and in the zone it now lies in. */
+function at(piece: StoredPiece, position: Vector3Tuple, others: readonly TablePiece[]): StoredPiece {
+  const resting = restingAmongLeaders(piece, position, others);
+  return { ...piece, position: resting, zoneId: nearestZone(resting)?.id ?? null };
 }
 
 /* Every item turned face down; a piece that cannot be flipped comes back as it was. */

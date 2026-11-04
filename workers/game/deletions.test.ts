@@ -1,8 +1,9 @@
 import { describe, expect, test } from 'vite-plus/test';
 
 import { initialSnapshot } from '../../src/shared/play/commands';
+import { nearestZone } from '../../src/shared/play/model';
 import { restingPositionAt } from '../../src/shared/play/tableGeometry';
-import { piecesOverlapAt } from '../../src/shared/play/tablePhysics';
+import { LEADER_SPACING, piecesOverlapAt } from '../../src/shared/play/tablePhysics';
 import { hostedFixturePlan } from './fixture';
 import { Room } from './room';
 import { DELETED_PIECES_LIMIT, RoomProjection } from './state';
@@ -85,6 +86,39 @@ describe('restoring a deleted piece (#2132)', () => {
     expect(back.position).not.toEqual(card.position);
     expect(piecesOverlapAt(back, back.position, { ...other, position: card.position })).toBe(false);
     expect(back.position).toEqual(restingPositionAt(back.position, back));
+    expect(back.zoneId).toBe(nearestZone(back.position)?.id ?? null);
+  });
+
+  test('a leader restored in the Tanks rests on the leader disc it overlaps there', () => {
+    const target = room();
+    const troop = target.snapshot.table.pieces.find((piece) => piece.kind === 'force')!;
+    const leader = (id: string, x: number) => ({
+      ...troop,
+      id,
+      stackKey: `leader:harkonnen:${id}`,
+      position: [x, 0.005, 7.5] as [number, number, number],
+    });
+    target.accept({
+      ...target.snapshot,
+      table: {
+        ...target.snapshot.table,
+        pieces: [...target.snapshot.table.pieces, leader('feyd', 0), leader('rabban', LEADER_SPACING + 0.01)],
+      },
+    });
+    target.accept(target.command(alice, { kind: 'delete', pieceId: 'rabban' }, target.snapshot.revision));
+    target.accept(
+      target.command(alice, { kind: 'restore', deletionId: String(target.snapshot.revision) }, target.snapshot.revision)
+    );
+    const back = target.snapshot.table.pieces.find((piece) => piece.id === 'rabban')!;
+    expect(back.position[0]).toBe(LEADER_SPACING + 0.01);
+    expect(back.position[1]).toBeGreaterThan(0.005);
+  });
+
+  test('a fixture reset lets every kept deletion go', () => {
+    const target = room();
+    deleted(target);
+    target.accept(target.command(alice, { kind: 'reset' }, target.snapshot.revision));
+    expect(target.snapshot.deletedPieces).toEqual([]);
   });
 
   test('an observer cannot restore', () => {
@@ -107,8 +141,8 @@ describe('restoring a deleted piece (#2132)', () => {
     const tech = target.snapshot.table.pieces.find((piece) => piece.kind === 'card')!;
     target.accept(target.command(alice, { kind: 'delete', pieceId: tech.id }, target.snapshot.revision));
     expect(target.snapshot.deletedPieces).toHaveLength(DELETED_PIECES_LIMIT);
-    expect(target.snapshot.deletedPieces[0]?.piece.id).toBe(tech.id);
-    expect(target.snapshot.deletedPieces.at(-1)?.id).toBe(`old-${DELETED_PIECES_LIMIT - 2}`);
+    expect(target.snapshot.deletedPieces.at(-1)?.piece.id).toBe(tech.id);
+    expect(target.snapshot.deletedPieces[0]?.id).toBe('old-1');
     const projected = new RoomProjection('secret').snapshot(target.snapshot, 'harkonnen');
     expect(Object.keys(projected)).not.toContain('deletedPieces');
   });
