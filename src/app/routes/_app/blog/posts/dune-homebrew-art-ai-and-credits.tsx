@@ -209,6 +209,11 @@ function ChangesSection() {
         the <PostLink to="/media">media gallery</PostLink>. I&rsquo;m just one person, so if you see any mistakes,
         please let me know and I&rsquo;ll correct it as soon as possible.
       </Paragraph>
+      <Paragraph>
+        That meant going through about two thousand images and tracing where each one first appeared and who drew it. It
+        took a lot of digging, and it isn&rsquo;t finished: around 250 are still marked as found online while I look for
+        their original artist. I&rsquo;m sharing that to show I take this seriously, not to brag.
+      </Paragraph>
       <WideFigure caption="The credit line every image on Dune Zone now carries, as the media gallery shows it.">
         <CreditSample />
       </WideFigure>
