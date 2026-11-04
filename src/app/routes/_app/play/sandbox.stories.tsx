@@ -11,6 +11,7 @@ import { openControl } from './controls.stories.fixture';
 import { gameMeta, install } from './game.stories.fixture';
 import { chapter, journeyViewers, JourneyPage } from './journey.stories.fixture';
 import {
+  messyReservesSandbox,
   piece,
   sandbox,
   sandboxReady,
@@ -217,6 +218,20 @@ export const TechTokens = meta.story({
     const [customs] = tokens.filter((candidate) => !candidate.inventory);
     await expect(troopScale(customs!)).toBe(troopScale({ kind: 'force', stackKey: 'leader:any' }));
     await expect(page.getByRole('button', { name: 'Draw random tech token' })).toBeEnabled();
+  },
+});
+
+/**
+ * Seat 1, the Emperor, after a few rough turns: both reserves knocked askew behind the seat, 4 Normal troops out on the board and 2 revived ones lying face down beside the token.
+ * By hand: drag any Emperor troops onto the Emperor token.
+ * They join their reserve face up, and both reserves stand straight on the spots setup dealt them: in setup order at this seat, and at a seat down the side of the table the smaller stack takes the spot lower on the screen.
+ * Troops dropped on another faction's token are set down as before.
+ */
+export const TroopsBackToReserves = meta.story({
+  ...messyReservesSandbox,
+  play: async ({ canvasElement }) => {
+    await sandboxReady(within(canvasElement.ownerDocument.body));
+    await expect(piece((candidate) => candidate.stackKey === 'faction-token:emperor')).toBeDefined();
   },
 });
 

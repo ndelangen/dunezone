@@ -1,10 +1,12 @@
 import { PLAY_DEBUGGER_EVENTS } from '@sb/playDebugger/events';
 import { testingPreview } from '@sb/preview';
 import { factionTokenOf } from '@shared/play/factionToken';
+import { factionSupplyLayout, seatAngleOf } from '@shared/play/setupLayout';
 import { SIDE_SHELF_CENTER_X } from '@shared/play/tableFurnitureLayout';
-import { troopScale } from '@shared/play/tableGeometry';
+import { planarDistance, troopScale } from '@shared/play/tableGeometry';
 import { TANKS_PAD } from '@shared/play/tanksShelf';
 import { drawableTechTokens, isTechToken } from '@shared/play/techToken';
+import { troopFactionOf } from '@shared/play/troopReserves';
 import { addons } from 'storybook/preview-api';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
@@ -13,8 +15,16 @@ import { tableChromeInsets } from '../../../widgets/tabletop/seatedHeader';
 import { gameMeta, install } from './game.stories.fixture';
 import { chapter, journeyViewers, JourneyPage } from './journey.stories.fixture';
 import { expectHeaderPhase, openTab, phaseControls } from './playing.stories.fixture';
-import { sandbox, sandboxReady, sandboxSteps, sandboxTransport } from './sandbox.stories.fixture';
-import { shown, piece, withTechTokens } from './sandbox.stories.fixture';
+import {
+  messyReservesSandbox,
+  piece,
+  sandbox,
+  sandboxReady,
+  sandboxSteps,
+  sandboxTransport,
+  shown,
+  withTechTokens,
+} from './sandbox.stories.fixture';
 
 const meta = testingPreview.meta({
   ...gameMeta,
@@ -662,5 +672,43 @@ export const PingsOutOfView = meta.story({
     const heading = marker.children[2] as HTMLElement;
     const angle = Number.parseFloat(heading.style.rotate);
     await expect((x - width / 2) * Math.cos(angle) + (y - height / 2) * Math.sin(angle)).toBeGreaterThan(0);
+  },
+});
+
+/**
+ * Seat 1 carries its revived troops and then its board troops onto its own faction token: each time they join the Normal reserve face up, and both reserves stand on their setup spots, Normal first, as setup dealt them.
+ */
+export const TroopsGoBackToTheirReserves = meta.story({
+  ...messyReservesSandbox,
+  play: async ({ canvasElement }) => {
+    await sandboxReady(within(canvasElement.ownerDocument.body));
+    const table = sandbox.table!;
+    const token = factionTokenOf(shown().table.pieces, 'emperor')!;
+    const spots = factionSupplyLayout(seatAngleOf(shown().roster, 'emperor')!, 2).reserves;
+    const reserves = () =>
+      shown()
+        .table.pieces.filter((candidate) => !candidate.inventory && troopFactionOf(candidate) === 'emperor')
+        .filter((candidate) => spots.some((spot) => planarDistance(candidate.position, spot) < 0.01));
+    const carryHome = async (id: string) => {
+      table.receive({
+        type: 'begin',
+        carryId: id,
+        sourcePieceId: id,
+        expectedVersion: shown().versions[id]!,
+        pickup: 'whole',
+      });
+      table.receive({ type: 'drop', commandId: `${id}-drop`, carryId: id, position: token.position, orientation: 0 });
+      await expect(table.refusal).toBeUndefined();
+      await expect(shown().table.events[0]?.command).toBe('troops.reserve');
+    };
+    await carryHome('sandbox-revived');
+    await carryHome('sandbox-on-board');
+    const [normal, sardaukar] = spots.map((spot) =>
+      reserves().find((pile) => planarDistance(pile.position, spot) < 0.01)
+    );
+    await expect(normal?.items).toHaveLength(15);
+    await expect(normal?.items.every((item) => item.faceUp)).toBe(true);
+    await expect(sardaukar?.items).toHaveLength(5);
+    await expect(shown().table.pieces.some((candidate) => candidate.id.startsWith('sandbox-'))).toBe(false);
   },
 });

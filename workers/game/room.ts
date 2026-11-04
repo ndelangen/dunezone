@@ -64,11 +64,14 @@ import {
   heldPieceFor,
   canFlipInHand,
   giveSpiceDraft,
+  returnTroopsDraftToReserves,
   projectCarryAtPosition,
   settleCarryAtPosition,
 } from '../../src/shared/play/tableState';
+import type { TroopReserveLanding } from '../../src/shared/play/tableState';
 import { isTerritoryTintAction } from '../../src/shared/play/territoryTints';
 import type { TerritoryTintAction } from '../../src/shared/play/territoryTints';
+import { troopFactionOf, troopReserveKeys, troopReserveSpots } from '../../src/shared/play/troopReserves';
 import { allianceCommand } from './alliances';
 import { battleCommand } from './battle';
 import { biddingAfterTable, biddingCommand } from './bidding';
@@ -233,6 +236,8 @@ export class Room {
   readonly pointers = new Map<string, PublicPointer>();
   private readonly usedCarryIds = new Map<string, Set<string>>();
   private readonly flipUntil = new Map<string, number>();
+  /** The troop kinds a faction was dealt, in setup order, from its capture; the session sets it, and a room without it orders the kinds on the table by key. */
+  dealtTroops: (factionId: string) => readonly string[] | undefined = () => undefined;
   constructor(
     snapshot: GameSnapshot | StoredSnapshot,
     private readonly seatedPlayers: () => Identity['viewerSeat'][],
@@ -544,6 +549,15 @@ export class Room {
     if (landing.give) {
       return this.dropAsGift(identity, { guarded, draft, landing: { ...landing, give: landing.give }, late });
     }
+    const reserves = this.reservesUnder(guarded, draft, landing.position);
+    if (reserves) {
+      /* Returned troops always go back face up, so turns made in hand are dropped rather than logged. */
+      const home = { ...draft, flips: 0 };
+      const returned = returnTroopsDraftToReserves(guarded, home, reserves, seatSubject(identity.viewerSeat));
+      const table = requireAccepted(guarded, returned);
+      const raw = tableForViewer(this.snapshot, identity.viewerSeat);
+      return nextSnapshot(this.snapshot, this.restoreReservationLocks(raw, table, late));
+    }
     const settled = settleCarryAtPosition(guarded, draft, landing.position);
     if (!settled) {
       throw new GameRejection('There is no clear space for that object.');
@@ -558,6 +572,21 @@ export class Room {
     const next = nextSnapshot(this.snapshot, this.restoreReservationLocks(raw, table, late));
     /* A faction token flipped in hand turns its faction out of the bidding, the same as the flip command. */
     return { ...next, ...biddingAfterTable(this.snapshot, next, Date.now()) };
+  }
+
+  /** The reserves of the faction whose troops are held, when they are let go over that faction's own token. */
+  private reservesUnder(
+    guarded: TableState,
+    draft: DraftMove,
+    position: Vector3Tuple
+  ): TroopReserveLanding | undefined {
+    const factionId = troopFactionOf(heldPieceFor(guarded, draft));
+    if (!factionId || factionTokenUnder(guarded.pieces, position) !== factionId) {
+      return undefined;
+    }
+    const keys = troopReserveKeys(guarded.pieces, factionId, this.dealtTroops(factionId));
+    const spots = troopReserveSpots(this.snapshot.roster, factionId, keys);
+    return spots && { factionName: this.factionName(factionId), spots };
   }
 
   /** Spice let go over another faction's token goes to that faction: into its spice reserve as a payment, or onto its bribe pile. */

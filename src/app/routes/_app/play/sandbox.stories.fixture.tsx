@@ -13,11 +13,13 @@ import { storedSnapshotSchema } from '../../../../../workers/game/state';
 import type { StoredSnapshot } from '../../../../../workers/game/state';
 import { LocalTable } from '../tutorial/table/localTable';
 import type { TableMessage } from '../tutorial/table/localTable';
+import { install } from './game.stories.fixture';
 import recording from './journey.recording/journey.json';
-import { journeySteps, journeyViewers, stepCode, timelineSteps, viewerLabel } from './journey.stories.fixture';
+import { chapter, journeySteps, journeyViewers, stepCode, timelineSteps, viewerLabel } from './journey.stories.fixture';
 import { dreamrulesTechTokenPieces } from './panels/inventory/techTokens.stories.fixture';
 import { capturedFactions } from './product.stories.fixture';
 import { storyTransport } from './storyTransport';
+import { dealtTroopsOf, withMessyReserves } from './troopReserves.stories.fixture';
 
 /*
  * The Play sandbox: the game Worker's own table (`Room`) running in the browser, started from the room's stored state at
@@ -104,6 +106,9 @@ export class SandboxTable extends LocalTable {
     });
     this.start = index;
     this.prepare = prepare;
+    /* Setup dealt the reserves in the order the factions' captures list their troops, which the dealt table still shows. */
+    const dealt = journeySteps()[sandboxSteps()[0]!]!;
+    this.room.dealtTroops = dealtTroopsOf(storedSnapshotSchema.parse(onCurrentBoard(dealt.stored)));
   }
 }
 
@@ -228,6 +233,19 @@ export function withTechTokens(stored: StoredSnapshot, drawn: readonly string[] 
   }
   return { ...stored, table: { ...stored.table, pieces }, versions };
 }
+
+/** A sandbox at Shipment and Movement as seat 1, its troops in a mess for carrying back to their reserves. */
+export const messyReservesSandbox = {
+  args: { step: chapter('Shipment and Movement'), seat: 'seat-1' },
+  beforeEach: ({ args }: { args: { step?: number; seat?: string } }) =>
+    install(() =>
+      sandboxTransport({
+        start: Number(args.step ?? 1) - 1,
+        seat: String(args.seat ?? 'seat-1'),
+        prepare: withMessyReserves,
+      })
+    )(),
+};
 
 /**
  * The recording's Spice cards as a game now captures them: each Broken Land card names its territory and its eight spice, as the published card's highlight and amount say, so its revealed face can place its spice (#2678).

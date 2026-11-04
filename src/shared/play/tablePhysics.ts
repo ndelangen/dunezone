@@ -302,7 +302,8 @@ function footprintTableRadius(piece: TablePiece): number {
   return Math.hypot(footprint.halfX, footprint.halfZ);
 }
 
-function isOnRoundTable(piece: TablePiece, position: Vector3Tuple): boolean {
+/** Whether `piece` at `position` stands wholly on the round table, off the Tanks shelf. */
+export function isOnRoundTable(piece: TablePiece, position: Vector3Tuple): boolean {
   return Math.hypot(position[0], position[2]) + footprintTableRadius(piece) <= TABLE_PLAY_RADIUS;
 }
 
