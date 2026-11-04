@@ -3,7 +3,7 @@ import { describe, expect, test } from 'vite-plus/test';
 import { rotatedPiece } from './commands';
 import { freshTableState } from './model';
 import type { TableState, Vector3Tuple } from './model';
-import { CARD_BAY_PLACEMENT_ANCHORS } from './tableFurnitureLayout';
+import { CARD_BAY_PLACEMENT_ANCHORS, SHARED_ITEM_PLACEMENT_ANCHORS } from './tableFurnitureLayout';
 import {
   clampPositionToTable,
   isCollisionFreePosition,
@@ -14,6 +14,7 @@ import {
   restingAmongLeaders,
   TABLE_PLAY_RADIUS,
 } from './tablePhysics';
+import { applyDraftToState, draftForGesture, settleCarryAtPosition } from './tableState';
 import { BOTTOM_SHELF_BOUNDS, isInTanks } from './tanksShelf';
 
 function fixturePiece(state: TableState, id: string) {
@@ -134,6 +135,18 @@ describe('leader discs in a pile', () => {
     const rested = restingAmongLeaders(moving, [0.3, 0.38, 7.5], [below, onTop]);
     expect(rested[1]).toBeGreaterThan(0.39);
     expect(restingAmongLeaders(moving, [3, 0.38, 7.5], [below, onTop])).toEqual([3, 0.38, 7.5]);
+  });
+
+  test('rest above a leader they overlap when dropped into a shared well', () => {
+    const well = SHARED_ITEM_PLACEMENT_ANCHORS[0]!.position;
+    const resting = leaderAt('feyd', [well[0] + 0.5, 0.005, well[2] + 0.25]);
+    const moving = leaderAt('rabban', [0, 0.005, 0]);
+    const state = { ...freshTableState(), pieces: [resting, moving] };
+    const settled = settleCarryAtPosition(state, draftForGesture(moving, 'whole')!, [well[0], 0.4, well[2]]);
+    const dropped = applyDraftToState(state, settled!).pieces.find((piece) => piece.id === 'rabban')!;
+
+    expect(dropped.position[0]).toBeCloseTo(well[0]);
+    expect(dropped.position[1]).toBeGreaterThan(0.005);
   });
 
   test('keep their place in the pile when turned', () => {

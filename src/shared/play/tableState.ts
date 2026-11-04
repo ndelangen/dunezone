@@ -433,8 +433,12 @@ function settleMoveAtPosition(
       ...piece,
       orientation: placementAnchor.orientation,
     };
-    const anchoredPosition = restingPositionAt(placementAnchor.position, anchoredPiece);
     const rules = placementRules(state.pieces, piece, placementObstaclesFor(state, draft));
+    const anchoredPosition = restingAmongLeaders(
+      anchoredPiece,
+      restingPositionAt(placementAnchor.position, anchoredPiece),
+      rules.obstacles
+    );
     if (
       !isOverlapFreePosition(anchoredPiece, anchoredPosition, rules.obstacles) ||
       !rules.fits(anchoredPosition, placementAnchor.orientation)
