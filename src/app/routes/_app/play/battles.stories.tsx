@@ -1,6 +1,10 @@
 import preview from '@sb/preview';
+import { BOARD_RADIUS } from '@shared/play/tableGeometry';
+import { resolveRulebookBoardDefinition } from '@shared/rulebooks/boardDefinitions';
 import { expect, within } from 'storybook/test';
 
+import { battleMarkerHover } from '../../../widgets/tabletop/battleMarkerHover';
+import { dragBattleMarker } from './battles.marker.stories.fixture';
 import { battleSetup, readiness, revealedPieces } from './battles.stories.fixture';
 import { gameMeta } from './game.stories.fixture';
 import { settled } from './playing.stories.fixture';
@@ -72,5 +76,30 @@ export const WinnerCallsDiffer = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await settled(() => expect(page.getByText('House Atreides says right side won')).toBeVisible());
+  },
+});
+
+/**
+ * Seat 2 picks up the battle marker and holds it over Carthag: the territory lights up in the marker's colours, a wash with a bright edge, and follows the marker as it moves.
+ * Let go and the battle starts there, with the territory staying lit until it ends.
+ * By hand: drag the marker from the tracker across the board.
+ */
+export const MarkerLightsItsTerritory = meta.story({
+  beforeEach: battleSetup('preparing', 'seat-2', (snapshot) => {
+    snapshot.battle = null;
+    snapshot.battlePlan = null;
+  }),
+  play: async ({ canvasElement }) => {
+    const carthag = resolveRulebookBoardDefinition('arrakis')!.geometry.parts.find((part) => part.key === 'carthag')!;
+    await dragBattleMarker(
+      canvasElement.ownerDocument,
+      [
+        (carthag.x + carthag.width / 2 - 0.5) * BOARD_RADIUS * 2,
+        0.18,
+        (carthag.y + carthag.height / 2 - 0.5) * BOARD_RADIUS * 2,
+      ],
+      () => expect(battleMarkerHover()).toBe('carthag'),
+      { hold: true }
+    );
   },
 });

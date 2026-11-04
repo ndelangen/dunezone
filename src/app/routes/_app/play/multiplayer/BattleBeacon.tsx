@@ -1,16 +1,19 @@
 /* @jsxImportSource @app/widgets/tabletop/three-jsx */
 import { Html } from '@react-three/drei/webgpu';
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
+import type { Board } from '@shared/boards/schema';
 import type { PublicBattle } from '@shared/play/battle';
 import type { Vector3Tuple } from '@shared/play/model';
 import { phaseAt, STANDARD_PHASES } from '@shared/play/phases';
 import { TRACKER_DISC_CONTENT_Y, trackerArcSlots } from '@shared/play/tableTrackers';
+import { territoryAtTable } from '@shared/play/territoryPlacement';
 import type { RefObject } from 'react';
 import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { Group } from 'three';
 
 import type { TableProjection } from '../../../../db/tabletop/TableSession';
 import { useMotionAllowed } from '../../../../styles/motion';
+import { setBattleMarkerHover } from '../../../../widgets/tabletop/battleMarkerHover';
 import type { PointerSession } from '../../../../widgets/tabletop/PointerSession';
 import { PointerSessionContext } from '../../../../widgets/tabletop/PointerSessionContext';
 import styles from './BattleBeacon.module.css';
@@ -194,6 +197,35 @@ function useCarryAllowed(table: TableProjection, inBattle: boolean, battle: bool
   return allowed;
 }
 
+/**
+ * Lights the territory under the marker while it is carried, and the one it was let go over until the battle answers.
+ * The battle's own territory then takes over.
+ */
+function useMarkerHover({
+  board,
+  carrying,
+  carryAt,
+  pending,
+}: {
+  board: Board | undefined;
+  carrying: boolean;
+  carryAt: () => Vector3Tuple | null;
+  pending: Vector3Tuple | null;
+}) {
+  const territoryUnder = (point: Vector3Tuple | null) => (point && territoryAtTable({ board }, point)?.id) ?? null;
+  useFrame(() => {
+    if (carrying) {
+      setBattleMarkerHover(territoryUnder(carryAt()));
+    }
+  });
+  useEffect(() => {
+    if (!carrying) {
+      setBattleMarkerHover(territoryUnder(pending));
+    }
+  });
+  useEffect(() => () => setBattleMarkerHover(null), []);
+}
+
 type Props = {
   table: TableProjection;
   battle: PublicBattle | null | undefined;
@@ -221,6 +253,7 @@ export function BattleBeacon({ table, battle, onDrop }: Props) {
       onDrop(point);
     },
   });
+  useMarkerHover({ board: table.snapshot.board?.definition, carrying, carryAt, pending });
   const group = useRef<Group>(null);
   const handle = useRef<Group>(null);
   const mode = beaconMode({ inBattle, battle: Boolean(battle), pending: Boolean(pending), carrying });
