@@ -39,12 +39,16 @@ function strings(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : [];
 }
 
-/* The tints that mark the blow: those stamped with spice, or else every filled tint. */
-function linkedTerritories(link: LinkedBoard): string[] {
+/* The territories the card's board stamps with spice. */
+function stampedTerritories(link: LinkedBoard): string[] {
   const tints = Array.isArray(link.tints) ? link.tints : [];
-  const stamped = tints.filter((tint) => strings(tint.stamps).includes('spice'));
-  const marking = stamped.length ? stamped : tints.filter((tint) => !tint.outline);
-  return marking.flatMap((tint) => strings(tint.territories));
+  return tints.filter((tint) => strings(tint.stamps).includes('spice')).flatMap((tint) => strings(tint.territories));
+}
+
+/* The card's first filled tint: a card that marks more, as a Discovery card marks its token's territory too, names its spice first. */
+function firstFilledTerritories(link: LinkedBoard): string[] {
+  const tints = Array.isArray(link.tints) ? link.tints : [];
+  return strings(tints.find((tint) => !tint.outline)?.territories);
 }
 
 /* A token off the board's frame is left out, rather than costing the card its blow. */
@@ -72,6 +76,32 @@ function boardIdOf(link: LinkedBoard | undefined): { boardId?: string } {
   return typeof id === 'string' && id.length <= MAX_BOARD_ID ? { boardId: id } : {};
 }
 
+/*
+ * Where the card puts its spice: the territories its board stamps with spice; else those its highlights name, which mark only the spice;
+ * else its board's first filled tint.
+ */
+function blowTerritories(card: LegacyCard, link: LinkedBoard | undefined): string[] {
+  const stamped = link ? stampedTerritories(link) : [];
+  if (stamped.length) {
+    return stamped;
+  }
+  const highlighted = highlightTerritories(card);
+  return highlighted.length || !link ? highlighted : firstFilledTerritories(link);
+}
+
+/* The blow as the card describes it, before the schema checks it. */
+function blowInput(card: LegacyCard) {
+  const link = linkOf(card);
+  const territories = blowTerritories(card, link);
+  const spots = link ? linkedSpots(link).slice(0, MAX_BLOW_SPOTS) : [];
+  return {
+    amount: card.amount,
+    territories: [...new Set(territories)].slice(0, MAX_BLOW_TERRITORIES),
+    ...(spots.length ? { spots } : {}),
+    ...boardIdOf(link),
+  };
+}
+
 /**
  * What a spice card's revealed face asks the table to do, read from the card as the catalogue stored it.
  * A card that names no territory, such as Shai-Hulud, has none.
@@ -80,17 +110,6 @@ export function spiceBlowOf(type: string, data: unknown): SpiceBlow | undefined 
   if (type !== 'card-spice' || !data || typeof data !== 'object') {
     return undefined;
   }
-  const card = data as LegacyCard;
-  const link = linkOf(card);
-  const linked = link ? linkedTerritories(link) : [];
-  /* A linked board that marks no territory falls back to the highlights the card still carries. */
-  const territories = linked.length ? linked : highlightTerritories(card);
-  const spots = link ? linkedSpots(link) : [];
-  const parsed = spiceBlowSchema.safeParse({
-    amount: card.amount,
-    territories: [...new Set(territories)].slice(0, MAX_BLOW_TERRITORIES),
-    ...(spots.length ? { spots: spots.slice(0, MAX_BLOW_SPOTS) } : {}),
-    ...boardIdOf(link),
-  });
+  const parsed = spiceBlowSchema.safeParse(blowInput(data as LegacyCard));
   return parsed.success ? parsed.data : undefined;
 }

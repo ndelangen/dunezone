@@ -85,6 +85,18 @@ describe('spice blow capture', () => {
     expect(blow).toEqual({ amount: 6, territories: ['arsunt'], spots: [[150, 370]], boardId: 'arrakis-board' });
   });
 
+  test('without a spice stamp, a card that also marks a token territory places its spice in the first territory it marks', () => {
+    const blow = spiceBlowOf('card-spice', {
+      amount: 6,
+      board: {
+        asset_id: 'arrakis-board',
+        tints: [{ territories: ['sihaya_ridge'] }, { territories: ['cielago_east'] }],
+        tokens: [],
+      },
+    });
+    expect(blow).toEqual({ amount: 6, territories: ['sihaya_ridge'], boardId: 'arrakis-board' });
+  });
+
   test('a card that names no territory, as Shai-Hulud, places nothing', () => {
     expect(spiceBlowOf('card-spice', { highlights: [], amount: 1 })).toBeUndefined();
     expect(spiceBlowOf('card-treachery', { highlights: ['broken-land'], amount: 8 })).toBeUndefined();

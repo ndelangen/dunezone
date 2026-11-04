@@ -776,8 +776,8 @@ export class TableSession {
       }
       const sent = this.placeSpiceBlow(pieceId);
       if (!sent) {
-        /* The table cannot take it now; the rest wait for the next Spice blow. */
-        this.spiceBlowQueue = [];
+        /* The table cannot take it yet, as while a fresh view is on its way; the card waits for the next view. */
+        this.spiceBlowQueue.unshift(pieceId);
         return;
       }
       this.spiceBlowInFlight = sent;
@@ -1320,6 +1320,10 @@ export class TableSession {
     this.acceptSnapshot(message.snapshot, message.previous?.snapshot);
     if (this.carry?.landed) {
       this.carry = null;
+    }
+    /* A Spice blow the table could not take a moment ago goes on with the view it waited for. */
+    if (this.spiceBlowQueue.length) {
+      queueMicrotask(() => this.nextSpiceBlow());
     }
   }
   private acceptSnapshot(snapshot: GameSnapshot, previous: GameSnapshot | undefined) {

@@ -2559,6 +2559,54 @@ describe('the Spice blow command', () => {
     }
     expect(blows().map(({ action }) => ('territory' in action ? action.territory : null))).toEqual(territories);
   });
+
+  test('a card the table cannot take yet waits for the next view rather than being dropped', async () => {
+    const client = await connected();
+    const snapshot = initialSnapshot();
+    const loose = snapshot.table.pieces.find((piece) => piece.id === 'treachery-card-loose')!;
+    const card = (index: number, territory: string): TablePiece => ({
+      ...loose,
+      id: `spice-card-${index}`,
+      inventory: undefined,
+      battleOverlay: undefined,
+      position: [5, 0.005, index],
+      items: [
+        {
+          id: `spice-card-${index}-item`,
+          faceUp: true,
+          artwork: {
+            back: 'https://dune.zone/spice.jpg',
+            type: 'card-spice',
+            spiceBlow: { amount: 2, territories: [territory] },
+          },
+        },
+      ],
+    });
+    const played = {
+      ...snapshot,
+      stage: 'play' as const,
+      table: { ...snapshot.table, pieces: [...snapshot.table.pieces, card(0, 'broken_land'), card(1, 'arsunt')] },
+    };
+    socket().deliver(view({ snapshot: played }));
+    const blows = () =>
+      socket().sent.flatMap((message) =>
+        message.type === 'command' && message.action.kind === 'spice-blow' ? [message] : []
+      );
+    /* Four storm moves fill the unanswered limit, so the first card cannot go out yet. */
+    for (let press = 0; press < 4; press++) {
+      client.moveStormBy(1);
+    }
+    table(client).spiceBlowControls!.placeAll();
+    expect(blows()).toHaveLength(0);
+    for (const message of socket().sent.slice()) {
+      if (message.type === 'command' && message.action.kind !== 'spice-blow') {
+        socket().deliver({ type: 'rejected', requestId: message.commandId, message: 'The table changed.' });
+      }
+    }
+    socket().deliver(view({ snapshot: { ...played, revision: played.revision + 1 } }));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(blows()).toHaveLength(1);
+  });
 });
 
 describe('a plate another player carries', () => {
