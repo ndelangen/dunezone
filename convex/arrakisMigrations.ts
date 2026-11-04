@@ -53,7 +53,7 @@ function covers(tints: readonly BoardTint[], tint: BoardTint) {
  * the rest is kept exactly as stored, so a parse's defaults never reach the row.
  * A row that no longer parses, or a linked card whose tints do not cover its old highlights, is left as it is for the verify to name.
  */
-export function spiceCardOnBoard(data: unknown, boardId: string): unknown {
+export function spiceCardOnBoard(data: unknown, boardId: Id<'assets'>): unknown {
   const parsed = SpiceAsset.safeParse(data);
   if (!parsed.success || (parsed.data.highlights.length === 0 && parsed.data.board)) {
     return data;
@@ -81,7 +81,7 @@ type Entry = [key: string, item: unknown];
 const misspeltTerritory = ([key, item]: Entry) =>
   key === 'territory' && typeof item === 'string' ? MISSPELT_TERRITORIES[item] : undefined;
 
-function renamed(entry: Entry, boardId: string): unknown {
+function renamed(entry: Entry, boardId: Id<'assets'>): unknown {
   if (entry[0] === 'boardId' && entry[1] === BUILT_IN_ARRAKIS_BOARD_ID) {
     return boardId;
   }
@@ -89,7 +89,7 @@ function renamed(entry: Entry, boardId: string): unknown {
 }
 
 /** Rulebook Contents with every board reference to the built-in Arrakis board renamed to the saved board's id, and its one misspelt territory corrected. */
-export function contentsOnBoard(value: unknown, boardId: string): unknown {
+export function contentsOnBoard(value: unknown, boardId: Id<'assets'>): unknown {
   if (Array.isArray(value)) {
     return value.map((item) => contentsOnBoard(item, boardId));
   }
