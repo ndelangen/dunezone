@@ -35,6 +35,7 @@ import {
   TABLE_PAN_SPEED_MIN,
   useTablePanSpeed,
 } from '../../../../widgets/tabletop/tablePanSpeed';
+import { setShortcutsButton, useShortcutsButton } from '../compass/shortcutsButton';
 import { TABLE_LABEL_OPTIONS, useTableLabels } from '../tableLabels';
 import { publicControlsOf } from './publicControls';
 import { isSpectator, offersActions } from './tableFactions';
@@ -396,6 +397,11 @@ function CameraFollowsPhaseItem() {
   return <ViewerToggleItem label="Camera follows phase" on={useCameraFollowsPhase()} set={setCameraFollowsPhase} />;
 }
 
+/* Keeps the keyboard shortcuts button in the bar at the bottom of the table, or takes it off. */
+function ShortcutsButtonItem() {
+  return <ViewerToggleItem label="Keyboard shortcuts button" on={useShortcutsButton()} set={setShortcutsButton} />;
+}
+
 /* Pins the stack counts or piece names on; holding the key shows them for a moment. */
 function TableLabelItems() {
   const labels = useTableLabels();
@@ -458,6 +464,7 @@ export function GameMenu({
         <BoardSkinItems />
         <PlanetShadingItem />
         <TableLabelItems />
+        <ShortcutsButtonItem />
         {table.snapshot.stage === 'play' && offersActions(table) && (
           <Menu.CheckboxItem
             checked={table.snapshot.bidding?.timed ?? idleBidding().timed}

@@ -255,7 +255,7 @@ function windowCandidate(entry: TableWindow, actions: SuggestionActions): Candid
     icon: entry.player ? <PlayerToken player={entry.player} size={20} /> : <TopicIcon topic={entry.topic} size={18} />,
     run: () => actions.open(entry.key),
     shortcut: actions.shortcuts[entry.key],
-    text: `${entry.label} ${entry.player?.factionName ?? ''} ${entry.group}`,
+    text: `${entry.label} ${entry.player?.factionName ?? ''} ${entry.group} ${entry.keywords ?? ''}`,
     weight: weightOf(entry),
   };
 }
