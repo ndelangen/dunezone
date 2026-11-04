@@ -1,7 +1,7 @@
 /* @jsxImportSource @app/widgets/tabletop/three-jsx */
 
 import { factionTokenFaceUp, factionTokenOf } from '@shared/play/factionToken';
-import { handCountGrid } from '@shared/play/handCounts';
+import { handCountGrid, handCountsShowing } from '@shared/play/handCounts';
 import { stormOrder } from '@shared/play/stormSector';
 import { CARD_SLOT_OUTER_SIZE, cardBaySlotPositions } from '@shared/play/tableFurnitureLayout';
 import { playUiColors, withAlpha } from '@shared/uiPalette';
@@ -233,6 +233,8 @@ function useHandCountTexture(rows: readonly Row[]) {
 
 /**
  * Every seated faction's Treachery card count, in storm order, painted into the left card bay's empty slot where bidding is watched (#1007).
+ * It belongs to the Bidding phase, so the table shows it only then (#2671);
+ * the scene stays mounted through the other phases, keeping its painted texture for the next Bidding.
  * A faction whose token lies face down sits out the round, so its count is greyed out as the bidder greys it.
  */
 export function HandCountsScene({ table }: { table: TableProjection }) {
@@ -242,7 +244,9 @@ export function HandCountsScene({ table }: { table: TableProjection }) {
     [table.state.stormSectorIndex, roster, table.state.pieces]
   );
   const texture = useHandCountTexture(handCountRows(table, order));
-  const shown = Boolean(roster && table.snapshot.handCounts);
+  const shown = Boolean(
+    roster && table.snapshot.handCounts && handCountsShowing(table.snapshot.phase, table.snapshot.phases)
+  );
   if (!shown || !texture) {
     return null;
   }

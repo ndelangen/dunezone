@@ -453,7 +453,7 @@ describe('the cursor over the table', () => {
     expect(keyboard.panDirection()).toEqual([0, 0]);
   });
 
-  test('keeps the arrows from a focused control even without a close look to slide', () => {
+  test('keeps the arrows from a focused control even without a camera to slide', () => {
     const { keyboard } = table();
     keyboard.hoverTable(true);
     const { tab, moved } = focusedTabList();
@@ -469,6 +469,25 @@ describe('the cursor over the table', () => {
     expect(moved).not.toHaveBeenCalled();
     expect(arrow.defaultPrevented).toBe(true);
     expect(keyboard.panDirection()).toEqual([0, 0]);
+  });
+
+  test('leaves the pan letters to a focused control off the table, and slides with them over it', () => {
+    const { keyboard } = table();
+    keyboard.setPanAvailable(true);
+    const { tab } = focusedTabList();
+    const letter = () => new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: 'd', code: 'KeyD' });
+
+    const offTable = letter();
+    tab.dispatchEvent(offTable);
+    expect(offTable.defaultPrevented).toBe(false);
+    expect(keyboard.panDirection()).toEqual([0, 0]);
+
+    keyboard.hoverTable(true);
+    const overTable = letter();
+    tab.dispatchEvent(overTable);
+    expect(overTable.defaultPrevented).toBe(true);
+    expect(keyboard.panDirection()).toEqual([1, 0]);
+    key('keyup', { key: 'd', code: 'KeyD' }, tab);
   });
 
   test('answers the piece shortcuts over a focused button', () => {

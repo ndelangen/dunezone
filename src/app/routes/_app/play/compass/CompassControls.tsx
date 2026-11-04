@@ -10,12 +10,13 @@ import { CompassEpochContext } from './compassEpoch';
 import type { CompassTable } from './compassTable';
 import { CompassTableContext } from './compassTable';
 import { CompassActiveContext } from './controlsActive';
+import { SIDES } from './slotLimits';
 import { useCompass } from './useCompass';
 import { useOpenWindows } from './useOpenWindows';
 import { RememberedContext } from './useRemembered';
 import { useSlotHeights } from './useSlotHeights';
 import { WindowFrames } from './WindowFrames';
-import { useTableWindows } from './windows';
+import { KEYBOARD_SHORTCUTS, useTableWindows } from './windows';
 import type { TableWindow } from './windows';
 
 /*
@@ -142,7 +143,14 @@ function Controls({
     },
     active
   );
-  useFocusedWindow(focus, windows, focus?.placement === 'centre' ? opened.show : opened.reveal, active);
+  /* A centre focus opens a closed window in the centre and brings one already open forward, never closing it. */
+  const centre = (key: string) => (opened.isOpen(key) ? opened.reveal(key) : opened.show(key));
+  useFocusedWindow(focus, windows, focus?.placement === 'centre' ? centre : opened.reveal, active);
+  /* The cheat sheet goes away as it came, by ? or the bar's button, from the centre or a slot alike. */
+  const sheetSide = SIDES.find((side) => opened.slots[side]?.key === KEYBOARD_SHORTCUTS);
+  const toggleSheet = windows.some((entry) => entry.key === KEYBOARD_SHORTCUTS)
+    ? () => (sheetSide ? opened.unpin(sheetSide) : opened.show(KEYBOARD_SHORTCUTS))
+    : undefined;
   const compass = useCompass({
     open: open && active,
     onOpen: setOpen,
@@ -151,6 +159,7 @@ function Controls({
     table,
     onView,
     onShow: opened.show,
+    onToggleSheet: toggleSheet,
   });
   return (
     <>
@@ -158,6 +167,7 @@ function Controls({
       <ChatBar
         inert={inert}
         hasHand={windows.some((entry) => entry.key === 'hand')}
+        onToggleShortcuts={toggleSheet}
         isOpen={opened.isOpen}
         onOpenCompass={compass.openCompass}
         onShow={compass.show}

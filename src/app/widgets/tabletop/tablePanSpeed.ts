@@ -1,7 +1,7 @@
 import { viewerPreference } from './viewerPreference';
 
 /*
- * How fast this viewer wants the pan keys to slide a close look, a per-browser preference that never reaches the game.
+ * How fast this viewer wants the pan keys to slide the view, a per-browser preference that never reaches the game.
  * 1 is the table's own speed; the slider in the game menu scales it from a fifth to three times as fast (Norbert, 2026-10-12).
  */
 

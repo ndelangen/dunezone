@@ -28,17 +28,31 @@ type Binding = {
   read(): Controls;
 };
 
-/* The keys that slide a close look of the board, as a direction on the table: x to the right, z toward the viewer. */
+/* The keys that slide the camera's look at the board, as a direction on the table: x to the right, z toward the viewer. */
 const PAN_KEYS: Record<string, readonly [number, number]> = {
   w: [0, -1],
   arrowup: [0, -1],
-  s: [0, 1],
-  arrowdown: [0, 1],
   a: [-1, 0],
   arrowleft: [-1, 0],
+  s: [0, 1],
+  arrowdown: [0, 1],
   d: [1, 0],
   arrowright: [1, 0],
 };
+
+/** The piece keys, as typed in lower case; the Play cheat sheet lists them from here. */
+export const TABLE_KEYS = {
+  flip: 'f',
+  turnLeft: 'q',
+  turnRight: 'e',
+  stack: 'g',
+  lock: 'l',
+  take: 't',
+  shuffle: 'r',
+} as const;
+
+/** The letters that slide the view beside the arrows, in the order the cheat sheet shows them. */
+export const PAN_LETTERS = Object.keys(PAN_KEYS).filter((key) => key.length === 1);
 
 /* A digit is the character typed, like every other table shortcut, so AZERTY's top row gives digits only with Shift. */
 function digitOf(event: KeyboardEvent) {
@@ -138,7 +152,7 @@ export class TableKeyboard {
     };
   }
 
-  /** The camera reports here whether a close look is open, which is when the pan keys slide it. */
+  /** The camera reports here whether it is mounted to slide, which is when the pan keys answer; a table shown without one leaves them free. */
   setPanAvailable(available: boolean) {
     this.panAvailable = available;
     if (!available) {
@@ -148,6 +162,9 @@ export class TableKeyboard {
 
   /** The direction the held pan keys point, on the table: x to the right, z toward the viewer. */
   panDirection(): [number, number] {
+    if (this.panHeld.size === 0) {
+      return [0, 0];
+    }
     let x = 0;
     let z = 0;
     for (const key of new Set(this.panHeld.values())) {
@@ -247,7 +264,7 @@ export class TableKeyboard {
   /*
    * With the cursor over the table, an arrow key is the camera's before a focused control hears it, so a tab list or menu
    * left focused by a click never moves its focus instead; input controls keep their arrows.
-   * Without a close look there is nothing to slide, and the arrow still stays with the table.
+   * Without a camera there is nothing to slide, and the arrow still stays with the table.
    * An open menu, such as a piece's radial menu opened under the cursor, keeps its arrows to step through its items,
    * and so does a dialog over the table, such as a peeked deck whose focused card the arrows move.
    */
@@ -268,11 +285,17 @@ export class TableKeyboard {
     }
   };
 
-  /* A pan key held while a close look is open slides it; off the table a focused control keeps its arrow keys, as a tab list does, while only a text field keeps the letters. */
+  /*
+   * A pan key held slides the camera's look. Off the table a focused control keeps its keys, as a tab list keeps its arrows
+   * and a button its letters; with the cursor over the table only a text field (and a slider, its arrows) keeps them.
+   */
   private panKeyDown(event: KeyboardEvent) {
     const panKey = event.key.toLowerCase();
-    const panFocus = isArrowKey(event) ? this.focusBranch() : 'spiceBank';
-    if (!this.panAvailable || !(panKey in PAN_KEYS) || focusKeepsKey(event.target, panFocus, isArrowKey(event))) {
+    if (
+      !this.panAvailable ||
+      !(panKey in PAN_KEYS) ||
+      focusKeepsKey(event.target, this.focusBranch(), isArrowKey(event))
+    ) {
       return false;
     }
     event.preventDefault();
@@ -369,7 +392,7 @@ export class TableKeyboard {
   private tableKey(event: KeyboardEvent, controls: Controls) {
     const { state } = controls;
     const key = event.key.toLowerCase();
-    if (key === 't' && state.draftMove && canTakeAdditionalFromDraft(state, state.draftMove)) {
+    if (key === TABLE_KEYS.take && state.draftMove && canTakeAdditionalFromDraft(state, state.draftMove)) {
       pressOnce(event, () => controls.takeAdditionalFromTarget());
       return;
     }
@@ -378,14 +401,14 @@ export class TableKeyboard {
       return;
     }
     /* Each repeat of a held Q or E turns the piece a step further on this page; the room hears the whole turn once the key comes up. */
-    if (key === 'q' || key === 'e') {
+    if (key === TABLE_KEYS.turnLeft || key === TABLE_KEYS.turnRight) {
       event.preventDefault();
       this.rotateHeld.add(physicalKey(event));
-      controls.rotateSelected(key === 'q' ? -1 : 1, pieceId);
+      controls.rotateSelected(key === TABLE_KEYS.turnLeft ? -1 : 1, pieceId);
       return;
     }
     /* F turns over a held piece in hand as it does one at rest. */
-    if (key === 'f') {
+    if (key === TABLE_KEYS.flip) {
       pressOnce(event, () => controls.flipSelected(pieceId));
       return;
     }
@@ -396,7 +419,7 @@ export class TableKeyboard {
 
   private restingPieceKey(event: KeyboardEvent, pieceId: string, controls: Controls) {
     switch (event.key.toLowerCase()) {
-      case 't': {
+      case TABLE_KEYS.take: {
         const piece = controls.state.pieces.find((candidate) => candidate.id === pieceId);
         if (
           controls.canHandleTable &&
@@ -411,7 +434,7 @@ export class TableKeyboard {
         }
         return;
       }
-      case 'r': {
+      case TABLE_KEYS.shuffle: {
         const piece = controls.state.pieces.find((candidate) => candidate.id === pieceId);
         if (
           controls.hoveredPieceId === pieceId &&
@@ -425,10 +448,10 @@ export class TableKeyboard {
         }
         return;
       }
-      case 'l':
+      case TABLE_KEYS.lock:
         pressOnce(event, () => controls.toggleLockSelected(pieceId));
         return;
-      case 'g':
+      case TABLE_KEYS.stack:
         pressOnce(event, () => controls.stackSelected(pieceId));
         return;
     }

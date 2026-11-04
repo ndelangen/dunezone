@@ -10,6 +10,7 @@ import arrakis from './arrakis.json';
 import { at, arcParameters } from './curves';
 export { at } from './curves';
 import { compareCodeUnits } from '../compareText';
+import { TABLE_SECTOR_COUNT } from '../play/tableSettings';
 import type { Board, Point, Edge, Properties, AppearanceContour } from './schema';
 import { freshTerritoryId, propertyId, territoryId, TERRITORY_NAME_LIMIT } from './schema';
 export type { Board, Point, Edge, Properties, Decal, AppearanceContour } from './schema';
@@ -444,9 +445,10 @@ export function snapPoint(
   }
   return { point: next, feedback };
 }
-const sectorLines: [Point, Point][] = arrakis.sectorLines.map(([a, b]) => {
-  const outer = distance(a as Point, CENTER) > distance(b as Point, CENTER) ? (a as Point) : (b as Point);
-  return [CENTER, lerp(CENTER, outer, RADIUS / distance(CENTER, outer))];
+/* The storm's sectors, from the centre to the rim at the table's own sector boundaries, so the map's lines meet the rim dividers and the storm's wedge. */
+const sectorLines: [Point, Point][] = Array.from({ length: TABLE_SECTOR_COUNT }, (_, index) => {
+  const angle = (index / TABLE_SECTOR_COUNT) * Math.PI * 2;
+  return [CENTER, [CENTER[0] + RADIUS * Math.cos(angle), CENTER[1] + RADIUS * Math.sin(angle)]];
 });
 export const referenceSectors = sectorLines
   .map(

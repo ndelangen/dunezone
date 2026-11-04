@@ -1,18 +1,15 @@
 import { useThree } from '@react-three/fiber/webgpu';
-import type { Vector3Tuple } from '@shared/play/model';
+import type { PointerRay } from '@shared/play/tableGeometry';
 import { useCallback, useMemo } from 'react';
 import { Raycaster, Vector2 } from 'three';
 
-/* About the height of a faction token's face as it rests on the table. */
-const TOKEN_FACE_HEIGHT = 0.2;
-
-/** Where the pointer meets the faces of the tokens resting on the table, for what a held piece is let go over. */
-export function useTableSurfacePointFromClient() {
+/** The ray from the camera through a point of the page, for what a held piece is let go over. */
+export function useTablePointerRay() {
   const { camera, renderer } = useThree();
   const normalizedPointer = useMemo(() => new Vector2(), []);
   const raycaster = useMemo(() => new Raycaster(), []);
   return useCallback(
-    (clientX: number, clientY: number): Vector3Tuple | null => {
+    (clientX: number, clientY: number): PointerRay => {
       const bounds = renderer.domElement.getBoundingClientRect();
       normalizedPointer.set(
         ((clientX - bounds.left) / bounds.width) * 2 - 1,
@@ -20,13 +17,7 @@ export function useTableSurfacePointFromClient() {
       );
       raycaster.setFromCamera(normalizedPointer, camera);
       const { origin, direction } = raycaster.ray;
-      if (Math.abs(direction.y) < 1e-6) {
-        return null;
-      }
-      const distance = (TOKEN_FACE_HEIGHT - origin.y) / direction.y;
-      return distance > 0
-        ? [origin.x + direction.x * distance, TOKEN_FACE_HEIGHT, origin.z + direction.z * distance]
-        : null;
+      return { origin: origin.toArray(), direction: direction.toArray() };
     },
     [camera, normalizedPointer, raycaster, renderer.domElement]
   );

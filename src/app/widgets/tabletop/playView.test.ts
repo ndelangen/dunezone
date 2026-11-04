@@ -445,6 +445,60 @@ describe('table views', () => {
     expect(state.cameraRevision).toBe(1);
   });
 
+  test('keeps the view the player set up when the camera does not follow phases', () => {
+    let state = createTableViewState('storm', false);
+    state = reduceTableView(state, { type: 'view.selected', view: 'left' });
+    const chosen = state;
+    state = reduceTableView(state, { type: 'phase.changed', phase: 'spice-blow' });
+
+    expect(state.activeView).toBe('left');
+    expect(state.cameraRevision).toBe(chosen.cameraRevision);
+    expect(state.phase).toBe('spice-blow');
+
+    /* Turning following back on moves the camera at the next phase, not the one already showing. */
+    state = reduceTableView(state, { type: 'follow.changed', follow: true });
+    expect(state.activeView).toBe('left');
+    state = reduceTableView(state, { type: 'phase.changed', phase: 'revival' });
+    expect(state.activeView).toBe('bottom');
+    expect(state.cameraRevision).toBe(chosen.cameraRevision + 1);
+  });
+
+  test('turning following off drops a waiting phase view, keeping a player choice', () => {
+    let state = createTableViewState('storm');
+    state = reduceTableView(state, { type: 'interaction.changed', active: true });
+    state = reduceTableView(state, { type: 'phase.changed', phase: 'spice-blow' });
+    state = reduceTableView(state, { type: 'follow.changed', follow: false });
+    state = reduceTableView(state, { type: 'interaction.changed', active: false });
+    expect(state.activeView).toBe('map');
+    expect(state.cameraRevision).toBe(0);
+
+    state = reduceTableView(state, { type: 'interaction.changed', active: true });
+    state = reduceTableView(state, { type: 'view.selected', view: 'right' });
+    state = reduceTableView(state, { type: 'follow.changed', follow: true });
+    state = reduceTableView(state, { type: 'follow.changed', follow: false });
+    state = reduceTableView(state, { type: 'interaction.changed', active: false });
+    expect(state.activeView).toBe('right');
+  });
+
+  test('a phase that begins while following is off keeps a queued player choice', () => {
+    let state = createTableViewState('storm', false);
+    state = reduceTableView(state, { type: 'interaction.changed', active: true });
+    state = reduceTableView(state, { type: 'view.selected', view: 'left' });
+    state = reduceTableView(state, { type: 'phase.changed', phase: 'spice-blow' });
+    state = reduceTableView(state, { type: 'interaction.changed', active: false });
+    expect(state.activeView).toBe('left');
+    expect(state.cameraRevision).toBe(1);
+  });
+
+  test('a phase that begins while following is off queues no view', () => {
+    let state = createTableViewState('storm', false);
+    state = reduceTableView(state, { type: 'interaction.changed', active: true });
+    state = reduceTableView(state, { type: 'phase.changed', phase: 'spice-blow' });
+    state = reduceTableView(state, { type: 'interaction.changed', active: false });
+    expect(state.activeView).toBe('map');
+    expect(state.cameraRevision).toBe(0);
+  });
+
   test('applies only the latest view queued during an interaction', () => {
     let state = createTableViewState('choam-charity');
     state = reduceTableView(state, { type: 'interaction.changed', active: true });
@@ -463,7 +517,7 @@ describe('close look', () => {
   const zoomIn = (turns: number) => {
     let zoom = NO_CAMERA_ZOOM;
     for (let turn = 0; turn < turns; turn++) {
-      zoom = cameraZoomAfterWheelAt(zoom, poseAt, spot, 100);
+      zoom = cameraZoomAfterWheelAt(zoom, poseAt, spot, -100);
     }
     return zoom;
   };
@@ -476,7 +530,7 @@ describe('close look', () => {
         const viewPoseAt = (tilt: number) => cameraPoseForCloseLook(view, aspectRatio, undefined, tilt);
         let zoom = NO_CAMERA_ZOOM;
         for (let turn = 0; turn < 40; turn++) {
-          zoom = cameraZoomAfterWheelAt(zoom, viewPoseAt, { ...spot, aspectRatio }, 100);
+          zoom = cameraZoomAfterWheelAt(zoom, viewPoseAt, { ...spot, aspectRatio }, -100);
         }
         const pose = zoomedCameraPose(viewPoseAt(cameraTiltForZoom(zoom)), zoom);
         const distance = new Vector3(...pose.position).distanceTo(new Vector3(...pose.target));
@@ -485,7 +539,7 @@ describe('close look', () => {
     }
   });
 
-  test('scrolling down only ever brings the board closer, keeping the point under the pointer', () => {
+  test('scrolling up only ever brings the board closer, keeping the point under the pointer', () => {
     const anchor = pointUnderSpot(NO_CAMERA_ZOOM);
     let distance = Infinity;
     for (let turns = 1; turns <= 6; turns++) {
@@ -499,10 +553,10 @@ describe('close look', () => {
     }
   });
 
-  test('scrolling back up returns to the view itself', () => {
+  test('scrolling back down returns to the view itself', () => {
     let zoom = zoomIn(5);
     for (let turn = 0; turn < 20; turn++) {
-      zoom = cameraZoomAfterWheelAt(zoom, poseAt, spot, -100);
+      zoom = cameraZoomAfterWheelAt(zoom, poseAt, spot, 100);
     }
     expect(zoom).toBe(NO_CAMERA_ZOOM);
   });
@@ -560,6 +614,48 @@ describe('close look', () => {
     }
     const target = zoomedCameraPose(base(), zoom).target;
     expect(target[0]).toBeLessThanOrEqual(6.9 + 1e-6);
+  });
+
+  test('the pan keys slide every view at its own distance too, starting from where it stands (#2666)', () => {
+    /* The game's chips over the canvas: the phase header top left, the toolbar top right and the dial under it. */
+    const chips: ScreenRect[] = [
+      { left: -1, right: -0.77, top: 1, bottom: 0.7 },
+      { left: 0.69, right: 1, top: 1, bottom: 0.84 },
+      { left: 0.84, right: 1, top: 0.2, bottom: -0.1 },
+    ];
+    const frame = mapViewFramingPoints(trackerArcSlots(9));
+    for (const view of ['map', 'top', 'left', 'right', 'bottom'] as const) {
+      for (const [aspectRatio, obstacles] of [
+        [1, []],
+        [1.6, []],
+        [2.4, []],
+        [1.6, chips],
+        [2.4, chips],
+      ] as const) {
+        const viewPoseAt = (tilt: number) => cameraPoseForCloseLook(view, aspectRatio, frame, tilt, obstacles);
+        const base = viewPoseAt(cameraTiltForZoom(NO_CAMERA_ZOOM));
+        const start = zoomedCameraPose(base, NO_CAMERA_ZOOM).target;
+        const firstFrame = cameraZoomAfterPanMotion(NO_CAMERA_ZOOM, base, [0.001, 0], 1 / 60);
+        const nudged = zoomedCameraPose(base, firstFrame).target;
+        expect(Math.hypot(nudged[0] - start[0], nudged[2] - start[2])).toBeLessThan(0.01);
+        let zoom = NO_CAMERA_ZOOM;
+        for (let frame = 0; frame < 30; frame++) {
+          zoom = cameraZoomAfterPanMotion(zoom, base, [0, -16], 1 / 60);
+        }
+        expect(zoom.scale).toBe(1);
+        expect(zoomedCameraPose(base, zoom).target[2]).toBeLessThan(start[2] - 0.5);
+      }
+    }
+  });
+
+  test("scrolling down at the view's own distance brings a slid look back to the view", () => {
+    const base = poseAt(0);
+    let zoom = NO_CAMERA_ZOOM;
+    for (let frame = 0; frame < 30; frame++) {
+      zoom = cameraZoomAfterPanMotion(zoom, base, [16, 0], 1 / 60);
+    }
+    expect(zoom).not.toBe(NO_CAMERA_ZOOM);
+    expect(cameraZoomAfterWheelAt(zoom, poseAt, spot, 100)).toBe(NO_CAMERA_ZOOM);
   });
 
   test('a close look reaches the card wells and the bottom shelf, but never the empty corners beside them', () => {

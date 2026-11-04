@@ -4,7 +4,7 @@ import { BOTTOM_SHELF_POSITION, BOTTOM_SHELF_SIZE, FURNITURE_SURFACE_Y } from '@
 import { PerspectiveCamera, Vector3 } from 'three';
 
 import { mapViewFramingPoints } from './tablePlateGeometry';
-import { wheelPixels } from './wheelPixels';
+import { wheelPixels, wheelZoomFactor } from './wheelPixels';
 
 /** The views around the camera dial's ring: the board at its approved angle, the two bays and the bottom shelf. */
 export const TABLE_VIEW_OPTIONS = [
@@ -51,11 +51,14 @@ type TableViewState = Readonly<{
   pendingView: PendingView | null;
   /* The active phase the camera last answered, so only a change of phase moves it. */
   phase: TablePhaseId | null;
+  /* The viewer's "Camera follows phase" choice in the game menu: off, a new phase leaves the view the player set up. */
+  follow: boolean;
 }>;
 
 type TableViewEvent =
   | Readonly<{ type: 'view.selected'; view: TableView }>
   | Readonly<{ type: 'phase.changed'; phase: TablePhaseId | null }>
+  | Readonly<{ type: 'follow.changed'; follow: boolean }>
   | Readonly<{ type: 'interaction.changed'; active: boolean }>
   | Readonly<{ type: 'scene.ready' }>;
 
@@ -551,7 +554,8 @@ function cameraZoomAfterWheel(
   deltaY: number,
   deltaMode = 0
 ): CameraZoom {
-  const step = Math.exp(-wheelPixels(deltaY, deltaMode) / CAMERA_ZOOM_SCROLL_PX);
+  /* The scale is the camera's distance, so it shrinks as the wheel zooms in. */
+  const step = 1 / wheelZoomFactor(wheelPixels(deltaY, deltaMode), CAMERA_ZOOM_SCROLL_PX);
   const scale = Math.max(CAMERA_ZOOM_MINIMUM_SCALE, Math.min(1, zoom.scale * step));
   if (scale >= 1) {
     return NO_CAMERA_ZOOM;
@@ -680,9 +684,6 @@ export function cameraZoomAfterPanMotion(
   velocity: readonly [number, number],
   seconds: number
 ): CameraZoom {
-  if (zoom.scale >= 1) {
-    return zoom;
-  }
   const step = Math.min(Math.max(seconds, 0), 0.1);
   let [moveX, moveZ] = [velocity[0] * step, velocity[1] * step];
   const target = zoomedCameraPose(basePose, zoom).target;
@@ -756,7 +757,7 @@ export function cameraFogRange(position: Vector3Tuple): CameraFogRange {
 }
 
 /** The view state for a table opened during `phase`: the camera starts on the map, and the first move waits for the next phase. */
-export function createTableViewState(phase: TablePhaseId | null = null): TableViewState {
+export function createTableViewState(phase: TablePhaseId | null = null, follow = true): TableViewState {
   return {
     activeView: 'map',
     viewUnderTop: null,
@@ -765,6 +766,7 @@ export function createTableViewState(phase: TablePhaseId | null = null): TableVi
     sceneReady: false,
     pendingView: null,
     phase,
+    follow,
   };
 }
 
@@ -796,13 +798,26 @@ function chosenView(state: TableViewState, view: TableView): TableView {
   return state.activeView === 'top' ? (state.viewUnderTop ?? 'map') : state.activeView;
 }
 
+/* A phase view still waiting on an interaction, dropped; a player's choice still applies. */
+function withoutPhasePending(state: TableViewState): TableViewState {
+  return state.pendingView?.source === 'phase' ? { ...state, pendingView: null } : state;
+}
+
+function changeFollow(state: TableViewState, follow: boolean): TableViewState {
+  if (follow === state.follow) {
+    return state;
+  }
+  /* Turning following off also drops a phase view still waiting on an interaction; turning it on waits for the next phase. */
+  return follow ? { ...state, follow } : withoutPhasePending({ ...state, follow });
+}
+
 function changePhase(state: TableViewState, phase: TablePhaseId | null): TableViewState {
   if (phase === state.phase) {
     return state;
   }
-  if (phase === null) {
-    /* A phase view still waiting on an interaction is obsolete once no phase is active; a player's choice still applies. */
-    return { ...state, phase, pendingView: state.pendingView?.source === 'phase' ? null : state.pendingView };
+  if (phase === null || !state.follow) {
+    /* A phase view still waiting on an interaction is obsolete once no phase is active or the camera no longer follows phases; a player's choice still applies. */
+    return withoutPhasePending({ ...state, phase });
   }
   return requestView({ ...state, phase }, { view: PHASE_VIEWS[phase], source: 'phase' });
 }
@@ -824,6 +839,8 @@ export function reduceTableView(state: TableViewState, event: TableViewEvent): T
       return requestView(state, { view: chosenView(state, event.view), source: 'player' });
     case 'phase.changed':
       return changePhase(state, event.phase);
+    case 'follow.changed':
+      return changeFollow(state, event.follow);
     case 'interaction.changed':
       return changeInteraction(state, event.active);
     case 'scene.ready':

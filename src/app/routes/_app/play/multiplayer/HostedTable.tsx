@@ -24,6 +24,7 @@ import { usePreloadedCardFaces } from '../../../../widgets/tabletop/cardFacePrel
 import { PredictionEmblemsContext } from '../../../../widgets/tabletop/prediction/predictionFace';
 import { TabletopSessionProvider } from '../../../../widgets/tabletop/TabletopContext';
 import { BrowserDiagnostics } from '../browserDiagnostics';
+import { CompassEpochContext } from '../compass/compassEpoch';
 import type { CompassTable } from '../compass/compassTable';
 import { CompassTableContext } from '../compass/compassTable';
 import { FoilConfetti } from '../FoilConfetti';
@@ -44,6 +45,7 @@ import { ConnectedResultPanel, useDeclareChoice } from '../panels/result/useResu
 import type { DeclareChoice } from '../panels/result/useResultPanel';
 import { ConnectedGameLengthPanel } from '../panels/settings/useGameLengthPanel';
 import { ConnectedSetupPanel, setupWindow } from '../panels/setup/useSetupPanel';
+import { KeyboardShortcutsPanel } from '../panels/shortcuts/KeyboardShortcutsPanel';
 import { ConnectedPrivateSideTablePanel } from '../panels/sideTable/usePrivateSideTablePanel';
 import { ConnectedSpiceReservePanel } from '../panels/spice/useSpiceReservePanel';
 import { ConnectedTerritoryTintsPanel } from '../panels/tints/useTerritoryTintsPanel';
@@ -191,6 +193,25 @@ function useWindowFocus(table: TableProjection, progress: ReturnType<typeof game
     setState(next);
   }
   return next.focus;
+}
+
+type WindowFocus = ReturnType<typeof useWindowFocus>;
+
+/*
+ * A window the header asks for, such as Mentat recall from its vote, opens in the centre like the compass opens it.
+ * The table's next event focus, or a fresh start of the controls, takes over again.
+ */
+function useAskedWindow(focus: WindowFocus) {
+  /* The tutorial's Reset starts the controls afresh, so a window asked for before it must not open itself on the next run. */
+  const epoch = useContext(CompassEpochContext);
+  const [asked, setAsked] = useState<{ key: string; token: string; placement: 'centre' } | null>(null);
+  const [followed, setFollowed] = useState({ token: focus?.token, epoch });
+  if (focus?.token !== followed.token || epoch !== followed.epoch) {
+    setFollowed({ token: focus?.token, epoch });
+    setAsked(null);
+  }
+  const open = (key: string) => setAsked({ key, token: `asked:${crypto.randomUUID()}`, placement: 'centre' });
+  return [asked ?? focus, open] as const;
 }
 
 /*
@@ -387,6 +408,48 @@ function tableGroup({ client, table, error }: ConnectionControlsProps): TablePan
   };
 }
 
+/**
+ * How the table looks back.
+ * Players may not look back alone, so a game offers a review the table agrees to instead, and once it is finished the table still looks back together, without a vote.
+ */
+function lookBackPanels({ client, table, error }: ConnectionControlsProps): TablePanel[] {
+  const review = table.review;
+  const recall = review
+    ? [
+        {
+          ...(review.finished ? PANEL_WINDOWS.finishedReview : PANEL_WINDOWS.review),
+          content: <TableReviewPanel client={client} table={table} error={error} />,
+        },
+      ]
+    : [];
+  return replaysAlone(table)
+    ? [
+        ...recall,
+        {
+          ...PANEL_WINDOWS.replay,
+          content: (
+            <>
+              {error && !table.playback && <FormError title="From the table">{error}</FormError>}
+              <ConnectedReplayPanel client={client} table={table} />
+            </>
+          ),
+        },
+      ]
+    : recall;
+}
+
+/**
+ * Observers of a finished game, who cannot start a recall, and fixture tables replay alone, unless a recall is showing;
+ * a replay already open keeps its tab.
+ */
+function replaysAlone(table: TableProjection): boolean {
+  if (reviewRunning(table.review?.current) || table.review?.seat) {
+    return false;
+  }
+  const { stage } = table.snapshot;
+  return stage === 'finished' || stage === undefined || Boolean(table.playback) || table.historyPending;
+}
+
 /** Public records and replay stay together as the game changes phase or finishes. */
 function historyGroup({ client, table, error }: ConnectionControlsProps, hasInventory: boolean): TablePanel {
   return {
@@ -407,28 +470,7 @@ function historyGroup({ client, table, error }: ConnectionControlsProps, hasInve
             },
           ]
         : []),
-      /* Players may not look back alone, so a game in progress offers a review the table agrees to instead. */
-      ...(table.review
-        ? [{ ...PANEL_WINDOWS.review, content: <TableReviewPanel client={client} table={table} error={error} /> }]
-        : []),
-      /* Players may not keep notes, so replay opens once the game is finished or on a fixture; a replay already open keeps its tab. */
-      ...(!reviewRunning(table.review?.current) &&
-      (table.snapshot.stage === 'finished' ||
-        table.snapshot.stage === undefined ||
-        table.playback ||
-        table.historyPending)
-        ? [
-            {
-              ...PANEL_WINDOWS.replay,
-              content: (
-                <>
-                  {error && !table.playback && <FormError title="From the table">{error}</FormError>}
-                  <ConnectedReplayPanel client={client} table={table} />
-                </>
-              ),
-            },
-          ]
-        : []),
+      ...lookBackPanels({ client, table, error }),
     ],
   };
 }
@@ -458,6 +500,8 @@ function controlPanels(
           },
         ]
       : []),
+    /* Every viewer, seated or watching, can look up the keys. */
+    { ...PANEL_WINDOWS.shortcuts, content: <KeyboardShortcutsPanel /> },
   ];
 }
 
@@ -584,7 +628,7 @@ function ConnectedTable({
 }>) {
   const bugReport = useBugReport({ gameId, client, table, connection, diagnostics });
   const progress = gameProgress(table.snapshot);
-  const focus = useWindowFocus(table, progress);
+  const [focus, openWindow] = useAskedWindow(useWindowFocus(table, progress));
   const celebration = useResultCelebration(table);
   const declare = useDeclareChoice(table);
   /* Each player fades the bidder for themselves, so the choice stays in this browser tab. */
@@ -613,7 +657,14 @@ function ConnectedTable({
               connectionStatus={<ConnectionStatus table={table} />}
               alliances={<AllianceStrip table={table} />}
               techTokens={<TechTokenStrip table={table} />}
-              toolbarControl={stageToolbar({ client, table, error, bidderFaded, onBidderFadedChange: setBidderFaded })}
+              toolbarControl={stageToolbar({
+                client,
+                table,
+                error,
+                bidderFaded,
+                onBidderFadedChange: setBidderFaded,
+                onOpenRecall: () => openWindow('review'),
+              })}
               /* The gathered Traitor pile lies under the Tleilaxu Tanks, below the Map view's frame on a wide screen (#1635). */
               requestedView={table.traitorsGathered ? { view: 'bottom', revision: table.traitorsGathered } : undefined}
               showStormControls={offersActions(table) && stageInPlay(stage) && progress.activePhaseId === 'storm'}
