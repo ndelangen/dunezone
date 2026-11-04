@@ -7,10 +7,11 @@ export function ClearChatAction({ onClear }: Readonly<{ onClear: () => void }>) 
     <ConfirmDeleteAction
       label="Clear chat"
       verb="clear"
-      size="sm"
+      /* The size of the title bar's own buttons (CompassControls.module.css .iconButton), so it lines up with unpin. */
+      size="1.9rem"
       pending={false}
       onConfirm={onClear}
-      icon={<Eraser size={15} aria-hidden />}
+      icon={<Eraser size={16} aria-hidden />}
     />
   );
 }

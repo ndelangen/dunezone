@@ -26,8 +26,8 @@ export interface ConfirmDeleteActionProps {
   icon?: ReactNode;
   /** Disables the trigger entirely, for callers whose action is sometimes unavailable rather than in flight. */
   disabled?: boolean;
-  /** The trigger's size: `lg` for toolbars, smaller where the hold sits in a dense row among same-sized neighbours. */
-  size?: 'sm' | 'md' | 'lg';
+  /** The trigger's size: `lg` for toolbars, smaller where the hold sits in a dense row among same-sized neighbours, or a length that matches neighbours that are not kit buttons, as in a window's title bar. */
+  size?: 'sm' | 'md' | 'lg' | `${number}rem`;
 }
 
 /** What the countdown announces per verb: "deletion in 4..", "removal in 4..", "sign-out in 4..". */
