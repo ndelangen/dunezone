@@ -52,6 +52,14 @@ export const PANEL_WINDOWS = {
     description:
       'Ask the table to look back at a recent checkpoint together. It starts when a majority of the players agree; everyone sees the same board and nothing can be moved or peeked at until play resumes.',
   },
+  /* Once the game is finished, the same window starts a recall of any checkpoint without a vote. */
+  finishedReview: {
+    key: 'review',
+    label: 'Mentat recall',
+    topic: 'turn',
+    description:
+      'Look back over the finished game together. Any player can start a recall of any checkpoint without a vote; everyone sees the same board.',
+  },
   inventory: { key: 'shared', label: 'Shared table inventory', topic: 'assets', ...SHARED_INVENTORY_GUIDANCE },
   hand: { key: 'hand', label: 'Hand', topic: 'hand', ...HAND_GUIDANCE },
   sideTable: { key: 'hidden-zone', label: 'Private side-table', topic: 'hiddenZone', ...HIDDEN_ZONE_GUIDANCE },

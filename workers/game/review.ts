@@ -54,7 +54,7 @@ export class TableReviews {
     const { snapshot, viewer, action } = command;
     const own = this.actors.occupants().find((player) => player.userId === viewer.userId);
     if (!own || !reviewableStage(snapshot.stage)) {
-      throw new GameRejection('Only current players can recall the table during a game.');
+      throw new GameRejection('Only current players can recall the table.');
     }
     if (action.kind === 'review-propose') {
       return this.propose(command, action.step, own);
@@ -85,6 +85,7 @@ export class TableReviews {
   /**
    * Seats are re-read on every commit, so a player who leaves takes their ballot along and a newcomer gets one.
    * The proposer leaving withdraws the proposal, and a review that reaches its majority starts at once.
+   * A vote still open as the game ends is withdrawn: a finished game's recall starts without one.
    */
   reconcile(snapshot: StoredSnapshot, now: number): StoredSnapshot {
     const review = this.open();
@@ -92,8 +93,9 @@ export class TableReviews {
       return snapshot;
     }
     const players = this.actors.occupants();
-    if (!reviewableStage(snapshot.stage) || !players.some((player) => player.userId === review.proposer.userId)) {
-      const by = reviewableStage(snapshot.stage) ? 'seats' : 'game-ended';
+    const ended = !reviewableStage(snapshot.stage) || (snapshot.stage === 'finished' && review.startedAt === null);
+    if (ended || !players.some((player) => player.userId === review.proposer.userId)) {
+      const by = ended ? 'game-ended' : 'seats';
       this.finish(review, { result: review.startedAt === null ? 'withdrawn' : 'ended', snapshot, now, by });
       return revised(snapshot);
     }
@@ -101,7 +103,7 @@ export class TableReviews {
       return snapshot;
     }
     const before = JSON.stringify(review);
-    review.threshold = reviewThreshold(players.length);
+    review.threshold = reviewThreshold(players.length, snapshot.stage);
     review.ballots = players.map((player) => ({
       ...player,
       choice: review.ballots.find((ballot) => ballot.userId === player.userId)?.choice ?? null,
@@ -164,21 +166,26 @@ export class TableReviews {
       throw new GameRejection('That checkpoint cannot be recalled.');
     }
     const players = this.actors.occupants();
+    /* A finished game's recall needs no vote: it starts as it is asked for. */
+    const immediate = snapshot.stage === 'finished';
     const review: Review = {
       id: `review-${snapshot.revision + 1}`,
       step,
       context,
       proposer: own,
       openedAt: now,
-      threshold: reviewThreshold(players.length),
+      threshold: reviewThreshold(players.length, snapshot.stage),
       ballots: players.map((player) => ({
         ...player,
         choice: player.userId === viewer.userId ? 'review' : null,
       })),
-      startedAt: null,
+      startedAt: immediate ? now : null,
     };
     this.storage.sql.exec('INSERT INTO table_reviews(review_id,data) VALUES(?,?)', review.id, JSON.stringify(review));
     this.cached = review;
+    if (immediate) {
+      this.record(review, { result: 'started', snapshot, now, by: null });
+    }
     return revised(snapshot);
   }
 
@@ -251,6 +258,7 @@ export class TableReviews {
       proposer: review.proposer,
       ballots: review.ballots,
       by,
+      ...(snapshot.stage === 'finished' ? { finished: true } : {}),
       context: logContext(snapshot),
       at: now,
     });

@@ -427,12 +427,20 @@ function historyGroup({ client, table, error }: ConnectionControlsProps, hasInve
             },
           ]
         : []),
-      /* Players may not look back alone, so a game in progress offers a review the table agrees to instead. */
+      /*
+       * Players may not look back alone, so a game offers a review the table agrees to instead;
+       * once it is finished, the table still looks back together, without a vote.
+       */
       ...(table.review
-        ? [{ ...PANEL_WINDOWS.review, content: <TableReviewPanel client={client} table={table} error={error} /> }]
+        ? [
+            {
+              ...(table.review.finished ? PANEL_WINDOWS.finishedReview : PANEL_WINDOWS.review),
+              content: <TableReviewPanel client={client} table={table} error={error} />,
+            },
+          ]
         : []),
-      /* Players may not keep notes, so replay opens once the game is finished or on a fixture; a replay already open keeps its tab. */
-      ...(!reviewRunning(table.review?.current) &&
+      /* A table without reviews, such as a fixture, replays alone instead; a replay already open keeps its tab. */
+      ...(!table.review &&
       (table.snapshot.stage === 'finished' ||
         table.snapshot.stage === undefined ||
         table.playback ||

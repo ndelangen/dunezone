@@ -28,7 +28,7 @@ import type { ClientMessage, CommitMessage, GameSnapshot, ServerMessage, Viewer 
 import { GameRejection } from '../../src/shared/play/rejection';
 import { isRemovalAction } from '../../src/shared/play/removal';
 import { isResultAction } from '../../src/shared/play/result';
-import { isReviewAction, REVIEW_CHECKPOINTS, reviewableStage, reviewRunning } from '../../src/shared/play/review';
+import { isReviewAction, reviewCheckpointLimit, reviewableStage, reviewRunning } from '../../src/shared/play/review';
 import type { TableReview } from '../../src/shared/play/review';
 import type { TableRoster } from '../../src/shared/play/schema';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
@@ -728,7 +728,10 @@ export class GameSession {
     const pointers = [...room.pointers.values()];
     const snapshots = new Map<string, RoomFrame['snapshot']>();
     const review = reviewableStage(room.snapshot.stage)
-      ? { review: this.reviews.current(), reviewCheckpoints: this.history.recent(REVIEW_CHECKPOINTS) }
+      ? {
+          review: this.reviews.current(),
+          reviewCheckpoints: this.history.recent(reviewCheckpointLimit(room.snapshot.stage)),
+        }
       : {};
     return (viewer) => {
       const factionId = this.actors.factionFor(viewer.userId);
@@ -857,9 +860,11 @@ export class GameSession {
     room.accept(next);
   }
 
-  /* A review shows one of the recent checkpoints, named as the log names it. */
+  /* A review shows one of the recent checkpoints, or any once the game is finished, named as the log names it. */
   private reviewable(step: number) {
-    return this.history.recent(REVIEW_CHECKPOINTS).find((checkpoint) => checkpoint.step === step)?.context;
+    return this.history
+      .recent(reviewCheckpointLimit(this.room?.snapshot.stage))
+      .find((checkpoint) => checkpoint.step === step)?.context;
   }
 
   /* Determine winner, its declaration and Continue playing commit with their log rows and the summary the lobby is owed. */

@@ -89,7 +89,7 @@ function ResumePlay({
   return review.seat ? (
     <Stack gap={2} data-recall-return>
       <Button color="cta" onClick={() => client.command({ kind: 'review-end', reviewId: current.id })}>
-        Return to the game
+        {review.finished ? 'End the recall' : 'Return to the game'}
       </Button>
     </Stack>
   ) : null;
@@ -142,7 +142,7 @@ function Propose({ client, table, review }: Props & Readonly<{ review: Review }>
   /* A chosen checkpoint that has since rolled out of the offered ones gives way to the newest, which the table can still review. */
   const offered = review.checkpoints.some((checkpoint) => checkpoint.step === chosen);
   if (!review.seat) {
-    return <Text size="sm">Only seated players can ask for a recall.</Text>;
+    return <Text size="sm">Only seated players can {review.finished ? 'start' : 'ask for'} a recall.</Text>;
   }
   if (!newest) {
     return <Text size="sm">No checkpoint has been saved yet.</Text>;
@@ -150,10 +150,15 @@ function Propose({ client, table, review }: Props & Readonly<{ review: Review }>
   const step = (offered ? chosen : null) ?? newest.step;
   return (
     <Stack gap="sm">
+      {review.finished && (
+        <Text size="sm">
+          The game is over, so no vote is needed. Everyone at the table looks at the checkpoint you pick.
+        </Text>
+      )}
       <CheckpointPicker checkpoints={review.checkpoints} value={step} onChange={setChosen} />
       <Group>
         <Button disabled={table.reconnecting} onClick={() => client.command({ kind: 'review-propose', step })}>
-          Ask the table to recall
+          {review.finished ? 'Recall together' : 'Ask the table to recall'}
         </Button>
       </Group>
     </Stack>
@@ -175,10 +180,11 @@ export function TableReviewPanel({ client, table, error }: Props & Readonly<{ er
           <Stack gap="sm">
             <Text size="sm">
               {reviewRunning(current)
-                ? `Everyone is looking at ${current.context}. Nothing on the table can be moved or peeked at until play resumes.`
+                ? `Everyone is looking at ${current.context}. Nothing on the table can be moved or peeked at until ${review.finished ? 'the recall ends' : 'play resumes'}.`
                 : `${current.proposer.name} asks to recall ${current.context}. It starts once ${current.threshold} players agree.`}
             </Text>
-            <Ballots ballots={current.ballots} />
+            {/* A finished game's recall starts without a vote, so it has no ballots to show. */}
+            {!review.finished && <Ballots ballots={current.ballots} />}
             {reviewRunning(current) ? (
               <ResumePlay client={client} review={review} current={current} />
             ) : (
