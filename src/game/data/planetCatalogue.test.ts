@@ -16,7 +16,7 @@ describe('curated planet image catalogue', () => {
     const collections = stockAssetCollections.filter(({ assets }) =>
       assets.some((asset) => asset.startsWith('/image/planet/'))
     );
-    expect(collections).toHaveLength(11);
+    expect(collections).toHaveLength(16);
     expect(collections.flatMap(({ assets }) => assets).sort()).toEqual([...PLANET.options].sort());
     expect(new Set(CURATED_PLANET_IMAGES.map(({ id }) => id)).size).toBe(CURATED_PLANET_IMAGES.length);
   });

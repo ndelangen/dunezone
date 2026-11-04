@@ -51,7 +51,7 @@ const TOPIC_ICON_DEFINITIONS = {
   symbol: { kind: 'component', component: CircleStar },
   token: { kind: 'component', component: CircleDot },
   planets: { kind: 'component', component: Globe2 },
-  factionLeader: { kind: 'mask', src: '/vector/generic/ceasar.svg' },
+  factionLeader: { kind: 'mask', src: '/vector/generic/laurel-star.svg' },
   leaders: { kind: 'mask', src: '/vector/icon/traitor.svg' },
   alliance: { kind: 'mask', src: '/vector/icon/alliance.svg' },
   decals: { kind: 'component', component: Stamp },
@@ -74,7 +74,7 @@ const TOPIC_ICON_DEFINITIONS = {
   result: { kind: 'component', component: Trophy },
   /* The entity-kind glyphs the mention chips wear. Factions reuse the Faction leader pictogram and assets
      reuse the contents glyph, the way decals reuses alliance: one drawing, two topics. */
-  factions: { kind: 'mask', src: '/vector/generic/ceasar.svg' },
+  factions: { kind: 'mask', src: '/vector/generic/laurel-star.svg' },
   groups: { kind: 'component', component: UsersRound },
   assets: { kind: 'component', component: Boxes },
   /* The play table's own controls: trackers, the storm, the selected piece. The Table tab of the play panel. */

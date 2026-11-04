@@ -11891,7 +11891,7 @@
                 },
                 "bottomFirst": "fremen do not trigger ",
                 "bottomSecond": "when a leader is killed",
-                "image": "/vector/decal/knifes.svg",
+                "image": "/vector/decal/knives.svg",
                 "ring": false,
                 "symbolScale": 1,
                 "top": "Water stealer"
@@ -13375,7 +13375,7 @@
         "color": "#816b3b",
         "id": "k173h7mgxxrqr1jjqttrqe2nm1865qam",
         "linked": false,
-        "emblem": "/vector/generic/8472.svg",
+        "emblem": "/vector/generic/species-8472.svg",
         "name": "Hivers",
         "published": true,
         "slug": "hivers"
@@ -13567,7 +13567,7 @@
         "color": "#5f0000",
         "id": "k171h2c7zgyhfxwqe6e282jd8n8a5avw",
         "linked": false,
-        "emblem": "/vector/generic/guildeyes.svg",
+        "emblem": "/vector/generic/guild-eyes.svg",
         "name": "CHOAM",
         "published": true,
         "slug": "choam"
@@ -13668,7 +13668,7 @@
         "color": "#ff08b2",
         "id": "k17ehv7kfznyw5f26xxjx6etfn8b1k26",
         "linked": false,
-        "emblem": "/vector/generic/flauqre.svg",
+        "emblem": "/vector/generic/great-house-emblem.svg",
         "name": "Corrino",
         "published": true,
         "slug": "corrino"
@@ -13694,7 +13694,7 @@
         "color": "#443333",
         "id": "k17ceq3srs9m2zz0qzkw6w84qd8b1n44",
         "linked": false,
-        "emblem": "/vector/generic/orbsword.svg",
+        "emblem": "/vector/generic/sword-and-atom.svg",
         "name": "Nobirds",
         "published": true,
         "slug": "nobirds"
@@ -13735,7 +13735,7 @@
         "color": "#913414",
         "id": "k17cna0gvp9pz0txwqzwec1a258bwjvf",
         "linked": false,
-        "emblem": "/vector/generic/matres.svg",
+        "emblem": "/vector/generic/honored-matres.svg",
         "name": "Honored Matres",
         "published": true,
         "slug": "honored-matres"
@@ -13783,7 +13783,7 @@
         "color": "#37c71a",
         "id": "k179hp5p0e9h5c9yg3xpmkgavh8c7kz1",
         "linked": false,
-        "emblem": "/vector/generic/bluks.svg",
+        "emblem": "/vector/generic/united-earth-federation.svg",
         "name": "Suk Medics",
         "published": true,
         "slug": "suk-medics"
@@ -13815,7 +13815,7 @@
         "color": "#c5ff17",
         "id": "k1734y2cmkk46g02z22b90v4zs8cp6yn",
         "linked": false,
-        "emblem": "/vector/generic/mortal.svg",
+        "emblem": "/vector/generic/draconis-combine.svg",
         "name": "Shrek",
         "published": true,
         "slug": "shrek"
@@ -13831,7 +13831,7 @@
         "color": "#5f0000",
         "id": "k177dt6jakwtfgq6t7yb6wywg18cw7tm",
         "linked": false,
-        "emblem": "/vector/generic/guildeyes.svg",
+        "emblem": "/vector/generic/guild-eyes.svg",
         "name": "Combine Honnete Ober Advancer Mercantiles (Unfinished)",
         "published": true,
         "slug": "combine-honnete-ober-advancer-mercantiles-unfinished"
