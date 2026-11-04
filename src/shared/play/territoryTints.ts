@@ -220,14 +220,14 @@ export function applyTerritoryTint(tints: readonly TerritoryTint[], action: Terr
 
 /*
  * The battle marker's highlight over the territory it marks, or would mark while carried: a wash in the marker's own colour
- * with a glowing line round the territory in the marker's hot core, drawn above the table's tints.
+ * with a line round the territory in the same colour, drawn above the table's tints.
  * Never stored; the page adds it.
  */
 export function battleHighlight(territoryId: string): TerritoryTint[] {
   const territories = [territoryId];
   return [
     { id: 'battle-highlight', name: 'Battle', color: `${playUiColors.target}80`, territories },
-    { id: 'battle-highlight-edge', name: 'Battle', color: playUiColors.targetHot, outline: true, territories },
+    { id: 'battle-highlight-edge', name: 'Battle', color: playUiColors.target, outline: true, territories },
   ];
 }
 
