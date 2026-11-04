@@ -7,7 +7,7 @@ import type { Camera, Mesh, MeshBasicMaterial } from 'three';
 
 import { ignoreRaycast } from './ignoreRaycast';
 import { pingEdgePlacement } from './pingEdgeMarker';
-import type { PingEdgeInsets, PixelRect } from './pingEdgeMarker';
+import type { PingEdgeInsets, PingEdgePlacement, PixelRect } from './pingEdgeMarker';
 import { playPingSound } from './pingSound';
 import styles from './ScenePings.module.css';
 import { tableChromeInsets, tableCornerRects, watchTableChrome } from './seatedHeader';
@@ -99,7 +99,7 @@ function PingRipple({ ping }: { ping: ShownPing }) {
     const measure = () => {
       marker.chrome = tableChromeInsets(canvas);
       marker.corners = tableCornerRects(canvas);
-      marker.shown = '';
+      marker.shown = null;
       invalidate();
     };
     measure();
@@ -155,16 +155,16 @@ function PingRipple({ ping }: { ping: ShownPing }) {
   );
 }
 
-type EdgeMarker = {
+export type EdgeMarker = {
   element: HTMLDivElement;
   heading: HTMLDivElement;
   chrome: PingEdgeInsets;
   corners: readonly PixelRect[];
-  /* What the marker last showed, so a frame that changes nothing writes nothing. */
-  shown: string;
+  /* What the marker last showed, so a frame that changes nothing writes nothing; null after a re-measure, so the next frame writes afresh. */
+  shown: string | null;
 };
 
-function edgeMarker(color: string): EdgeMarker {
+export function edgeMarker(color: string): EdgeMarker {
   const marker = document.createElement('div');
   marker.className = styles.edgeMarker;
   marker.dataset.pingEdge = '';
@@ -181,7 +181,7 @@ function edgeMarker(color: string): EdgeMarker {
   const heading = part(styles.heading);
   part(styles.arrow, heading);
   part(styles.dot, part(styles.chip));
-  return { element: marker, heading, chrome: { top: 0, right: 0, bottom: 0, left: 0 }, corners: [], shown: '' };
+  return { element: marker, heading, chrome: { top: 0, right: 0, bottom: 0, left: 0 }, corners: [], shown: null };
 }
 
 /* On the edge towards the ping while the view leaves it out; hidden while it shows, where the ripple marks it. */
@@ -197,6 +197,11 @@ function placeEdgeMarker(marker: EdgeMarker, ping: TablePing, camera: Camera, si
     EDGE_CLEARANCE,
     marker.corners
   );
+  showEdgeMarker(marker, placement);
+}
+
+/** Writes a placement to the marker, or hides it for none; a frame that changes nothing writes nothing. */
+export function showEdgeMarker(marker: EdgeMarker, placement: PingEdgePlacement | null) {
   const shown = placement ? `${placement.x.toFixed(1)},${placement.y.toFixed(1)},${placement.angle.toFixed(3)}` : '';
   if (shown === marker.shown) {
     return;
