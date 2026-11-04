@@ -5,6 +5,7 @@ import type { CardDraw } from '@shared/play/cardDraw';
 import { initialSnapshot, nextSnapshot } from '@shared/play/commands';
 import { factionTokenStackKey } from '@shared/play/factionToken';
 import { arrakisBoardCapture } from '@shared/play/fixtures/board';
+import type { LogEntry } from '@shared/play/log';
 import type { TablePiece, Vector3Tuple } from '@shared/play/model';
 import { PEEK_DECK_LIMIT } from '@shared/play/peeking';
 import { PHASE_CHANGE_COOLDOWN_MS } from '@shared/play/phases';
@@ -312,6 +313,17 @@ describe('hosted public controls', () => {
     page([{ ...entry, sequence: 2, text: 'Spice blew.' }, entry]);
     expect(client.getSnapshot().logHistory.game?.entries).toHaveLength(2);
     expect(panelListener).toHaveBeenCalledTimes(1);
+  });
+  test('a deletion that can no longer be restored loses its Restore on the page read again', async () => {
+    const client = await connected();
+    const deletion = { sequence: 1, class: 'deletion' as const, text: 'Ann deleted Lasgun card.', context: '', at: 1 };
+    const page = (entries: LogEntry[]) =>
+      socket().deliver({ type: 'log-history', tab: 'game', before: 20, entries, more: false });
+    client.readLogHistory('game', 20);
+    page([{ ...deletion, restore: '7' }]);
+    client.readLogHistory('game', 20);
+    page([deletion]);
+    expect(client.getSnapshot().logHistory.game?.entries[0]?.restore).toBeUndefined();
   });
   test('releases the capture on a completion the tab could not apply', async () => {
     const client = await connected();

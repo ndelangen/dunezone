@@ -5,6 +5,7 @@ import { tableForViewer } from '../../src/shared/play/protocol';
 import type { RestoreAction } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
+import { restingPositionAt } from '../../src/shared/play/tableGeometry';
 import { nearestCollisionFreePosition } from '../../src/shared/play/tablePhysics';
 import { DELETED_PIECES_LIMIT } from './state';
 import type { StoredSnapshot } from './state';
@@ -44,11 +45,13 @@ export function restoreCommand(snapshot: StoredSnapshot, action: RestoreAction, 
     throw new GameRejection('That piece is already on the table.');
   }
   const facedDown = faceDown(deletion.piece);
-  const position = nearestCollisionFreePosition(facedDown, facedDown.position, table.pieces);
-  if (!position) {
+  const free = nearestCollisionFreePosition(facedDown, facedDown.position, table.pieces);
+  if (!free) {
     throw new GameRejection(`There is no room on the table to restore ${deletedName(facedDown)}.`);
   }
-  const restored = { ...facedDown, position };
+  /* The search keeps the height it started from, so a piece moved off its old spot rests on whatever lies under its new one. */
+  const moved = free[0] !== facedDown.position[0] || free[2] !== facedDown.position[2];
+  const restored = { ...facedDown, position: moved ? restingPositionAt(free, facedDown) : free };
   const next = nextSnapshot(
     snapshot,
     accepted(

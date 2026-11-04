@@ -3,6 +3,7 @@ import { randomInt } from 'node:crypto';
 import type { Board } from '../../src/shared/boards/schema';
 import { tableHandlingOpen } from '../../src/shared/play/admission';
 import { isAllianceAction } from '../../src/shared/play/alliances';
+import type { AllianceAction } from '../../src/shared/play/alliances';
 import { isBattleAction } from '../../src/shared/play/battle';
 import type { BattleAction } from '../../src/shared/play/battle';
 import { isBiddingAction } from '../../src/shared/play/bidding';
@@ -44,6 +45,7 @@ import type {
   Viewer,
   PublicCarry,
   PublicPointer,
+  RestoreAction,
 } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import type { RemovalAction } from '../../src/shared/play/removal';
@@ -98,6 +100,10 @@ function isFactionSetting(action: { kind: string }): action is FactionSetting {
     action.kind === 'last-turn' || isMovementAction(action) || isBiddingAction(action) || isTerritoryTintAction(action)
   );
 }
+function isSeatedCommand(action: PieceAction): action is AllianceAction | RestoreAction {
+  return action.kind === 'restore' || isAllianceAction(action);
+}
+
 type RoomAction = Exclude<
   PieceAction,
   SeatAction | RemovalAction | ReviewAction | ResultAction | DraftAction | SwapAction
@@ -723,6 +729,14 @@ export class Room {
       : biddingCommand(this.snapshot, factionId, action, now);
   }
 
+  /** An alliance or a restore from the game log: only a seated faction sends either, and neither waits on the table to settle. */
+  private seatedCommand(identity: Identity, action: AllianceAction | RestoreAction, now: number): StoredSnapshot {
+    const factionId = this.requireFaction(identity);
+    return action.kind === 'restore'
+      ? restoreCommand(this.snapshot, action, seatSubject(identity.viewerSeat))
+      : allianceCommand(this.snapshot, factionId, action, now);
+  }
+
   private requireFaction(identity: Identity): string {
     const factionId = this.factionFor(identity.userId);
     if (!factionId) {
@@ -768,12 +782,8 @@ export class Room {
     if (isFactionSetting(action)) {
       return this.factionSettingCommand(identity, action, now);
     }
-    if (isAllianceAction(action)) {
-      return allianceCommand(this.snapshot, this.requireFaction(identity), action, now);
-    }
-    if (action.kind === 'restore') {
-      this.requireFaction(identity);
-      return restoreCommand(this.snapshot, action, seatSubject(identity.viewerSeat));
+    if (isSeatedCommand(action)) {
+      return this.seatedCommand(identity, action, now);
     }
     this.assertTableSettled(action, now);
     if (action.kind === 'bank-withdraw' || action.kind === 'bank-collect') {

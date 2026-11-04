@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vite-plus/test';
 
 import { initialSnapshot } from '../../src/shared/play/commands';
+import { restingPositionAt } from '../../src/shared/play/tableGeometry';
 import { piecesOverlapAt } from '../../src/shared/play/tablePhysics';
 import { hostedFixturePlan } from './fixture';
 import { Room } from './room';
@@ -83,6 +84,7 @@ describe('restoring a deleted piece (#2132)', () => {
     const back = loose(target)!;
     expect(back.position).not.toEqual(card.position);
     expect(piecesOverlapAt(back, back.position, { ...other, position: card.position })).toBe(false);
+    expect(back.position).toEqual(restingPositionAt(back.position, back));
   });
 
   test('an observer cannot restore', () => {

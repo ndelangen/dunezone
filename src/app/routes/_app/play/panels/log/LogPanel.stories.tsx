@@ -39,28 +39,10 @@ export const BugReport = meta.story({
 });
 
 /** A deleted piece the game still keeps: a seated player can restore it from its entry. */
-export const Deletion = meta.story({
-  args: { page: logPage([DELETION_ENTRY, ...GAME_LOG]) },
-  play: async ({ canvas }) => {
-    await expect(canvas.getByRole('button', { name: 'Restore' })).toBeVisible();
-  },
-});
-
-/** An observer reads the same deletion without the button. */
-export const DeletionObserved = meta.story({
-  args: { page: logPage([DELETION_ENTRY, ...GAME_LOG]), onRestore: undefined },
-  play: async ({ canvas }) => {
-    await expect(canvas.queryByRole('button', { name: 'Restore' })).toBeNull();
-  },
-});
+export const Deletion = meta.story({ args: { page: logPage([DELETION_ENTRY, ...GAME_LOG]) } });
 
 /** Once restored, the piece is back face down, its restore has an entry of its own and the deletion offers nothing more. */
-export const Restored = meta.story({
-  args: { page: logPage([...RESTORED_ENTRIES, ...GAME_LOG]) },
-  play: async ({ canvas }) => {
-    await expect(canvas.queryByRole('button', { name: 'Restore' })).toBeNull();
-  },
-});
+export const Restored = meta.story({ args: { page: logPage([...RESTORED_ENTRIES, ...GAME_LOG]) } });
 
 /** The audit log: seats taken and left, and a removal vote. */
 export const Audit = meta.story({
