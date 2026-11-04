@@ -480,6 +480,16 @@ describe('table views', () => {
     expect(state.activeView).toBe('right');
   });
 
+  test('a phase that begins while following is off keeps a queued player choice', () => {
+    let state = createTableViewState('storm', false);
+    state = reduceTableView(state, { type: 'interaction.changed', active: true });
+    state = reduceTableView(state, { type: 'view.selected', view: 'left' });
+    state = reduceTableView(state, { type: 'phase.changed', phase: 'spice-blow' });
+    state = reduceTableView(state, { type: 'interaction.changed', active: false });
+    expect(state.activeView).toBe('left');
+    expect(state.cameraRevision).toBe(1);
+  });
+
   test('a phase that begins while following is off queues no view', () => {
     let state = createTableViewState('storm', false);
     state = reduceTableView(state, { type: 'interaction.changed', active: true });
