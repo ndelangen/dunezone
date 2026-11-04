@@ -89,7 +89,7 @@ export function fitsTintCommand(action: TerritoryTintAction) {
 type Applied = { tints: TerritoryTint[]; message: string };
 
 /* The battle's own outline, drawn beside the table's tints; no tint the players make may take its ID. */
-export const BATTLE_HIGHLIGHT_ID = 'battle-highlight';
+const BATTLE_HIGHLIGHT_ID = 'battle-highlight';
 
 function createTint(
   tints: readonly TerritoryTint[],
@@ -228,7 +228,7 @@ export function applyTerritoryTint(tints: readonly TerritoryTint[], action: Terr
  * Red, in a thick line on the outside, is Norbert's pick (2026-11-04).
  * Never stored; the page adds it.
  */
-export function battleHighlight(territoryId: string): TerritoryTint {
+function battleHighlight(territoryId: string): TerritoryTint {
   return {
     id: BATTLE_HIGHLIGHT_ID,
     name: 'Battle',

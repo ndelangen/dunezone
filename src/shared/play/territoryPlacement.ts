@@ -14,7 +14,7 @@ import type { FitBody, FitObstacle, TableTerritory } from './territoryFit';
  */
 
 /** A table without a captured board plays on the rulebook Arrakis the page draws for it. */
-export function tableBoard(state: Pick<TableState, 'board'>) {
+function tableBoard(state: Pick<TableState, 'board'>) {
   return state.board ?? retainedArrakisBoard();
 }
 
