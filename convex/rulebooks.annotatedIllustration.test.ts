@@ -251,13 +251,30 @@ describe('immutable annotated illustration delivery', () => {
     block.source = { kind: 'board', boardId: board.id };
     block.itemsById.first!.target = { kind: 'named', key: 'arrakeen', source: block.source };
     await publish(f);
-    const resolved = await f.t.query(internal.rulebookAnnotatedIllustration.resolveDelivery, f.identity);
+    const resolved = await f.t.query(internal.rulebookAnnotatedIllustration.resolveDelivery, {
+      ...f.identity,
+      schemaVersion: 2,
+    });
     expect(resolved).toMatchObject({
       source: { status: 'image', assetType: 'board', assetId: board.id, revision },
     });
     expect(resolved.status === 'found' && resolved.source.status === 'image' && resolved.source.geometry).toEqual(
       geometry
     );
+    /* A Worker released before saved boards still asks during a release, and gets the built-in Arrakis it draws. */
+    const builtIn = { kind: 'board', boardId: 'arrakis' };
+    expect(await f.t.query(internal.rulebookAnnotatedIllustration.resolveDelivery, f.identity)).toMatchObject({
+      status: 'found',
+      source: { status: 'board', boardId: 'arrakis' },
+      configuration: { source: builtIn, items: [{ target: { kind: 'named', key: 'arrakeen', source: builtIn } }] },
+    });
+    /* Any other saved board reads as pending for it. */
+    await f.t.run(async (ctx) => {
+      await ctx.db.patch('assets', board.id, { slug: 'another-board' });
+    });
+    expect(await f.t.query(internal.rulebookAnnotatedIllustration.resolveDelivery, f.identity)).toMatchObject({
+      source: { status: 'pending' },
+    });
   }, 30_000);
 
   test('the backend boundary requires executor credentials and rejects arbitrary payloads and oversized bodies', async () => {
@@ -275,7 +292,9 @@ describe('immutable annotated illustration delivery', () => {
     const response = await f.t.fetch(endpoint, request(body, 'executor-secret'));
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ status: 'found' });
+    expect((await f.t.fetch(endpoint, request({ ...body, schemaVersion: 2 }, 'executor-secret'))).status).toBe(200);
     for (const invalid of [
+      { ...body, schemaVersion: 3 },
       { ...body, pageId: '../x' },
       { ...body, editionNumber: 0 },
       { ...body, sourceUrl: 'https://evil.invalid' },
