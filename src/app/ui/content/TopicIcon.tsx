@@ -19,6 +19,7 @@ import {
   Boxes,
   Image as ImageIcon,
   Info,
+  Keyboard,
   Signature,
   SlidersHorizontal,
   Type,
@@ -78,6 +79,8 @@ const TOPIC_ICON_DEFINITIONS = {
   assets: { kind: 'component', component: Boxes },
   /* The play table's own controls: trackers, the storm, the selected piece. The Table tab of the play panel. */
   controls: { kind: 'component', component: SlidersHorizontal },
+  /* The keys that play the table, listed in its keyboard shortcuts cheat sheet. */
+  keyboard: { kind: 'component', component: Keyboard },
   /* The glossary's topics that no editor had named yet: the turn's phases, the map, and the decks. */
   turn: { kind: 'mask', src: '/vector/icon/turn.svg' },
   board: { kind: 'mask', src: '/vector/icon/landscape.svg' },

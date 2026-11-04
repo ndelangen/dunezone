@@ -60,4 +60,11 @@ export const PANEL_WINDOWS = {
   /* A chat with a player takes that player's name and seat; this is what every one of them shares. */
   playerChat: { key: 'player', label: 'Player', topic: 'factions', ...PLAYER_CONVERSATION_GUIDANCE },
   factionInfo: { key: 'faction-info', label: 'Faction info', topic: 'factions', ...FACTION_INFO_GUIDANCE },
+  shortcuts: {
+    key: 'shortcuts',
+    label: 'Keyboard shortcuts',
+    topic: 'keyboard',
+    description: 'Every key the table answers to. Press ? to show or hide this cheat sheet.',
+    keywords: 'keys hotkeys help cheat sheet',
+  },
 } as const satisfies Record<string, PanelWindow>;

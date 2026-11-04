@@ -55,7 +55,7 @@ describe('boardMapGeometry', () => {
   it('dashes the sector lines', () => {
     const colors = geometry.getAttribute('color');
     const alphas = new Set(Array.from({ length: colors.count }, (_, index) => colors.getW(index).toFixed(2)));
-    expect(alphas).toContain('0.30');
+    expect(alphas).toContain('0.45');
   });
 
   it('draws only the Polar Sink, near the centre, when asked for its group', () => {
