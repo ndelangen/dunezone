@@ -31,7 +31,7 @@ function controls(canTake: (pieceId: string) => boolean): MenuControls & { take:
   return {
     deckControls: { recipients: [], draw: vi.fn(), shuffle: vi.fn() },
     peekControls: { peek: vi.fn(), arrange: vi.fn(), pull: vi.fn() },
-    deleteControls: { remove: vi.fn() },
+    deleteControls: { remove: vi.fn(), restore: vi.fn() },
     handControls: { canTake, take },
     take,
   };

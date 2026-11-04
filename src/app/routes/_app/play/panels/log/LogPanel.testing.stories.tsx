@@ -2,7 +2,7 @@ import { testingPreview } from '@sb/preview';
 import { expect, userEvent } from 'storybook/test';
 
 import { GAME_LOG } from '../../game.stories.fixture';
-import { logPage, logPanelMeta } from './LogPanel.stories.fixture';
+import { DELETION_ENTRY, logPage, logPanelMeta, RESTORED_ENTRIES } from './LogPanel.stories.fixture';
 
 const meta = testingPreview.meta({ ...logPanelMeta, title: 'Play/Panels/Log' });
 
@@ -14,5 +14,30 @@ export const PagesThroughTheLog = meta.story({
     await expect(args.onEarlier).toHaveBeenCalledOnce();
     await userEvent.click(canvas.getByRole('button', { name: 'Latest entries' }));
     await expect(args.onLatest).toHaveBeenCalledOnce();
+  },
+});
+
+/** Restore sends the deletion its entry names. */
+export const RestoresADeletion = meta.story({
+  args: { page: logPage([DELETION_ENTRY, ...GAME_LOG]) },
+  play: async ({ args, canvas }) => {
+    await userEvent.click(canvas.getByRole('button', { name: 'Restore' }));
+    await expect(args.onRestore).toHaveBeenCalledWith('42');
+  },
+});
+
+/** An observer reads the same deletion without the Restore button. */
+export const DeletionObserved = meta.story({
+  args: { page: logPage([DELETION_ENTRY, ...GAME_LOG]), onRestore: undefined },
+  play: async ({ canvas }) => {
+    await expect(canvas.queryByRole('button', { name: 'Restore' })).toBeNull();
+  },
+});
+
+/** Once restored, the deletion offers no Restore button. */
+export const RestoredOffersNothingMore = meta.story({
+  args: { page: logPage([...RESTORED_ENTRIES, ...GAME_LOG]) },
+  play: async ({ canvas }) => {
+    await expect(canvas.queryByRole('button', { name: 'Restore' })).toBeNull();
   },
 });
