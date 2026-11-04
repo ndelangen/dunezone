@@ -156,6 +156,7 @@ export function battleStory(stage: 'preparing' | 'countdown' | 'revealed', obser
       id: 'story-battle',
       anchor: [0.95, 0.18, -3.05],
       territory: 'Arrakeen',
+      territoryId: 'arrakeen',
       stage,
       sides: [
         { factionId: 'house-harkonnen', ready: stage !== 'preparing', choice: stage === 'revealed' ? 'left' : null },
