@@ -4,7 +4,7 @@
  *
  * The Worker owns `/public/*` so it can tell the two apart: a stored file passes through with the immutable header, and anything else is a 404 nobody may keep.
  */
-export const BUNDLE_ASSET_PREFIX = '/public/';
+const BUNDLE_ASSET_PREFIX = '/public/';
 
 export const IMMUTABLE_BUNDLE_CACHE_CONTROL = 'public, max-age=31536000, immutable';
 

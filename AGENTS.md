@@ -492,7 +492,7 @@ Two test regimes share the repository, and their `expect`s look alike but do not
 | Files | `*.test.ts(x)` | `*.stories.tsx`, `*.testing.stories.tsx` |
 | Run with | `bun run test` | `bun run storybook:test` or `bun run storybook:test:shard <shard>` |
 | `expect` from | `vite-plus/test` | `storybook/test` |
-| DOM matchers (`toBeVisible`, `toBeChecked`, `toBeDisabled`) | absent: `Invalid Chai property` | present |
+| Document (DOM) matchers (`toBeVisible`, `toBeChecked`, `toBeDisabled`) | absent: `Invalid Chai property` | present |
 
 A unit test that needs a DOM state asserts on the element's properties (`element.checked`) instead.
 Do not install `@testing-library/jest-dom` to close the gap: that adds a second matcher stack beside
