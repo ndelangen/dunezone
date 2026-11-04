@@ -374,7 +374,7 @@ function playFromHand(
   snapshot: StoredSnapshot,
   factionId: string,
   action: Extract<BattleAction, { kind: 'hand-play' }>,
-  board: Board | undefined
+  table: BattleTable
 ) {
   const { inventory, piece } = handPiece(snapshot, factionId, action.pieceId);
   const { hiddenZone: _spot, ...leaving } = piece;
@@ -385,15 +385,28 @@ function playFromHand(
     ...snapshot.factionInventories,
     [factionId]: inventory.filter((piece) => piece.id !== action.pieceId),
   };
-  /* A piece played from hand settles as a carried one would: on an anchor, or packed into its territory by the game's own board. */
-  const table = { ...tableForViewer(snapshot, SPECTATOR_SEAT), board };
+  /*
+   * A piece played from hand settles as a carried one would: on an anchor, or packed into its territory by the game's own board.
+   * Pieces other players are carrying are locked while it settles, so packing goes round them; their own locks are put back after.
+   */
+  const viewed = tableForViewer(snapshot, SPECTATOR_SEAT);
+  const guarded = {
+    ...viewed,
+    board: table.board,
+    pieces: viewed.pieces.map((piece) => (table.reserved.has(piece.id) ? { ...piece, locked: true } : piece)),
+  };
   const settled = playFromHandSettled(
-    table,
+    guarded,
     { ...leavingHand, position: restingPositionAt(action.position, piece) },
     action.position
   );
   if (settled) {
-    return { ...nextSnapshot(snapshot, requireAccepted(table, settled)), factionInventories };
+    const next = requireAccepted(guarded, settled);
+    const restored = next.pieces.map((piece) => {
+      const original = viewed.pieces.find((candidate) => candidate.id === piece.id);
+      return table.reserved.has(piece.id) && original ? { ...piece, locked: original.locked } : piece;
+    });
+    return { ...nextSnapshot(snapshot, { ...next, pieces: restored }), factionInventories };
   }
   const position = nearestCollisionFreePosition(
     piece,
@@ -589,25 +602,28 @@ function sideCommand(
   }
 }
 
+/** What the room knows of the table beyond the snapshot: the game's board, and the pieces players are carrying right now. */
+export type BattleTable = { board?: Board; reserved: ReadonlySet<string> };
+
 /** Room supplies current faction authority and guards physical carries before entering this transition. */
 export function battleCommand(
   snapshot: StoredSnapshot,
   factionId: string,
   action: BattleAction,
   now: number,
-  board?: Board
+  table: BattleTable = { reserved: new Set() }
 ): StoredSnapshot {
   switch (action.kind) {
     case 'hand-take':
       return takeIntoHand(snapshot, factionId, action);
     case 'hand-play':
-      return playFromHand(snapshot, factionId, action, board);
+      return playFromHand(snapshot, factionId, action, table);
     case 'hand-zone':
       return arrangeHiddenZone(snapshot, factionId, action);
     case 'hand-order':
       return orderHand(snapshot, factionId, action);
     case 'battle-start':
-      return startBattle(snapshot, action, board);
+      return startBattle(snapshot, action, table.board);
   }
   const battle = structuredClone(snapshot.battleState);
   if (!battle || battle.id !== action.battleId) {

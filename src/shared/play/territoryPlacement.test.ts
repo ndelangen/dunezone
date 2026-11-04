@@ -157,4 +157,20 @@ describe('stacks dropped into a territory', () => {
     const landing = territoryLanding({}, stack, spot, [card, stack])!.position;
     expect(Math.hypot(landing[0] - spot[0], landing[2] - spot[2])).toBeLessThan(0.01);
   });
+
+  test('find room for a leader in a wide territory far from where it was let go', () => {
+    /* Fewer search directions on the wider rings missed this pocket and called an empty Cielago depression full. */
+    const leader: TablePiece = {
+      ...troopBase,
+      id: 'leader',
+      stackKey: 'leader:atreides',
+      items: [{ id: 'l', faceUp: true }],
+    };
+    const spot: Vector3Tuple = [0.614, 0, 2.51];
+    const landing = territoryLanding({}, { ...leader, position: restingPositionAt(spot, leader) }, spot, []);
+    expect(landing).toBeTruthy();
+    expect(insideTerritory(territoryNamed('Cielago depression'), { ...leader, position: landing!.position })).toBe(
+      true
+    );
+  });
 });

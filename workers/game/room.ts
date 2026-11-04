@@ -764,7 +764,10 @@ export class Room {
 
   private battleCommand(identity: Identity, action: BattleAction, now: number): StoredSnapshot {
     const factionId = this.requireFaction(identity);
-    const next = battleCommand(this.snapshot, factionId, action, now, this.board());
+    const next = battleCommand(this.snapshot, factionId, action, now, {
+      board: this.board(),
+      reserved: new Set(this.reservations.keys()),
+    });
     /* Settling a revealed battle, by outcome or cancel, moves its overlay pieces even mid-carry; refusing it would let a carry hold the battle open. */
     if (this.snapshot.battleState?.stage !== 'revealed' || next.battleState) {
       this.assertReservationsUnchanged(this.snapshot.table as TableState, next.table as TableState);
