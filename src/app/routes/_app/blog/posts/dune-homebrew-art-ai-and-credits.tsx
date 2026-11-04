@@ -140,7 +140,7 @@ function LawSection() {
         <Anchor href={THALER} target="_blank" rel="noreferrer">
           Thaler v. Perlmutter
         </Anchor>
-        ). For a free community project, I&rsquo;m fine with that.
+        ).
       </Paragraph>
     </Section>
   );
