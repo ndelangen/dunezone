@@ -15,12 +15,17 @@ afterEach(() => {
 type Fake = TableSession & {
   conversations: { clearAllChats: ReturnType<typeof vi.fn>; clearChat: ReturnType<typeof vi.fn> };
   confirm: (cleared: number) => void;
+  seat: (factionId: string) => void;
 };
 
 /* Only what the hook reads: the game, the chats' summaries, and the clears it may ask for. */
 function client(game = 'game-1'): Fake {
   let snapshot = {
-    conversations: { online: true, summaries: [{ peerId: 'two', latest: 3, unread: 0, cleared: 0 }] },
+    conversations: {
+      online: true,
+      context: { userId: 'user', factionId: 'one' },
+      summaries: [{ peerId: 'two', latest: 3, unread: 0, cleared: 0 }],
+    },
   };
   const listeners = new Set<() => void>();
   return {
@@ -36,6 +41,11 @@ function client(game = 'game-1'): Fake {
       snapshot = {
         conversations: { ...snapshot.conversations, summaries: [{ ...snapshot.conversations.summaries[0], cleared }] },
       };
+      listeners.forEach((listener) => listener());
+    },
+    /* The same browser now plays another faction at the table. */
+    seat: (factionId: string) => {
+      snapshot = { conversations: { ...snapshot.conversations, context: { userId: 'user', factionId } } };
       listeners.forEach((listener) => listener());
     },
   } as unknown as Fake;
@@ -105,4 +115,18 @@ test('still clears each new turn when the browser keeps no storage', () => {
     blocked.mockRestore();
     vi.restoreAllMocks();
   }
+});
+
+test('a clear owed by one faction is never replayed for another faction this browser plays', () => {
+  localStorage.setItem('dunezone-chat-auto-clear-turn:game-seat', '1');
+  setAutoClearChats(true);
+  const session = client('game-seat');
+  const { unmount } = renderHook(() => useAutoClearChatsAtNewTurn(session, at(9)));
+  expect(session.conversations.clearAllChats).toHaveBeenCalledTimes(1);
+  unmount();
+  session.conversations.clearChat.mockClear();
+  session.seat('three');
+  setAutoClearChats(false);
+  renderHook(() => useAutoClearChatsAtNewTurn(session, at(9)));
+  expect(session.conversations.clearChat).not.toHaveBeenCalled();
 });

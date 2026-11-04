@@ -255,7 +255,7 @@ export class ConversationSession {
 
   private dropCleared(peerId: string, through: number) {
     const page = this.pages[peerId];
-    if (!page || !page.entries.some((entry) => entry.sequence <= through)) {
+    if (!page?.entries.some((entry) => entry.sequence <= through)) {
       return;
     }
     /* Everything before a cleared message was cleared with it, so there is nothing earlier to load. */

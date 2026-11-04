@@ -53,8 +53,16 @@ class Remembered {
 }
 
 const seenTurn = (game: string) => new Remembered(`dunezone-chat-auto-clear-turn:${game}`);
-/* The clears asked for at the start of a turn, by conversation, until the room confirms each one; a dropped connection loses none. */
-const owedClears = (game: string) => new Remembered(`dunezone-chat-auto-clear-owed:${game}`);
+/*
+ * The clears asked for at the start of a turn, by conversation, until the room confirms each one; a dropped connection loses none.
+ * They belong to the player and faction that asked, so the same browser at another seat never replays them.
+ */
+type Asker = { game: string; userId: string; factionId: string };
+function askerOf(game: string, context: { userId: string; factionId: string } | null): Asker | undefined {
+  return context ? { game, userId: context.userId, factionId: context.factionId } : undefined;
+}
+const owedClears = ({ game, userId, factionId }: Asker) =>
+  new Remembered(`dunezone-chat-auto-clear-owed:${game}:${userId}:${factionId}`);
 type Owed = Record<string, number>;
 
 function readSeen(seen: Remembered): number | undefined {
@@ -94,8 +102,8 @@ function enterTurn(remembered: Remembered, turn: number) {
 }
 
 /* Asks again for each owed clear the room has not confirmed; confirmed ones, and chats this faction no longer has, are settled. */
-function settleOwed(client: TableSession, summaries: ConversationSummary[]) {
-  const remembered = owedClears(client.game);
+function settleOwed(client: TableSession, asker: Asker, summaries: ConversationSummary[]) {
+  const remembered = owedClears(asker);
   const owed = readOwed(remembered);
   const left: Owed = {};
   for (const [peerId, through] of Object.entries(owed)) {
@@ -121,19 +129,22 @@ export function useAutoClearChatsAtNewTurn(client: TableSession, table: TablePro
   const ready = conversations.online && conversations.summaries.length > 0;
   const turn = ready ? liveTurn(table) : undefined;
   const summaries = ready ? conversations.summaries : undefined;
+  const { context } = conversations;
   useEffect(() => {
-    if (turn === undefined) {
+    const asker = askerOf(client.game, context);
+    if (turn === undefined || !asker) {
       return;
     }
     const started = enterTurn(seenTurn(client.game), turn);
     if (started && enabled) {
-      const owed = owedClears(client.game);
+      const owed = owedClears(asker);
       writeOwed(owed, { ...readOwed(owed), ...client.conversations.clearAllChats() });
     }
-  }, [client, enabled, turn]);
+  }, [client, context, enabled, turn]);
   useEffect(() => {
-    if (summaries) {
-      settleOwed(client, summaries);
+    const asker = askerOf(client.game, context);
+    if (summaries && asker) {
+      settleOwed(client, asker, summaries);
     }
-  }, [client, summaries]);
+  }, [client, context, summaries]);
 }

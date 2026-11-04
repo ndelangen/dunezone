@@ -230,8 +230,8 @@ export function storyTransport(
 
     /* A page of a log tab before `before`, newest first. */
     deliverLog(tab: LogTab, before: number) {
-      const all =
-        tab === 'game' ? gameLog() : ((typeof logEntries === 'function' ? logEntries() : logEntries).audit ?? []);
+      const scripted = typeof logEntries === 'function' ? logEntries() : logEntries;
+      const all = tab === 'game' ? gameLog() : (scripted.audit ?? []);
       const entries = all.filter((entry) => entry.sequence < before);
       this.deliver({
         type: 'log-history',
