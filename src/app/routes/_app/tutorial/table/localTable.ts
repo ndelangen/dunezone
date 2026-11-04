@@ -8,7 +8,7 @@ import type { TablePiece } from '@shared/play/model';
 import type { ClientMessage, GameSnapshot, PieceAction, ServerMessage, Viewer } from '@shared/play/protocol';
 import { GameRejection } from '@shared/play/rejection';
 import { isResultAction } from '@shared/play/result';
-import { isReviewAction, REVIEW_CHECKPOINTS, reviewableStage, reviewRunning } from '@shared/play/review';
+import { isReviewAction, reviewCheckpointLimit, reviewableStage, reviewRunning } from '@shared/play/review';
 
 import { expireBattle } from '../../../../../../workers/game/battle';
 import { applyResult, settleEnding } from '../../../../../../workers/game/result';
@@ -149,7 +149,7 @@ export class LocalTable {
         ...(reviewableStage(room.snapshot.stage)
           ? {
               review: this.session.reviews.current(),
-              reviewCheckpoints: this.session.history.recent(REVIEW_CHECKPOINTS),
+              reviewCheckpoints: this.session.history.recent(reviewCheckpointLimit(room.snapshot.stage)),
             }
           : {}),
         /* Who sits where comes from the session's directory, as in a real game. */
@@ -421,7 +421,7 @@ export class LocalTable {
           action: message.action,
           now: Date.now(),
           checkpoint: (step) =>
-            this.session.history.recent(REVIEW_CHECKPOINTS).find((entry) => entry.step === step)?.context,
+            this.session.history.checkpointContext(step, reviewCheckpointLimit(room.snapshot.stage)),
         })
       );
       return;

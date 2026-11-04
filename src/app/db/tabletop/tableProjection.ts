@@ -25,8 +25,9 @@ export type TableProjection = {
   /*
    * The live table review, read from the live table even while a checkpoint shows; absent where a game cannot review.
    * `seat` is the viewer's own live seat when they hold one, since a shown checkpoint watches the table as an observer.
+   * `finished` marks a finished game, whose recall starts without a vote and can show any checkpoint.
    */
-  review?: { current: TableReview | null; checkpoints: ReviewCheckpoint[]; seat: string | null };
+  review?: { current: TableReview | null; checkpoints: ReviewCheckpoint[]; seat: string | null; finished: boolean };
   canInteract: boolean;
   /* Whether the viewer may handle the table's pieces: acting, at a stage whose table can change. A finished game, or one still drafting or trading, keeps its table as it is. */
   canHandleTable: boolean;

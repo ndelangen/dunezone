@@ -1,5 +1,6 @@
 import { testingPreview } from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
+import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { STORYBOOK_NOW } from '@db/storybook';
@@ -208,9 +209,10 @@ export const Finished = meta.story({
     /* Continue playing sits where Next phase did. */
     await userEvent.click(within(header).getByRole('button', { name: 'Continue playing' }));
     await expect(lastCommand()?.action).toEqual({ kind: 'result-continue' });
-    /* A finished table keeps its panels, so its players can still replay how the game went. */
-    await openTab(page, 'Replay');
-    await expect(await page.findByRole('button', { name: 'Replay from start' })).toBeVisible();
+    /* A finished table keeps its panels; its players look back together through Mentat recall, without a vote, and replay nothing alone. */
+    await openTab(page, 'Mentat recall');
+    await expect(await page.findByRole('button', { name: 'Recall together' })).toBeVisible();
+    await expect(page.queryByRole('button', { name: 'Replay from start' })).toBeNull();
     await expect(page.queryByRole('button', { name: 'Determine winner' })).toBeNull();
   },
 });
@@ -257,9 +259,9 @@ export const FinishedWithoutCelebration = meta.story({
   },
 });
 
-/* Replaying a finished game: the past board is the public table, so a seat sees no hand, reserve or action of its own. */
+/* An observer replays a finished game alone, since only players start a recall: the past board is the public table, with no hand, reserve or action. */
 export const ReplayingAFinishedGame = meta.story({
-  beforeEach: install(() => productTransport('seat-2', finishedSnapshot('seat-2'))),
+  beforeEach: install(() => productTransport(SPECTATOR_SEAT, finishedSnapshot(SPECTATOR_SEAT))),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await page.findByText(/Declared by/, {}, { timeout: 30_000 });
@@ -278,9 +280,9 @@ export const ReplayingAFinishedGame = meta.story({
   },
 });
 
-/* A refused checkpoint stays visible in the Replay window, which offers the replay again. */
+/* A refused checkpoint stays visible in an observer's Replay window, which offers the replay again. */
 export const ReplayRefusal = meta.story({
-  beforeEach: install(() => productTransport('seat-2', finishedSnapshot('seat-2'))),
+  beforeEach: install(() => productTransport(SPECTATOR_SEAT, finishedSnapshot(SPECTATOR_SEAT))),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await page.findByText(/Declared by/, {}, { timeout: 30_000 });

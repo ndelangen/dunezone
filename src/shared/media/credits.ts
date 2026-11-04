@@ -12,6 +12,7 @@ export const creditMethods = [
   'ai',
   'blog',
   'online',
+  'online-copy',
   'unknown',
 ] as const;
 type CreditMethod = (typeof creditMethods)[number];
@@ -74,6 +75,7 @@ const phrases: Record<CreditMethod, (credit: MediaCredit) => string> = {
   ai: (credit) => `made with AI image tools for Dune Zone${styleSuffix(credit)}`,
   blog: () => 'a picture from the Dune Zone blog',
   online: () => 'found online. The original source is still being traced',
+  'online-copy': () => 'found online, based on an existing design',
   unknown: (credit) => `artist not yet recorded${credit.source ? `. From ${credit.source}` : ''}`,
 };
 

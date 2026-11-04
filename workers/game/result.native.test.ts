@@ -785,10 +785,36 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
       await accepted(owner, { kind: 'review-propose', step: target.step });
       await accepted(owner, { kind: 'result-open' });
       const finished = await accepted(owner, { kind: 'result-declare', result: 'faction', factionIds: ['atreides'] });
-      expect(finished.snapshot.review).toBeUndefined();
+      expect(finished.snapshot.review).toBeNull();
       const audit = (await page(observer, 'audit')).map((entry) => entry.text);
       const proposer = finished.viewer.displayName;
       expect(audit).toContain(`The recall of ${target.context} ${proposer} proposed was withdrawn as the game ended.`);
+    });
+
+    it('starts without a vote once the game is finished, over any checkpoint, and shows it to everyone', async () => {
+      const { owner, other, observer } = await inPlay();
+      await toMentat(owner);
+      await accepted(owner, { kind: 'result-open' });
+      await accepted(owner, { kind: 'result-declare', result: 'faction', factionIds: ['atreides'] });
+      const checkpoints = required((await syncView(other)).snapshot.reviewCheckpoints);
+      expect(checkpoints.at(-1)?.moment).toBe('result');
+      const first = required(checkpoints[0]);
+      expect(await rejected(observer, { kind: 'review-propose', step: first.step })).toBe(true);
+      const review = required((await accepted(other, { kind: 'review-propose', step: first.step })).snapshot.review);
+      expect(review.startedAt).not.toBeNull();
+      expect(review.threshold).toBe(1);
+      expect((await syncView(observer)).snapshot.review?.step).toBe(first.step);
+      const later = required(checkpoints.at(-1));
+      await accepted(owner, { kind: 'review-seek', reviewId: review.id, step: later.step });
+      expect((await syncView(observer)).snapshot.review?.step).toBe(later.step);
+      expect(await rejected(owner, { kind: 'result-continue' })).toBe(true);
+      expect((await accepted(owner, { kind: 'review-end', reviewId: review.id })).snapshot.review).toBeNull();
+      const audit = (await page(observer, 'audit')).map((entry) => entry.text);
+      expect(audit).toContain(
+        `The table recalls ${first.context}, as ${(await syncView(other)).viewer.displayName} asked.`
+      );
+      const ender = (await syncView(owner)).viewer.displayName;
+      expect(audit).toContain(`The recall of ${later.context} was ended by ${ender}.`);
     });
 
     it('is declined without a majority and withdrawn only by its proposer', async () => {

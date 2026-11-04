@@ -105,7 +105,7 @@ export const PalaceOnSavedBoard = meta.story({
     boardDefinition: (() => {
       const board = arrakisBoard();
       const territory = Object.values(board.properties).find(({ name }) => name === 'Tueks')!;
-      territory.decals[0] = { ...territory.decals[0], artwork: '/vector/decal/palace.svg' };
+      territory.decals[0] = { ...territory.decals[0], artwork: '/vector/icon/stronghold.svg' };
       return board;
     })(),
   },

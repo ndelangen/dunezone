@@ -326,6 +326,9 @@ export const playUiColors = {
   dangerActiveSurface: coreColors.raised,
   dangerCaption: coreColors.negative,
   pointerOutline: coreColors.ground,
+  /* A ping out of view sits on a dark chip with a light rim, so a dark faction's dot shows on any part of the table. */
+  pingEdgeChip: coreColors.ground,
+  pingEdgeRim: coreColors.text,
   spiceHover: coreColors.highlight,
   /* The territory a revealed spice card names, lit during Spice Blow until its spice is placed. */
   spiceBlowTerritory: coreColors.cautionFill,
