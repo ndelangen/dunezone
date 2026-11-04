@@ -133,6 +133,15 @@ setInterval(
   40 * 60_000
 );
 
+/* A game in play needs the seat named: the one asked for, else the first seat nobody holds. */
+function openSeat(view: NonNullable<typeof bot.view.current>) {
+  if (values.seat) {
+    return values.seat;
+  }
+  const held = view.snapshot.controls?.seats ?? [];
+  return view.snapshot.roster?.seats.find((entry) => !held.includes(entry.id))?.id;
+}
+
 /* Once admitted, a bot without a seat asks for one and waits for the table to approve it. */
 let asking = false;
 const seated = setInterval(() => {
@@ -153,7 +162,7 @@ const seated = setInterval(() => {
   if (!requested && !asking) {
     asking = true;
     void bot
-      .command({ kind: 'seat-request', ...(values.seat ? { seat: values.seat } : {}) })
+      .command({ kind: 'seat-request', ...(openSeat(view) ? { seat: openSeat(view) } : {}) })
       .then((result) => {
         bot.log(result.ok ? 'Asked for a seat; approve it at the table.' : `Seat request refused: ${result.message}`);
         /* A refused request is tried again after a pause, in case a seat opens. */
