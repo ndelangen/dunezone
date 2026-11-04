@@ -18,6 +18,7 @@ import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
 import { applicationTest } from './application.test.fixture';
+import { syncBoardReadiness } from './lib/boardReadiness';
 import { insertPendingGame } from './lib/playProvisioningSchedule';
 import { playRateLimiter } from './lib/playRateLimits';
 
@@ -83,6 +84,7 @@ async function catalogue(ctx: MutationCtx, owner: Id<'users'>) {
     is_deleted: false,
     group_id: null,
   });
+  await syncBoardReadiness(ctx, boardId, await ctx.db.get('assets', boardId));
   for (const rulesetId of [ready, emptySpice, unlinked]) {
     await ctx.db.insert('ruleset_asset_slots', { ruleset_id: rulesetId, asset_id: boardId, slot: 'board' });
   }
