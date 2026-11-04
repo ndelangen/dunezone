@@ -1,7 +1,7 @@
 import { Tooltip } from '@mantine/core';
 import { Kbd } from '@ui/content/Kbd';
 import clsx from 'clsx';
-import { MessagesSquare } from 'lucide-react';
+import { Keyboard, MessagesSquare } from 'lucide-react';
 import { useContext } from 'react';
 
 import styles from './ChatBar.module.css';
@@ -9,14 +9,21 @@ import base from './CompassControls.module.css';
 import { CompassTableContext } from './compassTable';
 import type { CompassPlayer } from './compassTable';
 import { PlayerToken } from './PlayerToken';
-import { chattable, FACTION_INFO } from './windows';
+import { SHORTCUTS } from './shortcuts';
+import { useShortcutsButton } from './shortcutsButton';
+import { chattable, FACTION_INFO, KEYBOARD_SHORTCUTS } from './windows';
 
-/* The bar at the bottom of the table: the viewer's own token, the Controls button that opens the compass, and a token for each chat. */
+/*
+ * The bar at the bottom of the table: the keyboard shortcuts button, the viewer's own token, the Controls button that opens
+ * the compass, and a token for each chat.
+ */
 
 type ChatBarProps = Readonly<{
   inert: boolean;
   /** Whether the table has a Hand & spice window yet, which the own token opens. */
   hasHand: boolean;
+  /** Whether the table has the keyboard shortcuts cheat sheet, which the key button opens. */
+  hasShortcuts: boolean;
   /** Whether a window is open anywhere, so its token shows pressed. */
   isOpen: (key: string, seat?: string) => boolean;
   onOpenCompass: () => void;
@@ -29,7 +36,7 @@ function words(...parts: (string | null | false | 0 | undefined)[]) {
   return parts.filter(Boolean);
 }
 
-export function ChatBar({ inert, hasHand, isOpen, onOpenCompass, onShow }: ChatBarProps) {
+export function ChatBar({ inert, hasHand, hasShortcuts, isOpen, onOpenCompass, onShow }: ChatBarProps) {
   const table = useContext(CompassTableContext);
   /* The other players to talk to, and the viewer too while a removal vote stands against them. */
   const recall = table?.recall;
@@ -38,8 +45,12 @@ export function ChatBar({ inert, hasHand, isOpen, onOpenCompass, onShow }: ChatB
   const chatKey = recall ? 'recall-chat' : 'table-chat';
   const chatLabel = recall ? 'Recall chat' : 'Table chat';
   const own = table?.players.find((player) => player.own);
+  const shortcutsButton = useShortcutsButton();
   return (
     <div className={styles.bar} inert={inert} data-hides-cursor data-compass-bar>
+      {hasShortcuts && shortcutsButton && (
+        <ShortcutsButton open={isOpen(KEYBOARD_SHORTCUTS)} onOpen={() => onShow(KEYBOARD_SHORTCUTS)} />
+      )}
       {hasHand && own?.factionName && (
         <OwnToken
           player={own}
@@ -99,6 +110,25 @@ function OwnToken({
         onClick={onOpen}
       >
         <PlayerToken player={player} size={34} />
+      </button>
+    </Tooltip>
+  );
+}
+
+/* The keyboard shortcuts cheat sheet, shown and hidden as ? does; the game menu takes the button off the bar. */
+function ShortcutsButton({ open, onOpen }: Readonly<{ open: boolean; onOpen: () => void }>) {
+  return (
+    <Tooltip label={`Keyboard shortcuts · ${SHORTCUTS.help}`} events={{ hover: true, focus: true, touch: false }}>
+      <button
+        type="button"
+        className={clsx(styles.chat, styles.own, styles.keys)}
+        aria-pressed={open}
+        aria-label="Keyboard shortcuts"
+        aria-keyshortcuts={SHORTCUTS.help}
+        data-shortcuts-button
+        onClick={onOpen}
+      >
+        <Keyboard size={20} aria-hidden />
       </button>
     </Tooltip>
   );

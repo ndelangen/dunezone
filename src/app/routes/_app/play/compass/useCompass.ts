@@ -11,6 +11,7 @@ import { commandsOf, SHORTCUTS, useShortcutKeys } from './shortcuts';
 import type { Shortcut } from './shortcuts';
 import { candidatesOf, rankSuggestions } from './suggestions';
 import { useCompassKeys } from './useCompassKeys';
+import { KEYBOARD_SHORTCUTS } from './windows';
 import type { TableWindow } from './windows';
 
 /*
@@ -57,9 +58,12 @@ export function useCompass({ open, onOpen, inert, windows, table, onView, onShow
       return target === 'ally' && tiles.ally.hidden ? 'table' : target;
     });
   /* A window an arm opens shows the arm's letter in the search too. */
-  const shortcuts = Object.fromEntries(
-    Object.values(tiles).flatMap((tile) => (tile.window ? [[tile.window.key, SHORTCUTS[tile.spot]]] : []))
-  );
+  const shortcuts = {
+    ...Object.fromEntries(
+      Object.values(tiles).flatMap((tile) => (tile.window ? [[tile.window.key, SHORTCUTS[tile.spot]]] : []))
+    ),
+    ...(windows.some((entry) => entry.key === KEYBOARD_SHORTCUTS) ? { [KEYBOARD_SHORTCUTS]: SHORTCUTS.help } : {}),
+  };
   const suggestions = rankSuggestions(
     candidatesOf(windows, {
       open: show,
@@ -97,6 +101,14 @@ export function useCompass({ open, onOpen, inert, windows, table, onView, onShow
   };
   /* A letter opens its arm's window, as confirming the tile would, or runs its command; one the table lacks is left to the table. */
   const shortcut = (pressed: Shortcut) => {
+    /* ? shows the cheat sheet in the centre, and hides it again. */
+    if (pressed === 'help') {
+      if (!windows.some((entry) => entry.key === KEYBOARD_SHORTCUTS)) {
+        return false;
+      }
+      onShow(KEYBOARD_SHORTCUTS);
+      return true;
+    }
     if (pressed in tiles) {
       const tile = tiles[pressed as keyof typeof tiles];
       if (tile.window && !tile.disabled) {

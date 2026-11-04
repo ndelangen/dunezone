@@ -57,7 +57,14 @@ function renderBar(players: readonly CompassPlayer[], hasHand = true, recall?: C
   render(
     <MantineProvider>
       <CompassTableContext.Provider value={table}>
-        <ChatBar inert={false} hasHand={hasHand} isOpen={() => false} onOpenCompass={vi.fn()} onShow={onShow} />
+        <ChatBar
+          inert={false}
+          hasHand={hasHand}
+          hasShortcuts={false}
+          isOpen={() => false}
+          onOpenCompass={vi.fn()}
+          onShow={onShow}
+        />
       </CompassTableContext.Provider>
     </MantineProvider>
   );
@@ -147,7 +154,14 @@ function renderChats() {
           token: null,
         }}
       >
-        <ChatBar inert={false} hasHand={false} isOpen={() => false} onOpenCompass={vi.fn()} onShow={onShow} />
+        <ChatBar
+          inert={false}
+          hasHand={false}
+          hasShortcuts={false}
+          isOpen={() => false}
+          onOpenCompass={vi.fn()}
+          onShow={onShow}
+        />
       </CompassTableContext>
     </MantineProvider>
   );

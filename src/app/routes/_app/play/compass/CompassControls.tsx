@@ -15,7 +15,7 @@ import { useOpenWindows } from './useOpenWindows';
 import { RememberedContext } from './useRemembered';
 import { useSlotHeights } from './useSlotHeights';
 import { WindowFrames } from './WindowFrames';
-import { useTableWindows } from './windows';
+import { KEYBOARD_SHORTCUTS, useTableWindows } from './windows';
 import type { TableWindow } from './windows';
 
 /*
@@ -160,6 +160,7 @@ function Controls({
       <ChatBar
         inert={inert}
         hasHand={windows.some((entry) => entry.key === 'hand')}
+        hasShortcuts={windows.some((entry) => entry.key === KEYBOARD_SHORTCUTS)}
         isOpen={opened.isOpen}
         onOpenCompass={compass.openCompass}
         onShow={compass.show}

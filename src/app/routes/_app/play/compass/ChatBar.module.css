@@ -111,6 +111,16 @@
   border-color: rgb(from var(--color-brand) r g b / 0.65);
 }
 
+/* The keyboard shortcuts button sits in the same round well as the viewer's token, its glyph in the bar's quiet text colour. */
+.keys {
+  color: var(--color-muted);
+}
+
+.keys:hover,
+.keys[aria-pressed="true"] {
+  color: var(--color-text);
+}
+
 .token {
   display: grid;
   place-items: center;

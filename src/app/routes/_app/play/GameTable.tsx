@@ -69,6 +69,8 @@ export type TablePanel = Readonly<{
   description?: string;
   /** The panel's full guidance, behind the window's (?) under the description. */
   help?: string;
+  /** Further words the compass's search finds the panel by, beside its name. */
+  keywords?: string;
   content: ReactNode;
   /** False when the content runs to the window's sides and insets its own text. */
   padding?: boolean;

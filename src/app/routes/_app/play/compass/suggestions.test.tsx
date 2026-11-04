@@ -1,5 +1,6 @@
 import { expect, test } from 'vite-plus/test';
 
+import { PANEL_WINDOWS } from '../panels/panelWindows';
 import { commandsOf } from './shortcuts';
 import { candidatesOf, fuzzy, rankSuggestions } from './suggestions';
 
@@ -217,4 +218,17 @@ test('"atreides" finds the Atreides faction information ahead of the chat with i
   const suggested = rankSuggestions(all, '').map((entry) => entry.label);
   expect(suggested).toContain('Paul');
   expect(suggested).not.toContain('Atreides');
+});
+
+test('the keyboard shortcuts cheat sheet is found by its name and by its keywords, with ? beside it', () => {
+  const sheet = {
+    ...PANEL_WINDOWS.shortcuts,
+    group: PANEL_WINDOWS.shortcuts.label,
+    content: null,
+    layout: 'stack' as const,
+  };
+  const all = candidatesOf([sheet], { ...actions(null), shortcuts: { [sheet.key]: '?' } });
+  for (const query of ['keyboard', 'shortcuts', 'help', 'cheat sheet', 'hotkeys']) {
+    expect(rankSuggestions(all, query)[0]).toMatchObject({ label: 'Keyboard shortcuts', shortcut: '?' });
+  }
 });

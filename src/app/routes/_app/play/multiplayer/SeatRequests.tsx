@@ -7,6 +7,7 @@ import { rosterSeat } from '@shared/play/schema';
 import { Link } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { Eyebrow } from '@ui/content/Eyebrow';
+import { Kbd } from '@ui/content/Kbd';
 import { ConfirmDeleteMenuItem } from '@ui/control/ConfirmDeleteMenuItem';
 import { IconAction } from '@ui/control/IconAction';
 import { Armchair, Settings } from 'lucide-react';
@@ -34,6 +35,8 @@ import {
   TABLE_PAN_SPEED_MIN,
   useTablePanSpeed,
 } from '../../../../widgets/tabletop/tablePanSpeed';
+import { SHORTCUTS } from '../compass/shortcuts';
+import { setShortcutsButton, useShortcutsButton } from '../compass/shortcutsButton';
 import { TABLE_LABEL_OPTIONS, useTableLabels } from '../tableLabels';
 import { publicControlsOf } from './publicControls';
 import { isSpectator, offersActions } from './tableFactions';
@@ -386,6 +389,21 @@ function PlanetShadingItem() {
   );
 }
 
+/* Keeps the keyboard shortcuts button in the bar at the bottom of the table, or takes it off; it stays in this browser. */
+function ShortcutsButtonItem() {
+  const shown = useShortcutsButton();
+  return (
+    <Menu.CheckboxItem
+      checked={shown}
+      closeMenuOnClick={false}
+      onChange={() => setShortcutsButton(!shown)}
+      rightSection={<Kbd>{SHORTCUTS.help}</Kbd>}
+    >
+      Keyboard shortcuts button
+    </Menu.CheckboxItem>
+  );
+}
+
 /* Pins the stack counts or piece names on; holding the key shows them for a moment. */
 function TableLabelItems() {
   const labels = useTableLabels();
@@ -447,6 +465,7 @@ export function GameMenu({
         <BoardSkinItems />
         <PlanetShadingItem />
         <TableLabelItems />
+        <ShortcutsButtonItem />
         {table.snapshot.stage === 'play' && offersActions(table) && (
           <Menu.CheckboxItem
             checked={table.snapshot.bidding?.timed ?? idleBidding().timed}
