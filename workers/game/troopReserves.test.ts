@@ -152,24 +152,38 @@ describe('troops let go over their own faction token', () => {
     expect(planarDistance(piece(table, 'elite-reserve')!.position, spots[1]!)).toBeCloseTo(0);
   });
 
-  test('leave dead troops in the Tanks where they are', () => {
-    /* Seated at the near edge, Harkonnen's reserves stand right by the join to the Tanks shelf. */
-    const near = factionSupplyLayout(angles[3]!, KINDS.length).reserves[0]!;
-    const tanks = troops({ id: 'regular-tanks', stackKey: KINDS[0]!, count: 2, at: [0.3, 0, 5.7] });
-    expect(planarDistance(tanks.position, near)).toBeLessThan(1);
-    const { table } = room([tanks]);
-    table.snapshot = {
-      ...table.snapshot,
-      roster: {
-        ...table.snapshot.roster!,
-        seats: table.snapshot.roster!.seats.map((seat) =>
-          seat.faction?.id === 'harkonnen' ? { ...seat, position: 3 } : seat
-        ),
-      },
+  describe('at the near edge, where the reserves stand by the join to the Tanks shelf', () => {
+    const near = factionSupplyLayout(angles[3]!, KINDS.length).reserves;
+    const seatedNear = (table: Room) => {
+      table.snapshot = {
+        ...table.snapshot,
+        roster: {
+          ...table.snapshot.roster!,
+          seats: table.snapshot.roster!.seats.map((seat) =>
+            seat.faction?.id === 'harkonnen' ? { ...seat, position: 3 } : seat
+          ),
+        },
+      };
     };
-    dropOn(table, 'regular-board', token(table, 'harkonnen'));
-    expect(piece(table, 'regular-tanks')!.items).toHaveLength(2);
-    expect(piece(table, 'regular-tanks')!.position).toEqual(tanks.position);
+
+    test('returned troops join the reserve there', () => {
+      const reserve = troops({ id: 'regular-near', stackKey: KINDS[0]!, count: 10, at: near[0]! });
+      const { table } = room([reserve]);
+      seatedNear(table);
+      dropOn(table, 'regular-board', token(table, 'harkonnen'));
+      expect(piece(table, 'regular-near')!.items).toHaveLength(13);
+      expect(piece(table, 'regular-board')).toBeUndefined();
+    });
+
+    test('dead troops in the Tanks stay where they are', () => {
+      const tanks = troops({ id: 'regular-tanks', stackKey: KINDS[0]!, count: 2, at: [0.3, 0, 5.7] });
+      expect(planarDistance(tanks.position, near[0]!)).toBeLessThan(1);
+      const { table } = room([tanks]);
+      seatedNear(table);
+      dropOn(table, 'regular-board', token(table, 'harkonnen'));
+      expect(piece(table, 'regular-tanks')!.items).toHaveLength(2);
+      expect(piece(table, 'regular-tanks')!.position).toEqual(tanks.position);
+    });
   });
 
   test('gather a reserve split into two piles back into one', () => {

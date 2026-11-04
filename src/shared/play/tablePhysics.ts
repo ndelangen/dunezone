@@ -324,17 +324,13 @@ function isOnTanksShelf(piece: TablePiece, position: Vector3Tuple): boolean {
   );
 }
 
-/** Whether a point lies over the Tanks shelf. */
-export function isInTanksArea([x, , z]: Readonly<Vector3Tuple>): boolean {
-  return (
-    x >= TANKS_PLAY_AREA.minX && x <= TANKS_PLAY_AREA.maxX && z >= TANKS_PLAY_AREA.minZ && z <= TANKS_PLAY_AREA.maxZ
-  );
-}
-
 const JOIN_SAMPLE_COUNT = 32;
 
 function isPointOnTabletop(x: number, z: number): boolean {
-  return Math.hypot(x, z) <= TABLE_PLAY_RADIUS || isInTanksArea([x, 0, z]);
+  return (
+    Math.hypot(x, z) <= TABLE_PLAY_RADIUS ||
+    (x >= TANKS_PLAY_AREA.minX && x <= TANKS_PLAY_AREA.maxX && z >= TANKS_PLAY_AREA.minZ && z <= TANKS_PLAY_AREA.maxZ)
+  );
 }
 
 /** A piece may straddle the join between the round table and the Tanks shelf when its whole reach lies on one or the other. */

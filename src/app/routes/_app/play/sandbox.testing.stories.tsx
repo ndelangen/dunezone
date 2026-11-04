@@ -14,8 +14,16 @@ import { tableChromeInsets } from '../../../widgets/tabletop/seatedHeader';
 import { gameMeta, install } from './game.stories.fixture';
 import { chapter, journeyViewers, JourneyPage } from './journey.stories.fixture';
 import { expectHeaderPhase, openTab, phaseControls } from './playing.stories.fixture';
-import { sandbox, sandboxReady, sandboxSteps, sandboxTransport } from './sandbox.stories.fixture';
-import { messyReservesSandbox, shown, piece, withTechTokens } from './sandbox.stories.fixture';
+import {
+  messyReservesSandbox,
+  piece,
+  sandbox,
+  sandboxReady,
+  sandboxSteps,
+  sandboxTransport,
+  shown,
+  withTechTokens,
+} from './sandbox.stories.fixture';
 
 const meta = testingPreview.meta({
   ...gameMeta,

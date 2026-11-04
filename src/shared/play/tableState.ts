@@ -26,8 +26,8 @@ import {
 import {
   clampPositionToTable,
   isOverlapFreePosition,
-  isInTanksArea,
   isOnRoundTable,
+  TABLE_PLAY_RADIUS,
   nearestCollisionFreePosition,
   piecesCanStack,
   piecesTouchForStack,
@@ -909,7 +909,7 @@ export type TroopReserveLanding = Readonly<{
 const RESERVE_GATHER_REACH = 1;
 
 /*
- * A pile of `spot`'s troop kind on the table off the board and out of the Tanks near the faction's reserve spots, free to be moved back.
+ * A pile of `spot`'s troop kind on the round table, off the board and short of the Tanks shelf beyond it, near the faction's reserve spots, free to be moved back.
  * Any of the spots counts, since a reserve may stand on another kind's spot once the smaller stacks move nearer the bottom of the screen.
  */
 function liesInReserve(piece: TablePiece, spot: TroopReserveSpot, spots: readonly TroopReserveSpot[]) {
@@ -918,8 +918,8 @@ function liesInReserve(piece: TablePiece, spot: TroopReserveSpot, spots: readonl
     !piece.inventory &&
     !piece.hiddenZone &&
     !piece.locked &&
-    !isInTanksArea(piece.position) &&
     Math.hypot(piece.position[0], piece.position[2]) > BOARD_RIM_RADIUS &&
+    Math.hypot(piece.position[0], piece.position[2]) <= TABLE_PLAY_RADIUS &&
     spots.some((candidate) => planarDistance(piece.position, candidate.position) <= RESERVE_GATHER_REACH)
   );
 }
