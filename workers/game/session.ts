@@ -1297,6 +1297,25 @@ export class GameSession {
     this.conversations.read(request);
     return faction;
   }
+  clearConversation(viewer: Viewer, request: Extract<ClientMessage, { type: 'conversation-clear' }>) {
+    if (this.reviews.running() && !isRecallConversation(request.peerId)) {
+      throw new GameRejection('Only recall chat is available during Mentat recall.');
+    }
+    const faction = this.conversations.authorize(this.room!.snapshot, viewer, request, this.reviews.running()?.id);
+    const logged = this.storage.transactionSync(() => {
+      if (!this.conversations.clear(request)) {
+        return false;
+      }
+      return this.log.recordChatClear({
+        snapshot: this.room!.snapshot,
+        holders: this.actors.occupants(),
+        factionId: faction,
+        peerId: request.peerId,
+        through: request.through,
+      });
+    });
+    return { faction, logged };
+  }
   sendConversation(viewer: Viewer, request: Extract<ClientMessage, { type: 'conversation-send' }>) {
     if (this.reviews.running() && !isRecallConversation(request.peerId)) {
       throw new GameRejection('Only recall chat is available during Mentat recall.');

@@ -233,6 +233,26 @@ test('"atreides" finds the Atreides faction information ahead of the chat with i
   expect(suggested).not.toContain('Atreides');
 });
 
+test('"clear" finds Clear all chats only while a chat has messages to clear, and never suggests it unasked', () => {
+  let cleared = 0;
+  const all = candidatesOf([], { ...actions(null), clearChats: () => cleared++ });
+  const found = rankSuggestions(all, 'clear');
+  expect(found[0]).toMatchObject({
+    label: 'Clear all chats',
+    hint: 'Hold to clear; others keep theirs',
+    held: 'Clearing',
+  });
+  found[0]!.run();
+  expect(cleared).toBe(1);
+  /* It sits below every window and command, so it surfaces only once typed for. */
+  expect(found[0]!).toMatchObject({ key: 'cmd:clear-chats' });
+  expect(all.find((entry) => entry.key === 'cmd:clear-chats')!.weight).toBeLessThan(0);
+  expect(rankSuggestions(all, '').map((entry) => entry.key)).not.toContain('cmd:clear-chats');
+  expect(candidatesOf([], { ...actions(null), clearChats: null }).map((entry) => entry.label)).not.toContain(
+    'Clear all chats'
+  );
+});
+
 test('the keyboard shortcuts cheat sheet is found by its name and by its keywords, with ? beside it', () => {
   const sheet = {
     ...PANEL_WINDOWS.shortcuts,

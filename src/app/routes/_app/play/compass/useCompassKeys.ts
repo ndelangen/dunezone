@@ -25,6 +25,10 @@ export type CompassKeys = Readonly<{
   onSpot: Dispatch<SetStateAction<Spot>>;
   onCursor: Dispatch<SetStateAction<number>>;
   onConfirm: () => void;
+  /** Space let go after steering: confirms as a press would, except a destructive suggestion, which needs a fresh, held press. */
+  onLetGo: () => void;
+  /** Enter let go, or the window left: a held suggestion's countdown stops. */
+  onRelease: () => void;
 }>;
 
 /** Whether Space is down since it opened the compass, and whether an arrow was pressed while it was. */
@@ -227,29 +231,35 @@ export function useCompassKeys(keys: CompassKeys) {
   });
   /* Held and steered: letting go opens. A tap leaves the compass open to steer. */
   const keyup = useEffectEvent((event: KeyboardEvent) => {
+    if (event.key === 'Enter') {
+      keys.onRelease();
+      return;
+    }
     if (event.code !== 'Space' || !hold.current.down) {
       return;
     }
     const steered = hold.current.steered;
     hold.current = { down: false, steered: false };
     if (steered && keys.open && !composing(event)) {
-      keys.onConfirm();
+      keys.onLetGo();
     }
+  });
+  /* Space let go while the window is in the background never sends its keyup here, so leaving the window ends the hold; the compass stays open as a tap left it. */
+  const leave = useEffectEvent(() => {
+    hold.current = { down: false, steered: false };
+    keys.onRelease();
   });
   useEffect(() => {
     const down = (event: KeyboardEvent) => keydown(event);
     const up = (event: KeyboardEvent) => keyup(event);
-    /* Space let go while the window is in the background never sends its keyup here, so leaving the window ends the hold; the compass stays open as a tap left it. */
-    const leave = () => {
-      hold.current = { down: false, steered: false };
-    };
+    const left = () => leave();
     window.addEventListener('keydown', down, true);
     window.addEventListener('keyup', up, true);
-    window.addEventListener('blur', leave);
+    window.addEventListener('blur', left);
     return () => {
       window.removeEventListener('keydown', down, true);
       window.removeEventListener('keyup', up, true);
-      window.removeEventListener('blur', leave);
+      window.removeEventListener('blur', left);
     };
   }, []);
 }

@@ -1,5 +1,6 @@
 import { alliesOf, isAllianceAction } from '../../src/shared/play/alliances';
 import { deletedName } from '../../src/shared/play/commands';
+import { isRecallConversation, TABLE_CONVERSATION } from '../../src/shared/play/conversations';
 import { factionTitleText, rosterFactionTitles } from '../../src/shared/play/factionLabels';
 import { LOG_CLASS_TABS, LOG_PAGE_SIZE } from '../../src/shared/play/log';
 import type { LogClass, LogEntry, LogTab } from '../../src/shared/play/log';
@@ -100,9 +101,13 @@ export class PublicLog {
     );
   }
 
+  /** Files the entry once per key; true when this added it. */
   record(entry: Entry) {
     if (!this.enabled) {
-      return;
+      return false;
+    }
+    if (this.storage.sql.exec('SELECT 1 FROM public_log WHERE key=?', entry.key).toArray().length > 0) {
+      return false;
     }
     this.storage.sql.exec(
       'INSERT OR IGNORE INTO public_log(key,class,template,people,context,created_at) VALUES(?,?,?,?,?,?)',
@@ -113,6 +118,7 @@ export class PublicLog {
       entry.context ?? this.context(),
       entry.at ?? Date.now()
     );
+    return true;
   }
 
   /** Every entry of a commit: the stage it entered, the phase it reached, a prediction, a spice transfer and a battle result. */
@@ -151,6 +157,37 @@ export class PublicLog {
 
   recordVote(vote: VoteResult) {
     this.record(voteEntry(vote));
+  }
+
+  /**
+   * A faction cleared a chat from its own view: everyone may know it happened, never what it said (#2674).
+   * Private chats go unnamed and count once per phase, so the log never shows who talked with whom.
+   * A recall's chat ends with the recall, so it goes unlogged.
+   * True when this added an entry.
+   */
+  recordChatClear(clear: {
+    snapshot: StoredSnapshot;
+    holders: readonly Holder[];
+    factionId: string;
+    peerId: string;
+    through: number;
+  }) {
+    if (isRecallConversation(clear.peerId)) {
+      return false;
+    }
+    const people: Person[] = [];
+    const who = factionNamer(clear.snapshot, clear.holders)(clear.factionId, people);
+    const context = logContext(clear.snapshot);
+    const table = clear.peerId === TABLE_CONVERSATION;
+    return this.record({
+      key: table
+        ? `chat-clear:${clear.factionId}:${TABLE_CONVERSATION}:${clear.through}`
+        : `chat-clear:${clear.factionId}:private:${context}`,
+      class: 'chat',
+      template: table ? `${who} cleared the table chat.` : `${who} cleared its private chats.`,
+      people,
+      context,
+    });
   }
 
   recordReview(review: ReviewResult) {

@@ -50,7 +50,7 @@ describe('Faction conversations in the game database', () => {
   }
   type ConversationRequest = Extract<
     ClientMessage,
-    { type: 'conversation-send' | 'conversation-history' | 'conversation-read' }
+    { type: 'conversation-send' | 'conversation-history' | 'conversation-read' | 'conversation-clear' }
   >;
   type RequestInput<K extends ConversationRequest['type']> = Omit<
     Extract<ConversationRequest, { type: K }>,
@@ -289,6 +289,79 @@ describe('Faction conversations in the game database', () => {
       (
         await request<'conversation-read'>(b, {
           type: 'conversation-read' as const,
+          factionId: bId,
+          peerId: aId,
+          through: 999_999,
+        })
+      ).type
+    ).toBe('rejected');
+  });
+
+  it('clears a conversation from one side only, through a message that side saw', async () => {
+    const { a, b, aId, bId } = await setup();
+    const first = messageOf(await send(a, aId, bId, 'Allied plans'), 'conversation-message').message;
+    /* The same player's other tab hears of the clear without asking. */
+    const otherTab = await admit('b');
+    b.send({
+      type: 'conversation-clear' as const,
+      requestId: 'clear-one',
+      factionId: bId,
+      peerId: aId,
+      through: first.sequence,
+    });
+    await syncView(b);
+    const summary = required(
+      required(
+        b.messages
+          .filter((entry): entry is Extract<NativeMessage, { type: 'conversations' }> => entry.type === 'conversations')
+          .at(-1)
+      ).entries.find((entry) => entry.peerId === aId)
+    );
+    /* Clearing also reads what it cleared. */
+    expect(summary).toMatchObject({ cleared: first.sequence, unread: 0 });
+    await eventually(
+      async () =>
+        otherTab.messages
+          .filter((entry): entry is Extract<NativeMessage, { type: 'conversations' }> => entry.type === 'conversations')
+          .at(-1)
+          ?.entries.find((entry) => entry.peerId === aId)?.cleared === first.sequence,
+      'the other tab hears of the clear'
+    );
+    const announced = () => b.messages.filter((entry) => entry.type === 'log-history').length;
+    expect(announced()).toBe(1);
+    expect(messageOf(await page(b, bId, aId), 'conversation-history').entries).toEqual([]);
+    /* The other side keeps its copy, and its summaries say nothing of the clear. */
+    await syncView(a);
+    expect(
+      a.messages
+        .filter((entry): entry is Extract<NativeMessage, { type: 'conversations' }> => entry.type === 'conversations')
+        .flatMap((entry) => entry.entries)
+        .every((entry) => entry.cleared === 0)
+    ).toBe(true);
+    expect(messageOf(await page(a, aId, bId), 'conversation-history').entries).toEqual([first]);
+    /* Everyone may read that the chat was cleared, never what it said. */
+    const logged = await runtime.exec<{ template: string }>("SELECT template FROM public_log WHERE class='chat'");
+    expect(logged).toHaveLength(1);
+    expect(logged[0]!.template).toMatch(/ cleared its private chats\./);
+    expect(JSON.stringify(logged)).not.toContain('Allied plans');
+    /* A message saved after the clear shows again. */
+    const later = messageOf(await send(a, aId, bId, 'After the break'), 'conversation-message').message;
+    expect(messageOf(await page(b, bId, aId), 'conversation-history').entries).toEqual([later]);
+    /* Clearing again in the same phase adds no line, so the log never counts who talked with whom. */
+    b.send({
+      type: 'conversation-clear' as const,
+      requestId: 'clear-two',
+      factionId: bId,
+      peerId: aId,
+      through: later.sequence,
+    });
+    await syncView(b);
+    expect(await runtime.exec("SELECT template FROM public_log WHERE class='chat'")).toHaveLength(1);
+    expect(announced()).toBe(1);
+    expect(
+      (
+        await request<'conversation-clear'>(b, {
+          type: 'conversation-clear' as const,
           factionId: bId,
           peerId: aId,
           through: 999_999,

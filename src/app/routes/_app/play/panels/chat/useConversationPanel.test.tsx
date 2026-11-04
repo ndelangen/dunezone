@@ -55,6 +55,7 @@ function clientWith(conversations: ConversationView) {
       read: vi.fn(),
       retry: vi.fn(),
       submit: vi.fn(() => true),
+      clearedThrough: () => 0,
     },
   } as unknown as TableSession;
 }

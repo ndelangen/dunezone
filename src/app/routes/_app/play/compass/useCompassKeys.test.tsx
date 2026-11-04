@@ -40,6 +40,7 @@ function page() {
 function compass(options: { inert?: boolean; suggestions?: number } = {}) {
   const input = document.querySelector('input')!;
   const onConfirm = vi.fn();
+  const onRelease = vi.fn();
   const hook = renderHook(() => {
     const [open, setOpen] = useState(false);
     const [spot, setSpot] = useState<Spot>('hub');
@@ -61,10 +62,12 @@ function compass(options: { inert?: boolean; suggestions?: number } = {}) {
       onSpot: setSpot,
       onCursor: setCursor,
       onConfirm,
+      onLetGo: onConfirm,
+      onRelease,
     });
     return { open, spot, cursor, setSpot, setQuery };
   });
-  return { ...hook, onConfirm };
+  return { ...hook, onConfirm, onRelease };
 }
 
 type Key = Partial<Pick<KeyboardEvent, 'key' | 'code' | 'repeat' | 'metaKey' | 'ctrlKey' | 'isComposing' | 'keyCode'>>;

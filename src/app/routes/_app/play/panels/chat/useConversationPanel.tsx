@@ -5,6 +5,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react';
 import type { ConversationView } from '../../../../../db/tabletop/ConversationSession';
 import type { TableProjection, TableSession } from '../../../../../db/tabletop/TableSession';
 import { seatFaction } from '../../multiplayer/tableFactions';
+import { ClearChatAction } from './ClearChatAction';
 import { ConversationPanel } from './ConversationPanel';
 
 /* Every faction's name at the table, the viewer's own among them, by faction. */
@@ -42,6 +43,7 @@ export function ConnectedConversationPanel({ client, peerId }: Readonly<{ client
       onRead={(through) => client.conversations.read({ peerId, through })}
       onRetry={client.conversations.retry}
       onSubmit={(text) => client.conversations.submit({ peerId, text })}
+      cleared={client.conversations.clearedThrough(peerId) > 0}
     />
   );
 }
@@ -59,6 +61,29 @@ export function ConnectedPlayerChat({
     return null;
   }
   return <ConnectedConversationPanel key={`${context.factionId}:${peerId}`} client={client} peerId={peerId} />;
+}
+
+/** The eraser for a seat's chat, or the table's, while it has messages the viewer has not cleared. */
+export function ConnectedClearChat({
+  client,
+  table,
+  seat,
+}: Readonly<{ client: TableSession; table: TableProjection; seat: string }>) {
+  const { conversations } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
+  /* A clear that could not go out (the table is resyncing) gives back a fresh eraser, ready for another hold. */
+  const [attempt, setAttempt] = useState(0);
+  const peerId = seat === TABLE_CONVERSATION ? TABLE_CONVERSATION : seatFaction(table, seat);
+  const summary = conversations.summaries.find((entry) => entry.peerId === peerId);
+  const shown = conversations.pages[peerId ?? '']?.entries.length;
+  if (!peerId || !conversations.online || !summary || summary.latest <= summary.cleared || shown === 0) {
+    return null;
+  }
+  const clear = () => {
+    if (client.conversations.clearChat({ peerId }) === undefined) {
+      setAttempt((previous) => previous + 1);
+    }
+  };
+  return <ClearChatAction key={attempt} onClear={clear} />;
 }
 
 /** Every conversation while the table is out of reach, one at a time. */

@@ -37,6 +37,7 @@ import {
 } from '../../../../widgets/tabletop/tablePanSpeed';
 import { setShortcutsButton, useShortcutsButton } from '../compass/shortcutsButton';
 import { TABLE_LABEL_OPTIONS, useTableLabels } from '../tableLabels';
+import { setAutoClearChats, useAutoClearChats } from './autoClearChats';
 import { publicControlsOf } from './publicControls';
 import { isSpectator, offersActions } from './tableFactions';
 
@@ -402,6 +403,11 @@ function ShortcutsButtonItem() {
   return <ViewerToggleItem label="Keyboard shortcuts button" on={useShortcutsButton()} set={setShortcutsButton} />;
 }
 
+/* The viewer's own chats clear at the start of each turn, logged as a clear by hand is; off unless turned on (#2674). */
+function AutoClearChatsItem() {
+  return <ViewerToggleItem label="Clear chats each new turn" on={useAutoClearChats()} set={setAutoClearChats} />;
+}
+
 /* Pins the stack counts or piece names on; holding the key shows them for a moment. */
 function TableLabelItems() {
   const labels = useTableLabels();
@@ -465,6 +471,12 @@ export function GameMenu({
         <PlanetShadingItem />
         <TableLabelItems />
         <ShortcutsButtonItem />
+        {!isSpectator(table) && (
+          <>
+            <Menu.Divider />
+            <AutoClearChatsItem />
+          </>
+        )}
         {table.snapshot.stage === 'play' && offersActions(table) && (
           <Menu.CheckboxItem
             checked={table.snapshot.bidding?.timed ?? idleBidding().timed}

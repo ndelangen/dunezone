@@ -21,17 +21,19 @@ export interface ConfirmDeleteActionProps {
    * A removal or a sign-out held five seconds is the same commitment;
    * only the words differ.
    */
-  verb?: 'delete' | 'remove' | 'sign out';
+  verb?: 'delete' | 'remove' | 'sign out' | 'clear';
   /** The glyph, when the action is not the trash can. A member removal keeps its own icon. */
   icon?: ReactNode;
   /** Disables the trigger entirely, for callers whose action is sometimes unavailable rather than in flight. */
   disabled?: boolean;
-  /** The trigger's size: `lg` for toolbars, smaller where the hold sits in a dense row among same-sized neighbours. */
-  size?: 'sm' | 'md' | 'lg';
+  /** The trigger's size: `lg` for toolbars, smaller where the hold sits in a dense row among same-sized neighbours, or a length that matches neighbours that are not kit buttons, as in a window's title bar. */
+  size?: 'sm' | 'md' | 'lg' | `${number}rem`;
+  /** Where the trigger sits among buttons the kit does not draw, the class that matches their corners. */
+  className?: string;
 }
 
 /** What the countdown announces per verb: "deletion in 4..", "removal in 4..", "sign-out in 4..". */
-const COUNTDOWN_NOUN = { delete: 'deletion', remove: 'removal', 'sign out': 'sign-out' } as const;
+const COUNTDOWN_NOUN = { delete: 'deletion', remove: 'removal', 'sign out': 'sign-out', clear: 'clearing' } as const;
 
 /**
  * Deletes (or removes) something, if you mean it for five seconds.
@@ -50,6 +52,7 @@ export function ConfirmDeleteAction({
   icon,
   disabled = false,
   size = 'lg',
+  className,
 }: ConfirmDeleteActionProps) {
   const { holding, remaining, submitted, handlers } = useHoldToConfirm({ pending, onConfirm });
   return (
@@ -60,6 +63,7 @@ export function ConfirmDeleteAction({
       emphasis="standard"
       intent="negative"
       size={size}
+      className={className}
       disabled={disabled}
       loading={pending || submitted}
       {...handlers}
