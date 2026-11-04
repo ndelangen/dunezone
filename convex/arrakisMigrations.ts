@@ -8,10 +8,10 @@ import type { BoardTint } from '../src/shared/boards/markup';
 import { propertyId } from '../src/shared/boards/schema';
 import { legacyHighlightTint } from '../src/shared/boards/spiceHighlights';
 import { components, internal } from './_generated/api';
-import type { Id } from './_generated/dataModel';
+import type { Doc, Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
 import { internalMutation } from './functions';
-import { enqueueAssetPublication, supersedePendingPublication } from './lib/publication';
+import { enqueueAssetPublication, publicationScanBatchSize, supersedePendingPublication } from './lib/publication';
 import { rulebookDraftContentsHash, rulebookEditionContentsHash } from './lib/rulebookEditionContents';
 import { syncSpiceCardRelations } from './lib/spiceCardBoard';
 import schema from './schema';
@@ -37,15 +37,31 @@ export const BUILT_IN_ARRAKIS_BOARD_ID = 'arrakis';
 /** The saved Arrakis board a card moves onto: its asset id, and its territories to resolve a tint's types against. */
 export type SavedBoard = { id: Id<'assets'>; properties: Board['properties'] };
 
+const savedBoard = (row: Doc<'assets'>): SavedBoard => ({
+  id: row._id,
+  properties: (row.data as { board?: Partial<Board> }).board?.properties ?? {},
+});
+
 async function arrakisBoard(ctx: MutationCtx): Promise<SavedBoard | null> {
   const board = await ctx.db
     .query('assets')
     .withIndex('by_type_and_slug', (q) => q.eq('type', 'board').eq('slug', ARRAKIS_BOARD_SLUG))
     .unique();
-  if (!board || board.is_deleted) {
-    return null;
+  return board && !board.is_deleted ? savedBoard(board) : null;
+}
+
+/**
+ * The board a card's tints are checked against: the board it already links, so its types resolve to that board's own territories, else the saved Arrakis board it will link.
+ * A linked board that is gone resolves no types.
+ */
+async function cardBoard(ctx: MutationCtx, data: unknown, arrakis: SavedBoard): Promise<SavedBoard> {
+  const linked = (data as { board?: { asset_id?: unknown } }).board?.asset_id;
+  if (typeof linked !== 'string') {
+    return arrakis;
   }
-  return { id: board._id, properties: (board.data as { board: Board }).board.properties };
+  const id = ctx.db.normalizeId('assets', linked);
+  const row = id ? await ctx.db.get('assets', id) : null;
+  return row?.type === 'board' ? savedBoard(row) : { id: arrakis.id, properties: {} };
 }
 
 const arrakisBoardId = async (ctx: MutationCtx) => (await arrakisBoard(ctx))?.id ?? null;
@@ -145,14 +161,15 @@ export function namesOldBoardKeys(contents: unknown) {
 /** Links every Spice card to the saved board and empties its old highlight list; a changed card indexes its board and is captured again. */
 export const arrakis_spice_cards_v1 = migrations.define({
   table: 'assets',
-  batchSize: 25,
+  /* Each changed card queues a publication as large as its board, so a batch stays at the board-sized publication budget. */
+  batchSize: publicationScanBatchSize(SPICE_CARD_ASSET_TYPE, 25),
   customRange: (q) => q.withIndex('by_type_and_slug', (index) => index.eq('type', SPICE_CARD_ASSET_TYPE)),
   migrateOne: async (ctx, row) => {
-    const board = spiceCardNeedsMove(row.data) ? await arrakisBoard(ctx) : null;
-    if (!board) {
+    const arrakis = spiceCardNeedsMove(row.data) ? await arrakisBoard(ctx) : null;
+    if (!arrakis) {
       return;
     }
-    const data = spiceCardOnBoard(row.data, board);
+    const data = spiceCardOnBoard(row.data, await cardBoard(ctx, row.data, arrakis));
     if (data === row.data) {
       return;
     }

@@ -152,6 +152,45 @@ describe('Arrakis board migration', () => {
   );
 
   test(
+    'resolves a type highlight against the board a card already links',
+    async () => {
+      const f = await rulebookFixture();
+      migrationsTest.register(f.t);
+      await saveArrakis(f);
+      /* A custom board where one stronghold became rock: four strongholds, not Arrakis's five. */
+      const custom = arrakisBoard();
+      const [demoted, ...kept] = Object.entries(custom.properties).filter(
+        ([, property]) => property.type === 'stronghold'
+      );
+      custom.properties[demoted![0]] = { ...demoted![1], type: 'rock' };
+      const created = await f.owner.mutation(api.assets.create, {
+        type: 'board',
+        data: { name: 'Four strongholds', about: '', board: custom },
+      });
+      const card = {
+        ...publishingSpiceCard,
+        highlights: ['strongholds'],
+        board: {
+          asset_id: created.id,
+          tints: [
+            {
+              id: 'blow',
+              name: 'Blow',
+              color: '#9e5f00',
+              territories: kept.map(([, property]) => propertyId(property)),
+            },
+          ],
+          tokens: [],
+        },
+      };
+      const cardId = await insertCard(f, 'custom', card);
+      await f.t.mutation(internal.arrakisMigrations.arrakis_spice_cards_v1, {});
+      expect(await cardData(f, cardId)).toEqual({ ...card, highlights: [] });
+    },
+    BUDGET_MS
+  );
+
+  test(
     'leaves a card it cannot move as it is, and the verify names a live one',
     async () => {
       const f = await rulebookFixture();
