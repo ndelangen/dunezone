@@ -10,9 +10,10 @@ import type { DurableTable, GameSnapshot, TableAction } from './protocol';
 import { GameRejection } from './rejection';
 import { isSpicePiece } from './spice';
 import { createSpiceStack } from './spiceBank';
+import { placeSpiceBlowInState } from './spiceBlowPlacement';
 import { SHARED_ITEM_PLACEMENT_ANCHORS } from './tableFurnitureLayout';
 import { planarDistance, restingPositionAt, stackPreviewPositionFor } from './tableGeometry';
-import { isCollisionFreePosition, nearestCollisionFreePosition } from './tablePhysics';
+import { isCollisionFreePosition, nearestCollisionFreePosition, restingAmongLeaders } from './tablePhysics';
 import {
   accepted,
   applyDraftToState,
@@ -151,6 +152,8 @@ export function applyPieceAction(
       return splitPiece(state, piece, action.count);
     case 'delete':
       return deletePiece(state, piece, actorName);
+    case 'spice-blow':
+      return placeSpiceBlowInState(state, piece, action, actorName);
   }
 }
 
@@ -307,16 +310,18 @@ export function rotatedPiece(state: TableState, piece: TablePiece, turns: number
     return null;
   }
   const orientation = piece.orientation - turns * ROTATE_STEP;
-  const rotated = {
-    ...piece,
-    orientation,
-    position: restingPositionAt(piece.position, { ...piece, orientation }),
-  };
   const rules = placementRules(
     state.pieces,
     piece,
     state.pieces.filter((candidate) => candidate.id !== piece.id)
   );
+  /* A leader turning in a pile keeps its place in it: still above the discs it lay on, still below the ones on it. */
+  const beneath = rules.obstacles.filter((other) => other.position[1] < piece.position[1]);
+  const rotated = {
+    ...piece,
+    orientation,
+    position: restingAmongLeaders(piece, restingPositionAt(piece.position, { ...piece, orientation }), beneath),
+  };
   return isCollisionFreePosition(rotated, rotated.position, rules.obstacles) &&
     rules.fits(rotated.position, orientation)
     ? rotated

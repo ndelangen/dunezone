@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { TERRITORY_NAME_LIMIT } from '../boards/schema';
+import { tintTerritorySchema } from '../boards/tints';
 import { HistoricalFactionPublicationObject, TroopArtwork } from '../factions/schema';
 import { legacyEmblemKeyed } from '../legacyEmblem';
 import { playStageSchema } from './admission';
@@ -191,6 +193,14 @@ const tableActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('storm'), direction }),
   z.strictObject({ kind: z.literal('phase'), direction: direction.optional() }),
   z.strictObject({ kind: z.literal('spice-spawn'), count: z.number().int().min(1).max(10) }),
+  /* Places a revealed spice card's spice in its territory; the page finds the spot, since the table keeps no territory shapes (#2678). */
+  z.strictObject({
+    kind: z.literal('spice-blow'),
+    pieceId: id,
+    territory: tintTerritorySchema,
+    name: z.string().trim().min(1).max(TERRITORY_NAME_LIMIT),
+    position,
+  }),
   /* Takes one tech token at random out of the shared table inventory and sets it down on the table shelf. */
   z.strictObject({ kind: z.literal('tech-token-draw') }),
   z.strictObject({ kind: z.literal('reset') }),
@@ -244,6 +254,14 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
   }),
   z.strictObject({
     type: z.literal('conversation-read'),
+    requestId: id,
+    factionId: id,
+    peerId: conversationPeerSchema,
+    through: count,
+  }),
+  /* Hides the conversation through `through` from the faction's own view; the other side keeps its copy. */
+  z.strictObject({
+    type: z.literal('conversation-clear'),
     requestId: id,
     factionId: id,
     peerId: conversationPeerSchema,

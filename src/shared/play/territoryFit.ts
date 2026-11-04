@@ -1,8 +1,8 @@
-import { CENTER, contains, RADIUS } from '../boards/geometry';
+import { contains } from '../boards/geometry';
 import type { Board, Point } from '../boards/schema';
 import { propertyId } from '../boards/schema';
+import { boardPointToTable } from '../boards/tableTerritories';
 import { boardTerritories } from '../boards/territories';
-import { BOARD_RADIUS } from './tableGeometry';
 
 /*
  * Pieces resting in a territory keep inside its outline and clear of each other.
@@ -31,11 +31,6 @@ const GAP = 0.012;
 const ITERATIONS = 400;
 const SETTLED = 1e-5;
 
-/** A board drawing point on the table: board units run across the board's circle, which the table draws BOARD_RADIUS wide. */
-export function toTable([x, y]: Readonly<Point>): Plane {
-  return [((x - CENTER[0]) / RADIUS) * BOARD_RADIUS, ((y - CENTER[1]) / RADIUS) * BOARD_RADIUS];
-}
-
 const shapes = new WeakMap<Board, TableTerritory[]>();
 /** Every territory of a board, outlined in table coordinates. A board saved without territories has none. */
 export function tableTerritories(board: Board): TableTerritory[] {
@@ -50,7 +45,13 @@ export function tableTerritories(board: Board): TableTerritory[] {
     result = faces.flatMap((face) => {
       const property = board.properties[face.key];
       return property
-        ? [{ id: propertyId(property), name: property.name, rings: face.rings.map((ring) => ring.map(toTable)) }]
+        ? [
+            {
+              id: propertyId(property),
+              name: property.name,
+              rings: face.rings.map((ring) => ring.map(boardPointToTable)),
+            },
+          ]
         : [];
     });
     shapes.set(board, result);

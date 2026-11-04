@@ -1,12 +1,6 @@
 import type { Vector3Tuple } from '@shared/play/model';
 import { supplyReserveReach } from '@shared/play/setupLayout';
-import {
-  BOTTOM_SHELF_POSITION,
-  BOTTOM_SHELF_SIZE,
-  FURNITURE_SURFACE_Y,
-  SIDE_SHELF_CENTER_X,
-  SIDE_SHELF_SIZE,
-} from '@shared/play/tableFurnitureLayout';
+import { FURNITURE_SURFACE_Y, SIDE_SHELF_CENTER_X, SIDE_SHELF_SIZE } from '@shared/play/tableFurnitureLayout';
 import {
   BOARD_RIM_RADIUS,
   BOARD_RIM_SURFACE_Y,
@@ -22,6 +16,7 @@ import {
 import type { TableSeatCount } from '@shared/play/tableSettings';
 import { TRACKER_DISC_CONTENT_Y } from '@shared/play/tableTrackers';
 import type { TrackerArcSlot } from '@shared/play/tableTrackers';
+import { BOTTOM_SHELF_BOUNDS, BOTTOM_SHELF_EDGE } from '@shared/play/tanksShelf';
 import { Shape } from 'three';
 
 export const TABLE_PLATE_CORNER_RADIUS = 0.32;
@@ -36,14 +31,11 @@ export const TABLE_PLATE_BOUNDS = {
   minX: -(SIDE_SHELF_CENTER_X + SIDE_SHELF_SIZE[0] / 2),
   maxX: SIDE_SHELF_CENTER_X + SIDE_SHELF_SIZE[0] / 2,
   minZ: -TABLE_VISIBLE_RADIUS,
-  maxZ: BOTTOM_SHELF_POSITION[2] + BOTTOM_SHELF_SIZE[2] / 2,
+  maxZ: BOTTOM_SHELF_BOUNDS.maxZ,
 } as const;
 
 export const TABLE_PLATE_JOINS = {
   sideX: Math.sqrt(TABLE_VISIBLE_RADIUS * TABLE_VISIBLE_RADIUS - (SIDE_SHELF_SIZE[2] / 2) * (SIDE_SHELF_SIZE[2] / 2)),
-  bottomZ: Math.sqrt(
-    TABLE_VISIBLE_RADIUS * TABLE_VISIBLE_RADIUS - (BOTTOM_SHELF_SIZE[0] / 2) * (BOTTOM_SHELF_SIZE[0] / 2)
-  ),
 } as const;
 
 function pointOnCircle(angle: number): [x: number, z: number] {
@@ -213,11 +205,7 @@ export function createTablePlateShape(slots: readonly TrackerArcSlot[] = []): Sh
   const sideHalfDepth = SIDE_SHELF_SIZE[2] / 2;
   const sideOuterX = TABLE_PLATE_BOUNDS.maxX;
   const sideJoinX = TABLE_PLATE_JOINS.sideX;
-  const bottomHalfWidth = BOTTOM_SHELF_SIZE[0] / 2;
-  const bottomOuterZ = TABLE_PLATE_BOUNDS.maxZ;
-  const bottomJoinZ = TABLE_PLATE_JOINS.bottomZ;
   const sideAngle = Math.asin(sideHalfDepth / radius);
-  const bottomAngle = Math.atan2(bottomJoinZ, bottomHalfWidth);
   const joinAngle = TABLE_PLATE_JOIN_RADIUS / radius;
   const cornerRadius = TABLE_PLATE_CORNER_RADIUS;
   const shape = new Shape();
@@ -233,17 +221,10 @@ export function createTablePlateShape(slots: readonly TrackerArcSlot[] = []): Sh
   const rightSideLowerResume = pointOnCircle(sideAngle + joinAngle);
   shape.quadraticCurveTo(sideJoinX, sideHalfDepth, ...rightSideLowerResume);
 
-  shape.absarc(0, 0, radius, sideAngle + joinAngle, bottomAngle - joinAngle, false);
-  shape.quadraticCurveTo(bottomHalfWidth, bottomJoinZ, bottomHalfWidth, bottomJoinZ + TABLE_PLATE_JOIN_RADIUS);
-  shape.lineTo(bottomHalfWidth, bottomOuterZ - cornerRadius);
-  shape.absarc(bottomHalfWidth - cornerRadius, bottomOuterZ - cornerRadius, cornerRadius, 0, Math.PI / 2, false);
-  shape.lineTo(-bottomHalfWidth + cornerRadius, bottomOuterZ);
-  shape.absarc(-bottomHalfWidth + cornerRadius, bottomOuterZ - cornerRadius, cornerRadius, Math.PI / 2, Math.PI, false);
-  shape.lineTo(-bottomHalfWidth, bottomJoinZ + TABLE_PLATE_JOIN_RADIUS);
-  const leftBottomResume = pointOnCircle(Math.PI - bottomAngle + joinAngle);
-  shape.quadraticCurveTo(-bottomHalfWidth, bottomJoinZ, ...leftBottomResume);
-
-  shape.absarc(0, 0, radius, Math.PI - bottomAngle + joinAngle, Math.PI - sideAngle - joinAngle, false);
+  /* The bottom shelf leaves the round edge, follows the Tanks pad round and narrows to the shared item slots below it. */
+  shape.absarc(0, 0, radius, sideAngle + joinAngle, BOTTOM_SHELF_EDGE.startAngle, false);
+  BOTTOM_SHELF_EDGE.points.slice(1).forEach(([x, z]) => shape.lineTo(x, z));
+  shape.absarc(0, 0, radius, BOTTOM_SHELF_EDGE.endAngle, Math.PI - sideAngle - joinAngle, false);
   shape.quadraticCurveTo(-sideJoinX, sideHalfDepth, -sideJoinX - TABLE_PLATE_JOIN_RADIUS, sideHalfDepth);
   shape.lineTo(-sideOuterX + cornerRadius, sideHalfDepth);
   shape.absarc(-sideOuterX + cornerRadius, sideHalfDepth - cornerRadius, cornerRadius, Math.PI / 2, Math.PI, false);

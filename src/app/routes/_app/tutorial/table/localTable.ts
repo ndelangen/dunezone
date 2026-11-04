@@ -193,6 +193,15 @@ export class LocalTable {
     };
   }
 
+  /** Logs a chat clear as the Worker does; true when it added a line. */
+  recordChatClear(clear: { factionId: string; peerId: string; through: number }) {
+    return this.session.log.recordChatClear({
+      snapshot: this.session.currentSnapshot,
+      holders: this.session.actors.occupants(),
+      ...clear,
+    });
+  }
+
   /** New events follow the chapter's recorded log, using the same sequence across both tabs. */
   logPage(tab: LogTab, before: number) {
     const recent = this.session.log.page(tab, before);

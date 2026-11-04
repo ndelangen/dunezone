@@ -8,6 +8,7 @@ import { lastTurnOf } from '@shared/play/lastTurn';
 import { phaseAt, tableProgressFor } from '@shared/play/phases';
 import { reviewRunning } from '@shared/play/review';
 import { setupMapVisible } from '@shared/play/setup';
+import { revealedSpiceBlows } from '@shared/play/spiceBlowPlacement';
 import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
 import { Link, useLocation } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
@@ -34,7 +35,7 @@ import type { TablePanel } from '../GameTable';
 import { ConnectedAlliancesPanel } from '../panels/alliances/useAlliancesPanel';
 import { ConnectedBattlePlanPanel } from '../panels/battlePlan/useBattlePlanPanel';
 import { ConnectedBattleHistoryPanel } from '../panels/battles/useBattleHistoryPanel';
-import { ConnectedPlayerChat, OfflineConversations } from '../panels/chat/useConversationPanel';
+import { ConnectedClearChat, ConnectedPlayerChat, OfflineConversations } from '../panels/chat/useConversationPanel';
 import { ConnectedFactionInfoPanel } from '../panels/factionInfo/useFactionInfoPanel';
 import { ConnectedHandPanel } from '../panels/hand/useHandPanel';
 import { ConnectedSharedInventoryPanel } from '../panels/inventory/useSharedInventoryPanel';
@@ -53,6 +54,7 @@ import { ConnectedSpiceTransfersPanel } from '../panels/transfers/useSpiceTransf
 import { TableWait } from '../TableWait';
 import { AllianceCoinsScene } from './AllianceCoins';
 import { AllianceStrip, showsAlliances } from './Alliances';
+import { useAutoClearChatsAtNewTurn } from './autoClearChats';
 import { BattleModeToggle, BattleScene } from './BattleControls';
 import { BidderScene, biddingPhase } from './Bidder';
 import { useBugReport } from './BugReport';
@@ -573,7 +575,14 @@ function phaseTabControls({
   );
 }
 
+/* The Spice blow command, while the viewer can act and a face-up spice card lies on the table, not during a look back or recall. */
+function spiceBlowCommand(table: TableProjection): (() => void) | null {
+  const controls = table.spiceBlowControls;
+  return controls && revealedSpiceBlows(table.state.pieces).length ? () => controls.placeAll() : null;
+}
+
 function useHostedControls(client: TableSession, table: TableProjection, error: string | null) {
+  useAutoClearChatsAtNewTurn(client, table);
   const recall = mentatRecall(client, table);
   const normal = recall ? (client.getLastLiveTable() ?? table) : table;
   const players = usePlayerWindows(client, table);
@@ -581,8 +590,11 @@ function useHostedControls(client: TableSession, table: TableProjection, error: 
     ...players,
     recall,
     chat: (seat) => <ConnectedPlayerChat client={client} table={table} seat={seat} />,
+    clearChat: (seat) => <ConnectedClearChat client={client} table={table} seat={seat} />,
     factionInfo: (seat) => <ConnectedFactionInfoPanel client={client} table={table} seat={seat} error={error} />,
     nextPhase: nextPhaseStep(client, table),
+    clearChats: client.conversations.clearable() ? client.conversations.clearAllChats : null,
+    spiceBlow: spiceBlowCommand(table),
     token: viewerToken(client, table),
     bidding: viewerBidding(client, table),
   };

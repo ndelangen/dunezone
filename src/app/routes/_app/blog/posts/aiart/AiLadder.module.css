@@ -1,0 +1,100 @@
+/* The queries below read this wrapper, since a container query never reads the element it styles. */
+.root {
+  container-type: inline-size;
+}
+
+/*
+ * Four steps across, each a disc with its label and note under it.
+ * The disc follows the figure's width between a phone's and the wide column's size, and the gap is what the arrows between the discs cross.
+ */
+.steps {
+  --disc: clamp(6.5rem, 16cqw, 9rem);
+  --gap: var(--space-md);
+  --reach: 0.6rem;
+  --line: rgb(from var(--color-text) r g b / 35%);
+
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-lg) var(--gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  text-align: center;
+}
+
+/*
+ * A hairline from this disc's edge to the next one's, at the discs' middle height, so the row reads as a progression.
+ * The step is one grid column wide, so the next disc's near edge is one column, one gap and half a column less half a disc away.
+ */
+.step:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  top: calc(var(--disc) / 2);
+  left: calc(50% + var(--disc) / 2 + var(--reach));
+  width: calc(100% + var(--gap) - var(--disc) - 2 * var(--reach));
+  border-top: 1px solid var(--line);
+}
+
+/* The arrowhead: a small square turned so its corner points along the line, its tip just short of the next disc. */
+.step:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: calc(var(--disc) / 2);
+  left: calc(150% + var(--gap) - var(--disc) / 2 - var(--reach) - 0.28rem);
+  width: 0.4rem;
+  height: 0.4rem;
+  border-top: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.art {
+  display: block;
+  margin-block-end: var(--space-xs);
+}
+
+.label {
+  font-family: var(--mantine-font-family-headings);
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.note {
+  max-width: 14rem;
+  color: var(--mantine-color-dimmed);
+  font-size: var(--mantine-font-size-sm);
+  line-height: 1.4;
+}
+
+/* Two by two below the wide column: the arrow from the second step to the third would cross the rows, so only the arrows within a row stay. */
+@container (width < 48rem) {
+  .steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .step:nth-child(2)::before,
+  .step:nth-child(2)::after {
+    display: none;
+  }
+}
+
+/* One column on the narrowest screens, where no two discs share a row. */
+@container (width < 18rem) {
+  .steps {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .step::before,
+  .step::after {
+    display: none;
+  }
+}

@@ -18,6 +18,7 @@ function PieceMenu({ pieceMenu, onClose }: Readonly<{ pieceMenu: PieceMenuAnchor
   );
   const deckControls = useTabletopSelector((table) => (pieceMenu ? table.deckControls : undefined));
   const spiceReserveControls = useTabletopSelector((table) => (pieceMenu ? table.spiceReserveControls : undefined));
+  const spiceBlowControls = useTabletopSelector((table) => (pieceMenu ? table.spiceBlowControls : undefined));
   const peekControls = useTabletopSelector((table) => (pieceMenu ? table.peekControls : undefined));
   const deleteControls = useTabletopSelector((table) => (pieceMenu ? table.deleteControls : undefined));
   const handControls = useTabletopSelector((table) => (pieceMenu ? table.handControls : undefined));
@@ -34,7 +35,7 @@ function PieceMenu({ pieceMenu, onClose }: Readonly<{ pieceMenu: PieceMenuAnchor
   const hub = spice ? 'Spice' : deck ? `${count} card${count === 1 ? '' : 's'}` : 'Token';
   const actions = pieceMenuActions(
     menuPiece,
-    { deckControls, spiceReserveControls, peekControls, deleteControls, handControls },
+    { deckControls, spiceReserveControls, spiceBlowControls, peekControls, deleteControls, handControls },
     { reserved: menuPieceReserved, onClose }
   );
   /* A leader or a tech token may offer only Take into hand, which a viewer who cannot act does not get; then there is no ring to show. */

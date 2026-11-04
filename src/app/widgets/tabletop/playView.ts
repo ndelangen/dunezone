@@ -1,6 +1,13 @@
 import type { Vector3Tuple } from '@shared/play/model';
 import type { TablePhaseId } from '@shared/play/phases';
-import { BOTTOM_SHELF_POSITION, BOTTOM_SHELF_SIZE, FURNITURE_SURFACE_Y } from '@shared/play/tableFurnitureLayout';
+import { FURNITURE_SURFACE_Y } from '@shared/play/tableFurnitureLayout';
+import {
+  BOTTOM_SHELF_BOUNDS,
+  BOTTOM_SHELF_EDGE,
+  isOnBottomShelf,
+  isOnBottomShelfOrInFront,
+  nearestBottomShelfEdge,
+} from '@shared/play/tanksShelf';
 import { PerspectiveCamera, Vector3 } from 'three';
 
 import { mapViewFramingPoints } from './tablePlateGeometry';
@@ -115,16 +122,15 @@ const TABLE_VIEW_TARGETS: Record<TableView, Vector3Tuple> = {
   top: [0, 0.1, MAP_VIEW_TARGET_Z],
   left: [-SIDE_VIEW_TARGET_X, 0.1, 0],
   right: [SIDE_VIEW_TARGET_X, 0.1, 0],
-  bottom: [0, 0.1, BOTTOM_SHELF_POSITION[2] - 1.3],
+  bottom: [0, 0.1, (BOTTOM_SHELF_BOUNDS.minZ + BOTTOM_SHELF_BOUNDS.maxZ) / 2 - 1.3],
 };
 
-const BOTTOM_VIEW_FRAMING_POINTS: readonly Vector3Tuple[] = [-1, 1].flatMap((x) =>
-  [-1, 1].map((z) => [
-    BOTTOM_SHELF_POSITION[0] + (x * BOTTOM_SHELF_SIZE[0]) / 2,
-    FURNITURE_SURFACE_Y,
-    BOTTOM_SHELF_POSITION[2] + (z * BOTTOM_SHELF_SIZE[2]) / 2,
-  ])
-);
+/* The bottom shelf's own edge: the Tanks pad's curve at its widest, and the shared item slots at its far end. */
+const BOTTOM_VIEW_FRAMING_POINTS: readonly Vector3Tuple[] = BOTTOM_SHELF_EDGE.points.map(([x, z]): Vector3Tuple => [
+  x,
+  FURNITURE_SURFACE_Y,
+  z,
+]);
 
 /* The camera's direction from its target and its screen axes at a tilt: 0 is the approved angle, 1 is near top-down. */
 type CameraBasis = Readonly<{ offset: Vector3Tuple; forward: Vector3Tuple; up: Vector3Tuple }>;
@@ -492,38 +498,43 @@ const CAMERA_PAN_EDGE_MARGIN = 1.2;
 /* Scroll distance, in pixels, that brings the camera e times closer. */
 const CAMERA_ZOOM_SCROLL_PX = 420;
 /*
- * Where a close look may centre, so it never drifts off the table: the round table, the band across it that holds the side card wells,
- * and the bottom shelf with the Tanks and shared items. Each rectangle is [minX, maxX, minZ, maxZ] on the table.
+ * Where a close look may centre, so it never drifts off the table: the round table, the band across it that holds the side card wells
+ * ([minX, maxX, minZ, maxZ] on the table), and the bottom shelf with the Tanks and shared items, which follows its own edge.
  */
 const CAMERA_ZOOM_TARGET_RADIUS = 5.6;
-const CAMERA_ZOOM_TARGET_RECTANGLES = [
-  [-6.9, 6.9, -2, 2],
-  [-BOTTOM_SHELF_SIZE[0] / 2, BOTTOM_SHELF_SIZE[0] / 2, 0, BOTTOM_SHELF_POSITION[2] + BOTTOM_SHELF_SIZE[2] / 2],
-] as const;
+const CAMERA_ZOOM_TARGET_BAND = [-6.9, 6.9, -2, 2] as const;
 
 /** How far inside the reachable area a table point lies; negative outside it. */
 function zoomTargetDepth(x: number, z: number): number {
-  let depth = CAMERA_ZOOM_TARGET_RADIUS - Math.hypot(x, z);
-  for (const [minX, maxX, minZ, maxZ] of CAMERA_ZOOM_TARGET_RECTANGLES) {
-    depth = Math.max(depth, Math.min(x - minX, maxX - x, z - minZ, maxZ - z));
-  }
-  return depth;
+  const [minX, maxX, minZ, maxZ] = CAMERA_ZOOM_TARGET_BAND;
+  const edge = nearestBottomShelfEdge(x, z).point;
+  const toEdge = Math.hypot(edge[0] - x, edge[1] - z);
+  return Math.max(
+    CAMERA_ZOOM_TARGET_RADIUS - Math.hypot(x, z),
+    Math.min(x - minX, maxX - x, z - minZ, maxZ - z),
+    isOnBottomShelfOrInFront(x, z) ? toEdge : -toEdge
+  );
 }
 
 /** The nearest point of the reachable area. */
 function nearestZoomTarget(x: number, z: number): [number, number] {
+  if (isOnBottomShelf(x, z)) {
+    return [x, z];
+  }
   const distance = Math.hypot(x, z);
-  let best: [number, number] =
+  const [minX, maxX, minZ, maxZ] = CAMERA_ZOOM_TARGET_BAND;
+  const candidates: [number, number][] = [
     distance <= CAMERA_ZOOM_TARGET_RADIUS
       ? [x, z]
-      : [(x / distance) * CAMERA_ZOOM_TARGET_RADIUS, (z / distance) * CAMERA_ZOOM_TARGET_RADIUS];
-  for (const [minX, maxX, minZ, maxZ] of CAMERA_ZOOM_TARGET_RECTANGLES) {
-    const candidate: [number, number] = [Math.min(maxX, Math.max(minX, x)), Math.min(maxZ, Math.max(minZ, z))];
-    if (Math.hypot(candidate[0] - x, candidate[1] - z) < Math.hypot(best[0] - x, best[1] - z)) {
-      best = candidate;
-    }
-  }
-  return best;
+      : [(x / distance) * CAMERA_ZOOM_TARGET_RADIUS, (z / distance) * CAMERA_ZOOM_TARGET_RADIUS],
+    [Math.min(maxX, Math.max(minX, x)), Math.min(maxZ, Math.max(minZ, z))],
+    [...nearestBottomShelfEdge(x, z).point],
+  ];
+  return candidates.reduce(
+    (best, candidate) =>
+      Math.hypot(candidate[0] - x, candidate[1] - z) < Math.hypot(best[0] - x, best[1] - z) ? candidate : best,
+    candidates[0]!
+  );
 }
 
 /** The tilt of a close look: none at the view's distance, turning toward top-down as the camera closes in. */

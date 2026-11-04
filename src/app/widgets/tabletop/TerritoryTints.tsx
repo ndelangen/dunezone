@@ -3,12 +3,12 @@
 import { CENTER, contains, RADIUS, retainedArrakisBoard } from '@shared/boards/geometry';
 import type { Board, Point } from '@shared/boards/schema';
 import { propertyId } from '@shared/boards/schema';
-import { placeStickers } from '@shared/boards/stickerPlacement';
+import { placeStickers, TABLE_STICKER_LARGEST } from '@shared/boards/stickerPlacement';
+import { boardPointToTable } from '@shared/boards/tableTerritories';
 import { boardTerritories } from '@shared/boards/territories';
 import type { OutlinePath } from '@shared/boards/tintOutline';
 import { offRim, offsetPath, outerSegments, outlinePaths } from '@shared/boards/tintOutline';
 import { tintOutlineOpacity } from '@shared/boards/tints';
-import { toTable } from '@shared/play/territoryFit';
 import type { TerritoryTint, TintStamp } from '@shared/play/territoryTints';
 import { tintPaint } from '@shared/play/territoryTints';
 import { playUiColors } from '@shared/uiPalette';
@@ -26,7 +26,7 @@ function fillGeometry(rings: Point[][]) {
   const positions: number[] = [];
   for (const triangle of ShapeUtils.triangulateShape(shapes[0], shapes.slice(1))) {
     for (const index of triangle) {
-      const [x, z] = toTable([flat[index].x, flat[index].y]);
+      const [x, z] = boardPointToTable([flat[index].x, flat[index].y]);
       positions.push(x, 0, z);
     }
   }
@@ -40,8 +40,8 @@ function outlineGeometry(rings: Point[][]) {
   const edges = rings.flatMap((ring) => ring.slice(1).map((to, i) => [ring[i], to] as const));
   const positions: number[] = [];
   for (const [from, to] of offRim(edges, CENTER, RADIUS)) {
-    const [ax, az] = toTable(from);
-    const [bx, bz] = toTable(to);
+    const [ax, az] = boardPointToTable(from);
+    const [bx, bz] = boardPointToTable(to);
     positions.push(ax, 0, az, bx, 0, bz);
   }
   const geometry = new BufferGeometry();
@@ -97,7 +97,7 @@ function doubleLineGeometries(segments: readonly Segment[], raisedEdges: Readonl
   const bands: Bands = { rest: [], raised: [] };
   for (const { points, closed } of outlinePaths(segments)) {
     const raised = points.map((point, i) => raisedEdges.has(edgeKey([point, points[(i + 1) % points.length]])));
-    const path = { points: points.map(toTable), closed };
+    const path = { points: points.map(boardPointToTable), closed };
     bandAlong(bands, path, raised, inner, outer);
     bandAlong(bands, path, raised, -inner, -outer);
   }
@@ -121,7 +121,7 @@ function rimGeometries(segments: readonly Segment[], raisedEdges: ReadonlySet<st
     const probe = offsetPath({ points, closed }, 1e-3);
     const middle: Point = [(probe[0]![0] + probe[1]![0]) / 2, (probe[0]![1] + probe[1]![1]) / 2];
     const outward = contains([...rings], middle) ? -1 : 1;
-    const path = { points: points.map(toTable), closed };
+    const path = { points: points.map(boardPointToTable), closed };
     bandAlong(bands, path, raised, outward * RIM_GAP, outward * (RIM_GAP + RIM_WIDTH));
   }
   return { rest: positionsGeometry(bands.rest), raised: positionsGeometry(bands.raised) };
@@ -175,8 +175,7 @@ function TintOutline({ tint, faces }: Readonly<{ tint: TerritoryTint; faces: rea
   ));
 }
 
-/* The largest a sticker gets, in table units, and the smallest it shrinks to in a cramped territory. */
-const STICKER_LARGEST = 0.3;
+/* The smallest a sticker shrinks to in a cramped territory. */
 const STICKER_SMALLEST = 0.14;
 /* The board's glyph colours: near-black ink inside a pale outline. */
 const STICKER_INK = playUiColors.annotationInk;
@@ -224,9 +223,9 @@ function stickerPlacement(rings: Point[][], count: number) {
   let placement = byCount.get(count);
   if (!placement) {
     placement = placeStickers(
-      rings.map((ring) => ring.map(toTable)),
+      rings.map((ring) => ring.map(boardPointToTable)),
       count,
-      STICKER_LARGEST
+      TABLE_STICKER_LARGEST
     );
     byCount.set(count, placement);
   }
@@ -248,7 +247,7 @@ function Stickers({
   const { at, size: fitted } = stickerPlacement(rings, stamps.length);
   const size = Math.max(STICKER_SMALLEST, fitted);
   return stamps.map((stamp, index) => {
-    const [x, z] = at[index] ?? toTable(center);
+    const [x, z] = at[index] ?? boardPointToTable(center);
     const { ink, outline } = stickerGeometry(stamp);
     return (
       <group key={stamp} position={[x, 0.004, z]} rotation={[Math.PI / 2, 0, 0]} scale={size}>

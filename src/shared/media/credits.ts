@@ -29,6 +29,8 @@ export interface MediaCredit {
   style?: string;
   /** Who restored, traced or recreated the file. */
   by?: string;
+  /** What AI editing did to official artwork, finishing the sentence "edited with AI image tools to …". */
+  purpose?: string;
 }
 
 export type CreditId = keyof typeof credits;
@@ -70,7 +72,8 @@ const phrases: Record<CreditMethod, (credit: MediaCredit) => string> = {
   restored: (credit) => `${origin(credit)}, cleaned up by ${credit.by}`,
   recreated,
   traced,
-  'ai-restored': (credit) => `${origin(credit)}, restored with AI image tools`,
+  'ai-restored': (credit) =>
+    `${origin(credit)}, edited with AI image tools${credit.purpose ? ` to ${credit.purpose}` : ''}`,
   'ai-adapted': (credit) => `made with AI image tools, based on ${credit.source}${styleSuffix(credit)}`,
   ai: (credit) => `made with AI image tools for Dune Zone${styleSuffix(credit)}`,
   blog: () => 'a picture from the Dune Zone blog',

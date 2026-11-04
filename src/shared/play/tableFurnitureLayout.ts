@@ -1,17 +1,17 @@
 import type { TablePiece, Vector3Tuple } from './model';
 import { CARD_DEPTH, CARD_WIDTH, nearestBy, planarDistance, TABLE_SURFACE_Y } from './tableGeometry';
+import { SHARED_ITEMS_FIRST_ROW_Z } from './tanksShelf';
 
 export type CardBaySide = 'left' | 'right';
 
 export const FURNITURE_SURFACE_Y = TABLE_SURFACE_Y;
 export const SIDE_SHELF_SIZE: Vector3Tuple = [2.2, 0.12, 4.1];
 export const SIDE_SHELF_CENTER_X = 6.22;
-export const BOTTOM_SHELF_SIZE: Vector3Tuple = [4.8, 0.12, 6.2];
-export const BOTTOM_SHELF_POSITION: Vector3Tuple = [0, FURNITURE_SURFACE_Y - BOTTOM_SHELF_SIZE[1] / 2, 8.55];
 const CARD_SLOT_RIM = 0.06;
 export const CARD_SLOT_GAP = 0.14;
 export const TABLE_TANKS_LABEL = 'TLEILAXU TANKS';
-export const TABLE_TANKS_LABEL_POSITION: Vector3Tuple = [0, FURNITURE_SURFACE_Y + 0.012, 6.2];
+/* Near the pad's top edge, so the name reads first and the leaders pile up below it. */
+export const TABLE_TANKS_LABEL_POSITION: Vector3Tuple = [0, FURNITURE_SURFACE_Y + 0.012, 6.4];
 
 const CARD_SLOT_ROWS = [-1.32, 0, 1.32] as const;
 
@@ -65,7 +65,7 @@ export const SHARED_ITEM_PLACEMENT_ANCHORS: readonly PlacementAnchor[] = Array.f
   position: [
     ((index % 4) - 1.5) * (CARD_WIDTH + CARD_SLOT_GAP),
     FURNITURE_SURFACE_Y,
-    8.9 + Math.floor(index / 4) * (CARD_DEPTH + CARD_SLOT_GAP),
+    SHARED_ITEMS_FIRST_ROW_Z + Math.floor(index / 4) * (CARD_DEPTH + CARD_SLOT_GAP),
   ],
   orientation: 0,
   acceptedKinds: ['card', 'force', 'marker'],

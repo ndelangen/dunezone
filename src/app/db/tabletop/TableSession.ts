@@ -1,6 +1,6 @@
 import { tableHandlingOpen } from '@shared/play/admission';
 import type { BattlePlanInput } from '@shared/play/battle';
-import { factionOfToken, factionTokenOnRay, factionTokenPieceUnder } from '@shared/play/bribes';
+import { factionOfToken, factionTokenPieceUnder, factionTokenSeenOver } from '@shared/play/bribes';
 import type { CardDraw } from '@shared/play/cardDraw';
 import { foldedTurns, rotatedPiece } from '@shared/play/commands';
 import { snapshotFactionLabels, snapshotFactionTieBreaks } from '@shared/play/factionLabels';
@@ -27,6 +27,8 @@ import { isRemovalAction } from '@shared/play/removal';
 import { isReviewAction, reviewRunning } from '@shared/play/review';
 import { CARRY_FLIPS_LIMIT, SPECTATOR_SEAT, tablePositionSchema } from '@shared/play/schema';
 import { isSpicePiece } from '@shared/play/spice';
+import { revealedSpiceBlows } from '@shared/play/spiceBlowPlacement';
+import { spiceBlowSpot } from '@shared/play/spiceBlowSpot';
 import type { SpiceGift, SpiceGiftChoice } from '@shared/play/spiceReserve';
 import { isSwapAction } from '@shared/play/swapping';
 import type { PointerRay } from '@shared/play/tableGeometry';
@@ -38,6 +40,7 @@ import {
   renderedPiecesFor,
 } from '@shared/play/tableState';
 import { takeableIntoHand } from '@shared/play/techToken';
+import { troopFactionOf } from '@shared/play/troopReserves';
 
 import { BattleQueue } from './BattleQueue';
 import { ConversationSession } from './ConversationSession';
@@ -601,6 +604,7 @@ export class TableSession {
       selectedPiece: null,
       affordances: [],
       spiceReserveControls: undefined,
+      spiceBlowControls: undefined,
       spiceGift: undefined,
       deckControls: undefined,
       handControls: undefined,
@@ -715,6 +719,7 @@ export class TableSession {
     const canHandleTable = this.canHandle();
     return {
       spiceReserveControls: canHandleTable && displayed.bank ? this.spiceReserveControls : undefined,
+      spiceBlowControls: this.spiceBlowControlsFor(canHandleTable, displayed),
       deckControls:
         canHandleTable && this.subscription.supportsCommand('deck-draw') ? this.deckControls(displayed) : undefined,
       deleteControls: this.deleteControls(canHandleTable),
@@ -740,6 +745,74 @@ export class TableSession {
     canCollect: (pieceId) => this.table !== null && !this.table.reservedPieceIds.has(pieceId),
     collect: (pieceId) => this.command({ kind: 'bank-collect', pieceId }),
   };
+  /* Read when they are shown and when they are used, against the table as it is then, so a placement never uses a stale spot. */
+  private readonly spiceBlowControls: NonNullable<TableProjection['spiceBlowControls']> = {
+    placement: (pieceId) => {
+      const placement = this.spiceBlowPlacement(pieceId);
+      return placement && { amount: placement.amount, name: placement.name };
+    },
+    place: (pieceId) => {
+      this.placeSpiceBlow(pieceId);
+    },
+    placeAll: () => {
+      /* Every revealed spice card on the table, the top card of each pile only, places its spice once, one after another. */
+      if (this.spiceBlowInFlight && !this.unanswered.has(this.spiceBlowInFlight)) {
+        this.spiceBlowInFlight = null;
+      }
+      this.spiceBlowQueue = revealedSpiceBlows(this.table?.state.pieces ?? []).map(({ pieceId }) => pieceId);
+      this.nextSpiceBlow();
+    },
+  };
+  /*
+   * The Spice blow command's cards still to place. Each goes out once the one before is answered, against the table as it is then,
+   * so no card is dropped by the limit on unanswered commands and each finds its spot among the spice placed before it.
+   */
+  private spiceBlowQueue: string[] = [];
+  private spiceBlowInFlight: string | null = null;
+  private nextSpiceBlow() {
+    while (!this.spiceBlowInFlight && this.spiceBlowQueue.length) {
+      const pieceId = this.spiceBlowQueue.shift()!;
+      if (!this.spiceBlowPlacement(pieceId)) {
+        continue;
+      }
+      const sent = this.placeSpiceBlow(pieceId);
+      if (!sent) {
+        /* The table cannot take it yet, as while a fresh view is on its way; the card waits for the next view. */
+        this.spiceBlowQueue.unshift(pieceId);
+        return;
+      }
+      this.spiceBlowInFlight = sent;
+    }
+  }
+  /** Sends one card's spice to the spot found for it now, and returns the command's id when it went out. */
+  private placeSpiceBlow(pieceId: string): string | undefined {
+    const placement = this.spiceBlowPlacement(pieceId);
+    if (!placement) {
+      return undefined;
+    }
+    const { amount: _amount, ...action } = placement;
+    return this.command({ kind: 'spice-blow', ...action, position: [...action.position] });
+  }
+  /* Placing spice from a spice card is for whoever handles the table, once play has begun. */
+  private spiceBlowControlsFor(canHandleTable: boolean, displayed: GameSnapshot) {
+    const open = canHandleTable && displayed.stage === 'play' && this.subscription.supportsCommand('spice-blow');
+    return open ? this.spiceBlowControls : undefined;
+  }
+  private spiceBlowPlacement(pieceId: string) {
+    const table = this.table;
+    if (!table || table.reservedPieceIds.has(pieceId)) {
+      return null;
+    }
+    const piece = table.state.pieces.find((entry) => entry.id === pieceId);
+    if (!piece) {
+      return null;
+    }
+    /* A pile someone is carrying is no pile to add to, so it counts as held in place. */
+    const pieces = table.state.pieces.map((entry) =>
+      table.reservedPieceIds.has(entry.id) ? { ...entry, locked: true } : entry
+    );
+    return spiceBlowSpot(table.snapshot, pieces, piece);
+  }
   private readonly peekControls: NonNullable<TableProjection['peekControls']> = {
     peek: (pieceId) => {
       this.closedPeek = null;
@@ -1069,6 +1142,11 @@ export class TableSession {
     }
     this.pendingFlips.delete(id);
     this.unanswered.delete(id);
+    if (this.spiceBlowInFlight === id) {
+      this.spiceBlowInFlight = null;
+    }
+    /* Any answer frees room under the unanswered limit; after its frame is applied, so the next card finds its spot among the spice just placed. */
+    this.resumeSpiceBlow();
     if (viewFollows && this.sentTurns.has(id)) {
       this.doneTurns.add(id);
     } else {
@@ -1244,6 +1322,13 @@ export class TableSession {
     if (this.carry?.landed) {
       this.carry = null;
     }
+    /* A Spice blow the table could not take a moment ago goes on with the view it waited for. */
+    this.resumeSpiceBlow();
+  }
+  private resumeSpiceBlow() {
+    if (this.spiceBlowQueue.length) {
+      queueMicrotask(() => this.nextSpiceBlow());
+    }
   }
   private acceptSnapshot(snapshot: GameSnapshot, previous: GameSnapshot | undefined) {
     const oldRevisions = new Map(previous?.table.pieces.map((piece) => [piece.id, piece.flipRevision ?? 0]));
@@ -1300,6 +1385,8 @@ export class TableSession {
   }
   private clearActivity() {
     this.battle.clear();
+    this.spiceBlowQueue = [];
+    this.spiceBlowInFlight = null;
     this.seatCommandInFlight = null;
     this.traitorGatherInFlight = null;
     this.pages.closeSpiceHistory();
@@ -1533,9 +1620,10 @@ export class TableSession {
     }
     this.updateGesture(position);
     const offer = pointer && this.giftOffer(position, pointer);
-    if (offer) {
-      /* The spice waits where the room will take the gift from, and every viewer sees it there. */
-      this.updateGesture(offer.position);
+    /* Gifted spice waits where the room will take the gift from; troops seen over their own token are let go over its middle, where the room returns them to their reserves. */
+    const settled = offer?.position ?? (pointer && this.reserveTokenPosition(position, pointer));
+    if (settled) {
+      this.updateGesture(settled);
     }
     this.flushPose();
     if (offer) {
@@ -1559,15 +1647,23 @@ export class TableSession {
       return undefined;
     }
     const pieces = this.requireTable().state.pieces;
-    const landing = factionTokenPieceUnder(pieces, position);
-    const token = [pointer.ray && factionTokenOnRay(pieces, pointer.ray), landing].find((candidate) =>
-      recipients.has(factionOfToken(candidate) ?? '')
-    );
+    const token = factionTokenSeenOver(pieces, (factionId) => recipients.has(factionId), position, pointer.ray);
     if (!token) {
       return undefined;
     }
+    const landing = factionTokenPieceUnder(pieces, position);
     const over: Vector3Tuple = token === landing ? [...position] : [token.position[0], position[1], token.position[2]];
     return { factionId: factionOfToken(token)!, position: over, x: pointer.x, y: pointer.y };
+  }
+  /*
+   * The middle of the faction token troops in hand belong to, when they are seen over it or would land on it; undefined otherwise.
+   * Read as a gift's token is, so troops seen over their token from a low camera go home as well.
+   */
+  private reserveTokenPosition(position: Vector3Tuple, pointer: GiftPointer): Vector3Tuple | undefined {
+    const table = this.carry && this.canHandle() ? this.table?.state : undefined;
+    const factionId = table && troopFactionOf(heldPieceFor(table, this.carry!.draft));
+    const token = factionId && factionTokenSeenOver(table.pieces, (id) => id === factionId, position, pointer.ray);
+    return token ? [token.position[0], position[1], token.position[2]] : undefined;
   }
   /* The factions spice in hand can go to: every other seated faction, while this viewer holds a spice reserve. */
   private giftRecipients() {

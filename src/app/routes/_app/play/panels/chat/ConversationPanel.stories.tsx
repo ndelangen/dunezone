@@ -40,6 +40,14 @@ export const Empty = meta.story({
   },
 });
 
+/** The viewer cleared this chat, so its empty history says so; the other side still has every message. */
+export const Cleared = meta.story({
+  args: { page: savedPage([]), cleared: true },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText('You cleared this chat.')).toBeVisible();
+  },
+});
+
 /** The history is loading for the first time. */
 export const Loading = meta.story({
   args: { page: { entries: [], more: false, load: { state: 'loading', requestId: 'history-one', before: 0 } } },

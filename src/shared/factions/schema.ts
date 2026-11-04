@@ -356,9 +356,11 @@ export const SUPPORTING_LEADER_LIMIT = 10;
  * What a save accepts: URL name semantics plus the supporting-leader cap.
  * Reads and renders keep `FactionInputSchema`, so draft names without URL characters and stored factions over the cap still render.
  * A save also reads the old `hero` key, since raw JSON and imported packages come from outside the app (see `readFactionLeaderKey`).
+ * The emblem rename's old `logo` names are refused here;
+ * the import and raw JSON readers rename them first (`ImportedFactionSchema`).
  */
 export const FactionWriteSchema = z
-  .preprocess(readLegacyFactionKeys, FactionInputObject.extend({ name: FactionNameSchema }))
+  .preprocess(readFactionLeaderKey, FactionInputObject.extend({ name: FactionNameSchema }))
   .superRefine(refineUniqueComponentIds)
   .refine((faction) => faction.leaders.length <= SUPPORTING_LEADER_LIMIT, {
     message: `A faction can have at most ${SUPPORTING_LEADER_LIMIT} supporting leaders.`,
@@ -414,10 +416,10 @@ export const HeroKeyedCanonicalFactionObject = CanonicalFactionStoredObject.omit
 });
 
 /**
- * A stored faction row's `data` as the live code reads it.
- * Also reads the old `logo` key, for rows `emblem_rename_v1` has not reached yet (see src/shared/legacyEmblem.ts).
+ * A faction from outside the app (an imported content package or raw JSON), which may predate the emblem rename: its old `logo` names read as the new ones before `FactionWriteSchema` parses it.
+ * See src/shared/legacyEmblem.ts.
  */
-export const StoredFactionSchema = legacyEmblemKeyed(CanonicalFactionStoredObject);
+export const ImportedFactionSchema = legacyEmblemKeyed(FactionWriteSchema);
 
 /** Complete canonical data also requires unique member identities across the roster. */
 export const IdentifiedFactionStoredSchema = CanonicalFactionStoredObject.superRefine(refineUniqueComponentIds);

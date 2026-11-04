@@ -1,5 +1,6 @@
 import type { z } from 'zod';
 
+import { propertyId } from '../../src/shared/boards/schema';
 import type { playGameProvisionSchema } from '../../src/shared/play/admission';
 import type { BugReportBrowser } from '../../src/shared/play/bugReports';
 import { publicFaction } from '../../src/shared/play/capture';
@@ -24,7 +25,14 @@ import { isSeatAction, seatSubject } from '../../src/shared/play/participation';
 import { composeTurn, lobbyPhaseIndex, recomposedTurn } from '../../src/shared/play/phases';
 import type { PhaseEntry } from '../../src/shared/play/phases';
 import { rosterFactionIds } from '../../src/shared/play/protocol';
-import type { ClientMessage, CommitMessage, GameSnapshot, ServerMessage, Viewer } from '../../src/shared/play/protocol';
+import type {
+  ClientMessage,
+  CommitMessage,
+  GameSnapshot,
+  PieceAction,
+  ServerMessage,
+  Viewer,
+} from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { isRemovalAction } from '../../src/shared/play/removal';
 import { isResultAction } from '../../src/shared/play/result';
@@ -32,6 +40,7 @@ import { isReviewAction, reviewCheckpointLimit, reviewableStage, reviewRunning }
 import type { TableReview } from '../../src/shared/play/review';
 import type { TableRoster } from '../../src/shared/play/schema';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
+import { dealtTroopKeys } from '../../src/shared/play/setupSupply';
 import type { SpiceTransfer } from '../../src/shared/play/spiceReserve';
 import { stormOrder } from '../../src/shared/play/stormSector';
 import { isSwapAction } from '../../src/shared/play/swapping';
@@ -272,7 +281,7 @@ export class GameSession {
   }
 
   private openRoom(snapshot: StoredSnapshot): Room {
-    return new Room(
+    const room = new Room(
       snapshot,
       () => this.actors.seats(),
       (userId) => this.actors.factionFor(userId),
@@ -280,6 +289,16 @@ export class GameSession {
       this.metadata?.testPhaseCooldownMs,
       () => this.captures.ruleset()?.board?.definition
     );
+    /* A capture never changes once retained, so each faction's dealt order is read from storage once. */
+    const dealt = new Map<string, readonly string[] | undefined>();
+    room.dealtTroops = (factionId) => {
+      if (!dealt.has(factionId)) {
+        const capture = this.captures.faction(factionId);
+        dealt.set(factionId, capture && dealtTroopKeys(capture));
+      }
+      return dealt.get(factionId);
+    };
+    return room;
   }
 
   private isHostedFixture(metadata: Metadata) {
@@ -913,7 +932,23 @@ export class GameSession {
     if (message.action.kind === 'spawn-request') {
       return room.publicCommand(viewer, message.action, contents);
     }
-    return room.command(viewer, internalAction(room.snapshot, message.action), message.expectedRevision);
+    return room.command(
+      viewer,
+      this.namedOnBoard(internalAction(room.snapshot, message.action)),
+      message.expectedRevision
+    );
+  }
+  /* A spice blow's territory takes its name from the captured board, never from the page, so the log says where the spice went. */
+  private namedOnBoard<Action extends PieceAction>(action: Action): Action {
+    const board = action.kind === 'spice-blow' ? this.captures.ruleset()?.board?.definition : undefined;
+    if (action.kind !== 'spice-blow' || !board) {
+      return action;
+    }
+    const property = Object.values(board.properties).find((entry) => propertyId(entry) === action.territory);
+    if (!property) {
+      throw new GameRejection('This board has no such territory.');
+    }
+    return { ...action, name: property.name };
   }
   private commitTable(key: string, viewer: Viewer, message: TableMessage, contents?: StoredSpawnContents) {
     const room = this.room!;
@@ -1273,6 +1308,25 @@ export class GameSession {
     const faction = this.conversations.authorize(this.room!.snapshot, viewer, request, this.reviews.running()?.id);
     this.conversations.read(request);
     return faction;
+  }
+  clearConversation(viewer: Viewer, request: Extract<ClientMessage, { type: 'conversation-clear' }>) {
+    if (this.reviews.running() && !isRecallConversation(request.peerId)) {
+      throw new GameRejection('Only recall chat is available during Mentat recall.');
+    }
+    const faction = this.conversations.authorize(this.room!.snapshot, viewer, request, this.reviews.running()?.id);
+    const logged = this.storage.transactionSync(() => {
+      if (!this.conversations.clear(request)) {
+        return false;
+      }
+      return this.log.recordChatClear({
+        snapshot: this.room!.snapshot,
+        holders: this.actors.occupants(),
+        factionId: faction,
+        peerId: request.peerId,
+        through: request.through,
+      });
+    });
+    return { faction, logged };
   }
   sendConversation(viewer: Viewer, request: Extract<ClientMessage, { type: 'conversation-send' }>) {
     if (this.reviews.running() && !isRecallConversation(request.peerId)) {

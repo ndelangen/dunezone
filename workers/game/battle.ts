@@ -24,7 +24,11 @@ import { tableForViewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { BOARD_RADIUS, restingPositionAt } from '../../src/shared/play/tableGeometry';
-import { clampPositionToTable, nearestCollisionFreePosition } from '../../src/shared/play/tablePhysics';
+import {
+  clampPositionToTable,
+  nearestCollisionFreePosition,
+  restingAmongLeaders,
+} from '../../src/shared/play/tablePhysics';
 import { playFromHandSettled } from '../../src/shared/play/tableState';
 import { isTechToken, takeableIntoHand } from '../../src/shared/play/techToken';
 import { territoryAtTable } from '../../src/shared/play/territoryPlacement';
@@ -416,7 +420,10 @@ function playFromHand(
   if (!position) {
     return refuse('There is no clear space for that object.');
   }
-  const played = { ...leavingHand, position: restingPositionAt(position, piece) };
+  const played = {
+    ...leavingHand,
+    position: restingAmongLeaders(piece, restingPositionAt(position, piece), snapshot.table.pieces),
+  };
   return commit(snapshot, { factionInventories }, [...snapshot.table.pieces, played]);
 }
 
@@ -545,7 +552,7 @@ function settleOverlayPiece(piece: StoredPiece, battle: StoredBattle, placed: St
   const { battleOverlay: _overlay, ...rest } = piece;
   const requested = clampPositionToTable(piece, [battle.anchor[0], 0, battle.anchor[2] + 0.7]);
   const position = nearestCollisionFreePosition(piece, requested, placed) ?? requested;
-  const moved = { ...rest, position: restingPositionAt(position, piece) };
+  const moved = { ...rest, position: restingAmongLeaders(piece, restingPositionAt(position, piece), placed) };
   placed.push(moved);
   return moved;
 }

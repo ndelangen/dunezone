@@ -12,6 +12,7 @@ const CLASSIFICATIONS = {
   prediction: { label: 'Prediction', color: 'violet' },
   alliance: { label: 'Alliance', color: 'confirm' },
   deletion: { label: 'Deleted', color: 'gray' },
+  chat: { label: 'Chat', color: 'gray' },
   seat: { label: 'Seat', color: 'blue' },
   vote: { label: 'Vote', color: 'confirm' },
   'bug-report': { label: 'Bug report', color: 'orange' },

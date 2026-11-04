@@ -4,6 +4,7 @@ import { useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { ThreeEvent } from '@react-three/fiber/webgpu';
 import { tokenShapeOfType } from '@shared/assets/tokenOutline';
 import { retainedArrakisBoard } from '@shared/boards/geometry';
+import { tableTerritoryAt } from '@shared/boards/tableTerritories';
 import { gameAssetColors, rendererColors } from '@shared/play/assetColors';
 import { isFactionToken } from '@shared/play/factionToken';
 import { gestureBlockReason, pieceCount } from '@shared/play/model';
@@ -47,7 +48,6 @@ import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
 import type { TableSeatCount } from '@shared/play/tableSettings';
 import type { TrackerArcSlot } from '@shared/play/tableTrackers';
 import { TRACKER_DISC_HEIGHT } from '@shared/play/tableTrackers';
-import { territoryShapeAt } from '@shared/play/territoryFit';
 import { tintsWithBattle } from '@shared/play/territoryTints';
 import { isTroopStack } from '@shared/play/troop';
 import { playUiColors } from '@shared/uiPalette';
@@ -85,6 +85,7 @@ import { SceneCardDraws } from './SceneCardDraws';
 import { useSharedMeshes } from './sharedMeshes';
 import type { SharedMeshes } from './sharedMeshes';
 import { SpiceBankInteraction } from './SpiceBank';
+import { useBoardTints } from './spiceBlowTints';
 import { SpiceStackIcon } from './SpiceStackIcon';
 import { loadPieceBadge, loadPlayCamera, loadScenePings, loadScenePresence, loadTabletopTools } from './tableChunks';
 import { useTableFraming } from './tableFraming';
@@ -146,9 +147,9 @@ function paintTerritory(
   /* Setup keeps the map off the table until it is shown, and nothing can be painted on a map that is not there. */
   const mapShown = stage !== 'setup' || !!mapVisible;
   const point = brush && mapShown && ray.intersectPlane(BOARD_PLANE, new Vector3());
-  const territory = point && territoryShapeAt(board?.definition ?? retainedArrakisBoard(), [point.x, point.z]);
+  const territory = point && tableTerritoryAt(board?.definition ?? retainedArrakisBoard(), point.x, point.z);
   if (brush && territory) {
-    brush.paint({ id: territory.id, name: territory.name });
+    brush.paint(territory);
   }
 }
 
@@ -1123,9 +1124,9 @@ function boardSelection(
   };
 }
 
-/* The table's tints; the page's highlight, such as a carried battle marker's territory, wins over the battle's own, which stays lit while the battle lasts. */
+/* The board's tints; the page's highlight, such as a carried battle marker's territory, wins over the battle's own, which stays lit while the battle lasts. */
 function useSceneTints(highlightTerritory: string | null | undefined) {
-  const tableTints = useTabletopSelector((value) => value.snapshot.tints);
+  const tableTints = useBoardTints();
   const battleTerritory = useTabletopSelector((value) => value.snapshot.battle?.territoryId);
   return tintsWithBattle(tableTints, highlightTerritory ?? battleTerritory);
 }

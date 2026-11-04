@@ -1,0 +1,9 @@
+/* The disc every portrait in the post's figures sits in; the figure sets `--disc` from its own width. */
+.portrait {
+  display: block;
+  width: var(--disc, 7rem);
+  height: var(--disc, 7rem);
+  object-fit: cover;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgb(from var(--color-shadow) r g b / 40%);
+}

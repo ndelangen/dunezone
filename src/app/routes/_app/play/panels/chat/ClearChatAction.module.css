@@ -1,0 +1,4 @@
+/* The corners of the title bar's own buttons, as the compass draws them, so it matches unpin beside it. */
+.eraser {
+  --ai-radius: 8px;
+}

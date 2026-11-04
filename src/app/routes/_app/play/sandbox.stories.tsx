@@ -2,6 +2,7 @@ import preview from '@sb/preview';
 import { retainedArrakisBoard } from '@shared/boards/geometry';
 import type { TablePiece } from '@shared/play/model';
 import { isPointerToken, POINTER_TOKEN_TYPE } from '@shared/play/pointerToken';
+import { revealedSpiceBlows } from '@shared/play/spiceBlowPlacement';
 import { restingPositionAt, troopScale } from '@shared/play/tableGeometry';
 import { footprintReach, nearestCollisionFreePosition, piecesOverlapAt } from '@shared/play/tablePhysics';
 import { drawableTechTokens, isTechToken } from '@shared/play/techToken';
@@ -15,12 +16,15 @@ import { openControl } from './controls.stories.fixture';
 import { gameMeta, install } from './game.stories.fixture';
 import { chapter, journeyViewers, JourneyPage } from './journey.stories.fixture';
 import {
+  messyReservesSandbox,
   piece,
   sandbox,
   sandboxReady,
   sandboxSteps,
   sandboxTransport,
   shown,
+  withCoveredSpiceBlow,
+  withSpiceBlows,
   withTechTokens,
 } from './sandbox.stories.fixture';
 
@@ -387,5 +391,58 @@ export const BattleMarkerLightsTerritory = meta.story({
       );
       await expect(outside.map(({ id }) => id)).toEqual([]);
     });
+  },
+});
+
+/**
+ * Seat 1, the Emperor, after a few rough turns: both reserves knocked askew behind the seat, 4 Normal troops out on the board and 2 revived ones lying face down beside the token.
+ * By hand: drag any Emperor troops onto the Emperor token.
+ * They join their reserve face up, and both reserves stand straight on the spots setup dealt them: in setup order at this seat, and at a seat down the side of the table the smaller stack takes the spot lower on the screen.
+ * Troops dropped on another faction's token are set down as before.
+ */
+export const TroopsBackToReserves = meta.story({
+  ...messyReservesSandbox,
+  play: async ({ canvasElement }) => {
+    await sandboxReady(within(canvasElement.ownerDocument.body));
+    await expect(piece((candidate) => candidate.stackKey === 'faction-token:emperor')).toBeDefined();
+  },
+});
+
+/* A Spice Blow story: the table just after a Spice card was turned face up, with its Spice cards captured. */
+function spiceBlowStory(prepare: typeof withSpiceBlows) {
+  return {
+    args: { step: chapter('Spice card revealed'), seat: 'seat-1' },
+    beforeEach: ({ args }: { args: { step?: number; seat?: string } }) =>
+      install(() =>
+        sandboxTransport({
+          start: Number(args.step ?? 1) - 1,
+          seat: String(args.seat ?? 'seat-1'),
+          prepare,
+        })
+      )(),
+    play: async ({ canvasElement }: { canvasElement: HTMLElement }) => {
+      await sandboxReady(within(canvasElement.ownerDocument.body));
+    },
+  };
+}
+
+/**
+ * Spice Blow just after the Spice card was turned face up: Broken Land is lit on the board for as long as the card lies face up.
+ * Place the spice by hand, right-click the card and choose "Place 8 spice on Broken land", or press Space and run the "Spice blow" command, which places the spice of every face-up spice card.
+ * Either way can be repeated;
+ * each time another 8 join the same pile.
+ */
+export const SpiceBlow = meta.story(spiceBlowStory(withSpiceBlows));
+
+/**
+ * A face-up Arsunt card lies under the revealed Broken Land card in the same pile.
+ * Only the visible top card counts: Broken Land is lit and Arsunt is not, and both the right-click and the "Spice blow" command place 8 spice on Broken land only.
+ */
+export const SpiceBlowTopCardOnly = meta.story({
+  ...spiceBlowStory(withCoveredSpiceBlow),
+  play: async ({ canvasElement }) => {
+    await sandboxReady(within(canvasElement.ownerDocument.body));
+    const blows = revealedSpiceBlows(shown().table.pieces).map(({ blow }) => blow.territories);
+    await expect(blows).toEqual([['broken_land']]);
   },
 });

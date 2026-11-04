@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { BLOG_POST_PAGES } from '../../src/shared/blogPostSlugs';
+import { LISTED_BLOG_POST_PAGES } from '../../src/shared/blogPostSlugs';
 import {
   PUBLIC_SITE_ORIGIN,
   SITEMAP_ASSET_COLLECTIONS,
@@ -150,7 +150,7 @@ export async function handlePublicDiscovery(
               ...SITEMAP_ASSET_COLLECTIONS.map((type) => `/assets/${type}`),
               ...RECORDLESS_PUBLIC_PAGES,
               ...TUTORIAL_PAGES,
-              ...BLOG_POST_PAGES,
+              ...LISTED_BLOG_POST_PAGES,
               ...MEDIA_PUBLIC_PAGES,
             ]
               .map((path) => `<url>${location(path)}</url>`)

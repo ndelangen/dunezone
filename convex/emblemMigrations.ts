@@ -12,7 +12,7 @@ import schema from './schema';
 /*
  * The rename of "logo" to "Emblem" (the glossary term), kept out of `migrations.ts`, which is at its size limit.
  * Each migration rewrites the old names wherever a row stores them: a `logo` key becomes `emblem`, and a `/vector/logo/` path becomes `/vector/emblem/`.
- * `renameLegacyEmblems` in src/shared/legacyEmblem.ts is the one rewrite; the live decoders read the old names too, for rows not reached yet.
+ * `renameLegacyEmblems` in src/shared/legacyEmblem.ts is the one rewrite; decoders of copies outside Convex read the old names too, while faction rows are read exactly (`emblem_rename_factions_narrow`).
  * A rewrite keeps every edit timestamp, and a second pass finds nothing to change, so each is safe to replay.
  */
 const migrations = new Migrations(components.migrations, {

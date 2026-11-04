@@ -458,7 +458,9 @@ navigates to the deleted thing's parent, since its own address just died.
 [`ConfirmDeleteButton`](../../src/app/ui/control/ConfirmDeleteButton.tsx) for the full-width one on
 the account-deletion page, and
 [`ConfirmDeleteMenuItem`](../../src/app/ui/control/ConfirmDeleteMenuItem.tsx) for a delete inside a
-menu, such as deleting a piece from a Play table. Every delete goes through one of them. One `window.confirm` survives, at
+menu, such as deleting a piece from a Play table. Every delete goes through one of them. The Play compass's
+"Clear all chats" suggestion holds the same five seconds through the compass's own keys, since its search field
+keeps focus ([`useHeldSuggestion`](../../src/app/routes/_app/play/compass/useHeldSuggestion.ts)). One `window.confirm` survives, at
 the asset move on the group page, which is not a delete and is pending its own treatment.*
 
 ### A tab icon is an icon, never a proof

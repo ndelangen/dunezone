@@ -1,4 +1,5 @@
 import { TopicIcon } from '@ui/content/TopicIcon';
+import { Eraser } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import { setBoardSkin, setPlanetShading } from '../../../../widgets/tabletop/boardSkinPreference';
@@ -23,9 +24,12 @@ export type Suggestion = Readonly<{
   run: () => void;
   /** The letter that does the same with the compass shut. */
   shortcut?: string;
+  /** A destructive command runs only after a five-second hold; this is its countdown's verb, such as "Clearing". */
+  held?: string;
 }>;
 
-type Candidate = Suggestion & Readonly<{ text: string; weight: number }>;
+/* `typedOnly` keeps a candidate out of the list shown with nothing typed. */
+type Candidate = Suggestion & Readonly<{ text: string; weight: number; typedOnly?: true }>;
 
 /* How many suggestions show with nothing typed, and once something is. */
 const SUGGESTED = 6;
@@ -84,7 +88,10 @@ function weightOf(entry: TableWindow) {
 /** The suggestions for what is typed: the best matches, or with nothing typed the windows and commands worth reaching first. */
 export function rankSuggestions(all: readonly Candidate[], query: string): Suggestion[] {
   if (!query.trim()) {
-    return [...all].sort((a, b) => b.weight - a.weight).slice(0, SUGGESTED);
+    return all
+      .filter((entry) => !entry.typedOnly)
+      .sort((a, b) => b.weight - a.weight)
+      .slice(0, SUGGESTED);
   }
   return all
     .map((entry) => ({ entry, score: fuzzy(entry.text, query) }))
@@ -102,6 +109,10 @@ export type SuggestionActions = Readonly<{
   players: readonly CompassPlayer[];
   /** Steps the table to the next phase; null while the table refuses it, as the header's button is then disabled. */
   nextPhase: (() => void) | null | undefined;
+  /** Clears every chat from the viewer's own view; null while there is nothing to clear. */
+  clearChats?: (() => void) | null;
+  /** Places the spice of every face-up spice card on the table; null while there is none to place or the viewer cannot act. */
+  spiceBlow?: (() => void) | null;
   /** Moves the camera, as the dial does. */
   view: (view: TableView) => void;
   /** The viewer's own faction token on the table, when they have one. */
@@ -186,6 +197,50 @@ function nextPhaseCandidate(nextPhase: SuggestionActions['nextPhase'], close: ()
       },
       text: 'next phase',
       weight: 4,
+    },
+  ];
+}
+
+/* Clearing every chat, found by name, never suggested unasked and held like every delete: each player clears only their own copy (#2674). */
+function clearChatsCandidate(clearChats: SuggestionActions['clearChats'], close: () => void): Candidate[] {
+  if (!clearChats) {
+    return [];
+  }
+  return [
+    {
+      key: 'cmd:clear-chats',
+      label: 'Clear all chats',
+      hint: 'Hold to clear; others keep theirs',
+      icon: <Eraser size={18} aria-hidden />,
+      run: () => {
+        close();
+        clearChats();
+      },
+      text: 'clear all chats chat messages text erase',
+      weight: -1,
+      typedOnly: true,
+      held: 'Clearing',
+    },
+  ];
+}
+
+/* Spice blow, only while a face-up spice card lies on the table for the viewer to place. */
+function spiceBlowCandidate(spiceBlow: SuggestionActions['spiceBlow'], close: () => void): Candidate[] {
+  if (!spiceBlow) {
+    return [];
+  }
+  return [
+    {
+      key: 'cmd:spice-blow',
+      label: 'Spice blow',
+      hint: 'Place the spice of every face-up spice card',
+      icon: <TopicIcon topic="spiceBlow" size={18} />,
+      run: () => {
+        close();
+        spiceBlow();
+      },
+      text: 'spice blow',
+      weight: 3,
     },
   ];
 }
@@ -307,7 +362,9 @@ export function candidatesOf(windows: readonly TableWindow[], actions: Suggestio
       entry.key === FACTION_INFO ? factionCandidates(entry, actions) : [windowCandidate(entry, actions)]
     ),
     ...nextPhaseCandidate(actions.nextPhase, actions.close),
+    ...spiceBlowCandidate(actions.spiceBlow, actions.close),
     ...commandCandidates(actions),
+    ...clearChatsCandidate(actions.clearChats, actions.close),
     ...(Object.keys(CAMERA_VIEWS) as TableView[]).map((view): Candidate => ({
       key: `cmd:camera:${view}`,
       label: `Camera: ${CAMERA_VIEWS[view]}`,

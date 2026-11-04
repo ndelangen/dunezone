@@ -5,7 +5,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 
 import { getPlatformProxy, unstable_dev } from 'wrangler';
 
-import { BLOG_POST_PAGES } from '../src/shared/blogPostSlugs.ts';
+import { BLOG_POST_PAGES, LISTED_BLOG_POST_PAGES } from '../src/shared/blogPostSlugs.ts';
 import { TUTORIAL_PAGES, MEDIA_PUBLIC_PAGES, RECORDLESS_PUBLIC_PAGES } from '../src/shared/recordlessPublicPages.ts';
 import { jpegProfile, pngDimensions } from '../workers/publisher/image-inspection.ts';
 
@@ -148,7 +148,12 @@ try {
     const html = await response.text();
     assert.ok(html.includes(`href="/public/${bandPoster}"`), `${pathname} does not preload the hashed poster`);
     assert.ok(html.includes(`src="/public/${bandPoster}"`), `${pathname} does not display the preloaded poster`);
-    assert.doesNotMatch(html, /<meta\b[^>]*\bname=["']robots["']/i, pathname);
+    if (BLOG_POST_PAGES.includes(pathname) && !LISTED_BLOG_POST_PAGES.includes(pathname)) {
+      /* An unlisted post is shared by link only, so it alone asks not to be indexed. */
+      assert.match(html, /<meta\b[^>]*\bname=["']robots["'][^>]*\bcontent=["']noindex["']/i, pathname);
+    } else {
+      assert.doesNotMatch(html, /<meta\b[^>]*\bname=["']robots["']/i, pathname);
+    }
     assertPublicMetadataQueries(
       Number(response.headers.get('X-Public-Metadata-Queries') ?? 0),
       pathname,

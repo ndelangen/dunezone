@@ -28,6 +28,11 @@ export function Paragraph({ children }: { children: ReactNode }) {
   return <p className={styles.paragraph}>{children}</p>;
 }
 
+/** A bulleted list set like `Paragraph`, one item per `li`, for a short run of points the prose would otherwise string together. */
+export function BulletList({ children }: { children: ReactNode }) {
+  return <ul className={styles.list}>{children}</ul>;
+}
+
 const PostAnchor = forwardRef<HTMLAnchorElement, AnchorProps & ComponentPropsWithoutRef<'a'>>(
   function PostAnchor(props, ref) {
     return <Anchor ref={ref} {...props} />;
