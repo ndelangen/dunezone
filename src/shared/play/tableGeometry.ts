@@ -48,7 +48,7 @@ const MAX_VISIBLE_LAYERS = { card: 5, force: 4, marker: 1 } satisfies Record<Tab
 export const MARKER_FOOTPRINT_RADIUS = 0.5;
 
 /** Leaders keep the stack key their faction's setup supply gave them. */
-function isLeaderPiece(piece: Partial<Pick<TablePiece, 'kind' | 'stackKey'>>): boolean {
+export function isLeaderPiece(piece: Partial<Pick<TablePiece, 'kind' | 'stackKey'>>): boolean {
   return piece.kind === 'force' && (piece.stackKey?.startsWith('leader:') ?? false);
 }
 

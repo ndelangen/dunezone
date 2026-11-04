@@ -94,7 +94,9 @@ export function placementRules(
     fits: (position, orientation = moving.orientation) =>
       riders.every((rider) => {
         const pose = riderPose(rider, plate, { position, orientation });
-        return isCollisionFreePosition({ ...rider, orientation: pose.orientation }, pose.position, clear);
+        /* The plate at its new pose is still under its riders, so each is checked as standing on it. */
+        const around = [...clear, { ...plate, position, orientation }];
+        return isCollisionFreePosition({ ...rider, orientation: pose.orientation }, pose.position, around);
       }),
   };
 }

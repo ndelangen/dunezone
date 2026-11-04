@@ -1,4 +1,5 @@
 import { trackerArcSlots } from '@shared/play/tableTrackers';
+import { isOnBottomShelf, nearestBottomShelfEdge } from '@shared/play/tanksShelf';
 import { Vector3 } from 'three';
 import { describe, expect, test } from 'vite-plus/test';
 
@@ -672,10 +673,12 @@ describe('close look', () => {
     const shelf = slide([-6, 20]);
     expect(shelf[2]).toBeGreaterThan(7.5);
     const corner = slide([20, 20]);
+    const edge = nearestBottomShelfEdge(corner[0], corner[2]).point;
     expect(
       Math.hypot(corner[0], corner[2]) <= 5.6 + 1e-6 ||
         Math.abs(corner[2]) <= 2 + 1e-6 ||
-        Math.abs(corner[0]) <= 2.4 + 1e-6
+        isOnBottomShelf(corner[0], corner[2]) ||
+        Math.hypot(edge[0] - corner[0], edge[1] - corner[2]) <= 1e-6
     ).toBe(true);
   });
 });

@@ -1,7 +1,5 @@
 import type { Vector3Tuple } from '@shared/play/model';
 import {
-  BOTTOM_SHELF_POSITION,
-  BOTTOM_SHELF_SIZE,
   CARD_BAY_PLACEMENT_ANCHORS,
   SHARED_ITEM_PLACEMENT_ANCHORS,
   TABLE_TANKS_LABEL_POSITION,
@@ -23,6 +21,13 @@ import {
 } from '@shared/play/tableGeometry';
 import { trackerArcSlots } from '@shared/play/tableTrackers';
 import type { TrackerArcSlot } from '@shared/play/tableTrackers';
+import {
+  BOTTOM_SHELF_EDGE,
+  isInTanks,
+  isOnBottomShelf,
+  isOnBottomShelfOrInFront,
+  SHARED_COLUMN_HALF_WIDTH,
+} from '@shared/play/tanksShelf';
 import { ExtrudeGeometry, Mesh, MeshBasicMaterial, Raycaster, Vector3 } from 'three';
 import { acceleratedRaycast, MeshBVH } from 'three-mesh-bvh';
 import { describe, expect, test } from 'vite-plus/test';
@@ -251,45 +256,57 @@ describe('table furniture', () => {
     }
   });
 
-  test('supports eight equally spaced generic wells below the deeper Tanks area', () => {
+  test('the chord closing the shelf outline is no edge: the round table in front of the shelf counts with it', () => {
+    const chordZ = Math.max(BOTTOM_SHELF_EDGE.points[0]![1], BOTTOM_SHELF_EDGE.points.at(-1)![1]);
+    expect(isOnBottomShelfOrInFront(0, chordZ - 0.01)).toBe(true);
+    expect(isOnBottomShelfOrInFront(0, chordZ + 0.01)).toBe(true);
+    expect(isOnBottomShelfOrInFront(0, 9)).toBe(true);
+    expect(isOnBottomShelfOrInFront(5.5, 1)).toBe(false);
+    expect(isOnBottomShelfOrInFront(0, -3)).toBe(false);
+  });
+
+  test('supports eight equally spaced generic wells below the Tanks pad', () => {
     const anchors = SHARED_ITEM_PLACEMENT_ANCHORS;
     const rows = [...new Set(anchors.map((anchor) => anchor.position[2]))].sort((a, b) => a - b);
     expect(anchors).toHaveLength(8);
     expect(rows).toHaveLength(2);
-    for (const row of rows) {
-      const slots = anchors
+    const columns = rows.map((row) =>
+      anchors
         .filter((anchor) => anchor.position[2] === row)
-        .sort((a, b) => a.position[0] - b.position[0]);
-      expect(slots).toHaveLength(4);
-      for (let index = 1; index < slots.length; index++) {
-        expect(slots[index].position[0] - slots[index - 1].position[0] - CARD_WIDTH).toBeCloseTo(CARD_SLOT_GAP);
-      }
+        .map((anchor) => anchor.position[0])
+        .sort((a, b) => a - b)
+    );
+    for (const xs of columns) {
+      expect(xs).toHaveLength(4);
+      const gaps = xs.slice(1).map((x, index) => x - xs[index]! - CARD_WIDTH);
+      gaps.forEach((gap) => expect(gap).toBeCloseTo(CARD_SLOT_GAP));
     }
     expect(rows[1] - rows[0] - CARD_DEPTH).toBeCloseTo(CARD_SLOT_GAP);
     expect(rows[0] - CARD_SLOT_OUTER_SIZE.depth / 2 - TABLE_TANKS_LABEL_POSITION[2]).toBeGreaterThan(2);
-    for (const anchor of anchors) {
-      expect(Math.abs(anchor.position[0]) + CARD_SLOT_OUTER_SIZE.width / 2).toBeLessThan(BOTTOM_SHELF_SIZE[0] / 2);
-      expect(anchor.position[2] + CARD_SLOT_OUTER_SIZE.depth / 2).toBeLessThan(TABLE_PLATE_BOUNDS.maxZ);
+    const corners = anchors.flatMap(({ position: [x, , z] }) =>
+      [-1, 1].flatMap((dx) =>
+        [-1, 1].map(
+          (dz) => [x + (dx * CARD_SLOT_OUTER_SIZE.width) / 2, z + (dz * CARD_SLOT_OUTER_SIZE.depth) / 2] as const
+        )
+      )
+    );
+    for (const [cornerX, cornerZ] of corners) {
+      expect(isOnBottomShelf(cornerX, cornerZ)).toBe(true);
+      expect(isInTanks([cornerX, 0, cornerZ])).toBe(false);
     }
   });
 
   test.each(
     [1440 / 695, 1, 0.75, 390 / 844].flatMap((aspectRatio) => [0, 0.5, 1].map((tilt) => ({ aspectRatio, tilt })))
-  )('frames the complete Tanks shelf at aspect $aspectRatio and tilt $tilt', ({ aspectRatio, tilt }) => {
+  )('frames the complete bottom shelf at aspect $aspectRatio and tilt $tilt', ({ aspectRatio, tilt }) => {
     const camera = tableCamera(cameraPoseFor('bottom', aspectRatio, undefined, tilt), aspectRatio);
 
-    for (const xDirection of [-1, 1]) {
-      for (const zDirection of [-1, 1]) {
-        const projected = new Vector3(
-          BOTTOM_SHELF_POSITION[0] + (xDirection * BOTTOM_SHELF_SIZE[0]) / 2,
-          FURNITURE_SURFACE_Y,
-          BOTTOM_SHELF_POSITION[2] + (zDirection * BOTTOM_SHELF_SIZE[2]) / 2
-        ).project(camera);
-        expect(Math.abs(projected.x)).toBeLessThanOrEqual(0.92 + 1e-9);
-        expect(Math.abs(projected.y)).toBeLessThanOrEqual(0.92 + 1e-9);
-        expect(projected.z).toBeGreaterThanOrEqual(-1);
-        expect(projected.z).toBeLessThanOrEqual(1);
-      }
+    for (const [x, z] of BOTTOM_SHELF_EDGE.points) {
+      const projected = new Vector3(x, FURNITURE_SURFACE_Y, z).project(camera);
+      expect(Math.abs(projected.x)).toBeLessThanOrEqual(0.92 + 1e-9);
+      expect(Math.abs(projected.y)).toBeLessThanOrEqual(0.92 + 1e-9);
+      expect(projected.z).toBeGreaterThanOrEqual(-1);
+      expect(projected.z).toBeLessThanOrEqual(1);
     }
   });
 
@@ -316,9 +333,12 @@ describe('table furniture', () => {
     expect(geometry.boundingBox?.max.y).toBeCloseTo(FURNITURE_SURFACE_Y);
 
     const sideShelfInnerX = SIDE_SHELF_CENTER_X - SIDE_SHELF_SIZE[0] / 2;
-    const bottomShelfInnerZ = BOTTOM_SHELF_POSITION[2] - BOTTOM_SHELF_SIZE[2] / 2;
     expect(TABLE_PLATE_JOINS.sideX).toBeLessThan(sideShelfInnerX);
-    expect(TABLE_PLATE_JOINS.bottomZ).toBeLessThan(bottomShelfInnerZ);
+    /* The bottom shelf leaves the round edge and rejoins it, below the side shelves. */
+    const [first, last] = [BOTTOM_SHELF_EDGE.points[0]!, BOTTOM_SHELF_EDGE.points.at(-1)!];
+    expect(Math.hypot(...first)).toBeCloseTo(TABLE_VISIBLE_RADIUS);
+    expect(Math.hypot(...last)).toBeCloseTo(TABLE_VISIBLE_RADIUS);
+    expect(BOTTOM_SHELF_EDGE.startAngle).toBeGreaterThan(Math.asin(SIDE_SHELF_SIZE[2] / 2 / TABLE_VISIBLE_RADIUS));
   });
 
   test.each([0, 9, 20])(
@@ -456,8 +476,8 @@ describe('table furniture', () => {
       [TABLE_PLATE_BOUNDS.minX, sideHalfDepth],
       [TABLE_PLATE_BOUNDS.maxX, -sideHalfDepth],
       [TABLE_PLATE_BOUNDS.maxX, sideHalfDepth],
-      [-BOTTOM_SHELF_SIZE[0] / 2, TABLE_PLATE_BOUNDS.maxZ],
-      [BOTTOM_SHELF_SIZE[0] / 2, TABLE_PLATE_BOUNDS.maxZ],
+      [-SHARED_COLUMN_HALF_WIDTH, TABLE_PLATE_BOUNDS.maxZ],
+      [SHARED_COLUMN_HALF_WIDTH, TABLE_PLATE_BOUNDS.maxZ],
     ] as const;
 
     expect(TABLE_PLATE_CORNER_RADIUS).toBeGreaterThan(0);
@@ -478,7 +498,9 @@ describe('the table plate a ping lands on', () => {
     ['the board', [1, 0]],
     ['the round top', [5, 0]],
     ['a side shelf', [SIDE_SHELF_CENTER_X, 1]],
-    ['the bottom shelf', [0, BOTTOM_SHELF_POSITION[2]]],
+    ['the Tanks pad', [0, 7.6]],
+    ["the Tanks pad's far corner", [Math.cos(1.13) * 8.9, Math.sin(1.13) * 8.9]],
+    ['the shared item slots', [0, 11.5]],
   ] as const)('lands on %s', (_name, [x, z]) => {
     expect(landing(x, z)).not.toBeNull();
   });

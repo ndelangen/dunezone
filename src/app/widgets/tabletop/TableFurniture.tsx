@@ -1,6 +1,7 @@
 /* @jsxImportSource ./three-jsx */
 
 import type { Vector3Tuple } from '@shared/play/model';
+import type { PlanePoint } from '@shared/play/pointerToken';
 import {
   cardBaySlotPositions,
   SHARED_ITEM_PLACEMENT_ANCHORS,
@@ -10,7 +11,9 @@ import {
 import type { CardBaySide } from '@shared/play/tableFurnitureLayout';
 import { CARD_DEPTH, CARD_WIDTH } from '@shared/play/tableGeometry';
 import type { TrackerArcSlot } from '@shared/play/tableTrackers';
+import { tanksPadOutline } from '@shared/play/tanksShelf';
 import { useMemo } from 'react';
+import { Shape } from 'three';
 import type { ExtrudeGeometry } from 'three';
 
 import { ignoreRaycast } from './ignoreRaycast';
@@ -93,6 +96,40 @@ function CardWell({ position }: { position: Vector3Tuple }) {
   );
 }
 
+/* A flat shape is turned face up onto the table, which takes its y to the table's -z. */
+function shapeFromOutline(points: readonly PlanePoint[]): Shape {
+  const shape = new Shape();
+  points.forEach(([x, z], index) => (index === 0 ? shape.moveTo(x, -z) : shape.lineTo(x, -z)));
+  shape.closePath();
+  return shape;
+}
+
+/* The Tleilaxu Tanks: a pad drawn like a card well, with the same rim and face, curved round the table below the board. */
+const TANKS_RIM_SHAPE = shapeFromOutline(tanksPadOutline(SLOT_EDGE_WIDTH));
+const TANKS_FACE_SHAPE = shapeFromOutline(tanksPadOutline());
+/*
+ * Leaders and troops lie on the pad at table height, so it sits only just above the plate.
+ * Their contact shadows and selection rings, drawn a little above the table, then stay over it.
+ */
+const TANKS_RIM_Y = 0.006;
+const TANKS_FACE_Y = 0.007;
+
+function TanksPad() {
+  const palette = useTablePalette();
+  return (
+    <group key={`${TANKS_RIM_SHAPE.uuid}:${TANKS_FACE_SHAPE.uuid}`}>
+      <mesh position={[0, TANKS_RIM_Y, 0]} raycast={ignoreRaycast} receiveShadow rotation={[-Math.PI / 2, 0, 0]}>
+        <shapeGeometry args={[TANKS_RIM_SHAPE]} />
+        <meshStandardMaterial color={palette.slotRim} metalness={0.06} roughness={0.82} />
+      </mesh>
+      <mesh position={[0, TANKS_FACE_Y, 0]} raycast={ignoreRaycast} receiveShadow rotation={[-Math.PI / 2, 0, 0]}>
+        <shapeGeometry args={[TANKS_FACE_SHAPE]} />
+        <meshStandardMaterial color={palette.well} metalness={0} roughness={0.96} />
+      </mesh>
+    </group>
+  );
+}
+
 function SideCardBay({ side }: { side: CardBaySide }) {
   return (
     <group>
@@ -112,6 +149,7 @@ export function TableFurniture({ trackerSlots }: { trackerSlots: readonly Tracke
       {SHARED_ITEM_PLACEMENT_ANCHORS.map((anchor) => (
         <CardWell key={anchor.id} position={anchor.position} />
       ))}
+      <TanksPad />
       <TableLabel position={TABLE_TANKS_LABEL_POSITION}>{TABLE_TANKS_LABEL}</TableLabel>
     </group>
   );
