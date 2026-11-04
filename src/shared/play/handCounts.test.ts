@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vite-plus/test';
 import { handCountGrid, handCountsShowing, treacheryHandCounts } from './handCounts';
 import type { StoredPiece } from './model';
 import { STANDARD_PHASES } from './phases';
+import type { PhaseEntry } from './phases';
 
 function hand(id: string, kind: StoredPiece['kind'], types: string[]): StoredPiece {
   return {
@@ -71,5 +72,23 @@ describe('handCountsShowing', () => {
   it('follows the table turn into the next one', () => {
     expect(handCountsShowing(at('bidding') + STANDARD_PHASES.length)).toBe(true);
     expect(handCountsShowing(at('revival') + STANDARD_PHASES.length)).toBe(false);
+  });
+
+  it('reads the table turn when a faction phase comes before Bidding', () => {
+    const declaration: PhaseEntry = {
+      ...STANDARD_PHASES[0]!,
+      id: 'atreides:prescience',
+      kind: 'faction',
+      factionId: 'atreides',
+      before: 'bidding',
+    };
+    const turn = STANDARD_PHASES.flatMap((entry) => (entry.id === 'bidding' ? [declaration, entry] : [entry]));
+    expect(handCountsShowing(turn.indexOf(declaration), turn)).toBe(false);
+    expect(
+      handCountsShowing(
+        turn.findIndex((entry) => entry.id === 'bidding'),
+        turn
+      )
+    ).toBe(true);
   });
 });
