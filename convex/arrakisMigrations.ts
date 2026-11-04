@@ -15,7 +15,7 @@ import schema from './schema';
 
 /*
  * Moves the last consumers of the built-in Arrakis map onto the saved Arrakis board (#1971).
- * Spice cards without a board link get one, their highlights carried as one tint; Rulesets without a board get it;
+ * Spice cards without a board link get one, their highlights carried as one tint;
  * Rulebook Contents that name the built-in board by its "arrakis" id name the saved board instead.
  * A deployment without the saved board changes nothing. A second pass finds nothing to change, so each is safe to replay.
  */
@@ -94,25 +94,6 @@ export const arrakis_spice_cards_v1 = migrations.define({
   },
 });
 
-/** Gives every live Ruleset without a board the saved Arrakis board, as its board slot. */
-export const arrakis_ruleset_boards_v1 = migrations.define({
-  table: 'rulesets',
-  batchSize: 25,
-  migrateOne: async (ctx, ruleset) => {
-    if (ruleset.is_deleted) {
-      return;
-    }
-    const boardId = await arrakisBoardId(ctx);
-    const existing = await ctx.db
-      .query('ruleset_asset_slots')
-      .withIndex('by_ruleset_slot', (q) => q.eq('ruleset_id', ruleset._id).eq('slot', 'board'))
-      .first();
-    if (boardId && !existing) {
-      await ctx.db.insert('ruleset_asset_slots', { ruleset_id: ruleset._id, asset_id: boardId, slot: 'board' });
-    }
-  },
-});
-
 /** Renames the built-in board in a draft's Contents and rebuilds its Contents hash; the settings-and-Contents hash is dropped, as the emblem rename did. */
 export const arrakis_rulebook_drafts_v1 = migrations.define({
   table: 'rulebook_drafts',
@@ -151,7 +132,6 @@ export const arrakis_rulebook_edition_contents_v1 = migrations.define({
  */
 export const ARRAKIS_MIGRATION_IDS: Record<string, FunctionReference<'mutation', 'internal'>> = {
   arrakis_spice_cards_v1: internal.arrakisMigrations.arrakis_spice_cards_v1,
-  arrakis_ruleset_boards_v1: internal.arrakisMigrations.arrakis_ruleset_boards_v1,
   arrakis_rulebook_drafts_v1: internal.arrakisMigrations.arrakis_rulebook_drafts_v1,
   arrakis_rulebook_edition_contents_v1: internal.arrakisMigrations.arrakis_rulebook_edition_contents_v1,
 };

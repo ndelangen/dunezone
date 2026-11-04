@@ -118,45 +118,6 @@ describe('Arrakis board migration', () => {
   );
 
   test(
-    'gives live Rulesets without a board the saved board and leaves an authored board alone',
-    async () => {
-      const f = await rulebookFixture();
-      migrationsTest.register(f.t);
-      const boardId = await saveArrakis(f);
-      const otherBoard = await f.owner.mutation(api.assets.create, {
-        type: 'board',
-        data: { name: 'Other board', about: '', board: arrakisBoard() },
-      });
-      await f.t.run((ctx) =>
-        ctx.db.insert('ruleset_asset_slots', {
-          ruleset_id: f.ids.otherRulesetId,
-          asset_id: otherBoard.id as Id<'assets'>,
-          slot: 'board',
-        })
-      );
-      const boards = () =>
-        f.t.run(async (ctx) =>
-          Promise.all(
-            [f.ids.rulesetId, f.ids.otherRulesetId].map(async (rulesetId) =>
-              (
-                await ctx.db
-                  .query('ruleset_asset_slots')
-                  .withIndex('by_ruleset_slot', (q) => q.eq('ruleset_id', rulesetId).eq('slot', 'board'))
-                  .collect()
-              ).map((slot) => slot.asset_id)
-            )
-          )
-        );
-
-      await f.t.mutation(internal.arrakisMigrations.arrakis_ruleset_boards_v1, {});
-      expect(await boards()).toEqual([[boardId], [otherBoard.id]]);
-      await f.t.mutation(internal.arrakisMigrations.arrakis_ruleset_boards_v1, { reset: true });
-      expect(await boards()).toEqual([[boardId], [otherBoard.id]]);
-    },
-    BUDGET_MS
-  );
-
-  test(
     'renames the built-in board in Rulebook Contents with the hashes taken over them',
     async () => {
       const f = await rulebookFixture();

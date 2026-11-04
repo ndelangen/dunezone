@@ -677,11 +677,6 @@
       "requires": []
     },
     {
-      "id": "arrakis_ruleset_boards_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
       "id": "arrakis_rulebook_drafts_v1",
       "phase": "widen",
       "requires": []
