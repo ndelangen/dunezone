@@ -185,7 +185,8 @@ test('Discord connection requires both proofs and a fresh second session, then c
   await expect(verified.mutation(api.accounts.confirmConnection, { token: intent.token })).rejects.toThrow('expired');
   expect(await t.query(api.accounts.connection, { token: intent.token })).toMatchObject({ state: 'running' });
   await t.finishAllScheduledFunctions(() => vi.runAllTimers());
-  expect(await t.query(api.accounts.connection, { token: intent.token })).toBeNull();
+  /* The intent's ten minutes pass while the merge runs; the page still reports the merge, not an expired link. */
+  expect(await t.query(api.accounts.connection, { token: intent.token })).toMatchObject({ state: 'completed' });
 });
 
 test("a self-service connection never carries the source account's admin rights", async () => {

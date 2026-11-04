@@ -194,7 +194,8 @@ export const expireConnection = internalMutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     const intent = await ctx.db.get(args.connectionId);
-    if (intent && intent.state !== 'expired') {
+    /* Only an unanswered intent lapses: an accepted one names the merge its page keeps reporting. */
+    if (intent?.state === 'pending') {
       await ctx.db.patch(intent._id, { state: 'expired' });
     }
     return null;
