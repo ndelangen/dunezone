@@ -4,6 +4,8 @@ import { resolveRulebookBoardDefinition } from '@shared/rulebooks/boardDefinitio
 import type { RulebookRenderBlockV1, RulebookRenderPageV1 } from '@shared/rulebooks/renderDocument';
 import type { RulebookSourceReference } from '@shared/rulebooks/sources';
 
+import arrakisOfficialGeometry from './fixtures/asset-explainer/arrakis-official-geometry.json';
+import arrakisOfficialImage from './fixtures/asset-explainer/arrakis-official.jpg?url';
 import leaderGeometry from './fixtures/asset-explainer/leader-geometry.json';
 import leaderImage from './fixtures/asset-explainer/leader.jpg?url';
 
@@ -120,6 +122,43 @@ export function boardExplainerFixture(): Explainer {
         target: { kind: 'named', key: 'shield-wall', source },
         text: 'In Dreamrules, this becomes a stronghold for victory after the fourth Shai-Hulud card.',
       },
+    ],
+  };
+}
+
+/** Production's saved Arrakis Official board (publication b3770ccb), whose image prints no storm sector lines of its own. */
+export const ARRAKIS_OFFICIAL_BOARD_ID = 'ns72fst9vtajbcc6066ejz92ph8fweez';
+
+export function savedBoardExplainerFixture(sectorLines?: boolean): Explainer {
+  const source = { kind: 'board', boardId: ARRAKIS_OFFICIAL_BOARD_ID } satisfies RulebookSourceReference;
+  const stronghold = (id: string, key: string, text: string) => ({
+    id,
+    label: '',
+    target: { kind: 'named', key, source } as const,
+    text,
+  });
+  return {
+    id: 'MAPX',
+    kind: 'asset-explainer',
+    anchor: 'map-strongholds',
+    caption: 'The storm moves counterclockwise through the 18 sectors.',
+    numbering: 'automatic',
+    colorMode: 'automatic',
+    ...(sectorLines === undefined ? {} : { sectorLines }),
+    source: {
+      status: 'ready',
+      reference: source,
+      name: 'Arrakis Official',
+      imageUrl: arrakisOfficialImage,
+      geometry: componentGeometrySchema.parse(arrakisOfficialGeometry),
+      publicationRevision: 'b3770ccb-8220-4ea0-a555-fed75125cf93',
+    },
+    items: [
+      stronghold('ARRA', 'arrakeen', 'Home of House Atreides.'),
+      stronghold('CART', 'carthag', 'Home of House Harkonnen.'),
+      stronghold('TABR', 'tabr', 'Home of the Fremen.'),
+      stronghold('HABB', 'habbanya', 'An isolated stronghold in the south-west.'),
+      stronghold('TUEK', 'tueks', 'Home of the Spacing Guild.'),
     ],
   };
 }

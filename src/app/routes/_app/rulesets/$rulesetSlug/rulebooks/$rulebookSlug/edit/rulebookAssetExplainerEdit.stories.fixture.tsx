@@ -17,11 +17,25 @@ export function ExplainerStory({ initial, unavailable = false }: { initial: Expl
     caption: initial.caption,
     numbering: initial.numbering,
     colorMode: initial.colorMode,
+    ...(initial.sectorLines ? { sectorLines: true } : {}),
     itemOrder: initial.items.map((item) => item.id),
     itemsById: Object.fromEntries(initial.items.map((item) => [item.id, item])),
   });
   const source = initial.source;
   const references: RulebookEditorReferences = { assetsById: {}, factionsById: {} };
+  if (!unavailable && source.status === 'ready' && source.reference.kind === 'board') {
+    const { boardId } = source.reference;
+    references.assetsById = {
+      [boardId]: {
+        assetId: boardId,
+        type: 'board',
+        name: source.name,
+        imageUrl: source.imageUrl,
+        geometry: source.geometry,
+        publicationRevision: source.publicationRevision,
+      },
+    };
+  }
   if (!unavailable && source.status === 'ready' && source.reference.kind === 'faction-member') {
     const factionId = source.reference.factionId;
     references.factionsById = { [factionId]: { factionId, name: 'Atreides', color: '#374b2d', leaders: [source] } };
