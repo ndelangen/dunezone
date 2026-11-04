@@ -1497,25 +1497,10 @@
     ]
   },
   {
-    "label": "Familiar worlds",
-    "keywords": "Sol Solar System planets and moons, Earth, Star Wars, Mass Effect, Avatar, Halo, Star Trek, Marvel, Warcraft and Discworld.",
+    "label": "Familiar worlds / Sol system",
+    "keywords": "Sol Solar System planets moons Earth",
     "assets": [
       "/image/planet/familiar-worlds/earth.png",
-      "/image/planet/familiar-worlds/death-star.png",
-      "/image/planet/familiar-worlds/citadel.png",
-      "/image/planet/familiar-worlds/omega.png",
-      "/image/planet/familiar-worlds/coruscant.png",
-      "/image/planet/familiar-worlds/mustafar.png",
-      "/image/planet/familiar-worlds/rannoch.png",
-      "/image/planet/familiar-worlds/discworld.png",
-      "/image/planet/familiar-worlds/argus.png",
-      "/image/planet/familiar-worlds/pandora.png",
-      "/image/planet/familiar-worlds/polyphemus.png",
-      "/image/planet/familiar-worlds/zeta-halo.png",
-      "/image/planet/familiar-worlds/vulcan.png",
-      "/image/planet/familiar-worlds/ego.png",
-      "/image/planet/familiar-worlds/knowhere.png",
-      "/image/planet/familiar-worlds/alderaan.png",
       "/image/planet/familiar-worlds/mercury.png",
       "/image/planet/familiar-worlds/venus.png",
       "/image/planet/familiar-worlds/mars.png",
@@ -1539,6 +1524,45 @@
     ]
   },
   {
+    "label": "Familiar worlds / Star Wars",
+    "keywords": "Star Wars",
+    "assets": [
+      "/image/planet/familiar-worlds/death-star.png",
+      "/image/planet/familiar-worlds/coruscant.png",
+      "/image/planet/familiar-worlds/mustafar.png",
+      "/image/planet/familiar-worlds/alderaan.png"
+    ]
+  },
+  {
+    "label": "Familiar worlds / Mass Effect",
+    "keywords": "Mass Effect",
+    "assets": [
+      "/image/planet/familiar-worlds/citadel.png",
+      "/image/planet/familiar-worlds/omega.png",
+      "/image/planet/familiar-worlds/rannoch.png"
+    ]
+  },
+  {
+    "label": "Familiar worlds / Avatar",
+    "keywords": "Avatar",
+    "assets": ["/image/planet/familiar-worlds/pandora.png", "/image/planet/familiar-worlds/polyphemus.png"]
+  },
+  {
+    "label": "Familiar worlds / Marvel",
+    "keywords": "Marvel Cinematic Universe",
+    "assets": ["/image/planet/familiar-worlds/ego.png", "/image/planet/familiar-worlds/knowhere.png"]
+  },
+  {
+    "label": "Familiar worlds / Other fiction",
+    "keywords": "Discworld Warcraft Halo Star Trek",
+    "assets": [
+      "/image/planet/familiar-worlds/discworld.png",
+      "/image/planet/familiar-worlds/argus.png",
+      "/image/planet/familiar-worlds/zeta-halo.png",
+      "/image/planet/familiar-worlds/vulcan.png"
+    ]
+  },
+  {
     "label": "Decals / Blades and melee weapons",
     "keywords": "knife dagger sword blade claw whip garrote close combat",
     "assets": [
@@ -1549,7 +1573,7 @@
       "/vector/decal/extortion.svg",
       "/vector/decal/fan-of-knives.svg",
       "/vector/decal/gravity-hammer.svg",
-      "/vector/decal/knifes.svg",
+      "/vector/decal/knives.svg",
       "/vector/decal/mirror-weapon.svg",
       "/vector/decal/poison-blade.svg",
       "/vector/decal/ribbon-sabre.svg",
@@ -1753,8 +1777,8 @@
       "/vector/decal/cistern-guardian-multicolor.svg",
       "/vector/decal/crown-burrower.svg",
       "/vector/decal/crown-burrower-multicolor.svg",
-      "/vector/decal/distrance.svg",
-      "/vector/decal/distrance-multicolor.svg",
+      "/vector/decal/distrans.svg",
+      "/vector/decal/distrans-multicolor.svg",
       "/vector/decal/drifting-bladder-colony.svg",
       "/vector/decal/drifting-bladder-colony-multicolor.svg",
       "/vector/decal/glasswing-scavenger.svg",
@@ -1873,8 +1897,8 @@
       "/vector/decal/audience-petition-multicolor.svg",
       "/vector/decal/bearer-of-decrees.svg",
       "/vector/decal/bearer-of-decrees-multicolor.svg",
-      "/vector/decal/beaurocrat.svg",
-      "/vector/decal/beaurocrat-multicolor.svg",
+      "/vector/decal/bureaucrat.svg",
+      "/vector/decal/bureaucrat-multicolor.svg",
       "/vector/decal/chamberlain.svg",
       "/vector/decal/chamberlain-multicolor.svg",
       "/vector/decal/diplomat.svg",
@@ -2121,7 +2145,7 @@
   {
     "label": "Decals / Needles and injectors",
     "keywords": "needle injector injection syringe suringe weapon poison delivery dart",
-    "assets": ["/vector/decal/injection.svg", "/vector/decal/suringe.svg", "/vector/decal/box-and-needle.svg"]
+    "assets": ["/vector/decal/injection.svg", "/vector/decal/syringe.svg", "/vector/decal/box-and-needle.svg"]
   },
   {
     "label": "Decals / Traders and appraisers",
@@ -2187,6 +2211,636 @@
       "/image/decal/gf9-stronghold-ixian.png",
       "/image/decal/gf9-stronghold-tabr.png",
       "/image/decal/gf9-stronghold-tuek.png"
+    ]
+  },
+  {
+    "label": "General symbols / Dune",
+    "keywords": "Dune",
+    "assets": [
+      "/vector/generic/bene-gesserit.svg",
+      "/vector/generic/bird-banner.svg",
+      "/vector/generic/choam.svg",
+      "/vector/generic/corrino-helmet.svg",
+      "/vector/generic/fear.svg",
+      "/vector/generic/fish-speakers.svg",
+      "/vector/generic/fremen.svg",
+      "/vector/generic/great-house-emblem.svg",
+      "/vector/generic/guild-eyes.svg",
+      "/vector/generic/honored-matres.svg",
+      "/vector/generic/house-atreides.svg",
+      "/vector/generic/house-corrino.svg",
+      "/vector/generic/house-harkonnen.svg",
+      "/vector/generic/house-moritani.svg",
+      "/vector/generic/house-vernius.svg",
+      "/vector/generic/landsraad.svg",
+      "/vector/generic/leader-skills.svg",
+      "/vector/generic/mercenaries.svg",
+      "/vector/generic/peddlers.svg",
+      "/vector/generic/qizarate.svg",
+      "/vector/generic/ram-skull.svg",
+      "/vector/generic/sandworm.svg",
+      "/vector/generic/sardaukar.svg",
+      "/vector/generic/sisterhood.svg",
+      "/vector/generic/smugglers.svg",
+      "/vector/generic/spacing-guild.svg",
+      "/vector/generic/tech.svg",
+      "/vector/generic/tleilax.svg"
+    ]
+  },
+  {
+    "label": "General symbols / Star Trek",
+    "keywords": "Star Trek",
+    "assets": [
+      "/vector/generic/borg.svg",
+      "/vector/generic/breen.svg",
+      "/vector/generic/denobulan.svg",
+      "/vector/generic/dominion.svg",
+      "/vector/generic/el-aurian.svg",
+      "/vector/generic/ferengi-alliance.svg",
+      "/vector/generic/hirogen.svg",
+      "/vector/generic/klingon-empire.svg",
+      "/vector/generic/krenim-imperium.svg",
+      "/vector/generic/malon.svg",
+      "/vector/generic/ocampa.svg",
+      "/vector/generic/reman.svg",
+      "/vector/generic/risian.svg",
+      "/vector/generic/romulan-republic.svg",
+      "/vector/generic/species-8472.svg",
+      "/vector/generic/suliban.svg",
+      "/vector/generic/tellarite.svg",
+      "/vector/generic/terran-empire.svg",
+      "/vector/generic/united-federation-of-planets.svg",
+      "/vector/generic/vaadwaur.svg",
+      "/vector/generic/voth.svg",
+      "/vector/generic/vulcan-idic.svg"
+    ]
+  },
+  {
+    "label": "General symbols / Star Wars",
+    "keywords": "Star Wars",
+    "assets": [
+      "/vector/generic/galactic-alliance.svg",
+      "/vector/generic/galactic-republic.svg",
+      "/vector/generic/sith-empire-hexagon.svg",
+      "/vector/generic/sith-empire-sunburst.svg",
+      "/vector/generic/sith-order.svg"
+    ]
+  },
+  {
+    "label": "General symbols / Stargate",
+    "keywords": "Stargate",
+    "assets": ["/vector/generic/apophis.svg", "/vector/generic/cronus.svg", "/vector/generic/ori.svg"]
+  },
+  {
+    "label": "General symbols / Warhammer 40,000",
+    "keywords": "Warhammer 40,000",
+    "assets": [
+      "/vector/generic/aeldari.svg",
+      "/vector/generic/ankh-of-the-triarch.svg",
+      "/vector/generic/eye-of-horus.svg",
+      "/vector/generic/mark-of-khorne.svg",
+      "/vector/generic/tau-empire.svg",
+      "/vector/generic/tau-sept.svg",
+      "/vector/generic/tyranids.svg"
+    ]
+  },
+  {
+    "label": "General symbols / Mass Effect",
+    "keywords": "Mass Effect",
+    "assets": [
+      "/vector/generic/asari-republics.svg",
+      "/vector/generic/cerberus.svg",
+      "/vector/generic/geth.svg",
+      "/vector/generic/quarian-migrant-fleet.svg"
+    ]
+  },
+  {
+    "label": "General symbols / Command & Conquer",
+    "keywords": "Command & Conquer",
+    "assets": [
+      "/vector/generic/gdi-eagle-disc.svg",
+      "/vector/generic/gdi-eagle-head.svg",
+      "/vector/generic/gdi-eagle-roundel.svg",
+      "/vector/generic/gdi-lightning-eagle.svg",
+      "/vector/generic/global-defense-initiative.svg",
+      "/vector/generic/nod.svg",
+      "/vector/generic/scrin.svg",
+      "/vector/generic/the-forgotten.svg"
+    ]
+  },
+  {
+    "label": "General symbols / Other science fiction",
+    "keywords": "Other science fiction",
+    "assets": [
+      "/vector/generic/aquos.svg",
+      "/vector/generic/atlan-system-federation.svg",
+      "/vector/generic/brotherhood-outcasts.svg",
+      "/vector/generic/combine.svg",
+      "/vector/generic/deteis-bloodline.svg",
+      "/vector/generic/draconis-combine.svg",
+      "/vector/generic/hierarchy.svg",
+      "/vector/generic/mantis-cruiser.svg",
+      "/vector/generic/marker.svg",
+      "/vector/generic/millikans-reach-terran-empire.svg",
+      "/vector/generic/minmatar-republic.svg",
+      "/vector/generic/redwake.svg",
+      "/vector/generic/united-earth-federation.svg",
+      "/vector/generic/unsc-army.svg"
+    ]
+  },
+  {
+    "label": "General symbols / Stars and suns",
+    "keywords": "Stars and suns",
+    "assets": [
+      "/vector/generic/angular-compass-star.svg",
+      "/vector/generic/angular-sunburst.svg",
+      "/vector/generic/asterisk.svg",
+      "/vector/generic/compass-rose.svg",
+      "/vector/generic/eight-pointed-burst.svg",
+      "/vector/generic/laurel-star.svg",
+      "/vector/generic/pirate.svg",
+      "/vector/generic/radial-starburst.svg",
+      "/vector/generic/rays-across-disc.svg",
+      "/vector/generic/ring-of-stars.svg",
+      "/vector/generic/shine.svg",
+      "/vector/generic/shooting-star-ring.svg",
+      "/vector/generic/singer.svg",
+      "/vector/generic/six-pointed-star.svg",
+      "/vector/generic/spikes.svg",
+      "/vector/generic/star-in-ring.svg",
+      "/vector/generic/star.svg",
+      "/vector/generic/starburst-ring.svg",
+      "/vector/generic/stars.svg",
+      "/vector/generic/stellar.svg",
+      "/vector/generic/summer.svg",
+      "/vector/generic/sun-banner.svg",
+      "/vector/generic/sun.svg",
+      "/vector/generic/sunny.svg",
+      "/vector/generic/three-spoked-star.svg"
+    ]
+  },
+  {
+    "label": "General symbols / Blades and weapons",
+    "keywords": "Blades and weapons",
+    "assets": [
+      "/vector/generic/arrows.svg",
+      "/vector/generic/axes.svg",
+      "/vector/generic/blades.svg",
+      "/vector/generic/bones.svg",
+      "/vector/generic/bows.svg",
+      "/vector/generic/choppers.svg",
+      "/vector/generic/crossed-maces.svg",
+      "/vector/generic/crossed-morning-stars.svg",
+      "/vector/generic/daggers.svg",
+      "/vector/generic/double-axe-circle.svg",
+      "/vector/generic/hammers.svg",
+      "/vector/generic/spear-in-ring.svg",
+      "/vector/generic/spears.svg",
+      "/vector/generic/sword-and-atom.svg",
+      "/vector/generic/sword-and-sickle.svg",
+      "/vector/generic/sword-in-circle.svg",
+      "/vector/generic/sword-in-rock.svg",
+      "/vector/generic/swords.svg",
+      "/vector/generic/three-blade-swirl.svg",
+      "/vector/generic/three-crossed-spears.svg",
+      "/vector/generic/three-crossed-swords.svg",
+      "/vector/generic/trident.svg"
+    ]
+  },
+  {
+    "label": "General symbols / Geometric shapes",
+    "keywords": "Geometric shapes",
+    "assets": [
+      "/vector/generic/arrowhead-triangle.svg",
+      "/vector/generic/box.svg",
+      "/vector/generic/cross-stripes.svg",
+      "/vector/generic/cross.svg",
+      "/vector/generic/diamond.svg",
+      "/vector/generic/hex.svg",
+      "/vector/generic/hexagon-maze.svg",
+      "/vector/generic/inverted-triangle.svg",
+      "/vector/generic/mesh.svg",
+      "/vector/generic/octagon-cross.svg",
+      "/vector/generic/plus.svg",
+      "/vector/generic/pyramid.svg",
+      "/vector/generic/segmented-cross.svg",
+      "/vector/generic/square-knot.svg",
+      "/vector/generic/stepped-cross.svg",
+      "/vector/generic/striped-v.svg",
+      "/vector/generic/triangle.svg",
+      "/vector/generic/triangular-knot.svg",
+      "/vector/generic/triple-triangle.svg",
+      "/vector/generic/vertex.svg",
+      "/vector/generic/x.svg"
+    ]
+  },
+  {
+    "label": "General symbols / Crests and insignia",
+    "keywords": "Crests and insignia",
+    "assets": [
+      "/vector/generic/alliance.svg",
+      "/vector/generic/ancient.svg",
+      "/vector/generic/branching-circle.svg",
+      "/vector/generic/council.svg",
+      "/vector/generic/cracked-v.svg",
+      "/vector/generic/eagle-star-insignia.svg",
+      "/vector/generic/guard.svg",
+      "/vector/generic/hooked-oval-crest.svg",
+      "/vector/generic/league.svg",
+      "/vector/generic/nobles.svg",
+      "/vector/generic/ornate-spearhead.svg",
+      "/vector/generic/pointed-crystal-crest.svg",
+      "/vector/generic/protectorate.svg",
+      "/vector/generic/rift.svg",
+      "/vector/generic/scout.svg",
+      "/vector/generic/star-and-chevrons.svg",
+      "/vector/generic/star-badge.svg",
+      "/vector/generic/winged-oval-symbol.svg",
+      "/vector/generic/winged-star-eagle.svg"
+    ]
+  },
+  {
+    "label": "General symbols / Objects and logos",
+    "keywords": "Objects and logos",
+    "assets": [
+      "/vector/generic/ball.svg",
+      "/vector/generic/dude-perfect.svg",
+      "/vector/generic/dune-band-logo.svg",
+      "/vector/generic/egg.svg",
+      "/vector/generic/gate.svg",
+      "/vector/generic/glimmer.svg",
+      "/vector/generic/lamp-of-knowledge.svg",
+      "/vector/generic/lantern.svg",
+      "/vector/generic/promise.svg",
+      "/vector/generic/source-filmmaker.svg",
+      "/vector/generic/teardrop-spiral.svg",
+      "/vector/generic/yin-yang.svg"
+    ]
+  },
+  {
+    "label": "General symbols / Swirls and patterns",
+    "keywords": "Swirls and patterns",
+    "assets": [
+      "/vector/generic/blob.svg",
+      "/vector/generic/curved-wave.svg",
+      "/vector/generic/solaris.svg",
+      "/vector/generic/spiral-diamond.svg",
+      "/vector/generic/spiral-wave.svg",
+      "/vector/generic/splat.svg",
+      "/vector/generic/spots.svg",
+      "/vector/generic/swirl.svg",
+      "/vector/generic/tilted-rings.svg",
+      "/vector/generic/vortex.svg",
+      "/vector/generic/woven-rosette.svg"
+    ]
+  },
+  {
+    "label": "General symbols / Technology",
+    "keywords": "Technology",
+    "assets": [
+      "/vector/generic/chip.svg",
+      "/vector/generic/community.svg",
+      "/vector/generic/connect.svg",
+      "/vector/generic/detector.svg",
+      "/vector/generic/diode.svg",
+      "/vector/generic/electronic.svg",
+      "/vector/generic/gear.svg",
+      "/vector/generic/graph.svg",
+      "/vector/generic/memory.svg",
+      "/vector/generic/rounded-microchip.svg"
+    ]
+  },
+  {
+    "label": "General symbols / Creatures",
+    "keywords": "Creatures",
+    "assets": [
+      "/vector/generic/bird-of-prey-head.svg",
+      "/vector/generic/bird.svg",
+      "/vector/generic/bull-head.svg",
+      "/vector/generic/heraldic-eagle.svg",
+      "/vector/generic/horse.svg",
+      "/vector/generic/raider.svg",
+      "/vector/generic/scarab.svg",
+      "/vector/generic/spiral-shell.svg"
+    ]
+  },
+  {
+    "label": "General symbols / Plants and flowers",
+    "keywords": "Plants and flowers",
+    "assets": [
+      "/vector/generic/clover.svg",
+      "/vector/generic/eight-petal-flower.svg",
+      "/vector/generic/fleur-de-lis.svg",
+      "/vector/generic/lotus.svg",
+      "/vector/generic/petal-ring.svg",
+      "/vector/generic/pointed-leaf.svg",
+      "/vector/generic/toothed-petal-ring.svg",
+      "/vector/generic/tree-crest.svg"
+    ]
+  },
+  {
+    "label": "General symbols / Fire, ice and storms",
+    "keywords": "Fire, ice and storms",
+    "assets": [
+      "/vector/generic/fire.svg",
+      "/vector/generic/flame-crest.svg",
+      "/vector/generic/ice.svg",
+      "/vector/generic/pele.svg",
+      "/vector/generic/snow.svg",
+      "/vector/generic/static.svg",
+      "/vector/generic/tornado.svg",
+      "/vector/generic/triple-lobe-flame.svg"
+    ]
+  },
+  {
+    "label": "General symbols / Planets and space",
+    "keywords": "Planets and space",
+    "assets": [
+      "/vector/generic/fly.svg",
+      "/vector/generic/night-sky.svg",
+      "/vector/generic/orbital.svg",
+      "/vector/generic/orbits.svg",
+      "/vector/generic/orbs.svg",
+      "/vector/generic/ringworld.svg",
+      "/vector/generic/ship.svg",
+      "/vector/generic/stormworld.svg"
+    ]
+  },
+  {
+    "label": "General symbols / Warning signs",
+    "keywords": "Warning signs",
+    "assets": [
+      "/vector/generic/biohazard.svg",
+      "/vector/generic/electric-shock.svg",
+      "/vector/generic/electrostatic-warning.svg",
+      "/vector/generic/exclamation.svg",
+      "/vector/generic/hot-surface.svg",
+      "/vector/generic/laser-warning.svg",
+      "/vector/generic/radiation.svg"
+    ]
+  },
+  {
+    "label": "Troops / Dune factions",
+    "keywords": "Dune factions",
+    "assets": [
+      "/vector/troop/atreides.svg",
+      "/vector/troop/bene-gesserit.svg",
+      "/vector/troop/bene-tleilaxu.svg",
+      "/vector/troop/choam.svg",
+      "/vector/troop/cymecs.svg",
+      "/vector/troop/ecaz.svg",
+      "/vector/troop/emperor.svg",
+      "/vector/troop/fat.svg",
+      "/vector/troop/fremen.svg",
+      "/vector/troop/ginaz.svg",
+      "/vector/troop/guild.svg",
+      "/vector/troop/hagal.svg",
+      "/vector/troop/harkonnen.svg",
+      "/vector/troop/iduali.svg",
+      "/vector/troop/ixian-engineer.svg",
+      "/vector/troop/ixian.svg",
+      "/vector/troop/landsraad.svg",
+      "/vector/troop/moritani.svg",
+      "/vector/troop/peddler.svg",
+      "/vector/troop/pewpew.svg",
+      "/vector/troop/richese.svg",
+      "/vector/troop/sandworm-rider.svg",
+      "/vector/troop/smuggler.svg"
+    ]
+  },
+  {
+    "label": "Troops / Specialist troops",
+    "keywords": "Specialist troops",
+    "assets": [
+      "/vector/troop/acolyte.svg",
+      "/vector/troop/armoured-rifleman.svg",
+      "/vector/troop/banner-marshal.svg",
+      "/vector/troop/blade-dancer.svg",
+      "/vector/troop/court-duelist.svg",
+      "/vector/troop/crescent-executioner.svg",
+      "/vector/troop/desert-pathfinder.svg",
+      "/vector/troop/drum-herald.svg",
+      "/vector/troop/furnace-bearer.svg",
+      "/vector/troop/gene-forged-brute.svg",
+      "/vector/troop/hook-climber.svg",
+      "/vector/troop/house-bulwark.svg",
+      "/vector/troop/mantis-guard.svg",
+      "/vector/troop/masked-saboteur.svg",
+      "/vector/troop/needle-sniper.svg",
+      "/vector/troop/raptor-keeper.svg",
+      "/vector/troop/resonance-adept.svg",
+      "/vector/troop/salvage-warden.svg",
+      "/vector/troop/shield-cover-team.svg",
+      "/vector/troop/shield-rammer.svg",
+      "/vector/troop/siege-gunner.svg",
+      "/vector/troop/spice-driller.svg",
+      "/vector/troop/suspensor-lancer.svg",
+      "/vector/troop/veiled-adept.svg",
+      "/vector/troop/void-walker.svg",
+      "/vector/troop/water-keeper.svg",
+      "/vector/troop/wire-hunter.svg"
+    ]
+  },
+  {
+    "label": "Troops / Armoured soldiers",
+    "keywords": "Armoured soldiers",
+    "assets": [
+      "/vector/troop/amal.svg",
+      "/vector/troop/bacon-and-eggs.svg",
+      "/vector/troop/bass.svg",
+      "/vector/troop/blaster.svg",
+      "/vector/troop/bo.svg",
+      "/vector/troop/domeno.svg",
+      "/vector/troop/dr-monroe.svg",
+      "/vector/troop/eureka.svg",
+      "/vector/troop/gestalt.svg",
+      "/vector/troop/jane-bowie.svg",
+      "/vector/troop/jellybean.svg",
+      "/vector/troop/juggernaut.svg",
+      "/vector/troop/marshall-blossom.svg",
+      "/vector/troop/old-man-frame.svg",
+      "/vector/troop/orlando.svg",
+      "/vector/troop/oz.svg",
+      "/vector/troop/professor-grey.svg",
+      "/vector/troop/raton.svg",
+      "/vector/troop/strandwolf.svg",
+      "/vector/troop/sword-bearer.svg",
+      "/vector/troop/zane.svg",
+      "/vector/troop/zora.svg"
+    ]
+  },
+  {
+    "label": "Troops / Fantasy warriors",
+    "keywords": "Fantasy warriors",
+    "assets": [
+      "/vector/troop/fantasy-03.svg",
+      "/vector/troop/fantasy-04.svg",
+      "/vector/troop/fantasy-08.svg",
+      "/vector/troop/fantasy-09.svg",
+      "/vector/troop/fantasy-12.svg",
+      "/vector/troop/fantasy-13.svg",
+      "/vector/troop/fantasy-14.svg",
+      "/vector/troop/fantasy-15.svg",
+      "/vector/troop/fantasy-18.svg",
+      "/vector/troop/fantasy-19.svg",
+      "/vector/troop/fantasy-23.svg",
+      "/vector/troop/fantasy-24.svg",
+      "/vector/troop/fantasy-27.svg",
+      "/vector/troop/fantasy-28.svg",
+      "/vector/troop/fantasy-32.svg",
+      "/vector/troop/fantasy-34.svg",
+      "/vector/troop/fantasy-36.svg",
+      "/vector/troop/fantasy-38.svg",
+      "/vector/troop/fantasy-39.svg",
+      "/vector/troop/fantasy-43.svg",
+      "/vector/troop/fantasy-47.svg",
+      "/vector/troop/fantasy-48.svg"
+    ]
+  },
+  {
+    "label": "Troops / Machine series",
+    "keywords": "Machine series",
+    "assets": [
+      "/vector/troop/machine-01.svg",
+      "/vector/troop/machine-02.svg",
+      "/vector/troop/machine-03.svg",
+      "/vector/troop/machine-04.svg",
+      "/vector/troop/machine-05.svg",
+      "/vector/troop/machine-06.svg",
+      "/vector/troop/machine-08.svg",
+      "/vector/troop/machine-09.svg",
+      "/vector/troop/machine-12.svg",
+      "/vector/troop/machine-13.svg",
+      "/vector/troop/machine-14.svg",
+      "/vector/troop/machine-15.svg",
+      "/vector/troop/machine-16.svg",
+      "/vector/troop/machine-17.svg",
+      "/vector/troop/machine-18.svg",
+      "/vector/troop/machine-19.svg",
+      "/vector/troop/machine-20.svg",
+      "/vector/troop/machine-21.svg"
+    ]
+  },
+  {
+    "label": "Troops / Fantasy monsters",
+    "keywords": "Fantasy monsters",
+    "assets": [
+      "/vector/troop/fantasy-01.svg",
+      "/vector/troop/fantasy-02.svg",
+      "/vector/troop/fantasy-05.svg",
+      "/vector/troop/fantasy-06.svg",
+      "/vector/troop/fantasy-07.svg",
+      "/vector/troop/fantasy-10.svg",
+      "/vector/troop/fantasy-16.svg",
+      "/vector/troop/fantasy-20.svg",
+      "/vector/troop/fantasy-25.svg",
+      "/vector/troop/fantasy-26.svg",
+      "/vector/troop/fantasy-29.svg",
+      "/vector/troop/fantasy-30.svg",
+      "/vector/troop/fantasy-33.svg",
+      "/vector/troop/fantasy-37.svg",
+      "/vector/troop/fantasy-40.svg",
+      "/vector/troop/fantasy-42.svg",
+      "/vector/troop/fantasy-44.svg"
+    ]
+  },
+  {
+    "label": "Troops / Robots and mechs",
+    "keywords": "Robots and mechs",
+    "assets": [
+      "/vector/troop/asher.svg",
+      "/vector/troop/camera-raygun-robot.svg",
+      "/vector/troop/cannon-crawler.svg",
+      "/vector/troop/captain-albright.svg",
+      "/vector/troop/commander-howard.svg",
+      "/vector/troop/compact-round-mech.svg",
+      "/vector/troop/doc-bronson.svg",
+      "/vector/troop/ferrier-companion.svg",
+      "/vector/troop/grizzly-and-son.svg",
+      "/vector/troop/rear-view-battle-mech.svg",
+      "/vector/troop/savage-slim.svg",
+      "/vector/troop/tower-headed-robot.svg",
+      "/vector/troop/warbucket.svg",
+      "/vector/troop/wotan.svg"
+    ]
+  },
+  {
+    "label": "Troops / Long coats and robes",
+    "keywords": "Long coats and robes",
+    "assets": [
+      "/vector/troop/coat.svg",
+      "/vector/troop/cochise.svg",
+      "/vector/troop/dr-singh.svg",
+      "/vector/troop/ferrier.svg",
+      "/vector/troop/mnemo.svg",
+      "/vector/troop/ravelle.svg",
+      "/vector/troop/sam-scalptaker.svg",
+      "/vector/troop/semoor.svg",
+      "/vector/troop/sloan.svg",
+      "/vector/troop/the-moth-eater.svg",
+      "/vector/troop/the-nomad.svg",
+      "/vector/troop/winfield.svg"
+    ]
+  },
+  {
+    "label": "Troops / Fantasy casters",
+    "keywords": "Fantasy casters",
+    "assets": [
+      "/vector/troop/fantasy-11.svg",
+      "/vector/troop/fantasy-17.svg",
+      "/vector/troop/fantasy-21.svg",
+      "/vector/troop/fantasy-22.svg",
+      "/vector/troop/fantasy-31.svg",
+      "/vector/troop/fantasy-35.svg",
+      "/vector/troop/fantasy-41.svg",
+      "/vector/troop/fantasy-45.svg",
+      "/vector/troop/fantasy-46.svg"
+    ]
+  },
+  {
+    "label": "Troops / Ogres",
+    "keywords": "Ogres",
+    "assets": [
+      "/vector/troop/ogre-club-brute.svg",
+      "/vector/troop/ogre-pirate-blades.svg",
+      "/vector/troop/ogre-pirate-captain.svg",
+      "/vector/troop/ogre-pirate-gunner.svg",
+      "/vector/troop/ogre-pirate-hammer.svg",
+      "/vector/troop/ogre-pirate-mace.svg",
+      "/vector/troop/ogre-polearm.svg"
+    ]
+  },
+  {
+    "label": "Troops / Wizards",
+    "keywords": "Wizards",
+    "assets": [
+      "/vector/troop/wizard-battle-caster.svg",
+      "/vector/troop/wizard-flame-palm.svg",
+      "/vector/troop/wizard-orb-keeper.svg",
+      "/vector/troop/wizard-overhead-spell.svg",
+      "/vector/troop/wizard-raised-hand.svg",
+      "/vector/troop/wizard-wand-caster.svg"
+    ]
+  },
+  {
+    "label": "Troops / Heroes and characters",
+    "keywords": "Heroes and characters",
+    "assets": [
+      "/vector/troop/branch-haired-dryad.svg",
+      "/vector/troop/caped-warrior.svg",
+      "/vector/troop/plumed-musketeer.svg",
+      "/vector/troop/saluting-shield-bearer.svg",
+      "/vector/troop/swept-horn-warrior.svg"
+    ]
+  },
+  {
+    "label": "Troops / Creatures",
+    "keywords": "Creatures",
+    "assets": [
+      "/vector/troop/fin-tailed-stalker.svg",
+      "/vector/troop/levi.svg",
+      "/vector/troop/petal-headed-stalker.svg",
+      "/vector/troop/sue.svg"
     ]
   }
 ]

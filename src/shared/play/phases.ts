@@ -18,7 +18,7 @@ export const TABLE_PHASES = [
     '/vector/icon/spice-blow_standalone.svg',
     'Reveal spice cards and place spice on the board.'
   ),
-  phase('choam-charity', 'CHOAM Charity', '/vector/generic/chaom.svg', 'Collect any spice granted by your ruleset.'),
+  phase('choam-charity', 'CHOAM Charity', '/vector/generic/choam.svg', 'Collect any spice granted by your ruleset.'),
   phase(
     'bidding',
     'Bidding',

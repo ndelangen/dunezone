@@ -339,7 +339,7 @@
     "tags": ["ring", "vector", "weapon"],
     "subjects": ["weapons"]
   },
-  "/vector/decal/knifes.svg": {
+  "/vector/decal/knives.svg": {
     "description": "Two crossed curved knives.",
     "tags": ["knives", "vector", "knife", "blade", "weapon"],
     "subjects": ["weapons"]
@@ -1099,12 +1099,12 @@
     "tags": ["star", "multicolor"],
     "subjects": ["space"]
   },
-  "/vector/decal/distrance.svg": {
+  "/vector/decal/distrans.svg": {
     "description": "A bat silhouette surrounded by radiating rings.",
     "tags": ["bat", "rings", "vector"],
     "subjects": ["creatures", "symbols"]
   },
-  "/vector/decal/distrance-multicolor.svg": {
+  "/vector/decal/distrans-multicolor.svg": {
     "description": "A bat silhouette surrounded by radiating rings.",
     "tags": ["bat", "rings", "multicolor"],
     "subjects": ["creatures", "symbols"]
@@ -1544,12 +1544,12 @@
     "tags": ["scroll", "multicolor"],
     "subjects": ["culture"]
   },
-  "/vector/decal/beaurocrat.svg": {
+  "/vector/decal/bureaucrat.svg": {
     "description": "An official sits behind a desk with a document backdrop.",
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/decal/beaurocrat-multicolor.svg": {
+  "/vector/decal/bureaucrat-multicolor.svg": {
     "description": "An official sits behind a desk with a document backdrop.",
     "tags": ["multicolor"],
     "subjects": ["symbols"]
@@ -2304,7 +2304,7 @@
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/decal/suringe.svg": {
+  "/vector/decal/syringe.svg": {
     "description": "A long syringe with a plunger and needle.",
     "tags": ["syringe", "vector"],
     "subjects": ["science"]
@@ -2404,17 +2404,17 @@
     "tags": ["planet", "orbital", "ring", "vector"],
     "subjects": ["space", "symbols"]
   },
-  "/vector/generic/6star.svg": {
+  "/vector/generic/six-pointed-star.svg": {
     "description": "A six-pointed geometric star.",
     "tags": ["star", "geometric", "vector"],
     "subjects": ["space", "symbols"]
   },
-  "/vector/generic/8472.svg": {
+  "/vector/generic/species-8472.svg": {
     "description": "A four-lobed shape inside an ornamental diamond.",
     "tags": ["diamond", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/8point.svg": {
+  "/vector/generic/eight-pointed-burst.svg": {
     "description": "An eight-pointed starburst.",
     "tags": ["vector"],
     "subjects": ["symbols"]
@@ -2434,12 +2434,12 @@
     "tags": ["snake", "vector"],
     "subjects": ["creatures"]
   },
-  "/vector/generic/argos.svg": {
+  "/vector/generic/galactic-alliance.svg": {
     "description": "An upright abstract crest with curved sides and a diamond.",
     "tags": ["diamond", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/arrowbox.svg": {
+  "/vector/generic/sith-empire-hexagon.svg": {
     "description": "A hexagonal emblem with six inward arrows.",
     "tags": ["arrows", "vector"],
     "subjects": ["symbols"]
@@ -2454,13 +2454,13 @@
     "tags": ["asterisk", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/atreiblock.svg": {
+  "/vector/generic/house-atreides.svg": {
     "description": "An angular bird-like crest with raised wings.",
     "tags": ["bird", "wings", "angular", "vector"],
     "subjects": ["creatures", "transport", "symbols"]
   },
   "/vector/generic/axes.svg": { "description": "Two crossed axes.", "tags": ["vector"], "subjects": ["symbols"] },
-  "/vector/generic/balance.svg": {
+  "/vector/generic/yin-yang.svg": {
     "description": "A circular yin-yang symbol.",
     "tags": ["symbol", "vector"],
     "subjects": ["symbols"]
@@ -2470,12 +2470,12 @@
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/barge.svg": {
+  "/vector/generic/mantis-cruiser.svg": {
     "description": "A compact spacecraft silhouette.",
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/biggle.svg": {
+  "/vector/generic/double-axe-circle.svg": {
     "description": "A double-headed axe inside a circle.",
     "tags": ["axe", "circle", "vector"],
     "subjects": ["weapons", "symbols"]
@@ -2490,12 +2490,12 @@
     "tags": ["bird", "wings", "vector"],
     "subjects": ["creatures", "transport"]
   },
-  "/vector/generic/birdban.svg": {
+  "/vector/generic/bird-banner.svg": {
     "description": "A bird silhouette inside a pointed banner.",
     "tags": ["bird", "banner", "vector"],
     "subjects": ["creatures", "culture"]
   },
-  "/vector/generic/blad.svg": {
+  "/vector/generic/hooked-oval-crest.svg": {
     "description": "An abstract pointed oval with curved hooks.",
     "tags": ["vector"],
     "subjects": ["symbols"]
@@ -2505,7 +2505,7 @@
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/bluks.svg": {
+  "/vector/generic/united-earth-federation.svg": {
     "description": "A cluster of geometric diamonds.",
     "tags": ["geometric", "vector"],
     "subjects": ["symbols"]
@@ -2527,22 +2527,22 @@
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/broke.svg": {
+  "/vector/generic/cracked-v.svg": {
     "description": "A cracked V-shaped emblem.",
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/bug.svg": {
+  "/vector/generic/scarab.svg": {
     "description": "A winged scarab beetle.",
     "tags": ["scarab", "beetle", "vector"],
     "subjects": ["creatures"]
   },
-  "/vector/generic/bull.svg": {
+  "/vector/generic/ram-skull.svg": {
     "description": "A bull skull with curved horns.",
     "tags": ["skull", "vector"],
     "subjects": ["people"]
   },
-  "/vector/generic/ceasar.svg": {
+  "/vector/generic/laurel-star.svg": {
     "description": "A four-pointed star inside a laurel wreath.",
     "tags": ["star", "laurel", "wreath", "vector"],
     "subjects": ["space", "culture"]
@@ -2552,7 +2552,7 @@
     "tags": ["angular", "hexagon", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/chaom.svg": {
+  "/vector/generic/choam.svg": {
     "description": "A circle divided into a white dome and dark base.",
     "tags": ["circle", "vector"],
     "subjects": ["symbols"]
@@ -2582,7 +2582,7 @@
     "tags": ["gear", "circuit", "vector"],
     "subjects": ["machines"]
   },
-  "/vector/generic/corrino.svg": {
+  "/vector/generic/corrino-helmet.svg": {
     "description": "A helmet with a fan-shaped crest.",
     "tags": ["vector"],
     "subjects": ["symbols"]
@@ -2592,12 +2592,12 @@
     "tags": ["people", "circle", "vector"],
     "subjects": ["people", "symbols"]
   },
-  "/vector/generic/cpu.svg": {
+  "/vector/generic/rounded-microchip.svg": {
     "description": "A rounded electronic microchip with pins.",
     "tags": ["microchip", "vector"],
     "subjects": ["machines"]
   },
-  "/vector/generic/crift.svg": {
+  "/vector/generic/pointed-crystal-crest.svg": {
     "description": "A pointed ornamental crystal crest.",
     "tags": ["vector"],
     "subjects": ["symbols"]
@@ -2607,33 +2607,33 @@
     "tags": ["cross", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/crosstripes.svg": {
+  "/vector/generic/cross-stripes.svg": {
     "description": "A mesh of crossing diagonal lines.",
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/cyclo.svg": {
+  "/vector/generic/spiral-wave.svg": {
     "description": "A spiral wave inside a circle.",
     "tags": ["spiral", "circle", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/da7.svg": {
+  "/vector/generic/aquos.svg": {
     "description": "A long oval with mirrored curved side shapes.",
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
   "/vector/generic/daggers.svg": { "description": "Two crossed daggers.", "tags": ["vector"], "subjects": ["symbols"] },
-  "/vector/generic/def.svg": {
+  "/vector/generic/unsc-army.svg": {
     "description": "A star inside an angular winged triangle.",
     "tags": ["star", "angular", "triangle", "vector"],
     "subjects": ["space", "symbols"]
   },
-  "/vector/generic/dello.svg": {
+  "/vector/generic/teardrop-spiral.svg": {
     "description": "A teardrop spiral surrounding a dot.",
     "tags": ["teardrop", "spiral", "vector"],
     "subjects": ["water", "symbols"]
   },
-  "/vector/generic/denobula.svg": {
+  "/vector/generic/denobulan.svg": {
     "description": "A cluster of circles inside a broken ring.",
     "tags": ["ring", "vector"],
     "subjects": ["symbols"]
@@ -2643,7 +2643,7 @@
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/deteis.svg": {
+  "/vector/generic/deteis-bloodline.svg": {
     "description": "Two interlocked angular diamond shapes.",
     "tags": ["angular", "diamond", "vector"],
     "subjects": ["symbols"]
@@ -2663,12 +2663,12 @@
     "tags": ["cross", "square", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/dp.svg": {
+  "/vector/generic/dude-perfect.svg": {
     "description": "Two stylized lowercase letter forms.",
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/effect.svg": {
+  "/vector/generic/asari-republics.svg": {
     "description": "A tall three-pronged pointed crest.",
     "tags": ["vector"],
     "subjects": ["symbols"]
@@ -2678,7 +2678,7 @@
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/elaurian.svg": {
+  "/vector/generic/el-aurian.svg": {
     "description": "A radial sunburst with a tapered upper segment.",
     "tags": ["vector"],
     "subjects": ["symbols"]
@@ -2688,17 +2688,17 @@
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/emiron.svg": {
+  "/vector/generic/cronus.svg": {
     "description": "A four-pointed star inside an oval.",
     "tags": ["star", "vector"],
     "subjects": ["space"]
   },
-  "/vector/generic/encircl.svg": {
+  "/vector/generic/ring-of-stars.svg": {
     "description": "A ring of stars beneath one tall bright star.",
     "tags": ["star", "ring", "vector"],
     "subjects": ["space", "symbols"]
   },
-  "/vector/generic/entor.svg": {
+  "/vector/generic/ankh-of-the-triarch.svg": {
     "description": "A circle with branching lines and an upper crescent.",
     "tags": ["circle", "vector"],
     "subjects": ["symbols"]
@@ -2713,12 +2713,12 @@
     "tags": ["angular", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/federation.svg": {
+  "/vector/generic/united-federation-of-planets.svg": {
     "description": "A starfield inside a laurel wreath.",
     "tags": ["laurel", "wreath", "vector"],
     "subjects": ["culture"]
   },
-  "/vector/generic/ferengi.svg": {
+  "/vector/generic/ferengi-alliance.svg": {
     "description": "A circular geometric emblem with an eye-shaped center.",
     "tags": ["eye", "geometric", "vector"],
     "subjects": ["people", "symbols"]
@@ -2728,12 +2728,12 @@
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/fishspeekers.svg": {
+  "/vector/generic/fish-speakers.svg": {
     "description": "A curved spiral of fish-like forms.",
     "tags": ["fish", "spiral", "vector"],
     "subjects": ["creatures", "symbols"]
   },
-  "/vector/generic/flauqre.svg": {
+  "/vector/generic/great-house-emblem.svg": {
     "description": "A long angular winged emblem with a pointed center.",
     "tags": ["angular", "vector"],
     "subjects": ["symbols"]
@@ -2743,12 +2743,12 @@
     "tags": ["bird", "vector"],
     "subjects": ["creatures"]
   },
-  "/vector/generic/force.svg": {
+  "/vector/generic/millikans-reach-terran-empire.svg": {
     "description": "A pointed vertical diamond inside a ring.",
     "tags": ["diamond", "ring", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/fremball.svg": {
+  "/vector/generic/fremen.svg": {
     "description": "A circle divided into four alternating segments.",
     "tags": ["circle", "vector"],
     "subjects": ["symbols"]
@@ -2758,27 +2758,27 @@
     "tags": ["arch", "doorway", "vector"],
     "subjects": ["places"]
   },
-  "/vector/generic/gdi1.svg": {
+  "/vector/generic/gdi-eagle-roundel.svg": {
     "description": "An angular bird head inside a circle.",
     "tags": ["head", "bird", "angular", "circle", "vector"],
     "subjects": ["people", "creatures", "symbols"]
   },
-  "/vector/generic/gdi2.svg": {
+  "/vector/generic/gdi-lightning-eagle.svg": {
     "description": "A lightning-shaped bird inside a ring.",
     "tags": ["bird", "ring", "vector"],
     "subjects": ["creatures", "symbols"]
   },
-  "/vector/generic/gdi3.svg": {
+  "/vector/generic/gdi-eagle-head.svg": {
     "description": "An eagle head with a hooked beak.",
     "tags": ["head", "eagle", "vector"],
     "subjects": ["people", "creatures"]
   },
-  "/vector/generic/gdi4.svg": {
+  "/vector/generic/gdi-eagle-disc.svg": {
     "description": "An angular eagle silhouette inside a circle.",
     "tags": ["eagle", "angular", "circle", "vector"],
     "subjects": ["creatures", "symbols"]
   },
-  "/vector/generic/gdi6.svg": {
+  "/vector/generic/global-defense-initiative.svg": {
     "description": "A swept-wing bird inside a broken circle.",
     "tags": ["bird", "wing", "circle", "vector"],
     "subjects": ["creatures", "transport", "symbols"]
@@ -2788,7 +2788,7 @@
     "tags": ["gear", "vector"],
     "subjects": ["machines"]
   },
-  "/vector/generic/gearos.svg": {
+  "/vector/generic/source-filmmaker.svg": {
     "description": "A round wheel with holes and a projecting lug.",
     "tags": ["vector"],
     "subjects": ["symbols"]
@@ -2798,7 +2798,7 @@
     "tags": ["lantern", "vector"],
     "subjects": ["culture"]
   },
-  "/vector/generic/goededag.svg": {
+  "/vector/generic/crossed-maces.svg": {
     "description": "Two crossed spiked maces.",
     "tags": ["vector"],
     "subjects": ["symbols"]
@@ -2808,7 +2808,7 @@
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/gring.svg": {
+  "/vector/generic/tau-sept.svg": {
     "description": "A large circle with a smaller circle inset at the top.",
     "tags": ["circle", "vector"],
     "subjects": ["symbols"]
@@ -2818,13 +2818,13 @@
     "tags": ["guard", "angular", "vector"],
     "subjects": ["people", "symbols"]
   },
-  "/vector/generic/hammer.svg": { "description": "Two crossed hammers.", "tags": ["vector"], "subjects": ["symbols"] },
-  "/vector/generic/harkoring.svg": {
+  "/vector/generic/hammers.svg": { "description": "Two crossed hammers.", "tags": ["vector"], "subjects": ["symbols"] },
+  "/vector/generic/house-harkonnen.svg": {
     "description": "A thin curved crest with three projecting points.",
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/here.svg": {
+  "/vector/generic/electrostatic-warning.svg": {
     "description": "Three arrows point inward around a circle.",
     "tags": ["arrows", "circle", "vector"],
     "subjects": ["symbols"]
@@ -2834,7 +2834,7 @@
     "tags": ["geometric", "triangle", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/hexes.svg": {
+  "/vector/generic/the-forgotten.svg": {
     "description": "Three hexagons joined by branching lines.",
     "tags": ["vector"],
     "subjects": ["symbols"]
@@ -2849,7 +2849,7 @@
     "tags": ["head", "horse", "vector"],
     "subjects": ["people", "creatures"]
   },
-  "/vector/generic/hurus.svg": {
+  "/vector/generic/eye-of-horus.svg": {
     "description": "An eye above a downward arrow.",
     "tags": ["eye", "arrow", "vector"],
     "subjects": ["people", "symbols"]
@@ -2859,37 +2859,37 @@
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/infiniguild.svg": {
+  "/vector/generic/spacing-guild.svg": {
     "description": "An infinity loop.",
     "tags": ["loop", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/info.svg": {
+  "/vector/generic/tau-empire.svg": {
     "description": "A lowercase information symbol inside a circle.",
     "tags": ["symbol", "circle", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/inter.svg": {
+  "/vector/generic/aeldari.svg": {
     "description": "A triangle above a small circle and radiating bars.",
     "tags": ["triangle", "circle", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/jarje.svg": {
+  "/vector/generic/spear-in-ring.svg": {
     "description": "A spear-shaped crest inside a thick ring.",
     "tags": ["spear", "ring", "vector"],
     "subjects": ["weapons", "symbols"]
   },
-  "/vector/generic/keys.svg": {
+  "/vector/generic/atlan-system-federation.svg": {
     "description": "Two crossed ornate keys.",
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/klingon.svg": {
+  "/vector/generic/klingon-empire.svg": {
     "description": "A three-bladed pointed emblem inside a circle.",
     "tags": ["circle", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/krenim.svg": {
+  "/vector/generic/krenim-imperium.svg": {
     "description": "A wide V-shaped symbol with a central diamond.",
     "tags": ["symbol", "diamond", "vector"],
     "subjects": ["symbols"]
@@ -2909,77 +2909,77 @@
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/lifting.svg": {
+  "/vector/generic/tilted-rings.svg": {
     "description": "A stack of tilted rings.",
     "tags": ["rings", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/lishen.svg": {
+  "/vector/generic/quarian-migrant-fleet.svg": {
     "description": "Two mirrored angular vertical shapes.",
     "tags": ["angular", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/llc1.svg": {
+  "/vector/generic/shooting-star-ring.svg": {
     "description": "A shooting star crosses an open ring.",
     "tags": ["star", "ring", "vector"],
     "subjects": ["space", "symbols"]
   },
-  "/vector/generic/llc10.svg": {
+  "/vector/generic/flame-crest.svg": {
     "description": "A layered flame inside a circular crest.",
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/llc11.svg": {
+  "/vector/generic/triple-lobe-flame.svg": {
     "description": "A flame surrounded by three curved lobes.",
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/llc12.svg": {
+  "/vector/generic/tree-crest.svg": {
     "description": "A branching bare tree inside a circular crest.",
     "tags": ["tree", "vector"],
     "subjects": ["plants"]
   },
-  "/vector/generic/llc13.svg": {
+  "/vector/generic/three-blade-swirl.svg": {
     "description": "Three curved blades form a rotating swirl.",
     "tags": ["vector", "blade", "weapon"],
     "subjects": ["weapons"]
   },
-  "/vector/generic/llc2.svg": {
+  "/vector/generic/rays-across-disc.svg": {
     "description": "Long diagonal rays cross a dark circle.",
     "tags": ["cross", "circle", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/llc4.svg": {
+  "/vector/generic/starburst-ring.svg": {
     "description": "A starburst touches a broken ring.",
     "tags": ["ring", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/llc5.svg": {
+  "/vector/generic/three-spoked-star.svg": {
     "description": "A three-spoked angular star within a circle.",
     "tags": ["star", "angular", "circle", "vector"],
     "subjects": ["space", "symbols"]
   },
-  "/vector/generic/llc6.svg": {
+  "/vector/generic/square-knot.svg": {
     "description": "Interlocked angular bands form a square knot.",
     "tags": ["angular", "square", "knot", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/llc7.svg": {
+  "/vector/generic/spiral-diamond.svg": {
     "description": "A spiral inside a diamond frame.",
     "tags": ["spiral", "diamond", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/llc8.svg": {
+  "/vector/generic/fleur-de-lis.svg": {
     "description": "A pointed fleur-de-lis flower emblem.",
     "tags": ["flower", "vector"],
     "subjects": ["plants"]
   },
-  "/vector/generic/llc9.svg": {
+  "/vector/generic/angular-compass-star.svg": {
     "description": "A complex angular compass star.",
     "tags": ["star", "angular", "vector"],
     "subjects": ["space", "symbols"]
   },
-  "/vector/generic/magnet.svg": {
+  "/vector/generic/combine.svg": {
     "description": "A dark circle held inside an angular open shape.",
     "tags": ["circle", "angular", "vector"],
     "subjects": ["symbols"]
@@ -2994,7 +2994,7 @@
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/matres.svg": {
+  "/vector/generic/honored-matres.svg": {
     "description": "A three-loop triquetra knot.",
     "tags": ["loop", "knot", "vector"],
     "subjects": ["symbols"]
@@ -3014,42 +3014,42 @@
     "tags": ["hexagon", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/microblock.svg": {
+  "/vector/generic/hexagon-maze.svg": {
     "description": "An interlocking geometric maze inside a hexagon.",
     "tags": ["geometric", "hexagon", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/moritani.svg": {
+  "/vector/generic/house-moritani.svg": {
     "description": "A horse head in profile with a flowing mane.",
     "tags": ["head", "horse", "vector"],
     "subjects": ["people", "creatures"]
   },
-  "/vector/generic/mortal.svg": {
+  "/vector/generic/draconis-combine.svg": {
     "description": "A dragon curves inside a circular border.",
     "tags": ["dragon", "vector"],
     "subjects": ["creatures"]
   },
-  "/vector/generic/mural1.svg": {
+  "/vector/generic/compass-rose.svg": {
     "description": "An eight-pointed compass rose inside a circle.",
     "tags": ["circle", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/mural2.svg": {
+  "/vector/generic/woven-rosette.svg": {
     "description": "A dense circular woven rosette.",
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/mural3.svg": {
+  "/vector/generic/radial-starburst.svg": {
     "description": "A radial starburst with long pointed rays.",
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/mural4.svg": {
+  "/vector/generic/eight-petal-flower.svg": {
     "description": "A flower with eight rounded petals.",
     "tags": ["flower", "vector"],
     "subjects": ["plants"]
   },
-  "/vector/generic/nightsky.svg": {
+  "/vector/generic/night-sky.svg": {
     "description": "A crescent moon beside a star.",
     "tags": ["moon", "star", "vector"],
     "subjects": ["space"]
@@ -3064,7 +3064,7 @@
     "tags": ["scorpion", "angular", "ring", "vector"],
     "subjects": ["creatures", "symbols"]
   },
-  "/vector/generic/nuke.svg": {
+  "/vector/generic/radiation.svg": {
     "description": "A radiation warning symbol.",
     "tags": ["symbol", "vector"],
     "subjects": ["symbols"]
@@ -3074,7 +3074,7 @@
     "tags": ["geometric", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/ocro.svg": {
+  "/vector/generic/dune-band-logo.svg": {
     "description": "An oval crest with a tall central flame.",
     "tags": ["vector"],
     "subjects": ["symbols"]
@@ -3099,7 +3099,7 @@
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/outcast.svg": {
+  "/vector/generic/brotherhood-outcasts.svg": {
     "description": "A sword passes through a gear.",
     "tags": ["sword", "gear", "vector", "blade", "weapon"],
     "subjects": ["weapons", "machines"]
@@ -3114,27 +3114,27 @@
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/petala.svg": {
+  "/vector/generic/petal-ring.svg": {
     "description": "Four overlapping petals surround a circle.",
     "tags": ["circle", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/petalb.svg": {
+  "/vector/generic/toothed-petal-ring.svg": {
     "description": "Overlapping petals inside a toothed circular border.",
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/petalfan.svg": {
+  "/vector/generic/lotus.svg": {
     "description": "A lotus flower with layered petals.",
     "tags": ["flower", "vector"],
     "subjects": ["plants"]
   },
-  "/vector/generic/petorbid.svg": {
+  "/vector/generic/pointed-leaf.svg": {
     "description": "A long-beaked bird formed from pointed petals.",
     "tags": ["bird", "vector"],
     "subjects": ["creatures"]
   },
-  "/vector/generic/pickup.svg": {
+  "/vector/generic/hot-surface.svg": {
     "description": "A hand reaches down toward several raised hands.",
     "tags": ["hand", "hands", "vector"],
     "subjects": ["people"]
@@ -3159,7 +3159,7 @@
     "tags": ["shield", "laurel", "wreath", "vector"],
     "subjects": ["weapons", "culture"]
   },
-  "/vector/generic/psycorp.svg": {
+  "/vector/generic/octagon-cross.svg": {
     "description": "A pointed cross inside an octagonal border.",
     "tags": ["cross", "vector"],
     "subjects": ["symbols"]
@@ -3169,7 +3169,7 @@
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/quizarate.svg": {
+  "/vector/generic/qizarate.svg": {
     "description": "An eight-pointed star made from overlapping squares.",
     "tags": ["star", "vector"],
     "subjects": ["space"]
@@ -3179,7 +3179,7 @@
     "tags": ["circle", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/rebels.svg": {
+  "/vector/generic/galactic-republic.svg": {
     "description": "A winged crest with long curved upper horns.",
     "tags": ["vector"],
     "subjects": ["symbols"]
@@ -3189,7 +3189,7 @@
     "tags": ["star", "angular", "vector"],
     "subjects": ["space", "symbols"]
   },
-  "/vector/generic/richese.svg": {
+  "/vector/generic/lamp-of-knowledge.svg": {
     "description": "A raised bowl on a pedestal with steam above it.",
     "tags": ["vector"],
     "subjects": ["symbols"]
@@ -3204,27 +3204,27 @@
     "tags": ["planet", "orbital", "ring", "vector"],
     "subjects": ["space", "symbols"]
   },
-  "/vector/generic/risa.svg": {
+  "/vector/generic/risian.svg": {
     "description": "A figure with outstretched arms inside a dark oval.",
     "tags": ["figure", "vector"],
     "subjects": ["people"]
   },
-  "/vector/generic/romulan.svg": {
+  "/vector/generic/romulan-republic.svg": {
     "description": "A large bird of prey with spread feathered wings.",
     "tags": ["bird", "wings", "vector"],
     "subjects": ["creatures", "transport"]
   },
-  "/vector/generic/saudarkar.svg": {
+  "/vector/generic/sardaukar.svg": {
     "description": "Three pointed angular shapes form a crest.",
     "tags": ["angular", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/sca.svg": {
+  "/vector/generic/ornate-spearhead.svg": {
     "description": "A pointed ornate spearhead with small side branches.",
     "tags": ["branches", "vector"],
     "subjects": ["plants"]
   },
-  "/vector/generic/schema.svg": {
+  "/vector/generic/angular-sunburst.svg": {
     "description": "An angular sunburst around a trapezoid.",
     "tags": ["angular", "vector"],
     "subjects": ["symbols"]
@@ -3239,42 +3239,42 @@
     "tags": ["insect", "vector"],
     "subjects": ["creatures"]
   },
-  "/vector/generic/shade.svg": {
+  "/vector/generic/sith-order.svg": {
     "description": "An eye-shaped ellipse surrounding a circle.",
     "tags": ["eye", "circle", "vector"],
     "subjects": ["people", "symbols"]
   },
-  "/vector/generic/shar.svg": {
+  "/vector/generic/redwake.svg": {
     "description": "Two crossed spears behind a fur-like triangular crest.",
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/sharky.svg": {
+  "/vector/generic/tyranids.svg": {
     "description": "A shark curls into a toothed circle.",
     "tags": ["circle", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/sheddle.svg": {
+  "/vector/generic/heraldic-eagle.svg": {
     "description": "A long pointed central form beneath two curved hooks.",
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/shell.svg": {
+  "/vector/generic/minmatar-republic.svg": {
     "description": "A segmented circular shell with an open center.",
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/sherl.svg": {
+  "/vector/generic/spiral-shell.svg": {
     "description": "A spiral shell divided into radial segments.",
     "tags": ["spiral", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/shiegle.svg": {
+  "/vector/generic/winged-star-eagle.svg": {
     "description": "A star and wings form a triangular insignia.",
     "tags": ["wings", "star", "vector"],
     "subjects": ["transport", "space"]
   },
-  "/vector/generic/shim.svg": {
+  "/vector/generic/hierarchy.svg": {
     "description": "A vertical spear point inside a ring.",
     "tags": ["spear", "ring", "vector"],
     "subjects": ["weapons", "symbols"]
@@ -3294,17 +3294,17 @@
     "tags": ["teardrop", "vector"],
     "subjects": ["water"]
   },
-  "/vector/generic/sith.svg": {
+  "/vector/generic/sith-empire-sunburst.svg": {
     "description": "A circular center surrounded by jagged diagonal rays.",
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/slange.svg": {
+  "/vector/generic/geth.svg": {
     "description": "Three angular bands form a triangular knot.",
     "tags": ["angular", "knot", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/slechtedag.svg": {
+  "/vector/generic/crossed-morning-stars.svg": {
     "description": "Two crossed spiked maces with linked handles.",
     "tags": ["vector"],
     "subjects": ["symbols"]
@@ -3319,13 +3319,13 @@
     "tags": ["rings", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/soviet.svg": {
+  "/vector/generic/sword-and-sickle.svg": {
     "description": "A sword crossed with a curved sickle.",
     "tags": ["sword", "vector", "blade", "weapon"],
     "subjects": ["weapons"]
   },
   "/vector/generic/spears.svg": { "description": "Two crossed spears.", "tags": ["vector"], "subjects": ["symbols"] },
-  "/vector/generic/spiderette.svg": {
+  "/vector/generic/bene-gesserit.svg": {
     "description": "Two mirrored loops with curling outer ends.",
     "tags": ["loops", "vector"],
     "subjects": ["symbols"]
@@ -3345,22 +3345,22 @@
     "tags": ["diamond", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/spycore.svg": {
+  "/vector/generic/segmented-cross.svg": {
     "description": "An angular cross inside a segmented border.",
     "tags": ["angular", "cross", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/squidle.svg": {
+  "/vector/generic/bird-of-prey-head.svg": {
     "description": "A bird-like head with a hooked beak and flowing crest.",
     "tags": ["head", "bird", "vector"],
     "subjects": ["people", "creatures"]
   },
-  "/vector/generic/stackle.svg": {
+  "/vector/generic/star-and-chevrons.svg": {
     "description": "A star over stacked downward chevrons.",
     "tags": ["star", "vector"],
     "subjects": ["space"]
   },
-  "/vector/generic/staergle.svg": {
+  "/vector/generic/eagle-star-insignia.svg": {
     "description": "A star inside an angular winged insignia.",
     "tags": ["star", "angular", "vector"],
     "subjects": ["space", "symbols"]
@@ -3370,7 +3370,7 @@
     "tags": ["star", "vector"],
     "subjects": ["space"]
   },
-  "/vector/generic/starase.svg": {
+  "/vector/generic/sun-banner.svg": {
     "description": "A sunburst cut out of an angular banner.",
     "tags": ["banner", "angular", "vector"],
     "subjects": ["culture", "symbols"]
@@ -3380,7 +3380,7 @@
     "tags": ["cross", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/startag.svg": {
+  "/vector/generic/star-badge.svg": {
     "description": "An outlined star on a pointed medal or badge.",
     "tags": ["star", "vector"],
     "subjects": ["space"]
@@ -3415,7 +3415,7 @@
     "tags": ["sun", "vector"],
     "subjects": ["space"]
   },
-  "/vector/generic/swave.svg": {
+  "/vector/generic/curved-wave.svg": {
     "description": "A thick curved wave inside a circle.",
     "tags": ["circle", "vector"],
     "subjects": ["symbols"]
@@ -3425,12 +3425,12 @@
     "tags": ["spiral", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/tan.svg": {
+  "/vector/generic/branching-circle.svg": {
     "description": "A six-armed branching shape inside a circle.",
     "tags": ["circle", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/tantor.svg": {
+  "/vector/generic/bull-head.svg": {
     "description": "A bull head with sweeping horns.",
     "tags": ["head", "vector"],
     "subjects": ["people"]
@@ -3440,17 +3440,17 @@
     "tags": ["angular", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/tecky.svg": {
+  "/vector/generic/mark-of-khorne.svg": {
     "description": "An angular cross with three lower rectangular teeth.",
     "tags": ["angular", "cross", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/tellerite.svg": {
+  "/vector/generic/tellarite.svg": {
     "description": "A circle surrounded by orbital loops and small stars.",
     "tags": ["orbital", "circle", "loops", "vector"],
     "subjects": ["space", "symbols"]
   },
-  "/vector/generic/terran.svg": {
+  "/vector/generic/terran-empire.svg": {
     "description": "A sword passes through a globe of Earth.",
     "tags": ["sword", "earth", "vector", "blade", "weapon"],
     "subjects": ["weapons", "space"]
@@ -3465,12 +3465,12 @@
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/torp.svg": {
+  "/vector/generic/sword-in-circle.svg": {
     "description": "A sword-like vertical form inside a circle.",
     "tags": ["sword", "circle", "vector", "blade", "weapon"],
     "subjects": ["weapons"]
   },
-  "/vector/generic/trian.svg": {
+  "/vector/generic/triple-triangle.svg": {
     "description": "Three overlapping triangles inside a circular border.",
     "tags": ["vector"],
     "subjects": ["symbols"]
@@ -3480,33 +3480,33 @@
     "tags": ["triangle", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/trimanos.svg": {
+  "/vector/generic/triangular-knot.svg": {
     "description": "Three open angular bands form a triangular knot.",
     "tags": ["angular", "knot", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/trispear.svg": {
+  "/vector/generic/three-crossed-spears.svg": {
     "description": "Three crossed spears.",
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/tritant.svg": { "description": "An upright trident.", "tags": ["vector"], "subjects": ["symbols"] },
-  "/vector/generic/trix.svg": {
+  "/vector/generic/trident.svg": { "description": "An upright trident.", "tags": ["vector"], "subjects": ["symbols"] },
+  "/vector/generic/arrowhead-triangle.svg": {
     "description": "Three angular arrowheads form a triangular crest.",
     "tags": ["angular", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/vaudaur.svg": {
+  "/vector/generic/vaadwaur.svg": {
     "description": "A swirling spiral inside an oval.",
     "tags": ["spiral", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/ve.svg": {
+  "/vector/generic/striped-v.svg": {
     "description": "Three diagonal blocks form a V-shaped mark.",
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/vernius.svg": {
+  "/vector/generic/house-vernius.svg": {
     "description": "Two thin curved lines cross vertically.",
     "tags": ["cross", "vector"],
     "subjects": ["symbols"]
@@ -3516,7 +3516,7 @@
     "tags": ["geometric", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/viode.svg": {
+  "/vector/generic/inverted-triangle.svg": {
     "description": "A dark inverted triangle with a round opening.",
     "tags": ["triangle", "vector"],
     "subjects": ["symbols"]
@@ -3531,43 +3531,43 @@
     "tags": ["eye", "vector"],
     "subjects": ["people"]
   },
-  "/vector/generic/vp.svg": {
+  "/vector/generic/star-in-ring.svg": {
     "description": "A dark star inside a thin ring.",
     "tags": ["star", "ring", "vector"],
     "subjects": ["space", "symbols"]
   },
-  "/vector/generic/vulcan.svg": {
+  "/vector/generic/vulcan-idic.svg": {
     "description": "A triangular pointer cuts into a circular disc.",
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/waiku.svg": {
+  "/vector/generic/stepped-cross.svg": {
     "description": "A stepped cross surrounding a circular center.",
     "tags": ["cross", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/why.svg": {
+  "/vector/generic/winged-oval-symbol.svg": {
     "description": "A pointed winged symbol with a lower oval.",
     "tags": ["symbol", "vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/wuurm.svg": {
+  "/vector/generic/sandworm.svg": {
     "description": "A curled worm-like silhouette inside a circle.",
     "tags": ["worm", "circle", "vector"],
     "subjects": ["creatures", "symbols"]
   },
   "/vector/generic/x.svg": { "description": "A solid diagonal X mark.", "tags": ["vector"], "subjects": ["symbols"] },
-  "/vector/generic/zap.svg": {
+  "/vector/generic/electric-shock.svg": {
     "description": "A raised hand holding a small curling snake above a lightning mark.",
     "tags": ["hand", "snake", "vector"],
     "subjects": ["people", "creatures"]
   },
-  "/vector/generic/emperiskull.svg": {
+  "/vector/generic/house-corrino.svg": {
     "description": "A round helmet with a narrow T-shaped face opening.",
     "tags": ["face", "vector"],
     "subjects": ["people"]
   },
-  "/vector/generic/guildeyes.svg": {
+  "/vector/generic/guild-eyes.svg": {
     "description": "Two overlapping circular eyes.",
     "tags": ["eyes", "vector"],
     "subjects": ["people"]
@@ -3587,17 +3587,17 @@
     "tags": ["vector", "blade", "weapon"],
     "subjects": ["weapons"]
   },
-  "/vector/generic/laser.svg": {
+  "/vector/generic/laser-warning.svg": {
     "description": "A laser beam extends from a radial burst.",
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/orbsword.svg": {
+  "/vector/generic/sword-and-atom.svg": {
     "description": "A sword passes through an orbital atom symbol.",
     "tags": ["sword", "orbital", "atom", "symbol", "vector", "blade", "weapon"],
     "subjects": ["weapons", "space", "science"]
   },
-  "/vector/generic/swordrock.svg": {
+  "/vector/generic/sword-in-rock.svg": {
     "description": "A sword stands upright in an angular rock.",
     "tags": ["sword", "angular", "vector", "blade", "weapon"],
     "subjects": ["weapons"]
@@ -3607,7 +3607,7 @@
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/triswords.svg": {
+  "/vector/generic/three-crossed-swords.svg": {
     "description": "Three crossed straight swords.",
     "tags": ["vector"],
     "subjects": ["symbols"]
