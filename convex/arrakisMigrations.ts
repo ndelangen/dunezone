@@ -41,7 +41,8 @@ async function arrakisBoardId(ctx: MutationCtx): Promise<Id<'assets'> | null> {
 
 /**
  * A Spice card's data on the saved board: linked if it was not, its old highlight list emptied either way.
- * Only those two fields change; the rest is kept exactly as stored, so a parse's defaults never reach the row.
+ * Only those two fields change;
+ * the rest is kept exactly as stored, so a parse's defaults never reach the row.
  */
 export function spiceCardOnBoard(data: unknown, boardId: string): unknown {
   const card = SpiceAsset.parse(data);
