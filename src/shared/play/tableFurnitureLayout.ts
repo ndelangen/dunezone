@@ -11,7 +11,7 @@ const CARD_SLOT_RIM = 0.06;
 export const CARD_SLOT_GAP = 0.14;
 export const TABLE_TANKS_LABEL = 'TLEILAXU TANKS';
 /* Near the pad's top edge, so the name reads first and the leaders pile up below it. */
-export const TABLE_TANKS_LABEL_POSITION: Vector3Tuple = [0, FURNITURE_SURFACE_Y + 0.027, 6.4];
+export const TABLE_TANKS_LABEL_POSITION: Vector3Tuple = [0, FURNITURE_SURFACE_Y + 0.012, 6.4];
 
 const CARD_SLOT_ROWS = [-1.32, 0, 1.32] as const;
 

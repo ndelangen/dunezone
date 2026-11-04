@@ -5,6 +5,7 @@ import {
   BOTTOM_SHELF_BOUNDS,
   BOTTOM_SHELF_EDGE,
   isOnBottomShelf,
+  isOnBottomShelfOrInFront,
   nearestBottomShelfEdge,
 } from '@shared/play/tanksShelf';
 import { PerspectiveCamera, Vector3 } from 'three';
@@ -511,7 +512,7 @@ function zoomTargetDepth(x: number, z: number): number {
   return Math.max(
     CAMERA_ZOOM_TARGET_RADIUS - Math.hypot(x, z),
     Math.min(x - minX, maxX - x, z - minZ, maxZ - z),
-    isOnBottomShelf(x, z) ? toEdge : -toEdge
+    isOnBottomShelfOrInFront(x, z) ? toEdge : -toEdge
   );
 }
 
@@ -529,8 +530,10 @@ function nearestZoomTarget(x: number, z: number): [number, number] {
     [Math.min(maxX, Math.max(minX, x)), Math.min(maxZ, Math.max(minZ, z))],
     [...nearestBottomShelfEdge(x, z).point],
   ];
-  return candidates.reduce((best, candidate) =>
-    Math.hypot(candidate[0] - x, candidate[1] - z) < Math.hypot(best[0] - x, best[1] - z) ? candidate : best
+  return candidates.reduce(
+    (best, candidate) =>
+      Math.hypot(candidate[0] - x, candidate[1] - z) < Math.hypot(best[0] - x, best[1] - z) ? candidate : best,
+    candidates[0]!
   );
 }
 

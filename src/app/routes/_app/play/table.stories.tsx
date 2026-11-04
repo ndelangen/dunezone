@@ -8,9 +8,7 @@ import { TANKS_PAD } from '@shared/play/tanksShelf';
 import { userEvent, waitFor } from 'storybook/test';
 
 import { gameMeta, install } from './game.stories.fixture';
-import { cardBack, factions, playingSnapshot, productTransport } from './product.stories.fixture';
-
-const imageHref = (path: string) => new URL(path, location.origin).href;
+import { capture, cardBack, factions, playingSnapshot, productTransport } from './product.stories.fixture';
 
 const meta = preview.meta({
   ...gameMeta,
@@ -70,6 +68,7 @@ function tanksSnapshot() {
       return [Math.cos(angle) * radius + row * 0.15, Math.sin(angle) * radius] as const;
     });
   });
+  const captures = Object.fromEntries(factions.map((faction) => [faction.slug, capture(faction)]));
   const placed: TablePiece[] = [];
   dead.forEach(({ faction, leader, index }, position) => {
     const [x, z] = spots[(position * 7) % spots.length]!;
@@ -82,16 +81,8 @@ function tanksSnapshot() {
       'force',
       `leader:${faction.slug}:${index}`
     );
-    token.items = [
-      item(
-        `${id}-item`,
-        leader.name,
-        imageHref(faction.leaders[index]!.front),
-        imageHref(faction.token),
-        'token-disc',
-        true
-      ),
-    ];
+    const art = captures[faction.slug]!.components.leaders[index]!;
+    token.items = [item(`${id}-item`, leader.name, art.front, art.back, 'token-disc', true)];
     const tossed = place(token, [x + jitter(position) * 0.2, 0, z + jitter(position + 50) * 0.2]);
     tossed.position = restingAmongLeaders(tossed, tossed.position, placed);
     placed.push(tossed);

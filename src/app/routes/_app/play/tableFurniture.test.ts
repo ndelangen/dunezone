@@ -21,7 +21,13 @@ import {
 } from '@shared/play/tableGeometry';
 import { trackerArcSlots } from '@shared/play/tableTrackers';
 import type { TrackerArcSlot } from '@shared/play/tableTrackers';
-import { BOTTOM_SHELF_EDGE, isInTanks, isOnBottomShelf, SHARED_COLUMN_HALF_WIDTH } from '@shared/play/tanksShelf';
+import {
+  BOTTOM_SHELF_EDGE,
+  isInTanks,
+  isOnBottomShelf,
+  isOnBottomShelfOrInFront,
+  SHARED_COLUMN_HALF_WIDTH,
+} from '@shared/play/tanksShelf';
 import { ExtrudeGeometry, Mesh, MeshBasicMaterial, Raycaster, Vector3 } from 'three';
 import { acceleratedRaycast, MeshBVH } from 'three-mesh-bvh';
 import { describe, expect, test } from 'vite-plus/test';
@@ -250,31 +256,43 @@ describe('table furniture', () => {
     }
   });
 
+  test('the chord closing the shelf outline is no edge: the round table in front of the shelf counts with it', () => {
+    const chordZ = Math.max(BOTTOM_SHELF_EDGE.points[0]![1], BOTTOM_SHELF_EDGE.points.at(-1)![1]);
+    expect(isOnBottomShelfOrInFront(0, chordZ - 0.01)).toBe(true);
+    expect(isOnBottomShelfOrInFront(0, chordZ + 0.01)).toBe(true);
+    expect(isOnBottomShelfOrInFront(0, 9)).toBe(true);
+    expect(isOnBottomShelfOrInFront(5.5, 1)).toBe(false);
+    expect(isOnBottomShelfOrInFront(0, -3)).toBe(false);
+  });
+
   test('supports eight equally spaced generic wells below the Tanks pad', () => {
     const anchors = SHARED_ITEM_PLACEMENT_ANCHORS;
     const rows = [...new Set(anchors.map((anchor) => anchor.position[2]))].sort((a, b) => a - b);
     expect(anchors).toHaveLength(8);
     expect(rows).toHaveLength(2);
-    for (const row of rows) {
-      const slots = anchors
+    const columns = rows.map((row) =>
+      anchors
         .filter((anchor) => anchor.position[2] === row)
-        .sort((a, b) => a.position[0] - b.position[0]);
-      expect(slots).toHaveLength(4);
-      for (let index = 1; index < slots.length; index++) {
-        expect(slots[index].position[0] - slots[index - 1].position[0] - CARD_WIDTH).toBeCloseTo(CARD_SLOT_GAP);
-      }
+        .map((anchor) => anchor.position[0])
+        .sort((a, b) => a - b)
+    );
+    for (const xs of columns) {
+      expect(xs).toHaveLength(4);
+      const gaps = xs.slice(1).map((x, index) => x - xs[index]! - CARD_WIDTH);
+      gaps.forEach((gap) => expect(gap).toBeCloseTo(CARD_SLOT_GAP));
     }
     expect(rows[1] - rows[0] - CARD_DEPTH).toBeCloseTo(CARD_SLOT_GAP);
     expect(rows[0] - CARD_SLOT_OUTER_SIZE.depth / 2 - TABLE_TANKS_LABEL_POSITION[2]).toBeGreaterThan(2);
-    for (const anchor of anchors) {
-      for (const x of [-1, 1]) {
-        for (const z of [-1, 1]) {
-          const cornerX = anchor.position[0] + (x * CARD_SLOT_OUTER_SIZE.width) / 2;
-          const cornerZ = anchor.position[2] + (z * CARD_SLOT_OUTER_SIZE.depth) / 2;
-          expect(isOnBottomShelf(cornerX, cornerZ)).toBe(true);
-          expect(isInTanks([cornerX, 0, cornerZ])).toBe(false);
-        }
-      }
+    const corners = anchors.flatMap(({ position: [x, , z] }) =>
+      [-1, 1].flatMap((dx) =>
+        [-1, 1].map(
+          (dz) => [x + (dx * CARD_SLOT_OUTER_SIZE.width) / 2, z + (dz * CARD_SLOT_OUTER_SIZE.depth) / 2] as const
+        )
+      )
+    );
+    for (const [cornerX, cornerZ] of corners) {
+      expect(isOnBottomShelf(cornerX, cornerZ)).toBe(true);
+      expect(isInTanks([cornerX, 0, cornerZ])).toBe(false);
     }
   });
 

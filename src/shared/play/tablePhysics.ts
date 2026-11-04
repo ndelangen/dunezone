@@ -318,6 +318,9 @@ function isPointOnTabletop(x: number, z: number): boolean {
  */
 function isOnPlate(piece: TablePiece, position: Vector3Tuple): boolean {
   const reach = footprintTableRadius(piece);
+  if (Math.hypot(position[0], position[2]) + reach <= TABLE_PLAY_RADIUS) {
+    return true;
+  }
   if (!isPointOnTabletop(position[0], position[2])) {
     return false;
   }

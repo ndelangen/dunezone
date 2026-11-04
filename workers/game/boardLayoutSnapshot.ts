@@ -1,7 +1,11 @@
 import type { TablePiece, Vector3Tuple } from '../../src/shared/play/model';
 import { SHARED_ITEM_PLACEMENT_ANCHORS, placementAnchorForPose } from '../../src/shared/play/tableFurnitureLayout';
 import { BOARD_RADIUS, TABLE_VISIBLE_RADIUS, restingPositionAt } from '../../src/shared/play/tableGeometry';
-import { isCollisionFreePosition, nearestCollisionFreePosition } from '../../src/shared/play/tablePhysics';
+import {
+  isCollisionFreePosition,
+  nearestCollisionFreePosition,
+  restingAmongLeaders,
+} from '../../src/shared/play/tablePhysics';
 import { PLAYER_RING_RADIUS } from '../../src/shared/play/tableSettings';
 import type { StoredSnapshot } from './state';
 import { BOARD_LAYOUT, storedSnapshotSchema } from './state';
@@ -48,7 +52,10 @@ export function moveOntoCurrentBoard(snapshot: StoredSnapshot): StoredSnapshot {
     }
     const others = pieces.filter((other) => other !== piece) as TablePiece[];
     const clear = nearestCollisionFreePosition(piece as TablePiece, piece.position, others) ?? piece.position;
-    pieces[index] = { ...piece, position: restingPositionAt(clear, piece) };
+    pieces[index] = {
+      ...piece,
+      position: restingAmongLeaders(piece as TablePiece, restingPositionAt(clear, piece), others),
+    };
   }
   return {
     ...snapshot,

@@ -5,7 +5,8 @@ import { isSpicePiece } from '@shared/play/spice';
 import { spiceBankSlot } from '@shared/play/spiceBank';
 import { stormOrder } from '@shared/play/stormSector';
 import { TABLE_TANKS_LABEL_POSITION } from '@shared/play/tableFurnitureLayout';
-import { isInTanks } from '@shared/play/tanksShelf';
+import { TABLE_VISIBLE_RADIUS } from '@shared/play/tableGeometry';
+import { isInTanks, isOnBottomShelf } from '@shared/play/tanksShelf';
 
 import type { GuideTask } from '@app/widgets/tutorial-guide/TutorialGuide';
 
@@ -75,7 +76,11 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
   const harkonnen = () =>
     snapshot().roster?.seats.find((seat) => seat.faction?.name === 'House Harkonnen')?.faction?.id;
   const harkonnenTroops = () => pieces().filter((piece) => piece.stackKey?.startsWith(`troops:${harkonnen()}:`));
-  const inTanks = (piece: Piece) => isInTanks(piece.position);
+  /* A stack pushed aside onto the shelf round the pad still went to the Tanks. */
+  const inTanks = (piece: Piece) =>
+    isInTanks(piece.position) ||
+    (isOnBottomShelf(piece.position[0], piece.position[2]) &&
+      Math.hypot(piece.position[0], piece.position[2]) > TABLE_VISIBLE_RADIUS);
   const actsSince = (start: number) => players.acceptedActions().slice(start);
   return [
     task({

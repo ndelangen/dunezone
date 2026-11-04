@@ -1,8 +1,6 @@
 import type { Vector3Tuple } from './model';
+import type { PlanePoint } from './pointerToken';
 import { TABLE_VISIBLE_RADIUS } from './tableGeometry';
-
-/** A point on the table as [x, z]. */
-export type PlanePoint = readonly [x: number, z: number];
 
 /*
  * The shelf below the board holds the Tleilaxu Tanks and the shared item slots (#2675).
@@ -58,54 +56,65 @@ function arc(radius: number, from: number, to: number): PlanePoint[] {
 
 type Corner = Readonly<{ index: number; radius: number }>;
 
-/**
- * Rounds the given vertices of an open polyline: each corner's path is cut `radius` back along the line on either side and the gap bridged with a quadratic curve whose control point is the corner, the way the table plate rounds its joins.
- */
-function roundCorners(points: readonly PlanePoint[], corners: readonly Corner[]): PlanePoint[] {
+/** The distance along a polyline to each of its vertices. */
+function cumulativeLengths(points: readonly PlanePoint[]): number[] {
   const lengths = [0];
   for (let index = 1; index < points.length; index += 1) {
     const [ax, az] = points[index - 1]!;
     const [bx, bz] = points[index]!;
     lengths.push(lengths[index - 1]! + Math.hypot(bx - ax, bz - az));
   }
-  const pointAt = (distance: number): PlanePoint => {
-    const segment = Math.max(
-      1,
-      lengths.findIndex((length) => length >= distance)
-    );
-    const [ax, az] = points[segment - 1]!;
-    const [bx, bz] = points[segment]!;
-    const span = lengths[segment]! - lengths[segment - 1]!;
-    const t = span === 0 ? 0 : (distance - lengths[segment - 1]!) / span;
-    return [ax + (bx - ax) * t, az + (bz - az) * t];
-  };
+  return lengths;
+}
+
+/** The point a given distance along a polyline. */
+function pointAlong(points: readonly PlanePoint[], lengths: readonly number[], distance: number): PlanePoint {
+  const segment = Math.max(
+    1,
+    lengths.findIndex((length) => length >= distance)
+  );
+  const [ax, az] = points[segment - 1]!;
+  const [bx, bz] = points[segment]!;
+  const span = lengths[segment]! - lengths[segment - 1]!;
+  const t = span === 0 ? 0 : (distance - lengths[segment - 1]!) / span;
+  return [ax + (bx - ax) * t, az + (bz - az) * t];
+}
+
+const BRIDGE_STEPS = 8;
+
+/** A quadratic curve from `start` to `end` pulled toward `control`, both ends included. */
+function quadraticBridge(start: PlanePoint, control: PlanePoint, end: PlanePoint): PlanePoint[] {
+  return Array.from({ length: BRIDGE_STEPS + 1 }, (_, step) => {
+    const t = step / BRIDGE_STEPS;
+    const a = (1 - t) * (1 - t);
+    const b = 2 * (1 - t) * t;
+    const c = t * t;
+    return [a * start[0] + b * control[0] + c * end[0], a * start[1] + b * control[1] + c * end[1]];
+  });
+}
+
+/**
+ * Rounds the given vertices of an open polyline: each corner's path is cut `radius` back along the line on either side and the gap bridged with a quadratic curve whose control point is the corner, the way the table plate rounds its joins.
+ */
+function roundCorners(points: readonly PlanePoint[], corners: readonly Corner[]): PlanePoint[] {
+  const lengths = cumulativeLengths(points);
   const cuts = corners
     .map(({ index, radius }) => ({ index, from: lengths[index]! - radius, to: lengths[index]! + radius }))
     .sort((a, b) => a.from - b.from);
   const result: PlanePoint[] = [];
-  let cut = 0;
-  for (let index = 0; index < points.length; index += 1) {
-    const current = cuts[cut];
-    if (current && lengths[index]! >= current.from) {
-      const start = pointAt(current.from);
-      const end = pointAt(current.to);
-      const [cx, cz] = points[current.index]!;
-      for (let step = 0; step <= 8; step += 1) {
-        const t = step / 8;
-        const a = (1 - t) * (1 - t);
-        const b = 2 * (1 - t) * t;
-        const c = t * t;
-        result.push([a * start[0] + b * cx + c * end[0], a * start[1] + b * cz + c * end[1]]);
-      }
-      while (index + 1 < points.length && lengths[index + 1]! <= current.to) {
-        index += 1;
-      }
-      cut += 1;
-      continue;
+  let index = 0;
+  for (const cut of cuts) {
+    for (; index < points.length && lengths[index]! < cut.from; index += 1) {
+      result.push(points[index]!);
     }
-    result.push(points[index]!);
+    const start = pointAlong(points, lengths, cut.from);
+    const end = pointAlong(points, lengths, cut.to);
+    result.push(...quadraticBridge(start, points[cut.index]!, end));
+    while (index < points.length && lengths[index]! <= cut.to) {
+      index += 1;
+    }
   }
-  return result;
+  return [...result, ...points.slice(index)];
 }
 
 /**
@@ -186,13 +195,37 @@ function bottomShelfEdge(): { points: PlanePoint[]; startAngle: number; endAngle
 /** The bottom shelf's edge, computed once: the plate draws it, and physics, the camera and pings read it. */
 export const BOTTOM_SHELF_EDGE = bottomShelfEdge();
 
+type Bounds = Readonly<{ minX: number; maxX: number; minZ: number; maxZ: number }>;
+
+function boundsOf(points: readonly PlanePoint[]): Bounds {
+  return {
+    minX: Math.min(...points.map(([x]) => x)),
+    maxX: Math.max(...points.map(([x]) => x)),
+    minZ: Math.min(...points.map(([, z]) => z)),
+    maxZ: Math.max(...points.map(([, z]) => z)),
+  };
+}
+
+/* A cheap test first: most points the physics asks about are nowhere near the shelf. */
+function withinBounds(bounds: Bounds, x: number, z: number): boolean {
+  return x >= bounds.minX && x <= bounds.maxX && z >= bounds.minZ && z <= bounds.maxZ;
+}
+
 /** The bottom shelf's extent on the table. */
-export const BOTTOM_SHELF_BOUNDS = {
-  minX: Math.min(...BOTTOM_SHELF_EDGE.points.map(([x]) => x)),
-  maxX: Math.max(...BOTTOM_SHELF_EDGE.points.map(([x]) => x)),
-  minZ: Math.min(...BOTTOM_SHELF_EDGE.points.map(([, z]) => z)),
-  maxZ: Math.max(...BOTTOM_SHELF_EDGE.points.map(([, z]) => z)),
-} as const;
+export const BOTTOM_SHELF_BOUNDS = boundsOf(BOTTOM_SHELF_EDGE.points);
+
+/**
+ * Whether a table point lies on the shelf or on the round table in front of it, between the angles the shelf leaves and rejoins the table at.
+ * The chord that closes the shelf's outline runs through the round table, so it is no edge of anything a piece or the camera can reach.
+ */
+export function isOnBottomShelfOrInFront(x: number, z: number): boolean {
+  const angle = Math.atan2(z, x);
+  const inFront =
+    Math.hypot(x, z) <= TABLE_VISIBLE_RADIUS &&
+    angle >= BOTTOM_SHELF_EDGE.startAngle &&
+    angle <= BOTTOM_SHELF_EDGE.endAngle;
+  return inFront || isOnBottomShelf(x, z);
+}
 
 function polygonContains(polygon: readonly PlanePoint[], x: number, z: number): boolean {
   let inside = false;
@@ -208,14 +241,18 @@ function polygonContains(polygon: readonly PlanePoint[], x: number, z: number): 
 
 /** Whether a table point lies over the bottom shelf: its edge, closed by the chord across the round table it starts and ends on. */
 export function isOnBottomShelf(x: number, z: number): boolean {
-  return polygonContains(BOTTOM_SHELF_EDGE.points, x, z);
+  return withinBounds(BOTTOM_SHELF_BOUNDS, x, z) && polygonContains(BOTTOM_SHELF_EDGE.points, x, z);
 }
 
 const TANKS_CATCHMENT = tanksPadOutline(SHELF_MARGIN / 2);
+const TANKS_CATCHMENT_BOUNDS = boundsOf(TANKS_CATCHMENT);
 
 /** Whether a piece at this position is in the Tleilaxu Tanks: on the pad, or on the shelf's margin just round it. */
 export function isInTanks(position: Readonly<Vector3Tuple>): boolean {
-  return polygonContains(TANKS_CATCHMENT, position[0], position[2]);
+  return (
+    withinBounds(TANKS_CATCHMENT_BOUNDS, position[0], position[2]) &&
+    polygonContains(TANKS_CATCHMENT, position[0], position[2])
+  );
 }
 
 /** The point on the bottom shelf's edge nearest a table point, with the direction into the shelf there. */
