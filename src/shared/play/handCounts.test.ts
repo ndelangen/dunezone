@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vite-plus/test';
 
-import { handCountGrid, treacheryHandCounts } from './handCounts';
+import { handCountGrid, handCountsShowing, treacheryHandCounts } from './handCounts';
 import type { StoredPiece } from './model';
+import { STANDARD_PHASES } from './phases';
 
 function hand(id: string, kind: StoredPiece['kind'], types: string[]): StoredPiece {
   return {
@@ -54,5 +55,21 @@ describe('handCountGrid', () => {
       expect(cols * size * 1.75).toBeLessThanOrEqual(1000 + 1e-6);
       expect(rows * size).toBeLessThanOrEqual(1300 + 1e-6);
     }
+  });
+});
+
+describe('handCountsShowing', () => {
+  const at = (id: string) => STANDARD_PHASES.findIndex((entry) => entry.id === id);
+
+  it('shows the counts during Bidding only (#2671)', () => {
+    expect(handCountsShowing(at('bidding'))).toBe(true);
+    for (const entry of STANDARD_PHASES.filter((phase) => phase.id !== 'bidding')) {
+      expect(handCountsShowing(at(entry.id))).toBe(false);
+    }
+  });
+
+  it('follows the table turn into the next one', () => {
+    expect(handCountsShowing(at('bidding') + STANDARD_PHASES.length)).toBe(true);
+    expect(handCountsShowing(at('revival') + STANDARD_PHASES.length)).toBe(false);
   });
 });

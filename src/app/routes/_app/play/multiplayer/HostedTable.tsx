@@ -481,7 +481,7 @@ function controlPanels(
   ];
 }
 
-/* The pieces the stage stands on the board: the trade and setup scenes before play, then the battle, the coins, and during Bidding the bidder and hand counts. */
+/* The pieces the stage stands on the board: the trade and setup scenes before play, then the battle, bidder, hands and coins. */
 function stageScene({ client, table, bidderFaded }: TableControlProps & Readonly<{ bidderFaded: boolean }>) {
   if (reviewRunning(table.review?.current)) {
     return null;
@@ -499,7 +499,7 @@ function stageScene({ client, table, bidderFaded }: TableControlProps & Readonly
     <>
       <BattleScene client={client} table={table} />
       {stage !== 'finished' && <BidderScene client={client} table={table} faded={bidderFaded} />}
-      {stageInPlay(stage) && biddingPhase(table) && <HandCountsScene table={table} />}
+      {stageInPlay(stage) && <HandCountsScene table={table} />}
       <AllianceCoinsScene table={table} />
     </>
   );
