@@ -584,7 +584,9 @@ function SideContents({
         <Stack gap={2} align="center">
           <span>Claim left</span>
           <Text span size="xs" c="dimmed" fw={400}>
-            Aggressor, normally wins ties
+            Aggressor,
+            <br />
+            normally wins ties
           </Text>
         </Stack>
       )}
