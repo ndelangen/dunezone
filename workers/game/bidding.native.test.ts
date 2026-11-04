@@ -121,4 +121,42 @@ describe('Optional timed bidding through the native game boundary', { timeout: 2
     expect(resumed - required(ended.serverNow)).toBeGreaterThan(left - 1000);
     expect((await runtime.alarm()).scheduledAt).toBe(resumed);
   });
+
+  it('re-arms the bid clock when the proposer of a running review deletes their account', async () => {
+    const rows = await runtime.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1');
+    await runtime.exec('UPDATE current_state SET data=? WHERE id=1', [
+      JSON.stringify({ ...readSnapshot(rows[0].data), stage: 'play' }),
+    ]);
+    await runtime.restart();
+    const a = await admitPlayer(runtime, 'a');
+    const b = await admitPlayer(runtime, 'b');
+    const faction = required((await syncView(a)).snapshot.bank).factionId;
+    await accepted(a, { kind: 'bid-timing' as const, enabled: true });
+    const { round } = required(
+      (await accepted(a, { kind: 'bid-start' as const, factionId: faction })).snapshot.bidding
+    );
+    await accepted(a, { kind: 'bid-raise' as const, round });
+    const step = required(required((await syncView(a)).snapshot.reviewCheckpoints).at(-1)).step;
+    const review = required((await accepted(a, { kind: 'review-propose' as const, step })).snapshot.review);
+    await accepted(b, { kind: 'review-ballot' as const, reviewId: review.id, choice: 'review' as const });
+    expect((await runtime.alarm()).scheduledAt).toBeNull();
+
+    const response = await runtime.fetch('/__play/games/fixture-game/account-deletion', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        gameId: 'fixture-game',
+        secret: 'a'.repeat(64),
+        userId: 'user-a',
+        eventId: 'deletion-user-a',
+        deletionOperationId: 'operation-user-a',
+      }),
+    });
+    expect(response.status).toBe(200);
+    const view = (await syncView(b)).snapshot;
+    expect(view.review).toBeNull();
+    const resumed = required(required(view.bidding).deadline);
+    /* The review ended with the proposer's seat, so the resumed countdown needs its alarm back. */
+    await eventually(async () => (await runtime.alarm()).scheduledAt === resumed, 'the resumed bid alarm');
+  });
 });
