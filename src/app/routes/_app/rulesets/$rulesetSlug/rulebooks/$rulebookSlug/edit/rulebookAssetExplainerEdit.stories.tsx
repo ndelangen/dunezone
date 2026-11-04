@@ -65,6 +65,9 @@ export const SectorLines = meta.story({
     await userEvent.click(toggle);
     await expect(toggle).toBeChecked();
     await expect(canvasElement.querySelectorAll('[data-rulebook-guide="sectors"]')).toHaveLength(18);
+    await userEvent.click(toggle);
+    await expect(toggle).not.toBeChecked();
+    await expect(canvasElement.querySelectorAll('[data-rulebook-guide]')).toHaveLength(0);
   },
 });
 

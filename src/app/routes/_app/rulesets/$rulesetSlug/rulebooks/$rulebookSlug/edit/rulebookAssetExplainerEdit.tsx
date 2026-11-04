@@ -120,10 +120,8 @@ export function AssetExplainerEdit({
             <Switch
               aria-label="Sector lines"
               checked={value.sectorLines ?? false}
-              onChange={(event) => {
-                const { sectorLines: _sectorLines, ...rest } = value;
-                onChange(event.currentTarget.checked ? { ...rest, sectorLines: true } : rest);
-              }}
+              /* The editor merges a change into the saved block, so turning the lines off sets the key to undefined rather than leaving it out. */
+              onChange={(event) => onChange({ ...value, sectorLines: event.currentTarget.checked || undefined })}
             />
           }
         />
