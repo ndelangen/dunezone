@@ -41,6 +41,24 @@
   border-radius: 50%;
 }
 
+/* A claim's label may run to a second line, as the left side's aggressor note does, so it wraps and stacks centred. */
+.claimLabel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  height: auto;
+  white-space: normal;
+}
+
+/* Quieter than the label by opacity, not its own colour, so it greys with the button when the button is disabled. */
+.claimNote {
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 400;
+  opacity: 0.7;
+  text-wrap: balance;
+}
+
 .actions {
   /* Wide enough for "Right won" on its own half, with the button's padding. */
   width: 188px;
