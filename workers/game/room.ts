@@ -66,6 +66,7 @@ import {
   canFlipInHand,
   giveSpiceDraft,
   projectCarryAtPosition,
+  noRoomMessage,
   settleCarryAtPosition,
 } from '../../src/shared/play/tableState';
 import { isTerritoryTintAction } from '../../src/shared/play/territoryTints';
@@ -554,7 +555,7 @@ export class Room {
     }
     const settled = settleCarryAtPosition(guarded, draft, landing.position);
     if (!settled) {
-      throw new GameRejection('There is no clear space for that object.');
+      throw new GameRejection(noRoomMessage(guarded, draft, landing.position));
     }
     if (settled.targetPieceId) {
       this.available(settled.targetPieceId, id);

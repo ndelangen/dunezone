@@ -24,7 +24,7 @@ import {
   piecesCanStack,
   piecesTouchForStack,
 } from './tablePhysics';
-import { piecesNudgedAround, territoryAtTable, territoryLanding } from './territoryPlacement';
+import { packsInTerritory, piecesNudgedAround, territoryAtTable, territoryLanding } from './territoryPlacement';
 import { isTroopStack } from './troop';
 
 export function eventId(number: number): string {
@@ -460,6 +460,15 @@ function settleMoveAtPosition(
   }
   const restingPosition = restingPositionAt(resolvedPosition, piece);
   return moveDraftTo(draft, restingPosition, nearestZone(restingPosition)?.id ?? null);
+}
+
+/** Why a carry let go at `position` found no place to rest: the territory it was let go over is full, or the table has no clear space. */
+export function noRoomMessage(state: TableState, draft: DraftMove, position: Vector3Tuple): string {
+  const piece = heldPieceFor(state, draft);
+  const territory = piece && territoryAtTable(state, position);
+  return piece && territory && packsInTerritory(piece)
+    ? `${territory.name} has no room for that.`
+    : 'There is no clear space for that object.';
 }
 
 export function settleCarryAtPosition(state: TableState, draft: DraftMove, position: Vector3Tuple): DraftMove | null {

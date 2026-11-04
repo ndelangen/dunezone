@@ -233,3 +233,23 @@ function nearestClearSpot(from: Plane, clear: (point: Plane) => boolean): Plane 
   }
   return null;
 }
+
+/** The point of a territory furthest from its border, found on a grid: where a stack set down in it has the most room. */
+export function innermostPoint(territory: TableTerritory, step = 0.02): Plane {
+  const points = territory.rings.flat();
+  const xs = points.map(([x]) => x);
+  const zs = points.map(([, z]) => z);
+  let best: { at: Plane; room: number } = { at: points[0] ?? [0, 0], room: -1 };
+  for (let x = Math.min(...xs); x <= Math.max(...xs); x += step) {
+    for (let z = Math.min(...zs); z <= Math.max(...zs); z += step) {
+      if (!territoryContains(territory, [x, z])) {
+        continue;
+      }
+      const room = nearestBorder(territory, [x, z]).distance;
+      if (room > best.room) {
+        best = { at: [x, z], room };
+      }
+    }
+  }
+  return best.at;
+}

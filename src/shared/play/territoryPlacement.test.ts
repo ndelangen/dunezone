@@ -5,8 +5,8 @@ import { freshTableState } from './model';
 import type { TablePiece, TableState, Vector3Tuple } from './model';
 import { restingPositionAt } from './tableGeometry';
 import { footprintReach, piecesOverlapAt } from './tablePhysics';
-import { applyDraftToState, draftForGesture, settleCarryAtPosition } from './tableState';
-import { fitsInside, tableTerritories, territoryContains } from './territoryFit';
+import { applyDraftToState, draftForGesture, noRoomMessage, settleCarryAtPosition } from './tableState';
+import { fitsInside, innermostPoint, tableTerritories, territoryContains } from './territoryFit';
 import type { TableTerritory } from './territoryFit';
 
 const troopBase = freshTableState().pieces.find((piece) => piece.id === 'harkonnen-force-loose')!;
@@ -15,24 +15,9 @@ function territoryNamed(name: string): TableTerritory {
   return tableTerritories(retainedArrakisBoard()).find((territory) => territory.name === name)!;
 }
 
-/* The point of a territory furthest from its border, found on a fine grid: a spot sure to lie well inside it. */
 function deepestPoint(territory: TableTerritory): Vector3Tuple {
-  const points = territory.rings.flat();
-  const xs = points.map(([x]) => x);
-  const zs = points.map(([, z]) => z);
-  let best: { at: Vector3Tuple; room: number } = { at: [0, 0, 0], room: -1 };
-  for (let x = Math.min(...xs); x <= Math.max(...xs); x += 0.02) {
-    for (let z = Math.min(...zs); z <= Math.max(...zs); z += 0.02) {
-      let room = 0;
-      while (fitsInside(territory, [x, z], room + 0.01)) {
-        room += 0.01;
-      }
-      if (territoryContains(territory, [x, z]) && room > best.room) {
-        best = { at: [x, 0, z], room };
-      }
-    }
-  }
-  return best.at;
+  const [x, z] = innermostPoint(territory);
+  return [x, 0, z];
 }
 
 function troop(id: string, faction: string, position: Vector3Tuple, count = 1): TablePiece {
@@ -83,7 +68,8 @@ describe('stacks dropped into a territory', () => {
   });
 
   test('keep several factions inside the territory and clear of each other', () => {
-    const factions = ['atreides', 'harkonnen', 'fremen', 'emperor'];
+    /* A stronghold holds two factions by the rules; Arrakeen has room for a third stack, such as a leader. */
+    const factions = ['atreides', 'harkonnen', 'fremen'];
     let state = tableWith(...factions.map((faction, index) => troop(faction, faction, [-4.8 + index * 0.5, 0, 3.2])));
     for (const faction of factions) {
       state = dropAt(state, faction, centre)!;
@@ -124,16 +110,16 @@ describe('stacks dropped into a territory', () => {
       troop(`f${index}`, `faction-${index}`, [-4.9 + (index % 8) * 0.4, 0, 3.6 - Math.floor(index / 8) * 0.4])
     );
     let state = tableWith(...many);
-    let refused = false;
+    let refusal: string | undefined;
     for (const piece of many) {
       const next = dropAt(state, piece.id, centre);
-      if (!next || next.events[0]?.status === 'rejected') {
-        refused = true;
+      if (!next) {
+        refusal = noRoomMessage(state, draftForGesture(at(state, piece.id), 'whole')!, centre);
         break;
       }
       state = next;
     }
-    expect(refused).toBe(true);
+    expect(refusal).toBe('Arrakeen has no room for that.');
     for (const piece of state.pieces.filter((candidate) =>
       territoryContains(arrakeen, [candidate.position[0], candidate.position[2]])
     )) {
