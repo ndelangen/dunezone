@@ -243,9 +243,11 @@ function withArrakeenPacked(stored: StoredSnapshot): StoredSnapshot {
       Math.hypot(candidate.position[0] - x, candidate.position[2] - z) < 0.9 &&
       !fitsInside(territory, [candidate.position[0], candidate.position[2]], footprintReach(candidate))
   );
-  for (const stack of straddling) {
+  /* Set down left and right of the middle, so from the map camera the stacks stand side by side, not one behind another. */
+  for (const [index, stack] of straddling.entries()) {
     const others = pieces.filter((candidate) => candidate.id !== stack.id);
-    const landing = territoryLanding({}, stack, restingPositionAt([x, 0, z], stack), others);
+    const side = index % 2 === 0 ? -0.2 : 0.2;
+    const landing = territoryLanding({}, stack, restingPositionAt([x + side, 0, z], stack), others);
     if (landing) {
       const placed = { ...stack, position: landing };
       pieces = piecesNudgedAround({}, [...others, placed], placed);
