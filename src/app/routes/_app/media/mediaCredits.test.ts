@@ -37,7 +37,7 @@ describe('media credits', () => {
   });
 
   test('credits use only the known fields and roles', () => {
-    const fields = new Set(['method', 'artist', 'artistRole', 'source', 'style', 'by']);
+    const fields = new Set(['method', 'artist', 'artistRole', 'source', 'style', 'by', 'purpose']);
     for (const [id, credit] of Object.entries(credits)) {
       expect(
         Object.keys(credit).filter((field) => !fields.has(field)),

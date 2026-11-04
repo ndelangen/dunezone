@@ -25,6 +25,7 @@
   },
   "gf9-choam-richese-ai-restored": {
     "method": "ai-restored",
+    "purpose": "remove the token rim and badges",
     "artist": "Solveig Reda",
     "source": "Dune: CHOAM & Richese (Gale Force Nine, 2021)"
   },
@@ -35,6 +36,7 @@
   },
   "gf9-second-edition-portrait": {
     "method": "ai-restored",
+    "purpose": "remove the card frame and print marks",
     "source": "the leader cards of Dune, second edition (Gale Force Nine)"
   },
   "duke-leto-portrait": {
@@ -116,6 +118,7 @@
   },
   "gf9-discovery-texture": {
     "method": "ai-restored",
+    "purpose": "lift the texture off the printed token",
     "source": "a discovery token from Dune (Gale Force Nine)"
   },
   "gf9-stronghold-art": {

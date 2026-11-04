@@ -16,7 +16,7 @@ type Step = {
  */
 const STEPS: readonly Step[] = [
   {
-    label: 'Cleaning up',
+    label: 'Editing',
     note: "GF9's art, token rim removed",
     art: (
       <Portrait
