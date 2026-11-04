@@ -339,7 +339,7 @@ export const TroopsMakeRoom = meta.story({
 
 /**
  * In the Battle phase, seat 2 carries the battle marker into Arrakeen and lets go: the game starts the battle there and names it Arrakeen.
- * The city stays lit in the marker's gold while the battle lasts.
+ * The city keeps the marker's red outline while the battle lasts.
  * By hand: drag the marker from the tracker across the board, and the territory under it lights up as it moves.
  */
 export const BattleMarkerLightsTerritory = meta.story({

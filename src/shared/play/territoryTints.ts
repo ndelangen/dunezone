@@ -38,6 +38,8 @@ const tintSchema = z.strictObject({
   hidden: z.literal(true).optional(),
   /* Drawn as one line round its territories, borders between them left out, with no fill. */
   outline: z.literal(true).optional(),
+  /* With `outline`: one thick line just outside the territories instead of the double line, as the battle marker draws. Only the page sets it. */
+  rim: z.literal(true).optional(),
   territories: z.array(territorySchema).max(MAX_TINT_TERRITORIES),
 });
 export type TerritoryTint = z.infer<typeof tintSchema>;
@@ -218,35 +220,23 @@ export function applyTerritoryTint(tints: readonly TerritoryTint[], action: Terr
   return (action.painted ? paintIn : paintOut)(tints, tint, action.territory, action.name);
 }
 
-/** The clear palette colours the battle marker's outline is being chosen from (Norbert, 2026-11-04). */
-export const BATTLE_OUTLINE_OPTIONS = {
-  gold: coreColors.caution,
-  red: coreColors.negativeFill,
-  blue: coreColors.progress,
-  white: coreColors.white,
-  violet: coreColors.publish,
-} as const;
-export type BattleOutlineOption = keyof typeof BATTLE_OUTLINE_OPTIONS;
-
 /*
- * The battle marker's highlight over the territory it marks, or would mark while carried: one clear outline round it, no fill.
+ * The battle marker's highlight over the territory it marks, or would mark while carried: one thick red line just outside it, no fill.
+ * Red, in a thick line on the outside, is Norbert's pick (2026-11-04).
  * Never stored; the page adds it.
  */
-export function battleHighlight(territoryId: string, option: BattleOutlineOption = 'gold'): TerritoryTint {
+export function battleHighlight(territoryId: string): TerritoryTint {
   return {
     id: 'battle-highlight',
     name: 'Battle',
-    color: BATTLE_OUTLINE_OPTIONS[option],
+    color: coreColors.negativeFill,
     outline: true,
+    rim: true,
     territories: [territoryId],
   };
 }
 
 /** The table's tints with the battle marker's outline on top while it marks a territory. */
-export function tintsWithBattle(
-  tints: TerritoryTint[] | undefined,
-  territoryId: string | null | undefined,
-  option?: BattleOutlineOption
-) {
-  return territoryId ? [...(tints ?? []), battleHighlight(territoryId, option)] : tints;
+export function tintsWithBattle(tints: TerritoryTint[] | undefined, territoryId: string | null | undefined) {
+  return territoryId ? [...(tints ?? []), battleHighlight(territoryId)] : tints;
 }

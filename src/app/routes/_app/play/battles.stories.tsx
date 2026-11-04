@@ -1,10 +1,9 @@
 import preview from '@sb/preview';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
-import type { BattleOutlineOption } from '@shared/play/territoryTints';
 import { resolveRulebookBoardDefinition } from '@shared/rulebooks/boardDefinitions';
 import { expect, within } from 'storybook/test';
 
-import { battleMarkerHover, setBattleOutlineOption } from '../../../widgets/tabletop/battleMarkerHover';
+import { battleMarkerHover } from '../../../widgets/tabletop/battleMarkerHover';
 import { dragBattleMarker } from './battles.marker.stories.fixture';
 import { battleSetup, readiness, revealedPieces } from './battles.stories.fixture';
 import { gameMeta } from './game.stories.fixture';
@@ -95,42 +94,22 @@ const noBattle = battleSetup('preparing', 'seat-2', (snapshot) => {
   snapshot.battlePlan = null;
 });
 
-/* Seat 2 holds the battle marker over Carthag with the board drawing the outline in `option`. */
-function markerOutline(option: BattleOutlineOption) {
-  return {
-    beforeEach: () => {
-      setBattleOutlineOption(option);
-      const cleanup = noBattle();
-      return () => {
-        cleanup();
-        setBattleOutlineOption('gold');
-      };
-    },
-    play: async ({ canvasElement }: { canvasElement: HTMLElement }) => {
-      await dragBattleMarker(
-        canvasElement.ownerDocument,
-        carthagMiddle(),
-        () => expect(battleMarkerHover()).toBe('carthag'),
-        {
-          hold: true,
-        }
-      );
-    },
-  };
-}
-
 /**
- * Seat 2 holds the battle marker over Carthag, and the territory under it is outlined: option A, gold.
- * The outline follows the marker as it moves;
+ * Seat 2 holds the battle marker over Carthag, and a thick red line runs just outside the territory under it.
+ * The line follows the marker as it moves;
  * let go and the battle's territory keeps it.
  * By hand: drag the marker from the tracker across the board.
  */
-export const MarkerOutlineAGold = meta.story(markerOutline('gold'));
-/** Option B: the outline in red. */
-export const MarkerOutlineBRed = meta.story(markerOutline('red'));
-/** Option C: the outline in blue. */
-export const MarkerOutlineCBlue = meta.story(markerOutline('blue'));
-/** Option D: the outline in white. */
-export const MarkerOutlineDWhite = meta.story(markerOutline('white'));
-/** Option E: the outline in violet. */
-export const MarkerOutlineEViolet = meta.story(markerOutline('violet'));
+export const MarkerOutlinesItsTerritory = meta.story({
+  beforeEach: noBattle,
+  play: async ({ canvasElement }) => {
+    await dragBattleMarker(
+      canvasElement.ownerDocument,
+      carthagMiddle(),
+      () => expect(battleMarkerHover()).toBe('carthag'),
+      {
+        hold: true,
+      }
+    );
+  },
+});

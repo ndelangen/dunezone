@@ -1,4 +1,3 @@
-import type { BattleOutlineOption } from '@shared/play/territoryTints';
 import { useSyncExternalStore } from 'react';
 
 /*
@@ -34,30 +33,5 @@ export function useBattleMarkerHover() {
     subscribe,
     () => hovered,
     () => null
-  );
-}
-
-/*
- * Which of the outline colours being compared the board draws; the comparison stories switch it, the game keeps the first.
- * It goes once Norbert picks one.
- */
-let outline: BattleOutlineOption = 'gold';
-const outlineListeners = new Set<() => void>();
-
-export function setBattleOutlineOption(next: BattleOutlineOption) {
-  outline = next;
-  for (const listener of outlineListeners) {
-    listener();
-  }
-}
-
-export function useBattleOutlineOption() {
-  return useSyncExternalStore(
-    (listener) => {
-      outlineListeners.add(listener);
-      return () => outlineListeners.delete(listener);
-    },
-    () => outline,
-    () => 'gold' as const
   );
 }
