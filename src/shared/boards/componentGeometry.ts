@@ -1,5 +1,6 @@
 import type { ComponentGeometry } from '../asset-publishing/componentGeometry';
-import { derive } from './geometry';
+import { TABLE_SECTOR_COUNT } from '../play/tableSettings';
+import { CENTER, derive, RADIUS } from './geometry';
 import type { Board, Face } from './geometry';
 import { propertyId } from './schema';
 
@@ -50,9 +51,29 @@ function part(key: string, label: string, faces: readonly Face[]) {
   };
 }
 
+/* The storm's sector lines, centre to rim, as the maintained Arrakis geometry's `sectors` part has them, so an annotation that points at the sectors finds them on a saved board too. */
+const SECTORS_PART = {
+  key: 'sectors',
+  label: 'Sectors',
+  x: 0,
+  y: 0,
+  width: 1,
+  height: 1,
+  highlight: {
+    paths: Array.from({ length: TABLE_SECTOR_COUNT }, (_, index) => {
+      const angle = (index / TABLE_SECTOR_COUNT) * Math.PI * 2;
+      const rim = [CENTER[0] + RADIUS * Math.cos(angle), CENTER[1] + RADIUS * Math.sin(angle)].map(round);
+      return {
+        d: `M${round(CENTER[0])} ${round(CENTER[1])}L${rim[0]} ${rim[1]}`,
+        transform: [1 / FRAME, 0, 0, 1 / FRAME, 0, 0] as [number, number, number, number, number, number],
+      };
+    }),
+  },
+};
+
 /**
  * A saved board's territories as a Rulebook illustration's component geometry, in the frame of the board's published image.
- * Each territory is a part under its Arrakis-style key, and each territory type a group part, as the maintained Arrakis geometry has them;
+ * Each territory is a part under its Arrakis-style key, each territory type a group part and the sector lines a `sectors` part, as the maintained Arrakis geometry has them;
  * a territory whose ID no key can spell is left out.
  */
 export function boardComponentGeometry(board: Board, widthPx: number, heightPx: number): ComponentGeometry {
@@ -81,6 +102,9 @@ export function boardComponentGeometry(board: Board, widthPx: number, heightPx: 
     if (members.length && !parts.has(key)) {
       parts.set(key, part(key, `All ${key}`, members));
     }
+  }
+  if (!parts.has('sectors')) {
+    parts.set('sectors', SECTORS_PART);
   }
   return { width: widthPx, height: heightPx, parts: [...parts.values()].slice(0, MAX_PARTS) };
 }
