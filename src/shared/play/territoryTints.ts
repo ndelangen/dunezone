@@ -9,7 +9,7 @@ import {
   tintTerritorySchema as territorySchema,
 } from '../boards/tints';
 import type { TintStamp } from '../boards/tints';
-import { playUiColors } from '../uiPalette';
+import { coreColors } from '../uiPalette';
 import { actionKindGuard } from './actionKinds';
 import { CLIENT_MESSAGE_LIMIT } from './messageLimit';
 import { GameRejection } from './rejection';
@@ -218,21 +218,35 @@ export function applyTerritoryTint(tints: readonly TerritoryTint[], action: Terr
   return (action.painted ? paintIn : paintOut)(tints, tint, action.territory, action.name);
 }
 
+/** The clear palette colours the battle marker's outline is being chosen from (Norbert, 2026-11-04). */
+export const BATTLE_OUTLINE_OPTIONS = {
+  gold: coreColors.caution,
+  red: coreColors.negativeFill,
+  blue: coreColors.progress,
+  white: coreColors.white,
+  violet: coreColors.publish,
+} as const;
+export type BattleOutlineOption = keyof typeof BATTLE_OUTLINE_OPTIONS;
+
 /*
- * The battle marker's highlight over the territory it marks, or would mark while carried: a gold wash inside a dark double rim.
- * The gold is the lit Battle disc's on the phase tracker, where the marker rises from; the rim is the marker's own dark underlay,
- * so the territory reads as lit, not faded, on pale sand.
+ * The battle marker's highlight over the territory it marks, or would mark while carried: one clear outline round it, no fill.
  * Never stored; the page adds it.
  */
-export function battleHighlight(territoryId: string): TerritoryTint[] {
-  const territories = [territoryId];
-  return [
-    { id: 'battle-highlight', name: 'Battle', color: `${playUiColors.activeTracker}8c`, territories },
-    { id: 'battle-highlight-rim', name: 'Battle', color: playUiColors.targetUnderlay, outline: true, territories },
-  ];
+export function battleHighlight(territoryId: string, option: BattleOutlineOption = 'gold'): TerritoryTint {
+  return {
+    id: 'battle-highlight',
+    name: 'Battle',
+    color: BATTLE_OUTLINE_OPTIONS[option],
+    outline: true,
+    territories: [territoryId],
+  };
 }
 
-/** The table's tints with the battle marker's highlight on top while it marks a territory. */
-export function tintsWithBattle(tints: TerritoryTint[] | undefined, territoryId: string | null | undefined) {
-  return territoryId ? [...(tints ?? []), ...battleHighlight(territoryId)] : tints;
+/** The table's tints with the battle marker's outline on top while it marks a territory. */
+export function tintsWithBattle(
+  tints: TerritoryTint[] | undefined,
+  territoryId: string | null | undefined,
+  option?: BattleOutlineOption
+) {
+  return territoryId ? [...(tints ?? []), battleHighlight(territoryId, option)] : tints;
 }

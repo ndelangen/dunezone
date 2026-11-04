@@ -1,9 +1,10 @@
 import preview from '@sb/preview';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
+import type { BattleOutlineOption } from '@shared/play/territoryTints';
 import { resolveRulebookBoardDefinition } from '@shared/rulebooks/boardDefinitions';
 import { expect, within } from 'storybook/test';
 
-import { battleMarkerHover } from '../../../widgets/tabletop/battleMarkerHover';
+import { battleMarkerHover, setBattleOutlineOption } from '../../../widgets/tabletop/battleMarkerHover';
 import { dragBattleMarker } from './battles.marker.stories.fixture';
 import { battleSetup, readiness, revealedPieces } from './battles.stories.fixture';
 import { gameMeta } from './game.stories.fixture';
@@ -79,27 +80,57 @@ export const WinnerCallsDiffer = meta.story({
   },
 });
 
+/* The middle of Carthag on the rulebook board. */
+function carthagMiddle(): [number, number, number] {
+  const carthag = resolveRulebookBoardDefinition('arrakis')!.geometry.parts.find((part) => part.key === 'carthag')!;
+  return [
+    (carthag.x + carthag.width / 2 - 0.5) * BOARD_RADIUS * 2,
+    0.18,
+    (carthag.y + carthag.height / 2 - 0.5) * BOARD_RADIUS * 2,
+  ];
+}
+
+const noBattle = battleSetup('preparing', 'seat-2', (snapshot) => {
+  snapshot.battle = null;
+  snapshot.battlePlan = null;
+});
+
+/* Seat 2 holds the battle marker over Carthag with the board drawing the outline in `option`. */
+function markerOutline(option: BattleOutlineOption) {
+  return {
+    beforeEach: () => {
+      setBattleOutlineOption(option);
+      const cleanup = noBattle();
+      return () => {
+        cleanup();
+        setBattleOutlineOption('gold');
+      };
+    },
+    play: async ({ canvasElement }: { canvasElement: HTMLElement }) => {
+      await dragBattleMarker(
+        canvasElement.ownerDocument,
+        carthagMiddle(),
+        () => expect(battleMarkerHover()).toBe('carthag'),
+        {
+          hold: true,
+        }
+      );
+    },
+  };
+}
+
 /**
- * Seat 2 picks up the battle marker and holds it over Carthag: the territory lights up in the marker's colours, a wash with a bright edge, and follows the marker as it moves.
- * Let go and the battle starts there, with the territory staying lit until it ends.
+ * Seat 2 holds the battle marker over Carthag, and the territory under it is outlined: option A, gold.
+ * The outline follows the marker as it moves;
+ * let go and the battle's territory keeps it.
  * By hand: drag the marker from the tracker across the board.
  */
-export const MarkerLightsItsTerritory = meta.story({
-  beforeEach: battleSetup('preparing', 'seat-2', (snapshot) => {
-    snapshot.battle = null;
-    snapshot.battlePlan = null;
-  }),
-  play: async ({ canvasElement }) => {
-    const carthag = resolveRulebookBoardDefinition('arrakis')!.geometry.parts.find((part) => part.key === 'carthag')!;
-    await dragBattleMarker(
-      canvasElement.ownerDocument,
-      [
-        (carthag.x + carthag.width / 2 - 0.5) * BOARD_RADIUS * 2,
-        0.18,
-        (carthag.y + carthag.height / 2 - 0.5) * BOARD_RADIUS * 2,
-      ],
-      () => expect(battleMarkerHover()).toBe('carthag'),
-      { hold: true }
-    );
-  },
-});
+export const MarkerOutlineAGold = meta.story(markerOutline('gold'));
+/** Option B: the outline in red. */
+export const MarkerOutlineBRed = meta.story(markerOutline('red'));
+/** Option C: the outline in blue. */
+export const MarkerOutlineCBlue = meta.story(markerOutline('blue'));
+/** Option D: the outline in white. */
+export const MarkerOutlineDWhite = meta.story(markerOutline('white'));
+/** Option E: the outline in violet. */
+export const MarkerOutlineEViolet = meta.story(markerOutline('violet'));

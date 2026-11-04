@@ -69,7 +69,7 @@ import { DoubleSide, Mesh, MeshBasicMaterial, Plane, RingGeometry, Vector3 } fro
 
 import { useMotionAllowed } from '@app/styles/motion';
 
-import { useBattleMarkerHover } from './battleMarkerHover';
+import { useBattleMarkerHover, useBattleOutlineOption } from './battleMarkerHover';
 import { tableCardFaceKey } from './cardFaceTexture';
 import { ignoreRaycast } from './ignoreRaycast';
 import { MapPreviewCamera } from './MapPreviewCamera';
@@ -1156,7 +1156,8 @@ function SceneContents({
   const battleTerritory = useTabletopSelector((value) => value.snapshot.battle?.territoryId);
   /* The carried battle marker lights the territory it is over; a placed one keeps its territory lit while the battle lasts. */
   const markerHover = useBattleMarkerHover();
-  const tints = tintsWithBattle(tableTints, markerHover ?? battleTerritory);
+  const outline = useBattleOutlineOption();
+  const tints = tintsWithBattle(tableTints, markerHover ?? battleTerritory, outline);
   const { state, renderedPieces, selectPiece } = table;
   const { controlsEnabled, onPointerSessionChange } = useSceneInteractions(onInteractionActiveChange);
   useScenePointerSession(onPointerSessionChange);
