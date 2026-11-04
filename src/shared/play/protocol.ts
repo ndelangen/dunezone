@@ -184,7 +184,7 @@ const tableActionSchema = z.discriminatedUnion('kind', [
     direction,
     steps: z.number().int().min(2).max(ROTATE_STEPS_LIMIT).optional(),
   }),
-  /* Takes a card, token or stack out of the game for good. */
+  /* Takes a card, token or stack out of the game; the game log can bring it back. */
   z.strictObject({ kind: z.literal('delete'), pieceId: id }),
   z.strictObject({ kind: z.literal('storm'), direction }),
   z.strictObject({ kind: z.literal('phase'), direction: direction.optional() }),
@@ -212,6 +212,9 @@ const deckActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('deck-shuffle'), pieceId: id }),
 ]);
 export type DeckAction = z.infer<typeof deckActionSchema>;
+/* Brings a deleted piece back onto the table, face down, named by the deletion its game log entry offers to restore (#2132). */
+const restoreActionSchema = z.strictObject({ kind: z.literal('restore'), deletionId: id });
+export type RestoreAction = z.infer<typeof restoreActionSchema>;
 const pieceActionSchema = z.discriminatedUnion('kind', [
   ...battleActionSchema.options,
   ...biddingActionSchema.options,
@@ -231,6 +234,7 @@ const pieceActionSchema = z.discriminatedUnion('kind', [
   ...tableActionSchema.options,
   ...deckActionSchema.options,
   ...peekActionSchema.options,
+  restoreActionSchema,
 ]);
 export type PieceAction = z.infer<typeof pieceActionSchema>;
 export const clientMessageSchema = z.discriminatedUnion('type', [

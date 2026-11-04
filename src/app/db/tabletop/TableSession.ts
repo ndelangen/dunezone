@@ -823,6 +823,7 @@ export class TableSession {
   };
   private readonly removal: NonNullable<TableProjection['deleteControls']> = {
     remove: (pieceId) => this.command({ kind: 'delete', pieceId }),
+    restore: (deletionId) => this.command({ kind: 'restore', deletionId }),
   };
   private readonly taking: NonNullable<TableProjection['handControls']> = {
     canTake: (pieceId) => {

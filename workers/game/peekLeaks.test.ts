@@ -171,6 +171,11 @@ const STEPS: Record<Kind, (room: Room) => Step[]> = {
   lock: () => [[bob, { kind: 'lock', pieceId: DECK }]],
   rotate: () => [[bob, { kind: 'rotate', pieceId: DECK, direction: 1 }]],
   delete: () => [[bob, { kind: 'delete', pieceId: DECK }]],
+  /* The peeked deck deleted, then restored from the log under the deletion the delete made. */
+  restore: (room) => [
+    [bob, { kind: 'delete', pieceId: DECK }],
+    [bob, { kind: 'restore', deletionId: String(room.snapshot.revision + 1) }],
+  ],
   storm: () => [[bob, { kind: 'storm', direction: 1 }]],
   phase: () => [[bob, { kind: 'phase' }]],
   'spice-spawn': () => [[bob, { kind: 'spice-spawn', count: 1 }]],
@@ -239,6 +244,14 @@ const STAGED: Partial<Record<Kind, Staged>> = {
     stage: { stage: 'setup', setup: PREDICTION_SETUP },
     accepted: [true, true, false, false],
     effect: (room) => expect(room.snapshot.privatePredictions.step?.revealedAt).toBe(LATER),
+  },
+  /* A restored deck comes back face down, and the peek held on it before the deletion stays closed. */
+  restore: {
+    accepted: [true, true, true, true],
+    effect: (room) => {
+      expect(deck(room)?.items.every((item) => !item.faceUp)).toBe(true);
+      expect(shown(room)).toEqual([]);
+    },
   },
   'movement-done': {
     stage: { phase: MOVEMENT_PHASE },
