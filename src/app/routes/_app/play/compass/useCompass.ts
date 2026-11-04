@@ -65,6 +65,7 @@ export function useCompass({ open, onOpen, inert, windows, table, onView, onShow
       open: show,
       players: table?.players ?? [],
       nextPhase: table?.nextPhase,
+      clearChats: table?.clearChats,
       token: table?.token,
       commands,
       shortcuts,

@@ -1,4 +1,5 @@
 import { TopicIcon } from '@ui/content/TopicIcon';
+import { Eraser } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import { setBoardSkin, setPlanetShading } from '../../../../widgets/tabletop/boardSkinPreference';
@@ -101,6 +102,8 @@ export type SuggestionActions = Readonly<{
   players: readonly CompassPlayer[];
   /** Steps the table to the next phase; null while the table refuses it, as the header's button is then disabled. */
   nextPhase: (() => void) | null | undefined;
+  /** Clears every chat from the viewer's own view; null while there is nothing to clear. */
+  clearChats?: (() => void) | null;
   /** Moves the camera, as the dial does. */
   view: (view: TableView) => void;
   /** The viewer's own faction token on the table, when they have one. */
@@ -185,6 +188,27 @@ function nextPhaseCandidate(nextPhase: SuggestionActions['nextPhase'], close: ()
       },
       text: 'next phase',
       weight: 4,
+    },
+  ];
+}
+
+/* Clearing every chat, found by name and never suggested unasked: each player clears only their own copy (#2674). */
+function clearChatsCandidate(clearChats: SuggestionActions['clearChats'], close: () => void): Candidate[] {
+  if (!clearChats) {
+    return [];
+  }
+  return [
+    {
+      key: 'cmd:clear-chats',
+      label: 'Clear all chats',
+      hint: 'Only for you; others keep theirs',
+      icon: <Eraser size={18} aria-hidden />,
+      run: () => {
+        close();
+        clearChats();
+      },
+      text: 'clear all chats chat messages text erase',
+      weight: -1,
     },
   ];
 }
@@ -281,6 +305,7 @@ export function candidatesOf(windows: readonly TableWindow[], actions: Suggestio
     ),
     ...nextPhaseCandidate(actions.nextPhase, actions.close),
     ...commandCandidates(actions),
+    ...clearChatsCandidate(actions.clearChats, actions.close),
     ...(Object.keys(CAMERA_VIEWS) as TableView[]).map((view): Candidate => ({
       key: `cmd:camera:${view}`,
       label: `Camera: ${CAMERA_VIEWS[view]}`,

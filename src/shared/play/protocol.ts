@@ -249,6 +249,14 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
     peerId: conversationPeerSchema,
     through: count,
   }),
+  /* Hides the conversation through `through` from the faction's own view; the other side keeps its copy. */
+  z.strictObject({
+    type: z.literal('conversation-clear'),
+    requestId: id,
+    factionId: id,
+    peerId: conversationPeerSchema,
+    through: count,
+  }),
   z.strictObject({
     type: z.literal('admit'),
     /* A page proves who it is with its seat pass for this game. */

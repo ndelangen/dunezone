@@ -63,6 +63,10 @@ export class Conversations {
     storage.sql.exec(
       'CREATE TABLE IF NOT EXISTS conversation_reads (pair TEXT NOT NULL, faction TEXT NOT NULL, through INTEGER NOT NULL, PRIMARY KEY(pair, faction))'
     );
+    /* How far each faction cleared a conversation from its own view; the messages stay for the other side and for reports. */
+    storage.sql.exec(
+      'CREATE TABLE IF NOT EXISTS conversation_clears (pair TEXT NOT NULL, faction TEXT NOT NULL, through INTEGER NOT NULL, PRIMARY KEY(pair, faction))'
+    );
   }
 
   faction(snapshot: StoredSnapshot, viewer: Viewer) {
@@ -112,12 +116,15 @@ export class Conversations {
     return { message: present(row), inserted: true };
   }
 
+  /** The faction's page of a conversation, without what it cleared. */
   page(request: ConversationRequest<'conversation-history'>) {
+    const pair = pairKey(request);
     const rows = this.storage.sql
       .exec<MessageRow>(
-        'SELECT * FROM conversation_messages WHERE pair=? AND sequence<? ORDER BY sequence DESC LIMIT 51',
-        pairKey(request),
-        request.before
+        'SELECT * FROM conversation_messages WHERE pair=? AND sequence<? AND sequence>? ORDER BY sequence DESC LIMIT 51',
+        pair,
+        request.before,
+        this.cleared(pair, request.factionId)
       )
       .toArray();
     return { entries: rows.slice(0, 50).reverse().map(present), more: rows.length > 50 };
@@ -132,12 +139,14 @@ export class Conversations {
     ].map((peerId) => {
       const pair = pairKey({ factionId: faction, peerId });
       const row = this.storage.sql
-        .exec<{ latest: number; unread: number }>(
-          'SELECT COALESCE((SELECT sequence FROM conversation_messages WHERE pair=? ORDER BY sequence DESC LIMIT 1),0) AS latest, (SELECT COUNT(*) FROM conversation_messages WHERE pair=? AND sequence>COALESCE((SELECT through FROM conversation_reads WHERE pair=? AND faction=?),0) AND sender_faction<>?) AS unread',
+        .exec<{ latest: number; unread: number; cleared: number }>(
+          'SELECT COALESCE((SELECT sequence FROM conversation_messages WHERE pair=? ORDER BY sequence DESC LIMIT 1),0) AS latest, (SELECT COUNT(*) FROM conversation_messages WHERE pair=? AND sequence>COALESCE((SELECT through FROM conversation_reads WHERE pair=? AND faction=?),0) AND sender_faction<>?) AS unread, COALESCE((SELECT through FROM conversation_clears WHERE pair=? AND faction=?),0) AS cleared',
           pair,
           pair,
           pair,
           faction,
+          faction,
+          pair,
           faction
         )
         .one();
@@ -146,6 +155,19 @@ export class Conversations {
   }
 
   read(request: ConversationRequest<'conversation-read'>) {
+    this.advance('conversation_reads', request);
+  }
+
+  /** Clears the conversation through a message the faction saw from its own view, which also reads it; a message saved since stays. */
+  clear(request: ConversationRequest<'conversation-clear'>) {
+    this.advance('conversation_reads', request);
+    this.advance('conversation_clears', request);
+  }
+
+  private advance(
+    table: 'conversation_reads' | 'conversation_clears',
+    request: ConversationRequest<'conversation-read' | 'conversation-clear'>
+  ) {
     const { factionId: faction, through } = request;
     const pair = pairKey(request);
     const exists =
@@ -156,10 +178,18 @@ export class Conversations {
       throw new GameRejection('This message is not available.');
     }
     this.storage.sql.exec(
-      'INSERT INTO conversation_reads(pair,faction,through) VALUES(?,?,?) ON CONFLICT(pair,faction) DO UPDATE SET through=MAX(through,excluded.through)',
+      `INSERT INTO ${table}(pair,faction,through) VALUES(?,?,?) ON CONFLICT(pair,faction) DO UPDATE SET through=MAX(through,excluded.through)`,
       pair,
       faction,
       through
+    );
+  }
+
+  private cleared(pair: string, faction: string) {
+    return (
+      this.storage.sql
+        .exec<{ through: number }>('SELECT through FROM conversation_clears WHERE pair=? AND faction=?', pair, faction)
+        .toArray()[0]?.through ?? 0
     );
   }
 
@@ -168,6 +198,7 @@ export class Conversations {
     const pair = recallConversation(reviewId);
     this.storage.sql.exec('DELETE FROM conversation_messages WHERE pair=?', pair);
     this.storage.sql.exec('DELETE FROM conversation_reads WHERE pair=?', pair);
+    this.storage.sql.exec('DELETE FROM conversation_clears WHERE pair=?', pair);
   }
 
   generation() {

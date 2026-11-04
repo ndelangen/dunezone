@@ -1651,6 +1651,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       case 'conversation-history':
       case 'conversation-send':
       case 'conversation-read':
+      case 'conversation-clear':
         this.handleConversation(socket, connection.viewer!, message);
         return;
       case 'history':
@@ -1670,12 +1671,18 @@ export class GameRoom extends DurableObject<GameEnv> {
   private handleConversation(
     socket: WebSocket,
     viewer: Viewer,
-    request: Extract<ClientMessage, { type: 'conversation-history' | 'conversation-send' | 'conversation-read' }>
+    request: Extract<
+      ClientMessage,
+      { type: 'conversation-history' | 'conversation-send' | 'conversation-read' | 'conversation-clear' }
+    >
   ) {
     if (request.type === 'conversation-history') {
       this.send(socket, this.session.conversationPage(viewer, request));
     } else if (request.type === 'conversation-read') {
       this.sendConversationReads(this.session.markConversationRead(viewer, request));
+    } else if (request.type === 'conversation-clear') {
+      /* The faction's other connections drop the cleared messages when their summaries arrive. */
+      this.sendConversationReads(this.session.clearConversation(viewer, request));
     } else {
       const saved = this.session.sendConversation(viewer, request);
       if (saved.inserted) {

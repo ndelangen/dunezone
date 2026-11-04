@@ -554,6 +554,7 @@ function useHostedControls(client: TableSession, table: TableProjection, error: 
     chat: (seat) => <ConnectedPlayerChat client={client} table={table} seat={seat} />,
     factionInfo: (seat) => <ConnectedFactionInfoPanel client={client} table={table} seat={seat} error={error} />,
     nextPhase: nextPhaseStep(client, table),
+    clearChats: client.conversations.clearable() ? client.conversations.clearAllChats : null,
     token: viewerToken(client, table),
     bidding: viewerBidding(client, table),
   };

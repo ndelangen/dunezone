@@ -91,6 +91,7 @@ export function localRuntime(
         case 'conversation-history':
         case 'conversation-send':
         case 'conversation-read':
+        case 'conversation-clear':
           return conversations.receive(message);
         case 'spice-history':
           return this.later({ ...message, entries: [], more: false });

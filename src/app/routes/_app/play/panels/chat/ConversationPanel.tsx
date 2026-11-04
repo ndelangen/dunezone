@@ -1,6 +1,8 @@
 import { Badge, Button, Group, Stack, Text, Textarea, Tooltip, VisuallyHidden } from '@mantine/core';
 import type { ConversationMessage } from '@shared/play/conversations';
 import { Section } from '@ui/block/Section';
+import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
+import { Eraser } from 'lucide-react';
 import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from 'react';
 
 import type { ConversationView } from '../../../../../db/tabletop/ConversationSession';
@@ -37,6 +39,8 @@ export type ConversationPanelProps = Readonly<{
   onRetry: (requestId: string) => void;
   /** Sends a message; false keeps it in the composer. */
   onSubmit: (text: string) => boolean;
+  /** Clears the saved history from the viewer's own view; the other side keeps its copy. */
+  onClear?: () => void;
 }>;
 
 /** A conversation with one player or the table: its history, the viewer's pending messages and the composer. */
@@ -53,6 +57,7 @@ export function ConversationPanel({
   onRead,
   onRetry,
   onSubmit,
+  onClear,
 }: ConversationPanelProps) {
   const entries = page?.entries ?? EMPTY_MESSAGES;
   const latest = entries.at(-1)?.sequence ?? 0;
@@ -63,6 +68,7 @@ export function ConversationPanel({
     <Section hiddenHeading title="Conversation" description={CONVERSATION_HELP} className={styles.panel}>
       <Stack gap="sm" className={styles.body}>
         {!online && <Text size="sm">Offline. Pending messages will send after your faction access is checked.</Text>}
+        {online && onClear && entries.length > 0 && <ClearChat clear={onClear} />}
         <Stack
           ref={viewport}
           gap="sm"
@@ -261,6 +267,22 @@ function Composer({
         rightSectionPointerEvents="auto"
       />
     </form>
+  );
+}
+
+/* Held like any action that loses something, though only for the viewer: the other side keeps every message (#2674). */
+function ClearChat({ clear }: Readonly<{ clear: () => void }>) {
+  return (
+    <Group justify="flex-end" gap="xs" className={styles.tools}>
+      <ConfirmDeleteAction
+        label="Clear chat"
+        verb="clear"
+        size="sm"
+        pending={false}
+        onConfirm={clear}
+        icon={<Eraser size={15} aria-hidden />}
+      />
+    </Group>
   );
 }
 

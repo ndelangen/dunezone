@@ -3,7 +3,7 @@ import type { GameSnapshot } from '@shared/play/protocol';
 
 import { faction } from '../alliances.stories.fixture';
 import { clockSetup, sittingOutSetup } from '../bidding.stories.fixture';
-import { gameMeta, install } from '../game.stories.fixture';
+import { conversationMessages, conversationPair, gameMeta, install } from '../game.stories.fixture';
 import { battleStory } from '../playing.stories.fixture';
 import { playingSnapshot, productTransport } from '../product.stories.fixture';
 import type { Slots } from './useOpenWindows';
@@ -88,6 +88,29 @@ export const Width1280 = meta.story({
 /** A quiet moment: no battle and no ally, so those two arms show what's missing. */
 export const Quiet = meta.story({
   beforeEach: [install(() => productTransport('seat-2')), () => pinned({ left: null, right: null }, false)],
+});
+
+/*
+ * Central's chat pinned bottom right, with saved messages: holding its eraser clears it for the viewer,
+ * and Space then "clear" finds Clear all chats, which clears every chat the same way (#2674).
+ */
+export const ChatsToClear = meta.story({
+  beforeEach: [
+    install(() => {
+      const { factionId, peerId } = conversationPair();
+      return productTransport('seat-2', playingSnapshot(), {
+        conversationMessages: conversationMessages(),
+        conversationSummaries: {
+          factionId,
+          entries: [
+            { peerId, latest: 55, unread: 0, cleared: 0 },
+            { peerId: '@table', latest: 55, unread: 0, cleared: 0 },
+          ],
+        },
+      });
+    }),
+    () => pinned({ left: null, right: { key: 'player:seat-1' } }, true),
+  ],
 });
 
 /**

@@ -81,6 +81,7 @@ function RecallControls({ table, onView }: Readonly<{ table: CompassTable; onVie
     players: table.players.filter((player) => player.own),
     tableChat: null,
     nextPhase: null,
+    clearChats: null,
     token: null,
     bidding: null,
   };

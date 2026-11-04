@@ -141,7 +141,7 @@ test('clears private history immediately on a live seat change and an identity s
     type: 'conversations',
     factionId: 'one',
     generation: 0,
-    entries: [{ peerId: 'two', latest: 1, unread: 1 }],
+    entries: [{ peerId: 'two', latest: 1, unread: 1, cleared: 0 }],
   });
   client.conversations.load({ peerId: 'two' });
   const request = socket().sent.find((entry) => entry.type === 'conversation-history')!;
@@ -160,7 +160,7 @@ test('clears private history immediately on a live seat change and an identity s
     type: 'conversations',
     factionId: 'one',
     generation: 1,
-    entries: [{ peerId: 'two', latest: 1, unread: 1 }],
+    entries: [{ peerId: 'two', latest: 1, unread: 1, cleared: 0 }],
   });
   expect(client.getSnapshot().conversations.pages).toEqual({});
   client.conversations.submit({ peerId: 'two', text: 'A plan' });
@@ -293,4 +293,48 @@ test('recall chat clears messages, drafts and queued sends on close while preser
   socket().deliver({ type: 'conversation-message', factionId: 'one', peerId, message: saved('late') });
   expect(client.getSnapshot().conversations.pages[peerId]).toBeUndefined();
   expect(client.conversations.reaches(peerId)).toBe(false);
+});
+
+test('clearing a chat hides it at once, other tabs drop it with their summaries, and a refusal brings it back', async () => {
+  const client = await connect();
+  const summaries = (cleared: number) =>
+    socket().deliver({
+      type: 'conversations',
+      factionId: 'one',
+      generation: 0,
+      entries: [{ peerId: 'two', latest: 2, unread: 0, cleared }],
+    });
+  const loadHistory = () => {
+    client.conversations.load({ peerId: 'two' });
+    const request = socket()
+      .sent.filter((entry) => entry.type === 'conversation-history')
+      .at(-1)!;
+    socket().deliver({
+      ...request,
+      type: 'conversation-history',
+      factionId: 'one',
+      peerId: 'two',
+      before: Number.MAX_SAFE_INTEGER,
+      entries: [
+        { ...saved('first'), sequence: 1 },
+        { ...saved('second'), sequence: 2 },
+      ],
+      more: false,
+    } as ServerMessage);
+  };
+  summaries(0);
+  loadHistory();
+  expect(client.conversations.clearable()).toBe(true);
+  client.conversations.clearAllChats();
+  const clear = socket().sent.find((entry) => entry.type === 'conversation-clear')!;
+  expect(clear).toMatchObject({ factionId: 'one', peerId: 'two', through: 2 });
+  expect(client.getSnapshot().conversations.pages.two?.entries).toEqual([]);
+  socket().deliver({ type: 'rejected', requestId: clear.requestId, message: 'This message is not available.' });
+  expect(client.getSnapshot().conversations.pages.two).toBeUndefined();
+  /* Another tab of the same faction cleared through the first message. */
+  loadHistory();
+  summaries(1);
+  expect(client.getSnapshot().conversations.pages.two?.entries.map((entry) => entry.sequence)).toEqual([2]);
+  summaries(2);
+  expect(client.conversations.clearable()).toBe(false);
 });

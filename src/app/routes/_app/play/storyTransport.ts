@@ -64,6 +64,7 @@ export function storyTransport(
     holdLogHistory = false,
     logEntries = {},
     conversationMessages = [],
+    conversationSummaries,
     factions = {},
     admitView,
     answerCommand,
@@ -80,11 +81,26 @@ export function storyTransport(
     /* Takes every message but admission and the history pages first, as a live table does; true means it answered. */
     receive?: (message: ClientMessage) => boolean;
     conversationMessages?: Extract<ServerMessage, { type: 'conversation-history' }>['entries'];
+    /* Sent with the first view, as the Worker sends a faction its conversations; a clear sends them again with what it cleared. */
+    conversationSummaries?: Omit<Extract<ServerMessage, { type: 'conversations' }>, 'type' | 'generation'>;
     /* The seated factions' captured sheets by faction id; one not listed answers as a game without its capture. */
     factions?: Readonly<Partial<Record<string, PublicFaction>>>;
   } = {}
 ) {
   const messages: ClientMessage[] = [];
+  /* How far the viewer cleared each conversation; every conversation answers with the same scripted messages. */
+  const cleared = new Map<string, number>();
+  const summaries = (): Extract<ServerMessage, { type: 'conversations' }> | undefined =>
+    conversationSummaries && {
+      type: 'conversations',
+      generation: 0,
+      factionId: conversationSummaries.factionId,
+      entries: conversationSummaries.entries.map((entry) => ({
+        ...entry,
+        cleared: cleared.get(entry.peerId) ?? entry.cleared,
+        unread: cleared.has(entry.peerId) ? 0 : entry.unread,
+      })),
+    };
   const sockets: StorySocket[] = [];
   const viewer: Viewer = {
     connectionId: 'story-connection',
@@ -148,13 +164,29 @@ export function storyTransport(
         }
       }
       if (message.type === 'admit' && !holdView) {
-        queueMicrotask(() => this.deliver(admitView?.() ?? view(snapshot)));
+        queueMicrotask(() => {
+          this.deliver(admitView?.() ?? view(snapshot));
+          const summary = summaries();
+          if (summary) {
+            this.deliver(summary);
+          }
+        });
+      }
+      if (message.type === 'conversation-clear') {
+        cleared.set(message.peerId, Math.max(cleared.get(message.peerId) ?? 0, message.through));
+        const summary = summaries();
+        if (summary) {
+          queueMicrotask(() => this.deliver(summary));
+        }
       }
       if (message.type === 'faction') {
         queueMicrotask(() => this.deliver({ ...message, faction: factions[message.factionId] ?? null }));
       }
       if (message.type === 'conversation-history') {
-        const entries = conversationMessages.filter((entry) => entry.sequence < message.before);
+        const after = cleared.get(message.peerId) ?? 0;
+        const entries = conversationMessages.filter(
+          (entry) => entry.sequence < message.before && entry.sequence > after
+        );
         queueMicrotask(() => this.deliver({ ...message, entries: entries.slice(-50), more: entries.length > 50 }));
       }
       if (message.type === 'log-history' && !holdLogHistory) {

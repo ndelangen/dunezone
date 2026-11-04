@@ -12,7 +12,10 @@ import { reviewRunning } from '@shared/play/review';
 
 import type { LocalTable } from './localTable';
 
-type Request = Extract<ClientMessage, { type: 'conversation-send' | 'conversation-history' | 'conversation-read' }>;
+type Request = Extract<
+  ClientMessage,
+  { type: 'conversation-send' | 'conversation-history' | 'conversation-read' | 'conversation-clear' }
+>;
 type Saved = ConversationMessage & { pair: string };
 
 /** How long the other player takes to answer, so the reply reads as typed rather than automatic. */
@@ -36,6 +39,7 @@ export class LocalConversations {
   private recall: string | undefined;
   private origin: LocalTable | undefined;
   private readonly reads = new Map<string, number>();
+  private readonly clears = new Map<string, number>();
   private readonly timers = new Set<ReturnType<typeof setTimeout>>();
 
   constructor(
@@ -60,6 +64,13 @@ export class LocalConversations {
       case 'conversation-read': {
         const read = `${pairKey(request.factionId, request.peerId)}/${request.factionId}`;
         this.reads.set(read, Math.max(this.reads.get(read) ?? 0, request.through));
+        return this.summaries(request.factionId);
+      }
+      case 'conversation-clear': {
+        /* Clearing also reads what it cleared, as in the Worker. */
+        const key = `${pairKey(request.factionId, request.peerId)}/${request.factionId}`;
+        this.reads.set(key, Math.max(this.reads.get(key) ?? 0, request.through));
+        this.clears.set(key, Math.max(this.clears.get(key) ?? 0, request.through));
         return this.summaries(request.factionId);
       }
       case 'conversation-send':
@@ -90,9 +101,11 @@ export class LocalConversations {
     this.recall = peer;
     const retained = sameTable ? peer : undefined;
     this.messages = this.messages.filter((entry) => !isRecallConversation(entry.pair) || entry.pair === retained);
-    for (const key of this.reads.keys()) {
-      if (key.startsWith('@recall:')) {
-        this.reads.delete(key);
+    for (const positions of [this.reads, this.clears]) {
+      for (const key of positions.keys()) {
+        if (key.startsWith('@recall:')) {
+          positions.delete(key);
+        }
       }
     }
   }
@@ -188,7 +201,10 @@ export class LocalConversations {
 
   private page(factionId: string, peerId: string): ConversationMessage[] {
     const pair = pairKey(factionId, peerId);
-    return this.messages.filter((entry) => entry.pair === pair).map(({ pair: _pair, ...message }) => message);
+    const cleared = this.clears.get(`${pair}/${factionId}`) ?? 0;
+    return this.messages
+      .filter((entry) => entry.pair === pair && entry.sequence > cleared)
+      .map(({ pair: _pair, ...message }) => message);
   }
 
   /** The learner's conversations with each other faction, then the table, with what they have not read. */
@@ -203,6 +219,7 @@ export class LocalConversations {
         peerId,
         latest: messages.at(-1)?.sequence ?? 0,
         unread: messages.filter((entry) => entry.sequence > read && entry.senderFactionId !== factionId).length,
+        cleared: this.clears.get(`${pair}/${factionId}`) ?? 0,
       };
     });
     this.deliver({ type: 'conversations', generation: 0, factionId, entries });

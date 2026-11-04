@@ -1270,6 +1270,11 @@ export class GameSession {
     this.conversations.read(request);
     return faction;
   }
+  clearConversation(viewer: Viewer, request: Extract<ClientMessage, { type: 'conversation-clear' }>) {
+    const faction = this.conversations.authorize(this.room!.snapshot, viewer, request, this.reviews.running()?.id);
+    this.storage.transactionSync(() => this.conversations.clear(request));
+    return faction;
+  }
   sendConversation(viewer: Viewer, request: Extract<ClientMessage, { type: 'conversation-send' }>) {
     if (this.reviews.running() && !isRecallConversation(request.peerId)) {
       throw new GameRejection('Only recall chat is available during Mentat recall.');

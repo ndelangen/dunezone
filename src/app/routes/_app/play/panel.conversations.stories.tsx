@@ -65,7 +65,7 @@ export const History = meta.story({
       type: 'conversations',
       factionId,
       generation: 0,
-      entries: [{ peerId, latest: 55, unread: 55 }],
+      entries: [{ peerId, latest: 55, unread: 55, cleared: 0 }],
     });
     await expect(page.findByRole('button', { name: /^Central.*55 unread$/ })).resolves.toBeVisible();
     await expect(session.transport.messages.some((entry) => entry.type === 'conversation-read')).toBe(false);
@@ -90,7 +90,7 @@ export const History = meta.story({
       type: 'conversations',
       factionId,
       generation: 0,
-      entries: [{ peerId, latest: 55, unread: 0 }],
+      entries: [{ peerId, latest: 55, unread: 0, cleared: 0 }],
     });
     await userEvent.click(page.getByRole('button', { name: 'Earlier messages' }));
     await expect(page.findByText('Earlier plan 1')).resolves.toBeInTheDocument();
@@ -113,7 +113,7 @@ export const History = meta.story({
       type: 'conversations',
       factionId,
       generation: 0,
-      entries: [{ peerId, latest: 56, unread: 1 }],
+      entries: [{ peerId, latest: 56, unread: 1, cleared: 0 }],
     });
     await expect(page.findByRole('button', { name: /^Central.*1 unread$/ })).resolves.toBeVisible();
     await expect(

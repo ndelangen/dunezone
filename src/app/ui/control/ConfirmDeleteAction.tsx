@@ -21,7 +21,7 @@ export interface ConfirmDeleteActionProps {
    * A removal or a sign-out held five seconds is the same commitment;
    * only the words differ.
    */
-  verb?: 'delete' | 'remove' | 'sign out';
+  verb?: 'delete' | 'remove' | 'sign out' | 'clear';
   /** The glyph, when the action is not the trash can. A member removal keeps its own icon. */
   icon?: ReactNode;
   /** Disables the trigger entirely, for callers whose action is sometimes unavailable rather than in flight. */
@@ -31,7 +31,7 @@ export interface ConfirmDeleteActionProps {
 }
 
 /** What the countdown announces per verb: "deletion in 4..", "removal in 4..", "sign-out in 4..". */
-const COUNTDOWN_NOUN = { delete: 'deletion', remove: 'removal', 'sign out': 'sign-out' } as const;
+const COUNTDOWN_NOUN = { delete: 'deletion', remove: 'removal', 'sign out': 'sign-out', clear: 'clearing' } as const;
 
 /**
  * Deletes (or removes) something, if you mean it for five seconds.

@@ -17,3 +17,6 @@
 .body > form {
   flex-shrink: 0;
 }
+.tools {
+  flex-shrink: 0;
+}
