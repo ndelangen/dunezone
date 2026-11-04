@@ -45,3 +45,20 @@ export function tableOverlayRects(canvas: Element): ScreenRect[] {
     ];
   });
 }
+
+/**
+ * How far the play shell's chrome reaches in over a canvas's edges, in pixels: the header's chips from the top, and the chat bar from the bottom.
+ * The camera dial is left out, as it covers only its corner.
+ * A table outside the play shell has none.
+ */
+export function tableChromeInsets(canvas: Element) {
+  const bounds = canvas.getBoundingClientRect();
+  const shell = canvas.closest('.dune-play-shell');
+  const top = [...(shell?.querySelectorAll('.seated-header .seated-chip') ?? [])].reduce((reach, chip) => {
+    const rect = chip.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0 ? Math.max(reach, rect.bottom - bounds.top) : reach;
+  }, 0);
+  const bar = shell?.querySelector('[data-compass-bar]')?.getBoundingClientRect();
+  const bottom = bar && bar.width > 0 && bar.height > 0 ? Math.max(bounds.bottom - bar.top, 0) : 0;
+  return { top: Math.max(top, 0), right: 0, bottom, left: 0 };
+}

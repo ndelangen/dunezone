@@ -7,19 +7,21 @@ import type { Camera, Mesh, MeshBasicMaterial } from 'three';
 
 import { ignoreRaycast } from './ignoreRaycast';
 import { pingEdgePlacement } from './pingEdgeMarker';
+import type { PingEdgeInsets } from './pingEdgeMarker';
 import { playPingSound } from './pingSound';
 import styles from './ScenePings.module.css';
+import { tableChromeInsets } from './seatedHeader';
 import { useTabletopActions } from './TabletopContext';
 
-/* A table full of players pinging at once shows the newest this many. */
-const MOST_PINGS = 24;
+/* A table full of players pinging at once shows the newest this many: six seats at the fastest ping rate, for as long as a ping lasts. */
+const MOST_PINGS = 48;
 /* The ripple spreads to this radius, in table units, over its run. */
 const RIPPLE_RADIUS = 0.3;
 const RIPPLE_MS = 1000;
 /* A ping out of view keeps its edge marker this long: a glance away from the edge should not miss it. */
 const EDGE_MS = 3000;
-/* How far in from each canvas edge the marker sits, in pixels: below the phase chip and camera dial, and high enough above the dock that a downward arrow (30 px from the centre) still clears it. */
-const EDGE_INSETS = { top: 96, right: 28, bottom: 94, left: 28 } as const;
+/* How far the marker keeps inside the canvas edge and the chrome over it, in pixels: its arrow reaches 34 px from its centre at the end of its nudge. */
+const EDGE_CLEARANCE = 40;
 /* How opaque the ripple is while it holds its colour, before it fades. */
 const RIPPLE_OPACITY = 0.85;
 /* Lifted off the surface it lands on; the ring is drawn over whatever stands there anyway, as card wells and cards rise above it. */
@@ -91,7 +93,8 @@ function PingRipple({ ping }: { ping: ShownPing }) {
     if (!container) {
       return;
     }
-    const marker = edgeMarker(ping.color);
+    /* The chrome as it stands when the ping lands: it moves with the layout, not with the camera. */
+    const marker = edgeMarker(ping.color, tableChromeInsets(renderer.domElement));
     container.appendChild(marker.element);
     edge.current = marker;
     return () => {
@@ -142,18 +145,23 @@ function PingRipple({ ping }: { ping: ShownPing }) {
   );
 }
 
-type EdgeMarker = { element: HTMLDivElement; heading: HTMLDivElement };
+type EdgeMarker = {
+  element: HTMLDivElement;
+  heading: HTMLDivElement;
+  chrome: PingEdgeInsets;
+  /* What the marker last showed, so a frame that changes nothing writes nothing. */
+  shown: string;
+};
 
-function edgeMarker(color: string): EdgeMarker {
+function edgeMarker(color: string, chrome: PingEdgeInsets): EdgeMarker {
   const marker = document.createElement('div');
-  marker.className = styles.edgeMarker!;
+  marker.className = styles.edgeMarker;
   marker.dataset.pingEdge = '';
   marker.setAttribute('aria-hidden', 'true');
   marker.style.setProperty('--ping-color', color);
-  marker.style.setProperty('--ping-edge-ms', `${EDGE_MS}ms`);
-  const part = (className: string | undefined, parent: HTMLElement = marker) => {
+  const part = (className: string, parent: HTMLElement = marker) => {
     const element = document.createElement('div');
-    element.className = className!;
+    element.className = className;
     parent.appendChild(element);
     return element;
   };
@@ -162,24 +170,29 @@ function edgeMarker(color: string): EdgeMarker {
   const heading = part(styles.heading);
   part(styles.arrow, heading);
   part(styles.dot, part(styles.chip));
-  return { element: marker, heading };
+  return { element: marker, heading, chrome, shown: '' };
 }
 
 /* On the edge towards the ping while the view leaves it out; hidden while it shows, where the ripple marks it. */
-function placeEdgeMarker(
-  { element: marker, heading }: EdgeMarker,
-  ping: TablePing,
-  camera: Camera,
-  size: { width: number; height: number }
-) {
+function placeEdgeMarker(marker: EdgeMarker, ping: TablePing, camera: Camera, size: { width: number; height: number }) {
   const [x, y, z] = ping.position;
   inView.set(x, y, z).applyMatrix4(camera.matrixWorldInverse);
   projected.set(x, y, z).project(camera);
-  const placement = pingEdgePlacement(inView.toArray(), [projected.x, projected.y], size, EDGE_INSETS);
-  marker.toggleAttribute('data-shown', placement !== null);
-  if (!placement) {
+  const placement = pingEdgePlacement(
+    inView.toArray(),
+    [projected.x, projected.y],
+    size,
+    marker.chrome,
+    EDGE_CLEARANCE
+  );
+  const shown = placement ? `${placement.x.toFixed(1)},${placement.y.toFixed(1)},${placement.angle.toFixed(3)}` : '';
+  if (shown === marker.shown) {
     return;
   }
-  marker.style.transform = `translate3d(${placement.x}px,${placement.y}px,0)`;
-  heading.style.rotate = `${placement.angle}rad`;
+  marker.shown = shown;
+  marker.element.toggleAttribute('data-shown', placement !== null);
+  if (placement) {
+    marker.element.style.transform = `translate3d(${placement.x}px,${placement.y}px,0)`;
+    marker.heading.style.rotate = `${placement.angle}rad`;
+  }
 }

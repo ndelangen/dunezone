@@ -1,6 +1,7 @@
 import { PLAY_DEBUGGER_EVENTS } from '@sb/playDebugger/events';
 import { testingPreview } from '@sb/preview';
 import { factionTokenOf } from '@shared/play/factionToken';
+import { BOTTOM_SHELF_POSITION, SIDE_SHELF_CENTER_X } from '@shared/play/tableFurnitureLayout';
 import { troopScale } from '@shared/play/tableGeometry';
 import { drawableTechTokens, isTechToken } from '@shared/play/techToken';
 import { addons } from 'storybook/preview-api';
@@ -579,5 +580,67 @@ export const DrawRandomTechToken = meta.story({
     }
     /* A page story cannot wait on a tooltip opening, so it checks only that the button is off. */
     await waitFor(() => expect(button).toHaveAttribute('aria-disabled', 'true'));
+  },
+});
+
+/* Where the other seats ping in turn while Seat 1 looks at the left bay: the map, the right bay, the tanks and the far rim. */
+const OUT_OF_VIEW_PINGS: readonly [number, number, number][] = [
+  [0, 0.38, 0],
+  [SIDE_SHELF_CENTER_X, 0.38, 0],
+  [0, 0.38, BOTTOM_SHELF_POSITION[2]],
+  [1.5, 0.38, -7],
+];
+const PING_EVERY_MS = 1600;
+/* The other seats' pinging, which starts once the camera has turned and stops when the story leaves. */
+let pinging: ReturnType<typeof setInterval> | undefined;
+
+/* Another seat pings the next spot out of view, each seat in turn. */
+function pingFromAnotherSeat(turn: number) {
+  const transport = sandbox.transport;
+  const view = sandbox.table?.frame().snapshot;
+  if (!transport?.connected() || !view) {
+    return;
+  }
+  const others = (view.roster?.seats ?? []).filter((seat) => seat.id !== sandbox.table!.seat && seat.faction);
+  const seat = others[turn % Math.max(others.length, 1)];
+  if (!seat) {
+    return;
+  }
+  transport.deliver({
+    type: 'ping',
+    ping: {
+      connectionId: `ping-${seat.id}`,
+      viewerSeat: seat.id,
+      displayName: view.controls?.players.find((player) => player.seat === seat.id)?.name ?? seat.id,
+      color: seat.faction!.color,
+      position: OUT_OF_VIEW_PINGS[turn % OUT_OF_VIEW_PINGS.length]!,
+    },
+  });
+}
+
+/**
+ * Seat 1 turns the camera to the left bay, and the other seats keep pinging elsewhere: on the map, the right bay, the tanks and the far rim.
+ * Each ping out of view shows on the edge of the table, pulsing in the pinger's colour with an arrow towards where it landed, for three seconds (#2672).
+ * By hand: turn the camera dial to another view, or pan with the arrow keys, and the markers follow;
+ * once a ping is in view only its ripple shows.
+ */
+export const PingsOutOfView = meta.story({
+  /* The meta installs the table; this story owns only the other seats' pinging. */
+  beforeEach: () => () => {
+    clearInterval(pinging);
+    pinging = undefined;
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await sandboxReady(page);
+    await userEvent.click(await page.findByRole('button', { name: /^Focus on left/ }));
+    let turn = 0;
+    pingFromAnotherSeat(turn);
+    clearInterval(pinging);
+    pinging = setInterval(() => pingFromAnotherSeat(++turn), PING_EVERY_MS);
+    await waitFor(
+      () => expect(canvasElement.ownerDocument.querySelector('[data-ping-edge][data-shown]')).not.toBeNull(),
+      { timeout: 10_000 }
+    );
   },
 });
