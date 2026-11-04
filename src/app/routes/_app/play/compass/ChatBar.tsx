@@ -22,8 +22,8 @@ type ChatBarProps = Readonly<{
   inert: boolean;
   /** Whether the table has a Hand & spice window yet, which the own token opens. */
   hasHand: boolean;
-  /** Whether the table has the keyboard shortcuts cheat sheet, which the key button opens. */
-  hasShortcuts: boolean;
+  /** Shows or hides the keyboard shortcuts cheat sheet; absent when the table has none, and the key button with it. */
+  onToggleShortcuts?: (() => void) | undefined;
   /** Whether a window is open anywhere, so its token shows pressed. */
   isOpen: (key: string, seat?: string) => boolean;
   onOpenCompass: () => void;
@@ -36,7 +36,7 @@ function words(...parts: (string | null | false | 0 | undefined)[]) {
   return parts.filter(Boolean);
 }
 
-export function ChatBar({ inert, hasHand, hasShortcuts, isOpen, onOpenCompass, onShow }: ChatBarProps) {
+export function ChatBar({ inert, hasHand, onToggleShortcuts, isOpen, onOpenCompass, onShow }: ChatBarProps) {
   const table = useContext(CompassTableContext);
   /* The other players to talk to, and the viewer too while a removal vote stands against them. */
   const recall = table?.recall;
@@ -48,8 +48,8 @@ export function ChatBar({ inert, hasHand, hasShortcuts, isOpen, onOpenCompass, o
   const shortcutsButton = useShortcutsButton();
   return (
     <div className={styles.bar} inert={inert} data-hides-cursor data-compass-bar>
-      {hasShortcuts && shortcutsButton && (
-        <ShortcutsButton open={isOpen(KEYBOARD_SHORTCUTS)} onOpen={() => onShow(KEYBOARD_SHORTCUTS)} />
+      {onToggleShortcuts && shortcutsButton && (
+        <ShortcutsButton open={isOpen(KEYBOARD_SHORTCUTS)} onToggle={onToggleShortcuts} />
       )}
       {hasHand && own?.factionName && (
         <OwnToken
@@ -116,7 +116,7 @@ function OwnToken({
 }
 
 /* The keyboard shortcuts cheat sheet, shown and hidden as ? does; the game menu takes the button off the bar. */
-function ShortcutsButton({ open, onOpen }: Readonly<{ open: boolean; onOpen: () => void }>) {
+function ShortcutsButton({ open, onToggle }: Readonly<{ open: boolean; onToggle: () => void }>) {
   return (
     <Tooltip label={`Keyboard shortcuts · ${SHORTCUTS.help}`} events={{ hover: true, focus: true, touch: false }}>
       <button
@@ -126,7 +126,7 @@ function ShortcutsButton({ open, onOpen }: Readonly<{ open: boolean; onOpen: () 
         aria-label="Keyboard shortcuts"
         aria-keyshortcuts={SHORTCUTS.help}
         data-shortcuts-button
-        onClick={onOpen}
+        onClick={onToggle}
       >
         <Keyboard size={20} aria-hidden />
       </button>

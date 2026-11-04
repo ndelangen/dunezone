@@ -116,9 +116,14 @@
   color: var(--color-muted);
 }
 
-.keys:hover,
-.keys[aria-pressed="true"] {
+.keys:hover {
   color: var(--color-text);
+}
+
+/* Open, it wears the brand edge the own token takes on hover, so the next click reads as closing it. */
+.keys[aria-pressed="true"] {
+  border-color: rgb(from var(--color-brand) r g b / 0.65);
+  color: var(--color-brand);
 }
 
 .token {

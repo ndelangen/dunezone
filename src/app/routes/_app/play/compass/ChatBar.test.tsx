@@ -8,6 +8,8 @@ import { afterEach, expect, test, vi } from 'vite-plus/test';
 import { ChatBar } from './ChatBar';
 import { CompassTableContext } from './compassTable';
 import type { CompassPlayer, CompassTable } from './compassTable';
+import { setShortcutsButton } from './shortcutsButton';
+import { KEYBOARD_SHORTCUTS } from './windows';
 
 /* jsdom has no matchMedia, which Mantine asks for. */
 window.matchMedia = vi.fn().mockImplementation((query: string) => ({
@@ -43,7 +45,12 @@ const player = (seat: string, own: boolean): CompassPlayer => ({
   ally: false,
 });
 
-function renderBar(players: readonly CompassPlayer[], hasHand = true, recall?: CompassTable['recall']) {
+function renderBar(
+  players: readonly CompassPlayer[],
+  hasHand = true,
+  recall?: CompassTable['recall'],
+  sheet?: Readonly<{ onToggle: () => void; open: boolean }>
+) {
   const onShow = vi.fn();
   const table: CompassTable = {
     players,
@@ -60,8 +67,8 @@ function renderBar(players: readonly CompassPlayer[], hasHand = true, recall?: C
         <ChatBar
           inert={false}
           hasHand={hasHand}
-          hasShortcuts={false}
-          isOpen={() => false}
+          onToggleShortcuts={sheet?.onToggle}
+          isOpen={(key) => Boolean(sheet?.open) && key === KEYBOARD_SHORTCUTS}
           onOpenCompass={vi.fn()}
           onShow={onShow}
         />
@@ -154,14 +161,7 @@ function renderChats() {
           token: null,
         }}
       >
-        <ChatBar
-          inert={false}
-          hasHand={false}
-          hasShortcuts={false}
-          isOpen={() => false}
-          onOpenCompass={vi.fn()}
-          onShow={onShow}
-        />
+        <ChatBar inert={false} hasHand={false} isOpen={() => false} onOpenCompass={vi.fn()} onShow={onShow} />
       </CompassTableContext>
     </MantineProvider>
   );
@@ -184,4 +184,28 @@ test('keyboard focus exposes the player, faction and ally shortcut through the s
   const player = screen.getByRole('button', { name: 'Paul, Atreides, 2 unread' });
   fireEvent.focus(player);
   expect((await screen.findByRole('tooltip')).textContent).toBe('Paul · Atreides · ally · Space → →');
+});
+
+test('the keyboard shortcuts button sits left of the own token, shows the sheet pressed and toggles it', () => {
+  const onToggle = vi.fn();
+  renderBar([player('seat-1', true)], true, undefined, { onToggle, open: true });
+  const button = screen.getByRole('button', { name: 'Keyboard shortcuts' });
+  const own = screen.getByRole('button', { name: /you are playing as Atreides/ });
+  expect(button.compareDocumentPosition(own) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(button.getAttribute('aria-pressed')).toBe('true');
+  fireEvent.click(button);
+  expect(onToggle).toHaveBeenCalledOnce();
+});
+
+test('the keyboard shortcuts button stays off the bar without a sheet, or once the viewer turns it off', () => {
+  renderBar([player('seat-1', true)]);
+  expect(screen.queryByRole('button', { name: 'Keyboard shortcuts' })).toBeNull();
+  cleanup();
+  setShortcutsButton(false);
+  try {
+    renderBar([player('seat-1', true)], true, undefined, { onToggle: vi.fn(), open: false });
+    expect(screen.queryByRole('button', { name: 'Keyboard shortcuts' })).toBeNull();
+  } finally {
+    setShortcutsButton(true);
+  }
 });

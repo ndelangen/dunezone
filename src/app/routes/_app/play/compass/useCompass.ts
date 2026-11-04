@@ -29,9 +29,11 @@ type CompassInputs = Readonly<{
   onView: (view: TableView) => void;
   /** Opens a window over the table. */
   onShow: (key: string, seat?: string) => void;
+  /** Shows or hides the keyboard shortcuts cheat sheet, wherever it stands; absent when the table has none. */
+  onToggleSheet?: () => void;
 }>;
 
-export function useCompass({ open, onOpen, inert, windows, table, onView, onShow }: CompassInputs) {
+export function useCompass({ open, onOpen, inert, windows, table, onView, onShow, onToggleSheet }: CompassInputs) {
   const [spot, setSpot] = useState<Spot>('hub');
   const [query, setQuery] = useState('');
   const [cursor, setCursor] = useState(0);
@@ -62,7 +64,7 @@ export function useCompass({ open, onOpen, inert, windows, table, onView, onShow
     ...Object.fromEntries(
       Object.values(tiles).flatMap((tile) => (tile.window ? [[tile.window.key, SHORTCUTS[tile.spot]]] : []))
     ),
-    ...(windows.some((entry) => entry.key === KEYBOARD_SHORTCUTS) ? { [KEYBOARD_SHORTCUTS]: SHORTCUTS.help } : {}),
+    ...(onToggleSheet ? { [KEYBOARD_SHORTCUTS]: SHORTCUTS.help } : {}),
   };
   const suggestions = rankSuggestions(
     candidatesOf(windows, {
@@ -101,12 +103,9 @@ export function useCompass({ open, onOpen, inert, windows, table, onView, onShow
   };
   /* A letter opens its arm's window, as confirming the tile would, or runs its command; one the table lacks is left to the table. */
   const shortcut = (pressed: Shortcut) => {
-    /* ? shows the cheat sheet in the centre, and hides it again. */
-    if (pressed === 'help') {
-      if (!windows.some((entry) => entry.key === KEYBOARD_SHORTCUTS)) {
-        return false;
-      }
-      onShow(KEYBOARD_SHORTCUTS);
+    /* ? shows the cheat sheet, and hides it again even pinned; without the sheet it falls through to nothing. */
+    if (pressed === 'help' && onToggleSheet) {
+      onToggleSheet();
       return true;
     }
     if (pressed in tiles) {

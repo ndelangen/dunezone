@@ -7,7 +7,6 @@ import { rosterSeat } from '@shared/play/schema';
 import { Link } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { Eyebrow } from '@ui/content/Eyebrow';
-import { Kbd } from '@ui/content/Kbd';
 import { ConfirmDeleteMenuItem } from '@ui/control/ConfirmDeleteMenuItem';
 import { IconAction } from '@ui/control/IconAction';
 import { Armchair, Settings } from 'lucide-react';
@@ -35,7 +34,6 @@ import {
   TABLE_PAN_SPEED_MIN,
   useTablePanSpeed,
 } from '../../../../widgets/tabletop/tablePanSpeed';
-import { SHORTCUTS } from '../compass/shortcuts';
 import { setShortcutsButton, useShortcutsButton } from '../compass/shortcutsButton';
 import { TABLE_LABEL_OPTIONS, useTableLabels } from '../tableLabels';
 import { publicControlsOf } from './publicControls';
@@ -393,12 +391,7 @@ function PlanetShadingItem() {
 function ShortcutsButtonItem() {
   const shown = useShortcutsButton();
   return (
-    <Menu.CheckboxItem
-      checked={shown}
-      closeMenuOnClick={false}
-      onChange={() => setShortcutsButton(!shown)}
-      rightSection={<Kbd>{SHORTCUTS.help}</Kbd>}
-    >
+    <Menu.CheckboxItem checked={shown} closeMenuOnClick={false} onChange={() => setShortcutsButton(!shown)}>
       Keyboard shortcuts button
     </Menu.CheckboxItem>
   );

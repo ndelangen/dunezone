@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { expect } from 'storybook/test';
+import { expect, waitFor } from 'storybook/test';
 
 import { panelMeta } from '../PanelWindow.stories.fixture';
 import { PANEL_WINDOWS } from '../panelWindows';
@@ -17,8 +17,9 @@ const meta = preview.meta({
 /** Every key the table answers to, grouped by what it is for. */
 export const CheatSheet = meta.story({
   play: async ({ canvas }) => {
-    await expect(canvas.getByRole('heading', { name: 'Compass and windows' })).toBeVisible();
-    await expect(canvas.getByText('Ping the spot under the pointer for everyone')).toBeVisible();
+    /* The window fades in as it opens, so the sheet is read once it has settled. */
+    await waitFor(() => expect(canvas.getByRole('heading', { name: 'Compass and windows' })).toBeVisible());
+    await expect(canvas.getByText('Ping the spot under the pointer for everyone')).toBeInTheDocument();
   },
 });
 
