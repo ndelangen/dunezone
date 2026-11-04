@@ -52,6 +52,12 @@ export type TableProjection = {
     draw(pieceId: string, recipient?: string): void;
     shuffle(pieceId: string): void;
   };
+  /* Placing a revealed spice card's spice in its territory (#2678); present only while this viewer can act. */
+  spiceBlowControls?: {
+    /** What the card on top of this piece would place and where, or null when it shows no spice card or already placed it this turn. */
+    placement(pieceId: string): { amount: number; name: string } | null;
+    place(pieceId: string): void;
+  };
   /* Taking a card, token or stack out of the game for good; present only while this viewer can act. */
   deleteControls?: {
     remove(pieceId: string): void;
@@ -187,7 +193,14 @@ function sameMembers<T>(a: ReadonlySet<T> | ReadonlyMap<T, unknown>, b: Readonly
 
 /* The controls a panel offers only while present, so only their presence counts for a panel's render. */
 const PIECE_ID_SETS = ['remoteCarriedIds', 'plateRiders', 'reservedPieceIds'] as const;
-const PANEL_CONTROLS = ['spiceReserveControls', 'deckControls', 'deleteControls', 'peekControls', 'closePeek'] as const;
+const PANEL_CONTROLS = [
+  'spiceReserveControls',
+  'spiceBlowControls',
+  'deckControls',
+  'deleteControls',
+  'peekControls',
+  'closePeek',
+] as const;
 
 function samePlayback(previous: TableProjection['playback'], next: TableProjection['playback']) {
   if (!previous || !next) {

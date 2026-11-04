@@ -10,7 +10,7 @@ import { openControl } from './controls.stories.fixture';
 import { gameMeta, install } from './game.stories.fixture';
 import { chapter, journeyViewers, JourneyPage } from './journey.stories.fixture';
 import { sandbox, sandboxReady, sandboxSteps, sandboxTransport } from './sandbox.stories.fixture';
-import { shown, piece, withTechTokens } from './sandbox.stories.fixture';
+import { shown, piece, withSpiceBlows, withTechTokens } from './sandbox.stories.fixture';
 
 const meta = preview.meta({
   ...gameMeta,
@@ -207,5 +207,26 @@ export const TechTokens = meta.story({
     const [customs] = tokens.filter((candidate) => !candidate.inventory);
     await expect(troopScale(customs!)).toBe(troopScale({ kind: 'force', stackKey: 'leader:any' }));
     await expect(page.getByRole('button', { name: 'Draw random tech token' })).toBeEnabled();
+  },
+});
+
+/**
+ * Spice Blow, just after the Spice card was turned face up: Broken Land is lit on the board, so nobody has to go back to the card to see where its spice goes.
+ * By hand: right-click the revealed card and choose "Place 8 spice on Broken Land";
+ * the spice lands inside Broken Land, the light goes out, and the card offers it no more this turn.
+ * Turn the camera to the map to watch it land.
+ */
+export const SpiceBlow = meta.story({
+  args: { step: chapter('Spice card revealed'), seat: 'seat-1' },
+  beforeEach: ({ args }: { args: { step?: number; seat?: string } }) =>
+    install(() =>
+      sandboxTransport({
+        start: Number(args.step ?? 1) - 1,
+        seat: String(args.seat ?? 'seat-1'),
+        prepare: withSpiceBlows,
+      })
+    )(),
+  play: async ({ canvasElement }) => {
+    await sandboxReady(within(canvasElement.ownerDocument.body));
   },
 });

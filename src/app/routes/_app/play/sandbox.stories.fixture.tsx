@@ -1,6 +1,7 @@
 import { debuggingChanged, describeDebugging, note } from '@sb/playDebugger/preview';
 import type { LogEntry, LogTab } from '@shared/play/log';
 import type { Viewer } from '@shared/play/protocol';
+import { spiceBlowOf } from '@shared/play/spiceBlow';
 import { restingPositionAt } from '@shared/play/tableGeometry';
 import { nearestCollisionFreePosition } from '@shared/play/tablePhysics';
 import { isTechToken } from '@shared/play/techToken';
@@ -226,4 +227,20 @@ export function withTechTokens(stored: StoredSnapshot, drawn: readonly string[] 
     versions[piece.id] = stored.revision;
   }
   return { ...stored, table: { ...stored.table, pieces }, versions };
+}
+
+/**
+ * The recording's Spice cards as a game now captures them: each Broken Land card names its territory and its eight spice, as the published card's highlight and amount say, so its revealed face can place its spice (#2678).
+ */
+export function withSpiceBlows(stored: StoredSnapshot): StoredSnapshot {
+  const spiceBlow = spiceBlowOf('card-spice', { highlights: ['broken-land'], amount: 8 });
+  const capture = (item: StoredSnapshot['table']['pieces'][number]['items'][number]) =>
+    item.artwork?.type === 'card-spice' ? { ...item, artwork: { ...item.artwork, spiceBlow } } : item;
+  return {
+    ...stored,
+    table: {
+      ...stored.table,
+      pieces: stored.table.pieces.map((candidate) => ({ ...candidate, items: candidate.items.map(capture) })),
+    },
+  };
 }

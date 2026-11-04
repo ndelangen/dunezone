@@ -11,6 +11,7 @@ import type { DraftMove, TablePiece, TableState, Vector3Tuple } from '@shared/pl
 import { isSeatAction } from '@shared/play/participation';
 import { rearrangeable } from '@shared/play/peeking';
 import type { Peek } from '@shared/play/peeking';
+import { STANDARD_PHASES, tableProgressFor } from '@shared/play/phases';
 import { piecesOnPlates } from '@shared/play/pointerRiders';
 import { carryPieceId, TABLE_PING_INTERVAL_MS, tableForViewer } from '@shared/play/protocol';
 import type {
@@ -27,6 +28,8 @@ import { isRemovalAction } from '@shared/play/removal';
 import { isReviewAction, reviewRunning } from '@shared/play/review';
 import { CARRY_FLIPS_LIMIT, SPECTATOR_SEAT, tablePositionSchema } from '@shared/play/schema';
 import { isSpicePiece } from '@shared/play/spice';
+import { canPlaceSpiceBlow, revealedSpiceBlow } from '@shared/play/spiceBlowPlacement';
+import { spiceBlowSpot } from '@shared/play/spiceBlowSpot';
 import type { SpiceGift, SpiceGiftChoice } from '@shared/play/spiceReserve';
 import { isSwapAction } from '@shared/play/swapping';
 import type { PointerRay } from '@shared/play/tableGeometry';
@@ -601,6 +604,7 @@ export class TableSession {
       selectedPiece: null,
       affordances: [],
       spiceReserveControls: undefined,
+      spiceBlowControls: undefined,
       spiceGift: undefined,
       deckControls: undefined,
       handControls: undefined,
@@ -714,6 +718,10 @@ export class TableSession {
     const canHandleTable = this.canHandle();
     return {
       spiceReserveControls: canHandleTable && displayed.bank ? this.spiceReserveControls : undefined,
+      spiceBlowControls:
+        canHandleTable && displayed.stage === 'play' && this.subscription.supportsCommand('spice-blow')
+          ? this.spiceBlowControls
+          : undefined,
       deckControls:
         canHandleTable && this.subscription.supportsCommand('deck-draw') ? this.deckControls(displayed) : undefined,
       deleteControls: this.deleteControls(canHandleTable),
@@ -739,6 +747,34 @@ export class TableSession {
     canCollect: (pieceId) => this.table !== null && !this.table.reservedPieceIds.has(pieceId),
     collect: (pieceId) => this.command({ kind: 'bank-collect', pieceId }),
   };
+  /* Read when the ring opens and when it is used, against the table as it is then, so it never places from a stale spot. */
+  private readonly spiceBlowControls: NonNullable<TableProjection['spiceBlowControls']> = {
+    placement: (pieceId) => {
+      const placement = this.spiceBlowPlacement(pieceId);
+      return placement && { amount: placement.amount, name: placement.name };
+    },
+    place: (pieceId) => {
+      const placement = this.spiceBlowPlacement(pieceId);
+      if (placement) {
+        const { amount: _amount, ...action } = placement;
+        this.command({ kind: 'spice-blow', ...action, position: [...action.position] });
+      }
+    },
+  };
+  private spiceBlowPlacement(pieceId: string) {
+    const table = this.table;
+    const piece = table?.state.pieces.find((entry) => entry.id === pieceId);
+    if (!table || !piece || table.reservedPieceIds.has(pieceId)) {
+      return null;
+    }
+    const { turn } = tableProgressFor(table.snapshot.phase, table.snapshot.phases ?? STANDARD_PHASES);
+    if (!canPlaceSpiceBlow(piece, turn)) {
+      return null;
+    }
+    const spot = spiceBlowSpot(table.snapshot, table.state.pieces, piece);
+    const amount = revealedSpiceBlow(piece)?.blow.amount;
+    return spot && amount ? { ...spot, amount } : null;
+  }
   private readonly peekControls: NonNullable<TableProjection['peekControls']> = {
     peek: (pieceId) => {
       this.closedPeek = null;

@@ -33,15 +33,18 @@ export class SpiceLedger {
         /* `supply` names the Spice Bank (see CONTEXT.md); the literal is kept for stored transfer records. */
         return { ...record, kind: 'supply', amount: action.count, source: 'supply', destination: 'table' };
       }
+      if (action.kind === 'spice-blow') {
+        /* A revealed spice card's spice comes out of the Spice Bank too, as much as the card says. */
+        const amount = spiceOnTable(next) - spiceOnTable(before);
+        return amount > 0 ? { ...record, kind: 'supply', amount, source: 'supply', destination: 'table' } : undefined;
+      }
     }
     /* A payment lands in the receiving faction's spice reserve; a bribe on its bribe pile, still on the table. */
     if (message.type === 'drop' && message.give) {
       const { as, factionId: destination } = message.give;
       return held > 0 ? { ...record, kind: as, amount: held, source: 'table', destination } : undefined;
     }
-    const total = (snapshot: GameSnapshot) =>
-      snapshot.table.pieces.filter(isSpicePiece).reduce((sum, piece) => sum + piece.items.length, 0);
-    const disposed = total(before) - total(next);
+    const disposed = spiceOnTable(before) - spiceOnTable(next);
     return disposed > 0 ? { ...record, kind: 'disposal', amount: disposed, source: 'table' } : undefined;
   }
 
@@ -85,4 +88,8 @@ export class SpiceLedger {
       }),
     };
   }
+}
+
+function spiceOnTable(snapshot: GameSnapshot) {
+  return snapshot.table.pieces.filter(isSpicePiece).reduce((sum, piece) => sum + piece.items.length, 0);
 }

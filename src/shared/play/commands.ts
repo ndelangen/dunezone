@@ -10,6 +10,7 @@ import type { DurableTable, GameSnapshot, TableAction } from './protocol';
 import { GameRejection } from './rejection';
 import { isSpicePiece } from './spice';
 import { createSpiceStack } from './spiceBank';
+import { placeSpiceBlowInState } from './spiceBlowPlacement';
 import { SHARED_ITEM_PLACEMENT_ANCHORS } from './tableFurnitureLayout';
 import { planarDistance, restingPositionAt, stackPreviewPositionFor } from './tableGeometry';
 import { isCollisionFreePosition, nearestCollisionFreePosition } from './tablePhysics';
@@ -150,6 +151,8 @@ export function applyPieceAction(
       return splitPiece(state, piece, action.count);
     case 'delete':
       return deletePiece(state, piece, actorName);
+    case 'spice-blow':
+      return placeSpiceBlowInState(state, piece, action, tableProgressFor(phase, phases).turn, actorName);
   }
 }
 
