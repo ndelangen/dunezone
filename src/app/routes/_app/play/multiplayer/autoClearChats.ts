@@ -122,7 +122,11 @@ export function useAutoClearChatsAtNewTurn(client: TableSession, table: TablePro
   const turn = ready ? liveTurn(table) : undefined;
   const summaries = ready ? conversations.summaries : undefined;
   useEffect(() => {
-    if (turn !== undefined && enterTurn(client.game, turn) && enabled) {
+    if (turn === undefined) {
+      return;
+    }
+    const started = enterTurn(client.game, turn);
+    if (started && enabled) {
       writeOwed(client.game, { ...readOwed(client.game), ...client.conversations.clearAllChats() });
     }
   }, [client, enabled, turn]);
