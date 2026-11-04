@@ -118,7 +118,11 @@ export const Sandbox = meta.story({
  * Seat 1 turns "Camera follows phase" off in the game menu, looks at the left bay and moves on to Revival: the camera keeps the view the player chose instead of moving to the bottom shelf.
  */
 export const KeepCameraOnPhaseChange = meta.story({
-  beforeEach: () => () => setCameraFollowsPhase(true),
+  /* The choice outlives the page, so the story starts from the default and puts it back. */
+  beforeEach: () => {
+    setCameraFollowsPhase(true);
+    return () => setCameraFollowsPhase(true);
+  },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await sandboxReady(page);

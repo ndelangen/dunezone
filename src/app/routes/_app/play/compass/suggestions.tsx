@@ -190,6 +190,31 @@ function nextPhaseCandidate(nextPhase: SuggestionActions['nextPhase'], close: ()
   ];
 }
 
+/* A choice this viewer turns on or off, as in the game menu: one candidate for each side. */
+function toggleCandidates(
+  close: () => void,
+  icon: ReactNode,
+  toggle: Readonly<{
+    key: string;
+    label: string;
+    set: (on: boolean) => void;
+    text: Readonly<{ on: string; off: string }>;
+  }>
+): Candidate[] {
+  return (['on', 'off'] as const).map((side): Candidate => ({
+    key: `look:${toggle.key}:${side}`,
+    label: `${toggle.label}: ${side}`,
+    hint: 'Only you see it',
+    icon,
+    run: () => {
+      close();
+      toggle.set(side === 'on');
+    },
+    text: toggle.text[side],
+    weight: -1,
+  }));
+}
+
 /* This viewer's board look, as in the game menu: each skin, planet shading on or off, and whether the camera follows phases. Found by name, never suggested unasked. */
 function lookCandidates(close: () => void): Candidate[] {
   const icon = <TopicIcon topic="board" size={18} />;
@@ -205,30 +230,19 @@ function lookCandidates(close: () => void): Candidate[] {
     text: `board skin texture ${BOARD_SKIN_LABELS[skin]}`,
     weight: -1,
   }));
-  const shading = ([true, false] as const).map((on): Candidate => ({
-    key: `look:planet:${on ? 'on' : 'off'}`,
-    label: `Planet shading: ${on ? 'on' : 'off'}`,
-    hint: 'Only you see it',
-    icon,
-    run: () => {
-      close();
-      setPlanetShading(on);
-    },
-    text: `planet shading shade board skin ${on ? 'on' : 'off'}`,
-    weight: -1,
-  }));
-  const following = ([true, false] as const).map((on): Candidate => ({
-    key: `look:camera-follows-phase:${on ? 'on' : 'off'}`,
-    label: `Camera follows phase: ${on ? 'on' : 'off'}`,
-    hint: 'Only you see it',
-    icon,
-    run: () => {
-      close();
-      setCameraFollowsPhase(on);
-    },
-    text: `camera follows phase keep view reset ${on ? 'on' : 'off'}`,
-    weight: -1,
-  }));
+  const shading = toggleCandidates(close, icon, {
+    key: 'planet',
+    label: 'Planet shading',
+    set: setPlanetShading,
+    text: { on: 'planet shading shade board skin on', off: 'planet shading shade board skin off' },
+  });
+  /* Each side carries its own words, so "keep view" finds following off and "follow" finds it on. */
+  const following = toggleCandidates(close, icon, {
+    key: 'camera-follows-phase',
+    label: 'Camera follows phase',
+    set: setCameraFollowsPhase,
+    text: { on: 'camera follows phase move reset on', off: 'camera follows phase keep my view stay off' },
+  });
   return [...skins, ...shading, ...following];
 }
 

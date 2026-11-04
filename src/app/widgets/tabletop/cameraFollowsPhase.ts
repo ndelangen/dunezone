@@ -11,5 +11,7 @@ const followsPhase = viewerChoice<boolean>('dunezone-camera-follows-phase', {
 });
 
 export const setCameraFollowsPhase = followsPhase.set;
+/** The current choice, outside React. */
+export const readCameraFollowsPhase = followsPhase.read;
 /** Whether this viewer's camera moves to each phase's view when the phase begins. */
 export const useCameraFollowsPhase = followsPhase.use;

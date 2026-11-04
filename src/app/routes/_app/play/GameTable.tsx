@@ -586,10 +586,15 @@ function useTableViewController(
 ) {
   const viewPhase = word || !activePhase ? null : standardPhaseOf(activePhase);
   const followPhase = useCameraFollowsPhase();
-  const [viewState, dispatchView] = useReducer(reduceTableView, viewPhase, createTableViewState);
+  const [viewState, dispatchView] = useReducer(reduceTableView, null, () =>
+    createTableViewState(viewPhase, followPhase)
+  );
+  /* The viewer's choice and the phase changed since the last render; the reducer answers both before this render commits, the choice first. */
+  if (viewState.follow !== followPhase) {
+    dispatchView({ type: 'follow.changed', follow: followPhase });
+  }
   if (viewState.phase !== viewPhase) {
-    /* The phase changed since the last render; the reducer answers it before this render commits. */
-    dispatchView({ type: 'phase.changed', phase: viewPhase, follow: followPhase });
+    dispatchView({ type: 'phase.changed', phase: viewPhase });
   }
   const cameraView = useMemo<CameraViewCommand>(
     () => ({
@@ -660,7 +665,7 @@ export function GameTable({
   const heldOverlays = useHeldOverlays();
   const tableLabels = usePinnedLabels();
   const frame = stageFrame(stage);
-  /* The camera follows the phase while the header names one: in play, and on the fixture. */
+  /* The camera follows the phase while the header names one (in play, and on the fixture), unless this viewer turned "Camera follows phase" off. */
   /* A faction phase takes the camera view of the standard phase it precedes (#1138). */
   const activePhase = tableProgress.phases.find((entry) => entry.id === tableProgress.activePhaseId);
   const controller = useTableViewController(activePhase, frame.word, requestedView, onSceneReady);
