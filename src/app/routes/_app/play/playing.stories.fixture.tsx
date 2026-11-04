@@ -4,7 +4,7 @@ import type { TablePiece } from '@shared/play/model';
 import { TABLE_PHASES } from '@shared/play/phases';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { stackTopHeight } from '@shared/play/tableGeometry';
-import { piecesNudgedAround, territoryLanding } from '@shared/play/territoryPlacement';
+import { territoryLanding, withNudges } from '@shared/play/territoryPlacement';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { STORYBOOK_NOW } from '@db/storybook';
@@ -151,9 +151,9 @@ export function battleStory(stage: 'preparing' | 'countdown' | 'revealed', obser
   const others = snapshot.table.pieces.filter((piece) => piece.id !== attackers.id);
   const beside: typeof defenders.position = [defenders.position[0] + 0.3, defenders.position[1], defenders.position[2]];
   const landing = territoryLanding({}, attackers, beside, others)!;
-  attackers.position = landing;
+  attackers.position = landing.position;
   attackers.zoneId = 'arrakeen';
-  snapshot.table.pieces = piecesNudgedAround({}, snapshot.table.pieces, attackers);
+  snapshot.table.pieces = withNudges(snapshot.table.pieces, landing.nudges);
   return {
     ...snapshot,
     phase: 6,

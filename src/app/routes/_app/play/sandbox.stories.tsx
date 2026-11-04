@@ -6,7 +6,7 @@ import { restingPositionAt, troopScale } from '@shared/play/tableGeometry';
 import { footprintReach, nearestCollisionFreePosition, piecesOverlapAt } from '@shared/play/tablePhysics';
 import { drawableTechTokens, isTechToken } from '@shared/play/techToken';
 import { fitsInside, innermostPoint, tableTerritories } from '@shared/play/territoryFit';
-import { packsInTerritory, piecesNudgedAround, territoryLanding } from '@shared/play/territoryPlacement';
+import { packsInTerritory, territoryLanding, withNudges } from '@shared/play/territoryPlacement';
 import { expect, within } from 'storybook/test';
 
 import type { StoredSnapshot } from '../../../../../workers/game/state';
@@ -249,8 +249,7 @@ function withArrakeenPacked(stored: StoredSnapshot): StoredSnapshot {
     const side = index % 2 === 0 ? -0.2 : 0.2;
     const landing = territoryLanding({}, stack, restingPositionAt([x + side, 0, z], stack), others);
     if (landing) {
-      const placed = { ...stack, position: landing };
-      pieces = piecesNudgedAround({}, [...others, placed], placed);
+      pieces = withNudges([...others, { ...stack, position: landing.position }], landing.nudges);
     }
   }
   const moved = new Map(pieces.map((piece) => [piece.id, piece.position]));
@@ -328,12 +327,13 @@ export const TroopsMakeRoom = meta.story({
     await expect(table.refusal).toBeUndefined();
     const city = shown().table.pieces.filter((candidate) => [...held, stack.id].includes(candidate.id));
     await expect(city).toHaveLength(3);
-    for (const candidate of city) {
-      await expect(inside(candidate)).toBe(true);
-      for (const other of city) {
-        await expect(other === candidate || !piecesOverlapAt(candidate, candidate.position, other)).toBe(true);
-      }
-    }
+    await expect(city.filter((candidate) => !inside(candidate)).map(({ id }) => id)).toEqual([]);
+    const overlapping = city.flatMap((candidate) =>
+      city
+        .filter((other) => other !== candidate && piecesOverlapAt(candidate, candidate.position, other))
+        .map((other) => `${candidate.id}/${other.id}`)
+    );
+    await expect(overlapping).toEqual([]);
   },
 });
 
@@ -364,9 +364,10 @@ export const BattleMarkerLightsTerritory = meta.story({
           packsInTerritory(candidate) && Math.hypot(candidate.position[0] - x, candidate.position[2] - z) < 0.9
       );
       await expect(nearby.length).toBeGreaterThan(1);
-      for (const stack of nearby) {
-        await expect(fitsInside(territory, [stack.position[0], stack.position[2]], footprintReach(stack))).toBe(true);
-      }
+      const outside = nearby.filter(
+        (stack) => !fitsInside(territory, [stack.position[0], stack.position[2]], footprintReach(stack))
+      );
+      await expect(outside.map(({ id }) => id)).toEqual([]);
     });
   },
 });

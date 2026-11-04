@@ -24,7 +24,7 @@ import {
   piecesCanStack,
   piecesTouchForStack,
 } from './tablePhysics';
-import { packsInTerritory, piecesNudgedAround, territoryAtTable, territoryLanding } from './territoryPlacement';
+import { packsInTerritory, territoryAtTable, territoryLanding, withNudges } from './territoryPlacement';
 import { isTroopStack } from './troop';
 
 export function eventId(number: number): string {
@@ -344,8 +344,13 @@ function placementObstaclesFor(state: TableState, draft: DraftMove): TablePiece[
 }
 
 /** The draft as a plain move to a position, landing in a zone or none, onto no stack. */
+/* A draft before it is settled: the nudges of an earlier settlement no longer hold once it moves. */
+function unsettled({ nudges: _settled, ...draft }: DraftMove): DraftMove {
+  return draft;
+}
+
 function moveDraftTo(draft: DraftMove, position: Vector3Tuple, targetZoneId: string | null): DraftMove {
-  return { ...draft, operation: 'move', position, targetZoneId, targetPieceId: null };
+  return { ...unsettled(draft), operation: 'move', position, targetZoneId, targetPieceId: null };
 }
 
 export function projectCarryAtPosition(state: TableState, draft: DraftMove, position: Vector3Tuple): DraftMove | null {
@@ -364,7 +369,7 @@ export function projectCarryAtPosition(state: TableState, draft: DraftMove, posi
   const targetPiece = anchoredStackTarget(state, draft, piece, position, placementAnchor);
   if (targetPiece) {
     return {
-      ...draft,
+      ...unsettled(draft),
       operation: 'merge',
       position: [...position],
       targetZoneId: targetPiece.zoneId,
@@ -450,7 +455,12 @@ function settleMoveAtPosition(
     placementObstaclesFor(state, draft)
   );
   if (landing !== undefined) {
-    return landing && moveDraftTo(draft, landing, nearestZone(landing)?.id ?? null);
+    return (
+      landing && {
+        ...moveDraftTo(draft, landing.position, nearestZone(landing.position)?.id ?? null),
+        nudges: landing.nudges,
+      }
+    );
   }
   const clampedPosition = clampPositionToTable(piece, restingPositionAt(position, piece));
   const rules = placementRules(state.pieces, piece, placementObstaclesFor(state, draft));
@@ -644,6 +654,10 @@ function rejectDraft(rejectedBase: TableState, command: string, message: string)
 
 function settleDraftApplication(application: DraftApplication): DraftResolution {
   const { current, draft, piece, rejectedBase } = application;
+  /* A draft already settled into a territory carries its layout; packing the territory again could only disagree with it. */
+  if (draft.nudges) {
+    return application;
+  }
   const settled = settleMoveAtPosition(current, draft, piece, draft.position);
   if (!settled) {
     return rejectDraft(rejectedBase, 'piece.move', 'There is no clear space for that object.');
@@ -821,7 +835,7 @@ function applyMove(application: DraftApplication): TableState {
   return accepted(
     {
       ...current,
-      pieces: piecesNudgedAround(current, piecesAfterMove(current, draft, movedPiece), movedPiece),
+      pieces: withNudges(piecesAfterMove(current, draft, movedPiece), draft.nudges),
       selectedPieceId: movedPiece.id,
       draftMove: null,
     },

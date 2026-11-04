@@ -4,11 +4,11 @@ import { CENTER, contains, RADIUS, retainedArrakisBoard } from '@shared/boards/g
 import type { Board, Point } from '@shared/boards/schema';
 import { propertyId } from '@shared/boards/schema';
 import { placeStickers } from '@shared/boards/stickerPlacement';
-import { boardTerritories, boardTerritoryAt } from '@shared/boards/territories';
+import { boardTerritories } from '@shared/boards/territories';
 import type { OutlinePath } from '@shared/boards/tintOutline';
 import { offRim, offsetPath, outerSegments, outlinePaths } from '@shared/boards/tintOutline';
 import { tintOutlineOpacity } from '@shared/boards/tints';
-import { BOARD_RADIUS } from '@shared/play/tableGeometry';
+import { toTable } from '@shared/play/territoryFit';
 import type { TerritoryTint, TintStamp } from '@shared/play/territoryTints';
 import { tintPaint } from '@shared/play/territoryTints';
 import { playUiColors } from '@shared/uiPalette';
@@ -19,20 +19,6 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 
 import { ignoreRaycast } from './ignoreRaycast';
 import { TINT_STICKERS } from './tintStickers';
-
-/* Board drawing units run across the board's circle; the table's board disc is BOARD_RADIUS wide. */
-function toTable([x, y]: Readonly<Point>): [number, number] {
-  return [((x - CENTER[0]) / RADIUS) * BOARD_RADIUS, ((y - CENTER[1]) / RADIUS) * BOARD_RADIUS];
-}
-
-/** The territory under a table point, by the ID tints keep, or undefined off the map. */
-export function territoryAtTablePoint(board: Board, x: number, z: number) {
-  const property = boardTerritoryAt(board, [
-    CENTER[0] + (x * RADIUS) / BOARD_RADIUS,
-    CENTER[1] + (z * RADIUS) / BOARD_RADIUS,
-  ]);
-  return property && { id: propertyId(property), name: property.name };
-}
 
 function fillGeometry(rings: Point[][]) {
   const shapes = rings.map((ring) => ring.slice(0, -1).map(([x, y]) => new Vector2(x, y)));

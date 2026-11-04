@@ -233,15 +233,15 @@ export class Room {
   readonly pointers = new Map<string, PublicPointer>();
   private readonly usedCarryIds = new Map<string, Set<string>>();
   private readonly flipUntil = new Map<string, number>();
-  /** The board the game captured with its ruleset; a game without one plays on the rulebook Arrakis. */
-  board: () => Board | undefined = () => undefined;
   constructor(
     snapshot: GameSnapshot | StoredSnapshot,
     private readonly seatedPlayers: () => Identity['viewerSeat'][],
     private readonly factionFor: (userId: string) => string | undefined = () => undefined,
     /** The catalogue deck the fixture deals on reset; a room adopts one after the fact when its catalogue answers late. */
     public fixtureDeck?: StoredSpawnContents,
-    private readonly phaseCooldownMs = PHASE_CHANGE_COOLDOWN_MS
+    private readonly phaseCooldownMs = PHASE_CHANGE_COOLDOWN_MS,
+    /** The board the game captured with its ruleset; a game without one plays on the rulebook Arrakis. */
+    private readonly board: () => Board | undefined = () => undefined
   ) {
     this.snapshot = storedSnapshotSchema.parse(snapshot);
     this.settledRevision = this.snapshot.revision;

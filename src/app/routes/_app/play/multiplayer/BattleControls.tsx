@@ -615,15 +615,27 @@ function BattleCallout({ client, table, battle, placement }: Props & { battle: P
     </Html>
   );
 }
-/** The scene owns pointer projection; every drop remains an intent sent to the game authority. */
-export function BattleScene(props: Props) {
+/**
+ * The scene owns pointer projection;
+ * every drop remains an intent sent to the game authority.
+ * The territory under the carried marker goes out through `onMarkerTerritory`, for the page to light.
+ */
+export function BattleScene({
+  onMarkerTerritory,
+  ...props
+}: Props & Readonly<{ onMarkerTerritory?: (territoryId: string | null) => void }>) {
   const battle = props.table.snapshot.battle;
   const placement = useBattlePlacement(battle);
   useInventoryDrop(props);
   return (
     <>
       <KeyboardSpicePlacement {...props} />
-      <BattleBeacon table={props.table} battle={battle} onDrop={(position) => markBattle(props.client, position)} />
+      <BattleBeacon
+        table={props.table}
+        battle={battle}
+        onDrop={(position) => markBattle(props.client, position)}
+        onHover={onMarkerTerritory}
+      />
       {battle ? <BattleCallout {...props} battle={battle} placement={placement} /> : null}
     </>
   );

@@ -13,7 +13,6 @@ import type { Group } from 'three';
 
 import type { TableProjection } from '../../../../db/tabletop/TableSession';
 import { useMotionAllowed } from '../../../../styles/motion';
-import { setBattleMarkerHover } from '../../../../widgets/tabletop/battleMarkerHover';
 import type { PointerSession } from '../../../../widgets/tabletop/PointerSession';
 import { PointerSessionContext } from '../../../../widgets/tabletop/PointerSessionContext';
 import styles from './BattleBeacon.module.css';
@@ -86,6 +85,7 @@ function applyFrame(
     flat: state.flat,
     height: state.height,
     fade: state.fade,
+    above: state.presence >= 1,
     motion: parts.motion,
     carried: parts.carried,
   });
@@ -114,7 +114,14 @@ function useBeaconFrame({
   handle: RefObject<Group | null>;
 }) {
   const invalidate = useThree((state) => state.invalidate);
-  const pose = useRef<BeaconPose>({ flat: 0, height: HOME_HEIGHT, fade: 1, carried: false, motion });
+  const pose = useRef<BeaconPose>({
+    flat: 0,
+    height: HOME_HEIGHT,
+    fade: 1,
+    above: false,
+    carried: false,
+    motion,
+  });
   const moving = useRef<BeaconMotion | null>(null);
   const [risen, reportRisen] = useRisen();
   useEffect(() => invalidate(), [mode, motion, invalidate]);
@@ -206,24 +213,39 @@ function useMarkerHover({
   carrying,
   carryAt,
   pending,
+  onHover,
 }: {
   board: Board | undefined;
   carrying: boolean;
   carryAt: () => Vector3Tuple | null;
   pending: Vector3Tuple | null;
+  onHover: ((territoryId: string | null) => void) | undefined;
 }) {
+  const reported = useRef<string | null>(null);
+  const listener = useRef(onHover);
+  useEffect(() => {
+    listener.current = onHover;
+  }, [onHover]);
+  /* Reports only a change, since a carry reads the point every frame. */
+  const report = (territoryId: string | null) => {
+    if (reported.current !== territoryId) {
+      reported.current = territoryId;
+      listener.current?.(territoryId);
+    }
+  };
   const territoryUnder = (point: Vector3Tuple | null) => (point && territoryAtTable({ board }, point)?.id) ?? null;
   useFrame(() => {
     if (carrying) {
-      setBattleMarkerHover(territoryUnder(carryAt()));
+      report(territoryUnder(carryAt()));
     }
   });
+  const settled = carrying ? undefined : territoryUnder(pending);
   useEffect(() => {
-    if (!carrying) {
-      setBattleMarkerHover(territoryUnder(pending));
+    if (settled !== undefined) {
+      report(settled);
     }
   });
-  useEffect(() => () => setBattleMarkerHover(null), []);
+  useEffect(() => () => report(null), []);
 }
 
 type Props = {
@@ -231,6 +253,8 @@ type Props = {
   battle: PublicBattle | null | undefined;
   /** Marks a battle where the beacon was dropped; the game decides whether it stands. */
   onDrop: (position: Vector3Tuple) => void;
+  /** Reports the territory under the marker while it is carried, and under the drop until the battle answers; null when there is none. */
+  onHover?: (territoryId: string | null) => void;
 };
 
 /**
@@ -239,7 +263,7 @@ type Props = {
  * A finished battle brings a new one up at the tracker;
  * when the phase ends it sinks back into the table.
  */
-export function BattleBeacon({ table, battle, onDrop }: Props) {
+export function BattleBeacon({ table, battle, onDrop, onHover }: Props) {
   const { inBattle, home } = useBeaconHome(table);
   const { camera, renderer, invalidate } = useThree();
   const [pending, setPending] = usePendingDrop(battle, inBattle);
@@ -253,7 +277,7 @@ export function BattleBeacon({ table, battle, onDrop }: Props) {
       onDrop(point);
     },
   });
-  useMarkerHover({ board: table.snapshot.board?.definition, carrying, carryAt, pending });
+  useMarkerHover({ board: table.snapshot.board?.definition, carrying, carryAt, pending, onHover });
   const group = useRef<Group>(null);
   const handle = useRef<Group>(null);
   const mode = beaconMode({ inBattle, battle: Boolean(battle), pending: Boolean(pending), carrying });

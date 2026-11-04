@@ -3,9 +3,9 @@ import { isFactionToken } from './factionToken';
 import type { TablePiece, TableState, Vector3Tuple } from './model';
 import { isPointerToken, pointerCovers } from './pointerToken';
 import { restingPositionAt } from './tableGeometry';
-import { footprintReach, hasRoundFootprint } from './tablePhysics';
+import { footprintOutline, footprintReach, hasRoundFootprint } from './tablePhysics';
 import { fitIntoTerritory, territoryShapeAt, territoryContains } from './territoryFit';
-import type { FitBody, TableTerritory } from './territoryFit';
+import type { FitBody, FitObstacle, TableTerritory } from './territoryFit';
 
 /*
  * Stacks set down in a territory keep inside it: the stacks already there shift over to make room for the one that lands.
@@ -40,6 +40,12 @@ function body(piece: TablePiece, at: Readonly<Vector3Tuple> = piece.position): F
   return { id: piece.id, radius: footprintReach(piece), at: [at[0], at[2]] };
 }
 
+/* A piece in the way, by its real footprint: round, or the outline of a card or tile. */
+function obstacle(piece: TablePiece): FitObstacle {
+  const outline = footprintOutline(piece);
+  return outline ? { id: piece.id, outline } : body(piece);
+}
+
 function bounds(territory: TableTerritory) {
   const points = territory.rings.flat();
   return {
@@ -50,13 +56,43 @@ function bounds(territory: TableTerritory) {
   };
 }
 
+/** A stack already in a territory shifted over to make room for one landing there. */
+export type TerritoryNudge = { pieceId: string; position: Vector3Tuple };
+
 export type TerritoryLayout = {
   territory: TableTerritory;
   /** Where the landing stack rests. */
   position: Vector3Tuple;
-  /** Where each stack already in the territory moves to, keyed by its id; one that stays put is left out. */
-  nudges: Map<string, Vector3Tuple>;
+  /** Where each stack already in the territory moves to; one that stays put is left out. */
+  nudges: TerritoryNudge[];
 };
+
+/* Whether a point lies on a plate such as the HMS. */
+function onAnyPlate(others: readonly TablePiece[], point: Readonly<Vector3Tuple>) {
+  return others.some((plate) => isPointerToken(plate) && !plate.inventory && pointerCovers(plate, point));
+}
+
+/* The other pieces on the table close enough to the territory to matter. */
+function piecesNear(territory: TableTerritory, piece: TablePiece, others: readonly TablePiece[]) {
+  const box = bounds(territory);
+  const reach = 1;
+  const near = ({ position: [x, , z] }: TablePiece) =>
+    x >= box.minX - reach && x <= box.maxX + reach && z >= box.minZ - reach && z <= box.maxZ + reach;
+  return others.filter(
+    (candidate) => candidate.id !== piece.id && !candidate.inventory && candidate.items.length > 0 && near(candidate)
+  );
+}
+
+/* Where each stack already in the territory moves to, leaving out the ones that stay put. */
+function nudgesFrom(settled: readonly TablePiece[], fitted: Map<string, readonly [number, number]>): TerritoryNudge[] {
+  return settled.flatMap((candidate) => {
+    const [x, z] = fitted.get(candidate.id)!;
+    const moved = Math.hypot(x - candidate.position[0], z - candidate.position[2]) > 1e-6;
+    return moved
+      ? [{ pieceId: candidate.id, position: restingPositionAt([x, candidate.position[1], z], candidate) }]
+      : [];
+  });
+}
 
 /**
  * Packs `piece` into the territory under `at` together with the stacks already there, which `others` lists along with everything else on the table.
@@ -71,36 +107,20 @@ export function territoryLayout(
   others: readonly TablePiece[],
   pinned: boolean
 ): TerritoryLayout | null | undefined {
-  if (!packsInTerritory(piece)) {
-    return undefined;
-  }
-  const territory = territoryAtTable(state, at);
-  const plates = others.filter((candidate) => isPointerToken(candidate) && !candidate.inventory);
-  const onPlate = (point: Readonly<Vector3Tuple>) => plates.some((plate) => pointerCovers(plate, point));
+  const territory = packsInTerritory(piece) ? territoryAtTable(state, at) : undefined;
   /* A stack set on a plate such as the HMS rides it, and the plate's own rules place it. */
-  if (!territory || onPlate(at)) {
+  if (!territory || onAnyPlate(others, at)) {
     return undefined;
   }
-  const box = bounds(territory);
-  const reach = 1;
-  const near = (candidate: TablePiece) =>
-    candidate.position[0] >= box.minX - reach &&
-    candidate.position[0] <= box.maxX + reach &&
-    candidate.position[2] >= box.minZ - reach &&
-    candidate.position[2] <= box.maxZ + reach;
-  const relevant = others.filter(
-    (candidate) => candidate.id !== piece.id && !candidate.inventory && candidate.items.length > 0 && near(candidate)
-  );
+  const relevant = piecesNear(territory, piece, others);
   /* Riders stay on their plate, so they are in the way rather than moved. */
   const inside = (candidate: TablePiece) =>
     packsInTerritory(candidate) &&
-    !onPlate(candidate.position) &&
+    !onAnyPlate(others, candidate.position) &&
     territoryContains(territory, [candidate.position[0], candidate.position[2]]);
   const settled = relevant.filter(inside).sort((a, b) => a.id.localeCompare(b.id));
-  /* A plate is in the way only of another plate, and nothing here is one. */
-  const obstacles = relevant
-    .filter((candidate) => !inside(candidate) && !isPointerToken(candidate))
-    .map((o) => body(o));
+  /* A plate such as the HMS is in the way by its outline, so no stack is shifted onto it without riding it. */
+  const obstacles = relevant.filter((candidate) => !inside(candidate)).map(obstacle);
   const fitted = fitIntoTerritory({
     territory,
     bodies: [body(piece, at), ...settled.map((candidate) => body(candidate))],
@@ -111,18 +131,15 @@ export function territoryLayout(
     return null;
   }
   const landing = fitted.get(piece.id)!;
-  const nudges = new Map<string, Vector3Tuple>();
-  for (const candidate of settled) {
-    const [x, z] = fitted.get(candidate.id)!;
-    if (Math.hypot(x - candidate.position[0], z - candidate.position[2]) > 1e-6) {
-      nudges.set(candidate.id, restingPositionAt([x, candidate.position[1], z], candidate));
-    }
-  }
-  return { territory, position: restingPositionAt([landing[0], at[1], landing[1]], piece), nudges };
+  return {
+    territory,
+    position: restingPositionAt([landing[0], at[1], landing[1]], piece),
+    nudges: nudgesFrom(settled, fitted),
+  };
 }
 
 /**
- * Where a stack let go at `at` rests in its territory, a spot where the move's own packing is sure to fit.
+ * Where a stack let go at `at` rests in its territory, and where the stacks already there shift to make room.
  * It is undefined outside the territories, and null when the territory is full.
  */
 export function territoryLanding(
@@ -130,33 +147,23 @@ export function territoryLanding(
   piece: TablePiece,
   at: Vector3Tuple,
   others: readonly TablePiece[]
-): Vector3Tuple | null | undefined {
+): TerritoryLayout | null | undefined {
   const held = territoryLayout(state, piece, at, others, true);
-  if (held === undefined) {
-    return undefined;
-  }
   /* Held where it was let go, the stack may still step in from the border; failing that, it gives way to the others too. */
-  const found = held ?? territoryLayout(state, piece, at, others, false);
-  if (!found) {
-    return null;
-  }
-  /* The spot must stay in the same territory, and hold there while the others move round it, as the move will pack it. */
-  const confirmed = territoryLayout(state, piece, found.position, others, true);
-  return confirmed && confirmed.territory.id === found.territory.id ? confirmed.position : null;
+  return held === null ? territoryLayout(state, piece, at, others, false) : held;
 }
 
-/** The table's pieces once the stacks around a landed one have shifted over to make room in its territory. */
-export function piecesNudgedAround(
-  state: Pick<TableState, 'board'>,
+/** The table's pieces with the stacks a landing shifted moved to their new spots. */
+export function withNudges(
   pieces: TablePiece[],
-  landed: TablePiece
+  nudges: readonly { pieceId: string; position: Vector3Tuple }[] | undefined
 ): TablePiece[] {
-  const layout = territoryLayout(state, landed, landed.position, pieces, true);
-  if (!layout?.nudges.size) {
+  if (!nudges?.length) {
     return pieces;
   }
+  const moved = new Map(nudges.map(({ pieceId, position }) => [pieceId, position]));
   return pieces.map((candidate) => {
-    const position = layout.nudges.get(candidate.id);
-    return position ? { ...candidate, position } : candidate;
+    const position = moved.get(candidate.id);
+    return position ? { ...candidate, position: [...position] } : candidate;
   });
 }

@@ -17,6 +17,8 @@ export type BeaconPose = {
   height: number;
   /* 1 while the beacon shows, falling to 0 as it fades out over the battle it marks. */
   fade: number;
+  /* True once it has risen clear of the table; while it rises through the table top or sinks back, the table hides it. */
+  above: boolean;
   carried: boolean;
   /* False when the player's motion preference asks for stillness: the mark then holds a resting pose. */
   motion: boolean;
@@ -296,25 +298,36 @@ export function StrikeMark({ pose }: Readonly<{ pose: RefObject<BeaconPose> }>) 
     });
   }, MARK_FRAME);
   const disc = useRef<Group>(null);
+  const overPieces = useRef(true);
   useLayoutEffect(() => {
-    /*
-     * The disc players drag draws over every piece on the table, faction tokens and stacks included;
-     * the target it projects on the ground stays under them, as marks on the board do.
-     */
-    let order = ABOVE_EVERYTHING;
     /* Its own parts draw in the order they are listed: the acrylic first, its rim and etching over it. */
+    let order = ABOVE_EVERYTHING;
     disc.current!.traverse((object) => {
       const mesh = object as Mesh;
-      if (!mesh.isMesh) {
-        return;
-      }
-      mesh.renderOrder = order++;
-      for (const material of [mesh.material].flat()) {
-        material.depthTest = false;
-        material.needsUpdate = true;
+      if (mesh.isMesh) {
+        mesh.renderOrder = order++;
       }
     });
-  }, []);
+    overPieces.current = !pose.current.above;
+  }, [pose]);
+  useFrame(() => {
+    /*
+     * Once risen, the disc players drag draws over every piece on the table, faction tokens and stacks included;
+     * the target it projects on the ground stays under them, as marks on the board do.
+     * While it rises through the table top or sinks back, it keeps the depth test, so the table hides the part still below it.
+     */
+    const over = pose.current.above;
+    if (over === overPieces.current) {
+      return;
+    }
+    overPieces.current = over;
+    disc.current!.traverse((object) => {
+      const mesh = object as Mesh;
+      for (const material of mesh.isMesh ? [mesh.material].flat() : []) {
+        material.depthTest = !over;
+      }
+    });
+  }, MARK_FRAME);
   return (
     <group ref={root}>
       <Footprint pose={pose} />

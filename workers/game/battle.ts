@@ -373,7 +373,8 @@ function handPiece(snapshot: StoredSnapshot, factionId: string, pieceId: string)
 function playFromHand(
   snapshot: StoredSnapshot,
   factionId: string,
-  action: Extract<BattleAction, { kind: 'hand-play' }>
+  action: Extract<BattleAction, { kind: 'hand-play' }>,
+  board: Board | undefined
 ) {
   const { inventory, piece } = handPiece(snapshot, factionId, action.pieceId);
   const { hiddenZone: _spot, ...leaving } = piece;
@@ -384,7 +385,8 @@ function playFromHand(
     ...snapshot.factionInventories,
     [factionId]: inventory.filter((piece) => piece.id !== action.pieceId),
   };
-  const table = tableForViewer(snapshot, SPECTATOR_SEAT);
+  /* A leader played from hand packs into its territory by the same outlines a carried one does. */
+  const table = { ...tableForViewer(snapshot, SPECTATOR_SEAT), board };
   const anchored = playFromHandAtAnchor(
     table,
     { ...leavingHand, position: restingPositionAt(action.position, piece) },
@@ -599,7 +601,7 @@ export function battleCommand(
     case 'hand-take':
       return takeIntoHand(snapshot, factionId, action);
     case 'hand-play':
-      return playFromHand(snapshot, factionId, action);
+      return playFromHand(snapshot, factionId, action, board);
     case 'hand-zone':
       return arrangeHiddenZone(snapshot, factionId, action);
     case 'hand-order':

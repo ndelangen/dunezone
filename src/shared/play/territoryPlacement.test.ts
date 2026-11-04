@@ -8,8 +8,10 @@ import { footprintReach, piecesOverlapAt } from './tablePhysics';
 import { applyDraftToState, draftForGesture, noRoomMessage, settleCarryAtPosition } from './tableState';
 import { fitsInside, innermostPoint, tableTerritories, territoryContains } from './territoryFit';
 import type { TableTerritory } from './territoryFit';
+import { territoryLanding } from './territoryPlacement';
 
 const troopBase = freshTableState().pieces.find((piece) => piece.id === 'harkonnen-force-loose')!;
+const cardBase = freshTableState().pieces.find((piece) => piece.kind === 'card')!;
 
 function territoryNamed(name: string): TableTerritory {
   return tableTerritories(retainedArrakisBoard()).find((territory) => territory.name === name)!;
@@ -125,5 +127,20 @@ describe('stacks dropped into a territory', () => {
     )) {
       expect(insideTerritory(arrakeen, piece)).toBe(true);
     }
+  });
+
+  test('keep clear of a card by its real outline, not the circle round its corners', () => {
+    const card: TablePiece = {
+      ...cardBase,
+      id: 'card',
+      orientation: 0,
+      position: restingPositionAt([0.516, 0, -3.045], cardBase),
+    };
+    const stack = troop('atreides', 'atreides', SHELF);
+    const spot: Vector3Tuple = [1.316, 0, -2.945];
+    expect(insideTerritory(arrakeen, { ...stack, position: restingPositionAt(spot, stack) })).toBe(true);
+    expect(piecesOverlapAt(stack, restingPositionAt(spot, stack), card)).toBe(false);
+    const landing = territoryLanding({}, stack, spot, [card, stack])!.position;
+    expect(Math.hypot(landing[0] - spot[0], landing[2] - spot[2])).toBeLessThan(0.01);
   });
 });

@@ -1,4 +1,4 @@
-import { CENTER, RADIUS } from '../boards/geometry';
+import { CENTER, contains, RADIUS } from '../boards/geometry';
 import type { Board, Point } from '../boards/schema';
 import { propertyId } from '../boards/schema';
 import { boardTerritories } from '../boards/territories';
@@ -23,12 +23,16 @@ export type TableTerritory = {
 /** A round body the packing places: its id, its footprint's radius, and where it rests now. */
 export type FitBody = { id: string; radius: number; at: Plane };
 
+/** A piece the packing keeps clear of without moving it: a round footprint, or a card's or plate's outline across the table. */
+export type FitObstacle = FitBody | { id: string; outline: readonly Plane[] };
+
 /* The clearance kept between two footprints, and between a footprint and the territory's border. */
 const GAP = 0.012;
 const ITERATIONS = 400;
 const SETTLED = 1e-5;
 
-function toTable([x, y]: Readonly<Point>): Plane {
+/** A board drawing point on the table: board units run across the board's circle, which the table draws BOARD_RADIUS wide. */
+export function toTable([x, y]: Readonly<Point>): Plane {
   return [((x - CENTER[0]) / RADIUS) * BOARD_RADIUS, ((y - CENTER[1]) / RADIUS) * BOARD_RADIUS];
 }
 
@@ -54,21 +58,14 @@ export function tableTerritories(board: Board): TableTerritory[] {
   return result;
 }
 
-function crossings([x, z]: Plane, ring: readonly Plane[]): boolean {
-  let inside = false;
-  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-    const a = ring[i]!;
-    const b = ring[j]!;
-    if (a[1] > z !== b[1] > z && x < ((b[0] - a[0]) * (z - a[1])) / (b[1] - a[1]) + a[0]) {
-      inside = !inside;
-    }
-  }
-  return inside;
+/* Odd-even crossings over every ring, so a ring enclosed in another cuts a hole in it. */
+function insideRings(rings: readonly (readonly Plane[])[], point: Plane): boolean {
+  return contains(rings as Point[][], point as Point);
 }
 
 /** Ring parity keeps a territory enclosed in another out of the one around it. */
 export function territoryContains(territory: TableTerritory, point: Plane): boolean {
-  return territory.rings.reduce((count, ring) => count + Number(crossings(point, ring)), 0) % 2 === 1;
+  return insideRings(territory.rings, point);
 }
 
 /** The territory a table point falls in, if any. */
@@ -77,7 +74,7 @@ export function territoryShapeAt(board: Board, point: Plane): TableTerritory | u
 }
 
 /* The point of the territory's border nearest `point`, and how far away it is. */
-function nearestBorder(territory: TableTerritory, [x, z]: Plane): { at: Plane; distance: number } {
+function nearestBorder(territory: Pick<TableTerritory, 'rings'>, [x, z]: Plane): { at: Plane; distance: number } {
   let best: { at: Plane; distance: number } = { at: [x, z], distance: Infinity };
   for (const ring of territory.rings) {
     for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
@@ -133,87 +130,123 @@ export type FitInput = {
   /** Whether the first body keeps the spot it was dropped on, leaving the others to make room. */
   pinFirst: boolean;
   /** Footprints that stay where they are: pieces outside the territory, or locked. */
-  obstacles: readonly FitBody[];
+  obstacles: readonly FitObstacle[];
 };
+
+type Spot = [number, number];
+
+/* Pushes two overlapping bodies apart, the pinned one holding still; returns how far they moved. */
+function separatePair(input: FitInput, at: Spot[], i: number, j: number): number {
+  const { bodies, pinFirst } = input;
+  const need = bodies[i]!.radius + bodies[j]!.radius + GAP;
+  const dx = at[j]![0] - at[i]![0];
+  const dz = at[j]![1] - at[i]![1];
+  const distance = Math.hypot(dx, dz);
+  if (distance >= need) {
+    return 0;
+  }
+  const [ux, uz] = distance < 1e-9 ? tieDirection(i + j) : [dx / distance, dz / distance];
+  const overlap = need - distance;
+  /* Each moves half the overlap, unless one is the pinned body, which holds still while the other moves it all. */
+  const pinnedI = pinFirst && i === 0;
+  const pinnedJ = pinFirst && j === 0;
+  const shareI = pinnedI || pinnedJ ? Number(pinnedJ) : 0.5;
+  const shareJ = 1 - shareI;
+  at[i] = [at[i]![0] - ux * overlap * shareI, at[i]![1] - uz * overlap * shareI];
+  at[j] = [at[j]![0] + ux * overlap * shareJ, at[j]![1] + uz * overlap * shareJ];
+  return overlap;
+}
+
+/*
+ * How far a point stands clear of an obstacle's edge, negative when it is inside, and the direction away from it.
+ * A round obstacle's edge is its rim; an outline's is the nearest of its sides.
+ */
+function standoff(point: Plane, obstacle: FitObstacle, tie: number): { clear: number; away: Plane } {
+  if ('radius' in obstacle) {
+    const dx = point[0] - obstacle.at[0];
+    const dz = point[1] - obstacle.at[1];
+    const distance = Math.hypot(dx, dz);
+    return {
+      clear: distance - obstacle.radius,
+      away: distance < 1e-9 ? tieDirection(tie) : [dx / distance, dz / distance],
+    };
+  }
+  const edge = nearestBorder({ rings: [obstacle.outline as Plane[]] }, point);
+  const inside = insideRings([obstacle.outline], point);
+  const sign = inside ? -1 : 1;
+  const away: Plane =
+    edge.distance < 1e-9
+      ? tieDirection(tie)
+      : [((point[0] - edge.at[0]) / edge.distance) * sign, ((point[1] - edge.at[1]) / edge.distance) * sign];
+  return { clear: edge.distance * sign, away };
+}
+
+/* Pushes a body off an obstacle it overlaps; returns how far it moved. */
+function clearObstacle(body: FitBody, at: Spot[], i: number, obstacle: FitObstacle): number {
+  const { clear, away } = standoff(at[i]!, obstacle, i);
+  const push = body.radius + GAP - clear;
+  if (push <= 0) {
+    return 0;
+  }
+  at[i] = [at[i]![0] + away[0] * push, at[i]![1] + away[1] * push];
+  return push;
+}
+
+/* One relaxation round: bodies apart, off the obstacles, then back inside the border; returns the largest step taken. */
+function relaxRound(input: FitInput, at: Spot[]): number {
+  const { territory, bodies, pinFirst, obstacles } = input;
+  let moved = 0;
+  for (let i = 0; i < bodies.length; i += 1) {
+    for (let j = i + 1; j < bodies.length; j += 1) {
+      moved = Math.max(moved, separatePair(input, at, i, j));
+    }
+    const free = !(pinFirst && i === 0);
+    for (const obstacle of free ? obstacles : []) {
+      moved = Math.max(moved, clearObstacle(bodies[i]!, at, i, obstacle));
+    }
+  }
+  bodies.forEach((body, i) => {
+    const kept = keptInside(territory, at[i]!, body.radius);
+    moved = Math.max(moved, Math.hypot(kept[0] - at[i]![0], kept[1] - at[i]![1]));
+    at[i] = [kept[0], kept[1]];
+  });
+  return moved;
+}
+
+/* Whether body `i` could rest at `point`: inside the territory and clear of the other bodies and the obstacles. */
+function clearAt({ territory, bodies, obstacles }: FitInput, at: readonly Spot[], i: number, point: Plane): boolean {
+  const radius = bodies[i]!.radius;
+  const apart = (other: Plane, otherRadius: number) =>
+    Math.hypot(point[0] - other[0], point[1] - other[1]) >= radius + otherRadius;
+  return (
+    fitsInside(territory, point, radius) &&
+    bodies.every((other, j) => j === i || apart(at[j]!, other.radius)) &&
+    obstacles.every((obstacle) => standoff(point, obstacle, i).clear >= radius)
+  );
+}
 
 /**
  * Where each body rests once they all fit inside the territory, clear of each other and of the obstacles, or null when they cannot.
  * Every body moves only as far as the overlaps and the border push it.
  */
-export function fitIntoTerritory({ territory, bodies, pinFirst, obstacles }: FitInput): Map<string, Plane> | null {
-  const at = bodies.map((body) => [body.at[0], body.at[1]] as [number, number]);
-  const pinned = (index: number) => pinFirst && index === 0;
-  for (let round = 0; round < ITERATIONS; round += 1) {
-    let moved = 0;
-    for (let i = 0; i < bodies.length; i += 1) {
-      for (let j = i + 1; j < bodies.length; j += 1) {
-        const need = bodies[i]!.radius + bodies[j]!.radius + GAP;
-        const dx = at[j]![0] - at[i]![0];
-        const dz = at[j]![1] - at[i]![1];
-        const distance = Math.hypot(dx, dz);
-        if (distance >= need) {
-          continue;
-        }
-        const [ux, uz] = distance < 1e-9 ? tieDirection(i + j) : [dx / distance, dz / distance];
-        const overlap = need - distance;
-        const shareI = pinned(i) ? 0 : pinned(j) ? 1 : 0.5;
-        const shareJ = 1 - shareI;
-        at[i]![0] -= ux * overlap * shareI;
-        at[i]![1] -= uz * overlap * shareI;
-        at[j]![0] += ux * overlap * shareJ;
-        at[j]![1] += uz * overlap * shareJ;
-        moved = Math.max(moved, overlap);
-      }
-      for (const obstacle of obstacles) {
-        if (pinned(i)) {
-          break;
-        }
-        const need = bodies[i]!.radius + obstacle.radius + GAP;
-        const dx = at[i]![0] - obstacle.at[0];
-        const dz = at[i]![1] - obstacle.at[1];
-        const distance = Math.hypot(dx, dz);
-        if (distance >= need) {
-          continue;
-        }
-        const [ux, uz] = distance < 1e-9 ? tieDirection(i) : [dx / distance, dz / distance];
-        at[i]![0] += ux * (need - distance);
-        at[i]![1] += uz * (need - distance);
-        moved = Math.max(moved, need - distance);
-      }
-    }
-    for (let i = 0; i < bodies.length; i += 1) {
-      const kept = keptInside(territory, at[i]!, bodies[i]!.radius);
-      const shift = Math.hypot(kept[0] - at[i]![0], kept[1] - at[i]![1]);
-      if (shift > 0) {
-        at[i] = [kept[0], kept[1]];
-        moved = Math.max(moved, shift);
-      }
-    }
-    if (moved < SETTLED) {
-      break;
-    }
+export function fitIntoTerritory(input: FitInput): Map<string, Plane> | null {
+  const { bodies, pinFirst } = input;
+  const at: Spot[] = bodies.map((body) => [body.at[0], body.at[1]]);
+  let round = 0;
+  while (round < ITERATIONS && relaxRound(input, at) >= SETTLED) {
+    round += 1;
   }
   /* Pushing straight apart can wedge a stack in a corner of the outline; any stack still out of place then looks for the nearest spot that is free. */
-  const clearAt = (i: number, point: Plane) =>
-    fitsInside(territory, point, bodies[i]!.radius) &&
-    bodies.every(
-      (other, j) =>
-        j === i || Math.hypot(point[0] - at[j]![0], point[1] - at[j]![1]) >= bodies[i]!.radius + other.radius
-    ) &&
-    obstacles.every(
-      (obstacle) =>
-        Math.hypot(point[0] - obstacle.at[0], point[1] - obstacle.at[1]) >= bodies[i]!.radius + obstacle.radius
-    );
-  for (let i = 0; i < bodies.length; i += 1) {
-    if (clearAt(i, at[i]!) || pinned(i)) {
-      continue;
+  bodies.forEach((_, i) => {
+    if (clearAt(input, at, i, at[i]!) || (pinFirst && i === 0)) {
+      return;
     }
-    const spot = nearestClearSpot(at[i]!, (point) => clearAt(i, point));
+    const spot = nearestClearSpot(at[i]!, (point) => clearAt(input, at, i, point));
     if (spot) {
       at[i] = [spot[0], spot[1]];
     }
-  }
-  const fits = bodies.every((_, i) => clearAt(i, at[i]!));
+  });
+  const fits = bodies.every((_, i) => clearAt(input, at, i, at[i]!));
   return fits ? new Map(bodies.map((body, i) => [body.id, at[i]! as Plane])) : null;
 }
 

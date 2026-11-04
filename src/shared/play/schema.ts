@@ -176,6 +176,11 @@ export const draftMoveSchema = z.object({
   targetPieceId: tableIdSchema.nullable(),
   /* How many times the carrier turned the held piece over in hand; it lands turned over when this is odd. */
   flips: carryFlipsSchema.optional(),
+  /*
+   * Where the stacks already in the landing territory shift to make room, as the game settled it.
+   * Present only on a draft settled into a territory, so applying it moves them without packing the territory again.
+   */
+  nudges: z.array(z.object({ pieceId: tableIdSchema, position: tablePositionSchema })).optional(),
 });
 
 const tableEventSchema = z.object({

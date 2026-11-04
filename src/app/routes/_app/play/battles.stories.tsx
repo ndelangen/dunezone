@@ -3,7 +3,6 @@ import { BOARD_RADIUS } from '@shared/play/tableGeometry';
 import { resolveRulebookBoardDefinition } from '@shared/rulebooks/boardDefinitions';
 import { expect, within } from 'storybook/test';
 
-import { battleMarkerHover } from '../../../widgets/tabletop/battleMarkerHover';
 import { dragBattleMarker } from './battles.marker.stories.fixture';
 import { battleSetup, readiness, revealedPieces } from './battles.stories.fixture';
 import { gameMeta } from './game.stories.fixture';
@@ -106,7 +105,12 @@ export const MarkerOutlinesItsTerritory = meta.story({
     await dragBattleMarker(
       canvasElement.ownerDocument,
       carthagMiddle(),
-      () => expect(battleMarkerHover()).toBe('carthag'),
+      () =>
+        expect(
+          canvasElement.ownerDocument
+            .querySelector('[data-highlight-territory]')
+            ?.getAttribute('data-highlight-territory')
+        ).toBe('carthag'),
       {
         hold: true,
       }
