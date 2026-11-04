@@ -246,7 +246,7 @@ export function fitIntoTerritory(input: FitInput): Map<string, Plane> | null {
     if (clearAt(input, at, i, at[i]!)) {
       return;
     }
-    const spot = nearestClearSpot(at[i]!, (point) => clearAt(input, at, i, point));
+    const spot = nearestClearSpot(input.territory, at[i]!, (point) => clearAt(input, at, i, point));
     if (spot) {
       at[i] = [spot[0], spot[1]];
     }
@@ -256,11 +256,11 @@ export function fitIntoTerritory(input: FitInput): Map<string, Plane> | null {
 }
 
 const SPOT_STEP = 0.02;
-const SPOT_RINGS = 80;
 const SPOT_DIRECTIONS = 36;
-/* The free spot nearest `from`, searched in rings outward. */
-function nearestClearSpot(from: Plane, clear: (point: Plane) => boolean): Plane | null {
-  for (let ring = 1; ring <= SPOT_RINGS; ring += 1) {
+/* The free spot nearest `from`, searched in rings outward until they pass the territory's farthest corner. */
+function nearestClearSpot(territory: TableTerritory, from: Plane, clear: (point: Plane) => boolean): Plane | null {
+  const reach = Math.max(...territory.rings.flat().map(([x, z]) => Math.hypot(x - from[0], z - from[1])));
+  for (let ring = 1; ring * SPOT_STEP <= reach + SPOT_STEP; ring += 1) {
     for (let direction = 0; direction < SPOT_DIRECTIONS; direction += 1) {
       const angle = (direction / SPOT_DIRECTIONS) * Math.PI * 2;
       const point: Plane = [from[0] + Math.cos(angle) * ring * SPOT_STEP, from[1] + Math.sin(angle) * ring * SPOT_STEP];
