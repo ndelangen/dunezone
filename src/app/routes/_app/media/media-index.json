@@ -3427,8 +3427,8 @@
     "tags": ["arrows", "vector"],
     "subjects": ["symbols"],
     "credit": "online-original",
-    "creditDetail": "Original: the Sith Empire symbol from Star Wars: The Old Republic (BioWare).",
-    "sourceHash": "52b3272db8304f01c161a350e0050d726ef97d246e08d75ee45e331ed75c2d2b"
+    "creditDetail": "Original: the Sith Empire symbol from Star Wars: The Old Republic (BioWare). This drawing: Gameposo, vectorised by Marnanel, on Wikimedia Commons (CC BY-SA 4.0).",
+    "sourceHash": "d9b49fe3a74d1651106ccec9b00868bb03bc679a21ebf4088134d74590e47614"
   },
   "/vector/generic/arrows.svg": {
     "description": "Three crossed double-ended arrows.",
@@ -3449,8 +3449,8 @@
     "tags": ["bird", "wings", "angular", "vector"],
     "subjects": ["creatures", "transport", "symbols"],
     "credit": "online-original",
-    "creditDetail": "Original: the Atreides hawk sigil from Denis Villeneuve's Dune films, designed by Patrice Vermette.",
-    "sourceHash": "3e4a8a647a75d782494916acf65b8b810be9e112e9121509c8fb836d9ec27720"
+    "creditDetail": "Original: the Atreides hawk sigil from Denis Villeneuve's Dune films, designed by Patrice Vermette. This drawing: zhing, on Wikimedia Commons.",
+    "sourceHash": "040502d201ed67e22d694ee966bf30f8973623b538c2d4e94dd4b7af1486dbbb"
   },
   "/vector/generic/axes.svg": {
     "description": "Two crossed axes.",
@@ -3906,8 +3906,8 @@
     "tags": ["circle", "vector"],
     "subjects": ["symbols"],
     "credit": "online-original",
-    "creditDetail": "Original: the Fremen emblem from Denis Villeneuve's Dune films, designed by Patrice Vermette, via Wikimedia Commons.",
-    "sourceHash": "881c600e6e3719073b2816537cd4c077305cd6cf9b591654eb0717065fa04767"
+    "creditDetail": "Original: the Fremen emblem from Denis Villeneuve's Dune films, designed by Patrice Vermette, via Wikimedia Commons. This drawing: zhing, on Wikimedia Commons.",
+    "sourceHash": "a38c7228f1ff3fb47ec8498fe5b5ea79bc0c5f4ffacc779146c09c1cf24a8bbc"
   },
   "/vector/generic/gate.svg": {
     "description": "An arch and triangular doorway.",
@@ -4019,16 +4019,16 @@
     "tags": ["vector"],
     "subjects": ["symbols"],
     "credit": "online-original",
-    "creditDetail": "Original: the House Harkonnen emblem from Denis Villeneuve's Dune films, designed by Patrice Vermette.",
-    "sourceHash": "d7e5c7964ab68553862c2113d5b64b5d09c838a4700ee547b6493b419890549d"
+    "creditDetail": "Original: the House Harkonnen emblem from Denis Villeneuve's Dune films, designed by Patrice Vermette. This drawing: zhing, on Wikimedia Commons.",
+    "sourceHash": "bfc93a4c0162f28036b58b5390bde131e6da2ba54eaac96391ba4d841c393815"
   },
   "/vector/generic/electrostatic-warning.svg": {
     "description": "Three arrows point inward around a circle.",
     "tags": ["arrows", "circle", "vector"],
     "subjects": ["symbols"],
     "credit": "online-original",
-    "creditDetail": "Original: the electrostatic sensitive device warning symbol, via Wikimedia Commons.",
-    "sourceHash": "de62181bd10c05c8101d389cf92ea81605c34c2b3b5781b040b04cca4cea7873"
+    "creditDetail": "Original: the electrostatic sensitive device warning symbol, via Wikimedia Commons. This drawing: adapted by Strake on Wikimedia Commons, public domain.",
+    "sourceHash": "32b8b51c0d14beca22545c62a1ad5e2160df8ba1ca701fd1046daeaffef5b5f3"
   },
   "/vector/generic/hex.svg": {
     "description": "Three outlined geometric blocks arranged in a triangle.",
@@ -4119,8 +4119,8 @@
     "tags": ["circle", "vector"],
     "subjects": ["symbols"],
     "credit": "online-original",
-    "creditDetail": "Original: the Klingon Empire crest from Star Trek, by Matt Jefferies.",
-    "sourceHash": "2407e014e6bb8f00ab5bcec7f93245456692ec0ba4f3972b94abcbdb3cb49daf"
+    "creditDetail": "Original: the Klingon Empire crest from Star Trek, by Matt Jefferies. This drawing: Austin Andrews, Material Design Icons (Apache-2.0).",
+    "sourceHash": "7b75f6775abc7e1d06c77f34fbc3150c888fa62721d43ba01d8006ccfce99fd1"
   },
   "/vector/generic/krenim-imperium.svg": {
     "description": "A wide V-shaped symbol with a central diamond.",
@@ -4255,8 +4255,8 @@
     "tags": ["circle", "angular", "vector"],
     "subjects": ["symbols"],
     "credit": "online-original",
-    "creditDetail": "Original: the Combine symbol from Half-Life 2, by Viktor Antonov.",
-    "sourceHash": "3a955aa128a303015914d2dc91d1764d73bd59734b39d73fc53ef5a22f4310cb"
+    "creditDetail": "Original: the Combine symbol from Half-Life 2, by Viktor Antonov. This drawing: RamzyAbueita on Wikimedia Commons.",
+    "sourceHash": "db6ad3b9714f98e2235d68af23817c83867a8c0ef0b055be9b4987a48145f343"
   },
   "/vector/generic/malon.svg": {
     "description": "A tall rounded panel filled with mirrored branching lines.",
@@ -4545,8 +4545,8 @@
     "tags": ["vector"],
     "subjects": ["symbols"],
     "credit": "online-original",
-    "creditDetail": "Original: the Galactic Republic emblem from Star Wars: The Old Republic (BioWare and Lucasfilm).",
-    "sourceHash": "60e93cb5f10c2208131b90f1e45916e143f228fafd7b8278989bc4d56dd458f5"
+    "creditDetail": "Original: the Galactic Republic emblem from Star Wars: The Old Republic (BioWare and Lucasfilm). This drawing: Font Awesome Free (CC BY 4.0).",
+    "sourceHash": "3ac86d774676b46bbc68820bfacc98e4f754c87b93f03a51d4907c570594b536"
   },
   "/vector/generic/reman.svg": {
     "description": "Six angular arms surrounding a central star.",
@@ -4667,8 +4667,8 @@
     "tags": ["vector"],
     "subjects": ["symbols"],
     "credit": "online-original",
-    "creditDetail": "Original: the Minmatar Republic logo from EVE Online (CCP Games).",
-    "sourceHash": "504710ae0e311b4f114719a9cfc4d708d90a9e1481e779bf411a6f0822a329c0"
+    "creditDetail": "Original: the Minmatar Republic logo from EVE Online (CCP Games). This drawing: Damián Vila, on Wikimedia Commons (CC BY-SA 4.0).",
+    "sourceHash": "2ddd4b21ea9e647fad6b5e537c5fea45922f32008b61238ba95a696b604991c1"
   },
   "/vector/generic/spiral-shell.svg": {
     "description": "A spiral shell divided into radial segments.",
@@ -4769,8 +4769,8 @@
     "tags": ["loops", "vector"],
     "subjects": ["symbols"],
     "credit": "online-original",
-    "creditDetail": "Original: the Bene Gesserit emblem from Denis Villeneuve's Dune films (Legendary Pictures).",
-    "sourceHash": "57559724818e78b8cef40fd9cb15462dbb0aedf70c86cd7954b5069d876968f7"
+    "creditDetail": "Original: the Bene Gesserit emblem from Denis Villeneuve's Dune films (Legendary Pictures). This drawing: zhing, on Wikimedia Commons.",
+    "sourceHash": "7d97569c10527701a9a0089786214e60b9993ec4edaf876aa4cbaf1b3374553b"
   },
   "/vector/generic/spikes.svg": {
     "description": "A tall central spike across a circular sunburst.",
@@ -5119,8 +5119,8 @@
     "tags": ["face", "vector"],
     "subjects": ["people"],
     "credit": "online-original",
-    "creditDetail": "Original: the House Corrino emblem from Denis Villeneuve's Dune films, designed by Patrice Vermette.",
-    "sourceHash": "17da8d7851a4c291cbae14621bb8f08e9f1fb3f4949206e43bf2b9d68ab2096f"
+    "creditDetail": "Original: the House Corrino emblem from Denis Villeneuve's Dune films, designed by Patrice Vermette. This drawing: zhing, on Wikimedia Commons.",
+    "sourceHash": "f33dff5a2ae3817c18b9bc965a2b1316c0199d43658b47dc29369755cfdb076d"
   },
   "/vector/generic/guild-eyes.svg": {
     "description": "Two overlapping circular eyes.",
@@ -5155,8 +5155,8 @@
     "tags": ["vector"],
     "subjects": ["symbols"],
     "credit": "online-original",
-    "creditDetail": "Original: the ISO 7000 laser warning symbol, via Wikimedia Commons.",
-    "sourceHash": "ae70f94b346687ce9529e34382e1332c34a49ae389b7b9e732c631cb85b7abe6"
+    "creditDetail": "Original: the ISO 7000 laser warning symbol, via Wikimedia Commons. This drawing: Mrmw on Wikimedia Commons (CC0).",
+    "sourceHash": "8542f8128e59946db5d8c9bff6c22d6c8ce950d38a605fa56097e019b9e94efb"
   },
   "/vector/generic/sword-and-atom.svg": {
     "description": "A sword passes through an orbital atom symbol.",
