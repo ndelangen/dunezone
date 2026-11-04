@@ -2514,9 +2514,12 @@ describe('unanswered commands', () => {
 });
 
 describe('the Spice blow command', () => {
-  const spiceCard = (territory: string, index: number): TablePiece => {
-    const loose = initialSnapshot().table.pieces.find((piece) => piece.id === 'treachery-card-loose')!;
-    return {
+  /* One face-up spice card for each territory, side by side off the board. */
+  const territories = ['broken_land', 'arsunt', 'hagga_basin', 'red_chasm', 'funeral_plain'];
+  const loose = initialSnapshot().table.pieces.find((piece) => piece.id === 'treachery-card-loose')!;
+  const spiceCards: TablePiece[] = [];
+  for (const [index, territory] of territories.entries()) {
+    spiceCards.push({
       ...loose,
       id: `spice-card-${index}`,
       inventory: undefined,
@@ -2533,15 +2536,15 @@ describe('the Spice blow command', () => {
           },
         },
       ],
-    };
-  };
-  /* A game in play with one face-up spice card for each territory. */
-  const playedWith = (territories: readonly string[]): GameSnapshot => {
+    });
+  }
+  /* A game in play with these spice cards on the table. */
+  const playedWith = (cards: readonly TablePiece[]): GameSnapshot => {
     const snapshot = initialSnapshot();
     return {
       ...snapshot,
       stage: 'play',
-      table: { ...snapshot.table, pieces: [...snapshot.table.pieces, ...territories.map(spiceCard)] },
+      table: { ...snapshot.table, pieces: [...snapshot.table.pieces, ...cards] },
     };
   };
   const blows = () =>
@@ -2558,7 +2561,7 @@ describe('the Spice blow command', () => {
   /* Four storm moves fill the unanswered limit, so Spice blow holds its first card back. */
   const heldBack = async () => {
     const client = await connected();
-    socket().deliver(view({ snapshot: playedWith(['broken_land', 'arsunt']) }));
+    socket().deliver(view({ snapshot: playedWith(spiceCards.slice(0, 2)) }));
     for (let press = 0; press < 4; press++) {
       client.moveStormBy(1);
     }
@@ -2568,8 +2571,7 @@ describe('the Spice blow command', () => {
 
   test('places every face-up spice card one after another, so none is dropped past the unanswered limit', async () => {
     const client = await connected();
-    const territories = ['broken_land', 'arsunt', 'hagga_basin', 'red_chasm', 'funeral_plain'];
-    socket().deliver(view({ snapshot: playedWith(territories) }));
+    socket().deliver(view({ snapshot: playedWith(spiceCards) }));
     table(client).spiceBlowControls!.placeAll();
     expect(blows()).toHaveLength(1);
     for (let answered = 1; answered < territories.length; answered++) {
@@ -2590,7 +2592,7 @@ describe('the Spice blow command', () => {
   test('a seat change drops the cards still waiting, so none goes out under the new seat', async () => {
     await heldBack();
     socket().deliver(
-      view({ viewer: { ...viewer, viewerSeat: 'atreides' }, snapshot: playedWith(['broken_land', 'arsunt']) })
+      view({ viewer: { ...viewer, viewerSeat: 'atreides' }, snapshot: playedWith(spiceCards.slice(0, 2)) })
     );
     rejectOthers();
     await vi.advanceTimersByTimeAsync(0);
