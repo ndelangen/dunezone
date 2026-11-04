@@ -73,6 +73,18 @@ const commandSchema = (() => {
   return (option.shape as unknown as { action: z.ZodDiscriminatedUnion<z.ZodObject[]> }).action;
 })();
 
+type CommandOption = z.ZodType & { shape: { kind?: z.ZodLiteral } };
+/** Every command schema with its own `kind`, opening the unions some commands nest inside the protocol's list. */
+function commandOptions(schemas: readonly z.ZodType[] = commandSchema.options): CommandOption[] {
+  return schemas.flatMap((schema) => {
+    const nested = (schema as { options?: readonly z.ZodType[] }).options;
+    if (nested) {
+      return commandOptions(nested);
+    }
+    return 'shape' in schema ? [schema as CommandOption] : [];
+  });
+}
+
 const ACTION_GROUPS: Record<string, string[]> = {
   'Turn and readiness': ['ready', 'phase', 'storm', 'last-turn'],
   Bidding: ['bid-start', 'bid-raise', 'bid-pass', 'bid-lower', 'bid-reset'],
@@ -547,9 +559,7 @@ export class PlayBot {
               .map(([group, kinds]) => `${group}: ${kinds.join(', ')}`)
               .join('\n');
           }
-          const option = commandSchema.options.find(
-            (entry) => (entry.shape as { kind?: z.ZodLiteral }).kind?.value === args.kind
-          );
+          const option = commandOptions().find((entry) => entry.shape.kind?.value === args.kind);
           return option
             ? JSON.stringify(z.toJSONSchema(option, { unrepresentable: 'any', io: 'input' }))
             : `No command "${args.kind}".`;
