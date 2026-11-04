@@ -280,19 +280,19 @@ export default defineSchema({
     .index('by_group_id', ['group_id']),
   /*
    * Small eligibility rows let Play list rulesets without loading every board definition.
-   * The optional listing fields let board lists skip the geometry; they turn required once `board_readiness_listing_v1` has run everywhere.
+   * The listing fields let board lists skip the geometry.
    */
   board_readiness: defineTable({
     asset_id: v.id('assets'),
     usable: v.boolean(),
-    name: v.optional(v.string()),
-    slug: v.optional(v.string()),
-    owner_id: v.optional(v.id('users')),
-    group_id: v.optional(v.union(v.id('groups'), v.null())),
-    created_at: v.optional(v.string()),
-    updated_at: v.optional(v.string()),
-    is_deleted: v.optional(v.boolean()),
-    asset_creation_time: v.optional(v.number()),
+    name: v.string(),
+    slug: v.string(),
+    owner_id: v.id('users'),
+    group_id: v.union(v.id('groups'), v.null()),
+    created_at: v.string(),
+    updated_at: v.string(),
+    is_deleted: v.boolean(),
+    asset_creation_time: v.number(),
   })
     .index('by_asset', ['asset_id'])
     .index('by_deleted_created', ['is_deleted', 'asset_creation_time']),

@@ -26,6 +26,8 @@ function useLogPanel({ client, table, tab }: Props): LogPanelProps {
       }
     },
     onLatest: () => client.readLogHistory(tab, NEWEST),
+    /* Only a viewer who can handle the table restores a deletion; an observer sees the entry without the button. */
+    onRestore: table.deleteControls && ((deletionId) => table.deleteControls?.restore(deletionId)),
   };
 }
 

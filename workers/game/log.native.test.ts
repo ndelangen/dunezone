@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
+import { deletablePiece } from '../../src/shared/play/commands';
 import type { LogTab } from '../../src/shared/play/log';
 import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
 import type { ClientMessage } from '../../src/shared/play/protocol';
@@ -241,6 +242,20 @@ describe('The retained public log', { timeout: 20_000 }, () => {
       required(
         required(required(view.snapshot.roster).seats.find((seat) => seat.id === view.viewer.viewerSeat)).faction
       ).id;
+
+    it('offers to restore a deletion until someone restores it (#2132)', async () => {
+      const [a, b] = await enter();
+      const card = required(
+        (await syncView(a)).snapshot.table.pieces.find((piece) => deletablePiece(piece) && piece.kind === 'card')
+      );
+      const deleted = await accepted(a, { kind: 'delete', pieceId: card.id });
+      const deletion = required((await page(b, 'game')).entries.find((entry) => entry.class === 'deletion'));
+      expect(deletion.restore).toBe(String(deleted.snapshot.revision));
+      await accepted(b, { kind: 'restore', deletionId: required(deletion.restore) });
+      const after = await page(a, 'game');
+      expect(after.entries[0]).toMatchObject({ class: 'restore' });
+      expect(after.entries.find((entry) => entry.class === 'deletion')?.restore).toBeUndefined();
+    });
 
     it('files predictions without their private choice until revealed, then every phase it enters', async () => {
       const players = await enter();

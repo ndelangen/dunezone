@@ -185,7 +185,7 @@ const OTHER_FACTIONS: readonly CatalogueSnapshotEntry[] = [
   {
     slug: 'choam',
     name: 'CHOAM',
-    emblem: '/vector/generic/guildeyes.svg',
+    emblem: '/vector/generic/guild-eyes.svg',
     background: {
       image: '/image/texture/021.jpg',
       colors: ['#5f0000', '#5f0000'],
@@ -200,7 +200,7 @@ const OTHER_FACTIONS: readonly CatalogueSnapshotEntry[] = [
   {
     slug: 'honored-matres',
     name: 'Honored Matres',
-    emblem: '/vector/generic/matres.svg',
+    emblem: '/vector/generic/honored-matres.svg',
     background: {
       image: '/image/texture/021.jpg',
       colors: [
@@ -254,7 +254,7 @@ const OTHER_FACTIONS: readonly CatalogueSnapshotEntry[] = [
   {
     slug: 'corrino',
     name: 'Corrino',
-    emblem: '/vector/generic/flauqre.svg',
+    emblem: '/vector/generic/great-house-emblem.svg',
     background: {
       image: '/image/texture/021.jpg',
       colors: ['#ff08b2', '#ff08b2'],

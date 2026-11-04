@@ -36,7 +36,7 @@ Traitor decks store `#D5BA8C` as their base colour. It now has the game-owned ro
 in `assetColors.ts`, so the supply builder no longer declares the pigment itself. The value is unchanged.
 
 The standard phase glyphs coloured with `phaseInk` are `/vector/icon/storrm_standalone.svg`,
-`/vector/icon/spice-blow_standalone.svg`, `/vector/generic/chaom.svg`,
+`/vector/icon/spice-blow_standalone.svg`, `/vector/generic/choam.svg`,
 `/vector/icon/bidding_standalone.svg`, `/vector/icon/revival_standalone.svg`,
 `/vector/icon/shipment_disc.svg`, `/vector/icon/combat.svg`, `/vector/icon/collection_standalone.svg`
 and `/vector/icon/mentat.svg`. Custom rulesets can supply different phase symbols. These SVGs

@@ -6393,7 +6393,7 @@
     "1Ss-s_D1hZ4t": {
       "id": "choam-charity",
       "label": "CHOAM Charity",
-      "symbol": "/vector/generic/chaom.svg",
+      "symbol": "/vector/generic/choam.svg",
       "instructions": "Collect any spice granted by your ruleset.",
       "allPlayersMustBeReady": false,
       "kind": "standard"

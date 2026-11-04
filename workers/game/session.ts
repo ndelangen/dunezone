@@ -21,6 +21,7 @@ import {
 } from '../../src/shared/play/drafting';
 import type { StoredSpawnContents } from '../../src/shared/play/inventory';
 import { emptyPublicControls } from '../../src/shared/play/inventory';
+import type { LogTab } from '../../src/shared/play/log';
 import { isSeatAction, seatSubject } from '../../src/shared/play/participation';
 import { composeTurn, lobbyPhaseIndex, recomposedTurn } from '../../src/shared/play/phases';
 import type { PhaseEntry } from '../../src/shared/play/phases';
@@ -1251,8 +1252,9 @@ export class GameSession {
     });
     return current;
   }
-  logPage(...args: Parameters<PublicLog['page']>) {
-    return this.log.page(...args);
+  /** A page of the public log, each deletion the game still keeps offering to restore its piece. */
+  logPage(tab: LogTab, before: number) {
+    return this.log.page(tab, before, new Set(this.room?.snapshot.deletedPieces.map((entry) => entry.id)));
   }
   spicePage(...args: Parameters<SpiceLedger['page']>) {
     return this.spiceLedger.page(...args);

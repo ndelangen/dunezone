@@ -4,6 +4,7 @@ import path from 'node:path';
 
 import { build } from 'esbuild';
 
+import { VECTOR_ARTWORK_ALIASES } from '../src/shared/vectorRules';
 import type { PersistentManifest, PersistentSecrets } from './local-dev-persistence';
 import { assertLoopbackUrl, writePrivateJson } from './local-dev-persistence';
 import { localApplicationEnvironment } from './provision';
@@ -161,6 +162,9 @@ async function buildAndCopyLocalPublisher(environment: NodeJS.ProcessEnv, stateD
   mkdirSync(output, { recursive: true });
   cpSync(path.join(root, 'workers/publisher/dist'), path.join(output, 'assets'), { recursive: true });
   cpSync(path.join(root, 'media/vector'), path.join(output, 'assets/vector'), { recursive: true });
+  for (const [alias, target] of Object.entries(VECTOR_ARTWORK_ALIASES)) {
+    cpSync(path.join(root, 'media', target), path.join(output, 'assets', alias));
+  }
   cpSync(path.join(root, 'dist/server'), path.join(output, 'server'), { recursive: true });
   // Copied SSR chunks sit outside the checkout. Resolve their bare imports through
   // this checkout's frozen dependency graph rather than an ancestor's node_modules.

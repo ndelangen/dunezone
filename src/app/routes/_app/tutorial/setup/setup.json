@@ -689,7 +689,7 @@
               "id": "k173h7mgxxrqr1jjqttrqe2nm1865qam",
               "slug": "hivers",
               "name": "Hivers",
-              "emblem": "/vector/generic/8472.svg",
+              "emblem": "/vector/generic/species-8472.svg",
               "background": {
                 "image": "/image/texture/021.jpg",
                 "colors": [
@@ -890,7 +890,7 @@
               "id": "k171h2c7zgyhfxwqe6e282jd8n8a5avw",
               "slug": "choam",
               "name": "CHOAM",
-              "emblem": "/vector/generic/guildeyes.svg",
+              "emblem": "/vector/generic/guild-eyes.svg",
               "background": {
                 "image": "/image/texture/021.jpg",
                 "colors": ["#5f0000", "#5f0000"],
@@ -991,7 +991,7 @@
               "id": "k17ehv7kfznyw5f26xxjx6etfn8b1k26",
               "slug": "corrino",
               "name": "Corrino",
-              "emblem": "/vector/generic/flauqre.svg",
+              "emblem": "/vector/generic/great-house-emblem.svg",
               "background": {
                 "image": "/image/texture/021.jpg",
                 "colors": ["#ff08b2", "#ff08b2"],
@@ -1007,7 +1007,7 @@
               "id": "k17ceq3srs9m2zz0qzkw6w84qd8b1n44",
               "slug": "nobirds",
               "name": "Nobirds",
-              "emblem": "/vector/generic/orbsword.svg",
+              "emblem": "/vector/generic/sword-and-atom.svg",
               "background": {
                 "image": "/image/texture/021.jpg",
                 "colors": [
@@ -1049,7 +1049,7 @@
               "id": "k17cna0gvp9pz0txwqzwec1a258bwjvf",
               "slug": "honored-matres",
               "name": "Honored Matres",
-              "emblem": "/vector/generic/matres.svg",
+              "emblem": "/vector/generic/honored-matres.svg",
               "background": {
                 "image": "/image/texture/021.jpg",
                 "colors": [
@@ -1106,7 +1106,7 @@
               "id": "k179hp5p0e9h5c9yg3xpmkgavh8c7kz1",
               "slug": "suk-medics",
               "name": "Suk Medics",
-              "emblem": "/vector/generic/bluks.svg",
+              "emblem": "/vector/generic/united-earth-federation.svg",
               "background": {
                 "image": "/image/texture/035.jpg",
                 "colors": ["#37c71a", "#37c71a"],
@@ -1138,7 +1138,7 @@
               "id": "k1734y2cmkk46g02z22b90v4zs8cp6yn",
               "slug": "shrek",
               "name": "Shrek",
-              "emblem": "/vector/generic/mortal.svg",
+              "emblem": "/vector/generic/draconis-combine.svg",
               "background": {
                 "image": "/image/texture/021.jpg",
                 "colors": ["#444444", "#222222"],
@@ -1154,7 +1154,7 @@
               "id": "k177dt6jakwtfgq6t7yb6wywg18cw7tm",
               "slug": "combine-honnete-ober-advancer-mercantiles-unfinished",
               "name": "Combine Honnete Ober Advancer Mercantiles (Unfinished)",
-              "emblem": "/vector/generic/guildeyes.svg",
+              "emblem": "/vector/generic/guild-eyes.svg",
               "background": {
                 "image": "/image/texture/021.jpg",
                 "colors": ["#5f0000", "#5f0000"],
@@ -4849,7 +4849,7 @@
           {
             "id": "choam-charity",
             "label": "CHOAM Charity",
-            "symbol": "/vector/generic/chaom.svg",
+            "symbol": "/vector/generic/choam.svg",
             "instructions": "Collect any spice granted by your ruleset.",
             "allPlayersMustBeReady": false,
             "kind": "standard"
@@ -9340,7 +9340,7 @@
           {
             "id": "choam-charity",
             "label": "CHOAM Charity",
-            "symbol": "/vector/generic/chaom.svg",
+            "symbol": "/vector/generic/choam.svg",
             "instructions": "Collect any spice granted by your ruleset.",
             "allPlayersMustBeReady": false,
             "kind": "standard"

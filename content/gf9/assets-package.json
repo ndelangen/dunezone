@@ -846,7 +846,7 @@
         "battleText": "Your opponent subtracts 1 from their Battle total for each Stronghold they occupy (not counting those occupied by advisors).",
         "decals": [
           {
-            "id": "/vector/decal/beaurocrat-multicolor.svg",
+            "id": "/vector/decal/bureaucrat-multicolor.svg",
             "muted": false,
             "offset": [0, 0],
             "outline": true,

@@ -68,7 +68,7 @@ describe('media search index', () => {
     expect(paths('crossed knives')).toEqual(paths('knives crossed'));
     expect(paths('crossed knives')).toContain('/vector/emblem/fremen.svg');
     expect(paths('crossed knife')).toEqual(paths('crossed knives'));
-    expect(paths('syringe')).toContain('/vector/decal/suringe.svg');
+    expect(paths('syringe')).toContain('/vector/decal/syringe.svg');
     expect(paths('BÉNE-GESSERIT')).toEqual(paths('bene gesserit'));
     expect(paths('/vector/decal/extortion.svg')[0]).toBe('/vector/decal/extortion.svg');
   });

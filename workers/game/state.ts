@@ -33,6 +33,9 @@ import { battleDialingSchema, DEFAULT_BATTLE_DIALING } from '../../src/shared/ru
 /** The board layout a stored game's positions are laid out for; see boardLayout.ts. */
 export const BOARD_LAYOUT = 4;
 
+/** How many deleted pieces a game keeps for restoring; the oldest is let go for good once more are deleted. */
+export const DELETED_PIECES_LIMIT = 50;
+
 const storedBattleSchema = publicBattleSchema.omit({ revealed: true, disclosed: true }).extend({
   plans: z.tuple([storedBattlePlanSchema.nullable(), storedBattlePlanSchema.nullable()]),
 });
@@ -104,6 +107,14 @@ export const storedSnapshotSchema = gameSnapshotSchema
     pieceHandles: z.record(tableIdSchema, tableIdSchema).default({}),
     /* Every card front the game has held, sorted; it only grows, so a hidden card that leaves the game never tells which one it was. */
     cardFaces: z.array(z.string().url()).default([]),
+    /*
+     * The pieces deleted from the game, newest first, each whole and under the deletion its game log entry names (#2132).
+     * Stored only, never projected, so a hidden face stays hidden until the piece is back on the table, face down.
+     */
+    deletedPieces: z
+      .array(z.object({ id: tableIdSchema, piece: storedPieceSchema }))
+      .max(DELETED_PIECES_LIMIT)
+      .default([]),
     /* The board size the stored positions were laid out for; every snapshot read through this schema is on the current one. */
     boardLayout: z.literal(BOARD_LAYOUT).default(BOARD_LAYOUT),
   });
