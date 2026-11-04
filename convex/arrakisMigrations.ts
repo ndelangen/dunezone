@@ -110,6 +110,10 @@ export function spiceCardOnBoard(data: unknown, board: SavedBoard): unknown {
 
 /** Whether a Spice card still needs moving: no board link, or an old highlight list left on it. */
 export function spiceCardNeedsMove(data: unknown) {
+  /* A row without card data has nothing on any board to move. */
+  if (!data || typeof data !== 'object') {
+    return false;
+  }
   const card = data as { board?: unknown; highlights?: unknown };
   return !card.board || (Array.isArray(card.highlights) && card.highlights.length > 0);
 }

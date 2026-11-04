@@ -116,7 +116,8 @@ describe('Arrakis board migration', () => {
           .query('publication_jobs')
           .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'card-spice').eq('asset_id', classicId))
           .take(5);
-        expect(jobs.length).toBeGreaterThan(0);
+        /* The job captures the moved card, not the row as it was. */
+        expect(jobs.at(-1)?.asset_data).toMatchObject({ card: { highlights: [], board: { asset_id: boardId } } });
       });
 
       await f.t.mutation(internal.arrakisMigrations.arrakis_spice_cards_v1, { reset: true });
@@ -208,9 +209,11 @@ describe('Arrakis board migration', () => {
       };
       const uncoveredId = await insertCard(f, 'uncovered', uncovered);
       const brokenId = await insertCard(f, 'broken', { highlights: 'not a list' }, true);
+      const emptyId = await insertCard(f, 'empty', null);
       await f.t.mutation(internal.arrakisMigrations.arrakis_spice_cards_v1, {});
       expect(await cardData(f, uncoveredId)).toEqual(uncovered);
       expect(await cardData(f, brokenId)).toEqual({ highlights: 'not a list' });
+      expect(await cardData(f, emptyId)).toBeNull();
 
       await expect(f.t.mutation(internal.arrakisMigrations.arrakis_spice_cards_verify_v1, {})).resolves.toMatchObject({
         Status: expect.stringContaining(`card-spice ${uncoveredId} is still on the built-in Arrakis map.`),

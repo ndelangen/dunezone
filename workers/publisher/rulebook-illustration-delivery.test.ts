@@ -346,6 +346,59 @@ describe('annotated Rulebook illustration delivery', () => {
     expect(mismatched.headers.get('Cache-Control')).toBe('no-store');
   });
 
+  test('a saved board draws from its published JPEG with the highlights its capture drew', async () => {
+    const f = fixture();
+    const board = { kind: 'board' as const, boardId: identity.rulebookId };
+    f.set({
+      ok: true,
+      status: 'found',
+      design: 'illustrated',
+      source: {
+        status: 'image',
+        reference: board,
+        name: 'Arrakis',
+        assetType: 'board',
+        assetId: board.boardId,
+        revision: revisionA,
+        geometry: {
+          width: 1948,
+          height: 1948,
+          parts: [
+            {
+              key: 'arrakeen',
+              x: 0.25,
+              y: 0.25,
+              width: 0.5,
+              height: 0.5,
+              highlight: { paths: [{ d: 'M0.25 0.25H0.75V0.75Z' }] },
+            },
+          ],
+        },
+      },
+      configuration: {
+        source: board,
+        numbering: 'automatic',
+        colorMode: 'automatic',
+        items: [{ id: 'one', label: 'saved', target: { kind: 'named', key: 'arrakeen', source: board } }],
+      },
+    });
+    /* A board capture may be larger than a deck image. */
+    const body = jpegBytes({ widthPx: 1948, heightPx: 1948, progressive: true });
+    const object = (await f.bucket.get(componentEnvelopeKey(assetId, revisionA)))!;
+    f.bucket.get.mockResolvedValue({
+      ...object,
+      size: 2_500_000,
+      customMetadata: { publisherCacheToken: revisionA },
+      arrayBuffer: async () => body.slice().buffer,
+    });
+    const response = await serve(f);
+    const svg = await response.text();
+    expect(response.status).toBe(200);
+    expect(svg).toContain('data:image/jpeg;base64,');
+    expect(svg).toContain('<path');
+    expect(svg).not.toContain('target unavailable');
+  });
+
   test('maintained board illustration and highlights arrive in one self-contained SVG', async () => {
     const f = fixture();
     const board = { kind: 'board' as const, boardId: 'arrakis' };

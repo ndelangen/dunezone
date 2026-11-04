@@ -2,6 +2,8 @@
 
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
+import { boardComponentGeometry } from '../src/shared/boards/componentGeometry';
+import { arrakisBoard } from '../src/shared/boards/geometry';
 import { RULEBOOK_CATALOGUE_VERSION, rulebookContentsV1Schema } from '../src/shared/rulebooks/contents';
 import { api, internal } from './_generated/api';
 import { rulebookFixture } from './rulebooks.test.fixture';
@@ -222,6 +224,41 @@ describe('immutable annotated illustration delivery', () => {
       source: { status: 'unavailable' },
     });
   });
+
+  test('a saved board resolves to its published image with the territories its capture drew', async () => {
+    const f = await fixture();
+    const board = await f.owner.mutation(api.assets.create, {
+      type: 'board',
+      data: { name: 'Arrakis official', about: '', board: arrakisBoard() },
+    });
+    const geometry = boardComponentGeometry(arrakisBoard(), 1948, 1948);
+    await f.t.run(async (ctx) => {
+      for (const job of await ctx.db.query('publication_jobs').take(20)) {
+        await ctx.db.delete(job._id);
+      }
+      await ctx.db.insert('publication_assets', {
+        asset_type: 'board',
+        asset_id: board.id,
+        cache_token: revision,
+        published_at: 1000,
+        component_geometry: geometry,
+      });
+    });
+    const block = f.contents.pagesById.PAGE!.blocksById.BLC2!;
+    if (block.kind !== 'asset-explainer') {
+      throw new Error('Expected explainer');
+    }
+    block.source = { kind: 'board', boardId: board.id };
+    block.itemsById.first!.target = { kind: 'named', key: 'arrakeen', source: block.source };
+    await publish(f);
+    const resolved = await f.t.query(internal.rulebookAnnotatedIllustration.resolveDelivery, f.identity);
+    expect(resolved).toMatchObject({
+      source: { status: 'image', assetType: 'board', assetId: board.id, revision },
+    });
+    expect(resolved.status === 'found' && resolved.source.status === 'image' && resolved.source.geometry).toEqual(
+      geometry
+    );
+  }, 30_000);
 
   test('the backend boundary requires executor credentials and rejects arbitrary payloads and oversized bodies', async () => {
     const f = await fixture();

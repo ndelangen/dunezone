@@ -1,6 +1,6 @@
 import type { ComponentGeometry } from '../asset-publishing/componentGeometry';
 import { TABLE_SECTOR_COUNT } from '../play/tableSettings';
-import { derive, sectorRim, sectorStart } from './geometry';
+import { derive, sectorRim, sectorSegments } from './geometry';
 import type { Board, Face, Point } from './geometry';
 import { propertyId } from './schema';
 
@@ -52,8 +52,8 @@ function part(key: string, label: string, faces: readonly Face[]) {
 }
 
 /**
- * The storm's sector lines as the maintained Arrakis geometry's `sectors` part has them, from the polar sink's edge to the rim, so an annotation that points at the sectors finds them on a saved board too.
- * A board without a polar sink starts them at the centre.
+ * The storm's sector lines as the maintained Arrakis geometry's `sectors` part has them, every stretch outside the polar territories, so an annotation that points at the sectors finds them on a saved board too.
+ * A board without a polar sink draws them from the centre.
  */
 function sectorsPart(polarRings: readonly (readonly Point[])[]) {
   const transform: [number, number, number, number, number, number] = [1 / FRAME, 0, 0, 1 / FRAME, 0, 0];
@@ -65,11 +65,13 @@ function sectorsPart(polarRings: readonly (readonly Point[])[]) {
     width: 1,
     height: 1,
     highlight: {
-      paths: Array.from({ length: TABLE_SECTOR_COUNT }, (_, index) => {
-        const rim = sectorRim(index);
-        const start = sectorStart(rim, polarRings);
-        return { d: `M${round(start[0])} ${round(start[1])}L${round(rim[0])} ${round(rim[1])}`, transform };
-      }),
+      paths: Array.from({ length: TABLE_SECTOR_COUNT }, (_, index) => sectorSegments(sectorRim(index), polarRings))
+        .flat()
+        .map(([start, end]) => ({
+          d: `M${round(start[0])} ${round(start[1])}L${round(end[0])} ${round(end[1])}`,
+          transform,
+        }))
+        .slice(0, MAX_PATHS),
     },
   };
 }
@@ -88,10 +90,11 @@ export function boardComponentGeometry(board: Board, widthPx: number, heightPx: 
     })
     .filter(({ key }) => /^[a-z][a-z0-9-]*$/.test(key) && key.length <= 80);
   const polarRings = territories.filter(({ type }) => type === 'polar').flatMap(({ face }) => face.rings);
-  /* First, so a board with more parts than the limit drops a territory rather than the sectors. */
-  const parts = new Map<string, ReturnType<typeof part>>([['sectors', sectorsPart(polarRings)]]);
+  /* First, so a board with more parts than the limit drops a territory rather than the sectors; a territory the board itself names Sectors takes the key over. */
+  const sectors = sectorsPart(polarRings);
+  const parts = new Map<string, ReturnType<typeof part>>([['sectors', sectors]]);
   for (const { key, name } of territories) {
-    if (!parts.has(key)) {
+    if (!parts.has(key) || parts.get(key) === sectors) {
       parts.set(
         key,
         part(

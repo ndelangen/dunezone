@@ -451,13 +451,9 @@ export function sectorRim(index: number): Point {
   return [CENTER[0] + RADIUS * Math.cos(angle), CENTER[1] + RADIUS * Math.sin(angle)];
 }
 
-/**
- * Where the ray from the centre towards `rim` last leaves `rings`, or the centre when it never crosses them.
- * Sector lines start there, at the polar sink's edge, as the classic map drew them.
- */
-export function sectorStart(rim: Point, rings: readonly (readonly Point[])[]): Point {
-  const direction: Point = [rim[0] - CENTER[0], rim[1] - CENTER[1]];
-  let furthest = 0;
+/** Where along the ray from the centre towards `rim` (0 at the centre, 1 at the rim) it crosses an edge of `rings`. */
+function rayCrossings(direction: Point, rings: readonly (readonly Point[])[]): number[] {
+  const crossings: number[] = [];
   for (const ring of rings) {
     for (let index = 0; index < ring.length; index++) {
       const a = ring[index]!;
@@ -470,12 +466,52 @@ export function sectorStart(rim: Point, rings: readonly (readonly Point[])[]): P
       const offset: Point = [a[0] - CENTER[0], a[1] - CENTER[1]];
       const t = (offset[0] * edge[1] - offset[1] * edge[0]) / denominator;
       const u = (offset[0] * direction[1] - offset[1] * direction[0]) / denominator;
-      if (t >= 0 && t <= 1 && u >= 0 && u <= 1) {
-        furthest = Math.max(furthest, t);
+      if (t > 0 && t < 1 && u >= 0 && u <= 1) {
+        crossings.push(t);
       }
     }
   }
-  return [CENTER[0] + direction[0] * furthest, CENTER[1] + direction[1] * furthest];
+  return crossings;
+}
+
+/** Whether a point lies inside `rings`, counted even-odd so a ring inside another is a hole. */
+function insideRings(point: Point, rings: readonly (readonly Point[])[]): boolean {
+  let inside = false;
+  for (const ring of rings) {
+    for (let index = 0, previous = ring.length - 1; index < ring.length; previous = index++) {
+      const [ax, ay] = ring[index]!;
+      const [bx, by] = ring[previous]!;
+      if (ay > point[1] !== by > point[1] && point[0] < ((bx - ax) * (point[1] - ay)) / (by - ay) + ax) {
+        inside = !inside;
+      }
+    }
+  }
+  return inside;
+}
+
+/**
+ * The stretches of the sector line from the centre to `rim` that lie outside `rings`.
+ * Sector lines are drawn there, leaving out the polar sink as the classic map did;
+ * a line that crosses no ring is one stretch from the centre.
+ */
+export function sectorSegments(rim: Point, rings: readonly (readonly Point[])[]): [Point, Point][] {
+  const direction: Point = [rim[0] - CENTER[0], rim[1] - CENTER[1]];
+  const at = (t: number): Point => [CENTER[0] + direction[0] * t, CENTER[1] + direction[1] * t];
+  const stops = [0, ...rayCrossings(direction, rings).sort((x, y) => x - y), 1];
+  const segments: [number, number][] = [];
+  for (let index = 1; index < stops.length; index++) {
+    const [from, to] = [stops[index - 1]!, stops[index]!];
+    if (to - from < 1e-9 || insideRings(at((from + to) / 2), rings)) {
+      continue;
+    }
+    const last = segments.at(-1);
+    if (last && Math.abs(last[1] - from) < 1e-9) {
+      last[1] = to;
+    } else {
+      segments.push([from, to]);
+    }
+  }
+  return segments.map(([from, to]) => [at(from), at(to)]);
 }
 
 /* The storm's sectors, from the centre to the rim. */

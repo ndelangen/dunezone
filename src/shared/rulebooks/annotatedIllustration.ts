@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { COMPONENT_ASSET_TYPES } from '../asset-publishing/componentGeometry';
+import { COMPONENT_ASSET_TYPES, componentGeometrySchema } from '../asset-publishing/componentGeometry';
 import { assetExplainerBlockSchema, rulebookLocalIdSchema } from './contents';
 import { rulebookDesignSchema } from './settings';
 import { rulebookSourceReferenceSchema } from './sources';
@@ -69,9 +69,11 @@ const rulebookIllustrationSourceSchema = z.discriminatedUnion('status', [
     status: z.literal('image'),
     reference: rulebookSourceReferenceSchema,
     name: z.string().max(1000),
-    assetType: z.literal('deck'),
+    /* A deck's published image, or a saved board's with the territories its capture drew, so annotations can point at them. */
+    assetType: z.enum(['deck', 'board']),
     assetId: z.string().min(1).max(160),
     revision: z.uuid(),
+    geometry: componentGeometrySchema.optional(),
   }),
   z.strictObject({
     status: z.literal('published'),
