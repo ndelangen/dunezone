@@ -20,8 +20,14 @@ export const VECTOR_PRECISION = 2;
 /** Root attribute every generated file must carry so `<use href="…#root">` resolves. */
 export const VECTOR_ROOT_ID = 'root';
 
-/** Retired outlined copies resolve to the plain artwork; saved identifiers remain readable. */
+/**
+ * Retired copies resolve to the artwork they duplicate.
+ * Saved identifiers remain readable and keep their file, but pickers only offer the canonical artwork.
+ */
 export const VECTOR_ARTWORK_ALIASES: Readonly<Record<string, string>> = {
+  '/vector/decal/balance.svg': '/vector/generic/balance.svg',
+  '/vector/decal/barge.svg': '/vector/generic/barge.svg',
+  '/vector/decal/palace.svg': '/vector/icon/stronghold.svg',
   '/vector/icon/arrakis-city.svg': '/vector/icon/city.svg',
   '/vector/icon/arrakis-sietch.svg': '/vector/icon/seitch.svg',
 };

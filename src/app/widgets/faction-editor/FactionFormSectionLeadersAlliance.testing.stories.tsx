@@ -1,8 +1,12 @@
 import { testingPreview } from '@sb/preview';
 import { LEADERS } from '@shared/assetIds';
+import { isRetiredStockAsset } from '@shared/retiredStockAssets';
 import { expect, screen, within } from 'storybook/test';
 
 import { LeadersAllianceFixture, withLeadersAndDecals } from './FactionFormSectionLeadersAlliance.stories.fixture';
+
+/* Retired portraits stay valid ids but are never offered. */
+const offeredLeaderCount = LEADERS.options.filter((image) => !isRetiredStockAsset(image)).length;
 
 const meta = testingPreview.meta({
   title: 'Leaders and Alliance',
@@ -23,7 +27,7 @@ export const BrowseEveryPortrait = meta.story({
     const canvas = within(canvasElement);
     const portrait = canvas.getByRole('combobox', { name: 'Faction leader portrait' });
     await userEvent.click(portrait);
-    await expect(screen.getByRole('listbox').querySelectorAll('[role="option"]')).toHaveLength(LEADERS.options.length);
+    await expect(screen.getByRole('listbox').querySelectorAll('[role="option"]')).toHaveLength(offeredLeaderCount);
     await userEvent.keyboard('{Escape}');
     await userEvent.click(canvas.getByRole('button', { name: 'Filter Faction leader portrait collections' }));
     await userEvent.click(screen.getByRole('option', { name: 'Custom portraits / Green and gold uniforms 9' }));
@@ -32,7 +36,7 @@ export const BrowseEveryPortrait = meta.story({
     await userEvent.click(screen.getByRole('option', { name: 'Tanya' }));
     await expect(portrait).toHaveValue('Tanya');
     await userEvent.click(canvas.getByRole('button', { name: 'Filter Faction leader portrait collections' }));
-    await userEvent.click(screen.getByRole('option', { name: `All collections ${LEADERS.options.length}` }));
+    await userEvent.click(screen.getByRole('option', { name: `All collections ${offeredLeaderCount}` }));
     await userEvent.clear(portrait);
     await userEvent.type(portrait, 'Atreides');
     await expect(screen.getByRole('option', { name: 'Jessica' })).toBeVisible();

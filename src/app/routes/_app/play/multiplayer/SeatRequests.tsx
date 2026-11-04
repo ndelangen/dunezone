@@ -22,6 +22,7 @@ import {
 } from '../../../../widgets/tabletop/boardSkinPreference';
 import { BOARD_SKIN_LABELS, BOARD_SKINS } from '../../../../widgets/tabletop/boardSkins';
 import type { BoardSkin } from '../../../../widgets/tabletop/boardSkins';
+import { setCameraFollowsPhase, useCameraFollowsPhase } from '../../../../widgets/tabletop/cameraFollowsPhase';
 import {
   setTableLighting,
   TABLE_LIGHTING_MAX,
@@ -34,6 +35,7 @@ import {
   TABLE_PAN_SPEED_MIN,
   useTablePanSpeed,
 } from '../../../../widgets/tabletop/tablePanSpeed';
+import { setShortcutsButton, useShortcutsButton } from '../compass/shortcutsButton';
 import { TABLE_LABEL_OPTIONS, useTableLabels } from '../tableLabels';
 import { setAutoClearChats, useAutoClearChats } from './autoClearChats';
 import { publicControlsOf } from './publicControls';
@@ -377,24 +379,33 @@ function BoardSkinItems() {
   );
 }
 
-/* Shades this viewer's board like a lit planet, bright in the middle and dark at the rim; it stays in this browser. */
-function PlanetShadingItem() {
-  const planet = usePlanetShading();
+/* A choice this viewer turns on or off; it stays in this browser and never reaches the game. */
+function ViewerToggleItem({ label, on, set }: Readonly<{ label: string; on: boolean; set: (on: boolean) => void }>) {
   return (
-    <Menu.CheckboxItem checked={planet} closeMenuOnClick={false} onChange={() => setPlanetShading(!planet)}>
-      Planet shading
+    <Menu.CheckboxItem checked={on} closeMenuOnClick={false} onChange={() => set(!on)}>
+      {label}
     </Menu.CheckboxItem>
   );
 }
 
+/* Shades this viewer's board like a lit planet, bright in the middle and dark at the rim. */
+function PlanetShadingItem() {
+  return <ViewerToggleItem label="Planet shading" on={usePlanetShading()} set={setPlanetShading} />;
+}
+
+/* Off, a new phase leaves the view this viewer set up instead of moving to the phase's own view. */
+function CameraFollowsPhaseItem() {
+  return <ViewerToggleItem label="Camera follows phase" on={useCameraFollowsPhase()} set={setCameraFollowsPhase} />;
+}
+
+/* Keeps the keyboard shortcuts button in the bar at the bottom of the table, or takes it off. */
+function ShortcutsButtonItem() {
+  return <ViewerToggleItem label="Keyboard shortcuts button" on={useShortcutsButton()} set={setShortcutsButton} />;
+}
+
 /* The viewer's own chats clear at the start of each turn, logged as a clear by hand is; off unless turned on (#2674). */
 function AutoClearChatsItem() {
-  const on = useAutoClearChats();
-  return (
-    <Menu.CheckboxItem checked={on} closeMenuOnClick={false} onChange={() => setAutoClearChats(!on)}>
-      Clear chats each new turn
-    </Menu.CheckboxItem>
-  );
+  return <ViewerToggleItem label="Clear chats each new turn" on={useAutoClearChats()} set={setAutoClearChats} />;
 }
 
 /* Pins the stack counts or piece names on; holding the key shows them for a moment. */
@@ -455,9 +466,11 @@ export function GameMenu({
         <Menu.Divider />
         <TableLightingSlider />
         <TablePanSpeedSlider />
+        <CameraFollowsPhaseItem />
         <BoardSkinItems />
         <PlanetShadingItem />
         <TableLabelItems />
+        <ShortcutsButtonItem />
         {!isSpectator(table) && (
           <>
             <Menu.Divider />

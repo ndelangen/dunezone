@@ -133,7 +133,7 @@ When adding or changing artwork:
 Every record in `media-index.json` names a `credit`, an id defined in `src/shared/media/credits.json`,
 and may add a `creditDetail` sentence, such as the reference a single AI planet was based on. A
 definition records the method (`official`, `restored`, `recreated`, `traced`, `ai-restored`,
-`ai-adapted`, `ai`, `blog`, `online` or `unknown`), the original artist, the source work, the style
+`ai-adapted`, `ai`, `blog`, `online`, `online-copy` or `unknown`), the original artist, the source work, the style
 AI artwork was asked to match, and who prepared the copy. `creditText` in
 `src/shared/media/credits.ts` turns this into one sentence. The focused `/media` preview, its
 details tooltip and the artwork pickers' hover preview show it.
@@ -142,7 +142,18 @@ details tooltip and the artwork pickers' hover preview show it.
 and folder so the pickers can show credits without loading the search index. The media credit test
 rejects records without a defined credit, unused definitions and a stale generated index. When you
 add artwork, give it the credit its provenance record supports; use `online` when it was found
-online and its source is still unknown.
+online and its source is still unknown, and `online-copy` when it was found online and is based on a
+known design; its `creditDetail` names that original.
+
+### Retiring duplicate artwork
+
+Saved factions, boards and rulebooks store artwork paths, so a duplicate is retired, never deleted.
+Delete the duplicate's vector source and its `media-index.json` record, then map its path to the
+artwork it duplicates in `VECTOR_ARTWORK_ALIASES` (`src/shared/vectorRules.ts`). The path stays a
+valid identifier in its category, `bun run generate:vectors` writes its file as a copy of the
+original, and the library and pickers show only the original. A raster that shares its original's
+bytes, such as `/image/texture/058.jpg`, keeps its lock entry and is listed in
+`src/shared/media/retiredArtwork.ts` instead.
 
 ### GF9 artwork provenance
 

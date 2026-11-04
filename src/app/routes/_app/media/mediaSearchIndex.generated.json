@@ -824,11 +824,6 @@
     "tags": ["balloon", "cargo", "crate", "vector"],
     "subjects": ["transport", "trade"]
   },
-  "/vector/decal/barge.svg": {
-    "description": "A compact transport barge shown as a silhouette.",
-    "tags": ["transport", "vector"],
-    "subjects": ["transport"]
-  },
   "/vector/decal/carryalls.svg": {
     "description": "Large winged aircraft fly above a desert landscape.",
     "tags": ["aircraft", "desert", "landscape", "vector"],
@@ -1804,11 +1799,6 @@
     "tags": ["towers", "vector"],
     "subjects": ["places"]
   },
-  "/vector/decal/palace.svg": {
-    "description": "A palace with tall tapered towers.",
-    "tags": ["towers", "vector"],
-    "subjects": ["places"]
-  },
   "/vector/decal/palace-alt.svg": {
     "description": "A palace with tall tapered towers.",
     "tags": ["towers", "vector"],
@@ -1878,11 +1868,6 @@
     "description": "Two hands secretly exchange an object above a tray.",
     "tags": ["hands", "multicolor"],
     "subjects": ["people"]
-  },
-  "/vector/decal/balance.svg": {
-    "description": "A circular yin-yang symbol with two contrasting halves.",
-    "tags": ["symbol", "vector"],
-    "subjects": ["symbols"]
   },
   "/vector/decal/battlewheel.svg": {
     "description": "A Battle Wheel wordmark beneath a city skyline, with a diagonal cut between the two Ts.",

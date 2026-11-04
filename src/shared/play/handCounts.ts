@@ -1,4 +1,6 @@
 import type { StoredPiece } from './model';
+import { phaseAt, STANDARD_PHASES } from './phases';
+import type { PhaseEntry } from './phases';
 
 /** The asset type of a Treachery card: the cards a hand's public count is about. */
 const TREACHERY_CARD = 'card-treachery';
@@ -23,6 +25,14 @@ export function treacheryHandCounts(
       ),
     ])
   );
+}
+
+/**
+ * Whether the table shows the hand counts: they are the display bidding is watched on, so only the Bidding phase shows them (#2671).
+ * `phases` is the table's turn, the standard nine phases when it has none of its own.
+ */
+export function handCountsShowing(phase: number, phases: readonly PhaseEntry[] = STANDARD_PHASES): boolean {
+  return phaseAt(phase, phases).id === 'bidding';
 }
 
 /**

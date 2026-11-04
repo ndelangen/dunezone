@@ -73,12 +73,18 @@ const emblem = await getFiles('/vector/emblem', 'media');
 const troop = await getFiles('/vector/troop', 'media');
 const troop_modifier = await getFiles('/vector/troop_modifier', 'media');
 
+/* Retired copies stay valid identifiers in their own category, so saved references keep parsing. */
+const retiredIn = (category: string) =>
+  Object.keys(VECTOR_ARTWORK_ALIASES)
+    .filter((path) => path.startsWith(`/vector/${category}/`))
+    .map((path) => path.slice(1));
+
 const enums = {
   background,
   generic,
   emblem,
-  decal,
-  icon: [...icon, ...Object.keys(VECTOR_ARTWORK_ALIASES).map((path) => path.slice(1))],
+  decal: [...decal, ...retiredIn('decal')],
+  icon: [...icon, ...retiredIn('icon')],
   leaders,
   planet,
   texture,

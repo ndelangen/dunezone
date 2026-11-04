@@ -73,7 +73,8 @@ for (const relative of sourceRelatives) {
   /* Multicolor decals also have a paint-inheriting version at the matching path. */
   if (category === 'decal' && relative.endsWith('-multicolor.svg')) {
     const monochrome = relative.replace(/-multicolor\.svg$/, '.svg');
-    if (!sourceRelatives.has(monochrome)) {
+    /* A retired monochrome copy still ships as a generated file, so it remains the partner. */
+    if (!sourceRelatives.has(monochrome) && !Object.hasOwn(VECTOR_ARTWORK_ALIASES, `/vector/${monochrome}`)) {
       failures.push(`${relative}: missing monochrome partner ${monochrome}`);
     }
   }

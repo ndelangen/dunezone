@@ -17,6 +17,9 @@ import {
   TINTS_GUIDANCE,
 } from '../multiplayer/panelGuidance';
 
+/* Mentat recall is one window whose guidance depends on whether the game is finished. */
+const REVIEW_WINDOW = { key: 'review', label: 'Mentat recall', topic: 'turn' } as const;
+
 /** What a window says about itself, apart from its content: its key, name, glyph and guidance. */
 export type PanelWindow = Omit<TablePanel, 'content' | 'panels' | 'actions'>;
 
@@ -46,11 +49,15 @@ export const PANEL_WINDOWS = {
   result: { key: 'result', label: 'Result', topic: 'result', ...RESULT_GUIDANCE },
   replay: { key: 'replay', label: 'Replay', topic: 'turn', ...REPLAY_GUIDANCE },
   review: {
-    key: 'review',
-    label: 'Mentat recall',
-    topic: 'turn',
+    ...REVIEW_WINDOW,
     description:
       'Ask the table to look back at a recent checkpoint together. It starts when a majority of the players agree; everyone sees the same board and nothing can be moved or peeked at until play resumes.',
+  },
+  /* Once the game is finished, the same window starts a recall of any checkpoint without a vote. */
+  finishedReview: {
+    ...REVIEW_WINDOW,
+    description:
+      'Look back over the finished game together. Any player can start a recall of any checkpoint without a vote; everyone sees the same board.',
   },
   inventory: { key: 'shared', label: 'Shared table inventory', topic: 'assets', ...SHARED_INVENTORY_GUIDANCE },
   hand: { key: 'hand', label: 'Hand', topic: 'hand', ...HAND_GUIDANCE },
@@ -60,4 +67,11 @@ export const PANEL_WINDOWS = {
   /* A chat with a player takes that player's name and seat; this is what every one of them shares. */
   playerChat: { key: 'player', label: 'Player', topic: 'factions', ...PLAYER_CONVERSATION_GUIDANCE },
   factionInfo: { key: 'faction-info', label: 'Faction info', topic: 'factions', ...FACTION_INFO_GUIDANCE },
+  shortcuts: {
+    key: 'shortcuts',
+    label: 'Keyboard shortcuts',
+    topic: 'keyboard',
+    description: 'Every key the table answers to. Press ? to show or hide this cheat sheet.',
+    keywords: 'keys hotkeys help cheat sheet',
+  },
 } as const satisfies Record<string, PanelWindow>;

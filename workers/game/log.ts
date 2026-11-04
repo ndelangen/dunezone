@@ -75,6 +75,8 @@ type ReviewResult = {
   ballots: ReviewBallot[];
   /* Who ended or withdrew it, or what did: a seat change, or the game ending. */
   by: Person | 'seats' | 'game-ended' | null;
+  /* A finished game's recall, which starts without a vote and leaves no play to resume. */
+  finished?: boolean;
   context: string;
   at: number;
 };
@@ -720,13 +722,18 @@ function reviewEntry(review: ReviewResult): Entry {
   };
   const checkpoint = literal(review.checkpoint);
   const templates: Record<ReviewOutcome, () => string> = {
-    started: () => `The table recalls ${checkpoint}, as {0} proposed: ${breakdown()}.`,
+    started: () =>
+      review.finished
+        ? `The table recalls ${checkpoint}, as {0} asked.`
+        : `The table recalls ${checkpoint}, as {0} proposed: ${breakdown()}.`,
     declined: () => `The table declined {0}'s recall of ${checkpoint}: ${breakdown()}.`,
     withdrawn: () => `The recall of ${checkpoint} {0} proposed was withdrawn ${by()}.`,
     ended: () =>
       review.by === 'game-ended'
         ? `The recall of ${checkpoint} ended as the game ended.`
-        : `The recall of ${checkpoint} was ended ${by()}, and play resumed.`,
+        : review.finished
+          ? `The recall of ${checkpoint} was ended ${by()}.`
+          : `The recall of ${checkpoint} was ended ${by()}, and play resumed.`,
   };
   return {
     key: `review:${review.id}:${review.result}`,

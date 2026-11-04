@@ -1,5 +1,6 @@
 import { testingPreview } from '@sb/preview';
 import { PHASE_CHANGE_COOLDOWN_MS, TABLE_PHASES } from '@shared/play/phases';
+import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { STORYBOOK_NOW } from '@db/storybook';
@@ -239,11 +240,11 @@ export const Cooldown = meta.story({
   },
 });
 
-/* Replaying a finished game shows no phase controls; the game continued meanwhile, and Return to live brings them back at the live phase. */
+/* An observer replaying a finished game sees no phase controls; the game continued meanwhile, and Return to live shows the live phase. */
 export const PlaybackKeepsLivePhaseSeparate = meta.story({
-  beforeEach: install(() => productTransport('seat-2', finishedSnapshot('seat-2'))),
+  beforeEach: install(() => productTransport(SPECTATOR_SEAT, finishedSnapshot(SPECTATOR_SEAT))),
   play: async ({ canvasElement }) => {
-    const { page, controls, waitForPhase } = phaseControls(canvasElement);
+    const page = within(canvasElement.ownerDocument.body);
     await page.findByText(/Declared by/, {}, { timeout: 30_000 });
     await openTab(page, 'Replay');
     await userEvent.click(await page.findByRole('button', { name: 'Replay from start' }));
@@ -255,13 +256,13 @@ export const PlaybackKeepsLivePhaseSeparate = meta.story({
     });
 
     await openTab(page, 'Phase');
-    session.transport.deliver(session.transport.view({ ...initialSnapshot(), phase: 6, revision: 100 }));
+    /* The live table an observer receives holds no seat's hand or reserve. */
+    const { hand: _hand, handOrder: _order, bank: _bank, ...live } = initialSnapshot();
+    session.transport.deliver(session.transport.view({ ...live, phase: 6, revision: 100 }));
     await expect(page.getByRole('region', { name: TABLE_PHASES[0].label })).toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Return to live' }));
-    await waitForPhase(async () => {
-      await expectHeaderPhase(canvasElement, 6);
-      await expect(controls().getByRole('button', { name: 'Next phase' })).toBeEnabled();
-    });
+    await waitFor(() => expectHeaderPhase(canvasElement, 6), { timeout: 30_000 });
+    await expect(page.queryByRole('button', { name: 'Return to live' })).toBeNull();
     await expect(session.transport.messages.some((message) => message.type === 'command')).toBe(false);
   },
 });
