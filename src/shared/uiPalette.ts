@@ -328,7 +328,7 @@ export const playUiColors = {
   pointerOutline: coreColors.ground,
   spiceHover: coreColors.highlight,
   /* The territory a revealed spice card names, lit during Spice Blow until its spice is placed. */
-  spiceBlowTerritory: coreColors.caution,
+  spiceBlowTerritory: coreColors.cautionFill,
   boardDivider: coreColors.ground,
   stationGround: coreColors.highlight,
   stormSector: coreColors.negativeFill,

@@ -8,7 +8,7 @@ import { useMemo } from 'react';
 import { useTabletopSelector } from './TabletopContext';
 
 /* A light wash, so the map under it stays readable; the spice sticker says what it is for. */
-const WASH = '73';
+const WASH = 'a6';
 
 /* The territories still waiting for a revealed spice card's spice, as one key, so the board redraws only when they change. */
 function pendingKey(snapshot: GameSnapshot, pieces: Parameters<typeof pendingSpiceBlows>[0]): string {
