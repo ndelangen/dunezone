@@ -240,6 +240,9 @@ export const Unclaimed = meta.story({
     const bounds = claim.getBoundingClientRect();
     await expect(bounds.width).toBe(bounds.height);
     await expect(getComputedStyle(claim).borderRadius).toBe('50%');
+    /* The left side is the aggressor's, and its button says so to every viewer; the right side's says nothing more. */
+    await expect(claim).toHaveAccessibleDescription('Aggressor, normally wins ties');
+    await expect(page.getByRole('button', { name: 'Claim right side' })).not.toHaveAccessibleDescription();
     await userEvent.click(claim);
     await expect(lastCommand()?.action).toEqual({
       kind: 'battle-claim',
