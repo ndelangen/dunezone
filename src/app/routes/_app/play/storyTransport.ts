@@ -170,41 +170,10 @@ export function storyTransport(
         }
       }
       if (message.type === 'admit' && !holdView) {
-        queueMicrotask(() => {
-          this.deliver(admitView?.() ?? view(snapshot));
-          const summary = summaries();
-          if (summary) {
-            this.deliver(summary);
-          }
-        });
+        queueMicrotask(() => this.admitted());
       }
       if (message.type === 'conversation-clear') {
-        cleared.set(message.peerId, Math.max(cleared.get(message.peerId) ?? 0, message.through));
-        const summary = summaries();
-        if (summary) {
-          queueMicrotask(() => this.deliver(summary));
-        }
-        const name = (id: string) =>
-          snapshot.roster?.seats.find((seat) => seat.faction?.id === id)?.faction?.name ?? id;
-        clearLog.unshift({
-          sequence: 10_000 + clearLog.length,
-          class: 'chat',
-          text:
-            message.peerId === '@table'
-              ? `${name(message.factionId)} cleared the table chat.`
-              : `${name(message.factionId)} cleared its chat with ${name(message.peerId)}.`,
-          context: 'Turn 1 · Storm',
-          at: STORYBOOK_NOW,
-        });
-        queueMicrotask(() =>
-          this.deliver({
-            type: 'log-history',
-            tab: 'game',
-            before: Number.MAX_SAFE_INTEGER,
-            entries: gameLog().slice(0, LOG_PAGE_SIZE),
-            more: gameLog().length > LOG_PAGE_SIZE,
-          })
-        );
+        this.cleared(message);
       }
       if (message.type === 'faction') {
         queueMicrotask(() => this.deliver({ ...message, faction: factions[message.factionId] ?? null }));
@@ -217,20 +186,7 @@ export function storyTransport(
         queueMicrotask(() => this.deliver({ ...message, entries: entries.slice(-50), more: entries.length > 50 }));
       }
       if (message.type === 'log-history' && !holdLogHistory) {
-        const entries = (
-          message.tab === 'game'
-            ? gameLog()
-            : ((typeof logEntries === 'function' ? logEntries() : logEntries).audit ?? [])
-        ).filter((entry) => entry.sequence < message.before);
-        queueMicrotask(() =>
-          this.deliver({
-            type: 'log-history',
-            tab: message.tab,
-            before: message.before,
-            entries: entries.slice(0, LOG_PAGE_SIZE),
-            more: entries.length > LOG_PAGE_SIZE,
-          })
-        );
+        queueMicrotask(() => this.deliverLog(message.tab, message.before));
       }
       if (message.type === 'command' && answerCommand) {
         queueMicrotask(() => this.deliver(answerCommand(message)));
@@ -240,6 +196,50 @@ export function storyTransport(
       if (message.type === 'command' && (isSeatAction(message.action) || isSwapAction(message.action))) {
         queueMicrotask(() => this.deliver(view(snapshot, message.commandId)));
       }
+    }
+
+    /* The first view, then the faction's conversations when the story has them, as the Worker admits a seat. */
+    admitted() {
+      this.deliver(admitView?.() ?? view(snapshot));
+      const summary = summaries();
+      if (summary) {
+        this.deliver(summary);
+      }
+    }
+
+    /* A clear moves the conversation's position, sends the summaries again, and logs it as the Worker does. */
+    cleared(message: Extract<ClientMessage, { type: 'conversation-clear' }>) {
+      cleared.set(message.peerId, Math.max(cleared.get(message.peerId) ?? 0, message.through));
+      const summary = summaries();
+      if (summary) {
+        queueMicrotask(() => this.deliver(summary));
+      }
+      const name = (id: string) => snapshot.roster?.seats.find((seat) => seat.faction?.id === id)?.faction?.name ?? id;
+      clearLog.unshift({
+        sequence: 10_000 + clearLog.length,
+        class: 'chat',
+        text:
+          message.peerId === '@table'
+            ? `${name(message.factionId)} cleared the table chat.`
+            : `${name(message.factionId)} cleared its chat with ${name(message.peerId)}.`,
+        context: 'Turn 1 · Storm',
+        at: STORYBOOK_NOW,
+      });
+      queueMicrotask(() => this.deliverLog('game', Number.MAX_SAFE_INTEGER));
+    }
+
+    /* A page of a log tab before `before`, newest first. */
+    deliverLog(tab: LogTab, before: number) {
+      const all =
+        tab === 'game' ? gameLog() : ((typeof logEntries === 'function' ? logEntries() : logEntries).audit ?? []);
+      const entries = all.filter((entry) => entry.sequence < before);
+      this.deliver({
+        type: 'log-history',
+        tab,
+        before,
+        entries: entries.slice(0, LOG_PAGE_SIZE),
+        more: entries.length > LOG_PAGE_SIZE,
+      });
     }
 
     /* Answered as the Worker's auto-response does, so an idle story keeps its socket. */

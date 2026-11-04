@@ -37,13 +37,28 @@ function writeSeen(game: string, turn: number) {
   }
 }
 
+/* Looking back at a checkpoint or a recall is not the live table, so its turn never clears anything. */
+function lookingBack(table: TableProjection) {
+  return Boolean(table.playback || table.historyPending || reviewRunning(table.snapshot.review));
+}
+
 /** The live table's turn, or undefined outside play and while looking back at history or a recall. */
-export function liveTurn(table: TableProjection): number | undefined {
+function liveTurn(table: TableProjection): number | undefined {
   const { snapshot } = table;
-  if (snapshot.stage !== 'play' || table.playback || table.historyPending || reviewRunning(snapshot.review)) {
+  if (snapshot.stage !== 'play' || lookingBack(table)) {
     return undefined;
   }
   return tableProgressFor(snapshot.phase, snapshot.phases).turn;
+}
+
+/* Moves the remembered turn on to `turn`; true when that starts a turn after one this browser saw. */
+function enterTurn(game: string, turn: number) {
+  const seen = readSeen(game);
+  if (seen !== undefined && turn <= seen) {
+    return false;
+  }
+  writeSeen(game, turn);
+  return seen !== undefined;
 }
 
 /**
@@ -54,17 +69,10 @@ export function useAutoClearChatsAtNewTurn(client: TableSession, table: TablePro
   const enabled = useAutoClearChats();
   const { conversations } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
   const ready = conversations.online && conversations.summaries.length > 0;
-  const turn = liveTurn(table);
+  const turn = ready ? liveTurn(table) : undefined;
   useEffect(() => {
-    if (turn === undefined || !ready) {
-      return;
-    }
-    const seen = readSeen(client.game);
-    if (enabled && seen !== undefined && turn > seen) {
+    if (turn !== undefined && enterTurn(client.game, turn) && enabled) {
       client.conversations.clearAllChats();
     }
-    if (seen === undefined || turn > seen) {
-      writeSeen(client.game, turn);
-    }
-  }, [client, enabled, ready, turn]);
+  }, [client, enabled, turn]);
 }

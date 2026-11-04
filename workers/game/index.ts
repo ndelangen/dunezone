@@ -213,6 +213,12 @@ type ProvisioningValidation = Extract<ReturnType<typeof playProvisioningValidati
 type PageRead = Extract<ClientMessage, { type: 'log-history' | 'spice-history' | 'faction' }>;
 const isPageRead = (message: ClientMessage): message is PageRead =>
   message.type === 'log-history' || message.type === 'spice-history' || message.type === 'faction';
+type ConversationRequest = Extract<
+  ClientMessage,
+  { type: 'conversation-history' | 'conversation-send' | 'conversation-read' | 'conversation-clear' }
+>;
+const isConversationRequest = (message: ClientMessage): message is ConversationRequest =>
+  message.type.startsWith('conversation-');
 
 function messageId(message: ClientMessage): string {
   if ('commandId' in message) {
@@ -1645,15 +1651,13 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.sendPage(socket, message);
       return;
     }
+    if (isConversationRequest(message)) {
+      this.handleConversation(socket, connection.viewer!, message);
+      return;
+    }
     switch (message.type) {
       case 'sync':
         this.sendView(socket, connection);
-        return;
-      case 'conversation-history':
-      case 'conversation-send':
-      case 'conversation-read':
-      case 'conversation-clear':
-        this.handleConversation(socket, connection.viewer!, message);
         return;
       case 'history':
         this.sendHistory(socket, message.step, message.requestId);
@@ -1669,40 +1673,49 @@ export class GameRoom extends DurableObject<GameEnv> {
         this.publishActivity(socket, connection, message);
     }
   }
-  private handleConversation(
+  private handleConversation(socket: WebSocket, viewer: Viewer, request: ConversationRequest) {
+    switch (request.type) {
+      case 'conversation-history':
+        this.send(socket, this.session.conversationPage(viewer, request));
+        return;
+      case 'conversation-read':
+        this.sendConversationReads(this.session.markConversationRead(viewer, request));
+        return;
+      case 'conversation-clear':
+        this.clearConversation(viewer, request);
+        return;
+      case 'conversation-send':
+        this.saveConversationMessage(socket, viewer, request);
+    }
+  }
+
+  /* The faction's other connections drop the cleared messages when their summaries arrive; everyone reads the clear in the log. */
+  private clearConversation(viewer: Viewer, request: Extract<ConversationRequest, { type: 'conversation-clear' }>) {
+    const { faction, logged } = this.session.clearConversation(viewer, request);
+    this.sendConversationReads(faction);
+    if (logged) {
+      this.announceGameLog();
+    }
+  }
+
+  private saveConversationMessage(
     socket: WebSocket,
     viewer: Viewer,
-    request: Extract<
-      ClientMessage,
-      { type: 'conversation-history' | 'conversation-send' | 'conversation-read' | 'conversation-clear' }
-    >
+    request: Extract<ConversationRequest, { type: 'conversation-send' }>
   ) {
-    if (request.type === 'conversation-history') {
-      this.send(socket, this.session.conversationPage(viewer, request));
-    } else if (request.type === 'conversation-read') {
-      this.sendConversationReads(this.session.markConversationRead(viewer, request));
-    } else if (request.type === 'conversation-clear') {
-      /* The faction's other connections drop the cleared messages when their summaries arrive. */
-      const { faction, logged } = this.session.clearConversation(viewer, request);
-      this.sendConversationReads(faction);
-      if (logged) {
-        this.announceGameLog();
-      }
-    } else {
-      const saved = this.session.sendConversation(viewer, request);
-      if (saved.inserted) {
-        this.publishConversationMessage(request, saved.message);
-        this.directory.soon();
-      } else {
-        /* A retried request was already delivered to every member; only the retrying connection needs its confirmation. */
-        this.send(socket, {
-          type: 'conversation-message',
-          factionId: request.factionId,
-          peerId: request.peerId,
-          message: saved.message,
-        });
-      }
+    const saved = this.session.sendConversation(viewer, request);
+    if (saved.inserted) {
+      this.publishConversationMessage(request, saved.message);
+      this.directory.soon();
+      return;
     }
+    /* A retried request was already delivered to every member; only the retrying connection needs its confirmation. */
+    this.send(socket, {
+      type: 'conversation-message',
+      factionId: request.factionId,
+      peerId: request.peerId,
+      message: saved.message,
+    });
   }
 
   private sendConversationReads(faction: string) {
