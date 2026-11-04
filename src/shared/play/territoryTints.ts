@@ -219,16 +219,16 @@ export function applyTerritoryTint(tints: readonly TerritoryTint[], action: Terr
 }
 
 /*
- * The battle marker's highlight over the territory it marks, or would mark while carried: a gold wash with a gold line round it.
- * The gold is the lit Battle disc's on the phase tracker, where the marker rises from.
+ * The battle marker's highlight over the territory it marks, or would mark while carried: a gold wash inside a dark double rim.
+ * The gold is the lit Battle disc's on the phase tracker, where the marker rises from; the rim is the marker's own dark underlay,
+ * so the territory reads as lit, not faded, on pale sand.
  * Never stored; the page adds it.
  */
 export function battleHighlight(territoryId: string): TerritoryTint[] {
   const territories = [territoryId];
-  const gold = playUiColors.activeTracker;
   return [
-    { id: 'battle-highlight', name: 'Battle', color: `${gold}66`, territories },
-    { id: 'battle-highlight-edge', name: 'Battle', color: gold, outline: true, territories },
+    { id: 'battle-highlight', name: 'Battle', color: `${playUiColors.activeTracker}8c`, territories },
+    { id: 'battle-highlight-rim', name: 'Battle', color: playUiColors.targetUnderlay, outline: true, territories },
   ];
 }
 

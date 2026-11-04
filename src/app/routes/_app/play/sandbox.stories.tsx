@@ -6,6 +6,7 @@ import { restingPositionAt, troopScale } from '@shared/play/tableGeometry';
 import { footprintReach, nearestCollisionFreePosition, piecesOverlapAt } from '@shared/play/tablePhysics';
 import { drawableTechTokens, isTechToken } from '@shared/play/techToken';
 import { fitsInside, innermostPoint, tableTerritories } from '@shared/play/territoryFit';
+import { packsInTerritory, piecesNudgedAround, territoryLanding } from '@shared/play/territoryPlacement';
 import { expect, within } from 'storybook/test';
 
 import type { StoredSnapshot } from '../../../../../workers/game/state';
@@ -228,6 +229,38 @@ const troopsOf = <Piece extends Loose>(pieces: readonly Piece[], faction: string
       !candidate.inventory && candidate.kind === 'force' && !!candidate.stackKey?.startsWith(`troops:${faction}:`)
   );
 
+/**
+ * The recording set the fighters down by Arrakeen before stacks kept inside territories, so a few rest across its border.
+ * This sets each loose stack within reach of the city down inside it, as a drop there lands it now.
+ */
+function withArrakeenPacked(stored: StoredSnapshot): StoredSnapshot {
+  const { territory, x, z } = arrakeen();
+  /* Only positions change, and the packing reads only the pieces' shape and place. */
+  let pieces = stored.table.pieces as unknown as TablePiece[];
+  const straddling = pieces.filter(
+    (candidate) =>
+      packsInTerritory(candidate) &&
+      Math.hypot(candidate.position[0] - x, candidate.position[2] - z) < 0.9 &&
+      !fitsInside(territory, [candidate.position[0], candidate.position[2]], footprintReach(candidate))
+  );
+  for (const stack of straddling) {
+    const others = pieces.filter((candidate) => candidate.id !== stack.id);
+    const landing = territoryLanding({}, stack, restingPositionAt([x, 0, z], stack), others);
+    if (landing) {
+      const placed = { ...stack, position: landing };
+      pieces = piecesNudgedAround({}, [...others, placed], placed);
+    }
+  }
+  const moved = new Map(pieces.map((piece) => [piece.id, piece.position]));
+  return {
+    ...stored,
+    table: {
+      ...stored.table,
+      pieces: stored.table.pieces.map((piece) => ({ ...piece, position: moved.get(piece.id) ?? piece.position })),
+    },
+  };
+}
+
 /** Atreides starts in Arrakeen; a second faction joins it there, its stack beside the Atreides one. */
 function withArrakeenHeld(stored: StoredSnapshot): StoredSnapshot {
   const { x, z } = arrakeen();
@@ -309,11 +342,29 @@ export const TroopsMakeRoom = meta.story({
  */
 export const BattleMarkerLightsTerritory = meta.story({
   args: { step: chapter('Battle'), seat: 'seat-2' },
+  beforeEach: ({ args }: { args: { step?: number; seat?: string } }) =>
+    install(() =>
+      sandboxTransport({
+        start: Number(args.step ?? 1) - 1,
+        seat: String(args.seat ?? 'seat-2'),
+        prepare: withArrakeenPacked,
+      })
+    )(),
   play: async ({ canvasElement }) => {
     await sandboxReady(within(canvasElement.ownerDocument.body));
     const { x, z } = arrakeen();
     await dragBattleMarker(canvasElement.ownerDocument, [x, 0.18, z], async () => {
       await expect(shown().battle).toMatchObject({ territory: 'Arrakeen', territoryId: 'arrakeen' });
+      /* The fighters' stacks by the city all stand inside it, under the light. */
+      const { territory } = arrakeen();
+      const nearby = shown().table.pieces.filter(
+        (candidate) =>
+          packsInTerritory(candidate) && Math.hypot(candidate.position[0] - x, candidate.position[2] - z) < 0.9
+      );
+      await expect(nearby.length).toBeGreaterThan(1);
+      for (const stack of nearby) {
+        await expect(fitsInside(territory, [stack.position[0], stack.position[2]], footprintReach(stack))).toBe(true);
+      }
     });
   },
 });
