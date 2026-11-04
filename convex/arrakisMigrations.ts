@@ -39,17 +39,21 @@ async function arrakisBoardId(ctx: MutationCtx): Promise<Id<'assets'> | null> {
   return board && !board.is_deleted ? board._id : null;
 }
 
-/** A Spice card's data on the saved board: linked if it was not, its old highlight list emptied either way. */
+/**
+ * A Spice card's data on the saved board: linked if it was not, its old highlight list emptied either way.
+ * Only those two fields change; the rest is kept exactly as stored, so a parse's defaults never reach the row.
+ */
 export function spiceCardOnBoard(data: unknown, boardId: string): unknown {
   const card = SpiceAsset.parse(data);
+  const stored = data as Record<string, unknown>;
   if (card.board && card.highlights.length === 0) {
     return data;
   }
   if (card.board) {
-    return { ...card, highlights: [] };
+    return { ...stored, highlights: [] };
   }
   const carried = legacyHighlightTint(card.highlights, card.subName);
-  return { ...card, highlights: [], board: { asset_id: boardId, tints: carried ? [carried] : [], tokens: [] } };
+  return { ...stored, highlights: [], board: { asset_id: boardId, tints: carried ? [carried] : [], tokens: [] } };
 }
 
 /* A highlight on the built-in board named a territory no board has; Norbert confirmed it meant The Greater Flat (#1971). */
