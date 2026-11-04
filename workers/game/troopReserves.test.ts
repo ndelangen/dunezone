@@ -176,6 +176,26 @@ describe('troops let go over their own faction token', () => {
   });
 });
 
+describe('at a seat down the side of the table', () => {
+  const ATREIDES = ['troops:atreides:regular', 'troops:atreides:elite'];
+  const spots = factionSupplyLayout(angles[1]!, ATREIDES.length).reserves;
+
+  test('the smaller reserve takes the spot nearer the bottom of the screen, so the taller one never hides it', () => {
+    /* Setup dealt the 10 regulars on the lower spot and the 3 elites on the higher one. */
+    expect(spots[0]![2]).toBeGreaterThan(spots[1]![2]);
+    const { table } = room([
+      troops('atreides-regular', ATREIDES[0]!, 10, spots[0]!),
+      troops('atreides-elite', ATREIDES[1]!, 3, spots[1]!),
+      troops('atreides-board', ATREIDES[1]!, 1, [0.9, 0, -0.6]),
+    ]);
+    table.dealtTroops = (factionId) => (factionId === 'atreides' ? ATREIDES : KINDS);
+    dropOn(table, 'atreides-board', token(table, 'atreides'));
+    expect(piece(table, 'atreides-elite')!.items).toHaveLength(4);
+    expect(planarDistance(piece(table, 'atreides-elite')!.position, spots[0]!)).toBeCloseTo(0);
+    expect(planarDistance(piece(table, 'atreides-regular')!.position, spots[1]!)).toBeCloseTo(0);
+  });
+});
+
 describe('troops let go over another faction token', () => {
   test('are set down as any piece is, and no reserve moves', () => {
     const { table } = room();

@@ -214,7 +214,7 @@ export const TechTokens = meta.story({
 /**
  * Seat 1, the Emperor, after a few rough turns: both reserves knocked askew behind the seat, 4 Normal troops out on the board and 2 revived ones lying face down beside the token.
  * By hand: drag any Emperor troops onto the Emperor token.
- * They join their reserve face up, and both reserves stand straight on the spots setup dealt them, in setup order.
+ * They join their reserve face up, and both reserves stand straight on the spots setup dealt them: in setup order at this seat, and at a seat down the side of the table the smaller stack takes the spot lower on the screen.
  * Troops dropped on another faction's token are set down as before.
  */
 export const TroopsBackToReserves = meta.story({

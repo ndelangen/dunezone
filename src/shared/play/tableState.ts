@@ -918,22 +918,25 @@ function liesInReserve(piece: TablePiece, spot: TroopReserveSpot) {
   );
 }
 
+/* One troop kind's reserve gathered into a single pile, and the piles it was gathered from. */
+type GatheredReserve = { pile: TablePiece; from: ReadonlySet<string>; spot: TroopReserveSpot };
+
 /*
- * One troop kind's reserve gathered into a single pile on its setup spot, with `returned` laid on top.
+ * One troop kind's reserve gathered into a single pile, with `returned` laid on top; undefined when the kind has nothing behind the seat.
  * The pile nearest the spot keeps its identity; with no pile left there, the returned troops become the reserve.
  */
 function gatheredReserve(
-  pieces: TablePiece[],
+  pieces: readonly TablePiece[],
   spot: TroopReserveSpot,
   returned: TablePiece | undefined,
   factionNames: TableState['factionNames']
-): TablePiece[] {
+): GatheredReserve | undefined {
   const piles = pieces
     .filter((piece) => liesInReserve(piece, spot))
     .sort((a, b) => planarDistance(a.position, spot.position) - planarDistance(b.position, spot.position));
   const keeper = piles[0] ?? returned;
   if (!keeper) {
-    return pieces;
+    return undefined;
   }
   const items = [...piles.flatMap((pile) => pile.items), ...(returned?.items ?? [])];
   const pile: TablePiece = {
@@ -944,15 +947,30 @@ function gatheredReserve(
     zoneId: null,
     battleOverlay: undefined,
   };
-  const reserve = { ...pile, position: restingPositionAt(spot.position, pile) };
-  const gathered = new Set(piles.map((candidate) => candidate.id));
-  const kept = pieces.flatMap((piece) => (piece.id === keeper.id ? [reserve] : gathered.has(piece.id) ? [] : [piece]));
-  return piles.length ? kept : [...kept, reserve];
+  return { pile, from: new Set(piles.map((candidate) => candidate.id)), spot };
+}
+
+/* Spots closer than this on the table's depth count as level: neither stands in front of the other. */
+const LEVEL_DEPTH = 0.05;
+
+/*
+ * The reserves set on their spots, the smaller stacks nearer the bottom of the screen so the taller ones never hide them.
+ * The map view looks across the table from its near edge, so a spot further towards it (a larger z) shows lower down.
+ * Kinds of one size keep setup order, and so do reserves whose spots all stand level, as at the far and near seats.
+ */
+function reservesOnSpots(reserves: readonly GatheredReserve[]) {
+  const depths = reserves.map((reserve) => reserve.spot.position[2]);
+  if (Math.max(...depths) - Math.min(...depths) < LEVEL_DEPTH) {
+    return reserves.map(({ pile, spot }) => ({ ...pile, position: restingPositionAt(spot.position, pile) }));
+  }
+  const spots = reserves.map((reserve) => reserve.spot.position).sort((a, b) => a[2] - b[2]);
+  const largestFirst = [...reserves].sort((a, b) => b.pile.items.length - a.pile.items.length);
+  return largestFirst.map(({ pile }, index) => ({ ...pile, position: restingPositionAt(spots[index]!, pile) }));
 }
 
 /**
  * Troops carried onto their own faction token go back to that faction's reserves, face up, as setup dealt them.
- * Every kind's reserve is then set back on its setup spot behind the seat, in setup order, with any piles of it knocked nearby gathered in.
+ * Every kind's reserve is then set back on the spots setup laid out behind the seat, with any piles of it knocked nearby gathered in, the smaller stacks on the spots nearer the bottom of the screen.
  */
 export function returnTroopsDraftToReserves(
   current: TableState,
@@ -973,11 +991,19 @@ export function returnTroopsDraftToReserves(
     );
   }
   const returned = { ...piece, items: piece.items.map((item) => ({ ...item, faceUp: true })) };
-  const pieces = landing.spots.reduce(
-    (next, spot) =>
-      gatheredReserve(next, spot, spot.stackKey === piece.stackKey ? returned : undefined, current.factionNames),
-    piecesWithoutHeld(current, draft, piece)
+  const base = piecesWithoutHeld(current, draft, piece);
+  const reserves = landing.spots.flatMap(
+    (spot) =>
+      gatheredReserve(base, spot, spot.stackKey === piece.stackKey ? returned : undefined, current.factionNames) ?? []
   );
+  const placed = new Map(reservesOnSpots(reserves).map((pile) => [pile.id, pile]));
+  const gathered = new Set(reserves.flatMap((reserve) => [...reserve.from]));
+  const pieces = [
+    ...base.flatMap((candidate) =>
+      placed.has(candidate.id) ? [placed.get(candidate.id)!] : gathered.has(candidate.id) ? [] : [candidate]
+    ),
+    ...[...placed.values()].filter((pile) => !base.some((candidate) => candidate.id === pile.id)),
+  ];
   const count = pieceCount(piece);
   const [one, many] = pieceUnits(piece);
   return accepted(
