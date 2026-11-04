@@ -10,8 +10,12 @@ type Explainer = Extract<RulebookRenderBlockV1, { kind: 'asset-explainer' }>;
 type Point = Readonly<{ x: number; y: number }>;
 type Part = ComponentGeometry['parts'][number];
 
-export const RULEBOOK_ANNOTATION_COMPOSITOR_REVISION = 'asset-explainer-3';
+export const RULEBOOK_ANNOTATION_COMPOSITOR_REVISION = 'asset-explainer-4';
 const RULEBOOK_ANNOTATION_MAX_BYTES = 4_000_000;
+/* An embedded source image's data URL; its base64 is four characters for every three bytes. */
+const EMBEDDED_IMAGE_MAX_CHARACTERS = 3_600_000;
+/** The largest source image, in bytes, that an annotated illustration can embed: its base64 data URL must stay under the embedding limit. */
+export const RULEBOOK_ANNOTATION_MAX_IMAGE_BYTES = Math.floor((EMBEDDED_IMAGE_MAX_CHARACTERS - 64) / 4) * 3;
 export const RULEBOOK_ANNOTATION_COLORS = ['#9c2920', '#76500c', '#565d16', '#265e3a', '#244d7c', '#663182'] as const;
 
 /** The same projected points and colors feed the live drawing and the exported illustration. */
@@ -257,15 +261,35 @@ export function rulebookAnnotationShapes(projection: RulebookAnnotationProjectio
   const shapes: RulebookAnnotationShape[] = [];
   for (const entry of projection.entries) {
     for (const path of entry.highlight?.paths ?? []) {
+      const transform = `scale(${width} ${height})${path.transform ? ` matrix(${path.transform.join(' ')})` : ''}`;
+      if (/[zZ]/.test(path.d)) {
+        shapes.push({
+          tag: 'path',
+          attributes: {
+            'data-rulebook-highlight': entry.id,
+            d: path.d,
+            transform,
+            fill: entry.color,
+            'fill-opacity': 0.48,
+            stroke: 'none',
+          },
+        });
+        continue;
+      }
+      /* A path that never closes is a line, such as a storm sector line: filling it draws nothing, so it is drawn as a dashed stroke whose width and dashes are measured in the image's pixels. */
+      const [a, b, c, d] = path.transform ?? [1, 0, 0, 1];
+      const pixel = 1 / (Math.sqrt(width * height) * Math.sqrt(Math.abs(a * d - b * c)) || 1);
       shapes.push({
         tag: 'path',
         attributes: {
           'data-rulebook-highlight': entry.id,
           d: path.d,
-          transform: `scale(${width} ${height})${path.transform ? ` matrix(${path.transform.join(' ')})` : ''}`,
-          fill: entry.color,
-          'fill-opacity': 0.48,
-          stroke: 'none',
+          transform,
+          fill: 'none',
+          stroke: entry.color,
+          'stroke-width': unit * 0.006 * pixel,
+          'stroke-dasharray': `${unit * 0.016 * pixel} ${unit * 0.01 * pixel}`,
+          'stroke-linecap': 'round',
         },
       });
     }
@@ -361,7 +385,7 @@ function escapeXml(value: string | number): string {
 
 function embeddedImage(imageDataUrl: string, allowSvg: boolean): string {
   const match = /^data:(image\/(?:jpeg|png|webp|svg\+xml));base64,([A-Za-z0-9+/]+={0,2})$/.exec(imageDataUrl);
-  if (!match || imageDataUrl.length > 3_600_000 || (match[1] === 'image/svg+xml' && !allowSvg)) {
+  if (!match || imageDataUrl.length > EMBEDDED_IMAGE_MAX_CHARACTERS || (match[1] === 'image/svg+xml' && !allowSvg)) {
     throw new Error('Invalid annotated source image');
   }
   if (match[1] === 'image/svg+xml') {

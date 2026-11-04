@@ -13,6 +13,7 @@ import {
   rulebookAnnotatedIllustrationPath,
 } from '../../src/shared/rulebooks/annotatedIllustration';
 import type { RulebookAnnotatedIllustrationResolution } from '../../src/shared/rulebooks/annotatedIllustration';
+import { RULEBOOK_ANNOTATION_MAX_IMAGE_BYTES } from '../../src/shared/rulebooks/assetExplainerAnnotations';
 import { handlePublicAssetRequest } from './delivery';
 import { handleRulebookIllustrationRequest } from './rulebook-illustration-delivery';
 import { fakeR2Object, jpegBytes } from './test-helpers';
@@ -344,6 +345,72 @@ describe('annotated Rulebook illustration delivery', () => {
     const mismatched = await serve(f, { 'If-None-Match': '*' });
     expect(mismatched.status).toBe(503);
     expect(mismatched.headers.get('Cache-Control')).toBe('no-store');
+  });
+
+  async function savedBoardResponse(size: number) {
+    const f = fixture();
+    const board = { kind: 'board' as const, boardId: identity.rulebookId };
+    f.set({
+      ok: true,
+      status: 'found',
+      design: 'illustrated',
+      source: {
+        status: 'image',
+        reference: board,
+        name: 'Arrakis',
+        assetType: 'board',
+        assetId: board.boardId,
+        revision: revisionA,
+        geometry: {
+          width: 1948,
+          height: 1948,
+          parts: [
+            {
+              key: 'arrakeen',
+              x: 0.25,
+              y: 0.25,
+              width: 0.5,
+              height: 0.5,
+              highlight: { paths: [{ d: 'M0.25 0.25H0.75V0.75Z' }] },
+            },
+          ],
+        },
+      },
+      configuration: {
+        source: board,
+        numbering: 'automatic',
+        colorMode: 'automatic',
+        items: [{ id: 'one', label: 'saved', target: { kind: 'named', key: 'arrakeen', source: board } }],
+      },
+    });
+    /* A board capture may be larger than a deck image. */
+    const body = jpegBytes({ widthPx: 1948, heightPx: 1948, progressive: true });
+    const object = (await f.bucket.get(componentEnvelopeKey(assetId, revisionA)))!;
+    f.bucket.get.mockResolvedValue({
+      ...object,
+      size,
+      customMetadata: { publisherCacheToken: revisionA },
+      arrayBuffer: async () => body.slice().buffer,
+    });
+    return serve(f);
+  }
+
+  test('a saved board draws from its published JPEG with the highlights its capture drew', async () => {
+    /* A board capture may be larger than a deck image. */
+    const response = await savedBoardResponse(2_500_000);
+    const svg = await response.text();
+    expect(response.status).toBe(200);
+    expect(svg).toContain('data:image/jpeg;base64,');
+    expect(svg).toContain('<path');
+    expect(svg).not.toContain('target unavailable');
+  });
+
+  test('a saved board image too large to embed draws the unavailable placeholder instead of failing', async () => {
+    expect(RULEBOOK_ANNOTATION_MAX_IMAGE_BYTES).toBeLessThan(2_800_000);
+    const response = await savedBoardResponse(2_800_000);
+    const svg = await response.text();
+    expect(response.status).toBe(200);
+    expect(svg).not.toContain('data:image/jpeg;base64,');
   });
 
   test('maintained board illustration and highlights arrive in one self-contained SVG', async () => {

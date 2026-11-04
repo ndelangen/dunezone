@@ -395,6 +395,36 @@
       "id": "publication_job_listings_narrow",
       "phase": "narrow",
       "requires": ["publication_job_listings_v1", "publication_job_listings_verify_v1"]
+    },
+    {
+      "id": "arrakis_spice_cards_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "arrakis_rulebook_drafts_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "arrakis_rulebook_edition_contents_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "arrakis_spice_cards_verify_v1",
+      "phase": "widen",
+      "requires": ["arrakis_spice_cards_v1"]
+    },
+    {
+      "id": "arrakis_rulebook_drafts_verify_v1",
+      "phase": "widen",
+      "requires": ["arrakis_rulebook_drafts_v1"]
+    },
+    {
+      "id": "arrakis_rulebook_edition_contents_verify_v1",
+      "phase": "widen",
+      "requires": ["arrakis_rulebook_edition_contents_v1"]
     }
   ]
 }

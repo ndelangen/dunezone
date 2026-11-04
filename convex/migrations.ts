@@ -6,6 +6,7 @@ import { factionExtrasSchema, isLegacyFactionExtra } from '../src/shared/faction
 import { components, internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { internalQuery } from './_generated/server';
+import { ARRAKIS_MIGRATION_IDS } from './arrakisMigrations';
 import { CATALOGUE_MIGRATION_IDS } from './catalogueMigrations';
 import { EMBLEM_MIGRATION_IDS } from './emblemMigrations';
 import { adminQuery, internalMutation, mutation } from './functions';
@@ -58,6 +59,7 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   ...CATALOGUE_MIGRATION_IDS,
   ...PUBLICATION_MIGRATION_IDS,
   ...EMBLEM_MIGRATION_IDS,
+  ...ARRAKIS_MIGRATION_IDS,
   catalogue_entries_prune_v1: internal.migrations.catalogue_entries_prune_v1,
   catalogue_entries_verify_v1: internal.migrations.catalogue_entries_verify_v1,
   catalogue_entries_verify_v2: internal.migrations.catalogue_entries_verify_v2,

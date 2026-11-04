@@ -29,7 +29,7 @@ type ReadCtx = Pick<QueryCtx, 'db'> | Pick<MutationCtx, 'db'>;
  * A publication from before that keeps none;
  * its territories are read from the board's own data only while no capture of a newer save is queued, running or failed, since only then does the image show that data.
  */
-async function savedBoardGeometry(ctx: ReadCtx, assetId: string, data: unknown, stored: unknown) {
+export async function savedBoardGeometry(ctx: ReadCtx, assetId: string, data: unknown, stored: unknown) {
   if (stored) {
     return stored;
   }

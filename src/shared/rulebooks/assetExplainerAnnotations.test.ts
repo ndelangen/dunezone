@@ -4,6 +4,7 @@ import {
   composeRulebookAssetExplainerSvg,
   projectRulebookAssetExplainerAnnotations,
   rulebookAnnotationCanvas,
+  RULEBOOK_ANNOTATION_MAX_IMAGE_BYTES,
   rulebookAnnotationShapes,
 } from './assetExplainerAnnotations';
 import { resolveRulebookBoardDefinition } from './boardDefinitions';
@@ -155,7 +156,56 @@ describe('AssetExplainer annotation projection', () => {
   });
 });
 
+describe('AssetExplainer highlight drawing', () => {
+  it('fills closed territory paths and strokes open sector lines, a pixel-sized dash however the geometry is scaled', () => {
+    const original = block();
+    if (original.source.status !== 'ready') {
+      throw new Error('Expected the ready source');
+    }
+    const board = { kind: 'board', boardId: 'arrakis-official' } as const;
+    original.source.reference = board;
+    original.items[0]!.target = { kind: 'named', key: 'name', source: board };
+    original.source.geometry = {
+      width: 1000,
+      height: 1000,
+      parts: [
+        {
+          key: 'name',
+          x: 0,
+          y: 0,
+          width: 1,
+          height: 1,
+          highlight: {
+            paths: [
+              { d: 'M0 0L100 0L100 100Z', transform: [0.01, 0, 0, 0.01, 0, 0] },
+              { d: 'M50 50L100 0', transform: [0.01, 0, 0, 0.01, 0, 0] },
+            ],
+          },
+        },
+      ],
+    };
+    const projection = projectRulebookAssetExplainerAnnotations(original);
+    const color = projection.entries[0]!.color;
+    const paths = rulebookAnnotationShapes(projection).filter(({ tag }) => tag === 'path');
+    expect(paths.map(({ attributes }) => attributes.fill)).toEqual([color, 'none']);
+    expect(paths[0]!.attributes.stroke).toBe('none');
+    expect(paths[1]!.attributes.stroke).toBe(color);
+    /* 0.6% of the 1000 px image is 6 px, which is 0.6 units once the image scale (1000) and the matrix (0.01) apply. */
+    expect(Number(paths[1]!.attributes['stroke-width'])).toBeCloseTo(0.6);
+    expect(paths[1]!.attributes['stroke-dasharray']).toBe('1.6 1');
+  });
+});
+
 describe('AssetExplainer SVG composition', () => {
+  it('embeds the largest source image the delivery accepts', () => {
+    const imageDataUrl = `data:image/jpeg;base64,${btoa('\0'.repeat(RULEBOOK_ANNOTATION_MAX_IMAGE_BYTES))}`;
+    const svg = composeRulebookAssetExplainerSvg({
+      projection: projectRulebookAssetExplainerAnnotations(block()),
+      imageDataUrl,
+    });
+    expect(svg).toContain(imageDataUrl.slice(0, 64));
+  });
+
   it('uses white on the reported brown badge and black on light badges in the legend and exported drawing', () => {
     const original = block();
     original.colorMode = 'manual';
