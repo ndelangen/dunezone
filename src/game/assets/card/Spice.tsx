@@ -1,7 +1,9 @@
 import type { CardFrontStyle } from '@shared/assets/cardFrontPresets';
 import type { CustomCardTokens } from '@shared/assets/schema';
+import { retainedArrakisBoard } from '@shared/boards/geometry';
+import type { BoardTint } from '@shared/boards/markup';
 import type { Board } from '@shared/boards/schema';
-import { useId } from 'react';
+import { legacyHighlightTint } from '@shared/boards/spiceHighlights';
 import type { FC } from 'react';
 import type { z } from 'zod';
 
@@ -20,9 +22,18 @@ import { SpiceBoardMap } from './SpiceBoardMap';
 import type { SpiceMapEditing } from './SpiceBoardMap';
 import { spiceIconSrc, standardSpiceText } from './spiceText';
 
-const edgeColor = '#000';
-const foreGroundColor = '#F8F6E2';
-const highLightColor = '#9E5F00';
+/* A card without a board link draws the stock Arrakis board, its highlights carried over as one tint, kept per highlight list so the map is drawn once. */
+const classicTintCache = new Map<string, BoardTint[]>();
+function classicTints(highlights: z.infer<typeof Spice>['highlights'], subName: string): BoardTint[] {
+  const key = `${subName}\u0000${highlights.join(',')}`;
+  let tints = classicTintCache.get(key);
+  if (!tints) {
+    const tint = legacyHighlightTint(highlights, subName);
+    tints = tint ? [tint] : [];
+    classicTintCache.set(key, tints);
+  }
+  return tints;
+}
 
 /**
  * A card with a `board` link draws that board, resolved by the caller into `boardDefinition` and `boardTokens`, in place of the legacy Arrakis vector.
@@ -55,8 +66,6 @@ export const SpiceCard: FC<
 }) => {
   const frontStyle = useResolvedCardFront('card-spice', {}, suppliedFrontStyle);
   const resolveOverlay = useAssetResolver();
-  const prefix = useId();
-  const decalsFilter = `${prefix}decals-filter`;
   const iconSize = 85 * iconScale;
 
   return (
@@ -117,66 +126,21 @@ export const SpiceCard: FC<
         )
       ) : (
         <>
-          <svg className={unique.map} viewBox="0 0 100 100" xmlSpace="preserve" fillRule="evenodd" clipRule="evenodd">
-            <use xlinkHref="/vector/background/map.svg#root" />
-          </svg>
-
-          <svg
-            className={unique.map_overlay}
-            viewBox="0 0 100 100"
-            xmlSpace="preserve"
-            fillRule="evenodd"
-            clipRule="evenodd"
-          >
-            <defs>
-              <filter id={decalsFilter}>
-                <feColorMatrix
-                  result="CONTRASTED"
-                  in="SourceAlpha"
-                  type="matrix"
-                  values="1 0 0 0 0
-              0 1 0 0 0
-              0 0 1 0 0
-              0 0 0 34 0"
+          <SpiceBoardMap board={retainedArrakisBoard()} tints={classicTints(highlights, subName)} />
+          {overlays?.length ? (
+            <svg className={unique.map_overlay} viewBox="0 0 100 100" fillRule="evenodd" clipRule="evenodd">
+              {overlays.map((overlay) => (
+                <image
+                  key={`${overlay.image}-${overlay.offset[0]},${overlay.offset[1]}-${overlay.scale}`}
+                  href={resolveOverlay(overlay.image)}
+                  x={overlay.offset[0]}
+                  y={overlay.offset[1]}
+                  width={overlay.scale}
+                  height={overlay.scale}
                 />
-                <feMorphology in="CONTRASTED" result="DILATED0" operator="dilate" radius="1.03" />
-                <feMorphology in="CONTRASTED" result="DILATED1" operator="dilate" radius="0.62" />
-                <feMorphology in="CONTRASTED" result="DILATED2" operator="dilate" radius="0.21" />
-                <feFlood floodColor={foreGroundColor} floodOpacity="1" result="PINK0" />
-                <feFlood floodColor={edgeColor} floodOpacity="1" result="PINK1" />
-                <feFlood floodColor={highLightColor} floodOpacity="1" result="PINK2" />
-                <feComposite in="PINK0" in2="DILATED0" operator="in" result="OUTLINE0" />
-                <feComposite in="PINK1" in2="DILATED1" operator="in" result="OUTLINE1" />
-                <feComposite in="PINK2" in2="DILATED2" operator="in" result="OUTLINE2" />
-                <feMerge>
-                  <feMergeNode in="OUTLINE0" />
-                  <feMergeNode in="OUTLINE1" />
-                  <feMergeNode in="OUTLINE2" />
-                </feMerge>
-              </filter>
-              <mask id={`${prefix}mask`}>
-                {highlights.map((territory) => (
-                  <use key={territory} xlinkHref={`/vector/background/map.svg#${territory}`} />
-                ))}
-              </mask>
-            </defs>
-
-            <g filter={`url(#${decalsFilter})`}>
-              <rect width="100%" height="100%" mask={`url(#${prefix}mask)`} fill={edgeColor} />
-            </g>
-
-            <use xlinkHref="/vector/background/map.svg#sectors" />
-            {overlays?.map((overlay) => (
-              <image
-                key={`${overlay.image}-${overlay.offset[0]},${overlay.offset[1]}-${overlay.scale}`}
-                href={resolveOverlay(overlay.image)}
-                x={overlay.offset[0]}
-                y={overlay.offset[1]}
-                width={overlay.scale}
-                height={overlay.scale}
-              />
-            ))}
-          </svg>
+              ))}
+            </svg>
+          ) : null}
         </>
       )}
 
