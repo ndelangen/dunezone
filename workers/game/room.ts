@@ -69,6 +69,8 @@ import {
   noRoomMessage,
   settleCarryAtPosition,
 } from '../../src/shared/play/tableState';
+import { territoryAtTable, territoryLanding, withNudges } from '../../src/shared/play/territoryPlacement';
+import type { TerritoryNudge } from '../../src/shared/play/territoryPlacement';
 import { isTerritoryTintAction } from '../../src/shared/play/territoryTints';
 import type { TerritoryTintAction } from '../../src/shared/play/territoryTints';
 import { allianceCommand } from './alliances';
@@ -874,10 +876,10 @@ export class Room {
     if (amount > balance) {
       throw new GameRejection('There is not enough spice in the spice reserve for that withdrawal.');
     }
-    const piece = this.spiceReserveStack(table, amount, seat, position);
+    const { piece, nudges } = this.spiceReserveStack(table, amount, seat, position);
     return {
       balance: balance - amount,
-      table: { ...table, pieces: [...table.pieces, piece] },
+      table: { ...table, pieces: [...withNudges(table.pieces, nudges), piece] },
       message: `withdrew ${amount} spice onto the table.`,
     };
   }
@@ -915,7 +917,7 @@ export class Room {
     amount: number,
     seat: Identity['viewerSeat'],
     requested?: Vector3Tuple
-  ): TablePiece {
+  ): { piece: TablePiece; nudges?: TerritoryNudge[] } {
     const piece = createSpiceStack(table.nextEventNumber, 1);
     piece.items = Array.from({ length: amount }, (_, index) => ({ id: `${piece.id}-${index + 1}`, faceUp: true }));
     const front = this.stationFront(seat);
@@ -927,11 +929,19 @@ export class Room {
     if (requested && Math.hypot(supported[0] - origin[0], supported[2] - origin[2]) > 1e-6) {
       throw new GameRejection('Drop the spice on the table.');
     }
+    /* Spice set down in a territory keeps inside it, as a carried stack does, and the stacks there make room. */
+    const landing = territoryLanding(table, piece, origin, table.pieces);
+    if (landing === null) {
+      throw new GameRejection(`${territoryAtTable(table, origin)!.name} has no room for that.`);
+    }
+    if (landing) {
+      return { piece: { ...piece, position: landing.position }, nudges: landing.nudges };
+    }
     const position = nearestCollisionFreePosition(piece, origin, table.pieces);
     if (!position) {
       throw new GameRejection('Make room on the table before withdrawing spice.');
     }
-    return { ...piece, position };
+    return { piece: { ...piece, position } };
   }
 
   private assertPhaseChange(action: PieceAction, now: number) {

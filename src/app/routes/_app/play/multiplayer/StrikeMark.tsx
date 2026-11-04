@@ -301,12 +301,14 @@ export function StrikeMark({ pose }: Readonly<{ pose: RefObject<BeaconPose> }>) 
   const overPieces = useRef(true);
   useLayoutEffect(() => {
     /* Its own parts draw in the order they are listed: the acrylic first, its rim and etching over it. */
-    let order = ABOVE_EVERYTHING;
+    const meshes: Mesh[] = [];
     disc.current!.traverse((object) => {
-      const mesh = object as Mesh;
-      if (mesh.isMesh) {
-        mesh.renderOrder = order++;
+      if ((object as Mesh).isMesh) {
+        meshes.push(object as Mesh);
       }
+    });
+    meshes.forEach((mesh, index) => {
+      mesh.renderOrder = ABOVE_EVERYTHING + index;
     });
     overPieces.current = !pose.current.above;
   }, [pose]);

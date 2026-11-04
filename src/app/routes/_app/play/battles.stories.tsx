@@ -107,9 +107,8 @@ export const MarkerOutlinesItsTerritory = meta.story({
       carthagMiddle(),
       () =>
         expect(
-          canvasElement.ownerDocument
-            .querySelector('[data-highlight-territory]')
-            ?.getAttribute('data-highlight-territory')
+          canvasElement.ownerDocument.querySelector<HTMLElement>('[data-highlight-territory]')?.dataset
+            .highlightTerritory
         ).toBe('carthag'),
       {
         hold: true,

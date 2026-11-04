@@ -215,7 +215,8 @@ function relaxRound(input: FitInput, at: Spot[]): number {
 
 /* Whether body `i` could rest at `point`: inside the territory and clear of the other bodies and the obstacles. */
 function clearAt({ territory, bodies, obstacles }: FitInput, at: readonly Spot[], i: number, point: Plane): boolean {
-  const radius = bodies[i]!.radius;
+  /* Half the clearance the relaxation keeps: a layout it settled passes, and a spot the repair finds still keeps a gap. */
+  const radius = bodies[i]!.radius + GAP / 2;
   const apart = (other: Plane, otherRadius: number) =>
     Math.hypot(point[0] - other[0], point[1] - other[1]) >= radius + otherRadius;
   return (

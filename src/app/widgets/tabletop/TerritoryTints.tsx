@@ -117,7 +117,8 @@ function rimGeometries(segments: readonly Segment[], raisedEdges: ReadonlySet<st
   const bands: Bands = { rest: [], raised: [] };
   for (const { points, closed } of outlinePaths(segments)) {
     const raised = points.map((point, i) => raisedEdges.has(edgeKey([point, points[(i + 1) % points.length]])));
-    const probe = offsetPath({ points, closed }, 0.5);
+    /* A probe a hair off the first side tells inside from outside, however narrow the territory. */
+    const probe = offsetPath({ points, closed }, 1e-3);
     const middle: Point = [(probe[0]![0] + probe[1]![0]) / 2, (probe[0]![1] + probe[1]![1]) / 2];
     const outward = contains([...rings], middle) ? -1 : 1;
     const path = { points: points.map(toTable), closed };

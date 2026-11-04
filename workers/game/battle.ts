@@ -25,7 +25,7 @@ import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { BOARD_RADIUS, restingPositionAt } from '../../src/shared/play/tableGeometry';
 import { clampPositionToTable, nearestCollisionFreePosition } from '../../src/shared/play/tablePhysics';
-import { playFromHandAtAnchor } from '../../src/shared/play/tableState';
+import { playFromHandSettled } from '../../src/shared/play/tableState';
 import { isTechToken, takeableIntoHand } from '../../src/shared/play/techToken';
 import { territoryAtTable } from '../../src/shared/play/territoryPlacement';
 import { orderablePieces, revised } from './state';
@@ -385,15 +385,15 @@ function playFromHand(
     ...snapshot.factionInventories,
     [factionId]: inventory.filter((piece) => piece.id !== action.pieceId),
   };
-  /* A leader played from hand packs into its territory by the same outlines a carried one does. */
+  /* A piece played from hand settles as a carried one would: on an anchor, or packed into its territory by the game's own board. */
   const table = { ...tableForViewer(snapshot, SPECTATOR_SEAT), board };
-  const anchored = playFromHandAtAnchor(
+  const settled = playFromHandSettled(
     table,
     { ...leavingHand, position: restingPositionAt(action.position, piece) },
     action.position
   );
-  if (anchored) {
-    return { ...nextSnapshot(snapshot, requireAccepted(table, anchored)), factionInventories };
+  if (settled) {
+    return { ...nextSnapshot(snapshot, requireAccepted(table, settled)), factionInventories };
   }
   const position = nearestCollisionFreePosition(
     piece,

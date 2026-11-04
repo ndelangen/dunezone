@@ -263,7 +263,7 @@ type Props = {
  * A finished battle brings a new one up at the tracker;
  * when the phase ends it sinks back into the table.
  */
-export function BattleBeacon({ table, battle, onDrop, onHover }: Props) {
+export function BattleBeacon({ table, battle, onDrop, onHover }: Readonly<Props>) {
   const { inBattle, home } = useBeaconHome(table);
   const { camera, renderer, invalidate } = useThree();
   const [pending, setPending] = usePendingDrop(battle, inBattle);

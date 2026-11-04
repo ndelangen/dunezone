@@ -508,19 +508,25 @@ export function settleCarryAtPosition(state: TableState, draft: DraftMove, posit
 }
 
 /**
- * A piece played from a hand onto a placement anchor settles the way a carry released there would.
- * It takes the anchor's pose, or joins the compatible stack already resting in it with the played items on top.
- * A drop that misses every anchor returns null so the caller keeps its own placement.
+ * A piece played from a hand onto a placement anchor or into a territory settles the way a carry released there would.
+ * On an anchor it takes the anchor's pose, or joins the compatible stack already resting in it with the played items on top;
+ * in a territory it packs in with the stacks already there, which shift over to make room.
+ * A drop that misses every anchor and territory returns null so the caller keeps its own placement.
  */
-export function playFromHandAtAnchor(state: TableState, piece: TablePiece, position: Vector3Tuple): TableState | null {
-  if (!placementAnchorAtPosition(piece, position)) {
+export function playFromHandSettled(state: TableState, piece: TablePiece, position: Vector3Tuple): TableState | null {
+  const inTerritory = packsInTerritory(piece) && territoryAtTable(state, position);
+  if (!placementAnchorAtPosition(piece, position) && !inTerritory) {
     return null;
   }
   const table = { ...state, pieces: [...state.pieces, piece] };
   const draft = draftForGesture(piece, 'whole');
   const settled = draft && settleCarryAtPosition(table, draft, position);
   if (!settled) {
-    return rejection(state, 'piece.move', 'There is no clear space for that object.');
+    return rejection(
+      state,
+      'piece.move',
+      draft ? noRoomMessage(table, draft, position) : 'There is no clear space for that object.'
+    );
   }
   return applyDraftToState(table, settled);
 }

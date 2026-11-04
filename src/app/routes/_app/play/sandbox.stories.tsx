@@ -14,8 +14,15 @@ import { dragBattleMarker } from './battles.marker.stories.fixture';
 import { openControl } from './controls.stories.fixture';
 import { gameMeta, install } from './game.stories.fixture';
 import { chapter, journeyViewers, JourneyPage } from './journey.stories.fixture';
-import { sandbox, sandboxReady, sandboxSteps, sandboxTransport } from './sandbox.stories.fixture';
-import { shown, piece, withTechTokens } from './sandbox.stories.fixture';
+import {
+  piece,
+  sandbox,
+  sandboxReady,
+  sandboxSteps,
+  sandboxTransport,
+  shown,
+  withTechTokens,
+} from './sandbox.stories.fixture';
 
 const meta = preview.meta({
   ...gameMeta,
@@ -310,6 +317,7 @@ export const TroopsMakeRoom = meta.story({
     );
     const faction = shown().roster!.seats.find((seat) => seat.faction && !owners.has(seat.faction.id))!.faction!.id;
     const stack = troopsOf(shown().table.pieces, faction)[0]!;
+    const before = new Map(shown().table.pieces.map((candidate) => [candidate.id, candidate.position]));
     table.receive({
       type: 'begin',
       carryId: 'arrakeen',
@@ -334,6 +342,16 @@ export const TroopsMakeRoom = meta.story({
         .map((other) => `${candidate.id}/${other.id}`)
     );
     await expect(overlapping).toEqual([]);
+    /* The new stack rests near where it was let go: the city is nearly full, so it gives way a little as the others move over. */
+    const landed = city.find((candidate) => candidate.id === stack.id)!;
+    await expect(Math.hypot(landed.position[0] - x, landed.position[2] - z)).toBeLessThan(0.3);
+    const shifted = city.filter((candidate) => {
+      const was = before.get(candidate.id)!;
+      return (
+        candidate.id !== stack.id && Math.hypot(candidate.position[0] - was[0], candidate.position[2] - was[2]) > 1e-3
+      );
+    });
+    await expect(shifted.length).toBeGreaterThan(0);
   },
 });
 

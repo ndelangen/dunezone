@@ -59,6 +59,9 @@ function bounds(territory: TableTerritory) {
 /** A stack already in a territory shifted over to make room for one landing there. */
 export type TerritoryNudge = { pieceId: string; position: Vector3Tuple };
 
+/* A stack let go at `at`, and every other piece on the table. */
+type TerritoryDrop = { piece: TablePiece; at: Vector3Tuple; others: readonly TablePiece[] };
+
 export type TerritoryLayout = {
   territory: TableTerritory;
   /** Where the landing stack rests. */
@@ -100,13 +103,12 @@ function nudgesFrom(settled: readonly TablePiece[], fitted: Map<string, readonly
  * null when the territory has no room for it.
  * With `pinned`, the landing stack keeps its spot and only the others move.
  */
-export function territoryLayout(
+function territoryLayout(
   state: Pick<TableState, 'board'>,
-  piece: TablePiece,
-  at: Vector3Tuple,
-  others: readonly TablePiece[],
+  drop: TerritoryDrop,
   pinned: boolean
 ): TerritoryLayout | null | undefined {
+  const { piece, at, others } = drop;
   const territory = packsInTerritory(piece) ? territoryAtTable(state, at) : undefined;
   /* A stack set on a plate such as the HMS rides it, and the plate's own rules place it. */
   if (!territory || onAnyPlate(others, at)) {
@@ -148,9 +150,10 @@ export function territoryLanding(
   at: Vector3Tuple,
   others: readonly TablePiece[]
 ): TerritoryLayout | null | undefined {
-  const held = territoryLayout(state, piece, at, others, true);
+  const drop = { piece, at, others };
+  const held = territoryLayout(state, drop, true);
   /* Held where it was let go, the stack may still step in from the border; failing that, it gives way to the others too. */
-  return held === null ? territoryLayout(state, piece, at, others, false) : held;
+  return held === null ? territoryLayout(state, drop, false) : held;
 }
 
 /** The table's pieces with the stacks a landing shifted moved to their new spots. */

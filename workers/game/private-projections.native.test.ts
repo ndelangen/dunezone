@@ -500,9 +500,10 @@ describe('Faction privacy through native delivery', () => {
     await runtime.exec('UPDATE current_state SET data=? WHERE id=1', [JSON.stringify(snapshot)]);
     await runtime.restart();
     const a = await admit('a');
+    /* The seat's station front lies in Broken land, so the full territory refuses the spice. */
     expect((await command(a, { kind: 'bank-withdraw', amount: 1 })).reply).toMatchObject({
       type: 'rejected',
-      message: 'Make room on the table before withdrawing spice.',
+      message: 'Broken land has no room for that.',
     });
     expect(required(required(await sync(a)).snapshot.bank).balance).toBe(37);
   });

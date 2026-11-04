@@ -5,7 +5,13 @@ import { freshTableState } from './model';
 import type { TablePiece, TableState, Vector3Tuple } from './model';
 import { restingPositionAt } from './tableGeometry';
 import { footprintReach, piecesOverlapAt } from './tablePhysics';
-import { applyDraftToState, draftForGesture, noRoomMessage, settleCarryAtPosition } from './tableState';
+import {
+  applyDraftToState,
+  draftForGesture,
+  noRoomMessage,
+  playFromHandSettled,
+  settleCarryAtPosition,
+} from './tableState';
 import { fitsInside, innermostPoint, tableTerritories, territoryContains } from './territoryFit';
 import type { TableTerritory } from './territoryFit';
 import { territoryLanding } from './territoryPlacement';
@@ -98,6 +104,18 @@ describe('stacks dropped into a territory', () => {
     const state = tableWith(troop('atreides', 'atreides', SHELF));
     const next = dropAt(state, 'atreides', nearBorder)!;
     expect(insideTerritory(arrakeen, at(next, 'atreides'))).toBe(true);
+  });
+
+  test('played from a hand across the border step inside, as a carried one does', () => {
+    const border = arrakeen.rings[0]![0]!;
+    const nearBorder: Vector3Tuple = [
+      border[0] + (centre[0] - border[0]) * 0.1,
+      0,
+      border[1] + (centre[2] - border[1]) * 0.1,
+    ];
+    const played = troop('played', 'atreides', nearBorder);
+    const next = playFromHandSettled(tableWith(), played, nearBorder)!;
+    expect(insideTerritory(arrakeen, at(next, 'played'))).toBe(true);
   });
 
   test('still join a stack of their own faction', () => {

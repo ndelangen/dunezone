@@ -12,7 +12,7 @@ import {
   flipPieceInState,
   labelForCount,
   moveStormInState,
-  playFromHandAtAnchor,
+  playFromHandSettled,
   projectCarryAtPosition,
   renderedPiecesFor,
   settleCarryAtPosition,
@@ -700,7 +700,7 @@ describe('playing from a hand', () => {
     const anchor = required(CARD_BAY_PLACEMENT_ANCHORS[0]);
     const drop: Vector3Tuple = [anchor.position[0] + 0.2, 0.18, anchor.position[2] - 0.15];
 
-    const next = required(playFromHandAtAnchor(table, { ...card, position: drop }, drop));
+    const next = required(playFromHandSettled(table, { ...card, position: drop }, drop));
 
     expect(required(next.events[0]).status).toBe('accepted');
     const placed = pieceById(next.pieces, card.id);
@@ -717,7 +717,7 @@ describe('playing from a hand', () => {
     deck.orientation = anchor.orientation;
     const drop: Vector3Tuple = [anchor.position[0] - 0.1, 0.18, anchor.position[2] + 0.1];
 
-    const next = required(playFromHandAtAnchor(table, { ...card, position: drop }, drop));
+    const next = required(playFromHandSettled(table, { ...card, position: drop }, drop));
 
     expect(required(next.events[0]).command).toBe('stack.merge');
     expect(next.pieces.some((piece) => piece.id === card.id)).toBe(false);
@@ -735,7 +735,7 @@ describe('playing from a hand', () => {
   test('leaves a drop on the board to the caller', () => {
     const { table, card } = handCard(freshTableState());
 
-    expect(playFromHandAtAnchor(table, card, [1, 0.18, -1])).toBeNull();
+    expect(playFromHandSettled(table, card, [1, 0.18, -1])).toBeNull();
   });
 });
 

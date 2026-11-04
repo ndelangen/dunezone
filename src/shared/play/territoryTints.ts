@@ -88,11 +88,14 @@ export function fitsTintCommand(action: TerritoryTintAction) {
 
 type Applied = { tints: TerritoryTint[]; message: string };
 
+/* The battle's own outline, drawn beside the table's tints; no tint the players make may take its ID. */
+export const BATTLE_HIGHLIGHT_ID = 'battle-highlight';
+
 function createTint(
   tints: readonly TerritoryTint[],
   action: Extract<TerritoryTintAction, { kind: 'tint-create' }>
 ): Applied {
-  if (tints.some((tint) => tint.id === action.tintId)) {
+  if (tints.some((tint) => tint.id === action.tintId) || action.tintId === BATTLE_HIGHLIGHT_ID) {
     throw new GameRejection('That tint is already on the table.');
   }
   if (tints.length >= MAX_TINTS) {
@@ -227,7 +230,7 @@ export function applyTerritoryTint(tints: readonly TerritoryTint[], action: Terr
  */
 export function battleHighlight(territoryId: string): TerritoryTint {
   return {
-    id: 'battle-highlight',
+    id: BATTLE_HIGHLIGHT_ID,
     name: 'Battle',
     color: coreColors.negativeFill,
     outline: true,

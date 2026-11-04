@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 import type { ClientMessage } from '../../src/shared/play/protocol';
 import type { PieceAction } from '../../src/shared/play/protocol';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
+import { footprintReach } from '../../src/shared/play/tablePhysics';
 import type { NativeMessage } from './native-runtime.fixture.ts';
 import type { NativeView } from './native-runtime.fixture.ts';
 import { required } from './native-runtime.fixture.ts';
@@ -227,10 +228,18 @@ describe('the public homepage table', () => {
     const shifted = required(
       required(dropped).snapshot.table.pieces.find((piece) => piece.id === required(target).id)
     ).position;
-    expect(Math.hypot(settled[0] - shifted[0], settled[2] - shifted[2])).toBeGreaterThan(0.2);
+    const landedPiece = required(
+      required(dropped).snapshot.table.pieces.find((piece) => piece.id === required(source).id)
+    );
+    const incumbent = required(
+      required(dropped).snapshot.table.pieces.find((piece) => piece.id === required(target).id)
+    );
+    expect(Math.hypot(settled[0] - shifted[0], settled[2] - shifted[2])).toBeGreaterThan(
+      footprintReach(landedPiece) + footprintReach(incumbent)
+    );
     expect(
       Math.hypot(shifted[0] - required(target).position[0], shifted[2] - required(target).position[2])
-    ).toBeGreaterThan(0.2);
+    ).toBeGreaterThan(footprintReach(incumbent));
     await act(
       member,
       {
