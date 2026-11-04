@@ -1,11 +1,8 @@
-import type { Board } from '../../src/shared/boards/schema';
 import { accepted, deletedName, nextSnapshot } from '../../src/shared/play/commands';
 import { isFlippablePiece, nearestZone } from '../../src/shared/play/model';
 import type { StoredPiece, TablePiece, TableState, Vector3Tuple } from '../../src/shared/play/model';
-import { tableForViewer } from '../../src/shared/play/protocol';
 import type { RestoreAction } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
-import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { restingPositionAt } from '../../src/shared/play/tableGeometry';
 import {
   clampPositionToTable,
@@ -61,20 +58,20 @@ function withDeletedPiece(before: StoredSnapshot, next: StoredSnapshot, pieceId:
  * Any seated player brings a deleted piece back where it lay, or at the nearest free spot, always face down.
  * Face down, a restored card shows nobody a face they could not see before, whatever it showed when it was deleted.
  * A peek held on the piece before it was deleted does not open it again.
- * `board` is the board the game captured, whose territories a restored stack keeps inside, as a dropped one does.
+ * `table` is the table as the room guards it: the board the game captured, and every piece another player carries locked so packing leaves it be.
+ * `settle` lets the room check the table it is about to keep, and put back what it changed to guard it.
  */
 export function restoreCommand(
   snapshot: StoredSnapshot,
   action: RestoreAction,
   actorName: string,
-  board?: Board
+  table: TableState,
+  settle: (placed: TableState) => TableState
 ): StoredSnapshot {
   const deletion = snapshot.deletedPieces.find((entry) => entry.id === action.deletionId);
   if (!deletion) {
     throw new GameRejection('That piece can no longer be restored.');
   }
-  const viewed = tableForViewer(snapshot, SPECTATOR_SEAT);
-  const table = board ? { ...viewed, board } : viewed;
   if (table.pieces.some((piece) => piece.id === deletion.piece.id)) {
     throw new GameRejection('That piece is already on the table.');
   }
@@ -82,7 +79,7 @@ export function restoreCommand(
   const next = nextSnapshot(
     snapshot,
     accepted(
-      { ...table, pieces: [...withNudges(table.pieces, nudges), restored] },
+      settle({ ...table, pieces: [...withNudges(table.pieces, nudges), restored] }),
       'piece.restore',
       `${actorName} restored ${deletedName(restored)} to the table, face down.`
     )

@@ -339,7 +339,11 @@ export class Room {
   }
 
   private table(identity: Identity, ownCarryId?: string): TableState {
-    const state = this.viewerTable(identity.viewerSeat);
+    return this.lockReserved(this.viewerTable(identity.viewerSeat), ownCarryId);
+  }
+
+  /** The table with every piece a carry holds locked, other than the given carry's own. */
+  private lockReserved(state: TableState, ownCarryId?: string): TableState {
     return {
       ...state,
       pieces: state.pieces.map((piece) => {
@@ -733,8 +737,18 @@ export class Room {
   private seatedCommand(identity: Identity, action: AllianceAction | RestoreAction, now: number): StoredSnapshot {
     const factionId = this.requireFaction(identity);
     return action.kind === 'restore'
-      ? restoreCommand(this.snapshot, action, seatSubject(identity.viewerSeat), this.board())
+      ? this.restoreCommand(action, seatSubject(identity.viewerSeat))
       : allianceCommand(this.snapshot, factionId, action, now);
+  }
+
+  /* A restore packs around what other players carry, as a drop does, and leaves every carried piece as it was; their temporary locks are then put back as stored. */
+  private restoreCommand(action: RestoreAction, actorName: string): StoredSnapshot {
+    const raw = this.viewerTable(SPECTATOR_SEAT);
+    const guarded = this.lockReserved(raw);
+    return restoreCommand(this.snapshot, action, actorName, guarded, (placed) => {
+      this.assertReservationsUnchanged(guarded, placed);
+      return this.restoreReservationLocks(raw, placed);
+    });
   }
 
   private requireFaction(identity: Identity): string {

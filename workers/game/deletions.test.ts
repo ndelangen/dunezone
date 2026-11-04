@@ -1,9 +1,11 @@
 import { describe, expect, test } from 'vite-plus/test';
 
+import { retainedArrakisBoard } from '../../src/shared/boards/geometry';
 import { initialSnapshot } from '../../src/shared/play/commands';
 import { nearestZone } from '../../src/shared/play/model';
 import { restingPositionAt } from '../../src/shared/play/tableGeometry';
 import { LEADER_SPACING, piecesOverlapAt } from '../../src/shared/play/tablePhysics';
+import { innermostPoint, tableTerritories } from '../../src/shared/play/territoryFit';
 import { hostedFixturePlan } from './fixture';
 import { Room } from './room';
 import { DELETED_PIECES_LIMIT, RoomProjection } from './state';
@@ -146,4 +148,36 @@ describe('restoring a deleted piece (#2132)', () => {
     const projected = new RoomProjection('secret').snapshot(target.snapshot, 'harkonnen');
     expect(Object.keys(projected)).not.toContain('deletedPieces');
   });
+});
+
+test('a piece restored into a territory packs around a stack another player is carrying, and their carry still lands', () => {
+  const snapshot = hostedFixturePlan.snapshot(hostedFixturePlan.roster);
+  const troops = snapshot.table.pieces.find((piece) => piece.kind === 'force' && !piece.inventory && !piece.locked)!;
+  const arrakeen = tableTerritories(retainedArrakisBoard()).find((territory) => territory.name === 'Arrakeen')!;
+  const [x, z] = innermostPoint(arrakeen);
+  const held = { ...troops, position: restingPositionAt([x, 0, z], troops) };
+  const gone = { ...troops, id: 'deleted-troops', position: held.position };
+  const target = new Room(
+    {
+      ...snapshot,
+      roster: hostedFixturePlan.roster,
+      table: { ...snapshot.table, pieces: [held] },
+      deletedPieces: [{ id: '7', piece: gone }],
+    },
+    () => ['harkonnen', 'atreides'],
+    (id) => FACTIONS[id]
+  );
+  target.begin(alice, {
+    carryId: 'held',
+    sourcePieceId: held.id,
+    expectedVersion: target.snapshot.versions[held.id],
+    pickup: 'whole',
+  });
+  target.accept(target.command(bob, { kind: 'restore', deletionId: '7' }, target.snapshot.revision));
+  const carried = target.snapshot.table.pieces.find((piece) => piece.id === held.id)!;
+  /* The carried stack is neither shifted nor left locked; the restored stack found room around it. */
+  expect(carried.position).toEqual(held.position);
+  expect(carried.locked).toBe(held.locked);
+  expect(target.snapshot.table.pieces.some((piece) => piece.id === gone.id)).toBe(true);
+  expect(() => target.drop(alice, 'held', { position: [x, 0.38, z], orientation: 0 })).not.toThrow();
 });
