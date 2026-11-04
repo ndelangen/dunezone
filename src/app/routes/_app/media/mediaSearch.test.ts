@@ -3,6 +3,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 
 import type { RasterLock } from '@shared/media/rasterLock';
 import { isRetiredArtwork } from '@shared/media/retiredArtwork';
+import { isRetiredStockAsset } from '@shared/retiredStockAssets';
 import { describe, expect, test } from 'vite-plus/test';
 
 import rasterLock from '../../../../../media/raster.lock.json';
@@ -27,8 +28,9 @@ describe('media search index', () => {
       ...Object.keys(rasterLock),
     ];
     expect(Object.keys(metadata).sort()).toEqual(files.sort());
+    /* Retired artwork keeps its reviewed description but leaves the catalogue. */
     expect(mediaEntries.map((entry) => entry.value).sort()).toEqual(
-      files.filter((file) => !isRetiredArtwork(file)).sort()
+      files.filter((file) => !isRetiredStockAsset(file) && !isRetiredArtwork(file)).sort()
     );
     const knownSubjects = new Set<string>(mediaSubjects.map((subject) => subject.value));
     for (const [path, item] of Object.entries(metadata)) {

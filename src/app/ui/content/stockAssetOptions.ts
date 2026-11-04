@@ -1,4 +1,5 @@
 import { mediaCreditText } from '@shared/media/credits';
+import { isRetiredStockAsset } from '@shared/retiredStockAssets';
 import stockAssetCollections from '@shared/stockAssetCollections.json';
 import { canonicalVectorArtwork } from '@shared/vectorRules';
 
@@ -71,6 +72,7 @@ export function stockAssetOptions(values: readonly string[]) {
       })
     ),
   ]
+    .filter((value) => !isRetiredStockAsset(value))
     .map((value) => {
       const collection = collectionsByAsset.get(value);
       const name = (value.split('/').at(-1) ?? value).replace(/\.[^.]+$/, '');

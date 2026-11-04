@@ -10,6 +10,14 @@ import { matchAsset, searchTerms } from './assetSearch';
 import styles from './AssetSelect.module.css';
 import { IconAction } from './IconAction';
 
+/** A readable name from a file path, for a saved value with no matching option. */
+function fileLabel(value: string) {
+  return (value.split('/').at(-1) ?? value)
+    .replace(/\.[^.]+$/, '')
+    .replace(/[-_]+/g, ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
 interface AssetSelectOption {
   value: string;
   label: string;
@@ -142,8 +150,10 @@ export function AssetSelect({
       optionsByValue.set(alias, option);
     }
   }
-  /* The option a saved value stands for, so a retired name still highlights and deselects its original. */
-  const selectedValue = value ? (optionsByValue.get(value)?.value ?? value) : value;
+  /* A saved value the list no longer offers, such as retired artwork, still shows its name and can be cleared. */
+  const selectedOption = value ? (optionsByValue.get(value) ?? { value, label: fileLabel(value) }) : undefined;
+  /* The option a saved value stands for, so a retired duplicate still highlights and deselects its original. */
+  const selectedValue = selectedOption?.value ?? null;
   const isGlyph = (id: string) => optionsByValue.get(id)?.glyphPreview ?? glyphPreviews;
   const previewFor = (id: string, size: number) =>
     artworkPreview({
@@ -262,9 +272,7 @@ export function AssetSelect({
                         ...attributes,
                         input: { ...attributes?.input, 'aria-describedby': ariaDescribedBy },
                       }}
-                      value={
-                        combobox.dropdownOpened ? browse.search : (value && optionsByValue.get(value)?.label) || ''
-                      }
+                      value={combobox.dropdownOpened ? browse.search : (selectedOption?.label ?? '')}
                       placeholder={
                         combobox.dropdownOpened
                           ? choosingCollection
@@ -298,9 +306,8 @@ export function AssetSelect({
                             <Combobox.ClearButton
                               aria-label="Clear artwork"
                               onClear={() => {
-                                const option = optionsByValue.get(value);
-                                if (option) {
-                                  onChange?.(null, option);
+                                if (selectedOption) {
+                                  onChange?.(null, selectedOption);
                                 }
                                 dispatch({ type: 'close' });
                               }}
