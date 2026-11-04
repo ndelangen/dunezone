@@ -100,7 +100,7 @@ function WhatSection() {
         from closest to the original to furthest away.
       </Paragraph>
       <Paragraph>
-        <strong>Restoring.</strong> Some GF9 portraits only exist printed on a token, with a rim and a number on top. AI
+        <strong>Cleaning up.</strong> Some GF9 portraits only exist printed on a token, with a rim and a number on top. AI
         removes those so the portrait can sit in a new frame. The result is still GF9&rsquo;s image, and it&rsquo;s
         credited that way.
       </Paragraph>
@@ -178,7 +178,7 @@ function CreditSection() {
       </Paragraph>
       <BulletList>
         <li>
-          <strong>GF9&rsquo;s art</strong>, including restorations of it: Ilya Baranovsky, Solveig Reda and Lochen Reda,
+          <strong>GF9&rsquo;s art</strong>, including cleaned-up versions of it: Ilya Baranovsky, Solveig Reda and Lochen Reda,
           published by Gale Force Nine.
         </li>
         <li>

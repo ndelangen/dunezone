@@ -70,7 +70,7 @@ const phrases: Record<CreditMethod, (credit: MediaCredit) => string> = {
   restored: (credit) => `${origin(credit)}, cleaned up by ${credit.by}`,
   recreated,
   traced,
-  'ai-restored': (credit) => `${origin(credit)}, restored with AI image tools`,
+  'ai-restored': (credit) => `${origin(credit)}, cleaned up with AI image tools`,
   'ai-adapted': (credit) => `made with AI image tools, based on ${credit.source}${styleSuffix(credit)}`,
   ai: (credit) => `made with AI image tools for Dune Zone${styleSuffix(credit)}`,
   blog: () => 'a picture from the Dune Zone blog',
