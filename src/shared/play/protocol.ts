@@ -492,6 +492,7 @@ export function tableForViewer(snapshot: GameSnapshot, viewerSeat: Viewer['viewe
     viewerFaction: rosterSeat(snapshot.roster, viewerSeat)?.faction?.id ?? null,
     factionNames: rosterFactionNames(snapshot.roster),
     ...(snapshot.handCounts ? { handCounts: snapshot.handCounts } : {}),
+    ...(snapshot.board ? { board: snapshot.board.definition } : {}),
     selectedPieceId: null,
     draftMove: null,
   };

@@ -24,6 +24,7 @@ import {
   piecesCanStack,
   piecesTouchForStack,
 } from './tablePhysics';
+import { piecesNudgedAround, territoryAtTable, territoryLanding } from './territoryPlacement';
 import { isTroopStack } from './troop';
 
 export function eventId(number: number): string {
@@ -442,6 +443,15 @@ function settleMoveAtPosition(
     }
     return { ...moveDraftTo(draft, anchoredPosition, null), orientation: placementAnchor.orientation };
   }
+  const landing = territoryLanding(
+    state,
+    piece,
+    restingPositionAt(position, piece),
+    placementObstaclesFor(state, draft)
+  );
+  if (landing !== undefined) {
+    return landing && moveDraftTo(draft, landing, nearestZone(landing)?.id ?? null);
+  }
   const clampedPosition = clampPositionToTable(piece, restingPositionAt(position, piece));
   const rules = placementRules(state.pieces, piece, placementObstaclesFor(state, draft));
   const resolvedPosition = nearestCollisionFreePosition(piece, clampedPosition, rules.obstacles, rules.fits);
@@ -788,7 +798,8 @@ function applyFactionTokenMove(application: DraftApplication, movedPiece: TableP
 
 function applyMove(application: DraftApplication): TableState {
   const { current, draft, piece } = application;
-  const destination = zoneById(draft.targetZoneId)?.label ?? 'a free table position';
+  const destination =
+    territoryAtTable(current, draft.position)?.name ?? zoneById(draft.targetZoneId)?.label ?? 'a free table position';
   const movedPiece: TablePiece = {
     ...piece,
     position: [...draft.position],
@@ -801,7 +812,7 @@ function applyMove(application: DraftApplication): TableState {
   return accepted(
     {
       ...current,
-      pieces: piecesAfterMove(current, draft, movedPiece),
+      pieces: piecesNudgedAround(current, piecesAfterMove(current, draft, movedPiece), movedPiece),
       selectedPieceId: movedPiece.id,
       draftMove: null,
     },

@@ -736,7 +736,8 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     expect(leaders).toHaveLength(1);
     expect(leaders[0].battleOverlay).toBeUndefined();
     if (order === 'movement-first') {
-      expect([leaders[0].position[0], leaders[0].position[2]]).toEqual([-2, 2]);
+      /* The leader lands where it was let go, stepping in just clear of its territory's border. */
+      expect(Math.hypot(leaders[0].position[0] + 2, leaders[0].position[2] - 2)).toBeLessThan(0.2);
     }
     expect(required(final.battleResults)[0].plans[0].leaderIds).toEqual(['fixture-leader']);
     expect(required(final.bank).balance).toBe(10);

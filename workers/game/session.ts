@@ -272,13 +272,15 @@ export class GameSession {
   }
 
   private openRoom(snapshot: StoredSnapshot): Room {
-    return new Room(
+    const room = new Room(
       snapshot,
       () => this.actors.seats(),
       (userId) => this.actors.factionFor(userId),
       this.metadata?.fixtureDeck,
       this.metadata?.testPhaseCooldownMs
     );
+    room.board = () => this.captures.ruleset()?.board?.definition;
+    return room;
   }
 
   private isHostedFixture(metadata: Metadata) {

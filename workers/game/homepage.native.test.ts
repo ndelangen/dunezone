@@ -199,7 +199,7 @@ describe('the public homepage table', () => {
     );
   });
 
-  it('settles a drop away from an occupied position and releases abandoned carries', async () => {
+  it('makes room for a drop on an occupied position and releases abandoned carries', async () => {
     const member = await visitor(true);
     const observer = await visitor();
     const view = await syncView(member);
@@ -223,8 +223,13 @@ describe('the public homepage table', () => {
     const settled = required(
       required(dropped).snapshot.table.pieces.find((piece) => piece.id === required(source).id)
     ).position;
+    /* Dropped into Arrakeen, the stack keeps its spot and the stack already there shifts over to make room. */
+    const shifted = required(
+      required(dropped).snapshot.table.pieces.find((piece) => piece.id === required(target).id)
+    ).position;
+    expect(Math.hypot(settled[0] - shifted[0], settled[2] - shifted[2])).toBeGreaterThan(0.2);
     expect(
-      Math.hypot(settled[0] - required(target).position[0], settled[2] - required(target).position[2])
+      Math.hypot(shifted[0] - required(target).position[0], shifted[2] - required(target).position[2])
     ).toBeGreaterThan(0.2);
     await act(
       member,

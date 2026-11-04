@@ -1,5 +1,6 @@
 import type { z } from 'zod';
 
+import type { Board } from '../boards/schema';
 import { publicPieceLabel } from './peeking';
 import { phaseAt } from './phases';
 import type {
@@ -58,6 +59,8 @@ export type TableState = z.infer<typeof durableTableSchema> & {
   handCounts?: Readonly<Partial<Record<string, number>>>;
   selectedPieceId: string | null;
   draftMove: DraftMove | null;
+  /* The board the table map draws, whose territories stacks keep inside (see territoryFit.ts). Never stored. */
+  board?: Board;
 };
 
 const ZONES: Zone[] = [
