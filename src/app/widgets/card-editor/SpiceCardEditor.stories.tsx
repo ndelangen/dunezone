@@ -87,7 +87,7 @@ export const CarriedRegion = meta.story({
   render: (args) => <LiveEditor {...args} initial={onStrongholds} />,
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
-    const covered = () => proofOf(canvasElement).querySelectorAll('[data-tint="highlights"] > g');
+    const covered = () => proofOf(canvasElement).querySelectorAll('[data-tint="highlights"] [data-tint-fill]');
     await expect(covered()).toHaveLength(5);
     await userEvent.click(canvas.getByRole('button', { name: 'Paint Strongholds' }));
     const { x, y } = territoryOnScreen(canvasElement, 'arrakeen');

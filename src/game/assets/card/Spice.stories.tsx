@@ -69,7 +69,7 @@ export const OnSavedBoard = meta.story({
   play: async ({ canvasElement }) => {
     await expect(canvasElement.querySelectorAll('[data-tint]')).toHaveLength(3);
     /* The type-wide tint covers every stronghold on the board. */
-    await expect(canvasElement.querySelectorAll('[data-tint="strongholds"] > g')).toHaveLength(5);
+    await expect(canvasElement.querySelectorAll('[data-tint="strongholds"] [data-tint-fill]')).toHaveLength(5);
     await expect(canvasElement.querySelectorAll('[data-tint-sticker="spice"]')).toHaveLength(1);
     await expect(canvasElement.querySelectorAll('[data-token-instance]')).toHaveLength(4);
   },
@@ -125,8 +125,8 @@ export const MissingTerritory = meta.story({
     boardTokens: spiceBoardTokens,
   },
   play: async ({ canvasElement }) => {
-    await expect(canvasElement.querySelectorAll('[data-tint="blow"] > g')).toHaveLength(0);
-    await expect(canvasElement.querySelectorAll('[data-tint="strongholds"] > g')).toHaveLength(5);
+    await expect(canvasElement.querySelectorAll('[data-tint="blow"] [data-tint-fill]')).toHaveLength(0);
+    await expect(canvasElement.querySelectorAll('[data-tint="strongholds"] [data-tint-fill]')).toHaveLength(5);
   },
 });
 
