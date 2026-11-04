@@ -13,7 +13,7 @@ export default function Post() {
   return (
     <>
       <Lead>
-        If you own the Gale Force Nine edition of Dune, the leader portraits in your box started life as fan art. Around
+        If you own the Gale Force Nine edition of Dune, a lot of what you see in the box started life as fan art. Around
         2010, Ilya Baranovsky, Ilya77 on BoardGameGeek, redrew the whole 1979 game and shared it as a free
         print-and-play. Groups printed it and played it for years. The MCDM video that got me into Dune was played on
         one of those print-and-plays. I wrote about that video in{' '}
