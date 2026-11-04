@@ -149,7 +149,8 @@ export function battleStory(stage: 'preparing' | 'countdown' | 'revealed', obser
   const attackers = snapshot.table.pieces.find((piece) => piece.id === 'starting-1-carthag')!;
   /* The attackers join the defenders in Arrakeen as a drop there would land them: both inside the city, side by side. */
   const others = snapshot.table.pieces.filter((piece) => piece.id !== attackers.id);
-  const landing = territoryLanding({}, attackers, defenders.position, others)!;
+  const beside: typeof defenders.position = [defenders.position[0] + 0.3, defenders.position[1], defenders.position[2]];
+  const landing = territoryLanding({}, attackers, beside, others)!;
   attackers.position = landing;
   attackers.zoneId = 'arrakeen';
   snapshot.table.pieces = piecesNudgedAround({}, snapshot.table.pieces, attackers);
