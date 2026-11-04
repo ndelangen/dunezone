@@ -241,5 +241,7 @@ export function battleHighlight(territoryId: string): TerritoryTint {
 
 /** The table's tints with the battle marker's outline on top while it marks a territory. */
 export function tintsWithBattle(tints: TerritoryTint[] | undefined, territoryId: string | null | undefined) {
-  return territoryId ? [...(tints ?? []), battleHighlight(territoryId)] : tints;
+  /* The battle's outline keeps its ID to itself, even over a stored tint that took it before the ID was reserved. */
+  const own = (tints ?? []).filter((tint) => tint.id !== BATTLE_HIGHLIGHT_ID);
+  return territoryId ? [...own, battleHighlight(territoryId)] : tints;
 }
