@@ -236,6 +236,7 @@ export const resolveDelivery = internalQuery({
       source: block.source,
       numbering: block.numbering,
       colorMode: block.colorMode,
+      ...(block.sectorLines ? { sectorLines: true } : {}),
       items: block.itemOrder.map((id) => {
         const { text: _text, ...item } = block.itemsById[id]!;
         return item;

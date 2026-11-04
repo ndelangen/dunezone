@@ -112,6 +112,22 @@ export function AssetExplainerEdit({
           />
         }
       />
+      {value.source?.kind === 'board' ? (
+        <ControlBlock
+          title="Sector lines"
+          description="Draws the storm sector lines faintly over the map. Off by default."
+          input={
+            <Switch
+              aria-label="Sector lines"
+              checked={value.sectorLines ?? false}
+              onChange={(event) => {
+                const { sectorLines: _sectorLines, ...rest } = value;
+                onChange(event.currentTarget.checked ? { ...rest, sectorLines: true } : rest);
+              }}
+            />
+          }
+        />
+      ) : null}
       <ControlBlock
         title="Explanations"
         description="Drag an entry to reorder it. Its target, custom label, manual color and explanation move together."

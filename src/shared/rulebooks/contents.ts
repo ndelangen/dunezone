@@ -317,6 +317,8 @@ function rulebookBlockSchemas<Text extends z.ZodType, Anchor extends z.ZodType, 
     caption: z.string(),
     numbering: z.enum(['automatic', 'custom']),
     colorMode: z.enum(['automatic', 'manual']),
+    /** Faint dashed storm sector lines over a board source, off unless the author turns them on. */
+    sectorLines: z.boolean().optional(),
     itemOrder: z.array(rulebookItemIdSchema).max(128),
     itemsById: z.record(rulebookItemIdSchema, assetExplainerItem),
   });

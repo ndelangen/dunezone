@@ -54,6 +54,7 @@ export const rulebookIllustrationConfigurationSchema = assetExplainerBlockSchema
     source: true,
     numbering: true,
     colorMode: true,
+    sectorLines: true,
   })
   .extend({
     items: z.array(assetExplainerBlockSchema.shape.itemsById.valueType.omit({ text: true })).max(128),

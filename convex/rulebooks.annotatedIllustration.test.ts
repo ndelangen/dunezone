@@ -160,6 +160,22 @@ describe('immutable annotated illustration delivery', () => {
     });
   });
 
+  test('sends Sector lines only when the published block turns them on', async () => {
+    const f = await fixture();
+    const block = f.contents.pagesById.PAGE!.blocksById.BLC2!;
+    if (block.kind !== 'asset-explainer') {
+      throw new Error('Expected explainer');
+    }
+    block.sectorLines = true;
+    await publish(f);
+    const found = await f.t.query(internal.rulebookAnnotatedIllustration.resolveDelivery, f.identity);
+    expect(found).toMatchObject({ status: 'found', configuration: { sectorLines: true } });
+    const off = await fixture();
+    await publish(off);
+    const plain = await off.t.query(internal.rulebookAnnotatedIllustration.resolveDelivery, off.identity);
+    expect(plain.status === 'found' && 'sectorLines' in plain.configuration).toBe(false);
+  });
+
   test('Rulebook and Ruleset deletion gate retained annotations, and missing identities do not fall back', async () => {
     const f = await fixture();
     await publish(f);

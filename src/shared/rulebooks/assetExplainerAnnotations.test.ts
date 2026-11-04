@@ -196,6 +196,53 @@ describe('AssetExplainer highlight drawing', () => {
   });
 });
 
+describe('AssetExplainer sector lines', () => {
+  function boardBlock(sectorLines?: boolean): Explainer {
+    const original = block();
+    const board = { kind: 'board', boardId: 'ns72fst9vtajbcc6066ejz92ph8fweez' } as const;
+    original.source = {
+      status: 'ready',
+      reference: board,
+      name: 'Arrakis',
+      imageUrl: '/board.jpg',
+      geometry: {
+        width: 1948,
+        height: 1948,
+        parts: [
+          { key: 'name', x: 0.1, y: 0.1, width: 0.2, height: 0.2 },
+          {
+            key: 'sectors',
+            x: 0,
+            y: 0,
+            width: 1,
+            height: 1,
+            highlight: { paths: [{ d: 'M243 243L485 243' }, { d: 'M243 243L243 1' }] },
+          },
+        ],
+      },
+    };
+    original.items = [{ ...original.items[0]!, target: { kind: 'named', key: 'name', source: board } }];
+    return sectorLines === undefined ? original : { ...original, sectorLines };
+  }
+  const guides = (explainer: Explainer) =>
+    rulebookAnnotationShapes(projectRulebookAssetExplainerAnnotations(explainer)).filter(
+      ({ attributes }) => attributes['data-rulebook-guide'] === 'sectors'
+    );
+
+  it('draws faint dashed sector lines under every annotation when the block turns them on', () => {
+    const lines = guides(boardBlock(true));
+    expect(lines).toHaveLength(2);
+    expect(lines[0]!.attributes).toMatchObject({ fill: 'none', stroke: '#000000', 'stroke-opacity': 0.3 });
+    const shapes = rulebookAnnotationShapes(projectRulebookAssetExplainerAnnotations(boardBlock(true)));
+    expect(shapes.findIndex(({ attributes }) => 'data-rulebook-guide' in attributes)).toBe(0);
+  });
+
+  it('draws no sector lines unless the block turns them on', () => {
+    expect(guides(boardBlock())).toEqual([]);
+    expect(guides(boardBlock(false))).toEqual([]);
+  });
+});
+
 describe('AssetExplainer SVG composition', () => {
   it('embeds the largest source image the delivery accepts', () => {
     const imageDataUrl = `data:image/jpeg;base64,${btoa('\0'.repeat(RULEBOOK_ANNOTATION_MAX_IMAGE_BYTES))}`;
