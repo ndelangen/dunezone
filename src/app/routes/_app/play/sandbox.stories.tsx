@@ -10,8 +10,7 @@ import { openControl } from './controls.stories.fixture';
 import { gameMeta, install } from './game.stories.fixture';
 import { chapter, journeyViewers, JourneyPage } from './journey.stories.fixture';
 import { sandbox, sandboxReady, sandboxSteps, sandboxTransport } from './sandbox.stories.fixture';
-import { shown, piece, withTechTokens } from './sandbox.stories.fixture';
-import { withMessyReserves } from './troopReserves.stories.fixture';
+import { messyReservesSandbox, shown, piece, withTechTokens } from './sandbox.stories.fixture';
 
 const meta = preview.meta({
   ...gameMeta,
@@ -218,15 +217,7 @@ export const TechTokens = meta.story({
  * Troops dropped on another faction's token are set down as before.
  */
 export const TroopsBackToReserves = meta.story({
-  args: { step: chapter('Shipment and Movement'), seat: 'seat-1' },
-  beforeEach: ({ args }: { args: { step?: number; seat?: string } }) =>
-    install(() =>
-      sandboxTransport({
-        start: Number(args.step ?? 1) - 1,
-        seat: String(args.seat ?? 'seat-1'),
-        prepare: withMessyReserves,
-      })
-    )(),
+  ...messyReservesSandbox,
   play: async ({ canvasElement }) => {
     await sandboxReady(within(canvasElement.ownerDocument.body));
     await expect(piece((candidate) => candidate.stackKey === 'faction-token:emperor')).toBeDefined();

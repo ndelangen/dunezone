@@ -14,14 +14,13 @@ export function troopFactionOf(piece: Pick<TablePiece, 'kind' | 'stackKey'> | nu
 
 /**
  * The troop kinds a faction was dealt, in the order setup laid them out.
- * `dealt` is that order, read from the faction's capture;
- * without it the kinds on the table stand in, in key order.
- * A kind on the table the capture does not name follows the dealt ones.
+ * `dealt` is that order, read from the faction's capture.
+ * Without it the kinds stand in the order the table first lists them, which is the order setup dealt them in while each reserve keeps a pile;
+ * a kind on the table the capture does not name follows the dealt ones.
  */
 export function troopReserveKeys(pieces: readonly TablePiece[], factionId: string, dealt: readonly string[] = []) {
   const onTable = new Set(pieces.flatMap((piece) => (troopFactionOf(piece) === factionId ? [piece.stackKey!] : [])));
-  const extra = [...onTable].filter((key) => !dealt.includes(key)).sort();
-  return [...dealt, ...extra];
+  return [...new Set([...dealt, ...onTable])];
 }
 
 /**

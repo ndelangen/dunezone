@@ -1,6 +1,6 @@
 import { tableHandlingOpen } from '@shared/play/admission';
 import type { BattlePlanInput } from '@shared/play/battle';
-import { factionOfToken, factionTokenOnRay, factionTokenPieceUnder } from '@shared/play/bribes';
+import { factionOfToken, factionTokenPieceUnder, factionTokenSeenOver } from '@shared/play/bribes';
 import type { CardDraw } from '@shared/play/cardDraw';
 import { foldedTurns, rotatedPiece } from '@shared/play/commands';
 import { snapshotFactionLabels, snapshotFactionTieBreaks } from '@shared/play/factionLabels';
@@ -1534,13 +1534,10 @@ export class TableSession {
     }
     this.updateGesture(position);
     const offer = pointer && this.giftOffer(position, pointer);
-    const home = !offer && pointer ? this.reserveTokenPosition(position, pointer) : undefined;
-    if (offer) {
-      /* The spice waits where the room will take the gift from, and every viewer sees it there. */
-      this.updateGesture(offer.position);
-    } else if (home) {
-      /* Troops seen over their own faction's token are let go over its middle, where the room returns them to their reserves. */
-      this.updateGesture(home);
+    /* Gifted spice waits where the room will take the gift from; troops seen over their own token are let go over its middle, where the room returns them to their reserves. */
+    const settled = offer?.position ?? (pointer && this.reserveTokenPosition(position, pointer));
+    if (settled) {
+      this.updateGesture(settled);
     }
     this.flushPose();
     if (offer) {
@@ -1564,13 +1561,11 @@ export class TableSession {
       return undefined;
     }
     const pieces = this.requireTable().state.pieces;
-    const landing = factionTokenPieceUnder(pieces, position);
-    const token = [pointer.ray && factionTokenOnRay(pieces, pointer.ray), landing].find((candidate) =>
-      recipients.has(factionOfToken(candidate) ?? '')
-    );
+    const token = factionTokenSeenOver(pieces, (factionId) => recipients.has(factionId), position, pointer.ray);
     if (!token) {
       return undefined;
     }
+    const landing = factionTokenPieceUnder(pieces, position);
     const over: Vector3Tuple = token === landing ? [...position] : [token.position[0], position[1], token.position[2]];
     return { factionId: factionOfToken(token)!, position: over, x: pointer.x, y: pointer.y };
   }
@@ -1579,17 +1574,9 @@ export class TableSession {
    * Read as a gift's token is, so troops seen over their token from a low camera go home as well.
    */
   private reserveTokenPosition(position: Vector3Tuple, pointer: GiftPointer): Vector3Tuple | undefined {
-    const table = this.table?.state;
-    const factionId =
-      table && this.carry && this.canHandle() ? troopFactionOf(heldPieceFor(table, this.carry.draft)) : undefined;
-    if (!factionId) {
-      return undefined;
-    }
-    const pieces = table!.pieces;
-    const token = [
-      pointer.ray && factionTokenOnRay(pieces, pointer.ray),
-      factionTokenPieceUnder(pieces, position),
-    ].find((candidate) => factionOfToken(candidate) === factionId);
+    const table = this.carry && this.canHandle() ? this.table?.state : undefined;
+    const factionId = table && troopFactionOf(heldPieceFor(table, this.carry!.draft));
+    const token = factionId && factionTokenSeenOver(table.pieces, (id) => id === factionId, position, pointer.ray);
     return token ? [token.position[0], position[1], token.position[2]] : undefined;
   }
   /* The factions spice in hand can go to: every other seated faction, while this viewer holds a spice reserve. */

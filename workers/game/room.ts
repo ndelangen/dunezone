@@ -549,7 +549,9 @@ export class Room {
     }
     const reserves = this.reservesUnder(guarded, draft, landing.position);
     if (reserves) {
-      const returned = returnTroopsDraftToReserves(guarded, draft, reserves, seatSubject(identity.viewerSeat));
+      /* Returned troops always go back face up, so turns made in hand are dropped rather than logged. */
+      const home = { ...draft, flips: 0 };
+      const returned = returnTroopsDraftToReserves(guarded, home, reserves, seatSubject(identity.viewerSeat));
       const table = requireAccepted(guarded, returned);
       const raw = tableForViewer(this.snapshot, identity.viewerSeat);
       return nextSnapshot(this.snapshot, this.restoreReservationLocks(raw, table, late));

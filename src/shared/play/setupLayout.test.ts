@@ -59,7 +59,7 @@ describe('the reach the table frames around reserves', () => {
   });
 
   test('counts troop kinds per faction by reserve stack, wherever the troops are', () => {
-    const piece = (stackKey: string) => ({ stackKey }) as TablePiece;
+    const piece = (stackKey: string) => ({ kind: 'force', stackKey }) as TablePiece;
     expect(widestTroopSupply([])).toBe(0);
     expect(
       widestTroopSupply([

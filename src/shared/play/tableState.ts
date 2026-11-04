@@ -26,6 +26,8 @@ import {
 import {
   clampPositionToTable,
   isOverlapFreePosition,
+  isInTanksArea,
+  isOnRoundTable,
   nearestCollisionFreePosition,
   piecesCanStack,
   piecesTouchForStack,
@@ -906,15 +908,19 @@ export type TroopReserveLanding = Readonly<{
 /* How far from its spot a pile of a faction's troops off the board still counts as that kind's reserve, knocked aside. */
 const RESERVE_GATHER_REACH = 1;
 
-/* A pile of `spot`'s troop kind on the table off the board near its reserve spot, free to be moved back onto it. */
-function liesInReserve(piece: TablePiece, spot: TroopReserveSpot) {
+/*
+ * A pile of `spot`'s troop kind on the table off the board and out of the Tanks near the faction's reserve spots, free to be moved back.
+ * Any of the spots counts, since a reserve may stand on another kind's spot once the smaller stacks move nearer the bottom of the screen.
+ */
+function liesInReserve(piece: TablePiece, spot: TroopReserveSpot, spots: readonly TroopReserveSpot[]) {
   return (
     piece.stackKey === spot.stackKey &&
     !piece.inventory &&
     !piece.hiddenZone &&
     !piece.locked &&
+    !isInTanksArea(piece.position) &&
     Math.hypot(piece.position[0], piece.position[2]) > BOARD_RIM_RADIUS &&
-    planarDistance(piece.position, spot.position) <= RESERVE_GATHER_REACH
+    spots.some((candidate) => planarDistance(piece.position, candidate.position) <= RESERVE_GATHER_REACH)
   );
 }
 
@@ -928,11 +934,12 @@ type GatheredReserve = { pile: TablePiece; from: ReadonlySet<string>; spot: Troo
 function gatheredReserve(
   pieces: readonly TablePiece[],
   spot: TroopReserveSpot,
-  returned: TablePiece | undefined,
+  landing: { returned: TablePiece | undefined; spots: readonly TroopReserveSpot[] },
   factionNames: TableState['factionNames']
 ): GatheredReserve | undefined {
+  const { returned, spots } = landing;
   const piles = pieces
-    .filter((piece) => liesInReserve(piece, spot))
+    .filter((piece) => liesInReserve(piece, spot, spots))
     .sort((a, b) => planarDistance(a.position, spot.position) - planarDistance(b.position, spot.position));
   const keeper = piles[0] ?? returned;
   if (!keeper) {
@@ -961,11 +968,34 @@ const LEVEL_DEPTH = 0.05;
 function reservesOnSpots(reserves: readonly GatheredReserve[]) {
   const depths = reserves.map((reserve) => reserve.spot.position[2]);
   if (Math.max(...depths) - Math.min(...depths) < LEVEL_DEPTH) {
-    return reserves.map(({ pile, spot }) => ({ ...pile, position: restingPositionAt(spot.position, pile) }));
+    return reserves.map(({ pile, spot }) => ({ pile, spot: spot.position }));
   }
   const spots = reserves.map((reserve) => reserve.spot.position).sort((a, b) => a[2] - b[2]);
   const largestFirst = [...reserves].sort((a, b) => b.pile.items.length - a.pile.items.length);
-  return largestFirst.map(({ pile }, index) => ({ ...pile, position: restingPositionAt(spots[index]!, pile) }));
+  return largestFirst.map(({ pile }, index) => ({ pile, spot: spots[index]! }));
+}
+
+/*
+ * The reserves set down on their spots, each as near its spot as the pieces around it allow; null when one finds no room.
+ * Whatever stays where it is, a locked pile or one another player is carrying among them, is kept clear of, and so is each reserve already set down.
+ * A reserve stays wholly on the round table, never on or across the Tanks shelf.
+ */
+function placedReserves(staying: readonly TablePiece[], reserves: readonly GatheredReserve[]) {
+  const obstacles = staying.filter((piece) => !piece.inventory && !piece.hiddenZone && pieceCount(piece) > 0);
+  const placed: TablePiece[] = [];
+  for (const { pile, spot } of reservesOnSpots(reserves)) {
+    const position = nearestCollisionFreePosition(
+      pile,
+      restingPositionAt(spot, pile),
+      [...obstacles, ...placed],
+      (candidate) => isOnRoundTable(pile, candidate)
+    );
+    if (!position) {
+      return null;
+    }
+    placed.push({ ...pile, position: restingPositionAt(position, pile) });
+  }
+  return placed;
 }
 
 /**
@@ -994,16 +1024,20 @@ export function returnTroopsDraftToReserves(
   const base = piecesWithoutHeld(current, draft, piece);
   const reserves = landing.spots.flatMap(
     (spot) =>
-      gatheredReserve(base, spot, spot.stackKey === piece.stackKey ? returned : undefined, current.factionNames) ?? []
+      gatheredReserve(
+        base,
+        spot,
+        { returned: spot.stackKey === piece.stackKey ? returned : undefined, spots: landing.spots },
+        current.factionNames
+      ) ?? []
   );
-  const placed = new Map(reservesOnSpots(reserves).map((pile) => [pile.id, pile]));
-  const gathered = new Set(reserves.flatMap((reserve) => [...reserve.from]));
-  const pieces = [
-    ...base.flatMap((candidate) =>
-      placed.has(candidate.id) ? [placed.get(candidate.id)!] : gathered.has(candidate.id) ? [] : [candidate]
-    ),
-    ...[...placed.values()].filter((pile) => !base.some((candidate) => candidate.id === pile.id)),
-  ];
+  const moving = new Set(reserves.flatMap((reserve) => [reserve.pile.id, ...reserve.from]));
+  const staying = base.filter((candidate) => !moving.has(candidate.id));
+  const placed = placedReserves(staying, reserves);
+  if (!placed) {
+    return rejection(rejectedBase, 'troops.reserve', `There is no clear space for ${landing.factionName}'s reserves.`);
+  }
+  const pieces = [...staying, ...placed];
   const count = pieceCount(piece);
   const [one, many] = pieceUnits(piece);
   return accepted(

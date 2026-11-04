@@ -12,6 +12,7 @@ import {
   TROOP_FOOTPRINT_RADIUS,
 } from './tableGeometry';
 import { TABLE_PLAY_RADIUS } from './tablePhysics';
+import { troopReserveKeys } from './troopReserves';
 
 type Vector2 = readonly [x: number, z: number];
 
@@ -97,10 +98,20 @@ export function factionTokenOnRay(pieces: readonly TablePiece[], ray: PointerRay
   return nearest?.token;
 }
 
-/** How many troop kinds a faction was dealt, counted by its reserve stacks wherever they are now. */
-function troopKindsOf(pieces: readonly TablePiece[], factionId: string) {
-  const prefix = `troops:${factionId}:`;
-  return new Set(pieces.flatMap((piece) => (piece.stackKey?.startsWith(prefix) ? [piece.stackKey] : []))).size;
+/**
+ * The faction token a piece in hand is seen over along `ray`, or would land on at `position`, of those whose faction `wanted` accepts;
+ * undefined when none.
+ * Seen from a low camera, a held piece is over a token well before it would land on it, so either counts, and what it is seen over wins.
+ */
+export function factionTokenSeenOver(
+  pieces: readonly TablePiece[],
+  wanted: (factionId: string) => boolean,
+  position: Readonly<Vector3Tuple>,
+  ray?: PointerRay
+) {
+  return [ray && factionTokenOnRay(pieces, ray), factionTokenPieceUnder(pieces, position)].find((token) =>
+    wanted(factionOfToken(token) ?? '')
+  );
 }
 
 /* A point `radius` from the board's centre, `offset` along the ring from `angle` (counter-clockwise positive). */
@@ -122,7 +133,7 @@ export function bribePilePosition(
   if (angle === undefined) {
     return undefined;
   }
-  const kinds = Math.max(1, troopKindsOf(pieces, factionId));
+  const kinds = Math.max(1, troopReserveKeys(pieces, factionId).length);
   /* An odd count has a reserve dead centre, so the pile takes the gap beside it; an even count leaves the centre free. */
   return along(angle, TABLE_EDGE_RADIUS, kinds % 2 === 1 ? RESERVE_SPACING / 2 : 0);
 }

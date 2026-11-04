@@ -2,6 +2,7 @@ import type { TablePiece, Vector3Tuple } from './model';
 import type { TableRoster } from './schema';
 import { FACTION_TOKEN_SCALE, TROOP_FOOTPRINT_RADIUS } from './tableGeometry';
 import { PLAYER_RING_RADIUS, tableSeatAngles } from './tableSettings';
+import { troopFactionOf } from './troopReserves';
 
 /* Troop reserves stand right behind the faction token, on the side away from the board, just clear of its footprint. */
 const RESERVE_RADIUS = PLAYER_RING_RADIUS + TROOP_FOOTPRINT_RADIUS * (FACTION_TOKEN_SCALE + 1) + 0.01;
@@ -26,11 +27,9 @@ export function supplyReserveReach(troopKinds = STOCK_TROOP_KINDS) {
 export function widestTroopSupply(pieces: readonly TablePiece[]): number {
   const kinds = new Map<string, Set<string>>();
   for (const piece of pieces) {
-    const [prefix, factionId] = piece.stackKey?.split(':') ?? [];
-    if (prefix === 'troops' && factionId) {
-      const faction = kinds.get(factionId) ?? new Set<string>();
-      faction.add(piece.stackKey!);
-      kinds.set(factionId, faction);
+    const factionId = troopFactionOf(piece);
+    if (factionId) {
+      kinds.set(factionId, (kinds.get(factionId) ?? new Set<string>()).add(piece.stackKey!));
     }
   }
   return Math.max(0, ...[...kinds.values()].map((faction) => faction.size));

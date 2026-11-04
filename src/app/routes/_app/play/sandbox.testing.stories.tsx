@@ -15,8 +15,7 @@ import { gameMeta, install } from './game.stories.fixture';
 import { chapter, journeyViewers, JourneyPage } from './journey.stories.fixture';
 import { expectHeaderPhase, openTab, phaseControls } from './playing.stories.fixture';
 import { sandbox, sandboxReady, sandboxSteps, sandboxTransport } from './sandbox.stories.fixture';
-import { shown, piece, withTechTokens } from './sandbox.stories.fixture';
-import { withMessyReserves } from './troopReserves.stories.fixture';
+import { messyReservesSandbox, shown, piece, withTechTokens } from './sandbox.stories.fixture';
 
 const meta = testingPreview.meta({
   ...gameMeta,
@@ -671,15 +670,7 @@ export const PingsOutOfView = meta.story({
  * Seat 1 carries its revived troops and then its board troops onto its own faction token: each time they join the Normal reserve face up, and both reserves stand on their setup spots, Normal first, as setup dealt them.
  */
 export const TroopsGoBackToTheirReserves = meta.story({
-  args: { step: chapter('Shipment and Movement'), seat: 'seat-1' },
-  beforeEach: ({ args }: { args: { step?: number; seat?: string } }) =>
-    install(() =>
-      sandboxTransport({
-        start: Number(args.step ?? 1) - 1,
-        seat: String(args.seat ?? 'seat-1'),
-        prepare: withMessyReserves,
-      })
-    )(),
+  ...messyReservesSandbox,
   play: async ({ canvasElement }) => {
     await sandboxReady(within(canvasElement.ownerDocument.body));
     const table = sandbox.table!;
@@ -689,7 +680,7 @@ export const TroopsGoBackToTheirReserves = meta.story({
       shown()
         .table.pieces.filter((candidate) => !candidate.inventory && troopFactionOf(candidate) === 'emperor')
         .filter((candidate) => spots.some((spot) => planarDistance(candidate.position, spot) < 0.01));
-    for (const id of ['sandbox-revived', 'sandbox-on-board']) {
+    const carryHome = async (id: string) => {
       table.receive({
         type: 'begin',
         carryId: id,
@@ -700,7 +691,9 @@ export const TroopsGoBackToTheirReserves = meta.story({
       table.receive({ type: 'drop', commandId: `${id}-drop`, carryId: id, position: token.position, orientation: 0 });
       await expect(table.refusal).toBeUndefined();
       await expect(shown().table.events[0]?.command).toBe('troops.reserve');
-    }
+    };
+    await carryHome('sandbox-revived');
+    await carryHome('sandbox-on-board');
     const [normal, sardaukar] = spots.map((spot) =>
       reserves().find((pile) => planarDistance(pile.position, spot) < 0.01)
     );

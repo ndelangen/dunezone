@@ -4,6 +4,7 @@ import { factionTokenRingPose, factionTokenStackKey } from '../../src/shared/pla
 import type { TablePiece, Vector3Tuple } from '../../src/shared/play/model';
 import { factionSupplyLayout } from '../../src/shared/play/setupLayout';
 import { planarDistance, restingPositionAt } from '../../src/shared/play/tableGeometry';
+import { isOverlapFreePosition } from '../../src/shared/play/tablePhysics';
 import { tableSeatAngles } from '../../src/shared/play/tableSettings';
 import { hostedFixturePlan } from './fixture';
 import { Room } from './room';
@@ -44,7 +45,9 @@ function factionToken(factionId: string, angle: number): TablePiece {
   );
 }
 
-function troops(id: string, stackKey: string, count: number, at: Vector3Tuple, faceUp = true): TablePiece {
+type Troops = { id: string; stackKey: string; count: number; at: Vector3Tuple; faceUp?: boolean };
+
+function troops({ id, stackKey, count, at, faceUp = true }: Troops): TablePiece {
   const factionId = stackKey.split(':')[1]!;
   return stand(
     {
@@ -73,10 +76,10 @@ function room(extra: TablePiece[] = []) {
   const pieces = [
     factionToken('harkonnen', angles[0]!),
     factionToken('atreides', angles[1]!),
-    troops('regular-reserve', KINDS[0]!, 10, knocked),
-    troops('elite-reserve', KINDS[1]!, 4, spots[1]!),
-    troops('regular-board', KINDS[0]!, 3, [0.5, 0, 0.5], false),
-    troops('elite-board', KINDS[1]!, 2, [-0.8, 0, 0.4]),
+    troops({ id: 'regular-reserve', stackKey: KINDS[0]!, count: 10, at: knocked }),
+    troops({ id: 'elite-reserve', stackKey: KINDS[1]!, count: 4, at: spots[1]! }),
+    troops({ id: 'regular-board', stackKey: KINDS[0]!, count: 3, at: [0.5, 0, 0.5], faceUp: false }),
+    troops({ id: 'elite-board', stackKey: KINDS[1]!, count: 2, at: [-0.8, 0, 0.4] }),
     ...extra,
   ];
   const table = new Room(
@@ -141,18 +144,42 @@ describe('troops let go over their own faction token', () => {
     expect(planarDistance(piece(table, 'regular-reserve')!.position, spots[1]!)).toBeCloseTo(0);
   });
 
-  test('without the dealt order, lay the kinds on the table out in key order', () => {
-    const { table } = room();
+  test('without the dealt order, lay the kinds out in the order the table first lists them', () => {
+    const { table, spots } = room();
     table.dealtTroops = () => undefined;
-    const spots = factionSupplyLayout(angles[0]!, KINDS.length).reserves;
+    dropOn(table, 'elite-board', token(table, 'harkonnen'));
+    expect(planarDistance(piece(table, 'regular-reserve')!.position, spots[0]!)).toBeCloseTo(0);
+    expect(planarDistance(piece(table, 'elite-reserve')!.position, spots[1]!)).toBeCloseTo(0);
+  });
+
+  test('leave dead troops in the Tanks where they are', () => {
+    /* Seated at the near edge, Harkonnen's reserves stand right by the join to the Tanks shelf. */
+    const near = factionSupplyLayout(angles[3]!, KINDS.length).reserves[0]!;
+    const tanks = troops({ id: 'regular-tanks', stackKey: KINDS[0]!, count: 2, at: [0.3, 0, 5.7] });
+    expect(planarDistance(tanks.position, near)).toBeLessThan(1);
+    const { table } = room([tanks]);
+    table.snapshot = {
+      ...table.snapshot,
+      roster: {
+        ...table.snapshot.roster!,
+        seats: table.snapshot.roster!.seats.map((seat) =>
+          seat.faction?.id === 'harkonnen' ? { ...seat, position: 3 } : seat
+        ),
+      },
+    };
     dropOn(table, 'regular-board', token(table, 'harkonnen'));
-    expect(planarDistance(piece(table, 'elite-reserve')!.position, spots[0]!)).toBeCloseTo(0);
-    expect(planarDistance(piece(table, 'regular-reserve')!.position, spots[1]!)).toBeCloseTo(0);
+    expect(piece(table, 'regular-tanks')!.items).toHaveLength(2);
+    expect(piece(table, 'regular-tanks')!.position).toEqual(tanks.position);
   });
 
   test('gather a reserve split into two piles back into one', () => {
     const spots = factionSupplyLayout(angles[0]!, KINDS.length).reserves;
-    const split = troops('regular-split', KINDS[0]!, 2, [spots[0]![0] - 0.35, 0, spots[0]![2] - 0.3]);
+    const split = troops({
+      id: 'regular-split',
+      stackKey: KINDS[0]!,
+      count: 2,
+      at: [spots[0]![0] - 0.35, 0, spots[0]![2] - 0.3],
+    });
     const { table } = room([split]);
     dropOn(table, 'regular-board', token(table, 'harkonnen'));
     expect(piece(table, 'regular-split')).toBeUndefined();
@@ -184,15 +211,58 @@ describe('at a seat down the side of the table', () => {
     /* Setup dealt the 10 regulars on the lower spot and the 3 elites on the higher one. */
     expect(spots[0]![2]).toBeGreaterThan(spots[1]![2]);
     const { table } = room([
-      troops('atreides-regular', ATREIDES[0]!, 10, spots[0]!),
-      troops('atreides-elite', ATREIDES[1]!, 3, spots[1]!),
-      troops('atreides-board', ATREIDES[1]!, 1, [0.9, 0, -0.6]),
+      troops({ id: 'atreides-regular', stackKey: ATREIDES[0]!, count: 10, at: spots[0]! }),
+      troops({ id: 'atreides-elite', stackKey: ATREIDES[1]!, count: 3, at: spots[1]! }),
+      troops({ id: 'atreides-board', stackKey: ATREIDES[1]!, count: 1, at: [0.9, 0, -0.6] }),
     ]);
     table.dealtTroops = (factionId) => (factionId === 'atreides' ? ATREIDES : KINDS);
     dropOn(table, 'atreides-board', token(table, 'atreides'));
     expect(piece(table, 'atreides-elite')!.items).toHaveLength(4);
     expect(planarDistance(piece(table, 'atreides-elite')!.position, spots[0]!)).toBeCloseTo(0);
     expect(planarDistance(piece(table, 'atreides-regular')!.position, spots[1]!)).toBeCloseTo(0);
+  });
+});
+
+describe('reserves kept clear of what stays put', () => {
+  test('a locked pile on a reserve spot keeps its place, and the returned troops stand clear of it', () => {
+    const spots = factionSupplyLayout(angles[0]!, KINDS.length).reserves;
+    const { table } = room();
+    table.snapshot = {
+      ...table.snapshot,
+      table: {
+        ...table.snapshot.table,
+        pieces: table.snapshot.table.pieces.map((candidate) =>
+          candidate.id === 'regular-reserve' ? { ...candidate, position: spots[0]!, locked: true } : candidate
+        ),
+      },
+    };
+    dropOn(table, 'regular-board', token(table, 'harkonnen'));
+    const locked = piece(table, 'regular-reserve')!;
+    const returned = piece(table, 'regular-board')!;
+    expect(locked.items).toHaveLength(10);
+    expect(planarDistance(locked.position, spots[0]!)).toBeCloseTo(0);
+    expect(returned.items).toHaveLength(3);
+    expect(isOverlapFreePosition(returned, returned.position, [locked])).toBe(true);
+  });
+});
+
+describe('four troop kinds at a seat down the side of the table', () => {
+  const FOUR = ['a', 'b', 'c', 'd'].map((kind) => `troops:atreides:${kind}`);
+  const spots = factionSupplyLayout(angles[1]!, FOUR.length).reserves;
+
+  test('a reserve moved to another kind’s spot is still found by the next return', () => {
+    const { table } = room([
+      ...[10, 8, 6, 2].map((count, index) =>
+        troops({ id: `atreides-${index}`, stackKey: FOUR[index]!, count, at: spots[index]! })
+      ),
+      troops({ id: 'atreides-board-1', stackKey: FOUR[3]!, count: 1, at: [0.9, 0, -0.6] }),
+      troops({ id: 'atreides-board-2', stackKey: FOUR[3]!, count: 1, at: [-0.9, 0, 0.9] }),
+    ]);
+    table.dealtTroops = (factionId) => (factionId === 'atreides' ? FOUR : KINDS);
+    dropOn(table, 'atreides-board-1', token(table, 'atreides'));
+    dropOn(table, 'atreides-board-2', token(table, 'atreides'));
+    const smallest = table.snapshot.table.pieces.filter((candidate) => candidate.stackKey === FOUR[3]);
+    expect(smallest.map((candidate) => candidate.items.length)).toEqual([4]);
   });
 });
 

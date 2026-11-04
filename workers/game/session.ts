@@ -280,9 +280,14 @@ export class GameSession {
       this.metadata?.fixtureDeck,
       this.metadata?.testPhaseCooldownMs
     );
+    /* A capture never changes once retained, so each faction's dealt order is read from storage once. */
+    const dealt = new Map<string, readonly string[] | undefined>();
     room.dealtTroops = (factionId) => {
-      const capture = this.captures.faction(factionId);
-      return capture && dealtTroopKeys(capture);
+      if (!dealt.has(factionId)) {
+        const capture = this.captures.faction(factionId);
+        dealt.set(factionId, capture && dealtTroopKeys(capture));
+      }
+      return dealt.get(factionId);
     };
     return room;
   }
