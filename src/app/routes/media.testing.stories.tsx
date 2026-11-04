@@ -1,9 +1,13 @@
 import { testingPreview } from '@sb/preview';
 import { LEADERS } from '@shared/assetIds';
 import { resolveAsset } from '@shared/media/resolveAsset';
+import { isRetiredStockAsset } from '@shared/retiredStockAssets';
 import { expect, userEvent, within } from 'storybook/test';
 
 import { pageStoryMeta } from './storybookConfig';
+
+/* Retired portraits stay valid ids but are never offered. */
+const offeredLeaderCount = LEADERS.options.filter((image) => !isRetiredStockAsset(image)).length;
 
 const meta = testingPreview.meta({ title: 'Media', ...pageStoryMeta });
 export const Leaders = meta.story({
@@ -11,7 +15,7 @@ export const Leaders = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement);
     await expect(page.findByRole('heading', { name: 'Alien portraits / Armored creatures' })).resolves.toBeVisible();
-    await expect(page.getAllByRole('article')).toHaveLength(LEADERS.options.length);
+    await expect(page.getAllByRole('article')).toHaveLength(offeredLeaderCount);
   },
 });
 export const Decals = meta.story({
