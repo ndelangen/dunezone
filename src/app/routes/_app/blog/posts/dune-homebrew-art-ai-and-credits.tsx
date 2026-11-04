@@ -83,8 +83,7 @@ function WhySection() {
       </Paragraph>
       <Paragraph>
         I don&rsquo;t have the drawing skills to make those, or the time. Letting everyone upload their own images
-        isn&rsquo;t the answer either. I couldn&rsquo;t moderate every upload. AI fills that gap, and every image that
-        goes in is one I&rsquo;ve looked at.
+        isn&rsquo;t the answer either. I couldn&rsquo;t moderate every upload. AI fills that gap.
       </Paragraph>
     </Section>
   );
