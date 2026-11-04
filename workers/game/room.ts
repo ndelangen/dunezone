@@ -76,6 +76,7 @@ import { allianceCommand } from './alliances';
 import { battleCommand } from './battle';
 import { biddingAfterTable, biddingCommand } from './bidding';
 import { concealCards, deckCommand } from './decks';
+import { restoreCommand, withDeletedPiece } from './deletions';
 import { dealFixtureDeck } from './fixture';
 import { lastTurnCommand } from './lastTurn';
 import { isMovementAction, movementAfterTable, movementCommand } from './movement';
@@ -120,6 +121,7 @@ type CarryInput<T extends 'begin' | 'pose' | 'take' | 'flip'> = Omit<Extract<Cli
  * A raise, lowering or pass names its bidding round and is judged against the live bidder's turn, so a quick second raise is not turned away by the first.
  * A spice reserve withdrawal stays strict, so two tabs of one player cannot both spend from a spice reserve they saw once.
  * A tech token draw picks from whatever the shared table inventory holds when it arrives.
+ * A restore names its deletion and finds room among the pieces as they lie when it arrives.
  * A spice blow names its card and territory and finds room among the spice as it lies when it arrives, so the Spice blow command's placings, sent together, all land.
  * A hand order names the player's own pieces, which nobody else moves, and is judged against what they hold now.
  * Leaving stays strict too, since its confirmation said what it costs and a crossed departure may have left the sender the last player.
@@ -127,6 +129,7 @@ type CarryInput<T extends 'begin' | 'pose' | 'take' | 'flip'> = Omit<Extract<Cli
 const REVISION_TOLERANT_ACTIONS = new Set<string>([
   'spice-spawn',
   'spice-blow',
+  'restore',
   'tech-token-draw',
   'hand-order',
   'deck-draw',
@@ -662,6 +665,7 @@ export class Room {
         'lock',
         'rotate',
         'delete',
+        'restore',
         'tech-token-draw',
         'deck-draw',
         'deck-shuffle',
@@ -715,7 +719,8 @@ export class Room {
   }
 
   command(identity: Identity, action: RoomAction, expectedRevision: number, now = Date.now()): StoredSnapshot {
-    const next = this.applyCommand(identity, action, expectedRevision, now);
+    const applied = this.applyCommand(identity, action, expectedRevision, now);
+    const next = action.kind === 'delete' ? withDeletedPiece(this.snapshot, applied, action.pieceId) : applied;
     /* A new phase closes every peek, while the table keeps who peeked at what; setup holds the phase still, so each setup step and the start of play count too. */
     const moved =
       next.phase !== this.snapshot.phase ||
@@ -752,6 +757,10 @@ export class Room {
     }
     if (isAllianceAction(action)) {
       return allianceCommand(this.snapshot, this.requireFaction(identity), action, now);
+    }
+    if (action.kind === 'restore') {
+      this.requireFaction(identity);
+      return restoreCommand(this.snapshot, action, seatSubject(identity.viewerSeat));
     }
     this.assertTableSettled(action, now);
     if (action.kind === 'bank-withdraw' || action.kind === 'bank-collect') {
