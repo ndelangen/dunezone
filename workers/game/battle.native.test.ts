@@ -4,7 +4,7 @@ import type { BattlePlanInput } from '../../src/shared/play/battle';
 import type { Vector3Tuple } from '../../src/shared/play/model';
 import type { TablePiece } from '../../src/shared/play/model';
 import type { ClientMessage } from '../../src/shared/play/protocol';
-import { TANKS_PLAY_AREA } from '../../src/shared/play/tablePhysics';
+import { isOnBottomShelf } from '../../src/shared/play/tanksShelf';
 import { messageOf } from './native-runtime.fixture.ts';
 import { readHistoricalSnapshot } from './native-runtime.fixture.ts';
 import type { NativeMessage } from './native-runtime.fixture.ts';
@@ -541,11 +541,8 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     const played = await accepted(a, { kind: 'hand-play' as const, pieceId: handCard.id, position: [29, 0, 29] });
     const card = played.snapshot.table.pieces.find((piece) => piece.kind === 'card' && piece.items.length === 1);
     expect(required(card).id).not.toBe(handCard.id);
-    /* A card thrown far off the table lands on the nearest edge it can rest on: the Tleilaxu Tanks shelf corner. */
-    expect(required(card).position[0]).toBeGreaterThanOrEqual(TANKS_PLAY_AREA.minX);
-    expect(required(card).position[0]).toBeLessThanOrEqual(TANKS_PLAY_AREA.maxX);
-    expect(required(card).position[2]).toBeGreaterThanOrEqual(TANKS_PLAY_AREA.minZ);
-    expect(required(card).position[2]).toBeLessThanOrEqual(TANKS_PLAY_AREA.maxZ);
+    /* A card thrown far off the table lands on the nearest edge it can rest on: the bottom shelf's far corner. */
+    expect(isOnBottomShelf(required(card).position[0], required(card).position[2])).toBe(true);
     expect(required(card).items[0].faceUp).toBe(false);
     expect((await syncView(a)).snapshot.hand).toHaveLength(0);
   });

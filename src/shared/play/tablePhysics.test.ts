@@ -1,16 +1,19 @@
 import { describe, expect, test } from 'vite-plus/test';
 
 import { freshTableState } from './model';
-import type { TableState } from './model';
+import type { TableState, Vector3Tuple } from './model';
 import { CARD_BAY_PLACEMENT_ANCHORS } from './tableFurnitureLayout';
 import {
   clampPositionToTable,
   isCollisionFreePosition,
+  isOverlapFreePosition,
+  LEADER_SPACING,
   piecesOverlapAt,
   piecesTouchForStack,
+  restingAmongLeaders,
   TABLE_PLAY_RADIUS,
-  TANKS_PLAY_AREA,
 } from './tablePhysics';
+import { BOTTOM_SHELF_BOUNDS, isInTanks } from './tanksShelf';
 
 function fixturePiece(state: TableState, id: string) {
   const piece = state.pieces.find((candidate) => candidate.id === id);
@@ -99,6 +102,40 @@ describe('anchored card physics', () => {
   });
 });
 
+describe('leader discs in a pile', () => {
+  const leaderAt = (id: string, position: Vector3Tuple) => ({
+    ...cardWellFixtures().troop,
+    id,
+    stackKey: `leader:harkonnen:${id}`,
+    position,
+  });
+
+  test('may overlap one another a little, but not much', () => {
+    const resting = leaderAt('feyd', [0, 0.38, 7.5]);
+    const moving = leaderAt('rabban', [0, 0.38, 7.5]);
+
+    expect(isOverlapFreePosition(moving, [LEADER_SPACING + 0.01, 0.38, 7.5], [resting])).toBe(true);
+    expect(isOverlapFreePosition(moving, [LEADER_SPACING - 0.01, 0.38, 7.5], [resting])).toBe(false);
+  });
+
+  test('keeps its full footprint from other pieces', () => {
+    const { troop } = cardWellFixtures();
+    const moving = leaderAt('rabban', [0, 0.38, 7.5]);
+
+    expect(isOverlapFreePosition(moving, [0.45, 0.38, 7.5], [{ ...troop, position: [0, 0.38, 7.5] }])).toBe(false);
+  });
+
+  test('rest just above the leaders they land across, so no two faces share a height', () => {
+    const below = leaderAt('feyd', [0, 0.38, 7.5]);
+    const onTop = leaderAt('piter', [0.6, 0.39, 7.5]);
+    const moving = leaderAt('rabban', [0.3, 0.38, 7.5]);
+
+    const rested = restingAmongLeaders(moving, [0.3, 0.38, 7.5], [below, onTop]);
+    expect(rested[1]).toBeGreaterThan(0.39);
+    expect(restingAmongLeaders(moving, [3, 0.38, 7.5], [below, onTop])).toEqual([3, 0.38, 7.5]);
+  });
+});
+
 describe('Tleilaxu Tanks shelf physics', () => {
   const inTanks = [0, 0.38, 6.2] as const;
 
@@ -114,10 +151,10 @@ describe('Tleilaxu Tanks shelf physics', () => {
 
   test('pulls a piece dropped past the shelf edge back onto the shelf, not onto the board', () => {
     const { troop } = cardWellFixtures();
-    const clamped = clampPositionToTable(troop, [1, 0.38, TANKS_PLAY_AREA.maxZ + 1]);
+    const clamped = clampPositionToTable(troop, [1, 0.38, BOTTOM_SHELF_BOUNDS.maxZ + 1]);
 
-    expect(clamped[0]).toBe(1);
-    expect(clamped[2]).toBeCloseTo(TANKS_PLAY_AREA.maxZ - 0.175, 8);
+    expect(clamped[0]).toBeCloseTo(1, 8);
+    expect(clamped[2]).toBeCloseTo(BOTTOM_SHELF_BOUNDS.maxZ - 0.175, 5);
     expect(isCollisionFreePosition(troop, clamped, [])).toBe(true);
   });
 
@@ -131,10 +168,27 @@ describe('Tleilaxu Tanks shelf physics', () => {
     expect(isCollisionFreePosition(leader, [2, 0.38, 4.9], [])).toBe(true);
   });
 
-  test('still refuses a piece hanging off the corner where the shelf meets the board', () => {
+  test('still refuses a piece hanging off the shelf where it narrows to the shared item slots', () => {
     const { troop } = cardWellFixtures();
 
-    expect(isCollisionFreePosition(troop, [2.5, 0.38, 5.2], [])).toBe(false);
+    expect(isCollisionFreePosition(troop, [2.45, 0.38, 10], [])).toBe(false);
+  });
+
+  test('takes pieces anywhere on the Tanks pad, out to its far corners', () => {
+    const { troop } = cardWellFixtures();
+    const leader = { ...troop, stackKey: 'leader:harkonnen:feyd' };
+    const farCorner = [Math.cos(1.13) * 8.9, 0.38, Math.sin(1.13) * 8.9] as const;
+
+    expect(isInTanks(farCorner)).toBe(true);
+    expect(isCollisionFreePosition(leader, [...farCorner], [])).toBe(true);
+  });
+
+  test('pulls a piece dropped beside the pad back onto the shelf', () => {
+    const { troop } = cardWellFixtures();
+    const clamped = clampPositionToTable(troop, [6.5, 0.38, 8]);
+
+    expect(isCollisionFreePosition(troop, clamped, [])).toBe(true);
+    expect(Math.hypot(clamped[0] - 6.5, clamped[2] - 8)).toBeLessThan(2);
   });
 
   test('keeps the side card bays closed to troops', () => {
