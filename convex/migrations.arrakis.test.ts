@@ -7,6 +7,7 @@ import { describe, expect, test } from 'vite-plus/test';
 import { publishingSpiceCard } from '../src/shared/assets/fixtures/publishingSpiceCard';
 import { SPICE_BOARD_REVISION } from '../src/shared/assets/schema';
 import { arrakisBoard } from '../src/shared/boards/geometry';
+import { propertyId } from '../src/shared/boards/schema';
 import { RULEBOOK_CATALOGUE_VERSION } from '../src/shared/rulebooks/contents';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
@@ -79,7 +80,22 @@ describe('Arrakis board migration', () => {
         },
       };
       const linkedId = await insertCard(f, 'linked', linked);
+      /* An editor's paint spells the strongholds as their territories; that still draws the old group highlight. */
+      const strongholds = Object.values(arrakisBoard().properties)
+        .filter((property) => property.type === 'stronghold')
+        .map((property) => propertyId(property));
+      const painted = {
+        ...publishingSpiceCard,
+        highlights: ['strongholds'],
+        board: {
+          asset_id: boardId,
+          tints: [{ id: 'blow', name: 'Blow', color: '#9e5f00', territories: strongholds }],
+          tokens: [],
+        },
+      };
+      const paintedId = await insertCard(f, 'painted', painted);
       await f.t.mutation(internal.arrakisMigrations.arrakis_spice_cards_v1, { reset: true });
+      expect(await cardData(f, paintedId)).toEqual({ ...painted, highlights: [] });
       expect(
         await f.t.mutation(internal.arrakisMigrations.arrakis_spice_cards_verify_v1, { reset: true })
       ).toMatchObject({ Status: expect.not.stringContaining('failed') });
@@ -171,7 +187,11 @@ describe('Arrakis board migration', () => {
       });
       const legacy = {
         ...(created.draft.contents as object),
-        scenes: [{ boardId: 'arrakis', note: 'arrakis', highlights: [{ territory: 'greater-flat' }] }],
+        scenes: [
+          { boardId: 'arrakis', note: 'arrakis', highlights: [{ territory: 'greater-flat' }] },
+          /* Another board's own territory of that name is its own. */
+          { boardId: 'custom-board', highlights: [{ territory: 'greater-flat' }] },
+        ],
       };
       await f.t.run(async (ctx) => {
         await ctx.db.patch('rulebook_drafts', created.draft._id, { contents: legacy, contents_hash: 'v1:before' });
@@ -211,7 +231,10 @@ describe('Arrakis board migration', () => {
 
       expect(migrated.draft.contents).toEqual(contentsOnBoard(legacy, boardId));
       expect(migrated.draft.contents).toMatchObject({
-        scenes: [{ boardId, note: 'arrakis', highlights: [{ territory: 'the-greater-flat' }] }],
+        scenes: [
+          { boardId, note: 'arrakis', highlights: [{ territory: 'the-greater-flat' }] },
+          { boardId: 'custom-board', highlights: [{ territory: 'greater-flat' }] },
+        ],
       });
       expect(migrated.contents).toEqual(migrated.draft.contents);
       expect(migrated.draft.contents_hash).toBe(rulebookDraftContentsHash(migrated.draft.contents));

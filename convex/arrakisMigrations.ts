@@ -3,7 +3,9 @@ import type { FunctionReference } from 'convex/server';
 
 import { SPICE_CARD_ASSET_TYPE } from '../src/shared/asset-publishing/publication';
 import { SpiceAsset } from '../src/shared/assets/schema';
+import type { Board } from '../src/shared/boards/geometry';
 import type { BoardTint } from '../src/shared/boards/markup';
+import { propertyId } from '../src/shared/boards/schema';
 import { legacyHighlightTint } from '../src/shared/boards/spiceHighlights';
 import { components, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
@@ -32,19 +34,38 @@ export const ARRAKIS_BOARD_SLUG = 'arrakis-official';
 /** The id Rulebook Contents gave the built-in Arrakis board. */
 export const BUILT_IN_ARRAKIS_BOARD_ID = 'arrakis';
 
-async function arrakisBoardId(ctx: MutationCtx): Promise<Id<'assets'> | null> {
+/** The saved Arrakis board a card moves onto: its asset id, and its territories to resolve a tint's types against. */
+export type SavedBoard = { id: Id<'assets'>; properties: Board['properties'] };
+
+async function arrakisBoard(ctx: MutationCtx): Promise<SavedBoard | null> {
   const board = await ctx.db
     .query('assets')
     .withIndex('by_type_and_slug', (q) => q.eq('type', 'board').eq('slug', ARRAKIS_BOARD_SLUG))
     .unique();
-  return board && !board.is_deleted ? board._id : null;
+  if (!board || board.is_deleted) {
+    return null;
+  }
+  return { id: board._id, properties: (board.data as { board: Board }).board.properties };
 }
 
-/* Every territory and type a tint list covers, to tell whether a card's old highlights are already drawn by its tints. */
-function covers(tints: readonly BoardTint[], tint: BoardTint) {
-  const territories = new Set(tints.flatMap((each) => each.territories));
-  const types = new Set(tints.flatMap((each) => each.types ?? []));
-  return tint.territories.every((id) => territories.has(id)) && (tint.types ?? []).every((type) => types.has(type));
+const arrakisBoardId = async (ctx: MutationCtx) => (await arrakisBoard(ctx))?.id ?? null;
+
+/** The territory ids tints light on the board: those they name, and every territory of a type they name. */
+function litTerritories(properties: Board['properties'], tints: readonly BoardTint[]) {
+  const lit = new Set(tints.flatMap((tint) => tint.territories));
+  const types = new Set<string>(tints.flatMap((tint) => tint.types ?? []));
+  for (const property of Object.values(properties)) {
+    if (types.has(property.type)) {
+      lit.add(propertyId(property));
+    }
+  }
+  return lit;
+}
+
+/* Whether a card's tints already light every territory its old highlights did, however each spells them (a type, or its territories). */
+function covers(properties: Board['properties'], tints: readonly BoardTint[], tint: BoardTint) {
+  const lit = litTerritories(properties, tints);
+  return [...litTerritories(properties, [tint])].every((id) => lit.has(id));
 }
 
 /** A parsed card that is linked and keeps no old highlights. */
@@ -57,7 +78,7 @@ const onBoardAlready = (card: { highlights: readonly unknown[]; board?: unknown 
  * the rest is kept exactly as stored, so a parse's defaults never reach the row.
  * A row that no longer parses, or a linked card whose tints do not cover its old highlights, is left as it is for the verify to name.
  */
-export function spiceCardOnBoard(data: unknown, boardId: Id<'assets'>): unknown {
+export function spiceCardOnBoard(data: unknown, board: SavedBoard): unknown {
   const parsed = SpiceAsset.safeParse(data);
   if (!parsed.success || onBoardAlready(parsed.data)) {
     return data;
@@ -66,9 +87,9 @@ export function spiceCardOnBoard(data: unknown, boardId: Id<'assets'>): unknown 
   const stored = data as Record<string, unknown>;
   const carried = legacyHighlightTint(card.highlights, card.subName);
   if (card.board) {
-    return !carried || covers(card.board.tints, carried) ? { ...stored, highlights: [] } : data;
+    return !carried || covers(board.properties, card.board.tints, carried) ? { ...stored, highlights: [] } : data;
   }
-  return { ...stored, highlights: [], board: { asset_id: boardId, tints: carried ? [carried] : [], tokens: [] } };
+  return { ...stored, highlights: [], board: { asset_id: board.id, tints: carried ? [carried] : [], tokens: [] } };
 }
 
 /** Whether a Spice card still needs moving: no board link, or an old highlight list left on it. */
@@ -85,31 +106,40 @@ type Entry = [key: string, item: unknown];
 const misspeltTerritory = ([key, item]: Entry) =>
   key === 'territory' && typeof item === 'string' ? MISSPELT_TERRITORIES[item] : undefined;
 
-function renamed(entry: Entry, boardId: Id<'assets'>): unknown {
+/** Where the rename is in the Contents tree: the saved board's id, and whether this part sits on the built-in board. */
+type Walk = { boardId: Id<'assets'>; onBuiltIn: boolean };
+
+function renamed(entry: Entry, walk: Walk): unknown {
   if (entry[0] === 'boardId' && entry[1] === BUILT_IN_ARRAKIS_BOARD_ID) {
-    return boardId;
+    return walk.boardId;
   }
-  return misspeltTerritory(entry) ?? contentsOnBoard(entry[1], boardId);
+  return (walk.onBuiltIn ? misspeltTerritory(entry) : undefined) ?? walkContents(entry[1], walk);
 }
 
-/** Rulebook Contents with every board reference to the built-in Arrakis board renamed to the saved board's id, and its one misspelt territory corrected. */
-export function contentsOnBoard(value: unknown, boardId: Id<'assets'>): unknown {
+const onBuiltInBoard = (value: object) => (value as { boardId?: unknown }).boardId === BUILT_IN_ARRAKIS_BOARD_ID;
+
+function walkContents(value: unknown, walk: Walk): unknown {
   if (Array.isArray(value)) {
-    return value.map((item) => contentsOnBoard(item, boardId));
+    return value.map((item) => walkContents(item, walk));
   }
   if (value && typeof value === 'object') {
-    return Object.fromEntries(Object.entries(value).map((entry) => [entry[0], renamed(entry, boardId)]));
+    const inner = { ...walk, onBuiltIn: walk.onBuiltIn || onBuiltInBoard(value) };
+    return Object.fromEntries(Object.entries(value).map((entry) => [entry[0], renamed(entry, inner)]));
   }
   return value;
 }
 
-/** Whether Contents still name the built-in board or a misspelt territory. */
+/**
+ * Rulebook Contents with every board reference to the built-in Arrakis board renamed to the saved board's id.
+ * The one misspelt territory is corrected only where it sits on the built-in board, so another board's own territory of that name is kept.
+ */
+export function contentsOnBoard(value: unknown, boardId: Id<'assets'>): unknown {
+  return walkContents(value, { boardId, onBuiltIn: false });
+}
+
+/** Whether Contents still name the built-in board. */
 export function namesOldBoardKeys(contents: unknown) {
-  const text = JSON.stringify(contents);
-  return (
-    text.includes(`"boardId":"${BUILT_IN_ARRAKIS_BOARD_ID}"`) ||
-    Object.keys(MISSPELT_TERRITORIES).some((territory) => text.includes(`"territory":"${territory}"`))
-  );
+  return JSON.stringify(contents).includes(`"boardId":"${BUILT_IN_ARRAKIS_BOARD_ID}"`);
 }
 
 /** Links every Spice card to the saved board and empties its old highlight list; a changed card indexes its board and is captured again. */
@@ -118,11 +148,11 @@ export const arrakis_spice_cards_v1 = migrations.define({
   batchSize: 25,
   customRange: (q) => q.withIndex('by_type_and_slug', (index) => index.eq('type', SPICE_CARD_ASSET_TYPE)),
   migrateOne: async (ctx, row) => {
-    const boardId = spiceCardNeedsMove(row.data) ? await arrakisBoardId(ctx) : null;
-    if (!boardId) {
+    const board = spiceCardNeedsMove(row.data) ? await arrakisBoard(ctx) : null;
+    if (!board) {
       return;
     }
-    const data = spiceCardOnBoard(row.data, boardId);
+    const data = spiceCardOnBoard(row.data, board);
     if (data === row.data) {
       return;
     }
