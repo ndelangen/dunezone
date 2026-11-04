@@ -79,20 +79,10 @@ describe('Arrakis board migration', () => {
         },
       };
       const linkedId = await insertCard(f, 'linked', linked);
-      /* Its tints do not draw its old highlight, so clearing it would lose it: the card stays for the verify to name. */
-      const uncovered = { ...linked, highlights: ['polar'] };
-      const uncoveredId = await insertCard(f, 'uncovered', uncovered);
-      const brokenId = await insertCard(f, 'broken', { highlights: 'not a list' }, true);
       await f.t.mutation(internal.arrakisMigrations.arrakis_spice_cards_v1, { reset: true });
-      expect(await cardData(f, uncoveredId)).toEqual(uncovered);
-      expect(await cardData(f, brokenId)).toEqual({ highlights: 'not a list' });
-      await expect(
-        f.t.mutation(internal.arrakisMigrations.arrakis_spice_cards_verify_v1, { reset: true })
-      ).resolves.toMatchObject({
-        Status: expect.stringContaining(`card-spice ${uncoveredId} is still on the built-in Arrakis map.`),
-      });
-      await f.t.run((ctx) => ctx.db.delete('assets', uncoveredId));
-      await f.t.mutation(internal.arrakisMigrations.arrakis_spice_cards_verify_v1, { reset: true });
+      expect(
+        await f.t.mutation(internal.arrakisMigrations.arrakis_spice_cards_verify_v1, { reset: true })
+      ).toMatchObject({ Status: expect.not.stringContaining('failed') });
 
       expect(await cardData(f, classicId)).toEqual({
         ...classic,
@@ -130,6 +120,40 @@ describe('Arrakis board migration', () => {
 
       await f.t.mutation(internal.arrakisMigrations.arrakis_spice_cards_v1, { reset: true });
       expect(await Promise.all([classicId, linkedId, deletedId].map((id) => cardData(f, id)))).toEqual(migrated);
+    },
+    BUDGET_MS
+  );
+
+  test(
+    'leaves a card it cannot move as it is, and the verify names a live one',
+    async () => {
+      const f = await rulebookFixture();
+      migrationsTest.register(f.t);
+      const boardId = await saveArrakis(f);
+      /* Its tints do not draw its old highlight, so clearing it would lose it. */
+      const uncovered = {
+        ...publishingSpiceCard,
+        highlights: ['polar'],
+        board: {
+          asset_id: boardId,
+          tints: [{ id: 'blow', name: 'Blow', color: '#9e5f00', territories: ['arsunt'] }],
+          tokens: [],
+        },
+      };
+      const uncoveredId = await insertCard(f, 'uncovered', uncovered);
+      const brokenId = await insertCard(f, 'broken', { highlights: 'not a list' }, true);
+      await f.t.mutation(internal.arrakisMigrations.arrakis_spice_cards_v1, {});
+      expect(await cardData(f, uncoveredId)).toEqual(uncovered);
+      expect(await cardData(f, brokenId)).toEqual({ highlights: 'not a list' });
+
+      await expect(f.t.mutation(internal.arrakisMigrations.arrakis_spice_cards_verify_v1, {})).resolves.toMatchObject({
+        Status: expect.stringContaining(`card-spice ${uncoveredId} is still on the built-in Arrakis map.`),
+      });
+      /* The deleted, unparseable row never blocks the deploy. */
+      await f.t.run((ctx) => ctx.db.delete('assets', uncoveredId));
+      expect(
+        await f.t.mutation(internal.arrakisMigrations.arrakis_spice_cards_verify_v1, { reset: true })
+      ).toMatchObject({ Status: expect.not.stringContaining('failed') });
     },
     BUDGET_MS
   );
@@ -177,8 +201,12 @@ describe('Arrakis board migration', () => {
         f.t.mutation(internal.arrakisMigrations.arrakis_rulebook_drafts_verify_v1, { reset: true })
       ).resolves.toMatchObject({ Status: expect.stringContaining('still names the built-in Arrakis board') });
       await migrate();
-      await f.t.mutation(internal.arrakisMigrations.arrakis_rulebook_drafts_verify_v1, { reset: true });
-      await f.t.mutation(internal.arrakisMigrations.arrakis_rulebook_edition_contents_verify_v1, { reset: true });
+      expect(
+        await f.t.mutation(internal.arrakisMigrations.arrakis_rulebook_drafts_verify_v1, { reset: true })
+      ).toMatchObject({ Status: expect.not.stringContaining('failed') });
+      expect(
+        await f.t.mutation(internal.arrakisMigrations.arrakis_rulebook_edition_contents_verify_v1, { reset: true })
+      ).toMatchObject({ Status: expect.not.stringContaining('failed') });
       const migrated = await rows();
 
       expect(migrated.draft.contents).toEqual(contentsOnBoard(legacy, boardId));

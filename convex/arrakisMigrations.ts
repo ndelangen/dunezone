@@ -47,6 +47,10 @@ function covers(tints: readonly BoardTint[], tint: BoardTint) {
   return tint.territories.every((id) => territories.has(id)) && (tint.types ?? []).every((type) => types.has(type));
 }
 
+/** A parsed card that is linked and keeps no old highlights. */
+const onBoardAlready = (card: { highlights: readonly unknown[]; board?: unknown }) =>
+  Boolean(card.board) && card.highlights.length === 0;
+
 /**
  * A Spice card's data on the saved board: linked if it was not, its old highlight list emptied once its tints draw it.
  * Only those two fields change;
@@ -55,7 +59,7 @@ function covers(tints: readonly BoardTint[], tint: BoardTint) {
  */
 export function spiceCardOnBoard(data: unknown, boardId: Id<'assets'>): unknown {
   const parsed = SpiceAsset.safeParse(data);
-  if (!parsed.success || (parsed.data.highlights.length === 0 && parsed.data.board)) {
+  if (!parsed.success || onBoardAlready(parsed.data)) {
     return data;
   }
   const card = parsed.data;
@@ -166,6 +170,10 @@ export const arrakis_rulebook_edition_contents_v1 = migrations.define({
   },
 });
 
+/** A live Spice card that still needs moving; a deleted one is moved too, but never blocks the deploy. */
+const liveCardOffBoard = (row: { is_deleted: boolean; data: unknown }) =>
+  !row.is_deleted && spiceCardNeedsMove(row.data);
+
 /**
  * Fails on the first row still on the built-in board, naming it, so the deploy cannot report the move done early.
  * A deployment without the saved board has nothing to move to, so it passes there;
@@ -176,7 +184,7 @@ export const arrakis_spice_cards_verify_v1 = migrations.define({
   batchSize: 50,
   customRange: (q) => q.withIndex('by_type_and_slug', (index) => index.eq('type', SPICE_CARD_ASSET_TYPE)),
   migrateOne: async (ctx, row) => {
-    if (!row.is_deleted && spiceCardNeedsMove(row.data) && (await arrakisBoardId(ctx))) {
+    if (liveCardOffBoard(row) && (await arrakisBoardId(ctx))) {
       throw new Error(`card-spice ${row._id} is still on the built-in Arrakis map.`);
     }
   },
