@@ -32,13 +32,27 @@ type Binding = {
 const PAN_KEYS: Record<string, readonly [number, number]> = {
   w: [0, -1],
   arrowup: [0, -1],
-  s: [0, 1],
-  arrowdown: [0, 1],
   a: [-1, 0],
   arrowleft: [-1, 0],
+  s: [0, 1],
+  arrowdown: [0, 1],
   d: [1, 0],
   arrowright: [1, 0],
 };
+
+/** The piece keys, as typed in lower case; the Play cheat sheet lists them from here. */
+export const TABLE_KEYS = {
+  flip: 'f',
+  turnLeft: 'q',
+  turnRight: 'e',
+  stack: 'g',
+  lock: 'l',
+  take: 't',
+  shuffle: 'r',
+} as const;
+
+/** The letters that slide the view beside the arrows, in the order the cheat sheet shows them. */
+export const PAN_LETTERS = Object.keys(PAN_KEYS).filter((key) => key.length === 1);
 
 /* A digit is the character typed, like every other table shortcut, so AZERTY's top row gives digits only with Shift. */
 function digitOf(event: KeyboardEvent) {
@@ -378,7 +392,7 @@ export class TableKeyboard {
   private tableKey(event: KeyboardEvent, controls: Controls) {
     const { state } = controls;
     const key = event.key.toLowerCase();
-    if (key === 't' && state.draftMove && canTakeAdditionalFromDraft(state, state.draftMove)) {
+    if (key === TABLE_KEYS.take && state.draftMove && canTakeAdditionalFromDraft(state, state.draftMove)) {
       pressOnce(event, () => controls.takeAdditionalFromTarget());
       return;
     }
@@ -387,14 +401,14 @@ export class TableKeyboard {
       return;
     }
     /* Each repeat of a held Q or E turns the piece a step further on this page; the room hears the whole turn once the key comes up. */
-    if (key === 'q' || key === 'e') {
+    if (key === TABLE_KEYS.turnLeft || key === TABLE_KEYS.turnRight) {
       event.preventDefault();
       this.rotateHeld.add(physicalKey(event));
-      controls.rotateSelected(key === 'q' ? -1 : 1, pieceId);
+      controls.rotateSelected(key === TABLE_KEYS.turnLeft ? -1 : 1, pieceId);
       return;
     }
     /* F turns over a held piece in hand as it does one at rest. */
-    if (key === 'f') {
+    if (key === TABLE_KEYS.flip) {
       pressOnce(event, () => controls.flipSelected(pieceId));
       return;
     }
@@ -405,7 +419,7 @@ export class TableKeyboard {
 
   private restingPieceKey(event: KeyboardEvent, pieceId: string, controls: Controls) {
     switch (event.key.toLowerCase()) {
-      case 't': {
+      case TABLE_KEYS.take: {
         const piece = controls.state.pieces.find((candidate) => candidate.id === pieceId);
         if (
           controls.canHandleTable &&
@@ -420,7 +434,7 @@ export class TableKeyboard {
         }
         return;
       }
-      case 'r': {
+      case TABLE_KEYS.shuffle: {
         const piece = controls.state.pieces.find((candidate) => candidate.id === pieceId);
         if (
           controls.hoveredPieceId === pieceId &&
@@ -434,10 +448,10 @@ export class TableKeyboard {
         }
         return;
       }
-      case 'l':
+      case TABLE_KEYS.lock:
         pressOnce(event, () => controls.toggleLockSelected(pieceId));
         return;
-      case 'g':
+      case TABLE_KEYS.stack:
         pressOnce(event, () => controls.stackSelected(pieceId));
         return;
     }

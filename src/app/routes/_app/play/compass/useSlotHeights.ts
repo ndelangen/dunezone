@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties, PointerEvent as ReactPointerEvent, RefObject } from 'react';
 
 import { pulse } from './pulse';
@@ -84,7 +84,8 @@ export function useSlotHeights(
     return () => stopResize.current?.();
   }, [active]);
 
-  useEffect(() => {
+  /* Before paint, so a window pinned into a slot never shows a frame beside the bar and then rises above it. */
+  useLayoutEffect(() => {
     const root = rootRef.current;
     if (!root) {
       return;
@@ -118,6 +119,13 @@ export function useSlotHeights(
     /* The bar widens as chats join it. */
     for (const bar of root.querySelectorAll('[data-compass-bar]')) {
       observer.observe(bar);
+    }
+    /* A slot widens as its window's contents arrive, which can lift both slots over the bar. */
+    for (const side of SIDES) {
+      const slot = slotOn(root, side);
+      if (slot) {
+        observer.observe(slot);
+      }
     }
     return () => {
       observer.disconnect();
