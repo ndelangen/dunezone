@@ -8,7 +8,6 @@ import { isTechToken } from '@shared/play/techToken';
 import type { within } from 'storybook/test';
 import { expect } from 'storybook/test';
 
-import { onCurrentBoard } from '../../../../../workers/game/boardLayoutSnapshot';
 import { storedSnapshotSchema } from '../../../../../workers/game/state';
 import type { StoredSnapshot } from '../../../../../workers/game/state';
 import { LocalTable } from '../tutorial/table/localTable';
@@ -85,7 +84,7 @@ export class SandboxTable extends LocalTable {
   constructor({ start, seat, prepare }: SandboxStart) {
     const index = clampStart(start);
     const step = journeySteps()[index]!;
-    const recorded = variedTreachery(storedSnapshotSchema.parse(onCurrentBoard(step.stored)));
+    const recorded = variedTreachery(storedSnapshotSchema.parse(step.stored));
     /* Every viewer the recording connected, each with a connection of its own so carries keep their owners apart. */
     const last = journeySteps().at(-1)!.views;
     const viewers = Object.fromEntries(
@@ -108,7 +107,7 @@ export class SandboxTable extends LocalTable {
     this.prepare = prepare;
     /* Setup dealt the reserves in the order the factions' captures list their troops, which the dealt table still shows. */
     const dealt = journeySteps()[sandboxSteps()[0]!]!;
-    this.room.dealtTroops = dealtTroopsOf(storedSnapshotSchema.parse(onCurrentBoard(dealt.stored)));
+    this.room.dealtTroops = dealtTroopsOf(storedSnapshotSchema.parse(dealt.stored));
   }
 }
 

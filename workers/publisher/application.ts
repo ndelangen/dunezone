@@ -61,12 +61,8 @@ function isPublicPage(pathname: string): boolean {
 }
 
 function isPublicAssetPage(segments: string[]): boolean {
-  const [, type, slug, action] = segments;
-  return !(
-    (segments.length === 2 && type === '__presets') ||
-    (segments.length === 3 && slug === 'create') ||
-    (segments.length === 4 && action === 'edit')
-  );
+  const [, , slug, action] = segments;
+  return !((segments.length === 3 && slug === 'create') || (segments.length === 4 && action === 'edit'));
 }
 
 /** Only anonymous public document reads cross into the application server. */

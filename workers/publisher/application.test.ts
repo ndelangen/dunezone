@@ -78,7 +78,6 @@ describe('anonymous application dispatch', () => {
     '/factions/test/edit',
     '/assets/token-disc/create',
     '/assets/token-disc/test/edit',
-    '/assets/__presets',
     '/rulesets/create',
     '/rulesets/dreamrules/edit',
     '/rulesets/dreamrules/rulebooks/create',

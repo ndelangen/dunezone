@@ -15,7 +15,6 @@ import { gameSnapshotSchema, KEEPALIVE_PING, KEEPALIVE_PONG } from '../../src/sh
 import type { ServerMessage, Viewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
-import { onCurrentBoard } from './boardLayoutSnapshot';
 import { RoomDelivery } from './delivery';
 import { GameDiagnostics } from './diagnostics';
 import { gameHttpClient } from './gameHttpClient';
@@ -65,7 +64,7 @@ export class HomepageRoom extends DurableObject<GameEnv> {
     void ctx.blockConcurrencyWhile(() =>
       this.diagnostics.run('load', async () => {
         const saved = await ctx.storage.get<Saved>('table');
-        const parsed = saved && storedSnapshotSchema.safeParse(onCurrentBoard(saved.snapshot));
+        const parsed = saved && storedSnapshotSchema.safeParse(saved.snapshot);
         this.resetAt = saved?.resetAt ?? 0;
         const snapshot = parsed?.success
           ? parsed.data
