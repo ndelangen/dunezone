@@ -20,6 +20,9 @@ const meta = preview.meta({
 
 const movement = reviewCheckpoints().find((checkpoint) => checkpoint.label === 'Shipment and Movement')!;
 const bidding = reviewCheckpoints().find((checkpoint) => checkpoint.context === 'Turn 1, Bidding')!;
+const finishedMovement = reviewCheckpoints('finished').find(
+  (checkpoint) => checkpoint.label === 'Shipment and Movement'
+)!;
 
 /* A seated player asks the table to look back; the others agree a moment later and the checkpoint shows for everyone. */
 export const AskForARecall = meta.story({
@@ -45,6 +48,23 @@ export const Running = meta.story({
 export const Observer = meta.story({
   beforeEach: install(() =>
     reviewTransport(SPECTATOR_SEAT, reviewOf(reviewableSnapshot(), bidding, 'seat-1', ['seat-3', 'seat-4', 'seat-5']))
+  ),
+});
+
+/* The game is over: any player picks a checkpoint of the whole game and the table recalls it together, with no vote. */
+export const AfterTheGame = meta.story({
+  beforeEach: install(() => reviewTransport('seat-2', null, { stage: 'finished' })),
+  play: async ({ canvasElement }) => {
+    await openTab(within(canvasElement.ownerDocument.body), 'Mentat recall');
+  },
+});
+
+/* A recall after the game: everyone sees the same checkpoint, any player moves it for everyone or ends it. */
+export const RecallingAfterTheGame = meta.story({
+  beforeEach: install(() =>
+    reviewTransport('seat-2', reviewOf(reviewableSnapshot('seat-2', null, 'finished'), finishedMovement, 'seat-1'), {
+      stage: 'finished',
+    })
   ),
 });
 

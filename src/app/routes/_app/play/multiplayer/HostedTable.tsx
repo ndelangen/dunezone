@@ -45,6 +45,7 @@ import { ConnectedResultPanel, useDeclareChoice } from '../panels/result/useResu
 import type { DeclareChoice } from '../panels/result/useResultPanel';
 import { ConnectedGameLengthPanel } from '../panels/settings/useGameLengthPanel';
 import { ConnectedSetupPanel, setupWindow } from '../panels/setup/useSetupPanel';
+import { KeyboardShortcutsPanel } from '../panels/shortcuts/KeyboardShortcutsPanel';
 import { ConnectedPrivateSideTablePanel } from '../panels/sideTable/usePrivateSideTablePanel';
 import { ConnectedSpiceReservePanel } from '../panels/spice/useSpiceReservePanel';
 import { ConnectedTerritoryTintsPanel } from '../panels/tints/useTerritoryTintsPanel';
@@ -407,6 +408,48 @@ function tableGroup({ client, table, error }: ConnectionControlsProps): TablePan
   };
 }
 
+/**
+ * How the table looks back.
+ * Players may not look back alone, so a game offers a review the table agrees to instead, and once it is finished the table still looks back together, without a vote.
+ */
+function lookBackPanels({ client, table, error }: ConnectionControlsProps): TablePanel[] {
+  const review = table.review;
+  const recall = review
+    ? [
+        {
+          ...(review.finished ? PANEL_WINDOWS.finishedReview : PANEL_WINDOWS.review),
+          content: <TableReviewPanel client={client} table={table} error={error} />,
+        },
+      ]
+    : [];
+  return replaysAlone(table)
+    ? [
+        ...recall,
+        {
+          ...PANEL_WINDOWS.replay,
+          content: (
+            <>
+              {error && !table.playback && <FormError title="From the table">{error}</FormError>}
+              <ConnectedReplayPanel client={client} table={table} />
+            </>
+          ),
+        },
+      ]
+    : recall;
+}
+
+/**
+ * Observers of a finished game, who cannot start a recall, and fixture tables replay alone, unless a recall is showing;
+ * a replay already open keeps its tab.
+ */
+function replaysAlone(table: TableProjection): boolean {
+  if (reviewRunning(table.review?.current) || table.review?.seat) {
+    return false;
+  }
+  const { stage } = table.snapshot;
+  return stage === 'finished' || stage === undefined || Boolean(table.playback) || table.historyPending;
+}
+
 /** Public records and replay stay together as the game changes phase or finishes. */
 function historyGroup({ client, table, error }: ConnectionControlsProps, hasInventory: boolean): TablePanel {
   return {
@@ -427,28 +470,7 @@ function historyGroup({ client, table, error }: ConnectionControlsProps, hasInve
             },
           ]
         : []),
-      /* Players may not look back alone, so a game in progress offers a review the table agrees to instead. */
-      ...(table.review
-        ? [{ ...PANEL_WINDOWS.review, content: <TableReviewPanel client={client} table={table} error={error} /> }]
-        : []),
-      /* Players may not keep notes, so replay opens once the game is finished or on a fixture; a replay already open keeps its tab. */
-      ...(!reviewRunning(table.review?.current) &&
-      (table.snapshot.stage === 'finished' ||
-        table.snapshot.stage === undefined ||
-        table.playback ||
-        table.historyPending)
-        ? [
-            {
-              ...PANEL_WINDOWS.replay,
-              content: (
-                <>
-                  {error && !table.playback && <FormError title="From the table">{error}</FormError>}
-                  <ConnectedReplayPanel client={client} table={table} />
-                </>
-              ),
-            },
-          ]
-        : []),
+      ...lookBackPanels({ client, table, error }),
     ],
   };
 }
@@ -478,6 +500,8 @@ function controlPanels(
           },
         ]
       : []),
+    /* Every viewer, seated or watching, can look up the keys. */
+    { ...PANEL_WINDOWS.shortcuts, content: <KeyboardShortcutsPanel /> },
   ];
 }
 

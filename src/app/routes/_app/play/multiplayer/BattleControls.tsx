@@ -11,7 +11,7 @@ import { CalloutSurface } from '@ui/surface/CalloutSurface';
 import { DarkSchemeIsland } from '@ui/surface/DarkSchemeIsland';
 import clsx from 'clsx';
 import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
-import { useEffect, useReducer, useRef, useSyncExternalStore } from 'react';
+import { useEffect, useId, useReducer, useRef, useSyncExternalStore } from 'react';
 import type { Camera } from 'three';
 import { Vector3 } from 'three';
 
@@ -486,6 +486,7 @@ function SideContents({
 }: ActiveProps & { index: 0 | 1; active: Set<string> }) {
   const side = battle.sides[index];
   const motion = useMotionAllowed();
+  const hint = useId();
   const names = snapshotFactionLabels(table.snapshot);
   if (battle.revealed) {
     return (
@@ -534,12 +535,23 @@ function SideContents({
     <Button
       className={styles.claim}
       aria-label={index ? 'Claim right side' : 'Claim left side'}
-      styles={{ label: { whiteSpace: 'normal' } }}
+      aria-describedby={index ? undefined : hint}
+      classNames={{ label: styles.claimLabel }}
       variant="default"
       disabled={!table.canHandleTable || own >= 0}
       onClick={() => client.command({ kind: 'battle-claim', battleId: battle.id, side: index })}
     >
-      {index ? 'Claim right' : 'Claim left'}
+      {index ? (
+        'Claim right'
+      ) : (
+        /* The left side is the aggressor's, which a tie normally favours; nothing else on the table says so. */
+        <>
+          <span>Claim left</span>
+          <span id={hint} className={styles.claimNote}>
+            Aggressor, normally wins ties
+          </span>
+        </>
+      )}
     </Button>
   );
 }

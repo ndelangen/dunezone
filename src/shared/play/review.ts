@@ -4,6 +4,8 @@ import { tableCountSchema, tableIdSchema, tableIdentitySchema } from './schema';
 
 /**
  * A table review: the seated players agree, by majority, to look back at one checkpoint together.
+ * Once the game is finished there is nothing left to protect, so any seated player starts one at once, with no vote, and it can show any checkpoint of the game;
+ * the table still looks at the same checkpoint together.
  * While it runs every viewer sees the same public checkpoint, with private historical inventory limited to the player currently occupying its seat.
  * The table takes no move, carry, rearrangement or peek.
  * Cameras, pointers and pings remain available.
@@ -41,8 +43,13 @@ export const reviewCheckpointSchema = z.object({
 });
 export type ReviewCheckpoint = z.infer<typeof reviewCheckpointSchema>;
 
-/* The checkpoints a proposal offers: recent enough to settle what just happened. */
+/* The checkpoints a proposal offers during a game: recent enough to settle what just happened. */
 export const REVIEW_CHECKPOINTS = 30;
+
+/** How many of the newest checkpoints a review can show: the recent ones during a game, every one once it is finished. */
+export function reviewCheckpointLimit(stage: string | undefined): number {
+  return stage === 'finished' ? Number.MAX_SAFE_INTEGER : REVIEW_CHECKPOINTS;
+}
 
 export const reviewActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('review-propose'), step: tableCountSchema }),
@@ -61,14 +68,14 @@ export function isReviewAction(action: { kind: string }): action is ReviewAction
   );
 }
 
-/** A majority of the seated players, the proposer included. */
-export function reviewThreshold(players: number): number {
-  return Math.floor(players / 2) + 1;
+/** A majority of the seated players, the proposer included; once the game is finished, the proposer alone. */
+export function reviewThreshold(players: number, stage?: string): number {
+  return stage === 'finished' ? 1 : Math.floor(players / 2) + 1;
 }
 
-/** Where a review can be asked for: once the seats are dealt and before the game ends. */
+/** Where a review can be asked for: once the seats are dealt, and still after the game ends. */
 export function reviewableStage(stage: string | undefined): boolean {
-  return stage === 'setup' || stage === 'play';
+  return stage === 'setup' || stage === 'play' || stage === 'finished';
 }
 
 /** Whether the table is paused for a review that is showing now. */

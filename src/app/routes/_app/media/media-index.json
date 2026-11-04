@@ -535,7 +535,7 @@
     "description": "A loop of garrote wire with two handles.",
     "tags": ["loop", "vector", "weapon"],
     "subjects": ["weapons"],
-    "credit": "found-online",
+    "credit": "gf9-decal",
     "sourceHash": "2441858be8e0987bf43ac5cd5a04e96903ae230aaef89246f91c2b7eea908940"
   },
   "/vector/decal/arc-bow.svg": {
@@ -766,7 +766,8 @@
     "description": "A large droplet falls into circular ripples.",
     "tags": ["droplet", "vector"],
     "subjects": ["water"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: a water icon on NicePNG.",
     "sourceHash": "bd8c21437330b8e73f1c5abbe1801ac53481967daf76b8baac0b5ca86955a4d0"
   },
   "/vector/decal/ellaca.svg": {
@@ -1053,7 +1054,7 @@
     "description": "A long cylindrical thumper with a pointed ground spike.",
     "tags": ["vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "gf9-decal",
     "sourceHash": "31689e0e1535bf1ca6518f1bc1a0dee52ade792fabdf67cdf2d2e088fa2552f7"
   },
   "/vector/decal/thumper-multicolor.svg": {
@@ -1153,13 +1154,6 @@
     "subjects": ["transport", "trade"],
     "credit": "ai-decal",
     "sourceHash": "394233d4ae3561253ca3047dac32c3b58a1bbb666076c7e9d687f2918295c102"
-  },
-  "/vector/decal/barge.svg": {
-    "description": "A compact transport barge shown as a silhouette.",
-    "tags": ["transport", "vector"],
-    "subjects": ["transport"],
-    "credit": "found-online",
-    "sourceHash": "140a5c3324a1d45274027c56f623b95da2aa2692d7e0ad6d70f13e6d69a69f17"
   },
   "/vector/decal/carryalls.svg": {
     "description": "Large winged aircraft fly above a desert landscape.",
@@ -2369,7 +2363,7 @@
     "description": "A closed Orange Catholic Bible with a marked cover.",
     "tags": ["vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "brainfood-art",
     "sourceHash": "1c44f474b7219aa17324d9c66c1163a82edae3bee698c3f7c377ebaa8ff44faf"
   },
   "/vector/decal/evidence.svg": {
@@ -2383,7 +2377,8 @@
     "description": "A thick signet ring shown in perspective.",
     "tags": ["ring", "vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: an Atreides signet ring model by 3Damon on Printables.",
     "sourceHash": "758f8659ff2e67319e828ca230171e5e1e15b37b7d0b73898a08ef1cb8b72fba"
   },
   "/vector/decal/campfire.svg": {
@@ -2526,13 +2521,6 @@
     "credit": "gf9-decal",
     "sourceHash": "544a93557539aeb6aee317e5b3bd7e04f72fda0513edf57c19995713fd5c3b01"
   },
-  "/vector/decal/palace.svg": {
-    "description": "A palace with tall tapered towers.",
-    "tags": ["towers", "vector"],
-    "subjects": ["places"],
-    "credit": "gf9-decal",
-    "sourceHash": "769047c3edf2ba2507a7056a805720b9dd1592de2329b3015183929eea0114e7"
-  },
   "/vector/decal/palace-alt.svg": {
     "description": "A palace with tall tapered towers.",
     "tags": ["towers", "vector"],
@@ -2631,13 +2619,6 @@
     "credit": "ai-decal",
     "sourceHash": "a6281fbd2be8ff3ad5b26b1a5dbe946513d10666c991826ea15050ee451658ec"
   },
-  "/vector/decal/balance.svg": {
-    "description": "A circular yin-yang symbol with two contrasting halves.",
-    "tags": ["symbol", "vector"],
-    "subjects": ["symbols"],
-    "credit": "found-online",
-    "sourceHash": "e3f7ec9e351402cae5bfc50fe779bfe160d54301930be4caebbbc3d99570d8f4"
-  },
   "/vector/decal/battlewheel.svg": {
     "description": "A Battle Wheel wordmark beneath a city skyline, with a diagonal cut between the two Ts.",
     "tags": ["battle", "wheel", "wordmark", "lettering", "city", "skyline", "vector"],
@@ -2712,7 +2693,8 @@
     "description": "A grinning cartoon troll face.",
     "tags": ["face", "vector"],
     "subjects": ["people"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Trollface, drawn in Microsoft Paint by Carlos Ramirez in 2008.",
     "sourceHash": "130f97eafc7373e00e69d4ccc64cd252d95bf66c71097e872c076725c012a8b6"
   },
   "/vector/decal/balance-exercise.svg": {
@@ -3349,14 +3331,14 @@
     "description": "A standing person inside an angular shield deflects arrows.",
     "tags": ["shield", "person", "angular", "arrows", "vector"],
     "subjects": ["weapons", "people", "symbols"],
-    "credit": "found-online",
+    "credit": "gf9-decal",
     "sourceHash": "3c7554b5c745d7bdc38cb40f69b93c3fb20f2a24404d0ba080aee71dd4f98606"
   },
   "/vector/decal/membrane.svg": {
     "description": "A person's upper body is partly covered by a patterned membrane.",
     "tags": ["person", "vector"],
     "subjects": ["people"],
-    "credit": "found-online",
+    "credit": "gf9-decal",
     "sourceHash": "f2d4e70ba4066c99132cdcab3d02c282059ffc7849a1557ca1f093fe4156d548"
   },
   "/vector/decal/residual-poison.svg": {
@@ -3391,14 +3373,16 @@
     "description": "A six-pointed geometric star.",
     "tags": ["star", "geometric", "vector"],
     "subjects": ["space", "symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: a retro star design on Shutterstock.",
     "sourceHash": "cb157b9d7b4a53a00b9fbfc638a8763ccb89786093440866611a74aae0531cf5"
   },
   "/vector/generic/8472.svg": {
     "description": "A four-lobed shape inside an ornamental diamond.",
     "tags": ["diamond", "vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Species 8472 symbol from Star Trek, as drawn by Robert Aehnelt for the Star Trek Design Project.",
     "sourceHash": "3603caae2d401a921828cef3b4ac398c9029ce29e4e71c55ee5180205fc364e0"
   },
   "/vector/generic/8point.svg": {
@@ -3426,21 +3410,24 @@
     "description": "A curved snake-like silhouette.",
     "tags": ["snake", "vector"],
     "subjects": ["creatures"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the symbol of Apophis from Stargate, as drawn by James C.D. Robbins on Wikimedia Commons.",
     "sourceHash": "7d4e550fd460a0be5a4010ae8cbb133fed265cfe5be2d3b79e29352fbd123f45"
   },
   "/vector/generic/argos.svg": {
     "description": "An upright abstract crest with curved sides and a diamond.",
     "tags": ["diamond", "vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Galactic Alliance Triumvirate insignia from Star Wars, by Jan Duursema.",
     "sourceHash": "51e034651ed18f05556b994baf0ccef5c8ba94ba90aecb2546c1e43e749acb90"
   },
   "/vector/generic/arrowbox.svg": {
     "description": "A hexagonal emblem with six inward arrows.",
     "tags": ["arrows", "vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Sith Empire symbol from Star Wars: The Old Republic (BioWare).",
     "sourceHash": "52b3272db8304f01c161a350e0050d726ef97d246e08d75ee45e331ed75c2d2b"
   },
   "/vector/generic/arrows.svg": {
@@ -3461,7 +3448,8 @@
     "description": "An angular bird-like crest with raised wings.",
     "tags": ["bird", "wings", "angular", "vector"],
     "subjects": ["creatures", "transport", "symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Atreides hawk sigil from Denis Villeneuve's Dune films, designed by Patrice Vermette.",
     "sourceHash": "3e4a8a647a75d782494916acf65b8b810be9e112e9121509c8fb836d9ec27720"
   },
   "/vector/generic/axes.svg": {
@@ -3475,7 +3463,8 @@
     "description": "A circular yin-yang symbol.",
     "tags": ["symbol", "vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: a yin-yang icon on Flaticon.",
     "sourceHash": "ee1295646e84e61435d4879c90190a1f212280a8ac708ae84c92f806179cdff1"
   },
   "/vector/generic/ball.svg": {
@@ -3489,7 +3478,8 @@
     "description": "A compact spacecraft silhouette.",
     "tags": ["vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Mantis Cruiser from the game FTL: Faster Than Light.",
     "sourceHash": "72aa3a2c8925d4b7e1100ab167703022095acea5f13fd2f884bcf41def6bcca9"
   },
   "/vector/generic/biggle.svg": {
@@ -3517,7 +3507,7 @@
     "description": "A bird silhouette inside a pointed banner.",
     "tags": ["bird", "banner", "vector"],
     "subjects": ["creatures", "culture"],
-    "credit": "found-online",
+    "credit": "gf9-symbol",
     "sourceHash": "50f0d55af1f3f5411a180696725855f8051daaf6a7d0004d5c2824d8577328b0"
   },
   "/vector/generic/blad.svg": {
@@ -3538,7 +3528,8 @@
     "description": "A cluster of geometric diamonds.",
     "tags": ["geometric", "vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the United Earth Federation emblem from Supreme Commander, by Mike Swanson.",
     "sourceHash": "b2549343f98c98e67fbc7d279c206d1294a0030e367e840593e8a56d7c471d57"
   },
   "/vector/generic/bones.svg": {
@@ -3552,7 +3543,8 @@
     "description": "A tall curved three-pronged emblem.",
     "tags": ["vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Borg insignia from Star Trek, by Rick Sternbach.",
     "sourceHash": "5401c7212341717b95a94dc427e22c1396795528a1f4252cbcd32e521d8eaf07"
   },
   "/vector/generic/bows.svg": {
@@ -3573,7 +3565,8 @@
     "description": "An oval surrounded by four curved points.",
     "tags": ["vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Breen insignia from Star Trek, by Geoffrey Mandel.",
     "sourceHash": "2f70bac134913e2d2537706bc57d932d46990400e291855b990f98e8bf0c7110"
   },
   "/vector/generic/broke.svg": {
@@ -3608,14 +3601,16 @@
     "description": "Three vertical angular bars around a hexagon.",
     "tags": ["angular", "hexagon", "vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Cerberus emblem from Mass Effect (BioWare).",
     "sourceHash": "3efb23ee76a9ccb3901667f8ae887583a3e44714aca878562f034790cd50dbe2"
   },
   "/vector/generic/chaom.svg": {
     "description": "A circle divided into a white dome and dark base.",
     "tags": ["circle", "vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: a design by John de la O (karlangas).",
     "sourceHash": "a396aa39371143252b47030a49d4dd6bdad5550f5b68d242f0602790bb01dc9e"
   },
   "/vector/generic/chip.svg": {
@@ -3706,7 +3701,8 @@
     "description": "A long oval with mirrored curved side shapes.",
     "tags": ["vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Aquos symbol from Bakugan: Battle Force (2019).",
     "sourceHash": "349b7aba3a7516d2164493abab3092ff04505650a57503a782eec9060b7a7a2a"
   },
   "/vector/generic/daggers.svg": {
@@ -3720,21 +3716,24 @@
     "description": "A star inside an angular winged triangle.",
     "tags": ["star", "angular", "triangle", "vector"],
     "subjects": ["space", "symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the UNSC Army emblem from Halo (Bungie).",
     "sourceHash": "56f2dc98d506f34a2d489624a04211a258090a62066a293668bbcd3a99beab8b"
   },
   "/vector/generic/dello.svg": {
     "description": "A teardrop spiral surrounding a dot.",
     "tags": ["teardrop", "spiral", "vector"],
     "subjects": ["water", "symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: a design by FutureEverything.",
     "sourceHash": "f0432f410481bd615b33baf9e2d60f868b06fcdb8f30308bcd6ec53153ba963b"
   },
   "/vector/generic/denobula.svg": {
     "description": "A cluster of circles inside a broken ring.",
     "tags": ["ring", "vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Denobulan emblem from Star Trek, by Brad Wilder.",
     "sourceHash": "1bb513396be1f4204fb177c04bb8b959c51042ebcc5276184ff6baa6d2307619"
   },
   "/vector/generic/detector.svg": {
@@ -3748,7 +3747,8 @@
     "description": "Two interlocked angular diamond shapes.",
     "tags": ["angular", "diamond", "vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Deteis bloodline emblem from Dust 514 (CCP Games).",
     "sourceHash": "a624b83af5ba2385fdb9ee8c87ea58d983af52e884c9796e37a01c4b39b180f7"
   },
   "/vector/generic/diamond.svg": {
@@ -3769,21 +3769,24 @@
     "description": "A cross-like mark inside a tilted square.",
     "tags": ["cross", "square", "vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Dominion emblem from Star Trek: Deep Space Nine, by Anthony Fredrickson.",
     "sourceHash": "7162a0ad038b0fc9295df233e4fae575ebb6bceea4c7ce6cde7f9c3dd15526e2"
   },
   "/vector/generic/dp.svg": {
     "description": "Two stylized lowercase letter forms.",
     "tags": ["vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Dude Perfect monogram, by Tyler Toney.",
     "sourceHash": "26d293aadf748889d4243af4af2305ca0e4a127bf3a7161fe9b5eb8bc8fde5e0"
   },
   "/vector/generic/effect.svg": {
     "description": "A tall three-pronged pointed crest.",
     "tags": ["vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Asari Republics emblem from Mass Effect, by Matt Rhodes.",
     "sourceHash": "95527a8b242a4b6d4de42d49b955f448e6ee4ba754285568861178780e71da26"
   },
   "/vector/generic/egg.svg": {
@@ -3797,7 +3800,8 @@
     "description": "A radial sunburst with a tapered upper segment.",
     "tags": ["vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the El-Aurian emblem from Star Trek, by pdmahler.",
     "sourceHash": "1d562f369fee41fa3d896be86f9bd76b1f69fad772fbeb227bfd1e13f12d8317"
   },
   "/vector/generic/electronic.svg": {
@@ -3811,7 +3815,8 @@
     "description": "A four-pointed star inside an oval.",
     "tags": ["star", "vector"],
     "subjects": ["space"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the mark of the Goa'uld System Lord Cronus from Stargate SG-1, by Richard Hudolin.",
     "sourceHash": "e5c921e7f165ebdf67223482f095c99ec3706e154ec1452fab11ac7e7e8c6087"
   },
   "/vector/generic/encircl.svg": {
@@ -3825,7 +3830,8 @@
     "description": "A circle with branching lines and an upper crescent.",
     "tags": ["circle", "vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Ankh of the Triarch from Warhammer 40,000 (Games Workshop).",
     "sourceHash": "53ed7ace084334c0c68666b5357d83aa2e3a573746048c55cc831b91ee7c0d4f"
   },
   "/vector/generic/exclamation.svg": {
@@ -3846,14 +3852,16 @@
     "description": "A starfield inside a laurel wreath.",
     "tags": ["laurel", "wreath", "vector"],
     "subjects": ["culture"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the United Federation of Planets emblem from Star Trek, by Michael Okuda.",
     "sourceHash": "9126ffcadb6b30f2f9e870bd4196d2a15819a59b39491e6ea81404eff225f811"
   },
   "/vector/generic/ferengi.svg": {
     "description": "A circular geometric emblem with an eye-shaped center.",
     "tags": ["eye", "geometric", "vector"],
     "subjects": ["people", "symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Ferengi Alliance symbol from Star Trek, by Michael Okuda.",
     "sourceHash": "f927ddccf21c9c802f0a6674ffbeef19d26dcd7ca71c2dc8a90e67d7447f5f25"
   },
   "/vector/generic/fire.svg": {
@@ -3874,7 +3882,8 @@
     "description": "A long angular winged emblem with a pointed center.",
     "tags": ["angular", "vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: a Great House emblem shown on dimanzia.sk.",
     "sourceHash": "5c51461ebc7a1fe9dae4641174c2f60088a912d836c074991931b6b95504e74c"
   },
   "/vector/generic/fly.svg": {
@@ -3888,14 +3897,16 @@
     "description": "A pointed vertical diamond inside a ring.",
     "tags": ["diamond", "ring", "vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Terran Empire emblem from Millikan's Reach, by Andrew Watson.",
     "sourceHash": "b7ee35c10b28c2271b5cd5ab926647306b9fae65b0d1b36c8e177e83ed1315db"
   },
   "/vector/generic/fremball.svg": {
     "description": "A circle divided into four alternating segments.",
     "tags": ["circle", "vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Fremen emblem from Denis Villeneuve's Dune films, designed by Patrice Vermette, via Wikimedia Commons.",
     "sourceHash": "881c600e6e3719073b2816537cd4c077305cd6cf9b591654eb0717065fa04767"
   },
   "/vector/generic/gate.svg": {
@@ -3909,35 +3920,40 @@
     "description": "An angular bird head inside a circle.",
     "tags": ["head", "bird", "angular", "circle", "vector"],
     "subjects": ["people", "creatures", "symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: Command & Conquer UI art by Todd Kale.",
     "sourceHash": "26e79a5e4262c471178e27e566f0a2bf8be4a03084285e1ebdb547fe22be25cc"
   },
   "/vector/generic/gdi2.svg": {
     "description": "A lightning-shaped bird inside a ring.",
     "tags": ["bird", "ring", "vector"],
     "subjects": ["creatures", "symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: Command & Conquer UI art by Todd Kale.",
     "sourceHash": "95c6fc02937225c69ba28b3f029e2d28a427d7e12cd6b775425974b78b2eb386"
   },
   "/vector/generic/gdi3.svg": {
     "description": "An eagle head with a hooked beak.",
     "tags": ["head", "eagle", "vector"],
     "subjects": ["people", "creatures"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: Command & Conquer UI art by Todd Kale.",
     "sourceHash": "ce7277c1a8d1811231e64d8a15d5025eadedb6537e5a97b4572bd89419ace2fa"
   },
   "/vector/generic/gdi4.svg": {
     "description": "An angular eagle silhouette inside a circle.",
     "tags": ["eagle", "angular", "circle", "vector"],
     "subjects": ["creatures", "symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: Command & Conquer UI art by Todd Kale.",
     "sourceHash": "7c0536b529cbc1e28bfc64b357be95eb981fb94722d5e7748da94441500159d6"
   },
   "/vector/generic/gdi6.svg": {
     "description": "A swept-wing bird inside a broken circle.",
     "tags": ["bird", "wing", "circle", "vector"],
     "subjects": ["creatures", "transport", "symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Global Defense Initiative emblem from Command & Conquer, by Aaron E. Powell.",
     "sourceHash": "a08df3914b8cb1b889811dfa32da942d4850f0ecccb0102c156f980e4783a775"
   },
   "/vector/generic/gear.svg": {
@@ -3951,7 +3967,8 @@
     "description": "A round wheel with holes and a projecting lug.",
     "tags": ["vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Source Filmmaker logo (Valve), via Wikimedia Commons.",
     "sourceHash": "fd2541c2d12536a6eda441daa1367270ed91500d25c2c9b0e2a3f831e125cdbc"
   },
   "/vector/generic/glimmer.svg": {
@@ -3979,7 +3996,8 @@
     "description": "A large circle with a smaller circle inset at the top.",
     "tags": ["circle", "vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: a Tau sept symbol from Warhammer 40,000, by Jes Goodwin and Andy Jones.",
     "sourceHash": "a39558a4053b8b1c7da1afff17a8a3c9c41ffb7019b73f8e3878ff78e2fd502d"
   },
   "/vector/generic/guard.svg": {
@@ -4000,14 +4018,16 @@
     "description": "A thin curved crest with three projecting points.",
     "tags": ["vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the House Harkonnen emblem from Denis Villeneuve's Dune films, designed by Patrice Vermette.",
     "sourceHash": "d7e5c7964ab68553862c2113d5b64b5d09c838a4700ee547b6493b419890549d"
   },
   "/vector/generic/here.svg": {
     "description": "Three arrows point inward around a circle.",
     "tags": ["arrows", "circle", "vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the electrostatic sensitive device warning symbol, via Wikimedia Commons.",
     "sourceHash": "de62181bd10c05c8101d389cf92ea81605c34c2b3b5781b040b04cca4cea7873"
   },
   "/vector/generic/hex.svg": {
@@ -4021,14 +4041,16 @@
     "description": "Three hexagons joined by branching lines.",
     "tags": ["vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Forgotten logo from Command & Conquer (EA Phenomic).",
     "sourceHash": "8975513968685da3f98bcd69f1c05313474970cd12a1b6a798ab2ab58b002626"
   },
   "/vector/generic/hirogen.svg": {
     "description": "A sphere made from circles and ovals.",
     "tags": ["sphere", "vector"],
     "subjects": ["space"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Hirogen emblem from Star Trek, by Rick Sternbach.",
     "sourceHash": "51cc03d88872ce3709e98e27611724d3611b5dd7a1d244ab9b72f7e6eea5beeb"
   },
   "/vector/generic/horse.svg": {
@@ -4042,7 +4064,8 @@
     "description": "An eye above a downward arrow.",
     "tags": ["eye", "arrow", "vector"],
     "subjects": ["people", "symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Eye of Horus from Warhammer: The Horus Heresy (Games Workshop).",
     "sourceHash": "3e3f5cfb5685b609cde1f8052e2103aa0e5bc34151a26da5563ed2a2891c74b7"
   },
   "/vector/generic/ice.svg": {
@@ -4056,21 +4079,24 @@
     "description": "An infinity loop.",
     "tags": ["loop", "vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Spacing Guild emblem from David Lynch's Dune (1984).",
     "sourceHash": "12fe7f90792a7cb3e29ca4d8c046d07abb12906c0ef35b81054c1ed8d5b0ff95"
   },
   "/vector/generic/info.svg": {
     "description": "A lowercase information symbol inside a circle.",
     "tags": ["symbol", "circle", "vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Tau Empire symbol from Warhammer 40,000, by Jes Goodwin and John Blanche.",
     "sourceHash": "cdd49b4534b4e6a6de22636c07d5c06af10e13b106e5f8b9ad68e34b9ec45b11"
   },
   "/vector/generic/inter.svg": {
     "description": "A triangle above a small circle and radiating bars.",
     "tags": ["triangle", "circle", "vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Aeldari symbol from Warhammer 40,000, by Jes Goodwin.",
     "sourceHash": "e904d67cd7acdd00576afb9d303c70d76a6fcb3bcefe6b592b8870d49071c569"
   },
   "/vector/generic/jarje.svg": {
@@ -4084,28 +4110,31 @@
     "description": "Two crossed ornate keys.",
     "tags": ["vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Federation of the Atlan System emblem on the Halo Fanon wiki.",
     "sourceHash": "c6f6755bed55c53f1e5ffa28066a9c499a415f18aa6039cba282de7a7843dfc1"
   },
   "/vector/generic/klingon.svg": {
     "description": "A three-bladed pointed emblem inside a circle.",
     "tags": ["circle", "vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Klingon Empire crest from Star Trek, by Matt Jefferies.",
     "sourceHash": "2407e014e6bb8f00ab5bcec7f93245456692ec0ba4f3972b94abcbdb3cb49daf"
   },
   "/vector/generic/krenim.svg": {
     "description": "A wide V-shaped symbol with a central diamond.",
     "tags": ["symbol", "diamond", "vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Krenim Imperium emblem from Star Trek, by Robert Aehnelt.",
     "sourceHash": "07dd0e20596e2e42d17e0ddffe87282dcfb29e5315d94521a85542871bc4098a"
   },
   "/vector/generic/landsraad.svg": {
     "description": "A compass star surrounding a dark circle.",
     "tags": ["star", "circle", "vector"],
     "subjects": ["space", "symbols"],
-    "credit": "found-online",
+    "credit": "gf9-symbol",
     "sourceHash": "287584a0636bcf95cb34570c7d9192f7d5ef388ab94c9db19e5b7d2f1da40a17"
   },
   "/vector/generic/lantern.svg": {
@@ -4133,7 +4162,8 @@
     "description": "Two mirrored angular vertical shapes.",
     "tags": ["angular", "vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Quarian Migrant Fleet symbol from Mass Effect (BioWare).",
     "sourceHash": "0bf2f5f09a1ee08b3e8d3a66d1a99efd37aa5aa8c02f9026e8bf7f95aac7b64f"
   },
   "/vector/generic/llc1.svg": {
@@ -4147,28 +4177,28 @@
     "description": "A layered flame inside a circular crest.",
     "tags": ["vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "ai-legacy",
     "sourceHash": "c7084cff679522acf7882164c1479250d066c4cab528c57e71b844e5106b853d"
   },
   "/vector/generic/llc11.svg": {
     "description": "A flame surrounded by three curved lobes.",
     "tags": ["vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "ai-legacy",
     "sourceHash": "60e8cc2d9f642642644340d95500b1166bdf23f9bb203702f45c1c4592443007"
   },
   "/vector/generic/llc12.svg": {
     "description": "A branching bare tree inside a circular crest.",
     "tags": ["tree", "vector"],
     "subjects": ["plants"],
-    "credit": "found-online",
+    "credit": "ai-legacy",
     "sourceHash": "f79c4a8bbfbef194ec04ed51b19ba532537059d8787d4f773ccf5ebb3720d84c"
   },
   "/vector/generic/llc13.svg": {
     "description": "Three curved blades form a rotating swirl.",
     "tags": ["vector", "blade", "weapon"],
     "subjects": ["weapons"],
-    "credit": "found-online",
+    "credit": "ai-legacy",
     "sourceHash": "c92275369e013fa094d96654fb7d57cde91aa2f2692736985c76545f71986460"
   },
   "/vector/generic/llc2.svg": {
@@ -4210,35 +4240,38 @@
     "description": "A pointed fleur-de-lis flower emblem.",
     "tags": ["flower", "vector"],
     "subjects": ["plants"],
-    "credit": "found-online",
+    "credit": "ai-legacy",
     "sourceHash": "d75486ace7e4a695e0c707506316d804cea01968672d0a6e4abf61eb51e327ed"
   },
   "/vector/generic/llc9.svg": {
     "description": "A complex angular compass star.",
     "tags": ["star", "angular", "vector"],
     "subjects": ["space", "symbols"],
-    "credit": "found-online",
+    "credit": "ai-legacy",
     "sourceHash": "8cf76aadb95adc356d8ac6489a7e511924a4475a54785f69ee5b1efe9abeb204"
   },
   "/vector/generic/magnet.svg": {
     "description": "A dark circle held inside an angular open shape.",
     "tags": ["circle", "angular", "vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Combine symbol from Half-Life 2, by Viktor Antonov.",
     "sourceHash": "3a955aa128a303015914d2dc91d1764d73bd59734b39d73fc53ef5a22f4310cb"
   },
   "/vector/generic/malon.svg": {
     "description": "A tall rounded panel filled with mirrored branching lines.",
     "tags": ["vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Malon emblem from Star Trek: Voyager, by Rick Sternbach.",
     "sourceHash": "5364d24729c5acc425bf5c2cc2ed8355c019984e915d299c9aae4c3fd35b3371"
   },
   "/vector/generic/marker.svg": {
     "description": "A vertical twisting flame shape.",
     "tags": ["vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Marker symbol from Dead Space, by Ian Milham.",
     "sourceHash": "5f5c135126dffcf67a230a52d45abed17e1e0f3dc648f93e5491f434bf44fe99"
   },
   "/vector/generic/matres.svg": {
@@ -4259,7 +4292,7 @@
     "description": "Two crossed curved swords below a circular swirl.",
     "tags": ["vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "gf9-symbol",
     "sourceHash": "5c3992ca337f480b21ded8be783b0b7f773b6bcc20308231fce2ee98a9354e1b"
   },
   "/vector/generic/mesh.svg": {
@@ -4287,7 +4320,8 @@
     "description": "A dragon curves inside a circular border.",
     "tags": ["dragon", "vector"],
     "subjects": ["creatures"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Draconis Combine logo from BattleTech (FASA Corporation).",
     "sourceHash": "6bbd3582677a5001ff96fb0c414d5ad992ba664b5831a87d3ba37a55f7a8394b"
   },
   "/vector/generic/mural1.svg": {
@@ -4336,7 +4370,8 @@
     "description": "A scorpion-shaped silhouette inside an angular ring.",
     "tags": ["scorpion", "angular", "ring", "vector"],
     "subjects": ["creatures", "symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Brotherhood of Nod symbol from Command & Conquer (Westwood Studios).",
     "sourceHash": "6a89d940d36d2991a4ef67341f405e86f03c3ebb22a1d447d9a9e2520e068b99"
   },
   "/vector/generic/nuke.svg": {
@@ -4350,14 +4385,16 @@
     "description": "An elongated oval divided into curved geometric panels.",
     "tags": ["geometric", "vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Ocampa symbol from Star Trek, by Rick Sternbach and Michael Okuda.",
     "sourceHash": "2d6255d53bf81d8000174ee6be6e72faa20361fb4e14aa834156d8f61c2e1769"
   },
   "/vector/generic/ocro.svg": {
     "description": "An oval crest with a tall central flame.",
     "tags": ["vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the logo of the German band Dune, by Jurgen Joosten.",
     "sourceHash": "df9ca9020ec219238e8d5f867b323f7299a53602588b11c40874a4bf9fdb0dd3"
   },
   "/vector/generic/orbital.svg": {
@@ -4385,21 +4422,23 @@
     "description": "A pointed vertical staff with oval openings.",
     "tags": ["vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the symbol of the Ori from Stargate SG-1, by James Robbins.",
     "sourceHash": "d3d565ca3ebfc283166ab14330bf3c53b9a4864a50cc87a7a370124ac5bbf273"
   },
   "/vector/generic/outcast.svg": {
     "description": "A sword passes through a gear.",
     "tags": ["sword", "gear", "vector", "blade", "weapon"],
     "subjects": ["weapons", "machines"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Brotherhood Outcasts logo from Fallout (Bethesda Game Studios).",
     "sourceHash": "4c99f47dcd95da293acd4e5fb3683f8ebb2b227460ac659694b8d30b30e8c0e5"
   },
   "/vector/generic/peddlers.svg": {
     "description": "A water drop beneath a fan-shaped shell.",
     "tags": ["water", "vector"],
     "subjects": ["water"],
-    "credit": "found-online",
+    "credit": "brainfood-art",
     "sourceHash": "c34b09d40814a97b9ede1c5ab03e9acb46c13f534b7a2dff892da08ce25b8695"
   },
   "/vector/generic/pele.svg": {
@@ -4441,7 +4480,8 @@
     "description": "A hand reaches down toward several raised hands.",
     "tags": ["hand", "hands", "vector"],
     "subjects": ["people"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the hot surface warning symbol.",
     "sourceHash": "470b7bdcda4ee55aaf66ad3f6ec7d9ea6e34f5fa49b00984ccfe16b2c9aa3c7f"
   },
   "/vector/generic/pirate.svg": {
@@ -4504,21 +4544,24 @@
     "description": "A winged crest with long curved upper horns.",
     "tags": ["vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Galactic Republic emblem from Star Wars: The Old Republic (BioWare and Lucasfilm).",
     "sourceHash": "60e93cb5f10c2208131b90f1e45916e143f228fafd7b8278989bc4d56dd458f5"
   },
   "/vector/generic/reman.svg": {
     "description": "Six angular arms surrounding a central star.",
     "tags": ["star", "angular", "vector"],
     "subjects": ["space", "symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Reman symbol from Star Trek (Paramount Pictures).",
     "sourceHash": "116284eec683a85c21501cb905acf395dd75517bb45a6cb4d9961f7863c9e189"
   },
   "/vector/generic/richese.svg": {
     "description": "A raised bowl on a pedestal with steam above it.",
     "tags": ["vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the lamp of knowledge symbol.",
     "sourceHash": "28393f65c1c0cddc47b23e0f8e63b0ba2eb4c1355c4d8357bb5dcf13ad36c824"
   },
   "/vector/generic/rift.svg": {
@@ -4539,21 +4582,24 @@
     "description": "A figure with outstretched arms inside a dark oval.",
     "tags": ["figure", "vector"],
     "subjects": ["people"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Risian emblem from Star Trek: The Next Generation.",
     "sourceHash": "22a7b85794046185703e2d22d40287d57e47b910fe3badd7e04a40310c37dd19"
   },
   "/vector/generic/romulan.svg": {
     "description": "A large bird of prey with spread feathered wings.",
     "tags": ["bird", "wings", "vector"],
     "subjects": ["creatures", "transport"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Romulan Republic emblem from Star Trek Online (Cryptic Studios).",
     "sourceHash": "80682ba1ab8b1a33b906a1e44d0906379294ee995aae134091c72ddf8bca351d"
   },
   "/vector/generic/saudarkar.svg": {
     "description": "Three pointed angular shapes form a crest.",
     "tags": ["angular", "vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: an image on Pinterest.",
     "sourceHash": "645a4146e612c8ce13659670176da2b36fbc3c241b8baa3e0515fa2d1b15c088"
   },
   "/vector/generic/sca.svg": {
@@ -4581,28 +4627,32 @@
     "description": "A curved six-legged insect-like crest.",
     "tags": ["insect", "vector"],
     "subjects": ["creatures"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Scrin logo from Command & Conquer (EA Los Angeles).",
     "sourceHash": "fc2821cd8990f322b5ba134eacbb902354b9ccaa77314d015b3dc51b90135963"
   },
   "/vector/generic/shade.svg": {
     "description": "An eye-shaped ellipse surrounding a circle.",
     "tags": ["eye", "circle", "vector"],
     "subjects": ["people", "symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: a Sith Order emblem from Star Wars (Dark Horse Comics).",
     "sourceHash": "d5e0581561b348dfa9f13e5ab337e2ae288d28e5cc4ada61efcf77c9b710c515"
   },
   "/vector/generic/shar.svg": {
     "description": "Two crossed spears behind a fur-like triangular crest.",
     "tags": ["vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Redwake logo from the Roblox game Arcane Odyssey.",
     "sourceHash": "5463073c03b9fad470a3d01ba3b50d0b6fada5d6040263df2a134fb30d5f786e"
   },
   "/vector/generic/sharky.svg": {
     "description": "A shark curls into a toothed circle.",
     "tags": ["circle", "vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Tyranid symbol from Warhammer 40,000 (Games Workshop).",
     "sourceHash": "077c0bce48bfb5d24c13a965c04652e973d554646342f3ce3a051843dac9647a"
   },
   "/vector/generic/sheddle.svg": {
@@ -4616,7 +4666,8 @@
     "description": "A segmented circular shell with an open center.",
     "tags": ["vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Minmatar Republic logo from EVE Online (CCP Games).",
     "sourceHash": "504710ae0e311b4f114719a9cfc4d708d90a9e1481e779bf411a6f0822a329c0"
   },
   "/vector/generic/sherl.svg": {
@@ -4637,7 +4688,8 @@
     "description": "A vertical spear point inside a ring.",
     "tags": ["spear", "ring", "vector"],
     "subjects": ["weapons", "symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Hierarchy emblem from Universe at War: Earth Assault (Petroglyph Games).",
     "sourceHash": "33568ce681eb1fb29e372d5a1cb4de32d468af1a00ab7cc5fd6863a53b40d85e"
   },
   "/vector/generic/shine.svg": {
@@ -4665,14 +4717,16 @@
     "description": "A circular center surrounded by jagged diagonal rays.",
     "tags": ["vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: a Sith Empire emblem from Star Wars, by Chris Gossett.",
     "sourceHash": "5279728414def60a18eb2fd1a35d6a58ef922ed32239d9b0375386c3aa2ee1f0"
   },
   "/vector/generic/slange.svg": {
     "description": "Three angular bands form a triangular knot.",
     "tags": ["angular", "knot", "vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Geth symbol from Mass Effect (BioWare).",
     "sourceHash": "28fd2c2346d50c12a02be7f6144d2d4585f27732e14ec4a15ecf610765492578"
   },
   "/vector/generic/slechtedag.svg": {
@@ -4714,7 +4768,8 @@
     "description": "Two mirrored loops with curling outer ends.",
     "tags": ["loops", "vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Bene Gesserit emblem from Denis Villeneuve's Dune films (Legendary Pictures).",
     "sourceHash": "57559724818e78b8cef40fd9cb15462dbb0aedf70c86cd7954b5069d876968f7"
   },
   "/vector/generic/spikes.svg": {
@@ -4868,14 +4923,15 @@
     "description": "An angular three-pronged technological crest.",
     "tags": ["angular", "vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "gf9-symbol",
     "sourceHash": "b659b0937d13aa889d56a85b8d5fccad4452b8c1e5ee0adb416f75eab9e518c4"
   },
   "/vector/generic/tecky.svg": {
     "description": "An angular cross with three lower rectangular teeth.",
     "tags": ["angular", "cross", "vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Mark of Khorne from Warhammer 40,000 (Games Workshop).",
     "sourceHash": "88a89ac3876f5b96c7c6270382219860703984b4674c3831f06373014a09b574"
   },
   "/vector/generic/tellerite.svg": {
@@ -4889,7 +4945,8 @@
     "description": "A sword passes through a globe of Earth.",
     "tags": ["sword", "earth", "vector", "blade", "weapon"],
     "subjects": ["weapons", "space"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Terran Empire emblem from Star Trek, by Matt Jefferies.",
     "sourceHash": "36b53c6921af06271a5d591b6e25d6e40b91520fa0db71f6fa1611c4c6cfbd5b"
   },
   "/vector/generic/tleilax.svg": {
@@ -4959,7 +5016,8 @@
     "description": "A swirling spiral inside an oval.",
     "tags": ["spiral", "vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Vaadwaur emblem from Star Trek, by Michael Okuda.",
     "sourceHash": "907ecb1aaee0fe9b13e7b3f07f3ccee587ab9da1eef54448a75aca2dab29d6bb"
   },
   "/vector/generic/ve.svg": {
@@ -5001,7 +5059,8 @@
     "description": "A curved central eye with three flame-like arms.",
     "tags": ["eye", "vector"],
     "subjects": ["people"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Voth emblem from Star Trek, by Rick Sternbach.",
     "sourceHash": "27fe683f0ebaa60df93c74d38521cef02cfbd8f861a655c5344a788c16236887"
   },
   "/vector/generic/vp.svg": {
@@ -5015,7 +5074,8 @@
     "description": "A triangular pointer cuts into a circular disc.",
     "tags": ["vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the Vulcan IDIC symbol from Star Trek, by William Ware Theiss.",
     "sourceHash": "595d03f11a368a2d97fbb2a4ec32fb6e45066ff5f58caf617d039e9d032942b5"
   },
   "/vector/generic/waiku.svg": {
@@ -5050,14 +5110,16 @@
     "description": "A raised hand holding a small curling snake above a lightning mark.",
     "tags": ["hand", "snake", "vector"],
     "subjects": ["people", "creatures"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the ANSI Z535 electric shock symbol, via Wikimedia Commons.",
     "sourceHash": "c1599afea7533791dfbb0e4a57c61dfa83b65aabdf6f92aba4890dbd119114d7"
   },
   "/vector/generic/emperiskull.svg": {
     "description": "A round helmet with a narrow T-shaped face opening.",
     "tags": ["face", "vector"],
     "subjects": ["people"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the House Corrino emblem from Denis Villeneuve's Dune films, designed by Patrice Vermette.",
     "sourceHash": "17da8d7851a4c291cbae14621bb8f08e9f1fb3f4949206e43bf2b9d68ab2096f"
   },
   "/vector/generic/guildeyes.svg": {
@@ -5092,7 +5154,8 @@
     "description": "A laser beam extends from a radial burst.",
     "tags": ["vector"],
     "subjects": ["symbols"],
-    "credit": "found-online",
+    "credit": "online-original",
+    "creditDetail": "Original: the ISO 7000 laser warning symbol, via Wikimedia Commons.",
     "sourceHash": "ae70f94b346687ce9529e34382e1332c34a49ae389b7b9e732c631cb85b7abe6"
   },
   "/vector/generic/orbsword.svg": {
@@ -5219,16 +5282,15 @@
     "description": "Radial flower with rounded petals and a faceted center.",
     "tags": ["flower", "vector"],
     "subjects": ["plants"],
-    "credit": "found-online",
-    "creditDetail": "Likely from a Tabletop Simulator community faction mod.",
+    "credit": "brainfood-art",
     "sourceHash": "e37084172f2323cb0d15f0fd3bbd8eb0fd2bb2ea6e785b2247d86f0977e0dbe6"
   },
   "/vector/emblem/iduali.svg": {
     "description": "Angular scorpion with raised tail and pincers.",
     "tags": ["scorpion", "angular", "vector"],
     "subjects": ["creatures", "symbols"],
-    "credit": "found-online",
-    "creditDetail": "Likely from a Tabletop Simulator community faction mod.",
+    "credit": "online-original",
+    "creditDetail": "Original: the Abarth car logo, flipped.",
     "sourceHash": "6552805a446cbac78eca1ca90e43bedc0dbba23e2cecf7c198e0aa8963f07312"
   },
   "/vector/emblem/cinder-phoenix.svg": {

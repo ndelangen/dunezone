@@ -127,7 +127,7 @@ function StrongholdDecals({
               decals: [
                 ...draft.decals,
                 {
-                  id: '/vector/decal/palace.svg',
+                  id: '/vector/icon/stronghold.svg',
                   muted: false,
                   outline: true,
                   scale: 1,

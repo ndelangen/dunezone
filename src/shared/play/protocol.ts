@@ -98,9 +98,9 @@ export const gameSnapshotSchema = z.object({
   setup: setupStateSchema.optional(),
   predictions: predictionsSchema.optional(),
   removalVotes: z.array(removalVoteSchema).optional(),
-  /* The table review being voted on or showing now; absent outside setup and play. */
+  /* The table review being voted on or showing now; absent before setup. */
   review: tableReviewSchema.nullable().optional(),
-  /* The recent checkpoints a review can show, newest last; absent outside setup and play. */
+  /* The checkpoints a review can show, newest last: the recent ones, or all once finished; absent before setup. */
   reviewCheckpoints: z.array(reviewCheckpointSchema).optional(),
   /* Who is determining the winner during Mentat Pause, then the declared result once finished. */
   ending: gameEndingSchema.nullable().optional(),
