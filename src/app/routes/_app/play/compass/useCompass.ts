@@ -10,7 +10,9 @@ import { tilesOf } from './compassTiles';
 import { commandsOf, SHORTCUTS, useShortcutKeys } from './shortcuts';
 import type { Shortcut } from './shortcuts';
 import { candidatesOf, rankSuggestions } from './suggestions';
+import type { Suggestion } from './suggestions';
 import { useCompassKeys } from './useCompassKeys';
+import { useHeldSuggestion } from './useHeldSuggestion';
 import { KEYBOARD_SHORTCUTS } from './windows';
 import type { TableWindow } from './windows';
 
@@ -39,6 +41,7 @@ export function useCompass({ open, onOpen, inert, windows, table, onView, onShow
   const [cursor, setCursor] = useState(0);
   const [refused, setRefused] = useState(0);
   const input = useRef<HTMLInputElement>(null);
+  const { held, hold, release } = useHeldSuggestion();
 
   const openCompass = () => {
     onOpen(true);
@@ -47,18 +50,23 @@ export function useCompass({ open, onOpen, inert, windows, table, onView, onShow
     setCursor(0);
   };
   /* The hold is let go by the keys alone: Space's keyup ends it, so closing never needs to touch it. */
-  const close = () => onOpen(false);
+  const close = () => {
+    release();
+    onOpen(false);
+  };
   const show = (key: string, seat?: string) => {
     close();
     onShow(key, seat);
   };
   const tiles = tilesOf(windows, table);
   const commands = commandsOf(table);
-  const chooseSpot: Dispatch<SetStateAction<Spot>> = (next) =>
+  const chooseSpot: Dispatch<SetStateAction<Spot>> = (next) => {
+    release();
     setSpot((current) => {
       const target = typeof next === 'function' ? next(current) : next;
       return target === 'ally' && tiles.ally.hidden ? 'table' : target;
     });
+  };
   /* A window an arm opens shows the arm's letter in the search too. */
   const shortcuts = {
     ...Object.fromEntries(
@@ -83,6 +91,17 @@ export function useCompass({ open, onOpen, inert, windows, table, onView, onShow
     query
   );
   /* Opens what the compass points at; a tile with nothing behind it shakes instead. */
+  /* A destructive suggestion counts down while held; anything else runs at once. */
+  const runOrHold = (suggestion: Suggestion) => (suggestion.held ? hold(suggestion) : suggestion.run());
+  /* Moving the cursor, typing or steering elsewhere lets go of a held suggestion. */
+  const steerCursor: Dispatch<SetStateAction<number>> = (next) => {
+    release();
+    setCursor(next);
+  };
+  const type = (next: string) => {
+    release();
+    setQuery(next);
+  };
   const confirm = (at: Spot = spot) => {
     if (at === 'hub' && !query.trim()) {
       close();
@@ -91,7 +110,7 @@ export function useCompass({ open, onOpen, inert, windows, table, onView, onShow
     if (at === 'hub' || at === 'search') {
       const suggestion = suggestions[cursor];
       if (suggestion && !suggestion.disabled) {
-        suggestion.run();
+        runOrHold(suggestion);
       }
       return;
     }
@@ -141,8 +160,9 @@ export function useCompass({ open, onOpen, inert, windows, table, onView, onShow
     onOpen: openCompass,
     onClose: close,
     onSpot: chooseSpot,
-    onCursor: setCursor,
+    onCursor: steerCursor,
     onConfirm: confirm,
+    onRelease: release,
   });
 
   const props: CompassProps = {
@@ -154,9 +174,12 @@ export function useCompass({ open, onOpen, inert, windows, table, onView, onShow
     refused,
     input,
     onSpot: chooseSpot,
-    onQuery: setQuery,
-    onCursor: setCursor,
+    held,
+    onQuery: type,
+    onCursor: steerCursor,
     onConfirm: confirm,
+    onHold: hold,
+    onRelease: release,
     onClose: close,
   };
   return { openCompass, show, props };

@@ -24,6 +24,8 @@ export type Suggestion = Readonly<{
   run: () => void;
   /** The letter that does the same with the compass shut. */
   shortcut?: string;
+  /** A destructive command runs only after a five-second hold; this is its countdown's verb, such as "Clearing". */
+  held?: string;
 }>;
 
 /* `typedOnly` keeps a candidate out of the list shown with nothing typed. */
@@ -197,7 +199,7 @@ function nextPhaseCandidate(nextPhase: SuggestionActions['nextPhase'], close: ()
   ];
 }
 
-/* Clearing every chat, found by name and never suggested unasked: each player clears only their own copy (#2674). */
+/* Clearing every chat, found by name, never suggested unasked and held like every delete: each player clears only their own copy (#2674). */
 function clearChatsCandidate(clearChats: SuggestionActions['clearChats'], close: () => void): Candidate[] {
   if (!clearChats) {
     return [];
@@ -206,7 +208,7 @@ function clearChatsCandidate(clearChats: SuggestionActions['clearChats'], close:
     {
       key: 'cmd:clear-chats',
       label: 'Clear all chats',
-      hint: 'Only for you; others keep theirs',
+      hint: 'Hold to clear; others keep theirs',
       icon: <Eraser size={18} aria-hidden />,
       run: () => {
         close();
@@ -215,6 +217,7 @@ function clearChatsCandidate(clearChats: SuggestionActions['clearChats'], close:
       text: 'clear all chats chat messages text erase',
       weight: -1,
       typedOnly: true,
+      held: 'Clearing',
     },
   ];
 }

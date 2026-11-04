@@ -237,7 +237,11 @@ test('"clear" finds Clear all chats only while a chat has messages to clear, and
   let cleared = 0;
   const all = candidatesOf([], { ...actions(null), clearChats: () => cleared++ });
   const found = rankSuggestions(all, 'clear');
-  expect(found[0]).toMatchObject({ label: 'Clear all chats', hint: 'Only for you; others keep theirs' });
+  expect(found[0]).toMatchObject({
+    label: 'Clear all chats',
+    hint: 'Hold to clear; others keep theirs',
+    held: 'Clearing',
+  });
   found[0]!.run();
   expect(cleared).toBe(1);
   /* It sits below every window and command, so it surfaces only once typed for. */
