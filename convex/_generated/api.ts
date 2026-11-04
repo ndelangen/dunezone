@@ -36,7 +36,6 @@ import type * as homepage from "../homepage.js";
 import type * as homepageAdmission from "../homepageAdmission.js";
 import type * as http from "../http.js";
 import type * as ingestTokens from "../ingestTokens.js";
-import type * as legacyDataMigrations from "../legacyDataMigrations.js";
 import type * as lib_accountIdentity from "../lib/accountIdentity.js";
 import type * as lib_accountLifecycle from "../lib/accountLifecycle.js";
 import type * as lib_accountMerge from "../lib/accountMerge.js";
@@ -212,7 +211,6 @@ const fullApi: ApiFromModules<{
   homepageAdmission: typeof homepageAdmission;
   http: typeof http;
   ingestTokens: typeof ingestTokens;
-  legacyDataMigrations: typeof legacyDataMigrations;
   "lib/accountIdentity": typeof lib_accountIdentity;
   "lib/accountLifecycle": typeof lib_accountLifecycle;
   "lib/accountMerge": typeof lib_accountMerge;

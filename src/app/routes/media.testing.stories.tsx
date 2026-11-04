@@ -74,14 +74,6 @@ export const Catalogue = meta.story({
     await expect(page.getByRole('button', { name: 'Play artwork preview' })).toBeVisible();
   },
 });
-export const LegacyLink = meta.story({
-  args: { path: '/__icons' },
-  play: async ({ canvasElement }) => {
-    await expect(
-      within(canvasElement).findByRole('heading', { name: 'Media catalogue' }, { timeout: 30_000 })
-    ).resolves.toBeVisible();
-  },
-});
 export const VisualSearch = meta.story({
   args: { path: '/media/game/decals?q=crossed+knives' },
   play: async ({ canvasElement }) => {
@@ -90,16 +82,6 @@ export const VisualSearch = meta.story({
     await expect(page.queryByRole('article', { name: 'Fremen' })).toBeNull();
     await expect(page.queryByRole('button', { name: 'Organize collections' })).toBeNull();
     await expect(page.queryByRole('link', { name: 'Link to this view' })).toBeNull();
-  },
-});
-export const LegacyMediaLink = meta.story({
-  args: { path: '/__media?kind=leader&q=Aramsham' },
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByRole('article', { name: 'Aramsham' })).resolves.toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Faction portraits / Emperor' })).toBeVisible();
-    const all = page.getByRole('link', { name: 'Show everything from this group' });
-    await expect(all).toHaveAttribute('href', '/media/game/leaders?group=Faction+portraits+%2F+Emperor');
   },
 });
 

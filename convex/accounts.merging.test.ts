@@ -30,6 +30,13 @@ async function passOf(player: ReturnType<ReturnType<typeof setup>['withIdentity'
   return peekSeatPass(result.pass);
 }
 
+function required<T>(value: T): NonNullable<T> {
+  if (value == null) {
+    throw new Error('Expected a value');
+  }
+  return value;
+}
+
 beforeEach(stubAuthEnvironment);
 afterEach(() => {
   restoreAuthEnvironment();
@@ -184,6 +191,11 @@ test('Discord connection requires both proofs and a fresh second session, then c
   await verified.mutation(api.accounts.confirmConnection, { token: intent.token });
   await expect(verified.mutation(api.accounts.confirmConnection, { token: intent.token })).rejects.toThrow('expired');
   expect(await t.query(api.accounts.connection, { token: intent.token })).toMatchObject({ state: 'running' });
+  /* The deadline passing while the merge still runs leaves the page reporting the merge, not an expired link. */
+  const connectionId = await t.run(async (ctx) => required(await ctx.db.query('account_connections').first())._id);
+  await t.mutation(internal.accounts.expireConnection, { connectionId });
+  expect(await t.query(api.accounts.connection, { token: intent.token })).toMatchObject({ state: 'running' });
+  /* Once the merge settles, the progress credential lapses at its deadline as before. */
   await t.finishAllScheduledFunctions(() => vi.runAllTimers());
   expect(await t.query(api.accounts.connection, { token: intent.token })).toBeNull();
 });

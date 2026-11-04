@@ -16,45 +16,7 @@ function setup() {
   return t;
 }
 
-describe('account lifecycle widen rollout', () => {
-  test('retains the completed profile backfill and mirrors a missing user state', async () => {
-    const t = setup();
-    const ids = await t.run(async (ctx) => {
-      const userId = await ctx.db.insert('users', {});
-      const profileId = await ctx.db.insert('profiles', {
-        user_id: userId,
-        username: 'LegacyUser',
-        avatar_url: 'https://example.com/avatar.png',
-        account_state: 'active',
-        slug: 'legacy-user',
-        created_at: now,
-        updated_at: now,
-      });
-      return { userId, profileId };
-    });
-
-    await t.mutation(internal.migrations.account_lifecycle_profiles_v1, {});
-    await t.mutation(internal.migrations.account_lifecycle_verify_v1, {});
-
-    await t.run(async (ctx) => {
-      await expect(ctx.db.get('users', ids.userId)).resolves.toMatchObject({
-        account_state: 'active',
-      });
-      await expect(ctx.db.get('profiles', ids.profileId)).resolves.toMatchObject({ account_state: 'active' });
-    });
-  });
-
-  test('verification fails closed when an auth user has no profile', async () => {
-    const t = setup();
-    await t.run(async (ctx) => {
-      await ctx.db.insert('users', { account_state: 'active' });
-    });
-
-    await expect(t.mutation(internal.migrations.account_lifecycle_verify_v1, {})).resolves.toMatchObject({
-      Status: expect.stringMatching(/expected exactly one/),
-    });
-  });
-
+describe('account lifecycle', () => {
   test('pending sessions are denied and pending profiles leave public discovery', async () => {
     const t = setup();
     const ids = await t.run(async (rawCtx) => {

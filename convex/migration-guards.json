@@ -6,71 +6,6 @@
       "requires": []
     },
     {
-      "id": "faction_member_ids_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
-      "id": "faction_member_ids_verify_v1",
-      "phase": "widen",
-      "requires": ["faction_member_ids_v1"]
-    },
-    {
-      "id": "faction_member_ids_narrow",
-      "phase": "narrow",
-      "requires": ["faction_member_ids_v1", "faction_member_ids_verify_v1"]
-    },
-    {
-      "id": "groups_slug_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
-      "id": "rulesets_slug_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
-      "id": "rulesets_description_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
-      "id": "rulesets_about_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
-      "id": "rulesets_about_verify_v1",
-      "phase": "widen",
-      "requires": ["rulesets_about_v1"]
-    },
-    {
-      "id": "rulesets_about_narrow",
-      "phase": "narrow",
-      "requires": ["rulesets_about_v1", "rulesets_about_verify_v1"]
-    },
-    {
-      "id": "rulesets_description_retire_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
-      "id": "rulesets_description_retire_verify_v1",
-      "phase": "widen",
-      "requires": ["rulesets_description_retire_v1"]
-    },
-    {
-      "id": "rulesets_about_only_narrow",
-      "phase": "narrow",
-      "requires": ["rulesets_description_retire_v1", "rulesets_description_retire_verify_v1"]
-    },
-    {
-      "id": "faq_item_slug_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
       "id": "profiles_from_users_v1",
       "phase": "widen",
       "requires": []
@@ -84,11 +19,6 @@
       "id": "faction_slug_reservations_verify_v1",
       "phase": "widen",
       "requires": ["faction_slug_reservations_v1"]
-    },
-    {
-      "id": "rulesets_remove_homepage_counts_v1",
-      "phase": "widen",
-      "requires": []
     },
     {
       "id": "statistics_profiles_v1",
@@ -136,31 +66,6 @@
       "requires": ["profiles_from_users_v1"]
     },
     {
-      "id": "groups_slug_narrow",
-      "phase": "narrow",
-      "requires": ["groups_slug_v1"]
-    },
-    {
-      "id": "rulesets_slug_narrow",
-      "phase": "narrow",
-      "requires": ["rulesets_slug_v1"]
-    },
-    {
-      "id": "rulesets_description_narrow",
-      "phase": "narrow",
-      "requires": ["rulesets_description_v1"]
-    },
-    {
-      "id": "faq_item_slug_narrow",
-      "phase": "narrow",
-      "requires": ["faq_item_slug_v1"]
-    },
-    {
-      "id": "rulesets_homepage_counts_narrow",
-      "phase": "narrow",
-      "requires": ["rulesets_remove_homepage_counts_v1"]
-    },
-    {
       "id": "statistics_ready",
       "phase": "narrow",
       "requires": [
@@ -202,51 +107,6 @@
       "requires": []
     },
     {
-      "id": "groups_soft_delete_backfill_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
-      "id": "groups_soft_delete_verify_v1",
-      "phase": "widen",
-      "requires": ["groups_soft_delete_backfill_v1"]
-    },
-    {
-      "id": "groups_soft_delete_narrow",
-      "phase": "narrow",
-      "requires": ["groups_soft_delete_backfill_v1", "groups_soft_delete_verify_v1"]
-    },
-    {
-      "id": "faction_complexity_grouped_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
-      "id": "faction_complexity_grouped_verify_v1",
-      "phase": "widen",
-      "requires": ["faction_complexity_grouped_v1"]
-    },
-    {
-      "id": "faction_inline_formatted_text_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
-      "id": "faction_inline_formatted_text_verify_v1",
-      "phase": "widen",
-      "requires": ["faction_inline_formatted_text_v1"]
-    },
-    {
-      "id": "faction_inline_formatted_text_narrow",
-      "phase": "narrow",
-      "requires": ["faction_inline_formatted_text_v1", "faction_inline_formatted_text_verify_v1"]
-    },
-    {
-      "id": "faction_complexity_grouped_narrow",
-      "phase": "narrow",
-      "requires": ["faction_complexity_grouped_v1", "faction_complexity_grouped_verify_v1"]
-    },
-    {
       "id": "assets_about_v1",
       "phase": "widen",
       "requires": []
@@ -257,64 +117,9 @@
       "requires": ["assets_about_v1"]
     },
     {
-      "id": "account_lifecycle_profiles_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
-      "id": "account_lifecycle_verify_v1",
-      "phase": "widen",
-      "requires": ["account_lifecycle_profiles_v1"]
-    },
-    {
-      "id": "account_lifecycle_profile_narrow",
-      "phase": "narrow",
-      "requires": ["account_lifecycle_profiles_v1", "account_lifecycle_verify_v1"]
-    },
-    {
-      "id": "assets_back_modes_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
-      "id": "asset_relations_token_back_drop_v1",
-      "phase": "widen",
-      "requires": ["assets_back_modes_v1"]
-    },
-    {
-      "id": "assets_back_modes_verify_v1",
-      "phase": "widen",
-      "requires": ["assets_back_modes_v1", "asset_relations_token_back_drop_v1"]
-    },
-    {
-      "id": "assets_deck_cardback_wrap_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
-      "id": "assets_deck_cardback_wrap_verify_v1",
-      "phase": "widen",
-      "requires": ["assets_deck_cardback_wrap_v1"]
-    },
-    {
       "id": "rulebook_edition_artifacts_v1",
       "phase": "widen",
       "requires": []
-    },
-    {
-      "id": "rulebook_edition_contents_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
-      "id": "rulebook_edition_contents_verify_v1",
-      "phase": "widen",
-      "requires": ["rulebook_edition_contents_v1"]
-    },
-    {
-      "id": "rulebook_edition_contents_narrow",
-      "phase": "narrow",
-      "requires": ["rulebook_edition_contents_v1", "rulebook_edition_contents_verify_v1"]
     },
     {
       "id": "faction_extras_references_v1",
@@ -325,31 +130,6 @@
       "id": "faction_extras_references_verify_v1",
       "phase": "widen",
       "requires": ["faction_extras_references_v1"]
-    },
-    {
-      "id": "faction_troop_ids_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
-      "id": "faction_troop_ids_verify_v1",
-      "phase": "widen",
-      "requires": ["faction_troop_ids_v1"]
-    },
-    {
-      "id": "faction_troop_ids_narrow",
-      "phase": "narrow",
-      "requires": ["faction_troop_ids_v1", "faction_troop_ids_verify_v1"]
-    },
-    {
-      "id": "faction_faction_leader_key_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
-      "id": "faction_faction_leader_key_verify_v1",
-      "phase": "widen",
-      "requires": ["faction_faction_leader_key_v1"]
     },
     {
       "id": "account_connections_expire_v1",
@@ -462,16 +242,6 @@
       "requires": ["catalogue_entries_factions_owner_v1", "catalogue_entries_factions_owner_verify_v1"]
     },
     {
-      "id": "ruleset_factions_position_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
-      "id": "ruleset_factions_position_narrow",
-      "phase": "narrow",
-      "requires": ["ruleset_factions_position_v1"]
-    },
-    {
       "id": "faction_cards_v1",
       "phase": "widen",
       "requires": []
@@ -480,16 +250,6 @@
       "id": "faction_cards_ready",
       "phase": "narrow",
       "requires": ["faction_cards_v1"]
-    },
-    {
-      "id": "assets_back_modes_narrow",
-      "phase": "narrow",
-      "requires": ["assets_back_modes_v1", "asset_relations_token_back_drop_v1", "assets_back_modes_verify_v1"]
-    },
-    {
-      "id": "assets_deck_cardback_wrap_narrow",
-      "phase": "narrow",
-      "requires": ["assets_deck_cardback_wrap_v1", "assets_deck_cardback_wrap_verify_v1"]
     },
     {
       "id": "faction_troop_support_names_v1",
@@ -502,56 +262,6 @@
       "requires": ["faction_troop_support_names_v1"]
     },
     {
-      "id": "faction_hero_key_drop_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
-      "id": "faction_hero_key_drop_verify_v1",
-      "phase": "widen",
-      "requires": ["faction_hero_key_drop_v1"]
-    },
-    {
-      "id": "faction_troop_red_star_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
-      "id": "faction_troop_red_star_verify_v1",
-      "phase": "widen",
-      "requires": ["faction_troop_red_star_v1"]
-    },
-    {
-      "id": "cardback_presets_retired_label_fields_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
-      "id": "cardback_presets_retired_label_fields_verify_v1",
-      "phase": "widen",
-      "requires": ["cardback_presets_retired_label_fields_v1"]
-    },
-    {
-      "id": "faction_hero_key_narrow",
-      "phase": "narrow",
-      "requires": [
-        "faction_faction_leader_key_v1",
-        "faction_faction_leader_key_verify_v1",
-        "faction_hero_key_drop_v1",
-        "faction_hero_key_drop_verify_v1"
-      ]
-    },
-    {
-      "id": "faction_troop_red_star_narrow",
-      "phase": "narrow",
-      "requires": ["faction_troop_red_star_v1", "faction_troop_red_star_verify_v1"]
-    },
-    {
-      "id": "cardback_presets_retired_label_fields_narrow",
-      "phase": "narrow",
-      "requires": ["cardback_presets_retired_label_fields_v1", "cardback_presets_retired_label_fields_verify_v1"]
-    },
-    {
       "id": "publication_job_listings_v1",
       "phase": "widen",
       "requires": []
@@ -560,6 +270,11 @@
       "id": "publication_job_listings_verify_v1",
       "phase": "widen",
       "requires": ["publication_job_listings_v1"]
+    },
+    {
+      "id": "publication_queue_type_orders_drop_v1",
+      "phase": "widen",
+      "requires": []
     },
     {
       "id": "emblem_rename_factions_v1",

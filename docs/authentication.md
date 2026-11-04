@@ -139,10 +139,11 @@ After OAuth, a fresh session proves control of the other account. Convex Auth re
 session during this login, so the saved intent carries the first proof. The original account must
 still be active. The user reviews the two profiles before confirming the merge, and each intent can
 be accepted once. Its progress credential expires at the same ten-minute deadline, including after
-a completed or failed merge. The deployment backfill expires older accepted credentials whose
+a completed or failed merge, but not while the merge is still running: the expiry is checked again
+every minute until the merge settles, so the page never reports a running merge as expired. The deployment backfill expires older accepted credentials whose
 deadlines have already passed. Failure details stay in the administrator view. The original profile keeps its name, avatar, address and preferences.
 
-Administrators can choose which profile to keep at `/_admin/accounts`. Both accounts must be active,
+Administrators can choose which profile to keep at `/admin/accounts`. Both accounts must be active,
 and neither may participate in an unfinished merge or ownership transfer from account deletion.
 The source account stops accepting writes. Indexed batches transfer credentials, ownership,
 memberships and contributions. A failed batch rolls back before the job records failure; an admin
@@ -154,15 +155,13 @@ Routing records preserve at most 32 actor identities per game. Account deletion 
 retained identity. A merge refuses two occupied seats in the same ongoing game, more than 200
 source routing or creation records, and a source game whose provisioning has not finished.
 
-Publication jobs now live at `/_admin/jobs`. The former `/__jobs` address and `/_jobs` redirect there.
-
 ### Recover a failed merge
 
 A failed merge remains locked because earlier batches may already have transferred content. There
 is no safe cancellation by clearing the locks: overlapping memberships are combined and duplicate
 routing rows are removed. Recovery completes the transfer into the chosen profile.
 
-1. Open `/_admin/accounts` with an administrator account. Read the failed job's error, and inspect
+1. Open `/admin/accounts` with an administrator account. Read the failed job's error, and inspect
    its `account_merge_operations` record in the Convex dashboard. Its `phase` identifies the next
    batch in `MERGE_BATCHES` in `convex/lib/accountMerge.ts`.
 2. Inspect the Convex error log for `accounts:advanceBatch` and the named batch. For a deterministic

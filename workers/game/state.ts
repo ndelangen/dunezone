@@ -30,8 +30,8 @@ import { predictionSchema, predictionChoiceSchema } from '../../src/shared/play/
 import { heldTechTokens } from '../../src/shared/play/techToken';
 import { battleDialingSchema, DEFAULT_BATTLE_DIALING } from '../../src/shared/rulesets/battleDialing';
 
-/** The board layout a stored game's positions are laid out for; see boardLayout.ts. */
-export const BOARD_LAYOUT = 4;
+/** The board layout a stored game's positions are laid out for; a game stored on an earlier layout no longer opens. */
+const BOARD_LAYOUT = 4;
 
 /** How many deleted pieces a game keeps for restoring; the oldest is let go for good once more are deleted. */
 export const DELETED_PIECES_LIMIT = 50;
