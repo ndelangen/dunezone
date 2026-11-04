@@ -189,15 +189,27 @@ export const beginConnection = mutation({
   },
 });
 
+/* How long an accepted connection waits before its expiry is checked again while the merge runs. */
+const CONNECTION_RECHECK_MS = 60_000;
+
 export const expireConnection = internalMutation({
   args: { connectionId: v.id('account_connections') },
   returns: v.null(),
   handler: async (ctx, args) => {
     const intent = await ctx.db.get(args.connectionId);
-    /* Only an unanswered intent lapses: an accepted one names the merge its page keeps reporting. */
-    if (intent?.state === 'pending') {
-      await ctx.db.patch(intent._id, { state: 'expired' });
+    if (!intent || intent.state === 'expired') {
+      return null;
     }
+    /*
+     * An accepted credential lapses at the same deadline, but not while its merge still runs:
+     * the page it opens would report "expired" mid-merge. It is checked again until the merge settles.
+     */
+    const operation = intent.state === 'accepted' && intent.operation_id ? await ctx.db.get(intent.operation_id) : null;
+    if (operation?.state === 'running') {
+      await ctx.scheduler.runAfter(CONNECTION_RECHECK_MS, internal.accounts.expireConnection, args);
+      return null;
+    }
+    await ctx.db.patch(intent._id, { state: 'expired' });
     return null;
   },
 });
