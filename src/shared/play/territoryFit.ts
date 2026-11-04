@@ -238,8 +238,12 @@ export function fitIntoTerritory(input: FitInput): Map<string, Plane> | null {
     round += 1;
   }
   /* Pushing straight apart can wedge a stack in a corner of the outline; any stack still out of place then looks for the nearest spot that is free. */
-  bodies.forEach((_, i) => {
-    if (clearAt(input, at, i, at[i]!) || (pinFirst && i === 0)) {
+  /* The pinned body keeps its spot even here; the final check refuses the layout if it is not clear. */
+  const movable = pinFirst ? bodies.slice(1) : bodies;
+  const offset = bodies.length - movable.length;
+  movable.forEach((_, index) => {
+    const i = index + offset;
+    if (clearAt(input, at, i, at[i]!)) {
       return;
     }
     const spot = nearestClearSpot(at[i]!, (point) => clearAt(input, at, i, point));
