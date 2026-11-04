@@ -22,6 +22,7 @@ import {
 } from '../../../../widgets/tabletop/boardSkinPreference';
 import { BOARD_SKIN_LABELS, BOARD_SKINS } from '../../../../widgets/tabletop/boardSkins';
 import type { BoardSkin } from '../../../../widgets/tabletop/boardSkins';
+import { setCameraFollowsPhase, useCameraFollowsPhase } from '../../../../widgets/tabletop/cameraFollowsPhase';
 import {
   setTableLighting,
   TABLE_LIGHTING_MAX,
@@ -376,14 +377,23 @@ function BoardSkinItems() {
   );
 }
 
-/* Shades this viewer's board like a lit planet, bright in the middle and dark at the rim; it stays in this browser. */
-function PlanetShadingItem() {
-  const planet = usePlanetShading();
+/* A choice this viewer turns on or off; it stays in this browser and never reaches the game. */
+function ViewerToggleItem({ label, on, set }: Readonly<{ label: string; on: boolean; set: (on: boolean) => void }>) {
   return (
-    <Menu.CheckboxItem checked={planet} closeMenuOnClick={false} onChange={() => setPlanetShading(!planet)}>
-      Planet shading
+    <Menu.CheckboxItem checked={on} closeMenuOnClick={false} onChange={() => set(!on)}>
+      {label}
     </Menu.CheckboxItem>
   );
+}
+
+/* Shades this viewer's board like a lit planet, bright in the middle and dark at the rim. */
+function PlanetShadingItem() {
+  return <ViewerToggleItem label="Planet shading" on={usePlanetShading()} set={setPlanetShading} />;
+}
+
+/* Off, a new phase leaves the view this viewer set up instead of moving to the phase's own view. */
+function CameraFollowsPhaseItem() {
+  return <ViewerToggleItem label="Camera follows phase" on={useCameraFollowsPhase()} set={setCameraFollowsPhase} />;
 }
 
 /* Pins the stack counts or piece names on; holding the key shows them for a moment. */
@@ -444,6 +454,7 @@ export function GameMenu({
         <Menu.Divider />
         <TableLightingSlider />
         <TablePanSpeedSlider />
+        <CameraFollowsPhaseItem />
         <BoardSkinItems />
         <PlanetShadingItem />
         <TableLabelItems />
