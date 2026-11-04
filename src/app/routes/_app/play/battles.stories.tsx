@@ -1,6 +1,9 @@
 import preview from '@sb/preview';
+import { BOARD_RADIUS } from '@shared/play/tableGeometry';
+import { resolveRulebookBoardDefinition } from '@shared/rulebooks/boardDefinitions';
 import { expect, within } from 'storybook/test';
 
+import { dragBattleMarker } from './battles.marker.stories.fixture';
 import { battleSetup, readiness, revealedPieces } from './battles.stories.fixture';
 import { gameMeta } from './game.stories.fixture';
 import { settled } from './playing.stories.fixture';
@@ -72,5 +75,44 @@ export const WinnerCallsDiffer = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await settled(() => expect(page.getByText('House Atreides says right side won')).toBeVisible());
+  },
+});
+
+/* The middle of Carthag on the rulebook board. */
+function carthagMiddle(): [number, number, number] {
+  const carthag = resolveRulebookBoardDefinition('arrakis')!.geometry.parts.find((part) => part.key === 'carthag')!;
+  return [
+    (carthag.x + carthag.width / 2 - 0.5) * BOARD_RADIUS * 2,
+    0.18,
+    (carthag.y + carthag.height / 2 - 0.5) * BOARD_RADIUS * 2,
+  ];
+}
+
+const noBattle = battleSetup('preparing', 'seat-2', (snapshot) => {
+  snapshot.battle = null;
+  snapshot.battlePlan = null;
+});
+
+/**
+ * Seat 2 holds the battle marker over Carthag, and a thick red line runs just outside the territory under it.
+ * The line follows the marker as it moves;
+ * let go and the battle's territory keeps it.
+ * By hand: drag the marker from the tracker across the board.
+ */
+export const MarkerOutlinesItsTerritory = meta.story({
+  beforeEach: noBattle,
+  play: async ({ canvasElement }) => {
+    await dragBattleMarker(
+      canvasElement.ownerDocument,
+      carthagMiddle(),
+      () =>
+        expect(
+          canvasElement.ownerDocument.querySelector<HTMLElement>('[data-highlight-territory]')?.dataset
+            .highlightTerritory
+        ).toBe('carthag'),
+      {
+        hold: true,
+      }
+    );
   },
 });

@@ -116,7 +116,7 @@ describe('the hidden zone', () => {
     const { room, send } = roomWithHand();
     send({ kind: 'hand-zone', pieceId: LOOSE, at: { x: 0.25, y: 0.5 } });
     room.snapshot.phase = STANDARD_PHASES.findIndex((phase) => phase.id === 'battle');
-    send({ kind: 'battle-start', anchor: [0, 0, 0], territory: 'Arrakeen' });
+    send({ kind: 'battle-start', anchor: [0, 0, 0] });
     const battleId = room.snapshot.battleState!.id;
     send({ kind: 'battle-claim', battleId, side: 0 });
     send({
@@ -148,7 +148,7 @@ describe('the hidden zone', () => {
     const { room, send } = roomWithHand();
     send({ kind: 'hand-order', pieceId: LEADER, before: LOOSE });
     room.snapshot.phase = STANDARD_PHASES.findIndex((phase) => phase.id === 'battle');
-    send({ kind: 'battle-start', anchor: [0, 0, 0], territory: 'Arrakeen' });
+    send({ kind: 'battle-start', anchor: [0, 0, 0] });
     const battleId = room.snapshot.battleState!.id;
     send({ kind: 'battle-claim', battleId, side: 0 });
     send({
@@ -170,7 +170,7 @@ describe('the hidden zone', () => {
     room.snapshot.table.pieces.push({ ...structuredClone(card), id: SECOND, position: [2, 0.14, 0] });
     send({ kind: 'hand-take', pieceId: SECOND });
     room.snapshot.phase = STANDARD_PHASES.findIndex((phase) => phase.id === 'battle');
-    send({ kind: 'battle-start', anchor: [0, 0, 0], territory: 'Arrakeen' });
+    send({ kind: 'battle-start', anchor: [0, 0, 0] });
     const battleId = room.snapshot.battleState!.id;
     send({ kind: 'battle-claim', battleId, side: 0 });
     send({
@@ -197,7 +197,7 @@ describe('the hidden zone', () => {
     send({ kind: 'hand-take', pieceId: SECOND });
     send({ kind: 'hand-take', pieceId: THIRD });
     room.snapshot.phase = STANDARD_PHASES.findIndex((phase) => phase.id === 'battle');
-    send({ kind: 'battle-start', anchor: [0, 0, 0], territory: 'Arrakeen' });
+    send({ kind: 'battle-start', anchor: [0, 0, 0] });
     const battleId = room.snapshot.battleState!.id;
     send({ kind: 'battle-claim', battleId, side: 0 });
     send({

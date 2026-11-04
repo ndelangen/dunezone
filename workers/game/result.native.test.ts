@@ -257,7 +257,7 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
       (await syncView(owner)).snapshot.table.pieces.find((piece) => piece.kind === 'card' && piece.items.length > 0)
     );
     await accepted(owner, { kind: 'peek', pieceId: deck.id });
-    const started = await accepted(owner, { kind: 'battle-start', anchor: [0.95, 0.18, -3.05], territory: 'Arrakeen' });
+    const started = await accepted(owner, { kind: 'battle-start', anchor: [0.95, 0.18, -3.05] });
     const battleId = required(started.snapshot.battle).id;
     await accepted(owner, { kind: 'battle-claim', battleId, side: 0 });
     await accepted(other, { kind: 'battle-claim', battleId, side: 1 });

@@ -101,7 +101,10 @@ export type Disclosure = z.infer<typeof disclosureSchema>;
 const battleBase = {
   id,
   anchor: tablePositionSchema,
+  /* The name of the territory under the battle marker, which the game reads from its board; a marker off every territory reads "Marked territory". */
   territory: z.string(),
+  /* That territory's id on the board, which its highlight draws; absent off every territory. */
+  territoryId: z.string().optional(),
   stage: z.enum(['preparing', 'countdown', 'revealed']),
   sides: z.tuple([publicSideSchema.nullable(), publicSideSchema.nullable()]),
   deadline: count.nullable(),
@@ -125,11 +128,7 @@ export const storedBattleResultSchema = battleResultSchema.extend({
 });
 export type PublicBattle = z.infer<typeof publicBattleSchema>;
 export const battleActionSchema = z.discriminatedUnion('kind', [
-  z.strictObject({
-    kind: z.literal('battle-start'),
-    anchor: tablePositionSchema,
-    territory: z.string().min(1).max(160),
-  }),
+  z.strictObject({ kind: z.literal('battle-start'), anchor: tablePositionSchema }),
   z.strictObject({ kind: z.literal('battle-claim'), battleId: id, side: battleSideSchema }),
   z.strictObject({
     kind: z.literal('battle-plan'),

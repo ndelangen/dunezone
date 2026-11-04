@@ -35,6 +35,7 @@ function durableTable(table: TableState): DurableTable {
     handCounts: _handCounts,
     selectedPieceId: _selection,
     draftMove: _draft,
+    board: _board,
     ...durable
   } = table;
   return durable;

@@ -48,6 +48,7 @@ import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
 import type { TableSeatCount } from '@shared/play/tableSettings';
 import type { TrackerArcSlot } from '@shared/play/tableTrackers';
 import { TRACKER_DISC_HEIGHT } from '@shared/play/tableTrackers';
+import { tintsWithBattle } from '@shared/play/territoryTints';
 import { isTroopStack } from '@shared/play/troop';
 import { playUiColors } from '@shared/uiPalette';
 import clsx from 'clsx';
@@ -121,6 +122,8 @@ type TabletopSceneProps = {
   /* Absent on the fixture, which has no lifecycle. */
   stage?: GameSnapshot['stage'];
   mapVisible?: boolean;
+  /** A territory the page lights for a moment, such as the one under a battle marker a player carries. */
+  highlightTerritory?: string | null;
 };
 
 /** The play area's class and style: the paintbrush cursor while the brush is on. */
@@ -1121,6 +1124,13 @@ function boardSelection(
   };
 }
 
+/* The board's tints; the page's highlight, such as a carried battle marker's territory, wins over the battle's own, which stays lit while the battle lasts. */
+function useSceneTints(highlightTerritory: string | null | undefined) {
+  const tableTints = useBoardTints();
+  const battleTerritory = useTabletopSelector((value) => value.snapshot.battle?.territoryId);
+  return tintsWithBattle(tableTints, highlightTerritory ?? battleTerritory);
+}
+
 function SceneContents({
   cameraView = DEFAULT_CAMERA_VIEW,
   onInteractionActiveChange,
@@ -1133,8 +1143,10 @@ function SceneContents({
   presentation,
   readOnly = false,
   drawBoard = true,
+  highlightTerritory,
 }: Pick<
   TabletopSceneProps,
+  | 'highlightTerritory'
   | 'cameraView'
   | 'onInteractionActiveChange'
   | 'seatCount'
@@ -1151,7 +1163,7 @@ function SceneContents({
   const table = useTabletop();
   const palette = useTablePalette();
   const board = useTabletopSelector((value) => value.snapshot.board);
-  const tints = useBoardTints();
+  const tints = useSceneTints(highlightTerritory);
   const { state, renderedPieces, selectPiece } = table;
   const { controlsEnabled, onPointerSessionChange } = useSceneInteractions(onInteractionActiveChange);
   useScenePointerSession(onPointerSessionChange);
@@ -1229,6 +1241,7 @@ export function TabletopScene({
   readOnly = false,
   stage,
   mapVisible,
+  highlightTerritory,
 }: TabletopSceneProps) {
   const editing = presentation === 'play' && !readOnly;
   const { takeAdditionalFromTarget } = useTabletopCommands();
@@ -1255,6 +1268,7 @@ export function TabletopScene({
     <div
       ref={areaRef}
       {...painting}
+      data-highlight-territory={highlightTerritory ?? undefined}
       onContextMenu={(event) => {
         event.preventDefault();
         if (hasDraft) {
@@ -1285,6 +1299,7 @@ export function TabletopScene({
             presentation={presentation}
             stage={stage}
             mapVisible={mapVisible}
+            highlightTerritory={highlightTerritory}
             cameraView={cameraView}
             onInteractionActiveChange={onInteractionActiveChange}
             seatCount={seatCount}

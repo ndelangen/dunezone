@@ -286,7 +286,8 @@ export class GameSession {
       () => this.actors.seats(),
       (userId) => this.actors.factionFor(userId),
       this.metadata?.fixtureDeck,
-      this.metadata?.testPhaseCooldownMs
+      this.metadata?.testPhaseCooldownMs,
+      () => this.captures.ruleset()?.board?.definition
     );
     /* A capture never changes once retained, so each faction's dealt order is read from storage once. */
     const dealt = new Map<string, readonly string[] | undefined>();
