@@ -142,6 +142,8 @@ export function AssetSelect({
       optionsByValue.set(alias, option);
     }
   }
+  /* The option a saved value stands for, so a retired name still highlights and deselects its original. */
+  const selectedValue = value ? (optionsByValue.get(value)?.value ?? value) : value;
   const isGlyph = (id: string) => optionsByValue.get(id)?.glyphPreview ?? glyphPreviews;
   const previewFor = (id: string, size: number) =>
     artworkPreview({
@@ -220,7 +222,7 @@ export function AssetSelect({
         }
         const option = optionsByValue.get(next);
         if (option) {
-          onChange?.(allowDeselect && next === value ? null : next, option);
+          onChange?.(allowDeselect && next === selectedValue ? null : next, option);
         }
         combobox.closeDropdown();
         if (trigger) {
@@ -395,7 +397,7 @@ export function AssetSelect({
             ) : (
               <ArtworkOptions
                 groups={visibleGroups}
-                value={value}
+                value={selectedValue}
                 previewFor={previewFor}
                 onHover={(next) => dispatch({ type: 'hover', value: next })}
               />

@@ -18,6 +18,7 @@ import {
   UnstyledButton,
   VisuallyHidden,
 } from '@mantine/core';
+import { originalArtwork } from '@shared/media/retiredArtwork';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
@@ -75,7 +76,7 @@ function PatternCatalogue({
       </Group>
       <Box className={styles.patternScroller} role="group" aria-label="Background pattern catalogue">
         {BACKGROUND_PATTERN_CATALOGUE.map((option) => {
-          const selected = option.image === value;
+          const selected = option.image === originalArtwork(value);
           return (
             <UnstyledButton
               className={styles.patternOption}
@@ -580,7 +581,7 @@ export function BackgroundComposer({
    */
   const rememberColorLayers = () =>
     onModeMemoryChange([rememberLayer(modeMemory[0], value.colors[0]), rememberLayer(modeMemory[1], value.colors[1])]);
-  const selectedPattern = BACKGROUND_PATTERN_CATALOGUE.find((option) => option.image === value.image);
+  const selectedPattern = BACKGROUND_PATTERN_CATALOGUE.find((option) => option.image === originalArtwork(value.image));
   const treatment = backgroundTreatment(value);
 
   return (
