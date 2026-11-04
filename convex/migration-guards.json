@@ -670,6 +670,26 @@
       "id": "emblem_rename_rulebook_edition_contents_verify_v1",
       "phase": "widen",
       "requires": ["emblem_rename_rulebook_edition_contents_v1"]
+    },
+    {
+      "id": "arrakis_spice_cards_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "arrakis_ruleset_boards_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "arrakis_rulebook_drafts_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "arrakis_rulebook_edition_contents_v1",
+      "phase": "widen",
+      "requires": []
     }
   ]
 }

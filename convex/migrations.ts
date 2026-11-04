@@ -22,6 +22,7 @@ import { normalizeFormattedText } from '../src/shared/formattedText';
 import { components, internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { internalQuery } from './_generated/server';
+import { ARRAKIS_MIGRATION_IDS } from './arrakisMigrations';
 import { CATALOGUE_MIGRATION_IDS } from './catalogueMigrations';
 import { EMBLEM_MIGRATION_IDS } from './emblemMigrations';
 import { adminQuery, internalMutation, mutation } from './functions';
@@ -85,6 +86,7 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   ...PUBLICATION_MIGRATION_IDS,
   ...LEGACY_DATA_MIGRATION_IDS,
   ...EMBLEM_MIGRATION_IDS,
+  ...ARRAKIS_MIGRATION_IDS,
   ruleset_factions_position_v1: internal.migrations.ruleset_factions_position_v1,
   catalogue_entries_prune_v1: internal.migrations.catalogue_entries_prune_v1,
   catalogue_entries_verify_v1: internal.migrations.catalogue_entries_verify_v1,

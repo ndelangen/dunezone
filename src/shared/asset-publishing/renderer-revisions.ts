@@ -44,7 +44,8 @@ export const CHECKED_IN_RENDERER_REVISIONS = {
   [TREACHERY_CARD_ASSET_TYPE]: TREACHERY_TEXT_ONLY_REVISION,
   // 1: spice cards join the pipeline with their editor (#1229).
   /* Revision 4 adds Discovery map treatment and the fixed type-token slot. */
-  [SPICE_CARD_ASSET_TYPE]: CARD_FRONT_PUBLICATION_REVISIONS[SPICE_CARD_ASSET_TYPE],
+  /* One more draws the classic highlight and dashed sectors on every card's board map (#1971). */
+  [SPICE_CARD_ASSET_TYPE]: CARD_FRONT_PUBLICATION_REVISIONS[SPICE_CARD_ASSET_TYPE] + 1,
   /* Revision 4 retains styled token faces in Custom Cards. */
   [CUSTOM_CARD_ASSET_TYPE]: CARD_FRONT_PUBLICATION_REVISIONS[CUSTOM_CARD_ASSET_TYPE],
   /* Revision 4 captures the shared Leader Skill front preset. */
