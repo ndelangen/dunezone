@@ -13,7 +13,7 @@ import type {
   FunctionReturnType,
   PaginationResult,
 } from 'convex/server';
-import { convexToJson, jsonToConvex } from 'convex/values';
+import { ConvexError, convexToJson, jsonToConvex } from 'convex/values';
 import type { Value as ConvexValue } from 'convex/values';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 
@@ -51,7 +51,11 @@ export class ConvexStorybookWorker {
       if (response.ok) {
         pending.resolve(response.result);
       } else {
-        pending.reject(new Error(response.error));
+        pending.reject(
+          response.convexErrorData === undefined
+            ? new Error(response.error)
+            : new ConvexError(jsonToConvex(response.convexErrorData))
+        );
       }
     });
     this.worker.addEventListener('error', (event) => {

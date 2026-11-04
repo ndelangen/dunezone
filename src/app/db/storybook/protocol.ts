@@ -1,5 +1,5 @@
 import type { FunctionReturnType, WithoutSystemFields } from 'convex/server';
-import type { GenericId } from 'convex/values';
+import type { GenericId, JSONValue } from 'convex/values';
 
 import type { api } from '../../../../convex/_generated/api';
 import type { Doc, TableNames } from '../../../../convex/_generated/dataModel';
@@ -88,4 +88,9 @@ export type WorkerRequest =
   /* A seed reference resolved to its id or text, for a story that addresses a route by a generated id. */
   | { id: number; operation: 'resolve'; reference: SeedReference };
 
-export type WorkerResponse = { id: number; ok: true; result: unknown } | { id: number; ok: false; error: string };
+/**
+ * A refusal carries `convexErrorData`, the ConvexError's data in Convex's JSON form, so the client can rebuild the same ConvexError the production client throws, and code that reads `.data` sees it (#1892).
+ */
+export type WorkerResponse =
+  | { id: number; ok: true; result: unknown }
+  | { id: number; ok: false; error: string; convexErrorData?: JSONValue };

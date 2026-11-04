@@ -5,6 +5,8 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import { convexTest } from 'convex-test';
 import { createFunctionHandle, makeFunctionReference } from 'convex/server';
 import type { WithoutSystemFields } from 'convex/server';
+import { convexToJson } from 'convex/values';
+import type { Value } from 'convex/values';
 
 import type { Doc, TableNames } from '../../../../convex/_generated/dataModel';
 import type { DatabaseWriter, MutationCtx } from '../../../../convex/_generated/server';
@@ -412,6 +414,11 @@ async function handleRequest(request: WorkerRequest): Promise<unknown> {
   return await handleWorldRequest(request as WorldRequest, await world);
 }
 
+/* By name, not instanceof: the function code and this module may hold different copies of convex/values. */
+function isConvexError(error: unknown): error is Error & { data: Value } {
+  return error instanceof Error && error.name === 'ConvexError' && 'data' in error;
+}
+
 let lane = Promise.resolve();
 
 self.addEventListener('message', (event: MessageEvent<WorkerRequest>) => {
@@ -428,6 +435,7 @@ self.addEventListener('message', (event: MessageEvent<WorkerRequest>) => {
         id: request.id,
         ok: false,
         error: error instanceof Error ? `${error.name}: ${error.message}\n${error.stack ?? ''}` : String(error),
+        ...(isConvexError(error) ? { convexErrorData: convexToJson(error.data) } : {}),
       };
     }
     try {

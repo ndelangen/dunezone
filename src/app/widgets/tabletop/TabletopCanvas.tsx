@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { NeutralToneMapping } from 'three';
 
 import { releaseSharedMeshes } from './sharedMeshes';
+import { TABLE_ANTIALIAS } from './tableAntialias';
 import { TableGraphicsBoundary, TableGraphicsUnavailable } from './TableGraphicsBoundary';
 import { useTableLighting } from './tableLighting';
 import { useTablePalette } from './tablePalette';
@@ -96,7 +97,7 @@ export function TabletopCanvas({
             /* Startup owns its first painted frames; later draws follow interaction and artwork changes. */
             frameloop={!painted ? 'always' : 'demand'}
             renderer={{
-              antialias: true,
+              antialias: TABLE_ANTIALIAS,
               alpha: presentation === 'preview',
               powerPreference: 'high-performance',
               toneMapping: NeutralToneMapping,
