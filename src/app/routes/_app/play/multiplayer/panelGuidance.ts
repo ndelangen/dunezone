@@ -134,8 +134,10 @@ export function phaseGuidance(table: TableProjection): Guidance | undefined {
   return { description: `${phase.label}, instructions and actions.`, help: phaseHelp(table) };
 }
 
-export const CONVERSATION_HELP =
-  'Sent means saved. No read receipts. Hold the eraser to clear the chat for you; the others keep their copy.';
+export const CONVERSATION_HELP = helpLines(
+  'Sent means saved. No read receipts.',
+  'Hold the eraser to clear it for you; the log says you did, the others keep theirs.'
+);
 
 export const TABLE_CONVERSATION_GUIDANCE: Guidance = {
   description: 'Messages to every seated faction.',

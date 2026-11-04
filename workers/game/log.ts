@@ -1,5 +1,6 @@
 import { alliesOf, isAllianceAction } from '../../src/shared/play/alliances';
 import { deletedName } from '../../src/shared/play/commands';
+import { isRecallConversation, TABLE_CONVERSATION } from '../../src/shared/play/conversations';
 import { factionTitleText, rosterFactionTitles } from '../../src/shared/play/factionLabels';
 import { LOG_CLASS_TABS, LOG_PAGE_SIZE } from '../../src/shared/play/log';
 import type { LogClass, LogEntry, LogTab } from '../../src/shared/play/log';
@@ -149,6 +150,33 @@ export class PublicLog {
 
   recordVote(vote: VoteResult) {
     this.record(voteEntry(vote));
+  }
+
+  /** A faction cleared a chat from its own view: everyone may know it happened, never what it said (#2674). A recall's chat ends with the recall, so it goes unlogged. */
+  recordChatClear(clear: {
+    snapshot: StoredSnapshot;
+    holders: readonly Holder[];
+    factionId: string;
+    peerId: string;
+    through: number;
+  }) {
+    if (isRecallConversation(clear.peerId)) {
+      return;
+    }
+    const people: Person[] = [];
+    const faction = factionNamer(clear.snapshot, clear.holders);
+    const who = faction(clear.factionId, people);
+    const template =
+      clear.peerId === TABLE_CONVERSATION
+        ? `${who} cleared the table chat.`
+        : `${who} cleared its chat with ${faction(clear.peerId, people)}.`;
+    this.record({
+      key: `chat-clear:${clear.factionId}:${clear.peerId}:${clear.through}`,
+      class: 'chat',
+      template,
+      people,
+      context: logContext(clear.snapshot),
+    });
   }
 
   recordReview(review: ReviewResult) {

@@ -327,6 +327,11 @@ describe('Faction conversations in the game database', () => {
         .every((entry) => entry.cleared === 0)
     ).toBe(true);
     expect(messageOf(await page(a, aId, bId), 'conversation-history').entries).toEqual([first]);
+    /* Everyone may read that the chat was cleared, never what it said. */
+    const logged = await runtime.exec<{ template: string }>("SELECT template FROM public_log WHERE class='chat'");
+    expect(logged).toHaveLength(1);
+    expect(logged[0]!.template).toMatch(/ cleared its chat with /);
+    expect(JSON.stringify(logged)).not.toContain('Allied plans');
     /* A message saved after the clear shows again. */
     const later = messageOf(await send(a, aId, bId, 'After the break'), 'conversation-message').message;
     expect(messageOf(await page(b, bId, aId), 'conversation-history').entries).toEqual([later]);

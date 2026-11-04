@@ -35,6 +35,7 @@ import {
   useTablePanSpeed,
 } from '../../../../widgets/tabletop/tablePanSpeed';
 import { TABLE_LABEL_OPTIONS, useTableLabels } from '../tableLabels';
+import { setAutoClearChats, useAutoClearChats } from './autoClearChats';
 import { publicControlsOf } from './publicControls';
 import { isSpectator, offersActions } from './tableFactions';
 
@@ -386,6 +387,16 @@ function PlanetShadingItem() {
   );
 }
 
+/* The viewer's own chats clear at the start of each turn, logged as a clear by hand is; off unless turned on (#2674). */
+function AutoClearChatsItem() {
+  const on = useAutoClearChats();
+  return (
+    <Menu.CheckboxItem checked={on} closeMenuOnClick={false} onChange={() => setAutoClearChats(!on)}>
+      Clear chats each new turn
+    </Menu.CheckboxItem>
+  );
+}
+
 /* Pins the stack counts or piece names on; holding the key shows them for a moment. */
 function TableLabelItems() {
   const labels = useTableLabels();
@@ -447,6 +458,12 @@ export function GameMenu({
         <BoardSkinItems />
         <PlanetShadingItem />
         <TableLabelItems />
+        {!isSpectator(table) && (
+          <>
+            <Menu.Divider />
+            <AutoClearChatsItem />
+          </>
+        )}
         {table.snapshot.stage === 'play' && offersActions(table) && (
           <Menu.CheckboxItem
             checked={table.snapshot.bidding?.timed ?? idleBidding().timed}

@@ -666,7 +666,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
     bugReportIdSchema.parse(requestId);
     this.session.recordBugReport(requestId, actorId, displayName);
-    this.announceBugReportLog();
+    this.announceGameLog();
     return JSON.stringify({
       server: bugReportExport(this.session, {
         gameId: this.metadata.gameId,
@@ -686,10 +686,11 @@ export class GameRoom extends DurableObject<GameEnv> {
       throw new Error('Invalid report issue.');
     }
     this.session.recordBugReport(requestId, actorId, displayName, issueUrl);
-    this.announceBugReportLog();
+    this.announceGameLog();
   }
 
-  private announceBugReportLog() {
+  /** The newest page of the Game log to every connection, after an entry no table command brought. */
+  private announceGameLog() {
     for (const [socket] of this.connections) {
       this.send(socket, {
         type: 'log-history',
@@ -1682,7 +1683,11 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.sendConversationReads(this.session.markConversationRead(viewer, request));
     } else if (request.type === 'conversation-clear') {
       /* The faction's other connections drop the cleared messages when their summaries arrive. */
-      this.sendConversationReads(this.session.clearConversation(viewer, request));
+      const { faction, logged } = this.session.clearConversation(viewer, request);
+      this.sendConversationReads(faction);
+      if (logged) {
+        this.announceGameLog();
+      }
     } else {
       const saved = this.session.sendConversation(viewer, request);
       if (saved.inserted) {

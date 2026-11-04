@@ -52,6 +52,7 @@ import { ConnectedSpiceTransfersPanel } from '../panels/transfers/useSpiceTransf
 import { TableWait } from '../TableWait';
 import { AllianceCoinsScene } from './AllianceCoins';
 import { AllianceStrip, showsAlliances } from './Alliances';
+import { useAutoClearChatsAtNewTurn } from './autoClearChats';
 import { BattleModeToggle, BattleScene } from './BattleControls';
 import { BidderScene, biddingPhase } from './Bidder';
 import { useBugReport } from './BugReport';
@@ -545,6 +546,7 @@ function phaseTabControls({
 }
 
 function useHostedControls(client: TableSession, table: TableProjection, error: string | null) {
+  useAutoClearChatsAtNewTurn(client, table);
   const recall = mentatRecall(client, table);
   const normal = recall ? (client.getLastLiveTable() ?? table) : table;
   const players = usePlayerWindows(client, table);

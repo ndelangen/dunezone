@@ -159,9 +159,12 @@ export class Conversations {
   }
 
   /** Clears the conversation through a message the faction saw from its own view, which also reads it; a message saved since stays. */
+  /** True when this cleared messages the faction still saw; a clear already covered changes nothing. */
   clear(request: ConversationRequest<'conversation-clear'>) {
+    const before = this.cleared(pairKey(request), request.factionId);
     this.advance('conversation_reads', request);
     this.advance('conversation_clears', request);
+    return request.through > before;
   }
 
   private advance(

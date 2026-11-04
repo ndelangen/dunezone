@@ -1272,8 +1272,20 @@ export class GameSession {
   }
   clearConversation(viewer: Viewer, request: Extract<ClientMessage, { type: 'conversation-clear' }>) {
     const faction = this.conversations.authorize(this.room!.snapshot, viewer, request, this.reviews.running()?.id);
-    this.storage.transactionSync(() => this.conversations.clear(request));
-    return faction;
+    const logged = this.storage.transactionSync(() => {
+      if (!this.conversations.clear(request)) {
+        return false;
+      }
+      this.log.recordChatClear({
+        snapshot: this.room!.snapshot,
+        holders: this.actors.occupants(),
+        factionId: faction,
+        peerId: request.peerId,
+        through: request.through,
+      });
+      return !isRecallConversation(request.peerId);
+    });
+    return { faction, logged };
   }
   sendConversation(viewer: Viewer, request: Extract<ClientMessage, { type: 'conversation-send' }>) {
     if (this.reviews.running() && !isRecallConversation(request.peerId)) {

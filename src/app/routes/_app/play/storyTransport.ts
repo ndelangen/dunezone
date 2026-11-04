@@ -90,6 +90,12 @@ export function storyTransport(
   const messages: ClientMessage[] = [];
   /* How far the viewer cleared each conversation; every conversation answers with the same scripted messages. */
   const cleared = new Map<string, number>();
+  /* Each clear's Game log line, newest first, ahead of the scripted entries, as the Worker logs it. */
+  const clearLog: LogEntry[] = [];
+  const gameLog = (): LogEntry[] => [
+    ...clearLog,
+    ...((typeof logEntries === 'function' ? logEntries() : logEntries).game ?? []),
+  ];
   const summaries = (): Extract<ServerMessage, { type: 'conversations' }> | undefined =>
     conversationSummaries && {
       type: 'conversations',
@@ -178,6 +184,27 @@ export function storyTransport(
         if (summary) {
           queueMicrotask(() => this.deliver(summary));
         }
+        const name = (id: string) =>
+          snapshot.roster?.seats.find((seat) => seat.faction?.id === id)?.faction?.name ?? id;
+        clearLog.unshift({
+          sequence: 10_000 + clearLog.length,
+          class: 'chat',
+          text:
+            message.peerId === '@table'
+              ? `${name(message.factionId)} cleared the table chat.`
+              : `${name(message.factionId)} cleared its chat with ${name(message.peerId)}.`,
+          context: 'Turn 1 · Storm',
+          at: STORYBOOK_NOW,
+        });
+        queueMicrotask(() =>
+          this.deliver({
+            type: 'log-history',
+            tab: 'game',
+            before: Number.MAX_SAFE_INTEGER,
+            entries: gameLog().slice(0, LOG_PAGE_SIZE),
+            more: gameLog().length > LOG_PAGE_SIZE,
+          })
+        );
       }
       if (message.type === 'faction') {
         queueMicrotask(() => this.deliver({ ...message, faction: factions[message.factionId] ?? null }));
@@ -190,9 +217,11 @@ export function storyTransport(
         queueMicrotask(() => this.deliver({ ...message, entries: entries.slice(-50), more: entries.length > 50 }));
       }
       if (message.type === 'log-history' && !holdLogHistory) {
-        const entries = ((typeof logEntries === 'function' ? logEntries() : logEntries)[message.tab] ?? []).filter(
-          (entry) => entry.sequence < message.before
-        );
+        const entries = (
+          message.tab === 'game'
+            ? gameLog()
+            : ((typeof logEntries === 'function' ? logEntries() : logEntries).audit ?? [])
+        ).filter((entry) => entry.sequence < message.before);
         queueMicrotask(() =>
           this.deliver({
             type: 'log-history',
