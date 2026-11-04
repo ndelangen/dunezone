@@ -41,6 +41,8 @@ export type ConversationPanelProps = Readonly<{
   onSubmit: (text: string) => boolean;
   /** Clears the saved history from the viewer's own view; the other side keeps its copy. */
   onClear?: () => void;
+  /** Whether the viewer cleared this chat before, so an empty history says so rather than that nobody wrote. */
+  cleared?: boolean;
 }>;
 
 /** A conversation with one player or the table: its history, the viewer's pending messages and the composer. */
@@ -58,6 +60,7 @@ export function ConversationPanel({
   onRetry,
   onSubmit,
   onClear,
+  cleared = false,
 }: ConversationPanelProps) {
   const entries = page?.entries ?? EMPTY_MESSAGES;
   const latest = entries.at(-1)?.sequence ?? 0;
@@ -79,7 +82,7 @@ export function ConversationPanel({
           tabIndex={0}
           onScroll={onScroll}
         >
-          <HistoryStatus page={page} load={onLoad} />
+          <HistoryStatus page={page} load={onLoad} cleared={cleared} />
           {entries.map((message) => (
             <SavedMessage
               key={message.sequence}
@@ -286,7 +289,11 @@ function ClearChat({ clear }: Readonly<{ clear: () => void }>) {
   );
 }
 
-function HistoryStatus({ page, load }: Readonly<{ page: Page | undefined; load: (before?: number) => void }>) {
+function HistoryStatus({
+  page,
+  load,
+  cleared,
+}: Readonly<{ page: Page | undefined; load: (before?: number) => void; cleared: boolean }>) {
   if (!page) {
     return null;
   }
@@ -301,7 +308,7 @@ function HistoryStatus({ page, load }: Readonly<{ page: Page | undefined; load: 
       <HistoryLoad load={page.load} retry={() => load()} />
       {!loading && !page.entries.length && (
         <Text size="sm" c="dimmed">
-          No messages yet.
+          {cleared ? 'You cleared this chat.' : 'No messages yet.'}
         </Text>
       )}
     </>

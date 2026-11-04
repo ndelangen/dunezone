@@ -43,6 +43,7 @@ export function ConnectedConversationPanel({ client, peerId }: Readonly<{ client
       onRetry={client.conversations.retry}
       onSubmit={(text) => client.conversations.submit({ peerId, text })}
       onClear={() => client.conversations.clearChat({ peerId })}
+      cleared={Boolean(summary?.cleared)}
     />
   );
 }
