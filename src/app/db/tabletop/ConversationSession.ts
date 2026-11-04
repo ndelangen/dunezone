@@ -51,7 +51,7 @@ export class ConversationSession {
   private pending: Pending[] = [];
   private readonly reads = new Map<string, { peerId: string; through: number }>();
   /* Clears on their way, by request, so a refused one brings its conversation's history back. */
-  private readonly clears = new Map<string, string>();
+  private readonly clears = new Map<string, { peerId: string; through: number }>();
 
   constructor(
     private readonly send: (request: Request) => boolean,
@@ -202,7 +202,7 @@ export class ConversationSession {
       ([, { load }]) => load.state === 'loading' && load.requestId === message.requestId
     );
     const read = this.reads.delete(message.requestId);
-    const cleared = this.clears.get(message.requestId);
+    const cleared = this.clears.get(message.requestId)?.peerId;
     this.clears.delete(message.requestId);
     const matched = outgoing || page || read || cleared;
     if (!matched) {
@@ -242,9 +242,14 @@ export class ConversationSession {
     this.summaries = message.entries.filter(
       (entry) => !isRecallConversation(entry.peerId) || this.reaches(entry.peerId)
     );
-    /* A clear from this faction's other tab reaches this one with its summaries. */
+    /* A clear from this faction's other tab reaches this one with its summaries; one of this tab's is done once they cover it. */
     for (const { peerId, cleared } of this.summaries) {
       this.dropCleared(peerId, cleared);
+      for (const [requestId, clear] of this.clears) {
+        if (clear.peerId === peerId && clear.through <= cleared) {
+          this.clears.delete(requestId);
+        }
+      }
     }
   }
 
@@ -267,13 +272,18 @@ export class ConversationSession {
     }
     this.pages = {
       ...this.pages,
-      [message.peerId]: { entries: merge(page.entries, message.entries), more: message.more, load: { state: 'idle' } },
+      [message.peerId]: {
+        entries: merge(page.entries, this.uncleared(message.peerId, message.entries)),
+        more: message.more,
+        load: { state: 'idle' },
+      },
     };
   }
 
   private receiveSaved(message: Extract<ServerMessage, { type: 'conversation-message' }>) {
     const page = this.pages[message.peerId];
-    if (page) {
+    /* A retried send can bring back a message this faction has since cleared; it still settles the send. */
+    if (page && message.message.sequence > this.clearedThrough(message.peerId)) {
       this.pages = {
         ...this.pages,
         [message.peerId]: { ...page, entries: merge(page.entries, [message.message]) },
@@ -375,28 +385,46 @@ export class ConversationSession {
     }
   };
 
-  /** Clears the conversation from this faction's view through the newest message it knows of; the other side keeps its copy. */
-  clearChat = ({ peerId }: Pick<Extract<Request, { type: 'conversation-clear' }>, 'peerId'>) => {
+  /** Clears this faction's view of the chat through `through` (default: newest known); the other side keeps its copy. Returns what it asked for, if sent. */
+  clearChat = ({ peerId, through: asked }: { peerId: string; through?: number }) => {
     const summary = this.summaries.find((entry) => entry.peerId === peerId);
-    const through = Math.max(summary?.latest ?? 0, this.pages[peerId]?.entries.at(-1)?.sequence ?? 0);
-    if (!this.context || !this.online || !this.reaches(peerId) || through <= (summary?.cleared ?? 0)) {
-      return;
+    const through = asked ?? Math.max(summary?.latest ?? 0, this.pages[peerId]?.entries.at(-1)?.sequence ?? 0);
+    if (!this.context || !this.online || !this.reaches(peerId) || through <= this.clearedThrough(peerId)) {
+      return undefined;
     }
     const requestId = crypto.randomUUID();
     if (!this.send({ type: 'conversation-clear', requestId, factionId: this.context.factionId, peerId, through })) {
-      return;
+      return undefined;
     }
-    this.clears.set(requestId, peerId);
+    this.clears.set(requestId, { peerId, through });
     this.dropCleared(peerId, through);
     this.changed();
+    return through;
   };
 
-  /** Clears every conversation this faction has, as the compass command does. */
+  /** Clears every conversation this faction has, as the compass command does; returns the position asked for in each one sent. */
   clearAllChats = () => {
+    const asked: Record<string, number> = {};
     for (const { peerId } of this.summaries) {
-      this.clearChat({ peerId });
+      const through = this.clearChat({ peerId });
+      if (through !== undefined) {
+        asked[peerId] = through;
+      }
     }
+    return asked;
   };
+
+  /* How far this faction's view of the conversation is cleared, counting clears still on their way. */
+  private clearedThrough(peerId: string) {
+    const summary = this.summaries.find((entry) => entry.peerId === peerId)?.cleared ?? 0;
+    const sent = [...this.clears.values()].filter((entry) => entry.peerId === peerId).map((entry) => entry.through);
+    return Math.max(summary, ...sent);
+  }
+
+  private uncleared(peerId: string, entries: ConversationMessage[]) {
+    const through = this.clearedThrough(peerId);
+    return entries.filter((entry) => entry.sequence > through);
+  }
 
   /** Whether any conversation still shows a message to clear. */
   clearable() {

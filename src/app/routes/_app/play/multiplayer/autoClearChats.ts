@@ -1,3 +1,4 @@
+import type { ConversationSummary } from '@shared/play/conversations';
 import { tableProgressFor } from '@shared/play/phases';
 import { reviewRunning } from '@shared/play/review';
 import { useEffect, useSyncExternalStore } from 'react';
@@ -19,22 +20,54 @@ export const setAutoClearChats = autoClear.set;
 /** Whether this viewer's chats clear at the start of each turn. */
 export const useAutoClearChats = autoClear.use;
 
-/* The turn this browser last saw in a game, so a turn that began while the tab was shut still clears once it is back. */
-const seenKey = (game: string) => `dunezone-chat-auto-clear-turn:${game}`;
-function readSeen(game: string): number | undefined {
+/*
+ * What this browser remembers per game: the turn it last saw, and the clears it still owes for that turn.
+ * Kept in memory as well, so a browser without storage still clears for the turns this page sees.
+ */
+const memory = new Map<string, string>();
+function recall(key: string) {
   try {
-    const stored = Number(localStorage.getItem(seenKey(game)));
-    return Number.isInteger(stored) && stored > 0 ? stored : undefined;
+    return localStorage.getItem(key) ?? memory.get(key) ?? null;
   } catch {
-    return undefined;
+    return memory.get(key) ?? null;
   }
 }
-function writeSeen(game: string, turn: number) {
-  try {
-    localStorage.setItem(seenKey(game), String(turn));
-  } catch {
-    /* Without storage only the turns this page sees begin clear. */
+function remember(key: string, value: string | null) {
+  if (value === null) {
+    memory.delete(key);
+  } else {
+    memory.set(key, value);
   }
+  try {
+    if (value === null) {
+      localStorage.removeItem(key);
+    } else {
+      localStorage.setItem(key, value);
+    }
+  } catch {
+    /* Memory alone keeps it for this page. */
+  }
+}
+
+const seenKey = (game: string) => `dunezone-chat-auto-clear-turn:${game}`;
+function readSeen(game: string): number | undefined {
+  const stored = Number(recall(seenKey(game)));
+  return Number.isInteger(stored) && stored > 0 ? stored : undefined;
+}
+
+/* The clears asked for at the start of a turn, by conversation, until the room confirms each one; a dropped connection loses none. */
+type Owed = Record<string, number>;
+const owedKey = (game: string) => `dunezone-chat-auto-clear-owed:${game}`;
+function readOwed(game: string): Owed {
+  try {
+    const parsed: unknown = JSON.parse(recall(owedKey(game)) ?? '{}');
+    return parsed && typeof parsed === 'object' ? (parsed as Owed) : {};
+  } catch {
+    return {};
+  }
+}
+function writeOwed(game: string, owed: Owed) {
+  remember(owedKey(game), Object.keys(owed).length > 0 ? JSON.stringify(owed) : null);
 }
 
 /* Looking back at a checkpoint or a recall is not the live table, so its turn never clears anything. */
@@ -57,8 +90,25 @@ function enterTurn(game: string, turn: number) {
   if (seen !== undefined && turn <= seen) {
     return false;
   }
-  writeSeen(game, turn);
+  remember(seenKey(game), String(turn));
   return seen !== undefined;
+}
+
+/* Asks again for each owed clear the room has not confirmed; confirmed ones, and chats this faction no longer has, are settled. */
+function settleOwed(client: TableSession, summaries: ConversationSummary[]) {
+  const owed = readOwed(client.game);
+  const left: Owed = {};
+  for (const [peerId, through] of Object.entries(owed)) {
+    const summary = summaries.find((entry) => entry.peerId === peerId);
+    if (summary && summary.cleared < through) {
+      left[peerId] = through;
+      /* A clear already on its way is not sent twice. */
+      client.conversations.clearChat({ peerId, through });
+    }
+  }
+  if (Object.keys(left).length !== Object.keys(owed).length) {
+    writeOwed(client.game, left);
+  }
 }
 
 /**
@@ -70,9 +120,15 @@ export function useAutoClearChatsAtNewTurn(client: TableSession, table: TablePro
   const { conversations } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
   const ready = conversations.online && conversations.summaries.length > 0;
   const turn = ready ? liveTurn(table) : undefined;
+  const summaries = ready ? conversations.summaries : undefined;
   useEffect(() => {
     if (turn !== undefined && enterTurn(client.game, turn) && enabled) {
-      client.conversations.clearAllChats();
+      writeOwed(client.game, { ...readOwed(client.game), ...client.conversations.clearAllChats() });
     }
   }, [client, enabled, turn]);
+  useEffect(() => {
+    if (summaries) {
+      settleOwed(client, summaries);
+    }
+  }, [client, summaries]);
 }

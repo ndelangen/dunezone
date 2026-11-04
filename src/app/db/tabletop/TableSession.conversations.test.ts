@@ -338,3 +338,40 @@ test('clearing a chat hides it at once, other tabs drop it with their summaries,
   summaries(2);
   expect(client.conversations.clearable()).toBe(false);
 });
+
+test('a cleared message stays cleared when a retried send or a history page brings it back', async () => {
+  const client = await connect();
+  socket().deliver({
+    type: 'conversations',
+    factionId: 'one',
+    generation: 0,
+    entries: [{ peerId: 'two', latest: 2, unread: 0, cleared: 2 }],
+  });
+  expect(client.conversations.submit({ peerId: 'two', text: 'Sent before the other tab cleared' })).toBe(true);
+  const send = socket()
+    .sent.filter((entry) => entry.type === 'conversation-send')
+    .at(-1)!;
+  client.conversations.load({ peerId: 'two' });
+  const request = socket()
+    .sent.filter((entry) => entry.type === 'conversation-history')
+    .at(-1)!;
+  socket().deliver({
+    ...request,
+    type: 'conversation-history',
+    factionId: 'one',
+    peerId: 'two',
+    before: Number.MAX_SAFE_INTEGER,
+    entries: [{ ...saved('cleared-elsewhere'), sequence: 1 }],
+    more: false,
+  } as ServerMessage);
+  expect(client.getSnapshot().conversations.pages.two?.entries).toEqual([]);
+  /* The room answers the retried send with the message it saved before the clear. */
+  socket().deliver({
+    type: 'conversation-message',
+    factionId: 'one',
+    peerId: 'two',
+    message: { ...saved(send.requestId), sequence: 2 },
+  });
+  expect(client.getSnapshot().conversations.pages.two?.entries).toEqual([]);
+  expect(client.getSnapshot().conversations.pending).toEqual([]);
+});

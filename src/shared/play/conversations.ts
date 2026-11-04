@@ -29,7 +29,8 @@ export const conversationSummarySchema = z.object({
   peerId: conversationPeerSchema,
   latest: count,
   unread: count,
-  cleared: count,
+  /* A Worker from before clears existed sends none. */
+  cleared: count.default(0),
 });
 export type ConversationSummary = z.infer<typeof conversationSummarySchema>;
 

@@ -26,6 +26,8 @@ const pairKey = (factionId: string, peerId: string) =>
   peerId === TABLE_CONVERSATION || isRecallConversation(peerId)
     ? peerId
     : [factionId, peerId].sort((a, b) => a.localeCompare(b)).join('|');
+/* One faction's own position in a conversation: how far it has read, or cleared. */
+const positionKey = (factionId: string, peerId: string) => `${pairKey(factionId, peerId)}/${factionId}`;
 
 /**
  * The conversations of a table running in the page, kept as the game Worker keeps them, for the learner's seat.
@@ -62,13 +64,21 @@ export class LocalConversations {
         return this.deliver({ ...request, entries, more: false });
       }
       case 'conversation-read': {
-        const read = `${pairKey(request.factionId, request.peerId)}/${request.factionId}`;
+        const read = positionKey(request.factionId, request.peerId);
         this.reads.set(read, Math.max(this.reads.get(read) ?? 0, request.through));
         return this.summaries(request.factionId);
       }
       case 'conversation-clear': {
-        /* Clearing also reads what it cleared, as in the Worker. */
-        const key = `${pairKey(request.factionId, request.peerId)}/${request.factionId}`;
+        /* Clearing also reads what it cleared, and only through a message the conversation has, as in the Worker. */
+        const key = positionKey(request.factionId, request.peerId);
+        const pair = pairKey(request.factionId, request.peerId);
+        if (!this.messages.some((entry) => entry.pair === pair && entry.sequence === request.through)) {
+          return this.deliver({
+            type: 'rejected',
+            requestId: request.requestId,
+            message: 'This message is not available.',
+          });
+        }
         this.reads.set(key, Math.max(this.reads.get(key) ?? 0, request.through));
         this.clears.set(key, Math.max(this.clears.get(key) ?? 0, request.through));
         return this.summaries(request.factionId);
@@ -201,7 +211,7 @@ export class LocalConversations {
 
   private page(factionId: string, peerId: string): ConversationMessage[] {
     const pair = pairKey(factionId, peerId);
-    const cleared = this.clears.get(`${pair}/${factionId}`) ?? 0;
+    const cleared = this.clears.get(positionKey(factionId, peerId)) ?? 0;
     return this.messages
       .filter((entry) => entry.pair === pair && entry.sequence > cleared)
       .map(({ pair: _pair, ...message }) => message);
@@ -213,13 +223,13 @@ export class LocalConversations {
     const groups = this.recall ? [TABLE_CONVERSATION, this.recall] : [TABLE_CONVERSATION];
     const entries = [...peers, ...groups].map((peerId) => {
       const pair = pairKey(factionId, peerId);
-      const read = this.reads.get(`${pair}/${factionId}`) ?? 0;
+      const read = this.reads.get(positionKey(factionId, peerId)) ?? 0;
       const messages = this.messages.filter((entry) => entry.pair === pair);
       return {
         peerId,
         latest: messages.at(-1)?.sequence ?? 0,
         unread: messages.filter((entry) => entry.sequence > read && entry.senderFactionId !== factionId).length,
-        cleared: this.clears.get(`${pair}/${factionId}`) ?? 0,
+        cleared: this.clears.get(positionKey(factionId, peerId)) ?? 0,
       };
     });
     this.deliver({ type: 'conversations', generation: 0, factionId, entries });

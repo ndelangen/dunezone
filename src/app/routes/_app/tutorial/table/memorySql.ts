@@ -156,6 +156,8 @@ export class MemorySql {
     'SELECT actors.deleted FROM seat_requests JOIN actors ON actors.user_id=seat_requests.user_id WHERE seat_requests.request_id=?':
       () => [],
     'SELECT data FROM spice_transfers WHERE revision=?': () => [],
+    'SELECT 1 FROM public_log WHERE key=?': (key: string) =>
+      this.log.filter((row) => row.key === key).map(() => ({ 1: 1 })),
     'INSERT OR IGNORE INTO public_log(key,class,template,people,context,created_at) VALUES(?,?,?,?,?,?)': (
       key: string,
       kind: string,

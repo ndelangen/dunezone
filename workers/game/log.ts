@@ -101,9 +101,13 @@ export class PublicLog {
     );
   }
 
+  /** Files the entry once per key; true when this added it. */
   record(entry: Entry) {
     if (!this.enabled) {
-      return;
+      return false;
+    }
+    if (this.storage.sql.exec('SELECT 1 FROM public_log WHERE key=?', entry.key).toArray().length > 0) {
+      return false;
     }
     this.storage.sql.exec(
       'INSERT OR IGNORE INTO public_log(key,class,template,people,context,created_at) VALUES(?,?,?,?,?,?)',
@@ -114,6 +118,7 @@ export class PublicLog {
       entry.context ?? this.context(),
       entry.at ?? Date.now()
     );
+    return true;
   }
 
   /** Every entry of a commit: the stage it entered, the phase it reached, a prediction, a spice transfer and a battle result. */
@@ -154,7 +159,12 @@ export class PublicLog {
     this.record(voteEntry(vote));
   }
 
-  /** A faction cleared a chat from its own view: everyone may know it happened, never what it said (#2674). A recall's chat ends with the recall, so it goes unlogged. */
+  /**
+   * A faction cleared a chat from its own view: everyone may know it happened, never what it said (#2674).
+   * Private chats go unnamed and count once per phase, so the log never shows who talked with whom.
+   * A recall's chat ends with the recall, so it goes unlogged.
+   * True when this added an entry.
+   */
   recordChatClear(clear: {
     snapshot: StoredSnapshot;
     holders: readonly Holder[];
@@ -163,21 +173,20 @@ export class PublicLog {
     through: number;
   }) {
     if (isRecallConversation(clear.peerId)) {
-      return;
+      return false;
     }
     const people: Person[] = [];
-    const faction = factionNamer(clear.snapshot, clear.holders);
-    const who = faction(clear.factionId, people);
-    const template =
-      clear.peerId === TABLE_CONVERSATION
-        ? `${who} cleared the table chat.`
-        : `${who} cleared its chat with ${faction(clear.peerId, people)}.`;
-    this.record({
-      key: `chat-clear:${clear.factionId}:${clear.peerId}:${clear.through}`,
+    const who = factionNamer(clear.snapshot, clear.holders)(clear.factionId, people);
+    const context = logContext(clear.snapshot);
+    const table = clear.peerId === TABLE_CONVERSATION;
+    return this.record({
+      key: table
+        ? `chat-clear:${clear.factionId}:${TABLE_CONVERSATION}:${clear.through}`
+        : `chat-clear:${clear.factionId}:private:${context}`,
       class: 'chat',
-      template,
+      template: table ? `${who} cleared the table chat.` : `${who} cleared its private chats.`,
       people,
-      context: logContext(clear.snapshot),
+      context,
     });
   }
 

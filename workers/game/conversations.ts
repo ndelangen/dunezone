@@ -155,16 +155,36 @@ export class Conversations {
   }
 
   read(request: ConversationRequest<'conversation-read'>) {
+    this.mustExist(request);
     this.advance('conversation_reads', request);
   }
 
-  /** Clears the conversation through a message the faction saw from its own view, which also reads it; a message saved since stays. */
-  /** True when this cleared messages the faction still saw; a clear already covered changes nothing. */
+  /**
+   * Clears the conversation through a message the faction saw from its own view, which also reads it;
+   * a message saved since stays.
+   * True when this cleared messages the faction still saw;
+   * a clear already covered changes nothing.
+   */
   clear(request: ConversationRequest<'conversation-clear'>) {
+    this.mustExist(request);
     const before = this.cleared(pairKey(request), request.factionId);
     this.advance('conversation_reads', request);
     this.advance('conversation_clears', request);
     return request.through > before;
+  }
+
+  private mustExist(request: ConversationRequest<'conversation-read' | 'conversation-clear'>) {
+    const exists =
+      this.storage.sql
+        .exec(
+          'SELECT sequence FROM conversation_messages WHERE pair=? AND sequence=?',
+          pairKey(request),
+          request.through
+        )
+        .toArray().length > 0;
+    if (!exists) {
+      throw new GameRejection('This message is not available.');
+    }
   }
 
   private advance(
@@ -173,13 +193,6 @@ export class Conversations {
   ) {
     const { factionId: faction, through } = request;
     const pair = pairKey(request);
-    const exists =
-      this.storage.sql
-        .exec('SELECT sequence FROM conversation_messages WHERE pair=? AND sequence=?', pair, through)
-        .toArray().length > 0;
-    if (!exists) {
-      throw new GameRejection('This message is not available.');
-    }
     this.storage.sql.exec(
       `INSERT INTO ${table}(pair,faction,through) VALUES(?,?,?) ON CONFLICT(pair,faction) DO UPDATE SET through=MAX(through,excluded.through)`,
       pair,

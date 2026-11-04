@@ -317,6 +317,8 @@ describe('Faction conversations in the game database', () => {
     );
     /* Clearing also reads what it cleared. */
     expect(summary).toMatchObject({ cleared: first.sequence, unread: 0 });
+    const announced = () => b.messages.filter((entry) => entry.type === 'log-history').length;
+    expect(announced()).toBe(1);
     expect(messageOf(await page(b, bId, aId), 'conversation-history').entries).toEqual([]);
     /* The other side keeps its copy, and its summaries say nothing of the clear. */
     await syncView(a);
@@ -330,11 +332,22 @@ describe('Faction conversations in the game database', () => {
     /* Everyone may read that the chat was cleared, never what it said. */
     const logged = await runtime.exec<{ template: string }>("SELECT template FROM public_log WHERE class='chat'");
     expect(logged).toHaveLength(1);
-    expect(logged[0]!.template).toMatch(/ cleared its chat with /);
+    expect(logged[0]!.template).toMatch(/ cleared its private chats\./);
     expect(JSON.stringify(logged)).not.toContain('Allied plans');
     /* A message saved after the clear shows again. */
     const later = messageOf(await send(a, aId, bId, 'After the break'), 'conversation-message').message;
     expect(messageOf(await page(b, bId, aId), 'conversation-history').entries).toEqual([later]);
+    /* Clearing again in the same phase adds no line, so the log never counts who talked with whom. */
+    b.send({
+      type: 'conversation-clear' as const,
+      requestId: 'clear-two',
+      factionId: bId,
+      peerId: aId,
+      through: later.sequence,
+    });
+    await syncView(b);
+    expect(await runtime.exec("SELECT template FROM public_log WHERE class='chat'")).toHaveLength(1);
+    expect(announced()).toBe(1);
     expect(
       (
         await request<'conversation-clear'>(b, {

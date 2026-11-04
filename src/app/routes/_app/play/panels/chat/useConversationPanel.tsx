@@ -70,13 +70,20 @@ export function ConnectedClearChat({
   seat,
 }: Readonly<{ client: TableSession; table: TableProjection; seat: string }>) {
   const { conversations } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
+  /* A clear that could not go out (the table is resyncing) gives back a fresh eraser, ready for another hold. */
+  const [attempt, setAttempt] = useState(0);
   const peerId = seat === TABLE_CONVERSATION ? TABLE_CONVERSATION : seatFaction(table, seat);
   const summary = conversations.summaries.find((entry) => entry.peerId === peerId);
   const shown = conversations.pages[peerId ?? '']?.entries.length;
   if (!peerId || !conversations.online || !summary || summary.latest <= summary.cleared || shown === 0) {
     return null;
   }
-  return <ClearChatAction onClear={() => client.conversations.clearChat({ peerId })} />;
+  const clear = () => {
+    if (client.conversations.clearChat({ peerId }) === undefined) {
+      setAttempt((previous) => previous + 1);
+    }
+  };
+  return <ClearChatAction key={attempt} onClear={clear} />;
 }
 
 /** Every conversation while the table is out of reach, one at a time. */

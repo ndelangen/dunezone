@@ -89,7 +89,7 @@ export function storyTransport(
 ) {
   const messages: ClientMessage[] = [];
   /* How far the viewer cleared each conversation; every conversation answers with the same scripted messages. */
-  const cleared = new Map<string, number>();
+  const clearedThrough = new Map<string, number>();
   /* Each clear's Game log line, newest first, ahead of the scripted entries, as the Worker logs it. */
   const clearLog: LogEntry[] = [];
   const gameLog = (): LogEntry[] => [
@@ -103,8 +103,8 @@ export function storyTransport(
       factionId: conversationSummaries.factionId,
       entries: conversationSummaries.entries.map((entry) => ({
         ...entry,
-        cleared: cleared.get(entry.peerId) ?? entry.cleared,
-        unread: cleared.has(entry.peerId) ? 0 : entry.unread,
+        cleared: clearedThrough.get(entry.peerId) ?? entry.cleared,
+        unread: clearedThrough.has(entry.peerId) ? 0 : entry.unread,
       })),
     };
   const sockets: StorySocket[] = [];
@@ -179,7 +179,7 @@ export function storyTransport(
         queueMicrotask(() => this.deliver({ ...message, faction: factions[message.factionId] ?? null }));
       }
       if (message.type === 'conversation-history') {
-        const after = cleared.get(message.peerId) ?? 0;
+        const after = clearedThrough.get(message.peerId) ?? 0;
         const entries = conversationMessages.filter(
           (entry) => entry.sequence < message.before && entry.sequence > after
         );
@@ -209,7 +209,7 @@ export function storyTransport(
 
     /* A clear moves the conversation's position, sends the summaries again, and logs it as the Worker does. */
     cleared(message: Extract<ClientMessage, { type: 'conversation-clear' }>) {
-      cleared.set(message.peerId, Math.max(cleared.get(message.peerId) ?? 0, message.through));
+      clearedThrough.set(message.peerId, Math.max(clearedThrough.get(message.peerId) ?? 0, message.through));
       const summary = summaries();
       if (summary) {
         queueMicrotask(() => this.deliver(summary));
@@ -221,7 +221,7 @@ export function storyTransport(
         text:
           message.peerId === '@table'
             ? `${name(message.factionId)} cleared the table chat.`
-            : `${name(message.factionId)} cleared its chat with ${name(message.peerId)}.`,
+            : `${name(message.factionId)} cleared its private chats.`,
         context: 'Turn 1 · Storm',
         at: STORYBOOK_NOW,
       });
