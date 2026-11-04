@@ -13,5 +13,9 @@ const plainArtwork: Record<string, string> = {
 /** Plain glyphs share the renderer's ink and optional outline, including references saved under retired names. */
 export const BOARD_ARTWORK: Record<string, string> = {
   ...plainArtwork,
-  ...Object.fromEntries(Object.entries(VECTOR_ARTWORK_ALIASES).map(([alias, target]) => [alias, plainArtwork[target]])),
+  ...Object.fromEntries(
+    Object.entries(VECTOR_ARTWORK_ALIASES)
+      .filter(([, target]) => Object.hasOwn(plainArtwork, target))
+      .map(([alias, target]) => [alias, plainArtwork[target]])
+  ),
 };

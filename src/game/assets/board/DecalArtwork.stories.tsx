@@ -2,7 +2,7 @@ import preview from '@sb/preview';
 import type { Decal } from '@shared/boards/schema';
 import { expect } from 'storybook/test';
 
-import palace from '../../../../media/vector/decal/palace.svg?raw';
+import palace from '../../../../media/vector/icon/stronghold.svg?raw';
 import { BOARD_ARTWORK } from './artwork';
 import { DecalArtwork } from './Board';
 import { TintDrawingLayers } from './BoardMarkup';
@@ -80,7 +80,7 @@ const meta = preview.meta({
       }
     }
     await expect(inkTop).toBeLessThan(512);
-    if (args.decal.artwork === '/vector/decal/palace.svg') {
+    if (args.decal.artwork === '/vector/icon/stronghold.svg') {
       await expect(boardInk).toBeGreaterThan(0);
     }
     if (args.decal.artwork === '/vector/decal/palace-multicolor.svg') {
@@ -129,7 +129,7 @@ export const WithoutOutline = meta.story({
 });
 
 export const InlinePalace = meta.story({
-  args: { decal: { ...decal, artwork: '/vector/decal/palace.svg', outline: false }, svg: palace },
+  args: { decal: { ...decal, artwork: '/vector/icon/stronghold.svg', outline: false }, svg: palace },
 });
 
 export const MulticolorPalace = meta.story({

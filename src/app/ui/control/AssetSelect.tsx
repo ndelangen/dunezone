@@ -1,5 +1,6 @@
 import { Combobox, Group, Image, Popover, ScrollArea, Stack, Text, TextInput, useCombobox } from '@mantine/core';
 import type { ComboboxProps, TextInputProps } from '@mantine/core';
+import { VECTOR_ARTWORK_ALIASES } from '@shared/vectorRules';
 import clsx from 'clsx';
 import { SlidersHorizontal } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -134,6 +135,13 @@ export function AssetSelect({
   });
   const viewport = useRef<HTMLDivElement>(null);
   const optionsByValue = new Map(data.map((option) => [option.value, option]));
+  /* A value saved under a retired copy's name still shows its original's label and credit. */
+  for (const [alias, target] of Object.entries(VECTOR_ARTWORK_ALIASES)) {
+    const option = optionsByValue.get(target);
+    if (option && !optionsByValue.has(alias)) {
+      optionsByValue.set(alias, option);
+    }
+  }
   const isGlyph = (id: string) => optionsByValue.get(id)?.glyphPreview ?? glyphPreviews;
   const previewFor = (id: string, size: number) =>
     artworkPreview({
