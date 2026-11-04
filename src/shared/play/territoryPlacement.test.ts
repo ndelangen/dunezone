@@ -158,20 +158,21 @@ describe('stacks dropped into a territory', () => {
     expect(Math.hypot(landing[0] - spot[0], landing[2] - spot[2])).toBeLessThan(0.01);
   });
 
-  test('find room for a leader in a wide territory far from where it was let go', () => {
-    /* Fewer search directions on the wider rings missed this pocket and called an empty Cielago depression full. */
+  test.each([
+    ['Cielago depression', [0.614, 0, 2.51]],
+    ['Carthag', [-0.439, 0, -2.749]],
+  ] as const)('find room for a leader in an empty %s, however narrow the pocket it fits in', (name, spot) => {
+    /* A search on a few directions, or on coarse rings, missed these pockets and called an empty territory full. */
     const leader: TablePiece = {
       ...troopBase,
       id: 'leader',
       stackKey: 'leader:atreides',
       items: [{ id: 'l', faceUp: true }],
     };
-    const spot: Vector3Tuple = [0.614, 0, 2.51];
-    const landing = territoryLanding({}, { ...leader, position: restingPositionAt(spot, leader) }, spot, []);
+    const at: Vector3Tuple = [...spot];
+    const landing = territoryLanding({}, { ...leader, position: restingPositionAt(at, leader) }, at, []);
     expect(landing).toBeTruthy();
-    expect(insideTerritory(territoryNamed('Cielago depression'), { ...leader, position: landing!.position })).toBe(
-      true
-    );
+    expect(insideTerritory(territoryNamed(name), { ...leader, position: landing!.position })).toBe(true);
   });
 
   test('placed as any other piece, a stack is never left across a border, though a card may be', () => {

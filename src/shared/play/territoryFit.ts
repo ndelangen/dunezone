@@ -221,9 +221,9 @@ function clearAt({ territory, bodies, obstacles }: FitInput, at: readonly Spot[]
   const apart = (other: Plane, otherRadius: number) =>
     Math.hypot(point[0] - other[0], point[1] - other[1]) >= radius + otherRadius;
   return (
-    fitsInside(territory, point, radius) &&
     bodies.every((other, j) => j === i || apart(at[j]!, other.radius)) &&
-    obstacles.every((obstacle) => standoff(point, obstacle, i).clear >= radius)
+    obstacles.every((obstacle) => standoff(point, obstacle, i).clear >= radius) &&
+    fitsInside(territory, point, radius)
   );
 }
 
@@ -247,7 +247,9 @@ export function fitIntoTerritory(input: FitInput): Map<string, Plane> | null {
     if (clearAt(input, at, i, at[i]!)) {
       return;
     }
-    const spot = nearestClearSpot(input.territory, at[i]!, (point) => clearAt(input, at, i, point));
+    const spot = nearestClearSpot(input.territory, input.bodies[i]!.radius + GAP / 2, at[i]!, (point) =>
+      clearAt(input, at, i, point)
+    );
     if (spot) {
       at[i] = [spot[0], spot[1]];
     }
@@ -256,30 +258,101 @@ export function fitIntoTerritory(input: FitInput): Map<string, Plane> | null {
   return fits ? new Map(bodies.map((body, i) => [body.id, at[i]! as Plane])) : null;
 }
 
-const SPOT_STEP = 0.02;
-const MIN_SPOT_DIRECTIONS = 36;
-/* At most this many rings, so a full territory, searched again on every pointer move while carried, costs a few thousand checks at most. */
-const MAX_SPOT_RINGS = 40;
+const SPOT_STEP = 0.04;
+/* Every grid point of a territory with room for a footprint of a given radius, kept per territory and radius, so a search only checks what is in the way. */
+const roomySpots = new WeakMap<TableTerritory, Map<number, Plane[]>>();
+
+/* How far a point lies inside the territory's border; negative outside it. */
+function roomAt(territory: TableTerritory, at: Plane): number {
+  const distance = nearestBorder(territory, at).distance;
+  return territoryContains(territory, at) ? distance : -distance;
+}
+
+const CLIMB_DIRECTIONS = Array.from({ length: 8 }, (_, k): Plane => [
+  Math.cos((k * Math.PI) / 4),
+  Math.sin((k * Math.PI) / 4),
+]);
+const CLIMB_ROUNDS = 24;
+
 /*
- * The free spot nearest `from`, searched in rings outward until they pass the territory's farthest corner.
- * Each ring is sampled a step apart along its length, so a wide ring leaves no gap a stack could fit through unseen.
- * A wide territory takes longer steps, so the search stays bounded however far its corners lie.
+ * A point near `start` with room for `radius`, found by stepping towards more room in ever smaller steps, or null when there is none nearby.
+ * A pocket narrower than the grid lies between grid points; climbing from the nearest of them finds it.
  */
-function nearestClearSpot(territory: TableTerritory, from: Plane, clear: (point: Plane) => boolean): Plane | null {
-  const reach = Math.max(...territory.rings.flat().map(([x, z]) => Math.hypot(x - from[0], z - from[1])));
-  const step = Math.max(SPOT_STEP, reach / MAX_SPOT_RINGS);
-  for (let ring = 1; ring * step <= reach + step; ring += 1) {
-    const radius = ring * step;
-    const directions = Math.max(MIN_SPOT_DIRECTIONS, Math.ceil((Math.PI * 2 * radius) / step));
-    for (let direction = 0; direction < directions; direction += 1) {
-      const angle = (direction / directions) * Math.PI * 2;
-      const point: Plane = [from[0] + Math.cos(angle) * radius, from[1] + Math.sin(angle) * radius];
-      if (clear(point)) {
-        return point;
+function climbToRoom(territory: TableTerritory, start: Plane, radius: number): Plane | null {
+  let at = start;
+  let room = roomAt(territory, at);
+  for (let step = SPOT_STEP / 2; step > 1e-4 && room < radius; step /= 2) {
+    for (let round = 0; round < CLIMB_ROUNDS && room < radius; round += 1) {
+      const best = CLIMB_DIRECTIONS.map((direction): Plane => [
+        at[0] + direction[0] * step,
+        at[1] + direction[1] * step,
+      ])
+        .map((candidate) => ({ candidate, room: roomAt(territory, candidate) }))
+        .reduce((a, b) => (b.room > a.room ? b : a));
+      if (best.room <= room) {
+        break;
+      }
+      at = best.candidate;
+      room = best.room;
+    }
+  }
+  return room >= radius ? at : null;
+}
+
+/**
+ * The points a footprint of `radius` fits inside the territory's border at: one for each point of a grid over it, a step apart, that has room or is within a step of having it.
+ * Room changes no faster than the distance moved, so no place with room lies farther than a step from such a grid point.
+ */
+function spotsWithRoom(territory: TableTerritory, radius: number): Plane[] {
+  const key = Math.round(radius * 1000);
+  let byRadius = roomySpots.get(territory);
+  if (!byRadius) {
+    byRadius = new Map();
+    roomySpots.set(territory, byRadius);
+  }
+  const known = byRadius.get(key);
+  if (known) {
+    return known;
+  }
+  const { minX, maxX, minZ, maxZ } = boundsOf(territory);
+  const spots: Plane[] = [];
+  for (let x = minX + SPOT_STEP / 2; x < maxX; x += SPOT_STEP) {
+    for (let z = minZ + SPOT_STEP / 2; z < maxZ; z += SPOT_STEP) {
+      const room = roomAt(territory, [x, z]);
+      const spot =
+        room >= radius ? ([x, z] as Plane) : room >= radius - SPOT_STEP && climbToRoom(territory, [x, z], radius);
+      if (spot) {
+        spots.push(spot);
       }
     }
   }
-  return null;
+  byRadius.set(key, spots);
+  return spots;
+}
+
+function boundsOf(territory: TableTerritory) {
+  const points = territory.rings.flat();
+  return {
+    minX: Math.min(...points.map(([x]) => x)),
+    maxX: Math.max(...points.map(([x]) => x)),
+    minZ: Math.min(...points.map(([, z]) => z)),
+    maxZ: Math.max(...points.map(([, z]) => z)),
+  };
+}
+
+/*
+ * The free spot nearest `from`: every grid point with room inside the territory, nearest first, until one is clear of everything in the way.
+ * The grid covers the whole territory, so a pocket a stack fits in is never skipped, and the work is bounded by the territory's size.
+ */
+function nearestClearSpot(
+  territory: TableTerritory,
+  radius: number,
+  from: Plane,
+  clear: (point: Plane) => boolean
+): Plane | null {
+  const distance = (point: Plane) => (point[0] - from[0]) ** 2 + (point[1] - from[1]) ** 2;
+  const nearestFirst = [...spotsWithRoom(territory, radius)].sort((a, b) => distance(a) - distance(b));
+  return nearestFirst.find(clear) ?? null;
 }
 
 /** The point of a territory furthest from its border, found on a grid: where a stack set down in it has the most room. */
