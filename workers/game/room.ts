@@ -858,11 +858,13 @@ export class Room {
     }
     const balance = this.snapshot.factionBanks[factionId];
     const table = this.viewerTable(identity.viewerSeat);
+    /* A withdrawal packs into its territory around what other players carry, as a drop does; their temporary locks are then put back as stored. */
     const change =
       action.kind === 'bank-withdraw'
-        ? this.withdrawSpice(table, balance, action.amount, identity.viewerSeat, action.position)
+        ? this.withdrawSpice(this.table(identity), balance, action.amount, identity.viewerSeat, action.position)
         : this.collectSpice(table, balance, action.pieceId);
-    const next = nextSnapshot(this.snapshot, accepted(change.table, action.kind, `${factionId} ${change.message}`));
+    const settled = action.kind === 'bank-withdraw' ? this.restoreReservationLocks(table, change.table) : change.table;
+    const next = nextSnapshot(this.snapshot, accepted(settled, action.kind, `${factionId} ${change.message}`));
     return { ...next, factionBanks: { ...this.snapshot.factionBanks, [factionId]: change.balance } };
   }
 
