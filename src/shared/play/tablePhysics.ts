@@ -13,7 +13,7 @@ import {
   troopScale,
   tokenBoxRatio,
 } from './tableGeometry';
-import { isOnBottomShelf, nearestBottomShelfEdge, TANKS_PAD } from './tanksShelf';
+import { isInTanks, isOnBottomShelf, nearestBottomShelfEdge, TANKS_PAD } from './tanksShelf';
 
 /**
  * Deterministic 2D footprints keep resting tabletop objects separate while matching pieces still form stacks.
@@ -392,8 +392,9 @@ function isSupportedPosition(piece: TablePiece, position: Vector3Tuple): boolean
 }
 
 /*
- * Leader discs may overlap a little, the way discs tossed into the Tanks do (#2675): one leader keeps this far from another's centre,
+ * Leader discs in the Tanks may overlap a little, the way discs tossed into a pile do (#2675): one leader keeps this far from another's centre,
  * against the 0.7 their footprints alone would keep. A leader that lands overlapping others rests a hair above them.
+ * Everywhere else, on the board, in wells and on plates, leaders keep their whole footprint apart.
  */
 export const LEADER_SPACING = 0.54;
 const LEADER_OVERLAP_LIFT = 0.004;
@@ -411,7 +412,7 @@ export function isOverlapFreePosition(
       !!obstacle.inventory ||
       obstacle.items.length === 0 ||
       (isPointerToken(obstacle) && !plateMoving) ||
-      (leaderMoving && isLeaderPiece(obstacle)
+      (leaderMoving && isLeaderPiece(obstacle) && isInTanks(position) && isInTanks(obstacle.position)
         ? planarDistance(position, obstacle.position) >= LEADER_SPACING
         : !piecesOverlapAt(movingPiece, position, obstacle))
   );
