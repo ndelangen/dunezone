@@ -1,6 +1,7 @@
 import { mediaCreditText } from '@shared/media/credits';
 import { isRetiredStockAsset } from '@shared/retiredStockAssets';
 import stockAssetCollections from '@shared/stockAssetCollections.json';
+import stockAssetNames from '@shared/stockAssetNames.json';
 import { canonicalVectorArtwork } from '@shared/vectorRules';
 
 const collectionsByAsset = new Map<string, (typeof stockAssetCollections)[number]>(
@@ -11,17 +12,8 @@ function words(value: string) {
   return value.replace(/[-_]+/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-/** Display names for stock files whose saved file name is misspelled; saved identifiers never change. */
-const assetNames: Record<string, string> = {
-  '/image/leader/official/dryeuh.png': 'Dr. Yueh',
-  '/image/leader/official/nafud.png': 'Nefud',
-  '/image/leader/official/uman.png': 'Umman Kudu',
-  '/image/leader/official/guildrep.png': 'Guild Rep',
-  '/image/leader/official/ctair.png': "C'Tair",
-  '/image/leader/official/rhombor.jpg': 'Rhombur',
-  '/image/leader/official/whitemore-bludd.png': 'Whitmore Bludd',
-  '/image/leader/official/smuggler2.png': 'Smuggler 2',
-};
+/** Display names for stock files whose file name does not read as one; saved identifiers never change. */
+const assetNames: Record<string, string> = stockAssetNames;
 
 const vectorCategories: Record<string, string> = {
   emblem: 'Emblems',

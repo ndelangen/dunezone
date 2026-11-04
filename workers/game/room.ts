@@ -3,6 +3,7 @@ import { randomInt } from 'node:crypto';
 import type { Board } from '../../src/shared/boards/schema';
 import { tableHandlingOpen } from '../../src/shared/play/admission';
 import { isAllianceAction } from '../../src/shared/play/alliances';
+import type { AllianceAction } from '../../src/shared/play/alliances';
 import { isBattleAction } from '../../src/shared/play/battle';
 import type { BattleAction } from '../../src/shared/play/battle';
 import { isBiddingAction } from '../../src/shared/play/bidding';
@@ -44,6 +45,7 @@ import type {
   Viewer,
   PublicCarry,
   PublicPointer,
+  RestoreAction,
 } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import type { RemovalAction } from '../../src/shared/play/removal';
@@ -80,6 +82,7 @@ import { allianceCommand } from './alliances';
 import { battleCommand } from './battle';
 import { biddingAfterTable, biddingCommand } from './bidding';
 import { concealCards, deckCommand } from './decks';
+import { restoreCommand, withDeletions } from './deletions';
 import { dealFixtureDeck } from './fixture';
 import { lastTurnCommand } from './lastTurn';
 import { isMovementAction, movementAfterTable, movementCommand } from './movement';
@@ -97,6 +100,10 @@ function isFactionSetting(action: { kind: string }): action is FactionSetting {
     action.kind === 'last-turn' || isMovementAction(action) || isBiddingAction(action) || isTerritoryTintAction(action)
   );
 }
+function isSeatedCommand(action: PieceAction): action is AllianceAction | RestoreAction {
+  return action.kind === 'restore' || isAllianceAction(action);
+}
+
 type RoomAction = Exclude<
   PieceAction,
   SeatAction | RemovalAction | ReviewAction | ResultAction | DraftAction | SwapAction
@@ -124,6 +131,7 @@ type CarryInput<T extends 'begin' | 'pose' | 'take' | 'flip'> = Omit<Extract<Cli
  * A raise, lowering or pass names its bidding round and is judged against the live bidder's turn, so a quick second raise is not turned away by the first.
  * A spice reserve withdrawal stays strict, so two tabs of one player cannot both spend from a spice reserve they saw once.
  * A tech token draw picks from whatever the shared table inventory holds when it arrives.
+ * A restore names its deletion and finds room among the pieces as they lie when it arrives.
  * A spice blow names its card and territory and finds room among the spice as it lies when it arrives, so the Spice blow command's placings, sent together, all land.
  * A hand order names the player's own pieces, which nobody else moves, and is judged against what they hold now.
  * Leaving stays strict too, since its confirmation said what it costs and a crossed departure may have left the sender the last player.
@@ -131,6 +139,7 @@ type CarryInput<T extends 'begin' | 'pose' | 'take' | 'flip'> = Omit<Extract<Cli
 const REVISION_TOLERANT_ACTIONS = new Set<string>([
   'spice-spawn',
   'spice-blow',
+  'restore',
   'tech-token-draw',
   'hand-order',
   'deck-draw',
@@ -330,7 +339,11 @@ export class Room {
   }
 
   private table(identity: Identity, ownCarryId?: string): TableState {
-    const state = this.viewerTable(identity.viewerSeat);
+    return this.lockReserved(this.viewerTable(identity.viewerSeat), ownCarryId);
+  }
+
+  /** The table with every piece a carry holds locked, other than the given carry's own. */
+  private lockReserved(state: TableState, ownCarryId?: string): TableState {
     return {
       ...state,
       pieces: state.pieces.map((piece) => {
@@ -675,6 +688,7 @@ export class Room {
         'lock',
         'rotate',
         'delete',
+        'restore',
         'tech-token-draw',
         'deck-draw',
         'deck-shuffle',
@@ -719,6 +733,27 @@ export class Room {
       : biddingCommand(this.snapshot, factionId, action, now);
   }
 
+  /** An alliance or a restore from the game log: only a seated faction sends either, and neither waits on the table to settle. */
+  private seatedCommand(identity: Identity, action: AllianceAction | RestoreAction, now: number): StoredSnapshot {
+    const factionId = this.requireFaction(identity);
+    return action.kind === 'restore'
+      ? this.restoreCommand(action, seatSubject(identity.viewerSeat))
+      : allianceCommand(this.snapshot, factionId, action, now);
+  }
+
+  /* A restore packs around what other players carry, as a drop does, and leaves every carried piece as it was; their temporary locks are then put back as stored. */
+  private restoreCommand(action: RestoreAction, actorName: string): StoredSnapshot {
+    const raw = this.viewerTable(SPECTATOR_SEAT);
+    const guarded = this.lockReserved(raw);
+    return restoreCommand(this.snapshot, action, actorName, {
+      table: guarded,
+      settle: (placed) => {
+        this.assertReservationsUnchanged(guarded, placed);
+        return this.restoreReservationLocks(raw, placed);
+      },
+    });
+  }
+
   private requireFaction(identity: Identity): string {
     const factionId = this.factionFor(identity.userId);
     if (!factionId) {
@@ -728,7 +763,8 @@ export class Room {
   }
 
   command(identity: Identity, action: RoomAction, expectedRevision: number, now = Date.now()): StoredSnapshot {
-    const next = this.applyCommand(identity, action, expectedRevision, now);
+    const applied = this.applyCommand(identity, action, expectedRevision, now);
+    const next = withDeletions(this.snapshot, applied, action);
     /* A new phase closes every peek, while the table keeps who peeked at what; setup holds the phase still, so each setup step and the start of play count too. */
     const moved =
       next.phase !== this.snapshot.phase ||
@@ -763,8 +799,8 @@ export class Room {
     if (isFactionSetting(action)) {
       return this.factionSettingCommand(identity, action, now);
     }
-    if (isAllianceAction(action)) {
-      return allianceCommand(this.snapshot, this.requireFaction(identity), action, now);
+    if (isSeatedCommand(action)) {
+      return this.seatedCommand(identity, action, now);
     }
     this.assertTableSettled(action, now);
     if (action.kind === 'bank-withdraw' || action.kind === 'bank-collect') {

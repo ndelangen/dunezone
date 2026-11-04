@@ -3,7 +3,7 @@ import { expect } from 'storybook/test';
 
 import { AUDIT_LOG, GAME_LOG } from '../../game.stories.fixture';
 import { PANEL_WINDOWS } from '../panelWindows';
-import { BUG_REPORT_ENTRY, logPage, logPanelMeta } from './LogPanel.stories.fixture';
+import { BUG_REPORT_ENTRY, DELETION_ENTRY, logPage, logPanelMeta, RESTORED_ENTRIES } from './LogPanel.stories.fixture';
 
 /*
  * The Game log and Audit windows on their own: one tab of the table's public log, newest first,
@@ -37,6 +37,12 @@ export const BugReport = meta.story({
     );
   },
 });
+
+/** A deleted piece the game still keeps: a seated player can restore it from its entry. */
+export const Deletion = meta.story({ args: { page: logPage([DELETION_ENTRY, ...GAME_LOG]) } });
+
+/** Once restored, the piece is back face down, its restore has an entry of its own and the deletion offers nothing more. */
+export const Restored = meta.story({ args: { page: logPage([...RESTORED_ENTRIES, ...GAME_LOG]) } });
 
 /** The audit log: seats taken and left, and a removal vote. */
 export const Audit = meta.story({
