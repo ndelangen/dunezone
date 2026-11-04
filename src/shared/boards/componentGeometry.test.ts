@@ -3,7 +3,7 @@ import { expect, test } from 'vite-plus/test';
 import { componentGeometrySchema } from '../asset-publishing/componentGeometry';
 import { RULEBOOK_BOARD_DEFINITIONS } from '../rulebooks/boardDefinitions';
 import { boardComponentGeometry } from './componentGeometry';
-import { arrakisBoard, CENTER, derive, RADIUS } from './geometry';
+import { arrakisBoard, blankBoard, CENTER, derive, RADIUS } from './geometry';
 import type { Point } from './geometry';
 
 /** How far a point lies from the nearest edge of `rings`. */
@@ -64,4 +64,17 @@ test('a territory the board names Sectors keeps its own highlight', () => {
   expect(sectors).toHaveLength(1);
   expect(sectors[0]!.label).toBe('Sectors');
   expect(sectors[0]!.highlight?.paths).toHaveLength(1);
+});
+
+test('a board whose polar territory covers every sector line leaves the sectors out and keeps the rest of its geometry', () => {
+  const blank = blankBoard();
+  const board = {
+    ...blank,
+    properties: Object.fromEntries(
+      Object.entries(blank.properties).map(([key, property]) => [key, { ...property, type: 'polar' as const }])
+    ),
+  };
+  const parsed = componentGeometrySchema.safeParse(boardComponentGeometry(board, 1948, 1948));
+  expect(parsed.success).toBe(true);
+  expect(parsed.data?.parts.map(({ key }) => key)).toEqual(['territory-1', 'polar']);
 });

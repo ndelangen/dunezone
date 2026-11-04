@@ -57,23 +57,17 @@ function part(key: string, label: string, faces: readonly Face[]) {
  */
 function sectorsPart(polarRings: readonly (readonly Point[])[]) {
   const transform: [number, number, number, number, number, number] = [1 / FRAME, 0, 0, 1 / FRAME, 0, 0];
-  return {
-    key: 'sectors',
-    label: 'Sectors',
-    x: 0,
-    y: 0,
-    width: 1,
-    height: 1,
-    highlight: {
-      paths: Array.from({ length: TABLE_SECTOR_COUNT }, (_, index) => sectorSegments(sectorRim(index), polarRings))
-        .flat()
-        .map(([start, end]) => ({
-          d: `M${round(start[0])} ${round(start[1])}L${round(end[0])} ${round(end[1])}`,
-          transform,
-        }))
-        .slice(0, MAX_PATHS),
-    },
-  };
+  const paths = Array.from({ length: TABLE_SECTOR_COUNT }, (_, index) => sectorSegments(sectorRim(index), polarRings))
+    .flat()
+    .map(([start, end]) => ({
+      d: `M${round(start[0])} ${round(start[1])}L${round(end[0])} ${round(end[1])}`,
+      transform,
+    }))
+    .slice(0, MAX_PATHS);
+  /* A polar territory that covers every sector line leaves no line to point at; the part is left out rather than carried empty, which the geometry schema refuses. */
+  return paths.length
+    ? { key: 'sectors', label: 'Sectors', x: 0, y: 0, width: 1, height: 1, highlight: { paths } }
+    : null;
 }
 
 /**
@@ -92,9 +86,9 @@ export function boardComponentGeometry(board: Board, widthPx: number, heightPx: 
   const polarRings = territories.filter(({ type }) => type === 'polar').flatMap(({ face }) => face.rings);
   /* First, so a board with more parts than the limit drops a territory rather than the sectors; a territory the board itself names Sectors takes the key over. */
   const sectors = sectorsPart(polarRings);
-  const parts = new Map<string, ReturnType<typeof part>>([['sectors', sectors]]);
+  const parts = new Map<string, ReturnType<typeof part>>(sectors ? [['sectors', sectors]] : []);
   for (const { key, name } of territories) {
-    if (!parts.has(key) || parts.get(key) === sectors) {
+    if (!parts.has(key) || (sectors && parts.get(key) === sectors)) {
       parts.set(
         key,
         part(
