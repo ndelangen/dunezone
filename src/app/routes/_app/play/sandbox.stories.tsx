@@ -1,7 +1,6 @@
 import preview from '@sb/preview';
 import { isPointerToken, POINTER_TOKEN_TYPE } from '@shared/play/pointerToken';
-import { setSpiceBlowTrigger } from '@shared/play/spiceBlowTrigger';
-import type { SpiceBlowTrigger } from '@shared/play/spiceBlowTrigger';
+import { revealedSpiceBlows } from '@shared/play/spiceBlowPlacement';
 import { restingPositionAt, troopScale } from '@shared/play/tableGeometry';
 import { nearestCollisionFreePosition } from '@shared/play/tablePhysics';
 import { drawableTechTokens, isTechToken } from '@shared/play/techToken';
@@ -12,7 +11,7 @@ import { openControl } from './controls.stories.fixture';
 import { gameMeta, install } from './game.stories.fixture';
 import { chapter, journeyViewers, JourneyPage } from './journey.stories.fixture';
 import { sandbox, sandboxReady, sandboxSteps, sandboxTransport } from './sandbox.stories.fixture';
-import { shown, piece, withSpiceBlows, withTechTokens } from './sandbox.stories.fixture';
+import { shown, piece, withCoveredSpiceBlow, withSpiceBlows, withTechTokens } from './sandbox.stories.fixture';
 
 const meta = preview.meta({
   ...gameMeta,
@@ -212,24 +211,18 @@ export const TechTokens = meta.story({
   },
 });
 
-/* A Spice Blow story: the table at a step of the recording with its Spice cards captured, and one way of placing their spice. */
-function spiceBlowStory(trigger: SpiceBlowTrigger, step = chapter('Spice card revealed')) {
+/* A Spice Blow story: the table just after a Spice card was turned face up, with its Spice cards captured. */
+function spiceBlowStory(prepare: typeof withSpiceBlows) {
   return {
-    args: { step, seat: 'seat-1' },
-    beforeEach: ({ args }: { args: { step?: number; seat?: string } }) => {
-      setSpiceBlowTrigger(trigger);
-      const dispose = install(() =>
+    args: { step: chapter('Spice card revealed'), seat: 'seat-1' },
+    beforeEach: ({ args }: { args: { step?: number; seat?: string } }) =>
+      install(() =>
         sandboxTransport({
           start: Number(args.step ?? 1) - 1,
           seat: String(args.seat ?? 'seat-1'),
-          prepare: withSpiceBlows,
+          prepare,
         })
-      )();
-      return () => {
-        dispose();
-        setSpiceBlowTrigger('ring');
-      };
-    },
+      )(),
     play: async ({ canvasElement }: { canvasElement: HTMLElement }) => {
       await sandboxReady(within(canvasElement.ownerDocument.body));
     },
@@ -237,28 +230,22 @@ function spiceBlowStory(trigger: SpiceBlowTrigger, step = chapter('Spice card re
 }
 
 /**
- * Option A, the ring: Spice Blow just after the Spice card was turned face up, with Broken Land lit on the board.
- * Right-click the revealed card and choose "Place 8 spice on Broken land";
- * choose it again to place another 8 onto the same pile.
+ * Spice Blow just after the Spice card was turned face up: Broken Land is lit on the board for as long as the card lies face up.
+ * Place the spice by hand, right-click the card and choose "Place 8 spice on Broken land", or press Space and run the "Spice blow" command, which places the spice of every face-up spice card.
+ * Either way can be repeated;
+ * each time another 8 join the same pile.
  */
-export const SpiceBlow = meta.story(spiceBlowStory('ring'));
+export const SpiceBlow = meta.story(spiceBlowStory(withSpiceBlows));
 
 /**
- * Option B, a button on the lit territory: "Place 8 spice on Broken land" sits in Broken Land itself while the card lies revealed.
- * Each press places another 8 onto the same pile.
+ * A face-up Arsunt card lies under the revealed Broken Land card in the same pile.
+ * Only the visible top card counts: Broken Land is lit and Arsunt is not, and both the right-click and the "Spice blow" command place 8 spice on Broken land only.
  */
-export const SpiceBlowTerritoryButton = meta.story(spiceBlowStory('territory'));
-
-/**
- * Option C, a button by the card: "Place 8 spice on Broken land" floats just above the revealed card.
- * Each press places another 8 onto the same pile.
- */
-export const SpiceBlowCardButton = meta.story(spiceBlowStory('card'));
-
-/**
- * Option D, by itself: the Spice card lies face down beside the deck.
- * Hover it and press F to turn it over;
- * its 8 spice land in Broken Land as soon as its face shows.
- * Turning it down and up again places it again.
- */
-export const SpiceBlowAutomatic = meta.story(spiceBlowStory('auto', chapter('Spice card played')));
+export const SpiceBlowTopCardOnly = meta.story({
+  ...spiceBlowStory(withCoveredSpiceBlow),
+  play: async ({ canvasElement }) => {
+    await sandboxReady(within(canvasElement.ownerDocument.body));
+    const blows = revealedSpiceBlows(shown().table.pieces).map(({ blow }) => blow.territories);
+    await expect(blows).toEqual([['broken_land']]);
+  },
+});

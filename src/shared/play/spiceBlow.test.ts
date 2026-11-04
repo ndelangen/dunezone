@@ -4,18 +4,30 @@ import { retainedArrakisBoard } from '../boards/geometry';
 import { boardTerritory, tableTerritoryAt } from '../boards/tableTerritories';
 import { applyPieceAction } from './commands';
 import { freshTableState } from './model';
-import type { TablePiece, TableState } from './model';
+import type { TableItem, TablePiece, TableState } from './model';
 import { STANDARD_PHASES } from './phases';
 import { GameRejection } from './rejection';
 import { isSpicePiece } from './spice';
 import { spiceBlowOf } from './spiceBlow';
+import type { SpiceBlow } from './spiceBlow';
 import { revealedSpiceBlows } from './spiceBlowPlacement';
 import { spiceBlowSpot } from './spiceBlowSpot';
 
 const brokenLand = spiceBlowOf('card-spice', { highlights: ['broken-land'], amount: 8 })!;
 
 /* A revealed Broken Land card lying off the board, beside where the spice deck sits. */
-function revealedCard(faceUp = true): TablePiece {
+function spiceCardItem(id: string, faceUp: boolean, name: string, spiceBlow: SpiceBlow): TableItem {
+  return {
+    id,
+    faceUp,
+    artwork: { back: 'https://example.test/back.jpg', name, type: 'card-spice', spiceBlow },
+  };
+}
+
+function revealedCard(
+  faceUp = true,
+  items = [spiceCardItem('blow-card-1', faceUp, 'Broken Land', brokenLand)]
+): TablePiece {
   return {
     id: 'blow-card',
     label: '',
@@ -24,18 +36,7 @@ function revealedCard(faceUp = true): TablePiece {
     accent: '#ead9bb',
     kind: 'card',
     stackKey: 'deck:spice',
-    items: [
-      {
-        id: 'blow-card-1',
-        faceUp,
-        artwork: {
-          back: 'https://example.test/back.jpg',
-          name: 'Broken Land',
-          type: 'card-spice',
-          spiceBlow: brokenLand,
-        },
-      },
-    ],
+    items,
     position: [5.2, 0, 1],
     orientation: 0,
     flipRevision: 0,
@@ -109,6 +110,24 @@ describe('placing a revealed spice card', () => {
     expect(piles).toHaveLength(1);
     expect(piles[0]!.items).toHaveLength(16);
     expect(new Set(piles[0]!.items.map((item) => item.id)).size).toBe(16);
+  });
+
+  test('in a pile, only the face-up card on top counts, never the cards underneath', () => {
+    const arsunt = spiceBlowOf('card-spice', { highlights: ['arsunt'], amount: 6 })!;
+    const under = spiceCardItem('blow-card-0', true, 'Arsunt', arsunt);
+    const top = (faceUp: boolean) => spiceCardItem('blow-card-1', faceUp, 'Broken Land', brokenLand);
+    const covered = revealedCard(true, [under, top(true)]);
+    expect(revealedSpiceBlows([covered])).toEqual([{ pieceId: 'blow-card', blow: brokenLand }]);
+    const turnedDown = revealedCard(false, [under, top(false)]);
+    expect(revealedSpiceBlows([turnedDown])).toEqual([]);
+    const state = freshTableState();
+    expect(() =>
+      applyPieceAction(
+        { ...state, pieces: [...state.pieces, covered] },
+        { kind: 'spice-blow', pieceId: 'blow-card', territory: 'arsunt', name: 'Arsunt', position: [0, 0, 0] },
+        1
+      )
+    ).toThrow(GameRejection);
   });
 
   test('a face-down card or another territory is refused', () => {

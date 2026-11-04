@@ -244,3 +244,26 @@ export function withSpiceBlows(stored: StoredSnapshot): StoredSnapshot {
     },
   };
 }
+
+/**
+ * The same table with a second face-up spice card, an Arsunt blow of 6, tucked under each revealed spice card.
+ * Only the card on top counts, so Broken Land lights and Arsunt does not.
+ */
+export function withCoveredSpiceBlow(stored: StoredSnapshot): StoredSnapshot {
+  const captured = withSpiceBlows(stored);
+  const arsunt = spiceBlowOf('card-spice', { highlights: ['arsunt'], amount: 6 });
+  return {
+    ...captured,
+    table: {
+      ...captured.table,
+      pieces: captured.table.pieces.map((candidate) => {
+        const top = candidate.items.at(-1);
+        if (candidate.kind !== 'card' || !top?.faceUp || top.artwork?.type !== 'card-spice') {
+          return candidate;
+        }
+        const under = { ...top, id: `${top.id}-under`, artwork: { ...top.artwork, name: 'Arsunt', spiceBlow: arsunt } };
+        return { ...candidate, items: [...candidate.items.slice(0, -1), under, top] };
+      }),
+    },
+  };
+}

@@ -57,8 +57,8 @@ export type TableProjection = {
     /** What the card on top of this piece would place and where, or null when it shows no spice card or its territory has no room. */
     placement(pieceId: string): { amount: number; name: string } | null;
     place(pieceId: string): void;
-    /** The revealed spice card that names this territory, as `placement` reads it, so the territory itself can place it. */
-    placementIn(territory: string): { pieceId: string; amount: number; name: string } | null;
+    /** The Spice blow command: every revealed spice card on the table places its spice once. */
+    placeAll(): void;
   };
   /* Taking a card, token or stack out of the game for good; present only while this viewer can act. */
   deleteControls?: {

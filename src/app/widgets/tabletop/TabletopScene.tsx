@@ -84,7 +84,6 @@ import { SceneCardDraws } from './SceneCardDraws';
 import { useSharedMeshes } from './sharedMeshes';
 import type { SharedMeshes } from './sharedMeshes';
 import { SpiceBankInteraction } from './SpiceBank';
-import { SpiceBlowButtons } from './SpiceBlowButtons';
 import { useBoardTints } from './spiceBlowTints';
 import { SpiceStackIcon } from './SpiceStackIcon';
 import { loadPieceBadge, loadPlayCamera, loadScenePings, loadScenePresence, loadTabletopTools } from './tableChunks';
@@ -1174,7 +1173,6 @@ function SceneContents({
             <ScenePings />
           </Suspense>
           <SceneCardDraws />
-          <SpiceBlowButtons />
         </>
       )}
       <group onClick={boardSelection(board, { stage, mapVisible, readOnly }, selectPiece)}>

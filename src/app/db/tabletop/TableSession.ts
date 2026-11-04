@@ -6,12 +6,11 @@ import { foldedTurns, rotatedPiece } from '@shared/play/commands';
 import { snapshotFactionLabels, snapshotFactionTieBreaks } from '@shared/play/factionLabels';
 import type { SpawnSelection } from '@shared/play/inventory';
 import type { LogTab } from '@shared/play/log';
-import { affordancesFor, gestureBlockReason, topItemFaceUp } from '@shared/play/model';
+import { affordancesFor, gestureBlockReason } from '@shared/play/model';
 import type { DraftMove, TablePiece, TableState, Vector3Tuple } from '@shared/play/model';
 import { isSeatAction } from '@shared/play/participation';
 import { rearrangeable } from '@shared/play/peeking';
 import type { Peek } from '@shared/play/peeking';
-import { phaseAt, STANDARD_PHASES } from '@shared/play/phases';
 import { piecesOnPlates } from '@shared/play/pointerRiders';
 import { carryPieceId, TABLE_PING_INTERVAL_MS, tableForViewer } from '@shared/play/protocol';
 import type {
@@ -30,7 +29,6 @@ import { CARRY_FLIPS_LIMIT, SPECTATOR_SEAT, tablePositionSchema } from '@shared/
 import { isSpicePiece } from '@shared/play/spice';
 import { revealedSpiceBlow, revealedSpiceBlows } from '@shared/play/spiceBlowPlacement';
 import { spiceBlowSpot } from '@shared/play/spiceBlowSpot';
-import { spiceBlowTrigger } from '@shared/play/spiceBlowTrigger';
 import type { SpiceGift, SpiceGiftChoice } from '@shared/play/spiceReserve';
 import { isSwapAction } from '@shared/play/swapping';
 import type { PointerRay } from '@shared/play/tableGeometry';
@@ -761,35 +759,13 @@ export class TableSession {
         this.command({ kind: 'spice-blow', ...action, position: [...action.position] });
       }
     },
-    placementIn: (territory) => {
-      const pieces = this.table?.state.pieces ?? [];
-      const card = revealedSpiceBlows(pieces).find(({ blow }) => blow.territories.includes(territory));
-      const placement = card ? this.spiceBlowPlacement(card.pieceId) : null;
-      return placement && { pieceId: placement.pieceId, amount: placement.amount, name: placement.name };
+    placeAll: () => {
+      /* Every revealed spice card on the table, the top card of each pile only, places its spice once. */
+      for (const { pieceId } of revealedSpiceBlows(this.table?.state.pieces ?? [])) {
+        this.spiceBlowControls.place(pieceId);
+      }
     },
   };
-  /* The cards this page turned over, waiting to show whether they are spice cards that place their spice by themselves. */
-  private readonly autoSpiceBlows = new Set<string>();
-  /*
-   * A spice card this page turned face up during Spice Blow places its spice once the room shows its face.
-   * Any other face, or a card that leaves the table, is forgotten.
-   */
-  private placeTurnedSpiceBlows(table: TableProjection | null) {
-    if (!table || !this.autoSpiceBlows.size) {
-      return;
-    }
-    const inBlow = phaseAt(table.snapshot.phase, table.snapshot.phases ?? STANDARD_PHASES).id === 'spice-blow';
-    for (const pieceId of this.autoSpiceBlows) {
-      const piece = table.state.pieces.find((entry) => entry.id === pieceId);
-      if (piece && !topItemFaceUp(piece)) {
-        continue;
-      }
-      this.autoSpiceBlows.delete(pieceId);
-      if (piece && inBlow && revealedSpiceBlow(piece)) {
-        queueMicrotask(() => this.spiceBlowControls.place(pieceId));
-      }
-    }
-  }
   private spiceBlowPlacement(pieceId: string) {
     const table = this.table;
     const piece = table?.state.pieces.find((entry) => entry.id === pieceId);
@@ -960,7 +936,6 @@ export class TableSession {
     this.keep();
     const table = this.derive();
     this.table = table;
-    this.placeTurnedSpiceBlows(table);
     const panelsChanged = this.showPanels(table);
     const tableChanged = table !== null && table !== this.shownTable;
     this.shownTable = table ?? this.shownTable;
@@ -1782,9 +1757,6 @@ export class TableSession {
     }
     this.error = null;
     const commandId = crypto.randomUUID();
-    if (action.kind === 'flip' && spiceBlowTrigger() === 'auto') {
-      this.autoSpiceBlows.add(action.pieceId);
-    }
     if (action.kind === 'flip') {
       this.pendingFlips.set(commandId, action.pieceId);
     }
