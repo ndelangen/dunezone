@@ -123,7 +123,7 @@ describe('faction cards and board listings', () => {
     });
 
     await t.mutation(internal.migrations.faction_cards_v1, {});
-    await t.mutation(internal.migrations.board_readiness_listing_v1, {});
+    await t.mutation(internal.migrations.board_readiness_v1, {});
     await assertInSync(t);
 
     /* A rerun goes through a database that refuses every write, so an unconditional rewrite fails here. */

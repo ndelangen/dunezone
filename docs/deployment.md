@@ -14,7 +14,7 @@ The scheduled publisher has one simple execution model:
 - One `*/5 * * * *` Worker Cron leases at most twenty pending jobs.
 - The Worker always uses the one Renderer in the deployed release.
 - A Renderer revision increase only enqueues recaptures for that asset type.
-- The `/_admin/jobs` administrator route controls whether future jobs may be picked up.
+- The `/admin/jobs` administrator route controls whether future jobs may be picked up.
 
 There is no Renderer selection, rollout state machine, deployment pause, or rollback
 procedure. Fixes ship as new forward deployments. The game Worker deploys before the application
@@ -683,7 +683,7 @@ After a publisher release:
    legacy `v` query. Require the same current ETag and `Cache-Control: no-cache`, then
    require `304` for `If-None-Match` with that ETag.
 3. Confirm the Cloudflare dashboard shows one `*/5 * * * *` Cron.
-4. Open `/_admin/jobs` as an administrator and confirm the pickup switch has the intended
+4. Open `/admin/jobs` as an administrator and confirm the pickup switch has the intended
    value and no unexpected error jobs appeared.
 5. Observe an `asset_publisher_cron` event. With pickup off, expect a disabled
    result after expiry recovery. With pickup on and no eligible jobs, expect an

@@ -136,7 +136,7 @@ export const snapshotPolicy = {
       is_deleted: 'keep',
       asset_creation_time: 'keep',
     },
-    /* A row written before `board_readiness_listing_v1` has no `is_deleted` and is left out; the load's replay of that migration writes it again. */
+    /* A deleted board's row is left out with its board. */
     rows: notDeleted,
   },
   faction_cards: {
