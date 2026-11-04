@@ -54,19 +54,24 @@ function withDeletedPiece(before: StoredSnapshot, next: StoredSnapshot, pieceId:
   };
 }
 
+/** The table as the room guards it for a restore. */
+interface GuardedTable {
+  /** The board the game captured, and every piece another player carries locked so packing leaves it be. */
+  table: TableState;
+  /** Checks the table the room is about to keep, and puts back what it changed to guard it. */
+  settle: (placed: TableState) => TableState;
+}
+
 /**
  * Any seated player brings a deleted piece back where it lay, or at the nearest free spot, always face down.
  * Face down, a restored card shows nobody a face they could not see before, whatever it showed when it was deleted.
  * A peek held on the piece before it was deleted does not open it again.
- * `table` is the table as the room guards it: the board the game captured, and every piece another player carries locked so packing leaves it be.
- * `settle` lets the room check the table it is about to keep, and put back what it changed to guard it.
  */
 export function restoreCommand(
   snapshot: StoredSnapshot,
   action: RestoreAction,
   actorName: string,
-  table: TableState,
-  settle: (placed: TableState) => TableState
+  { table, settle }: GuardedTable
 ): StoredSnapshot {
   const deletion = snapshot.deletedPieces.find((entry) => entry.id === action.deletionId);
   if (!deletion) {

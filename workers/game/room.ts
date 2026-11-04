@@ -745,9 +745,12 @@ export class Room {
   private restoreCommand(action: RestoreAction, actorName: string): StoredSnapshot {
     const raw = this.viewerTable(SPECTATOR_SEAT);
     const guarded = this.lockReserved(raw);
-    return restoreCommand(this.snapshot, action, actorName, guarded, (placed) => {
-      this.assertReservationsUnchanged(guarded, placed);
-      return this.restoreReservationLocks(raw, placed);
+    return restoreCommand(this.snapshot, action, actorName, {
+      table: guarded,
+      settle: (placed) => {
+        this.assertReservationsUnchanged(guarded, placed);
+        return this.restoreReservationLocks(raw, placed);
+      },
     });
   }
 
