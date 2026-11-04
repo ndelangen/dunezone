@@ -1,3 +1,4 @@
+import type { Board } from '../../src/shared/boards/schema';
 import { emptyBattlePlan, BATTLE_COUNTDOWN_MS } from '../../src/shared/play/battle';
 import type {
   BattleAction,
@@ -17,7 +18,7 @@ import {
   spiceStrengthChoices,
 } from '../../src/shared/play/battleDialing';
 import { nextSnapshot, requireAccepted } from '../../src/shared/play/commands';
-import type { StoredPiece } from '../../src/shared/play/model';
+import type { StoredPiece, Vector3Tuple } from '../../src/shared/play/model';
 import { phaseAt } from '../../src/shared/play/phases';
 import { tableForViewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
@@ -26,6 +27,7 @@ import { BOARD_RADIUS, restingPositionAt } from '../../src/shared/play/tableGeom
 import { clampPositionToTable, nearestCollisionFreePosition } from '../../src/shared/play/tablePhysics';
 import { playFromHandAtAnchor } from '../../src/shared/play/tableState';
 import { isTechToken, takeableIntoHand } from '../../src/shared/play/techToken';
+import { territoryAtTable } from '../../src/shared/play/territoryPlacement';
 import { orderablePieces, revised } from './state';
 import type { StoredSnapshot, StoredBattle } from './state';
 
@@ -461,7 +463,13 @@ function planInOrder(snapshot: StoredSnapshot, factionId: string, order: readonl
   return { battleState: { ...battle, plans } };
 }
 
-function startBattle(snapshot: StoredSnapshot, action: Extract<BattleAction, { kind: 'battle-start' }>) {
+/* The territory under the battle marker, which names the battle and is highlighted while it lasts. */
+function battleTerritory(anchor: Vector3Tuple, board?: Board) {
+  const territory = territoryAtTable({ board }, anchor);
+  return territory ? { territory: territory.name, territoryId: territory.id } : { territory: 'Marked territory' };
+}
+
+function startBattle(snapshot: StoredSnapshot, action: Extract<BattleAction, { kind: 'battle-start' }>, board?: Board) {
   if (snapshot.battleState || phaseAt(snapshot.phase, snapshot.phases).id !== 'battle') {
     return refuse('Start a battle during the Battle phase when no battle is active.');
   }
@@ -472,7 +480,7 @@ function startBattle(snapshot: StoredSnapshot, action: Extract<BattleAction, { k
     battleState: {
       id: crypto.randomUUID(),
       anchor: action.anchor,
-      territory: action.territory,
+      ...battleTerritory(action.anchor, board),
       stage: 'preparing',
       sides: [null, null],
       plans: [null, null],
@@ -584,7 +592,8 @@ export function battleCommand(
   snapshot: StoredSnapshot,
   factionId: string,
   action: BattleAction,
-  now: number
+  now: number,
+  board?: Board
 ): StoredSnapshot {
   switch (action.kind) {
     case 'hand-take':
@@ -596,7 +605,7 @@ export function battleCommand(
     case 'hand-order':
       return orderHand(snapshot, factionId, action);
     case 'battle-start':
-      return startBattle(snapshot, action);
+      return startBattle(snapshot, action, board);
   }
   const battle = structuredClone(snapshot.battleState);
   if (!battle || battle.id !== action.battleId) {

@@ -47,6 +47,7 @@ import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
 import type { TableSeatCount } from '@shared/play/tableSettings';
 import type { TrackerArcSlot } from '@shared/play/tableTrackers';
 import { TRACKER_DISC_HEIGHT } from '@shared/play/tableTrackers';
+import { tintsWithBattle } from '@shared/play/territoryTints';
 import { isTroopStack } from '@shared/play/troop';
 import { playUiColors } from '@shared/uiPalette';
 import clsx from 'clsx';
@@ -1150,7 +1151,9 @@ function SceneContents({
   const table = useTabletop();
   const palette = useTablePalette();
   const board = useTabletopSelector((value) => value.snapshot.board);
-  const tints = useTabletopSelector((value) => value.snapshot.tints);
+  const tableTints = useTabletopSelector((value) => value.snapshot.tints);
+  const battleTerritory = useTabletopSelector((value) => value.snapshot.battle?.territoryId);
+  const tints = tintsWithBattle(tableTints, battleTerritory);
   const { state, renderedPieces, selectPiece } = table;
   const { controlsEnabled, onPointerSessionChange } = useSceneInteractions(onInteractionActiveChange);
   useScenePointerSession(onPointerSessionChange);

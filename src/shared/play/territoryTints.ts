@@ -9,6 +9,7 @@ import {
   tintTerritorySchema as territorySchema,
 } from '../boards/tints';
 import type { TintStamp } from '../boards/tints';
+import { coreColors } from '../uiPalette';
 import { actionKindGuard } from './actionKinds';
 import { CLIENT_MESSAGE_LIMIT } from './messageLimit';
 import { GameRejection } from './rejection';
@@ -215,4 +216,18 @@ export function applyTerritoryTint(tints: readonly TerritoryTint[], action: Terr
     return setTint(tints, tint, action);
   }
   return (action.painted ? paintIn : paintOut)(tints, tint, action.territory, action.name);
+}
+
+/*
+ * The battle marker's soft highlight over the territory it marks: a pale wash in the marker's own colour, drawn above the table's tints.
+ * Never stored; the page adds it while a battle lasts.
+ */
+const BATTLE_HIGHLIGHT_COLOR = `${coreColors.highlight}59`;
+export function battleHighlight(territoryId: string): TerritoryTint {
+  return { id: 'battle-highlight', name: 'Battle', color: BATTLE_HIGHLIGHT_COLOR, territories: [territoryId] };
+}
+
+/** The table's tints with a battle's highlight on top while it marks a territory. */
+export function tintsWithBattle(tints: TerritoryTint[] | undefined, territoryId: string | undefined) {
+  return territoryId ? [...(tints ?? []), battleHighlight(territoryId)] : tints;
 }
