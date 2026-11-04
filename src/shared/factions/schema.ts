@@ -415,9 +415,6 @@ export const HeroKeyedCanonicalFactionObject = CanonicalFactionStoredObject.omit
   hero: CanonicalFactionLeader,
 });
 
-/** A stored faction row's `data` as the live code reads it; `emblem_rename_factions_v1` has rewritten every row, so it is exact. */
-export const StoredFactionSchema = CanonicalFactionStoredObject;
-
 /**
  * A faction from outside the app (an imported content package or raw JSON), which may predate the emblem rename: its old `logo` names read as the new ones before `FactionWriteSchema` parses it.
  * See src/shared/legacyEmblem.ts.

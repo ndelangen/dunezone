@@ -2,13 +2,13 @@ import { ConvexError } from 'convex/values';
 
 import { ensureFactionComponentIds } from '../../src/shared/factions/componentIdentity';
 import { factionMembersHaveIds } from '../../src/shared/factions/memberIdentity';
-import { FactionWriteSchema, StoredFactionSchema } from '../../src/shared/factions/schema';
+import { FactionWriteSchema, CanonicalFactionStoredObject } from '../../src/shared/factions/schema';
 import { factionTroopsHaveIds } from '../../src/shared/factions/troopIdentity';
 import { hasLegacyEmblems } from '../../src/shared/legacyEmblem';
 import type { Doc } from '../_generated/dataModel';
 
 export function parseStoredFactionForRead(input: unknown) {
-  return StoredFactionSchema.parse(input);
+  return CanonicalFactionStoredObject.parse(input);
 }
 
 /**
@@ -23,7 +23,7 @@ export function parseFactionInput(
   input: unknown,
   { requireAuthoringSemantics = false }: { requireAuthoringSemantics?: boolean } = {}
 ) {
-  const parsed = (requireAuthoringSemantics ? FactionWriteSchema : StoredFactionSchema).safeParse(input);
+  const parsed = (requireAuthoringSemantics ? FactionWriteSchema : CanonicalFactionStoredObject).safeParse(input);
   if (!parsed.success && hasLegacyEmblems(input)) {
     /* Only a tab opened before the emblem rename still sends `logo`. */
     throw new ConvexError('Reload this page before saving. Dune Zone now calls a faction logo an emblem.');

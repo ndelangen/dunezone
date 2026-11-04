@@ -9,7 +9,7 @@ import {
   HeroKeyedHistoricalFactionObject,
   heroKeyedDecoder,
   HistoricalFactionPublicationSchema,
-  StoredFactionSchema,
+  CanonicalFactionStoredObject,
 } from './factions/schema';
 import { hasLegacyEmblems, readLegacyEmblemPath, renameLegacyEmblems } from './legacyEmblem';
 
@@ -61,9 +61,9 @@ describe('decoders of stored data', () => {
   });
 
   test('refuse the old names from app saves and Convex rows, which the migration has rewritten', () => {
-    expect(StoredFactionSchema.safeParse(legacyFaction).success).toBe(false);
+    expect(CanonicalFactionStoredObject.safeParse(legacyFaction).success).toBe(false);
     expect(FactionWriteSchema.safeParse(legacyFaction).success).toBe(false);
-    expect(StoredFactionSchema.safeParse(assetPublishingFaction).success).toBe(true);
+    expect(CanonicalFactionStoredObject.safeParse(assetPublishingFaction).success).toBe(true);
   });
 
   test('read a game capture from Durable Object storage taken before the rename', () => {

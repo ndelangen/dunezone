@@ -238,7 +238,7 @@ Object storage, published rulebook HTML, content packages exported before it):
 
 Narrowing later: once every verify migration has succeeded in production, the migration bodies
 may become no-ops with their ids kept (snapshot replay), and the readers over rows the migration
-rewrote can go back to the exact schemas. `StoredFactionSchema` and the save schema
+rewrote can go back to the exact schemas. `CanonicalFactionStoredObject` (Convex reads) and the save schema
 (`FactionWriteSchema`) went exact on 4 November 2026, so a tab older than the rename can no longer
 save a faction; content packages and raw JSON still read old names through `ImportedFactionSchema`.
 The readers above, for copies outside Convex, and the `/vector/logo/*` route stay. The
