@@ -36,15 +36,19 @@ export const TABLE_PLATE_BOUNDS = {
   minX: -(SIDE_SHELF_CENTER_X + SIDE_SHELF_SIZE[0] / 2),
   maxX: SIDE_SHELF_CENTER_X + SIDE_SHELF_SIZE[0] / 2,
   minZ: -TABLE_VISIBLE_RADIUS,
-  maxZ: BOTTOM_SHELF_POSITION[2] + BOTTOM_SHELF_SIZE[2] / 2,
-} as const;
+  get maxZ() {
+    return BOTTOM_SHELF_POSITION[2] + BOTTOM_SHELF_SIZE[2] / 2;
+  },
+};
 
 export const TABLE_PLATE_JOINS = {
   sideX: Math.sqrt(TABLE_VISIBLE_RADIUS * TABLE_VISIBLE_RADIUS - (SIDE_SHELF_SIZE[2] / 2) * (SIDE_SHELF_SIZE[2] / 2)),
-  bottomZ: Math.sqrt(
-    TABLE_VISIBLE_RADIUS * TABLE_VISIBLE_RADIUS - (BOTTOM_SHELF_SIZE[0] / 2) * (BOTTOM_SHELF_SIZE[0] / 2)
-  ),
-} as const;
+  get bottomZ() {
+    return Math.sqrt(
+      TABLE_VISIBLE_RADIUS * TABLE_VISIBLE_RADIUS - (BOTTOM_SHELF_SIZE[0] / 2) * (BOTTOM_SHELF_SIZE[0] / 2)
+    );
+  },
+};
 
 function pointOnCircle(angle: number): [x: number, z: number] {
   return [Math.cos(angle) * TABLE_VISIBLE_RADIUS, Math.sin(angle) * TABLE_VISIBLE_RADIUS];

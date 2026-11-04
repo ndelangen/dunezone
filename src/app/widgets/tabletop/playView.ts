@@ -112,16 +112,19 @@ const TABLE_VIEW_TARGETS: Record<TableView, Vector3Tuple> = {
   top: [0, 0.1, MAP_VIEW_TARGET_Z],
   left: [-SIDE_VIEW_TARGET_X, 0.1, 0],
   right: [SIDE_VIEW_TARGET_X, 0.1, 0],
-  bottom: [0, 0.1, BOTTOM_SHELF_POSITION[2] - 1.3],
+  get bottom(): Vector3Tuple {
+    return [0, 0.1, BOTTOM_SHELF_POSITION[2] - 1.3];
+  },
 };
 
-const BOTTOM_VIEW_FRAMING_POINTS: readonly Vector3Tuple[] = [-1, 1].flatMap((x) =>
-  [-1, 1].map((z) => [
-    BOTTOM_SHELF_POSITION[0] + (x * BOTTOM_SHELF_SIZE[0]) / 2,
-    FURNITURE_SURFACE_Y,
-    BOTTOM_SHELF_POSITION[2] + (z * BOTTOM_SHELF_SIZE[2]) / 2,
-  ])
-);
+const bottomViewFramingPoints = (): readonly Vector3Tuple[] =>
+  [-1, 1].flatMap((x) =>
+    [-1, 1].map((z) => [
+      BOTTOM_SHELF_POSITION[0] + (x * BOTTOM_SHELF_SIZE[0]) / 2,
+      FURNITURE_SURFACE_Y,
+      BOTTOM_SHELF_POSITION[2] + (z * BOTTOM_SHELF_SIZE[2]) / 2,
+    ])
+  );
 
 /* The camera's direction from its target and its screen axes at a tilt: 0 is the approved angle, 1 is near top-down. */
 type CameraBasis = Readonly<{ offset: Vector3Tuple; forward: Vector3Tuple; up: Vector3Tuple }>;
@@ -443,7 +446,7 @@ export function cameraPoseFor(
     : view === 'bottom'
       ? cameraScaleForFraming(
           safeAspectRatio,
-          BOTTOM_VIEW_FRAMING_POINTS,
+          bottomViewFramingPoints(),
           MAP_VIEW_TOP_LIMIT,
           basis,
           target,
@@ -493,15 +496,16 @@ const CAMERA_ZOOM_SCROLL_PX = 420;
  * and the bottom shelf with the Tanks and shared items. Each rectangle is [minX, maxX, minZ, maxZ] on the table.
  */
 const CAMERA_ZOOM_TARGET_RADIUS = 5.6;
-const CAMERA_ZOOM_TARGET_RECTANGLES = [
-  [-6.9, 6.9, -2, 2],
-  [-BOTTOM_SHELF_SIZE[0] / 2, BOTTOM_SHELF_SIZE[0] / 2, 0, BOTTOM_SHELF_POSITION[2] + BOTTOM_SHELF_SIZE[2] / 2],
-] as const;
+const cameraZoomTargetRectangles = () =>
+  [
+    [-6.9, 6.9, -2, 2],
+    [-BOTTOM_SHELF_SIZE[0] / 2, BOTTOM_SHELF_SIZE[0] / 2, 0, BOTTOM_SHELF_POSITION[2] + BOTTOM_SHELF_SIZE[2] / 2],
+  ] as const;
 
 /** How far inside the reachable area a table point lies; negative outside it. */
 function zoomTargetDepth(x: number, z: number): number {
   let depth = CAMERA_ZOOM_TARGET_RADIUS - Math.hypot(x, z);
-  for (const [minX, maxX, minZ, maxZ] of CAMERA_ZOOM_TARGET_RECTANGLES) {
+  for (const [minX, maxX, minZ, maxZ] of cameraZoomTargetRectangles()) {
     depth = Math.max(depth, Math.min(x - minX, maxX - x, z - minZ, maxZ - z));
   }
   return depth;
@@ -514,7 +518,7 @@ function nearestZoomTarget(x: number, z: number): [number, number] {
     distance <= CAMERA_ZOOM_TARGET_RADIUS
       ? [x, z]
       : [(x / distance) * CAMERA_ZOOM_TARGET_RADIUS, (z / distance) * CAMERA_ZOOM_TARGET_RADIUS];
-  for (const [minX, maxX, minZ, maxZ] of CAMERA_ZOOM_TARGET_RECTANGLES) {
+  for (const [minX, maxX, minZ, maxZ] of cameraZoomTargetRectangles()) {
     const candidate: [number, number] = [Math.min(maxX, Math.max(minX, x)), Math.min(maxZ, Math.max(minZ, z))];
     if (Math.hypot(candidate[0] - x, candidate[1] - z) < Math.hypot(best[0] - x, best[1] - z)) {
       best = candidate;

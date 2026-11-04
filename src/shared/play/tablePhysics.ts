@@ -7,6 +7,7 @@ import {
   CARD_FOOTPRINT_HALF_Z,
   circleFootprintRadius,
   planarDistance,
+  TABLE_VISIBLE_RADIUS,
   TROOP_FOOTPRINT_RADIUS,
   troopScale,
   tokenBoxRatio,
@@ -49,11 +50,20 @@ export const TABLE_PLAY_RADIUS = 5.55;
  * the shelf joins it, so a piece can slide from the table onto the shelf without a gap between the two areas.
  */
 export const TANKS_PLAY_AREA = {
-  minX: BOTTOM_SHELF_POSITION[0] - BOTTOM_SHELF_SIZE[0] / 2,
-  maxX: BOTTOM_SHELF_POSITION[0] + BOTTOM_SHELF_SIZE[0] / 2,
-  minZ: 4.6,
-  maxZ: BOTTOM_SHELF_POSITION[2] + BOTTOM_SHELF_SIZE[2] / 2,
-} as const;
+  get minX() {
+    return BOTTOM_SHELF_POSITION[0] - BOTTOM_SHELF_SIZE[0] / 2;
+  },
+  get maxX() {
+    return BOTTOM_SHELF_POSITION[0] + BOTTOM_SHELF_SIZE[0] / 2;
+  },
+  get minZ() {
+    /* Where the shelf's edges meet the round table, so the play area never reaches past the plate. */
+    return Math.min(4.6, Math.sqrt(TABLE_VISIBLE_RADIUS ** 2 - (BOTTOM_SHELF_SIZE[0] / 2) ** 2));
+  },
+  get maxZ() {
+    return BOTTOM_SHELF_POSITION[2] + BOTTOM_SHELF_SIZE[2] / 2;
+  },
+};
 const SEARCH_STEP = 0.08;
 const SEARCH_RING_COUNT = 96;
 const SEARCH_DIRECTIONS = 32;
