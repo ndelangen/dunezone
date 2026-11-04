@@ -133,8 +133,8 @@ http.route({
     return await handleAuthenticatedJson(request, {
       expectedSecret: executorSecret(),
       schema: resolveRulebookAnnotatedIllustrationRequestSchema,
-      execute: async ({ schemaVersion, ...identity }) =>
-        ctx.runQuery(internal.rulebookAnnotatedIllustration.resolveDelivery, { ...identity, schemaVersion }),
+      execute: async ({ schemaVersion: _schemaVersion, ...identity }) =>
+        ctx.runQuery(internal.rulebookAnnotatedIllustration.resolveDelivery, identity),
     });
   }),
 });

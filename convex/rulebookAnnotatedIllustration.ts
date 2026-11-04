@@ -9,7 +9,6 @@ import {
 import { CanonicalFactionStoredObject } from '../src/shared/factions/schema';
 import { renameLegacyEmblems } from '../src/shared/legacyEmblem';
 import {
-  RULEBOOK_ILLUSTRATION_REQUEST_VERSION,
   resolveRulebookAnnotatedIllustrationResponseSchema,
   rulebookAnnotatedIllustrationIdentitySchema,
   rulebookIllustrationConfigurationSchema,
@@ -21,7 +20,6 @@ import { DEFAULT_RULEBOOK_SETTINGS } from '../src/shared/rulebooks/settings';
 import { RULEBOOK_STOCK_ARTWORK, rulebookArtworkName } from '../src/shared/rulebooks/sources';
 import type { RulebookSourceReference } from '../src/shared/rulebooks/sources';
 import { internalQuery } from './_generated/server';
-import { ARRAKIS_BOARD_SLUG, BUILT_IN_ARRAKIS_BOARD_ID } from './arrakisMigrations';
 import { assetDisplayName } from './lib/assetInput';
 import { currentFactionLeaderData } from './lib/publication';
 import { rulebookForArtifactDelivery } from './lib/rulebookEditionArtifacts';
@@ -148,48 +146,6 @@ async function resolvePublication(
   };
 }
 
-type Configuration = Extract<RulebookAnnotatedIllustrationResolution, { status: 'found' }>['configuration'];
-
-/**
- * A Worker released before saved boards cannot parse a saved-board source, and production deploys Convex and runs the Arrakis migration before it deploys the Worker.
- * For that Worker an illustration the migration moved onto the saved Arrakis board names the built-in Arrakis board again, which it still draws;
- * any other saved board reads as pending.
- * Remove this once the built-in board is gone (#1971 follow-up): every Worker by then asks with version 2.
- */
-async function forVersionOneWorker(
-  ctx: QueryCtx,
-  configuration: Configuration,
-  assetId: string
-): Promise<{ configuration: Configuration; source: SourceResolution }> {
-  const arrakis = await ctx.db
-    .query('assets')
-    .withIndex('by_type_and_slug', (q) => q.eq('type', 'board').eq('slug', ARRAKIS_BOARD_SLUG))
-    .unique();
-  if (!arrakis || arrakis._id !== assetId || !resolveRulebookBoardDefinition(BUILT_IN_ARRAKIS_BOARD_ID)) {
-    return { configuration, source: { status: 'pending' } };
-  }
-  const builtIn = <T>(reference: T): T =>
-    reference &&
-    typeof reference === 'object' &&
-    'kind' in reference &&
-    reference.kind === 'board' &&
-    'boardId' in reference &&
-    reference.boardId === assetId
-      ? { ...reference, boardId: BUILT_IN_ARRAKIS_BOARD_ID }
-      : reference;
-  return {
-    configuration: {
-      ...configuration,
-      source: builtIn(configuration.source),
-      items: configuration.items.map((item) => ({
-        ...item,
-        target: { ...item.target, source: builtIn(item.target.source) },
-      })),
-    },
-    source: { status: 'board', boardId: BUILT_IN_ARRAKIS_BOARD_ID },
-  };
-}
-
 /** Resolves immutable annotation choices under the same live Rulebook and Ruleset gates as Edition artifacts. */
 export const resolveDelivery = internalQuery({
   args: {
@@ -197,10 +153,9 @@ export const resolveDelivery = internalQuery({
     editionNumber: v.number(),
     pageId: v.string(),
     blockId: v.string(),
-    schemaVersion: v.optional(v.number()),
   },
   returns: zodToConvex(resolveRulebookAnnotatedIllustrationResponseSchema),
-  handler: async (ctx, { schemaVersion, ...args }): Promise<RulebookAnnotatedIllustrationResolution> => {
+  handler: async (ctx, args): Promise<RulebookAnnotatedIllustrationResolution> => {
     const identity = rulebookAnnotatedIllustrationIdentitySchema.safeParse(args);
     if (!identity.success) {
       return { ok: true, status: 'missing' };
@@ -244,13 +199,6 @@ export const resolveDelivery = internalQuery({
     });
     const design = (edition.settings ?? DEFAULT_RULEBOOK_SETTINGS).design;
     const source = await resolveSource(ctx, configuration.source);
-    if (
-      schemaVersion !== RULEBOOK_ILLUSTRATION_REQUEST_VERSION &&
-      source.status === 'image' &&
-      source.assetType === 'board'
-    ) {
-      return { ok: true, status: 'found', design, ...(await forVersionOneWorker(ctx, configuration, source.assetId)) };
-    }
     return { ok: true, status: 'found', design, configuration, source };
   },
 });
