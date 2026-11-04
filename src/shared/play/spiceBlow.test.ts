@@ -69,9 +69,22 @@ describe('spice blow capture', () => {
     expect(brokenLand).toEqual({ amount: 8, territories: ['broken_land'] });
   });
 
-  test('a linked board that marks no territory falls back to the highlights, and a token off the frame is left out', () => {
+  test('a linked board names the territory its map shows, not the classic highlights it no longer draws', () => {
     const blow = spiceBlowOf('card-spice', {
-      highlights: ['arsunt'],
+      highlights: ['broken-land'],
+      amount: 6,
+      board: {
+        asset_id: 'arrakis-board',
+        tints: [{ territories: ['arsunt'] }],
+        tokens: [],
+      },
+    });
+    expect(blow).toEqual({ amount: 6, territories: ['arsunt'], boardId: 'arrakis-board' });
+  });
+
+  test('a linked board that only outlines names its outline, and a token off the frame is left out', () => {
+    const blow = spiceBlowOf('card-spice', {
+      highlights: ['broken-land'],
       amount: 6,
       board: {
         asset_id: 'arrakis-board',

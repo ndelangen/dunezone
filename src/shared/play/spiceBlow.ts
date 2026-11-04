@@ -45,10 +45,13 @@ function stampedTerritories(link: LinkedBoard): string[] {
   return tints.filter((tint) => strings(tint.stamps).includes('spice')).flatMap((tint) => strings(tint.territories));
 }
 
-/* The card's first filled tint: a card that marks more, as a Discovery card marks its token's territory too, names its spice first. */
+/*
+ * The card's first filled tint: a card that marks more, as a Discovery card marks its token's territory too, names its spice first.
+ * A card that only outlines names its first outline.
+ */
 function firstFilledTerritories(link: LinkedBoard): string[] {
   const tints = Array.isArray(link.tints) ? link.tints : [];
-  return strings(tints.find((tint) => !tint.outline)?.territories);
+  return strings((tints.find((tint) => !tint.outline) ?? tints[0])?.territories);
 }
 
 /* A token off the board's frame is left out, rather than costing the card its blow. */
@@ -77,16 +80,15 @@ function boardIdOf(link: LinkedBoard | undefined): { boardId?: string } {
 }
 
 /*
- * Where the card puts its spice: the territories its board stamps with spice; else those its highlights name, which mark only the spice;
- * else its board's first filled tint.
+ * Where the card puts its spice. A card linked to a board shows only that board's map, so it names the territories its board stamps
+ * with spice, else its first filled tint; its retained classic highlights are no longer drawn. An unlinked card names its highlights.
  */
 function blowTerritories(card: LegacyCard, link: LinkedBoard | undefined): string[] {
-  const stamped = link ? stampedTerritories(link) : [];
-  if (stamped.length) {
-    return stamped;
+  if (!link) {
+    return highlightTerritories(card);
   }
-  const highlighted = highlightTerritories(card);
-  return highlighted.length || !link ? highlighted : firstFilledTerritories(link);
+  const stamped = stampedTerritories(link);
+  return stamped.length ? stamped : firstFilledTerritories(link);
 }
 
 /* The blow as the card describes it, before the schema checks it. */
