@@ -60,14 +60,14 @@ export function spiceCardOnBoard(data: unknown, boardId: string): unknown {
 /* A highlight on the built-in board named a territory no board has; Norbert confirmed it meant The Greater Flat (#1971). */
 const MISSPELT_TERRITORIES: Record<string, string> = { 'greater-flat': 'the-greater-flat' };
 
+const misspeltTerritory = (key: string, item: unknown) =>
+  key === 'territory' && typeof item === 'string' ? MISSPELT_TERRITORIES[item] : undefined;
+
 function renamed(key: string, item: unknown, boardId: string): unknown {
   if (key === 'boardId' && item === BUILT_IN_ARRAKIS_BOARD_ID) {
     return boardId;
   }
-  if (key === 'territory' && typeof item === 'string' && MISSPELT_TERRITORIES[item]) {
-    return MISSPELT_TERRITORIES[item];
-  }
-  return contentsOnBoard(item, boardId);
+  return misspeltTerritory(key, item) ?? contentsOnBoard(item, boardId);
 }
 
 /** Rulebook Contents with every board reference to the built-in Arrakis board renamed to the saved board's id, and its one misspelt territory corrected. */
@@ -107,17 +107,21 @@ export const arrakis_spice_cards_v1 = migrations.define({
   },
 });
 
+/** Contents that still name the built-in board, moved onto the saved board; null when there is nothing to move or no saved board. */
+async function movedContents(ctx: MutationCtx, contents: unknown) {
+  const boardId = namesBuiltInBoard(contents) ? await arrakisBoardId(ctx) : null;
+  return boardId ? contentsOnBoard(contents, boardId) : null;
+}
+
 /** Renames the built-in board in a draft's Contents and rebuilds its Contents hash; the settings-and-Contents hash is dropped, as the emblem rename did. */
 export const arrakis_rulebook_drafts_v1 = migrations.define({
   table: 'rulebook_drafts',
   batchSize: 2,
   migrateOne: async (ctx, draft) => {
-    const boardId = namesBuiltInBoard(draft.contents) ? await arrakisBoardId(ctx) : null;
-    if (!boardId) {
-      return;
-    }
-    const contents = contentsOnBoard(draft.contents, boardId);
-    return { contents, contents_hash: rulebookDraftContentsHash(contents), authored_hash: undefined };
+    const contents = await movedContents(ctx, draft.contents);
+    return contents
+      ? { contents, contents_hash: rulebookDraftContentsHash(contents), authored_hash: undefined }
+      : undefined;
   },
 });
 
@@ -126,11 +130,10 @@ export const arrakis_rulebook_edition_contents_v1 = migrations.define({
   table: 'rulebook_edition_contents',
   batchSize: 2,
   migrateOne: async (ctx, row) => {
-    const boardId = namesBuiltInBoard(row.contents) ? await arrakisBoardId(ctx) : null;
-    if (!boardId) {
+    const contents = await movedContents(ctx, row.contents);
+    if (!contents) {
       return;
     }
-    const contents = contentsOnBoard(row.contents, boardId);
     await ctx.db.patch(row.edition_id, {
       contents_hash: rulebookEditionContentsHash(contents),
       authored_hash: undefined,

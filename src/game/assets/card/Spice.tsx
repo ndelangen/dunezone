@@ -125,24 +125,24 @@ export const SpiceCard: FC<
           />
         )
       ) : (
-        <>
-          <SpiceBoardMap board={retainedArrakisBoard()} tints={classicTints(highlights, subName)} />
-          {overlays?.length ? (
-            <svg className={unique.map_overlay} viewBox="0 0 100 100" fillRule="evenodd" clipRule="evenodd">
-              {overlays.map((overlay) => (
-                <image
-                  key={`${overlay.image}-${overlay.offset[0]},${overlay.offset[1]}-${overlay.scale}`}
-                  href={resolveOverlay(overlay.image)}
-                  x={overlay.offset[0]}
-                  y={overlay.offset[1]}
-                  width={overlay.scale}
-                  height={overlay.scale}
-                />
-              ))}
-            </svg>
-          ) : null}
-        </>
+        <SpiceBoardMap board={retainedArrakisBoard()} tints={classicTints(highlights, subName)} />
       )}
+
+      {/* Images an author placed on the map, in the classic map's 100-unit frame, over the classic or the linked board alike. */}
+      {overlays?.length ? (
+        <svg className={unique.map_overlay} viewBox="0 0 100 100" fillRule="evenodd" clipRule="evenodd">
+          {overlays.map((overlay) => (
+            <image
+              key={`${overlay.image}-${overlay.offset[0]},${overlay.offset[1]}-${overlay.scale}`}
+              href={resolveOverlay(overlay.image)}
+              x={overlay.offset[0]}
+              y={overlay.offset[1]}
+              width={overlay.scale}
+              height={overlay.scale}
+            />
+          ))}
+        </svg>
+      ) : null}
 
       {board?.typeToken && boardTokens?.[board.typeToken.asset_id] ? (
         <div className={unique.typeToken} data-spice-type-token>

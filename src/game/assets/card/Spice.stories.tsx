@@ -75,6 +75,23 @@ export const OnSavedBoard = meta.story({
   },
 });
 
+/** Overlays an author placed on the classic map stay on the card once it is linked to a saved board. */
+export const OverlayOnSavedBoard = meta.story({
+  args: {
+    ...discoveryOnBoard,
+    boardDefinition: arrakisBoard(),
+    boardTokens: spiceBoardTokens,
+    overlays: [{ image: '/image/texture/052.jpg', offset: [21.6, 16.4], scale: 6.2 }],
+  },
+  play: async ({ canvasElement }) => {
+    const href = resolveAsset('/image/texture/052.jpg', 'large');
+    const overlays = Array.from(canvasElement.querySelectorAll('svg image')).filter(
+      (image) => image.getAttribute('href') === href
+    );
+    await expect(overlays).toHaveLength(1);
+  },
+});
+
 /** Opening a placed token in the editor keeps its shadow without adding a border. */
 export const SelectedTokenOnSavedBoard = meta.story({
   args: {

@@ -6,9 +6,9 @@ import { CENTER, RADIUS } from '@shared/boards/geometry';
 import type { BoardTint, BoardTokenPlacement } from '@shared/boards/markup';
 import { boardTerritoryList, tintDrawing } from '@shared/boards/tintDrawing';
 import type { TintDrawing } from '@shared/boards/tintDrawing';
-import { TINT_STICKER_ARTWORK } from '@shared/boards/tints';
+import { TINT_STICKER_ARTWORK, tintOutlineOpacity } from '@shared/boards/tints';
 import { TABLE_SECTOR_COUNT } from '@shared/play/tableSettings';
-import { Fragment, useId, useMemo } from 'react';
+import { useId, useMemo } from 'react';
 import type { PointerEvent } from 'react';
 import type { z } from 'zod';
 
@@ -56,17 +56,24 @@ function PlacedToken({
   );
 }
 
-/* The classic card highlight, in board units: a solid fill in the tint's colour, ringed in black and then in parchment. */
+/* The classic card highlight, in board units: a fill in the tint's colour, ringed in black and then in parchment. */
 const HIGHLIGHT_EDGE_COLOR = '#000';
 const HIGHLIGHT_HALO_COLOR = '#F8F6E2';
-const HIGHLIGHT_RINGS = [
-  { color: HIGHLIGHT_HALO_COLOR, radius: 5 },
-  { color: HIGHLIGHT_EDGE_COLOR, radius: 3 },
-] as const;
+const HIGHLIGHT_HALO_RADIUS = 5;
+const HIGHLIGHT_EDGE_RADIUS = 3;
 const HIGHLIGHT_FILL_RADIUS = 1;
 
-/** A card's tints as the classic map drew its highlights: the territories filled solid, ringed black then parchment; an outline-only tint keeps its outline. */
-function CardTintLayers({ drawings, idPrefix }: Readonly<{ drawings: readonly TintDrawing[]; idPrefix: string }>) {
+/**
+ * A card's tints as the classic map drew its highlights: the territories filled, ringed black then parchment;
+ * an outline-only tint keeps its outline.
+ * The rings are always solid.
+ * The fill takes the colour's own see-through amount when it carries one, else it is solid, as the classic map was.
+ */
+function CardTintLayers({
+  drawings,
+  opacities,
+  idPrefix,
+}: Readonly<{ drawings: readonly TintDrawing[]; opacities: readonly number[]; idPrefix: string }>) {
   const stickerFilter = `${idPrefix}-sticker`;
   return (
     <>
@@ -88,22 +95,22 @@ function CardTintLayers({ drawings, idPrefix }: Readonly<{ drawings: readonly Ti
               values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 34 0"
               result="shape"
             />
-            {[...HIGHLIGHT_RINGS, { color: drawing.color, radius: HIGHLIGHT_FILL_RADIUS }].map((ring, ringIndex) => (
-              <Fragment key={ringIndex}>
-                <feMorphology in="shape" operator="dilate" radius={ring.radius} result={`dilated${ringIndex}`} />
-                <feFlood floodColor={ring.color} result={`flood${ringIndex}`} />
-                <feComposite
-                  in={`flood${ringIndex}`}
-                  in2={`dilated${ringIndex}`}
-                  operator="in"
-                  result={`ring${ringIndex}`}
-                />
-              </Fragment>
-            ))}
+            <feMorphology in="shape" operator="dilate" radius={HIGHLIGHT_HALO_RADIUS} result="halo" />
+            <feMorphology in="shape" operator="dilate" radius={HIGHLIGHT_EDGE_RADIUS} result="edge" />
+            <feMorphology in="shape" operator="dilate" radius={HIGHLIGHT_FILL_RADIUS} result="fill" />
+            {/* Each ring is only its band, so a see-through fill shows the board, not the rings, beneath it. */}
+            <feComposite in="halo" in2="edge" operator="out" result="haloBand" />
+            <feComposite in="edge" in2="fill" operator="out" result="edgeBand" />
+            <feFlood floodColor={HIGHLIGHT_HALO_COLOR} result="haloColor" />
+            <feComposite in="haloColor" in2="haloBand" operator="in" result="haloRing" />
+            <feFlood floodColor={HIGHLIGHT_EDGE_COLOR} result="edgeColor" />
+            <feComposite in="edgeColor" in2="edgeBand" operator="in" result="edgeRing" />
+            <feFlood floodColor={drawing.color} floodOpacity={opacities[index]} result="fillColor" />
+            <feComposite in="fillColor" in2="fill" operator="in" result="fillArea" />
             <feMerge>
-              <feMergeNode in="ring0" />
-              <feMergeNode in="ring1" />
-              <feMergeNode in="ring2" />
+              <feMergeNode in="haloRing" />
+              <feMergeNode in="edgeRing" />
+              <feMergeNode in="fillArea" />
             </feMerge>
           </filter>
         ))}
@@ -242,7 +249,13 @@ export function SpiceBoardMap({
     [board, territories]
   );
   const tintLayers = useMemo(
-    () => <CardTintLayers drawings={tints.map((tint) => tintDrawing(board, tint))} idPrefix={idPrefix} />,
+    () => (
+      <CardTintLayers
+        drawings={tints.map((tint) => tintDrawing(board, tint))}
+        opacities={tints.map((tint) => tintOutlineOpacity(tint.color))}
+        idPrefix={idPrefix}
+      />
+    ),
     [board, tints, idPrefix]
   );
   const polarSink = territories.find(({ id }) => id === 'polar_sink')?.face.path;
