@@ -592,6 +592,11 @@ function BattleSides(props: ActiveProps) {
         const side = battle.sides[index];
         return (
           <div className={styles.side} key={index}>
+            {index === 0 && (
+              <Text className={styles.aggressor} size="xs" c="dimmed">
+                Aggressor, normally wins ties
+              </Text>
+            )}
             <SideContents {...props} index={index} active={active} />
             {side?.choice && (
               <Text className={styles.choice} size="xs">

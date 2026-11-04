@@ -200,3 +200,12 @@
     opacity: 0;
   }
 }
+
+/* The left side is the aggressor's, which a tie normally favours; said above it, since nothing else on the table does. */
+.aggressor {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
