@@ -1,5 +1,6 @@
 import preview from '@sb/preview';
 import { STANDARD_PHASES } from '@shared/play/phases';
+import type { TablePhaseId } from '@shared/play/phases';
 import { rosterFactionIds } from '@shared/play/protocol';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { expect, within } from 'storybook/test';
@@ -30,11 +31,11 @@ export const OnAnotherFaction = meta.story({
   },
 });
 
-/* Every faction's Treachery card count, in storm order, in the left card bay's empty slot: the size of a hand is public. */
-export const HandCounts = meta.story({
-  beforeEach: install(() => {
+/* A table in the given phase whose seats hold a spread of Treachery hands, with the Emperor's token face down. */
+const handCountsSetup = (phase: TablePhaseId) =>
+  install(() => {
     const snapshot: GameSnapshot = playingSnapshot('seat-2');
-    snapshot.phase = (snapshot.phases ?? STANDARD_PHASES).findIndex((entry) => entry.id === 'bidding');
+    snapshot.phase = (snapshot.phases ?? STANDARD_PHASES).findIndex((entry) => entry.id === phase);
     const emperor = snapshot.table.pieces.find((piece) => piece.stackKey === 'faction-token:emperor');
     if (emperor) {
       emperor.items = emperor.items.map((item) => ({ ...item, faceUp: false }));
@@ -42,13 +43,28 @@ export const HandCounts = meta.story({
     const factions = rosterFactionIds(snapshot.roster);
     snapshot.handCounts = Object.fromEntries(factions.map((id, index) => [id, [0, 1, 2, 4, 3, 8][index % 6]!]));
     return productTransport('seat-2', snapshot);
-  }),
+  });
+
+/* Every faction's Treachery card count, in storm order, in the left card bay's empty slot: the size of a hand is public. */
+export const HandCounts = meta.story({
+  beforeEach: handCountsSetup('bidding'),
   /* The counts are painted into the table's canvas, so the story can only wait for the bidding phase they belong to. */
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(
       page.findByRole('group', { name: 'Start new bidding starting at' }, { timeout: 30_000 })
     ).resolves.toBeVisible();
+  },
+});
+
+/* The counts belong to Bidding, so once Revival begins the left card bay's slot stands empty again (#2671). */
+export const HandCountsOutsideBidding = meta.story({
+  beforeEach: handCountsSetup('revival'),
+  /* The counts are painted into the table's canvas, so the story can only wait for the phase controls and the bidder to be gone. */
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('button', { name: 'Next phase' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.queryByRole('group', { name: 'Start new bidding starting at' })).toBeNull();
   },
 });
 

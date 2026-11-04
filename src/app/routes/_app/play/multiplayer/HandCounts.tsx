@@ -233,6 +233,7 @@ function useHandCountTexture(rows: readonly Row[]) {
 
 /**
  * Every seated faction's Treachery card count, in storm order, painted into the left card bay's empty slot where bidding is watched (#1007).
+ * It belongs to the Bidding phase, so the table shows it only then (#2671).
  * A faction whose token lies face down sits out the round, so its count is greyed out as the bidder greys it.
  */
 export function HandCountsScene({ table }: { table: TableProjection }) {
