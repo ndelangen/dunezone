@@ -9,7 +9,8 @@ import type { CompassTable } from './compassTable';
  */
 
 export type Command = 'pass' | 'raise' | 'lower' | 'faceUp';
-export type Shortcut = TileSpot | Command;
+/* ? shows or hides the keyboard shortcuts cheat sheet. */
+export type Shortcut = TileSpot | Command | 'help';
 
 export const SHORTCUTS: Readonly<Record<Shortcut, string>> = {
   hand: 'H',
@@ -21,6 +22,7 @@ export const SHORTCUTS: Readonly<Record<Shortcut, string>> = {
   raise: 'I',
   lower: 'O',
   faceUp: 'U',
+  help: '?',
 };
 
 const BY_LETTER = new Map(Object.entries(SHORTCUTS).map(([shortcut, letter]) => [letter, shortcut as Shortcut]));

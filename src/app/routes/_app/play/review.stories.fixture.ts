@@ -10,12 +10,18 @@ import { coreColors } from '@shared/uiPalette';
 import { STORYBOOK_NOW } from '@db/storybook';
 
 import { playingSnapshot, productTransport } from './product.stories.fixture';
+import { finishedSnapshot } from './results.stories.fixture';
 
 /* The live table plays Turn 1's Battle; its checkpoints run from the end of setup through each phase of the turn so far. */
 const BATTLE = TABLE_PHASES.findIndex((phase) => phase.id === 'battle');
+const MENTAT_PAUSE = TABLE_PHASES.findIndex((phase) => phase.id === 'mentat-pause');
 const FIRST_PLAY_STEP = 8;
 
-export function reviewCheckpoints(): ReviewCheckpoint[] {
+/** Where the live table stands: playing Turn 1's Battle, or finished at its Mentat Pause. */
+type Stage = 'play' | 'finished';
+
+export function reviewCheckpoints(stage: Stage = 'play'): ReviewCheckpoint[] {
+  const last = stage === 'finished' ? MENTAT_PAUSE : BATTLE;
   return [
     {
       step: FIRST_PLAY_STEP - 1,
@@ -26,7 +32,7 @@ export function reviewCheckpoints(): ReviewCheckpoint[] {
       moment: 'entered',
       faction: null,
     },
-    ...TABLE_PHASES.slice(0, BATTLE + 1).map((phase, index) => ({
+    ...TABLE_PHASES.slice(0, last + 1).map((phase, index) => ({
       step: FIRST_PLAY_STEP + index,
       context: `Turn 1, ${phase.label}`,
       turn: 1,
@@ -35,15 +41,35 @@ export function reviewCheckpoints(): ReviewCheckpoint[] {
       moment: 'entered' as const,
       faction: null,
     })),
+    ...(stage === 'finished'
+      ? [
+          {
+            step: FIRST_PLAY_STEP + last + 1,
+            context: 'Turn 1, Mentat Pause',
+            turn: 1,
+            label: TABLE_PHASES[last]!.label,
+            symbol: TABLE_PHASES[last]!.symbol,
+            moment: 'result' as const,
+            faction: null,
+          },
+        ]
+      : []),
   ];
 }
 
-/** The live table a review is asked from: Turn 1's Battle, nobody reviewing yet. */
-export function reviewableSnapshot(viewerSeat = 'seat-2', review: TableReview | null = null): GameSnapshot {
-  const snapshot = playingSnapshot(viewerSeat === SPECTATOR_SEAT ? 'seat-2' : viewerSeat);
-  snapshot.phase = BATTLE;
+/** The live table a review is asked from: Turn 1's Battle, or the game finished at its Mentat Pause; nobody reviewing yet. */
+export function reviewableSnapshot(
+  viewerSeat = 'seat-2',
+  review: TableReview | null = null,
+  stage: Stage = 'play'
+): GameSnapshot {
+  const seat = viewerSeat === SPECTATOR_SEAT ? 'seat-2' : viewerSeat;
+  const snapshot = stage === 'finished' ? finishedSnapshot(seat) : playingSnapshot(seat);
+  if (stage === 'play') {
+    snapshot.phase = BATTLE;
+  }
   snapshot.review = review;
-  snapshot.reviewCheckpoints = reviewCheckpoints();
+  snapshot.reviewCheckpoints = reviewCheckpoints(stage);
   if (viewerSeat === SPECTATOR_SEAT) {
     delete snapshot.bank;
     delete snapshot.hand;
@@ -52,7 +78,11 @@ export function reviewableSnapshot(viewerSeat = 'seat-2', review: TableReview | 
   return snapshot;
 }
 
-/** A review of a checkpoint, asked by one seat; `agreed` seats have agreed, and it runs once they are a majority. */
+/**
+ * A review of a checkpoint, asked by one seat;
+ * `agreed` seats have agreed, and it runs once they are a majority.
+ * A finished game's review runs as it is asked for.
+ */
 export function reviewOf(
   snapshot: GameSnapshot,
   checkpoint: ReviewCheckpoint,
@@ -65,7 +95,7 @@ export function reviewOf(
     seat: player.seat,
     choice: player.seat === proposer || agreed.includes(player.seat) ? ('review' as const) : null,
   }));
-  const threshold = reviewThreshold(players.length);
+  const threshold = reviewThreshold(players.length, snapshot.stage);
   return {
     id: `review-${checkpoint.step}`,
     step: checkpoint.step,
@@ -81,7 +111,7 @@ export function reviewOf(
 /** The checkpoint's public board and only the viewing seat's recorded private inventory. */
 function checkpointSnapshot(step: number, viewerSeat: string): GameSnapshot {
   const { battlePlan: _plan, ...past } = playingSnapshot(viewerSeat === SPECTATOR_SEAT ? 'seat-2' : viewerSeat);
-  past.phase = Math.max(0, step - FIRST_PLAY_STEP);
+  past.phase = Math.min(TABLE_PHASES.length - 1, Math.max(0, step - FIRST_PLAY_STEP));
   if (viewerSeat === SPECTATOR_SEAT) {
     delete past.hand;
     delete past.handOrder;
@@ -98,9 +128,10 @@ function checkpointSnapshot(step: number, viewerSeat: string): GameSnapshot {
 export function reviewTransport(
   viewerSeat: string,
   review: TableReview | null = null,
-  { agreeAfterMs = 1500 as number | null } = {}
+  { agreeAfterMs = 1500 as number | null, stage = 'play' as Stage } = {}
 ) {
-  let live = reviewableSnapshot(viewerSeat, review);
+  const checkpoints = reviewCheckpoints(stage);
+  let live = reviewableSnapshot(viewerSeat, review, stage);
   let revision = live.revision;
   const messages: ConversationMessage[] = [];
   const pointers = (live.controls?.players ?? [])
@@ -173,15 +204,18 @@ export function reviewTransport(
         type: 'history',
         ...(message.requestId ? { requestId: message.requestId } : {}),
         step: message.step,
-        lastStep: reviewCheckpoints().at(-1)!.step,
+        lastStep: checkpoints.at(-1)!.step,
         snapshot: checkpointSnapshot(message.step, viewerSeat),
       })
     );
     return true;
   }
   function proposeRecall(step: number) {
-    const checkpoint = reviewCheckpoints().find((entry) => entry.step === step)!;
+    const checkpoint = checkpoints.find((entry) => entry.step === step)!;
     const proposed = reviewOf(live, checkpoint, viewerSeat);
+    if (proposed.startedAt !== null) {
+      return proposed;
+    }
     agree = () => {
       agree = null;
       const others = live.controls!.players.filter((player) => player.seat !== viewerSeat).map((p) => p.seat);
@@ -216,7 +250,7 @@ export function reviewTransport(
     } else if (action.kind === 'review-ballot' && current) {
       next = castBallot(current, action.choice);
     } else if (action.kind === 'review-seek' && current && current.startedAt !== null) {
-      const checkpoint = reviewCheckpoints().find((entry) => entry.step === action.step);
+      const checkpoint = checkpoints.find((entry) => entry.step === action.step);
       next = current && checkpoint ? { ...current, step: checkpoint.step, context: checkpoint.context } : undefined;
     } else if (action.kind === 'review-end') {
       agree = null;

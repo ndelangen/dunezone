@@ -2,6 +2,7 @@ import { DECAL, LEADERS, TROOP } from '@shared/assetIds';
 import { DEFAULT_PHASE_PRIORITY } from '@shared/factions/extraPhases';
 import { createFactionMemberId } from '@shared/factions/memberIdentity';
 import { createFactionTroopId } from '@shared/factions/troopIdentity';
+import { isRetiredStockAsset } from '@shared/retiredStockAssets';
 
 import type { Faction } from '@db/factions';
 import { CURATED_PLANET_IMAGES } from '@game/data/planetCatalogue';
@@ -37,16 +38,19 @@ function nextStrengthChar(value: Faction['leaders'][number]['strength']): string
   return '1';
 }
 
+/* Retired portraits stay readable on saved factions but are never handed out as the next leader's picture. */
+const offeredLeaderImages = LEADERS.options.filter((image) => !isRetiredStockAsset(image));
+
 function nextLeaderImage(image: Faction['leaders'][number]['image']): Faction['leaders'][number]['image'] {
-  const total = LEADERS.options.length;
+  const total = offeredLeaderImages.length;
   if (total === 0) {
     return LEADERS.options[0] as Faction['leaders'][number]['image'];
   }
-  const idx = LEADERS.options.indexOf(image);
+  const idx = offeredLeaderImages.indexOf(image);
   if (idx < 0) {
-    return LEADERS.options[0];
+    return offeredLeaderImages[0];
   }
-  return LEADERS.options[(idx + 1) % total];
+  return offeredLeaderImages[(idx + 1) % total];
 }
 
 export function nextLeaderFromLast(last: Faction['leaders'][number] | undefined): Faction['leaders'][number] {

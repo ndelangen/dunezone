@@ -1,3 +1,4 @@
+import { TABLE_PHASES } from '@shared/play/phases';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 
@@ -32,5 +33,18 @@ export function finishedSnapshot(viewerSeat: string, declaredAt = 1): GameSnapsh
     by: { seat: 'seat-1', name: SIX[0]!.name },
     declaredAt,
   };
+  /* A finished game offers Mentat recall without a vote, over every checkpoint, as the room sends it. */
+  snapshot.review = null;
+  snapshot.reviewCheckpoints = [
+    {
+      step: 16,
+      context: `Turn 1, ${TABLE_PHASES[MENTAT_PAUSE]!.label}`,
+      turn: 1,
+      label: TABLE_PHASES[MENTAT_PAUSE]!.label,
+      symbol: TABLE_PHASES[MENTAT_PAUSE]!.symbol,
+      moment: 'result',
+      faction: null,
+    },
+  ];
   return snapshot;
 }

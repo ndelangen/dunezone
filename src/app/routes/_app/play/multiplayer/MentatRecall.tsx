@@ -18,6 +18,8 @@ import { PieceArtwork } from '@app/widgets/tabletop/PieceArtwork';
 import type { CompassTable } from '../compass/compassTable';
 import { ConnectedConversationPanel } from '../panels/chat/useConversationPanel';
 import { HandPanel } from '../panels/hand/HandPanel';
+import { PANEL_WINDOWS } from '../panels/panelWindows';
+import { KeyboardShortcutsPanel } from '../panels/shortcuts/KeyboardShortcutsPanel';
 import { SpiceReservePanel } from '../panels/spice/SpiceReservePanel';
 import { CheckpointPicker } from './checkpoints/CheckpointPicker';
 import styles from './MentatRecall.module.css';
@@ -123,6 +125,8 @@ export function mentatRecall(client: TableSession, table: TableProjection): Comp
             },
           ]
         : []),
+      /* The keys still steer the camera and ping during a recall, so the cheat sheet stays within reach. */
+      { ...PANEL_WINDOWS.shortcuts, content: <KeyboardShortcutsPanel /> },
     ],
   };
 }

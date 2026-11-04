@@ -446,6 +446,60 @@ describe('table views', () => {
     expect(state.cameraRevision).toBe(1);
   });
 
+  test('keeps the view the player set up when the camera does not follow phases', () => {
+    let state = createTableViewState('storm', false);
+    state = reduceTableView(state, { type: 'view.selected', view: 'left' });
+    const chosen = state;
+    state = reduceTableView(state, { type: 'phase.changed', phase: 'spice-blow' });
+
+    expect(state.activeView).toBe('left');
+    expect(state.cameraRevision).toBe(chosen.cameraRevision);
+    expect(state.phase).toBe('spice-blow');
+
+    /* Turning following back on moves the camera at the next phase, not the one already showing. */
+    state = reduceTableView(state, { type: 'follow.changed', follow: true });
+    expect(state.activeView).toBe('left');
+    state = reduceTableView(state, { type: 'phase.changed', phase: 'revival' });
+    expect(state.activeView).toBe('bottom');
+    expect(state.cameraRevision).toBe(chosen.cameraRevision + 1);
+  });
+
+  test('turning following off drops a waiting phase view, keeping a player choice', () => {
+    let state = createTableViewState('storm');
+    state = reduceTableView(state, { type: 'interaction.changed', active: true });
+    state = reduceTableView(state, { type: 'phase.changed', phase: 'spice-blow' });
+    state = reduceTableView(state, { type: 'follow.changed', follow: false });
+    state = reduceTableView(state, { type: 'interaction.changed', active: false });
+    expect(state.activeView).toBe('map');
+    expect(state.cameraRevision).toBe(0);
+
+    state = reduceTableView(state, { type: 'interaction.changed', active: true });
+    state = reduceTableView(state, { type: 'view.selected', view: 'right' });
+    state = reduceTableView(state, { type: 'follow.changed', follow: true });
+    state = reduceTableView(state, { type: 'follow.changed', follow: false });
+    state = reduceTableView(state, { type: 'interaction.changed', active: false });
+    expect(state.activeView).toBe('right');
+  });
+
+  test('a phase that begins while following is off keeps a queued player choice', () => {
+    let state = createTableViewState('storm', false);
+    state = reduceTableView(state, { type: 'interaction.changed', active: true });
+    state = reduceTableView(state, { type: 'view.selected', view: 'left' });
+    state = reduceTableView(state, { type: 'phase.changed', phase: 'spice-blow' });
+    state = reduceTableView(state, { type: 'interaction.changed', active: false });
+    expect(state.activeView).toBe('left');
+    expect(state.cameraRevision).toBe(1);
+  });
+
+  test('a phase that begins while following is off queues no view', () => {
+    let state = createTableViewState('storm', false);
+    state = reduceTableView(state, { type: 'interaction.changed', active: true });
+    state = reduceTableView(state, { type: 'phase.changed', phase: 'spice-blow' });
+    state = reduceTableView(state, { type: 'interaction.changed', active: false });
+    expect(state.activeView).toBe('map');
+    expect(state.cameraRevision).toBe(0);
+  });
+
   test('applies only the latest view queued during an interaction', () => {
     let state = createTableViewState('choam-charity');
     state = reduceTableView(state, { type: 'interaction.changed', active: true });
