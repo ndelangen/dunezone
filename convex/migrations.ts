@@ -110,6 +110,11 @@ function migrationRefsFor(ids: string[]): MigrationRef[] {
   });
 }
 
+/* Without ids, every listed migration: the component still holds states for ids pruned from the manifest, which are history only. */
+function listedRefs(ids: string[] | undefined): MigrationRef[] {
+  return migrationRefsFor(ids ?? Object.keys(MIGRATION_IDS));
+}
+
 function toMigrationId(name: string): string {
   const parts = name.split(':');
   return parts[parts.length - 1] ?? name;
@@ -499,15 +504,19 @@ export const getStatus = internalQuery({
     ids: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
-    const refs = args.ids ? migrationRefsFor(args.ids) : undefined;
-    return await migrations.getStatus(ctx, { migrations: refs, limit: 100 });
+    return await migrations.getStatus(ctx, { migrations: listedRefs(args.ids) });
   },
 });
+
+/** Recorded runs of listed migrations; rows for pruned ids stay in the table as history. */
+function listedRuns(rows: Doc<'migration_runs'>[]) {
+  return rows.filter((row) => row.migration_id in MIGRATION_IDS);
+}
 
 export const listRunSnapshots = internalQuery({
   args: {},
   handler: async (ctx) => {
-    return await ctx.db.query('migration_runs').order('desc').take(100);
+    return listedRuns(await ctx.db.query('migration_runs').order('desc').take(200));
   },
 });
 
@@ -517,22 +526,14 @@ export const adminDashboard = adminQuery({
     ids: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
-    const refs = args.ids ? migrationRefsFor(args.ids) : undefined;
-    const statuses = await migrations.getStatus(ctx, {
-      migrations: refs,
-      limit: 100,
-    });
-    const snapshots = await ctx.db.query('migration_runs').order('desc').take(100);
+    const statuses = await migrations.getStatus(ctx, { migrations: listedRefs(args.ids) });
+    const snapshots = listedRuns(await ctx.db.query('migration_runs').order('desc').take(200));
     return { statuses, snapshots };
   },
 });
 
 async function syncMigrationRunSnapshots(ctx: MutationCtx, ids?: string[]) {
-  const refs = ids ? migrationRefsFor(ids) : undefined;
-  const statuses = await migrations.getStatus(ctx, {
-    migrations: refs,
-    limit: 100,
-  });
+  const statuses = await migrations.getStatus(ctx, { migrations: listedRefs(ids) });
   const updatedAt = nowIso();
   for (const status of statuses) {
     const migrationId = toMigrationId(status.name);

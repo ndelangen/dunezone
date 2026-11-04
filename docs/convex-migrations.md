@@ -109,9 +109,12 @@ has run a backfill whose second pass would change a row, such as one that multip
 value, its body becomes a no-op and its id stays. The same holds once a narrow removes the legacy
 field a move read from, while its verifier keeps the check that still means something.
 
-A one-off migration is removed, with its tests, its manifest entry and the narrow entries that
-only require it, once its narrow has deployed and the weekly snapshot was cut after production ran
-it. Production keeps its run records; nothing reads them for an id the manifest no longer lists.
+A one-off migration may be removed, with its tests, its manifest entry and the narrow entries that
+only require it, once production has recorded it as succeeded and done, the weekly snapshot was
+cut after that, and no remaining narrow entry requires it. A snapshot file cut before a pruned
+migration ran can hold rows the current schema refuses; load a newer one. Production keeps the
+component's states and the `migration_runs` rows for pruned ids as history, and `/admin/migrations`
+shows only the ids the code still lists.
 The migrations that rebuild tables the snapshot leaves out (statistics, catalogue entries, profile
 discovery and activity, faction cards, board readiness, the publication queue) stay, because every
 load needs them. The 4 November 2026 cleanup removed 38 such one-offs. `convex/migrations.snapshotReplay.test.ts` replays the manifest
@@ -234,7 +237,7 @@ Object storage, published rulebook HTML, content packages exported before it):
 
 - `renameLegacyEmblems` at the stored roots that can meet such a copy (`legacyEmblemKeyed` in
   `src/shared/legacyEmblem.ts`): faction imports (raw JSON and content packages) and publication
-  payloads, game captures, snapshots and drafts, draft rulebook Contents and asset writes (raw JSON
+  payloads, game captures, draft rulebook Contents and asset writes (raw JSON
   and content packages). The artwork
   enums take the new names only. Never wrap a schema a Convex validator is derived from: the
   derived validator becomes `v.any()`.

@@ -272,6 +272,11 @@
       "requires": ["publication_job_listings_v1"]
     },
     {
+      "id": "publication_queue_type_orders_drop_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
       "id": "emblem_rename_factions_v1",
       "phase": "widen",
       "requires": []
