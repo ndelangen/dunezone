@@ -52,18 +52,26 @@ export function spiceCardOnBoard(data: unknown, boardId: string): unknown {
   return { ...card, highlights: [], board: { asset_id: boardId, tints: carried ? [carried] : [], tokens: [] } };
 }
 
-/** Rulebook Contents with every board reference to the built-in Arrakis board renamed to the saved board's id. */
+/* A highlight on the built-in board named a territory no board has; Norbert confirmed it meant The Greater Flat (#1971). */
+const MISSPELT_TERRITORIES: Record<string, string> = { 'greater-flat': 'the-greater-flat' };
+
+function renamed(key: string, item: unknown, boardId: string): unknown {
+  if (key === 'boardId' && item === BUILT_IN_ARRAKIS_BOARD_ID) {
+    return boardId;
+  }
+  if (key === 'territory' && typeof item === 'string' && MISSPELT_TERRITORIES[item]) {
+    return MISSPELT_TERRITORIES[item];
+  }
+  return contentsOnBoard(item, boardId);
+}
+
+/** Rulebook Contents with every board reference to the built-in Arrakis board renamed to the saved board's id, and its one misspelt territory corrected. */
 export function contentsOnBoard(value: unknown, boardId: string): unknown {
   if (Array.isArray(value)) {
     return value.map((item) => contentsOnBoard(item, boardId));
   }
   if (value && typeof value === 'object') {
-    return Object.fromEntries(
-      Object.entries(value).map(([key, item]) => [
-        key,
-        key === 'boardId' && item === BUILT_IN_ARRAKIS_BOARD_ID ? boardId : contentsOnBoard(item, boardId),
-      ])
-    );
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, renamed(key, item, boardId)]));
   }
   return value;
 }

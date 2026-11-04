@@ -128,7 +128,10 @@ describe('Arrakis board migration', () => {
         name: 'Arrakis manual',
         source: { kind: 'starter' },
       });
-      const legacy = { ...(created.draft.contents as object), scenes: [{ boardId: 'arrakis', note: 'arrakis' }] };
+      const legacy = {
+        ...(created.draft.contents as object),
+        scenes: [{ boardId: 'arrakis', note: 'arrakis', highlights: [{ territory: 'greater-flat' }] }],
+      };
       await f.t.run(async (ctx) => {
         await ctx.db.patch('rulebook_drafts', created.draft._id, { contents: legacy, contents_hash: 'v1:before' });
         const stored = (await ctx.db
@@ -157,7 +160,9 @@ describe('Arrakis board migration', () => {
       const migrated = await rows();
 
       expect(migrated.draft.contents).toEqual(contentsOnBoard(legacy, boardId));
-      expect(migrated.draft.contents).toMatchObject({ scenes: [{ boardId, note: 'arrakis' }] });
+      expect(migrated.draft.contents).toMatchObject({
+        scenes: [{ boardId, note: 'arrakis', highlights: [{ territory: 'the-greater-flat' }] }],
+      });
       expect(migrated.contents).toEqual(migrated.draft.contents);
       expect(migrated.draft.contents_hash).toBe(rulebookDraftContentsHash(migrated.draft.contents));
       expect(migrated.edition.contents_hash).toBe(rulebookEditionContentsHash(migrated.contents));
