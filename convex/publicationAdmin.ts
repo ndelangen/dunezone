@@ -7,7 +7,7 @@ import { internalQuery } from './_generated/server';
 import { adminQuery, internalMutation, mutation } from './functions';
 import { requireAdminUserId } from './lib/policy';
 import { publicationSettings } from './lib/publication';
-import { publicationJobListingPage, publicationJobListing } from './lib/publicationJobListings';
+import { publicationJobListing } from './lib/publicationJobListings';
 
 const publicationStatus = v.union(v.literal('pending'), v.literal('in_progress'), v.literal('error'));
 
@@ -105,8 +105,6 @@ export const activateRevisions = internalMutation({
   },
 });
 
-const countResult = v.object({ value: v.number(), limited: v.boolean() });
-
 const jobResult = v.object({
   id: v.id('publication_jobs'),
   assetType: v.string(),
@@ -128,9 +126,9 @@ export const listing = adminQuery({
   returns: v.object({
     settings: v.union(settingsResult, v.null()),
     counts: v.object({
-      pending: countResult,
-      inProgress: countResult,
-      error: countResult,
+      pending: v.number(),
+      inProgress: v.number(),
+      error: v.number(),
     }),
     ...paginationResultValidator(jobResult).fields,
   }),
@@ -157,63 +155,6 @@ export const listing = adminQuery({
         createdAt: job.created_at,
         updatedAt: job.updated_at,
       })),
-    };
-  },
-});
-
-/* Clients loaded before cursor pagination still call this contract until they reload.
- * The current dashboard uses listing, which has no thousand-job visibility cap.
- */
-export const page = adminQuery({
-  args: {
-    status: v.optional(publicationStatus),
-    assetType: v.optional(v.string()),
-    page: v.number(),
-    pageSize: v.number(),
-  },
-  returns: v.object({
-    settings: v.union(settingsResult, v.null()),
-    counts: v.object({
-      pending: v.number(),
-      inProgress: v.number(),
-      error: v.number(),
-    }),
-    jobs: v.array(jobResult),
-    total: v.number(),
-    page: v.number(),
-    pageSize: v.number(),
-  }),
-  handler: async (ctx, args) => {
-    const pageSize = Number.isFinite(args.pageSize) ? Math.max(1, Math.min(100, Math.floor(args.pageSize))) : 1;
-    const page = Number.isFinite(args.page) ? Math.max(1, Math.floor(args.page)) : 1;
-    const [listing, settings] = await Promise.all([
-      publicationJobListingPage(ctx, { ...args, page, pageSize }),
-      publicationSettings(ctx),
-    ]);
-
-    return {
-      settings: settings
-        ? {
-            publicationPickupEnabled: settings.publication_pickup_enabled,
-            rendererRevisions: settings.renderer_revisions,
-            updatedAt: settings.updated_at,
-          }
-        : null,
-      counts: listing.counts,
-      jobs: listing.jobs.map((job) => ({
-        id: job.job_id,
-        assetType: job.asset_type,
-        assetId: job.asset_id,
-        status: job.status,
-        attemptCounter: job.attempt_counter,
-        expiresAt: job.expires_at ?? null,
-        error: job.error ?? null,
-        createdAt: job.created_at,
-        updatedAt: job.updated_at,
-      })),
-      total: listing.total,
-      page: listing.page,
-      pageSize,
     };
   },
 });

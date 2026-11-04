@@ -191,9 +191,6 @@ Board lists and ruleset slots read the existing `board_readiness` summaries thro
 state and publication version dates. A listing's board `data` contains its name; editors and game
 captures still read the full definition from `assets`.
 
-The existing `board_readiness_listing_v1` completion record enables the summary index. Its source
-creation index reads only the requested number of rows. Before that backfill succeeds, lists retain
-the original bounded asset-index read, so partial summary coverage cannot hide boards. The asset
-trigger keeps summaries current in the same transaction as each write. A point lookup with a
-missing or incomplete summary reads the source asset; an incomplete selected listing row also
-falls back. No new schema or production backfill is needed.
+Lists read the summaries' source creation index, which reads only the requested number of rows. The
+asset trigger keeps summaries current in the same transaction as each write, so every board has one.
+A point lookup for an asset without a summary (any other asset type) reads the source asset.
