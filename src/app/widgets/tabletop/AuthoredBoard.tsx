@@ -10,6 +10,7 @@ import type { Texture } from 'three';
 import { authoredBoardGeometry } from './authoredBoardGeometry';
 import { authoredBoardTexture } from './authoredBoardTexture';
 import { POLAR_SINK_RENDER_ORDER } from './boardRenderOrder';
+import { useSectorLineStyle } from './sectorLines';
 import { useBoardSkinMaterial } from './useBoardSkinMaterial';
 
 type State = { texture: Texture | null; error: boolean; attempt: number };
@@ -30,7 +31,12 @@ export default function AuthoredBoard({ board }: { board: Board }) {
   const geometry = useMemo(() => authoredBoardGeometry(board), [board]);
   const polarSink = useMemo(() => authoredBoardGeometry(board, true), [board]);
   const invalidate = useThree((state) => state.invalidate);
-  const [state, dispatch] = useReducer(reducer, { texture: null, error: false, attempt: 0 });
+  const sectors = useSectorLineStyle();
+  const [state, dispatch] = useReducer(reducer, {
+    texture: null,
+    error: false,
+    attempt: 0,
+  });
   useEffect(
     () => () => {
       geometry.dispose();
@@ -41,7 +47,7 @@ export default function AuthoredBoard({ board }: { board: Board }) {
   useEffect(() => {
     const controller = new AbortController();
     let texture: Texture | undefined;
-    void authoredBoardTexture(board, controller.signal)
+    void authoredBoardTexture(board, sectors, controller.signal)
       .then((value) => {
         if (controller.signal.aborted) {
           value.dispose();
@@ -61,7 +67,7 @@ export default function AuthoredBoard({ board }: { board: Board }) {
       controller.abort();
       texture?.dispose();
     };
-  }, [board, state.attempt, invalidate]);
+  }, [board, sectors, state.attempt, invalidate]);
   const paint = useBoardSkinMaterial({
     geometry,
     board,

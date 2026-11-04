@@ -1,4 +1,5 @@
 import { CENTER, RADIUS } from '@shared/boards/geometry';
+import type { SectorLineStyle } from '@shared/boards/geometry';
 import type { Board } from '@shared/boards/schema';
 import { boardTerritories } from '@shared/boards/territories';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -8,7 +9,11 @@ import { BOARD_ARTWORK } from '@game/assets/board/artwork';
 import { BoardArtwork } from '@game/assets/board/Board';
 
 /** Inline images cannot depend on external SVG resources when the browser rasterizes their parent. */
-export async function authoredBoardTexture(board: Board, signal: AbortSignal): Promise<Texture> {
+export async function authoredBoardTexture(
+  board: Board,
+  sectors: SectorLineStyle,
+  signal: AbortSignal
+): Promise<Texture> {
   const paths = [...new Set(Object.values(board.properties).flatMap((p) => p.decals.map((d) => d.artwork)))];
   const artwork = { ...BOARD_ARTWORK };
   await Promise.all(
@@ -39,7 +44,7 @@ export async function authoredBoardTexture(board: Board, signal: AbortSignal): P
       height="2048"
       viewBox={`${CENTER[0] - RADIUS} ${CENTER[1] - RADIUS} ${RADIUS * 2} ${RADIUS * 2}`}
     >
-      <BoardArtwork board={board} faces={boardTerritories(board)} artwork={artwork} />
+      <BoardArtwork board={board} faces={boardTerritories(board)} artwork={artwork} sectors={sectors} />
     </svg>
   );
   const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
