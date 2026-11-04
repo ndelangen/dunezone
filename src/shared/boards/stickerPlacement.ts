@@ -1,5 +1,8 @@
 type Point = readonly [number, number];
 
+/** The largest a table sticker gets, in table units. */
+export const TABLE_STICKER_LARGEST = 0.3;
+
 /* How far a sticker's centre must stay from the territory's edge, per unit of its size: about half its diagonal. */
 const CLEARANCE_PER_SIZE = 0.6;
 /* Sample points across the territory's longer side; enough to find the roomy spots of the Shield Wall's thin band. */

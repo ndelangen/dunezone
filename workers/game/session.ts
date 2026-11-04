@@ -1,5 +1,6 @@
 import type { z } from 'zod';
 
+import { propertyId } from '../../src/shared/boards/schema';
 import type { playGameProvisionSchema } from '../../src/shared/play/admission';
 import type { BugReportBrowser } from '../../src/shared/play/bugReports';
 import { publicFaction } from '../../src/shared/play/capture';
@@ -24,7 +25,14 @@ import { isSeatAction, seatSubject } from '../../src/shared/play/participation';
 import { composeTurn, lobbyPhaseIndex, recomposedTurn } from '../../src/shared/play/phases';
 import type { PhaseEntry } from '../../src/shared/play/phases';
 import { rosterFactionIds } from '../../src/shared/play/protocol';
-import type { ClientMessage, CommitMessage, GameSnapshot, ServerMessage, Viewer } from '../../src/shared/play/protocol';
+import type {
+  ClientMessage,
+  CommitMessage,
+  GameSnapshot,
+  PieceAction,
+  ServerMessage,
+  Viewer,
+} from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { isRemovalAction } from '../../src/shared/play/removal';
 import { isResultAction } from '../../src/shared/play/result';
@@ -912,7 +920,23 @@ export class GameSession {
     if (message.action.kind === 'spawn-request') {
       return room.publicCommand(viewer, message.action, contents);
     }
-    return room.command(viewer, internalAction(room.snapshot, message.action), message.expectedRevision);
+    return room.command(
+      viewer,
+      this.namedOnBoard(internalAction(room.snapshot, message.action)),
+      message.expectedRevision
+    );
+  }
+  /* A spice blow's territory takes its name from the captured board, never from the page, so the log says where the spice went. */
+  private namedOnBoard<Action extends PieceAction>(action: Action): Action {
+    const board = action.kind === 'spice-blow' ? this.captures.ruleset()?.board?.definition : undefined;
+    if (action.kind !== 'spice-blow' || !board) {
+      return action;
+    }
+    const property = Object.values(board.properties).find((entry) => propertyId(entry) === action.territory);
+    if (!property) {
+      throw new GameRejection('This board has no such territory.');
+    }
+    return { ...action, name: property.name };
   }
   private commitTable(key: string, viewer: Viewer, message: TableMessage, contents?: StoredSpawnContents) {
     const room = this.room!;

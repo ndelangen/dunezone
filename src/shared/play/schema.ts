@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { PhysicalSize } from '../assets/physicalSize';
+import { spiceBlowSchema } from './spiceBlow';
 import { TABLE_SEAT_COUNTS, TABLE_SECTOR_COUNT } from './tableSettings';
 
 export const tableIdSchema = z.string().regex(/^[a-zA-Z0-9_-]{1,160}$/);
@@ -86,6 +87,8 @@ const artworkSchema = z.object({
   description: z.string().min(1).max(ARTWORK_DESCRIPTION_LIMIT).optional(),
   /* A prediction card's choice, drawn over its front (#1753); a hidden card's copy leaves it out with the front. */
   prediction: z.object({ stepId: tableIdSchema, factionId: tableIdSchema, turn: tableCountSchema.min(1) }).optional(),
+  /* A spice card's territory and amount, so its revealed face can place its spice (#2678). */
+  spiceBlow: spiceBlowSchema.optional(),
 });
 const storedItemSchema = z.object({
   id: tableIdSchema,
@@ -151,6 +154,7 @@ const concealedArtworkSchema = z.strictObject({
   size: z.never().optional(),
   description: z.never().optional(),
   prediction: z.never().optional(),
+  spiceBlow: z.never().optional(),
 });
 
 /** A piece as a viewer receives it and the table logic reads it: a card the viewer may not see carries only its back and the word on it. */

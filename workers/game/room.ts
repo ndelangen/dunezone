@@ -117,11 +117,13 @@ type CarryInput<T extends 'begin' | 'pose' | 'take' | 'flip'> = Omit<Extract<Cli
  * A raise, lowering or pass names its bidding round and is judged against the live bidder's turn, so a quick second raise is not turned away by the first.
  * A spice reserve withdrawal stays strict, so two tabs of one player cannot both spend from a spice reserve they saw once.
  * A tech token draw picks from whatever the shared table inventory holds when it arrives.
+ * A spice blow names its card and territory and finds room among the spice as it lies when it arrives, so the Spice blow command's placings, sent together, all land.
  * A hand order names the player's own pieces, which nobody else moves, and is judged against what they hold now.
  * Leaving stays strict too, since its confirmation said what it costs and a crossed departure may have left the sender the last player.
  */
 const REVISION_TOLERANT_ACTIONS = new Set<string>([
   'spice-spawn',
+  'spice-blow',
   'tech-token-draw',
   'hand-order',
   'deck-draw',

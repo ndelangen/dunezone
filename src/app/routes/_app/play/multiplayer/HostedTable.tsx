@@ -8,6 +8,7 @@ import { lastTurnOf } from '@shared/play/lastTurn';
 import { phaseAt, tableProgressFor } from '@shared/play/phases';
 import { reviewRunning } from '@shared/play/review';
 import { setupMapVisible } from '@shared/play/setup';
+import { revealedSpiceBlows } from '@shared/play/spiceBlowPlacement';
 import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
 import { Link, useLocation } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
@@ -569,6 +570,12 @@ function phaseTabControls({
   );
 }
 
+/* The Spice blow command, while the viewer can act and a face-up spice card lies on the table, not during a look back or recall. */
+function spiceBlowCommand(table: TableProjection): (() => void) | null {
+  const controls = table.spiceBlowControls;
+  return controls && revealedSpiceBlows(table.state.pieces).length ? () => controls.placeAll() : null;
+}
+
 function useHostedControls(client: TableSession, table: TableProjection, error: string | null) {
   useAutoClearChatsAtNewTurn(client, table);
   const recall = mentatRecall(client, table);
@@ -582,6 +589,7 @@ function useHostedControls(client: TableSession, table: TableProjection, error: 
     factionInfo: (seat) => <ConnectedFactionInfoPanel client={client} table={table} seat={seat} error={error} />,
     nextPhase: nextPhaseStep(client, table),
     clearChats: client.conversations.clearable() ? client.conversations.clearAllChats : null,
+    spiceBlow: spiceBlowCommand(table),
     token: viewerToken(client, table),
     bidding: viewerBidding(client, table),
   };

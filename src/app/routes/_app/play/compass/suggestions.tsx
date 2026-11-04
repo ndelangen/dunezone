@@ -111,6 +111,8 @@ export type SuggestionActions = Readonly<{
   nextPhase: (() => void) | null | undefined;
   /** Clears every chat from the viewer's own view; null while there is nothing to clear. */
   clearChats?: (() => void) | null;
+  /** Places the spice of every face-up spice card on the table; null while there is none to place or the viewer cannot act. */
+  spiceBlow?: (() => void) | null;
   /** Moves the camera, as the dial does. */
   view: (view: TableView) => void;
   /** The viewer's own faction token on the table, when they have one. */
@@ -218,6 +220,27 @@ function clearChatsCandidate(clearChats: SuggestionActions['clearChats'], close:
       weight: -1,
       typedOnly: true,
       held: 'Clearing',
+    },
+  ];
+}
+
+/* Spice blow, only while a face-up spice card lies on the table for the viewer to place. */
+function spiceBlowCandidate(spiceBlow: SuggestionActions['spiceBlow'], close: () => void): Candidate[] {
+  if (!spiceBlow) {
+    return [];
+  }
+  return [
+    {
+      key: 'cmd:spice-blow',
+      label: 'Spice blow',
+      hint: 'Place the spice of every face-up spice card',
+      icon: <TopicIcon topic="spiceBlow" size={18} />,
+      run: () => {
+        close();
+        spiceBlow();
+      },
+      text: 'spice blow',
+      weight: 3,
     },
   ];
 }
@@ -339,6 +362,7 @@ export function candidatesOf(windows: readonly TableWindow[], actions: Suggestio
       entry.key === FACTION_INFO ? factionCandidates(entry, actions) : [windowCandidate(entry, actions)]
     ),
     ...nextPhaseCandidate(actions.nextPhase, actions.close),
+    ...spiceBlowCandidate(actions.spiceBlow, actions.close),
     ...commandCandidates(actions),
     ...clearChatsCandidate(actions.clearChats, actions.close),
     ...(Object.keys(CAMERA_VIEWS) as TableView[]).map((view): Candidate => ({
