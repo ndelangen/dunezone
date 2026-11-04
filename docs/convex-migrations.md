@@ -228,8 +228,9 @@ What stays after the rename, because some copies can never be rewritten (game ca
 Object storage, published rulebook HTML, content packages exported before it):
 
 - `renameLegacyEmblems` at the stored roots that can meet such a copy (`legacyEmblemKeyed` in
-  `src/shared/legacyEmblem.ts`): faction writes and publication payloads, game captures, snapshots
-  and drafts, draft rulebook Contents and asset writes (raw JSON and content packages). The artwork
+  `src/shared/legacyEmblem.ts`): faction imports (raw JSON and content packages) and publication
+  payloads, game captures, snapshots and drafts, draft rulebook Contents and asset writes (raw JSON
+  and content packages). The artwork
   enums take the new names only. Never wrap a schema a Convex validator is derived from: the
   derived validator becomes `v.any()`.
 - The publisher Worker's `/vector/logo/*` route, which answers with the renamed file and never
@@ -239,7 +240,7 @@ Narrowing later: once every verify migration has succeeded in production, the mi
 may become no-ops with their ids kept (snapshot replay), and the readers over rows the migration
 rewrote can go back to the exact schemas. `StoredFactionSchema` and the save schema
 (`FactionWriteSchema`) went exact on 4 November 2026, so a tab older than the rename can no longer
-save a faction; content packages and raw JSON still read old names through `readImportedFaction`.
+save a faction; content packages and raw JSON still read old names through `ImportedFactionSchema`.
 The readers above, for copies outside Convex, and the `/vector/logo/*` route stay. The
 `discovery_presets` and `cardback_presets` validators, which list every stock artwork path, are
 widened to `v.any()` for the artwork fields in the rename release, because a strict validator

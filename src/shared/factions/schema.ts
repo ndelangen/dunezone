@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { ALL, BACKGROUND, GENERIC, LEADERS, EMBLEM, PLANET, TEXTURE, TROOP, TROOP_MODIFIER } from '../assetIds';
 import { backgroundSourceSchema } from '../backgrounds/source';
 import { marksOnlyFormattedTextSchema, proseFormattedTextSchema } from '../formattedText';
-import { renameLegacyEmblems } from '../legacyEmblem';
+import { legacyEmblemKeyed, renameLegacyEmblems } from '../legacyEmblem';
 import { slugify } from '../slugify';
 import { extraPhasesSchema } from './extraPhases';
 import { factionExtrasSchema, storedFactionExtrasSchema } from './extras';
@@ -357,7 +357,7 @@ export const SUPPORTING_LEADER_LIMIT = 10;
  * Reads and renders keep `FactionInputSchema`, so draft names without URL characters and stored factions over the cap still render.
  * A save also reads the old `hero` key, since raw JSON and imported packages come from outside the app (see `readFactionLeaderKey`).
  * The emblem rename's old `logo` names are refused here;
- * the import and raw JSON readers rename them first (`readImportedFaction`).
+ * the import and raw JSON readers rename them first (`ImportedFactionSchema`).
  */
 export const FactionWriteSchema = z
   .preprocess(readFactionLeaderKey, FactionInputObject.extend({ name: FactionNameSchema }))
@@ -422,9 +422,7 @@ export const StoredFactionSchema = CanonicalFactionStoredObject;
  * A faction from outside the app (an imported content package or raw JSON), which may predate the emblem rename: its old `logo` names read as the new ones before `FactionWriteSchema` parses it.
  * See src/shared/legacyEmblem.ts.
  */
-export function readImportedFaction(input: unknown) {
-  return FactionWriteSchema.parse(renameLegacyEmblems(input));
-}
+export const ImportedFactionSchema = legacyEmblemKeyed(FactionWriteSchema);
 
 /** Complete canonical data also requires unique member identities across the roster. */
 export const IdentifiedFactionStoredSchema = CanonicalFactionStoredObject.superRefine(refineUniqueComponentIds);

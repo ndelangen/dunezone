@@ -83,6 +83,7 @@ export function parseRawAsset(type: string, value: unknown) {
 }
 
 export function parseRawFaction(value: unknown) {
+  /* Raw JSON may predate the emblem rename. Rename before the discarded-field check so `logo` is not reported as unknown; a file carrying both names keeps `emblem`. */
   const renamed = renameLegacyEmblems(value);
   const faction = FactionWriteSchema.parse(renamed);
   assertNoDiscardedFields(renamed, faction);
