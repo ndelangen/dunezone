@@ -849,7 +849,7 @@ export function BoardEditor({
             board={shownBoard}
             faces={faces}
             artwork={BOARD_ARTWORK}
-            sectorLines={!state.compare && state.guide}
+            sectorGuide={!state.compare && state.guide}
           />
           {!state.compare && tracing?.visible && <TracingImageLayer tracing={tracing} />}
           {!state.compare && selectedFace && (

@@ -52,16 +52,19 @@ export function BoardArtwork({
   board,
   faces,
   artwork,
+  sectorGuide = false,
   sectorLines = false,
 }: {
   board: Board;
   faces: Face[];
   artwork: Record<string, string>;
-  /** The storm's 18 sector lines, over the territories and under the Polar Sink: the editor's guide and the table's map (#2670). */
+  /** The editor's guide: the storm's sector lines over everything but the Polar Sink, even where no territory is drawn yet. */
+  sectorGuide?: boolean;
+  /** The table's map (#2670): the same lines inside each territory, over its colours and under its names, icons and borders. */
   sectorLines?: boolean;
 }) {
-  const guide = sectorLines ? (
-    <g data-sector-lines pointerEvents="none" opacity="0.45" dangerouslySetInnerHTML={{ __html: referenceSectors }} />
+  const guide = sectorGuide ? (
+    <g data-editor-guide pointerEvents="none" opacity="0.45" dangerouslySetInnerHTML={{ __html: referenceSectors }} />
   ) : null;
   const polarFirst = faces
     .filter((face) => board.properties[face.key]?.type === 'polar')
@@ -79,6 +82,9 @@ export function BoardArtwork({
             <path d={face.path} clipRule="evenodd" />
           </clipPath>
         ))}
+        {sectorLines && (
+          <g id={`${prefix}-sectors`} opacity="0.45" dangerouslySetInnerHTML={{ __html: referenceSectors }} />
+        )}
       </defs>
       {faces
         .map((face, i) => ({ face, i }))
@@ -141,6 +147,9 @@ export function BoardArtwork({
                     />
                   ) : null
                 )}
+              {sectorLines && p.type !== 'polar' && (
+                <use data-sector-lines href={`#${prefix}-sectors`} clipPath={`url(#${prefix}-face-${i})`} />
+              )}
               <g clipPath={`url(#${prefix}-face-${i})`} data-clipped-territory={p.name}>
                 {p.decals.map((decal) => (
                   <DecalArtwork key={decal.id} decal={decal} svg={artwork[decal.artwork]} />

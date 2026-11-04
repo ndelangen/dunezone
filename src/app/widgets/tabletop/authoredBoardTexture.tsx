@@ -7,6 +7,23 @@ import { SRGBColorSpace, Texture } from 'three';
 import { BOARD_ARTWORK } from '@game/assets/board/artwork';
 import { BoardArtwork } from '@game/assets/board/Board';
 
+/* WebGPU clamps a sampler's anisotropy to what the device supports. */
+const MAP_ANISOTROPY = 8;
+
+/** The map as one SVG: territories, their artwork and the storm's sector lines (#2670). */
+export function authoredBoardSvg(board: Board, artwork: Record<string, string>): string {
+  return renderToStaticMarkup(
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="2048"
+      height="2048"
+      viewBox={`${CENTER[0] - RADIUS} ${CENTER[1] - RADIUS} ${RADIUS * 2} ${RADIUS * 2}`}
+    >
+      <BoardArtwork board={board} faces={boardTerritories(board)} artwork={artwork} sectorLines />
+    </svg>
+  );
+}
+
 /** Inline images cannot depend on external SVG resources when the browser rasterizes their parent. */
 export async function authoredBoardTexture(board: Board, signal: AbortSignal): Promise<Texture> {
   const paths = [...new Set(Object.values(board.properties).flatMap((p) => p.decals.map((d) => d.artwork)))];
@@ -32,16 +49,7 @@ export async function authoredBoardTexture(board: Board, signal: AbortSignal): P
     })
   );
   signal.throwIfAborted();
-  const svg = renderToStaticMarkup(
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="2048"
-      height="2048"
-      viewBox={`${CENTER[0] - RADIUS} ${CENTER[1] - RADIUS} ${RADIUS * 2} ${RADIUS * 2}`}
-    >
-      <BoardArtwork board={board} faces={boardTerritories(board)} artwork={artwork} sectorLines />
-    </svg>
-  );
+  const svg = authoredBoardSvg(board, artwork);
   const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
   try {
     const image = new Image();
@@ -50,6 +58,8 @@ export async function authoredBoardTexture(board: Board, signal: AbortSignal): P
     signal.throwIfAborted();
     const texture = new Texture(image);
     texture.colorSpace = SRGBColorSpace;
+    /* The table is mostly seen at an angle; without this, fine dashes such as the sector lines blur away or shimmer. */
+    texture.anisotropy = MAP_ANISOTROPY;
     texture.needsUpdate = true;
     return texture;
   } finally {
