@@ -485,6 +485,19 @@ express; a few happy-path e2e specs are the confidence anchor. Before adding a t
 whether a type guarantee or an existing e2e path already covers it. Tests never assert on source
 text or dictate API shape ([ADR-0001](docs/adr/0001-contracts-over-expressions.md)).
 
+Two test regimes share the repository, and their `expect`s look alike but do not match (#606):
+
+| | Unit and seam tests | Stories |
+| --- | --- | --- |
+| Files | `*.test.ts(x)` | `*.stories.tsx`, `*.testing.stories.tsx` |
+| Run with | `bun run test`; `bun run game:test` for `workers/game`, `bun run publisher:test` for `workers/publisher` | `bun run storybook:test` or `bun run storybook:test:shard <shard>` |
+| `expect` from | `vite-plus/test` | `storybook/test` |
+| Document (DOM) matchers (`toBeVisible`, `toBeChecked`, `toBeDisabled`) | absent: `Invalid Chai property` | present |
+
+A unit test that needs a DOM state asserts on the element's properties (`element.checked`) instead.
+Do not install `@testing-library/jest-dom` to close the gap: that adds a second matcher stack beside
+the one Storybook already provides. A behaviour that needs those matchers belongs in a story.
+
 Write every test for a busy runner. Most past flakes came from four patterns:
 
 - **No real-time waits on animations or timers.** A loaded runner can go 5 to 10 s without drawing a

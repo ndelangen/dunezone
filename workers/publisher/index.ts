@@ -5,6 +5,7 @@ import type { RulebookReaderRequestContext } from '../../src/shared/rulebooks/re
 import { applicationReleaseIdentity, handleApplicationRequest } from './application';
 import { handleAuthRequest } from './auth';
 import { openPublisherBrowser } from './browser';
+import { handleBundleAssetRequest } from './bundle-assets';
 import { handleCaptureRoute } from './capture-route';
 import { EXECUTOR_REQUEST_MARGIN_MS, MAX_ASSIGNED_ITEMS, parsePublisherConfig } from './config';
 import { ConvexPublisherClient } from './convex';
@@ -106,6 +107,10 @@ async function handleGameIngress(request: Request, url: URL, env: Env): Promise<
 const publisherWorker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+    const bundleAsset = await handleBundleAssetRequest(request, url, env.ASSETS);
+    if (bundleAsset) {
+      return bundleAsset;
+    }
     const auth = await handleAuthRequest(request, env);
     if (auth) {
       return auth;
