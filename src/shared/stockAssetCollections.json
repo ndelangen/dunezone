@@ -1686,7 +1686,6 @@
       "/vector/decal/ballast-drop.svg",
       "/vector/decal/ballast-drop-scene.svg",
       "/vector/decal/ballast-drop-multicolor.svg",
-      "/vector/decal/barge.svg",
       "/vector/decal/carryalls-multicolor.svg",
       "/vector/decal/carryalls-plus.svg",
       "/vector/decal/carryalls.svg",
@@ -1962,7 +1961,6 @@
       "/vector/decal/orgiz-processing-station.svg",
       "/vector/decal/palace-alt.svg",
       "/vector/decal/palace-alt-multicolor.svg",
-      "/vector/decal/palace.svg",
       "/vector/decal/palace-multicolor.svg",
       "/vector/decal/circular-throne-room.svg",
       "/vector/decal/circular-throne-room-multicolor.svg"
@@ -1998,7 +1996,6 @@
     "label": "Decals / Symbols and markings",
     "keywords": "symbol glyph sign icon pattern target cog ring geometry",
     "assets": [
-      "/vector/decal/balance.svg",
       "/vector/decal/battlewheel.svg",
       "/vector/decal/battlewheel-multicolor.svg",
       "/vector/decal/block.svg",

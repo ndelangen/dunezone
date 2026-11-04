@@ -145,6 +145,16 @@ add artwork, give it the credit its provenance record supports; use `online` whe
 online and its source is still unknown, and `online-copy` when it was found online and is based on a
 known design; its `creditDetail` names that original.
 
+### Retiring duplicate artwork
+
+Saved factions, boards and rulebooks store artwork paths, so a duplicate is retired, never deleted.
+Delete the duplicate's vector source and its `media-index.json` record, then map its path to the
+artwork it duplicates in `VECTOR_ARTWORK_ALIASES` (`src/shared/vectorRules.ts`). The path stays a
+valid identifier in its category, `bun run generate:vectors` writes its file as a copy of the
+original, and the library and pickers show only the original. A raster that shares its original's
+bytes, such as `/image/texture/058.jpg`, keeps its lock entry and is listed in
+`src/shared/media/retiredArtwork.ts` instead.
+
 ### GF9 artwork provenance
 
 `content/gf9/artwork/provenance.json` keeps source references, preparation notes and approval

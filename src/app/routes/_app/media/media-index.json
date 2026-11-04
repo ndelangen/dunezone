@@ -1155,14 +1155,6 @@
     "credit": "ai-decal",
     "sourceHash": "394233d4ae3561253ca3047dac32c3b58a1bbb666076c7e9d687f2918295c102"
   },
-  "/vector/decal/barge.svg": {
-    "description": "A compact transport barge shown as a silhouette.",
-    "tags": ["transport", "vector"],
-    "subjects": ["transport"],
-    "credit": "online-original",
-    "creditDetail": "Original: the Mantis Cruiser from the game FTL: Faster Than Light.",
-    "sourceHash": "140a5c3324a1d45274027c56f623b95da2aa2692d7e0ad6d70f13e6d69a69f17"
-  },
   "/vector/decal/carryalls.svg": {
     "description": "Large winged aircraft fly above a desert landscape.",
     "tags": ["aircraft", "desert", "landscape", "vector"],
@@ -2529,13 +2521,6 @@
     "credit": "gf9-decal",
     "sourceHash": "544a93557539aeb6aee317e5b3bd7e04f72fda0513edf57c19995713fd5c3b01"
   },
-  "/vector/decal/palace.svg": {
-    "description": "A palace with tall tapered towers.",
-    "tags": ["towers", "vector"],
-    "subjects": ["places"],
-    "credit": "gf9-decal",
-    "sourceHash": "769047c3edf2ba2507a7056a805720b9dd1592de2329b3015183929eea0114e7"
-  },
   "/vector/decal/palace-alt.svg": {
     "description": "A palace with tall tapered towers.",
     "tags": ["towers", "vector"],
@@ -2633,14 +2618,6 @@
     "subjects": ["people"],
     "credit": "ai-decal",
     "sourceHash": "a6281fbd2be8ff3ad5b26b1a5dbe946513d10666c991826ea15050ee451658ec"
-  },
-  "/vector/decal/balance.svg": {
-    "description": "A circular yin-yang symbol with two contrasting halves.",
-    "tags": ["symbol", "vector"],
-    "subjects": ["symbols"],
-    "credit": "online-original",
-    "creditDetail": "Original: a yin-yang icon on Flaticon.",
-    "sourceHash": "e3f7ec9e351402cae5bfc50fe779bfe160d54301930be4caebbbc3d99570d8f4"
   },
   "/vector/decal/battlewheel.svg": {
     "description": "A Battle Wheel wordmark beneath a city skyline, with a diagonal cut between the two Ts.",
