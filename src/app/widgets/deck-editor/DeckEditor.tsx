@@ -36,9 +36,6 @@ type CardbackData = z.infer<typeof CardBackSchema>;
 /**
  * A deck's cardback can be composed here, linked to a shared preset, or borrowed from another deck.
  *
- * The editor excludes the stored union's legacy untagged composition.
- * The stored shape also carries a bare untagged composition, transitional until `assets_deck_cardback_wrap_v1` has tagged every row, and the route flattens that at its parse boundary so this file never learns a shape scheduled for deletion.
- *
  * `asset_id` is nullable here and never in storage.
  * Choosing the reference tile necessarily precedes picking the deck, so the draft has to hold a reference that has not chosen its target yet;
  * the save refuses that state rather than writing it.

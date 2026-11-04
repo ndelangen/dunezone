@@ -300,6 +300,38 @@ describe('the public log', () => {
       'Alice deleted Family Atomics card from the game.',
     ]);
   });
+
+  it('offers to restore a deletion while the game keeps its piece, and names the restore by what the table shows', () => {
+    const log = new PublicLog(memoryStorage(), () => 'Turn 1');
+    log.enabled = true;
+    const card = (faceUp: boolean) => ({
+      id: 'atomics',
+      label: 'Treachery card',
+      kind: 'card',
+      position: [0, 0, 0],
+      items: [{ id: 'item', faceUp, artwork: { back: 'https://x.test/b.png', name: 'Family Atomics', type: 't' } }],
+    });
+    log.recordCommit({
+      holders: [],
+      before: snapshot(1, { table: { pieces: [card(true)] } } as never),
+      next: snapshot(2, { table: { pieces: [] } } as never),
+      message: { type: 'command', action: { kind: 'delete', pieceId: 'atomics' } } as never,
+      viewer: viewer as never,
+    });
+    expect(log.page('game', Number.MAX_SAFE_INTEGER, new Set(['2'])).entries[0]).toMatchObject({ restore: '2' });
+    expect(log.page('game', Number.MAX_SAFE_INTEGER).entries[0]?.restore).toBeUndefined();
+    log.recordCommit({
+      holders: [],
+      before: snapshot(5, { table: { pieces: [] }, deletedPieces: [{ id: '2', piece: card(true) }] } as never),
+      next: snapshot(6, { table: { pieces: [card(false)] }, deletedPieces: [] } as never),
+      message: { type: 'command', action: { kind: 'restore', deletionId: '2' } } as never,
+      viewer: viewer as never,
+    });
+    expect(log.page('game', Number.MAX_SAFE_INTEGER).entries.map(({ class: kind, text }) => [kind, text])).toEqual([
+      ['restore', 'Alice restored Treachery card to the table, face down.'],
+      ['deletion', 'Alice deleted Family Atomics card from the game.'],
+    ]);
+  });
 });
 
 it('reads old deletion rows without secret names and keeps new safe detail across reloads', () => {

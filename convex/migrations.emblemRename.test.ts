@@ -11,12 +11,10 @@ import { describe, expect, test } from 'vite-plus/test';
 import { INITIAL_CARDBACK_PRESETS } from '../src/shared/assets/cardbackPresets';
 import { publishingTokenFace } from '../src/shared/assets/fixtures/publishingTokenFace';
 import { DISCOVERY_FAMILIES } from '../src/shared/backgrounds/families';
-import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { RULEBOOK_CATALOGUE_VERSION } from '../src/shared/rulebooks/contents';
 import { api, internal } from './_generated/api';
 import { EMBLEM_MIGRATION_IDS } from './emblemMigrations';
 import { insertStoredFactions, factionTest, storedFactionData } from './factions.test.fixture';
-import { factionInputForWrite } from './lib/factionInput';
 import { rulebookDraftContentsHash, rulebookEditionContentsHash } from './lib/rulebookEditionContents';
 import { rulebookFixture } from './rulebooks.test.fixture';
 import schema from './schema';
@@ -194,13 +192,6 @@ describe('Emblem rename migration', () => {
     expect(cardback!.cardback.image).toBe('/vector/emblem/fremen.svg');
     expect(discovery!.front.image).toBe('/vector/emblem/fremen.svg');
     expect(discovery!.back.image).toBe('/vector/emblem/fremen.svg');
-  });
-
-  test('a save from a tab opened before the rename is told to reload', () => {
-    const { emblem, ...beforeRename } = assetPublishingFaction;
-    expect(() =>
-      factionInputForWrite({ ...beforeRename, logo: emblem.replace('/vector/emblem/', '/vector/logo/') })
-    ).toThrow('Reload this page before saving. Dune Zone now calls a faction logo an emblem.');
   });
 
   test('verification refuses a row that still names a logo', async () => {

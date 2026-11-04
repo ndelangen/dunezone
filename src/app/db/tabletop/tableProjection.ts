@@ -61,9 +61,10 @@ export type TableProjection = {
     /** The Spice blow command: every revealed spice card on the table places its spice once. */
     placeAll(): void;
   };
-  /* Taking a card, token or stack out of the game for good; present only while this viewer can act. */
+  /* Taking a card, token or stack out of the game, and bringing it back from the game log face down; present only while this viewer can act. */
   deleteControls?: {
     remove(pieceId: string): void;
+    restore(deletionId: string): void;
   };
   /* Taking a loose card or a battle leader off the table into this viewer's hand; present only while this viewer can act. */
   handControls?: {

@@ -204,7 +204,9 @@ export class LocalTable {
 
   /** New events follow the chapter's recorded log, using the same sequence across both tabs. */
   logPage(tab: LogTab, before: number) {
-    const recent = this.session.log.page(tab, before);
+    /* A deletion the room still keeps offers Restore here too, as at a real table. */
+    const restorable = new Set(this.room.snapshot.deletedPieces.map((entry) => entry.id));
+    const recent = this.session.log.page(tab, before, restorable);
     const entries = [...recent.entries, ...(this.opening.log[tab] ?? []).filter((entry) => entry.sequence < before)];
     return { entries: entries.slice(0, LOG_PAGE_SIZE), more: recent.more || entries.length > LOG_PAGE_SIZE };
   }
