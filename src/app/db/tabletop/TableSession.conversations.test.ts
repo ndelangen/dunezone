@@ -5,6 +5,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 import { GameSubscription } from '@app/routes/_app/play/multiplayer/GameSubscription';
 
 import { hidden, runtime, Socket } from '../../routes/_app/play/multiplayer/gameRuntime.test.fixture';
+import { ConversationSession } from './ConversationSession';
 import { TableSession } from './TableSession';
 
 let stop: (() => void) | undefined;
@@ -374,4 +375,25 @@ test('a cleared message stays cleared when a retried send or a history page brin
   });
   expect(client.getSnapshot().conversations.pages.two?.entries).toEqual([]);
   expect(client.getSnapshot().conversations.pending).toEqual([]);
+});
+
+test('clearing every chat names the position meant for each one, even when the clear cannot go out yet', () => {
+  /* The table is resyncing, so the transport refuses every request. */
+  const conversations = new ConversationSession(
+    () => false,
+    () => {},
+    () => 0
+  );
+  conversations.authority(snapshot, viewer);
+  conversations.receive({
+    type: 'conversations',
+    factionId: 'one',
+    generation: 0,
+    entries: [
+      { peerId: 'two', latest: 4, unread: 0, cleared: 0 },
+      { peerId: '@table', latest: 2, unread: 0, cleared: 2 },
+    ],
+  });
+  expect(conversations.clearAllChats()).toEqual({ two: 4 });
+  expect(conversations.clearChat({ peerId: 'two' })).toBeUndefined();
 });

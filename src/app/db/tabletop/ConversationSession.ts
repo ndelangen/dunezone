@@ -387,9 +387,8 @@ export class ConversationSession {
 
   /** Clears this faction's view of the chat through `through` (default: newest known); the other side keeps its copy. Returns what it asked for, if sent. */
   clearChat = ({ peerId, through: asked }: { peerId: string; through?: number }) => {
-    const summary = this.summaries.find((entry) => entry.peerId === peerId);
-    const through = asked ?? Math.max(summary?.latest ?? 0, this.pages[peerId]?.entries.at(-1)?.sequence ?? 0);
-    if (!this.context || !this.online || !this.reaches(peerId) || through <= this.clearedThrough(peerId)) {
+    const through = this.clearTarget(peerId, asked);
+    if (!this.context || !this.online || through === undefined) {
       return undefined;
     }
     const requestId = crypto.randomUUID();
@@ -402,17 +401,25 @@ export class ConversationSession {
     return through;
   };
 
-  /** Clears every conversation this faction has, as the compass command does; returns the position asked for in each one sent. */
+  /** Clears every conversation this faction has, as the compass command does; returns the position meant for each one, sent or not. */
   clearAllChats = () => {
-    const asked: Record<string, number> = {};
+    const meant: Record<string, number> = {};
     for (const { peerId } of this.summaries) {
-      const through = this.clearChat({ peerId });
+      const through = this.clearTarget(peerId);
       if (through !== undefined) {
-        asked[peerId] = through;
+        meant[peerId] = through;
+        this.clearChat({ peerId, through });
       }
     }
-    return asked;
+    return meant;
   };
+
+  /* Where a clear of the conversation would reach: `asked`, or the newest message known; undefined when that is already cleared. */
+  private clearTarget(peerId: string, asked?: number) {
+    const summary = this.summaries.find((entry) => entry.peerId === peerId);
+    const through = asked ?? Math.max(summary?.latest ?? 0, this.pages[peerId]?.entries.at(-1)?.sequence ?? 0);
+    return this.reaches(peerId) && through > this.clearedThrough(peerId) ? through : undefined;
+  }
 
   /* How far this faction's view of the conversation is cleared, counting clears still on their way. */
   private clearedThrough(peerId: string) {
