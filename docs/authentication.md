@@ -139,7 +139,8 @@ After OAuth, a fresh session proves control of the other account. Convex Auth re
 session during this login, so the saved intent carries the first proof. The original account must
 still be active. The user reviews the two profiles before confirming the merge, and each intent can
 be accepted once. Its progress credential expires at the same ten-minute deadline, including after
-a completed or failed merge. The deployment backfill expires older accepted credentials whose
+a completed or failed merge, but not while the merge is still running: the expiry is checked again
+every minute until the merge settles, so the page never reports a running merge as expired. The deployment backfill expires older accepted credentials whose
 deadlines have already passed. Failure details stay in the administrator view. The original profile keeps its name, avatar, address and preferences.
 
 Administrators can choose which profile to keep at `/admin/accounts`. Both accounts must be active,

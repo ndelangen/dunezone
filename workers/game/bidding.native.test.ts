@@ -84,7 +84,8 @@ describe('Optional timed bidding through the native game boundary', { timeout: 2
     expect(required(next).deadline).toBeGreaterThan(required(deadline));
   });
 
-  it('holds a timed bid while the table reviews, then resumes it with the time it had left', async () => {
+  /* A game in play with a raised timed bid, then a review the second player agrees to, which pauses the bid clock. */
+  async function timedBidUnderReview() {
     const rows = await runtime.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1');
     await runtime.exec('UPDATE current_state SET data=? WHERE id=1', [
       JSON.stringify({ ...readSnapshot(rows[0].data), stage: 'play' }),
@@ -100,7 +101,6 @@ describe('Optional timed bidding through the native game boundary', { timeout: 2
     const raised = await accepted(a, { kind: 'bid-raise' as const, round });
     const deadline = required(required(raised.snapshot.bidding).deadline);
     const left = deadline - required(raised.serverNow);
-
     const step = required(required((await syncView(a)).snapshot.reviewCheckpoints).at(-1)).step;
     const review = required((await accepted(a, { kind: 'review-propose' as const, step })).snapshot.review);
     const started = await accepted(b, {
@@ -110,6 +110,11 @@ describe('Optional timed bidding through the native game boundary', { timeout: 2
     });
     expect(required(started.snapshot.review).startedAt).not.toBeNull();
     expect((await runtime.alarm()).scheduledAt).toBeNull();
+    return { a, b, faction, deadline, left, review };
+  }
+
+  it('holds a timed bid while the table reviews, then resumes it with the time it had left', async () => {
+    const { a, b, faction, deadline, left, review } = await timedBidUnderReview();
     await runtime.clock(deadline - Date.now() + 30_000);
     await runtime.alarm(true);
     expect(required((await syncView(a)).snapshot.bidding)).toMatchObject({ turn: faction, deadline });
@@ -120,5 +125,26 @@ describe('Optional timed bidding through the native game boundary', { timeout: 2
     expect(resumed - required(ended.serverNow)).toBeLessThanOrEqual(left);
     expect(resumed - required(ended.serverNow)).toBeGreaterThan(left - 1000);
     expect((await runtime.alarm()).scheduledAt).toBe(resumed);
+  });
+
+  it('re-arms the bid clock when the proposer of a running review deletes their account', async () => {
+    const { b } = await timedBidUnderReview();
+    const response = await runtime.fetch('/__play/games/fixture-game/account-deletion', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        gameId: 'fixture-game',
+        secret: 'a'.repeat(64),
+        userId: 'user-a',
+        eventId: 'deletion-user-a',
+        deletionOperationId: 'operation-user-a',
+      }),
+    });
+    expect(response.status).toBe(200);
+    const view = (await syncView(b)).snapshot;
+    expect(view.review).toBeNull();
+    const resumed = required(required(view.bidding).deadline);
+    /* The review ended with the proposer's seat, so the resumed countdown needs its alarm back. */
+    await eventually(async () => (await runtime.alarm()).scheduledAt === resumed, 'the resumed bid alarm');
   });
 });

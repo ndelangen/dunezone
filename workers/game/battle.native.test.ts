@@ -796,4 +796,36 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
       'rejected'
     );
   });
+
+  it('takes a repeated recall ballot right after a battle settles instead of failing on the stored result', async () => {
+    const rows = await runtime.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1');
+    await runtime.exec('UPDATE current_state SET data=? WHERE id=1', [
+      JSON.stringify({ ...readHistoricalSnapshot(rows[0].data), stage: 'play' }),
+    ]);
+    await runtime.restart();
+    a = await admit('a');
+    b = await admit('b');
+    const step = required(required((await syncView(a)).snapshot.reviewCheckpoints).at(-1)).step;
+    const review = required((await accepted(a, { kind: 'review-propose' as const, step })).snapshot.review);
+    expect(review.startedAt).toBeNull();
+    const battleId = await start();
+    await accepted(a, { kind: 'battle-plan' as const, battleId, plan: plan() });
+    await ready(battleId);
+    await runtime.clock(6000);
+    await revealed();
+    await accepted(a, { kind: 'battle-outcome' as const, battleId, outcome: 'left' });
+    const settled = await accepted(b, { kind: 'battle-cancel' as const, battleId });
+    expect(required(settled.snapshot.battleResults)[0]).toMatchObject({
+      id: battleId,
+      revision: settled.snapshot.revision,
+    });
+    /* The proposer's ballot is already cast, so this changes nothing: it must not store the battle's result a second time. */
+    const repeated = await sendCommand(a, {
+      kind: 'review-ballot' as const,
+      reviewId: review.id,
+      choice: 'review' as const,
+    });
+    expect(repeated.reply.type).not.toBe('rejected');
+    expect((await sendCommand(b, { kind: 'phase' as const })).reply.type).not.toBe('rejected');
+  });
 });

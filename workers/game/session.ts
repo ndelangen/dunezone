@@ -678,7 +678,8 @@ export class GameSession {
       this.writeState(next);
       this.stageDirectory(next, Date.now());
       const result = next.battleResults[0];
-      if (result && result.revision === next.revision) {
+      /* A command that changed nothing keeps the revision a just-settled battle's result was already stored under. */
+      if (result && result.revision === next.revision && next.revision !== this.room!.snapshot.revision) {
         this.storage.sql.exec('INSERT INTO battle_results VALUES(?,?)', result.revision, JSON.stringify(result));
       }
       if (transfer) {
