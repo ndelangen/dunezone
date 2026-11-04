@@ -25,6 +25,8 @@ export type CompassKeys = Readonly<{
   onSpot: Dispatch<SetStateAction<Spot>>;
   onCursor: Dispatch<SetStateAction<number>>;
   onConfirm: () => void;
+  /** Space let go after steering: confirms as a press would, except a destructive suggestion, which needs a fresh, held press. */
+  onLetGo: () => void;
   /** Enter let go, or the window left: a held suggestion's countdown stops. */
   onRelease: () => void;
 }>;
@@ -239,7 +241,7 @@ export function useCompassKeys(keys: CompassKeys) {
     const steered = hold.current.steered;
     hold.current = { down: false, steered: false };
     if (steered && keys.open && !composing(event)) {
-      keys.onConfirm();
+      keys.onLetGo();
     }
   });
   /* Space let go while the window is in the background never sends its keyup here, so leaving the window ends the hold; the compass stays open as a tap left it. */

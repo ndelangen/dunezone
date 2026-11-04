@@ -128,3 +128,41 @@ test('typing while it counts down lets go of it', () => {
   });
   expect(clearChats).not.toHaveBeenCalled();
 });
+
+test('letting go of Space after steering onto it starts no countdown: a key already up holds nothing', () => {
+  vi.useFakeTimers();
+  const clearChats = vi.fn();
+  const table: CompassTable = {
+    players: [],
+    tableChat: null,
+    chat: () => null,
+    factionInfo: () => null,
+    clearChats,
+    nextPhase: null,
+    token: null,
+  };
+  let open = false;
+  const hook = renderHook(() =>
+    useCompass({
+      open,
+      onOpen: (next) => {
+        open = next;
+      },
+      inert: false,
+      windows: [],
+      table,
+      onView: () => {},
+      onShow: () => {},
+    })
+  );
+  fireEvent.keyDown(window, { key: ' ', code: 'Space' });
+  hook.rerender();
+  act(() => hook.result.current.props.onQuery('clear all chats'));
+  fireEvent.keyDown(window, { key: 'ArrowDown' });
+  fireEvent.keyUp(window, { key: ' ', code: 'Space' });
+  expect(hook.result.current.props.held).toBeNull();
+  act(() => {
+    vi.advanceTimersByTime(5000);
+  });
+  expect(clearChats).not.toHaveBeenCalled();
+});

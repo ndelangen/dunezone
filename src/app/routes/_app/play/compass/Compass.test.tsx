@@ -42,6 +42,7 @@ function OpenCompass() {
     onSpot: setSpot,
     onCursor: vi.fn(),
     onConfirm: vi.fn(),
+    onLetGo: vi.fn(),
     onRelease: vi.fn(),
   });
   return (

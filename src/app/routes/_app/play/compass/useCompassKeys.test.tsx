@@ -62,6 +62,7 @@ function compass(options: { inert?: boolean; suggestions?: number } = {}) {
       onSpot: setSpot,
       onCursor: setCursor,
       onConfirm,
+      onLetGo: onConfirm,
       onRelease,
     });
     return { open, spot, cursor, setSpot, setQuery };

@@ -35,6 +35,14 @@ type CompassInputs = Readonly<{
   onToggleSheet?: () => void;
 }>;
 
+/* A suggestion a key or press can confirm; a key already let go holds nothing, so it never starts a destructive countdown. */
+function confirmable(suggestion: Suggestion | undefined, letGo: boolean): suggestion is Suggestion {
+  if (!suggestion || suggestion.disabled) {
+    return false;
+  }
+  return !letGo || !suggestion.held;
+}
+
 export function useCompass({ open, onOpen, inert, windows, table, onView, onShow, onToggleSheet }: CompassInputs) {
   const [spot, setSpot] = useState<Spot>('hub');
   const [query, setQuery] = useState('');
@@ -102,14 +110,14 @@ export function useCompass({ open, onOpen, inert, windows, table, onView, onShow
     release();
     setQuery(next);
   };
-  const confirm = (at: Spot = spot) => {
+  const confirm = (at: Spot = spot, letGo = false) => {
     if (at === 'hub' && !query.trim()) {
       close();
       return;
     }
     if (at === 'hub' || at === 'search') {
       const suggestion = suggestions[cursor];
-      if (suggestion && !suggestion.disabled) {
+      if (confirmable(suggestion, letGo)) {
         runOrHold(suggestion);
       }
       return;
@@ -162,6 +170,7 @@ export function useCompass({ open, onOpen, inert, windows, table, onView, onShow
     onSpot: chooseSpot,
     onCursor: steerCursor,
     onConfirm: confirm,
+    onLetGo: () => confirm(spot, true),
     onRelease: release,
   });
 
