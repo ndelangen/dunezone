@@ -61,9 +61,17 @@ function fallbackCollection(value: string) {
   return `${categoryLabel} / ${theme}`;
 }
 
-/** Labels and browsing collections for canonical stock artwork. */
+/** Labels and browsing collections for canonical stock artwork; a retired copy shows only where its original can't. */
 export function stockAssetOptions(values: readonly string[]) {
-  return [...new Set(values.map(canonicalVectorArtwork))]
+  const offered = new Set(values);
+  return [
+    ...new Set(
+      values.map((value) => {
+        const canonical = canonicalVectorArtwork(value);
+        return offered.has(canonical) ? canonical : value;
+      })
+    ),
+  ]
     .filter((value) => !isRetiredStockAsset(value))
     .map((value) => {
       const collection = collectionsByAsset.get(value);

@@ -1352,7 +1352,6 @@
         "palace-alt-multicolor.svg",
         "palace-alt.svg",
         "palace-multicolor.svg",
-        "palace.svg",
         "planetologist-multicolor.svg",
         "planetologist.svg",
         "poison-blade.svg",
@@ -1677,8 +1676,13 @@
         "water-of-life-ceremony.svg"
       ]
     },
+    "brainfood-art": {
+      "/vector/decal/": ["bible.svg"],
+      "/vector/emblem/": ["hagal.svg"],
+      "/vector/generic/": ["peddlers.svg"]
+    },
     "online-original": {
-      "/vector/decal/": ["balance.svg", "barge.svg", "drops.svg", "signet.svg", "troll.svg"],
+      "/vector/decal/": ["drops.svg", "signet.svg", "troll.svg"],
       "/vector/emblem/": ["iduali.svg"],
       "/vector/generic/": [
         "6star.svg",
@@ -1763,11 +1767,6 @@
         "vulcan.svg",
         "zap.svg"
       ]
-    },
-    "brainfood-art": {
-      "/vector/decal/": ["bible.svg"],
-      "/vector/emblem/": ["hagal.svg"],
-      "/vector/generic/": ["peddlers.svg"]
     },
     "gf9-second-edition-trace": {
       "/vector/decal/": [
@@ -2285,8 +2284,6 @@
     "/image/planet/familiar-worlds/vulcan.png": "Reference: Star Trek.",
     "/image/planet/familiar-worlds/zeta-halo.png": "Reference: Halo.",
     "/vector/decal/ascending-soldiers.svg": "Reference: a still from Dune: Part Two (Legendary Pictures, 2024).",
-    "/vector/decal/balance.svg": "Original: a yin-yang icon on Flaticon.",
-    "/vector/decal/barge.svg": "Original: the Mantis Cruiser from the game FTL: Faster Than Light.",
     "/vector/decal/box-and-needle.svg": "Reference: a box and needle prop by 3D Printed Props.",
     "/vector/decal/circular-throne-room-multicolor.svg": "Reference: a photo published by Secret Los Angeles.",
     "/vector/decal/circular-throne-room.svg": "Reference: a photo published by Secret Los Angeles.",
