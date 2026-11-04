@@ -55,6 +55,12 @@ function insideTerritory(territory: TableTerritory, piece: TablePiece) {
   return fitsInside(territory, [piece.position[0], piece.position[2]], footprintReach(piece));
 }
 
+/* A point a tenth of the way from the territory's first border corner towards its middle: a stack there straddles the border. */
+function justInsideBorder(territory: TableTerritory, centre: Vector3Tuple): Vector3Tuple {
+  const border = territory.rings[0]![0]!;
+  return [border[0] + (centre[0] - border[0]) * 0.1, 0, border[1] + (centre[2] - border[1]) * 0.1];
+}
+
 const SHELF: Vector3Tuple = [-4.8, 0, 3.2];
 
 describe('stacks dropped into a territory', () => {
@@ -95,24 +101,14 @@ describe('stacks dropped into a territory', () => {
   });
 
   test('a stack let go across the border steps inside', () => {
-    const border = arrakeen.rings[0]![0]!;
-    const nearBorder: Vector3Tuple = [
-      border[0] + (centre[0] - border[0]) * 0.1,
-      0,
-      border[1] + (centre[2] - border[1]) * 0.1,
-    ];
+    const nearBorder = justInsideBorder(arrakeen, centre);
     const state = tableWith(troop('atreides', 'atreides', SHELF));
     const next = dropAt(state, 'atreides', nearBorder)!;
     expect(insideTerritory(arrakeen, at(next, 'atreides'))).toBe(true);
   });
 
   test('played from a hand across the border step inside, as a carried one does', () => {
-    const border = arrakeen.rings[0]![0]!;
-    const nearBorder: Vector3Tuple = [
-      border[0] + (centre[0] - border[0]) * 0.1,
-      0,
-      border[1] + (centre[2] - border[1]) * 0.1,
-    ];
+    const nearBorder = justInsideBorder(arrakeen, centre);
     const played = troop('played', 'atreides', nearBorder);
     const next = playFromHandSettled(tableWith(), played, nearBorder)!;
     expect(insideTerritory(arrakeen, at(next, 'played'))).toBe(true);
