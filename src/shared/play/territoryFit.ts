@@ -273,6 +273,8 @@ const CLIMB_DIRECTIONS = Array.from({ length: 8 }, (_, k): Plane => [
   Math.sin((k * Math.PI) / 4),
 ]);
 const CLIMB_ROUNDS = 24;
+/* Steps halve from half the grid's spacing down to well under a millimetre of table. */
+const CLIMB_HALVINGS = 9;
 
 /*
  * A point near `start` with room for `radius`, found by stepping towards more room in ever smaller steps, or null when there is none nearby.
@@ -281,19 +283,21 @@ const CLIMB_ROUNDS = 24;
 function climbToRoom(territory: TableTerritory, start: Plane, radius: number): Plane | null {
   let at = start;
   let room = roomAt(territory, at);
-  for (let step = SPOT_STEP / 2; step > 1e-4 && room < radius; step /= 2) {
+  for (let halving = 1; halving <= CLIMB_HALVINGS && room < radius; halving += 1) {
+    const step = SPOT_STEP / 2 ** halving;
     for (let round = 0; round < CLIMB_ROUNDS && room < radius; round += 1) {
-      const best = CLIMB_DIRECTIONS.map((direction): Plane => [
-        at[0] + direction[0] * step,
-        at[1] + direction[1] * step,
-      ])
-        .map((candidate) => ({ candidate, room: roomAt(territory, candidate) }))
-        .reduce((a, b) => (b.room > a.room ? b : a));
-      if (best.room <= room) {
+      let best = { at, room };
+      for (const [dx, dz] of CLIMB_DIRECTIONS) {
+        const candidate: Plane = [at[0] + dx * step, at[1] + dz * step];
+        const candidateRoom = roomAt(territory, candidate);
+        if (candidateRoom > best.room) {
+          best = { at: candidate, room: candidateRoom };
+        }
+      }
+      if (best.at === at) {
         break;
       }
-      at = best.candidate;
-      room = best.room;
+      ({ at, room } = best);
     }
   }
   return room >= radius ? at : null;
@@ -314,10 +318,14 @@ function spotsWithRoom(territory: TableTerritory, radius: number): Plane[] {
   if (known) {
     return known;
   }
-  const { minX, maxX, minZ, maxZ } = boundsOf(territory);
+  const { minX, maxX, minZ, maxZ } = territoryBounds(territory);
   const spots: Plane[] = [];
-  for (let x = minX + SPOT_STEP / 2; x < maxX; x += SPOT_STEP) {
-    for (let z = minZ + SPOT_STEP / 2; z < maxZ; z += SPOT_STEP) {
+  const columns = Math.ceil((maxX - minX) / SPOT_STEP);
+  const rows = Math.ceil((maxZ - minZ) / SPOT_STEP);
+  for (let column = 0; column < columns; column += 1) {
+    for (let row = 0; row < rows; row += 1) {
+      const x = minX + (column + 0.5) * SPOT_STEP;
+      const z = minZ + (row + 0.5) * SPOT_STEP;
       const room = roomAt(territory, [x, z]);
       const spot =
         room >= radius ? ([x, z] as Plane) : room >= radius - SPOT_STEP && climbToRoom(territory, [x, z], radius);
@@ -330,7 +338,8 @@ function spotsWithRoom(territory: TableTerritory, radius: number): Plane[] {
   return spots;
 }
 
-function boundsOf(territory: TableTerritory) {
+/** The box a territory's outline fits in, in table x and z. */
+export function territoryBounds(territory: TableTerritory) {
   const points = territory.rings.flat();
   return {
     minX: Math.min(...points.map(([x]) => x)),

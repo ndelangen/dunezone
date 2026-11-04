@@ -4,7 +4,7 @@ import type { TablePiece, TableState, Vector3Tuple } from './model';
 import { isPointerToken, pointerCovers } from './pointerToken';
 import { restingPositionAt } from './tableGeometry';
 import { footprintOutline, footprintReach, hasRoundFootprint } from './tablePhysics';
-import { fitIntoTerritory, fitsInside, territoryShapeAt, territoryContains } from './territoryFit';
+import { fitIntoTerritory, fitsInside, territoryBounds, territoryShapeAt, territoryContains } from './territoryFit';
 import type { FitBody, FitObstacle, TableTerritory } from './territoryFit';
 
 /*
@@ -46,16 +46,6 @@ function obstacle(piece: TablePiece): FitObstacle {
   return outline ? { id: piece.id, outline } : body(piece);
 }
 
-function bounds(territory: TableTerritory) {
-  const points = territory.rings.flat();
-  return {
-    minX: Math.min(...points.map(([x]) => x)),
-    maxX: Math.max(...points.map(([x]) => x)),
-    minZ: Math.min(...points.map(([, z]) => z)),
-    maxZ: Math.max(...points.map(([, z]) => z)),
-  };
-}
-
 /** A stack already in a territory shifted over to make room for one landing there. */
 export type TerritoryNudge = { pieceId: string; position: Vector3Tuple };
 
@@ -93,7 +83,7 @@ export function keepsInsideTerritory(
 
 /* The other pieces on the table close enough to the territory to matter. */
 function piecesNear(territory: TableTerritory, piece: TablePiece, others: readonly TablePiece[]) {
-  const box = bounds(territory);
+  const box = territoryBounds(territory);
   const reach = 1;
   const near = ({ position: [x, , z] }: TablePiece) =>
     x >= box.minX - reach && x <= box.maxX + reach && z >= box.minZ - reach && z <= box.maxZ + reach;
