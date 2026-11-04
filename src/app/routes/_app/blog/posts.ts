@@ -1,4 +1,4 @@
-import { BLOG_POST_SLUGS } from '@shared/blogPostSlugs';
+import { BLOG_POST_SLUGS, UNLISTED_BLOG_POST_SLUGS } from '@shared/blogPostSlugs';
 import type { BlogPostSlug } from '@shared/blogPostSlugs';
 import { resolveAsset } from '@shared/media/resolveAsset';
 
@@ -31,6 +31,19 @@ export type BlogPostMeta = {
  * A folder beside it, like `posts/anatomy/`, holds that post's own figures and follows the same naming rule.
  */
 export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
+  'dune-homebrew-art-ai-and-credits': {
+    slug: 'dune-homebrew-art-ai-and-credits',
+    title: 'Making Dune homebrew look like it belongs: fan art, AI and credits',
+    date: '2026-11-04',
+    author: 'Central419',
+    summary:
+      "The art in the 2019 Dune box began as a fan's free print-and-play. Here's how Dune Zone builds on that, where AI comes in, and who gets the credit.",
+    cover: {
+      key: '/web/blog/why-dune/avalon-hill-set.jpg',
+      alt: 'An early Print and Play edition of Dune laid out on a table: board, shields, leader discs, battle wheels and cards',
+      aspect: 562 / 798,
+    },
+  },
   'playing-dune-online-in-real-time': {
     slug: 'playing-dune-online-in-real-time',
     title: 'Playing Dune online in real time: how hands, moving pieces and secret cards work',
@@ -139,6 +152,16 @@ export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
 
 /** Every published post, newest first, in the order of `BLOG_POST_SLUGS`. */
 export const BLOG_POSTS: readonly BlogPostMeta[] = BLOG_POST_SLUGS.map((slug) => BLOG_POST_META[slug]);
+
+/** The posts the blog list shows, newest first: every post except the unlisted ones, which only their link reaches. */
+export const LISTED_BLOG_POSTS: readonly BlogPostMeta[] = BLOG_POSTS.filter(
+  (post) => !UNLISTED_BLOG_POST_SLUGS.has(post.slug)
+);
+
+/** An unlisted post is reachable by its link but asks search engines not to index it. */
+export function isUnlistedBlogPost(meta: BlogPostMeta): boolean {
+  return UNLISTED_BLOG_POST_SLUGS.has(meta.slug);
+}
 
 export function findBlogPost(slug: string): BlogPostMeta | undefined {
   return BLOG_POSTS.find((post) => post.slug === slug);

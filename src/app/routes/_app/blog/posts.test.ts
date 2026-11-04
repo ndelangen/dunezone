@@ -1,7 +1,7 @@
-import { BLOG_POST_SLUGS } from '@shared/blogPostSlugs';
+import { BLOG_POST_SLUGS, UNLISTED_BLOG_POST_SLUGS } from '@shared/blogPostSlugs';
 import { expect, test } from 'vite-plus/test';
 
-import { BLOG_POSTS, blogPostAuthor } from './posts';
+import { BLOG_POSTS, blogPostAuthor, isUnlistedBlogPost, LISTED_BLOG_POSTS } from './posts';
 
 /* The sitemap lists posts by the shared slugs, so a post missing from either list would be unreachable or unlisted. */
 test('the sitemap lists exactly the published posts, newest first', () => {
@@ -25,4 +25,11 @@ test('bylines link verified authors and leave unknown authors unlinked', () => {
     name: 'Guest author',
     profileSlug: undefined,
   });
+});
+
+test('the blog list leaves out unlisted posts and keeps the rest in order', () => {
+  expect(LISTED_BLOG_POSTS).toEqual(BLOG_POSTS.filter((post) => !UNLISTED_BLOG_POST_SLUGS.has(post.slug)));
+  for (const post of BLOG_POSTS) {
+    expect(isUnlistedBlogPost(post)).toBe(UNLISTED_BLOG_POST_SLUGS.has(post.slug));
+  }
 });
