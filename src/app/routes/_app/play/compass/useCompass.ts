@@ -11,6 +11,7 @@ import { commandsOf, SHORTCUTS, useShortcutKeys } from './shortcuts';
 import type { Shortcut } from './shortcuts';
 import { candidatesOf, rankSuggestions } from './suggestions';
 import { useCompassKeys } from './useCompassKeys';
+import { KEYBOARD_SHORTCUTS } from './windows';
 import type { TableWindow } from './windows';
 
 /*
@@ -28,9 +29,11 @@ type CompassInputs = Readonly<{
   onView: (view: TableView) => void;
   /** Opens a window over the table. */
   onShow: (key: string, seat?: string) => void;
+  /** Shows or hides the keyboard shortcuts cheat sheet, wherever it stands; absent when the table has none. */
+  onToggleSheet?: () => void;
 }>;
 
-export function useCompass({ open, onOpen, inert, windows, table, onView, onShow }: CompassInputs) {
+export function useCompass({ open, onOpen, inert, windows, table, onView, onShow, onToggleSheet }: CompassInputs) {
   const [spot, setSpot] = useState<Spot>('hub');
   const [query, setQuery] = useState('');
   const [cursor, setCursor] = useState(0);
@@ -57,9 +60,12 @@ export function useCompass({ open, onOpen, inert, windows, table, onView, onShow
       return target === 'ally' && tiles.ally.hidden ? 'table' : target;
     });
   /* A window an arm opens shows the arm's letter in the search too. */
-  const shortcuts = Object.fromEntries(
-    Object.values(tiles).flatMap((tile) => (tile.window ? [[tile.window.key, SHORTCUTS[tile.spot]]] : []))
-  );
+  const shortcuts = {
+    ...Object.fromEntries(
+      Object.values(tiles).flatMap((tile) => (tile.window ? [[tile.window.key, SHORTCUTS[tile.spot]]] : []))
+    ),
+    ...(onToggleSheet ? { [KEYBOARD_SHORTCUTS]: SHORTCUTS.help } : {}),
+  };
   const suggestions = rankSuggestions(
     candidatesOf(windows, {
       open: show,
@@ -97,6 +103,11 @@ export function useCompass({ open, onOpen, inert, windows, table, onView, onShow
   };
   /* A letter opens its arm's window, as confirming the tile would, or runs its command; one the table lacks is left to the table. */
   const shortcut = (pressed: Shortcut) => {
+    /* ? shows the cheat sheet, and hides it again even pinned; without the sheet it falls through to nothing. */
+    if (pressed === 'help' && onToggleSheet) {
+      onToggleSheet();
+      return true;
+    }
     if (pressed in tiles) {
       const tile = tiles[pressed as keyof typeof tiles];
       if (tile.window && !tile.disabled) {

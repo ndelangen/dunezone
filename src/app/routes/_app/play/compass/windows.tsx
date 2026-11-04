@@ -17,6 +17,9 @@ import styles from './Windows.module.css';
 /** The one window that shows a faction's information, set on whichever faction was asked for. */
 export const FACTION_INFO = PANEL_WINDOWS.factionInfo.key;
 
+/** The keyboard shortcuts cheat sheet, which ? and the bar's key button show and hide. */
+export const KEYBOARD_SHORTCUTS = PANEL_WINDOWS.shortcuts.key;
+
 export type WindowLayout = 'stack' | 'flush' | 'fill';
 
 /** One window the compass can open: a panel of the table's controls, the table chat, a player's chat, or the faction information. */
@@ -29,6 +32,8 @@ export type TableWindow = Readonly<{
   description?: string;
   /** The window's full guidance, behind its (?) under the description. */
   help?: string;
+  /** Further words the search finds the window by, beside its name. */
+  keywords?: string;
   content: ReactNode;
   /** How the content sits in the window: stacked and padded, flush to the window's sides, or filling the window as a chat does. */
   layout: WindowLayout;
@@ -50,6 +55,7 @@ function panelWindows(panels: readonly TablePanel[]): TableWindow[] {
       topic: item.topic,
       description: item.description,
       help: item.help,
+      keywords: item.keywords,
       content: item.content,
       layout: item.fill ? 'fill' : item.padding === false ? 'flush' : 'stack',
       peek: item.peek,

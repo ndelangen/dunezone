@@ -45,6 +45,7 @@ import { ConnectedResultPanel, useDeclareChoice } from '../panels/result/useResu
 import type { DeclareChoice } from '../panels/result/useResultPanel';
 import { ConnectedGameLengthPanel } from '../panels/settings/useGameLengthPanel';
 import { ConnectedSetupPanel, setupWindow } from '../panels/setup/useSetupPanel';
+import { KeyboardShortcutsPanel } from '../panels/shortcuts/KeyboardShortcutsPanel';
 import { ConnectedPrivateSideTablePanel } from '../panels/sideTable/usePrivateSideTablePanel';
 import { ConnectedSpiceReservePanel } from '../panels/spice/useSpiceReservePanel';
 import { ConnectedTerritoryTintsPanel } from '../panels/tints/useTerritoryTintsPanel';
@@ -486,6 +487,8 @@ function controlPanels(
           },
         ]
       : []),
+    /* Every viewer, seated or watching, can look up the keys. */
+    { ...PANEL_WINDOWS.shortcuts, content: <KeyboardShortcutsPanel /> },
   ];
 }
 
