@@ -1,6 +1,6 @@
 import { accepted, deletedName, nextSnapshot } from '../../src/shared/play/commands';
 import { isFlippablePiece } from '../../src/shared/play/model';
-import type { StoredPiece } from '../../src/shared/play/model';
+import type { StoredPiece, TablePiece } from '../../src/shared/play/model';
 import { tableForViewer } from '../../src/shared/play/protocol';
 import type { RestoreAction } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
@@ -44,14 +44,7 @@ export function restoreCommand(snapshot: StoredSnapshot, action: RestoreAction, 
   if (table.pieces.some((piece) => piece.id === deletion.piece.id)) {
     throw new GameRejection('That piece is already on the table.');
   }
-  const facedDown = faceDown(deletion.piece);
-  const free = nearestCollisionFreePosition(facedDown, facedDown.position, table.pieces);
-  if (!free) {
-    throw new GameRejection(`There is no room on the table to restore ${deletedName(facedDown)}.`);
-  }
-  /* The search keeps the height it started from, so a piece moved off its old spot rests on whatever lies under its new one. */
-  const moved = free[0] !== facedDown.position[0] || free[2] !== facedDown.position[2];
-  const restored = { ...facedDown, position: moved ? restingPositionAt(free, facedDown) : free };
+  const restored = placed(faceDown(deletion.piece), table.pieces);
   const next = nextSnapshot(
     snapshot,
     accepted(
@@ -65,6 +58,16 @@ export function restoreCommand(snapshot: StoredSnapshot, action: RestoreAction, 
     deletedPieces: snapshot.deletedPieces.filter((entry) => entry !== deletion),
     peeks: Object.fromEntries(Object.entries(snapshot.peeks).filter(([, grant]) => grant.pieceId !== restored.id)),
   };
+}
+
+/* The piece where it lay, or at the nearest free spot; the search keeps the height it started from, so a piece moved off its old spot rests on whatever lies under its new one. */
+function placed(piece: StoredPiece, pieces: TablePiece[]): StoredPiece {
+  const free = nearestCollisionFreePosition(piece, piece.position, pieces);
+  if (!free) {
+    throw new GameRejection(`There is no room on the table to restore ${deletedName(piece)}.`);
+  }
+  const moved = free[0] !== piece.position[0] || free[2] !== piece.position[2];
+  return { ...piece, position: moved ? restingPositionAt(free, piece) : free };
 }
 
 /* Every item turned face down; a piece that cannot be flipped comes back as it was. */
