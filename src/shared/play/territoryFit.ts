@@ -281,26 +281,39 @@ const CLIMB_HALVINGS = 9;
  * A pocket narrower than the grid lies between grid points; climbing from the nearest of them finds it.
  */
 function climbToRoom(territory: TableTerritory, start: Plane, radius: number): Plane | null {
-  let at = start;
-  let room = roomAt(territory, at);
-  for (let halving = 1; halving <= CLIMB_HALVINGS && room < radius; halving += 1) {
-    const step = SPOT_STEP / 2 ** halving;
-    for (let round = 0; round < CLIMB_ROUNDS && room < radius; round += 1) {
-      let best = { at, room };
-      for (const [dx, dz] of CLIMB_DIRECTIONS) {
-        const candidate: Plane = [at[0] + dx * step, at[1] + dz * step];
-        const candidateRoom = roomAt(territory, candidate);
-        if (candidateRoom > best.room) {
-          best = { at: candidate, room: candidateRoom };
-        }
-      }
-      if (best.at === at) {
-        break;
-      }
-      ({ at, room } = best);
+  let best: Climb = { at: start, room: roomAt(territory, start) };
+  for (let halving = 1; halving <= CLIMB_HALVINGS && best.room < radius; halving += 1) {
+    best = climbAtStep(territory, best, radius, SPOT_STEP / 2 ** halving);
+  }
+  return best.room >= radius ? best.at : null;
+}
+
+type Climb = { at: Plane; room: number };
+
+/* Steps of one length towards more room, until there is enough or no step gains any. */
+function climbAtStep(territory: TableTerritory, from: Climb, radius: number, step: number): Climb {
+  let current = from;
+  for (let round = 0; round < CLIMB_ROUNDS && current.room < radius; round += 1) {
+    const next = bestStep(territory, current, step);
+    if (next === current) {
+      break;
+    }
+    current = next;
+  }
+  return current;
+}
+
+/* The step of this length with the most room, or `from` itself when none has more. */
+function bestStep(territory: TableTerritory, from: Climb, step: number): Climb {
+  let best = from;
+  for (const [dx, dz] of CLIMB_DIRECTIONS) {
+    const at: Plane = [from.at[0] + dx * step, from.at[1] + dz * step];
+    const room = roomAt(territory, at);
+    if (room > best.room) {
+      best = { at, room };
     }
   }
-  return room >= radius ? at : null;
+  return best;
 }
 
 /**
