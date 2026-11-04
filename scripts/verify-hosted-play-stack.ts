@@ -43,6 +43,8 @@ const { values } = parseArgs({
     'expect-renderer': { type: 'string' },
     'skip-build': { type: 'boolean', default: false },
     'skip-generate': { type: 'boolean', default: false },
+    /* Boots the stack for a person to play on (and a bot to join, see tools/play-bot) and keeps it up until Ctrl-C; runs no verifier. */
+    serve: { type: 'boolean', default: false },
   },
 });
 const loadProfile = runnerProfiles.find((candidate) => candidate === values['load-profile']);
@@ -72,6 +74,9 @@ for (const name of shardFlows ?? values.flow ?? (values['browser-only'] ? ['regu
       flows.push(selected);
     }
   }
+}
+if (values.serve && (flows.length > 0 || loadProfile || values['browser-only'])) {
+  throw new Error('--serve runs no verifier: leave out --flow, --shard, --browser-only and --load-profile.');
 }
 if (flows.length > 0 && values['skip-build']) {
   throw new Error("Browser flows require a fresh frontend build for this run's backend URL.");
@@ -370,6 +375,57 @@ async function installPublications(publications: Publication[], workerOutput: st
   }
 }
 
+/**
+ * `--serve`: games start at Turn 1 with no phase cooldown, two synthetic accounts exist (one for the person, one for a bot), and the stack stays up until Ctrl-C.
+ * The accounts and addresses go to tools/play-bot/out/stack.json for the bot runner.
+ */
+async function serveForPlay({
+  convex,
+  seedCatalogue,
+  origin,
+  backendUrl,
+  adminKey,
+}: {
+  convex: (args: string[]) => string;
+  seedCatalogue: (withPublicCatalogue: boolean) => Promise<string>;
+  origin: string;
+  backendUrl: string;
+  adminKey: string;
+}) {
+  const rulesetId = await seedCatalogue(true);
+  convex(['env', 'set', 'PLAY_TEST_PHASE_COOLDOWN_MS', '0']);
+  convex(['env', 'set', 'PLAY_TEST_START_STAGE', 'play']);
+  const { ConvexHttpClient } = await import('convex/browser');
+  const { setAdminAuth } = await import('./lib/convex-admin');
+  const { provisionAccounts } = await import('./lib/synthetic-accounts');
+  const accounts = {
+    player: { email: 'player@example.invalid', password: randomBytes(9).toString('base64url') },
+    bot: { email: 'bot@example.invalid', password: randomBytes(24).toString('hex') },
+  };
+  const admin = new ConvexHttpClient(backendUrl, { logger: false });
+  setAdminAuth(admin, adminKey);
+  await provisionAccounts(admin, Object.values(accounts));
+  const out = path.join(root, 'tools/play-bot/out');
+  mkdirSync(out, { recursive: true });
+  const stackFile = path.join(out, 'stack.json');
+  writeFileSync(stackFile, JSON.stringify({ origin, backendUrl, rulesetId, accounts }, null, 2), { mode: 0o600 });
+  console.log(
+    [
+      '',
+      `Play is up at ${origin}`,
+      `1. Sign in at ${origin}/auth/login as ${accounts.player.email} with password ${accounts.player.password}`,
+      `2. Create a game at ${origin}/play/create with the seeded ruleset and 2 players; it starts at Turn 1.`,
+      '3. Start a bot: bun run play:bot -- --game <the game page URL> --brain claude (or codex), then approve its seat request.',
+      `Accounts and addresses: ${stackFile}. Ctrl-C stops everything.`,
+      '',
+    ].join('\n')
+  );
+  await new Promise<void>((resolve) => {
+    process.once('SIGINT', () => resolve());
+    process.once('SIGTERM', () => resolve());
+  });
+}
+
 const interrupt = () => {
   stopping = true;
   for (const child of children) {
@@ -556,7 +612,7 @@ try {
   await ready(`${origin}/__play/health`, worker, 300_000);
   /* Each verifier that failed. A failed verifier does not stop the ones after it, and the run fails at the end. */
   const failed: string[] = [];
-  if (!values['browser-only']) {
+  if (!values['browser-only'] && !values.serve) {
     const verificationLog = path.join(evidence, 'verification.log');
     let verificationTimeout = 180_000;
     if (loadProfile) {
@@ -603,13 +659,12 @@ try {
       failed.push('protocol verification');
     }
   }
-  if (flows.length > 0) {
-    /* Every flow creates its own real game on this ruleset; the Recovery token is the catalogue some flows request. */
+  /* Seeds the real-game ruleset with local bytes for its faces, and the Recovery token's catalogue when asked; returns the ruleset. */
+  const seedCatalogue = async (withPublicCatalogue: boolean) => {
     const seeded = JSON.parse(convex(['run', 'playTesting:seedRealGameCatalogue', '{}'])) as {
       rulesetId: string;
       publications: Publication[];
     };
-    const { rulesetId } = seeded;
     const publications = [...seeded.publications];
     /* Physical spice uses a fixed publication address, so its synthetic face needs local R2 bytes too. */
     const spiceToken = matchPublishedPath(SPICE_TOKEN_HREF);
@@ -621,10 +676,18 @@ try {
       href: SPICE_TOKEN_HREF,
       face: 'spice',
     });
-    if (flows.some((flow) => browserFlows[flow].needsCatalogue)) {
+    if (withPublicCatalogue) {
       publications.push(...(JSON.parse(convex(['run', 'playTesting:seedPublicCatalogue', '{}'])) as Publication[]));
     }
     await installPublications(publications, readFileSync(workerLog, 'utf8'), origin);
+    return seeded.rulesetId;
+  };
+  if (values.serve) {
+    await serveForPlay({ convex, seedCatalogue, origin, backendUrl, adminKey });
+  }
+  if (flows.length > 0) {
+    /* Every flow creates its own real game on this ruleset; the Recovery token is the catalogue some flows request. */
+    const rulesetId = await seedCatalogue(flows.some((flow) => browserFlows[flow].needsCatalogue));
     const reportDirectory = path.join(evidence, 'browser');
     /*
      * A game takes its phase cooldown and its start stage from the backend when it is provisioned, and the game Worker accepts a test value only in this isolated stack.
