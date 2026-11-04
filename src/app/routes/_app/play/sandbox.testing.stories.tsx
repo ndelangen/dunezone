@@ -8,6 +8,7 @@ import { addons } from 'storybook/preview-api';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { setCameraFollowsPhase } from '../../../widgets/tabletop/cameraFollowsPhase';
+import { tableChromeInsets } from '../../../widgets/tabletop/seatedHeader';
 import { gameMeta, install } from './game.stories.fixture';
 import { chapter, journeyViewers, JourneyPage } from './journey.stories.fixture';
 import { expectHeaderPhase, openTab, phaseControls } from './playing.stories.fixture';
@@ -583,11 +584,11 @@ export const DrawRandomTechToken = meta.story({
   },
 });
 
-/* Where the other seats ping in turn while Seat 1 looks at the left bay: the map, the right bay, the tanks and the far rim. */
+/* Where the other seats ping in turn while Seat 1 looks at the left bay: the right bay and the tanks out of view, then the map and the far rim. */
 const OUT_OF_VIEW_PINGS: readonly [number, number, number][] = [
-  [0, 0.38, 0],
   [SIDE_SHELF_CENTER_X, 0.38, 0],
   [0, 0.38, BOTTOM_SHELF_POSITION[2]],
+  [0, 0.38, 0],
   [1.5, 0.38, -7],
 ];
 const PING_EVERY_MS = 1600;
@@ -638,9 +639,27 @@ export const PingsOutOfView = meta.story({
     pingFromAnotherSeat(turn);
     clearInterval(pinging);
     pinging = setInterval(() => pingFromAnotherSeat(++turn), PING_EVERY_MS);
-    await waitFor(
-      () => expect(canvasElement.ownerDocument.querySelector('[data-ping-edge][data-shown]')).not.toBeNull(),
-      { timeout: 10_000 }
+    const marker = await waitFor(
+      () => {
+        const shown = canvasElement.ownerDocument.querySelector<HTMLElement>('[data-ping-edge][data-shown]');
+        if (!shown) {
+          throw new Error('No edge marker shows yet.');
+        }
+        return shown;
+      },
+      { timeout: 20_000 }
     );
+    /* The marker stands on the edge of the room the chrome leaves, its arrow pointing outwards, away from the view's centre. */
+    const canvas = marker.parentElement!.querySelector('canvas')!;
+    const { width, height } = canvas.getBoundingClientRect();
+    const chrome = tableChromeInsets(canvas);
+    const place = /translate3d\(([-\d.]+)px, ?([-\d.]+)px/.exec(marker.style.transform)!;
+    const [x, y] = [Number(place[1]), Number(place[2])];
+    const edges = [x - chrome.left, width - chrome.right - x, y - chrome.top, height - chrome.bottom - y];
+    await expect(Math.min(...edges.map((gap) => Math.abs(gap - 40)))).toBeLessThan(1);
+    /* Two pulse rings, then the heading that turns the arrow. */
+    const heading = marker.children[2] as HTMLElement;
+    const angle = Number.parseFloat(heading.style.rotate);
+    await expect((x - width / 2) * Math.cos(angle) + (y - height / 2) * Math.sin(angle)).toBeGreaterThan(0);
   },
 });

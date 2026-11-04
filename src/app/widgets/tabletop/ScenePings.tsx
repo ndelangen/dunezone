@@ -7,10 +7,10 @@ import type { Camera, Mesh, MeshBasicMaterial } from 'three';
 
 import { ignoreRaycast } from './ignoreRaycast';
 import { pingEdgePlacement } from './pingEdgeMarker';
-import type { PingEdgeInsets } from './pingEdgeMarker';
+import type { PingEdgeInsets, PixelRect } from './pingEdgeMarker';
 import { playPingSound } from './pingSound';
 import styles from './ScenePings.module.css';
-import { tableChromeInsets } from './seatedHeader';
+import { tableChromeInsets, tableCornerRects } from './seatedHeader';
 import { useTabletopActions } from './TabletopContext';
 
 /* A table full of players pinging at once shows the newest this many: six seats at the fastest ping rate, for as long as a ping lasts. */
@@ -94,7 +94,11 @@ function PingRipple({ ping }: { ping: ShownPing }) {
       return;
     }
     /* The chrome as it stands when the ping lands: it moves with the layout, not with the camera. */
-    const marker = edgeMarker(ping.color, tableChromeInsets(renderer.domElement));
+    const marker = edgeMarker(
+      ping.color,
+      tableChromeInsets(renderer.domElement),
+      tableCornerRects(renderer.domElement)
+    );
     container.appendChild(marker.element);
     edge.current = marker;
     return () => {
@@ -149,11 +153,12 @@ type EdgeMarker = {
   element: HTMLDivElement;
   heading: HTMLDivElement;
   chrome: PingEdgeInsets;
+  corners: readonly PixelRect[];
   /* What the marker last showed, so a frame that changes nothing writes nothing. */
   shown: string;
 };
 
-function edgeMarker(color: string, chrome: PingEdgeInsets): EdgeMarker {
+function edgeMarker(color: string, chrome: PingEdgeInsets, corners: readonly PixelRect[]): EdgeMarker {
   const marker = document.createElement('div');
   marker.className = styles.edgeMarker;
   marker.dataset.pingEdge = '';
@@ -170,7 +175,7 @@ function edgeMarker(color: string, chrome: PingEdgeInsets): EdgeMarker {
   const heading = part(styles.heading);
   part(styles.arrow, heading);
   part(styles.dot, part(styles.chip));
-  return { element: marker, heading, chrome, shown: '' };
+  return { element: marker, heading, chrome, corners, shown: '' };
 }
 
 /* On the edge towards the ping while the view leaves it out; hidden while it shows, where the ripple marks it. */
@@ -183,7 +188,8 @@ function placeEdgeMarker(marker: EdgeMarker, ping: TablePing, camera: Camera, si
     [projected.x, projected.y],
     size,
     marker.chrome,
-    EDGE_CLEARANCE
+    EDGE_CLEARANCE,
+    marker.corners
   );
   const shown = placement ? `${placement.x.toFixed(1)},${placement.y.toFixed(1)},${placement.angle.toFixed(3)}` : '';
   if (shown === marker.shown) {

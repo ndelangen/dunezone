@@ -48,7 +48,7 @@ export function tableOverlayRects(canvas: Element): ScreenRect[] {
 
 /**
  * How far the play shell's chrome reaches in over a canvas's edges, in pixels: the header's chips from the top, and the chat bar from the bottom.
- * The camera dial is left out, as it covers only its corner.
+ * The camera dial is left out, as it covers only its corner: `tableCornerRects` gives it.
  * A table outside the play shell has none.
  */
 export function tableChromeInsets(canvas: Element) {
@@ -61,4 +61,23 @@ export function tableChromeInsets(canvas: Element) {
   const bar = shell?.querySelector('[data-compass-bar]')?.getBoundingClientRect();
   const bottom = bar && bar.width > 0 && bar.height > 0 ? Math.max(bounds.bottom - bar.top, 0) : 0;
   return { top: Math.max(top, 0), right: 0, bottom, left: 0 };
+}
+
+/** What the play shell draws over a corner of a canvas, the camera dial, as rectangles in pixels from the canvas's top left. */
+export function tableCornerRects(canvas: Element) {
+  const bounds = canvas.getBoundingClientRect();
+  const shell = canvas.closest('.dune-play-shell');
+  return [...(shell?.querySelectorAll('.seated-camera') ?? [])].flatMap((dial) => {
+    const rect = dial.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0
+      ? [
+          {
+            left: rect.left - bounds.left,
+            top: rect.top - bounds.top,
+            right: rect.right - bounds.left,
+            bottom: rect.bottom - bounds.top,
+          },
+        ]
+      : [];
+  });
 }

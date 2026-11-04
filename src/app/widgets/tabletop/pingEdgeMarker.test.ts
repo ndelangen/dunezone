@@ -62,4 +62,19 @@ describe('pingEdgePlacement', () => {
     expect(placement.y).toBeCloseTo(90);
     expect(placement.angle).toBeCloseTo(Math.PI / 2);
   });
+
+  it('steps out from under the camera dial in the top right corner, the shortest way', () => {
+    const dial = { left: 680, top: 20, right: 780, bottom: 120 };
+    /* Off the right edge, a little above the middle: the edge point lies beside the dial, so it moves below it. */
+    const placement = pingEdgePlacement([3, 2, -5], [3, 2.4], SIZE, NO_CHROME, CLEARANCE, [dial])!;
+    expect(placement.x).toBeCloseTo(SIZE.width - CLEARANCE);
+    expect(placement.y).toBeCloseTo(120 + CLEARANCE);
+    expect(placement.angle).toBeLessThan(0);
+  });
+
+  it('leaves a marker clear of the dial where it is', () => {
+    const dial = { left: 680, top: 20, right: 780, bottom: 120 };
+    const placement = pingEdgePlacement([3, 0, -5], [2, 0], SIZE, NO_CHROME, CLEARANCE, [dial])!;
+    expect(placement.y).toBeCloseTo(SIZE.height / 2);
+  });
 });
