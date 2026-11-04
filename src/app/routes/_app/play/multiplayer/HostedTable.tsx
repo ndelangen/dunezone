@@ -440,8 +440,12 @@ function historyGroup({ client, table, error }: ConnectionControlsProps, hasInve
             },
           ]
         : []),
-      /* A table without reviews, such as a fixture, replays alone instead; a replay already open keeps its tab. */
-      ...(!table.review &&
+      /*
+       * Observers of a finished game, who cannot start a recall, and fixture tables replay alone instead,
+       * unless a recall is showing; a replay already open keeps its tab.
+       */
+      ...(!reviewRunning(table.review?.current) &&
+      !table.review?.seat &&
       (table.snapshot.stage === 'finished' ||
         table.snapshot.stage === undefined ||
         table.playback ||

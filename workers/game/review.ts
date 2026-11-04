@@ -27,6 +27,8 @@ type Outcome = {
   snapshot: StoredSnapshot;
   now: number;
   by: Person | 'seats' | 'game-ended' | null;
+  /* A finished game's recall, which started without a vote and leaves no play to resume. */
+  finished?: boolean;
 };
 
 /**
@@ -184,7 +186,7 @@ export class TableReviews {
     this.storage.sql.exec('INSERT INTO table_reviews(review_id,data) VALUES(?,?)', review.id, JSON.stringify(review));
     this.cached = review;
     if (immediate) {
-      this.record(review, { result: 'started', snapshot, now, by: null });
+      this.record(review, { result: 'started', snapshot, now, by: null, finished: true });
     }
     return revised(snapshot);
   }
@@ -194,7 +196,15 @@ export class TableReviews {
     if (open.startedAt === null && open.proposer.userId !== viewer.userId) {
       throw new GameRejection('Only the proposer can withdraw this recall.');
     }
-    this.finish(open, { result: open.startedAt === null ? 'withdrawn' : 'ended', snapshot, now, by: own });
+    /* Only a recall that started after the game ends in a finished game: the table is frozen while one runs. */
+    const finished = snapshot.stage === 'finished' && open.startedAt !== null;
+    this.finish(open, {
+      result: open.startedAt === null ? 'withdrawn' : 'ended',
+      snapshot,
+      now,
+      by: own,
+      ...(finished ? { finished } : {}),
+    });
     return revised(snapshot);
   }
 
@@ -250,7 +260,7 @@ export class TableReviews {
     this.closed(review.id);
     this.record(review, outcome);
   }
-  private record(review: Review, { result, snapshot, now, by }: Outcome) {
+  private record(review: Review, { result, snapshot, now, by, finished }: Outcome) {
     this.log.recordReview({
       id: review.id,
       result,
@@ -258,7 +268,7 @@ export class TableReviews {
       proposer: review.proposer,
       ballots: review.ballots,
       by,
-      ...(snapshot.stage === 'finished' ? { finished: true } : {}),
+      ...(finished ? { finished } : {}),
       context: logContext(snapshot),
       at: now,
     });

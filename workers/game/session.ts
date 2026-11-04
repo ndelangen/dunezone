@@ -862,9 +862,7 @@ export class GameSession {
 
   /* A review shows one of the recent checkpoints, or any once the game is finished, named as the log names it. */
   private reviewable(step: number) {
-    return this.history
-      .recent(reviewCheckpointLimit(this.room?.snapshot.stage))
-      .find((checkpoint) => checkpoint.step === step)?.context;
+    return this.history.checkpointContext(step, reviewCheckpointLimit(this.room?.snapshot.stage));
   }
 
   /* Determine winner, its declaration and Continue playing commit with their log rows and the summary the lobby is owed. */
@@ -1228,8 +1226,8 @@ export class GameSession {
   historyFor(viewer: Viewer, step: number): Extract<ServerMessage, { type: 'history' }> {
     const stage = this.room!.snapshot.stage;
     /*
-     * Players may not keep notes, so a real game opens its replay only once it is finished.
-     * Before that, everyone sees the one checkpoint a table review shows while it runs, and nothing else.
+     * Players may not keep notes, so during a game everyone sees only the one checkpoint a running table review shows.
+     * A finished game keeps no secrets: its players recall it together, and observers, who cannot start a recall, may replay it alone.
      */
     if (stage !== undefined && stage !== 'finished' && this.reviews.running()?.step !== step) {
       throw new GameRejection('Replay opens once the game is finished.');

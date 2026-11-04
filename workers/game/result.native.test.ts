@@ -813,6 +813,8 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
       expect(audit).toContain(
         `The table recalls ${first.context}, as ${(await syncView(other)).viewer.displayName} asked.`
       );
+      const ender = (await syncView(owner)).viewer.displayName;
+      expect(audit).toContain(`The recall of ${later.context} was ended by ${ender}.`);
     });
 
     it('is declined without a majority and withdrawn only by its proposer', async () => {

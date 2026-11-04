@@ -421,8 +421,7 @@ export class LocalTable {
           action: message.action,
           now: Date.now(),
           checkpoint: (step) =>
-            this.session.history.recent(reviewCheckpointLimit(room.snapshot.stage)).find((entry) => entry.step === step)
-              ?.context,
+            this.session.history.checkpointContext(step, reviewCheckpointLimit(room.snapshot.stage)),
         })
       );
       return;

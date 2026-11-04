@@ -142,7 +142,13 @@ function Propose({ client, table, review }: Props & Readonly<{ review: Review }>
   /* A chosen checkpoint that has since rolled out of the offered ones gives way to the newest, which the table can still review. */
   const offered = review.checkpoints.some((checkpoint) => checkpoint.step === chosen);
   if (!review.seat) {
-    return <Text size="sm">Only seated players can {review.finished ? 'start' : 'ask for'} a recall.</Text>;
+    return (
+      <Text size="sm">
+        {review.finished
+          ? 'Only seated players can start a recall; you will see it when one does. Replay lets you look back alone.'
+          : 'Only seated players can ask for a recall.'}
+      </Text>
+    );
   }
   if (!newest) {
     return <Text size="sm">No checkpoint has been saved yet.</Text>;
