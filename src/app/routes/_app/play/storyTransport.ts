@@ -209,10 +209,15 @@ export function storyTransport(
 
     /* A clear moves the conversation's position, sends the summaries again, and logs it as the Worker does. */
     cleared(message: Extract<ClientMessage, { type: 'conversation-clear' }>) {
-      clearedThrough.set(message.peerId, Math.max(clearedThrough.get(message.peerId) ?? 0, message.through));
+      const before = clearedThrough.get(message.peerId) ?? 0;
+      clearedThrough.set(message.peerId, Math.max(before, message.through));
       const summary = summaries();
       if (summary) {
         queueMicrotask(() => this.deliver(summary));
+      }
+      /* As in the Worker, a clear that covers nothing new is not logged. */
+      if (message.through <= before) {
+        return;
       }
       const name = (id: string) => snapshot.roster?.seats.find((seat) => seat.faction?.id === id)?.faction?.name ?? id;
       clearLog.unshift({

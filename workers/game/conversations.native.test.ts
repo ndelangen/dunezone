@@ -300,6 +300,8 @@ describe('Faction conversations in the game database', () => {
   it('clears a conversation from one side only, through a message that side saw', async () => {
     const { a, b, aId, bId } = await setup();
     const first = messageOf(await send(a, aId, bId, 'Allied plans'), 'conversation-message').message;
+    /* The same player's other tab hears of the clear without asking. */
+    const otherTab = await admit('b');
     b.send({
       type: 'conversation-clear' as const,
       requestId: 'clear-one',
@@ -317,6 +319,14 @@ describe('Faction conversations in the game database', () => {
     );
     /* Clearing also reads what it cleared. */
     expect(summary).toMatchObject({ cleared: first.sequence, unread: 0 });
+    await eventually(
+      async () =>
+        otherTab.messages
+          .filter((entry): entry is Extract<NativeMessage, { type: 'conversations' }> => entry.type === 'conversations')
+          .at(-1)
+          ?.entries.find((entry) => entry.peerId === aId)?.cleared === first.sequence,
+      'the other tab hears of the clear'
+    );
     const announced = () => b.messages.filter((entry) => entry.type === 'log-history').length;
     expect(announced()).toBe(1);
     expect(messageOf(await page(b, bId, aId), 'conversation-history').entries).toEqual([]);

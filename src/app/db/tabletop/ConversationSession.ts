@@ -52,6 +52,8 @@ export class ConversationSession {
   private readonly reads = new Map<string, { peerId: string; through: number }>();
   /* Clears on their way, by request, so a refused one brings its conversation's history back. */
   private readonly clears = new Map<string, { peerId: string; through: number }>();
+  /* Clears the room has not taken yet, by conversation: refused while the table resynced, or lost with a connection; sent again until it confirms them. */
+  private readonly unsent = new Map<string, number>();
 
   constructor(
     private readonly send: (request: Request) => boolean,
@@ -137,6 +139,9 @@ export class ConversationSession {
     this.pages = {};
     this.summaries = [];
     this.reads.clear();
+    for (const { peerId, through } of this.clears.values()) {
+      this.keepUnsent(peerId, through);
+    }
     this.clears.clear();
     this.pending = this.pending.map((entry): Pending =>
       entry.delivery.state === 'sent' ? { ...entry, delivery: { state: 'unsent' } } : entry
@@ -156,6 +161,7 @@ export class ConversationSession {
     this.pending = [];
     this.reads.clear();
     this.clears.clear();
+    this.unsent.clear();
   }
 
   receive(message: ServerMessage): boolean {
@@ -237,6 +243,7 @@ export class ConversationSession {
       this.pages = {};
       this.reads.clear();
       this.clears.clear();
+      this.unsent.clear();
     }
     this.generation = message.generation;
     this.summaries = message.entries.filter(
@@ -251,6 +258,7 @@ export class ConversationSession {
         }
       }
     }
+    this.sendUnsent();
   }
 
   private dropCleared(peerId: string, through: number) {
@@ -274,7 +282,8 @@ export class ConversationSession {
       ...this.pages,
       [message.peerId]: {
         entries: merge(page.entries, this.uncleared(message.peerId, message.entries)),
-        more: message.more,
+        /* A page that was all cleared means everything before it was cleared too. */
+        more: message.more && this.uncleared(message.peerId, message.entries).length > 0,
         load: { state: 'idle' },
       },
     };
@@ -391,15 +400,40 @@ export class ConversationSession {
     if (!this.context || !this.online || through === undefined) {
       return undefined;
     }
-    const requestId = crypto.randomUUID();
-    if (!this.send({ type: 'conversation-clear', requestId, factionId: this.context.factionId, peerId, through })) {
-      return undefined;
+    if (!this.sendClear(peerId, through)) {
+      this.keepUnsent(peerId, through);
     }
-    this.clears.set(requestId, { peerId, through });
     this.dropCleared(peerId, through);
     this.changed();
     return through;
   };
+
+  private sendClear(peerId: string, through: number) {
+    const requestId = crypto.randomUUID();
+    const factionId = this.context?.factionId;
+    if (!factionId || !this.send({ type: 'conversation-clear', requestId, factionId, peerId, through })) {
+      return false;
+    }
+    this.clears.set(requestId, { peerId, through });
+    return true;
+  }
+
+  private keepUnsent(peerId: string, through: number) {
+    this.unsent.set(peerId, Math.max(this.unsent.get(peerId) ?? 0, through));
+  }
+
+  /* Sends each clear the room has not taken, once its summaries are back; one they already cover is done. */
+  private sendUnsent() {
+    for (const [peerId, through] of this.unsent) {
+      const summary = this.summaries.find((entry) => entry.peerId === peerId);
+      if (!summary) {
+        continue;
+      }
+      if (summary.cleared >= through || this.sendClear(peerId, through)) {
+        this.unsent.delete(peerId);
+      }
+    }
+  }
 
   /** Clears every conversation this faction has, as the compass command does; returns the position meant for each one, sent or not. */
   clearAllChats = () => {
@@ -421,11 +455,11 @@ export class ConversationSession {
     return this.reaches(peerId) && through > this.clearedThrough(peerId) ? through : undefined;
   }
 
-  /* How far this faction's view of the conversation is cleared, counting clears still on their way. */
-  private clearedThrough(peerId: string) {
+  /** How far this faction's view of the conversation is cleared, counting clears still on their way. */
+  clearedThrough(peerId: string) {
     const summary = this.summaries.find((entry) => entry.peerId === peerId)?.cleared ?? 0;
     const sent = [...this.clears.values()].filter((entry) => entry.peerId === peerId).map((entry) => entry.through);
-    return Math.max(summary, ...sent);
+    return Math.max(summary, this.unsent.get(peerId) ?? 0, ...sent);
   }
 
   private uncleared(peerId: string, entries: ConversationMessage[]) {
@@ -464,6 +498,9 @@ export class ConversationSession {
       }
     }
     this.expirePending();
+    if (this.online) {
+      this.sendUnsent();
+    }
   }
 
   private expirePending() {

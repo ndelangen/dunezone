@@ -378,9 +378,11 @@ test('a cleared message stays cleared when a retried send or a history page brin
 });
 
 test('clearing every chat names the position meant for each one, even when the clear cannot go out yet', () => {
-  /* The table is resyncing, so the transport refuses every request. */
+  /* The table is resyncing, so the transport refuses every request until it is ready again. */
+  let ready = false;
+  const sent: unknown[] = [];
   const conversations = new ConversationSession(
-    () => false,
+    (request) => ready && sent.push(request) > 0,
     () => {},
     () => 0
   );
@@ -395,5 +397,36 @@ test('clearing every chat names the position meant for each one, even when the c
     ],
   });
   expect(conversations.clearAllChats()).toEqual({ two: 4 });
+  /* The chat reads as cleared at once, and the clear goes out once the table is ready. */
+  expect(conversations.clearedThrough('two')).toBe(4);
   expect(conversations.clearChat({ peerId: 'two' })).toBeUndefined();
+  ready = true;
+  conversations.tick();
+  expect(sent).toEqual([expect.objectContaining({ type: 'conversation-clear', peerId: 'two', through: 4 })]);
+  conversations.tick();
+  expect(sent).toHaveLength(1);
+});
+
+test('a clear lost with the connection goes out again once the summaries are back', async () => {
+  const client = await connect();
+  const summaries = (cleared: number) =>
+    socket().deliver({
+      type: 'conversations',
+      factionId: 'one',
+      generation: 0,
+      entries: [{ peerId: 'two', latest: 2, unread: 0, cleared }],
+    });
+  summaries(0);
+  client.conversations.clearChat({ peerId: 'two' });
+  expect(socket().sent.filter((entry) => entry.type === 'conversation-clear')).toHaveLength(1);
+  socket().close();
+  await vi.advanceTimersByTimeAsync(1000);
+  socket().open();
+  authorize();
+  summaries(0);
+  expect(socket().sent.filter((entry) => entry.type === 'conversation-clear')).toEqual([
+    expect.objectContaining({ peerId: 'two', through: 2 }),
+  ]);
+  summaries(2);
+  expect(client.conversations.clearedThrough('two')).toBe(2);
 });

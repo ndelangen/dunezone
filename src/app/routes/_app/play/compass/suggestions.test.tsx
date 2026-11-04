@@ -243,6 +243,7 @@ test('"clear" finds Clear all chats only while a chat has messages to clear, and
   /* It sits below every window and command, so it surfaces only once typed for. */
   expect(found[0]!).toMatchObject({ key: 'cmd:clear-chats' });
   expect(all.find((entry) => entry.key === 'cmd:clear-chats')!.weight).toBeLessThan(0);
+  expect(rankSuggestions(all, '').map((entry) => entry.key)).not.toContain('cmd:clear-chats');
   expect(candidatesOf([], { ...actions(null), clearChats: null }).map((entry) => entry.label)).not.toContain(
     'Clear all chats'
   );

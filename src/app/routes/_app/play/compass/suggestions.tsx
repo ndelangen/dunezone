@@ -26,7 +26,8 @@ export type Suggestion = Readonly<{
   shortcut?: string;
 }>;
 
-type Candidate = Suggestion & Readonly<{ text: string; weight: number }>;
+/* `typedOnly` keeps a candidate out of the list shown with nothing typed. */
+type Candidate = Suggestion & Readonly<{ text: string; weight: number; typedOnly?: true }>;
 
 /* How many suggestions show with nothing typed, and once something is. */
 const SUGGESTED = 6;
@@ -85,7 +86,10 @@ function weightOf(entry: TableWindow) {
 /** The suggestions for what is typed: the best matches, or with nothing typed the windows and commands worth reaching first. */
 export function rankSuggestions(all: readonly Candidate[], query: string): Suggestion[] {
   if (!query.trim()) {
-    return [...all].sort((a, b) => b.weight - a.weight).slice(0, SUGGESTED);
+    return all
+      .filter((entry) => !entry.typedOnly)
+      .sort((a, b) => b.weight - a.weight)
+      .slice(0, SUGGESTED);
   }
   return all
     .map((entry) => ({ entry, score: fuzzy(entry.text, query) }))
@@ -210,6 +214,7 @@ function clearChatsCandidate(clearChats: SuggestionActions['clearChats'], close:
       },
       text: 'clear all chats chat messages text erase',
       weight: -1,
+      typedOnly: true,
     },
   ];
 }

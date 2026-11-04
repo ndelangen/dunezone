@@ -68,23 +68,32 @@ export class LocalConversations {
         this.reads.set(read, Math.max(this.reads.get(read) ?? 0, request.through));
         return this.summaries(request.factionId);
       }
-      case 'conversation-clear': {
-        /* Clearing also reads what it cleared, and only through a message the conversation has, as in the Worker. */
-        const key = positionKey(request.factionId, request.peerId);
-        const pair = pairKey(request.factionId, request.peerId);
-        if (!this.messages.some((entry) => entry.pair === pair && entry.sequence === request.through)) {
-          return this.deliver({
-            type: 'rejected',
-            requestId: request.requestId,
-            message: 'This message is not available.',
-          });
-        }
-        this.reads.set(key, Math.max(this.reads.get(key) ?? 0, request.through));
-        this.clears.set(key, Math.max(this.clears.get(key) ?? 0, request.through));
-        return this.summaries(request.factionId);
-      }
+      case 'conversation-clear':
+        return this.clear(request);
       case 'conversation-send':
         return this.send(request);
+    }
+  }
+
+  /* Clearing also reads what it cleared, only through a message the conversation has, and is logged when it clears more, as in the Worker. */
+  private clear(request: Extract<Request, { type: 'conversation-clear' }>) {
+    const key = positionKey(request.factionId, request.peerId);
+    const pair = pairKey(request.factionId, request.peerId);
+    if (!this.messages.some((entry) => entry.pair === pair && entry.sequence === request.through)) {
+      return this.deliver({
+        type: 'rejected',
+        requestId: request.requestId,
+        message: 'This message is not available.',
+      });
+    }
+    const before = this.clears.get(key) ?? 0;
+    this.reads.set(key, Math.max(this.reads.get(key) ?? 0, request.through));
+    this.clears.set(key, Math.max(before, request.through));
+    this.summaries(request.factionId);
+    const { factionId, peerId, through } = request;
+    if (through > before && this.table().recordChatClear({ factionId, peerId, through })) {
+      const newest = Number.MAX_SAFE_INTEGER;
+      this.deliver({ type: 'log-history', tab: 'game', before: newest, ...this.table().logPage('game', newest) });
     }
   }
 
