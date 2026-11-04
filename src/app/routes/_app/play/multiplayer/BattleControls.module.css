@@ -200,18 +200,3 @@
     opacity: 0;
   }
 }
-
-/*
- * The left side is the aggressor's, which a tie normally favours; said above it, since nothing else on the table does.
- * It reaches past the callout's backing, so it carries the same backing itself and stays legible over the sand.
- */
-.aggressor {
-  position: absolute;
-  bottom: calc(100% + 4px);
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: var(--callout-background);
-  white-space: nowrap;
-}

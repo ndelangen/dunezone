@@ -572,12 +572,22 @@ function SideContents({
     <Button
       className={styles.claim}
       aria-label={index ? 'Claim right side' : 'Claim left side'}
-      styles={{ label: { whiteSpace: 'normal' } }}
+      styles={{ label: { whiteSpace: 'normal', height: 'auto' } }}
       variant="default"
       disabled={!table.canHandleTable || own >= 0}
       onClick={() => client.command({ kind: 'battle-claim', battleId: battle.id, side: index })}
     >
-      {index ? 'Claim right' : 'Claim left'}
+      {index ? (
+        'Claim right'
+      ) : (
+        /* The left side is the aggressor's, which a tie normally favours; nothing else on the table says so. */
+        <Stack gap={2} align="center">
+          <span>Claim left</span>
+          <Text span size="xs" c="dimmed" fw={400}>
+            Aggressor, normally wins ties
+          </Text>
+        </Stack>
+      )}
     </Button>
   );
 }
@@ -592,11 +602,6 @@ function BattleSides(props: ActiveProps) {
         const side = battle.sides[index];
         return (
           <div className={styles.side} key={index}>
-            {index === 0 && (
-              <Text className={styles.aggressor} size="xs" c="dimmed">
-                Aggressor, normally wins ties
-              </Text>
-            )}
             <SideContents {...props} index={index} active={active} />
             {side?.choice && (
               <Text className={styles.choice} size="xs">
