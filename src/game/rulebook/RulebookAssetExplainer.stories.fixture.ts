@@ -127,7 +127,7 @@ export function boardExplainerFixture(): Explainer {
 }
 
 /** Production's saved Arrakis Official board (publication b3770ccb), whose image prints no storm sector lines of its own. */
-export const ARRAKIS_OFFICIAL_BOARD_ID = 'ns72fst9vtajbcc6066ejz92ph8fweez';
+const ARRAKIS_OFFICIAL_BOARD_ID = 'ns72fst9vtajbcc6066ejz92ph8fweez';
 
 export function savedBoardExplainerFixture(sectorLines?: boolean): Explainer {
   const source = { kind: 'board', boardId: ARRAKIS_OFFICIAL_BOARD_ID } satisfies RulebookSourceReference;
