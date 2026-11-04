@@ -20,24 +20,10 @@ export class SpiceLedger {
     held = 0
   ): SpiceTransfer | undefined {
     const record = { revision: next.revision, actor: viewer.displayName };
-    if (message.type === 'command') {
-      const action = message.action;
-      if (action.kind === 'bank-withdraw') {
-        return { ...record, kind: 'withdrawal', amount: action.amount, source: factionId!, destination: 'table' };
-      }
-      if (action.kind === 'bank-collect') {
-        const piece = before.table.pieces.find((piece) => piece.id === action.pieceId)!;
-        return { ...record, kind: 'collection', amount: piece.items.length, source: 'table', destination: factionId! };
-      }
-      if (action.kind === 'spice-spawn') {
-        /* `supply` names the Spice Bank (see CONTEXT.md); the literal is kept for stored transfer records. */
-        return { ...record, kind: 'supply', amount: action.count, source: 'supply', destination: 'table' };
-      }
-      if (action.kind === 'spice-blow') {
-        /* A revealed spice card's spice comes out of the Spice Bank too, as much as the card says. */
-        const amount = spiceOnTable(next) - spiceOnTable(before);
-        return amount > 0 ? { ...record, kind: 'supply', amount, source: 'supply', destination: 'table' } : undefined;
-      }
+    const bySupplyOrBank =
+      message.type === 'command' && commandTransfer(record, message.action, before, next, factionId);
+    if (bySupplyOrBank) {
+      return bySupplyOrBank;
     }
     /* A payment lands in the receiving faction's spice reserve; a bribe on its bribe pile, still on the table. */
     if (message.type === 'drop' && message.give) {
@@ -87,6 +73,37 @@ export class SpiceLedger {
         return row ? (JSON.parse(row.data) as SpiceTransfer) : transfer;
       }),
     };
+  }
+}
+
+type TransferRecord = Pick<SpiceTransfer, 'revision' | 'actor'>;
+type TableCommand = Extract<CommitMessage, { type: 'command' }>['action'];
+
+/* The spice a command moves between the Spice Bank, a faction's reserve and the table, or undefined for any other command. */
+function commandTransfer(
+  record: TransferRecord,
+  action: TableCommand,
+  before: GameSnapshot,
+  next: GameSnapshot,
+  factionId: string | undefined
+): SpiceTransfer | undefined {
+  switch (action.kind) {
+    case 'bank-withdraw':
+      return { ...record, kind: 'withdrawal', amount: action.amount, source: factionId!, destination: 'table' };
+    case 'bank-collect': {
+      const piece = before.table.pieces.find((candidate) => candidate.id === action.pieceId)!;
+      return { ...record, kind: 'collection', amount: piece.items.length, source: 'table', destination: factionId! };
+    }
+    case 'spice-spawn':
+      /* `supply` names the Spice Bank (see CONTEXT.md); the literal is kept for stored transfer records. */
+      return { ...record, kind: 'supply', amount: action.count, source: 'supply', destination: 'table' };
+    case 'spice-blow': {
+      /* A revealed spice card's spice comes out of the Spice Bank too, as much as the card says. */
+      const amount = spiceOnTable(next) - spiceOnTable(before);
+      return amount > 0 ? { ...record, kind: 'supply', amount, source: 'supply', destination: 'table' } : undefined;
+    }
+    default:
+      return undefined;
   }
 }
 

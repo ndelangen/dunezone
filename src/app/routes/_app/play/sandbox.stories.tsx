@@ -10,8 +10,17 @@ import type { StoredSnapshot } from '../../../../../workers/game/state';
 import { openControl } from './controls.stories.fixture';
 import { gameMeta, install } from './game.stories.fixture';
 import { chapter, journeyViewers, JourneyPage } from './journey.stories.fixture';
-import { sandbox, sandboxReady, sandboxSteps, sandboxTransport } from './sandbox.stories.fixture';
-import { shown, piece, withCoveredSpiceBlow, withSpiceBlows, withTechTokens } from './sandbox.stories.fixture';
+import {
+  piece,
+  sandbox,
+  sandboxReady,
+  sandboxSteps,
+  sandboxTransport,
+  shown,
+  withCoveredSpiceBlow,
+  withSpiceBlows,
+  withTechTokens,
+} from './sandbox.stories.fixture';
 
 const meta = preview.meta({
   ...gameMeta,

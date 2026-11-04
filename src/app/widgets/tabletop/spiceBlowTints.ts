@@ -11,7 +11,9 @@ const WASH = 'a6';
 
 /* The territories the face-up spice cards name, the top card of each pile only, as one key, so the board redraws only when they change. */
 function spiceBlowTerritoriesKey(pieces: Parameters<typeof revealedSpiceBlows>[0]): string {
-  return [...new Set(revealedSpiceBlows(pieces).flatMap(({ blow }) => blow.territories))].sort().join(' ');
+  return [...new Set(revealedSpiceBlows(pieces).flatMap(({ blow }) => blow.territories))]
+    .sort((a, b) => a.localeCompare(b))
+    .join(' ');
 }
 
 /**
