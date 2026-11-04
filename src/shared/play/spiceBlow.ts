@@ -102,14 +102,18 @@ function blowInput(card: LegacyCard) {
   };
 }
 
+function isCard(data: unknown): data is LegacyCard {
+  return typeof data === 'object' && data !== null;
+}
+
 /**
  * What a spice card's revealed face asks the table to do, read from the card as the catalogue stored it.
  * A card that names no territory, such as Shai-Hulud, has none.
  */
 export function spiceBlowOf(type: string, data: unknown): SpiceBlow | undefined {
-  if (type !== 'card-spice' || !data || typeof data !== 'object') {
+  if (type !== 'card-spice' || !isCard(data)) {
     return undefined;
   }
-  const parsed = spiceBlowSchema.safeParse(blowInput(data as LegacyCard));
+  const parsed = spiceBlowSchema.safeParse(blowInput(data));
   return parsed.success ? parsed.data : undefined;
 }

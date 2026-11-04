@@ -1322,6 +1322,9 @@ export class TableSession {
       this.carry = null;
     }
     /* A Spice blow the table could not take a moment ago goes on with the view it waited for. */
+    this.resumeSpiceBlow();
+  }
+  private resumeSpiceBlow() {
     if (this.spiceBlowQueue.length) {
       queueMicrotask(() => this.nextSpiceBlow());
     }
