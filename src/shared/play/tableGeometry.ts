@@ -245,6 +245,9 @@ export function surfacePointOnRay(origin: Vector3Tuple, direction: Vector3Tuple)
   return null;
 }
 
+/** A ray from the camera through the pointer, in table space. */
+export type PointerRay = { origin: Vector3Tuple; direction: Vector3Tuple };
+
 export function pointOnRayAtHeight(origin: Vector3Tuple, direction: Vector3Tuple, height: number): Vector3Tuple | null {
   if (Math.abs(direction[1]) < Number.EPSILON) {
     return null;

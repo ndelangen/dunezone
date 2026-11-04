@@ -1,6 +1,6 @@
 import { testingPreview } from '@sb/preview';
 import { factionTokenOf } from '@shared/play/factionToken';
-import { stackTopHeight } from '@shared/play/tableGeometry';
+import { FACTION_TOKEN_SCALE, stackTopHeight, TROOP_TOP_RADIUS } from '@shared/play/tableGeometry';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { carryOnto, giftPoints, looseSpiceSnapshot } from './bribes.stories.fixture';
@@ -56,6 +56,33 @@ export const EscapePutsTheSpiceBack = meta.story({
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(page.queryByRole('menu')).toBeNull());
     await waitFor(() => expect(session.transport.messages.some((message) => message.type === 'cancel')).toBe(true));
+    await expect(drops()).toEqual([]);
+  },
+});
+
+/* Just inside the drawn face's rim. */
+const RIM = TROOP_TOP_RADIUS * FACTION_TOKEN_SCALE * 0.9;
+
+/**
+ * The whole token counts: spice let go with the pointer over any edge of another faction's face, seen from the tilted map view, asks Bribe or Payment.
+ * Escape puts it back between tries.
+ */
+export const WholeTokenCounts = meta.story({
+  beforeEach: install(() => productTransport('seat-2', looseSpiceSnapshot())),
+  play: async ({ canvasElement }) => {
+    const { document, page } = await tablePage(canvasElement);
+    const { spice, token } = giftPoints(looseSpiceSnapshot());
+    for (const [dx, dz] of [
+      [RIM, 0],
+      [-RIM, 0],
+      [0, RIM],
+      [0, -RIM],
+    ]) {
+      await carryOnto(document, spice, [token[0] + dx, token[1], token[2] + dz]);
+      await waitFor(() => page.getByRole('menu', { name: /^Give 1 spice to / }), { timeout: 30_000 });
+      await userEvent.keyboard('{Escape}');
+      await waitFor(() => expect(page.queryByRole('menu')).toBeNull());
+    }
     await expect(drops()).toEqual([]);
   },
 });

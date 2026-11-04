@@ -1,4 +1,5 @@
 import type { TablePiece, Vector3Tuple } from '@shared/play/model';
+import type { PointerRay } from '@shared/play/tableGeometry';
 
 import type { TabletopContextValue } from './TabletopContext';
 
@@ -13,8 +14,8 @@ type Controls = Pick<
   hasDraft: boolean;
   piece(id: string): TablePiece | undefined;
   point(piece: TablePiece, x: number, y: number): Vector3Tuple | null;
-  /** The point on the tops of the tokens resting on the table that the pointer is over. */
-  surfacePoint?(x: number, y: number): Vector3Tuple | null;
+  /** The ray from the camera through the pointer, for the faction token a held piece is let go over; a surface with no gifts leaves it out. */
+  pointerRay?(x: number, y: number): PointerRay;
   isPublicPoint(x: number, y: number): boolean;
   onActiveChange(active: boolean): void;
 };
@@ -279,7 +280,7 @@ export class PointerSession {
       controls.finishGesture(point, {
         x: event.clientX,
         y: event.clientY,
-        under: controls.surfacePoint?.(event.clientX, event.clientY),
+        ray: controls.pointerRay?.(event.clientX, event.clientY),
       });
     } else {
       controls.cancelDraft();

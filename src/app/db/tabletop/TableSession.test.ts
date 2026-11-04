@@ -3,12 +3,14 @@ import { emptyBattlePlan, fixtureBattleFaces } from '@shared/play/battle';
 import type { Disclosure } from '@shared/play/battle';
 import type { CardDraw } from '@shared/play/cardDraw';
 import { initialSnapshot, nextSnapshot } from '@shared/play/commands';
+import { factionTokenStackKey } from '@shared/play/factionToken';
 import { arrakisBoardCapture } from '@shared/play/fixtures/board';
-import type { TablePiece } from '@shared/play/model';
+import type { TablePiece, Vector3Tuple } from '@shared/play/model';
 import { PEEK_DECK_LIMIT } from '@shared/play/peeking';
 import { PHASE_CHANGE_COOLDOWN_MS } from '@shared/play/phases';
 import { tableForViewer } from '@shared/play/protocol';
 import type { ActivityChange, GameSnapshot, ServerMessage, TablePing, Viewer } from '@shared/play/protocol';
+import { createSpiceStack } from '@shared/play/spiceBank';
 import { flipPieceInState, heldPieceFor } from '@shared/play/tableState';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
@@ -2729,4 +2731,87 @@ test('spectators receive public pings during live play and collective recall wit
   expect(pings).toHaveBeenCalledTimes(2);
   client.publishPointer([1, 0, 1], [1, 0, 1]);
   expect(client.ping()).toBe(false);
+});
+
+describe('spice let go over a faction token', () => {
+  /* Harkonnen's own token and Atreides' stand side by side on the ring. */
+  const ring: Record<'harkonnen' | 'atreides', Vector3Tuple> = {
+    harkonnen: [0, 0.005, 4.39],
+    atreides: [2, 0.005, 4.39],
+  };
+  const token = (factionId: keyof typeof ring): TablePiece => ({
+    id: `token-${factionId}`,
+    label: factionId,
+    owner: 'shared',
+    color: '#888888',
+    accent: '#cccccc',
+    items: [{ id: `token-${factionId}-1`, faceUp: true }],
+    stackKey: factionTokenStackKey(factionId),
+    position: ring[factionId],
+    orientation: 0,
+    flipRevision: 0,
+    zoneId: null,
+    locked: false,
+    kind: 'force',
+  });
+  /* Harkonnen holds spice; its own token and Atreides' stand side by side on the ring. */
+  async function carryingSpice() {
+    const client = await connected();
+    const spice = createSpiceStack(900, 2);
+    const base = initialSnapshot();
+    const snapshot: GameSnapshot = {
+      ...base,
+      bank: { factionId: 'harkonnen', balance: 20 },
+      roster: {
+        seatCount: 6,
+        seats: [
+          { id: 'harkonnen', position: 0, faction: { id: 'harkonnen', name: 'Harkonnen', color: '#ed927c' } },
+          { id: 'atreides', position: 1, faction: { id: 'atreides', name: 'Atreides', color: '#4a7a3a' } },
+        ],
+      },
+      table: { ...base.table, pieces: [...base.table.pieces, spice, token('harkonnen'), token('atreides')] },
+    };
+    socket().deliver(view({ snapshot }));
+    client.beginGesture(spice.id, 'whole');
+    const begin = socket().sent.find((message) => message.type === 'begin');
+    const draft = table(client).state.draftMove;
+    if (!begin || !draft) {
+      throw new Error('The carry did not start.');
+    }
+    socket().deliver({ type: 'carry', carryId: begin.carryId, draft });
+    return client;
+  }
+  /* A ray straight down through `point`, as a top-down camera casts it. */
+  const rayDownAt = ([x, , z]: Vector3Tuple) => ({
+    origin: [x, 10, z] as Vector3Tuple,
+    direction: [0, -1, 0] as Vector3Tuple,
+  });
+
+  test('seen over a token it would not land on, it waits over that token, and the room is told where', async () => {
+    const client = await carryingSpice();
+    client.finishGesture([2.9, 0.62, 4.39], { x: 1, y: 1, ray: rayDownAt([2.3, 0, 4.39]) });
+    expect(table(client).spiceGift).toMatchObject({ factionId: 'atreides' });
+    expect(socket().sent.at(-1)).toMatchObject({ type: 'pose', position: [2, 0.62, 4.39] });
+    expect(sentDrops()).toEqual([]);
+  });
+
+  test('what it is seen over wins over the own token it would land on', async () => {
+    const client = await carryingSpice();
+    client.finishGesture([0.2, 0.62, 4.39], { x: 1, y: 1, ray: rayDownAt([1.7, 0, 4.39]) });
+    expect(table(client).spiceGift).toMatchObject({ factionId: 'atreides' });
+  });
+
+  test('landing on a token counts when the pointer is seen beside it', async () => {
+    const client = await carryingSpice();
+    client.finishGesture([2.3, 0.62, 4.39], { x: 1, y: 1, ray: rayDownAt([3, 0, 4.39]) });
+    expect(table(client).spiceGift).toMatchObject({ factionId: 'atreides' });
+    expect(socket().sent.at(-1)).toMatchObject({ type: 'pose', position: [2.3, 0.62, 4.39] });
+  });
+
+  test('over its own token only, it lands as any drop does', async () => {
+    const client = await carryingSpice();
+    client.finishGesture([0.2, 0.62, 4.39], { x: 1, y: 1, ray: rayDownAt([0.1, 0, 4.39]) });
+    expect(table(client).spiceGift).toBeUndefined();
+    expect(sentDrops()).toHaveLength(1);
+  });
 });
