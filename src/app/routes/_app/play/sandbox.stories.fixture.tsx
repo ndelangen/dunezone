@@ -1,6 +1,7 @@
 import { debuggingChanged, describeDebugging, note } from '@sb/playDebugger/preview';
 import type { LogEntry, LogTab } from '@shared/play/log';
 import type { Viewer } from '@shared/play/protocol';
+import { spiceBlowOf } from '@shared/play/spiceBlow';
 import { restingPositionAt } from '@shared/play/tableGeometry';
 import { nearestCollisionFreePosition } from '@shared/play/tablePhysics';
 import { isTechToken } from '@shared/play/techToken';
@@ -245,3 +246,42 @@ export const messyReservesSandbox = {
       })
     )(),
 };
+
+/**
+ * The recording's Spice cards as a game now captures them: each Broken Land card names its territory and its eight spice, as the published card's highlight and amount say, so its revealed face can place its spice (#2678).
+ */
+export function withSpiceBlows(stored: StoredSnapshot): StoredSnapshot {
+  const spiceBlow = spiceBlowOf('card-spice', { highlights: ['broken-land'], amount: 8 });
+  const capture = (item: StoredSnapshot['table']['pieces'][number]['items'][number]) =>
+    item.artwork?.type === 'card-spice' ? { ...item, artwork: { ...item.artwork, spiceBlow } } : item;
+  return {
+    ...stored,
+    table: {
+      ...stored.table,
+      pieces: stored.table.pieces.map((candidate) => ({ ...candidate, items: candidate.items.map(capture) })),
+    },
+  };
+}
+
+/**
+ * The same table with a second face-up spice card, an Arsunt blow of 6, tucked under each revealed spice card.
+ * Only the card on top counts, so Broken Land lights and Arsunt does not.
+ */
+export function withCoveredSpiceBlow(stored: StoredSnapshot): StoredSnapshot {
+  const captured = withSpiceBlows(stored);
+  const arsunt = spiceBlowOf('card-spice', { highlights: ['arsunt'], amount: 6 });
+  return {
+    ...captured,
+    table: {
+      ...captured.table,
+      pieces: captured.table.pieces.map((candidate) => {
+        const top = candidate.items.at(-1);
+        if (candidate.kind !== 'card' || !top?.faceUp || top.artwork?.type !== 'card-spice') {
+          return candidate;
+        }
+        const under = { ...top, id: `${top.id}-under`, artwork: { ...top.artwork, name: 'Arsunt', spiceBlow: arsunt } };
+        return { ...candidate, items: [...candidate.items.slice(0, -1), under, top] };
+      }),
+    },
+  };
+}

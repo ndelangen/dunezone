@@ -28,6 +28,7 @@ import {
   isOverlapFreePosition,
   isOnRoundTable,
   TABLE_PLAY_RADIUS,
+  restingAmongLeaders,
   nearestCollisionFreePosition,
   piecesCanStack,
   piecesTouchForStack,
@@ -457,7 +458,7 @@ function settleMoveAtPosition(
   if (!resolvedPosition) {
     return null;
   }
-  const restingPosition = restingPositionAt(resolvedPosition, piece);
+  const restingPosition = restingAmongLeaders(piece, restingPositionAt(resolvedPosition, piece), rules.obstacles);
   return moveDraftTo(draft, restingPosition, nearestZone(restingPosition)?.id ?? null);
 }
 

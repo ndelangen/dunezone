@@ -2,8 +2,9 @@ import { PLAY_DEBUGGER_EVENTS } from '@sb/playDebugger/events';
 import { testingPreview } from '@sb/preview';
 import { factionTokenOf } from '@shared/play/factionToken';
 import { factionSupplyLayout, seatAngleOf } from '@shared/play/setupLayout';
-import { BOTTOM_SHELF_POSITION, SIDE_SHELF_CENTER_X } from '@shared/play/tableFurnitureLayout';
+import { SIDE_SHELF_CENTER_X } from '@shared/play/tableFurnitureLayout';
 import { planarDistance, troopScale } from '@shared/play/tableGeometry';
+import { TANKS_PAD } from '@shared/play/tanksShelf';
 import { drawableTechTokens, isTechToken } from '@shared/play/techToken';
 import { troopFactionOf } from '@shared/play/troopReserves';
 import { addons } from 'storybook/preview-api';
@@ -597,7 +598,7 @@ export const DrawRandomTechToken = meta.story({
 /* Where the other seats ping in turn while Seat 1 looks at the left bay: the right bay and the tanks out of view, then the map and the far rim. */
 const OUT_OF_VIEW_PINGS: readonly [number, number, number][] = [
   [SIDE_SHELF_CENTER_X, 0.38, 0],
-  [0, 0.38, BOTTOM_SHELF_POSITION[2]],
+  [0, 0.38, (TANKS_PAD.innerRadius + TANKS_PAD.outerRadius) / 2],
   [0, 0.38, 0],
   [1.5, 0.38, -7],
 ];

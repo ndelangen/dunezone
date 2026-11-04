@@ -129,7 +129,8 @@ export function swappingSnapshot(): GameSnapshot {
 }
 
 /* A faction as the Worker retains it at public assignment, less its Extras, with the published faces the README names. */
-function capture({ slug, data, token, leaders }: (typeof factions)[number]): FactionCapture {
+/** A story faction's captured sheet with its art, as the room captures it at setup. */
+export function capture({ slug, data, token, leaders }: (typeof factions)[number]): FactionCapture {
   const face = (name: string) => imageHref(`/play-fixtures/product/${slug}-${name}.jpg`);
   return {
     faction: { id: slug, slug, name: data.name },

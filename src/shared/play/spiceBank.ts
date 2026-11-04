@@ -1,7 +1,6 @@
 import type { TablePiece, Vector3Tuple } from './model';
 import { TABLE_PHASES } from './phases';
 import { GameRejection } from './rejection';
-import { SPICE_FOOTPRINT_RADIUS } from './spice';
 import { planarDistance, restingPositionAt } from './tableGeometry';
 import { trackerArcSlots } from './tableTrackers';
 
@@ -14,12 +13,15 @@ export function isSpiceBankPosition(position: Vector3Tuple): boolean {
   return planarDistance(position, slot.position) <= slot.radius;
 }
 
+/* How far inside the bank's arc new spice appears; fixed, so spice already lying on the spawn point still takes new spice whatever a token's size. */
+const SPAWN_CLEARANCE = 0.295;
+
 export function createSpiceStack(eventNumber: number, count: number): TablePiece {
   if (!Number.isInteger(count) || count < 1 || count > 10) {
     throw new GameRejection('Spawn between 1 and 10 spice at a time.');
   }
   const slot = spiceBankSlot();
-  const radius = slot.arcRadius - slot.radius - SPICE_FOOTPRINT_RADIUS - 0.12;
+  const radius = slot.arcRadius - slot.radius - SPAWN_CLEARANCE;
   const piece: TablePiece = {
     id: `spice-${eventNumber}`,
     label: 'Spice',

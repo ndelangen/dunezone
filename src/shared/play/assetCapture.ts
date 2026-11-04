@@ -9,6 +9,7 @@ import { storedSpawnContentsSchema } from './inventory';
 import type { StoredPiece } from './model';
 import { GameRejection } from './rejection';
 import { ARTWORK_DESCRIPTION_LIMIT } from './schema';
+import { spiceBlowOf } from './spiceBlow';
 import { labelForCount } from './tableState';
 
 type SuppliedMember = AssetSupply['members'][number];
@@ -167,6 +168,7 @@ export class AssetCapture {
     const front = this.image(member.front);
     const size = isCard ? undefined : physicalSizeOf(asset.data);
     const description = descriptionOf(asset.type, asset.data);
+    const spiceBlow = isCard ? spiceBlowOf(asset.type, asset.data) : undefined;
     const stack =
       type === 'deck'
         ? { label: root.asset.name, kind: 'card' as const, stackKey: `deck:${root.asset.id}`, back: root.back }
@@ -193,6 +195,7 @@ export class AssetCapture {
           type: asset.type,
           ...(size === undefined ? {} : { size }),
           ...(description ? { description } : {}),
+          ...(spiceBlow ? { spiceBlow } : {}),
         },
       })),
       stackKey: stack.stackKey,

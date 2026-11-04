@@ -39,6 +39,8 @@ export type CompassTable = Readonly<{
   factionInfo: (seat: string) => ReactNode;
   /** Steps to the next phase; null while the header's Next phase button would be disabled, or the stage has none. */
   nextPhase: (() => void) | null;
+  /** The Spice blow command: every face-up spice card on the table places its spice; null while there is none or the viewer cannot act. */
+  spiceBlow?: (() => void) | null;
   /** The viewer's own faction token on the table: which side shows, turning it over, and whether the Bidding phase is on; null without a seat or a token. */
   token: Readonly<{ faceUp: boolean; flip: () => void; inBidding?: boolean }> | null;
   /** The bidder's raise by one, lowering (null unless the viewer raised this turn) and pass, while it points at the viewer. */

@@ -5,7 +5,8 @@ import { isSpicePiece } from '@shared/play/spice';
 import { spiceBankSlot } from '@shared/play/spiceBank';
 import { stormOrder } from '@shared/play/stormSector';
 import { TABLE_TANKS_LABEL_POSITION } from '@shared/play/tableFurnitureLayout';
-import { TANKS_PLAY_AREA } from '@shared/play/tablePhysics';
+import { TABLE_VISIBLE_RADIUS } from '@shared/play/tableGeometry';
+import { isInTanks, isOnBottomShelf } from '@shared/play/tanksShelf';
 
 import type { GuideTask } from '@app/widgets/tutorial-guide/TutorialGuide';
 
@@ -75,11 +76,11 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
   const harkonnen = () =>
     snapshot().roster?.seats.find((seat) => seat.faction?.name === 'House Harkonnen')?.faction?.id;
   const harkonnenTroops = () => pieces().filter((piece) => piece.stackKey?.startsWith(`troops:${harkonnen()}:`));
+  /* A stack pushed aside onto the shelf round the pad still went to the Tanks. */
   const inTanks = (piece: Piece) =>
-    piece.position[0] >= TANKS_PLAY_AREA.minX &&
-    piece.position[0] <= TANKS_PLAY_AREA.maxX &&
-    piece.position[2] >= TANKS_PLAY_AREA.minZ &&
-    piece.position[2] <= TANKS_PLAY_AREA.maxZ;
+    isInTanks(piece.position) ||
+    (isOnBottomShelf(piece.position[0], piece.position[2]) &&
+      Math.hypot(piece.position[0], piece.position[2]) > TABLE_VISIBLE_RADIUS);
   const actsSince = (start: number) => players.acceptedActions().slice(start);
   return [
     task({
@@ -193,7 +194,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'fill-tanks',
       task: 'Move all Harkonnen troops to the Tanks',
       detail:
-        'Move every Harkonnen troop to the Tleilaxu Tanks, including the troops in Carthag and those in their reserves. Click M on the camera dial to see both stacks. Hold a stack to pick it all up, then drag it to the near end of the shelf below the board. Click B to inspect the Tanks.',
+        'Move every Harkonnen troop to the Tleilaxu Tanks, including the troops in Carthag and those in their reserves. Click M on the camera dial to see both stacks. Hold a stack to pick it all up, then drag it onto the Tanks below the board. Click B to inspect the Tanks.',
       anchor: { kind: 'table', point: () => at(harkonnenTroops().find((piece) => !inTanks(piece))) },
       begin: () => harkonnenTroops().flatMap((piece) => piece.items.map((item) => item.id)),
       done: (ids) => {
