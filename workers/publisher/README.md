@@ -165,7 +165,7 @@ newer Edition cannot move that selection backward, and a soft-deleted Rulebook i
 not delivered even though its R2 bytes remain.
 
 Administrators inspect jobs, change the pickup switch, and see Renderer revisions
-at `/__jobs`. That route exposes no embedded `asset_data` and provides no manual job
+at `/admin/jobs`. That route exposes no embedded `asset_data` and provides no manual job
 actions.
 
 ## Local checks

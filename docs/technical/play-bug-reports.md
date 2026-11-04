@@ -40,8 +40,7 @@ keeps the activity after account deletion, with the existing deleted-account nam
 The [Admin tools directory](/admin) links to Accounts, Card presets, Migration activity,
 Publication jobs and the [Game debugger](/admin/game-debugger). The `/admin` parent checks the
 current administrator role before mounting a tool. Existing Convex functions continue to enforce
-their own authorization. The previous `/_admin/accounts`, `/_admin/jobs`, `/assets/__presets`,
-`/_jobs` and `/__jobs` addresses redirect to their corresponding `/admin` pages.
+their own authorization.
 
 Download `state.json` from a reported issue and choose it in the debugger. The file stays in the
 tab's memory; it is not uploaded or persisted. Closing the report or leaving the page discards it.

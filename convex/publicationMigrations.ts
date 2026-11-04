@@ -3,7 +3,11 @@ import type { FunctionReference } from 'convex/server';
 
 import { components, internal } from './_generated/api';
 import { internalMutation } from './functions';
-import { assertPublicationJobListing, syncPublicationJobListing } from './lib/publicationJobListings';
+import {
+  assertPublicationJobListing,
+  dropRetiredOrderItems,
+  syncPublicationJobListing,
+} from './lib/publicationJobListings';
 import schema from './schema';
 
 const migrations = new Migrations(components.migrations, {
@@ -22,7 +26,7 @@ export const publication_job_listings_v1 = migrations.define({
   },
 });
 
-/** Enables indexed reads only after every remaining job has its exact metadata and both order entries. */
+/** Enables indexed reads only after every remaining job has its exact metadata and its order entry. */
 export const publication_job_listings_verify_v1 = migrations.define({
   table: 'publication_jobs',
   batchSize: 4,
@@ -31,7 +35,17 @@ export const publication_job_listings_verify_v1 = migrations.define({
   },
 });
 
+/** Removes the per-asset-type order entries the queue stopped writing in November 2026; a replay finds nothing to remove. */
+export const publication_queue_type_orders_drop_v1 = migrations.define({
+  table: 'publication_job_listings',
+  batchSize: 50,
+  migrateOne: async (ctx, row) => {
+    await dropRetiredOrderItems(ctx, row);
+  },
+});
+
 export const PUBLICATION_MIGRATION_IDS: Record<string, FunctionReference<'mutation', 'internal'>> = {
   publication_job_listings_v1: internal.publicationMigrations.publication_job_listings_v1,
   publication_job_listings_verify_v1: internal.publicationMigrations.publication_job_listings_verify_v1,
+  publication_queue_type_orders_drop_v1: internal.publicationMigrations.publication_queue_type_orders_drop_v1,
 };

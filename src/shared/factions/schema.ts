@@ -47,7 +47,7 @@ function isRecord(input: unknown): input is Record<string, unknown> {
 /**
  * Reads the Faction leader from `factionLeader`, falling back to `hero`.
  * The glossary term is "Faction leader", kept apart from the supporting `leaders`.
- * Stored factions carry `factionLeader` alone since `faction_hero_key_drop_v1`, so the live decoders read that key only.
+ * Stored factions carry `factionLeader` alone, so the live decoders read that key only.
  * Three kinds of input keep the fallback.
  * Frozen sheet jobs and game captures keep the `hero` literal, and so does the catalogue answer a game Worker captures from.
  * A faction typed or imported from outside the app, such as raw JSON or a content package exported before the key was renamed, may still carry it.

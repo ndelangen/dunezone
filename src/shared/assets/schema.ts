@@ -240,7 +240,7 @@ export const TokenFace = FactionSide.extend({
  * Three modes, decided on «The stored shape of three back modes, and the migration»:
  * `custom` carries an authored face, `same` repeats the front, `reference` names another token whose authored back this one wears.
  * The target rides the data and is written at save, so the stored row is the single owner of its back;
- * the `token-back` relation rows this replaced were dropped by `asset_relations_token_back_drop_v1`.
+ * it replaced the `token-back` relation rows, which are gone.
  */
 function tokenBackUnion<TFace extends z.ZodType>(face: TFace) {
   return z.discriminatedUnion('mode', [
