@@ -65,26 +65,35 @@ export function pingEdgePlacement(
  */
 function stepAside(point: [number, number], rect: PixelRect, clearance: number, room: PixelRect): [number, number] {
   const [x, y] = point;
-  const left = rect.left - clearance;
-  const right = rect.right + clearance;
-  const top = rect.top - clearance;
-  const bottom = rect.bottom + clearance;
-  if (x <= left || x >= right || y <= top || y >= bottom) {
+  const clear = grow(rect, clearance);
+  if (!strictlyInside(point, clear)) {
     return point;
   }
   const candidates: [number, number][] = [
-    [left, y],
-    [right, y],
-    [x, top],
-    [x, bottom],
+    [clear.left, y],
+    [clear.right, y],
+    [x, clear.top],
+    [x, clear.bottom],
   ];
-  const inRoom = candidates.filter(
-    ([cx, cy]) => cx >= room.left && cx <= room.right && cy >= room.top && cy <= room.bottom
-  );
-  if (inRoom.length === 0) {
-    return point;
-  }
-  return inRoom.reduce((best, candidate) =>
-    Math.hypot(candidate[0] - x, candidate[1] - y) < Math.hypot(best[0] - x, best[1] - y) ? candidate : best
-  );
+  const distance = (candidate: [number, number]) => Math.hypot(candidate[0] - x, candidate[1] - y);
+  return candidates
+    .filter((candidate) => insideOrOn(candidate, room))
+    .reduce((best, candidate) => (best === point || distance(candidate) < distance(best) ? candidate : best), point);
+}
+
+/* A rectangle grown by `by` pixels on every side. */
+function grow(rect: PixelRect, by: number): PixelRect {
+  return { left: rect.left - by, top: rect.top - by, right: rect.right + by, bottom: rect.bottom + by };
+}
+
+function strictlyInside([x, y]: readonly [number, number], rect: PixelRect) {
+  return between(x, rect.left, rect.right, false) && between(y, rect.top, rect.bottom, false);
+}
+
+function insideOrOn([x, y]: readonly [number, number], rect: PixelRect) {
+  return between(x, rect.left, rect.right, true) && between(y, rect.top, rect.bottom, true);
+}
+
+function between(value: number, low: number, high: number, inclusive: boolean) {
+  return inclusive ? value >= low && value <= high : value > low && value < high;
 }
