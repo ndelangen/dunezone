@@ -1,7 +1,7 @@
 import type { ComponentGeometry } from '../asset-publishing/componentGeometry';
 import { TABLE_SECTOR_COUNT } from '../play/tableSettings';
-import { CENTER, derive, RADIUS } from './geometry';
-import type { Board, Face } from './geometry';
+import { derive, sectorRim, sectorStart } from './geometry';
+import type { Board, Face, Point } from './geometry';
 import { propertyId } from './schema';
 
 /* A saved board draws in a square frame this wide, the same one its published image fills. */
@@ -51,25 +51,28 @@ function part(key: string, label: string, faces: readonly Face[]) {
   };
 }
 
-/* The storm's sector lines, centre to rim, as the maintained Arrakis geometry's `sectors` part has them, so an annotation that points at the sectors finds them on a saved board too. */
-const SECTORS_PART = {
-  key: 'sectors',
-  label: 'Sectors',
-  x: 0,
-  y: 0,
-  width: 1,
-  height: 1,
-  highlight: {
-    paths: Array.from({ length: TABLE_SECTOR_COUNT }, (_, index) => {
-      const angle = (index / TABLE_SECTOR_COUNT) * Math.PI * 2;
-      const rim = [CENTER[0] + RADIUS * Math.cos(angle), CENTER[1] + RADIUS * Math.sin(angle)].map(round);
-      return {
-        d: `M${round(CENTER[0])} ${round(CENTER[1])}L${rim[0]} ${rim[1]}`,
-        transform: [1 / FRAME, 0, 0, 1 / FRAME, 0, 0] as [number, number, number, number, number, number],
-      };
-    }),
-  },
-};
+/**
+ * The storm's sector lines as the maintained Arrakis geometry's `sectors` part has them, from the polar sink's edge to the rim, so an annotation that points at the sectors finds them on a saved board too.
+ * A board without a polar sink starts them at the centre.
+ */
+function sectorsPart(polarRings: readonly (readonly Point[])[]) {
+  const transform: [number, number, number, number, number, number] = [1 / FRAME, 0, 0, 1 / FRAME, 0, 0];
+  return {
+    key: 'sectors',
+    label: 'Sectors',
+    x: 0,
+    y: 0,
+    width: 1,
+    height: 1,
+    highlight: {
+      paths: Array.from({ length: TABLE_SECTOR_COUNT }, (_, index) => {
+        const rim = sectorRim(index);
+        const start = sectorStart(rim, polarRings);
+        return { d: `M${round(start[0])} ${round(start[1])}L${round(rim[0])} ${round(rim[1])}`, transform };
+      }),
+    },
+  };
+}
 
 /**
  * A saved board's territories as a Rulebook illustration's component geometry, in the frame of the board's published image.
@@ -84,7 +87,9 @@ export function boardComponentGeometry(board: Board, widthPx: number, heightPx: 
       return { face, key: boardPartKey(property), name: property.name, type: property.type };
     })
     .filter(({ key }) => /^[a-z][a-z0-9-]*$/.test(key) && key.length <= 80);
-  const parts = new Map<string, ReturnType<typeof part>>();
+  const polarRings = territories.filter(({ type }) => type === 'polar').flatMap(({ face }) => face.rings);
+  /* First, so a board with more parts than the limit drops a territory rather than the sectors. */
+  const parts = new Map<string, ReturnType<typeof part>>([['sectors', sectorsPart(polarRings)]]);
   for (const { key, name } of territories) {
     if (!parts.has(key)) {
       parts.set(
@@ -102,9 +107,6 @@ export function boardComponentGeometry(board: Board, widthPx: number, heightPx: 
     if (members.length && !parts.has(key)) {
       parts.set(key, part(key, `All ${key}`, members));
     }
-  }
-  if (!parts.has('sectors')) {
-    parts.set('sectors', SECTORS_PART);
   }
   return { width: widthPx, height: heightPx, parts: [...parts.values()].slice(0, MAX_PARTS) };
 }

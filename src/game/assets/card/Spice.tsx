@@ -1,9 +1,9 @@
 import type { CardFrontStyle } from '@shared/assets/cardFrontPresets';
 import type { CustomCardTokens } from '@shared/assets/schema';
 import { retainedArrakisBoard } from '@shared/boards/geometry';
-import type { BoardTint } from '@shared/boards/markup';
 import type { Board } from '@shared/boards/schema';
 import { legacyHighlightTint } from '@shared/boards/spiceHighlights';
+import { useMemo } from 'react';
 import type { FC } from 'react';
 import type { z } from 'zod';
 
@@ -21,19 +21,6 @@ import unique from './Spice.module.css';
 import { SpiceBoardMap } from './SpiceBoardMap';
 import type { SpiceMapEditing } from './SpiceBoardMap';
 import { spiceIconSrc, standardSpiceText } from './spiceText';
-
-/* A card without a board link draws the stock Arrakis board, its highlights carried over as one tint, kept per highlight list so the map is drawn once. */
-const classicTintCache = new Map<string, BoardTint[]>();
-function classicTints(highlights: z.infer<typeof Spice>['highlights'], subName: string): BoardTint[] {
-  const key = `${subName}\u0000${highlights.join(',')}`;
-  let tints = classicTintCache.get(key);
-  if (!tints) {
-    const tint = legacyHighlightTint(highlights, subName);
-    tints = tint ? [tint] : [];
-    classicTintCache.set(key, tints);
-  }
-  return tints;
-}
 
 /**
  * A card with a `board` link draws that board, resolved by the caller into `boardDefinition` and `boardTokens`, in place of the legacy Arrakis vector.
@@ -66,6 +53,12 @@ export const SpiceCard: FC<
 }) => {
   const frontStyle = useResolvedCardFront('card-spice', {}, suppliedFrontStyle);
   const resolveOverlay = useAssetResolver();
+  /* A card without a board link draws the stock Arrakis board, its highlights carried as one tint; kept while they stay the same, so the map is drawn once. */
+  const highlightKey = highlights.join(',');
+  const classicTints = useMemo(() => {
+    const tint = legacyHighlightTint(highlightKey ? (highlightKey.split(',') as typeof highlights) : [], subName);
+    return tint ? [tint] : [];
+  }, [highlightKey, subName]);
   const iconSize = 85 * iconScale;
 
   return (
@@ -125,12 +118,17 @@ export const SpiceCard: FC<
           />
         )
       ) : (
-        <SpiceBoardMap board={retainedArrakisBoard()} tints={classicTints(highlights, subName)} />
+        <SpiceBoardMap board={retainedArrakisBoard()} tints={classicTints} />
       )}
 
       {/* Images an author placed on the map, in the classic map's 100-unit frame, over the classic or the linked board alike. */}
       {overlays?.length ? (
-        <svg className={unique.map_overlay} viewBox="0 0 100 100" fillRule="evenodd" clipRule="evenodd">
+        <svg
+          className={`${unique.map_overlay} ${board?.look?.style === 'textured-burn' ? unique.shiftedMap : ''}`}
+          viewBox="0 0 100 100"
+          fillRule="evenodd"
+          clipRule="evenodd"
+        >
           {overlays.map((overlay) => (
             <image
               key={`${overlay.image}-${overlay.offset[0]},${overlay.offset[1]}-${overlay.scale}`}

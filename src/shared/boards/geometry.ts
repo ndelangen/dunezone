@@ -445,11 +445,44 @@ export function snapPoint(
   }
   return { point: next, feedback };
 }
-/* The storm's sectors, from the centre to the rim at the table's own sector boundaries, so the map's lines meet the rim dividers and the storm's wedge. */
-const sectorLines: [Point, Point][] = Array.from({ length: TABLE_SECTOR_COUNT }, (_, index) => {
+/** Where the storm's sector boundary `index` meets the rim, at the table's own sector boundaries, so map lines meet the rim dividers and the storm's wedge. */
+export function sectorRim(index: number): Point {
   const angle = (index / TABLE_SECTOR_COUNT) * Math.PI * 2;
-  return [CENTER, [CENTER[0] + RADIUS * Math.cos(angle), CENTER[1] + RADIUS * Math.sin(angle)]];
-});
+  return [CENTER[0] + RADIUS * Math.cos(angle), CENTER[1] + RADIUS * Math.sin(angle)];
+}
+
+/**
+ * Where the ray from the centre towards `rim` last leaves `rings`, or the centre when it never crosses them.
+ * Sector lines start there, at the polar sink's edge, as the classic map drew them.
+ */
+export function sectorStart(rim: Point, rings: readonly (readonly Point[])[]): Point {
+  const direction: Point = [rim[0] - CENTER[0], rim[1] - CENTER[1]];
+  let furthest = 0;
+  for (const ring of rings) {
+    for (let index = 0; index < ring.length; index++) {
+      const a = ring[index]!;
+      const b = ring[(index + 1) % ring.length]!;
+      const edge: Point = [b[0] - a[0], b[1] - a[1]];
+      const denominator = direction[0] * edge[1] - direction[1] * edge[0];
+      if (Math.abs(denominator) < 1e-12) {
+        continue;
+      }
+      const offset: Point = [a[0] - CENTER[0], a[1] - CENTER[1]];
+      const t = (offset[0] * edge[1] - offset[1] * edge[0]) / denominator;
+      const u = (offset[0] * direction[1] - offset[1] * direction[0]) / denominator;
+      if (t >= 0 && t <= 1 && u >= 0 && u <= 1) {
+        furthest = Math.max(furthest, t);
+      }
+    }
+  }
+  return [CENTER[0] + direction[0] * furthest, CENTER[1] + direction[1] * furthest];
+}
+
+/* The storm's sectors, from the centre to the rim. */
+const sectorLines: [Point, Point][] = Array.from({ length: TABLE_SECTOR_COUNT }, (_, index) => [
+  CENTER,
+  sectorRim(index),
+]);
 export const referenceSectors = sectorLines
   .map(
     ([a, b]) =>

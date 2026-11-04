@@ -2,7 +2,7 @@
 import type { CustomCardTokens, SpiceBoardLook } from '@shared/assets/schema';
 import { SPICE_BOARD_SIZE } from '@shared/assets/schema';
 import type { Board } from '@shared/boards/geometry';
-import { CENTER, RADIUS } from '@shared/boards/geometry';
+import { CENTER, sectorRim } from '@shared/boards/geometry';
 import type { BoardTint, BoardTokenPlacement } from '@shared/boards/markup';
 import { boardTerritoryList, tintDrawing } from '@shared/boards/tintDrawing';
 import type { TintDrawing } from '@shared/boards/tintDrawing';
@@ -151,8 +151,8 @@ function CardTintLayers({
 
 /* The storm's sectors as the classic map dashed them, centre to rim; the polar sink covers their inner ends. */
 const SECTOR_LINES = Array.from({ length: TABLE_SECTOR_COUNT }, (_, index) => {
-  const angle = (index / TABLE_SECTOR_COUNT) * Math.PI * 2;
-  return `M${CENTER[0]} ${CENTER[1]}L${CENTER[0] + RADIUS * Math.cos(angle)} ${CENTER[1] + RADIUS * Math.sin(angle)}`;
+  const rim = sectorRim(index);
+  return `M${CENTER[0]} ${CENTER[1]}L${rim[0]} ${rim[1]}`;
 }).join('');
 
 /** The dashed sector lines, left off inside the polar sink when the board has one. */
@@ -258,7 +258,10 @@ export function SpiceBoardMap({
     ),
     [board, tints, idPrefix]
   );
-  const polarSink = territories.find(({ id }) => id === 'polar_sink')?.face.path;
+  const polarSink = territories
+    .filter(({ face }) => board.properties[face.key]?.type === 'polar')
+    .map(({ face }) => face.path)
+    .join(' ');
 
   return (
     <>
@@ -286,7 +289,7 @@ export function SpiceBoardMap({
         clipRule="evenodd"
       >
         {tintLayers}
-        <SectorLines polarSink={polarSink} maskId={`${idPrefix}-sectors`} />
+        <SectorLines polarSink={polarSink || undefined} maskId={`${idPrefix}-sectors`} />
       </svg>
       <div className={`${unique.mapTokens} ${shifted ? unique.shiftedMap : ''}`}>
         {tokens.map((token) => {
