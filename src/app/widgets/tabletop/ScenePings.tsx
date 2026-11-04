@@ -151,7 +151,8 @@ function edgeMarker(color: string): EdgeMarker {
   marker.dataset.pingEdge = '';
   marker.setAttribute('aria-hidden', 'true');
   marker.style.setProperty('--ping-color', color);
-  marker.style.setProperty('--ping-outline', playUiColors.pointerOutline);
+  marker.style.setProperty('--ping-chip', playUiColors.pingEdgeChip);
+  marker.style.setProperty('--ping-rim', playUiColors.pingEdgeRim);
   marker.style.setProperty('--ping-edge-ms', `${EDGE_MS}ms`);
   const part = (className: string | undefined, parent: HTMLElement = marker) => {
     const element = document.createElement('div');
@@ -163,7 +164,7 @@ function edgeMarker(color: string): EdgeMarker {
   part(styles.pulse);
   const heading = part(styles.heading);
   part(styles.arrow, heading);
-  part(styles.dot);
+  part(styles.dot, part(styles.chip));
   return { element: marker, heading };
 }
 

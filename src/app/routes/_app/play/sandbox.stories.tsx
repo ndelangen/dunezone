@@ -4,7 +4,7 @@ import { BOTTOM_SHELF_POSITION, SIDE_SHELF_CENTER_X } from '@shared/play/tableFu
 import { restingPositionAt, troopScale } from '@shared/play/tableGeometry';
 import { nearestCollisionFreePosition } from '@shared/play/tablePhysics';
 import { drawableTechTokens, isTechToken } from '@shared/play/techToken';
-import { expect, waitFor, within } from 'storybook/test';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import type { StoredSnapshot } from '../../../../../workers/game/state';
 import { openControl } from './controls.stories.fixture';
@@ -211,7 +211,7 @@ export const TechTokens = meta.story({
   },
 });
 
-/* Where the other seats ping in turn while Seat 1 looks at the left bay, as bidding frames it: the map, the right bay, the tanks and the far rim. */
+/* Where the other seats ping in turn while Seat 1 looks at the left bay: the map, the right bay, the tanks and the far rim. */
 const OUT_OF_VIEW_PINGS: readonly [number, number, number][] = [
   [0, 0.38, 0],
   [SIDE_SHELF_CENTER_X, 0.38, 0],
@@ -221,7 +221,7 @@ const OUT_OF_VIEW_PINGS: readonly [number, number, number][] = [
 const PING_EVERY_MS = 1600;
 
 /**
- * Bidding frames the left bay, and the other seats keep pinging elsewhere: on the map, the right bay, the tanks and the far rim.
+ * Seat 1 turns the camera to the left bay, and the other seats keep pinging elsewhere: on the map, the right bay, the tanks and the far rim.
  * Each ping out of view shows on the edge of the table, pulsing in the pinger's colour with an arrow towards where it landed, for three seconds (#2672).
  * By hand: turn the camera dial to another view, or pan with the arrow keys, and the markers follow;
  * once a ping is in view only its ripple shows.
@@ -264,6 +264,7 @@ export const PingsOutOfView = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await sandboxReady(page);
+    await userEvent.click(await page.findByRole('button', { name: /^Focus on left/ }));
     await waitFor(
       () => expect(canvasElement.ownerDocument.querySelector('[data-ping-edge][data-shown]')).not.toBeNull(),
       { timeout: 10_000 }
