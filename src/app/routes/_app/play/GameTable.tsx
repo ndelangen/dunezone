@@ -22,6 +22,7 @@ import {
 } from 'react';
 import type { ReactNode } from 'react';
 
+import { useCameraFollowsPhase } from '../../../widgets/tabletop/cameraFollowsPhase';
 import {
   PHASE_DISC_COLOR,
   PHASE_INK_COLOR,
@@ -584,10 +585,11 @@ function useTableViewController(
   onSceneReady: GameTableProps['onSceneReady']
 ) {
   const viewPhase = word || !activePhase ? null : standardPhaseOf(activePhase);
+  const followPhase = useCameraFollowsPhase();
   const [viewState, dispatchView] = useReducer(reduceTableView, viewPhase, createTableViewState);
   if (viewState.phase !== viewPhase) {
     /* The phase changed since the last render; the reducer answers it before this render commits. */
-    dispatchView({ type: 'phase.changed', phase: viewPhase });
+    dispatchView({ type: 'phase.changed', phase: viewPhase, follow: followPhase });
   }
   const cameraView = useMemo<CameraViewCommand>(
     () => ({

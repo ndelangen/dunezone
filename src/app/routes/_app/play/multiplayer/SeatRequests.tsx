@@ -22,6 +22,7 @@ import {
 } from '../../../../widgets/tabletop/boardSkinPreference';
 import { BOARD_SKIN_LABELS, BOARD_SKINS } from '../../../../widgets/tabletop/boardSkins';
 import type { BoardSkin } from '../../../../widgets/tabletop/boardSkins';
+import { setCameraFollowsPhase, useCameraFollowsPhase } from '../../../../widgets/tabletop/cameraFollowsPhase';
 import {
   setTableLighting,
   TABLE_LIGHTING_MAX,
@@ -386,6 +387,16 @@ function PlanetShadingItem() {
   );
 }
 
+/* Keeps the view this viewer set up when a phase begins, instead of moving to the phase's own view; it stays in this browser. */
+function CameraFollowsPhaseItem() {
+  const follows = useCameraFollowsPhase();
+  return (
+    <Menu.CheckboxItem checked={follows} closeMenuOnClick={false} onChange={() => setCameraFollowsPhase(!follows)}>
+      Camera follows phase
+    </Menu.CheckboxItem>
+  );
+}
+
 /* Pins the stack counts or piece names on; holding the key shows them for a moment. */
 function TableLabelItems() {
   const labels = useTableLabels();
@@ -444,6 +455,7 @@ export function GameMenu({
         <Menu.Divider />
         <TableLightingSlider />
         <TablePanSpeedSlider />
+        <CameraFollowsPhaseItem />
         <BoardSkinItems />
         <PlanetShadingItem />
         <TableLabelItems />

@@ -55,7 +55,8 @@ type TableViewState = Readonly<{
 
 type TableViewEvent =
   | Readonly<{ type: 'view.selected'; view: TableView }>
-  | Readonly<{ type: 'phase.changed'; phase: TablePhaseId | null }>
+  /* `follow` is the viewer's choice in the game menu: off, the camera keeps the view the player set up. */
+  | Readonly<{ type: 'phase.changed'; phase: TablePhaseId | null; follow: boolean }>
   | Readonly<{ type: 'interaction.changed'; active: boolean }>
   | Readonly<{ type: 'scene.ready' }>;
 
@@ -794,12 +795,12 @@ function chosenView(state: TableViewState, view: TableView): TableView {
   return state.activeView === 'top' ? (state.viewUnderTop ?? 'map') : state.activeView;
 }
 
-function changePhase(state: TableViewState, phase: TablePhaseId | null): TableViewState {
+function changePhase(state: TableViewState, phase: TablePhaseId | null, follow: boolean): TableViewState {
   if (phase === state.phase) {
     return state;
   }
-  if (phase === null) {
-    /* A phase view still waiting on an interaction is obsolete once no phase is active; a player's choice still applies. */
+  if (phase === null || !follow) {
+    /* A phase view still waiting on an interaction is obsolete once no phase is active or the camera no longer follows phases; a player's choice still applies. */
     return { ...state, phase, pendingView: state.pendingView?.source === 'phase' ? null : state.pendingView };
   }
   return requestView({ ...state, phase }, { view: PHASE_VIEWS[phase], source: 'phase' });
@@ -821,7 +822,7 @@ export function reduceTableView(state: TableViewState, event: TableViewEvent): T
     case 'view.selected':
       return requestView(state, { view: chosenView(state, event.view), source: 'player' });
     case 'phase.changed':
-      return changePhase(state, event.phase);
+      return changePhase(state, event.phase, event.follow);
     case 'interaction.changed':
       return changeInteraction(state, event.active);
     case 'scene.ready':

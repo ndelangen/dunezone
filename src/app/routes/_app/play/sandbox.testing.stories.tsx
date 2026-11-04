@@ -6,6 +6,7 @@ import { drawableTechTokens, isTechToken } from '@shared/play/techToken';
 import { addons } from 'storybook/preview-api';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
+import { setCameraFollowsPhase } from '../../../widgets/tabletop/cameraFollowsPhase';
 import { gameMeta, install } from './game.stories.fixture';
 import { chapter, journeyViewers, JourneyPage } from './journey.stories.fixture';
 import { expectHeaderPhase, openTab, phaseControls } from './playing.stories.fixture';
@@ -110,6 +111,46 @@ export const Sandbox = meta.story({
     await waitForPhase(() => expectHeaderPhase(canvasElement, 3));
     await expect(sandbox.table).not.toBe(table);
     await expect(shown().hand ?? []).toHaveLength(handSize);
+  },
+});
+
+/**
+ * Seat 1 turns "Camera follows phase" off in the game menu, looks at the left bay and moves on to Revival: the camera keeps the view the player chose instead of moving to the bottom shelf.
+ */
+export const KeepCameraOnPhaseChange = meta.story({
+  beforeEach: () => () => setCameraFollowsPhase(true),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await sandboxReady(page);
+    const { room } = sandbox.table!;
+    const dial = () => page.getByRole('group', { name: 'Table view' });
+
+    /* The header's controls arrive with the table chunk, after the heading. */
+    await userEvent.click(await page.findByRole('button', { name: 'Game menu' }, { timeout: 30_000 }));
+    const follows = await page.findByRole('menuitemcheckbox', { name: 'Camera follows phase' });
+    await expect(follows).toBeChecked();
+    await userEvent.click(follows);
+    await waitFor(() => expect(follows).not.toBeChecked());
+    await userEvent.keyboard('{Escape}');
+
+    await userEvent.click(within(dial()).getByRole('button', { name: /^Focus on left/ }));
+    await waitFor(() => expect(dial()).toHaveAttribute('data-view', 'left'));
+
+    const { controls, waitForPhase } = phaseControls(canvasElement);
+    await openTab(page, 'Phase');
+    await waitForPhase(() => expectHeaderPhase(canvasElement, 3));
+    await userEvent.click(controls().getByRole('button', { name: 'Next phase' }));
+    await waitFor(() => expect(room.snapshot.phase).toBe(4));
+    await waitForPhase(() => expectHeaderPhase(canvasElement, 4));
+    await expect(dial()).toHaveAttribute('data-view', 'left');
+    /* The dial still marks the phase's own view, one press away. */
+    await expect(
+      within(dial()).getByRole('button', { name: 'Focus on bottom, recommended for this phase' })
+    ).toBeVisible();
+
+    /* Restart, from the Play debugger panel, puts the table back at Bidding. */
+    addons.getChannel().emit(PLAY_DEBUGGER_EVENTS.act, 'restart');
+    await waitForPhase(() => expectHeaderPhase(canvasElement, 3));
   },
 });
 

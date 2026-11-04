@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 
 import { setBoardSkin, setPlanetShading } from '../../../../widgets/tabletop/boardSkinPreference';
 import { BOARD_SKIN_LABELS, BOARD_SKINS } from '../../../../widgets/tabletop/boardSkins';
+import { setCameraFollowsPhase } from '../../../../widgets/tabletop/cameraFollowsPhase';
 import type { TableView } from '../../../../widgets/tabletop/playView';
 import type { CompassPlayer } from './compassTable';
 import { PlayerToken } from './PlayerToken';
@@ -189,7 +190,7 @@ function nextPhaseCandidate(nextPhase: SuggestionActions['nextPhase'], close: ()
   ];
 }
 
-/* This viewer's board look, as in the game menu: each skin, and planet shading on or off. Found by name, never suggested unasked. */
+/* This viewer's board look, as in the game menu: each skin, planet shading on or off, and whether the camera follows phases. Found by name, never suggested unasked. */
 function lookCandidates(close: () => void): Candidate[] {
   const icon = <TopicIcon topic="board" size={18} />;
   const skins = BOARD_SKINS.map((skin): Candidate => ({
@@ -216,7 +217,19 @@ function lookCandidates(close: () => void): Candidate[] {
     text: `planet shading shade board skin ${on ? 'on' : 'off'}`,
     weight: -1,
   }));
-  return [...skins, ...shading];
+  const following = ([true, false] as const).map((on): Candidate => ({
+    key: `look:camera-follows-phase:${on ? 'on' : 'off'}`,
+    label: `Camera follows phase: ${on ? 'on' : 'off'}`,
+    hint: 'Only you see it',
+    icon,
+    run: () => {
+      close();
+      setCameraFollowsPhase(on);
+    },
+    text: `camera follows phase keep view reset ${on ? 'on' : 'off'}`,
+    weight: -1,
+  }));
+  return [...skins, ...shading, ...following];
 }
 
 /* A window as the search lists it: its name, its hint, and the letter an arm of the compass opens it with. */
