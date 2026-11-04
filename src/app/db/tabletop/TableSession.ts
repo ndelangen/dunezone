@@ -664,6 +664,7 @@ export class TableSession {
           current: this.snapshot.review,
           checkpoints: this.snapshot.reviewCheckpoints ?? [],
           seat: viewer.viewerSeat === SPECTATOR_SEAT ? null : viewer.viewerSeat,
+          finished: this.snapshot.stage === 'finished',
         },
       }),
       canInteract,

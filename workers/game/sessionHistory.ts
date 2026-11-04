@@ -194,6 +194,11 @@ export class SessionHistory {
     }
   }
 
+  /** Where a step is, as the log names it, when it is among the newest `limit` steps a review can show; read from `recent`, which is cached until a step is added. */
+  checkpointContext(step: number, limit: number): string | undefined {
+    return this.recent(limit).find((checkpoint) => checkpoint.step === step)?.context;
+  }
+
   /** The newest steps a review can show, oldest first; every frame carries them, so they are read again only once a step is added. */
   recent(limit: number): ReviewCheckpoint[] {
     if (this.recentSteps?.step !== this.step || this.recentSteps.limit !== limit) {
