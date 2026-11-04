@@ -1,4 +1,4 @@
-import { BLOG_POST_SLUGS } from '@shared/blogPostSlugs';
+import { BLOG_POST_SLUGS, UNLISTED_BLOG_POST_SLUGS } from '@shared/blogPostSlugs';
 import type { BlogPostSlug } from '@shared/blogPostSlugs';
 import { resolveAsset } from '@shared/media/resolveAsset';
 
@@ -152,6 +152,16 @@ export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
 
 /** Every published post, newest first, in the order of `BLOG_POST_SLUGS`. */
 export const BLOG_POSTS: readonly BlogPostMeta[] = BLOG_POST_SLUGS.map((slug) => BLOG_POST_META[slug]);
+
+/** The posts the blog list shows, newest first: every post except the unlisted ones, which only their link reaches. */
+export const LISTED_BLOG_POSTS: readonly BlogPostMeta[] = BLOG_POSTS.filter(
+  (post) => !UNLISTED_BLOG_POST_SLUGS.has(post.slug)
+);
+
+/** An unlisted post is reachable by its link but asks search engines not to index it. */
+export function isUnlistedBlogPost(meta: BlogPostMeta): boolean {
+  return UNLISTED_BLOG_POST_SLUGS.has(meta.slug);
+}
 
 export function findBlogPost(slug: string): BlogPostMeta | undefined {
   return BLOG_POSTS.find((post) => post.slug === slug);
