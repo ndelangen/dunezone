@@ -19,8 +19,8 @@ const RIPPLE_RADIUS = 0.3;
 const RIPPLE_MS = 1000;
 /* A ping out of view keeps its edge marker this long: a glance away from the edge should not miss it. */
 const EDGE_MS = 3000;
-/* How far in from each canvas edge the marker sits, in pixels: below the phase chip and camera dial, and just above the dock, hugging the edge so it reads as the edge of the view rather than something on the table. */
-const EDGE_INSETS = { top: 96, right: 28, bottom: 76, left: 28 } as const;
+/* How far in from each canvas edge the marker sits, in pixels: below the phase chip and camera dial, and high enough above the dock that a downward arrow (30 px from the centre) still clears it. */
+const EDGE_INSETS = { top: 96, right: 28, bottom: 94, left: 28 } as const;
 /* How opaque the ripple is while it holds its colour, before it fades. */
 const RIPPLE_OPACITY = 0.85;
 /* Lifted off the surface it lands on; the ring is drawn over whatever stands there anyway, as card wells and cards rise above it. */
