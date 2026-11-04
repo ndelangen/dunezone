@@ -44,8 +44,10 @@ function chapterDriver(canvasElement: HTMLElement) {
     (await page.findByRole('slider', { name: 'Checkpoint' })).focus();
     await userEvent.keyboard('{Home}');
   };
+  const recallShown = () =>
+    waitForFrame(() => expect(document.querySelector('[data-recall-controls="true"]')).not.toBeNull());
   const pinHistory = async () => {
-    await waitForFrame(() => expect(document.querySelector('[data-recall-controls="true"]')).not.toBeNull());
+    await recallShown();
     if (!recall().queryByRole('group', { name: 'Shared history' })) {
       await userEvent.click(recall().getByRole('button', { name: 'Controls Space' }));
       (await page.findByRole('textbox', { name: 'Search controls' })).focus();
@@ -61,6 +63,11 @@ function chapterDriver(canvasElement: HTMLElement) {
     await open('Mentat recall');
     await firstCheckpoint();
     await userEvent.click(page.getByRole('button', { name: 'Ask the table to recall' }));
+  };
+  /* The vote is answered by the practice players the current task started; the recall controls follow the group by a render. */
+  const recallStarts = async () => {
+    await page.findByRole('group', { name: 'Mentat recall in progress' }, { timeout: 30_000 });
+    await recallShown();
   };
   const sideTable = async () => {
     await userEvent.keyboard('j');
@@ -81,6 +88,7 @@ function chapterDriver(canvasElement: HTMLElement) {
     firstCheckpoint,
     pinHistory,
     askToRecallStorm,
+    recallStarts,
     sideTable,
     counterPosition,
   };
@@ -134,20 +142,33 @@ async function inspectFirstInventory({ step, recall, sideTable, counterPosition 
   return counterPosition(side);
 }
 
-/* Returning before the chapter is done resumes play with the normal panels, and the rail waits at the same task. */
-async function returnEarly({ step, page, document }: ChapterDriver) {
+/*
+ * Returning before the chapter is done resumes play with the normal panels and puts the request window back, while the rail keeps its task.
+ * A new recall of the newest checkpoint, voted on by the task's practice players, then lets that task finish.
+ */
+async function returnAndRecallLatest({ step, page, document, recall, recallStarts }: ChapterDriver) {
   await step('Inspect your recalled hand');
   await userEvent.click(page.getByRole('button', { name: 'Return to the game' }));
-  await waitForFrame(() => expect(document.querySelector('[data-recall-controls="true"]')).toBeNull());
+  const ask = await page.findByRole('button', { name: 'Ask the table to recall' });
+  await expect(document.querySelector('[data-recall-controls="true"]')).toBeNull();
   await expect(document.querySelector('[data-side="left"][data-window="hand"]')).toBeVisible();
   await expect(document.querySelector('[data-state="current"]')).toHaveTextContent('Inspect your recalled hand');
+  (await page.findByRole('slider', { name: 'Checkpoint' })).focus();
+  await userEvent.keyboard('{End}');
+  await userEvent.click(ask);
+  await recallStarts();
+  await userEvent.click(recall().getByRole('button', { name: /^Your recalled hand, you are playing as/ }));
+  await waitForFrame(() => expect(recall().getByLabelText('Spice reserve balance')).toHaveTextContent('6'));
+  await step('Inspect your private side table');
 }
 
 /* A recall asked for mid-chapter, which the task's practice players agree to. */
-async function recallStormAgain({ step, page, askToRecallStorm }: ChapterDriver) {
+async function recallStormMidChapter(driver: ChapterDriver) {
+  const { step, askToRecallStorm, recallStarts } = driver;
   await step('Inspect your recalled hand');
+  await pinLiveHand(driver);
   await askToRecallStorm();
-  await page.findByRole('group', { name: 'Mentat recall in progress' }, { timeout: 30_000 });
+  await recallStarts();
 }
 
 async function compareInventory(
@@ -194,20 +215,18 @@ async function chatAndReturn({ step, recall, page, document }: ChapterDriver) {
 
 /*
  * Every exercise uses the practice table's real controls, including its historical inventories and temporary conversation.
- * The chapter is played in two stories of about 35 s each, so a runner 1.7x slower than usual still finishes either inside the
- * suite's 120 s kill: one story through all fourteen tasks took 76 to 95 s on CI and timed out on such a runner (#1045).
- * Each story also leaves recall once, early or at the end; that a replacement recall continues the chapter's tasks is the
- * chapter script's own test (chapterScripts/mentatRecall.test.tsx).
+ * The chapter is played in two stories, so that a runner 1.7x slower than usual still finishes either well inside the suite's 120 s kill.
+ * One story through all fourteen tasks took 76 to 95 s on CI and timed out on such a runner, where these two measured 45 and 33 s locally (https://github.com/ndelangen/dunezone/issues/1045#issuecomment-6641337530).
  */
 
-/** Tasks 1 to 6: asking for the Storm checkpoint, the vote and the frozen table; returning early leaves the rail waiting at task 7. */
+/** Tasks 1 to 7: asking for the Storm checkpoint, the vote, the frozen table, and a recall of the newest checkpoint after an early return. */
 export const RecallStorm = meta.story({
   play: async ({ canvasElement }) => {
     const driver = chapterDriver(canvasElement);
     await driver.page.findByRole('banner', { name: 'Chapter 20: Mentat recall' }, { timeout: 60_000 });
     await expect(driver.document.querySelector('[data-recall-controls="true"]')).toBeNull();
     await enterRecall(driver);
-    await returnEarly(driver);
+    await returnAndRecallLatest(driver);
   },
 });
 
@@ -217,8 +236,7 @@ export const FromTheRecalledHand = meta.story({
   play: async ({ canvasElement }) => {
     const driver = chapterDriver(canvasElement);
     await driver.page.findByRole('banner', { name: 'Chapter 20: Mentat recall' }, { timeout: 60_000 });
-    await pinLiveHand(driver);
-    await recallStormAgain(driver);
+    await recallStormMidChapter(driver);
     const firstCounter = await inspectFirstInventory(driver);
     await compareInventory(driver, firstCounter);
     await chatAndReturn(driver);

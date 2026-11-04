@@ -21,10 +21,11 @@ export const chapterParameters = {
 } as const;
 
 /*
- * A wait on the rail while the table is drawing. Every frame the wait delivers renders the table, and on the runner's software GL
- * that render takes longer than the 50 ms the shared wait leaves between frames, so the table's own frames, which its camera settles on
- * before the first task shows, hardly get a turn: the Mentat recall story spent 24 of its 47 s that way. A frame a second leaves the
- * table drawing at its own pace, and still runs the rail's tick on a page that draws no frames at all.
+ * A wait on the rail while the table is drawing.
+ * Every frame the wait delivers renders the table, and on the runner's software GL that render takes longer than the 50 ms the shared wait leaves between frames.
+ * So the table's own frames, which its camera has to hold still for 20 of before the first task shows, hardly get a turn: a Mentat recall story spent 24 of its 47 s that way (https://github.com/ndelangen/dunezone/issues/1045#issuecomment-6641337530).
+ * A frame a second leaves the table drawing at its own pace.
+ * On a page that draws no frames at all the rail still moves on these: the first task shows after the 20 settling frames, about 20 s, and each later task takes two, one to see it done and one to advance after the guide's pause, inside the 60 s bound.
  */
 export const waitForRail = <T>(check: () => T | Promise<T>) => waitForFrame(check, { timeout: 60_000, interval: 1000 });
 
