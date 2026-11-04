@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { ASSET_TYPE_KEYS } from '../assets/types';
 import { parseAssetDataForWrite } from '../assets/validation';
-import { FactionWriteSchema } from '../factions/schema';
+import { readImportedFaction } from '../factions/schema';
 import { rulebookContentsV1Schema } from '../rulebooks/contents';
 import { rulebookNameSchema } from '../rulebooks/metadata';
 import { RULEBOOK_PDF_MAX_PAGES } from '../rulebooks/pdfOptimization';
@@ -148,7 +148,7 @@ export function bindImportData(item: ContentImportItem, resolve: (key: string) =
 
 export function validateImportData(item: ContentImportItem, data: unknown) {
   if (item.kind === 'faction') {
-    return FactionWriteSchema.parse(data);
+    return readImportedFaction(data);
   }
   if (item.kind === 'rulebook') {
     return importRulebookDataSchema.parse(data);
