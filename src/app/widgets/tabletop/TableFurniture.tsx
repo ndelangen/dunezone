@@ -12,7 +12,7 @@ import type { CardBaySide, TanksLayout } from '@shared/play/tableFurnitureLayout
 import { CARD_DEPTH, CARD_WIDTH, TABLE_VISIBLE_RADIUS } from '@shared/play/tableGeometry';
 import type { TrackerArcSlot } from '@shared/play/tableTrackers';
 import { useMemo } from 'react';
-import { Shape } from 'three';
+import { Path, Shape } from 'three';
 import type { ExtrudeGeometry } from 'three';
 
 import { ignoreRaycast } from './ignoreRaycast';
@@ -155,6 +155,52 @@ function trayShapes(layout: TanksLayout): { rim: Shape; well: Shape; center: Vec
   return null;
 }
 
+/* A well's raised lip: how thick its wall is and how far it stands above the plate. */
+const WELL_WALL = 0.1;
+const WELL_WALL_HEIGHT = 0.07;
+
+function shapeFromOutline(points: readonly (readonly [number, number])[], into: Path = new Shape()) {
+  points.forEach(([x, z], index) => (index === 0 ? into.moveTo(x, -z) : into.lineTo(x, -z)));
+  into.closePath();
+  return into;
+}
+
+function wellShapes(outline: (grow: number) => readonly (readonly [number, number])[]) {
+  const inner = outline(0);
+  const wall = shapeFromOutline(outline(WELL_WALL)) as Shape;
+  wall.holes.push(shapeFromOutline(inner, new Path()));
+  return { wall, floor: shapeFromOutline(inner) as Shape };
+}
+
+function TanksWell({ outline }: { outline: (grow: number) => readonly (readonly [number, number])[] }) {
+  const palette = useTablePalette();
+  const shapes = useMemo(() => wellShapes(outline), [outline]);
+  return (
+    <group>
+      <mesh position={[0, 0.02, 0]} raycast={ignoreRaycast} receiveShadow rotation={[-Math.PI / 2, 0, 0]}>
+        <shapeGeometry args={[shapes.floor, 48]} />
+        <meshStandardMaterial color={palette.well} metalness={0} roughness={0.96} />
+      </mesh>
+      <mesh position={[0, 0.005, 0]} raycast={ignoreRaycast} castShadow receiveShadow rotation={[-Math.PI / 2, 0, 0]}>
+        <extrudeGeometry
+          args={[
+            shapes.wall,
+            {
+              depth: WELL_WALL_HEIGHT,
+              bevelEnabled: true,
+              bevelSize: 0.02,
+              bevelThickness: 0.02,
+              bevelSegments: 3,
+              curveSegments: 48,
+            },
+          ]}
+        />
+        <meshStandardMaterial color={palette.top} metalness={0.02} roughness={0.9} />
+      </mesh>
+    </group>
+  );
+}
+
 function TanksBoundary() {
   const palette = useTablePalette();
   const layout = tanksLayout();
@@ -195,6 +241,7 @@ function TanksBoundary() {
           </mesh>
         );
       })}
+      {layout.boundary?.kind === 'well' ? <TanksWell outline={layout.boundary.outline} /> : null}
       {tray ? (
         <group position={tray.center}>
           <mesh position={[0, 0.009, 0]} raycast={ignoreRaycast} receiveShadow rotation={[-Math.PI / 2, 0, 0]}>

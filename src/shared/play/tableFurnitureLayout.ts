@@ -90,7 +90,7 @@ const TABLE_PLACEMENT_ANCHORS: readonly PlacementAnchor[] = [
 /*
  * Tanks layout exploration (#2675): a playtester found no boundary between the bottom seat's area and the Tleilaxu Tanks,
  * and the Tanks too small once many leaders are in them. Each option is a shelf size, a boundary and a place for the shared item slots.
- * Only one survives; the option switch exists so the four can be compared side by side in Storybook.
+ * Only one survives; the option switch exists so the options can be compared side by side in Storybook.
  */
 export type TanksBoundary =
   /* An engraved line that continues the round table's edge across the shelf. */
@@ -109,7 +109,71 @@ export type TanksBoundary =
       gap: number;
       halfWidth: number;
       maxZ: number;
-    }>;
+    }>
+  /* A recessed well of any outline, walled in by a raised lip, so the Tanks read as a vessel rather than an area marked out with lines. */
+  | Readonly<{ kind: 'well'; outline: (grow: number) => readonly PlanePoint[] }>;
+
+/* A table point as [x, z]. */
+type PlanePoint = readonly [x: number, z: number];
+
+function arcPoints(cx: number, cz: number, radius: number, from: number, to: number, samples = 24): PlanePoint[] {
+  return Array.from({ length: samples + 1 }, (_, index) => {
+    const angle = from + ((to - from) * index) / samples;
+    return [cx + Math.cos(angle) * radius, cz + Math.sin(angle) * radius] as const;
+  });
+}
+
+/** A round vat: a circle, grown outward by `grow`. */
+function vatOutline(cz: number, radius: number) {
+  return (grow: number) => arcPoints(0, cz, radius + grow, 0, Math.PI * 2, 96).slice(0, -1);
+}
+
+/** A pill: a wide rectangle with round ends. */
+function pillOutline(halfWidth: number, minZ: number, maxZ: number) {
+  return (grow: number) => {
+    const radius = (maxZ - minZ) / 2 + grow;
+    const cz = (minZ + maxZ) / 2;
+    const reach = halfWidth - (maxZ - minZ) / 2;
+    return [
+      ...arcPoints(reach, cz, radius, -Math.PI / 2, Math.PI / 2, 32),
+      ...arcPoints(-reach, cz, radius, Math.PI / 2, (Math.PI * 3) / 2, 32),
+    ];
+  };
+}
+
+/** An octagon with cut corners, like a cistern hatch. */
+function octagonOutline(halfWidth: number, minZ: number, maxZ: number, chamfer: number) {
+  return (grow: number): PlanePoint[] => {
+    const w = halfWidth + grow;
+    const top = minZ - grow;
+    const bottom = maxZ + grow;
+    const c = chamfer + grow * (Math.SQRT2 - 1);
+    return [
+      [-w + c, top],
+      [w - c, top],
+      [w, top + c],
+      [w, bottom - c],
+      [w - c, bottom],
+      [-w + c, bottom],
+      [-w, bottom - c],
+      [-w, top + c],
+    ];
+  };
+}
+
+/** A trough curved round the table: a band between two circles about the table's centre, over the angles either side of straight down. */
+function arcTroughOutline(innerRadius: number, outerRadius: number, halfAngle: number) {
+  return (grow: number) => {
+    const down = Math.PI / 2;
+    const inner = innerRadius - grow;
+    const outer = outerRadius + grow;
+    const spread = halfAngle + grow / ((innerRadius + outerRadius) / 2);
+    return [
+      ...arcPoints(0, 0, outer, down - spread, down + spread, 48),
+      ...arcPoints(0, 0, inner, down + spread, down - spread, 48),
+    ];
+  };
+}
 
 export type TanksLayout = Readonly<{
   label: string;
@@ -120,6 +184,8 @@ export type TanksLayout = Readonly<{
   dividers: readonly number[];
   sharedItems: readonly Vector3Tuple[];
   labelZ: number;
+  /* Where the stories toss dead leaders: inside the Tanks, below the engraved name. */
+  pile?: Readonly<{ halfWidth: number; top: number; bottom: number }>;
 }>;
 
 const SHELF_MIN_Z = 5.45;
@@ -179,6 +245,46 @@ export const TANKS_LAYOUTS = {
     sharedItems: sharedItemPositionsBeside(9.0),
     labelZ: 6.05,
   },
+  vat: {
+    label: 'E: Round vat',
+    shelfWidth: 6.6,
+    shelfMaxZ: 13.5,
+    boundary: { kind: 'well', outline: vatOutline(8.35, 2.75) },
+    dividers: [],
+    sharedItems: sharedItemPositionsBelow(11.85),
+    labelZ: 6.3,
+    pile: { halfWidth: 1.7, top: 7.0, bottom: 10.0 },
+  },
+  pill: {
+    label: 'F: Pill',
+    shelfWidth: 7.8,
+    shelfMaxZ: 12.95,
+    boundary: { kind: 'well', outline: pillOutline(3.55, 5.95, 10.35) },
+    dividers: [],
+    sharedItems: sharedItemPositionsBelow(11.15),
+    labelZ: 6.5,
+    pile: { halfWidth: 2.4, top: 7.0, bottom: 9.8 },
+  },
+  octagon: {
+    label: 'G: Octagon',
+    shelfWidth: 7.8,
+    shelfMaxZ: 12.95,
+    boundary: { kind: 'well', outline: octagonOutline(3.55, 5.95, 10.35, 1.1) },
+    dividers: [],
+    sharedItems: sharedItemPositionsBelow(11.15),
+    labelZ: 6.45,
+    pile: { halfWidth: 2.7, top: 7.0, bottom: 9.8 },
+  },
+  trough: {
+    label: 'H: Arc round the table',
+    shelfWidth: 9.6,
+    shelfMaxZ: 12.4,
+    boundary: { kind: 'well', outline: arcTroughOutline(5.85, 9.45, 0.5) },
+    dividers: [],
+    sharedItems: sharedItemPositionsBelow(10.4),
+    labelZ: 6.45,
+    pile: { halfWidth: 3.35, top: 6.95, bottom: 8.1 },
+  },
 } as const satisfies Record<string, TanksLayout>;
 
 export type TanksLayoutOption = keyof typeof TANKS_LAYOUTS;
@@ -197,7 +303,7 @@ export function setTanksLayoutOption(option: TanksLayoutOption): void {
   BOTTOM_SHELF_SIZE[2] = layout.shelfMaxZ - SHELF_MIN_Z;
   BOTTOM_SHELF_POSITION[2] = (layout.shelfMaxZ + SHELF_MIN_Z) / 2;
   TABLE_TANKS_LABEL_POSITION[1] =
-    FURNITURE_SURFACE_Y + (layout.boundary?.kind === 'tray' || layout.boundary?.kind === 'crescent' ? 0.027 : 0.012);
+    FURNITURE_SURFACE_Y + (layout.boundary && layout.boundary.kind !== 'groove' ? 0.027 : 0.012);
   TABLE_TANKS_LABEL_POSITION[2] = layout.labelZ;
   SHARED_ITEM_PLACEMENT_ANCHORS.forEach((anchor, index) => {
     const position = anchor.position as Vector3Tuple;

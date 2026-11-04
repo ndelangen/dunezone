@@ -2,7 +2,7 @@ import preview from '@sb/preview';
 import { STANDARD_PHASES } from '@shared/play/phases';
 import { item, piece, place } from '@shared/play/setupSupply';
 import { setTanksLayoutOption, TANKS_LAYOUTS } from '@shared/play/tableFurnitureLayout';
-import type { TanksLayoutOption } from '@shared/play/tableFurnitureLayout';
+import type { TanksLayout, TanksLayoutOption } from '@shared/play/tableFurnitureLayout';
 import { restingPositionAt, TABLE_VISIBLE_RADIUS } from '@shared/play/tableGeometry';
 import { userEvent, waitFor } from 'storybook/test';
 
@@ -28,7 +28,10 @@ function jitter(seed: number) {
 
 /** Where dead leaders land: the Tanks' own area of the layout, between its boundary and the shared item slots. */
 function tanksArea(option: TanksLayoutOption) {
-  const layout = TANKS_LAYOUTS[option];
+  const layout: TanksLayout = TANKS_LAYOUTS[option];
+  if (layout.pile) {
+    return layout.pile;
+  }
   const boundary = layout.boundary;
   const halfWidth =
     boundary?.kind === 'tray'
@@ -158,3 +161,15 @@ export const FullDepthTanks = meta.story({
   beforeEach: onLayout('columns'),
   play: lookAtTanks,
 });
+
+/** E: a round vat sunk into the shelf behind a raised lip. */
+export const RoundVat = meta.story({ beforeEach: onLayout('vat'), play: lookAtTanks });
+
+/** F: a wide pill-shaped well behind a raised lip. */
+export const Pill = meta.story({ beforeEach: onLayout('pill'), play: lookAtTanks });
+
+/** G: an octagonal well with cut corners behind a raised lip. */
+export const Octagon = meta.story({ beforeEach: onLayout('octagon'), play: lookAtTanks });
+
+/** H: a trough that curves round the table below the bottom seat, behind a raised lip. */
+export const ArcRoundTheTable = meta.story({ beforeEach: onLayout('trough'), play: lookAtTanks });
