@@ -567,7 +567,7 @@ publisher and Storybook deploys use `--strict` too and have no override yet.
 ## Publication controls
 
 `admin_settings.publication_pickup_enabled`, which `convex/publicationAdmin.ts` reads and writes
-as `publicationPickupEnabled`, is the sole pickup switch. Administrators toggle it at `/_admin/jobs`.
+as `publicationPickupEnabled`, is the sole pickup switch. Administrators toggle it at `/admin/jobs`.
 
 The Worker reads the value once at the start of each Cron invocation. Turning it
 off therefore:
@@ -579,7 +579,7 @@ off therefore:
 The same page shows stored Renderer revisions and paged job status. It requires
 `users.isAdmin === true`, and the page reads that from the session before it asks for any job data:
 signed-out visitors see the sign-in prompt, and authenticated non-admin users see the "You cannot
-view publication jobs" refusal. `publicationAdmin:page` is an `adminQuery`, so it refuses anyone
+view publication jobs" refusal. `publicationAdmin:listing` is an `adminQuery`, so it refuses anyone
 else who calls it directly.
 
 ## Pull-request Cloudflare drift guard

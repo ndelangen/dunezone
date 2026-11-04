@@ -120,11 +120,6 @@ function PublicationJobsDashboard() {
                   </Group>
                 </div>
               </Group>
-              {Object.values(result.counts).some((count) => count.limited) && (
-                <Text size="sm" c="dimmed">
-                  Counts ending in + are lower bounds. All jobs remain available in the pages below.
-                </Text>
-              )}
             </Stack>
           </Surface>
 
@@ -239,23 +234,14 @@ function PublicationJobsDashboard() {
 /* The same three meanings the job badges carry, at the tally's own size. */
 const COUNT_TONE_COLOR = { pending: 'yellow', progress: 'blue', negative: 'red' } as const;
 
-function Count({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: { value: number; limited: boolean };
-  tone: keyof typeof COUNT_TONE_COLOR;
-}) {
+function Count({ label, value, tone }: { label: string; value: number; tone: keyof typeof COUNT_TONE_COLOR }) {
   return (
     <div>
       <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
         {label}
       </Text>
       <Badge size="xl" color={COUNT_TONE_COLOR[tone]} variant="light" mt={4}>
-        {value.value.toLocaleString()}
-        {value.limited ? '+' : ''}
+        {value.toLocaleString()}
       </Badge>
     </div>
   );
