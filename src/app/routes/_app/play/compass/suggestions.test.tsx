@@ -1,5 +1,6 @@
 import { expect, test } from 'vite-plus/test';
 
+import { readCameraFollowsPhase } from '../../../../widgets/tabletop/cameraFollowsPhase';
 import { PANEL_WINDOWS } from '../panels/panelWindows';
 import { commandsOf } from './shortcuts';
 import { candidatesOf, fuzzy, rankSuggestions } from './suggestions';
@@ -170,6 +171,18 @@ test('the search switches this viewer’s board skin and planet shading, ranked 
   /* They sit below every window and command, so they surface only once typed for. */
   expect(all.filter((entry) => entry.key.startsWith('look:')).every((entry) => entry.weight < 0)).toBe(true);
   expect(rankSuggestions(all, 'treachery')[0]?.label).toBe('Board skin: Treachery Online');
+});
+
+test('the search turns the camera following phases on or off, matching each side by its own words', () => {
+  const all = candidatesOf([], actions(null));
+  expect(rankSuggestions(all, 'camera follows').map((entry) => entry.label)).toEqual(
+    expect.arrayContaining(['Camera follows phase: on', 'Camera follows phase: off'])
+  );
+  expect(rankSuggestions(all, 'keep my view')[0]?.label).toBe('Camera follows phase: off');
+  for (const side of ['on', 'off'] as const) {
+    all.find((entry) => entry.key === `look:camera-follows-phase:${side}`)!.run();
+    expect(readCameraFollowsPhase()).toBe(side === 'on');
+  }
 });
 
 const player = (seat: string, name: string, factionName: string | null, own = false) => ({
