@@ -34,7 +34,7 @@ import type { TablePanel } from '../GameTable';
 import { ConnectedAlliancesPanel } from '../panels/alliances/useAlliancesPanel';
 import { ConnectedBattlePlanPanel } from '../panels/battlePlan/useBattlePlanPanel';
 import { ConnectedBattleHistoryPanel } from '../panels/battles/useBattleHistoryPanel';
-import { ConnectedPlayerChat, OfflineConversations } from '../panels/chat/useConversationPanel';
+import { ConnectedClearChat, ConnectedPlayerChat, OfflineConversations } from '../panels/chat/useConversationPanel';
 import { ConnectedFactionInfoPanel } from '../panels/factionInfo/useFactionInfoPanel';
 import { ConnectedHandPanel } from '../panels/hand/useHandPanel';
 import { ConnectedSharedInventoryPanel } from '../panels/inventory/useSharedInventoryPanel';
@@ -552,6 +552,7 @@ function useHostedControls(client: TableSession, table: TableProjection, error: 
     ...players,
     recall,
     chat: (seat) => <ConnectedPlayerChat client={client} table={table} seat={seat} />,
+    clearChat: (seat) => <ConnectedClearChat client={client} table={table} seat={seat} />,
     factionInfo: (seat) => <ConnectedFactionInfoPanel client={client} table={table} seat={seat} error={error} />,
     nextPhase: nextPhaseStep(client, table),
     clearChats: client.conversations.clearable() ? client.conversations.clearAllChats : null,

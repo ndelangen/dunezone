@@ -5,6 +5,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react';
 import type { ConversationView } from '../../../../../db/tabletop/ConversationSession';
 import type { TableProjection, TableSession } from '../../../../../db/tabletop/TableSession';
 import { seatFaction } from '../../multiplayer/tableFactions';
+import { ClearChatAction } from './ClearChatAction';
 import { ConversationPanel } from './ConversationPanel';
 
 /* Every faction's name at the table, the viewer's own among them, by faction. */
@@ -42,7 +43,6 @@ export function ConnectedConversationPanel({ client, peerId }: Readonly<{ client
       onRead={(through) => client.conversations.read({ peerId, through })}
       onRetry={client.conversations.retry}
       onSubmit={(text) => client.conversations.submit({ peerId, text })}
-      onClear={() => client.conversations.clearChat({ peerId })}
       cleared={Boolean(summary?.cleared)}
     />
   );
@@ -61,6 +61,22 @@ export function ConnectedPlayerChat({
     return null;
   }
   return <ConnectedConversationPanel key={`${context.factionId}:${peerId}`} client={client} peerId={peerId} />;
+}
+
+/** The eraser for a seat's chat, or the table's, while it has messages the viewer has not cleared. */
+export function ConnectedClearChat({
+  client,
+  table,
+  seat,
+}: Readonly<{ client: TableSession; table: TableProjection; seat: string }>) {
+  const { conversations } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
+  const peerId = seat === TABLE_CONVERSATION ? TABLE_CONVERSATION : seatFaction(table, seat);
+  const summary = conversations.summaries.find((entry) => entry.peerId === peerId);
+  const shown = conversations.pages[peerId ?? '']?.entries.length;
+  if (!peerId || !conversations.online || !summary || summary.latest <= summary.cleared || shown === 0) {
+    return null;
+  }
+  return <ClearChatAction onClear={() => client.conversations.clearChat({ peerId })} />;
 }
 
 /** Every conversation while the table is out of reach, one at a time. */

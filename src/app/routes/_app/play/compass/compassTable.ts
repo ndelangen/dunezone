@@ -37,6 +37,8 @@ export type CompassTable = Readonly<{
   chat: (seat: string) => ReactNode;
   /** A seat's faction information, with any vote against its player and any request for the seat. */
   factionInfo: (seat: string) => ReactNode;
+  /** The eraser in the title bar of a seat's chat, or the table's; null while it has nothing to clear. */
+  clearChat?: (seat: string) => ReactNode;
   /** Clears every chat from the viewer's own view; null while none has a message to clear. */
   clearChats?: (() => void) | null;
   /** Steps to the next phase; null while the header's Next phase button would be disabled, or the stage has none. */

@@ -41,7 +41,6 @@ export function playerChatArgs(): ConversationPanelProps {
     onRead: fn(),
     onRetry: fn(),
     onSubmit: fn((_text: string) => true),
-    onClear: fn(),
   };
 }
 

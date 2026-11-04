@@ -90,6 +90,7 @@ export function useTableWindows(panels: readonly TablePanel[]): TableWindow[] {
       group: 'Players',
       content: table.chat(TABLE_CONVERSATION),
       layout: 'fill',
+      actions: table.clearChat?.(TABLE_CONVERSATION),
     });
   }
   for (const player of table?.players.filter(chattable) ?? []) {
@@ -100,6 +101,7 @@ export function useTableWindows(panels: readonly TablePanel[]): TableWindow[] {
       group: 'Players',
       content: null,
       layout: 'fill',
+      actions: table?.clearChat?.(player.seat),
       player,
     });
   }
