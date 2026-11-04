@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { NexusCardAssetInput, StrongholdCardAssetInput } from '../assets/schema';
 import { parseAssetDataForWrite } from '../assets/validation';
 import { FactionWriteSchema } from '../factions/schema';
+import { renameLegacyEmblems } from '../legacyEmblem';
 import { rulebookContentsV1Schema } from '../rulebooks/contents';
 import { RULEBOOK_PDF_MAX_PAGES } from '../rulebooks/pdfOptimization';
 import { rulebookSettingsSchema } from '../rulebooks/settings';
@@ -82,8 +83,10 @@ export function parseRawAsset(type: string, value: unknown) {
 }
 
 export function parseRawFaction(value: unknown) {
-  const faction = FactionWriteSchema.parse(value);
-  assertNoDiscardedFields(value, faction);
+  /* Raw JSON may predate the emblem rename. Rename before the discarded-field check so `logo` is not reported as unknown; a file carrying both names keeps `emblem`. */
+  const renamed = renameLegacyEmblems(value);
+  const faction = FactionWriteSchema.parse(renamed);
+  assertNoDiscardedFields(renamed, faction);
   if (!faction.factionLeader.memberId) {
     throw new Error('$.factionLeader.memberId: A persistent component ID is required.');
   }

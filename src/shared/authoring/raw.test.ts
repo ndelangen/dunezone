@@ -27,6 +27,10 @@ describe('raw authoring input', () => {
   });
   test('retains faction component identities and rejects absent identities', () => {
     expect(parseRawFaction(structuredClone(assetPublishingFaction))).toEqual(assetPublishingFaction);
+    const { emblem, ...beforeRename } = structuredClone(assetPublishingFaction);
+    expect(parseRawFaction({ ...beforeRename, logo: emblem.replace('/vector/emblem/', '/vector/logo/') })).toEqual(
+      assetPublishingFaction
+    );
     const value = structuredClone(assetPublishingFaction);
     Reflect.deleteProperty(value.factionLeader, 'memberId');
     expect(() => parseRawFaction(value)).toThrow('factionLeader.memberId');

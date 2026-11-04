@@ -647,6 +647,11 @@
       "requires": ["emblem_rename_cardback_presets_v1"]
     },
     {
+      "id": "emblem_rename_factions_narrow",
+      "phase": "narrow",
+      "requires": ["emblem_rename_factions_v1", "emblem_rename_factions_verify_v1"]
+    },
+    {
       "id": "emblem_rename_presets_narrow",
       "phase": "narrow",
       "requires": [
