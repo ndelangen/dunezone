@@ -258,15 +258,19 @@ export function fitIntoTerritory(input: FitInput): Map<string, Plane> | null {
 
 const SPOT_STEP = 0.02;
 const MIN_SPOT_DIRECTIONS = 36;
+/* At most this many rings, so a full territory, searched again on every pointer move while carried, costs a few thousand checks at most. */
+const MAX_SPOT_RINGS = 40;
 /*
  * The free spot nearest `from`, searched in rings outward until they pass the territory's farthest corner.
  * Each ring is sampled a step apart along its length, so a wide ring leaves no gap a stack could fit through unseen.
+ * A wide territory takes longer steps, so the search stays bounded however far its corners lie.
  */
 function nearestClearSpot(territory: TableTerritory, from: Plane, clear: (point: Plane) => boolean): Plane | null {
   const reach = Math.max(...territory.rings.flat().map(([x, z]) => Math.hypot(x - from[0], z - from[1])));
-  for (let ring = 1; ring * SPOT_STEP <= reach + SPOT_STEP; ring += 1) {
-    const radius = ring * SPOT_STEP;
-    const directions = Math.max(MIN_SPOT_DIRECTIONS, Math.ceil((Math.PI * 2 * radius) / SPOT_STEP));
+  const step = Math.max(SPOT_STEP, reach / MAX_SPOT_RINGS);
+  for (let ring = 1; ring * step <= reach + step; ring += 1) {
+    const radius = ring * step;
+    const directions = Math.max(MIN_SPOT_DIRECTIONS, Math.ceil((Math.PI * 2 * radius) / step));
     for (let direction = 0; direction < directions; direction += 1) {
       const angle = (direction / directions) * Math.PI * 2;
       const point: Plane = [from[0] + Math.cos(angle) * radius, from[1] + Math.sin(angle) * radius];

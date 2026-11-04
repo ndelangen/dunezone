@@ -33,7 +33,13 @@ import {
   piecesCanStack,
   piecesTouchForStack,
 } from './tablePhysics';
-import { packsInTerritory, territoryAtTable, territoryLanding, withNudges } from './territoryPlacement';
+import {
+  keepsInsideTerritory,
+  packsInTerritory,
+  territoryAtTable,
+  territoryLanding,
+  withNudges,
+} from './territoryPlacement';
 import { isTroopStack } from './troop';
 import type { TroopReserveSpot } from './troopReserves';
 
@@ -474,7 +480,13 @@ function settleMoveAtPosition(
   }
   const clampedPosition = clampPositionToTable(piece, restingPositionAt(position, piece));
   const rules = placementRules(state.pieces, piece, placementObstaclesFor(state, draft));
-  const resolvedPosition = nearestCollisionFreePosition(piece, clampedPosition, rules.obstacles, rules.fits);
+  const inside = keepsInsideTerritory(state, piece, state.pieces);
+  const resolvedPosition = nearestCollisionFreePosition(
+    piece,
+    clampedPosition,
+    rules.obstacles,
+    (candidate) => rules.fits(candidate) && inside(candidate)
+  );
   if (!resolvedPosition) {
     return null;
   }

@@ -14,7 +14,7 @@ import {
 } from './tableState';
 import { fitsInside, innermostPoint, tableTerritories, territoryContains } from './territoryFit';
 import type { TableTerritory } from './territoryFit';
-import { territoryLanding } from './territoryPlacement';
+import { keepsInsideTerritory, territoryLanding } from './territoryPlacement';
 
 const troopBase = freshTableState().pieces.find((piece) => piece.id === 'harkonnen-force-loose')!;
 const cardBase = freshTableState().pieces.find((piece) => piece.kind === 'card')!;
@@ -172,5 +172,15 @@ describe('stacks dropped into a territory', () => {
     expect(insideTerritory(territoryNamed('Cielago depression'), { ...leader, position: landing!.position })).toBe(
       true
     );
+  });
+
+  test('placed as any other piece, a stack is never left across a border, though a card may be', () => {
+    const inside = (piece: TablePiece, point: Vector3Tuple) => keepsInsideTerritory({}, piece, [])(point);
+    const stack = troop('atreides', 'atreides', SHELF);
+    const straddling = justInsideBorder(arrakeen, centre);
+    expect(inside(stack, centre)).toBe(true);
+    expect(inside(stack, straddling)).toBe(false);
+    expect(inside(stack, SHELF)).toBe(true);
+    expect(inside({ ...cardBase, id: 'card' }, straddling)).toBe(true);
   });
 });

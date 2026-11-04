@@ -4,7 +4,7 @@ import type { TablePiece, TableState, Vector3Tuple } from './model';
 import { isPointerToken, pointerCovers } from './pointerToken';
 import { restingPositionAt } from './tableGeometry';
 import { footprintOutline, footprintReach, hasRoundFootprint } from './tablePhysics';
-import { fitIntoTerritory, territoryShapeAt, territoryContains } from './territoryFit';
+import { fitIntoTerritory, fitsInside, territoryShapeAt, territoryContains } from './territoryFit';
 import type { FitBody, FitObstacle, TableTerritory } from './territoryFit';
 
 /*
@@ -73,6 +73,22 @@ export type TerritoryLayout = {
 /* Whether a point lies on a plate such as the HMS. */
 function onAnyPlate(others: readonly TablePiece[], point: Readonly<Vector3Tuple>) {
   return others.some((plate) => isPointerToken(plate) && !plate.inventory && pointerCovers(plate, point));
+}
+
+/**
+ * Whether a stack placed as any other piece, off the territory it was let go in or nudged clear of what was in the way, rests wholly inside any territory its centre lands in.
+ * So the nearest free spot never leaves it across a border;
+ * a piece that does not pack, or one on a plate such as the HMS, may rest anywhere.
+ */
+export function keepsInsideTerritory(
+  state: Pick<TableState, 'board'>,
+  piece: TablePiece,
+  others: readonly TablePiece[]
+) {
+  return (at: Readonly<Vector3Tuple>) => {
+    const territory = packsInTerritory(piece) ? territoryAtTable(state, at) : undefined;
+    return !territory || onAnyPlate(others, at) || fitsInside(territory, [at[0], at[2]], footprintReach(piece));
+  };
 }
 
 /* The other pieces on the table close enough to the territory to matter. */

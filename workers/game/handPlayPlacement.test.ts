@@ -2,7 +2,8 @@ import { expect, test } from 'vite-plus/test';
 
 import { retainedArrakisBoard } from '../../src/shared/boards/geometry';
 import { restingPositionAt } from '../../src/shared/play/tableGeometry';
-import { innermostPoint, tableTerritories } from '../../src/shared/play/territoryFit';
+import { footprintReach } from '../../src/shared/play/tablePhysics';
+import { fitsInside, innermostPoint, tableTerritories } from '../../src/shared/play/territoryFit';
 import { hostedFixturePlan } from './fixture';
 import { Room } from './room';
 
@@ -49,5 +50,7 @@ test('a leader played from hand into a territory packs around a stack another pl
   expect(carried.position).toEqual(placed.position);
   expect(carried.locked).toBe(placed.locked);
   expect(table.snapshot.table.pieces).toHaveLength(2);
+  const played = table.snapshot.table.pieces.find((piece) => piece.id !== placed.id)!;
+  expect(fitsInside(basin, [played.position[0], played.position[2]], footprintReach(played))).toBe(true);
   expect(() => table.drop(carrier, 'held', { position: [x, 0.38, z], orientation: 0 })).not.toThrow();
 });

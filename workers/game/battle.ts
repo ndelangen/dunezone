@@ -31,6 +31,7 @@ import {
 } from '../../src/shared/play/tablePhysics';
 import { playFromHandSettled } from '../../src/shared/play/tableState';
 import { isTechToken, takeableIntoHand } from '../../src/shared/play/techToken';
+import { keepsInsideTerritory } from '../../src/shared/play/territoryPlacement';
 import { territoryAtTable } from '../../src/shared/play/territoryPlacement';
 import { orderablePieces, revised } from './state';
 import type { StoredSnapshot, StoredBattle } from './state';
@@ -415,7 +416,8 @@ function playFromHand(
   const position = nearestCollisionFreePosition(
     piece,
     clampPositionToTable(piece, action.position),
-    snapshot.table.pieces
+    snapshot.table.pieces,
+    keepsInsideTerritory(guarded, leavingHand, viewed.pieces)
   );
   if (!position) {
     return refuse('There is no clear space for that object.');
