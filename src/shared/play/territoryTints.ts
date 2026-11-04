@@ -9,6 +9,7 @@ import {
   tintTerritorySchema as territorySchema,
 } from '../boards/tints';
 import type { TintStamp } from '../boards/tints';
+import { coreColors } from '../uiPalette';
 import { actionKindGuard } from './actionKinds';
 import { CLIENT_MESSAGE_LIMIT } from './messageLimit';
 import { GameRejection } from './rejection';
@@ -37,6 +38,8 @@ const tintSchema = z.strictObject({
   hidden: z.literal(true).optional(),
   /* Drawn as one line round its territories, borders between them left out, with no fill. */
   outline: z.literal(true).optional(),
+  /* With `outline`: one thick line just outside the territories instead of the double line, as the battle marker draws. Only the page sets it. */
+  rim: z.literal(true).optional(),
   territories: z.array(territorySchema).max(MAX_TINT_TERRITORIES),
 });
 export type TerritoryTint = z.infer<typeof tintSchema>;
@@ -85,11 +88,14 @@ export function fitsTintCommand(action: TerritoryTintAction) {
 
 type Applied = { tints: TerritoryTint[]; message: string };
 
+/* The battle's own outline, drawn beside the table's tints; no tint the players make may take its ID. */
+const BATTLE_HIGHLIGHT_ID = 'battle-highlight';
+
 function createTint(
   tints: readonly TerritoryTint[],
   action: Extract<TerritoryTintAction, { kind: 'tint-create' }>
 ): Applied {
-  if (tints.some((tint) => tint.id === action.tintId)) {
+  if (tints.some((tint) => tint.id === action.tintId) || action.tintId === BATTLE_HIGHLIGHT_ID) {
     throw new GameRejection('That tint is already on the table.');
   }
   if (tints.length >= MAX_TINTS) {
@@ -215,4 +221,27 @@ export function applyTerritoryTint(tints: readonly TerritoryTint[], action: Terr
     return setTint(tints, tint, action);
   }
   return (action.painted ? paintIn : paintOut)(tints, tint, action.territory, action.name);
+}
+
+/*
+ * The battle marker's highlight over the territory it marks, or would mark while carried: one thick red line just outside it, no fill.
+ * Red, in a thick line on the outside, is Norbert's pick (2026-11-04).
+ * Never stored; the page adds it.
+ */
+function battleHighlight(territoryId: string): TerritoryTint {
+  return {
+    id: BATTLE_HIGHLIGHT_ID,
+    name: 'Battle',
+    color: coreColors.negativeFill,
+    outline: true,
+    rim: true,
+    territories: [territoryId],
+  };
+}
+
+/** The table's tints with the battle marker's outline on top while it marks a territory. */
+export function tintsWithBattle(tints: TerritoryTint[] | undefined, territoryId: string | null | undefined) {
+  /* The battle's outline keeps its ID to itself, even over a stored tint that took it before the ID was reserved. */
+  const own = (tints ?? []).filter((tint) => tint.id !== BATTLE_HIGHLIGHT_ID);
+  return territoryId ? [...own, battleHighlight(territoryId)] : tints;
 }

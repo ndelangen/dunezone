@@ -3,7 +3,7 @@
 import { useFrame } from '@react-three/fiber/webgpu';
 import { playUiColors } from '@shared/uiPalette';
 import type { RefObject } from 'react';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import type { Group, Material, Mesh, MeshBasicMaterial } from 'three';
 import { AdditiveBlending, DoubleSide, NormalBlending, Shape, ShapeGeometry } from 'three';
 
@@ -17,6 +17,8 @@ export type BeaconPose = {
   height: number;
   /* 1 while the beacon shows, falling to 0 as it fades out over the battle it marks. */
   fade: number;
+  /* True once it has risen clear of the table; while it rises through the table top or sinks back, the table hides it. */
+  above: boolean;
   carried: boolean;
   /* False when the player's motion preference asks for stillness: the mark then holds a resting pose. */
   motion: boolean;
@@ -40,6 +42,8 @@ const STRIKE_DISC_RADIUS = 0.16;
 const DISC_THICKNESS = 0.045;
 const FOOTPRINT = 0.27;
 const DASHES = 12;
+/* Past every render order the table uses, contact shadows and carried pieces included. */
+const ABOVE_EVERYTHING = 100;
 
 const lerp = (from: number, to: number, amount: number) => from + (to - from) * amount;
 /* The clock the mark animates by, stopped at zero for players who ask for less motion. */
@@ -293,11 +297,46 @@ export function StrikeMark({ pose }: Readonly<{ pose: RefObject<BeaconPose> }>) 
       }
     });
   }, MARK_FRAME);
+  const disc = useRef<Group>(null);
+  const overPieces = useRef(true);
+  useLayoutEffect(() => {
+    /* Its own parts draw in the order they are listed: the acrylic first, its rim and etching over it. */
+    const meshes: Mesh[] = [];
+    disc.current!.traverse((object) => {
+      if ((object as Mesh).isMesh) {
+        meshes.push(object as Mesh);
+      }
+    });
+    meshes.forEach((mesh, index) => {
+      mesh.renderOrder = ABOVE_EVERYTHING + index;
+    });
+    overPieces.current = !pose.current.above;
+  }, [pose]);
+  useFrame(() => {
+    /*
+     * Once risen, the disc players drag draws over every piece on the table, faction tokens and stacks included;
+     * the target it projects on the ground stays under them, as marks on the board do.
+     * While it rises through the table top or sinks back, it keeps the depth test, so the table hides the part still below it.
+     */
+    const over = pose.current.above;
+    if (over === overPieces.current) {
+      return;
+    }
+    overPieces.current = over;
+    disc.current!.traverse((object) => {
+      const mesh = object as Mesh;
+      for (const material of mesh.isMesh ? [mesh.material].flat() : []) {
+        material.depthTest = !over;
+      }
+    });
+  }, MARK_FRAME);
   return (
     <group ref={root}>
       <Footprint pose={pose} />
       <Projection pose={pose} />
-      <AcrylicDisc pose={pose} />
+      <group ref={disc}>
+        <AcrylicDisc pose={pose} />
+      </group>
     </group>
   );
 }

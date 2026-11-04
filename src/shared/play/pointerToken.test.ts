@@ -100,7 +100,9 @@ describe('a pointer token, such as the HMS,', () => {
     const state = tableWith(plate([0, 0, 1]), troop('t', [0, 0, 1]));
     const off = dropAt(state, 't', [2, 0, 1])!;
     const next = dropAt(off, 'hms', [-1, 0, -1])!;
-    expect(at(next, 't').position[0]).toBeCloseTo(2);
+    /* Off the plate, the troop rests in its territory, clear of the border, and stays there. */
+    expect(at(off, 't').position[0]).toBeGreaterThan(1.5);
+    expect(at(next, 't').position).toEqual(at(off, 't').position);
   });
 
   test('is never set down over a piece that does not ride it', () => {

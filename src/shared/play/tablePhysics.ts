@@ -70,6 +70,29 @@ function footprintFor(piece: TablePiece): Footprint {
   return { shape: 'circle', radius: circleFootprintRadius(piece) };
 }
 
+/** How far a piece's footprint reaches from its centre at most: its radius when round, its corners' distance otherwise. */
+export function footprintReach(piece: TablePiece): number {
+  const footprint = footprintFor(piece);
+  if (footprint.shape === 'circle') {
+    return footprint.radius;
+  }
+  if (footprint.shape === 'box') {
+    return Math.hypot(footprint.halfX, footprint.halfZ);
+  }
+  return Math.max(...footprint.points.map(([x, z]) => Math.hypot(x, z)));
+}
+
+/** A piece's footprint outline across the table at `position`, corner by corner; undefined for a round one. */
+export function footprintOutline(piece: TablePiece, position: Vector3Tuple = piece.position): Vector2[] | undefined {
+  const footprint = footprintFor(piece);
+  return footprint.shape === 'circle' ? undefined : worldOutline(footprint, position, piece.orientation);
+}
+
+/** Whether a piece rests on a round footprint: a troop, leader or spice stack, or a round marker. */
+export function hasRoundFootprint(piece: TablePiece): boolean {
+  return footprintFor(piece).shape === 'circle';
+}
+
 function centerOf(position: Vector3Tuple): Vector2 {
   return [position[0], position[2]];
 }

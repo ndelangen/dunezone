@@ -82,10 +82,11 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
   async function start() {
     const started = await accepted(a, {
       kind: 'battle-start' as const,
-      anchor: [0.95, 0.18, -3.05],
-      territory: 'Arrakeen',
+      anchor: [1.32, 0.18, -2.94],
     });
     const battleId = required(started.snapshot.battle).id;
+    /* The game names the battle for the territory under the marker, and every page learns which territory to light. */
+    expect(started.snapshot.battle).toMatchObject({ territory: 'Arrakeen', territoryId: 'arrakeen' });
     await accepted(a, { kind: 'battle-claim' as const, battleId, side: 0 });
     await accepted(b, { kind: 'battle-claim' as const, battleId, side: 1 });
     return battleId;
@@ -200,7 +201,6 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     const started = await accepted(a, {
       kind: 'battle-start' as const,
       anchor: [0.95, 0.18, -3.05],
-      territory: 'Arrakeen',
     });
     const battleId = required(started.snapshot.battle).id;
     await accepted(a, { kind: 'battle-claim' as const, battleId, side: 0 });
@@ -444,7 +444,6 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     const placed = await accepted(a, {
       kind: 'battle-start' as const,
       anchor: [0.95, 0.18, -3.05],
-      territory: 'Arrakeen',
     });
     expect((await sendCommand(b, { kind: 'phase' as const })).reply).toMatchObject({
       type: 'rejected' as const,
@@ -475,7 +474,6 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     const placed = await accepted(a, {
       kind: 'battle-start' as const,
       anchor: [0.95, 0.18, -3.05],
-      territory: 'Arrakeen',
     });
     const battleId = required(placed.snapshot.battle).id;
     await accepted(a, { kind: 'battle-claim' as const, battleId, side: 0 });
@@ -493,7 +491,6 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     const placed = await accepted(a, {
       kind: 'battle-start' as const,
       anchor: [0.95, 0.18, -3.05],
-      territory: 'Arrakeen',
     });
     expect((await sendCommand(b, { kind: 'phase' as const, direction: -1 })).reply).toMatchObject({
       type: 'rejected' as const,
@@ -507,9 +504,7 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
 
   it('rejects competing starts and claims, counts exact support and refunds a mode switch', async () => {
     const battleId = await start();
-    expect(
-      (await sendCommand(b, { kind: 'battle-start' as const, anchor: [0, 0, 0], territory: 'Polar Sink' })).reply.type
-    ).toBe('rejected');
+    expect((await sendCommand(b, { kind: 'battle-start' as const, anchor: [0, 0, 0] })).reply.type).toBe('rejected');
     expect((await sendCommand(a, { kind: 'battle-claim' as const, battleId, side: 1 })).reply.type).toBe('rejected');
     expect((await sendCommand(a, { kind: 'battle-plan' as const, battleId, plan: plan(2, 3) })).reply.type).toBe(
       'rejected'
@@ -733,15 +728,14 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     expect(leaders).toHaveLength(1);
     expect(leaders[0].battleOverlay).toBeUndefined();
     if (order === 'movement-first') {
-      expect([leaders[0].position[0], leaders[0].position[2]]).toEqual([-2, 2]);
+      /* The leader lands where it was let go, stepping in just clear of its territory's border. */
+      expect(Math.hypot(leaders[0].position[0] + 2, leaders[0].position[2] - 2)).toBeLessThan(0.2);
     }
     expect(required(final.battleResults)[0].plans[0].leaderIds).toEqual(['fixture-leader']);
     expect(required(final.bank).balance).toBe(10);
   });
   it('rejects invalid anchors, unavailable resources, duplicate choices and locked plan edits', async () => {
-    expect(
-      (await sendCommand(a, { kind: 'battle-start' as const, anchor: [29, 0, 29], territory: 'Outside' })).reply.type
-    ).toBe('rejected');
+    expect((await sendCommand(a, { kind: 'battle-start' as const, anchor: [29, 0, 29] })).reply.type).toBe('rejected');
     const battleId = await start();
     expect(
       messageOf(

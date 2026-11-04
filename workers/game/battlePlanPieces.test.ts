@@ -65,7 +65,7 @@ function battleRoom() {
     send({ kind: 'hand-take', pieceId });
   }
   room.snapshot.phase = STANDARD_PHASES.findIndex((phase) => phase.id === 'battle');
-  send({ kind: 'battle-start', anchor: [0, 0, 0], territory: 'Arrakeen' });
+  send({ kind: 'battle-start', anchor: [0, 0, 0] });
   const battleId = room.snapshot.battleState!.id;
   send({ kind: 'battle-claim', battleId, side: 0 });
   const plan = (extra: object) => ({

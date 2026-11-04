@@ -88,6 +88,8 @@ export type TablePanel = Readonly<{
 type GameTableProps = {
   onSceneReady?: (() => void) | undefined;
   sceneContent?: ReactNode;
+  /** A territory the scene content lights on the board, such as the one under a carried battle marker. */
+  highlightTerritory?: string | null;
   readOnly?: boolean;
   /** The host's panels, grouped, ahead of the fixture's own Table panel. */
   panels?: readonly TablePanel[];
@@ -638,6 +640,7 @@ function useTableViewController(
 export function GameTable({
   onSceneReady,
   sceneContent,
+  highlightTerritory,
   readOnly = false,
   panels,
   focus,
@@ -685,6 +688,7 @@ export function GameTable({
         tableProgress={tableProgress}
         stage={stage}
         mapVisible={mapVisible}
+        highlightTerritory={highlightTerritory}
       >
         {sceneContent}
       </TabletopScene>

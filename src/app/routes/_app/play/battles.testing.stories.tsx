@@ -1,7 +1,9 @@
 import { testingPreview } from '@sb/preview';
 import { waitForFrame, finishTransitions } from '@sb/storyWaits';
+import type { Vector3Tuple } from '@shared/play/model';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
+import { territoryAtTable } from '@shared/play/territoryPlacement';
 import { resolveRulebookBoardDefinition } from '@shared/rulebooks/boardDefinitions';
 import { expect, userEvent, within, waitFor } from 'storybook/test';
 
@@ -220,7 +222,11 @@ export const MarkerNamesItsTerritory = meta.story({
         (carthag.y + carthag.height / 2 - 0.5) * BOARD_RADIUS * 2,
       ],
       async () => {
-        await expect(lastCommand()?.action).toMatchObject({ kind: 'battle-start', territory: 'Carthag' });
+        const action = lastCommand()?.action;
+        await expect(action).toMatchObject({ kind: 'battle-start' });
+        /* The game names the battle for the territory under the marker. */
+        const anchor = (action as { anchor: Vector3Tuple }).anchor;
+        await expect(territoryAtTable({}, anchor)?.name).toBe('Carthag');
       }
     );
   },
