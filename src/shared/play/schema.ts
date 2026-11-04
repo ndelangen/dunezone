@@ -96,8 +96,6 @@ const storedItemSchema = z.object({
   artwork: artworkSchema.optional(),
   /* The factions that peeked at this card or token while it lay hidden, which every viewer may know; a shuffle forgets them. */
   peekedBy: z.array(tableIdSchema).optional(),
-  /* The turn this spice card's spice was placed from its revealed face, so one reveal places it once. */
-  spiceBlownTurn: tableCountSchema.min(1).optional(),
 });
 
 /** A spot in a faction's hidden zone: a piece's centre as fractions of the zone's width and depth. */

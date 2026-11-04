@@ -409,8 +409,6 @@ export class RoomProjection {
             faceUp: !hidden,
             ...(item.artwork ? { artwork: hidden ? concealed(item.artwork) : item.artwork } : {}),
             ...(item.peekedBy?.length ? { peekedBy: item.peekedBy } : {}),
-            /* Only a face anyone can see says whether its spice was placed; a hidden card keeps it to itself. */
-            ...(!hidden && item.spiceBlownTurn ? { spiceBlownTurn: item.spiceBlownTurn } : {}),
           };
         }),
       };

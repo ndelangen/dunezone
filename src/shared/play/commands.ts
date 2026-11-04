@@ -152,7 +152,7 @@ export function applyPieceAction(
     case 'delete':
       return deletePiece(state, piece, actorName);
     case 'spice-blow':
-      return placeSpiceBlowInState(state, piece, action, tableProgressFor(phase, phases).turn, actorName);
+      return placeSpiceBlowInState(state, piece, action, actorName);
   }
 }
 

@@ -2,6 +2,7 @@ import { deletablePiece } from '@shared/play/commands';
 import type { TablePiece } from '@shared/play/model';
 import { hasHiddenFace, peeksWholeDeck } from '@shared/play/peeking';
 import { isSpicePiece } from '@shared/play/spice';
+import { spiceBlowTrigger } from '@shared/play/spiceBlowTrigger';
 import { isTroopStack } from '@shared/play/troop';
 import type { RadialAction } from '@ui/control/RadialMenu';
 
@@ -185,7 +186,10 @@ function ownActions(piece: TablePiece, controls: MenuControls, onClose: () => vo
   }
   const peek = peekAction(piece, controls.peekControls, onClose);
   if (piece.kind === 'card') {
-    const blow = controls.spiceBlowControls && spiceBlowAction(piece, controls.spiceBlowControls, onClose);
+    const blow =
+      spiceBlowTrigger() === 'ring' && controls.spiceBlowControls
+        ? spiceBlowAction(piece, controls.spiceBlowControls, onClose)
+        : null;
     return deckActions(piece, controls.deckControls, blow ?? peek);
   }
   return peekableToken(piece) ? [peek] : [];

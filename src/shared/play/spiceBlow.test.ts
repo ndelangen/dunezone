@@ -9,7 +9,7 @@ import { STANDARD_PHASES } from './phases';
 import { GameRejection } from './rejection';
 import { isSpicePiece } from './spice';
 import { spiceBlowOf } from './spiceBlow';
-import { canPlaceSpiceBlow, pendingSpiceBlows } from './spiceBlowPlacement';
+import { revealedSpiceBlows } from './spiceBlowPlacement';
 import { spiceBlowSpot } from './spiceBlowSpot';
 
 const brokenLand = spiceBlowOf('card-spice', { highlights: ['broken-land'], amount: 8 })!;
@@ -90,33 +90,25 @@ describe('spice blow capture', () => {
 });
 
 describe('placing a revealed spice card', () => {
-  test("puts the card's spice in a free spot inside its territory, once a turn", () => {
+  test("puts the card's spice in a free spot inside its territory, and again onto that spice", () => {
     const state = tableWithCard();
     const spot = spiceBlowSpot({}, state.pieces, state.pieces.at(-1)!)!;
     expect(spot.name).toBe(boardTerritory(retainedArrakisBoard(), 'broken_land')!.name);
     expect(tableTerritoryAt(retainedArrakisBoard(), spot.position[0], spot.position[2])?.id).toBe('broken_land');
-    expect(pendingSpiceBlows(state.pieces, 1)).toEqual([{ pieceId: 'blow-card', territories: ['broken_land'] }]);
+    expect(revealedSpiceBlows(state.pieces)).toEqual([{ pieceId: 'blow-card', blow: brokenLand }]);
 
     const next = place(state);
     const added = next.pieces.filter(isSpicePiece);
     expect(added).toHaveLength(1);
     expect(added[0]!.items).toHaveLength(8);
     expect(next.events[0]?.message).toBe(`Alice placed 8 spice on ${spot.name}.`);
-    expect(pendingSpiceBlows(next.pieces, 1)).toEqual([]);
-    expect(
-      canPlaceSpiceBlow(
-        next.pieces.find((piece) => piece.id === 'blow-card'),
-        1
-      )
-    ).toBe(false);
-    expect(() => place(next)).toThrow(GameRejection);
-    /* The same card, revealed again on a later turn, places again. */
-    expect(
-      canPlaceSpiceBlow(
-        next.pieces.find((piece) => piece.id === 'blow-card'),
-        2
-      )
-    ).toBe(true);
+
+    /* A second blow of the same card joins the spice already lying in the territory. */
+    const again = place(next);
+    const piles = again.pieces.filter(isSpicePiece);
+    expect(piles).toHaveLength(1);
+    expect(piles[0]!.items).toHaveLength(16);
+    expect(new Set(piles[0]!.items.map((item) => item.id)).size).toBe(16);
   });
 
   test('a face-down card or another territory is refused', () => {

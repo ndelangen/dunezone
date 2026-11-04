@@ -1,6 +1,7 @@
-import type { TablePiece, TableState, TableItem, Vector3Tuple } from './model';
+import type { TableItem, TablePiece, TableState, Vector3Tuple } from './model';
 import { nearestZone } from './model';
 import { GameRejection } from './rejection';
+import { isSpicePiece } from './spice';
 import { createSpiceStack } from './spiceBank';
 import type { SpiceBlow } from './spiceBlow';
 import { BOARD_RADIUS, planarDistance, restingPositionAt } from './tableGeometry';
@@ -26,76 +27,63 @@ export function revealedSpiceBlow(
 }
 
 /**
- * The territories revealed spice cards on the table still wait to fill this turn, each card once.
- * The table lights them during Spice Blow, so nobody has to go back to the card to see where its spice goes.
+ * The revealed spice cards on the table and the territories each names.
+ * The table lights those territories during Spice Blow, so nobody has to go back to the card to see where its spice goes.
  */
-export function pendingSpiceBlows(
-  pieces: readonly TablePiece[],
-  turn: number
-): { pieceId: string; territories: string[] }[] {
-  return pieces.flatMap((piece) =>
-    canPlaceSpiceBlow(piece, turn)
-      ? [{ pieceId: piece.id, territories: revealedSpiceBlow(piece)!.blow.territories }]
-      : []
+export function revealedSpiceBlows(pieces: readonly TablePiece[]): { pieceId: string; blow: SpiceBlow }[] {
+  return pieces.flatMap((piece) => {
+    const revealed = revealedSpiceBlow(piece);
+    return revealed ? [{ pieceId: piece.id, blow: revealed.blow }] : [];
+  });
+}
+
+/* Spice already lying on the requested spot, which the card's spice joins. */
+function spiceAtSpot(state: TableState, position: Vector3Tuple) {
+  return state.pieces.find(
+    (candidate) => isSpicePiece(candidate) && !candidate.locked && planarDistance(candidate.position, position) < 1e-6
   );
 }
 
-/** Whether the revealed spice card on top of this piece may still place its spice this turn. */
-export function canPlaceSpiceBlow(piece: Parameters<typeof revealedSpiceBlow>[0], turn: number): boolean {
-  const revealed = revealedSpiceBlow(piece);
-  return !!revealed && revealed.item.spiceBlownTurn !== turn;
-}
-
 /*
- * The card's spice, set down as one stack where the page found room in the territory.
+ * The card's spice, added to the spice the page found in the territory, or set down as one stack where the page found room in it.
+ * A card may place its spice as often as the table asks, since a ruleset can blow the same card more than once.
  * The table holds no territory shapes, so the page names the spot and the territory; the card decides how much and which territories it may be.
  */
 export function placeSpiceBlowInState(
   state: TableState,
   piece: TablePiece,
   placement: SpiceBlowPlacement,
-  turn: number,
   actorName = 'A player'
 ): TableState {
   const revealed = revealedSpiceBlow(piece);
   if (!revealed) {
     throw new GameRejection('Reveal a spice card on the table to place its spice.');
   }
-  const { item, blow } = revealed;
-  if (item.spiceBlownTurn === turn) {
-    throw new GameRejection('This spice card already placed its spice this turn.');
-  }
+  const { blow } = revealed;
   if (!blow.territories.includes(placement.territory)) {
     throw new GameRejection('This spice card places its spice in another territory.');
   }
   if (planarDistance(placement.position, [0, 0, 0]) > BOARD_RADIUS) {
     throw new GameRejection('Spice from a spice card lands on the board.');
   }
-  const stack = createSpiceStack(state.nextEventNumber, 1);
-  const spice: TablePiece = {
-    ...stack,
-    items: Array.from({ length: blow.amount }, (_, index) => ({
-      id: `spice-${state.nextEventNumber}-${index + 1}`,
-      faceUp: true,
-    })),
-  };
+  const items = Array.from({ length: blow.amount }, (_, index) => ({
+    id: `spice-${state.nextEventNumber}-${index + 1}`,
+    faceUp: true,
+  }));
+  const message = `${actorName} placed ${blow.amount} spice on ${placement.name}.`;
+  const existing = spiceAtSpot(state, placement.position);
+  if (existing) {
+    const pieces = state.pieces.map((candidate) =>
+      candidate === existing ? { ...existing, items: [...existing.items, ...items] } : candidate
+    );
+    return accepted({ ...state, pieces, selectedPieceId: existing.id }, 'spice.blow', message);
+  }
+  const spice: TablePiece = { ...createSpiceStack(state.nextEventNumber, 1), items };
   const requested = restingPositionAt([placement.position[0], 0, placement.position[2]], spice);
   const position = nearestCollisionFreePosition(spice, requested, state.pieces);
   if (!position) {
     throw new GameRejection(`Make room in ${placement.name} for the spice.`);
   }
   const placed = { ...spice, position, zoneId: nearestZone(position)?.id ?? null };
-  const pieces = state.pieces.map((candidate) =>
-    candidate.id === piece.id
-      ? {
-          ...candidate,
-          items: candidate.items.map((entry) => (entry === item ? { ...entry, spiceBlownTurn: turn } : entry)),
-        }
-      : candidate
-  );
-  return accepted(
-    { ...state, pieces: [...pieces, placed], selectedPieceId: placed.id },
-    'spice.blow',
-    `${actorName} placed ${blow.amount} spice on ${placement.name}.`
-  );
+  return accepted({ ...state, pieces: [...state.pieces, placed], selectedPieceId: placed.id }, 'spice.blow', message);
 }

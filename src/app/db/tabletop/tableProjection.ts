@@ -54,9 +54,11 @@ export type TableProjection = {
   };
   /* Placing a revealed spice card's spice in its territory (#2678); present only while this viewer can act. */
   spiceBlowControls?: {
-    /** What the card on top of this piece would place and where, or null when it shows no spice card or already placed it this turn. */
+    /** What the card on top of this piece would place and where, or null when it shows no spice card or its territory has no room. */
     placement(pieceId: string): { amount: number; name: string } | null;
     place(pieceId: string): void;
+    /** The revealed spice card that names this territory, as `placement` reads it, so the territory itself can place it. */
+    placementIn(territory: string): { pieceId: string; amount: number; name: string } | null;
   };
   /* Taking a card, token or stack out of the game for good; present only while this viewer can act. */
   deleteControls?: {

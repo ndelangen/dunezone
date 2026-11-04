@@ -3,6 +3,7 @@ import type { Board } from '../boards/schema';
 import { boardPointToTable, boardTerritory, tableTerritoryAt } from '../boards/tableTerritories';
 import type { TablePiece, Vector3Tuple } from './model';
 import type { GameSnapshot } from './protocol';
+import { isSpicePiece } from './spice';
 import { createSpiceStack } from './spiceBank';
 import type { SpiceBlow } from './spiceBlow';
 import type { SpiceBlowPlacement } from './spiceBlowPlacement';
@@ -33,7 +34,7 @@ function startingPoints(board: Board, boardId: string | undefined, blow: SpiceBl
 }
 
 /**
- * Where a revealed spice card on top of this piece would set its spice down: the first territory it names that this board has, at a free spot that stays inside that territory.
+ * Where a revealed spice card on top of this piece would set its spice down: the first territory it names that this board has, onto spice already lying there, or else at a free spot that stays inside that territory.
  * Null when the piece shows no spice card, or no territory it names has room.
  */
 export function spiceBlowSpot(
@@ -50,6 +51,16 @@ export function spiceBlowSpot(
   const footprint = spiceFootprint(blow.amount);
   for (const territory of blow.territories) {
     const start = startingPoints(board, snapshot.board?.asset.id, blow, territory);
+    /* Spice already in the territory takes the card's spice onto its pile, so a blown territory keeps one stack. */
+    const lying = pieces.find(
+      (candidate) =>
+        isSpicePiece(candidate) &&
+        !candidate.locked &&
+        tableTerritoryAt(board, candidate.position[0], candidate.position[2])?.id === territory
+    );
+    if (start && lying) {
+      return { pieceId: piece.id, territory, name: start.name, position: [...lying.position] };
+    }
     for (const [x, z] of start?.points ?? []) {
       const position = nearestCollisionFreePosition(
         footprint,
