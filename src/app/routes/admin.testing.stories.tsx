@@ -52,15 +52,6 @@ export const ToolsNotAuthorized = meta.story({
   },
 });
 
-export const LegacyAccountsRedirect = meta.story({
-  args: { path: '/_admin/accounts' },
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByRole('heading', { name: 'Merge profiles' }, { timeout: 30_000 })).resolves.toBeVisible();
-    await expect(page.getByRole('link', { name: 'All admin tools' })).toHaveAttribute('href', '/admin');
-  },
-});
-
 /**
  * The dashboard reached by a reader who is not signed in: the gate frame, not the dashboard.
  * Coverable since the session gate reads `useSessionViewer` and the seam's signed-out answer stopped collapsing into the pending shape (#803).

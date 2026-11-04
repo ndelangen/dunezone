@@ -12,10 +12,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteRouteImport } from './routes/_app/route'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppSplatRouteRouteImport } from './routes/_app/$.route'
-import { Route as App_iconsRouteRouteImport } from './routes/_app/[_]_icons.route'
-import { Route as App_jobsRouteRouteImport } from './routes/_app/[_]_jobs.route'
-import { Route as App_mediaRouteRouteImport } from './routes/_app/[_]_media.route'
-import { Route as AppJobsRouteRouteImport } from './routes/_app/[_]jobs.route'
 import { Route as AppAdminRouteRouteImport } from './routes/_app/admin/route'
 import { Route as AppImportsRouteRouteImport } from './routes/_app/imports.route'
 import { Route as AppMediaRouteRouteImport } from './routes/_app/media/route'
@@ -29,7 +25,6 @@ import { Route as AppAdminJobsRouteRouteImport } from './routes/_app/admin/jobs.
 import { Route as AppAdminMigrationsRouteRouteImport } from './routes/_app/admin/migrations.route'
 import { Route as AppAdminPresetsRouteRouteImport } from './routes/_app/admin/presets.route'
 import { Route as AppAssetsIndexRouteImport } from './routes/_app/assets/index'
-import { Route as AppAssets_presetsRouteRouteImport } from './routes/_app/assets/[_]_presets.route'
 import { Route as AppAuthIndexRouteImport } from './routes/_app/auth/index'
 import { Route as AppAuthErrorRouteRouteImport } from './routes/_app/auth/error.route'
 import { Route as AppAuthLoginRouteRouteImport } from './routes/_app/auth/login.route'
@@ -55,8 +50,6 @@ import { Route as AppRulesetsCreateRouteRouteImport } from './routes/_app/rulese
 import { Route as AppTutorialIndexRouteImport } from './routes/_app/tutorial/index'
 import { Route as AppTutorialChapterRouteRouteImport } from './routes/_app/tutorial/$chapter.route'
 import { Route as PreviewSheetFactionSlugRouteRouteImport } from './routes/preview/sheet/$factionSlug.route'
-import { Route as AppAdminAccountsIndexRouteImport } from './routes/_app/[_]admin/accounts/index'
-import { Route as AppAdminJobsIndexRouteImport } from './routes/_app/[_]admin/jobs/index'
 import { Route as AppAssetsTypeIndexRouteImport } from './routes/_app/assets/$type/index'
 import { Route as AppBlogPostSlugIndexRouteImport } from './routes/_app/blog/$postSlug/index'
 import { Route as AppContributingCodeIndexRouteImport } from './routes/_app/contributing/code/index'
@@ -102,26 +95,6 @@ const AppIndexRoute = AppIndexRouteImport.update({
 const AppSplatRouteRoute = AppSplatRouteRouteImport.update({
   id: '/$',
   path: '/$',
-  getParentRoute: () => AppRouteRoute,
-} as any)
-const App_iconsRouteRoute = App_iconsRouteRouteImport.update({
-  id: '/__icons',
-  path: '/__icons',
-  getParentRoute: () => AppRouteRoute,
-} as any)
-const App_jobsRouteRoute = App_jobsRouteRouteImport.update({
-  id: '/__jobs',
-  path: '/__jobs',
-  getParentRoute: () => AppRouteRoute,
-} as any)
-const App_mediaRouteRoute = App_mediaRouteRouteImport.update({
-  id: '/__media',
-  path: '/__media',
-  getParentRoute: () => AppRouteRoute,
-} as any)
-const AppJobsRouteRoute = AppJobsRouteRouteImport.update({
-  id: '/_jobs',
-  path: '/_jobs',
   getParentRoute: () => AppRouteRoute,
 } as any)
 const AppAdminRouteRoute = AppAdminRouteRouteImport.update({
@@ -188,11 +161,6 @@ const AppAdminPresetsRouteRoute = AppAdminPresetsRouteRouteImport.update({
 const AppAssetsIndexRoute = AppAssetsIndexRouteImport.update({
   id: '/assets/',
   path: '/assets/',
-  getParentRoute: () => AppRouteRoute,
-} as any)
-const AppAssets_presetsRouteRoute = AppAssets_presetsRouteRouteImport.update({
-  id: '/assets/__presets',
-  path: '/assets/__presets',
   getParentRoute: () => AppRouteRoute,
 } as any)
 const AppAuthIndexRoute = AppAuthIndexRouteImport.update({
@@ -322,16 +290,6 @@ const PreviewSheetFactionSlugRouteRoute =
     path: '/preview/sheet/$factionSlug',
     getParentRoute: () => rootRouteImport,
   } as any)
-const AppAdminAccountsIndexRoute = AppAdminAccountsIndexRouteImport.update({
-  id: '/_admin/accounts/',
-  path: '/_admin/accounts/',
-  getParentRoute: () => AppRouteRoute,
-} as any)
-const AppAdminJobsIndexRoute = AppAdminJobsIndexRouteImport.update({
-  id: '/_admin/jobs/',
-  path: '/_admin/jobs/',
-  getParentRoute: () => AppRouteRoute,
-} as any)
 const AppAssetsTypeIndexRoute = AppAssetsTypeIndexRouteImport.update({
   id: '/assets/$type/',
   path: '/assets/$type/',
@@ -523,10 +481,6 @@ const AppRulesetsRulesetSlugRulebooksRulebookSlugEditionsRouteRoute =
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/$': typeof AppSplatRouteRoute
-  '/__icons': typeof App_iconsRouteRoute
-  '/__jobs': typeof App_jobsRouteRoute
-  '/__media': typeof App_mediaRouteRoute
-  '/_jobs': typeof AppJobsRouteRoute
   '/admin': typeof AppAdminRouteRouteWithChildren
   '/imports': typeof AppImportsRouteRoute
   '/media': typeof AppMediaRouteRouteWithChildren
@@ -538,7 +492,6 @@ export interface FileRoutesByFullPath {
   '/admin/jobs': typeof AppAdminJobsRouteRoute
   '/admin/migrations': typeof AppAdminMigrationsRouteRoute
   '/admin/presets': typeof AppAdminPresetsRouteRoute
-  '/assets/__presets': typeof AppAssets_presetsRouteRoute
   '/auth/error': typeof AppAuthErrorRouteRoute
   '/auth/login': typeof AppAuthLoginRouteRoute
   '/contributing/$intro': typeof AppContributingIntroRouteRoute
@@ -577,8 +530,6 @@ export interface FileRoutesByFullPath {
   '/profiles/$profileSlug/delete': typeof AppProfilesProfileSlugDeleteRouteRoute
   '/profiles/$profileSlug/edit': typeof AppProfilesProfileSlugEditRouteRoute
   '/rulesets/$rulesetSlug/edit': typeof AppRulesetsRulesetSlugEditRouteRoute
-  '/_admin/accounts/': typeof AppAdminAccountsIndexRoute
-  '/_admin/jobs/': typeof AppAdminJobsIndexRoute
   '/assets/$type/': typeof AppAssetsTypeIndexRoute
   '/blog/$postSlug/': typeof AppBlogPostSlugIndexRoute
   '/contributing/code/': typeof AppContributingCodeIndexRoute
@@ -603,10 +554,6 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/$': typeof AppSplatRouteRoute
-  '/__icons': typeof App_iconsRouteRoute
-  '/__jobs': typeof App_jobsRouteRoute
-  '/__media': typeof App_mediaRouteRoute
-  '/_jobs': typeof AppJobsRouteRoute
   '/imports': typeof AppImportsRouteRoute
   '/media': typeof AppMediaRouteRouteWithChildren
   '/auth/oauth': typeof AuthOauthRouteRoute
@@ -616,7 +563,6 @@ export interface FileRoutesByTo {
   '/admin/jobs': typeof AppAdminJobsRouteRoute
   '/admin/migrations': typeof AppAdminMigrationsRouteRoute
   '/admin/presets': typeof AppAdminPresetsRouteRoute
-  '/assets/__presets': typeof AppAssets_presetsRouteRoute
   '/auth/error': typeof AppAuthErrorRouteRoute
   '/auth/login': typeof AppAuthLoginRouteRoute
   '/contributing/$intro': typeof AppContributingIntroRouteRoute
@@ -655,8 +601,6 @@ export interface FileRoutesByTo {
   '/profiles/$profileSlug/delete': typeof AppProfilesProfileSlugDeleteRouteRoute
   '/profiles/$profileSlug/edit': typeof AppProfilesProfileSlugEditRouteRoute
   '/rulesets/$rulesetSlug/edit': typeof AppRulesetsRulesetSlugEditRouteRoute
-  '/_admin/accounts': typeof AppAdminAccountsIndexRoute
-  '/_admin/jobs': typeof AppAdminJobsIndexRoute
   '/assets/$type': typeof AppAssetsTypeIndexRoute
   '/blog/$postSlug': typeof AppBlogPostSlugIndexRoute
   '/contributing/code': typeof AppContributingCodeIndexRoute
@@ -683,10 +627,6 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteRouteWithChildren
   '/_app/$': typeof AppSplatRouteRoute
-  '/_app/__icons': typeof App_iconsRouteRoute
-  '/_app/__jobs': typeof App_jobsRouteRoute
-  '/_app/__media': typeof App_mediaRouteRoute
-  '/_app/_jobs': typeof AppJobsRouteRoute
   '/_app/admin': typeof AppAdminRouteRouteWithChildren
   '/_app/imports': typeof AppImportsRouteRoute
   '/_app/media': typeof AppMediaRouteRouteWithChildren
@@ -699,7 +639,6 @@ export interface FileRoutesById {
   '/_app/admin/jobs': typeof AppAdminJobsRouteRoute
   '/_app/admin/migrations': typeof AppAdminMigrationsRouteRoute
   '/_app/admin/presets': typeof AppAdminPresetsRouteRoute
-  '/_app/assets/__presets': typeof AppAssets_presetsRouteRoute
   '/_app/auth/error': typeof AppAuthErrorRouteRoute
   '/_app/auth/login': typeof AppAuthLoginRouteRoute
   '/_app/contributing/$intro': typeof AppContributingIntroRouteRoute
@@ -738,8 +677,6 @@ export interface FileRoutesById {
   '/_app/profiles/$profileSlug/delete': typeof AppProfilesProfileSlugDeleteRouteRoute
   '/_app/profiles/$profileSlug/edit': typeof AppProfilesProfileSlugEditRouteRoute
   '/_app/rulesets/$rulesetSlug/edit': typeof AppRulesetsRulesetSlugEditRouteRoute
-  '/_app/_admin/accounts/': typeof AppAdminAccountsIndexRoute
-  '/_app/_admin/jobs/': typeof AppAdminJobsIndexRoute
   '/_app/assets/$type/': typeof AppAssetsTypeIndexRoute
   '/_app/blog/$postSlug/': typeof AppBlogPostSlugIndexRoute
   '/_app/contributing/code/': typeof AppContributingCodeIndexRoute
@@ -767,10 +704,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/$'
-    | '/__icons'
-    | '/__jobs'
-    | '/__media'
-    | '/_jobs'
     | '/admin'
     | '/imports'
     | '/media'
@@ -782,7 +715,6 @@ export interface FileRouteTypes {
     | '/admin/jobs'
     | '/admin/migrations'
     | '/admin/presets'
-    | '/assets/__presets'
     | '/auth/error'
     | '/auth/login'
     | '/contributing/$intro'
@@ -821,8 +753,6 @@ export interface FileRouteTypes {
     | '/profiles/$profileSlug/delete'
     | '/profiles/$profileSlug/edit'
     | '/rulesets/$rulesetSlug/edit'
-    | '/_admin/accounts/'
-    | '/_admin/jobs/'
     | '/assets/$type/'
     | '/blog/$postSlug/'
     | '/contributing/code/'
@@ -847,10 +777,6 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/$'
-    | '/__icons'
-    | '/__jobs'
-    | '/__media'
-    | '/_jobs'
     | '/imports'
     | '/media'
     | '/auth/oauth'
@@ -860,7 +786,6 @@ export interface FileRouteTypes {
     | '/admin/jobs'
     | '/admin/migrations'
     | '/admin/presets'
-    | '/assets/__presets'
     | '/auth/error'
     | '/auth/login'
     | '/contributing/$intro'
@@ -899,8 +824,6 @@ export interface FileRouteTypes {
     | '/profiles/$profileSlug/delete'
     | '/profiles/$profileSlug/edit'
     | '/rulesets/$rulesetSlug/edit'
-    | '/_admin/accounts'
-    | '/_admin/jobs'
     | '/assets/$type'
     | '/blog/$postSlug'
     | '/contributing/code'
@@ -926,10 +849,6 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_app'
     | '/_app/$'
-    | '/_app/__icons'
-    | '/_app/__jobs'
-    | '/_app/__media'
-    | '/_app/_jobs'
     | '/_app/admin'
     | '/_app/imports'
     | '/_app/media'
@@ -942,7 +861,6 @@ export interface FileRouteTypes {
     | '/_app/admin/jobs'
     | '/_app/admin/migrations'
     | '/_app/admin/presets'
-    | '/_app/assets/__presets'
     | '/_app/auth/error'
     | '/_app/auth/login'
     | '/_app/contributing/$intro'
@@ -981,8 +899,6 @@ export interface FileRouteTypes {
     | '/_app/profiles/$profileSlug/delete'
     | '/_app/profiles/$profileSlug/edit'
     | '/_app/rulesets/$rulesetSlug/edit'
-    | '/_app/_admin/accounts/'
-    | '/_app/_admin/jobs/'
     | '/_app/assets/$type/'
     | '/_app/blog/$postSlug/'
     | '/_app/contributing/code/'
@@ -1033,34 +949,6 @@ declare module '@tanstack/react-router' {
       path: '/$'
       fullPath: '/$'
       preLoaderRoute: typeof AppSplatRouteRouteImport
-      parentRoute: typeof AppRouteRoute
-    }
-    '/_app/__icons': {
-      id: '/_app/__icons'
-      path: '/__icons'
-      fullPath: '/__icons'
-      preLoaderRoute: typeof App_iconsRouteRouteImport
-      parentRoute: typeof AppRouteRoute
-    }
-    '/_app/__jobs': {
-      id: '/_app/__jobs'
-      path: '/__jobs'
-      fullPath: '/__jobs'
-      preLoaderRoute: typeof App_jobsRouteRouteImport
-      parentRoute: typeof AppRouteRoute
-    }
-    '/_app/__media': {
-      id: '/_app/__media'
-      path: '/__media'
-      fullPath: '/__media'
-      preLoaderRoute: typeof App_mediaRouteRouteImport
-      parentRoute: typeof AppRouteRoute
-    }
-    '/_app/_jobs': {
-      id: '/_app/_jobs'
-      path: '/_jobs'
-      fullPath: '/_jobs'
-      preLoaderRoute: typeof AppJobsRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/_app/admin': {
@@ -1152,13 +1040,6 @@ declare module '@tanstack/react-router' {
       path: '/assets'
       fullPath: '/assets/'
       preLoaderRoute: typeof AppAssetsIndexRouteImport
-      parentRoute: typeof AppRouteRoute
-    }
-    '/_app/assets/__presets': {
-      id: '/_app/assets/__presets'
-      path: '/assets/__presets'
-      fullPath: '/assets/__presets'
-      preLoaderRoute: typeof AppAssets_presetsRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/_app/auth/': {
@@ -1335,20 +1216,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/preview/sheet/$factionSlug'
       preLoaderRoute: typeof PreviewSheetFactionSlugRouteRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/_app/_admin/accounts/': {
-      id: '/_app/_admin/accounts/'
-      path: '/_admin/accounts'
-      fullPath: '/_admin/accounts/'
-      preLoaderRoute: typeof AppAdminAccountsIndexRouteImport
-      parentRoute: typeof AppRouteRoute
-    }
-    '/_app/_admin/jobs/': {
-      id: '/_app/_admin/jobs/'
-      path: '/_admin/jobs'
-      fullPath: '/_admin/jobs/'
-      preLoaderRoute: typeof AppAdminJobsIndexRouteImport
-      parentRoute: typeof AppRouteRoute
     }
     '/_app/assets/$type/': {
       id: '/_app/assets/$type/'
@@ -1653,17 +1520,12 @@ const AppTutorialRouteRouteWithChildren =
 
 interface AppRouteRouteChildren {
   AppSplatRouteRoute: typeof AppSplatRouteRoute
-  App_iconsRouteRoute: typeof App_iconsRouteRoute
-  App_jobsRouteRoute: typeof App_jobsRouteRoute
-  App_mediaRouteRoute: typeof App_mediaRouteRoute
-  AppJobsRouteRoute: typeof AppJobsRouteRoute
   AppAdminRouteRoute: typeof AppAdminRouteRouteWithChildren
   AppImportsRouteRoute: typeof AppImportsRouteRoute
   AppMediaRouteRoute: typeof AppMediaRouteRouteWithChildren
   AppPlayRouteRoute: typeof AppPlayRouteRouteWithChildren
   AppTutorialRouteRoute: typeof AppTutorialRouteRouteWithChildren
   AppIndexRoute: typeof AppIndexRoute
-  AppAssets_presetsRouteRoute: typeof AppAssets_presetsRouteRoute
   AppAuthErrorRouteRoute: typeof AppAuthErrorRouteRoute
   AppAuthLoginRouteRoute: typeof AppAuthLoginRouteRoute
   AppContributingIntroRouteRoute: typeof AppContributingIntroRouteRoute
@@ -1693,8 +1555,6 @@ interface AppRouteRouteChildren {
   AppProfilesProfileSlugDeleteRouteRoute: typeof AppProfilesProfileSlugDeleteRouteRoute
   AppProfilesProfileSlugEditRouteRoute: typeof AppProfilesProfileSlugEditRouteRoute
   AppRulesetsRulesetSlugEditRouteRoute: typeof AppRulesetsRulesetSlugEditRouteRoute
-  AppAdminAccountsIndexRoute: typeof AppAdminAccountsIndexRoute
-  AppAdminJobsIndexRoute: typeof AppAdminJobsIndexRoute
   AppAssetsTypeIndexRoute: typeof AppAssetsTypeIndexRoute
   AppBlogPostSlugIndexRoute: typeof AppBlogPostSlugIndexRoute
   AppContributingCodeIndexRoute: typeof AppContributingCodeIndexRoute
@@ -1720,17 +1580,12 @@ interface AppRouteRouteChildren {
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppSplatRouteRoute: AppSplatRouteRoute,
-  App_iconsRouteRoute: App_iconsRouteRoute,
-  App_jobsRouteRoute: App_jobsRouteRoute,
-  App_mediaRouteRoute: App_mediaRouteRoute,
-  AppJobsRouteRoute: AppJobsRouteRoute,
   AppAdminRouteRoute: AppAdminRouteRouteWithChildren,
   AppImportsRouteRoute: AppImportsRouteRoute,
   AppMediaRouteRoute: AppMediaRouteRouteWithChildren,
   AppPlayRouteRoute: AppPlayRouteRouteWithChildren,
   AppTutorialRouteRoute: AppTutorialRouteRouteWithChildren,
   AppIndexRoute: AppIndexRoute,
-  AppAssets_presetsRouteRoute: AppAssets_presetsRouteRoute,
   AppAuthErrorRouteRoute: AppAuthErrorRouteRoute,
   AppAuthLoginRouteRoute: AppAuthLoginRouteRoute,
   AppContributingIntroRouteRoute: AppContributingIntroRouteRoute,
@@ -1765,8 +1620,6 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
     AppProfilesProfileSlugDeleteRouteRoute,
   AppProfilesProfileSlugEditRouteRoute: AppProfilesProfileSlugEditRouteRoute,
   AppRulesetsRulesetSlugEditRouteRoute: AppRulesetsRulesetSlugEditRouteRoute,
-  AppAdminAccountsIndexRoute: AppAdminAccountsIndexRoute,
-  AppAdminJobsIndexRoute: AppAdminJobsIndexRoute,
   AppAssetsTypeIndexRoute: AppAssetsTypeIndexRoute,
   AppBlogPostSlugIndexRoute: AppBlogPostSlugIndexRoute,
   AppContributingCodeIndexRoute: AppContributingCodeIndexRoute,

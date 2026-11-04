@@ -1,7 +1,6 @@
 import { z } from 'zod';
 
 import { Background, CanonicalFactionStoredObject } from '../factions/schema';
-import { legacyEmblemKeyed } from '../legacyEmblem';
 import { actionKindGuard } from './actionKinds';
 import { tableCountSchema, tableIdentitySchema, tableSeatSchema } from './schema';
 
@@ -39,8 +38,7 @@ const seatLists = z.record(tableSeatSchema, z.array(tableIdentitySchema));
 export const draftStateSchema = z.object({
   /* The start gate the game was created with: the roster must reach it before seats are dealt. */
   minimum: z.number().int().min(2).max(18),
-  /* A draft in Durable Object storage from before the emblem rename names it `logo` (see src/shared/legacyEmblem.ts). */
-  factions: legacyEmblemKeyed(z.array(draftFactionSchema)),
+  factions: z.array(draftFactionSchema),
   /* When the factions above were read; a stale copy is refreshed on the next draft command. */
   catalogueAt: tableCountSchema,
   picks: seatLists,

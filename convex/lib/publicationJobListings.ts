@@ -11,7 +11,7 @@ type Job = Doc<'publication_jobs'>;
 type Listing = Doc<'publication_job_listings'>;
 type Fields = Omit<Listing, '_id' | '_creationTime'>;
 type Status = Job['status'];
-type Namespace = [Status, 'all'] | [Status, 'type', string];
+type Namespace = [Status, 'all'];
 type Key = [number, number, Id<'publication_jobs'>];
 
 const STATUS_ORDER = ['error', 'in_progress', 'pending'] as const;
@@ -57,19 +57,16 @@ export async function syncPublicationJobListing(ctx: MutationCtx, jobId: Id<'pub
   }
 }
 
-function item(row: Listing, namespace: Namespace) {
+/*
+ * One order per status. Until November 2026 each job also had an entry per status and asset type; nothing read those,
+ * so they are no longer written, and the few left in production under `[status, 'type', assetType]` are never read.
+ */
+function item(row: Listing) {
   return {
-    namespace,
+    namespace: [row.status, 'all'] as Namespace,
     key: [row.created_at, row.job_creation_time, row.job_id] as Key,
     id: row._id,
   };
-}
-
-function namespaces(row: Listing): Namespace[] {
-  return [
-    [row.status, 'all'],
-    [row.status, 'type', row.asset_type],
-  ];
 }
 
 type OrderItem = ReturnType<typeof item>;
@@ -91,19 +88,13 @@ async function syncOrderItem(ctx: MutationCtx, before: OrderItem | null, after: 
   }
 }
 
-function orderItem(row: Listing | null, index: number) {
-  return row ? item(row, namespaces(row)[index]!) : null;
-}
-
-/** Queue writes, their small listing rows and both ordered indexes share one transaction. */
+/** Queue writes, their small listing rows and the ordered index share one transaction. */
 export function registerPublicationJobListingTriggers(triggers: Triggers<DataModel, MutationCtx>) {
   triggers.register('publication_jobs', async (ctx, change) => {
     await syncPublicationJobListing(ctx, change.id, change.newDoc);
   });
   triggers.register('publication_job_listings', async (ctx, change) => {
-    for (const index of [0, 1]) {
-      await syncOrderItem(ctx, orderItem(change.oldDoc, index), orderItem(change.newDoc, index));
-    }
+    await syncOrderItem(ctx, change.oldDoc && item(change.oldDoc), change.newDoc && item(change.newDoc));
   });
 }
 
@@ -120,15 +111,13 @@ export async function assertPublicationJobListing(ctx: QueryCtx, job: Job) {
   if (canonicalJson(stored) !== canonicalJson(fields(job))) {
     throw new Error('Publication job listing metadata differs');
   }
-  for (const namespace of namespaces(listing)) {
-    const { key, id } = item(listing, namespace);
-    const count = await order.count(ctx, {
-      namespace,
-      bounds: { lower: { key, id, inclusive: true }, upper: { key, id, inclusive: true } },
-    });
-    if (count !== 1) {
-      throw new Error('Publication job listing order is missing');
-    }
+  const { namespace, key, id } = item(listing);
+  const count = await order.count(ctx, {
+    namespace,
+    bounds: { lower: { key, id, inclusive: true }, upper: { key, id, inclusive: true } },
+  });
+  if (count !== 1) {
+    throw new Error('Publication job listing order is missing');
   }
 }
 
