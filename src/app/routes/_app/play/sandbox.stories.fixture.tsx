@@ -17,6 +17,7 @@ import { journeySteps, journeyViewers, stepCode, timelineSteps, viewerLabel } fr
 import { dreamrulesTechTokenPieces } from './panels/inventory/techTokens.stories.fixture';
 import { capturedFactions } from './product.stories.fixture';
 import { storyTransport } from './storyTransport';
+import { dealtTroopsOf } from './troopReserves.stories.fixture';
 
 /*
  * The Play sandbox: the game Worker's own table (`Room`) running in the browser, started from the room's stored state at
@@ -103,6 +104,9 @@ export class SandboxTable extends LocalTable {
     });
     this.start = index;
     this.prepare = prepare;
+    /* Setup dealt the reserves in the order the factions' captures list their troops, which the dealt table still shows. */
+    const dealt = journeySteps()[sandboxSteps()[0]!]!;
+    this.room.dealtTroops = dealtTroopsOf(storedSnapshotSchema.parse(onCurrentBoard(dealt.stored)));
   }
 }
 

@@ -32,6 +32,7 @@ import { isReviewAction, reviewCheckpointLimit, reviewableStage, reviewRunning }
 import type { TableReview } from '../../src/shared/play/review';
 import type { TableRoster } from '../../src/shared/play/schema';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
+import { dealtTroopKeys } from '../../src/shared/play/setupSupply';
 import type { SpiceTransfer } from '../../src/shared/play/spiceReserve';
 import { stormOrder } from '../../src/shared/play/stormSector';
 import { isSwapAction } from '../../src/shared/play/swapping';
@@ -272,13 +273,18 @@ export class GameSession {
   }
 
   private openRoom(snapshot: StoredSnapshot): Room {
-    return new Room(
+    const room = new Room(
       snapshot,
       () => this.actors.seats(),
       (userId) => this.actors.factionFor(userId),
       this.metadata?.fixtureDeck,
       this.metadata?.testPhaseCooldownMs
     );
+    room.dealtTroops = (factionId) => {
+      const capture = this.captures.faction(factionId);
+      return capture && dealtTroopKeys(capture);
+    };
+    return room;
   }
 
   private isHostedFixture(metadata: Metadata) {

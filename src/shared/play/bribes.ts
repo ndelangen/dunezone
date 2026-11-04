@@ -1,6 +1,7 @@
 import { isFactionToken } from './factionToken';
 import type { TablePiece, Vector3Tuple } from './model';
 import type { TableRoster } from './schema';
+import { seatAngleOf } from './setupLayout';
 import { SPICE_FOOTPRINT_RADIUS } from './spice';
 import type { PointerRay } from './tableGeometry';
 import {
@@ -13,7 +14,6 @@ import {
 import { TABLE_PLAY_RADIUS } from './tablePhysics';
 
 type Vector2 = readonly [x: number, z: number];
-import { tableSeatAngles } from './tableSettings';
 
 const FACTION_TOKEN_RADIUS = TROOP_FOOTPRINT_RADIUS * FACTION_TOKEN_SCALE;
 /* How far apart setup deals a faction's troop reserves along their arc (setupLayout.ts). */
@@ -107,12 +107,6 @@ function troopKindsOf(pieces: readonly TablePiece[], factionId: string) {
 function along(angle: number, radius: number, offset: number): Vector3Tuple {
   const turned = angle + offset / radius;
   return [Math.cos(turned) * radius, 0, Math.sin(turned) * radius];
-}
-
-/** The angle a faction's station stands at, as its seat fixed it. */
-function seatAngleOf(roster: TableRoster | undefined, factionId: string) {
-  const seat = roster?.seats.find((entry) => entry.faction?.id === factionId);
-  return roster && seat ? tableSeatAngles(roster.seatCount)[seat.position] : undefined;
 }
 
 /**

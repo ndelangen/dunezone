@@ -72,10 +72,16 @@ type FactionKit = {
   color: FactionCapture['definition']['themeColor'];
 } & Pick<SupplyDependencies, 'id'>;
 
+/** The stack key of each troop kind a faction is dealt, in the order setup lays their reserves out. */
+export function dealtTroopKeys(capture: Pick<FactionCapture, 'faction' | 'components'>): string[] {
+  return capture.components.troops.map((troop, index) => `troops:${capture.faction.id}:${troop.troopId ?? index}`);
+}
+
 function troopReserves({ capture, color, id }: FactionKit, layout: ReturnType<typeof factionSupplyLayout>) {
   const { faction, components } = capture;
+  const keys = dealtTroopKeys(capture);
   return components.troops.map((troop, index) => {
-    const stackKey = `troops:${faction.id}:${troop.troopId ?? index}`;
+    const stackKey = keys[index]!;
     const stack = piece(id(), troop.name, faction.id, color, 'force', stackKey);
     stack.items = Array.from({ length: troop.count }, () =>
       item(id(), troop.name, troop.front, troop.back, 'troop', true)

@@ -38,6 +38,7 @@ import {
   renderedPiecesFor,
 } from '@shared/play/tableState';
 import { takeableIntoHand } from '@shared/play/techToken';
+import { troopFactionOf } from '@shared/play/troopReserves';
 
 import { BattleQueue } from './BattleQueue';
 import { ConversationSession } from './ConversationSession';
@@ -1533,9 +1534,13 @@ export class TableSession {
     }
     this.updateGesture(position);
     const offer = pointer && this.giftOffer(position, pointer);
+    const home = !offer && pointer ? this.reserveTokenPosition(position, pointer) : undefined;
     if (offer) {
       /* The spice waits where the room will take the gift from, and every viewer sees it there. */
       this.updateGesture(offer.position);
+    } else if (home) {
+      /* Troops seen over their own faction's token are let go over its middle, where the room returns them to their reserves. */
+      this.updateGesture(home);
     }
     this.flushPose();
     if (offer) {
@@ -1568,6 +1573,24 @@ export class TableSession {
     }
     const over: Vector3Tuple = token === landing ? [...position] : [token.position[0], position[1], token.position[2]];
     return { factionId: factionOfToken(token)!, position: over, x: pointer.x, y: pointer.y };
+  }
+  /*
+   * The middle of the faction token troops in hand belong to, when they are seen over it or would land on it; undefined otherwise.
+   * Read as a gift's token is, so troops seen over their token from a low camera go home as well.
+   */
+  private reserveTokenPosition(position: Vector3Tuple, pointer: GiftPointer): Vector3Tuple | undefined {
+    const table = this.table?.state;
+    const factionId =
+      table && this.carry && this.canHandle() ? troopFactionOf(heldPieceFor(table, this.carry.draft)) : undefined;
+    if (!factionId) {
+      return undefined;
+    }
+    const pieces = table!.pieces;
+    const token = [
+      pointer.ray && factionTokenOnRay(pieces, pointer.ray),
+      factionTokenPieceUnder(pieces, position),
+    ].find((candidate) => factionOfToken(candidate) === factionId);
+    return token ? [token.position[0], position[1], token.position[2]] : undefined;
   }
   /* The factions spice in hand can go to: every other seated faction, while this viewer holds a spice reserve. */
   private giftRecipients() {

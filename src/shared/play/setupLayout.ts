@@ -1,6 +1,7 @@
 import type { TablePiece, Vector3Tuple } from './model';
+import type { TableRoster } from './schema';
 import { FACTION_TOKEN_SCALE, TROOP_FOOTPRINT_RADIUS } from './tableGeometry';
-import { PLAYER_RING_RADIUS } from './tableSettings';
+import { PLAYER_RING_RADIUS, tableSeatAngles } from './tableSettings';
 
 /* Troop reserves stand right behind the faction token, on the side away from the board, just clear of its footprint. */
 const RESERVE_RADIUS = PLAYER_RING_RADIUS + TROOP_FOOTPRINT_RADIUS * (FACTION_TOKEN_SCALE + 1) + 0.01;
@@ -60,4 +61,10 @@ export function factionSupplyLayout(angle: number, troopKinds: number) {
       orientation: Math.PI / 2 - angle,
     },
   };
+}
+
+/** The angle a faction's station stands at, as its seat fixed it; undefined for a faction with no seat. */
+export function seatAngleOf(roster: TableRoster | undefined, factionId: string) {
+  const seat = roster?.seats.find((entry) => entry.faction?.id === factionId);
+  return roster && seat ? tableSeatAngles(roster.seatCount)[seat.position] : undefined;
 }

@@ -16,7 +16,13 @@ import type { SpiceGift } from './spiceReserve';
 import { moveStormCounterclockwise } from './stormSector';
 import { placementAnchorAtPosition } from './tableFurnitureLayout';
 import type { PlacementAnchor } from './tableFurnitureLayout';
-import { nearestBy, planarDistance, restingPositionAt, stackPreviewPositionFor } from './tableGeometry';
+import {
+  BOARD_RIM_RADIUS,
+  nearestBy,
+  planarDistance,
+  restingPositionAt,
+  stackPreviewPositionFor,
+} from './tableGeometry';
 import {
   clampPositionToTable,
   isOverlapFreePosition,
@@ -25,6 +31,7 @@ import {
   piecesTouchForStack,
 } from './tablePhysics';
 import { isTroopStack } from './troop';
+import type { TroopReserveSpot } from './troopReserves';
 
 export function eventId(number: number): string {
   return `evt-${String(number).padStart(3, '0')}`;
@@ -885,6 +892,98 @@ export function giveSpiceDraft(
     applyDraftToState(current, settled, actorName),
     'spice.bribe',
     `${actorName} bribed ${gift.factionName} with ${amount}.`
+  );
+}
+
+/** Where a faction's troop reserves stand, for a carry of its troops let go over its faction token. */
+export type TroopReserveLanding = Readonly<{
+  /* The faction's name, for the event. */
+  factionName: string;
+  /* Each troop kind's reserve spot, in the order setup laid them out. */
+  spots: readonly TroopReserveSpot[];
+}>;
+
+/* How far from its spot a pile of a faction's troops off the board still counts as that kind's reserve, knocked aside. */
+const RESERVE_GATHER_REACH = 1;
+
+/* A pile of `spot`'s troop kind on the table off the board near its reserve spot, free to be moved back onto it. */
+function liesInReserve(piece: TablePiece, spot: TroopReserveSpot) {
+  return (
+    piece.stackKey === spot.stackKey &&
+    !piece.inventory &&
+    !piece.hiddenZone &&
+    !piece.locked &&
+    Math.hypot(piece.position[0], piece.position[2]) > BOARD_RIM_RADIUS &&
+    planarDistance(piece.position, spot.position) <= RESERVE_GATHER_REACH
+  );
+}
+
+/*
+ * One troop kind's reserve gathered into a single pile on its setup spot, with `returned` laid on top.
+ * The pile nearest the spot keeps its identity; with no pile left there, the returned troops become the reserve.
+ */
+function gatheredReserve(
+  pieces: TablePiece[],
+  spot: TroopReserveSpot,
+  returned: TablePiece | undefined,
+  factionNames: TableState['factionNames']
+): TablePiece[] {
+  const piles = pieces
+    .filter((piece) => liesInReserve(piece, spot))
+    .sort((a, b) => planarDistance(a.position, spot.position) - planarDistance(b.position, spot.position));
+  const keeper = piles[0] ?? returned;
+  if (!keeper) {
+    return pieces;
+  }
+  const items = [...piles.flatMap((pile) => pile.items), ...(returned?.items ?? [])];
+  const pile: TablePiece = {
+    ...keeper,
+    items,
+    label: labelForCount(keeper, items.length, factionNames),
+    orientation: 0,
+    zoneId: null,
+    battleOverlay: undefined,
+  };
+  const reserve = { ...pile, position: restingPositionAt(spot.position, pile) };
+  const gathered = new Set(piles.map((candidate) => candidate.id));
+  const kept = pieces.flatMap((piece) => (piece.id === keeper.id ? [reserve] : gathered.has(piece.id) ? [] : [piece]));
+  return piles.length ? kept : [...kept, reserve];
+}
+
+/**
+ * Troops carried onto their own faction token go back to that faction's reserves, face up, as setup dealt them.
+ * Every kind's reserve is then set back on its setup spot behind the seat, in setup order, with any piles of it knocked nearby gathered in.
+ */
+export function returnTroopsDraftToReserves(
+  current: TableState,
+  draft: DraftMove,
+  landing: TroopReserveLanding,
+  actorName = 'A player'
+): TableState {
+  const application = validateDraftApplication(current, draft);
+  if ('rejected' in application) {
+    return application.rejected;
+  }
+  const { piece, rejectedBase } = application;
+  if (!isTroopStack(piece) || !landing.spots.some((spot) => spot.stackKey === piece.stackKey)) {
+    return rejection(
+      rejectedBase,
+      'troops.reserve',
+      `Only ${landing.factionName} troops go back to ${landing.factionName}'s reserves.`
+    );
+  }
+  const returned = { ...piece, items: piece.items.map((item) => ({ ...item, faceUp: true })) };
+  const pieces = landing.spots.reduce(
+    (next, spot) =>
+      gatheredReserve(next, spot, spot.stackKey === piece.stackKey ? returned : undefined, current.factionNames),
+    piecesWithoutHeld(current, draft, piece)
+  );
+  const count = pieceCount(piece);
+  const [one, many] = pieceUnits(piece);
+  return accepted(
+    { ...current, pieces, selectedPieceId: null, draftMove: null },
+    'troops.reserve',
+    `${actorName} returned ${count} ${count === 1 ? one : many} to ${landing.factionName}'s reserves.`
   );
 }
 
