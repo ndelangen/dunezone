@@ -230,5 +230,18 @@
     "artist": "Ilya Baranovsky",
     "source": "Dune (Gale Force Nine)",
     "by": "Central419"
+  },
+  "online-original": {
+    "method": "online-copy"
+  },
+  "brainfood-art": {
+    "method": "official",
+    "artist": "Brainfood",
+    "source": "his community Dune factions"
+  },
+  "gf9-symbol": {
+    "method": "traced",
+    "source": "Dune (Gale Force Nine)",
+    "by": "Central419"
   }
 }

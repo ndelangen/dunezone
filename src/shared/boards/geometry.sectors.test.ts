@@ -45,7 +45,8 @@ describe('Sector guide snapping', () => {
   });
 
   it('snaps to the visible sector and rim intersection when both attract the point', () => {
-    const [a, b] = visibleLines[0];
+    /* The first line ends on the blank board's east node, which wins as a boundary point; the second ends on bare rim. */
+    const [a, b] = visibleLines[1];
     const input: Point = [a[0] + (b[0] - a[0]) * 0.88, a[1] + (b[1] - a[1]) * 0.88];
     const snapped = snapPoint(blankBoard(), input, true, 35);
     const cross = (snapped.point[0] - a[0]) * (b[1] - a[1]) - (snapped.point[1] - a[1]) * (b[0] - a[0]);
