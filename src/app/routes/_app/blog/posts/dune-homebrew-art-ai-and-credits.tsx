@@ -156,8 +156,9 @@ function TrainingSection() {
       </Paragraph>
       <Paragraph>
         I&rsquo;ll wait for the courts, but until then I&rsquo;ll keep using the tool, because it makes what I need. If
-        you&rsquo;re an artist and you see an image on Dune Zone that you recognize as your work, please get in touch.
-        If you ask, I&rsquo;ll remove it or credit you properly (your choice).
+        you&rsquo;re an artist and you see an image on Dune Zone that you recognize as your work, please email me at{' '}
+        <Anchor href="mailto:support@dune.zone">support@dune.zone</Anchor>. If you ask, I&rsquo;ll remove it or credit
+        you properly (your choice).
       </Paragraph>
       <Paragraph>
         None of this is simple. Something can be within the law and still cross a line for a lot of people, because
