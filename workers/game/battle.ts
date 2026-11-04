@@ -618,7 +618,7 @@ export function battleCommand(
   factionId: string,
   action: BattleAction,
   now: number,
-  table: BattleTable = { reserved: new Set() }
+  table: BattleTable
 ): StoredSnapshot {
   switch (action.kind) {
     case 'hand-take':
