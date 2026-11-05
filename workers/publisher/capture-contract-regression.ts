@@ -100,7 +100,6 @@ const linkedSpiceSnapshot = envelope('card-spice', {
   slug: 'publisher-contract-linked-spice',
   card: {
     ...publishingSpiceCard,
-    highlights: [],
     board: {
       asset_id: 'k17publisherBoard',
       tints: [{ id: 'blow', name: 'Spice blow', color: '#e8b923', territories: ['funeral_plain'] }],

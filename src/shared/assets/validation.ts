@@ -1,6 +1,5 @@
 import { derive } from '../boards/geometry';
 import { BoardAsset } from '../boards/schema';
-import { withoutHighlights } from '../boards/spiceHighlights';
 import { renameLegacyEmblems } from '../legacyEmblem';
 import {
   BundleAssetInput,
@@ -50,15 +49,13 @@ export function parseBoardData(data: unknown) {
   return parsed;
 }
 
-/** A Spice card's data without an empty classic highlight list, which a tab or package from before its removal may still send. */
+/** A Spice card's data without an empty classic highlight list, which an editor tab opened before its removal may still send. */
 function withoutEmptyHighlights(data: unknown): unknown {
   if (!data || typeof data !== 'object' || Array.isArray(data)) {
     return data;
   }
-  const { highlights } = data as { highlights?: unknown };
-  return Array.isArray(highlights) && highlights.length === 0
-    ? withoutHighlights(data as Record<string, unknown>)
-    : data;
+  const { highlights, ...rest } = data as Record<string, unknown>;
+  return Array.isArray(highlights) && highlights.length === 0 ? rest : data;
 }
 
 /**
