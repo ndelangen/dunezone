@@ -509,7 +509,7 @@ async function serveForPlay({
       `Play is up at ${origin}`,
       `1. Sign in at ${origin}/auth/login as ${accounts.player.email} with password ${accounts.player.password}`,
       `2. Create a game at ${origin}/play/create on "${rulesetName ?? 'Synthetic ruleset'}" with 2 players.`,
-      `3. Start ${botCount === 1 ? 'the bot' : `each of the ${botCount} bots in its own terminal`}: bun run play:bot -- --game <the game page URL> --account <1${botCount > 1 ? `..${botCount}` : ''}> --brain claude (or codex), then approve its seat request.`,
+      `3. Start the bots from their manager page (bun run play:bot:watch, or play:bot:up starts it for you) with the game page URL, then approve each seat request.`,
       '4. Talk to the bot at the table: it acts only when someone writes to it.',
       `Accounts and addresses: ${stackFile}. Ctrl-C stops everything.`,
       '',

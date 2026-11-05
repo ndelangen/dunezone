@@ -74,6 +74,7 @@
     "play:bot:demo": "vp test run --config tools/play-bot/vitest.config.ts",
     "play:bot:pull": "bun tools/play-bot/pull.ts",
     "play:bot:table": "bun tools/play-bot/table.ts",
+    "play:bot:up": "bun tools/play-bot/up.ts",
     "play:bot:watch": "bun tools/play-bot/page.ts",
     "play:bot:harness": "bun tools/play-bot/page.ts --harness",
     "play:bot:stack": "bun --no-env-file scripts/verify-hosted-play-stack.ts --serve",

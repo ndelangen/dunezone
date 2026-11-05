@@ -26,6 +26,17 @@ Dune Play table, for a few 1v1 development games and a tech demo. It is not a pr
   into or out of a hand, so the harness follows cards as a person would: a peeked card that leaves its pile as one
   faction's hand grows is now in that hand. Each wake shows that knowledge and the changes since the last one.
 
+## The whole demo in one command
+
+```bash
+bun run play:bot:up            # GF9 with two bot accounts; --bots 3 for more, --ruleset <slug> for another ruleset
+```
+
+It copies the ruleset's catalogue from the live site the first time (read-only; `--pull` copies it again), starts the
+local stack (backend and frontend) on that copy, then the bots' manager page, and prints what to do: sign in, create the
+game, paste its URL into the manager page with the bots' factions, and approve each seat request. Ctrl-C stops
+everything, the bots included.
+
 ## Start and watch the bots
 
 One harness is one bot: a process that holds that bot's seat, serves its tools as an MCP endpoint (`/mcp`, which the
