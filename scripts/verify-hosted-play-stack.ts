@@ -47,6 +47,11 @@ const { values } = parseArgs({
     serve: { type: 'boolean', default: false },
     /* With --serve: GF9 base factions for the seeded ruleset in place of the synthetic pair, such as `fremen,emperor`. */
     factions: { type: 'string' },
+    /*
+     * With --serve: a catalogue `bun run play:bot:pull` copied from the live site. The game Worker drafts, deals and supplies
+     * that ruleset's real decks, factions, leaders and Traitors, and its images are served locally.
+     */
+    mirror: { type: 'string' },
   },
 });
 const loadProfile = runnerProfiles.find((candidate) => candidate === values['load-profile']);
@@ -80,6 +85,15 @@ for (const name of shardFlows ?? values.flow ?? (values['browser-only'] ? ['regu
 if (values.serve && (flows.length > 0 || loadProfile || values['browser-only'])) {
   throw new Error('--serve runs no verifier: leave out --flow, --shard, --browser-only and --load-profile.');
 }
+if ((values.mirror || values.factions) && !values.serve) {
+  throw new Error('--mirror and --factions only apply with --serve.');
+}
+if (values.mirror && values.factions) {
+  throw new Error('Choose --mirror or --factions: a mirror brings its own factions.');
+}
+const mirror = values.mirror
+  ? (await import('../tools/play-bot/mirror')).readMirror(path.resolve(values.mirror))
+  : undefined;
 if (flows.length > 0 && values['skip-build']) {
   throw new Error("Browser flows require a fresh frontend build for this run's backend URL.");
 }
@@ -377,8 +391,59 @@ async function installPublications(publications: Publication[], workerOutput: st
   }
 }
 
+/** The mirror's images under the keys the live site stores them at, so the local publisher serves the paths its answers name. */
+async function installMirrorMedia(source: NonNullable<typeof mirror>, workerOutput: string, origin: string) {
+  const { publishedKey } = await import('../tools/play-bot/mirror');
+  const workerRuntime = /Local state\/configuration: (.+)\. Removed/.exec(workerOutput)?.[1];
+  if (!workerRuntime) {
+    throw new Error('The isolated Worker storage path is missing.');
+  }
+  const config = path.join(workerRuntime, 'publisher.json');
+  const settings = JSON.parse(readFileSync(config, 'utf8'));
+  const bucket = settings.r2_buckets.find((entry: { binding: string }) => entry.binding === 'ASSET_BUCKET');
+  if (!bucket || bucket.remote !== false) {
+    throw new Error('The publication bucket must be local.');
+  }
+  console.log(`Installing ${source.file.media.length} mirrored images...`);
+  for (const image of source.file.media) {
+    run({
+      command: node,
+      args: [
+        path.join(root, 'node_modules/wrangler/bin/wrangler.js'),
+        'r2',
+        'object',
+        'put',
+        `${bucket.bucket_name}/${publishedKey(image.path)}`,
+        '--local',
+        '--persist-to',
+        path.join(workerRuntime, 'state'),
+        '--config',
+        config,
+        '--file',
+        path.join(source.directory, image.file),
+        '--content-type',
+        image.contentType,
+      ],
+      env: environment,
+      label: 'Mirrored image',
+    });
+  }
+  const sample = source.file.media[0];
+  if (sample) {
+    const response = await fetch(`${origin}${sample.path}`);
+    if (!response.ok) {
+      throw new Error(`The local publisher does not serve ${sample.path} (${response.status}).`);
+    }
+  }
+}
+
+/** The local ruleset a served stack seeds; the catalogue proxy answers reads of it from the mirror. */
+let servedRulesetId: string | undefined;
+
 /**
- * `--serve`: games start at Turn 1 with no phase cooldown, two synthetic accounts exist (one for the person, one for a bot), and the stack stays up until Ctrl-C.
+ * `--serve`: games play out in full, from the draft through trading and setup, with no phase cooldown.
+ * Two synthetic accounts exist (one for the person, one for a bot), and the stack stays up until Ctrl-C.
+ * With a mirror, the ruleset's catalogue answers come from it (see tools/play-bot/catalogue-proxy.ts) and its images are installed locally.
  * The accounts and addresses go to tools/play-bot/out/stack.json for the bot runner.
  */
 async function serveForPlay({
@@ -389,14 +454,19 @@ async function serveForPlay({
   adminKey,
 }: {
   convex: (args: string[]) => string;
-  seedCatalogue: (withPublicCatalogue: boolean, gf9Factions?: string[]) => Promise<string>;
+  seedCatalogue: (withPublicCatalogue: boolean, gf9Factions?: string[], rulesetName?: string) => Promise<string>;
   origin: string;
   backendUrl: string;
   adminKey: string;
 }) {
-  const rulesetId = await seedCatalogue(true, values.factions?.split(',').filter(Boolean));
+  const rulesetName = mirror ? `${mirror.ruleset.ruleset.name} (local copy)` : undefined;
+  const rulesetId = await seedCatalogue(true, values.factions?.split(',').filter(Boolean), rulesetName);
+  servedRulesetId = rulesetId;
+  if (mirror) {
+    await installMirrorMedia(mirror, readFileSync(path.join(evidence, 'worker.log'), 'utf8'), origin);
+  }
   convex(['env', 'set', 'PLAY_TEST_PHASE_COOLDOWN_MS', '0']);
-  convex(['env', 'set', 'PLAY_TEST_START_STAGE', 'play']);
+  /* PLAY_TEST_START_STAGE stays unset: a game plays its draft, trading and setup, so Traitors and predictions are dealt. */
   const { ConvexHttpClient } = await import('convex/browser');
   const { setAdminAuth } = await import('./lib/convex-admin');
   const { provisionAccounts } = await import('./lib/synthetic-accounts');
@@ -416,8 +486,9 @@ async function serveForPlay({
       '',
       `Play is up at ${origin}`,
       `1. Sign in at ${origin}/auth/login as ${accounts.player.email} with password ${accounts.player.password}`,
-      `2. Create a game at ${origin}/play/create with the seeded ruleset and 2 players; it starts at Turn 1.`,
+      `2. Create a game at ${origin}/play/create on "${rulesetName ?? 'Synthetic ruleset'}" with 2 players.`,
       '3. Start a bot: bun run play:bot -- --game <the game page URL> --brain claude (or codex), then approve its seat request.',
+      '4. Talk to the bot at the table: it acts only when someone writes to it.',
       `Accounts and addresses: ${stackFile}. Ctrl-C stops everything.`,
       '',
     ].join('\n')
@@ -451,6 +522,8 @@ try {
    * The frontend build needs only the origins above, so it runs while the backend boots and deploys instead of after them.
    * The steps below block on spawnSync, which leaves this child running; the Worker starts on the finished build after the deploy.
    */
+  /* With a mirror, the game Worker asks its catalogue questions through a proxy that answers them from the mirror. */
+  const proxyPort = mirror ? await freePort() : undefined;
   const workerArguments = [
     '--no-env-file',
     path.join(root, 'scripts/play-local.ts'),
@@ -458,6 +531,7 @@ try {
     backendUrl,
     '--convex-site-url',
     siteUrl,
+    ...(proxyPort ? ['--game-convex-url', `http://127.0.0.1:${proxyPort}`] : []),
     '--port',
     String(appPort),
     ...(values['skip-generate'] ? ['--skip-generate'] : []),
@@ -522,6 +596,10 @@ try {
     logPath: path.join(evidence, 'backend.log'),
   });
   await ready(`${backendUrl}/version`, backend, 30_000);
+  if (mirror && proxyPort) {
+    const { startCatalogueProxy } = await import('../tools/play-bot/catalogue-proxy');
+    await startCatalogueProxy({ mirror, backendUrl, localRulesetId: () => servedRulesetId, port: proxyPort });
+  }
   const localEnv = { ...environment, CONVEX_SELF_HOSTED_URL: backendUrl, CONVEX_SELF_HOSTED_ADMIN_KEY: adminKey };
   const convex = (args: string[]) => {
     return run({
@@ -662,9 +740,13 @@ try {
     }
   }
   /* Seeds the real-game ruleset with local bytes for its faces, and the Recovery token's catalogue when asked; returns the ruleset. */
-  const seedCatalogue = async (withPublicCatalogue: boolean, gf9Factions?: string[]) => {
+  const seedCatalogue = async (withPublicCatalogue: boolean, gf9Factions?: string[], rulesetName?: string) => {
     const seeded = JSON.parse(
-      convex(['run', 'playTesting:seedRealGameCatalogue', JSON.stringify(gf9Factions ? { gf9Factions } : {})])
+      convex([
+        'run',
+        'playTesting:seedRealGameCatalogue',
+        JSON.stringify({ ...(gf9Factions ? { gf9Factions } : {}), ...(rulesetName ? { rulesetName } : {}) }),
+      ])
     ) as {
       rulesetId: string;
       publications: Publication[];

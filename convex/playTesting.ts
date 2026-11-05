@@ -270,9 +270,10 @@ function gf9Faction(shortName: string) {
 
 export const seedRealGameCatalogue = internalMutation({
   /* `gf9Factions` swaps the two synthetic factions for these GF9 base factions, for `verify-hosted-play-stack --serve`. */
-  args: { gf9Factions: v.optional(v.array(v.string())) },
+  /* `rulesetName` names the ruleset a person picks on the create page, such as a mirrored ruleset's local copy. */
+  args: { gf9Factions: v.optional(v.array(v.string())), rulesetName: v.optional(v.string()) },
   returns: v.object({ rulesetId: v.id('rulesets'), publications: v.array(publicationValidator) }),
-  handler: async (ctx, { gf9Factions }) => {
+  handler: async (ctx, { gf9Factions, rulesetName }) => {
     requireSyntheticBackend();
     const owner = await catalogueOwner(ctx);
     const stamp = new Date().toISOString();
@@ -282,7 +283,7 @@ export const seedRealGameCatalogue = internalMutation({
     const suffix = playCredential().slice(0, 8);
     const rulesetId = await ctx.db.insert('rulesets', {
       ...row,
-      name: 'Synthetic ruleset',
+      name: rulesetName?.slice(0, 120) ?? 'Synthetic ruleset',
       slug: `synthetic-ruleset-${suffix}`,
       about: 'A disposable ruleset for isolated browser verification.',
       image_cover: null,

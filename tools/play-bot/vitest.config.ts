@@ -4,7 +4,7 @@ import { defineConfig } from 'vite-plus';
 export default defineConfig({
   test: {
     root: new URL('../..', import.meta.url).pathname,
-    include: ['tools/play-bot/**/*.demo.ts'],
+    include: ['tools/play-bot/**/*.demo.ts', 'tools/play-bot/**/*.test.ts'],
     testTimeout: 0,
     hookTimeout: 120_000,
   },

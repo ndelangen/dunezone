@@ -3,13 +3,15 @@
  *
  *   bun run play:bot -- --game http://127.0.0.1:PORT/play/<game> --brain claude
  *
- * The bot asks for the open seat; approve its request at the table. Options:
+ * It only ever joins the game you name: it never creates a game. Create the game yourself, then start the bot with its URL.
+ * The bot asks for the open seat; approve its request at the table. Before factions are dealt it drafts and trades by fixed
+ * rules (lobby.ts); from setup on it acts only when someone writes to it at the table or privately. Options:
  *   --brain claude|codex   which agent CLI thinks for it (default claude; it must be signed in on this machine)
  *   --model <name>         passed to that CLI
  *   --style "<text>"       its personality and strength, in a sentence or two
  *   --listen all|mentions  wake on every table message (default) or only when named
  *   --seat <seat-id>       a particular open seat
- *   --want <faction>       warn when the deal gave the bot a different faction
+ *   --want <faction>       the faction it drafts, and trades for if the deal gives it another
  *   --stack <file>         the stack file the launcher wrote (default tools/play-bot/out/stack.json)
  * Its transcript and private notes go to tools/play-bot/out/.
  */
@@ -119,6 +121,7 @@ const bot = new PlayBot(transport, {
   transcriptFile: path.join(out, `game-${stamp}.md`),
   style: values.style,
   listen: values.listen === 'mentions' ? 'mentions' : 'all',
+  want: values.want,
 });
 bot.log(`# ${access.name ?? gameId}: bot transcript (${brain.name}), ${new Date().toISOString()}\n`);
 transport.send({ type: 'admit', pass: await pass(true) });
@@ -133,10 +136,13 @@ setInterval(
   40 * 60_000
 );
 
-/* A game in play needs the seat named: the one asked for, else the first seat nobody holds. */
+/* A game past its draft needs the seat named: the one asked for, else the first seat nobody holds. A drafting game takes any. */
 function openSeat(view: NonNullable<typeof bot.view.current>) {
   if (values.seat) {
     return values.seat;
+  }
+  if (view.snapshot.stage === 'drafting') {
+    return undefined;
   }
   const held = view.snapshot.controls?.seats ?? [];
   return view.snapshot.roster?.seats.find((entry) => !held.includes(entry.id))?.id;
@@ -144,6 +150,7 @@ function openSeat(view: NonNullable<typeof bot.view.current>) {
 
 /* Once admitted, a bot without a seat asks for one and waits for the table to approve it. */
 let asking = false;
+let announced = false;
 const seated = setInterval(() => {
   const view = bot.view.current;
   if (!view) {
@@ -152,22 +159,26 @@ const seated = setInterval(() => {
   if (bot.view.factionId) {
     clearInterval(seated);
     const dealt = bot.view.factionName(bot.view.factionId);
-    bot.log(`Seated as ${dealt}. Pick up its faction token or talk to it.`);
-    if (values.want && !dealt.toLowerCase().includes(values.want.toLowerCase())) {
-      bot.log(`Note: the deal gave the bot ${dealt}, not ${values.want}. Create a new game to deal again.`);
+    bot.log(`Dealt ${dealt}. Talk to it at the table or privately when you want it to act.`);
+    return;
+  }
+  const hasSeat = view.snapshot.roster?.seats.some((entry) => entry.id === view.viewer.viewerSeat);
+  if (hasSeat) {
+    if (!announced) {
+      announced = true;
+      bot.log(`Seated at ${view.viewer.viewerSeat}; drafting${values.want ? ` ${values.want}` : ''} and waiting for the deal.`);
     }
     return;
   }
   const requested = view.snapshot.controls?.seatRequests.some((entry) => entry.own);
   if (!requested && !asking) {
     asking = true;
-    void bot
-      .command({ kind: 'seat-request', ...(openSeat(view) ? { seat: openSeat(view) } : {}) })
-      .then((result) => {
-        bot.log(result.ok ? 'Asked for a seat; approve it at the table.' : `Seat request refused: ${result.message}`);
-        /* A refused request is tried again after a pause, in case a seat opens. */
-        setTimeout(() => (asking = false), result.ok ? 0 : 15_000);
-      });
+    const seat = openSeat(view);
+    void bot.command({ kind: 'seat-request', ...(seat ? { seat } : {}) }).then((result) => {
+      bot.log(result.ok ? 'Asked for a seat; approve it at the table.' : `Seat request refused: ${result.message}`);
+      /* A refused request is tried again after a pause, in case a seat opens. */
+      setTimeout(() => (asking = false), result.ok ? 0 : 15_000);
+    });
   }
 }, 2000);
 

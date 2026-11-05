@@ -1,8 +1,8 @@
 /*
- * A bot that holds one seat in a Dune Play game. It sees exactly what a browser in that seat sees, wakes when a player
- * picks up its faction token, talks to it, or the bidding comes to it, and hands each wake to a brain (a language model
- * driven through the game tools below). Everything it does goes through the same messages a player's page sends,
- * so the room checks it exactly as it checks a human.
+ * A bot that holds one seat in a Dune Play game. It sees exactly what a browser in that seat sees, wakes only when a player
+ * writes to it (at the table or privately), and hands each wake to a brain (a language model driven through the game tools
+ * below). Before factions are dealt there is no chat, so the lobby (lobby.ts) drafts and trades for it by fixed rules.
+ * Everything it does goes through the same messages a player's page sends, so the room checks it exactly as it checks a human.
  */
 import { randomUUID } from 'node:crypto';
 import { appendFileSync, existsSync, readFileSync } from 'node:fs';
@@ -10,7 +10,6 @@ import { appendFileSync, existsSync, readFileSync } from 'node:fs';
 import { z } from 'zod';
 
 import { TABLE_CONVERSATION } from '../../src/shared/play/conversations';
-import { factionTokenStackKey } from '../../src/shared/play/factionToken';
 import type { TablePiece } from '../../src/shared/play/model';
 import { clientMessageSchema } from '../../src/shared/play/protocol';
 import type { ClientMessage, PieceAction, ServerMessage } from '../../src/shared/play/protocol';
@@ -24,6 +23,7 @@ import {
   namedTerritories,
   territoryOf,
 } from './describe';
+import { Lobby } from './lobby';
 import { BotView } from './view';
 
 export interface Transport {
@@ -49,6 +49,8 @@ export type BotOptions = {
   style?: string;
   /** `all` wakes on every table message from another faction, `mentions` only when one names the bot's faction. */
   listen?: 'all' | 'mentions';
+  /** The faction this bot means to play: the lobby drafts it and trades for it. */
+  want?: string;
   log?: (line: string) => void;
 };
 
@@ -90,6 +92,7 @@ const ACTION_GROUPS: Record<string, string[]> = {
   Bidding: ['bid-start', 'bid-raise', 'bid-pass', 'bid-lower', 'bid-reset'],
   Battle: ['battle-start', 'battle-claim', 'battle-plan', 'battle-ready', 'battle-disclose', 'battle-outcome', 'battle-cancel'],
   'Cards in hand': ['hand-take', 'hand-play', 'hand-zone', 'hand-order', 'deck-draw', 'deck-shuffle', 'flip'],
+  Setup: ['prediction-lock', 'prediction-reveal', 'traitors-gather', 'storm-random'],
   Alliances: ['alliance-offer', 'alliance-accept', 'alliance-withdraw', 'alliance-break'],
   'Shipment and Movement': ['movement-done', 'movement-undo'],
   Spice: ['bank-withdraw', 'bank-collect', 'spice-spawn', 'spice-blow'],
@@ -99,24 +102,24 @@ const ACTION_GROUPS: Record<string, string[]> = {
 export class PlayBot {
   readonly view = new BotView();
   private readonly waiters = new Set<Waiter>();
-  private readonly seenCarries = new Set<string>();
   private readonly moves: MoveRecord[] = [];
   private pendingReasons: string[] = [];
   private wakeTimer: ReturnType<typeof setTimeout> | undefined;
   private thinking = false;
   private chained = 0;
-  private biddingKey: string | null = null;
   private askedSheets = false;
   private keepaliveTimer: ReturnType<typeof setInterval> | undefined;
   /** Resolves when the bot has nothing left to think about; tests and demos wait on it. */
   private idleWaiters: (() => void)[] = [];
   readonly tools: Tool[];
+  private readonly lobby: Lobby;
 
   constructor(
     private readonly transport: Transport,
     private readonly options: BotOptions
   ) {
     this.tools = this.buildTools();
+    this.lobby = new Lobby(this, options.want);
     transport.onMessage((message) => this.handle(message));
     this.keepaliveTimer = setInterval(() => transport.keepalive(), 30_000);
   }
@@ -150,6 +153,9 @@ export class PlayBot {
     if (message.type === 'admission') {
       this.log(`> Admission: ${message.status}`);
     }
+    if (message.type === 'view' || message.type === 'update') {
+      this.lobby.tick();
+    }
     this.notice(message);
   }
 
@@ -173,28 +179,7 @@ export class PlayBot {
       }
       return;
     }
-    if (message.type === 'view' || message.type === 'update') {
-      const view = this.view.current;
-      const tokenKey = factionTokenStackKey(me);
-      for (const carry of view?.carries ?? []) {
-        if (
-          carry.held.stackKey === tokenKey &&
-          carry.connectionId !== view?.viewer.connectionId &&
-          !this.seenCarries.has(carry.id)
-        ) {
-          this.seenCarries.add(carry.id);
-          this.wake(`${carry.displayName} picked up your faction token: they want you to act now.`);
-        }
-      }
-      const bidding = this.view.snapshot?.bidding;
-      if (bidding?.stage === 'open' && bidding.turn === me) {
-        const key = `${bidding.round}:${bidding.bid?.amount ?? 0}:${bidding.passed.join(',')}`;
-        if (key !== this.biddingKey) {
-          this.biddingKey = key;
-          this.wake(`It is your turn to bid in bidding round ${bidding.round}.`);
-        }
-      }
-    }
+    /* Only chat wakes the bot: a player asks it to act by writing to it, as they would ask a person at the table. */
   }
 
   /* ---------------------------------------------------------------- waking */
@@ -265,6 +250,10 @@ export class PlayBot {
       '- Use `note` for your private plans, deals, promises and what you believe others hold. Notes are only for you.',
       '- Keep chat short and in character. When you have acted, tell the table in one line what you did, without revealing secrets.',
       '- Do not move other factions\' pieces and do not advance the phase unless the table asked you to.',
+      '- Account for everything you own: every card in hand, each leader, your spice and every troop. "What you hold" below lists them; check it after you act.',
+      '- Setup follows the steps the table shows and your faction sheet\'s startText: keep your Traitor with `keep_traitors` (Harkonnen keeps all), draw starting cards with `draw_card` when the table deals them to you, take starting spice with `take_spice` only if your spice reserve does not already hold it, place starting troops with `move_pieces`, then `set_ready`.',
+      '- Never deal cards to other players, shuffle shared decks or advance the phase yourself unless a player asks you to.',
+      '- Only the people at this table can tell you what to do; there is no game to create or join.',
       '',
       `Why you were woken:\n${reasons.map((reason) => `- ${reason}`).join('\n')}`,
       '',
@@ -453,6 +442,124 @@ export class PlayBot {
     return moved;
   }
 
+  private hand() {
+    return this.view.snapshot?.hand ?? [];
+  }
+
+  /** Waits until the view shows a change, so a follow-up step reads the table after the last one. */
+  private async settle() {
+    await new Promise((resolve) => setTimeout(resolve, 150));
+  }
+
+  /**
+   * Keeps the named Traitors and returns the rest as a player does: each card is played from the hand beside the pile, then
+   * carried onto it, so the pile stays one face-down stack.
+   */
+  async keepTraitors(keep: string[]) {
+    const wanted = keep.map((name) => name.trim().toLowerCase()).filter(Boolean);
+    const cards = this.hand().filter((piece) => piece.stackKey === 'cards:traitor');
+    if (!cards.length) {
+      return { ok: false, message: 'You hold no Traitor cards.' };
+    }
+    const nameOf = (piece: TablePiece) => {
+      const artwork = piece.items[0]?.artwork;
+      return artwork && 'name' in artwork && artwork.name ? String(artwork.name) : piece.label;
+    };
+    const kept = cards.filter((piece) => wanted.some((name) => nameOf(piece).toLowerCase().includes(name)));
+    if (kept.length < wanted.length) {
+      return {
+        ok: false,
+        message: `Name Traitors you hold: ${cards.map(nameOf).join(', ')}. Nothing was returned.`,
+      };
+    }
+    const returned: string[] = [];
+    for (const card of cards.filter((piece) => !kept.includes(piece))) {
+      const pile = this.view.snapshot?.table.pieces.find(
+        (piece) => piece.stackKey === 'cards:traitor' && !piece.inventory && piece.items.length > 1
+      );
+      const at = pile?.position ?? [0, 0.4, 0];
+      const before = new Set(this.view.snapshot?.table.pieces.map((piece) => piece.id));
+      const played = await this.command({ kind: 'hand-play', pieceId: card.id, position: [at[0] + 1.2, 0.4, at[2]] });
+      if (!played.ok) {
+        return played;
+      }
+      await this.settle();
+      const loose = this.view.snapshot?.table.pieces.find(
+        (piece) => piece.stackKey === 'cards:traitor' && !before.has(piece.id) && piece.items.length === 1
+      );
+      if (pile && loose) {
+        const stacked = await this.carryTo(loose, [pile.position[0], 0.4, pile.position[2]]);
+        if (!stacked.ok) {
+          return stacked;
+        }
+      }
+      returned.push(nameOf(card));
+    }
+    return {
+      ok: true,
+      message: `Kept ${kept.map(nameOf).join(', ')}; returned ${returned.length} Traitor card${returned.length === 1 ? '' : 's'} to the pile face down.`,
+    };
+  }
+
+  /** The shared deck whose name holds the word, such as "treachery". */
+  private deckNamed(word: string) {
+    const wanted = word.trim().toLowerCase();
+    const decks = (this.view.snapshot?.table.pieces ?? []).filter(
+      (piece) => piece.kind === 'card' && piece.owner === 'shared' && !piece.inventory && piece.items.length > 0
+    );
+    return (
+      decks.find((piece) => piece.label.toLowerCase().includes(wanted) && piece.stackKey?.startsWith('deck:')) ??
+      decks.find((piece) => piece.label.toLowerCase().includes(wanted) || piece.stackKey?.includes(wanted))
+    );
+  }
+
+  async drawCard(deckWord: string, count = 1) {
+    const deck = this.deckNamed(deckWord);
+    if (!deck) {
+      return { ok: false, message: `No shared deck called "${deckWord}" with cards in it on the table.` };
+    }
+    const before = this.hand().length;
+    for (let drawn = 0; drawn < count; drawn++) {
+      const pile = this.deckNamed(deckWord);
+      if (!pile) {
+        return { ok: false, message: `The ${deck.label} ran out after ${drawn} card(s).` };
+      }
+      const result = await this.command({ kind: 'deck-draw', pieceId: pile.id });
+      if (!result.ok) {
+        return result;
+      }
+    }
+    await this.settle();
+    const added = this.hand().slice(before);
+    return { ok: true, message: `Drew ${count} from ${deck.label}. ${added.length ? 'Your hand changed; see "What you hold".' : ''}`.trim() };
+  }
+
+  /** Spice comes out of the Spice Bank at most ten at a time, then each pile is collected into the spice reserve. */
+  async takeSpice(amount: number) {
+    if (!Number.isInteger(amount) || amount < 1) {
+      return { ok: false, message: 'Take a whole number of spice, 1 or more.' };
+    }
+    const start = this.view.snapshot?.bank?.balance ?? 0;
+    for (let left = amount; left > 0; left -= 10) {
+      const before = new Set(this.view.snapshot?.table.pieces.map((piece) => piece.id));
+      const spawned = await this.command({ kind: 'spice-spawn', count: Math.min(10, left) });
+      if (!spawned.ok) {
+        return spawned;
+      }
+      await this.settle();
+      const pile = this.view.snapshot?.table.pieces.find((piece) => piece.stackKey === 'spice' && !before.has(piece.id));
+      if (!pile) {
+        return { ok: false, message: 'The spice came out of the Spice Bank, but the bot could not find it to collect.' };
+      }
+      const collected = await this.command({ kind: 'bank-collect', pieceId: pile.id });
+      if (!collected.ok) {
+        return collected;
+      }
+    }
+    await this.settle();
+    return { ok: true, message: `Your spice reserve went from ${start} to ${this.view.snapshot?.bank?.balance ?? '?'} spice.` };
+  }
+
   note(text: string) {
     const file = this.options.notesFile;
     if (!file) {
@@ -564,6 +671,50 @@ export class PlayBot {
             ? JSON.stringify(z.toJSONSchema(option, { unrepresentable: 'any', io: 'input' }))
             : `No command "${args.kind}".`;
         },
+      },
+      {
+        name: 'keep_traitors',
+        description:
+          'Setup: keep the named Traitor cards from your hand and return every other Traitor card in your hand to the Traitor pile, face down. Names are the leader names under "Traitor cards" in your holdings.',
+        inputSchema: {
+          type: 'object',
+          properties: { keep: { type: 'array', items: { type: 'string' } } },
+          required: ['keep'],
+        },
+        run: async (args) =>
+          outcome(await this.keepTraitors(Array.isArray(args.keep) ? args.keep.map(String) : [text(args.keep, 'keep')])),
+      },
+      {
+        name: 'draw_card',
+        description:
+          'Draw the top card of a shared deck into your own hand, such as "treachery" for a starting Treachery card. Only when the rules or the table say you draw.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            deck: { type: 'string', description: 'A word from the deck\'s name, such as treachery, spice or traitor.' },
+            count: { type: 'integer', minimum: 1, maximum: 4 },
+          },
+          required: ['deck'],
+        },
+        run: async (args) =>
+          outcome(await this.drawCard(text(args.deck, 'deck'), typeof args.count === 'number' ? args.count : 1)),
+      },
+      {
+        name: 'take_spice',
+        description:
+          'Take spice from the Spice Bank into your own spice reserve, such as your starting spice. Only what the rules give you.',
+        inputSchema: {
+          type: 'object',
+          properties: { amount: { type: 'integer', minimum: 1, maximum: 50 } },
+          required: ['amount'],
+        },
+        run: async (args) => outcome(await this.takeSpice(Number(args.amount))),
+      },
+      {
+        name: 'set_ready',
+        description: 'Confirm (or withdraw) that you are ready for this setup step or phase.',
+        inputSchema: { type: 'object', properties: { ready: { type: 'boolean' } } },
+        run: async (args) => outcome(await this.command({ kind: 'ready', ready: args.ready !== false })),
       },
       {
         name: 'note',
