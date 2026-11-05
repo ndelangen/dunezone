@@ -374,6 +374,18 @@ function handPiece(snapshot: StoredSnapshot, factionId: string, pieceId: string)
   return { inventory, piece };
 }
 
+/*
+ * A leader leaves the hand face down under new identities, as a card leaves under new handles:
+ * the ids it carried while it lay face up, or out of an earlier battle's reveal, would otherwise tell everyone which leader it is.
+ * A card keeps its ids, since the room retires its handles, and a tech token is public.
+ */
+function unseen(piece: StoredPiece, items: StoredPiece['items']): Pick<StoredPiece, 'id' | 'items'> {
+  if (piece.kind === 'card' || isTechToken(piece)) {
+    return { id: piece.id, items };
+  }
+  return { id: crypto.randomUUID(), items: items.map((item) => ({ ...item, id: crypto.randomUUID() })) };
+}
+
 function playFromHand(
   snapshot: StoredSnapshot,
   factionId: string,
@@ -384,7 +396,7 @@ function playFromHand(
   const { hiddenZone: _spot, ...leaving } = piece;
   /* A card or leader leaves the hand face down; a tech token is public, so it lands as it lay in the hand. */
   const items = isTechToken(piece) ? piece.items : piece.items.map((item) => ({ ...item, faceUp: false }));
-  const leavingHand = { ...leaving, inventory: undefined, items };
+  const leavingHand = { ...leaving, inventory: undefined, ...unseen(piece, items) };
   const factionInventories = {
     ...snapshot.factionInventories,
     [factionId]: inventory.filter((piece) => piece.id !== action.pieceId),
