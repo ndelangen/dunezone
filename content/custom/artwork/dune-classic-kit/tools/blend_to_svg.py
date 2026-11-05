@@ -1,94 +1,221 @@
-"""Export one collection (or asset object) of a .blend to SVG, following collection
-instances, linked objects and text. usage: export2.py file.blend name out.svg"""
-import sys, json, bpy
-from mathutils import Vector, Matrix
-src, want, out = sys.argv[1], sys.argv[2], sys.argv[3]
-show = set(sys.argv[4].split(',')) if len(sys.argv) > 4 else set()
-skip = set(sys.argv[5].split(',')) if len(sys.argv) > 5 else set()
-bpy.ops.wm.open_mainfile(filepath=src)
-dg = bpy.context.evaluated_depsgraph_get()
-gam = lambda c: '#%02x%02x%02x' % tuple(int(round(max(0, min(1, v)) ** (1 / 2.2) * 255)) for v in c[:3])
+"""Export one collection (or asset object) of a .blend to SVG.
 
-def colour(o):
-    for m in [sl.material for sl in o.material_slots]:
-        if not m: continue
-        if m.node_tree:
-            for n in m.node_tree.nodes:
-                if n.type in ('BSDF_PRINCIPLED', 'EMISSION', 'BSDF_DIFFUSE'):
-                    i = n.inputs.get('Base Color') or n.inputs.get('Color')
-                    if i is not None and not i.is_linked: return gam(i.default_value), m.name
-        return gam(m.diffuse_color), m.name
-    return '#000000', ''
+Follows collection instances, linked objects and text. Run inside Blender:
 
-def flatten(objs, M0, seen):
-    for o in objs:
-        if o.name in skip or (o.hide_render and o.name not in show): continue
-        M = M0 @ o.matrix_world
-        if o.type == 'EMPTY' and o.instance_type == 'COLLECTION' and o.instance_collection:
-            c = o.instance_collection
-            off = Matrix.Translation(-Vector(c.instance_offset))
-            yield from flatten([x for x in c.all_objects if x.parent is None or x.parent.name not in c.all_objects], M @ off, seen)
-        elif o.type in ('CURVE', 'FONT', 'GREASEPENCIL'):
-            yield o, M
+    blender -b --python blend_to_svg.py -- file.blend name out.svg [show,names] [skip,names]
 
-items = []
-def add_curve(cu, M, o, z):
-    ds, P = [], []
-    f = lambda v: M @ Vector((v[0], v[1], 0))
-    for s in cu.splines:
-        if s.type == 'BEZIER' and len(s.bezier_points) > 1:
-            pts = s.bezier_points; Q = [f(p.co) for p in pts]
-            d = [f"M{Q[0].x:.4f} {-Q[0].y:.4f}"]
-            n = len(pts) if s.use_cyclic_u else len(pts) - 1
-            for i in range(n):
-                a, b = pts[i], pts[(i + 1) % len(pts)]
-                h1, h2, e = f(a.handle_right), f(b.handle_left), f(b.co)
-                d.append(f"C{h1.x:.4f} {-h1.y:.4f} {h2.x:.4f} {-h2.y:.4f} {e.x:.4f} {-e.y:.4f}")
-            if s.use_cyclic_u: d.append('Z')
-            ds.append(''.join(d)); P += Q
-        elif len(s.points) > 1:
-            Q = [f(p.co) for p in s.points]
-            ds.append('M' + 'L'.join(f"{p.x:.4f} {-p.y:.4f}" for p in Q) + ('Z' if s.use_cyclic_u else '')); P += Q
-    if not ds: return
-    col, mat = colour(o)
-    filled = cu.fill_mode != 'NONE' and all(s.use_cyclic_u for s in cu.splines)
-    items.append(dict(z=z, d=' '.join(ds), col=col, name=o.name, filled=filled, w=cu.bevel_depth * 2, pts=P))
+`name` may join several collections with `+`. Hidden objects listed in `show` are exported;
+objects listed in `skip` are left out.
+"""
 
-def add_gp(o, M, z):
-    mats = [sl.material for sl in o.material_slots]
-    for L in o.data.layers:
-        if L.hide: continue
-        fr = L.current_frame()
-        if not fr or not fr.drawing: continue
-        for st in fr.drawing.strokes:
-            P = [M @ Vector(p.position) for p in st.points]
-            if len(P) < 2: continue
-            m = mats[st.material_index] if st.material_index < len(mats) else None
-            g = m.grease_pencil if m else None
-            d = 'M' + 'L'.join(f"{p.x:.4f} {-p.y:.4f}" for p in P) + ('Z' if st.cyclic else '')
-            rad = sum(p.radius for p in st.points) / len(st.points)
-            if g is None or g.show_fill:
-                items.append(dict(z=z, d=d, col=gam(g.fill_color) if g else '#000000', name=o.name, filled=True, w=0, pts=P))
-            if g is None or g.show_stroke:
-                items.append(dict(z=z + 1e-6, d=d, col=gam(g.color) if g else '#000000', name=o.name, filled=False, w=rad * 2, pts=P))
+import sys
 
-cols = [bpy.data.collections.get(w) for w in want.split('+')]
-col = cols[0]
-roots = [o for c in cols for o in c.all_objects] if col else [bpy.data.objects[want]]
+import bpy
+from mathutils import Matrix, Vector
 
-for o, M in flatten(roots, Matrix.Identity(4), set()):
-    z = M.translation.z
-    if o.type == 'CURVE': add_curve(o.data, M @ o.matrix_world.inverted() @ o.matrix_world if False else M, o, z)
-    elif o.type == 'FONT':
-        oe = o.evaluated_get(dg); cu = oe.to_curve(dg)
-        if cu: add_curve(cu, M, o, z)
-    else: add_gp(o, M, z)
-items.sort(key=lambda i: i['z'])
-xs = [p.x for i in items for p in i['pts']]; ys = [-p.y for i in items for p in i['pts']]
-x0, y0, x1, y1 = min(xs), min(ys), max(xs), max(ys); pad = 0.01 * max(x1 - x0, y1 - y0)
-body = []
-for i in items:
-    if i['filled']: body.append(f'<path data-name="{i["name"]}" fill="{i["col"]}" fill-rule="evenodd" d="{i["d"]}"/>')
-    else: body.append(f'<path data-name="{i["name"]}" fill="none" stroke="{i["col"]}" stroke-width="{max(i["w"], (x1-x0)*0.003):.4f}" stroke-linecap="round" stroke-linejoin="round" d="{i["d"]}"/>')
-open(out, 'w').write(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{x0-pad:.4f} {y0-pad:.4f} {x1-x0+2*pad:.4f} {y1-y0+2*pad:.4f}">' + ''.join(body) + '</svg>')
-print('OK', out, len(items))
+SHADER_NODES = ('BSDF_PRINCIPLED', 'EMISSION', 'BSDF_DIFFUSE')
+DRAWABLE = ('CURVE', 'FONT', 'GREASEPENCIL')
+BLACK = '#000000'
+
+
+def gamma_hex(rgb):
+    """Linear Blender colour to an sRGB hex string."""
+    return '#%02x%02x%02x' % tuple(int(round(max(0, min(1, v)) ** (1 / 2.2) * 255)) for v in rgb[:3])
+
+
+def node_colour(material):
+    """Base colour of the first unlinked shader node, or None."""
+    if not material.node_tree:
+        return None
+    for node in material.node_tree.nodes:
+        if node.type not in SHADER_NODES:
+            continue
+        socket = node.inputs.get('Base Color') or node.inputs.get('Color')
+        if socket is not None and not socket.is_linked:
+            return gamma_hex(socket.default_value)
+    return None
+
+
+def colour(obj):
+    """Fill colour of an object's first material."""
+    material = next((slot.material for slot in obj.material_slots if slot.material), None)
+    if material is None:
+        return BLACK
+    return node_colour(material) or gamma_hex(material.diffuse_color)
+
+
+def is_exported(obj, show, skip):
+    if obj.name in skip:
+        return False
+    return not obj.hide_render or obj.name in show
+
+
+def instance_roots(collection):
+    """Top-level objects of an instanced collection."""
+    members = collection.all_objects
+    return [o for o in members if o.parent is None or o.parent.name not in members]
+
+
+def flatten(objs, parent_matrix, show, skip):
+    """Yield every drawable object with its world matrix, expanding collection instances."""
+    for obj in objs:
+        if not is_exported(obj, show, skip):
+            continue
+        matrix = parent_matrix @ obj.matrix_world
+        instanced = obj.type == 'EMPTY' and obj.instance_type == 'COLLECTION' and obj.instance_collection
+        if instanced:
+            collection = obj.instance_collection
+            offset = Matrix.Translation(-Vector(collection.instance_offset))
+            yield from flatten(instance_roots(collection), matrix @ offset, show, skip)
+        elif obj.type in DRAWABLE:
+            yield obj, matrix
+
+
+def fmt(point):
+    """SVG coordinates (y flipped) of a projected point."""
+    return f'{point.x:.4f} {-point.y:.4f}'
+
+
+def bezier_path(spline, project):
+    points = spline.bezier_points
+    anchors = [project(p.co) for p in points]
+    parts = [f'M{fmt(anchors[0])}']
+    count = len(points) if spline.use_cyclic_u else len(points) - 1
+    for i in range(count):
+        start, end = points[i], points[(i + 1) % len(points)]
+        parts.append(f'C{fmt(project(start.handle_right))} {fmt(project(end.handle_left))} {fmt(project(end.co))}')
+    if spline.use_cyclic_u:
+        parts.append('Z')
+    return ''.join(parts), anchors
+
+
+def poly_path(points, cyclic):
+    return 'M' + 'L'.join(fmt(p) for p in points) + ('Z' if cyclic else '')
+
+
+def spline_path(spline, project):
+    """Path data and anchor points of one spline, or None when it has too few points."""
+    if spline.type == 'BEZIER':
+        if len(spline.bezier_points) < 2:
+            return None
+        return bezier_path(spline, project)
+    if len(spline.points) < 2:
+        return None
+    anchors = [project(p.co) for p in spline.points]
+    return poly_path(anchors, spline.use_cyclic_u), anchors
+
+
+def curve_items(curve, matrix, obj, z):
+    project = lambda v: matrix @ Vector((v[0], v[1], 0))
+    paths = [p for p in (spline_path(s, project) for s in curve.splines) if p]
+    if not paths:
+        return []
+    filled = curve.fill_mode != 'NONE' and all(s.use_cyclic_u for s in curve.splines)
+    return [
+        dict(
+            z=z,
+            d=' '.join(d for d, _ in paths),
+            col=colour(obj),
+            name=obj.name,
+            filled=filled,
+            w=curve.bevel_depth * 2,
+            pts=[p for _, anchors in paths for p in anchors],
+        )
+    ]
+
+
+def stroke_items(stroke, matrix, materials, obj, z):
+    points = [matrix @ Vector(p.position) for p in stroke.points]
+    if len(points) < 2:
+        return []
+    material = materials[stroke.material_index] if stroke.material_index < len(materials) else None
+    style = material.grease_pencil if material else None
+    d = poly_path(points, stroke.cyclic)
+    items = []
+    if style is None or style.show_fill:
+        fill = gamma_hex(style.fill_color) if style else BLACK
+        items.append(dict(z=z, d=d, col=fill, name=obj.name, filled=True, w=0, pts=points))
+    if style is None or style.show_stroke:
+        width = 2 * sum(p.radius for p in stroke.points) / len(stroke.points)
+        line = gamma_hex(style.color) if style else BLACK
+        items.append(dict(z=z + 1e-6, d=d, col=line, name=obj.name, filled=False, w=width, pts=points))
+    return items
+
+
+def visible_drawings(layers):
+    for layer in layers:
+        frame = None if layer.hide else layer.current_frame()
+        if frame and frame.drawing:
+            yield frame.drawing
+
+
+def grease_pencil_items(obj, matrix, z):
+    materials = [slot.material for slot in obj.material_slots]
+    return [
+        item
+        for drawing in visible_drawings(obj.data.layers)
+        for stroke in drawing.strokes
+        for item in stroke_items(stroke, matrix, materials, obj, z)
+    ]
+
+
+def object_items(obj, matrix, depsgraph):
+    z = matrix.translation.z
+    if obj.type == 'CURVE':
+        return curve_items(obj.data, matrix, obj, z)
+    if obj.type == 'FONT':
+        curve = obj.evaluated_get(depsgraph).to_curve(depsgraph)
+        return curve_items(curve, matrix, obj, z) if curve else []
+    return grease_pencil_items(obj, matrix, z)
+
+
+def roots_for(want):
+    collections = [bpy.data.collections.get(name) for name in want.split('+')]
+    if collections[0]:
+        return [o for c in collections for o in c.all_objects]
+    return [bpy.data.objects[want]]
+
+
+def path_element(item, min_width):
+    if item['filled']:
+        return f'<path data-name="{item["name"]}" fill="{item["col"]}" fill-rule="evenodd" d="{item["d"]}"/>'
+    width = max(item['w'], min_width)
+    return (
+        f'<path data-name="{item["name"]}" fill="none" stroke="{item["col"]}" stroke-width="{width:.4f}" '
+        f'stroke-linecap="round" stroke-linejoin="round" d="{item["d"]}"/>'
+    )
+
+
+def render_svg(items):
+    xs = [p.x for i in items for p in i['pts']]
+    ys = [-p.y for i in items for p in i['pts']]
+    x0, y0, x1, y1 = min(xs), min(ys), max(xs), max(ys)
+    pad = 0.01 * max(x1 - x0, y1 - y0)
+    body = ''.join(path_element(i, (x1 - x0) * 0.003) for i in items)
+    view = f'{x0 - pad:.4f} {y0 - pad:.4f} {x1 - x0 + 2 * pad:.4f} {y1 - y0 + 2 * pad:.4f}'
+    return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{view}">{body}</svg>'
+
+
+def name_set(args, index):
+    return set(args[index].split(',')) if len(args) > index else set()
+
+
+def main(args):
+    src, want, out = args[0], args[1], args[2]
+    show, skip = name_set(args, 3), name_set(args, 4)
+    bpy.ops.wm.open_mainfile(filepath=src)
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    items = [
+        item
+        for obj, matrix in flatten(roots_for(want), Matrix.Identity(4), show, skip)
+        for item in object_items(obj, matrix, depsgraph)
+    ]
+    items.sort(key=lambda i: i['z'])
+    with open(out, 'w') as handle:
+        handle.write(render_svg(items))
+    print('OK', out, len(items))
+
+
+if __name__ == '__main__':
+    argv = sys.argv[sys.argv.index('--') + 1 :] if '--' in sys.argv else sys.argv[1:]
+    main(argv)
