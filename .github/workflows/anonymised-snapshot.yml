@@ -6,9 +6,10 @@ name: Anonymised snapshot
 # before anonymising, and the last step deletes the job's directory whatever happened before.
 on:
   schedule:
-    # Once a week, on Mondays: the export reads all of production, and local snapshot launches tolerate week-old data
-    # (Norbert, 18 October 2026). GitHub runs scheduled workflows from the default branch only.
-    - cron: "17 5 * * 1"
+    # One export a week: it reads all of production, and local snapshot launches tolerate week-old data
+    # (Norbert, 18 October 2026). The tick is daily so a run stopped by a failed release recovers the next day;
+    # the due job skips every tick after the week's first success. GitHub runs schedules from the default branch only.
+    - cron: "17 5 * * *"
   workflow_dispatch:
 
 permissions:
@@ -26,9 +27,31 @@ env:
   SNAPSHOT_UPLOAD: "true"
 
 jobs:
+  due:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      due: ${{ steps.week.outputs.due }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Bun for the schedule check
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+
+      - name: Check whether this week still needs a snapshot
+        id: week
+        run: bun run scripts/snapshot-refresh-due.ts
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
   snapshot:
+    needs: due
     # The production environment holds the deploy key and admits only main; this condition says so here too.
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && needs.due.outputs.due == 'true'
     environment: production
     runs-on: ubuntu-24.04
     timeout-minutes: 30
