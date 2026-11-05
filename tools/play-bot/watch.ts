@@ -4,8 +4,13 @@
  * (`harness.ts`), whose tools this server serves as one MCP endpoint at /mcp, a seat token per seat. Each bot then has a column with its status (connected, asking for a seat, seated,
  * playing, thinking, stopped), what woke it, each tool it called, what it concluded, how long it thought and its tokens.
  *
- *   bun run play:bot:watch                  # http://127.0.0.1:4747, bots under tools/play-bot/out/bots
+ *   bun run play:bot:harness                                              # http://127.0.0.1:4747, start bots from the page
+ *   bun run play:bot:harness -- --game <URL> --factions fremen,harkonnen  # start them at once
  *   bun run play:bot:watch -- --dir <dir>   # only watch another folder, such as a demo's out/three-player-<stamp>
+ *
+ * Run it as many times as you like on one machine: the first takes port 4747 and each later one a free port, and each
+ * seat claims a bot account no other harness holds (claims.ts). Every harness's page shows every bot on the machine and
+ * links to the harness that plays it; only that harness can stop it.
  *
  * It reads the event log each bot writes (events.jsonl beside its transcript). Like the bots, it only joins the game it
  * is given and never creates one. A bot's private notes stay hidden unless you tick "Show private notes", so a
@@ -14,17 +19,24 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { createServer } from 'node:http';
 import type { IncomingMessage } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 
+import { claimOf } from './claims';
 import { Harness } from './harness';
 import { DEFAULT_STACK, readStack } from './seat';
 
 const { values } = parseArgs({
   options: {
     dir: { type: 'string', default: path.join(import.meta.dirname, 'out/bots') },
+    /* 4747 for the first harness; when it is taken, any free port. */
     port: { type: 'string', default: '4747' },
     stack: { type: 'string', default: DEFAULT_STACK },
+    /* Start seats at once, without the page: the game's URL and the factions (one seat each). */
+    game: { type: 'string' },
+    factions: { type: 'string' },
+    brain: { type: 'string', default: 'claude' },
   },
 });
 const root = path.resolve(values.dir!);
@@ -33,13 +45,18 @@ const MAX_EVENTS = 400;
 const canLaunch = root === path.join(import.meta.dirname, 'out/bots') && existsSync(values.stack!);
 
 /* Every seat this page starts lives in this one process, and all their tools are this server's one MCP endpoint. */
-const port = Number(values.port);
+let port = Number(values.port);
 const harness = new Harness(() => `http://127.0.0.1:${port}`);
 
-/** One seat per faction, account 1 for the first, as `play:bot:table` does. */
+/**
+ * One seat per faction, each on a bot account no harness on this machine holds yet, so several harnesses can share the
+ * stack's accounts. A faction this harness already plays is left as it is.
+ */
 function launch(game: string, factions: string[], brain: 'claude' | 'codex') {
   const stack = readStack(values.stack);
-  factions.forEach((faction, index) => harness.join({ stack, game, account: index + 1, want: faction, brain }));
+  for (const faction of factions.filter((entry) => !harness.playing(entry))) {
+    harness.join({ stack, game, want: faction, brain });
+  }
 }
 
 /* A page on another site could post here too; a JSON body from this page's own origin is the only thing accepted. */
@@ -65,7 +82,8 @@ function botFolders(): string[] {
     } catch {
       return;
     }
-    if (entries.includes('events.jsonl')) {
+    /* A bot that has written events, or that a harness holds and is still joining. */
+    if (entries.includes('events.jsonl') || entries.includes('harness.claim.json')) {
       found.push(directory);
     }
     if (depth < 2) {
@@ -112,8 +130,11 @@ function state(withNotes: boolean) {
     /* A bot's file holds every game it played; the column starts at its newest connection. */
     const start = all.findLastIndex((event) => event.kind === 'status' && event.state === 'connected');
     const run = seats.get(id);
+    /* A bot another harness on this machine plays: shown, with a link to that harness's page, but not stopped from here. */
+    const elsewhere = run && !run.ended ? undefined : claimOf(id, root);
     return {
       id,
+      ...(elsewhere && elsewhere.pid !== process.pid ? { hostedBy: elsewhere.page } : {}),
       events: start >= 0 ? all.slice(start) : all,
       ...(run ? { process: { faction: run.want, exit: run.ended ?? null, output: run.ended ? [run.ended] : [] } } : {}),
       ...(withNotes && existsSync(folder) ? { notes: readNotes(folder) } : {}),
@@ -214,7 +235,7 @@ function line(event) {
 function column(bot) {
   const events = bot.events;
   const last = events.at(-1) ?? {};
-  const name = [...events].reverse().find((e) => e.bot)?.bot ?? bot.id;
+  const name = [...events].reverse().find((e) => e.bot)?.bot ?? bot.id.charAt(0).toUpperCase() + bot.id.slice(1);
   const faction = [...events].reverse().find((e) => e.faction)?.faction ?? (bot.process ? 'wants ' + bot.process.faction : undefined);
   const thinking = last.kind === 'think' || (last.kind === 'tool' && events.findLast((e) => e.kind === 'think' || e.kind === 'thought' || e.kind === 'failed')?.kind === 'think');
   const thoughts = events.filter((e) => e.kind === 'thought');
@@ -225,11 +246,16 @@ function column(bot) {
   const proc = bot.process;
   const latest = [...events].reverse().find((e) => e.kind === 'status' && e.state);
   const STATES = { connected: 'Connected', asking: 'Asking for a seat: approve it at the table', seated: 'Seated, drafting and trading', playing: 'Playing: waiting for a message' };
-  const state = proc && proc.exit ? 'stopped' : thinking ? 'thinking' : latest ? latest.state : proc ? 'starting' : 'idle';
-  const words = state === 'stopped' ? 'Stopped (' + proc.exit + ')' : state === 'thinking' ? 'Thinking…' : STATES[state] || (state === 'starting' ? 'Starting…' : 'Waiting for a message');
+  const state = proc && proc.exit ? 'stopped' : thinking ? 'thinking' : latest ? latest.state : proc ? 'starting' : bot.hostedBy ? 'elsewhere' : 'idle';
+  const words = state === 'stopped' ? 'Stopped (' + proc.exit + ')' : state === 'thinking' ? 'Thinking…' : STATES[state] || (state === 'starting' ? 'Starting…' : state === 'elsewhere' ? 'Joining on another harness' : 'Waiting for a message');
   const status = el('div', 'status');
   status.append(el('span', 'pill ' + state, state), words);
   head.append(status);
+  if (bot.hostedBy) {
+    const link = el('a', 'output', 'Played by another harness: ' + bot.hostedBy);
+    link.href = bot.hostedBy;
+    head.append(link);
+  }
   if (proc && !proc.exit) {
     const stop = el('button', '', 'Stop');
     stop.addEventListener('click', () => post('/stop', { id: bot.id }));
@@ -287,7 +313,7 @@ setInterval(refresh, 1500);
 </body>
 </html>`;
 
-createServer((request, response) => {
+const server = createServer((request, response) => {
   const url = new URL(request.url ?? '/', 'http://127.0.0.1');
   /* The seats' MCP: what each seat's agent CLI connects to, with its seat token. */
   if (['/mcp', '/tools', '/call'].includes(url.pathname)) {
@@ -326,9 +352,32 @@ createServer((request, response) => {
   }
   response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
   response.end(page);
-}).listen(port, '127.0.0.1', () => console.log(`Bots: http://127.0.0.1:${port} (${canLaunch ? 'start and watch' : 'watch only'}, ${root})`));
-
-process.on('SIGINT', () => {
-  harness.stopAll();
-  process.exit(0);
 });
+/* The first harness takes the usual port; each one started after it takes a free one. */
+server.on('error', (error: NodeJS.ErrnoException) => {
+  if (error.code === 'EADDRINUSE' && port !== 0) {
+    port = 0;
+    server.listen(0, '127.0.0.1');
+  } else {
+    throw error;
+  }
+});
+server.on('listening', () => {
+  port = (server.address() as AddressInfo).port;
+  console.log(`Harness: http://127.0.0.1:${port} (${canLaunch ? 'start and watch' : 'watch only'}, ${root})`);
+  if (values.game && values.factions) {
+    try {
+      launch(new URL(values.game).href, values.factions.split(',').map((name) => name.trim()).filter(Boolean), values.brain === 'codex' ? 'codex' : 'claude');
+    } catch (error) {
+      console.error(error instanceof Error ? error.message : String(error));
+    }
+  }
+});
+server.listen(port, '127.0.0.1');
+
+for (const signal of ['SIGINT', 'SIGTERM'] as const) {
+  process.on(signal, () => {
+    harness.stopAll();
+    process.exit(0);
+  });
+}

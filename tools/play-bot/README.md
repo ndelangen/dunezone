@@ -29,8 +29,14 @@ Dune Play table, for a few 1v1 development games and a tech demo. It is not a pr
 ## Start and watch the bots
 
 ```bash
-bun run play:bot:watch          # http://127.0.0.1:4747
+bun run play:bot:harness                                               # http://127.0.0.1:4747, start bots from its page
+bun run play:bot:harness -- --game <URL> --factions fremen,harkonnen   # start them at once
 ```
+
+Run it as many times as you like on one machine, one harness per bot or several bots per harness. The first takes port
+4747 and each later one a free port (it prints which). Each seat claims a bot account no other harness holds, so two
+harnesses never sign in as the same bot; an account whose harness has ended is free again. Every harness's page shows all
+the bots on the machine and links to the harness that plays each one; only that harness can stop it.
 
 A page on your machine, and the **seat harness**: one process that holds every bot's seat and serves all their tools as a
 single MCP server at http://127.0.0.1:4747/mcp. With the stack running, paste the game's URL, list the factions the bots
