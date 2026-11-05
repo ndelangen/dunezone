@@ -242,6 +242,23 @@ describe('AssetExplainer sector lines', () => {
     expect(guides(boardBlock())).toEqual([]);
   });
 
+  it('draws no sector lines over the built-in board, whose artwork prints its own', () => {
+    const board = resolveRulebookBoardDefinition('arrakis')!;
+    const reference = { kind: 'board', boardId: board.id } as const;
+    const explainer = boardBlock(true);
+    explainer.source = {
+      status: 'ready',
+      reference,
+      name: board.name,
+      imageUrl: board.imageUrl,
+      geometry: board.geometry,
+      publicationRevision: board.revision,
+    };
+    explainer.items = [{ ...explainer.items[0]!, target: { kind: 'named', key: 'arrakeen', source: reference } }];
+    expect(board.geometry.parts.some(({ key }) => key === SECTORS_PART_KEY)).toBe(true);
+    expect(guides(explainer)).toEqual([]);
+  });
+
   it('never draws a territory the board names Sectors as sector lines', () => {
     const explainer = boardBlock(true);
     if (explainer.source.status !== 'ready' || !explainer.source.geometry) {

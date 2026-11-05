@@ -100,6 +100,11 @@ export const RULEBOOK_STOCK_ARTWORK = [
 const stockArtworkIds = new Set<string>(RULEBOOK_STOCK_ARTWORK);
 export const RULEBOOK_BOARD_ARTWORK = RULEBOOK_BOARD_DEFINITIONS;
 
+/** Only a saved board takes Sector lines; the built-in Arrakis artwork already prints its own, so lines over it would draw twice. */
+export function rulebookSourceTakesSectorLines(source: RulebookSourceReference | undefined) {
+  return source?.kind === 'board' && !RULEBOOK_BOARD_DEFINITIONS.some(({ id }) => id === source.boardId);
+}
+
 export function rulebookArtworkName(path: string): string {
   return path
     .split('/')

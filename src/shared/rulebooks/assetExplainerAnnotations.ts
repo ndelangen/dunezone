@@ -8,7 +8,7 @@ import { rulebookAssetExplainerColorSchema } from './contents';
 import type { RulebookRenderBlockV1 } from './renderDocument';
 import type { RulebookDesign } from './settings';
 import type { RulebookSourceReference } from './sources';
-import { rulebookSourceClipPath } from './sources';
+import { rulebookSourceClipPath, rulebookSourceTakesSectorLines } from './sources';
 
 type Explainer = Extract<RulebookRenderBlockV1, { kind: 'asset-explainer' }>;
 type Point = Readonly<{ x: number; y: number }>;
@@ -217,7 +217,7 @@ export function projectRulebookAssetExplainerAnnotations(
         source.reference.kind === 'faction-troop')
         ? `drop-shadow(0 ${Math.min(width, height) * 0.008}px ${Math.min(width, height) * 0.008}px rgb(0 0 0 / 45%))`
         : undefined,
-    ...(block.sectorLines && source.status === 'ready' && source.reference.kind === 'board' && geometry
+    ...(block.sectorLines && source.status === 'ready' && rulebookSourceTakesSectorLines(source.reference) && geometry
       ? { sourceGuides: sectorGuides(geometry) }
       : {}),
     sourceKind: source.status === 'unselected' ? undefined : source.reference.kind,
