@@ -72,10 +72,10 @@ async function assertLegacyReadProtection(runtime: NativeRuntime, spectator: Nat
   expect(view.snapshot.table.events[0].message).toBe('Token flipped face down.');
 }
 
-function assertHiddenToken(view: NativeView) {
+function assertHiddenToken(view: NativeView, id = TOKEN_ID) {
   expect(view.viewer.viewerSeat).toBe('neutral');
   expect(view.snapshot.peek).toBeUndefined();
-  const token = view.snapshot.table.pieces.find((piece) => piece.id === TOKEN_ID)!;
+  const token = view.snapshot.table.pieces.find((piece) => piece.id === id)!;
   expect(token.items[0].faceUp).toBe(false);
   expect(token.items[0].artwork).not.toHaveProperty('front');
   expect(token.items[0].artwork).not.toHaveProperty('name');
@@ -85,30 +85,36 @@ function assertHiddenToken(view: NativeView) {
   return token;
 }
 
-/** Exercise private hand access and public actions, including a rejected action on the locked token. */
+/*
+ * Exercise private hand access and public actions, including a rejected action on the locked token.
+ * The disc leaves the hand face down under a new id, so nobody can tie it to the disc it was; that id is returned.
+ */
 async function exerciseHandAndLock(player: NativeConnection) {
   const taken = await accepted(player, { kind: 'hand-take', pieceId: TOKEN_ID });
   const held = taken.snapshot.hand?.find((piece) => piece.id === TOKEN_ID);
   expect(held?.items[0].artwork?.front).toBe(FRONT);
-  await accepted(player, { kind: 'hand-play', pieceId: TOKEN_ID, position: [-6, 0, 6] });
-  const locked = await accepted(player, { kind: 'lock', pieceId: TOKEN_ID });
-  expect(locked.snapshot.table.pieces.find((piece) => piece.id === TOKEN_ID)?.locked).toBe(true);
-  const blocked = await sendCommand(player, { kind: 'flip', pieceId: TOKEN_ID });
+  const played = await accepted(player, { kind: 'hand-play', pieceId: TOKEN_ID, position: [-6, 0, 6] });
+  expect(played.snapshot.table.pieces.some((piece) => piece.id === TOKEN_ID)).toBe(false);
+  const id = played.snapshot.table.pieces.find((piece) => piece.label === 'Token' && !piece.items[0].faceUp)!.id;
+  const locked = await accepted(player, { kind: 'lock', pieceId: id });
+  expect(locked.snapshot.table.pieces.find((piece) => piece.id === id)?.locked).toBe(true);
+  const blocked = await sendCommand(player, { kind: 'flip', pieceId: id });
   expect(blocked.reply).toMatchObject({ type: 'rejected', message: 'Unlock Token first.' });
-  await accepted(player, { kind: 'lock', pieceId: TOKEN_ID });
-  await accepted(player, { kind: 'rotate', pieceId: TOKEN_ID, direction: 1 });
+  await accepted(player, { kind: 'lock', pieceId: id });
+  await accepted(player, { kind: 'rotate', pieceId: id, direction: 1 });
+  return id;
 }
 
-async function assertPrivatePeek(player: NativeConnection, spectator: NativeConnection) {
-  const own = await accepted(player, { kind: 'peek', pieceId: TOKEN_ID });
+async function assertPrivatePeek(player: NativeConnection, spectator: NativeConnection, id: string) {
+  const own = await accepted(player, { kind: 'peek', pieceId: id });
   expect(own.snapshot.peek?.piece.items[0].artwork?.front).toBe(FRONT);
-  assertHiddenToken(await syncView(spectator));
+  return assertHiddenToken(await syncView(spectator), id);
 }
 
-async function assertColdRestore(runtime: NativeRuntime, stackKey: string | null) {
+async function assertColdRestore(runtime: NativeRuntime, id: string, stackKey: string | null) {
   await runtime.restart();
   const restored = await admitPlayer(runtime, 'c');
-  const token = assertHiddenToken(await syncView(restored));
+  const token = assertHiddenToken(await syncView(restored), id);
   expect(token.stackKey).toBe(stackKey);
 }
 
@@ -124,9 +130,11 @@ test('a spectator cannot read the face of a face-down disc without a peek', asyn
     const view = await syncView(spectator);
     await assertLegacyReadProtection(runtime, spectator, view);
     const token = assertHiddenToken(view);
-    await exerciseHandAndLock(player);
-    await assertPrivatePeek(player, spectator);
-    await assertColdRestore(runtime, token.stackKey);
+    const played = await exerciseHandAndLock(player);
+    const replayed = await assertPrivatePeek(player, spectator, played);
+    /* A catalogue disc keeps the key its asset's tokens share, so face-down copies still stack as the room stacks them. */
+    expect(replayed.stackKey).toBe(token.stackKey);
+    await assertColdRestore(runtime, played, replayed.stackKey);
   } finally {
     await runtime.close();
     await peer.close();

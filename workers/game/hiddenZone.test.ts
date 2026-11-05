@@ -106,9 +106,11 @@ describe('the hidden zone', () => {
   test('forgets the spot when the piece is played onto the table', () => {
     const { room, send } = roomWithHand();
     send({ kind: 'hand-zone', pieceId: LEADER, at: { x: 0.25, y: 0.5 } });
+    const before = new Set(room.snapshot.table.pieces.map((piece) => piece.id));
     send({ kind: 'hand-play', pieceId: LEADER, position: [1, 0, 1] });
-    const played = room.snapshot.table.pieces.find((piece) => piece.id === LEADER);
-    expect(played).toBeDefined();
+    /* A leader leaves the hand under a new id, so it is the one piece the table did not hold before. */
+    const played = room.snapshot.table.pieces.find((piece) => !before.has(piece.id));
+    expect(played?.label).toBe('Fixture leader');
     expect(played).not.toHaveProperty('hiddenZone');
   });
 

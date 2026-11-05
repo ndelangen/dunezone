@@ -450,10 +450,16 @@ export class RoomProjection {
         : key?.startsWith('leader:')
           ? 'leader:'
           : 'token:';
+    /*
+     * A stack key names what a token is, so a faction leader's is told apart per piece: leaders never stack, and a face-down leader
+     * played out of a hand under new ids must not be named by its key.
+     * Troops and every other token keep the key their kind shares, face up or down, so the page previews the same merges the room makes.
+     */
+    const named = prefix === 'leader:';
     const projected: TablePiece = {
       ...piece,
       label: visible ? piece.label : publicPieceLabel(piece),
-      stackKey: key === null ? null : `${prefix}${this.cardId(`token-stack-${key}`)}`,
+      stackKey: key === null ? null : `${prefix}${this.cardId(`token-stack-${key}${named ? `:${piece.id}` : ''}`)}`,
       items: piece.items.map((item) => {
         if (!hidden(item) || !item.artwork) {
           return item;
