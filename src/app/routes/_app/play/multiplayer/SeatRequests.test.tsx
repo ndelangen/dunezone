@@ -58,7 +58,7 @@ function renderPlayback(stage: 'drafting' | 'play' | 'finished', step: number, e
 test('playback of a stage before play steps through checkpoints from the header and returns to live', () => {
   const client = renderPlayback('drafting', 0);
   expect(screen.getByText('Playback checkpoint 0 of 3')).toBeTruthy();
-  expect(screen.getByRole('button', { name: 'Earlier phase' }).hasAttribute('disabled')).toBe(true);
+  expect(screen.getByRole('button', { name: 'Earlier phase' }).getAttribute('aria-disabled')).toBe('true');
   fireEvent.click(screen.getByRole('button', { name: 'Later phase' }));
   expect(client.requestHistory).toHaveBeenCalledWith(1);
   fireEvent.click(screen.getByRole('button', { name: 'Return to live' }));
@@ -68,7 +68,7 @@ test('playback of a stage before play steps through checkpoints from the header 
 test('playback of a finished game keeps stepping and returning to live in the header', () => {
   const client = renderPlayback('finished', 3);
   expect(screen.getByText('Playback checkpoint 3 of 3')).toBeTruthy();
-  expect(screen.getByRole('button', { name: 'Later phase' }).hasAttribute('disabled')).toBe(true);
+  expect(screen.getByRole('button', { name: 'Later phase' }).getAttribute('aria-disabled')).toBe('true');
   fireEvent.click(screen.getByRole('button', { name: 'Earlier phase' }));
   expect(client.requestHistory).toHaveBeenCalledWith(2);
   fireEvent.click(screen.getByRole('button', { name: 'Return to live' }));
