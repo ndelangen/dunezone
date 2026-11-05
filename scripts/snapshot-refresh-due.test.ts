@@ -18,7 +18,7 @@ test.each([
 test('a week without a successful run is due, which recovers a failed Monday', async () => {
   const request = listing([]);
   await expect(snapshotRefreshDue(repository, 'test', thursday, request)).resolves.toBe(true);
-  expect(decodeURIComponent(String(request.mock.calls[0]?.[0]))).toContain('created=>=2026-11-02T00:00:00.000Z');
+  expect(decodeURIComponent(request.mock.calls[0]?.[0] as string)).toContain('created=>=2026-11-02T00:00:00.000Z');
 });
 
 test.each(['schedule', 'workflow_dispatch'])('a successful %s run settles the week', async (event) => {
