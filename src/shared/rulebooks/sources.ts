@@ -70,17 +70,16 @@ export const rulebookResolvedSourceSchema = z.discriminatedUnion('status', [
 export type RulebookResolvedSource = z.infer<typeof rulebookResolvedSourceSchema>;
 
 /** Database references use the same image metadata contract while publication may still be pending. */
-/** One live asset a Rulebook draws on, as the server resolves it. */
-export const rulebookResolvedAssetSchema = rulebookResolvedSourceSchema.options[2]
-  .omit({ status: true, reference: true, assetType: true })
-  .extend({
+export const rulebookResolvedAssetsByIdSchema = z.record(
+  z.string(),
+  rulebookResolvedSourceSchema.options[2].omit({ status: true, reference: true, assetType: true }).extend({
     assetId: z.string(),
     type: z.string(),
     imageUrl: z.string().nullable(),
     /** A saved board's own data, read only for boards a scene draws markup on: tints are worked out from it when a scene is projected. */
     board: z.unknown().optional(),
-  });
-export const rulebookResolvedAssetsByIdSchema = z.record(z.string(), rulebookResolvedAssetSchema);
+  })
+);
 export type RulebookResolvedAssetsById = Readonly<z.infer<typeof rulebookResolvedAssetsByIdSchema>>;
 
 export const RULEBOOK_STOCK_ARTWORK = [
