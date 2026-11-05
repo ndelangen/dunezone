@@ -316,6 +316,11 @@
             "patterns": [
               {
                 "group": ["@mantine/core"],
+                "importNames": ["Button"],
+                "message": "Use LabeledAction (worded), IconAction (glyph) or CallToAction (the page's journey) from src/app/ui/control."
+              },
+              {
+                "group": ["@mantine/core"],
                 "importNames": ["SegmentedControl"],
                 "message": "SegmentedControl is retired. Use tabs for editor sections and Radio or Select for choices."
               },

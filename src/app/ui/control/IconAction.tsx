@@ -16,6 +16,9 @@ import { EMPHASIS_VARIANT, INTENT_COLOR, tileVars } from './actionIntent';
 import type { ActionEmphasis, ActionIntent } from './actionIntent';
 import styles from './IconAction.module.css';
 
+/* The hover text is also the name, and sometimes the only route to longer detail, so a keyboard focus opens it too. */
+const TOOLTIP_EVENTS = { hover: true, focus: true, touch: false };
+
 export interface IconActionProps extends Pick<ActionIconProps, 'size' | 'disabled' | 'loading'> {
   /**
    * What the action does, as a verb phrase: "Delete answer".
@@ -125,7 +128,7 @@ export function IconAction({
     /* Mantine's own disabled look, without the `disabled` attribute that would swallow the hover. The reason is also the control's description, for a reader who never hovers. */
     return (
       <>
-        <Tooltip label={disabledReason}>
+        <Tooltip label={disabledReason} multiline maw={320} events={TOOLTIP_EVENTS}>
           <ActionIcon
             size={actionIconProps.size}
             color={resolvedColor}
@@ -154,6 +157,7 @@ export function IconAction({
     <Tooltip
       label={tooltip ?? label}
       opened={tooltipOpened}
+      events={TOOLTIP_EVENTS}
       multiline={tooltip != null}
       maw={tooltip == null ? undefined : 320}
     >

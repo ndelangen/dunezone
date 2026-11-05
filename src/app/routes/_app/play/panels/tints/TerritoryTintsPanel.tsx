@@ -1,4 +1,5 @@
 import { ActionIcon, Group, Stack, Text, Tooltip } from '@mantine/core';
+import { MAX_TINTS } from '@shared/play/territoryTints';
 import type { TerritoryTint, TerritoryTintAction } from '@shared/play/territoryTints';
 import { Section } from '@ui/block/Section';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
@@ -39,9 +40,9 @@ export type TerritoryTintsPanelProps = Readonly<{
 
 function Presets({
   presets,
-  enabled,
+  disabledReason,
   onCreate,
-}: Readonly<{ presets: readonly TintDraft[]; enabled: boolean; onCreate: (tint: TintDraft) => void }>) {
+}: Readonly<{ presets: readonly TintDraft[]; disabledReason?: string; onCreate: (tint: TintDraft) => void }>) {
   if (!presets.length) {
     return null;
   }
@@ -56,7 +57,7 @@ function Presets({
             key={preset.name}
             size="compact-sm"
             icon={<Plus size={14} />}
-            disabledReason={enabled ? undefined : 'The table is unavailable.'}
+            disabledReason={disabledReason}
             onClick={() => onCreate(preset)}
           >
             {preset.name}
@@ -65,6 +66,14 @@ function Presets({
       </Group>
     </Stack>
   );
+}
+
+/** Why a new tint cannot be made: the table is closed to edits, or it already holds the most tints it can. */
+function createBlockedReason(canEdit: boolean, canCreate: boolean): string | undefined {
+  if (canCreate) {
+    return undefined;
+  }
+  return canEdit ? `A table holds at most ${MAX_TINTS} tints. Remove one to add another.` : 'The table is unavailable.';
 }
 
 /** Shared tints over territories: make one, then switch on its paintbrush and click territories on the board to add or remove them. */
@@ -128,7 +137,11 @@ export function TerritoryTintsPanel({
               enabled={canCreate}
               onCreate={(tint) => onCreate({ ...tint, territories: [] }, true)}
             />
-            <Presets presets={presets} enabled={canCreate} onCreate={(tint) => onCreate(tint, false)} />
+            <Presets
+              presets={presets}
+              disabledReason={createBlockedReason(canEdit, canCreate)}
+              onCreate={(tint) => onCreate(tint, false)}
+            />
           </>
         )}
       </Stack>
