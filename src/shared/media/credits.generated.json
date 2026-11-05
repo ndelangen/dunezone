@@ -1312,7 +1312,6 @@
         "ellaca.svg",
         "extortion.svg",
         "family-atomics-multicolor.svg",
-        "family-atomics.svg",
         "favor.svg",
         "flagella.svg",
         "flagmen-alt.svg",
@@ -1341,7 +1340,6 @@
         "knives.svg",
         "kull-wahad.svg",
         "kulon.svg",
-        "lasgun-extra.svg",
         "lasgun.svg",
         "lazatiger.svg",
         "master-of-assassins-alt-multicolor.svg",
@@ -1785,6 +1783,7 @@
         "solaris.svg"
       ]
     },
+    "gf9-decal-flower-redraw": { "/vector/decal/": ["family-atomics.svg", "lasgun-extra.svg"] },
     "gf9-leader-skill-trace": {
       "/vector/decal/": ["sandmaster-multicolor.svg", "sandmaster.svg"],
       "/vector/generic/": ["leader-skills.svg"]

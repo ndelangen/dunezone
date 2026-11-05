@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "sourceDescription": "Blender files from a fan rework kit of the Dune (Gale Force Nine) components that the user supplied on 2026-11-05 (folder \"Dune (1)\", Assets/Graphics/Treachery Graphics). The kit redraws the treachery card art as Blender bezier curves and grease pencil strokes. Its file names and export script identify John Flower as the maker of the redraw (\"Ilya Derivative by John Flower\"); the card art itself is Ilya Baranovsky's, published by Gale Force Nine. The kit states no license; per the user, Gale Force Nine is the rights holder.",
+  "preparation": "Blender 5.2 (bpy) reads the card's asset collection, follows collection instances into the linked kit files (the Atomic Explosion and Shield collections) and turns text into curves; curves, grease pencil fills and grease pencil strokes are written in draw order as a coloured SVG (sources/). Lasgun: the Lasgun Explanation row only, with the hidden Shield disc drawn as a dashed ring to match the card. Flattening: paint darker than 50 percent luminance becomes ink and lighter paint becomes paper; the result is rendered anti-aliased at 4000 px on the long side, thresholded at 50 percent and traced with Potrace (potracer port of Potrace 1.16), alphamax 1, opttolerance 0.2. Dune Zone normalization and stamp.",
+  "approval": {
+    "date": "2026-11-05",
+    "scope": "The user asked to proceed with swapping in the clear wins from the kit."
+  },
+  "assets": {
+    "/vector/decal/lasgun-extra.svg": {
+      "source": "sources/lasgun-treachery-graphic.svg",
+      "kitFile": "Assets/Graphics/Treachery Graphics/Lasgun Treachery Graphic.blend",
+      "collections": ["Lasgun Explanation", "Shield"]
+    },
+    "/vector/decal/family-atomics.svg": {
+      "source": "sources/family-atomics.svg",
+      "kitFile": "Assets/Graphics/Treachery Graphics/Family Atomics.blend",
+      "collections": ["Family Atomics"]
+    }
+  }
+}

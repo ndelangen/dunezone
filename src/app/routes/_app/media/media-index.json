@@ -577,8 +577,8 @@
     "description": "A diagram linking a shielded person and lasgun to an explosion.",
     "tags": ["explosion", "person", "vector"],
     "subjects": ["weapons", "people"],
-    "credit": "gf9-decal",
-    "sourceHash": "c6cefd090bd4f35106b05d6872e20cfc8397ece530d29c53fca5f289551aa5c9"
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "59f10166b830683207e4d4b6a3dd5f9bb86d299b68e5415152a95d4884d58d1a"
   },
   "/vector/decal/maula-pistol.svg": {
     "description": "A short-barreled Maula pistol.",
@@ -668,8 +668,8 @@
     "description": "A territory map marks cities, the Shield Wall and an atomic explosion.",
     "tags": ["shield", "explosion", "map", "atomic", "vector"],
     "subjects": ["weapons", "places", "science"],
-    "credit": "gf9-decal",
-    "sourceHash": "fc607052e6d93773c94ab4286acfa49dc06f9b5c1a3f09c7ded08ebd90b1fd35"
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "36b1427b8539857312f99365d38b4baad598b62cba2197323aacb54a1af46d8f"
   },
   "/vector/decal/family-atomics-multicolor.svg": {
     "description": "A territory map marks cities, the Shield Wall and an atomic explosion.",
