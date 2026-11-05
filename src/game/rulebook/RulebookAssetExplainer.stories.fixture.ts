@@ -129,7 +129,7 @@ export function boardExplainerFixture(): Explainer {
 /** Production's saved Arrakis Official board (publication b3770ccb), whose image prints no storm sector lines of its own. */
 const ARRAKIS_OFFICIAL_BOARD_ID = 'ns72fst9vtajbcc6066ejz92ph8fweez';
 
-export function savedBoardExplainerFixture(sectorLines?: boolean): Explainer {
+export function savedBoardExplainerFixture(sectorLines = false): Explainer {
   const source = { kind: 'board', boardId: ARRAKIS_OFFICIAL_BOARD_ID } satisfies RulebookSourceReference;
   const stronghold = (id: string, key: string, text: string) => ({
     id,
@@ -144,7 +144,7 @@ export function savedBoardExplainerFixture(sectorLines?: boolean): Explainer {
     caption: 'The storm moves counterclockwise through the 18 sectors.',
     numbering: 'automatic',
     colorMode: 'automatic',
-    ...(sectorLines === undefined ? {} : { sectorLines }),
+    ...(sectorLines ? { sectorLines: true as const } : {}),
     source: {
       status: 'ready',
       reference: source,

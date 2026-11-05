@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vite-plus/test';
 
+import { SECTORS_PART_KEY } from '../asset-publishing/componentGeometry';
 import {
   composeRulebookAssetExplainerSvg,
   projectRulebookAssetExplainerAnnotations,
@@ -197,7 +198,7 @@ describe('AssetExplainer highlight drawing', () => {
 });
 
 describe('AssetExplainer sector lines', () => {
-  function boardBlock(sectorLines?: boolean): Explainer {
+  function boardBlock(sectorLines = false): Explainer {
     const original = block();
     const board = { kind: 'board', boardId: 'ns72fst9vtajbcc6066ejz92ph8fweez' } as const;
     original.source = {
@@ -222,11 +223,11 @@ describe('AssetExplainer sector lines', () => {
       },
     };
     original.items = [{ ...original.items[0]!, target: { kind: 'named', key: 'name', source: board } }];
-    return sectorLines === undefined ? original : { ...original, sectorLines };
+    return sectorLines ? { ...original, sectorLines } : original;
   }
   const guides = (explainer: Explainer) =>
     rulebookAnnotationShapes(projectRulebookAssetExplainerAnnotations(explainer)).filter(
-      ({ attributes }) => attributes['data-rulebook-guide'] === 'sectors'
+      ({ attributes }) => attributes['data-rulebook-guide'] === SECTORS_PART_KEY
     );
 
   it('draws faint dashed sector lines under every annotation when the block turns them on', () => {
@@ -239,7 +240,6 @@ describe('AssetExplainer sector lines', () => {
 
   it('draws no sector lines unless the block turns them on', () => {
     expect(guides(boardBlock())).toEqual([]);
-    expect(guides(boardBlock(false))).toEqual([]);
   });
 });
 

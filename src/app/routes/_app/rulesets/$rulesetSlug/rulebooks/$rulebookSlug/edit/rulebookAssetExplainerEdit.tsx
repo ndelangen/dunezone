@@ -11,6 +11,7 @@ import {
   projectRulebookAssetExplainerAnnotations,
   RULEBOOK_ANNOTATION_COLORS,
 } from '@shared/rulebooks/assetExplainerAnnotations';
+import { resolveRulebookBoardDefinition } from '@shared/rulebooks/boardDefinitions';
 import { createRulebookLocalId, rulebookAssetExplainerColorSchema } from '@shared/rulebooks/contents';
 import { projectRulebookSource } from '@shared/rulebooks/projectRenderDocument';
 import { ControlBlock } from '@ui/control/ControlBlock';
@@ -23,6 +24,11 @@ import { useState } from 'react';
 import styles from './rulebookAssetExplainerEdit.module.css';
 import type { RulebookBlockEditorProps } from './rulebookBlockEditors';
 import { RulebookSourceControl } from './rulebookVisualBlockEditors';
+
+/** Only a saved board takes Sector lines; the built-in Arrakis artwork already prints its own, so lines over it would draw twice. */
+function hasSectorLines(source: RulebookBlockEditorProps<'asset-explainer'>['value']['source']) {
+  return source?.kind === 'board' && !resolveRulebookBoardDefinition(source.boardId);
+}
 
 /** The route owns the draft; this editor reports source choices, ordered explanations and target changes. */
 export function AssetExplainerEdit({
@@ -56,7 +62,9 @@ export function AssetExplainerEdit({
       <RulebookSourceControl
         source={value.source}
         references={references}
-        onChange={(source) => onChange({ ...value, source })}
+        onChange={(source) =>
+          onChange({ ...value, source, sectorLines: hasSectorLines(source) ? value.sectorLines : undefined })
+        }
       />
       <ControlBlock
         title="Caption"
@@ -112,7 +120,7 @@ export function AssetExplainerEdit({
           />
         }
       />
-      {value.source?.kind === 'board' ? (
+      {hasSectorLines(value.source) ? (
         <ControlBlock
           title="Sector lines"
           description="Draws the storm sector lines faintly over the map. Off by default."

@@ -1,4 +1,8 @@
-import { COMPONENT_PART_LABELS, componentGeometrySchema } from '../asset-publishing/componentGeometry';
+import {
+  COMPONENT_PART_LABELS,
+  componentGeometrySchema,
+  SECTORS_PART_KEY,
+} from '../asset-publishing/componentGeometry';
 import type { ComponentGeometry } from '../asset-publishing/componentGeometry';
 import { rulebookAssetExplainerColorSchema } from './contents';
 import type { RulebookRenderBlockV1 } from './renderDocument';
@@ -203,7 +207,7 @@ export function projectRulebookAssetExplainerAnnotations(
         ? `drop-shadow(0 ${Math.min(width, height) * 0.008}px ${Math.min(width, height) * 0.008}px rgb(0 0 0 / 45%))`
         : undefined,
     ...(block.sectorLines && source.status === 'ready' && source.reference.kind === 'board' && geometry
-      ? { sourceGuides: geometry.parts.find(({ key }) => key === 'sectors')?.highlight }
+      ? { sourceGuides: geometry.parts.find(({ key }) => key === SECTORS_PART_KEY)?.highlight }
       : {}),
     sourceKind: source.status === 'unselected' ? undefined : source.reference.kind,
     sourceName:
@@ -280,7 +284,7 @@ export function rulebookAnnotationShapes(projection: RulebookAnnotationProjectio
     shapes.push({
       tag: 'path',
       attributes: {
-        'data-rulebook-guide': 'sectors',
+        'data-rulebook-guide': SECTORS_PART_KEY,
         d: path.d,
         transform: highlightTransform(width, height, path.transform),
         fill: 'none',

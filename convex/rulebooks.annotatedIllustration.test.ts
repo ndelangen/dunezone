@@ -173,7 +173,8 @@ describe('immutable annotated illustration delivery', () => {
     const off = await fixture();
     await publish(off);
     const plain = await off.t.query(internal.rulebookAnnotatedIllustration.resolveDelivery, off.identity);
-    expect(plain.status === 'found' && 'sectorLines' in plain.configuration).toBe(false);
+    expect(plain.status).toBe('found');
+    expect(plain.status === 'found' ? plain.configuration : undefined).not.toHaveProperty('sectorLines');
   });
 
   test('Rulebook and Ruleset deletion gate retained annotations, and missing identities do not fall back', async () => {
