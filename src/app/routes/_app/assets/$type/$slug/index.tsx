@@ -25,6 +25,7 @@ import { Section } from '@ui/block/Section';
 import { AssetLink } from '@ui/content/AssetLink';
 import { formatStableDate } from '@ui/content/dates';
 import { errorMessage } from '@ui/content/errorMessage';
+import { Eyebrow } from '@ui/content/Eyebrow';
 import { FormattedTextSource } from '@ui/content/FormattedText';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { ConfirmConvertAction } from '@ui/control/ConfirmConvertAction';
@@ -63,6 +64,8 @@ import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 
 import { useAssetDeletion, useAssetGroupActions } from '../../assetEditorStates';
 import { compositionTiles, DUPLICATED_TILE_CAP, omissionNote } from './composition';
+import { assetFaceText } from './faceText';
+import type { FaceTextEntry } from './faceText';
 import styles from './index.module.css';
 
 type AssetPage = NonNullable<AssetPageData>;
@@ -324,6 +327,39 @@ function AssetFaces({ page }: { page: AssetPage }) {
   );
 }
 
+/**
+ * The words printed on the face, as text: the face reaches the page as an image, and its rules should be readable, copyable and findable without it.
+ * It renders nothing when the face prints nothing beyond its name, the Shipped-by rule: an empty heading would state no fact.
+ * A face with several titled regions keeps their titles, the way the card prints them.
+ */
+function FaceTextSection({ type, entries }: { type: string; entries: FaceTextEntry[] }) {
+  if (entries.length === 0) {
+    return null;
+  }
+  return (
+    <Section
+      id="face-text"
+      icon={<TopicIcon topic="text" size={20} />}
+      title={type.startsWith('token-') ? 'Token text' : 'Card text'}
+    >
+      <Surface padding="lg">
+        <Stack gap="md">
+          {entries.map((entry, position) =>
+            entry.label ? (
+              <Stack key={position} gap={4}>
+                <Eyebrow>{entry.label}</Eyebrow>
+                <FormattedTextSource source={entry.source} />
+              </Stack>
+            ) : (
+              <FormattedTextSource key={position} source={entry.source} />
+            )
+          )}
+        </Stack>
+      </Surface>
+    </Section>
+  );
+}
+
 /** Prose the face cannot carry. An empty About says so rather than vanishing: the field is part of the page, and its absence was read as the page missing it (Norbert, 2026-08-21). */
 function AboutSection({ about }: { about: string }) {
   return (
@@ -471,6 +507,7 @@ function AssetDetailBody({ page, duplicated }: { page: AssetPage; duplicated: bo
   return (
     <Stack gap="lg">
       {PER_TYPE_BODY[page.asset.type]?.(page, duplicated)}
+      <FaceTextSection type={page.asset.type} entries={assetFaceText(page.asset.type, page.asset.data)} />
       {/* Membership reads with the other facts rather than beside the render: the rail is the preview's, the column is the reader's (Norbert, 2026-08-21). */}
       {holdsDeckMembership(page.asset.type) ? (
         <ContainerSection
