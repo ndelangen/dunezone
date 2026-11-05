@@ -1,4 +1,3 @@
-import { retainedArrakisBoard } from '../boards/geometry';
 import type { Board } from '../boards/schema';
 import { placeStickers, TABLE_STICKER_LARGEST } from '../boards/stickerPlacement';
 import { boardPointToTable, boardTerritory, tableTerritoryAt } from '../boards/tableTerritories';
@@ -97,7 +96,7 @@ function freeSpotIn(
 
 /**
  * Where a revealed spice card on top of this piece would set its spice down, and how much: the first territory it names that this board has, onto spice already lying there, or else at a free spot that stays inside that territory.
- * Null when the piece shows no spice card, or no territory it names has room.
+ * Null when the table has no board, the piece shows no spice card, or no territory it names has room.
  */
 export function spiceBlowSpot(
   snapshot: Pick<GameSnapshot, 'board'>,
@@ -105,10 +104,10 @@ export function spiceBlowSpot(
   piece: TablePiece
 ): (SpiceBlowPlacement & { amount: number }) | null {
   const blow = revealedSpiceBlow(piece)?.blow;
-  if (!blow) {
+  const board = snapshot.board?.definition;
+  if (!blow || !board) {
     return null;
   }
-  const board = snapshot.board?.definition ?? retainedArrakisBoard();
   const footprint = spiceFootprint(blow.amount);
   for (const territory of blow.territories) {
     const marks = landmarks(board, territory);

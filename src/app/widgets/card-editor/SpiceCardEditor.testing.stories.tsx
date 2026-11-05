@@ -171,33 +171,16 @@ export const FixedTypeToken = meta.story({
   },
 });
 
-/** The Map chapter, where the highlighted territories are chosen by their readable names and added to the ones already there. */
-export const Territories = meta.story({
-  args: { chapter: 'map' as const },
-  play: async ({ canvasElement, args }) => {
-    const canvas = within(canvasElement);
-    const page = within(canvasElement.ownerDocument.body);
-    await userEvent.type(canvas.getByRole('combobox', { name: 'Highlighted territories' }), 'Broken');
-    await userEvent.click(await page.findByRole('option', { name: 'Broken Land' }));
-    await expect(args.patch).toHaveBeenLastCalledWith({ highlights: ['arsunt', 'broken-land'] });
-  },
-});
-
-/** Moving a classic card onto a saved board carries its highlights over as its first tint. */
+/** A card without a board picks one, and its map starts with no tints. */
 export const LinkBoard = meta.story({
   args: { chapter: 'map' as const },
-  render: (args) => <LiveEditor {...args} initial={publishingSpiceCard} />,
+  render: (args) => <LiveEditor {...args} initial={{ ...publishingSpiceCard, board: undefined }} />,
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByRole('combobox', { name: 'Board' })).toHaveValue('classic');
+    await expect(canvas.getByRole('combobox', { name: 'Board' })).toHaveValue('');
     await userEvent.selectOptions(canvas.getByRole('combobox', { name: 'Board' }), 'arrakis-board');
     await expect(args.patch).toHaveBeenLastCalledWith({
-      board: {
-        asset_id: 'arrakis-board',
-        tints: [{ id: 'highlights', name: 'Spice blow', color: '#9e5f00', territories: ['arsunt'] }],
-        tokens: [],
-      },
+      board: { asset_id: 'arrakis-board', tints: [], tokens: [] },
     });
-    await expect(canvas.getByRole('button', { name: 'Paint Spice blow' })).toBeVisible();
   },
 });

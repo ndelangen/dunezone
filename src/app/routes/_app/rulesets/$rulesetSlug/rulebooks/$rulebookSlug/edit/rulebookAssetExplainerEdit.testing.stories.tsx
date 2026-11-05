@@ -1,4 +1,5 @@
 import { testingPreview } from '@sb/preview';
+import { waitForFrame } from '@sb/storyWaits';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import {
@@ -36,7 +37,16 @@ export const Board = meta.story({
     await expect(canvas.getByRole('textbox', { name: 'Marker color' })).toHaveValue('#9c2920');
     const handle = canvas.getByRole('button', { name: 'Reorder explanation 1' });
     handle.focus();
-    await userEvent.keyboard('[Space][ArrowDown][Space]');
+    /* The keyboard drag lands each step on an animation frame, and the saved board's taller sidebar no longer gives it one in time, so each step waits for its frame. */
+    await userEvent.keyboard('[Space]');
+    await waitForFrame(() => expect(handle).toHaveAttribute('aria-pressed', 'true'));
+    await userEvent.keyboard('[ArrowDown]');
+    await waitForFrame(() =>
+      expect(canvasElement.ownerDocument.querySelector('[id^="DndLiveRegion"]')).toHaveTextContent(
+        /over droppable area CART/
+      )
+    );
+    await userEvent.keyboard('[Space]');
     await waitFor(() =>
       expect(canvas.getByRole('button', { name: '★. Arrakeen' })).toHaveAttribute('aria-pressed', 'true')
     );
@@ -113,14 +123,6 @@ export const SectorLines = meta.story({
 /** Only a board has storm sectors, so other sources show no Sector lines switch. */
 export const NoSectorLinesForComponents = meta.story({
   render: () => <ExplainerStory initial={leaderExplainerFixture()} />,
-  play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).queryByRole('switch', { name: 'Sector lines' })).toBeNull();
-  },
-});
-
-/** The built-in Arrakis artwork prints its own sector lines, so it offers no switch that would draw them twice. */
-export const NoSectorLinesForBuiltInBoard = meta.story({
-  render: () => <ExplainerStory initial={boardExplainerFixture()} />,
   play: async ({ canvasElement }) => {
     await expect(within(canvasElement).queryByRole('switch', { name: 'Sector lines' })).toBeNull();
   },

@@ -13,10 +13,10 @@ const MAX_PATH_LENGTH = 20_000;
 /* Component geometry labels are capped shorter than saved board territory names; a longer name is cut rather than failing the whole board. */
 const MAX_LABEL_LENGTH = 120;
 
-/* The maintained Arrakis geometry names its territory groups so; a saved board's groups take the same keys, so a Rulebook highlight authored on one draws on the other. */
+/* Arrakis names its territory groups so; every saved board's groups take the same keys, so a Rulebook highlight authored on one draws on another. */
 const TYPE_GROUPS = { stronghold: 'strongholds', rock: 'rock', sand: 'sand', polar: 'polar' } as const;
 
-/** The maintained Arrakis part key for a territory: Play's territory ID spelled with hyphens. */
+/** The Arrakis part key for a territory: Play's territory ID spelled with hyphens. */
 const boardPartKey = (property: Parameters<typeof propertyId>[0]) => propertyId(property).replaceAll('_', '-');
 
 const round = (value: number) => Math.round(value * 100) / 100;
@@ -53,7 +53,7 @@ function part(key: string, label: string, faces: readonly Face[]) {
 }
 
 /**
- * The storm's sector lines as the maintained Arrakis geometry's `sectors` part has them, every stretch outside the polar territories, so an annotation that points at the sectors finds them on a saved board too.
+ * The storm's sector lines as Arrakis Official's `sectors` part has them, every stretch outside the polar territories, so an annotation that points at the sectors finds them on a saved board too.
  * A board without a polar sink draws them from the centre.
  */
 function sectorsPart(polarRings: readonly (readonly Point[])[]) {
@@ -73,7 +73,7 @@ function sectorsPart(polarRings: readonly (readonly Point[])[]) {
 
 /**
  * A saved board's territories as a Rulebook illustration's component geometry, in the frame of the board's published image.
- * Each territory is a part under its Arrakis-style key, each territory type a group part and the sector lines a `sectors` part, as the maintained Arrakis geometry has them;
+ * Each territory is a part under its Arrakis-style key, each territory type a group part and the sector lines a `sectors` part, as Arrakis Official has them;
  * a territory whose ID no key can spell is left out.
  */
 export function boardComponentGeometry(board: Board, widthPx: number, heightPx: number): ComponentGeometry {

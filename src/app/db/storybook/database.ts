@@ -4,6 +4,7 @@ import type { WithoutSystemFields } from 'convex/server';
 
 import type { Doc, TableNames } from '../../../../convex/_generated/dataModel';
 import schema from '../../../../convex/schema';
+import { componentGeometrySchema } from '../../../shared/asset-publishing/componentGeometry';
 import { publishingCustomCard } from '../../../shared/assets/fixtures/publishingCustomCard';
 import { publishingCustomDeckCardback } from '../../../shared/assets/fixtures/publishingDeckCardback';
 import { publishingRectangleTokenFace } from '../../../shared/assets/fixtures/publishingRectangleTokenFace';
@@ -16,6 +17,7 @@ import { assetPublishingFaction } from '../../../shared/factions/fixtures/assetP
 import { FactionInputSchema, FactionRowSlugSchema } from '../../../shared/factions/schema';
 import type { FactionInput } from '../../../shared/factions/schema';
 import { arrakisBoardCapture } from '../../../shared/play/fixtures/board';
+import arrakisOfficialGeometry from '../../../shared/rulebooks/fixtures/arrakis-official-geometry.json';
 import { rulesetInputSchema } from '../../../shared/rulesets/validation';
 import { slugify } from '../../../shared/slugify';
 import { SEED_REF_TOKEN } from './protocol';
@@ -185,6 +187,14 @@ function baselineDatabase(): StorybookDatabase {
   baseline.assets.push(
     asset({ type: 'board', data: { name: 'Arrakis Official', about: '', board: arrakisBoardCapture.definition } })
   );
+  /* Published like production's, so the pages that show the saved Arrakis board without a game get its face and territories. */
+  baseline.publication_assets.push({
+    asset_type: 'board',
+    asset_id: refText('asset:board:arrakis-official', SEED_REF_TOKEN),
+    cache_token: 'storybook-arrakis-official',
+    published_at: 1,
+    component_geometry: componentGeometrySchema.parse(arrakisOfficialGeometry),
+  });
   baseline.ruleset_asset_slots.push(
     { ruleset_id: ref(RULESET_KEY), asset_id: ref('asset:board:arrakis-official'), slot: 'board' },
     { ruleset_id: ref(RULESET_KEY), asset_id: ref(deck.$key!), slot: 'treachery' },

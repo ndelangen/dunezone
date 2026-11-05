@@ -1,10 +1,10 @@
 import { componentGeometrySchema } from '@shared/asset-publishing/componentGeometry';
 import { RULEBOOK_ANNOTATION_COLORS } from '@shared/rulebooks/assetExplainerAnnotations';
-import { resolveRulebookBoardDefinition } from '@shared/rulebooks/boardDefinitions';
+import arrakisOfficialGeometry from '@shared/rulebooks/fixtures/arrakis-official-geometry.json';
+import { ARRAKIS_OFFICIAL } from '@shared/rulebooks/fixtures/arrakisOfficial';
 import type { RulebookRenderBlockV1, RulebookRenderPageV1 } from '@shared/rulebooks/renderDocument';
 import type { RulebookSourceReference } from '@shared/rulebooks/sources';
 
-import arrakisOfficialGeometry from './fixtures/asset-explainer/arrakis-official-geometry.json';
 import arrakisOfficialImage from './fixtures/asset-explainer/arrakis-official.jpg?url';
 import leaderGeometry from './fixtures/asset-explainer/leader-geometry.json';
 import leaderImage from './fixtures/asset-explainer/leader.jpg?url';
@@ -68,7 +68,7 @@ export function leaderExplainerFixture(): Explainer {
 }
 
 export function boardExplainerFixture(): Explainer {
-  const board = resolveRulebookBoardDefinition('arrakis')!;
+  const board = ARRAKIS_OFFICIAL;
   const source = { kind: 'board', boardId: board.id } satisfies RulebookSourceReference;
   return {
     id: 'BRDX',

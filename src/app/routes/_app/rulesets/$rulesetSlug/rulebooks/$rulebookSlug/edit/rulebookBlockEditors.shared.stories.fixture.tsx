@@ -11,6 +11,7 @@ import { RulebookBlockCanvas } from '@game/rulebook/RulebookBlockRenderer';
 
 import { rulebookBlockEditors } from './rulebookBlockEditors';
 import type { RulebookBlockEditorValue } from './rulebookBlockEditors';
+import type { RulebookEditorReferences } from './rulebookVisualBlockEditors';
 
 export const textOnChange = fn();
 
@@ -27,13 +28,23 @@ function createBlockEditorStory<Kind extends keyof typeof rulebookBlockEditors>(
   Editor: ComponentType<{
     value: RulebookBlockEditorValue<Kind>;
     onChange: (nextValue: RulebookBlockEditorValue<Kind>) => void;
+    references?: RulebookEditorReferences;
   }>,
   reportChange: (nextValue: RulebookBlockEditorValue<Kind>) => void,
   createBlock: (value: RulebookBlockEditorValue<Kind>) => RulebookBlockDraft
 ) {
-  return function BlockEditorStory({ initialValue }: { initialValue: RulebookBlockEditorValue<Kind> }) {
+  return function BlockEditorStory({
+    initialValue,
+    references,
+  }: {
+    initialValue: RulebookBlockEditorValue<Kind>;
+    references?: RulebookEditorReferences;
+  }) {
     const [value, setValue] = useState(initialValue);
-    const block = projectRulebookDraftRenderBlock(createBlock(value), previewAssets);
+    const block = projectRulebookDraftRenderBlock(createBlock(value), {
+      ...previewAssets,
+      ...references?.assetsById,
+    });
     return (
       <Box p="lg">
         <DocumentEditorLayout ratio={4 / 3} fit="width">
@@ -42,6 +53,7 @@ function createBlockEditorStory<Kind extends keyof typeof rulebookBlockEditors>(
               <Text fw={700}>Editor</Text>
               <Editor
                 value={value}
+                references={references}
                 onChange={(nextValue) => {
                   reportChange(nextValue);
                   setValue(nextValue);

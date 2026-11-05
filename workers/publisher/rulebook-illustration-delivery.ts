@@ -12,8 +12,6 @@ import {
   RULEBOOK_ANNOTATION_COMPOSITOR_REVISION,
   RULEBOOK_ANNOTATION_MAX_IMAGE_BYTES,
 } from '../../src/shared/rulebooks/assetExplainerAnnotations';
-import { resolveRulebookBoardDefinition } from '../../src/shared/rulebooks/boardDefinitions';
-import { resolveRulebookBoardIllustration } from '../../src/shared/rulebooks/boardIllustrations';
 import type { RulebookResolvedSource } from '../../src/shared/rulebooks/sources';
 import { readComponentEnvelope } from './component-r2';
 import type { PublicAssetBucket } from './delivery';
@@ -61,31 +59,6 @@ async function imageInput(
   const source = resolution.source;
   if (source.status === 'unavailable' || source.status === 'pending') {
     return { source: unavailableSource, publicationIdentity: source.status };
-  }
-  if (source.status === 'board') {
-    const board = resolveRulebookBoardDefinition(source.boardId);
-    const illustration = board && resolveRulebookBoardIllustration(board.id);
-    if (
-      !board ||
-      !illustration ||
-      illustration.revision !== board.revision ||
-      reference?.kind !== 'board' ||
-      reference.boardId !== board.id
-    ) {
-      return { source: unavailableSource, publicationIdentity: 'missing-board' };
-    }
-    return {
-      source: {
-        status: 'ready',
-        reference,
-        name: board.name,
-        imageUrl: board.imageUrl,
-        geometry: board.geometry,
-        publicationRevision: board.revision,
-      },
-      imageDataUrl: `data:image/svg+xml;base64,${Buffer.from(illustration.svg).toString('base64')}`,
-      publicationIdentity: board.revision,
-    };
   }
   if (source.status === 'stock') {
     const illustration = assets && (await loadRulebookStaticIllustration(source.artworkId, assets));

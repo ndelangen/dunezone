@@ -1,4 +1,4 @@
-import { CENTER, RADIUS, retainedArrakisBoard } from '@shared/boards/geometry';
+import { CENTER, RADIUS } from '@shared/boards/geometry';
 import { propertyId } from '@shared/boards/schema';
 import { boardTerritoryAt } from '@shared/boards/territories';
 import type { GameSnapshot } from '@shared/play/protocol';
@@ -37,9 +37,12 @@ export function spiceBlow(piece: Piece): SpiceBlow | undefined {
 }
 
 export function territory(snapshot: GameSnapshot, piece: Pick<Piece, 'position'>): string | undefined {
-  const found = boardTerritoryAt(snapshot.board?.definition ?? retainedArrakisBoard(), [
-    CENTER[0] + (piece.position[0] * RADIUS) / BOARD_RADIUS,
-    CENTER[1] + (piece.position[2] * RADIUS) / BOARD_RADIUS,
-  ]);
+  const board = snapshot.board?.definition;
+  const found =
+    board &&
+    boardTerritoryAt(board, [
+      CENTER[0] + (piece.position[0] * RADIUS) / BOARD_RADIUS,
+      CENTER[1] + (piece.position[2] * RADIUS) / BOARD_RADIUS,
+    ]);
   return found && propertyId(found);
 }

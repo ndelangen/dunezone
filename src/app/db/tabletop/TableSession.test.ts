@@ -2565,6 +2565,7 @@ describe('the Spice blow command', () => {
     return {
       ...snapshot,
       stage: 'play',
+      board: arrakisBoardCapture,
       table: { ...snapshot.table, pieces: [...snapshot.table.pieces, ...cards] },
     };
   };

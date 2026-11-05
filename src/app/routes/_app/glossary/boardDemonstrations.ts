@@ -1,9 +1,6 @@
 import type { ComponentGeometry } from '@shared/asset-publishing/componentGeometry';
-import { RULEBOOK_BOARD_DEFINITIONS } from '@shared/rulebooks/boardDefinitions';
 
 import type { RulebookBoardScene } from '@game/rulebook/RulebookBoardScene';
-
-export const board = RULEBOOK_BOARD_DEFINITIONS[0]!;
 
 /* The board's eighteen sectors are 20° wedges around its centre, edged at every multiple of 20°; the inner edge clears the Polar Sink. */
 const SECTORS = 18;
@@ -22,24 +19,25 @@ export function sectorPath(sector: number) {
   return `M ${ringPoint(from, outer)} A ${outer} ${outer} 0 0 0 ${ringPoint(to, outer)} L ${ringPoint(to, inner)} A ${inner} ${inner} 0 0 1 ${ringPoint(from, inner)} Z`;
 }
 
-/* The maintained geometry outlines territories; the sector wedges are added beside them so the picture can light one by key. */
-export const parts: ComponentGeometry['parts'] = [
-  ...board.geometry.parts,
-  ...Array.from({ length: SECTORS }, (_, sector) => ({
-    key: `sector-${sector}`,
-    label: `Sector ${sector + 1}`,
-    x: 0,
-    y: 0,
-    width: 1,
-    height: 1,
-    highlight: { paths: [{ d: sectorPath(sector) }] },
-  })),
-];
+/* The board's geometry outlines territories; the sector wedges are added beside them so the picture can light one by key. */
+export function teachingParts(geometry: ComponentGeometry): ComponentGeometry['parts'] {
+  return [
+    ...geometry.parts,
+    ...Array.from({ length: SECTORS }, (_, sector) => ({
+      key: `sector-${sector}`,
+      label: `Sector ${sector + 1}`,
+      x: 0,
+      y: 0,
+      width: 1,
+      height: 1,
+      highlight: { paths: [{ d: sectorPath(sector) }] },
+    })),
+  ];
+}
 
 const GROUPS = new Set(['strongholds', 'rock', 'sand', 'sectors', 'polar']);
-const TERRITORIES = board.geometry.parts
-  .filter((part) => !GROUPS.has(part.key) && part.highlight)
-  .map((part) => part.key);
+const territories = (geometry: ComponentGeometry) =>
+  geometry.parts.filter((part) => !GROUPS.has(part.key) && part.highlight).map((part) => part.key);
 const STRONGHOLDS = ['arrakeen', 'carthag', 'tueks', 'tabr', 'habbanya'];
 const ORNITHOPTER_FLIGHT = ['carthag', 'tsimpo', 'plastic-basin', 'tabr'];
 
@@ -83,12 +81,20 @@ export type Frame = {
 
 export type Demonstration = { frames: (step: number, run: number) => Frame; steps: number; interval?: number };
 
-export const DEMONSTRATIONS: Record<string, Demonstration> = {
-  territory: {
-    steps: TERRITORIES.length,
-    interval: 550,
-    frames: (step, run) => ({ lit: [{ key: shuffled(TERRITORIES, run)[step]!, color: COLOR.territory }] }),
-  },
+/** What each board term demonstrates on this board. */
+export function demonstrationsFor(geometry: ComponentGeometry): Record<string, Demonstration> {
+  const keys = territories(geometry);
+  return {
+    territory: {
+      steps: keys.length,
+      interval: 550,
+      frames: (step, run) => ({ lit: [{ key: shuffled(keys, run)[step]!, color: COLOR.territory }] }),
+    },
+    ...DEMONSTRATIONS,
+  };
+}
+
+const DEMONSTRATIONS: Record<string, Demonstration> = {
   sector: {
     steps: SECTORS,
     interval: 500,

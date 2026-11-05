@@ -1,8 +1,8 @@
 /* @jsxImportSource ../../../widgets/tabletop/three-jsx */
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
+import { HOMEPAGE_TERRITORY_POINTS } from '@shared/homepage/setup';
 import type { TablePiece } from '@shared/play/model';
 import {
-  BOARD_RADIUS,
   BOARD_RIM_RADIUS,
   CARRIED_BASE_Y,
   contactShadowHeightAt,
@@ -10,7 +10,6 @@ import {
   TROOP_TOP_RADIUS,
 } from '@shared/play/tableGeometry';
 import { isTroopStack } from '@shared/play/troop';
-import board from '@shared/rulebooks/boards/arrakis.json';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
 import type { RefObject } from 'react';
 import type { Camera, Object3D } from 'three';
@@ -24,7 +23,7 @@ import type { TabletopContextValue } from '@app/widgets/tabletop/TabletopContext
 import { TabletopPieceLayers } from '@app/widgets/tabletop/TabletopScene';
 
 const AVATAR = '/homepage-table/bob.jpg';
-const CARTHAG = board.geometry.parts.find((part) => part.key === 'carthag')!;
+const CARTHAG = HOMEPAGE_TERRITORY_POINTS.carthag;
 const smooth = (value: number) => {
   const t = Math.min(1, Math.max(0, value));
   return t * t * (3 - 2 * t);
@@ -147,11 +146,7 @@ function createVisit(
     source: piece,
     visual,
     origin: new Vector3(...piece.position),
-    target: new Vector3(
-      (CARTHAG.x + CARTHAG.width / 2 - 0.5) * BOARD_RADIUS * 2,
-      CARRIED_BASE_Y + 0.3,
-      (CARTHAG.y + CARTHAG.height / 2 - 0.5) * BOARD_RADIUS * 2
-    ),
+    target: new Vector3(CARTHAG[0], CARRIED_BASE_Y + 0.3, CARTHAG[1]),
     started: performance.now(),
   };
 }

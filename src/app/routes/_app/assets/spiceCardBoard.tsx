@@ -22,7 +22,7 @@ function LinkedBoardRead({
   return render(useSpiceCardBoard(link.asset_id, tokenIds));
 }
 
-/** Reads the draft's linked board and tokens only while it links one; a card on the classic map holds no read. */
+/** Reads the draft's linked board and tokens only while it links one; a card without one holds no read. */
 export function SpiceBoardRead({ draft, render }: { draft: SpiceDraft; render: (read: SpiceBoardRead) => ReactNode }) {
   return draft.board ? <LinkedBoardRead link={draft.board} render={render} /> : render(undefined);
 }

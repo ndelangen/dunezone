@@ -1,5 +1,6 @@
 import { rulebookContentsV1Schema } from '@shared/rulebooks/contents';
 import { createRulebookStarterContents } from '@shared/rulebooks/fixtures';
+import { ARRAKIS_OFFICIAL } from '@shared/rulebooks/fixtures/arrakisOfficial';
 import { projectRulebookRenderDocument } from '@shared/rulebooks/projectRenderDocument';
 import type { RulebookResolvedFactionsById } from '@shared/rulebooks/references';
 import { DEFAULT_RULEBOOK_SETTINGS } from '@shared/rulebooks/settings';
@@ -25,6 +26,18 @@ import {
 } from './rulebookReaderLinks';
 import type { RulebookTextLocator } from './rulebookReaderLinks';
 
+/* The saved board the scenes name as 'arrakis', resolved as the reader resolves it. */
+const boards = {
+  arrakis: {
+    assetId: 'arrakis',
+    name: ARRAKIS_OFFICIAL.name,
+    type: 'board',
+    imageUrl: ARRAKIS_OFFICIAL.imageUrl,
+    geometry: ARRAKIS_OFFICIAL.geometry,
+    publicationRevision: ARRAKIS_OFFICIAL.revision,
+  },
+};
+
 type RulebookContentsDraft = z.input<typeof rulebookContentsV1Schema.out>;
 
 function resolveFinalPageSelection(page: RulebookContentsDraft['pagesById'][string], exact: string, pageNumber = 1) {
@@ -42,7 +55,7 @@ function resolveFinalPageSelection(page: RulebookContentsDraft['pagesById'][stri
     pageOrder: pageNumber === 2 ? ['CVER', page.id] : [page.id],
     pagesById: pageNumber === 2 ? { CVER: cover, [page.id]: page } : { [page.id]: page },
   });
-  const projected = projectRulebookRenderDocument(draft, {}, DEFAULT_RULEBOOK_SETTINGS);
+  const projected = projectRulebookRenderDocument(draft, boards, DEFAULT_RULEBOOK_SETTINGS);
   return resolveRulebookTextLocator(draft, projected, {
     status: 'valid',
     locator: { v: 1, path: [{ kind: 'page', id: page.id }], exact },
@@ -177,7 +190,7 @@ describe('Final Rulebook reading order', () => {
           },
         },
       });
-      const projected = projectRulebookRenderDocument(contents, {}, DEFAULT_RULEBOOK_SETTINGS, {
+      const projected = projectRulebookRenderDocument(contents, boards, DEFAULT_RULEBOOK_SETTINGS, {
         left: { factionId: 'left', name: 'CHOAM', color: '#981b28', token: factionTokenFixtures.choam },
       });
       const markup = renderToStaticMarkup(
@@ -247,7 +260,7 @@ describe('Final Rulebook reading order', () => {
         },
       },
     });
-    const projected = projectRulebookRenderDocument(contents, {}, DEFAULT_RULEBOOK_SETTINGS);
+    const projected = projectRulebookRenderDocument(contents, boards, DEFAULT_RULEBOOK_SETTINGS);
     const markup = renderToStaticMarkup(
       createElement(RulebookPageRenderer, { page: projected.pagesById.PAGE!, settings: DEFAULT_RULEBOOK_SETTINGS })
     );
@@ -321,7 +334,7 @@ describe('Final Rulebook reading order', () => {
         },
       },
     });
-    const projected = projectRulebookRenderDocument(contents, {}, DEFAULT_RULEBOOK_SETTINGS);
+    const projected = projectRulebookRenderDocument(contents, boards, DEFAULT_RULEBOOK_SETTINGS);
     const block = projected.pagesById.PAGE!.regions[0]!.blocks[0]!;
     if (failure === 'missing geometry' && block.kind === 'board-scene' && block.board.status === 'ready') {
       delete block.board.geometry;
@@ -388,7 +401,7 @@ describe('Final Rulebook reading order', () => {
         },
       },
     });
-    const projected = projectRulebookRenderDocument(draft, {}, DEFAULT_RULEBOOK_SETTINGS);
+    const projected = projectRulebookRenderDocument(draft, boards, DEFAULT_RULEBOOK_SETTINGS);
     for (const blockId of ['BRDD', 'MVMT']) {
       expect(
         resolveRulebookTextLocator(draft, projected, {
@@ -632,7 +645,7 @@ describe('Final Rulebook reading order', () => {
                 ...(appearance === 'tokens' ? { token: factionTokenFixtures.richese } : {}),
               },
             };
-      const projected = projectRulebookRenderDocument(contents, {}, DEFAULT_RULEBOOK_SETTINGS, factions);
+      const projected = projectRulebookRenderDocument(contents, boards, DEFAULT_RULEBOOK_SETTINGS, factions);
       const resolve = (exact: string) =>
         resolveRulebookTextLocator(contents, projected, {
           status: 'valid',
@@ -853,7 +866,7 @@ describe('Final Rulebook reading order', () => {
         },
       },
     });
-    const document = projectRulebookRenderDocument(contents, {}, DEFAULT_RULEBOOK_SETTINGS);
+    const document = projectRulebookRenderDocument(contents, boards, DEFAULT_RULEBOOK_SETTINGS);
     expect(
       resolveRulebookTextLocator(contents, document, {
         status: 'valid',
@@ -910,7 +923,7 @@ describe('Final Rulebook reading order', () => {
         },
       },
     });
-    const document = projectRulebookRenderDocument(contents, {}, DEFAULT_RULEBOOK_SETTINGS);
+    const document = projectRulebookRenderDocument(contents, boards, DEFAULT_RULEBOOK_SETTINGS);
     const resolve = (path: RulebookTextLocator['path'], exact: string) =>
       resolveRulebookTextLocator(contents, document, { status: 'valid', locator: { v: 1, path, exact } }).status;
     const page = { kind: 'page', id: 'PAGE' } as const;
@@ -939,7 +952,7 @@ describe('Final Rulebook reading order', () => {
 });
 
 const contents = createRulebookStarterContents();
-const renderDocument = projectRulebookRenderDocument(contents, {}, DEFAULT_RULEBOOK_SETTINGS);
+const renderDocument = projectRulebookRenderDocument(contents, boards, DEFAULT_RULEBOOK_SETTINGS);
 const movement = contents.pagesById.RULE!;
 const rule = movement.blocksById.MVVE!;
 const locator: RulebookTextLocator = {

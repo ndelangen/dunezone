@@ -1,4 +1,4 @@
-import { RULEBOOK_BOARD_DEFINITIONS } from '@shared/rulebooks/boardDefinitions';
+import { ARRAKIS_OFFICIAL } from '@shared/rulebooks/fixtures/arrakisOfficial';
 import type { RulebookRenderBlockV1 } from '@shared/rulebooks/renderDocument';
 
 import { factionTokenFixtures } from '../fixtures/factionTokens';
@@ -7,7 +7,7 @@ import { renderedBattleStep, revealPanel } from './RulebookBattlePlan.stories.fi
 const battle = renderedBattleStep(revealPanel, 0);
 
 export function boardSceneFixture(): Extract<RulebookRenderBlockV1, { kind: 'board-scene' }> {
-  const board = RULEBOOK_BOARD_DEFINITIONS[0]!;
+  const board = ARRAKIS_OFFICIAL;
   return {
     id: 'scene',
     kind: 'board-scene',

@@ -1,6 +1,6 @@
 import { expect, test } from 'vite-plus/test';
 
-import { retainedArrakisBoard } from '../../src/shared/boards/geometry';
+import { arrakisBoardCapture } from '../../src/shared/play/fixtures/board';
 import { restingPositionAt } from '../../src/shared/play/tableGeometry';
 import { footprintReach } from '../../src/shared/play/tablePhysics';
 import { fitsInside, innermostPoint, tableTerritories } from '../../src/shared/play/territoryFit';
@@ -18,7 +18,9 @@ const player = {
 test('a leader played from hand into a territory packs around a stack another player is carrying, and their carry still lands', () => {
   const snapshot = hostedFixturePlan.snapshot(hostedFixturePlan.roster);
   const troops = snapshot.table.pieces.find((piece) => piece.kind === 'force' && !piece.inventory && !piece.locked)!;
-  const basin = tableTerritories(retainedArrakisBoard()).find((territory) => territory.name === 'Imperial basin')!;
+  const basin = tableTerritories(arrakisBoardCapture.definition).find(
+    (territory) => territory.name === 'Imperial basin'
+  )!;
   const [x, z] = innermostPoint(basin);
   const placed = { ...troops, position: restingPositionAt([x, 0, z], troops) };
   const leader = {
@@ -35,7 +37,10 @@ test('a leader played from hand into a territory packs around a stack another pl
       factionInventories: { ...snapshot.factionInventories, atreides: [leader] },
     },
     () => ['atreides', 'harkonnen'],
-    (userId) => (userId === player.userId ? 'atreides' : undefined)
+    (userId) => (userId === player.userId ? 'atreides' : undefined),
+    undefined,
+    undefined,
+    () => arrakisBoardCapture.definition
   );
   const carrier = { ...player, connectionId: 'carrier', userId: 'carrier', viewerSeat: 'harkonnen' };
   table.begin(carrier, {
