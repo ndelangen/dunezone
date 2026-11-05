@@ -105,6 +105,7 @@ export function CallToAction({
           data-disabled={disabled || undefined}
           aria-disabled={disabled || busy || undefined}
           aria-describedby={disabled ? reasonId : undefined}
+          aria-busy={busy || undefined}
           onClick={(event: { preventDefault: () => void }) => {
             if (disabled || busy) {
               event.preventDefault();

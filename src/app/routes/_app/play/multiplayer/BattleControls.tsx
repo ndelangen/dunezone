@@ -1,5 +1,5 @@
 import { Group, Stack, Text } from '@mantine/core';
-/* oxlint-disable-next-line no-restricted-imports -- The battle disc's claims, outcomes and pieces are shaped parts of the board, not page actions. */
+/* oxlint-disable-next-line no-restricted-imports -- The battle disc's claims, outcome choices, cancel and pieces are shaped parts of the board, not page actions. */
 import { Button } from '@mantine/core';
 import type { ButtonProps } from '@mantine/core';
 import { Html } from '@react-three/drei/webgpu';

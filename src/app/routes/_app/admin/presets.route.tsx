@@ -449,7 +449,7 @@ function PresetEditor({ library }: Readonly<{ library: NonNullable<ReturnType<ty
                       </LabeledAction>
                       <LabeledAction
                         icon={<Undo2 size={16} />}
-                        disabledReason={saving || !changed ? 'Nothing to reset.' : undefined}
+                        disabledReason={saving ? 'The preset is saving.' : changed ? undefined : 'Nothing to reset.'}
                         onClick={() => {
                           reset(preset);
                           saveFamily.reset();

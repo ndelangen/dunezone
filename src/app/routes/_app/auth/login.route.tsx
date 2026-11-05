@@ -1,6 +1,6 @@
 import { useAuthActions } from '@convex-dev/auth/react';
 import { Stack, Text, TextInput, Tooltip, VisuallyHidden } from '@mantine/core';
-/* oxlint-disable-next-line no-restricted-imports -- The sign-in buttons wear each provider's own mark and layout, and the e2e setup finds the local one by its test id. */
+/* oxlint-disable-next-line no-restricted-imports -- Every button on this page wears the sign-in layout (provider marks, the full-width Go to Dune Zone), and the e2e setup finds the local one by its test id. */
 import { Button } from '@mantine/core';
 import { signInReturnFrom } from '@shared/authDestination';
 import type { SignInReturn } from '@shared/authDestination';

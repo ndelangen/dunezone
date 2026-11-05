@@ -126,9 +126,11 @@ function AccountManagement() {
                   <LabeledAction
                     icon={<ChevronLeft size={16} />}
                     disabledReason={
-                      page.isRefreshing || state.failedCursors.length === 1
-                        ? 'These are the first failed merges.'
-                        : undefined
+                      page.isRefreshing
+                        ? 'The page is loading.'
+                        : state.failedCursors.length === 1
+                          ? 'These are the first failed merges.'
+                          : undefined
                     }
                     onClick={() => dispatch({ failedCursors: state.failedCursors.slice(0, -1) })}
                   >
@@ -137,9 +139,11 @@ function AccountManagement() {
                   <LabeledAction
                     icon={<ChevronRight size={16} />}
                     disabledReason={
-                      page.isRefreshing || page.failedOperations.isDone
-                        ? 'These are the last failed merges.'
-                        : undefined
+                      page.isRefreshing
+                        ? 'The page is loading.'
+                        : page.failedOperations.isDone
+                          ? 'These are the last failed merges.'
+                          : undefined
                     }
                     onClick={() =>
                       dispatch({ failedCursors: [...state.failedCursors, page.failedOperations.continueCursor] })
@@ -303,14 +307,16 @@ function ProfilesTable({
           <Group>
             <LabeledAction
               icon={<ChevronLeft size={16} />}
-              disabledReason={isRefreshing || !canGoBack ? 'This is the first page.' : undefined}
+              disabledReason={isRefreshing ? 'The page is loading.' : canGoBack ? undefined : 'This is the first page.'}
               onClick={onPrevious}
             >
               Previous
             </LabeledAction>
             <LabeledAction
               icon={<ChevronRight size={16} />}
-              disabledReason={isRefreshing || profiles.isDone ? 'This is the last page.' : undefined}
+              disabledReason={
+                isRefreshing ? 'The page is loading.' : profiles.isDone ? 'This is the last page.' : undefined
+              }
               onClick={onNext}
             >
               Next

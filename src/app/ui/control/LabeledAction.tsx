@@ -17,6 +17,8 @@ export interface LabeledActionProps extends Pick<ButtonProps, 'size' | 'justify'
    * It must start with the visible words, so a reader who says what they see still reaches it.
    */
   accessibleName?: string;
+  /** The id of help text on the page that describes the action, such as the line under it; a disabled reason joins it. */
+  describedBy?: string;
   /** The glyph before the words. Required: a worded button without one is the text-only button the app does not use. Marked decorative here, since the words carry the meaning. */
   icon: ReactNode;
   /** The reader-facing meaning, in IconAction's words; the colour follows from it. */
@@ -64,6 +66,7 @@ export function LabeledAction({
   disabledReason,
   busy = false,
   accessibleName,
+  describedBy,
   pressed,
   onClick,
   renderRoot: routerRoot,
@@ -110,7 +113,8 @@ export function LabeledAction({
           form={form}
           data-disabled={disabled || undefined}
           aria-disabled={disabled || busy || undefined}
-          aria-describedby={disabled ? reasonId : undefined}
+          aria-describedby={[describedBy, disabled ? reasonId : undefined].filter(Boolean).join(' ') || undefined}
+          aria-busy={busy || undefined}
           /* Keeps its type so a form's Enter lands here and stops, the way a disabled submit button stops it. */
           onClick={(event) => {
             if (disabled || busy) {

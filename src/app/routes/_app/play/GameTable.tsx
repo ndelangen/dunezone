@@ -205,6 +205,7 @@ function SelectedPieceControl() {
       action={
         <LabeledAction
           icon={<FlipHorizontal2 size={16} />}
+          describedBy={helpId}
           busy={control.isFlipping}
           disabledReason={
             table.canHandleTable

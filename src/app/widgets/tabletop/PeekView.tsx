@@ -313,14 +313,12 @@ function DeckCard({ piece, stored, slot, placement, carrying, move, pull }: Deck
       >
         <Face piece={piece} item={item} height={DECK_CARD_HEIGHT_PX} />
       </div>
-      <LabeledAction
-        size="compact-xs"
-        icon={<ArrowUpFromLine size={12} />}
-        disabledReason={pull ? undefined : 'This pile cannot be changed right now.'}
-        onClick={() => pull?.(piece.id, stored)}
-      >
-        Pull out
-      </LabeledAction>
+      {/* One per card, so a pile that cannot change shows none rather than a column of dead tab stops. */}
+      {pull ? (
+        <LabeledAction size="compact-xs" icon={<ArrowUpFromLine size={12} />} onClick={() => pull(piece.id, stored)}>
+          Pull out
+        </LabeledAction>
+      ) : null}
     </li>
   );
 }

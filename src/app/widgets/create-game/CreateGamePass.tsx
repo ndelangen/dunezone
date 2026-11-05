@@ -198,6 +198,16 @@ export function CreateGamePass({
       nameReady,
       summary: `${createdGameName(draft)}, ${chosen?.name}, ${draft.minimumPlayers} seats, ${draft.lastTurn} turns.`,
     });
+  /* The line under the button reads the summary once the pass is filled in; the button's reason never does. */
+  const summaryShown = !disabledReason && !notice && chosen !== undefined && objection === null && nameReady;
+  const blockedReason =
+    canCreate || pending
+      ? undefined
+      : summaryShown
+        ? rulesetCheck === 'checking'
+          ? 'Checking the ruleset first.'
+          : 'Finish the game pass first.'
+        : waiting;
 
   return (
     <>
@@ -246,12 +256,7 @@ export function CreateGamePass({
                 />
                 {shownFailure ? <FormError title="Not created">{shownFailure}</FormError> : null}
                 <Stack gap="xs">
-                  <CallToAction
-                    submit
-                    size="lg"
-                    busy={pending}
-                    disabledReason={canCreate || pending ? undefined : waiting}
-                  >
+                  <CallToAction submit size="lg" busy={pending} disabledReason={blockedReason}>
                     Create game
                   </CallToAction>
                   <Text size="sm" c="dimmed" ta="center" role="status">
