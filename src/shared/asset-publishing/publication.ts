@@ -244,7 +244,24 @@ const PUBLICATION_ASSET_DATA_SCHEMAS = {
  */
 export function parsePublicationAssetData(assetType: PublicationAssetType, data: unknown): unknown {
   /* A job stored before the emblem rename still names `logo`; it reads as the payload it stands for (see src/shared/legacyEmblem.ts). */
-  return PUBLICATION_ASSET_DATA_SCHEMAS[assetType].parse(renameLegacyEmblems(data));
+  const renamed = renameLegacyEmblems(data);
+  return PUBLICATION_ASSET_DATA_SCHEMAS[assetType].parse(
+    assetType === SPICE_CARD_ASSET_TYPE ? withoutLegacyHighlights(renamed) : renamed
+  );
+}
+
+/**
+ * A Spice capture without the classic highlight list its card no longer has.
+ * The strip skipped jobs mid-capture on 5 November 2026, so one that later failed and waits for a retry may still carry it;
+ * no card draws it.
+ */
+function withoutLegacyHighlights(data: unknown): unknown {
+  const card = (data as { card?: unknown } | null)?.card;
+  if (!card || typeof card !== 'object' || !Object.hasOwn(card, 'highlights')) {
+    return data;
+  }
+  const { highlights: _highlights, ...rest } = card as Record<string, unknown>;
+  return { ...(data as object), card: rest };
 }
 
 const publicationJobRequestSchema = z.strictObject({

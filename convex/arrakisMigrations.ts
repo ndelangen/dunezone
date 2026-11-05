@@ -147,8 +147,8 @@ export const arrakis_rulebook_edition_contents_verify_v1 = verifyContents('ruleb
 
 /*
  * The highlight list no card draws any more is removed from every stored card and its queued captures (#1971).
- * The strip sorts before both verifies and after `arrakis_spice_cards_v1`, so on a snapshot replay the move runs first and these find nothing left.
- * Release 3 removes the field from the schema behind a narrow entry requiring the strip and both verifies.
+ * They ran in production on 5 November 2026, and `spice_highlights_narrow` removed the field from the schema behind them.
+ * Production's rows have no list left, so a replay finds nothing; a snapshot cut before the move ran cannot load (see docs/convex-migrations.md).
  */
 
 /** Stored card data without its `highlights` key; every other key is kept exactly as stored. */

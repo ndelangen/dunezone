@@ -184,7 +184,11 @@ bun run migrations:static-check
   and the removal of the Spice `highlights` list (#1971). That removal takes three releases: the field became
   optional, then `arrakis_spice_highlights_strip_v1` and its two verifies clear it from cards and queued
   captures, then `spice_highlights_narrow`, requiring all three, removed it from the schema. The Spice card
-  move and its verify read that list, so their bodies became no-ops and their ids stay.
+  move read that list, so its body became a no-op; its verify checked that every live card links a board,
+  which no longer holds since a card may be saved without one, so it checks nothing. Both ids stay until a
+  weekly snapshot is cut after 5 November 2026, then they can be pruned. A snapshot cut before that still
+  holds cards whose highlight list names territories, which the strip keeps and its verify refuses; load
+  `--data=fixture` or a newer `--snapshot-file` instead.
   All share the one migrations component and `MIGRATION_IDS`, which spreads each module's own ID map, so the
   guard script runs them alike. The `migrations:run` runner only prefixes `migrations:`, so name a migration in
   another module in full by hand, e.g. `{"fn":"catalogueMigrations:catalogue_entries_rulesets_v1"}`.
