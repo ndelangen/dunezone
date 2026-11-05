@@ -52,7 +52,7 @@ export function PickerField({
   chosen,
   chooseLabel,
   onClear,
-  clearLabel = `Clear ${title.toLowerCase()}`,
+  clearLabel,
   picker,
   loadingLabel,
   opened: controlled,
@@ -84,7 +84,7 @@ export function PickerField({
               /* Sits over the field's right section where the chevron was, as a clearable select's X does; a sibling, since a button cannot hold a button. */
               <Box pos="absolute" top="50%" right={4} style={{ transform: 'translateY(-50%)' }}>
                 <IconAction
-                  label={clearLabel}
+                  label={clearLabel ?? `Clear ${title.toLowerCase()}`}
                   size="sm"
                   emphasis="quiet"
                   intent="neutral"
