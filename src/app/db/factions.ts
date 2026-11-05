@@ -102,10 +102,10 @@ type ParsedCatalogue<Raw> = Raw extends unknown
   : never;
 
 /** A browsed page of the catalogue: counts, numbered pages, a chosen order. */
-export type FactionCatalogueBrowseData = ParsedCatalogue<Exclude<FactionCatalogueRaw, { mode: 'search' }>>;
+type FactionCatalogueBrowseData = ParsedCatalogue<Exclude<FactionCatalogueRaw, { mode: 'search' }>>;
 
 /** A searched catalogue: the best matches first, and more by asking for a larger limit. */
-export type FactionCatalogueSearchData = ParsedCatalogue<Extract<FactionCatalogueRaw, { mode: 'search' }>>;
+type FactionCatalogueSearchData = ParsedCatalogue<Extract<FactionCatalogueRaw, { mode: 'search' }>>;
 
 /** What `factions.catalogue` answers, parsed: a browsed page, or a search, told apart by `mode`. */
 export type FactionCataloguePageData = FactionCatalogueBrowseData | FactionCatalogueSearchData;

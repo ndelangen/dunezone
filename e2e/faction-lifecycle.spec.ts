@@ -221,8 +221,8 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
       .getByRole('button', { name: /^E2EBaselineRuleset/ })
       .click();
     await page.press('body', 'Escape');
-    await expect(page.getByRole('heading', { name: 'No factions found' })).toBeVisible();
-    await page.getByRole('button', { name: 'Reset filters & search' }).click();
+    await expect(page.getByRole('heading', { name: 'Nothing matches' })).toBeVisible();
+    await page.getByRole('button', { name: 'Reset filters and search' }).click();
 
     await expect(updatedFaction).toBeVisible();
     await expect(otherFaction).toBeVisible();

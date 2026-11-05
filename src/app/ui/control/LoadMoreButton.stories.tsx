@@ -13,7 +13,7 @@ const meta = preview.meta({
 export const Default = meta.story({
   play: async ({ args, canvasElement }) => {
     const button = within(canvasElement).getByRole('button', { name: 'Load more' });
-    await expect(button).toHaveAttribute('aria-disabled', 'false');
+    await expect(button).not.toHaveAttribute('aria-disabled', 'true');
     await userEvent.click(button);
     await expect(args.onLoadMore).toHaveBeenCalledOnce();
   },

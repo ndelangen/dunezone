@@ -1,15 +1,14 @@
-import { Button, Select, Stack, Text, Title, VisuallyHidden } from '@mantine/core';
+import { Select, Stack, Text } from '@mantine/core';
 import { ASSET_CATALOGUE_PAGE_SIZE, parseAssetCatalogueSearch } from '@shared/assets/catalogueSearch';
 import type { AssetCatalogueSearch } from '@shared/assets/catalogueSearch';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
 import type { AssetTypeDefinition } from '@shared/assets/types';
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import type { NotFoundRouteProps } from '@tanstack/react-router';
+import { EmptyResults, PastTheEnd } from '@ui/block/EmptyResults';
 import { PageTitle } from '@ui/block/PageTitle';
 import { CallToAction } from '@ui/control/CallToAction';
-import { CataloguePager } from '@ui/control/CataloguePager';
 import { IconAction } from '@ui/control/IconAction';
-import { LoadMoreButton } from '@ui/control/LoadMoreButton';
 import { SearchRefine } from '@ui/control/SearchRefine';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { TileGrid } from '@ui/list/TileGrid';
@@ -25,6 +24,7 @@ import { useFocusFirstNewRow, useGrowingLimit, useGrowingSearch } from '@app/rou
 import { publicPageHead } from '@app/routes/publicPage';
 import { useSearchDraft } from '@app/routes/searchDraft';
 import { AssetCatalogueTile } from '@app/widgets/asset-face/AssetCatalogueTile';
+import { CatalogueResults } from '@app/widgets/catalogue-results/CatalogueResults';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import styles from './index.module.css';
@@ -62,12 +62,6 @@ const SEARCH_STEP = ASSET_CATALOGUE_PAGE_SIZE;
 
 /** The tiles' links, as the grid renders them, in their order. */
 const TILE_LINK = 'a[href^="/assets/"]';
-
-/** A browsed page of the type: counts, numbered pages, a chosen order. */
-type BrowsedType = Exclude<AssetBrowsePageData, { mode: 'search' }>;
-
-/** A searched type: the best matches first, and more by asking for a larger limit. */
-type SearchedType = Extract<AssetBrowsePageData, { mode: 'search' }>;
 
 /** The query's arguments at one limit: a search asks for its best matches up to it, a browsed page ignores it. */
 function catalogueQueryArgs(args: AssetBrowseArgs, limit: number): AssetBrowseArgs {
@@ -238,18 +232,16 @@ function AssetTypePage() {
         </PageLayout.Toolbar>
       ) : null}
       <PageLayout.Content>
-        <Surface padding="xl">
-          <TypeContent
-            definition={definition}
-            type={validType}
-            plural={plural}
-            data={data}
-            loading={loading}
-            loaded={loaded}
-            onLoadMore={loadMore}
-            ref={grid}
-          />
-        </Surface>
+        <TypeContent
+          definition={definition}
+          type={validType}
+          plural={plural}
+          data={data}
+          loading={loading}
+          loaded={loaded}
+          onLoadMore={loadMore}
+          ref={grid}
+        />
       </PageLayout.Content>
     </PageLayout>
   );
@@ -271,161 +263,62 @@ type TypeContentProps = {
 function TypeContent({ definition, type, plural, data, loading, loaded, onLoadMore, ref }: TypeContentProps) {
   if (definition.status === 'planned') {
     return (
-      <Stack gap="xs" align="center">
-        <Title order={2}>Planned</Title>
-        <Text c="dimmed" ta="center">
-          {definition.label} are on the roadmap. This type cannot hold assets yet.
-        </Text>
-      </Stack>
+      <Surface padding="xl">
+        <EmptyResults title="Planned">{`${definition.label} are on the roadmap. This type cannot hold assets yet.`}</EmptyResults>
+      </Surface>
     );
   }
   if (data.typeTotal === 0) {
     return (
-      <Stack gap="xs" align="center">
-        <Title order={2}>Nothing here yet</Title>
-        <Text c="dimmed" ta="center">
-          No {plural} have been created so far.
-        </Text>
-      </Stack>
+      <Surface padding="xl">
+        <EmptyResults title="Nothing here yet">{`No ${plural} have been created so far.`}</EmptyResults>
+      </Surface>
     );
   }
-  if ('mode' in data) {
-    return (
-      <SearchedTiles data={data} plural={plural} loading={loading} loaded={loaded} onLoadMore={onLoadMore} ref={ref} />
-    );
-  }
-  return <BrowsedTiles data={data} type={type} label={definition.label} plural={plural} />;
-}
-
-/** No match among the assets checked; a capped search did not check them all, so another word may still find one. */
-function NothingMatches({ plural, capped }: { plural: string; capped: boolean }) {
   return (
-    <Stack gap="xs" align="center">
-      <Title order={2}>Nothing matches</Title>
-      <Text c="dimmed" ta="center">
-        No {singularLabel(plural)} matches this search.
-      </Text>
-      {capped ? (
-        <Text size="xs" c="dimmed" ta="center">
-          Only the first matches of this search were checked. Add a word to narrow it.
-        </Text>
-      ) : null}
-    </Stack>
+    <CatalogueResults
+      results={
+        'mode' in data
+          ? { kind: 'search', ...data, loading, loaded, onLoadMore }
+          : {
+              kind: 'browse',
+              ...data,
+              pagerLabel: `${definition.label} pages`,
+              pageLinkProps: (page) => assetTypePageLink(type, page),
+            }
+      }
+      noun={plural}
+      noMatches={`No ${singularLabel(plural)} matches this search.`}
+      renderEntries={(entries) => (
+        <Surface padding="xl">
+          <TileGrid>
+            {entries.map((entry) => (
+              <AssetCatalogueTile key={entry.id} entry={entry} />
+            ))}
+          </TileGrid>
+        </Surface>
+      )}
+      ref={ref}
+    />
   );
 }
 
-/** One page of the browsed type, with its pager. */
-function BrowsedTiles({
-  data,
-  type,
-  label,
-  plural,
-}: {
-  data: BrowsedType;
-  type: string;
-  label: string;
-  plural: string;
-}) {
-  if (data.total === 0) {
-    return <NothingMatches plural={plural} capped={!data.complete} />;
-  }
-  if (data.entries.length === 0) {
-    return <PastTheEnd type={type} pageCount={data.pageCount} />;
-  }
-  return (
-    <Stack gap="lg">
-      <TileGrid>
-        {data.entries.map((entry) => (
-          <AssetCatalogueTile key={entry.id} entry={entry} />
-        ))}
-      </TileGrid>
-      <CataloguePager
-        page={data.page}
-        pageCount={data.pageCount}
-        pageSize={data.pageSize}
-        total={data.total}
-        complete={data.complete}
-        noun={plural}
-        label={`${label} pages`}
-        pageLinkProps={(page) => ({
-          component: Link,
-          to: '/assets/$type',
-          params: { type },
-          search: pageSearch(page),
-        })}
-      />
-    </Stack>
-  );
-}
-
-/**
- * The best matches of a search, and a "Load more" that asks for a longer grid while there is one: no count and no pages.
- * When the longer grid arrives, focus moves to its first new tile, so a keyboard reader carries on from where the grid grew.
- */
-function SearchedTiles({
-  data,
-  plural,
-  loading,
-  loaded,
-  onLoadMore,
-  ref,
-}: {
-  data: SearchedType;
-  plural: string;
-  loading: boolean;
-  /** Whether the longer grid asked for has arrived. */
-  loaded: boolean;
-  onLoadMore: () => void;
-  ref: Ref<HTMLDivElement>;
-}) {
-  if (data.entries.length === 0) {
-    return <NothingMatches plural={plural} capped={data.capped} />;
-  }
-  return (
-    <Stack gap="lg" aria-busy={loading} ref={ref}>
-      <TileGrid>
-        {data.entries.map((entry) => (
-          <AssetCatalogueTile key={entry.id} entry={entry} />
-        ))}
-      </TileGrid>
-      {/* The tiles say how many arrived; this says only that they did, so a reader hears the grid grow without a count the page never shows. */}
-      <VisuallyHidden role="status" aria-live="polite">
-        {loaded ? `More ${plural} loaded` : null}
-      </VisuallyHidden>
-      {data.hasMore ? <LoadMoreButton loading={loading} onLoadMore={onLoadMore} /> : null}
-      {data.capped ? (
-        <Text c="dimmed" ta="center">
-          That's as far as this search goes. Add a word to narrow it.
-        </Text>
-      ) : null}
-    </Stack>
-  );
-}
-
-/** A page past the end, from an old link or a list that shrank: say where the results end and link there. */
-function PastTheEnd({ type, pageCount }: { type: string; pageCount: number }) {
-  return (
-    <Stack gap="sm" align="center">
-      <Title order={2}>Nothing on this page</Title>
-      <Text c="dimmed">
-        {pageCount === 1 ? 'These results fit on one page.' : `These results end on page ${pageCount}.`}
-      </Text>
-      <Button
-        variant="default"
-        renderRoot={(props) => <Link {...props} to="/assets/$type" params={{ type }} search={pageSearch(pageCount)} />}
-      >
-        {pageCount === 1 ? 'Go to the results' : `Go to page ${pageCount}`}
-      </Button>
-    </Stack>
-  );
+/** The link to one page of a type's browsed list. */
+function assetTypePageLink(type: string, page: number) {
+  return { component: Link, to: '/assets/$type', params: { type }, search: pageSearch(page) };
 }
 
 function AssetTypePastTheEnd({ data }: NotFoundRouteProps) {
   const { type } = Route.useParams();
   const pageCount = (data as { pageCount?: number } | undefined)?.pageCount ?? 1;
+  const label = isAssetType(type) ? ASSET_TYPES[type].label : 'Assets';
   return (
-    <PageMessage title={isAssetType(type) ? ASSET_TYPES[type].label : 'Assets'}>
-      <PastTheEnd type={type} pageCount={pageCount} />
+    <PageMessage title={label}>
+      <PastTheEnd
+        pageCount={pageCount}
+        noun={label.toLowerCase()}
+        pageLinkProps={(page) => assetTypePageLink(type, page)}
+      />
     </PageMessage>
   );
 }
